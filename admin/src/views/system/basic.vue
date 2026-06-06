@@ -77,6 +77,13 @@
                 <el-form-item label="分享引导语">
                   <el-input v-model="miniProgramForm.shareGuide" placeholder="用户分享时显示的文案" maxlength="50" show-word-limit />
                 </el-form-item>
+
+                <div class="action-bar">
+                  <span class="upload-hint">填写代码上传密钥后，请点击右侧按钮保存到服务器</span>
+                  <el-button type="primary" size="small" :loading="miniSaving" @click="handleSaveMiniProgram">
+                    {{ miniSaving ? '保存中...' : '保存小程序配置' }}
+                  </el-button>
+                </div>
               </el-form>
             </div>
 
@@ -588,7 +595,6 @@ const roleList = reactive<RoleItem[]>([
 const miniRules: FormRules = {
   appName: [{ required: true, message: '请输入小程序名称', trigger: 'blur' }],
   appId: [{ required: true, message: '请输入AppID', trigger: 'blur' }],
-  appSecret: [{ required: true, message: '请输入AppSecret', trigger: 'blur' }],
 }
 
 const paymentRules: FormRules = {
@@ -739,13 +745,12 @@ async function handleSaveAll() {
 }
 
 async function handleSaveMiniProgram() {
-  if (!hasMiniProgramChanges.value) {
-    ElMessage.info('当前没有需要保存的修改')
-    return
-  }
-
   const valid = await miniFormRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (!miniProgramForm.uploadKey?.includes('PRIVATE KEY')) {
+    ElMessage.warning('请粘贴完整的代码上传密钥（需包含 BEGIN/END PRIVATE KEY）')
+    return
+  }
 
   miniSaving.value = true
   try {
