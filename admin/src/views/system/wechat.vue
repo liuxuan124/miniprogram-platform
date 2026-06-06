@@ -204,7 +204,7 @@
           </el-form-item>
 
           <el-form-item label="退款回调地址" prop="refundNotifyUrl">
-            <el-input v-model="payFormData.refundNotifyUrl" placeholder="https://yourdomain.com/api/v1/wechat/refund/notify" />
+            <el-input v-model="payFormData.refundNotifyUrl" placeholder="https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify" />
           </el-form-item>
 
           <div class="pay-actions">
@@ -426,7 +426,7 @@ const payFormData = reactive<PayConfigForm>({
   certSerialNo: '',
   certUploaded: false,
   paymentNotifyUrl: '',
-  refundNotifyUrl: '',
+  refundNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify',
 })
 
 const payFormRules: FormRules = {

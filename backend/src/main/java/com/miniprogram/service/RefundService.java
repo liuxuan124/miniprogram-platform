@@ -19,4 +19,9 @@ public interface RefundService extends IService<Refund> {
      * 执行退款（调用微信退款API）
      */
     void executeRefund(Long refundId);
+
+    /**
+     * 微信退款回调处理
+     */
+    void handleWxRefundNotify(String jsonData);
 }

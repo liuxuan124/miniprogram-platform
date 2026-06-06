@@ -501,7 +501,7 @@ const paymentForm = reactive<PaymentForm>({
   certSerialNo: '',
   certUploaded: false,
   paymentNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-notify',
-  refundNotifyUrl: '',
+  refundNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify',
 })
 
 const logisticsForm = reactive<LogisticsForm>({
