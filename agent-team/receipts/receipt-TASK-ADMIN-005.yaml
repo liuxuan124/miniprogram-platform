@@ -1,0 +1,11 @@
+task_id: TASK-ADMIN-005
+agent: admin-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: admin/src/views/commerce/index.vue
+    desc: 商品管理页面
+  - path: admin/src/api/product.ts
+    desc: 商品API
+  - path: admin/src/types/product.ts
+    desc: 商品类型定义

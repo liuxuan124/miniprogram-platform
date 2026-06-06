@@ -1,0 +1,11 @@
+<svg width="600" height="420" viewBox="0 0 600 420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="420" rx="28" fill="#d7b56d"/>
+  <rect x="72" y="66" width="456" height="288" rx="30" fill="#10231f"/>
+  <circle cx="194" cy="180" r="64" fill="#f6f7f4"/>
+  <path d="M156 274 C174 238 216 238 236 274" stroke="#f6f7f4" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <rect x="310" y="128" width="138" height="18" rx="9" fill="#f6f7f4"/>
+  <rect x="310" y="174" width="166" height="14" rx="7" fill="#9fb0ab"/>
+  <rect x="310" y="210" width="122" height="14" rx="7" fill="#9fb0ab"/>
+  <rect x="310" y="258" width="110" height="38" rx="19" fill="#d7b56d"/>
+  <text x="72" y="394" fill="#10231f" font-size="34" font-family="Arial, sans-serif" font-weight="700">Annual Advisory Member</text>
+</svg>

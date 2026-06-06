@@ -1,0 +1,47 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/content-list/content-list",
+    "pages/content-detail/content-detail",
+    "pages/activity-list/activity-list",
+    "pages/activity-detail/activity-detail",
+    "pages/appointment-calendar/appointment-calendar",
+    "pages/appointment-book/appointment-book",
+    "pages/member-center/member-center",
+    "pages/coupon-list/coupon-list",
+    "pages/product-list/product-list",
+    "pages/product-detail/product-detail",
+    "pages/category/category",
+    "pages/cart/cart",
+    "pages/order-create/order-create",
+    "pages/order-list/order-list",
+    "pages/order-detail/order-detail",
+    "pages/ai-chat/ai-chat",
+    "pages/mine/mine",
+    "pages/login/login"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#13231a",
+    "navigationBarTitleText": "小程序运营平台",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#13231a",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

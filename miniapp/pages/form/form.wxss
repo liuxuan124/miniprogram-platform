@@ -1,0 +1,275 @@
+/* pages/form/form.wxss — 动态表单页样式 */
+
+.form-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
+}
+
+/* ========== 模板描述 ========== */
+.form-header {
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.form-desc {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* ========== 字段列表 ========== */
+.form-fields {
+  background-color: #fff;
+  padding: 0 32rpx;
+}
+
+.field-item {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.field-item:last-child {
+  border-bottom: none;
+}
+
+/* ========== 字段标签 ========== */
+.field-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.field-required {
+  color: #ff4d4f;
+  font-size: 28rpx;
+  margin-right: 4rpx;
+}
+
+.field-label-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+/* ========== 输入框 ========== */
+.field-input {
+  width: 100%;
+  height: 72rpx;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.field-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* ========== 选择器 ========== */
+.field-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72rpx;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+}
+
+.field-picker-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.field-picker-value.placeholder {
+  color: #999;
+}
+
+.field-picker-arrow {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* ========== 图片上传 ========== */
+.field-image-area {
+  margin-top: 8rpx;
+}
+
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.image-item {
+  width: 160rpx;
+  height: 160rpx;
+  margin-right: 16rpx;
+  margin-bottom: 16rpx;
+  position: relative;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.image-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40rpx;
+  height: 40rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom-left-radius: 12rpx;
+}
+
+.image-add {
+  width: 160rpx;
+  height: 160rpx;
+  border: 2rpx dashed #ccc;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.image-add-icon {
+  font-size: 48rpx;
+  color: #ccc;
+  line-height: 1;
+}
+
+.image-add-text {
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* ========== 单选 ========== */
+.field-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.field-radio-item {
+  display: flex;
+  align-items: center;
+  margin-right: 40rpx;
+  margin-bottom: 16rpx;
+}
+
+.field-radio-text {
+  font-size: 28rpx;
+  color: #333;
+  margin-left: 8rpx;
+}
+
+/* ========== 多选 ========== */
+.field-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.field-checkbox-item {
+  display: flex;
+  align-items: center;
+  margin-right: 40rpx;
+  margin-bottom: 16rpx;
+}
+
+.field-checkbox-text {
+  font-size: 28rpx;
+  color: #333;
+  margin-left: 8rpx;
+}
+
+/* ========== 提交按钮 ========== */
+.form-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16rpx 32rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background-color: #fff;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  z-index: 50;
+}
+
+.submit-btn {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ff4d4f;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
+}
+
+.submit-btn.disabled {
+  background-color: #ccc;
+}
+
+/* ========== 提交成功 ========== */
+.form-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 0 64rpx;
+}
+
+.success-icon {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 32rpx;
+}
+
+.success-title {
+  font-size: 36rpx;
+  color: #333;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.success-desc {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 64rpx;
+}
+
+.success-btn {
+  width: 100%;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ff4d4f;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
+}

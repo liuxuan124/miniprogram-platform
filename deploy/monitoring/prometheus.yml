@@ -1,0 +1,43 @@
+# ============================================================================
+# 微信小程序多场景搭建与运营系统 — Prometheus 配置
+# ============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # ── Spring Boot Actuator 指标 ─────────────────────────────────────────
+  - job_name: "miniapp-backend"
+    metrics_path: "/actuator/prometheus"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["backend:8080"]
+        labels:
+          application: "miniapp-backend"
+          env: "production"
+
+  # ── MySQL 指标 (需要 mysqld-exporter) ────────────────────────────────
+  - job_name: "miniapp-mysql"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["mysql-exporter:9104"]
+        labels:
+          application: "miniapp-mysql"
+          env: "production"
+
+  # ── Redis 指标 (需要 redis-exporter) ─────────────────────────────────
+  - job_name: "miniapp-redis"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          application: "miniapp-redis"
+          env: "production"
+
+  # ── Prometheus 自身指标 ──────────────────────────────────────────────
+  - job_name: "prometheus"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["localhost:9090"]

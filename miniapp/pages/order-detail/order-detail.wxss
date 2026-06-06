@@ -1,0 +1,387 @@
+/* pages/order-detail/order-detail.wxss — 订单详情页样式 */
+
+.order-detail-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+/* ========== 状态头部 ========== */
+.status-header {
+  padding: 40rpx 32rpx;
+  color: #fff;
+}
+
+.status-text {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.status-desc {
+  font-size: 26rpx;
+  opacity: 0.85;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* ========== 步骤条 ========== */
+.steps-section {
+  background-color: #fff;
+  padding: 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+.steps::before {
+  content: '';
+  position: absolute;
+  top: 16rpx;
+  left: 60rpx;
+  right: 60rpx;
+  height: 4rpx;
+  background-color: #e8e8e8;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.step-dot {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background-color: #e8e8e8;
+  margin-bottom: 12rpx;
+  border: 4rpx solid #fff;
+}
+
+.step.active .step-dot {
+  background-color: #ff4d4f;
+}
+
+.step.current .step-dot {
+  box-shadow: 0 0 0 6rpx rgba(255, 77, 79, 0.2);
+}
+
+.step-text {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.step.active .step-text {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+/* ========== 收货地址 ========== */
+.address-section {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.address-icon {
+  margin-right: 16rpx;
+}
+
+.address-icon-img {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.address-info {
+  flex: 1;
+}
+
+.address-name-phone {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.address-name {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+  margin-right: 16rpx;
+}
+
+.address-phone {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.address-detail {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* ========== 商品列表 ========== */
+.goods-section {
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+.goods-item {
+  display: flex;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.goods-item:last-child {
+  border-bottom: none;
+}
+
+.goods-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.goods-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.goods-name {
+  font-size: 28rpx;
+  color: #333;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.goods-sku {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.goods-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12rpx;
+}
+
+.goods-price {
+  font-size: 28rpx;
+  color: #ff4d4f;
+  font-weight: 700;
+}
+
+.goods-qty {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ========== 订单信息 ========== */
+.info-section {
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.info-value-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.info-copy {
+  font-size: 24rpx;
+  color: #1890ff;
+  margin-left: 12rpx;
+}
+
+/* ========== 价格明细 ========== */
+.price-section {
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.price-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.price-value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.price-value.discount {
+  color: #52c41a;
+}
+
+.price-row.total {
+  border-top: 1rpx solid #eee;
+  padding-top: 16rpx;
+  margin-top: 8rpx;
+}
+
+.total-price {
+  font-size: 32rpx;
+  color: #ff4d4f;
+  font-weight: 700;
+}
+
+/* ========== 底部操作栏 ========== */
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100rpx;
+  background-color: #fff;
+  padding: 0 24rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  z-index: 50;
+}
+
+.action-btn {
+  padding: 14rpx 36rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  margin-left: 16rpx;
+}
+
+.action-btn--default {
+  background-color: #fff;
+  color: #666;
+  border: 1rpx solid #ddd;
+}
+
+.action-btn--primary {
+  background-color: #ff4d4f;
+  color: #fff;
+}
+
+/* ========== 退款弹窗 ========== */
+.refund-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refund-panel {
+  width: 600rpx;
+  background-color: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+}
+
+.refund-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  display: block;
+  margin-bottom: 24rpx;
+}
+
+.refund-input {
+  width: 100%;
+  height: 160rpx;
+  font-size: 28rpx;
+  color: #333;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 16rpx;
+}
+
+.refund-btns {
+  display: flex;
+  margin-top: 32rpx;
+}
+
+.refund-btn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.refund-btn--cancel {
+  background-color: #f5f5f5;
+  color: #666;
+  margin-right: 16rpx;
+}
+
+.refund-btn--confirm {
+  background-color: #ff4d4f;
+  color: #fff;
+}
+
+/* ========== 加载状态 ========== */
+.loading-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 28rpx;
+  color: #999;
+}

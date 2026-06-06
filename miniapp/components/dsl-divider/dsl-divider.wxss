@@ -1,0 +1,6 @@
+/* components/dsl-divider/dsl-divider.wxss — 分割线组件样式 */
+
+.dsl-divider {
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -1,0 +1,57 @@
+<!--pages/detail/detail.wxml — 通用详情页-->
+<view class="page-wrapper">
+  <!-- 加载状态 -->
+  <loading wx:if="{{loading}}" />
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{error}}" class="empty-state">
+    <text class="empty-state__text">{{error}}</text>
+    <view class="retry-btn btn-primary mt-24" bindtap="onRetry">重新加载</view>
+  </view>
+
+  <!-- 详情内容 -->
+  <view wx:elif="{{detail}}" class="detail-page">
+    <!-- 商品详情 -->
+    <block wx:if="{{type === 'product'}}">
+      <image
+        class="detail-page__cover"
+        wx:if="{{detail.cover_url || detail.image}}"
+        src="{{detail.cover_url || detail.image}}"
+        mode="aspectFill"
+      />
+      <view class="detail-page__info card">
+        <text class="detail-page__title">{{detail.name || detail.title}}</text>
+        <view class="detail-page__price" wx:if="{{detail.price}}">
+          <text class="detail-page__price-symbol">¥</text>
+          <text class="detail-page__price-value">{{detail.price}}</text>
+        </view>
+        <rich-text
+          class="detail-page__content"
+          wx:if="{{detail.description || detail.content}}"
+          nodes="{{detail.description || detail.content}}"
+        />
+      </view>
+    </block>
+
+    <!-- 文章/活动详情 -->
+    <block wx:else>
+      <image
+        class="detail-page__cover"
+        wx:if="{{detail.cover_url || detail.image}}"
+        src="{{detail.cover_url || detail.image}}"
+        mode="aspectFill"
+      />
+      <view class="detail-page__info card">
+        <text class="detail-page__title">{{detail.title || detail.name}}</text>
+        <text class="detail-page__date" wx:if="{{detail.created_at || detail.publish_time}}">
+          {{detail.created_at || detail.publish_time}}
+        </text>
+        <rich-text
+          class="detail-page__content"
+          wx:if="{{detail.content || detail.description}}"
+          nodes="{{detail.content || detail.description}}"
+        />
+      </view>
+    </block>
+  </view>
+</view>

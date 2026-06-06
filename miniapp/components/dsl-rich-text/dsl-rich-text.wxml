@@ -1,0 +1,8 @@
+<!--components/dsl-rich-text/dsl-rich-text.wxml — 富文本组件-->
+<view class="dsl-rich-text" style="{{styleString}}">
+  <rich-text
+    class="dsl-rich-text__content"
+    nodes="{{config.content || ''}}"
+    bindtap="onLinkTap"
+  />
+</view>

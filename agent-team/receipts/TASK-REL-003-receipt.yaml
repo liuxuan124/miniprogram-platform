@@ -1,0 +1,25 @@
+task_id: TASK-REL-003
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 输出微信支付准备清单，覆盖商户号基础信息、API密钥与证书、支付产品开通、支付回调配置、退款能力准备、生产支付验证清单、安全与合规共7大类
+  - 列出8项待项目方确认的关键信息
+changed_files:
+  - agent-team/reports/TASK-REL-003-微信支付准备清单.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 商户号、APIv3密钥、证书文件、回调域名等关键信息需项目方提供，qa-release-agent无法自行确认
+downstream_suggestions:
+  - 项目方确认支付信息后，TASK-BE-004（订单状态机与支付退款规则）可启动
+  - TASK-QA-001 测试策略中已包含支付验证用例，待开发完成后执行
+self_test:
+  result: 通过
+  details: 清单覆盖微信支付商户平台所有关键配置项，验收标准明确，待确认项已标注
+risks:
+  - 商户号主体与小程序主体不一致可能导致支付绑定失败
+  - API证书过期未及时更新将导致支付和退款功能不可用
+  - 回调地址未配置HTTPS或域名未备案将导致支付回调无法到达
+next_step: 等待项目方确认微信支付相关信息，更新清单确认状态
+notes: 本清单为准备阶段检查清单，实际支付验证需在开发完成后在测试/预发布环境执行

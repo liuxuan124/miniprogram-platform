@@ -1,0 +1,110 @@
+task: TASK-BE-007
+name: 实现页面搭建核心引擎
+agent: backend-agent
+status: completed
+completed_at: "2026-05-11T12:00:00+08:00"
+
+deliverables:
+  - path: backend/src/main/resources/db/migration/V3__page_tables.sql
+    description: 页面相关表迁移脚本（mp_page, mp_page_version, mp_page_template）
+  - path: backend/src/main/java/com/miniprogram/entity/Page.java
+    description: 页面实体（extends BaseEntity, @TableName mp_page）
+  - path: backend/src/main/java/com/miniprogram/entity/PageVersion.java
+    description: 页面版本实体（extends BaseEntity, @TableName mp_page_version）
+  - path: backend/src/main/java/com/miniprogram/entity/PageTemplate.java
+    description: 页面模板实体（extends BaseEntity, @TableName mp_page_template）
+  - path: backend/src/main/java/com/miniprogram/mapper/PageMapper.java
+    description: 页面Mapper接口
+  - path: backend/src/main/java/com/miniprogram/mapper/PageVersionMapper.java
+    description: 页面版本Mapper接口
+  - path: backend/src/main/java/com/miniprogram/mapper/PageTemplateMapper.java
+    description: 页面模板Mapper接口
+  - path: backend/src/main/java/com/miniprogram/dto/PageCreateDTO.java
+    description: 页面创建DTO（name, type, path, shareTitle, shareImage, description）
+  - path: backend/src/main/java/com/miniprogram/dto/PageUpdateDTO.java
+    description: 页面更新DTO（所有字段可选）
+  - path: backend/src/main/java/com/miniprogram/dto/PageQueryDTO.java
+    description: 页面列表查询DTO（extends PageDTO, keyword, type, status）
+  - path: backend/src/main/java/com/miniprogram/dto/PageDraftDTO.java
+    description: 页面草稿保存DTO（dslContent必填）
+  - path: backend/src/main/java/com/miniprogram/dto/PageVersionDTO.java
+    description: 页面版本响应DTO（含statusDesc辅助方法）
+  - path: backend/src/main/java/com/miniprogram/dto/PageDetailDTO.java
+    description: 页面详情响应DTO（含typeDesc/statusDesc辅助方法, draftDslContent）
+  - path: backend/src/main/java/com/miniprogram/dto/PageTemplateQueryDTO.java
+    description: 页面模板查询DTO（extends PageDTO, category, keyword）
+  - path: backend/src/main/java/com/miniprogram/service/PageService.java
+    description: 页面服务接口（CRUD + 草稿/发布/下架 + 获取已发布DSL）
+  - path: backend/src/main/java/com/miniprogram/service/PageVersionService.java
+    description: 页面版本服务接口（版本列表/回滚/保存草稿/发布/获取DSL）
+  - path: backend/src/main/java/com/miniprogram/service/PageTemplateService.java
+    description: 页面模板服务接口（模板列表）
+  - path: backend/src/main/java/com/miniprogram/service/impl/PageServiceImpl.java
+    description: 页面服务实现（DSL校验, @Lazy解决循环依赖, 全功能CRUD+发布流程）
+  - path: backend/src/main/java/com/miniprogram/service/impl/PageVersionServiceImpl.java
+    description: 页面版本服务实现（版本自增, 回滚创建新版本, @Lazy解决循环依赖）
+  - path: backend/src/main/java/com/miniprogram/service/impl/PageTemplateServiceImpl.java
+    description: 页面模板服务实现（分类+关键词筛选）
+  - path: backend/src/main/java/com/miniprogram/controller/PageController.java
+    description: 后台页面管理控制器 /api/v1/admin/pages
+  - path: backend/src/main/java/com/miniprogram/controller/PageVersionController.java
+    description: 后台页面版本控制器 /api/v1/admin/pages/{id}/versions
+  - path: backend/src/main/java/com/miniprogram/controller/PageTemplateController.java
+    description: 后台页面模板控制器 /api/v1/admin/page-templates
+  - path: backend/src/main/java/com/miniprogram/controller/MpPageController.java
+    description: 小程序页面配置控制器 /api/v1/mp/pages（公开接口）
+  - path: backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+    description: 安全配置（新增 /api/v1/mp/** 到 permitAll 白名单）
+  - path: backend/src/main/java/com/miniprogram/common/ErrorCode.java
+    description: 错误码枚举（新增页面模块错误码 300401/300201/300402/300202/300203）
+  - path: backend/src/main/java/com/miniprogram/common/GlobalExceptionHandler.java
+    description: 全局异常处理器（BusinessException 返回 ResponseEntity + HTTP状态码映射）
+
+acceptance_criteria:
+  page_crud: "GET/POST/PUT/DELETE /api/v1/admin/pages — 页面CRUD，含分页/关键词/类型/状态筛选"
+  draft_save: "PUT /api/v1/admin/pages/{id}/draft — 保存草稿，校验DSL schema_version=1.0，自动递增版本号"
+  publish: "PUT /api/v1/admin/pages/{id}/publish — 发布页面，标记版本为已发布，页面状态→已发布"
+  unpublish: "PUT /api/v1/admin/pages/{id}/unpublish — 下架页面，页面状态→已下架"
+  version_list: "GET /api/v1/admin/pages/{id}/versions — 版本历史列表，按版本号降序"
+  version_rollback: "PUT /api/v1/admin/pages/{id}/versions/rollback?version=N — 回滚到指定版本，创建新版本"
+  template_list: "GET /api/v1/admin/page-templates — 模板列表，支持分类和关键词筛选"
+  mp_page_config: "GET /api/v1/mp/pages?path=xxx — 小程序获取已发布页面DSL配置（公开接口）"
+  dsl_validation: "DSL JSON校验：schema_version必须为1.0，格式错误返回300202"
+  path_unique: "页面路径唯一性校验，重复返回300203"
+
+api_contracts:
+  - GET /api/v1/admin/pages — 页面列表（分页+筛选）
+  - POST /api/v1/admin/pages — 创建页面
+  - GET /api/v1/admin/pages/{id} — 页面详情（含当前版本DSL）
+  - PUT /api/v1/admin/pages/{id} — 更新页面基本信息
+  - DELETE /api/v1/admin/pages/{id} — 删除页面（已发布不可删）
+  - PUT /api/v1/admin/pages/{id}/draft — 保存草稿
+  - PUT /api/v1/admin/pages/{id}/publish — 发布页面
+  - PUT /api/v1/admin/pages/{id}/unpublish — 下架页面
+  - GET /api/v1/admin/pages/{id}/versions — 版本历史
+  - PUT /api/v1/admin/pages/{id}/versions/rollback?version=N — 回滚版本
+  - GET /api/v1/admin/page-templates — 模板列表
+  - GET /api/v1/mp/pages?path=xxx — 小程序获取页面配置（公开）
+  - GET /api/v1/mp/pages/{path} — 小程序获取页面配置（路径变量，公开）
+
+database_tables:
+  - mp_page — 页面主表（name, type, path, status, current_version, share_title, share_image, description）
+  - mp_page_version — 页面版本表（page_id, version, dsl_content, status, publisher_id, published_at）
+  - mp_page_template — 页面模板表（name, category, cover_image, description, dsl_content, use_count）
+
+error_codes_aligned:
+  - "300401: 页面不存在 (404)"
+  - "300201: 页面状态错误-已发布/无版本 (422)"
+  - "300402: 页面版本不存在 (404)"
+  - "300202: DSL校验失败 (422)"
+  - "300203: 页面路径重复 (409)"
+
+notes: |
+  - Page实体与MyBatis-Plus Page类名冲突，在ServiceImpl中使用全限定名com.baomidou.mybatisplus.extension.plugins.pagination.Page
+  - PageServiceImpl与PageVersionServiceImpl存在循环依赖，通过@Lazy注解解决
+  - DSL内容以JSON字符串存储在mp_page_version.dsl_content字段，保存时校验schema_version
+  - 版本号自增：每次保存草稿自动+1，回滚时基于目标版本DSL创建新版本
+  - 回滚机制：将目标版本标记为"已回滚"(status=2)，基于其DSL创建新草稿版本
+  - 小程序接口 /api/v1/mp/** 配置为permitAll公开访问，无需JWT认证
+  - GlobalExceptionHandler增强：BusinessException根据错误码模式映射HTTP状态码（xx04xx→404, xx02xx→422, xx05xx→409）
+  - 预存在的编译错误（AdminUserServiceImpl, RoleServiceImpl, UserController, JwtTokenProvider, MpAuthController）属于TASK-BE-005/006，不在本任务范围内

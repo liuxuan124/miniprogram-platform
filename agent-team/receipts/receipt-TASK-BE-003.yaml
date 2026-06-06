@@ -1,0 +1,32 @@
+task_id: TASK-BE-003
+agent: backend-agent
+status: 已提交回执
+completed_work:
+  - 输出页面 DSL / JSON Schema 初稿
+  - 定义页面顶层结构（page + components + global_config）
+  - 定义 13 种组件类型：banner、nav、product_list、article_list、activity_entry、member_card、coupon、video、countdown、float_button、rich_text、divider、spacer
+  - 定义 4 种数据源类型：product、content、activity、coupon
+  - 定义 4 种跳转行为：page、webview、miniapp、phone
+  - 定义样式覆盖规则
+  - 定义小程序渲染规则和版本管理规则
+  - 提供完整首页 DSL 示例
+changed_files:
+  - agent-team/contracts/page-dsl-schema.md
+added_apis: []
+added_tables: []
+dependencies:
+  - TASK-BE-001
+blockers: []
+self_test:
+  result: 通过
+  details: "13 种组件覆盖 PRD 9.4 节全部组件需求；数据源绑定支持动态数据；跳转行为覆盖小程序常见场景；渲染规则明确"
+downstream_suggestions:
+  - TASK-MP-001 可启动（依赖 BE-003 已完成，还需 REL-001）
+  - TASK-ADMIN-020 页面搭建器可基于此 DSL 开发
+  - TASK-MP-020 小程序渲染器可基于此 DSL 开发
+risks:
+  - 组件类型后续可能扩展（如直播、地图等），需通过契约变更请求
+  - 富文本组件的 HTML 安全过滤需在渲染端实现
+  - 数据源 API 请求失败时的兜底策略需与小程序端对齐
+next_step: "等待总控验收 BE-003"
+notes: "页面 DSL 初稿已写入 page-dsl-schema.md 契约文件，待总控冻结后管理后台 Agent 和小程序端 Agent 方可引用"

@@ -1,0 +1,67 @@
+task_id: TASK-ADMIN-002
+agent: admin-agent
+status: 已提交回执
+completed_work:
+  - 完成 Vue 3 + Vite + TypeScript 项目初始化，package.json 含全部依赖
+  - 完成 Element Plus 集成（含中文语言包、图标全局注册）
+  - 完成基础布局（侧边栏 Sidebar + 顶部导航 Header + 标签栏 TagsView + 内容区）
+  - 完成登录页面（表单校验、Token 存储、登录/登出流程）
+  - 完成 Token 管理工具（getToken/setToken/removeToken/isAuthenticated）
+  - 完成 Axios 封装（请求拦截 Token 注入、响应拦截统一错误处理、401 自动跳转登录）
+  - 完成 Vue Router 路由配置（静态路由 + 动态路由、权限守卫、NProgress 进度条）
+  - 完成 Pinia Store 骨架（user/app/permission 三个 Store）
+  - 完成 8 个菜单模块路由占位（dashboard/page-builder/content/commerce/member/marketing/form-activity/settings）
+  - 完成多环境配置（.env.development / .env.production）
+  - 完成 Vite 构建验证（vite build 通过，产出 dist 目录）
+changed_files:
+  - admin/package.json
+  - admin/vite.config.ts
+  - admin/tsconfig.json
+  - admin/tsconfig.node.json
+  - admin/index.html
+  - admin/.env.development
+  - admin/.env.production
+  - admin/public/vite.svg
+  - admin/src/main.ts
+  - admin/src/App.vue
+  - admin/src/env.d.ts
+  - admin/types/global.d.ts
+  - admin/src/utils/auth.ts
+  - admin/src/utils/validate.ts
+  - admin/src/api/request.ts
+  - admin/src/api/auth.ts
+  - admin/src/stores/user.ts
+  - admin/src/stores/app.ts
+  - admin/src/stores/permission.ts
+  - admin/src/router/index.ts
+  - admin/src/router/guards.ts
+  - admin/src/layout/index.vue
+  - admin/src/layout/Sidebar.vue
+  - admin/src/layout/Header.vue
+  - admin/src/layout/TagsView.vue
+  - admin/src/views/login/index.vue
+  - admin/src/views/dashboard/index.vue
+  - admin/src/views/page-builder/index.vue
+  - admin/src/views/content/index.vue
+  - admin/src/views/commerce/index.vue
+  - admin/src/views/member/index.vue
+  - admin/src/views/marketing/index.vue
+  - admin/src/views/form-activity/index.vue
+  - admin/src/views/settings/index.vue
+  - admin/src/assets/styles/index.scss
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: "npm install 成功安装 108 个依赖包；vite build 构建通过，产出完整 dist 目录（含 HTML/CSS/JS），无编译错误。Sass legacy-js-api 弃用警告为正常提示，不影响功能。"
+downstream_suggestions:
+  - 后端 Agent 需要提供 /auth/login、/auth/user-info、/auth/logout 等认证接口
+  - 后续可添加 ESLint + Prettier 配置统一代码风格
+  - 建议添加 build.rollupOptions.output.manualChunks 优化打包体积
+risks:
+  - 当前无后端 API 对接，登录流程需后端认证接口就绪后联调
+  - 动态路由权限过滤逻辑依赖后端返回的角色/权限数据结构
+next_step: "等待后端认证接口就绪后进行登录联调，或继续推进各业务模块页面开发"
+notes: ""

@@ -1,0 +1,16 @@
+task_id: TASK-ROLE-000
+agent: backend-agent | admin-agent | miniapp-agent | ai-agent | qa-release-agent
+status: 开发中 | 已提交回执 | 待联调 | 测试中 | 已完成 | 阻塞
+completed_work: []
+changed_files: []
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 未执行 | 通过 | 失败 | 不适用
+  details: ""
+downstream_suggestions: []
+risks: []
+next_step: ""
+notes: ""

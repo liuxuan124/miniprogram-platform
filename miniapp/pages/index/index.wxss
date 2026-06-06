@@ -1,0 +1,28 @@
+/* pages/index/index.wxss — 首页样式 */
+
+.index-page {
+  padding: 16rpx;
+  padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+.retry-btn {
+  width: 320rpx;
+  margin-top: 32rpx;
+  font-size: 28rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+}
+
+/* 触底加载 */
+.index-page__loadmore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx 0 48rpx;
+}
+
+.index-page__loadmore-text {
+  font-size: 24rpx;
+  color: #cccccc;
+}

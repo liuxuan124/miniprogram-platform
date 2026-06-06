@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MYSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: always
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.miniprogram: DEBUG
+    org.springframework.web: DEBUG
+
+wx:
+  appid: test-appid
+  secret: test-secret
+
+xunfei:
+  app-id: test-xunfei-app
+  api-key: test-xunfei-key
+
+jwt:
+  secret: test-jwt-secret-for-integration-testing-only
+  expiration: 86400000
+
+storage:
+  type: local
+  local-path: /tmp/mp-upload

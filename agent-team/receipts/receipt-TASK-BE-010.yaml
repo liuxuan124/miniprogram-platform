@@ -1,0 +1,37 @@
+task_id: TASK-BE-010
+agent: backend-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: backend/src/main/resources/db/migration/V9__statistics_tables.sql
+    desc: 统计模块数据库迁移脚本
+  - path: backend/src/main/java/com/mp/entity/StatisticsDaily.java
+    desc: 日统计实体
+  - path: backend/src/main/java/com/mp/entity/PageAccessLog.java
+    desc: 页面访问日志实体
+  - path: backend/src/main/java/com/mp/mapper/StatisticsDailyMapper.java
+    desc: 日统计Mapper
+  - path: backend/src/main/java/com/mp/mapper/PageAccessLogMapper.java
+    desc: 页面访问日志Mapper
+  - path: backend/src/main/java/com/mp/dto/statistics/DashboardVO.java
+    desc: 仪表盘VO
+  - path: backend/src/main/java/com/mp/dto/statistics/SalesTrendQueryDTO.java
+    desc: 销售趋势查询DTO
+  - path: backend/src/main/java/com/mp/dto/statistics/SalesTrendVO.java
+    desc: 销售趋势VO
+  - path: backend/src/main/java/com/mp/dto/statistics/ProductRankingVO.java
+    desc: 商品排行VO
+  - path: backend/src/main/java/com/mp/dto/statistics/UserGrowthVO.java
+    desc: 用户增长VO
+  - path: backend/src/main/java/com/mp/dto/statistics/PageAccessVO.java
+    desc: 页面访问VO
+  - path: backend/src/main/java/com/mp/dto/statistics/PageAccessReportDTO.java
+    desc: 页面访问上报DTO
+  - path: backend/src/main/java/com/mp/service/StatisticsService.java
+    desc: 统计服务接口
+  - path: backend/src/main/java/com/mp/service/impl/StatisticsServiceImpl.java
+    desc: 统计服务实现
+  - path: backend/src/main/java/com/mp/controller/admin/StatisticsController.java
+    desc: 管理端统计控制器
+  - path: backend/src/main/java/com/mp/controller/miniapp/MpStatisticsController.java
+    desc: 小程序端统计控制器

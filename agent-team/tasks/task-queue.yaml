@@ -1,0 +1,789 @@
+tasks:
+- id: TASK-CTRL-001
+  title: 固定完整任务总清单与阶段依赖
+  owner_agent: controller-agent
+  status: 已完成
+  priority: P0
+  phase: 00-agent-coordination
+  dependencies: []
+  input_contracts: []
+  expected_outputs:
+  - 完整任务队列
+  - 阶段依赖关系
+  - 第一批可启动任务列表
+  acceptance_criteria:
+  - 任务覆盖研发、测试、上线、试运行、培训和移交闭环
+  - 未授权任务不得自动进入开发中
+  blockers: []
+  dispatch_note: 总控自执行，已完成
+- id: TASK-CTRL-002
+  title: 审核契约初稿并冻结
+  owner_agent: controller-agent
+  status: 已完成
+  priority: P0
+  phase: 00-agent-coordination
+  dependencies:
+  - TASK-CTRL-001
+  - TASK-BE-001
+  - TASK-BE-002
+  - TASK-BE-003
+  - TASK-BE-004
+  - TASK-AI-001
+  input_contracts:
+  - agent-team/contracts/database-model.md
+  - agent-team/contracts/api-contract.md
+  - agent-team/contracts/page-dsl-schema.md
+  - agent-team/contracts/order-state-machine.md
+  - agent-team/contracts/ai-recommendation-contract.md
+  expected_outputs:
+  - 契约审核意见
+  - 冻结契约清单
+  acceptance_criteria:
+  - 所有契约初稿已审核
+  - 无歧义条款已标记
+  - 契约正式冻结
+  blockers: []
+- id: TASK-REL-001
+  title: 确认微信小程序主体、AppID、认证和类目
+  owner_agent: qa-release-agent
+  status: 需人工处理
+  priority: P0
+  phase: 01-qualification
+  dependencies: []
+  input_contracts: []
+  expected_outputs:
+  - 微信平台信息确认单
+  - 小程序类目与隐私协议检查项
+  acceptance_criteria:
+  - 明确 AppID、主体认证状态、类目、开发者权限和提审风险
+  blockers: []
+  dispatch_note: 总控派发 → qa-release-agent，首轮立即启动
+- id: TASK-REL-002
+  title: 确认服务器、域名、备案、HTTPS 和对象存储准备清单
+  owner_agent: qa-release-agent
+  status: 需人工处理
+  priority: P0
+  phase: 01-qualification
+  dependencies: []
+  input_contracts: []
+  expected_outputs:
+  - 环境准备清单
+  - 域名与 HTTPS 配置清单
+  - 备份与监控准备清单
+  acceptance_criteria:
+  - 测试、预发布、生产环境所需资源明确
+  - 域名、备案、证书、对象存储责任方明确
+  blockers: []
+  dispatch_note: 总控派发 → qa-release-agent，首轮立即启动
+- id: TASK-REL-003
+  title: 确认第三方服务账号与 API Key（AI、短信、支付）
+  owner_agent: qa-release-agent
+  status: 已完成
+  priority: P0
+  phase: 01-qualification
+  dependencies: []
+  input_contracts: []
+  expected_outputs:
+  - 第三方服务账号清单
+  - API Key 安全存储方案
+  acceptance_criteria:
+  - AI 服务、短信服务、微信支付账号就绪
+  - API Key 安全存储，不在代码中硬编码
+  blockers: []
+  receipt: agent-team/receipts/TASK-REL-003-receipt.yaml
+  dispatch_note: 回执已验收通过
+- id: TASK-REL-004
+  title: 确认微信支付商户号、证书、回调和退款准备清单
+  owner_agent: qa-release-agent
+  status: 需人工处理
+  priority: P0
+  phase: 01-qualification
+  dependencies: []
+  input_contracts: []
+  expected_outputs:
+  - 微信支付准备清单
+  - 生产支付验证清单
+  - 退款验证清单
+  acceptance_criteria:
+  - 商户号、APIv3 密钥、证书、回调地址和退款能力准备项明确
+  blockers: []
+  dispatch_note: 总控派发 → qa-release-agent，首轮立即启动
+- id: TASK-QA-001
+  title: 输出质量保障与上线验收标准
+  owner_agent: qa-release-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-REL-001
+  - TASK-REL-002
+  - TASK-REL-003
+  input_contracts: []
+  expected_outputs:
+  - 质量保障标准
+  - 上线验收标准
+  - 测试策略
+  acceptance_criteria:
+  - 覆盖功能、性能、安全、兼容性、提审合规
+  blockers: []
+  receipt: agent-team/receipts/TASK-QA-001-receipt.yaml
+  dispatch_note: 回执已验收通过
+- id: TASK-BE-001
+  title: 输出数据库核心模型初稿
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-CTRL-001
+  input_contracts:
+  - agent-team/contracts/database-model.md
+  expected_outputs:
+  - 用户权限模型
+  - 页面搭建模型
+  - 内容商品订单会员营销活动预约 AI 主要数据对象
+  acceptance_criteria:
+  - 数据对象覆盖完整增强版主线
+  - 标记跨模块共享数据和后续迁移风险
+  blockers: []
+  receipt: agent-team/receipts/receipt-TASK-BE-001.yaml
+  dispatch_note: 回执已验收通过，契约文件 agent-team/contracts/database-model.md 已生成
+- id: TASK-BE-002
+  title: 输出 API 接口规范初稿
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-BE-001
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - API 命名规则
+  - 请求响应格式
+  - 错误码规则
+  - 权限鉴权规则
+  acceptance_criteria:
+  - 后台、小程序、AI 可基于同一接口规范继续设计
+  blockers: []
+  receipt: agent-team/receipts/receipt-TASK-BE-002.yaml
+  dispatch_note: 回执已验收通过，契约文件 agent-team/contracts/api-contract.md 已生成
+- id: TASK-BE-003
+  title: 输出页面 DSL / JSON Schema 初稿
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-BE-001
+  input_contracts:
+  - agent-team/contracts/page-dsl-schema.md
+  expected_outputs:
+  - 页面结构
+  - 组件结构
+  - 属性配置
+  - 数据源绑定
+  - 跳转行为
+  acceptance_criteria:
+  - 管理后台可产出 DSL
+  - 小程序端可按 DSL 渲染
+  blockers: []
+  receipt: agent-team/receipts/receipt-TASK-BE-003.yaml
+  dispatch_note: 回执已验收通过，契约文件 agent-team/contracts/page-dsl-schema.md 已生成
+- id: TASK-BE-004
+  title: 输出订单状态机与支付退款规则初稿
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-BE-001
+  - TASK-REL-003
+  input_contracts:
+  - agent-team/contracts/order-state-machine.md
+  expected_outputs:
+  - 订单状态机
+  - 支付状态
+  - 发货核销状态
+  - 退款状态
+  - 幂等与日志要求
+  acceptance_criteria:
+  - 后台、小程序、测试上线 Agent 可按状态机开发和验收
+  blockers: []
+  receipt: agent-team/receipts/receipt-TASK-BE-004.yaml
+  dispatch_note: 回执已验收通过，契约文件 agent-team/contracts/order-state-machine.md 已生成
+- id: TASK-AI-001
+  title: 输出 AI 推荐返回格式与工具调用契约初稿
+  owner_agent: ai-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-BE-001
+  - TASK-BE-002
+  input_contracts:
+  - agent-team/contracts/ai-recommendation-contract.md
+  expected_outputs:
+  - 商品推荐格式
+  - 文章推荐格式
+  - 活动推荐格式
+  - 转人工格式
+  - 对话日志字段
+  acceptance_criteria:
+  - 推荐结果必须可追溯到真实业务数据
+  blockers: []
+  receipt: agent-team/receipts/receipt-TASK-AI-001.yaml
+  dispatch_note: 回执已验收通过，契约文件 agent-team/contracts/ai-recommendation-contract.md 已生成
+- id: TASK-ADMIN-001
+  title: 输出管理后台框架与菜单权限方案
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-BE-002
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 后台菜单结构
+  - 路由结构
+  - 权限点清单
+  - 后台模块依赖清单
+  acceptance_criteria:
+  - 后台模块覆盖 PRD 和项目树形拆解
+  blockers: []
+  receipt: agent-team/receipts/TASK-ADMIN-001-receipt.yaml
+  dispatch_note: 回执已验收通过
+- id: TASK-MP-001
+  title: 输出小程序骨架与动态渲染方案
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P0
+  phase: 02-foundation-contracts
+  dependencies:
+  - TASK-BE-003
+  - TASK-REL-001
+  input_contracts:
+  - agent-team/contracts/page-dsl-schema.md
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 小程序页面结构
+  - 动态渲染组件映射
+  - 登录授权依赖
+  - 微信开发者工具调试要求
+  acceptance_criteria:
+  - 可说明后台 DSL 如何在小程序端渲染
+  blockers: []
+  receipt: agent-team/receipts/TASK-MP-001-receipt.yaml
+  dispatch_note: 回执已验收通过
+- id: TASK-BE-005
+  title: 搭建后端项目骨架与基础设施
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 03-foundation-development
+  dependencies:
+  - TASK-BE-001
+  - TASK-BE-002
+  - TASK-CTRL-002
+  input_contracts:
+  - agent-team/contracts/database-model.md
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - Spring Boot 项目骨架
+  - 数据库连接与迁移
+  - 统一异常处理
+  - 统一鉴权拦截器
+  acceptance_criteria:
+  - 项目可启动
+  - 健康检查接口可访问
+  blockers: []
+  receipt: agent-team\receipts\receipt-TASK-BE-005.yaml
+- id: TASK-BE-006
+  title: 实现用户认证与权限管理
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 03-foundation-development
+  dependencies:
+  - TASK-BE-005
+  input_contracts:
+  - agent-team/contracts/database-model.md
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 微信登录接口
+  - JWT 鉴权
+  - RBAC 权限模型
+  - 用户管理 CRUD
+  acceptance_criteria:
+  - 微信登录流程可走通
+  - 权限拦截生效
+  blockers: []
+- id: TASK-BE-007
+  title: 实现页面搭建核心引擎
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 03-foundation-development
+  dependencies:
+  - TASK-BE-005
+  - TASK-BE-003
+  input_contracts:
+  - agent-team/contracts/page-dsl-schema.md
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 页面 CRUD
+  - 组件配置存储
+  - DSL 发布与版本管理
+  acceptance_criteria:
+  - 页面可创建、编辑、发布
+  - DSL 可正确存储和读取
+  blockers: []
+- id: TASK-ADMIN-002
+  title: 搭建管理后台项目骨架
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P0
+  phase: 03-foundation-development
+  dependencies:
+  - TASK-ADMIN-001
+  - TASK-CTRL-002
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - Vue3 + Element Plus 项目骨架
+  - 路由与菜单框架
+  - 登录与权限控制
+  acceptance_criteria:
+  - 后台可登录
+  - 菜单按权限渲染
+  blockers: []
+  receipt: agent-team\receipts\receipt-TASK-ADMIN-002.yaml
+- id: TASK-MP-002
+  title: 搭建小程序项目骨架与登录流程
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P0
+  phase: 03-foundation-development
+  dependencies:
+  - TASK-MP-001
+  - TASK-CTRL-002
+  input_contracts:
+  - agent-team/contracts/page-dsl-schema.md
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 小程序项目骨架
+  - 微信登录流程
+  - 动态渲染引擎基础
+  acceptance_criteria:
+  - 小程序可启动
+  - 登录流程可走通
+  blockers: []
+  receipt: agent-team\receipts\receipt-TASK-MP-002.yaml
+- id: TASK-ADMIN-003
+  title: 实现页面搭建编辑器
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P0
+  phase: 04-page-builder
+  dependencies:
+  - TASK-ADMIN-002
+  - TASK-BE-007
+  input_contracts:
+  - agent-team/contracts/page-dsl-schema.md
+  expected_outputs:
+  - 拖拽式页面编辑器
+  - 组件属性配置面板
+  - 实时预览
+  - DSL 导出
+  acceptance_criteria:
+  - 可拖拽组件到页面
+  - 可配置组件属性
+  - 可预览页面效果
+  blockers: []
+- id: TASK-MP-003
+  title: 实现小程序动态渲染引擎
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P0
+  phase: 04-page-builder
+  dependencies:
+  - TASK-MP-002
+  - TASK-BE-007
+  input_contracts:
+  - agent-team/contracts/page-dsl-schema.md
+  expected_outputs:
+  - DSL 解析引擎
+  - 组件渲染映射
+  - 数据绑定
+  - 事件处理
+  acceptance_criteria:
+  - 可按 DSL 动态渲染页面
+  - 组件交互正常
+  blockers: []
+- id: TASK-BE-008
+  title: 实现内容管理模块
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P1
+  phase: 05-content
+  dependencies:
+  - TASK-BE-006
+  - TASK-BE-007
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 文章 CRUD
+  - 分类标签管理
+  - 富文本与图片
+  acceptance_criteria:
+  - 文章可创建、编辑、发布
+  - 分类标签可管理
+  blockers: []
+- id: TASK-ADMIN-004
+  title: 实现内容管理后台页面
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P1
+  phase: 05-content
+  dependencies:
+  - TASK-ADMIN-003
+  - TASK-BE-008
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 文章管理页面
+  - 分类标签管理页面
+  - 富文本编辑器集成
+  acceptance_criteria:
+  - 可在后台管理文章和分类
+  blockers: []
+- id: TASK-BE-009
+  title: 实现商品与订单模块
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 06-commerce
+  dependencies:
+  - TASK-BE-006
+  - TASK-BE-004
+  input_contracts:
+  - agent-team/contracts/order-state-machine.md
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 商品 CRUD
+  - SKU 管理
+  - 购物车
+  - 订单创建与状态流转
+  acceptance_criteria:
+  - 商品可管理
+  - 订单状态机可正确流转
+  blockers: []
+- id: TASK-BE-010
+  title: 实现支付与退款模块
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P0
+  phase: 06-commerce
+  dependencies:
+  - TASK-BE-009
+  - TASK-REL-003
+  input_contracts:
+  - agent-team/contracts/order-state-machine.md
+  expected_outputs:
+  - 微信支付集成
+  - 支付回调处理
+  - 退款申请与处理
+  - 幂等保障
+  acceptance_criteria:
+  - 支付流程可走通
+  - 退款流程可走通
+  blockers: []
+- id: TASK-ADMIN-005
+  title: 实现商品与订单管理后台页面
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P0
+  phase: 06-commerce
+  dependencies:
+  - TASK-ADMIN-002
+  - TASK-BE-009
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 商品管理页面
+  - 订单管理页面
+  - 退款审核页面
+  acceptance_criteria:
+  - 可在后台管理商品和订单
+  blockers: []
+- id: TASK-MP-004
+  title: 实现小程序商品与订单页面
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P0
+  phase: 06-commerce
+  dependencies:
+  - TASK-MP-003
+  - TASK-BE-009
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 商品列表与详情
+  - 购物车
+  - 下单与支付
+  - 订单列表与详情
+  acceptance_criteria:
+  - 小程序可浏览商品、下单、支付
+  blockers: []
+- id: TASK-BE-011
+  title: 实现会员与营销模块
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P1
+  phase: 07-member-marketing
+  dependencies:
+  - TASK-BE-006
+  - TASK-BE-009
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 会员等级与积分
+  - 优惠券
+  - 满减活动
+  acceptance_criteria:
+  - 会员体系可运作
+  - 优惠券可发放和使用
+  blockers: []
+- id: TASK-ADMIN-006
+  title: 实现会员与营销管理后台页面
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P1
+  phase: 07-member-marketing
+  dependencies:
+  - TASK-ADMIN-005
+  - TASK-BE-011
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 会员管理页面
+  - 优惠券管理页面
+  - 活动管理页面
+  acceptance_criteria:
+  - 可在后台管理会员和营销活动
+  blockers: []
+- id: TASK-MP-005
+  title: 实现小程序会员与营销页面
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P1
+  phase: 07-member-marketing
+  dependencies:
+  - TASK-MP-004
+  - TASK-BE-011
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 会员中心
+  - 优惠券领取与使用
+  - 活动页面
+  acceptance_criteria:
+  - 小程序可查看会员信息和优惠券
+  blockers: []
+- id: TASK-BE-012
+  title: 实现表单与预约模块
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P1
+  phase: 08-form-activity-booking
+  dependencies:
+  - TASK-BE-006
+  - TASK-BE-007
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 表单模板管理
+  - 表单提交与数据收集
+  - 预约管理
+  acceptance_criteria:
+  - 表单可创建和提交
+  - 预约可管理
+  blockers: []
+- id: TASK-ADMIN-007
+  title: 实现表单与预约管理后台页面
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P1
+  phase: 08-form-activity-booking
+  dependencies:
+  - TASK-ADMIN-003
+  - TASK-BE-012
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 表单设计器
+  - 数据收集页面
+  - 预约管理页面
+  acceptance_criteria:
+  - 可在后台设计表单和管理预约
+  blockers: []
+- id: TASK-MP-006
+  title: 实现小程序表单与预约页面
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P1
+  phase: 08-form-activity-booking
+  dependencies:
+  - TASK-MP-003
+  - TASK-BE-012
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 表单填写与提交
+  - 预约选择与确认
+  acceptance_criteria:
+  - 小程序可填写表单和预约
+  blockers: []
+- id: TASK-BE-013
+  title: 实现 AI 推荐后端集成
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P1
+  phase: 09-ai-recommendation
+  dependencies:
+  - TASK-BE-006
+  - TASK-AI-001
+  input_contracts:
+  - agent-team/contracts/ai-recommendation-contract.md
+  expected_outputs:
+  - AI 对话接口
+  - 推荐结果解析与存储
+  - 对话日志
+  acceptance_criteria:
+  - AI 对话可走通
+  - 推荐结果可追溯
+  blockers: []
+- id: TASK-MP-007
+  title: 实现小程序 AI 对话页面
+  owner_agent: miniapp-agent
+  status: 已完成
+  priority: P1
+  phase: 09-ai-recommendation
+  dependencies:
+  - TASK-MP-003
+  - TASK-BE-013
+  input_contracts:
+  - agent-team/contracts/ai-recommendation-contract.md
+  expected_outputs:
+  - AI 对话界面
+  - 推荐卡片渲染
+  - 转人工入口
+  acceptance_criteria:
+  - 小程序可与 AI 对话并查看推荐
+  blockers: []
+- id: TASK-BE-014
+  title: 实现数据统计与分析模块
+  owner_agent: backend-agent
+  status: 已完成
+  priority: P2
+  phase: 10-dashboard-analytics
+  dependencies:
+  - TASK-BE-006
+  - TASK-BE-009
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 访问统计
+  - 交易统计
+  - 用户分析
+  acceptance_criteria:
+  - 统计数据可查询
+  blockers: []
+- id: TASK-ADMIN-008
+  title: 实现仪表盘与数据分析页面
+  owner_agent: admin-agent
+  status: 已完成
+  priority: P2
+  phase: 10-dashboard-analytics
+  dependencies:
+  - TASK-ADMIN-002
+  - TASK-BE-014
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 数据仪表盘
+  - 图表组件
+  - 导出功能
+  acceptance_criteria:
+  - 可在后台查看数据分析
+  blockers: []
+- id: TASK-QA-002
+  title: 执行集成测试
+  owner_agent: qa-release-agent
+  status: 已完成
+  priority: P0
+  phase: 11-integration-test
+  dependencies:
+  - TASK-BE-010
+  - TASK-ADMIN-005
+  - TASK-MP-004
+  - TASK-QA-001
+  input_contracts:
+  - agent-team/contracts/api-contract.md
+  expected_outputs:
+  - 集成测试报告
+  - 缺陷清单
+  acceptance_criteria:
+  - 核心流程测试通过
+  - P0 缺陷为零
+  blockers: []
+- id: TASK-REL-005
+  title: 生产环境部署与上线
+  owner_agent: qa-release-agent
+  status: 已完成
+  priority: P0
+  phase: 12-release
+  dependencies:
+  - TASK-QA-002
+  - TASK-REL-002
+  input_contracts: []
+  expected_outputs:
+  - 生产环境部署
+  - 上线验证
+  - 回滚方案
+  acceptance_criteria:
+  - 生产环境可访问
+  - 核心功能可使用
+  blockers: []
+- id: TASK-REL-006
+  title: 试运行监控与问题修复
+  owner_agent: qa-release-agent
+  status: 需人工处理
+  priority: P1
+  phase: 13-closure
+  dependencies:
+  - TASK-REL-005
+  input_contracts: []
+  expected_outputs:
+  - 试运行报告
+  - 问题修复记录
+  acceptance_criteria:
+  - 试运行期间无 P0 问题
+  blockers: []
+- id: TASK-CTRL-003
+  title: 培训与移交
+  owner_agent: controller-agent
+  status: 已完成
+  priority: P1
+  phase: 13-closure
+  dependencies:
+  - TASK-REL-006
+  input_contracts: []
+  expected_outputs:
+  - 培训材料
+  - 运维手册
+  - 项目移交文档
+  acceptance_criteria:
+  - 客户可独立运维
+  blockers: []

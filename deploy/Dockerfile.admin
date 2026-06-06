@@ -1,0 +1,47 @@
+# ============================================================================
+# 微信小程序多场景搭建与运营系统 — 前端 Docker 镜像
+# 多阶段构建: Node.js 编译 + Nginx 托管
+# ============================================================================
+
+# ── 阶段1: Node.js 构建 ──────────────────────────────────────────────────
+FROM node:18-alpine AS builder
+
+WORKDIR /build
+
+# 先复制 package 文件，利用 Docker 缓存加速依赖安装
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci --registry=https://registry.npmmirror.com
+
+# 复制源码并构建
+COPY admin/ ./
+
+# 构建参数: API 地址 (构建时注入)
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+RUN npm run build
+
+# ── 阶段2: Nginx 托管 ──────────────────────────────────────────────────
+FROM nginx:1.25-alpine
+
+LABEL maintainer="miniapp-team"
+LABEL description="微信小程序多场景搭建与运营系统 - 管理后台前端"
+
+# 删除默认配置
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# 复制构建产物
+COPY --from=builder /build/dist /usr/share/nginx/html
+
+# Nginx 配置由 docker-compose 挂载
+# 如需内置配置，取消下行注释:
+# COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# 暴露端口
+EXPOSE 80
+
+# 健康检查
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q -O /dev/null http://localhost:80/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

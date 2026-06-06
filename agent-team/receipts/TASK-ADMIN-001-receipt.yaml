@@ -1,0 +1,37 @@
+task_id: TASK-ADMIN-001
+task_name: 管理后台框架搭建与菜单权限方案
+owner_agent: admin-agent
+status: completed
+completed_at: "2026-05-11"
+output_files:
+  - path: agent-team/reports/TASK-ADMIN-001-admin-framework-and-permission-scheme.md
+    description: 管理后台框架与菜单权限完整方案
+artifacts:
+  - name: 菜单结构
+    type: design
+    summary: 8个一级菜单、16个二级菜单，覆盖总览/页面与装修/内容运营/用户与会员/商业变现/活动与预约/智能AI/系统
+  - name: 路由结构
+    type: design
+    summary: 40+路由，含嵌套关系、全屏布局（装修器）、路由守卫规则
+  - name: 权限点清单
+    type: design
+    summary: 60+权限点，分为菜单权限和操作权限，编码规则 模块:操作
+  - name: 角色权限矩阵
+    type: design
+    summary: 4个内置角色（super_admin/content_operator/commerce_operator/service_staff）及其权限分配
+  - name: 高风险操作清单
+    type: design
+    summary: 12项需二次确认的高风险操作
+  - name: 后台模块依赖清单
+    type: design
+    summary: 前端技术栈、模块依赖关系、后端接口依赖（标注对应契约）、通用组件清单
+contracts_followed:
+  - api-contract.md
+  - page-dsl-schema.md
+  - order-state-machine.md
+  - ai-recommendation-contract.md
+  - database-model.md
+contracts_note: 所有接口路径为建议格式，最终以 TASK-BE-002 输出的 API 接口规范为准；未私自定义接口字段、数据库表或订单状态
+next_tasks_suggested:
+  - TASK-ADMIN-002（页面装修器交互与组件库方案）
+  - TASK-BE-002（API 接口规范初稿，admin-agent 依赖此任务输出最终接口路径）

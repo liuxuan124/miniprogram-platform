@@ -1,0 +1,39 @@
+<!--components/dsl-banner/dsl-banner.wxml — 轮播图组件-->
+<view class="dsl-banner" style="{{styleString}}">
+  <swiper
+    class="dsl-banner__swiper"
+    autoplay="{{config.autoplay !== false}}"
+    interval="{{config.interval || 3000}}"
+    circular="{{config.circular !== false}}"
+    indicator-dots="{{config.indicator_dots !== false}}"
+    indicator-color="rgba(255,255,255,0.4)"
+    indicator-active-color="#ffffff"
+    style="height: {{config.height || 290}}rpx; border-radius: {{config.border_radius ? config.border_radius * 2 : 16}}rpx;"
+    bindchange="onChange"
+  >
+    <swiper-item
+      wx:for="{{resolvedImages}}"
+      wx:key="index"
+    >
+      <image
+        wx:if="{{item.url && item.isValid}}"
+        class="dsl-banner__image"
+        src="{{item.url}}"
+        mode="aspectFill"
+        data-index="{{index}}"
+        bindtap="onTapItem"
+        lazy-load
+      />
+      <view
+        wx:else
+        class="dsl-banner__fallback"
+        data-index="{{index}}"
+        bindtap="onTapItem"
+      >
+        <view class="dsl-banner__orb"></view>
+        <text class="dsl-banner__fallback-title">{{item.title || config.title || '会员福利专区'}}</text>
+        <text class="dsl-banner__fallback-subtitle">{{item.subtitle || '点击了解'}}</text>
+      </view>
+    </swiper-item>
+  </swiper>
+</view>

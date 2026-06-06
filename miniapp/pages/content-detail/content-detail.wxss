@@ -1,0 +1,117 @@
+/* pages/content-detail/content-detail.wxss — 内容详情页样式 */
+
+.content-detail-page {
+  min-height: 100vh;
+  background-color: #fff;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+/* ========== 加载状态 ========== */
+.loading-area {
+  text-align: center;
+  padding: 200rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* ========== 标题区域 ========== */
+.detail-header {
+  padding: 32rpx 32rpx 24rpx;
+}
+
+.detail-title {
+  font-size: 40rpx;
+  color: #333;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.detail-author {
+  margin-right: 16rpx;
+  color: #1890ff;
+}
+
+.detail-date {
+  color: #bbb;
+}
+
+/* ========== 封面图 ========== */
+.detail-cover {
+  width: 100%;
+  display: block;
+}
+
+/* ========== 富文本内容 ========== */
+.detail-content {
+  padding: 32rpx;
+  font-size: 30rpx;
+  color: #333;
+  line-height: 1.8;
+}
+
+.detail-content rich-text {
+  word-break: break-all;
+}
+
+/* ========== 标签 ========== */
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 32rpx 32rpx;
+  gap: 12rpx;
+}
+
+.tag-item {
+  padding: 6rpx 20rpx;
+  background-color: #f5f5f5;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* ========== 底部操作栏 ========== */
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 100rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: #fff;
+  border-top: 1rpx solid #eee;
+  z-index: 50;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+}
+
+.action-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.action-text {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}

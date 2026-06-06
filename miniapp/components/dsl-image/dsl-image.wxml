@@ -1,0 +1,13 @@
+<!--components/dsl-image/dsl-image.wxml — 单图组件-->
+<view class="dsl-image" style="{{styleString}}" bindtap="onTap">
+  <image
+    wx:if="{{config.image}}"
+    class="dsl-image__img"
+    src="{{config.image}}"
+    mode="{{config.mode || 'aspectFill'}}"
+  />
+  <view wx:else class="dsl-image__placeholder">
+    <text class="dsl-image__icon">📷</text>
+    <text class="dsl-image__text">{{config.title || '图片'}}</text>
+  </view>
+</view>

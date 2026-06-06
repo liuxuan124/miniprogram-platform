@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "verify:miniapp-runtime": "node verify-miniapp-runtime.js",
+    "verify:miniapp-wxml": "node verify-miniapp-wxml.js",
+    "verify:miniapp-visual": "node verify-miniapp-wxml.js",
+    "verify:miniapp-login": "node verify-miniapp-login.js"
+  },
+  "devDependencies": {
+    "miniprogram-automator": "^0.12.1"
+  }
+}

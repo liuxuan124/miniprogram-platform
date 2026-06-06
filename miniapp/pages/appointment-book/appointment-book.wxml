@@ -1,0 +1,102 @@
+<!-- pages/appointment-book/appointment-book.wxml — 预约下单页 -->
+<view class="appointment-book-page">
+  <!-- 服务信息 -->
+  <view class="service-section" wx:if="{{serviceInfo}}">
+    <image
+      class="service-cover"
+      src="{{serviceInfo.cover_url || serviceInfo.image || '/images/default-service.svg'}}"
+      mode="aspectFill"
+    />
+    <view class="service-detail">
+      <text class="service-name">{{serviceInfo.name}}</text>
+      <text class="service-price" wx:if="{{serviceInfo.price !== undefined}}">
+        <text class="price-symbol">&#165;</text>{{serviceInfo.price}}
+      </text>
+      <text class="service-duration" wx:if="{{serviceInfo.duration}}">时长: {{serviceInfo.duration}}分钟</text>
+    </view>
+  </view>
+
+  <!-- 日期选择 -->
+  <view class="section">
+    <view class="section-title">选择日期</view>
+    <scroll-view class="date-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{dates}}"
+        wx:key="date"
+        class="date-item {{selectedDate === item.date ? 'active' : ''}} {{item.disabled ? 'disabled' : ''}}"
+        data-date="{{item.date}}"
+        data-disabled="{{item.disabled}}"
+        bindtap="onDateTap"
+      >
+        <text class="date-label">{{item.label}}</text>
+        <text class="date-weekday">{{item.weekday}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 时段选择 -->
+  <view class="section">
+    <view class="section-title">选择时段</view>
+    <view class="slots-grid" wx:if="{{slots.length > 0}}">
+      <view
+        wx:for="{{slots}}"
+        wx:key="index"
+        class="slot-item {{selectedSlot === index ? 'active' : ''}} {{!item.available ? 'unavailable' : ''}}"
+        data-index="{{index}}"
+        bindtap="onSlotTap"
+      >
+        <text class="slot-time">{{item.label}}</text>
+        <text class="slot-status" wx:if="{{!item.available}}">已满</text>
+      </view>
+    </view>
+    <view class="slots-empty" wx:else>
+      <text class="slots-empty-text">暂无可用时段</text>
+    </view>
+  </view>
+
+  <!-- 联系信息 -->
+  <view class="section">
+    <view class="section-title">联系信息</view>
+    <view class="form-group">
+      <text class="form-label">联系人</text>
+      <input
+        class="form-input"
+        placeholder="请输入姓名"
+        value="{{contactName}}"
+        bindinput="onNameInput"
+      />
+    </view>
+    <view class="form-group">
+      <text class="form-label">联系电话</text>
+      <input
+        class="form-input"
+        type="number"
+        maxlength="11"
+        placeholder="请输入手机号"
+        value="{{contactPhone}}"
+        bindinput="onPhoneInput"
+      />
+    </view>
+    <view class="form-group">
+      <text class="form-label">备注</text>
+      <textarea
+        class="form-textarea"
+        placeholder="选填，如有特殊需求请备注"
+        value="{{remark}}"
+        maxlength="200"
+        auto-height
+        bindinput="onRemarkInput"
+      />
+    </view>
+  </view>
+
+  <!-- 底部提交栏 -->
+  <view class="bottom-bar">
+    <view
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmitBook"
+    >
+      {{submitting ? '提交中...' : '确认预约'}}
+    </view>
+  </view>
+</view>

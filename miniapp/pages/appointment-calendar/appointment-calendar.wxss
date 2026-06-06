@@ -1,0 +1,232 @@
+/* pages/appointment-calendar/appointment-calendar.wxss — 预约日历页样式 */
+
+.appointment-calendar-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ========== 日历头部 ========== */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background-color: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.calendar-nav {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.calendar-nav:active {
+  background-color: #f5f5f5;
+}
+
+.nav-arrow {
+  font-size: 32rpx;
+  color: #333;
+}
+
+.calendar-title {
+  font-size: 34rpx;
+  color: #333;
+  font-weight: 700;
+}
+
+/* ========== 星期标签 ========== */
+.weekday-row {
+  display: flex;
+  background-color: #fff;
+  padding: 0 16rpx 16rpx;
+}
+
+.weekday-item {
+  flex: 1;
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  font-weight: 600;
+}
+
+/* ========== 日历网格 ========== */
+.calendar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  background-color: #fff;
+  padding: 0 16rpx 24rpx;
+}
+
+.calendar-day {
+  width: calc(100% / 7);
+  height: 88rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.calendar-day:active {
+  background-color: #f0f0f0;
+}
+
+.calendar-day.today .day-number {
+  background-color: #1890ff;
+  color: #fff;
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  text-align: center;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.calendar-day.selected .day-number {
+  background-color: #ff4d4f;
+  color: #fff;
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  text-align: center;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.calendar-day.other-month .day-number {
+  color: #ccc;
+}
+
+.day-number {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.day-dot {
+  position: absolute;
+  bottom: 10rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background-color: #0faa6e;
+}
+
+/* ========== 时段区域 ========== */
+.slots-section {
+  background-color: #fff;
+  margin-top: 16rpx;
+  padding: 24rpx 32rpx;
+}
+
+.slots-header {
+  margin-bottom: 20rpx;
+}
+
+.slots-title {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 700;
+}
+
+/* ========== 时段网格 ========== */
+.slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.slot-item {
+  width: calc(33.33% - 12rpx);
+  height: 80rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.slot-item.active {
+  background-color: #ff4d4f;
+}
+
+.slot-item.unavailable {
+  opacity: 0.5;
+}
+
+.slot-time {
+  font-size: 24rpx;
+  color: #333;
+}
+
+.slot-item.active .slot-time {
+  color: #fff;
+}
+
+.slot-item.unavailable .slot-time {
+  color: #999;
+}
+
+.slot-status {
+  font-size: 18rpx;
+  color: #ff4d4f;
+  margin-top: 2rpx;
+}
+
+/* ========== 空时段 ========== */
+.slots-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120rpx;
+}
+
+.slots-empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* ========== 预约按钮 ========== */
+.slots-action {
+  margin-top: 24rpx;
+}
+
+.book-btn {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1890ff, #20b7ff);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
+  box-shadow: 0 4rpx 14rpx rgba(23, 105, 255, 0.3);
+}
+
+.book-btn:active {
+  opacity: 0.85;
+}
+
+/* ========== 加载状态 ========== */
+.loading-area {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}

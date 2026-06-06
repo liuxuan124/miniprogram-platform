@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "首页",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "dsl-renderer": "../../components/dsl-renderer/dsl-renderer",
+    "loading": "../../components/loading/loading"
+  }
+}

@@ -1,0 +1,134 @@
+/* components/dsl-article-list/dsl-article-list.wxss — 文章列表组件样式 */
+
+.dsl-article-list {
+  width: 100%;
+  background: #ffffff;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.dsl-article-list__section-title {
+  margin-bottom: 16rpx;
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+/* 列表布局 */
+.dsl-article-list__list {
+  width: 100%;
+}
+
+.dsl-article-list__item--list {
+  display: flex;
+  flex-direction: row;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  padding: 16rpx;
+  background: #f8faff;
+  border-bottom: 0;
+  border-radius: 20rpx;
+  align-items: flex-start;
+}
+
+.dsl-article-list__item--list:last-child {
+  border-bottom: none;
+}
+
+.dsl-article-list__item-cover {
+  width: 124rpx;
+  height: 104rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.dsl-article-list__item-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 124rpx;
+  height: 104rpx;
+  flex-shrink: 0;
+  background: #eef2f7;
+  border-radius: 8rpx;
+  font-size: 44rpx;
+}
+
+.dsl-article-list__item-content {
+  flex: 1;
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 150rpx;
+}
+
+.dsl-article-list__item-title {
+  font-size: 26rpx;
+  color: #172033;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.dsl-article-list__item-summary {
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.4;
+  margin-top: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.dsl-article-list__item-date {
+  font-size: 22rpx;
+  color: #909399;
+  margin-top: 8rpx;
+}
+
+.dsl-article-list__item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 卡片布局 */
+.dsl-article-list__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.dsl-article-list__item--card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.dsl-article-list__item-cover-card {
+  width: 100%;
+  height: 320rpx;
+  display: block;
+}
+
+.dsl-article-list__item--card .dsl-article-list__item-content {
+  margin-left: 0;
+  padding: 20rpx 24rpx;
+  min-height: auto;
+}
+
+/* 空状态 */
+.dsl-article-list__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.dsl-article-list__empty-text {
+  font-size: 26rpx;
+  color: #999999;
+}

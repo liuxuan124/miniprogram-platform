@@ -1,0 +1,61 @@
+<!--pages/category/category.wxml — 分类页-->
+<view class="page-wrapper">
+  <loading wx:if="{{loading}}" />
+
+  <view wx:else class="category-page">
+    <!-- 左侧分类导航 -->
+    <scroll-view class="category-nav" scroll-y>
+      <view
+        class="category-nav__item {{activeCategory.id === item.id ? 'category-nav__item--active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onCategoryTap"
+      >
+        <text>{{item.name}}</text>
+      </view>
+    </scroll-view>
+
+    <!-- 右侧内容列表 -->
+    <scroll-view
+      class="category-content"
+      scroll-y
+      bindscrolltolower="onReachBottom"
+    >
+      <!-- 内容卡片 -->
+      <view
+        class="content-card card"
+        wx:for="{{contentList}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onContentTap"
+      >
+        <image
+          class="content-card__image"
+          src="{{item.coverUrl}}"
+          mode="aspectFill"
+          wx:if="{{item.coverUrl}}"
+        />
+        <view class="content-card__info">
+          <text class="content-card__title text-ellipsis-2">{{item.title}}</text>
+          <text class="content-card__desc text-ellipsis" wx:if="{{item.description}}">{{item.description}}</text>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{contentList.length === 0 && !loadingMore}}">
+        <text class="empty-state__text">暂无内容</text>
+      </view>
+
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{loadingMore}}">
+        <text class="load-more__text">加载中...</text>
+      </view>
+
+      <!-- 没有更多 -->
+      <view class="load-more" wx:if="{{!hasMore && contentList.length > 0}}">
+        <text class="load-more__text">没有更多了</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

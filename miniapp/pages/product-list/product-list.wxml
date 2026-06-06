@@ -1,0 +1,95 @@
+<!-- pages/product-list/product-list.wxml — 商品列表页 -->
+<view class="product-list-page">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon-text">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索商品"
+        value="{{keyword}}"
+        confirm-type="search"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+      />
+      <image
+        wx:if="{{keyword}}"
+        class="search-clear"
+        src="/images/icon-close.svg"
+        mode="aspectFit"
+        bindtap="onSearchClear"
+      />
+    </view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{categories}}"
+      wx:key="id"
+      class="category-item {{activeCategoryId === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onCategoryTap"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 排序栏 -->
+  <view class="sort-bar">
+    <view class="sort-btn" bindtap="onSortToggle">
+      <text wx:for="{{sortOptions}}" wx:key="key" wx:if="{{activeSort === item.key}}">{{item.label}}</text>
+      <text class="sort-arrow {{showSortPanel ? 'up' : 'down'}}">&#9660;</text>
+    </view>
+  </view>
+
+  <!-- 排序面板遮罩 -->
+  <view class="sort-mask" wx:if="{{showSortPanel}}" bindtap="onSortMaskTap">
+    <view class="sort-panel" catchtap="">
+      <view
+        wx:for="{{sortOptions}}"
+        wx:key="key"
+        class="sort-option {{activeSort === item.key ? 'active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onSortSelect"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="product-grid">
+    <view
+      wx:for="{{products}}"
+      wx:key="id"
+      class="product-card"
+      data-id="{{item.id}}"
+      bindtap="onProductTap"
+    >
+      <image class="product-image" src="{{item.image || item.cover_url || item.main_image || item.mainImage}}" mode="aspectFill" lazy-load />
+      <view class="product-info">
+        <text class="product-name">{{item.name}}</text>
+        <view class="product-price-row">
+          <text class="product-price">&#165;{{item.price}}</text>
+          <text class="product-original-price" wx:if="{{item.original_price || item.originalPrice}}">&#165;{{item.original_price || item.originalPrice}}</text>
+        </view>
+        <text class="product-sales" wx:if="{{item.sales}}">已售 {{item.sales}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && products.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <image class="empty-state__icon" src="/images/empty-product.png" mode="aspectFit" />
+    <text class="empty-state__text">暂无商品</text>
+  </view>
+</view>

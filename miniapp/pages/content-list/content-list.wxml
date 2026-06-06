@@ -1,0 +1,55 @@
+<!-- pages/content-list/content-list.wxml — 内容列表页 -->
+<view class="content-list-page">
+  <!-- 分类切换标签 -->
+  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{categories}}"
+      wx:key="id"
+      class="category-item {{activeCategoryId === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onCategoryTap"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 内容列表 -->
+  <view class="content-list" wx:if="{{!isEmpty}}">
+    <view
+      wx:for="{{articles}}"
+      wx:key="id"
+      class="content-card"
+      data-id="{{item.id}}"
+      bindtap="onContentTap"
+    >
+      <image
+        class="content-cover"
+        src="{{item.cover_url || item.image || '/images/default-article.svg'}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="content-info">
+        <text class="content-title text-ellipsis-2">{{item.title}}</text>
+        <text class="content-summary text-ellipsis-2" wx:if="{{item.summary}}">{{item.summary}}</text>
+        <view class="content-meta">
+          <text class="content-date">{{item.publish_time || item.created_at}}</text>
+          <text class="content-views">{{item.views || 0}} 阅读</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && articles.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <image class="empty-state__icon" src="/images/empty.png" mode="aspectFit" />
+    <text class="empty-state__text">暂无内容</text>
+  </view>
+</view>

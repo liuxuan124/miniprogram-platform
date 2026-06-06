@@ -1,0 +1,2 @@
+<!--components/dsl-spacer/dsl-spacer.wxml — 空白间隔组件-->
+<view class="dsl-spacer" style="{{spacerStyle}} {{styleString}}"></view>

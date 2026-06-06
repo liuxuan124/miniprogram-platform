@@ -1,0 +1,38 @@
+<!--pages/points-log/points-log.wxml — 积分记录页面-->
+<view class="points-log-page">
+  <!-- 积分总览 -->
+  <view class="points-summary">
+    <text class="points-summary__label">当前积分</text>
+    <text class="points-summary__value">{{totalPoints}}</text>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="log-list" wx:if="{{!isEmpty}}">
+    <view
+      class="log-item card"
+      wx:for="{{pointsLog}}"
+      wx:key="id"
+    >
+      <view class="log-item__left">
+        <text class="log-item__title">{{item.description || item.title || '积分变动'}}</text>
+        <text class="log-item__time">{{item.created_at || item.time}}</text>
+      </view>
+      <text class="log-item__points {{item.points > 0 ? 'log-item__points--plus' : 'log-item__points--minus'}}">
+        {{item.points > 0 ? '+' : ''}}{{item.points}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && pointsLog.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <text class="empty-state__text">暂无积分记录</text>
+  </view>
+</view>

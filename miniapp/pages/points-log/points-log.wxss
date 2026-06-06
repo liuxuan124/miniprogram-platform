@@ -1,0 +1,100 @@
+/* pages/points-log/points-log.wxss — 积分记录页面样式 */
+
+.points-log-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* ========== 积分总览 ========== */
+.points-summary {
+  background: linear-gradient(135deg, #ffa502, #ff9f43);
+  padding: 48rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.points-summary__label {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.points-summary__value {
+  font-size: 72rpx;
+  color: #ffffff;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 8rpx;
+}
+
+/* ========== 记录列表 ========== */
+.log-list {
+  padding: 16rpx 24rpx;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx;
+}
+
+.log-item__left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.log-item__title {
+  font-size: 28rpx;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-item__time {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.log-item__points {
+  font-size: 32rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-left: 24rpx;
+}
+
+.log-item__points--plus {
+  color: #ff4757;
+}
+
+.log-item__points--minus {
+  color: #999;
+}
+
+/* ========== 加载状态 ========== */
+.loading-area {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.empty-state__text {
+  font-size: 28rpx;
+  color: #999;
+}

@@ -1,0 +1,186 @@
+<!--pages/ai-chat/ai-chat.wxml — AI 对话页面-->
+<view class="chat-page">
+
+  <!-- 顶部操作栏 -->
+  <view class="chat-header">
+    <view class="chat-header__btn" bindtap="onViewHistory">
+      <text class="chat-header__icon">&#xe60a;</text>
+      <text class="chat-header__label">历史</text>
+    </view>
+    <view class="chat-header__btn" bindtap="onNewChat">
+      <text class="chat-header__icon">&#xe60b;</text>
+      <text class="chat-header__label">新对话</text>
+    </view>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view
+    class="chat-messages"
+    scroll-y
+    scroll-into-view="{{scrollToView}}"
+    scroll-with-animation
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <!-- 消息项 -->
+    <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg-wrapper msg-wrapper--{{item.type}}">
+
+      <!-- 系统消息 -->
+      <view wx:if="{{item.type === 'system'}}" class="msg-system">
+        <text class="msg-system__text">{{item.content}}</text>
+      </view>
+
+      <!-- 用户消息 -->
+      <view wx:elif="{{item.type === 'user'}}" class="msg-user">
+        <view class="msg-user__bubble">
+          <text class="msg-user__text">{{item.content}}</text>
+        </view>
+        <view class="msg-user__avatar">
+          <text class="msg-user__avatar-text">我</text>
+        </view>
+      </view>
+
+      <!-- AI 消息 -->
+      <view wx:elif="{{item.type === 'ai'}}" class="msg-ai">
+        <view class="msg-ai__avatar">
+          <text class="msg-ai__avatar-text">AI</text>
+        </view>
+        <view class="msg-ai__body">
+          <!-- 加载状态 -->
+          <view wx:if="{{item.isLoading}}" class="msg-ai__loading">
+            <view class="msg-ai__dots">
+              <view class="msg-ai__dot"></view>
+              <view class="msg-ai__dot"></view>
+              <view class="msg-ai__dot"></view>
+            </view>
+          </view>
+          <!-- 正常回复 -->
+          <view wx:else>
+            <view class="msg-ai__bubble" wx:if="{{item.content}}">
+              <text class="msg-ai__text">{{item.content}}</text>
+            </view>
+
+            <!-- 推荐项卡片 -->
+            <view wx:if="{{item.items && item.items.length > 0}}" class="msg-ai__recommendations">
+              <view
+                wx:for="{{item.items}}"
+                wx:for-item="recItem"
+                wx:for-index="recIdx"
+                wx:key="id"
+                class="rec-card rec-card--{{recItem.type}}"
+                bindtap="onRecommendationTap"
+                data-type="{{recItem.type}}"
+                data-id="{{recItem.id}}"
+                data-title="{{recItem.title}}"
+                data-reason="{{recItem.reason}}"
+              >
+                <!-- 商品推荐 -->
+                <view wx:if="{{recItem.type === 'product'}}" class="rec-card__inner rec-card__inner--product">
+                  <image
+                    class="rec-card__img rec-card__img--product"
+                    src="{{recItem.image}}"
+                    mode="aspectFill"
+                    lazy-load
+                  />
+                  <view class="rec-card__info">
+                    <text class="rec-card__title">{{recItem.title}}</text>
+                    <text class="rec-card__reason" wx:if="{{recItem.reason}}">{{recItem.reason}}</text>
+                    <view class="rec-card__tag rec-card__tag--product">
+                      <text class="rec-card__tag-text">商品</text>
+                    </view>
+                  </view>
+                </view>
+
+                <!-- 内容推荐 -->
+                <view wx:elif="{{recItem.type === 'content'}}" class="rec-card__inner rec-card__inner--content">
+                  <image
+                    class="rec-card__img rec-card__img--content"
+                    src="{{recItem.image}}"
+                    mode="aspectFill"
+                    lazy-load
+                  />
+                  <view class="rec-card__info">
+                    <text class="rec-card__title">{{recItem.title}}</text>
+                    <text class="rec-card__reason" wx:if="{{recItem.reason}}">{{recItem.reason}}</text>
+                    <view class="rec-card__tag rec-card__tag--content">
+                      <text class="rec-card__tag-text">内容</text>
+                    </view>
+                  </view>
+                </view>
+
+                <!-- 活动推荐 -->
+                <view wx:elif="{{recItem.type === 'activity'}}" class="rec-card__inner rec-card__inner--activity">
+                  <image
+                    class="rec-card__img rec-card__img--activity"
+                    src="{{recItem.image}}"
+                    mode="aspectFill"
+                    lazy-load
+                  />
+                  <view class="rec-card__info">
+                    <text class="rec-card__title">{{recItem.title}}</text>
+                    <text class="rec-card__reason" wx:if="{{recItem.reason}}">{{recItem.reason}}</text>
+                    <view class="rec-card__tag rec-card__tag--activity">
+                      <text class="rec-card__tag-text">活动</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部占位 -->
+    <view class="chat-messages__bottom"></view>
+  </scroll-view>
+
+  <!-- 转人工按钮（浮动） -->
+  <view class="chat-transfer" bindtap="onTransferHuman">
+    <text class="chat-transfer__text">转人工</text>
+  </view>
+
+  <!-- 输入区域 -->
+  <view class="chat-input-bar" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight + 'px' : 'env(safe-area-inset-bottom)'}}">
+    <view class="chat-input-bar__inner">
+      <input
+        class="chat-input-bar__field"
+        type="text"
+        placeholder="输入你想了解的内容..."
+        placeholder-class="chat-input-bar__placeholder"
+        value="{{inputValue}}"
+        bindinput="onInputChange"
+        bindfocus="onInputFocus"
+        bindblur="onInputBlur"
+        bindconfirm="onSend"
+        confirm-type="send"
+        adjust-position="{{false}}"
+        disabled="{{isSending}}"
+      />
+      <view
+        class="chat-input-bar__send {{inputValue.trim() && !isSending ? 'chat-input-bar__send--active' : ''}}"
+        bindtap="onSend"
+      >
+        <text class="chat-input-bar__send-text">发送</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 转人工弹窗 -->
+  <view class="transfer-modal" wx:if="{{showTransferModal}}" catchtouchmove="true">
+    <view class="transfer-modal__mask" bindtap="onCloseTransferModal"></view>
+    <view class="transfer-modal__content">
+      <text class="transfer-modal__title">转接人工客服</text>
+      <text class="transfer-modal__desc">人工客服将为您解答更复杂的问题，是否确认转接？</text>
+      <view class="transfer-modal__actions">
+        <view class="transfer-modal__btn transfer-modal__btn--cancel" bindtap="onCloseTransferModal">
+          <text>取消</text>
+        </view>
+        <view class="transfer-modal__btn transfer-modal__btn--confirm" bindtap="onConfirmTransfer">
+          <text>确认转接</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+</view>

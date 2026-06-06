@@ -1,0 +1,95 @@
+task_id: TASK-MP-006
+task_name: 小程序表单与预约页面
+agent: miniapp-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: miniapp/services/form.js
+    description: 表单服务 API 封装（获取模板、提交表单）
+  - path: miniapp/services/appointment.js
+    description: 预约服务 API 封装（服务列表、可用时段、创建预约、我的预约、取消预约）
+  - path: miniapp/pages/form/form.js
+    description: 动态表单页逻辑 — 根据模板字段动态渲染，支持12种字段类型，含表单验证与图片上传
+  - path: miniapp/pages/form/form.wxml
+    description: 动态表单页模板 — text/textarea/number/phone/email/date/time/image/radio/checkbox/select/district
+  - path: miniapp/pages/form/form.wxss
+    description: 动态表单页样式
+  - path: miniapp/pages/form/form.json
+    description: 动态表单页配置
+  - path: miniapp/pages/appointment-list/appointment-list.js
+    description: 预约服务列表逻辑 — 搜索、分页、跳转预约下单
+  - path: miniapp/pages/appointment-list/appointment-list.wxml
+    description: 预约服务列表模板 — 搜索栏、服务卡片、我的预约入口
+  - path: miniapp/pages/appointment-list/appointment-list.wxss
+    description: 预约服务列表样式
+  - path: miniapp/pages/appointment-list/appointment-list.json
+    description: 预约服务列表配置
+  - path: miniapp/pages/appointment-book/appointment-book.js
+    description: 预约下单页逻辑 — 日期选择(7天)、时段选择、联系信息、提交预约
+  - path: miniapp/pages/appointment-book/appointment-book.wxml
+    description: 预约下单页模板 — 服务信息、日期横向滚动、时段网格、联系表单
+  - path: miniapp/pages/appointment-book/appointment-book.wxss
+    description: 预约下单页样式
+  - path: miniapp/pages/appointment-book/appointment-book.json
+    description: 预约下单页配置
+  - path: miniapp/pages/my-appointments/my-appointments.js
+    description: 我的预约列表逻辑 — 状态筛选、分页、取消预约、再次预约
+  - path: miniapp/pages/my-appointments/my-appointments.wxml
+    description: 我的预约列表模板 — Tab筛选、预约卡片、操作按钮
+  - path: miniapp/pages/my-appointments/my-appointments.wxss
+    description: 我的预约列表样式
+  - path: miniapp/pages/my-appointments/my-appointments.json
+    description: 我的预约列表配置
+  - path: miniapp/app.json
+    description: 更新页面注册 — 新增4个页面路由
+
+acceptance_criteria:
+  - criterion: 表单填写与提交（根据模板动态渲染表单字段）
+    status: done
+    detail: 支持12种字段类型(text/textarea/number/phone/email/date/time/image/radio/checkbox/select/district)，动态渲染对应组件，含必填验证和格式校验
+  - criterion: 预约服务列表
+    status: done
+    detail: 支持搜索、分页加载、下拉刷新，展示服务封面/名称/价格/时长
+  - criterion: 预约时段选择
+    status: done
+    detail: 7天日期横向滚动选择 + 时段网格展示，已满时段置灰不可选
+  - criterion: 预约下单
+    status: done
+    detail: 选日期+选时段+填联系信息+提交，含手机号格式校验，成功后跳转我的预约
+  - criterion: 我的预约列表
+    status: done
+    detail: 状态Tab筛选(全部/待确认/已确认/已完成/已取消)，分页加载，预约卡片展示详情
+  - criterion: 取消预约
+    status: done
+    detail: 待确认/已确认状态可取消，二次确认弹窗，调用PUT取消接口
+
+api_contracts:
+  - method: GET
+    path: /api/v1/mp/form-templates/{id}
+    implemented: true
+  - method: POST
+    path: /api/v1/mp/form-templates/{id}/submit
+    implemented: true
+  - method: GET
+    path: /api/v1/mp/appointment-services
+    implemented: true
+  - method: GET
+    path: /api/v1/mp/appointment-services/{id}/slots
+    implemented: true
+  - method: POST
+    path: /api/v1/mp/appointments
+    implemented: true
+  - method: GET
+    path: /api/v1/mp/appointments
+    implemented: true
+  - method: PUT
+    path: /api/v1/mp/appointments/{id}/cancel
+    implemented: true
+
+notes: |
+  - 表单页支持全部12种字段类型的动态渲染，包括图片上传（含预览/删除）和地区三级联动选择
+  - 预约下单页自动生成未来7天可选日期，选择日期后动态加载可用时段
+  - 所有页面风格与现有订单模块保持一致（配色#ff4d4f、圆角16rpx卡片、统一间距）
+  - 表单模板接口为公开接口(auth:false)，预约创建和我的预约需要登录态
+  - 图片上传复用 utils/request.js 的 upload 方法，先上传图片再提交表单

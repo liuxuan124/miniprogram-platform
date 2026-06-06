@@ -1,0 +1,51 @@
+task_id: TASK-ADMIN-007
+task_name: 表单与预约管理后台页面
+agent: admin-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: admin/src/types/form.ts
+    description: 表单管理类型定义（FormTemplate, FormFieldConfig, FormSubmission 等）
+  - path: admin/src/types/appointment.ts
+    description: 预约管理类型定义（AppointmentService, AppointmentSlot, AppointmentRecord 等）
+  - path: admin/src/api/form.ts
+    description: 表单管理 API（模板 CRUD、启停、提交数据查询）
+  - path: admin/src/api/appointment.ts
+    description: 预约管理 API（服务 CRUD、时段管理、预约确认/取消）
+  - path: admin/src/views/form/template.vue
+    description: 表单模板管理页面（创建/编辑/启停，含字段拖拽配置）
+  - path: admin/src/views/form/submissions.vue
+    description: 表单提交数据查看页面（动态字段列、详情弹窗）
+  - path: admin/src/views/appointment/service.vue
+    description: 预约服务管理页面（创建/编辑/删除服务）
+  - path: admin/src/views/appointment/slot.vue
+    description: 预约时段管理页面（添加/批量生成/编辑/启停时段）
+  - path: admin/src/views/appointment/index.vue
+    description: 预约记录管理页面（确认/取消预约，统计卡片）
+  - path: admin/src/router/index.ts
+    description: 新增 /form 和 /appointment 路由配置
+
+acceptance_criteria:
+  form_template_management: 已实现 — 创建/编辑/启停表单模板，含字段拖拽排序配置
+  form_submission_view: 已实现 — 提交数据查看，支持按模板筛选、动态字段列、详情弹窗
+  appointment_service_management: 已实现 — 预约服务 CRUD，含时长/价格/状态管理
+  appointment_slot_management: 已实现 — 预约时段管理，支持单个添加和批量生成
+  appointment_record_management: 已实现 — 预约记录列表，支持确认/取消操作，含统计卡片
+
+api_contracts:
+  - GET/POST /api/v1/admin/form-templates
+  - GET/PUT/DELETE /api/v1/admin/form-templates/{id}
+  - GET /api/v1/admin/form-templates/{id}/submissions
+  - GET/POST /api/v1/admin/appointment-services
+  - GET/PUT/DELETE /api/v1/admin/appointment-services/{id}
+  - GET/POST /api/v1/admin/appointment-slots
+  - PUT /api/v1/admin/appointment-slots/{id}
+  - GET /api/v1/admin/appointments
+  - PUT /api/v1/admin/appointments/{id}/confirm
+  - PUT /api/v1/admin/appointments/{id}/cancel
+
+dependencies_added:
+  - vuedraggable@^4.1.0
+
+build_verification: vite build 成功，无编译错误

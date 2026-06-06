@@ -1,0 +1,11 @@
+id: TASK-ROLE-000
+title: 任务标题
+owner_agent: backend-agent | admin-agent | miniapp-agent | ai-agent | qa-release-agent
+status: 待开始
+priority: P0 | P1 | P2 | P3
+dependencies: []
+input_contracts: []
+expected_outputs: []
+acceptance_criteria: []
+blockers: []
+notes: ""

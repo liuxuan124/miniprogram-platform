@@ -1,0 +1,54 @@
+<!--pages/login/login.wxml — 登录页-->
+<view class="login-page">
+  <!-- 顶部返回按钮 -->
+  <view class="login-header safe-top">
+    <view class="back-btn" bindtap="onBack">
+      <text class="back-btn__icon">&lt;</text>
+    </view>
+  </view>
+
+  <!-- Logo 区域 -->
+  <view class="login-brand">
+    <image class="login-brand__logo" src="/images/logo.svg" mode="aspectFit" />
+    <text class="login-brand__name">小程序运营平台</text>
+    <text class="login-brand__slogan">多场景搭建 · 一站式运营</text>
+  </view>
+
+  <!-- 登录按钮区域 -->
+  <view class="login-actions">
+    <!-- 拦截提示 -->
+    <view class="login-intercept-tip" wx:if="{{interceptAction}}">
+      <text class="login-intercept-tip__text">登录后可{{interceptAction}}</text>
+    </view>
+
+    <!-- 微信一键登录 -->
+    <button
+      class="login-btn login-btn--wx"
+      bindtap="onWxLogin"
+      disabled="{{loading}}"
+      loading="{{loading}}"
+    >
+      微信一键登录
+    </button>
+  </view>
+
+  <!-- 隐私协议 -->
+  <view class="login-privacy">
+    <view class="privacy-check" bindtap="onTogglePrivacy">
+      <view class="privacy-check__box {{agreePrivacy ? 'privacy-check__box--checked' : ''}}">
+        <text wx:if="{{agreePrivacy}}" class="privacy-check__tick">&#10003;</text>
+      </view>
+      <text class="privacy-check__text">
+        我已阅读并同意
+        <text class="privacy-check__link" catchtap="onViewTerms">《用户协议》</text>
+        和
+        <text class="privacy-check__link" catchtap="onViewPrivacy">《隐私政策》</text>
+      </text>
+    </view>
+  </view>
+
+  <!-- 底部安全提示 -->
+  <view class="login-footer">
+    <text class="login-footer__text">登录后可查看知识库订单与会员权益</text>
+  </view>
+</view>

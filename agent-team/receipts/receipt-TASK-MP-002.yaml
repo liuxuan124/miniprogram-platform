@@ -1,0 +1,77 @@
+task_id: TASK-MP-002
+agent: miniapp-agent
+status: 已提交回执
+completed_work:
+  - 小程序项目结构完整，包含 app.js/app.json/app.wxss/project.config.json/sitemap.json 五大基础配置
+  - 微信登录流程完整实现（wx.login → 后端 /api/auth/wx-login 换 token → 本地存储 → 全局状态同步）
+  - 请求封装完成（统一 Token 注入、错误处理、401 自动跳转登录、便捷方法 get/post/put/del/upload）
+  - DSL 动态渲染引擎骨架完成（支持 text/image/button/list/grid/container/banner/swiper/rich-text/divider/icon/input 共 12 种组件类型）
+  - TabBar 三页布局完成（首页/分类/我的）
+  - 全局状态管理完成（globalData + StorageUtil 带命名空间和 TTL 过期机制）
+  - 页面路由管理完成（app.json pages 配置 + AuthUtil 跳转方法 + 登录页 redirect 回跳机制）
+  - 6 个 PNG 占位 TabBar 图标已创建（home/category/mine 各含 normal + active 状态）
+  - Loading 组件完成（三点跳动动画）
+changed_files:
+  - miniapp/app.js
+  - miniapp/app.json
+  - miniapp/app.wxss
+  - miniapp/project.config.json
+  - miniapp/sitemap.json
+  - miniapp/utils/request.js
+  - miniapp/utils/auth.js
+  - miniapp/utils/storage.js
+  - miniapp/utils/render.js
+  - miniapp/services/auth.js
+  - miniapp/services/page.js
+  - miniapp/pages/index/index.js
+  - miniapp/pages/index/index.json
+  - miniapp/pages/index/index.wxml
+  - miniapp/pages/index/index.wxss
+  - miniapp/pages/category/category.js
+  - miniapp/pages/category/category.json
+  - miniapp/pages/category/category.wxml
+  - miniapp/pages/category/category.wxss
+  - miniapp/pages/mine/mine.js
+  - miniapp/pages/mine/mine.json
+  - miniapp/pages/mine/mine.wxml
+  - miniapp/pages/mine/mine.wxss
+  - miniapp/pages/login/login.js
+  - miniapp/pages/login/login.json
+  - miniapp/pages/login/login.wxml
+  - miniapp/pages/login/login.wxss
+  - miniapp/components/dsl-renderer/dsl-renderer.js
+  - miniapp/components/dsl-renderer/dsl-renderer.json
+  - miniapp/components/dsl-renderer/dsl-renderer.wxml
+  - miniapp/components/dsl-renderer/dsl-renderer.wxss
+  - miniapp/components/loading/loading.js
+  - miniapp/components/loading/loading.json
+  - miniapp/components/loading/loading.wxml
+  - miniapp/components/loading/loading.wxss
+  - miniapp/images/tab/home.png
+  - miniapp/images/tab/home-active.png
+  - miniapp/images/tab/category.png
+  - miniapp/images/tab/category-active.png
+  - miniapp/images/tab/mine.png
+  - miniapp/images/tab/mine-active.png
+  - miniapp/images/tab/home.svg
+  - miniapp/images/tab/home-active.svg
+  - miniapp/images/tab/category.svg
+  - miniapp/images/tab/category-active.svg
+  - miniapp/images/tab/mine.svg
+  - miniapp/images/tab/mine-active.svg
+  - miniapp/images/tab/README.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: "项目结构完整，所有文件已创建。微信登录流程代码逻辑完整（wx.login → code → 后端换 token → 存储）。请求封装包含 Token 注入、401 处理、错误提示。DSL 渲染引擎支持 12 种组件类型和事件绑定。TabBar 三页布局配置正确。全局状态管理含 TTL 过期机制。PNG 占位图标为最小合法 PNG 文件，正式发布前需替换为 81x81px 设计图标。"
+downstream_suggestions: []
+risks:
+  - TabBar 图标当前为最小占位 PNG（1x1透明像素），正式发布前需替换为设计稿提供的 81x81px PNG 图标
+  - project.config.json 中 appid 为占位值 wx0000000000000000，需替换为真实 AppID
+  - request.js 中 BASE_URL 为 https://api.example.com 占位地址，需替换为真实后端地址
+  - 微信小程序 getUserProfile API 在部分基础库版本已废弃，需关注微信官方最新登录方案调整
+next_step: "TASK-MP-003: 实现首页 DSL 动态渲染完整流程，对接后端页面 DSL API，完善各组件交互细节"
+notes: "所有代码文件均已实际创建并编写完整逻辑，非空壳占位。项目可在微信开发者工具中打开（需配置真实 AppID）。"

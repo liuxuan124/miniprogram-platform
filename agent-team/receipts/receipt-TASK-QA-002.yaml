@@ -1,0 +1,22 @@
+task_id: TASK-QA-002
+title: 执行集成测试
+status: 已完成
+completed_at: '2025-05-11'
+deliverables:
+  - backend/src/test/resources/application-integration-test.yml
+  - backend/src/test/java/com/miniprogram/controller/AuthControllerIntegrationTest.java
+  - backend/src/test/java/com/miniprogram/controller/ContentControllerIntegrationTest.java
+  - backend/src/test/java/com/miniprogram/controller/ProductControllerIntegrationTest.java
+  - backend/src/test/java/com/miniprogram/service/OrderServiceIntegrationTest.java
+  - backend/src/test/java/com/miniprogram/service/MemberServiceIntegrationTest.java
+  - backend/src/test/java/com/miniprogram/common/ErrorCodeTest.java
+  - backend/src/test/java/com/miniprogram/common/BusinessExceptionTest.java
+summary: |
+  集成测试覆盖以下模块:
+  - 认证控制器: 登录成功/失败、未认证访问
+  - 内容管理控制器: 文章列表、分类列表
+  - 商品管理控制器: 商品列表、分类列表
+  - 订单服务: 创建订单、查询列表、取消已支付订单
+  - 会员服务: 签到积分、连续签到、重复签到
+  - 通用: ErrorCode格式验证、BusinessException构造
+  使用SpringBootTest + MockMvc + Mockito框架

@@ -1,0 +1,111 @@
+task_id: TASK-BE-008
+task_name: 实现内容管理模块
+agent: backend-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: backend/src/main/resources/db/migration/V4__content_tables.sql
+    description: 内容管理域数据库迁移脚本（mp_content_category, mp_content_tag, mp_content）
+  - path: backend/src/main/java/com/miniprogram/entity/ContentCategory.java
+    description: 内容分类实体
+  - path: backend/src/main/java/com/miniprogram/entity/Content.java
+    description: 内容文章实体
+  - path: backend/src/main/java/com/miniprogram/entity/ContentTag.java
+    description: 内容标签实体
+  - path: backend/src/main/java/com/miniprogram/mapper/ContentCategoryMapper.java
+    description: 内容分类 Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/ContentMapper.java
+    description: 内容文章 Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/ContentTagMapper.java
+    description: 内容标签 Mapper
+  - path: backend/src/main/java/com/miniprogram/dto/ContentCategoryDTO.java
+    description: 内容分类 DTO（含树形 children 字段）
+  - path: backend/src/main/java/com/miniprogram/dto/ContentDTO.java
+    description: 内容文章创建/更新 DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ContentQueryDTO.java
+    description: 内容文章查询 DTO（分页+筛选）
+  - path: backend/src/main/java/com/miniprogram/dto/ContentDetailDTO.java
+    description: 内容文章详情 DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ContentTagDTO.java
+    description: 内容标签 DTO
+  - path: backend/src/main/java/com/miniprogram/service/ContentCategoryService.java
+    description: 内容分类 Service 接口
+  - path: backend/src/main/java/com/miniprogram/service/ContentService.java
+    description: 内容文章 Service 接口
+  - path: backend/src/main/java/com/miniprogram/service/ContentTagService.java
+    description: 内容标签 Service 接口
+  - path: backend/src/main/java/com/miniprogram/service/impl/ContentCategoryServiceImpl.java
+    description: 内容分类 Service 实现（树形构建、分类 CRUD、删除校验）
+  - path: backend/src/main/java/com/miniprogram/service/impl/ContentServiceImpl.java
+    description: 内容文章 Service 实现（CRUD、发布/下架、标签计数、浏览量+1）
+  - path: backend/src/main/java/com/miniprogram/service/impl/ContentTagServiceImpl.java
+    description: 内容标签 Service 实现（标签列表、同步使用次数）
+  - path: backend/src/main/java/com/miniprogram/controller/ContentCategoryController.java
+    description: 内容分类管理控制器（管理后台）
+  - path: backend/src/main/java/com/miniprogram/controller/ContentController.java
+    description: 内容文章管理控制器（管理后台）
+  - path: backend/src/main/java/com/miniprogram/controller/ContentTagController.java
+    description: 内容标签管理控制器（管理后台）
+  - path: backend/src/main/java/com/miniprogram/controller/MpContentController.java
+    description: 小程序端内容控制器（公开接口）
+
+modified_files:
+  - path: backend/src/main/java/com/miniprogram/common/ErrorCode.java
+    description: 新增内容模块错误码（400401/400201/400402/400203）
+  - path: backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+    description: 添加小程序内容公开接口到 permitAll
+
+acceptance_criteria:
+  - name: 内容分类 CRUD（树形结构）
+    status: done
+    detail: ContentCategoryController 提供列表/创建/更新/删除接口，列表返回树形结构，删除时校验分类下是否有内容或子分类
+  - name: 内容文章 CRUD（含富文本、封面图、分类关联）
+    status: done
+    detail: ContentController 提供完整 CRUD，ContentDTO 包含 title/categoryId/coverImage/summary/content/author/source/tags/sortOrder
+  - name: 内容标签管理
+    status: done
+    detail: ContentTagController 提供标签列表接口，ContentTagService 支持同步标签使用次数
+  - name: 内容发布/下架流程
+    status: done
+    detail: PUT /{id}/publish 和 PUT /{id}/unpublish 接口，状态校验（draft->published, published->draft），发布时记录 published_at
+  - name: 小程序端内容列表/详情接口（公开）
+    status: done
+    detail: MpContentController 提供 GET /api/v1/mp/contents 和 GET /api/v1/mp/contents/{id}，仅返回已发布内容，详情接口浏览量+1，SecurityConfig 已添加 permitAll
+
+api_endpoints:
+  admin:
+    - GET    /api/v1/admin/content-categories        — 分类列表（树形）
+    - POST   /api/v1/admin/content-categories        — 创建分类
+    - PUT    /api/v1/admin/content-categories/{id}    — 更新分类
+    - DELETE /api/v1/admin/content-categories/{id}    — 删除分类
+    - GET    /api/v1/admin/contents                   — 内容列表（分页+筛选）
+    - POST   /api/v1/admin/contents                   — 创建内容
+    - GET    /api/v1/admin/contents/{id}              — 内容详情
+    - PUT    /api/v1/admin/contents/{id}              — 更新内容
+    - DELETE /api/v1/admin/contents/{id}              — 删除内容
+    - PUT    /api/v1/admin/contents/{id}/publish      — 发布内容
+    - PUT    /api/v1/admin/contents/{id}/unpublish    — 下架内容
+    - GET    /api/v1/admin/content-tags               — 标签列表
+  mp:
+    - GET    /api/v1/mp/contents                      — 内容列表（公开，支持分类/标签筛选）
+    - GET    /api/v1/mp/contents/{id}                 — 内容详情（公开，含浏览量+1）
+
+error_codes:
+  - code: 400401
+    message: 内容不存在
+    http_status: 404
+  - code: 400201
+    message: 内容状态错误
+    http_status: 422
+  - code: 400402
+    message: 内容分类不存在
+    http_status: 404
+  - code: 400203
+    message: 分类下有内容不可删除
+    http_status: 422
+
+database_tables:
+  - mp_content_category
+  - mp_content_tag
+  - mp_content

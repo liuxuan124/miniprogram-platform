@@ -1,0 +1,2 @@
+<!--components/dsl-divider/dsl-divider.wxml — 分割线组件-->
+<view class="dsl-divider" style="{{dividerStyle}} {{styleString}}"></view>

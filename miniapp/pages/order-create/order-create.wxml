@@ -1,0 +1,85 @@
+<!-- pages/order-create/order-create.wxml — 订单创建页 -->
+<view class="order-create-page">
+  <!-- 收货地址 -->
+  <view class="address-section" bindtap="onSelectAddress">
+    <view wx:if="{{hasAddress && address}}" class="address-card">
+      <view class="address-icon">
+        <image class="address-icon-img" src="/images/icon-location.svg" mode="aspectFit" />
+      </view>
+      <view class="address-info">
+        <view class="address-name-phone">
+          <text class="address-name">{{address.name}}</text>
+          <text class="address-phone">{{address.phone}}</text>
+        </view>
+        <text class="address-detail">{{address.province}}{{address.city}}{{address.district}}{{address.detail}}</text>
+      </view>
+      <text class="address-arrow">&#10095;</text>
+    </view>
+    <view wx:else class="address-empty">
+      <text class="address-empty-text">请选择收货地址</text>
+      <text class="address-arrow">&#10095;</text>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="goods-section">
+    <view class="section-title">商品信息</view>
+    <view
+      wx:for="{{items}}"
+      wx:key="product_id"
+      class="goods-item"
+    >
+      <image class="goods-image" src="{{item.product_image || item.image || item.cover_url}}" mode="aspectFill" />
+      <view class="goods-info">
+        <text class="goods-name">{{item.product_name || item.name}}</text>
+        <text class="goods-sku" wx:if="{{item.sku_name}}">规格: {{item.sku_name}}</text>
+        <view class="goods-bottom">
+          <text class="goods-price">&#165;{{item.price}}</text>
+          <text class="goods-qty">x{{item.quantity}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="remark-section">
+    <text class="remark-label">订单备注</text>
+    <textarea
+      class="remark-input"
+      placeholder="选填，请先和商家协商一致"
+      value="{{remark}}"
+      maxlength="200"
+      bindinput="onRemarkInput"
+    />
+  </view>
+
+  <!-- 价格汇总 -->
+  <view class="price-summary">
+    <view class="summary-row">
+      <text class="summary-label">商品金额</text>
+      <text class="summary-value">&#165;{{totalPrice}}</text>
+    </view>
+    <view class="summary-row">
+      <text class="summary-label">运费</text>
+      <text class="summary-value">&#165;0.00</text>
+    </view>
+    <view class="summary-row total-row">
+      <text class="summary-label">合计</text>
+      <text class="summary-value total-price">&#165;{{totalPrice}}</text>
+    </view>
+  </view>
+
+  <!-- 底部提交栏 -->
+  <view class="bottom-bar">
+    <view class="bottom-total">
+      <text class="bottom-total-label">合计:</text>
+      <text class="bottom-total-price">&#165;{{totalPrice}}</text>
+    </view>
+    <view
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmitOrder"
+    >
+      {{submitting ? '提交中...' : '提交订单，顾问确认'}}
+    </view>
+  </view>
+</view>

@@ -1,0 +1,55 @@
+# ============================================================================
+# 微信小程序多场景搭建与运营系统 — 后端 Docker 镜像
+# 多阶段构建: Maven 编译 + JRE 运行
+# ============================================================================
+
+# ── 阶段1: Maven 构建 ─────────────────────────────────────────────────────
+FROM maven:3.9-eclipse-temurin-17 AS builder
+
+WORKDIR /build
+
+# 先复制 pom.xml，利用 Docker 缓存加速依赖下载
+COPY backend/pom.xml ./
+RUN mvn dependency:go-offline -B
+
+# 复制源码并构建
+COPY backend/src ./src
+RUN mvn package -DskipTests -B \
+    && mv target/*.jar target/app.jar
+
+# ── 阶段2: JRE 运行 ─────────────────────────────────────────────────────
+FROM eclipse-temurin:17-jre
+
+LABEL maintainer="miniapp-team"
+LABEL description="微信小程序多场景搭建与运营系统 - 后端服务"
+
+# 安装 curl (用于健康检查)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非 root 用户
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+
+WORKDIR /app
+
+# 从构建阶段复制 jar
+COPY --from=builder /build/target/app.jar app.jar
+
+# 创建上传目录
+RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
+
+USER appuser
+
+# 暴露端口
+EXPOSE 8080
+
+# JVM 参数 (可通过 JAVA_OPTS 环境变量覆盖)
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError"
+
+# 健康检查
+HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
+
+# 启动命令
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar"]

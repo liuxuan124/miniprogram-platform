@@ -1,0 +1,65 @@
+<!-- pages/activity-list/activity-list.wxml — 活动列表页 -->
+<view class="activity-list-page">
+  <!-- 活动卡片列表 -->
+  <view class="activity-list" wx:if="{{!isEmpty}}">
+    <view
+      wx:for="{{activities}}"
+      wx:key="id"
+      class="activity-card"
+      data-id="{{item.id}}"
+      bindtap="onActivityTap"
+    >
+      <!-- 封面图 -->
+      <view class="activity-cover" style="background: {{item.cover_color || 'linear-gradient(135deg, #7c3aed, #a855f7)'}};">
+        <text class="activity-cover-icon">{{item.cover_icon || '🎪'}}</text>
+      </view>
+
+      <view class="activity-info">
+        <!-- 名称和类型标签 -->
+        <view class="activity-header">
+          <text class="activity-name text-ellipsis">{{item.name}}</text>
+          <text class="activity-type-tag">{{item.type_label || item.type}}</text>
+        </view>
+
+        <!-- 日期 -->
+        <view class="activity-row">
+          <text class="activity-row-icon">📅</text>
+          <text class="activity-row-text">{{item.date}}</text>
+        </view>
+
+        <!-- 地点 -->
+        <view class="activity-row">
+          <text class="activity-row-icon">📍</text>
+          <text class="activity-row-text">{{item.venue}}</text>
+        </view>
+
+        <!-- 报名进度条 -->
+        <view class="activity-progress-area" wx:if="{{item.quota}}">
+          <view class="activity-progress-bar">
+            <view class="activity-progress-fill" style="width: {{item.progress}}%"></view>
+          </view>
+          <text class="activity-progress-text">已报名 {{item.signed}} / {{item.quota}} 人</text>
+        </view>
+
+        <!-- 报名按钮 -->
+        <view class="activity-btn {{item.full ? 'full' : ''}}">
+          {{item.full ? '名额已满' : '立即报名'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && activities.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <image class="empty-state__icon" src="/images/empty.png" mode="aspectFit" />
+    <text class="empty-state__text">暂无活动</text>
+  </view>
+</view>

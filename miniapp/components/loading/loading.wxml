@@ -1,0 +1,9 @@
+<!--components/loading/loading.wxml — 加载状态组件-->
+<view class="loading-wrapper" wx:if="{{show}}">
+  <view class="loading-spinner">
+    <view class="loading-spinner__dot loading-spinner__dot--1"></view>
+    <view class="loading-spinner__dot loading-spinner__dot--2"></view>
+    <view class="loading-spinner__dot loading-spinner__dot--3"></view>
+  </view>
+  <text class="loading-text" wx:if="{{text}}">{{text}}</text>
+</view>

@@ -1,0 +1,10 @@
+<svg width="750" height="420" viewBox="0 0 750 420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="750" height="420" rx="36" fill="#10231f"/>
+  <path d="M0 310 C150 250 250 360 410 290 C530 238 610 244 750 170 L750 420 L0 420 Z" fill="#d7b56d"/>
+  <path d="M510 80 L678 80 L678 248 L510 248 Z" fill="#f6f7f4" opacity=".96"/>
+  <path d="M540 114 H648 M540 148 H626 M540 182 H650 M540 216 H600" stroke="#10231f" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="135" cy="116" r="56" fill="#f6f7f4"/>
+  <path d="M116 128 C132 82 174 98 160 140 C150 170 102 166 116 128 Z" fill="#d7b56d"/>
+  <text x="58" y="230" fill="#f6f7f4" font-size="54" font-family="Arial, sans-serif" font-weight="700">MoTaibai</text>
+  <text x="60" y="282" fill="#dfe9e5" font-size="28" font-family="Arial, sans-serif">Cross-border knowledge engine</text>
+</svg>

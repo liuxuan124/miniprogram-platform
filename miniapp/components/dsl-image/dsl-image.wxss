@@ -1,0 +1,32 @@
+/* components/dsl-image/dsl-image.wxss — 单图组件样式 */
+.dsl-image {
+  height: 300rpx;
+  overflow: hidden;
+  background: #f1f5fb;
+  border-radius: 16rpx;
+}
+
+.dsl-image__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dsl-image__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8a94a6;
+}
+
+.dsl-image__icon {
+  font-size: 56rpx;
+  line-height: 1.2;
+}
+
+.dsl-image__text {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+}

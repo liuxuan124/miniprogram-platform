@@ -1,0 +1,11 @@
+mysql: [Warning] Using a password on the command line interface can be insecure.
+information_schema
+kms
+kms_db
+kms_platform
+kms_v3
+mall_multi
+mysql
+performance_schema
+sys
+traceability_platform

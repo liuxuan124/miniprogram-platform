@@ -1,0 +1,106 @@
+version: 3
+project: 微信小程序多场景搭建与运营系统
+team_status: 进入修复验证与上线前置补齐阶段
+last_updated: 2026-05-11 20:20
+configured_agents:
+- controller-agent
+- backend-agent
+- admin-agent
+- miniapp-agent
+- ai-agent
+- qa-release-agent
+workflow:
+  direct_agent_to_agent_command: false
+  controller_required_for_task_dispatch: true
+  receipts_required: true
+  contracts_required_for_cross_agent_work: true
+  contract_freeze_enforced: true
+allowed_statuses:
+- 待开始
+- 开发中
+- 已提交回执
+- 待总控验收
+- 待联调
+- 测试中
+- 已完成
+- 阻塞
+- 需人工处理
+current_summary: "任务队列当前为 37 个已完成、4 个需人工处理。后端 compile/test 已通过；管理后台 npm run build 已通过；小程序静态检查已通过，会员/优惠券 MP 端接口缺口已补齐；本地部署目录已整理，当前机器无 Docker，先走 3000/8080 本地联调；上线前置资料仍需人工补齐。"
+frozen_contracts:
+- agent-team/contracts/database-model.md
+- agent-team/contracts/api-contract.md
+- agent-team/contracts/page-dsl-schema.md
+- agent-team/contracts/order-state-machine.md
+- agent-team/contracts/ai-recommendation-contract.md
+freeze_log: agent-team/contracts/CONTRACT-FREEZE-LOG.md
+phase_status:
+  00-agent-coordination: 已完成
+  01-qualification: 需人工补齐
+  02-foundation-contracts: 已完成
+  03-foundation-development: 已通过构建测试
+  04-page-builder: 已完成但需联调复核
+  05-content: 已完成但需联调复核
+  06-commerce: 已完成但需联调复核
+  07-member-marketing: 已完成但需联调复核
+  08-form-activity-booking: 已完成但需联调复核
+  09-ai-recommendation: 已完成但需联调复核
+  10-dashboard-analytics: 已完成但需联调复核
+  11-integration-test: 待业务冒烟与小程序联调
+  12-release: 阻塞于人工资料
+  13-closure: 未开始
+quality_gates:
+  backend_compile:
+    command: mvn -q -DskipTests compile
+    result: 通过
+  backend_tests:
+    command: mvn -q test
+    result: 通过
+    evidence: 已按当前代码结构重建测试，并补齐会员/优惠券 MP 端接口后复测通过
+  admin_build:
+    command: npm run build
+    result: 通过
+    evidence: admin 构建已完成，并已修复登录接口契约；剩余仅 Rollup 注释警告与大 chunk 提示，不阻断交付
+  miniapp_build:
+    command: node --check miniapp/**/*.js + app.json 页面文件检查
+    result: 静态检查通过
+    evidence: 已修复 tabBar 图标路径、CommonJS 模块导入、表单预约接口路径与会员中心响应处理
+  release_readiness:
+    result: 不具备上线条件
+agent_assignments:
+  controller-agent:
+    status: 监控与调度中
+    next_focus:
+    - 同步任务状态
+    - 组织构建修复
+    - 控制上线门禁
+  backend-agent:
+    status: 后端测试已修复，等待联调验收
+    next_focus:
+    - 准备接口联调与冒烟测试
+    - 后续将 SpringBootTest 调整为独立 test profile
+  admin-agent:
+    status: 构建已修复，等待联调验证
+    next_focus:
+    - 后台页面联调验收
+    - 关注构建产物 chunk 体积优化
+  miniapp-agent:
+    status: 静态检查通过，等待微信开发者工具联调
+    next_focus:
+    - 使用微信开发者工具导入 miniapp 做真机/模拟器调试
+  ai-agent:
+    status: 等待联调验证
+    next_focus:
+    - 检查 AI 推荐契约与业务数据接口一致性
+    - 准备 AI 推荐冒烟用例
+  qa-release-agent:
+    status: 质量门禁通过，需人工上线资料
+    next_focus:
+    - 当前无 Docker 命令，若走容器准生产部署需先安装 Docker Desktop
+    - 无 Docker 时使用 http://localhost:3000 + http://localhost:8080 做本地联调
+    - 补齐小程序、服务器、域名、支付、试运行人工处理项
+    - 组织小程序/AI/业务冒烟验收
+critical_path: 小程序/AI/业务冒烟 → 人工上线资料补齐 → 生产部署与提审
+next_unlock:
+- 微信开发者工具小程序冒烟通过 → 允许进入完整联调验收
+- TASK-REL-001/002/004 补齐 → 允许进入上线准备
+- TASK-REL-006 需在正式试运行阶段处理

@@ -1,0 +1,242 @@
+<!-- pages/form/form.wxml — 动态表单页 -->
+<view class="form-page" wx:if="{{!submitted}}">
+  <!-- 模板描述 -->
+  <view class="form-header" wx:if="{{templateDesc}}">
+    <text class="form-desc">{{templateDesc}}</text>
+  </view>
+
+  <!-- 动态字段列表 -->
+  <view class="form-fields">
+    <view
+      wx:for="{{fields}}"
+      wx:key="key"
+      class="field-item"
+    >
+      <!-- 字段标签 -->
+      <view class="field-label">
+        <text class="field-required" wx:if="{{item.required !== false}}">*</text>
+        <text class="field-label-text">{{item.label || item.title}}</text>
+      </view>
+
+      <!-- text 文本输入 -->
+      <input
+        wx:if="{{item.type === 'text'}}"
+        class="field-input"
+        placeholder="{{item.placeholder || '请输入' + (item.label || item.title)}}"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindinput="onFieldInput"
+      />
+
+      <!-- textarea 多行文本 -->
+      <textarea
+        wx:elif="{{item.type === 'textarea'}}"
+        class="field-textarea"
+        placeholder="{{item.placeholder || '请输入' + (item.label || item.title)}}"
+        value="{{formValues[item.key || item.name]}}"
+        maxlength="{{item.maxlength || 500}}"
+        auto-height
+        data-key="{{item.key || item.name}}"
+        bindinput="onFieldInput"
+      />
+
+      <!-- number 数字输入 -->
+      <input
+        wx:elif="{{item.type === 'number'}}"
+        class="field-input"
+        type="digit"
+        placeholder="{{item.placeholder || '请输入' + (item.label || item.title)}}"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindinput="onFieldInput"
+      />
+
+      <!-- phone 手机号输入 -->
+      <input
+        wx:elif="{{item.type === 'phone'}}"
+        class="field-input"
+        type="number"
+        maxlength="11"
+        placeholder="{{item.placeholder || '请输入手机号'}}"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindinput="onFieldInput"
+      />
+
+      <!-- email 邮箱输入 -->
+      <input
+        wx:elif="{{item.type === 'email'}}"
+        class="field-input"
+        placeholder="{{item.placeholder || '请输入邮箱'}}"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindinput="onFieldInput"
+      />
+
+      <!-- date 日期选择 -->
+      <picker
+        wx:elif="{{item.type === 'date'}}"
+        mode="date"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindchange="onDateChange"
+      >
+        <view class="field-picker">
+          <text class="field-picker-value {{formValues[item.key || item.name] ? '' : 'placeholder'}}">
+            {{formValues[item.key || item.name] || item.placeholder || '请选择日期'}}
+          </text>
+          <text class="field-picker-arrow">&#10095;</text>
+        </view>
+      </picker>
+
+      <!-- time 时间选择 -->
+      <picker
+        wx:elif="{{item.type === 'time'}}"
+        mode="time"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindchange="onTimeChange"
+      >
+        <view class="field-picker">
+          <text class="field-picker-value {{formValues[item.key || item.name] ? '' : 'placeholder'}}">
+            {{formValues[item.key || item.name] || item.placeholder || '请选择时间'}}
+          </text>
+          <text class="field-picker-arrow">&#10095;</text>
+        </view>
+      </picker>
+
+      <!-- image 图片上传 -->
+      <view wx:elif="{{item.type === 'image'}}" class="field-image-area">
+        <view class="image-list">
+          <view
+            wx:for="{{imageTempPaths[item.key || item.name]}}"
+            wx:for-item="imgPath"
+            wx:for-index="imgIdx"
+            wx:key="imgIdx"
+            class="image-item"
+          >
+            <image
+              class="image-preview"
+              src="{{imgPath}}"
+              mode="aspectFill"
+              data-key="{{item.key || item.name}}"
+              data-index="{{imgIdx}}"
+              bindtap="onPreviewImage"
+            />
+            <view
+              class="image-delete"
+              data-key="{{item.key || item.name}}"
+              data-index="{{imgIdx}}"
+              catchtap="onDeleteImage"
+            >&#10005;</view>
+          </view>
+          <!-- 添加按钮 -->
+          <view
+            class="image-add"
+            data-key="{{item.key || item.name}}"
+            bindtap="onChooseImage"
+            wx:if="{{imageTempPaths[item.key || item.name].length < (item.max_count || item.maxCount || 9)}}"
+          >
+            <text class="image-add-icon">+</text>
+            <text class="image-add-text">上传图片</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- radio 单选 -->
+      <radio-group
+        wx:elif="{{item.type === 'radio'}}"
+        class="field-radio-group"
+        data-key="{{item.key || item.name}}"
+        bindchange="onRadioChange"
+      >
+        <label
+          wx:for="{{item.options}}"
+          wx:for-item="opt"
+          wx:for-index="optIdx"
+          wx:key="optIdx"
+          class="field-radio-item"
+        >
+          <radio
+            value="{{opt.value || opt}}"
+            color="#ff4d4f"
+          />
+          <text class="field-radio-text">{{opt.label || opt}}</text>
+        </label>
+      </radio-group>
+
+      <!-- checkbox 多选 -->
+      <checkbox-group
+        wx:elif="{{item.type === 'checkbox'}}"
+        class="field-checkbox-group"
+        data-key="{{item.key || item.name}}"
+        bindchange="onCheckboxChange"
+      >
+        <label
+          wx:for="{{item.options}}"
+          wx:for-item="opt"
+          wx:for-index="optIdx"
+          wx:key="optIdx"
+          class="field-checkbox-item"
+        >
+          <checkbox
+            value="{{opt.value || opt}}"
+            color="#ff4d4f"
+          />
+          <text class="field-checkbox-text">{{opt.label || opt}}</text>
+        </label>
+      </checkbox-group>
+
+      <!-- select 下拉选择 -->
+      <picker
+        wx:elif="{{item.type === 'select'}}"
+        range="{{item.options}}"
+        range-key="label"
+        value="{{formValues[item.key || item.name]}}"
+        data-key="{{item.key || item.name}}"
+        bindchange="onSelectChange"
+      >
+        <view class="field-picker">
+          <text class="field-picker-value {{formValues[item.key || item.name] ? '' : 'placeholder'}}">
+            {{formValues[item.key || item.name] || item.placeholder || '请选择'}}
+          </text>
+          <text class="field-picker-arrow">&#10095;</text>
+        </view>
+      </picker>
+
+      <!-- district 地区选择 -->
+      <picker
+        wx:elif="{{item.type === 'district'}}"
+        mode="region"
+        value="{{districtValues[item.key || item.name] || []}}"
+        data-key="{{item.key || item.name}}"
+        bindchange="onDistrictChange"
+      >
+        <view class="field-picker">
+          <text class="field-picker-value {{formValues[item.key || item.name] ? '' : 'placeholder'}}">
+            {{formValues[item.key || item.name] || item.placeholder || '请选择地区'}}
+          </text>
+          <text class="field-picker-arrow">&#10095;</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="form-footer">
+    <view
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmitForm"
+    >
+      {{submitting ? '提交中...' : '提交'}}
+    </view>
+  </view>
+</view>
+
+<!-- 提交成功 -->
+<view class="form-success" wx:if="{{submitted}}">
+  <image class="success-icon" src="/images/icon-success.svg" mode="aspectFit" />
+  <text class="success-title">提交成功</text>
+  <text class="success-desc">感谢您的填写，我们会尽快处理</text>
+  <view class="success-btn" bindtap="onGoBack">返回</view>
+</view>

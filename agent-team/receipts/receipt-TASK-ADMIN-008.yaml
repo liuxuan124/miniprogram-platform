@@ -1,0 +1,32 @@
+task_id: TASK-ADMIN-008
+task_name: AI管理后台页面
+agent: admin-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: admin/src/types/ai.ts
+    description: AI 相关类型定义（AiConversation, AiConversationMessage, AiRecommendationLog, AiStats 等）
+  - path: admin/src/api/ai.ts
+    description: AI 管理 API（对话列表、对话详情、推荐日志、统计概览）
+  - path: admin/src/views/ai/conversation.vue
+    description: AI 对话记录页面（列表筛选、分页、对话详情查看含聊天气泡样式）
+  - path: admin/src/views/ai/stats.vue
+    description: 推荐统计概览页面（统计卡片、每日趋势表、推荐类型分布、活跃用户排行、推荐日志列表含筛选分页）
+  - path: admin/src/router/index.ts
+    description: 新增 /ai 路由配置（对话记录、推荐统计两个子路由）
+
+acceptance_criteria:
+  ai_conversation_view: 已实现 — 对话记录列表（关键词/用户ID/时间筛选），点击查看对话详情（聊天气泡样式展示消息）
+  recommendation_log_view: 已实现 — 推荐日志列表（关键词/推荐类型/是否采纳/时间筛选），含分页
+  recommendation_stats_overview: 已实现 — 统计概览卡片（对话总数/消息总数/推荐总数/采纳率）、每日对话趋势表、推荐类型分布表、活跃用户 TOP10 排行
+
+api_contracts:
+  - GET /api/v1/admin/ai/conversations
+  - GET /api/v1/admin/ai/conversations/{id}
+  - GET /api/v1/admin/ai/recommendation-logs
+  - GET /api/v1/admin/ai/stats
+
+dependencies_added: []
+
+build_verification: 待验证

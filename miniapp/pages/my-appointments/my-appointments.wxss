@@ -1,0 +1,182 @@
+/* pages/my-appointments/my-appointments.wxss — 我的预约列表样式 */
+
+.my-appointments-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* ========== Tab 栏 ========== */
+.tab-scroll {
+  white-space: nowrap;
+  background-color: #fff;
+  border-bottom: 1rpx solid #eee;
+}
+
+.tab-item {
+  display: inline-block;
+  padding: 24rpx 32rpx;
+  font-size: 28rpx;
+  color: #666;
+  position: relative;
+}
+
+.tab-item.active {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 4rpx;
+  background-color: #ff4d4f;
+  border-radius: 2rpx;
+}
+
+/* ========== 预约列表 ========== */
+.appointment-list {
+  padding: 16rpx 24rpx;
+}
+
+.appointment-card {
+  background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+  transition: box-shadow 0.3s;
+}
+
+.appointment-card.highlight {
+  box-shadow: 0 0 0 4rpx rgba(255, 77, 79, 0.3);
+}
+
+/* ========== 卡片头部 ========== */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.card-service-name {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 16rpx;
+}
+
+.card-status {
+  font-size: 26rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ========== 卡片内容 ========== */
+.card-body {
+  padding: 16rpx 24rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 8rpx 0;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 140rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+}
+
+/* ========== 卡片底部 ========== */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.card-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+}
+
+.action-btn {
+  padding: 10rpx 28rpx;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  margin-left: 16rpx;
+}
+
+.action-btn--default {
+  background-color: #fff;
+  color: #666;
+  border: 1rpx solid #ddd;
+}
+
+.action-btn--primary {
+  background-color: #ff4d4f;
+  color: #fff;
+}
+
+/* ========== 加载状态 ========== */
+.loading-area {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.empty-state__icon {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-state__text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 32rpx;
+}
+
+.empty-state__btn {
+  padding: 16rpx 64rpx;
+  background-color: #ff4d4f;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 40rpx;
+}

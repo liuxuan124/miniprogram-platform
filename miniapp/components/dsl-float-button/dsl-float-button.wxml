@@ -1,0 +1,24 @@
+<!--components/dsl-float-button/dsl-float-button.wxml — 浮动按钮组件-->
+<view
+  class="dsl-float-button"
+  catchtouchstart="onTouchStart"
+  style="{{floatButtonStyle}}"
+  catchtap="onTap"
+  catchtouchmove="onTouchMove"
+>
+  <image
+    class="dsl-float-button__icon"
+    wx:if="{{config.icon_image || (config.icon && (config.icon.indexOf('http') === 0 || config.icon.indexOf('/') === 0))}}"
+    src="{{config.icon_image || config.icon}}"
+    mode="aspectFit"
+    style="width: {{config.icon_size || 28}}rpx; height: {{config.icon_size || 28}}rpx;"
+  />
+  <text class="dsl-float-button__emoji" wx:elif="{{config.icon}}">{{config.icon}}</text>
+  <view class="dsl-float-button__default" wx:else>
+    <text class="dsl-float-button__default-icon">+</text>
+  </view>
+  <text
+    wx:if="{{config.show_text !== false}}"
+    class="dsl-float-button__text dsl-float-button__text--{{config.text_align || 'right'}}"
+  >{{config.title || config.text || '悬浮按钮'}}</text>
+</view>

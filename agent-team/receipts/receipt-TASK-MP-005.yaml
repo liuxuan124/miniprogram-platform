@@ -1,0 +1,31 @@
+task_id: TASK-MP-005
+agent: miniapp-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: miniapp/pages/member-center/member-center.js
+    desc: 会员中心逻辑
+  - path: miniapp/pages/member-center/member-center.wxml
+    desc: 会员中心模板
+  - path: miniapp/pages/member-center/member-center.wxss
+    desc: 会员中心样式
+  - path: miniapp/pages/member-center/member-center.json
+    desc: 会员中心配置
+  - path: miniapp/pages/points-log/points-log.js
+    desc: 积分明细逻辑
+  - path: miniapp/pages/points-log/points-log.wxml
+    desc: 积分明细模板
+  - path: miniapp/pages/points-log/points-log.wxss
+    desc: 积分明细样式
+  - path: miniapp/pages/points-log/points-log.json
+    desc: 积分明细配置
+  - path: miniapp/pages/coupon-list/coupon-list.js
+    desc: 优惠券列表逻辑
+  - path: miniapp/pages/coupon-list/coupon-list.wxml
+    desc: 优惠券列表模板
+  - path: miniapp/pages/coupon-list/coupon-list.wxss
+    desc: 优惠券列表样式
+  - path: miniapp/pages/coupon-list/coupon-list.json
+    desc: 优惠券列表配置
+  - path: miniapp/services/member.js
+    desc: 会员API服务

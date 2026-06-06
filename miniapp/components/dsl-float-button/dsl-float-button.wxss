@@ -1,0 +1,59 @@
+/* components/dsl-float-button/dsl-float-button.wxss — 浮动按钮组件样式 */
+
+.dsl-float-button {
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  transition: opacity 0.2s;
+  box-sizing: border-box;
+}
+
+.dsl-float-button:active {
+  opacity: 0.85;
+}
+
+.dsl-float-button__icon {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.dsl-float-button__emoji {
+  font-size: 34rpx;
+  line-height: 1;
+}
+
+.dsl-float-button__text {
+  font-size: 22rpx;
+  color: #ffffff;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dsl-float-button__text--left {
+  order: -1;
+}
+
+.dsl-float-button__text--bottom {
+  position: absolute;
+  left: 50%;
+  bottom: -36rpx;
+  transform: translateX(-50%);
+  font-size: 20rpx;
+  color: #4b5563;
+}
+
+.dsl-float-button__default {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dsl-float-button__default-icon {
+  font-size: 48rpx;
+  color: #ffffff;
+  font-weight: 300;
+  line-height: 1;
+}

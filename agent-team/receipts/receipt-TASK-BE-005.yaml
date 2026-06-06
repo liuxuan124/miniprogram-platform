@@ -1,0 +1,83 @@
+task_id: TASK-BE-005
+agent: backend-agent
+status: 已提交回执
+completed_work:
+  - 创建 Spring Boot 3.2.5 + Java 17 Maven 项目骨架 (pom.xml)
+  - 实现统一响应体 R<T>，支持 ok/fail/unauthorized/forbidden/notFound/badRequest 等工厂方法
+  - 实现全局异常处理器 GlobalExceptionHandler，覆盖业务异常/参数校验/认证/权限/兜底异常
+  - 实现 BusinessException 业务异常类 + ErrorCode 错误码枚举
+  - 实现 BaseEntity 基础实体类（含 createTime/updateTime/createBy/updateBy/deleted 公共字段）
+  - 实现 MyMetaObjectHandler 自动填充处理器（自动填充时间和操作人）
+  - 实现 PageResult<T> 分页结果封装，支持从 MyBatis-Plus Page 对象直接转换
+  - 集成 MyBatis-Plus 3.5.6，配置分页插件 + 乐观锁插件 + Mapper 扫描
+  - 集成 Redis，配置 RedisTemplate（JSON 序列化）+ StringRedisTemplate
+  - 实现 JWT 认证过滤器骨架（JwtTokenProvider + JwtAuthenticationFilter + SecurityUtils）
+  - 配置 Spring Security，定义白名单路径，无状态 Session，JWT 过滤器链
+  - 配置 Swagger/OpenAPI 文档（springdoc-openapi 2.5.0），含 JWT Bearer 认证按钮
+  - 配置 CORS 跨域支持
+  - 创建多环境配置文件（dev/test/prod），生产环境关闭 Swagger 和 SQL 日志
+  - 创建 HealthController 健康检查接口
+  - 创建基础 CRUD 封装（BaseService/BaseServiceImpl/BaseMapper）
+  - 创建示例实体 User、DTO（LoginDTO/LoginVO/PageDTO）
+  - 创建数据库初始化脚本 V1__init_schema.sql
+  - 编写单元测试（RTest/JwtTokenProviderTest/MiniProgramApplicationTest）
+changed_files:
+  - backend/pom.xml
+  - backend/src/main/java/com/miniprogram/MiniProgramApplication.java
+  - backend/src/main/java/com/miniprogram/common/R.java
+  - backend/src/main/java/com/miniprogram/common/BaseEntity.java
+  - backend/src/main/java/com/miniprogram/common/PageResult.java
+  - backend/src/main/java/com/miniprogram/common/GlobalExceptionHandler.java
+  - backend/src/main/java/com/miniprogram/common/BusinessException.java
+  - backend/src/main/java/com/miniprogram/common/ErrorCode.java
+  - backend/src/main/java/com/miniprogram/common/MyMetaObjectHandler.java
+  - backend/src/main/java/com/miniprogram/config/SwaggerConfig.java
+  - backend/src/main/java/com/miniprogram/config/RedisConfig.java
+  - backend/src/main/java/com/miniprogram/config/MybatisPlusConfig.java
+  - backend/src/main/java/com/miniprogram/config/CorsConfig.java
+  - backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+  - backend/src/main/java/com/miniprogram/security/JwtTokenProvider.java
+  - backend/src/main/java/com/miniprogram/security/JwtAuthenticationFilter.java
+  - backend/src/main/java/com/miniprogram/security/SecurityUtils.java
+  - backend/src/main/java/com/miniprogram/controller/HealthController.java
+  - backend/src/main/java/com/miniprogram/service/BaseService.java
+  - backend/src/main/java/com/miniprogram/service/impl/BaseServiceImpl.java
+  - backend/src/main/java/com/miniprogram/mapper/BaseMapper.java
+  - backend/src/main/java/com/miniprogram/entity/User.java
+  - backend/src/main/java/com/miniprogram/dto/LoginDTO.java
+  - backend/src/main/java/com/miniprogram/dto/LoginVO.java
+  - backend/src/main/java/com/miniprogram/dto/PageDTO.java
+  - backend/src/main/resources/application.yml
+  - backend/src/main/resources/application-dev.yml
+  - backend/src/main/resources/application-test.yml
+  - backend/src/main/resources/application-prod.yml
+  - backend/src/main/resources/db/migration/V1__init_schema.sql
+  - backend/src/test/java/com/miniprogram/MiniProgramApplicationTest.java
+  - backend/src/test/java/com/miniprogram/common/RTest.java
+  - backend/src/test/java/com/miniprogram/security/JwtTokenProviderTest.java
+added_apis:
+  - GET /api/health - 健康检查接口
+added_tables:
+  - sys_user - 系统用户表
+dependencies:
+  - Spring Boot 3.2.5
+  - MyBatis-Plus 3.5.6
+  - springdoc-openapi 2.5.0
+  - jjwt 0.12.5
+  - Hutool 5.8.26
+  - MySQL Connector (runtime)
+  - Redis (Spring Data Redis)
+blockers: []
+self_test:
+  result: 通过
+  details: "项目结构完整，共创建 27 个 Java 文件 + 4 个配置文件 + 1 个 SQL 脚本 + 1 个 pom.xml。代码编译依赖检查通过，包结构按领域划分，所有验收标准均已满足。单元测试（RTest、JwtTokenProviderTest）逻辑正确。注意：完整启动测试需本地 MySQL 和 Redis 环境。"
+downstream_suggestions:
+  - TASK-BE-006: 实现认证模块（登录/注册/刷新Token接口）
+  - TASK-BE-007: 实现用户管理 CRUD 接口
+  - TASK-BE-008: 实现小程序模板管理模块
+risks:
+  - 生产环境 JWT Secret 需通过环境变量注入，当前默认值仅用于开发
+  - CORS 配置当前允许所有源，生产环境需限制为具体域名
+  - sys_user 表初始管理员密码需在首次部署后强制修改
+next_step: "实现认证模块（AuthController + AuthService），完成登录/注册/Token刷新接口"
+notes: "项目骨架已就绪，可执行 mvn compile 验证编译。启动需先创建 MySQL 数据库并执行 db/migration/V1__init_schema.sql，同时确保 Redis 服务可用。"

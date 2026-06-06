@@ -1,0 +1,34 @@
+receipt_id: receipt-2026-05-11-miniapp-member-coupon-api
+submitted_at: 2026-05-11 20:00
+submitted_by: backend-agent
+type: backend_feature_completion
+scope:
+  - miniapp_member
+  - miniapp_coupon
+summary: 小程序会员、签到、积分、优惠券后端接口已补齐，可进入微信开发者工具联调。
+implemented:
+  - 新增 /api/v1/mp/member/info，返回会员信息、积分、等级、签到状态、未使用优惠券数量。
+  - 新增 /api/v1/mp/member/sign-in，支持每日签到、连续签到天数、积分流水。
+  - 新增 /api/v1/mp/member/sign-in/status，返回 todaySigned 与 streak。
+  - 新增 /api/v1/mp/member/points-log，返回当前用户积分流水。
+  - 新增 /api/v1/mp/coupons，返回可领取优惠券。
+  - 新增 /api/v1/mp/coupons/{id}/claim，支持领取优惠券、限领校验、库存校验。
+  - 新增 /api/v1/mp/coupons/my，返回当前用户优惠券。
+changed_files:
+  - backend/src/main/java/com/miniprogram/service/impl/MemberPointsServiceImpl.java
+  - backend/src/main/java/com/miniprogram/service/impl/CouponServiceImpl.java
+  - backend/src/main/java/com/miniprogram/controller/MpMemberController.java
+  - backend/src/main/java/com/miniprogram/controller/MpCouponController.java
+verification:
+  - command: mvn -q -DskipTests compile
+    module: backend
+    result: passed
+  - command: mvn -q test
+    module: backend
+    result: passed
+notes:
+  - 这些接口均按现有 Spring Security 规则要求小程序用户登录后访问。
+  - 当前测试仍会启动 dev profile 上下文，后续建议单独配置 test profile。
+status_updates:
+  - BLK-MINIAPP-MEMBER-API-001 已关闭。
+next_recommended_action: 使用微信开发者工具导入 miniapp，执行首页、分类、购物车、我的、签到、优惠券、下单、AI 对话冒烟。

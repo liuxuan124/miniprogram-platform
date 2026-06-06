@@ -1,0 +1,73 @@
+<!-- pages/mine/mine.wxml — 我的页面（会员中心入口） -->
+<view class="page-mine">
+
+  <!-- 微信授权提示条 -->
+  <view class="auth-prompt" wx:if="{{!isLoggedIn}}" bindtap="onUserAreaTap">
+    <view class="auth-prompt__icon">👤</view>
+    <view class="auth-prompt__content">
+      <text class="auth-prompt__text">{{mineConfig.loginTitle}}</text>
+      <text class="auth-prompt__subtext">{{mineConfig.loginSubtitle}}</text>
+      <text class="auth-prompt__button">{{mineConfig.loginButtonText}}</text>
+    </view>
+    <text class="auth-prompt__arrow">›</text>
+  </view>
+
+  <!-- 用户信息卡片 -->
+  <view class="user-card" wx:if="{{isLoggedIn}}" bindtap="goMemberCenter">
+    <view class="user-card__avatar">
+      <text class="user-card__avatar-text">👤</text>
+    </view>
+    <view class="user-card__info">
+      <view class="user-card__name-row">
+        <text class="user-card__name">{{userInfo.nickName || '微信用户'}}</text>
+        <view class="user-card__level-badge" wx:if="{{memberInfo.level_name}}">
+          <text class="user-card__level-text">{{memberInfo.level_name}}</text>
+        </view>
+      </view>
+      <text class="user-card__subtitle">{{mineConfig.memberCardTitle}}</text>
+    </view>
+    <text class="user-card__arrow">›</text>
+  </view>
+
+  <!-- 我的订单 -->
+  <view class="order-section">
+    <view class="section-header">
+      <text class="section-title">我的订单</text>
+    </view>
+    <view class="order-tabs">
+      <view class="order-tab" data-key="pending_payment" bindtap="onOrderTabTap">
+        <text class="order-tab__icon">💳</text>
+        <text class="order-tab__text">待确认</text>
+      </view>
+      <view class="order-tab" data-key="paid" bindtap="onOrderTabTap">
+        <text class="order-tab__icon">📦</text>
+        <text class="order-tab__text">待发货</text>
+      </view>
+      <view class="order-tab" data-key="shipped" bindtap="onOrderTabTap">
+        <text class="order-tab__icon">🚚</text>
+        <text class="order-tab__text">待收货</text>
+      </view>
+      <view class="order-tab" data-key="refund" bindtap="onOrderTabTap">
+        <text class="order-tab__icon">🔄</text>
+        <text class="order-tab__text">售后</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <view class="menu-grid">
+      <view
+        wx:for="{{visibleMenuList}}"
+        wx:key="id"
+        class="menu-grid__item"
+        data-id="{{item.id}}"
+        bindtap="onMenuTap"
+      >
+        <view class="menu-grid__icon"><text class="menu-grid__icon-text">{{item.icon}}</text></view>
+        <text class="menu-grid__label">{{item.title}}</text>
+      </view>
+    </view>
+  </view>
+
+</view>

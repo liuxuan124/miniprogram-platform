@@ -1,0 +1,105 @@
+<!--pages/coupon-list/coupon-list.wxml — 优惠券列表页面-->
+<view class="coupon-list-page">
+  <!-- 主 Tab -->
+  <view class="main-tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="main-tab {{activeTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 我的优惠券子 Tab -->
+  <view class="sub-tabs" wx:if="{{activeTab === 'my'}}">
+    <view
+      wx:for="{{mySubTabs}}"
+      wx:key="key"
+      class="sub-tab {{activeMySubTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onMySubTabTap"
+    >
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 可领取优惠券列表 -->
+  <view class="coupon-scroll" wx:if="{{activeTab === 'available'}}">
+    <view class="coupon-list" wx:if="{{!isEmpty}}">
+      <view
+        class="coupon-card coupon-card--available"
+        wx:for="{{availableCoupons}}"
+        wx:key="id"
+      >
+        <view class="coupon-card__left">
+          <text class="coupon-card__amount">{{item.discount || item.amount}}</text>
+          <text class="coupon-card__unit" wx:if="{{item.type !== 'percent'}}">元</text>
+          <text class="coupon-card__unit" wx:if="{{item.type === 'percent'}}">折</text>
+        </view>
+        <view class="coupon-card__right">
+          <text class="coupon-card__name">{{item.name || item.title}}</text>
+          <text class="coupon-card__condition">{{item.condition || '无门槛'}}</text>
+          <text class="coupon-card__expire">{{item.expire_text || item.expire_at}}</text>
+        </view>
+        <view
+          class="coupon-card__action {{item.claimed ? 'coupon-card__action--done' : ''}}"
+          data-id="{{item.id}}"
+          data-index="{{index}}"
+          catchtap="onClaimTap"
+        >
+          <text wx:if="{{item.claimed}}">已领取</text>
+          <text wx:else>领取</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 我的优惠券列表 -->
+  <view class="coupon-scroll" wx:if="{{activeTab === 'my'}}">
+    <view class="coupon-list" wx:if="{{!isEmpty}}">
+      <view
+        class="coupon-card coupon-card--my coupon-card--{{activeMySubTab}}"
+        wx:for="{{myCoupons}}"
+        wx:key="id"
+      >
+        <view class="coupon-card__left">
+          <text class="coupon-card__amount">{{item.discount || item.amount}}</text>
+          <text class="coupon-card__unit" wx:if="{{item.type !== 'percent'}}">元</text>
+          <text class="coupon-card__unit" wx:if="{{item.type === 'percent'}}">折</text>
+        </view>
+        <view class="coupon-card__right">
+          <text class="coupon-card__name">{{item.name || item.title}}</text>
+          <text class="coupon-card__condition">{{item.condition || '无门槛'}}</text>
+          <text class="coupon-card__expire">{{item.expire_text || item.expire_at}}</text>
+        </view>
+        <!-- 状态标记 -->
+        <view class="coupon-card__status" wx:if="{{activeMySubTab === 'used'}}">
+          <text class="coupon-card__status-text">已使用</text>
+        </view>
+        <view class="coupon-card__status" wx:if="{{activeMySubTab === 'expired'}}">
+          <text class="coupon-card__status-text">已过期</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!loading && activeTab === 'available' && !availableHasMore && availableCoupons.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!loading && activeTab === 'my' && !myHasMore && myCoupons.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <text class="empty-state__text" wx:if="{{activeTab === 'available'}}">暂无可领取优惠券</text>
+    <text class="empty-state__text" wx:else>暂无优惠券</text>
+  </view>
+</view>

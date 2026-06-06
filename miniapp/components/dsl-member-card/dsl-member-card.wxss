@@ -1,0 +1,88 @@
+/* components/dsl-member-card/dsl-member-card.wxss — 会员卡组件样式 */
+
+.dsl-member-card {
+  position: relative;
+  width: 100%;
+  border-radius: 28rpx;
+  padding: 32rpx;
+  background: linear-gradient(135deg, #0f2150, #1769ff);
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.dsl-member-card__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.dsl-member-card__avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.dsl-member-card__avatar-placeholder {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dsl-member-card__avatar-icon {
+  font-size: 40rpx;
+}
+
+.dsl-member-card__user {
+  margin-left: 20rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.dsl-member-card__nickname {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.dsl-member-card__subtitle {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.dsl-member-card__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.dsl-member-card__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dsl-member-card__stat-value {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.dsl-member-card__stat-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4rpx;
+}

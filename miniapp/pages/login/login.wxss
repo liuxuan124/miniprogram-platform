@@ -1,0 +1,169 @@
+/* pages/login/login.wxss — 登录页样式 */
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 40%);
+  display: flex;
+  flex-direction: column;
+  padding: 0 48rpx;
+}
+
+/* 顶部返回 */
+.login-header {
+  padding-top: 60rpx;
+  padding-bottom: 20rpx;
+}
+
+.safe-top {
+  padding-top: calc(env(safe-area-inset-top) + 20rpx);
+}
+
+.back-btn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn__icon {
+  font-size: 36rpx;
+  color: #333333;
+  font-weight: bold;
+}
+
+/* 品牌区域 */
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 80rpx;
+  margin-bottom: 120rpx;
+}
+
+.login-brand__logo {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 32rpx;
+}
+
+.login-brand__name {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333333;
+  margin-bottom: 12rpx;
+}
+
+.login-brand__slogan {
+  font-size: 26rpx;
+  color: #999999;
+}
+
+/* 登录按钮区域 */
+.login-actions {
+  width: 100%;
+}
+
+/* 拦截提示 */
+.login-intercept-tip {
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+
+.login-intercept-tip__text {
+  font-size: 30rpx;
+  color: #333333;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.login-btn {
+  width: 100%;
+  height: 96rpx;
+  border-radius: 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.login-btn::after {
+  border: none;
+}
+
+.login-btn--wx {
+  background-color: #07c160;
+  color: #ffffff;
+}
+
+.login-btn--wx:active {
+  background-color: #06ad56;
+}
+
+.login-btn--wx[disabled] {
+  background-color: #a0e8b8;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 隐私协议 */
+.login-privacy {
+  margin-top: 40rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.privacy-check {
+  display: flex;
+  align-items: flex-start;
+}
+
+.privacy-check__box {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #cccccc;
+  border-radius: 6rpx;
+  margin-right: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4rpx;
+}
+
+.privacy-check__box--checked {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.privacy-check__tick {
+  color: #ffffff;
+  font-size: 22rpx;
+  line-height: 1;
+}
+
+.privacy-check__text {
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.6;
+}
+
+.privacy-check__link {
+  color: #1890ff;
+}
+
+/* 底部提示 */
+.login-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx 48rpx calc(env(safe-area-inset-bottom) + 24rpx);
+  text-align: center;
+}
+
+.login-footer__text {
+  font-size: 22rpx;
+  color: #cccccc;
+}

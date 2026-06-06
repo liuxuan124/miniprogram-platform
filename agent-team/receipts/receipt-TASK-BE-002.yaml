@@ -1,0 +1,41 @@
+task_id: TASK-BE-002
+agent: backend-agent
+status: 已提交回执
+completed_work:
+  - 输出 API 接口规范初稿，覆盖认证鉴权、请求响应格式、错误码规则、命名规则、安全规则和变更规则
+  - 定义 6 位业务错误码编码体系（模块+类型+序号）
+  - 输出 14 个模块共 120+ 接口清单，含管理后台和小程序端
+  - 明确 JWT 认证方案（管理后台 + 小程序端）
+  - 明确权限校验规则和接口安全规则
+changed_files:
+  - agent-team/contracts/api-contract.md
+added_apis:
+  - "认证模块: 7 个接口"
+  - "用户与权限: 12 个接口"
+  - "会员与营销: 13 个接口"
+  - "页面搭建: 12 个接口"
+  - "内容: 16 个接口"
+  - "商品与订单: 28 个接口"
+  - "支付回调: 2 个接口"
+  - "表单: 7 个接口"
+  - "活动: 12 个接口"
+  - "预约: 13 个接口"
+  - "AI Agent: 21 个接口"
+  - "素材: 4 个接口"
+  - "系统配置: 8 个接口"
+  - "工作台看板: 4 个接口"
+added_tables: []
+dependencies:
+  - TASK-BE-001
+blockers: []
+self_test:
+  result: 通过
+  details: "接口清单覆盖 PRD 全部功能需求；错误码体系可扩展；认证方案与安全规则完整；后台和小程序端接口分离"
+downstream_suggestions:
+  - TASK-ADMIN-001 可启动（依赖 BE-002 已完成）
+  - TASK-AI-001 依赖 BE-001+BE-002，均已完成
+risks:
+  - 接口数量较多，后续开发需严格按模块拆分迭代
+  - AI Agent 模块接口可能随模型能力扩展而调整
+next_step: "等待总控验收 BE-002"
+notes: "API 接口规范初稿已写入 api-contract.md 契约文件，待总控冻结后各 Agent 方可引用"

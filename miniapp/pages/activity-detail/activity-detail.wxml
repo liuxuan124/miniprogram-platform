@@ -1,0 +1,122 @@
+<!-- pages/activity-detail/activity-detail.wxml — 活动详情页 -->
+<view class="activity-detail-page">
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view wx:else>
+    <!-- 活动封面 -->
+    <view class="detail-cover" style="background: {{activity.cover_color || 'linear-gradient(135deg, #7c3aed, #a855f7)'}};">
+      <text class="detail-cover-icon">{{activity.cover_icon || '🎪'}}</text>
+      <text class="detail-cover-type">{{activity.type_label || activity.type}}</text>
+    </view>
+
+    <!-- 活动基本信息 -->
+    <view class="detail-section">
+      <text class="detail-title">{{activity.name}}</text>
+      <view class="detail-info-row">
+        <text class="info-icon">📅</text>
+        <text class="info-text">{{activity.date}}</text>
+      </view>
+      <view class="detail-info-row">
+        <text class="info-icon">📍</text>
+        <text class="info-text">{{activity.venue}}</text>
+      </view>
+      <view class="detail-info-row" wx:if="{{activity.quota}}">
+        <text class="info-icon">👥</text>
+        <text class="info-text">名额 {{activity.signed}} / {{activity.quota}} 人</text>
+      </view>
+
+      <!-- 进度条 -->
+      <view class="detail-progress" wx:if="{{activity.quota}}">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{activity.progress}}%"></view>
+        </view>
+        <text class="progress-text">{{activity.progress}}%</text>
+      </view>
+    </view>
+
+    <!-- 活动介绍 -->
+    <view class="detail-section">
+      <text class="section-title">活动介绍</text>
+      <view class="section-content">
+        <rich-text nodes="{{activity.description || activity.content}}"></rich-text>
+      </view>
+    </view>
+
+    <!-- 报名表单 -->
+    <view class="detail-section" wx:if="{{!activity.full}}">
+      <text class="section-title">报名信息</text>
+
+      <!-- 场次选择 -->
+      <view class="form-group" wx:if="{{sessions.length > 0}}">
+        <text class="form-label">选择场次</text>
+        <view class="session-list">
+          <view
+            wx:for="{{sessions}}"
+            wx:key="index"
+            class="session-item {{selectedSession === index ? 'active' : ''}}"
+            data-index="{{index}}"
+            bindtap="onSessionTap"
+          >
+            <text class="session-name">{{item.name}}</text>
+            <text class="session-status" wx:if="{{item.full}}">已满</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 姓名 -->
+      <view class="form-group">
+        <text class="form-label">姓名</text>
+        <input
+          class="form-input"
+          placeholder="请输入您的姓名"
+          value="{{formName}}"
+          bindinput="onNameInput"
+        />
+      </view>
+
+      <!-- 手机号 -->
+      <view class="form-group">
+        <text class="form-label">手机号</text>
+        <input
+          class="form-input"
+          type="number"
+          maxlength="11"
+          placeholder="请输入手机号"
+          value="{{formPhone}}"
+          bindinput="onPhoneInput"
+        />
+      </view>
+
+      <!-- 备注 -->
+      <view class="form-group">
+        <text class="form-label">备注</text>
+        <textarea
+          class="form-textarea"
+          placeholder="选填，如有特殊需求请备注"
+          value="{{formRemark}}"
+          maxlength="200"
+          auto-height
+          bindinput="onRemarkInput"
+        />
+      </view>
+    </view>
+
+    <!-- 已满提示 -->
+    <view class="full-notice" wx:if="{{activity.full}}">
+      <text class="full-notice-text">该活动名额已满，请关注后续活动</text>
+    </view>
+  </view>
+
+  <!-- 底部报名按钮 -->
+  <view class="bottom-bar" wx:if="{{!activity.full && !loading}}">
+    <view
+      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmitSignup"
+    >
+      {{submitting ? '提交中...' : '立即报名'}}
+    </view>
+  </view>
+</view>

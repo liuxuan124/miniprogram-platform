@@ -1,0 +1,60 @@
+task_id: TASK-ADMIN-004
+task_name: 内容管理后台页面
+agent: admin-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - file: src/types/content.ts
+    description: 内容管理类型定义（分类、文章、标签、状态枚举、CRUD参数）
+  - file: src/api/content.ts
+    description: 内容管理API接口（分类CRUD、文章CRUD+发布/下架、标签CRUD）
+  - file: src/views/content/category.vue
+    description: 分类管理页面（树形表格展示、新增/编辑弹窗、删除、展开折叠切换）
+  - file: src/views/content/index.vue
+    description: 内容列表页面（搜索筛选、分页、发布/下架操作、标签管理弹窗）
+  - file: src/views/content/edit.vue
+    description: 内容编辑页面（富文本编辑器、源码模式、插入链接/图片、分类/标签/封面选择）
+  - file: src/router/index.ts
+    description: 路由更新（新增分类管理、文章编辑路由）
+
+api_contracts:
+  - method: GET/POST
+    path: /api/v1/admin/content-categories
+    status: implemented
+  - method: PUT/DELETE
+    path: /api/v1/admin/content-categories/{id}
+    status: implemented
+  - method: GET/POST
+    path: /api/v1/admin/contents
+    status: implemented
+  - method: GET/PUT/DELETE
+    path: /api/v1/admin/contents/{id}
+    status: implemented
+  - method: PUT
+    path: /api/v1/admin/contents/{id}/publish
+    status: implemented
+  - method: PUT
+    path: /api/v1/admin/contents/{id}/unpublish
+    status: implemented
+  - method: GET
+    path: /api/v1/admin/content-tags
+    status: implemented
+
+acceptance_criteria:
+  - criteria: 内容分类管理（树形CRUD）
+    status: pass
+    detail: 树形表格展示、新增顶级/子分类、编辑、删除、状态切换、展开折叠
+  - criteria: 内容文章管理（列表/创建/编辑/发布/下架）
+    status: pass
+    detail: 列表含搜索筛选分页、新建/编辑跳转、发布/下架操作、删除
+  - criteria: 内容标签管理
+    status: pass
+    detail: 标签管理弹窗、新增/编辑/删除标签、颜色选择、文章数统计
+  - criteria: 富文本编辑器集成
+    status: pass
+    detail: contenteditable富文本编辑器、工具栏（加粗/斜体/标题/列表/对齐/图片/链接/撤销重做）、源码模式切换
+
+build_verification:
+  vue_tsc: pass
+  vite_build: pass

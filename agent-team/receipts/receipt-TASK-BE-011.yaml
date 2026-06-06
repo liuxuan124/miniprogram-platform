@@ -1,0 +1,13 @@
+task_id: TASK-BE-011
+agent: backend-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: backend/src/main/java/com/mp/controller/admin/OrderController.java
+    desc: 订单管理控制器
+  - path: backend/src/main/java/com/mp/controller/miniapp/MpOrderController.java
+    desc: 小程序端订单控制器
+  - path: backend/src/main/java/com/mp/service/OrderService.java
+    desc: 订单服务接口
+  - path: backend/src/main/java/com/mp/service/impl/OrderServiceImpl.java
+    desc: 订单服务实现
