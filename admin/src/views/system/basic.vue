@@ -53,6 +53,15 @@
                   </el-form-item>
                 </div>
 
+                <el-form-item label="代码上传密钥">
+                  <el-input
+                    v-model="miniProgramForm.uploadKey"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="粘贴微信公众平台下载的代码上传密钥，用于「推送体验版」"
+                  />
+                </el-form-item>
+
                 <el-form-item label="Logo图片">
                   <div class="logo-uploader">
                     <el-input v-model="miniProgramForm.logoUrl" placeholder="Logo URL或点击上传" clearable class="logo-input" />
@@ -432,6 +441,7 @@ interface MiniProgramForm {
   appName: string
   appId: string
   appSecret: string
+  uploadKey: string
   originalId: string
   logoUrl: string
   shareGuide: string
@@ -488,6 +498,7 @@ const miniProgramForm = reactive<MiniProgramForm>({
   appName: '品牌小程序',
   appId: '',
   appSecret: '',
+  uploadKey: '',
   originalId: '',
   logoUrl: '',
   shareGuide: '欢迎体验我们的品牌小程序',
@@ -591,6 +602,7 @@ function getMiniProgramSnapshot() {
     appName: miniProgramForm.appName,
     appId: miniProgramForm.appId,
     appSecret: miniProgramForm.appSecret,
+    uploadKey: miniProgramForm.uploadKey,
     originalId: miniProgramForm.originalId,
     logoUrl: miniProgramForm.logoUrl,
     shareGuide: miniProgramForm.shareGuide,

@@ -53,6 +53,9 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
     @Value("${wx.miniapp.appid:}")
     private String defaultAppId;
 
+    @Value("${wx.miniapp.upload-key:}")
+    private String defaultUploadKey;
+
     @Override
     public PushPreviewResultVO pushPreview(Long releaseId, PushPreviewDTO dto) {
         long start = System.currentTimeMillis();
@@ -62,7 +65,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
         }
 
         String appId = resolveAppId();
-        String uploadKey = systemConfigService.getConfigValue("wx_upload_key");
+        String uploadKey = resolveUploadKey();
         if (!StringUtils.hasText(uploadKey)) {
             throw new BusinessException(ErrorCode.WX_UPLOAD_KEY_MISSING);
         }
@@ -191,6 +194,20 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请先在系统设置中配置微信小程序 AppID");
         }
         return appId;
+    }
+
+    private String resolveUploadKey() {
+        String uploadKey = systemConfigService.getConfigValue("wx_upload_key");
+        if (!StringUtils.hasText(uploadKey)) {
+            uploadKey = systemConfigService.getConfigValue("uploadKey");
+        }
+        if (!StringUtils.hasText(uploadKey)) {
+            uploadKey = defaultUploadKey;
+        }
+        if (!StringUtils.hasText(uploadKey) || !uploadKey.contains("PRIVATE KEY")) {
+            return null;
+        }
+        return uploadKey.trim();
     }
 
     private Path resolveProjectRoot() {

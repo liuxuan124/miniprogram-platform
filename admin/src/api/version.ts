@@ -74,7 +74,7 @@ export function pushPreviewRelease(id: number, data?: {
   versionDesc?: string
   confirmCodeChange?: boolean
 }) {
-  return post(`${BASE}/${id}/push-preview`, data || {}, { timeout: 120000 })
+  return post(`${BASE}/${id}/push-preview`, data || {}, { timeout: 120000, showError: false })
 }
 
 /** 获取最近体验版推送状态 */

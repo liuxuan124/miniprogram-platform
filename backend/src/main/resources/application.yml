@@ -57,6 +57,7 @@ wx:
   miniapp:
     appid: ${WX_MINIAPP_APPID:your-appid}
     secret: ${WX_MINIAPP_SECRET:your-secret}
+    upload-key: ${WX_UPLOAD_KEY:}
   pay:
     app-id: ${WX_PAY_APPID:your-appid}
     mch-id: ${WX_PAY_MCHID:your-mchid}
