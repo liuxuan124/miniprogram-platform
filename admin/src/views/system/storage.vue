@@ -275,13 +275,12 @@ async function handleSave() {
   saving.value = true
   try {
     const configs = Object.entries(formData).map(([key, value]) => ({
-      key,
-      label: key,
-      value: String(value),
-      type: typeof value === 'number' ? 'number' as const : 'string' as const,
-      group: 'storage' as const,
+      configKey: key,
+      configValue: String(value ?? ''),
+      configGroup: 'storage',
+      description: key,
     }))
-    await updateConfigs([{ group: 'storage', label: '存储配置', configs }])
+    await updateConfigs(configs)
     ElMessage.success('保存成功')
   } finally {
     saving.value = false

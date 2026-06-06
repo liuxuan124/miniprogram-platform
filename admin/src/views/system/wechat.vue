@@ -463,7 +463,12 @@ let dataLoaded = false
 watch(() => payFormData.enablePayment, (val) => {
   if (!dataLoaded) return
   const configItem = { configKey: 'enablePayment', configValue: String(val), configGroup: 'wechat', description: 'pay_enable' }
-  updateConfigs({ configs: [configItem] } as any).then(() => {
+  updateConfigs([{
+    configKey: configItem.configKey,
+    configValue: configItem.configValue,
+    configGroup: configItem.configGroup,
+    description: configItem.description,
+  }]).then(() => {
     ElMessage.success(val ? '微信支付已开启' : '微信支付已关闭')
   }).catch(() => {
     payFormData.enablePayment = !val
@@ -551,14 +556,13 @@ async function handleSave() {
 
   saving.value = true
   try {
-    const configs = Object.entries(formData).map(([key, value]) => ({
-      key: CONFIG_KEY_MAP[key] || key,
-      label: key,
-      value: String(value),
-      type: typeof value === 'boolean' ? 'boolean' as const : 'string' as const,
-      group: 'wechat' as const,
+    const configItems = Object.entries(formData).map(([key, value]) => ({
+      configKey: CONFIG_KEY_MAP[key] || key,
+      configValue: String(value ?? ''),
+      configGroup: 'wechat',
+      description: key,
     }))
-    await updateConfigs([{ group: 'wechat', label: '微信小程序配置', configs }])
+    await updateConfigs(configItems)
     ElMessage.success('保存成功')
   } finally {
     saving.value = false
@@ -604,7 +608,7 @@ async function handleSavePay() {
         configGroup: 'wechat',
         description: `pay_${key}`,
       }))
-    await updateConfigs({ configs: configItems } as any)
+    await updateConfigs(configItems)
     paySaved.value = true
     ElMessage.success('支付配置已保存成功')
   } catch (e: unknown) {

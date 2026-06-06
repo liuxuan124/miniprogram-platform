@@ -21,9 +21,17 @@ export function getConfigs() {
   return get<ConfigGroupData[]>(`${BASE_URL}/configs`)
 }
 
-/** 更新全部配置 - 后端期望 { configs: [...] } 格式 */
-export function updateConfigs(data: ConfigGroupData[]) {
-  return put<null>(`${BASE_URL}/configs`, { configs: data } as unknown as Record<string, unknown>)
+/** 批量更新配置项 */
+export interface SystemConfigUpdateItem {
+  configKey: string
+  configValue: string
+  configGroup?: string
+  description?: string
+}
+
+/** 更新配置 - 后端期望 { configs: ConfigItemDTO[] } */
+export function updateConfigs(configs: SystemConfigUpdateItem[]) {
+  return put<null>(`${BASE_URL}/configs`, { configs })
 }
 
 /** 获取指定分组配置 */
