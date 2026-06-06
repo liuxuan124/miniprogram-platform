@@ -905,7 +905,15 @@ async function handlePushPreview(item: ReleaseRecord) {
     pushPreviewVisible.value = true
     ElMessage.success('体验版推送成功')
   } catch (error: any) {
-    ElMessage.error(error?.message || '体验版推送失败，请检查微信配置与代码上传密钥')
+    const apiMessage = error?.response?.data?.message
+    const code = error?.response?.data?.code
+    if (code === 5005 || String(apiMessage || error?.message || '').includes('上传密钥')) {
+      ElMessage.error('请先在「系统设置 → 微信配置」填写代码上传密钥并保存')
+    } else if (code === 400 || String(apiMessage || '').includes('参数格式错误')) {
+      ElMessage.warning('版本记录无效，请刷新页面后重试')
+    } else {
+      ElMessage.error(apiMessage || error?.message || '体验版推送失败')
+    }
   } finally {
     pushingReleaseId.value = null
   }

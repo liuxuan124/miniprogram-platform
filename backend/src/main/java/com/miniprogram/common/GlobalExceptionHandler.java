@@ -49,7 +49,9 @@ public class GlobalExceptionHandler {
         // 类型 05 = 冲突/重复 -> 409
         // 类型 01 = 认证/参数错误 -> 401
         int type = (code / 100) % 100;
-        int module = code / 10000;
+        if (code >= 5000 && code < 6000) {
+            return 422;
+        }
         return switch (type) {
             case 4 -> 404;   // 不存在
             case 2 -> 422;   // 状态错误/业务规则
