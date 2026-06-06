@@ -55,7 +55,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      * 敏感配置键（返回时脱敏）
      */
     private static final Set<String> SENSITIVE_CONFIG_KEYS = Set.of(
-            "wx_app_secret", "wx_mch_key",
+            "wx_app_secret", "wx_mch_key", "wx_upload_key",
             "storage_oss_access_secret",
             "sms_access_secret"
     );

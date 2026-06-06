@@ -37,6 +37,12 @@ export const constantRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/page-builder/preview.vue'),
     meta: { title: '页面预览', hidden: true },
   },
+  {
+    path: '/h5/preview',
+    name: 'H5Preview',
+    component: () => import('@/views/page-builder/h5-preview.vue'),
+    meta: { title: 'H5预览', hidden: true },
+  },
 ]
 
 /** 动态路由（需登录 + 权限过滤） */

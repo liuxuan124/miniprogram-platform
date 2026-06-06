@@ -83,6 +83,11 @@
             </div>
 
             <div class="card-actions">
+              <el-button size="small" type="success" plain @click="openH5Preview(item)">H5预览</el-button>
+              <el-button size="small" type="warning" plain :loading="pushingReleaseId === item.id" @click="handlePushPreview(item)">
+                推送体验版
+              </el-button>
+              <el-button size="small" text type="primary" @click="copyH5PreviewLink(item)">复制链接</el-button>
               <template v-if="item.status === 1">
                 <el-button size="small" type="primary" plain @click="handleEditTemplate(item)">编辑</el-button>
                 <el-popconfirm title="确认回滚到此版本？" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleRollback(item)">
@@ -451,6 +456,27 @@
     </div>
 
     <!-- ==================== Module Version Dialog ==================== -->
+    <el-dialog v-model="pushPreviewVisible" title="推送微信小程序体验版" width="520px" :close-on-click-modal="false">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="页面/配置变更会自动同步到小程序，无需推送。仅在 miniapp 代码变更或平台要求重新上传代码时使用。"
+        style="margin-bottom: 16px"
+      />
+      <el-descriptions v-if="pushPreviewResult" :column="1" border size="small">
+        <el-descriptions-item label="版本号">{{ pushPreviewResult.version }}</el-descriptions-item>
+        <el-descriptions-item label="描述">{{ pushPreviewResult.versionDesc }}</el-descriptions-item>
+        <el-descriptions-item label="结果">{{ pushPreviewResult.message }}</el-descriptions-item>
+      </el-descriptions>
+      <div v-if="pushPreviewResult?.manageUrl" class="push-preview-footer">
+        <el-link type="primary" :href="pushPreviewResult.manageUrl" target="_blank">前往微信公众平台查看体验版</el-link>
+      </div>
+      <template #footer>
+        <el-button @click="pushPreviewVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="showModuleVersionDialog" title="📦 模块版本管理" width="860px" :close-on-click-modal="false" @opened="loadModuleVersions">
       <el-tabs v-model="moduleVersionTab" type="border-card">
         <el-tab-pane label="🎨 风格配色" name="theme">
@@ -592,6 +618,7 @@ import {
   deleteRelease as deleteReleaseApi,
   rollbackRelease,
   getReleaseDetail,
+  pushPreviewRelease,
 } from '@/api/version'
 import {
   getTargetVersions,
@@ -641,6 +668,9 @@ const mineVersions = ref<ModuleVersionRecord[]>([])
 const moduleLoading = ref(false)
 const moduleSaving = ref(false)
 const publishingId = ref<number | null>(null)
+const pushingReleaseId = ref<number | null>(null)
+const pushPreviewVisible = ref(false)
+const pushPreviewResult = ref<any>(null)
 
 const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] = [
   { label: '全部', value: 'all' },
@@ -813,6 +843,65 @@ async function handleRollback(item: ReleaseRecord) {
     await loadGalleryData()
   } catch {
     ElMessage.error('回滚失败，请重试')
+  }
+}
+
+function buildH5PreviewUrl(item: ReleaseRecord) {
+  const { href } = router.resolve({
+    path: '/h5/preview',
+    query: {
+      releaseId: String(item.id),
+      semver: item.semver,
+      path: 'pages/index/index',
+      mode: item.mode === 'template' || item.status === 0 ? 'template' : 'release',
+    },
+  })
+  return `${window.location.origin}${href}`
+}
+
+function openH5Preview(item: ReleaseRecord) {
+  window.open(buildH5PreviewUrl(item), '_blank', 'noopener,noreferrer')
+}
+
+async function copyH5PreviewLink(item: ReleaseRecord) {
+  const url = buildH5PreviewUrl(item)
+  try {
+    await navigator.clipboard.writeText(url)
+    ElMessage.success('H5 预览链接已复制')
+  } catch {
+    ElMessage.info(url)
+  }
+}
+
+async function handlePushPreview(item: ReleaseRecord) {
+  try {
+    await ElMessageBox.confirm(
+      `确认将版本 v${item.semver} 对应的 miniapp 代码包推送到微信体验版吗？\n\n说明：页面装修内容已自动同步，本次仅上传代码包。`,
+      '推送体验版',
+      {
+        confirmButtonText: '确认推送',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+  } catch {
+    return
+  }
+
+  pushingReleaseId.value = item.id
+  pushPreviewResult.value = null
+  try {
+    const res = await pushPreviewRelease(item.id, {
+      versionDesc: item.releaseNotes || `后台推送体验版 v${item.semver}`,
+      confirmCodeChange: true,
+    })
+    pushPreviewResult.value = (res as any).data || res
+    pushPreviewVisible.value = true
+    ElMessage.success('体验版推送成功')
+  } catch (error: any) {
+    ElMessage.error(error?.message || '体验版推送失败，请检查微信配置与代码上传密钥')
+  } finally {
+    pushingReleaseId.value = null
   }
 }
 
@@ -1634,6 +1723,10 @@ onMounted(() => {
   padding-top: 8px;
   border-top: 1px solid #f0f2f5;
   flex-wrap: wrap;
+}
+
+.push-preview-footer {
+  margin-top: 12px;
 }
 
 .empty-gallery {

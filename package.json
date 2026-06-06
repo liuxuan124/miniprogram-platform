@@ -3,9 +3,11 @@
     "verify:miniapp-runtime": "node verify-miniapp-runtime.js",
     "verify:miniapp-wxml": "node verify-miniapp-wxml.js",
     "verify:miniapp-visual": "node verify-miniapp-wxml.js",
-    "verify:miniapp-login": "node verify-miniapp-login.js"
+    "verify:miniapp-login": "node verify-miniapp-login.js",
+    "push:miniapp-preview": "node scripts/push-miniprogram-preview.js"
   },
   "devDependencies": {
-    "miniprogram-automator": "^0.12.1"
+    "miniprogram-automator": "^0.12.1",
+    "miniprogram-ci": "^2.1.31"
   }
 }
