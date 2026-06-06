@@ -46,6 +46,16 @@
           </el-col>
         </el-row>
 
+        <el-form-item label="代码上传密钥" prop="uploadKey">
+          <el-input
+            v-model="formData.uploadKey"
+            type="textarea"
+            :rows="4"
+            placeholder="粘贴微信公众平台下载的代码上传密钥（private key）"
+          />
+          <div class="field-hint">用于后台「推送体验版」。路径：微信公众平台 → 开发管理 → 开发设置 → 小程序代码上传密钥</div>
+        </el-form-item>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="小程序名称" prop="appName">
@@ -344,6 +354,7 @@ const formRef = ref<FormInstance>()
 interface WechatFullConfigForm {
   appId: string
   appSecret: string
+  uploadKey: string
   originalId: string
   appName: string
   qrcodeUrl: string
@@ -352,10 +363,32 @@ interface WechatFullConfigForm {
 const formData = reactive<WechatFullConfigForm>({
   appId: '',
   appSecret: '',
+  uploadKey: '',
   originalId: '',
   appName: '',
   qrcodeUrl: '',
 })
+
+const CONFIG_KEY_MAP: Record<string, string> = {
+  appId: 'wx_appid',
+  appSecret: 'wx_app_secret',
+  uploadKey: 'wx_upload_key',
+  originalId: 'originalId',
+  appName: 'appName',
+  qrcodeUrl: 'qrcodeUrl',
+}
+
+const CONFIG_KEY_REVERSE: Record<string, keyof WechatFullConfigForm> = {
+  wx_appid: 'appId',
+  appId: 'appId',
+  wx_app_secret: 'appSecret',
+  appSecret: 'appSecret',
+  wx_upload_key: 'uploadKey',
+  uploadKey: 'uploadKey',
+  originalId: 'originalId',
+  appName: 'appName',
+  qrcodeUrl: 'qrcodeUrl',
+}
 
 const formRules: FormRules = {
   appId: [{ required: true, message: '请输入 AppID', trigger: 'blur' }],
@@ -444,9 +477,9 @@ async function fetchConfig() {
     const res = await getConfigByGroup('wechat')
     const configs: ConfigItem[] = res.data?.configs || []
     configs.forEach((item) => {
-      const key = item.key as keyof WechatFullConfigForm
-      if (key in formData) {
-        (formData as any)[key] = item.type === 'boolean' ? item.value === 'true' : item.value
+      const mappedKey = CONFIG_KEY_REVERSE[item.key as string]
+      if (mappedKey) {
+        formData[mappedKey] = item.type === 'boolean' ? String(item.value === 'true') : String(item.value || '')
       }
       const payKey = item.key as keyof PayConfigForm
       if (payKey in payFormData) {
@@ -519,7 +552,7 @@ async function handleSave() {
   saving.value = true
   try {
     const configs = Object.entries(formData).map(([key, value]) => ({
-      key,
+      key: CONFIG_KEY_MAP[key] || key,
       label: key,
       value: String(value),
       type: typeof value === 'boolean' ? 'boolean' as const : 'string' as const,
@@ -635,6 +668,13 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .field-hint {
+    margin-top: 6px;
+    color: #86909c;
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .btn-saved {

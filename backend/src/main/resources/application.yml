@@ -57,7 +57,6 @@ wx:
   miniapp:
     appid: ${WX_MINIAPP_APPID:your-appid}
     secret: ${WX_MINIAPP_SECRET:your-secret}
-  # 微信支付V3配置
   pay:
     app-id: ${WX_PAY_APPID:your-appid}
     mch-id: ${WX_PAY_MCHID:your-mchid}
@@ -65,6 +64,11 @@ wx:
     private-key: ${WX_PAY_PRIVATE_KEY:}
     api-v3-key: ${WX_PAY_API_V3_KEY:your-api-v3-key}
     notify-url: ${WX_PAY_NOTIFY_URL:https://your-domain.com/api/v1/mp/payments/wx-notify}
+
+# 小程序代码推送
+miniapp:
+  project-root: ${MINIAPP_PROJECT_ROOT:}
+  node-command: ${MINIAPP_NODE_COMMAND:node}
 
 # 日志
 logging:

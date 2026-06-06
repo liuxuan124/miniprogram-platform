@@ -4,11 +4,14 @@ import com.miniprogram.annotation.OperationLog;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.miniapp.CreateReleaseDTO;
+import com.miniprogram.dto.miniapp.PushPreviewDTO;
+import com.miniprogram.dto.miniapp.PushPreviewResultVO;
 import com.miniprogram.dto.miniapp.ReleaseQueryDTO;
 import com.miniprogram.dto.miniapp.RollbackDTO;
 import com.miniprogram.entity.MiniappRelease;
 import com.miniprogram.entity.VersionOperationLog;
 import com.miniprogram.service.MiniappReleaseService;
+import com.miniprogram.service.MiniappWxUploadService;
 import com.miniprogram.service.VersionOperationLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +29,7 @@ public class MiniappReleaseController {
 
     private final MiniappReleaseService miniappReleaseService;
     private final VersionOperationLogService versionOperationLogService;
+    private final MiniappWxUploadService miniappWxUploadService;
 
     @Operation(summary = "版本发布列表", description = "分页查询版本发布列表")
     @GetMapping
@@ -110,5 +114,18 @@ public class MiniappReleaseController {
             @RequestParam(defaultValue = "1") Long current,
             @RequestParam(defaultValue = "20") Long size) {
         return R.ok(versionOperationLogService.listLogs(current, size));
+    }
+
+    @Operation(summary = "推送微信小程序体验版", description = "当 miniapp 代码有变更时，一键上传代码到微信体验版")
+    @PostMapping("/{id}/push-preview")
+    @OperationLog("推送微信小程序体验版")
+    public R<PushPreviewResultVO> pushPreview(@PathVariable Long id, @RequestBody(required = false) PushPreviewDTO dto) {
+        return R.ok(miniappWxUploadService.pushPreview(id, dto));
+    }
+
+    @Operation(summary = "最近体验版推送状态", description = "获取最近一次体验版推送结果")
+    @GetMapping("/push-preview/status")
+    public R<PushPreviewResultVO> getPushPreviewStatus() {
+        return R.ok(miniappWxUploadService.getLastPushStatus());
     }
 }

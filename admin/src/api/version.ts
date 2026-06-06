@@ -68,3 +68,16 @@ export function getNextSemver(changeType: string) {
 export function getVersionOperationLogs(params?: Record<string, any>) {
   return get(`${BASE}/operation-logs`, params)
 }
+
+/** 推送微信小程序体验版 */
+export function pushPreviewRelease(id: number, data?: {
+  versionDesc?: string
+  confirmCodeChange?: boolean
+}) {
+  return post(`${BASE}/${id}/push-preview`, data || {})
+}
+
+/** 获取最近体验版推送状态 */
+export function getPushPreviewStatus() {
+  return get(`${BASE}/push-preview/status`)
+}

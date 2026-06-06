@@ -47,6 +47,7 @@ public enum ErrorCode {
     MINIAPP_NOT_FOUND(5001, "小程序不存在"),
     MINIAPP_TEMPLATE_NOT_FOUND(5002, "模板不存在"),
     MINIAPP_PUBLISH_FAILED(5003, "小程序发布失败"),
+    WX_UPLOAD_KEY_MISSING(5005, "未配置微信小程序代码上传密钥"),
     WECHAT_API_ERROR(5004, "微信接口调用失败"),
 
     // ==================== 页面搭建相关 3000-3999 ====================
