@@ -341,8 +341,14 @@
 import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
-import { getConfigByGroup, updateConfigs, uploadFile } from '@/api/system'
-import type { ConfigItem } from '@/types/system'
+import { getConfigsSilent, updateConfigs, uploadFile } from '@/api/system'
+import {
+  applyConfigListToForm,
+  extractConfigList,
+  FORM_TO_DB_KEY,
+  shouldSkipSensitiveSave,
+  toConfigUpdateItems,
+} from '@/utils/system-config'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -479,22 +485,10 @@ watch(() => payFormData.enablePayment, (val) => {
 async function fetchConfig() {
   loading.value = true
   try {
-    const res = await getConfigByGroup('wechat')
-    const configs: ConfigItem[] = res.data?.configs || []
-    configs.forEach((item) => {
-      const mappedKey = CONFIG_KEY_REVERSE[item.key as string]
-      if (mappedKey) {
-        formData[mappedKey] = item.type === 'boolean' ? String(item.value === 'true') : String(item.value || '')
-      }
-      const payKey = item.key as keyof PayConfigForm
-      if (payKey in payFormData) {
-        if (payKey === 'enablePayment' || payKey === 'certUploaded') {
-          (payFormData as any)[payKey] = item.value === 'true' || item.value === 'true'
-        } else {
-          (payFormData as any)[payKey] = item.value
-        }
-      }
-    })
+    const res = await getConfigsSilent()
+    const configs = extractConfigList(res.data)
+    applyConfigListToForm(configs, [formData as unknown as Record<string, unknown>])
+    applyConfigListToForm(configs, [payFormData as unknown as Record<string, unknown>])
     if (payFormData.mchId || payFormData.apiV3Key) {
       paySaved.value = true
     }
@@ -557,7 +551,7 @@ async function handleSave() {
   saving.value = true
   try {
     const configItems = Object.entries(formData).map(([key, value]) => ({
-      configKey: CONFIG_KEY_MAP[key] || key,
+      configKey: FORM_TO_DB_KEY[key] || CONFIG_KEY_MAP[key] || key,
       configValue: String(value ?? ''),
       configGroup: 'wechat',
       description: key,
@@ -601,9 +595,9 @@ async function handleSavePay() {
   paySaving.value = true
   try {
     const configItems = Object.entries(payFormData)
-      .filter(([key]) => key !== 'certUploaded')
+      .filter(([key, value]) => key !== 'certUploaded' && !shouldSkipSensitiveSave(key, value))
       .map(([key, value]) => ({
-        configKey: key,
+        configKey: FORM_TO_DB_KEY[key] || key,
         configValue: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
         configGroup: 'wechat',
         description: `pay_${key}`,

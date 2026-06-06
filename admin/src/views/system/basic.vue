@@ -396,8 +396,14 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 import { Refresh, CircleCheck, ShoppingCart, Document, Promotion } from '@element-plus/icons-vue'
-import { getConfigByGroup, updateConfigs, uploadFile, getConfigByGroupSilent } from '@/api/system'
-import type { ConfigItem } from '@/types/system'
+import { getConfigsSilent, updateConfigs, uploadFile } from '@/api/system'
+import {
+  applyConfigListToForm,
+  extractConfigList,
+  readConfigEntry,
+  toConfigUpdateItems,
+  type RawConfigItem,
+} from '@/utils/system-config'
 
 const loading = ref(false)
 const savingAll = ref(false)
@@ -611,67 +617,52 @@ const miniProgramSaveStatus = computed(() => {
 
 let dataLoaded = false
 
-const CONFIG_FIELD_ALIASES: Record<string, string> = {
-  wx_appid: 'appId',
-  appId: 'appId',
-  wx_app_secret: 'appSecret',
-  appSecret: 'appSecret',
-  wx_mch_id: 'mchId',
-  wx_mch_key: 'apiV3Key',
-  wx_pay_notify_url: 'paymentNotifyUrl',
-  paymentNotifyUrl: 'paymentNotifyUrl',
-  wx_refund_notify_url: 'refundNotifyUrl',
-  refundNotifyUrl: 'refundNotifyUrl',
-}
-
-function applyConfigs(configs: Array<ConfigItem | any>) {
+function applyPluginConfigs(configs: RawConfigItem[]) {
   configs.forEach((item) => {
-    const rawKey = item.configKey || item.key
-    const key = CONFIG_FIELD_ALIASES[rawKey] || rawKey
-    const value = item.configValue ?? item.value
-    const type = item.type
-
-    if (!key) return
-
-    // 匹配到各个表单
-    const targets = [miniProgramForm, paymentForm, logisticsForm] as Array<Record<string, any>>
-    targets.forEach((target) => {
-      if (key in target) {
-        target[key] = type === 'boolean' || typeof target[key] === 'boolean' ? value === 'true' : value
-      }
-    })
-
-    // 匹配插件状态
-    const plugin = pluginModules.value.find(p => p.key === key)
-    if (plugin && (value === 'true' || value === true)) {
-      plugin.enabled = true
+    const { key, value } = readConfigEntry(item)
+    if (key !== 'plugins' || !value) return
+    try {
+      const list = JSON.parse(value) as Array<{ key: string; enabled?: boolean }>
+      if (!Array.isArray(list)) return
+      list.forEach((entry) => {
+        const plugin = pluginModules.value.find(p => p.key === entry.key)
+        if (plugin) plugin.enabled = entry.enabled !== false
+      })
+    } catch {
+      // ignore invalid json
     }
   })
+}
+
+function applyNotificationConfigs(configs: RawConfigItem[]) {
+  configs.forEach((item) => {
+    const { key, value } = readConfigEntry(item)
+    if (key !== 'notifications' || !value) return
+    try {
+      const list = JSON.parse(value) as NotificationItem[]
+      if (!Array.isArray(list) || !list.length) return
+      notificationList.splice(0, notificationList.length, ...list)
+    } catch {
+      // ignore invalid json
+    }
+  })
+}
+
+function applyConfigs(configs: RawConfigItem[]) {
+  applyConfigListToForm(configs, [
+    miniProgramForm as unknown as Record<string, unknown>,
+    paymentForm as unknown as Record<string, unknown>,
+    logisticsForm as unknown as Record<string, unknown>,
+  ])
+  applyPluginConfigs(configs)
+  applyNotificationConfigs(configs)
 }
 
 async function fetchConfig() {
   loading.value = true
   try {
-    // 使用静默模式加载配置（不显示错误提示，失败时使用默认值）
-    const groups = await Promise.allSettled([
-      getConfigByGroupSilent('basic'),
-      getConfigByGroupSilent('wechat'),
-      getConfigByGroupSilent('storage'),
-    ])
-
-    let hasError = false
-    groups.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        applyConfigs(result.value.data?.configs || [])
-      } else {
-        hasError = true
-        console.warn(`配置组[${['basic', 'wechat', 'storage'][index]}]加载失败:`, result.reason)
-      }
-    })
-
-    if (hasError) {
-      console.warn('部分配置加载失败，使用默认值显示')
-    }
+    const res = await getConfigsSilent()
+    applyConfigs(extractConfigList(res.data))
 
     markMiniProgramSaved()
     await nextTick()
@@ -694,12 +685,7 @@ function markAllAsConfigured() {
 }
 
 function toConfigItems(data: Record<string, unknown>, group: string) {
-  return Object.entries(data).map(([key, value]) => ({
-    configKey: key,
-    configValue: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
-    configGroup: group,
-    description: key,
-  }))
+  return toConfigUpdateItems(data, group)
 }
 
 async function saveGroup(group: string, _label: string, data: Record<string, unknown>) {

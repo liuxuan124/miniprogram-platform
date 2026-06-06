@@ -190,8 +190,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { getConfigByGroup, updateConfigs } from '@/api/system'
-import type { StorageConfigForm, ConfigItem } from '@/types/system'
+import { getConfigsSilent, updateConfigs } from '@/api/system'
+import type { StorageConfigForm } from '@/types/system'
+import { applyConfigListToForm, extractConfigList, toConfigUpdateItems } from '@/utils/system-config'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -233,20 +234,8 @@ function handleStorageTypeChange() {
 async function fetchConfig() {
   loading.value = true
   try {
-    const res = await getConfigByGroup('storage')
-    const configs: ConfigItem[] = res.data?.configs || []
-    configs.forEach((item) => {
-      const key = item.key as keyof StorageConfigForm
-      if (key in formData) {
-        if (key === 'maxFileSize') {
-          formData.maxFileSize = Number(item.value) || 10
-        } else if (key === 'storageType') {
-          formData.storageType = item.value as StorageConfigForm['storageType']
-        } else {
-          (formData as any)[key] = item.value
-        }
-      }
-    })
+    const res = await getConfigsSilent()
+    applyConfigListToForm(extractConfigList(res.data), [formData as unknown as Record<string, unknown>])
   } catch {
     // 使用默认值
   } finally {
@@ -274,12 +263,7 @@ async function handleSave() {
 
   saving.value = true
   try {
-    const configs = Object.entries(formData).map(([key, value]) => ({
-      configKey: key,
-      configValue: String(value ?? ''),
-      configGroup: 'storage',
-      description: key,
-    }))
+    const configs = toConfigUpdateItems(formData as unknown as Record<string, unknown>, 'storage')
     await updateConfigs(configs)
     ElMessage.success('保存成功')
   } finally {

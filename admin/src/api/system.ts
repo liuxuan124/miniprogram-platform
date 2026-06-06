@@ -16,9 +16,22 @@ const BASE_URL = '/api/v1/admin/system'
 
 // ==================== 系统配置 ====================
 
-/** 获取全部配置 */
+/** 获取全部配置（后端返回 ConfigVO 数组） */
 export function getConfigs() {
-  return get<ConfigGroupData[]>(`${BASE_URL}/configs`)
+  return get<ConfigGroupData[] | SystemConfigRecord[]>(`${BASE_URL}/configs`)
+}
+
+/** 静默获取全部配置（页面初始化用） */
+export function getConfigsSilent() {
+  return get<ConfigGroupData[] | SystemConfigRecord[]>(`${BASE_URL}/configs`, undefined, { showError: false })
+}
+
+export interface SystemConfigRecord {
+  id?: number
+  configKey?: string
+  configValue?: string
+  configGroup?: string
+  description?: string
 }
 
 /** 批量更新配置项 */
