@@ -1,0 +1,27 @@
+receipt_id: receipt-2026-05-11-miniapp-static-smoke
+submitted_at: 2026-05-11 19:45
+submitted_by: controller-agent
+type: miniapp_static_smoke
+scope:
+  - miniapp
+summary: 小程序静态冒烟完成，已修复导入级硬错误，并识别会员/优惠券后端接口缺口。
+fixes:
+  - 修复 app.json tabBar 图标路径，避免微信开发者工具导入时报本地资源不存在。
+  - 将 services/member.js、services/form-appointment.js 从 ES module 和不存在的 ./api 改为当前项目 CommonJS + utils/request.js。
+  - 对齐 form-appointment 服务路径到当前后端 /api/v1/mp/form-templates、/appointment-services、/appointments。
+  - 修复 member-center 页面读取 request 返回值的方式。
+  - 修复小程序微信登录路径为 /api/v1/mp/auth/login，并对 accessToken/userInfo 做前端兼容转换。
+verification:
+  - command: rg "^import |^export |./api" miniapp -n
+    result: passed
+    note: 未发现残留 ES module 导入导出或 ./api 引用。
+  - command: node --check miniapp/**/*.js
+    result: passed
+    note: 小程序 JS 文件语法检查通过。
+  - command: app.json pages file existence check
+    result: passed
+    note: app.json 声明页面对应 js/json/wxml/wxss 文件齐全。
+new_blocker:
+  id: BLK-MINIAPP-MEMBER-API-001
+  summary: 小程序会员、签到、积分、优惠券页面已有调用，但后端缺少对应 MP 端 Controller/实现闭环。
+next_recommended_action: 由后端 Agent 补齐会员积分与优惠券小程序端接口，再执行微信开发者工具导入调试。

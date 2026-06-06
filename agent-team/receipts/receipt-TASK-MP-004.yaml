@@ -1,0 +1,100 @@
+task_id: TASK-MP-004
+task_name: 小程序商品与订单页面
+agent: miniapp-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: miniapp/services/product.js
+    desc: 商品 API 服务（列表、详情）
+  - path: miniapp/services/cart.js
+    desc: 购物车 API 服务（增删改查）
+  - path: miniapp/services/order.js
+    desc: 订单 API 服务（创建、列表、详情、支付、取消、确认收货、退款）
+  - path: miniapp/pages/product-list/
+    desc: 商品列表页（分类筛选、搜索、排序、下拉刷新、上拉加载）
+  - path: miniapp/pages/product-detail/
+    desc: 商品详情页（图片轮播、SKU选择弹窗、加购物车/立即购买）
+  - path: miniapp/pages/cart/
+    desc: 购物车页（商品列表、数量调整、选中/全选、结算）
+  - path: miniapp/pages/order-create/
+    desc: 订单创建页（地址选择、商品确认、提交）
+  - path: miniapp/pages/order-list/
+    desc: 我的订单列表（按状态筛选：全部/待付款/待发货/待收货/已完成/退款）
+  - path: miniapp/pages/order-detail/
+    desc: 订单详情页（状态步骤条、操作按钮、微信支付、退款弹窗）
+
+modified_files:
+  - path: miniapp/app.json
+    desc: 注册新页面路由 + TabBar 添加购物车图标
+  - path: miniapp/pages/mine/mine.js
+    desc: 添加订单快捷入口数据和跳转方法
+  - path: miniapp/pages/mine/mine.wxml
+    desc: 添加"我的订单"快捷入口区域
+  - path: miniapp/pages/mine/mine.wxss
+    desc: 添加订单快捷入口样式
+
+api_contracts:
+  - method: GET
+    path: /api/v1/mp/products
+    desc: 商品列表（公开）
+  - method: GET
+    path: /api/v1/mp/products/{id}
+    desc: 商品详情（公开）
+  - method: GET
+    path: /api/v1/mp/cart
+    desc: 购物车列表
+  - method: POST
+    path: /api/v1/mp/cart
+    desc: 添加到购物车
+  - method: PUT
+    path: /api/v1/mp/cart/{id}
+    desc: 更新购物车项
+  - method: DELETE
+    path: /api/v1/mp/cart/{id}
+    desc: 删除购物车项
+  - method: POST
+    path: /api/v1/mp/orders
+    desc: 创建订单
+  - method: GET
+    path: /api/v1/mp/orders
+    desc: 我的订单列表
+  - method: GET
+    path: /api/v1/mp/orders/{id}
+    desc: 订单详情
+  - method: POST
+    path: /api/v1/mp/orders/{id}/pay
+    desc: 支付订单（返回微信支付参数）
+  - method: POST
+    path: /api/v1/mp/orders/{id}/cancel
+    desc: 取消订单
+  - method: POST
+    path: /api/v1/mp/orders/{id}/confirm
+    desc: 确认收货
+  - method: POST
+    path: /api/v1/mp/orders/{id}/refund
+    desc: 申请退款
+
+order_status_flow:
+  - pending_payment -> paid -> shipped -> completed
+  - pending_payment -> closed (超时/取消)
+  - paid -> refunding -> refunded
+
+features:
+  - 商品列表：分类横向滚动筛选、关键词搜索、4种排序方式、下拉刷新+上拉分页
+  - 商品详情：图片轮播+预览、SKU多规格选择弹窗、数量选择、加购物车/立即购买
+  - 购物车：商品选中/全选、数量加减、删除、合计计算、结算跳转
+  - 订单创建：收货地址选择、商品确认、备注、价格汇总、提交
+  - 订单列表：6个状态Tab筛选、订单卡片展示、快捷操作按钮
+  - 订单详情：状态步骤条、收货地址、商品列表、订单信息、价格明细、操作按钮
+  - 微信支付：调用 wx.requestPayment，支持取消/失败处理
+  - 退款：弹窗填写退款原因，提交退款申请
+
+acceptance_criteria_met:
+  - 商品列表页（分类筛选、搜索、排序）: true
+  - 商品详情页（图片轮播、SKU选择、加购物车/立即购买）: true
+  - 购物车页面（商品列表、数量调整、选中/全选、结算）: true
+  - 订单创建（地址选择、商品确认、提交）: true
+  - 我的订单列表（按状态筛选）: true
+  - 订单详情（状态追踪、操作按钮）: true
+  - 微信支付调用: true

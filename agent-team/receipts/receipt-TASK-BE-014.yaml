@@ -1,0 +1,29 @@
+task_id: TASK-BE-014
+agent: backend-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: backend/src/main/resources/db/migration/V10__system_tables.sql
+    desc: 系统设置数据库迁移脚本
+  - path: backend/src/main/java/com/mp/entity/SystemConfig.java
+    desc: 系统配置实体
+  - path: backend/src/main/java/com/mp/entity/OperationLog.java
+    desc: 操作日志实体
+  - path: backend/src/main/java/com/mp/mapper/SystemConfigMapper.java
+    desc: 系统配置Mapper
+  - path: backend/src/main/java/com/mp/mapper/OperationLogMapper.java
+    desc: 操作日志Mapper
+  - path: backend/src/main/java/com/mp/dto/system/SystemConfigDTO.java
+    desc: 系统配置DTO
+  - path: backend/src/main/java/com/mp/dto/system/SystemConfigBatchDTO.java
+    desc: 系统配置批量DTO
+  - path: backend/src/main/java/com/mp/dto/system/OperationLogQueryDTO.java
+    desc: 操作日志查询DTO
+  - path: backend/src/main/java/com/mp/service/SystemConfigService.java
+    desc: 系统配置服务接口
+  - path: backend/src/main/java/com/mp/service/impl/SystemConfigServiceImpl.java
+    desc: 系统配置服务实现
+  - path: backend/src/main/java/com/mp/controller/admin/SystemConfigController.java
+    desc: 管理端系统配置控制器
+  - path: backend/src/main/java/com/mp/controller/miniapp/MpSystemController.java
+    desc: 小程序端系统控制器

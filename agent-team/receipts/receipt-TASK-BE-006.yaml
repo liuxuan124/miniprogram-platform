@@ -1,0 +1,147 @@
+task: TASK-BE-006
+name: 实现用户认证与权限管理
+agent: backend-agent
+status: completed
+completed_at: "2026-05-11T00:00:00+08:00"
+
+deliverables:
+  - path: backend/src/main/java/com/miniprogram/entity/AdminUser.java
+    description: 后台管理员实体
+  - path: backend/src/main/java/com/miniprogram/entity/Role.java
+    description: 角色实体
+  - path: backend/src/main/java/com/miniprogram/entity/Permission.java
+    description: 权限点实体
+  - path: backend/src/main/java/com/miniprogram/entity/RolePermission.java
+    description: 角色权限关联实体
+  - path: backend/src/main/java/com/miniprogram/entity/User.java
+    description: 小程序用户实体（重写，映射mp_user表）
+  - path: backend/src/main/java/com/miniprogram/mapper/AdminUserMapper.java
+    description: 管理员Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/RoleMapper.java
+    description: 角色Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/PermissionMapper.java
+    description: 权限点Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/RolePermissionMapper.java
+    description: 角色权限关联Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/UserMapper.java
+    description: 小程序用户Mapper
+  - path: backend/src/main/java/com/miniprogram/dto/LoginDTO.java
+    description: 管理员登录请求DTO（重写）
+  - path: backend/src/main/java/com/miniprogram/dto/LoginVO.java
+    description: 管理员登录响应VO（重写）
+  - path: backend/src/main/java/com/miniprogram/dto/WxLoginDTO.java
+    description: 微信登录请求DTO
+  - path: backend/src/main/java/com/miniprogram/dto/WxLoginVO.java
+    description: 微信登录响应VO
+  - path: backend/src/main/java/com/miniprogram/dto/AdminUserDTO.java
+    description: 管理员创建/更新DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AdminUserVO.java
+    description: 管理员信息响应VO
+  - path: backend/src/main/java/com/miniprogram/dto/AdminUserQueryDTO.java
+    description: 管理员列表查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/RoleDTO.java
+    description: 角色创建/更新DTO
+  - path: backend/src/main/java/com/miniprogram/dto/RolePermissionDTO.java
+    description: 角色权限设置DTO
+  - path: backend/src/main/java/com/miniprogram/dto/RefreshTokenDTO.java
+    description: 刷新Token请求DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ChangePasswordDTO.java
+    description: 修改密码请求DTO
+  - path: backend/src/main/java/com/miniprogram/dto/WxPhoneDTO.java
+    description: 微信获取手机号请求DTO
+  - path: backend/src/main/java/com/miniprogram/dto/UserQueryDTO.java
+    description: 小程序用户列表查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/PermissionTreeVO.java
+    description: 权限树节点VO
+  - path: backend/src/main/java/com/miniprogram/service/AuthService.java
+    description: 认证服务接口
+  - path: backend/src/main/java/com/miniprogram/service/AdminUserService.java
+    description: 管理员服务接口
+  - path: backend/src/main/java/com/miniprogram/service/RoleService.java
+    description: 角色服务接口
+  - path: backend/src/main/java/com/miniprogram/service/PermissionService.java
+    description: 权限服务接口
+  - path: backend/src/main/java/com/miniprogram/service/WxAuthService.java
+    description: 微信认证服务接口
+  - path: backend/src/main/java/com/miniprogram/service/impl/AuthServiceImpl.java
+    description: 认证服务实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/AdminUserServiceImpl.java
+    description: 管理员服务实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/RoleServiceImpl.java
+    description: 角色服务实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/PermissionServiceImpl.java
+    description: 权限服务实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/WxAuthServiceImpl.java
+    description: 微信认证服务实现
+  - path: backend/src/main/java/com/miniprogram/controller/AuthController.java
+    description: 管理后台认证控制器
+  - path: backend/src/main/java/com/miniprogram/controller/MpAuthController.java
+    description: 小程序认证控制器
+  - path: backend/src/main/java/com/miniprogram/controller/AdminUserController.java
+    description: 管理员CRUD控制器
+  - path: backend/src/main/java/com/miniprogram/controller/RoleController.java
+    description: 角色CRUD控制器
+  - path: backend/src/main/java/com/miniprogram/controller/PermissionController.java
+    description: 权限树控制器
+  - path: backend/src/main/java/com/miniprogram/controller/UserController.java
+    description: 小程序用户控制器
+  - path: backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+    description: Security配置（更新白名单+RBAC）
+  - path: backend/src/main/java/com/miniprogram/config/DataInitializer.java
+    description: 数据初始化器（启动时创建默认管理员）
+  - path: backend/src/main/java/com/miniprogram/security/JwtAuthenticationFilter.java
+    description: JWT过滤器（增强RBAC权限加载）
+  - path: backend/src/main/java/com/miniprogram/common/ErrorCode.java
+    description: 错误码枚举（增加契约对齐的错误码）
+  - path: backend/src/main/resources/db/migration/V2__auth_tables.sql
+    description: 认证权限表迁移脚本+初始数据
+
+acceptance_criteria:
+  wx_login: "POST /api/v1/mp/auth/login — wx.login code换token，自动注册/更新用户"
+  admin_login: "POST /api/v1/admin/auth/login — username/password换JWT token"
+  rbac: "JwtAuthenticationFilter从DB加载角色+权限点，Controller用@PreAuthorize拦截"
+  admin_crud: "GET/POST/PUT/DELETE /api/v1/admin/admin-users — 管理员CRUD"
+  token_refresh: "POST /api/v1/admin/auth/refresh — refreshToken换新accessToken"
+
+api_contracts:
+  - POST /api/v1/admin/auth/login — 管理员登录（公开）
+  - POST /api/v1/admin/auth/refresh — 刷新Token（登录）
+  - POST /api/v1/admin/auth/logout — 退出登录（登录）
+  - GET /api/v1/admin/auth/profile — 获取当前用户信息（登录）
+  - PUT /api/v1/admin/auth/password — 修改密码（登录）
+  - POST /api/v1/mp/auth/login — 小程序微信登录（公开）
+  - POST /api/v1/mp/auth/phone — 小程序获取手机号（登录）
+  - GET /api/v1/admin/admin-users — 管理员列表（super_admin）
+  - POST /api/v1/admin/admin-users — 创建管理员（super_admin）
+  - PUT /api/v1/admin/admin-users/{id} — 更新管理员（super_admin）
+  - DELETE /api/v1/admin/admin-users/{id} — 删除管理员（super_admin）
+  - GET /api/v1/admin/roles — 角色列表（super_admin）
+  - POST /api/v1/admin/roles — 创建角色（super_admin）
+  - PUT /api/v1/admin/roles/{id} — 更新角色（super_admin）
+  - PUT /api/v1/admin/roles/{id}/permissions — 设置角色权限（super_admin）
+  - GET /api/v1/admin/permissions — 权限树（super_admin）
+  - GET /api/v1/admin/users — 小程序用户列表（登录）
+  - GET /api/v1/admin/users/{id} — 用户详情（登录）
+
+database_tables:
+  - mp_admin_user — 后台管理员
+  - mp_role — 角色（预设: super_admin, content_ops, biz_ops, service_staff）
+  - mp_permission — 权限点（12个模块，含菜单+按钮级权限）
+  - mp_role_permission — 角色权限关联
+  - mp_user — 小程序用户
+
+error_codes_aligned:
+  - "110101: 未登录 (401)"
+  - "110102: Token已过期 (401)"
+  - "110103: 账号已禁用 (403)"
+  - "110201: 微信登录失败 (401)"
+  - "200301: 无操作权限 (403)"
+  - "200401: 管理员不存在 (404)"
+  - "200501: 用户名已存在 (409)"
+
+notes: |
+  - 默认管理员账号 admin/admin123 由 DataInitializer 在首次启动时创建
+  - RBAC 通过 @PreAuthorize("hasRole('super_admin')") 注解实现
+  - JwtAuthenticationFilter 在每次请求时从数据库加载用户角色和权限点
+  - 微信小程序配置通过环境变量 WX_MINIAPP_APPID / WX_MINIAPP_SECRET 注入
+  - V2__auth_tables.sql 包含完整的角色、权限点和角色权限关联初始数据

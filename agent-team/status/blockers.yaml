@@ -1,0 +1,66 @@
+version: 2
+project: 微信小程序多场景搭建与运营系统
+blockers:
+  - id: BLK-ADMIN-BUILD-001
+    source: admin npm run build
+    severity: P0
+    owner_agent: admin-agent
+    status: resolved
+    summary: 管理后台 TypeScript 构建失败，阻断后台交付和部署。
+    evidence:
+      - PaginatedResponse 未从 @/types/global 导出
+      - 多处 noUnusedLocals / 类型不匹配
+      - FormFieldType 被 import type 后作为运行时值使用
+      - ConfigItem 缺少 label/type 字段
+    resolution: 已修复 TypeScript 编译错误，npm run build 已通过。剩余 Rollup 注释警告与大 chunk 提示不阻断交付，可进入后续优化。
+  - id: BLK-BACKEND-TEST-001
+    source: backend mvn test
+    severity: P0
+    owner_agent: backend-agent
+    status: resolved
+    summary: 后端主代码 compile 通过，但测试代码与当前包结构脱节，mvn test 失败。
+    evidence:
+      - 测试引用 com.miniprogram.common.exception / common.result 等旧包
+      - 测试引用不存在的 Member、PointsLog、MemberMapper、MemberServiceImpl
+      - 多个 controller/service 集成测试无法 testCompile
+    resolution: 已按当前包结构、DTO 和接口路径重建测试，mvn -q test 已通过。后续建议将 SpringBootTest 改为独立 test profile，减少对 dev 数据库的依赖。
+  - id: BLK-REL-001
+    source: TASK-REL-001
+    severity: P0
+    owner_agent: qa-release-agent
+    status: needs_user_input
+    summary: 需要确认微信小程序主体、AppID、认证、类目、开发者权限和隐私协议。
+    required_resolution: 用户或客户侧提供真实微信小程序平台资料。
+  - id: BLK-MINIAPP-MEMBER-API-001
+    source: miniapp static smoke
+    severity: P1
+    owner_agent: backend-agent
+    status: resolved
+    summary: 小程序会员、签到、积分、优惠券页面已有调用，但后端缺少对应 MP 端 Controller/实现闭环。
+    evidence:
+      - miniapp/services/member.js 调用 /api/v1/mp/member/info、/points-log、/coupons、/sign-in、/sign-in/status
+      - miniapp/services/coupon.js 调用 /api/v1/mp/coupons、/claim、/my
+      - backend/controller 未发现 member/coupon 小程序端入口
+      - MemberPointsService、CouponService 仅有接口定义，未发现对应实现文件
+    resolution: 已新增 MpMemberController、MpCouponController、MemberPointsServiceImpl、CouponServiceImpl，覆盖会员信息、签到、积分流水、可领券、领券、我的券接口。mvn -q -DskipTests compile 与 mvn -q test 均已通过。
+  - id: BLK-REL-002
+    source: TASK-REL-002
+    severity: P0
+    owner_agent: qa-release-agent
+    status: needs_user_input
+    summary: 需要确认服务器、域名、备案、HTTPS、对象存储、备份和监控资源。
+    required_resolution: 用户或客户侧提供真实部署资源与域名资料。
+  - id: BLK-REL-004
+    source: TASK-REL-004
+    severity: P0
+    owner_agent: qa-release-agent
+    status: needs_user_input
+    summary: 需要确认微信支付商户号、APIv3 密钥、证书、回调地址和退款权限。
+    required_resolution: 用户或客户侧提供真实微信支付商户资料。
+  - id: BLK-REL-006
+    source: TASK-REL-006
+    severity: P1
+    owner_agent: qa-release-agent
+    status: pending_release_phase
+    summary: 试运行监控与问题修复必须在正式发布后执行，目前不能关闭。
+    required_resolution: 小程序正式发布并进入试运行后再处理。

@@ -1,0 +1,12 @@
+task_id: TASK-REL-002
+agent: qa-release-agent
+status: 需人工处理
+note: |
+  服务器、域名、备案、HTTPS和对象存储准备需要人工操作：
+  1. 确认服务器规格(CPU/内存/磁盘)满足生产需求
+  2. 确认域名已注册并完成ICP备案
+  3. 确认HTTPS证书已申请并配置
+  4. 确认对象存储(OSS/COS)已开通并配置CORS
+  5. 确认Redis服务已部署
+  6. 确认MySQL已部署并配置主从(可选)
+  7. 确认备份策略已制定

@@ -1,0 +1,70 @@
+<!--pages/sign-in/sign-in.wxml — 每日签到页面-->
+<view class="sign-in-page">
+  <!-- 签到头部 -->
+  <view class="sign-header">
+    <view class="sign-header__bg"></view>
+    <view class="sign-header__content">
+      <text class="sign-header__title">每日签到</text>
+      <text class="sign-header__subtitle">连续签到可获得更多积分</text>
+      <view class="sign-header__days">
+        <text class="sign-days-num">{{continuousDays}}</text>
+        <text class="sign-days-label">天连续签到</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 本周签到日历 -->
+  <view class="week-calendar card">
+    <view class="week-calendar__title">本周签到</view>
+    <view class="week-calendar__days">
+      <view
+        class="week-day {{item.status}}"
+        wx:for="{{weekDays}}"
+        wx:key="label"
+      >
+        <text class="week-day__label">{{item.label}}</text>
+        <view class="week-day__circle">
+          <text wx:if="{{item.isSigned}}" class="week-day__check">✓</text>
+          <text wx:elif="{{item.isToday && !item.isSigned}}" class="week-day__today-dot">●</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 签到按钮 -->
+  <view class="sign-action">
+    <view
+      class="sign-btn {{hasSignedIn ? 'sign-btn--done' : ''}} {{loading ? 'sign-btn--loading' : ''}}"
+      bindtap="onSignInTap"
+    >
+      <text wx:if="{{loading}}">签到中...</text>
+      <text wx:elif="{{hasSignedIn}}">今日已签到 ✓</text>
+      <text wx:else>立即签到 +{{signInPoints}}积分</text>
+    </view>
+  </view>
+
+  <!-- 签到规则 -->
+  <view class="sign-rules card">
+    <view class="sign-rules__title">签到规则</view>
+    <view class="sign-rules__list">
+      <view class="sign-rules__item">
+        <text class="sign-rules__dot">•</text>
+        <text>每日签到可获得 {{signInPoints}} 积分</text>
+      </view>
+      <view class="sign-rules__item">
+        <text class="sign-rules__dot">•</text>
+        <text>连续签到7天可额外获得50积分奖励</text>
+      </view>
+      <view class="sign-rules__item">
+        <text class="sign-rules__dot">•</text>
+        <text>中断签到后连续天数将重新计算</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 查看积分记录入口 -->
+  <view class="points-entry" bindtap="onViewPointsLog">
+    <text class="points-entry__text">查看积分记录</text>
+    <view class="points-entry__arrow"></view>
+  </view>
+</view>

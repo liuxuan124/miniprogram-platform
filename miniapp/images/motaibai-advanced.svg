@@ -1,0 +1,11 @@
+<svg width="600" height="420" viewBox="0 0 600 420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="420" rx="28" fill="#10231f"/>
+  <rect x="58" y="72" width="484" height="250" rx="24" fill="#ffffff"/>
+  <path d="M102 262 L190 198 L272 222 L380 136 L498 168" stroke="#d7b56d" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="190" cy="198" r="15" fill="#10231f"/>
+  <circle cx="272" cy="222" r="15" fill="#10231f"/>
+  <circle cx="380" cy="136" r="15" fill="#10231f"/>
+  <rect x="96" y="102" width="156" height="18" rx="9" fill="#10231f"/>
+  <rect x="96" y="136" width="104" height="12" rx="6" fill="#8fa19b"/>
+  <text x="58" y="374" fill="#f6f7f4" font-size="34" font-family="Arial, sans-serif" font-weight="700">Growth Operation Library</text>
+</svg>

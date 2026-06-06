@@ -1,0 +1,19 @@
+{
+  "component": true,
+  "usingComponents": {
+    "dsl-banner": "../dsl-banner/dsl-banner",
+    "dsl-image": "../dsl-image/dsl-image",
+    "dsl-nav": "../dsl-nav/dsl-nav",
+    "dsl-product-list": "../dsl-product-list/dsl-product-list",
+    "dsl-article-list": "../dsl-article-list/dsl-article-list",
+    "dsl-activity-entry": "../dsl-activity-entry/dsl-activity-entry",
+    "dsl-member-card": "../dsl-member-card/dsl-member-card",
+    "dsl-coupon": "../dsl-coupon/dsl-coupon",
+    "dsl-video": "../dsl-video/dsl-video",
+    "dsl-countdown": "../dsl-countdown/dsl-countdown",
+    "dsl-float-button": "../dsl-float-button/dsl-float-button",
+    "dsl-rich-text": "../dsl-rich-text/dsl-rich-text",
+    "dsl-divider": "../dsl-divider/dsl-divider",
+    "dsl-spacer": "../dsl-spacer/dsl-spacer"
+  }
+}

@@ -1,0 +1,56 @@
+<!-- pages/content-detail/content-detail.wxml — 内容详情页 -->
+<view class="content-detail-page">
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 内容主体 -->
+  <view class="detail-body" wx:else>
+    <!-- 标题区域 -->
+    <view class="detail-header">
+      <text class="detail-title">{{article.title}}</text>
+      <view class="detail-meta">
+        <text class="detail-author" wx:if="{{article.author}}">{{article.author}}</text>
+        <text class="detail-date">{{article.publish_time || article.created_at}}</text>
+      </view>
+    </view>
+
+    <!-- 封面图 -->
+    <image
+      class="detail-cover"
+      wx:if="{{article.cover_url || article.image}}"
+      src="{{article.cover_url || article.image}}"
+      mode="widthFix"
+    />
+
+    <!-- 富文本内容 -->
+    <view class="detail-content">
+      <rich-text nodes="{{article.content || article.body}}"></rich-text>
+    </view>
+
+    <!-- 分隔线 -->
+    <view class="divider"></view>
+
+    <!-- 标签 -->
+    <view class="detail-tags" wx:if="{{article.tags && article.tags.length > 0}}">
+      <text class="tag-item" wx:for="{{article.tags}}" wx:key="index">{{item}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="action-item" bindtap="onLikeTap">
+      <text class="action-icon">{{liked ? '❤️' : '🤍'}}</text>
+      <text class="action-text">{{article.like_count || 0}}</text>
+    </view>
+    <view class="action-item" bindtap="onFavoriteTap">
+      <text class="action-icon">{{favorited ? '⭐' : '☆'}}</text>
+      <text class="action-text">{{favorited ? '已收藏' : '收藏'}}</text>
+    </view>
+    <view class="action-item" bindtap="onShareTap">
+      <text class="action-icon">↗️</text>
+      <text class="action-text">分享</text>
+    </view>
+  </view>
+</view>

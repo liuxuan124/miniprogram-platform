@@ -1,0 +1,136 @@
+/* pages/content-list/content-list.wxss — 内容列表页样式 */
+
+.content-list-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ========== 分类切换标签 ========== */
+.category-scroll {
+  white-space: nowrap;
+  background-color: #fff;
+  padding: 0 24rpx;
+  border-bottom: 1rpx solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.category-item {
+  display: inline-block;
+  padding: 20rpx 28rpx;
+  font-size: 28rpx;
+  color: #666;
+  position: relative;
+}
+
+.category-item.active {
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.category-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 4rpx;
+  background-color: #ff4d4f;
+  border-radius: 2rpx;
+}
+
+/* ========== 内容列表 ========== */
+.content-list {
+  padding: 16rpx 24rpx;
+}
+
+.content-card {
+  display: flex;
+  background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.content-cover {
+  width: 200rpx;
+  height: 150rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+  background-color: #f0f0f0;
+}
+
+.content-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.content-title {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.content-summary {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.content-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx;
+}
+
+.content-date {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.content-views {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+/* ========== 加载状态 ========== */
+.loading-area {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.empty-state__icon {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-state__text {
+  font-size: 28rpx;
+  color: #999;
+}

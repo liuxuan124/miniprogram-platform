@@ -1,0 +1,62 @@
+/* components/dsl-countdown/dsl-countdown.wxss — 倒计时组件样式 */
+
+.dsl-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0;
+}
+
+.dsl-countdown__label {
+  font-size: 26rpx;
+  color: #666666;
+  margin-right: 16rpx;
+}
+
+.dsl-countdown__digits {
+  display: flex;
+  align-items: center;
+}
+
+.dsl-countdown__block {
+  display: flex;
+  align-items: center;
+}
+
+.dsl-countdown__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56rpx;
+  height: 56rpx;
+  background-color: #333333;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 8rpx;
+  padding: 0 8rpx;
+}
+
+.dsl-countdown__unit {
+  font-size: 22rpx;
+  color: #666666;
+  margin: 0 6rpx;
+}
+
+.dsl-countdown__separator {
+  font-size: 28rpx;
+  color: #333333;
+  font-weight: 600;
+  margin: 0 4rpx;
+}
+
+.dsl-countdown__expired {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dsl-countdown__expired-text {
+  font-size: 26rpx;
+  color: #999999;
+}

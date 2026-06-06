@@ -1,0 +1,11 @@
+task_id: TASK-REL-001
+agent: qa-release-agent
+status: 需人工处理
+note: |
+  微信小程序主体、AppID、认证和类目确认需要人工操作：
+  1. 登录微信公众平台(mp.weixin.qq.com)确认主体信息
+  2. 确认AppID和AppSecret已配置
+  3. 确认主体认证状态(企业认证/个人认证)
+  4. 确认小程序类目选择(需与业务匹配)
+  5. 确认开发者权限和提审风险
+  6. 确认隐私协议和用户信息收集合规性

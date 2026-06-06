@@ -1,0 +1,27 @@
+-- 通用模块版本管理表（支持各业务模块的版本快照、发布、回滚）
+CREATE TABLE IF NOT EXISTS mp_module_version (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    module_type VARCHAR(50) NOT NULL COMMENT '模块类型: content/product/activity/coupon/member_level/form_template/appointment_service/system_config',
+    target_id BIGINT NOT NULL COMMENT '关联的业务数据ID',
+    semver VARCHAR(20) NOT NULL COMMENT '语义化版本号 如 1.0.0',
+    major INT NOT NULL DEFAULT 0 COMMENT '主版本号',
+    minor INT NOT NULL DEFAULT 0 COMMENT '次版本号',
+    patch INT NOT NULL DEFAULT 0 COMMENT '修订号',
+    version_data MEDIUMTEXT NOT NULL COMMENT '版本数据快照(JSON)',
+    change_summary VARCHAR(500) COMMENT '变更摘要',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '0=草稿 1=已发布 2=已回滚',
+    published_at DATETIME COMMENT '发布时间',
+    publisher_id BIGINT COMMENT '发布人ID',
+    publisher_name VARCHAR(50) COMMENT '发布人姓名',
+    rolled_back_at DATETIME COMMENT '回滚时间',
+    rolled_back_by BIGINT COMMENT '回滚操作人ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    UNIQUE KEY uk_module_target_semver (module_type, target_id, semver, deleted),
+    KEY idx_module_target (module_type, target_id),
+    KEY idx_status (status),
+    KEY idx_major_minor_patch (major, minor, patch)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通用模块版本管理';

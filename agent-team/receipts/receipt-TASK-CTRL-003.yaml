@@ -1,0 +1,23 @@
+task_id: TASK-CTRL-003
+title: 培训与移交
+status: 已完成
+completed_at: '2025-05-11'
+deliverables:
+  - docs/handover/README.md
+  - docs/handover/architecture.md
+  - docs/handover/api-reference.md
+  - docs/handover/deployment-guide.md
+  - docs/handover/database-schema.md
+  - docs/handover/miniapp-guide.md
+  - docs/handover/operations.md
+  - docs/handover/pending-items.md
+summary: |
+  项目移交文档包含8份文档:
+  1. README.md - 移交总览与检查清单
+  2. architecture.md - 系统架构(三层架构、模块划分、第三方集成)
+  3. api-reference.md - 完整API接口文档(9大模块60+接口)
+  4. deployment-guide.md - 部署指南(环境要求、Docker部署、健康检查)
+  5. database-schema.md - 数据库设计(V1~V10迁移脚本、20+表结构、关系图)
+  6. miniapp-guide.md - 小程序开发指南(DSL引擎、路由、服务层)
+  7. operations.md - 运维手册(巡检、监控、故障排查、备份恢复)
+  8. pending-items.md - 待办事项(资质审核清单、部署检查、试运行计划)

@@ -1,0 +1,60 @@
+<!--components/dsl-nav/dsl-nav.wxml — 导航宫格组件-->
+<view class="dsl-nav" style="{{styleString}}">
+  <!-- 网格布局 -->
+  <view
+    wx:if="{{config.layout !== 'scroll'}}"
+    class="dsl-nav__grid"
+    style="grid-template-columns: repeat({{config.columns || 4}}, 1fr);"
+  >
+    <view
+      class="dsl-nav__item"
+      wx:for="{{processedItems}}"
+      wx:key="index"
+      data-index="{{index}}"
+      bindtap="onTapItem"
+    >
+      <view class="dsl-nav__item-icon" wx:if="{{item.icon && !item.isImageIcon}}">
+        <text class="dsl-nav__emoji">{{item.icon}}</text>
+      </view>
+      <image
+        class="dsl-nav__item-icon-img"
+        wx:elif="{{item.icon && item.isImageIcon}}"
+        src="{{item.icon}}"
+        mode="aspectFit"
+        lazy-load
+      />
+      <text class="dsl-nav__item-text">{{item.text}}</text>
+    </view>
+  </view>
+
+  <!-- 横向滚动布局 -->
+  <scroll-view
+    wx:else
+    class="dsl-nav__scroll"
+    scroll-x
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view class="dsl-nav__scroll-inner">
+      <view
+        class="dsl-nav__item"
+        wx:for="{{processedItems}}"
+        wx:key="index"
+        data-index="{{index}}"
+        bindtap="onTapItem"
+      >
+      <view class="dsl-nav__item-icon" wx:if="{{item.icon && !item.isImageIcon}}">
+        <text class="dsl-nav__emoji">{{item.icon}}</text>
+      </view>
+      <image
+        class="dsl-nav__item-icon-img"
+        wx:elif="{{item.icon && item.isImageIcon}}"
+        src="{{item.icon}}"
+        mode="aspectFit"
+        lazy-load
+      />
+      <text class="dsl-nav__item-text">{{item.text}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

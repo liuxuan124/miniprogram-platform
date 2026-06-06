@@ -1,0 +1,94 @@
+<!-- pages/my-appointments/my-appointments.wxml — 我的预约列表 -->
+<view class="my-appointments-page">
+  <!-- 状态 Tab -->
+  <scroll-view class="tab-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      {{item.label}}
+    </view>
+  </scroll-view>
+
+  <!-- 预约列表 -->
+  <view class="appointment-list" wx:if="{{!isEmpty}}">
+    <view
+      wx:for="{{appointments}}"
+      wx:key="id"
+      class="appointment-card {{highlightId == item.id ? 'highlight' : ''}}"
+    >
+      <!-- 卡片头部 -->
+      <view class="card-header">
+        <text class="card-service-name">{{item.service_name || item.serviceName}}</text>
+        <text class="card-status" style="color: {{STATUS_MAP[item.status].color || '#999'}}">
+          {{STATUS_MAP[item.status].text || item.status}}
+        </text>
+      </view>
+
+      <!-- 预约信息 -->
+      <view class="card-body">
+        <view class="info-row">
+          <text class="info-label">预约日期</text>
+          <text class="info-value">{{item.date}}</text>
+        </view>
+        <view class="info-row" wx:if="{{item.slot}}">
+          <text class="info-label">预约时段</text>
+          <text class="info-value">{{item.slot.start_time || item.slot.start}} - {{item.slot.end_time || item.slot.end}}</text>
+        </view>
+        <view class="info-row" wx:if="{{item.contact_name}}">
+          <text class="info-label">联系人</text>
+          <text class="info-value">{{item.contact_name}}</text>
+        </view>
+        <view class="info-row" wx:if="{{item.contact_phone}}">
+          <text class="info-label">联系电话</text>
+          <text class="info-value">{{item.contact_phone}}</text>
+        </view>
+        <view class="info-row" wx:if="{{item.remark}}">
+          <text class="info-label">备注</text>
+          <text class="info-value">{{item.remark}}</text>
+        </view>
+      </view>
+
+      <!-- 卡片底部操作 -->
+      <view class="card-footer">
+        <text class="card-time">{{item.created_at || item.createdAt}}</text>
+        <view class="card-actions">
+          <!-- 待确认/已确认 可取消 -->
+          <block wx:if="{{item.status === 'pending' || item.status === 'confirmed'}}">
+            <view
+              class="action-btn action-btn--default"
+              data-id="{{item.id}}"
+              catchtap="onCancelTap"
+            >取消预约</view>
+          </block>
+          <!-- 已完成/已取消 可再次预约 -->
+          <block wx:if="{{item.status === 'completed' || item.status === 'cancelled'}}">
+            <view
+              class="action-btn action-btn--primary"
+              data-service-id="{{item.service_id || item.serviceId}}"
+              catchtap="onRebookTap"
+            >再次预约</view>
+          </block>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && appointments.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <image class="empty-state__icon" src="/images/empty-order.png" mode="aspectFit" />
+    <text class="empty-state__text">暂无预约记录</text>
+    <view class="empty-state__btn" bindtap="onGoBookTap">去预约</view>
+  </view>
+</view>

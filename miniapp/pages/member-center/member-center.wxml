@@ -1,0 +1,153 @@
+<view class="member-center">
+  <!-- 会员信息卡片 -->
+  <view class="member-card">
+    <view class="card-bg"></view>
+    <view class="card-content">
+      <image class="avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.svg'}}" mode="aspectFill" />
+      <view class="user-info">
+        <text class="nickname">{{userInfo.nickname || '未登录'}}</text>
+        <view class="level-badge">
+          <text class="level-icon">👑</text>
+          <text class="level-name">{{memberInfo.levelName || '普通会员'}}</text>
+        </view>
+      </view>
+      <view class="points-box">
+        <text class="points-num">{{memberInfo.points || 0}}</text>
+        <text class="points-label">积分</text>
+      </view>
+    </view>
+    <view class="card-stats">
+      <view class="stat-item" bindtap="goPointsLog">
+        <text class="stat-num">{{memberInfo.points || 0}}</text>
+        <text class="stat-label">积分</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item" bindtap="goCouponList">
+        <text class="stat-num">{{memberInfo.couponCount || 0}}</text>
+        <text class="stat-label">优惠券</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item" bindtap="goOrderList">
+        <text class="stat-num">{{memberInfo.orderCount || 0}}</text>
+        <text class="stat-label">订单</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 升级进度 -->
+  <view class="upgrade-section">
+    <view class="section-header">
+      <text class="section-title">升级进度</text>
+    </view>
+    <view class="upgrade-levels">
+      <text class="upgrade-current">{{memberInfo.levelName || '普通会员'}}</text>
+      <text class="upgrade-arrow">→</text>
+      <text class="upgrade-next">{{upgradeInfo.nextLevelName || '银卡会员'}}</text>
+    </view>
+    <view class="progress-bar-wrap">
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{upgradeInfo.progress || 0}}%"></view>
+      </view>
+      <text class="progress-percent">{{upgradeInfo.progress || 0}}%</text>
+    </view>
+    <text class="upgrade-tip" wx:if="{{upgradeInfo.neededPoints > 0}}">还需 {{upgradeInfo.neededPoints}} 积分升级至{{upgradeInfo.nextLevelName}}</text>
+    <text class="upgrade-tip max-level" wx:else>已达最高等级</text>
+  </view>
+
+  <!-- 签到 -->
+  <view class="sign-in-section">
+    <view class="section-header">
+      <text class="section-title">每日签到</text>
+      <text class="sign-streak">已连续签到 {{signInStatus.streak || 0}} 天</text>
+    </view>
+    <view class="sign-days">
+      <view class="sign-day {{item.signed ? 'signed' : ''}} {{item.today ? 'today' : ''}}" wx:for="{{signInDays}}" wx:key="index">
+        <text class="day-label">第{{item.day}}天</text>
+        <view class="day-circle">
+          <text wx:if="{{item.signed}}">✓</text>
+          <text wx:elif="{{item.today}}">今</text>
+          <text wx:else>{{item.points}}</text>
+        </view>
+        <text class="day-points">+{{item.points}}</text>
+      </view>
+    </view>
+    <button class="sign-btn {{signInStatus.todaySigned ? 'signed' : ''}}" bindtap="handleSignIn" disabled="{{signInStatus.todaySigned}}">
+      {{signInStatus.todaySigned ? '已签到' : '立即签到'}}
+    </button>
+  </view>
+
+  <!-- 专属权益 -->
+  <view class="benefits-section">
+    <view class="section-header">
+      <text class="section-title">专属权益</text>
+    </view>
+    <view class="benefits-grid">
+      <view class="benefit-card" wx:for="{{benefitList}}" wx:key="name">
+        <view class="benefit-icon-wrap" style="background: {{item.bgColor}}">
+          <text class="benefit-icon">{{item.icon}}</text>
+        </view>
+        <view class="benefit-info">
+          <text class="benefit-name">{{item.name}}</text>
+          <text class="benefit-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-entry">
+    <view class="entry-item" bindtap="goPrivilege">
+      <view class="entry-icon" style="background: #fff8e1"><text>⭐</text></view>
+      <text class="entry-name">我的权益</text>
+    </view>
+    <view class="entry-item" bindtap="goCouponList">
+      <view class="entry-icon" style="background: #fce4ec"><text>🎟️</text></view>
+      <text class="entry-name">优惠券</text>
+    </view>
+    <view class="entry-item" bindtap="goPointsExchange">
+      <view class="entry-icon" style="background: #e8f5e9"><text>🔄</text></view>
+      <text class="entry-name">积分兑换</text>
+    </view>
+    <view class="entry-item" bindtap="goSignIn">
+      <view class="entry-icon" style="background: #e3f2fd"><text>📅</text></view>
+      <text class="entry-name">签到</text>
+    </view>
+    <view class="entry-item" bindtap="goOrderList">
+      <view class="entry-icon" style="background: #e8eaf6"><text>📦</text></view>
+      <text class="entry-name">我的订单</text>
+    </view>
+    <view class="entry-item" bindtap="goActivity">
+      <view class="entry-icon" style="background: #fce4ec"><text>📋</text></view>
+      <text class="entry-name">我的报名</text>
+    </view>
+    <view class="entry-item" bindtap="goReservation">
+      <view class="entry-icon" style="background: #e0f7fa"><text>📅</text></view>
+      <text class="entry-name">我的预约</text>
+    </view>
+    <view class="entry-item" bindtap="goFavorites">
+      <view class="entry-icon" style="background: #ffebee"><text>❤️</text></view>
+      <text class="entry-name">我的收藏</text>
+    </view>
+  </view>
+
+  <!-- 会员等级说明 -->
+  <view class="level-section">
+    <view class="section-header">
+      <text class="section-title">会员等级</text>
+    </view>
+    <view class="level-list">
+      <view class="level-item {{memberInfo.levelCode === item.code ? 'active' : ''}}" wx:for="{{levelList}}" wx:key="code">
+        <view class="level-icon-box">
+          <text class="level-emoji">{{item.icon}}</text>
+        </view>
+        <view class="level-detail">
+          <text class="level-title">{{item.name}}</text>
+          <text class="level-desc">{{item.minPoints}}积分起</text>
+        </view>
+        <view class="level-benefits">
+          <text wx:for="{{item.benefits}}" wx:for-item="benefit" wx:key="*this" class="benefit-tag">{{benefit}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

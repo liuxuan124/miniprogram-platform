@@ -1,0 +1,148 @@
+task_id: TASK-BE-013
+task_name: AI推荐后端集成
+agent: backend-agent
+status: completed
+completed_at: "2026-05-11"
+description: 实现AI推荐后端集成模块，包含AI对话接口、推荐结果解析与格式化、对话日志记录、转人工标记、小程序端对话接口
+
+deliverables:
+  - path: backend/src/main/resources/db/migration/V7__ai_tables.sql
+    type: migration
+    description: AI对话表(mp_ai_conversation)和推荐日志表(mp_ai_recommendation_log)建表脚本
+
+  - path: backend/src/main/java/com/miniprogram/entity/AiConversation.java
+    type: entity
+    description: AI对话实体，含RecommendedItem内部类（JSON类型处理器）
+
+  - path: backend/src/main/java/com/miniprogram/entity/AiRecommendationLog.java
+    type: entity
+    description: 推荐日志实体
+
+  - path: backend/src/main/java/com/miniprogram/mapper/AiConversationMapper.java
+    type: mapper
+    description: AI对话Mapper
+
+  - path: backend/src/main/java/com/miniprogram/mapper/AiRecommendationLogMapper.java
+    type: mapper
+    description: 推荐日志Mapper，含按类型统计推荐/点击次数的自定义SQL
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiChatDTO.java
+    type: dto
+    description: AI对话请求DTO（question, session_id）
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiChatVO.java
+    type: dto
+    description: AI对话响应VO，严格遵循AI推荐契约格式（answer, recommended_items, is_transfer_human, session_id）
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiConversationVO.java
+    type: dto
+    description: AI对话详情VO（后台管理用）
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiRecommendationLogDTO.java
+    type: dto
+    description: 推荐点击记录请求DTO
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiStatsVO.java
+    type: dto
+    description: AI推荐统计VO
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiConversationQueryDTO.java
+    type: dto
+    description: AI对话查询DTO（后台管理用）
+
+  - path: backend/src/main/java/com/miniprogram/dto/AiRecommendationLogQueryDTO.java
+    type: dto
+    description: 推荐日志查询DTO
+
+  - path: backend/src/main/java/com/miniprogram/service/AiClientService.java
+    type: service
+    description: AI客户端服务接口，定义chat方法和AiResponse内部类
+
+  - path: backend/src/main/java/com/miniprogram/service/impl/AiClientServiceImpl.java
+    type: service
+    description: AI客户端服务实现，支持OpenAI兼容接口调用、转人工关键词检测、降级响应
+
+  - path: backend/src/main/java/com/miniprogram/service/AiConversationService.java
+    type: service
+    description: AI对话服务接口
+
+  - path: backend/src/main/java/com/miniprogram/service/impl/AiConversationServiceImpl.java
+    type: service
+    description: AI对话服务实现，含真实商品/内容推荐填充、对话记录保存
+
+  - path: backend/src/main/java/com/miniprogram/service/AiRecommendationService.java
+    type: service
+    description: 推荐日志服务接口
+
+  - path: backend/src/main/java/com/miniprogram/service/impl/AiRecommendationServiceImpl.java
+    type: service
+    description: 推荐日志服务实现，含点击记录、批量保存、统计查询
+
+  - path: backend/src/main/java/com/miniprogram/config/RestTemplateConfig.java
+    type: config
+    description: RestTemplate配置，用于调用外部AI API
+
+  - path: backend/src/main/java/com/miniprogram/controller/AiConversationController.java
+    type: controller
+    description: 后台管理AI推荐控制器（对话列表/详情/推荐日志/统计）
+
+  - path: backend/src/main/java/com/miniprogram/controller/MpAiController.java
+    type: controller
+    description: 小程序端AI对话控制器（对话/历史/推荐点击）
+
+  - path: backend/src/main/java/com/miniprogram/common/ErrorCode.java
+    type: common
+    description: 新增AI_CONVERSATION_NOT_FOUND(1000401)和AI_SERVICE_ERROR(1000201)错误码
+
+acceptance_criteria:
+  - criteria: AI对话接口（用户提问→AI推荐商品/内容/活动）
+    status: pass
+    detail: POST /api/v1/mp/ai/chat 完整实现，调用AiClientService获取AI回答，从数据库查询真实商品/内容填充recommended_items
+
+  - criteria: 推荐结果解析与格式化（严格遵循AI推荐契约）
+    status: pass
+    detail: AiChatVO严格遵循契约格式，包含answer/recommended_items/is_transfer_human/session_id
+
+  - criteria: 对话日志记录
+    status: pass
+    detail: 每次对话自动保存到mp_ai_conversation表，推荐项自动记录到mp_ai_recommendation_log表
+
+  - criteria: 转人工标记
+    status: pass
+    detail: 支持关键词检测（转人工/人工客服/联系客服/投诉/退款问题/售后）和AI返回标记检测（[转人工]/[TRANSFER_HUMAN]）
+
+  - criteria: 小程序端对话接口
+    status: pass
+    detail: POST /api/v1/mp/ai/chat、GET /api/v1/mp/ai/history、POST /api/v1/mp/ai/recommendation-logs 全部实现
+
+api_contracts:
+  admin:
+    - GET /api/v1/admin/ai/conversations — 对话列表
+    - GET /api/v1/admin/ai/conversations/{id} — 对话详情
+    - GET /api/v1/admin/ai/recommendation-logs — 推荐日志
+    - GET /api/v1/admin/ai/stats — 推荐统计
+  mp:
+    - POST /api/v1/mp/ai/chat — AI对话
+    - GET /api/v1/mp/ai/history — 对话历史
+    - POST /api/v1/mp/ai/recommendation-logs — 记录推荐点击
+
+error_codes:
+  - code: 1000401
+    message: 对话不存在
+    http_status: 404
+  - code: 1000201
+    message: AI服务异常
+    http_status: 200
+
+ai_service_config:
+  env_vars:
+    - AI_API_URL — AI服务API地址
+    - AI_API_KEY — AI服务API密钥
+    - AI_MODEL — 模型名称（默认gpt-3.5-turbo）
+    - AI_API_TIMEOUT — 超时时间ms（默认10000）
+  features:
+    - 支持OpenAI兼容接口格式
+    - 关键词转人工检测
+    - AI返回标记转人工检测
+    - API不可用时降级返回默认推荐
+    - 从数据库查询真实商品/内容数据填充推荐项

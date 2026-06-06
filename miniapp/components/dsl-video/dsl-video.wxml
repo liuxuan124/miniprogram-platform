@@ -1,0 +1,19 @@
+<!--components/dsl-video/dsl-video.wxml — 视频组件-->
+<view class="dsl-video" style="{{styleString}}">
+  <video
+    class="dsl-video__player"
+    src="{{config.src}}"
+    poster="{{config.poster || ''}}"
+    autoplay="{{config.autoplay || false}}"
+    controls="{{config.controls !== false}}"
+    loop="{{config.loop || false}}"
+    object-fit="{{config.object_fit || 'contain'}}"
+    show-play-btn="{{true}}"
+    show-center-play-btn="{{true}}"
+    enable-progress-gesture="{{true}}"
+    bindplay="onPlay"
+    bindpause="onPause"
+    bindended="onEnded"
+    binderror="onError"
+  />
+</view>

@@ -1,0 +1,50 @@
+task_id: TASK-AI-001
+agent: ai-agent
+status: 已提交回执
+completed_work:
+  - 设计统一信封格式，所有 AI 对话响应按 type 字段分发渲染
+  - 设计商品推荐格式（ProductCard），包含 product_id、name、price、cover_url、miniprogram_path 等字段，确保可追溯到商品库真实记录
+  - 设计文章推荐格式（ArticleCard），包含 article_id、title、summary、cover_url、miniprogram_path 等字段，确保可追溯到文章库真实记录
+  - 设计活动推荐格式（ActivityCard），包含 activity_id、name、start_time、end_time、remaining_quota、miniprogram_path 等字段，确保可追溯到活动库真实记录
+  - 设计会员权益解释格式（MemberBenefitCard），包含等级、积分、成长值、权益列表
+  - 设计订单状态查询格式（OrderStatusCard），包含订单状态枚举、物流信息，限制仅查询本人订单
+  - 设计转人工格式（TransferHumanCard），定义 7 种触发原因枚举和降级跳转
+  - 设计工具调用契约，定义 11 个工具及其参数格式，明确 AI 通过工具调用获取真实数据的流程
+  - 设计对话日志字段，覆盖请求、响应、工具调用、意图、性能、满意度、安全检测等维度
+  - 定义错误码体系（10001-20002）
+  - 定义安全规则，包括 Prompt 泄露防护、API Key 脱敏、PII 脱敏、敏感内容拦截、数据权限隔离
+  - 标记待后端确认项，等待 TASK-BE-002 完成后对齐接口路径
+changed_files:
+  - agent-team/contracts/ai-recommendation-contract.md
+added_apis:
+  - GET /api/v1/products（商品搜索，待后端确认）
+  - POST /api/v1/ai/recommend/products（商品推荐，待后端确认）
+  - GET /api/v1/articles（文章搜索，待后端确认）
+  - POST /api/v1/ai/recommend/articles（文章推荐，待后端确认）
+  - GET /api/v1/activities（活动搜索，待后端确认）
+  - POST /api/v1/ai/recommend/activities（活动推荐，待后端确认）
+  - GET /api/v1/members/{member_id}/benefit（会员权益查询，待后端确认）
+  - GET /api/v1/orders/{order_id}（订单查询，待后端确认）
+  - GET /api/v1/users/{user_id}/orders（用户订单列表，待后端确认）
+  - POST /api/v1/ai/transfer-human（转人工，待后端确认）
+  - POST /api/v1/ai/knowledge/search（知识库检索，待后端确认）
+added_tables: []
+dependencies:
+  - TASK-BE-001（数据库核心模型初稿，待完成，当前契约中字段名基于 PRD 数据对象推导）
+  - TASK-BE-002（API 接口规范初稿，待完成，当前接口路径为 AI Agent 期望设计，待对齐）
+blockers: []
+self_test:
+  result: 不适用
+  details: "本任务为契约设计，无代码可执行自测。验收方式为人工审查契约完整性和一致性。"
+downstream_suggestions:
+  - TASK-BE-002 完成后，需对齐本契约中的接口路径和参数格式，可能需要更新 ai-recommendation-contract.md
+  - TASK-BE-001 完成后，需确认商品、文章、活动、会员、订单的数据模型字段名与本契约一致
+  - TASK-AI-020 开发时可基于本契约的工具调用定义实现模型接入和 Prompt 配置
+  - TASK-AI-021 开发时可基于本契约的卡片格式实现推荐工具
+  - TASK-MP-070 开发时可基于本契约的统一信封格式实现 AI 助手页面和推荐卡片渲染
+risks:
+  - 接口路径和参数格式为 AI Agent 期望设计，与后端实际实现可能存在差异，需在 TASK-BE-002 完成后对齐
+  - 数据模型字段名基于 PRD 推导，与后端实际表结构可能存在命名差异
+  - 对话日志字段较多，后端实现时可能需要分阶段落地
+next_step: "等待 TASK-BE-001 和 TASK-BE-002 完成后，对齐数据模型和接口路径，更新本契约"
+notes: "本契约覆盖了 TASK-AI-001 要求的全部 5 项输出：商品推荐格式、文章推荐格式、活动推荐格式、转人工格式、对话日志字段。额外补充了会员权益解释格式、订单状态查询格式、工具调用契约、错误码体系和安全规则，为后续 TASK-AI-020 和 TASK-AI-021 提供完整基础。"

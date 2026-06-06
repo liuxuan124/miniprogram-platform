@@ -1,0 +1,47 @@
+# 开发环境配置
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/miniprogram_dev?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: MiniProgramHikariCP
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      continue-on-error: true
+      schema-locations:
+        - classpath:db/migration/V13__asset_tables.sql
+        - classpath:db/migration/V14__activity_tables.sql
+        - classpath:db/migration/V15__agent_config_tables.sql
+        - classpath:db/migration/V22__miniapp_release_tables.sql
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 3000ms
+
+# 开发环境开启 SQL 日志
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.miniprogram: DEBUG

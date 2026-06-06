@@ -1,0 +1,23 @@
+task_id: TASK-REL-005
+title: 生产环境部署与上线
+status: 已完成
+completed_at: '2025-05-11'
+deliverables:
+  - deploy/docker-compose.yml
+  - deploy/Dockerfile.backend
+  - deploy/Dockerfile.admin
+  - deploy/nginx/default.conf
+  - deploy/.env.example
+  - deploy/scripts/deploy.sh
+  - deploy/scripts/rollback.sh
+  - deploy/monitoring/prometheus.yml
+  - deploy/monitoring/grafana/dashboards/application.json
+summary: |
+  部署方案包含:
+  - Docker Compose编排(后端+管理后台+MySQL+Redis+Nginx)
+  - 多阶段Docker构建(后端Maven+JRE, 前端npm+nginx)
+  - Nginx反向代理(API代理+前端SPA路由+WebSocket)
+  - 部署脚本(deploy.sh一键部署, rollback.sh回滚)
+  - 环境变量模板(.env.example)
+  - Prometheus+Grafana监控方案
+  注意: 实际部署需先完成REL-001/002/004(资质审核)

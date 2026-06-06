@@ -1,0 +1,149 @@
+<!-- pages/order-detail/order-detail.wxml — 订单详情页 -->
+<view class="order-detail-page" wx:if="{{!loading && order}}">
+  <!-- 订单状态头部 -->
+  <view class="status-header" style="background-color: {{STATUS_MAP[order.status].color || '#999'}}">
+    <text class="status-text">{{STATUS_MAP[order.status].text || order.status}}</text>
+    <text class="status-desc">{{STATUS_MAP[order.status].desc || ''}}</text>
+  </view>
+
+  <!-- 步骤条（正常流程才显示） -->
+  <view class="steps-section" wx:if="{{order.status !== 'closed' && order.status !== 'refunding' && order.status !== 'refunded'}}">
+    <view class="steps">
+      <view
+        wx:for="{{steps}}"
+        wx:key="index"
+        class="step {{currentStep >= index ? 'active' : ''}} {{currentStep === index ? 'current' : ''}}"
+      >
+        <view class="step-dot"></view>
+        <text class="step-text">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 收货地址 -->
+  <view class="address-section" wx:if="{{order.address}}">
+    <view class="address-icon">
+      <image class="address-icon-img" src="/images/icon-location.svg" mode="aspectFit" />
+    </view>
+    <view class="address-info">
+      <view class="address-name-phone">
+        <text class="address-name">{{order.address.name}}</text>
+        <text class="address-phone">{{order.address.phone}}</text>
+      </view>
+      <text class="address-detail">{{order.address.province}}{{order.address.city}}{{order.address.district}}{{order.address.detail}}</text>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="goods-section">
+    <view class="section-title">商品信息</view>
+    <view
+      wx:for="{{order.items}}"
+      wx:key="product_id"
+      class="goods-item"
+    >
+      <image class="goods-image" src="{{item.product_image || item.image}}" mode="aspectFill" />
+      <view class="goods-info">
+        <text class="goods-name">{{item.product_name || item.name}}</text>
+        <text class="goods-sku" wx:if="{{item.sku_name}}">规格: {{item.sku_name}}</text>
+        <view class="goods-bottom">
+          <text class="goods-price">&#165;{{item.price}}</text>
+          <text class="goods-qty">x{{item.quantity}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 订单信息 -->
+  <view class="info-section">
+    <view class="section-title">订单信息</view>
+    <view class="info-row">
+      <text class="info-label">订单编号</text>
+      <view class="info-value-wrap">
+        <text class="info-value">{{order.order_no || order.id}}</text>
+        <text class="info-copy" bindtap="onCopyOrderNo">复制</text>
+      </view>
+    </view>
+    <view class="info-row">
+      <text class="info-label">下单时间</text>
+      <text class="info-value">{{order.created_at}}</text>
+    </view>
+    <view class="info-row" wx:if="{{order.paid_at}}">
+      <text class="info-label">支付时间</text>
+      <text class="info-value">{{order.paid_at}}</text>
+    </view>
+    <view class="info-row" wx:if="{{order.shipped_at}}">
+      <text class="info-label">发货时间</text>
+      <text class="info-value">{{order.shipped_at}}</text>
+    </view>
+    <view class="info-row" wx:if="{{order.remark}}">
+      <text class="info-label">备注</text>
+      <text class="info-value">{{order.remark}}</text>
+    </view>
+  </view>
+
+  <!-- 价格明细 -->
+  <view class="price-section">
+    <view class="section-title">价格明细</view>
+    <view class="price-row">
+      <text class="price-label">商品金额</text>
+      <text class="price-value">&#165;{{order.goods_amount || order.total_amount}}</text>
+    </view>
+    <view class="price-row">
+      <text class="price-label">运费</text>
+      <text class="price-value">&#165;{{order.shipping_fee || '0.00'}}</text>
+    </view>
+    <view class="price-row" wx:if="{{order.discount_amount}}">
+      <text class="price-label">优惠</text>
+      <text class="price-value discount">-&#165;{{order.discount_amount}}</text>
+    </view>
+    <view class="price-row total">
+      <text class="price-label">实付金额</text>
+      <text class="price-value total-price">&#165;{{order.total_amount || order.total_price}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{order.status === 'pending_payment' || order.status === 'paid' || order.status === 'shipped' || order.status === 'completed'}}">
+    <!-- 待确认 -->
+    <block wx:if="{{order.status === 'pending_payment'}}">
+      <view class="action-btn action-btn--default" bindtap="onCancelTap">取消订单</view>
+      <view class="action-btn action-btn--primary" bindtap="onPayTap">等待顾问确认</view>
+    </block>
+    <!-- 待发货 -->
+    <block wx:if="{{order.status === 'paid'}}">
+      <view class="action-btn action-btn--default" bindtap="onRefundTap">申请退款</view>
+    </block>
+    <!-- 待收货 -->
+    <block wx:if="{{order.status === 'shipped'}}">
+      <view class="action-btn action-btn--primary" bindtap="onConfirmTap">确认收货</view>
+    </block>
+    <!-- 已完成 -->
+    <block wx:if="{{order.status === 'completed'}}">
+      <view class="action-btn action-btn--default" bindtap="onCallTap">联系客服</view>
+    </block>
+  </view>
+
+  <!-- 退款弹窗 -->
+  <view class="refund-mask" wx:if="{{showRefundModal}}" bindtap="onRefundCancel">
+    <view class="refund-panel" catchtap="">
+      <text class="refund-title">申请退款</text>
+      <textarea
+        class="refund-input"
+        placeholder="请输入退款原因"
+        value="{{refundReason}}"
+        maxlength="200"
+        bindinput="onRefundReasonInput"
+      />
+      <view class="refund-btns">
+        <view class="refund-btn refund-btn--cancel" bindtap="onRefundCancel">取消</view>
+        <view class="refund-btn refund-btn--confirm" bindtap="onRefundConfirm">提交</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 加载状态 -->
+<view class="loading-page" wx:if="{{loading}}">
+  <text>加载中...</text>
+</view>

@@ -1,0 +1,51 @@
+<!--components/dsl-activity-entry/dsl-activity-entry.wxml — 活动入口组件-->
+<view class="dsl-activity-entry" style="{{styleString}}">
+  <!-- 单个活动入口（无数据源时使用 config） -->
+  <view
+    wx:if="{{!processedRuntimeData.length}}"
+    class="dsl-activity-entry__card"
+    bindtap="onTapActivity"
+  >
+    <image
+      class="dsl-activity-entry__image"
+      wx:if="{{processedConfig && processedConfig.hasValidImage}}"
+      src="{{processedConfig.image}}"
+      mode="aspectFill"
+      lazy-load
+    />
+    <view class="dsl-activity-entry__info">
+      <text class="dsl-activity-entry__title">{{processedConfig.title || '活动'}}</text>
+      <text class="dsl-activity-entry__subtitle" wx:if="{{processedConfig.subtitle}}">{{processedConfig.subtitle}}</text>
+      <view class="dsl-activity-entry__countdown" wx:if="{{processedConfig.countdown && countdown}}">
+        <text class="dsl-activity-entry__countdown-label">距结束</text>
+        <text class="dsl-activity-entry__countdown-time">{{countdown}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 多个活动（有数据源时） -->
+  <view
+    wx:else
+    class="dsl-activity-entry__list"
+  >
+    <view
+      class="dsl-activity-entry__card"
+      wx:for="{{processedRuntimeData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapActivity"
+    >
+      <image
+        class="dsl-activity-entry__image"
+        wx:if="{{item.hasValidImage}}"
+        src="{{item.displayImage}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-activity-entry__info">
+        <text class="dsl-activity-entry__title">{{item.displayTitle}}</text>
+        <text class="dsl-activity-entry__subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+      </view>
+    </view>
+  </view>
+</view>

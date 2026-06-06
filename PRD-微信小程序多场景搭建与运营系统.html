@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微信小程序多场景搭建与运营系统 PRD</title>
+<style>
+:root{
+  --bg:#f5f7fb;
+  --paper:#ffffff;
+  --ink:#172033;
+  --muted:#64748b;
+  --line:#dbe3ef;
+  --blue:#1769ff;
+  --blue-soft:#eef5ff;
+  --green:#0f9f6e;
+  --orange:#d97706;
+  --red:#dc2626;
+  --nav:#101827;
+  --shadow:0 10px 34px rgba(15,23,42,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  line-height:1.72;
+  font-size:14px;
+}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+.side{
+  position:sticky;
+  top:0;
+  height:100vh;
+  background:var(--nav);
+  color:#d8e2f1;
+  padding:24px 18px;
+  overflow:auto;
+}
+.brand{padding:4px 4px 20px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px}
+.logo{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#1769ff,#14b8a6);
+  font-size:22px;margin-bottom:12px;
+}
+.brand h1{font-size:17px;line-height:1.35;margin:0 0 6px;color:#fff}
+.brand p{margin:0;color:#90a4c2;font-size:12px}
+.toc-title{font-size:12px;letter-spacing:.08em;color:#7f93b2;margin:18px 4px 8px;font-weight:700}
+.toc a{
+  display:block;
+  color:#b7c6dd;
+  text-decoration:none;
+  padding:7px 10px;
+  border-radius:8px;
+  font-size:13px;
+}
+.toc a:hover{background:rgba(255,255,255,.08);color:#fff}
+.main{padding:34px 42px 70px}
+.doc{
+  max-width:1180px;
+  margin:0 auto;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.cover{
+  padding:38px 42px 30px;
+  background:
+    linear-gradient(135deg,rgba(23,105,255,.12),rgba(20,184,166,.08)),
+    #fff;
+  border-bottom:1px solid var(--line);
+}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--blue);margin-bottom:10px}
+.cover h2{font-size:34px;line-height:1.25;margin:0 0 12px;letter-spacing:0}
+.cover p{font-size:15px;color:var(--muted);margin:0;max-width:780px}
+.meta{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+  padding:18px 42px;
+  border-bottom:1px solid var(--line);
+  background:#fbfdff;
+}
+.meta div{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.meta span{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+.meta b{font-size:13px}
+.content{padding:8px 42px 42px}
+section{padding-top:28px;margin-top:4px}
+section h2{
+  font-size:22px;
+  margin:0 0 14px;
+  padding-bottom:10px;
+  border-bottom:2px solid var(--line);
+}
+h3{font-size:17px;margin:24px 0 10px}
+p{margin:0 0 12px}
+.lead{font-size:15px;color:#334155}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px;
+  background:#fff;
+}
+.card h3{margin-top:0}
+.tag{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 8px;
+  border-radius:999px;
+  background:var(--blue-soft);
+  color:var(--blue);
+  font-size:12px;
+  font-weight:700;
+  margin-right:6px;
+}
+.priority{font-weight:800;border-radius:999px;padding:2px 8px;font-size:12px}
+.p0{background:#fee2e2;color:#991b1b}
+.p1{background:#fef3c7;color:#92400e}
+.flow{
+  counter-reset:step;
+  display:grid;
+  gap:9px;
+  margin:10px 0 18px;
+}
+.flow li{
+  list-style:none;
+  position:relative;
+  padding:10px 12px 10px 42px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fbfdff;
+}
+.flow li:before{
+  counter-increment:step;
+  content:counter(step);
+  position:absolute;
+  left:12px;top:10px;
+  width:21px;height:21px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--blue);color:#fff;font-size:12px;font-weight:800;
+}
+table{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:13px}
+th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{background:#f4f7fb;color:#334155;font-weight:800}
+tbody tr:nth-child(even){background:#fbfdff}
+.module-list{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+.module{
+  border:1px solid var(--line);
+  border-left:4px solid var(--blue);
+  border-radius:10px;
+  padding:10px 12px;
+  background:#fff;
+}
+.module b{display:block;margin-bottom:2px}
+.module span{color:var(--muted);font-size:12px}
+.note{
+  padding:13px 15px;
+  border-radius:12px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#7c2d12;
+  margin:12px 0;
+}
+.checklist li{margin-bottom:6px}
+.footer{
+  padding:18px 42px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  background:#fbfdff;
+  font-size:12px;
+}
+@media(max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .side{position:relative;height:auto}
+  .main{padding:18px}
+  .meta{grid-template-columns:repeat(2,1fr);padding:16px}
+  .content,.cover,.footer{padding-left:20px;padding-right:20px}
+  .g2,.g3,.module-list{grid-template-columns:1fr}
+}
+@media print{
+  body{background:#fff}
+  .layout{display:block}
+  .side{display:none}
+  .main{padding:0}
+  .doc{box-shadow:none;border:none;border-radius:0}
+  section{break-inside:avoid}
+  a{color:inherit}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">🏪</div>
+      <h1>微信小程序多场景搭建与运营系统</h1>
+      <p>PRD · 产品需求文档 · V1.0</p>
+    </div>
+    <div class="toc-title">目录</div>
+    <nav class="toc">
+      <a href="#overview">1. 产品概述</a>
+      <a href="#goals">2. 产品目标</a>
+      <a href="#roles">3. 用户角色</a>
+      <a href="#scope">4. 产品范围</a>
+      <a href="#architecture">5. 信息架构</a>
+      <a href="#flows">6. 核心流程</a>
+      <a href="#requirements">7. 功能需求</a>
+      <a href="#data">8. 数据需求</a>
+      <a href="#permission">9. 权限需求</a>
+      <a href="#nonfunctional">10. 非功能需求</a>
+      <a href="#metrics">11. 埋点指标</a>
+      <a href="#acceptance">12. 验收标准</a>
+      <a href="#milestone">13. 里程碑</a>
+      <a href="#risk">14. 风险与待确认</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <article class="doc">
+      <header class="cover">
+        <div class="eyebrow">PRODUCT REQUIREMENTS DOCUMENT</div>
+        <h2>微信小程序多场景搭建与运营系统 PRD</h2>
+        <p>面向品牌、商家、活动运营方的一体化小程序搭建与运营平台，覆盖页面装修、内容、会员、交易、活动、预约、AI Agent 与系统配置。</p>
+      </header>
+
+      <div class="meta">
+        <div><span>产品名称</span><b>微信小程序多场景搭建与运营系统</b></div>
+        <div><span>文档版本</span><b>V1.0</b></div>
+        <div><span>编写日期</span><b>2026-05-10</b></div>
+        <div><span>原型依据</span><b>miniapp-v3.html</b></div>
+        <div><span>目标形态</span><b>Web 后台 + 微信小程序</b></div>
+      </div>
+
+      <div class="content">
+        <section id="overview">
+          <h2>1. 产品概述</h2>
+          <p class="lead">本产品是一套面向品牌、商家、活动运营方的微信小程序搭建与运营管理系统。平台通过后台可视化配置能力，帮助运营人员完成小程序页面搭建、内容发布、会员运营、商品交易、订单处理、营销活动、活动报名、预约服务、素材管理和 AI Agent 配置。</p>
+          <p>产品核心价值是降低小程序运营和迭代成本，让非技术运营人员可以通过后台完成页面装修、业务配置和内容更新，并让商家在一个后台中完成从获客、转化、交易、履约到复购的闭环管理。</p>
+        </section>
+
+        <section id="goals">
+          <h2>2. 产品目标</h2>
+          <div class="grid g2">
+            <div class="card"><h3>运营提效</h3><p>支持运营人员完成小程序页面创建、装修、预览、保存草稿、版本管理和发布上线。</p></div>
+            <div class="card"><h3>业务闭环</h3><p>覆盖内容、表单、会员、用户、商品、订单、营销、活动、预约等核心运营场景。</p></div>
+            <div class="card"><h3>端到端体验</h3><p>支持用户在小程序端浏览内容、查看权益、购买商品、提交表单、预约服务、参与活动和咨询 AI。</p></div>
+            <div class="card"><h3>智能化运营</h3><p>支持 AI Agent 从模型接入、Prompt、知识库、沙盒测试、发布到运营监控的完整生命周期。</p></div>
+          </div>
+        </section>
+
+        <section id="roles">
+          <h2>3. 用户角色</h2>
+          <table>
+            <thead><tr><th>角色</th><th>说明</th><th>核心诉求</th></tr></thead>
+            <tbody>
+              <tr><td>超级管理员</td><td>平台最高权限用户</td><td>配置系统、管理角色、查看全部数据、处理关键设置</td></tr>
+              <tr><td>内容运营</td><td>负责文章、图文、视频、活动和表单</td><td>快速发布内容、配置活动、审核报名、复用素材</td></tr>
+              <tr><td>商务运营</td><td>负责商品、订单、营销和会员</td><td>管理商品上下架、处理订单发货/核销/退款、配置优惠券</td></tr>
+              <tr><td>客服/服务人员</td><td>负责预约、咨询和售后</td><td>查看预约记录、确认服务、处理退款与用户问题</td></tr>
+              <tr><td>小程序用户</td><td>小程序 C 端访问者</td><td>浏览内容、购买商品、参加活动、预约服务、咨询 AI</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="scope">
+          <h2>4. 产品范围</h2>
+          <h3>4.1 本期范围</h3>
+          <div class="module-list">
+            <div class="module"><b>登录与后台框架</b><span>登录、导航、模式切换、Toast</span></div>
+            <div class="module"><b>工作台</b><span>指标、趋势、待办、快捷入口</span></div>
+            <div class="module"><b>页面管理</b><span>页面列表、模板、新建、发布</span></div>
+            <div class="module"><b>页面装修器</b><span>组件库、结构、预览、属性配置</span></div>
+            <div class="module"><b>内容管理</b><span>文章、图文、视频、分类、推荐</span></div>
+            <div class="module"><b>表单管理</b><span>报名、咨询、问卷、审核</span></div>
+            <div class="module"><b>会员管理</b><span>等级、积分、成长值、权益</span></div>
+            <div class="module"><b>用户管理</b><span>来源、行为、导出</span></div>
+            <div class="module"><b>商品管理</b><span>实物、数字、服务商品</span></div>
+            <div class="module"><b>订单管理</b><span>支付、发货、核销、退款</span></div>
+            <div class="module"><b>营销管理</b><span>优惠券、签到、积分兑换</span></div>
+            <div class="module"><b>活动管理</b><span>报名、审核、核销</span></div>
+            <div class="module"><b>预约管理</b><span>服务、时间段、预约记录</span></div>
+            <div class="module"><b>素材库</b><span>图片、视频、Logo、封面</span></div>
+            <div class="module"><b>系统设置</b><span>支付、物流、通知、权限</span></div>
+            <div class="module"><b>AI Agent</b><span>模型、Prompt、知识库、监控</span></div>
+          </div>
+          <h3>4.2 完整增强版统一范围</h3>
+          <p>本产品统一按“完整增强版”作为目标范围，不再按不同产品层级拆分。验收口径以业务闭环完整、页面搭建能力强、营销能力丰富、小程序展示效果丰富、AI Agent 可对话并能推荐商品和文章为准。</p>
+          <table>
+            <thead><tr><th>增强目标</th><th>范围说明</th></tr></thead>
+            <tbody>
+              <tr><td>完整基础电商能力</td><td>商品、购物车、订单、微信支付、发货、核销、退款、物流、售后和订单统计。</td></tr>
+              <tr><td>完整内容发布能力</td><td>文章、图文、视频、分类、封面、推荐、上下架、富文本、小程序内容详情。</td></tr>
+              <tr><td>完整页面搭建能力</td><td>组件库、拖拽排序、属性配置、数据源绑定、手机预览、模板、版本、发布和回滚。</td></tr>
+              <tr><td>完整营销能力</td><td>优惠券、满减、折扣、签到、积分、会员权益、限时活动、邀请好友、自动发券和人群分层。</td></tr>
+              <tr><td>丰富页面展示效果</td><td>轮播、专题页、商品卡片、横滑组件、视频组件、倒计时、弹窗、悬浮按钮、会员卡、活动入口。</td></tr>
+              <tr><td>AI Agent 推荐闭环</td><td>用户对话、商品推荐、文章推荐、活动引导、会员权益解释、知识库问答、转人工兜底和运营监控。</td></tr>
+              <tr><td>平台级配置能力</td><td>微信小程序、微信支付、物流、订阅消息、素材库、角色权限、插件模块和操作日志。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="architecture">
+          <h2>5. 信息架构</h2>
+          <table>
+            <thead><tr><th>业务域</th><th>后台页面</th></tr></thead>
+            <tbody>
+              <tr><td>总览</td><td>工作台</td></tr>
+              <tr><td>页面与装修</td><td>页面管理、页面装修器</td></tr>
+              <tr><td>内容运营</td><td>内容管理、表单管理</td></tr>
+              <tr><td>用户与会员</td><td>会员管理、用户管理</td></tr>
+              <tr><td>商业变现</td><td>商品管理、订单管理、营销管理</td></tr>
+              <tr><td>活动与预约</td><td>活动管理、预约管理</td></tr>
+              <tr><td>智能 AI</td><td>智能 Agent</td></tr>
+              <tr><td>系统</td><td>素材库、系统设置</td></tr>
+            </tbody>
+          </table>
+          <p><span class="tag">小程序端</span>首页、内容、AI 助手、商城、我的。</p>
+        </section>
+
+        <section id="flows">
+          <h2>6. 核心业务流程</h2>
+          <div class="grid g2">
+            <div class="card">
+              <h3>页面发布流程</h3>
+              <ol class="flow">
+                <li>进入页面管理，新建页面或选择已有页面。</li>
+                <li>进入页面装修器，添加 Banner、导航、商品、文章、活动入口等组件。</li>
+                <li>配置组件属性、数据源、样式和跳转。</li>
+                <li>保存草稿并预览小程序效果。</li>
+                <li>发布上线，小程序端展示新版本。</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>商品交易流程</h3>
+              <ol class="flow">
+                <li>商务运营创建实物、数字或服务商品。</li>
+                <li>商品上架后在小程序商城展示。</li>
+                <li>用户进入详情、确认订单并支付。</li>
+                <li>系统接收微信支付回调。</li>
+                <li>后台完成发货、核销、服务确认或退款审核。</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>活动报名流程</h3>
+              <ol class="flow">
+                <li>运营人员创建活动并配置时间、地点、名额和表单。</li>
+                <li>活动入口展示到首页或专题页。</li>
+                <li>用户查看活动详情并提交报名。</li>
+                <li>后台审核报名，通过后触发订阅消息。</li>
+                <li>现场或线上完成活动核销。</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>AI Agent 发布流程</h3>
+              <ol class="flow">
+                <li>选择模型并配置 API Key。</li>
+                <li>编写 Prompt、欢迎语和行为策略。</li>
+                <li>上传知识库并完成向量化。</li>
+                <li>沙盒测试典型问题并完成评估。</li>
+                <li>发布、灰度、回滚并监控运营数据。</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section id="requirements">
+          <h2>7. 功能需求</h2>
+          <table>
+            <thead><tr><th>编号</th><th>模块</th><th>关键需求</th><th>优先级</th></tr></thead>
+            <tbody>
+              <tr><td>FR-001</td><td>登录与框架</td><td>登录页、后台导航、顶部后台/小程序预览模式切换、操作 Toast。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-010</td><td>工作台</td><td>展示今日访问、新增用户、表单提交、订单金额、趋势、待办和快捷入口。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-020</td><td>页面管理</td><td>页面列表、搜索筛选、模板、新建、装修、预览、发布和删除二次确认。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-030</td><td>页面装修器</td><td>组件库、页面结构、手机预览、属性配置、保存草稿、历史版本、发布上线。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-040</td><td>内容管理</td><td>文章、图文、视频管理，支持分类、推荐、上下架、编辑、封面选择。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-050</td><td>表单管理</td><td>报名、咨询、问卷、线索表单，支持字段配置、提交记录和审核。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-060</td><td>会员管理</td><td>会员列表、等级、积分、成长值、消费、标签、等级规则与小程序会员页。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-070</td><td>用户管理</td><td>用户列表、昵称/手机号搜索、来源筛选、行为数据和用户导出。</td><td><span class="priority p1">P1</span></td></tr>
+              <tr><td>FR-080</td><td>商品管理</td><td>支持实物、数字、服务商品，包含库存、价格、上下架和小程序商城展示。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-090</td><td>订单管理</td><td>订单搜索筛选、实物发货、数字核销、服务确认、退款审核、报表导出。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-100</td><td>营销管理</td><td>优惠券、签到、积分兑换、邀请好友、限时活动等运营能力。</td><td><span class="priority p1">P1</span></td></tr>
+              <tr><td>FR-110</td><td>活动管理</td><td>活动列表、新建活动、活动详情、报名审核、核销和活动入口配置。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-120</td><td>预约管理</td><td>服务项目、日期、时间段、容量、预约记录和确认预约。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-130</td><td>素材库</td><td>图片、视频、Logo、封面统一管理，并被装修器、内容和系统设置复用。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-140</td><td>系统设置</td><td>小程序配置、微信支付、物流、订阅消息、底部导航、插件开关、角色权限。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-150</td><td>AI Agent</td><td>模型接入、API Key、Prompt、知识库、沙盒测试、发布管理和运营监控。</td><td><span class="priority p0">P0</span></td></tr>
+              <tr><td>FR-170</td><td>小程序端</td><td>首页、内容、会员、商城、AI 助手、我的、详情页、购物车、支付和预约。</td><td><span class="priority p0">P0</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="data">
+          <h2>8. 数据需求</h2>
+          <table>
+            <thead><tr><th>业务对象</th><th>关键字段</th></tr></thead>
+            <tbody>
+              <tr><td>页面 Page</td><td>页面 ID、名称、类型、路径、状态、版本、更新时间、描述、组件结构</td></tr>
+              <tr><td>内容 Article</td><td>内容 ID、标题、类型、分类、状态、阅读量、是否推荐、封面、正文</td></tr>
+              <tr><td>表单 Form</td><td>表单 ID、名称、字段数、提交量、状态、创建时间、字段配置</td></tr>
+              <tr><td>会员 Member</td><td>会员 ID、姓名、等级、积分、成长值、订单数、消费金额、标签、手机号</td></tr>
+              <tr><td>商品 Product</td><td>商品 ID、名称、分类、价格、库存、状态、销量、图片、商品类型</td></tr>
+              <tr><td>订单 Order</td><td>订单号、用户、手机号、商品、金额、状态、支付时间、物流、退款状态</td></tr>
+              <tr><td>活动 Activity</td><td>活动 ID、名称、类型、日期、地点、名额、报名人数、报名表单</td></tr>
+              <tr><td>预约 Booking</td><td>预约 ID、服务、用户、日期、时间段、状态</td></tr>
+              <tr><td>AI Agent</td><td>Agent ID、模型、Prompt、知识库、版本、发布状态、监控数据</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="permission">
+          <h2>9. 权限需求</h2>
+          <table>
+            <thead><tr><th>功能</th><th>超级管理员</th><th>内容运营</th><th>商务运营</th><th>客服/服务</th></tr></thead>
+            <tbody>
+              <tr><td>页面与装修</td><td>全部</td><td>全部</td><td>查看</td><td>无</td></tr>
+              <tr><td>内容与表单</td><td>全部</td><td>全部</td><td>查看</td><td>查看/审核</td></tr>
+              <tr><td>会员与用户</td><td>全部</td><td>查看</td><td>查看/运营</td><td>查看</td></tr>
+              <tr><td>商品与订单</td><td>全部</td><td>查看</td><td>全部</td><td>发货/退款协助</td></tr>
+              <tr><td>活动与预约</td><td>全部</td><td>全部</td><td>查看</td><td>审核/确认/核销</td></tr>
+              <tr><td>系统设置</td><td>全部</td><td>无</td><td>无</td><td>无</td></tr>
+              <tr><td>AI Agent</td><td>全部</td><td>Prompt/知识库</td><td>监控查看</td><td>沙盒测试</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="nonfunctional">
+          <h2>10. 非功能需求</h2>
+          <div class="grid g3">
+            <div class="card"><h3>性能</h3><p>后台首屏加载不超过 3 秒；列表查询 P95 不超过 800ms；页面发布后配置生效不超过 30 秒。</p></div>
+            <div class="card"><h3>可用性</h3><p>关键操作需有明确反馈；删除、发布、退款、切换生产支付环境等高风险操作必须二次确认。</p></div>
+            <div class="card"><h3>安全</h3><p>AppSecret、API Key、支付密钥和证书需加密存储、脱敏展示；支付回调需校验签名。</p></div>
+          </div>
+        </section>
+
+        <section id="metrics">
+          <h2>11. 埋点与指标</h2>
+          <table>
+            <thead><tr><th>指标类型</th><th>指标</th></tr></thead>
+            <tbody>
+              <tr><td>访问指标</td><td>小程序访问量、页面访问量、来源渠道、用户留存</td></tr>
+              <tr><td>内容指标</td><td>内容阅读量、推荐内容点击率、分享次数</td></tr>
+              <tr><td>交易指标</td><td>GMV、订单数、支付转化率、退款率、客单价</td></tr>
+              <tr><td>活动/预约指标</td><td>报名转化率、核销率、预约提交数、确认率、履约率</td></tr>
+              <tr><td>AI 指标</td><td>对话量、满意度、问题解决率、转人工率、推荐成交额</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="acceptance">
+          <h2>12. 验收标准</h2>
+          <ol class="checklist">
+            <li>用户可以通过登录页进入后台，并完成主要导航切换。</li>
+            <li>工作台能够展示指标、趋势、待办和快捷入口。</li>
+            <li>页面管理可以新建页面、进入装修器、保存草稿、预览并发布。</li>
+            <li>页面装修器能够完成组件选择、结构展示、属性配置和手机预览。</li>
+            <li>商品交易流程至少覆盖商品详情、确认订单、支付成功、后台发货/核销/退款审核。</li>
+            <li>系统设置至少覆盖小程序、支付、物流、订阅消息、导航、插件和权限。</li>
+            <li>AI Agent 至少覆盖模型接入、Prompt、知识库、沙盒测试、发布和监控。</li>
+            <li>高风险操作具备确认或明确提示，敏感信息脱敏展示。</li>
+          </ol>
+        </section>
+
+        <section id="milestone">
+          <h2>13. 里程碑建议</h2>
+          <table>
+            <thead><tr><th>阶段</th><th>目标</th><th>主要交付</th></tr></thead>
+            <tbody>
+              <tr><td>M1 完整方案确认</td><td>明确增强版产品边界和核心流程</td><td>PRD、交互原型、模块清单、数据对象清单</td></tr>
+              <tr><td>M2 平台基础能力</td><td>搭建后台框架、权限体系和系统配置</td><td>登录、导航、角色权限、工作台、小程序配置、素材库</td></tr>
+              <tr><td>M3 页面搭建与展示</td><td>完成增强型页面搭建和丰富展示组件</td><td>装修器、拖拽排序、组件库、模板、版本、发布、预览</td></tr>
+              <tr><td>M4 内容与营销</td><td>完成内容发布和营销运营闭环</td><td>内容、富文本、分类、推荐、优惠券、积分、签到、会员权益</td></tr>
+              <tr><td>M5 电商交易闭环</td><td>完成商品、订单、支付、物流和售后</td><td>商品、购物车、订单、微信支付、发货、核销、退款</td></tr>
+              <tr><td>M6 活动预约闭环</td><td>完成活动报名和服务预约</td><td>活动、表单、预约、审核、核销、订阅通知</td></tr>
+              <tr><td>M7 AI Agent 闭环</td><td>完成对话、推荐、知识库和监控</td><td>模型、Prompt、知识库、商品/文章推荐、发布、运营监控</td></tr>
+              <tr><td>M8 联调验收</td><td>完成增强版全链路验收</td><td>测试报告、上线清单、验收报告、运营配置手册</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="risk">
+          <h2>14. 风险与待确认问题</h2>
+          <table>
+            <thead><tr><th>风险/问题</th><th>说明</th><th>建议</th></tr></thead>
+            <tbody>
+              <tr><td>页面装修器复杂度</td><td>真实拖拽、排序、组件嵌套和实时预览复杂度较高。</td><td>先做固定组件和基础排序，再迭代高级能力。</td></tr>
+              <tr><td>微信支付合规</td><td>真实支付涉及商户资质、证书、回调、安全校验。</td><td>尽早完成沙盒和生产资质确认。</td></tr>
+              <tr><td>AI Agent 合规</td><td>AI 可能生成不准确承诺或泄露敏感信息。</td><td>增加安全策略、敏感词、知识库引用和人工兜底。</td></tr>
+              <tr><td>小程序端动态渲染</td><td>页面配置需转化为小程序可渲染结构。</td><td>明确页面 DSL 和组件 schema。</td></tr>
+              <tr><td>业务模块边界</td><td>活动、表单、预约、订单之间存在交叉。</td><td>统一用户、表单、订单、通知和核销底层模型。</td></tr>
+            </tbody>
+          </table>
+          <div class="note">后续建议：页面搭建、营销、AI 推荐均按完整增强版目标设计，不再拆分多个产品层级；同时优先定义页面装修器组件 schema，并为商品、订单、表单、活动、预约、AI Agent 分别补充接口清单。</div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        本文档根据当前产品原型 miniapp-v3.html 整理生成，可作为后续 UI 设计、研发拆解、测试验收和项目排期依据。
+      </footer>
+    </article>
+  </main>
+</div>
+</body>
+</html>

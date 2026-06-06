@@ -1,0 +1,6 @@
+/* components/dsl-spacer/dsl-spacer.wxss — 空白间隔组件样式 */
+
+.dsl-spacer {
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -1,0 +1,69 @@
+<!-- pages/appointment-calendar/appointment-calendar.wxml — 预约日历页 -->
+<view class="appointment-calendar-page">
+  <!-- 日历头部 -->
+  <view class="calendar-header">
+    <view class="calendar-nav" bindtap="onPrevMonth">
+      <text class="nav-arrow">&#9664;</text>
+    </view>
+    <text class="calendar-title">{{year}}年{{month}}月</text>
+    <view class="calendar-nav" bindtap="onNextMonth">
+      <text class="nav-arrow">&#9654;</text>
+    </view>
+  </view>
+
+  <!-- 星期标签 -->
+  <view class="weekday-row">
+    <text class="weekday-item" wx:for="{{weekDays}}" wx:key="index">{{item}}</text>
+  </view>
+
+  <!-- 日历网格 -->
+  <view class="calendar-grid">
+    <view
+      wx:for="{{calendarDays}}"
+      wx:key="index"
+      class="calendar-day {{item.isToday ? 'today' : ''}} {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isSelected ? 'selected' : ''}}"
+      data-date="{{item.date}}"
+      data-current="{{item.isCurrentMonth}}"
+      bindtap="onDayTap"
+    >
+      <text class="day-number">{{item.day}}</text>
+      <view class="day-dot" wx:if="{{item.hasAppointment}}"></view>
+    </view>
+  </view>
+
+  <!-- 选中日期的预约时段 -->
+  <view class="slots-section" wx:if="{{selectedDate}}">
+    <view class="slots-header">
+      <text class="slots-title">{{selectedDateLabel}} 可预约时段</text>
+    </view>
+
+    <view class="slots-grid" wx:if="{{slots.length > 0}}">
+      <view
+        wx:for="{{slots}}"
+        wx:key="index"
+        class="slot-item {{selectedSlot === index ? 'active' : ''}} {{!slot.available ? 'unavailable' : ''}}"
+        data-index="{{index}}"
+        bindtap="onSlotTap"
+      >
+        <text class="slot-time">{{slot.label}}</text>
+        <text class="slot-status" wx:if="{{!slot.available}}">已满</text>
+      </view>
+    </view>
+
+    <view class="slots-empty" wx:else>
+      <text class="slots-empty-text">该日暂无可用时段</text>
+    </view>
+
+    <!-- 预约按钮 -->
+    <view class="slots-action" wx:if="{{selectedSlot !== '' && slots.length > 0}}">
+      <view class="book-btn" bindtap="onBookTap">
+        预约该时段
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+</view>

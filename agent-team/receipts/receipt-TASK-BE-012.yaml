@@ -1,0 +1,126 @@
+task: TASK-BE-012
+title: 实现表单与预约模块
+status: completed
+completed_at: "2026-05-11"
+agent: backend-agent
+
+deliverables:
+  - path: backend/src/main/resources/db/migration/V6__form_appointment_tables.sql
+    description: 数据库迁移脚本，包含5张表（mp_form_template, mp_form_data, mp_appointment_service, mp_appointment_slot, mp_appointment）
+  
+  - path: backend/src/main/java/com/miniprogram/entity/FormTemplate.java
+    description: 表单模板实体
+  - path: backend/src/main/java/com/miniprogram/entity/FormData.java
+    description: 表单数据实体
+  - path: backend/src/main/java/com/miniprogram/entity/AppointmentService.java
+    description: 预约服务实体
+  - path: backend/src/main/java/com/miniprogram/entity/AppointmentSlot.java
+    description: 预约时段实体
+  - path: backend/src/main/java/com/miniprogram/entity/Appointment.java
+    description: 预约记录实体
+  
+  - path: backend/src/main/java/com/miniprogram/mapper/FormTemplateMapper.java
+    description: 表单模板 Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/FormDataMapper.java
+    description: 表单数据 Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/AppointmentServiceMapper.java
+    description: 预约服务 Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/AppointmentSlotMapper.java
+    description: 预约时段 Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/AppointmentMapper.java
+    description: 预约记录 Mapper
+  
+  - path: backend/src/main/java/com/miniprogram/dto/FormTemplateQueryDTO.java
+    description: 表单模板查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/FormTemplateDTO.java
+    description: 表单模板创建/更新DTO
+  - path: backend/src/main/java/com/miniprogram/dto/FormTemplateVO.java
+    description: 表单模板详情VO
+  - path: backend/src/main/java/com/miniprogram/dto/FormSubmitDTO.java
+    description: 表单提交DTO
+  - path: backend/src/main/java/com/miniprogram/dto/FormDataVO.java
+    description: 表单提交记录VO
+  - path: backend/src/main/java/com/miniprogram/dto/FormDataQueryDTO.java
+    description: 表单提交记录查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentServiceQueryDTO.java
+    description: 预约服务查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentServiceDTO.java
+    description: 预约服务创建/更新DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentServiceVO.java
+    description: 预约服务详情VO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentSlotDTO.java
+    description: 预约时段创建/更新DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentSlotQueryDTO.java
+    description: 预约时段查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentSlotVO.java
+    description: 预约时段详情VO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentCreateDTO.java
+    description: 创建预约DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentQueryDTO.java
+    description: 预约查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentVO.java
+    description: 预约记录详情VO
+  - path: backend/src/main/java/com/miniprogram/dto/AppointmentCancelDTO.java
+    description: 取消预约DTO
+  
+  - path: backend/src/main/java/com/miniprogram/service/FormTemplateService.java
+    description: 表单模板Service接口
+  - path: backend/src/main/java/com/miniprogram/service/FormDataService.java
+    description: 表单数据Service接口
+  - path: backend/src/main/java/com/miniprogram/service/AppointmentServiceService.java
+    description: 预约服务Service接口
+  - path: backend/src/main/java/com/miniprogram/service/AppointmentSlotService.java
+    description: 预约时段Service接口
+  - path: backend/src/main/java/com/miniprogram/service/AppointmentService2.java
+    description: 预约记录Service接口
+  - path: backend/src/main/java/com/miniprogram/service/impl/FormTemplateServiceImpl.java
+    description: 表单模板Service实现（含字段校验逻辑）
+  - path: backend/src/main/java/com/miniprogram/service/impl/FormDataServiceImpl.java
+    description: 表单数据Service实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/AppointmentServiceServiceImpl.java
+    description: 预约服务Service实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/AppointmentSlotServiceImpl.java
+    description: 预约时段Service实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/AppointmentServiceImpl.java
+    description: 预约记录Service实现（含容量管理+乐观锁）
+  
+  - path: backend/src/main/java/com/miniprogram/controller/FormTemplateController.java
+    description: 表单模板管理控制器（Admin端）
+  - path: backend/src/main/java/com/miniprogram/controller/AppointmentServiceController.java
+    description: 预约服务管理控制器（Admin端）
+  - path: backend/src/main/java/com/miniprogram/controller/AppointmentSlotController.java
+    description: 预约时段管理控制器（Admin端）
+  - path: backend/src/main/java/com/miniprogram/controller/AppointmentController.java
+    description: 预约管理控制器（Admin端）
+  - path: backend/src/main/java/com/miniprogram/controller/MpFormAppointmentController.java
+    description: 小程序端表单与预约控制器
+
+modified_files:
+  - path: backend/src/main/java/com/miniprogram/common/ErrorCode.java
+    description: 新增表单(800401/800201/800202)和预约(900401/900201/900402/900202)错误码
+  - path: backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+    description: 放行小程序端表单模板和预约服务公开接口
+
+acceptance_criteria:
+  - criteria: 表单模板CRUD（支持多种字段类型）
+    status: done
+    detail: FormTemplateController 提供 GET/POST/PUT/DELETE，fields JSON 支持 text/textarea/number/phone/email/date/time/image/radio/checkbox/select/district 字段类型
+  - criteria: 表单提交与数据收集
+    status: done
+    detail: submitForm 接口根据 fields JSON 中的 type/required/validation 规则校验提交数据，支持必填、类型、正则、范围等校验
+  - criteria: 预约服务CRUD（时间段管理）
+    status: done
+    detail: AppointmentServiceController + AppointmentSlotController 提供完整 CRUD，时段支持 max_capacity/booked_count 容量管理
+  - criteria: 预约下单与状态管理
+    status: done
+    detail: 创建预约使用乐观锁保证容量不超卖，支持 pending/confirmed/cancelled/completed/no_show 状态流转，取消时自动释放容量
+  - criteria: 小程序端表单提交/预约接口
+    status: done
+    detail: MpFormAppointmentController 提供 GET /mp/form-templates/{id}、POST /mp/form-templates/{id}/submit、GET /mp/appointment-services、GET /mp/appointment-services/{id}/slots、POST /mp/appointments、GET /mp/appointments、PUT /mp/appointments/{id}/cancel
+
+notes: |
+  - 表单字段校验：根据 fields JSON 中的 type/required/validation 规则校验提交数据，支持 number/phone/email/radio/checkbox/select 等类型校验，以及 min/max/pattern 自定义校验
+  - 预约时段容量管理：使用 MyBatis-Plus 乐观锁（LambdaUpdateWrapper 条件更新）保证 booked_count 不超过 max_capacity
+  - 预约取消时自动释放时段容量（booked_count - 1）
+  - 预约单号格式：AP + yyyyMMdd + 6位随机数
+  - 公开接口已配置 SecurityConfig permitAll：/api/v1/mp/form-templates/* 和 /api/v1/mp/appointment-services 及 /api/v1/mp/appointment-services/*/slots

@@ -1,0 +1,110 @@
+task: TASK-ADMIN-003
+name: 页面搭建编辑器
+status: completed
+date: 2026-05-11
+agent: admin-agent
+
+deliverables:
+  - path: src/types/page.ts
+    desc: 页面搭建类型定义（DSL结构、组件类型枚举、分类映射、页面状态等）
+  - path: src/types/global.ts
+    desc: 全局类型定义（从types/global.d.ts迁移，修复@/types/global引用）
+  - path: src/api/page.ts
+    desc: 页面搭建API封装（13个接口，严格遵循api-contract.md契约）
+  - path: src/stores/page.ts
+    desc: 页面状态管理（编辑器状态、组件CRUD、DSL序列化、13种组件默认props）
+  - path: src/views/page-builder/index.vue
+    desc: 页面列表页（搜索+筛选+分页+新建/编辑/预览/版本/发布/下架/删除操作）
+  - path: src/views/page-builder/editor.vue
+    desc: 页面编辑器（三栏布局：组件面板|画布|属性面板，保存草稿/发布/预览/DSL查看）
+  - path: src/views/page-builder/preview.vue
+    desc: 页面预览（手机端预览+DSL预览双模式）
+  - path: src/views/page-builder/version.vue
+    desc: 版本管理（版本列表/查看/回滚/DSL查看）
+  - path: src/views/page-builder/template.vue
+    desc: 模板选择（分类筛选/预览/使用模板创建页面）
+  - path: src/components/page-builder/ComponentPanel.vue
+    desc: 左侧组件面板（5大分类13种组件，支持拖拽和点击添加）
+  - path: src/components/page-builder/CanvasArea.vue
+    desc: 中间画布区（手机模拟框+组件渲染+拖拽接收+页面设置弹窗）
+  - path: src/components/page-builder/PropsPanel.vue
+    desc: 右侧属性面板（通用样式编辑+13种组件专属属性表单）
+  - path: src/components/page-builder/ComponentItem.vue
+    desc: 组件渲染项（13种组件可视化渲染+选中工具栏+上移/下移/复制/删除）
+  - path: src/components/page-builder/PreviewPhone.vue
+    desc: 手机预览框（刘海屏+状态栏+导航栏+安全区模拟）
+  - path: src/components/page-builder/props/BannerProps.vue
+    desc: 轮播图属性配置（自动播放/间隔/指示点/图片列表管理）
+  - path: src/components/page-builder/props/NavProps.vue
+    desc: 导航栏属性配置（每行数量/样式/导航项增删改）
+  - path: src/components/page-builder/props/ProductListProps.vue
+    desc: 商品列表属性配置（标题/列数/价格/销量/购物车/数量限制）
+  - path: src/components/page-builder/props/ArticleListProps.vue
+    desc: 文章列表属性配置（标题/样式/封面/日期/数量限制）
+  - path: src/components/page-builder/props/ActivityEntryProps.vue
+    desc: 活动入口属性配置（标题/图片/样式/链接）
+  - path: src/components/page-builder/props/MemberCardProps.vue
+    desc: 会员卡属性配置（标题/等级/积分/余额/背景图）
+  - path: src/components/page-builder/props/CouponProps.vue
+    desc: 优惠券属性配置（标题/样式/数量限制）
+  - path: src/components/page-builder/props/VideoProps.vue
+    desc: 视频属性配置（URL/封面/自动播放/循环/控制栏）
+  - path: src/components/page-builder/props/CountdownProps.vue
+    desc: 倒计时属性配置（标题/结束时间/样式/天数显示）
+  - path: src/components/page-builder/props/FloatButtonProps.vue
+    desc: 悬浮按钮属性配置（图标/链接/位置/偏移）
+  - path: src/components/page-builder/props/RichTextProps.vue
+    desc: 富文本属性配置（HTML内容编辑）
+  - path: src/components/page-builder/props/DividerProps.vue
+    desc: 分割线属性配置（线型/颜色/间距）
+  - path: src/components/page-builder/props/SpacerProps.vue
+    desc: 间距属性配置（高度）
+  - path: src/router/index.ts
+    desc: 路由配置更新（新增editor/preview/version/template 4个路由）
+
+acceptance_criteria:
+  - criteria: 页面列表页（搜索+筛选+分页+操作按钮）
+    status: pass
+    detail: 完整实现，包含关键词搜索、类型/状态筛选、分页、新建/编辑/预览/版本/发布/下架/复制/删除
+  - criteria: 页面编辑器（可视化拖拽/配置组件）
+    status: pass
+    detail: 三栏布局编辑器，左侧组件面板支持拖拽和点击添加，中间画布实时渲染，右侧属性面板编辑
+  - criteria: 组件属性面板（选中组件后右侧显示属性编辑）
+    status: pass
+    detail: 13种组件各有专属属性表单，通用样式编辑（margin/padding/背景色/圆角）
+  - criteria: 页面预览（模拟小程序端渲染效果）
+    status: pass
+    detail: PreviewPhone组件模拟手机刘海屏，支持手机端和DSL双模式预览
+  - criteria: 版本管理（查看历史版本、回滚）
+    status: pass
+    detail: 版本列表、版本预览、版本DSL查看、版本回滚
+  - criteria: 页面模板选择
+    status: pass
+    detail: 模板分类筛选、模板预览、使用模板创建页面
+  - criteria: 发布/下架操作
+    status: pass
+    detail: 列表页和编辑器均可发布/下架，编辑器支持保存草稿+发布
+
+api_contract_compliance:
+  - GET /api/v1/admin/pages — 已封装
+  - POST /api/v1/admin/pages — 已封装
+  - GET /api/v1/admin/pages/{id} — 已封装
+  - PUT /api/v1/admin/pages/{id} — 已封装
+  - DELETE /api/v1/admin/pages/{id} — 已封装
+  - POST /api/v1/admin/pages/{id}/draft — 已封装
+  - POST /api/v1/admin/pages/{id}/publish — 已封装
+  - POST /api/v1/admin/pages/{id}/unpublish — 已封装
+  - GET /api/v1/admin/pages/{id}/versions — 已封装
+  - POST /api/v1/admin/pages/{id}/versions/{version}/rollback — 已封装
+  - GET /api/v1/admin/page-templates — 已封装
+
+dsl_schema_compliance:
+  schema_version: "1.0"
+  page_config: [id, name, type, path, share_title, share_image, background_color]
+  component_types: 13种 (banner, nav, product_list, article_list, activity_entry, member_card, coupon, video, countdown, float_button, rich_text, divider, spacer)
+  component_structure: [id, type, props, data_source, actions, style]
+  global_config: [pull_refresh, reach_bottom_load]
+
+build_verification:
+  vite_build: pass
+  type_check: pass (4 pre-existing warnings in non-task files)

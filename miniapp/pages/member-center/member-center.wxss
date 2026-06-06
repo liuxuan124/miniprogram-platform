@@ -1,0 +1,466 @@
+.member-center {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 40rpx;
+}
+
+/* 会员卡片 */
+.member-card {
+  position: relative;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f2150, #1769ff);
+  box-shadow: 0 8rpx 30rpx rgba(23, 105, 255, 0.3);
+}
+
+.card-bg {
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.card-content {
+  display: flex;
+  align-items: center;
+  padding: 40rpx 30rpx 20rpx;
+}
+
+.avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+}
+
+.user-info {
+  flex: 1;
+  margin-left: 20rpx;
+}
+
+.nickname {
+  font-size: 34rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  padding: 4rpx 16rpx;
+  margin-top: 8rpx;
+}
+
+.level-icon {
+  font-size: 22rpx;
+  margin-right: 6rpx;
+}
+
+.level-name {
+  font-size: 22rpx;
+  color: #ffd700;
+}
+
+.points-box {
+  text-align: center;
+  padding: 10rpx 20rpx;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16rpx;
+}
+
+.points-num {
+  display: block;
+  font-size: 40rpx;
+  color: #ffd700;
+  font-weight: 700;
+}
+
+.points-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.card-stats {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-num {
+  display: block;
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4rpx;
+}
+
+.stat-divider {
+  width: 1rpx;
+  height: 50rpx;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 升级进度 */
+.upgrade-section {
+  margin: 20rpx;
+  padding: 30rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.upgrade-levels {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16rpx 0 24rpx;
+}
+
+.upgrade-current {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.upgrade-arrow {
+  font-size: 28rpx;
+  color: #1769ff;
+  margin: 0 16rpx;
+  font-weight: 700;
+}
+
+.upgrade-next {
+  font-size: 28rpx;
+  color: #1769ff;
+  font-weight: 600;
+}
+
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 16rpx;
+  background: #e8e8e8;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1769ff, #4d8cff);
+  border-radius: 8rpx;
+  transition: width 0.3s ease;
+}
+
+.progress-percent {
+  font-size: 24rpx;
+  color: #1769ff;
+  font-weight: 600;
+  margin-left: 16rpx;
+  min-width: 70rpx;
+  text-align: right;
+}
+
+.upgrade-tip {
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+  display: block;
+}
+
+.upgrade-tip.max-level {
+  color: #1769ff;
+  font-weight: 600;
+}
+
+/* 签到 */
+.sign-in-section {
+  margin: 20rpx;
+  padding: 30rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.sign-streak {
+  font-size: 24rpx;
+  color: #ff9800;
+}
+
+.sign-days {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.sign-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.day-label {
+  font-size: 20rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.day-circle {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: #666;
+  background: #f5f5f5;
+  border: 2rpx solid #e0e0e0;
+}
+
+.sign-day.signed .day-circle {
+  background: #4caf50;
+  color: #fff;
+  border-color: #4caf50;
+}
+
+.sign-day.today .day-circle {
+  border-color: #ff9800;
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.sign-day.today.signed .day-circle {
+  background: #ff9800;
+  color: #fff;
+}
+
+.day-points {
+  font-size: 20rpx;
+  color: #ff9800;
+  margin-top: 6rpx;
+}
+
+.sign-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 40rpx;
+  border: none;
+}
+
+.sign-btn.signed {
+  background: #e0e0e0;
+  color: #999;
+}
+
+/* 专属权益 */
+.benefits-section {
+  margin: 20rpx;
+  padding: 30rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.benefits-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10rpx;
+}
+
+.benefit-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.benefit-card:last-child {
+  border-bottom: none;
+}
+
+.benefit-icon-wrap {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.benefit-icon {
+  font-size: 28rpx;
+}
+
+.benefit-info {
+  flex: 1;
+}
+
+.benefit-name {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 700;
+}
+
+.benefit-desc {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+/* 快捷入口 */
+.quick-entry {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 20rpx;
+  padding: 30rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.entry-item {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.entry-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  margin-bottom: 10rpx;
+}
+
+.entry-name {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 会员等级 */
+.level-section {
+  margin: 20rpx;
+  padding: 30rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.level-list {
+  margin-top: 10rpx;
+}
+
+.level-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.level-item:last-child {
+  border-bottom: none;
+}
+
+.level-item.active {
+  background: #fff8e1;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin: 0 -10rpx;
+}
+
+.level-icon-box {
+  width: 70rpx;
+  height: 70rpx;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  margin-right: 16rpx;
+}
+
+.level-item.active .level-icon-box {
+  background: #fff3e0;
+}
+
+.level-detail {
+  flex: 1;
+}
+
+.level-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.level-desc {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.level-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.benefit-tag {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+  color: #666;
+}
+
+.level-item.active .benefit-tag {
+  background: #fff3e0;
+  color: #e65100;
+}

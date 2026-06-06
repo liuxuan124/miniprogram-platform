@@ -1,0 +1,101 @@
+task_id: TASK-MP-003
+task_name: 动态渲染引擎
+agent: miniapp-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: miniapp/services/datasource.js
+    description: 数据源服务，支持4种数据源(product/content/activity/coupon)的获取、缓存、分页加载
+  - path: miniapp/utils/render.js
+    description: DSL渲染引擎，包含DSL验证、解析、样式处理、数据源加载、事件执行(5种动作类型)
+  - path: miniapp/components/dsl-renderer/
+    description: DSL渲染引擎组件，根据组件type分发到13种子组件渲染
+  - path: miniapp/components/dsl-banner/
+    description: 轮播图组件，支持autoplay/interval/circular/indicator_dots/height/border_radius
+  - path: miniapp/components/dsl-nav/
+    description: 导航宫格组件，支持grid/scroll布局、columns列数、icon+text导航项
+  - path: miniapp/components/dsl-product-list/
+    description: 商品列表组件，支持columns列数、show_price/show_sales/show_tag、数据源绑定
+  - path: miniapp/components/dsl-article-list/
+    description: 文章列表组件，支持list/card布局、show_cover/show_date/show_summary、数据源绑定
+  - path: miniapp/components/dsl-activity-entry/
+    description: 活动入口组件，支持倒计时、数据源绑定
+  - path: miniapp/components/dsl-member-card/
+    description: 会员卡组件，支持show_level/show_points/show_balance/background_image
+  - path: miniapp/components/dsl-coupon/
+    description: 优惠券组件，支持columns列数、tag_style样式、数据源绑定
+  - path: miniapp/components/dsl-video/
+    description: 视频组件，支持src/poster/autoplay/controls/loop/object_fit
+  - path: miniapp/components/dsl-countdown/
+    description: 倒计时组件，支持target_time/format(dd:hh:mm:ss或hh:mm:ss)/style/label
+  - path: miniapp/components/dsl-float-button/
+    description: 浮动按钮组件，支持icon/action/position/size/background_color、可拖拽
+  - path: miniapp/components/dsl-rich-text/
+    description: 富文本组件，支持HTML内容渲染、链接点击跳转webview
+  - path: miniapp/components/dsl-divider/
+    description: 分割线组件，支持line/dashed/dotted样式、color/thickness/margin
+  - path: miniapp/components/dsl-spacer/
+    description: 空白间隔组件，支持height/background_color
+  - path: miniapp/pages/index/
+    description: 首页重写，从后端GET /api/v1/mp/pages/{path}获取DSL动态渲染
+  - path: miniapp/pages/detail/
+    description: 通用详情页，支持product/article/activity类型
+  - path: miniapp/pages/webview/
+    description: WebView页面，用于外部链接跳转
+  - path: miniapp/services/page.js
+    description: 页面数据服务更新，使用契约接口路径
+
+acceptance_criteria:
+  - criteria: dsl-renderer组件可根据DSL JSON动态渲染所有13种组件
+    status: pass
+    detail: dsl-renderer通过wx:if/wx:elif分发到13个独立子组件
+  - criteria: 每种组件有独立的小程序组件实现
+    status: pass
+    detail: 13个组件各自有独立的js/json/wxml/wxss四件套
+  - criteria: 数据源绑定(从后端拉取商品/内容/活动/优惠券数据)
+    status: pass
+    detail: DatasourceService支持4种数据源，loadAllComponentData自动为组件加载数据
+  - criteria: 事件绑定(页面跳转/webview/拨打电话/复制文本/分享)
+    status: pass
+    detail: executeAction支持page/webview/miniapp/phone/copy/share共6种动作
+  - criteria: 首页根据后端返回的DSL动态渲染
+    status: pass
+    detail: 首页通过PageService.getPageDSL('home')获取DSL，解析后渲染
+  - criteria: 下拉刷新和触底加载
+    status: pass
+    detail: onPullDownRefresh强制刷新DSL，onReachBottom通过DatasourceService.fetchPagedData分页加载
+  - criteria: 页面缓存机制
+    status: pass
+    detail: PageService使用StorageUtil缓存DSL(30分钟)，DatasourceService缓存数据源(5分钟)，全局pageDSLCache双重缓存
+
+dsl_schema_compliance:
+  schema_version: "1.0"
+  page_fields: [id, name, type, path, share_title, share_image, background_color]
+  component_fields: [id, type, props, data_source, actions, style]
+  global_config_fields: [pull_refresh, reach_bottom_load]
+  component_types: [banner, nav, product_list, article_list, activity_entry, member_card, coupon, video, countdown, float_button, rich_text, divider, spacer]
+  datasource_types: [product, content, activity, coupon]
+  action_types: [page, webview, miniapp, phone, copy, share]
+
+api_contracts:
+  - method: GET
+    path: /api/v1/mp/pages/{path}
+    description: 获取页面配置(公开)
+    auth: false
+  - method: GET
+    path: /api/v1/mp/products
+    description: 商品数据源
+    auth: false
+  - method: GET
+    path: /api/v1/mp/contents
+    description: 内容数据源
+    auth: false
+  - method: GET
+    path: /api/v1/mp/activities
+    description: 活动数据源
+    auth: false
+  - method: GET
+    path: /api/v1/mp/coupons
+    description: 优惠券数据源
+    auth: false

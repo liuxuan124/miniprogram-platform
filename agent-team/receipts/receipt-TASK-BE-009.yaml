@@ -1,0 +1,216 @@
+task_id: TASK-BE-009
+task_name: 实现商品与订单模块
+agent: backend-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: backend/src/main/resources/db/migration/V5__commerce_tables.sql
+    description: 商品与订单模块8张表的数据库迁移脚本
+  - path: backend/src/main/java/com/miniprogram/entity/ProductCategory.java
+    description: 商品分类实体
+  - path: backend/src/main/java/com/miniprogram/entity/Product.java
+    description: 商品实体
+  - path: backend/src/main/java/com/miniprogram/entity/ProductSku.java
+    description: 商品SKU实体
+  - path: backend/src/main/java/com/miniprogram/entity/Cart.java
+    description: 购物车实体
+  - path: backend/src/main/java/com/miniprogram/entity/Order.java
+    description: 订单实体
+  - path: backend/src/main/java/com/miniprogram/entity/OrderItem.java
+    description: 订单项实体
+  - path: backend/src/main/java/com/miniprogram/entity/Payment.java
+    description: 支付记录实体
+  - path: backend/src/main/java/com/miniprogram/entity/Refund.java
+    description: 退款记录实体
+  - path: backend/src/main/java/com/miniprogram/mapper/ProductCategoryMapper.java
+    description: 商品分类Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/ProductMapper.java
+    description: 商品Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/ProductSkuMapper.java
+    description: 商品SKU Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/CartMapper.java
+    description: 购物车Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/OrderMapper.java
+    description: 订单Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/OrderItemMapper.java
+    description: 订单项Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/PaymentMapper.java
+    description: 支付记录Mapper
+  - path: backend/src/main/java/com/miniprogram/mapper/RefundMapper.java
+    description: 退款记录Mapper
+  - path: backend/src/main/java/com/miniprogram/dto/ProductCategoryDTO.java
+    description: 商品分类请求DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ProductCategoryTreeVO.java
+    description: 商品分类树形VO
+  - path: backend/src/main/java/com/miniprogram/dto/ProductDTO.java
+    description: 商品创建/更新DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ProductSkuDTO.java
+    description: 商品SKU DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ProductQueryDTO.java
+    description: 商品查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/ProductDetailVO.java
+    description: 商品详情VO
+  - path: backend/src/main/java/com/miniprogram/dto/ProductSkuVO.java
+    description: 商品SKU VO
+  - path: backend/src/main/java/com/miniprogram/dto/CartDTO.java
+    description: 购物车操作DTO
+  - path: backend/src/main/java/com/miniprogram/dto/CartItemVO.java
+    description: 购物车项VO
+  - path: backend/src/main/java/com/miniprogram/dto/OrderCreateDTO.java
+    description: 创建订单DTO
+  - path: backend/src/main/java/com/miniprogram/dto/OrderItemDTO.java
+    description: 订单项DTO
+  - path: backend/src/main/java/com/miniprogram/dto/AddressSnapshot.java
+    description: 收货地址快照DTO
+  - path: backend/src/main/java/com/miniprogram/dto/OrderQueryDTO.java
+    description: 订单查询DTO
+  - path: backend/src/main/java/com/miniprogram/dto/OrderDetailVO.java
+    description: 订单详情VO
+  - path: backend/src/main/java/com/miniprogram/dto/OrderItemVO.java
+    description: 订单项VO
+  - path: backend/src/main/java/com/miniprogram/dto/OrderShipDTO.java
+    description: 发货DTO
+  - path: backend/src/main/java/com/miniprogram/dto/RefundApplyDTO.java
+    description: 申请退款DTO
+  - path: backend/src/main/java/com/miniprogram/dto/RefundVO.java
+    description: 退款记录VO
+  - path: backend/src/main/java/com/miniprogram/dto/RefundApproveDTO.java
+    description: 退款审批DTO
+  - path: backend/src/main/java/com/miniprogram/dto/WxPayResponse.java
+    description: 微信支付下单响应VO
+  - path: backend/src/main/java/com/miniprogram/service/ProductCategoryService.java
+    description: 商品分类Service接口
+  - path: backend/src/main/java/com/miniprogram/service/ProductService.java
+    description: 商品Service接口
+  - path: backend/src/main/java/com/miniprogram/service/CartService.java
+    description: 购物车Service接口
+  - path: backend/src/main/java/com/miniprogram/service/OrderService.java
+    description: 订单Service接口
+  - path: backend/src/main/java/com/miniprogram/service/PaymentService.java
+    description: 支付Service接口
+  - path: backend/src/main/java/com/miniprogram/service/RefundService.java
+    description: 退款Service接口
+  - path: backend/src/main/java/com/miniprogram/service/impl/ProductCategoryServiceImpl.java
+    description: 商品分类Service实现（树形CRUD）
+  - path: backend/src/main/java/com/miniprogram/service/impl/ProductServiceImpl.java
+    description: 商品Service实现（含SKU、上下架）
+  - path: backend/src/main/java/com/miniprogram/service/impl/CartServiceImpl.java
+    description: 购物车Service实现
+  - path: backend/src/main/java/com/miniprogram/service/impl/OrderServiceImpl.java
+    description: 订单Service实现（状态机严格校验）
+  - path: backend/src/main/java/com/miniprogram/service/impl/PaymentServiceImpl.java
+    description: 支付Service实现（微信支付V3统一下单/回调/查询）
+  - path: backend/src/main/java/com/miniprogram/service/impl/RefundServiceImpl.java
+    description: 退款Service实现（微信退款API集成）
+  - path: backend/src/main/java/com/miniprogram/config/WxPayProperties.java
+    description: 微信支付V3配置类
+  - path: backend/src/main/java/com/miniprogram/controller/ProductCategoryController.java
+    description: 后台-商品分类管理Controller
+  - path: backend/src/main/java/com/miniprogram/controller/AdminProductController.java
+    description: 后台-商品管理Controller
+  - path: backend/src/main/java/com/miniprogram/controller/AdminOrderController.java
+    description: 后台-订单管理Controller
+  - path: backend/src/main/java/com/miniprogram/controller/AdminRefundController.java
+    description: 后台-退款管理Controller
+  - path: backend/src/main/java/com/miniprogram/controller/MpProductController.java
+    description: 小程序端-商品接口Controller
+  - path: backend/src/main/java/com/miniprogram/controller/MpCartController.java
+    description: 小程序端-购物车接口Controller
+  - path: backend/src/main/java/com/miniprogram/controller/MpOrderController.java
+    description: 小程序端-订单接口Controller
+  - path: backend/src/main/java/com/miniprogram/controller/MpPaymentController.java
+    description: 微信支付回调Controller
+
+modified_files:
+  - path: backend/src/main/java/com/miniprogram/common/ErrorCode.java
+    description: 新增商品/订单/支付相关错误码(500401/500201/500402/500203/600401/600201/600202/700401/700201)
+  - path: backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+    description: 新增商品/购物车/订单/支付/退款接口的权限配置
+  - path: backend/src/main/resources/application.yml
+    description: 新增微信支付V3配置项(wx.pay.*)
+
+acceptance_criteria:
+  product_category_crud: "商品分类CRUD（树形结构）- 已实现，含树形查询、创建、更新、删除（含子分类校验）"
+  product_crud: "商品CRUD（含SKU、库存、价格）- 已实现，含SKU管理、上下架、库存管理"
+  cart_management: "购物车管理 - 已实现，含添加/更新/删除/列表，同商品同SKU自动合并数量"
+  order_state_machine: "订单状态机严格遵循契约 - 已实现，STATE_TRANSITIONS Map定义合法流转路径"
+  wx_pay_integration: "微信支付V3集成 - 已实现统一下单/回调验签(AES-256-GCM解密)/查询"
+  refund_flow: "退款流程 - 已实现申请→审批→执行(微信退款API)，拒绝时订单回退到paid"
+  mp_apis: "小程序端商品/购物车/订单接口 - 已实现，商品列表/详情公开，其他需认证"
+
+order_state_machine_transitions:
+  - from: pending_payment
+    to: [paid, closed]
+  - from: paid
+    to: [shipped, refunding]
+  - from: shipped
+    to: [completed]
+  - from: completed
+    to: [refunding]
+  - from: refunding
+    to: [refunded, paid]
+
+api_endpoints:
+  admin:
+    - "GET/POST /api/v1/admin/product-categories"
+    - "PUT/DELETE /api/v1/admin/product-categories/{id}"
+    - "GET/POST /api/v1/admin/products"
+    - "GET/PUT/DELETE /api/v1/admin/products/{id}"
+    - "PUT /api/v1/admin/products/{id}/on-sale"
+    - "PUT /api/v1/admin/products/{id}/off-sale"
+    - "GET /api/v1/admin/orders"
+    - "GET /api/v1/admin/orders/{id}"
+    - "PUT /api/v1/admin/orders/{id}/ship"
+    - "PUT /api/v1/admin/orders/{id}/refund-approve"
+    - "GET /api/v1/admin/refunds"
+  mp:
+    - "GET /api/v1/mp/products (公开)"
+    - "GET /api/v1/mp/products/{id} (公开)"
+    - "GET/POST /api/v1/mp/cart"
+    - "PUT/DELETE /api/v1/mp/cart/{id}"
+    - "POST /api/v1/mp/orders"
+    - "GET /api/v1/mp/orders"
+    - "GET /api/v1/mp/orders/{id}"
+    - "POST /api/v1/mp/orders/{id}/pay"
+    - "POST /api/v1/mp/orders/{id}/cancel"
+    - "POST /api/v1/mp/orders/{id}/confirm"
+    - "POST /api/v1/mp/orders/{id}/refund"
+    - "POST /api/v1/mp/payments/wx-notify (公开)"
+
+error_codes:
+  - code: 500401
+    message: 商品不存在
+    http_status: 404
+  - code: 500201
+    message: 商品状态错误
+    http_status: 422
+  - code: 500402
+    message: 商品分类不存在
+    http_status: 404
+  - code: 500203
+    message: 分类下有商品不可删除
+    http_status: 422
+  - code: 600401
+    message: 订单不存在
+    http_status: 404
+  - code: 600201
+    message: 订单状态错误
+    http_status: 422
+  - code: 600202
+    message: 库存不足
+    http_status: 422
+  - code: 700401
+    message: 支付记录不存在
+    http_status: 404
+  - code: 700201
+    message: 支付状态错误
+    http_status: 422
+
+notes: |
+  1. 订单状态机严格遵循契约，使用STATE_TRANSITIONS Map定义合法流转，每次状态变更前校验
+  2. 微信支付采用V3 API，支持RSA签名、AES-256-GCM回调解密
+  3. 购物车同商品同SKU自动合并数量，使用UNIQUE KEY (user_id, product_id, sku_id)约束
+  4. 创建订单时原子性扣减库存（商品+SKU），取消订单时恢复库存
+  5. 退款流程：用户申请→管理员审批→同意则调用微信退款API→拒绝则订单回退到paid
+  6. 微信支付配置通过环境变量注入，application.yml中提供默认值

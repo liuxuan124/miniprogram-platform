@@ -1,0 +1,11 @@
+/* components/dsl-video/dsl-video.wxss — 视频组件样式 */
+
+.dsl-video {
+  width: 100%;
+}
+
+.dsl-video__player {
+  width: 100%;
+  min-height: 420rpx;
+  display: block;
+}

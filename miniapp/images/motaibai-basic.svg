@@ -1,0 +1,10 @@
+<svg width="600" height="420" viewBox="0 0 600 420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="420" rx="28" fill="#f6f7f4"/>
+  <rect x="54" y="56" width="300" height="308" rx="20" fill="#ffffff" stroke="#10231f" stroke-width="8"/>
+  <rect x="84" y="96" width="210" height="18" rx="9" fill="#10231f"/>
+  <rect x="84" y="136" width="236" height="14" rx="7" fill="#8fa19b"/>
+  <rect x="84" y="168" width="180" height="14" rx="7" fill="#8fa19b"/>
+  <circle cx="426" cy="174" r="78" fill="#d7b56d"/>
+  <path d="M386 186 L420 220 L476 126" stroke="#10231f" stroke-width="20" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="54" y="394" fill="#10231f" font-size="34" font-family="Arial, sans-serif" font-weight="700">Starter Knowledge Base</text>
+</svg>

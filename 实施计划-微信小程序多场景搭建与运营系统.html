@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微信小程序多场景搭建与运营系统实施计划</title>
+<style>
+:root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#64748b;--line:#dbe3ef;--blue:#1769ff;--green:#0f9f6e;--orange:#d97706;--red:#dc2626;--nav:#101827;--soft:#eef5ff;--shadow:0 10px 34px rgba(15,23,42,.08)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.7}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--nav);color:#d8e2f1;padding:24px 18px;overflow:auto}
+.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1769ff,#10b981);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.brand{padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px}
+.brand h1{font-size:17px;line-height:1.35;margin:0 0 6px;color:#fff}.brand p{margin:0;color:#90a4c2;font-size:12px}
+.toc-title{font-size:12px;letter-spacing:.08em;color:#7f93b2;margin:18px 4px 8px;font-weight:700}
+.toc a{display:block;color:#b7c6dd;text-decoration:none;padding:7px 10px;border-radius:8px;font-size:13px}.toc a:hover{background:rgba(255,255,255,.08);color:#fff}
+.main{padding:34px 42px 70px}.doc{max-width:1180px;margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.cover{padding:38px 42px 30px;background:linear-gradient(135deg,rgba(23,105,255,.12),rgba(16,185,129,.08)),#fff;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--blue);margin-bottom:10px}.cover h2{font-size:34px;line-height:1.25;margin:0 0 12px}.cover p{font-size:15px;color:var(--muted);margin:0;max-width:820px}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:18px 42px;border-bottom:1px solid var(--line);background:#fbfdff}
+.meta div{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.meta span{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}.meta b{font-size:13px}
+.content{padding:8px 42px 42px}section{padding-top:28px;margin-top:4px}section h2{font-size:22px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid var(--line)}h3{font-size:17px;margin:22px 0 10px}p{margin:0 0 12px}
+table{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:13px}th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}th{background:#f4f7fb;color:#334155;font-weight:800}tbody tr:nth-child(even){background:#fbfdff}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+.card{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff}.card h3{margin-top:0}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800;background:var(--soft);color:var(--blue);margin-right:6px}
+.flow{counter-reset:step;display:grid;gap:9px;margin:10px 0 18px}.flow li{list-style:none;position:relative;padding:10px 12px 10px 42px;border:1px solid var(--line);border-radius:10px;background:#fbfdff}.flow li:before{counter-increment:step;content:counter(step);position:absolute;left:12px;top:10px;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--blue);color:#fff;font-size:12px;font-weight:800}
+.timeline{display:grid;gap:12px}.phase{border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:12px;padding:14px;background:#fff}.phase h3{margin:0 0 6px}.phase p{color:var(--muted)}
+.note{padding:13px 15px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;margin:12px 0}.footer{padding:18px 42px;border-top:1px solid var(--line);color:var(--muted);background:#fbfdff;font-size:12px}
+@media(max-width:980px){.layout{grid-template-columns:1fr}.side{position:relative;height:auto}.main{padding:18px}.meta{grid-template-columns:repeat(2,1fr);padding:16px}.content,.cover,.footer{padding-left:20px;padding-right:20px}.g2,.g3{grid-template-columns:1fr}}
+@media print{body{background:#fff}.layout{display:block}.side{display:none}.main{padding:0}.doc{box-shadow:none;border:none;border-radius:0}section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand"><div class="logo">🧭</div><h1>微信小程序多场景搭建与运营系统</h1><p>实施计划 · 完整增强版</p></div>
+    <div class="toc-title">目录</div>
+    <nav class="toc">
+      <a href="#position">1. 项目定位</a>
+      <a href="#strategy">2. 总体策略</a>
+      <a href="#team">3. 组织职责</a>
+      <a href="#roadmap">4. 阶段路线</a>
+      <a href="#workpackages">5. 工作包</a>
+      <a href="#models">6. 数据模型</a>
+      <a href="#apis">7. 接口顺序</a>
+      <a href="#acceptance">8. 验收主线</a>
+      <a href="#launch">9. 上线清单</a>
+      <a href="#risk">10. 风险控制</a>
+      <a href="#management">11. 项目机制</a>
+      <a href="#tasks">12. 初始任务</a>
+      <a href="#closure">13. 闭环交付</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <article class="doc">
+      <header class="cover">
+        <div class="eyebrow">IMPLEMENTATION PLAN</div>
+        <h2>微信小程序多场景搭建与运营系统实施计划</h2>
+        <p>以项目负责人视角建立完整增强版落地路线，覆盖研发、部署、微信审核、支付验证、试运行、培训、验收移交和正式上线闭环。</p>
+      </header>
+      <div class="meta">
+        <div><span>实施目标</span><b>完整增强版</b></div>
+        <div><span>核心中枢</span><b>搭建器 + 动态渲染 + 数据源 + AI 推荐 + 上线体系</b></div>
+        <div><span>实施方式</span><b>按依赖推进，以上线闭环验收</b></div>
+        <div><span>验收口径</span><b>生产可运营并完成移交</b></div>
+      </div>
+      <div class="content">
+        <section id="position">
+          <h2>1. 项目定位</h2>
+          <p>本项目按“完整增强版”一次性规划，不拆多个产品层级。项目闭环不以“功能开发完成”为终点，而以“生产环境正式上线、微信小程序审核通过、真实业务可运营、客户完成验收移交”为终点。</p>
+          <p>最终验收目标保持一致：完整电商、完整内容发布、完整页面搭建、完整营销、丰富页面展示效果，以及可对话并能推荐商品和文章的 AI Agent。同时必须完成上线所需的资质、环境、部署、配置、培训、试运行、运维和交接工作。</p>
+        </section>
+
+        <section id="strategy">
+          <h2>2. 总体实施策略</h2>
+          <div class="grid g2">
+            <div class="card"><h3>建设原则</h3><p>先定核心数据模型，再做页面和接口。页面搭建器是本项目中枢，必须优先定义组件 schema、页面 DSL、数据源绑定和发布机制。</p></div>
+            <div class="card"><h3>上线前置</h3><p>微信认证、支付商户、域名、证书、服务器、备案、素材和运营数据必须在研发过程中同步推进，不能等开发完成后才准备。</p></div>
+          </div>
+          <table>
+            <thead><tr><th>层级</th><th>建议</th></tr></thead>
+            <tbody>
+              <tr><td>管理后台</td><td>Vue 3 / React + TypeScript + 组件库 + 可视化搭建器</td></tr>
+              <tr><td>小程序端</td><td>微信小程序原生 / Taro / uni-app，优先考虑动态页面渲染能力</td></tr>
+              <tr><td>后端服务</td><td>Java Spring Boot / Node.js NestJS，按团队现有能力选择</td></tr>
+              <tr><td>数据与文件</td><td>MySQL/PostgreSQL + Redis + 对象存储</td></tr>
+              <tr><td>AI 与搜索</td><td>向量库 + 关键词检索 + 模型 API + 工具调用</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="team">
+          <h2>3. 项目组织与职责</h2>
+          <table>
+            <thead><tr><th>角色</th><th>主要职责</th></tr></thead>
+            <tbody>
+              <tr><td>项目负责人</td><td>控制范围、优先级、里程碑、验收标准和风险决策</td></tr>
+              <tr><td>产品经理</td><td>需求细化、流程图、字段说明、验收用例、配置规则</td></tr>
+              <tr><td>UI/UX</td><td>后台设计、小程序设计、页面搭建器交互、组件规范</td></tr>
+              <tr><td>前端工程师</td><td>管理后台、页面搭建器、素材选择器、运营看板</td></tr>
+              <tr><td>小程序工程师</td><td>小程序动态渲染、商城、内容、会员、活动、预约、AI 对话</td></tr>
+              <tr><td>后端工程师</td><td>数据模型、接口、权限、订单、支付、营销规则、AI 服务</td></tr>
+              <tr><td>测试工程师</td><td>功能测试、流程测试、兼容性测试、支付回调测试、回归测试</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="roadmap">
+          <h2>4. 阶段实施路线</h2>
+          <div class="timeline">
+            <div class="phase"><h3>阶段 0：项目启动与方案冻结</h3><p>3-5 个工作日。确认 PRD、技术栈、模块边界、任务看板、风险清单。</p></div>
+            <div class="phase"><h3>阶段 1：基础架构与通用能力</h3><p>2 周。登录鉴权、角色权限、菜单、操作日志、素材库、系统配置、数据字典。</p></div>
+            <div class="phase"><h3>阶段 2：页面搭建器与动态渲染中枢</h3><p>3-4 周。页面 DSL、组件 schema、拖拽排序、属性配置、发布、版本回滚。</p></div>
+            <div class="phase"><h3>阶段 3：内容发布与素材运营</h3><p>2 周。内容分类、富文本、封面、推荐、上下架、内容详情、内容埋点。</p></div>
+            <div class="phase"><h3>阶段 4：商品、订单、支付与物流闭环</h3><p>4 周。商品、购物车、订单、微信支付、状态机、发货、核销、退款。</p></div>
+            <div class="phase"><h3>阶段 5：会员、用户与营销体系</h3><p>3 周。用户画像、会员等级、积分成长值、优惠券、签到、自动发券、人群分层。</p></div>
+            <div class="phase"><h3>阶段 6：活动、表单与预约服务</h3><p>3 周。表单字段、提交审核、活动报名、预约时间段、订阅通知、核销。</p></div>
+            <div class="phase"><h3>阶段 7：AI Agent 对话与推荐闭环</h3><p>4 周。模型接入、Prompt、知识库、商品/文章推荐工具、沙盒、发布、监控。</p></div>
+            <div class="phase"><h3>阶段 8：数据看板、埋点与运营监控</h3><p>2 周。访问、内容、交易、营销、活动、预约、AI 指标聚合。</p></div>
+            <div class="phase"><h3>阶段 9：联调、验收与上线</h3><p>2-3 周。功能测试、支付回调、安全检查、性能测试、生产部署、微信提审、上线演练。</p></div>
+            <div class="phase"><h3>阶段 10：试运行、培训、移交与正式闭环</h3><p>1-2 周。运营数据初始化、客户培训、试运行监控、问题修复、验收签字、运维移交。</p></div>
+          </div>
+        </section>
+
+        <section id="workpackages">
+          <h2>5. 工作包拆解</h2>
+          <table>
+            <thead><tr><th>工作包</th><th>关键内容</th><th>依赖</th><th>优先级</th></tr></thead>
+            <tbody>
+              <tr><td>WP-01 基础平台</td><td>登录、权限、菜单、日志、配置中心</td><td>无</td><td>P0</td></tr>
+              <tr><td>WP-03 页面 DSL</td><td>页面结构、组件 schema、发布模型</td><td>WP-01</td><td>P0</td></tr>
+              <tr><td>WP-04 页面装修器</td><td>拖拽、属性、预览、版本、回滚</td><td>WP-03, WP-02</td><td>P0</td></tr>
+              <tr><td>WP-05 小程序动态渲染</td><td>解析页面 DSL 并渲染组件</td><td>WP-03</td><td>P0</td></tr>
+              <tr><td>WP-06 内容系统</td><td>分类、文章、富文本、视频、推荐</td><td>WP-02</td><td>P0</td></tr>
+              <tr><td>WP-07 商品系统</td><td>分类、商品、库存、上下架</td><td>WP-01, WP-02</td><td>P0</td></tr>
+              <tr><td>WP-08 订单支付</td><td>购物车、订单、微信支付、状态机</td><td>WP-07</td><td>P0</td></tr>
+              <tr><td>WP-11 营销规则</td><td>优惠券、满减、签到、积分兑换、自动发券</td><td>WP-10, WP-08</td><td>P0</td></tr>
+              <tr><td>WP-15 AI Agent</td><td>模型、Prompt、知识库、推荐工具、监控</td><td>WP-06, WP-07, WP-10</td><td>P0</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="models">
+          <h2>6. 关键数据模型优先级</h2>
+          <ol class="flow">
+            <li>用户、管理员、角色、权限。</li>
+            <li>素材、文件、系统配置。</li>
+            <li>页面、页面版本、页面组件、组件配置。</li>
+            <li>内容、分类、标签。</li>
+            <li>商品、SKU、库存、购物车、订单、支付记录、退款记录。</li>
+            <li>会员等级、积分流水、优惠券、优惠券领取记录。</li>
+            <li>表单、活动、预约、AI Agent、知识库和对话记录。</li>
+          </ol>
+        </section>
+
+        <section id="apis">
+          <h2>7. 接口建设顺序</h2>
+          <p><span class="pill">顺序</span>认证与权限 → 文件与素材 → 页面搭建 → 小程序渲染 → 内容 → 商品 → 订单支付 → 会员营销 → 表单活动预约 → AI Agent → 数据看板。</p>
+        </section>
+
+        <section id="acceptance">
+          <h2>8. 验收主线</h2>
+          <div class="grid g2">
+            <div class="card"><h3>电商主线</h3><p>后台创建商品 → 小程序展示 → 加入购物车 → 创建订单 → 微信支付 → 发货/核销 → 退款审核。</p></div>
+            <div class="card"><h3>内容主线</h3><p>后台创建文章/图文/视频 → 选择封面 → 推荐/发布 → 小程序展示 → 统计阅读。</p></div>
+            <div class="card"><h3>页面搭建主线</h3><p>新建页面 → 拖拽组件 → 绑定数据源 → 预览 → 发布 → 小程序动态展示 → 版本回滚。</p></div>
+            <div class="card"><h3>营销主线</h3><p>创建优惠券/活动规则 → 展示优惠 → 用户领取/使用 → 订单优惠生效 → 统计效果。</p></div>
+            <div class="card"><h3>展示主线</h3><p>首页、专题页、内容页、商城页、会员页、活动页、预约页、AI 助手页均可配置展示。</p></div>
+            <div class="card"><h3>AI 主线</h3><p>配置模型和 Prompt → 上传知识库 → 接入商品与文章 → 用户对话 → 推荐转化 → 监控效果。</p></div>
+            <div class="card"><h3>正式上线主线</h3><p>生产部署 → 域名 HTTPS → 微信审核 → 正式发布 → 支付验证 → 试运行 → 培训 → 验收移交。</p></div>
+          </div>
+        </section>
+
+        <section id="launch">
+          <h2>9. 上线实施清单</h2>
+          <h3>9.1 资质与平台准备</h3>
+          <table>
+            <thead><tr><th>项目</th><th>要求</th><th>责任方</th></tr></thead>
+            <tbody>
+              <tr><td>微信小程序主体</td><td>已注册并完成认证</td><td>客户/项目负责人</td></tr>
+              <tr><td>小程序 AppID</td><td>已提供并可登录微信公众平台</td><td>客户</td></tr>
+              <tr><td>微信支付商户号</td><td>已开通并完成经营类目配置</td><td>客户/财务</td></tr>
+              <tr><td>支付 API 证书</td><td>已下载并安全交付技术团队</td><td>客户/后端</td></tr>
+              <tr><td>服务器与域名</td><td>生产、预发布、测试环境已准备，域名和 HTTPS 可用</td><td>运维/客户</td></tr>
+              <tr><td>对象存储</td><td>图片、视频、知识库文件可上传访问</td><td>运维/后端</td></tr>
+            </tbody>
+          </table>
+          <h3>9.2 生产环境准备</h3>
+          <table>
+            <thead><tr><th>项目</th><th>验收标准</th></tr></thead>
+            <tbody>
+              <tr><td>后台管理端</td><td>生产域名可访问，管理员可登录</td></tr>
+              <tr><td>后端 API</td><td>接口 HTTPS 可访问，鉴权正常</td></tr>
+              <tr><td>小程序接口域名</td><td>已配置到微信小程序合法域名</td></tr>
+              <tr><td>数据库</td><td>已初始化正式库，备份策略生效</td></tr>
+              <tr><td>日志监控</td><td>应用日志、错误日志、支付日志、AI 日志可追踪</td></tr>
+              <tr><td>备份恢复</td><td>至少完成一次备份和恢复演练</td></tr>
+            </tbody>
+          </table>
+          <h3>9.3 运营数据初始化</h3>
+          <table>
+            <thead><tr><th>数据</th><th>最低要求</th></tr></thead>
+            <tbody>
+              <tr><td>页面</td><td>至少完成首页、商城页、内容页、会员页、我的页配置</td></tr>
+              <tr><td>商品</td><td>至少配置 5 个真实商品，覆盖实物/数字/服务类型</td></tr>
+              <tr><td>内容</td><td>至少发布 5 篇真实文章或图文内容</td></tr>
+              <tr><td>活动/预约</td><td>至少配置 1 个活动或 1 个预约服务</td></tr>
+              <tr><td>优惠券</td><td>至少配置 1 个新人券和 1 个会员券</td></tr>
+              <tr><td>AI 知识库</td><td>至少上传品牌介绍、商品说明、会员权益、售后政策</td></tr>
+            </tbody>
+          </table>
+          <h3>9.4 上线发布步骤</h3>
+          <ol class="flow">
+            <li>冻结上线版本和代码分支。</li>
+            <li>完成生产数据库初始化和配置导入。</li>
+            <li>部署后端服务、管理后台和小程序接口。</li>
+            <li>配置域名、HTTPS、小程序合法域名、支付回调地址。</li>
+            <li>在生产环境执行核心冒烟测试。</li>
+            <li>上传小程序体验版并完成内部验收。</li>
+            <li>提交微信审核，审核通过后发布正式版。</li>
+            <li>执行小额生产支付验证并开启试运行监控。</li>
+            <li>试运行通过后出具上线报告和验收报告。</li>
+          </ol>
+        </section>
+
+        <section id="risk">
+          <h2>10. 风险控制</h2>
+          <table>
+            <thead><tr><th>风险</th><th>影响</th><th>控制措施</th></tr></thead>
+            <tbody>
+              <tr><td>页面搭建器复杂度过高</td><td>拖慢整体进度</td><td>先冻结组件 schema，再开发拖拽和属性面板</td></tr>
+              <tr><td>小程序动态渲染不稳定</td><td>页面发布后展示异常</td><td>每个组件建立独立渲染测试和兜底样式</td></tr>
+              <tr><td>微信支付回调异常</td><td>订单状态错误</td><td>建立支付流水、幂等处理、回调重试和人工校正</td></tr>
+              <tr><td>营销规则冲突</td><td>优惠计算错误</td><td>建立规则优先级、互斥策略和试算工具</td></tr>
+              <tr><td>AI 推荐不准确</td><td>用户体验差或产生风险</td><td>推荐必须基于真实商品/文章数据，输出可追踪推荐依据</td></tr>
+              <tr><td>资质准备滞后</td><td>功能完成但无法上线</td><td>阶段 0 即启动微信认证、支付商户、域名和证书准备</td></tr>
+              <tr><td>小程序审核被拒</td><td>上线延期</td><td>提前检查类目、隐私协议、支付说明和内容合规</td></tr>
+              <tr><td>客户不会使用</td><td>上线后无法独立运营</td><td>上线前完成角色化培训和操作考核</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="management">
+          <h2>11. 项目管理机制</h2>
+          <table>
+            <thead><tr><th>会议</th><th>频率</th><th>目标</th></tr></thead>
+            <tbody>
+              <tr><td>项目周会</td><td>每周 1 次</td><td>检查进度、风险、依赖和里程碑</td></tr>
+              <tr><td>需求评审</td><td>每个模块启动前</td><td>确认范围、字段、流程、验收标准</td></tr>
+              <tr><td>技术评审</td><td>关键模块开发前</td><td>确认架构、接口、数据模型、风险</td></tr>
+              <tr><td>联调站会</td><td>联调阶段每日</td><td>快速清理阻塞和缺陷</td></tr>
+              <tr><td>验收会</td><td>每阶段结束</td><td>对照验收标准确认是否通过</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="tasks">
+          <h2>12. 初始任务清单</h2>
+          <table>
+            <thead><tr><th>编号</th><th>任务</th><th>负责人角色</th><th>产出</th></tr></thead>
+            <tbody>
+              <tr><td>T-001</td><td>冻结完整增强版 PRD 范围</td><td>项目负责人/产品经理</td><td>PRD 确认版</td></tr>
+              <tr><td>T-002</td><td>输出后台信息架构和菜单权限表</td><td>产品经理</td><td>IA 与权限矩阵</td></tr>
+              <tr><td>T-003</td><td>输出核心数据模型 ER 草图</td><td>后端工程师</td><td>数据模型文档</td></tr>
+              <tr><td>T-004</td><td>输出页面 DSL 与组件 schema 初稿</td><td>前端/小程序/后端</td><td>页面搭建技术方案</td></tr>
+              <tr><td>T-006</td><td>输出微信支付与订单状态机方案</td><td>后端工程师</td><td>支付/订单技术方案</td></tr>
+              <tr><td>T-008</td><td>输出 AI Agent 工具调用方案</td><td>后端/AI 工程师</td><td>Agent 技术方案</td></tr>
+              <tr><td>T-011</td><td>确认微信小程序主体、AppID、认证状态</td><td>项目负责人/客户</td><td>微信平台信息确认单</td></tr>
+              <tr><td>T-012</td><td>确认微信支付商户号、证书和回调要求</td><td>后端/客户财务</td><td>支付上线准备清单</td></tr>
+              <tr><td>T-013</td><td>确认生产环境、域名、SSL、对象存储和备份策略</td><td>运维/客户</td><td>环境准备清单</td></tr>
+              <tr><td>T-014</td><td>输出上线运营数据初始化模板</td><td>产品经理/运营</td><td>商品、文章、页面、优惠券、知识库模板</td></tr>
+              <tr><td>T-015</td><td>输出培训与移交计划</td><td>项目负责人/测试</td><td>培训课表、操作手册目录</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="closure">
+          <h2>13. 项目闭环交付物</h2>
+          <table>
+            <thead><tr><th>类别</th><th>交付物</th></tr></thead>
+            <tbody>
+              <tr><td>产品与技术</td><td>PRD 确认版、实施计划确认版、技术方案、接口文档、数据库设计、页面 DSL 与组件 schema</td></tr>
+              <tr><td>测试与上线</td><td>测试报告、缺陷关闭记录、上线清单、上线报告、小程序审核通过记录</td></tr>
+              <tr><td>生产与运维</td><td>生产环境配置清单、账号权限清单、运维手册、备份恢复说明</td></tr>
+              <tr><td>运营与移交</td><td>操作手册、培训记录、试运行报告、客户验收报告、质保与支持说明</td></tr>
+            </tbody>
+          </table>
+          <div class="note">负责人决策：本项目必须把“研发完成”升级为“上线运营闭环”。只有功能、生产环境、微信审核、支付验证、运营数据、客户培训和验收移交全部完成，才算项目真正闭环。</div>
+        </section>
+      </div>
+      <footer class="footer">本文档用于项目启动、团队分工、研发排期和阶段验收，可与 PRD 配套使用。</footer>
+    </article>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+receipt_id: receipt-2026-05-11-quality-gate-fix
+submitted_at: 2026-05-11 19:25
+submitted_by: controller-agent
+type: quality_gate_fix
+scope:
+  - admin_build
+  - backend_tests
+summary: 管理后台构建阻塞与后端测试阻塞已修复，项目进入业务冒烟与小程序联调阶段。
+changes:
+  admin:
+    - 修复 TypeScript 类型导出、枚举运行时导入、未使用变量、系统配置字段类型不匹配问题。
+    - npm run build 已通过。
+  backend:
+    - 修复测试代码引用旧包名、旧 DTO、旧实体、旧接口路径的问题。
+    - 将过期集成测试调整为当前接口契约测试与核心模型测试。
+    - mvn -q test 已通过。
+verification:
+  - command: npm run build
+    module: admin
+    result: passed
+    note: 剩余 Rollup 注释警告与 chunk 体积提示，不阻断构建。
+  - command: mvn -q test
+    module: backend
+    result: passed
+    note: 当前 MiniProgramApplicationTest 会连接 dev profile 数据库，后续建议拆为独立 test profile。
+status_updates:
+  - agent-team/status/project-status.yaml 已更新质量门禁状态。
+  - agent-team/status/blockers.yaml 已关闭 BLK-ADMIN-BUILD-001 与 BLK-BACKEND-TEST-001。
+remaining_blockers:
+  - TASK-REL-001 微信小程序主体、AppID、认证、类目、权限和隐私协议资料
+  - TASK-REL-002 服务器、域名、备案、HTTPS、对象存储、备份和监控资源
+  - TASK-REL-004 微信支付商户、APIv3 密钥、证书、回调地址和退款权限
+  - TASK-REL-006 正式发布后的试运行监控与问题修复
+next_recommended_action: 组织小程序端、后台端、AI推荐和核心业务流程冒烟联调。

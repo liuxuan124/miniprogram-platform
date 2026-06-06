@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>微信小程序多场景搭建与运营系统 · 产品原型</title>
+<style>
+:root{
+  --bg:#f0f2f7;--sidebar:#0f1623;--sidebar-active:#1769ff;--sidebar-text:#8fa3c0;
+  --top:#fff;--card:#fff;--border:#e4e9f2;--text:#0d1b2e;--muted:#6b7b93;
+  --blue:#1769ff;--blue-light:#eaf1ff;--green:#0faa6e;--green-light:#e8faf3;
+  --orange:#f59e0b;--orange-light:#fff8e6;--red:#ef4444;--red-light:#fff0f0;
+  --purple:#7c3aed;--purple-light:#f3eeff;--cyan:#06b6d4;--silver:#94a3b8;--silver-light:#f1f5f9;
+  --shadow:0 2px 12px rgba(15,22,40,.07);--shadow-lg:0 8px 32px rgba(15,22,40,.13);
+  --radius:14px;--phone-w:334px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow:hidden;font-size:14px}
+#appRoot{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,#1769ff,#20b7ff);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px}
+.sb-name{font-size:14px;font-weight:700;color:#fff}
+.sb-sub{font-size:11px;color:var(--sidebar-text);margin-top:2px}
+.sb-body{flex:1;overflow-y:auto;padding:8px 8px 20px}
+.sb-body::-webkit-scrollbar{width:0}
+.nav-group{font-size:10px;color:#3d5270;text-transform:uppercase;letter-spacing:.09em;padding:14px 10px 5px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;color:var(--sidebar-text);cursor:pointer;font-size:13px;transition:.15s;margin:1px 0}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#e2eaf6}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600}
+.nav-item .ni{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nb{margin-left:auto;background:#ef4444;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;font-weight:700}
+.nb.o{background:#f59e0b}
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:54px;background:var(--top);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.breadcrumb .cur{color:var(--text);font-weight:600}
+.topbar-r{display:flex;align-items:center;gap:10px}
+.mode-sw{display:flex;background:#f0f2f7;border-radius:99px;padding:4px;gap:2px}
+.mbtn{padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);border:none;border-radius:99px;transition:.2s;font-family:inherit}
+.mbtn.active{background:#fff;color:var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.ava{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1769ff,#20b7ff);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+.content-area{flex:1;overflow-y:auto;padding:22px 24px 40px}
+.content-area::-webkit-scrollbar{width:5px}
+.content-area::-webkit-scrollbar-thumb{background:#d0d8e8;border-radius:99px}
+/* Cards / Layout */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.cp{padding:20px}
+.g{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.flex{display:flex}.gap8{gap:8px}.gap12{gap:12px}.mla{margin-left:auto}.mt16{margin-top:16px}.mb16{margin-bottom:16px}.mt12{margin-top:12px}
+.sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.sec-hd h3{font-size:15px;font-weight:700}
+.ph{margin-bottom:20px}
+.pt{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:3px}
+.ps{color:var(--muted);font-size:13px}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:13px;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap;line-height:1;font-weight:600}
+.btn:hover{border-color:#bbc8da;background:#f5f8ff;transform:translateY(-1px)}
+.btn-p{background:var(--blue);color:#fff;border-color:var(--blue)}.btn-p:hover{background:#1057d4;color:#fff}
+.btn-s{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-o{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn-d{color:var(--red);border-color:#fca5a5;background:#fff5f5}
+.sm{padding:5px 11px;font-size:12px;border-radius:8px}.xs{padding:4px 10px;font-size:11px;border-radius:7px}
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.bg{background:var(--green-light);color:#067647}.bo{background:var(--orange-light);color:#92400e}
+.bb{background:#f1f4fa;color:var(--muted)}.bbl{background:var(--blue-light);color:var(--blue)}
+.br{background:var(--red-light);color:#991b1b}.bp{background:var(--purple-light);color:var(--purple)}
+.bsi{background:var(--silver-light);color:var(--silver)}
+.nb0::before{display:none}
+/* Tags */
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;background:var(--blue-light);color:var(--blue)}
+.tg{background:#f1f4fa;color:var(--muted)}.tp{background:var(--purple-light);color:var(--purple)}.to{background:var(--orange-light);color:#92400e}
+/* Table */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;color:var(--muted);font-weight:600;background:#f8faff;border-bottom:2px solid var(--border);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f8faff}
+/* Form */
+.inp,.sel,.ta{border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--text);background:#fff;font-family:inherit;transition:.15s;outline:none}
+.inp:focus,.sel:focus,.ta:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(23,105,255,.1)}
+.inp{height:36px}.sel{height:36px;cursor:pointer}.ta{min-height:80px;resize:vertical}
+.fr{display:grid;grid-template-columns:88px 1fr;gap:8px;align-items:center;margin-bottom:12px}
+.fl{color:var(--muted);font-size:13px;text-align:right;padding-right:6px}
+/* Stat card */
+.sc{padding:18px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);transition:.15s}
+.sc:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.sci{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:12px}
+.scl{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.scv{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.scc{font-size:12px;margin-top:5px;color:var(--muted)}.sup{color:var(--green)}.sdn{color:var(--red)}
+/* Bar chart */
+.bc{display:flex;align-items:flex-end;gap:8px;height:120px;padding:0 4px}
+.bcc{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bar{width:100%;border-radius:6px 6px 0 0;min-height:4px}
+.brl{font-size:10px;color:var(--muted);white-space:nowrap}
+.brv{font-size:10px;font-weight:700;color:var(--blue)}
+/* Progress */
+.prog{height:6px;background:#f0f2f7;border-radius:99px;overflow:hidden}
+.progf{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .6s}
+/* Modal */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+.mo.show{opacity:1;pointer-events:all}
+.mb0{background:#fff;border-radius:18px;box-shadow:0 28px 70px rgba(0,0,0,.22);width:520px;max-width:94vw;max-height:86vh;overflow:auto;transform:translateY(12px);transition:.22s}
+.mo.show .mb0{transform:none}
+.mhd{padding:20px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2}
+.mhd h3{font-size:16px;font-weight:700}
+.mcl{cursor:pointer;color:var(--muted);font-size:22px;line-height:1;background:none;border:none;padding:0}
+.mbd{padding:18px 22px}
+.mft{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:#f8faff;border-radius:0 0 18px 18px}
+/* Toast */
+.toast{position:fixed;top:66px;right:22px;z-index:2000;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:12px;background:#0d1b2e;color:#fff;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);transform:translateX(140%);transition:.3s;max-width:320px}
+.toast.show{transform:translateX(0)}
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:8px;padding:12px 0 14px;flex-wrap:wrap}
+/* Rich editor */
+.re{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ret{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--border);background:#f8faff;flex-wrap:wrap}
+.reb{width:28px;height:28px;border:1px solid transparent;border-radius:5px;background:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.reb:hover{background:var(--blue-light);color:var(--blue)}
+.rec{min-height:120px;padding:12px;font-size:13px;line-height:1.9;outline:none}
+/* Page tabs */
+.ptabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px}
+.ptab{padding:9px 16px;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:.14s}
+.ptab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+/* Toggle switch */
+.tog{width:38px;height:22px;border-radius:99px;background:#d0d8e8;cursor:pointer;position:relative;transition:.22s;flex-shrink:0;border:none}
+.tog.on{background:var(--blue)}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:.22s}
+.tog.on::after{left:19px}
+/* Asset grid */
+.agrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ait{border-radius:10px;overflow:hidden;border:1.5px solid var(--border);cursor:pointer;transition:.14s;position:relative}
+.ait:hover{border-color:var(--blue);transform:translateY(-2px)}
+.ait.sel::after{content:"\2713";position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.ath{height:70px;background:linear-gradient(135deg,#e0f2fe,#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:26px}
+.atn{padding:4px 6px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f8faff}
+/* Calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dl{text-align:center;font-size:10px;color:var(--muted);padding:4px 0;font-weight:600}
+.cal-d{text-align:center;padding:7px 3px;border-radius:8px;font-size:12px;cursor:pointer;transition:.12s;position:relative}
+.cal-d:hover{background:var(--blue-light);color:var(--blue)}
+.cal-d.td{background:var(--blue);color:#fff;font-weight:700}
+.cal-d.od{color:#ccc;cursor:default}.cal-d.od:hover{background:transparent;color:#ccc}
+.cal-dot{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--green)}
+/* Time slots */
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.ts{padding:7px 4px;text-align:center;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;transition:.14s}
+.ts:hover:not(.full){border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.ts.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.ts.full{background:#f8faff;color:#c0c9d8;cursor:not-allowed}
+/* Coupon */
+.cpn{border-radius:12px;overflow:hidden;display:flex;margin-bottom:10px;box-shadow:var(--shadow)}
+.cpl{background:linear-gradient(135deg,var(--blue),#20b7ff);color:#fff;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:90px}
+.cpa{font-size:26px;font-weight:800;line-height:1}
+.cpt{font-size:11px;opacity:.85;margin-top:3px}
+.cpr{flex:1;background:#fff;border:1px solid var(--border);border-left:none;padding:12px 14px}
+.cpn2{font-weight:700;font-size:13px;margin-bottom:3px}
+.cprl{font-size:11px;color:var(--muted)}
+/* Role card */
+.rcard{background:#f8faff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.rn{font-weight:700;font-size:13px;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.rd{font-size:12px;color:var(--muted);margin-bottom:8px}
+.rpc{display:flex;flex-wrap:wrap;gap:4px}
+.rp{font-size:11px;padding:2px 7px;border-radius:99px;background:#fff;border:1px solid var(--border);color:var(--muted)}
+/* Builder */
+.builder{display:flex;height:calc(100vh - 54px);overflow:hidden;background:#eaedf5}
+.bl{width:210px;min-width:210px;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.bm{flex:1;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:14px}
+.brt{width:265px;min-width:265px;background:#fff;border-left:1px solid var(--border);overflow-y:auto}
+.brt::-webkit-scrollbar{width:0}
+.bph{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:12px 14px 6px;border-bottom:1px solid var(--border)}
+.cgrid{padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.cc{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 5px;border-radius:9px;border:1px solid var(--border);background:#f8faff;cursor:pointer;font-size:11px;color:var(--muted);transition:.15s;text-align:center}
+.cc:hover{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.cc.active{border-color:var(--blue);background:var(--blue-light);color:var(--blue);font-weight:700}
+.ci{font-size:19px}
+.slist{padding:7px}
+.sr{display:flex;align-items:center;gap:6px;padding:8px 9px;border-radius:8px;border:1px solid var(--border);margin-bottom:4px;font-size:12px;color:var(--muted);cursor:pointer;transition:.14s;background:#fff}
+.sr:hover,.sr.active{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+.dh{color:#d0d8e4;font-size:13px}
+.ps2{padding:12px 14px;border-bottom:1px solid var(--border)}
+.ps2 h4{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.pr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.prl{font-size:12px;color:var(--muted);min-width:52px;flex-shrink:0}
+.pi{flex:1;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 8px;font-size:12px;font-family:inherit;outline:none}
+.pi:focus{border-color:var(--blue)}
+.pse{flex:1;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 6px;font-size:12px;font-family:inherit;outline:none;background:#fff;cursor:pointer}
+.sw2{display:flex;gap:5px;flex-wrap:wrap}
+.sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.12s}
+.sw.active{border-color:var(--text);transform:scale(1.15)}
+.btb{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;position:sticky;top:0;z-index:10;width:100%}
+.bpn{font-weight:800;font-size:14px}
+.bver{font-size:11px;color:var(--muted);border:1px solid var(--border);padding:2px 7px;border-radius:6px;background:#f8faff}
+/* Phone */
+.phone{background:#fff;border-radius:36px;box-shadow:0 0 0 9px #111827,0 28px 60px rgba(0,0,0,.3);overflow:hidden}
+.pn{height:26px;background:#111827;display:flex;align-items:center;justify-content:center}
+.pp{width:76px;height:5px;background:#000;border-radius:99px;opacity:.55}
+.ps3{overflow-y:auto;background:#f6f8fb;display:flex;flex-direction:column}
+.ps3::-webkit-scrollbar{width:0}
+/* Demo banner */
+.db{background:linear-gradient(135deg,#0f2b5f,#1769ff 65%,#20b7ff);border-radius:16px;padding:18px 20px 16px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden}
+.db::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.07)}
+.dbt{font-size:14px;font-weight:700;margin-bottom:12px}
+.dsr{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:2px}
+.dsr::-webkit-scrollbar{height:0}
+.ds{flex-shrink:0;padding:7px 11px;background:rgba(255,255,255,.12);border-radius:9px;font-size:12px;cursor:pointer;transition:.15s;white-space:nowrap}
+.ds.done{background:rgba(255,255,255,.28)}.ds.cur{background:#fff;color:var(--blue);font-weight:700}
+.darr{padding:0 4px;color:rgba(255,255,255,.4);font-size:14px;flex-shrink:0}
+.dac{display:flex;gap:8px;margin-top:12px}
+.dbtn{padding:7px 14px;border-radius:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+.dbtn:hover{background:rgba(255,255,255,.3)}.dbtn.p{background:#fff;color:var(--blue)}
+/* MP UI */
+.mp-top{height:44px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;position:relative;border-bottom:1px solid var(--border);flex-shrink:0}
+.mp-back{position:absolute;left:10px;color:var(--blue);font-size:22px;cursor:pointer;padding:4px;line-height:1}
+.mp-body{flex:1;overflow-y:auto;padding-bottom:58px}
+.mp-body::-webkit-scrollbar{width:0}
+.mp-tabs{position:sticky;bottom:0;display:grid;height:58px;background:#fff;border-top:1px solid var(--border)}
+.mp-ti{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;gap:2px;transition:.12s}
+.mp-ti.active{color:var(--blue);font-weight:700}
+.mp-tii{font-size:21px}
+.mp-ban{height:155px;margin:10px;border-radius:14px;background:linear-gradient(135deg,#1769ff,#20b7ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;position:relative;overflow:hidden;cursor:pointer;flex-shrink:0}
+.mp-dots{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.mp-dt{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45)}
+.mp-dt.on{background:#fff;width:14px;border-radius:99px}
+.mp-nav{display:grid;gap:8px;margin:0 10px 10px;background:#fff;border-radius:14px;padding:12px 6px}
+.mp-ni{text-align:center;cursor:pointer;transition:.12s}
+.mp-ni:hover{opacity:.75}
+.mp-nic{width:42px;height:42px;border-radius:13px;background:var(--blue-light);margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.mp-nil{font-size:10px;color:var(--muted)}
+.mp-card{background:#fff;border-radius:14px;margin:0 10px 10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.mp-ct{font-weight:700;font-size:14px;margin-bottom:8px}
+.mp-li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.mp-li:last-child{border-bottom:none}
+.mp-limg{width:58px;height:58px;border-radius:10px;background:linear-gradient(135deg,#e0f2fe,#bfdbfe);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px}
+.mp-lb{flex:1;min-width:0}
+.mp-lt{font-size:13px;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-ls{font-size:11px;color:var(--muted)}
+.mp-pg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 10px 10px}
+.mp-pc{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer;transition:.14s;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.mp-pc:hover{transform:translateY(-2px)}
+.mp-pi{height:96px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,#fef3c7,#fed7aa)}
+.mp-pn{font-size:12px;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-pr{color:#e11d48;font-weight:800;font-size:14px}
+.mp-mc{margin:10px;border-radius:16px;background:linear-gradient(135deg,#0f2150,#1769ff);color:#fff;padding:18px;position:relative;overflow:hidden;cursor:pointer}
+.mp-mc::before{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.07)}
+.mp-mr{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.mp-av{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.mp-mn{font-size:16px;font-weight:800}
+.mp-ml{font-size:11px;opacity:.8;margin-top:2px}
+.mp-sr{display:flex;gap:0}
+.mp-si{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15)}
+.mp-si:last-child{border-right:none}
+.mp-sv{font-size:19px;font-weight:800}
+.mp-sl{font-size:10px;opacity:.7;margin-top:2px}
+.mp-sh{font-size:14px;font-weight:700;padding:10px 14px 6px;display:flex;justify-content:space-between;align-items:center}
+.mp-sm{font-size:11px;color:var(--blue);cursor:pointer}
+.mp-ac{margin:0 10px 10px;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.04);cursor:pointer;transition:.14s}
+.mp-ac:hover{transform:translateY(-2px)}
+.mp-ai{height:110px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700}
+.mp-aif{padding:11px 12px}
+.mp-at{font-weight:700;margin-bottom:5px;font-size:14px}
+.mp-am{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--muted)}
+.mp-ff{background:#fff;border-radius:12px;margin:0 10px 8px;padding:11px 13px}
+.mp-fl{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.mp-fi{width:100%;border:none;outline:none;font-size:13px;padding:3px 0;font-family:inherit;color:var(--text);border-bottom:1px solid var(--border);background:transparent}
+.mp-bb{padding:10px 10px 6px}
+.mp-btn{width:100%;padding:13px;border-radius:13px;background:linear-gradient(135deg,var(--blue),#20b7ff);color:#fff;font-size:15px;font-weight:700;border:none;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(23,105,255,.3);transition:.15s}
+.mp-suc{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px 30px;text-align:center}
+.mp-si2{font-size:58px;margin-bottom:14px}
+.mp-st{font-size:19px;font-weight:800;margin-bottom:6px}
+.mp-ss{font-size:13px;color:var(--muted);line-height:1.8}
+.mp-new{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;margin-left:4px}
+/* Login */
+.lp{position:fixed;inset:0;background:linear-gradient(135deg,#0a1f4e 0%,#1769ff 55%,#20b7ff 100%);display:flex;align-items:center;justify-content:center;z-index:500}
+.lc{background:rgba(255,255,255,.97);border-radius:24px;padding:38px 36px;width:385px;max-width:94vw;box-shadow:0 32px 80px rgba(0,0,0,.28)}
+.ll{width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,#1769ff,#20b7ff);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(23,105,255,.35)}
+.ltit{font-size:22px;font-weight:800;text-align:center;margin-bottom:4px}
+.lsub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:26px}
+.lf{margin-bottom:14px}
+.lf label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.lf input{width:100%;height:42px;border:1.5px solid var(--border);border-radius:11px;padding:0 14px;font-size:14px;font-family:inherit;outline:none;transition:.15s;background:#fff}
+.lf input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(23,105,255,.1)}
+.lbtn{width:100%;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#20b7ff);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;margin-top:6px;font-family:inherit;box-shadow:0 6px 18px rgba(23,105,255,.35);transition:.15s}
+.lbtn:hover{opacity:.92}
+.ltip{font-size:12px;color:var(--muted);text-align:center;margin-top:14px}
+@keyframes fiu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fiu .22s ease}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#d0d8e8;border-radius:99px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="lp" id="LP">
+  <div class="lc">
+    <div class="ll">🏪</div>
+    <div class="ltit">小程序运营管理系统</div>
+    <div class="lsub">多场景搭建与运营平台 v2.0</div>
+    <div class="lf"><label>账号</label><input id="lu" type="text" value="admin@example.com"/></div>
+    <div class="lf"><label>密码</label><input id="lpw" type="password" value="demo1234"/></div>
+    <button class="lbtn" onclick="doLogin()">登 录</button>
+    <div class="ltip">演示账号：admin@example.com · 任意密码均可登录</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appRoot" style="display:none">
+<aside class="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo">🏪</div>
+    <div class="sb-name">小程序运营系统</div>
+    <div class="sb-sub">多场景搭建与运营平台</div>
+  </div>
+  <nav class="sb-body">
+    <div class="nav-group">总览</div>
+    <div class="nav-item" data-p="dashboard" onclick="nav('dashboard')"><span class="ni">📊</span>工作台</div>
+    <div class="nav-group">页面与装修</div>
+    <div class="nav-item" data-p="pages" onclick="nav('pages')"><span class="ni">📄</span>页面管理</div>
+    <div class="nav-item" data-p="builder" onclick="nav('builder')"><span class="ni">🎨</span>页面装修器</div>
+    <div class="nav-group">内容运营</div>
+    <div class="nav-item" data-p="content" onclick="nav('content')"><span class="ni">📝</span>内容管理</div>
+    <div class="nav-item" data-p="form" onclick="nav('form')"><span class="ni">📋</span>表单管理<span class="nb">9</span></div>
+    <div class="nav-group">用户与会员</div>
+    <div class="nav-item" data-p="member" onclick="nav('member')"><span class="ni">👑</span>会员管理</div>
+    <div class="nav-item" data-p="user" onclick="nav('user')"><span class="ni">👥</span>用户管理</div>
+    <div class="nav-group">商业变现</div>
+    <div class="nav-item" data-p="product" onclick="nav('product')"><span class="ni">🛍️</span>商品管理</div>
+    <div class="nav-item" data-p="order" onclick="nav('order')"><span class="ni">📦</span>订单管理<span class="nb o">16</span></div>
+    <div class="nav-item" data-p="marketing" onclick="nav('marketing')"><span class="ni">🎁</span>营销管理</div>
+    <div class="nav-group">活动与预约</div>
+    <div class="nav-item" data-p="activity" onclick="nav('activity')"><span class="ni">🎪</span>活动管理</div>
+    <div class="nav-item" data-p="booking" onclick="nav('booking')"><span class="ni">📅</span>预约管理</div>
+    <div class="nav-group">智能 AI</div>
+    <div class="nav-item" data-p="agent" onclick="nav('agent')"><span class="ni">🤖</span>智能 Agent</div>
+    <div class="nav-group">系统</div>
+    <div class="nav-item" data-p="asset" onclick="nav('asset')"><span class="ni">🖼️</span>素材库</div>
+    <div class="nav-item" data-p="setting" onclick="nav('setting')"><span class="ni">⚙️</span>系统设置</div>
+  </nav>
+</aside>
+
+<div class="main-area">
+  <div class="topbar">
+    <div class="breadcrumb" id="BC"><span>管理后台</span><span style="color:#cbd5e1">/</span><span class="cur">工作台</span></div>
+    <div class="topbar-r">
+      <div class="mode-sw">
+        <button class="mbtn active" id="bA" onclick="switchMode('admin')">🖥 后台管理</button>
+        <button class="mbtn" id="bM" onclick="switchMode('mini')">📱 小程序预览</button>
+      </div>
+      <div class="ava" onclick="showToast('👋','已退出登录')">👤</div>
+    </div>
+  </div>
+  <div class="content-area" id="AA"><div id="PC"></div></div>
+  <div class="content-area" id="MA" style="display:none;flex-direction:column;align-items:center;background:#e4e8f2;padding:16px">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">小程序端实时预览 · 点击底部 Tab 切换页面</div>
+      <div class="mode-sw" style="display:inline-flex">
+        <button class="mbtn active" id="mBH" onclick="mpSwitch('home')">首页</button>
+        <button class="mbtn" id="mBC" onclick="mpSwitch('content')">内容</button>
+        <button class="mbtn" id="mBM" onclick="mpSwitch('member')">会员</button>
+        <button class="mbtn" id="mBS" onclick="mpSwitch('shop')">商城</button>
+        <button class="mbtn" id="mBN" onclick="mpSwitch('mine')">我的</button>
+      </div>
+    </div>
+    <div class="phone" style="width:var(--phone-w)">
+      <div class="pn"><div class="pp"></div></div>
+      <div class="ps3" id="PHONE" style="height:650px"></div>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:var(--muted)">💡 在装修器中点击「发布上线」后，小程序首页将同步更新</div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="MO" onclick="closeModalOut(event)">
+  <div class="mb0" id="MB">
+    <div class="mhd"><h3 id="MT">弹窗</h3><button class="mcl" onclick="closeModal()">×</button></div>
+    <div class="mbd" id="MB2"></div>
+    <div class="mft" id="MF"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="TOAST"><span id="TI">✅</span><span id="TM">操作成功</span></div>
+
+<script>
+/* ========== DATA ========== */
+var D = {
+  pages:[
+    {id:1,name:'首页',type:'首页',path:'/pages/home/index',status:'published',ver:18,updated:'2026-05-04',desc:'品牌主入口'},
+    {id:2,name:'会员中心',type:'系统页',path:'/pages/member/index',status:'published',ver:7,updated:'2026-05-03',desc:'会员权益展示'},
+    {id:3,name:'五一活动专题',type:'专题页',path:'/pages/custom/mayday',status:'draft',ver:2,updated:'2026-05-04',desc:'节日活动专题'},
+    {id:4,name:'预约咨询页',type:'表单页',path:'/pages/form/consult',status:'unpublished',ver:1,updated:'2026-05-01',desc:'咨询预约入口'},
+    {id:5,name:'品牌故事',type:'内容页',path:'/pages/content/brand',status:'published',ver:5,updated:'2026-04-30',desc:'品牌介绍'},
+    {id:6,name:'课程报名',type:'表单页',path:'/pages/form/course',status:'published',ver:3,updated:'2026-04-28',desc:'课程报名表单'}
+  ],
+  articles:[
+    {id:1,title:'品牌故事与项目介绍',type:'图文',cat:'品牌展示',status:'published',views:2381,rec:true},
+    {id:2,title:'会员权益深度解读',type:'文章',cat:'会员内容',status:'published',views:986,rec:true},
+    {id:3,title:'五一活动宣传视频',type:'视频',cat:'活动',status:'draft',views:0,rec:false},
+    {id:4,title:'产品使用指南',type:'文章',cat:'产品知识',status:'published',views:1204,rec:false},
+    {id:5,title:'用户案例分享',type:'图文',cat:'案例',status:'published',views:567,rec:true}
+  ],
+  forms:[
+    {id:1,name:'活动报名表',fields:4,submits:68,status:'active',created:'2026-04-20'},
+    {id:2,name:'咨询预约表',fields:5,submits:23,status:'active',created:'2026-04-22'},
+    {id:3,name:'满意度调查',fields:8,submits:142,status:'active',created:'2026-04-10'},
+    {id:4,name:'课程报名表',fields:6,submits:35,status:'closed',created:'2026-04-01'}
+  ],
+  submits:[
+    {id:1,name:'张小明',phone:'138****8888',session:'5月10日上午场',time:'2026-05-04 10:21',status:'pending'},
+    {id:2,name:'李小红',phone:'139****9999',session:'5月10日下午场',time:'2026-05-04 09:15',status:'approved'},
+    {id:3,name:'王大力',phone:'135****7777',session:'5月11日上午场',time:'2026-05-03 18:30',status:'pending'},
+    {id:4,name:'赵美丽',phone:'136****6666',session:'5月11日下午场',time:'2026-05-03 15:20',status:'approved'}
+  ],
+  members:[
+    {id:1,name:'张小明',level:'金卡',pts:1280,grow:5600,orders:4,amt:2680,tags:['高价值','活跃'],phone:'138****8888'},
+    {id:2,name:'李小红',level:'银卡',pts:680,grow:2400,orders:2,amt:890,tags:['活动用户'],phone:'139****9999'},
+    {id:3,name:'王大力',level:'普通',pts:230,grow:800,orders:1,amt:199,tags:['新用户'],phone:'135****7777'},
+    {id:4,name:'赵美丽',level:'钻石',pts:3680,grow:12000,orders:12,amt:8600,tags:['VIP','高价值'],phone:'136****6666'}
+  ],
+  products:[
+    {id:1,name:'品牌文创礼盒',cat:'文创周边',price:199,stock:386,status:'on',sales:124,img:'🎁',ptype:'physical'},
+    {id:2,name:'会员数字权益卡',cat:'数字商品',price:99,stock:'不限',status:'on',sales:286,img:'💳',ptype:'digital'},
+    {id:3,name:'品牌定制马克杯',cat:'文创周边',price:89,stock:200,status:'on',sales:56,img:'☕',ptype:'physical'},
+    {id:4,name:'限定版手提袋',cat:'文创周边',price:129,stock:50,status:'off',sales:89,img:'👜',ptype:'physical'},
+    {id:5,name:'年度会员套餐',cat:'服务商品',price:599,stock:'不限',status:'on',sales:43,img:'⭐',ptype:'service'}
+  ],
+  orders:[
+    {id:'NO202605040001',user:'张小明',phone:'138****8888',goods:'品牌文创礼盒',amt:199,status:'pending',pt:'2026-05-04 10:21'},
+    {id:'NO202605040002',user:'李小红',phone:'139****9999',goods:'会员数字权益卡',amt:99,status:'done',pt:'2026-05-04 09:08'},
+    {id:'NO202605040003',user:'赵美丽',phone:'136****6666',goods:'年度会员套餐',amt:599,status:'pending',pt:'2026-05-04 08:45'},
+    {id:'NO202605030001',user:'王大力',phone:'135****7777',goods:'品牌定制马克杯',amt:89,status:'shipped',pt:'2026-05-03 16:30'}
+  ],
+  activities:[
+    {id:1,name:'品牌开放日沙龙',type:'活动报名',date:'2026-05-10',venue:'品牌中心一楼',quota:100,signed:68},
+    {id:2,name:'新品发布会',type:'活动报名',date:'2026-05-15',venue:'线上直播',quota:500,signed:312},
+    {id:3,name:'一对一咨询',type:'预约服务',date:'每日开放',venue:'线下门店',quota:10,signed:23}
+  ],
+  bookings:[
+    {id:1,service:'一对一咨询',user:'张小明',date:'2026-05-05',time:'10:00-11:00',status:'confirmed'},
+    {id:2,service:'产品体验服务',user:'李小红',date:'2026-05-05',time:'14:00-15:00',status:'pending'},
+    {id:3,service:'一对一咨询',user:'王大力',date:'2026-05-06',time:'10:00-11:00',status:'confirmed'}
+  ],
+  coupons:[
+    {id:1,name:'新人专属优惠券',type:'满减',amt:'减20',rule:'满100可用',count:500,used:234,exp:'2026-06-30'},
+    {id:2,name:'会员专属9折券',type:'折扣',amt:'9折',rule:'无门槛',count:200,used:89,exp:'2026-05-31'},
+    {id:3,name:'五一活动满减券',type:'满减',amt:'减50',rule:'满200可用',count:1000,used:456,exp:'2026-05-05'}
+  ],
+  assets:[
+    {id:1,name:'banner-01.jpg',e:'🌄'},{id:2,name:'banner-02.jpg',e:'🏙️'},
+    {id:3,name:'poster-mayday.jpg',e:'🎉'},{id:4,name:'product-gift.jpg',e:'🎁'},
+    {id:5,name:'product-card.jpg',e:'💳'},{id:6,name:'icon-member.png',e:'👑'},
+    {id:7,name:'intro-video.mp4',e:'🎬'},{id:8,name:'logo.png',e:'🏪'},
+    {id:9,name:'brand-cover.jpg',e:'🖼️'},{id:10,name:'activity-photo.jpg',e:'📸'}
+  ],
+  users:[
+    {id:1,name:'微信用户_A328',phone:'138****8888',src:'分享进入',last:'今天 11:23',orders:2,forms:3,acts:1},
+    {id:2,name:'微信用户_B921',phone:'未授权',src:'扫码进入',last:'昨天 20:10',orders:0,forms:1,acts:0},
+    {id:3,name:'微信用户_C456',phone:'135****7777',src:'搜索进入',last:'2026-05-03',orders:1,forms:2,acts:2},
+    {id:4,name:'微信用户_D789',phone:'136****6666',src:'广告进入',last:'今天 09:45',orders:5,forms:1,acts:3}
+  ],
+  visits:[680,920,840,1120,980,1286,1050],
+  vlbls:['周一','周二','周三','周四','周五','今日','明日预测']
+};
+
+/* ========== STATE ========== */
+var S = {page:'dashboard',mode:'admin',mpPage:'home',demoStep:0,published:false,selComp:'banner',selStruct:0};
+var toastT = null;
+
+/* ========== UTILS ========== */
+function e(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function badge(s){
+  var m = {
+    published:'bg 已发布',draft:'bo 草稿',unpublished:'bb 未发布',
+    active:'bg 进行中',closed:'bb 已关闭',pending:'bo 待处理',
+    approved:'bg 已审核',confirmed:'bg 已确认',done:'bg 已完成',
+    shipped:'bbl 已发货',on:'bg 已上架',off:'bb 已下架'
+  };
+  var v = (m[s]||'bb '+s).split(' ');
+  return '<span class="badge '+v[0]+'">'+(v.slice(1).join(' '))+'</span>';
+}
+
+function statCard(icon,label,val,note,up,color){
+  var uc = up===true?'sup':up===false?'sdn':'';
+  return '<div class="sc"><div class="sci" style="background:'+color+'18;color:'+color+'">'+icon+'</div><div class="scl">'+label+'</div><div class="scv">'+val+'</div><div class="scc '+uc+'">'+note+'</div></div>';
+}
+
+function barChart(vals,labels){
+  var max = Math.max.apply(null,vals);
+  var h = '';
+  for(var i=0;i<vals.length;i++){
+    var v = vals[i];
+    var ht = Math.max(8, v/max*92);
+    var vl = v>=1000 ? (v/1000).toFixed(1)+'k' : v;
+    h += '<div class="bcc"><div class="brv">'+vl+'</div><div class="bar" style="height:'+ht+'px;background:linear-gradient(180deg,var(--blue),#bfdbfe)"></div><div class="brl">'+e(labels[i])+'</div></div>';
+  }
+  return '<div class="bc">'+h+'</div>';
+}
+
+function toolbar(html){ return '<div class="toolbar">'+html+'</div>'; }
+function inp(ph,w){ return '<input class="inp" placeholder="'+ph+'" style="width:'+(w||'180px')+'"/>'; }
+function sel(opts){ return '<select class="sel"><option>'+opts.join('</option><option>')+'</option></select>'; }
+
+/* ========== CORE ========== */
+function doLogin(){
+  var lp = document.getElementById('LP');
+  lp.style.transition = '.4s';
+  lp.style.opacity = '0';
+  setTimeout(function(){
+    lp.style.display = 'none';
+    document.getElementById('appRoot').style.display = 'flex';
+    nav('dashboard');
+    showToast('✅','登录成功，欢迎回来！');
+  }, 400);
+}
+
+document.getElementById('lpw').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+document.getElementById('lu').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+
+function nav(page){
+  S.page = page;
+  document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.toggle('active', el.dataset.p===page); });
+  var names = {dashboard:'工作台',pages:'页面管理',builder:'页面装修器',content:'内容管理',form:'表单管理',member:'会员管理',user:'用户管理',product:'商品管理',order:'订单管理',marketing:'营销管理',activity:'活动管理',booking:'预约管理',asset:'素材库',setting:'系统设置',agent:'智能 Agent'};
+  document.getElementById('BC').innerHTML = '<span>管理后台</span><span style="color:#cbd5e1">/</span><span class="cur">'+(names[page]||page)+'</span>';
+  var aa = document.getElementById('AA');
+  aa.style.padding = page==='builder' ? '0' : '22px 24px 40px';
+  if(S.mode==='mini') switchMode('admin');
+  var pc = document.getElementById('PC');
+  pc.innerHTML = '';
+  pc.className = 'fi';
+  pc.innerHTML = renderPage(page);
+}
+
+function switchMode(m){
+  S.mode = m;
+  document.getElementById('bA').classList.toggle('active', m==='admin');
+  document.getElementById('bM').classList.toggle('active', m==='mini');
+  document.getElementById('AA').style.display = m==='admin' ? 'block' : 'none';
+  var ma = document.getElementById('MA');
+  ma.style.display = m==='mini' ? 'flex' : 'none';
+  if(m==='mini') renderMp(S.mpPage);
+}
+
+function mpSwitch(p){
+  S.mpPage = p;
+  var keys = ['home','content','member','shop','mine','agent'];
+  var ids = ['mBH','mBC','mBM','mBS','mBN','mBA'];
+  for(var i=0;i<keys.length;i++){
+    var el = document.getElementById(ids[i]);
+    if(el) el.classList.toggle('active', keys[i]===p);
+  }
+  renderMp(p);
+}
+
+function showToast(icon, msg){
+  document.getElementById('TI').textContent = icon||'✅';
+  document.getElementById('TM').textContent = msg||'操作成功';
+  var t = document.getElementById('TOAST');
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+function openModal(title, body, foot){
+  document.getElementById('MT').textContent = title;
+  document.getElementById('MB2').innerHTML = body||'';
+  document.getElementById('MF').innerHTML = foot||'<button class="btn btn-p" onclick="closeModal()">确定</button>';
+  document.getElementById('MO').classList.add('show');
+}
+function closeModal(){ document.getElementById('MO').classList.remove('show'); }
+function closeModalOut(ev){ if(ev.target===document.getElementById('MO')) closeModal(); }
+
+function renderPage(p){
+  var map = {dashboard:pgDash,pages:pgPages,builder:pgBuilder,content:pgContent,form:pgForm,member:pgMember,user:pgUser,product:pgProduct,order:pgOrder,marketing:pgMkt,activity:pgActivity,booking:pgBooking,asset:pgAsset,setting:pgSetting,agent:pgAgent};
+  return (map[p]||pgDash)();
+}
+
+/* ========== DASHBOARD ========== */
+function pgDash(){
+  var steps = ['① 进入后台','② 页面管理','③ 进入装修器','④ 添加「活动入口」','⑤ 配置属性','⑥ 发布上线','⑦ 小程序端预览'];
+  var stepsHtml = '';
+  for(var i=0;i<steps.length;i++){
+    if(i>0) stepsHtml += '<div class="darr">→</div>';
+    var cls = i<S.demoStep ? 'ds done' : i===S.demoStep ? 'ds cur' : 'ds';
+    stepsHtml += '<div class="'+cls+'" onclick="S.demoStep=Math.max(S.demoStep,'+(i+1)+')">'+e(steps[i])+'</div>';
+  }
+  var prows = '';
+  var top3 = D.products.slice(0,3);
+  for(var i=0;i<top3.length;i++){
+    var p=top3[i];
+    var mc=['#f59e0b','#94a3b8','#cd7c54'][i];
+    prows+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:16px;font-weight:800;width:20px;color:'+mc+'">'+(i+1)+'</span><span style="font-size:20px">'+p.img+'</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e(p.name)+'</div><div style="font-size:11px;color:var(--muted)">¥'+p.price+'</div></div><div style="font-size:13px;font-weight:700;color:var(--blue)">'+p.sales+'件</div></div>';
+  }
+  return '<div class="ph"><div class="pt">工作台</div><div class="ps">欢迎回来，管理员 — '+new Date().toLocaleDateString('zh-CN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</div></div>'+
+  '<div class="db"><div class="dbt">🚀 演示路径：页面管理 → 装修器 → 添加活动入口 → 发布 → 小程序预览</div><div class="dsr">'+stepsHtml+'</div><div class="dac"><button class="dbtn p" onclick="S.demoStep=Math.max(S.demoStep,1);nav(\'pages\')">▶ 开始演示</button><button class="dbtn" onclick="S.demoStep=0;nav(\'dashboard\')">↺ 重置</button><button class="dbtn" onclick="switchMode(\'mini\')">📱 实时预览</button></div></div>'+
+  '<div class="g g4 mb16">'+statCard('📊','今日访问','1,286','↑ 12.4% 较昨日',true,'#1769ff')+statCard('👤','新增用户','86','↑ 8.1% 转化率',true,'#0faa6e')+statCard('📋','表单提交','42','待审核 9 条',null,'#f59e0b')+statCard('💰','订单金额','¥12,680','待发货 16 单',null,'#7c3aed')+'</div>'+
+  '<div class="g g2 mb16">'+
+  '<div class="card cp"><div class="sec-hd"><h3>📈 访问趋势 (近7日)</h3><span class="tag">每日凌晨刷新</span></div>'+barChart(D.visits,D.vlbls)+
+  '<div class="g g4 mt16" style="text-align:center;padding-top:12px;border-top:1px solid var(--border)"><div><div style="font-size:18px;font-weight:800">8.4k</div><div style="font-size:11px;color:var(--muted)">总访问量</div><div style="font-size:11px;color:var(--green)">↑23%</div></div><div><div style="font-size:18px;font-weight:800">286</div><div style="font-size:11px;color:var(--muted)">累计注册</div><div style="font-size:11px;color:var(--green)">↑18%</div></div><div><div style="font-size:18px;font-weight:800">196</div><div style="font-size:11px;color:var(--muted)">表单提交</div><div style="font-size:11px;color:var(--green)">↑31%</div></div><div><div style="font-size:18px;font-weight:800">3.2%</div><div style="font-size:11px;color:var(--muted)">成交转化</div><div style="font-size:11px;color:var(--green)">↑0.4%</div></div></div></div>'+
+  '<div class="card cp"><div class="sec-hd"><h3>📌 待办事项</h3><button class="btn sm">处理中心</button></div><table><thead><tr><th>事项类型</th><th>待办数</th><th>操作</th></tr></thead><tbody>'+
+  '<tr><td>待发布草稿页面</td><td><span class="badge bo">3</span></td><td><button class="btn sm btn-p" onclick="nav(\'pages\')">去发布</button></td></tr>'+
+  '<tr><td>待审核表单提交</td><td><span class="badge br">9</span></td><td><button class="btn sm btn-p" onclick="nav(\'form\')">去审核</button></td></tr>'+
+  '<tr><td>待发货订单记录</td><td><span class="badge bo">16</span></td><td><button class="btn sm btn-p" onclick="nav(\'order\')">去发货</button></td></tr>'+
+  '<tr><td>待确认服务预约</td><td><span class="badge bbl">5</span></td><td><button class="btn sm btn-p" onclick="nav(\'booking\')">去确认</button></td></tr>'+
+  '</tbody></table></div></div>'+
+  '<div class="g g2 mb16">'+
+  '<div class="card cp" style="grid-column:span 2">'+
+  '<div class="sec-hd"><h3>⚡ 快捷功能入口</h3></div>'+
+  '<div class="g g3" style="gap:10px">'+
+  quickBtn('🎨','装修首页','可视化配置首页组件','builder')+
+  quickBtn('📝','内容发布','发布文章、图文、视频','content')+
+  quickBtn('📋','表单构建','自定义报名/咨询表单','form')+
+  quickBtn('👑','会员体系','配置等级、积分、权益','member')+
+  quickBtn('🛍️','商品上架','管理实物/数字/服务商品','product')+
+  quickBtn('🎁','营销工具','配置优惠券、签到活动','marketing')+
+  '</div></div>'+
+  '<div class="card cp"><div class="sec-hd"><h3>🏆 销售排行 TOP 3</h3></div>'+prows+'<button class="btn sm mt12" style="width:100%;justify-content:center" onclick="nav(\'product\')">查看全部商品 →</button></div>'+
+  '</div>'+
+  '<div class="card cp"><div class="sec-hd"><h3>📋 最近发布版本记录</h3><button class="btn sm" onclick="nav(\'pages\')">查看更多</button></div>'+
+  '<table><thead><tr><th>页面名称</th><th>当前状态</th><th>最后操作</th><th>版本号</th><th>发布时间</th><th>操作</th></tr></thead><tbody>'+
+  '<tr><td><b>首页</b></td><td>'+badge('published')+'</td><td>管理员</td><td><span class="badge bbl nb0">v18</span></td><td>2026-05-04 11:30</td><td><button class="btn xs" onclick="nav(\'builder\')">进入装修</button></td></tr>'+
+  '<tr><td><b>五一活动专题</b></td><td>'+badge('draft')+'</td><td>运营小王</td><td><span class="badge bo nb0">v2</span></td><td>2026-05-04 10:15</td><td><button class="btn xs btn-p" onclick="nav(\'builder\')">去发布</button></td></tr>'+
+  '<tr><td><b>品牌故事</b></td><td>'+badge('published')+'</td><td>管理员</td><td><span class="badge bbl nb0">v5</span></td><td>2026-04-30 16:40</td><td><button class="btn xs" onclick="switchMode(\'mini\')">预览效果</button></td></tr>'+
+  '</tbody></table></div>';
+}
+function quickBtn(icon,title,sub,page){
+  return '<div onclick="nav(\''+page+'\')" style="padding:16px;background:#f8faff;border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.14s" onmouseover="this.style.borderColor=\'var(--blue)\';this.style.background=\'var(--blue-light)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.background=\'#f8faff\';this.style.transform=\'none\'"><div style="font-size:24px;margin-bottom:8px">'+icon+'</div><div style="font-weight:700;font-size:14px">'+title+'</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+sub+'</div></div>';
+}
+
+/* ========== PAGES ========== */
+function pgPages(){
+  S.demoStep = Math.max(S.demoStep,1);
+  var rows = '';
+  for(var i=0;i<D.pages.length;i++){
+    var p=D.pages[i];
+    rows+='<tr><td><b>'+e(p.name)+'</b><br><span style="font-size:11px;color:var(--muted)">'+e(p.desc)+'</span></td>'+
+    '<td><span class="tag">'+e(p.type)+'</span></td>'+
+    '<td style="font-family:monospace;font-size:11px;color:var(--muted)">'+e(p.path)+'</td>'+
+    '<td>'+badge(p.status)+'</td>'+
+    '<td><span class="badge bbl nb0">v'+p.ver+'</span></td>'+
+    '<td>'+p.updated+'</td>'+
+    '<td>'+
+    '<button class="btn xs btn-p" onclick="enterBuilder('+p.id+')">装修</button> '+
+    '<button class="btn xs" onclick="switchMode(\'mini\')">预览</button> '+
+    '<button class="btn xs btn-s" onclick="showToast(\'🚀\',\''+e(p.name)+'发布成功\')">发布</button> '+
+    '<button class="btn xs btn-d" onclick="showToast(\'⚠️\',\'删除需二次确认\')">删除</button>'+
+    '</td></tr>';
+  }
+  return '<div class="ph"><div class="pt">页面管理</div><div class="ps">管理所有小程序页面，支持装修、发布、版本管理。</div></div>'+
+  toolbar(inp('搜索页面名称','180px')+sel(['类型：全部','首页','专题页','表单页','内容页'])+sel(['状态：全部','已发布','草稿','未发布'])+'<div class="mla flex gap8"><button class="btn" onclick="openTmplModal()">📦 页面模板</button><button class="btn btn-p" onclick="openNewPageModal()">+ 新建页面</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>页面名称</th><th>类型</th><th>访问路径</th><th>状态</th><th>版本</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+  '<div style="margin-top:10px;font-size:12px;color:var(--muted)">共 '+D.pages.length+' 个页面</div>';
+}
+function enterBuilder(id){ S.demoStep=Math.max(S.demoStep,2); nav('builder'); showToast('🎨','进入页面装修器'); }
+function openTmplModal(){
+  var items=['首页模板','内容模板','会员模板','活动模板','商城模板','预约模板'];
+  var h='<div class="g g2" style="gap:8px">';
+  for(var i=0;i<items.length;i++){
+    h+='<div onclick="showToast(\'📄\',\'已应用：'+items[i]+'\');closeModal()" style="padding:14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:center" onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><div style="font-size:28px;margin-bottom:8px">📄</div><div style="font-weight:700;font-size:13px">'+items[i]+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">预设组件与样式</div></div>';
+  }
+  h+='</div>';
+  openModal('页面模板库', h);
+}
+function openNewPageModal(){
+  openModal('新建页面',
+    '<div class="fr"><span class="fl">页面名称</span><input class="inp" style="flex:1" placeholder="请输入页面名称"/></div>'+
+    '<div class="fr"><span class="fl">页面类型</span><select class="sel" style="flex:1"><option>专题页</option><option>内容页</option><option>表单页</option></select></div>'+
+    '<div class="fr"><span class="fl">访问路径</span><input class="inp" style="flex:1" value="/pages/custom/"/></div>'+
+    '<div class="fr"><span class="fl">分享标题</span><input class="inp" style="flex:1" placeholder="微信分享时的标题"/></div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'✅\',\'页面已创建\');setTimeout(function(){nav(\'builder\')},600)">创建并装修</button>'
+  );
+}
+
+/* ========== BUILDER ========== */
+function pgBuilder(){
+  S.demoStep = Math.max(S.demoStep,2);
+  var comps = [
+    {t:'banner',i:'🖼️',l:'轮播Banner'},{t:'image',i:'📷',l:'图片'},
+    {t:'text',i:'📝',l:'文本/富文本'},{t:'video',i:'🎬',l:'视频'},
+    {t:'button',i:'🔘',l:'按钮'},{t:'nav',i:'🧭',l:'宫格导航'},
+    {t:'article',i:'📰',l:'文章列表'},{t:'product',i:'🛍️',l:'商品列表'},
+    {t:'form',i:'📋',l:'表单入口'},{t:'member',i:'👑',l:'会员卡'},
+    {t:'activity',i:'🎪',l:'活动入口'},{t:'service',i:'💬',l:'客服'}
+  ];
+  var structs = ['轮播图 Banner','宫格导航','会员卡片','推荐内容','推荐商品'];
+  var cgrid = '';
+  for(var i=0;i<comps.length;i++){
+    var c=comps[i];
+    cgrid+='<div class="cc'+(c.t===S.selComp?' active':'')+'" id="cc_'+c.t+'" onclick="bldSel(\''+c.t+'\',\''+c.l+'\')"><span class="ci">'+c.i+'</span>'+c.l+'</div>';
+  }
+  var slist='';
+  for(var i=0;i<structs.length;i++){
+    slist+='<div class="sr'+(i===S.selStruct?' active':'')+'" id="sr'+i+'" onclick="bldSelStr('+i+')"><span class="dh">⠿</span><span>'+(i+1)+'. '+e(structs[i])+'</span><span style="margin-left:auto;color:#ccc;font-size:13px;cursor:pointer" onclick="event.stopPropagation();this.closest(\'.sr\').remove();showToast(\'🗑️\',\'已移除\')">✕</span></div>';
+  }
+  return '<div class="builder">'+
+  '<div class="bl"><div class="bph">组件库</div><div class="cgrid" id="CGRID">'+cgrid+'</div><div class="bph" style="border-top:1px solid var(--border);margin-top:4px">页面结构</div><div class="slist" id="SLIST">'+slist+'</div></div>'+
+  '<div class="bm">'+
+  '<div class="btb"><div style="display:flex;align-items:center;gap:10px"><button class="btn sm" onclick="nav(\'pages\')">← 返回</button><span class="bpn">首页</span><span class="bver" id="BV">v18</span></div>'+
+  '<div class="flex gap8"><button class="btn sm" onclick="bldSave()">💾 保存草稿</button><button class="btn sm" onclick="switchMode(\'mini\')">👁 预览</button><button class="btn sm btn-o" onclick="bldHistory()">🕐 历史版本</button><button class="btn sm btn-p" onclick="bldPublish()">🚀 发布上线</button></div></div>'+
+  '<div style="margin-top:14px"><div class="phone" style="width:var(--phone-w)"><div class="pn"><div class="pp"></div></div><div class="ps3" id="BP" style="height:610px">'+bldPhoneHtml()+'</div></div></div>'+
+  '</div>'+
+  '<div class="brt"><div class="bph">属性配置</div><div id="PP">'+renderProps(S.selComp)+'</div></div>'+
+  '</div>';
+}
+
+function bldPhoneHtml(){
+  var acts = S.published;
+  var prodsHtml = '';
+  var plist = [];
+  for(var i=0;i<D.products.length;i++){ if(D.products[i].status==='on') plist.push(D.products[i]); if(plist.length>=2) break; }
+  for(var i=0;i<plist.length;i++){
+    var p=plist[i];
+    prodsHtml+='<div class="mp-pc"><div class="mp-pi">'+p.img+'</div><div style="padding:8px 9px"><div class="mp-pn">'+e(p.name)+'</div><div class="mp-pr">¥'+p.price+'</div></div></div>';
+  }
+  var artHtml='';
+  for(var i=0;i<Math.min(2,D.articles.length);i++){
+    var a=D.articles[i];
+    artHtml+='<div class="mp-li"><div class="mp-limg">📖</div><div class="mp-lb"><div class="mp-lt">'+e(a.title)+'</div><div class="mp-ls">'+e(a.cat)+' · '+a.views+'阅读</div></div></div>';
+  }
+  var middle = acts ?
+    '<div class="mp-sh">活动入口 <span class="mp-new">NEW</span></div><div class="mp-ac"><div class="mp-ai" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">🎪 品牌开放日沙龙</div><div class="mp-aif"><div class="mp-at">品牌开放日沙龙</div><div class="mp-am"><span>📅 2026-05-10</span><span>📍 品牌中心</span></div></div></div>' :
+    '<div class="mp-pg">'+prodsHtml+'</div>';
+  return '<div class="mp-top"><span>品牌小程序</span></div>'+
+  '<div style="flex:1;overflow-y:auto;background:#f6f8fb">'+
+  '<div class="mp-ban" style="height:145px"><div style="text-align:center;z-index:1;position:relative"><div style="font-size:15px;font-weight:800;margin-bottom:4px">五一活动限时优惠</div><div style="font-size:12px;opacity:.85">点击了解</div></div><div class="mp-dots"><div class="mp-dt on"></div><div class="mp-dt"></div><div class="mp-dt"></div></div></div>'+
+  '<div class="mp-nav" style="grid-template-columns:repeat(4,1fr)"><div class="mp-ni"><div class="mp-nic">📝</div><div class="mp-nil">内容</div></div><div class="mp-ni"><div class="mp-nic">👑</div><div class="mp-nil">会员</div></div><div class="mp-ni"><div class="mp-nic">🎪</div><div class="mp-nil">活动</div></div><div class="mp-ni"><div class="mp-nic">🛍️</div><div class="mp-nil">商城</div></div></div>'+
+  '<div class="mp-mc" style="margin:0 10px 10px"><div class="mp-mr"><div class="mp-av">👤</div><div><div class="mp-mn">金卡会员</div><div class="mp-ml">点击查看权益</div></div></div><div class="mp-sr"><div class="mp-si"><div class="mp-sv">1280</div><div class="mp-sl">积分</div></div><div class="mp-si"><div class="mp-sv">5600</div><div class="mp-sl">成长值</div></div><div class="mp-si"><div class="mp-sv">3</div><div class="mp-sl">优惠券</div></div></div></div>'+
+  '<div class="mp-card"><div class="mp-ct">精选内容</div>'+artHtml+'</div>'+
+  middle+'</div>';
+}
+
+function bldSel(type, label){
+  S.selComp = type;
+  document.querySelectorAll('.cc').forEach(function(el){ el.classList.toggle('active', el.id==='cc_'+type); });
+  var pp = document.getElementById('PP');
+  if(pp) pp.innerHTML = renderProps(type);
+  S.demoStep = Math.max(S.demoStep,3);
+}
+function bldSelStr(i){
+  S.selStruct = i;
+  document.querySelectorAll('.sr').forEach(function(el,idx){ el.classList.toggle('active', idx===i); });
+  var types = ['banner','nav','member','article','product'];
+  var pp = document.getElementById('PP');
+  if(pp) pp.innerHTML = renderProps(types[i]||'banner');
+}
+function bldAddComp(type, label){
+  S.demoStep = Math.max(S.demoStep,4);
+  var sl = document.getElementById('SLIST');
+  if(sl){
+    var idx = sl.children.length+1;
+    var d = document.createElement('div');
+    d.className='sr active';
+    d.innerHTML='<span class="dh">⠿</span><span>'+idx+'. '+e(label)+'</span><span style="margin-left:auto;color:#ccc;font-size:13px;cursor:pointer" onclick="event.stopPropagation();this.closest(\'.sr\').remove()">✕</span>';
+    d.onclick = function(){ document.querySelectorAll('.sr').forEach(function(el){ el.classList.remove('active'); }); d.classList.add('active'); };
+    sl.querySelectorAll('.sr').forEach(function(el){ el.classList.remove('active'); });
+    sl.appendChild(d);
+  }
+  var pp = document.getElementById('PP');
+  if(pp) pp.innerHTML = renderProps(type);
+  showToast('🎨','已添加「'+label+'」，请在右侧配置属性');
+}
+function bldSave(){ S.demoStep=Math.max(S.demoStep,4); showToast('💾','草稿已保存'); }
+function bldPublish(){
+  S.demoStep=Math.max(S.demoStep,6); S.published=true;
+  var v=document.getElementById('BV'); if(v) v.textContent='v19';
+  var ph=document.getElementById('BP'); if(ph) ph.innerHTML=bldPhoneHtml();
+  showToast('🚀','发布成功！v19 已上线，小程序同步更新');
+  setTimeout(function(){
+    openModal('🎉 发布成功',
+      '<div style="text-align:center;padding:16px 0"><div style="font-size:52px;margin-bottom:12px">🎉</div>'+
+      '<div style="font-size:18px;font-weight:800;margin-bottom:6px">首页 v19 已发布上线</div>'+
+      '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">发布时间：'+new Date().toLocaleTimeString()+'</div>'+
+      '<div style="padding:12px;background:var(--green-light);border-radius:10px;color:var(--green);font-size:13px">✅ 小程序首页已同步，活动入口已显示</div></div>',
+      '<button class="btn" onclick="closeModal()">关闭</button><button class="btn btn-p" onclick="closeModal();switchMode(\'mini\')">📱 查看小程序效果</button>'
+    );
+  }, 600);
+}
+function bldHistory(){
+  openModal('历史版本',
+    '<table style="font-size:12px;width:100%"><thead><tr><th>版本</th><th>操作人</th><th>时间</th><th>操作</th></tr></thead><tbody>'+
+    '<tr><td><b>v18</b> <span class="badge bg nb0" style="font-size:10px">当前</span></td><td>管理员</td><td>2026-05-04 11:30</td><td><button class="btn xs">查看</button></td></tr>'+
+    '<tr><td>v17</td><td>运营小王</td><td>2026-05-03 16:20</td><td><button class="btn xs">回滚</button> <button class="btn xs">查看</button></td></tr>'+
+    '<tr><td>v16</td><td>管理员</td><td>2026-05-02 10:15</td><td><button class="btn xs">回滚</button> <button class="btn xs">查看</button></td></tr>'+
+    '</tbody></table>'
+  );
+}
+
+function renderProps(type){
+  var p = {
+    banner: '<div class="ps2"><h4>轮播图设置</h4><div class="pr"><span class="prl">高度</span><input class="pi" value="160" type="number"/><span style="font-size:11px;color:var(--muted)">px</span></div><div class="pr"><span class="prl">圆角</span><input class="pi" value="14" type="number"/><span style="font-size:11px;color:var(--muted)">px</span></div><div class="pr"><span class="prl">自动播放</span><select class="pse"><option>开启</option><option>关闭</option></select></div></div><div class="ps2"><h4>图片列表</h4><button class="btn xs" style="width:100%;justify-content:center;margin-bottom:8px" onclick="openAssetModal()">+ 添加图片</button><div style="background:#f8faff;border-radius:8px;padding:8px;font-size:12px;color:var(--muted)">① 五一活动海报 → 活动页<br>② 新品上市 → 商城页<br>③ 会员专享 → 会员页</div></div>',
+    nav: '<div class="ps2"><h4>宫格导航</h4><div class="pr"><span class="prl">列数</span><select class="pse"><option>4列</option><option>3列</option><option>5列</option></select></div></div><div class="ps2"><h4>导航项</h4><div style="display:flex;gap:5px;margin-bottom:5px"><input class="pi" value="📝内容" style="flex:1;font-size:11px"/><span style="color:var(--muted);font-size:10px">→</span><input class="pi" value="/pages/content" style="flex:2;font-size:10px"/></div><div style="display:flex;gap:5px;margin-bottom:5px"><input class="pi" value="👑会员" style="flex:1;font-size:11px"/><span style="color:var(--muted);font-size:10px">→</span><input class="pi" value="/pages/member" style="flex:2;font-size:10px"/></div><div style="display:flex;gap:5px;margin-bottom:5px"><input class="pi" value="🎪活动" style="flex:1;font-size:11px"/><span style="color:var(--muted);font-size:10px">→</span><input class="pi" value="/pages/activity" style="flex:2;font-size:10px"/></div><div style="display:flex;gap:5px;margin-bottom:8px"><input class="pi" value="🛍️商城" style="flex:1;font-size:11px"/><span style="color:var(--muted);font-size:10px">→</span><input class="pi" value="/pages/shop" style="flex:2;font-size:10px"/></div><button class="btn xs" style="width:100%;justify-content:center">+ 添加项</button></div>',
+    activity: '<div class="ps2"><h4>活动入口配置</h4><div class="pr"><span class="prl">活动标题</span><input class="pi" value="品牌开放日沙龙"/></div><div class="pr"><span class="prl">活动时间</span><input class="pi" value="2026-05-10"/></div><div class="pr"><span class="prl">活动地点</span><input class="pi" value="品牌中心"/></div><div class="pr"><span class="prl">跳转页面</span><input class="pi" value="/pages/activity/1"/></div></div><div class="ps2"><h4>卡片配色</h4><div class="sw2"><div class="sw active" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"></div><div class="sw" style="background:linear-gradient(135deg,#1769ff,#20b7ff)"></div><div class="sw" style="background:linear-gradient(135deg,#0faa6e,#34d399)"></div><div class="sw" style="background:linear-gradient(135deg,#f59e0b,#fcd34d)"></div></div></div>',
+    member: '<div class="ps2"><h4>会员卡配置</h4><div class="pr"><span class="prl">显示积分</span><select class="pse"><option>是</option><option>否</option></select></div><div class="pr"><span class="prl">显示等级</span><select class="pse"><option>是</option><option>否</option></select></div></div><div class="ps2"><h4>卡片配色</h4><div class="sw2"><div class="sw active" style="background:linear-gradient(135deg,#0f2150,#1769ff)"></div><div class="sw" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"></div><div class="sw" style="background:linear-gradient(135deg,#111827,#374151)"></div><div class="sw" style="background:linear-gradient(135deg,#b45309,#f59e0b)"></div></div></div>',
+    article: '<div class="ps2"><h4>文章列表</h4><div class="pr"><span class="prl">标题</span><input class="pi" value="精选内容"/></div><div class="pr"><span class="prl">显示数量</span><input class="pi" value="3" type="number"/></div><div class="pr"><span class="prl">数据源</span><select class="pse"><option>最新发布</option><option>推荐文章</option><option>指定分类</option></select></div></div>',
+    product: '<div class="ps2"><h4>商品列表</h4><div class="pr"><span class="prl">标题</span><input class="pi" value="热门商品"/></div><div class="pr"><span class="prl">布局</span><select class="pse"><option>2列网格</option><option>1列列表</option><option>横向滚动</option></select></div><div class="pr"><span class="prl">显示数量</span><input class="pi" value="4" type="number"/></div></div>',
+    form: '<div class="ps2"><h4>表单入口</h4><div class="pr"><span class="prl">按钮文字</span><input class="pi" value="立即报名"/></div><div class="pr"><span class="prl">关联表单</span><select class="pse"><option>活动报名表</option><option>咨询预约表</option><option>课程报名表</option></select></div><div class="pr"><span class="prl">按钮样式</span><select class="pse"><option>主色按钮</option><option>描边按钮</option></select></div></div>',
+    text: '<div class="ps2"><h4>文本配置</h4><div class="pr"><span class="prl">字号</span><input class="pi" value="14" type="number"/><span style="font-size:11px;color:var(--muted)">px</span></div><div class="pr"><span class="prl">行高</span><input class="pi" value="1.8" type="number" step="0.1"/></div><div class="pr"><span class="prl">对齐</span><select class="pse"><option>左对齐</option><option>居中</option><option>右对齐</option></select></div></div>'
+  };
+  var common = '<div class="ps2"><h4>通用间距</h4><div class="pr"><span class="prl">上间距</span><input class="pi" value="10" type="number"/><span style="font-size:11px;color:var(--muted)">px</span></div><div class="pr"><span class="prl">下间距</span><input class="pi" value="10" type="number"/><span style="font-size:11px;color:var(--muted)">px</span></div></div>';
+  var def = '<div class="ps2"><h4>基础配置</h4><div class="pr"><span class="prl">标题</span><input class="pi" value="新组件"/></div></div>';
+  return (p[type]||def)+common+'<div class="ps2"><div style="font-size:11px;color:var(--muted);text-align:center;padding:4px 0">修改属性后点击「保存」或「发布」</div></div>';
+}
+
+/* ========== CONTENT ========== */
+function pgContent(){
+  var rows='';
+  for(var i=0;i<D.articles.length;i++){
+    var a=D.articles[i];
+    rows+='<tr><td><b>'+e(a.title)+'</b>'+(a.rec?'<span class="tag" style="margin-left:6px">推荐</span>':'')+'</td>'+
+    '<td><span class="tag tp">'+e(a.type)+'</span></td><td>'+e(a.cat)+'</td><td>'+badge(a.status)+'</td><td>'+(a.views||'—')+'</td>'+
+    '<td><button class="btn xs btn-p" onclick="openArtModal('+a.id+')">编辑</button> '+
+    '<button class="btn xs" onclick="showToast(\'📝\',\''+(a.status==='published'?'已下架':'已上架')+'\')">'+( a.status==='published'?'下架':'上架')+'</button> '+
+    '<button class="btn xs" onclick="showToast(\'⭐\',\''+(a.rec?'取消推荐':'设为推荐')+'\')">'+( a.rec?'取消推荐':'设为推荐')+'</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">内容管理</div><div class="ps">文章、图文、视频，支持分类、推荐、上下架。</div></div>'+
+  toolbar(inp('搜索标题','180px')+sel(['类型：全部','文章','图文','视频'])+sel(['分类：全部','品牌展示','会员内容','活动'])+'<div class="mla flex gap8"><button class="btn" onclick="openCatModal()">📁 分类</button><button class="btn btn-p" onclick="openArtModal(0)">+ 新建</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>标题</th><th>类型</th><th>分类</th><th>状态</th><th>阅读</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function openCatModal(){
+  var cats=[
+    {n:'品牌展示',s:1,sub:['品牌动态','团队介绍']},
+    {n:'会员内容',s:2,sub:['等级说明','专属活动']},
+    {n:'产品知识',s:3,sub:['使用指南','FAQ大全']},
+    {n:'活动公告',s:4,sub:[]}
+  ];
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">支持二级分类嵌套，可拖拽调整显示顺序：</div>';
+  for(var i=0;i<cats.length;i++){
+    var c=cats[i];
+    h+='<div style="background:#f8faff;border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="font-weight:700">⠿ '+c.n+'</span>'+
+    '<div class="flex gap8"><button class="btn xs">+ 子分类</button><button class="btn xs">重命名</button><button class="btn xs btn-d">✕</button></div></div>';
+    if(c.sub.length>0){
+      h+='<div style="margin-left:24px;margin-top:6px;border-left:2px solid var(--border);padding-left:12px">';
+      for(var j=0;j<c.sub.length;j++){
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span>⠿ '+c.sub[j]+'</span><div class="flex gap8"><button class="btn xs sm">编辑</button><button class="btn xs sm btn-d">✕</button></div></div>';
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  h+='<button class="btn btn-p sm" style="width:100%;justify-content:center;margin-top:8px">+ 新增一级分类</button>';
+  openModal('内容分类管理',h);
+}
+function openArtModal(id){
+  var a=id?D.articles.find(function(x){return x.id===id;}):null;
+  var rtBtns=['B','I','U','H1','H2','引用','链接','表格','代码块','图片','视频','列表'].map(function(t){return '<button class="reb">'+t+'</button>';}).join('');
+  openModal(id?'编辑内容与 SEO 配置':'发布新内容',
+    '<div class="ptabs"><div class="ptab active" id="tab_base" onclick="artTab(\'base\')">基础内容</div><div class="ptab" id="tab_seo" onclick="artTab(\'seo\')">SEO 与 分享配置</div></div>'+
+    '<div id="art_base">'+
+    '<div class="fr"><span class="fl">标题</span><input class="inp" style="flex:1" value="'+(a?e(a.title):'')+'"/></div>'+
+    '<div class="fr"><span class="fl">内容分类</span><select class="sel" style="flex:1"><option>品牌展示</option><option>会员内容</option><option>活动动态</option><option>└ 活动预告</option></select></div>'+
+    '<div class="fr"><span class="fl">发布方式</span><select class="sel" style="flex:1" onchange="this.value===\'定时发布\'?document.getElementById(\'stime\').style.display=\'grid\':document.getElementById(\'stime\').style.display=\'none\'"><option>立即发布</option><option>定时发布</option><option>存为草稿</option></select></div>'+
+    '<div class="fr" id="stime" style="display:none"><span class="fl">发布时间</span><input class="inp" type="datetime-local" style="flex:1"/></div>'+
+    '<div style="margin-bottom:6px;font-size:12px;color:var(--muted);font-weight:600">正文编辑 (支持表格与代码块)</div>'+
+    '<div class="re"><div class="ret">'+rtBtns+'</div><div class="rec" contenteditable="true">'+(a?e(a.title)+'的正文内容...':'在此输入内容...')+'</div></div>'+
+    '</div>'+
+    '<div id="art_seo" style="display:none">'+
+    '<div class="fr"><span class="fl">SEO 标题</span><input class="inp" style="flex:1" placeholder="用于搜索引擎与分享标题" value="'+(a?e(a.title):'')+'"/></div>'+
+    '<div class="fr" style="align-items:flex-start"><span class="fl" style="padding-top:6px">SEO 描述</span><textarea class="ta" style="flex:1" placeholder="简要描述内容核心，利于搜索收录与卡片分享..."></textarea></div>'+
+    '<div class="fr"><span class="fl">分享封面</span><button class="btn sm" onclick="openAssetModal()">从素材库选取</button></div>'+
+    '<div style="padding:12px;background:var(--blue-light);border-radius:10px;color:var(--blue);font-size:11px">💡 提示：优化 SEO 配置可显著提升内容在微信搜一搜及外部社交平台的点击率。</div>'+
+    '</div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'✅\',\'发布操作已生效\')">提交执行</button>'
+  );
+}
+function artTab(t){
+  document.getElementById('art_base').style.display = t==='base'?'block':'none';
+  document.getElementById('art_seo').style.display = t==='seo'?'block':'none';
+  document.getElementById('tab_base').classList.toggle('active', t==='base');
+  document.getElementById('tab_seo').classList.toggle('active', t==='seo');
+}
+
+/* ========== FORM ========== */
+function pgForm(){
+  var rows='';
+  for(var i=0;i<D.forms.length;i++){
+    var f=D.forms[i];
+    rows+='<tr><td><b>'+e(f.name)+'</b></td><td>'+f.fields+'个字段</td><td><b>'+f.submits+'</b></td>'+
+    '<td>'+badge(f.status==='active'?'active':'closed')+'</td><td>'+f.created+'</td>'+
+    '<td><button class="btn xs btn-p" onclick="openFormCfg('+f.id+')">字段配置</button> '+
+    '<button class="btn xs" onclick="openFormRecs('+f.id+')">提交记录</button> '+
+    '<button class="btn xs" onclick="showToast(\'📊\',\'Excel已导出\')">导出</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">表单管理</div><div class="ps">报名、咨询、问卷、线索，字段自由配置。</div></div>'+
+  toolbar(inp('搜索表单','180px')+'<div class="mla"><button class="btn btn-p" onclick="openFormCfg(0)">+ 新建表单</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>表单名称</th><th>字段数</th><th>提交数</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function openFormCfg(id){
+  var f=id?D.forms.find(function(x){return x.id===id;}):null;
+  var fts=['单行文本','手机号','多行文本','下拉选择','单选','多选','日期','图片上传','地区选择','评分'];
+  var btns=fts.map(function(t){return '<button class="btn xs" onclick="showToast(\'📋\',\'已添加：'+t+'\')">+ '+t+'</button>';}).join('');
+  openModal(id?('表单配置：'+f.name):'新建表单',
+    '<div class="fr"><span class="fl">表单名称</span><input class="inp" style="flex:1" value="'+(f?e(f.name):'')+'"/></div>'+
+    '<div style="font-weight:700;font-size:13px;margin:10px 0 8px">字段列表</div>'+
+    '<table style="font-size:12px"><thead><tr><th>字段名</th><th>类型</th><th>必填</th><th>操作</th></tr></thead><tbody>'+
+    '<tr><td>姓名</td><td><select class="sel" style="height:26px;font-size:11px"><option>单行文本</option></select></td><td><input type="checkbox" checked/></td><td><button class="btn xs">编辑</button></td></tr>'+
+    '<tr><td>手机号</td><td><select class="sel" style="height:26px;font-size:11px"><option>手机号</option></select></td><td><input type="checkbox" checked/></td><td><button class="btn xs">编辑</button></td></tr>'+
+    '<tr><td>参加场次</td><td><select class="sel" style="height:26px;font-size:11px"><option>下拉选择</option></select></td><td><input type="checkbox" checked/></td><td><button class="btn xs">编辑</button></td></tr>'+
+    '</tbody></table>'+
+    '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">快速添加字段：</div><div style="display:flex;flex-wrap:wrap;gap:5px">'+btns+'</div></div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'📋\',\'表单已保存\')">保存</button>'
+  );
+}
+function openFormRecs(id){
+  var rows='';
+  for(var i=0;i<D.submits.length;i++){
+    var s=D.submits[i];
+    rows+='<tr><td>'+e(s.name)+'</td><td>'+e(s.phone)+'</td><td>'+e(s.session)+'</td><td style="font-size:11px">'+s.time+'</td><td>'+badge(s.status)+'</td><td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'已审核\')">审核</button></td></tr>';
+  }
+  openModal('提交记录（'+D.submits.length+' 条）',
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn sm" onclick="showToast(\'📊\',\'已导出\')">导出Excel</button></div>'+
+    '<table style="font-size:12px"><thead><tr><th>姓名</th><th>手机</th><th>场次</th><th>时间</th><th>状态</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table>'
+  );
+}
+
+/* ========== MEMBER ========== */
+function pgMember(){
+  var rows='';
+  var lvC={钻石:'bp',金卡:'bo',银卡:'bsi',普通:'bb'};
+  for(var i=0;i<D.members.length;i++){
+    var m=D.members[i];
+    var tgs=m.tags.map(function(t){return '<span class="tag">'+e(t)+'</span>';}).join('');
+    rows+='<tr><td><b>'+e(m.name)+'</b><br><span style="font-size:11px;color:var(--muted)">'+e(m.phone)+'</span></td>'+
+    '<td><span class="badge '+(lvC[m.level]||'bb')+'">'+m.level+'会员</span></td>'+
+    '<td>'+m.pts+'</td><td>'+m.grow+'</td><td>¥'+m.amt+' / '+m.orders+'次</td><td>'+tgs+'</td>'+
+    '<td><button class="btn xs" onclick="openMbrModal('+m.id+')">画像详情</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">会员运营中心</div><div class="ps">管理会员等级、积分规则、权益配置及用户标签。</div></div>'+
+  '<div class="ptabs"><div class="ptab active">会员列表</div><div class="ptab" onclick="openLvlModal()">等级权益设置</div><div class="ptab" onclick="showToast(\'👑\',\'积分规则配置\')">积分规则</div><div class="ptab" onclick="showToast(\'👑\',\'用户标签体系\')">标签管理</div></div>'+
+  toolbar(inp('搜索昵称/手机号','200px')+sel(['会员等级：全部','普通会员','银卡会员','金卡会员','钻石会员'])+sel(['核心标签：全部','高价值','活跃','新用户'])+'<div class="mla flex gap8"><button class="btn" onclick="showToast(\'🏷️\',\'批量打标签\')">批量操作</button><button class="btn btn-p" onclick="openLvlModal()">等级体系配置</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>用户信息</th><th>会员等级</th><th>积分余额</th><th>累计成长值</th><th>消费行为</th><th>用户标签</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function openMbrModal(id){
+  var m=D.members.find(function(x){return x.id===id;});
+  var lc={钻石:'#7c3aed',金卡:'#f59e0b',银卡:'#94a3b8',普通:'#6b7b93'};
+  var c=lc[m.level]||'#6b7b93';
+  openModal('会员画像：'+m.name,
+    '<div class="g g2" style="gap:12px;margin-bottom:16px">'+statCard('👑','会员等级',m.level+'会员','权益实时生效',null,c)+statCard('⭐','积分余额',m.pts,'可兑换商城商品',null,'#1769ff')+'</div>'+
+    '<div class="fr"><span class="fl">微信昵称</span><span>'+e(m.name)+'</span></div>'+
+    '<div class="fr"><span class="fl">绑定手机</span><span>'+e(m.phone)+'</span></div>'+
+    '<div class="fr"><span class="fl">累计消费</span><span>¥'+m.amt+'</span></div>'+
+    '<div class="fr"><span class="fl">历史订单</span><span>'+m.orders+'个订单</span></div>'+
+    '<div class="fr"><span class="fl">当前标签</span><span>'+m.tags.map(function(t){return '<span class="tag">'+e(t)+'</span>';}).join(' ')+'</span></div>'+
+    '<div style="margin-top:12px"><div class="prog"><div class="progf" style="width:'+Math.min(100,m.grow/120)+'%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span>成长值 '+m.grow+'</span><span>下一等级需 12000</span></div></div>',
+    '<button class="btn" onclick="closeModal()">返回列表</button><button class="btn btn-p" onclick="showToast(\'⭐\',\'积分已手动调整\');closeModal()">人工调分</button>'
+  );
+}
+function openLvlModal(){
+  var lvls=[
+    {n:'普通会员',g:0,c:'#6b7b93',b:'基础功能使用',l:'灰色'},
+    {n:'银卡会员',g:2000,c:'#94a3b8',b:'积分兑换资格',l:'银灰'},
+    {n:'金卡会员',g:5000,c:'#f59e0b',b:'全年9折 + 积分加速',l:'金色'},
+    {n:'钻石会员',g:10000,c:'#7c3aed',b:'全年85折 + 专属客服 + 生日双倍积分',l:'紫色'}
+  ];
+  var h='';
+  for(var i=0;i<lvls.length;i++){
+    var l=lvls[i];
+    h+='<div style="padding:16px;background:#f8faff;border-radius:12px;margin-bottom:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:800;color:'+l.c+';font-size:14px">'+l.n+' <span class="badge bsi nb0" style="font-size:10px;margin-left:6px">'+l.l+'标识</span></div><div style="font-size:12px;color:var(--text);margin-top:4px">条件：成长值 ≥ '+l.g+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">权益：'+l.b+'</div></div><button class="btn sm">配置权益</button></div>';
+  }
+  openModal('会员等级体系配置',h);
+}
+
+/* ========== USER ========== */
+function pgUser(){
+  var rows='';
+  for(var i=0;i<D.users.length;i++){
+    var u=D.users[i];
+    rows+='<tr><td><b>'+e(u.name)+'</b></td><td>'+e(u.phone)+'</td><td><span class="tag tg">'+e(u.src)+'</span></td><td>'+e(u.last)+'</td><td style="font-size:12px">'+u.orders+'单 / '+u.forms+'表单 / '+u.acts+'报名</td><td><button class="btn xs" onclick="showToast(\'👤\',\'查看用户画像\')">画像</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">用户管理</div><div class="ps">全量小程序用户，行为分析与来源渠道统计。</div></div>'+
+  toolbar(inp('昵称/手机号','200px')+sel(['来源：全部','分享进入','扫码进入','搜索进入','广告进入'])+'<div class="mla"><button class="btn" onclick="showToast(\'📊\',\'用户数据已导出\')">导出用户</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>用户</th><th>手机号</th><th>来源渠道</th><th>最近访问</th><th>业务记录</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+
+/* ========== PRODUCT ========== */
+function pgProduct(){
+  var rows='';
+  for(var i=0;i<D.products.length;i++){
+    var p=D.products[i];
+    var ptl=p.ptype==='digital'?'<span class="tag tp">数字</span>':p.ptype==='service'?'<span class="tag to">服务</span>':'<span class="tag tg">实物</span>';
+    rows+='<tr><td><span style="font-size:20px">'+p.img+'</span> <b>'+e(p.name)+'</b> '+ptl+'</td>'+
+    '<td><span class="tag tg">'+e(p.cat)+'</span></td>'+
+    '<td style="color:var(--red);font-weight:700">¥'+p.price+'</td>'+
+    '<td>'+(p.ptype==="digital"?'<span style="color:var(--muted)">—</span>':p.stock)+'</td><td>'+p.sales+'</td><td>'+badge(p.status)+'</td>'+
+    '<td><button class="btn xs btn-p" onclick="openProdModal('+p.id+')">编辑</button> '+
+    '<button class="btn xs '+(p.status==='on'?'btn-d':'')+'" onclick="showToast(\'🛍️\',\''+(p.status==='on'?'已下架':'已上架')+'\')">'+( p.status==='on'?'下架':'上架')+'</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">商品管理</div><div class="ps">文创、课程、数字权益、服务等多种商品类型。</div></div>'+
+  toolbar(inp('搜索商品','180px')+sel(['分类：全部','文创周边','数字商品','服务商品'])+sel(['状态：全部','已上架','已下架'])+'<div class="mla flex gap8"><button class="btn" onclick="showToast(\'📁\',\'分类管理\')">分类管理</button><button class="btn btn-p" onclick="openProdModal(0)">+ 新建</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>商品</th><th>分类</th><th>价格</th><th>库存</th><th>销量</th><th>状态</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function openProdModal(id){
+  var p=id?D.products.find(function(x){return x.id===id;}):null;
+  var rtBtns=['B','I','图片','链接','列表'].map(function(t){return '<button class="reb">'+t+'</button>';}).join('');
+  openModal(id?'编辑商品':'新建商品',
+    '<div class="fr"><span class="fl">商品名称</span><input class="inp" style="flex:1" value="'+(p?e(p.name):'')+'"/></div>'+
+    '<div class="fr"><span class="fl">商品类型</span><select class="sel" style="flex:1" onchange="updateProdFields(this.value)"><option value="physical">实物商品（需发货）</option><option value="digital">数字商品（自动核销）</option><option value="service">服务商品（关联预约）</option></select></div>'+'<div class="fr" id="stockRow"><span class="fl">库存数量</span><input class="inp" style="flex:1" placeholder="库存数量"/></div>'+'<div class="fr" id="shipRow"><span class="fl">运费模板</span><select class="sel" style="flex:1"><option>全国包邮（默认）</option><option>偏远地区加价</option></select></div>'+'<div class="fr" id="digitalRow" style="display:none"><span class="fl">权益类型</span><input class="inp" style="flex:1" placeholder="购买后自动发放权益"/></div>'+'<div class="fr" id="serviceRow" style="display:none"><span class="fl">关联预约</span><select class="sel" style="flex:1"><option>一对一咨询</option><option>产品体验服务</option><option>专项辅导</option></select></div>'+'<div class="fr"><span class="fl">分类</span><select class="sel" style="flex:1"><option>文创周边</option><option>数字商品</option><option>服务商品</option></select></div>'+
+    '<div class="fr"><span class="fl">价格</span><input class="inp" style="flex:1" type="number" value="'+(p?p.price:'')+'"/>元</div>'+
+    '<div class="fr"><span class="fl">库存</span><input class="inp" style="flex:1" value="'+(p?p.stock:'')+'"/></div>'+
+    '<div class="fr"><span class="fl">商品图片</span><button class="btn sm" onclick="openAssetModal()">选择素材</button></div>'+
+    '<div style="margin-bottom:6px;font-size:12px;color:var(--muted);font-weight:600">商品详情</div>'+
+    '<div class="re"><div class="ret">'+rtBtns+'</div><div class="rec" contenteditable="true">'+(p?e(p.name)+'详情介绍...':'请输入商品详情')+'</div></div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'🛍️\',\'商品已保存\')">保存</button><button class="btn btn-s" onclick="closeModal();showToast(\'✅\',\'商品已上架\')">保存并上架</button>'
+  );
+}
+
+/* ========== ORDER ========== */
+function pgOrder(){
+  var rows='';
+  var statusMap = {
+    pending: {l:'待发货',c:'bo'},
+    done: {l:'已完成',c:'bg'},
+    shipped: {l:'已发货',c:'bbl'},
+    unpaid: {l:'待支付',c:'bb'},
+    cancelled: {l:'已取消',c:'bb'},
+    refunded: {l:'已退款',c:'br'}
+  };
+  for(var i=0;i<D.orders.length;i++){
+    var o=D.orders[i];
+    var st = statusMap[o.status] || {l:o.status,c:'bb'};
+    var ptype = D.products.find(function(p){ return e(p.name)===o.goods.split('x')[0].trim() || o.goods.indexOf(p.name)>=0; });
+    var otype = ptype ? ptype.ptype : 'physical';
+    var typeTag = otype==='digital'?'<span class="tag tp">数字</span>':otype==='service'?'<span class="tag to">服务</span>':'<span class="tag tg">实物</span>';
+    var act='';
+    if(o.status==='pending') act='<button class="btn xs btn-p" onclick="openShipModal(\''+otype+'\')">'+(otype==='digital'?'核销权益':otype==='service'?'确认预约':'去发货')+'</button> ';
+    else if(o.status==='shipped') act='<button class="btn xs btn-s" onclick="showToast(\'✅\',\'订单已完成\')">完成订单</button> ';
+    rows+='<tr><td style="font-family:monospace;font-size:11px">'+o.id+'</td>'+
+    '<td><b>'+e(o.user)+'</b><br><span style="font-size:11px;color:var(--muted)">'+e(o.phone)+'</span></td>'+
+    '<td>'+e(o.goods)+' '+typeTag+'</td>'+
+    '<td style="color:var(--red);font-weight:700">¥'+o.amt+'</td>'+
+    '<td><span class="badge '+st.c+'">'+st.l+'</span></td>'+
+    '<td style="font-size:12px">'+o.pt+'</td>'+
+    '<td>'+act+'<button class="btn xs" onclick="showToast(\'📦\',\'查看订单详情\')">详情</button> <button class="btn xs btn-d" onclick="openRefundModal()">退款</button></td></tr>';
+  }
+  var finHtml = '<div class="g g4 mb16">'+
+    statCard('💰','本月总收入','¥42,680','较上月 +18.2%',true,'#0faa6e')+
+    statCard('⏳','待结算金额','¥12,680','预计3个工作日到账',null,'#f59e0b')+
+    statCard('↩️','本月退款','¥1,280','退款率 3.0%',false,'#ef4444')+
+    statCard('💸','平台手续费','¥428','微信支付费率 0.6%',null,'#6b7b93')+
+    '</div>';
+  return '<div class="ph"><div class="pt">订单中心</div><div class="ps">管理所有商品交易订单，包含实物发货、数字权益核销、服务预约确认及售后退款。</div></div>'+
+  finHtml+
+  toolbar(inp('搜索订单号/手机号','180px')+sel(['全部订单状态','待支付','待发货/核销','已发货','已完成','已取消','退款中','已退款'])+'<div class="mla flex gap8"><button class="btn" onclick="openRefundModal()">🔍 退款审核</button><button class="btn" onclick="showToast(\'📊\',\'订单报表导出中\')">导出报表</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>订单流水号</th><th>下单用户</th><th>商品/类型</th><th>订单总额</th><th>当前状态</th><th>支付时间</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function openShipModal(orderType){
+  if(orderType==='digital'){
+    openModal('发放数字权益',
+      '<div style="text-align:center;padding:20px 0"><div style="font-size:48px;margin-bottom:12px">💳</div><div style="font-size:14px;font-weight:700;margin-bottom:6px">数字商品无需发货</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px">系统将自动核销权益并通知买家</div><div style="padding:12px;background:var(--green-light);border-radius:10px;color:var(--green);font-size:12px">✅ 权益核销码已自动生成并发送至买家微信</div></div>',
+      '<button class="btn btn-p" onclick="closeModal();showToast(\'✅\',\'权益已核销，买家已收到通知\')">确认核销</button>'
+    );return;
+  }
+  if(orderType==='service'){
+    openModal('预约服务确认',
+      '<div class="fr"><span class="fl">服务项目</span><span>年度会员套餐</span></div><div class="fr"><span class="fl">预约时间</span><select class="sel" style="flex:1"><option>2026-05-10 10:00</option><option>2026-05-11 14:00</option><option>2026-05-12 10:00</option></select></div><div class="fr"><span class="fl">服务顾问</span><select class="sel" style="flex:1"><option>张顾问（空闲）</option><option>李顾问（空闲）</option></select></div><div class="fr"><span class="fl">备注</span><input class="inp" style="flex:1" placeholder="给买家的备注信息"/></div>',
+      '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'📅\',\'服务预约已确认，买家已收到通知\')">确认预约</button>'
+    );return;
+  }
+  openModal('填写物流发货信息',
+    '<div class="fr"><span class="fl">快递服务商</span><select class="sel" style="flex:1"><option>顺丰速运</option><option>中通快递</option><option>圆通速递</option><option>韵达快递</option><option>极兔速递</option></select></div>'+
+    '<div class="fr"><span class="fl">物流单号</span><input class="inp" style="flex:1" placeholder="请扫描或输入快递单号"/></div>'+
+    '<div class="fr"><span class="fl">发货备注</span><input class="inp" style="flex:1" placeholder="选填，买家可见"/></div>'+
+    '<div style="margin-top:10px;padding:12px;background:#f8faff;border-radius:10px;font-size:11px;color:var(--muted)">提示：点击确定后订单状态将变更为「已发货」，买家将收到发货通知。</div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'📦\',\'发货操作成功，买家已收到通知\')">确认发货</button>'
+  );
+}
+
+/* ========== MARKETING ========== */
+function pgMkt(){
+  var items=[['🎟️','优惠券','3种有效券','已发1700张'],['📅','每日签到','今日134人','本月活跃286'],['🔄','积分兑换','8个兑换项','本月45次'],['👫','邀请好友','进行中','本月新增23'],['⏰','限时活动','进行中2个','待开始1个'],['🏷️','会员折扣','全场95折','会员专属']];
+  var cards='';
+  for(var i=0;i<items.length;i++){
+    var it=items[i];
+    cards+='<div class="card cp" style="cursor:pointer;transition:.14s" onmouseover="this.style.boxShadow=\'var(--shadow-lg)\'" onmouseout="this.style.boxShadow=\'var(--shadow)\'"><div style="font-size:28px;margin-bottom:8px">'+it[0]+'</div><div style="font-weight:700;font-size:14px;margin-bottom:4px">'+it[1]+'</div><div style="font-size:17px;font-weight:800;color:var(--blue);margin-bottom:4px">'+it[2]+'</div><div style="font-size:12px;color:var(--muted)">'+it[3]+'</div><button class="btn sm btn-p" style="margin-top:12px" onclick="showToast(\''+it[0]+'\',\'进入'+it[1]+'管理\')">管理</button></div>';
+  }
+  var cpns='';
+  for(var i=0;i<D.coupons.length;i++){
+    var c=D.coupons[i];
+    cpns+='<div class="cpn"><div class="cpl"><div class="cpa">'+e(c.amt)+'</div><div class="cpt">'+e(c.type)+'</div></div>'+
+    '<div class="cpr"><div class="cpn2">'+e(c.name)+'</div><div class="cprl">'+e(c.rule)+'</div><div style="display:flex;justify-content:space-between;margin-top:5px"><span style="font-size:10px;color:#bbb">有效期：'+c.exp+'</span><span style="font-size:12px;color:var(--muted)">已用'+c.used+'/'+c.count+'</span></div></div>'+
+    '<div style="padding:10px;display:flex;flex-direction:column;gap:4px;background:#f8faff;border-left:1px solid var(--border)"><button class="btn xs">编辑</button><button class="btn xs btn-d" onclick="showToast(\'⚠️\',\'已停用\')">停用</button></div></div>';
+  }
+  return '<div class="ph"><div class="pt">营销管理</div><div class="ps">优惠券、签到、积分兑换、邀请好友、限时活动。</div></div>'+
+  '<div class="g g3 mb16">'+cards+'</div>'+
+  '<div class="card cp"><div class="sec-hd"><h3>🎟️ 优惠券列表</h3><button class="btn sm btn-p" onclick="openCpnModal()">+ 创建优惠券</button></div>'+cpns+'</div>';
+}
+function openCpnModal(){
+  openModal('创建优惠券',
+    '<div class="fr"><span class="fl">券名称</span><input class="inp" style="flex:1" placeholder="优惠券名称"/></div>'+
+    '<div class="fr"><span class="fl">券类型</span><select class="sel" style="flex:1"><option>满减券</option><option>折扣券</option><option>抵扣券</option></select></div>'+
+    '<div class="fr"><span class="fl">满足金额</span><input class="inp" style="flex:1" type="number" placeholder="0为无门槛"/>元</div>'+
+    '<div class="fr"><span class="fl">优惠面额</span><input class="inp" style="flex:1" type="number"/>元</div>'+
+    '<div class="fr"><span class="fl">发放总量</span><input class="inp" style="flex:1" type="number" placeholder="留空不限"/></div>'+
+    '<div class="fr"><span class="fl">有效期至</span><input class="inp" style="flex:1" type="date"/></div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'🎟️\',\'优惠券创建成功\')">创建</button>'
+  );
+}
+
+/* ========== ACTIVITY ========== */
+function pgActivity(){
+  var rows='';
+  for(var i=0;i<D.activities.length;i++){
+    var a=D.activities[i];
+    var pct=a.quota?Math.min(100,a.signed/a.quota*100):50;
+    rows+='<tr><td><b>'+e(a.name)+'</b></td><td><span class="tag">'+e(a.type)+'</span></td>'+
+    '<td>'+e(a.date)+'</td><td>'+e(a.venue)+'</td><td>'+a.quota+'人</td>'+
+    '<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;max-width:80px"><div class="prog"><div class="progf" style="width:'+pct+'%"></div></div></div><span style="font-size:12px">'+a.signed+'/'+a.quota+'</span></div></td>'+
+    '<td>'+badge('active')+'</td>'+
+    '<td><button class="btn xs btn-p" onclick="openActDetail('+a.id+')">管理报名</button> '+
+    '<button class="btn xs" onclick="showToast(\'📱\',\'查看签到码\')">签到码</button> '+
+    '<button class="btn xs" onclick="showToast(\'📊\',\'已导出\')">导出</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">活动管理</div><div class="ps">沙龙、课程、展会活动的报名、审核、核销。</div></div>'+
+  toolbar(inp('搜索活动','180px')+sel(['类型：全部','活动报名','预约服务'])+'<div class="mla flex gap8"><button class="btn" onclick="showToast(\'✅\',\'核销记录\')">核销记录</button><button class="btn btn-p" onclick="openActModal()">+ 新建活动</button></div>')+
+  '<div class="card"><div class="tw"><table><thead><tr><th>活动名称</th><th>类型</th><th>日期</th><th>地点</th><th>名额</th><th>报名进度</th><th>状态</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function openActModal(){
+  openModal('新建活动',
+    '<div class="fr"><span class="fl">活动名称</span><input class="inp" style="flex:1" placeholder="请输入活动名称"/></div>'+
+    '<div class="fr"><span class="fl">活动类型</span><select class="sel" style="flex:1"><option>活动报名</option><option>预约服务</option></select></div>'+
+    '<div class="fr"><span class="fl">活动日期</span><input class="inp" style="flex:1" type="date"/></div>'+
+    '<div class="fr"><span class="fl">活动地点</span><input class="inp" style="flex:1" placeholder="线下地址或线上链接"/></div>'+
+    '<div class="fr"><span class="fl">名额限制</span><input class="inp" style="flex:1" type="number" placeholder="0为不限"/></div>'+
+    '<div class="fr"><span class="fl">活动封面</span><button class="btn sm" onclick="openAssetModal()">选择素材</button></div>'+
+    '<div class="fr" style="align-items:flex-start"><span class="fl" style="padding-top:6px">活动介绍</span><textarea class="ta" style="flex:1" placeholder="请输入活动介绍..."></textarea></div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'🎪\',\'活动创建成功\')">创建活动</button>'
+  );
+}
+function openActDetail(id){
+  var a=D.activities.find(function(x){return x.id===id;});
+  var rows='';
+  for(var i=0;i<D.submits.length;i++){
+    var s=D.submits[i];
+    rows+='<tr><td>'+e(s.name)+'</td><td>'+e(s.phone)+'</td><td>'+e(s.session)+'</td><td style="font-size:11px">'+s.time+'</td><td>'+badge(s.status)+'</td>'+
+    '<td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'已批准\')">批准</button> <button class="btn xs btn-d" onclick="showToast(\'❌\',\'已拒绝\')">拒绝</button></td></tr>';
+  }
+  openModal(a.name+' · 报名管理',
+    '<div class="g g3" style="gap:12px;margin-bottom:16px">'+
+    statCard('👥','报名人数',a.signed,'/ '+a.quota+' 名额',null,'#1769ff')+
+    statCard('✅','已审核','56','待审核 12',null,'#0faa6e')+
+    statCard('📅','活动日期',(a.date.indexOf('每')>=0?'开放中':a.date),a.venue,null,'#7c3aed')+
+    '</div><table style="font-size:12px"><thead><tr><th>姓名</th><th>手机号</th><th>场次</th><th>报名时间</th><th>状态</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table>'
+  );
+}
+
+/* ========== BOOKING ========== */
+function pgBooking(){
+  var today=new Date();
+  var yr=today.getFullYear(), mo=today.getMonth(), d=today.getDate();
+  var fd=new Date(yr,mo,1);
+  var off=fd.getDay();
+  var calHtml='';
+  var dlbls='日一二三四五六'.split('');
+  for(var i=0;i<7;i++) calHtml+='<div class="cal-dl">'+dlbls[i]+'</div>';
+  var dotDays=[3,5,8,12,15,19,22];
+  for(var i=0;i<42;i++){
+    var dd=new Date(yr,mo,1-off+i);
+    var dn=dd.getDate();
+    var isTd=dd.toDateString()===today.toDateString();
+    var isOd=dd.getMonth()!==mo;
+    var hasDot=dotDays.indexOf(dn)>=0&&!isOd;
+    var cls='cal-d'+(isTd?' td':'')+(isOd?' od':'');
+    var dotHtml=hasDot?'<div class="cal-dot"></div>':'';
+    var onclick=isOd?'':('onclick="showToast(\'📅\',\'查看'+dn+'日预约\')"');
+    calHtml+='<div class="'+cls+'" '+onclick+'>'+dn+dotHtml+'</div>';
+  }
+  var tsHtml='';
+  var times=['09:00','10:00','11:00','14:00','15:00','16:00'];
+  for(var i=0;i<times.length;i++){
+    var cls2='ts'+(i===0?' full':i===1?' sel':'');
+    var lbl=i===0?'已满':'可约';
+    tsHtml+='<div class="'+cls2+'" onclick="if(!this.classList.contains(\'full\')){document.querySelectorAll(\'.ts\').forEach(function(el){el.classList.remove(\'sel\')});this.classList.add(\'sel\')}">'+times[i]+'<br><small>'+lbl+'</small></div>';
+  }
+  var rows='';
+  for(var i=0;i<D.bookings.length;i++){
+    var b=D.bookings[i];
+    rows+='<tr><td>'+e(b.service)+'</td><td>'+e(b.user)+'</td><td>'+b.date+'</td><td>'+b.time+'</td><td>'+badge(b.status)+'</td>'+
+    '<td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'已确认\')">确认</button> <button class="btn xs" onclick="showToast(\'📱\',\'联系用户\')">联系</button></td></tr>';
+  }
+  return '<div class="ph"><div class="pt">预约管理</div><div class="ps">服务项目、时间段配置、预约记录管理。</div></div>'+
+  '<div class="g g2 mb16">'+
+  '<div class="card cp"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><button class="btn sm">←</button><span style="font-weight:700;font-size:14px">'+yr+'年'+(mo+1)+'月</span><button class="btn sm">→</button></div>'+
+  '<div class="cal-grid">'+calHtml+'</div>'+
+  '<div style="font-size:11px;color:var(--muted);margin-top:10px;display:flex;gap:12px"><span>🔵 今日</span><span>● 有预约</span></div></div>'+
+  '<div class="card cp"><div class="sec-hd"><h3>⏰ 时间段配置</h3><button class="btn sm btn-p" onclick="openBkCfg()">配置</button></div>'+
+  '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">今日可预约时间段</div>'+
+  '<div class="tgrid">'+tsHtml+'</div>'+
+  '<div class="sec-hd mt16"><h3>服务项目</h3><button class="btn xs btn-p" onclick="showToast(\'📋\',\'添加服务\')">添加</button></div>'+
+  '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>一对一咨询（60分钟）</b> <span style="font-size:11px;color:var(--muted)">免费</span></div><button class="btn xs">编辑</button></div>'+
+  '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>产品体验服务（90分钟）</b> <span style="font-size:11px;color:var(--muted)">¥99</span></div><button class="btn xs">编辑</button></div>'+
+  '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-size:13px"><div><b>专项辅导（120分钟）</b> <span style="font-size:11px;color:var(--muted)">¥199</span></div><button class="btn xs">编辑</button></div></div></div>'+
+  '<div class="card cp"><div class="sec-hd"><h3>📋 预约记录</h3></div>'+
+  '<table><thead><tr><th>服务项目</th><th>预约用户</th><th>日期</th><th>时间段</th><th>状态</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function openBkCfg(){
+  openModal('时间段配置',
+    '<div class="fr"><span class="fl">开放日期</span><select class="sel" style="flex:1"><option>每天</option><option>工作日</option><option>周末</option></select></div>'+
+    '<div class="fr"><span class="fl">时段时长</span><select class="sel" style="flex:1"><option>60分钟</option><option>30分钟</option><option>90分钟</option><option>120分钟</option></select></div>'+
+    '<div class="fr"><span class="fl">开始时间</span><input class="inp" style="flex:1" type="time" value="09:00"/></div>'+
+    '<div class="fr"><span class="fl">结束时间</span><input class="inp" style="flex:1" type="time" value="18:00"/></div>'+
+    '<div class="fr"><span class="fl">每段名额</span><input class="inp" style="flex:1" type="number" value="1"/></div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'⏰\',\'配置已保存\')">保存</button>'
+  );
+}
+
+/* ========== ASSET ========== */
+function pgAsset(){
+  var groups=['全部','首页Banner','商品图片','活动海报','图标素材','视频素材','品牌素材'];
+  var ghtml='';
+  for(var i=0;i<groups.length;i++) ghtml+='<div onclick="showToast(\'📁\',\'切换：'+groups[i]+'\')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;background:'+(i===0?'var(--blue-light)':'transparent')+';color:'+(i===0?'var(--blue)':'var(--text)')+';margin-bottom:2px;transition:.12s">'+groups[i]+'</div>';
+  var ahtml='';
+  for(var i=0;i<D.assets.length;i++){
+    var a=D.assets[i];
+    ahtml+='<div class="ait" onclick="this.classList.toggle(\'sel\')"><div class="ath">'+a.e+'</div><div class="atn" title="'+e(a.name)+'">'+e(a.name)+'</div></div>';
+  }
+  return '<div class="ph"><div class="pt">素材库</div><div class="ps">统一管理图片、视频，供装修器和内容管理复用。</div></div>'+
+  '<div class="flex gap12">'+
+  '<div class="card" style="width:148px;min-width:148px;padding:12px;height:fit-content"><div style="font-weight:700;font-size:13px;margin-bottom:10px">分组</div>'+ghtml+'<button class="btn sm" style="width:100%;justify-content:center;margin-top:10px" onclick="showToast(\'📁\',\'新建分组\')">+ 新建分组</button></div>'+
+  '<div style="flex:1">'+
+  toolbar(inp('搜索素材','160px')+sel(['类型：全部','图片','视频'])+'<div class="mla"><button class="btn btn-p" onclick="showToast(\'📤\',\'请选择本地文件\')">+ 上传素材</button></div>')+
+  '<div class="agrid">'+ahtml+'</div>'+
+  '<div style="margin-top:10px;font-size:12px;color:var(--muted)">共 '+D.assets.length+' 个素材 · 点击多选</div></div></div>';
+}
+function openAssetModal(){
+  var h='<div class="agrid">';
+  for(var i=0;i<Math.min(8,D.assets.length);i++){
+    var a=D.assets[i];
+    h+='<div class="ait" onclick="this.classList.toggle(\'sel\')"><div class="ath">'+a.e+'</div><div class="atn">'+e(a.name)+'</div></div>';
+  }
+  h+='</div>';
+  openModal('选择素材',h,'<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="closeModal();showToast(\'🖼️\',\'素材已选择\')">确认选择</button>');
+}
+
+
+/* ========== SETTING ========== */
+function pgSetting(){
+  var plugs=[
+    {n:'内容模块',d:'文章/视频/图文',on:true},
+    {n:'会员模块',d:'等级/积分/权益',on:true},
+    {n:'商品模块',d:'商品/订单/支付',on:true},
+    {n:'表单模块',d:'报名/咨询/调查',on:true},
+    {n:'活动模块',d:'沙龙/课程/展会',on:true},
+    {n:'预约模块',d:'服务/时间/核销',on:true},
+    {n:'智能Agent',d:'AI推荐/智能对话',on:true},
+    {n:'营销模块',d:'优惠券/签到/兑换',on:false}
+  ];
+  var phtml='';
+  for(var i=0;i<plugs.length;i++){
+    var pg=plugs[i];
+    phtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:700;font-size:13px">'+e(pg.n)+'</div><div style="font-size:12px;color:var(--muted);margin-top:2px">'+e(pg.d)+'</div></div><button class="tog'+(pg.on?' on':'')+'" onclick="this.classList.toggle(\'on\');showToast(\'🔧\',this.classList.contains(\'on\')?\'已启用\':\'已停用\')"></button></div>';
+  }
+  var navs=['首页','内容','会员','商城','我的','AI助手'];
+  var navIcons=['🏠','📝','👑','🛍️','👤','🤖'];
+  var navPaths=['home','content','member','shop','mine','agent'];
+  var nhtml='';
+  for(var i=0;i<navs.length;i++){
+    nhtml+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:34px;height:34px;border-radius:10px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:17px">'+navIcons[i]+'</div><div style="flex:1"><div style="font-weight:700;font-size:13px">'+navs[i]+'</div><div style="font-size:11px;color:var(--muted)">/pages/'+navPaths[i]+'/index</div></div><button class="btn xs" onclick="showToast(\'🧭\',\'编辑导航项\')">编辑</button></div>';
+  }
+
+  var html2 = '';
+  html2 += '<div class="ph"><div class="pt">系统设置</div><div class="ps">配置小程序全局信息、微信支付、订阅通知、导航及插件开关。</div></div>';
+  html2 += '<div class="g g2">';
+
+  // Card 1: Mini-program base info
+  html2 += '<div class="card cp">';
+  html2 += '<h3 style="margin-bottom:16px">📱 微信小程序配置</h3>';
+  html2 += '<div class="fr"><span class="fl">AppID</span><input class="inp" style="flex:1" value="wx1234567890abcdef"/></div>';
+  html2 += '<div class="fr"><span class="fl">AppSecret</span><input class="inp" type="password" style="flex:1" value="********************************"/></div>';
+  html2 += '<div class="fr"><span class="fl">小程序名称</span><input class="inp" style="flex:1" value="品牌小程序"/></div>';
+  html2 += '<div class="fr"><span class="fl">Logo图</span><button class="btn sm" onclick="openAssetModal()">从素材库选取</button></div>';
+  html2 += '<div class="fr"><span class="fl">分享引导语</span><input class="inp" style="flex:1" value="欢迎体验我们的品牌小程序"/></div>';
+  html2 += '<button class="btn btn-p mt16" onclick="showToast(\'⚙️\',\'小程序配置已保存\')">保存小程序设置</button>';
+  html2 += '</div>';
+
+  // Card 2: WeChat Pay
+  html2 += '<div class="card cp">';
+  html2 += '<h3 style="margin-bottom:16px">💰 微信支付配置</h3>';
+  html2 += '<div class="fr"><span class="fl">运行环境</span>';
+  html2 += '<div class="flex gap8">';
+  html2 += '<button class="tog" id="payEnvTog" onclick="togglePayEnv(this)"></button>';
+  html2 += '<span style="font-size:12px;color:var(--muted)" id="payEnvLabel">沙盒环境（仅测试）</span>';
+  html2 += '</div></div>';
+  html2 += '<div class="fr"><span class="fl">商户号 MCHID</span><input class="inp" style="flex:1" value="1600000001"/></div>';
+  html2 += '<div class="fr"><span class="fl">APIv3 密钥</span><input class="inp" type="password" style="flex:1" value="********************************"/></div>';
+  html2 += '<div class="fr"><span class="fl">序列号</span><input class="inp" style="flex:1" value="7E****************************"/></div>';
+  html2 += '<div class="fr"><span class="fl">API 证书</span><button class="btn sm" onclick="showToast(\'📜\',\'请选择 .p12 证书文件\')">上传证书</button> <span style="font-size:11px;color:var(--green)">✓ 已上传</span></div>';
+  html2 += '<div class="fr"><span class="fl">支付回调</span><input class="inp" style="flex:1" value="https://api.example.com/pay/notify"/></div>';
+  html2 += '<div style="display:flex;gap:8px;margin-top:14px">';
+  html2 += '<button class="btn" onclick="showToast(\'🧪\',\'沙盒测试：模拟支付¥0.01成功，回调200OK\')">🧪 测试支付</button>';
+  html2 += '<button class="btn btn-p" onclick="showToast(\'💰\',\'微信支付参数已保存\')">保存支付配置</button>';
+  html2 += '</div></div>';
+
+  // Card 3: Navigation
+  html2 += '<div class="card cp"><h3 style="margin-bottom:16px">🧭 底部导航 (Tabbar)</h3>'+nhtml+'<button class="btn xs" style="margin-top:10px" onclick="showToast(\'🧭\',\'已添加导航项\')">+ 添加</button></div>';
+
+  // Card 4: Plugin management
+  html2 += '<div class="card cp"><h3 style="margin-bottom:14px">🔧 插件模块管理</h3>'+phtml+'</div>';
+
+  // Card 5: Logistics
+  html2 += '<div class="card cp">';
+  html2 += '<h3 style="margin-bottom:14px">🚚 物流配送与运费模板</h3>';
+  html2 += '<div style="padding:14px;background:#f8faff;border-radius:12px;border:1px solid var(--border)">';
+  html2 += '<div style="font-weight:700;font-size:13px;margin-bottom:8px">第三方物流授权</div>';
+  html2 += '<div class="fr"><span class="fl">物流平台</span><select class="sel" style="flex:1"><option>顺丰速运 SDK</option><option>菜鸟裹裹 API</option><option>快递100</option></select></div>';
+  html2 += '<div class="fr"><span class="fl">App Key</span><input class="inp" type="password" value="********" style="flex:1"/></div>';
+  html2 += '<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px"></div>';
+  html2 += '<div style="font-weight:700;font-size:13px;margin-bottom:8px">运费模板管理</div>';
+  html2 += '<div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:8px"><span>全国包邮模板（默认）</span><button class="btn xs">编辑</button></div>';
+  html2 += '<div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:8px"><span>数字/服务商品 <span class="tag">无需物流</span></span><button class="btn xs">配置</button></div>';
+  html2 += '<div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:8px"><span>偏远地区自动加价</span><span class="badge bo nb0">已开启</span></div>';
+  html2 += '<div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px"></div>';
+  html2 += '<div style="font-weight:700;font-size:13px;margin-bottom:6px">默认发货地址</div>';
+  html2 += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">广东省深圳市南山区高新园区 xxx 仓库</div>';
+  html2 += '<button class="btn xs" onclick="showToast(\'📍\',\'进入地址库管理\')">管理地址库</button>';
+  html2 += '</div>';
+  html2 += '<button class="btn btn-p mt16" style="width:100%;justify-content:center" onclick="showToast(\'🚚\',\'物流配置已保存\')">保存物流设置</button>';
+  html2 += '</div>';
+
+  // Card 6: Notification (full width, span 2)
+  html2 += '<div class="card cp" style="grid-column:span 2">';
+  html2 += '<h3 style="margin-bottom:14px">🔔 订阅消息与通知配置</h3>';
+  html2 += '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">配置微信订阅消息模板 ID，用户授权后可接收关键节点通知。</div>';
+  html2 += '<div class="tw"><table><thead><tr><th>通知场景</th><th>微信模板 ID</th><th>触发时机</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  var notifs = [
+    ['📦 订单发货通知','OPENTM407913429','填写运单后自动触发',true],
+    ['✅ 活动报名成功','OPENTM814637211','报名审核通过后',true],
+    ['📅 预约提醒','OPENTM203748920','预约前2小时触发',true],
+    ['💰 支付成功确认','','微信支付回调后',false],
+    ['🎟️ 优惠券到期提醒','','到期前3天自动触发',false]
+  ];
+  for(var i=0;i<notifs.length;i++){
+    var nt=notifs[i];
+    html2 += '<tr><td>'+nt[0]+'</td>';
+    html2 += '<td><input class="inp" style="height:28px;font-size:11px;width:180px" value="'+nt[1]+'" placeholder="填写模板 ID"/></td>';
+    html2 += '<td style="font-size:12px;color:var(--muted)">'+nt[2]+'</td>';
+    html2 += '<td>'+(nt[3]?'<span class="badge bg">已启用</span>':'<span class="badge bb">未配置</span>')+'</td>';
+    html2 += '<td><button class="btn xs" onclick="showToast(\'🔔\',\'发送测试通知\')">测试</button></td></tr>';
+  }
+  html2 += '</tbody></table></div>';
+  html2 += '<div style="margin-top:12px;display:flex;gap:8px">';
+  html2 += '<button class="btn sm" onclick="showToast(\'🔔\',\'请前往微信公众平台获取模板 ID\')">📋 获取模板 ID</button>';
+  html2 += '<button class="btn btn-p sm" onclick="showToast(\'✅\',\'通知配置已保存\')">保存通知配置</button>';
+  html2 += '</div></div>';
+
+  // Role management
+  html2 += '<div class="card cp">';
+  html2 += '<h3 style="margin-bottom:14px">🔐 权限与角色</h3>';
+  html2 += '<div class="rcard"><div class="rn">👑 超级管理员 <span class="badge br nb0" style="font-size:10px">最高</span></div><div class="rd">拥有全部功能权限</div><div class="rpc"><span class="rp">全部模块</span><span class="rp">系统设置</span><span class="rp">权限管理</span><span class="rp">日志查看</span></div></div>';
+  html2 += '<div class="rcard"><div class="rn">📝 内容运营</div><div class="rd">负责内容、活动、表单管理</div><div class="rpc"><span class="rp">内容管理</span><span class="rp">活动管理</span><span class="rp">表单查看</span><span class="rp">素材库</span></div></div>';
+  html2 += '<div class="rcard"><div class="rn">🛍️ 商务运营</div><div class="rd">负责商品、订单、营销</div><div class="rpc"><span class="rp">商品管理</span><span class="rp">订单管理</span><span class="rp">营销管理</span><span class="rp">会员查看</span></div></div>';
+  html2 += '<button class="btn btn-p sm mt12" onclick="showToast(\'🔐\',\'新建角色\')">+ 新建角色</button>';
+  html2 += '</div>';
+
+  html2 += '</div>'; // close grid
+  return html2;
+}
+function togglePayEnv(btn){
+  btn.classList.toggle('on');
+  var lbl=document.getElementById('payEnvLabel');
+  if(lbl) lbl.textContent=btn.classList.contains('on')?'生产环境（真实收款）':'沙盒环境（仅测试）';
+  showToast('💰', btn.classList.contains('on')?'已切换至生产环境，请确认参数正确':'已切换至沙盒环境');
+}
+
+
+function updateProdFields(type){
+  var sr=document.getElementById('stockRow');
+  var hr=document.getElementById('shipRow');
+  var dr=document.getElementById('digitalRow');
+  var vr=document.getElementById('serviceRow');
+  if(!sr)return;
+  if(type==='digital'){sr.style.display='none';hr.style.display='none';dr.style.display='grid';vr.style.display='none';}
+  else if(type==='service'){sr.style.display='none';hr.style.display='none';dr.style.display='none';vr.style.display='grid';}
+  else{sr.style.display='grid';hr.style.display='grid';dr.style.display='none';vr.style.display='none';}
+}
+/* ========== REFUND ========== */
+function openRefundModal(){
+  openModal('退款审核',
+    '<div class="mb16"><div style="font-size:12px;color:var(--muted);margin-bottom:10px">当前待审核退款申请 <b>2</b> 条</div>'+
+    '<table style="font-size:12px"><thead><tr><th>订单号</th><th>用户</th><th>商品</th><th>金额</th><th>申请原因</th><th>操作</th></tr></thead><tbody>'+
+    '<tr><td style="font-family:monospace;font-size:10px">NO2026050400</td><td>李小红</td><td>品牌定制马克杯</td><td>¥89</td><td>收到商品损坏</td><td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'退款已批准，¥89将在5个工作日内退回\')">批准</button> <button class="btn xs btn-d" onclick="showToast(\'❌\',\'退款已拒绝\')">拒绝</button></td></tr>'+
+    '<tr><td style="font-family:monospace;font-size:10px">NO2026050401</td><td>王大力</td><td>品牌文创礼盒</td><td>¥199</td><td>不喜欢</td><td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'退款已批准\')">批准</button> <button class="btn xs btn-d" onclick="showToast(\'❌\',\'退款已拒绝\')">拒绝</button></td></tr>'+
+    '</tbody></table></div>'+
+    '<div style="padding:12px;background:var(--orange-light);border-radius:10px;font-size:11px;color:#92400e">⚠️ 批准退款后，微信平台将在 5 个工作日内将款项退还至买家原支付账户。</div>',
+    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn" onclick="showToast(\'📊\',\'退款记录已导出\')">导出记录</button>'
+  );
+}
+
+/* ========== BOOT ========== */
+// Don't call nav() at boot — wait for login
+// Just make sure login page is visible and working
+console.log('系统初始化完成，等待登录...');
+
+/* ========== AI AGENT ========== */
+function pgAgent(){
+  return '<div class="ph"><div class="pt">AI Agent 配置中心</div><div class="ps">完整的 AI Agent 生命周期管理：接入模型 → 编写 Prompt → 上传知识库 → 沙盒测试 → 发布上线 → 监控运营。</div></div>'+
+  '<div class="ptabs"><div class="ptab active" id="agentTab0" onclick="agentTabSwitch(0)">① 模型接入</div><div class="ptab" id="agentTab1" onclick="agentTabSwitch(1)">② Prompt 配置</div><div class="ptab" id="agentTab2" onclick="agentTabSwitch(2)">③ 知识库</div><div class="ptab" id="agentTab3" onclick="agentTabSwitch(3)">④ 沙盒测试</div><div class="ptab" id="agentTab4" onclick="agentTabSwitch(4)">⑤ 发布管理</div><div class="ptab" id="agentTab5" onclick="agentTabSwitch(5)">⑥ 运营监控</div></div>'+
+  '<div id="agentPanel0">'+
+    '<div class="g g2 mb16">'+
+      '<div class="card cp"><h3 style="margin-bottom:16px">🔌 选择接入模型</h3>'+
+        '<div style="display:grid;gap:10px">'+
+          '<div style="padding:14px;border:2px solid var(--blue);border-radius:12px;background:var(--blue-light);display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700">GPT-4o (OpenAI)</div><div style="font-size:11px;color:var(--muted);margin-top:2px">最强综合能力，适合复杂问答</div></div><span class="badge bg nb0">已选用</span></div>'+
+          '<div style="padding:14px;border:1px solid var(--border);border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="showToast(\'🔄\',\'已切换至 Claude 3.5\')"><div><div style="font-weight:700">Claude 3.5 Sonnet (Anthropic)</div><div style="font-size:11px;color:var(--muted);margin-top:2px">安全性强，上下文长，中文优秀</div></div><button class="btn xs">切换</button></div>'+
+          '<div style="padding:14px;border:1px solid var(--border);border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="showToast(\'🔄\',\'已切换至 Qwen-Max\')"><div><div style="font-weight:700">Qwen-Max (阿里云)</div><div style="font-size:11px;color:var(--muted);margin-top:2px">国内合规，低成本，适合高频对话</div></div><button class="btn xs">切换</button></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="card cp"><h3 style="margin-bottom:16px">⚙️ API 密钥配置</h3>'+
+        '<div class="fr"><span class="fl">API Key</span><input class="inp" type="password" style="flex:1" value="sk-proj-xxxxxxxxxxxxxxxx"/></div>'+
+        '<div class="fr"><span class="fl">模型版本</span><select class="sel" style="flex:1"><option>gpt-4o (推荐)</option><option>gpt-4o-mini (经济)</option><option>gpt-4-turbo</option></select></div>'+
+        '<div class="fr"><span class="fl">温度参数</span><input class="inp" type="number" style="flex:1" value="0.7" step="0.1" min="0" max="1"/><span style="font-size:11px;color:var(--muted);margin-left:4px">0=严谨 1=创意</span></div>'+
+        '<div class="fr"><span class="fl">最大回复</span><input class="inp" type="number" style="flex:1" value="800"/><span style="font-size:11px;color:var(--muted);margin-left:4px">Token</span></div>'+
+        '<div class="fr"><span class="fl">环境</span><div class="flex gap8"><button class="tog" onclick="this.classList.toggle(\'on\');showToast(\'🔧\',this.classList.contains(\'on\')?\' 生产环境\':\'沙盒环境\')"></button><span style="font-size:12px;color:var(--muted)">沙盒 / 生产</span></div></div>'+
+        '<button class="btn btn-p mt12" onclick="showToast(\'🔌\',\'API 连接测试通过，延迟 320ms\')">🔌 测试连接</button>'+
+        '<button class="btn btn-s mt12" style="margin-left:8px" onclick="agentTabSwitch(1)">下一步：Prompt 配置 →</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div id="agentPanel1" style="display:none">'+
+    '<div class="g g2 mb16">'+
+      '<div class="card cp"><h3 style="margin-bottom:16px">✏️ System Prompt 编写</h3>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">定义 AI 的角色、能力范围、回答风格与禁止行为</div>'+
+        '<textarea class="ta" style="width:100%;min-height:200px;font-size:12px;line-height:1.8">你是「品牌小程序」的专属智能客服助手。\n\n【你的职责】\n1. 解答用户关于品牌产品、材质工艺、使用方法的问题\n2. 介绍会员等级体系与积分规则\n3. 推荐适合用户的商品\n4. 引导用户参与活动和预约服务\n\n【回答风格】\n- 亲切自然，简洁有力\n- 使用中文，适当使用 emoji\n- 回复控制在 200 字以内\n\n【禁止行为】\n- 不得回答与品牌无关的问题\n- 不得承诺无法核实的优惠\n- 涉及退换货问题，引导转接人工客服</textarea>'+
+        '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="showToast(\'💡\',\'已应用模板：电商客服\')">加载模板</button><button class="btn sm" onclick="showToast(\'📊\',\'Token 估算：约 280 token / 次回复\')">估算费用</button><button class="btn btn-p sm" onclick="agentTabSwitch(2)">下一步：知识库 →</button></div>'+
+      '</div>'+
+      '<div class="card cp"><h3 style="margin-bottom:16px">🎛️ 行为策略配置</h3>'+
+        '<div class="fr"><span class="fl">欢迎语</span><input class="inp" style="flex:1" value="您好！我是专属智能管家，有什么可以帮您？"/></div>'+
+        '<div class="fr"><span class="fl">无法回答时</span><select class="sel" style="flex:1"><option>引导转人工客服</option><option>引导用户留言</option><option>回复通用话术</option></select></div>'+
+        '<div class="fr"><span class="fl">商品推荐</span><button class="tog on" onclick="this.classList.toggle(\'on\')"></button></div>'+
+        '<div class="fr"><span class="fl">主动引导</span><button class="tog on" onclick="this.classList.toggle(\'on\')"></button></div>'+
+        '<div class="fr"><span class="fl">对话记忆</span><select class="sel" style="flex:1"><option>记忆最近 10 条</option><option>记忆最近 20 条</option><option>仅记忆当次</option></select></div>'+
+        '<div style="padding:12px;background:var(--blue-light);border-radius:10px;font-size:11px;color:var(--blue);margin-top:10px">💡 开启「主动引导」后，AI 将在合适时机主动推荐商品或引导报名活动。</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div id="agentPanel2" style="display:none">'+
+    '<div class="card cp mb16"><div class="sec-hd"><h3>📚 知识库文件管理</h3><button class="btn sm btn-p" onclick="showToast(\'📂\',\'请选择 PDF / Markdown / TXT 文件\')">+ 上传知识文档</button></div>'+
+      '<div style="margin-bottom:14px"><div class="prog"><div class="progf" style="width:85%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span>知识库向量化进度：3/4 文件已完成</span><span>85%</span></div></div>'+
+      '<table><thead><tr><th>文件名</th><th>大小</th><th>向量化状态</th><th>召回权重</th><th>操作</th></tr></thead><tbody>'+
+        '<tr><td><b>2026品牌手册.pdf</b></td><td>2.4MB</td><td>'+badge('done')+'</td><td><input type="range" min="0" max="100" value="90" style="width:80px;accent-color:var(--blue)"/> 高</td><td><button class="btn xs">预览</button> <button class="btn xs btn-d">移除</button></td></tr>'+
+        '<tr><td><b>产品FAQ大全.md</b></td><td>45KB</td><td>'+badge('done')+'</td><td><input type="range" min="0" max="100" value="100" style="width:80px;accent-color:var(--blue)"/> 最高</td><td><button class="btn xs">预览</button> <button class="btn xs btn-d">移除</button></td></tr>'+
+        '<tr><td><b>会员权益规则.pdf</b></td><td>1.1MB</td><td>'+badge('done')+'</td><td><input type="range" min="0" max="100" value="80" style="width:80px;accent-color:var(--blue)"/> 高</td><td><button class="btn xs">预览</button> <button class="btn xs btn-d">移除</button></td></tr>'+
+        '<tr><td><b>2024活动合集.pdf</b></td><td>3.8MB</td><td><span class="badge bo">处理中</span></td><td>—</td><td><button class="btn xs">等待中</button></td></tr>'+
+      '</tbody></table>'+
+      '<div style="margin-top:12px;display:flex;gap:8px"><button class="btn sm" onclick="showToast(\'🔍\',\'知识库召回测试：输入问题，查看相关文档\')">🔍 召回测试</button><button class="btn btn-p sm" onclick="agentTabSwitch(3)">下一步：沙盒测试 →</button></div>'+
+    '</div>'+
+  '</div>'+
+  '<div id="agentPanel3" style="display:none">'+
+    '<div class="g g2 mb16">'+
+      '<div class="card cp" style="display:flex;flex-direction:column"><div class="sec-hd"><h3>🧪 对话沙盒（模拟真实对话）</h3></div>'+
+        '<div style="flex:1;background:#f0f2f5;border-radius:12px;padding:12px;min-height:280px;display:flex;flex-direction:column;gap:10px">'+
+          '<div style="display:flex;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div><div style="background:#fff;padding:10px 12px;border-radius:0 12px 12px 12px;font-size:12px;max-width:80%;box-shadow:0 2px 4px rgba(0,0,0,.04)">您好！我是品牌专属智能客服。请问有什么可以帮您的？可咨询产品信息、会员权益或最新活动。</div></div>'+
+          '<div style="display:flex;gap:8px;flex-direction:row-reverse"><div style="width:30px;height:30px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff">你</div><div style="background:var(--blue);color:#fff;padding:10px 12px;border-radius:12px 0 12px 12px;font-size:12px;max-width:80%">品牌文创礼盒是什么材质的？</div></div>'+
+          '<div style="display:flex;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div><div style="background:#fff;padding:10px 12px;border-radius:0 12px 12px 12px;font-size:12px;max-width:80%;box-shadow:0 2px 4px rgba(0,0,0,.04)">🎁 <b>品牌文创礼盒</b>采用 300g 高克重特种纸盒，内衬环保植绒，配合手工烫金工艺。品质扎实，非常适合商务送礼。<br><br>目前售价 ¥199，五一期间有优惠，需要我帮您了解详情吗？</div></div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;margin-top:10px"><input class="inp" style="flex:1" placeholder="输入问题测试 AI 回答..." id="sandboxInput"/><button class="btn btn-p" onclick="showToast(\'🤖\',\'AI 正在思考...（沙盒模式）\')">发送测试</button></div>'+
+        '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:11px;color:var(--muted)">快捷测试：</span>'+
+          '<button class="btn xs" onclick="showToast(\'🤖\',\'[沙盒] 准备回答会员问题...\')">金卡会员有什么权益？</button>'+
+          '<button class="btn xs" onclick="showToast(\'🤖\',\'[沙盒] 准备推荐商品...\')">推荐一款礼物</button>'+
+          '<button class="btn xs" onclick="showToast(\'🤖\',\'[沙盒] 准备介绍优惠券...\')">有优惠券吗？</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="card cp"><h3 style="margin-bottom:14px">📊 沙盒测试评估</h3>'+
+        '<div style="display:grid;gap:12px">'+
+          '<div style="padding:12px;background:#f8faff;border-radius:10px;border-left:4px solid var(--green)"><div style="font-weight:700;font-size:12px;margin-bottom:4px">✅ 已通过测试</div><div style="font-size:11px;color:var(--muted)">产品咨询 · 会员权益 · 活动引导</div></div>'+
+          '<div style="padding:12px;background:#fff8e6;border-radius:10px;border-left:4px solid var(--orange)"><div style="font-weight:700;font-size:12px;margin-bottom:4px">⚠️ 待优化</div><div style="font-size:11px;color:var(--muted)">退换货政策问题回答不够精准，建议补充知识库</div></div>'+
+          '<div style="padding:12px;background:#f1f4fa;border-radius:10px;border-left:4px solid var(--muted)"><div style="font-weight:700;font-size:12px;margin-bottom:4px">📝 未测试</div><div style="font-size:11px;color:var(--muted)">价格异议处理 · 竞品对比场景</div></div>'+
+        '</div>'+
+        '<button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px" onclick="agentTabSwitch(4)">测试满意，去发布 →</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div id="agentPanel4" style="display:none">'+
+    '<div class="g g2 mb16">'+
+      '<div class="card cp"><h3 style="margin-bottom:16px">🚀 发布管理</h3>'+
+        '<div style="padding:16px;background:#f8faff;border-radius:12px;border:1px solid var(--border);margin-bottom:14px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700">当前线上版本</div><div style="font-size:11px;color:var(--muted);margin-top:2px">v2.1 · 2026-05-01 上线 · GPT-4o</div></div><span class="badge bg nb0">运行中</span></div>'+
+          '<div style="margin-top:10px;font-size:12px;color:var(--muted)">已服务对话：12,840 次 · 平均满意度：4.6/5</div>'+
+        '</div>'+
+        '<div style="padding:16px;background:var(--blue-light);border-radius:12px;border:1px solid var(--blue);margin-bottom:14px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;color:var(--blue)">待发布版本 v3.0</div><div style="font-size:11px;color:var(--muted);margin-top:2px">已完成沙盒测试 · 知识库新增2文件 · Prompt优化</div></div><span class="badge bo nb0">待发布</span></div>'+
+        '</div>'+
+        '<div class="fr"><span class="fl">发布方式</span><select class="sel" style="flex:1"><option>全量发布（立即生效）</option><option>灰度发布（10% 用户先行）</option><option>定时发布</option></select></div>'+
+        '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-p" style="flex:1;justify-content:center" onclick="showToast(\'🚀\',\'AI Agent v3.0 已发布上线，小程序端实时生效\')">🚀 发布 v3.0</button><button class="btn" onclick="showToast(\'↩️\',\'已回滚至 v2.1\')">↩ 回滚 v2.1</button></div>'+
+      '</div>'+
+      '<div class="card cp"><h3 style="margin-bottom:14px">📋 版本历史</h3>'+
+        '<table style="font-size:12px"><thead><tr><th>版本</th><th>上线时间</th><th>模型</th><th>主要变更</th><th>操作</th></tr></thead><tbody>'+
+          '<tr><td><b>v2.1</b> <span class="badge bg nb0" style="font-size:10px">线上</span></td><td>05-01</td><td>GPT-4o</td><td>优化推荐逻辑</td><td><button class="btn xs">查看</button></td></tr>'+
+          '<tr><td>v2.0</td><td>04-15</td><td>GPT-4o</td><td>新增知识库</td><td><button class="btn xs">回滚</button> <button class="btn xs">查看</button></td></tr>'+
+          '<tr><td>v1.0</td><td>03-20</td><td>GPT-3.5</td><td>初始上线</td><td><button class="btn xs">回滚</button> <button class="btn xs">查看</button></td></tr>'+
+        '</tbody></table>'+
+        '<button class="btn btn-p sm" style="margin-top:12px" onclick="agentTabSwitch(5)">查看运营数据 →</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div id="agentPanel5" style="display:none">'+
+    '<div class="g g3 mb16">'+
+      statCard('🤖','昨日对话','1,240','↑ 15% 较上周',true,'#7c3aed')+
+      statCard('🛍️','推荐成交额','¥3,580','对话转化率 4.2%',true,'#1769ff')+
+      statCard('😊','用户满意度','4.6/5','差评率仅 2.1%',true,'#0faa6e')+
+    '</div>'+
+    '<div class="card cp mb16"><div class="sec-hd"><h3>💬 对话监控（最新 5 条）</h3><button class="btn sm" onclick="showToast(\'📊\',\'进入完整对话分析\')">对话分析</button></div>'+
+      '<table><thead><tr><th>用户</th><th>用户提问</th><th>AI 回复摘要</th><th>意图分类</th><th>转化行为</th><th>时间</th></tr></thead><tbody>'+
+        '<tr><td>张小明</td><td>礼盒的材质？</td><td>采用高克重特种纸，手工烫金工艺...</td><td>产品咨询</td><td><span class="tag">查看商品</span></td><td>10:21</td></tr>'+
+        '<tr><td>李小红</td><td>怎么升金卡？</td><td>累计成长值达到 5000 即可升级...</td><td>会员咨询</td><td><span class="tag tg">了解权益</span></td><td>09:15</td></tr>'+
+        '<tr><td>王大力</td><td>有优惠券吗？</td><td>目前有新人满100减20优惠券...</td><td>营销咨询</td><td><span class="tag to">领券成功</span></td><td>08:45</td></tr>'+
+      '</tbody></table>'+
+    '</div>'+
+    '<div class="card cp"><div class="sec-hd"><h3>🔥 高频意图分布</h3></div>'+
+      '<div style="display:grid;gap:8px">'+
+        '<div style="display:flex;align-items:center;gap:10px"><span style="width:60px;font-size:12px">产品咨询</span><div class="prog" style="flex:1"><div class="progf" style="width:68%"></div></div><span style="font-size:12px;color:var(--muted);width:36px">68%</span></div>'+
+        '<div style="display:flex;align-items:center;gap:10px"><span style="width:60px;font-size:12px">会员权益</span><div class="prog" style="flex:1"><div class="progf" style="width:52%"></div></div><span style="font-size:12px;color:var(--muted);width:36px">52%</span></div>'+
+        '<div style="display:flex;align-items:center;gap:10px"><span style="width:60px;font-size:12px">营销活动</span><div class="prog" style="flex:1"><div class="progf" style="width:38%"></div></div><span style="font-size:12px;color:var(--muted);width:36px">38%</span></div>'+
+        '<div style="display:flex;align-items:center;gap:10px"><span style="width:60px;font-size:12px">售后退款</span><div class="prog" style="flex:1"><div class="progf" style="width:18%"></div></div><span style="font-size:12px;color:var(--muted);width:36px">18%</span></div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+function agentTabSwitch(idx){
+  for(var i=0;i<6;i++){
+    var tab=document.getElementById('agentTab'+i);
+    var panel=document.getElementById('agentPanel'+i);
+    if(tab) tab.classList.toggle('active',i===idx);
+    if(panel) panel.style.display=i===idx?'block':'none';
+  }
+}
+
+/* ========== MINI PROGRAM ========== */
+function renderMp(page){
+  var map={home:mpHome,content:mpContent,member:mpMember,shop:mpShop,mine:mpMine,agent:mpAgent};
+  var fn=map[page]||mpHome;
+  document.getElementById('PHONE').innerHTML=fn();
+}
+
+function mpTabs(active){
+  var tabs=[{k:'home',i:'🏠',l:'首页'},{k:'content',i:'📝',l:'内容'},{k:'agent',i:'🤖',l:'AI助手'},{k:'shop',i:'🛍️',l:'商城'},{k:'mine',i:'👤',l:'我的'}];
+  var h='<div class="mp-tabs" style="grid-template-columns:repeat(5,1fr)">';
+  for(var i=0;i<tabs.length;i++){
+    var t=tabs[i];
+    h+='<div class="mp-ti'+(t.k===active?' active':'')+'" onclick="mpTabClick(\''+t.k+'\')"><span class="mp-tii">'+t.i+'</span>'+t.l+'</div>';
+  }
+  return h+'</div>';
+}
+function mpTabClick(p){
+  S.mpPage=p; renderMp(p);
+  var ids={home:'mBH',content:'mBC',member:'mBM',shop:'mBS',mine:'mBN'};
+  Object.keys(ids).forEach(function(k){ var el=document.getElementById(ids[k]); if(el) el.classList.toggle('active',k===p); });
+}
+
+function mpHome(){
+  var acts=S.published;
+  var artHtml='';
+  for(var i=0;i<Math.min(3,D.articles.length);i++){
+    var a=D.articles[i];
+    artHtml+='<div class="mp-li" onclick="mpDet(\'article\','+a.id+')" style="cursor:pointer"><div class="mp-limg">📖</div><div class="mp-lb"><div class="mp-lt">'+e(a.title)+'</div><div class="mp-ls">'+e(a.cat)+' · '+a.views+'阅读</div></div></div>';
+  }
+  var prodHtml='<div class="mp-pg">';
+  var cnt=0;
+  for(var i=0;i<D.products.length&&cnt<4;i++){
+    var p=D.products[i];
+    if(p.status!=='on') continue;
+    prodHtml+='<div class="mp-pc" onclick="mpDet(\'product\','+p.id+')"><div class="mp-pi">'+p.img+'</div><div style="padding:8px 9px"><div class="mp-pn">'+e(p.name)+'</div><div class="mp-pr">¥'+p.price+'</div></div></div>';
+    cnt++;
+  }
+  prodHtml+='</div>';
+  var actHtml=acts?'<div class="mp-sh">精彩活动回顾 <span class="mp-new" style="background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px">NEW</span></div><div class="mp-ac" onclick="mpDet(\'activity\')"><div class="mp-ai" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">🎪 品牌开放日沙龙</div><div class="mp-aif"><div class="mp-at">品牌开放日沙龙</div><div class="mp-am"><span>📅 2026-05-10</span><span>📍 品牌中心</span><span>👥 68/100</span></div></div></div>':'';
+  return '<div class="mp-top"><span>品牌小程序</span></div>'+
+  '<div class="mp-body">'+
+  '<div class="mp-ban" onclick="mpDet(\'activity\')"><div style="text-align:center;z-index:1;position:relative"><div style="font-size:15px;font-weight:800;margin-bottom:5px">五一活动限时优惠</div><div style="font-size:12px;opacity:.85">点击了解 最高立减50元</div></div><div class="mp-dots"><div class="mp-dt on"></div><div class="mp-dt"></div><div class="mp-dt"></div></div></div>'+
+  '<div class="mp-nav" style="grid-template-columns:repeat(4,1fr)"><div class="mp-ni" onclick="mpTabClick(\'content\')"><div class="mp-nic">📝</div><div class="mp-nil">内容</div></div><div class="mp-ni" onclick="mpTabClick(\'member\')"><div class="mp-nic">👑</div><div class="mp-nil">会员</div></div><div class="mp-ni" onclick="mpDet(\'activity\')"><div class="mp-nic">🎪</div><div class="mp-nil">活动</div></div><div class="mp-ni" onclick="mpTabClick(\'shop\')"><div class="mp-nic">🛍️</div><div class="mp-nil">商城</div></div></div>'+
+  '<div class="mp-mc" onclick="mpTabClick(\'member\')"><div class="mp-mr"><div class="mp-av">👤</div><div><div class="mp-mn">金卡会员</div><div class="mp-ml">查看会员专享权益 →</div></div></div><div class="mp-sr"><div class="mp-si"><div class="mp-sv">1280</div><div class="mp-sl">积分</div></div><div class="mp-si"><div class="mp-sv">5600</div><div class="mp-sl">成长值</div></div><div class="mp-si"><div class="mp-sv">3</div><div class="mp-sl">优惠券</div></div></div></div>'+
+  '<div class="mp-sh">精选深度内容 <span class="mp-sm" onclick="mpTabClick(\'content\')">更多 ›</span></div>'+
+  '<div class="mp-card">'+artHtml+'</div>'+
+  actHtml+
+  '<div class="mp-sh">人气热销商品 <span class="mp-sm" onclick="mpTabClick(\'shop\')">更多 ›</span></div>'+
+  prodHtml+
+  '</div>'+mpTabs('home');
+}
+
+function mpContent(){
+  var h='<div class="mp-top"><span>内容</span></div><div class="mp-body"><div style="display:flex;gap:6px;padding:10px 10px 6px;overflow-x:auto">';
+  var cats=['全部','品牌展示','会员内容','活动','产品知识'];
+  for(var i=0;i<cats.length;i++){
+    h+='<div style="flex-shrink:0;padding:5px 12px;border-radius:99px;border:1px solid '+(i===0?'var(--blue)':'var(--border)')+';background:'+(i===0?'var(--blue)':'#fff')+';color:'+(i===0?'#fff':'var(--muted)')+';font-size:12px;cursor:pointer" onclick="showToast(\'📝\',\'切换：'+cats[i]+'\')">'+cats[i]+'</div>';
+  }
+  h+='</div>';
+  for(var i=0;i<D.articles.length;i++){
+    var a=D.articles[i];
+    h+='<div class="mp-card" onclick="mpDet(\'article\','+a.id+')" style="cursor:pointer"><div style="display:flex;gap:10px"><div style="flex:1"><div style="font-weight:700;font-size:13px;margin-bottom:5px">'+e(a.title)+'</div>'+(a.rec?'<span class="tag" style="font-size:10px;margin-right:4px;background:var(--cyan-light);color:var(--cyan)">推荐</span>':'')+' <span style="font-size:11px;color:var(--muted)">'+e(a.cat)+' · '+e(a.type)+' · '+a.views+'阅读</span></div><div style="width:58px;height:58px;border-radius:10px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px">📖</div></div></div>';
+  }
+  return h+'</div>'+mpTabs('content');
+}
+
+function mpMember(){
+  var bens=['全年9折优惠','积分加速翻倍','专属活动优先报名','生日双倍积分','专属客服通道'];
+  var bh='';
+  for(var i=0;i<bens.length;i++) bh+='<div class="mp-li"><div class="mp-limg" style="background:linear-gradient(135deg,#fef3c7,#fed7aa)">⭐</div><div class="mp-lb"><div class="mp-lt">'+bens[i]+'</div><div class="mp-ls">金卡会员专享</div></div></div>';
+  var menuItems=[{i:'⭐',l:'我的权益'},{i:'🎟️',l:'优惠券'},{i:'🔄',l:'积分兑换'},{i:'📅',l:'签到'},{i:'📦',l:'我的订单'},{i:'📋',l:'我的报名'},{i:'📅',l:'我的预约'},{i:'❤️',l:'我的收藏'}];
+  var mh='';
+  for(var i=0;i<menuItems.length;i++){
+    var m=menuItems[i];
+    mh+='<div class="mp-ni" onclick="showToast(\''+m.i+'\',\'进入'+m.l+'\')"><div class="mp-nic">'+m.i+'</div><div class="mp-nil">'+m.l+'</div></div>';
+  }
+  return '<div class="mp-top"><span>会员中心</span></div><div class="mp-body">'+
+  '<div class="mp-mc" style="margin:10px"><div class="mp-mr"><div class="mp-av">👤</div><div><div class="mp-mn">微信用户</div><div class="mp-ml">金卡会员 · 成长值 5600</div></div></div><div class="mp-sr"><div class="mp-si"><div class="mp-sv">1280</div><div class="mp-sl">积分</div></div><div class="mp-si"><div class="mp-sv">3</div><div class="mp-sl">优惠券</div></div><div class="mp-si"><div class="mp-sv">4</div><div class="mp-sl">订单</div></div></div></div>'+
+  '<div class="mp-card" style="margin-bottom:8px"><div class="mp-ct">升级进度</div><div class="prog"><div class="progf" style="width:65%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span>金卡 5600</span><span>钻石 10000</span></div></div>'+
+  '<div class="mp-nav" style="grid-template-columns:repeat(4,1fr)">'+mh+'</div>'+
+  '<div class="mp-sh">专属权益</div><div class="mp-card">'+bh+'</div></div>'+mpTabs('member');
+}
+
+function mpShop(){
+  var cats=['全部','文创周边','数字商品','服务商品'];
+  var ch='<div style="display:flex;gap:6px;padding:10px 10px 6px;overflow-x:auto">';
+  for(var i=0;i<cats.length;i++) ch+='<div style="flex-shrink:0;padding:5px 12px;border-radius:99px;border:1px solid '+(i===0?'var(--blue)':'var(--border)')+';background:'+(i===0?'var(--blue)':'#fff')+';color:'+(i===0?'#fff':'var(--muted)')+';font-size:12px;cursor:pointer">'+cats[i]+'</div>';
+  ch+='</div>';
+  var ph='<div class="mp-pg" style="margin:0 10px 10px">';
+  for(var i=0;i<D.products.length;i++){
+    var p=D.products[i];
+    if(p.status!=='on') continue;
+    ph+='<div class="mp-pc" onclick="mpDet(\'product\','+p.id+')"><div class="mp-pi">'+p.img+'</div><div style="padding:8px 9px"><div class="mp-pn">'+e(p.name)+'</div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">'+e(p.cat)+'</div><div class="mp-pr">¥'+p.price+'</div></div></div>';
+  }
+  ph+='</div>';
+  return '<div class="mp-top"><span>商城</span></div><div class="mp-body">'+ch+ph+'</div>'+mpTabs('shop');
+}
+
+function mpAgent(){
+  return '<div class="mp-top"><span>AI 智能助手</span></div>'+
+  '<div class="mp-body" style="background:#f0f2f5;display:flex;flex-direction:column;height:100%">'+
+  '<div style="flex:1;overflow-y:auto;padding:12px" id="CHAT">'+
+  '<div style="display:flex;gap:8px;margin-bottom:16px"><div style="width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div><div style="background:#fff;padding:10px 12px;border-radius:0 12px 12px 12px;font-size:13px;max-width:80%;box-shadow:0 2px 4px rgba(0,0,0,.03)">您好！我是您的品牌智能管家。您可以问我关于【产品工艺】、【会员升级】或【最新活动】的问题。</div></div>'+
+  '<div style="display:flex;gap:8px;margin-bottom:16px;flex-direction:row-reverse"><div style="width:32px;height:32px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff">👤</div><div style="background:var(--blue);color:#fff;padding:10px 12px;border-radius:12px 0 12px 12px;font-size:13px;max-width:80%;box-shadow:0 2px 4px rgba(0,0,0,.05)">我想看看最近有什么值得买的礼盒？</div></div>'+
+  '<div style="display:flex;gap:8px;margin-bottom:16px"><div style="width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px">🤖</div><div style="background:#fff;padding:10px 12px;border-radius:0 12px 12px 12px;font-size:13px;max-width:80%;box-shadow:0 2px 4px rgba(0,0,0,.03)">为您推荐这款高人气礼盒，目前还有五一限时优惠哦：<br><br>'+
+  '<div style="background:#f8faff;border-radius:8px;padding:8px;display:flex;gap:10px;align-items:center;border:1px solid var(--border);cursor:pointer" onclick="mpDet(\'product\',1)">'+
+  '<div style="width:40px;height:40px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px">🎁</div><div style="flex:1"><div style="font-weight:700;font-size:12px">品牌文创礼盒</div><div style="color:var(--red);font-weight:800;font-size:12px">¥199</div></div><span style="color:var(--muted)">›</span></div>'+
+  '</div></div>'+
+  '</div>'+
+  '<div style="padding:10px;background:#fff;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">'+
+  '<input style="flex:1;height:36px;background:#f5f7fa;border:none;border-radius:18px;padding:0 15px;font-size:13px" placeholder="输入您的问题..."/>'+
+  '<div style="font-size:20px;color:var(--blue);cursor:pointer">⊕</div>'+
+  '</div></div>'+mpTabs('agent');
+}
+
+function mpMine(){
+  var ordItems=['待付款','待发货','待收货','售后'];
+  var ordIcons=['💳','📦','🚚','🔄'];
+  var oh='<div style="display:grid;grid-template-columns:repeat(4,1fr);text-align:center">';
+  for(var i=0;i<ordItems.length;i++) oh+='<div onclick="showToast(\'📦\',\'查看'+ordItems[i]+'\')" style="cursor:pointer"><div style="font-size:22px;margin-bottom:5px">'+ordIcons[i]+'</div><div style="font-size:11px;color:var(--muted)">'+ordItems[i]+'</div></div>';
+  oh+='</div>';
+  var menus=[{i:'📋',l:'我的报名'},{i:'📅',l:'我的预约'},{i:'🎟️',l:'优惠券'},{i:'🛒',l:'购物车'},{i:'👑',l:'会员中心'},{i:'⭐',l:'我的积分'},{i:'📞',l:'联系客服'},{i:'⚙️',l:'设置'}];
+  var mh='<div class="mp-nav" style="grid-template-columns:repeat(4,1fr)">';
+  for(var i=0;i<menus.length;i++) mh+='<div class="mp-ni" onclick="showToast(\''+menus[i].i+'\',\'进入'+menus[i].l+'\')"><div class="mp-nic">'+menus[i].i+'</div><div class="mp-nil">'+menus[i].l+'</div></div>';
+  mh+='</div>';
+  return '<div class="mp-top"><span>我的</span></div><div class="mp-body">'+
+  '<div style="background:linear-gradient(135deg,var(--blue),#20b7ff);margin:0 0 0 0;padding:12px;color:#fff;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="showToast(\'👤\',\'微信授权已完成，欢迎体验！\')">'+
+  '<div style="width:24px;height:24px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>'+
+  '<span style="font-size:13px">点击授权微信账号，解锁全部功能</span><span style="margin-left:auto;font-size:18px">›</span></div>'+
+  '<div class="mp-card" style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="mpTabClick(\'member\')"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#1769ff,#20b7ff);display:flex;align-items:center;justify-content:center;font-size:28px">👤</div><div style="flex:1"><div style="font-weight:800;font-size:15px">微信用户</div><span class="badge bo nb0" style="margin-top:3px;font-size:10px">金卡会员</span></div><span style="color:var(--muted);font-size:18px">›</span></div>'+
+  '<div class="mp-card"><div style="font-weight:700;font-size:13px;margin-bottom:10px">我的订单</div>'+oh+'</div>'+
+  mh+'</div>'+mpTabs('mine');
+}
+
+/* ========== MINI DETAIL PAGES ========== */
+function mpDet(type, id){
+  var ph=document.getElementById('PHONE');
+  if(!ph) return;
+  var cur=S.mpPage;
+  if(type==='article'){
+    var a=id?D.articles.find(function(x){return x.id===id;}):D.articles[0];
+    ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="renderMp(\''+cur+'\')">‹</span>'+e(a.title)+'</div>'+
+    '<div class="mp-body" style="padding:0">'+
+    '<div style="padding:14px 14px 10px"><div style="font-size:16px;font-weight:800;margin-bottom:6px;line-height:1.4">'+e(a.title)+'</div><div style="font-size:11px;color:var(--muted)">'+e(a.cat)+' · '+e(a.type)+' · '+a.views+'阅读</div></div>'+
+    '<div style="height:150px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:40px">🖼️</div>'+
+    '<div style="padding:14px;font-size:13px;line-height:2;color:var(--text)">这里是文章正文内容，支持富文本格式，包括图片、视频、链接等。内容可在后台内容管理模块进行编辑和发布。<br><br>品牌故事始于对品质的追求，致力于为用户提供最好的产品和服务体验。</div>'+
+    '<div class="mp-bb"><button class="mp-btn" onclick="mpDet(\'form\')">📋 立即预约咨询</button></div></div>';
+  }else if(type==='product'){
+    var p=id?D.products.find(function(x){return x.id===id;}):D.products[0];
+    var pid=p?p.id:1;
+    ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="renderMp(\''+cur+'\')">‹</span>商品详情</div>'+
+    '<div class="mp-body" style="padding:0">'+
+    '<div style="height:210px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:64px">'+(p?p.img:'🎁')+'</div>'+
+    '<div style="padding:14px"><div class="mp-pr" style="font-size:22px;margin-bottom:6px">¥'+(p?p.price:199)+' <span style="font-size:12px;color:var(--muted);text-decoration:line-through">¥'+(p?Math.round(p.price*1.5):299)+'</span></div><div style="font-weight:800;font-size:15px;margin-bottom:6px">'+(p?e(p.name):'品牌文创礼盒')+'</div><div style="font-size:12px;color:var(--muted)">库存：'+(p?p.stock:386)+' · 销量：'+(p?p.sales:124)+'件</div></div>'+
+    '<div style="height:8px;background:#f0f2f7"></div>'+
+    '<div style="padding:14px"><div style="font-weight:700;margin-bottom:8px">商品详情</div><div style="font-size:13px;line-height:2;color:var(--muted)">精心设计，采用高品质材料制作。每件产品经过严格质检，值得信赖。</div></div>'+
+    '<div style="height:70px"></div></div>'+
+    '<div style="position:sticky;bottom:58px;background:#fff;padding:10px;border-top:1px solid var(--border);display:flex;gap:8px">'+
+    '<button class="mp-btn" style="flex:1;background:linear-gradient(135deg,#f59e0b,#fcd34d);box-shadow:0 4px 12px rgba(245,158,11,.3)" onclick="showToast(\'🛒\',\'加入购物车\')">加入购物车</button>'+
+    '<button class="mp-btn" style="flex:1" onclick="mpDet(\'purchase\','+pid+')">立即购买</button></div>';
+  }else if(type==='form'){
+    var flds=['姓名','手机号','参加场次','备注信息（选填）'];
+    var fh='';
+    for(var i=0;i<flds.length;i++) fh+='<div class="mp-ff"><div class="mp-fl">'+flds[i].replace('（选填）','')+'</div><input class="mp-fi" placeholder="请输入'+flds[i]+'"/></div>';
+    ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="renderMp(\''+cur+'\')">‹</span>预约咨询</div>'+
+    '<div class="mp-body"><div class="mp-card"><div class="mp-ct">品牌开放日活动报名</div><div style="font-size:12px;color:var(--muted)">填写信息后提交，工作人员将与您联系</div></div>'+fh+
+    '<div class="mp-bb"><button class="mp-btn" onclick="mpFormOk()">提交报名</button></div></div>';
+  }else if(type==='activity'){
+    ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="renderMp(\''+cur+'\')">‹</span>活动详情</div>'+
+    '<div class="mp-body" style="padding:0">'+
+    '<div style="height:170px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800">🎪 品牌开放日沙龙</div>'+
+    '<div style="padding:14px"><div style="font-size:17px;font-weight:800;margin-bottom:10px">品牌开放日沙龙</div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px"><span>📅 2026年5月10日 14:00—17:00</span><span>📍 品牌中心一楼</span><span>👥 已报名 68 人 / 限额 100 人</span></div>'+
+    '<div class="prog"><div class="progf" style="width:68%"></div></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:4px">报名进度 68%</div></div>'+
+    '<div style="height:8px;background:#f0f2f7"></div>'+
+    '<div style="padding:14px"><div style="font-weight:700;margin-bottom:8px">活动介绍</div><div style="font-size:13px;line-height:2;color:var(--muted)">本次活动邀请行业专家分享最新动态，名额有限，欢迎提前报名！</div></div>'+
+    '<div class="mp-bb"><button class="mp-btn" onclick="mpDet(\'form\')">📋 立即报名</button></div></div>';
+  }else if(type==='purchase'){
+    var p2=id?D.products.find(function(x){return x.id===id;}):D.products[0];
+    ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="mpDet(\'product\','+(id||1)+')">‹</span>确认订单</div>'+
+    '<div class="mp-body">'+
+    '<div class="mp-card"><div style="font-weight:700;margin-bottom:8px">收货地址</div>'+
+    '<div style="padding:10px;background:#f8faff;border-radius:10px;border:1px solid var(--border);margin-bottom:8px">'+
+    '<div style="font-weight:700;font-size:13px">张三 · 138****8888</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-top:3px">广东省深圳市南山区科技园南路 xxx 号 <span class="badge bbl nb0" style="font-size:10px">默认</span></div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn xs" onclick="showToast(\'📍\',\'编辑地址\')">编辑</button><button class="btn xs btn-p" onclick="showToast(\'📍\',\'新增收货地址\')">+ 新增地址</button></div></div>'+
+    '<div class="mp-card"><div style="display:flex;gap:10px;align-items:center"><div style="width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:24px">'+(p2?p2.img:'🎁')+'</div><div style="flex:1"><div style="font-weight:700;font-size:13px">'+(p2?e(p2.name):'品牌文创礼盒')+'</div><div style="font-size:12px;color:var(--muted)">数量：1</div></div><div class="mp-pr">¥'+(p2?p2.price:199)+'</div></div></div>'+
+    '<div class="mp-card"><div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span style="color:var(--muted)">商品金额</span><span>¥'+(p2?p2.price:199)+'</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">运费</span><span style="color:var(--green)">免运费</span></div><div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);font-weight:700;margin-top:10px"><span>合计</span><span class="mp-pr" style="font-size:16px">¥'+(p2?p2.price:199)+'</span></div></div>'+
+    '<div class="mp-bb"><button class="mp-btn" onclick="mpPayOk()">确认支付 ¥'+(p2?p2.price:199)+'</button></div></div>';
+  }else if(type==='booking'){
+    var srvs=['一对一咨询（60分钟）—免费','产品体验服务（90分钟）—¥99','专项辅导（120分钟）—¥199'];
+    var sh='';
+    for(var i=0;i<srvs.length;i++){
+      var parts=srvs[i].split('—');
+      sh+='<div class="mp-li"><div class="mp-limg" style="background:var(--blue-light)">💼</div><div class="mp-lb"><div class="mp-lt">'+parts[0]+'</div><div class="mp-ls">'+parts[1]+'</div></div><input type="radio" name="srv" style="accent-color:var(--blue)" '+(i===0?'checked':'')+'/></div>';
+    }
+    var tsh='';
+    var tms=['09:00','10:00','11:00','14:00','15:00','16:00'];
+    for(var i=0;i<tms.length;i++){
+      tsh+='<div class="ts'+(i===0?' full':i===1?' sel':'')+'" onclick="if(!this.classList.contains(\'full\')){document.querySelectorAll(\'.ts\').forEach(function(el){el.classList.remove(\'sel\')});this.classList.add(\'sel\')}">'+tms[i]+'<br><small>'+(i===0?'已满':'可约')+'</small></div>';
+    }
+    ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="renderMp(\''+cur+'\')">‹</span>预约服务</div>'+
+    '<div class="mp-body">'+
+    '<div class="mp-card"><div class="mp-ct">选择服务项目</div>'+sh+'</div>'+
+    '<div class="mp-card"><div class="mp-ct">选择日期</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">'+
+    '<div style="text-align:center;padding:7px 3px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);color:#fff;font-size:12px;cursor:pointer"><div>5/5</div><div style="font-size:10px;opacity:.7">周二</div></div>'+
+    '<div style="text-align:center;padding:7px 3px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer"><div>5/6</div><div style="font-size:10px;opacity:.7">周三</div></div>'+
+    '<div style="text-align:center;padding:7px 3px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer"><div>5/7</div><div style="font-size:10px;opacity:.7">周四</div></div>'+
+    '<div style="text-align:center;padding:7px 3px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer"><div>5/8</div><div style="font-size:10px;opacity:.7">周五</div></div>'+
+    '<div style="text-align:center;padding:7px 3px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer"><div>5/9</div><div style="font-size:10px;opacity:.7">周六</div></div>'+
+    '</div></div>'+
+    '<div class="mp-card"><div class="mp-ct">选择时间段</div><div class="tgrid">'+tsh+'</div></div>'+
+    '<div class="mp-bb"><button class="mp-btn" onclick="mpBkOk()">确认预约</button></div></div>';
+  }
+}
+function mpCart(){
+  var ph=document.getElementById('PHONE');
+  ph.innerHTML='<div class="mp-top"><span class="mp-back" onclick="renderMp(S.mpPage)">‹</span>购物车</div>'+
+  '<div class="mp-body">'+
+  '<div class="mp-card">'+
+    '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'+
+      '<input type="checkbox" checked style="accent-color:var(--blue)"/>'+
+      '<div style="width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:24px">🎁</div>'+
+      '<div style="flex:1"><div style="font-weight:700;font-size:13px">品牌文创礼盒</div><div style="font-size:11px;color:var(--muted)">精选款 · 现货</div></div>'+
+      '<div style="text-align:right"><div class="mp-pr">¥199</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><button style="width:22px;height:22px;border:1px solid var(--border);border-radius:50%;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">-</button><span style="font-size:13px;width:20px;text-align:center">1</span><button style="width:22px;height:22px;border:1px solid var(--border);border-radius:50%;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button></div></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;align-items:center;padding:8px 0">'+
+      '<input type="checkbox" checked style="accent-color:var(--blue)"/>'+
+      '<div style="width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#d1fae5,#6ee7b7);display:flex;align-items:center;justify-content:center;font-size:24px">☕</div>'+
+      '<div style="flex:1"><div style="font-weight:700;font-size:13px">品牌定制马克杯</div><div style="font-size:11px;color:var(--muted)">原色款 · 现货</div></div>'+
+      '<div style="text-align:right"><div class="mp-pr">¥89</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><button style="width:22px;height:22px;border:1px solid var(--border);border-radius:50%;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">-</button><span style="font-size:13px;width:20px;text-align:center">1</span><button style="width:22px;height:22px;border:1px solid var(--border);border-radius:50%;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button></div></div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="mp-card"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--muted)">商品合计 (2件)</span><span>¥288</span></div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--muted)">运费</span><span style="color:var(--green)">免运费</span></div><div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding-top:8px;border-top:1px solid var(--border)"><span>合计</span><span class="mp-pr" style="font-size:16px">¥288</span></div></div>'+
+  '<div class="mp-bb"><button class="mp-btn" onclick="mpDet(\'purchase\',1)">结算 (2件) ¥288</button></div>'+
+  '</div>';
+}
+function mpFormOk(){
+  document.getElementById('PHONE').innerHTML='<div class="mp-top"><span>提交成功</span></div><div class="mp-body"><div class="mp-suc"><div class="mp-si2">🎉</div><div class="mp-st">报名成功！</div><div class="mp-ss">工作人员将在24小时内联系您<br>请保持手机畅通</div><button class="btn btn-p" style="margin-top:22px" onclick="renderMp(\'home\')">返回首页</button></div></div>';
+}
+function mpPayOk(){
+  document.getElementById('PHONE').innerHTML='<div class="mp-top"><span>支付成功</span></div><div class="mp-body"><div class="mp-suc"><div class="mp-si2">💳</div><div class="mp-st">支付成功！</div><div class="mp-ss">订单号：NO'+String(Date.now()).slice(-8)+'<br>预计3-5个工作日内发货</div><div style="display:flex;gap:8px;margin-top:22px"><button class="btn" onclick="renderMp(\'mine\')">查看订单</button><button class="btn btn-p" onclick="renderMp(\'home\')">继续购物</button></div></div></div>';
+}
+function mpBkOk(){
+  document.getElementById('PHONE').innerHTML='<div class="mp-top"><span>预约成功</span></div><div class="mp-body"><div class="mp-suc"><div class="mp-si2">📅</div><div class="mp-st">预约成功！</div><div class="mp-ss">一对一咨询服务<br>2026年5月6日 10:00—11:00<br>工作人员将提前与您确认</div><button class="btn btn-p" style="margin-top:22px" onclick="renderMp(\'home\')">返回首页</button></div></div>';
+}
+
+function updateProdFields(type){
+  var sr=document.getElementById('stockRow');
+  var hr=document.getElementById('shipRow');
+  var dr=document.getElementById('digitalRow');
+  var vr=document.getElementById('serviceRow');
+  if(!sr)return;
+  if(type==='digital'){sr.style.display='none';hr.style.display='none';dr.style.display='grid';vr.style.display='none';}
+  else if(type==='service'){sr.style.display='none';hr.style.display='none';dr.style.display='none';vr.style.display='grid';}
+  else{sr.style.display='grid';hr.style.display='grid';dr.style.display='none';vr.style.display='none';}
+}
+/* ========== REFUND ========== */
+function openRefundModal(){
+  openModal('退款审核',
+    '<div class="mb16"><div style="font-size:12px;color:var(--muted);margin-bottom:10px">当前待审核退款申请 <b>2</b> 条</div>'+
+    '<table style="font-size:12px"><thead><tr><th>订单号</th><th>用户</th><th>商品</th><th>金额</th><th>申请原因</th><th>操作</th></tr></thead><tbody>'+
+    '<tr><td style="font-family:monospace;font-size:10px">NO2026050400</td><td>李小红</td><td>品牌定制马克杯</td><td>¥89</td><td>收到商品损坏</td><td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'退款已批准，¥89将在5个工作日内退回\')">批准</button> <button class="btn xs btn-d" onclick="showToast(\'❌\',\'退款已拒绝\')">拒绝</button></td></tr>'+
+    '<tr><td style="font-family:monospace;font-size:10px">NO2026050401</td><td>王大力</td><td>品牌文创礼盒</td><td>¥199</td><td>不喜欢</td><td><button class="btn xs btn-s" onclick="showToast(\'✅\',\'退款已批准\')">批准</button> <button class="btn xs btn-d" onclick="showToast(\'❌\',\'退款已拒绝\')">拒绝</button></td></tr>'+
+    '</tbody></table></div>'+
+    '<div style="padding:12px;background:var(--orange-light);border-radius:10px;font-size:11px;color:#92400e">⚠️ 批准退款后，微信平台将在 5 个工作日内将款项退还至买家原支付账户。</div>',
+    '<button class="btn" onclick="closeModal()">关闭</button><button class="btn" onclick="showToast(\'📊\',\'退款记录已导出\')">导出记录</button>'
+  );
+}
+
+
+/* ========== BOOT ========== */
+console.log("系统初始化完成");
+
+</script>
+</body>
+</html>

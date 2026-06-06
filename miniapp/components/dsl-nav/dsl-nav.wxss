@@ -1,0 +1,74 @@
+/* components/dsl-nav/dsl-nav.wxss — 导航宫格组件样式 */
+
+.dsl-nav {
+  width: 100%;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+/* 网格布局 */
+.dsl-nav__grid {
+  display: grid;
+  gap: 0;
+  padding: 24rpx 0;
+}
+
+.dsl-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 0;
+}
+
+/* emoji 图标容器 */
+.dsl-nav__item-icon {
+  width: 76rpx;
+  height: 76rpx;
+  margin-bottom: 8rpx;
+  border-radius: 50%;
+  background: #eef4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dsl-nav__emoji {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+/* 图片图标 */
+.dsl-nav__item-icon-img {
+  width: 76rpx;
+  height: 76rpx;
+  margin-bottom: 8rpx;
+  border-radius: 50%;
+}
+
+.dsl-nav__item-text {
+  font-size: 22rpx;
+  color: #4b5563;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* 横向滚动 */
+.dsl-nav__scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.dsl-nav__scroll-inner {
+  display: inline-flex;
+  padding: 24rpx 16rpx;
+  gap: 24rpx;
+}
+
+.dsl-nav__scroll .dsl-nav__item {
+  min-width: 120rpx;
+  padding: 12rpx 8rpx;
+}

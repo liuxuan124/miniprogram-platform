@@ -1,0 +1,37 @@
+receipt_id: receipt-2026-05-11-local-deployment-setup
+submitted_at: 2026-05-11 20:20
+submitted_by: controller-agent
+type: local_deployment_setup
+scope:
+  - deploy
+  - admin_auth_contract
+summary: 本项目空间已完成本地准生产部署目录整理，并修复管理后台登录接口契约。
+implemented:
+  - 修复管理后台登录接口为 /api/v1/admin/auth/login。
+  - 修复管理后台用户信息、登出、刷新 token 接口路径。
+  - 管理后台响应成功码兼容 code=200。
+  - 管理后台登录 token 字段兼容 accessToken。
+  - 修复 Docker 后端健康检查为 /api/health。
+  - 修复 Nginx 容器健康检查使用 wget。
+  - 新增 deploy/.env.local.example。
+  - 新增 deploy/start-local.ps1、deploy/stop-local.ps1。
+  - 新增 deploy/start-dev-local.ps1，支持无 Docker 环境本地联调。
+  - 新增 deploy/README-local.md 与 deploy/LOCAL-DEPLOYMENT-STATUS.md。
+verification:
+  - command: npm run build
+    module: admin
+    result: passed
+  - command: mvn -q -DskipTests compile
+    module: backend
+    result: passed
+  - command: POST http://localhost:8080/api/v1/admin/auth/login
+    result: passed
+    note: admin/admin123 返回 code=200 与 accessToken。
+  - command: GET http://localhost:3000
+    result: passed
+    note: 3000 端口为当前 Vite 管理后台。
+environment_notes:
+  - 当前机器未识别到 docker 命令，Docker Compose 暂未实际启动。
+  - 当前 8080 端口为 Java 后端服务，/api/health 正常。
+  - http://localhost:8080/ 返回 403 是后端根路径安全拦截，不是后台入口。
+next_recommended_action: 使用 http://localhost:3000 登录管理后台，完成本地业务数据配置与冒烟测试。

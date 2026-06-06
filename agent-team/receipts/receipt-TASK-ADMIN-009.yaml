@@ -1,0 +1,11 @@
+task_id: TASK-ADMIN-009
+agent: admin-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: admin/src/views/statistics/dashboard.vue
+    desc: 数据统计仪表盘页面
+  - path: admin/src/api/statistics.ts
+    desc: 统计API
+  - path: admin/src/types/statistics.ts
+    desc: 统计类型定义

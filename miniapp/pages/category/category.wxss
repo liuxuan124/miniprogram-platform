@@ -1,0 +1,96 @@
+/* pages/category/category.wxss — 分类页样式 */
+
+.category-page {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+/* 左侧分类导航 */
+.category-nav {
+  width: 180rpx;
+  height: 100%;
+  background-color: #f7f7f7;
+  flex-shrink: 0;
+}
+
+.category-nav__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100rpx;
+  font-size: 26rpx;
+  color: #666666;
+  text-align: center;
+  position: relative;
+}
+
+.category-nav__item--active {
+  background-color: #ffffff;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.category-nav__item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6rpx;
+  height: 40rpx;
+  background-color: #1890ff;
+  border-radius: 0 3rpx 3rpx 0;
+}
+
+/* 右侧内容列表 */
+.category-content {
+  flex: 1;
+  height: 100%;
+  padding: 16rpx;
+}
+
+.content-card {
+  display: flex;
+  flex-direction: row;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.content-card__image {
+  width: 200rpx;
+  height: 150rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.content-card__info {
+  flex: 1;
+  margin-left: 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.content-card__title {
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.4;
+}
+
+.content-card__desc {
+  font-size: 24rpx;
+  color: #999999;
+  margin-top: 8rpx;
+}
+
+/* 加载更多 */
+.load-more {
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+.load-more__text {
+  font-size: 24rpx;
+  color: #999999;
+}

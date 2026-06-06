@@ -1,0 +1,155 @@
+/* pages/activity-list/activity-list.wxss — 活动列表页样式 */
+
+.activity-list-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 16rpx 24rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ========== 活动卡片 ========== */
+.activity-card {
+  background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.activity-cover {
+  height: 180rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.activity-cover-icon {
+  font-size: 56rpx;
+}
+
+.activity-info {
+  padding: 20rpx 24rpx 24rpx;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.activity-name {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 700;
+  flex: 1;
+  margin-right: 12rpx;
+}
+
+.activity-type-tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  background-color: #eaf1ff;
+  color: #1890ff;
+  font-size: 22rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+
+/* ========== 信息行 ========== */
+.activity-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.activity-row-icon {
+  font-size: 24rpx;
+  margin-right: 8rpx;
+  width: 32rpx;
+  text-align: center;
+}
+
+.activity-row-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* ========== 报名进度条 ========== */
+.activity-progress-area {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.activity-progress-bar {
+  flex: 1;
+  height: 8rpx;
+  background-color: #f0f0f0;
+  border-radius: 4rpx;
+  overflow: hidden;
+  margin-right: 12rpx;
+}
+
+.activity-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1890ff, #20b7ff);
+  border-radius: 4rpx;
+  transition: width 0.3s;
+}
+
+.activity-progress-text {
+  font-size: 22rpx;
+  color: #999;
+  white-space: nowrap;
+}
+
+/* ========== 报名按钮 ========== */
+.activity-btn {
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #1890ff, #20b7ff);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 36rpx;
+  box-shadow: 0 4rpx 14rpx rgba(23, 105, 255, 0.3);
+}
+
+.activity-btn.full {
+  background: #ccc;
+  box-shadow: none;
+}
+
+/* ========== 加载状态 ========== */
+.loading-area {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.empty-state__icon {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-state__text {
+  font-size: 28rpx;
+  color: #999;
+}

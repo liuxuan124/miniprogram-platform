@@ -1,0 +1,203 @@
+/* pages/mine/mine.wxss — 我的页面样式（匹配原型设计） */
+
+/* ========== 授权提示条 ========== */
+.auth-prompt {
+  display: flex;
+  align-items: center;
+  margin: 24rpx;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #1769ff, #20b7ff);
+  border-radius: 16rpx;
+}
+
+.auth-prompt__icon {
+  font-size: 40rpx;
+  margin-right: 16rpx;
+}
+
+.auth-prompt__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-prompt__text {
+  font-size: 28rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.auth-prompt__subtext {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.auth-prompt__button {
+  align-self: flex-start;
+  margin-top: 14rpx;
+  padding: 8rpx 18rpx;
+  color: #1769ff;
+  font-size: 22rpx;
+  font-weight: 700;
+  background: #ffffff;
+  border-radius: 999rpx;
+}
+
+.auth-prompt__arrow {
+  font-size: 36rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ========== 用户信息卡片 ========== */
+.user-card {
+  display: flex;
+  align-items: center;
+  margin: 24rpx;
+  padding: 32rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.user-card__avatar {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1769ff, #20b7ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-card__avatar-text {
+  font-size: 56rpx;
+}
+
+.user-card__info {
+  flex: 1;
+  margin-left: 24rpx;
+}
+
+.user-card__name-row {
+  display: flex;
+  align-items: center;
+}
+
+.user-card__name {
+  font-size: 34rpx;
+  color: #333333;
+  font-weight: 600;
+}
+
+.user-card__level-badge {
+  margin-left: 16rpx;
+  padding: 4rpx 16rpx;
+  background: #fff3e0;
+  border-radius: 99rpx;
+}
+
+.user-card__level-text {
+  font-size: 20rpx;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.user-card__subtitle {
+  display: block;
+  margin-top: 8rpx;
+  color: #7b8798;
+  font-size: 24rpx;
+}
+
+.user-card__arrow {
+  font-size: 36rpx;
+  color: #999999;
+}
+
+/* ========== 我的订单 ========== */
+.order-section {
+  margin: 24rpx;
+  padding: 32rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  color: #333333;
+  font-weight: 700;
+}
+
+.order-tabs {
+  display: flex;
+  justify-content: space-around;
+}
+
+.order-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12rpx 0;
+}
+
+.order-tab__icon {
+  font-size: 44rpx;
+  margin-bottom: 8rpx;
+}
+
+.order-tab__text {
+  font-size: 24rpx;
+  color: #333333;
+}
+
+/* ========== 功能菜单 ========== */
+.menu-section {
+  margin: 24rpx;
+}
+
+.menu-grid {
+  display: flex;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx 12rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.menu-grid__item {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+.menu-grid__icon {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+  background: #eef4ff;
+}
+
+.menu-grid__icon-text {
+  font-size: 36rpx;
+}
+
+.menu-grid__label {
+  font-size: 24rpx;
+  color: #666666;
+}

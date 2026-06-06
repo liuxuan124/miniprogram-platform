@@ -1,0 +1,39 @@
+<!--components/dsl-coupon/dsl-coupon.wxml — 优惠券组件-->
+<view class="dsl-coupon" style="{{styleString}}">
+  <view
+    class="dsl-coupon__grid"
+    style="grid-template-columns: repeat({{config.columns || 1}}, 1fr);"
+  >
+    <view
+      class="dsl-coupon__item"
+      wx:for="{{displayCoupons}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapCoupon"
+    >
+      <!-- 优惠券左侧：金额 -->
+      <view class="dsl-coupon__item-left" style="{{config.tag_style === 'gradient' ? 'background: linear-gradient(135deg, #ff6b6b, #ff4d4f)' : ''}}">
+        <text class="dsl-coupon__item-amount">
+          {{item.type === 'percent' ? (item.discount || 10) + '折' : '¥' + (item.amount || item.discount || 0)}}
+        </text>
+      </view>
+
+      <!-- 优惠券右侧：信息 -->
+      <view class="dsl-coupon__item-right">
+        <text class="dsl-coupon__item-name">{{item.min_amount ? '满' + item.min_amount + '可用' : (item.condition || item.name || item.title || '优惠券')}}</text>
+        <text class="dsl-coupon__item-expire" wx:if="{{item.expire_time || item.end_time}}">
+          {{item.expire_time || item.end_time}}到期
+        </text>
+      </view>
+
+      <view class="dsl-coupon__item-action">
+        <text class="dsl-coupon__item-btn">{{item.button_text || '领取'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="dsl-coupon__empty" wx:if="{{!displayCoupons.length}}">
+    <text class="dsl-coupon__empty-text">暂无优惠券</text>
+  </view>
+</view>

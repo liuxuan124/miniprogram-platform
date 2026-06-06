@@ -1,0 +1,75 @@
+<!--components/dsl-article-list/dsl-article-list.wxml — 文章列表组件-->
+<view class="dsl-article-list" style="{{styleString}}">
+  <view wx:if="{{config.title}}" class="dsl-article-list__section-title">{{config.title}}</view>
+  <!-- 列表布局 -->
+  <view
+    wx:if="{{config.layout !== 'card'}}"
+    class="dsl-article-list__list"
+  >
+    <view
+      class="dsl-article-list__item dsl-article-list__item--list"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        class="dsl-article-list__item-cover"
+        wx:if="{{false}}"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-list__item-placeholder" wx:if="{{config.show_cover !== false}}">
+        <text>📖</text>
+      </view>
+      <view class="dsl-article-list__item-content">
+        <text class="dsl-article-list__item-title text-ellipsis-2">{{item.title || item.name}}</text>
+        <text
+          class="dsl-article-list__item-summary"
+          wx:if="{{false}}"
+        >{{item.summary || item.description}}</text>
+        <text
+          class="dsl-article-list__item-date"
+          wx:if="{{true}}"
+        >{{item.created_at || item.publish_time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 卡片布局 -->
+  <view
+    wx:else
+    class="dsl-article-list__cards"
+  >
+    <view
+      class="dsl-article-list__item dsl-article-list__item--card"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        class="dsl-article-list__item-cover-card"
+        wx:if="{{item.cover_url || item.image}}"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-list__item-content">
+        <text class="dsl-article-list__item-title text-ellipsis-2">{{item.title || item.name}}</text>
+        <view class="dsl-article-list__item-meta">
+          <text
+            class="dsl-article-list__item-date"
+            wx:if="{{config.show_date && (item.created_at || item.publish_time)}}"
+          >{{item.created_at || item.publish_time}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="dsl-article-list__empty" wx:if="{{!displayData.length}}">
+    <text class="dsl-article-list__empty-text">暂无内容</text>
+  </view>
+</view>

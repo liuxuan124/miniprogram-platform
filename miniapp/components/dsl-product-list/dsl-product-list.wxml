@@ -1,0 +1,57 @@
+<!--components/dsl-product-list/dsl-product-list.wxml — 商品列表组件-->
+<view class="dsl-product-list" style="{{styleString}}">
+  <view wx:if="{{config.title}}" class="dsl-product-list__section-title">{{config.title}}</view>
+  <view
+    class="dsl-product-list__grid"
+    style="grid-template-columns: repeat({{config.columns || 2}}, 1fr);"
+  >
+    <view
+      class="dsl-product-list__item"
+      wx:for="{{displayData}}"
+      wx:key="_key"
+      data-id="{{item.id}}"
+      bindtap="onTapProduct"
+      style="border-radius: {{config.border_radius || 12}}rpx;"
+    >
+      <!-- 商品图片 -->
+      <image
+        wx:if="{{item.cover_url || item.image || item.pic || item.mainImage || item.main_image}}"
+        class="dsl-product-list__item-image"
+        src="{{item.cover_url || item.image || item.pic || item.mainImage || item.main_image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:else class="dsl-product-list__item-placeholder">🛍️</view>
+
+      <!-- 商品信息 -->
+      <view class="dsl-product-list__item-info">
+        <text class="dsl-product-list__item-name text-ellipsis-2">{{item.name || item.title}}</text>
+
+        <!-- 标签 -->
+        <view
+          class="dsl-product-list__item-tag"
+          wx:if="{{config.show_tag && (item.tag || config.tag_text)}}"
+        >
+          <text class="dsl-product-list__item-tag-text">{{item.tag || config.tag_text}}</text>
+        </view>
+
+        <!-- 价格与销量 -->
+        <view class="dsl-product-list__item-bottom">
+          <view class="dsl-product-list__item-price" wx:if="{{config.show_price !== false}}">
+            <text class="dsl-product-list__item-price-symbol">¥</text>
+            <text class="dsl-product-list__item-price-value">{{item.price || item.min_price || item.minPrice || '0.00'}}</text>
+          </view>
+          <text
+            class="dsl-product-list__item-sales"
+            wx:if="{{config.show_sales && item.sales !== undefined}}"
+          >已售{{item.sales}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="dsl-product-list__empty" wx:if="{{!displayData.length}}">
+    <text class="dsl-product-list__empty-text">暂无商品</text>
+  </view>
+</view>

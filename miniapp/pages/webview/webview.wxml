@@ -1,0 +1,2 @@
+<!--pages/webview/webview.wxml — WebView 页面-->
+<web-view src="{{url}}" bindmessage="onMessage"></web-view>

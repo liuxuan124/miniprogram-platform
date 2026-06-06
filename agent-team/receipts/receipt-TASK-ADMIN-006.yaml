@@ -1,0 +1,21 @@
+task_id: TASK-ADMIN-006
+agent: admin-agent
+status: 已完成
+completed_at: '2025-01-20'
+deliverables:
+  - path: admin/src/views/member/index.vue
+    desc: 会员列表页面
+  - path: admin/src/views/member/level.vue
+    desc: 会员等级页面
+  - path: admin/src/views/member/points.vue
+    desc: 积分管理页面
+  - path: admin/src/views/marketing/coupon.vue
+    desc: 优惠券管理页面
+  - path: admin/src/api/member.ts
+    desc: 会员API
+  - path: admin/src/api/coupon.ts
+    desc: 优惠券API
+  - path: admin/src/types/member.ts
+    desc: 会员类型定义
+  - path: admin/src/types/coupon.ts
+    desc: 优惠券类型定义

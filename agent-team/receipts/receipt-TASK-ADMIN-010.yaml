@@ -1,0 +1,38 @@
+task_id: TASK-ADMIN-010
+task_name: 系统设置后台页面
+agent: admin-agent
+status: completed
+completed_at: "2026-05-11"
+
+deliverables:
+  - path: admin/src/types/system.ts
+    description: 系统设置相关类型定义（ConfigGroup, ConfigItem, BasicConfigForm, WechatConfigForm, StorageConfigForm, OperationLog, OperationLogParams, UploadResult）
+  - path: admin/src/api/system.ts
+    description: 系统设置 API（获取全部配置、更新配置、按分组获取配置、文件上传、操作日志列表）
+  - path: admin/src/views/system/basic.vue
+    description: 基础配置管理页面（站点信息、联系方式、功能开关，含 Logo 上传、表单校验、保存）
+  - path: admin/src/views/system/wechat.vue
+    description: 微信小程序配置页面（AppID/Secret、原始ID、小程序码上传、微信支付配置含开关、连接测试）
+  - path: admin/src/views/system/storage.vue
+    description: 存储配置页面（本地/OSS/COS/七牛云四种存储类型切换、对应参数配置、上传限制、存储连接测试）
+  - path: admin/src/views/system/logs.vue
+    description: 操作日志查看页面（多条件筛选、分页表格、日志详情弹窗含请求参数/响应结果 JSON 格式化展示）
+  - path: admin/src/router/index.ts
+    description: 更新 /settings 路由，新增基础配置、微信小程序配置、存储配置、操作日志四个子路由
+
+acceptance_criteria:
+  basic_config: 已实现 — 站点名称/Logo/描述/关键词/ICP备案、联系方式、注册开关/短信开关/默认语言
+  wechat_config: 已实现 — AppID/AppSecret/原始ID/小程序码上传、微信支付开关及商户号/密钥/回调地址配置、连接测试
+  storage_config: 已实现 — 四种存储类型切换（本地/阿里云OSS/腾讯云COS/七牛云）、各类型参数表单、上传限制、存储测试
+  operation_logs: 已实现 — 操作人/模块/状态/时间范围筛选、分页表格、日志详情弹窗（请求参数+响应结果 JSON 格式化）
+
+api_contracts:
+  - GET /api/v1/admin/system/configs
+  - PUT /api/v1/admin/system/configs
+  - GET /api/v1/admin/system/configs/{group}
+  - POST /api/v1/admin/system/upload
+  - GET /api/v1/admin/system/operation-logs
+
+dependencies_added: []
+
+build_verification: 待验证

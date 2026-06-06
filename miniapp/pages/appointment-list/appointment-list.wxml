@@ -1,0 +1,69 @@
+<!-- pages/appointment-list/appointment-list.wxml — 预约服务列表 -->
+<view class="appointment-list-page">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon">&#128269;</text>
+      <input
+        class="search-input"
+        placeholder="搜索服务"
+        value="{{keyword}}"
+        confirm-type="search"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+      />
+      <text
+        class="search-clear"
+        wx:if="{{keyword}}"
+        catchtap="onSearchClear"
+      >&#10005;</text>
+    </view>
+  </view>
+
+  <!-- 我的预约入口 -->
+  <view class="my-entry" bindtap="onMyAppointmentsTap">
+    <text class="my-entry-text">我的预约</text>
+    <text class="my-entry-arrow">&#10095;</text>
+  </view>
+
+  <!-- 服务列表 -->
+  <view class="service-list" wx:if="{{!isEmpty}}">
+    <view
+      wx:for="{{services}}"
+      wx:key="id"
+      class="service-card"
+      data-id="{{item.id}}"
+      bindtap="onServiceTap"
+    >
+      <image
+        class="service-image"
+        src="{{item.cover_url || item.image || '/images/default-service.svg'}}"
+        mode="aspectFill"
+      />
+      <view class="service-info">
+        <text class="service-name">{{item.name}}</text>
+        <text class="service-desc" wx:if="{{item.description}}">{{item.description}}</text>
+        <view class="service-bottom">
+          <text class="service-price" wx:if="{{item.price !== undefined}}">
+            <text class="price-symbol">&#165;</text>{{item.price}}
+          </text>
+          <text class="service-duration" wx:if="{{item.duration}}">{{item.duration}}分钟</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-area" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && services.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
+    <image class="empty-state__icon" src="/images/empty-order.png" mode="aspectFit" />
+    <text class="empty-state__text">暂无可预约的服务</text>
+  </view>
+</view>

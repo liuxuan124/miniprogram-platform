@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+admin/node_modules/
+
+# Build output
+backend/target/
+backend-build-tmp/
+admin/dist/
+*.class
+
+# Local environment & secrets
+deploy/.env
+.env
+.env.local
+*.local
+
+# WeChat DevTools local overrides
+miniapp/project.private.config.json
+
+# Client-specific delivery artifacts (not part of open-source product)
+deploy-artifacts/
+docs/跨境墨太白*
+verify-crossborder-motaibai-launch.js
+
+# IDE & OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+.playwright-cli/
+.trae/
+
+# Logs & temp
+*.log
+logs/
+tmp/
+temp/

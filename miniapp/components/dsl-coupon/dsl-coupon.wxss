@@ -1,0 +1,98 @@
+/* components/dsl-coupon/dsl-coupon.wxss — 优惠券组件样式 */
+
+.dsl-coupon {
+  width: 100%;
+}
+
+.dsl-coupon__grid {
+  display: grid;
+  gap: 16rpx;
+}
+
+.dsl-coupon__item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #fff6f6;
+  border: 1rpx solid #ffd6d6;
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: none;
+  min-height: 108rpx;
+}
+
+.dsl-coupon__item-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  min-height: 108rpx;
+  background-color: transparent;
+  color: #f0646a;
+  flex-shrink: 0;
+  position: relative;
+  border-right: 1rpx dashed #ffd6d6;
+}
+
+.dsl-coupon__item-left::after {
+  display: none;
+}
+
+.dsl-coupon__item-amount {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #f0646a;
+}
+
+.dsl-coupon__item-right {
+  flex: 1;
+  min-width: 0;
+  padding: 16rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dsl-coupon__item-name {
+  font-size: 26rpx;
+  color: #8b95a5;
+  font-weight: 500;
+}
+
+.dsl-coupon__item-expire {
+  font-size: 20rpx;
+  color: #999999;
+  margin-top: 8rpx;
+}
+
+.dsl-coupon__item-action {
+  flex-shrink: 0;
+  padding-right: 26rpx;
+}
+
+.dsl-coupon__item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88rpx;
+  height: 48rpx;
+  padding: 0 18rpx;
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 700;
+  background: #f3656c;
+  border-radius: 999rpx;
+}
+
+.dsl-coupon__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.dsl-coupon__empty-text {
+  font-size: 26rpx;
+  color: #999999;
+}
