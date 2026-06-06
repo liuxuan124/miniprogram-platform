@@ -874,6 +874,12 @@ async function copyH5PreviewLink(item: ReleaseRecord) {
 }
 
 async function handlePushPreview(item: ReleaseRecord) {
+  const releaseId = Number(item.id)
+  if (!Number.isFinite(releaseId) || releaseId <= 0) {
+    ElMessage.warning('请先保存并发布版本后再推送体验版')
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
       `确认将版本 v${item.semver} 对应的 miniapp 代码包推送到微信体验版吗？\n\n说明：页面装修内容已自动同步，本次仅上传代码包。`,
@@ -891,7 +897,7 @@ async function handlePushPreview(item: ReleaseRecord) {
   pushingReleaseId.value = item.id
   pushPreviewResult.value = null
   try {
-    const res = await pushPreviewRelease(item.id, {
+    const res = await pushPreviewRelease(releaseId, {
       versionDesc: item.releaseNotes || `后台推送体验版 v${item.semver}`,
       confirmCodeChange: true,
     })

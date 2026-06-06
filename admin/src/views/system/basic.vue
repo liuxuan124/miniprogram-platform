@@ -494,8 +494,8 @@ const paymentForm = reactive<PaymentForm>({
   apiV3Key: '',
   certSerialNo: '',
   certUploaded: false,
-  paymentNotifyUrl: 'https://api.example.com/pay/notify',
-  refundNotifyUrl: 'https://api.example.com/refund/notify',
+  paymentNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-notify',
+  refundNotifyUrl: '',
 })
 
 const logisticsForm = reactive<LogisticsForm>({
@@ -611,10 +611,24 @@ const miniProgramSaveStatus = computed(() => {
 
 let dataLoaded = false
 
+const CONFIG_FIELD_ALIASES: Record<string, string> = {
+  wx_appid: 'appId',
+  appId: 'appId',
+  wx_app_secret: 'appSecret',
+  appSecret: 'appSecret',
+  wx_mch_id: 'mchId',
+  wx_mch_key: 'apiV3Key',
+  wx_pay_notify_url: 'paymentNotifyUrl',
+  paymentNotifyUrl: 'paymentNotifyUrl',
+  wx_refund_notify_url: 'refundNotifyUrl',
+  refundNotifyUrl: 'refundNotifyUrl',
+}
+
 function applyConfigs(configs: Array<ConfigItem | any>) {
   configs.forEach((item) => {
-    const key = item.configKey || item.key
-    const value = item.configValue || item.value
+    const rawKey = item.configKey || item.key
+    const key = CONFIG_FIELD_ALIASES[rawKey] || rawKey
+    const value = item.configValue ?? item.value
     const type = item.type
 
     if (!key) return
@@ -689,7 +703,7 @@ function toConfigItems(data: Record<string, unknown>, group: string) {
 }
 
 async function saveGroup(group: string, _label: string, data: Record<string, unknown>) {
-  await updateConfigs({ configs: toConfigItems(data, group) } as any)
+  await updateConfigs(toConfigItems(data, group))
 }
 
 // ==================== 事件处理 ====================

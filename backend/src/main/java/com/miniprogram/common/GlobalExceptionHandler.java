@@ -14,6 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -95,6 +96,16 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         log.warn("约束违反: {}", message);
         return R.badRequest(message);
+    }
+
+    /**
+     * 路径/参数类型不匹配（如 local_1 无法转为 Long）
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R<Void> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        log.warn("参数类型错误: {} = {}", e.getName(), e.getValue());
+        return R.badRequest("参数格式错误: " + e.getName());
     }
 
     /**
