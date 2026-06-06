@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.DigestUtils;
+import com.miniprogram.support.WxPayNotifyCrypto;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -37,6 +37,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
     private final OrderMapper orderMapper;
     private final WxPayProperties wxPayProperties;
+    private final WxPayNotifyCrypto wxPayNotifyCrypto;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -91,20 +92,8 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void handleWxNotify(String xmlData) {
-        // 微信支付V3回调为JSON格式
         try {
-            Map<String, Object> notifyData = objectMapper.readValue(xmlData, Map.class);
-
-            // 验证通知类型
-            Map<String, Object> resource = (Map<String, Object>) notifyData.get("resource");
-            if (resource == null) {
-                log.warn("微信支付回调缺少resource字段");
-                return;
-            }
-
-            // 解密通知内容 (AEAD_AES_256_GCM)
-            String decryptedData = decryptNotifyResource(resource);
-            Map<String, Object> paymentData = objectMapper.readValue(decryptedData, Map.class);
+            Map<String, Object> paymentData = wxPayNotifyCrypto.decryptNotifyPayload(xmlData);
 
             String outTradeNo = (String) paymentData.get("out_trade_no");
             String transactionId = (String) paymentData.get("transaction_id");
@@ -237,27 +226,5 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         signature.initSign(privKey);
         signature.update(message.getBytes(StandardCharsets.UTF_8));
         return Base64.getEncoder().encodeToString(signature.sign());
-    }
-
-    private String decryptNotifyResource(Map<String, Object> resource) throws Exception {
-        String algorithm = (String) resource.get("algorithm");
-        String nonce = (String) resource.get("nonce");
-        String associatedData = (String) resource.get("associated_data");
-        String ciphertext = (String) resource.get("ciphertext");
-
-        // AES-256-GCM 解密
-        String apiV3Key = wxPayProperties.getApiV3Key();
-        byte[] keyBytes = apiV3Key.getBytes(StandardCharsets.UTF_8);
-        byte[] nonceBytes = nonce.getBytes(StandardCharsets.UTF_8);
-        byte[] associatedDataBytes = associatedData != null ? associatedData.getBytes(StandardCharsets.UTF_8) : new byte[0];
-        byte[] ciphertextBytes = Base64.getDecoder().decode(ciphertext);
-
-        javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
-        javax.crypto.spec.GCMParameterSpec spec = new javax.crypto.spec.GCMParameterSpec(128, nonceBytes);
-        javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
-        cipher.init(javax.crypto.Cipher.DECRYPT_MODE, keySpec, spec);
-        cipher.updateAAD(associatedDataBytes);
-
-        return new String(cipher.doFinal(ciphertextBytes), StandardCharsets.UTF_8);
     }
 }

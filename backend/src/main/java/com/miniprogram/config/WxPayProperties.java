@@ -18,4 +18,5 @@ public class WxPayProperties {
     private String privateKey;
     private String apiV3Key;
     private String notifyUrl = "https://your-domain.com/api/v1/mp/payments/wx-notify";
+    private String refundNotifyUrl = "https://your-domain.com/api/v1/mp/payments/wx-refund-notify";
 }

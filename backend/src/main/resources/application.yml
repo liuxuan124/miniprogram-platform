@@ -64,6 +64,7 @@ wx:
     private-key: ${WX_PAY_PRIVATE_KEY:}
     api-v3-key: ${WX_PAY_API_V3_KEY:your-api-v3-key}
     notify-url: ${WX_PAY_NOTIFY_URL:https://your-domain.com/api/v1/mp/payments/wx-notify}
+    refund-notify-url: ${WX_PAY_REFUND_NOTIFY_URL:https://your-domain.com/api/v1/mp/payments/wx-refund-notify}
 
 # 小程序代码推送
 miniapp:

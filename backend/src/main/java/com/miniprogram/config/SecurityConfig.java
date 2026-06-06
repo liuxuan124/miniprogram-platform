@@ -67,6 +67,7 @@ public class SecurityConfig {
                                 "/api/v1/mp/appointment-services/*/slots",
                                 // 微信支付回调（公开）
                                 "/api/v1/mp/payments/wx-notify",
+                                "/api/v1/mp/payments/wx-refund-notify",
                                 // 小程序页面访问上报（公开）
                                 "/api/v1/mp/statistics/page-access",
                                 // 小程序端公开配置

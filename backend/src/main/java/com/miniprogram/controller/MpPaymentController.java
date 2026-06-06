@@ -1,7 +1,7 @@
 package com.miniprogram.controller;
 
-import com.miniprogram.common.R;
 import com.miniprogram.service.PaymentService;
+import com.miniprogram.service.RefundService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MpPaymentController {
 
     private final PaymentService paymentService;
+    private final RefundService refundService;
 
     @PostMapping(value = "/wx-notify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_XML_VALUE})
     @Operation(summary = "微信支付回调通知")
@@ -33,6 +34,18 @@ public class MpPaymentController {
             return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
         } catch (Exception e) {
             log.error("微信支付回调处理失败", e);
+            return "{\"code\":\"FAIL\",\"message\":\"处理失败\"}";
+        }
+    }
+
+    @PostMapping(value = "/wx-refund-notify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_XML_VALUE})
+    @Operation(summary = "微信退款回调通知")
+    public String handleWxRefundNotify(@RequestBody String data) {
+        try {
+            refundService.handleWxRefundNotify(data);
+            return "{\"code\":\"SUCCESS\",\"message\":\"成功\"}";
+        } catch (Exception e) {
+            log.error("微信退款回调处理失败", e);
             return "{\"code\":\"FAIL\",\"message\":\"处理失败\"}";
         }
     }
