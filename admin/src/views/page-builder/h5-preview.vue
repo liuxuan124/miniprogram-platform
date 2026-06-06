@@ -53,12 +53,12 @@ import { getReleaseDetail } from '@/api/version'
 import { isAuthenticated } from '@/utils/auth'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
-import type { PageComponent, PageDSL } from '@/types/page'
+import type { ComponentInstance, PageDSL } from '@/types/page'
 
 const route = useRoute()
 
 const loading = ref(true)
-const components = ref<PageComponent[]>([])
+const components = ref<ComponentInstance[]>([])
 const pageTitle = ref('首页')
 const pageBgColor = ref('#f5f5f5')
 const semver = ref('')
