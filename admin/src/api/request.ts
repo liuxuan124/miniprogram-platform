@@ -118,13 +118,15 @@ service.interceptors.response.use(
         403: '拒绝访问',
         404: '请求资源不存在',
         408: '请求超时',
+        422: '请求无法处理',
         500: '服务器内部错误',
         502: '网关错误',
         503: '服务不可用',
         504: '网关超时',
       }
       if (showError) {
-        const message = statusMessages[response.status] || `请求失败 (${response.status})`
+        const apiMessage = response.data?.message
+        const message = apiMessage || statusMessages[response.status] || `请求失败 (${response.status})`
         showErrorDebounced(message)
       }
 
