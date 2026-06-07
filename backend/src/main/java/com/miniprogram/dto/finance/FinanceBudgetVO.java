@@ -46,8 +46,8 @@ public class FinanceBudgetVO {
     @Schema(description = "部门列表")
     private List<String> departments;
 
-    @Schema(description = "预算科目项JSON")
-    private String items;
+    @Schema(description = "预算科目项")
+    private Object items;
 
     @Schema(description = "创建人")
     private String createdBy;

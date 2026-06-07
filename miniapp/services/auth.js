@@ -131,14 +131,16 @@ const AuthService = {
    * @returns {Promise<boolean>} 是否已登录
    */
   silentLogin() {
-    if (AuthUtil.isLoggedIn()) {
-      return Promise.resolve(true)
-    }
-
     return this.wxLogin()
       .then(() => true)
       .catch((err) => {
-        console.error('[AuthService] 静默登录失败:', err)
+        console.warn('[AuthService] 静默登录失败:', err)
+        const app = getApp()
+        if (app) {
+          app.clearAuthState()
+        } else {
+          AuthUtil.clearAuth()
+        }
         return false
       })
   },

@@ -5,7 +5,7 @@
         <strong>H5 预览</strong>
         <span v-if="semver">v{{ semver }}</span>
         <el-tag v-if="previewSource === 'snapshot'" size="small" type="success">
-          {{ previewMode === 'template' ? '模板快照' : '版本快照' }}
+          {{ previewMode === 'template' ? '模板快照' : `版本快照 v${semver || ''}` }}
         </el-tag>
         <el-tag v-else size="small" type="info">当前线上</el-tag>
       </div>
@@ -23,6 +23,15 @@
         :closable="false"
         show-icon
         :title="fallbackNotice"
+      />
+
+      <el-alert
+        v-if="dataWarnings"
+        class="h5-notice"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="dataWarnings"
       />
 
       <PreviewPhone
@@ -54,6 +63,7 @@ import { isAuthenticated } from '@/utils/auth'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import type { ComponentInstance, PageDSL } from '@/types/page'
+import { hydratePreviewDsl } from '@/utils/preview-datasource'
 
 const route = useRoute()
 
@@ -64,6 +74,7 @@ const pageBgColor = ref('#f5f5f5')
 const semver = ref('')
 const previewSource = ref<'snapshot' | 'live'>('live')
 const fallbackNotice = ref('')
+const dataWarnings = ref('')
 
 const pagePath = computed(() => String(route.query.path || 'pages/index/index'))
 const previewMode = computed(() => String(route.query.mode || 'release'))
@@ -72,10 +83,12 @@ const releaseId = computed(() => {
   return Number.isFinite(value) && value > 0 ? value : 0
 })
 
-function applyDsl(dsl: PageDSL) {
-  pageTitle.value = dsl.page?.name || '首页'
-  pageBgColor.value = dsl.page?.background_color || '#f5f5f5'
-  components.value = Array.isArray(dsl.components) ? dsl.components : []
+async function applyDsl(dsl: PageDSL) {
+  const { dsl: hydrated, warnings } = await hydratePreviewDsl(dsl)
+  pageTitle.value = hydrated.page?.name || '首页'
+  pageBgColor.value = hydrated.page?.background_color || '#f5f5f5'
+  components.value = Array.isArray(hydrated.components) ? hydrated.components : []
+  dataWarnings.value = warnings.length ? warnings.join('；') : ''
 }
 
 function extractDslFromSnapshot(snapshotJson: string, path: string): PageDSL | null {
@@ -92,7 +105,7 @@ async function loadLivePreview() {
   if (payload.code !== 200 || !payload.data) {
     throw new Error(payload.message || '加载线上页面失败')
   }
-  applyDsl(payload.data as PageDSL)
+  await applyDsl(payload.data as PageDSL)
   previewSource.value = 'live'
 }
 
@@ -104,13 +117,14 @@ async function loadReleaseSnapshot() {
   if (!dsl) {
     throw new Error('版本快照中没有可预览页面')
   }
-  applyDsl(dsl)
+  await applyDsl(dsl)
   previewSource.value = 'snapshot'
 }
 
 async function loadPreview() {
   loading.value = true
   fallbackNotice.value = ''
+  dataWarnings.value = ''
   semver.value = String(route.query.semver || '')
 
   try {

@@ -38,6 +38,6 @@ public class FinanceBudgetDTO {
     @Schema(description = "部门列表")
     private List<String> departments;
 
-    @Schema(description = "预算科目项JSON")
-    private String items;
+    @Schema(description = "预算科目项JSON或数组")
+    private Object items;
 }

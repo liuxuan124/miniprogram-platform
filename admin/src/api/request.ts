@@ -101,7 +101,11 @@ service.interceptors.response.use(
         return Promise.reject(new Error(res.message || '未授权'))
       }
 
-      return Promise.reject(new Error(res.message || '请求失败'))
+      const bizError = new Error(res.message || '请求失败') as Error & {
+        response?: { data?: ApiResponse; status?: number }
+      }
+      bizError.response = { data: res, status: response.status }
+      return Promise.reject(bizError)
     }
 
     return res as any

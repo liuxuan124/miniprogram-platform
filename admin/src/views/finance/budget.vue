@@ -92,8 +92,15 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="140" align="center" fixed="right">
+            <el-table-column label="操作" width="200" align="center" fixed="right">
               <template #default="{ row }">
+                <el-button
+                  v-if="row.status === 'draft'"
+                  link
+                  type="success"
+                  size="small"
+                  @click="handleActivateBudget(row)"
+                >启用</el-button>
                 <el-button link type="primary" size="small" @click="handleEditBudget(row)">编辑</el-button>
                 <el-button link type="danger" size="small" @click="handleDeleteBudget(row)">删除</el-button>
               </template>
@@ -396,11 +403,13 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { extractPageRecords } from '@/utils/pagination'
 import {
   getBudgetList,
   createBudget,
   updateBudget,
   deleteBudget,
+  activateBudget,
   getBudgetAlerts,
   handleBudgetAlert,
 } from '@/api/finance'
@@ -462,9 +471,9 @@ async function fetchBudgetList() {
       keyword: budgetQuery.keyword || undefined,
       status: budgetQuery.status || undefined,
     })
-    const data = (res as any).data || {}
-    budgetList.value = data.items || data.records || data.list || []
-    budgetPagination.total = data.total || budgetList.value.length
+    const pageData = extractPageRecords<BudgetRecord>(res)
+    budgetList.value = pageData.list
+    budgetPagination.total = pageData.total
   } catch {
     ElMessage.error('获取预算列表失败')
   } finally {
@@ -550,6 +559,25 @@ function handleCreateBudget() {
   budgetDialogVisible.value = true
 }
 
+function parseBudgetItems(raw: BudgetRecord['items']): BudgetFormItem[] {
+  let items: BudgetItem[] = []
+  if (Array.isArray(raw)) {
+    items = raw
+  } else if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw)
+      items = Array.isArray(parsed) ? parsed : []
+    } catch {
+      items = []
+    }
+  }
+  return items.map((item) => ({
+    category: item.category,
+    budgetAmount: item.budgetAmount,
+    alertThreshold: item.alertThreshold ?? 80,
+  }))
+}
+
 function handleEditBudget(row: BudgetRecord) {
   isEditBudget.value = true
   editBudgetId.value = row.id
@@ -558,11 +586,7 @@ function handleEditBudget(row: BudgetRecord) {
   budgetForm.dateRange = [row.startDate, row.endDate]
   budgetForm.totalBudget = row.totalBudget
   budgetForm.departments = [...(row.departments || [])]
-  budgetForm.items = (row.items || []).map((item: BudgetItem) => ({
-    category: item.category,
-    budgetAmount: item.budgetAmount,
-    alertThreshold: item.alertThreshold,
-  }))
+  budgetForm.items = parseBudgetItems(row.items)
   if (budgetForm.items.length === 0) {
     budgetForm.items = [{ category: '', budgetAmount: 0, alertThreshold: 80 }]
   }
@@ -577,6 +601,17 @@ async function handleDeleteBudget(row: BudgetRecord) {
     fetchBudgetList()
   } catch {
     ElMessage.error('删除失败')
+  }
+}
+
+async function handleActivateBudget(row: BudgetRecord) {
+  await ElMessageBox.confirm(`确定启用预算「${row.name}」？启用后将开始统计执行率`, '启用确认', { type: 'info' })
+  try {
+    await activateBudget(row.id)
+    ElMessage.success('预算已启用')
+    fetchBudgetList()
+  } catch {
+    ElMessage.error('启用失败')
   }
 }
 

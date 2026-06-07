@@ -47,6 +47,16 @@ export function updateConfigs(configs: SystemConfigUpdateItem[]) {
   return put<null>(`${BASE_URL}/configs`, { configs })
 }
 
+/** 单独保存代码上传密钥（避免与其它字段批量保存时互相影响） */
+export function saveUploadKey(uploadKey: string) {
+  return updateConfigs([{
+    configKey: 'wx_upload_key',
+    configValue: uploadKey.trim(),
+    configGroup: 'wechat',
+    description: 'uploadKey',
+  }])
+}
+
 /** 获取指定分组配置 */
 export function getConfigByGroup(group: ConfigGroup) {
   return get<ConfigGroupData>(`${BASE_URL}/configs/${group}`)

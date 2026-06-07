@@ -456,12 +456,20 @@
     </div>
 
     <!-- ==================== Module Version Dialog ==================== -->
-    <el-dialog v-model="pushPreviewVisible" title="推送微信小程序体验版" width="520px" :close-on-click-modal="false">
+    <el-dialog v-model="pushPreviewVisible" title="推送微信小程序体验版" width="560px" :close-on-click-modal="false">
       <el-alert
         type="info"
         :closable="false"
         show-icon
         title="页面/配置变更会自动同步到小程序，无需推送。仅在 miniapp 代码变更或平台要求重新上传代码时使用。"
+        style="margin-bottom: 16px"
+      />
+      <el-alert
+        v-if="pushPreviewResult && isPushPreviewFailure(pushPreviewResult.message)"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="pushPreviewResult.message"
         style="margin-bottom: 16px"
       />
       <el-descriptions v-if="pushPreviewResult" :column="1" border size="small">
@@ -896,6 +904,12 @@ async function handlePushPreview(item: ReleaseRecord) {
 
   pushingReleaseId.value = item.id
   pushPreviewResult.value = null
+  const loadingMsg = ElMessage({
+    message: '正在推送体验版到微信，请稍候（约 10–60 秒）…',
+    type: 'info',
+    duration: 0,
+    showClose: false,
+  })
   try {
     const res = await pushPreviewRelease(releaseId, {
       versionDesc: item.releaseNotes || `后台推送体验版 v${item.semver}`,
@@ -903,20 +917,41 @@ async function handlePushPreview(item: ReleaseRecord) {
     })
     pushPreviewResult.value = (res as any).data || res
     pushPreviewVisible.value = true
-    ElMessage.success('体验版推送成功')
+    ElMessage.success('体验版推送成功，请到微信公众平台「版本管理 → 开发版本」查看')
   } catch (error: any) {
-    const apiMessage = error?.response?.data?.message
-    const code = error?.response?.data?.code
-    if (code === 5005 || String(apiMessage || error?.message || '').includes('上传密钥')) {
-      ElMessage.error('请先在「系统设置 → 微信配置」填写代码上传密钥并保存')
-    } else if (code === 400 || String(apiMessage || '').includes('参数格式错误')) {
-      ElMessage.warning('版本记录无效，请刷新页面后重试')
-    } else {
-      ElMessage.error(apiMessage || error?.message || '体验版推送失败')
-    }
+    const message = formatPushPreviewError(error)
+    pushPreviewResult.value = { message, version: item.semver, manageUrl: 'https://mp.weixin.qq.com/' }
+    pushPreviewVisible.value = true
+    ElMessage.error(message)
   } finally {
+    loadingMsg.close()
     pushingReleaseId.value = null
   }
+}
+
+function formatPushPreviewError(error: any): string {
+  const apiMessage = String(error?.response?.data?.message || error?.message || '')
+  const code = error?.response?.data?.code
+  if (code === 5005 || apiMessage.includes('上传密钥')) {
+    return '请先在「系统设置 → 基础配置」保存代码上传密钥，并确认提示「上传密钥已入库」'
+  }
+  if (apiMessage.includes('invalid ip') || apiMessage.includes('-10008')) {
+    const ipMatch = apiMessage.match(/invalid ip:\s*([0-9.]+)/i)
+    const ip = ipMatch?.[1] || '124.220.11.79'
+    return `微信拒绝上传：服务器 IP ${ip} 未加入代码上传白名单。请到 mp.weixin.qq.com → 开发 → 开发设置 → IP白名单 添加后重试`
+  }
+  if (code === 400 || apiMessage.includes('参数格式错误')) {
+    return '版本记录无效，请刷新页面后重试'
+  }
+  if (apiMessage.includes('signature fail') || apiMessage.includes('DECODER')) {
+    return '代码上传密钥格式有误，请从微信公众平台重新下载并完整粘贴后保存'
+  }
+  return apiMessage || '体验版推送失败，请稍后重试'
+}
+
+function isPushPreviewFailure(message?: string) {
+  if (!message) return false
+  return !message.includes('成功') && !message.includes('最近一次体验版推送版本')
 }
 
 // ==================== Editor Functions ====================
@@ -961,6 +996,8 @@ async function handlePublishOnline() {
     successMode.value = 'publish'
     published.value = true
     activeStep.value = 4
+    await loadGalleryData()
+    ElMessage.success('发布成功，微信体验版将与 H5 预览一致（请重新进入小程序）')
   } catch {
     ElMessage.error('发布失败，请检查配置后重试')
   }

@@ -21,34 +21,33 @@ const PageService = {
    * @returns {Promise<Object>} 页面 DSL 数据
    */
   getPageDSL(pagePath, forceRefresh = false) {
-    // 尝试从缓存读取
-    if (!forceRefresh) {
-      const cached = StorageUtil.get(DSL_CACHE_PREFIX + pagePath)
-      if (cached) {
-        // 同步到全局缓存
-        const app = getApp()
-        if (app) {
-          app.globalData.pageDSLCache[pagePath] = cached
-        }
-        return Promise.resolve(cached)
-      }
-    }
-
     const resolvedPath = this.resolvePagePath(pagePath)
 
-    // 请求后端 — 使用 query 参数形式，兼容 pages/index/index 这类带斜杠路径
-    return get('/api/v1/mp/pages', { path: resolvedPath }, { auth: false }).then((dsl) => {
-      // 写入缓存
-      StorageUtil.set(DSL_CACHE_PREFIX + pagePath, dsl, DSL_CACHE_EXPIRE)
+    return get('/api/v1/mp/config/public', {}, { auth: false, showError: false })
+      .then((publicConfig) => {
+        const versionTag = (publicConfig && publicConfig.wx_version) || '0'
+        const cacheKey = `${DSL_CACHE_PREFIX}${pagePath}_${versionTag}`
 
-      // 同步到全局缓存
-      const app = getApp()
-      if (app) {
-        app.globalData.pageDSLCache[pagePath] = dsl
-      }
+        if (!forceRefresh) {
+          const cached = StorageUtil.get(cacheKey)
+          if (cached) {
+            const app = getApp()
+            if (app) {
+              app.globalData.pageDSLCache[pagePath] = cached
+            }
+            return cached
+          }
+        }
 
-      return dsl
-    })
+        return get('/api/v1/mp/pages', { path: resolvedPath }, { auth: false }).then((dsl) => {
+          StorageUtil.set(cacheKey, dsl, DSL_CACHE_EXPIRE)
+          const app = getApp()
+          if (app) {
+            app.globalData.pageDSLCache[pagePath] = dsl
+          }
+          return dsl
+        })
+      })
   },
 
   /**

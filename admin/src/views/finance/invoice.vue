@@ -390,6 +390,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { extractPageRecords } from '@/utils/pagination'
 import {
   getInvoiceList,
   createInvoice,
@@ -465,9 +466,9 @@ async function fetchList() {
       endDate: dateRange.value?.[1] || undefined,
     }
     const res = await getInvoiceList(params)
-    const data = res.data
-    tableData.value = data?.items || []
-    pagination.total = data?.total || 0
+    const pageData = extractPageRecords<InvoiceRecord>(res)
+    tableData.value = pageData.list
+    pagination.total = pageData.total
   } catch {
     ElMessage.error('获取发票列表失败')
   } finally {

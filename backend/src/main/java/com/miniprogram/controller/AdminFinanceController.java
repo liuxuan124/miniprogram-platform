@@ -6,9 +6,12 @@ import com.miniprogram.dto.finance.*;
 import com.miniprogram.service.FinanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -108,18 +111,25 @@ public class AdminFinanceController {
         return R.ok(null);
     }
 
-    @PostMapping("/transactions/import")
+    @PostMapping(value = "/transactions/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "批量导入收支记录")
-    public R<Void> importTransactions() {
-        // 模拟导入
-        return R.ok(null);
+    public R<Map<String, Object>> importTransactions(@RequestParam("file") MultipartFile file) {
+        return R.ok(financeService.importTransactions(file));
     }
 
     @GetMapping("/transactions/export")
     @Operation(summary = "导出收支记录")
-    public R<Void> exportTransactions() {
-        // 模拟导出
-        return R.ok(null);
+    public void exportTransactions(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String approvalStatus,
+            @RequestParam(required = false) String invoiceStatus,
+            HttpServletResponse response) {
+        financeService.exportTransactions(keyword, type, category, startDate, endDate,
+                approvalStatus, invoiceStatus, response);
     }
 
     @GetMapping("/transaction-categories")
@@ -157,9 +167,11 @@ public class AdminFinanceController {
 
     @GetMapping("/reports/export")
     @Operation(summary = "导出报表")
-    public R<Void> exportReport() {
-        // 模拟导出
-        return R.ok(null);
+    public void exportReport(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            HttpServletResponse response) {
+        financeService.exportReport(startDate, endDate, response);
     }
 
     // ==================== 预算管理 ====================
@@ -172,6 +184,26 @@ public class AdminFinanceController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword) {
         return R.ok(financeService.listBudgets(page, pageSize, status, keyword));
+    }
+
+    @GetMapping("/budgets/alerts")
+    @Operation(summary = "获取预算预警列表")
+    public R<List<Map<String, Object>>> getBudgetAlerts(
+            @RequestParam(required = false) Boolean handled) {
+        return R.ok(financeService.getBudgetAlerts(handled));
+    }
+
+    @PutMapping("/budgets/alerts/{id}/handle")
+    @Operation(summary = "处理预算预警")
+    public R<Void> handleBudgetAlert(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        financeService.handleBudgetAlert(id, body.get("note"));
+        return R.ok(null);
+    }
+
+    @PutMapping("/budgets/{id}/activate")
+    @Operation(summary = "启用预算")
+    public R<FinanceBudgetVO> activateBudget(@PathVariable Long id) {
+        return R.ok(financeService.activateBudget(id));
     }
 
     @GetMapping("/budgets/{id}")
@@ -196,20 +228,6 @@ public class AdminFinanceController {
     @Operation(summary = "删除预算")
     public R<Void> deleteBudget(@PathVariable Long id) {
         financeService.deleteBudget(id);
-        return R.ok(null);
-    }
-
-    @GetMapping("/budgets/alerts")
-    @Operation(summary = "获取预算预警列表")
-    public R<List<Map<String, Object>>> getBudgetAlerts(
-            @RequestParam(required = false) Boolean handled) {
-        return R.ok(financeService.getBudgetAlerts(handled));
-    }
-
-    @PutMapping("/budgets/alerts/{id}/handle")
-    @Operation(summary = "处理预算预警")
-    public R<Void> handleBudgetAlert(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        financeService.handleBudgetAlert(id, body.get("note"));
         return R.ok(null);
     }
 

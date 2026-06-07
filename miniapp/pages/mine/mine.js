@@ -37,19 +37,17 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 4 })
     }
-    this._refreshUserInfo()
-    if (this.data.isLoggedIn) {
-      this._loadMemberInfo()
-      return
-    }
 
     AuthService.silentLogin()
       .then((loggedIn) => {
-        if (!loggedIn) return
         this._refreshUserInfo()
-        this._loadMemberInfo()
+        if (loggedIn) {
+          this._loadMemberInfo()
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        this._refreshUserInfo()
+      })
   },
 
   /** 加载后台配置的我的页面内容 */

@@ -550,12 +550,14 @@ async function handleSave() {
 
   saving.value = true
   try {
-    const configItems = Object.entries(formData).map(([key, value]) => ({
-      configKey: FORM_TO_DB_KEY[key] || CONFIG_KEY_MAP[key] || key,
-      configValue: String(value ?? ''),
-      configGroup: 'wechat',
-      description: key,
-    }))
+    const configItems = Object.entries(formData)
+      .filter(([key, value]) => !shouldSkipSensitiveSave(key, value))
+      .map(([key, value]) => ({
+        configKey: FORM_TO_DB_KEY[key] || CONFIG_KEY_MAP[key] || key,
+        configValue: String(value ?? ''),
+        configGroup: 'wechat',
+        description: key,
+      }))
     await updateConfigs(configItems)
     ElMessage.success('保存成功')
   } finally {

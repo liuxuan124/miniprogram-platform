@@ -29,7 +29,7 @@ public class AgentConfig implements Serializable {
     @Schema(description = "模型名称")
     private String model;
 
-    @Schema(description = "模型提供商: openai/qwen/anthropic/custom")
+    @Schema(description = "模型提供商: openai/qwen/anthropic/deepseek/minimax/doubao/custom")
     private String modelProvider;
 
     @Schema(description = "API Base URL")

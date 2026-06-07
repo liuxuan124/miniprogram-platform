@@ -13,8 +13,11 @@
             <span>加载中...</span>
           </div>
 
-          <!-- Real page content (DSL rendered) -->
+          <!-- Real page content (DSL rendered，与体验版同源：已发布快照) -->
           <div v-else-if="currentPageDsl" class="preview-dsl">
+            <div v-if="previewWarnings.length" class="preview-warnings">
+              <p v-for="(msg, idx) in previewWarnings" :key="idx">{{ msg }}</p>
+            </div>
             <ComponentItem
               v-for="(comp, idx) in currentPageDsl.components"
               :key="comp.id"
@@ -115,23 +118,78 @@
         </div>
       </div>
     </div>
+    <p class="preview-source-hint">与微信体验版一致：页面结构来自已发布快照，列表数据来自线上接口</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { getPageDetail } from '@/api/page'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import type { MiniappForm } from '@/types/miniapp'
 import type { PageRecord } from '@/types/page'
 import type { PageDSL } from '@/types/page'
+import { hydratePreviewDsl } from '@/utils/preview-datasource'
 
 const props = defineProps<{ form: MiniappForm; pages: PageRecord[]; minePageMode?: 'config' | 'custom' }>()
 const activeTab = ref(0)
 const loading = ref(false)
+const previewWarnings = ref<string[]>([])
 
-const pageDslCache = ref<Map<number | string, PageDSL>>(new Map())
+const pageDslCache = ref<Map<string, PageDSL | null>>(new Map())
+
+function normalizePreviewPath(path: string) {
+  return (path || '').trim().replace(/^\/+/, '')
+}
+
+async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
+  const path = normalizePreviewPath(tab.pagePath || '')
+  if (!path) return null
+  if (pageDslCache.value.has(path)) {
+    return pageDslCache.value.get(path) || null
+  }
+
+  loading.value = true
+  try {
+    try {
+      const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
+      const payload = await response.json()
+      if (payload.code === 200 && payload.data) {
+        const { dsl, warnings } = await hydratePreviewDsl(payload.data as PageDSL)
+        previewWarnings.value = warnings
+        pageDslCache.value.set(path, dsl)
+        return dsl
+      }
+    } catch {
+      // ignore and fallback to draft
+    }
+
+    if (tab.pageId && /^\d+$/.test(String(tab.pageId))) {
+      try {
+        const res = await getPageDetail(Number(tab.pageId))
+        const dsl = parseDslFromResponse(res.data)
+        if (dsl) {
+          const { dsl: hydrated, warnings } = await hydratePreviewDsl(dsl)
+          previewWarnings.value = warnings
+          pageDslCache.value.set(path, hydrated)
+          return hydrated
+        }
+        previewWarnings.value = []
+        pageDslCache.value.set(path, null)
+        return null
+      } catch {
+        pageDslCache.value.set(path, null)
+        return null
+      }
+    }
+
+    pageDslCache.value.set(path, null)
+    return null
+  } finally {
+    loading.value = false
+  }
+}
 
 const currentTab = computed(() => props.form.tabs[activeTab.value] || { text: '', icon: '📦', pagePath: '' })
 const currentTabLabel = computed(() => currentTab.value.text || '页面')
@@ -154,13 +212,14 @@ const showMinePageDsl = computed(() => {
 const minePageDsl = computed(() => {
   if (!showMinePageDsl.value) return null
   const tab = currentTab.value
-  return tab?.pageId ? (pageDslCache.value.get(tab.pageId) || null) : null
+  const path = normalizePreviewPath(tab?.pagePath || '')
+  return path ? (pageDslCache.value.get(path) || null) : null
 })
 
 const currentPageDsl = computed(() => {
   const tab = currentTab.value
-  if (!tab?.pageId) return null
-  return pageDslCache.value.get(tab.pageId) || null
+  if (!tab?.pagePath) return null
+  return pageDslCache.value.get(normalizePreviewPath(tab.pagePath)) || null
 })
 
 const visibleMenuItems = computed(() => props.form.mineConfig.menuItems.filter(m => m.enabled))
@@ -180,46 +239,34 @@ function parseDslFromResponse(data: any): PageDSL | null {
 async function switchTab(idx: number) {
   activeTab.value = idx
   const tab = props.form.tabs[idx]
-  if (!tab?.pageId) return
-
-  const pageId = tab.pageId
-
-  if (pageDslCache.value.has(pageId)) return
-
-  // 校验 pageId 是否为有效正整数
-  if (typeof pageId !== 'number' && !/^\d+$/.test(String(pageId))) return
-
-  loading.value = true
-  try {
-    const res = await getPageDetail(Number(pageId))
-    const dsl = parseDslFromResponse(res.data)
-    if (dsl) {
-      pageDslCache.value.set(pageId, dsl)
-    } else {
-      pageDslCache.value.set(pageId, null as any)
-    }
-  } catch {
-    pageDslCache.value.set(pageId, null as any)
-  } finally {
-    loading.value = false
-  }
+  if (!tab?.pagePath && !tab?.pageId) return
+  if (showMinePage.value) return
+  await loadPublishedDslForTab(tab)
 }
 
-watch(() => props.form.homePageId, (id) => {
-  if (id) loadPageDsl(id)
-}, { immediate: true })
+watch(() => props.form.tabs, () => {
+  pageDslCache.value.clear()
+  previewWarnings.value = []
+  const tab = props.form.tabs[activeTab.value]
+  if (tab) loadPublishedDslForTab(tab)
+}, { deep: true })
 
-function loadPageDsl(pageId: number | string) {
-  if (pageDslCache.value.has(pageId)) return
-  getPageDetail(pageId as number).then(res => {
-    const dsl = parseDslFromResponse(res.data)
-    if (dsl) pageDslCache.value.set(pageId, dsl)
-  }).catch(() => {})
-}
+watch(() => props.form.homePageId, () => {
+  pageDslCache.value.clear()
+  previewWarnings.value = []
+  const tab = props.form.tabs[activeTab.value] || props.form.tabs[0]
+  if (tab) loadPublishedDslForTab(tab)
+})
+
+onMounted(() => {
+  const tab = props.form.tabs[0]
+  if (tab) loadPublishedDslForTab(tab)
+})
 </script>
 
 <style scoped>
-.miniapp-preview { display: flex; justify-content: center; }
+.miniapp-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.preview-source-hint { margin: 0; font-size: 12px; color: #64748b; text-align: center; max-width: 375px; }
 .phone { width: 375px; background: #111827; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .phone-notch { height: 30px; display: flex; align-items: center; justify-content: center; }
 .phone-speaker { width: 80px; height: 6px; background: #1f2937; border-radius: 3px; }
@@ -236,6 +283,15 @@ function loadPageDsl(pageId: number | string) {
 .preview-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 200px; color: #a0b4d0; font-size: 13px; }
 
 .preview-dsl { animation: fadeIn 0.2s; min-height: 100%; }
+.preview-warnings {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  p { margin: 0; font-size: 11px; color: #9a3412; line-height: 1.45; }
+  p + p { margin-top: 4px; }
+}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 .preview-empty { text-align: center; padding: 40px 16px; color: #a0b4d0; }
