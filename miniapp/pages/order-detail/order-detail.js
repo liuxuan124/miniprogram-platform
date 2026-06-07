@@ -158,10 +158,16 @@ Page({
             },
           })
         } else {
-          // 如果后端直接返回成功（模拟支付或零元订单）
+          // C1: 仅零元订单或后端显式标记已支付才视为成功，避免缺少微信支付参数时被绕过
+          const amount = Number((this.data.order && (this.data.order.payAmount ?? this.data.order.pay_amount)) || 0)
+          const explicitlyPaid = res && (res.paid === true || res.status === 'paid')
           this.setData({ paying: false })
-          wx.showToast({ title: '支付成功', icon: 'success' })
-          this._loadDetail(this.data.id)
+          if (amount <= 0 || explicitlyPaid) {
+            wx.showToast({ title: '支付成功', icon: 'success' })
+            this._loadDetail(this.data.id)
+          } else {
+            wx.showModal({ title: '提示', content: '支付参数获取失败，请稍后重试或联系客服', showCancel: false })
+          }
         }
       })
       .catch(() => {

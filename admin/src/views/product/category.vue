@@ -30,7 +30,7 @@
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleAdd(row)">新增子分类</el-button>
             <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-popconfirm title="确定删除该分类吗？" @confirm="handleDelete(row)">
+            <el-popconfirm :title="`确定删除分类「${row.name}」吗？删除后不可恢复。`" @confirm="handleDelete(row)">
               <template #reference>
                 <el-button type="danger" link size="small">删除</el-button>
               </template>

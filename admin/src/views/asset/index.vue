@@ -229,7 +229,7 @@
               <template #default="{ row }">
                 <el-button text size="small" @click="handlePreview(row)">预览</el-button>
                 <el-button text size="small" type="primary" @click="handleRename(row)">重命名</el-button>
-                <el-popconfirm title="确定删除？" @confirm="handleDeleteOne(row)">
+                <el-popconfirm :title="`确定删除素材「${row.name || row.fileName || ''}」？此操作不可撤销。`" @confirm="handleDeleteOne(row)">
                   <template #reference>
                     <el-button text size="small" type="danger">删除</el-button>
                   </template>
