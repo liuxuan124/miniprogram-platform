@@ -17,6 +17,7 @@
                   <el-radio-button label="anthropic">Claude</el-radio-button>
                   <el-radio-button label="deepseek">DeepSeek</el-radio-button>
                   <el-radio-button label="minimax">MiniMax</el-radio-button>
+                  <el-radio-button label="mimo">MiMo</el-radio-button>
                   <el-radio-button label="doubao">豆包</el-radio-button>
                   <el-radio-button label="custom">自定义</el-radio-button>
                 </el-radio-group>
@@ -465,7 +466,7 @@ const modelCatalog: ModelOption[] = [
     provider: 'minimax',
     id: 'MiniMax-M2.5',
     name: 'MiniMax M2.5',
-    desc: 'MiniMax MiMo 系列主力模型，适合复杂 Agent、工具调用与中文客服',
+    desc: 'MiniMax 主力模型，适合复杂 Agent、工具调用与中文客服',
     baseUrl: 'https://api.minimaxi.com/v1',
     reasoning: 'medium',
     maxTokens: 8192,
@@ -474,7 +475,7 @@ const modelCatalog: ModelOption[] = [
     provider: 'minimax',
     id: 'MiniMax-M2.5-highspeed',
     name: 'MiniMax M2.5 Highspeed',
-    desc: 'MiMo 高速版，更低延迟，适合高频对话与实时推荐',
+    desc: 'MiniMax 高速版，更低延迟，适合高频对话与实时推荐',
     baseUrl: 'https://api.minimaxi.com/v1',
     reasoning: 'none',
     maxTokens: 4096,
@@ -483,7 +484,7 @@ const modelCatalog: ModelOption[] = [
     provider: 'minimax',
     id: 'MiniMax-M2.5-Lightning',
     name: 'MiniMax M2.5 Lightning',
-    desc: 'MiMo 轻量 Mini 版，成本更低，适合简单问答与大并发',
+    desc: 'MiniMax 轻量版，成本更低，适合简单问答与大并发',
     baseUrl: 'https://api.minimaxi.com/v1',
     reasoning: 'none',
     maxTokens: 2048,
@@ -494,6 +495,33 @@ const modelCatalog: ModelOption[] = [
     name: 'abab6.5s-chat',
     desc: 'MiniMax 经典对话模型，稳定可靠，适合通用客服场景',
     baseUrl: 'https://api.minimaxi.com/v1',
+    reasoning: 'none',
+    maxTokens: 4096,
+  },
+  {
+    provider: 'mimo',
+    id: 'mimo-v2.5-pro',
+    name: 'MiMo V2.5 Pro',
+    desc: '小米 MiMo 旗舰模型，适合复杂推理、长文档与 Agent 任务',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    reasoning: 'high',
+    maxTokens: 8192,
+  },
+  {
+    provider: 'mimo',
+    id: 'mimo-v2.5',
+    name: 'MiMo V2.5',
+    desc: '小米 MiMo 全模态模型，支持文本与多模态理解',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    reasoning: 'medium',
+    maxTokens: 8192,
+  },
+  {
+    provider: 'mimo',
+    id: 'mimo-v2-flash',
+    name: 'MiMo V2 Flash',
+    desc: '小米 MiMo 高速版，低成本、低延迟，适合客服与高并发',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
     reasoning: 'none',
     maxTokens: 4096,
   },
@@ -660,11 +688,8 @@ function inferProvider(model: string) {
   if (normalized.startsWith('claude')) return 'anthropic'
   if (normalized.startsWith('deepseek')) return 'deepseek'
   if (normalized.startsWith('doubao') || normalized.startsWith('ep-')) return 'doubao'
-  if (
-    normalized.startsWith('minimax')
-    || normalized.startsWith('mimo')
-    || normalized.startsWith('abab')
-  ) return 'minimax'
+  if (normalized.startsWith('mimo')) return 'mimo'
+  if (normalized.startsWith('minimax') || normalized.startsWith('abab')) return 'minimax'
   if (normalized.startsWith('gpt')) return 'openai'
   return 'custom'
 }

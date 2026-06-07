@@ -4,6 +4,7 @@ import com.miniprogram.dto.statistics.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 数据统计 Service
@@ -14,6 +15,12 @@ public interface StatisticsService {
      * 仪表盘概览
      */
     DashboardVO getDashboard();
+
+    /**
+     * 后台工作台首页聚合数据（指标卡 + 趋势 + 待办 + 商品排行 + 页面版本）
+     * 返回 Map 以贴合前端松散字段消费。
+     */
+    Map<String, Object> getWorkbench();
 
     /**
      * 销售趋势

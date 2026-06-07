@@ -4,16 +4,22 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.dto.statistics.*;
+import com.miniprogram.entity.Appointment;
+import com.miniprogram.entity.FormData;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.OrderItem;
+import com.miniprogram.entity.Page;
 import com.miniprogram.entity.PageAccessLog;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.Refund;
 import com.miniprogram.entity.StatisticsDaily;
 import com.miniprogram.entity.User;
+import com.miniprogram.mapper.AppointmentMapper;
+import com.miniprogram.mapper.FormDataMapper;
 import com.miniprogram.mapper.OrderItemMapper;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PageAccessLogMapper;
+import com.miniprogram.mapper.PageMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.RefundMapper;
 import com.miniprogram.mapper.StatisticsDailyMapper;
@@ -54,8 +60,13 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final ProductMapper productMapper;
     private final RefundMapper refundMapper;
     private final UserMapper userMapper;
+    private final PageMapper pageMapper;
+    private final AppointmentMapper appointmentMapper;
+    private final FormDataMapper formDataMapper;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final String[] WEEK_LABELS = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     @Override
@@ -101,6 +112,121 @@ public class StatisticsServiceImpl implements StatisticsService {
         vo.setPageViewChangeRate(calcChangeRate(todayPageViews, yesterdayPageViews));
 
         return vo;
+    }
+
+    @Override
+    public Map<String, Object> getWorkbench() {
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.atTime(LocalTime.MAX);
+        LocalDateTime yStart = yesterday.atStartOfDay();
+        LocalDateTime yEnd = yesterday.atTime(LocalTime.MAX);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+
+        // ===== 指标卡 =====
+        long todayVisits = countPageViews(todayStart, todayEnd);
+        long yVisits = countPageViews(yStart, yEnd);
+        long todayNewUsers = countNewUsers(todayStart, todayEnd);
+        long yNewUsers = countNewUsers(yStart, yEnd);
+        BigDecimal todayAmount = sumOrderAmount(todayStart, todayEnd);
+        long totalForms = formDataMapper.selectCount(null);
+        long todayForms = formDataMapper.selectCount(new LambdaQueryWrapper<FormData>()
+                .between(FormData::getCreateTime, todayStart, todayEnd));
+
+        long pendingShipments = orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getStatus, "paid"));
+        data.put("todayVisits", todayVisits);
+        data.put("todayVisitsChange", changeText(todayVisits, yVisits));
+        data.put("newUsers", todayNewUsers);
+        data.put("newUsersChange", changeText(todayNewUsers, yNewUsers));
+        data.put("formSubmissions", totalForms);
+        data.put("pendingForms", todayForms);
+        data.put("orderAmount", todayAmount);
+        data.put("pendingShipments", pendingShipments);
+
+        // ===== 访问趋势（近7天）=====
+        List<Map<String, Object>> visitTrend = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate d = today.minusDays(i);
+            long c = countPageViews(d.atStartOfDay(), d.atTime(LocalTime.MAX));
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("day", WEEK_LABELS[d.getDayOfWeek().getValue() - 1]);
+            item.put("count", c);
+            visitTrend.add(item);
+        }
+        data.put("visitTrend", visitTrend);
+
+        // ===== 汇总 =====
+        long totalVisits = pageAccessLogMapper.selectCount(null);
+        long totalUsers = userMapper.selectCount(null);
+        long paidOrders = orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, List.of("paid", "shipped", "completed")));
+        BigDecimal conversion = totalVisits == 0 ? BigDecimal.ZERO
+                : BigDecimal.valueOf(paidOrders).multiply(new BigDecimal("100"))
+                .divide(BigDecimal.valueOf(totalVisits), 1, RoundingMode.HALF_UP);
+        data.put("totalVisits", totalVisits);
+        data.put("totalUsers", totalUsers);
+        data.put("totalForms", totalForms);
+        data.put("conversionRate", conversion + "%");
+
+        // ===== 商品排行（真实销量 Top5）=====
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        for (ProductRankingVO p : getProductRanking("sales", 5)) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", p.getProductName());
+            m.put("sales", p.getSalesCount());
+            m.put("price", p.getSalesAmount());
+            ranking.add(m);
+        }
+        data.put("productRanking", ranking);
+
+        // ===== 待办事项（真实计数）=====
+        long draftPages = pageMapper.selectCount(new LambdaQueryWrapper<Page>().eq(Page::getStatus, 0));
+        long pendingAppointments = appointmentMapper.selectCount(new LambdaQueryWrapper<Appointment>()
+                .eq(Appointment::getStatus, "pending"));
+        List<Map<String, Object>> todos = new ArrayList<>();
+        todos.add(todo("待发布草稿页面", draftPages, "orange", "/page-builder/list"));
+        todos.add(todo("累计表单提交", totalForms, "blue", "/form/submissions"));
+        todos.add(todo("待发货订单记录", pendingShipments, "orange", "/order/list"));
+        todos.add(todo("待确认服务预约", pendingAppointments, "red", "/appointment/list"));
+        data.put("todos", todos);
+
+        // ===== 页面版本记录（最近更新的5个页面）=====
+        List<Page> recentPages = pageMapper.selectList(new LambdaQueryWrapper<Page>()
+                .orderByDesc(Page::getUpdateTime).last("LIMIT 5"));
+        List<Map<String, Object>> versions = new ArrayList<>();
+        for (Page p : recentPages) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", p.getName());
+            m.put("status", p.getStatus() != null && p.getStatus() == 1 ? "已发布" : (p.getStatus() != null && p.getStatus() == 2 ? "已下架" : "草稿"));
+            m.put("version", "v" + (p.getCurrentVersion() == null ? 1 : p.getCurrentVersion()));
+            m.put("time", p.getUpdateTime() == null ? "" : p.getUpdateTime().format(DATETIME_FORMATTER));
+            versions.add(m);
+        }
+        data.put("versions", versions);
+
+        return data;
+    }
+
+    private Map<String, Object> todo(String label, long count, String level, String path) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("label", label);
+        m.put("count", count);
+        m.put("level", level);
+        m.put("path", path);
+        return m;
+    }
+
+    private String changeText(long todayVal, long yVal) {
+        if (yVal == 0) {
+            return todayVal == 0 ? "持平" : "较昨日 +" + todayVal;
+        }
+        long diff = todayVal - yVal;
+        BigDecimal rate = BigDecimal.valueOf(diff).multiply(new BigDecimal("100"))
+                .divide(BigDecimal.valueOf(yVal), 1, RoundingMode.HALF_UP);
+        return "较昨日 " + (diff >= 0 ? "+" : "") + rate + "%";
     }
 
     @Override

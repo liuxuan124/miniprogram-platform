@@ -20,6 +20,7 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   loginSubtitle: '登录后查看订单、优惠券、积分等个人信息',
   loginButtonText: '微信一键登录',
   memberCardTitle: '我的会员中心',
+  servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
     { id: 'registration', icon: '📋', title: '我的报名', url: '/pages/activity-list/activity-list', enabled: true },

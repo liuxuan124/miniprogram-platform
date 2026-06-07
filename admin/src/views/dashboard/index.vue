@@ -173,12 +173,7 @@ const summaries = ref([
   { value: '-', label: '成交转化', change: '-' },
 ])
 
-const todos = [
-  { label: '待发布草稿页面', count: 3, level: 'orange', path: '/page-builder/list' },
-  { label: '待审核表单提交', count: 9, level: 'red', path: '/form/submissions' },
-  { label: '待发货订单记录', count: 16, level: 'orange', path: '/order/list' },
-  { label: '待确认服务预约', count: 5, level: 'blue', path: '/appointment/list' },
-]
+const todos = ref<Array<{ label: string; count: number; level: string; path: string }>>([])
 
 const quickLinks = [
   { title: '装修首页', desc: '可视化配置首页组件', path: '/page-builder/editor/1', icon: '🎨' },
@@ -189,17 +184,9 @@ const quickLinks = [
   { title: '营销工具', desc: '配置优惠券、签到活动', path: '/marketing/coupon', icon: '🎁' },
 ]
 
-const products = ref([
-  { name: '品牌文创礼盒', price: 199, sales: 0, icon: '🎁' },
-  { name: '会员数字权益卡', price: 99, sales: 0, icon: '💳' },
-  { name: '品牌定制马克杯', price: 89, sales: 0, icon: '☕' },
-])
+const products = ref<Array<{ name: string; price: number | string; sales: number; icon: string }>>([])
 
-const versions = [
-  { name: '首页', status: '已发布', version: 'v18', time: '2026-05-04 11:30' },
-  { name: '五一活动专题', status: '草稿', version: 'v2', time: '2026-05-04 10:15' },
-  { name: '品牌故事', status: '已发布', version: 'v5', time: '2026-04-30 16:40' },
-]
+const versions = ref<Array<{ name: string; status: string; version: string; time: string }>>([])
 
 async function loadDashboard() {
   dashboardLoading.value = true
@@ -251,6 +238,26 @@ async function loadDashboard() {
         price: p.price || 0,
         sales: p.sales || p.saleCount || 0,
         icon: '🛍️',
+      }))
+    }
+
+    // 更新待办事项（真实计数）
+    if (Array.isArray(data.todos)) {
+      todos.value = data.todos.map((t: any) => ({
+        label: t.label,
+        count: Number(t.count ?? 0),
+        level: t.level || 'blue',
+        path: t.path || '',
+      }))
+    }
+
+    // 更新页面版本记录
+    if (Array.isArray(data.versions)) {
+      versions.value = data.versions.map((v: any) => ({
+        name: v.name || '-',
+        status: v.status || '草稿',
+        version: v.version || 'v1',
+        time: v.time || '',
       }))
     }
   } catch {

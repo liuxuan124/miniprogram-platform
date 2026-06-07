@@ -2,7 +2,8 @@ import request from './request'
 
 // 数据统计
 export function getDashboard() {
-  return request.get('/api/v1/admin/statistics/dashboard')
+  // 工作台首页聚合（指标卡/趋势/待办/商品排行/页面版本均为真实数据）
+  return request.get('/api/v1/admin/statistics/workbench')
 }
 
 export function getSalesTrend(params: { start_date: string; end_date: string; granularity: string }) {

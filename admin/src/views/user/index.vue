@@ -137,7 +137,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getUserList } from '@/api/user'
+import { getUserList, exportUsers } from '@/api/user'
 
 const loading = ref(false)
 const searchKeyword = ref('')
@@ -188,8 +188,8 @@ async function fetchUsers() {
       current: currentPage.value,
       size: pageSize.value,
     }
-    if (searchKeyword.value) params.nickname = searchKeyword.value
-    if (searchSource.value) params.sourceChannel = searchSource.value
+    if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (searchSource.value) params.source = searchSource.value
     const res: any = await getUserList(params)
     const page = res.data || {}
     users.value = (page.records || []).map(normalizeUser)
@@ -228,8 +228,23 @@ function handleReset() {
   fetchUsers()
 }
 
-function handleExport() {
-  ElMessage.info('当前版本暂未接入用户导出接口')
+async function handleExport() {
+  try {
+    const params: Record<string, any> = {}
+    if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (searchSource.value) params.source = searchSource.value
+    const res: any = await exportUsers(params)
+    const blob = new Blob([res], { type: 'text/csv;charset=utf-8' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `小程序用户_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 function showProfile(user: any) {

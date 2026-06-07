@@ -185,7 +185,15 @@ Page({
     if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title)) return
 
     if (id === 'contact') {
-      wx.showToast({ title: '客服电话: 400-xxx-xxxx', icon: 'none', duration: 3000 })
+      const phone = (this.data.mineConfig && this.data.mineConfig.servicePhone) || ''
+      if (phone) {
+        wx.makePhoneCall({
+          phoneNumber: String(phone),
+          fail: () => wx.showToast({ title: '客服电话: ' + phone, icon: 'none', duration: 3000 }),
+        })
+      } else {
+        wx.showToast({ title: '客服暂未配置', icon: 'none' })
+      }
       return
     }
 
