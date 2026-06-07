@@ -3,7 +3,7 @@ const request = require('../utils/request')
 
 // 获取会员信息
 function getMemberInfo() {
-  return request.get('/api/v1/mp/member/info')
+  return request.get('/api/v1/mp/member/info', {}, { showError: false })
 }
 
 // 获取积分记录

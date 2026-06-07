@@ -4,9 +4,24 @@
 const { AuthUtil } = require('./auth')
 
 // ========== 配置 ==========
-// 生产 / 真机调试接口地址
-// 本地开发可临时改为：http://127.0.0.1:8080
-const BASE_URL = 'http://127.0.0.1:8080'
+const PROD_BASE_URL = 'https://api.zfculture.site'
+const DEV_BASE_URL = 'http://127.0.0.1:8080'
+
+function resolveBaseUrl() {
+  try {
+    const accountInfo = wx.getAccountInfoSync()
+    const envVersion = accountInfo?.miniProgram?.envVersion
+    // develop=开发者工具调试；trial=体验版；release=正式版
+    if (envVersion === 'develop') {
+      return DEV_BASE_URL
+    }
+  } catch (e) {
+    // 兼容旧基础库
+  }
+  return PROD_BASE_URL
+}
+
+const BASE_URL = resolveBaseUrl()
 const TIMEOUT = 15000 // 请求超时时间（ms）
 
 // ========== 请求队列（Token 刷新时排队） ==========
@@ -48,6 +63,7 @@ function request(options) {
     auth = true,
     loading = false,
     loadingText = '加载中...',
+    showError = true,
   } = options
 
   // 显示 Loading
@@ -88,19 +104,20 @@ function request(options) {
           if (responseData.code === 0 || responseData.code === 200) {
             resolve(responseData.data)
           } else if (responseData.code === 401) {
-            _handleUnauthorized()
+            _handleUnauthorized(showError)
             reject({ code: 401, message: '登录已过期，请重新登录' })
           } else {
             const errMsg = responseData.message || '请求失败'
             _showError(errMsg)
             reject({ code: responseData.code, message: errMsg })
           }
-        } else if (statusCode === 401) {
-          _handleUnauthorized()
-          reject({ code: 401, message: '登录已过期，请重新登录' })
-        } else if (statusCode === 403) {
-          _showError('无权限访问')
-          reject({ code: 403, message: '无权限访问' })
+        } else if (statusCode === 401 || statusCode === 403) {
+          if (auth) {
+            _handleUnauthorized(showError)
+          } else if (showError) {
+            _showError(statusCode === 403 ? '无权限访问' : '登录已过期，请重新登录')
+          }
+          reject({ code: statusCode, message: statusCode === 403 ? '无权限访问' : '登录已过期' })
         } else if (statusCode === 404) {
           _showError('请求资源不存在')
           reject({ code: 404, message: '请求资源不存在' })
@@ -133,7 +150,7 @@ function request(options) {
  * - 清除本地登录态
  * - 跳转登录页
  */
-function _handleUnauthorized() {
+function _handleUnauthorized(showError = true) {
   const app = getApp()
   if (app) {
     app.clearAuthState()
@@ -141,19 +158,21 @@ function _handleUnauthorized() {
     AuthUtil.clearAuth()
   }
 
-  // 防止多个 401 弹出多个提示
-  if (!isRefreshing) {
-    isRefreshing = true
-    wx.showToast({
-      title: '登录已过期',
-      icon: 'none',
-      duration: 1500,
-      complete() {
-        isRefreshing = false
-        AuthUtil.navigateToLogin()
-      },
-    })
+  // 防止多个 401/403 弹出多个提示
+  if (!showError || isRefreshing) {
+    return
   }
+
+  isRefreshing = true
+  wx.showToast({
+    title: '登录已过期',
+    icon: 'none',
+    duration: 1500,
+    complete() {
+      isRefreshing = false
+      AuthUtil.navigateToLogin()
+    },
+  })
 }
 
 /**

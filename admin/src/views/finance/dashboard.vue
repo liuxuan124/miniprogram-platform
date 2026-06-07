@@ -194,6 +194,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { TrendCharts, Minus, Coin, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import { extractPageRecords } from '@/utils/pagination'
 import {
   getFinanceDashboard,
   getFinanceTrend,
@@ -321,7 +322,7 @@ async function fetchTransactions() {
   transactionLoading.value = true
   try {
     const res = await getTransactionList({ page: 1, pageSize: 5 })
-    transactions.value = res.data?.list || []
+    transactions.value = extractPageRecords<TransactionRecord>(res).list
   } catch {
     transactions.value = []
   } finally {
@@ -332,8 +333,8 @@ async function fetchTransactions() {
 async function fetchBudgetList() {
   budgetLoading.value = true
   try {
-    const res = await getBudgetList({ page: 1, pageSize: 10, status: 'active' })
-    budgetList.value = res.data?.list || []
+    const res = await getBudgetList({ page: 1, pageSize: 10 })
+    budgetList.value = extractPageRecords<BudgetRecord>(res).list
   } catch {
     budgetList.value = []
   } finally {

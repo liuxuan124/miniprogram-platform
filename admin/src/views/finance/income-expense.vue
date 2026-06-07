@@ -226,6 +226,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { extractPageRecords } from '@/utils/pagination'
 import {
   getTransactionList,
   createTransaction,
@@ -277,10 +278,9 @@ async function loadList() {
       approvalStatus: search.approvalStatus || undefined,
     }
     const res = await getTransactionList(params)
-    const data = (res as any).data || {}
-    const list = data.records || data.list || data.items || []
-    tableData.value = Array.isArray(list) ? list : []
-    total.value = Number(data.total || 0)
+    const pageData = extractPageRecords<TransactionRecord>(res)
+    tableData.value = pageData.list
+    total.value = pageData.total
   } catch {
     tableData.value = []
     total.value = 0
@@ -458,8 +458,11 @@ async function onFileChange(e: Event) {
   try {
     const fd = new FormData()
     fd.append('file', file)
-    await importTransactions(fd)
-    ElMessage.success('导入成功')
+    const res = await importTransactions(fd)
+    const result = (res as any).data || {}
+    const success = result.success ?? 0
+    const failed = result.failed ?? 0
+    ElMessage.success(failed > 0 ? `导入完成：成功 ${success} 条，失败 ${failed} 条` : `导入成功 ${success} 条`)
     loadList()
   } catch {
     ElMessage.error('导入失败，请检查文件格式')
@@ -479,11 +482,11 @@ async function handleExport() {
       approvalStatus: search.approvalStatus || undefined,
     }
     const res = await exportTransactions(params)
-    const blob = new Blob([(res as any).data || res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `收支明细-${new Date().toISOString().slice(0, 10)}.xlsx`
+    anchor.download = `收支明细-${new Date().toISOString().slice(0, 10)}.csv`
     document.body.appendChild(anchor)
     anchor.click()
     document.body.removeChild(anchor)

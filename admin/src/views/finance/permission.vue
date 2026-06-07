@@ -305,6 +305,8 @@ import {
   updatePermission,
   removePermission,
 } from '@/api/finance'
+import { getUserList } from '@/api/user'
+import { extractPageRecords } from '@/utils/pagination'
 import type {
   FinanceRole,
   FinancePermission,
@@ -628,9 +630,19 @@ function formatTime(time: string): string {
 
 // ==================== 初始化 ====================
 
+async function loadUserList() {
+  try {
+    const res = await getUserList({ page: 1, pageSize: 200 })
+    userList.value = extractPageRecords<{ id: number; username: string; realName: string }>(res).list
+  } catch {
+    userList.value = []
+  }
+}
+
 onMounted(() => {
   fetchRoleList()
   fetchPermissionList()
+  loadUserList()
 })
 </script>
 

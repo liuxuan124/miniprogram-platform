@@ -162,7 +162,7 @@ export interface BudgetRecord {
   usageRate: number
   status: BudgetStatus
   departments: string[]
-  items: BudgetItem[]
+  items: BudgetItem[] | string
   createdBy: string
   createdAt: string
   updatedAt: string

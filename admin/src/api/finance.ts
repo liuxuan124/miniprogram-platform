@@ -2,6 +2,7 @@
  * 财务管理 API
  */
 import request from './request'
+import service from './request'
 import type { PaginatedResponse } from '@/types/global'
 import type {
   FinanceDashboard,
@@ -92,7 +93,10 @@ export function importTransactions(data: FormData) {
 
 /** 导出收支记录 */
 export function exportTransactions(params?: TransactionListParams) {
-  return request.get(`${BASE}/transactions/export`, { params, responseType: 'blob' } as any)
+  return service.get(`${BASE}/transactions/export`, {
+    params,
+    responseType: 'blob',
+  })
 }
 
 /** 获取收支分类列表 */
@@ -119,7 +123,10 @@ export function getCategoryAnalysisReport(params: ReportQueryParams) {
 
 /** 导出报表 */
 export function exportReport(params: ReportQueryParams) {
-  return request.get(`${BASE}/reports/export`, { params, responseType: 'blob' } as any)
+  return service.get(`${BASE}/reports/export`, {
+    params,
+    responseType: 'blob',
+  })
 }
 
 // ==================== 预算管理 ====================
@@ -147,6 +154,11 @@ export function updateBudget(id: number, data: BudgetFormData) {
 /** 删除预算 */
 export function deleteBudget(id: number) {
   return request.delete(`${BASE}/budgets/${id}`)
+}
+
+/** 启用预算 */
+export function activateBudget(id: number) {
+  return request.put<BudgetRecord>(`${BASE}/budgets/${id}/activate`)
 }
 
 /** 获取预算预警列表 */

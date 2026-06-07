@@ -657,11 +657,11 @@ async function handleExport() {
   exportLoading.value = true
   try {
     const res = await exportReport(params)
-    const blob = new Blob([res as any], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'text/csv;charset=utf-8' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `财务报表_${params.startDate}_${params.endDate}.xlsx`
+    link.download = `财务报表_${params.startDate}_${params.endDate}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success('报表导出成功')

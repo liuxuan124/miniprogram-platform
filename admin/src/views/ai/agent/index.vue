@@ -16,6 +16,8 @@
                   <el-radio-button label="qwen">Qwen</el-radio-button>
                   <el-radio-button label="anthropic">Claude</el-radio-button>
                   <el-radio-button label="deepseek">DeepSeek</el-radio-button>
+                  <el-radio-button label="minimax">MiniMax</el-radio-button>
+                  <el-radio-button label="doubao">豆包</el-radio-button>
                   <el-radio-button label="custom">自定义</el-radio-button>
                 </el-radio-group>
               <div class="model-list">
@@ -460,6 +462,78 @@ const modelCatalog: ModelOption[] = [
     maxTokens: 8192,
   },
   {
+    provider: 'minimax',
+    id: 'MiniMax-M2.5',
+    name: 'MiniMax M2.5',
+    desc: 'MiniMax MiMo 系列主力模型，适合复杂 Agent、工具调用与中文客服',
+    baseUrl: 'https://api.minimaxi.com/v1',
+    reasoning: 'medium',
+    maxTokens: 8192,
+  },
+  {
+    provider: 'minimax',
+    id: 'MiniMax-M2.5-highspeed',
+    name: 'MiniMax M2.5 Highspeed',
+    desc: 'MiMo 高速版，更低延迟，适合高频对话与实时推荐',
+    baseUrl: 'https://api.minimaxi.com/v1',
+    reasoning: 'none',
+    maxTokens: 4096,
+  },
+  {
+    provider: 'minimax',
+    id: 'MiniMax-M2.5-Lightning',
+    name: 'MiniMax M2.5 Lightning',
+    desc: 'MiMo 轻量 Mini 版，成本更低，适合简单问答与大并发',
+    baseUrl: 'https://api.minimaxi.com/v1',
+    reasoning: 'none',
+    maxTokens: 2048,
+  },
+  {
+    provider: 'minimax',
+    id: 'abab6.5s-chat',
+    name: 'abab6.5s-chat',
+    desc: 'MiniMax 经典对话模型，稳定可靠，适合通用客服场景',
+    baseUrl: 'https://api.minimaxi.com/v1',
+    reasoning: 'none',
+    maxTokens: 4096,
+  },
+  {
+    provider: 'doubao',
+    id: 'doubao-1-5-pro-32k',
+    name: '豆包 1.5 Pro',
+    desc: '字节跳动豆包 Pro，适合复杂推理、长上下文与 Agent 任务',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    reasoning: 'high',
+    maxTokens: 8192,
+  },
+  {
+    provider: 'doubao',
+    id: 'doubao-1-5-lite-32k',
+    name: '豆包 1.5 Lite',
+    desc: '豆包 Lite 轻量版，性价比高，适合日常客服与内容生成',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    reasoning: 'none',
+    maxTokens: 4096,
+  },
+  {
+    provider: 'doubao',
+    id: 'doubao-1-5-flash',
+    name: '豆包 1.5 Flash',
+    desc: '豆包 Flash Mini 版，超低延迟，适合高并发咨询',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    reasoning: 'none',
+    maxTokens: 2048,
+  },
+  {
+    provider: 'doubao',
+    id: 'doubao-seed-1-6',
+    name: '豆包 Seed 1.6',
+    desc: '豆包新一代多模态模型，适合图文混合问答（模型 ID 可填火山方舟 Endpoint ID）',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    reasoning: 'medium',
+    maxTokens: 8192,
+  },
+  {
     provider: 'custom',
     id: 'custom-model-id',
     name: '自定义模型',
@@ -581,10 +655,17 @@ async function loadActiveConfig() {
 }
 
 function inferProvider(model: string) {
-  if (model.startsWith('qwen')) return 'qwen'
-  if (model.startsWith('claude')) return 'anthropic'
-  if (model.startsWith('deepseek')) return 'deepseek'
-  if (model.startsWith('gpt')) return 'openai'
+  const normalized = model.toLowerCase()
+  if (normalized.startsWith('qwen')) return 'qwen'
+  if (normalized.startsWith('claude')) return 'anthropic'
+  if (normalized.startsWith('deepseek')) return 'deepseek'
+  if (normalized.startsWith('doubao') || normalized.startsWith('ep-')) return 'doubao'
+  if (
+    normalized.startsWith('minimax')
+    || normalized.startsWith('mimo')
+    || normalized.startsWith('abab')
+  ) return 'minimax'
+  if (normalized.startsWith('gpt')) return 'openai'
   return 'custom'
 }
 
@@ -710,6 +791,11 @@ onMounted(() => {
 }
 .agent-tabs {
   :deep(.el-tabs__item) { font-size: 13px; }
+  :deep(.el-radio-group) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
 }
 .model-list {
   display: grid;

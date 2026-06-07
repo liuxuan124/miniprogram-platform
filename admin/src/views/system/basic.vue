@@ -79,7 +79,10 @@
                 </el-form-item>
 
                 <div class="action-bar">
-                  <span class="upload-hint">填写代码上传密钥后，请点击右侧按钮保存到服务器</span>
+                  <span class="upload-hint">
+                    {{ uploadKeyStored ? '上传密钥已写入服务器' : '填写代码上传密钥后，请点击右侧按钮保存到服务器' }}
+                    <template v-if="isLocalAdmin">（当前为本地后台，配置保存在本机数据库）</template>
+                  </span>
                   <el-button type="primary" size="small" :loading="miniSaving" @click="handleSaveMiniProgram">
                     {{ miniSaving ? '保存中...' : '保存小程序配置' }}
                   </el-button>
@@ -412,10 +415,11 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 import { Refresh, CircleCheck, ShoppingCart, Document, Promotion } from '@element-plus/icons-vue'
-import { getConfigsSilent, updateConfigs, uploadFile } from '@/api/system'
+import { getConfigsSilent, saveUploadKey, updateConfigs, uploadFile } from '@/api/system'
 import {
   applyConfigListToForm,
   extractConfigList,
+  hasStoredUploadKey,
   readConfigEntry,
   toConfigUpdateItems,
   type RawConfigItem,
@@ -424,6 +428,11 @@ import {
 const loading = ref(false)
 const savingAll = ref(false)
 const miniSaving = ref(false)
+const uploadKeyStored = ref(false)
+const isLocalAdmin = computed(() => {
+  const host = window.location.hostname
+  return import.meta.env.DEV || host === 'localhost' || host === '127.0.0.1'
+})
 const paySaving = ref(false)
 const paySaved = ref(false)
 const pluginSaving = ref(false)
@@ -680,7 +689,9 @@ async function fetchConfig() {
   loading.value = true
   try {
     const res = await getConfigsSilent()
-    applyConfigs(extractConfigList(res.data))
+    const configList = extractConfigList(res.data)
+    applyConfigs(configList)
+    uploadKeyStored.value = hasStoredUploadKey(configList)
 
     markMiniProgramSaved()
     await nextTick()
@@ -747,17 +758,33 @@ async function handleSaveAll() {
 async function handleSaveMiniProgram() {
   const valid = await miniFormRef.value?.validate().catch(() => false)
   if (!valid) return
-  if (!miniProgramForm.uploadKey?.includes('PRIVATE KEY')) {
+  const uploadKeyValue = miniProgramForm.uploadKey?.trim() || ''
+  if (!uploadKeyValue.includes('PRIVATE KEY')) {
     ElMessage.warning('请粘贴完整的代码上传密钥（需包含 BEGIN/END PRIVATE KEY）')
     return
   }
 
   miniSaving.value = true
   try {
-    await saveGroup('wechat', '微信小程序配置', miniProgramForm as unknown as Record<string, unknown>)
+    await saveUploadKey(uploadKeyValue)
+    const otherItems = toConfigUpdateItems(
+      miniProgramForm as unknown as Record<string, unknown>,
+      'wechat',
+    ).filter(item => item.configKey !== 'wx_upload_key')
+    if (otherItems.length) {
+      await updateConfigs(otherItems)
+    }
+
+    const verifyRes = await getConfigsSilent()
+    uploadKeyStored.value = hasStoredUploadKey(extractConfigList(verifyRes.data))
+    if (!uploadKeyStored.value) {
+      ElMessage.error('上传密钥未写入服务器，请重试')
+      return
+    }
+
     markMiniProgramSaved()
     miniSaved.value = true
-    ElMessage.success('小程序配置已保存')
+    ElMessage.success('小程序配置已保存（上传密钥已入库）')
   } catch (e: unknown) {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
   } finally {

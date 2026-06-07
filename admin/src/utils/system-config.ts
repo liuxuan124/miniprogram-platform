@@ -94,6 +94,16 @@ export function toConfigUpdateItems(data: Record<string, unknown>, group: string
     }))
 }
 
+/** 配置列表中是否已有上传密钥（脱敏值也算已配置） */
+export function hasStoredUploadKey(configs: RawConfigItem[]): boolean {
+  return configs.some((item) => {
+    const { key, value } = readConfigEntry(item)
+    if (key !== 'wx_upload_key' && key !== 'uploadKey') return false
+    const text = String(value ?? '').trim()
+    return !!text && (text.includes('PRIVATE KEY') || text.includes('****'))
+  })
+}
+
 export function applyConfigListToForm(
   configs: RawConfigItem[],
   targets: Array<Record<string, unknown>>,

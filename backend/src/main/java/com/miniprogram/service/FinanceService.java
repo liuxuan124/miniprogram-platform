@@ -2,6 +2,8 @@ package com.miniprogram.service;
 
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.finance.*;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,7 +40,15 @@ public interface FinanceService {
 
     void approveTransaction(Long id, String approvalStatus, String reason);
 
+    Map<String, Object> importTransactions(MultipartFile file);
+
+    void exportTransactions(String keyword, String type, String category, String startDate,
+                            String endDate, String approvalStatus, String invoiceStatus,
+                            HttpServletResponse response);
+
     List<Map<String, Object>> getTransactionCategories(String type);
+
+    void exportReport(String startDate, String endDate, HttpServletResponse response);
 
     // ==================== 预算管理 ====================
 
@@ -51,6 +61,8 @@ public interface FinanceService {
     FinanceBudgetVO updateBudget(Long id, FinanceBudgetDTO dto);
 
     void deleteBudget(Long id);
+
+    FinanceBudgetVO activateBudget(Long id);
 
     List<Map<String, Object>> getBudgetAlerts(Boolean handled);
 
