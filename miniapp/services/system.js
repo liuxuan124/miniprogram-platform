@@ -30,7 +30,6 @@ const DEFAULT_MINE_PAGE_CONFIG = {
     { id: 'member-center', icon: '👑', title: '会员中心', url: '/pages/member-center/member-center', enabled: true },
     { id: 'points', icon: '⭐', title: '我的积分', url: '/pages/points-log/points-log', enabled: true },
     { id: 'contact', icon: '📞', title: '联系客服', url: '', enabled: true },
-    { id: 'settings', icon: '⚙️', title: '设置', url: '', enabled: true },
   ],
 }
 

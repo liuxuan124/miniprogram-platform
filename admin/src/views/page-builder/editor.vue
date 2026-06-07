@@ -191,6 +191,11 @@ async function handlePublish() {
 
   // 发布前预检
   const warnings = validateBeforePublish()
+  const blocking = warnings.filter((w) => w.includes('占位'))
+  if (blocking.length > 0) {
+    ElMessage.error(`发布被拦截：${blocking.join('；')}`)
+    return
+  }
   if (warnings.length > 0) {
     try {
       await ElMessageBox.confirm(

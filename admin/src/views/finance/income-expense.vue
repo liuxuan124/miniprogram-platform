@@ -481,12 +481,12 @@ async function handleExport() {
       endDate: search.dateRange?.[1] || undefined,
       approvalStatus: search.approvalStatus || undefined,
     }
-    const res = await exportTransactions(params)
-    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'text/csv;charset=utf-8' })
+    const res = await exportTransactions({ ...params, format: 'xlsx' })
+    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `收支明细-${new Date().toISOString().slice(0, 10)}.csv`
+    anchor.download = `收支明细-${new Date().toISOString().slice(0, 10)}.xlsx`
     document.body.appendChild(anchor)
     anchor.click()
     document.body.removeChild(anchor)

@@ -18,7 +18,9 @@
     "pages/order-detail/order-detail",
     "pages/ai-chat/ai-chat",
     "pages/mine/mine",
-    "pages/login/login"
+    "pages/login/login",
+    "pages/agreement/agreement",
+    "pages/webview/webview"
   ],
   "window": {
     "backgroundTextStyle": "light",

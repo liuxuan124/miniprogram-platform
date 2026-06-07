@@ -92,9 +92,9 @@ export function importTransactions(data: FormData) {
 }
 
 /** 导出收支记录 */
-export function exportTransactions(params?: TransactionListParams) {
+export function exportTransactions(params?: TransactionListParams & { format?: string }) {
   return service.get(`${BASE}/transactions/export`, {
-    params,
+    params: { ...params, format: params?.format || 'xlsx' },
     responseType: 'blob',
   })
 }
@@ -122,9 +122,9 @@ export function getCategoryAnalysisReport(params: ReportQueryParams) {
 }
 
 /** 导出报表 */
-export function exportReport(params: ReportQueryParams) {
+export function exportReport(params: ReportQueryParams & { format?: string }) {
   return service.get(`${BASE}/reports/export`, {
-    params,
+    params: { ...params, format: params.format || 'xlsx' },
     responseType: 'blob',
   })
 }

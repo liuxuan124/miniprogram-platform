@@ -6,27 +6,33 @@ import { ref } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 import { asyncRoutes } from '@/router'
 
-/** 递归过滤有权限的路由 */
-function filterAsyncRoutes(routes: RouteRecordRaw[], roles: string[]): RouteRecordRaw[] {
-  const filtered: RouteRecordRaw[] = []
-  routes.forEach((route) => {
-    const tmp = { ...route }
-    if (hasPermission(tmp, roles)) {
-      if (tmp.children) {
-        tmp.children = filterAsyncRoutes(tmp.children, roles)
-      }
-      filtered.push(tmp)
-    }
-  })
-  return filtered
-}
-
 /** 判断路由是否有权限 */
 function hasPermission(route: RouteRecordRaw, roles: string[]): boolean {
   if (route.meta?.roles) {
     return roles.some((role) => (route.meta!.roles as string[]).includes(role))
   }
   return true
+}
+
+/** 递归过滤有权限的路由（P2：非 super_admin 按 meta.roles 显隐） */
+function filterAsyncRoutes(routes: RouteRecordRaw[], roles: string[]): RouteRecordRaw[] {
+  const filtered: RouteRecordRaw[] = []
+  routes.forEach((route) => {
+    const tmp = { ...route }
+    if (tmp.children) {
+      tmp.children = filterAsyncRoutes(tmp.children, roles)
+    }
+    const selfAllowed = hasPermission(tmp, roles)
+    const hasVisibleChildren = !!(tmp.children && tmp.children.length > 0)
+    if (route.meta?.roles) {
+      if (selfAllowed) filtered.push(tmp)
+    } else if (hasVisibleChildren || !route.children?.length) {
+      if (selfAllowed) filtered.push(tmp)
+    } else if (hasVisibleChildren) {
+      filtered.push(tmp)
+    }
+  })
+  return filtered
 }
 
 export const usePermissionStore = defineStore('permission', () => {
@@ -46,8 +52,8 @@ export const usePermissionStore = defineStore('permission', () => {
   /** 生成动态路由 */
   function generateRoutes(userRoles: string[]) {
     let accessedRoutes: RouteRecordRaw[]
-    // admin 角色拥有所有路由权限
-    if (userRoles.includes('admin') || userRoles.includes('super_admin')) {
+    // 仅 super_admin 拥有全部菜单；其他角色按 meta.roles 过滤（P2）
+    if (userRoles.includes('super_admin')) {
       accessedRoutes = asyncRoutes
     } else {
       accessedRoutes = filterAsyncRoutes(asyncRoutes, userRoles)
@@ -65,7 +71,7 @@ export const usePermissionStore = defineStore('permission', () => {
 
   /** 判断是否有指定权限 */
   function hasPerm(perm: string): boolean {
-    if (roles.value.includes('admin') || roles.value.includes('super_admin')) return true
+    if (roles.value.includes('super_admin')) return true
     return permissions.value.includes(perm)
   }
 

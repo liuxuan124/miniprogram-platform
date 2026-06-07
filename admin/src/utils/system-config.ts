@@ -27,6 +27,9 @@ export const FORM_TO_DB_KEY: Record<string, string> = {
   certUploaded: 'certUploaded',
   paymentNotifyUrl: 'wx_pay_notify_url',
   refundNotifyUrl: 'wx_refund_notify_url',
+  privacyPolicyUrl: 'privacy_policy_url',
+  userAgreementUrl: 'user_agreement_url',
+  servicePhone: 'service_phone',
 }
 
 /** 数据库 configKey -> 表单字段 */
@@ -55,6 +58,12 @@ export const DB_TO_FORM_KEY: Record<string, string> = {
   paymentNotifyUrl: 'paymentNotifyUrl',
   wx_refund_notify_url: 'refundNotifyUrl',
   refundNotifyUrl: 'refundNotifyUrl',
+  privacy_policy_url: 'privacyPolicyUrl',
+  privacyPolicyUrl: 'privacyPolicyUrl',
+  user_agreement_url: 'userAgreementUrl',
+  userAgreementUrl: 'userAgreementUrl',
+  service_phone: 'servicePhone',
+  servicePhone: 'servicePhone',
 }
 
 export function extractConfigList(payload: unknown): RawConfigItem[] {

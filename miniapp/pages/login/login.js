@@ -79,22 +79,12 @@ Page({
 
   /** 查看隐私协议 */
   onViewPrivacy() {
-    wx.navigateTo({
-      url: '/pages/webview/webview?type=privacy',
-      fail() {
-        wx.showToast({ title: '功能开发中', icon: 'none' })
-      },
-    })
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' })
   },
 
   /** 查看用户协议 */
   onViewTerms() {
-    wx.navigateTo({
-      url: '/pages/webview/webview?type=terms',
-      fail() {
-        wx.showToast({ title: '功能开发中', icon: 'none' })
-      },
-    })
+    wx.navigateTo({ url: '/pages/agreement/agreement?type=terms' })
   },
 
   /** 登录成功后跳转 */

@@ -11,6 +11,7 @@ Page({
     userInfo: null,
     memberInfo: null,       // 会员信息（等级、积分等）
     mineConfig: SystemService.DEFAULT_MINE_PAGE_CONFIG,
+    servicePhone: '',
     continuousDays: 0,      // 连续签到天数
     hasSignedIn: false,     // 今日是否已签到
     // 订单快捷入口
@@ -57,12 +58,22 @@ Page({
         const menuList = Array.isArray(config.menuItems) && config.menuItems.length
           ? config.menuItems
           : SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems
-        const visibleMenuList = menuList.filter((item) => item.enabled !== false)
+        const visibleMenuList = menuList.filter((item) => {
+          if (item.enabled === false) return false
+          // F5: 无 url 且非客服入口则隐藏，避免「功能开发中」死入口
+          if (!item.url && item.id !== 'contact') return false
+          return true
+        })
+        const servicePhone = config.service_phone || config.servicePhone
+          || (config.minePageConfig && config.minePageConfig.servicePhone) || ''
         this.setData({
           mineConfig: {
             ...SystemService.DEFAULT_MINE_PAGE_CONFIG,
+            ...config.minePageConfig,
             ...config,
+            servicePhone,
           },
+          servicePhone,
           menuList,
           visibleMenuList,
         })
@@ -185,7 +196,8 @@ Page({
     if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title)) return
 
     if (id === 'contact') {
-      const phone = (this.data.mineConfig && this.data.mineConfig.servicePhone) || ''
+      const phone = this.data.servicePhone
+        || (this.data.mineConfig && this.data.mineConfig.servicePhone) || ''
       if (phone) {
         wx.makePhoneCall({
           phoneNumber: String(phone),

@@ -403,6 +403,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { validateFormAndScroll } from '@/utils/formScroll'
 import { extractPageRecords } from '@/utils/pagination'
 import {
   getBudgetList,
@@ -630,7 +631,7 @@ function resetBudgetForm() {
 }
 
 async function submitBudgetForm() {
-  const valid = await budgetFormRef.value?.validate().catch(() => false)
+  const valid = await validateFormAndScroll(budgetFormRef.value)
   if (!valid) return
 
   if (!budgetForm.dateRange || budgetForm.dateRange.length < 2) {

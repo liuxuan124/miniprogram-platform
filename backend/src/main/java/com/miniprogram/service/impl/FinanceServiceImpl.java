@@ -25,6 +25,7 @@ import com.miniprogram.mapper.AdminUserMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.service.FinanceService;
+import com.miniprogram.support.ExcelExportHelper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -299,10 +300,24 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     public void exportTransactions(String keyword, String type, String category, String startDate,
                                    String endDate, String approvalStatus, String invoiceStatus,
-                                   HttpServletResponse response) {
+                                   String format, HttpServletResponse response) {
         PageResult<FinanceTransactionVO> page = listTransactions(1, 10000, keyword, type, category,
                 startDate, endDate, approvalStatus, invoiceStatus);
+        boolean xlsx = "xlsx".equalsIgnoreCase(format) || "excel".equalsIgnoreCase(format);
         try {
+            if (xlsx) {
+                List<List<Object>> rows = new ArrayList<>();
+                for (FinanceTransactionVO item : page.getRecords()) {
+                    rows.add(List.of(
+                            item.getType(), item.getAmount(), item.getCategory(), item.getSubCategory(),
+                            item.getDescription(), item.getTransactionDate(), item.getPaymentMethod(),
+                            item.getCounterparty(), item.getApprovalStatus(), item.getInvoiceStatus()));
+                }
+                ExcelExportHelper.writeSheet(response, "finance-transactions", "收支明细",
+                        List.of("类型", "金额", "分类", "子分类", "说明", "交易日期", "支付方式", "对方", "审批状态", "发票状态"),
+                        rows);
+                return;
+            }
             response.setContentType("text/csv;charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment; filename=finance-transactions.csv");
             response.getOutputStream().write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
@@ -862,11 +877,36 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     @Override
-    public void exportReport(String startDate, String endDate, HttpServletResponse response) {
+    public void exportReport(String startDate, String endDate, String format, HttpServletResponse response) {
         Map<String, Object> profitLoss = getProfitLossReport(startDate, endDate);
         Map<String, Object> cashFlow = getCashFlowReport(startDate, endDate);
         List<Map<String, Object>> categoryAnalysis = getCategoryAnalysisReport(startDate, endDate);
+        boolean xlsx = "xlsx".equalsIgnoreCase(format) || "excel".equalsIgnoreCase(format);
         try {
+            if (xlsx) {
+                List<List<Object>> rows = new ArrayList<>();
+                rows.add(List.of("【利润表】", "", ""));
+                rows.add(List.of("营业收入", profitLoss.get("revenue"), ""));
+                rows.add(List.of("营业成本", profitLoss.get("costOfGoods"), ""));
+                rows.add(List.of("毛利润", profitLoss.get("grossProfit"), ""));
+                rows.add(List.of("运营费用", profitLoss.get("operatingExpenses"), ""));
+                rows.add(List.of("营业利润", profitLoss.get("operatingIncome"), ""));
+                rows.add(List.of("净利润", profitLoss.get("netProfit"), ""));
+                rows.add(List.of("", "", ""));
+                rows.add(List.of("【现金流量表】", "", ""));
+                rows.add(List.of("经营活动流入", cashFlow.get("operatingInflow"), ""));
+                rows.add(List.of("经营活动流出", cashFlow.get("operatingOutflow"), ""));
+                rows.add(List.of("经营活动净额", cashFlow.get("operatingNet"), ""));
+                rows.add(List.of("现金净增加额", cashFlow.get("totalNetCashFlow"), ""));
+                rows.add(List.of("", "", ""));
+                rows.add(List.of("【分类分析】", "本期金额", "占比(%)"));
+                for (Map<String, Object> row : categoryAnalysis) {
+                    rows.add(List.of(row.get("category"), row.get("currentAmount"), row.get("percentage")));
+                }
+                ExcelExportHelper.writeSheet(response, "finance-report-" + startDate + "-" + endDate,
+                        "财务报表", List.of("项目", "金额", "备注"), rows);
+                return;
+            }
             response.setContentType("text/csv;charset=UTF-8");
             response.setHeader("Content-Disposition",
                     "attachment; filename=finance-report-" + startDate + "-" + endDate + ".csv");

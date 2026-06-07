@@ -2,6 +2,7 @@ package com.miniprogram.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -18,6 +19,7 @@ public class ChangePasswordDTO {
 
     @Schema(description = "新密码")
     @NotBlank(message = "新密码不能为空")
-    @Size(min = 6, max = 32, message = "新密码长度6-32个字符")
+    @Size(min = 8, max = 32, message = "新密码长度8-32个字符")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "新密码须同时包含字母和数字")
     private String newPassword;
 }

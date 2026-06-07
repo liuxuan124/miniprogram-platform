@@ -50,8 +50,14 @@
     </el-row>
 
     <!-- 用户列表 -->
+    <el-alert v-if="loadError" type="error" :title="loadError" show-icon class="mb16">
+      <el-button type="primary" link @click="fetchUsers">重试</el-button>
+    </el-alert>
     <el-card shadow="hover" class="table-card">
       <el-table :data="users" stripe style="width:100%" v-loading="loading">
+        <template #empty>
+          <el-empty v-if="!loading && !loadError" description="暂无用户数据" />
+        </template>
         <el-table-column prop="nickname" label="用户昵称" min-width="140">
           <template #default="{ row }">
             <div class="user-cell">
@@ -140,6 +146,7 @@ import { ElMessage } from 'element-plus'
 import { getUserList, exportUsers } from '@/api/user'
 
 const loading = ref(false)
+const loadError = ref<string | null>(null)
 const searchKeyword = ref('')
 const searchSource = ref('')
 const currentPage = ref(1)
@@ -183,6 +190,7 @@ function normalizeUser(row: any) {
 
 async function fetchUsers() {
   loading.value = true
+  loadError.value = null
   try {
     const params: Record<string, any> = {
       current: currentPage.value,
@@ -194,6 +202,10 @@ async function fetchUsers() {
     const page = res.data || {}
     users.value = (page.records || []).map(normalizeUser)
     total.value = Number(page.total || users.value.length)
+  } catch {
+    loadError.value = '获取用户列表失败，请重试'
+    users.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
