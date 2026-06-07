@@ -1,16 +1,4 @@
--- =====================================================
--- V26: 性能索引 + 法律协议/客服配置种子数据
--- 说明：索引若已存在会报错，部署脚本以 || true 忽略重复执行
--- =====================================================
-
-CREATE INDEX idx_order_status ON mp_order (status);
-CREATE INDEX idx_order_created_at ON mp_order (created_at);
-CREATE INDEX idx_order_user_id ON mp_order (user_id);
-
-CREATE INDEX idx_finance_tx_type_date ON mp_finance_transaction (type, transaction_date);
-CREATE INDEX idx_finance_tx_status ON mp_finance_transaction (approval_status);
-
--- mp_page_access_log 已在 V9 含 idx_created_at / idx_page_path，无需重复
+-- V27: 补跑 V26 因 page_access_log 列名错误未执行的部分（生产已手动跑过 V26 前半段可安全忽略重复索引报错）
 
 CREATE INDEX idx_user_create_time ON mp_user (create_time);
 
