@@ -31,6 +31,12 @@ public class AdminStatisticsController {
         return R.ok(statisticsService.getDashboard());
     }
 
+    @GetMapping("/workbench")
+    @Operation(summary = "工作台首页聚合", description = "首页指标卡、访问趋势、待办、商品排行、页面版本等真实数据")
+    public R<java.util.Map<String, Object>> getWorkbench() {
+        return R.ok(statisticsService.getWorkbench());
+    }
+
     @GetMapping("/sales-trend")
     @Operation(summary = "销售趋势", description = "按日/周/月统计销售趋势")
     public R<List<SalesTrendItemVO>> getSalesTrend(

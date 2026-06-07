@@ -36,3 +36,12 @@ Thumbs.db
 logs/
 tmp/
 temp/
+
+# 临时部署/调试脚本（含明文凭证，禁止入库）— S6
+.tmp-*.py
+.tmp-*.sh
+*-deploy.py
+deploy-secrets.*
+
+# 运行时上传目录
+backend/uploads/

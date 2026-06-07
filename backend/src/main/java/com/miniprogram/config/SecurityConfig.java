@@ -85,6 +85,17 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico"
                         ).permitAll()
+                        // ========== 敏感模块：仅超级管理员（S1 两级 RBAC） ==========
+                        // 财务中心、AI 配置(含各厂商 API Key)、退款、系统配置、用户/角色/权限管理
+                        .requestMatchers(
+                                "/api/v1/admin/finance/**",
+                                "/api/v1/admin/agent/**",
+                                "/api/v1/admin/refunds/**",
+                                "/api/v1/admin/system/**",
+                                "/api/v1/admin/admin-users/**",
+                                "/api/v1/admin/roles/**",
+                                "/api/v1/admin/permissions/**"
+                        ).hasRole("super_admin")
                         // ========== 需要认证的接口 ==========
                         // 管理后台认证相关（除登录外）
                         .requestMatchers("/api/v1/admin/auth/**").authenticated()

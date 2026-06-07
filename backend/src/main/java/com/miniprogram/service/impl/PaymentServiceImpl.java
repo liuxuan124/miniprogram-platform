@@ -92,46 +92,76 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void handleWxNotify(String xmlData) {
+        Map<String, Object> paymentData;
         try {
-            Map<String, Object> paymentData = wxPayNotifyCrypto.decryptNotifyPayload(xmlData);
-
-            String outTradeNo = (String) paymentData.get("out_trade_no");
-            String transactionId = (String) paymentData.get("transaction_id");
-            String tradeState = (String) paymentData.get("trade_state");
-
-            if (!"SUCCESS".equals(tradeState)) {
-                log.info("微信支付回调非成功状态: {}", tradeState);
-                return;
-            }
-
-            // 查找订单
-            Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
-                    .eq(Order::getOrderNo, outTradeNo));
-            if (order == null) {
-                log.warn("微信支付回调订单不存在: {}", outTradeNo);
-                return;
-            }
-
-            // 更新支付记录
-            Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
-                    .eq(Payment::getOrderId, order.getId()));
-            if (payment != null && "pending".equals(payment.getStatus())) {
-                payment.setStatus("success");
-                payment.setTransactionId(transactionId);
-                payment.setPaidAt(LocalDateTime.now());
-                this.updateById(payment);
-            }
-
-            // 更新订单状态
-            if ("pending_payment".equals(order.getStatus())) {
-                order.setStatus("paid");
-                orderMapper.updateById(order);
-            }
-
-            log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
-
+            // AES-GCM 为认证加密：解密成功即证明报文由持有 apiV3Key 的微信侧产生（防伪造）
+            paymentData = wxPayNotifyCrypto.decryptNotifyPayload(xmlData);
         } catch (Exception e) {
-            log.error("微信支付回调处理失败", e);
+            // 解密/验签失败：拒绝处理，返回 FAIL（由 Controller 包装），可疑报文不入库
+            log.error("微信支付回调验签/解密失败，已拒绝", e);
+            throw new BusinessException(700402, "回调验签失败");
+        }
+
+        String outTradeNo = (String) paymentData.get("out_trade_no");
+        String transactionId = (String) paymentData.get("transaction_id");
+        String tradeState = (String) paymentData.get("trade_state");
+
+        // 非成功状态：确认接收即可，无需处理，返回 SUCCESS 避免微信无意义重试
+        if (!"SUCCESS".equals(tradeState)) {
+            log.info("微信支付回调非成功状态: {}, orderNo={}", tradeState, outTradeNo);
+            return;
+        }
+
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
+                .eq(Order::getOrderNo, outTradeNo));
+        if (order == null) {
+            // 订单不存在：无法处理，确认接收避免无限重试
+            log.warn("微信支付回调订单不存在: {}", outTradeNo);
+            return;
+        }
+
+        // 金额一致性校验，防止金额被篡改（amount.total 单位为分）
+        verifyNotifyAmount(paymentData, order, outTradeNo);
+
+        // 幂等：仅当支付记录处于 pending 时更新
+        Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
+                .eq(Payment::getOrderId, order.getId()));
+        if (payment != null && "pending".equals(payment.getStatus())) {
+            payment.setStatus("success");
+            payment.setTransactionId(transactionId);
+            payment.setPaidAt(LocalDateTime.now());
+            this.updateById(payment);
+        }
+
+        // 幂等：仅当订单待支付时更新
+        if ("pending_payment".equals(order.getStatus())) {
+            order.setStatus("paid");
+            orderMapper.updateById(order);
+        }
+
+        log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
+        // 处理过程中若抛出异常（如 DB 失败），将向上传播，Controller 返回 FAIL 触发微信重试
+    }
+
+    /**
+     * 校验回调金额与订单应付金额一致（防篡改）。
+     * 微信 amount.total 单位为分；订单 payAmount 单位为元。
+     */
+    @SuppressWarnings("unchecked")
+    private void verifyNotifyAmount(Map<String, Object> paymentData, Order order, String outTradeNo) {
+        Object amountObj = paymentData.get("amount");
+        if (!(amountObj instanceof Map) || order.getPayAmount() == null) {
+            return;
+        }
+        Object total = ((Map<String, Object>) amountObj).get("total");
+        if (total == null) {
+            return;
+        }
+        long notifyCents = Long.parseLong(String.valueOf(total));
+        long orderCents = order.getPayAmount().movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+        if (notifyCents != orderCents) {
+            log.error("微信支付回调金额不一致, orderNo={}, notify={}分, order={}分", outTradeNo, notifyCents, orderCents);
+            throw new BusinessException(700403, "回调金额与订单不一致");
         }
     }
 
