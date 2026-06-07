@@ -13,6 +13,7 @@ import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.AdminUserService;
 import com.miniprogram.service.AuthService;
 import com.miniprogram.service.PermissionService;
+import com.miniprogram.support.PasswordValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -174,6 +175,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 更新密码
+        PasswordValidator.validateNewPassword(dto.getNewPassword());
         adminUser.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
         adminUserMapper.updateById(adminUser);
         log.info("管理员 {} 修改密码成功", userId);

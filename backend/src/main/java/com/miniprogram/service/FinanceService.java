@@ -44,11 +44,11 @@ public interface FinanceService {
 
     void exportTransactions(String keyword, String type, String category, String startDate,
                             String endDate, String approvalStatus, String invoiceStatus,
-                            HttpServletResponse response);
+                            String format, HttpServletResponse response);
 
     List<Map<String, Object>> getTransactionCategories(String type);
 
-    void exportReport(String startDate, String endDate, HttpServletResponse response);
+    void exportReport(String startDate, String endDate, String format, HttpServletResponse response);
 
     // ==================== 预算管理 ====================
 

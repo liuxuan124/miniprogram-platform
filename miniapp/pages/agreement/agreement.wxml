@@ -1,0 +1,9 @@
+<view class="page">
+  <view class="header">{{title}}</view>
+  <view class="content">
+    <view class="para" wx:for="{{paragraphs}}" wx:key="index">{{item}}</view>
+  </view>
+  <view wx:if="{{externalUrl}}" class="footer">
+    <button class="link-btn" bindtap="onOpenExternal">查看完整版（外链）</button>
+  </view>
+</view>

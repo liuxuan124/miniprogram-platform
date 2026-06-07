@@ -37,12 +37,6 @@ public class UserController {
         return R.ok(miniProgramUserService.listUsers(queryDTO));
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "用户详情", description = "获取小程序用户画像")
-    public R<MiniProgramUserVO> detail(@PathVariable Long id) {
-        return R.ok(miniProgramUserService.getUserProfile(id));
-    }
-
     @GetMapping("/export")
     @Operation(summary = "导出用户", description = "按当前筛选条件导出小程序用户为 CSV")
     public void export(MiniProgramUserQueryDTO queryDTO, HttpServletResponse response) throws IOException {
@@ -65,6 +59,12 @@ public class UserController {
                     csv(u.getPoints()), csv(u.getSourceChannel()), csv(u.getLastVisitAt()), csv(u.getCreateTime())));
         }
         writer.flush();
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "用户详情", description = "获取小程序用户画像")
+    public R<MiniProgramUserVO> detail(@PathVariable Long id) {
+        return R.ok(miniProgramUserService.getUserProfile(id));
     }
 
     private String csv(Object v) {

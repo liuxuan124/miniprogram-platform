@@ -127,9 +127,10 @@ public class AdminFinanceController {
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String approvalStatus,
             @RequestParam(required = false) String invoiceStatus,
+            @RequestParam(required = false, defaultValue = "csv") String format,
             HttpServletResponse response) {
         financeService.exportTransactions(keyword, type, category, startDate, endDate,
-                approvalStatus, invoiceStatus, response);
+                approvalStatus, invoiceStatus, format, response);
     }
 
     @GetMapping("/transaction-categories")
@@ -170,8 +171,9 @@ public class AdminFinanceController {
     public void exportReport(
             @RequestParam String startDate,
             @RequestParam String endDate,
+            @RequestParam(required = false, defaultValue = "csv") String format,
             HttpServletResponse response) {
-        financeService.exportReport(startDate, endDate, response);
+        financeService.exportReport(startDate, endDate, format, response);
     }
 
     // ==================== 预算管理 ====================

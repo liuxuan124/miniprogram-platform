@@ -41,7 +41,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
     private static final Set<String> PUBLIC_CONFIG_KEYS = Set.of(
             "site_name", "site_logo", "site_description",
             "wx_appid", "wx_version", "wx_version_desc",
-            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappShareTitle", "miniappShareImage", "plugins"
+            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappShareTitle", "miniappShareImage", "plugins",
+            "privacy_policy_url", "user_agreement_url", "service_phone"
     );
 
     /**

@@ -78,6 +78,16 @@
                   <el-input v-model="miniProgramForm.shareGuide" placeholder="用户分享时显示的文案" maxlength="50" show-word-limit />
                 </el-form-item>
 
+                <el-form-item label="客服电话">
+                  <el-input v-model="legalForm.servicePhone" placeholder="小程序「联系客服」拨号号码" clearable />
+                </el-form-item>
+                <el-form-item label="隐私政策外链">
+                  <el-input v-model="legalForm.privacyPolicyUrl" placeholder="https://（可选，需配置业务域名）" clearable />
+                </el-form-item>
+                <el-form-item label="用户协议外链">
+                  <el-input v-model="legalForm.userAgreementUrl" placeholder="https://（可选）" clearable />
+                </el-form-item>
+
                 <div class="action-bar">
                   <span class="upload-hint">
                     {{ uploadKeyStored ? '上传密钥已写入服务器' : '填写代码上传密钥后，请点击右侧按钮保存到服务器' }}
@@ -480,6 +490,12 @@ interface LogisticsForm {
   defaultAddress: string
 }
 
+interface LegalForm {
+  privacyPolicyUrl: string
+  userAgreementUrl: string
+  servicePhone: string
+}
+
 interface PluginModule {
   key: string
   name: string
@@ -535,6 +551,12 @@ const logisticsForm = reactive<LogisticsForm>({
   platform: 'sf',
   appKey: '',
   defaultAddress: '广东省深圳市南山区高新园区',
+})
+
+const legalForm = reactive<LegalForm>({
+  privacyPolicyUrl: '',
+  userAgreementUrl: '',
+  servicePhone: '',
 })
 
 // 模块分组数据
@@ -680,6 +702,7 @@ function applyConfigs(configs: RawConfigItem[]) {
     miniProgramForm as unknown as Record<string, unknown>,
     paymentForm as unknown as Record<string, unknown>,
     logisticsForm as unknown as Record<string, unknown>,
+    legalForm as unknown as Record<string, unknown>,
   ])
   applyPluginConfigs(configs)
   applyNotificationConfigs(configs)
@@ -733,6 +756,7 @@ async function handleSaveAll() {
   try {
     await Promise.all([
       saveGroup('wechat', '微信小程序配置', miniProgramForm as unknown as Record<string, unknown>),
+      saveGroup('legal', '法律协议与客服', legalForm as unknown as Record<string, unknown>),
       saveGroup('wechat', '微信支付配置', paymentForm as unknown as Record<string, unknown>),
       saveGroup('basic', '插件开关', { plugins: pluginModules.value }),
       saveGroup('storage', '物流配置', logisticsForm),

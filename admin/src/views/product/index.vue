@@ -357,11 +357,37 @@ function openCategoryPage() {
   router.push({ name: 'CommerceProductCategory' })
 }
 
+const LIST_STATE_KEY = 'product_list_state'
+
+function saveListState() {
+  sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify({
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    searchForm: { ...searchForm },
+  }))
+}
+
+function restoreListState() {
+  try {
+    const raw = sessionStorage.getItem(LIST_STATE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw)
+    if (saved.page) pagination.page = saved.page
+    if (saved.pageSize) pagination.pageSize = saved.pageSize
+    if (saved.searchForm) Object.assign(searchForm, saved.searchForm)
+    sessionStorage.removeItem(LIST_STATE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 function handleCreate() {
+  saveListState()
   router.push({ name: 'ProductEdit' })
 }
 
 function handleEdit(row: ProductRow) {
+  saveListState()
   router.push({ name: 'ProductEdit', params: { id: row.id } })
 }
 
@@ -455,6 +481,7 @@ function statusTagType(status: ProductRow['status']) {
 }
 
 onMounted(async () => {
+  restoreListState()
   await fetchCategories()
   await fetchList()
 })

@@ -184,7 +184,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'refund',
         name: 'OrderRefund',
         component: () => import('@/views/order/refund.vue'),
-        meta: { title: '退款审核', icon: 'CircleCheck' },
+        meta: { title: '退款审核', icon: 'CircleCheck', roles: ['super_admin'] },
       },
     ],
   },
@@ -367,7 +367,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'agent',
         name: 'AiAgent',
         component: () => import('@/views/ai/agent/index.vue'),
-        meta: { title: '智能 Agent', icon: 'MagicStick' },
+        meta: { title: '智能 Agent', icon: 'MagicStick', roles: ['super_admin'] },
       },
     ],
   },
@@ -375,7 +375,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
     path: '/finance',
     component: Layout,
     name: 'Finance',
-    meta: { title: '财务管理', icon: 'Money' },
+    meta: { title: '财务管理', icon: 'Money', roles: ['super_admin'] },
     redirect: '/finance/dashboard',
     children: [
       {
@@ -412,7 +412,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'permission',
         name: 'FinancePermission',
         component: () => import('@/views/finance/permission.vue'),
-        meta: { title: '财务权限', icon: 'Lock', roles: ['admin', 'super_admin'] },
+        meta: { title: '财务权限', icon: 'Lock', roles: ['super_admin'] },
       },
     ],
   },
@@ -420,7 +420,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
     path: '/settings',
     component: Layout,
     name: 'Settings',
-    meta: { title: '系统设置', icon: 'Setting' },
+    meta: { title: '系统设置', icon: 'Setting', roles: ['super_admin'] },
     redirect: '/settings/basic',
     children: [
       {
