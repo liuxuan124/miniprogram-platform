@@ -47,6 +47,8 @@ export interface LoginResult {
   token?: string
   refreshToken: string
   expiresIn: number
+  /** 是否需要强制修改密码（使用默认/弱密码时为 true） */
+  mustChangePassword?: boolean
 }
 
 /** 用户信息 */

@@ -68,7 +68,10 @@ public class AuthServiceImpl implements AuthService {
         adminUser.setLastLoginAt(LocalDateTime.now());
         adminUserMapper.updateById(adminUser);
 
-        // 7. 构建响应
+        // 7. 检测是否使用默认/弱密码，强制改密
+        boolean mustChangePassword = isUsingDefaultOrWeakPassword(adminUser);
+
+        // 8. 构建响应
         return LoginVO.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -79,8 +82,24 @@ public class AuthServiceImpl implements AuthService {
                 .realName(adminUser.getRealName())
                 .roleCode(roleCode)
                 .roleName(roleName)
+                .mustChangePassword(mustChangePassword)
                 .build();
     }
+
+    /** 判断是否使用默认或弱密码（命中即要求改密） */
+    private boolean isUsingDefaultOrWeakPassword(AdminUser adminUser) {
+        if (adminUser.getPasswordHash() == null) return false;
+        // 命中常见默认密码
+        for (String weak : DEFAULT_WEAK_PASSWORDS) {
+            if (passwordEncoder.matches(weak, adminUser.getPasswordHash())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static final java.util.List<String> DEFAULT_WEAK_PASSWORDS =
+            java.util.List.of("admin123", "123456", "password", "admin", "12345678");
 
     @Override
     public LoginVO refreshToken(RefreshTokenDTO dto) {

@@ -9,6 +9,7 @@ import type {
   RefundApproveParams,
   RefundRecord,
   RefundListParams,
+  OrderStatistics,
 } from '@/types/order'
 import type { PaginatedResponse } from '@/types/global'
 
@@ -34,6 +35,11 @@ export function shipOrder(id: number, data: ShipParams) {
 /** 退款审批 */
 export function refundApprove(id: number, data: RefundApproveParams) {
   return request.put(`${BASE}/orders/${id}/refund-approve`, data)
+}
+
+/** 订单统计（真实数据） */
+export function getOrderStatistics() {
+  return request.get<OrderStatistics>(`${BASE}/orders/statistics`)
 }
 
 // ==================== 退款 ====================

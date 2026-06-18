@@ -1,7 +1,7 @@
 <template>
   <el-aside class="prototype-sidebar" :width="appStore.sidebarCollapsed ? '72px' : '220px'">
     <div class="brand">
-      <div class="brand-icon">▣</div>
+      <div class="brand-icon"><el-icon :size="22"><Grid /></el-icon></div>
       <div v-show="!appStore.sidebarCollapsed" class="brand-text">
         <strong>小程序运营系统</strong>
         <span>多场景搭建与运营平台</span>
@@ -19,7 +19,7 @@
           :title="item.title"
           @click="go(item.path)"
         >
-          <span class="menu-emoji">{{ item.emoji }}</span>
+          <span class="menu-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
           <span v-show="!appStore.sidebarCollapsed" class="menu-title">{{ item.title }}</span>
           <span v-if="item.badge && !appStore.sidebarCollapsed" class="menu-badge">{{ item.badge }}</span>
         </button>
@@ -31,13 +31,64 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import {
+  Odometer,
+  Document,
+  Brush,
+  Cellphone,
+  Reading,
+  DocumentCopy,
+  GoldMedal,
+  User,
+  Goods,
+  Box,
+  Present,
+  Flag,
+  Calendar,
+  Money,
+  Tickets,
+  TrendCharts,
+  Aim,
+  Document as InvoiceIcon,
+  Lock,
+  MagicStick,
+  Picture,
+  Setting,
+  Grid,
+} from '@element-plus/icons-vue'
 
 interface MenuItem {
   title: string
   path: string
-  emoji: string
+  icon: string
   badge?: string
   activePrefix?: string
+}
+
+const iconMap: Record<string, any> = {
+  Odometer,
+  Document,
+  Brush,
+  Cellphone,
+  Reading,
+  DocumentCopy,
+  GoldMedal,
+  User,
+  Goods,
+  Box,
+  Present,
+  Flag,
+  Calendar,
+  Money,
+  Tickets,
+  TrendCharts,
+  Aim,
+  InvoiceIcon,
+  Lock,
+  MagicStick,
+  Picture,
+  Setting,
+  Grid,
 }
 
 const route = useRoute()
@@ -48,68 +99,68 @@ const menuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '总览',
     children: [
-      { title: '工作台', path: '/dashboard', emoji: '📊', activePrefix: '/dashboard' },
+      { title: '工作台', path: '/dashboard', icon: 'Odometer', activePrefix: '/dashboard' },
     ],
   },
   {
     title: '页面装修',
     children: [
-      { title: '页面管理', path: '/page-builder/list', emoji: '📄', activePrefix: '/page-builder/list' },
-      { title: '模板中心', path: '/page-builder/template-center', emoji: '🎨', activePrefix: '/page-builder/template-center' },
-      { title: '小程序搭建', path: '/page-builder/miniapp', emoji: '📱', activePrefix: '/page-builder/miniapp' },
+      { title: '页面管理', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list' },
+      { title: '模板中心', path: '/page-builder/template-center', icon: 'Brush', activePrefix: '/page-builder/template-center' },
+      { title: '小程序搭建', path: '/page-builder/miniapp', icon: 'Cellphone', activePrefix: '/page-builder/miniapp' },
     ],
   },
   {
     title: '内容运营',
     children: [
-      { title: '内容管理', path: '/content/article', emoji: '📝', activePrefix: '/content' },
-      { title: '表单管理', path: '/form/template', emoji: '📋', badge: '9', activePrefix: '/form' },
+      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content' },
+      { title: '表单管理', path: '/form/template', icon: 'DocumentCopy', badge: '9', activePrefix: '/form' },
     ],
   },
   {
     title: '用户与会员',
     children: [
-      { title: '会员管理', path: '/member/list', emoji: '👑', activePrefix: '/member' },
-      { title: '用户管理', path: '/user/list', emoji: '👥', activePrefix: '/user' },
+      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member' },
+      { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user' },
     ],
   },
   {
     title: '商业变现',
     children: [
-      { title: '商品管理', path: '/commerce/product', emoji: '🛍️', activePrefix: '/commerce' },
-      { title: '订单管理', path: '/order/list', emoji: '📦', badge: '16', activePrefix: '/order' },
-      { title: '营销管理', path: '/marketing/coupon', emoji: '🎁', activePrefix: '/marketing' },
+      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce' },
+      { title: '订单管理', path: '/order/list', icon: 'Box', badge: '16', activePrefix: '/order' },
+      { title: '营销管理', path: '/marketing/coupon', icon: 'Present', activePrefix: '/marketing' },
     ],
   },
   {
     title: '活动与预约',
     children: [
-      { title: '活动管理', path: '/activity/list', emoji: '🎪', activePrefix: '/activity' },
-      { title: '预约管理', path: '/appointment/list', emoji: '📅', activePrefix: '/appointment' },
+      { title: '活动管理', path: '/activity/list', icon: 'Flag', activePrefix: '/activity' },
+      { title: '预约管理', path: '/appointment/list', icon: 'Calendar', activePrefix: '/appointment' },
     ],
   },
   {
     title: '财务管理',
     children: [
-      { title: '财务概览', path: '/finance/dashboard', emoji: '💰', activePrefix: '/finance/dashboard' },
-      { title: '收支明细', path: '/finance/income-expense', emoji: '📋', activePrefix: '/finance/income-expense' },
-      { title: '财务报表', path: '/finance/report', emoji: '📊', activePrefix: '/finance/report' },
-      { title: '预算管理', path: '/finance/budget', emoji: '🎯', activePrefix: '/finance/budget' },
-      { title: '发票与税务', path: '/finance/invoice', emoji: '🧾', activePrefix: '/finance/invoice' },
-      { title: '财务权限', path: '/finance/permission', emoji: '🔐', activePrefix: '/finance/permission' },
+      { title: '财务概览', path: '/finance/dashboard', icon: 'Money', activePrefix: '/finance/dashboard' },
+      { title: '收支明细', path: '/finance/income-expense', icon: 'Tickets', activePrefix: '/finance/income-expense' },
+      { title: '财务报表', path: '/finance/report', icon: 'TrendCharts', activePrefix: '/finance/report' },
+      { title: '预算管理', path: '/finance/budget', icon: 'Aim', activePrefix: '/finance/budget' },
+      { title: '发票与税务', path: '/finance/invoice', icon: 'InvoiceIcon', activePrefix: '/finance/invoice' },
+      { title: '财务权限', path: '/finance/permission', icon: 'Lock', activePrefix: '/finance/permission' },
     ],
   },
   {
     title: '智能 AI',
     children: [
-      { title: '智能 Agent', path: '/ai/agent', emoji: '🤖', activePrefix: '/ai' },
+      { title: '智能 Agent', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai' },
     ],
   },
   {
     title: '系统',
     children: [
-      { title: '素材库', path: '/asset/list', emoji: '🖼️', activePrefix: '/asset' },
-      { title: '系统设置', path: '/settings/basic', emoji: '⚙️', activePrefix: '/settings' },
+      { title: '素材库', path: '/asset/list', icon: 'Picture', activePrefix: '/asset' },
+      { title: '系统设置', path: '/settings/basic', icon: 'Setting', activePrefix: '/settings' },
     ],
   },
 ]
@@ -215,10 +266,12 @@ function go(path: string) {
   }
 }
 
-.menu-emoji {
+.menu-icon {
   width: 20px;
   flex-shrink: 0;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-title {

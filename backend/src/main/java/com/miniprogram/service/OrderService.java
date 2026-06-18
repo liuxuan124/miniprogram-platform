@@ -54,4 +54,9 @@ public interface OrderService extends IService<Order> {
      * 退款审批
      */
     void approveRefund(Long orderId, RefundApproveDTO dto);
+
+    /**
+     * 订单统计（订单列表页顶部卡片，真实数据）
+     */
+    OrderStatisticsVO getOrderStatistics();
 }

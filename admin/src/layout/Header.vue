@@ -86,12 +86,18 @@ async function handleCommand(command: string) {
   justify-content: space-between;
   height: 56px;
   padding: 0 20px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .collapse-btn {
@@ -106,6 +112,7 @@ async function handleCommand(command: string) {
 .header-right {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .user-info {
