@@ -151,3 +151,18 @@ export interface RefundListParams {
   start_date?: string
   end_date?: string
 }
+
+/** 订单统计（订单列表页顶部卡片，真实数据） */
+export interface OrderStatistics {
+  monthIncome: number
+  lastMonthIncome: number
+  /** 环比(%)，previous 为 0 时为 null */
+  incomeChangeRate: number | null
+  pendingSettleAmount: number
+  pendingSettleCount: number
+  monthRefundAmount: number
+  monthRefundCount: number
+  refundRate: number
+  platformFee: number
+  payFeeRate: number
+}

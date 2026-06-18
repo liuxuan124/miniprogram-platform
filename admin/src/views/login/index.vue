@@ -33,6 +33,7 @@
         <el-form-item>
           <div class="login-options">
             <el-checkbox v-model="rememberMe">记住我</el-checkbox>
+            <el-link type="primary" :underline="false" @click="showForgetDialog = true">忘记密码？</el-link>
           </div>
         </el-form-item>
         <el-form-item>
@@ -47,6 +48,19 @@
         </el-form-item>
       </el-form>
     </div>
+
+    <!-- 忘记密码提示 -->
+    <el-dialog v-model="showForgetDialog" title="找回密码" width="400px" align-center>
+      <el-alert
+        title="本系统暂未开通自助找回"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 12px"
+      />
+      <p class="forget-tip">请联系 <strong>超级管理员</strong> 在「系统设置 → 管理员账号」中为您重置密码。</p>
+      <p class="forget-tip muted">重置后请及时登录并修改为个人密码。</p>
+    </el-dialog>
   </div>
 </template>
 
@@ -64,6 +78,7 @@ const userStore = useUserStore()
 const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
 const rememberMe = ref(false)
+const showForgetDialog = ref(false)
 
 const loginForm = reactive({
   username: '',
@@ -164,5 +179,17 @@ async function handleLogin() {
   width: 100%;
   height: 44px;
   font-size: 16px;
+}
+
+.forget-tip {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+
+  &.muted {
+    color: #909399;
+    font-size: 13px;
+  }
 }
 </style>

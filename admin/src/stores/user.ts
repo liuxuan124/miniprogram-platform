@@ -4,6 +4,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { loginApi, getUserInfoApi, logoutApi } from '@/api/auth'
+import { post } from '@/api/request'
 import { getToken, setToken, setRefreshToken, removeToken } from '@/utils/auth'
 import type { UserInfo, LoginParams } from '@/types/global'
 
@@ -12,6 +13,8 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref<UserInfo | null>(null)
   /** 是否已登录 */
   const isLoggedIn = ref(!!getToken())
+  /** 是否需要强制改密 */
+  const mustChangePassword = ref(false)
 
   /** 登录 */
   async function login(params: LoginParams) {
@@ -24,6 +27,14 @@ export const useUserStore = defineStore('user', () => {
     setToken(loginToken)
     setRefreshToken(refreshToken)
     isLoggedIn.value = true
+    mustChangePassword.value = !!res.data.mustChangePassword
+    return !!res.data.mustChangePassword
+  }
+
+  /** 修改密码 */
+  async function changePassword(oldPassword: string, newPassword: string) {
+    await post('/api/v1/admin/auth/change-password', { oldPassword, newPassword })
+    mustChangePassword.value = false
   }
 
   /** 获取用户信息 */
@@ -65,9 +76,11 @@ export const useUserStore = defineStore('user', () => {
   return {
     userInfo,
     isLoggedIn,
+    mustChangePassword,
     login,
     fetchUserInfo,
     logout,
+    changePassword,
     resetState,
   }
 })

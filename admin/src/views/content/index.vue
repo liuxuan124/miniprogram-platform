@@ -452,6 +452,11 @@ watch(
 
 <style lang="scss" scoped>
 .content-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+
   .page-header {
     display: flex;
     justify-content: space-between;
@@ -477,6 +482,8 @@ watch(
     align-items: center;
     gap: 8px;
     margin-bottom: 14px;
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
   .toolbar-input {
@@ -496,6 +503,9 @@ watch(
     border: 1px solid #e4e9f2;
     border-radius: 12px;
     padding: 14px;
+    max-width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
   }
 
   .title-cell {
@@ -513,6 +523,8 @@ watch(
     margin-top: 14px;
     display: flex;
     justify-content: flex-end;
+    overflow-x: auto;
+    max-width: 100%;
   }
 
   .category-tip {

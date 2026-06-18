@@ -42,4 +42,7 @@ public class LoginVO {
 
     @Schema(description = "角色名称")
     private String roleName;
+
+    @Schema(description = "是否需要强制修改密码（使用默认/弱密码时为 true）")
+    private Boolean mustChangePassword;
 }

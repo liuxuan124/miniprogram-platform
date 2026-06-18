@@ -984,8 +984,10 @@ public class FinanceServiceImpl implements FinanceService {
 
     private BigDecimal calculateChangeRate(BigDecimal current, BigDecimal previous) {
         if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
-            return current != null && current.compareTo(BigDecimal.ZERO) > 0 ? new BigDecimal("100.0") : BigDecimal.ZERO;
+            // 基数为 0 时环比无意义，返回 null，前端显示 "—"
+            return null;
         }
+        if (current == null) return BigDecimal.ZERO;
         return current.subtract(previous)
                 .multiply(new BigDecimal("100"))
                 .divide(previous, 1, RoundingMode.HALF_UP);

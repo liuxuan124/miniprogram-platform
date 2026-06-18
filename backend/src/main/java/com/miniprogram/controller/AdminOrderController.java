@@ -51,4 +51,10 @@ public class AdminOrderController {
         orderService.approveRefund(id, dto);
         return R.ok(null);
     }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "订单统计", description = "订单列表页顶部统计卡：本月收入/待结算/退款/手续费（真实数据）")
+    public R<OrderStatisticsVO> getOrderStatistics() {
+        return R.ok(orderService.getOrderStatistics());
+    }
 }

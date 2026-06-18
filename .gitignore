@@ -45,3 +45,32 @@ deploy-secrets.*
 
 # 运行时上传目录
 backend/uploads/
+
+# 根目录调试/构建残留（不应入库）
+build*.txt
+build_*.txt
+build_*.log
+err*.txt
+errors.txt
+effective_pom*.txt
+fix*.py
+fix_backend.py
+fix_dash.py
+fix_imports.py
+create_props.py
+write_wxml.py
+tmp_db.txt
+m.default
+miniapp-v3.html
+preview.json
+preview.png
+devtools-*.png
+screen-*.png
+screen-*.jpeg
+verify-miniapp-*.js
+verify-crossborder-*.js
+*-deploy*.py
+.tmp-*.js
+.tmp-*.ts
+.tmp-*.md
+admin-dist.zip

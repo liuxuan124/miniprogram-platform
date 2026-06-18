@@ -289,8 +289,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { getOrderList, shipOrder } from '@/api/order'
-import type { OrderRecord, OrderListParams } from '@/types/order'
+import { getOrderList, shipOrder, getOrderStatistics } from '@/api/order'
+import type { OrderRecord, OrderListParams, OrderStatistics } from '@/types/order'
 import { OrderStatus, OrderStatusLabels, OrderStatusTagType } from '@/types/order'
 
 const router = useRouter()
@@ -310,13 +310,78 @@ const pagination = reactive({
   total: 0,
 })
 
-// ========== 财务统计卡片 ==========
-const financeCards = reactive([
-  { title: '本月收入', value: '¥42,680', note: '较上月 +18.2%', up: true, down: false, icon: 'Money', color: '#0faa6e', bgColor: '#e8faf3' },
-  { title: '待结算', value: '¥12,680', note: '预计3个工作日到账', up: false, down: false, icon: 'Clock', color: '#f59e0b', bgColor: '#fff8e6' },
-  { title: '本月退款', value: '¥1,280', note: '退款率 3.0%', up: false, down: true, icon: 'RefreshLeft', color: '#ef4444', bgColor: '#fff0f0' },
-  { title: '平台手续费', value: '¥428', note: '微信支付费率 0.6%', up: false, down: false, icon: 'Coin', color: '#6b7b93', bgColor: '#f1f5f9' },
-])
+// ========== 财务统计卡片（真实数据） ==========
+const orderStats = ref<OrderStatistics | null>(null)
+const statsLoading = ref(false)
+
+function formatMoney(n: number | null | undefined): string {
+  const v = Number(n || 0)
+  return '¥' + v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function formatChange(rate: number | null | undefined): string {
+  if (rate === null || rate === undefined) return '—'
+  const arrow = rate >= 0 ? '+' : ''
+  return `${arrow}${Number(rate).toFixed(1)}%`
+}
+
+const financeCards = computed(() => {
+  const s = orderStats.value
+  return [
+    {
+      title: '本月收入',
+      value: formatMoney(s?.monthIncome),
+      note: `较上月 ${formatChange(s?.incomeChangeRate)}`,
+      up: (s?.incomeChangeRate ?? 0) >= 0,
+      down: (s?.incomeChangeRate ?? 0) < 0,
+      icon: 'Money',
+      color: '#0faa6e',
+      bgColor: '#e8faf3',
+    },
+    {
+      title: '待结算',
+      value: formatMoney(s?.pendingSettleAmount),
+      note: s?.pendingSettleCount ? `${s.pendingSettleCount} 笔进行中` : '暂无进行中订单',
+      up: false,
+      down: false,
+      icon: 'Clock',
+      color: '#f59e0b',
+      bgColor: '#fff8e6',
+    },
+    {
+      title: '本月退款',
+      value: formatMoney(s?.monthRefundAmount),
+      note: s?.monthRefundCount ? `退款率 ${Number(s.refundRate || 0).toFixed(1)}%` : '本月无退款',
+      up: false,
+      down: true,
+      icon: 'RefreshLeft',
+      color: '#ef4444',
+      bgColor: '#fff0f0',
+    },
+    {
+      title: '平台手续费',
+      value: formatMoney(s?.platformFee),
+      note: `微信支付费率 ${Number(s?.payFeeRate || 0).toFixed(1)}%`,
+      up: false,
+      down: false,
+      icon: 'Coin',
+      color: '#6b7b93',
+      bgColor: '#f1f5f9',
+    },
+  ]
+})
+
+async function fetchStatistics() {
+  statsLoading.value = true
+  try {
+    const res = await getOrderStatistics()
+    orderStats.value = res.data || null
+  } catch {
+    orderStats.value = null
+  } finally {
+    statsLoading.value = false
+  }
+}
 
 // ========== 发货弹窗 ==========
 const shipDialogVisible = ref(false)
@@ -527,6 +592,7 @@ async function handleExport() {
 
 onMounted(() => {
   fetchList()
+  fetchStatistics()
 })
 </script>
 

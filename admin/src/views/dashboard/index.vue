@@ -30,7 +30,9 @@
 
     <section class="metrics">
       <div v-for="item in metrics" :key="item.title" class="metric-card">
-        <div class="metric-icon" :style="{ color: item.color, background: item.bg }">{{ item.icon }}</div>
+        <div class="metric-icon" :style="{ color: item.color, background: item.bg }">
+          <el-icon :size="22"><component :is="item.iconComp" /></el-icon>
+        </div>
         <div>
           <div class="metric-title">{{ item.title }}</div>
           <div class="metric-value">{{ item.value }}</div>
@@ -79,14 +81,19 @@
 
     <section class="panel quick-panel">
       <div class="panel-head">
-        <h2>快捷功能入口</h2>
+        <h2>最近访问</h2>
+        <el-button v-if="recentLinks.length" link type="primary" @click="clearRecent">清空</el-button>
       </div>
-      <div class="quick-grid">
-        <button v-for="item in quickLinks" :key="item.title" class="quick-card" @click="router.push(item.path)">
-          <span class="quick-icon">{{ item.icon }}</span>
+      <div v-if="recentLinks.length" class="quick-grid">
+        <button v-for="item in recentLinks" :key="item.path" class="quick-card" @click="router.push(item.path)">
+          <span class="quick-icon"><el-icon :size="26"><component :is="item.iconComp" /></el-icon></span>
           <strong>{{ item.title }}</strong>
-          <small>{{ item.desc }}</small>
+          <small>{{ item.time }}</small>
         </button>
+      </div>
+      <div v-else class="quick-empty">
+        <el-icon :size="32" color="#c0c4cc"><Clock /></el-icon>
+        <p>暂无访问记录，可从左侧菜单开始操作</p>
       </div>
     </section>
 
@@ -97,14 +104,25 @@
           <el-button link type="primary" @click="router.push('/commerce/product')">查看全部商品</el-button>
         </div>
         <div class="rank-list">
-          <div v-for="(item, index) in products" :key="item.name" class="rank-item">
-            <span class="rank-num">{{ index + 1 }}</span>
-            <span class="product-icon">{{ item.icon }}</span>
-            <div>
-              <strong>{{ item.name }}</strong>
-              <small>¥{{ item.price }}</small>
-            </div>
-            <b>{{ item.sales }}件</b>
+          <div v-for="(item, index) in displayProducts" :key="item.name || ('empty-' + index)" class="rank-item" :class="{ 'rank-empty': !item.name }">
+            <template v-if="item.name">
+              <span class="rank-num">{{ index + 1 }}</span>
+              <span class="product-icon"><el-icon><Goods /></el-icon></span>
+              <div>
+                <strong>{{ item.name }}</strong>
+                <small>¥{{ item.price }}</small>
+              </div>
+              <b>{{ item.sales }}件</b>
+            </template>
+            <template v-else>
+              <span class="rank-num muted">{{ index + 1 }}</span>
+              <span class="product-icon muted"><el-icon><Goods /></el-icon></span>
+              <div>
+                <strong class="muted">暂无数据</strong>
+                <small class="muted">—</small>
+              </div>
+              <b class="muted">—</b>
+            </template>
           </div>
         </div>
       </div>
@@ -131,13 +149,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getDashboard } from '@/api/statistics'
+import {
+  DataLine,
+  User,
+  Document,
+  Wallet,
+  Goods,
+  Clock,
+  Brush,
+  Reading,
+  Tickets,
+  GoldMedal,
+  ShoppingCart,
+  Present,
+  Menu as MenuIcon,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+
+// 图标组件映射（供模板动态渲染）
+const iconMap: Record<string, any> = {
+  DataLine,
+  User,
+  Document,
+  Wallet,
+  Goods,
+  Brush,
+  Reading,
+  Tickets,
+  GoldMedal,
+  ShoppingCart,
+  Present,
+}
 
 const currentDate = computed(() => new Date().toLocaleDateString('zh-CN', {
   weekday: 'long',
@@ -150,10 +199,10 @@ const demoSteps = ['进入后台', '页面管理', '进入装修器', '添加活
 
 const dashboardLoading = ref(false)
 const metrics = ref([
-  { title: '今日访问', value: '-', note: '加载中...', icon: '📊', color: '#1769ff', bg: '#eaf1ff', up: true },
-  { title: '新增用户', value: '-', note: '加载中...', icon: '👤', color: '#0faa6e', bg: '#e8faf3', up: true },
-  { title: '表单提交', value: '-', note: '加载中...', icon: '📋', color: '#f59e0b', bg: '#fff8e6', up: false },
-  { title: '订单金额', value: '-', note: '加载中...', icon: '💰', color: '#7c3aed', bg: '#f3eeff', up: false },
+  { title: '今日访问', value: '-', note: '加载中...', iconComp: 'DataLine', color: '#1769ff', bg: '#eaf1ff', up: true },
+  { title: '新增用户', value: '-', note: '加载中...', iconComp: 'User', color: '#0faa6e', bg: '#e8faf3', up: true },
+  { title: '表单提交', value: '-', note: '加载中...', iconComp: 'Document', color: '#f59e0b', bg: '#fff8e6', up: false },
+  { title: '订单金额', value: '-', note: '加载中...', iconComp: 'Wallet', color: '#7c3aed', bg: '#f3eeff', up: false },
 ])
 
 const visits = ref([
@@ -175,18 +224,85 @@ const summaries = ref([
 
 const todos = ref<Array<{ label: string; count: number; level: string; path: string }>>([])
 
-const quickLinks = [
-  { title: '装修首页', desc: '可视化配置首页组件', path: '/page-builder/editor/1', icon: '🎨' },
-  { title: '内容发布', desc: '发布文章、图文、视频', path: '/content/article', icon: '📝' },
-  { title: '表单构建', desc: '自定义报名/咨询表单', path: '/form/template', icon: '📋' },
-  { title: '会员体系', desc: '配置等级、积分、权益', path: '/member/list', icon: '👑' },
-  { title: '商品上架', desc: '管理实物/数字/服务商品', path: '/commerce/product', icon: '🛍️' },
-  { title: '营销工具', desc: '配置优惠券、签到活动', path: '/marketing/coupon', icon: '🎁' },
-]
+const products = ref<Array<{ name: string; price: number | string; sales: number }>>([])
 
-const products = ref<Array<{ name: string; price: number | string; sales: number; icon: string }>>([])
+// P1-3：销售排行不足 3 个时补占位，保持布局稳定
+const displayProducts = computed(() => {
+  const list = [...products.value]
+  while (list.length < 3) {
+    list.push({ name: '', price: '', sales: 0 })
+  }
+  return list
+})
 
 const versions = ref<Array<{ name: string; status: string; version: string; time: string }>>([])
+
+// P2-5：最近访问 —— 记录用户访问的页面，去重 + 按时间倒序
+const RECENT_KEY = 'workbench_recent_visits'
+const RECENT_MAX = 6
+const recentLinks = ref<Array<{ path: string; title: string; time: string; iconComp: string }>>([])
+
+function loadRecent() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (!raw) return
+    const arr: Array<{ path: string; title: string; ts: number }> = JSON.parse(raw)
+    recentLinks.value = arr.slice(0, RECENT_MAX).map((r) => ({
+      path: r.path,
+      title: r.title,
+      time: formatRelativeTime(r.ts),
+      iconComp: guessIcon(r.path),
+    }))
+  } catch { /* ignore */ }
+}
+
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return '刚刚'
+  if (min < 60) return `${min} 分钟前`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} 小时前`
+  return `${Math.floor(hr / 24)} 天前`
+}
+
+function guessIcon(path: string): string {
+  if (/page-builder|decoration|shop-decoration/.test(path)) return 'Brush'
+  if (/content|article/.test(path)) return 'Reading'
+  if (/form/.test(path)) return 'Document'
+  if (/member/.test(path)) return 'Crown'
+  if (/product|commerce/.test(path)) return 'ShoppingCart'
+  if (/marketing|coupon/.test(path)) return 'Present'
+  if (/order/.test(path)) return 'Wallet'
+  if (/user/.test(path)) return 'User'
+  return 'MenuIcon'
+}
+
+function recordVisit(path: string, title: string) {
+  if (!path || path === '/' || path.startsWith('/dashboard')) return
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    const arr: Array<{ path: string; title: string; ts: number }> = raw ? JSON.parse(raw) : []
+    const filtered = arr.filter((r) => r.path !== path)
+    filtered.unshift({ path, title: title || path, ts: Date.now() })
+    localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, RECENT_MAX)))
+  } catch { /* ignore */ }
+}
+
+function clearRecent() {
+  localStorage.removeItem(RECENT_KEY)
+  recentLinks.value = []
+}
+
+// 监听路由变化，记录访问
+watch(
+  () => route.fullPath,
+  () => {
+    const title = (route.meta?.title as string) || route.name?.toString() || route.path
+    recordVisit(route.fullPath, title)
+    loadRecent()
+  },
+)
 
 async function loadDashboard() {
   dashboardLoading.value = true
@@ -194,21 +310,19 @@ async function loadDashboard() {
     const res: any = await getDashboard()
     const data = res.data || {}
 
-    // 更新指标卡片
     if (data.todayVisits !== undefined) {
-      metrics.value[0] = { title: '今日访问', value: String(data.todayVisits ?? 0), note: data.todayVisitsChange || '较昨日', icon: '📊', color: '#1769ff', bg: '#eaf1ff', up: true }
+      metrics.value[0] = { title: '今日访问', value: String(data.todayVisits ?? 0), note: data.todayVisitsChange || '较昨日', iconComp: 'DataLine', color: '#1769ff', bg: '#eaf1ff', up: true }
     }
     if (data.newUsers !== undefined) {
-      metrics.value[1] = { title: '新增用户', value: String(data.newUsers ?? 0), note: data.newUsersChange || '转化率', icon: '👤', color: '#0faa6e', bg: '#e8faf3', up: true }
+      metrics.value[1] = { title: '新增用户', value: String(data.newUsers ?? 0), note: data.newUsersChange || '转化率', iconComp: 'User', color: '#0faa6e', bg: '#e8faf3', up: true }
     }
     if (data.formSubmissions !== undefined) {
-      metrics.value[2] = { title: '表单提交', value: String(data.formSubmissions ?? 0), note: `待审核 ${data.pendingForms ?? 0} 条`, icon: '📋', color: '#f59e0b', bg: '#fff8e6', up: false }
+      metrics.value[2] = { title: '表单提交', value: String(data.formSubmissions ?? 0), note: `待审核 ${data.pendingForms ?? 0} 条`, iconComp: 'Document', color: '#f59e0b', bg: '#fff8e6', up: false }
     }
     if (data.orderAmount !== undefined) {
-      metrics.value[3] = { title: '订单金额', value: `¥${data.orderAmount ?? 0}`, note: `待发货 ${data.pendingShipments ?? 0} 单`, icon: '💰', color: '#7c3aed', bg: '#f3eeff', up: false }
+      metrics.value[3] = { title: '订单金额', value: `¥${data.orderAmount ?? 0}`, note: `待发货 ${data.pendingShipments ?? 0} 单`, iconComp: 'Wallet', color: '#7c3aed', bg: '#f3eeff', up: false }
     }
 
-    // 更新访问趋势
     if (Array.isArray(data.visitTrend) && data.visitTrend.length > 0) {
       const maxVisit = Math.max(...data.visitTrend.map((v: any) => v.count || 0), 1)
       visits.value = data.visitTrend.map((v: any, i: number) => ({
@@ -217,7 +331,6 @@ async function loadDashboard() {
       }))
     }
 
-    // 更新汇总
     if (data.totalVisits !== undefined) {
       summaries.value[0] = { value: String(data.totalVisits), label: '总访问量', change: data.totalVisitsChange || '-' }
     }
@@ -231,17 +344,14 @@ async function loadDashboard() {
       summaries.value[3] = { value: String(data.conversionRate), label: '成交转化', change: data.conversionRateChange || '-' }
     }
 
-    // 更新商品排行
     if (Array.isArray(data.productRanking) && data.productRanking.length > 0) {
       products.value = data.productRanking.slice(0, 3).map((p: any) => ({
         name: p.name || p.productName || '-',
         price: p.price || 0,
         sales: p.sales || p.saleCount || 0,
-        icon: '🛍️',
       }))
     }
 
-    // 更新待办事项（真实计数）
     if (Array.isArray(data.todos)) {
       todos.value = data.todos.map((t: any) => ({
         label: t.label,
@@ -251,7 +361,6 @@ async function loadDashboard() {
       }))
     }
 
-    // 更新页面版本记录
     if (Array.isArray(data.versions)) {
       versions.value = data.versions.map((v: any) => ({
         name: v.name || '-',
@@ -267,7 +376,10 @@ async function loadDashboard() {
   }
 }
 
-onMounted(loadDashboard)
+onMounted(() => {
+  loadDashboard()
+  loadRecent()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -574,6 +686,30 @@ onMounted(loadDashboard)
     small {
       color: #64748b;
     }
+  }
+}
+
+.rank-empty {
+  opacity: 0.55;
+}
+
+.muted {
+  color: #cbd5e1 !important;
+  font-weight: 400 !important;
+}
+
+.quick-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+
+  p {
+    margin: 10px 0 0;
   }
 }
 

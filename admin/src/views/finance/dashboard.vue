@@ -8,8 +8,8 @@
           <div class="stat-info">
             <div class="stat-value">¥{{ (dashboard.totalIncome || 0).toFixed(2) }}</div>
             <div class="stat-label">总收入</div>
-            <div class="stat-change" :class="dashboard.incomeChange >= 0 ? 'up' : 'down'">
-              {{ dashboard.incomeChange >= 0 ? '↑' : '↓' }} {{ Math.abs(dashboard.incomeChange || 0).toFixed(1) }}%
+            <div class="stat-change" :class="changeClass(dashboard.incomeChange)">
+              {{ formatChange(dashboard.incomeChange) }}
             </div>
           </div>
         </el-card>
@@ -20,8 +20,8 @@
           <div class="stat-info">
             <div class="stat-value">¥{{ (dashboard.totalExpense || 0).toFixed(2) }}</div>
             <div class="stat-label">总支出</div>
-            <div class="stat-change" :class="dashboard.expenseChange >= 0 ? 'up' : 'down'">
-              {{ dashboard.expenseChange >= 0 ? '↑' : '↓' }} {{ Math.abs(dashboard.expenseChange || 0).toFixed(1) }}%
+            <div class="stat-change" :class="changeClass(dashboard.expenseChange)">
+              {{ formatChange(dashboard.expenseChange) }}
             </div>
           </div>
         </el-card>
@@ -30,10 +30,10 @@
         <el-card shadow="hover" class="stat-card">
           <div class="stat-icon" style="background: #409eff"><el-icon :size="28"><Coin /></el-icon></div>
           <div class="stat-info">
-            <div class="stat-value">¥{{ (dashboard.netProfit || 0).toFixed(2) }}</div>
-            <div class="stat-label">净利润</div>
-            <div class="stat-change" :class="dashboard.profitChange >= 0 ? 'up' : 'down'">
-              {{ dashboard.profitChange >= 0 ? '↑' : '↓' }} {{ Math.abs(dashboard.profitChange || 0).toFixed(1) }}%
+            <div class="stat-value" :class="{ 'profit-negative': (dashboard.netProfit || 0) < 0 }">¥{{ (dashboard.netProfit || 0).toFixed(2) }}</div>
+            <div class="stat-label">净利润{{ (dashboard.netProfit || 0) < 0 ? '（亏损）' : '' }}</div>
+            <div class="stat-change" :class="profitChangeClass(dashboard.netProfit, dashboard.profitChange)">
+              {{ formatChange(dashboard.profitChange) }}
             </div>
           </div>
         </el-card>
@@ -161,7 +161,7 @@
       <div v-loading="syncLoading" class="sync-info">
         <div class="sync-item">
           <span class="sync-label">同步来源</span>
-          <span class="sync-value">{{ syncStatus.syncSource || '—' }}</span>
+          <span class="sync-value">{{ formatSyncSource(syncStatus.syncSource) }}</span>
         </div>
         <div class="sync-item">
           <span class="sync-label">最后同步时间</span>
@@ -256,20 +256,82 @@ const syncStatusLabel = computed(() => {
 
 // ==================== 工具方法 ====================
 
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 function getDateRange(days: number) {
   const end = new Date()
   const start = new Date()
-  start.setDate(start.getDate() - days)
+  start.setDate(start.getDate() - days + 1)
   return {
-    startDate: start.toISOString().slice(0, 10),
-    endDate: end.toISOString().slice(0, 10),
+    startDate: formatLocalDate(start),
+    endDate: formatLocalDate(end),
   }
+}
+
+function formatTrendLabel(date: string, granularity: 'day' | 'month'): string {
+  if (granularity === 'month') {
+    return date
+  }
+  const parts = date.split('-')
+  return parts.length >= 3 ? `${parts[1]}-${parts[2]}` : date
+}
+
+function mountChart(container: HTMLElement | undefined, chart: echarts.ECharts | null): echarts.ECharts | null {
+  if (!container) return chart
+  if (chart) {
+    chart.dispose()
+  }
+  return echarts.init(container)
+}
+
+function afterChartRender(chart: echarts.ECharts | null) {
+  if (!chart) return
+  requestAnimationFrame(() => chart.resize())
 }
 
 function getBudgetColor(rate: number): string {
   if (rate >= 90) return '#f56c6c'
   if (rate >= 70) return '#e6a23c'
   return '#67c23a'
+}
+
+/** 格式化环比：null 显示 —，否则 ↑/↓ x.x% */
+function formatChange(change: number | null | undefined): string {
+  if (change === null || change === undefined) return '—'
+  const arrow = change >= 0 ? '↑' : '↓'
+  return `${arrow} ${Math.abs(Number(change)).toFixed(1)}%`
+}
+
+/** 同步来源文案：erp/manual 等映射为中文 */
+function formatSyncSource(source: string | null | undefined): string {
+  if (!source) return '—'
+  const map: Record<string, string> = {
+    erp: '业务系统',
+    manual: '手动录入',
+    wxpay: '微信支付',
+    system: '本系统',
+  }
+  return map[source] || source
+}
+
+/** 收入/支出的涨跌样式：收入涨为绿、跌为红；支出涨为红、跌为绿 */
+function changeClass(change: number | null | undefined): string {
+  if (change === null || change === undefined) return 'neutral'
+  return change >= 0 ? 'up' : 'down'
+}
+
+/** 净利润环比样式：利润为正时同收入逻辑；利润为负（亏损）时反转——亏损扩大为红，亏损收窄为绿 */
+function profitChangeClass(netProfit: number | null | undefined, change: number | null | undefined): string {
+  if (change === null || change === undefined) return 'neutral'
+  const isLoss = (netProfit || 0) < 0
+  if (!isLoss) return change >= 0 ? 'up' : 'down'
+  // 亏损状态：change > 0 表示利润增加（亏损收窄，好转）→ 绿；change < 0 表示利润减少（亏损扩大，恶化）→ 红
+  return change >= 0 ? 'up' : 'down'
 }
 
 // ==================== 数据获取 ====================
@@ -285,14 +347,19 @@ async function fetchTrend() {
   trendLoading.value = true
   try {
     const days = trendRange.value === '7d' ? 7 : trendRange.value === '90d' ? 90 : 30
+    const granularity = trendRange.value === '90d' ? 'month' : 'day'
     const range = getDateRange(days)
-    const res = await getFinanceTrend({ startDate: range.startDate, endDate: range.endDate })
+    const res = await getFinanceTrend({
+      startDate: range.startDate,
+      endDate: range.endDate,
+      granularity,
+    })
     trendData.value = res.data || []
+    trendLoading.value = false
     await nextTick()
-    renderTrendChart()
+    renderTrendChart(granularity as 'day' | 'month')
   } catch {
     trendData.value = []
-  } finally {
     trendLoading.value = false
   }
 }
@@ -307,13 +374,13 @@ async function fetchCategorySummary() {
     ])
     incomeCategoryData.value = incomeRes.data || []
     expenseCategoryData.value = expenseRes.data || []
+    categoryLoading.value = false
     await nextTick()
     renderIncomePie()
     renderExpensePie()
   } catch {
     incomeCategoryData.value = []
     expenseCategoryData.value = []
-  } finally {
     categoryLoading.value = false
   }
 }
@@ -369,36 +436,50 @@ async function handleSync() {
 
 // ==================== 图表渲染 ====================
 
-function renderTrendChart() {
+function renderTrendChart(granularity: 'day' | 'month' = 'day') {
   if (!trendChartRef.value || trendData.value.length === 0) return
-  if (!trendChart) {
-    trendChart = echarts.init(trendChartRef.value)
-  }
-  const dates = trendData.value.map(i => i.date)
-  const incomes = trendData.value.map(i => i.income)
-  const expenses = trendData.value.map(i => i.expense)
-  const profits = trendData.value.map(i => i.profit)
+  trendChart = mountChart(trendChartRef.value, trendChart)
+  const dates = trendData.value.map(i => formatTrendLabel(i.date, granularity))
+  const incomes = trendData.value.map(i => Number(i.income) || 0)
+  const expenses = trendData.value.map(i => Number(i.expense) || 0)
+  const profits = trendData.value.map(i => Number(i.profit) || 0)
 
-  trendChart.setOption({
-    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+  trendChart?.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+    },
     legend: { data: ['收入', '支出', '利润'], bottom: 0 },
-    grid: { left: 60, right: 30, top: 20, bottom: 40 },
-    xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 11 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
+    grid: { left: 12, right: 12, top: 24, bottom: 48, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLabel: {
+        fontSize: 11,
+        interval: granularity === 'day' && dates.length > 14 ? Math.floor(dates.length / 7) : 0,
+        rotate: granularity === 'day' && dates.length > 10 ? 35 : 0,
+      },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize: 11, formatter: (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${v}`) },
+    },
     series: [
       {
         name: '收入',
         type: 'bar',
         data: incomes,
         itemStyle: { color: '#67c23a' },
-        barMaxWidth: 20,
+        barMaxWidth: 24,
+        label: { show: false },
       },
       {
         name: '支出',
         type: 'bar',
         data: expenses,
         itemStyle: { color: '#f56c6c' },
-        barMaxWidth: 20,
+        barMaxWidth: 24,
+        label: { show: false },
       },
       {
         name: '利润',
@@ -408,53 +489,65 @@ function renderTrendChart() {
         itemStyle: { color: '#409eff' },
         lineStyle: { width: 2 },
         symbolSize: 6,
+        label: { show: false },
       },
     ],
-  })
+  }, true)
+  afterChartRender(trendChart)
 }
 
 function renderIncomePie() {
   if (!incomePieRef.value || incomeCategoryData.value.length === 0) return
-  if (!incomePieChart) {
-    incomePieChart = echarts.init(incomePieRef.value)
-  }
-  incomePieChart.setOption({
+  incomePieChart = mountChart(incomePieRef.value, incomePieChart)
+  incomePieChart?.setOption({
+    color: ['#67c23a', '#409eff', '#e6a23c', '#909399', '#f56c6c'],
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
     legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { fontSize: 12 } },
     series: [
       {
         type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['40%', '50%'],
+        radius: ['42%', '68%'],
+        center: ['38%', '50%'],
         avoidLabelOverlap: true,
         itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
         label: { show: true, formatter: '{b}\n{d}%', fontSize: 12 },
-        data: incomeCategoryData.value.map(i => ({ name: i.category, value: i.amount })),
+        data: incomeCategoryData.value.map(i => ({
+          name: i.category || '未分类',
+          value: Number(i.amount) || 0,
+        })),
       },
     ],
-  })
+  }, true)
+  afterChartRender(incomePieChart)
 }
 
 function renderExpensePie() {
-  if (!expensePieRef.value || expenseCategoryData.value.length === 0) return
-  if (!expensePieChart) {
-    expensePieChart = echarts.init(expensePieRef.value)
+  if (expensePieChart) {
+    expensePieChart.dispose()
+    expensePieChart = null
   }
-  expensePieChart.setOption({
+  if (!expensePieRef.value || expenseCategoryData.value.length === 0) return
+  expensePieChart = mountChart(expensePieRef.value, null)
+  expensePieChart?.setOption({
+    color: ['#f56c6c', '#e6a23c', '#909399', '#409eff', '#67c23a'],
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
     legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { fontSize: 12 } },
     series: [
       {
         type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['40%', '50%'],
+        radius: ['42%', '68%'],
+        center: ['38%', '50%'],
         avoidLabelOverlap: true,
         itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
         label: { show: true, formatter: '{b}\n{d}%', fontSize: 12 },
-        data: expenseCategoryData.value.map(i => ({ name: i.category, value: i.amount })),
+        data: expenseCategoryData.value.map(i => ({
+          name: i.category || '未分类',
+          value: Number(i.amount) || 0,
+        })),
       },
     ],
-  })
+  }, true)
+  afterChartRender(expensePieChart)
 }
 
 function handleResize() {
@@ -515,6 +608,7 @@ onBeforeUnmount(() => {
         font-size: 24px;
         font-weight: 700;
         color: #303133;
+        &.profit-negative { color: #f56c6c; }
       }
       .stat-label {
         font-size: 13px;

@@ -18,11 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * 订单 Service 实现
@@ -285,6 +291,92 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             order.setStatus("paid");
             this.updateById(order);
         }
+    }
+
+    @Override
+    public OrderStatisticsVO getOrderStatistics() {
+        LocalDate now = LocalDate.now();
+        LocalDate monthStart = now.withDayOfMonth(1);
+        LocalDate prevMonthStart = monthStart.minusMonths(1);
+        LocalDate prevMonthEnd = monthStart.minusDays(1);
+
+        LocalDateTime monthStartDt = monthStart.atStartOfDay();
+        LocalDateTime nowDt = now.atTime(LocalTime.MAX);
+        LocalDateTime prevMonthStartDt = prevMonthStart.atStartOfDay();
+        LocalDateTime prevMonthEndDt = prevMonthEnd.atTime(LocalTime.MAX);
+
+        // 已支付状态的订单（包含后续流转态）
+        List<String> paidStatuses = Arrays.asList("paid", "shipped", "completed");
+
+        // 本月实付金额（已支付订单）
+        BigDecimal monthIncome = sumPayAmount(paidStatuses, monthStartDt, nowDt);
+        BigDecimal lastMonthIncome = sumPayAmount(paidStatuses, prevMonthStartDt, prevMonthEndDt);
+
+        // 待结算：已支付但未完成（paid + shipped）
+        List<String> pendingStatuses = Arrays.asList("paid", "shipped");
+        BigDecimal pendingSettleAmount = sumPayAmount(pendingStatuses, null, null);
+        Long pendingSettleCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, pendingStatuses));
+
+        // 本月退款（status = refunded 且本月更新）
+        List<String> refundedStatus = Arrays.asList("refunded");
+        BigDecimal monthRefundAmount = sumPayAmount(refundedStatus, monthStartDt, nowDt);
+        Long monthRefundCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, refundedStatus)
+                .ge(Order::getCreatedAt, monthStartDt)
+                .le(Order::getCreatedAt, nowDt));
+        Long monthPaidCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, paidStatuses)
+                .ge(Order::getCreatedAt, monthStartDt)
+                .le(Order::getCreatedAt, nowDt));
+
+        // 平台手续费 = 本月实付 × 微信费率 0.6%
+        BigDecimal payFeeRate = new BigDecimal("0.6");
+        BigDecimal platformFee = monthIncome.multiply(payFeeRate)
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+        OrderStatisticsVO vo = new OrderStatisticsVO();
+        vo.setMonthIncome(monthIncome);
+        vo.setLastMonthIncome(lastMonthIncome);
+        vo.setIncomeChangeRate(calcChangeRate(monthIncome, lastMonthIncome));
+        vo.setPendingSettleAmount(pendingSettleAmount);
+        vo.setPendingSettleCount(pendingSettleCount != null ? pendingSettleCount.intValue() : 0);
+        vo.setMonthRefundAmount(monthRefundAmount);
+        vo.setMonthRefundCount(monthRefundCount != null ? monthRefundCount.intValue() : 0);
+        BigDecimal refundRate = (monthPaidCount != null && monthPaidCount > 0)
+                ? BigDecimal.valueOf(monthRefundCount != null ? monthRefundCount : 0)
+                        .multiply(new BigDecimal("100"))
+                        .divide(BigDecimal.valueOf(monthPaidCount), 1, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        vo.setRefundRate(refundRate);
+        vo.setPlatformFee(platformFee);
+        vo.setPayFeeRate(payFeeRate);
+        return vo;
+    }
+
+    /** 按状态 + 时间区间求实付金额和；statuses 为 null 表示不限状态 */
+    private BigDecimal sumPayAmount(List<String> statuses, LocalDateTime start, LocalDateTime end) {
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+        if (statuses != null && !statuses.isEmpty()) {
+            wrapper.in(Order::getStatus, statuses);
+        }
+        if (start != null) wrapper.ge(Order::getCreatedAt, start);
+        if (end != null) wrapper.le(Order::getCreatedAt, end);
+        List<Order> orders = baseMapper.selectList(wrapper);
+        return orders.stream()
+                .map(o -> o.getPayAmount() == null ? BigDecimal.ZERO : o.getPayAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** 环比变化率：previous 为 0 或 null 时返回 null（前端显示 —） */
+    private BigDecimal calcChangeRate(BigDecimal current, BigDecimal previous) {
+        if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        if (current == null) return BigDecimal.ZERO;
+        return current.subtract(previous)
+                .multiply(new BigDecimal("100"))
+                .divide(previous, 1, RoundingMode.HALF_UP);
     }
 
     // ==================== 私有方法 ====================

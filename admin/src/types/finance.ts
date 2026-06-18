@@ -11,9 +11,9 @@ export interface FinanceDashboard {
   netProfit: number
   pendingInvoiceCount: number
   budgetUsageRate: number
-  incomeChange: number
-  expenseChange: number
-  profitChange: number
+  incomeChange: number | null
+  expenseChange: number | null
+  profitChange: number | null
 }
 
 /** 收支趋势项 */

@@ -447,6 +447,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/logs.vue'),
         meta: { title: '操作日志', icon: 'Document' },
       },
+      {
+        path: 'admin-user',
+        name: 'SettingsAdminUser',
+        component: () => import('@/views/system/admin-user.vue'),
+        meta: { title: '管理员账号', icon: 'UserFilled' },
+      },
     ],
   },
   // 404 兜底路由
