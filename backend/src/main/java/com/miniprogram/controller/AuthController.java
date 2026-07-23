@@ -51,4 +51,11 @@ public class AuthController {
         authService.changePassword(dto);
         return R.ok();
     }
+
+    @PostMapping({"/password", "/change-password"})
+    @Operation(summary = "修改密码（兼容）", description = "兼容 POST 方式的改密接口")
+    public R<Void> changePasswordPost(@Valid @RequestBody ChangePasswordDTO dto) {
+        authService.changePassword(dto);
+        return R.ok();
+    }
 }

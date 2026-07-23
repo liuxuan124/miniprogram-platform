@@ -7,10 +7,10 @@
       </el-header>
       <TagsView />
       <el-main class="app-main">
-        <router-view v-slot="{ Component }">
+        <router-view v-slot="{ Component, route }">
           <transition name="fade-transform" mode="out-in">
             <keep-alive>
-              <component :is="Component" />
+              <component :is="Component" :key="route.path + '-' + appStore.reloadKey" />
             </keep-alive>
           </transition>
         </router-view>
@@ -63,7 +63,7 @@ const appStore = useAppStore()
 
 .app-main {
   padding: 20px;
-  background: #f4f6fb;
+  background: var(--bg-page);
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;

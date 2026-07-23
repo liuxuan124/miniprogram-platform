@@ -10,26 +10,27 @@ const CONFIG_CACHE_EXPIRE = 10 * 60 * 1000
 
 const DEFAULT_TABBAR_LIST = [
   { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
-  { pagePath: '/pages/content-list/content-list', text: '内容', icon: '📝' },
-  { pagePath: '/pages/member-center/member-center', text: '会员', icon: '👑' },
+  { pagePath: '/pages/content-list/content-list', text: '内容', icon: '📚' },
+  { pagePath: '/pages/product-list/product-list', text: '商城', icon: '🛍️' },
   { pagePath: '/pages/mine/mine', text: '我的', icon: '👤' }
 ]
 
 const DEFAULT_MINE_PAGE_CONFIG = {
-  loginTitle: '点击登录，解锁会员权益',
-  loginSubtitle: '登录后查看订单、优惠券、积分等个人信息',
+  loginTitle: '登录出海笔记',
+  loginSubtitle: '查看订单、已购资料、预约与会员权益',
   loginButtonText: '微信一键登录',
-  memberCardTitle: '我的会员中心',
+  memberCardTitle: '出海会员中心',
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
-    { id: 'registration', icon: '📋', title: '我的报名', url: '/pages/activity-list/activity-list', enabled: true },
-    { id: 'reservation', icon: '📅', title: '我的预约', url: '/pages/my-appointments/my-appointments', enabled: true },
-    { id: 'coupons', icon: '🎟️', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true },
-    { id: 'cart', icon: '🛒', title: '购物车', url: '/pages/cart/cart', enabled: true },
-    { id: 'member-center', icon: '👑', title: '会员中心', url: '/pages/member-center/member-center', enabled: true },
-    { id: 'points', icon: '⭐', title: '我的积分', url: '/pages/points-log/points-log', enabled: true },
-    { id: 'contact', icon: '📞', title: '联系客服', url: '', enabled: true },
+    { id: 'orders', icon: '🧾', title: '全部订单', url: '/pages/order-list/order-list', enabled: true },
+    { id: 'library', icon: '📚', title: '我的已购资料', url: '/pages/library/library', enabled: true },
+    { id: 'reservation', icon: '🗓️', title: '我的预约', url: '/pages/my-appointments/my-appointments', enabled: true },
+    { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pages/member-center/member-center', enabled: true },
+    { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true },
+    { id: 'ai', icon: '🤖', title: 'AI 出海助手', url: '/pages/ai-chat/ai-chat', enabled: true },
+    { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pages/content-list/content-list', enabled: true },
+    { id: 'contact', icon: '💬', title: '客服 · 售后', url: '/pages/service-chat/service-chat', enabled: true },
   ],
 }
 

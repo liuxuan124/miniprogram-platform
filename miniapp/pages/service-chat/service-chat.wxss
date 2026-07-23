@@ -1,0 +1,14 @@
+/* pages/service-chat/service-chat.wxss */
+.svc-page { height: 100vh; display:flex; flex-direction:column; background: var(--bg); }
+.chat { flex:1; padding: 24rpx; height: 0; }
+.msg { display:flex; gap: 16rpx; margin-bottom: 28rpx; }
+.msg.me { flex-direction: row-reverse; }
+.av { width: 64rpx; height: 64rpx; border-radius: 50%; background: linear-gradient(145deg,#6d8cff,var(--brand)); color:#fff; display:flex; align-items:center; justify-content:center; font-size: 28rpx; flex-shrink:0; }
+.msg.me .av { background: #dfe3ee; color: var(--ink); }
+.bubble { max-width: 70%; padding: 20rpx 24rpx; border-radius: 28rpx; background:#fff; box-shadow: var(--sh1); font-size: 28rpx; line-height: 1.7; color: var(--ink-700); }
+.msg.me .bubble { background: var(--brand); color:#fff; }
+.quick { display:flex; flex-wrap:wrap; gap: 12rpx; padding: 0 24rpx 16rpx; }
+.q { font-size: 24rpx; background:#fff; border: 2rpx solid var(--line); color: var(--ink-700); padding: 12rpx 22rpx; border-radius: 999rpx; }
+.input-bar { display:flex; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background:#fff; border-top: 1rpx solid var(--line-2); }
+.input-bar input { flex:1; height: 80rpx; border: 2rpx solid var(--line); border-radius: 999rpx; padding: 0 28rpx; font-size: 28rpx; }
+.snd { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow: 0 12rpx 32rpx rgba(47,91,255,.3); }

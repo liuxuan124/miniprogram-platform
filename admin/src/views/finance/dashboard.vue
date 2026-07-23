@@ -1,10 +1,16 @@
 <template>
   <div class="finance-dashboard">
+    <PageHeader
+      kicker="财务管理 / 财务概览"
+      title="财务概览"
+      description="查看收入、支出、利润与发票待办，掌握经营财务健康度。"
+    />
+
     <!-- 顶部统计卡片 -->
     <el-row :gutter="16" class="stat-cards">
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #67c23a"><el-icon :size="28"><TrendCharts /></el-icon></div>
+          <div class="stat-icon" style="background: var(--success)"><el-icon :size="28"><TrendCharts /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">¥{{ (dashboard.totalIncome || 0).toFixed(2) }}</div>
             <div class="stat-label">总收入</div>
@@ -16,7 +22,7 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #f56c6c"><el-icon :size="28"><Minus /></el-icon></div>
+          <div class="stat-icon" style="background: var(--danger)"><el-icon :size="28"><Minus /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">¥{{ (dashboard.totalExpense || 0).toFixed(2) }}</div>
             <div class="stat-label">总支出</div>
@@ -40,7 +46,7 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #e6a23c"><el-icon :size="28"><Document /></el-icon></div>
+          <div class="stat-icon" style="background: var(--warning)"><el-icon :size="28"><Document /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ dashboard.pendingInvoiceCount || 0 }}</div>
             <div class="stat-label">待处理发票</div>
@@ -131,7 +137,7 @@
           <el-table-column prop="description" label="描述" show-overflow-tooltip />
           <el-table-column prop="amount" label="金额" width="120" align="right">
             <template #default="{ row }">
-              <span :style="{ color: row.type === 'income' ? '#67c23a' : '#f56c6c' }">
+              <span :style="{ color: row.type === 'income' ? 'var(--success)' : 'var(--danger)' }">
                 {{ row.type === 'income' ? '+' : '-' }}¥{{ (row.amount || 0).toFixed(2) }}
               </span>
             </template>
@@ -182,7 +188,7 @@
         </div>
         <div v-if="syncStatus.errorMessage" class="sync-item">
           <span class="sync-label">错误信息</span>
-          <span class="sync-value" style="color: #f56c6c">{{ syncStatus.errorMessage }}</span>
+          <span class="sync-value" style="color: var(--danger)">{{ syncStatus.errorMessage }}</span>
         </div>
       </div>
     </el-card>
@@ -194,6 +200,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { TrendCharts, Minus, Coin, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import PageHeader from '@/components/PageHeader.vue'
 import { extractPageRecords } from '@/utils/pagination'
 import {
   getFinanceDashboard,
@@ -607,20 +614,20 @@ onBeforeUnmount(() => {
       .stat-value {
         font-size: 24px;
         font-weight: 700;
-        color: #303133;
-        &.profit-negative { color: #f56c6c; }
+        color: var(--text);
+        &.profit-negative { color: var(--danger); }
       }
       .stat-label {
         font-size: 13px;
-        color: #909399;
+        color: var(--text-muted);
         margin-top: 2px;
       }
       .stat-change {
         font-size: 12px;
         margin-top: 2px;
-        &.up { color: #67c23a; }
-        &.down { color: #f56c6c; }
-        &.neutral { color: #909399; }
+        &.up { color: var(--success); }
+        &.down { color: var(--danger); }
+        &.neutral { color: var(--text-muted); }
       }
     }
   }
@@ -646,7 +653,7 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     height: 300px;
-    color: #c0c4cc;
+    color: var(--text-muted);
     font-size: 14px;
   }
 
@@ -666,13 +673,13 @@ onBeforeUnmount(() => {
 
         .budget-name {
           font-size: 14px;
-          color: #303133;
+          color: var(--text);
           font-weight: 500;
         }
 
         .budget-amount {
           font-size: 13px;
-          color: #606266;
+          color: var(--text-secondary);
         }
       }
     }
@@ -690,12 +697,12 @@ onBeforeUnmount(() => {
 
       .sync-label {
         font-size: 13px;
-        color: #909399;
+        color: var(--text-muted);
       }
 
       .sync-value {
         font-size: 13px;
-        color: #303133;
+        color: var(--text);
       }
     }
   }

@@ -1,34 +1,19 @@
 <template>
   <div class="workbench">
-    <section class="page-head">
-      <div>
-        <h1>工作台</h1>
-        <p>欢迎回来，{{ userStore.userInfo?.nickname || '管理员' }} - {{ currentDate }}</p>
-      </div>
-      <el-button type="primary" size="large" @click="router.push('/page-builder/editor/1')">
-        <el-icon><Brush /></el-icon>
-        进入页面装修器
-      </el-button>
-    </section>
+    <PageHeader
+      title="工作台"
+      :description="`欢迎回来，${userStore.userInfo?.nickname || '管理员'} · ${currentDate}`"
+    >
+      <template #actions>
+        <el-button @click="router.push('/page-builder/start')">搭建小程序</el-button>
+        <el-button type="primary" @click="goDecorateHome">
+          <el-icon><Brush /></el-icon>
+          进入装修器
+        </el-button>
+      </template>
+    </PageHeader>
 
-    <section class="demo-path">
-      <div class="demo-title">演示路径：页面管理 → 装修器 → 添加活动入口 → 发布 → 小程序预览</div>
-      <div class="step-row">
-        <template v-for="(step, index) in demoSteps" :key="step">
-          <button class="step" :class="{ done: index < 2, current: index === 2 }">
-            {{ step }}
-          </button>
-          <span v-if="index < demoSteps.length - 1" class="arrow">→</span>
-        </template>
-      </div>
-      <div class="demo-actions">
-        <el-button type="primary" @click="router.push('/page-builder/list')">开始演示</el-button>
-        <el-button @click="router.push('/page-builder/editor/1')">直接装修首页</el-button>
-        <el-button @click="router.push('/page-builder/preview/1')">实时预览</el-button>
-      </div>
-    </section>
-
-    <section class="metrics">
+    <section v-loading="dashboardLoading" class="metrics">
       <div v-for="item in metrics" :key="item.title" class="metric-card">
         <div class="metric-icon" :style="{ color: item.color, background: item.bg }">
           <el-icon :size="22"><component :is="item.iconComp" /></el-icon>
@@ -47,13 +32,14 @@
           <h2>访问趋势 (近7日)</h2>
           <span>每日凌晨刷新</span>
         </div>
-        <div class="bars">
-          <div v-for="bar in visits" :key="bar.day" class="bar-item">
-            <div class="bar-track">
-              <div class="bar-fill" :style="{ height: bar.height + '%' }"></div>
-            </div>
-            <span>{{ bar.day }}</span>
-          </div>
+        <div v-loading="dashboardLoading" class="chart-wrap">
+          <EmptyState
+            v-if="!hasVisitData && !dashboardLoading"
+            title="近 7 日暂无访问数据"
+            description="有用户访问小程序后，这里会展示趋势"
+            :icon="DataLine"
+          />
+          <div v-show="hasVisitData" ref="visitChartRef" class="chart-box"></div>
         </div>
         <div class="summary-row">
           <div v-for="item in summaries" :key="item.label">
@@ -67,15 +53,15 @@
       <div class="panel">
         <div class="panel-head">
           <h2>待办事项</h2>
-          <el-button link type="primary">处理中心</el-button>
         </div>
-        <div class="todo-list">
+        <div v-if="todos.length" class="todo-list">
           <div v-for="item in todos" :key="item.label" class="todo-item">
             <span>{{ item.label }}</span>
             <b :class="item.level">{{ item.count }}</b>
             <el-button link type="primary" @click="router.push(item.path)">去处理</el-button>
           </div>
         </div>
+        <EmptyState v-else title="暂无待办" description="当前没有需要处理的事项" />
       </div>
     </section>
 
@@ -91,10 +77,7 @@
           <small>{{ item.time }}</small>
         </button>
       </div>
-      <div v-else class="quick-empty">
-        <el-icon :size="32" color="#c0c4cc"><Clock /></el-icon>
-        <p>暂无访问记录，可从左侧菜单开始操作</p>
-      </div>
+      <EmptyState v-else title="暂无访问记录" description="可从左侧菜单开始操作" :icon="Clock" />
     </section>
 
     <section class="content-grid lower-grid">
@@ -104,7 +87,12 @@
           <el-button link type="primary" @click="router.push('/commerce/product')">查看全部商品</el-button>
         </div>
         <div class="rank-list">
-          <div v-for="(item, index) in displayProducts" :key="item.name || ('empty-' + index)" class="rank-item" :class="{ 'rank-empty': !item.name }">
+          <div
+            v-for="(item, index) in displayProducts"
+            :key="item.name || ('empty-' + index)"
+            class="rank-item"
+            :class="{ 'rank-empty': !item.name }"
+          >
             <template v-if="item.name">
               <span class="rank-num">{{ index + 1 }}</span>
               <span class="product-icon"><el-icon><Goods /></el-icon></span>
@@ -138,8 +126,14 @@
           <el-table-column prop="version" label="版本" width="80" />
           <el-table-column prop="time" label="发布时间" width="150" />
           <el-table-column label="操作" width="100">
-            <template #default>
-              <el-button link type="primary" @click="router.push('/page-builder/editor/1')">进入装修</el-button>
+            <template #default="{ row }">
+              <el-button
+                link
+                type="primary"
+                @click="router.push(row.id ? `/page-builder/editor/${row.id}` : '/page-builder/start')"
+              >
+                进入装修
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -149,10 +143,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import * as echarts from 'echarts'
 import { useUserStore } from '@/stores/user'
 import { getDashboard } from '@/api/statistics'
+import { getPageList } from '@/api/page'
+import PageHeader from '@/components/PageHeader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import {
   DataLine,
   User,
@@ -166,27 +164,11 @@ import {
   GoldMedal,
   ShoppingCart,
   Present,
-  Menu as MenuIcon,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-
-// 图标组件映射（供模板动态渲染）
-const iconMap: Record<string, any> = {
-  DataLine,
-  User,
-  Document,
-  Wallet,
-  Goods,
-  Brush,
-  Reading,
-  Tickets,
-  GoldMedal,
-  ShoppingCart,
-  Present,
-}
 
 const currentDate = computed(() => new Date().toLocaleDateString('zh-CN', {
   weekday: 'long',
@@ -195,25 +177,52 @@ const currentDate = computed(() => new Date().toLocaleDateString('zh-CN', {
   day: 'numeric',
 }))
 
-const demoSteps = ['进入后台', '页面管理', '进入装修器', '添加活动入口', '配置属性', '发布上线', '小程序端预览']
+const homePageId = ref<number | null>(null)
 
+async function resolveHomePageId() {
+  try {
+    const res: any = await getPageList({ page: 1, pageSize: 50 })
+    const pages = res?.data?.records || res?.data?.list || res?.data || []
+    const list = Array.isArray(pages) ? pages : []
+    const home = list.find((p: any) => Number(p.type) === 1 || p.path === '/pages/index/index' || p.name === '首页')
+      || list[0]
+    homePageId.value = home?.id || null
+  } catch {
+    homePageId.value = null
+  }
+}
+
+function goDecorateHome() {
+  if (homePageId.value) {
+    router.push({ name: 'PageBuilderEditor', params: { id: homePageId.value } })
+    return
+  }
+  router.push('/page-builder/start')
+}
+
+// 修复：此前全文件多处引用 dashboardLoading 但从未声明，v-loading 与空态判断实际从未生效
 const dashboardLoading = ref(false)
+
 const metrics = ref([
-  { title: '今日访问', value: '-', note: '加载中...', iconComp: 'DataLine', color: '#1769ff', bg: '#eaf1ff', up: true },
-  { title: '新增用户', value: '-', note: '加载中...', iconComp: 'User', color: '#0faa6e', bg: '#e8faf3', up: true },
-  { title: '表单提交', value: '-', note: '加载中...', iconComp: 'Document', color: '#f59e0b', bg: '#fff8e6', up: false },
-  { title: '订单金额', value: '-', note: '加载中...', iconComp: 'Wallet', color: '#7c3aed', bg: '#f3eeff', up: false },
+  { title: '今日访问', value: '-', note: '加载中...', iconComp: 'DataLine', color: 'var(--brand)', bg: 'var(--brand-soft)', up: true },
+  { title: '新增用户', value: '-', note: '加载中...', iconComp: 'User', color: 'var(--success)', bg: 'var(--success-soft)', up: true },
+  { title: '表单提交', value: '-', note: '加载中...', iconComp: 'Document', color: 'var(--warning)', bg: 'var(--warning-soft)', up: false },
+  { title: '订单金额', value: '-', note: '加载中...', iconComp: 'Wallet', color: 'var(--brand)', bg: 'var(--brand-soft)', up: false },
 ])
 
-const visits = ref([
-  { day: '周一', height: 0 },
-  { day: '周二', height: 0 },
-  { day: '周三', height: 0 },
-  { day: '周四', height: 0 },
-  { day: '周五', height: 0 },
-  { day: '周六', height: 0 },
-  { day: '周日', height: 0 },
+const visits = ref<Array<{ day: string; count: number }>>([
+  { day: '周一', count: 0 },
+  { day: '周二', count: 0 },
+  { day: '周三', count: 0 },
+  { day: '周四', count: 0 },
+  { day: '周五', count: 0 },
+  { day: '周六', count: 0 },
+  { day: '周日', count: 0 },
 ])
+
+const hasVisitData = computed(() => visits.value.some((v) => v.count > 0))
+const visitChartRef = ref<HTMLElement>()
+let visitChart: echarts.ECharts | null = null
 
 const summaries = ref([
   { value: '-', label: '总访问量', change: '-' },
@@ -223,10 +232,8 @@ const summaries = ref([
 ])
 
 const todos = ref<Array<{ label: string; count: number; level: string; path: string }>>([])
-
 const products = ref<Array<{ name: string; price: number | string; sales: number }>>([])
 
-// P1-3：销售排行不足 3 个时补占位，保持布局稳定
 const displayProducts = computed(() => {
   const list = [...products.value]
   while (list.length < 3) {
@@ -235,9 +242,8 @@ const displayProducts = computed(() => {
   return list
 })
 
-const versions = ref<Array<{ name: string; status: string; version: string; time: string }>>([])
+const versions = ref<Array<{ id?: number | null; name: string; status: string; version: string; time: string }>>([])
 
-// P2-5：最近访问 —— 记录用户访问的页面，去重 + 按时间倒序
 const RECENT_KEY = 'workbench_recent_visits'
 const RECENT_MAX = 6
 const recentLinks = ref<Array<{ path: string; title: string; time: string; iconComp: string }>>([])
@@ -270,12 +276,12 @@ function guessIcon(path: string): string {
   if (/page-builder|decoration|shop-decoration/.test(path)) return 'Brush'
   if (/content|article/.test(path)) return 'Reading'
   if (/form/.test(path)) return 'Document'
-  if (/member/.test(path)) return 'Crown'
+  if (/member/.test(path)) return 'GoldMedal'
   if (/product|commerce/.test(path)) return 'ShoppingCart'
   if (/marketing|coupon/.test(path)) return 'Present'
   if (/order/.test(path)) return 'Wallet'
   if (/user/.test(path)) return 'User'
-  return 'MenuIcon'
+  return 'Menu'
 }
 
 function recordVisit(path: string, title: string) {
@@ -294,7 +300,6 @@ function clearRecent() {
   recentLinks.value = []
 }
 
-// 监听路由变化，记录访问
 watch(
   () => route.fullPath,
   () => {
@@ -304,6 +309,52 @@ watch(
   },
 )
 
+function renderVisitChart() {
+  if (!visitChartRef.value || !hasVisitData.value) return
+  if (!visitChart) {
+    visitChart = echarts.init(visitChartRef.value)
+  }
+  // echarts 无法直接用 CSS var()，从 :root 读取当前 token 实际值，保持与全站配色联动
+  const rootStyle = getComputedStyle(document.documentElement)
+  const tokenColor = (name: string, fallback: string) => rootStyle.getPropertyValue(name)?.trim() || fallback
+  const brand = tokenColor('--brand', '#1769ff')
+  const border = tokenColor('--border', '#e5eaf3')
+  const textSecondary = tokenColor('--text-secondary', '#64748b')
+  const textMuted = tokenColor('--text-muted', '#94a3b8')
+
+  visitChart.setOption({
+    grid: { left: 36, right: 12, top: 24, bottom: 28 },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: visits.value.map((v) => v.day),
+      axisLine: { lineStyle: { color: border } },
+      axisLabel: { color: textSecondary },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      splitLine: { lineStyle: { color: border } },
+      axisLabel: { color: textMuted },
+    },
+    series: [{
+      type: 'bar',
+      data: visits.value.map((v) => v.count),
+      barWidth: 18,
+      itemStyle: {
+        color: brand,
+        borderRadius: [6, 6, 0, 0],
+      },
+    }],
+  })
+  visitChart.resize()
+}
+
+function handleResize() {
+  visitChart?.resize()
+}
+
 async function loadDashboard() {
   dashboardLoading.value = true
   try {
@@ -311,23 +362,22 @@ async function loadDashboard() {
     const data = res.data || {}
 
     if (data.todayVisits !== undefined) {
-      metrics.value[0] = { title: '今日访问', value: String(data.todayVisits ?? 0), note: data.todayVisitsChange || '较昨日', iconComp: 'DataLine', color: '#1769ff', bg: '#eaf1ff', up: true }
+      metrics.value[0] = { title: '今日访问', value: String(data.todayVisits ?? 0), note: data.todayVisitsChange || '较昨日', iconComp: 'DataLine', color: 'var(--brand)', bg: 'var(--brand-soft)', up: true }
     }
     if (data.newUsers !== undefined) {
-      metrics.value[1] = { title: '新增用户', value: String(data.newUsers ?? 0), note: data.newUsersChange || '转化率', iconComp: 'User', color: '#0faa6e', bg: '#e8faf3', up: true }
+      metrics.value[1] = { title: '新增用户', value: String(data.newUsers ?? 0), note: data.newUsersChange || '转化率', iconComp: 'User', color: 'var(--success)', bg: 'var(--success-soft)', up: true }
     }
     if (data.formSubmissions !== undefined) {
-      metrics.value[2] = { title: '表单提交', value: String(data.formSubmissions ?? 0), note: `待审核 ${data.pendingForms ?? 0} 条`, iconComp: 'Document', color: '#f59e0b', bg: '#fff8e6', up: false }
+      metrics.value[2] = { title: '表单提交', value: String(data.formSubmissions ?? 0), note: `待审核 ${data.pendingForms ?? 0} 条`, iconComp: 'Document', color: 'var(--warning)', bg: 'var(--warning-soft)', up: false }
     }
     if (data.orderAmount !== undefined) {
-      metrics.value[3] = { title: '订单金额', value: `¥${data.orderAmount ?? 0}`, note: `待发货 ${data.pendingShipments ?? 0} 单`, iconComp: 'Wallet', color: '#7c3aed', bg: '#f3eeff', up: false }
+      metrics.value[3] = { title: '订单金额', value: `¥${data.orderAmount ?? 0}`, note: `待发货 ${data.pendingShipments ?? 0} 单`, iconComp: 'Wallet', color: 'var(--brand)', bg: 'var(--brand-soft)', up: false }
     }
 
     if (Array.isArray(data.visitTrend) && data.visitTrend.length > 0) {
-      const maxVisit = Math.max(...data.visitTrend.map((v: any) => v.count || 0), 1)
       visits.value = data.visitTrend.map((v: any, i: number) => ({
         day: v.day || ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][i],
-        height: Math.max(5, Math.round(((v.count || 0) / maxVisit) * 100)),
+        count: Number(v.count || 0),
       }))
     }
 
@@ -363,209 +413,130 @@ async function loadDashboard() {
 
     if (Array.isArray(data.versions)) {
       versions.value = data.versions.map((v: any) => ({
+        id: v.id || v.pageId || null,
         name: v.name || '-',
         status: v.status || '草稿',
         version: v.version || 'v1',
         time: v.time || '',
       }))
     }
+
+    await nextTick()
+    renderVisitChart()
   } catch {
-    // 保留默认值
+    // keep defaults
   } finally {
     dashboardLoading.value = false
   }
 }
 
 onMounted(() => {
+  resolveHomePageId()
   loadDashboard()
   loadRecent()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  visitChart?.dispose()
+  visitChart = null
 })
 </script>
 
 <style lang="scss" scoped>
 .workbench {
-  color: #0f172a;
-}
-
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-
-  h1 {
-    margin: 0 0 4px;
-    font-size: 24px;
-  }
-
-  p {
-    margin: 0;
-    color: #64748b;
-  }
-}
-
-.demo-path,
-.panel,
-.metric-card {
-  border: 1px solid #e5eaf3;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-}
-
-.demo-path {
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-
-.demo-title {
-  margin-bottom: 14px;
-  font-weight: 800;
-  color: #1769ff;
-}
-
-.step-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.step {
-  min-width: 108px;
-  height: 38px;
-  border: 1px solid #d9e2ef;
-  border-radius: 999px;
-  color: #475569;
-  background: #f8faff;
-  font-weight: 700;
-
-  &.done {
-    color: #0f8f61;
-    border-color: #b7ead2;
-    background: #ecfff6;
-  }
-
-  &.current {
-    color: #fff;
-    border-color: #1769ff;
-    background: #1769ff;
-  }
-}
-
-.arrow {
-  color: #94a3b8;
-}
-
-.demo-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  color: var(--text);
 }
 
 .metrics,
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.panel,
+.metric-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
 }
 
 .metric-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .metric-icon {
   width: 46px;
   height: 46px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   display: grid;
   place-items: center;
-  font-size: 22px;
 }
 
 .metric-title,
 .metric-note {
-  color: #64748b;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: var(--font-caption);
 }
 
 .metric-value {
-  margin: 2px 0;
+  margin: var(--space-1) 0;
   font-size: 26px;
-  font-weight: 900;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-.green,
-.summary-row em {
-  color: #0faa6e;
+.metric-note.green {
+  color: var(--success);
 }
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.8fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.lower-grid {
+  grid-template-columns: 1fr 1.2fr;
 }
 
 .panel {
-  padding: 18px;
+  padding: var(--space-4) 18px 18px;
 }
 
 .panel-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 
   h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--font-h2);
+    font-weight: 700;
   }
 
   span {
-    color: #64748b;
-    font-size: 12px;
+    color: var(--text-muted);
+    font-size: var(--font-caption);
   }
 }
 
-.bars {
-  height: 220px;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  align-items: end;
-  gap: 12px;
-  padding: 10px 4px 0;
+.chart-wrap {
+  min-height: 200px;
 }
 
-.bar-item {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.bar-track {
+.chart-box {
   width: 100%;
-  flex: 1;
-  display: flex;
-  align-items: end;
-  border-radius: 10px;
-  background: #f1f5f9;
-  overflow: hidden;
-}
-
-.bar-fill {
-  width: 100%;
-  border-radius: 10px 10px 0 0;
-  background: linear-gradient(180deg, #19b7ff, #1769ff);
+  height: 200px;
 }
 
 .summary-row {
@@ -573,143 +544,146 @@ onMounted(() => {
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #edf2f7;
-  text-align: center;
 
-  strong,
-  span,
-  em {
+  div {
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    background: var(--brand-soft);
+  }
+
+  strong {
     display: block;
-    font-style: normal;
+    font-size: var(--font-h3);
   }
 
   span {
-    color: #64748b;
-    font-size: 12px;
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--text-secondary);
+    font-size: var(--font-caption);
+  }
+
+  em {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--text-muted);
+    font-style: normal;
+    font-size: var(--font-caption);
   }
 }
 
-.todo-item,
-.rank-item {
+.todo-list {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.todo-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 13px 0;
-  border-bottom: 1px solid #edf2f7;
-
-  &:last-child {
-    border-bottom: 0;
-  }
-
-  span:first-child {
-    flex: 1;
-  }
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--brand-soft);
 
   b {
-    color: #1769ff;
-  }
+    min-width: 24px;
+    text-align: center;
+    font-size: var(--font-h3);
 
-  .orange {
-    color: #f59e0b;
-  }
-
-  .red {
-    color: #ef4444;
+    &.orange { color: var(--warning); }
+    &.blue { color: var(--brand); }
+    &.red { color: var(--danger); }
   }
 }
 
 .quick-panel {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .quick-card {
-  min-height: 118px;
-  border: 1px solid #e5eaf3;
-  border-radius: 8px;
-  padding: 16px;
-  background: #f8faff;
-  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
   cursor: pointer;
-  transition: all 0.16s ease;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    border-color: #1769ff;
-    background: #eaf1ff;
-    transform: translateY(-2px);
-  }
-
-  span,
-  strong,
-  small {
-    display: block;
+    border-color: var(--brand);
+    box-shadow: var(--shadow-sm);
   }
 
   strong {
-    margin: 8px 0 4px;
-    color: #0f172a;
+    font-size: var(--font-body);
   }
 
   small {
-    color: #64748b;
+    color: var(--text-muted);
   }
 }
 
 .quick-icon {
-  font-size: 28px;
+  color: var(--brand);
 }
 
-.lower-grid {
-  grid-template-columns: minmax(320px, 0.65fr) minmax(0, 1.35fr);
-}
-
-.rank-num {
-  width: 24px;
-  color: #f59e0b;
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.product-icon {
-  font-size: 22px;
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .rank-item {
-  div {
-    flex: 1;
-
-    strong,
-    small {
-      display: block;
-    }
-
-    small {
-      color: #64748b;
-    }
-  }
-}
-
-.rank-empty {
-  opacity: 0.55;
-}
-
-.muted {
-  color: #cbd5e1 !important;
-  font-weight: 400 !important;
-}
-
-.quick-empty {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 28px 36px 1fr auto;
   align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  color: #94a3b8;
-  font-size: 13px;
-  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius);
 
-  p {
-    margin: 10px 0 0;
+  &.rank-empty {
+    opacity: 0.55;
+  }
+
+  .rank-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: var(--font-caption);
+    font-weight: 700;
+  }
+
+  .product-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    display: grid;
+    place-items: center;
+    background: var(--info-soft);
+    color: var(--text-secondary);
+  }
+
+  strong {
+    display: block;
+    font-size: var(--font-body);
+  }
+
+  small {
+    color: var(--text-muted);
+  }
+
+  .muted {
+    color: var(--text-muted);
   }
 }
 
@@ -717,26 +691,21 @@ onMounted(() => {
   width: 100%;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1100px) {
   .metrics,
   .quick-grid,
   .content-grid,
   .lower-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 760px) {
-  .page-head,
-  .demo-actions {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .metrics,
   .quick-grid,
   .content-grid,
-  .lower-grid {
+  .lower-grid,
+  .summary-row {
     grid-template-columns: 1fr;
   }
 }

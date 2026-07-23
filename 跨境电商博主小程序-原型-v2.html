@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>出海笔记 · 小程序原型 v2</title>
+<style>
+/* ============ Design Tokens ============ */
+:root{
+  --brand:#2b5cff;
+  --brand-600:#1e46d4;
+  --brand-50:#eef2ff;
+  --accent:#ff6a3d;
+  --accent-50:#fff2ed;
+  --gold:#f5a623;
+  --ink-900:#12141c;
+  --ink-700:#3d4252;
+  --ink-500:#767d90;
+  --ink-300:#a8aebd;
+  --line:#eceef3;
+  --line-soft:#f4f5f8;
+  --bg:#f6f7fb;
+  --card:#fff;
+  --ok:#12b886;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s7:32px;
+  --r-sm:10px; --r:16px; --r-lg:20px; --r-pill:999px;
+
+  --sh-1:0 1px 3px rgba(18,20,28,.04), 0 4px 12px rgba(18,20,28,.04);
+  --sh-2:0 4px 12px rgba(18,20,28,.06), 0 12px 32px rgba(18,20,28,.06);
+  --sh-3:0 12px 40px rgba(18,20,28,.14);
+
+  --f-h1:22px; --f-h2:18px; --f-h3:15px; --f-body:13.5px; --f-sm:12px; --f-xs:10.5px;
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+  background:#e9ebf2;
+  display:flex;flex-wrap:wrap;gap:36px;justify-content:center;padding:40px 20px;
+  color:var(--ink-900);
+}
+
+/* ============ Side panel ============ */
+.side{width:300px;align-self:flex-start;position:sticky;top:40px;}
+.side .box{background:var(--card);border-radius:var(--r);box-shadow:var(--sh-2);padding:var(--s5);margin-bottom:var(--s4);}
+.side h1{font-size:17px;margin:0 0 var(--s2);}
+.side p{font-size:12.5px;line-height:1.75;color:var(--ink-500);margin:0 0 var(--s3);}
+.side h2{font-size:12px;color:var(--ink-500);margin:0 0 var(--s3);letter-spacing:.06em;text-transform:uppercase;}
+.side .navlink{
+  display:flex;align-items:center;gap:var(--s2);font-size:12.5px;color:var(--ink-700);
+  padding:7px 10px;border-radius:var(--r-sm);cursor:pointer;transition:.15s;
+}
+.side .navlink:hover{background:var(--brand-50);color:var(--brand);}
+.side .navlink .n{font-size:10px;color:var(--ink-300);width:14px;}
+.side .taxo{font-size:11.5px;line-height:1.9;color:var(--ink-500);}
+.side .taxo b{color:var(--ink-900);}
+.pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:var(--r-pill);background:var(--brand-50);color:var(--brand);margin:0 4px 4px 0;}
+.pill.o{background:var(--accent-50);color:var(--accent);}
+
+/* ============ Phone ============ */
+.phone{width:375px;height:812px;background:#0b0c10;border-radius:46px;padding:11px;box-shadow:var(--sh-3);}
+.screen-host{width:100%;height:100%;background:var(--bg);border-radius:35px;overflow:hidden;position:relative;}
+.statusbar{
+  height:46px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;font-size:13px;font-weight:600;flex-shrink:0;
+}
+.statusbar .r{font-size:11px;letter-spacing:.5px;}
+.screen{
+  position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg);
+}
+.screen.active{display:flex;}
+.screen.anim{animation:slideIn .32s var(--ease);}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:none;}}
+.body-scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;}
+.body-scroll::-webkit-scrollbar{display:none;}
+
+/* ============ Nav bars ============ */
+.navbar{
+  display:flex;align-items:center;gap:var(--s3);padding:2px var(--s4) var(--s3);flex-shrink:0;
+}
+.navbar .back{
+  width:32px;height:32px;border-radius:var(--r-pill);background:var(--card);box-shadow:var(--sh-1);
+  display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex-shrink:0;
+  transition:.15s;
+}
+.navbar .back:active{transform:scale(.92);}
+.navbar h2{font-size:var(--f-h2);margin:0;font-weight:700;}
+.navbar .spacer{flex:1;}
+.navbar .act{font-size:18px;color:var(--ink-500);cursor:pointer;}
+
+.tabbar{
+  display:flex;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line-soft);padding:8px 0 22px;flex-shrink:0;
+}
+.tabbar .t{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:var(--f-xs);color:var(--ink-300);cursor:pointer;transition:.18s;
+}
+.tabbar .t .ic{font-size:19px;line-height:1;transition:transform .25s var(--ease);}
+.tabbar .t.active{color:var(--brand);font-weight:600;}
+.tabbar .t.active .ic{transform:translateY(-1px) scale(1.08);}
+
+/* ============ Shared ============ */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh-1);}
+.sec{padding:var(--s5) var(--s4) 0;}
+.sec-h{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:var(--s3);}
+.sec-h h3{font-size:var(--f-h2);margin:0;font-weight:700;letter-spacing:-.01em;}
+.sec-h .sub{font-size:var(--f-sm);color:var(--ink-300);margin-top:3px;}
+.sec-h .more{font-size:var(--f-sm);color:var(--ink-500);cursor:pointer;}
+.fmt{
+  display:inline-flex;align-items:center;gap:3px;font-size:var(--f-xs);font-weight:600;
+  padding:2px 7px;border-radius:6px;
+}
+.fmt.note{background:#ffeef2;color:#f2385a;}
+.fmt.longform{background:#eaf6ec;color:#3a9b52;}
+.fmt.video{background:#eef0ff;color:#5361e8;}
+.fmt.data{background:#fff5e4;color:#c98307;}
+.topic{
+  display:inline-block;font-size:var(--f-xs);color:var(--ink-500);
+  background:var(--line-soft);padding:2px 8px;border-radius:var(--r-pill);
+}
+
+/* ============ Home ============ */
+.hero{
+  padding:var(--s2) var(--s4) var(--s6);
+  background:linear-gradient(165deg,#2b5cff 0%,#4a6dff 45%,#7d90ff 100%);
+  color:#fff;border-radius:0 0 26px 26px;position:relative;overflow:hidden;
+}
+.hero::after{
+  content:'';position:absolute;right:-40px;top:-40px;width:170px;height:170px;
+  background:rgba(255,255,255,.1);border-radius:50%;
+}
+.hero .who{display:flex;align-items:center;gap:var(--s3);position:relative;}
+.hero .av{
+  width:50px;height:50px;border-radius:var(--r-pill);background:#fff;font-size:22px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+.hero .nm{font-size:16px;font-weight:700;letter-spacing:-.01em;}
+.hero .bio{font-size:11.5px;opacity:.88;margin-top:3px;}
+.hero .kpi{display:flex;gap:var(--s6);margin-top:var(--s4);position:relative;}
+.hero .kpi div{font-size:10.5px;opacity:.85;}
+.hero .kpi b{display:block;font-size:16px;font-weight:700;margin-bottom:1px;}
+.searchbar{
+  margin:-18px var(--s4) 0;background:#fff;border-radius:var(--r-pill);box-shadow:var(--sh-2);
+  padding:11px var(--s4);font-size:12.5px;color:var(--ink-300);display:flex;align-items:center;gap:var(--s2);
+  position:relative;z-index:3;cursor:pointer;
+}
+.quicknav{display:flex;padding:var(--s5) var(--s2) 0;}
+.quicknav .q{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-size:11px;color:var(--ink-700);cursor:pointer;transition:.15s;
+}
+.quicknav .q:active{transform:scale(.94);}
+.quicknav .q .ic{
+  width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:21px;
+}
+.quicknav .q:nth-child(1) .ic{background:#e9eeff;}
+.quicknav .q:nth-child(2) .ic{background:#e6f7f1;}
+.quicknav .q:nth-child(3) .ic{background:#fff1ea;}
+.quicknav .q:nth-child(4) .ic{background:#fdf3e0;}
+
+.hero-post{
+  margin:var(--s4) var(--s4) 0;border-radius:var(--r-lg);overflow:hidden;cursor:pointer;
+  box-shadow:var(--sh-2);position:relative;height:160px;
+  background:linear-gradient(135deg,#243b8f,#3d63e0 60%,#6b8bff);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:var(--s4);color:#fff;
+}
+.hero-post .tagline{font-size:var(--f-xs);background:rgba(255,255,255,.22);padding:3px 9px;border-radius:var(--r-pill);align-self:flex-start;margin-bottom:8px;}
+.hero-post h4{margin:0 0 5px;font-size:16.5px;line-height:1.35;letter-spacing:-.01em;}
+.hero-post .m{font-size:11px;opacity:.85;}
+
+/* topic scroller */
+.topicscroll{display:flex;gap:var(--s2);padding:var(--s3) var(--s4) 0;overflow-x:auto;scrollbar-width:none;}
+.topicscroll::-webkit-scrollbar{display:none;}
+.topicscroll .tc{
+  flex-shrink:0;background:#fff;border-radius:14px;padding:10px 13px;box-shadow:var(--sh-1);
+  cursor:pointer;min-width:96px;transition:.15s;
+}
+.topicscroll .tc:active{transform:scale(.96);}
+.topicscroll .tc .e{font-size:18px;}
+.topicscroll .tc .n{font-size:12.5px;font-weight:600;margin-top:5px;}
+.topicscroll .tc .c{font-size:10.5px;color:var(--ink-300);margin-top:2px;}
+
+/* ============ Content feed ============ */
+.catbar{
+  display:flex;gap:var(--s5);padding:0 var(--s4);overflow-x:auto;scrollbar-width:none;
+  border-bottom:1px solid var(--line-soft);background:var(--bg);flex-shrink:0;
+}
+.catbar::-webkit-scrollbar{display:none;}
+.catbar .c{
+  flex-shrink:0;font-size:14px;color:var(--ink-500);padding:6px 0 11px;cursor:pointer;
+  position:relative;transition:.18s;white-space:nowrap;
+}
+.catbar .c.active{color:var(--ink-900);font-weight:700;font-size:15px;}
+.catbar .c.active::after{
+  content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:5px;
+  width:18px;height:3px;border-radius:2px;background:var(--brand);
+}
+.fmtfilter{display:flex;gap:6px;padding:var(--s3) var(--s4) var(--s2);overflow-x:auto;scrollbar-width:none;}
+.fmtfilter::-webkit-scrollbar{display:none;}
+.fmtfilter .f{
+  flex-shrink:0;font-size:11.5px;padding:5px 12px;border-radius:var(--r-pill);
+  background:#fff;color:var(--ink-500);border:1px solid var(--line);cursor:pointer;transition:.15s;
+}
+.fmtfilter .f.on{background:var(--ink-900);color:#fff;border-color:var(--ink-900);}
+
+/* masonry */
+.masonry{columns:2;column-gap:10px;padding:var(--s2) var(--s4) 0;}
+.masonry > *{break-inside:avoid;margin-bottom:10px;display:block;}
+
+/* note card (小红书样式) */
+.c-note{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-1);cursor:pointer;transition:.18s;}
+.c-note:active{transform:scale(.98);}
+.c-note .img{width:100%;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;}
+.c-note .txt{padding:9px 10px 10px;}
+.c-note h4{margin:0 0 7px;font-size:12.5px;line-height:1.45;font-weight:600;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.c-note .foot{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--ink-300);}
+.c-note .foot .a{width:16px;height:16px;border-radius:50%;background:var(--brand-50);
+  display:flex;align-items:center;justify-content:center;font-size:9px;}
+.c-note .foot .lk{margin-left:auto;}
+
+/* longform card (公众号样式) */
+.c-long{display:flex;gap:11px;padding:12px;background:#fff;border-radius:var(--r);
+  box-shadow:var(--sh-1);cursor:pointer;margin-bottom:10px;transition:.18s;}
+.c-long:active{transform:scale(.985);}
+.c-long .thumb{width:92px;height:70px;border-radius:11px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;}
+.c-long .in{flex:1;min-width:0;display:flex;flex-direction:column;}
+.c-long h4{margin:5px 0 6px;font-size:13.5px;line-height:1.42;font-weight:600;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.c-long .m{font-size:10.5px;color:var(--ink-300);margin-top:auto;display:flex;gap:8px;align-items:center;}
+
+/* video card */
+.c-video{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-1);
+  cursor:pointer;margin-bottom:10px;}
+.c-video .cv{height:150px;position:relative;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;}
+.c-video .play{position:absolute;width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.42);
+  backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;font-size:17px;}
+.c-video .dur{position:absolute;right:9px;bottom:9px;background:rgba(0,0,0,.55);color:#fff;
+  font-size:10px;padding:2px 6px;border-radius:5px;}
+.c-video .txt{padding:11px 12px 13px;}
+.c-video h4{margin:6px 0 6px;font-size:13.5px;line-height:1.4;font-weight:600;}
+.c-video .m{font-size:10.5px;color:var(--ink-300);}
+
+/* data card (数据速报样式) */
+.c-data{background:linear-gradient(140deg,#fffaf0,#fff);border:1px solid #fceccb;
+  border-radius:var(--r);padding:14px;cursor:pointer;margin-bottom:10px;}
+.c-data h4{margin:7px 0 10px;font-size:13.5px;line-height:1.4;font-weight:600;}
+.c-data .nums{display:flex;gap:var(--s5);}
+.c-data .nums div{font-size:10.5px;color:var(--ink-500);}
+.c-data .nums b{display:block;font-size:16px;color:#c98307;font-weight:700;}
+.c-data .m{font-size:10.5px;color:var(--ink-300);margin-top:10px;}
+
+/* ============ Article detail ============ */
+.readbar{position:absolute;top:0;left:0;height:2.5px;background:var(--brand);z-index:20;width:0;transition:width .1s;}
+.a-cover{height:210px;display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;position:relative;}
+.a-cover .nav-over{position:absolute;top:8px;left:0;right:0;}
+.a-cover .nav-over .back{background:rgba(255,255,255,.9);}
+.a-wrap{background:#fff;border-radius:22px 22px 0 0;margin-top:-20px;position:relative;padding:var(--s5) var(--s4) var(--s4);}
+.a-wrap h1{font-size:20px;line-height:1.4;margin:var(--s3) 0 var(--s3);letter-spacing:-.015em;}
+.a-meta{display:flex;align-items:center;gap:9px;padding-bottom:var(--s4);border-bottom:1px solid var(--line-soft);margin-bottom:var(--s4);}
+.a-meta .av{width:32px;height:32px;border-radius:50%;background:var(--brand-50);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.a-meta .nm{font-size:12.5px;font-weight:600;}
+.a-meta .dt{font-size:10.5px;color:var(--ink-300);margin-top:1px;}
+.a-meta .follow{margin-left:auto;font-size:11.5px;color:var(--brand);border:1px solid var(--brand);
+  padding:4px 13px;border-radius:var(--r-pill);cursor:pointer;}
+.a-body p{font-size:14.5px;line-height:1.95;color:var(--ink-700);margin:0 0 var(--s4);}
+.a-body h5{font-size:15px;margin:var(--s6) 0 var(--s3);position:relative;padding-left:11px;}
+.a-body h5::before{content:'';position:absolute;left:0;top:3px;bottom:3px;width:3px;border-radius:2px;background:var(--brand);}
+.a-body .quote{background:var(--brand-50);border-radius:12px;padding:13px 15px;font-size:13px;
+  color:var(--brand-600);line-height:1.8;margin:0 0 var(--s4);}
+.a-body .figure{height:150px;border-radius:12px;margin:0 0 var(--s4);display:flex;
+  align-items:center;justify-content:center;font-size:30px;color:#fff;
+  background:linear-gradient(135deg,#c9d5ff,#8fa6ff);}
+.a-body .figure-cap{font-size:11px;color:var(--ink-300);text-align:center;margin:-10px 0 var(--s4);}
+
+/* note detail (小红书样式详情) */
+.n-gallery{height:330px;position:relative;display:flex;align-items:center;justify-content:center;font-size:46px;color:#fff;}
+.n-gallery .dots{position:absolute;bottom:12px;display:flex;gap:5px;}
+.n-gallery .dots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.45);}
+.n-gallery .dots i.on{background:#fff;width:14px;border-radius:3px;}
+.n-gallery .idx{position:absolute;top:14px;right:14px;background:rgba(0,0,0,.4);color:#fff;
+  font-size:11px;padding:3px 9px;border-radius:var(--r-pill);}
+.n-body{background:#fff;padding:var(--s4);}
+.n-body h1{font-size:17px;line-height:1.45;margin:0 0 var(--s3);}
+.n-body p{font-size:14px;line-height:1.9;color:var(--ink-700);margin:0 0 var(--s3);}
+.n-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s4);}
+.n-tags span{font-size:12px;color:var(--brand);}
+.n-actions{display:flex;gap:var(--s6);padding-top:var(--s3);border-top:1px solid var(--line-soft);
+  font-size:12px;color:var(--ink-500);}
+.n-actions div{display:flex;align-items:center;gap:4px;cursor:pointer;}
+
+.cross{margin:var(--s3) var(--s4) var(--s4);padding:13px;border-radius:var(--r);
+  background:linear-gradient(135deg,#f2f5ff,#fff);border:1px solid #e3e9ff;}
+.cross .lb{font-size:11px;color:var(--ink-500);margin-bottom:9px;font-weight:600;}
+
+/* ============ Shop ============ */
+.shop-hero{padding:0 var(--s4) var(--s3);}
+.shop-hero .banner{
+  border-radius:var(--r-lg);padding:16px 18px;color:#fff;
+  background:linear-gradient(120deg,#ff8a5c,#ff6a3d 55%,#f2502a);box-shadow:var(--sh-2);
+}
+.shop-hero .banner .t{font-size:15.5px;font-weight:700;letter-spacing:-.01em;}
+.shop-hero .banner .d{font-size:11.5px;opacity:.92;margin-top:5px;}
+.p-card{display:flex;gap:12px;padding:13px;background:#fff;border-radius:var(--r);
+  box-shadow:var(--sh-1);margin-bottom:11px;cursor:pointer;transition:.18s;align-items:center;}
+.p-card:active{transform:scale(.985);}
+.p-card .ic{width:68px;height:68px;border-radius:14px;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:27px;color:#fff;}
+.p-card.ebook .ic{background:linear-gradient(140deg,#6d8cff,#2b5cff);}
+.p-card.consult .ic{background:linear-gradient(140deg,#ffa87c,#ff6a3d);}
+.p-card .in{flex:1;min-width:0;}
+.p-card h4{margin:0 0 5px;font-size:13.5px;font-weight:600;line-height:1.4;}
+.p-card .sub{font-size:11px;color:var(--ink-300);margin-bottom:6px;}
+.p-card .pr{font-size:16px;color:var(--accent);font-weight:700;}
+.p-card .pr small{font-size:10.5px;color:var(--ink-300);font-weight:400;margin-left:5px;}
+
+/* product detail */
+.pd-hero{height:220px;display:flex;align-items:center;justify-content:center;font-size:56px;color:#fff;position:relative;}
+.pd-hero.ebook{background:linear-gradient(145deg,#4f74ff,#2039c4);}
+.pd-hero.consult{background:linear-gradient(145deg,#ffa87c,#ef5a2c);}
+.pd-hero .nav-over{position:absolute;top:8px;left:0;right:0;}
+.pd-hero .nav-over .back{background:rgba(255,255,255,.9);}
+.pd-main{background:#fff;border-radius:22px 22px 0 0;margin-top:-20px;position:relative;padding:var(--s5) var(--s4) var(--s3);}
+.pd-main h1{font-size:18px;line-height:1.4;margin:10px 0 var(--s3);letter-spacing:-.01em;}
+.pd-price{display:flex;align-items:baseline;gap:9px;margin-bottom:8px;}
+.pd-price .now{font-size:26px;color:var(--accent);font-weight:800;letter-spacing:-.02em;}
+.pd-price .old{font-size:13px;color:var(--ink-300);text-decoration:line-through;}
+.pd-price .save{font-size:10.5px;background:var(--accent-50);color:var(--accent);padding:2px 7px;border-radius:5px;}
+.pd-stat{font-size:11.5px;color:var(--ink-300);}
+.blk{background:#fff;border-radius:var(--r);padding:var(--s4);margin:11px var(--s4) 0;box-shadow:var(--sh-1);}
+.blk h5{margin:0 0 11px;font-size:14px;font-weight:700;}
+.blk p{font-size:13px;line-height:1.85;color:var(--ink-700);margin:0;}
+.blk ul{margin:0;padding-left:17px;}
+.blk li{font-size:12.5px;color:var(--ink-700);line-height:2.05;}
+.toc-item{display:flex;gap:10px;font-size:12.5px;color:var(--ink-700);padding:8px 0;border-bottom:1px solid var(--line-soft);}
+.toc-item:last-child{border-bottom:none;}
+.toc-item .n{color:var(--brand);font-weight:700;font-size:11.5px;flex-shrink:0;width:20px;}
+.rev{display:flex;gap:9px;padding:11px 0;border-top:1px solid var(--line-soft);}
+.rev:first-of-type{border-top:none;padding-top:0;}
+.rev .av{width:29px;height:29px;border-radius:50%;background:var(--brand-50);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;}
+.rev .t{font-size:12.5px;color:var(--ink-700);line-height:1.65;}
+.rev .t b{font-size:12px;color:var(--ink-900);}
+.rev .t .st{color:var(--gold);font-size:10px;margin-left:5px;}
+
+.cta{
+  display:flex;gap:10px;align-items:center;padding:10px var(--s4) 22px;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line-soft);flex-shrink:0;
+}
+.btn{border:none;border-radius:var(--r-pill);font-size:14.5px;font-weight:600;padding:12px 0;
+  text-align:center;cursor:pointer;flex:1;transition:.15s;}
+.btn:active{transform:scale(.975);}
+.btn-p{background:var(--brand);color:#fff;box-shadow:0 6px 16px rgba(43,92,255,.28);}
+.btn-a{background:linear-gradient(120deg,#ff8a5c,#ff6a3d);color:#fff;box-shadow:0 6px 16px rgba(255,106,61,.3);}
+.btn-g{background:var(--brand-50);color:var(--brand);}
+.icbtn{width:44px;height:44px;border-radius:var(--r-pill);background:var(--line-soft);
+  display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex-shrink:0;color:var(--ink-500);}
+
+/* ============ Booking ============ */
+.steps{display:flex;align-items:center;padding:var(--s3) var(--s6) var(--s2);gap:6px;}
+.steps .d{width:23px;height:23px;border-radius:50%;background:var(--line);color:var(--ink-300);
+  font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:.25s;}
+.steps .d.on{background:var(--brand);color:#fff;}
+.steps .bar{flex:1;height:2px;background:var(--line);transition:.25s;}
+.steps .bar.on{background:var(--brand);}
+.steps-lb{display:flex;justify-content:space-between;padding:0 var(--s5) var(--s3);font-size:10.5px;color:var(--ink-300);}
+.dates{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:3px;}
+.dates::-webkit-scrollbar{display:none;}
+.dchip{flex-shrink:0;width:58px;padding:10px 0;border-radius:13px;background:var(--line-soft);
+  text-align:center;cursor:pointer;transition:.18s;border:1.5px solid transparent;}
+.dchip.on{background:var(--brand);color:#fff;box-shadow:0 4px 12px rgba(43,92,255,.25);}
+.dchip .dd{font-size:15px;font-weight:700;}
+.dchip .ww{font-size:10px;opacity:.75;margin-top:2px;}
+.slots{display:flex;flex-wrap:wrap;gap:8px;}
+.slot{padding:9px 15px;font-size:12.5px;border-radius:11px;background:var(--line-soft);
+  color:var(--ink-700);cursor:pointer;transition:.18s;border:1.5px solid transparent;}
+.slot.on{background:var(--brand);color:#fff;border-color:var(--brand);}
+.slot.off{color:var(--ink-300);background:#f2f3f6;cursor:not-allowed;text-decoration:line-through;}
+.fld{margin-bottom:13px;}
+.fld label{font-size:12px;color:var(--ink-500);display:block;margin-bottom:6px;font-weight:500;}
+.fld input,.fld textarea{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;
+  font-size:13.5px;font-family:inherit;background:#fff;transition:.15s;color:var(--ink-900);}
+.fld input:focus,.fld textarea:focus{outline:none;border-color:var(--brand);}
+.summary{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-500);padding:6px 0;}
+.summary b{color:var(--ink-900);}
+
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 34px;text-align:center;}
+.done .ok{width:70px;height:70px;border-radius:50%;background:#e6f9f2;color:var(--ok);
+  display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:var(--s5);
+  animation:pop .45s var(--ease);}
+@keyframes pop{from{transform:scale(.5);opacity:0;}to{transform:none;opacity:1;}}
+.done h3{font-size:18px;margin:0 0 var(--s3);}
+.done p{font-size:13px;color:var(--ink-500);line-height:1.8;margin:0 0 var(--s6);}
+.done .rcpt{width:100%;background:#fff;border-radius:var(--r);padding:var(--s4);box-shadow:var(--sh-1);
+  margin-bottom:var(--s6);text-align:left;}
+
+/* ============ Mine ============ */
+.m-hero{padding:var(--s5) var(--s4) var(--s6);background:linear-gradient(160deg,#1d2033,#3a4062);
+  color:#fff;display:flex;align-items:center;gap:13px;border-radius:0 0 24px 24px;}
+.m-hero .av{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.14);
+  border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:25px;}
+.m-hero .nk{font-size:16.5px;font-weight:700;}
+.m-hero .lv{font-size:11px;opacity:.8;margin-top:4px;display:flex;align-items:center;gap:5px;}
+.m-hero .lv .b{background:linear-gradient(120deg,#f5c542,#f5a623);color:#4a3200;
+  padding:2px 8px;border-radius:var(--r-pill);font-weight:700;font-size:10px;}
+.m-stats{display:flex;background:#fff;margin:-16px var(--s4) 0;border-radius:var(--r);
+  box-shadow:var(--sh-2);padding:15px 0;position:relative;z-index:2;}
+.m-stats div{flex:1;text-align:center;cursor:pointer;}
+.m-stats b{display:block;font-size:17px;font-weight:700;}
+.m-stats span{font-size:10.5px;color:var(--ink-300);}
+.m-list{background:#fff;border-radius:var(--r);margin:var(--s4) var(--s4) 0;overflow:hidden;box-shadow:var(--sh-1);}
+.m-list .r{display:flex;align-items:center;gap:11px;padding:14px var(--s4);font-size:13.5px;
+  border-bottom:1px solid var(--line-soft);cursor:pointer;transition:.12s;}
+.m-list .r:last-child{border-bottom:none;}
+.m-list .r:active{background:var(--line-soft);}
+.m-list .r .ic{width:22px;text-align:center;font-size:16px;}
+.m-list .r .ar{margin-left:auto;color:var(--ink-300);font-size:15px;}
+.m-list .r .badge{background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:var(--r-pill);}
+
+/* ============ AI ============ */
+.fab{position:absolute;right:16px;bottom:92px;width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(140deg,#6d8cff,#2b5cff);display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:23px;box-shadow:0 10px 24px rgba(43,92,255,.42);cursor:pointer;z-index:8;transition:.18s;}
+.fab:active{transform:scale(.9);}
+.chat{flex:1;padding:var(--s4) var(--s3);overflow-y:auto;scrollbar-width:none;}
+.chat::-webkit-scrollbar{display:none;}
+.msg{display:flex;gap:9px;margin-bottom:var(--s4);}
+.msg .av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:14px;}
+.msg.bot .av{background:linear-gradient(140deg,#6d8cff,#2b5cff);color:#fff;}
+.msg.me{flex-direction:row-reverse;}
+.msg.me .av{background:#dfe3ee;}
+.bubble{max-width:218px;padding:11px 13px;border-radius:15px;font-size:13px;line-height:1.75;}
+.msg.bot .bubble{background:#fff;border-top-left-radius:4px;box-shadow:var(--sh-1);}
+.msg.me .bubble{background:var(--brand);color:#fff;border-top-right-radius:4px;}
+.quickq{display:flex;flex-wrap:wrap;gap:7px;padding:0 var(--s3) var(--s3);}
+.quickq span{font-size:11.5px;background:#fff;border:1px solid var(--line);color:var(--ink-700);
+  padding:6px 12px;border-radius:var(--r-pill);cursor:pointer;transition:.15s;}
+.quickq span:active{background:var(--brand-50);}
+.chatin{display:flex;gap:9px;padding:10px var(--s3) 22px;background:#fff;border-top:1px solid var(--line-soft);flex-shrink:0;}
+.chatin input{flex:1;border:1px solid var(--line);border-radius:var(--r-pill);padding:10px 15px;font-size:13.5px;}
+.chatin input:focus{outline:none;border-color:var(--brand);}
+.chatin .snd{width:40px;height:40px;border-radius:50%;background:var(--brand);color:#fff;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+
+.tip{margin:var(--s3) var(--s4) 0;background:#fff8e8;color:#a06b00;font-size:11.5px;
+  padding:10px 13px;border-radius:12px;display:flex;gap:7px;line-height:1.6;}
+.pad{height:96px;}
+</style>
+</head>
+<body>
+
+<div class="side">
+  <div class="box">
+    <h1>🧭 出海笔记 · 原型 v2</h1>
+    <p>面向跨境电商内容博主的小程序。内容按<b>跨境电商业务主题</b>分类，笔记 / 长文 / 短视频 / 数据速报只是不同的<b>呈现样式</b>，不是分类维度。</p>
+    <div>
+      <span class="pill">主题即分类</span>
+      <span class="pill">形态即样式</span>
+      <span class="pill o">知识变现</span>
+      <span class="pill o">预约咨询</span>
+    </div>
+  </div>
+  <div class="box">
+    <h2>内容分类（业务主题）</h2>
+    <div class="taxo">
+      🔍 <b>选品洞察</b> — 趋势、爆款拆解、数据<br/>
+      🏭 <b>供应链</b> — 工厂筛选、打样、验厂<br/>
+      🛒 <b>平台运营</b> — 亚马逊 / TikTok / Temu<br/>
+      🌐 <b>独立站</b> — 建站、投放、转化<br/>
+      🚢 <b>物流履约</b> — 头程、海外仓、时效<br/>
+      ⚖️ <b>合规税务</b> — VAT、认证、知产
+    </div>
+  </div>
+  <div class="box">
+    <h2>内容呈现样式</h2>
+    <div class="taxo">
+      <span class="fmt note">笔记</span> 双列瀑布流 · 竖图 · 点赞<br/>
+      <span class="fmt longform">长文</span> 横向卡片 · 阅读时长<br/>
+      <span class="fmt video">视频</span> 大图 · 播放按钮 · 时长<br/>
+      <span class="fmt data">数据</span> 数字卡 · 关键指标
+    </div>
+  </div>
+  <div class="box">
+    <h2>页面导航</h2>
+    <div class="navlink" onclick="go('home')"><span class="n">01</span>首页</div>
+    <div class="navlink" onclick="go('content')"><span class="n">02</span>内容中心（主题分类）</div>
+    <div class="navlink" onclick="openItem(1)"><span class="n">03</span>长文详情</div>
+    <div class="navlink" onclick="openItem(2)"><span class="n">04</span>笔记详情（小红书样式）</div>
+    <div class="navlink" onclick="go('shop')"><span class="n">05</span>知识商城</div>
+    <div class="navlink" onclick="openProduct('ebook',1)"><span class="n">06</span>电子书详情</div>
+    <div class="navlink" onclick="openProduct('consult',1)"><span class="n">07</span>咨询详情</div>
+    <div class="navlink" onclick="go('booking')"><span class="n">08</span>预约流程</div>
+    <div class="navlink" onclick="go('mine')"><span class="n">09</span>个人中心</div>
+    <div class="navlink" onclick="go('ai')"><span class="n">10</span>AI 助手</div>
+  </div>
+</div>
+
+<div class="phone"><div class="screen-host">
+
+<!-- ============ 01 首页 ============ -->
+<div class="screen active" id="s-home">
+  <div class="body-scroll">
+    <div class="hero">
+      <div class="statusbar" style="color:#fff;padding:0;height:38px;"><span>9:41</span><span class="r">●●● 5G 100%</span></div>
+      <div class="who">
+        <div class="av">🧭</div>
+        <div>
+          <div class="nm">出海笔记 · 阿哲</div>
+          <div class="bio">跨境电商实战 · 选品 / 供应链 / 独立站</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div><b>238</b>篇内容</div>
+        <div><b>1.2w</b>关注</div>
+        <div><b>4.9</b>咨询评分</div>
+      </div>
+    </div>
+    <div class="searchbar" onclick="go('content')">🔍 搜索：选品清单 / 验厂 / VAT / TikTok</div>
+
+    <div class="quicknav">
+      <div class="q" onclick="go('content')"><div class="ic">📚</div>内容中心</div>
+      <div class="q" onclick="filterShop('ebook')"><div class="ic">📘</div>资料包</div>
+      <div class="q" onclick="filterShop('consult')"><div class="ic">🗓️</div>1v1咨询</div>
+      <div class="q" onclick="go('ai')"><div class="ic">🤖</div>AI助手</div>
+    </div>
+
+    <div class="hero-post" onclick="openItem(1)">
+      <span class="tagline">🔍 选品洞察 · 本周精选</span>
+      <h4>2026下半年跨境选品趋势清单</h4>
+      <div class="m">长文 · 12分钟阅读 · 2.1w 阅读</div>
+    </div>
+
+    <div class="sec" style="padding-bottom:0;">
+      <div class="sec-h">
+        <div><h3>按主题逛</h3><div class="sub">内容都按业务环节归好类了</div></div>
+      </div>
+    </div>
+    <div class="topicscroll">
+      <div class="tc" onclick="goTopic('select')"><div class="e">🔍</div><div class="n">选品洞察</div><div class="c">62 篇</div></div>
+      <div class="tc" onclick="goTopic('supply')"><div class="e">🏭</div><div class="n">供应链</div><div class="c">41 篇</div></div>
+      <div class="tc" onclick="goTopic('platform')"><div class="e">🛒</div><div class="n">平台运营</div><div class="c">55 篇</div></div>
+      <div class="tc" onclick="goTopic('dtc')"><div class="e">🌐</div><div class="n">独立站</div><div class="c">38 篇</div></div>
+      <div class="tc" onclick="goTopic('logistics')"><div class="e">🚢</div><div class="n">物流履约</div><div class="c">27 篇</div></div>
+      <div class="tc" onclick="goTopic('compliance')"><div class="e">⚖️</div><div class="n">合规税务</div><div class="c">15 篇</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h">
+        <div><h3>最新更新</h3><div class="sub">笔记 / 长文 / 视频混合流</div></div>
+        <span class="more" onclick="go('content')">全部 ›</span>
+      </div>
+      <div id="home-feed"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h">
+        <div><h3>知识产品</h3><div class="sub">资料包永久可看 · 咨询按时段预约</div></div>
+        <span class="more" onclick="go('shop')">商城 ›</span>
+      </div>
+      <div id="home-prods"></div>
+    </div>
+    <div class="pad"></div>
+  </div>
+  <div class="fab" onclick="go('ai')">🤖</div>
+  <div class="tabbar" data-tabbar>
+    <div class="t active" data-tab="home" onclick="go('home')"><div class="ic">🏠</div>首页</div>
+    <div class="t" data-tab="content" onclick="go('content')"><div class="ic">📚</div>内容</div>
+    <div class="t" data-tab="shop" onclick="go('shop')"><div class="ic">🛍️</div>商城</div>
+    <div class="t" data-tab="mine" onclick="go('mine')"><div class="ic">👤</div>我的</div>
+  </div>
+</div>
+
+<!-- ============ 02 内容中心 ============ -->
+<div class="screen" id="s-content">
+  <div class="statusbar"><span>9:41</span><span class="r">●●● 5G 100%</span></div>
+  <div class="navbar"><h2>内容中心</h2><div class="spacer"></div><div class="act" onclick="toast('搜索')">🔍</div></div>
+  <div class="catbar" id="catbar"></div>
+  <div class="fmtfilter" id="fmtfilter"></div>
+  <div class="body-scroll">
+    <div id="feed" style="padding:0 var(--s4);"></div>
+    <div id="feed-masonry" class="masonry"></div>
+    <div class="pad"></div>
+  </div>
+  <div class="tabbar" data-tabbar>
+    <div class="t" data-tab="home" onclick="go('home')"><div class="ic">🏠</div>首页</div>
+    <div class="t active" data-tab="content" onclick="go('content')"><div class="ic">📚</div>内容</div>
+    <div class="t" data-tab="shop" onclick="go('shop')"><div class="ic">🛍️</div>商城</div>
+    <div class="t" data-tab="mine" onclick="go('mine')"><div class="ic">👤</div>我的</div>
+  </div>
+</div>
+
+<!-- ============ 03 长文/视频/数据 详情 ============ -->
+<div class="screen" id="s-article">
+  <div class="readbar" id="readbar"></div>
+  <div class="body-scroll" id="article-scroll">
+    <div class="a-cover" id="a-cover">
+      🖼️
+      <div class="nav-over navbar"><div class="back" onclick="back()">‹</div></div>
+    </div>
+    <div class="a-wrap" id="a-wrap"></div>
+    <div class="cross" id="a-cross"></div>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ============ 04 笔记详情（小红书样式）============ -->
+<div class="screen" id="s-note">
+  <div class="body-scroll">
+    <div class="n-gallery" id="n-gallery">
+      🖼️
+      <div class="idx">1/6</div>
+      <div class="nav-over navbar" style="position:absolute;top:8px;left:0;right:0;">
+        <div class="back" onclick="back()" style="background:rgba(255,255,255,.9);">‹</div>
+      </div>
+      <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="n-body" id="n-body"></div>
+    <div class="cross" id="n-cross"></div>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ============ 05 知识商城 ============ -->
+<div class="screen" id="s-shop">
+  <div class="statusbar"><span>9:41</span><span class="r">●●● 5G 100%</span></div>
+  <div class="navbar"><h2>知识商城</h2></div>
+  <div class="shop-hero">
+    <div class="banner">
+      <div class="t">📦 资料包 + 1v1 咨询</div>
+      <div class="d">资料包购买后永久可看，咨询下单后自选时段</div>
+    </div>
+  </div>
+  <div class="fmtfilter" style="padding-top:0;">
+    <div class="f on" data-stab="all" onclick="filterShop('all')">全部</div>
+    <div class="f" data-stab="ebook" onclick="filterShop('ebook')">电子书 / 资料包</div>
+    <div class="f" data-stab="consult" onclick="filterShop('consult')">1v1 咨询</div>
+  </div>
+  <div class="body-scroll">
+    <div id="shop-list" style="padding:4px var(--s4) 0;"></div>
+    <div class="pad"></div>
+  </div>
+  <div class="tabbar" data-tabbar>
+    <div class="t" data-tab="home" onclick="go('home')"><div class="ic">🏠</div>首页</div>
+    <div class="t" data-tab="content" onclick="go('content')"><div class="ic">📚</div>内容</div>
+    <div class="t active" data-tab="shop" onclick="go('shop')"><div class="ic">🛍️</div>商城</div>
+    <div class="t" data-tab="mine" onclick="go('mine')"><div class="ic">👤</div>我的</div>
+  </div>
+</div>
+
+<!-- ============ 06 电子书详情 ============ -->
+<div class="screen" id="s-ebook">
+  <div class="body-scroll">
+    <div class="pd-hero ebook">📘<div class="nav-over navbar"><div class="back" onclick="go('shop')">‹</div></div></div>
+    <div class="pd-main" id="eb-main"></div>
+    <div id="eb-blocks"></div>
+    <div style="height:16px;"></div>
+  </div>
+  <div class="cta">
+    <div class="icbtn" onclick="toast('已收藏')">♡</div>
+    <div class="btn btn-g" onclick="toast('已试读前 2 章')">免费试读</div>
+    <div class="btn btn-a" onclick="toast('购买成功 · 已存入「我的-已购资料」')">¥59 立即购买</div>
+  </div>
+</div>
+
+<!-- ============ 07 咨询详情 ============ -->
+<div class="screen" id="s-consult">
+  <div class="body-scroll">
+    <div class="pd-hero consult">🗓️<div class="nav-over navbar"><div class="back" onclick="go('shop')">‹</div></div></div>
+    <div class="pd-main" id="cs-main"></div>
+    <div id="cs-blocks"></div>
+    <div style="height:16px;"></div>
+  </div>
+  <div class="cta">
+    <div class="icbtn" onclick="go('ai')">💬</div>
+    <div class="btn btn-a" onclick="go('booking')">¥299 选时段预约</div>
+  </div>
+</div>
+
+<!-- ============ 08 预约流程 ============ -->
+<div class="screen" id="s-booking">
+  <div class="statusbar"><span>9:41</span><span class="r">●●● 5G 100%</span></div>
+  <div class="navbar"><div class="back" onclick="go('consult')">‹</div><h2>预约 1v1 咨询</h2></div>
+  <div class="steps">
+    <div class="d on">1</div><div class="bar" id="bar1"></div>
+    <div class="d" id="d2">2</div><div class="bar" id="bar2"></div>
+    <div class="d" id="d3">3</div>
+  </div>
+  <div class="steps-lb"><span>选时段</span><span>填信息</span><span>支付</span></div>
+  <div class="body-scroll">
+    <div class="blk">
+      <h5>① 选择日期</h5>
+      <div class="dates">
+        <div class="dchip on" onclick="pickDate(this)"><div class="dd">07-23</div><div class="ww">周四</div></div>
+        <div class="dchip" onclick="pickDate(this)"><div class="dd">07-24</div><div class="ww">周五</div></div>
+        <div class="dchip" onclick="pickDate(this)"><div class="dd">07-25</div><div class="ww">周六</div></div>
+        <div class="dchip" onclick="pickDate(this)"><div class="dd">07-26</div><div class="ww">周日</div></div>
+        <div class="dchip" onclick="pickDate(this)"><div class="dd">07-27</div><div class="ww">周一</div></div>
+      </div>
+    </div>
+    <div class="blk">
+      <h5>② 选择时段 <span style="font-weight:400;color:var(--ink-300);font-size:11.5px;">45 分钟 / 场</span></h5>
+      <div class="slots">
+        <div class="slot" onclick="pickSlot(this)">10:00</div>
+        <div class="slot" onclick="pickSlot(this)">11:00</div>
+        <div class="slot off">14:00</div>
+        <div class="slot" onclick="pickSlot(this)">15:00</div>
+        <div class="slot" onclick="pickSlot(this)">16:30</div>
+        <div class="slot" onclick="pickSlot(this)">20:00</div>
+      </div>
+    </div>
+    <div class="blk">
+      <h5>③ 咨询信息</h5>
+      <div class="fld"><label>你的称呼</label><input type="text" placeholder="方便咨询时称呼你" oninput="markStep2()" /></div>
+      <div class="fld"><label>联系方式（微信 / 手机号）</label><input type="text" placeholder="用于发送咨询提醒" oninput="markStep2()" /></div>
+      <div class="fld"><label>当前主要卡点（选填，越具体越有效）</label>
+        <textarea rows="3" placeholder="例：欧洲站家居收纳，已选出3个款，卡在供应商验厂和VAT注册顺序" oninput="markStep2()"></textarea></div>
+    </div>
+    <div class="blk">
+      <h5>费用明细</h5>
+      <div class="summary"><span>选品诊断 1v1 咨询（45分钟）</span><b>¥299</b></div>
+      <div class="summary"><span>会员权益抵扣</span><b style="color:var(--accent);">-¥20</b></div>
+      <div class="summary" style="border-top:1px solid var(--line-soft);margin-top:6px;padding-top:11px;">
+        <span>实付</span><b style="font-size:17px;color:var(--accent);">¥279</b></div>
+    </div>
+    <div class="pad"></div>
+  </div>
+  <div class="cta"><div class="btn btn-a" onclick="go('done')">确认预约并支付 ¥279</div></div>
+</div>
+
+<!-- ============ 预约成功 ============ -->
+<div class="screen" id="s-done">
+  <div class="statusbar"><span>9:41</span><span class="r">●●● 5G 100%</span></div>
+  <div class="done">
+    <div class="ok">✓</div>
+    <h3>预约成功</h3>
+    <p>博主将在咨询前 1 天通过企业微信与你确认细节，并发送咨询前问卷。</p>
+    <div class="rcpt">
+      <div class="summary"><span>服务</span><b>选品诊断 1v1 咨询</b></div>
+      <div class="summary"><span>时间</span><b>07-23 周四 15:00</b></div>
+      <div class="summary"><span>时长</span><b>45 分钟</b></div>
+      <div class="summary"><span>实付</span><b style="color:var(--accent);">¥279</b></div>
+    </div>
+    <div class="btn btn-p" style="width:100%;" onclick="go('mine')">查看我的预约</div>
+    <div style="height:11px;"></div>
+    <div class="btn btn-g" style="width:100%;" onclick="go('home')">返回首页</div>
+  </div>
+</div>
+
+<!-- ============ 09 我的 ============ -->
+<div class="screen" id="s-mine">
+  <div class="body-scroll">
+    <div class="m-hero">
+      <div class="statusbar" style="color:#fff;padding:0;height:0;overflow:hidden;"></div>
+      <div class="av">🙂</div>
+      <div>
+        <div class="nk">Lisa_跨境在路上</div>
+        <div class="lv"><span class="b">高级会员</span> 已加入 214 天</div>
+      </div>
+    </div>
+    <div class="m-stats">
+      <div><b>3</b><span>已购资料</span></div>
+      <div><b>1</b><span>咨询预约</span></div>
+      <div><b>860</b><span>积分</span></div>
+      <div><b>2</b><span>优惠券</span></div>
+    </div>
+    <div class="tip">🎁 你有 1 场未开始的 1v1 咨询：07-23 周四 15:00</div>
+    <div class="m-list">
+      <div class="r"><span class="ic">📘</span>我的已购资料<span class="ar">›</span></div>
+      <div class="r"><span class="ic">🗓️</span>我的咨询预约<span class="badge">1</span><span class="ar">›</span></div>
+      <div class="r"><span class="ic">🔖</span>我的收藏<span class="ar">›</span></div>
+      <div class="r"><span class="ic">🧾</span>全部订单<span class="ar">›</span></div>
+    </div>
+    <div class="m-list">
+      <div class="r" onclick="go('ai')"><span class="ic">🤖</span>AI 出海助手<span class="ar">›</span></div>
+      <div class="r"><span class="ic">🎫</span>优惠券 / 会员权益<span class="ar">›</span></div>
+      <div class="r"><span class="ic">💬</span>联系博主 · 商务合作<span class="ar">›</span></div>
+      <div class="r"><span class="ic">⚙️</span>设置<span class="ar">›</span></div>
+    </div>
+    <div class="pad"></div>
+  </div>
+  <div class="tabbar" data-tabbar>
+    <div class="t" data-tab="home" onclick="go('home')"><div class="ic">🏠</div>首页</div>
+    <div class="t" data-tab="content" onclick="go('content')"><div class="ic">📚</div>内容</div>
+    <div class="t" data-tab="shop" onclick="go('shop')"><div class="ic">🛍️</div>商城</div>
+    <div class="t active" data-tab="mine" onclick="go('mine')"><div class="ic">👤</div>我的</div>
+  </div>
+</div>
+
+<!-- ============ 10 AI 助手 ============ -->
+<div class="screen" id="s-ai">
+  <div class="statusbar"><span>9:41</span><span class="r">●●● 5G 100%</span></div>
+  <div class="navbar"><div class="back" onclick="go('home')">‹</div><h2>AI 出海助手</h2></div>
+  <div class="chat">
+    <div class="msg bot"><div class="av">🤖</div><div class="bubble">我是阿哲的 AI 助手，可以按<b>选品 / 供应链 / 平台运营 / 独立站 / 物流 / 合规</b>六个主题帮你定位内容和资料。你现在卡在哪一步？</div></div>
+    <div class="msg me"><div class="av">我</div><div class="bubble">欧洲站家居收纳，选品定了，接下来该做什么？</div></div>
+    <div class="msg bot"><div class="av">🤖</div><div class="bubble">下一步是<b>供应链</b>和<b>合规</b>并行：先按验厂清单筛 3 家工厂打样，同时启动 VAT 注册（周期约 4–6 周，容易卡进度）。相关内容我找到 2 篇长文 + 1 份资料包。</div></div>
+  </div>
+  <div class="quickq">
+    <span onclick="goTopic('supply')">看供应链内容</span>
+    <span onclick="goTopic('compliance')">看合规税务内容</span>
+    <span onclick="openProduct('ebook',1)">打开资料包</span>
+    <span onclick="openProduct('consult',1)">预约 1v1 深聊</span>
+  </div>
+  <div class="chatin"><input type="text" placeholder="描述你的具体情况…" /><div class="snd">➤</div></div>
+</div>
+
+</div></div>
+
+<script>
+/* ============ 数据：内容按业务主题分类，format 只决定展示样式 ============ */
+const TOPICS = [
+  {id:'all',   name:'推荐', emoji:'✨'},
+  {id:'select',name:'选品洞察', emoji:'🔍'},
+  {id:'supply',name:'供应链', emoji:'🏭'},
+  {id:'platform',name:'平台运营', emoji:'🛒'},
+  {id:'dtc',   name:'独立站', emoji:'🌐'},
+  {id:'logistics',name:'物流履约', emoji:'🚢'},
+  {id:'compliance',name:'合规税务', emoji:'⚖️'}
+];
+const FORMATS = [
+  {id:'all',name:'全部形态'},
+  {id:'note',name:'📷 笔记'},
+  {id:'longform',name:'📄 长文'},
+  {id:'video',name:'▶️ 视频'},
+  {id:'data',name:'📊 数据'}
+];
+const FMT_LABEL = {note:'笔记',longform:'长文',video:'视频',data:'数据'};
+const TOPIC_NAME = Object.fromEntries(TOPICS.map(t=>[t.id,t.name]));
+const GRAD = {
+  select:'linear-gradient(140deg,#7d92ff,#2b5cff)',
+  supply:'linear-gradient(140deg,#7bc8a4,#2f9e6e)',
+  platform:'linear-gradient(140deg,#ffb37a,#f2762a)',
+  dtc:'linear-gradient(140deg,#a99bff,#6b4fe0)',
+  logistics:'linear-gradient(140deg,#7cc6e8,#2b8cc4)',
+  compliance:'linear-gradient(140deg,#f2a0b5,#d94f78)'
+};
+
+const ITEMS = [
+  {id:1,topic:'select',format:'longform',h:0,title:'2026下半年跨境选品趋势清单，附完整数据源',
+   date:'07-19',read:'12分钟',stat:'2.1w 阅读',emoji:'📈',
+   body:[['p','过去两个季度，我拉了后台 30+ 品类的动销数据，结合独立站与 TikTok Shop 的实际成交，整理出下半年值得关注的细分品类清单。'],
+         ['h5','三个明确信号'],
+         ['p','家居收纳在欧洲站需求稳定但竞争加剧，价格带正在被压缩；户外露营装备在北美复购率明显提升，适合做产品线延展；宠物智能用品仍在早期红利期，客单价高、竞品少，适合小团队切入。'],
+         ['fig','品类动销趋势对比'],
+         ['h5','怎么用这份清单'],
+         ['p','别直接照搬品类，先用第 3 节的验证流程跑一遍：搜索量趋势 → 竞品价格带 → 供应链可得性 → 物流成本占比。四项都过关再进入打样环节。'],
+         ['quote','💡 完整数据表与供应商初筛清单已更新至资料包 2026 年 7 月版本。']]},
+
+  {id:2,topic:'dtc',format:'note',h:190,title:'新手起独立站，这5个坑我全踩过一遍',
+   date:'07-17',stat:'3.4k',emoji:'🕳️',
+   noteBody:['做独立站两年多，被问最多的就是"第一次搭站要注意什么"。今天把最容易踩的 5 个坑写清楚 👇',
+             '1️⃣ 建站前没做选品验证，直接照搬同行款\n2️⃣ 物流方案选错，复购成本被吃掉\n3️⃣ 支付渠道没本地化，转化率直接对折\n4️⃣ 落地页信息层级混乱，跳出率超 70%\n5️⃣ 广告投放太早，没有数据基础就砸钱',
+             '每个坑的具体解法我整理在资料包里了，需要的自取～'],
+   tags:['#独立站','#跨境新手','#避坑指南','#DTC']},
+
+  {id:3,topic:'platform',format:'video',h:0,title:'TikTok Shop 起号 3 个月，完整数据复盘',
+   date:'07-10',dur:'18:42',stat:'1.5w 播放',emoji:'🎬',
+   body:[['p','3 个月从 0 做到日均稳定成交，中间调整过 4 次选品方向。这期视频把关键节点和后台数据都摆出来。'],
+         ['h5','关键转折点'],
+         ['p','前两周流量很好但转化很差，后来发现是详情页卖点和达人话术没对齐目标人群。调整之后转化率提升近 3 倍。'],
+         ['quote','起号阶段卡住的话，1v1 咨询可以直接看你后台数据帮你诊断。']]},
+
+  {id:4,topic:'supply',format:'note',h:210,title:'验厂清单｜第一次去工厂要问的18个问题',
+   date:'07-12',stat:'2.8k',emoji:'🏭',
+   noteBody:['第一次跑工厂最怕的就是"不知道该问什么"，最后被牵着走。',
+             '这份清单分三块：资质核验（营业执照/出口权/认证）、产能评估（月产能/淡旺季/最小起订）、品控流程（首件确认/抽检比例/返修责任）。',
+             '照着问一遍，基本能筛掉 80% 不靠谱的供应商 ✅'],
+   tags:['#供应链','#验厂','#工厂筛选']},
+
+  {id:5,topic:'select',format:'data',h:0,title:'7月跨境类目动销速报',
+   date:'07-15',stat:'数据更新至 07-14',emoji:'📊',
+   nums:[{k:'宠物智能',v:'+38%'},{k:'户外露营',v:'+21%'},{k:'家居收纳',v:'-6%'}],
+   body:[['p','本期数据覆盖亚马逊北美站、欧洲站及 TikTok Shop 美区，采样周期 06-15 至 07-14。'],
+         ['h5','读数说明'],
+         ['p','宠物智能用品增速最快但基数小，适合测品；家居收纳环比下滑主要来自价格战导致的均价下移，销量其实持平。']]},
+
+  {id:6,topic:'compliance',format:'longform',h:0,title:'欧洲站 VAT 注册全流程：时间、成本与最容易卡住的环节',
+   date:'07-08',read:'9分钟',stat:'8.6k 阅读',emoji:'⚖️',
+   body:[['p','VAT 是欧洲站最容易被低估的环节。注册周期通常 4–6 周，赶上旺季前排队可能拖到 8 周，直接影响上架节奏。'],
+         ['h5','建议的时间安排'],
+         ['p','在选品定型、还没开始打样的时候就启动 VAT 注册，让它和供应链环节并行跑，不要等到备货完成才想起来。'],
+         ['quote','各国税率、申报频率与代理费用对比表在资料包附录。']]},
+
+  {id:7,topic:'logistics',format:'note',h:180,title:'海外仓 vs 直发｜成本临界点算给你看',
+   date:'07-03',stat:'1.9k',emoji:'🚢',
+   noteBody:['经常有人问"什么时候该上海外仓"，其实有个很简单的判断口径。',
+             '按月销量算：单品月销稳定超过 300 单、且件重超过 500g，海外仓基本就划算了。低于这个量级，直发+头程集运更灵活。',
+             '完整测算表格放资料包里了 📦'],
+   tags:['#物流','#海外仓','#成本测算']},
+
+  {id:8,topic:'platform',format:'longform',h:0,title:'亚马逊新品前30天：Listing、广告与评论的节奏安排',
+   date:'06-28',read:'15分钟',stat:'1.2w 阅读',emoji:'🛒',
+   body:[['p','新品前 30 天的动作顺序，直接决定这个 Listing 后面能跑到什么位置。'],
+         ['h5','三阶段节奏'],
+         ['p','第 1–7 天做 Listing 完整度和基础流量测试；第 8–20 天集中投精准词并积累初始评论；第 21–30 天根据数据决定是加码还是止损。'],
+         ['quote','每个阶段的检查清单在资料包第 4 章。']]},
+
+  {id:9,topic:'dtc',format:'video',h:0,title:'独立站落地页拆解：转化率从1.2%到3.8%',
+   date:'06-25',dur:'12:05',stat:'9.3k 播放',emoji:'🌐',
+   body:[['p','拿我自己一个真实站点做拆解，逐屏讲改了什么、为什么改、改完数据怎么变。'],
+         ['h5','改动优先级'],
+         ['p','首屏价值主张 > 信任背书位置 > 价格呈现方式 > CTA 文案。前两项贡献了大部分提升。']]},
+
+  {id:10,topic:'supply',format:'longform',h:0,title:'打样阶段最容易翻车的4件事',
+   date:'06-20',read:'7分钟',stat:'6.4k 阅读',emoji:'🔧',
+   body:[['p','打样看着简单，实际是最容易埋雷的环节——很多问题要到大货才暴露。'],
+         ['h5','四个高频坑'],
+         ['p','样品和大货用料不一致、包装未同步确认、认证测试没提前送样、以及最常见的：口头确认没留书面记录。']]}
+];
+
+const PRODUCTS = {
+  ebook:{
+    1:{title:'《100个跨境爆款选品案例库》',price:59,old:99,sold:2103,rating:'4.9',
+       desc:'覆盖家居、户外、宠物、3C 四大类目的 100 个真实选品案例，含选品逻辑、供应商筛选清单、定价参考与踩坑记录。购买后可在小程序内在线阅读并下载 PDF，永久有效，季度更新。',
+       toc:['选品方法论与数据源获取','家居收纳类目案例拆解（18例）','户外露营类目案例拆解（22例）','宠物智能用品案例拆解（15例）','3C配件类目案例拆解（20例）','综合案例与失败复盘（25例）','附录：供应商筛选核对清单'],
+       revs:[['Y','Y**n','案例很实操，直接照着筛了 3 个供应商，其中 1 家已经在合作了'],
+             ['C','C**e','数据部分很有用，附录的清单单独就值这个价'],
+             ['Z','Z**o','更新很及时，7月版把 TikTok 的数据也加进来了']]},
+    2:{title:'《欧洲站合规与VAT操作手册》',price:39,old:69,sold:986,rating:'4.8',
+       desc:'从 VAT 注册、EPR 到 CE/GPSR 认证的完整操作手册，含各国税率对比表、代理筛选标准与常见驳回原因汇总。',
+       toc:['VAT 注册全流程与时间规划','各国税率与申报频率对比','EPR 注册要点','CE / GPSR 认证路径','常见驳回原因与补救','附录：合规服务商筛选标准'],
+       revs:[['L','L**a','VAT 那章救了我，本来顺序完全搞反了'],['M','M**g','驳回原因汇总非常实用']]}
+  },
+  consult:{
+    1:{title:'选品诊断 1v1 咨询（45分钟）',price:299,sold:186,rating:'4.9',
+       desc:'一对一视频咨询，围绕你当前的选品方向、供应链状况和店铺数据做针对性诊断，咨询后提供文字版建议纪要。适合已有一定基础、卡在具体决策的卖家。',
+       inc:['咨询前填写背景问卷，博主提前预判方向','45 分钟视频通话，可屏幕共享后台数据','咨询后 1 个工作日内提供文字纪要','咨询后 7 天内可追加 1 次文字答疑'],
+       revs:[['W','W**g','问题问得很细，聊完思路清晰很多，纪要也写得很到位'],['H','H**n','直接看了我的后台数据，指出了广告结构的问题']]},
+    2:{title:'独立站冷启动 1v1 咨询（60分钟）',price:399,sold:94,rating:'4.9',
+       desc:'针对独立站从 0 到 1 的完整路径做诊断：建站选型、落地页结构、支付物流配置与首波投放策略，逐项给出可执行建议。',
+       inc:['站点现状逐屏拆解','落地页结构改造建议','支付/物流方案配置核对','首波投放预算与节奏规划','咨询后提供改造清单'],
+       revs:[['R','R**y','落地页改完转化率翻了一倍多']]}
+  }
+};
+const SHOP = [
+  {type:'ebook',id:1,sub:'资料包 · 永久可看 · 已售 2103'},
+  {type:'ebook',id:2,sub:'资料包 · 永久可看 · 已售 986'},
+  {type:'consult',id:1,sub:'1v1 咨询 · 45分钟 · 已约 186'},
+  {type:'consult',id:2,sub:'1v1 咨询 · 60分钟 · 已约 94'}
+];
+
+/* ============ 渲染：按 format 决定卡片样式 ============ */
+function noteCard(it){
+  return `<div class="c-note" onclick="openItem(${it.id})">
+    <div class="img" style="height:${it.h}px;background:${GRAD[it.topic]}">${it.emoji}</div>
+    <div class="txt">
+      <h4>${it.title}</h4>
+      <div class="foot"><span class="a">🧭</span>阿哲<span class="lk">♡ ${it.stat}</span></div>
+    </div></div>`;
+}
+function longCard(it){
+  return `<div class="c-long" onclick="openItem(${it.id})">
+    <div class="thumb" style="background:${GRAD[it.topic]}">${it.emoji}</div>
+    <div class="in">
+      <div><span class="fmt longform">长文</span> <span class="topic">${TOPIC_NAME[it.topic]}</span></div>
+      <h4>${it.title}</h4>
+      <div class="m"><span>${it.date}</span><span>·</span><span>${it.read}</span><span>·</span><span>${it.stat}</span></div>
+    </div></div>`;
+}
+function videoCard(it){
+  return `<div class="c-video" onclick="openItem(${it.id})">
+    <div class="cv" style="background:${GRAD[it.topic]}">${it.emoji}
+      <div class="play">▶</div><div class="dur">${it.dur}</div></div>
+    <div class="txt">
+      <div><span class="fmt video">视频</span> <span class="topic">${TOPIC_NAME[it.topic]}</span></div>
+      <h4>${it.title}</h4>
+      <div class="m">${it.date} · ${it.stat}</div>
+    </div></div>`;
+}
+function dataCard(it){
+  return `<div class="c-data" onclick="openItem(${it.id})">
+    <div><span class="fmt data">数据</span> <span class="topic">${TOPIC_NAME[it.topic]}</span></div>
+    <h4>${it.title}</h4>
+    <div class="nums">${it.nums.map(n=>`<div><b>${n.v}</b>${n.k}</div>`).join('')}</div>
+    <div class="m">${it.stat}</div></div>`;
+}
+function cardHTML(it){
+  if(it.format==='note') return noteCard(it);
+  if(it.format==='video') return videoCard(it);
+  if(it.format==='data') return dataCard(it);
+  return longCard(it);
+}
+
+/* ============ 内容中心 ============ */
+let curTopic='all', curFormat='all';
+
+function buildBars(){
+  document.getElementById('catbar').innerHTML =
+    TOPICS.map(t=>`<div class="c ${t.id===curTopic?'active':''}" onclick="setTopic('${t.id}')">${t.name}</div>`).join('');
+  document.getElementById('fmtfilter').innerHTML =
+    FORMATS.map(f=>`<div class="f ${f.id===curFormat?'on':''}" onclick="setFormat('${f.id}')">${f.name}</div>`).join('');
+}
+function setTopic(id){ curTopic=id; buildBars(); renderFeed(); }
+function setFormat(id){ curFormat=id; buildBars(); renderFeed(); }
+function goTopic(id){ curTopic=id; curFormat='all'; go('content'); buildBars(); renderFeed(); }
+
+function renderFeed(){
+  const list = ITEMS.filter(it=>(curTopic==='all'||it.topic===curTopic) && (curFormat==='all'||it.format===curFormat));
+  const notes = list.filter(i=>i.format==='note');
+  const others = list.filter(i=>i.format!=='note');
+  document.getElementById('feed').innerHTML = others.map(cardHTML).join('');
+  document.getElementById('feed-masonry').innerHTML = notes.map(cardHTML).join('');
+  if(!list.length){
+    document.getElementById('feed').innerHTML =
+      `<div style="text-align:center;padding:60px 0;color:var(--ink-300);font-size:13px;">
+        <div style="font-size:36px;margin-bottom:10px;">📭</div>该主题下暂无此形态的内容</div>`;
+  }
+}
+
+/* ============ 详情 ============ */
+let lastScreen='content';
+function openItem(id){
+  const it = ITEMS.find(x=>x.id===id);
+  if(it.format==='note'){ renderNote(it); go('note'); }
+  else { renderArticle(it); go('article'); }
+}
+function renderArticle(it){
+  const cover = document.getElementById('a-cover');
+  cover.style.background = GRAD[it.topic];
+  cover.childNodes[0].nodeValue = it.emoji;
+  const bodyHTML = it.body.map(([t,v])=>{
+    if(t==='p') return `<p>${v}</p>`;
+    if(t==='h5') return `<h5>${v}</h5>`;
+    if(t==='quote') return `<div class="quote">${v}</div>`;
+    if(t==='fig') return `<div class="figure">📊</div><div class="figure-cap">${v}</div>`;
+    return '';
+  }).join('');
+  const metaLine = it.format==='video' ? `视频 · ${it.dur} · ${it.stat}`
+                 : it.format==='data' ? `数据速报 · ${it.stat}`
+                 : `${it.read}阅读 · ${it.stat}`;
+  document.getElementById('a-wrap').innerHTML = `
+    <div><span class="fmt ${it.format}">${FMT_LABEL[it.format]}</span> <span class="topic">${TOPIC_NAME[it.topic]}</span></div>
+    <h1>${it.title}</h1>
+    <div class="a-meta">
+      <div class="av">🧭</div>
+      <div><div class="nm">出海笔记 · 阿哲</div><div class="dt">${it.date} · ${metaLine}</div></div>
+      <div class="follow" onclick="this.textContent='已关注';this.style.color='var(--ink-300)';this.style.borderColor='var(--line)'">关注</div>
+    </div>
+    <div class="a-body">${bodyHTML}</div>`;
+  document.getElementById('a-cross').innerHTML = crossSellHTML(it.topic);
+}
+function renderNote(it){
+  const g = document.getElementById('n-gallery');
+  g.style.background = GRAD[it.topic];
+  g.childNodes[0].nodeValue = it.emoji;
+  document.getElementById('n-body').innerHTML = `
+    <div style="margin-bottom:10px;"><span class="fmt note">笔记</span> <span class="topic">${TOPIC_NAME[it.topic]}</span></div>
+    <h1>${it.title}</h1>
+    ${it.noteBody.map(p=>`<p>${p.replace(/\n/g,'<br/>')}</p>`).join('')}
+    <div class="n-tags">${it.tags.map(t=>`<span>${t}</span>`).join('')}</div>
+    <div class="a-meta" style="border-bottom:none;padding-bottom:0;margin-bottom:12px;">
+      <div class="av">🧭</div>
+      <div><div class="nm">出海笔记 · 阿哲</div><div class="dt">${it.date}</div></div>
+      <div class="follow">关注</div>
+    </div>
+    <div class="n-actions">
+      <div onclick="bump(this,'♡','♥')">♡ ${it.stat}</div>
+      <div>💬 86</div><div>🔖 收藏</div><div style="margin-left:auto;">↗ 分享</div>
+    </div>`;
+  document.getElementById('n-cross').innerHTML = crossSellHTML(it.topic);
+}
+function bump(el,a,b){ el.innerHTML = el.innerHTML.replace(a,b); el.style.color='#f2385a'; }
+
+function crossSellHTML(topic){
+  const isCompliance = topic==='compliance';
+  const p = isCompliance ? PRODUCTS.ebook[2] : PRODUCTS.ebook[1];
+  const pid = isCompliance ? 2 : 1;
+  return `<div class="lb">📎 这篇内容相关的知识产品</div>
+    <div class="p-card ebook" style="margin:0 0 9px;box-shadow:none;background:transparent;padding:0;"
+         onclick="openProduct('ebook',${pid})">
+      <div class="ic">📘</div>
+      <div class="in"><h4>${p.title}</h4><div class="sub">资料包 · 已售 ${p.sold}</div><div class="pr">¥${p.price}</div></div>
+    </div>
+    <div class="p-card consult" style="margin:0;box-shadow:none;background:transparent;padding:0;"
+         onclick="openProduct('consult',1)">
+      <div class="ic">🗓️</div>
+      <div class="in"><h4>${PRODUCTS.consult[1].title}</h4><div class="sub">1v1 咨询 · 已约 186</div><div class="pr">¥299</div></div>
+    </div>`;
+}
+
+/* ============ 商城 ============ */
+function shopCard(s){
+  const p = PRODUCTS[s.type][s.id];
+  return `<div class="p-card ${s.type}" onclick="openProduct('${s.type}',${s.id})">
+    <div class="ic">${s.type==='ebook'?'📘':'🗓️'}</div>
+    <div class="in"><h4>${p.title}</h4><div class="sub">${s.sub}</div>
+      <div class="pr">¥${p.price}<small>⭐ ${p.rating}</small></div></div></div>`;
+}
+function filterShop(type){
+  go('shop');
+  document.querySelectorAll('[data-stab]').forEach(c=>c.classList.toggle('on', c.dataset.stab===type));
+  document.getElementById('shop-list').innerHTML =
+    SHOP.filter(s=>type==='all'||s.type===type).map(shopCard).join('');
+}
+function openProduct(type,id){
+  const p = PRODUCTS[type][id];
+  if(type==='ebook'){
+    document.getElementById('eb-main').innerHTML = `
+      <span class="fmt data" style="background:var(--brand-50);color:var(--brand);">电子书 / 资料包</span>
+      <h1>${p.title}</h1>
+      <div class="pd-price"><span class="now">¥${p.price}</span><span class="old">¥${p.old}</span>
+        <span class="save">省¥${p.old-p.price}</span></div>
+      <div class="pd-stat">已售 ${p.sold} · ⭐ ${p.rating} · 购买后永久可看 · 季度更新</div>`;
+    document.getElementById('eb-blocks').innerHTML = `
+      <div class="blk"><h5>产品介绍</h5><p>${p.desc}</p></div>
+      <div class="blk"><h5>目录</h5>${p.toc.map((t,i)=>`<div class="toc-item"><span class="n">${String(i+1).padStart(2,'0')}</span><span>${t}</span></div>`).join('')}</div>
+      <div class="blk"><h5>用户评价</h5>${p.revs.map(r=>`<div class="rev"><div class="av">${r[0]}</div><div class="t"><b>${r[1]}</b><span class="st">★★★★★</span><br/>${r[2]}</div></div>`).join('')}</div>`;
+    go('ebook');
+  } else {
+    document.getElementById('cs-main').innerHTML = `
+      <span class="fmt data" style="background:var(--accent-50);color:var(--accent);">1v1 咨询服务</span>
+      <h1>${p.title}</h1>
+      <div class="pd-price"><span class="now">¥${p.price}</span>
+        <span style="font-size:12.5px;color:var(--ink-300);">/ 场</span></div>
+      <div class="pd-stat">已约 ${p.sold} 次 · ⭐ ${p.rating} · 支持改期</div>`;
+    document.getElementById('cs-blocks').innerHTML = `
+      <div class="blk"><h5>服务说明</h5><p>${p.desc}</p></div>
+      <div class="blk"><h5>服务包含</h5><ul>${p.inc.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+      <div class="blk"><h5>适合谁</h5><p>已经有明确业务场景、卡在具体决策上的卖家。如果是完全零基础，建议先看资料包，性价比更高。</p></div>
+      <div class="blk"><h5>用户评价</h5>${p.revs.map(r=>`<div class="rev"><div class="av">${r[0]}</div><div class="t"><b>${r[1]}</b><span class="st">★★★★★</span><br/>${r[2]}</div></div>`).join('')}</div>`;
+    go('consult');
+  }
+}
+
+/* ============ 预约 ============ */
+function pickDate(el){
+  document.querySelectorAll('.dchip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
+function pickSlot(el){
+  document.querySelectorAll('.slot').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('bar1').classList.add('on');
+  document.getElementById('d2').classList.add('on');
+}
+function markStep2(){
+  document.getElementById('bar2').classList.add('on');
+  document.getElementById('d3').classList.add('on');
+}
+
+/* ============ 导航 ============ */
+const MAP = {home:'s-home',content:'s-content',article:'s-article',note:'s-note',shop:'s-shop',
+             ebook:'s-ebook',consult:'s-consult',booking:'s-booking',done:'s-done',mine:'s-mine',ai:'s-ai'};
+function go(name){
+  const id = MAP[name]; if(!id) return;
+  if(['home','content','shop','mine'].includes(name)) lastScreen = name;
+  Object.values(MAP).forEach(x=>document.getElementById(x).classList.remove('active','anim'));
+  const el = document.getElementById(id);
+  el.classList.add('active','anim');
+  el.querySelectorAll('.body-scroll').forEach(b=>b.scrollTop=0);
+  document.querySelectorAll('[data-tabbar] .t').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+}
+function back(){ go(lastScreen); }
+
+function toast(msg){
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText='position:absolute;left:50%;top:44%;transform:translateX(-50%);background:rgba(18,20,28,.86);'+
+    'color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;z-index:99;max-width:250px;text-align:center;'+
+    'line-height:1.5;animation:pop .28s cubic-bezier(.32,.72,0,1);';
+  document.querySelector('.screen-host').appendChild(t);
+  setTimeout(()=>t.remove(),1800);
+}
+
+/* 阅读进度条 */
+document.getElementById('article-scroll').addEventListener('scroll', function(){
+  const p = this.scrollTop / Math.max(1,(this.scrollHeight - this.clientHeight));
+  document.getElementById('readbar').style.width = Math.min(100, p*100) + '%';
+});
+
+/* init */
+buildBars();
+renderFeed();
+document.getElementById('home-feed').innerHTML = [3,5,1].map(id=>cardHTML(ITEMS.find(i=>i.id===id))).join('');
+document.getElementById('home-feed').insertAdjacentHTML('beforeend',
+  '<div class="masonry" style="padding:0;">' + [2,4].map(id=>noteCard(ITEMS.find(i=>i.id===id))).join('') + '</div>');
+document.getElementById('home-prods').innerHTML = SHOP.slice(0,1).concat(SHOP.slice(2,3)).map(shopCard).join('');
+filterShop('all');
+go('home');
+</script>
+</body>
+</html>

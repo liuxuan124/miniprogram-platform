@@ -8,19 +8,67 @@
       <div class="editor-center">
         <div class="builder-toolbar">
           <div class="toolbar-left">
-            <button type="button" class="proto-btn sm" @click="handleBack">← 返回</button>
+            <el-button size="small" @click="handleBack">
+              <el-icon><ArrowLeft /></el-icon>
+              返回
+            </el-button>
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
-            <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 18 }}</span>
+            <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
             <span v-if="pageStore.isDirty" class="dirty-dot">未保存</span>
+            <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存 {{ lastAutoSavedAt }}</span>
           </div>
           <div class="toolbar-actions">
-            <button type="button" class="proto-btn sm" :disabled="pageStore.saving" @click="handleSaveDraft">💾 保存草稿</button>
-            <button type="button" class="proto-btn sm" @click="handlePreview">👁 预览</button>
-            <button type="button" class="proto-btn sm warning" @click="handleHistory">🕐 历史版本</button>
-            <button type="button" class="proto-btn sm primary" @click="handlePublish">🚀 发布上线</button>
-            <button type="button" class="proto-btn sm" @click="handleViewDSL">DSL</button>
+            <el-button-group class="history-controls">
+              <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom">
+                <el-button size="small" aria-label="撤销" :disabled="!pageStore.canUndo" @click="pageStore.undo()">
+                  <el-icon><RefreshLeft /></el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="重做 (Ctrl+Shift+Z)" placement="bottom">
+                <el-button size="small" aria-label="重做" :disabled="!pageStore.canRedo" @click="pageStore.redo()">
+                  <el-icon><RefreshRight /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </el-button-group>
+            <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
+              <el-icon><Document /></el-icon>
+              保存草稿
+            </el-button>
+            <el-button size="small" @click="handlePreview">
+              <el-icon><View /></el-icon>
+              预览
+            </el-button>
+            <el-button type="primary" size="small" @click="handlePublish">
+              <el-icon><Upload /></el-icon>
+              发布页面
+            </el-button>
+            <el-dropdown trigger="click">
+              <el-button size="small">
+                更多
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="handleHistory">历史版本</el-dropdown-item>
+                  <el-dropdown-item divided @click="handleViewDSL">高级：查看 DSL</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
+
+        <!-- C5：保存冲突不再用弹窗打断编辑，改为顶部常驻提示条，保留操作现场 -->
+        <div v-if="conflict.visible" class="conflict-banner">
+          <el-icon><WarningFilled /></el-icon>
+          <span class="conflict-text">页面已被其他人修改，直接保存会覆盖对方的改动。</span>
+          <div class="conflict-actions">
+            <el-button size="small" @click="handleReloadFromConflict">放弃我的修改，刷新页面</el-button>
+            <el-button size="small" type="primary" :loading="savingAsNew" @click="handleSaveAsNewDraft">
+              保留我的修改，另存为新草稿
+            </el-button>
+          </div>
+        </div>
+
         <CanvasArea />
       </div>
 
@@ -47,15 +95,42 @@
 
     <!-- 原型一致：预览不跳新窗口，直接进入小程序端实时预览 -->
     <MiniPreviewDialog ref="previewDialogRef" v-model="previewVisible" />
+
+    <!-- C3：发布结果面板，替代原来信息密度过高的单个确认弹窗 -->
+    <el-dialog v-model="publishResult.visible" title="页面发布成功" width="440px" :close-on-click-modal="false">
+      <div class="publish-result">
+        <div class="publish-result__row">
+          <span class="label">发布版本</span>
+          <span class="value">v{{ publishResult.version }}</span>
+        </div>
+        <div class="publish-result__row">
+          <span class="label">本次组件数</span>
+          <span class="value">{{ publishResult.componentCount }} 个</span>
+        </div>
+        <div class="publish-result__row">
+          <span class="label">小程序端生效路径</span>
+          <span class="value mono">{{ publishResult.path || '—' }}</span>
+        </div>
+      </div>
+      <div class="publish-result__tip">
+        若要让用户通过底部导航打开它，请再到「搭建小程序」完成导航绑定并发布。
+      </div>
+      <template #footer>
+        <el-button @click="publishResult.visible = false">继续装修</el-button>
+        <el-button @click="handlePreviewAfterPublish">预览效果</el-button>
+        <el-button type="primary" @click="handleGotoMiniappConfig">去搭建小程序</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
-import { getPageDetail, saveDraft, publishPage } from '@/api/page'
+import { getPageDetail, saveDraft, publishPage, createPage } from '@/api/page'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
 import ComponentPanel from '@/components/page-builder/ComponentPanel.vue'
 import CanvasArea from '@/components/page-builder/CanvasArea.vue'
@@ -71,6 +146,27 @@ const dslDialogVisible = ref(false)
 const dslEditorValue = ref('')
 const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
+
+/** B3：自动保存 */
+const lastAutoSavedAt = ref('')
+let autoSaveTimer: ReturnType<typeof setInterval> | null = null
+
+/** C5：保存冲突状态（顶部提示条，不再用弹窗打断编辑现场） */
+const conflict = reactive({ visible: false })
+const savingAsNew = ref(false)
+
+/** C3：发布结果面板 */
+const publishResult = reactive({
+  visible: false,
+  version: 1,
+  componentCount: 0,
+  path: '',
+})
+
+function isConflictError(err: any): boolean {
+  const msg = err?.response?.data?.message || err?.message || ''
+  return msg.includes('已被其他人修改') || msg.includes('300409')
+}
 
 /** 加载页面数据 */
 async function loadPage() {
@@ -122,7 +218,7 @@ async function handleBack() {
   await router.push({ name: 'PageBuilderList' })
 }
 
-/** 保存草稿 */
+/** 保存草稿（手动点击） */
 async function handleSaveDraft() {
   if (!pageStore.currentPage) return
   pageStore.saving = true
@@ -130,20 +226,73 @@ async function handleSaveDraft() {
     const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
+    conflict.visible = false
     // 保存成功后同步最新版本号，避免下次保存触发冲突
     if (res.data) {
       pageStore.currentPage = { ...pageStore.currentPage, ...(res.data as PageRecord) }
     }
     ElMessage.success('草稿保存成功')
   } catch (err: any) {
-    const msg = err?.response?.data?.message || err?.message || ''
-    if (msg.includes('已被其他人修改') || msg.includes('300409')) {
-      ElMessage.error('保存冲突：页面已被其他人修改，请刷新页面后重新编辑')
+    if (isConflictError(err)) {
+      conflict.visible = true
     } else {
       ElMessage.error('保存失败')
     }
   } finally {
     pageStore.saving = false
+  }
+}
+
+/** B3：自动保存（静默，不弹提示，不与手动保存冲突提示抢注意力） */
+async function performAutoSave() {
+  if (!pageStore.currentPage || pageStore.saving || savingAsNew.value) return
+  try {
+    const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
+    const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
+    pageStore.isDirty = false
+    if (res.data) {
+      pageStore.currentPage = { ...pageStore.currentPage, ...(res.data as PageRecord) }
+    }
+    lastAutoSavedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })
+  } catch (err: any) {
+    if (isConflictError(err)) {
+      conflict.visible = true
+    }
+    // 自动保存的非冲突失败静默忽略，避免频繁打扰；用户仍可手动保存重试
+  }
+}
+
+/** C5：放弃本地修改，直接刷新为服务端最新版本 */
+async function handleReloadFromConflict() {
+  conflict.visible = false
+  await loadPage()
+  ElMessage.success('已刷新为最新版本')
+}
+
+/** C5：保留本地修改，另存为一个新页面草稿，不覆盖对方的改动 */
+async function handleSaveAsNewDraft() {
+  if (!pageStore.currentPage) return
+  savingAsNew.value = true
+  try {
+    const source = pageStore.currentPage
+    const res = await createPage({
+      name: `${pageStore.pageConfig.name || source.name || '未命名页面'}（副本）`,
+      type: source.type,
+      path: '',
+      dsl: pageStore.dsl,
+    })
+    conflict.visible = false
+    pageStore.isDirty = false
+    ElMessage.success('已另存为新草稿，正在跳转')
+    const newId = (res.data as PageRecord | undefined)?.id
+    if (newId) {
+      pageStore.resetEditor()
+      router.push({ name: 'PageBuilderEditor', params: { id: newId } })
+    }
+  } catch {
+    ElMessage.error('另存为新草稿失败，请稍后重试')
+  } finally {
+    savingAsNew.value = false
   }
 }
 
@@ -181,17 +330,16 @@ async function handlePublish() {
         pageStore.currentPage = { ...pageStore.currentPage, ...(res.data as PageRecord) }
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || ''
-      if (msg.includes('已被其他人修改') || msg.includes('300409')) {
-        ElMessage.error('保存冲突：页面已被其他人修改，请刷新页面后重新编辑')
+      if (isConflictError(err)) {
+        conflict.visible = true
       }
       return
     }
   }
 
-  // 发布前预检
+  // 发布前预检：占位内容未替换 / 小程序端不支持渲染 均为阻断级问题，不能仅提示
   const warnings = validateBeforePublish()
-  const blocking = warnings.filter((w) => w.includes('占位'))
+  const blocking = warnings.filter((w) => w.includes('占位') || w.includes('不支持'))
   if (blocking.length > 0) {
     ElMessage.error(`发布被拦截：${blocking.join('；')}`)
     return
@@ -213,23 +361,27 @@ async function handlePublish() {
   }
 
   try {
-    await publishPage(pageStore.currentPage.id)
-    await ElMessageBox.confirm(
-      '小程序首页已同步，当前装修内容可在实时预览中查看。',
-      '发布成功',
-      {
-        confirmButtonText: '查看小程序效果',
-        cancelButtonText: '关闭',
-        type: 'success',
-      },
-    ).then(() => {
-      previewDialogRef.value?.openHome()
-      previewVisible.value = true
-    }).catch(() => {})
+    const res = await publishPage(pageStore.currentPage.id)
+    const published = res.data as PageRecord | undefined
+    // C3：发布成功后用结果面板展示版本、变更规模和下一步建议，替代信息密度过高的单个确认弹窗
+    publishResult.version = published?.currentVersion ?? published?.version ?? (pageStore.currentPage.currentVersion ?? pageStore.currentPage.version ?? 1)
+    publishResult.componentCount = pageStore.components.length
+    publishResult.path = pageStore.currentPage.path || pageStore.pageConfig.path || ''
+    publishResult.visible = true
     await loadPage()
   } catch {
     ElMessage.error('发布失败')
   }
+}
+
+function handleGotoMiniappConfig() {
+  publishResult.visible = false
+  router.push('/page-builder/start')
+}
+
+function handlePreviewAfterPublish() {
+  publishResult.visible = false
+  handlePreview()
 }
 
 /** 预览 */
@@ -297,8 +449,33 @@ function handleApplyDSL() {
   }
 }
 
+/** B1：撤销/重做快捷键。输入框内的 Ctrl+Z 交给浏览器原生文本撤销，不拦截 */
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null
+  if (!el) return false
+  const tag = el.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (isEditableTarget(event.target)) return
+  const isMod = event.ctrlKey || event.metaKey
+  if (!isMod || event.key.toLowerCase() !== 'z') return
+  event.preventDefault()
+  if (event.shiftKey) {
+    pageStore.redo()
+  } else {
+    pageStore.undo()
+  }
+}
+
 onMounted(() => {
   loadPage()
+  window.addEventListener('keydown', handleKeydown)
+  // B3：每 30 秒检查一次，若有未保存修改则静默存草稿，避免刷新/关闭页面丢失编辑
+  autoSaveTimer = setInterval(() => {
+    if (pageStore.isDirty) performAutoSave()
+  }, 30000)
 })
 
 watch(
@@ -331,6 +508,11 @@ onBeforeRouteLeave(async (_to, _from, next) => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  if (autoSaveTimer) {
+    clearInterval(autoSaveTimer)
+    autoSaveTimer = null
+  }
   pageStore.resetEditor()
 })
 </script>
@@ -398,6 +580,10 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
+.history-controls {
+  margin-right: 4px;
+}
+
 .builder-page-name {
   color: #172033;
   font-size: 14px;
@@ -415,53 +601,88 @@ onBeforeUnmount(() => {
 }
 
 .dirty-dot {
-  color: #f59e0b;
-  background: #fff7ed;
+  color: var(--warning);
+  background: var(--warning-soft);
   border-color: #fed7aa;
 }
 
-.proto-btn {
-  display: inline-flex;
+.autosave-dot {
+  padding: 2px 7px;
+  color: var(--success);
+  font-size: 11px;
+  background: var(--success-soft);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+}
+
+/* C5：保存冲突提示条 */
+.conflict-banner {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  height: 32px;
-  padding: 0 12px;
-  color: #172033;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  background: #fff;
-  border: 1px solid #e3e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.14s;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  color: #92400e;
+  background: var(--warning-soft);
+  border-bottom: 1px solid #fed7aa;
 
-  &:hover {
-    color: #1769ff;
-    background: #eaf2ff;
-    border-color: #1769ff;
+  .el-icon {
+    flex-shrink: 0;
+    color: var(--warning);
+    font-size: 16px;
+  }
+}
+
+.conflict-text {
+  flex: 1;
+  font-size: 13px;
+}
+
+.conflict-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+/* C3：发布结果面板 */
+.publish-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.publish-result__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px dashed var(--border);
+
+  .label {
+    color: var(--text-muted);
+    font-size: var(--font-caption);
   }
 
-  &.sm {
-    height: 30px;
-    padding: 0 10px;
-  }
+  .value {
+    color: var(--text);
+    font-size: var(--font-body);
+    font-weight: 600;
 
-  &.warning {
-    color: #f59e0b;
-    background: #fff7ed;
-    border-color: #fed7aa;
+    &.mono {
+      font-family: monospace;
+      font-size: var(--font-caption);
+    }
   }
+}
 
-  &.primary {
-    color: #fff;
-    background: #1769ff;
-    border-color: #1769ff;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
-  }
+.publish-result__tip {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--font-caption);
+  line-height: 1.6;
+  background: var(--bg-page);
+  border-radius: var(--radius);
 }
 </style>

@@ -1,0 +1,20 @@
+<!-- pages/appointment-success/appointment-success.wxml -->
+<view class="as-page">
+  <view class="hero">
+    <view class="ok">🗓️</view>
+    <view class="title">预约成功</view>
+    <view class="sub">请准时出席；开始前 24 小时可免费改期</view>
+  </view>
+
+  <view class="card voucher">
+    <view class="row"><text>服务</text><b>{{serviceName}}</b></view>
+    <view class="row"><text>时段</text><b>{{slotText}}</b></view>
+    <view class="row"><text>费用</text><b class="price">¥{{price}}</b></view>
+    <view class="row"><text>预约号</text><b>{{bookingNo}}</b></view>
+  </view>
+
+  <view class="actions">
+    <view class="btn btn-o" bindtap="goHome">返回首页</view>
+    <view class="btn btn-p" bindtap="goMineAppt">查看我的预约</view>
+  </view>
+</view>

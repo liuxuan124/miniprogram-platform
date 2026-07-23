@@ -27,6 +27,7 @@ Page({
     showTransferModal: false, // 转人工弹窗
     inputFocus: false,      // 输入框焦点
     keyboardHeight: 0,      // 键盘高度
+    topicChips: ['看供应链内容', '看合规税务内容', '预约 1v1 深聊', '选品卡住了怎么办'],
   },
 
   /** 页面加载 */
@@ -34,21 +35,35 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
-    // 恢复会话 ID
     const sessionId = AiService.getSessionId()
     if (sessionId) {
       this.setData({ sessionId })
     }
 
-    // 尝试恢复本地历史
     const localHistory = AiService.getLocalHistory()
     if (localHistory.length > 0) {
       this.setData({ messages: localHistory })
       this._scrollToBottom()
     } else {
-      // 欢迎语
-      this._addSystemMessage('你好！我是 AI 智能助手，可以帮你推荐商品、内容和活动，有什么想了解的吗？')
+      this._addSystemMessage('我是阿哲的 AI 助手，可以按 选品 / 供应链 / 平台运营 / 独立站 / 物流 / 合规 六个主题帮你定位内容和资料。你现在卡在哪一步？')
     }
+  },
+
+  onTopicChip(e) {
+    const text = e.currentTarget.dataset.text
+    if (!text) return
+    if (text.indexOf('预约') >= 0) {
+      wx.navigateTo({ url: '/pages/product-list/product-list?type=service' })
+      return
+    }
+    if (text.indexOf('供应链') >= 0 || text.indexOf('合规') >= 0) {
+      try { wx.setStorageSync('__tab_query__/pages/content-list/content-list', { topic: text }) } catch (err) {}
+      wx.switchTab({ url: '/pages/content-list/content-list' })
+      return
+    }
+    this.setData({ inputValue: text })
+    if (typeof this.onSend === 'function') this.onSend()
+    else if (typeof this.onSendTap === 'function') this.onSendTap()
   },
 
   /** 页面卸载时保存历史 */

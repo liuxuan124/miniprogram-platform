@@ -134,9 +134,12 @@ service.interceptors.response.use(
         showErrorDebounced(message)
       }
 
-      if (response.status === 401) {
+      // 未登录/无效 Token 时后端可能返回 401 或 403（CORS 已通时多为 403）
+      if (response.status === 401 || (response.status === 403 && String(response.config?.url || '').includes('/auth/'))) {
         removeToken()
-        router.push('/login')
+        if (router.currentRoute.value.path !== '/login') {
+          router.push('/login')
+        }
       }
     } else if (error.code === 'ECONNABORTED') {
       if (showError) showErrorDebounced('请求超时，请稍后重试')

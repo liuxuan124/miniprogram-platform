@@ -129,7 +129,8 @@ Component({
 
     onSearchTap() {
       const scope = ((this.data.comp && this.data.comp.props && this.data.comp.props.scope) || 'all').toString()
-      let link = '/pages/product-list/product-list'
+      let link = '/pages/search/search'
+      if (scope === 'product') link = '/pages/product-list/product-list'
       if (scope === 'article') link = '/pages/content-list/content-list'
       if (scope === 'activity') link = '/pages/activity-list/activity-list'
       navigatePage(link)

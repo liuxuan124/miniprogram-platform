@@ -1,0 +1,95 @@
+<!-- pages/search/search.wxml -->
+<view class="search-page">
+  <view class="search-bar">
+    <view class="back" bindtap="goBack">‹</view>
+    <input
+      class="input"
+      focus="{{true}}"
+      confirm-type="search"
+      placeholder="搜索内容、资料包、咨询服务"
+      value="{{keyword}}"
+      bindinput="onInput"
+      bindconfirm="onSearch"
+    />
+    <view class="action" bindtap="onSearch">搜索</view>
+  </view>
+
+  <scroll-view scroll-y class="scroll">
+    <view wx:if="{{!searched}}" class="block">
+      <view class="block-h">
+        <text class="title">🔥 热门搜索</text>
+      </view>
+      <view class="hot">
+        <view
+          wx:for="{{hotKeywords}}"
+          wx:key="*this"
+          class="hot-item {{index < 2 ? 'fire' : ''}}"
+          data-kw="{{item}}"
+          bindtap="tapKeyword"
+        >{{item}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{!searched && history.length}}" class="block">
+      <view class="block-h">
+        <text class="title">🕘 搜索历史</text>
+        <text class="rt" bindtap="clearHistory">清空</text>
+      </view>
+      <view
+        wx:for="{{history}}"
+        wx:key="*this"
+        class="hist"
+        data-kw="{{item}}"
+        bindtap="tapKeyword"
+      >
+        <text class="ic">🕘</text>
+        <text class="tx">{{item}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!searched}}" class="block">
+      <view class="block-h"><text class="title">💡 猜你想找</text></view>
+      <view
+        wx:for="{{suggestions}}"
+        wx:key="title"
+        class="sug"
+        data-type="{{item.type}}"
+        data-id="{{item.id}}"
+        data-path="{{item.path}}"
+        bindtap="tapSuggestion"
+      >
+        <text class="ic">{{item.icon}}</text>
+        <view class="info">
+          <text class="name">{{item.title}}</text>
+          <text class="desc">{{item.desc}}</text>
+        </view>
+        <text class="ar">›</text>
+      </view>
+    </view>
+
+    <view wx:if="{{searched}}" class="result">
+      <view class="result-h">找到 {{results.length}} 条与「{{keyword}}」相关</view>
+      <view wx:if="{{loading}}" class="empty">搜索中...</view>
+      <view wx:elif="{{!results.length}}" class="empty">
+        <view class="e">🔍</view>
+        <text>暂无结果，换个关键词试试</text>
+      </view>
+      <view
+        wx:for="{{results}}"
+        wx:key="id"
+        class="result-item"
+        data-type="{{item.type}}"
+        data-id="{{item.id}}"
+        bindtap="openResult"
+      >
+        <image wx:if="{{item.cover}}" class="cover" src="{{item.cover}}" mode="aspectFill" />
+        <view class="meta">
+          <view class="tag">{{item.typeLabel}}</view>
+          <view class="name">{{item.title}}</view>
+          <view class="desc">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="pad"></view>
+  </scroll-view>
+</view>

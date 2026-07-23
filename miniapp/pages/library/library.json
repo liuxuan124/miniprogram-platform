@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "已购资料",
+  "usingComponents": {
+    "skeleton": "../../components/skeleton/skeleton",
+    "empty-state": "../../components/empty-state/empty-state"
+  }
+}

@@ -38,103 +38,114 @@
     </view>
   </view>
 
-  <!-- 规格选择入口 -->
-  <view class="spec-entry" bindtap="onAddCartTap" wx:if="{{product.specList.length > 0}}">
-    <text class="spec-label">选择</text>
-    <text class="spec-value">
-      {{selectedSku ? selectedSku.name : '请选择规格'}}
-    </text>
-    <text class="spec-arrow">&#10095;</text>
+  <!-- 规格 / 优惠 / 服务 -->
+  <view class="pick-rows">
+    <view class="pick" bindtap="onBuyNowTap">
+      <text class="k">规格</text>
+      <text class="v">{{selectedSku ? (selectedSku.skuName || selectedSku.name || '已选') : '请选择版本'}}</text>
+      <text class="ar">›</text>
+    </view>
+    <view class="pick" bindtap="onCouponEntry">
+      <text class="k">优惠券</text>
+      <text class="v">满减可用</text>
+      <text class="ar">›</text>
+    </view>
+    <view class="pick">
+      <text class="k">服务</text>
+      <text class="v">{{isDigital ? '永久可看 · 季度更新' : (isService ? '开始前24h可改期' : '售后保障')}}</text>
+      <text class="ar">›</text>
+    </view>
+  </view>
+
+  <view class="author-card">
+    <view class="av">🧭</view>
+    <view class="info">
+      <view class="nm">出海笔记 · 阿哲 <text class="vf">已认证</text></view>
+      <view class="bio">跨境电商实战 · 选品 / 供应链 / 独立站</view>
+    </view>
+  </view>
+
+  <view class="detail-section" wx:if="{{gains.length}}">
+    <view class="section-title">你将获得</view>
+    <view wx:for="{{gains}}" wx:key="*this" class="bullet">· {{item}}</view>
+  </view>
+
+  <view class="detail-section" wx:if="{{whoFor}}">
+    <view class="section-title">适合谁</view>
+    <view class="text-content">{{whoFor}}</view>
   </view>
 
   <!-- 商品详情（富文本） -->
   <view class="detail-section">
-    <view class="section-title">商品详情</view>
+    <view class="section-title">{{isDigital ? '资料介绍' : (isService ? '服务说明' : '商品详情')}}</view>
     <rich-text wx:if="{{richContent}}" nodes="{{richContent}}" class="rich-content"></rich-text>
     <view wx:else class="text-content">
       <text>{{product.description || '暂无详情'}}</text>
     </view>
   </view>
 
+  <view class="detail-section" wx:if="{{faqs.length}}">
+    <view class="section-title">常见问题</view>
+    <view wx:for="{{faqs}}" wx:key="q" class="faq">
+      <view class="q">Q：{{item.q}}</view>
+      <view class="a">A：{{item.a}}</view>
+    </view>
+  </view>
+
+  <!-- 评价入口 -->
+  <view class="review-entry" bindtap="onReviewsTap">
+    <view class="review-entry__l">
+      <text class="review-entry__t">用户评价</text>
+      <text class="review-entry__s">{{reviewScore || '4.9'}} 分 · {{reviewCount || 0}} 条</text>
+    </view>
+    <text class="review-entry__ar">全部 ›</text>
+  </view>
+
   <!-- 底部操作栏 -->
   <view class="bottom-bar">
-    <view class="bottom-bar__icon" bindtap="onAddCartTap">
+    <view class="bottom-bar__icon" bindtap="onServiceTap">
+      <text class="bottom-bar__icon-emoji">💬</text>
+      <text class="bottom-bar__icon-text">客服</text>
+    </view>
+    <view class="bottom-bar__icon" wx:if="{{isDigital}}" bindtap="onPreviewTap">
+      <text class="bottom-bar__icon-emoji">👀</text>
+      <text class="bottom-bar__icon-text">试读</text>
+    </view>
+    <view class="bottom-bar__icon" wx:elif="{{!isService}}" bindtap="onAddCartTap">
       <image class="bottom-bar__icon-img" src="/images/icon-cart.svg" mode="aspectFit" />
       <text class="bottom-bar__icon-text">购物车</text>
     </view>
-    <view class="bottom-bar__btn bottom-bar__btn--cart" bindtap="onAddCartTap">
-      加入购物车
-    </view>
+    <view
+      class="bottom-bar__btn bottom-bar__btn--cart"
+      wx:if="{{isService}}"
+      bindtap="onBookTap"
+    >选时段预约</view>
+    <view
+      class="bottom-bar__btn bottom-bar__btn--cart"
+      wx:elif="{{!isDigital}}"
+      bindtap="onAddCartTap"
+    >加入购物车</view>
     <view class="bottom-bar__btn bottom-bar__btn--buy" bindtap="onBuyNowTap">
-      立即购买
+      {{isDigital ? '立即购买解锁' : (isService ? '立即下单' : '立即购买')}}
     </view>
   </view>
 
-  <!-- SKU 选择弹窗 -->
-  <view class="sku-mask" wx:if="{{showSkuPanel}}" bindtap="onSkuPanelClose">
-    <view class="sku-panel" catchtap="">
-      <!-- 弹窗头部：商品信息 -->
-      <view class="sku-panel__header">
-        <image class="sku-panel__image" src="{{product.images[0] || product.image}}" mode="aspectFill" />
-        <view class="sku-panel__info">
-          <text class="sku-panel__price">&#165;{{selectedSku ? selectedSku.price : product.price}}</text>
-          <text class="sku-panel__stock">库存: {{stock}}</text>
-          <text class="sku-panel__selected" wx:if="{{selectedSku}}">已选: {{selectedSku.name || '默认'}}</text>
-        </view>
-        <view class="sku-panel__close" bindtap="onSkuPanelClose">&#10005;</view>
-      </view>
-
-      <!-- 规格选择 -->
-      <scroll-view class="sku-panel__body" scroll-y>
-        <view
-          class="spec-group"
-          wx:for="{{product.specList}}"
-          wx:key="name"
-          wx:for-item="spec"
-        >
-          <text class="spec-group__name">{{spec.name}}</text>
-          <view class="spec-group__values">
-            <view
-              wx:for="{{spec.values}}"
-              wx:key="*this"
-              wx:for-item="val"
-              class="spec-value-tag {{selectedSkuValues[spec.name] === val ? 'active' : ''}}"
-              data-spec="{{spec.name}}"
-              data-value="{{val}}"
-              bindtap="onSpecValueTap"
-            >
-              {{val}}
-            </view>
-          </view>
-        </view>
-
-        <!-- 数量选择 -->
-        <view class="quantity-row">
-          <text class="quantity-label">数量</text>
-          <view class="quantity-control">
-            <view class="quantity-btn {{quantity <= 1 ? 'disabled' : ''}}" bindtap="onQuantityMinus">-</view>
-            <input
-              class="quantity-input"
-              type="number"
-              value="{{quantity}}"
-              bindinput="onQuantityInput"
-            />
-            <view class="quantity-btn {{quantity >= stock ? 'disabled' : ''}}" bindtap="onQuantityPlus">+</view>
-          </view>
-        </view>
-      </scroll-view>
-
-      <!-- 确认按钮 -->
-      <view class="sku-panel__footer">
-        <view
-          class="sku-confirm-btn {{skuMode === 'cart' ? 'cart' : 'buy'}}"
-          bindtap="onSkuConfirm"
-        >
-          {{skuMode === 'cart' ? '加入购物车' : '立即购买'}}
-        </view>
-      </view>
-    </view>
-  </view>
+  <sku-sheet
+    show="{{showSkuPanel}}"
+    image="{{product.images[0] || product.image}}"
+    price="{{selectedSku ? selectedSku.price : product.price}}"
+    stock="{{stock}}"
+    groups="{{product.specList}}"
+    selectedMap="{{selectedSkuValues}}"
+    selectedLabel="{{selectedSku ? (selectedSku.name || selectedSku.skuName || '') : ''}}"
+    quantity="{{quantity}}"
+    mode="{{skuMode}}"
+    bind:close="onSkuPanelClose"
+    bind:pick="onSkuSheetPick"
+    bind:qty="onSkuSheetQty"
+    bind:cart="onSkuSheetCart"
+    bind:buy="onSkuSheetBuy"
+  />
 </view>
 
 <!-- 加载状态 -->

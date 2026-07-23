@@ -153,6 +153,17 @@ Page({
     wx.navigateTo({ url: '/pages/product-detail/product-detail?id=' + id })
   },
 
+  /** D4：商品图片加载失败时换成统一占位图 */
+  onImageError(e) {
+    const index = e.currentTarget.dataset.index
+    const fallback = '/images/default-product.svg'
+    this.setData({
+      [`cartList[${index}].image`]: fallback,
+      [`cartList[${index}].cover_url`]: fallback,
+      [`cartList[${index}].product_image`]: fallback,
+    })
+  },
+
   /** 去结算 */
   onCheckout() {
     const selectedItems = this.data.cartList.filter((item) => item.selected)

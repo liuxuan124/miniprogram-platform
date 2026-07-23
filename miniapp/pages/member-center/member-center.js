@@ -23,17 +23,16 @@ Page({
     },
     signInDays: [],
     benefitList: [
-      { name: '全年9折优惠', icon: '⭐', bgColor: 'linear-gradient(135deg, #fef3c7, #fed7aa)', desc: '金卡会员专享' },
-      { name: '积分加速翻倍', icon: '⭐', bgColor: 'linear-gradient(135deg, #fef3c7, #fed7aa)', desc: '金卡会员专享' },
-      { name: '专属活动优先报名', icon: '⭐', bgColor: 'linear-gradient(135deg, #fef3c7, #fed7aa)', desc: '金卡会员专享' },
-      { name: '生日双倍积分', icon: '⭐', bgColor: 'linear-gradient(135deg, #fef3c7, #fed7aa)', desc: '金卡会员专享' },
-      { name: '专属客服通道', icon: '⭐', bgColor: 'linear-gradient(135deg, #fef3c7, #fed7aa)', desc: '金卡会员专享' },
+      { name: '全场资料包折扣', icon: '📘', bgColor: 'linear-gradient(135deg, #eef2ff, #dfe6ff)', desc: '当前等级权益' },
+      { name: '积分加速', icon: '⚡', bgColor: 'linear-gradient(135deg, #fff2ee, #ffe4d9)', desc: '成长值翻倍进度' },
+      { name: '优先预约咨询', icon: '🗓️', bgColor: 'linear-gradient(135deg, #e7f5ea, #d1fae5)', desc: '热门时段优先' },
+      { name: '专属客服通道', icon: '💬', bgColor: 'linear-gradient(135deg, #fef3c7, #fde68a)', desc: '工作日优先响应' },
     ],
     levelList: [
-      { code: 'normal', name: '普通会员', icon: '🥉', minPoints: 0, benefits: ['基础积分'] },
-      { code: 'silver', name: '银卡会员', icon: '🥈', minPoints: 500, benefits: ['1.2倍积分', '生日礼包'] },
-      { code: 'gold', name: '金卡会员', icon: '🥇', minPoints: 2000, benefits: ['1.5倍积分', '专属折扣', '优先客服'] },
-      { code: 'diamond', name: '钻石会员', icon: '💎', minPoints: 5000, benefits: ['2倍积分', '免运费', '新品优先', '专属客服'] },
+      { code: 'lv1', name: 'LV.1 新人', icon: '🌱', minPoints: 0, benefits: ['基础积分', '公开内容'] },
+      { code: 'lv2', name: 'LV.2 进阶', icon: '📘', minPoints: 500, benefits: ['9.5折资料包', '专属专题'] },
+      { code: 'lv3', name: 'LV.3 高级', icon: '👑', minPoints: 1200, benefits: ['9折', '成长加速'] },
+      { code: 'lv4', name: 'LV.4 资深', icon: '💎', minPoints: 2000, benefits: ['9折', '季度 1v1'] },
     ],
   },
 
@@ -44,6 +43,9 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 })
+    }
     this.fetchMemberInfo()
   },
 

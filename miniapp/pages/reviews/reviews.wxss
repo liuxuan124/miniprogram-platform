@@ -1,0 +1,23 @@
+/* pages/reviews/reviews.wxss */
+.reviews-page { min-height: 100vh; background: var(--bg); padding: 24rpx; padding-bottom: 60rpx; }
+.card { background: #fff; border-radius: 32rpx; box-shadow: var(--sh1); padding: 28rpx; margin-bottom: 20rpx; }
+.summary { display: flex; gap: 28rpx; align-items: stretch; }
+.score { width: 160rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score .num { font-size: 64rpx; font-weight: 800; color: var(--brand); letter-spacing: -0.04em; }
+.score .label { font-size: 22rpx; color: var(--ink-300); margin-top: 8rpx; }
+.bars { flex: 1; }
+.bar-row { display: flex; align-items: center; gap: 12rpx; margin-bottom: 10rpx; }
+.bar-row .s { width: 56rpx; font-size: 20rpx; color: var(--ink-500); }
+.bar-row .c { width: 40rpx; text-align: right; font-size: 20rpx; color: var(--ink-300); }
+.track { flex: 1; height: 12rpx; background: var(--line-2); border-radius: 999rpx; overflow: hidden; }
+.fill { height: 100%; background: linear-gradient(90deg, #6d8cff, var(--brand)); border-radius: 999rpx; }
+.tags { white-space: nowrap; margin-bottom: 16rpx; }
+.tag { display: inline-block; margin-right: 12rpx; padding: 10rpx 22rpx; border-radius: 999rpx; background: #fff; color: var(--ink-700); font-size: 24rpx; border: 2rpx solid var(--line); }
+.tag.on { background: var(--brand-50); color: var(--brand); border-color: var(--brand-100); font-weight: 600; }
+.item .hd { display: flex; justify-content: space-between; align-items: center; }
+.item .name { font-weight: 700; font-size: 28rpx; }
+.item .stars { color: var(--gold); font-size: 24rpx; }
+.tagline { margin-top: 12rpx; }
+.tagline .t { display: inline-block; margin-right: 8rpx; font-size: 20rpx; color: var(--brand); background: var(--brand-50); padding: 4rpx 12rpx; border-radius: 8rpx; }
+.body { margin-top: 14rpx; font-size: 28rpx; color: var(--ink-700); line-height: 1.7; }
+.time { margin-top: 12rpx; font-size: 22rpx; color: var(--ink-300); }

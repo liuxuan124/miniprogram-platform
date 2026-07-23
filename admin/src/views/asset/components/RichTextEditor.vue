@@ -17,7 +17,7 @@
         <div class="cover-upload">
           <div v-if="coverPreviewUrl" class="cover-preview">
             <img :src="coverPreviewUrl" alt="封面预览" />
-            <el-button class="cover-remove" type="danger" circle size="small" :icon="Close" @click="removeCover" />
+            <el-button class="cover-remove" type="danger" circle size="small" :icon="Close" aria-label="移除封面图" @click="removeCover" />
           </div>
           <el-upload
             v-else

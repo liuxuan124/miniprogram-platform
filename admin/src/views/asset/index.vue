@@ -273,7 +273,7 @@
 
     <!-- 移动到弹窗 -->
     <el-dialog v-model="moveDialogVisible" title="移动到分类" width="420px" :close-on-click-modal="false">
-      <p style="margin: 0 0 12px; color: #666; font-size: 13px;">将 {{ selectedIds.size }} 个素材移动到：</p>
+      <p style="margin: 0 0 12px; color: var(--text-secondary); font-size: 13px;">将 {{ selectedIds.size }} 个素材移动到：</p>
       <el-select v-model="moveTargetGroupId" placeholder="选择目标分类" style="width: 100%">
         <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
       </el-select>
@@ -774,7 +774,7 @@ onMounted(refreshAll)
   gap: 12px;
   h1 { margin: 0; font-size: 22px; font-weight: 800; color: #111; }
 }
-.header-meta { color: #999; font-size: 13px; }
+.header-meta { color: var(--text-muted); font-size: 13px; }
 .header-right { display: flex; align-items: center; gap: 8px; }
 
 /* ===== 类型标签导航（微盟风格） ===== */
@@ -801,8 +801,8 @@ onMounted(refreshAll)
   white-space: nowrap;
   transition: all 0.15s;
   font-size: 13px;
-  color: #666;
-  &:hover { background: #f3f5f8; color: #333; }
+  color: var(--text-secondary);
+  &:hover { background: #f3f5f8; color: var(--text); }
   &.active {
     background: #2469f0;
     color: #fff;
@@ -817,7 +817,7 @@ onMounted(refreshAll)
   padding: 1px 8px;
   border-radius: 10px;
   background: #f0f1f4;
-  color: #999;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -842,7 +842,7 @@ onMounted(refreshAll)
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px 10px;
-  .sidebar-title { font-size: 13px; font-weight: 700; color: #333; letter-spacing: 0.3px; }
+  .sidebar-title { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 0.3px; }
 }
 .sidebar-scroll {
   padding: 0 8px 8px;
@@ -873,8 +873,8 @@ onMounted(refreshAll)
   }
 }
 .sidebar-icon { font-size: 15px; flex-shrink: 0; }
-.sidebar-label { flex: 1; font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-count { font-size: 11px; color: #999; font-variant-numeric: tabular-nums; }
+.sidebar-label { flex: 1; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-count { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .sidebar-divider { height: 1px; background: #edf0f5; margin: 6px 2px; }
 .sidebar-footer { padding: 8px 16px 12px; border-top: 1px solid #edf0f5; }
 
@@ -907,7 +907,7 @@ onMounted(refreshAll)
   border: 1px solid #d6e4ff;
   border-radius: 10px;
 }
-.selection-info { font-size: 13px; color: #333; strong { color: #2469f0; } }
+.selection-info { font-size: 13px; color: var(--text); strong { color: #2469f0; } }
 .selection-actions { display: flex; align-items: center; gap: 8px; }
 
 /* ===== 网格视图 ===== */
@@ -970,8 +970,8 @@ onMounted(refreshAll)
 }
 .list-info { display: flex; flex-direction: column; gap: 2px; }
 .list-name { font-size: 13px; color: #222; font-weight: 500; }
-.list-date { font-size: 11px; color: #999; }
-.sync-pending { font-size: 12px; color: #999; }
+.list-date { font-size: 11px; color: var(--text-muted); }
+.sync-pending { font-size: 12px; color: var(--text-muted); }
 
 /* ===== 页脚 ===== */
 .material-footer {
@@ -981,7 +981,7 @@ onMounted(refreshAll)
   gap: 16px;
   padding-top: 16px;
 }
-.footer-info { font-size: 12px; color: #999; }
+.footer-info { font-size: 12px; color: var(--text-muted); }
 
 /* ===== 拖拽浮层 ===== */
 .drop-overlay {
@@ -1004,7 +1004,7 @@ onMounted(refreshAll)
   background: #fff;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
   .drop-icon { font-size: 48px; color: #2469f0; }
-  .drop-text { font-size: 16px; color: #333; font-weight: 600; }
+  .drop-text { font-size: 16px; color: var(--text); font-weight: 600; }
 }
 
 /* ===== 过渡 ===== */

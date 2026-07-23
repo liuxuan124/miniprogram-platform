@@ -1,6 +1,82 @@
 /**
- * 全局样式
+ * 全局样式 + 设计令牌
  */
+
+:root {
+  /* Brand */
+  --brand: #1769ff;
+  --brand-hover: #1458d9;
+  --brand-soft: #eaf1ff;
+  --brand-ink: #0f172a;
+
+  /* Semantic */
+  --success: #0faa6e;
+  --success-soft: #e8faf3;
+  --warning: #f59e0b;
+  --warning-soft: #fff8e6;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --info: #64748b;
+  --info-soft: #f1f5f9;
+
+  /* Surfaces */
+  --bg-page: #f5f7fb;
+  --bg-elevated: #ffffff;
+  --border: #e5eaf3;
+  --border-strong: #d6deeb;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-muted: #94a3b8;
+
+  /* Type color */
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+
+  /* Type scale — 统一层级，页面不再手写 px */
+  --font-h1: 22px;
+  --font-h2: 18px;
+  --font-h3: 16px;
+  --font-body: 14px;
+  --font-sm: 13px;
+  --font-caption: 12px;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Radius — 三档，替代此前 8 种并存的圆角值 */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12), 0 4px 8px rgba(15, 23, 42, 0.04);
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+
+  /* Element Plus theme bridge */
+  --el-color-primary: var(--brand);
+  --el-color-primary-light-3: #5b93ff;
+  --el-color-primary-light-5: #8bb1ff;
+  --el-color-primary-light-7: #bcd0ff;
+  --el-color-primary-light-8: #d4e2ff;
+  --el-color-primary-light-9: var(--brand-soft);
+  --el-color-primary-dark-2: var(--brand-hover);
+  --el-color-success: var(--success);
+  --el-color-warning: var(--warning);
+  --el-color-danger: var(--danger);
+  --el-color-info: var(--info);
+}
 
 /* CSS Reset */
 *,
@@ -18,10 +94,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
     'Segoe UI Symbol', 'Noto Color Emoji';
-  font-size: 14px;
+  font-size: var(--font-body);
   line-height: 1.5;
-  color: #333;
-  background-color: #f5f7fa;
+  color: var(--text);
+  background-color: var(--bg-page);
   overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -63,16 +139,16 @@ img {
 
 /* NProgress 自定义颜色 */
 #nprogress .bar {
-  background: #409eff !important;
+  background: var(--brand) !important;
 }
 
 #nprogress .peg {
-  box-shadow: 0 0 10px #409eff, 0 0 5px #409eff !important;
+  box-shadow: 0 0 10px var(--brand), 0 0 5px var(--brand) !important;
 }
 
 /* Element Plus 全局覆盖 */
 .el-card {
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 /* 后台主内容区：防止宽表格/工具栏撑破视口 */
@@ -117,4 +193,88 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+/* ============================================================
+ * 语义化排版类（A3）
+ * 页面统一写类名，不再直接写 font-size/color px 值。
+ * 调整层级只需改这里一处。
+ * ============================================================ */
+
+.page-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-h1);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.section-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-h2);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.card-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-h3);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.text-body {
+  color: var(--text);
+  font-size: var(--font-body);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-caption {
+  color: var(--text-muted);
+  font-size: var(--font-caption);
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+/* 卡片与阴影语义类 */
+.surface-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-card--lg {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* 间距工具类，按 --space-* 生成，逐步替代硬编码 margin/padding */
+@each $name, $size in (1: var(--space-1), 2: var(--space-2), 3: var(--space-3), 4: var(--space-4), 5: var(--space-5), 6: var(--space-6)) {
+  .mt-#{$name} { margin-top: $size; }
+  .mb-#{$name} { margin-bottom: $size; }
+  .ml-#{$name} { margin-left: $size; }
+  .mr-#{$name} { margin-right: $size; }
+  .pt-#{$name} { padding-top: $size; }
+  .pb-#{$name} { padding-bottom: $size; }
+  .gap-#{$name} { gap: $size; }
 }

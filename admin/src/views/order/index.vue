@@ -1,5 +1,16 @@
 <template>
   <div class="order-list-page">
+    <PageHeader
+      kicker="商业变现 / 订单管理"
+      title="订单管理"
+      description="查看订单状态、发货与退款审核，跟踪成交与履约。"
+    >
+      <template #actions>
+        <el-button :loading="exporting" :disabled="exporting" @click="handleExport">导出报表</el-button>
+        <el-button type="warning" @click="goRefund">退款审核</el-button>
+      </template>
+    </PageHeader>
+
     <!-- 顶部财务统计卡片 -->
     <el-row :gutter="20" class="finance-section">
       <el-col :xs="12" :sm="6" v-for="item in financeCards" :key="item.title">
@@ -26,10 +37,6 @@
       <template #header>
         <div class="card-header">
           <span>订单列表</span>
-          <div class="header-actions">
-            <el-button :loading="exporting" :disabled="exporting" @click="handleExport">导出报表</el-button>
-            <el-button type="warning" @click="goRefund">退款审核</el-button>
-          </div>
         </div>
       </template>
 
@@ -66,7 +73,14 @@
       </el-form>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="tableData" border stripe>
+      <ListStateWrap
+        :loading="loading"
+        :empty="!loading && tableData.length === 0"
+        empty-text="暂无订单数据"
+        empty-description="调整筛选条件后重新查询，或等待新订单产生"
+        @retry="fetchList"
+      >
+      <el-table :data="tableData" border stripe>
         <el-table-column prop="order_no" label="订单号" min-width="170" />
         <el-table-column label="用户" width="130">
           <template #default="{ row }">
@@ -163,6 +177,7 @@
           @current-change="fetchList"
         />
       </div>
+      </ListStateWrap>
     </el-card>
 
     <!-- 发货/核销/确认预约弹窗 -->
@@ -289,6 +304,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
+import ListStateWrap from '@/components/ListStateWrap.vue'
 import { getOrderList, shipOrder, getOrderStatistics } from '@/api/order'
 import type { OrderRecord, OrderListParams, OrderStatistics } from '@/types/order'
 import { OrderStatus, OrderStatusLabels, OrderStatusTagType } from '@/types/order'

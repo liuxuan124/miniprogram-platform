@@ -1,0 +1,52 @@
+/* pages/library/library.wxss */
+.library-page {
+  min-height: 100vh;
+  background: #f5f6f9;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+.hint {
+  font-size: 24rpx;
+  color: #8b93a7;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+  padding: 0 4rpx;
+}
+.card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(15, 18, 25, 0.04);
+}
+.cover {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  background: #e8ebf5;
+  flex-shrink: 0;
+}
+.info { flex: 1; min-width: 0; }
+.badge {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #2f5bff;
+  background: #eef2ff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-weight: 600;
+}
+.title {
+  margin-top: 10rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #0f1219;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta { margin-top: 8rpx; font-size: 22rpx; color: #a5abb9; }
+.go { color: #2f5bff; font-size: 26rpx; font-weight: 600; flex-shrink: 0; }

@@ -43,6 +43,12 @@ export const constantRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/page-builder/h5-preview.vue'),
     meta: { title: 'H5预览', hidden: true },
   },
+  {
+    path: '/h5/miniapp-preview',
+    name: 'MiniappFullPreview',
+    component: () => import('@/views/page-builder/miniapp-full-preview.vue'),
+    meta: { title: '小程序预览', hidden: true },
+  },
 ]
 
 /** 动态路由（需登录 + 权限过滤） */
@@ -52,8 +58,19 @@ export const asyncRoutes: RouteRecordRaw[] = [
     component: Layout,
     name: 'PageBuilder',
     meta: { title: '页面装修', icon: 'Monitor' },
-    redirect: '/page-builder/list',
+    redirect: '/page-builder/start',
     children: [
+      {
+        path: 'start',
+        name: 'PageBuilderStart',
+        component: () => import('@/views/page-builder/miniapp-builder.vue'),
+        meta: { title: '搭建小程序', icon: 'Cellphone' },
+      },
+      {
+        // 兼容旧链接「小程序配置」
+        path: 'miniapp',
+        redirect: '/page-builder/start',
+      },
       {
         path: 'list',
         name: 'PageBuilderList',
@@ -64,13 +81,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'template-center',
         name: 'TemplateCenter',
         component: () => import('@/views/page-builder/template-center.vue'),
-        meta: { title: '模板中心', icon: 'Shop' },
-      },
-      {
-        path: 'miniapp',
-        name: 'MiniappBuilder',
-        component: () => import('@/views/page-builder/miniapp-builder.vue'),
-        meta: { title: '小程序搭建', icon: 'Cellphone' },
+        meta: { title: '页面模板', icon: 'Shop' },
       },
       {
         path: 'version-management',

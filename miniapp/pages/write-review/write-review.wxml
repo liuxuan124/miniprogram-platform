@@ -1,0 +1,41 @@
+<!-- pages/write-review/write-review.wxml -->
+<view class="wr-page">
+  <view class="card prod">
+    <image class="cover" src="{{productImage || '/images/default-product.svg'}}" mode="aspectFill" />
+    <view class="info">
+      <view class="name">{{productName || '商品'}}</view>
+      <view class="meta">订单完成后的真实评价</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="label">整体评分</view>
+    <view class="stars">
+      <text wx:for="{{starList}}" wx:key="*this" class="star {{item <= score ? 'on' : ''}}" data-s="{{item}}" bindtap="onStar">★</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="label">哪些地方对你有帮助</view>
+    <view class="chips">
+      <view wx:for="{{tagOptions}}" wx:key="*this" class="chip {{selectedTags.indexOf(item)>=0?'on':''}}" data-tag="{{item}}" bindtap="onToggleTag">{{item}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="label">详细评价</view>
+    <textarea class="ta" maxlength="500" placeholder="说说你的使用感受，帮助后来的同学少走弯路" value="{{content}}" bindinput="onContent" />
+    <view class="pics">
+      <image wx:for="{{images}}" wx:key="*this" class="pic" src="{{item}}" mode="aspectFill" data-i="{{index}}" bindtap="onPreviewImg" bindlongpress="onRemoveImg" />
+      <view class="add" wx:if="{{images.length < 4}}" bindtap="onAddImg">＋<text>添加图片</text></view>
+    </view>
+    <view class="anon" bindtap="onAnon">
+      <text class="ck {{anonymous?'on':''}}">{{anonymous?'✓':''}}</text>
+      <text>匿名评价</text>
+    </view>
+  </view>
+
+  <view class="footer">
+    <view class="btn btn-p" bindtap="onSubmit">提交评价</view>
+  </view>
+</view>

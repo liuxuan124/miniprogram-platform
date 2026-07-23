@@ -495,7 +495,7 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 .header-left h1 { font-size: 24px; font-weight: 800; margin: 0 0 4px; color: #1a1a2e; }
-.header-desc { color: #7b8798; font-size: 14px; margin: 0; }
+.header-desc { color: var(--text-muted); font-size: 14px; margin: 0; }
 .header-right { padding-top: 4px; }
 
 .mode-toggle-bar {
@@ -516,7 +516,7 @@ onMounted(async () => {
   user-select: none; font-size: 13px; color: #60687a;
 }
 .mode-tab:hover { background: #f5f7fa; }
-.mode-tab.active { background: #1769ff; color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(23,105,255,0.25); }
+.mode-tab.active { background: var(--brand); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(23,105,255,0.25); }
 .mode-icon { font-size: 16px; }
 
 /* Template Gallery */
@@ -541,7 +541,7 @@ onMounted(async () => {
   border-color: rgba(23,105,255,0.2);
 }
 .pc-template-card.selected {
-  border-color: #1769ff;
+  border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(23,105,255,0.12), 0 12px 32px rgba(0,0,0,0.1);
 }
 
@@ -585,7 +585,7 @@ onMounted(async () => {
   right: 10px;
   width: 26px;
   height: 26px;
-  background: #1769ff;
+  background: var(--brand);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -600,15 +600,15 @@ onMounted(async () => {
 
 .card-body { padding: 16px; }
 .card-title { font-size: 15px; font-weight: 700; margin: 0 0 6px; color: #1a1a2e; }
-.card-desc { font-size: 12px; color: #7b8798; line-height: 1.5; margin: 0 0 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0 0 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .card-features { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
 .feature-tag {
   padding: 2px 8px;
-  background: #f0f4ff;
+  background: var(--brand-soft);
   border-radius: 99px;
   font-size: 11px;
-  color: #1769ff;
+  color: var(--brand);
 }
 
 .card-actions { display: flex; gap: 4px; justify-content: flex-end; }
@@ -627,7 +627,7 @@ onMounted(async () => {
   color: #a0b4d0;
 }
 .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
-.empty-sub { font-size: 12px; color: #c0c4cc; margin-top: 4px; }
+.empty-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
 /* Customize View */
 .customize-view { min-height: 600px; }
@@ -658,11 +658,11 @@ onMounted(async () => {
 .preview-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .tpl-icon-lg { font-size: 36px; }
 .preview-title-row h3 { margin: 0; font-size: 18px; }
-.style-badge { font-size: 11px; background: #f0f4ff; color: #1769ff; padding: 2px 10px; border-radius: 99px; }
-.preview-desc { color: #7b8798; font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
+.style-badge { font-size: 11px; background: var(--brand-soft); color: var(--brand); padding: 2px 10px; border-radius: 99px; }
+.preview-desc { color: var(--text-muted); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
 .preview-structure { margin-bottom: 12px; }
 .preview-structure strong { font-size: 12px; color: #4b5563; }
-.preview-structure p { font-size: 12px; color: #7b8798; margin: 4px 0 0; line-height: 1.5; }
+.preview-structure p { font-size: 12px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.5; }
 .preview-colors { margin-bottom: 12px; }
 .preview-colors strong { font-size: 12px; color: #4b5563; display: block; margin-bottom: 6px; }
 .color-swatches { display: flex; gap: 8px; }
@@ -676,7 +676,7 @@ onMounted(async () => {
 .phone-mockup {
   width: 340px; min-height: 640px; max-height: 700px;
   background: #111827; border-radius: 36px; padding: 10px;
-  box-shadow: 0 0 0 2px #333, 0 20px 60px rgba(0,0,0,0.25), inset 0 0 4px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 2px var(--text), 0 20px 60px rgba(0,0,0,0.25), inset 0 0 4px rgba(0,0,0,0.4);
   display: flex; flex-direction: column;
 }
 .phone-notch { width: 120px; height: 26px; background: #111827; border-radius: 0 0 16px 16px; margin: 0 auto; flex-shrink: 0; }
@@ -684,7 +684,7 @@ onMounted(async () => {
 .phone-screen::-webkit-scrollbar { display: none; }
 .screen-scroll { padding: 6px; min-height: 100%; }
 .prev-comp { margin-bottom: 4px; border-radius: 8px; overflow: hidden; }
-.prev-empty { text-align: center; padding: 60px 20px; color: #c0c4cc; font-size: 13px; }
+.prev-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 13px; }
 .phone-home-indicator { width: 110px; height: 4px; background: #555; border-radius: 2px; margin: 6px auto 4px; flex-shrink: 0; }
 
 /* Apply Confirm */
@@ -692,7 +692,7 @@ onMounted(async () => {
 .confirm-icon-wrap { margin-bottom: 10px; }
 .confirm-icon { font-size: 52px; }
 .apply-confirm-body h3 { margin: 0 0 6px; font-size: 17px; }
-.apply-confirm-body p { color: #7b8798; font-size: 13px; margin: 2px 0; }
+.apply-confirm-body p { color: var(--text-muted); font-size: 13px; margin: 2px 0; }
 .confirm-hint { color: #a0b4d0 !important; font-size: 12px !important; }
 
 /* Save Status Bar */

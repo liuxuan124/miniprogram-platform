@@ -1,7 +1,7 @@
 <!-- pages/order-create/order-create.wxml — 订单创建页 -->
 <view class="order-create-page">
-  <!-- 收货地址 -->
-  <view class="address-section" bindtap="onSelectAddress">
+  <!-- 收货地址（实物） -->
+  <view class="address-section" bindtap="onSelectAddress" wx:if="{{!isVirtual}}">
     <view wx:if="{{hasAddress && address}}" class="address-card">
       <view class="address-icon">
         <image class="address-icon-img" src="/images/icon-location.svg" mode="aspectFit" />
@@ -21,9 +21,13 @@
     </view>
   </view>
 
+  <view class="virtual-tip" wx:else>
+    📄 虚拟商品说明：资料包为数字内容，支付成功后立即解锁，可在「我的 - 已购资料」永久查看；一经购买不支持退款。1v1 咨询可在服务开始前 24 小时免费改期或取消。
+  </view>
+
   <!-- 商品列表 -->
   <view class="goods-section">
-    <view class="section-title">商品信息</view>
+    <view class="section-title">商品信息 · 共 {{totalQuantity}} 件</view>
     <view
       wx:for="{{items}}"
       wx:key="product_id"
@@ -38,6 +42,38 @@
           <text class="goods-qty">x{{item.quantity}}</text>
         </view>
       </view>
+    </view>
+  </view>
+
+  <!-- 优惠 / 积分 / 发票 -->
+  <view class="prefer-block">
+    <view class="prefer-row" bindtap="onOpenCoupon">
+      <text>🎫 优惠券</text>
+      <text class="v accent">{{couponLabel}}</text>
+      <text class="ar">›</text>
+    </view>
+    <view class="prefer-row" bindtap="onTogglePoints">
+      <text>⭐ 积分抵扣</text>
+      <text class="v">{{pointsBalance}} 积分可抵 ¥{{pointsCanDeduct}}</text>
+      <view class="switch {{usePoints ? 'on' : ''}}"><view class="knob"></view></view>
+    </view>
+    <view class="prefer-row" bindtap="onPickInvoice">
+      <text>🧾 发票</text>
+      <text class="v">{{invoiceLabel}}</text>
+      <text class="ar">›</text>
+    </view>
+  </view>
+
+  <!-- 支付方式 -->
+  <view class="pay-block">
+    <view class="section-title">支付方式</view>
+    <view class="prefer-row" data-pay="wechat" bindtap="onPickPay">
+      <text>💚 微信支付</text>
+      <view class="check {{payMethod==='wechat'?'on':''}}">{{payMethod==='wechat'?'✓':''}}</view>
+    </view>
+    <view class="prefer-row" data-pay="balance" bindtap="onPickPay">
+      <text>💰 账户余额 (¥{{balance}})</text>
+      <view class="check {{payMethod==='balance'?'on':''}}">{{payMethod==='balance'?'✓':''}}</view>
     </view>
   </view>
 
@@ -56,30 +92,57 @@
   <!-- 价格汇总 -->
   <view class="price-summary">
     <view class="summary-row">
-      <text class="summary-label">商品金额</text>
+      <text class="summary-label">商品总额</text>
       <text class="summary-value">&#165;{{totalPrice}}</text>
+    </view>
+    <view class="summary-row" wx:if="{{couponDiscount}}">
+      <text class="summary-label">优惠券</text>
+      <text class="summary-value accent">-&#165;{{couponDiscount}}</text>
+    </view>
+    <view class="summary-row" wx:if="{{usePoints && pointsDiscount}}">
+      <text class="summary-label">积分抵扣</text>
+      <text class="summary-value accent">-&#165;{{pointsDiscount}}</text>
+    </view>
+    <view class="summary-row" wx:if="{{memberDiscount}}">
+      <text class="summary-label">会员折扣（9.5折）</text>
+      <text class="summary-value accent">-&#165;{{memberDiscount}}</text>
     </view>
     <view class="summary-row">
       <text class="summary-label">运费</text>
       <text class="summary-value">&#165;0.00</text>
     </view>
     <view class="summary-row total-row">
-      <text class="summary-label">合计</text>
-      <text class="summary-value total-price">&#165;{{totalPrice}}</text>
+      <text class="summary-label">实付</text>
+      <text class="summary-value total-price">&#165;{{payAmount}}</text>
     </view>
   </view>
 
   <!-- 底部提交栏 -->
   <view class="bottom-bar">
     <view class="bottom-total">
-      <text class="bottom-total-label">合计:</text>
-      <text class="bottom-total-price">&#165;{{totalPrice}}</text>
+      <text class="bottom-total-label">实付</text>
+      <text class="bottom-total-price">&#165;{{payAmount}}</text>
     </view>
     <view
       class="submit-btn {{submitting ? 'disabled' : ''}}"
       bindtap="onSubmitOrder"
     >
-      {{submitting ? '提交中...' : '提交订单，顾问确认'}}
+      {{submitting ? '提交中...' : '提交订单'}}
     </view>
   </view>
+
+  <pay-sheet
+    show="{{showPaySheet}}"
+    amount="{{payAmount}}"
+    bind:close="onPayClose"
+    bind:confirm="onPayConfirm"
+  />
+  <coupon-sheet
+    show="{{showCouponSheet}}"
+    coupons="{{coupons}}"
+    selected-id="{{selectedCouponId}}"
+    bind:close="onCouponClose"
+    bind:pick="onCouponPick"
+    bind:confirm="onCouponConfirm"
+  />
 </view>

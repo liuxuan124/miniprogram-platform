@@ -1,12 +1,34 @@
-/* app.wxss — 全局样式 */
+/* app.wxss — 全局样式 · 出海笔记原型 Token */
 
-/* ========== 基础重置 ========== */
 page {
+  --brand: #2f5bff;
+  --brand-600: #1c3fd6;
+  --brand-50: #eef2ff;
+  --brand-100: #dfe6ff;
+  --accent: #ff6b3d;
+  --accent-50: #fff2ee;
+  --gold: #e9a319;
+  --ink: #0f1219;
+  --ink-700: #39404f;
+  --ink-500: #727a8c;
+  --ink-300: #a5abb9;
+  --line: #edeff4;
+  --line-2: #f5f6f9;
+  --bg: #f7f8fc;
+  --card: #ffffff;
+  --ok: #0fb47f;
+  --warn: #e2564a;
+  --r: 32rpx;
+  --r-s: 20rpx;
+  --r-l: 44rpx;
+  --sh1: 0 2rpx 4rpx rgba(15, 18, 25, 0.04), 0 6rpx 20rpx rgba(15, 18, 25, 0.045);
+  --sh2: 0 8rpx 28rpx rgba(15, 18, 25, 0.07), 0 28rpx 76rpx rgba(15, 18, 25, 0.07);
+
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
     'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   font-size: 28rpx;
-  color: #333333;
-  background-color: #f5f5f5;
+  color: var(--ink);
+  background-color: var(--bg);
   box-sizing: border-box;
 }
 
@@ -21,8 +43,28 @@ view, text, image, button, input, textarea, scroll-view {
 
 .page-wrapper {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg);
 }
+
+/* 原型通用按钮 */
+.btn-p {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 16rpx 40rpx rgba(47, 91, 255, 0.3);
+}
+.btn-g {
+  background: var(--brand-50);
+  color: var(--brand);
+}
+.btn-o {
+  background: #fff;
+  border: 3rpx solid var(--line);
+  color: var(--ink-700);
+}
+
+.text-brand { color: var(--brand); }
+.text-accent { color: var(--accent); }
+.bg-brand-50 { background: var(--brand-50); }
 
 /* ========== Flex 布局工具类 ========== */
 .flex-row {
@@ -76,7 +118,7 @@ view, text, image, button, input, textarea, scroll-view {
 }
 
 .text-primary {
-  color: #1890ff;
+  color: var(--brand);
 }
 
 .text-secondary {

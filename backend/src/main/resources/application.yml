@@ -44,7 +44,7 @@ jwt:
 # 跨域允许来源（生产由 APP_CORS_ALLOWED_ORIGINS 注入具体域名）
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
 
 # Swagger / OpenAPI
 springdoc:

@@ -1,0 +1,13 @@
+<!-- components/toc-sheet/toc-sheet.wxml -->
+<view class="mask" wx:if="{{show}}" bindtap="onClose"></view>
+<view class="sheet {{show?'on':''}}">
+  <view class="h"><text>目录 · 共 {{toc.length}} 章</text><text class="x" bindtap="onClose">✕</text></view>
+  <scroll-view scroll-y class="b">
+    <view wx:for="{{toc}}" wx:key="index" class="item" data-index="{{index}}" bindtap="onJump">
+      <text class="n">{{item.no}}</text>
+      <text class="t">{{item.title}}</text>
+      <text wx:if="{{item.preview}}" class="lk">可试读</text>
+    </view>
+  </scroll-view>
+  <view class="f"><view class="btn" bindtap="onPdf">下载完整 PDF</view></view>
+</view>

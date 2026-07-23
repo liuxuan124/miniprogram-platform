@@ -1,0 +1,13 @@
+/* components/pay-sheet/pay-sheet.wxss */
+.mask { position:fixed; inset:0; background:rgba(10,13,20,.45); z-index:90; }
+.sheet { position:fixed; left:0; right:0; bottom:0; background:#fff; border-radius: 40rpx 40rpx 0 0; z-index:91; transform: translateY(110%); transition: transform .28s cubic-bezier(.32,.72,0,1); padding-bottom: env(safe-area-inset-bottom); }
+.sheet.on { transform: none; }
+.h { display:flex; align-items:center; padding: 28rpx 32rpx 12rpx; font-size: 32rpx; font-weight:700; }
+.x { margin-left:auto; color: var(--ink-300); font-size: 34rpx; }
+.amount { text-align:center; font-size: 64rpx; font-weight:800; color: var(--ink); padding: 12rpx 0 28rpx; letter-spacing:-0.04em; }
+.methods { padding: 0 32rpx; }
+.m { display:flex; align-items:center; justify-content:space-between; padding: 28rpx 24rpx; border: 2rpx solid var(--line); border-radius: 24rpx; margin-bottom: 16rpx; font-size: 28rpx; }
+.m.on { border-color: var(--brand); background: var(--brand-50); }
+.ck { color: var(--brand); }
+.f { padding: 20rpx 32rpx 28rpx; }
+.btn { height: 88rpx; border-radius: 999rpx; background: var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; box-shadow: 0 16rpx 40rpx rgba(47,91,255,.3); }

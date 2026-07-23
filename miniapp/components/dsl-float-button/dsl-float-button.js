@@ -111,7 +111,7 @@ Component({
         return
       }
       if (config.action_type === 'ai') {
-        executeAction({ type: 'page', path: '/pages/ai-agent/ai-agent' })
+        executeAction({ type: 'page', path: config.link_url || '/pages/ai-chat/ai-chat' })
         return
       }
       if (config.link_url) {

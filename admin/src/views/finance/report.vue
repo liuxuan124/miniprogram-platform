@@ -703,13 +703,13 @@ onBeforeUnmount(() => {
     h2 {
       font-size: 20px;
       font-weight: 600;
-      color: #303133;
+      color: var(--text);
       margin: 0 0 4px;
     }
 
     p {
       font-size: 13px;
-      color: #909399;
+      color: var(--text-muted);
       margin: 0;
     }
   }
@@ -768,26 +768,26 @@ onBeforeUnmount(() => {
 
       .summary-label {
         font-size: 13px;
-        color: #909399;
+        color: var(--text-muted);
         margin-bottom: 8px;
       }
 
       .summary-value {
         font-size: 22px;
         font-weight: 700;
-        color: #303133;
+        color: var(--text);
 
         &.negative {
-          color: #f56c6c;
+          color: var(--danger);
         }
       }
 
       &.income .summary-value {
-        color: #67c23a;
+        color: var(--success);
       }
 
       &.expense .summary-value {
-        color: #f56c6c;
+        color: var(--danger);
       }
 
       &.profit .summary-value {
@@ -795,7 +795,7 @@ onBeforeUnmount(() => {
       }
 
       &.avg .summary-value {
-        color: #e6a23c;
+        color: var(--warning);
       }
     }
   }
@@ -815,7 +815,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(.el-table .row-highlight td) {
-    background-color: #ecf5ff !important;
+    background-color: var(--brand-soft) !important;
   }
 
   // 现金流量表
@@ -829,7 +829,7 @@ onBeforeUnmount(() => {
       font-weight: 600;
       margin-bottom: 16px;
       padding-bottom: 8px;
-      border-bottom: 2px solid #ebeef5;
+      border-bottom: 2px solid var(--border);
     }
 
     &.operating .cashflow-title {
@@ -838,13 +838,13 @@ onBeforeUnmount(() => {
     }
 
     &.investing .cashflow-title {
-      border-color: #e6a23c;
-      color: #e6a23c;
+      border-color: var(--warning);
+      color: var(--warning);
     }
 
     &.financing .cashflow-title {
-      border-color: #67c23a;
-      color: #67c23a;
+      border-color: var(--success);
+      color: var(--success);
     }
 
     .cashflow-row {
@@ -855,25 +855,25 @@ onBeforeUnmount(() => {
 
       .cashflow-label {
         font-size: 13px;
-        color: #606266;
+        color: var(--text-secondary);
 
         &.net {
           font-weight: 600;
-          color: #303133;
+          color: var(--text);
         }
       }
 
       .cashflow-value {
         font-size: 15px;
         font-weight: 600;
-        color: #303133;
+        color: var(--text);
 
         &.inflow {
-          color: #67c23a;
+          color: var(--success);
         }
 
         &.outflow {
-          color: #f56c6c;
+          color: var(--danger);
         }
 
         &.net {
@@ -882,7 +882,7 @@ onBeforeUnmount(() => {
         }
 
         &.negative {
-          color: #f56c6c;
+          color: var(--danger);
         }
       }
     }
@@ -898,17 +898,17 @@ onBeforeUnmount(() => {
 
       .summary-label {
         font-size: 13px;
-        color: #909399;
+        color: var(--text-muted);
         margin-bottom: 6px;
       }
 
       .summary-value {
         font-size: 20px;
         font-weight: 700;
-        color: #303133;
+        color: var(--text);
 
         &.negative {
-          color: #f56c6c;
+          color: var(--danger);
         }
       }
     }
@@ -916,12 +916,12 @@ onBeforeUnmount(() => {
 
   // 分类对比变动率
   .change-up {
-    color: #67c23a;
+    color: var(--success);
     font-weight: 500;
   }
 
   .change-down {
-    color: #f56c6c;
+    color: var(--danger);
     font-weight: 500;
   }
 }

@@ -16,12 +16,18 @@ function isImageUrl(str) {
     (str.indexOf('/') === 0 && (str.indexOf('.jpg') > -1 || str.indexOf('.png') > -1 || str.indexOf('.jpeg') > -1 || str.indexOf('.gif') > -1 || str.indexOf('.webp') > -1 || str.indexOf('.svg') > -1 || str.indexOf('.bmp') > -1))
 }
 
-// ========== 支持的 25 种组件类型 ==========
+// ========== 支持的 27 种组件类型 ==========
+// C1/C2 修复：此前 IMAGE、FORM_ENTRY 未登记在此白名单，
+// 其中 image 已有渲染分支但会被 validateDSL 误判为"未知组件类型"，
+// form_entry 此前连渲染分支都没有（发布后小程序端白屏）。
+// 此列表须与 admin/src/types/page.ts 的 ComponentType 枚举保持同步，
+// 它同时也是 C2 后台发布前"渲染端能力校验"的比对基准。
 const COMPONENT_TYPES = {
   SEARCH: 'search',
   NOTICE_BAR: 'notice_bar',
   CATEGORY_NAV: 'category_nav',
   BANNER: 'banner',
+  IMAGE: 'image',
   NAV: 'nav',
   PRODUCT_LIST: 'product_list',
   FLASH_SALE: 'flash_sale',
@@ -43,6 +49,7 @@ const COMPONENT_TYPES = {
   SECTION_TITLE: 'section_title',
   DIVIDER: 'divider',
   SPACER: 'spacer',
+  FORM_ENTRY: 'form_entry',
 }
 
 // 需要数据源的组件类型
@@ -259,6 +266,8 @@ async function loadAllComponentData(components, forceRefresh = false) {
 
 const TAB_PAGE_PATHS = [
   '/pages/index/index',
+  '/pages/content-list/content-list',
+  '/pages/product-list/product-list',
   '/pages/mine/mine',
 ]
 
@@ -273,6 +282,19 @@ function stripQuery(path) {
   return normalizeRoutePath(path).split('?')[0]
 }
 
+function parseQuery(path) {
+  const raw = normalizeRoutePath(path)
+  const idx = raw.indexOf('?')
+  if (idx < 0) return {}
+  const query = {}
+  raw.slice(idx + 1).split('&').forEach((pair) => {
+    if (!pair) return
+    const [k, v = ''] = pair.split('=')
+    if (k) query[decodeURIComponent(k)] = decodeURIComponent(v)
+  })
+  return query
+}
+
 function isTabPage(path) {
   return TAB_PAGE_PATHS.includes(stripQuery(path))
 }
@@ -282,8 +304,16 @@ function navigatePage(path) {
   if (!url) return
 
   if (isTabPage(url)) {
+    const query = parseQuery(url)
+    const base = stripQuery(url)
+    // switchTab 不支持 query，暂存给目标 Tab 页 onShow 读取
+    if (Object.keys(query).length) {
+      try {
+        wx.setStorageSync('__tab_query__' + base, query)
+      } catch (e) { /* ignore */ }
+    }
     wx.switchTab({
-      url: stripQuery(url),
+      url: base,
       fail: () => {
         console.warn('[RenderEngine] Tab 页面跳转失败:', url)
       },

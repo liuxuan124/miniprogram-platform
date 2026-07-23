@@ -7,19 +7,18 @@ const { AuthUtil } = require('../../utils/auth')
 // 订单状态定义
 const STATUS_TABS = [
   { key: '', label: '全部' },
-  { key: 'pending_payment', label: '待确认' },
-  { key: 'paid', label: '待发货' },
-  { key: 'shipped', label: '待收货' },
+  { key: 'pending_payment', label: '待付款' },
+  { key: 'paid', label: '待服务' },
   { key: 'completed', label: '已完成' },
   { key: 'refund', label: '退款' },
 ]
 
 // 状态显示映射
 const STATUS_MAP = {
-  pending_payment: { text: '待确认', color: '#ff8a00' },
-  paid: { text: '待发货', color: '#1890ff' },
+  pending_payment: { text: '待付款', color: '#ff6b3d' },
+  paid: { text: '待服务', color: '#2f5bff' },
   shipped: { text: '待收货', color: '#faad14' },
-  completed: { text: '已完成', color: '#52c41a' },
+  completed: { text: '已完成', color: '#0fb47f' },
   closed: { text: '已关闭', color: '#999' },
   refunding: { text: '退款中', color: '#faad14' },
   refunded: { text: '已退款', color: '#999' },
@@ -45,6 +44,11 @@ Page({
       this.setData({ activeTab: options.status })
     }
     this._loadOrders(true)
+  },
+
+  /** D2：空态"去逛逛"行动按钮 */
+  onGoShopping() {
+    wx.navigateTo({ url: '/pages/product-list/product-list' })
   },
 
   onShow() {
@@ -163,6 +167,33 @@ Page({
             })
         }
       },
+    })
+  },
+
+  onServiceTap() {
+    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+  },
+
+  onReaderTap(e) {
+    const item = e.currentTarget.dataset.item || {}
+    const goods = (item.items && item.items[0]) || {}
+    const pid = goods.productId || goods.product_id || ''
+    const name = encodeURIComponent(goods.productName || goods.product_name || goods.name || '已购资料')
+    if (pid) {
+      wx.navigateTo({ url: `/pages/reader/reader?id=${pid}&title=${name}` })
+    } else {
+      wx.navigateTo({ url: '/pages/library/library' })
+    }
+  },
+
+  onReviewTap(e) {
+    const item = e.currentTarget.dataset.item || {}
+    const goods = (item.items && item.items[0]) || {}
+    const pid = goods.productId || goods.product_id || ''
+    const name = encodeURIComponent(goods.productName || goods.product_name || goods.name || '')
+    const image = encodeURIComponent(goods.productImage || goods.product_image || goods.image || '')
+    wx.navigateTo({
+      url: `/pages/write-review/write-review?productId=${pid}&orderId=${item.id || ''}&name=${name}&image=${image}`,
     })
   },
 

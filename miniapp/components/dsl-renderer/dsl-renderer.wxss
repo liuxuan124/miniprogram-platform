@@ -342,29 +342,16 @@
 }
 
 .dsl-brand {
-  margin: 16rpx 24rpx;
-  padding: 18rpx;
+  margin: 0;
+  padding: 40rpx 32rpx 44rpx;
   color: #fff;
-  background: linear-gradient(135deg, #0f172a, #1e3a8a);
-  border-radius: 16rpx;
+  background: linear-gradient(155deg, #1b1f31 0%, #2f3654 55%, #454d78 100%);
+  border-radius: 0;
 }
-
-.dsl-brand__title {
-  font-size: 30rpx;
-  font-weight: 800;
-}
-
-.dsl-brand__subtitle {
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  opacity: 0.85;
-}
-
-.dsl-brand__desc {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
-}
+.dsl-brand__title { font-size: 36rpx; font-weight: 800; letter-spacing: -0.02em; }
+.dsl-brand__subtitle { margin-top: 10rpx; font-size: 24rpx; opacity: 0.88; }
+.dsl-brand__desc { margin-top: 16rpx; font-size: 26rpx; line-height: 1.7; opacity: 0.92; }
+.dsl-brand__kpi { margin-top: 20rpx; font-size: 22rpx; opacity: 0.85; }
 
 .dsl-image-text {
   display: flex;
@@ -492,4 +479,73 @@
 .dsl-renderer__unknown-text {
   font-size: 24rpx;
   color: #d48806;
+}
+
+/* 表单入口 form_entry（C1 补齐：此前小程序端无渲染分支，发布后会白屏） */
+.dsl-form-entry {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin: 16rpx 24rpx;
+  padding: 16rpx;
+  background: #fff;
+  border: 1rpx solid #e6edf6;
+  border-radius: 16rpx;
+}
+
+.dsl-form-entry--card {
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.06);
+}
+
+.dsl-form-entry--list {
+  padding: 16rpx 4rpx;
+  border: none;
+  border-bottom: 1rpx solid #e6edf6;
+  border-radius: 0;
+}
+
+.dsl-form-entry--minimal {
+  padding: 8rpx 0;
+  border: none;
+}
+
+.dsl-form-entry__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 64rpx;
+  height: 64rpx;
+  font-size: 30rpx;
+  background: #eaf1ff;
+  border-radius: 16rpx;
+}
+
+.dsl-form-entry__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dsl-form-entry__title {
+  overflow: hidden;
+  color: #172033;
+  font-size: 26rpx;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsl-form-entry__id {
+  margin-top: 4rpx;
+  color: #94a3b8;
+  font-size: 20rpx;
+}
+
+.dsl-form-entry__btn {
+  flex-shrink: 0;
+  padding: 8rpx 20rpx;
+  color: #fff;
+  font-size: 22rpx;
+  background: #1769ff;
+  border-radius: 999rpx;
 }

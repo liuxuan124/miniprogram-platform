@@ -33,7 +33,13 @@
         </div>
 
         <div class="table-panel">
-          <el-table :data="filteredMembers" stripe v-loading="memberLoading">
+          <ListStateWrap
+            :loading="memberLoading"
+            :empty="!memberLoading && filteredMembers.length === 0"
+            empty-text="暂无会员数据"
+            @retry="fetchMembers"
+          >
+          <el-table :data="filteredMembers" stripe>
             <el-table-column label="用户信息" min-width="180">
               <template #default="{ row }">
                 <div class="user-cell">
@@ -69,6 +75,7 @@
               </template>
             </el-table-column>
           </el-table>
+          </ListStateWrap>
         </div>
       </el-tab-pane>
 
@@ -221,6 +228,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Plus } from '@element-plus/icons-vue'
+import ListStateWrap from '@/components/ListStateWrap.vue'
 import request from '@/api/request'
 import {
   adjustMemberPoints,

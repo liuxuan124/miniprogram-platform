@@ -1,0 +1,35 @@
+<!-- pages/reader/reader.wxml -->
+<view class="reader-page">
+  <view class="topbar">
+    <view class="back" bindtap="goBack">‹</view>
+    <view class="title">{{title}}</view>
+    <view class="act" bindtap="toggleToc">目录</view>
+  </view>
+
+  <scroll-view scroll-y class="scroll" bindscroll="onScroll">
+    <view class="cover" wx:if="{{cover}}">
+      <image src="{{cover}}" mode="aspectFill" />
+    </view>
+    <view class="body">
+      <view class="badge">已购资料 · 永久可看</view>
+      <view class="h1">{{title}}</view>
+      <view class="meta">{{author}} · {{updatedAt}}</view>
+      <rich-text class="content" nodes="{{contentHtml}}"></rich-text>
+    </view>
+    <view class="pad"></view>
+  </scroll-view>
+
+  <view class="footer">
+    <view class="fbtn" bindtap="onBookmark">🔖 书签</view>
+    <view class="prog">已读 {{progress}}%</view>
+    <view class="fbtn" bindtap="onPdf">📄 PDF</view>
+  </view>
+
+  <toc-sheet
+    show="{{showToc}}"
+    toc="{{toc}}"
+    bind:close="toggleToc"
+    bind:jump="onTocJump"
+    bind:pdf="onPdf"
+  />
+</view>

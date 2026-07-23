@@ -29,20 +29,52 @@ Page({
     refreshing: false,
     // 空状态
     isEmpty: false,
+    // 商品类型：全部 / 资料包 / 1v1
+    typeTabs: [
+      { key: '', label: '全部' },
+      { key: 'digital', label: '资料包' },
+      { key: 'service', label: '1v1 咨询' },
+    ],
+    activeType: '',
+    productType: '',
   },
 
   onLoad(options) {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 3 })
-    }
     if (options.category_id) {
       this.setData({ activeCategoryId: options.category_id })
     }
     if (options.keyword) {
       this.setData({ keyword: options.keyword })
     }
+    // 原型：资料包 / 1v1 咨询
+    if (options.type === 'digital' || options.type === 'ebook') {
+      this.setData({ productType: 'digital', activeType: 'digital' })
+    } else if (options.type === 'service' || options.type === 'consult') {
+      this.setData({ productType: 'service', activeType: 'service' })
+    }
     this._loadCategories()
     this._loadProducts(true)
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 })
+    }
+    // 从首页快捷入口 switchTab 带来的 type 筛选
+    try {
+      const q = wx.getStorageSync('__tab_query__/pages/product-list/product-list')
+      if (q && typeof q === 'object') {
+        wx.removeStorageSync('__tab_query__/pages/product-list/product-list')
+        const type = q.type || ''
+        if (type === 'digital' || type === 'ebook') {
+          this.setData({ productType: 'digital', activeType: 'digital' })
+          this._loadProducts(true)
+        } else if (type === 'service' || type === 'consult') {
+          this.setData({ productType: 'service', activeType: 'service' })
+          this._loadProducts(true)
+        }
+      }
+    } catch (e) { /* ignore */ }
   },
 
   onPullDownRefresh() {
@@ -79,6 +111,7 @@ Page({
     if (this.data.activeCategoryId) params.categoryId = this.data.activeCategoryId
     if (this.data.keyword) params.keyword = this.data.keyword
     if (this.data.activeSort) params.sort = this.data.activeSort
+    if (this.data.productType) params.productType = this.data.productType
 
     return productService.getProductList(params)
       .then((res) => {
@@ -124,6 +157,17 @@ Page({
     this._loadProducts(true)
   },
 
+  /** 资料包 / 咨询类型筛选 */
+  onTypeTap(e) {
+    const key = e.currentTarget.dataset.key || ''
+    this.setData({ activeType: key, productType: key })
+    this._loadProducts(true)
+  },
+
+  onGoCart() {
+    wx.navigateTo({ url: '/pages/cart/cart' })
+  },
+
   /** 切换排序面板 */
   onSortToggle() {
     this.setData({ showSortPanel: !this.data.showSortPanel })
@@ -145,5 +189,18 @@ Page({
   onProductTap(e) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/pages/product-detail/product-detail?id=' + id })
+  },
+
+  /** D4：图片加载失败时换成统一占位图，避免裂图图标
+   * 模板 src 取 image/cover_url/main_image/mainImage 中第一个真值，四个字段都要清空改写才能确保生效 */
+  onImageError(e) {
+    const index = e.currentTarget.dataset.index
+    const fallback = '/images/default-product.svg'
+    this.setData({
+      [`products[${index}].image`]: fallback,
+      [`products[${index}].cover_url`]: fallback,
+      [`products[${index}].main_image`]: fallback,
+      [`products[${index}].mainImage`]: fallback,
+    })
   },
 })

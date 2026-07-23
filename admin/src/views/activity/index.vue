@@ -23,7 +23,13 @@
     </div>
 
     <div class="table-panel">
-      <el-table :data="activities" stripe v-loading="loading">
+      <ListStateWrap
+        :loading="loading"
+        :empty="!loading && activities.length === 0"
+        empty-text="暂无活动数据"
+        @retry="loadActivities"
+      >
+      <el-table :data="activities" stripe>
         <el-table-column label="活动名称" min-width="190">
           <template #default="{ row }"><b>{{ row.name }}</b></template>
         </el-table-column>
@@ -68,6 +74,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </ListStateWrap>
     </div>
 
     <el-dialog v-model="createDialogVisible" title="新建活动" width="560px" destroy-on-close>
@@ -202,6 +209,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import ListStateWrap from '@/components/ListStateWrap.vue'
 import { getActivityList, createActivity as createActivityApi, updateActivityStatus, getActivitySignups, approveSignup as approveSignupApi, getCheckinStats, getCheckinList, verifyCheckin as verifyCheckinApi } from '@/api/activity'
 
 interface ActivityRow {

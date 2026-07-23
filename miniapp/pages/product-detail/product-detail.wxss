@@ -94,11 +94,43 @@
   color: #ccc;
 }
 
+.pick-rows { background:#fff; margin-bottom:16rpx; }
+.pick { display:flex; align-items:center; padding:26rpx 32rpx; border-bottom:1rpx solid #edeff4; font-size:26rpx; }
+.pick .k { width:100rpx; color:#727a8c; }
+.pick .v { flex:1; color:#0f1219; font-weight:500; }
+.pick .ar { color:#a5abb9; }
+.author-card {
+  display:flex; gap:20rpx; align-items:center; background:#fff; margin-bottom:16rpx; padding:28rpx 32rpx;
+}
+.author-card .av {
+  width:88rpx; height:88rpx; border-radius:50%; background:linear-gradient(145deg,#6d8cff,#2f5bff);
+  color:#fff; display:flex; align-items:center; justify-content:center; font-size:36rpx;
+}
+.author-card .nm { font-size:30rpx; font-weight:700; }
+.author-card .vf { font-size:20rpx; color:#2f5bff; background:#eef2ff; padding:2rpx 10rpx; border-radius:8rpx; margin-left:8rpx; }
+.author-card .bio { margin-top:8rpx; font-size:22rpx; color:#a5abb9; }
+.bullet { font-size:28rpx; color:#39404f; line-height:1.8; padding:4rpx 0; }
+.faq { padding:16rpx 0; border-bottom:1rpx solid #f5f6f9; }
+.faq .q { font-size:28rpx; font-weight:600; color:#0f1219; }
+.faq .a { margin-top:10rpx; font-size:26rpx; color:#727a8c; line-height:1.7; }
+
 /* ========== 商品详情 ========== */
 .detail-section {
   background-color: #fff;
   padding: 32rpx;
 }
+
+.review-entry {
+  margin-top: 16rpx;
+  background: #fff;
+  padding: 28rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.review-entry__t { font-size: 30rpx; font-weight: 700; color: #0f1219; }
+.review-entry__s { display: block; margin-top: 8rpx; font-size: 24rpx; color: #a5abb9; }
+.review-entry__ar { color: #2f5bff; font-size: 26rpx; font-weight: 600; }
 
 .section-title {
   font-size: 30rpx;
@@ -148,6 +180,10 @@
 .bottom-bar__icon-img {
   width: 44rpx;
   height: 44rpx;
+}
+.bottom-bar__icon-emoji {
+  font-size: 36rpx;
+  line-height: 1;
 }
 
 .bottom-bar__icon-text {
@@ -360,6 +396,12 @@
 
 .sku-confirm-btn.buy {
   background-color: #ff4d4f;
+}
+
+/* D4：提交中态，防止重复点击造成的误解 */
+.sku-confirm-btn.is-submitting {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* ========== 加载 ========== */

@@ -8,11 +8,37 @@
           {{ collapsed.components ? '展开' : '收起' }}
         </button>
       </div>
+      <div v-show="!collapsed.components" class="component-search">
+        <el-input
+          v-model="searchKeyword"
+          size="small"
+          placeholder="搜索组件"
+          clearable
+          :prefix-icon="Search"
+        />
+      </div>
       <div v-show="!collapsed.components" class="component-grid">
-        <template v-for="cat in categories" :key="cat.value">
-          <div class="category-label">{{ cat.label }}</div>
+        <!-- B4：最近使用，仅在未搜索时展示 -->
+        <template v-if="!searchKeyword && recentComponents.length">
+          <div class="category-label">最近使用</div>
           <button
-            v-for="item in getComponentsByCategory(cat.value)"
+            v-for="item in recentComponents"
+            :key="`recent-${item.type}`"
+            class="component-card"
+            :class="{ active: pageStore.selectedComponent?.type === item.type }"
+            draggable="true"
+            @dragstart="handleDragStart($event, item.type)"
+            @click="handleAdd(item.type)"
+          >
+            <span class="component-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
+            <span>{{ item.label }}</span>
+          </button>
+        </template>
+
+        <template v-for="cat in categories" :key="cat.value">
+          <div v-if="filteredComponentsByCategory(cat.value).length" class="category-label">{{ cat.label }}</div>
+          <button
+            v-for="item in filteredComponentsByCategory(cat.value)"
             :key="item.type"
             class="component-card"
             :class="{ active: pageStore.selectedComponent?.type === item.type }"
@@ -24,6 +50,8 @@
             <span>{{ item.label }}</span>
           </button>
         </template>
+
+        <div v-if="searchKeyword && !hasSearchResults" class="empty-tip">未找到匹配"{{ searchKeyword }}"的组件</div>
       </div>
     </section>
 
@@ -52,9 +80,13 @@
           :class="{ active: comp.id === pageStore.selectedComponentId }"
           @click="pageStore.selectComponent(comp.id)"
         >
-          <span class="drag-handle">⠿</span>
+          <span class="drag-handle" aria-hidden="true">⠿</span>
           <span>{{ index + 1 }}. {{ getComponentDef(comp.type)?.label ?? comp.type }}</span>
-          <button class="remove-btn" @click.stop="pageStore.removeComponent(comp.id)">×</button>
+          <button
+            class="remove-btn"
+            aria-label="删除该组件"
+            @click.stop="pageStore.removeComponent(comp.id)"
+          >×</button>
         </div>
         <div v-if="!pageStore.components.length" class="empty-tip">当前页面暂无组件</div>
       </div>
@@ -64,9 +96,10 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { Search } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
-import { getComponentsByCategory, getAllCategories, getComponentDef } from './componentRegistry'
+import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
 const pageStore = usePageStore()
@@ -74,6 +107,39 @@ const componentSectionHeight = ref(520)
 const collapsed = ref({
   components: false,
   structure: false,
+})
+const searchKeyword = ref('')
+
+/** B4：最近使用的组件类型，持久化到 localStorage，跨会话保留 */
+const RECENT_KEY = 'pagebuilder_recent_components'
+const RECENT_MAX = 6
+const recentTypes = ref<ComponentType[]>([])
+
+function loadRecentTypes() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (!raw) return
+    const arr = JSON.parse(raw)
+    if (Array.isArray(arr)) recentTypes.value = arr
+  } catch {
+    recentTypes.value = []
+  }
+}
+
+function recordRecentUsage(type: ComponentType) {
+  const next = [type, ...recentTypes.value.filter((t) => t !== type)].slice(0, RECENT_MAX)
+  recentTypes.value = next
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+  } catch {
+    // 存储失败（隐私模式等）不影响主流程
+  }
+}
+
+const recentComponents = computed<ComponentDefinition[]>(() => {
+  return recentTypes.value
+    .map((type) => getComponentDef(type))
+    .filter((def): def is ComponentDefinition => !!def)
 })
 const resizing = ref<{
   target: 'components'
@@ -91,6 +157,18 @@ const totalComponentCount = computed(() => {
   return count
 })
 
+/** B4：按搜索关键字过滤分类下的组件（匹配组件名称） */
+function filteredComponentsByCategory(category: string): ComponentDefinition[] {
+  const list = getComponentsByCategory(category)
+  const kw = searchKeyword.value.trim().toLowerCase()
+  if (!kw) return list
+  return list.filter((item) => item.label.toLowerCase().includes(kw))
+}
+
+const hasSearchResults = computed(() => {
+  return categories.some((cat) => filteredComponentsByCategory(cat.value).length > 0)
+})
+
 /** Element Plus icon name → component map */
 const iconMap: Record<string, any> = ElementPlusIcons
 
@@ -99,10 +177,12 @@ function handleDragStart(event: DragEvent, type: ComponentType) {
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'copy'
   }
+  recordRecentUsage(type)
 }
 
 function handleAdd(type: ComponentType) {
   pageStore.addComponent(type)
+  recordRecentUsage(type)
   collapsed.value.structure = false
 }
 
@@ -149,6 +229,7 @@ function clamp(value: number, min: number, max: number) {
 onMounted(() => {
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mouseup', handleMouseUp)
+  loadRecentTypes()
 })
 
 onBeforeUnmount(() => {
@@ -262,6 +343,11 @@ onBeforeUnmount(() => {
   color: #9aa4b5;
   font-size: 12px;
   text-align: center;
+}
+
+.component-search {
+  flex-shrink: 0;
+  padding: 8px 8px 0;
 }
 
 .component-grid {

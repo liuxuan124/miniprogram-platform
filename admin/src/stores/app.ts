@@ -11,6 +11,13 @@ export const useAppStore = defineStore('app', () => {
   const device = ref<'desktop' | 'mobile'>('desktop')
   /** TagsView 标签列表 */
   const visitedViews = ref<Array<{ path: string; name: string; title: string; affix?: boolean }>>([])
+  /** 页面强制刷新计数器：配合 layout/index.vue 的 router-view :key 实现"刷新当前标签" */
+  const reloadKey = ref(0)
+
+  /** 触发一次当前页面的强制刷新（重新挂载组件，绕过 keep-alive 缓存） */
+  function triggerReload() {
+    reloadKey.value += 1
+  }
 
   /** 切换侧边栏折叠状态 */
   function toggleSidebar() {
@@ -62,15 +69,27 @@ export const useAppStore = defineStore('app', () => {
     visitedViews.value = visitedViews.value.filter((v) => v.affix)
   }
 
+  /** 关闭右侧标签（A6：TagsView 右键菜单） */
+  function closeRightVisitedViews(path: string) {
+    const idx = visitedViews.value.findIndex((v) => v.path === path)
+    if (idx === -1) return
+    visitedViews.value = visitedViews.value.filter(
+      (v, i) => i <= idx || v.affix
+    )
+  }
+
   return {
     sidebarCollapsed,
     device,
     visitedViews,
+    reloadKey,
     toggleSidebar,
     setDevice,
     addVisitedView,
     removeVisitedView,
     closeOtherVisitedViews,
     closeAllVisitedViews,
+    closeRightVisitedViews,
+    triggerReload,
   }
 })

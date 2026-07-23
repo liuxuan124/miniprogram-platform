@@ -10,6 +10,7 @@
         <el-tag v-else size="small" type="info">当前线上</el-tag>
       </div>
       <div class="h5-toolbar__actions">
+        <el-button size="small" type="success" plain @click="openFullPreview">完整小程序预览</el-button>
         <el-button size="small" @click="copyPreviewLink">复制链接</el-button>
         <el-button size="small" type="primary" plain @click="handleClose">关闭</el-button>
       </div>
@@ -162,6 +163,13 @@ function copyPreviewLink() {
   navigator.clipboard.writeText(window.location.href)
     .then(() => ElMessage.success('H5 预览链接已复制'))
     .catch(() => ElMessage.error('复制失败，请手动复制地址栏链接'))
+}
+
+function openFullPreview() {
+  const q: Record<string, string> = { view: 'config' }
+  if (releaseId.value) q.releaseId = String(releaseId.value)
+  if (semver.value) q.semver = semver.value
+  window.open(`/h5/miniapp-preview?${new URLSearchParams(q).toString()}`, '_blank', 'noopener,noreferrer')
 }
 
 function handleClose() {

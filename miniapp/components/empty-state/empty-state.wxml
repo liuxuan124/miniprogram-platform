@@ -1,0 +1,11 @@
+<!--components/empty-state/empty-state.wxml — D2：统一空态组件，替代各页各写一套的"暂无数据"-->
+<view class="empty-state">
+  <image class="empty-state__icon" src="{{icon || '/images/empty.png'}}" mode="aspectFit" />
+  <text class="empty-state__title">{{title || '暂无数据'}}</text>
+  <text class="empty-state__desc" wx:if="{{desc}}">{{desc}}</text>
+  <view
+    wx:if="{{actionText}}"
+    class="empty-state__action {{actionType === 'primary' ? 'is-primary' : ''}}"
+    bindtap="onActionTap"
+  >{{actionText}}</view>
+</view>

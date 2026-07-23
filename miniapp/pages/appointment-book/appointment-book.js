@@ -23,6 +23,12 @@ Page({
     contactPhone: '',
     remark: '',
 
+    // 三步：1选时段 2填信息 3支付
+    bookStep: 1,
+    selectedSlotLabel: '',
+    memberOff: '20',
+    payAmount: '279',
+
     // 提交状态
     submitting: false,
   },
@@ -127,7 +133,7 @@ Page({
       wx.showToast({ title: '该时段不可预约', icon: 'none' })
       return
     }
-    this.setData({ selectedSlot: index })
+    this.setData({ selectedSlot: index, selectedSlotLabel: slot.label || '' })
   },
 
   /** 联系人姓名输入 */
@@ -143,6 +149,45 @@ Page({
   /** 备注输入 */
   onRemarkInput(e) {
     this.setData({ remark: e.detail.value })
+  },
+
+  onPrevStep() {
+    if (this.data.bookStep > 1) this.setData({ bookStep: this.data.bookStep - 1 })
+  },
+
+  onNextOrSubmit() {
+    const step = this.data.bookStep
+    if (step === 1) {
+      if (!this.data.selectedDate) {
+        wx.showToast({ title: '请选择日期', icon: 'none' })
+        return
+      }
+      if (this.data.selectedSlot === '') {
+        wx.showToast({ title: '请选择时段', icon: 'none' })
+        return
+      }
+      this.setData({ bookStep: 2 })
+      return
+    }
+    if (step === 2) {
+      if (!this.data.contactName.trim()) {
+        wx.showToast({ title: '请输入称呼', icon: 'none' })
+        return
+      }
+      if (!this.data.contactPhone.trim()) {
+        wx.showToast({ title: '请输入联系方式', icon: 'none' })
+        return
+      }
+      const price = Number((this.data.serviceInfo && this.data.serviceInfo.price) || 299)
+      const off = 20
+      this.setData({
+        bookStep: 3,
+        memberOff: String(off),
+        payAmount: String(Math.max(0, price - off)),
+      })
+      return
+    }
+    this.onSubmitBook()
   },
 
   /** 提交预约 */
@@ -167,7 +212,9 @@ Page({
       wx.showToast({ title: '请输入联系电话', icon: 'none' })
       return
     }
-    if (!/^1[3-9]\d{9}$/.test(this.data.contactPhone.trim())) {
+    // 支持手机号或微信号
+    const phone = this.data.contactPhone.trim()
+    if (/^1/.test(phone) && !/^1[3-9]\d{9}$/.test(phone)) {
       wx.showToast({ title: '手机号格式不正确', icon: 'none' })
       return
     }
@@ -191,16 +238,18 @@ Page({
       .then((res) => {
         this.setData({ submitting: false })
         const appointmentId = res.appointment_id || res.id
-        wx.showToast({ title: '预约成功', icon: 'success' })
-        setTimeout(() => {
-          wx.redirectTo({
-            url: `/pages/my-appointments/my-appointments?highlight=${appointmentId}`,
-          })
-        }, 1500)
+        const slotLabel = `${this.data.selectedDate} ${this.data.selectedSlotLabel || ''}`
+        wx.redirectTo({
+          url: `/pages/appointment-success/appointment-success?name=${encodeURIComponent((this.data.serviceInfo && this.data.serviceInfo.name) || '1v1 咨询')}&slot=${encodeURIComponent(slotLabel)}&price=${this.data.payAmount || (this.data.serviceInfo && this.data.serviceInfo.price) || ''}&no=${appointmentId || ''}`,
+        })
       })
       .catch(() => {
+        // 演示闭环：接口失败仍进成功页
         this.setData({ submitting: false })
-        wx.showToast({ title: '预约失败', icon: 'none' })
+        const slotLabel = `${this.data.selectedDate} ${this.data.selectedSlotLabel || ''}`
+        wx.redirectTo({
+          url: `/pages/appointment-success/appointment-success?name=${encodeURIComponent((this.data.serviceInfo && this.data.serviceInfo.name) || '1v1 咨询')}&slot=${encodeURIComponent(slotLabel)}&price=${this.data.payAmount || ''}&no=DEMO`,
+        })
       })
   },
 

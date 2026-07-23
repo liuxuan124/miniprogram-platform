@@ -1,0 +1,13 @@
+/* components/toc-sheet/toc-sheet.wxss */
+.mask { position:fixed; inset:0; background:rgba(10,13,20,.45); z-index:90; }
+.sheet { position:fixed; left:0; right:0; bottom:0; max-height:70%; background:#fff; border-radius:40rpx 40rpx 0 0; z-index:91; transform:translateY(110%); transition:transform .28s cubic-bezier(.32,.72,0,1); display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom); }
+.sheet.on { transform:none; }
+.h { display:flex; align-items:center; padding:28rpx 32rpx 12rpx; font-size:32rpx; font-weight:700; }
+.x { margin-left:auto; color:var(--ink-300); font-size:34rpx; }
+.b { flex:1; max-height:50vh; padding:0 32rpx 16rpx; }
+.item { display:flex; align-items:center; gap:16rpx; padding:22rpx 0; border-bottom:1rpx solid var(--line-2); }
+.n { width:56rpx; color:var(--brand); font-weight:700; font-size:24rpx; }
+.t { flex:1; font-size:28rpx; }
+.lk { font-size:20rpx; color:var(--ok); background:#e7f5ea; padding:4rpx 10rpx; border-radius:8rpx; }
+.f { padding:16rpx 32rpx 28rpx; }
+.btn { height:88rpx; border-radius:999rpx; background:var(--brand-50); color:var(--brand); display:flex; align-items:center; justify-content:center; font-weight:700; }

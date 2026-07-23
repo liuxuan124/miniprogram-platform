@@ -1,0 +1,115 @@
+/* components/skeleton/skeleton.wxss — D1：骨架屏样式 */
+
+.skeleton {
+  padding: 16rpx 24rpx;
+}
+
+.sk-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: #eef1f6;
+}
+
+.sk-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: sk-shimmer-move 1.4s infinite;
+}
+
+@keyframes sk-shimmer-move {
+  0% { left: -150%; }
+  100% { left: 150%; }
+}
+
+.sk-block {
+  border-radius: 16rpx;
+}
+
+.sk-banner {
+  height: 260rpx;
+  margin-bottom: 20rpx;
+}
+
+.sk-nav-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 8rpx 24rpx;
+}
+
+.sk-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  width: 25%;
+}
+
+.sk-circle {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+}
+
+.sk-line {
+  height: 22rpx;
+  border-radius: 6rpx;
+}
+
+.sk-line--wide { width: 90%; }
+.sk-line--mid { width: 60%; margin-top: 12rpx; }
+.sk-line--short { width: 40%; }
+
+.sk-card {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+  padding: 16rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.sk-card__thumb {
+  flex-shrink: 0;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+}
+
+.sk-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14rpx;
+}
+
+.sk-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.sk-grid-card {
+  box-sizing: border-box;
+  width: 48%;
+  margin-bottom: 20rpx;
+  padding: 14rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.sk-grid-card__thumb {
+  width: 100%;
+  height: 220rpx;
+  margin-bottom: 14rpx;
+  border-radius: 12rpx;
+}
+
+.sk-grid-card .sk-line {
+  margin-bottom: 10rpx;
+}

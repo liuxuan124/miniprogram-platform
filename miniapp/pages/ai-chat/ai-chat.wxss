@@ -517,3 +517,9 @@
 .transfer-modal__btn--confirm:active {
   background-color: #096dd9;
 }
+
+.topic-chips { display:flex; flex-wrap:wrap; gap:12rpx; padding:0 24rpx 16rpx; background:#fff; }
+.topic-chips .chip { font-size:24rpx; background:#f5f6f9; color:#39404f; padding:12rpx 22rpx; border-radius:999rpx; border:2rpx solid #edeff4; }
+
+.topic-chips{display:flex;flex-wrap:wrap;gap:12rpx;padding:0 24rpx 16rpx;background:#fff;}
+.topic-chips .chip{font-size:24rpx;background:#f5f6f9;color:#39404f;padding:12rpx 22rpx;border-radius:999rpx;border:2rpx solid #edeff4;}

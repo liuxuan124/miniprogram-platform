@@ -1,17 +1,16 @@
 <template>
   <div class="product-page">
-    <header class="page-hero">
-      <div>
-        <div class="page-kicker">商城管理 / 商品管理</div>
-        <h1>商品管理</h1>
-        <p>统一管理实物、数字权益和服务类商品，完成创建、上架、下架和库存巡检。</p>
-      </div>
-      <div class="hero-actions">
-        <el-button class="ghost-btn" @click="fetchList">刷新</el-button>
-        <el-button class="ghost-btn" @click="openCategoryPage">分类管理</el-button>
+    <PageHeader
+      kicker="商城管理 / 商品管理"
+      title="商品管理"
+      description="统一管理实物、数字权益和服务类商品，完成创建、上架、下架和库存巡检。"
+    >
+      <template #actions>
+        <el-button @click="fetchList">刷新</el-button>
+        <el-button @click="openCategoryPage">分类管理</el-button>
         <el-button type="primary" @click="handleCreate">新建商品</el-button>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <section class="stat-grid">
       <div class="stat-card">
@@ -82,89 +81,95 @@
         </div>
       </div>
 
-      <el-table
-        :data="tableData"
-        stripe
-        row-key="id"
-        v-loading="loading"
-        @selection-change="handleSelectionChange"
+      <ListStateWrap
+        :loading="loading"
+        :empty="!loading && tableData.length === 0"
+        empty-text="暂无商品数据"
+        empty-description="可以新建商品，或调整筛选条件后重新查询"
+        :skeleton-rows="pagination.pageSize > 10 ? 8 : 6"
+        @retry="fetchList"
       >
-        <el-table-column type="selection" width="48" />
-        <el-table-column label="商品" min-width="340">
-          <template #default="{ row }">
-            <div class="product-cell">
-              <div class="product-cover" :class="{ empty: !row.mainImage }">
-                <el-image v-if="row.mainImage" :src="row.mainImage" fit="cover" />
-                <span v-else>{{ row.icon }}</span>
-              </div>
-              <div class="product-info">
-                <div class="product-name-line">
-                  <span class="name">{{ row.name }}</span>
-                  <el-tag size="small" effect="plain" :type="productTypeTagType(row.productType)">
-                    {{ productTypeLabel(row.productType) }}
-                  </el-tag>
-                </div>
-                <div class="meta-line">
-                  <span>ID {{ row.id }}</span>
-                  <span>{{ row.categoryName || '未分类' }}</span>
-                  <span>销量 {{ row.sales }}</span>
-                </div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="价格" width="130" align="right">
-          <template #default="{ row }">
-            <span class="price">¥{{ row.price.toFixed(2) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="库存" width="110" align="center">
-          <template #default="{ row }">
-            <span :class="{ 'stock-warning': row.productType !== 'digital' && row.stock < 10 }">
-              {{ row.productType === 'digital' ? '—' : row.stock }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="更新时间" width="170" align="center">
-          <template #default="{ row }">
-            {{ row.updatedAt || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button link size="small" @click="toggleOnSale(row)">
-              {{ row.status === 'on_sale' ? '下架' : '上架' }}
-            </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-        <template #empty>
-          <div class="empty-state">
-            <div class="empty-icon">商品</div>
-            <strong>暂无商品数据</strong>
-            <span>可以新建商品，或调整筛选条件后重新查询。</span>
-            <el-button type="primary" @click="handleCreate">新建商品</el-button>
-          </div>
+        <template #empty-action>
+          <el-button type="primary" @click="handleCreate">新建商品</el-button>
         </template>
-      </el-table>
 
-      <div class="pagination-wrap">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="fetchList"
-          @current-change="fetchList"
-        />
-      </div>
+        <el-table
+          :data="tableData"
+          stripe
+          row-key="id"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="48" />
+          <el-table-column label="商品" min-width="340">
+            <template #default="{ row }">
+              <div class="product-cell">
+                <div class="product-cover" :class="{ empty: !row.mainImage }">
+                  <el-image v-if="row.mainImage" :src="row.mainImage" fit="cover" />
+                  <span v-else>{{ row.icon }}</span>
+                </div>
+                <div class="product-info">
+                  <div class="product-name-line">
+                    <span class="name">{{ row.name }}</span>
+                    <el-tag size="small" effect="plain" :type="productTypeTagType(row.productType)">
+                      {{ productTypeLabel(row.productType) }}
+                    </el-tag>
+                  </div>
+                  <div class="meta-line">
+                    <span>ID {{ row.id }}</span>
+                    <span>{{ row.categoryName || '未分类' }}</span>
+                    <span>销量 {{ row.sales }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="价格" width="130" align="right">
+            <template #default="{ row }">
+              <span class="price">¥{{ row.price.toFixed(2) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="库存" width="110" align="center">
+            <template #default="{ row }">
+              <span :class="{ 'stock-warning': row.productType !== 'digital' && row.stock < 10 }">
+                {{ row.productType === 'digital' ? '—' : row.stock }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="更新时间" width="170" align="center">
+            <template #default="{ row }">
+              {{ row.updatedAt || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <div class="row-actions">
+                <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+                <el-button link size="small" @click="toggleOnSale(row)">
+                  {{ row.status === 'on_sale' ? '下架' : '上架' }}
+                </el-button>
+                <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-wrap">
+          <el-pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.pageSize"
+            :total="pagination.total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="fetchList"
+            @current-change="fetchList"
+          />
+        </div>
+      </ListStateWrap>
     </section>
 
   </div>
@@ -174,6 +179,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
+import ListStateWrap from '@/components/ListStateWrap.vue'
 import {
   deleteProduct,
   getCategoryList,
@@ -489,45 +496,15 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .product-page {
-  padding: 22px 28px 36px;
-  background: #f5f7fb;
+  padding: 4px 4px 24px;
+  background: transparent;
 
-  .page-hero,
   .filter-panel,
   .table-panel,
   .stat-card {
-    border: 1px solid #e5e6eb;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 8px 20px rgba(29, 33, 41, 0.04);
-  }
-
-  .page-hero {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 22px 24px;
-  }
-
-  .page-kicker {
-    margin-bottom: 6px;
-    color: #86909c;
-    font-size: 12px;
-  }
-
-  h1 {
-    margin: 0;
-    color: #1d2129;
-    font-size: 26px;
-    font-weight: 800;
-    line-height: 1.25;
-  }
-
-  .page-hero p {
-    margin: 8px 0 0;
-    color: #86909c;
-    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
   }
 
   .hero-actions,
@@ -547,29 +524,30 @@ onMounted(async () => {
   }
 
   .stat-card {
-    padding: 16px 18px;
+    padding: var(--space-4) 18px;
+    box-shadow: var(--shadow-sm);
 
     span {
-      color: #86909c;
-      font-size: 12px;
+      color: var(--text-muted);
+      font-size: var(--font-caption);
     }
 
     strong {
       display: block;
-      margin-top: 8px;
-      color: #1d2129;
+      margin-top: var(--space-2);
+      color: var(--text);
       font-size: 26px;
       line-height: 1;
     }
 
     p {
-      margin: 8px 0 0;
-      color: #86909c;
-      font-size: 12px;
+      margin: var(--space-2) 0 0;
+      color: var(--text-muted);
+      font-size: var(--font-caption);
     }
 
     &.warning strong {
-      color: #f53f3f;
+      color: var(--danger);
     }
   }
 
@@ -601,14 +579,14 @@ onMounted(async () => {
     margin-bottom: 12px;
 
     strong {
-      color: #1d2129;
-      font-size: 16px;
+      color: var(--text);
+      font-size: var(--font-h3);
     }
 
     span {
-      margin-left: 8px;
-      color: #86909c;
-      font-size: 12px;
+      margin-left: var(--space-2);
+      color: var(--text-muted);
+      font-size: var(--font-caption);
     }
   }
 
@@ -627,9 +605,9 @@ onMounted(async () => {
     width: 48px;
     height: 48px;
     overflow: hidden;
-    border: 1px solid #e5e6eb;
-    border-radius: 8px;
-    background: #f7f8fa;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-page);
     font-size: 20px;
 
     :deep(.el-image) {
@@ -645,13 +623,13 @@ onMounted(async () => {
   .product-name-line {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
   }
 
   .name {
     overflow: hidden;
-    color: #1d2129;
+    color: var(--text);
     font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -662,75 +640,56 @@ onMounted(async () => {
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 6px;
-    color: #86909c;
-    font-size: 12px;
+    margin-top: var(--space-1);
+    color: var(--text-muted);
+    font-size: var(--font-caption);
   }
 
   .price {
-    color: #f53f3f;
+    color: var(--danger);
     font-weight: 800;
   }
 
   .stock-warning {
-    color: #f53f3f;
+    color: var(--danger);
     font-weight: 700;
   }
 
-  .empty-state {
+  /* A7：操作列默认收起，hover 行时浮现，节省横向空间 */
+  .row-actions {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 220px;
-    color: #86909c;
-
-    strong {
-      color: #1d2129;
-      font-size: 16px;
-    }
+    justify-content: flex-end;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
   }
 
-  .empty-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    color: #1677ff;
-    background: #e8f3ff;
-    font-weight: 800;
+  :deep(.el-table__row:hover) .row-actions,
+  :deep(.el-table__row:focus-within) .row-actions {
+    opacity: 1;
   }
 
   .pagination-wrap {
     display: flex;
     justify-content: flex-end;
-    margin-top: 14px;
+    margin-top: var(--space-4);
   }
 
   :deep(.el-button) {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 700;
   }
 
-  :deep(.el-button--primary) {
-    --el-button-bg-color: #1677ff;
-    --el-button-border-color: #1677ff;
-    --el-button-hover-bg-color: #0e63d6;
-    --el-button-hover-border-color: #0e63d6;
-  }
-
   :deep(.el-table th.el-table__cell) {
-    color: #4e5969;
-    background: #f7f8fa;
+    color: var(--text-secondary);
+    background: var(--bg-page);
     font-weight: 700;
   }
 
   :deep(.el-input__wrapper),
   :deep(.el-select__wrapper) {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
   }
 }
 
@@ -741,7 +700,6 @@ onMounted(async () => {
     }
 
     .filter-panel,
-    .page-hero,
     .table-toolbar {
       align-items: stretch;
       flex-direction: column;

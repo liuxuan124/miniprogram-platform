@@ -6,6 +6,9 @@
     "verify:miniapp-login": "node verify-miniapp-login.js",
     "push:miniapp-preview": "node scripts/push-miniprogram-preview.js"
   },
+  "dependencies": {
+    "tdesign-miniprogram": "^1.9.5"
+  },
   "devDependencies": {
     "miniprogram-automator": "^0.12.1",
     "miniprogram-ci": "^2.1.31"

@@ -1,0 +1,18 @@
+<!-- pages/service-chat/service-chat.wxml -->
+<view class="svc-page">
+  <scroll-view scroll-y class="chat" scroll-into-view="{{scrollInto}}">
+    <view wx:for="{{messages}}" wx:key="id" id="m{{item.id}}" class="msg {{item.role}}">
+      <view class="av">{{item.role==='bot'?'🎧':'我'}}</view>
+      <view class="bubble">{{item.text}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="quick">
+    <view wx:for="{{quick}}" wx:key="*this" class="q" data-q="{{item}}" bindtap="onQuick">{{item}}</view>
+  </view>
+
+  <view class="input-bar">
+    <input placeholder="描述你的问题…" value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="onSend" />
+    <view class="snd" bindtap="onSend">➤</view>
+  </view>
+</view>

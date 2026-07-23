@@ -1,8 +1,16 @@
 <template>
   <div class="header-container">
     <div class="header-left">
-      <!-- 折叠按钮 -->
-      <el-icon class="collapse-btn" @click="appStore.toggleSidebar">
+      <!-- 折叠按钮：A9 补充可访问性——键盘可达 + aria-label -->
+      <el-icon
+        class="collapse-btn"
+        role="button"
+        tabindex="0"
+        :aria-label="appStore.sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
+        @click="appStore.toggleSidebar"
+        @keydown.enter="appStore.toggleSidebar"
+        @keydown.space.prevent="appStore.toggleSidebar"
+      >
         <Fold v-if="!appStore.sidebarCollapsed" />
         <Expand v-else />
       </el-icon>
@@ -103,9 +111,16 @@ async function handleCommand(command: string) {
 .collapse-btn {
   font-size: 20px;
   cursor: pointer;
-  color: #333;
+  color: var(--text-secondary, #333);
+  border-radius: 4px;
+
   &:hover {
-    color: #409eff;
+    color: var(--brand, #409eff);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand, #409eff);
+    outline-offset: 2px;
   }
 }
 

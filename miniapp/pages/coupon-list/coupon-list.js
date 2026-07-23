@@ -28,6 +28,7 @@ Page({
     availableCoupons: [],
     availablePage: 1,
     availableHasMore: true,
+    claimingId: '', // D4：正在领取中的优惠券 id，防止重复提交
 
     // 我的优惠券
     myCoupons: [],
@@ -155,10 +156,12 @@ Page({
   /** 领取优惠券 */
   onClaimTap(e) {
     if (!AuthUtil.requireLoginForAction('领取优惠券')) return
+    if (this.data.claimingId) return // D4：请求进行中禁止重复点击（含其它卡片）
 
     const id = e.currentTarget.dataset.id
     const idx = e.currentTarget.dataset.index
 
+    this.setData({ claimingId: id })
     couponService.claimCoupon(id)
       .then(() => {
         wx.showToast({ title: '领取成功', icon: 'success' })
@@ -167,11 +170,13 @@ Page({
         const key = `availableCoupons[${idx}].claimed`
         this.setData({
           [key]: true,
+          claimingId: '',
         })
       })
       .catch((err) => {
         const msg = (err && err.message) || '领取失败'
         wx.showToast({ title: msg, icon: 'none' })
+        this.setData({ claimingId: '' })
       })
   },
 

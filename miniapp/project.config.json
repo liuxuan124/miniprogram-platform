@@ -21,7 +21,7 @@
     "uglifyFileName": false,
     "uploadWithSourceMap": true,
     "useIsolateContext": true,
-    "nodeModules": false,
+    "nodeModules": true,
     "enhance": true,
     "useMultiFrameRuntime": true,
     "useApiHook": true,
@@ -48,7 +48,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.3.4",
-  "appid": "your-appid-here",
+  "appid": "wxea3928e0978492fe",
   "projectname": "miniprogram-platform",
   "condition": {},
   "editorSetting": {

@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>出海笔记 · 小程序原型</title>
+<style>
+  :root{
+    --brand:#2554ff;
+    --brand-light:#eef2ff;
+    --accent:#ff6b45;
+    --accent-light:#fff1ec;
+    --ink:#1a1d29;
+    --ink-2:#6b7280;
+    --ink-3:#9aa1ae;
+    --bg:#f5f6fa;
+    --card:#ffffff;
+    --line:#eef0f4;
+    --success:#17b881;
+    --radius:14px;
+    --radius-sm:8px;
+    --shadow:0 8px 24px rgba(20,30,60,.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    background:#e7e9f0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:32px;
+    justify-content:center;
+    padding:40px 20px;
+  }
+  /* ---------- intro panel ---------- */
+  .intro{
+    width:320px;
+    align-self:flex-start;
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:24px;
+    position:sticky;
+    top:40px;
+  }
+  .intro h1{font-size:18px;margin:0 0 8px;color:var(--ink);}
+  .intro p{font-size:13px;line-height:1.7;color:var(--ink-2);margin:0 0 14px;}
+  .intro .tag{
+    display:inline-block;background:var(--brand-light);color:var(--brand);
+    font-size:12px;padding:3px 10px;border-radius:20px;margin:0 6px 6px 0;
+  }
+  .intro .step{font-size:12px;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:12px;margin-top:12px;}
+  .intro .step b{color:var(--ink);}
+  .intro .map{font-size:12px;color:var(--ink-2);line-height:2;}
+  .intro .map span{color:var(--brand);cursor:pointer;}
+  .intro .map span:hover{text-decoration:underline;}
+
+  /* ---------- phone frame ---------- */
+  .phone{
+    width:375px;height:812px;
+    background:#000;
+    border-radius:44px;
+    padding:12px;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+  .phone-screen{
+    width:100%;height:100%;
+    background:var(--bg);
+    border-radius:32px;
+    overflow:hidden;
+    position:relative;
+  }
+  .statusbar{
+    height:44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;font-size:13px;font-weight:600;color:var(--ink);
+    background:transparent;position:relative;z-index:5;
+  }
+  .screens-wrap{
+    position:absolute;top:0;left:0;right:0;bottom:0;
+  }
+  .screen{
+    position:absolute;top:0;left:0;right:0;bottom:0;
+    display:none;flex-direction:column;
+    background:var(--bg);
+  }
+  .screen.active{display:flex;}
+  .screen-body{
+    flex:1;overflow-y:auto;padding-bottom:12px;
+    -ms-overflow-style:none;scrollbar-width:none;
+  }
+  .screen-body::-webkit-scrollbar{display:none;}
+
+  /* ---------- top bar (detail pages) ---------- */
+  .topbar{
+    display:flex;align-items:center;gap:10px;
+    padding:6px 16px 12px;background:var(--bg);
+    position:relative;z-index:4;
+  }
+  .topbar .back{
+    width:30px;height:30px;border-radius:50%;background:var(--card);
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;color:var(--ink);box-shadow:0 2px 6px rgba(20,30,60,.06);
+    cursor:pointer;flex-shrink:0;
+  }
+  .topbar .title{font-size:16px;font-weight:600;color:var(--ink);}
+
+  /* ---------- bottom tab bar ---------- */
+  .tabbar{
+    display:flex;border-top:1px solid var(--line);background:#fff;
+    padding:6px 0 20px;
+  }
+  .tabbar .tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+    font-size:10px;color:var(--ink-3);cursor:pointer;user-select:none;
+  }
+  .tabbar .tab .ic{font-size:20px;line-height:1;}
+  .tabbar .tab.active{color:var(--brand);}
+
+  /* ---------- generic components ---------- */
+  .section{padding:14px 16px 4px;}
+  .section-head{
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;
+  }
+  .section-head h3{font-size:15px;margin:0;color:var(--ink);}
+  .section-head .more{font-size:12px;color:var(--ink-3);cursor:pointer;}
+  .card{
+    background:var(--card);border-radius:var(--radius);
+    box-shadow:0 2px 10px rgba(20,30,60,.05);
+  }
+
+  /* home header */
+  .home-header{
+    padding:16px 16px 20px;
+    background:linear-gradient(160deg,var(--brand) 0%,#5b7cff 60%,#8fa3ff 100%);
+    border-radius:0 0 24px 24px;color:#fff;position:relative;
+  }
+  .home-header .profile{display:flex;align-items:center;gap:12px;}
+  .home-header .avatar{
+    width:52px;height:52px;border-radius:50%;background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+  }
+  .home-header .name{font-size:16px;font-weight:700;}
+  .home-header .desc{font-size:12px;opacity:.9;margin-top:2px;}
+  .home-header .stats{display:flex;gap:18px;margin-top:14px;}
+  .home-header .stats div{font-size:11px;opacity:.9;}
+  .home-header .stats b{display:block;font-size:15px;font-weight:700;}
+  .search-bar{
+    margin:-16px 16px 0;background:#fff;border-radius:20px;
+    box-shadow:0 6px 16px rgba(20,30,60,.1);
+    padding:10px 16px;font-size:13px;color:var(--ink-3);
+    display:flex;align-items:center;gap:8px;position:relative;z-index:3;
+  }
+
+  .quicknav{display:flex;padding:16px 12px 4px;}
+  .quicknav .item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+    font-size:11px;color:var(--ink-2);cursor:pointer;
+  }
+  .quicknav .item .ic{
+    width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+  }
+  .quicknav .item:nth-child(1) .ic{background:#eef2ff;}
+  .quicknav .item:nth-child(2) .ic{background:#fff1ec;}
+  .quicknav .item:nth-child(3) .ic{background:#e8fbf4;}
+  .quicknav .item:nth-child(4) .ic{background:#fff8e5;}
+
+  .banner{
+    margin:12px 16px 0;height:110px;border-radius:var(--radius);
+    background:linear-gradient(120deg,#ffb199,#ff6b45);
+    color:#fff;padding:16px;position:relative;overflow:hidden;cursor:pointer;
+  }
+  .banner .btag{font-size:11px;background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px;}
+  .banner h4{margin:8px 0 4px;font-size:16px;}
+  .banner p{margin:0;font-size:12px;opacity:.9;}
+
+  /* article card */
+  .article-item{
+    display:flex;gap:10px;padding:10px;margin-bottom:10px;cursor:pointer;
+  }
+  .article-item .cover{
+    width:88px;height:66px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(135deg,#dbe4ff,#b7c6ff);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .article-item .info{flex:1;min-width:0;}
+  .article-item .info .src{
+    display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;margin-bottom:4px;
+  }
+  .src.wx{background:#e8f7e3;color:#4caf50;}
+  .src.xhs{background:#ffe9ef;color:#ff2e51;}
+  .article-item .info h4{
+    margin:0 0 4px;font-size:13.5px;color:var(--ink);line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .article-item .info .meta{font-size:11px;color:var(--ink-3);}
+
+  .tabs-row{display:flex;gap:8px;padding:0 16px 10px;overflow-x:auto;}
+  .tabs-row::-webkit-scrollbar{display:none;}
+  .tabs-row .chip{
+    flex-shrink:0;font-size:12.5px;padding:7px 16px;border-radius:20px;
+    background:#fff;color:var(--ink-2);cursor:pointer;border:1px solid var(--line);
+  }
+  .tabs-row .chip.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+
+  /* product card (grid) */
+  .prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 16px;}
+  .prod-card{cursor:pointer;overflow:hidden;}
+  .prod-card .cover{
+    height:100px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;
+  }
+  .prod-card.ebook .cover{background:linear-gradient(135deg,#7b93ff,#2554ff);}
+  .prod-card.consult .cover{background:linear-gradient(135deg,#ffb199,#ff6b45);}
+  .prod-card .body{padding:10px;}
+  .prod-card .type-tag{
+    font-size:10px;padding:1px 6px;border-radius:6px;display:inline-block;margin-bottom:5px;
+  }
+  .prod-card.ebook .type-tag{background:var(--brand-light);color:var(--brand);}
+  .prod-card.consult .type-tag{background:var(--accent-light);color:var(--accent);}
+  .prod-card h4{
+    margin:0 0 6px;font-size:13px;color:var(--ink);line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;height:35px;
+  }
+  .prod-card .price{font-size:14px;color:var(--accent);font-weight:700;}
+  .prod-card .price small{font-size:10px;color:var(--ink-3);font-weight:400;margin-left:4px;}
+
+  /* product list row (shop screen uses list, not just grid, for consult) */
+  .prod-row{display:flex;gap:10px;padding:12px;margin-bottom:10px;cursor:pointer;align-items:center;}
+  .prod-row .cover{
+    width:64px;height:64px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:24px;color:#fff;
+  }
+  .prod-row.ebook .cover{background:linear-gradient(135deg,#7b93ff,#2554ff);}
+  .prod-row.consult .cover{background:linear-gradient(135deg,#ffb199,#ff6b45);}
+  .prod-row .info{flex:1;min-width:0;}
+  .prod-row .info h4{margin:0 0 4px;font-size:13.5px;color:var(--ink);}
+  .prod-row .info .sub{font-size:11px;color:var(--ink-3);margin-bottom:4px;}
+  .prod-row .info .price{font-size:14px;color:var(--accent);font-weight:700;}
+
+  .cta-fixed{
+    padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 12px);
+    background:#fff;border-top:1px solid var(--line);
+    display:flex;gap:10px;align-items:center;
+  }
+  .btn{
+    border:none;border-radius:22px;font-size:14px;font-weight:600;
+    padding:11px 0;text-align:center;cursor:pointer;flex:1;
+  }
+  .btn-primary{background:var(--brand);color:#fff;}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .btn-ghost{background:var(--brand-light);color:var(--brand);}
+  .btn-outline{background:#fff;border:1px solid var(--line);color:var(--ink-2);flex:0 0 44px;border-radius:22px;}
+
+  /* article detail */
+  .article-cover-full{
+    height:200px;background:linear-gradient(135deg,#dbe4ff,#8fa3ff);
+    display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff;
+  }
+  .article-content{padding:16px;}
+  .article-content h2{font-size:18px;margin:0 0 10px;color:var(--ink);line-height:1.4;}
+  .article-content .meta-row{
+    display:flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-3);margin-bottom:16px;
+  }
+  .article-content .meta-row .src{font-size:10px;padding:1px 6px;border-radius:6px;}
+  .article-content p{font-size:13.5px;line-height:1.9;color:#33384a;margin:0 0 14px;}
+  .article-content .callout{
+    background:var(--brand-light);border-radius:10px;padding:12px 14px;font-size:12.5px;
+    color:var(--brand);margin:0 0 14px;line-height:1.7;
+  }
+  .cross-sell{
+    margin:6px 16px 16px;padding:14px;
+    border:1px dashed #d7defd;border-radius:var(--radius);
+  }
+  .cross-sell .label{font-size:11px;color:var(--ink-3);margin-bottom:8px;}
+
+  /* product detail */
+  .pd-cover{
+    height:230px;display:flex;align-items:center;justify-content:center;font-size:52px;color:#fff;position:relative;
+  }
+  .pd-cover.ebook{background:linear-gradient(135deg,#7b93ff,#2554ff);}
+  .pd-cover.consult{background:linear-gradient(135deg,#ffb199,#ff6b45);}
+  .pd-body{padding:16px;}
+  .pd-body .type-tag{font-size:11px;padding:2px 8px;border-radius:8px;}
+  .pd-body h2{font-size:17px;margin:10px 0 6px;color:var(--ink);}
+  .pd-body .price-row{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;}
+  .pd-body .price-row .now{font-size:22px;color:var(--accent);font-weight:700;}
+  .pd-body .price-row .old{font-size:13px;color:var(--ink-3);text-decoration:line-through;}
+  .pd-body .sold{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+  .pd-block{background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  .pd-block h5{margin:0 0 10px;font-size:13.5px;color:var(--ink);}
+  .pd-block ul{margin:0;padding-left:18px;}
+  .pd-block li{font-size:12.5px;color:var(--ink-2);line-height:2;}
+  .pd-block p{font-size:12.5px;color:var(--ink-2);line-height:1.9;margin:0;}
+  .review{display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--line);}
+  .review:first-child{border-top:none;}
+  .review .av{width:28px;height:28px;border-radius:50%;background:var(--brand-light);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .review .txt{font-size:12px;color:var(--ink-2);line-height:1.6;}
+  .review .txt b{color:var(--ink);font-size:12px;}
+
+  /* consult slots */
+  .slot-grid{display:flex;flex-wrap:wrap;gap:8px;}
+  .slot{
+    padding:8px 12px;font-size:12px;border-radius:8px;background:#f7f8fb;color:var(--ink-2);
+    border:1px solid var(--line);cursor:pointer;
+  }
+  .slot.full{color:var(--ink-3);background:#f1f1f4;text-decoration:line-through;cursor:not-allowed;}
+
+  /* booking flow */
+  .step-indicator{display:flex;align-items:center;padding:14px 24px;gap:6px;}
+  .step-indicator .dot{
+    width:22px;height:22px;border-radius:50%;background:var(--line);color:var(--ink-3);
+    font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;
+  }
+  .step-indicator .dot.done{background:var(--brand);color:#fff;}
+  .step-indicator .bar{flex:1;height:2px;background:var(--line);}
+  .step-indicator .bar.done{background:var(--brand);}
+  .booking-panel{padding:0 16px;}
+  .date-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;}
+  .date-chip{
+    flex-shrink:0;width:56px;padding:10px 0;border-radius:10px;background:#fff;
+    text-align:center;border:1px solid var(--line);cursor:pointer;
+  }
+  .date-chip.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .date-chip .d{font-size:15px;font-weight:700;}
+  .date-chip .w{font-size:10px;color:inherit;opacity:.8;}
+  .form-field{margin-bottom:12px;}
+  .form-field label{font-size:12px;color:var(--ink-2);display:block;margin-bottom:6px;}
+  .form-field input, .form-field textarea{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    font-size:13px;background:#fff;font-family:inherit;color:var(--ink);
+  }
+  .success-wrap{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;text-align:center;
+  }
+  .success-wrap .icon{
+    width:64px;height:64px;border-radius:50%;background:#e8fbf4;color:var(--success);
+    display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:16px;
+  }
+  .success-wrap h3{font-size:16px;color:var(--ink);margin:0 0 8px;}
+  .success-wrap p{font-size:12.5px;color:var(--ink-2);line-height:1.7;margin:0 0 24px;}
+
+  /* mine */
+  .mine-header{
+    padding:24px 16px 20px;background:linear-gradient(160deg,#2c2f45,#43486b);color:#fff;
+    display:flex;align-items:center;gap:14px;border-radius:0 0 20px 20px;
+  }
+  .mine-header .avatar{
+    width:56px;height:56px;border-radius:50%;background:#fff2;display:flex;align-items:center;
+    justify-content:center;font-size:24px;border:2px solid rgba(255,255,255,.4);
+  }
+  .mine-header .nick{font-size:16px;font-weight:700;}
+  .mine-header .lv{font-size:11px;opacity:.85;margin-top:3px;}
+  .mine-stats{display:flex;background:#fff;margin:-14px 16px 0;border-radius:var(--radius);
+    box-shadow:0 6px 16px rgba(20,30,60,.08);padding:14px 0;position:relative;z-index:2;}
+  .mine-stats div{flex:1;text-align:center;cursor:pointer;}
+  .mine-stats b{display:block;font-size:16px;color:var(--ink);}
+  .mine-stats span{font-size:11px;color:var(--ink-3);}
+  .mine-list{background:#fff;border-radius:var(--radius);margin:14px 16px;overflow:hidden;}
+  .mine-list .row{
+    display:flex;align-items:center;gap:10px;padding:13px 14px;font-size:13px;color:var(--ink);
+    border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .mine-list .row:last-child{border-bottom:none;}
+  .mine-list .row .ic{width:20px;text-align:center;}
+  .mine-list .row .arrow{margin-left:auto;color:var(--ink-3);}
+
+  /* AI entry */
+  .ai-fab{
+    position:absolute;right:16px;bottom:96px;width:52px;height:52px;border-radius:50%;
+    background:linear-gradient(135deg,#7b93ff,#2554ff);display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:22px;box-shadow:0 8px 18px rgba(37,84,255,.4);cursor:pointer;z-index:6;
+  }
+  .chat-wrap{flex:1;padding:14px 12px;overflow-y:auto;}
+  .msg{display:flex;gap:8px;margin-bottom:14px;}
+  .msg .av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+    justify-content:center;font-size:13px;}
+  .msg.bot .av{background:var(--brand-light);}
+  .msg.me{flex-direction:row-reverse;}
+  .msg.me .av{background:#dfe3ee;}
+  .bubble{max-width:210px;padding:10px 12px;border-radius:12px;font-size:12.5px;line-height:1.7;}
+  .msg.bot .bubble{background:#fff;color:var(--ink);border-top-left-radius:2px;}
+  .msg.me .bubble{background:var(--brand);color:#fff;border-top-right-radius:2px;}
+  .chat-input{display:flex;gap:8px;padding:10px 12px;background:#fff;border-top:1px solid var(--line);}
+  .chat-input input{flex:1;border:1px solid var(--line);border-radius:20px;padding:9px 14px;font-size:13px;}
+  .chat-input .send{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .quick-q{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;}
+  .quick-q span{font-size:11px;background:#fff;border:1px solid var(--line);color:var(--ink-2);
+    padding:5px 10px;border-radius:14px;cursor:pointer;}
+
+  .notice{margin:10px 16px 0;background:#fff8e5;color:#a86a00;font-size:11.5px;padding:8px 12px;
+    border-radius:10px;display:flex;align-items:center;gap:6px;}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>📱 出海笔记 · 小程序原型</h1>
+  <p>可点击体验的低保真原型，服务于跨境电商内容博主：沉淀公众号 / 小红书图文内容，销售电子书资料包与 1v1 付费咨询。基于本系统已支持的组件与模块拼装（Banner / ArticleList / ProductList / AppointmentService / AIEntry 等）。</p>
+  <div>
+    <span class="tag">内容沉淀</span>
+    <span class="tag">知识变现</span>
+    <span class="tag">预约咨询</span>
+    <span class="tag">AI 选品助手</span>
+  </div>
+  <div class="map">
+    点击跳转体验：<br/>
+    <span onclick="showScreen('home')">首页</span> ·
+    <span onclick="showScreen('content')">内容</span> ·
+    <span onclick="showScreen('shop')">商城</span> ·
+    <span onclick="showScreen('mine')">我的</span>
+  </div>
+  <div class="step">
+    <b>说明：</b>本原型为静态交互演示（无真实后端），用于确认信息架构与视觉方向；确认后可在系统页面搭建器中用真实组件落地为可发布页面。
+  </div>
+</div>
+
+<div class="phone">
+  <div class="phone-screen">
+    <div class="screens-wrap">
+
+      <!-- ========== 首页 ========== -->
+      <div class="screen active" id="screen-home">
+        <div class="screen-body">
+          <div class="statusbar"><span>9:41</span><span>●●● 5G 100%</span></div>
+          <div class="home-header">
+            <div class="profile">
+              <div class="avatar">🧭</div>
+              <div>
+                <div class="name">出海笔记 · 阿哲</div>
+                <div class="desc">跨境电商实战 · 选品 / 供应链 / 独立站</div>
+              </div>
+            </div>
+            <div class="stats">
+              <div><b>238</b>篇内容</div>
+              <div><b>1.2w</b>关注者</div>
+              <div><b>4.9</b>咨询评分</div>
+            </div>
+          </div>
+          <div class="search-bar" onclick="showScreen('content')">🔍 <span>搜索：选品清单 / 供应商 / TikTok</span></div>
+
+          <div class="quicknav">
+            <div class="item" onclick="showScreen('content')"><div class="ic">📰</div>内容中心</div>
+            <div class="item" onclick="filterShop('ebook')"><div class="ic">📘</div>电子书资料包</div>
+            <div class="item" onclick="filterShop('consult')"><div class="ic">🗓️</div>1v1咨询</div>
+            <div class="item" onclick="showScreen('mine')"><div class="ic">👤</div>个人中心</div>
+          </div>
+
+          <div class="banner" onclick="openArticle(1)">
+            <span class="btag">本周精选</span>
+            <h4>2026下半年跨境选品趋势清单</h4>
+            <p>公众号 · 附 32 个细分品类数据</p>
+          </div>
+
+          <div class="section">
+            <div class="section-head"><h3>📰 精选内容</h3><span class="more" onclick="showScreen('content')">查看全部 ›</span></div>
+            <div class="article-item card" onclick="openArticle(1)">
+              <div class="cover">🖼️</div>
+              <div class="info">
+                <span class="src wx">公众号</span>
+                <h4>2026下半年跨境选品趋势清单，附数据源</h4>
+                <div class="meta">3天前 · 阅读 2.1w</div>
+              </div>
+            </div>
+            <div class="article-item card" onclick="openArticle(2)">
+              <div class="cover">🖼️</div>
+              <div class="info">
+                <span class="src xhs">小红书</span>
+                <h4>新手起独立站，这5个坑我都踩过一遍</h4>
+                <div class="meta">5天前 · 收藏 3.4k</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-head"><h3>🛍️ 热门知识产品</h3><span class="more" onclick="showScreen('shop')">进入商城 ›</span></div>
+            <div class="prod-grid" style="padding:0;">
+              <div class="prod-card ebook card" onclick="openProduct('ebook',1)">
+                <div class="cover">📘</div>
+                <div class="body">
+                  <span class="type-tag">电子书/资料包</span>
+                  <h4>《100个跨境爆款选品案例库》</h4>
+                  <div class="price">¥59 <small>已售 2103</small></div>
+                </div>
+              </div>
+              <div class="prod-card consult card" onclick="openProduct('consult',1)">
+                <div class="cover">🗓️</div>
+                <div class="body">
+                  <span class="type-tag">1v1咨询</span>
+                  <h4>选品诊断 1v1 咨询（45分钟）</h4>
+                  <div class="price">¥299 <small>已约 186</small></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="height:90px;"></div>
+        </div>
+        <div class="ai-fab" onclick="showScreen('ai')">🤖</div>
+        <div class="tabbar">
+          <div class="tab active" data-tab="home" onclick="showScreen('home')"><div class="ic">🏠</div>首页</div>
+          <div class="tab" data-tab="content" onclick="showScreen('content')"><div class="ic">📰</div>内容</div>
+          <div class="tab" data-tab="shop" onclick="showScreen('shop')"><div class="ic">🛍️</div>商城</div>
+          <div class="tab" data-tab="mine" onclick="showScreen('mine')"><div class="ic">👤</div>我的</div>
+        </div>
+      </div>
+
+      <!-- ========== 内容中心 ========== -->
+      <div class="screen" id="screen-content">
+        <div class="screen-body">
+          <div class="statusbar"><span>9:41</span><span>●●● 5G 100%</span></div>
+          <div class="topbar"><div class="title" style="font-size:18px;">内容中心</div></div>
+          <div class="tabs-row">
+            <div class="chip active" data-ctab="all" onclick="filterContent('all')">全部</div>
+            <div class="chip" data-ctab="wx" onclick="filterContent('wx')">公众号文章</div>
+            <div class="chip" data-ctab="xhs" onclick="filterContent('xhs')">小红书图文</div>
+          </div>
+          <div class="section" style="padding-top:4px;" id="content-list">
+            <!-- filled by JS -->
+          </div>
+          <div style="height:90px;"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab" data-tab="home" onclick="showScreen('home')"><div class="ic">🏠</div>首页</div>
+          <div class="tab active" data-tab="content" onclick="showScreen('content')"><div class="ic">📰</div>内容</div>
+          <div class="tab" data-tab="shop" onclick="showScreen('shop')"><div class="ic">🛍️</div>商城</div>
+          <div class="tab" data-tab="mine" onclick="showScreen('mine')"><div class="ic">👤</div>我的</div>
+        </div>
+      </div>
+
+      <!-- ========== 内容详情 ========== -->
+      <div class="screen" id="screen-article">
+        <div class="screen-body">
+          <div class="article-cover-full">🖼️</div>
+          <div class="topbar" style="position:absolute;top:0;left:0;right:0;padding-top:10px;">
+            <div class="back" onclick="showScreen('content')">‹</div>
+          </div>
+          <div class="article-content" id="article-content">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 知识商城 ========== -->
+      <div class="screen" id="screen-shop">
+        <div class="screen-body">
+          <div class="statusbar"><span>9:41</span><span>●●● 5G 100%</span></div>
+          <div class="topbar"><div class="title" style="font-size:18px;">知识商城</div></div>
+          <div class="notice">💡 电子书购买后可在「我的-已购内容」永久查看；1v1咨询下单后需预约具体时段</div>
+          <div class="tabs-row" style="margin-top:8px;">
+            <div class="chip active" data-stab="all" onclick="filterShop('all')">全部</div>
+            <div class="chip" data-stab="ebook" onclick="filterShop('ebook')">电子书/资料包</div>
+            <div class="chip" data-stab="consult" onclick="filterShop('consult')">1v1咨询</div>
+          </div>
+          <div class="section" style="padding-top:4px;" id="shop-list">
+            <!-- filled by JS -->
+          </div>
+          <div style="height:90px;"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab" data-tab="home" onclick="showScreen('home')"><div class="ic">🏠</div>首页</div>
+          <div class="tab" data-tab="content" onclick="showScreen('content')"><div class="ic">📰</div>内容</div>
+          <div class="tab active" data-tab="shop" onclick="showScreen('shop')"><div class="ic">🛍️</div>商城</div>
+          <div class="tab" data-tab="mine" onclick="showScreen('mine')"><div class="ic">👤</div>我的</div>
+        </div>
+      </div>
+
+      <!-- ========== 电子书详情 ========== -->
+      <div class="screen" id="screen-product-ebook">
+        <div class="screen-body">
+          <div class="pd-cover ebook">📘
+            <div class="topbar" style="position:absolute;top:0;left:0;right:0;padding-top:10px;">
+              <div class="back" onclick="showScreen('shop')">‹</div>
+            </div>
+          </div>
+          <div class="pd-body" id="ebook-body">
+            <!-- filled by JS -->
+          </div>
+        </div>
+        <div class="cta-fixed">
+          <div class="btn-outline">♡</div>
+          <div class="btn btn-ghost" onclick="toast('已加入我的清单')">先收藏</div>
+          <div class="btn btn-accent" onclick="showScreen('mine-purchased-toast'); toast('购买成功，已存入「我的-已购内容」')">¥59 立即购买</div>
+        </div>
+      </div>
+
+      <!-- ========== 咨询服务详情 ========== -->
+      <div class="screen" id="screen-product-consult">
+        <div class="screen-body">
+          <div class="pd-cover consult">🗓️
+            <div class="topbar" style="position:absolute;top:0;left:0;right:0;padding-top:10px;">
+              <div class="back" onclick="showScreen('shop')">‹</div>
+            </div>
+          </div>
+          <div class="pd-body" id="consult-body">
+            <!-- filled by JS -->
+          </div>
+        </div>
+        <div class="cta-fixed">
+          <div class="btn btn-accent" onclick="showScreen('booking')">¥299 立即预约</div>
+        </div>
+      </div>
+
+      <!-- ========== 预约流程 ========== -->
+      <div class="screen" id="screen-booking">
+        <div class="screen-body">
+          <div class="topbar"><div class="back" onclick="showScreen('product-consult')">‹</div><div class="title">预约 1v1 咨询</div></div>
+          <div class="step-indicator">
+            <div class="dot done">1</div><div class="bar done"></div>
+            <div class="dot" id="step2-dot">2</div><div class="bar" id="step2-bar"></div>
+            <div class="dot" id="step3-dot">3</div>
+          </div>
+          <div class="booking-panel">
+            <div class="pd-block">
+              <h5>选择日期</h5>
+              <div class="date-row">
+                <div class="date-chip active" onclick="selectDate(this)"><div class="d">07-23</div><div class="w">周四</div></div>
+                <div class="date-chip" onclick="selectDate(this)"><div class="d">07-24</div><div class="w">周五</div></div>
+                <div class="date-chip" onclick="selectDate(this)"><div class="d">07-25</div><div class="w">周六</div></div>
+                <div class="date-chip" onclick="selectDate(this)"><div class="d">07-26</div><div class="w">周日</div></div>
+                <div class="date-chip" onclick="selectDate(this)"><div class="d">07-27</div><div class="w">周一</div></div>
+              </div>
+            </div>
+            <div class="pd-block">
+              <h5>选择时段（45分钟）</h5>
+              <div class="slot-grid">
+                <div class="slot" onclick="selectSlot(this)">10:00</div>
+                <div class="slot" onclick="selectSlot(this)">11:00</div>
+                <div class="slot full">14:00 已约满</div>
+                <div class="slot" onclick="selectSlot(this)">15:00</div>
+                <div class="slot" onclick="selectSlot(this)">16:30</div>
+                <div class="slot" onclick="selectSlot(this)">20:00</div>
+              </div>
+            </div>
+            <div class="pd-block">
+              <h5>咨询信息</h5>
+              <div class="form-field">
+                <label>你的称呼</label>
+                <input type="text" placeholder="方便咨询时称呼您" />
+              </div>
+              <div class="form-field">
+                <label>联系方式（微信/手机号）</label>
+                <input type="text" placeholder="用于发送咨询提醒" />
+              </div>
+              <div class="form-field">
+                <label>本次想聊的问题（选填）</label>
+                <textarea rows="3" placeholder="例如：想做欧洲站家居品类，目前卡在供应商筛选"></textarea>
+              </div>
+            </div>
+          </div>
+          <div style="height:90px;"></div>
+        </div>
+        <div class="cta-fixed">
+          <div class="btn btn-accent" onclick="showScreen('booking-success')">确认预约并支付 ¥299</div>
+        </div>
+      </div>
+
+      <!-- ========== 预约成功 ========== -->
+      <div class="screen" id="screen-booking-success">
+        <div class="success-wrap">
+          <div class="icon">✓</div>
+          <h3>预约成功</h3>
+          <p>已为你预约 07-23 15:00 的 1v1 选品诊断咨询，博主将在咨询前 1 天通过企业微信联系你确认细节。</p>
+          <div class="btn btn-primary" style="width:100%;" onclick="showScreen('mine')">查看我的预约</div>
+          <div style="height:12px;"></div>
+          <div class="btn btn-ghost" style="width:100%;" onclick="showScreen('home')">返回首页</div>
+        </div>
+      </div>
+
+      <!-- ========== 我的 ========== -->
+      <div class="screen" id="screen-mine">
+        <div class="screen-body">
+          <div class="statusbar"><span>9:41</span><span>●●● 5G 100%</span></div>
+          <div class="mine-header">
+            <div class="avatar">🙂</div>
+            <div>
+              <div class="nick">Lisa_跨境在路上</div>
+              <div class="lv">高级会员 · 已加入 214 天</div>
+            </div>
+          </div>
+          <div class="mine-stats">
+            <div><b>3</b><span>已购电子书</span></div>
+            <div><b>1</b><span>咨询预约</span></div>
+            <div><b>860</b><span>积分</span></div>
+            <div><b>2</b><span>优惠券</span></div>
+          </div>
+          <div class="mine-list">
+            <div class="row">📘 我的已购内容<span class="arrow">›</span></div>
+            <div class="row">🗓️ 我的咨询预约<span class="arrow">›</span></div>
+            <div class="row">🧾 全部订单<span class="arrow">›</span></div>
+            <div class="row">🎫 优惠券<span class="arrow">›</span></div>
+          </div>
+          <div class="mine-list">
+            <div class="row">🤖 AI 选品助手<span class="arrow">›</span></div>
+            <div class="row">💬 联系博主 / 商务合作<span class="arrow">›</span></div>
+            <div class="row">⚙️ 设置<span class="arrow">›</span></div>
+          </div>
+          <div style="height:90px;"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab" data-tab="home" onclick="showScreen('home')"><div class="ic">🏠</div>首页</div>
+          <div class="tab" data-tab="content" onclick="showScreen('content')"><div class="ic">📰</div>内容</div>
+          <div class="tab" data-tab="shop" onclick="showScreen('shop')"><div class="ic">🛍️</div>商城</div>
+          <div class="tab active" data-tab="mine" onclick="showScreen('mine')"><div class="ic">👤</div>我的</div>
+        </div>
+      </div>
+
+      <!-- ========== AI 选品助手 ========== -->
+      <div class="screen" id="screen-ai">
+        <div class="topbar"><div class="back" onclick="showScreen('home')">‹</div><div class="title">AI 选品助手</div></div>
+        <div class="chat-wrap">
+          <div class="msg bot"><div class="av">🤖</div><div class="bubble">你好，我是阿哲的 AI 选品助手，可以帮你分析品类趋势、拆解案例、推荐相关内容和资料包，你想聊点什么？</div></div>
+          <div class="msg me"><div class="av">我</div><div class="bubble">最近想做家居收纳类目，欧洲站，有什么要注意的？</div></div>
+          <div class="msg bot"><div class="av">🤖</div><div class="bubble">家居收纳在欧洲站需求稳定，但价格竞争激烈。建议先看《100个跨境爆款选品案例库》里第 6 章的收纳案例，再结合关税/物流成本测算利润空间。要不要我帮你打开这本资料？</div></div>
+        </div>
+        <div class="quick-q">
+          <span onclick="openProduct('ebook',1)">打开案例库资料包</span>
+          <span onclick="showScreen('product-consult')">预约1v1深聊</span>
+          <span>换个类目分析</span>
+        </div>
+        <div class="chat-input">
+          <input type="text" placeholder="输入你的问题…" />
+          <div class="send">➤</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const articles = {
+    1:{src:'wx',srcLabel:'公众号',title:'2026下半年跨境选品趋势清单，附数据源',date:'2026-07-19 · 阅读 2.1w',
+       body:['过去两个季度，我拉了后台 30+ 品类的选品数据，结合独立站和 TikTok Shop 的动销情况，整理出下半年值得关注的细分品类清单。',
+             '简单说三个信号：家居收纳类目在欧洲站需求稳定但竞争加剧；户外露营装备在北美复购率明显提升；宠物智能用品仍处于早期红利期，适合小团队切入。',
+             '完整的选品数据表和供应商初筛清单，我整理进了《100个跨境爆款选品案例库》，文末有链接。'],
+       callout:'💡 想直接拿数据表和供应商清单，可以看文末的电子书资料包，已更新到 2026 年 7 月版本。'},
+    2:{src:'xhs',srcLabel:'小红书',title:'新手起独立站，这5个坑我都踩过一遍',date:'2026-07-17 · 收藏 3.4k',
+       body:['做独立站两年多，被问最多的问题是"新手第一次搭站要注意什么"，今天把最容易踩的5个坑写清楚。',
+             '第一，建站前没做选品验证，直接照搬同行款；第二，物流方案选贵了或选错了导致复购成本过高；第三，支付渠道没配置本地化，转化率打对折。',
+             '还有两个坑和更详细的解决方案，我放在下面这份资料包里了，感兴趣可以看看。'],
+       callout:'📎 5个坑的完整应对方案，收录在《100个跨境爆款选品案例库》配套资料里。'},
+    3:{src:'wx',srcLabel:'公众号',title:'TikTok Shop 起号3个月，我复盘了转化数据',date:'2026-07-10 · 阅读 1.5w',
+       body:['3个月时间从0做到日均稳定成交，中间调整过4次选品方向，这篇把关键节点和数据都摆出来。',
+             '前两周流量很好但转化差，后来发现是详情页和达人话术没对齐目标人群；调整后转化率提升了近3倍。'],
+       callout:'如果你也在起号阶段卡住，欢迎预约 1v1 咨询，我可以直接看你的后台数据帮你诊断。'},
+    4:{src:'xhs',srcLabel:'小红书',title:'欧洲站供应商筛选清单，收藏这一篇就够了',date:'2026-07-05 · 收藏 2.8k',
+       body:['做欧洲站最容易被坑的环节就是供应商筛选，尤其是新手很难判断资质真假、产能是否匹配。',
+             '整理了一份筛选核对清单，包含资质核验、样品测试、产能评估三个维度，图文版本放在这里方便大家保存。'],
+       callout:'完整版供应商清单 PDF 已收录进资料包，可在商城内直接下载。'}
+  };
+
+  const contentOrder = [1,2,3,4];
+
+  function renderContentList(filter){
+    const wrap = document.getElementById('content-list');
+    wrap.innerHTML = '';
+    contentOrder.forEach(id=>{
+      const a = articles[id];
+      if(filter!=='all' && a.src!==filter) return;
+      const div = document.createElement('div');
+      div.className = 'article-item card';
+      div.onclick = ()=>openArticle(id);
+      div.innerHTML = `
+        <div class="cover">🖼️</div>
+        <div class="info">
+          <span class="src ${a.src}">${a.srcLabel}</span>
+          <h4>${a.title}</h4>
+          <div class="meta">${a.date}</div>
+        </div>`;
+      wrap.appendChild(div);
+    });
+  }
+
+  function filterContent(type){
+    document.querySelectorAll('[data-ctab]').forEach(c=>c.classList.toggle('active', c.dataset.ctab===type));
+    renderContentList(type);
+  }
+
+  function openArticle(id){
+    const a = articles[id];
+    const el = document.getElementById('article-content');
+    el.innerHTML = `
+      <span class="src ${a.src}" style="display:inline-block;">${a.srcLabel}</span>
+      <h2>${a.title}</h2>
+      <div class="meta-row"><span>阿哲</span><span>·</span><span>${a.date}</span></div>
+      ${a.body.map(p=>`<p>${p}</p>`).join('')}
+      <div class="callout">${a.callout}</div>
+    `;
+    const cross = document.createElement('div');
+    cross.className = 'cross-sell';
+    cross.innerHTML = `
+      <div class="label">📎 相关知识产品</div>
+      <div class="prod-row ebook card" onclick="openProduct('ebook',1)" style="margin:0;">
+        <div class="cover">📘</div>
+        <div class="info">
+          <h4>《100个跨境爆款选品案例库》</h4>
+          <div class="sub">电子书/资料包 · 已售 2103</div>
+          <div class="price">¥59</div>
+        </div>
+      </div>`;
+    el.appendChild(cross);
+    showScreen('article');
+  }
+
+  const products = {
+    ebook:{
+      1:{title:'《100个跨境爆款选品案例库》',price:59,old:99,sold:2103,
+         desc:'覆盖家居、户外、宠物、3C四大类目的100个真实选品案例，含选品逻辑、供应链筛选清单、定价参考与踩坑记录。购买后可在小程序内直接在线阅读+下载PDF，永久有效。',
+         toc:['第1章 选品方法论与数据源','第2章 家居收纳类目案例拆解(18例)','第3章 户外露营类目案例拆解(22例)','第4章 宠物智能用品案例拆解(15例)','附录 供应商筛选核对清单']}
+    },
+    consult:{
+      1:{title:'选品诊断 1v1 咨询（45分钟）',price:299,
+         desc:'一对一视频咨询，围绕你当前的选品方向、供应链和店铺数据做针对性诊断，咨询后提供文字版建议纪要。适合已有一定基础、卡在具体决策的卖家。',
+         includes:['咨询前填写背景问卷，博主提前预判方向','45分钟视频通话，可屏幕共享后台数据','咨询后1个工作日内提供文字纪要','咨询后7天内可追加1次文字答疑']}
+    }
+  };
+
+  function openProduct(type,id){
+    if(type==='ebook'){
+      const p = products.ebook[id];
+      document.getElementById('ebook-body').innerHTML = `
+        <span class="type-tag" style="background:var(--brand-light);color:var(--brand);">电子书/资料包</span>
+        <h2>${p.title}</h2>
+        <div class="price-row"><span class="now">¥${p.price}</span><span class="old">¥${p.old}</span></div>
+        <div class="sold">已售 ${p.sold} · 购买后永久可看</div>
+        <div class="pd-block"><h5>产品介绍</h5><p>${p.desc}</p></div>
+        <div class="pd-block"><h5>目录</h5><ul>${p.toc.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+        <div class="pd-block">
+          <h5>用户评价（238）</h5>
+          <div class="review"><div class="av">Y</div><div class="txt"><b>Y**n</b><br/>案例很实操，直接照着筛了3个供应商</div></div>
+          <div class="review"><div class="av">C</div><div class="txt"><b>C**e</b><br/>数据部分很有用，值回票价</div></div>
+        </div>`;
+      showScreen('product-ebook');
+    } else {
+      const p = products.consult[id];
+      document.getElementById('consult-body').innerHTML = `
+        <span class="type-tag" style="background:var(--accent-light);color:var(--accent);">1v1咨询</span>
+        <h2>${p.title}</h2>
+        <div class="price-row"><span class="now">¥${p.price}</span><span class="old" style="text-decoration:none;color:var(--ink-3);">/45分钟</span></div>
+        <div class="sold">已约 186 次 · 好评率 99%</div>
+        <div class="pd-block"><h5>服务说明</h5><p>${p.desc}</p></div>
+        <div class="pd-block"><h5>服务包含</h5><ul>${p.includes.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+        <div class="pd-block">
+          <h5>用户评价（186）</h5>
+          <div class="review"><div class="av">W</div><div class="txt"><b>W**g</b><br/>问题问得很细，聊完思路清晰很多</div></div>
+        </div>`;
+      showScreen('product-consult');
+    }
+  }
+
+  const shopItems = [
+    {type:'ebook',id:1,title:'《100个跨境爆款选品案例库》',sub:'电子书/资料包 · 已售2103',price:59},
+    {type:'ebook',id:2,title:'《欧洲站供应商筛选清单+联系方式模板》',sub:'电子书/资料包 · 已售986',price:29},
+    {type:'consult',id:1,title:'选品诊断 1v1 咨询（45分钟）',sub:'1v1咨询 · 已约186',price:299},
+    {type:'consult',id:2,title:'独立站冷启动 1v1 咨询（60分钟）',sub:'1v1咨询 · 已约94',price:399},
+  ];
+
+  function renderShop(filter){
+    const wrap = document.getElementById('shop-list');
+    wrap.innerHTML = '';
+    shopItems.forEach(it=>{
+      if(filter!=='all' && it.type!==filter) return;
+      const div = document.createElement('div');
+      div.className = `prod-row ${it.type} card`;
+      div.onclick = ()=>openProduct(it.type, it.id===2? 1 : it.id); // demo: item 2 reuses detail of item 1
+      div.innerHTML = `
+        <div class="cover">${it.type==='ebook'?'📘':'🗓️'}</div>
+        <div class="info">
+          <h4>${it.title}</h4>
+          <div class="sub">${it.sub}</div>
+          <div class="price">¥${it.price}</div>
+        </div>`;
+      wrap.appendChild(div);
+    });
+  }
+
+  function filterShop(type){
+    showScreen('shop');
+    document.querySelectorAll('[data-stab]').forEach(c=>c.classList.toggle('active', c.dataset.stab===type));
+    renderShop(type);
+  }
+
+  function selectDate(el){
+    document.querySelectorAll('.date-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function selectSlot(el){
+    if(el.classList.contains('full')) return;
+    document.querySelectorAll('.slot').forEach(s=>{ if(!s.classList.contains('full')) s.style.cssText=''; });
+    el.style.background = 'var(--brand)'; el.style.color='#fff'; el.style.borderColor='var(--brand)';
+  }
+
+  function toast(msg){
+    let t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:absolute;left:50%;top:46%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 18px;border-radius:10px;font-size:12.5px;z-index:50;';
+    document.querySelector('.phone-screen').appendChild(t);
+    setTimeout(()=>t.remove(), 1600);
+  }
+
+  const nameMap = {
+    'home':'screen-home','content':'screen-content','article':'screen-article',
+    'shop':'screen-shop','product-ebook':'screen-product-ebook','product-consult':'screen-product-consult',
+    'booking':'screen-booking','booking-success':'screen-booking-success','mine':'screen-mine','ai':'screen-ai'
+  };
+
+  function showScreen(name){
+    if(name==='mine-purchased-toast') return; // no-op guard used inline above
+    Object.values(nameMap).forEach(id=>document.getElementById(id).classList.remove('active'));
+    const target = nameMap[name];
+    if(target){
+      document.getElementById(target).classList.add('active');
+      document.querySelectorAll(`#${target} .screen-body`).forEach(b=>b.scrollTop=0);
+    }
+    document.querySelectorAll('.tabbar .tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  }
+
+  // init
+  renderContentList('all');
+  renderShop('all');
+</script>
+</body>
+</html>
