@@ -140,6 +140,10 @@
     <text class="chat-transfer__text">转人工</text>
   </view>
 
+  <view class="topic-chips">
+    <view wx:for="{{topicChips}}" wx:key="*this" class="chip" data-text="{{item}}" bindtap="onTopicChip">{{item}}</view>
+  </view>
+
   <!-- 输入区域 -->
   <view class="chat-input-bar" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight + 'px' : 'env(safe-area-inset-bottom)'}}">
     <view class="chat-input-bar__inner">

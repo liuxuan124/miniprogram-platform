@@ -1,0 +1,29 @@
+/* pages/write-review/write-review.wxss */
+.wr-page { min-height: 100vh; background: var(--bg); padding: 24rpx; padding-bottom: 180rpx; }
+.card { background: #fff; border-radius: 32rpx; box-shadow: var(--sh1); padding: 28rpx; margin-bottom: 20rpx; }
+.prod { display: flex; gap: 20rpx; align-items: center; }
+.cover { width: 112rpx; height: 112rpx; border-radius: 20rpx; background: var(--line-2); }
+.info .name { font-size: 30rpx; font-weight: 700; }
+.info .meta { margin-top: 8rpx; font-size: 22rpx; color: var(--ink-300); }
+.label { font-size: 26rpx; font-weight: 600; margin-bottom: 20rpx; color: var(--ink-700); }
+.stars { display: flex; gap: 16rpx; }
+.star { font-size: 52rpx; color: #dfe3ee; }
+.star.on { color: var(--gold); }
+.chips { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.chip { padding: 12rpx 22rpx; border-radius: 999rpx; background: var(--line-2); font-size: 24rpx; color: var(--ink-700); }
+.chip.on { background: var(--brand-50); color: var(--brand); font-weight: 600; }
+.ta { width: 100%; min-height: 200rpx; background: var(--line-2); border-radius: 20rpx; padding: 20rpx; font-size: 28rpx; }
+.pics { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 20rpx; }
+.pic, .add {
+  width: 148rpx; height: 148rpx; border-radius: 20rpx; background: var(--line-2);
+}
+.add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--ink-300); font-size: 40rpx; border: 2rpx dashed var(--line);
+}
+.add text { font-size: 20rpx; margin-top: 4rpx; }
+.anon { margin-top: 20rpx; display: flex; align-items: center; gap: 12rpx; font-size: 26rpx; color: var(--ink-500); }
+.ck { width: 36rpx; height: 36rpx; border-radius: 10rpx; border: 2rpx solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 22rpx; }
+.ck.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); border-top: 1rpx solid var(--line-2); }
+.btn { height: 88rpx; border-radius: 999rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; font-weight: 700; }

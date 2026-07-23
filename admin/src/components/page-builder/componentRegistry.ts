@@ -1,4 +1,4 @@
-import { ComponentType } from '@/types/page'
+import { ComponentType, ComponentTypeLabels } from '@/types/page'
 
 /** 组件定义接口 */
 export interface ComponentDefinition {
@@ -517,9 +517,73 @@ export function getAllCategories(): Array<{ value: string; label: string }> {
   return Array.from(seen.entries()).map(([value, label]) => ({ value, label }))
 }
 
-/** 校验组件属性，返回警告信息数组 */
+/**
+ * C2：小程序端渲染支持清单
+ *
+ * 维护原因：曾发生过 admin 侧已注册组件（如 form_entry）但小程序端
+ * miniapp/components/dsl-renderer 未实现对应渲染分支的情况——后台能正常保存发布，
+ * 但小程序端渲染成空白，且发布前校验不会拦截，属于静默失败。
+ *
+ * 此清单需与 miniapp/utils/render.js 中的 COMPONENT_TYPES 手动保持同步。
+ * 新增组件类型时，必须同时完成三处：
+ *   1. admin 端 componentRegistry 注册（本文件）
+ *   2. miniapp/utils/render.js 的 COMPONENT_TYPES 白名单
+ *   3. miniapp/components/dsl-renderer 的 wxml/wxss 渲染分支
+ * 只要漏做第 2/3 步，下面的校验就会在发布前拦截，而不是等用户在小程序端看到白屏。
+ */
+const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
+  ComponentType.Search,
+  ComponentType.NoticeBar,
+  ComponentType.CategoryNav,
+  ComponentType.Banner,
+  ComponentType.Image,
+  ComponentType.Nav,
+  ComponentType.ProductList,
+  ComponentType.FlashSale,
+  ComponentType.ArticleList,
+  ComponentType.ActivityEntry,
+  ComponentType.ActivityList,
+  ComponentType.AppointmentService,
+  ComponentType.MemberCard,
+  ComponentType.Coupon,
+  ComponentType.AIEntry,
+  ComponentType.Video,
+  ComponentType.BrandIntro,
+  ComponentType.ImageText,
+  ComponentType.ContactInfo,
+  ComponentType.Certificate,
+  ComponentType.Countdown,
+  ComponentType.FloatButton,
+  ComponentType.RichText,
+  ComponentType.SectionTitle,
+  ComponentType.Divider,
+  ComponentType.Spacer,
+  ComponentType.FormEntry,
+])
+
+/** 判断组件类型是否已在小程序端实现渲染 */
+export function isRenderSupportedByMiniapp(type: ComponentType): boolean {
+  return MINIAPP_RENDER_SUPPORTED_TYPES.has(type)
+}
+
+/**
+ * 校验组件属性，返回警告信息数组
+ * 校验分两层：
+ *   1. 渲染端能力校验——组件类型小程序端是否支持，不支持则返回阻断级警告（含"不支持"关键字）
+ *   2. 组件自身的 props 校验（沿用原有各组件 validate 逻辑，含占位内容检测）
+ */
 export function validateComponent(type: ComponentType, props: Record<string, any>): string[] {
+  const warnings: string[] = []
+  const label = ComponentTypeLabels[type] || type
+
+  if (!isRenderSupportedByMiniapp(type)) {
+    warnings.push(`「${label}」组件小程序端暂不支持渲染，发布后将在小程序端显示为空白，请先移除或替换`)
+  }
+
   const def = componentRegistry.get(type)
-  if (!def?.validate) return []
-  return def.validate(props)
+  if (def?.validate) {
+    warnings.push(...def.validate(props))
+  }
+
+  return warnings
 }

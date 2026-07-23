@@ -53,14 +53,19 @@ const LOGIN_RULES = {
   // ========== 「我的页面」菜单项按需登录配置 ==========
   // 匹配 mine 页面 menuItems 的 id，定义每个菜单是否需要登录
   mineMenuRequireLogin: {
-    registration:    true,   // 我的报名 — 必须登录
-    reservation:     true,   // 我的预约 — 必须登录
-    coupons:         true,   // 优惠券 — 必须登录
-    cart:            true,   // 购物车 — 必须登录
-    member_center:   true,   // 会员中心 — 必须登录
-    points:          true,   // 我的积分 — 必须登录
-    contact:         false,  // 联系客服 — 不需要登录
-    settings:        false,  // 设置 — 不需要登录
+    registration:    true,
+    reservation:     true,
+    coupons:         true,
+    cart:            true,
+    member_center:   true,
+    'member-center': true,
+    points:          true,
+    orders:          true,
+    library:         false, // 可先逛资料包，购买时再登录
+    ai:              false,
+    favorites:       false,
+    contact:         false,
+    settings:        false,
   },
 }
 

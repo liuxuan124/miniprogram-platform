@@ -194,6 +194,22 @@
     </view>
   </view>
 
+  <!-- 表单入口 form_entry：对应后台 admin/src/components/page-builder/renderers/FormEntryRenderer.vue -->
+  <view
+    wx:elif="{{comp.type === 'form_entry'}}"
+    class="dsl-form-entry dsl-form-entry--{{comp.props.style || 'card'}}"
+    style="{{comp.styleString}}"
+    data-link="/pages/form/form?id={{comp.props.formId || ''}}"
+    bindtap="onQuickNavigate"
+  >
+    <view class="dsl-form-entry__icon">📋</view>
+    <view class="dsl-form-entry__info">
+      <view class="dsl-form-entry__title">{{comp.props.title || '表单填写'}}</view>
+      <view wx:if="{{comp.props.formId}}" class="dsl-form-entry__id">ID: {{comp.props.formId}}</view>
+    </view>
+    <view class="dsl-form-entry__btn">{{comp.props.buttonText || '立即填写'}}</view>
+  </view>
+
   <!-- 6. 会员卡 member_card -->
   <dsl-member-card
     wx:elif="{{comp.type === 'member_card'}}"
@@ -228,7 +244,8 @@
   >
     <view class="dsl-brand__title">{{comp.props.title || '品牌介绍'}}</view>
     <view class="dsl-brand__subtitle">{{comp.props.subtitle || ''}}</view>
-    <view class="dsl-brand__desc">{{comp.props.desc || '请输入品牌介绍'}}</view>
+    <view class="dsl-brand__desc">{{comp.props.description || comp.props.desc || '请输入品牌介绍'}}</view>
+    <view class="dsl-brand__kpi" wx:if="{{comp.props.kpi}}">{{comp.props.kpi}}</view>
   </view>
 
   <!-- 8. 图文组合 image_text -->

@@ -1,0 +1,26 @@
+<!-- components/coupon-sheet/coupon-sheet.wxml -->
+<view class="mask" wx:if="{{show}}" bindtap="onClose"></view>
+<view class="sheet {{show?'on':''}}">
+  <view class="h"><text>选择优惠券</text><text class="x" bindtap="onClose">✕</text></view>
+  <scroll-view scroll-y class="b">
+    <view
+      wx:for="{{coupons}}"
+      wx:key="id"
+      class="c {{selectedId===item.id?'on':''}}"
+      data-id="{{item.id}}"
+      bindtap="onPick"
+    >
+      <view class="amt">{{item.label}}</view>
+      <view class="meta">
+        <view class="n">{{item.name}}</view>
+        <view class="d">{{item.desc}}</view>
+      </view>
+      <text class="ck">{{selectedId===item.id?'●':'○'}}</text>
+    </view>
+    <view class="c" data-id="" bindtap="onPick">
+      <view class="meta"><view class="n">不使用优惠券</view></view>
+      <text class="ck">{{!selectedId?'●':'○'}}</text>
+    </view>
+  </scroll-view>
+  <view class="f"><view class="btn" bindtap="onConfirm">确定</view></view>
+</view>

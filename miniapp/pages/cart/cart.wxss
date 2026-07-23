@@ -2,11 +2,22 @@
 
 .cart-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: var(--bg, #f5f6f9);
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-/* ========== 购物车列表 ========== */
+.cart-tip {
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: var(--accent-50, #fff2ee);
+  color: #a8462a;
+  font-size: 24rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+}
+.cart-tip .go { margin-left: auto; color: var(--accent, #ff6b3d); font-weight: 600; }
+
 .cart-list {
   padding: 16rpx 24rpx;
 }

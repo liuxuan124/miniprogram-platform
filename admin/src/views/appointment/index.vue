@@ -576,14 +576,14 @@ onMounted(async () => {
   }
 
   .day-cell.today {
-    border-color: #1769ff;
-    box-shadow: inset 0 0 0 1px #1769ff;
+    border-color: var(--brand);
+    box-shadow: inset 0 0 0 1px var(--brand);
   }
 
   .day-cell.selected {
     background: #eef4ff;
-    border-color: #1769ff;
-    color: #1769ff;
+    border-color: var(--brand);
+    color: var(--brand);
     font-weight: 700;
   }
 
@@ -591,7 +591,7 @@ onMounted(async () => {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #1769ff;
+    background: var(--brand);
     position: absolute;
     right: 6px;
     bottom: 5px;
@@ -650,8 +650,8 @@ onMounted(async () => {
   }
 
   .time-chip.selected {
-    border-color: #1769ff;
-    color: #1769ff;
+    border-color: var(--brand);
+    color: var(--brand);
     background: #eef4ff;
   }
 

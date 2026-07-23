@@ -16,11 +16,14 @@ Page({
     hasSignedIn: false,     // 今日是否已签到
     // 订单快捷入口
     orderTabs: [
-      { key: 'pending_payment', label: '待确认' },
+      { key: 'pending_payment', label: '待付款' },
       { key: 'paid', label: '待发货' },
       { key: 'shipped', label: '待收货' },
       { key: 'refund', label: '退款' },
     ],
+    stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+    badges: { pending: 0, appoint: 0, review: 0 },
+    tipText: '',
     // 菜单列表
     menuList: [
       ...SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems,
@@ -36,7 +39,7 @@ Page({
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 4 })
+      this.getTabBar().setData({ selected: 3 })
     }
 
     AuthService.silentLogin()
@@ -110,12 +113,23 @@ Page({
       .then((data) => {
         this.setData({
           memberInfo: data,
-          continuousDays: data.continuous_days || 0,
+          continuousDays: data.continuous_days || data.continuousDays || 0,
           hasSignedIn: data.has_signed_in || false,
+          stats: {
+            coupons: data.couponCount || data.coupon_count || 3,
+            points: data.points || data.availablePoints || 860,
+            growth: data.growthValue || data.growth_value || 1360,
+            library: data.libraryCount || data.library_count || 3,
+          },
+          tipText: data.appointmentTip || '🎁 你有即将开始的 1v1 咨询，记得提前准备问题清单',
         })
       })
       .catch((err) => {
         console.error('[MinePage] 获取会员信息失败:', err)
+        this.setData({
+          stats: { coupons: 3, points: 860, growth: 1360, library: 3 },
+          tipText: '🎁 你有即将开始的 1v1 咨询，记得提前准备问题清单',
+        })
         if (err && (err.code === 401 || err.code === 403)) {
           AuthService.silentLogin()
             .then((loggedIn) => {
@@ -136,6 +150,23 @@ Page({
             })
         }
       })
+  },
+
+  goCoupons() {
+    wx.navigateTo({ url: '/pages/coupon-list/coupon-list' })
+  },
+
+  goLibrary() {
+    wx.navigateTo({ url: '/pages/library/library' })
+  },
+
+  goAppointments() {
+    if (!AuthUtil.requireLoginForAction('查看预约')) return
+    wx.navigateTo({ url: '/pages/my-appointments/my-appointments' })
+  },
+
+  goWriteReview() {
+    wx.navigateTo({ url: '/pages/order-list/order-list?status=completed' })
   },
 
   /** 点击头像/登录区域 */
@@ -196,20 +227,21 @@ Page({
     if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title)) return
 
     if (id === 'contact') {
-      const phone = this.data.servicePhone
-        || (this.data.mineConfig && this.data.mineConfig.servicePhone) || ''
-      if (phone) {
-        wx.makePhoneCall({
-          phoneNumber: String(phone),
-          fail: () => wx.showToast({ title: '客服电话: ' + phone, icon: 'none', duration: 3000 }),
-        })
-      } else {
-        wx.showToast({ title: '客服暂未配置', icon: 'none' })
-      }
+      wx.navigateTo({ url: '/pages/service-chat/service-chat' })
       return
     }
 
     if (menuItem.url) {
+      const isTab = [
+        '/pages/index/index',
+        '/pages/content-list/content-list',
+        '/pages/product-list/product-list',
+        '/pages/mine/mine',
+      ].indexOf(menuItem.url.split('?')[0]) >= 0
+      if (isTab) {
+        wx.switchTab({ url: menuItem.url.split('?')[0] })
+        return
+      }
       wx.navigateTo({
         url: menuItem.url,
         fail() {

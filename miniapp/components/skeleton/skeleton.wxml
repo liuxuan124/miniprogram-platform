@@ -1,0 +1,43 @@
+<!--components/skeleton/skeleton.wxml — D1：骨架屏，替代整页 loading 的空白突兀期-->
+<view class="skeleton" wx:if="{{show}}">
+  <!-- 首页专用：轮播 + 宫格导航 -->
+  <block wx:if="{{type === 'home'}}">
+    <view class="sk-block sk-banner sk-shimmer"></view>
+    <view class="sk-nav-row">
+      <view class="sk-nav-item" wx:for="{{4}}" wx:key="*this">
+        <view class="sk-circle sk-shimmer"></view>
+        <view class="sk-line sk-line--short sk-shimmer"></view>
+      </view>
+    </view>
+    <view class="sk-card" wx:for="{{rows}}" wx:key="*this">
+      <view class="sk-card__thumb sk-shimmer"></view>
+      <view class="sk-card__body">
+        <view class="sk-line sk-line--wide sk-shimmer"></view>
+        <view class="sk-line sk-line--mid sk-shimmer"></view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 商品宫格：2 列卡片 -->
+  <block wx:elif="{{type === 'grid'}}">
+    <view class="sk-grid">
+      <view class="sk-grid-card" wx:for="{{rows}}" wx:key="*this">
+        <view class="sk-grid-card__thumb sk-shimmer"></view>
+        <view class="sk-line sk-line--wide sk-shimmer"></view>
+        <view class="sk-line sk-line--short sk-shimmer"></view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 通用列表：图 + 两行文字，用于内容/订单等列表页 -->
+  <block wx:else>
+    <view class="sk-card" wx:for="{{rows}}" wx:key="*this">
+      <view class="sk-card__thumb sk-shimmer"></view>
+      <view class="sk-card__body">
+        <view class="sk-line sk-line--wide sk-shimmer"></view>
+        <view class="sk-line sk-line--mid sk-shimmer"></view>
+        <view class="sk-line sk-line--short sk-shimmer"></view>
+      </view>
+    </view>
+  </block>
+</view>

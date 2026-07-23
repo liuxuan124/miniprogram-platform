@@ -1,7 +1,10 @@
 <!-- pages/activity-list/activity-list.wxml — 活动列表页 -->
 <view class="activity-list-page">
+  <!-- 首次加载：D1 骨架屏 -->
+  <skeleton wx:if="{{loading && activities.length === 0}}" type="list" rows="{{3}}" />
+
   <!-- 活动卡片列表 -->
-  <view class="activity-list" wx:if="{{!isEmpty}}">
+  <view class="activity-list" wx:elif="{{!isEmpty}}">
     <view
       wx:for="{{activities}}"
       wx:key="id"
@@ -49,17 +52,14 @@
     </view>
   </view>
 
-  <!-- 加载状态 -->
-  <view class="loading-area" wx:if="{{loading}}">
+  <!-- 加载更多状态 -->
+  <view class="loading-area" wx:if="{{loading && activities.length > 0}}">
     <text class="loading-text">加载中...</text>
   </view>
   <view class="loading-area" wx:elif="{{!hasMore && activities.length > 0}}">
     <text class="loading-text">没有更多了</text>
   </view>
 
-  <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
-    <image class="empty-state__icon" src="/images/empty.png" mode="aspectFit" />
-    <text class="empty-state__text">暂无活动</text>
-  </view>
+  <!-- 空状态：D2 统一空态组件 -->
+  <empty-state wx:if="{{isEmpty && !loading}}" title="暂无活动" desc="精彩活动筹备中，稍后再来看看" />
 </view>

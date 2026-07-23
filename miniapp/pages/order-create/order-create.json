@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "确认订单"
+  "navigationBarTitleText": "确认订单",
+  "usingComponents": {
+    "pay-sheet": "../../components/pay-sheet/pay-sheet",
+    "coupon-sheet": "../../components/coupon-sheet/coupon-sheet"
+  }
 }

@@ -1,9 +1,9 @@
 {
-  "navigationBarTitleText": "首页",
+  "navigationBarTitleText": "出海笔记",
+  "navigationBarBackgroundColor": "#2f5bff",
+  "navigationBarTextStyle": "white",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
-  "usingComponents": {
-    "dsl-renderer": "../../components/dsl-renderer/dsl-renderer",
-    "loading": "../../components/loading/loading"
-  }
+  "backgroundColor": "#f7f8fc",
+  "usingComponents": {}
 }

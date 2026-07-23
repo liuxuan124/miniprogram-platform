@@ -143,7 +143,7 @@
                   </template>
                   <template v-else-if="field.type === 'color'">
                     <el-color-picker
-                      :model-value="getFieldValue(field.path) || '#1769ff'"
+                      :model-value="getFieldValue(field.path) || 'var(--brand)'"
                       size="small"
                       @update:model-value="(val: string) => setFieldValue(field.path, val)"
                     />
@@ -193,7 +193,7 @@
             <el-switch
               :model-value="visibility[vis.key]"
               active-color="#8B5CF6"
-              inactive-color="#dcdfe6"
+              inactive-color="var(--border)"
               @change="(val: boolean) => toggleVisibility(vis.key, val)"
             />
             <transition name="fade-hint">
@@ -974,7 +974,7 @@ export default {
   border-radius: 36px;
   padding: 10px;
   box-shadow:
-    0 0 0 2px #333,
+    0 0 0 2px var(--text),
     0 20px 60px rgba(0,0,0,0.25),
     inset 0 0 4px rgba(0,0,0,0.4);
   position: relative;
@@ -1042,7 +1042,7 @@ export default {
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: #c0c4cc;
+  color: var(--text-muted);
 }
 
 .empty-dsl-hint p {
@@ -1052,13 +1052,13 @@ export default {
 
 .hint-sub {
   font-size: 12px !important;
-  color: #dcdfe6 !important;
+  color: var(--border) !important;
 }
 
 .empty-fields-hint {
   padding: 16px;
   text-align: center;
-  color: #909399;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -1179,7 +1179,7 @@ export default {
   top: -5px;
   right: -5px;
   cursor: pointer;
-  color: #f56c6c;
+  color: var(--danger);
   background: #fff;
   border-radius: 50%;
   font-size: 12px;
@@ -1211,7 +1211,7 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid #f7f8fa;
+  border-bottom: 1px solid var(--bg-page);
 }
 
 .visibility-row:last-child {
@@ -1237,7 +1237,7 @@ export default {
 
 .visibility-hint {
   font-size: 10px;
-  color: #c0c4cc;
+  color: var(--text-muted);
   background: #f5f7fa;
   padding: 1px 6px;
   border-radius: 4px;
@@ -1272,7 +1272,7 @@ export default {
 }
 
 .group-sub-header:hover {
-  background: #f8faff;
+  background: var(--bg-page);
 }
 
 .sub-arrow {
@@ -1310,7 +1310,7 @@ export default {
 }
 
 .section-header:hover {
-  background: #f8faff;
+  background: var(--bg-page);
 }
 
 .section-title {

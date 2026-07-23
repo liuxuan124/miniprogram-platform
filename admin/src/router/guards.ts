@@ -15,7 +15,7 @@ import { usePermissionStore } from '@/stores/permission'
 NProgress.configure({ showSpinner: false })
 
 /** 白名单路由（无需登录） */
-const whiteList = ['/login', '/h5/preview']
+const whiteList = ['/login', '/h5/preview', '/h5/miniapp-preview']
 
 /** 注册路由守卫 */
 export function setupRouterGuards(router: Router) {
@@ -44,7 +44,7 @@ export function setupRouterGuards(router: Router) {
       }
 
       try {
-        // 获取用户信息
+        // 获取用户信息（静默失败，避免登录页刷屏「拒绝访问」）
         const userInfo = await userStore.fetchUserInfo()
 
         // 根据角色生成动态路由

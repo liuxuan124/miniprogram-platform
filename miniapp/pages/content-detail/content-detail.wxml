@@ -1,55 +1,155 @@
-<!-- pages/content-detail/content-detail.wxml — 内容详情页 -->
-<view class="content-detail-page">
-  <!-- 加载状态 -->
-  <view class="loading-area" wx:if="{{loading}}">
-    <text class="loading-text">加载中...</text>
+<!-- pages/content-detail/content-detail.wxml -->
+<view class="content-detail-page {{isNote ? 'is-note' : 'is-article'}}">
+  <view class="skeleton-wrap" wx:if="{{loading}}">
+    <t-skeleton
+      theme="paragraph"
+      animation="gradient"
+      row-col="{{[{width:'120rpx',height:'36rpx'},{width:'100%'},{width:'60%'},{width:'100%',height:'400rpx'},{width:'100%'},{width:'80%'}]}}"
+    />
   </view>
 
-  <!-- 内容主体 -->
-  <view class="detail-body" wx:else>
-    <!-- 标题区域 -->
-    <view class="detail-header">
-      <text class="detail-title">{{article.title}}</text>
-      <view class="detail-meta">
-        <text class="detail-author" wx:if="{{article.author}}">{{article.author}}</text>
-        <text class="detail-date">{{article.publish_time || article.created_at}}</text>
+  <!-- ========== 笔记：小红书图文 ========== -->
+  <view class="note-mode" wx:elif="{{isNote}}">
+    <view class="n-gallery-wrap">
+      <swiper
+        class="n-gallery"
+        circular
+        bindchange="onGalleryChange"
+      >
+        <swiper-item wx:for="{{gallerySlides}}" wx:key="key">
+          <image wx:if="{{item.type === 'image'}}" src="{{item.url}}" mode="aspectFill" class="n-img" />
+          <view wx:else class="n-art" style="{{item.artStyle}}">
+            <text class="n-glyph">{{item.glyph}}</text>
+          </view>
+        </swiper-item>
+      </swiper>
+      <view class="n-idx" wx:if="{{galleryCount > 1}}">{{galleryIndex + 1}} / {{galleryCount}}</view>
+    </view>
+
+    <view class="n-body">
+      <view class="n-chips">
+        <text class="fmt note">笔记</text>
+        <text class="topic" wx:if="{{topicName}}">{{topicName}}</text>
+      </view>
+      <view class="n-title">{{article.title}}</view>
+
+      <view class="n-paras">
+        <view class="n-p" wx:for="{{noteParagraphs}}" wx:key="*this">{{item}}</view>
+      </view>
+
+      <view class="n-tags" wx:if="{{hashTags.length}}">
+        <text wx:for="{{hashTags}}" wx:key="*this">{{item}}</text>
+      </view>
+
+      <view class="a-meta">
+        <view class="av">哲</view>
+        <view class="a-meta-txt">
+          <view class="nm">出海笔记 · 阿哲</view>
+          <view class="dt">{{article.publish_time}}</view>
+        </view>
+        <view class="follow {{followed ? 'on' : ''}}" bindtap="onFollowTap">{{followed ? '已关注' : '+ 关注'}}</view>
+      </view>
+
+      <view class="n-actions">
+        <view class="{{liked ? 'hot' : ''}}" bindtap="onLikeTap">♡ {{likeStat || article.like_count || 0}}</view>
+        <view bindtap="onCommentTap">💬 86</view>
+        <view bindtap="onFavoriteTap">{{favorited ? '★ 已收藏' : '🔖 收藏'}}</view>
+        <view class="n-share" bindtap="onShareTap">↗ 分享</view>
       </view>
     </view>
 
-    <!-- 封面图 -->
-    <image
-      class="detail-cover"
-      wx:if="{{article.cover_url || article.image}}"
-      src="{{article.cover_url || article.image}}"
-      mode="widthFix"
-    />
-
-    <!-- 富文本内容 -->
-    <view class="detail-content">
-      <rich-text nodes="{{article.content || article.body}}"></rich-text>
+    <view class="cross" wx:if="{{relatedProducts.length}}">
+      <view class="cross-lb">📎 这篇内容相关的知识产品</view>
+      <view
+        wx:for="{{relatedProducts}}"
+        wx:key="id"
+        class="cross-card"
+        data-id="{{item.id}}"
+        bindtap="onProductTap"
+      >
+        <image src="{{item.cover}}" mode="aspectFill" class="cross-cover" />
+        <view class="cross-info">
+          <view class="cross-name">{{item.name}}</view>
+          <view class="cross-price">¥{{item.price}}</view>
+        </view>
+      </view>
     </view>
-
-    <!-- 分隔线 -->
-    <view class="divider"></view>
-
-    <!-- 标签 -->
-    <view class="detail-tags" wx:if="{{article.tags && article.tags.length > 0}}">
-      <text class="tag-item" wx:for="{{article.tags}}" wx:key="index">{{item}}</text>
-    </view>
+    <view class="footer-spacer"></view>
   </view>
 
-  <!-- 底部操作栏 -->
-  <view class="bottom-bar">
-    <view class="action-item" bindtap="onLikeTap">
-      <text class="action-icon">{{liked ? '❤️' : '🤍'}}</text>
+  <!-- ========== 长文 / 视频 / 数据：普通文章 ========== -->
+  <view class="article-mode" wx:else>
+    <view class="progress-wrap">
+      <view class="progress" style="width: {{readProgress}}%;"></view>
+    </view>
+
+    <view class="a-cover" style="{{artStyle}}">
+      <text class="a-cover-glyph">{{glyph}}</text>
+    </view>
+
+    <view class="a-wrap">
+      <view class="n-chips">
+        <text class="fmt {{formatKey}}">{{formatLabel}}</text>
+        <text class="topic" wx:if="{{topicName}}">{{topicName}}</text>
+      </view>
+      <view class="a-title">{{article.title}}</view>
+
+      <view class="a-meta">
+        <view class="av">哲</view>
+        <view class="a-meta-txt">
+          <view class="nm">出海笔记 · 阿哲</view>
+          <view class="dt">{{article.publish_time}} · {{metaLine}}</view>
+        </view>
+        <view class="follow {{followed ? 'on' : ''}}" bindtap="onFollowTap">{{followed ? '已关注' : '+ 关注'}}</view>
+      </view>
+
+      <view class="a-body">
+        <rich-text nodes="{{article.content || article.body}}"></rich-text>
+      </view>
+
+      <view class="detail-tags" wx:if="{{article.tags && article.tags.length}}">
+        <t-tag
+          wx:for="{{article.tags}}"
+          wx:key="index"
+          variant="light"
+          size="small"
+          theme="primary"
+          class="tag-comp"
+        >{{item}}</t-tag>
+      </view>
+    </view>
+
+    <view class="cross" wx:if="{{relatedProducts.length}}">
+      <view class="cross-lb">📎 这篇内容相关的知识产品</view>
+      <view
+        wx:for="{{relatedProducts}}"
+        wx:key="id"
+        class="cross-card"
+        data-id="{{item.id}}"
+        bindtap="onProductTap"
+      >
+        <image src="{{item.cover}}" mode="aspectFill" class="cross-cover" />
+        <view class="cross-info">
+          <view class="cross-name">{{item.name}}</view>
+          <view class="cross-price">¥{{item.price}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="footer-spacer"></view>
+  </view>
+
+  <!-- 底部栏：仅文章模式固定；笔记用页内 n-actions -->
+  <view class="bottom-bar" wx:if="{{!isNote && !loading}}">
+    <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
+      <t-icon name="{{liked ? 'heart-filled' : 'heart'}}" size="44rpx" color="{{liked ? '#ff4d4f' : '#a5abb9'}}" />
       <text class="action-text">{{article.like_count || 0}}</text>
     </view>
-    <view class="action-item" bindtap="onFavoriteTap">
-      <text class="action-icon">{{favorited ? '⭐' : '☆'}}</text>
+    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap">
+      <t-icon name="{{favorited ? 'star-filled' : 'star'}}" size="44rpx" color="{{favorited ? '#ffaa00' : '#a5abb9'}}" />
       <text class="action-text">{{favorited ? '已收藏' : '收藏'}}</text>
     </view>
     <view class="action-item" bindtap="onShareTap">
-      <text class="action-icon">↗️</text>
+      <t-icon name="share" size="44rpx" color="#a5abb9" />
       <text class="action-text">分享</text>
     </view>
   </view>

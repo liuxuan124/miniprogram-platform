@@ -417,7 +417,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .industry-modules-page {
-  color: #172033;
+  color: var(--text);
 }
 
 .ph {
@@ -431,7 +431,7 @@ onMounted(() => {
 
 .ps {
   margin-top: 4px;
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 13px;
   max-width: 640px;
 }
@@ -490,7 +490,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: 20px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 16px;
 }
@@ -514,7 +514,7 @@ onMounted(() => {
 
   p {
     margin-top: 4px;
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 13px;
     max-width: 500px;
   }
@@ -529,7 +529,7 @@ onMounted(() => {
 
 .panel {
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
 }
@@ -560,13 +560,13 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   transition: 0.14s;
 
   &:hover {
     border-color: #bfdbfe;
-    background: #f8faff;
+    background: var(--bg-page);
   }
 }
 
@@ -579,7 +579,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 700;
   color: #fff;
-  background: #1769ff;
+  background: var(--brand);
   flex-shrink: 0;
 }
 
@@ -593,7 +593,7 @@ onMounted(() => {
   }
 
   p {
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 12px;
     margin-top: 4px;
   }
@@ -607,9 +607,9 @@ onMounted(() => {
 
   span {
     padding: 2px 8px;
-    color: #1769ff;
+    color: var(--brand);
     font-size: 11px;
-    background: #eff6ff;
+    background: var(--brand-soft);
     border: 1px solid #bfdbfe;
     border-radius: 4px;
   }
@@ -625,14 +625,14 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   padding: 10px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
   transition: 0.14s;
 
   &:hover {
-    border-color: #1769ff;
-    background: #f8faff;
+    border-color: var(--brand);
+    background: var(--bg-page);
   }
 }
 
@@ -683,7 +683,7 @@ onMounted(() => {
   }
 
   p {
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 11px;
     margin-top: 2px;
     overflow: hidden;
@@ -695,7 +695,7 @@ onMounted(() => {
 .ind-tpl-count {
   display: inline-block;
   margin-top: 4px;
-  color: #1769ff;
+  color: var(--brand);
   font-size: 10px;
   font-weight: 600;
 }
@@ -703,7 +703,7 @@ onMounted(() => {
 .no-templates {
   text-align: center;
   padding: 24px 0;
-  color: #7b8798;
+  color: var(--text-muted);
 
   p {
     font-size: 13px;
@@ -723,7 +723,7 @@ onMounted(() => {
 
 .feature-card {
   padding: 14px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   text-align: center;
 }
@@ -741,7 +741,7 @@ onMounted(() => {
   }
 
   p {
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 11px;
     margin-top: 4px;
   }
@@ -756,12 +756,12 @@ onMounted(() => {
   display: inline-block;
 
   &.enabled {
-    color: #0faa6e;
+    color: var(--success);
     background: #ecfdf5;
   }
 
   &.disabled {
-    color: #7b8798;
+    color: var(--text-muted);
     background: #f3f4f6;
   }
 }
@@ -777,7 +777,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
 }
 
@@ -797,7 +797,7 @@ onMounted(() => {
   }
 
   p {
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 12px;
     margin-top: 2px;
   }
@@ -823,7 +823,7 @@ onMounted(() => {
 
   p {
     margin-top: 8px;
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 14px;
     max-width: 360px;
   }

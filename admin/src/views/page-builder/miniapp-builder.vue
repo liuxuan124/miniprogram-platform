@@ -4,11 +4,15 @@
     <div v-if="viewMode === 'gallery'" class="template-gallery">
       <div class="builder-toolbar">
         <div class="toolbar-left">
-          <h1>小程序搭建</h1>
+          <h1>搭建小程序</h1>
+          <p class="toolbar-sub">配置导航、主题并发布小程序。页面内容请先在「页面管理 / 装修器」完成。</p>
         </div>
         <div class="toolbar-right">
+          <el-button type="success" plain @click="openFullMiniappPreview()">
+            <el-icon><Cellphone /></el-icon> 小程序预览
+          </el-button>
           <el-button type="primary" @click="handleNewBuild">
-            <el-icon><Plus /></el-icon> 新建搭建
+            <el-icon><Plus /></el-icon> 新建配置
           </el-button>
           <el-button :loading="galleryLoading" @click="loadGalleryData">
             <el-icon><Refresh /></el-icon> 刷新
@@ -19,21 +23,18 @@
       <div class="gallery-body">
         <div class="stats-row">
           <div class="stat-card">
-            <span class="stat-icon">📦</span>
             <div class="stat-info">
               <span class="stat-value">{{ templateCount }}</span>
-              <span class="stat-label">模板数</span>
+              <span class="stat-label">配置草稿</span>
             </div>
           </div>
           <div class="stat-card">
-            <span class="stat-icon">✅</span>
             <div class="stat-info">
               <span class="stat-value">{{ latestPublished ? latestPublished.semver : '无' }}</span>
               <span class="stat-label">已发布版本</span>
             </div>
           </div>
           <div class="stat-card">
-            <span class="stat-icon">🔄</span>
             <div class="stat-info">
               <span class="stat-value">{{ releases.length }}</span>
               <span class="stat-label">总版本数</span>
@@ -83,38 +84,47 @@
             </div>
 
             <div class="card-actions">
-              <el-button size="small" type="success" plain @click="openH5Preview(item)">H5预览</el-button>
-              <el-button size="small" type="warning" plain :loading="pushingReleaseId === item.id" @click="handlePushPreview(item)">
-                推送体验版
+              <el-button size="small" type="primary" @click="handleEditTemplate(item)">编辑</el-button>
+              <el-button
+                v-if="item.mode === 'template' || item.status === 0"
+                size="small"
+                type="success"
+                plain
+                @click="handlePromote(item)"
+              >
+                发布小程序
               </el-button>
-              <el-button size="small" text type="primary" @click="copyH5PreviewLink(item)">复制链接</el-button>
-              <template v-if="item.status === 1">
-                <el-button size="small" type="primary" plain @click="handleEditTemplate(item)">编辑</el-button>
-                <el-popconfirm title="确认回滚到此版本？" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleRollback(item)">
-                  <template #reference>
-                    <el-button size="small" plain>回滚</el-button>
-                  </template>
-                </el-popconfirm>
-              </template>
-              <template v-else>
-                <el-button size="small" type="primary" plain @click="handleEditTemplate(item)">编辑</el-button>
-                <el-button v-if="item.mode === 'template' || item.status === 0" size="small" type="success" plain @click="handlePromote(item)">
-                  🚀 发布上线
-                </el-button>
-                <el-popconfirm title="确认删除此模板？删除后不可恢复。" confirm-button-text="确认删除" cancel-button-text="取消" @confirm="handleDelete(item)">
-                  <template #reference>
-                    <el-button v-if="item.mode === 'template' || item.status === 0" size="small" type="danger" text>删除🗑️</el-button>
-                  </template>
-                </el-popconfirm>
-              </template>
+              <el-dropdown trigger="click">
+                <el-button size="small">更多</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="openFullMiniappPreview(item)">小程序预览（本版本配置）</el-dropdown-item>
+                    <el-dropdown-item @click="openH5Preview(item)">仅首页 H5</el-dropdown-item>
+                    <el-dropdown-item @click="openPrototypeDemo">设计原型演示（22屏）</el-dropdown-item>
+                    <el-dropdown-item :disabled="pushingReleaseId === item.id" @click="handlePushPreview(item)">
+                      推送体验版
+                    </el-dropdown-item>
+                    <el-dropdown-item @click="copyFullPreviewLink(item)">复制预览链接</el-dropdown-item>
+                    <el-dropdown-item v-if="item.status === 1" divided @click="handleRollback(item)">回滚到此版本</el-dropdown-item>
+                    <el-dropdown-item
+                      v-if="item.mode === 'template' || item.status === 0"
+                      divided
+                      @click="handleDelete(item)"
+                    >
+                      删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
           </div>
         </div>
 
         <div v-else class="empty-gallery">
-          <el-empty description="暂无模板，点击「新建搭建」开始">
+          <el-empty description="暂无配置。建议先完成首页装修，再新建配置。">
+            <el-button @click="$router.push('/page-builder/list')">去页面管理</el-button>
             <el-button type="primary" @click="handleNewBuild">
-              <el-icon><Plus /></el-icon> 新建搭建
+              <el-icon><Plus /></el-icon> 新建配置
             </el-button>
           </el-empty>
         </div>
@@ -126,7 +136,7 @@
       <div class="builder-toolbar">
         <div class="toolbar-left">
           <el-button size="small" plain @click="goToGallery">
-            <el-icon><ArrowLeft /></el-icon> 返回模板中心
+            <el-icon><ArrowLeft /></el-icon> 返回配置列表
           </el-button>
           <h1>{{ editingTemplateId ? '编辑模板' : '新建搭建' }}</h1>
           <span v-if="isDirty" class="dirty-pill">有未保存更改</span>
@@ -295,9 +305,9 @@
               <div class="confirm-actions">
                 <el-button @click="activeStep = 2">← 返回修改</el-button>
                 <div class="confirm-btns">
-                  <el-button size="large" @click="handleSaveAsTemplate">💾 保存为模板</el-button>
+                  <el-button size="large" @click="handleSaveAsTemplate">保存为草稿</el-button>
                   <el-button type="primary" size="large" :loading="saving" @click="handlePublishOnline">
-                    <el-icon><Check /></el-icon> 🚀 发布上线
+                    <el-icon><Check /></el-icon> 发布小程序
                   </el-button>
                 </div>
               </div>
@@ -305,14 +315,14 @@
 
             <!-- Step 5A: Template Saved Success -->
             <div v-show="activeStep === 4 && successMode === 'template'" class="config-section success-section">
-              <div class="success-icon">📦</div>
-              <h2 class="success-title">模板保存成功！</h2>
-              <p class="success-desc">当前配置已保存为模板，您可以随时编辑或发布上线</p>
+              <div class="success-icon ok">OK</div>
+              <h2 class="success-title">配置草稿已保存</h2>
+              <p class="success-desc">导航与主题已保存为草稿。确认无误后可发布小程序，用户端才会生效。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card version-release-card-template">
                 <div class="version-release-header">
                   <el-tag type="primary" effect="dark" size="large" round>
-                    模板版本 {{ newReleaseInfo.semver || 'v1.0.0' }}
+                    草稿 {{ newReleaseInfo.semver || 'v1.0.0' }}
                   </el-tag>
                   <span class="version-release-time">{{ formatTime(new Date()) }}</span>
                 </div>
@@ -330,29 +340,26 @@
               </div>
 
               <div class="next-steps">
-                <div class="next-step-title">接下来您可以：</div>
+                <div class="next-step-title">建议下一步</div>
                 <div class="next-step-list">
                   <a class="next-step-item highlight" href="#" @click.prevent="handlePublishOnline">
-                    <span class="next-icon">🚀</span>
                     <div class="next-info">
-                      <strong>发布此模板</strong>
-                      <span>将当前模板正式发布到线上环境</span>
+                      <strong>发布小程序</strong>
+                      <span>让导航配置在小程序端生效</span>
+                    </div>
+                    <el-icon><ArrowRight /></el-icon>
+                  </a>
+                  <a class="next-step-item" href="#" @click.prevent="goToPageBuilder">
+                    <div class="next-info">
+                      <strong>检查首页装修</strong>
+                      <span>确认首页内容已发布（装修器里的「发布页面」）</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
                   <a class="next-step-item" href="#" @click.prevent="goToGallery">
-                    <span class="next-icon">↩️</span>
                     <div class="next-info">
-                      <strong>返回模板中心</strong>
-                      <span>查看所有已保存的模板和版本记录</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                  <a class="next-step-item" href="#" @click.prevent="activeStep = 3; successMode = 'template'">
-                    <span class="next-icon">🎨</span>
-                    <div class="next-info">
-                      <strong>继续编辑</strong>
-                      <span>修改配置内容并重新保存</span>
+                      <strong>返回配置列表</strong>
+                      <span>查看全部草稿与已发布版本</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
@@ -360,21 +367,16 @@
               </div>
 
               <div class="success-footer">
-                <el-button size="large" @click="goToGallery">返回</el-button>
-                <el-button size="large" type="success" @click="handlePublishOnline">
-                  🚀 发布上线
-                </el-button>
-                <el-button size="large" type="primary" @click="activeStep = 3; successMode = 'template'">
-                  💾 重新保存
-                </el-button>
+                <el-button size="large" @click="goToGallery">返回列表</el-button>
+                <el-button size="large" type="primary" @click="handlePublishOnline">发布小程序</el-button>
               </div>
             </div>
 
             <!-- Step 5B: Publish Success -->
             <div v-show="activeStep === 4 && successMode === 'publish'" class="config-section success-section">
-              <div class="success-icon">🟢</div>
-              <h2 class="success-title">发布成功！小程序已更新</h2>
-              <p class="success-desc">您的小程序新版本已成功发布到线上，用户将看到最新内容</p>
+              <div class="success-icon ok">OK</div>
+              <h2 class="success-title">小程序已发布</h2>
+              <p class="success-desc">导航与主题已更新。若首页仍是空的，请回到页面装修器检查是否已「发布页面」。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card">
                 <div class="version-release-header">
@@ -400,29 +402,26 @@
               </div>
 
               <div class="next-steps">
-                <div class="next-step-title">接下来您可以：</div>
+                <div class="next-step-title">建议下一步</div>
                 <div class="next-step-list">
-                  <a class="next-step-item highlight" href="#" @click.prevent="goToVersionManagement">
-                    <span class="next-icon">🔄</span>
+                  <a class="next-step-item highlight" href="#" @click.prevent="goToPageBuilder">
                     <div class="next-info">
-                      <strong>查看版本记录</strong>
-                      <span>查看本次发布的版本快照，支持回滚到历史版本</span>
+                      <strong>检查并发布页面内容</strong>
+                      <span>打开装修器，确认首页已点「发布页面」</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
                   <a class="next-step-item" href="#" @click.prevent="goToGallery">
-                    <span class="next-icon">↩️</span>
                     <div class="next-info">
-                      <strong>返回模板中心</strong>
-                      <span>管理所有模板和版本</span>
+                      <strong>返回配置列表</strong>
+                      <span>管理草稿、预览与历史版本</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
-                  <a class="next-step-item" href="#" @click.prevent="goToPageBuilder">
-                    <span class="next-icon">🎨</span>
+                  <a class="next-step-item" href="#" @click.prevent="$router.push('/page-builder/list')">
                     <div class="next-info">
-                      <strong>装修页面内容</strong>
-                      <span>前往页面装修器，为首页和其他页面添加组件</span>
+                      <strong>管理页面</strong>
+                      <span>查看并装修小程序内各页面</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
@@ -430,13 +429,8 @@
               </div>
 
               <div class="success-footer">
-                <el-button size="large" @click="published = false; activeStep = 3; successMode = 'publish'">返回修改配置</el-button>
-                <el-button size="large" @click="goToVersionManagement">
-                  🔄 查看版本管理
-                </el-button>
-                <el-button size="large" type="primary" @click="handlePublishOnline">
-                  🚀 重新发布
-                </el-button>
+                <el-button size="large" @click="goToGallery">返回列表</el-button>
+                <el-button size="large" type="primary" @click="goToPageBuilder">去检查页面</el-button>
               </div>
             </div>
           </div>
@@ -448,7 +442,17 @@
             <DArrowRight v-else />
           </div>
           <div v-if="!previewCollapsed" class="preview-content">
-            <div class="preview-label">实时预览</div>
+            <div class="preview-label-row">
+              <div class="preview-label">实时预览（当前编辑配置）</div>
+              <el-button
+                size="small"
+                type="primary"
+                link
+                @click="openFullMiniappPreview(editingTemplateId ? { id: editingTemplateId, semver: '' } as any : undefined)"
+              >
+                完整预览 ›
+              </el-button>
+            </div>
             <MiniappPreview :form="form" :pages="pages" :mine-page-mode="minePageMode" />
           </div>
         </div>
@@ -614,7 +618,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { Check, Connection, Plus, DArrowLeft, DArrowRight, ArrowRight, Refresh, ArrowLeft, Box, Document, Clock } from '@element-plus/icons-vue'
+import { Check, Connection, Plus, DArrowLeft, DArrowRight, ArrowRight, Refresh, ArrowLeft, Box, Document, Clock, Cellphone } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadFile } from '@/api/system'
@@ -836,21 +840,31 @@ async function handlePromote(item: ReleaseRecord) {
 
 async function handleDelete(item: ReleaseRecord) {
   try {
+    await ElMessageBox.confirm('确认删除此配置？删除后不可恢复。', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+    })
     await deleteReleaseApi(item.id)
-    ElMessage.success('模板已删除')
+    ElMessage.success('已删除')
     await loadGalleryData()
-  } catch {
-    ElMessage.error('删除失败，请重试')
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('删除失败，请重试')
   }
 }
 
 async function handleRollback(item: ReleaseRecord) {
   try {
+    await ElMessageBox.confirm(`确认回滚到 ${item.semver}？`, '回滚确认', {
+      type: 'warning',
+      confirmButtonText: '确认回滚',
+      cancelButtonText: '取消',
+    })
     await rollbackRelease({ targetSemver: item.semver, reason: `回滚到 ${item.semver}` })
     ElMessage.success(`已回滚到 ${item.semver}`)
     await loadGalleryData()
-  } catch {
-    ElMessage.error('回滚失败，请重试')
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('回滚失败，请重试')
   }
 }
 
@@ -867,8 +881,31 @@ function buildH5PreviewUrl(item: ReleaseRecord) {
   return `${window.location.origin}${href}`
 }
 
+function buildFullPreviewUrl(item?: ReleaseRecord | null, view: 'prototype' | 'config' = 'config') {
+  const query: Record<string, string> = { view }
+  if (item?.id) {
+    query.releaseId = String(item.id)
+    query.semver = item.semver || ''
+  } else if (latestPublished.value?.id) {
+    query.releaseId = String(latestPublished.value.id)
+    query.semver = latestPublished.value.semver || ''
+  }
+  const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
+  return `${window.location.origin}${href}`
+}
+
 function openH5Preview(item: ReleaseRecord) {
   window.open(buildH5PreviewUrl(item), '_blank', 'noopener,noreferrer')
+}
+
+/** 预览该版本真实配置（首页 DSL + Tab），与「编辑」侧实时预览同源数据 */
+function openFullMiniappPreview(item?: ReleaseRecord) {
+  const target = item || latestPublished.value
+  window.open(buildFullPreviewUrl(target, 'config'), '_blank', 'noopener,noreferrer')
+}
+
+function openPrototypeDemo() {
+  window.open('/prototype/chuhai-notes.html', '_blank', 'noopener,noreferrer')
 }
 
 async function copyH5PreviewLink(item: ReleaseRecord) {
@@ -876,6 +913,16 @@ async function copyH5PreviewLink(item: ReleaseRecord) {
   try {
     await navigator.clipboard.writeText(url)
     ElMessage.success('H5 预览链接已复制')
+  } catch {
+    ElMessage.info(url)
+  }
+}
+
+async function copyFullPreviewLink(item: ReleaseRecord) {
+  const url = buildFullPreviewUrl(item, 'config')
+  try {
+    await navigator.clipboard.writeText(url)
+    ElMessage.success('小程序预览链接已复制')
   } catch {
     ElMessage.info(url)
   }
@@ -1246,7 +1293,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: 12px 20px;
   background: #fff;
-  border-bottom: 1px solid #e3e8f0;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 
   h1 {
@@ -1258,8 +1305,17 @@ onMounted(() => {
 
 .toolbar-left {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.toolbar-sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .toolbar-right {
@@ -1269,7 +1325,7 @@ onMounted(() => {
 
 .dirty-pill {
   padding: 2px 10px;
-  color: #f59e0b;
+  color: var(--warning);
   font-size: 12px;
   font-weight: 600;
   background: #fffbeb;
@@ -1284,7 +1340,7 @@ onMounted(() => {
   gap: 4px;
   padding: 12px 20px;
   background: #fff;
-  border-bottom: 1px solid #e3e8f0;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -1293,7 +1349,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 16px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 99px;
   background: #fff;
   cursor: pointer;
@@ -1307,15 +1363,15 @@ onMounted(() => {
 }
 
 .step-item.active {
-  color: #1769ff;
-  border-color: #1769ff;
+  color: var(--brand);
+  border-color: var(--brand);
   background: #eff6ff;
   font-weight: 700;
 }
 
 .step-item.done {
-  color: #0faa6e;
-  border-color: #0faa6e;
+  color: var(--success);
+  border-color: var(--success);
   background: #ecfdf5;
 }
 
@@ -1327,17 +1383,17 @@ onMounted(() => {
   place-items: center;
   font-size: 11px;
   font-weight: 700;
-  background: #e3e8f0;
+  background: var(--border);
   color: #607187;
 }
 
 .step-item.active .step-num {
-  background: #1769ff;
+  background: var(--brand);
   color: #fff;
 }
 
 .step-item.done .step-num {
-  background: #0faa6e;
+  background: var(--success);
   color: #fff;
 }
 
@@ -1361,30 +1417,30 @@ onMounted(() => {
 .config-section {
   padding: 20px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
 .section-divider {
   height: 1px;
-  background: #e3e8f0;
+  background: var(--border);
   margin: 16px 0;
 }
 
 .section-label {
   font-size: 14px;
   font-weight: 700;
-  color: #172033;
+  color: var(--text);
   margin-bottom: 10px;
   padding-left: 8px;
-  border-left: 3px solid #1769ff;
+  border-left: 3px solid var(--brand);
 }
 
 .preview-panel {
   width: 420px;
   padding: 16px;
   background: #fff;
-  border-left: 1px solid #e3e8f0;
+  border-left: 1px solid var(--border);
   flex-shrink: 0;
   overflow-y: auto;
   position: relative;
@@ -1404,7 +1460,7 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1414,8 +1470,8 @@ onMounted(() => {
 }
 
 .preview-toggle:hover {
-  border-color: #1769ff;
-  color: #1769ff;
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .preview-content {
@@ -1424,17 +1480,25 @@ onMounted(() => {
   align-items: center;
 }
 
+.preview-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .preview-label {
   font-size: 14px;
   font-weight: 700;
-  color: #172033;
-  margin-bottom: 12px;
+  color: var(--text);
+  margin-bottom: 0;
 }
 
 .confirm-header {
   font-size: 16px;
   font-weight: 800;
-  color: #172033;
+  color: var(--text);
   margin-bottom: 16px;
 }
 
@@ -1449,19 +1513,19 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: #f8faff;
+  background: var(--bg-page);
   border-radius: 8px;
 }
 
 .summary-label {
   font-size: 13px;
-  color: #7b8798;
+  color: var(--text-muted);
 }
 
 .summary-value {
   font-size: 13px;
   font-weight: 600;
-  color: #172033;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1471,7 +1535,7 @@ onMounted(() => {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
 }
 
 .confirm-warnings {
@@ -1480,7 +1544,7 @@ onMounted(() => {
 
 .confirm-actions {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-top: 16px; padding-top: 16px; border-top: 1px solid #e3e8f0;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
 }
 .confirm-btns { display: flex; gap: 10px; }
 
@@ -1500,7 +1564,7 @@ onMounted(() => {
 }
 
 .share-image-upload:hover {
-  border-color: #1769ff;
+  border-color: var(--brand);
 }
 
 .share-preview {
@@ -1514,7 +1578,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -1532,15 +1596,15 @@ onMounted(() => {
   gap: 10px;
 }
 .mine-tpl-card {
-  border: 2px solid #e3e8f0;
+  border: 2px solid var(--border);
   border-radius: 10px;
   padding: 10px;
   text-align: center;
   cursor: pointer;
   transition: 0.16s;
   background: #fff;
-  &:hover { border-color: #1769ff; transform: translateY(-1px); }
-  &.selected { border-color: #1769ff; background: #f0f4ff; box-shadow: 0 0 0 1px #1769ff; }
+  &:hover { border-color: var(--brand); transform: translateY(-1px); }
+  &.selected { border-color: var(--brand); background: #f0f4ff; box-shadow: 0 0 0 1px var(--brand); }
 }
 .mine-tpl-preview {
   height: 56px;
@@ -1550,7 +1614,7 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 .mine-tpl-icon { font-size: 22px; }
-.mine-tpl-name { font-size: 12px; font-weight: 600; color: #172033; }
+.mine-tpl-name { font-size: 12px; font-weight: 600; color: var(--text); }
 
 .step-footer {
   display: flex; justify-content: space-between; align-items: center;
@@ -1566,7 +1630,7 @@ onMounted(() => {
   .preview-panel {
     width: 100%;
     border-left: none;
-    border-top: 1px solid #e3e8f0;
+    border-top: 1px solid var(--border);
   }
 
   .preview-panel.collapsed {
@@ -1606,7 +1670,7 @@ onMounted(() => {
   gap: 14px;
   padding: 18px 22px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   transition: 0.16s;
 
@@ -1628,13 +1692,13 @@ onMounted(() => {
   .stat-value {
     font-size: 20px;
     font-weight: 800;
-    color: #172033;
+    color: var(--text);
     line-height: 1.2;
   }
 
   .stat-label {
     font-size: 13px;
-    color: #7b8798;
+    color: var(--text-muted);
     margin-top: 2px;
   }
 }
@@ -1647,7 +1711,7 @@ onMounted(() => {
 
 .filter-tab {
   padding: 7px 20px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 99px;
   background: #fff;
   font-size: 13px;
@@ -1657,14 +1721,14 @@ onMounted(() => {
   transition: 0.15s;
 
   &:hover {
-    border-color: #1769ff;
-    color: #1769ff;
+    border-color: var(--brand);
+    color: var(--brand);
   }
 
   &.active {
-    background: #1769ff;
+    background: var(--brand);
     color: #fff;
-    border-color: #1769ff;
+    border-color: var(--brand);
   }
 }
 
@@ -1692,7 +1756,7 @@ onMounted(() => {
 
 .template-card {
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px;
   display: flex;
@@ -1713,7 +1777,7 @@ onMounted(() => {
   }
 
   &.card-template {
-    border-left: 3px solid #1769ff;
+    border-left: 3px solid var(--brand);
   }
 }
 
@@ -1795,6 +1859,19 @@ onMounted(() => {
 .success-icon {
   font-size: 56px; margin-bottom: 12px; display: block;
   animation: bounceIn 0.6s ease;
+
+  &.ok {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--brand-soft, var(--brand-soft));
+    color: var(--brand, var(--brand));
+    font-size: 14px;
+    font-weight: 800;
+  }
 }
 @keyframes bounceIn {
   0% { transform: scale(0); opacity: 0; }
@@ -1802,10 +1879,10 @@ onMounted(() => {
   100% { transform: scale(1); opacity: 1; }
 }
 .success-title {
-  font-size: 22px; font-weight: 800; color: #172033; margin: 0 0 8px;
+  font-size: 22px; font-weight: 800; color: var(--text); margin: 0 0 8px;
 }
 .success-desc {
-  font-size: 14px; color: #7b8798; margin: 0 0 20px;
+  font-size: 14px; color: var(--text-muted); margin: 0 0 20px;
 }
 
 .version-release-card {
@@ -1838,36 +1915,36 @@ onMounted(() => {
   display: flex; justify-content: space-between; align-items: center;
   font-size: 13px; padding: 4px 0;
 }
-.release-detail-row span { color: #7b8798; }
-.release-detail-row strong { color: #172033; }
+.release-detail-row span { color: var(--text-muted); }
+.release-detail-row strong { color: var(--text); }
 
 .publish-summary {
   text-align: left; margin-bottom: 28px;
 }
 .summary-card {
-  background: #f8faff; border: 1px solid #e3e8f0; border-radius: 10px; padding: 16px;
+  background: var(--bg-page); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
 }
 .summary-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 8px 0; border-bottom: 1px solid #eef0f4; font-size: 13px;
 }
 .summary-row:last-child { border-bottom: none; }
-.summary-row span { color: #7b8798; }
+.summary-row span { color: var(--text-muted); }
 
 .next-steps { text-align: left; margin-bottom: 28px; }
 .next-step-title {
-  font-size: 14px; font-weight: 700; color: #172033; margin-bottom: 10px;
+  font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px;
 }
 .next-step-list { display: flex; flex-direction: column; gap: 8px; }
 .next-step-item {
   display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-  background: #fff; border: 1px solid #e3e8f0; border-radius: 10px;
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
   cursor: pointer; transition: 0.16s; text-decoration: none; color: inherit;
 }
-.next-step-item:hover { border-color: #1769ff; box-shadow: 0 2px 8px rgba(23,105,255,0.1); transform: translateX(2px); }
+.next-step-item:hover { border-color: var(--brand); box-shadow: 0 2px 8px rgba(23,105,255,0.1); transform: translateX(2px); }
 .next-icon { font-size: 28px; flex-shrink: 0; }
 .next-info { flex: 1; min-width: 0; }
-.next-info strong { display: block; font-size: 13px; color: #172033; }
+.next-info strong { display: block; font-size: 13px; color: var(--text); }
 .next-info span { display: block; font-size: 11px; color: #a0b4d0; margin-top: 2px; }
 .next-step-item .el-icon { color: #a0b4d0; flex-shrink: 0; }
 .next-step-item.highlight {
@@ -1890,7 +1967,7 @@ onMounted(() => {
   margin-bottom: 12px;
   .module-desc {
     font-size: 13px;
-    color: #909399;
+    color: var(--text-muted);
   }
 }
 .semver {

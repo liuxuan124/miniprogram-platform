@@ -155,7 +155,7 @@ const quickEntries = [
   { title: '页面列表', desc: '管理所有装修页面', icon: '📄', path: '/page-builder/list' },
   { title: '模板市场', desc: '浏览行业模板', icon: '🎨', path: '/shop-decoration/template-market' },
   { title: '行业模块', desc: '按行业配置模块', icon: '🏭', path: '/shop-decoration/industry-modules' },
-  { title: '小程序搭建', desc: '导航与TabBar', icon: '📱', path: '/page-builder/miniapp' },
+  { title: '搭建小程序', desc: '导航与TabBar', icon: '📱', path: '/page-builder/start' },
   { title: '素材库', desc: '管理图片素材', icon: '🖼️', path: '/asset/list' },
   { title: '商品管理', desc: '管理商品数据', icon: '🛍️', path: '/commerce/product' },
 ]
@@ -241,7 +241,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .shop-decoration-dashboard {
-  color: #172033;
+  color: var(--text);
 }
 
 .page-head {
@@ -257,7 +257,7 @@ onMounted(() => {
 
   p {
     margin-top: 4px;
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 13px;
   }
 }
@@ -278,7 +278,7 @@ onMounted(() => {
   position: relative;
   padding: 18px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -290,7 +290,7 @@ onMounted(() => {
 
 .stat-label {
   margin-top: 4px;
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -323,7 +323,7 @@ onMounted(() => {
 }
 
 .section-desc {
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -334,7 +334,7 @@ onMounted(() => {
 }
 
 .industry-card {
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
@@ -372,7 +372,7 @@ onMounted(() => {
   span {
     display: block;
     margin-top: 2px;
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 11px;
   }
 }
@@ -386,7 +386,7 @@ onMounted(() => {
 
 .panel {
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
@@ -415,7 +415,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
 }
 
@@ -427,12 +427,12 @@ onMounted(() => {
   place-items: center;
   font-size: 12px;
   font-weight: 700;
-  background: #f0f4ff;
-  color: #1769ff;
+  background: var(--brand-soft);
+  color: var(--brand);
   flex-shrink: 0;
 
   &.done {
-    background: #0faa6e;
+    background: var(--success);
     color: #fff;
   }
 }
@@ -447,7 +447,7 @@ onMounted(() => {
   }
 
   p {
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 12px;
     margin-top: 2px;
   }
@@ -465,7 +465,7 @@ onMounted(() => {
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
@@ -473,8 +473,8 @@ onMounted(() => {
   text-align: left;
 
   &:hover {
-    border-color: #1769ff;
-    background: #f8faff;
+    border-color: var(--brand);
+    background: var(--bg-page);
   }
 }
 
@@ -495,7 +495,7 @@ onMounted(() => {
 
   small {
     display: block;
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 11px;
     margin-top: 2px;
   }
@@ -508,14 +508,14 @@ onMounted(() => {
 }
 
 .hot-tpl-card {
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   transition: 0.16s;
 
   &:hover {
-    border-color: #1769ff;
+    border-color: var(--brand);
     box-shadow: 0 6px 20px rgba(23, 105, 255, 0.1);
     transform: translateY(-2px);
   }
@@ -576,7 +576,7 @@ onMounted(() => {
   }
 
   p {
-    color: #7b8798;
+    color: var(--text-muted);
     font-size: 11px;
     margin-top: 4px;
     overflow: hidden;
@@ -595,7 +595,7 @@ onMounted(() => {
     padding: 1px 6px;
     color: #607187;
     font-size: 10px;
-    background: #f8faff;
+    background: var(--bg-page);
     border: 1px solid #d9e2ef;
     border-radius: 99px;
   }
@@ -609,7 +609,7 @@ onMounted(() => {
 
 .comp-cat {
   padding: 12px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
@@ -628,7 +628,7 @@ onMounted(() => {
     padding: 2px 8px;
     font-size: 11px;
     color: #607187;
-    background: #f8faff;
+    background: var(--bg-page);
     border: 1px solid #d9e2ef;
     border-radius: 4px;
   }

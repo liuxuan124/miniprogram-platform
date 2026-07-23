@@ -1,15 +1,23 @@
 <template>
-  <div class="pages-prototype">
-    <div class="ph">
-      <div class="pt">页面管理</div>
-      <div class="ps">管理所有小程序页面，支持装修、发布与版本管理。</div>
-    </div>
+  <div class="pages-list">
+    <PageHeader
+      kicker="页面装修 / 页面管理"
+      title="页面管理"
+      description="管理小程序内各个页面。导航与主题请到「搭建小程序」配置并发布。"
+    >
+      <template #actions>
+        <el-button @click="router.push('/page-builder/start')">搭建小程序</el-button>
+        <el-button type="primary" @click="handleCreate">新建页面</el-button>
+      </template>
+    </PageHeader>
 
     <section class="stats-row">
       <div v-for="stat in statsCards" :key="stat.label" class="stat-card">
         <div class="stat-value">{{ stat.value }}</div>
         <div class="stat-label">{{ stat.label }}</div>
-        <div class="stat-icon" :style="{ background: stat.bg }">{{ stat.icon }}</div>
+        <div class="stat-icon" :style="{ background: stat.bg }">
+          <el-icon :size="18"><component :is="stat.icon" /></el-icon>
+        </div>
       </div>
     </section>
 
@@ -96,7 +104,12 @@
           </tbody>
           <tfoot>
             <tr v-if="!loading && pageList.length === 0">
-              <td colspan="7" style="text-align:center;padding:40px;color:#7b8798;">暂无页面，点击"新建页面"或"页面模板"开始搭建</td>
+              <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div style="margin-bottom:12px;">还没有页面。建议先创建首页，再去配置小程序导航。</div>
+                <el-button type="primary" @click="handleCreate">创建首页</el-button>
+                <el-button @click="handleSelectTemplate">从模板创建</el-button>
+                <el-button text type="primary" @click="$router.push('/page-builder/start')">去搭建小程序</el-button>
+              </td>
             </tr>
           </tfoot>
         </table>
@@ -162,6 +175,8 @@ import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
+import { Document, Brush, OfficeBuilding, Grid } from '@element-plus/icons-vue'
 import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates } from '@/api/page'
 import type { PageRecord, CreatePageParams, PageListParams } from '@/types/page'
 
@@ -183,10 +198,10 @@ const pageList = ref<PageRecord[]>([])
 const loading = ref(false)
 
 const statsCards = ref([
-  { label: '装修页面', value: '-', icon: '📄', bg: '#eff6ff' },
-  { label: '可用模板', value: '-', icon: '🎨', bg: '#fef3c7' },
-  { label: '行业方案', value: '12', icon: '🏭', bg: '#ecfdf5' },
-  { label: '组件类型', value: '26', icon: '🧩', bg: '#fdf2f8' },
+  { label: '装修页面', value: '-', icon: Document, bg: 'var(--brand-soft)' },
+  { label: '可用模板', value: '-', icon: Brush, bg: 'var(--warning-soft)' },
+  { label: '行业方案', value: '12', icon: OfficeBuilding, bg: 'var(--success-soft)' },
+  { label: '组件类型', value: '26', icon: Grid, bg: '#f3e8ff' },
 ])
 
 const dialogVisible = ref(false)
@@ -384,8 +399,8 @@ function handleReset() {
 function handleCreate() {
   dialogType.value = 'create'
   editingId.value = null
-  formData.name = ''
-  formData.type = 3
+  formData.name = '首页'
+  formData.type = 1
   formData.path = ''
   formData.shareTitle = ''
   formData.background_color = '#ffffff'
@@ -493,23 +508,8 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-.pages-prototype {
-  color: #172033;
-}
-
-.ph {
-  margin-bottom: 12px;
-}
-
-.pt {
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.ps {
-  margin-top: 4px;
-  color: #7b8798;
-  font-size: 13px;
+.pages-list {
+  color: var(--text);
 }
 
 .stats-row {
@@ -523,7 +523,7 @@ watch(
   position: relative;
   padding: 16px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -535,7 +535,7 @@ watch(
 
 .stat-label {
   margin-top: 4px;
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -562,10 +562,10 @@ watch(
 .sel {
   height: 36px;
   padding: 0 10px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  color: #172033;
+  color: var(--text);
   font-size: 13px;
   outline: none;
 }
@@ -593,42 +593,42 @@ watch(
   justify-content: center;
   height: 36px;
   padding: 0 14px;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  color: #172033;
+  color: var(--text);
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
 }
 
 .btn-p {
-  background: #1769ff;
-  border-color: #1769ff;
+  background: var(--brand);
+  border-color: var(--brand);
   color: #fff;
 }
 
 .btn-s {
-  background: #0faa6e;
-  border-color: #0faa6e;
+  background: var(--success);
+  border-color: var(--success);
   color: #fff;
 }
 
 .btn-d {
-  color: #ef4444;
+  color: var(--danger);
   border-color: #fecaca;
   background: #fff5f5;
 }
 
 .btn-copy {
-  color: #1769ff;
+  color: var(--brand);
   border-color: #bfdbfe;
   background: #eff6ff;
 }
 
 .btn-more {
   color: #607187;
-  background: #f8faff;
+  background: var(--bg-page);
 }
 
 .xs {
@@ -639,7 +639,7 @@ watch(
 
 .card {
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
@@ -661,25 +661,25 @@ td {
 }
 
 th {
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;
 }
 
 .sub {
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
 .path-hint {
   margin-top: 6px;
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .mono {
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -730,14 +730,14 @@ th {
   min-width: 92px;
   padding: 6px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 10px 28px rgba(23, 32, 51, 0.12);
 
   button {
     height: 30px;
     padding: 0 10px;
-    color: #172033;
+    color: var(--text);
     font-family: inherit;
     font-size: 12px;
     text-align: left;
@@ -747,12 +747,12 @@ th {
     cursor: pointer;
 
     &:hover {
-      color: #1769ff;
-      background: #eaf2ff;
+      color: var(--brand);
+      background: var(--brand-soft);
     }
 
     &.danger {
-      color: #ef4444;
+      color: var(--danger);
 
       &:hover {
         background: #fff5f5;
@@ -765,8 +765,8 @@ th {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  background: #f8faff;
-  border: 1px solid #e3e8f0;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
   border-radius: 99px;
   color: #607187;
   font-size: 12px;
@@ -782,13 +782,13 @@ th {
 }
 
 .bg {
-  color: #0faa6e;
+  color: var(--success);
   border-color: #b7ebd4;
   background: #effcf5;
 }
 
 .bo {
-  color: #f59e0b;
+  color: var(--warning);
   border-color: #fbd38d;
   background: #fffbeb;
 }
@@ -800,7 +800,7 @@ th {
 }
 
 .bbl {
-  color: #1769ff;
+  color: var(--brand);
   border-color: #bfdbfe;
   background: #eff6ff;
 }
@@ -811,7 +811,7 @@ th {
 
 .summary {
   margin-top: 10px;
-  color: #7b8798;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -833,7 +833,7 @@ th {
   }
 
   .el-dialog__title {
-    color: #172033;
+    color: var(--text);
     font-size: 18px;
     font-weight: 800;
   }
@@ -847,7 +847,7 @@ th {
   }
 
   .el-form-item__label {
-    color: #7b8798;
+    color: var(--text-muted);
     font-weight: 600;
   }
 }

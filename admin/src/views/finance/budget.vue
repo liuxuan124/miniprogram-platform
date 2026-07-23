@@ -820,22 +820,22 @@ onMounted(() => {
   }
 
   .amount-used {
-    color: #e6a23c;
+    color: var(--warning);
     font-weight: 600;
   }
 
   .amount-remaining {
-    color: #67c23a;
+    color: var(--success);
     font-weight: 600;
   }
 
   .usage-danger {
-    color: #f56c6c;
+    color: var(--danger);
     font-weight: 700;
   }
 
   .text-muted {
-    color: #c0c4cc;
+    color: var(--text-muted);
   }
 
   // 分页
@@ -923,7 +923,7 @@ onMounted(() => {
         .threshold-val {
           font-size: 13px;
           font-weight: 600;
-          color: #606266;
+          color: var(--text-secondary);
           white-space: nowrap;
           min-width: 36px;
           text-align: right;

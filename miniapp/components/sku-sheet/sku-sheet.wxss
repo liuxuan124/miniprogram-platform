@@ -1,0 +1,24 @@
+/* components/sku-sheet/sku-sheet.wxss */
+.mask { position:fixed; inset:0; background:rgba(10,13,20,.45); z-index:90; }
+.sheet { position:fixed; left:0; right:0; bottom:0; max-height:78%; background:#fff; border-radius:40rpx 40rpx 0 0; z-index:91; transform:translateY(110%); transition:transform .28s cubic-bezier(.32,.72,0,1); display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom); }
+.sheet.on { transform:none; }
+.h { display:flex; gap:20rpx; padding:28rpx 32rpx 16rpx; align-items:flex-start; }
+.img { width:140rpx; height:140rpx; border-radius:20rpx; background:var(--line-2); flex-shrink:0; }
+.info { flex:1; min-width:0; }
+.price { font-size:40rpx; font-weight:800; color:var(--accent); }
+.stock,.sel { margin-top:8rpx; font-size:24rpx; color:var(--ink-300); }
+.x { font-size:34rpx; color:var(--ink-300); }
+.b { flex:1; max-height:46vh; padding:0 32rpx; }
+.group { margin-bottom:24rpx; }
+.gn { font-size:26rpx; font-weight:600; margin-bottom:16rpx; color:var(--ink-700); }
+.vals { display:flex; flex-wrap:wrap; gap:12rpx; }
+.v { padding:12rpx 24rpx; border-radius:999rpx; background:var(--line-2); font-size:24rpx; color:var(--ink-700); }
+.v.on { background:var(--brand-50); color:var(--brand); font-weight:700; border:2rpx solid var(--brand-100); }
+.qty-row { display:flex; align-items:center; justify-content:space-between; padding:12rpx 0 28rpx; }
+.qty { display:flex; align-items:center; gap:20rpx; }
+.qty .btn { width:56rpx; height:56rpx; border-radius:14rpx; background:var(--line-2); display:flex; align-items:center; justify-content:center; font-size:32rpx; }
+.qty .n { min-width:40rpx; text-align:center; font-weight:700; }
+.f { display:flex; gap:16rpx; padding:16rpx 32rpx 28rpx; }
+.btn-o,.btn-p { flex:1; height:88rpx; border-radius:999rpx; display:flex; align-items:center; justify-content:center; font-weight:700; }
+.btn-o { background:#fff; border:3rpx solid var(--line); color:var(--ink-700); }
+.btn-p { background:var(--brand); color:#fff; box-shadow:0 16rpx 40rpx rgba(47,91,255,.3); }

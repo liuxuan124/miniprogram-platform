@@ -166,6 +166,12 @@
   color: #999;
 }
 
+/* D4：领取请求进行中态 */
+.coupon-card__action--loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 /* 状态标记 */
 .coupon-card__status {
   position: absolute;

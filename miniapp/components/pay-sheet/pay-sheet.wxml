@@ -1,0 +1,22 @@
+<!-- components/pay-sheet/pay-sheet.wxml -->
+<view class="mask" wx:if="{{show}}" bindtap="onClose"></view>
+<view class="sheet {{show?'on':''}}">
+  <view class="h">
+    <text>确认支付</text>
+    <text class="x" bindtap="onClose">✕</text>
+  </view>
+  <view class="amount">¥{{amount}}</view>
+  <view class="methods">
+    <view class="m {{method==='wechat'?'on':''}}" data-m="wechat" bindtap="onPick">
+      <text>💚 微信支付</text>
+      <text class="ck">{{method==='wechat'?'●':'○'}}</text>
+    </view>
+    <view class="m {{method==='balance'?'on':''}}" data-m="balance" bindtap="onPick">
+      <text>👛 余额支付</text>
+      <text class="ck">{{method==='balance'?'●':'○'}}</text>
+    </view>
+  </view>
+  <view class="f">
+    <view class="btn" bindtap="onConfirm">确认支付 ¥{{amount}}</view>
+  </view>
+</view>

@@ -1,11 +1,14 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <img src="/vite.svg" alt="Logo" class="login-logo" />
-        <h2 class="login-title">小程序搭建与运营系统</h2>
-        <p class="login-subtitle">管理后台</p>
+  <div class="login-page">
+    <div class="login-panel">
+      <div class="brand-block">
+        <img src="/logo.svg" alt="Logo" class="brand-logo" />
+        <div>
+          <h1 class="brand-title">小程序运营系统</h1>
+          <p class="brand-sub">多场景搭建与运营管理后台</p>
+        </div>
       </div>
+
       <el-form
         ref="loginFormRef"
         :model="loginForm"
@@ -49,7 +52,6 @@
       </el-form>
     </div>
 
-    <!-- 忘记密码提示 -->
     <el-dialog v-model="showForgetDialog" title="找回密码" width="400px" align-center>
       <el-alert
         title="本系统暂未开通自助找回"
@@ -98,10 +100,8 @@ const loginRules: FormRules = {
 
 async function handleLogin() {
   if (!loginFormRef.value) return
-
   await loginFormRef.value.validate(async (valid) => {
     if (!valid) return
-
     loading.value = true
     try {
       await userStore.login({
@@ -109,10 +109,10 @@ async function handleLogin() {
         password: loginForm.password,
       })
       ElMessage.success('登录成功')
-      const redirect = (route.query.redirect as string) || '/'
-      router.push(redirect)
-    } catch (error: any) {
-      ElMessage.error(error.message || '登录失败，请检查用户名和密码')
+      const redirect = (route.query.redirect as string) || '/dashboard'
+      router.replace(redirect)
+    } catch (e: any) {
+      ElMessage.error(e?.message || '登录失败')
     } finally {
       loading.value = false
     }
@@ -121,50 +121,57 @@ async function handleLogin() {
 </script>
 
 <style lang="scss" scoped>
-.login-container {
-  width: 100%;
-  height: 100vh;
+.login-page {
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(23, 105, 255, 0.08), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 80%, rgba(23, 105, 255, 0.06), transparent 50%),
+    var(--bg-page);
 }
 
-.login-card {
-  width: 420px;
-  padding: 40px;
-  background: #fff;
+.login-panel {
+  width: 100%;
+  max-width: 400px;
+  padding: 36px 32px 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
-.login-logo {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 
-.login-title {
+.brand-title {
   margin: 0;
-  font-size: 22px;
-  color: #333;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
 }
 
-.login-subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: #999;
+.brand-sub {
+  margin: 4px 0 0;
+  font-size: var(--font-caption);
+  color: var(--text-secondary);
 }
 
 .login-form {
   .el-form-item {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 }
 
@@ -178,17 +185,18 @@ async function handleLogin() {
 .login-btn {
   width: 100%;
   height: 44px;
-  font-size: 16px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .forget-tip {
   margin: 0 0 8px;
   font-size: 14px;
-  color: #606266;
+  color: var(--text-secondary);
   line-height: 1.6;
 
   &.muted {
-    color: #909399;
+    color: var(--text-muted);
     font-size: 13px;
   }
 }

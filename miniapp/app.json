@@ -2,6 +2,16 @@
   "pages": [
     "pages/index/index",
     "pages/content-list/content-list",
+    "pages/product-list/product-list",
+    "pages/mine/mine",
+    "pages/search/search",
+    "pages/reader/reader",
+    "pages/library/library",
+    "pages/reviews/reviews",
+    "pages/write-review/write-review",
+    "pages/order-paid/order-paid",
+    "pages/appointment-success/appointment-success",
+    "pages/service-chat/service-chat",
     "pages/content-detail/content-detail",
     "pages/activity-list/activity-list",
     "pages/activity-detail/activity-detail",
@@ -9,7 +19,6 @@
     "pages/appointment-book/appointment-book",
     "pages/member-center/member-center",
     "pages/coupon-list/coupon-list",
-    "pages/product-list/product-list",
     "pages/product-detail/product-detail",
     "pages/category/category",
     "pages/cart/cart",
@@ -17,31 +26,52 @@
     "pages/order-list/order-list",
     "pages/order-detail/order-detail",
     "pages/ai-chat/ai-chat",
-    "pages/mine/mine",
     "pages/login/login",
     "pages/agreement/agreement",
-    "pages/webview/webview"
+    "pages/webview/webview",
+    "pages/my-appointments/my-appointments",
+    "pages/appointment-list/appointment-list",
+    "pages/points-log/points-log",
+    "pages/sign-in/sign-in",
+    "pages/form/form",
+    "pages/detail/detail"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#13231a",
-    "navigationBarTitleText": "小程序运营平台",
+    "navigationBarBackgroundColor": "#2f5bff",
+    "navigationBarTitleText": "出海笔记",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
     "custom": true,
-    "color": "#999999",
-    "selectedColor": "#13231a",
+    "color": "#a5abb9",
+    "selectedColor": "#2f5bff",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "images/tab/home.png",
+        "selectedIconPath": "images/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/content-list/content-list",
+        "text": "内容",
+        "iconPath": "images/tab/content.png",
+        "selectedIconPath": "images/tab/content-active.png"
+      },
+      {
+        "pagePath": "pages/product-list/product-list",
+        "text": "商城",
+        "iconPath": "images/tab/category.png",
+        "selectedIconPath": "images/tab/category-active.png"
       },
       {
         "pagePath": "pages/mine/mine",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "images/tab/mine.png",
+        "selectedIconPath": "images/tab/mine-active.png"
       }
     ]
   },

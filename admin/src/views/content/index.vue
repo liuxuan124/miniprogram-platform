@@ -28,19 +28,47 @@
           :value="item.id"
         />
       </el-select>
+      <el-select v-model="searchForm.source" class="toolbar-select" placeholder="来源：全部" clearable>
+        <el-option label="小红书" value="小红书" />
+        <el-option label="微信公众号" value="微信公众号" />
+        <el-option label="原创" value="原创" />
+      </el-select>
       <div class="toolbar-spacer" />
       <el-button @click="categoryModalVisible = true">分类</el-button>
+      <el-button @click="syncDialogVisible = true">同步导入</el-button>
       <el-button type="primary" @click="handleCreate">+ 新建</el-button>
     </div>
 
     <div class="table-panel">
-      <el-table :data="filteredRows" stripe v-loading="loading">
+      <ListStateWrap
+        :loading="loading"
+        :empty="!loading && filteredRows.length === 0"
+        empty-text="暂无内容数据"
+        empty-description="可以新建文章、图文或视频内容"
+        @retry="fetchList"
+      >
+        <template #empty-action>
+          <el-button type="primary" @click="handleCreate">+ 新建</el-button>
+        </template>
+
+      <el-table :data="filteredRows" stripe>
         <el-table-column label="标题" min-width="280">
           <template #default="{ row }">
             <div class="title-cell">
               <span class="title-text">{{ row.title }}</span>
               <el-tag v-if="isRecommended(row)" size="small" effect="plain" type="primary">推荐</el-tag>
             </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="来源" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag
+              size="small"
+              effect="plain"
+              :type="row.source === '小红书' ? 'danger' : row.source === '微信公众号' ? 'success' : 'info'"
+            >
+              {{ row.source || '未标注' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="类型" width="110" align="center">
@@ -83,6 +111,7 @@
           @current-change="fetchList"
         />
       </div>
+      </ListStateWrap>
     </div>
 
     <el-dialog v-model="categoryModalVisible" title="内容分类管理" width="760px" destroy-on-close>
@@ -109,6 +138,47 @@
         </div>
       </div>
       <el-button type="primary" class="add-root-btn" @click="openCategoryDialog('create', null)">+ 新增一级分类</el-button>
+    </el-dialog>
+
+    <el-dialog v-model="syncDialogVisible" title="同步导入小红书 / 公众号内容" width="720px" destroy-on-close>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 12px"
+        title="小红书暂无稳定官方拉取接口，建议粘贴导出 JSON；公众号可先手动导入，后续可接素材库 API 自动同步。"
+      />
+      <el-form label-width="88px">
+        <el-form-item label="默认来源">
+          <el-radio-group v-model="syncForm.defaultSource">
+            <el-radio-button value="小红书">小红书</el-radio-button>
+            <el-radio-button value="微信公众号">微信公众号</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="导入内容">
+          <el-input
+            v-model="syncForm.jsonText"
+            type="textarea"
+            :rows="12"
+            placeholder='粘贴 JSON 数组，例如：
+[
+  {
+    "title": "文章标题",
+    "summary": "摘要",
+    "source": "小红书",
+    "viewCount": 1000,
+    "likeCount": 20,
+    "publish": true
+  }
+]'
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="fillSyncSample">填入示例</el-button>
+        <el-button @click="syncDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="syncSubmitting" @click="handleSyncImport">开始导入</el-button>
+      </template>
     </el-dialog>
 
     <el-dialog
@@ -142,6 +212,7 @@ import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import ListStateWrap from '@/components/ListStateWrap.vue'
 import {
   getContentList,
   publishContent,
@@ -150,6 +221,7 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  createContent,
 } from '@/api/content'
 
 type RawRecord = Record<string, any>
@@ -161,6 +233,7 @@ interface ContentRow {
   status: ContentStatus
   categoryId?: number
   categoryName: string
+  source: string
   typeLabel: '文章' | '图文' | '视频'
   typeValue: 'article' | 'rich' | 'video'
   viewCount: number | null
@@ -187,7 +260,15 @@ const recommendMap = reactive<Record<number, boolean>>({})
 const searchForm = reactive({
   keyword: '',
   type: '',
+  source: '',
   categoryId: undefined as number | undefined,
+})
+
+const syncDialogVisible = ref(false)
+const syncSubmitting = ref(false)
+const syncForm = reactive({
+  defaultSource: '小红书',
+  jsonText: '',
 })
 
 const pagination = reactive({
@@ -233,6 +314,7 @@ function normalizeArticle(raw: RawRecord): ContentRow {
     status: normalizeStatus(raw.status),
     categoryId: Number(raw.categoryId ?? raw.category_id) || undefined,
     categoryName: raw.categoryName || raw.category_name || '未分类',
+    source: String(raw.source || '').trim(),
     typeLabel: type.typeLabel,
     typeValue: type.typeValue,
     viewCount: Number.isFinite(Number(viewRaw)) ? Number(viewRaw) : null,
@@ -273,8 +355,9 @@ const filteredRows = computed(() => {
     const kw = searchForm.keyword.trim()
     const hitKw = !kw || row.title.includes(kw)
     const hitType = !searchForm.type || row.typeValue === searchForm.type
+    const hitSource = !searchForm.source || row.source === searchForm.source
     const hitCategory = !searchForm.categoryId || row.categoryId === searchForm.categoryId
-    return hitKw && hitType && hitCategory
+    return hitKw && hitType && hitSource && hitCategory
   })
 })
 
@@ -319,6 +402,81 @@ async function fetchCategories() {
 function handleSearch() {
   pagination.page = 1
   fetchList()
+}
+
+function fillSyncSample() {
+  syncForm.jsonText = JSON.stringify(
+    [
+      {
+        title: '示例：跨境干货标题',
+        summary: '一句话摘要，方便小程序列表展示',
+        source: syncForm.defaultSource,
+        viewCount: 1000,
+        likeCount: 20,
+        publish: true,
+      },
+    ],
+    null,
+    2,
+  )
+}
+
+async function handleSyncImport() {
+  let items: any[] = []
+  try {
+    const parsed = JSON.parse(syncForm.jsonText || '[]')
+    items = Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    ElMessage.error('JSON 格式不正确，请检查后重试')
+    return
+  }
+  if (!items.length) {
+    ElMessage.warning('没有可导入的内容')
+    return
+  }
+
+  syncSubmitting.value = true
+  let success = 0
+  let failed = 0
+  try {
+    for (const item of items) {
+      const title = String(item?.title || '').trim()
+      if (!title) {
+        failed += 1
+        continue
+      }
+      const source = String(item.source || syncForm.defaultSource || '小红书').trim()
+      const summary = String(item.summary || item.desc || title).slice(0, 512)
+      try {
+        const res = await createContent({
+          title: title.slice(0, 128),
+          summary,
+          source,
+          author: item.author || '跨境IP博主',
+          content:
+            item.content ||
+            `<h2>${title}</h2><p><strong>来源</strong>：${source}</p><p>${summary}</p>`,
+          coverImage: item.coverImage || item.cover || '',
+          tags: Array.isArray(item.tags) ? item.tags : [source],
+          categoryId: item.categoryId,
+          sortOrder: Number(item.sortOrder || 0),
+        } as any)
+        const id = Number((res as any)?.data?.id)
+        if (item.publish !== false && id) {
+          await publishContent(id)
+        }
+        success += 1
+      } catch {
+        failed += 1
+      }
+    }
+    ElMessage.success(`导入完成：成功 ${success} 条${failed ? `，失败 ${failed} 条` : ''}`)
+    syncDialogVisible.value = false
+    syncForm.jsonText = ''
+    fetchList()
+  } finally {
+    syncSubmitting.value = false
+  }
 }
 
 function handleCreate() {

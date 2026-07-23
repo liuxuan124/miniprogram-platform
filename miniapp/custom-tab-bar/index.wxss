@@ -51,16 +51,13 @@
 }
 
 .tab-item.active {
-  color: #1769ff;
   transform: translateY(-2rpx);
 }
 
 .tab-item.active .tab-icon {
-  background-color: #eef5ff;
   transform: scale(1);
 }
 
 .tab-item.active .tab-text {
-  color: #1769ff;
   font-weight: 700;
 }

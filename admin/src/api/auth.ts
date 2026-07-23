@@ -11,7 +11,7 @@ export function loginApi(data: LoginParams) {
 
 /** 获取当前用户信息 */
 export function getUserInfoApi() {
-  return get<UserInfo>('/api/v1/admin/auth/profile')
+  return get<UserInfo>('/api/v1/admin/auth/profile', undefined, { showError: false })
 }
 
 /** 用户登出 */

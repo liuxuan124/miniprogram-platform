@@ -65,7 +65,7 @@
           <div v-loading="recordsLoading" class="timeline-wrapper">
             <el-empty v-if="!recordsLoading && releaseList.length === 0" description="暂无版本记录">
               <p class="empty-hint">暂无版本记录。前往「小程序搭建」页面保存模板或发布上线后，版本记录将在此处显示。</p>
-              <el-button type="primary" @click="$router.push('/page-builder/miniapp')">
+              <el-button type="primary" @click="$router.push('/page-builder/start')">
                 前往小程序搭建
               </el-button>
             </el-empty>
@@ -601,7 +601,7 @@ onMounted(() => {
 
 .info-banner {
   display: flex; align-items: flex-start; gap: 10px;
-  padding: 14px 18px; background: #eff6ff; border: 1px solid #bfdbfe;
+  padding: 14px 18px; background: var(--brand-soft); border: 1px solid #bfdbfe;
   border-radius: 10px; margin-bottom: 20px; font-size: 13px; color: #3b82f6;
   line-height: 1.6;
 
@@ -609,7 +609,7 @@ onMounted(() => {
 }
 
 .empty-hint {
-  font-size: 13px; color: #86909c; margin-bottom: 16px; line-height: 1.5; max-width: 320px;
+  font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; max-width: 320px;
 }
 
 .page-toolbar {
@@ -634,7 +634,7 @@ onMounted(() => {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: #1d2129;
+    color: var(--text);
   }
 }
 
@@ -669,8 +669,8 @@ onMounted(() => {
 }
 
 .stat-info {
-  .stat-value { font-size: 24px; font-weight: 700; color: #1d2129; line-height: 1.2; }
-  .stat-label { font-size: 13px; color: #86909c; margin-top: 4px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 }
 
 .timeline-card {
@@ -691,17 +691,17 @@ onMounted(() => {
 .version-header {
   display: flex; justify-content: space-between; align-items: center; cursor: pointer;
   .version-header-left { display: flex; align-items: center; gap: 8px; }
-  .version-header-right { display: flex; align-items: center; gap: 12px; color: #86909c; }
+  .version-header-right { display: flex; align-items: center; gap: 12px; color: var(--text-muted); }
 }
 
 .semver-tag { font-weight: 600; font-size: 14px; border: none; }
 .change-type-label { font-size: 12px; font-weight: 500; }
 .publisher { display: flex; align-items: center; gap: 4px; font-size: 13px; }
 .expand-icon { transition: transform 0.2s ease; &.is-rotated { transform: rotate(180deg); } }
-.version-notes-preview { margin-top: 8px; font-size: 13px; color: #86909c; line-height: 1.5; }
+.version-notes-preview { margin-top: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 
 .version-detail {
-  margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e6eb;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
 }
 .version-actions { margin-top: 16px; display: flex; gap: 8px; }
 

@@ -3,7 +3,7 @@
     <div class="product-editor-wrap">
       <header class="page-header">
         <div class="page-title-wrap">
-          <el-button class="back-icon-btn" :icon="Back" circle @click="goBack" />
+          <el-button class="back-icon-btn" :icon="Back" circle aria-label="返回" @click="goBack" />
           <div>
             <div class="page-breadcrumb">商城管理 / 商品管理</div>
             <h1>{{ isEdit ? '编辑商品' : '新增商品' }}</h1>
@@ -192,7 +192,7 @@
                     </el-table-column>
                     <el-table-column label="操作" width="72" fixed="right" align="center">
                       <template #default="{ $index }">
-                        <el-button class="delete-icon-btn" :icon="Delete" circle text @click="removeSku($index)" />
+                        <el-button class="delete-icon-btn" :icon="Delete" circle text aria-label="删除该 SKU" @click="removeSku($index)" />
                       </template>
                     </el-table-column>
                     <template #empty>
@@ -268,7 +268,7 @@
                     @dragend="handleGalleryDragEnd"
                   >
                     <el-image :src="img" fit="cover" />
-                    <el-button class="thumb-remove" type="danger" :icon="Delete" circle size="small" @click="removeImage(idx)" />
+                    <el-button class="thumb-remove" type="danger" :icon="Delete" circle size="small" aria-label="删除该图片" @click="removeImage(idx)" />
                   </div>
                   <el-upload :show-file-list="false" accept="image/*" :before-upload="beforeImageUpload" :http-request="handleGalleryImageUpload">
                     <div class="gallery-add-tile">
@@ -1071,8 +1071,8 @@ onUnmounted(() => {
 .product-editor-page {
   min-height: 100%;
   padding: 24px 28px 36px;
-  background: #f5f7fb;
-  color: #1d2129;
+  background: var(--bg-page);
+  color: var(--text);
 }
 
 .product-editor-page,
@@ -1093,7 +1093,7 @@ onUnmounted(() => {
   gap: 24px;
   min-height: 76px;
   padding: 16px 0 18px;
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--border);
 }
 
 .page-title-wrap,
@@ -1117,14 +1117,14 @@ onUnmounted(() => {
 
 .page-breadcrumb {
   margin-bottom: 4px;
-  color: #86909c;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.3;
 }
 
 .page-header h1 {
   margin: 0;
-  color: #1d2129;
+  color: var(--text);
   font-size: 26px;
   font-weight: 700;
   line-height: 1.25;
@@ -1146,7 +1146,7 @@ onUnmounted(() => {
 }
 
 .autosave-text {
-  color: #86909c;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -1168,9 +1168,9 @@ onUnmounted(() => {
   min-width: 0;
   height: 44px;
   padding: 0 14px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #86909c;
+  color: var(--text-muted);
   background: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -1179,20 +1179,20 @@ onUnmounted(() => {
 }
 
 .step-nav-item:hover {
-  border-color: #1677ff;
-  color: #1677ff;
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .step-nav-item.current {
-  border-color: #1677ff;
-  color: #1677ff;
+  border-color: var(--brand);
+  color: var(--brand);
   background: #f0f7ff;
   box-shadow: 0 0 0 3px rgba(22, 119, 255, .08);
 }
 
 .step-nav-item.done {
-  border-color: #1677ff;
-  color: #1677ff;
+  border-color: var(--brand);
+  color: var(--brand);
   background: #fff;
 }
 
@@ -1212,12 +1212,12 @@ onUnmounted(() => {
 }
 
 .step-nav-item.current .step-dot {
-  border-color: #1677ff;
+  border-color: var(--brand);
 }
 
 .step-nav-item.done .step-dot {
-  border-color: #1677ff;
-  background: #1677ff;
+  border-color: var(--brand);
+  background: var(--brand);
 }
 
 .step-label {
@@ -1248,7 +1248,7 @@ onUnmounted(() => {
 .section-card,
 .side-card,
 .sticky-action-bar {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 8px 20px rgba(29, 33, 41, .04);
@@ -1282,7 +1282,7 @@ onUnmounted(() => {
   height: 28px;
   border-radius: 6px;
   color: #fff;
-  background: #1677ff;
+  background: var(--brand);
   font-size: 13px;
   font-weight: 800;
 }
@@ -1290,7 +1290,7 @@ onUnmounted(() => {
 .section-head h2,
 .side-card-title {
   margin: 0;
-  color: #1d2129;
+  color: var(--text);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
@@ -1298,7 +1298,7 @@ onUnmounted(() => {
 
 .section-head p {
   margin: 4px 0 0;
-  color: #86909c;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1324,9 +1324,9 @@ onUnmounted(() => {
   width: 100%;
   max-width: 620px;
   padding: 4px;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #f7f8fa;
+  background: var(--bg-page);
 }
 
 .segment-item {
@@ -1340,7 +1340,7 @@ onUnmounted(() => {
   padding: 0 16px;
   border: 0;
   border-radius: 6px;
-  color: #4e5969;
+  color: var(--text-secondary);
   background: transparent;
   font-size: 14px;
   font-weight: 700;
@@ -1350,7 +1350,7 @@ onUnmounted(() => {
 
 .segment-item.active {
   color: #fff;
-  background: #1677ff;
+  background: var(--brand);
   box-shadow: 0 6px 14px rgba(22, 119, 255, .24);
 }
 
@@ -1409,17 +1409,17 @@ onUnmounted(() => {
   justify-content: center;
   height: 100%;
   gap: 8px;
-  color: #86909c;
+  color: var(--text-muted);
   text-align: center;
 }
 
 .upload-empty :deep(.el-icon) {
-  color: #1677ff;
+  color: var(--brand);
   font-size: 30px;
 }
 
 .upload-empty strong {
-  color: #1d2129;
+  color: var(--text);
   font-size: 14px;
 }
 
@@ -1439,7 +1439,7 @@ onUnmounted(() => {
   margin: 0;
   padding: 0;
   border: 0;
-  color: #1677ff;
+  color: var(--brand);
   background: transparent;
   font-size: 12px;
   cursor: pointer;
@@ -1457,9 +1457,9 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #f7f8fa;
+  background: var(--bg-page);
 }
 
 .gallery-thumb {
@@ -1489,7 +1489,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 6px;
   border-style: dashed;
-  color: #86909c;
+  color: var(--text-muted);
   min-height: 96px;
   cursor: pointer;
 }
@@ -1499,8 +1499,8 @@ onUnmounted(() => {
 }
 
 .gallery-add-tile:hover {
-  border-color: #1677ff;
-  color: #1677ff;
+  border-color: var(--brand);
+  color: var(--brand);
   background: #f0f7ff;
 }
 
@@ -1519,7 +1519,7 @@ onUnmounted(() => {
 .sku-table-wrap {
   width: 100%;
   overflow: hidden;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
@@ -1528,16 +1528,16 @@ onUnmounted(() => {
 }
 
 .money-input :deep(.el-input__prefix) {
-  color: #86909c;
+  color: var(--text-muted);
   font-weight: 700;
 }
 
 .delete-icon-btn {
-  color: #86909c;
+  color: var(--text-muted);
 }
 
 .delete-icon-btn:hover {
-  color: #f53f3f;
+  color: var(--danger);
   background: #fff1f0;
 }
 
@@ -1548,11 +1548,11 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   min-height: 180px;
-  color: #86909c;
+  color: var(--text-muted);
 }
 
 .sku-empty strong {
-  color: #1d2129;
+  color: var(--text);
   font-size: 15px;
 }
 
@@ -1563,8 +1563,8 @@ onUnmounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  color: #1677ff;
-  background: #e8f3ff;
+  color: var(--brand);
+  background: var(--brand-soft);
   font-weight: 800;
 }
 
@@ -1578,7 +1578,7 @@ onUnmounted(() => {
   margin: 12px;
   border: 1px dashed #b7c7dd;
   border-radius: 8px;
-  color: #1677ff;
+  color: var(--brand);
   background: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -1586,7 +1586,7 @@ onUnmounted(() => {
 }
 
 .add-row-btn:hover {
-  border-color: #1677ff;
+  border-color: var(--brand);
   background: #f0f7ff;
 }
 
@@ -1601,12 +1601,12 @@ onUnmounted(() => {
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid #f0f2f5;
-  color: #86909c;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .status-row strong {
-  color: #1d2129;
+  color: var(--text);
   font-weight: 700;
 }
 
@@ -1614,8 +1614,8 @@ onUnmounted(() => {
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 8px;
-  color: #4e5969;
-  background: #f7f8fa;
+  color: var(--text-secondary);
+  background: var(--bg-page);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -1626,14 +1626,14 @@ onUnmounted(() => {
 
 .side-progress strong,
 .footer-status strong {
-  color: #1d2129;
+  color: var(--text);
   font-size: 14px;
 }
 
 .side-progress p,
 .footer-status p {
   margin: 4px 0 0;
-  color: #86909c;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -1661,7 +1661,7 @@ onUnmounted(() => {
 .progress-ring span {
   position: relative;
   z-index: 1;
-  color: #1d2129;
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
 }
@@ -1698,7 +1698,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -1707,7 +1707,7 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: #f53f3f;
+  background: var(--danger);
 }
 
 .sticky-action-bar {
@@ -1740,7 +1740,7 @@ onUnmounted(() => {
 
 .product-editor-page :deep(.el-form-item__label) {
   margin-bottom: 8px;
-  color: #1d2129;
+  color: var(--text);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.4;
@@ -1748,7 +1748,7 @@ onUnmounted(() => {
 
 .product-editor-page :deep(.el-form-item__error) {
   padding-top: 5px;
-  color: #f53f3f;
+  color: var(--danger);
   font-size: 12px;
 }
 
@@ -1756,7 +1756,7 @@ onUnmounted(() => {
 .product-editor-page :deep(.el-textarea__inner) {
   border-radius: 6px;
   background: #fff;
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
+  box-shadow: 0 0 0 1px var(--border) inset;
 }
 
 .product-editor-page :deep(.el-input__wrapper:hover),
@@ -1766,7 +1766,7 @@ onUnmounted(() => {
 
 .product-editor-page :deep(.el-input__wrapper.is-focus),
 .product-editor-page :deep(.el-textarea__inner:focus) {
-  box-shadow: 0 0 0 1px #1677ff inset, 0 0 0 3px rgba(22, 119, 255, .12);
+  box-shadow: 0 0 0 1px var(--brand) inset, 0 0 0 3px rgba(22, 119, 255, .12);
 }
 
 .product-editor-page :deep(.el-input-number) {
@@ -1781,31 +1781,31 @@ onUnmounted(() => {
 .primary-btn:deep(.el-button),
 .product-editor-page :deep(.el-button--primary),
 .product-editor-page :deep(.el-button.primary-btn) {
-  --el-button-bg-color: #1677ff;
-  --el-button-border-color: #1677ff;
-  --el-button-hover-bg-color: #0e63d6;
-  --el-button-hover-border-color: #0e63d6;
+  --el-button-bg-color: var(--brand);
+  --el-button-border-color: var(--brand);
+  --el-button-hover-bg-color: var(--brand-hover);
+  --el-button-hover-border-color: var(--brand-hover);
   --el-button-active-bg-color: #0b55bd;
   --el-button-active-border-color: #0b55bd;
 }
 
 .product-editor-page :deep(.el-button.ghost-btn),
 .product-editor-page :deep(.el-button.outline-btn) {
-  color: #4e5969;
-  border-color: #dcdfe6;
+  color: var(--text-secondary);
+  border-color: var(--border);
   background: #fff;
 }
 
 .product-editor-page :deep(.el-button.ghost-btn:hover),
 .product-editor-page :deep(.el-button.outline-btn:hover) {
-  color: #1677ff;
-  border-color: #1677ff;
+  color: var(--brand);
+  border-color: var(--brand);
   background: #f0f7ff;
 }
 
 .product-editor-page :deep(.el-table th.el-table__cell) {
-  color: #4e5969;
-  background: #f7f8fa;
+  color: var(--text-secondary);
+  background: var(--bg-page);
   font-size: 13px;
   font-weight: 700;
 }

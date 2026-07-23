@@ -93,7 +93,7 @@
           <el-col :span="14">
             <el-card shadow="never">
               <template #header><span>✏️ System Prompt 编写</span></template>
-              <div style="font-size:12px;color:#999;margin-bottom:8px">定义 AI 的角色、能力范围、回答风格与禁止行为</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">定义 AI 的角色、能力范围、回答风格与禁止行为</div>
               <el-input type="textarea" v-model="systemPrompt" :rows="12" style="font-size:12px;line-height:1.8" />
               <div style="margin-top:10px;display:flex;gap:8px">
                 <el-button size="small" @click="loadTemplate">加载模板</el-button>
@@ -148,7 +148,7 @@
           </template>
           <div style="margin-bottom:14px">
             <el-progress :percentage="85" />
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-top:4px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px">
               <span>知识库向量化进度：3/4 文件已完成</span><span>85%</span>
             </div>
           </div>
@@ -197,7 +197,7 @@
                 <el-button type="primary" @click="sendChat">发送测试</el-button>
               </div>
               <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-                <span style="font-size:11px;color:#999">快捷测试：</span>
+                <span style="font-size:11px;color:var(--text-muted)">快捷测试：</span>
                 <el-button size="small" @click="quickTest('金卡会员有什么权益？')">金卡会员有什么权益？</el-button>
                 <el-button size="small" @click="quickTest('推荐一款礼物')">推荐一款礼物</el-button>
                 <el-button size="small" @click="quickTest('有优惠券吗？')">有优惠券吗？</el-button>
@@ -240,12 +240,12 @@
                   </div>
                   <el-tag type="success">运行中</el-tag>
                 </div>
-                <div style="margin-top:8px;font-size:12px;color:#999">已服务对话：12,840 次 · 平均满意度：4.6/5</div>
+                <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">已服务对话：12,840 次 · 平均满意度：4.6/5</div>
               </div>
               <div class="version-card pending">
                 <div style="display:flex;justify-content:space-between;align-items:center">
                   <div>
-                    <div class="version-title" style="color:#1769ff">待发布版本 v3.0</div>
+                    <div class="version-title" style="color:var(--brand)">待发布版本 v3.0</div>
                     <div class="version-meta">已完成沙盒测试 · 知识库新增2文件 · Prompt优化</div>
                   </div>
                   <el-tag type="warning">待发布</el-tag>
@@ -298,21 +298,21 @@
             <el-card shadow="never" style="text-align:center;padding:10px">
               <div style="font-size:28px;margin-bottom:4px">🤖</div>
               <div style="font-size:22px;font-weight:700;color:#7c3aed">1,240</div>
-              <div style="font-size:12px;color:#999">昨日对话 <span style="color:#0faa6e">↑ 15%</span></div>
+              <div style="font-size:12px;color:var(--text-muted)">昨日对话 <span style="color:var(--success)">↑ 15%</span></div>
             </el-card>
           </el-col>
           <el-col :span="8">
             <el-card shadow="never" style="text-align:center;padding:10px">
               <div style="font-size:28px;margin-bottom:4px">🛍️</div>
-              <div style="font-size:22px;font-weight:700;color:#1769ff">¥3,580</div>
-              <div style="font-size:12px;color:#999">推荐成交额 <span style="color:#0faa6e">转化率 4.2%</span></div>
+              <div style="font-size:22px;font-weight:700;color:var(--brand)">¥3,580</div>
+              <div style="font-size:12px;color:var(--text-muted)">推荐成交额 <span style="color:var(--success)">转化率 4.2%</span></div>
             </el-card>
           </el-col>
           <el-col :span="8">
             <el-card shadow="never" style="text-align:center;padding:10px">
               <div style="font-size:28px;margin-bottom:4px">😊</div>
-              <div style="font-size:22px;font-weight:700;color:#0faa6e">4.6/5</div>
-              <div style="font-size:12px;color:#999">用户满意度 <span style="color:#0faa6e">差评率 2.1%</span></div>
+              <div style="font-size:22px;font-weight:700;color:var(--success)">4.6/5</div>
+              <div style="font-size:12px;color:var(--text-muted)">用户满意度 <span style="color:var(--success)">差评率 2.1%</span></div>
             </el-card>
           </el-col>
         </el-row>
@@ -344,7 +344,7 @@
             <div v-for="item in intents" :key="item.name" class="intent-item">
               <span style="width:60px;font-size:12px">{{ item.name }}</span>
               <el-progress :percentage="item.pct" :stroke-width="10" style="flex:1" />
-              <span style="font-size:12px;color:#999;width:36px">{{ item.pct }}%</span>
+              <span style="font-size:12px;color:var(--text-muted);width:36px">{{ item.pct }}%</span>
             </div>
           </div>
         </el-card>
@@ -812,7 +812,7 @@ onMounted(() => {
 .page-header {
   margin-bottom: 16px;
   h2 { margin: 0 0 4px; font-size: 20px; }
-  .page-desc { margin: 0; font-size: 13px; color: #999; }
+  .page-desc { margin: 0; font-size: 13px; color: var(--text-muted); }
 }
 .agent-tabs {
   :deep(.el-tabs__item) { font-size: 13px; }
@@ -840,7 +840,7 @@ onMounted(() => {
     background: var(--el-color-primary-light-9);
   }
   .model-name { font-weight: 700; font-size: 13px; }
-  .model-desc { font-size: 11px; color: #999; margin-top: 2px; }
+  .model-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 }
 .chat-box {
   background: #f0f2f5;
@@ -895,19 +895,19 @@ onMounted(() => {
   border-radius: 10px;
   border-left: 4px solid;
   .eval-title { font-weight: 700; font-size: 12px; margin-bottom: 4px; }
-  .eval-desc { font-size: 11px; color: #999; }
+  .eval-desc { font-size: 11px; color: var(--text-muted); }
 }
-.eval-pass { background: #f0fdf4; border-color: #0faa6e; }
-.eval-warn { background: #fff8e6; border-color: #f59e0b; }
-.eval-pending { background: #f1f4fa; border-color: #999; }
+.eval-pass { background: #f0fdf4; border-color: var(--success); }
+.eval-warn { background: #fff8e6; border-color: var(--warning); }
+.eval-pending { background: #f1f4fa; border-color: var(--text-muted); }
 .version-card {
   padding: 16px;
   border-radius: 12px;
   margin-bottom: 14px;
-  &.current { background: #f8faff; border: 1px solid var(--el-border-color); }
+  &.current { background: var(--bg-page); border: 1px solid var(--el-border-color); }
   &.pending { background: var(--el-color-primary-light-9); border: 1px solid var(--el-color-primary); }
   .version-title { font-weight: 700; font-size: 13px; }
-  .version-meta { font-size: 11px; color: #999; margin-top: 2px; }
+  .version-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 }
 .intent-list {
   display: grid;

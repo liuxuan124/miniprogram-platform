@@ -1,6 +1,16 @@
 <!-- pages/product-list/product-list.wxml — 商品列表页 -->
 <view class="product-list-page">
   <!-- 搜索栏 -->
+  <view class="shop-banner">
+    <view class="shop-banner__row">
+      <view>
+        <view class="shop-banner__t">📦 资料包 + 1v1 咨询</view>
+        <view class="shop-banner__d">资料包购买后永久可看并季度更新 · 咨询下单后自选时段</view>
+      </view>
+      <view class="shop-cart" bindtap="onGoCart">🛒</view>
+    </view>
+  </view>
+
   <view class="search-bar">
     <view class="search-input-wrap">
       <text class="search-icon-text">🔍</text>
@@ -24,6 +34,15 @@
 
   <!-- 分类筛选 -->
   <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{typeTabs}}"
+      wx:key="key"
+      class="category-item {{activeType === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTypeTap"
+    >
+      <text>{{item.label}}</text>
+    </view>
     <view
       wx:for="{{categories}}"
       wx:key="id"
@@ -58,8 +77,11 @@
     </view>
   </view>
 
+  <!-- 首次加载：D1 骨架屏，替代空白页面 -->
+  <skeleton wx:if="{{loading && products.length === 0}}" type="grid" rows="{{6}}" />
+
   <!-- 商品列表 -->
-  <view class="product-grid">
+  <view class="product-grid" wx:else>
     <view
       wx:for="{{products}}"
       wx:key="id"
@@ -67,7 +89,14 @@
       data-id="{{item.id}}"
       bindtap="onProductTap"
     >
-      <image class="product-image" src="{{item.image || item.cover_url || item.main_image || item.mainImage}}" mode="aspectFill" lazy-load />
+      <image
+        class="product-image"
+        src="{{item.image || item.cover_url || item.main_image || item.mainImage || '/images/default-product.svg'}}"
+        mode="aspectFill"
+        lazy-load
+        data-index="{{index}}"
+        binderror="onImageError"
+      />
       <view class="product-info">
         <text class="product-name">{{item.name}}</text>
         <view class="product-price-row">
@@ -79,17 +108,19 @@
     </view>
   </view>
 
-  <!-- 加载状态 -->
-  <view class="loading-area" wx:if="{{loading}}">
+  <!-- 加载更多状态（首次加载已由骨架屏承接，这里只覆盖翻页场景） -->
+  <view class="loading-area" wx:if="{{loading && products.length > 0}}">
     <text class="loading-text">加载中...</text>
   </view>
   <view class="loading-area" wx:elif="{{!hasMore && products.length > 0}}">
     <text class="loading-text">没有更多了</text>
   </view>
 
-  <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{isEmpty && !loading}}">
-    <image class="empty-state__icon" src="/images/empty-product.png" mode="aspectFit" />
-    <text class="empty-state__text">暂无商品</text>
-  </view>
+  <!-- 空状态：D2 统一空态组件 -->
+  <empty-state
+    wx:if="{{isEmpty && !loading}}"
+    icon="/images/empty-product.png"
+    title="暂无商品"
+    desc="换个分类或关键词试试"
+  />
 </view>

@@ -1,73 +1,57 @@
-<!-- pages/mine/mine.wxml — 我的页面（会员中心入口） -->
-<view class="page-mine">
-
-  <!-- 微信授权提示条 -->
-  <view class="auth-prompt" wx:if="{{!isLoggedIn}}" bindtap="onUserAreaTap">
-    <view class="auth-prompt__icon">👤</view>
-    <view class="auth-prompt__content">
-      <text class="auth-prompt__text">{{mineConfig.loginTitle}}</text>
-      <text class="auth-prompt__subtext">{{mineConfig.loginSubtitle}}</text>
-      <text class="auth-prompt__button">{{mineConfig.loginButtonText}}</text>
-    </view>
-    <text class="auth-prompt__arrow">›</text>
-  </view>
-
-  <!-- 用户信息卡片 -->
-  <view class="user-card" wx:if="{{isLoggedIn}}" bindtap="goMemberCenter">
-    <view class="user-card__avatar">
-      <text class="user-card__avatar-text">👤</text>
-    </view>
-    <view class="user-card__info">
-      <view class="user-card__name-row">
-        <text class="user-card__name">{{userInfo.nickName || '微信用户'}}</text>
-        <view class="user-card__level-badge" wx:if="{{memberInfo.level_name}}">
-          <text class="user-card__level-text">{{memberInfo.level_name}}</text>
-        </view>
+<!-- pages/mine/mine.wxml — 对齐原型 s-mine -->
+<view class="mine-page">
+  <view class="m-hero" bindtap="onUserAreaTap">
+    <view class="av">{{isLoggedIn ? '🙂' : '👤'}}</view>
+    <view class="info">
+      <view class="nk">{{isLoggedIn ? (userInfo.nickName || '微信用户') : (mineConfig.loginTitle || '登录出海笔记')}}</view>
+      <view class="lv" wx:if="{{isLoggedIn}}">
+        <text class="b">{{memberInfo.level_name || mineConfig.memberCardTitle || '出海会员'}}</text>
+        <text> 已加入 {{memberInfo.days || continuousDays || 0}} 天</text>
       </view>
-      <text class="user-card__subtitle">{{mineConfig.memberCardTitle}}</text>
-    </view>
-    <text class="user-card__arrow">›</text>
-  </view>
-
-  <!-- 我的订单 -->
-  <view class="order-section">
-    <view class="section-header">
-      <text class="section-title">我的订单</text>
-    </view>
-    <view class="order-tabs">
-      <view class="order-tab" data-key="pending_payment" bindtap="onOrderTabTap">
-        <text class="order-tab__icon">💳</text>
-        <text class="order-tab__text">待确认</text>
-      </view>
-      <view class="order-tab" data-key="paid" bindtap="onOrderTabTap">
-        <text class="order-tab__icon">📦</text>
-        <text class="order-tab__text">待发货</text>
-      </view>
-      <view class="order-tab" data-key="shipped" bindtap="onOrderTabTap">
-        <text class="order-tab__icon">🚚</text>
-        <text class="order-tab__text">待收货</text>
-      </view>
-      <view class="order-tab" data-key="refund" bindtap="onOrderTabTap">
-        <text class="order-tab__icon">🔄</text>
-        <text class="order-tab__text">售后</text>
-      </view>
+      <view class="lv" wx:else>{{mineConfig.loginSubtitle}}</view>
     </view>
   </view>
 
-  <!-- 功能菜单 -->
-  <view class="menu-section">
-    <view class="menu-grid">
-      <view
-        wx:for="{{visibleMenuList}}"
-        wx:key="id"
-        class="menu-grid__item"
-        data-id="{{item.id}}"
-        bindtap="onMenuTap"
-      >
-        <view class="menu-grid__icon"><text class="menu-grid__icon-text">{{item.icon}}</text></view>
-        <text class="menu-grid__label">{{item.title}}</text>
-      </view>
+  <view class="m-stats">
+    <view class="s" bindtap="goCoupons"><b>{{stats.coupons}}</b><span>优惠券</span></view>
+    <view class="s" bindtap="goMemberCenter"><b>{{stats.points}}</b><span>积分</span></view>
+    <view class="s" bindtap="goMemberCenter"><b>{{stats.growth}}</b><span>成长值</span></view>
+    <view class="s" bindtap="goLibrary"><b>{{stats.library}}</b><span>已购资料</span></view>
+  </view>
+
+  <view class="m-quick">
+    <view class="q" data-key="pending_payment" bindtap="onOrderTabTap">
+      <view class="ic">💳</view><view class="n">待付款</view>
+      <view class="bg" wx:if="{{badges.pending}}">{{badges.pending}}</view>
+    </view>
+    <view class="q" bindtap="goLibrary"><view class="ic">📘</view><view class="n">已购资料</view></view>
+    <view class="q" bindtap="goAppointments">
+      <view class="ic">🗓️</view><view class="n">我的预约</view>
+      <view class="bg" wx:if="{{badges.appoint}}">{{badges.appoint}}</view>
+    </view>
+    <view class="q" bindtap="goWriteReview">
+      <view class="ic">✍️</view><view class="n">待评价</view>
+      <view class="bg" wx:if="{{badges.review}}">{{badges.review}}</view>
     </view>
   </view>
 
+  <view class="tip" wx:if="{{tipText}}" bindtap="goAppointments">
+    {{tipText}}<text class="go">去准备 ›</text>
+  </view>
+
+  <view class="m-list">
+    <view
+      wx:for="{{visibleMenuList}}"
+      wx:key="id"
+      class="r"
+      data-id="{{item.id}}"
+      bindtap="onMenuTap"
+    >
+      <text class="ic">{{item.icon}}</text>
+      <text class="n">{{item.title}}</text>
+      <text class="ar">›</text>
+    </view>
+  </view>
+
+  <view class="pad"></view>
 </view>

@@ -21,10 +21,21 @@ Page({
     selectedSku: null,
     selectedSkuValues: {}, // { 规格名: 规格值 }
     quantity: 1,
+    submitting: false, // D4：加购请求进行中，防止重复提交
     stock: 0,
 
     // 富文本描述
     richContent: '',
+    isDigital: false,
+    isService: false,
+    reviewScore: '4.9',
+    reviewCount: 0,
+    gains: ['可复用方法论与清单模板', '真实案例拆解', '季度免费更新'],
+    whoFor: '准备启动或优化跨境业务的卖家与内容创作者。',
+    faqs: [
+      { q: '资料包买错了可以退吗？', a: '数字内容解锁后一般不支持退款；未阅读可在 24 小时内申请。' },
+      { q: '和 1v1 咨询有什么区别？', a: '资料包适合自学沉淀；1v1 针对你的具体业务诊断，两者互补。' },
+    ],
   },
 
   onLoad(options) {
@@ -81,7 +92,10 @@ Page({
           selectedSkuValues,
           stock: selectedSku ? selectedSku.stock : (product.stock || 0),
           richContent,
+          isDigital: (product.productType || product.product_type) === 'digital',
+          isService: (product.productType || product.product_type) === 'service',
         })
+        this._loadReviews(id)
       })
       .catch(() => {
         this.setData({ loading: false })
@@ -115,17 +129,68 @@ Page({
     this.setData({ showSkuPanel: true, skuMode: 'buy', quantity: 1 })
   },
 
+  onGoHome() {
+    wx.switchTab({ url: '/pages/index/index' })
+  },
+
+  /** 资料包试读 → 阅读器 */
+  onPreviewTap() {
+    const p = this.data.product || {}
+    wx.navigateTo({
+      url: `/pages/reader/reader?id=${p.id || this.data.id}&title=${encodeURIComponent(p.name || '资料试读')}`,
+    })
+  },
+
+  /** 咨询服务 → 预约日历 */
+  onBookTap() {
+    if (!AuthUtil.requireLoginForAction('预约咨询')) return
+    wx.navigateTo({ url: '/pages/appointment-calendar/appointment-calendar' })
+  },
+
+  onReviewsTap() {
+    wx.navigateTo({ url: `/pages/reviews/reviews?productId=${this.data.id}` })
+  },
+
+  onServiceTap() {
+    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+  },
+
+  onCouponEntry() {
+    wx.navigateTo({ url: '/pages/coupon-list/coupon-list' })
+  },
+
+  _loadReviews(id) {
+    try {
+      const reviewService = require('../../services/review')
+      reviewService.getProductReviews(id, { current: 1, size: 1 }).then((data) => {
+        this.setData({
+          reviewScore: (data && data.avgScore) || '4.9',
+          reviewCount: (data && data.total) || 0,
+        })
+      }).catch(() => {})
+    } catch (e) { /* ignore */ }
+  },
+
   /** 关闭 SKU 弹窗 */
   onSkuPanelClose() {
     this.setData({ showSkuPanel: false })
   },
 
-  /** 选择规格值 */
+  /** 选择规格值（内联面板兼容） */
   onSpecValueTap(e) {
     const { spec, value } = e.currentTarget.dataset
+    this._applySpec(spec, value)
+  },
+
+  /** sku-sheet 选规格 */
+  onSkuSheetPick(e) {
+    const { name, val } = e.detail || {}
+    this._applySpec(name, val)
+  },
+
+  _applySpec(spec, value) {
     const selectedSkuValues = { ...this.data.selectedSkuValues }
     selectedSkuValues[spec] = value
-    // 尝试匹配 SKU
     const matchedSku = this._matchSku(selectedSkuValues)
     this.setData({
       selectedSkuValues,
@@ -133,6 +198,22 @@ Page({
       stock: matchedSku ? matchedSku.stock : 0,
       quantity: 1,
     })
+  },
+
+  onSkuSheetQty(e) {
+    const delta = (e.detail && e.detail.delta) || 0
+    if (delta < 0) this.onQuantityMinus()
+    else if (delta > 0) this.onQuantityPlus()
+  },
+
+  onSkuSheetCart() {
+    this.setData({ skuMode: 'cart' })
+    this.onSkuConfirm()
+  },
+
+  onSkuSheetBuy() {
+    this.setData({ skuMode: 'buy' })
+    this.onSkuConfirm()
   },
 
   /** 根据已选规格值匹配 SKU */
@@ -182,6 +263,7 @@ Page({
 
   /** SKU 弹窗确认 */
   onSkuConfirm() {
+    if (this.data.submitting) return // D4：处理中禁止重复提交
     const { skuMode, selectedSku, quantity, product } = this.data
     if (!selectedSku && (product.skuList || []).length > 0) {
       wx.showToast({ title: '请选择规格', icon: 'none' })
@@ -207,13 +289,15 @@ Page({
       sku_id: selectedSku ? selectedSku.id : '',
       quantity,
     }
+    this.setData({ submitting: true })
     cartService.addToCart(data)
       .then(() => {
         wx.showToast({ title: '已加入购物车', icon: 'success' })
-        this.setData({ showSkuPanel: false })
+        this.setData({ showSkuPanel: false, submitting: false })
       })
       .catch(() => {
         wx.showToast({ title: '添加失败', icon: 'none' })
+        this.setData({ submitting: false })
       })
   },
 

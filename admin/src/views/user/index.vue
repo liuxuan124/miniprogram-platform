@@ -50,14 +50,15 @@
     </el-row>
 
     <!-- 用户列表 -->
-    <el-alert v-if="loadError" type="error" :title="loadError" show-icon class="mb16">
-      <el-button type="primary" link @click="fetchUsers">重试</el-button>
-    </el-alert>
     <el-card shadow="hover" class="table-card">
-      <el-table :data="users" stripe style="width:100%" v-loading="loading">
-        <template #empty>
-          <el-empty v-if="!loading && !loadError" description="暂无用户数据" />
-        </template>
+      <ListStateWrap
+        :loading="loading"
+        :error="loadError"
+        :empty="!loading && !loadError && users.length === 0"
+        empty-text="暂无用户数据"
+        @retry="fetchUsers"
+      >
+      <el-table :data="users" stripe style="width:100%">
         <el-table-column prop="nickname" label="用户昵称" min-width="140">
           <template #default="{ row }">
             <div class="user-cell">
@@ -97,6 +98,7 @@
           @current-change="fetchUsers"
         />
       </div>
+      </ListStateWrap>
     </el-card>
 
     <!-- 用户画像弹窗 -->
@@ -143,6 +145,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import ListStateWrap from '@/components/ListStateWrap.vue'
 import { getUserList, exportUsers } from '@/api/user'
 
 const loading = ref(false)
