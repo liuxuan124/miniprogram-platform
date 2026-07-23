@@ -181,7 +181,7 @@ const homePageId = ref<number | null>(null)
 
 async function resolveHomePageId() {
   try {
-    const res: any = await getPageList({ page: 1, pageSize: 50 })
+    const res: any = await getPageList({ page: 1, page_size: 50 } as any)
     const pages = res?.data?.records || res?.data?.list || res?.data || []
     const list = Array.isArray(pages) ? pages : []
     const home = list.find((p: any) => Number(p.type) === 1 || p.path === '/pages/index/index' || p.name === '首页')
