@@ -2,7 +2,7 @@
 
 .content-list-page {
   min-height: 100vh;
-  background-color: #f5f6f9;
+  background-color: #fafafa;
   padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
 }
 
@@ -12,9 +12,9 @@
 }
 .search-entry {
   height: 72rpx;
-  border-radius: 36rpx;
-  background: #f0f2f7;
-  color: #8b93a7;
+  border-radius: 12rpx;
+  background: #f3f3f3;
+  color: #999999;
   font-size: 26rpx;
   display: flex;
   align-items: center;
@@ -24,41 +24,44 @@
 .format-scroll {
   white-space: nowrap;
   background: #fff;
-  padding: 8rpx 24rpx 16rpx;
+  padding: 8rpx 24rpx 12rpx;
 }
 .format-item {
   display: inline-block;
-  margin-right: 16rpx;
+  margin-right: 12rpx;
   padding: 10rpx 24rpx;
   border-radius: 999rpx;
   font-size: 24rpx;
-  color: #5b6478;
-  background: #f0f2f7;
+  color: #666666;
+  background: #f3f3f3;
+  border: 1rpx solid transparent;
 }
 .format-item.active {
-  color: #fff;
-  background: #2f5bff;
+  color: #111111;
+  background: #ffffff;
   font-weight: 600;
+  border: 1rpx solid #111111;
 }
 
 .topic-scroll {
   white-space: nowrap;
   background: #fff;
   padding: 0 24rpx 16rpx;
+  border-bottom: 1rpx solid #eeeeee;
 }
 .topic-item {
   display: inline-block;
   margin-right: 12rpx;
   padding: 10rpx 22rpx;
-  border-radius: 16rpx;
+  border-radius: 12rpx;
   font-size: 24rpx;
-  color: #5b6478;
-  background: #f5f6f9;
+  color: #666666;
+  background: #fafafa;
 }
 .topic-item.active {
-  color: #2f5bff;
-  background: #eef2ff;
-  font-weight: 700;
+  color: #111111;
+  background: #f3f3f3;
+  font-weight: 600;
 }
 
 /* ========== 分类切换标签 ========== */
@@ -81,7 +84,7 @@
 }
 
 .category-item.active {
-  color: #2f5bff;
+  color: #111111;
   font-weight: 600;
 }
 
@@ -93,7 +96,7 @@
   transform: translateX(-50%);
   width: 40rpx;
   height: 4rpx;
-  background: #2f5bff;
+  background: #111111;
   border-radius: 2rpx;
 }
 
@@ -101,8 +104,8 @@
 .content-tags .tag {
   display: inline-block;
   font-size: 20rpx;
-  color: #2f5bff;
-  background: #eef2ff;
+  color: #111111;
+  background: #f3f3f3;
   padding: 2rpx 12rpx;
   border-radius: 8rpx;
 }

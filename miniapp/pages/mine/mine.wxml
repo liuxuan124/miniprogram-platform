@@ -1,42 +1,66 @@
-<!-- pages/mine/mine.wxml — 对齐原型 s-mine -->
+<!-- pages/mine/mine.wxml — 极简我的页 -->
 <view class="mine-page">
   <view class="m-hero" bindtap="onUserAreaTap">
-    <view class="av">{{isLoggedIn ? '🙂' : '👤'}}</view>
+    <image
+      class="av"
+      src="{{isLoggedIn && userInfo.avatarUrl ? userInfo.avatarUrl : '/images/default-avatar.svg'}}"
+      mode="aspectFill"
+    />
     <view class="info">
       <view class="nk">{{isLoggedIn ? (userInfo.nickName || '微信用户') : (mineConfig.loginTitle || '登录出海笔记')}}</view>
       <view class="lv" wx:if="{{isLoggedIn}}">
         <text class="b">{{memberInfo.level_name || mineConfig.memberCardTitle || '出海会员'}}</text>
-        <text> 已加入 {{memberInfo.days || continuousDays || 0}} 天</text>
+        <text>已加入 {{memberInfo.days || continuousDays || 0}} 天</text>
       </view>
-      <view class="lv" wx:else>{{mineConfig.loginSubtitle}}</view>
+      <view class="lv" wx:else>{{mineConfig.loginSubtitle || '查看订单、已购资料、预约与会员权益'}}</view>
     </view>
+    <view class="login-cta" wx:if="{{!isLoggedIn}}" catchtap="onUserAreaTap">去登录</view>
   </view>
 
   <view class="m-stats">
-    <view class="s" bindtap="goCoupons"><b>{{stats.coupons}}</b><span>优惠券</span></view>
-    <view class="s" bindtap="goMemberCenter"><b>{{stats.points}}</b><span>积分</span></view>
-    <view class="s" bindtap="goMemberCenter"><b>{{stats.growth}}</b><span>成长值</span></view>
-    <view class="s" bindtap="goLibrary"><b>{{stats.library}}</b><span>已购资料</span></view>
+    <view class="s" bindtap="goCoupons">
+      <text class="num">{{isLoggedIn ? stats.coupons : '—'}}</text>
+      <text class="label">优惠券</text>
+    </view>
+    <view class="s" bindtap="goMemberCenter">
+      <text class="num">{{isLoggedIn ? stats.points : '—'}}</text>
+      <text class="label">积分</text>
+    </view>
+    <view class="s" bindtap="goMemberCenter">
+      <text class="num">{{isLoggedIn ? stats.growth : '—'}}</text>
+      <text class="label">成长值</text>
+    </view>
+    <view class="s" bindtap="goLibrary">
+      <text class="num">{{isLoggedIn ? stats.library : '—'}}</text>
+      <text class="label">已购资料</text>
+    </view>
   </view>
 
   <view class="m-quick">
     <view class="q" data-key="pending_payment" bindtap="onOrderTabTap">
-      <view class="ic">💳</view><view class="n">待付款</view>
+      <view class="ic">付</view>
+      <view class="n">待付款</view>
       <view class="bg" wx:if="{{badges.pending}}">{{badges.pending}}</view>
     </view>
-    <view class="q" bindtap="goLibrary"><view class="ic">📘</view><view class="n">已购资料</view></view>
+    <view class="q" bindtap="goLibrary">
+      <view class="ic">库</view>
+      <view class="n">已购资料</view>
+    </view>
     <view class="q" bindtap="goAppointments">
-      <view class="ic">🗓️</view><view class="n">我的预约</view>
+      <view class="ic">约</view>
+      <view class="n">我的预约</view>
       <view class="bg" wx:if="{{badges.appoint}}">{{badges.appoint}}</view>
     </view>
     <view class="q" bindtap="goWriteReview">
-      <view class="ic">✍️</view><view class="n">待评价</view>
+      <view class="ic">评</view>
+      <view class="n">待评价</view>
       <view class="bg" wx:if="{{badges.review}}">{{badges.review}}</view>
     </view>
   </view>
 
-  <view class="tip" wx:if="{{tipText}}" bindtap="goAppointments">
-    {{tipText}}<text class="go">去准备 ›</text>
+  <view class="tip" wx:if="{{isLoggedIn && tipText}}" bindtap="goAppointments">
+    <text class="tip-text">{{tipText}}</text>
+    <text class="go">去查看</text>
   </view>
 
   <view class="m-list">
@@ -45,9 +69,10 @@
       wx:key="id"
       class="r"
       data-id="{{item.id}}"
+      data-url="{{item.url}}"
+      data-title="{{item.title}}"
       bindtap="onMenuTap"
     >
-      <text class="ic">{{item.icon}}</text>
       <text class="n">{{item.title}}</text>
       <text class="ar">›</text>
     </view>

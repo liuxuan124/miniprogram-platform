@@ -104,11 +104,32 @@ Page({
       app.globalData.userInfo = userInfo
     }
 
+    // 未登录不展示假数据
+    if (!isLoggedIn) {
+      this.setData({
+        isLoggedIn: false,
+        userInfo: null,
+        memberInfo: null,
+        stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+        badges: { pending: 0, appoint: 0, review: 0 },
+        tipText: '',
+      })
+      return
+    }
+
     this.setData({ isLoggedIn, userInfo })
   },
 
   /** 加载会员信息 */
   _loadMemberInfo() {
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({
+        stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+        tipText: '',
+      })
+      return
+    }
+
     memberService.getMemberInfo()
       .then((data) => {
         this.setData({
@@ -116,19 +137,19 @@ Page({
           continuousDays: data.continuous_days || data.continuousDays || 0,
           hasSignedIn: data.has_signed_in || false,
           stats: {
-            coupons: data.couponCount || data.coupon_count || 3,
-            points: data.points || data.availablePoints || 860,
-            growth: data.growthValue || data.growth_value || 1360,
-            library: data.libraryCount || data.library_count || 3,
+            coupons: data.couponCount || data.coupon_count || 0,
+            points: data.points || data.availablePoints || 0,
+            growth: data.growthValue || data.growth_value || 0,
+            library: data.libraryCount || data.library_count || 0,
           },
-          tipText: data.appointmentTip || '🎁 你有即将开始的 1v1 咨询，记得提前准备问题清单',
+          tipText: data.appointmentTip || '',
         })
       })
       .catch((err) => {
         console.error('[MinePage] 获取会员信息失败:', err)
         this.setData({
-          stats: { coupons: 3, points: 860, growth: 1360, library: 3 },
-          tipText: '🎁 你有即将开始的 1v1 咨询，记得提前准备问题清单',
+          stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+          tipText: '',
         })
         if (err && (err.code === 401 || err.code === 403)) {
           AuthService.silentLogin()
@@ -143,6 +164,13 @@ Page({
                 memberInfo: data,
                 continuousDays: data.continuous_days || 0,
                 hasSignedIn: data.has_signed_in || false,
+                stats: {
+                  coupons: data.couponCount || data.coupon_count || 0,
+                  points: data.points || data.availablePoints || 0,
+                  growth: data.growthValue || data.growth_value || 0,
+                  library: data.libraryCount || data.library_count || 0,
+                },
+                tipText: data.appointmentTip || '',
               })
             })
             .catch((retryErr) => {
@@ -218,39 +246,74 @@ Page({
 
   /** 菜单项点击 */
   onMenuTap(e) {
-    const { id } = e.currentTarget.dataset
-    const menuItem = this.data.menuList.find((m) => m.id === id)
-    if (!menuItem) return
+    const ds = e.currentTarget.dataset || {}
+    const id = ds.id
+    const title = ds.title || ''
+    const rawUrl = String(ds.url || '').trim()
+    const menuItem = this.data.menuList.find((m) => String(m.id) === String(id)) || {
+      id,
+      title,
+      url: rawUrl,
+    }
 
-    // 根据登录规则判断是否需要登录
-    const requireLogin = LOGIN_RULES.mineMenuRequireLogin[id]
-    if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title)) return
+    // 根据登录规则判断是否需要登录（设置/客服/反馈无需登录）
+    const skipLogin = id === 'settings' || id === 'contact' || id === 'feedback'
+      || /设置|客服|反馈|协议|隐私/.test(menuItem.title || title)
+    const requireLogin = !skipLogin && (
+      LOGIN_RULES.mineMenuRequireLogin[id]
+      || /订单|资产|优惠券|收藏|地址|预约/.test(menuItem.title || title)
+    )
+    if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title || title || '继续操作')) return
 
-    if (id === 'contact') {
+    if (id === 'contact' || rawUrl === 'contact' || /客服|售后/.test(menuItem.title || title)) {
       wx.navigateTo({ url: '/pages/service-chat/service-chat' })
       return
     }
 
-    if (menuItem.url) {
-      const isTab = [
-        '/pages/index/index',
-        '/pages/content-list/content-list',
-        '/pages/product-list/product-list',
-        '/pages/mine/mine',
-      ].indexOf(menuItem.url.split('?')[0]) >= 0
-      if (isTab) {
-        wx.switchTab({ url: menuItem.url.split('?')[0] })
-        return
-      }
-      wx.navigateTo({
-        url: menuItem.url,
-        fail() {
-          wx.showToast({ title: '功能开发中', icon: 'none' })
-        },
-      })
-    } else {
-      wx.showToast({ title: '功能开发中', icon: 'none' })
+    const url = this._resolveMenuUrl(rawUrl || menuItem.url || '', menuItem.title || title)
+    if (!url) {
+      wx.showToast({ title: '功能暂不可用', icon: 'none' })
+      return
     }
+
+    const path = url.split('?')[0]
+    const isTab = [
+      '/pages/index/index',
+      '/pages/content-list/content-list',
+      '/pages/product-list/product-list',
+      '/pages/mine/mine',
+    ].indexOf(path) >= 0
+    if (isTab) {
+      wx.switchTab({ url: path })
+      return
+    }
+    wx.navigateTo({
+      url,
+      fail: (err) => {
+        console.error('[Mine] navigate fail', url, err)
+        wx.showToast({ title: '页面打开失败，请更新体验版', icon: 'none' })
+      },
+    })
+  },
+
+  _resolveMenuUrl(rawUrl, title) {
+    if (!rawUrl && /设置/.test(title || '')) return '/pages/settings/settings'
+    if (!rawUrl) return ''
+    if (rawUrl === 'contact') return '/pages/service-chat/service-chat'
+    const aliases = {
+      '/pages/favorites/favorites': '/pages/favorites/favorites',
+      '/pages/address-list/address-list': '/pages/address-list/address-list',
+      '/pages/settings/settings': '/pages/settings/settings',
+      '/pages/feedback/feedback': '/pages/feedback/feedback',
+      '/pages/reservation/reservation': '/pages/my-appointments/my-appointments',
+      '/pages/activity/activity': '/pages/activity-list/activity-list',
+      '/pages/privilege/privilege': '/pages/member-center/member-center',
+    }
+    if (aliases[rawUrl]) return aliases[rawUrl]
+    if (rawUrl.startsWith('/pages/')) return rawUrl
+    if (/反馈/.test(title || '')) return '/pages/feedback/feedback'
+    if (/设置/.test(title || '')) return '/pages/settings/settings'
+    return ''
   },
 
   /** 退出登录 */

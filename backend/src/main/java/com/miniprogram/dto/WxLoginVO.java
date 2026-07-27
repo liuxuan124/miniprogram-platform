@@ -39,4 +39,10 @@ public class WxLoginVO {
 
     @Schema(description = "是否新用户")
     private Boolean isNewUser;
+
+    @Schema(description = "手机号（脱敏展示）")
+    private String phone;
+
+    @Schema(description = "是否已绑定手机号")
+    private Boolean phoneBound;
 }

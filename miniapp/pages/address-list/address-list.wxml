@@ -1,0 +1,17 @@
+<view class="page">
+  <view class="tip">知识资料包与咨询服务一般无需邮寄。若购买实体周边，可在此添加微信收货地址。</view>
+
+  <block wx:if="{{address}}">
+    <view class="card">
+      <view class="name">{{address.userName}} {{address.telNumber}}</view>
+      <view class="detail">{{address.provinceName}}{{address.cityName}}{{address.countyName}}{{address.detailInfo}}</view>
+    </view>
+    <button class="btn" bindtap="chooseAddress">更换地址</button>
+    <button class="btn btn-ghost" bindtap="clearAddress">清除地址</button>
+  </block>
+
+  <block wx:else>
+    <view class="empty">暂未添加收货地址</view>
+    <button class="btn" bindtap="chooseAddress">添加微信地址</button>
+  </block>
+</view>

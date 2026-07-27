@@ -34,20 +34,25 @@
     "pages/points-log/points-log",
     "pages/sign-in/sign-in",
     "pages/form/form",
-    "pages/detail/detail"
+    "pages/detail/detail",
+    "pages/favorites/favorites",
+    "pages/address-list/address-list",
+    "pages/settings/settings",
+    "pages/feedback/feedback"
   ],
   "window": {
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#2f5bff",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "出海笔记",
-    "navigationBarTextStyle": "white"
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#fafafa"
   },
   "tabBar": {
     "custom": true,
-    "color": "#a5abb9",
-    "selectedColor": "#2f5bff",
+    "color": "#999999",
+    "selectedColor": "#111111",
     "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",

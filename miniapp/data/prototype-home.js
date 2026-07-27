@@ -20,14 +20,8 @@ const TOPIC_NAME = {
 }
 
 function artStyle(topic) {
-  const c = ART[topic] || ART.select
-  return (
-    `background-image:radial-gradient(at 18% 14%, ${c[1]} 0px, transparent 52%),` +
-    `radial-gradient(at 84% 8%, ${c[3]} 0px, transparent 48%),` +
-    `radial-gradient(at 72% 82%, ${c[2]} 0px, transparent 56%),` +
-    `radial-gradient(at 12% 88%, ${c[0]} 0px, transparent 50%);` +
-    `background-color:${c[0]};`
-  )
+  // 极简：统一浅灰底，避免彩色渐变噪声
+  return 'background-color:#f3f3f3;'
 }
 
 const ITEMS = [

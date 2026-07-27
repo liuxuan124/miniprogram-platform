@@ -1,5 +1,5 @@
 // services/auth.js — 登录服务
-// 封装微信登录完整流程：wx.login → 后端换 token → 本地存储
+// 封装微信登录完整流程：wx.login → 后端换 token → 绑定手机号 → 本地存储
 
 const { post } = require('../utils/request')
 const { AuthUtil } = require('../utils/auth')
@@ -10,23 +10,19 @@ const { AuthUtil } = require('../utils/auth')
 const AuthService = {
   /**
    * 微信登录完整流程
-   * 1. 调用 wx.login() 获取临时 code
-   * 2. 将 code 发送到后端 /api/v1/mp/auth/login
-   * 3. 后端返回 token + 用户信息
-   * 4. 存储到本地并更新全局状态
-   *
+   * @param {Object} [profile]
+   * @param {string} [profile.nickname]
+   * @param {string} [profile.avatarUrl]
    * @returns {Promise<{ token: string, userInfo: Object }>}
    */
-  wxLogin() {
+  wxLogin(profile = {}) {
     return new Promise((resolve, reject) => {
-      // Step 1: 调用 wx.login 获取 code
       wx.login({
         success(loginRes) {
           if (loginRes.code) {
-            // Step 2: 将 code 发送到后端
-            AuthService.loginWithCode(loginRes.code)
+            AuthService.loginWithCode(loginRes.code, profile)
               .then((data) => {
-                // Step 4: 更新全局状态
+                // 未绑定手机号时仅保留临时 token（供绑定/上传），不算正式登录
                 const app = getApp()
                 if (app) {
                   app.setAuthState({
@@ -36,6 +32,9 @@ const AuthService = {
                 } else {
                   AuthUtil.setToken(data.accessToken)
                   AuthUtil.setUserInfo(data.userInfo)
+                  if (data.userInfo && data.userInfo.phoneBound) {
+                    AuthUtil.clearManualLogout()
+                  }
                 }
                 resolve(data)
               })
@@ -55,25 +54,66 @@ const AuthService = {
 
   /**
    * 使用 code 向后端换取 token
-   * @param {string} code wx.login 返回的临时 code
-   * @returns {Promise<{ token: string, userInfo: Object }>}
+   * @param {string} code
+   * @param {Object} [profile]
    */
-  loginWithCode(code) {
-    return post('/api/v1/mp/auth/login', { code }, { auth: false }).then((data) => ({
+  loginWithCode(code, profile = {}) {
+    const payload = { code }
+    if (profile.nickname) payload.nickname = profile.nickname
+    if (profile.avatarUrl) payload.avatarUrl = profile.avatarUrl
+
+    return post('/api/v1/mp/auth/login', payload, { auth: false }).then((data) => ({
       ...data,
       token: data.accessToken,
       userInfo: {
         id: data.userId,
-        nickName: data.nickname,
-        avatarUrl: data.avatarUrl,
+        nickName: data.nickname || profile.nickname || '',
+        avatarUrl: data.avatarUrl || profile.avatarUrl || '',
+        phone: data.phone,
+        phoneBound: !!data.phoneBound,
       },
     }))
   },
 
   /**
-   * 获取微信用户信息（需用户授权）
-   * 使用 wx.getUserProfile 获取（基础库 2.10.4+）
-   * @returns {Promise<Object>} 微信用户信息
+   * 绑定手机号（可同步昵称/头像）
+   * @param {string} code
+   * @param {Object} [profile]
+   * @returns {Promise<string>}
+   */
+  bindPhone(code, profile = {}) {
+    const payload = { code }
+    if (profile.nickname) payload.nickname = profile.nickname
+    if (profile.avatarUrl) payload.avatarUrl = profile.avatarUrl
+    return post('/api/v1/mp/auth/phone', payload).then((phone) => phone)
+  },
+
+  /**
+   * 完成正式登录（绑定手机号后）
+   */
+  completeLogin({ phone, nickName, avatarUrl }) {
+    const app = getApp()
+    const current = (app && app.globalData && app.globalData.userInfo) || AuthUtil.getUserInfo() || {}
+    const token = (app && app.globalData && app.globalData.token) || AuthUtil.getToken()
+    const nextUserInfo = {
+      ...current,
+      phone,
+      phoneBound: true,
+      nickName: nickName || current.nickName || '',
+      avatarUrl: avatarUrl || current.avatarUrl || '',
+    }
+
+    if (app) {
+      app.setAuthState({ token, userInfo: nextUserInfo })
+    } else {
+      AuthUtil.setToken(token)
+      AuthUtil.setUserInfo(nextUserInfo)
+      AuthUtil.clearManualLogout()
+    }
+  },
+
+  /**
+   * 获取微信用户信息（旧接口，保留兼容）
    */
   getUserProfile() {
     return new Promise((resolve, reject) => {
@@ -90,14 +130,8 @@ const AuthService = {
     })
   },
 
-  /**
-   * 更新用户信息到后端
-   * @param {Object} userInfo 微信用户信息
-   * @returns {Promise}
-   */
   updateUserInfo(userInfo) {
     return Promise.resolve(userInfo).then((data) => {
-      // 更新本地和全局状态
       const app = getApp()
       if (app) {
         app.updateUserInfo(data)
@@ -108,41 +142,53 @@ const AuthService = {
     })
   },
 
-  /**
-   * 退出登录
-   * 清除本地登录态，跳转登录页
-   */
-  logout() {
+  updateUserPhone(phone) {
+    this.completeLogin({ phone })
+  },
+
+  logout(options = {}) {
+    const { redirectToLogin = true, manual = true } = options
     const app = getApp()
+    if (manual) {
+      AuthUtil.markManualLogout()
+    }
     if (app) {
       app.clearAuthState()
     } else {
       AuthUtil.clearAuth()
     }
 
-    wx.reLaunch({
-      url: '/pages/login/login',
-    })
+    if (redirectToLogin) {
+      wx.reLaunch({
+        url: '/pages/login/login',
+      })
+    }
   },
 
   /**
-   * 静默登录检查
-   * 如果本地有 token 则直接返回，否则执行 wxLogin
-   * @returns {Promise<boolean>} 是否已登录
+   * 静默登录：仅恢复已完成登录态，不自动 wxLogin
    */
-  silentLogin() {
-    return this.wxLogin()
-      .then(() => true)
-      .catch((err) => {
-        console.warn('[AuthService] 静默登录失败:', err)
-        const app = getApp()
-        if (app) {
-          app.clearAuthState()
-        } else {
-          AuthUtil.clearAuth()
-        }
-        return false
-      })
+  silentLogin(options = {}) {
+    const { ignoreManualLogout = false, clearIncomplete = true } = options
+
+    if (AuthUtil.isLoggedIn()) {
+      return Promise.resolve(true)
+    }
+
+    if (clearIncomplete && AuthUtil.getToken() && !AuthUtil.hasPhoneBound()) {
+      const app = getApp()
+      if (app) {
+        app.clearAuthState()
+      } else {
+        AuthUtil.clearAuth()
+      }
+    }
+
+    if (!ignoreManualLogout && AuthUtil.isManualLoggedOut()) {
+      return Promise.resolve(false)
+    }
+
+    return Promise.resolve(false)
   },
 }
 

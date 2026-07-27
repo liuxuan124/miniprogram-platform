@@ -40,13 +40,12 @@ App({
       if (config.miniappThemeConfig) {
         this.globalData.miniappThemeConfig = config.miniappThemeConfig
         const navBarColor = config.miniappThemeConfig.navBarColor
-        if (navBarColor) {
-          wx.setNavigationBarColor({
-            frontColor: navBarColor.frontColor || '#000000',
-            backgroundColor: navBarColor.backgroundColor || '#ffffff',
-            animation: { duration: 300, timingFunc: 'easeIn' },
-          })
-        }
+        // 极简默认：白底黑字；后台显式配置时仍可覆盖
+        wx.setNavigationBarColor({
+          frontColor: (navBarColor && navBarColor.frontColor) || '#000000',
+          backgroundColor: (navBarColor && navBarColor.backgroundColor) || '#ffffff',
+          animation: { duration: 200, timingFunc: 'easeIn' },
+        })
       }
     } catch (e) {
       console.warn('[App] 加载系统配置失败:', e)
@@ -58,10 +57,17 @@ App({
     const token = StorageUtil.get('token')
     const userInfo = StorageUtil.get('userInfo')
 
-    if (token && userInfo) {
+    // 必须绑定手机号后才算正式登录；半登录态直接清掉
+    if (token && userInfo && userInfo.phoneBound) {
       this.globalData.token = token
       this.globalData.userInfo = userInfo
       this.globalData.isLoggedIn = true
+    } else if (token || userInfo) {
+      StorageUtil.remove('token')
+      StorageUtil.remove('userInfo')
+      this.globalData.token = null
+      this.globalData.userInfo = null
+      this.globalData.isLoggedIn = false
     }
   },
 
@@ -95,12 +101,17 @@ App({
 
   /** 设置登录态（供 login 页面调用） */
   setAuthState({ token, userInfo }) {
+    const phoneBound = !!(userInfo && userInfo.phoneBound)
     this.globalData.token = token
     this.globalData.userInfo = userInfo
-    this.globalData.isLoggedIn = true
+    // 未绑手机号时保留 token 供绑定接口使用，但不算已登录
+    this.globalData.isLoggedIn = phoneBound
 
     StorageUtil.set('token', token)
     StorageUtil.set('userInfo', userInfo)
+    if (phoneBound) {
+      AuthUtil.clearManualLogout()
+    }
   },
 
   /** 清除登录态（退出登录） */
@@ -116,6 +127,7 @@ App({
   /** 更新用户信息 */
   updateUserInfo(userInfo) {
     this.globalData.userInfo = userInfo
+    this.globalData.isLoggedIn = !!(userInfo && userInfo.phoneBound && this.globalData.token)
     StorageUtil.set('userInfo', userInfo)
   },
 })

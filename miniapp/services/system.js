@@ -29,8 +29,11 @@ const DEFAULT_MINE_PAGE_CONFIG = {
     { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pages/member-center/member-center', enabled: true },
     { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true },
     { id: 'ai', icon: '🤖', title: 'AI 出海助手', url: '/pages/ai-chat/ai-chat', enabled: true },
-    { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pages/content-list/content-list', enabled: true },
+    { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pages/favorites/favorites', enabled: true },
+    { id: 'address', icon: '📍', title: '收货地址', url: '/pages/address-list/address-list', enabled: true },
     { id: 'contact', icon: '💬', title: '客服 · 售后', url: '/pages/service-chat/service-chat', enabled: true },
+    { id: 'settings', icon: '⚙️', title: '设置', url: '/pages/settings/settings', enabled: true },
+    { id: 'feedback', icon: '✉️', title: '意见反馈', url: '/pages/feedback/feedback', enabled: true },
   ],
 }
 

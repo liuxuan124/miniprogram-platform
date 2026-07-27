@@ -1,42 +1,39 @@
-/* app.wxss — 全局样式 · 出海笔记原型 Token */
+/* app.wxss — 极简主义全局 Token */
 
 page {
-  --brand: #2f5bff;
-  --brand-600: #1c3fd6;
-  --brand-50: #eef2ff;
-  --brand-100: #dfe6ff;
-  --accent: #ff6b3d;
-  --accent-50: #fff2ee;
-  --gold: #e9a319;
-  --ink: #0f1219;
-  --ink-700: #39404f;
-  --ink-500: #727a8c;
-  --ink-300: #a5abb9;
-  --line: #edeff4;
-  --line-2: #f5f6f9;
-  --bg: #f7f8fc;
+  --brand: #111111;
+  --brand-soft: #f3f3f3;
+  --brand-muted: #666666;
+  --ink: #111111;
+  --ink-2: #333333;
+  --ink-3: #888888;
+  --ink-4: #bbbbbb;
+  --line: #eeeeee;
+  --line-2: #f5f5f5;
+  --bg: #fafafa;
   --card: #ffffff;
-  --ok: #0fb47f;
-  --warn: #e2564a;
-  --r: 32rpx;
-  --r-s: 20rpx;
-  --r-l: 44rpx;
-  --sh1: 0 2rpx 4rpx rgba(15, 18, 25, 0.04), 0 6rpx 20rpx rgba(15, 18, 25, 0.045);
-  --sh2: 0 8rpx 28rpx rgba(15, 18, 25, 0.07), 0 28rpx 76rpx rgba(15, 18, 25, 0.07);
+  --ok: #111111;
+  --warn: #d14343;
+  --wx: #07c160;
+  --r: 16rpx;
+  --r-s: 12rpx;
+  --r-l: 24rpx;
+  --sh1: none;
+  --sh2: none;
 
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
-    'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
   color: var(--ink);
   background-color: var(--bg);
   box-sizing: border-box;
+  letter-spacing: 0;
 }
 
 view, text, image, button, input, textarea, scroll-view {
   box-sizing: border-box;
 }
 
-/* ========== 通用容器 ========== */
 .container {
   padding: 24rpx;
 }
@@ -46,27 +43,26 @@ view, text, image, button, input, textarea, scroll-view {
   background-color: var(--bg);
 }
 
-/* 原型通用按钮 */
+/* 极简按钮 */
 .btn-p {
-  background: var(--brand);
+  background: var(--ink);
   color: #fff;
-  box-shadow: 0 16rpx 40rpx rgba(47, 91, 255, 0.3);
+  box-shadow: none;
 }
 .btn-g {
-  background: var(--brand-50);
-  color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--ink);
 }
 .btn-o {
   background: #fff;
-  border: 3rpx solid var(--line);
-  color: var(--ink-700);
+  border: 1rpx solid var(--line);
+  color: var(--ink-2);
 }
 
-.text-brand { color: var(--brand); }
-.text-accent { color: var(--accent); }
-.bg-brand-50 { background: var(--brand-50); }
+.text-brand { color: var(--ink); }
+.text-accent { color: var(--ink); }
+.bg-brand-50 { background: var(--brand-soft); }
 
-/* ========== Flex 布局工具类 ========== */
 .flex-row {
   display: flex;
   flex-direction: row;
@@ -98,7 +94,6 @@ view, text, image, button, input, textarea, scroll-view {
   flex: 1;
 }
 
-/* ========== 文本工具类 ========== */
 .text-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -118,18 +113,17 @@ view, text, image, button, input, textarea, scroll-view {
 }
 
 .text-primary {
-  color: var(--brand);
+  color: var(--ink);
 }
 
 .text-secondary {
-  color: #999999;
+  color: var(--ink-3);
 }
 
 .text-danger {
-  color: #ff4d4f;
+  color: var(--warn);
 }
 
-/* ========== 间距工具类 ========== */
 .mt-8 { margin-top: 8rpx; }
 .mt-16 { margin-top: 16rpx; }
 .mt-24 { margin-top: 24rpx; }
@@ -142,25 +136,25 @@ view, text, image, button, input, textarea, scroll-view {
 .p-24 { padding: 24rpx; }
 .p-32 { padding: 32rpx; }
 
-/* ========== 卡片样式 ========== */
 .card {
-  background-color: #ffffff;
-  border-radius: 16rpx;
+  background-color: var(--card);
+  border-radius: var(--r);
   padding: 24rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  margin-bottom: 16rpx;
+  border: 1rpx solid var(--line);
+  box-shadow: none;
 }
 
-/* ========== 按钮样式 ========== */
 .btn-primary {
-  background-color: #1890ff;
+  background-color: var(--ink);
   color: #ffffff;
   border: none;
-  border-radius: 44rpx;
-  font-size: 32rpx;
+  border-radius: 999rpx;
+  font-size: 30rpx;
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
+  font-weight: 500;
 }
 
 .btn-primary::after {
@@ -168,17 +162,15 @@ view, text, image, button, input, textarea, scroll-view {
 }
 
 .btn-primary:active {
-  opacity: 0.85;
+  opacity: 0.82;
 }
 
-/* ========== 分割线 ========== */
 .divider {
   height: 1rpx;
-  background-color: #eeeeee;
+  background-color: var(--line);
   margin: 24rpx 0;
 }
 
-/* ========== 空状态 ========== */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -188,17 +180,17 @@ view, text, image, button, input, textarea, scroll-view {
 }
 
 .empty-state__icon {
-  width: 200rpx;
-  height: 200rpx;
-  margin-bottom: 24rpx;
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.35;
 }
 
 .empty-state__text {
-  font-size: 28rpx;
-  color: #999999;
+  font-size: 26rpx;
+  color: var(--ink-3);
 }
 
-/* ========== 安全区域 ========== */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

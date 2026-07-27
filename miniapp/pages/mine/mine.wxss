@@ -1,48 +1,227 @@
-/* pages/mine/mine.wxss — 对齐原型 */
-.mine-page { min-height: 100vh; background: var(--bg); padding-bottom: calc(140rpx + env(safe-area-inset-bottom)); }
+/* pages/mine/mine.wxss — 极简我的页 */
+.mine-page {
+  min-height: 100vh;
+  background: #fafafa;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
+}
+
 .m-hero {
-  padding: 48rpx 32rpx 56rpx; color: #fff; display: flex; align-items: center; gap: 24rpx;
-  border-radius: 0 0 56rpx 56rpx; position: relative; overflow: hidden;
-  background: linear-gradient(155deg, #1b1f31 0%, #2f3654 55%, #454d78 100%);
+  padding: 48rpx 32rpx 40rpx;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  background: #ffffff;
+  border-bottom: 1rpx solid #eeeeee;
 }
+
 .m-hero .av {
-  width: 112rpx; height: 112rpx; border-radius: 50%; background: rgba(255,255,255,.13);
-  border: 4rpx solid rgba(255,255,255,.32); display:flex; align-items:center; justify-content:center; font-size: 48rpx;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: #f3f3f3;
+  border: 1rpx solid #eeeeee;
+  flex-shrink: 0;
 }
-.m-hero .nk { font-size: 34rpx; font-weight: 700; letter-spacing: -0.02em; }
-.m-hero .lv { font-size: 22rpx; opacity: .85; margin-top: 10rpx; display:flex; align-items:center; gap: 10rpx; flex-wrap: wrap; }
-.m-hero .lv .b {
-  background: linear-gradient(125deg, #f7d264, #e9a319); color: #4a3200;
-  padding: 4rpx 16rpx; border-radius: 999rpx; font-weight: 700; font-size: 20rpx;
+
+.m-stats .num {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111111;
+  line-height: 1.2;
 }
-.m-stats {
-  display:flex; background:#fff; margin: -36rpx 24rpx 0; border-radius: 32rpx; box-shadow: var(--sh2); padding: 28rpx 0; position: relative; z-index: 2;
+
+.m-stats .label {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  color: #999999;
 }
-.m-stats .s { flex:1; text-align:center; }
-.m-stats b { display:block; font-size: 34rpx; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
-.m-stats span { font-size: 20rpx; color: var(--ink-300); }
-.m-quick {
-  display:flex; background:#fff; border-radius: 32rpx; margin: 24rpx 24rpx 0; padding: 28rpx 0; box-shadow: var(--sh1);
+
+.m-quick .ic {
+  width: 56rpx;
+  height: 56rpx;
+  margin: 0 auto;
+  border-radius: 14rpx;
+  background: #f3f3f3;
+  color: #111111;
+  font-size: 24rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.m-quick .q { flex:1; text-align:center; position: relative; }
-.m-quick .ic { font-size: 40rpx; }
-.m-quick .n { font-size: 22rpx; color: var(--ink-700); margin-top: 12rpx; font-weight: 500; }
-.m-quick .bg {
-  position:absolute; top: -4rpx; right: 22%; background: var(--accent); color:#fff; font-size: 18rpx;
-  min-width: 28rpx; height: 28rpx; border-radius: 999rpx; display:flex; align-items:center; justify-content:center; padding: 0 8rpx; font-weight:700;
+
+.tip-text {
+  flex: 1;
+  min-width: 0;
 }
-.tip {
-  margin: 24rpx 24rpx 0; background: linear-gradient(135deg,#fff9ea,#fffdf7); border: 1rpx solid #f7e6c4;
-  color: #a37200; font-size: 24rpx; padding: 20rpx 24rpx; border-radius: 24rpx; display:flex; gap: 12rpx; line-height: 1.65; align-items:center;
-}
-.tip .go { margin-left: auto; font-size: 22rpx; font-weight: 600; white-space: nowrap; }
-.m-list { background:#fff; border-radius: 32rpx; margin: 24rpx 24rpx 0; overflow:hidden; box-shadow: var(--sh1); }
+
 .m-list .r {
-  display:flex; align-items:center; gap: 20rpx; padding: 28rpx 32rpx; font-size: 28rpx;
-  border-bottom: 1rpx solid var(--line-2); font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 30rpx 32rpx;
+  font-size: 28rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+  font-weight: 400;
 }
-.m-list .r:last-child { border-bottom: none; }
-.m-list .ic { width: 44rpx; text-align:center; font-size: 32rpx; }
-.m-list .n { flex:1; }
-.m-list .ar { color: var(--ink-300); font-size: 30rpx; }
-.pad { height: 40rpx; }
+
+.m-hero .nk {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111111;
+}
+
+.m-hero .lv {
+  font-size: 22rpx;
+  color: #888888;
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-wrap: wrap;
+}
+
+.m-hero .lv .b {
+  background: #111111;
+  color: #ffffff;
+  padding: 4rpx 14rpx;
+  border-radius: 6rpx;
+  font-weight: 500;
+  font-size: 20rpx;
+}
+
+.m-hero .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.m-hero .login-cta {
+  flex-shrink: 0;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  background: #111111;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.m-stats {
+  display: flex;
+  background: #fff;
+  margin: 24rpx 24rpx 0;
+  border-radius: 16rpx;
+  border: 1rpx solid #eeeeee;
+  box-shadow: none;
+  padding: 28rpx 0;
+  position: relative;
+  z-index: 2;
+}
+
+.m-stats .s {
+  flex: 1;
+  text-align: center;
+}
+
+.m-stats b {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111111;
+}
+
+.m-stats span {
+  font-size: 20rpx;
+  color: #999999;
+}
+
+.m-quick {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 28rpx 0;
+  border: 1rpx solid #eeeeee;
+  box-shadow: none;
+}
+
+.m-quick .q {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.m-quick .n {
+  font-size: 22rpx;
+  color: #333333;
+  margin-top: 12rpx;
+  font-weight: 400;
+}
+
+.m-quick .bg {
+  position: absolute;
+  top: -4rpx;
+  right: 22%;
+  background: #111111;
+  color: #fff;
+  font-size: 18rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+  font-weight: 500;
+}
+
+.tip {
+  margin: 16rpx 24rpx 0;
+  background: #ffffff;
+  border: 1rpx solid #eeeeee;
+  color: #666666;
+  font-size: 24rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  display: flex;
+  gap: 12rpx;
+  line-height: 1.65;
+  align-items: center;
+}
+
+.tip .go {
+  margin-left: auto;
+  font-size: 22rpx;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #111111;
+}
+
+.m-list {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 16rpx 24rpx 0;
+  overflow: hidden;
+  border: 1rpx solid #eeeeee;
+  box-shadow: none;
+}
+
+.m-list .r:last-child {
+  border-bottom: none;
+}
+
+.m-list .n {
+  flex: 1;
+  color: #111111;
+}
+
+.m-list .ar {
+  color: #cccccc;
+  font-size: 30rpx;
+}
+
+.pad {
+  height: 40rpx;
+}

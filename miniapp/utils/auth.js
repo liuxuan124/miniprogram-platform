@@ -6,6 +6,7 @@ const USER_INFO_KEY = 'userInfo'
 const TOKEN_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000 // Token 7天过期
 
 const LOGIN_INTERCEPT_KEY = 'login_intercept_info'
+const MANUAL_LOGOUT_KEY = 'manual_logout'
 
 /**
  * 认证工具类
@@ -39,12 +40,20 @@ const AuthUtil = {
   },
 
   /**
-   * 判断是否已登录
+   * 是否已绑定手机号
+   * @returns {boolean}
+   */
+  hasPhoneBound() {
+    const userInfo = this.getUserInfo()
+    return !!(userInfo && userInfo.phoneBound)
+  },
+
+  /**
+   * 判断是否已登录（需完成微信授权 + 手机号绑定）
    * @returns {boolean}
    */
   isLoggedIn() {
-    const token = this.getToken()
-    return !!token
+    return !!this.getToken() && this.hasPhoneBound()
   },
 
   /**
@@ -70,6 +79,28 @@ const AuthUtil = {
     StorageUtil.remove(TOKEN_KEY)
     StorageUtil.remove(USER_INFO_KEY)
     StorageUtil.remove(LOGIN_INTERCEPT_KEY)
+  },
+
+  /**
+   * 标记用户手动退出（用于禁止自动静默登录）
+   */
+  markManualLogout() {
+    StorageUtil.set(MANUAL_LOGOUT_KEY, true, TOKEN_EXPIRE_MS)
+  },
+
+  /**
+   * 清除手动退出标记
+   */
+  clearManualLogout() {
+    StorageUtil.remove(MANUAL_LOGOUT_KEY)
+  },
+
+  /**
+   * 是否处于手动退出状态
+   * @returns {boolean}
+   */
+  isManualLoggedOut() {
+    return !!StorageUtil.get(MANUAL_LOGOUT_KEY)
   },
 
   /**

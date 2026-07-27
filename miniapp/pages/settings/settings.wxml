@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="group">
+    <view class="row" bindtap="goTerms">
+      <text>用户协议</text>
+      <text class="ar">›</text>
+    </view>
+    <view class="row" bindtap="goPrivacy">
+      <text>隐私政策</text>
+      <text class="ar">›</text>
+    </view>
+    <view class="row" bindtap="goFeedback">
+      <text>意见反馈</text>
+      <text class="ar">›</text>
+    </view>
+  </view>
+
+  <view class="group">
+    <view class="row muted">
+      <text>当前版本</text>
+      <text class="val">{{version}}</text>
+    </view>
+  </view>
+
+  <button class="logout" wx:if="{{isLoggedIn}}" bindtap="onLogout">退出登录</button>
+  <view class="hint" wx:else>登录后可在此退出账号</view>
+</view>
