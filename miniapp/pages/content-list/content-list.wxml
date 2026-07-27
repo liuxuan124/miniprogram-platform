@@ -1,7 +1,23 @@
 <!-- pages/content-list/content-list.wxml — 内容中心 -->
 <view class="content-list-page">
+  <view class="content-hero">
+    <view>
+      <text class="content-hero__eyebrow">KNOWLEDGE LIBRARY</text>
+      <view class="content-hero__title">内容灵感库</view>
+      <view class="content-hero__desc">把复杂的跨境问题，整理成可执行的方法</view>
+    </view>
+    <view class="content-hero__badge">
+      <text>{{total || 238}}</text>
+      <text>篇干货</text>
+    </view>
+  </view>
+
   <view class="toolbar">
-    <view class="search-entry" bindtap="onSearchTap">搜索内容、主题或关键词</view>
+    <view class="search-entry" bindtap="onSearchTap">
+      <text class="search-entry__icon">⌕</text>
+      <text class="search-entry__text">搜索内容、主题或关键词</text>
+      <text class="search-entry__key">搜索</text>
+    </view>
   </view>
 
   <scroll-view class="format-scroll" scroll-x enhanced show-scrollbar="{{false}}">
@@ -27,6 +43,10 @@
   <skeleton wx:if="{{loading && articles.length === 0}}" type="list" rows="{{4}}" />
 
   <view class="content-list" wx:elif="{{!isEmpty}}">
+    <view class="list-heading">
+      <text>为你精选</text>
+      <text class="list-heading__count">{{articles.length}} 条内容</text>
+    </view>
     <view
       wx:for="{{articles}}"
       wx:key="id"
@@ -45,12 +65,13 @@
       <view class="content-info">
         <view class="content-tags" wx:if="{{item.formatLabel || item.source}}">
           <text class="tag">{{item.formatLabel || item.source}}</text>
+          <text class="content-topic">{{item.categoryName || '跨境实战'}}</text>
         </view>
         <text class="content-title text-ellipsis-2">{{item.title}}</text>
         <text class="content-summary text-ellipsis-2" wx:if="{{item.summary}}">{{item.summary}}</text>
         <view class="content-meta">
           <text class="content-date">{{item.publish_time || item.created_at}}</text>
-          <text class="content-views">{{item.views || 0}} 阅读</text>
+          <text class="content-views">◉ {{item.views || 0}} 阅读</text>
         </view>
       </view>
     </view>

@@ -32,27 +32,38 @@
     <!-- Component selected: show component properties -->
     <template v-else>
       <div class="panel-header">
-        <span class="comp-type-label">{{ ComponentTypeLabels[pageStore.selectedComponent.type] }}</span>
+        <div>
+          <span class="panel-kicker">当前组件</span>
+          <div class="comp-type-label">{{ ComponentTypeLabels[pageStore.selectedComponent.type] }}</div>
+        </div>
         <el-button text size="small" @click="pageStore.selectComponent('')">取消选中</el-button>
       </div>
 
-      <!-- Dynamic component props panel -->
-      <div class="panel-section">
-        <div class="section-title">组件属性</div>
-        <component
-          :is="propsPanelMap[pageStore.selectedComponent.type]"
-          :props="pageStore.selectedComponent.props"
-          @update="handlePropsUpdate"
-        />
-      </div>
+      <el-tabs v-model="activeTab" class="props-tabs" stretch>
+        <el-tab-pane label="内容与数据" name="content">
+          <div v-if="dataStatus" class="data-status-card" :class="`is-${dataStatus.tone}`">
+            <div class="data-status-card__main">
+              <span class="data-status-dot"></span>
+              <div>
+                <div class="data-status-title">{{ dataStatus.title }}</div>
+                <div class="data-status-desc">{{ dataStatus.description }}</div>
+              </div>
+            </div>
+            <el-button v-if="dataStatus.routeName" text type="primary" size="small" @click="goManageData">
+              管理数据
+            </el-button>
+          </div>
+          <div class="panel-section panel-section--content">
+            <component
+              :is="propsPanelMap[pageStore.selectedComponent.type]"
+              :props="pageStore.selectedComponent.props"
+              @update="handlePropsUpdate"
+            />
+          </div>
+        </el-tab-pane>
 
-      <!-- Common spacing/style config：B6 默认折叠，减少每次选中组件都要滚过一屏边距设置 -->
-      <div class="panel-section">
-        <button class="section-title section-title--toggle" @click="styleSectionExpanded = !styleSectionExpanded">
-          <span>通用样式</span>
-          <el-icon class="toggle-icon" :class="{ expanded: styleSectionExpanded }"><ArrowRight /></el-icon>
-        </button>
-        <div v-show="styleSectionExpanded" class="style-section-body">
+        <el-tab-pane label="样式" name="style">
+          <div class="style-section-body">
           <!-- B6：四向边距合并为一个联动控件，可锁定等比同步调整 -->
           <div class="margin-box">
             <div class="margin-box__label">
@@ -114,28 +125,65 @@
               <el-color-picker :model-value="currentStyle.background_color || '#ffffff'" @change="(v: string) => updateStyle('background_color', v)" />
             </el-form-item>
           </el-form>
-        </div>
-      </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { ArrowRight, Lock, Unlock } from '@element-plus/icons-vue'
+import { Lock, Unlock } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import { usePageStore } from '@/stores/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
 
 const pageStore = usePageStore()
+const router = useRouter()
 
-/** B6：通用样式默认折叠；边距四向可锁定为等比联动 */
-const styleSectionExpanded = ref(false)
+const activeTab = ref<'content' | 'style'>('content')
 const marginLinked = ref(false)
 
 // 切换选中组件时收起，避免上一个组件的展开状态带到下一个组件造成误解
 watch(() => pageStore.selectedComponentId, () => {
-  styleSectionExpanded.value = false
+  activeTab.value = 'content'
 })
+
+const dataStatus = computed(() => {
+  const component = pageStore.selectedComponent
+  if (!component) return null
+  if (component.type === ComponentType.ProductList) {
+    return {
+      title: '自动读取已上架商品',
+      description: component.props.data_source ? '数据源已连接，预览时显示真实商品' : '尚未配置商品数据源',
+      tone: component.props.data_source ? 'success' : 'warning',
+      routeName: 'CommerceProduct',
+    }
+  }
+  if (component.type === ComponentType.ArticleList) {
+    return {
+      title: '自动读取已发布文章',
+      description: component.props.data_source ? '数据源已连接，预览时显示真实内容' : '尚未配置文章数据源',
+      tone: component.props.data_source ? 'success' : 'warning',
+      routeName: 'ContentList',
+    }
+  }
+  if (component.type === ComponentType.FormEntry) {
+    const linked = component.props.formId || component.props.formTemplateId
+    return {
+      title: linked ? '已关联表单' : '尚未关联表单',
+      description: linked ? `表单 ID：${linked}` : '发布前必须选择一个已启用表单',
+      tone: linked ? 'success' : 'warning',
+      routeName: 'FormTemplate',
+    }
+  }
+  return null
+})
+
+function goManageData() {
+  if (dataStatus.value?.routeName) router.push({ name: dataStatus.value.routeName })
+}
 
 const propsPanelMap: Record<string, any> = {
   [ComponentType.Banner]: defineAsyncComponent(() => import('./props/BannerProps.vue')),
@@ -199,7 +247,7 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
 
 <style scoped>
 .props-panel {
-  padding: 12px;
+  padding: 0 16px 18px;
   overflow-y: auto;
   height: 100%;
   background: #fff;
@@ -208,9 +256,15 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin: 0 -16px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid #e3e8f0;
+}
+.panel-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #9aa4b5;
+  font-size: 11px;
 }
 .comp-type-label {
   font-size: 14px;
@@ -219,6 +273,9 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
 }
 .panel-section {
   margin-bottom: 16px;
+}
+.panel-section--content {
+  padding-top: 4px;
 }
 .section-title {
   font-size: 12px;
@@ -229,32 +286,68 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
   border-left: 3px solid #1769ff;
 }
 
-/* B6：可折叠的"通用样式"标题按钮 */
-.section-title--toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding-right: 4px;
-  font-family: inherit;
-  background: transparent;
-  border: 0;
-  border-left: 3px solid var(--brand, #1769ff);
-  cursor: pointer;
+.style-section-body {
+  padding-top: 4px;
 }
 
-.toggle-icon {
-  color: #9aa4b5;
-  font-size: 12px;
-  transition: transform 0.15s ease;
+.props-tabs {
+  :deep(.el-tabs__header) {
+    margin: 0 -16px 14px;
+    padding: 0 16px;
+    background: #fbfcfe;
+  }
 
-  &.expanded {
-    transform: rotate(90deg);
+  :deep(.el-tabs__item) {
+    height: 42px;
+    font-size: 13px;
   }
 }
 
-.style-section-body {
-  margin-top: 10px;
+.data-status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 11px 12px;
+  background: #f8fafc;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+}
+
+.data-status-card__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.data-status-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  flex-shrink: 0;
+  background: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #dcfce7;
+}
+
+.data-status-card.is-warning .data-status-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px #fef3c7;
+}
+
+.data-status-title {
+  color: #172033;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.data-status-desc {
+  margin-top: 2px;
+  color: #7b8798;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* B6：边距联动控件 */
@@ -302,9 +395,10 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
     flex: 1;
   }
 
-  &--top { grid-area: top; }
-  &--left { grid-area: left; }
-  &--right { grid-area: right; }
-  &--bottom { grid-area: bottom; }
 }
+
+.margin-cell--top { grid-area: top; }
+.margin-cell--left { grid-area: left; }
+.margin-cell--right { grid-area: right; }
+.margin-cell--bottom { grid-area: bottom; }
 </style>

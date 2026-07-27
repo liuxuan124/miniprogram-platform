@@ -1,31 +1,33 @@
-/* app.wxss — 极简主义全局 Token */
+/* app.wxss — 出海笔记 Design System 2.0 */
 
 page {
-  --brand: #111111;
-  --brand-soft: #f3f3f3;
-  --brand-muted: #666666;
-  --ink: #111111;
-  --ink-2: #333333;
-  --ink-3: #888888;
-  --ink-4: #bbbbbb;
-  --line: #eeeeee;
-  --line-2: #f5f5f5;
-  --bg: #fafafa;
+  --brand: #315efb;
+  --brand-dark: #2446c7;
+  --brand-soft: #eef3ff;
+  --brand-muted: #6f85c9;
+  --ink: #172033;
+  --ink-2: #44506a;
+  --ink-3: #7c879d;
+  --ink-4: #aeb6c7;
+  --line: #e7ebf3;
+  --line-2: #f1f3f8;
+  --bg: #f5f7fb;
   --card: #ffffff;
-  --ok: #111111;
-  --warn: #d14343;
+  --ok: #0aaa75;
+  --warn: #f05b5b;
+  --gold: #f5a623;
   --wx: #07c160;
-  --r: 16rpx;
-  --r-s: 12rpx;
-  --r-l: 24rpx;
-  --sh1: none;
-  --sh2: none;
+  --r: 24rpx;
+  --r-s: 16rpx;
+  --r-l: 32rpx;
+  --sh1: 0 8rpx 28rpx rgba(30, 49, 91, 0.07);
+  --sh2: 0 18rpx 48rpx rgba(30, 49, 91, 0.11);
 
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
   color: var(--ink);
-  background-color: var(--bg);
+  background: var(--bg);
   box-sizing: border-box;
   letter-spacing: 0;
 }
@@ -43,11 +45,11 @@ view, text, image, button, input, textarea, scroll-view {
   background-color: var(--bg);
 }
 
-/* 极简按钮 */
+/* 通用按钮 */
 .btn-p {
-  background: var(--ink);
+  background: linear-gradient(135deg, var(--brand), #5980ff);
   color: #fff;
-  box-shadow: none;
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 251, 0.22);
 }
 .btn-g {
   background: var(--brand-soft);
@@ -59,8 +61,8 @@ view, text, image, button, input, textarea, scroll-view {
   color: var(--ink-2);
 }
 
-.text-brand { color: var(--ink); }
-.text-accent { color: var(--ink); }
+.text-brand { color: var(--brand); }
+.text-accent { color: var(--brand); }
 .bg-brand-50 { background: var(--brand-soft); }
 
 .flex-row {
@@ -139,14 +141,14 @@ view, text, image, button, input, textarea, scroll-view {
 .card {
   background-color: var(--card);
   border-radius: var(--r);
-  padding: 24rpx;
-  margin-bottom: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
   border: 1rpx solid var(--line);
-  box-shadow: none;
+  box-shadow: var(--sh1);
 }
 
 .btn-primary {
-  background-color: var(--ink);
+  background: linear-gradient(135deg, var(--brand), #5980ff);
   color: #ffffff;
   border: none;
   border-radius: 999rpx;
@@ -155,6 +157,7 @@ view, text, image, button, input, textarea, scroll-view {
   line-height: 88rpx;
   text-align: center;
   font-weight: 500;
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 251, 0.22);
 }
 
 .btn-primary::after {

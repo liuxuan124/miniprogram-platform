@@ -1,50 +1,68 @@
+/* 原生式底部导航：完整承接安全区，当前项以轻量胶囊突出 */
+
 .tab-bar {
-  display: flex;
   position: fixed;
+  right: 0;
   bottom: 0;
   left: 0;
-  right: 0;
-  height: calc(88rpx + env(safe-area-inset-bottom));
-  background-color: #ffffff;
-  border-top: 1rpx solid #eeeeee;
-  padding-bottom: env(safe-area-inset-bottom);
   z-index: 999;
+  display: flex;
+  height: calc(108rpx + env(safe-area-inset-bottom));
+  padding: 10rpx 22rpx env(safe-area-inset-bottom);
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1rpx solid rgba(224, 229, 239, 0.92);
+  box-shadow: 0 -10rpx 30rpx rgba(28, 43, 76, 0.07);
 }
 
 .tab-item {
-  flex: 1;
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  flex: 1;
+  flex-direction: column;
   justify-content: center;
   min-width: 0;
-  height: 88rpx;
-  padding: 8rpx 0 6rpx;
+  height: 98rpx;
+}
+
+.tab-icon-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 78rpx;
+  height: 50rpx;
+  border-radius: 999rpx;
+  transition: background 0.18s ease;
+}
+
+.tab-item.active .tab-icon-shell {
+  background: #eef3ff;
 }
 
 .tab-icon {
-  width: 44rpx;
-  height: 44rpx;
-  margin-bottom: 2rpx;
-  opacity: 0.55;
+  width: 40rpx;
+  height: 40rpx;
+  opacity: 0.86;
 }
 
 .tab-item.active .tab-icon {
   opacity: 1;
+  transform: scale(1.04);
 }
 
 .tab-text {
-  max-width: 96rpx;
-  font-size: 20rpx;
-  line-height: 24rpx;
-  color: #999999;
-  white-space: nowrap;
+  max-width: 100rpx;
+  margin-top: 2rpx;
   overflow: hidden;
+  color: #7c879d;
+  font-size: 19rpx;
+  font-weight: 500;
+  line-height: 25rpx;
   text-overflow: ellipsis;
-  font-weight: 400;
+  white-space: nowrap;
 }
 
 .tab-item.active .tab-text {
-  color: #111111;
-  font-weight: 600;
+  color: #315efb;
+  font-weight: 700;
 }

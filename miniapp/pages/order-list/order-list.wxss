@@ -2,7 +2,7 @@
 
 .order-list-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: var(--bg);
 }
 
 /* ========== Tab 栏 ========== */
@@ -21,7 +21,7 @@
 }
 
 .tab-item.active {
-  color: #ff4d4f;
+  color: var(--brand);
   font-weight: 600;
 }
 
@@ -33,7 +33,7 @@
   transform: translateX(-50%);
   width: 40rpx;
   height: 4rpx;
-  background-color: #ff4d4f;
+  background: var(--brand);
   border-radius: 2rpx;
 }
 
@@ -44,9 +44,11 @@
 
 .order-card {
   background-color: #fff;
-  border-radius: 16rpx;
-  margin-bottom: 16rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 26rpx;
+  margin-bottom: 18rpx;
   overflow: hidden;
+  box-shadow: var(--sh1);
 }
 
 /* ========== 订单头部 ========== */
@@ -111,7 +113,7 @@
 
 .goods-price {
   font-size: 28rpx;
-  color: #ff4d4f;
+  color: #f05b45;
 }
 
 .goods-qty {
@@ -142,7 +144,7 @@
 
 .order-total-price {
   font-size: 32rpx;
-  color: #ff4d4f;
+  color: #f05b45;
   font-weight: 700;
 }
 
@@ -165,7 +167,7 @@
 }
 
 .action-btn--primary {
-  background-color: #ff4d4f;
+  background: linear-gradient(135deg, var(--brand), #6386ff);
   color: #fff;
 }
 

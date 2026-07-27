@@ -2,20 +2,28 @@
 <view class="product-list-page">
   <!-- 搜索栏 -->
   <view class="shop-banner">
+    <view class="shop-banner__orb"></view>
     <view class="shop-banner__row">
       <view>
-        <view class="shop-banner__t">资料包与 1v1 咨询</view>
-        <view class="shop-banner__d">资料包购买后永久可看并季度更新 · 咨询下单后自选时段</view>
+        <view class="shop-banner__eyebrow">KNOWLEDGE MARKET</view>
+        <view class="shop-banner__t">知识与经验，帮你少走弯路</view>
+        <view class="shop-banner__d">精选资料包与实战 1v1 咨询</view>
       </view>
-      <view class="shop-cart" bindtap="onGoCart">车</view>
+      <view class="shop-cart" bindtap="onGoCart">▣</view>
+    </view>
+    <view class="shop-benefits">
+      <text>✓ 永久可看</text>
+      <text>✓ 持续更新</text>
+      <text>✓ 售后保障</text>
     </view>
   </view>
 
   <view class="search-bar">
     <view class="search-input-wrap">
+      <text class="search-icon-text">⌕</text>
       <input
         class="search-input"
-        placeholder="搜索商品"
+        placeholder="搜索资料包或咨询服务"
         value="{{keyword}}"
         confirm-type="search"
         bindinput="onSearchInput"
@@ -55,6 +63,7 @@
 
   <!-- 排序栏 -->
   <view class="sort-bar">
+    <view class="sort-title">精选商品 <text>{{total || products.length}} 件</text></view>
     <view class="sort-btn" bindtap="onSortToggle">
       <text wx:for="{{sortOptions}}" wx:key="key" wx:if="{{activeSort === item.key}}">{{item.label}}</text>
       <text class="sort-arrow {{showSortPanel ? 'up' : 'down'}}">&#9660;</text>
@@ -97,6 +106,7 @@
         binderror="onImageError"
       />
       <view class="product-info">
+        <view class="product-badge">{{item.productType === 'service' ? '1v1 服务' : '精选资料'}}</view>
         <text class="product-name">{{item.name}}</text>
         <view class="product-price-row">
           <text class="product-price">&#165;{{item.price}}</text>

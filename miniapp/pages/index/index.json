@@ -1,9 +1,9 @@
 {
   "navigationBarTitleText": "出海笔记",
-  "navigationBarBackgroundColor": "#2f5bff",
-  "navigationBarTextStyle": "white",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
-  "backgroundColor": "#f7f8fc",
+  "backgroundColor": "#f5f7fb",
   "usingComponents": {}
 }

@@ -14,6 +14,12 @@
         <el-segmented v-model="previewMode" :options="modeOptions" size="default" />
       </div>
       <div class="fp-toolbar__right">
+        <el-segmented
+          v-if="previewMode === 'config'"
+          v-model="authPreviewMode"
+          :options="authModeOptions"
+          size="small"
+        />
         <el-button size="small" @click="copyLink">复制链接</el-button>
         <el-button size="small" type="primary" @click="openPrototypeTab">全屏打开原型</el-button>
       </div>
@@ -166,28 +172,80 @@
             </template>
 
             <template v-else-if="activeScreen === 'mine'">
-              <div class="fp-mine-hero">
+              <div class="fp-mine-hero" :class="{ 'is-guest': !previewLoggedIn }">
                 <div class="av">🧭</div>
                 <div>
-                  <div class="nm">出海笔记用户</div>
-                  <div class="lv">出海会员 · LV.2</div>
+                  <div class="nm">{{ previewLoggedIn ? '出海笔记用户' : mineConfig.loginTitle }}</div>
+                  <div class="lv">{{ previewLoggedIn ? '出海会员 · LV.2' : mineConfig.loginSubtitle }}</div>
                 </div>
+                <button v-if="!previewLoggedIn" class="fp-login-cta" @click="openScreen('login')">
+                  {{ mineConfig.loginButtonText }}
+                </button>
               </div>
               <div class="fp-stats">
-                <div @click="openScreen('coupons')"><b>{{ coupons.length || 3 }}</b><span>优惠券</span></div>
-                <div @click="openScreen('member')"><b>860</b><span>积分</span></div>
-                <div @click="openScreen('member')"><b>1,360</b><span>成长值</span></div>
-                <div @click="openScreen('reader')"><b>{{ products.length || 3 }}</b><span>已购资料</span></div>
+                <div @click="openProtectedScreen('coupons')"><b>{{ previewLoggedIn ? (coupons.length || 3) : '—' }}</b><span>优惠券</span></div>
+                <div @click="openProtectedScreen('member')"><b>{{ previewLoggedIn ? '860' : '—' }}</b><span>积分</span></div>
+                <div @click="openProtectedScreen('member')"><b>{{ previewLoggedIn ? '1,360' : '—' }}</b><span>成长值</span></div>
+                <div @click="openProtectedScreen('reader')"><b>{{ previewLoggedIn ? (products.length || 3) : '—' }}</b><span>已购资料</span></div>
               </div>
               <div class="fp-quick">
-                <div @click="openScreen('orders')">💳<br>待付款</div>
-                <div @click="openScreen('reader')">📘<br>已购资料</div>
-                <div @click="openScreen('booked')">🗓️<br>我的预约</div>
-                <div @click="openScreen('writereview')">✍️<br>待评价</div>
+                <div @click="openProtectedScreen('orders')">💳<br>待付款</div>
+                <div @click="openProtectedScreen('reader')">📘<br>已购资料</div>
+                <div @click="openProtectedScreen('booked')">🗓️<br>我的预约</div>
+                <div @click="openProtectedScreen('writereview')">✍️<br>待评价</div>
               </div>
               <div class="fp-menu">
-                <div v-for="m in mineMenus" :key="m.key" class="row" @click="openScreen(m.key)">
+                <div v-for="m in mineMenus" :key="m.key" class="row" @click="openProtectedScreen(m.key)">
                   <span>{{ m.icon }} {{ m.label }}</span><em>›</em>
+                </div>
+              </div>
+            </template>
+
+            <template v-else-if="activeScreen === 'login'">
+              <div class="fp-login">
+                <div class="fp-login__brand">登录出海笔记</div>
+                <div class="fp-login__desc">同步你的订单、资料和会员权益</div>
+
+                <div class="fp-login__card">
+                  <div class="fp-login__card-head">
+                    <div>
+                      <b>使用微信账号登录</b>
+                    </div>
+                  </div>
+
+                  <div class="fp-login__profile-row">
+                    <div class="fp-login__avatar">
+                      <div class="avatar-ring">👤</div>
+                    </div>
+                    <div class="fp-login__profile-copy">
+                      <b>头像</b>
+                      <span>使用你的微信头像</span>
+                    </div>
+                    <em>选择</em>
+                  </div>
+
+                  <div class="fp-login__nickname">
+                    <label>昵称</label>
+                    <div class="nickname-input">
+                      <span>使用微信昵称</span>
+                      <b>获取</b>
+                    </div>
+                  </div>
+
+                  <div class="fp-login__divider"></div>
+
+                  <div class="fp-login__bottom">
+                    <label class="privacy-row">
+                      <input v-model="previewPrivacyAccepted" type="checkbox" />
+                      <span>我已阅读并同意 <b>《用户协议》</b> 和 <b>《隐私政策》</b></span>
+                    </label>
+                    <button class="one-tap-login" :disabled="!previewPrivacyAccepted" @click="completePreviewLogin">
+                      微信手机号一键登录
+                    </button>
+                    <div class="fp-login__trust">
+                      <span>🔒 信息仅用于登录，不会公开手机号</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
@@ -232,6 +290,7 @@ import { getReleaseDetail } from '@/api/version'
 import { isAuthenticated } from '@/utils/auth'
 import { getProductList } from '@/api/product'
 import { getContentList } from '@/api/content'
+import { getConfigByGroup } from '@/api/system'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import type { ComponentInstance, PageDSL } from '@/types/page'
@@ -257,6 +316,17 @@ const products = ref<any[]>([])
 const contents = ref<any[]>([])
 const coupons = ref<any[]>([])
 const currentProduct = ref<any | null>(null)
+const authPreviewMode = ref<'guest' | 'member'>('guest')
+const previewPrivacyAccepted = ref(false)
+const authModeOptions = [
+  { label: '未登录态', value: 'guest' },
+  { label: '已登录态', value: 'member' },
+]
+const mineConfig = ref({
+  loginTitle: '登录出海笔记',
+  loginSubtitle: '查看订单、已购资料、预约与会员权益',
+  loginButtonText: '微信一键登录',
+})
 
 const contentTopic = ref('全部')
 const contentFormat = ref('全部')
@@ -294,6 +364,12 @@ const screenGroups = [
       { no: '02', key: 'content', label: '内容中心' },
       { no: '03', key: 'shop', label: '知识商城' },
       { no: '04', key: 'mine', label: '我的' },
+    ],
+  },
+  {
+    title: '账户与权限',
+    items: [
+      { no: '05', key: 'login', label: '微信登录' },
     ],
   },
   {
@@ -341,9 +417,11 @@ const stubScreens: Record<string, { icon: string; title: string; desc: string }>
 
 const prototypeSrc = computed(() => `/prototype/chuhai-notes.html?embed=1`)
 const modeLabel = computed(() => (previewMode.value === 'prototype' ? '设计原型' : '本版本配置'))
+const previewLoggedIn = computed(() => authPreviewMode.value === 'member')
 const showTabbar = computed(() => ['home', 'content', 'shop', 'mine'].includes(activeScreen.value))
 const phoneTitle = computed(() => {
   if (activeScreen.value === 'home') return homeTitle.value
+  if (activeScreen.value === 'login') return '登录'
   const tab = tabs.find((t) => t.key === activeScreen.value)
   if (tab) return tab.label
   return stubScreens[activeScreen.value]?.title || '页面预览'
@@ -404,12 +482,35 @@ function openScreen(key: string) {
   }
 }
 
+function openProtectedScreen(key: string) {
+  if (!previewLoggedIn.value) {
+    activeScreen.value = 'login'
+    ElMessage.info('该功能需要登录，已进入登录页')
+    return
+  }
+  openScreen(key)
+}
+
+function completePreviewLogin() {
+  if (!previewPrivacyAccepted.value) {
+    ElMessage.warning('请先同意用户协议与隐私政策')
+    return
+  }
+  authPreviewMode.value = 'member'
+  activeScreen.value = 'mine'
+  ElMessage.success('已切换为登录成功状态（预览模式）')
+}
+
 function openProduct(p: any) {
   currentProduct.value = p
   openScreen('product')
 }
 
 function handleBack() {
+  if (activeScreen.value === 'login') {
+    openScreen('mine')
+    return
+  }
   if (activeScreen.value === 'product') {
     openScreen('shop')
     return
@@ -497,12 +598,32 @@ async function loadBusinessData() {
   }
 }
 
+async function loadMiniappConfig() {
+  try {
+    const res = await getConfigByGroup('basic')
+    const data = (res as any)?.data || {}
+    let mine = data.minePageConfig
+    if (typeof mine === 'string') {
+      try { mine = JSON.parse(mine) } catch { mine = null }
+    }
+    if (mine && typeof mine === 'object') {
+      mineConfig.value = {
+        loginTitle: mine.loginTitle || mineConfig.value.loginTitle,
+        loginSubtitle: mine.loginSubtitle || mineConfig.value.loginSubtitle,
+        loginButtonText: mine.loginButtonText || mineConfig.value.loginButtonText,
+      }
+    }
+  } catch {
+    // 保留登录页默认配置
+  }
+}
+
 watch(previewMode, (mode) => {
   const q = { ...route.query, view: mode }
   router.replace({ query: q })
   if (mode === 'config') {
     loading.value = true
-    Promise.all([loadHomeDsl(), loadBusinessData()]).finally(() => {
+    Promise.all([loadHomeDsl(), loadBusinessData(), loadMiniappConfig()]).finally(() => {
       loading.value = false
     })
   }
@@ -511,7 +632,7 @@ watch(previewMode, (mode) => {
 onMounted(async () => {
   if (previewMode.value === 'config') {
     loading.value = true
-    await Promise.all([loadHomeDsl(), loadBusinessData()])
+    await Promise.all([loadHomeDsl(), loadBusinessData(), loadMiniappConfig()])
     loading.value = false
   }
 })
@@ -895,6 +1016,27 @@ onMounted(async () => {
 
   .nm { font-size: 18px; font-weight: 700; }
   .lv { margin-top: 4px; font-size: 12px; opacity: 0.75; }
+
+  &.is-guest {
+    background: linear-gradient(145deg, #111827, #26334e);
+
+    .av {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+}
+
+.fp-login-cta {
+  margin-left: auto;
+  padding: 7px 13px;
+  flex-shrink: 0;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fff;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
 }
 
 .fp-stats {
@@ -940,6 +1082,254 @@ onMounted(async () => {
 
     em { color: #c0c4cc; font-style: normal; }
   }
+}
+
+.fp-login {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  padding: 30px 20px 24px;
+  color: #111827;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.fp-login__eyebrow {
+  align-self: center;
+  padding: 4px 9px;
+  color: #2f5bff;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgb(47 91 255 / 9%);
+  border-radius: 999px;
+}
+
+.fp-login__brand {
+  margin-top: 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.fp-login__desc {
+  margin-top: 7px;
+  color: #7b8494;
+  text-align: center;
+  font-size: 11px;
+}
+
+.fp-login__card {
+  margin-top: 30px;
+  padding: 0;
+  background: transparent;
+}
+
+.fp-login__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  b {
+    font-size: 14px;
+  }
+
+  span {
+    margin-top: 3px;
+    color: #7b8494;
+    font-size: 10px;
+  }
+
+  em {
+    padding: 4px 7px;
+    color: #2f5bff;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 600;
+    background: #eef2ff;
+    border-radius: 999px;
+  }
+}
+
+.fp-login__profile-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #e8ebf1;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+
+  > em {
+    padding: 4px 8px;
+    flex-shrink: 0;
+    color: #2f5bff;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 600;
+    background: #eef3ff;
+    border-radius: 999px;
+  }
+}
+
+.fp-login__avatar {
+  position: relative;
+  flex-shrink: 0;
+
+  .avatar-ring {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    color: #9ba3b1;
+    font-size: 20px;
+    background: #f2f4f7;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    place-items: center;
+    box-shadow: 0 0 0 1px #e7eaf0;
+  }
+
+  i {
+    position: absolute;
+    right: -1px;
+    bottom: 0;
+    display: grid;
+    width: 18px;
+    height: 18px;
+    color: #fff;
+    font-size: 13px;
+    font-style: normal;
+    background: #2f5bff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    place-items: center;
+  }
+}
+
+.fp-login__profile-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+
+  b {
+    font-size: 13px;
+  }
+
+  span {
+    margin-top: 3px;
+    color: #7b8494;
+    font-size: 10px;
+  }
+}
+
+.fp-login__nickname {
+  margin-top: 0;
+  padding: 11px 12px 12px;
+  border: 1px solid #e8ebf1;
+  border-top-color: #f0f2f5;
+  border-radius: 0 0 12px 12px;
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  small {
+    display: block;
+    margin-top: 5px;
+    color: #98a0ad;
+    font-size: 9px;
+    line-height: 1.45;
+  }
+}
+
+.nickname-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 6px 0 11px;
+  color: #a4aab5;
+  font-size: 11px;
+  background: #f5f7fa;
+  border-radius: 8px;
+
+  b {
+    padding: 6px 9px;
+    flex-shrink: 0;
+    color: #2f5bff;
+    font-size: 10px;
+    background: #e8edff;
+    border-radius: 999px;
+  }
+}
+
+.fp-login__divider {
+  display: none;
+}
+
+.fp-login__bottom {
+  margin-top: 16px;
+}
+
+.privacy-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: #6b7280;
+  font-size: 9px;
+  line-height: 1.55;
+
+  input {
+    margin-top: 1px;
+    accent-color: #07c160;
+  }
+
+  b {
+    color: #2f5bff;
+    font-weight: 600;
+  }
+}
+
+.one-tap-login {
+  width: 100%;
+  padding: 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  background: #07c160;
+  border: 0;
+  border-radius: 9px;
+  box-shadow: 0 7px 16px rgb(7 193 96 / 20%);
+  cursor: pointer;
+
+  &:disabled {
+    color: #9ca3af;
+    background: #e7e9ed;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+.fp-login__trust {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 9px;
+  color: #98a0ad;
+  font-size: 8px;
 }
 
 .fp-stub {

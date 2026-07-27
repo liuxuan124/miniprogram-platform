@@ -16,7 +16,7 @@ RUN npm ci --registry=https://registry.npmmirror.com
 COPY admin/ ./
 
 # 构建参数: API 地址 (构建时注入)
-ARG VITE_API_BASE_URL=/api
+ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN npm run build

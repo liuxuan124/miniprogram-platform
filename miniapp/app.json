@@ -45,12 +45,12 @@
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "出海笔记",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#fafafa"
+    "backgroundColor": "#f5f7fb"
   },
   "tabBar": {
     "custom": true,
     "color": "#999999",
-    "selectedColor": "#111111",
+    "selectedColor": "#315efb",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [

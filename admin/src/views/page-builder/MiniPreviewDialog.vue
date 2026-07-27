@@ -19,6 +19,13 @@
       />
       <el-segmented v-model="previewTab" :options="previewTabs" size="small" />
     </div>
+    <el-alert
+      class="preview-data-notice"
+      :type="previewDataMode === 'demo' ? 'warning' : (realDataWarnings.length ? 'warning' : 'success')"
+      :title="previewDataNotice"
+      :closable="false"
+      show-icon
+    />
 
     <PreviewPhone
       :page-title="previewTitle"
@@ -27,7 +34,7 @@
     >
       <template v-if="previewTab === 'home'">
         <ComponentItem
-          v-for="(comp, index) in pageStore.components"
+          v-for="(comp, index) in previewComponents"
           :key="comp.id"
           :component="comp"
           :index="index"
@@ -219,6 +226,46 @@ const previewModeOptions = [
   { label: '演示数据', value: 'demo' },
 ]
 
+const realDataWarnings = computed(() => {
+  const warnings: string[] = []
+  const types = new Set<string>(pageStore.components.map((item) => String(item.type)))
+  if (types.has('product_list') && shopPreviewList.value.length === 0) warnings.push('商品')
+  if (types.has('article_list') && contentPreviewList.value.length === 0) warnings.push('文章')
+  if (types.has('form_entry') && pageStore.components.some((item) =>
+    item.type === 'form_entry' && !(item.props.formId || item.props.formTemplateId)
+  )) warnings.push('表单')
+  return warnings
+})
+
+const previewComponents = computed(() => pageStore.components.map((component) => {
+  const type = String(component.type)
+  if (type === 'product_list') {
+    const items = previewDataMode.value === 'demo'
+      ? [
+          { name: '湘品甄选礼盒', price: '99.00' },
+          { name: '药食同源组合', price: '128.00' },
+        ]
+      : shopPreviewList.value
+    return { ...component, props: { ...component.props, items, _previewDataFailed: items.length === 0 } }
+  }
+  if (type === 'article_list') {
+    const source = previewDataMode.value === 'demo' ? defaultContentPreviewList : contentPreviewList.value
+    const items = source.map((item) => ({ title: item.title, meta: item.desc }))
+    return { ...component, props: { ...component.props, items, _previewDataFailed: items.length === 0 } }
+  }
+  return component
+}))
+
+const previewDataNotice = computed(() => {
+  if (previewDataMode.value === 'demo') {
+    return '当前为演示数据，仅用于查看布局，不代表线上实际内容。'
+  }
+  if (realDataWarnings.value.length > 0) {
+    return `真实数据缺失：${realDataWarnings.value.join('、')}。编辑画布中的示例内容不会作为线上数据发布。`
+  }
+  return '当前展示线上可用的真实数据。'
+})
+
 const defaultContentPreviewList: { title: string; desc: string }[] = [
   { title: '品牌故事', desc: '展示品牌理念、文化内容与图文详情' },
   { title: '选品指南', desc: '文章内容可关联商品和活动' },
@@ -256,6 +303,7 @@ async function loadShopPreviewList() {
     ]
     return
   }
+  shopPreviewList.value = []
   await syncProducts((items) => {
     if (items.length > 0) {
       shopPreviewList.value = items.slice(0, 6).map((item: any) => ({
@@ -271,6 +319,7 @@ async function loadContentPreviewList() {
     contentPreviewList.value = [...defaultContentPreviewList]
     return
   }
+  contentPreviewList.value = []
   const localArticleList = pageStore.components.find((item) => item.type === 'article_list')?.props?.items
   const localPreviewList = Array.isArray(localArticleList)
     ? localArticleList
@@ -288,13 +337,9 @@ async function loadContentPreviewList() {
         desc: item.cover || '品牌内容',
       }))
     } else {
-      contentPreviewList.value = localPreviewList.length > 0 ? localPreviewList : [...defaultContentPreviewList]
+      contentPreviewList.value = localPreviewList
     }
   })
-  // Fallback if sync didn't produce results
-  if (contentPreviewList.value.length === 0) {
-    contentPreviewList.value = localPreviewList.length > 0 ? localPreviewList : [...defaultContentPreviewList]
-  }
 }
 
 async function loadActivityPreviewList() {
@@ -302,6 +347,7 @@ async function loadActivityPreviewList() {
     activityPreviewList.value = [...defaultActivityPreviewList]
     return
   }
+  activityPreviewList.value = []
   await syncActivities((items) => {
     if (items.length > 0) {
       activityPreviewList.value = items.map((item: any, index: number) => ({
@@ -309,8 +355,6 @@ async function loadActivityPreviewList() {
         name: item.name || '未命名活动',
         desc: item.dateText || item.venue || '报名预约、签到核销、活动内容一站式展示',
       }))
-    } else {
-      activityPreviewList.value = [...defaultActivityPreviewList]
     }
   })
 }
@@ -432,6 +476,10 @@ watch(
     color: #6b7280;
     font-size: 13px;
   }
+}
+
+.preview-data-notice {
+  margin: 12px 0;
 }
 
 .mini-mock-page {

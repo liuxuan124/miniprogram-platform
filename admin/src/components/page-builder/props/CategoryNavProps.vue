@@ -52,17 +52,14 @@ const { addItem, removeItem, updateItem } = useListEditor(items, {
 })
 
 function onAddItem() {
-  addItem()
-  emit('update', { items: [...items.value] })
+  emit('update', { items: addItem() })
 }
 
 function onRemoveItem(index: number) {
-  removeItem(index)
-  emit('update', { items: [...items.value] })
+  emit('update', { items: removeItem(index) })
 }
 
 function onUpdateItem(index: number, field: string, value: string) {
-  updateItem(index, field, value)
-  emit('update', { items: [...items.value] })
+  emit('update', { items: updateItem(index, (item) => ({ ...item, [field]: value })) })
 }
 </script>

@@ -4,49 +4,49 @@ const DEFAULT_LIST = [
   {
     pagePath: '/pages/index/index',
     text: '首页',
-    icon: '/images/tab/home.png',
-    selectedIcon: '/images/tab/home-active.png',
+    icon: '/images/tab-v2/home.svg',
+    selectedIcon: '/images/tab-v2/home-active.svg',
   },
   {
     pagePath: '/pages/content-list/content-list',
     text: '内容',
-    icon: '/images/tab/content.png',
-    selectedIcon: '/images/tab/content-active.png',
+    icon: '/images/tab-v2/content.svg',
+    selectedIcon: '/images/tab-v2/content-active.svg',
   },
   {
     pagePath: '/pages/product-list/product-list',
     text: '商城',
-    icon: '/images/tab/category.png',
-    selectedIcon: '/images/tab/category-active.png',
+    icon: '/images/tab-v2/shop.svg',
+    selectedIcon: '/images/tab-v2/shop-active.svg',
   },
   {
     pagePath: '/pages/mine/mine',
     text: '我的',
-    icon: '/images/tab/mine.png',
-    selectedIcon: '/images/tab/mine-active.png',
+    icon: '/images/tab-v2/mine.svg',
+    selectedIcon: '/images/tab-v2/mine-active.svg',
   },
 ]
 
 const PATH_META_MAP = {
   '/pages/index/index': {
     text: '首页',
-    icon: '/images/tab/home.png',
-    selectedIcon: '/images/tab/home-active.png',
+    icon: '/images/tab-v2/home.svg',
+    selectedIcon: '/images/tab-v2/home-active.svg',
   },
   '/pages/content-list/content-list': {
     text: '内容',
-    icon: '/images/tab/content.png',
-    selectedIcon: '/images/tab/content-active.png',
+    icon: '/images/tab-v2/content.svg',
+    selectedIcon: '/images/tab-v2/content-active.svg',
   },
   '/pages/product-list/product-list': {
     text: '商城',
-    icon: '/images/tab/category.png',
-    selectedIcon: '/images/tab/category-active.png',
+    icon: '/images/tab-v2/shop.svg',
+    selectedIcon: '/images/tab-v2/shop-active.svg',
   },
   '/pages/mine/mine': {
     text: '我的',
-    icon: '/images/tab/mine.png',
-    selectedIcon: '/images/tab/mine-active.png',
+    icon: '/images/tab-v2/mine.svg',
+    selectedIcon: '/images/tab-v2/mine-active.svg',
   },
 }
 
@@ -54,8 +54,8 @@ Component({
   data: {
     selected: 0,
     list: DEFAULT_LIST,
-    activeColor: '#111111',
-    inactiveColor: '#999999',
+    activeColor: '#315efb',
+    inactiveColor: '#98a2b5',
     backgroundColor: '#ffffff',
   },
 
@@ -84,22 +84,22 @@ Component({
         const mappedList = list.map((item) => {
           const pagePath = this._normalizePath(item.path || item.pagePath)
           const pathMeta = PATH_META_MAP[pagePath] || {}
-          const icon = item.iconPath || item.icon || pathMeta.icon || '/images/tab/home.png'
-          const selectedIcon = item.selectedIconPath || item.selectedIcon || pathMeta.selectedIcon || icon
+          const icon = pathMeta.icon || item.iconPath || item.icon || '/images/tab-v2/home.svg'
+          const selectedIcon = pathMeta.selectedIcon || item.selectedIconPath || item.selectedIcon || icon
           // 后台若仍下发 emoji，回退到本地 PNG
           const useEmoji = typeof icon === 'string' && !icon.includes('/') && !icon.startsWith('http')
           return {
             pagePath,
             text: item.text || item.name || pathMeta.text || '页面',
-            icon: useEmoji ? (pathMeta.icon || '/images/tab/home.png') : icon,
-            selectedIcon: useEmoji ? (pathMeta.selectedIcon || pathMeta.icon || '/images/tab/home.png') : selectedIcon,
+            icon: useEmoji ? (pathMeta.icon || '/images/tab-v2/home.svg') : icon,
+            selectedIcon: useEmoji ? (pathMeta.selectedIcon || pathMeta.icon || '/images/tab-v2/home-active.svg') : selectedIcon,
           }
         })
         this.setData({
           list: mappedList.length > 0 ? mappedList : DEFAULT_LIST,
           selected: this._getCurrentIndex(mappedList.length > 0 ? mappedList : DEFAULT_LIST),
-          activeColor: theme.tabBarActiveColor || '#111111',
-          inactiveColor: theme.tabBarInactiveColor || '#999999',
+          activeColor: theme.tabBarActiveColor || '#315efb',
+          inactiveColor: theme.tabBarInactiveColor || '#98a2b5',
           backgroundColor: theme.tabBarBackgroundColor || '#ffffff',
         })
       } catch (e) {

@@ -1,7 +1,7 @@
 import { type Ref } from 'vue'
 
-export function useListEditor<T extends Record<string, any>>(
-  items: Ref<T[]>,
+export function useListEditor<T>(
+  items: Readonly<Ref<T[]>>,
   options?: {
     createDefault: () => T
     maxItems?: number
@@ -10,29 +10,31 @@ export function useListEditor<T extends Record<string, any>>(
   const createDefault = options?.createDefault || (() => ({} as T))
   const maxItems = options?.maxItems || 20
 
-  function addItem() {
-    if (items.value.length >= maxItems) return
-    items.value = [...items.value, createDefault()]
+  function addItem(): T[] {
+    if (items.value.length >= maxItems) return [...items.value]
+    return [...items.value, createDefault()]
   }
 
-  function removeItem(index: number) {
+  function removeItem(index: number): T[] {
     const newItems = [...items.value]
     newItems.splice(index, 1)
-    items.value = newItems
+    return newItems
   }
 
-  function updateItem(index: number, field: string, value: any) {
+  function updateItem(index: number, updater: (item: T) => T): T[] {
     const newItems = [...items.value]
-    newItems[index] = { ...newItems[index], [field]: value }
-    items.value = newItems
+    if (newItems[index] !== undefined) {
+      newItems[index] = updater(newItems[index])
+    }
+    return newItems
   }
 
-  function moveItem(fromIndex: number, toIndex: number) {
-    if (toIndex < 0 || toIndex >= items.value.length) return
+  function moveItem(fromIndex: number, toIndex: number): T[] {
+    if (toIndex < 0 || toIndex >= items.value.length) return [...items.value]
     const newItems = [...items.value]
     const [moved] = newItems.splice(fromIndex, 1)
     newItems.splice(toIndex, 0, moved)
-    items.value = newItems
+    return newItems
   }
 
   return { addItem, removeItem, updateItem, moveItem }
