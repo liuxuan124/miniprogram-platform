@@ -1,13 +1,19 @@
-// pages/login/login.js — 登录页
+// pages/login/login.js — 一键微信登录：头像 + 昵称 + 手机号
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
+const { upload } = require('../../utils/request')
 
 Page({
   data: {
     loading: false,
     redirectUrl: '',
     agreePrivacy: false,
-    interceptAction: '',  // 拦截提示文案
+    interceptAction: '',
+    avatarUrl: '',
+    avatarLocalPath: '',
+    nickName: '',
+    phoneMasked: '',
+    canSubmit: false,
   },
 
   onLoad(options) {
@@ -17,7 +23,6 @@ Page({
       })
     }
 
-    // 读取登录拦截信息（业务动作触发登录时写入）
     const interceptInfo = AuthUtil.getLoginInterceptInfo()
     if (interceptInfo && interceptInfo.action) {
       this.setData({
@@ -26,43 +31,149 @@ Page({
     }
   },
 
-  /** 微信一键登录 */
-  async onWxLogin() {
-    if (this.data.loading) return
+  _maskPhone(phone) {
+    const raw = String(phone || '')
+    if (raw.length < 7) return raw
+    return raw.slice(0, 3) + '****' + raw.slice(-4)
+  },
 
-    // 检查隐私协议
+  _refreshCanSubmit() {
+    const { agreePrivacy, avatarLocalPath, avatarUrl, nickName } = this.data
+    const hasAvatar = !!(avatarLocalPath || avatarUrl)
+    const hasNickname = !!(nickName && nickName.trim())
+    this.setData({
+      canSubmit: !!(agreePrivacy && hasAvatar && hasNickname),
+    })
+  },
+
+  onChooseAvatar(e) {
+    const avatarUrl = (e.detail && e.detail.avatarUrl) || ''
+    if (!avatarUrl) {
+      wx.showToast({ title: '未获取到微信头像', icon: 'none' })
+      return
+    }
+    this.setData({
+      avatarLocalPath: avatarUrl,
+      avatarUrl,
+    }, () => this._refreshCanSubmit())
+  },
+
+  onNicknameInput(e) {
+    this.setData({
+      nickName: (e.detail && e.detail.value) || '',
+    }, () => this._refreshCanSubmit())
+  },
+
+  onNicknameBlur(e) {
+    const value = ((e.detail && e.detail.value) || '').trim()
+    this.setData({ nickName: value }, () => this._refreshCanSubmit())
+  },
+
+  onNicknameFocus() {
+    if (!this.data.nickName && !this._nicknameHintShown) {
+      this._nicknameHintShown = true
+      wx.showToast({
+        title: '请点底部「用微信昵称」',
+        icon: 'none',
+        duration: 2200,
+      })
+    }
+  },
+
+  onNicknameReview(e) {
+    // 微信昵称内容安全回调：pass / fail
+    const pass = !e.detail || e.detail.pass !== false
+    if (!pass) {
+      this.setData({ nickName: '' }, () => this._refreshCanSubmit())
+      wx.showToast({ title: '昵称未通过安全检测', icon: 'none' })
+    }
+  },
+
+  onTogglePrivacy() {
+    this.setData({
+      agreePrivacy: !this.data.agreePrivacy,
+    }, () => this._refreshCanSubmit())
+  },
+
+  onPrecheckLogin() {
     if (!this.data.agreePrivacy) {
       wx.showToast({ title: '请先同意隐私协议', icon: 'none' })
       return
     }
+    if (!(this.data.avatarLocalPath || this.data.avatarUrl)) {
+      wx.showToast({ title: '请先选择微信头像', icon: 'none' })
+      return
+    }
+    if (!(this.data.nickName && this.data.nickName.trim())) {
+      wx.showToast({ title: '请先获取微信昵称', icon: 'none' })
+      return
+    }
+  },
+
+  /** 一键获取手机号并完成登录 */
+  async onOneTapLogin(e) {
+    if (this.data.loading) return
+
+    if (!this.data.agreePrivacy) {
+      wx.showToast({ title: '请先同意隐私协议', icon: 'none' })
+      return
+    }
+    if (!(this.data.avatarLocalPath || this.data.avatarUrl)) {
+      wx.showToast({ title: '请先选择微信头像', icon: 'none' })
+      return
+    }
+    const nickName = (this.data.nickName || '').trim()
+    if (!nickName) {
+      wx.showToast({ title: '请先获取微信昵称', icon: 'none' })
+      return
+    }
+
+    const { code, errMsg } = e.detail || {}
+    if (!code) {
+      console.warn('[LoginPage] 用户未授权手机号:', errMsg)
+      wx.showToast({ title: '需要授权微信手机号才能登录', icon: 'none' })
+      return
+    }
 
     this.setData({ loading: true })
-
     try {
-      // Step 1: 微信登录获取 token
-      await AuthService.wxLogin()
+      await AuthService.wxLogin({ nickname: nickName })
 
-      // Step 2: 获取用户资料（可选）
-      try {
-        const userProfile = await AuthService.getUserProfile()
-        await AuthService.updateUserInfo(userProfile)
-      } catch (profileErr) {
-        // 用户拒绝授权资料不影响登录
-        console.warn('[LoginPage] 用户拒绝授权资料:', profileErr)
+      let avatarRemoteUrl = this.data.avatarUrl
+      if (this.data.avatarLocalPath) {
+        try {
+          const uploaded = await upload(this.data.avatarLocalPath, {
+            name: 'file',
+            url: '/api/v1/mp/upload',
+            formData: { subDir: 'avatar' },
+          })
+          avatarRemoteUrl = (uploaded && (uploaded.url || uploaded.fileUrl)) || avatarRemoteUrl
+        } catch (uploadErr) {
+          console.warn('[LoginPage] 头像上传失败，继续绑定手机号:', uploadErr)
+        }
       }
 
+      const phone = await AuthService.bindPhone(code, {
+        nickname: nickName,
+        avatarUrl: avatarRemoteUrl,
+      })
+
+      this.setData({ phoneMasked: this._maskPhone(phone) })
+
+      AuthService.completeLogin({
+        phone,
+        nickName,
+        avatarUrl: avatarRemoteUrl,
+      })
+
       wx.showToast({ title: '登录成功', icon: 'success' })
-
-      // 清除拦截信息
       AuthUtil.clearLoginInterceptInfo()
-
-      setTimeout(() => {
-        this._navigateAfterLogin()
-      }, 1000)
+      setTimeout(() => this._navigateAfterLogin(), 800)
     } catch (err) {
-      console.error('[LoginPage] 登录失败:', err)
+      console.error('[LoginPage] 一键登录失败:', err)
+      AuthService.logout({ redirectToLogin: false, manual: false })
       wx.showToast({
-        title: err.message || '登录失败，请重试',
+        title: (err && err.message) || '登录失败，请重试',
         icon: 'none',
       })
     } finally {
@@ -70,42 +181,33 @@ Page({
     }
   },
 
-  /** 切换隐私协议同意状态 */
-  onTogglePrivacy() {
-    this.setData({
-      agreePrivacy: !this.data.agreePrivacy,
-    })
-  },
-
-  /** 查看隐私协议 */
   onViewPrivacy() {
     wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' })
   },
 
-  /** 查看用户协议 */
   onViewTerms() {
     wx.navigateTo({ url: '/pages/agreement/agreement?type=terms' })
   },
 
-  /** 登录成功后跳转 */
   _navigateAfterLogin() {
     if (this.data.redirectUrl) {
-      // 有回跳地址
       const redirect = this.data.redirectUrl
-      // TabBar 页面用 switchTab，非 TabBar 用 reLaunch
-      const tabPages = ['/pages/index/index', '/pages/category/category', '/pages/mine/mine']
-      if (tabPages.includes(redirect)) {
-        wx.switchTab({ url: redirect })
+      const tabPages = [
+        '/pages/index/index',
+        '/pages/content-list/content-list',
+        '/pages/product-list/product-list',
+        '/pages/mine/mine',
+      ]
+      if (tabPages.includes(redirect.split('?')[0])) {
+        wx.switchTab({ url: redirect.split('?')[0] })
       } else {
         wx.reLaunch({ url: redirect })
       }
     } else {
-      // 默认跳转首页
-      wx.switchTab({ url: '/pages/index/index' })
+      wx.switchTab({ url: '/pages/mine/mine' })
     }
   },
 
-  /** 返回 */
   onBack() {
     const pages = getCurrentPages()
     if (pages.length > 1) {

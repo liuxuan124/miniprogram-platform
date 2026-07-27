@@ -1,0 +1,21 @@
+.page { min-height: 100vh; background: #fafafa; padding: 24rpx; box-sizing: border-box; }
+.group {
+  background: #fff; border-radius: 16rpx; overflow: hidden; margin-bottom: 16rpx;
+  border: 1rpx solid #eeeeee; box-shadow: none;
+}
+.row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 30rpx 28rpx; font-size: 28rpx; color: #111111;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+.row:last-child { border-bottom: none; }
+.row.muted { color: #888888; }
+.ar { color: #cccccc; }
+.val { color: #999999; font-size: 26rpx; }
+.logout {
+  margin-top: 40rpx; background: #fff; color: #d14343; border-radius: 999rpx;
+  font-size: 28rpx; font-weight: 500; border: 1rpx solid #eeeeee;
+}
+.hint {
+  margin-top: 40rpx; text-align: center; color: #bbbbbb; font-size: 24rpx;
+}

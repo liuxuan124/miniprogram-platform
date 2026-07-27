@@ -1,10 +1,9 @@
-<!-- pages/content-list/content-list.wxml — 内容中心（对齐原型） -->
+<!-- pages/content-list/content-list.wxml — 内容中心 -->
 <view class="content-list-page">
   <view class="toolbar">
-    <view class="search-entry" bindtap="onSearchTap">🔍 搜索内容</view>
+    <view class="search-entry" bindtap="onSearchTap">搜索内容、主题或关键词</view>
   </view>
 
-  <!-- 形态筛选：笔记 / 长文 / 视频 / 数据 -->
   <scroll-view class="format-scroll" scroll-x enhanced show-scrollbar="{{false}}">
     <view
       wx:for="{{formatTabs}}"
@@ -15,7 +14,6 @@
     >{{item.label}}</view>
   </scroll-view>
 
-  <!-- 业务主题 -->
   <scroll-view class="topic-scroll" scroll-x enhanced show-scrollbar="{{false}}">
     <view
       wx:for="{{topicTabs}}"
@@ -24,19 +22,6 @@
       data-id="{{item.id}}"
       bindtap="onTopicTap"
     >{{item.name}}</view>
-  </scroll-view>
-
-  <!-- 主题分类 -->
-  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{categories}}"
-      wx:key="id"
-      class="category-item {{activeCategoryId === item.id ? 'active' : ''}}"
-      data-id="{{item.id}}"
-      bindtap="onCategoryTap"
-    >
-      <text>{{item.name}}</text>
-    </view>
   </scroll-view>
 
   <skeleton wx:if="{{loading && articles.length === 0}}" type="list" rows="{{4}}" />
@@ -81,6 +66,8 @@
   <empty-state
     wx:if="{{isEmpty && !loading}}"
     title="暂无内容"
-    desc="精彩内容即将上线，敬请期待"
+    desc="试试切换主题，或清除筛选条件"
+    actionText="清除筛选"
+    bind:action="clearFilters"
   />
 </view>

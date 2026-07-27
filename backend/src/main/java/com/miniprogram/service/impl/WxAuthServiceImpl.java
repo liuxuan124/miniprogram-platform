@@ -116,17 +116,23 @@ public class WxAuthServiceImpl implements WxAuthService {
                 .nickname(user.getNickname())
                 .avatarUrl(user.getAvatarUrl())
                 .isNewUser(isNewUser)
+                .phone(maskPhone(user.getPhone()))
+                .phoneBound(StringUtils.hasText(user.getPhone()))
                 .build();
     }
 
     @Override
-    public String bindPhone(Long userId, String code) {
+    public String bindPhone(Long userId, String code, String nickname, String avatarUrl) {
         // 1. 获取微信接口调用凭证（access_token）
         String accessToken = getAccessToken();
 
-        // 2. 调用微信接口获取手机号
-        String phoneUrl = WX_PHONE_URL + "?access_token=" + accessToken + "&code=" + code;
-        String response = HttpUtil.get(phoneUrl);
+        // 2. 调用微信接口获取手机号（POST + JSON body）
+        String phoneUrl = WX_PHONE_URL + "?access_token=" + accessToken;
+        String response = HttpUtil.createPost(phoneUrl)
+                .body(JSONUtil.createObj().set("code", code).toString())
+                .contentType("application/json")
+                .execute()
+                .body();
         JSONObject json = JSONUtil.parseObj(response);
 
         if (json.getInt("errcode") != null && json.getInt("errcode") != 0) {
@@ -145,12 +151,18 @@ public class WxAuthServiceImpl implements WxAuthService {
             phoneNumber = phoneInfo.getStr("phoneNumber");
         }
 
-        // 3. 绑定手机号到用户
+        // 3. 绑定手机号，并同步昵称/头像
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
         }
         user.setPhone(phoneNumber);
+        if (StringUtils.hasText(nickname)) {
+            user.setNickname(nickname);
+        }
+        if (StringUtils.hasText(avatarUrl)) {
+            user.setAvatarUrl(avatarUrl);
+        }
         userMapper.updateById(user);
 
         log.info("用户 {} 绑定手机号成功", userId);
@@ -215,5 +227,12 @@ public class WxAuthServiceImpl implements WxAuthService {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getOpenid, openid);
         return userMapper.selectOne(wrapper);
+    }
+
+    private String maskPhone(String phone) {
+        if (!StringUtils.hasText(phone) || phone.length() < 7) {
+            return phone;
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 }

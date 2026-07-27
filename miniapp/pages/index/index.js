@@ -94,20 +94,11 @@ Page({
   },
 
   goTopic(e) {
-    const topic = e.currentTarget.dataset.topic
-    wx.switchTab({
-      url: '/pages/content-list/content-list',
-      success: () => {
-        // 主题筛选由内容页自行处理；先进入内容中心
-        try {
-          const pages = getCurrentPages()
-          const page = pages[pages.length - 1]
-          if (page && typeof page.setTopic === 'function') {
-            page.setTopic(topic)
-          }
-        } catch (_) {}
-      },
-    })
+    const topic = e.currentTarget.dataset.topic || ''
+    try {
+      wx.setStorageSync('__tab_query__/pages/content-list/content-list', { topic })
+    } catch (_) {}
+    wx.switchTab({ url: '/pages/content-list/content-list' })
   },
 
   onQuickNav(e) {
@@ -141,7 +132,11 @@ Page({
       wx.navigateTo({ url: `/pages/content-detail/content-detail?id=${realId}` })
       return
     }
-    wx.showToast({ title: '内容加载中', icon: 'none' })
+    // 映射未就绪：进入内容中心，避免永久「加载中」
+    try {
+      wx.setStorageSync('__tab_query__/pages/content-list/content-list', { topic: '' })
+    } catch (_) {}
+    wx.switchTab({ url: '/pages/content-list/content-list' })
   },
 
   openProduct(e) {
@@ -151,6 +146,6 @@ Page({
       wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${realId}` })
       return
     }
-    wx.showToast({ title: '商品加载中', icon: 'none' })
+    wx.switchTab({ url: '/pages/product-list/product-list' })
   },
 })

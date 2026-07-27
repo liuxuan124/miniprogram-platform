@@ -30,10 +30,10 @@ public class MpAuthController {
     }
 
     @PostMapping("/phone")
-    @Operation(summary = "获取微信手机号", description = "通过微信手机号按钮获取的code绑定手机号")
+    @Operation(summary = "获取微信手机号", description = "通过微信手机号按钮获取的code绑定手机号，并可同步昵称头像")
     public R<String> bindPhone(@Valid @RequestBody WxPhoneDTO dto) {
         Long userId = SecurityUtils.getRequiredCurrentUserId();
-        String phone = wxAuthService.bindPhone(userId, dto.getCode());
+        String phone = wxAuthService.bindPhone(userId, dto.getCode(), dto.getNickname(), dto.getAvatarUrl());
         return R.ok(phone);
     }
 }

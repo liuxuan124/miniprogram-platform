@@ -4,16 +4,15 @@
   <view class="shop-banner">
     <view class="shop-banner__row">
       <view>
-        <view class="shop-banner__t">📦 资料包 + 1v1 咨询</view>
+        <view class="shop-banner__t">资料包与 1v1 咨询</view>
         <view class="shop-banner__d">资料包购买后永久可看并季度更新 · 咨询下单后自选时段</view>
       </view>
-      <view class="shop-cart" bindtap="onGoCart">🛒</view>
+      <view class="shop-cart" bindtap="onGoCart">车</view>
     </view>
   </view>
 
   <view class="search-bar">
     <view class="search-input-wrap">
-      <text class="search-icon-text">🔍</text>
       <input
         class="search-input"
         placeholder="搜索商品"
@@ -122,5 +121,8 @@
     icon="/images/empty-product.png"
     title="暂无商品"
     desc="换个分类或关键词试试"
+    actionText="查看全部"
+    actionType="primary"
+    bind:action="onClearFilters"
   />
 </view>

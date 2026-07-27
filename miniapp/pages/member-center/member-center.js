@@ -155,11 +155,11 @@ Page({
   },
 
   goReservation() {
-    wx.navigateTo({ url: '/pages/reservation/reservation' })
+    wx.navigateTo({ url: '/pages/my-appointments/my-appointments' })
   },
 
   goActivity() {
-    wx.navigateTo({ url: '/pages/activity/activity' })
+    wx.navigateTo({ url: '/pages/activity-list/activity-list' })
   },
 
   goFavorites() {
@@ -167,11 +167,11 @@ Page({
   },
 
   goPrivilege() {
-    wx.navigateTo({ url: '/pages/privilege/privilege' })
+    wx.pageScrollTo({ selector: '.benefits-section', duration: 300 })
   },
 
   goPointsExchange() {
-    wx.navigateTo({ url: '/pages/points-log/points-log' })
+    wx.navigateTo({ url: '/pages/coupon-list/coupon-list' })
   },
 
   goSignIn() {

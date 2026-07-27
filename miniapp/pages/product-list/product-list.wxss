@@ -2,24 +2,24 @@
 
 .product-list-page {
   min-height: 100vh;
-  background-color: #f5f6f9;
+  background-color: #fafafa;
   padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
 }
 
 .shop-banner {
   margin: 20rpx 24rpx 0;
   padding: 28rpx;
-  border-radius: 28rpx;
-  background: linear-gradient(135deg, #eef2ff, #fff);
-  border: 1rpx solid #dfe6ff;
+  border-radius: 16rpx;
+  background: #ffffff;
+  border: 1rpx solid #eeeeee;
 }
 .shop-banner__row { display:flex; align-items:flex-start; gap:16rpx; }
-.shop-banner__t { font-size: 30rpx; font-weight: 800; color: #0f1219; }
-.shop-banner__d { margin-top: 10rpx; font-size: 22rpx; color: #727a8c; line-height: 1.6; }
+.shop-banner__t { font-size: 30rpx; font-weight: 600; color: #111111; }
+.shop-banner__d { margin-top: 10rpx; font-size: 22rpx; color: #888888; line-height: 1.6; }
 .shop-cart {
-  width: 72rpx; height: 72rpx; border-radius: 50%; background: #fff;
+  width: 72rpx; height: 72rpx; border-radius: 50%; background: #f3f3f3;
   display:flex; align-items:center; justify-content:center; font-size: 34rpx;
-  box-shadow: 0 4rpx 16rpx rgba(15,18,25,.08); flex-shrink:0;
+  box-shadow: none; flex-shrink:0; border: 1rpx solid #eeeeee;
 }
 
 /* ========== 搜索栏 ========== */
@@ -74,7 +74,7 @@
 }
 
 .category-item.active {
-  color: #1769ff;
+  color: #111111;
   font-weight: 600;
 }
 
@@ -86,7 +86,7 @@
   transform: translateX(-50%);
   width: 40rpx;
   height: 4rpx;
-  background-color: #1769ff;
+  background-color: #111111;
   border-radius: 2rpx;
 }
 
@@ -149,7 +149,7 @@
 }
 
 .sort-option.active {
-  color: #1769ff;
+  color: #111111;
   font-weight: 600;
 }
 
@@ -197,7 +197,7 @@
 
 .product-price {
   font-size: 32rpx;
-  color: #1769ff;
+  color: #111111;
   font-weight: 700;
 }
 

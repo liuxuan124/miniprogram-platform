@@ -5,19 +5,18 @@ const { AuthUtil } = require('./auth')
 
 // ========== 配置 ==========
 const PROD_BASE_URL = 'https://api.zfculture.site'
-const DEV_BASE_URL = 'http://127.0.0.1:8080'
 
 function resolveBaseUrl() {
   try {
-    const accountInfo = wx.getAccountInfoSync()
-    const envVersion = accountInfo?.miniProgram?.envVersion
-    // develop=开发者工具调试；trial=体验版；release=正式版
-    if (envVersion === 'develop') {
-      return DEV_BASE_URL
+    // 调试时可在控制台执行：wx.setStorageSync('api_base_url', 'http://127.0.0.1:8080')
+    const custom = wx.getStorageSync('api_base_url')
+    if (custom && typeof custom === 'string') {
+      return custom.replace(/\/$/, '')
     }
   } catch (e) {
-    // 兼容旧基础库
+    // ignore
   }
+  // 体验版/正式版/开发版默认都走线上 API，避免开发者工具连本地失败看起来像「无法登录」
   return PROD_BASE_URL
 }
 

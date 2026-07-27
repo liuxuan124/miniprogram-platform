@@ -2,6 +2,15 @@
 
 const request = require('../../utils/request')
 
+const TOPIC_KEYWORDS = {
+  select: '选品',
+  supply: '供应链',
+  platform: '平台',
+  dtc: '独立站',
+  logistics: '物流',
+  compliance: '合规',
+}
+
 function resolveFormat(item) {
   const source = String(item.source || '')
   const tags = Array.isArray(item.tags) ? item.tags.join(',') : String(item.tags || '')
@@ -28,16 +37,14 @@ Page({
     activeFormat: '',
     topicTabs: [
       { id: '', name: '推荐' },
-      { id: '选品', name: '选品洞察' },
-      { id: '供应链', name: '供应链' },
-      { id: '平台', name: '平台运营' },
-      { id: '独立站', name: '独立站' },
-      { id: '物流', name: '物流履约' },
-      { id: '合规', name: '合规税务' },
+      { id: 'select', name: '选品洞察' },
+      { id: 'supply', name: '供应链' },
+      { id: 'platform', name: '平台运营' },
+      { id: 'dtc', name: '独立站' },
+      { id: 'logistics', name: '物流履约' },
+      { id: 'compliance', name: '合规税务' },
     ],
     activeTopic: '',
-    categories: [{ id: '', name: '全部主题' }],
-    activeCategoryId: '',
     articles: [],
     page: 1,
     pageSize: 10,
@@ -48,7 +55,6 @@ Page({
   },
 
   onLoad() {
-    this._loadCategories()
     this._loadArticles(true)
   },
 
@@ -56,6 +62,30 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
+    this._consumeTabQuery()
+  },
+
+  /** 首页主题跳转透传 */
+  _consumeTabQuery() {
+    try {
+      const q = wx.getStorageSync('__tab_query__/pages/content-list/content-list')
+      if (!q) return
+      wx.removeStorageSync('__tab_query__/pages/content-list/content-list')
+      const topic = q.topic || ''
+      const matched = (this.data.topicTabs || []).some((t) => t.id === topic)
+      this.setData({
+        activeTopic: matched ? topic : '',
+      })
+      this._loadArticles(true)
+    } catch (_) {}
+  },
+
+  setTopic(topic) {
+    const matched = (this.data.topicTabs || []).some((t) => t.id === topic)
+    this.setData({
+      activeTopic: matched ? topic : '',
+    })
+    this._loadArticles(true)
   },
 
   onPullDownRefresh() {
@@ -80,42 +110,12 @@ Page({
     this._loadArticles(true)
   },
 
-  _loadCategories() {
-    // 从已发布内容里收集主题分类（无需额外公开接口）
-    request.get('/api/v1/mp/contents', { current: 1, size: 50 }, { auth: false })
-      .then((data) => {
-        const records = data.records || []
-        const map = new Map()
-        records.forEach((item) => {
-          if (item.categoryId && item.categoryName && !map.has(item.categoryId)) {
-            map.set(item.categoryId, item.categoryName)
-          }
-        })
-        const cats = [{ id: '', name: '全部主题' }]
-        map.forEach((name, id) => cats.push({ id, name }))
-        this.setData({ categories: cats })
-      })
-      .catch(() => {
-        this.setData({
-          categories: [
-            { id: '', name: '全部主题' },
-            { id: 'select', name: '选品' },
-            { id: 'platform', name: '平台运营' },
-            { id: 'logistics', name: '物流' },
-            { id: 'supply', name: '供应链' },
-          ],
-        })
-      })
-  },
-
   _loadArticles(reset = false) {
     if (this.data.loading) return Promise.resolve()
     const page = reset ? 1 : this.data.page + 1
     this.setData({ loading: true })
 
     const params = { current: page, size: this.data.pageSize }
-    const catId = this.data.activeCategoryId
-    if (catId && String(catId).match(/^\d+$/)) params.categoryId = Number(catId)
 
     return request.get('/api/v1/mp/contents', params, { auth: false }).then((data) => {
       let list = (data.records || []).map((item) => {
@@ -136,17 +136,10 @@ Page({
       }
       if (this.data.activeTopic) {
         const topic = this.data.activeTopic
+        const kw = TOPIC_KEYWORDS[topic] || topic
         list = list.filter((item) => {
           const blob = `${item.categoryName || ''} ${(item.tags || []).join(',')} ${item.title || ''} ${item.summary || ''}`
-          return blob.indexOf(topic) >= 0
-        })
-      }
-      // 非数字主题（兜底标签）用关键词过滤
-      if (catId && !String(catId).match(/^\d+$/)) {
-        const kw = String(catId)
-        list = list.filter((item) => {
-          const blob = `${item.categoryName || ''} ${(item.tags || []).join(',')} ${item.title || ''}`
-          return blob.indexOf(kw) >= 0 || /选品|平台|物流|供应链|合规|独立站/.test(blob)
+          return blob.indexOf(kw) >= 0
         })
       }
       const total = data.total || list.length
@@ -165,11 +158,6 @@ Page({
     })
   },
 
-  onCategoryTap(e) {
-    this.setData({ activeCategoryId: e.currentTarget.dataset.id })
-    this._loadArticles(true)
-  },
-
   onContentTap(e) {
     wx.navigateTo({ url: '/pages/content-detail/content-detail?id=' + e.currentTarget.dataset.id })
   },
@@ -177,5 +165,10 @@ Page({
   onImageError(e) {
     const index = e.currentTarget.dataset.index
     this.setData({ [`articles[${index}].cover_url`]: '/images/default-article.svg' })
+  },
+
+  clearFilters() {
+    this.setData({ activeFormat: '', activeTopic: '' })
+    this._loadArticles(true)
   },
 })

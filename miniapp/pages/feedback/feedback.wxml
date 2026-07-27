@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="label">反馈类型</view>
+  <view class="tags">
+    <view
+      class="tag {{type === item ? 'on' : ''}}"
+      wx:for="{{types}}"
+      wx:key="*this"
+      data-type="{{item}}"
+      bindtap="onType"
+    >{{item}}</view>
+  </view>
+
+  <view class="label">详细说明</view>
+  <textarea
+    class="ta"
+    maxlength="500"
+    placeholder="请描述你遇到的问题或建议，我们会尽快处理"
+    value="{{content}}"
+    bindinput="onInput"
+  />
+
+  <view class="count">{{content.length}}/500</view>
+  <button class="btn" bindtap="onSubmit" loading="{{loading}}">提交反馈</button>
+  <button class="btn ghost" bindtap="goService">转人工客服</button>
+</view>

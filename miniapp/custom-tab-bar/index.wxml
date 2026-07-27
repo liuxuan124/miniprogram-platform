@@ -6,15 +6,15 @@
     wx:for="{{list}}"
     wx:key="pagePath"
     class="tab-item {{selected === index ? 'active' : ''}}"
-    style="color: {{selected === index ? activeColor : inactiveColor}};"
     data-path="{{item.pagePath}}"
     data-index="{{index}}"
     bindtap="switchTab"
   >
-    <view
+    <image
       class="tab-icon"
-      style="{{selected === index ? 'background-color: rgba(47,91,255,0.10);' : ''}}"
-    >{{item.icon}}</view>
+      src="{{selected === index ? item.selectedIcon : item.icon}}"
+      mode="aspectFit"
+    />
     <view
       class="tab-text"
       style="color: {{selected === index ? activeColor : inactiveColor}};"

@@ -14,4 +14,10 @@ public class WxPhoneDTO {
     @Schema(description = "微信手机号凭证 code", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "手机号code不能为空")
     private String code;
+
+    @Schema(description = "用户昵称")
+    private String nickname;
+
+    @Schema(description = "用户头像URL")
+    private String avatarUrl;
 }

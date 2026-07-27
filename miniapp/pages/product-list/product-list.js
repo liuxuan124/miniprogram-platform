@@ -203,4 +203,15 @@ Page({
       [`products[${index}].mainImage`]: fallback,
     })
   },
+
+  onClearFilters() {
+    this.setData({
+      keyword: '',
+      activeType: '',
+      productType: '',
+      activeCategoryId: '',
+      activeSort: 'created_desc',
+    })
+    this._loadProducts(true)
+  },
 })

@@ -1,7 +1,10 @@
 // pages/content-detail/content-detail.js
 const request = require('../../utils/request')
 const productService = require('../../services/product')
+const { StorageUtil } = require('../../utils/storage')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
+
+const FAVORITES_KEY = 'content_favorites'
 
 const CAT_TO_TOPIC = {
   选品洞察: 'select',
@@ -204,6 +207,7 @@ Page({
           metaLine,
           likeStat: (proto && proto.stat) || `${article.likeCount || 0}`,
           readProgress: 0,
+          favorited: (StorageUtil.get(FAVORITES_KEY) || []).map(Number).includes(Number(article.id)),
         })
 
         wx.setNavigationBarTitle({ title: isNote ? '笔记' : '文章' })
@@ -256,8 +260,16 @@ Page({
   },
 
   onFavoriteTap() {
+    const id = Number(this.data.id || (this.data.article && this.data.article.id))
     const favorited = !this.data.favorited
     this.setData({ favorited })
+    if (id) {
+      const ids = StorageUtil.get(FAVORITES_KEY) || []
+      const next = favorited
+        ? Array.from(new Set([id, ...ids.map(Number)]))
+        : ids.map(Number).filter((x) => x !== id)
+      StorageUtil.set(FAVORITES_KEY, next)
+    }
     wx.showToast({ title: favorited ? '已收藏' : '取消收藏', icon: 'none' })
   },
 
@@ -267,6 +279,6 @@ Page({
   },
 
   onCommentTap() {
-    wx.showToast({ title: '评论功能开发中', icon: 'none' })
+    wx.navigateTo({ url: '/pages/feedback/feedback' })
   },
 })
