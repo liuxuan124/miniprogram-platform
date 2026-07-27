@@ -30,17 +30,14 @@ const { addItem: add, removeItem: remove, updateItem: update } = useListEditor(i
 })
 
 function addItem() {
-  add()
-  emit('update', { items: [...items.value] })
+  emit('update', { items: add() })
 }
 
 function removeItem(index: number) {
-  remove(index)
-  emit('update', { items: [...items.value] })
+  emit('update', { items: remove(index) })
 }
 
 function onItemInput(index: number, value: string) {
-  update(index, '', value)
-  emit('update', { items: [...items.value] })
+  emit('update', { items: update(index, () => value) })
 }
 </script>

@@ -2,11 +2,14 @@
 <view class="home">
   <!-- Hero -->
   <view class="hero">
+    <view class="hero-orb hero-orb--one"></view>
+    <view class="hero-orb hero-orb--two"></view>
+    <view class="hero-eyebrow">CROSS-BORDER GROWTH LAB</view>
     <view class="hero-who">
-        <view class="hero-av">海</view>
+      <view class="hero-av">海</view>
       <view class="hero-meta">
         <view class="hero-nm">出海笔记 · 阿哲 <text class="hero-vf">已认证</text></view>
-        <view class="hero-bio">跨境电商实战 · 选品 / 供应链 / 独立站</view>
+        <view class="hero-bio">陪你把跨境生意，从经验变成方法</view>
       </view>
     </view>
     <view class="hero-kpi">
@@ -17,24 +20,32 @@
   </view>
 
   <!-- Search -->
-  <view class="searchbar" bindtap="goSearch">搜索选品 / 验厂 / VAT / TikTok</view>
+  <view class="searchbar" bindtap="goSearch">
+    <text class="searchbar__icon">⌕</text>
+    <text class="searchbar__text">搜索选品、验厂、VAT、TikTok</text>
+    <text class="searchbar__action">搜索</text>
+  </view>
 
   <!-- Quick nav -->
+  <view class="quick-head">
+    <text>快速开始</text>
+    <text class="quick-head__sub">常用工具与服务</text>
+  </view>
   <view class="quicknav">
     <view class="q" data-action="content" bindtap="onQuickNav">
-      <view class="ic ic-1">文</view>
+      <view class="ic ic-1">✦</view>
       <text>内容中心</text>
     </view>
     <view class="q" data-action="ebook" bindtap="onQuickNav">
-      <view class="ic ic-2">资</view>
+      <view class="ic ic-2">▤</view>
       <text>资料包</text>
     </view>
     <view class="q" data-action="consult" bindtap="onQuickNav">
-      <view class="ic ic-3">询</view>
+      <view class="ic ic-3">◌</view>
       <text>1v1咨询</text>
     </view>
     <view class="q" data-action="member" bindtap="onQuickNav">
-      <view class="ic ic-4">会</view>
+      <view class="ic ic-4">♢</view>
       <text>会员权益</text>
     </view>
   </view>
@@ -42,12 +53,13 @@
   <!-- Feature banner -->
   <view class="feature" bindtap="openFeature">
     <view class="feature-art" style="{{featureArtStyle}}">
-      <view class="glyph"></view>
+      <view class="feature-art__ring"></view>
+      <view class="feature-art__mark">↗</view>
     </view>
     <view class="feature-ov">
-      <text class="feature-tg">本周精选</text>
+      <text class="feature-tg">EDITOR'S PICK · 本周精选</text>
       <view class="feature-h4">2026 下半年跨境选品趋势清单</view>
-      <view class="feature-m">长文 · 12 分钟阅读 · 2.1w 阅读</view>
+      <view class="feature-m">12 分钟读懂趋势 <text class="feature-m__go">立即阅读 →</text></view>
     </view>
   </view>
 
@@ -68,7 +80,7 @@
       data-topic="{{item.id}}"
       bindtap="goTopic"
     >
-      <view class="tc-e">{{item.name[0]}}</view>
+      <view class="tc-e" style="background:{{item.chipBg}}">{{item.emoji}}</view>
       <view class="tc-n">{{item.name}}</view>
       <view class="tc-c">{{item.count}} 篇</view>
     </view>
@@ -209,5 +221,8 @@
   <view class="pad"></view>
 
   <!-- AI FAB -->
-  <view class="fab" bindtap="goAi">AI</view>
+  <view class="fab" bindtap="goAi">
+    <text class="fab__spark">✦</text>
+    <text>AI</text>
+  </view>
 </view>

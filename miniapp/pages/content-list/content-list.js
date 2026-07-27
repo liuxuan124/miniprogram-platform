@@ -25,6 +25,12 @@ function resolveFormat(item) {
   return { key: 'note', label: '笔记' }
 }
 
+function formatPublishTime(value) {
+  const raw = String(value || '')
+  const match = raw.match(/^\d{4}-(\d{2})-(\d{2})/)
+  return match ? `${match[1]}-${match[2]}` : raw
+}
+
 Page({
   data: {
     formatTabs: [
@@ -124,8 +130,8 @@ Page({
           ...item,
           cover_url: item.coverUrl || item.coverImage || '',
           image: item.coverUrl || item.coverImage || '',
-          publish_time: item.publishedAt || item.createTime,
-          created_at: item.createTime,
+          publish_time: formatPublishTime(item.publishedAt || item.createTime),
+          created_at: formatPublishTime(item.createTime),
           views: item.viewCount || 0,
           formatKey: fmt.key,
           formatLabel: fmt.label,

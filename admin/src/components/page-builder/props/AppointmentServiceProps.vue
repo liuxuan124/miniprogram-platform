@@ -44,17 +44,14 @@ const { addItem, removeItem, updateItem } = useListEditor(services, {
 })
 
 function onAddService() {
-  addItem()
-  emit('update', { services: [...services.value] })
+  emit('update', { services: addItem() })
 }
 
 function onRemoveService(index: number) {
-  removeItem(index)
-  emit('update', { services: [...services.value] })
+  emit('update', { services: removeItem(index) })
 }
 
 function onUpdateService(index: number, field: string, value: string) {
-  updateItem(index, field, value)
-  emit('update', { services: [...services.value] })
+  emit('update', { services: updateItem(index, (item) => ({ ...item, [field]: value })) })
 }
 </script>

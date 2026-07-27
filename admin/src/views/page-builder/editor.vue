@@ -1,13 +1,18 @@
 <template>
   <div class="page-editor">
-    <div class="editor-body">
-      <div class="editor-left">
+    <div class="editor-body" :class="{ 'left-collapsed': leftCollapsed, 'right-collapsed': rightCollapsed }">
+      <div v-show="!leftCollapsed" class="editor-left">
         <ComponentPanel />
       </div>
 
       <div class="editor-center">
         <div class="builder-toolbar">
           <div class="toolbar-left">
+            <el-tooltip :content="leftCollapsed ? '展开组件面板' : '收起组件面板'" placement="bottom">
+              <el-button text size="small" aria-label="切换组件面板" @click="leftCollapsed = !leftCollapsed">
+                <el-icon><Menu /></el-icon>
+              </el-button>
+            </el-tooltip>
             <el-button size="small" @click="handleBack">
               <el-icon><ArrowLeft /></el-icon>
               返回
@@ -15,6 +20,7 @@
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
             <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
             <span v-if="pageStore.isDirty" class="dirty-dot">未保存</span>
+            <span v-if="autoSaveError" class="autosave-error">{{ autoSaveError }}</span>
             <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存 {{ lastAutoSavedAt }}</span>
           </div>
           <div class="toolbar-actions">
@@ -54,6 +60,11 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <el-tooltip :content="rightCollapsed ? '展开属性面板' : '收起属性面板'" placement="bottom">
+              <el-button text size="small" aria-label="切换属性面板" @click="rightCollapsed = !rightCollapsed">
+                <el-icon><Setting /></el-icon>
+              </el-button>
+            </el-tooltip>
           </div>
         </div>
 
@@ -72,7 +83,7 @@
         <CanvasArea />
       </div>
 
-      <div class="editor-right">
+      <div v-show="!rightCollapsed" class="editor-right">
         <PropsPanel />
       </div>
     </div>
@@ -95,6 +106,61 @@
 
     <!-- 原型一致：预览不跳新窗口，直接进入小程序端实时预览 -->
     <MiniPreviewDialog ref="previewDialogRef" v-model="previewVisible" />
+
+    <el-dialog
+      v-model="publishCheck.visible"
+      title="发布前检查"
+      width="560px"
+      :close-on-click-modal="false"
+      class="publish-check-dialog"
+    >
+      <div class="publish-check-summary">
+        <div class="publish-check-score" :class="{ 'has-blocking': publishCheck.blocking.length }">
+          <el-icon><component :is="publishCheck.blocking.length ? WarningFilled : CircleCheckFilled" /></el-icon>
+        </div>
+        <div>
+          <div class="publish-check-title">
+            {{ publishCheck.blocking.length ? '还有问题需要处理' : (publishCheck.warnings.length ? '可以发布，但建议先确认' : '检查通过，可以发布') }}
+          </div>
+          <div class="publish-check-desc">
+            共 {{ pageStore.components.length }} 个组件 · {{ publishCheck.warnings.length }} 项提醒
+          </div>
+        </div>
+      </div>
+
+      <div class="publish-check-list">
+        <div class="check-row is-success">
+          <el-icon><CircleCheckFilled /></el-icon>
+          <div><b>页面结构</b><span>{{ pageStore.components.length }} 个组件已加载</span></div>
+        </div>
+        <div class="check-row is-success">
+          <el-icon><CircleCheckFilled /></el-icon>
+          <div><b>保存状态</b><span>草稿已保存为最新版本</span></div>
+        </div>
+        <div
+          v-for="warning in publishCheck.warnings"
+          :key="warning"
+          class="check-row"
+          :class="publishCheck.blocking.includes(warning) ? 'is-error' : 'is-warning'"
+        >
+          <el-icon><WarningFilled /></el-icon>
+          <div>
+            <b>{{ publishCheck.blocking.includes(warning) ? '必须修改' : '建议确认' }}</b>
+            <span>{{ warning }}</span>
+          </div>
+        </div>
+        <div v-if="publishCheck.warnings.length === 0" class="check-row is-success">
+          <el-icon><CircleCheckFilled /></el-icon>
+          <div><b>内容与数据</b><span>未发现影响发布的问题</span></div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="publishCheck.visible = false">返回修改</el-button>
+        <el-button type="primary" :loading="publishCheck.publishing" :disabled="publishCheck.blocking.length > 0" @click="executePublish">
+          {{ publishCheck.warnings.length ? '确认并发布' : '立即发布' }}
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- C3：发布结果面板，替代原来信息密度过高的单个确认弹窗 -->
     <el-dialog v-model="publishResult.visible" title="页面发布成功" width="440px" :close-on-click-modal="false">
@@ -128,7 +194,7 @@
 import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
+import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
 import { getPageDetail, saveDraft, publishPage, createPage } from '@/api/page'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
@@ -146,9 +212,12 @@ const dslDialogVisible = ref(false)
 const dslEditorValue = ref('')
 const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
+const leftCollapsed = ref(false)
+const rightCollapsed = ref(false)
 
 /** B3：自动保存 */
 const lastAutoSavedAt = ref('')
+const autoSaveError = ref('')
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null
 
 /** C5：保存冲突状态（顶部提示条，不再用弹窗打断编辑现场） */
@@ -161,6 +230,12 @@ const publishResult = reactive({
   version: 1,
   componentCount: 0,
   path: '',
+})
+const publishCheck = reactive({
+  visible: false,
+  warnings: [] as string[],
+  blocking: [] as string[],
+  publishing: false,
 })
 
 function isConflictError(err: any): boolean {
@@ -203,6 +278,18 @@ function createFallbackHomePage(id: number): PageRecord {
   }
 }
 
+/** 草稿接口返回 PageVersionDTO，不能把版本记录 id 覆盖成页面 id */
+function syncSavedDraftVersion(saved: any) {
+  if (!pageStore.currentPage || !saved) return
+  const version = Number(saved.version ?? pageStore.currentPage.currentVersion ?? pageStore.currentPage.version ?? 0)
+  pageStore.currentPage = {
+    ...pageStore.currentPage,
+    id: Number(saved.pageId ?? pageStore.currentPage.id),
+    currentVersion: version,
+    version,
+  }
+}
+
 /** 返回列表 */
 async function handleBack() {
   if (pageStore.isDirty) {
@@ -227,16 +314,19 @@ async function handleSaveDraft() {
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
     conflict.visible = false
+    autoSaveError.value = ''
     // 保存成功后同步最新版本号，避免下次保存触发冲突
     if (res.data) {
-      pageStore.currentPage = { ...pageStore.currentPage, ...(res.data as PageRecord) }
+      syncSavedDraftVersion(res.data)
     }
     ElMessage.success('草稿保存成功')
   } catch (err: any) {
     if (isConflictError(err)) {
       conflict.visible = true
     } else {
-      ElMessage.error('保存失败')
+      const message = err?.response?.data?.message || err?.message || '未知错误'
+      autoSaveError.value = '自动保存失败'
+      ElMessage.error(`保存失败：${message}`)
     }
   } finally {
     pageStore.saving = false
@@ -250,15 +340,18 @@ async function performAutoSave() {
     const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
+    autoSaveError.value = ''
     if (res.data) {
-      pageStore.currentPage = { ...pageStore.currentPage, ...(res.data as PageRecord) }
+      syncSavedDraftVersion(res.data)
     }
     lastAutoSavedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })
   } catch (err: any) {
     if (isConflictError(err)) {
       conflict.visible = true
+      autoSaveError.value = '自动保存冲突'
+    } else {
+      autoSaveError.value = '自动保存失败，请手动重试'
     }
-    // 自动保存的非冲突失败静默忽略，避免频繁打扰；用户仍可手动保存重试
   }
 }
 
@@ -309,8 +402,17 @@ function validateBeforePublish(): string[] {
   for (const comp of components) {
     const compWarnings = validateComponent(comp.type, comp.props)
     warnings.push(...compWarnings)
+    if (comp.type === 'product_list' && !comp.props.data_source) {
+      warnings.push('商品列表未配置真实数据源，发布后该区域可能为空')
+    }
+    if (comp.type === 'article_list' && !comp.props.data_source) {
+      warnings.push('文章列表未配置真实数据源，发布后该区域可能为空')
+    }
+    if (comp.type === 'form_entry' && !(comp.props.formId || comp.props.formTemplateId)) {
+      warnings.push('表单入口未关联表单')
+    }
   }
-  return warnings
+  return [...new Set(warnings)]
 }
 
 /** 发布 */
@@ -318,48 +420,37 @@ async function handlePublish() {
   if (!pageStore.currentPage) return
   if (pageStore.isDirty) {
     try {
-      await ElMessageBox.confirm('页面有未保存的修改，是否先保存再发布？', '提示', {
-        confirmButtonText: '保存并发布',
-        cancelButtonText: '取消',
-        type: 'warning',
-      })
+      pageStore.saving = true
       const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
       const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
       pageStore.isDirty = false
+      autoSaveError.value = ''
       if (res.data) {
-        pageStore.currentPage = { ...pageStore.currentPage, ...(res.data as PageRecord) }
+        syncSavedDraftVersion(res.data)
       }
     } catch (err: any) {
       if (isConflictError(err)) {
         conflict.visible = true
+      } else {
+        autoSaveError.value = '保存失败，暂时无法发布'
+        ElMessage.error(`保存失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
       }
       return
+    } finally {
+      pageStore.saving = false
     }
   }
 
-  // 发布前预检：占位内容未替换 / 小程序端不支持渲染 均为阻断级问题，不能仅提示
   const warnings = validateBeforePublish()
-  const blocking = warnings.filter((w) => w.includes('占位') || w.includes('不支持'))
-  if (blocking.length > 0) {
-    ElMessage.error(`发布被拦截：${blocking.join('；')}`)
-    return
-  }
-  if (warnings.length > 0) {
-    try {
-      await ElMessageBox.confirm(
-        `发现以下问题，发布后可能影响小程序展示效果：\n\n${warnings.map((w) => `• ${w}`).join('\n')}\n\n确定继续发布？`,
-        '发布前检查',
-        {
-          confirmButtonText: '忽略并发布',
-          cancelButtonText: '返回修改',
-          type: 'warning',
-        },
-      )
-    } catch {
-      return
-    }
-  }
+  const blocking = warnings.filter((w) => w.includes('占位') || w.includes('不支持') || w.includes('未关联表单'))
+  publishCheck.warnings = warnings
+  publishCheck.blocking = blocking
+  publishCheck.visible = true
+}
 
+async function executePublish() {
+  if (!pageStore.currentPage || publishCheck.blocking.length > 0) return
+  publishCheck.publishing = true
   try {
     const res = await publishPage(pageStore.currentPage.id)
     const published = res.data as PageRecord | undefined
@@ -367,10 +458,13 @@ async function handlePublish() {
     publishResult.version = published?.currentVersion ?? published?.version ?? (pageStore.currentPage.currentVersion ?? pageStore.currentPage.version ?? 1)
     publishResult.componentCount = pageStore.components.length
     publishResult.path = pageStore.currentPage.path || pageStore.pageConfig.path || ''
+    publishCheck.visible = false
     publishResult.visible = true
     await loadPage()
-  } catch {
-    ElMessage.error('发布失败')
+  } catch (err: any) {
+    ElMessage.error(`发布失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
+  } finally {
+    publishCheck.publishing = false
   }
 }
 
@@ -526,17 +620,17 @@ onBeforeUnmount(() => {
   bottom: 0;
   z-index: 1000;
   overflow: hidden;
-  background: #eaedf5;
+  background: #f1f3f7;
 
   .editor-body {
     display: flex;
     height: 100vh;
     overflow: hidden;
-    background: #eaedf5;
+    background: #f1f3f7;
 
     .editor-left {
-      width: 210px;
-      min-width: 210px;
+      width: 224px;
+      min-width: 224px;
       flex-shrink: 0;
       overflow: hidden;
     }
@@ -547,12 +641,12 @@ onBeforeUnmount(() => {
       align-items: center;
       flex: 1;
       overflow-y: auto;
-      padding: 14px;
+      padding: 0 14px 14px;
     }
 
     .editor-right {
-      width: 265px;
-      min-width: 265px;
+      width: 360px;
+      min-width: 360px;
       flex-shrink: 0;
       overflow: hidden;
     }
@@ -567,9 +661,13 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 16px;
+  min-height: 58px;
+  padding: 9px 14px;
   background: #fff;
-  border-bottom: 1px solid #e3e8f0;
+  border: 1px solid #e3e8f0;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
   gap: 8px;
 }
 
@@ -613,6 +711,11 @@ onBeforeUnmount(() => {
   background: var(--success-soft);
   border: 1px solid var(--success);
   border-radius: 6px;
+}
+
+.autosave-error {
+  color: var(--danger);
+  font-size: 12px;
 }
 
 /* C5：保存冲突提示条 */
@@ -684,5 +787,94 @@ onBeforeUnmount(() => {
   line-height: 1.6;
   background: var(--bg-page);
   border-radius: var(--radius);
+}
+
+.publish-check-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0 18px;
+}
+
+.publish-check-score {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: #16a34a;
+  font-size: 24px;
+  background: #dcfce7;
+  border-radius: 14px;
+  place-items: center;
+
+  &.has-blocking {
+    color: #dc2626;
+    background: #fee2e2;
+  }
+}
+
+.publish-check-title {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.publish-check-desc {
+  margin-top: 3px;
+  color: #7b8798;
+  font-size: 12px;
+}
+
+.publish-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  color: #d97706;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+
+  > .el-icon {
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  b {
+    color: #172033;
+    font-size: 12px;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  &.is-success {
+    color: #16a34a;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+
+  &.is-error {
+    color: #dc2626;
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
 }
 </style>

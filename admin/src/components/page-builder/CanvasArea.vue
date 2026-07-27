@@ -1,5 +1,9 @@
 <template>
   <div class="prototype-canvas">
+    <div class="canvas-meta">
+      <span class="canvas-meta__title">编辑画布</span>
+      <span class="canvas-meta__device">手机 · 375 × 812</span>
+    </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap" :style="{ width: PHONE_WIDTH * zoom + 'px', height: PHONE_HEIGHT * zoom + 'px' }">
       <div class="phone" :style="{ transform: `scale(${zoom})` }">
@@ -67,6 +71,7 @@
         @click="zoom = level"
       >{{ Math.round(level * 100) }}%</button>
     </div>
+    <div class="canvas-shortcuts">Delete 删除 · ⌘D 复制 · ⌘Z 撤销</div>
   </div>
 </template>
 
@@ -216,7 +221,29 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding: 14px 0 52px;
+  padding: 18px 0 52px;
+}
+
+.canvas-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, 520px);
+  margin-bottom: 16px;
+  color: #7b8798;
+  font-size: 12px;
+}
+
+.canvas-meta__title {
+  color: #334155;
+  font-weight: 700;
+}
+
+.canvas-meta__device {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dbe2ec;
+  border-radius: 999px;
 }
 
 .phone-scale-wrap {
@@ -231,7 +258,7 @@ onBeforeUnmount(() => {
   border-radius: 36px;
   box-shadow:
     0 0 0 9px #111827,
-    0 28px 60px rgba(0, 0, 0, 0.3);
+    0 24px 54px rgba(15, 23, 42, 0.22);
   transform-origin: top center;
   transition: transform 0.15s ease;
 }
@@ -239,7 +266,9 @@ onBeforeUnmount(() => {
 /* B5：缩放档位控制条，吸附在编辑区底部，随滚动保持可见 */
 .zoom-controls {
   position: sticky;
-  bottom: 10px;
+  bottom: 14px;
+  align-self: flex-end;
+  margin-right: 18px;
   display: flex;
   gap: 2px;
   margin-top: 10px;
@@ -248,6 +277,15 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border, #e3e8f0);
   border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.12));
+}
+
+.canvas-shortcuts {
+  position: sticky;
+  bottom: 18px;
+  align-self: flex-start;
+  margin: -34px 0 0 18px;
+  color: #94a3b8;
+  font-size: 11px;
 }
 
 .zoom-btn {

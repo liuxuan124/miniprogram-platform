@@ -3,13 +3,20 @@
 
   <!-- 顶部操作栏 -->
   <view class="chat-header">
+    <view class="chat-header__brand">
+      <view class="chat-header__logo">✦</view>
+      <view>
+        <text class="chat-header__title">AI 出海助手</text>
+        <text class="chat-header__status">在线 · 随时为你解答</text>
+      </view>
+    </view>
     <view class="chat-header__btn" bindtap="onViewHistory">
       <text class="chat-header__icon">&#xe60a;</text>
       <text class="chat-header__label">历史</text>
     </view>
     <view class="chat-header__btn" bindtap="onNewChat">
       <text class="chat-header__icon">&#xe60b;</text>
-      <text class="chat-header__label">新对话</text>
+      <text class="chat-header__label">新建</text>
     </view>
   </view>
 

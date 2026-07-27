@@ -93,10 +93,10 @@ Page({
   _loadCategories() {
     productService.getCategoryList()
       .then((list) => {
-        this.setData({ categories: [{ id: '', name: '全部' }].concat(list || []) })
+        this.setData({ categories: list || [] })
       })
       .catch(() => {
-        this.setData({ categories: [{ id: '', name: '全部' }] })
+        this.setData({ categories: [] })
       })
   },
 

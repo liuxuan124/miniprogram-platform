@@ -76,27 +76,31 @@ const componentStyle = computed(() => {
 .component-item {
   position: relative;
   cursor: pointer;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, transform 0.15s;
 }
 .component-item:hover {
-  box-shadow: inset 0 0 0 2px rgba(23, 105, 255, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(23, 105, 255, 0.45);
 }
 .component-item.selected {
-  box-shadow: inset 0 0 0 2px #1769ff;
+  z-index: 2;
+  box-shadow: inset 0 0 0 2px #1769ff, 0 6px 18px rgba(23, 105, 255, 0.12);
 }
 .component-toolbar {
   position: absolute;
-  top: -32px;
-  left: 0;
-  right: 0;
-  height: 32px;
-  background: #1769ff;
-  border-radius: 6px 6px 0 0;
+  top: 5px;
+  left: 6px;
+  right: 6px;
+  height: 30px;
+  background: rgba(23, 32, 51, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 8px;
-  z-index: 10;
+  z-index: 20;
+  backdrop-filter: blur(6px);
 }
 .toolbar-label {
   color: #fff;

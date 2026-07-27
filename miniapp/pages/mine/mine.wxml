@@ -1,6 +1,12 @@
 <!-- pages/mine/mine.wxml — 极简我的页 -->
 <view class="mine-page">
+  <view class="mine-head">
+    <text class="mine-head__eyebrow">PERSONAL CENTER</text>
+    <text class="mine-head__title">我的出海空间</text>
+  </view>
+
   <view class="m-hero" bindtap="onUserAreaTap">
+    <view class="m-hero__orb"></view>
     <image
       class="av"
       src="{{isLoggedIn && userInfo.avatarUrl ? userInfo.avatarUrl : '/images/default-avatar.svg'}}"
@@ -36,23 +42,27 @@
     </view>
   </view>
 
+  <view class="section-head">
+    <text>常用服务</text>
+    <text class="section-head__sub">订单与内容资产</text>
+  </view>
   <view class="m-quick">
     <view class="q" data-key="pending_payment" bindtap="onOrderTabTap">
-      <view class="ic">付</view>
+      <view class="ic ic--blue">◫</view>
       <view class="n">待付款</view>
       <view class="bg" wx:if="{{badges.pending}}">{{badges.pending}}</view>
     </view>
     <view class="q" bindtap="goLibrary">
-      <view class="ic">库</view>
+      <view class="ic ic--green">▤</view>
       <view class="n">已购资料</view>
     </view>
     <view class="q" bindtap="goAppointments">
-      <view class="ic">约</view>
+      <view class="ic ic--orange">◷</view>
       <view class="n">我的预约</view>
       <view class="bg" wx:if="{{badges.appoint}}">{{badges.appoint}}</view>
     </view>
     <view class="q" bindtap="goWriteReview">
-      <view class="ic">评</view>
+      <view class="ic ic--purple">☆</view>
       <view class="n">待评价</view>
       <view class="bg" wx:if="{{badges.review}}">{{badges.review}}</view>
     </view>
@@ -63,6 +73,10 @@
     <text class="go">去查看</text>
   </view>
 
+  <view class="section-head section-head--menu">
+    <text>更多功能</text>
+    <text class="section-head__sub">管理你的账户与服务</text>
+  </view>
   <view class="m-list">
     <view
       wx:for="{{visibleMenuList}}"
@@ -73,6 +87,7 @@
       data-title="{{item.title}}"
       bindtap="onMenuTap"
     >
+      <text class="menu-icon">{{item.icon || '•'}}</text>
       <text class="n">{{item.title}}</text>
       <text class="ar">›</text>
     </view>

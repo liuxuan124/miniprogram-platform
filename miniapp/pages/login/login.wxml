@@ -1,7 +1,5 @@
 <!--pages/login/login.wxml-->
 <view class="page">
-  <view class="page__glow"></view>
-
   <view class="nav safe-top">
     <view class="nav__back" bindtap="onBack" hover-class="is-active">
       <text class="nav__back-icon">‹</text>
@@ -10,89 +8,102 @@
 
   <view class="body">
     <view class="hero">
-      <text class="hero__brand">出海笔记</text>
-      <text class="hero__desc">跨境干货 · 知识商品 · 会员权益</text>
+      <text class="hero__brand">登录出海笔记</text>
+      <text class="hero__desc">同步你的订单、资料和会员权益</text>
       <view class="hero__tip" wx:if="{{interceptAction}}">
         <text class="hero__tip-text">登录后可{{interceptAction}}</text>
       </view>
     </view>
 
-    <view class="profile">
-      <button
-        class="avatar"
-        open-type="chooseAvatar"
-        bindchooseavatar="onChooseAvatar"
-        hover-class="is-active"
-      >
-        <view class="avatar__ring {{avatarUrl ? 'avatar__ring--on' : ''}}">
-          <image
-            class="avatar__img"
-            src="{{avatarUrl || '/images/default-avatar.svg'}}"
-            mode="aspectFill"
-          />
-        </view>
-        <view class="avatar__badge">
-          <text class="avatar__badge-text">{{avatarUrl ? '已选' : '微信头像'}}</text>
-        </view>
-      </button>
-
-      <view class="nickname {{nickName ? 'nickname--done' : 'nickname--todo'}}">
-        <text class="nickname__label">微信昵称</text>
-        <view class="nickname__box">
-          <input
-            class="nickname__input"
-            type="nickname"
-            maxlength="20"
-            placeholder="点击此处获取微信昵称"
-            placeholder-class="nickname__ph"
-            value="{{nickName}}"
-            bindinput="onNicknameInput"
-            bindblur="onNicknameBlur"
-            bindfocus="onNicknameFocus"
-            bindnicknamereview="onNicknameReview"
-          />
-          <text class="nickname__tag">{{nickName ? '已获取' : '去获取'}}</text>
-        </view>
-        <text class="nickname__hint">点击输入框后，在底部点「用微信昵称」即可一键填入</text>
-      </view>
-    </view>
-
-    <view class="spacer"></view>
-
-    <view class="action">
-      <view class="agree" bindtap="onTogglePrivacy">
-        <view class="agree__box {{agreePrivacy ? 'agree__box--on' : ''}}">
-          <text wx:if="{{agreePrivacy}}" class="agree__tick">✓</text>
-        </view>
-        <view class="agree__copy">
-          <text class="agree__plain">我已阅读并同意</text>
-          <text class="agree__link" catchtap="onViewTerms">《用户协议》</text>
-          <text class="agree__plain">和</text>
-          <text class="agree__link" catchtap="onViewPrivacy">《隐私政策》</text>
+    <view class="login-card">
+      <view class="card-head">
+        <view>
+          <text class="card-head__title">使用微信账号登录</text>
         </view>
       </view>
 
-      <button
-        wx:if="{{canSubmit}}"
-        class="cta"
-        open-type="getPhoneNumber"
-        bindgetphonenumber="onOneTapLogin"
-        loading="{{loading}}"
-        disabled="{{loading}}"
-      >
-        微信手机号一键登录
-      </button>
-      <button
-        wx:else
-        class="cta"
-        bindtap="onPrecheckLogin"
-        loading="{{loading}}"
-        disabled="{{loading}}"
-      >
-        微信手机号一键登录
-      </button>
+      <view class="profile">
+        <view class="profile__row">
+          <button
+            class="avatar"
+            open-type="chooseAvatar"
+            bindchooseavatar="onChooseAvatar"
+            hover-class="is-active"
+          >
+            <view class="avatar__ring {{avatarUrl ? 'avatar__ring--on' : ''}}">
+              <image
+                class="avatar__img"
+                src="{{avatarUrl || '/images/default-avatar.svg'}}"
+                mode="aspectFill"
+              />
+            </view>
+          </button>
+          <view class="profile__copy">
+            <text class="profile__title">头像</text>
+            <text class="profile__desc">{{avatarUrl ? '已使用微信头像' : '使用你的微信头像'}}</text>
+          </view>
+          <text class="profile__status {{avatarUrl ? 'is-done' : ''}}">{{avatarUrl ? '更换' : '选择'}}</text>
+        </view>
 
-      <text class="action__note">将同步获取微信头像、昵称与手机号</text>
+        <view class="nickname {{nickName ? 'nickname--done' : 'nickname--todo'}}">
+          <text class="nickname__label">昵称</text>
+          <view class="nickname__box">
+            <input
+              class="nickname__input"
+              type="nickname"
+              maxlength="20"
+              placeholder="使用微信昵称"
+              placeholder-class="nickname__ph"
+              value="{{nickName}}"
+              bindinput="onNicknameInput"
+              bindblur="onNicknameBlur"
+              bindfocus="onNicknameFocus"
+              bindnicknamereview="onNicknameReview"
+            />
+            <text class="nickname__tag">{{nickName ? '更换' : '获取'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="card-divider"></view>
+
+      <view class="action">
+        <view class="agree" bindtap="onTogglePrivacy">
+          <view class="agree__box {{agreePrivacy ? 'agree__box--on' : ''}}">
+            <text wx:if="{{agreePrivacy}}" class="agree__tick">✓</text>
+          </view>
+          <view class="agree__copy">
+            <text class="agree__plain">我已阅读并同意</text>
+            <text class="agree__link" catchtap="onViewTerms">《用户协议》</text>
+            <text class="agree__plain">和</text>
+            <text class="agree__link" catchtap="onViewPrivacy">《隐私政策》</text>
+          </view>
+        </view>
+
+        <button
+          wx:if="{{canSubmit}}"
+          class="cta {{loading ? 'cta--disabled' : ''}}"
+          open-type="getPhoneNumber"
+          bindgetphonenumber="onOneTapLogin"
+          loading="{{loading}}"
+          disabled="{{loading}}"
+        >
+          微信手机号一键登录
+        </button>
+        <button
+          wx:else
+          class="cta {{loading ? 'cta--disabled' : ''}}"
+          bindtap="onPrecheckLogin"
+          loading="{{loading}}"
+          disabled="{{loading}}"
+        >
+          微信手机号一键登录
+        </button>
+
+        <view class="trust-note">
+          <text>🔒 信息仅用于登录，不会公开手机号</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

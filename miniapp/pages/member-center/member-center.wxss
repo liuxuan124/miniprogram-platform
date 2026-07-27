@@ -1,17 +1,17 @@
 .member-center {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg);
   padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
 }
 
 /* 会员卡片 */
 .member-card {
   position: relative;
-  margin: 20rpx;
-  border-radius: 20rpx;
+  margin: 20rpx 24rpx;
+  border-radius: 32rpx;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f2150, #1769ff);
-  box-shadow: 0 8rpx 30rpx rgba(23, 105, 255, 0.3);
+  background: linear-gradient(135deg, #152443, #315efb);
+  box-shadow: 0 20rpx 46rpx rgba(36, 70, 175, 0.22);
 }
 
 .card-bg {
@@ -119,10 +119,12 @@
 
 /* 升级进度 */
 .upgrade-section {
-  margin: 20rpx;
+  margin: 20rpx 24rpx;
   padding: 30rpx;
   background: #fff;
-  border-radius: 16rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 26rpx;
+  box-shadow: var(--sh1);
 }
 
 .upgrade-levels {
@@ -140,14 +142,14 @@
 
 .upgrade-arrow {
   font-size: 28rpx;
-  color: #1769ff;
+  color: var(--brand);
   margin: 0 16rpx;
   font-weight: 700;
 }
 
 .upgrade-next {
   font-size: 28rpx;
-  color: #1769ff;
+  color: var(--brand);
   font-weight: 600;
 }
 
@@ -167,14 +169,14 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #1769ff, #4d8cff);
+  background: linear-gradient(90deg, var(--brand), #6386ff);
   border-radius: 8rpx;
   transition: width 0.3s ease;
 }
 
 .progress-percent {
   font-size: 24rpx;
-  color: #1769ff;
+  color: var(--brand);
   font-weight: 600;
   margin-left: 16rpx;
   min-width: 70rpx;
@@ -195,10 +197,12 @@
 
 /* 签到 */
 .sign-in-section {
-  margin: 20rpx;
+  margin: 20rpx 24rpx;
   padding: 30rpx;
   background: #fff;
-  border-radius: 16rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 26rpx;
+  box-shadow: var(--sh1);
 }
 
 .section-header {

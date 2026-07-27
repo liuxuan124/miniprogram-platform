@@ -2,7 +2,7 @@
 
 .content-detail-page {
   min-height: 100vh;
-  background: #f7f8fc;
+  background: var(--bg);
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
 
@@ -89,7 +89,7 @@
   margin-left: auto;
   font-size: 24rpx;
   color: #fff;
-  background: #2f5bff;
+  background: var(--brand);
   padding: 12rpx 28rpx;
   border-radius: 999rpx;
   font-weight: 600;
@@ -212,7 +212,7 @@
 
 .progress {
   height: 6rpx;
-  background: #2f5bff;
+  background: var(--brand);
   border-radius: 0 4rpx 4rpx 0;
   transition: width 0.1s ease-out;
 }
@@ -265,7 +265,7 @@
 }
 
 .tag-comp {
-  --td-tag-primary-light-color: #2f5bff;
+  --td-tag-primary-light-color: #315efb;
   --td-tag-primary-light-background-color: rgba(47, 91, 255, 0.08);
 }
 
@@ -333,7 +333,8 @@
   justify-content: space-around;
   padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.96);
-  border-top: 1rpx solid #edeff4;
+  border-top: 1rpx solid var(--line);
+  box-shadow: 0 -10rpx 30rpx rgba(30, 49, 91, 0.07);
   z-index: 40;
 }
 

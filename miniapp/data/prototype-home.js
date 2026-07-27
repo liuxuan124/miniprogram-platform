@@ -20,8 +20,8 @@ const TOPIC_NAME = {
 }
 
 function artStyle(topic) {
-  // 极简：统一浅灰底，避免彩色渐变噪声
-  return 'background-color:#f3f3f3;'
+  const colors = ART[topic] || ART.select
+  return `background:linear-gradient(135deg,${colors[0]} 0%,${colors[1]} 100%);`
 }
 
 const ITEMS = [
