@@ -3,7 +3,7 @@ package com.miniprogram.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
-import com.miniprogram.config.WxPayProperties;
+import com.miniprogram.config.WxPayRuntimeConfig;
 import com.miniprogram.dto.WxPayResponse;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Payment;
@@ -11,6 +11,7 @@ import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.PaymentService;
+import com.miniprogram.service.WxPayConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -20,7 +21,6 @@ import com.miniprogram.support.WxPayNotifyCrypto;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -35,7 +35,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
-    private final WxPayProperties wxPayProperties;
+    private final WxPayConfigService wxPayConfigService;
     private final WxPayNotifyCrypto wxPayNotifyCrypto;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -50,7 +50,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (!"pending_payment".equals(order.getStatus())) {
             throw new BusinessException(600201, "订单状态错误，无法支付");
         }
-        validatePaymentConfig();
+        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         // 查找支付记录
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
@@ -62,13 +62,13 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
         try {
             // 微信支付V3统一下单
-            String prepayId = callWxUnifiedOrder(order, payment);
+            String prepayId = callWxUnifiedOrder(order, payment, payConfig);
 
             // 构造小程序支付参数
             WxPayResponse response = new WxPayResponse();
             response.setOrderNo(order.getOrderNo());
             response.setPrepayId(prepayId);
-            response.setAppId(wxPayProperties.getAppId());
+            response.setAppId(payConfig.appId());
             response.setTimeStamp(String.valueOf(System.currentTimeMillis() / 1000));
             response.setNonceStr(UUID.randomUUID().toString().replace("-", "").substring(0, 32));
             response.setSignType("RSA");
@@ -78,7 +78,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
                     + response.getTimeStamp() + "\n"
                     + response.getNonceStr() + "\n"
                     + "prepay_id=" + prepayId + "\n";
-            response.setPaySign(signWithRSA(signStr));
+            response.setPaySign(wxPayConfigService.sign(signStr, payConfig));
 
             return response;
         } catch (BusinessException e) {
@@ -188,15 +188,15 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
     // ==================== 微信支付V3 API ====================
 
-    private String callWxUnifiedOrder(Order order, Payment payment) throws Exception {
+    private String callWxUnifiedOrder(Order order, Payment payment, WxPayRuntimeConfig payConfig) throws Exception {
         String url = "https://api.mch.weixin.qq.com/v3/pay/transactions/jsapi";
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("appid", wxPayProperties.getAppId());
-        body.put("mchid", wxPayProperties.getMchId());
+        body.put("appid", payConfig.appId());
+        body.put("mchid", payConfig.mchId());
         body.put("description", "订单-" + order.getOrderNo());
         body.put("out_trade_no", order.getOrderNo());
-        body.put("notify_url", wxPayProperties.getNotifyUrl());
+        body.put("notify_url", payConfig.notifyUrl());
 
         Map<String, Object> amount = new LinkedHashMap<>();
         amount.put("total", order.getPayAmount().multiply(java.math.BigDecimal.valueOf(100)).intValue()); // 分
@@ -214,7 +214,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         String requestBody = objectMapper.writeValueAsString(body);
 
         // 构造认证头
-        String authorization = buildAuthorization("POST", "/v3/pay/transactions/jsapi", requestBody);
+        String authorization = buildAuthorization("POST", "/v3/pay/transactions/jsapi", requestBody, payConfig);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -233,7 +233,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         }
     }
 
-    private String buildAuthorization(String method, String urlPath, String body) throws Exception {
+    private String buildAuthorization(String method, String urlPath, String body, WxPayRuntimeConfig payConfig) {
         String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
         String nonceStr = UUID.randomUUID().toString().replace("-", "").substring(0, 32);
 
@@ -243,42 +243,13 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
                 + nonceStr + "\n"
                 + body + "\n";
 
-        String signature = signWithRSA(signMessage);
+        String signature = wxPayConfigService.sign(signMessage, payConfig);
 
         return "WECHATPAY2-SHA256-RSA2048 "
-                + "mchid=\"" + wxPayProperties.getMchId() + "\","
+                + "mchid=\"" + payConfig.mchId() + "\","
                 + "nonce_str=\"" + nonceStr + "\","
                 + "timestamp=\"" + timestamp + "\","
-                + "serial_no=\"" + wxPayProperties.getCertSerialNo() + "\","
+                + "serial_no=\"" + payConfig.certSerialNo() + "\","
                 + "signature=\"" + signature + "\"";
-    }
-
-    private void validatePaymentConfig() {
-        if (!StringUtils.hasText(wxPayProperties.getAppId())
-                || !StringUtils.hasText(wxPayProperties.getMchId())
-                || !StringUtils.hasText(wxPayProperties.getCertSerialNo())
-                || !StringUtils.hasText(wxPayProperties.getPrivateKey())
-                || !StringUtils.hasText(wxPayProperties.getApiV3Key())
-                || !StringUtils.hasText(wxPayProperties.getNotifyUrl())
-                || wxPayProperties.getAppId().startsWith("your-")
-                || wxPayProperties.getMchId().startsWith("your-")) {
-            throw new BusinessException(700503, "微信支付尚未完成商户配置");
-        }
-    }
-
-    private String signWithRSA(String message) throws Exception {
-        String privateKey = wxPayProperties.getPrivateKey()
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s+", "");
-
-        byte[] keyBytes = Base64.getDecoder().decode(privateKey);
-        java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("RSA");
-        java.security.PrivateKey privKey = keyFactory.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(keyBytes));
-
-        java.security.Signature signature = java.security.Signature.getInstance("SHA256withRSA");
-        signature.initSign(privKey);
-        signature.update(message.getBytes(StandardCharsets.UTF_8));
-        return Base64.getEncoder().encodeToString(signature.sign());
     }
 }

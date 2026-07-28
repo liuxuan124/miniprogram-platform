@@ -173,15 +173,15 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="API 证书" prop="certFile">
+              <el-form-item label="商户API私钥">
                 <div class="cert-upload-wrapper">
                   <el-upload
                     :show-file-list="false"
                     :before-upload="beforeCertUpload"
                     :http-request="handleCertUpload"
-                    accept=".p12,.pem"
+                    accept=".p12,.pem,.key"
                   >
-                    <el-button icon="Upload">上传证书</el-button>
+                    <el-button icon="Upload">上传私钥</el-button>
                   </el-upload>
                   <el-tag
                     v-if="payFormData.certUploaded"
@@ -193,7 +193,9 @@
                     <el-icon style="vertical-align: middle; margin-right: 2px"><CircleCheck /></el-icon>
                     已上传
                   </el-tag>
-                  <span v-else style="margin-left: 8px; font-size: 12px; color: #909399">支持 .p12 / .pem 格式</span>
+                  <span v-else style="margin-left: 8px; font-size: 12px; color: #909399">
+                    支持 apiclient_key.pem/.key，或密码为商户号的 .p12
+                  </span>
                 </div>
               </el-form-item>
             </el-col>
@@ -208,7 +210,9 @@
           </el-form-item>
 
           <div class="pay-actions">
-            <el-button icon="MagicStick" @click="handleTestPay">测试支付</el-button>
+            <el-button icon="MagicStick" :loading="payTesting" @click="handleTestPay">
+              {{ payTesting ? '验证中...' : '验证支付配置' }}
+            </el-button>
           </div>
         </template>
       </el-form>
@@ -341,7 +345,13 @@
 import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
-import { getConfigsSilent, updateConfigs, uploadFile } from '@/api/system'
+import {
+  getConfigsSilent,
+  testWxPayConfig,
+  updateConfigs,
+  uploadFile,
+  uploadWxPayPrivateKey,
+} from '@/api/system'
 import {
   applyConfigListToForm,
   extractConfigList,
@@ -404,6 +414,7 @@ const formRules: FormRules = {
 // ==================== 微信支付配置 ====================
 
 const paySaving = ref(false)
+const payTesting = ref(false)
 const paySaved = ref(false)
 const payFormRef = ref<FormInstance>()
 
@@ -568,8 +579,8 @@ async function handleSave() {
 /** 证书上传前校验 */
 function beforeCertUpload(file: File) {
   const ext = file.name.split('.').pop()?.toLowerCase()
-  if (ext !== 'p12' && ext !== 'pem') {
-    ElMessage.error('仅支持 .p12 和 .pem 格式的证书文件')
+  if (!['p12', 'pem', 'key'].includes(ext || '')) {
+    ElMessage.error('仅支持 .p12、.pem 或 .key 商户私钥')
     return false
   }
   return true
@@ -578,11 +589,12 @@ function beforeCertUpload(file: File) {
 /** 上传证书 */
 async function handleCertUpload(options: UploadRequestOptions) {
   try {
-    await uploadFile(options.file)
+    const res = await uploadWxPayPrivateKey(options.file, payFormData.mchId)
     payFormData.certUploaded = true
-    ElMessage.success('证书上传成功')
+    if (res.data.certSerialNo) payFormData.certSerialNo = res.data.certSerialNo
+    ElMessage.success('商户API私钥已写入支付配置')
   } catch {
-    ElMessage.error('证书上传失败')
+    // 请求层会展示私钥格式或 p12 密码错误原因
   }
 }
 
@@ -615,9 +627,34 @@ async function handleSavePay() {
 }
 
 /** 测试支付 */
-function handleTestPay() {
-  const env = payFormData.payEnv === 'sandbox' ? '沙盒' : '生产'
-  ElMessage.info(`[${env}] 模拟支付 ¥0.01 成功，回调 200 OK`)
+async function handleTestPay() {
+  const valid = payFormData.enablePayment
+    ? await payFormRef.value?.validate().catch(() => false)
+    : false
+  if (!valid) {
+    ElMessage.warning('请先启用支付并填写必填配置')
+    return
+  }
+
+  payTesting.value = true
+  try {
+    const configItems = Object.entries(payFormData)
+      .filter(([key, value]) => key !== 'certUploaded' && !shouldSkipSensitiveSave(key, value))
+      .map(([key, value]) => ({
+        configKey: FORM_TO_DB_KEY[key] || key,
+        configValue: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
+        configGroup: 'wechat',
+        description: `pay_${key}`,
+      }))
+    await updateConfigs(configItems)
+    const res = await testWxPayConfig()
+    ElMessage.success(res.data.message || '微信支付配置验证通过')
+    paySaved.value = true
+  } catch {
+    // 请求层会展示后端返回的具体校验原因
+  } finally {
+    payTesting.value = false
+  }
 }
 
 /** 保存物流设置 */

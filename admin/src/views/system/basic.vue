@@ -144,12 +144,12 @@
                   </el-form-item>
                 </div>
 
-                <el-form-item label="API证书">
+                <el-form-item label="商户API私钥">
                   <div class="cert-upload-row">
-                    <el-upload :show-file-list="false" :before-upload="beforeCertUpload" :http-request="handleCertUpload" accept=".p12,.pem">
-                      <el-button icon="Upload" size="small">上传证书文件</el-button>
+                    <el-upload :show-file-list="false" :before-upload="beforeCertUpload" :http-request="handleCertUpload" accept=".p12,.pem,.key">
+                      <el-button icon="Upload" size="small">上传私钥文件</el-button>
                     </el-upload>
-                    <span class="upload-hint">支持 .p12 / .pem 格式</span>
+                    <span class="upload-hint">支持 apiclient_key.pem/.key，或密码为商户号的 .p12</span>
                     <el-tag v-if="paymentForm.certUploaded" type="success" size="small" effect="light">
                       <el-icon><CircleCheck /></el-icon> 已上传
                     </el-tag>
@@ -157,7 +157,9 @@
                 </el-form-item>
 
                 <div class="action-bar">
-                  <el-button icon="MagicStick" size="small" @click="handleTestPay">测试支付</el-button>
+                  <el-button icon="MagicStick" size="small" :loading="payTesting" @click="handleTestPay">
+                    {{ payTesting ? '验证中...' : '验证支付配置' }}
+                  </el-button>
                   <el-button type="primary" size="small" :loading="paySaving" :class="{ 'btn-saved': paySaved }" @click="handleSavePayment">
                     {{ paySaved ? '✓ 已保存' : '保存支付配置' }}
                   </el-button>
@@ -425,7 +427,14 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 import { Refresh, CircleCheck, ShoppingCart, Document, Promotion } from '@element-plus/icons-vue'
-import { getConfigsSilent, saveUploadKey, updateConfigs, uploadFile } from '@/api/system'
+import {
+  getConfigsSilent,
+  saveUploadKey,
+  testWxPayConfig,
+  updateConfigs,
+  uploadFile,
+  uploadWxPayPrivateKey,
+} from '@/api/system'
 import {
   applyConfigListToForm,
   extractConfigList,
@@ -444,6 +453,7 @@ const isLocalAdmin = computed(() => {
   return import.meta.env.DEV || host === 'localhost' || host === '127.0.0.1'
 })
 const paySaving = ref(false)
+const payTesting = ref(false)
 const paySaved = ref(false)
 const pluginSaving = ref(false)
 const pluginSaved = ref(false)
@@ -832,9 +842,26 @@ async function handleSavePayment() {
   }
 }
 
-function handleTestPay() {
-  const env = paymentForm.payEnv === 'production' ? '生产' : '沙盒'
-  ElMessage.success(`[${env}环境] 模拟支付 ¥0.01 成功`)
+async function handleTestPay() {
+  const valid = paymentForm.enablePayment
+    ? await payFormRef.value?.validate().catch(() => false)
+    : false
+  if (!valid) {
+    ElMessage.warning('请先启用支付并填写必填配置')
+    return
+  }
+
+  payTesting.value = true
+  try {
+    await saveGroup('wechat', '支付配置', paymentForm as unknown as Record<string, unknown>)
+    const res = await testWxPayConfig()
+    ElMessage.success(res.data.message || '微信支付配置验证通过')
+    paySaved.value = true
+  } catch {
+    // 请求层会展示后端返回的具体校验原因
+  } finally {
+    payTesting.value = false
+  }
 }
 
 function handleSavePlugins() {
@@ -902,8 +929,8 @@ async function handleLogoUpload(options: UploadRequestOptions) {
 
 function beforeCertUpload(file: File) {
   const ext = file.name.split('.').pop()?.toLowerCase()
-  if (!['p12', 'pem'].includes(ext || '')) {
-    ElMessage.error('仅支持 .p12/.pem 证书')
+  if (!['p12', 'pem', 'key'].includes(ext || '')) {
+    ElMessage.error('仅支持 .p12/.pem/.key 商户私钥')
     return false
   }
   return true
@@ -911,11 +938,12 @@ function beforeCertUpload(file: File) {
 
 async function handleCertUpload(options: UploadRequestOptions) {
   try {
-    await uploadFile(options.file)
+    const res = await uploadWxPayPrivateKey(options.file, paymentForm.mchId)
     paymentForm.certUploaded = true
-    ElMessage.success('证书上传成功')
+    if (res.data.certSerialNo) paymentForm.certSerialNo = res.data.certSerialNo
+    ElMessage.success('商户API私钥已写入支付配置')
   } catch {
-    ElMessage.error('上传失败')
+    // 请求层会展示私钥格式或 p12 密码错误原因
   }
 }
 
