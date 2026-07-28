@@ -80,6 +80,30 @@ export function uploadFile(file: File) {
   return post<UploadResult>(`${BASE_URL}/upload`, formData)
 }
 
+export interface WxPayPrivateKeyUploadResult {
+  uploaded: boolean
+  certSerialNo?: string
+}
+
+/** 上传微信支付商户 API 私钥；p12 默认使用商户号作为密码 */
+export function uploadWxPayPrivateKey(file: File, password?: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (password) formData.append('password', password)
+  return post<WxPayPrivateKeyUploadResult>(`${BASE_URL}/configs/wx-pay-private-key`, formData)
+}
+
+export interface WxPayConfigTestResult {
+  connected: boolean
+  environment: string
+  message: string
+}
+
+/** 真实连接微信商户平台并验证支付凭据 */
+export function testWxPayConfig() {
+  return post<WxPayConfigTestResult>(`${BASE_URL}/configs/wx-pay-test`)
+}
+
 // ==================== 操作日志 ====================
 
 /** 获取操作日志列表 */

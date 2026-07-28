@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.PageResult;
-import com.miniprogram.config.WxPayProperties;
+import com.miniprogram.config.WxPayRuntimeConfig;
 import com.miniprogram.dto.RefundVO;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Payment;
@@ -14,7 +14,7 @@ import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.RefundMapper;
 import com.miniprogram.service.RefundService;
-import com.miniprogram.service.SystemConfigService;
+import com.miniprogram.service.WxPayConfigService;
 import com.miniprogram.support.WxPayNotifyCrypto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -40,8 +39,7 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
     private final RefundMapper refundMapper;
     private final OrderMapper orderMapper;
     private final PaymentMapper paymentMapper;
-    private final WxPayProperties wxPayProperties;
-    private final SystemConfigService systemConfigService;
+    private final WxPayConfigService wxPayConfigService;
     private final WxPayNotifyCrypto wxPayNotifyCrypto;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -172,17 +170,10 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
         }
     }
 
-    private String resolveRefundNotifyUrl() {
-        String dbUrl = systemConfigService.getConfigValue("wx_refund_notify_url");
-        if (StringUtils.hasText(dbUrl)) {
-            return dbUrl.trim();
-        }
-        return wxPayProperties.getRefundNotifyUrl();
-    }
-
     @SuppressWarnings("unchecked")
     private String callWxRefund(Refund refund) throws Exception {
         String url = "https://api.mch.weixin.qq.com/v3/refund/domestic/refunds";
+        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         Order order = orderMapper.selectById(refund.getOrderId());
         if (order == null) {
@@ -200,13 +191,13 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
         amount.put("currency", "CNY");
         body.put("amount", amount);
 
-        String notifyUrl = resolveRefundNotifyUrl();
+        String notifyUrl = payConfig.refundNotifyUrl();
         if (StringUtils.hasText(notifyUrl)) {
             body.put("notify_url", notifyUrl);
         }
 
         String requestBody = objectMapper.writeValueAsString(body);
-        String authorization = buildAuthorization(requestBody);
+        String authorization = buildAuthorization(requestBody, payConfig);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -228,7 +219,7 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
         return Optional.ofNullable((String) result.get("status")).orElse("SUCCESS");
     }
 
-    private String buildAuthorization(String body) throws Exception {
+    private String buildAuthorization(String body, WxPayRuntimeConfig payConfig) {
         String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
         String nonceStr = UUID.randomUUID().toString().replace("-", "").substring(0, 32);
 
@@ -238,23 +229,13 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
                 + nonceStr + "\n"
                 + body + "\n";
 
-        String privateKey = wxPayProperties.getPrivateKey()
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s+", "");
-        byte[] keyBytes = Base64.getDecoder().decode(privateKey);
-        java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("RSA");
-        java.security.PrivateKey privKey = keyFactory.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(keyBytes));
-        java.security.Signature signature = java.security.Signature.getInstance("SHA256withRSA");
-        signature.initSign(privKey);
-        signature.update(signMessage.getBytes(StandardCharsets.UTF_8));
-        String signatureStr = Base64.getEncoder().encodeToString(signature.sign());
+        String signatureStr = wxPayConfigService.sign(signMessage, payConfig);
 
         return "WECHATPAY2-SHA256-RSA2048 "
-                + "mchid=\"" + wxPayProperties.getMchId() + "\","
+                + "mchid=\"" + payConfig.mchId() + "\","
                 + "nonce_str=\"" + nonceStr + "\","
                 + "timestamp=\"" + timestamp + "\","
-                + "serial_no=\"" + wxPayProperties.getCertSerialNo() + "\","
+                + "serial_no=\"" + payConfig.certSerialNo() + "\","
                 + "signature=\"" + signatureStr + "\"";
     }
 }
