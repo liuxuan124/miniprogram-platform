@@ -8,7 +8,11 @@ import com.miniprogram.dto.system.ConfigBatchUpdateDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
@@ -27,6 +31,7 @@ class WxPayConfigServiceTest {
     private WxPayProperties properties;
     private WxPayConfigService service;
     private Map<String, String> database;
+    private RestTemplate restTemplate;
 
     @BeforeEach
     void setUp() {
@@ -35,10 +40,11 @@ class WxPayConfigServiceTest {
         database = new HashMap<>();
         when(systemConfigService.getConfigValue(anyString()))
                 .thenAnswer(invocation -> database.get(invocation.getArgument(0)));
+        restTemplate = mock(RestTemplate.class);
         service = new WxPayConfigService(
                 systemConfigService,
                 properties,
-                mock(RestTemplate.class),
+                restTemplate,
                 new ObjectMapper()
         );
     }
@@ -93,6 +99,68 @@ class WxPayConfigServiceTest {
                 "wx_pay_private_key".equals(item.getConfigKey()) && pem.equals(item.getConfigValue())));
         assertTrue(update.getConfigs().stream().anyMatch(item ->
                 "certUploaded".equals(item.getConfigKey()) && "true".equals(item.getConfigValue())));
+    }
+
+    @Test
+    void testConnectionAcceptsPublicKeyModeWithoutPlatformCertificate() throws Exception {
+        putCompletePaymentConfig();
+        String responseBody = """
+                {"code":"RESOURCE_NOT_EXISTS","message":"无可用的平台证书，请在商户平台-API安全申请使用微信支付公钥。"}
+                """;
+        HttpClientErrorException error = HttpClientErrorException.create(
+                HttpStatus.NOT_FOUND,
+                "Not Found",
+                HttpHeaders.EMPTY,
+                responseBody.getBytes(StandardCharsets.UTF_8),
+                StandardCharsets.UTF_8
+        );
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                any(),
+                eq(String.class)
+        )).thenThrow(error);
+
+        var result = service.testConnection();
+
+        assertTrue(result.getConnected());
+        assertTrue(result.getMessage().contains("微信支付公钥模式"));
+    }
+
+    @Test
+    void testConnectionStillRejectsSignatureFailure() throws Exception {
+        putCompletePaymentConfig();
+        String responseBody = """
+                {"code":"SIGN_ERROR","message":"错误的签名，验签失败"}
+                """;
+        HttpClientErrorException error = HttpClientErrorException.create(
+                HttpStatus.UNAUTHORIZED,
+                "Unauthorized",
+                HttpHeaders.EMPTY,
+                responseBody.getBytes(StandardCharsets.UTF_8),
+                StandardCharsets.UTF_8
+        );
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                any(),
+                eq(String.class)
+        )).thenThrow(error);
+
+        BusinessException result = assertThrows(BusinessException.class, service::testConnection);
+
+        assertTrue(result.getMessage().contains("SIGN_ERROR"));
+    }
+
+    private void putCompletePaymentConfig() throws Exception {
+        database.put("enablePayment", "true");
+        database.put("payEnv", "production");
+        database.put("wx_appid", "wx-valid-appid");
+        database.put("wx_mch_id", "1900000001");
+        database.put("certSerialNo", "ABC123");
+        database.put("wx_pay_private_key", createPrivateKeyPem());
+        database.put("wx_mch_key", "12345678901234567890123456789012");
+        database.put("wx_pay_notify_url", "https://example.com/wx-notify");
     }
 
     private String createPrivateKeyPem() throws Exception {
