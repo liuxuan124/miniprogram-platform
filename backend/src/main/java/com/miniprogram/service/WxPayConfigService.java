@@ -110,7 +110,11 @@ public class WxPayConfigService {
 
     /**
      * 使用微信支付“平台证书列表”接口进行真实连通性验证。
-     * 该请求会同时验证商户号、证书序列号、商户私钥与 APIv3 密钥。
+     *
+     * <p>平台证书模式下，该请求会同时验证商户签名材料与 APIv3 密钥。
+     * 微信支付公钥模式下没有可下载的平台证书，微信会在商户签名通过后返回
+     * RESOURCE_NOT_EXISTS；此时商户号、证书序列号和私钥已经验证通过，
+     * APIv3 密钥只能在收到支付回调密文时完成最终验证。</p>
      */
     public WxPayConfigTestVO testConnection() {
         WxPayRuntimeConfig config = requireConfigured();
@@ -141,13 +145,48 @@ public class WxPayConfigService {
         } catch (BusinessException e) {
             throw e;
         } catch (HttpStatusCodeException e) {
+            if (isPublicKeyModeWithoutPlatformCertificate(e)) {
+                return new WxPayConfigTestVO(
+                        true,
+                        config.environment(),
+                        "商户签名凭据验证通过；当前为微信支付公钥模式，APIv3 密钥将在支付回调时验证"
+                );
+            }
             throw new BusinessException(
                     700503,
-                    "微信支付连接失败（HTTP " + e.getStatusCode().value() + "），请检查商户号、证书序列号和商户私钥"
+                    buildHttpErrorMessage(e)
             );
         } catch (Exception e) {
             throw new BusinessException(700503, "微信支付连接失败，请检查网络和支付凭据");
         }
+    }
+
+    private boolean isPublicKeyModeWithoutPlatformCertificate(HttpStatusCodeException error) {
+        if (error.getStatusCode().value() != 404) {
+            return false;
+        }
+        String responseBody = error.getResponseBodyAsString(StandardCharsets.UTF_8);
+        return responseBody.contains("RESOURCE_NOT_EXISTS")
+                && responseBody.contains("无可用的平台证书");
+    }
+
+    private String buildHttpErrorMessage(HttpStatusCodeException error) {
+        String responseBody = error.getResponseBodyAsString(StandardCharsets.UTF_8);
+        if (StringUtils.hasText(responseBody)) {
+            try {
+                Map<String, Object> result = objectMapper.readValue(responseBody, new TypeReference<>() {});
+                String code = String.valueOf(result.getOrDefault("code", ""));
+                String message = String.valueOf(result.getOrDefault("message", ""));
+                if (StringUtils.hasText(code) || StringUtils.hasText(message)) {
+                    return "微信支付验证失败（" + code + "）："
+                            + (StringUtils.hasText(message) ? message : "请检查支付凭据");
+                }
+            } catch (Exception ignored) {
+                // 非 JSON 错误响应沿用通用提示，避免把网关原文直接暴露到管理端。
+            }
+        }
+        return "微信支付连接失败（HTTP " + error.getStatusCode().value()
+                + "），请检查商户号、证书序列号和商户私钥";
     }
 
     public WxPayPrivateKeyUploadVO savePrivateKey(MultipartFile file, String password) {
