@@ -1,4 +1,4 @@
-// pages/login/login.js — 一键微信登录：头像 + 昵称 + 手机号
+// pages/login/login.js — 头像 + 昵称 + 手机号快捷登录
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
 const { upload } = require('../../utils/request')
@@ -49,7 +49,7 @@ Page({
   onChooseAvatar(e) {
     const avatarUrl = (e.detail && e.detail.avatarUrl) || ''
     if (!avatarUrl) {
-      wx.showToast({ title: '未获取到微信头像', icon: 'none' })
+      wx.showToast({ title: '未获取到头像', icon: 'none' })
       return
     }
     this.setData({
@@ -73,7 +73,7 @@ Page({
     if (!this.data.nickName && !this._nicknameHintShown) {
       this._nicknameHintShown = true
       wx.showToast({
-        title: '请点底部「用微信昵称」',
+        title: '请在输入框填写昵称',
         icon: 'none',
         duration: 2200,
       })
@@ -81,7 +81,7 @@ Page({
   },
 
   onNicknameReview(e) {
-    // 微信昵称内容安全回调：pass / fail
+    // 昵称内容安全回调：pass / fail
     const pass = !e.detail || e.detail.pass !== false
     if (!pass) {
       this.setData({ nickName: '' }, () => this._refreshCanSubmit())
@@ -101,11 +101,11 @@ Page({
       return
     }
     if (!(this.data.avatarLocalPath || this.data.avatarUrl)) {
-      wx.showToast({ title: '请先选择微信头像', icon: 'none' })
+      wx.showToast({ title: '请先选择头像', icon: 'none' })
       return
     }
     if (!(this.data.nickName && this.data.nickName.trim())) {
-      wx.showToast({ title: '请先获取微信昵称', icon: 'none' })
+      wx.showToast({ title: '请先填写昵称', icon: 'none' })
       return
     }
   },
@@ -119,19 +119,19 @@ Page({
       return
     }
     if (!(this.data.avatarLocalPath || this.data.avatarUrl)) {
-      wx.showToast({ title: '请先选择微信头像', icon: 'none' })
+      wx.showToast({ title: '请先选择头像', icon: 'none' })
       return
     }
     const nickName = (this.data.nickName || '').trim()
     if (!nickName) {
-      wx.showToast({ title: '请先获取微信昵称', icon: 'none' })
+      wx.showToast({ title: '请先填写昵称', icon: 'none' })
       return
     }
 
     const { code, errMsg } = e.detail || {}
     if (!code) {
       console.warn('[LoginPage] 用户未授权手机号:', errMsg)
-      wx.showToast({ title: '需要授权微信手机号才能登录', icon: 'none' })
+      wx.showToast({ title: '需要授权手机号才能登录', icon: 'none' })
       return
     }
 

@@ -1,14 +1,42 @@
-.page { min-height: 100vh; background: #fafafa; padding: 32rpx; box-sizing: border-box; }
+.page { min-height: 100vh; background: #f6f7f9; padding: 32rpx; box-sizing: border-box; }
 .tip {
-  background: #f3f3f3; color: #555555; font-size: 24rpx; line-height: 1.6;
-  padding: 20rpx 24rpx; border-radius: 16rpx; margin-bottom: 24rpx;
+  color: #7a8495; font-size: 24rpx; line-height: 1.6;
+  padding: 8rpx 4rpx 28rpx;
 }
-.card { background: #fff; border-radius: 16rpx; padding: 28rpx; margin-bottom: 16rpx; border: 1rpx solid #eeeeee; }
-.name { font-size: 30rpx; font-weight: 500; color: #111111; }
-.detail { margin-top: 12rpx; font-size: 24rpx; color: #888888; line-height: 1.6; }
-.empty { text-align: center; color: #999999; font-size: 26rpx; padding: 80rpx 0 40rpx; }
+.card, .form-card {
+  background: #fff; border-radius: 24rpx; padding: 30rpx;
+  border: 1rpx solid #edf0f4;
+}
+.name-row { display: flex; align-items: center; gap: 16rpx; }
+.name { color: #111827; font-size: 30rpx; font-weight: 600; }
+.phone { color: #4b5563; font-size: 27rpx; }
+.default-tag {
+  color: #2563eb; background: #eef4ff; border-radius: 8rpx;
+  padding: 4rpx 10rpx; font-size: 20rpx;
+}
+.detail { margin-top: 18rpx; color: #4b5563; font-size: 26rpx; line-height: 1.6; }
+.actions {
+  display: flex; justify-content: flex-end; gap: 12rpx;
+  border-top: 1rpx solid #f0f1f3; margin-top: 24rpx; padding-top: 18rpx;
+}
+.text-btn {
+  margin: 0; padding: 0 18rpx; background: transparent;
+  color: #2563eb; font-size: 25rpx; line-height: 48rpx;
+}
+.text-btn::after { border: 0; }
+.text-btn.danger { color: #e5484d; }
+.field {
+  min-height: 100rpx; display: flex; align-items: center;
+  border-bottom: 1rpx solid #edf0f4;
+}
+.label { width: 150rpx; color: #374151; font-size: 27rpx; flex-shrink: 0; }
+.input, .region { flex: 1; color: #111827; font-size: 27rpx; }
+.placeholder { color: #a3a9b3; }
+.arrow { color: #a3a9b3; font-size: 36rpx; }
+.detail-field { align-items: flex-start; padding-top: 30rpx; }
+.textarea { flex: 1; height: 128rpx; color: #111827; font-size: 27rpx; line-height: 1.5; }
 .btn {
-  margin-top: 16rpx; background: #111111; color: #fff; border-radius: 999rpx;
-  font-size: 28rpx; font-weight: 500;
+  margin-top: 32rpx; background: #111827; color: #fff;
+  border-radius: 16rpx; font-size: 28rpx; font-weight: 600; line-height: 92rpx;
 }
-.btn-ghost { background: #fff; color: #111111; border: 1rpx solid #111111; }
+.btn::after { border: 0; }
