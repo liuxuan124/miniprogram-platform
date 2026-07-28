@@ -42,7 +42,22 @@ public class MpOrderController {
     @GetMapping("/{id}")
     @Operation(summary = "订单详情")
     public R<OrderDetailVO> getOrderDetail(@PathVariable Long id) {
-        return R.ok(orderService.getOrderDetail(id));
+        Long userId = SecurityUtils.getCurrentUserId();
+        return R.ok(orderService.getUserOrderDetail(userId, id));
+    }
+
+    @GetMapping("/library")
+    @Operation(summary = "我的已购数字内容")
+    public R<java.util.List<PurchasedContentVO>> listPurchasedContents() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        return R.ok(orderService.listPurchasedContents(userId));
+    }
+
+    @GetMapping("/library/{productId}")
+    @Operation(summary = "读取已购买的数字内容")
+    public R<PurchasedContentVO> getPurchasedContent(@PathVariable Long productId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        return R.ok(orderService.getPurchasedContent(userId, productId));
     }
 
     @PostMapping("/{id}/pay")

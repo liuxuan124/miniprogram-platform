@@ -61,6 +61,8 @@ export interface OrderRecord {
   freight_amount: number
   discount_amount: number
   status: OrderStatus | string
+  fulfillment_type?: 'physical' | 'virtual'
+  virtual_delivery_content?: string
   remark?: string
   payment_method?: string
   payment_time?: string
@@ -86,8 +88,10 @@ export interface OrderListParams {
 
 /** 发货参数 */
 export interface ShipParams {
-  shipping_company: string
-  shipping_no: string
+  delivery_type: 'physical' | 'virtual'
+  shipping_company?: string
+  shipping_no?: string
+  virtual_delivery_content?: string
 }
 
 /** 退款审批参数 */

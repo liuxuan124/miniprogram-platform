@@ -45,35 +45,12 @@
     </view>
   </view>
 
-  <!-- 优惠 / 积分 / 发票 -->
-  <view class="prefer-block">
-    <view class="prefer-row" bindtap="onOpenCoupon">
-      <text>🎫 优惠券</text>
-      <text class="v accent">{{couponLabel}}</text>
-      <text class="ar">›</text>
-    </view>
-    <view class="prefer-row" bindtap="onTogglePoints">
-      <text>⭐ 积分抵扣</text>
-      <text class="v">{{pointsBalance}} 积分可抵 ¥{{pointsCanDeduct}}</text>
-      <view class="switch {{usePoints ? 'on' : ''}}"><view class="knob"></view></view>
-    </view>
-    <view class="prefer-row" bindtap="onPickInvoice">
-      <text>🧾 发票</text>
-      <text class="v">{{invoiceLabel}}</text>
-      <text class="ar">›</text>
-    </view>
-  </view>
-
   <!-- 支付方式 -->
   <view class="pay-block">
     <view class="section-title">支付方式</view>
-    <view class="prefer-row" data-pay="wechat" bindtap="onPickPay">
+    <view class="prefer-row">
       <text>💚 微信支付</text>
-      <view class="check {{payMethod==='wechat'?'on':''}}">{{payMethod==='wechat'?'✓':''}}</view>
-    </view>
-    <view class="prefer-row" data-pay="balance" bindtap="onPickPay">
-      <text>💰 账户余额 (¥{{balance}})</text>
-      <view class="check {{payMethod==='balance'?'on':''}}">{{payMethod==='balance'?'✓':''}}</view>
+      <view class="check on">✓</view>
     </view>
   </view>
 
@@ -94,18 +71,6 @@
     <view class="summary-row">
       <text class="summary-label">商品总额</text>
       <text class="summary-value">&#165;{{totalPrice}}</text>
-    </view>
-    <view class="summary-row" wx:if="{{couponDiscount}}">
-      <text class="summary-label">优惠券</text>
-      <text class="summary-value accent">-&#165;{{couponDiscount}}</text>
-    </view>
-    <view class="summary-row" wx:if="{{usePoints && pointsDiscount}}">
-      <text class="summary-label">积分抵扣</text>
-      <text class="summary-value accent">-&#165;{{pointsDiscount}}</text>
-    </view>
-    <view class="summary-row" wx:if="{{memberDiscount}}">
-      <text class="summary-label">会员折扣（9.5折）</text>
-      <text class="summary-value accent">-&#165;{{memberDiscount}}</text>
     </view>
     <view class="summary-row">
       <text class="summary-label">运费</text>
@@ -136,13 +101,5 @@
     amount="{{payAmount}}"
     bind:close="onPayClose"
     bind:confirm="onPayConfirm"
-  />
-  <coupon-sheet
-    show="{{showCouponSheet}}"
-    coupons="{{coupons}}"
-    selected-id="{{selectedCouponId}}"
-    bind:close="onCouponClose"
-    bind:pick="onCouponPick"
-    bind:confirm="onCouponConfirm"
   />
 </view>
