@@ -156,7 +156,7 @@ Page({
   /** 选择地址 */
   onSelectAddress() {
     wx.navigateTo({
-      url: '/pages/address/address?mode=select',
+      url: '/pages/address-list/address-list?mode=select',
       events: {
         selectAddress: (data) => {
           this.setData({

@@ -18,7 +18,7 @@
     <view class="login-card">
       <view class="card-head">
         <view>
-          <text class="card-head__title">使用微信账号登录</text>
+          <text class="card-head__title">完善登录资料</text>
         </view>
       </view>
 
@@ -40,7 +40,7 @@
           </button>
           <view class="profile__copy">
             <text class="profile__title">头像</text>
-            <text class="profile__desc">{{avatarUrl ? '已使用微信头像' : '使用你的微信头像'}}</text>
+            <text class="profile__desc">{{avatarUrl ? '头像已选择' : '请选择个人头像'}}</text>
           </view>
           <text class="profile__status {{avatarUrl ? 'is-done' : ''}}">{{avatarUrl ? '更换' : '选择'}}</text>
         </view>
@@ -52,7 +52,7 @@
               class="nickname__input"
               type="nickname"
               maxlength="20"
-              placeholder="使用微信昵称"
+              placeholder="请输入昵称"
               placeholder-class="nickname__ph"
               value="{{nickName}}"
               bindinput="onNicknameInput"
@@ -88,7 +88,7 @@
           loading="{{loading}}"
           disabled="{{loading}}"
         >
-          微信手机号一键登录
+          手机号快捷登录
         </button>
         <button
           wx:else
@@ -97,7 +97,7 @@
           loading="{{loading}}"
           disabled="{{loading}}"
         >
-          微信手机号一键登录
+          手机号快捷登录
         </button>
 
         <view class="trust-note">

@@ -1,4 +1,4 @@
-/* pages/login/login.wxss — 干净、克制的微信登录页 */
+/* pages/login/login.wxss — 干净、克制的账号登录页 */
 
 .page {
   --ink: #172033;
@@ -6,7 +6,6 @@
   --line: #e8ebf1;
   --surface: #f5f7fa;
   --brand: #315efb;
-  --wx: #07c160;
   min-height: 100vh;
   color: var(--ink);
   background: #fff;
@@ -277,8 +276,8 @@
 }
 
 .agree__box--on {
-  background: var(--wx);
-  border-color: var(--wx);
+  background: var(--brand);
+  border-color: var(--brand);
 }
 
 .agree__tick {
@@ -319,7 +318,7 @@
   font-size: 29rpx;
   font-weight: 650;
   line-height: 94rpx;
-  background: var(--wx);
+  background: var(--brand);
   border: 0;
   border-radius: 18rpx;
   box-shadow: none;
@@ -331,7 +330,7 @@
 
 .cta--disabled {
   color: #fff;
-  background: #8bdcaf;
+  background: #9aafff;
   opacity: 1;
 }
 

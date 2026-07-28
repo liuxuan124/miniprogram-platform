@@ -1,17 +1,39 @@
 <view class="page">
-  <view class="tip">知识资料包与咨询服务一般无需邮寄。若购买实体周边，可在此添加微信收货地址。</view>
+  <view class="tip">购买实体商品时，请填写真实有效的收货信息。资料包与咨询服务无需填写地址。</view>
 
-  <block wx:if="{{address}}">
-    <view class="card">
-      <view class="name">{{address.userName}} {{address.telNumber}}</view>
-      <view class="detail">{{address.provinceName}}{{address.cityName}}{{address.countyName}}{{address.detailInfo}}</view>
+  <view wx:if="{{address && !editing}}" class="card">
+    <view class="name-row">
+      <text class="name">{{address.name}}</text>
+      <text class="phone">{{address.phone}}</text>
+      <text class="default-tag">默认</text>
     </view>
-    <button class="btn" bindtap="chooseAddress">更换地址</button>
-    <button class="btn btn-ghost" bindtap="clearAddress">清除地址</button>
-  </block>
+    <view class="detail">{{address.province}}{{address.city}}{{address.district}}{{address.detail}}</view>
+    <view class="actions">
+      <button class="text-btn" bindtap="startEdit">编辑</button>
+      <button class="text-btn danger" bindtap="clearAddress">删除</button>
+    </view>
+  </view>
 
-  <block wx:else>
-    <view class="empty">暂未添加收货地址</view>
-    <button class="btn" bindtap="chooseAddress">添加微信地址</button>
-  </block>
+  <view wx:if="{{editing}}" class="form-card">
+    <view class="field">
+      <text class="label">收货人</text>
+      <input class="input" placeholder="请输入姓名" value="{{form.name}}" data-field="name" bindinput="onInput" />
+    </view>
+    <view class="field">
+      <text class="label">手机号码</text>
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号" value="{{form.phone}}" data-field="phone" bindinput="onInput" />
+    </view>
+    <picker mode="region" value="{{region}}" bindchange="onRegionChange">
+      <view class="field">
+        <text class="label">所在地区</text>
+        <text class="region {{region.length ? '' : 'placeholder'}}">{{region.length ? regionText : '请选择省市区'}}</text>
+        <text class="arrow">›</text>
+      </view>
+    </picker>
+    <view class="field detail-field">
+      <text class="label">详细地址</text>
+      <textarea class="textarea" maxlength="100" placeholder="街道、楼牌号等" value="{{form.detail}}" data-field="detail" bindinput="onInput" />
+    </view>
+    <button class="btn" bindtap="saveAddress">保存地址</button>
+  </view>
 </view>
