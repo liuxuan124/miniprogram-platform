@@ -203,48 +203,63 @@
 
             <template v-else-if="activeScreen === 'login'">
               <div class="fp-login">
-                <div class="fp-login__brand">登录出海笔记</div>
-                <div class="fp-login__desc">同步你的订单、资料和会员权益</div>
+                <div class="fp-login__ambient fp-login__ambient--top"></div>
+                <div class="fp-login__ambient fp-login__ambient--bottom"></div>
+
+                <div class="fp-login__brand-lockup">
+                  <div class="fp-login__logo">海</div>
+                  <div>
+                    <b>出海笔记</b>
+                    <span>CROSS-BORDER NOTES</span>
+                  </div>
+                </div>
+
+                <div class="fp-login__hero">
+                  <div class="fp-login__eyebrow"><i></i>MEMBER ACCESS</div>
+                  <div class="fp-login__brand">欢迎回来</div>
+                  <div class="fp-login__desc">登录后同步订单、已购资料与会员权益</div>
+                </div>
 
                 <div class="fp-login__card">
                   <div class="fp-login__card-head">
                     <div>
-                      <b>使用微信账号登录</b>
+                      <b>完善个人资料</b>
+                      <span>首次登录只需完成一次</span>
                     </div>
+                    <em>01</em>
                   </div>
 
                   <div class="fp-login__profile-row">
                     <div class="fp-login__avatar">
-                      <div class="avatar-ring">👤</div>
+                      <div class="avatar-ring">人</div>
+                      <i>+</i>
                     </div>
                     <div class="fp-login__profile-copy">
-                      <b>头像</b>
-                      <span>使用你的微信头像</span>
+                      <b>个人头像</b>
+                      <span>点击使用你的头像</span>
                     </div>
                     <em>选择</em>
                   </div>
 
                   <div class="fp-login__nickname">
-                    <label>昵称</label>
+                    <label><span>昵称</span><em>必填</em></label>
                     <div class="nickname-input">
-                      <span>使用微信昵称</span>
-                      <b>获取</b>
+                      <span>填写你希望展示的昵称</span>
+                      <b>Aa</b>
                     </div>
                   </div>
+                </div>
 
-                  <div class="fp-login__divider"></div>
-
-                  <div class="fp-login__bottom">
-                    <label class="privacy-row">
-                      <input v-model="previewPrivacyAccepted" type="checkbox" />
-                      <span>我已阅读并同意 <b>《用户协议》</b> 和 <b>《隐私政策》</b></span>
-                    </label>
-                    <button class="one-tap-login" :disabled="!previewPrivacyAccepted" @click="completePreviewLogin">
-                      微信手机号一键登录
-                    </button>
-                    <div class="fp-login__trust">
-                      <span>🔒 信息仅用于登录，不会公开手机号</span>
-                    </div>
+                <div class="fp-login__bottom">
+                  <label class="privacy-row">
+                    <input v-model="previewPrivacyAccepted" type="checkbox" />
+                    <span>我已阅读并同意 <b>《用户协议》</b> 与 <b>《隐私政策》</b></span>
+                  </label>
+                  <button class="one-tap-login" :disabled="!previewPrivacyAccepted" @click="completePreviewLogin">
+                    <span>手机号快捷登录</span><i>→</i>
+                  </button>
+                  <div class="fp-login__trust">
+                    <span>✓ 手机号仅用于登录及必要的服务通知</span>
                   </div>
                 </div>
               </div>
@@ -1085,51 +1100,134 @@ onMounted(async () => {
 }
 
 .fp-login {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 520px;
-  padding: 30px 20px 24px;
-  color: #111827;
-  background: #fff;
+  padding: 20px 18px 24px;
+  overflow: hidden;
+  color: #10231f;
+  background: #f7f7f3;
   box-sizing: border-box;
 }
 
+.fp-login__ambient {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.fp-login__ambient--top {
+  top: -90px;
+  right: -80px;
+  width: 230px;
+  height: 230px;
+  background: radial-gradient(circle, rgb(215 181 109 / 22%) 0%, rgb(215 181 109 / 0%) 70%);
+}
+
+.fp-login__ambient--bottom {
+  bottom: -130px;
+  left: -105px;
+  width: 290px;
+  height: 290px;
+  background: radial-gradient(circle, rgb(73 111 101 / 13%) 0%, rgb(73 111 101 / 0%) 72%);
+}
+
+.fp-login__brand-lockup {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+
+  > div:last-child {
+    display: flex;
+    flex-direction: column;
+    margin-left: 8px;
+  }
+
+  b {
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  span {
+    margin-top: 3px;
+    color: #8a928e;
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+  }
+}
+
+.fp-login__logo {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  margin: 0 !important;
+  color: #f1e8d2;
+  font-size: 12px;
+  font-weight: 700;
+  background: #10231f;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgb(16 35 31 / 14%);
+  place-items: center;
+}
+
+.fp-login__hero {
+  position: relative;
+  z-index: 1;
+  margin-top: 36px;
+}
+
 .fp-login__eyebrow {
-  align-self: center;
-  padding: 4px 9px;
-  color: #2f5bff;
-  font-size: 10px;
-  font-weight: 600;
-  background: rgb(47 91 255 / 9%);
-  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  color: #718079;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+
+  i {
+    width: 5px;
+    height: 5px;
+    margin-right: 7px;
+    background: #c7a85e;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgb(199 168 94 / 13%);
+  }
 }
 
 .fp-login__brand {
-  margin-top: 0;
-  text-align: center;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  margin-top: 12px;
+  font-size: 34px;
+  font-weight: 760;
+  letter-spacing: -1px;
+  line-height: 1.1;
 }
 
 .fp-login__desc {
-  margin-top: 7px;
-  color: #7b8494;
-  text-align: center;
-  font-size: 11px;
+  margin-top: 8px;
+  color: #7d8883;
+  font-size: 10px;
 }
 
 .fp-login__card {
-  margin-top: 30px;
-  padding: 0;
-  background: transparent;
+  position: relative;
+  z-index: 1;
+  margin-top: 27px;
+  padding: 15px;
+  background: rgb(255 255 255 / 82%);
+  border: 1px solid rgb(16 35 31 / 10%);
+  border-radius: 15px;
+  box-shadow: 0 12px 34px rgb(16 35 31 / 8%);
 }
 
 .fp-login__card-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(16 35 31 / 10%);
 
   div {
     display: flex;
@@ -1137,22 +1235,22 @@ onMounted(async () => {
   }
 
   b {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   span {
     margin-top: 3px;
-    color: #7b8494;
-    font-size: 10px;
+    color: #909894;
+    font-size: 8px;
   }
 
   em {
-    padding: 4px 7px;
-    color: #2f5bff;
-    font-size: 10px;
+    padding: 4px 8px;
+    color: #866e38;
+    font-size: 8px;
     font-style: normal;
-    font-weight: 600;
-    background: #eef2ff;
+    font-weight: 700;
+    background: rgb(215 181 109 / 18%);
     border-radius: 999px;
   }
 }
@@ -1161,20 +1259,16 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 12px;
-  border: 1px solid #e8ebf1;
-  border-bottom: 0;
-  border-radius: 12px 12px 0 0;
+  min-height: 62px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgb(16 35 31 / 10%);
 
   > em {
-    padding: 4px 8px;
     flex-shrink: 0;
-    color: #2f5bff;
+    color: #48685f;
     font-size: 10px;
     font-style: normal;
-    font-weight: 600;
-    background: #eef3ff;
-    border-radius: 999px;
+    font-weight: 650;
   }
 }
 
@@ -1184,28 +1278,27 @@ onMounted(async () => {
 
   .avatar-ring {
     display: grid;
-    width: 44px;
-    height: 44px;
-    color: #9ba3b1;
-    font-size: 20px;
-    background: #f2f4f7;
-    border: 2px solid #fff;
+    width: 41px;
+    height: 41px;
+    color: #84918b;
+    font-size: 14px;
+    background: #edf0ec;
+    border: 1px solid rgb(16 35 31 / 10%);
     border-radius: 50%;
     place-items: center;
-    box-shadow: 0 0 0 1px #e7eaf0;
   }
 
   i {
     position: absolute;
-    right: -1px;
-    bottom: 0;
+    right: -3px;
+    bottom: -2px;
     display: grid;
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     color: #fff;
-    font-size: 13px;
+    font-size: 11px;
     font-style: normal;
-    background: #2f5bff;
+    background: #10231f;
     border: 2px solid #fff;
     border-radius: 50%;
     place-items: center;
@@ -1219,37 +1312,33 @@ onMounted(async () => {
   min-width: 0;
 
   b {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   span {
     margin-top: 3px;
-    color: #7b8494;
-    font-size: 10px;
+    color: #7d8883;
+    font-size: 8px;
   }
 }
 
 .fp-login__nickname {
-  margin-top: 0;
-  padding: 11px 12px 12px;
-  border: 1px solid #e8ebf1;
-  border-top-color: #f0f2f5;
-  border-radius: 0 0 12px 12px;
+  padding-top: 11px;
 
   label {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 6px;
-    color: #475569;
+    color: #10231f;
     font-size: 11px;
-    font-weight: 600;
-  }
+    font-weight: 650;
 
-  small {
-    display: block;
-    margin-top: 5px;
-    color: #98a0ad;
-    font-size: 9px;
-    line-height: 1.45;
+    em {
+      color: #a18a57;
+      font-size: 8px;
+      font-style: normal;
+    }
   }
 }
 
@@ -1260,75 +1349,99 @@ onMounted(async () => {
   gap: 8px;
   min-height: 42px;
   padding: 0 6px 0 11px;
-  color: #a4aab5;
+  color: #a2aaa6;
   font-size: 11px;
-  background: #f5f7fa;
+  background: rgb(239 241 237 / 82%);
   border-radius: 8px;
 
   b {
-    padding: 6px 9px;
+    display: grid;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
-    color: #2f5bff;
-    font-size: 10px;
-    background: #e8edff;
-    border-radius: 999px;
+    padding: 0;
+    color: #69766f;
+    font-size: 9px;
+    background: rgb(255 255 255 / 82%);
+    border-radius: 7px;
+    place-items: center;
   }
 }
 
-.fp-login__divider {
-  display: none;
-}
-
 .fp-login__bottom {
-  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+  margin-top: 13px;
 }
 
 .privacy-row {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin-bottom: 10px;
-  color: #6b7280;
+  padding: 0 2px;
+  margin-bottom: 11px;
+  color: #7d8883;
   font-size: 9px;
   line-height: 1.55;
 
   input {
     margin-top: 1px;
-    accent-color: #07c160;
+    accent-color: #10231f;
   }
 
   b {
-    color: #2f5bff;
-    font-weight: 600;
+    color: #344842;
+    font-weight: 650;
   }
 }
 
 .one-tap-login {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  padding: 12px;
+  min-height: 48px;
+  padding: 0 10px 0 16px;
   color: #fff;
   font-size: 13px;
-  font-weight: 600;
-  background: #07c160;
+  font-weight: 650;
+  background: #10231f;
   border: 0;
-  border-radius: 9px;
-  box-shadow: 0 7px 16px rgb(7 193 96 / 20%);
+  border-radius: 10px;
+  box-shadow: 0 9px 20px rgb(16 35 31 / 18%);
   cursor: pointer;
 
+  i {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    color: #10231f;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 500;
+    background: #f1e8d2;
+    border-radius: 50%;
+    place-items: center;
+  }
+
   &:disabled {
-    color: #9ca3af;
-    background: #e7e9ed;
+    color: #939b97;
+    background: #e3e6e2;
     box-shadow: none;
     cursor: not-allowed;
+
+    i {
+      color: #a5aca8;
+      background: #f2f3f0;
+    }
   }
 }
 
 .fp-login__trust {
   display: flex;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: center;
   margin-top: 9px;
-  color: #98a0ad;
+  color: #929b96;
   font-size: 8px;
 }
 
