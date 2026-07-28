@@ -80,7 +80,7 @@
           <el-button
             v-if="order.status === OrderStatus.Paid"
             type="primary"
-            @click="shipDialogVisible = true"
+            @click="openShipDialog"
           >发货</el-button>
           <el-button
             v-if="order.status === OrderStatus.Refunding"
@@ -99,7 +99,13 @@
     <!-- 发货对话框 -->
     <el-dialog v-model="shipDialogVisible" title="订单发货" width="480px" destroy-on-close>
       <el-form ref="shipFormRef" :model="shipForm" :rules="shipRules" label-width="100px">
-        <el-form-item label="物流公司" prop="shipping_company">
+        <el-form-item label="发货方式">
+          <el-radio-group v-model="shipForm.delivery_type">
+            <el-radio value="physical">物流发货</el-radio>
+            <el-radio value="virtual">虚拟发货</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="shipForm.delivery_type === 'physical'" label="物流公司" prop="shipping_company">
           <el-select v-model="shipForm.shipping_company" placeholder="请选择物流公司" style="width: 100%">
             <el-option label="顺丰速运" value="顺丰速运" />
             <el-option label="中通快递" value="中通快递" />
@@ -110,13 +116,23 @@
             <el-option label="EMS" value="EMS" />
           </el-select>
         </el-form-item>
-        <el-form-item label="物流单号" prop="shipping_no">
+        <el-form-item v-if="shipForm.delivery_type === 'physical'" label="物流单号" prop="shipping_no">
           <el-input v-model="shipForm.shipping_no" placeholder="请输入物流单号" />
+        </el-form-item>
+        <el-form-item v-else label="交付说明">
+          <el-input
+            v-model="shipForm.virtual_delivery_content"
+            type="textarea"
+            :rows="3"
+            placeholder="选填：兑换码、下载说明、服务交付说明等"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="shipDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="shipSubmitting" @click="submitShip">确认发货</el-button>
+        <el-button type="primary" :loading="shipSubmitting" @click="submitShip">
+          {{ shipForm.delivery_type === 'virtual' ? '确认虚拟发货' : '确认物流发货' }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -161,8 +177,10 @@ const shipDialogVisible = ref(false)
 const shipSubmitting = ref(false)
 const shipFormRef = ref<FormInstance>()
 const shipForm = reactive<ShipParams>({
+  delivery_type: 'physical',
   shipping_company: '',
   shipping_no: '',
+  virtual_delivery_content: '',
 })
 const shipRules: FormRules = {
   shipping_company: [{ required: true, message: '请选择物流公司', trigger: 'change' }],
@@ -188,10 +206,21 @@ async function fetchOrder() {
   }
 }
 
+function openShipDialog() {
+  const currentOrder = order.value as any
+  shipForm.delivery_type = currentOrder?.fulfillment_type || currentOrder?.fulfillmentType || 'physical'
+  shipForm.shipping_company = ''
+  shipForm.shipping_no = ''
+  shipForm.virtual_delivery_content = ''
+  shipDialogVisible.value = true
+}
+
 /** 提交发货 */
 async function submitShip() {
-  const valid = await shipFormRef.value?.validate().catch(() => false)
-  if (!valid) return
+  if (shipForm.delivery_type === 'physical') {
+    const valid = await shipFormRef.value?.validate().catch(() => false)
+    if (!valid) return
+  }
   shipSubmitting.value = true
   try {
     await shipOrder(orderId.value, { ...shipForm })

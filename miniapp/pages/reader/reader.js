@@ -1,4 +1,5 @@
-const { get } = require('../../utils/request')
+const orderService = require('../../services/order')
+const { AuthUtil } = require('../../utils/auth')
 
 Page({
   data: {
@@ -17,6 +18,10 @@ Page({
     const id = query && query.id ? Number(query.id) : null
     const title = query && query.title ? decodeURIComponent(query.title) : ''
     this.setData({ id, title: title || this.data.title })
+    if (!AuthUtil.isLoggedIn()) {
+      AuthUtil.navigateToLogin(`/pages/reader/reader?id=${id || ''}&title=${encodeURIComponent(title || '')}`)
+      return
+    }
     this.loadContent()
   },
 
@@ -51,8 +56,7 @@ Page({
     // 优先拉取商品详情作为资料包正文；无则展示默认大纲
     try {
       if (this.data.id) {
-        const res = await get(`/api/v1/mp/products/${this.data.id}`, {}, { auth: false })
-        const p = (res && res.data) || {}
+        const p = await orderService.getPurchasedContent(this.data.id)
         const toc = this._buildToc(p)
         this.setData({
           title: p.name || this.data.title,
@@ -64,18 +68,14 @@ Page({
         return
       }
     } catch (e) {
-      // fallback below
+      wx.showModal({
+        title: '暂未解锁',
+        content: '请先购买并完成支付后再阅读该资料。',
+        showCancel: false,
+        success: () => wx.redirectTo({ url: `/pages/product-detail/product-detail?id=${this.data.id}` }),
+      })
+      return
     }
-    this.setData({
-      contentHtml: this._defaultHtml(this.data.title),
-      toc: [
-        { no: '01', title: '开篇：你将获得什么', preview: true },
-        { no: '02', title: '核心方法与清单', preview: true },
-        { no: '03', title: '实操模板', preview: false },
-        { no: '04', title: '附录与更新记录', preview: false },
-      ],
-      updatedAt: '持续更新',
-    })
   },
 
   _buildToc(p) {

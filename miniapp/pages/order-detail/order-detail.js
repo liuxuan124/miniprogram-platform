@@ -2,11 +2,12 @@
 // 状态追踪、操作按钮、微信支付
 
 const orderService = require('../../services/order')
-const auth = require('../../utils/auth')
+const { AuthUtil } = require('../../utils/auth')
+const { requestPayment } = require('../../utils/payment')
 
 // 状态显示映射
 const STATUS_MAP = {
-  pending_payment: { text: '待确认', color: '#ff8a00', desc: '订单已提交，顾问将联系确认交付与付款方式' },
+  pending_payment: { text: '待付款', color: '#ff8a00', desc: '订单已创建，请完成支付' },
   paid: { text: '待发货', color: '#1890ff', desc: '商家正在准备发货' },
   shipped: { text: '待收货', color: '#faad14', desc: '商品正在配送中' },
   completed: { text: '已完成', color: '#52c41a', desc: '交易已完成' },
@@ -28,7 +29,7 @@ Page({
     // 步骤条
     currentStep: 0,
     steps: [
-      { text: '待确认' },
+      { text: '待付款' },
       { text: '待发货' },
       { text: '待收货' },
       { text: '已完成' },
@@ -43,7 +44,7 @@ Page({
   },
 
   onLoad(options) {
-    if (!auth.isLoggedIn()) {
+    if (!AuthUtil.isLoggedIn()) {
       wx.navigateTo({ url: '/pages/login/login' })
       return
     }
@@ -56,7 +57,6 @@ Page({
     this.setData({ id })
     this._loadDetail(id)
 
-    // 当前备案与支付绑定完成前，不自动触发支付
     if (options.action === 'pay') {
       setTimeout(() => this._doPay(), 1000)
     }
@@ -76,6 +76,10 @@ Page({
         order.created_at = order.created_at || order.createdAt
         order.paid_at = order.paid_at || order.paidAt
         order.shipped_at = order.shipped_at || order.shippedAt
+        order.fulfillment_type = order.fulfillment_type || order.fulfillmentType
+        order.shipping_company = order.shipping_company || order.logisticsCompany
+        order.shipping_no = order.shipping_no || order.logisticsNo
+        order.virtual_delivery_content = order.virtual_delivery_content || order.virtualDeliveryContent
         order.address = order.address || order.addressSnapshot
         if (order.address) {
           order.address.detail = order.address.detail || order.address.address
@@ -113,14 +117,9 @@ Page({
       })
   },
 
-  /** 待确认提示 */
+  /** 支付订单 */
   onPayTap() {
-    wx.showModal({
-      title: '订单已提交',
-      content: '小程序正在完成备案与支付绑定，暂不拉起微信支付。顾问会根据订单信息联系你确认交付与付款方式。',
-      confirmText: '知道了',
-      showCancel: false,
-    })
+    this._doPay()
   },
 
   /** 执行微信支付 */
@@ -130,49 +129,17 @@ Page({
 
     orderService.payOrder(this.data.id)
       .then((res) => {
-        // 后端返回微信支付参数
-        const payParams = res.payment || res.pay_params || res
-        if (!payParams.package && payParams.prepayId) {
-          payParams.package = 'prepay_id=' + payParams.prepayId
-        }
-        if (payParams.timeStamp && payParams.nonceStr && payParams.package && payParams.signType && payParams.paySign) {
-          // 调用微信支付
-          wx.requestPayment({
-            timeStamp: payParams.timeStamp,
-            nonceStr: payParams.nonceStr,
-            package: payParams.package,
-            signType: payParams.signType,
-            paySign: payParams.paySign,
-            success: () => {
-              this.setData({ paying: false })
-              wx.showToast({ title: '支付成功', icon: 'success' })
-              this._loadDetail(this.data.id)
-            },
-            fail: (err) => {
-              this.setData({ paying: false })
-              if (err.errMsg.indexOf('cancel') !== -1) {
-                wx.showToast({ title: '已取消支付', icon: 'none' })
-              } else {
-                wx.showToast({ title: '支付失败', icon: 'none' })
-              }
-            },
-          })
-        } else {
-          // C1: 仅零元订单或后端显式标记已支付才视为成功，避免缺少微信支付参数时被绕过
-          const amount = Number((this.data.order && (this.data.order.payAmount ?? this.data.order.pay_amount)) || 0)
-          const explicitlyPaid = res && (res.paid === true || res.status === 'paid')
-          this.setData({ paying: false })
-          if (amount <= 0 || explicitlyPaid) {
-            wx.showToast({ title: '支付成功', icon: 'success' })
-            this._loadDetail(this.data.id)
-          } else {
-            wx.showModal({ title: '提示', content: '支付参数获取失败，请稍后重试或联系客服', showCancel: false })
-          }
-        }
+        return requestPayment(res)
       })
-      .catch(() => {
+      .then(() => {
         this.setData({ paying: false })
-        wx.showToast({ title: '支付请求失败', icon: 'none' })
+        wx.showToast({ title: '支付成功', icon: 'success' })
+        setTimeout(() => this._loadDetail(this.data.id), 600)
+      })
+      .catch((err) => {
+        this.setData({ paying: false })
+        const canceled = err && /cancel/i.test(err.errMsg || '')
+        wx.showToast({ title: canceled ? '已取消支付' : ((err && err.message) || '支付失败，请重试'), icon: 'none' })
       })
   },
 

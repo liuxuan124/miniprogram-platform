@@ -9,6 +9,7 @@ import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Payment;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
+import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,14 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.miniprogram.support.WxPayNotifyCrypto;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.util.StringUtils;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 支付 Service 实现 — 微信支付V3
@@ -36,6 +34,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         implements PaymentService {
 
     private final OrderMapper orderMapper;
+    private final UserMapper userMapper;
     private final WxPayProperties wxPayProperties;
     private final WxPayNotifyCrypto wxPayNotifyCrypto;
     private final RestTemplate restTemplate;
@@ -51,6 +50,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (!"pending_payment".equals(order.getStatus())) {
             throw new BusinessException(600201, "订单状态错误，无法支付");
         }
+        validatePaymentConfig();
 
         // 查找支付记录
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
@@ -135,7 +135,16 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
         // 幂等：仅当订单待支付时更新
         if ("pending_payment".equals(order.getStatus())) {
-            order.setStatus("paid");
+            order.setPaidAt(LocalDateTime.now());
+            if ("virtual".equals(order.getFulfillmentType()) && Boolean.TRUE.equals(order.getAutoFulfill())) {
+                order.setStatus("completed");
+                order.setShippedAt(LocalDateTime.now());
+                if (!StringUtils.hasText(order.getVirtualDeliveryContent())) {
+                    order.setVirtualDeliveryContent("虚拟权益已自动发放，请在“我的已购资料”中查看");
+                }
+            } else {
+                order.setStatus("paid");
+            }
             orderMapper.updateById(order);
         }
 
@@ -194,8 +203,12 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         amount.put("currency", "CNY");
         body.put("amount", amount);
 
+        com.miniprogram.entity.User user = userMapper.selectById(order.getUserId());
+        if (user == null || !StringUtils.hasText(user.getOpenid())) {
+            throw new BusinessException(700404, "用户支付身份缺失，请重新登录");
+        }
         Map<String, Object> payer = new LinkedHashMap<>();
-        payer.put("openid", order.getUserId().toString()); // 实际应查用户的openid
+        payer.put("openid", user.getOpenid());
         body.put("payer", payer);
 
         String requestBody = objectMapper.writeValueAsString(body);
@@ -240,6 +253,19 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
                 + "signature=\"" + signature + "\"";
     }
 
+    private void validatePaymentConfig() {
+        if (!StringUtils.hasText(wxPayProperties.getAppId())
+                || !StringUtils.hasText(wxPayProperties.getMchId())
+                || !StringUtils.hasText(wxPayProperties.getCertSerialNo())
+                || !StringUtils.hasText(wxPayProperties.getPrivateKey())
+                || !StringUtils.hasText(wxPayProperties.getApiV3Key())
+                || !StringUtils.hasText(wxPayProperties.getNotifyUrl())
+                || wxPayProperties.getAppId().startsWith("your-")
+                || wxPayProperties.getMchId().startsWith("your-")) {
+            throw new BusinessException(700503, "微信支付尚未完成商户配置");
+        }
+    }
+
     private String signWithRSA(String message) throws Exception {
         String privateKey = wxPayProperties.getPrivateKey()
                 .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -250,8 +276,6 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("RSA");
         java.security.PrivateKey privKey = keyFactory.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(keyBytes));
 
-        Mac mac = Mac.getInstance("HmacSHA256"); // Fallback
-        // 实际使用SHA256withRSA
         java.security.Signature signature = java.security.Signature.getInstance("SHA256withRSA");
         signature.initSign(privKey);
         signature.update(message.getBytes(StandardCharsets.UTF_8));

@@ -1,9 +1,12 @@
 <!-- pages/order-paid/order-paid.wxml -->
 <view class="paid-page">
   <view class="hero">
-    <view class="ok">✓</view>
-    <view class="title">支付成功</view>
-    <view class="sub">资料已解锁，可立即开始阅读</view>
+    <view class="ok">{{paymentConfirmed ? '✓' : '…'}}</view>
+    <view class="title">{{paymentConfirmed ? '支付成功' : '正在确认支付结果'}}</view>
+    <view class="sub" wx:if="{{!paymentConfirmed}}">请稍候，系统正在同步订单状态</view>
+    <view class="sub" wx:elif="{{isDigital}}">数字权益已解锁，可立即开始阅读</view>
+    <view class="sub" wx:elif="{{isService}}">服务订单已付款，请按预约安排使用服务</view>
+    <view class="sub" wx:else>订单已付款，商家将尽快安排发货</view>
   </view>
 
   <view class="card receipt">
@@ -23,8 +26,8 @@
 
   <view class="actions">
     <view class="btn btn-o" bindtap="goOrders">查看订单</view>
-    <view class="btn btn-p" bindtap="goReader" wx:if="{{isDigital}}">立即阅读</view>
-    <view class="btn btn-p" bindtap="goAppointments" wx:else>查看预约</view>
+    <view class="btn btn-p" bindtap="goReader" wx:if="{{isDigital}}">{{paymentConfirmed ? '立即阅读' : '确认中'}}</view>
+    <view class="btn btn-p" bindtap="goAppointments" wx:elif="{{isService}}">查看预约</view>
   </view>
 
   <view class="sec" wx:if="{{recs.length}}">

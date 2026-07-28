@@ -27,6 +27,14 @@ function getOrderDetail(id) {
   return request.get(`/api/v1/mp/orders/${id}`)
 }
 
+function getPurchasedContents() {
+  return request.get('/api/v1/mp/orders/library')
+}
+
+function getPurchasedContent(productId) {
+  return request.get(`/api/v1/mp/orders/library/${productId}`)
+}
+
 /**
  * 支付订单（微信支付）
  * @param {string|number} id - 订单ID
@@ -64,6 +72,8 @@ module.exports = {
   createOrder,
   getOrderList,
   getOrderDetail,
+  getPurchasedContents,
+  getPurchasedContent,
   payOrder,
   cancelOrder,
   confirmOrder,

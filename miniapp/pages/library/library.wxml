@@ -11,6 +11,7 @@
       class="card"
       data-id="{{item.id}}"
       data-title="{{item.name}}"
+      data-purchased="{{item.purchased}}"
       bindtap="onOpen"
     >
       <image class="cover" src="{{item.cover || '/images/default-product.svg'}}" mode="aspectFill" />
@@ -19,7 +20,7 @@
         <view class="title">{{item.name}}</view>
         <view class="meta">{{item.meta}}</view>
       </view>
-      <view class="go">阅读 ›</view>
+      <view class="go">{{item.purchased ? '阅读 ›' : '去购买 ›'}}</view>
     </view>
   </view>
 

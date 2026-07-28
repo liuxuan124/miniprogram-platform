@@ -27,7 +27,11 @@ Page({
   },
 
   onOpen(e) {
-    const { id, title } = e.currentTarget.dataset
+    const { id, title, purchased } = e.currentTarget.dataset
+    if (!purchased) {
+      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
+      return
+    }
     wx.navigateTo({
       url: `/pages/reader/reader?id=${id}&title=${encodeURIComponent(title || '')}`,
     })
@@ -36,30 +40,15 @@ Page({
   async _loadPurchased() {
     this.setData({ loading: true })
     try {
-      // 优先从已完成订单里找数字商品
-      const res = await orderService.getOrderList({ current: 1, size: 50, status: 'completed' })
-      const orders = (res && (res.records || res.list || res.items)) || []
-      const map = new Map()
-      orders.forEach((order) => {
-        const items = order.items || order.orderItems || order.products || []
-        items.forEach((it) => {
-          const type = it.productType || it.product_type || ''
-          const id = it.productId || it.product_id || it.id
-          const name = it.productName || it.name || it.title
-          if (!id || !name) return
-          if (type && type !== 'digital') return
-          if (!map.has(id)) {
-            map.set(id, {
-              id,
-              name,
-              cover: it.productImage || it.image || it.mainImage || '',
-              badge: '已购 · 永久可看',
-              meta: `订单 ${order.orderNo || order.order_no || ''}`.trim(),
-            })
-          }
-        })
-      })
-      let items = Array.from(map.values())
+      const res = await orderService.getPurchasedContents()
+      let items = (Array.isArray(res) ? res : []).map((item) => ({
+        id: item.productId || item.product_id,
+        name: item.name,
+        cover: item.mainImage || item.main_image || '',
+        badge: '已购 · 永久可看',
+        meta: `订单 ${item.orderNo || item.order_no || ''}`.trim(),
+        purchased: true,
+      }))
       if (!items.length) {
         // 无订单时展示商城数字商品，便于演示阅读器
         items = await this._fetchDigitalProducts('可购买')
@@ -89,6 +78,7 @@ Page({
       cover: p.mainImage || p.main_image || p.image || '',
       badge,
       meta: `¥${p.price || 0} · 永久可看`,
+      purchased: false,
     }))
   },
 })

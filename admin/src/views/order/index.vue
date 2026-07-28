@@ -101,17 +101,11 @@
             </div>
             <div class="goods-type">
               <el-tag
-                v-if="row.product_type === 'digital'"
+                v-if="row.fulfillment_type === 'virtual'"
                 size="small"
                 type="warning"
                 class="type-tag"
-              >数字</el-tag>
-              <el-tag
-                v-else-if="row.product_type === 'service'"
-                size="small"
-                type="success"
-                class="type-tag"
-              >服务</el-tag>
+              >虚拟</el-tag>
               <el-tag
                 v-else
                 size="small"
@@ -146,7 +140,7 @@
               link
               size="small"
               @click="handleShip(row)"
-            >{{ row.product_type === 'digital' ? '核销' : row.product_type === 'service' ? '确认预约' : '发货' }}</el-button>
+            >{{ row.fulfillment_type === 'virtual' ? '虚拟发货' : '物流发货' }}</el-button>
             <el-button
               v-if="row.status === OrderStatus.Paid || row.status === OrderStatus.Shipped"
               type="danger"
@@ -187,6 +181,15 @@
       width="520px"
       destroy-on-close
     >
+      <el-form label-width="100px">
+        <el-form-item label="发货方式">
+          <el-radio-group v-model="currentShipType">
+            <el-radio value="physical">物流发货</el-radio>
+            <el-radio value="virtual">虚拟发货</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+
       <!-- 实物：物流信息 -->
       <template v-if="currentShipType === 'physical'">
         <el-form ref="shipFormRef" :model="shipForm" :rules="shipRules" label-width="100px">
@@ -209,49 +212,28 @@
             <el-input v-model="shipForm.remark" placeholder="选填，买家可见" />
           </el-form-item>
         </el-form>
-        <div class="dialog-tip">提示：点击确定后订单状态将变更为「已发货」，买家将收到发货通知。</div>
+        <div class="dialog-tip">确认后订单将进入「已发货」，买家可在订单详情查看物流信息。</div>
       </template>
 
       <!-- 数字商品：自动核销 -->
-      <template v-if="currentShipType === 'digital'">
+      <template v-if="currentShipType === 'virtual'">
         <div class="digital-ship-content">
           <div class="ship-icon">💳</div>
-          <div class="ship-title">数字商品无需发货</div>
-          <div class="ship-desc">系统将自动核销权益并通知买家</div>
-          <div class="ship-notice">✅ 权益核销码已自动生成并发送至买家微信</div>
+          <div class="ship-title">虚拟商品/服务发货</div>
+          <div class="ship-desc">确认后订单将完成履约，数字内容会进入买家的“已购资料”。</div>
+          <el-input
+            v-model="shipForm.virtual_delivery_content"
+            type="textarea"
+            :rows="3"
+            placeholder="选填：兑换码、下载说明、服务交付说明等"
+          />
         </div>
-      </template>
-
-      <!-- 服务商品：确认预约 -->
-      <template v-if="currentShipType === 'service'">
-        <el-form label-width="100px">
-          <el-form-item label="服务项目">
-            <span>{{ currentShipGoods }}</span>
-          </el-form-item>
-          <el-form-item label="预约时间">
-            <el-date-picker
-              v-model="shipForm.appointment_time"
-              type="datetime"
-              placeholder="选择预约时间"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item label="服务顾问">
-            <el-select v-model="shipForm.consultant" placeholder="选择服务顾问" style="width: 100%">
-              <el-option label="张顾问（空闲）" value="张顾问" />
-              <el-option label="李顾问（空闲）" value="李顾问" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="备注">
-            <el-input v-model="shipForm.remark" placeholder="给买家的备注信息" />
-          </el-form-item>
-        </el-form>
       </template>
 
       <template #footer>
         <el-button @click="shipDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="shipSubmitting" @click="submitShip">
-          {{ currentShipType === 'digital' ? '确认核销' : currentShipType === 'service' ? '确认预约' : '确认发货' }}
+          {{ currentShipType === 'virtual' ? '确认虚拟发货' : '确认物流发货' }}
         </el-button>
       </template>
     </el-dialog>
@@ -406,13 +388,11 @@ const shipSubmitting = ref(false)
 const shipFormRef = ref<FormInstance>()
 const shippingOrderId = ref<number>(0)
 const currentShipType = ref('physical')
-const currentShipGoods = ref('')
 const shipForm = reactive({
   shipping_company: '',
   shipping_no: '',
   remark: '',
-  appointment_time: null as string | null,
-  consultant: '',
+  virtual_delivery_content: '',
 })
 const shipRules: FormRules = {
   shipping_company: [{ required: true, message: '请选择物流公司', trigger: 'change' }],
@@ -420,9 +400,7 @@ const shipRules: FormRules = {
 }
 
 const shipDialogTitle = computed(() => {
-  if (currentShipType.value === 'digital') return '发放数字权益'
-  if (currentShipType.value === 'service') return '预约服务确认'
-  return '填写物流发货信息'
+  return currentShipType.value === 'virtual' ? '虚拟发货' : '填写物流发货信息'
 })
 
 // ========== 退款弹窗 ==========
@@ -485,13 +463,13 @@ function handleDetail(row: OrderRecord) {
 /** 打开发货弹窗 */
 function handleShip(row: OrderRecord) {
   shippingOrderId.value = row.id
-  currentShipType.value = (row as any).product_type || 'physical'
-  currentShipGoods.value = row.items?.[0]?.product_name || ''
+  currentShipType.value = (row as any).fulfillment_type
+    || (row as any).fulfillmentType
+    || (((row as any).product_type || (row as any).productType) === 'physical' ? 'physical' : 'virtual')
   shipForm.shipping_company = ''
   shipForm.shipping_no = ''
   shipForm.remark = ''
-  shipForm.appointment_time = null
-  shipForm.consultant = ''
+  shipForm.virtual_delivery_content = ''
   shipDialogVisible.value = true
 }
 
@@ -503,17 +481,19 @@ async function submitShip() {
   }
   shipSubmitting.value = true
   try {
-    if (currentShipType.value === 'physical') {
-      await shipOrder(shippingOrderId.value, {
+    await shipOrder(shippingOrderId.value, currentShipType.value === 'physical'
+      ? {
+        delivery_type: 'physical',
         shipping_company: shipForm.shipping_company,
         shipping_no: shipForm.shipping_no,
+      }
+      : {
+        delivery_type: 'virtual',
+        virtual_delivery_content: shipForm.virtual_delivery_content,
       })
-    }
-    const msg = currentShipType.value === 'digital'
-      ? '权益已核销，买家已收到通知'
-      : currentShipType.value === 'service'
-        ? '服务预约已确认，买家已收到通知'
-        : '发货操作成功，买家已收到通知'
+    const msg = currentShipType.value === 'virtual'
+      ? '虚拟发货完成，买家权益已更新'
+      : '物流发货成功'
     ElMessage.success(msg)
     shipDialogVisible.value = false
     fetchList()
@@ -565,15 +545,11 @@ async function handleExport() {
 
     const headers = ['订单号', '用户', '手机号', '商品', '商品类型', '订单金额', '状态', '下单时间']
     const lines = rows.map((row) => {
-      const rowExt = row as OrderRecord & { product_type?: string; user_phone?: string }
+      const rowExt = row as OrderRecord & { user_phone?: string }
       const goods = (row.items || [])
         .map((item) => `${item.product_name} x${item.quantity}`)
         .join(' | ')
-      const typeLabel = rowExt.product_type === 'digital'
-        ? '数字'
-        : rowExt.product_type === 'service'
-          ? '服务'
-          : '实物'
+      const typeLabel = row.fulfillment_type === 'virtual' ? '虚拟' : '实物'
       return [
         row.order_no || '',
         row.user_nickname || '',

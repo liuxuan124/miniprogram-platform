@@ -82,6 +82,26 @@
     </view>
   </view>
 
+  <view class="info-section" wx:if="{{order.fulfillment_type === 'physical' && (order.shipping_company || order.shipping_no)}}">
+    <view class="section-title">物流信息</view>
+    <view class="info-row">
+      <text class="info-label">物流公司</text>
+      <text class="info-value">{{order.shipping_company || '-'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">物流单号</text>
+      <text class="info-value">{{order.shipping_no || '-'}}</text>
+    </view>
+  </view>
+
+  <view class="info-section" wx:if="{{order.fulfillment_type === 'virtual' && order.virtual_delivery_content}}">
+    <view class="section-title">虚拟交付</view>
+    <view class="info-row">
+      <text class="info-label">交付说明</text>
+      <text class="info-value">{{order.virtual_delivery_content}}</text>
+    </view>
+  </view>
+
   <!-- 价格明细 -->
   <view class="price-section">
     <view class="section-title">价格明细</view>
@@ -105,10 +125,10 @@
 
   <!-- 底部操作栏 -->
   <view class="bottom-bar" wx:if="{{order.status === 'pending_payment' || order.status === 'paid' || order.status === 'shipped' || order.status === 'completed'}}">
-    <!-- 待确认 -->
+    <!-- 待付款 -->
     <block wx:if="{{order.status === 'pending_payment'}}">
       <view class="action-btn action-btn--default" bindtap="onCancelTap">取消订单</view>
-      <view class="action-btn action-btn--primary" bindtap="onPayTap">等待顾问确认</view>
+      <view class="action-btn action-btn--primary" bindtap="onPayTap">立即支付</view>
     </block>
     <!-- 待发货 -->
     <block wx:if="{{order.status === 'paid'}}">
