@@ -95,10 +95,13 @@
   </view>
 
   <view class="info-section" wx:if="{{order.fulfillment_type === 'virtual' && order.virtual_delivery_content}}">
-    <view class="section-title">虚拟交付</view>
+    <view class="section-title">发货通知</view>
     <view class="info-row">
-      <text class="info-label">交付说明</text>
-      <text class="info-value">{{order.virtual_delivery_content}}</text>
+      <text class="info-label">发货说明</text>
+      <view class="info-value-wrap">
+        <text class="info-value">{{order.virtual_delivery_content}}</text>
+        <text class="info-copy" bindtap="onCopyShippingNotice">复制</text>
+      </view>
     </view>
   </view>
 
@@ -133,10 +136,11 @@
     <!-- 待发货 -->
     <block wx:if="{{order.status === 'paid'}}">
       <view class="action-btn action-btn--default" bindtap="onRefundTap">申请退款</view>
+      <view class="action-btn action-btn--primary" bindtap="onContactTap">联系商家</view>
     </block>
     <!-- 待收货 -->
     <block wx:if="{{order.status === 'shipped'}}">
-      <view class="action-btn action-btn--primary" bindtap="onConfirmTap">确认收货</view>
+      <view class="action-btn action-btn--primary" bindtap="onConfirmTap">确认完成</view>
     </block>
     <!-- 已完成 -->
     <block wx:if="{{order.status === 'completed'}}">

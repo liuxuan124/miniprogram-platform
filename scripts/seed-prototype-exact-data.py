@@ -629,7 +629,7 @@ def upsert_home(token: str) -> int:
                 "type": "section_title",
                 "props": {
                     "title": "知识产品",
-                    "subtitle": "资料包永久可看 · 咨询按时段预约",
+                    "subtitle": "虚拟商品正常发货 · 咨询按时段预约",
                     "more_text": "商城 ›",
                     "more_link_type": "page",
                     "more_link_url": "/pages/product-list/product-list",

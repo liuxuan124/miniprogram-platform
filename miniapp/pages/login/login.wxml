@@ -23,7 +23,7 @@
         <text>MEMBER ACCESS</text>
       </view>
       <text class="hero__title">欢迎回来</text>
-      <text class="hero__desc">登录后同步订单、已购资料与会员权益</text>
+      <text class="hero__desc">登录后同步订单、预约与会员权益</text>
       <view class="hero__tip" wx:if="{{interceptAction}}">
         <text class="hero__tip-dot">✓</text>
         <text class="hero__tip-text">登录后即可{{interceptAction}}</text>

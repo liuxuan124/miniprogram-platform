@@ -136,15 +136,8 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         // 幂等：仅当订单待支付时更新
         if ("pending_payment".equals(order.getStatus())) {
             order.setPaidAt(LocalDateTime.now());
-            if ("virtual".equals(order.getFulfillmentType()) && Boolean.TRUE.equals(order.getAutoFulfill())) {
-                order.setStatus("completed");
-                order.setShippedAt(LocalDateTime.now());
-                if (!StringUtils.hasText(order.getVirtualDeliveryContent())) {
-                    order.setVirtualDeliveryContent("虚拟权益已自动发放，请在“我的已购资料”中查看");
-                }
-            } else {
-                order.setStatus("paid");
-            }
+            // 所有商品统一进入待发货，由商家在订单中完成后续发货。
+            order.setStatus("paid");
             orderMapper.updateById(order);
         }
 

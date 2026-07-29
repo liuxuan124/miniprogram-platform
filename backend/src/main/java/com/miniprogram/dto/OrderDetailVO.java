@@ -43,7 +43,7 @@ public class OrderDetailVO {
     @Schema(description = "履约方式: physical/virtual")
     private String fulfillmentType;
 
-    @Schema(description = "支付成功后是否自动虚拟履约")
+    @Schema(description = "支付成功后是否自动虚拟履约（当前统一关闭，由商家正常发货）")
     private Boolean autoFulfill;
 
     @Schema(description = "备注")
@@ -58,13 +58,13 @@ public class OrderDetailVO {
     @Schema(description = "物流单号")
     private String logisticsNo;
 
-    @Schema(description = "虚拟发货内容/说明")
+    @Schema(description = "虚拟发货说明")
     private String virtualDeliveryContent;
 
     @Schema(description = "支付时间")
     private String paidAt;
 
-    @Schema(description = "发货/虚拟履约时间")
+    @Schema(description = "发货时间")
     private String shippedAt;
 
     @Schema(description = "订单项列表")

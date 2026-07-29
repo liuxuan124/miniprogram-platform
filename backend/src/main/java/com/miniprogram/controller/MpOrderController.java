@@ -46,20 +46,6 @@ public class MpOrderController {
         return R.ok(orderService.getUserOrderDetail(userId, id));
     }
 
-    @GetMapping("/library")
-    @Operation(summary = "我的已购数字内容")
-    public R<java.util.List<PurchasedContentVO>> listPurchasedContents() {
-        Long userId = SecurityUtils.getCurrentUserId();
-        return R.ok(orderService.listPurchasedContents(userId));
-    }
-
-    @GetMapping("/library/{productId}")
-    @Operation(summary = "读取已购买的数字内容")
-    public R<PurchasedContentVO> getPurchasedContent(@PathVariable Long productId) {
-        Long userId = SecurityUtils.getCurrentUserId();
-        return R.ok(orderService.getPurchasedContent(userId, productId));
-    }
-
     @PostMapping("/{id}/pay")
     @Operation(summary = "支付订单")
     public R<WxPayResponse> payOrder(@PathVariable Long id) {
@@ -76,7 +62,7 @@ public class MpOrderController {
     }
 
     @PostMapping("/{id}/confirm")
-    @Operation(summary = "确认收货")
+    @Operation(summary = "确认收货/确认完成")
     public R<Void> confirmOrder(@PathVariable Long id) {
         Long userId = SecurityUtils.getCurrentUserId();
         orderService.confirmOrder(userId, id);

@@ -52,7 +52,7 @@
     </view>
     <view class="pick">
       <text class="k">服务</text>
-      <text class="v">{{isDigital ? '永久可看 · 季度更新' : (isService ? '开始前24h可改期' : '售后保障')}}</text>
+      <text class="v">{{isDigital ? '虚拟发货 · 订单可查' : (isService ? '开始前24h可改期' : '售后保障')}}</text>
       <text class="ar">›</text>
     </view>
   </view>
@@ -107,11 +107,7 @@
       <text class="bottom-bar__icon-emoji">💬</text>
       <text class="bottom-bar__icon-text">客服</text>
     </view>
-    <view class="bottom-bar__icon" wx:if="{{isDigital}}" bindtap="onPreviewTap">
-      <text class="bottom-bar__icon-emoji">👀</text>
-      <text class="bottom-bar__icon-text">试读</text>
-    </view>
-    <view class="bottom-bar__icon" wx:elif="{{!isService}}" bindtap="onAddCartTap">
+    <view class="bottom-bar__icon" wx:if="{{!isDigital && !isService}}" bindtap="onAddCartTap">
       <image class="bottom-bar__icon-img" src="/images/icon-cart.svg" mode="aspectFit" />
       <text class="bottom-bar__icon-text">购物车</text>
     </view>
@@ -126,7 +122,7 @@
       bindtap="onAddCartTap"
     >加入购物车</view>
     <view class="bottom-bar__btn bottom-bar__btn--buy" bindtap="onBuyNowTap">
-      {{isDigital ? '立即购买解锁' : (isService ? '立即下单' : '立即购买')}}
+      {{isDigital ? '立即购买' : (isService ? '立即下单' : '立即购买')}}
     </view>
   </view>
 

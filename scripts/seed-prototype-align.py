@@ -425,7 +425,7 @@ def build_home_dsl(home_id: str | int) -> dict:
                 "type": "section_title",
                 "props": {
                     "title": "知识产品",
-                    "subtitle": "资料包永久可看 · 咨询按时段预约",
+                    "subtitle": "虚拟商品正常发货 · 咨询按时段预约",
                     "more_text": "商城 ›",
                     "more_link_type": "page",
                     "more_link_url": "/pages/product-list/product-list",
@@ -578,13 +578,12 @@ def save_configs(token: str, home_id: int):
     }
     mine = {
         "loginTitle": "登录出海笔记",
-        "loginSubtitle": "查看订单、已购资料、预约与会员权益",
+        "loginSubtitle": "查看订单、预约与会员权益",
         "loginButtonText": "微信一键登录",
         "memberCardTitle": "出海会员",
         "servicePhone": "",
         "menuItems": [
             {"id": "orders", "icon": "🧾", "title": "全部订单", "url": "/pages/order-list/order-list", "enabled": True},
-            {"id": "library", "icon": "📚", "title": "我的已购资料", "url": "/pages/library/library", "enabled": True},
             {"id": "reservation", "icon": "🗓️", "title": "我的预约", "url": "/pages/my-appointments/my-appointments", "enabled": True},
             {"id": "member-center", "icon": "👑", "title": "会员中心 · 权益", "url": "/pages/member-center/member-center", "enabled": True},
             {"id": "coupons", "icon": "🎫", "title": "优惠券", "url": "/pages/coupon-list/coupon-list", "enabled": True},
@@ -631,7 +630,7 @@ def publish_release(token: str):
         {
             "mode": "publish",
             "changeType": "minor",
-            "releaseNotes": "对齐出海笔记原型：首页IP卡/搜索/快捷入口、Tab=首页·内容·商城·我的、知识资料包与1v1咨询、已购资料阅读器、评价与支付成功闭环",
+            "releaseNotes": "对齐出海笔记原型：首页IP卡/搜索/快捷入口、Tab=首页·内容·商城·我的、知识商品与1v1咨询、普通订单发货、评价与支付成功闭环",
         },
     )
     return must("publish miniapp release", status, payload)

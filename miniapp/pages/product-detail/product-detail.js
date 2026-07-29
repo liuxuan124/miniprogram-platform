@@ -5,8 +5,10 @@ const productService = require('../../services/product')
 const cartService = require('../../services/cart')
 const orderService = require('../../services/order')
 const { AuthUtil } = require('../../utils/auth')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     id: '',
     product: null,
@@ -30,10 +32,10 @@ Page({
     isService: false,
     reviewScore: '4.9',
     reviewCount: 0,
-    gains: ['可复用方法论与清单模板', '真实案例拆解', '季度免费更新'],
+    gains: ['可复用方法论与清单模板', '真实案例拆解', '订单发货通知'],
     whoFor: '准备启动或优化跨境业务的卖家与内容创作者。',
     faqs: [
-      { q: '资料包买错了可以退吗？', a: '数字内容解锁后一般不支持退款；未阅读可在 24 小时内申请。' },
+      { q: '付款后如何交付？', a: '支付成功后商家会正常发货，具体说明可在订单详情的发货通知中查看。' },
       { q: '和 1v1 咨询有什么区别？', a: '资料包适合自学沉淀；1v1 针对你的具体业务诊断，两者互补。' },
     ],
   },
@@ -131,14 +133,6 @@ Page({
 
   onGoHome() {
     wx.switchTab({ url: '/pages/index/index' })
-  },
-
-  /** 资料包试读 → 阅读器 */
-  onPreviewTap() {
-    const p = this.data.product || {}
-    wx.navigateTo({
-      url: `/pages/reader/reader?id=${p.id || this.data.id}&title=${encodeURIComponent(p.name || '资料试读')}`,
-    })
   },
 
   /** 咨询服务 → 预约日历 */

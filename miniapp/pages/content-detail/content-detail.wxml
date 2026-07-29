@@ -54,7 +54,7 @@
         <view class="{{liked ? 'hot' : ''}}" bindtap="onLikeTap">♡ {{likeStat || article.like_count || 0}}</view>
         <view bindtap="onCommentTap">💬 86</view>
         <view bindtap="onFavoriteTap">{{favorited ? '★ 已收藏' : '🔖 收藏'}}</view>
-        <view class="n-share" bindtap="onShareTap">↗ 分享</view>
+        <button class="n-share share-button-reset" open-type="share">↗ 分享</button>
       </view>
     </view>
 
@@ -148,9 +148,9 @@
       <t-icon name="{{favorited ? 'star-filled' : 'star'}}" size="44rpx" color="{{favorited ? '#ffaa00' : '#a5abb9'}}" />
       <text class="action-text">{{favorited ? '已收藏' : '收藏'}}</text>
     </view>
-    <view class="action-item" bindtap="onShareTap">
+    <button class="action-item share-button-reset" open-type="share">
       <t-icon name="share" size="44rpx" color="#a5abb9" />
       <text class="action-text">分享</text>
-    </view>
+    </button>
   </view>
 </view>

@@ -75,14 +75,12 @@ Page({
     wx.redirectTo({ url: '/pages/order-list/order-list' })
   },
 
-  goReader() {
+  goOrderDetail() {
     if (!this.data.paymentConfirmed) {
       wx.showToast({ title: '支付结果确认中，请稍候', icon: 'none' })
       return
     }
-    const id = this.data.productId
-    const title = encodeURIComponent(this.data.productName)
-    wx.redirectTo({ url: `/pages/reader/reader?id=${id}&title=${title}` })
+    wx.redirectTo({ url: `/pages/order-detail/order-detail?id=${this.data.orderId}` })
   },
 
   goAppointments() {

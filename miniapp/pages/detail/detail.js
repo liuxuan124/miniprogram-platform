@@ -1,8 +1,10 @@
 // pages/detail/detail.js — 通用详情页
 // 根据传入的 id 和 type 加载不同类型的详情内容
 const { get } = require('../../utils/request')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     id: '',
     type: '',

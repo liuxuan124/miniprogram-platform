@@ -118,7 +118,7 @@
             </template>
 
             <template v-else-if="activeScreen === 'shop'">
-              <div class="fp-banner">知识商城 · 资料包永久可读 · 咨询按时段预约</div>
+              <div class="fp-banner">知识商城 · 虚拟商品正常发货 · 咨询按时段预约</div>
               <div class="fp-chips">
                 <span
                   v-for="f in shopFilters"
@@ -186,11 +186,10 @@
                 <div @click="openProtectedScreen('coupons')"><b>{{ previewLoggedIn ? (coupons.length || 3) : '—' }}</b><span>优惠券</span></div>
                 <div @click="openProtectedScreen('member')"><b>{{ previewLoggedIn ? '860' : '—' }}</b><span>积分</span></div>
                 <div @click="openProtectedScreen('member')"><b>{{ previewLoggedIn ? '1,360' : '—' }}</b><span>成长值</span></div>
-                <div @click="openProtectedScreen('reader')"><b>{{ previewLoggedIn ? (products.length || 3) : '—' }}</b><span>已购资料</span></div>
               </div>
               <div class="fp-quick">
                 <div @click="openProtectedScreen('orders')">💳<br>待付款</div>
-                <div @click="openProtectedScreen('reader')">📘<br>已购资料</div>
+                <div @click="openProtectedScreen('orders')">📦<br>待发货</div>
                 <div @click="openProtectedScreen('booked')">🗓️<br>我的预约</div>
                 <div @click="openProtectedScreen('writereview')">✍️<br>待评价</div>
               </div>
@@ -217,7 +216,7 @@
                 <div class="fp-login__hero">
                   <div class="fp-login__eyebrow"><i></i>MEMBER ACCESS</div>
                   <div class="fp-login__brand">欢迎回来</div>
-                  <div class="fp-login__desc">登录后同步订单、已购资料与会员权益</div>
+                  <div class="fp-login__desc">登录后同步订单、预约与会员权益</div>
                 </div>
 
                 <div class="fp-login__card">
@@ -339,7 +338,7 @@ const authModeOptions = [
 ]
 const mineConfig = ref({
   loginTitle: '登录出海笔记',
-  loginSubtitle: '查看订单、已购资料、预约与会员权益',
+  loginSubtitle: '查看订单、预约与会员权益',
   loginButtonText: '微信一键登录',
 })
 
@@ -364,7 +363,6 @@ const tabs = [
 
 const mineMenus = [
   { key: 'orders', icon: '🧾', label: '全部订单' },
-  { key: 'reader', icon: '📚', label: '我的已购资料' },
   { key: 'member', icon: '👑', label: '会员中心 · 权益' },
   { key: 'coupons', icon: '🎫', label: '优惠券' },
   { key: 'ai', icon: '🤖', label: 'AI 出海助手' },
@@ -393,9 +391,8 @@ const screenGroups = [
       { no: '05', key: 'product', label: '商品详情' },
       { no: '06', key: 'confirm', label: '确认订单' },
       { no: '07', key: 'paid', label: '支付成功' },
-      { no: '08', key: 'reader', label: '阅读器' },
-      { no: '09', key: 'booking', label: '预约咨询' },
-      { no: '10', key: 'booked', label: '预约成功' },
+      { no: '08', key: 'booking', label: '预约咨询' },
+      { no: '09', key: 'booked', label: '预约成功' },
     ],
   },
   {
@@ -419,11 +416,10 @@ const stubScreens: Record<string, { icon: string; title: string; desc: string }>
   reviews: { icon: '⭐', title: '全部评价', desc: '评分分布、标签筛选、评价列表' },
   writereview: { icon: '✍️', title: '发表评价', desc: '星级、标签、图片、匿名提交' },
   confirm: { icon: '🧾', title: '确认订单', desc: '优惠券、积分、支付底栏' },
-  paid: { icon: '✅', title: '支付成功', desc: '收据、立即阅读、奖励券' },
-  reader: { icon: '📖', title: '资料阅读器', desc: '进度、书签、目录 Sheet' },
+  paid: { icon: '✅', title: '支付成功', desc: '收据、订单进度、奖励券' },
   booking: { icon: '🗓️', title: '预约 1v1', desc: '选日 / 时段 / 表单三步' },
   booked: { icon: '🎉', title: '预约成功', desc: '预约凭证与回看入口' },
-  orders: { icon: '📦', title: '我的订单', desc: '待付款 / 待服务 / 已完成' },
+  orders: { icon: '📦', title: '我的订单', desc: '待付款 / 待发货 / 待收货 / 已完成' },
   coupons: { icon: '🎫', title: '我的优惠券', desc: '可使用 / 已使用 / 已过期' },
   member: { icon: '👑', title: '会员中心', desc: 'LV1–4、成长值、权益网格' },
   ai: { icon: '🤖', title: 'AI 出海助手', desc: '主题引导与商品转化' },

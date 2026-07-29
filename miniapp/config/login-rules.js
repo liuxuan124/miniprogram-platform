@@ -61,7 +61,6 @@ const LOGIN_RULES = {
     'member-center': true,
     points:          true,
     orders:          true,
-    library:         false, // 可先逛资料包，购买时再登录
     ai:              false,
     favorites:       false,
     contact:         false,

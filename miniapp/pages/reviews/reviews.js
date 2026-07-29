@@ -1,4 +1,5 @@
 const reviewService = require('../../services/review')
+const { createSharePageConfig } = require('../../utils/share')
 
 const DEMO = {
   avgScore: 4.9,
@@ -12,6 +13,7 @@ const DEMO = {
 }
 
 Page({
+  ...createSharePageConfig(),
   data: {
     productId: null,
     avgScore: 0,

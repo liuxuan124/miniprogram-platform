@@ -2,8 +2,10 @@
 // 分类筛选、搜索、排序、下拉刷新、上拉加载
 
 const productService = require('../../services/product')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     // 搜索
     keyword: '',

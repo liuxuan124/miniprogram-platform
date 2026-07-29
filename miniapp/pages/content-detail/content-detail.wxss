@@ -199,6 +199,20 @@
   margin-left: auto;
 }
 
+.share-button-reset {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.share-button-reset::after {
+  border: 0;
+}
+
 /* ========== 文章模式 ========== */
 .progress-wrap {
   position: fixed;

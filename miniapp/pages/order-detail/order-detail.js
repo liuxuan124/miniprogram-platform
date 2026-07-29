@@ -9,7 +9,7 @@ const { requestPayment } = require('../../utils/payment')
 const STATUS_MAP = {
   pending_payment: { text: '待付款', color: '#ff8a00', desc: '订单已创建，请完成支付' },
   paid: { text: '待发货', color: '#1890ff', desc: '商家正在准备发货' },
-  shipped: { text: '待收货', color: '#faad14', desc: '商品正在配送中' },
+  shipped: { text: '待收货', color: '#faad14', desc: '订单已发货，请查看发货信息' },
   completed: { text: '已完成', color: '#52c41a', desc: '交易已完成' },
   closed: { text: '已关闭', color: '#999', desc: '订单已关闭' },
   refunding: { text: '退款中', color: '#faad14', desc: '退款处理中' },
@@ -41,6 +41,7 @@ Page({
 
     // 支付状态
     paying: false,
+    isVirtual: false,
   },
 
   onLoad(options) {
@@ -84,6 +85,7 @@ Page({
         if (order.address) {
           order.address.detail = order.address.detail || order.address.address
         }
+        const isVirtual = order.fulfillment_type === 'virtual'
         if (Array.isArray(order.items)) {
           order.items = order.items.map((item) => ({
             ...item,
@@ -95,8 +97,9 @@ Page({
           }))
         }
         // 计算步骤条进度
+        const statusSteps = STATUS_STEPS
         let currentStep = 0
-        const statusIdx = STATUS_STEPS.indexOf(order.status)
+        const statusIdx = statusSteps.indexOf(order.status)
         if (statusIdx >= 0) currentStep = statusIdx
         // 退款/关闭状态特殊处理
         if (order.status === 'refunding' || order.status === 'refunded') {
@@ -109,6 +112,9 @@ Page({
           order,
           loading: false,
           currentStep,
+          isVirtual,
+          STATUS_MAP,
+          steps: [{ text: '待付款' }, { text: '待发货' }, { text: '待收货' }, { text: '已完成' }],
         })
       })
       .catch(() => {
@@ -163,16 +169,16 @@ Page({
     })
   },
 
-  /** 确认收货 */
+  /** 确认订单完成 */
   onConfirmTap() {
     wx.showModal({
       title: '提示',
-      content: '确认已收到商品？',
+      content: '确认本订单已经完成？',
       success: (res) => {
         if (res.confirm) {
           orderService.confirmOrder(this.data.id)
             .then(() => {
-              wx.showToast({ title: '已确认收货', icon: 'success' })
+              wx.showToast({ title: '已确认完成', icon: 'success' })
               this._loadDetail(this.data.id)
             })
             .catch(() => {
@@ -223,6 +229,19 @@ Page({
         wx.showToast({ title: '已复制', icon: 'success' })
       },
     })
+  },
+
+  onCopyShippingNotice() {
+    const content = this.data.order.virtual_delivery_content || ''
+    if (!content) return
+    wx.setClipboardData({
+      data: content,
+      success: () => wx.showToast({ title: '发货说明已复制', icon: 'success' }),
+    })
+  },
+
+  onContactTap() {
+    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
   },
 
   /** 拨打电话 */

@@ -3,8 +3,10 @@
 
 const request = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     activityId: '',
     activity: {},

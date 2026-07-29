@@ -74,18 +74,29 @@
                 </div>
 
                 <el-form-item label="商品类型" prop="productType" class="span-all">
-                  <div class="segmented-control">
-                    <button
-                      v-for="t in typeOptions"
-                      :key="t.value"
-                      type="button"
-                      class="segment-item"
-                      :class="{ active: formData.productType === t.value }"
-                      @click="formData.productType = t.value"
-                    >
-                      <span class="segment-icon">{{ t.icon }}</span>
-                      <span>{{ t.label }}</span>
-                    </button>
+                  <div>
+                    <div class="segmented-control">
+                      <button
+                        v-for="t in typeOptions"
+                        :key="t.value"
+                        type="button"
+                        class="segment-item"
+                        :class="{ active: formData.productType === t.value }"
+                        @click="formData.productType = t.value"
+                      >
+                        <span class="segment-icon">{{ t.icon }}</span>
+                        <span>{{ t.label }}</span>
+                      </button>
+                    </div>
+                    <div v-if="formData.productType === 'digital'" class="form-tip">
+                      数字商品无需收货地址和库存。用户支付后订单进入待发货，请在订单管理中选择虚拟发货并填写发货说明。
+                    </div>
+                    <div v-else-if="formData.productType === 'physical'" class="form-tip">
+                      实物商品需要配置库存。用户下单时填写收货地址，发货时需要填写物流公司和物流单号。
+                    </div>
+                    <div v-else class="form-tip">
+                      服务商品按普通订单管理，可结合预约功能安排具体服务时间。
+                    </div>
                   </div>
                 </el-form-item>
               </div>
@@ -182,7 +193,8 @@
                     </el-table-column>
                     <el-table-column label="库存" min-width="118">
                       <template #default="{ row }">
-                        <el-input-number v-model="row.stock" :min="0" size="small" controls-position="right" />
+                        <span v-if="formData.productType === 'digital'" class="unlimited-stock">不限库存</span>
+                        <el-input-number v-else v-model="row.stock" :min="0" size="small" controls-position="right" />
                       </template>
                     </el-table-column>
                     <el-table-column label="SKU 编码" min-width="160">
@@ -306,7 +318,11 @@
                 <span>自动保存</span>
                 <strong>{{ lastAutoSaveTime ? formatTime(lastAutoSaveTime) : '未保存' }}</strong>
               </div>
-              <div class="status-hint">上线前请确认主图、SKU 价格和库存。保存后小程序端将按接口状态展示。</div>
+              <div class="status-hint">
+                {{ formData.productType === 'digital'
+                  ? '上线前请确认主图、SKU 价格和发货说明。数字商品不校验实体库存。'
+                  : '上线前请确认主图、SKU 价格和库存。保存后小程序端将按接口状态展示。' }}
+              </div>
             </section>
 
             <section class="side-card">
@@ -430,6 +446,7 @@ const formData = reactive({
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
   category_id: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
+  productType: [{ required: true, message: '请选择商品类型', trigger: 'change' }],
   main_image: [{ required: true, message: '请输入主图URL', trigger: 'blur' }],
 }
 
@@ -438,7 +455,13 @@ const completionItems = computed(() => [
   { label: '选择商品分类', done: !!formData.category_id },
   { label: '上传商品主图', done: !!formData.main_image },
   { label: '添加至少 1 个 SKU', done: formData.skus.length > 0 },
-  { label: '配置价格和库存', done: formData.skus.some((sku) => toNumber(sku.price, 0) > 0 && toNumber(sku.stock, 0) > 0) },
+  {
+    label: formData.productType === 'digital' ? '配置商品价格' : '配置价格和库存',
+    done: formData.skus.some((sku) =>
+      toNumber(sku.price, 0) > 0
+      && (formData.productType === 'digital' || toNumber(sku.stock, 0) > 0)
+    ),
+  },
 ])
 
 const completionPercent = computed(() => {
@@ -1358,6 +1381,13 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
+.form-tip {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .asset-card :deep(.el-form-item) {
   margin-bottom: 22px;
 }
@@ -1525,6 +1555,18 @@ onUnmounted(() => {
 
 .sku-table {
   width: 100%;
+}
+
+.unlimited-stock {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #0f8a5f;
+  background: #edf9f4;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .money-input :deep(.el-input__prefix) {

@@ -17,14 +17,13 @@ const DEFAULT_TABBAR_LIST = [
 
 const DEFAULT_MINE_PAGE_CONFIG = {
   loginTitle: '登录出海笔记',
-  loginSubtitle: '查看订单、已购资料、预约与会员权益',
+  loginSubtitle: '查看订单、预约与会员权益',
   loginButtonText: '微信一键登录',
   memberCardTitle: '出海会员中心',
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
     { id: 'orders', icon: '🧾', title: '全部订单', url: '/pages/order-list/order-list', enabled: true },
-    { id: 'library', icon: '📚', title: '我的已购资料', url: '/pages/library/library', enabled: true },
     { id: 'reservation', icon: '🗓️', title: '我的预约', url: '/pages/my-appointments/my-appointments', enabled: true },
     { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pages/member-center/member-center', enabled: true },
     { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true },
@@ -119,7 +118,20 @@ async function fetchTabbarList(forceRefresh) {
 
 async function fetchMinePageConfig(forceRefresh) {
   const config = await fetchSystemConfig(forceRefresh)
-  return config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG
+  const mineConfig = config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG
+  // 兼容后台历史配置：独立“已购资料/数字领取”入口已取消，统一从订单查看发货通知。
+  const menuItems = (mineConfig.menuItems || DEFAULT_MINE_PAGE_CONFIG.menuItems)
+    .filter((item) => item.id !== 'library')
+  const rawLoginSubtitle = String(mineConfig.loginSubtitle || '')
+  const loginSubtitle = rawLoginSubtitle
+    .replace(/、?(已购资料|领取通知)/g, '')
+    .replace(/订单、订单/g, '订单')
+    || DEFAULT_MINE_PAGE_CONFIG.loginSubtitle
+  return {
+    ...mineConfig,
+    loginSubtitle,
+    menuItems,
+  }
 }
 
 module.exports = {

@@ -845,7 +845,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
     </div>
     <div class="sec">
       <div class="sec-h">
-        <div><h3>知识产品</h3><div class="sub">资料包永久可看 · 咨询按时段预约</div></div>
+        <div><h3>知识产品</h3><div class="sub">虚拟商品正常发货 · 咨询按时段预约</div></div>
         <span class="more" onclick="go('shop')">商城 ›</span>
       </div>
       <div id="home-prods"></div>
@@ -935,7 +935,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
     <div class="act" onclick="go('cart')">🛒</div></div>
   <div class="shop-banner">
     <div class="t">📦 资料包 + 1v1 咨询</div>
-    <div class="d">资料包购买后永久可看并季度更新 · 咨询下单后自选时段，支持改期</div>
+    <div class="d">虚拟商品由商家正常发货并提供说明 · 咨询下单后自选时段，支持改期</div>
   </div>
   <div class="fmtfilter" style="padding-top:0;">
     <div class="f on" data-stab="all" onclick="filterShop('all')">全部</div>
@@ -1090,8 +1090,8 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
     </div>
     <div class="blk" style="background:var(--line-2);box-shadow:none;">
       <p style="font-size:12px;color:var(--ink-500);line-height:1.85;">
-        📄 虚拟商品说明：资料包为数字内容，支付成功后立即解锁，可在「我的 - 已购资料」中永久查看与下载，
-        <b>一经购买不支持退款</b>；1v1 咨询可在服务开始前 24 小时免费改期或取消。</p>
+        📄 虚拟商品说明：支付成功后由商家正常发货，具体说明会显示在订单详情的发货通知中；
+        售后规则以商品说明为准，1v1 咨询可在服务开始前 24 小时免费改期或取消。</p>
     </div>
     <div class="pad"></div>
   </div>
@@ -1111,7 +1111,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
     <div class="done" style="padding-top:var(--s7);justify-content:flex-start;">
       <div class="ok">✓</div>
       <h3>支付成功</h3>
-      <p>资料已解锁，可立即开始阅读；<br/>1v1 咨询请尽快选择时段。</p>
+      <p>订单已付款，商家将尽快安排发货；<br/>1v1 咨询请尽快选择时段。</p>
       <div class="rcpt">
         <div class="summary"><span>订单号</span><b style="font-size:12px;">20260722100387</b></div>
         <div class="summary"><span>支付方式</span><b>微信支付</b></div>
@@ -1120,7 +1120,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
       </div>
       <div style="display:flex;gap:11px;width:100%;">
         <div class="btn btn-o" onclick="go('orders')">查看订单</div>
-        <div class="btn btn-p" onclick="go('reader')">立即阅读</div>
+        <div class="btn btn-p" onclick="go('orderdetail')">查看订单详情</div>
       </div>
     </div>
     <div class="blk">
@@ -1154,7 +1154,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
       <div class="navbar" style="padding-left:0;"><div class="back" onclick="go('orders')"
         style="background:rgba(255,255,255,.2);color:#fff;box-shadow:none;">‹</div></div>
       <div class="st">✓ 交易完成</div>
-      <div class="tx">资料已永久解锁，可随时在「已购资料」中查看与下载</div>
+      <div class="tx">订单已完成，发货说明可在下方订单信息中查看</div>
     </div>
     <div class="blk" style="margin-top:-14px;position:relative;z-index:2;">
       <h5>📦 商品信息</h5>
@@ -1170,6 +1170,10 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
         <span>实付款</span><b style="font-size:18px;color:var(--accent);">¥64.50</b></div>
     </div>
     <div class="blk">
+      <h5>📨 发货通知</h5>
+      <p style="font-size:13px;color:var(--ink-700);line-height:1.8;">商家已完成虚拟发货，后续服务安排将通过订单预留手机号与您联系，请保持电话畅通。</p>
+    </div>
+    <div class="blk">
       <h5>📋 订单信息</h5>
       <div class="summary"><span>订单编号</span><b style="font-size:12px;">20260722100387 <span
         style="color:var(--brand);cursor:pointer;" onclick="toast('订单号已复制')">复制</span></b></div>
@@ -1180,7 +1184,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
     <div class="blk">
       <h5>🚚 订单进度</h5>
       <div class="trace">
-        <div class="tr on"><div class="dot"></div><div><div class="tx">资料已解锁，可开始阅读</div><div class="dt">2026-07-22 10:03:12</div></div></div>
+        <div class="tr on"><div class="dot"></div><div><div class="tx">商家已发货</div><div class="dt">2026-07-22 10:03:12</div></div></div>
         <div class="tr on"><div class="dot"></div><div><div class="tx">支付成功</div><div class="dt">2026-07-22 10:03:08</div></div></div>
         <div class="tr on"><div class="dot"></div><div><div class="tx">订单创建</div><div class="dt">2026-07-22 10:03:01</div></div></div>
       </div>
@@ -1190,29 +1194,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
   <div class="cta">
     <div class="btn btn-o" onclick="go('service')">联系客服</div>
     <div class="btn btn-o" onclick="go('writereview')">评价</div>
-    <div class="btn btn-p" onclick="go('reader')">开始阅读</div>
-  </div>
-</div>
-<!-- 15 资料阅读器 -->
-<div class="screen" id="s-reader">
-  <div class="statusbar"><span>9:41</span><span class="r">▮▮▮ 5G 100%</span></div>
-  <div class="rd-top">
-    <div class="back" onclick="go('mine')">‹</div>
-    <div style="flex:1;font-size:13px;color:var(--ink-500);text-align:center;">第 2 章 · 家居收纳类目案例拆解</div>
-    <div class="back" onclick="openSheet('toc')">☰</div>
-  </div>
-  <div class="rd-body" id="rd-body">
-    <h2>案例 07：欧洲站可折叠衣物收纳箱</h2>
-    <p>这个案例是我 2025 年 Q4 实际操盘的项目，从选品到首单出货用了 47 天，首月出货 1,200 单。之所以拿它做拆解，是因为它几乎踩中了家居收纳类目的每一个典型决策点。</p>
-    <p><span class="hl">选品切入点是"尺寸差异化"</span>——欧洲家庭衣柜的层高普遍比北美低 8–12cm，主流卖家沿用的美规尺寸放进去会顶到隔板。我们把高度压到 32cm，宽度做成两个规格适配 IKEA 常见柜体，这一个改动就避开了绝大部分同质化竞争。</p>
-    <p>供应链上选了浙江台州的一家工厂，月产能 8 万件，接受 500 件起订打样。关键是他们能做无纺布 + PP 板复合结构，这是控制成本的核心——同类竞品多用全塑料，成本高出 40%。</p>
-    <p>定价上我们把零售价定在 €18.99，比头部竞品低 €3，但因为结构成本优势，毛利率反而高出 6 个百分点。这就是为什么我一直强调：<span class="hl">价格战不该打在利润上，应该打在成本结构上。</span></p>
-    <p>踩过的坑也要说：首批货没做欧盟 GPSR 标识，被平台下架了 11 天，损失了整个黑五前的预热窗口。合规这件事必须和打样并行推进，不能等到备货完成。</p>
-  </div>
-  <div class="rd-foot">
-    <span onclick="toast('已加入书签')">🔖</span>
-    <div class="prog"><div class="tr"><i style="width:34%"></i></div><div class="lb">已读 34% · 第 2 章 / 共 7 章</div></div>
-    <span onclick="toast('PDF 已开始下载')">⬇ PDF</span>
+    <div class="btn btn-p" onclick="toast('订单已完成')">确认完成</div>
   </div>
 </div>
 
@@ -1357,18 +1339,16 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
       <div onclick="go('coupons')"><b>3</b><span>优惠券</span></div>
       <div onclick="go('member')"><b>860</b><span>积分</span></div>
       <div onclick="go('member')"><b>1,360</b><span>成长值</span></div>
-      <div onclick="go('reader')"><b>3</b><span>已购资料</span></div>
     </div>
     <div class="m-quick">
       <div class="q" onclick="go('orders')"><div class="ic">💳</div><div class="n">待付款</div><div class="bg">1</div></div>
-      <div class="q" onclick="go('reader')"><div class="ic">📘</div><div class="n">已购资料</div></div>
+      <div class="q" onclick="go('orders')"><div class="ic">📦</div><div class="n">待发货</div></div>
       <div class="q" onclick="go('orders')"><div class="ic">🗓️</div><div class="n">我的预约</div><div class="bg">1</div></div>
       <div class="q" onclick="go('writereview')"><div class="ic">✍️</div><div class="n">待评价</div><div class="bg">2</div></div>
     </div>
     <div class="tip" onclick="go('orders')">🎁 你有 1 场未开始的 1v1 咨询：07-23 周四 15:00<span class="go">去准备 ›</span></div>
     <div class="m-list">
       <div class="r" onclick="go('orders')"><span class="ic">🧾</span>全部订单<span class="ar">›</span></div>
-      <div class="r" onclick="go('reader')"><span class="ic">📚</span>我的已购资料<span class="badge">3</span><span class="ar">›</span></div>
       <div class="r" onclick="go('member')"><span class="ic">👑</span>会员中心 · 权益<span class="ar">›</span></div>
       <div class="r" onclick="go('coupons')"><span class="ic">🎫</span>优惠券<span class="badge">3</span><span class="ar">›</span></div>
     </div>
@@ -1430,7 +1410,7 @@ html.embed .phone{transform:scale(.92);transform-origin:top center;}
       <div class="ic art" id="sku-ic"></div>
       <div class="in">
         <div class="pr" id="sku-price">¥59</div>
-        <div class="mt" id="sku-stock">库存充足 · 购买后永久可看</div>
+        <div class="mt" id="sku-stock">库存充足 · 商家虚拟发货</div>
       </div>
       <div class="x" style="font-size:20px;color:var(--ink-300);cursor:pointer;" onclick="closeSheet()">✕</div>
     </div>
@@ -1600,7 +1580,7 @@ const PRODUCTS={
  1:{id:1,kind:'ebook',topic:'select',glyph:'📘',title:'《100 个跨境爆款选品案例库》',
     sub:'覆盖家居 / 户外 / 宠物 / 3C 四大类目 · 含供应商筛选清单与定价模型',
     price:59,old:99,sold:2103,rating:'4.9',revCount:238,
-    tags:['季度更新','永久可看','含 PDF 下载','附 Excel 模板'],
+    tags:['季度更新','虚拟发货','附 PDF','附 Excel 模板'],
     promo:'满 100 减 20；高级会员额外 9.5 折；购买后返 6% 积分',
     skus:{ver:[{n:'完整版',d:'100 个案例全收录',p:59,on:1},
                {n:'精简版',d:'仅核心 40 例',p:29},
@@ -1608,12 +1588,12 @@ const PRODUCTS={
           add:[{n:'不需要',d:'仅资料本体',p:0,on:1},
                {n:'+ 季度更新提醒',d:'新版本推送',p:0},
                {n:'+ 30 分钟答疑',d:'文字答疑一次',p:99}]},
-    desc:'覆盖家居、户外、宠物、3C 四大类目的 100 个真实选品案例，每个案例含选品逻辑、供应商筛选过程、定价测算与踩坑记录。购买后可在小程序内在线阅读并下载 PDF，永久有效，每季度补充新案例。',
+    desc:'覆盖家居、户外、宠物、3C 四大类目的 100 个真实选品案例，每个案例含选品逻辑、供应商筛选过程、定价测算与踩坑记录。购买后由商家正常发货，具体交付安排以订单中的发货说明为准。',
     gains:['一套可复用的选品验证流程（含 4 项硬指标）','100 个已验证案例的完整决策链路','供应商筛选核对清单（可直接打印使用）','定价与利润测算 Excel 模板','失败案例复盘，知道什么不能做'],
     who:'已经决定做跨境、但还没稳定选品方法论的卖家；从平台转独立站、需要重新建立选品判断的团队。完全零基础的新手建议先看免费内容。',
     toc:['选品方法论与数据源获取','家居收纳类目案例拆解（18 例）','户外露营类目案例拆解（22 例）','宠物智能用品案例拆解（15 例）','3C 配件类目案例拆解（20 例）','综合案例与失败复盘（25 例）','附录：供应商筛选核对清单'],
     peek:['封面与目录','案例结构示例','数据表截图','供应商清单'],
-    faq:[['购买后多久可以看？','支付成功即时解锁，在「我的 - 已购资料」中随时打开，支持在线阅读和下载 PDF。'],
+    faq:[['购买后如何交付？','支付成功后由商家正常发货，具体安排会显示在订单详情的发货通知中。'],
          ['季度更新要额外付费吗？','不需要。购买后所有后续版本免费获取，新版本上线会推送通知。'],
          ['支持退款吗？','数字内容解锁后不支持退款。若购买后未点击阅读，可在 24 小时内联系客服申请全额退款。'],
          ['和 1v1 咨询有什么区别？','资料包是体系化的方法和案例，适合自学；1v1 咨询是针对你具体业务的诊断，两者互补。']],
@@ -1634,7 +1614,7 @@ const PRODUCTS={
  2:{id:2,kind:'ebook',topic:'compliance',glyph:'⚖️',title:'《欧洲站合规与 VAT 操作手册》',
     sub:'VAT / EPR / CE / GPSR 全流程 · 含各国税率对比与驳回补救方案',
     price:39,old:69,sold:986,rating:'4.8',revCount:112,
-    tags:['随法规更新','永久可看','含材料模板'],
+    tags:['随法规更新','虚拟发货','含材料模板'],
     promo:'满 100 减 20；与案例库组合购省 ¥19',
     skus:{ver:[{n:'标准版',d:'完整手册 + 模板',p:39,on:1},
                {n:'合规 + 案例库',d:'组合装省 ¥19',p:79}],
@@ -1785,7 +1765,7 @@ function crossSell(topic){
    ${row(p,`资料包 · 已售 ${p.sold} · ⭐ ${p.rating}`)}${row(c,`1v1 咨询 · 已约 ${c.sold} · ⭐ ${c.rating}`)}`;}
 /* ═══ 商城列表 ═══ */
 function shopCard(p){
- const sub=p.kind==='ebook'?`资料包 · 永久可看 · 已售 ${p.sold}`:`1v1 咨询 · 已约 ${p.sold} 次`;
+ const sub=p.kind==='ebook'?`数字商品 · 虚拟发货 · 已售 ${p.sold}`:`1v1 咨询 · 已约 ${p.sold} 次`;
  return `<div class="p-card" onclick="openProduct(${p.id})">
   ${artBox(p.topic,'width:72px;height:72px;border-radius:15px;flex-shrink:0;',p.glyph)}
   <div class="in"><h4>${p.title}</h4><div class="sub">${sub}</div>
@@ -1813,14 +1793,14 @@ function openProduct(id){
    ${p.old?`<span class="old">¥${p.old}</span><span class="save">省 ¥${p.old-p.price}</span>`:''}</div>
   <div class="pd-stat"><span>${p.kind==='ebook'?'已售':'已约'} ${p.sold}</span>
    <span>⭐ ${p.rating}（${p.revCount} 条）</span>
-   <span>${p.kind==='ebook'?'永久可看':'支持改期'}</span></div>
+   <span>${p.kind==='ebook'?'订单进度可查':'支持改期'}</span></div>
   <div class="promo"><span class="lb">优惠</span><div class="tx">${p.promo}</div></div>
   <div class="pick-row" onclick="openSheet('sku')">
    <span class="k">规格</span><span class="v" id="pd-skulabel">${p.skus.ver[0].n}，1 件</span><span class="ar">›</span></div>
   <div class="pick-row" onclick="go('coupons')">
    <span class="k">优惠券</span><span class="v" style="color:var(--accent);">满100减20 · 满200减40 可领</span><span class="ar">›</span></div>
-  <div class="pick-row" style="border-bottom:none;" onclick="toast('${p.kind==='ebook'?'支付成功即时解锁，可在线阅读与下载 PDF':'下单后自选时段，服务前 24 小时可免费改期'}')">
-   <span class="k">服务</span><span class="v">${p.kind==='ebook'?'即时解锁 · 永久可看 · 免费更新':'自选时段 · 可改期 · 含文字纪要'}</span><span class="ar">›</span></div>`;
+  <div class="pick-row" style="border-bottom:none;" onclick="toast('${p.kind==='ebook'?'支付成功后由商家正常发货，说明可在订单详情查看':'下单后自选时段，服务前 24 小时可免费改期'}')">
+   <span class="k">服务</span><span class="v">${p.kind==='ebook'?'虚拟发货 · 订单可查 · 售后保障':'自选时段 · 可改期 · 含文字纪要'}</span><span class="ar">›</span></div>`;
 
  const revPreview=p.revs.slice(0,2).map(revHTML).join('');
  document.getElementById('pd-blocks').innerHTML=`
@@ -1839,11 +1819,11 @@ function openProduct(id){
 
   ${p.kind==='ebook'?`
   <div class="blk"><h5>📑 目录 <span class="rt">共 ${p.toc.length} 章</span></h5>
-   ${p.toc.map((t,i)=>`<div class="toc-item" onclick="go('reader')"><span class="n">${String(i+1).padStart(2,'0')}</span>
+   ${p.toc.map((t,i)=>`<div class="toc-item" onclick="toast('示例目录，仅用于商品介绍')"><span class="n">${String(i+1).padStart(2,'0')}</span>
     <span>${t}</span>${i<2?'<span class="lk">可试读</span>':''}</div>`).join('')}</div>
   <div class="blk"><h5>👀 内容试读</h5>
    <div class="peek">${p.peek.map(n=>
-    `<div class="pg" onclick="go('reader')">${artBox(p.topic,'height:100%;','📄')}<div class="lb">${n}</div></div>`).join('')}</div></div>
+    `<div class="pg" onclick="toast('示例内容，仅用于商品介绍')">${artBox(p.topic,'height:100%;','📄')}<div class="lb">${n}</div></div>`).join('')}</div></div>
   `:`
   <div class="blk"><h5>📦 服务包含</h5><ul>${p.inc.map(t=>`<li>${t}</li>`).join('')}</ul></div>
   <div class="blk"><h5>🗓️ 可预约时段 <span class="rt">未来 7 天</span></h5>
@@ -1905,7 +1885,7 @@ function renderSku(){
  const price=p.skus.ver[skuSel.ver].p+p.skus.add[skuSel.add].p;
  document.getElementById('sku-price').textContent='¥'+price;
  document.getElementById('sku-stock').textContent=p.kind==='ebook'
-  ?'库存充足 · 购买后永久可看':'本周剩余 4 个时段 · 支持改期';
+  ?'库存充足 · 商家虚拟发货':'本周剩余 4 个时段 · 支持改期';
  document.getElementById('sku-ver').innerHTML=p.skus.ver.map((o,i)=>
   `<div class="o ${i===skuSel.ver?'on':''}" onclick="setSku('ver',${i})">
    <div class="n">${o.n}</div><div class="d">${o.d} · ¥${o.p}</div></div>`).join('');
@@ -1966,13 +1946,13 @@ function togglePoints(){
 /* ═══ 订单 ═══ */
 const ORDERS=[
  {no:'20260722100387',st:'done',stl:'交易完成',pid:1,sku:'完整版',qty:1,amt:'64.50',
-  dt:'2026-07-22 10:03',btns:[['联系客服','service'],['评价','writereview'],['开始阅读','reader',1]]},
+  dt:'2026-07-22 10:03',btns:[['联系客服','service'],['评价','writereview'],['订单详情','orderdetail',1]]},
  {no:'20260721093015',st:'wait',stl:'待付款',pid:3,sku:'标准 45 分钟',qty:1,amt:'279.00',
   dt:'2026-07-21 09:30',btns:[['取消订单','service'],['去支付','confirm',1]]},
  {no:'20260718142208',st:'using',stl:'待服务',pid:3,sku:'标准 45 分钟',qty:1,amt:'279.00',
   dt:'2026-07-18 14:22',btns:[['申请改期','service'],['填写问卷','service',1]]},
  {no:'20260705110932',st:'done',stl:'交易完成',pid:2,sku:'标准版',qty:1,amt:'37.05',
-  dt:'2026-07-05 11:09',btns:[['再次购买','shop'],['查看资料','reader',1]]},
+  dt:'2026-07-05 11:09',btns:[['再次购买','shop'],['订单详情','orderdetail',1]]},
  {no:'20260628163344',st:'refund',stl:'已退款',pid:4,sku:'标准 60 分钟',qty:1,amt:'0.00',
   dt:'2026-06-28 16:33',btns:[['退款详情','service']]}];
 const ORD_SEG=[['all','全部'],['wait','待付款'],['using','待服务'],['done','已完成'],['refund','退款']];
@@ -2052,7 +2032,7 @@ function renderSheetToc(){
 /* ═══ 导航 ═══ */
 const MAP={home:'s-home',search:'s-search',content:'s-content',article:'s-article',note:'s-note',
  shop:'s-shop',product:'s-product',reviews:'s-reviews',writereview:'s-writereview',cart:'s-cart',
- confirm:'s-confirm',paid:'s-paid',orders:'s-orders',orderdetail:'s-orderdetail',reader:'s-reader',
+ confirm:'s-confirm',paid:'s-paid',orders:'s-orders',orderdetail:'s-orderdetail',
  coupons:'s-coupons',member:'s-member',booking:'s-booking',booked:'s-booked',mine:'s-mine',
  ai:'s-ai',service:'s-service'};
 const TABS=[['home','🏠','首页'],['content','📚','内容'],['shop','🛍️','商城'],['mine','👤','我的']];
@@ -2098,7 +2078,7 @@ const NAV_GROUPS=[
  ['内容侧',[['home','首页'],['search','搜索'],['content','内容中心'],['article','长文详情'],['note','笔记详情']]],
  ['商品与交易',[['shop','知识商城'],['product','商品详情'],['reviews','全部评价'],['cart','购物车'],
    ['confirm','确认订单'],['paid','支付成功']]],
- ['订单与履约',[['orders','我的订单'],['orderdetail','订单详情'],['reader','资料阅读器'],
+ ['订单与履约',[['orders','我的订单'],['orderdetail','订单详情'],
    ['writereview','发表评价'],['service','客服售后']]],
  ['会员与咨询',[['member','会员中心'],['coupons','优惠券'],['booking','预约咨询'],['booked','预约成功'],
    ['mine','个人中心'],['ai','AI 助手']]]];
@@ -2116,7 +2096,7 @@ function buildRails(){
     <span><b>选规格</b> SKU 弹层选版本与增值服务</span>
     <span><b>下单</b> 优惠券 + 积分 + 会员折扣</span>
     <span><b>支付</b> 微信支付 / 余额</span>
-    <span><b>履约</b> 资料即时解锁 / 咨询选时段</span>
+    <span><b>履约</b> 商家正常发货 / 咨询选时段</span>
     <span><b>复购</b> 评价返积分 · 券包唤回</span>
    </div></div>`;}
 function navTo(k){
@@ -2134,7 +2114,7 @@ const WALL=[
   ['reviews','全部评价','评分分布 + 标签筛选'],['cart','购物车','多选 · 改数量 · 凑单'],
   ['confirm','确认订单','券 + 积分 + 会员折扣'],['paid','支付成功','凭证 + 奖励 + 推荐']]],
  ['订单与履约',[['orders','我的订单','五状态分栏'],['orderdetail','订单详情','金额明细 + 进度追踪'],
-  ['reader','资料阅读器','正文 + 目录 + 进度'],['writereview','发表评价','星级 + 标签 + 图片'],
+  ['writereview','发表评价','星级 + 标签 + 图片'],
   ['service','客服售后','退款 / 发票 / 改期']]],
  ['会员与咨询',[['member','会员中心','等级 · 权益 · 积分'],['coupons','优惠券','可用 / 已用 / 过期'],
   ['booking','预约咨询','三步进度 + 时段'],['booked','预约成功','预约凭证'],
