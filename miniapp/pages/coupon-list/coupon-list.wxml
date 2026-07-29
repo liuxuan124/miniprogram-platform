@@ -104,3 +104,4 @@
     title="{{activeTab === 'available' ? '暂无可领取优惠券' : '暂无优惠券'}}"
   />
 </view>
+<login-sheet id="global-login-sheet" />

@@ -114,14 +114,46 @@ const AuthUtil = {
   },
 
   /**
-   * 跳转到登录页
-   * @param {string} [redirectUrl] 登录后回跳地址
+   * 在当前页面唤起底部登录面板；仅在组件尚未挂载时回退到登录页。
+   * @param {string} [redirectUrl] 登录后继续使用的当前地址
+   * @param {Object} [options]
    */
-  navigateToLogin(redirectUrl) {
-    const url = redirectUrl
-      ? '/pages/login/login?redirect=' + encodeURIComponent(redirectUrl)
-      : '/pages/login/login'
-    wx.navigateTo({ url })
+  navigateToLogin(redirectUrl, options = {}) {
+    this.openLoginSheet({
+      ...options,
+      redirect: redirectUrl || options.redirect || this._getCurrentPagePath(),
+    })
+  },
+
+  openLoginSheet(options = {}) {
+    const open = (attempt) => {
+      try {
+        const pages = getCurrentPages()
+        const currentPage = pages[pages.length - 1]
+        const sheet = currentPage && currentPage.selectComponent
+          ? currentPage.selectComponent('#global-login-sheet')
+          : null
+        if (sheet && typeof sheet.show === 'function') {
+          sheet.show(options)
+          return
+        }
+      } catch (e) {
+        console.warn('[AuthUtil] 打开登录面板失败:', e)
+      }
+
+      if (attempt < 3) {
+        setTimeout(() => open(attempt + 1), 80)
+        return
+      }
+
+      const redirect = options.redirect || ''
+      const url = redirect
+        ? '/pages/login/login?redirect=' + encodeURIComponent(redirect)
+        : '/pages/login/login'
+      wx.navigateTo({ url })
+    }
+
+    open(0)
   },
 
   /**
@@ -170,11 +202,11 @@ const AuthUtil = {
       StorageUtil.set(LOGIN_INTERCEPT_KEY, { action: desc, redirect, timestamp: Date.now() }, 5 * 60 * 1000)
     }
 
-    wx.showToast({ title: desc ? '请先登录后' + desc : '请先登录', icon: 'none', duration: 1500 })
-
-    setTimeout(() => {
-      this.navigateToLogin(redirect)
-    }, 800)
+    this.openLoginSheet({
+      ...opts,
+      action: desc,
+      redirect,
+    })
 
     return false
   },

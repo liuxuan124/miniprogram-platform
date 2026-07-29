@@ -23,3 +23,4 @@
   <button class="btn" bindtap="onSubmit" loading="{{loading}}">提交反馈</button>
   <button class="btn ghost" bindtap="goService">转人工客服</button>
 </view>
+<login-sheet id="global-login-sheet" />

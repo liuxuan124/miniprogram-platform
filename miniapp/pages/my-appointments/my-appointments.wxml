@@ -92,3 +92,4 @@
     <view class="empty-state__btn" bindtap="onGoBookTap">去预约</view>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

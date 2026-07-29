@@ -14,7 +14,9 @@ Page({
   },
 
   onLoad() {
-    if (!AuthUtil.requireLoginForAction('查看积分')) return
+    if (!AuthUtil.requireLoginForAction('查看积分', {
+      onSuccess: () => this._loadPointsLog(true),
+    })) return
     this._loadPointsLog(true)
   },
 

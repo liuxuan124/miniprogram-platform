@@ -53,6 +53,7 @@ const PATH_META_MAP = {
 Component({
   data: {
     selected: 0,
+    hidden: false,
     list: DEFAULT_LIST,
     activeColor: '#315efb',
     inactiveColor: '#98a2b5',

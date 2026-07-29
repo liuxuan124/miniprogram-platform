@@ -67,3 +67,4 @@
   <!-- 空状态：D2 统一空态组件 -->
   <empty-state wx:if="{{isEmpty && !loading}}" icon="/images/empty-order.png" title="暂无可预约的服务" />
 </view>
+<login-sheet id="global-login-sheet" />

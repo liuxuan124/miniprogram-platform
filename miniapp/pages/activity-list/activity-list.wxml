@@ -63,3 +63,4 @@
   <!-- 空状态：D2 统一空态组件 -->
   <empty-state wx:if="{{isEmpty && !loading}}" title="暂无活动" desc="精彩活动筹备中，稍后再来看看" />
 </view>
+<login-sheet id="global-login-sheet" />

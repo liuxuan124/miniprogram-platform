@@ -37,3 +37,4 @@
     <button class="btn" bindtap="saveAddress">保存地址</button>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

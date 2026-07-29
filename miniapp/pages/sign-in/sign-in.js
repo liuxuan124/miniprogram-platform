@@ -13,12 +13,16 @@ Page({
   },
 
   onLoad() {
-    if (!AuthUtil.requireLoginForAction('签到')) return
+    if (!AuthUtil.requireLoginForAction('签到', {
+      onSuccess: () => this._loadMemberInfo(),
+    })) return
     this._loadMemberInfo()
   },
 
   onShow() {
-    this._loadMemberInfo()
+    if (AuthUtil.isLoggedIn()) {
+      this._loadMemberInfo()
+    }
   },
 
   /** 下拉刷新 */

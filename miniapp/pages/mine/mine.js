@@ -194,14 +194,24 @@ Page({
   /** 点击头像/登录区域 */
   onUserAreaTap() {
     if (!this.data.isLoggedIn) {
-      wx.navigateTo({ url: '/pages/login/login' })
+      AuthUtil.openLoginSheet({
+        onSuccess: () => {
+          this._refreshUserInfo()
+          this._loadMemberInfo()
+        },
+      })
     }
   },
 
   /** 获取用户信息（头像昵称） */
   onGetUserProfile() {
     if (!this.data.isLoggedIn) {
-      wx.navigateTo({ url: '/pages/login/login' })
+      AuthUtil.openLoginSheet({
+        onSuccess: () => {
+          this._refreshUserInfo()
+          this._loadMemberInfo()
+        },
+      })
       return
     }
 
@@ -317,7 +327,8 @@ Page({
       content: '确定要退出登录吗？',
       success: (res) => {
         if (res.confirm) {
-          AuthService.logout()
+          AuthService.logout({ redirectToLogin: false })
+          this._refreshUserInfo()
         }
       },
     })
