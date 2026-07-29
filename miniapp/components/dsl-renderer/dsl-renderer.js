@@ -138,7 +138,7 @@ Component({
 
     onAiEntryTap() {
       wx.navigateTo({
-        url: '/pages/ai-chat/ai-chat',
+        url: '/pages/service-chat/service-chat',
         fail: () => {},
       })
     },

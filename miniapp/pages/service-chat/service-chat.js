@@ -1,36 +1,24 @@
 Page({
   data: {
     messages: [
-      { id: 1, role: 'bot', text: '你好，这里是出海笔记客服。常见问题可以直接点下面的快捷入口，人工客服工作日 10:00–19:00 在线。' },
+      { id: 1, role: 'service', text: '你好，这里是出海笔记客服中心。你可以先查看常见问题，也可以直接联系人工客服。' },
     ],
-    quick: ['申请退款', '开发票', '咨询改期', '转人工'],
-    input: '',
+    quick: ['商品咨询', '订单问题', '发货进度', '退款售后'],
     scrollInto: 'm1',
     nextId: 2,
   },
 
-  onInput(e) {
-    this.setData({ input: e.detail.value })
-  },
-
   onQuick(e) {
-    this._push('me', e.currentTarget.dataset.q)
-    const map = {
-      '申请退款': '订单待发货时可在订单详情申请退款；已经发货或完成的订单将按商品售后说明处理。',
-      '开发票': '请提供抬头、税号与邮箱，我帮你提交开票申请，1–3 个工作日发送到邮箱。',
-      '咨询改期': '服务开始前 24 小时可免费改期。请到「我的预约」选择新的时段，或直接告诉我期望时间。',
-      '转人工': '已为你接入人工队列，请稍候；高峰期可能需要排队。',
-    }
     const q = e.currentTarget.dataset.q
-    setTimeout(() => this._push('bot', map[q] || '收到，正在为你处理。'), 400)
-  },
-
-  onSend() {
-    const text = (this.data.input || '').trim()
-    if (!text) return
-    this.setData({ input: '' })
-    this._push('me', text)
-    setTimeout(() => this._push('bot', '已收到你的问题，客服会尽快回复。你也可以先点快捷入口自助处理。'), 450)
+    if (!q) return
+    this._push('me', q)
+    const map = {
+      '商品咨询': '商品详情页包含规格、交付方式和售后说明。如需确认具体商品信息，请点击下方“联系人工客服”。',
+      '订单问题': '你可以在「我的－全部订单」查看订单状态、支付记录和发货通知。',
+      '发货进度': '订单发货后会更新状态并发送通知；虚拟商品的交付说明也会随发货通知一并提供。',
+      '退款售后': '请先在订单详情查看售后规则。需要人工处理时，点击下方按钮并提供订单号即可。',
+    }
+    setTimeout(() => this._push('service', map[q] || '请联系人工客服进一步处理。'), 220)
   },
 
   _push(role, text) {

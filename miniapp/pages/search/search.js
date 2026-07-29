@@ -16,7 +16,7 @@ Page({
       { icon: '📘', title: '选品资料包', desc: '知识商城 · 资料包', type: 'shop', path: '/pages/product-list/product-list' },
       { icon: '🗓️', title: '1v1 咨询', desc: '预约咨询服务', type: 'shop', path: '/pages/product-list/product-list?type=service' },
       { icon: '📚', title: '内容中心', desc: '笔记 / 长文 / 数据', type: 'page', path: '/pages/content-list/content-list' },
-      { icon: '🤖', title: 'AI 出海助手', desc: '快速问答与建议', type: 'page', path: '/pages/ai-chat/ai-chat' },
+      { icon: '🎧', title: '客服中心', desc: '商品、订单与售后咨询', type: 'page', path: '/pages/service-chat/service-chat' },
     ],
     results: [],
   },
