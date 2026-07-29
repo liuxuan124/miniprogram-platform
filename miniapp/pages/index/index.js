@@ -91,8 +91,8 @@ Page({
     wx.switchTab({ url: '/pages/product-list/product-list' })
   },
 
-  goAi() {
-    wx.navigateTo({ url: '/pages/ai-chat/ai-chat' })
+  goService() {
+    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
   },
 
   goTopic(e) {

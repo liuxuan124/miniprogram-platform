@@ -27,7 +27,6 @@ const DEFAULT_MINE_PAGE_CONFIG = {
     { id: 'reservation', icon: '🗓️', title: '我的预约', url: '/pages/my-appointments/my-appointments', enabled: true },
     { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pages/member-center/member-center', enabled: true },
     { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true },
-    { id: 'ai', icon: '🤖', title: 'AI 出海助手', url: '/pages/ai-chat/ai-chat', enabled: true },
     { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pages/favorites/favorites', enabled: true },
     { id: 'address', icon: '📍', title: '收货地址', url: '/pages/address-list/address-list', enabled: true },
     { id: 'contact', icon: '💬', title: '客服 · 售后', url: '/pages/service-chat/service-chat', enabled: true },
@@ -121,7 +120,7 @@ async function fetchMinePageConfig(forceRefresh) {
   const mineConfig = config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG
   // 兼容后台历史配置：独立“已购资料/数字领取”入口已取消，统一从订单查看发货通知。
   const menuItems = (mineConfig.menuItems || DEFAULT_MINE_PAGE_CONFIG.menuItems)
-    .filter((item) => item.id !== 'library')
+    .filter((item) => item.id !== 'library' && item.id !== 'ai' && item.url !== '/pages/ai-chat/ai-chat')
   const rawLoginSubtitle = String(mineConfig.loginSubtitle || '')
   const loginSubtitle = rawLoginSubtitle
     .replace(/、?(已购资料|领取通知)/g, '')

@@ -20,7 +20,6 @@ const LOGIN_RULES = {
     appointment_book:{ level: 'none' },   // 预约预订页（提交时才查登录）
     coupon_list:  { level: 'none' },      // 优惠券列表（领取动作才查登录）
     mine:         { level: 'none' },      // 我的页面（登录入口所在地）
-    ai_chat:      { level: 'none' },      // AI助手
     webview:      { level: 'none' },      // WebView
   },
 
@@ -61,7 +60,6 @@ const LOGIN_RULES = {
     'member-center': true,
     points:          true,
     orders:          true,
-    ai:              false,
     favorites:       false,
     contact:         false,
     settings:        false,

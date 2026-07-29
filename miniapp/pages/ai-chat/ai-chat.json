@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "AI 智能助手",
-  "usingComponents": {
-    "loading": "../../components/loading/loading"
-  }
-}

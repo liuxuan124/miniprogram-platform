@@ -180,17 +180,17 @@
     >{{comp.props.button_text || '立即预约'}}</view>
   </view>
 
-  <!-- AI 入口 ai_entry -->
+  <!-- 历史 ai_entry 组件兼容为客服入口 -->
   <view
     wx:elif="{{comp.type === 'ai_entry'}}"
     class="dsl-ai-entry"
     style="{{comp.styleString}}"
     bindtap="onAiEntryTap"
   >
-    <view class="dsl-ai-entry__avatar">🤖</view>
+    <view class="dsl-ai-entry__avatar">🎧</view>
     <view class="dsl-ai-entry__info">
-      <view class="dsl-ai-entry__title">{{comp.props.title || 'AI 智能助手'}}</view>
-      <view class="dsl-ai-entry__desc">{{comp.props.description || '咨询商品、文章、活动推荐'}}</view>
+      <view class="dsl-ai-entry__title">客服中心</view>
+      <view class="dsl-ai-entry__desc">商品、订单与售后咨询</view>
     </view>
   </view>
 

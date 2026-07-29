@@ -220,10 +220,10 @@
 
   <view class="pad"></view>
 
-  <!-- AI FAB -->
-  <view class="fab" bindtap="goAi">
-    <text class="fab__spark">✦</text>
-    <text>AI</text>
+  <!-- 客服入口 -->
+  <view class="fab" bindtap="goService" aria-label="联系客服">
+    <text class="fab__spark">◉</text>
+    <text>客服</text>
   </view>
 </view>
 <login-sheet id="global-login-sheet" />

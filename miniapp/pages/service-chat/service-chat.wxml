@@ -1,19 +1,38 @@
-<!-- pages/service-chat/service-chat.wxml -->
 <view class="svc-page">
+  <view class="svc-header">
+    <view class="svc-header__icon">客</view>
+    <view class="svc-header__main">
+      <text class="svc-header__title">出海笔记客服</text>
+      <view class="svc-header__status">
+        <view class="svc-header__dot"></view>
+        <text>人工客服工作日 10:00–19:00 在线</text>
+      </view>
+    </view>
+  </view>
+
   <scroll-view scroll-y class="chat" scroll-into-view="{{scrollInto}}">
     <view wx:for="{{messages}}" wx:key="id" id="m{{item.id}}" class="msg {{item.role}}">
-      <view class="av">{{item.role==='bot'?'🎧':'我'}}</view>
+      <view class="av">{{item.role === 'service' ? '客' : '我'}}</view>
       <view class="bubble">{{item.text}}</view>
     </view>
   </scroll-view>
 
+  <view class="quick-title">常见问题</view>
   <view class="quick">
     <view wx:for="{{quick}}" wx:key="*this" class="q" data-q="{{item}}" bindtap="onQuick">{{item}}</view>
   </view>
 
-  <view class="input-bar">
-    <input placeholder="描述你的问题…" value="{{input}}" bindinput="onInput" confirm-type="send" bindconfirm="onSend" />
-    <view class="snd" bindtap="onSend">➤</view>
+  <view class="contact-bar">
+    <button
+      class="contact-btn"
+      open-type="contact"
+      show-message-card="{{true}}"
+      aria-label="联系人工客服"
+    >
+      <text class="contact-btn__label">联系人工客服</text>
+      <text class="contact-btn__arrow">›</text>
+    </button>
+    <text class="contact-tip">点击后进入微信官方客服会话</text>
   </view>
 </view>
 <login-sheet id="global-login-sheet" />

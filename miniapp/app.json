@@ -23,7 +23,6 @@
     "pages/order-create/order-create",
     "pages/order-list/order-list",
     "pages/order-detail/order-detail",
-    "pages/ai-chat/ai-chat",
     "pages/login/login",
     "pages/agreement/agreement",
     "pages/webview/webview",
