@@ -1,6 +1,7 @@
 // pages/content-list/content-list.js — 内容中心（对齐原型）
 
 const request = require('../../utils/request')
+const { createSharePageConfig } = require('../../utils/share')
 
 const TOPIC_KEYWORDS = {
   select: '选品',
@@ -32,6 +33,7 @@ function formatPublishTime(value) {
 }
 
 Page({
+  ...createSharePageConfig(),
   data: {
     formatTabs: [
       { key: '', label: '全部' },

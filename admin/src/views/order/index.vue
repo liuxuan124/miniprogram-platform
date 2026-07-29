@@ -215,17 +215,19 @@
         <div class="dialog-tip">确认后订单将进入「已发货」，买家可在订单详情查看物流信息。</div>
       </template>
 
-      <!-- 数字商品：自动核销 -->
+      <!-- 虚拟发货：填写买家可见的发货说明 -->
       <template v-if="currentShipType === 'virtual'">
         <div class="digital-ship-content">
-          <div class="ship-icon">💳</div>
-          <div class="ship-title">虚拟商品/服务发货</div>
-          <div class="ship-desc">确认后订单将完成履约，数字内容会进入买家的“已购资料”。</div>
+          <div class="ship-icon">📨</div>
+          <div class="ship-title">虚拟发货</div>
+          <div class="ship-desc">填写本次发货的说明，用户将在订单详情的“发货通知”中看到。</div>
           <el-input
             v-model="shipForm.virtual_delivery_content"
             type="textarea"
-            :rows="3"
-            placeholder="选填：兑换码、下载说明、服务交付说明等"
+            :rows="5"
+            maxlength="1000"
+            show-word-limit
+            placeholder="必填，例如：我们将在 1 个工作日内通过订单预留手机号联系您，请保持电话畅通。"
           />
         </div>
       </template>
@@ -233,7 +235,7 @@
       <template #footer>
         <el-button @click="shipDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="shipSubmitting" @click="submitShip">
-          {{ currentShipType === 'virtual' ? '确认虚拟发货' : '确认物流发货' }}
+          确认发货
         </el-button>
       </template>
     </el-dialog>
@@ -400,7 +402,7 @@ const shipRules: FormRules = {
 }
 
 const shipDialogTitle = computed(() => {
-  return currentShipType.value === 'virtual' ? '虚拟发货' : '填写物流发货信息'
+  return currentShipType.value === 'virtual' ? '数字商品交付' : '填写物流发货信息'
 })
 
 // ========== 退款弹窗 ==========
@@ -473,11 +475,14 @@ function handleShip(row: OrderRecord) {
   shipDialogVisible.value = true
 }
 
-/** 提交发货/核销/确认预约 */
+/** 提交发货 */
 async function submitShip() {
   if (currentShipType.value === 'physical') {
     const valid = await shipFormRef.value?.validate().catch(() => false)
     if (!valid) return
+  } else if (!shipForm.virtual_delivery_content.trim()) {
+    ElMessage.warning('请填写本次虚拟发货说明')
+    return
   }
   shipSubmitting.value = true
   try {
@@ -492,7 +497,7 @@ async function submitShip() {
         virtual_delivery_content: shipForm.virtual_delivery_content,
       })
     const msg = currentShipType.value === 'virtual'
-      ? '虚拟发货完成，买家权益已更新'
+      ? '发货成功，用户可在订单详情查看发货通知'
       : '物流发货成功'
     ElMessage.success(msg)
     shipDialogVisible.value = false

@@ -5,8 +5,6 @@
     "pages/product-list/product-list",
     "pages/mine/mine",
     "pages/search/search",
-    "pages/reader/reader",
-    "pages/library/library",
     "pages/reviews/reviews",
     "pages/write-review/write-review",
     "pages/order-paid/order-paid",

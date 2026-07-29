@@ -7,13 +7,13 @@
       <view>
         <view class="shop-banner__eyebrow">KNOWLEDGE MARKET</view>
         <view class="shop-banner__t">知识与经验，帮你少走弯路</view>
-        <view class="shop-banner__d">精选资料包与实战 1v1 咨询</view>
+        <view class="shop-banner__d">精选数字商品与实战 1v1 咨询</view>
       </view>
       <view class="shop-cart" bindtap="onGoCart">▣</view>
     </view>
     <view class="shop-benefits">
-      <text>✓ 永久可看</text>
-      <text>✓ 持续更新</text>
+      <text>✓ 商家正常发货</text>
+      <text>✓ 订单进度可查</text>
       <text>✓ 售后保障</text>
     </view>
   </view>
@@ -23,7 +23,7 @@
       <text class="search-icon-text">⌕</text>
       <input
         class="search-input"
-        placeholder="搜索资料包或咨询服务"
+        placeholder="搜索数字商品或咨询服务"
         value="{{keyword}}"
         confirm-type="search"
         bindinput="onSearchInput"

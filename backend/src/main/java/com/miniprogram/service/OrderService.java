@@ -33,22 +33,12 @@ public interface OrderService extends IService<Order> {
     OrderDetailVO getUserOrderDetail(Long userId, Long id);
 
     /**
-     * 获取当前用户已购买的数字内容
-     */
-    java.util.List<PurchasedContentVO> listPurchasedContents(Long userId);
-
-    /**
-     * 获取当前用户已购买的指定数字内容
-     */
-    PurchasedContentVO getPurchasedContent(Long userId, Long productId);
-
-    /**
      * 取消订单
      */
     void cancelOrder(Long userId, Long id);
 
     /**
-     * 确认收货
+     * 确认收货/确认完成
      */
     void confirmOrder(Long userId, Long id);
 

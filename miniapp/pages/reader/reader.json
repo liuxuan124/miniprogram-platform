@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "资料阅读",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "toc-sheet": "../../components/toc-sheet/toc-sheet"
-  }
-}

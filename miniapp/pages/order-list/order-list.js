@@ -8,7 +8,8 @@ const { AuthUtil } = require('../../utils/auth')
 const STATUS_TABS = [
   { key: '', label: '全部' },
   { key: 'pending_payment', label: '待付款' },
-  { key: 'paid', label: '待服务' },
+  { key: 'paid', label: '待发货' },
+  { key: 'shipped', label: '待收货' },
   { key: 'completed', label: '已完成' },
   { key: 'refund', label: '退款' },
 ]
@@ -16,7 +17,7 @@ const STATUS_TABS = [
 // 状态显示映射
 const STATUS_MAP = {
   pending_payment: { text: '待付款', color: '#ff6b3d' },
-  paid: { text: '待服务', color: '#2f5bff' },
+  paid: { text: '待发货', color: '#2f5bff' },
   shipped: { text: '待收货', color: '#faad14' },
   completed: { text: '已完成', color: '#0fb47f' },
   closed: { text: '已关闭', color: '#999' },
@@ -91,7 +92,20 @@ Page({
         const list = res.list || res.items || []
         const total = res.total || 0
         const hasMore = page * this.data.pageSize < total
-        const orders = reset ? list : this.data.orders.concat(list)
+        const normalized = list.map((order) => ({
+          ...order,
+          order_no: order.order_no || order.orderNo,
+          total_amount: order.total_amount || order.totalAmount || order.payAmount,
+          fulfillment_type: order.fulfillment_type || order.fulfillmentType,
+          virtual_delivery_content: order.virtual_delivery_content || order.virtualDeliveryContent,
+          items: (order.items || []).map((goods) => ({
+            ...goods,
+            product_id: goods.product_id || goods.productId,
+            product_name: goods.product_name || goods.productName,
+            product_image: goods.product_image || goods.productImage,
+          })),
+        }))
+        const orders = reset ? normalized : this.data.orders.concat(normalized)
         this.setData({
           orders,
           page,
@@ -148,18 +162,18 @@ Page({
     })
   },
 
-  /** 待收货 — 确认收货 */
+  /** 待收货 — 确认订单完成 */
   onConfirmTap(e) {
     const id = e.currentTarget.dataset.id
     e.stopPropagation()
     wx.showModal({
       title: '提示',
-      content: '确认已收到商品？',
+      content: '确认本订单已经完成？',
       success: (res) => {
         if (res.confirm) {
           orderService.confirmOrder(id)
             .then(() => {
-              wx.showToast({ title: '已确认收货', icon: 'success' })
+              wx.showToast({ title: '已确认完成', icon: 'success' })
               this._loadOrders(true)
             })
             .catch(() => {
@@ -174,16 +188,9 @@ Page({
     wx.navigateTo({ url: '/pages/service-chat/service-chat' })
   },
 
-  onReaderTap(e) {
-    const item = e.currentTarget.dataset.item || {}
-    const goods = (item.items && item.items[0]) || {}
-    const pid = goods.productId || goods.product_id || ''
-    const name = encodeURIComponent(goods.productName || goods.product_name || goods.name || '已购资料')
-    if (pid) {
-      wx.navigateTo({ url: `/pages/reader/reader?id=${pid}&title=${name}` })
-    } else {
-      wx.navigateTo({ url: '/pages/library/library' })
-    }
+  onDeliveryTap(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + id })
   },
 
   onReviewTap(e) {

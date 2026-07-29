@@ -3,6 +3,7 @@ package com.miniprogram.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -23,7 +24,8 @@ public class ProductDTO {
     @Schema(description = "分类ID")
     private Long categoryId;
 
-    @Schema(description = "商品类型: physical/digital/service")
+    @Pattern(regexp = "^(physical|digital|service)$", message = "商品类型必须为实物商品、数字商品或服务商品")
+    @Schema(description = "商品类型: physical=实物商品, digital=数字商品, service=服务商品")
     private String productType = "physical";
 
     @Schema(description = "主图URL")

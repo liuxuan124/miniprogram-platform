@@ -67,12 +67,18 @@
             <view class="action-btn action-btn--default" data-id="{{item.id}}" catchtap="onCancelTap">取消</view>
             <view class="action-btn action-btn--primary" data-id="{{item.id}}" catchtap="onPayTap">去支付</view>
           </block>
-          <block wx:if="{{item.status === 'paid' || item.status === 'shipped'}}">
-            <view class="action-btn action-btn--primary" data-id="{{item.id}}" data-item="{{item}}" catchtap="onReaderTap">开始阅读</view>
+          <block wx:if="{{item.status === 'paid'}}">
+            <view class="action-btn action-btn--primary" data-id="{{item.id}}" catchtap="onDeliveryTap">
+              查看发货进度
+            </view>
+          </block>
+          <block wx:if="{{item.status === 'shipped'}}">
+            <view class="action-btn action-btn--primary" data-id="{{item.id}}" catchtap="onConfirmTap">
+              {{item.fulfillment_type === 'virtual' ? '确认完成' : '确认收货'}}
+            </view>
           </block>
           <block wx:if="{{item.status === 'completed'}}">
             <view class="action-btn action-btn--primary" data-id="{{item.id}}" data-item="{{item}}" catchtap="onReviewTap">评价</view>
-            <view class="action-btn action-btn--default" data-id="{{item.id}}" data-item="{{item}}" catchtap="onReaderTap">开始阅读</view>
           </block>
         </view>
       </view>

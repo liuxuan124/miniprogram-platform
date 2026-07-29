@@ -1,9 +1,11 @@
 const { get } = require('../../utils/request')
+const { createSharePageConfig } = require('../../utils/share')
 
 const HOT = ['选品趋势清单', 'VAT 注册', '验厂清单', 'TikTok 起号', '海外仓测算', '独立站落地页']
 const HISTORY_KEY = 'search_history_v1'
 
 Page({
+  ...createSharePageConfig(),
   data: {
     keyword: '',
     searched: false,

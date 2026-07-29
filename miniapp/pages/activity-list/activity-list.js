@@ -2,8 +2,10 @@
 // 活动卡片列表展示、报名进度、下拉刷新
 
 const request = require('../../utils/request')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     activities: [],
     page: 1,

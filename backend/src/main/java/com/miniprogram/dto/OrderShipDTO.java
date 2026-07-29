@@ -24,6 +24,6 @@ public class OrderShipDTO {
     private String logisticsNo;
 
     @JsonAlias({"virtual_delivery_content", "delivery_content"})
-    @Schema(description = "虚拟发货内容/说明")
+    @Schema(description = "虚拟发货说明，用户可在订单发货通知中查看")
     private String virtualDeliveryContent;
 }

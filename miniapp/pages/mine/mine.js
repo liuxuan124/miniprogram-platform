@@ -21,7 +21,7 @@ Page({
       { key: 'shipped', label: '待收货' },
       { key: 'refund', label: '退款' },
     ],
-    stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+    stats: { coupons: 0, points: 0, growth: 0 },
     badges: { pending: 0, appoint: 0, review: 0 },
     tipText: '',
     // 菜单列表
@@ -110,7 +110,7 @@ Page({
         isLoggedIn: false,
         userInfo: null,
         memberInfo: null,
-        stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+        stats: { coupons: 0, points: 0, growth: 0 },
         badges: { pending: 0, appoint: 0, review: 0 },
         tipText: '',
       })
@@ -124,7 +124,7 @@ Page({
   _loadMemberInfo() {
     if (!AuthUtil.isLoggedIn()) {
       this.setData({
-        stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+        stats: { coupons: 0, points: 0, growth: 0 },
         tipText: '',
       })
       return
@@ -140,7 +140,6 @@ Page({
             coupons: data.couponCount || data.coupon_count || 0,
             points: data.points || data.availablePoints || 0,
             growth: data.growthValue || data.growth_value || 0,
-            library: data.libraryCount || data.library_count || 0,
           },
           tipText: data.appointmentTip || '',
         })
@@ -148,7 +147,7 @@ Page({
       .catch((err) => {
         console.error('[MinePage] 获取会员信息失败:', err)
         this.setData({
-          stats: { coupons: 0, points: 0, growth: 0, library: 0 },
+          stats: { coupons: 0, points: 0, growth: 0 },
           tipText: '',
         })
         if (err && (err.code === 401 || err.code === 403)) {
@@ -168,7 +167,6 @@ Page({
                   coupons: data.couponCount || data.coupon_count || 0,
                   points: data.points || data.availablePoints || 0,
                   growth: data.growthValue || data.growth_value || 0,
-                  library: data.libraryCount || data.library_count || 0,
                 },
                 tipText: data.appointmentTip || '',
               })
@@ -182,10 +180,6 @@ Page({
 
   goCoupons() {
     wx.navigateTo({ url: '/pages/coupon-list/coupon-list' })
-  },
-
-  goLibrary() {
-    wx.navigateTo({ url: '/pages/library/library' })
   },
 
   goAppointments() {

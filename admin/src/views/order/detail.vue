@@ -97,7 +97,12 @@
     </el-card>
 
     <!-- 发货对话框 -->
-    <el-dialog v-model="shipDialogVisible" title="订单发货" width="480px" destroy-on-close>
+    <el-dialog
+      v-model="shipDialogVisible"
+      title="订单发货"
+      width="520px"
+      destroy-on-close
+    >
       <el-form ref="shipFormRef" :model="shipForm" :rules="shipRules" label-width="100px">
         <el-form-item label="发货方式">
           <el-radio-group v-model="shipForm.delivery_type">
@@ -119,19 +124,21 @@
         <el-form-item v-if="shipForm.delivery_type === 'physical'" label="物流单号" prop="shipping_no">
           <el-input v-model="shipForm.shipping_no" placeholder="请输入物流单号" />
         </el-form-item>
-        <el-form-item v-else label="交付说明">
+        <el-form-item v-else label="发货说明" prop="virtual_delivery_content">
           <el-input
             v-model="shipForm.virtual_delivery_content"
             type="textarea"
-            :rows="3"
-            placeholder="选填：兑换码、下载说明、服务交付说明等"
+            :rows="5"
+            maxlength="1000"
+            show-word-limit
+            placeholder="必填：填写用户可在订单发货通知中查看的说明"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="shipDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="shipSubmitting" @click="submitShip">
-          {{ shipForm.delivery_type === 'virtual' ? '确认虚拟发货' : '确认物流发货' }}
+          确认发货
         </el-button>
       </template>
     </el-dialog>
@@ -185,6 +192,7 @@ const shipForm = reactive<ShipParams>({
 const shipRules: FormRules = {
   shipping_company: [{ required: true, message: '请选择物流公司', trigger: 'change' }],
   shipping_no: [{ required: true, message: '请输入物流单号', trigger: 'blur' }],
+  virtual_delivery_content: [{ required: true, message: '请填写本次虚拟发货说明', trigger: 'blur' }],
 }
 
 // 拒绝退款
@@ -217,10 +225,8 @@ function openShipDialog() {
 
 /** 提交发货 */
 async function submitShip() {
-  if (shipForm.delivery_type === 'physical') {
-    const valid = await shipFormRef.value?.validate().catch(() => false)
-    if (!valid) return
-  }
+  const valid = await shipFormRef.value?.validate().catch(() => false)
+  if (!valid) return
   shipSubmitting.value = true
   try {
     await shipOrder(orderId.value, { ...shipForm })

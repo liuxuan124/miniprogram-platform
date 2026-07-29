@@ -8,8 +8,10 @@ const {
   buildTopics,
 } = require('../../data/prototype-home')
 const { AuthService } = require('../../services/auth')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     featureArtStyle: artStyle('select'),
     topics: buildTopics(),

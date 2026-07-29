@@ -1,7 +1,9 @@
 // pages/category/category.js — 分类页
 const { PageService } = require('../../services/page')
+const { createSharePageConfig } = require('../../utils/share')
 
 Page({
+  ...createSharePageConfig(),
   data: {
     categories: [],       // 分类列表
     activeCategory: null, // 当前选中分类

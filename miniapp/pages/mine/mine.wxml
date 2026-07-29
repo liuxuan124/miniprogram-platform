@@ -18,7 +18,7 @@
         <text class="b">{{memberInfo.level_name || mineConfig.memberCardTitle || '出海会员'}}</text>
         <text>已加入 {{memberInfo.days || continuousDays || 0}} 天</text>
       </view>
-      <view class="lv" wx:else>{{mineConfig.loginSubtitle || '查看订单、已购资料、预约与会员权益'}}</view>
+      <view class="lv" wx:else>{{mineConfig.loginSubtitle || '查看订单、预约与会员权益'}}</view>
     </view>
     <view class="login-cta" wx:if="{{!isLoggedIn}}" catchtap="onUserAreaTap">去登录</view>
   </view>
@@ -36,15 +36,11 @@
       <text class="num">{{isLoggedIn ? stats.growth : '—'}}</text>
       <text class="label">成长值</text>
     </view>
-    <view class="s" bindtap="goLibrary">
-      <text class="num">{{isLoggedIn ? stats.library : '—'}}</text>
-      <text class="label">已购资料</text>
-    </view>
   </view>
 
   <view class="section-head">
     <text>常用服务</text>
-    <text class="section-head__sub">订单与内容资产</text>
+    <text class="section-head__sub">订单与售后服务</text>
   </view>
   <view class="m-quick">
     <view class="q" data-key="pending_payment" bindtap="onOrderTabTap">
@@ -52,9 +48,9 @@
       <view class="n">待付款</view>
       <view class="bg" wx:if="{{badges.pending}}">{{badges.pending}}</view>
     </view>
-    <view class="q" bindtap="goLibrary">
+    <view class="q" data-key="paid" bindtap="onOrderTabTap">
       <view class="ic ic--green">▤</view>
-      <view class="n">已购资料</view>
+      <view class="n">待发货</view>
     </view>
     <view class="q" bindtap="goAppointments">
       <view class="ic ic--orange">◷</view>

@@ -2,6 +2,7 @@
 const request = require('../../utils/request')
 const productService = require('../../services/product')
 const { StorageUtil } = require('../../utils/storage')
+const { createSharePageConfig } = require('../../utils/share')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
 const FAVORITES_KEY = 'content_favorites'
@@ -73,6 +74,7 @@ function hashTags(tags) {
 }
 
 Page({
+  ...createSharePageConfig(),
   data: {
     article: {},
     loading: true,
@@ -271,11 +273,6 @@ Page({
       StorageUtil.set(FAVORITES_KEY, next)
     }
     wx.showToast({ title: favorited ? '已收藏' : '取消收藏', icon: 'none' })
-  },
-
-  onShareTap() {
-    wx.showShareMenu({ withShareTicket: true })
-    wx.showToast({ title: '点击右上角分享', icon: 'none' })
   },
 
   onCommentTap() {

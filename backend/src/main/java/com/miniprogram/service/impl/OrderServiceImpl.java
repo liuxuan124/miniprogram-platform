@@ -68,7 +68,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
         boolean hasPhysicalProduct = false;
-        boolean allDigitalProducts = true;
 
         for (OrderItemDTO itemDTO : dto.getItems()) {
             Product product = productMapper.selectById(itemDTO.getProductId());
@@ -78,13 +77,10 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             if (!"on_sale".equals(product.getStatus())) {
                 throw new BusinessException(500201, "商品已下架: " + product.getName());
             }
+            boolean digitalProduct = "digital".equalsIgnoreCase(product.getProductType());
             if ("physical".equalsIgnoreCase(product.getProductType())) {
                 hasPhysicalProduct = true;
             }
-            if (!"digital".equalsIgnoreCase(product.getProductType())) {
-                allDigitalProducts = false;
-            }
-
             BigDecimal price = product.getPrice();
             String productName = product.getName();
             String productImage = product.getMainImage();
@@ -106,7 +102,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             }
 
             // 库存校验
-            if (availableStock < itemDTO.getQuantity()) {
+            if (!digitalProduct && availableStock < itemDTO.getQuantity()) {
                 throw new BusinessException(600202, "库存不足: " + productName);
             }
 
@@ -131,12 +127,18 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
         // 3. 扣减库存
         for (OrderItem item : orderItems) {
+            Product product = productMapper.selectById(item.getProductId());
+            if ("digital".equalsIgnoreCase(product.getProductType())) {
+                // 数字商品由商家虚拟发货，不占用实体库存。
+                product.setSales(product.getSales() + item.getQuantity());
+                productMapper.updateById(product);
+                continue;
+            }
             if (item.getSkuId() != null) {
                 ProductSku sku = productSkuMapper.selectById(item.getSkuId());
                 sku.setStock(sku.getStock() - item.getQuantity());
                 productSkuMapper.updateById(sku);
             }
-            Product product = productMapper.selectById(item.getProductId());
             product.setStock(product.getStock() - item.getQuantity());
             product.setSales(product.getSales() + item.getQuantity());
             productMapper.updateById(product);
@@ -152,7 +154,8 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         order.setFreightAmount(BigDecimal.ZERO);
         order.setStatus("pending_payment");
         order.setFulfillmentType(hasPhysicalProduct ? "physical" : "virtual");
-        order.setAutoFulfill(allDigitalProducts);
+        // 所有订单统一由商家发货，支付回调不会自动完成订单。
+        order.setAutoFulfill(false);
         order.setRemark(dto.getRemark());
         order.setAddressSnapshot(toJsonString(dto.getAddressSnapshot()));
         this.save(order);
@@ -210,47 +213,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             throw new BusinessException(600401, "订单不存在");
         }
         return convertToDetailVO(order);
-    }
-
-    @Override
-    public List<PurchasedContentVO> listPurchasedContents(Long userId) {
-        List<Order> orders = this.list(new LambdaQueryWrapper<Order>()
-                .eq(Order::getUserId, userId)
-                .in(Order::getStatus, List.of("paid", "shipped", "completed"))
-                .orderByDesc(Order::getPaidAt)
-                .orderByDesc(Order::getCreatedAt));
-        java.util.LinkedHashMap<Long, PurchasedContentVO> result = new java.util.LinkedHashMap<>();
-        for (Order order : orders) {
-            List<OrderItem> items = orderItemMapper.selectList(
-                    new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, order.getId()));
-            for (OrderItem item : items) {
-                Product product = productMapper.selectById(item.getProductId());
-                if (product == null || !"digital".equalsIgnoreCase(product.getProductType())) continue;
-                result.putIfAbsent(product.getId(), toPurchasedContentVO(product, order));
-            }
-        }
-        return new ArrayList<>(result.values());
-    }
-
-    @Override
-    public PurchasedContentVO getPurchasedContent(Long userId, Long productId) {
-        List<Order> orders = this.list(new LambdaQueryWrapper<Order>()
-                .eq(Order::getUserId, userId)
-                .in(Order::getStatus, List.of("paid", "shipped", "completed"))
-                .orderByDesc(Order::getPaidAt)
-                .orderByDesc(Order::getCreatedAt));
-        for (Order order : orders) {
-            long count = orderItemMapper.selectCount(new LambdaQueryWrapper<OrderItem>()
-                    .eq(OrderItem::getOrderId, order.getId())
-                    .eq(OrderItem::getProductId, productId));
-            if (count <= 0) continue;
-            Product product = productMapper.selectById(productId);
-            if (product == null || !"digital".equalsIgnoreCase(product.getProductType())) {
-                throw new BusinessException(500401, "数字内容不存在");
-            }
-            return toPurchasedContentVO(product, order);
-        }
-        throw new BusinessException(600403, "尚未购买该数字内容");
     }
 
     @Override
@@ -318,12 +280,13 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
                 ? dto.getDeliveryType().toLowerCase()
                 : order.getFulfillmentType();
         if ("virtual".equals(deliveryType)) {
-            validateTransition(order.getStatus(), "completed");
-            order.setStatus("completed");
+            if (!StringUtils.hasText(dto.getVirtualDeliveryContent())) {
+                throw new BusinessException(600203, "请填写虚拟发货说明");
+            }
+            validateTransition(order.getStatus(), "shipped");
+            order.setStatus("shipped");
             order.setFulfillmentType("virtual");
-            order.setVirtualDeliveryContent(StringUtils.hasText(dto.getVirtualDeliveryContent())
-                    ? dto.getVirtualDeliveryContent()
-                    : "虚拟权益已发放，请在“我的已购资料”中查看");
+            order.setVirtualDeliveryContent(dto.getVirtualDeliveryContent().trim());
         } else {
             if (!StringUtils.hasText(dto.getLogisticsCompany()) || !StringUtils.hasText(dto.getLogisticsNo())) {
                 throw new BusinessException(600203, "物流公司和物流单号不能为空");
@@ -542,19 +505,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         }).toList();
         vo.setItems(itemVOs);
 
-        return vo;
-    }
-
-    private PurchasedContentVO toPurchasedContentVO(Product product, Order order) {
-        PurchasedContentVO vo = new PurchasedContentVO();
-        vo.setProductId(product.getId());
-        vo.setName(product.getName());
-        vo.setMainImage(product.getMainImage());
-        vo.setDescription(product.getDescription());
-        vo.setDetail(product.getDetail());
-        vo.setOrderNo(order.getOrderNo());
-        LocalDateTime purchasedAt = order.getPaidAt() != null ? order.getPaidAt() : order.getCreatedAt();
-        vo.setPurchasedAt(purchasedAt == null ? "" : purchasedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         return vo;
     }
 
