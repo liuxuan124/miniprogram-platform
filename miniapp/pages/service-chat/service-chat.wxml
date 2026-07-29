@@ -16,3 +16,4 @@
     <view class="snd" bindtap="onSend">➤</view>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

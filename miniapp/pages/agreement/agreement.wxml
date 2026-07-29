@@ -7,3 +7,4 @@
     <button class="link-btn" bindtap="onOpenExternal">查看完整版（外链）</button>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

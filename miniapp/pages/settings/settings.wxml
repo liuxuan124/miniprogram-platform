@@ -24,3 +24,4 @@
   <button class="logout" wx:if="{{isLoggedIn}}" bindtap="onLogout">退出登录</button>
   <view class="hint" wx:else>登录后可在此退出账号</view>
 </view>
+<login-sheet id="global-login-sheet" />

@@ -93,3 +93,4 @@
     <view class="pad"></view>
   </scroll-view>
 </view>
+<login-sheet id="global-login-sheet" />

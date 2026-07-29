@@ -39,3 +39,4 @@
     <view class="btn btn-p" bindtap="onSubmit">提交评价</view>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

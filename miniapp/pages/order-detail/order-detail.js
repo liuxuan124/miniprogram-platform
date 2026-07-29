@@ -45,10 +45,13 @@ Page({
   },
 
   onLoad(options) {
-    if (!AuthUtil.isLoggedIn()) {
-      wx.navigateTo({ url: '/pages/login/login' })
-      return
-    }
+    if (!AuthUtil.requireLoginForAction('查看订单', {
+      onSuccess: () => this._initializePage(options),
+    })) return
+    this._initializePage(options)
+  },
+
+  _initializePage(options) {
     const id = options.id
     if (!id) {
       wx.showToast({ title: '参数错误', icon: 'none' })

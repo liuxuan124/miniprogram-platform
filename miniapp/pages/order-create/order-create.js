@@ -35,8 +35,13 @@ Page({
   },
 
   onLoad(options) {
-    if (!AuthUtil.requireLoginForAction('创建订单')) return
+    if (!AuthUtil.requireLoginForAction('创建订单', {
+      onSuccess: () => this._initializePage(options),
+    })) return
+    this._initializePage(options)
+  },
 
+  _initializePage(options) {
     const from = options.from || 'cart'
     this.setData({ from })
 

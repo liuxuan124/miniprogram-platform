@@ -68,3 +68,4 @@
     <view class="points-entry__arrow"></view>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

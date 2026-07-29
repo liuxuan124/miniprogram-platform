@@ -37,7 +37,13 @@ Page({
   },
 
   onLoad() {
-    if (!AuthUtil.requireLoginForAction('查看会员')) return
+    if (!AuthUtil.requireLoginForAction('查看会员', {
+      onSuccess: () => this._loadPageData(),
+    })) return
+    this._loadPageData()
+  },
+
+  _loadPageData() {
     this.fetchMemberInfo()
     this.fetchSignInStatus()
   },
@@ -46,7 +52,9 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
-    this.fetchMemberInfo()
+    if (AuthUtil.isLoggedIn()) {
+      this.fetchMemberInfo()
+    }
   },
 
   async fetchMemberInfo() {

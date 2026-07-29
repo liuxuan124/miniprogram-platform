@@ -45,6 +45,9 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f5f7fb"
   },
+  "usingComponents": {
+    "login-sheet": "/components/login-sheet/login-sheet"
+  },
   "tabBar": {
     "custom": true,
     "color": "#999999",

@@ -91,3 +91,4 @@
 
   <view class="pad"></view>
 </view>
+<login-sheet id="global-login-sheet" />

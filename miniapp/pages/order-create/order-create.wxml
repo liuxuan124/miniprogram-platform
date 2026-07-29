@@ -103,3 +103,4 @@
     bind:confirm="onPayConfirm"
   />
 </view>
+<login-sheet id="global-login-sheet" />

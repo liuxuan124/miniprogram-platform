@@ -39,8 +39,13 @@ Page({
   },
 
   onLoad(options) {
-    if (!AuthUtil.requireLoginForAction('查看预约')) return
+    if (!AuthUtil.requireLoginForAction('查看预约', {
+      onSuccess: () => this._initializePage(options),
+    })) return
+    this._initializePage(options)
+  },
 
+  _initializePage(options) {
     if (options.highlight) {
       this.setData({ highlightId: options.highlight })
     }

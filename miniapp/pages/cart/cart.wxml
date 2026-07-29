@@ -97,3 +97,4 @@
     <text>加载中...</text>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

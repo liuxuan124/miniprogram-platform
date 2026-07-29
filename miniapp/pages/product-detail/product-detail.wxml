@@ -143,6 +143,7 @@
     bind:buy="onSkuSheetBuy"
   />
 </view>
+<login-sheet id="global-login-sheet" />
 
 <!-- 加载状态 -->
 <view class="loading-page" wx:if="{{loading}}">

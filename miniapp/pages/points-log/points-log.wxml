@@ -36,3 +36,4 @@
     <text class="empty-state__text">暂无积分记录</text>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

@@ -40,7 +40,13 @@ Page({
   },
 
   onLoad(options) {
-    if (!AuthUtil.requireLoginForAction('查看订单')) return
+    if (!AuthUtil.requireLoginForAction('查看订单', {
+      onSuccess: () => this._initializePage(options),
+    })) return
+    this._initializePage(options)
+  },
+
+  _initializePage(options) {
     if (options.status) {
       this.setData({ activeTab: options.status })
     }

@@ -18,3 +18,4 @@
     <view class="btn btn-p" bindtap="goMineAppt">查看我的预约</view>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />

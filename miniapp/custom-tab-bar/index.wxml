@@ -1,4 +1,5 @@
 <view
+  wx:if="{{!hidden}}"
   class="tab-bar"
   style="background-color: {{backgroundColor}};"
 >

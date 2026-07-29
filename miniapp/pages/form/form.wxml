@@ -232,6 +232,7 @@
     </view>
   </view>
 </view>
+<login-sheet id="global-login-sheet" />
 
 <!-- 提交成功 -->
 <view class="form-success" wx:if="{{submitted}}">
