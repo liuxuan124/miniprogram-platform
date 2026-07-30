@@ -21,10 +21,6 @@
     </view>
   </view>
 
-  <view class="virtual-tip" wx:else>
-    📄 虚拟商品说明：订单支付后由商家正常发货，发货说明会显示在订单详情中；1v1 咨询按商家通知预约使用。
-  </view>
-
   <!-- 商品列表 -->
   <view class="goods-section">
     <view class="section-title">商品信息 · 共 {{totalQuantity}} 件</view>

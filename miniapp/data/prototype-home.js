@@ -187,7 +187,7 @@ function buildHomeProducts() {
       artStyle: artStyle(p.topic),
       sub:
         p.kind === 'ebook'
-          ? `数字商品 · 虚拟发货 · 已售 ${p.sold}`
+          ? `数字商品 · 已售 ${p.sold}`
           : `1v1 咨询 · 已约 ${p.sold} 次`,
       ratingLine: `⭐ ${p.rating} · ${p.revCount} 评价`,
     }

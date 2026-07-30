@@ -52,7 +52,7 @@
     </view>
     <view class="pick">
       <text class="k">服务</text>
-      <text class="v">{{isDigital ? '虚拟发货 · 订单可查' : (isService ? '开始前24h可改期' : '售后保障')}}</text>
+      <text class="v">{{isDigital ? '下单后可查' : (isService ? '开始前24h可改期' : '售后保障')}}</text>
       <text class="ar">›</text>
     </view>
   </view>
