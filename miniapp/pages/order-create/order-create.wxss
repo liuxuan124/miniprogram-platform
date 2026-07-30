@@ -6,16 +6,6 @@
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-.virtual-tip {
-  margin: 0 24rpx 16rpx;
-  padding: 20rpx 24rpx;
-  background: var(--brand-50);
-  color: var(--ink-700);
-  font-size: 24rpx;
-  line-height: 1.7;
-  border-radius: 24rpx;
-}
-
 .coupon-entry {
   display: flex;
   align-items: center;

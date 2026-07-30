@@ -196,7 +196,7 @@
     <view class="sec-h">
       <view>
         <view class="sec-title">知识产品</view>
-        <view class="sec-sub">虚拟商品正常发货 · 咨询按时段预约</view>
+        <view class="sec-sub">资料包可购 · 咨询按时段预约</view>
       </view>
       <view class="sec-more" bindtap="goShop">商城 ›</view>
     </view>
