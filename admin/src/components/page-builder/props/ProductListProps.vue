@@ -12,13 +12,13 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="显示价格">
-        <el-switch :model-value="data.show_price" @change="emit('update', { show_price: $event as boolean })" />
+        <el-switch :model-value="data.show_price !== false" @change="emit('update', { show_price: $event as boolean })" />
       </el-form-item>
       <el-form-item label="显示销量">
-        <el-switch :model-value="data.show_sales" @change="emit('update', { show_sales: $event as boolean })" />
+        <el-switch :model-value="data.show_sales !== false" @change="emit('update', { show_sales: $event as boolean })" />
       </el-form-item>
       <el-form-item label="购物车">
-        <el-switch :model-value="data.show_cart" @change="emit('update', { show_cart: $event as boolean })" />
+        <el-switch :model-value="data.show_cart !== false" @change="emit('update', { show_cart: $event as boolean })" />
       </el-form-item>
       <el-form-item label="显示数量">
         <el-input-number
@@ -29,6 +29,13 @@
           controls-position="right"
         />
       </el-form-item>
+      <TitleFontSizeFields
+        :data="data"
+        subtitle-label="元信息字号"
+        :title-default="13"
+        :subtitle-default="11"
+        @update="(v) => emit('update', v)"
+      />
 
       <el-divider content-position="left" style="margin: 10px 0 6px; font-size: 12px; color: #8a94a6">数据源</el-divider>
       <el-form-item label="排序方式">
@@ -51,6 +58,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import TitleFontSizeFields from './TitleFontSizeFields.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

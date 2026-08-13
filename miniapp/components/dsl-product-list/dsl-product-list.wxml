@@ -25,7 +25,7 @@
 
       <!-- 商品信息 -->
       <view class="dsl-product-list__item-info">
-        <text class="dsl-product-list__item-name text-ellipsis-2">{{item.name || item.title}}</text>
+        <text class="dsl-product-list__item-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
 
         <!-- 标签 -->
         <view
@@ -37,14 +37,26 @@
 
         <!-- 价格与销量 -->
         <view class="dsl-product-list__item-bottom">
-          <view class="dsl-product-list__item-price" wx:if="{{config.show_price !== false}}">
-            <text class="dsl-product-list__item-price-symbol">¥</text>
-            <text class="dsl-product-list__item-price-value">{{item.price || item.min_price || item.minPrice || '0.00'}}</text>
+          <view class="dsl-product-list__item-meta">
+            <view class="dsl-product-list__item-price" style="{{metaStyle}}" wx:if="{{config.show_price !== false}}">
+              <text class="dsl-product-list__item-price-symbol">¥</text>
+              <text class="dsl-product-list__item-price-value">{{item.price || item.min_price || item.minPrice || '0.00'}}</text>
+            </view>
+            <text
+              class="dsl-product-list__item-sales"
+              style="{{metaStyle}}"
+              wx:if="{{config.show_sales !== false}}"
+            >已售{{item.sales || item.salesCount || item.sold || 0}}</text>
           </view>
-          <text
-            class="dsl-product-list__item-sales"
-            wx:if="{{config.show_sales && item.sales !== undefined}}"
-          >已售{{item.sales}}</text>
+          <view
+            wx:if="{{config.show_cart !== false}}"
+            class="dsl-product-list__item-cart"
+            catchtap="onTapCart"
+            data-id="{{item.id}}"
+            data-name="{{item.name || item.title}}"
+          >
+            <text>🛒</text>
+          </view>
         </view>
       </view>
     </view>

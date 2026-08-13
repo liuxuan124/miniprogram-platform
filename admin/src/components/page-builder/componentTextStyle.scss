@@ -1,0 +1,11 @@
+/* 组件级文字样式：由 BaseRenderer 注入 --component-text-color / --component-font-size */
+/* 带 split-text-typography 的组件自行控制标题/副文字号，不受统一字号覆盖 */
+.component-render-inner.has-text-color:not(:has(.split-text-typography)),
+.component-render-inner.has-text-color:not(:has(.split-text-typography)) :not(img):not(video):not(svg):not(canvas) {
+  color: var(--component-text-color) !important;
+}
+
+.component-render-inner.has-text-size:not(:has(.split-text-typography)),
+.component-render-inner.has-text-size:not(:has(.split-text-typography)) :not(img):not(video):not(svg):not(canvas) {
+  font-size: var(--component-font-size) !important;
+}

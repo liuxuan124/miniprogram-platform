@@ -12,14 +12,12 @@
   </view>
 
   <!-- 0. 公告栏 notice_bar -->
-  <view
+  <dsl-notice-bar
     wx:elif="{{comp.type === 'notice_bar'}}"
-    class="dsl-notice"
-    style="{{comp.styleString}}"
-  >
-    <text class="dsl-notice__title">{{comp.props.title || '公告'}}</text>
-    <text class="dsl-notice__text">{{(comp.props.items && comp.props.items[0]) || '暂无公告内容'}}</text>
-  </view>
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    styleString="{{comp.styleString}}"
+  />
 
   <!-- 0. 分类导航 category_nav -->
   <view
@@ -102,23 +100,11 @@
   />
 
   <!-- 4. 限时秒杀 flash_sale -->
-  <view
+  <dsl-flash-sale
     wx:elif="{{comp.type === 'flash_sale'}}"
-    class="dsl-flash"
-    style="{{comp.styleString}}"
-  >
-    <view class="dsl-flash__head">
-      <text class="dsl-flash__title">{{comp.props.title || '限时秒杀'}}</text>
-      <text class="dsl-flash__tag">进行中</text>
-    </view>
-    <view class="dsl-flash__grid">
-      <view class="dsl-flash__item" wx:for="{{[0,1,2,3]}}" wx:key="index">
-        <view class="dsl-flash__img">🔥</view>
-        <view class="dsl-flash__name">限时爆款{{index + 1}}</view>
-        <view class="dsl-flash__price">¥{{(69 + index * 20)}}.00</view>
-      </view>
-    </view>
-  </view>
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+  />
 
   <!-- 4. 文章列表 article_list -->
   <dsl-article-list
@@ -140,74 +126,106 @@
     bind:componentevent="onComponentEvent"
   />
 
-  <!-- 5. 活动列表 activity_list -->
+  <!-- 5. 活动列表 activity_list：外壳承载背景/边距（直角），内卡可调圆角 -->
   <view
     wx:elif="{{comp.type === 'activity_list'}}"
-    class="dsl-activity-list"
-    style="{{comp.styleString}}"
+    class="dsl-activity-list-shell"
+    style="{{comp.props._shellStyle}}"
   >
-    <view class="dsl-activity-list__title">{{comp.props.title || '热门活动'}}</view>
-    <view
-      wx:for="{{comp.props.items || []}}"
-      wx:key="index"
-      class="dsl-activity-list__item"
-      data-link="{{item.link_url}}"
-      bindtap="onQuickNavigate"
-    >
-      <view>
-        <view class="dsl-activity-list__name">{{item.title || '活动名称'}}</view>
-        <view class="dsl-activity-list__meta">{{item.date || ''}} · {{item.location || ''}}</view>
+    <view class="dsl-activity-list" style="{{comp.props._cardStyle}}">
+      <view class="dsl-activity-list__title" style="{{comp.props._sectionTitleStyle}}">{{comp.props.title || '热门活动'}}</view>
+      <view
+        wx:for="{{comp.props.items || []}}"
+        wx:key="index"
+        class="dsl-activity-list__item"
+        data-link="{{item.link_url}}"
+        bindtap="onQuickNavigate"
+      >
+        <image
+          wx:if="{{item.cover}}"
+          class="dsl-activity-list__cover"
+          src="{{item.cover}}"
+          mode="aspectFill"
+        />
+        <view class="dsl-activity-list__body">
+          <view class="dsl-activity-list__name" style="{{comp.props._titleStyle}}">{{item.title || '活动名称'}}</view>
+          <view class="dsl-activity-list__meta" style="{{comp.props._subtitleStyle}}">
+            <text wx:if="{{item.date}}">{{item.date}}</text>
+            <text wx:if="{{item.date && item.location}}"> · </text>
+            <text wx:if="{{item.location}}">{{item.location}}</text>
+            <text wx:if="{{!item.date && !item.location}}">待定</text>
+          </view>
+        </view>
+        <view wx:if="{{comp.props._showButton}}" class="dsl-activity-list__btn">{{comp.props._buttonText || '报名'}}</view>
       </view>
-      <view class="dsl-activity-list__btn">报名</view>
     </view>
   </view>
 
-  <!-- 5. 预约服务 appointment_service -->
+  <!-- 5. 预约服务 appointment_service：外壳承载背景/边距（直角），内卡可调圆角；每条独立预约按钮 -->
   <view
     wx:elif="{{comp.type === 'appointment_service'}}"
-    class="dsl-service"
-    style="{{comp.styleString}}"
+    class="dsl-service-shell"
+    style="{{comp.props._shellStyle}}"
   >
-    <view class="dsl-service__title">{{comp.props.title || '预约服务'}}</view>
-    <view wx:for="{{comp.props.services || []}}" wx:key="index" class="dsl-service__item" data-link="{{item.link_url}}" bindtap="onQuickNavigate">
-      <view class="dsl-service__name">{{item.name || '服务名称'}}</view>
-      <view class="dsl-service__desc">{{item.desc || '服务说明'}}</view>
+    <view class="dsl-service" style="{{comp.props._cardStyle}}">
+      <view class="dsl-service__title" style="{{comp.props._sectionTitleStyle}}">{{comp.props.title || '预约服务'}}</view>
+      <view
+        wx:for="{{comp.props.services || []}}"
+        wx:key="index"
+        class="dsl-service__item"
+        data-link="{{item.link_url}}"
+        bindtap="onQuickNavigate"
+      >
+        <view class="dsl-service__body">
+          <view class="dsl-service__name" style="{{comp.props._titleStyle}}">{{item.name || '服务名称'}}</view>
+          <view class="dsl-service__desc" style="{{comp.props._subtitleStyle}}">{{item.desc || '服务说明'}}</view>
+        </view>
+        <view class="dsl-service__btn">{{item.button_text || '立即预约'}}</view>
+      </view>
     </view>
-    <view
-      class="dsl-service__btn"
-      data-link="/pages/appointment-list/appointment-list"
-      bindtap="onQuickNavigate"
-    >{{comp.props.button_text || '立即预约'}}</view>
   </view>
 
-  <!-- 历史 ai_entry 组件兼容为客服入口 -->
+  <!-- AI 入口 ai_entry -->
   <view
     wx:elif="{{comp.type === 'ai_entry'}}"
-    class="dsl-ai-entry"
-    style="{{comp.styleString}}"
-    bindtap="onAiEntryTap"
+    class="dsl-ai-entry-shell"
+    style="{{comp.props._shellStyle}}"
   >
-    <view class="dsl-ai-entry__avatar">🎧</view>
-    <view class="dsl-ai-entry__info">
-      <view class="dsl-ai-entry__title">客服中心</view>
-      <view class="dsl-ai-entry__desc">商品、订单与售后咨询</view>
+    <view
+      class="dsl-ai-entry dsl-ai-entry--{{comp.props._theme || 'blue'}}"
+      style="{{comp.props._cardStyle}}"
+      bindtap="onAiEntryTap"
+    >
+      <view class="dsl-ai-entry__avatar">
+        <image wx:if="{{comp.props.avatar}}" class="dsl-ai-entry__avatar-img" src="{{comp.props.avatar}}" mode="aspectFill" />
+        <text wx:else>🤖</text>
+      </view>
+      <view class="dsl-ai-entry__info">
+        <view class="dsl-ai-entry__title" style="{{comp.props._titleStyle}}">{{comp.props.title || 'AI智能助手'}}</view>
+        <view wx:if="{{comp.props.description}}" class="dsl-ai-entry__desc" style="{{comp.props._descStyle}}">{{comp.props.description}}</view>
+      </view>
     </view>
   </view>
 
-  <!-- 表单入口 form_entry：对应后台 admin/src/components/page-builder/renderers/FormEntryRenderer.vue -->
+  <!-- 表单入口 form_entry -->
   <view
     wx:elif="{{comp.type === 'form_entry'}}"
-    class="dsl-form-entry dsl-form-entry--{{comp.props.style || 'card'}}"
-    style="{{comp.styleString}}"
-    data-link="/pages/form/form?id={{comp.props.formId || ''}}"
-    bindtap="onQuickNavigate"
+    class="dsl-form-entry-shell"
+    style="{{comp.props._shellStyle}}"
   >
-    <view class="dsl-form-entry__icon">📋</view>
-    <view class="dsl-form-entry__info">
-      <view class="dsl-form-entry__title">{{comp.props.title || '表单填写'}}</view>
-      <view wx:if="{{comp.props.formId}}" class="dsl-form-entry__id">ID: {{comp.props.formId}}</view>
+    <view
+      class="dsl-form-entry dsl-form-entry--{{comp.props._styleType || 'card'}}"
+      style="{{comp.props._cardStyle}}"
+      data-link="{{comp.props._formLink}}"
+      bindtap="onQuickNavigate"
+    >
+      <view class="dsl-form-entry__icon">📋</view>
+      <view class="dsl-form-entry__info">
+        <view class="dsl-form-entry__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '填写信息'}}</view>
+        <view wx:if="{{comp.props._subtitleText}}" class="dsl-form-entry__sub" style="{{comp.props._subtitleStyle}}">{{comp.props._subtitleText}}</view>
+      </view>
+      <view class="dsl-form-entry__btn">{{comp.props._buttonText || '立即填写'}}</view>
     </view>
-    <view class="dsl-form-entry__btn">{{comp.props.buttonText || '立即填写'}}</view>
   </view>
 
   <!-- 6. 会员卡 member_card -->
@@ -215,7 +233,7 @@
     wx:elif="{{comp.type === 'member_card'}}"
     config="{{comp.props}}"
     actions="{{comp.actions}}"
-    styleString="{{comp.styleString}}"
+    styleString="{{comp.props._shellStyle || comp.styleString}}"
     bind:componentevent="onComponentEvent"
   />
 
@@ -239,38 +257,64 @@
   <!-- 8. 品牌介绍 brand_intro -->
   <view
     wx:elif="{{comp.type === 'brand_intro'}}"
-    class="dsl-brand"
+    class="dsl-brand {{comp.props._layoutClass}}"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-brand__title">{{comp.props.title || '品牌介绍'}}</view>
-    <view class="dsl-brand__subtitle">{{comp.props.subtitle || ''}}</view>
-    <view class="dsl-brand__desc">{{comp.props.description || comp.props.desc || '请输入品牌介绍'}}</view>
-    <view class="dsl-brand__kpi" wx:if="{{comp.props.kpi}}">{{comp.props.kpi}}</view>
+    <image
+      wx:if="{{comp.props.logo}}"
+      class="dsl-brand__logo"
+      src="{{comp.props.logo}}"
+      mode="aspectFit"
+      style="{{comp.props._logoStyle}}"
+    />
+    <view class="dsl-brand__text" style="{{comp.props._textWrapStyle}}">
+      <view class="dsl-brand__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '品牌介绍'}}</view>
+      <view wx:if="{{comp.props.subtitle}}" class="dsl-brand__subtitle" style="{{comp.props._subtitleStyle}}">{{comp.props.subtitle}}</view>
+      <view class="dsl-brand__desc" style="{{comp.props._descStyle}}">{{comp.props.description || comp.props.desc || '请输入品牌介绍'}}</view>
+      <view class="dsl-brand__kpi" wx:if="{{comp.props.kpi}}">{{comp.props.kpi}}</view>
+    </view>
   </view>
 
   <!-- 8. 图文组合 image_text -->
   <view
     wx:elif="{{comp.type === 'image_text'}}"
-    class="dsl-image-text"
+    class="dsl-image-text dsl-image-text--{{comp.props.layout || 'left-image'}}"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-image-text__img">🖼️</view>
+    <view class="dsl-image-text__img">
+      <image wx:if="{{comp.props.image}}" src="{{comp.props.image}}" mode="aspectFill" class="dsl-image-text__img-real" />
+      <text wx:else>🖼️</text>
+    </view>
     <view class="dsl-image-text__body">
-      <view class="dsl-image-text__title">{{comp.props.title || '图文组合'}}</view>
-      <view class="dsl-image-text__desc">{{comp.props.content || '请输入图文说明'}}</view>
+      <view class="dsl-image-text__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '图文组合'}}</view>
+      <view class="dsl-image-text__desc" style="{{comp.props._subtitleStyle}}">{{comp.props.content || '请输入图文说明'}}</view>
     </view>
   </view>
 
   <!-- 8. 联系方式 contact_info -->
   <view
     wx:elif="{{comp.type === 'contact_info'}}"
-    class="dsl-contact"
-    style="{{comp.styleString}}"
+    class="dsl-contact-shell"
+    style="{{comp.props._shellStyle}}"
   >
-    <view class="dsl-contact__title">{{comp.props.title || '联系我们'}}</view>
-    <view class="dsl-contact__line" data-phone="{{comp.props.phone}}" bindtap="onPhoneTap">☎ {{comp.props.phone || '未设置电话'}}</view>
-    <view class="dsl-contact__line">📍 {{comp.props.address || '未设置地址'}}</view>
-    <view class="dsl-contact__line">🕘 {{comp.props.service_time || '未设置营业时间'}}</view>
+    <view
+      class="dsl-contact dsl-contact--{{comp.props._styleType || 'card'}} dsl-contact--layout-{{comp.props._layout || 'list'}} dsl-contact--align-{{comp.props._align || 'left'}}"
+      style="{{comp.props._cardStyle}}"
+    >
+      <view class="dsl-contact__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '联系我们'}}</view>
+      <view class="dsl-contact__body">
+        <view
+          wx:for="{{comp.props._items || []}}"
+          wx:key="key"
+          class="dsl-contact__item {{item.key === 'phone' ? 'dsl-contact__item--phone' : ''}}"
+          data-phone="{{item.key === 'phone' ? item.raw : ''}}"
+          bindtap="onPhoneTap"
+        >
+          <text wx:if="{{comp.props._showIcons}}" class="dsl-contact__icon">{{item.icon}}</text>
+          <text class="dsl-contact__text" style="{{comp.props._subtitleStyle}}">{{item.text}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 8. 资质证书 certificate -->
@@ -279,11 +323,18 @@
     class="dsl-cert"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-cert__title">{{comp.props.title || '资质证书'}}</view>
-    <view class="dsl-cert__grid">
+    <view class="dsl-cert__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '资质证书'}}</view>
+    <view class="dsl-cert__grid dsl-cert__grid--cols-{{comp.props._columns || 2}}">
       <view wx:for="{{comp.props.items || []}}" wx:key="index" class="dsl-cert__item">
-        <view class="dsl-cert__img">📜</view>
-        <view class="dsl-cert__name">{{item.name || '证书'}}</view>
+        <image
+          wx:if="{{item.image || item.cover}}"
+          class="dsl-cert__img-real"
+          src="{{item.image || item.cover}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="dsl-cert__img">📜</view>
+        <view class="dsl-cert__name" style="{{comp.props._subtitleStyle}}">{{item.name || '证书'}}</view>
+        <view wx:if="{{item.desc}}" class="dsl-cert__desc">{{item.desc}}</view>
       </view>
     </view>
   </view>
@@ -313,11 +364,11 @@
   <!-- 11. 标题栏 section_title -->
   <view
     wx:elif="{{comp.type === 'section_title'}}"
-    class="dsl-section-title"
+    class="dsl-section-title {{comp.props.align === 'center' ? 'dsl-section-title--center' : ''}}"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-section-title__main">{{comp.props.title || '栏目标题'}}</view>
-    <view class="dsl-section-title__sub">{{comp.props.subtitle || ''}}</view>
+    <view class="dsl-section-title__main" style="{{comp.props._titleStyle}}">{{comp.props.title || '栏目标题'}}</view>
+    <view wx:if="{{comp.props.subtitle}}" class="dsl-section-title__sub" style="{{comp.props._subtitleStyle}}">{{comp.props.subtitle}}</view>
   </view>
 
   <!-- 12. 分割线 divider -->

@@ -3,7 +3,9 @@
     <div
       v-if="previewMode && hasValidBannerImage"
       class="banner-image-wrap"
+      :class="{ 'banner-clickable': currentBannerLink }"
       :style="bannerWrapStyle"
+      @click="handleBannerClick"
     >
       <img :src="currentBanner.image" alt="" class="banner-image" />
       <div v-if="bannerImages.length > 1" class="banner-dots">
@@ -18,7 +20,9 @@
     <div
       v-else-if="previewMode"
       class="banner-fallback"
+      :class="{ 'banner-clickable': currentBannerLink }"
       :style="bannerWrapStyle"
+      @click="handleBannerClick"
     >
       <div class="banner-orb"></div>
       <div class="banner-title">{{ currentBannerTitle }}</div>
@@ -48,6 +52,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 
 const props = defineProps<{
@@ -62,6 +67,8 @@ defineEmits<{
 type BannerImage = {
   title?: string
   image?: string
+  link_type?: string
+  link_url?: string
 }
 
 const activeBannerIndex = ref(0)
@@ -89,10 +96,28 @@ function isImageUrl(value?: string) {
 
 const hasValidBannerImage = computed(() => isImageUrl(currentBanner.value.image))
 
+const currentBannerLink = computed(() => (currentBanner.value.link_url || '').trim())
+
+/** 预览模式下点击轮播图：外链新开窗口；页面/小程序路径在预览环境仅提示（真机小程序会真实跳转） */
+function handleBannerClick() {
+  if (!props.previewMode) return
+  const link = currentBannerLink.value
+  if (!link) return
+  const linkType = currentBanner.value.link_type || 'page'
+  if (linkType === 'url' || /^https?:\/\//i.test(link)) {
+    window.open(/^https?:\/\//i.test(link) ? link : `https://${link}`, '_blank')
+    return
+  }
+  ElMessage.info(`预览环境：小程序内将跳转「${link}」`)
+}
+
 const bannerRadius = computed(() => {
-  const styleRadius = Number(props.component.style?.border_radius ?? 0)
-  const propRadius = Number(props.component.props?.border_radius ?? 8)
-  return styleRadius > 0 ? styleRadius : propRadius
+  // 样式面板里设置过圆角（含 0）时以其为准，未设置时才用组件默认值
+  const styleRadius = props.component.style?.border_radius
+  if (styleRadius === undefined || styleRadius === null) {
+    return Number(props.component.props?.border_radius ?? 8)
+  }
+  return Number(styleRadius)
 })
 
 const bannerWrapStyle = computed<Record<string, string>>(() => ({
@@ -105,7 +130,7 @@ const bannerContentStyle = computed<Record<string, string>>(() => {
     borderRadius: `${bannerRadius.value}px`,
     backgroundImage: image
       ? `linear-gradient(135deg, rgba(23, 105, 255, 0.28), rgba(32, 183, 255, 0.28)), url(${image})`
-      : 'linear-gradient(135deg, #1769ff, #20b7ff)',
+      : 'linear-gradient(135deg, var(--theme-primary, #1769ff), var(--theme-secondary, #20b7ff))',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
@@ -165,6 +190,10 @@ onBeforeUnmount(() => {
     overflow: hidden;
   }
 
+  .banner-clickable {
+    cursor: pointer;
+  }
+
   .banner-image-wrap {
     background: #eef2f7;
 
@@ -183,7 +212,7 @@ onBeforeUnmount(() => {
     justify-content: center;
     color: #fff;
     text-align: center;
-    background: linear-gradient(135deg, #1d73ff 0%, #25b9f6 100%);
+    background: linear-gradient(135deg, var(--theme-primary, #1d73ff) 0%, var(--theme-secondary, #25b9f6) 100%);
   }
 
   .banner-orb {

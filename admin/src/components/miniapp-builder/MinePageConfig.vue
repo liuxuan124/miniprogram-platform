@@ -68,26 +68,26 @@
           <el-row :gutter="10">
             <el-col :span="6">
               <el-form-item label="待付款">
-                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.pending" @input="(v: string) => updateNestedDeep('orderQuickAccess.tabLabels', 'pending', v)" />
+                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.pending" @input="(v: string) => updateTabLabel('pending', v)" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
               <el-form-item label="待发货">
-                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.paid" @input="(v: string) => updateNestedDeep('orderQuickAccess.tabLabels', 'paid', v)" />
+                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.paid" @input="(v: string) => updateTabLabel('paid', v)" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
               <el-form-item label="待收货">
-                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.shipped" @input="(v: string) => updateNestedDeep('orderQuickAccess.tabLabels', 'shipped', v)" />
+                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.shipped" @input="(v: string) => updateTabLabel('shipped', v)" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
               <el-form-item label="退换/售后">
-                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.refund" @input="(v: string) => updateNestedDeep('orderQuickAccess.tabLabels', 'refund', v)" />
+                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.refund" @input="(v: string) => updateTabLabel('refund', v)" />
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="全部订单按钮">
+          <el-form-item label="全部订单">
             <el-switch :model-value="modelValue.orderQuickAccess.showAllOrdersBtn" @change="(v: boolean) => updateNested('orderQuickAccess', 'showAllOrdersBtn', v)" />
           </el-form-item>
         </el-form>
@@ -160,13 +160,15 @@ function updateNested(parent: string, key: string, value: any) {
   }
 }
 
-function updateNestedDeep(parent1: string, parent2: string, value: any) {
+function updateTabLabel(key: string, value: string) {
   const current = props.modelValue
-  if (parent1 === 'orderQuickAccess') {
-    emit('update:modelValue', { ...current, orderQuickAccess: { ...current.orderQuickAccess, [parent2]: value } })
-  } else if (parent1 === 'userProfile') {
-    emit('update:modelValue', { ...current, userProfile: { ...current.userProfile, [parent2]: value } })
-  }
+  emit('update:modelValue', {
+    ...current,
+    orderQuickAccess: {
+      ...current.orderQuickAccess,
+      tabLabels: { ...current.orderQuickAccess.tabLabels, [key]: value },
+    },
+  })
 }
 
 function emitUpdate() {

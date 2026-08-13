@@ -63,7 +63,7 @@ public class MiniappReleaseController {
         return R.ok(miniappReleaseService.promoteRelease(id));
     }
 
-    @Operation(summary = "删除模板", description = "逻辑删除草稿/模板状态的版本（不允许删除已发布的版本）")
+    @Operation(summary = "删除模板", description = "逻辑删除版本（仅当前线上版本不允许删除）")
     @DeleteMapping("/{id}")
     @OperationLog("删除模板")
     public R<Void> deleteRelease(@PathVariable Long id) {

@@ -5,7 +5,7 @@
         <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="模块标题" />
       </el-form-item>
       <el-form-item label="样式">
-        <el-radio-group :model-value="data.style_type" @change="emit('update', { style_type: $event as string })">
+        <el-radio-group :model-value="layoutValue" @change="onLayoutChange">
           <el-radio value="card">卡片</el-radio>
           <el-radio value="list">列表</el-radio>
         </el-radio-group>
@@ -25,6 +25,13 @@
           controls-position="right"
         />
       </el-form-item>
+      <TitleFontSizeFields
+        :data="data"
+        subtitle-label="元信息字号"
+        :title-default="13"
+        :subtitle-default="11"
+        @update="(v) => emit('update', v)"
+      />
 
       <el-divider content-position="left" style="margin: 10px 0 6px; font-size: 12px; color: #8a94a6">数据源</el-divider>
       <el-form-item label="排序方式">
@@ -46,6 +53,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import TitleFontSizeFields from './TitleFontSizeFields.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -56,6 +64,15 @@ const sortBy = computed(() => {
   const params = ds.params || ds.config?.params || {}
   return params.sort_by || 'newest'
 })
+
+const layoutValue = computed(() => {
+  const raw = data.layout || data.style_type || 'list'
+  return raw === 'card' ? 'card' : 'list'
+})
+
+function onLayoutChange(val: string) {
+  emit('update', { layout: val, style_type: val })
+}
 
 function onSortByChange(val: string) {
   emit('update', {

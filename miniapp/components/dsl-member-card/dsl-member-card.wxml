@@ -1,39 +1,56 @@
 <!--components/dsl-member-card/dsl-member-card.wxml — 会员卡组件-->
-<view
-  class="dsl-member-card"
-  style="{{styleString}}; {{config.background_image ? 'background-image: url(' + config.background_image + ')' : ''}}"
-  bindtap="onTapCard"
->
-  <!-- 会员信息 -->
-  <view class="dsl-member-card__header">
-    <image
-      class="dsl-member-card__avatar"
-      wx:if="{{memberInfo.avatar_url}}"
-      src="{{memberInfo.avatar_url}}"
-      mode="aspectFill"
-    />
-    <view class="dsl-member-card__avatar-placeholder" wx:else>
-      <text class="dsl-member-card__avatar-icon">👤</text>
+<view class="dsl-member-card-shell" style="{{styleString}}">
+  <view
+    class="dsl-member-card dsl-member-card--{{themeClass}}"
+    style="{{cardStyle}}"
+    bindtap="onTapCard"
+  >
+    <view class="dsl-member-card__header">
+      <image
+        class="dsl-member-card__avatar"
+        wx:if="{{memberInfo.avatar_url}}"
+        src="{{memberInfo.avatar_url}}"
+        mode="aspectFill"
+      />
+      <view class="dsl-member-card__avatar-placeholder" wx:else>
+        <text class="dsl-member-card__avatar-icon">👤</text>
+      </view>
+      <view class="dsl-member-card__user">
+        <view class="dsl-member-card__title-row">
+          <text class="dsl-member-card__nickname" style="{{titleStyle}}">{{displayTitle}}</text>
+          <view
+            wx:if="{{showUpgrade}}"
+            class="dsl-member-card__upgrade"
+            style="{{upgradeStyle}}"
+            catchtap="onTapUpgrade"
+          >{{upgradeText}}</view>
+        </view>
+        <text wx:if="{{showLevel}}" class="dsl-member-card__subtitle" style="{{subtitleStyle}}">{{displaySubtitle}}</text>
+      </view>
     </view>
-    <view class="dsl-member-card__user">
-      <text class="dsl-member-card__nickname">{{memberInfo.nickname}}</text>
-      <text class="dsl-member-card__subtitle">{{memberInfo.level || '点击查看权益'}}</text>
-    </view>
-  </view>
 
-  <!-- 数据面板 -->
-  <view class="dsl-member-card__stats">
-    <view class="dsl-member-card__stat" wx:if="{{config.show_points !== false}}">
-      <text class="dsl-member-card__stat-value">{{memberInfo.points}}</text>
-      <text class="dsl-member-card__stat-label">积分</text>
+    <view wx:if="{{benefitTags.length}}" class="dsl-member-card__benefits">
+      <text
+        wx:for="{{benefitTags}}"
+        wx:key="*this"
+        class="dsl-member-card__benefit"
+        style="{{benefitStyle}}"
+      >{{item}}</text>
     </view>
-    <view class="dsl-member-card__stat" wx:if="{{config.show_balance !== false}}">
-      <text class="dsl-member-card__stat-value">{{memberInfo.growth}}</text>
-      <text class="dsl-member-card__stat-label">成长值</text>
-    </view>
-    <view class="dsl-member-card__stat">
-      <text class="dsl-member-card__stat-value">{{memberInfo.coupons}}</text>
-      <text class="dsl-member-card__stat-label">优惠券</text>
+
+    <view wx:if="{{showStats}}" class="dsl-member-card__stats">
+      <view class="dsl-member-card__stat" wx:if="{{showPoints}}">
+        <text class="dsl-member-card__stat-value" style="{{statValueStyle}}">{{memberInfo.points}}</text>
+        <text class="dsl-member-card__stat-label" style="{{statLabelStyle}}">积分</text>
+      </view>
+      <view class="dsl-member-card__stat" wx:if="{{showBalance}}">
+        <text class="dsl-member-card__stat-value" style="{{statValueStyle}}">{{memberInfo.balanceText}}</text>
+        <text class="dsl-member-card__stat-label" style="{{statLabelStyle}}">余额</text>
+      </view>
+      <view class="dsl-member-card__stat" wx:if="{{showCoupons}}">
+        <text class="dsl-member-card__stat-value" style="{{statValueStyle}}">{{memberInfo.coupons}}</text>
+        <text class="dsl-member-card__stat-label" style="{{statLabelStyle}}">优惠券</text>
+      </view>
     </view>
   </view>
 </view>

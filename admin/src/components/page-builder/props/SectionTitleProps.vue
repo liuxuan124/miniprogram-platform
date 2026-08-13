@@ -12,10 +12,19 @@
         <el-option label="居中" value="center" />
       </el-select>
     </el-form-item>
+    <TitleFontSizeFields
+      :data="data"
+      subtitle-label="副标题字号"
+      :title-default="17"
+      :subtitle-default="11"
+      @update="(v) => emit('update', v)"
+    />
   </el-form>
 </template>
 
 <script setup lang="ts">
+import TitleFontSizeFields from './TitleFontSizeFields.vue'
+
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 </script>

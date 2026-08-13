@@ -222,8 +222,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     public void deleteRelease(Long id) {
         MiniappRelease release = this.getById(id);
         BusinessException.throwIf(release == null, ErrorCode.RELEASE_NOT_FOUND);
-        BusinessException.throwIf(release.getStatus() != 0, ErrorCode.RELEASE_DELETE_FORBIDDEN.getCode(),
-                "只能删除草稿/模板状态的版本，无法删除已发布或已回滚的版本");
+        BusinessException.throwIf(release.getStatus() == 1, ErrorCode.RELEASE_DELETE_FORBIDDEN.getCode(),
+                "当前线上版本不可删除，请先发布其他版本再删除此版本");
 
         this.lambdaUpdate()
                 .eq(MiniappRelease::getId, id)

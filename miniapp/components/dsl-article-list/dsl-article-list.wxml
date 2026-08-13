@@ -3,7 +3,7 @@
   <view wx:if="{{config.title}}" class="dsl-article-list__section-title">{{config.title}}</view>
   <!-- 列表布局 -->
   <view
-    wx:if="{{config.layout !== 'card'}}"
+    wx:if="{{config.layout !== 'card' && config.style_type !== 'card'}}"
     class="dsl-article-list__list"
   >
     <view
@@ -15,23 +15,20 @@
     >
       <image
         class="dsl-article-list__item-cover"
-        wx:if="{{false}}"
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
         src="{{item.cover_url || item.image}}"
         mode="aspectFill"
         lazy-load
       />
-      <view class="dsl-article-list__item-placeholder" wx:if="{{config.show_cover !== false}}">
+      <view class="dsl-article-list__item-placeholder" wx:elif="{{config.show_cover !== false}}">
         <text>📖</text>
       </view>
       <view class="dsl-article-list__item-content">
-        <text class="dsl-article-list__item-title text-ellipsis-2">{{item.title || item.name}}</text>
-        <text
-          class="dsl-article-list__item-summary"
-          wx:if="{{false}}"
-        >{{item.summary || item.description}}</text>
+        <text class="dsl-article-list__item-title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
         <text
           class="dsl-article-list__item-date"
-          wx:if="{{true}}"
+          style="{{metaStyle}}"
+          wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
         >{{item.created_at || item.publish_time}}</text>
       </view>
     </view>
@@ -51,17 +48,21 @@
     >
       <image
         class="dsl-article-list__item-cover-card"
-        wx:if="{{item.cover_url || item.image}}"
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
         src="{{item.cover_url || item.image}}"
         mode="aspectFill"
         lazy-load
       />
+      <view class="dsl-article-list__item-placeholder dsl-article-list__item-placeholder--card" wx:elif="{{config.show_cover !== false}}">
+        <text>📖</text>
+      </view>
       <view class="dsl-article-list__item-content">
-        <text class="dsl-article-list__item-title text-ellipsis-2">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__item-title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
         <view class="dsl-article-list__item-meta">
           <text
             class="dsl-article-list__item-date"
-            wx:if="{{config.show_date && (item.created_at || item.publish_time)}}"
+            style="{{metaStyle}}"
+            wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
           >{{item.created_at || item.publish_time}}</text>
         </view>
       </view>

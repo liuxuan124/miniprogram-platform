@@ -109,16 +109,31 @@ function validateDSL(dsl) {
 function parseStyle(style) {
   if (!style || typeof style !== 'object') return ''
 
-  return Object.entries(style)
-    .map(([key, value]) => {
-      const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase()
-      // 后台预览使用 375px 设计稿，小程序使用 750rpx；数值样式按 1px = 2rpx 对齐。
-      const cssValue = typeof value === 'number'
-        ? (value === 0 ? '0' : (value * 2) + 'rpx')
-        : value
-      return `${cssKey}: ${cssValue}`
-    })
-    .join('; ')
+  const parts = []
+
+  if (style.text_color) {
+    parts.push(`color: ${style.text_color}`)
+  }
+  if (style.font_size !== undefined && style.font_size !== null && Number(style.font_size) > 0) {
+    parts.push(`font-size: ${Number(style.font_size) * 2}rpx`)
+  }
+
+  Object.entries(style).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return
+    if (key === 'text_color' || key === 'font_size') return
+
+    // snake_case / camelCase → kebab-case（border_radius → border-radius）
+    const cssKey = key
+      .replace(/_/g, '-')
+      .replace(/([A-Z])/g, '-$1')
+      .toLowerCase()
+    const cssValue = typeof value === 'number'
+      ? (value === 0 ? '0' : (value * 2) + 'rpx')
+      : value
+    parts.push(`${cssKey}: ${cssValue}`)
+  })
+
+  return parts.join('; ')
 }
 
 /**

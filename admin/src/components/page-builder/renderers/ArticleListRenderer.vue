@@ -1,5 +1,5 @@
 <template>
-  <div class="render-article-list" :class="{ 'render-article-list--preview': previewMode }">
+  <div class="render-article-list split-text-typography" :class="{ 'render-article-list--preview': previewMode }">
     <div v-if="component.props.title" class="section-title">{{ component.props.title }}</div>
     <div v-if="previewMode && showDataWarning" class="preview-data-empty">
       暂无文章数据，请确认内容已发布或稍后重试
@@ -7,20 +7,21 @@
     <div
       v-else
       class="article-list-body"
-      :class="`cols-${component.props.columns || 1}`"
+      :class="articleLayout === 'card' ? 'layout-card' : 'layout-list'"
     >
       <div
         v-for="(item, index) in visibleArticleItems"
         :key="`${item.title || 'article'}-${index}`"
         class="article-card"
+        :class="articleLayout === 'card' ? 'article-card--card' : 'article-card--list'"
       >
         <div v-if="component.props.show_cover !== false" class="article-img">
           <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
           <span v-else>📖</span>
         </div>
         <div class="article-info">
-          <div class="article-title">{{ item.title || '文章标题' }}</div>
-          <div v-if="component.props.show_date !== false" class="article-date">{{ item.meta || '品牌内容' }}</div>
+          <div class="article-title" :style="itemTitleStyle">{{ item.title || '文章标题' }}</div>
+          <div v-if="component.props.show_date !== false" class="article-date" :style="itemMetaStyle">{{ item.meta || '品牌内容' }}</div>
         </div>
       </div>
     </div>
@@ -30,6 +31,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ComponentInstance } from '@/types/page'
+import { titleFontStyle } from '../composables/titleFontStyle'
 
 type ArticleItem = {
   id?: number | string
@@ -43,6 +45,14 @@ const props = defineProps<{
   component: ComponentInstance
   previewMode?: boolean
 }>()
+
+const articleLayout = computed(() => {
+  const raw = props.component.props?.layout || props.component.props?.style_type || 'list'
+  return raw === 'card' ? 'card' : 'list'
+})
+
+const itemTitleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 13))
+const itemMetaStyle = computed(() => titleFontStyle(props.component.props?.subtitle_font_size, 11))
 
 defineEmits<{
   'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
@@ -95,25 +105,41 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
     font-size: 12px;
     color: #909399;
     background: #f8faff;
-    border-radius: 10px;
+    border-radius: var(--card-radius, 10px);
   }
 
   .article-list-body {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
+    &.layout-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-    &.cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    &.layout-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
   }
 
   .article-card {
-    display: flex;
-    gap: 8px;
-    padding: 8px;
     background: #f8faff;
-    border-radius: 10px;
+    border-radius: var(--card-radius, 10px);
+
+    &--list {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    &--card {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
 
     .article-img {
       width: 62px;
@@ -132,6 +158,12 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
         height: 100%;
         object-fit: cover;
       }
+    }
+
+    &--card .article-img {
+      width: 100%;
+      height: 140px;
+      border-radius: 0;
     }
 
     .article-info {
@@ -158,6 +190,10 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
+    }
+
+    &--card .article-info {
+      padding: 10px 12px;
     }
   }
 }

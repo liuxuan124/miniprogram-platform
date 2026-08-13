@@ -1,5 +1,5 @@
 // components/dsl-activity-entry/dsl-activity-entry.js — 活动入口组件
-const { executeAction, isImageUrl } = require('../../utils/render')
+const { executeAction, isImageUrl, navigatePage } = require('../../utils/render')
 
 Component({
   properties: {
@@ -23,65 +23,31 @@ Component({
 
   data: {
     countdown: '',
-    countdownTimer: null,
     isExpired: false,
-    processedConfig: null,
+    processedConfig: {
+      title: '热门活动',
+      show_button: true,
+      button_text: '立即预约',
+      theme: 'blue',
+      style_type: 'card',
+      hasValidImage: false,
+    },
     processedRuntimeData: [],
   },
 
   observers: {
     'config': function (config) {
-      if (!config) {
-        this.setData({ processedConfig: null })
-        return
-      }
-      const processed = {
-        ...config,
-        hasValidImage: !!(config.image && this._isImageUrl(config.image)),
-      }
-      this.setData({ processedConfig: processed })
-
-      if (config.countdown && config.end_time) {
-        this._startCountdown(config.end_time)
-      }
+      this._applyConfig(config)
     },
     'runtimeData': function (data) {
-      if (!Array.isArray(data)) {
-        this.setData({ processedRuntimeData: [] })
-        return
-      }
-      const processed = data.map((item) => ({
-        ...item,
-        hasValidImage: !!((item.image || item.cover_url) && this._isImageUrl(item.image || item.cover_url)),
-        displayImage: item.image || item.cover_url || '',
-        displayTitle: item.title || item.name || '',
-      }))
-      this.setData({ processedRuntimeData: processed })
+      this._applyRuntime(data)
     },
   },
 
   lifetimes: {
     attached() {
-      const config = this.data.config
-      if (config) {
-        this.setData({
-          processedConfig: {
-            ...config,
-            hasValidImage: !!(config.image && this._isImageUrl(config.image)),
-          }
-        })
-      }
-      const data = this.data.runtimeData
-      if (Array.isArray(data) && data.length > 0) {
-        this.setData({
-          processedRuntimeData: data.map((item) => ({
-            ...item,
-            hasValidImage: !!((item.image || item.cover_url) && this._isImageUrl(item.image || item.cover_url)),
-            displayImage: item.image || item.cover_url || '',
-            displayTitle: item.title || item.name || '',
-          }))
-        })
-      }
+      this._applyConfig(this.data.config)
+      this._applyRuntime(this.data.runtimeData)
     },
     detached() {
       this._clearCountdownTimer()
@@ -91,41 +57,91 @@ Component({
   methods: {
     _isImageUrl: isImageUrl,
 
+    _fontStyle(size, fallback) {
+      const n = Number(size)
+      return 'font-size:' + ((Number.isFinite(n) && n > 0 ? n : fallback) * 2) + 'rpx'
+    },
+
+    _applyConfig(config) {
+      if (!config) return
+      const processed = {
+        ...config,
+        theme: config.theme || 'blue',
+        style_type: config.style_type === 'full' ? 'full' : 'card',
+        show_button: config.show_button !== false,
+        button_text: config.button_text || '立即预约',
+        hasValidImage: !!(config.image && this._isImageUrl(config.image)),
+        titleStyle: this._fontStyle(config.title_font_size, 14),
+        metaStyle: this._fontStyle(config.subtitle_font_size, 11),
+      }
+      this.setData({ processedConfig: processed })
+
+      if (config.countdown && config.end_time) {
+        this._startCountdown(config.end_time)
+      } else {
+        this._clearCountdownTimer()
+        this.setData({ countdown: '' })
+      }
+    },
+
+    _applyRuntime(data) {
+      if (!Array.isArray(data) || !data.length) {
+        this.setData({ processedRuntimeData: [] })
+        return
+      }
+      const processed = data.map((item) => ({
+        ...item,
+        hasValidImage: !!((item.image || item.cover_url) && this._isImageUrl(item.image || item.cover_url)),
+        displayImage: item.image || item.cover_url || '',
+        displayTitle: item.title || item.name || '',
+        date: item.date || item.activityDate || item.startTime || '',
+        location: item.location || item.venue || '',
+        subtitle: item.subtitle || item.desc || '',
+      }))
+      this.setData({ processedRuntimeData: processed })
+    },
+
     onTapActivity(e) {
       const id = e.currentTarget.dataset.id
       const activity = this.data.processedRuntimeData.find((a) => a.id === id)
+      const config = this.data.processedConfig || {}
 
       if (activity && activity.action) {
         executeAction(activity.action)
-      } else if (this.data.actions && this.data.actions.length > 0) {
+        return
+      }
+      if (this.data.actions && this.data.actions.length > 0) {
         executeAction(this.data.actions[0])
-      } else if (id) {
+        return
+      }
+      if (id) {
         executeAction({
           type: 'page',
-          path: '/pages/detail/index?id=' + id + '&type=activity',
+          path: '/pages/activity-detail/activity-detail?id=' + id,
         })
+        return
+      }
+      const link = (config.link_url || '').trim()
+      if (link) {
+        navigatePage(link)
       }
     },
 
     _startCountdown(endTime) {
       this._clearCountdownTimer()
-      const endMs = new Date(endTime).getTime()
+      const endMs = new Date(String(endTime).replace(/-/g, '/')).getTime()
       if (isNaN(endMs)) return
 
       const update = () => {
-        const now = Date.now()
-        const diff = endMs - now
-
+        const diff = endMs - Date.now()
         if (diff <= 0) {
           this.setData({ countdown: '已结束', isExpired: true })
           this._clearCountdownTimer()
           return
         }
-
         const hours = Math.floor(diff / (1000 * 60 * 60))
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
         const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-
         this.setData({
           countdown: `${this._pad(hours)}:${this._pad(minutes)}:${this._pad(seconds)}`,
           isExpired: false,
@@ -133,7 +149,7 @@ Component({
       }
 
       update()
-      this.data.countdownTimer = setInterval(update, 1000)
+      this._countdownTimer = setInterval(update, 1000)
     },
 
     _pad(num) {
@@ -141,9 +157,9 @@ Component({
     },
 
     _clearCountdownTimer() {
-      if (this.data.countdownTimer) {
-        clearInterval(this.data.countdownTimer)
-        this.data.countdownTimer = null
+      if (this._countdownTimer) {
+        clearInterval(this._countdownTimer)
+        this._countdownTimer = null
       }
     },
   },

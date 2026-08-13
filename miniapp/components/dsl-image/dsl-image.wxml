@@ -1,9 +1,9 @@
 <!--components/dsl-image/dsl-image.wxml — 单图组件-->
 <view class="dsl-image" style="{{styleString}}" bindtap="onTap">
   <image
-    wx:if="{{config.image}}"
+    wx:if="{{config.image || config.src}}"
     class="dsl-image__img"
-    src="{{config.image}}"
+    src="{{config.image || config.src}}"
     mode="{{config.mode || 'aspectFill'}}"
   />
   <view wx:else class="dsl-image__placeholder">

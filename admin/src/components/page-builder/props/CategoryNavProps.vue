@@ -21,10 +21,37 @@
         <el-button type="danger" text size="small" @click="onRemoveItem(i)">删除</el-button>
       </div>
       <el-form-item label="图标" label-width="50px">
-        <el-input :model-value="item.icon || ''" @input="onUpdateItem(i, 'icon', $event)" placeholder="Emoji 或图片URL" />
+        <div class="icon-field">
+          <el-popover placement="bottom-start" :width="264" trigger="click">
+            <template #reference>
+              <button type="button" class="icon-trigger" title="点击从图标库选择">
+                {{ isEmojiIcon(item.icon) ? item.icon : '📌' }}
+              </button>
+            </template>
+            <div class="icon-library">
+              <button
+                v-for="emoji in iconLibrary"
+                :key="emoji"
+                type="button"
+                class="icon-option"
+                :class="{ active: item.icon === emoji }"
+                @click="onUpdateItem(i, 'icon', emoji)"
+              >
+                {{ emoji }}
+              </button>
+            </div>
+          </el-popover>
+          <el-input :model-value="item.icon || ''" @input="onUpdateItem(i, 'icon', $event)" placeholder="点左侧选图标，或粘贴图片URL" />
+        </div>
       </el-form-item>
       <el-form-item label="名称" label-width="50px">
-        <el-input :model-value="item.title || ''" @input="onUpdateItem(i, 'title', $event)" placeholder="分类名称" />
+        <el-input
+          :model-value="item.title || ''"
+          maxlength="6"
+          show-word-limit
+          @input="onUpdateItem(i, 'title', $event)"
+          placeholder="分类名称（最多6字）"
+        />
       </el-form-item>
       <el-form-item label="链接" label-width="50px">
         <el-input :model-value="item.link_url || ''" @input="onUpdateItem(i, 'link_url', $event)" placeholder="/pages/xxx/xxx" />
@@ -62,4 +89,73 @@ function onRemoveItem(index: number) {
 function onUpdateItem(index: number, field: string, value: string) {
   emit('update', { items: updateItem(index, (item) => ({ ...item, [field]: value })) })
 }
+
+/** 常用分类图标库 */
+const iconLibrary = [
+  '📌', '🔥', '⭐', '🎁', '🛍️', '🛒', '💎', '👑',
+  '👗', '👜', '👟', '💄', '🧴', '🧸', '⌚', '📱',
+  '🍎', '🍵', '☕', '🍰', '🥘', '🍜', '🍷', '🥗',
+  '🏠', '🛋️', '🛠️', '💊', '🌿', '🐾', '🚗', '✈️',
+  '📚', '🎮', '🎵', '🎬', '🎨', '⚽', '🎫', '💰',
+]
+
+function isEmojiIcon(icon?: string): boolean {
+  if (!icon) return false
+  return !/^(https?:\/\/|\/|data:image|\.\/|\.\.\/)/i.test(icon.trim())
+}
 </script>
+
+<style lang="scss" scoped>
+.icon-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+
+  .icon-trigger {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #1769ff;
+    }
+  }
+}
+
+.icon-library {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+
+  .icon-option {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background: #f0f6ff;
+    }
+
+    &.active {
+      border-color: #1769ff;
+      background: #e8f1ff;
+    }
+  }
+}
+</style>

@@ -75,6 +75,7 @@ function createDefaultDSL(name: string = '未命名页面'): PageDSL {
         type: CT.ArticleList,
         props: {
           title: '精选内容',
+          layout: 'card',
           style_type: 'card',
           columns: 1,
           show_cover: true,
@@ -351,7 +352,11 @@ export const usePageStore = defineStore('page', () => {
     const comp = dsl.value.components.find((c) => c.id === id)
     if (comp) {
       commitHistoryDebounced()
-      comp.style = { ...comp.style, ...style }
+      const next = { ...comp.style, ...style }
+      Object.keys(style).forEach((key) => {
+        if (style[key] === undefined) delete next[key]
+      })
+      comp.style = next
       isDirty.value = true
     }
   }

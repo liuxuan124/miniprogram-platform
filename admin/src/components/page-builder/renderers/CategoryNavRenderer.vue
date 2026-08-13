@@ -51,7 +51,7 @@ const categoryNavGridStyle = computed<Record<string, string>>(() => {
   const style: Record<string, string> = {}
   if (['scroll', 'pill', 'list'].includes(categoryNavLayout.value)) return style
   const col = Number(props.component.props?.columns || (categoryNavLayout.value === 'grid-4' ? 4 : 3))
-  const safeCol = Math.min(5, Math.max(2, Number.isFinite(col) ? col : 3))
+  const safeCol = Math.min(8, Math.max(2, Number.isFinite(col) ? col : 3))
   style.gridTemplateColumns = `repeat(${safeCol}, minmax(0, 1fr))`
   return style
 })
@@ -159,7 +159,7 @@ function isImageIcon(icon?: string): boolean {
     min-width: 0;
     padding: 8px;
     border: 1px solid #e6edf6;
-    border-radius: 10px;
+    border-radius: var(--card-radius, 10px);
     text-align: center;
 
     .icon {
@@ -186,6 +186,10 @@ function isImageIcon(icon?: string): boolean {
       margin-top: 4px;
       color: #475569;
       font-size: 11px;
+      /* 超长名称省略，避免撑破卡片 */
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
   }
 

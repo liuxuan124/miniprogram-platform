@@ -2,7 +2,7 @@
 <view class="dsl-video" style="{{styleString}}">
   <video
     class="dsl-video__player"
-    src="{{config.src}}"
+    src="{{config.src || config.url}}"
     poster="{{config.poster || ''}}"
     autoplay="{{config.autoplay || false}}"
     controls="{{config.controls !== false}}"

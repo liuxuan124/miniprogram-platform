@@ -23,27 +23,29 @@
         >
           <template v-if="pageStore.components.length">
             <template v-for="(comp, index) in pageStore.components" :key="comp.id">
-              <div class="drop-indicator" :class="{ visible: dragOverIndex === index }"></div>
-              <div
-                class="canvas-item-wrap"
-                :class="{ dragging: draggingIndex === index }"
-                draggable="true"
-                @dragstart="handleItemDragStart($event, index)"
-                @dragend="handleDragEnd"
-                @dragover.prevent.stop="handleItemDragOver($event, index)"
-                @drop.stop="handleItemDrop($event, index)"
-              >
-                <ComponentItem
-                  :component="comp"
-                  :index="index"
-                  :selected="comp.id === pageStore.selectedComponentId"
-                  @select="pageStore.selectComponent(comp.id)"
-                  @delete="pageStore.removeComponent(comp.id)"
-                  @copy="pageStore.duplicateComponent(comp.id)"
-                  @move-up="handleMoveUp(index)"
-                  @move-down="handleMoveDown(index)"
-                />
-              </div>
+              <template v-if="comp.type !== ComponentType.FloatButton">
+                <div class="drop-indicator" :class="{ visible: dragOverIndex === index }"></div>
+                <div
+                  class="canvas-item-wrap"
+                  :class="{ dragging: draggingIndex === index }"
+                  draggable="true"
+                  @dragstart="handleItemDragStart($event, index)"
+                  @dragend="handleDragEnd"
+                  @dragover.prevent.stop="handleItemDragOver($event, index)"
+                  @drop.stop="handleItemDrop($event, index)"
+                >
+                  <ComponentItem
+                    :component="comp"
+                    :index="index"
+                    :selected="comp.id === pageStore.selectedComponentId"
+                    @select="pageStore.selectComponent(comp.id)"
+                    @delete="pageStore.removeComponent(comp.id)"
+                    @copy="pageStore.duplicateComponent(comp.id)"
+                    @move-up="handleMoveUp(index)"
+                    @move-down="handleMoveDown(index)"
+                  />
+                </div>
+              </template>
             </template>
             <div class="drop-indicator" :class="{ visible: dragOverIndex === pageStore.components.length }"></div>
           </template>
@@ -56,6 +58,22 @@
             <div class="empty-title">空白页面</div>
             <div class="empty-desc">从左侧组件库拖入组件开始装修</div>
           </div>
+        </div>
+        <!-- 悬浮按钮贴在手机屏内，不随内容滚动 -->
+        <div v-if="floatEntries.length" class="canvas-fab-layer">
+          <ComponentItem
+            v-for="item in floatEntries"
+            :key="`fab-${item.comp.id}`"
+            :component="item.comp"
+            :index="item.index"
+            :selected="item.comp.id === pageStore.selectedComponentId"
+            :fab-only="true"
+            @select="pageStore.selectComponent(item.comp.id)"
+            @delete="pageStore.removeComponent(item.comp.id)"
+            @copy="pageStore.duplicateComponent(item.comp.id)"
+            @move-up="handleMoveUp(item.index)"
+            @move-down="handleMoveDown(item.index)"
+          />
         </div>
       </div>
       </div>
@@ -76,12 +94,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
 
 const pageStore = usePageStore()
+
+const floatEntries = computed(() =>
+  pageStore.components
+    .map((comp, index) => ({ comp, index }))
+    .filter(({ comp }) => comp.type === ComponentType.FloatButton),
+)
 
 /** B5：画布缩放档位 */
 const PHONE_WIDTH = 334
@@ -327,6 +351,7 @@ onBeforeUnmount(() => {
 }
 
 .phone-screen {
+  position: relative;
   height: 610px;
   overflow: hidden;
   background: #f6f8fb;
@@ -353,6 +378,31 @@ onBeforeUnmount(() => {
   &::-webkit-scrollbar {
     width: 0;
   }
+}
+
+.canvas-fab-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 44px;
+  bottom: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.canvas-fab-layer :deep(.fab-only-wrap) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.canvas-fab-layer :deep(.float-fab) {
+  pointer-events: auto;
+}
+
+.canvas-fab-layer :deep(.fab-only-wrap.selected .float-fab) {
+  outline: 2px solid #1769ff;
+  outline-offset: 2px;
 }
 
 .canvas-item-wrap {

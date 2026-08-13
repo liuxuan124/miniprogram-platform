@@ -17,24 +17,23 @@
       <el-form-item label="指示点">
         <el-switch :model-value="data.indicator_dots" @change="emit('update', { indicator_dots: $event as boolean })" />
       </el-form-item>
-      <el-form-item label="圆角">
-        <el-input-number
-          :model-value="data.border_radius"
-          @change="emit('update', { border_radius: $event as number })"
-          :min="0"
-          :max="30"
-          controls-position="right"
-        />
-      </el-form-item>
       <el-divider content-position="left">轮播图片</el-divider>
       <div v-for="(img, i) in (data.images || [])" :key="i" class="banner-item">
         <el-form-item :label="`图片${i + 1}`">
           <div class="banner-item-form">
+            <div v-if="img.image" class="banner-thumb">
+              <img :src="img.image" alt="" />
+            </div>
             <el-input
               v-model="img.image"
-              placeholder="图片URL"
+              placeholder="图片URL / 直接粘贴截图"
               @change="handleImagesChange"
+              @paste="handlePaste($event, i)"
             />
+            <label class="upload-btn">
+              {{ uploadingIndex === i ? '上传中…' : '本地上传' }}
+              <input type="file" accept="image/*" style="display: none" @change="handleUpload($event, i)" />
+            </label>
             <el-input
               v-model="img.title"
               placeholder="标题（可选）"
@@ -74,11 +73,56 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useImageUpload } from '../composables/useImageUpload'
+
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
+const { uploadImage } = useImageUpload()
+const uploadingIndex = ref(-1)
+
 function handleImagesChange() {
   emit('update', { images: [...data.images] })
+}
+
+async function uploadToIndex(file: File, index: number) {
+  uploadingIndex.value = index
+  try {
+    await uploadImage(file, {
+      maxSizeMB: 5,
+      onSuccess: (url: string) => {
+        data.images[index].image = url
+        handleImagesChange()
+      },
+    })
+  } finally {
+    uploadingIndex.value = -1
+  }
+}
+
+async function handleUpload(event: Event, index: number) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  await uploadToIndex(file, index)
+  input.value = ''
+}
+
+/** 支持在 URL 输入框中直接粘贴剪贴板里的图片（如截图） */
+async function handlePaste(event: ClipboardEvent, index: number) {
+  const items = event.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile()
+      if (file) {
+        event.preventDefault()
+        await uploadToIndex(file, index)
+      }
+      return
+    }
+  }
 }
 
 function addImage() {
@@ -96,6 +140,41 @@ function removeImage(index: number) {
 <style lang="scss" scoped>
 .banner-item-form {
   width: 100%;
+
+  .banner-thumb {
+    width: 100%;
+    height: 72px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f1f5fb;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    margin-top: 4px;
+    padding: 0 12px;
+    font-size: 12px;
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      color: var(--el-color-primary);
+    }
+  }
 
   .link-row {
     display: flex;
