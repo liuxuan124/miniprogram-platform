@@ -13,6 +13,13 @@
     <el-form-item label="内容">
       <el-input :model-value="data.content" @input="emit('update', { content: $event })" type="textarea" :rows="4" placeholder="图文内容" />
     </el-form-item>
+    <TitleFontSizeFields
+      :data="data"
+      subtitle-label="正文字号"
+      :title-default="13"
+      :subtitle-default="11"
+      @update="(v) => emit('update', v)"
+    />
     <el-form-item label="图片">
       <div style="width: 100%">
         <el-input :model-value="data.image || ''" @input="emit('update', { image: $event })" placeholder="图片URL" />
@@ -27,6 +34,7 @@
 
 <script setup lang="ts">
 import { useImageUpload } from '../composables/useImageUpload'
+import TitleFontSizeFields from './TitleFontSizeFields.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

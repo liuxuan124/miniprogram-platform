@@ -72,9 +72,15 @@
 
 .dsl-product-list__item-bottom {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 8rpx;
   margin-top: 12rpx;
+}
+
+.dsl-product-list__item-meta {
+  min-width: 0;
+  flex: 1;
 }
 
 .dsl-product-list__item-price {
@@ -96,8 +102,23 @@
 }
 
 .dsl-product-list__item-sales {
+  display: block;
+  margin-top: 4rpx;
   font-size: 20rpx;
   color: #999999;
+}
+
+.dsl-product-list__item-cart {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  font-size: 24rpx;
+  background: #fff5f5;
+  border: 1rpx solid #fecaca;
+  border-radius: 50%;
 }
 
 .dsl-product-list__empty {

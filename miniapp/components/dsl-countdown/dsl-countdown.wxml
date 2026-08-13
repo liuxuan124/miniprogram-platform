@@ -1,36 +1,31 @@
 <!--components/dsl-countdown/dsl-countdown.wxml — 倒计时组件-->
-<view class="dsl-countdown" style="{{styleString}}">
-  <!-- 标签 -->
-  <text class="dsl-countdown__label" wx:if="{{config.label}}">{{config.label}}</text>
+<view class="dsl-countdown dsl-countdown--{{styleType}}" style="{{styleString}}">
+  <text class="dsl-countdown__title" style="{{titleStyle}}">{{displayTitle}}</text>
 
-  <!-- 倒计时数字 -->
-  <view class="dsl-countdown__digits" wx:if="{{!isExpired}}">
-    <!-- 天 -->
-    <view class="dsl-countdown__block" wx:if="{{config.format === 'dd:hh:mm:ss' || days !== '00'}}">
-      <text class="dsl-countdown__number">{{days}}</text>
-      <text class="dsl-countdown__unit">天</text>
-    </view>
-    <!-- 时 -->
-    <view class="dsl-countdown__block">
-      <text class="dsl-countdown__number">{{hours}}</text>
-      <text class="dsl-countdown__unit" wx:if="{{config.format !== 'hh:mm:ss'}}">时</text>
-      <text class="dsl-countdown__separator" wx:else>:</text>
-    </view>
-    <!-- 分 -->
-    <view class="dsl-countdown__block">
-      <text class="dsl-countdown__number">{{minutes}}</text>
-      <text class="dsl-countdown__unit" wx:if="{{config.format !== 'hh:mm:ss'}}">分</text>
-      <text class="dsl-countdown__separator" wx:else>:</text>
-    </view>
-    <!-- 秒 -->
-    <view class="dsl-countdown__block">
-      <text class="dsl-countdown__number">{{seconds}}</text>
-      <text class="dsl-countdown__unit" wx:if="{{config.format !== 'hh:mm:ss'}}">秒</text>
-    </view>
+  <view wx:if="{{!hasEndTime}}" class="dsl-countdown__hint">请设置结束时间</view>
+
+  <view wx:elif="{{isExpired}}" class="dsl-countdown__expired">
+    <text class="dsl-countdown__expired-text">{{endText}}</text>
   </view>
 
-  <!-- 已过期 -->
-  <view class="dsl-countdown__expired" wx:else>
-    <text class="dsl-countdown__expired-text">已结束</text>
+  <view wx:else class="dsl-countdown__digits">
+    <block wx:if="{{showDays}}">
+      <view class="dsl-countdown__block">
+        <text class="dsl-countdown__number">{{days}}</text>
+      </view>
+      <text class="dsl-countdown__unit">天</text>
+    </block>
+    <view class="dsl-countdown__block">
+      <text class="dsl-countdown__number">{{hours}}</text>
+    </view>
+    <text class="dsl-countdown__unit">时</text>
+    <view class="dsl-countdown__block">
+      <text class="dsl-countdown__number">{{minutes}}</text>
+    </view>
+    <text class="dsl-countdown__unit">分</text>
+    <view class="dsl-countdown__block">
+      <text class="dsl-countdown__number">{{seconds}}</text>
+    </view>
+    <text class="dsl-countdown__unit">秒</text>
   </view>
 </view>

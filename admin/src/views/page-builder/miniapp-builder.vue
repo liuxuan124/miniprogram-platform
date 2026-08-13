@@ -86,6 +86,15 @@
             <div class="card-actions">
               <el-button size="small" type="primary" @click="handleEditTemplate(item)">编辑</el-button>
               <el-button
+                v-if="item.status !== 1"
+                size="small"
+                type="danger"
+                plain
+                @click="handleDelete(item)"
+              >
+                删除
+              </el-button>
+              <el-button
                 v-if="item.mode === 'template' || item.status === 0"
                 size="small"
                 type="success"
@@ -106,13 +115,6 @@
                     </el-dropdown-item>
                     <el-dropdown-item @click="copyFullPreviewLink(item)">复制预览链接</el-dropdown-item>
                     <el-dropdown-item v-if="item.status === 1" divided @click="handleRollback(item)">回滚到此版本</el-dropdown-item>
-                    <el-dropdown-item
-                      v-if="item.mode === 'template' || item.status === 0"
-                      divided
-                      @click="handleDelete(item)"
-                    >
-                      删除
-                    </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -233,7 +235,7 @@
                   :class="{ selected: selectedMineTemplate === tpl.key }"
                   @click="selectMineTemplate(tpl.key)"
                 >
-                  <div class="mine-tpl-preview" :style="{ background: tpl.gradient }">
+                  <div class="mine-tpl-preview" :style="{ background: tpl.gradient, border: tpl.border }">
                     <div class="mine-tpl-icon">{{ tpl.icon }}</div>
                   </div>
                   <div class="mine-tpl-name">{{ tpl.name }}</div>
@@ -453,7 +455,7 @@
                 完整预览 ›
               </el-button>
             </div>
-            <MiniappPreview :form="form" :pages="pages" :mine-page-mode="minePageMode" />
+            <MiniappPreview ref="previewRef" :form="form" :pages="pages" :mine-page-mode="minePageMode" />
           </div>
         </div>
       </div>
@@ -621,7 +623,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 import { Check, Connection, Plus, DArrowLeft, DArrowRight, ArrowRight, Refresh, ArrowLeft, Box, Document, Clock, Cellphone } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { uploadFile } from '@/api/system'
+import { uploadFile, normalizeUploadUrl } from '@/api/system'
 import {
   getAllReleases,
   getLatestRelease,
@@ -663,6 +665,7 @@ const latestPublished = ref<ReleaseRecord | null>(null)
 const galleryFilter = ref<'all' | 'published' | 'template'>('all')
 
 const activeStep = ref(0)
+const previewRef = ref<{ showMineTab: () => void } | null>(null)
 const previewCollapsed = ref(false)
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
@@ -690,10 +693,10 @@ const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] =
   { label: '模板', value: 'template' },
 ]
 
-const personalCenterTemplates = [
+const personalCenterTemplates: { key: string; name: string; icon: string; gradient: string; border?: string }[] = [
   { key: 'standard', name: '标准版', icon: '👤', gradient: 'linear-gradient(135deg, #1769ff, #5b8def)' },
-  { key: 'premium', name: '尊享版', icon: '👑', gradient: 'linear-gradient(135deg, #d4a017, #f0c040)' },
-  { key: 'minimal', name: '简约版', icon: '🍃', gradient: 'linear-gradient(135deg, #0faa6e, #34d399)' },
+  { key: 'premium', name: '尊享版', icon: '👑', gradient: 'linear-gradient(135deg, #9a7b1c, #d4af37 55%, #f6e27a)' },
+  { key: 'minimal', name: '简约版', icon: '🍃', gradient: '#ffffff', border: '1.5px solid #cbd5e1' },
   { key: 'dark', name: '暗黑版', icon: '🌙', gradient: 'linear-gradient(135deg, #1e293b, #475569)' },
 ]
 
@@ -725,16 +728,22 @@ const filteredReleases = computed(() => {
 function selectMineTemplate(key: string) {
   selectedMineTemplate.value = key
   const tplMap: Record<string, any> = {
-    standard: { style: 'gradient', themeColor: '#1769ff' },
-    premium: { style: 'gradient', themeColor: '#d4a017' },
-    minimal: { style: 'flat', themeColor: '#0faa6e' },
-    dark: { style: 'gradient', themeColor: '#1e293b' },
+    standard: { style: 'gradient', themeColor: '#1769ff', themeColorSecondary: '#5b8def' },
+    premium: { style: 'gradient', themeColor: '#b8860b', themeColorSecondary: '#f0d060' },
+    minimal: { style: 'outline', themeColor: '#334155', themeColorSecondary: '#94a3b8' },
+    dark: { style: 'gradient', themeColor: '#1e293b', themeColorSecondary: '#475569' },
   }
   const preset = tplMap[key]
   if (preset && form.mineConfig) {
     Object.assign(form.mineConfig, preset)
   }
+  // 模板风格作用于「我的」页，预览自动切过去，让效果立即可见
+  previewRef.value?.showMineTab()
 }
+
+watch(activeStep, (step) => {
+  if (step === 2) previewRef.value?.showMineTab()
+})
 
 watch(() => (form.mineConfig as any).mode, (mode) => {
   if (mode === 'config' || mode === 'custom') {
@@ -758,12 +767,23 @@ function triggerShareImageUpload() {
 }
 
 async function handleShareImageChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
   try {
     const res = await uploadFile(file)
-    form.shareImage = (res.data as any)?.url || ''
-  } catch { /* ignore */ }
+    const url = (res.data as any)?.url || ''
+    if (!url) {
+      ElMessage.error('上传成功但未返回图片地址，请联系管理员')
+      return
+    }
+    form.shareImage = url
+  } catch {
+    ElMessage.error('图片上传失败，请重试')
+  } finally {
+    // 允许重新选择同一个文件
+    input.value = ''
+  }
 }
 
 // ==================== Gallery Functions ====================
@@ -1122,7 +1142,7 @@ function parseSnapshotToForm(snapshotJson: string) {
     if (snap.mineConfig) Object.assign(form.mineConfig, snap.mineConfig)
     if (snap.theme) Object.assign(form.theme, snap.theme)
     if (snap.shareTitle !== undefined) form.shareTitle = snap.shareTitle
-    if (snap.shareImage !== undefined) form.shareImage = snap.shareImage
+    if (snap.shareImage !== undefined) form.shareImage = normalizeUploadUrl(snap.shareImage)
   } catch (err) {
     console.warn('解析快照失败:', err)
   }

@@ -19,6 +19,13 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_API_TARGET || 'http://localhost:8080',
           changeOrigin: true,
+          // 后端 CORS 白名单不含 localhost，去掉 Origin/Referer 让代理请求视为同源
+          configure(proxy) {
+            proxy.on('proxyReq', (proxyReq) => {
+              proxyReq.removeHeader('origin')
+              proxyReq.removeHeader('referer')
+            })
+          },
         },
       },
     },

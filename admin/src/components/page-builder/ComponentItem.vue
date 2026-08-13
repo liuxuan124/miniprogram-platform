@@ -1,10 +1,38 @@
 <template>
+  <!-- 贴角浮层：不走 BaseRenderer，选中时在圆钮旁显示工具条 -->
+  <div v-if="fabOnly" class="fab-only-wrap" :class="{ selected }">
+    <div v-if="selected" class="fab-toolbar" @click.stop>
+      <span class="fab-toolbar__label">{{ ComponentTypeLabels[component.type] || '悬浮按钮' }}</span>
+      <el-button text size="small" :disabled="index === 0" @click.stop="$emit('move-up')">
+        <el-icon><Top /></el-icon>
+      </el-button>
+      <el-button text size="small" @click.stop="$emit('move-down')">
+        <el-icon><Bottom /></el-icon>
+      </el-button>
+      <el-button text size="small" @click.stop="$emit('copy')">
+        <el-icon><CopyDocument /></el-icon>
+      </el-button>
+      <el-button text size="small" type="danger" @click.stop="$emit('delete')">
+        <el-icon><Delete /></el-icon>
+      </el-button>
+    </div>
+    <component
+      :is="rendererMap[component.type]"
+      :component="component"
+      :preview-mode="previewMode"
+      :fab-only="true"
+      :selected="selected"
+      @preview-action="(payload: any) => $emit('preview-action', payload)"
+      @select-hint="$emit('select')"
+    />
+  </div>
   <component
+    v-else
     :is="BaseRenderer"
     :index="index"
     :selected="selected"
     :label="ComponentTypeLabels[component.type] || component.type"
-    :style="component.style"
+    :component-style="component.style"
     @select="$emit('select')"
     @delete="$emit('delete')"
     @copy="$emit('copy')"
@@ -22,6 +50,7 @@
 
 <script setup lang="ts">
 import { defineAsyncComponent } from 'vue'
+import { Top, Bottom, CopyDocument, Delete } from '@element-plus/icons-vue'
 import type { ComponentInstance } from '@/types/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
 import BaseRenderer from './renderers/BaseRenderer.vue'
@@ -31,6 +60,7 @@ defineProps<{
   index: number
   selected: boolean
   previewMode?: boolean
+  fabOnly?: boolean
 }>()
 
 defineEmits<{
@@ -72,3 +102,38 @@ const rendererMap: Record<string, any> = {
   [ComponentType.AIEntry]: defineAsyncComponent(() => import('./renderers/AIEntryRenderer.vue')),
 }
 </script>
+
+<style scoped>
+.fab-only-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fab-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  color: #fff;
+  background: rgba(23, 32, 51, 0.94);
+  border-radius: 8px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+}
+
+.fab-toolbar__label {
+  margin-right: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.fab-toolbar :deep(.el-button) {
+  color: #fff;
+}
+</style>

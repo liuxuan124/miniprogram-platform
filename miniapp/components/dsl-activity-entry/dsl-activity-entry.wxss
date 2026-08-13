@@ -2,6 +2,15 @@
 
 .dsl-activity-entry {
   width: 100%;
+  box-sizing: border-box;
+}
+
+.dsl-activity-entry--card {
+  padding: 0 20rpx;
+}
+
+.dsl-activity-entry--full {
+  padding: 0;
 }
 
 .dsl-activity-entry__card {
@@ -14,10 +23,51 @@
   margin-bottom: 20rpx;
 }
 
-.dsl-activity-entry__image {
+.dsl-activity-entry--full .dsl-activity-entry__card {
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+}
+
+.dsl-activity-entry__cover {
+  position: relative;
   width: 100%;
-  height: 300rpx;
+  height: 220rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1769ff, #20b7ff);
+  overflow: hidden;
+}
+
+.dsl-activity-entry--purple .dsl-activity-entry__cover {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+
+.dsl-activity-entry--dark .dsl-activity-entry__cover {
+  background: linear-gradient(135deg, #111827, #374151);
+}
+
+.dsl-activity-entry--gold .dsl-activity-entry__cover {
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+}
+
+.dsl-activity-entry__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
+}
+
+.dsl-activity-entry__cover-text {
+  position: relative;
+  z-index: 1;
+  padding: 0 24rpx;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 800;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.35);
 }
 
 .dsl-activity-entry__info {
@@ -26,16 +76,25 @@
 
 .dsl-activity-entry__title {
   font-size: 30rpx;
-  color: #333333;
-  font-weight: 500;
+  color: #172033;
+  font-weight: 700;
   display: block;
 }
 
 .dsl-activity-entry__subtitle {
-  font-size: 24rpx;
-  color: #999999;
+  font-size: 22rpx;
+  color: #7b8798;
   margin-top: 8rpx;
   display: block;
+}
+
+.dsl-activity-entry__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 10rpx;
+  color: #7b8798;
+  font-size: 22rpx;
 }
 
 .dsl-activity-entry__countdown {
@@ -55,6 +114,31 @@
   color: #ff4d4f;
   font-weight: 600;
   letter-spacing: 2rpx;
+}
+
+.dsl-activity-entry__btn {
+  margin-top: 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 24rpx;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  background: #1769ff;
+  border-radius: 12rpx;
+}
+
+.dsl-activity-entry--purple .dsl-activity-entry__btn {
+  background: #7c3aed;
+}
+
+.dsl-activity-entry--dark .dsl-activity-entry__btn {
+  background: #111827;
+}
+
+.dsl-activity-entry--gold .dsl-activity-entry__btn {
+  background: #b45309;
 }
 
 .dsl-activity-entry__list {

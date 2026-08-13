@@ -41,7 +41,7 @@ defineEmits<{
     align-items: center;
     background: #fff5f5;
     border: 1px solid #fde2e2;
-    border-radius: 6px;
+    border-radius: var(--card-radius, 6px);
     overflow: hidden;
 
     .coupon-amount {
@@ -67,7 +67,7 @@ defineEmits<{
         background: #f56c6c;
         color: #fff;
         padding: 4px 12px;
-        border-radius: 12px;
+        border-radius: var(--card-radius, 12px);
         font-size: 11px;
       }
     }

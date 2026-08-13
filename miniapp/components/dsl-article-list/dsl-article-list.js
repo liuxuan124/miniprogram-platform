@@ -59,12 +59,20 @@ Component({
 
   data: {
     displayData: [],
+    titleStyle: '',
+    metaStyle: '',
   },
 
   observers: {
     'runtimeData, config': function (runtimeData, config) {
       const list = this._normalizeDisplayData(runtimeData, config)
-      this.setData({ displayData: list })
+      const titleSize = Number(config && config.title_font_size) > 0 ? Number(config.title_font_size) : 13
+      const metaSize = Number(config && config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 11
+      this.setData({
+        displayData: list,
+        titleStyle: 'font-size:' + (titleSize * 2) + 'rpx',
+        metaStyle: 'font-size:' + (metaSize * 2) + 'rpx',
+      })
     },
   },
 

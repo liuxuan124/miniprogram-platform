@@ -1,7 +1,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPageList } from '@/api/page'
-import { getConfigByGroup, updateConfigs } from '@/api/system'
+import { getConfigByGroup, updateConfigs, normalizeUploadUrl } from '@/api/system'
 import type { PageRecord } from '@/types/page'
 import type { MiniappForm } from '@/types/miniapp'
 import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE } from '@/types/miniapp'
@@ -182,7 +182,7 @@ export function useMiniappConfig() {
         form.shareTitle = configMap[CONFIG_KEYS.SHARE_TITLE]
       }
       if (configMap[CONFIG_KEYS.SHARE_IMAGE]) {
-        form.shareImage = configMap[CONFIG_KEYS.SHARE_IMAGE]
+        form.shareImage = normalizeUploadUrl(configMap[CONFIG_KEYS.SHARE_IMAGE])
       }
 
       // If no tabs loaded, apply template

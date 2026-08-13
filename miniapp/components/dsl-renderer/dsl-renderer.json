@@ -1,10 +1,12 @@
 {
   "component": true,
   "usingComponents": {
+    "dsl-notice-bar": "../dsl-notice-bar/dsl-notice-bar",
     "dsl-banner": "../dsl-banner/dsl-banner",
     "dsl-image": "../dsl-image/dsl-image",
     "dsl-nav": "../dsl-nav/dsl-nav",
     "dsl-product-list": "../dsl-product-list/dsl-product-list",
+    "dsl-flash-sale": "../dsl-flash-sale/dsl-flash-sale",
     "dsl-article-list": "../dsl-article-list/dsl-article-list",
     "dsl-activity-entry": "../dsl-activity-entry/dsl-activity-entry",
     "dsl-member-card": "../dsl-member-card/dsl-member-card",

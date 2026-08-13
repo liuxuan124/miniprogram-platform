@@ -1,16 +1,19 @@
 // components/dsl-countdown/dsl-countdown.js — 倒计时组件
+function pad(num) {
+  return num < 10 ? '0' + num : '' + num
+}
+
+function parseEndMs(raw) {
+  if (!raw) return null
+  // iOS 兼容：用 / 替换 -
+  const ms = new Date(String(raw).replace(/-/g, '/')).getTime()
+  return Number.isFinite(ms) ? ms : null
+}
+
 Component({
   properties: {
-    /** 组件配置 */
-    config: {
-      type: Object,
-      value: {},
-    },
-    /** 自定义样式 */
-    styleString: {
-      type: String,
-      value: '',
-    },
+    config: { type: Object, value: {} },
+    styleString: { type: String, value: '' },
   },
 
   data: {
@@ -19,22 +22,23 @@ Component({
     minutes: '00',
     seconds: '00',
     isExpired: false,
-    _timer: null,
+    hasEndTime: false,
+    showDays: true,
+    displayTitle: '',
+    endText: '已结束',
+    styleType: 'card',
+    titleStyle: '',
   },
 
   observers: {
-    'config.target_time': function (targetTime) {
-      if (targetTime) {
-        this._startCountdown(targetTime)
-      }
+    config: function () {
+      this._syncAndStart()
     },
   },
 
   lifetimes: {
     attached() {
-      if (this.data.config.target_time) {
-        this._startCountdown(this.data.config.target_time)
-      }
+      this._syncAndStart()
     },
     detached() {
       this._clearTimer()
@@ -42,17 +46,43 @@ Component({
   },
 
   methods: {
-    /** 启动倒计时 */
-    _startCountdown(targetTime) {
-      this._clearTimer()
+    _getEndTimeRaw() {
+      const config = this.data.config || {}
+      return config.end_time || config.target_time || ''
+    },
 
-      const targetMs = new Date(targetTime).getTime()
-      if (isNaN(targetMs)) return
+    _syncAndStart() {
+      const config = this.data.config || {}
+      const showDays = config.show_days !== false
+      const titleSize = Number(config.title_font_size) || 15
+      this.setData({
+        displayTitle: config.title || config.label || '距离活动开始',
+        endText: config.end_text || '已结束',
+        styleType: config.style_type === 'banner' ? 'banner' : 'card',
+        showDays,
+        titleStyle: 'font-size:' + (titleSize * 2) + 'rpx',
+        hasEndTime: !!this._getEndTimeRaw(),
+      })
+      this._startCountdown()
+    },
+
+    _startCountdown() {
+      this._clearTimer()
+      const targetMs = parseEndMs(this._getEndTimeRaw())
+      if (!targetMs) {
+        this.setData({
+          days: '00',
+          hours: '00',
+          minutes: '00',
+          seconds: '00',
+          isExpired: false,
+          hasEndTime: false,
+        })
+        return
+      }
 
       const update = () => {
-        const now = Date.now()
-        const diff = targetMs - now
-
+        const diff = targetMs - Date.now()
         if (diff <= 0) {
           this.setData({
             days: '00',
@@ -60,39 +90,40 @@ Component({
             minutes: '00',
             seconds: '00',
             isExpired: true,
+            hasEndTime: true,
           })
           this._clearTimer()
           return
         }
 
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+        const days = Math.floor(diff / 86400000)
+        let hours = Math.floor((diff % 86400000) / 3600000)
+        const minutes = Math.floor((diff % 3600000) / 60000)
+        const seconds = Math.floor((diff % 60000) / 1000)
+        const showDays = (this.data.config || {}).show_days !== false
+        if (!showDays) {
+          hours = days * 24 + hours
+        }
 
         this.setData({
-          days: this._pad(days),
-          hours: this._pad(hours),
-          minutes: this._pad(minutes),
-          seconds: this._pad(seconds),
+          days: pad(days),
+          hours: pad(hours),
+          minutes: pad(minutes),
+          seconds: pad(seconds),
           isExpired: false,
+          hasEndTime: true,
+          showDays,
         })
       }
 
       update()
-      this.data._timer = setInterval(update, 1000)
+      this._timer = setInterval(update, 1000)
     },
 
-    /** 补零 */
-    _pad(num) {
-      return num < 10 ? '0' + num : '' + num
-    },
-
-    /** 清除定时器 */
     _clearTimer() {
-      if (this.data._timer) {
-        clearInterval(this.data._timer)
-        this.data._timer = null
+      if (this._timer) {
+        clearInterval(this._timer)
+        this._timer = null
       }
     },
   },

@@ -1,6 +1,6 @@
 <template>
   <div class="form-entry-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="80px" size="small">
       <el-form-item label="关联表单">
         <el-select
           :model-value="selectedFormId"
@@ -28,17 +28,46 @@
         style="margin-bottom: 12px"
       />
       <el-form-item label="标题">
-        <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="表单标题" />
+        <el-input :model-value="data.title || ''" @input="emit('update', { title: $event })" placeholder="填写信息" />
       </el-form-item>
-      <el-form-item label="按钮文字">
-        <el-input :model-value="data.buttonText" @input="emit('update', { buttonText: $event })" placeholder="立即填写" />
+      <el-form-item label="副标题">
+        <el-input
+          :model-value="data.subtitle || ''"
+          @input="emit('update', { subtitle: $event })"
+          placeholder="可选，如：30 秒快速提交"
+        />
+      </el-form-item>
+      <el-form-item label="按钮文案">
+        <el-input
+          :model-value="buttonText"
+          @input="onButtonTextInput"
+          placeholder="立即填写"
+        />
       </el-form-item>
       <el-form-item label="样式">
-        <el-select :model-value="data.style" @change="emit('update', { style: $event as string })" style="width: 100%">
-          <el-option label="卡片" value="card" />
-          <el-option label="列表" value="list" />
-          <el-option label="极简" value="minimal" />
-        </el-select>
+        <el-radio-group :model-value="data.style || 'card'" @change="(v: string) => emit('update', { style: v })">
+          <el-radio-button value="card">卡片</el-radio-button>
+          <el-radio-button value="list">列表</el-radio-button>
+          <el-radio-button value="minimal">极简</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="标题字号">
+        <el-input-number
+          :model-value="data.title_font_size ?? 14"
+          :min="10"
+          :max="28"
+          controls-position="right"
+          @change="(v: number) => emit('update', { title_font_size: v })"
+        />
+      </el-form-item>
+      <el-form-item label="副标题字号">
+        <el-input-number
+          :model-value="data.subtitle_font_size ?? 11"
+          :min="8"
+          :max="20"
+          controls-position="right"
+          @change="(v: number) => emit('update', { subtitle_font_size: v })"
+        />
       </el-form-item>
     </el-form>
   </div>
@@ -54,9 +83,20 @@ const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 const loading = ref(false)
 const templates = ref<Array<{ id: number; name: string }>>([])
 const selectedFormId = computed(() => String(data.formTemplateId || data.formId || ''))
+const buttonText = computed(() => data.button_text || data.buttonText || '立即填写')
 
 function onFormChange(value: string) {
-  emit('update', { formTemplateId: value || '', formId: value || '' })
+  const id = value || ''
+  const hit = templates.value.find((item) => String(item.id) === id)
+  emit('update', {
+    formTemplateId: id,
+    formId: id,
+    form_name: hit?.name || '',
+  })
+}
+
+function onButtonTextInput(value: string) {
+  emit('update', { button_text: value, buttonText: value })
 }
 
 onMounted(async () => {

@@ -1,0 +1,72 @@
+.dsl-flash {
+  padding: 16rpx;
+  background: #fff7ed;
+  border: 1rpx solid #fed7aa;
+  border-radius: 16rpx;
+}
+
+.dsl-flash__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.dsl-flash__title {
+  color: #9a3412;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.dsl-flash__countdown {
+  margin-left: auto;
+  margin-right: 12rpx;
+  padding: 4rpx 16rpx;
+  color: #9a3412;
+  font-size: 22rpx;
+  background: #ffedd5;
+  border-radius: 999rpx;
+}
+
+.dsl-flash__countdown--expired {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.dsl-flash__tag {
+  padding: 2rpx 12rpx;
+  color: #fff;
+  font-size: 20rpx;
+  background: #ea580c;
+  border-radius: 999rpx;
+}
+
+.dsl-flash__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.dsl-flash__item {
+  padding: 12rpx;
+  background: #fff;
+  border-radius: 12rpx;
+}
+
+.dsl-flash__img {
+  text-align: center;
+  font-size: 36rpx;
+}
+
+.dsl-flash__name {
+  margin-top: 6rpx;
+  color: #475569;
+  font-size: 22rpx;
+}
+
+.dsl-flash__price {
+  margin-top: 4rpx;
+  color: #dc2626;
+  font-size: 24rpx;
+  font-weight: 700;
+}

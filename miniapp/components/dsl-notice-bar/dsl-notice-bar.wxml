@@ -1,0 +1,22 @@
+<view wx:if="{{!closed}}" class="dsl-notice" style="{{barStyle}} {{styleString}}" bindtap="onTap">
+  <text wx:if="{{showIcon}}" class="dsl-notice__icon">📢</text>
+  <text wx:if="{{config.title}}" class="dsl-notice__title">{{config.title}}</text>
+
+  <view wx:if="{{isHorizontal}}" class="dsl-notice__viewport">
+    <view class="dsl-notice__track" style="animation-duration: {{duration}}s;">
+      <text class="dsl-notice__text">{{marqueeText}}</text>
+      <text class="dsl-notice__text">{{marqueeText}}</text>
+    </view>
+  </view>
+
+  <view wx:elif="{{isVertical}}" class="dsl-notice__viewport dsl-notice__viewport--vertical">
+    <text class="dsl-notice__text">{{displayText}}</text>
+  </view>
+
+  <view wx:else class="dsl-notice__viewport">
+    <text class="dsl-notice__text dsl-notice__text--static">{{displayText}}</text>
+  </view>
+
+  <text wx:if="{{showMore}}" class="dsl-notice__more">›</text>
+  <view wx:if="{{closable}}" class="dsl-notice__close" catchtap="onClose">×</view>
+</view>

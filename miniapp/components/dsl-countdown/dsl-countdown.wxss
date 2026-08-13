@@ -2,20 +2,45 @@
 
 .dsl-countdown {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24rpx 0;
+  box-sizing: border-box;
+  margin-left: 24rpx;
+  margin-right: 24rpx;
 }
 
-.dsl-countdown__label {
+.dsl-countdown--card {
+  padding: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #e6edf6;
+  border-radius: 20rpx;
+}
+
+.dsl-countdown--banner {
+  padding: 28rpx 24rpx;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border: 1rpx solid #fed7aa;
+  border-radius: 16rpx;
+}
+
+.dsl-countdown__title {
+  margin-bottom: 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #172033;
+  text-align: center;
+}
+
+.dsl-countdown__hint {
   font-size: 26rpx;
-  color: #666666;
-  margin-right: 16rpx;
+  color: #94a3b8;
 }
 
 .dsl-countdown__digits {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .dsl-countdown__block {
@@ -29,25 +54,23 @@
   justify-content: center;
   min-width: 56rpx;
   height: 56rpx;
-  background-color: #333333;
+  padding: 0 8rpx;
+  background-color: #172033;
   color: #ffffff;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 8rpx;
-  padding: 0 8rpx;
+  box-sizing: border-box;
+}
+
+.dsl-countdown--banner .dsl-countdown__number {
+  background-color: #c2410c;
 }
 
 .dsl-countdown__unit {
   font-size: 22rpx;
-  color: #666666;
-  margin: 0 6rpx;
-}
-
-.dsl-countdown__separator {
-  font-size: 28rpx;
-  color: #333333;
-  font-weight: 600;
-  margin: 0 4rpx;
+  color: #64748b;
+  margin: 0 8rpx;
 }
 
 .dsl-countdown__expired {
@@ -58,5 +81,6 @@
 
 .dsl-countdown__expired-text {
   font-size: 26rpx;
-  color: #999999;
+  color: #ef4444;
+  font-weight: 600;
 }

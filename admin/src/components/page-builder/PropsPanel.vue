@@ -124,6 +124,32 @@
             <el-form-item label="背景色">
               <el-color-picker :model-value="currentStyle.background_color || '#ffffff'" @change="(v: string) => updateStyle('background_color', v)" />
             </el-form-item>
+            <el-form-item label="文字颜色">
+              <div class="style-color-row">
+                <el-color-picker
+                  :model-value="currentStyle.text_color || ''"
+                  @change="(v: string | null) => updateStyle('text_color', v || undefined)"
+                />
+                <el-button
+                  v-if="currentStyle.text_color"
+                  text
+                  size="small"
+                  @click="updateStyle('text_color', undefined)"
+                >
+                  恢复默认
+                </el-button>
+              </div>
+            </el-form-item>
+            <el-form-item v-if="!hasSplitTextSize" label="文字大小">
+              <el-input-number
+                :model-value="currentStyle.font_size || 0"
+                :min="0"
+                :max="48"
+                controls-position="right"
+                @change="(v: number) => updateStyle('font_size', v > 0 ? v : undefined)"
+              />
+              <div class="style-hint">0 表示使用组件默认字号</div>
+            </el-form-item>
           </el-form>
           </div>
         </el-tab-pane>
@@ -193,9 +219,9 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.Nav]: defineAsyncComponent(() => import('./props/NavProps.vue')),
   [ComponentType.CategoryNav]: defineAsyncComponent(() => import('./props/CategoryNavProps.vue')),
   [ComponentType.ProductList]: defineAsyncComponent(() => import('./props/ProductListProps.vue')),
-  [ComponentType.FlashSale]: defineAsyncComponent(() => import('./props/GenericProps.vue')),
+  [ComponentType.FlashSale]: defineAsyncComponent(() => import('./props/FlashSaleProps.vue')),
   [ComponentType.ArticleList]: defineAsyncComponent(() => import('./props/ArticleListProps.vue')),
-  [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./props/GenericProps.vue')),
+  [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./props/ActivityEntryProps.vue')),
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./props/ActivityListProps.vue')),
   [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./props/AppointmentServiceProps.vue')),
   [ComponentType.MemberCard]: defineAsyncComponent(() => import('./props/MemberCardProps.vue')),
@@ -217,6 +243,28 @@ const propsPanelMap: Record<string, any> = {
 
 const currentStyle = computed(() => {
   return pageStore.selectedComponent?.style || {}
+})
+
+const hasSplitTextSize = computed(() => {
+  const type = pageStore.selectedComponent?.type
+  return [
+    ComponentType.SectionTitle,
+    ComponentType.ArticleList,
+    ComponentType.ProductList,
+    ComponentType.ActivityList,
+    ComponentType.ActivityEntry,
+    ComponentType.BrandIntro,
+    ComponentType.ImageText,
+    ComponentType.AppointmentService,
+    ComponentType.ContactInfo,
+    ComponentType.FlashSale,
+    ComponentType.RichText,
+    ComponentType.Certificate,
+    ComponentType.MemberCard,
+    ComponentType.Countdown,
+    ComponentType.FormEntry,
+    ComponentType.AIEntry,
+  ].includes(type as ComponentType)
 })
 
 function handlePropsUpdate(partial: Record<string, any>) {
@@ -288,6 +336,20 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
 
 .style-section-body {
   padding-top: 4px;
+}
+
+.style-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.style-hint {
+  width: 100%;
+  margin-top: 4px;
+  color: #9aa5b5;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .props-tabs {

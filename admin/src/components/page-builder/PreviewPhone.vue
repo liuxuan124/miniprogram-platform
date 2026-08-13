@@ -29,10 +29,13 @@
         <el-icon :size="18"><More /></el-icon>
       </div>
 
-      <!-- 页面内容 -->
+      <!-- 页面内容（超出高度时内部滚动） -->
       <div class="phone-content" :style="{ backgroundColor: pageBgColor }">
         <slot></slot>
       </div>
+
+      <!-- 底部 TabBar（固定，不随内容滚动） -->
+      <slot name="tabbar"></slot>
 
       <!-- 底部安全区 -->
       <div class="phone-safe-area"></div>
@@ -71,7 +74,9 @@ function handleBackClick() {
 
   .phone-shell {
     width: 375px;
-    min-height: 720px;
+    height: 720px;
+    display: flex;
+    flex-direction: column;
     background: #f5f5f5;
     border-radius: 40px;
     box-shadow:
@@ -80,6 +85,13 @@ function handleBackClick() {
       0 8px 40px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     position: relative;
+  }
+
+  .phone-notch,
+  .phone-status-bar,
+  .phone-nav-bar,
+  .phone-safe-area {
+    flex-shrink: 0;
   }
 
   .phone-notch {
@@ -149,9 +161,16 @@ function handleBackClick() {
   .phone-content {
     position: relative;
     z-index: 1;
-    min-height: 500px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding-bottom: 20px;
+
+    /* 隐藏滚动条，更接近真机观感 */
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .phone-safe-area {

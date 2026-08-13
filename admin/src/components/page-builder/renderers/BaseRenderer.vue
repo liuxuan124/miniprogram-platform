@@ -2,9 +2,10 @@
   <div
     class="component-item"
     :class="{ selected }"
+    :style="marginStyle"
     @click.stop="$emit('select')"
   >
-    <div v-if="selected" class="component-toolbar">
+    <div v-if="selected" class="component-toolbar" :class="{ 'component-toolbar--below': index === 0 }">
       <span class="toolbar-label">{{ label }}</span>
       <div class="toolbar-actions">
         <el-tooltip content="上移" placement="top" :show-after="300">
@@ -29,8 +30,11 @@
         </el-tooltip>
       </div>
     </div>
-    <div class="component-render" :style="componentStyle">
-      <slot />
+    <div class="component-render" :style="surfaceStyle">
+      <!-- 通过 --card-radius 变量下发圆角：只影响组件内的卡片/按钮，背景层永远保持直角 -->
+      <div class="component-render-inner" :class="textStyleClass" :style="innerStyle">
+        <slot />
+      </div>
     </div>
   </div>
 </template>
@@ -39,12 +43,13 @@
 import { computed } from 'vue'
 import { Top, Bottom, CopyDocument, Delete } from '@element-plus/icons-vue'
 import type { ComponentStyle } from '@/types/page'
+import '../componentTextStyle.scss'
 
 const props = defineProps<{
   index: number
   selected: boolean
   label: string
-  style?: ComponentStyle
+  componentStyle?: ComponentStyle
 }>()
 
 defineEmits<{
@@ -55,19 +60,51 @@ defineEmits<{
   'move-down': []
 }>()
 
-const componentStyle = computed(() => {
-  const s = props.style || {}
+const marginStyle = computed(() => {
+  const s = props.componentStyle || {}
   return {
-    marginTop: (s.margin_top || 0) + 'px',
-    marginBottom: (s.margin_bottom || 0) + 'px',
-    marginLeft: (s.margin_left || 0) + 'px',
-    marginRight: (s.margin_right || 0) + 'px',
-    paddingTop: (s.padding_top || 0) + 'px',
-    paddingBottom: (s.padding_bottom || 0) + 'px',
-    paddingLeft: (s.padding_left || 0) + 'px',
-    paddingRight: (s.padding_right || 0) + 'px',
+    marginTop: `${Number(s.margin_top) || 0}px`,
+    marginBottom: `${Number(s.margin_bottom) || 0}px`,
+    marginLeft: `${Number(s.margin_left) || 0}px`,
+    marginRight: `${Number(s.margin_right) || 0}px`,
+  }
+})
+
+const surfaceStyle = computed(() => {
+  const s = props.componentStyle || {}
+  return {
+    paddingTop: `${Number(s.padding_top) || 0}px`,
+    paddingBottom: `${Number(s.padding_bottom) || 0}px`,
+    paddingLeft: `${Number(s.padding_left) || 0}px`,
+    paddingRight: `${Number(s.padding_right) || 0}px`,
     backgroundColor: s.background_color || 'transparent',
-    borderRadius: (s.border_radius || 0) + 'px',
+  }
+})
+
+const innerStyle = computed(() => {
+  const s = props.componentStyle || {}
+  const style: Record<string, string> = {}
+
+  const radius = s.border_radius
+  if (radius !== undefined && radius !== null) {
+    style['--card-radius'] = `${Number(radius)}px`
+  }
+
+  if (s.text_color) {
+    style['--component-text-color'] = s.text_color
+  }
+  if (s.font_size !== undefined && s.font_size !== null && Number(s.font_size) > 0) {
+    style['--component-font-size'] = `${Number(s.font_size)}px`
+  }
+
+  return style
+})
+
+const textStyleClass = computed(() => {
+  const s = props.componentStyle || {}
+  return {
+    'has-text-color': !!s.text_color,
+    'has-text-size': Number(s.font_size) > 0,
   }
 })
 </script>
@@ -86,10 +123,11 @@ const componentStyle = computed(() => {
   box-shadow: inset 0 0 0 2px #1769ff, 0 6px 18px rgba(23, 105, 255, 0.12);
 }
 .component-toolbar {
+  /* 悬浮在选中组件上方外侧，避免遮挡组件内容 */
   position: absolute;
-  top: 5px;
-  left: 6px;
-  right: 6px;
+  top: -34px;
+  right: 0;
+  width: fit-content;
   height: 30px;
   background: rgba(23, 32, 51, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -97,10 +135,16 @@ const componentStyle = computed(() => {
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding: 0 8px;
   z-index: 20;
   backdrop-filter: blur(6px);
+  white-space: nowrap;
+}
+/* 第一个组件上方没有空间（会被画布裁掉），改为显示在组件下方 */
+.component-toolbar--below {
+  top: auto;
+  bottom: -34px;
 }
 .toolbar-label {
   color: #fff;
@@ -117,5 +161,8 @@ const componentStyle = computed(() => {
 }
 .component-render {
   min-height: 20px;
+}
+.component-render-inner {
+  display: flow-root;
 }
 </style>

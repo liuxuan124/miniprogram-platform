@@ -33,16 +33,31 @@
       @back="handlePreviewBack"
     >
       <template v-if="previewTab === 'home'">
-        <ComponentItem
-          v-for="(comp, index) in previewComponents"
-          :key="comp.id"
-          :component="comp"
-          :index="index"
-          :selected="false"
-          :preview-mode="true"
-          @select="() => {}"
-          @preview-action="handlePreviewAction"
-        />
+        <div class="preview-home-wrap">
+          <ComponentItem
+            v-for="(comp, index) in flowPreviewComponents"
+            :key="comp.id"
+            :component="comp"
+            :index="index"
+            :selected="false"
+            :preview-mode="true"
+            @select="() => {}"
+            @preview-action="handlePreviewAction"
+          />
+          <div class="preview-fab-layer">
+            <ComponentItem
+              v-for="(comp, index) in floatPreviewComponents"
+              :key="`fab-${comp.id}`"
+              :component="comp"
+              :index="index"
+              :selected="false"
+              :preview-mode="true"
+              :fab-only="true"
+              @select="() => {}"
+              @preview-action="handlePreviewAction"
+            />
+          </div>
+        </div>
       </template>
 
       <div v-else class="mini-mock-page">
@@ -137,26 +152,29 @@
         </div>
       </div>
 
-      <div class="mini-bottom-tab" :style="{ gridTemplateColumns: 'repeat(' + tabColumns + ', 1fr)' }">
-        <button
-          v-for="tab in miniTabs"
-          :key="tab.value"
-          class="mini-tab-btn"
-          :class="{ active: previewTab === tab.value }"
-          @click="previewTab = tab.value"
-        >
-          <span>{{ tab.icon }}</span>
-          <em>{{ tab.label }}</em>
-        </button>
-      </div>
+      <template #tabbar>
+        <div class="mini-bottom-tab" :style="{ gridTemplateColumns: 'repeat(' + tabColumns + ', 1fr)' }">
+          <button
+            v-for="tab in miniTabs"
+            :key="tab.value"
+            class="mini-tab-btn"
+            :class="{ active: previewTab === tab.value }"
+            @click="previewTab = tab.value"
+          >
+            <span>{{ tab.icon }}</span>
+            <em>{{ tab.label }}</em>
+          </button>
+        </div>
+      </template>
     </PreviewPhone>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { usePageStore } from '@/stores/page'
+import { ComponentType } from '@/types/page'
 import { useDataSync } from '@/components/page-builder/composables/useDataSync'
 import { getConfigByGroup } from '@/api/system'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
@@ -255,6 +273,13 @@ const previewComponents = computed(() => pageStore.components.map((component) =>
   }
   return component
 }))
+
+const flowPreviewComponents = computed(() =>
+  previewComponents.value.filter((c) => c.type !== ComponentType.FloatButton),
+)
+const floatPreviewComponents = computed(() =>
+  previewComponents.value.filter((c) => c.type === ComponentType.FloatButton),
+)
 
 const previewDataNotice = computed(() => {
   if (previewDataMode.value === 'demo') {
@@ -370,13 +395,17 @@ function handlePreviewAction(payload: {
   previewTab.value = payload.tab
   const validTypes = ['content', 'product', 'activity'] as const
   const detailType = validTypes.includes(payload.detailType as any) ? payload.detailType as 'content' | 'product' | 'activity' : undefined
-  previewDetail.value = detailType
+  const detail = detailType
     ? {
         type: detailType,
         title: payload.detailTitle || '详情',
         desc: payload.detailDesc || '详情预览',
       }
     : null
+  // 切 tab 的 watcher 会清空详情，需等其执行完再设置
+  void nextTick(() => {
+    previewDetail.value = detail
+  })
   ElMessage.success(payload.message)
 }
 
@@ -466,6 +495,28 @@ watch(
   .el-dialog__body {
     padding-top: 8px;
   }
+}
+
+.preview-home-wrap {
+  position: relative;
+  min-height: 100%;
+}
+
+.preview-fab-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.preview-fab-layer :deep(.render-float-button.is-overlay) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.preview-fab-layer :deep(.float-fab) {
+  pointer-events: auto;
 }
 
 .mini-preview-head {
@@ -629,8 +680,7 @@ watch(
 }
 
 .mini-bottom-tab {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   display: grid;
   padding: 6px 0 8px;
   background: #fff;

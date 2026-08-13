@@ -2,7 +2,14 @@
   <div class="miniapp-preview">
     <div class="phone">
       <div class="phone-notch"><div class="phone-speaker"></div></div>
-      <div class="phone-screen" :style="{ backgroundColor: form.theme.pageBackgroundColor }">
+      <div
+        class="phone-screen"
+        :style="{
+          backgroundColor: form.theme.pageBackgroundColor,
+          '--theme-primary': form.theme.primaryColor,
+          '--theme-secondary': form.theme.secondaryColor,
+        }"
+      >
         <div class="phone-navbar" :style="{ backgroundColor: form.theme.navBarColor }">
           <span class="navbar-title">{{ currentTabLabel }}</span>
         </div>
@@ -37,10 +44,11 @@
           <!-- Mine page preview (custom render) -->
           <div v-else-if="showMinePage" class="preview-section mine-preview">
             <!-- Login / User card -->
-            <div class="preview-user-card" :style="{ background: `linear-gradient(135deg, ${form.theme.primaryColor}, ${form.theme.secondaryColor})` }">
+            <div class="preview-user-card" :class="{ 'mine-card--outline': mineAccentColors.outline }" :style="mineCardStyle">
               <div v-if="form.mineConfig.userProfile.showAvatar" class="user-avatar">👤</div>
               <div class="user-info">
                 <strong>{{ form.mineConfig.loginTitle }}</strong>
+                <span v-if="form.mineConfig.userProfile.showNickname" class="user-nickname">微信用户（昵称示例）</span>
                 <span class="user-subtitle">{{ form.mineConfig.loginSubtitle }}</span>
                 <span v-if="form.mineConfig.userProfile.showMemberLevel" class="user-level">
                   {{ form.mineConfig.userProfile.memberLevelLabel }}
@@ -50,7 +58,7 @@
             </div>
 
             <!-- Member card -->
-            <div v-if="form.mineConfig.memberCardTitle" class="preview-member-card" :style="{ background: `linear-gradient(135deg, ${form.theme.primaryColor}dd, ${form.theme.secondaryColor}dd)` }">
+            <div v-if="form.mineConfig.memberCardTitle" class="preview-member-card" :class="{ 'mine-card--outline': mineAccentColors.outline }" :style="mineMemberCardStyle">
               <strong>{{ form.mineConfig.memberCardTitle }}</strong>
             </div>
 
@@ -224,6 +232,44 @@ const currentPageDsl = computed(() => {
 
 const visibleMenuItems = computed(() => props.form.mineConfig.menuItems.filter(m => m.enabled))
 
+/** 我的页模板风格（标准/尊享/简约/暗黑）：优先取模板色，未选模板时回退全局主题色 */
+const mineAccentColors = computed(() => {
+  const mc = props.form.mineConfig as Record<string, any>
+  return {
+    primary: mc.themeColor || props.form.theme.primaryColor,
+    secondary: mc.themeColorSecondary || props.form.theme.secondaryColor,
+    flat: mc.style === 'flat',
+    outline: mc.style === 'outline',
+  }
+})
+
+const mineCardStyle = computed(() => {
+  const { primary, secondary, flat, outline } = mineAccentColors.value
+  if (outline) {
+    // 简约版：无填充色，白底 + 边框 + 深色文字
+    return {
+      background: '#ffffff',
+      border: '1.5px solid #d7dde6',
+      color: '#1f2937',
+      '--mine-accent': primary,
+    }
+  }
+  return {
+    background: flat ? primary : `linear-gradient(135deg, ${primary}, ${secondary})`,
+    '--mine-accent': primary,
+  }
+})
+
+const mineMemberCardStyle = computed(() => {
+  const { primary, secondary, flat, outline } = mineAccentColors.value
+  if (outline) {
+    return { background: '#ffffff', border: '1.5px solid #d7dde6', color: '#1f2937' }
+  }
+  return {
+    background: flat ? `${primary}dd` : `linear-gradient(135deg, ${primary}dd, ${secondary}dd)`,
+  }
+})
+
 function parseDslFromResponse(data: any): PageDSL | null {
   if (!data) return null
   // 后端返回 draftDslContent (JSON字符串)
@@ -262,6 +308,14 @@ onMounted(() => {
   const tab = props.form.tabs[0]
   if (tab) loadPublishedDslForTab(tab)
 })
+
+/** 供父组件调用：切到「我的」Tab（配置我的页面/模板风格时让预览立即展示效果） */
+function showMineTab() {
+  const idx = mineTabIndex.value >= 0 ? mineTabIndex.value : props.form.tabs.length - 1
+  if (idx >= 0) void switchTab(idx)
+}
+
+defineExpose({ showMineTab })
 </script>
 
 <style scoped>
@@ -273,7 +327,8 @@ onMounted(() => {
 .phone-screen { border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; height: 680px; }
 .phone-navbar { height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .navbar-title { color: #fff; font-size: 16px; font-weight: 700; }
-.phone-content { flex: 1; overflow-y: auto; padding: 8px; background: var(--screen-bg, #f6f8fb); }
+/* 背景透明以透出 phone-screen 上的「页面背景」主题色 */
+.phone-content { flex: 1; overflow-y: auto; padding: 8px; background: transparent; }
 .phone-tabbar { height: 56px; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #e3e8f0; flex-shrink: 0; }
 .tabbar-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; transition: 0.14s; position: relative; }
 .tabbar-item.unbound::after { content: ''; position: absolute; top: -2px; right: -4px; width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
@@ -310,9 +365,16 @@ onMounted(() => {
 .user-info strong { font-size: 14px; display: block; }
 .user-subtitle { font-size: 11px; opacity: 0.8; margin-top: 2px; display: block; }
 .user-level { display: inline-block; font-size: 10px; background: rgba(255,255,255,0.2); padding: 1px 8px; border-radius: 99px; margin-top: 4px; }
-.login-btn { margin-left: auto; padding: 6px 16px; background: #fff; color: var(--primary-color); border: none; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.login-btn { margin-left: auto; padding: 6px 16px; background: #fff; color: var(--mine-accent, var(--theme-primary, #1769ff)); border: none; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.user-nickname { font-size: 12px; font-weight: 600; margin-top: 2px; display: block; }
 .preview-member-card { padding: 14px 16px; border-radius: 10px; margin-bottom: 12px; color: #fff; }
 .preview-member-card strong { display: block; font-size: 14px; }
+
+/* 简约版（outline）：白底描边卡片，内部元素改为浅灰/描边风格 */
+.mine-card--outline .user-avatar { background: #f1f5f9; }
+.mine-card--outline .user-subtitle { opacity: 1; color: #64748b; }
+.mine-card--outline .user-level { background: #f1f5f9; color: #475569; }
+.mine-card--outline .login-btn { background: #fff; border: 1.5px solid var(--mine-accent, #334155); color: var(--mine-accent, #334155); }
 
 .order-tabs { display: flex; gap: 8px; margin-bottom: 4px; padding: 10px 6px 0; }
 .order-tab-item { flex: 1; text-align: center; padding: 8px 4px; background: #f8faff; border: 1px solid #eef0f4; border-radius: 8px; cursor: pointer; transition: 0.14s; }

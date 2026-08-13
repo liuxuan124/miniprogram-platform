@@ -72,12 +72,27 @@ export function getConfigByGroupSilent(group: ConfigGroup) {
 
 // ==================== 文件上传 ====================
 
+/**
+ * 修正上传文件 URL。
+ * 后端未配置 file.base-url 时会返回 http://localhost:8080/uploads/...，
+ * 浏览器无法访问该地址，这里改写为实际后端地址（开发时取 VITE_API_TARGET，线上取当前域名）。
+ */
+export function normalizeUploadUrl(url: string): string {
+  if (!url) return url
+  const m = url.match(/^https?:\/\/localhost(?::\d+)?(\/uploads\/.+)$/)
+  if (!m) return url
+  const origin = (import.meta.env.VITE_API_TARGET as string | undefined) || window.location.origin
+  return origin.replace(/\/+$/, '') + m[1]
+}
+
 /** 上传文件 */
-export function uploadFile(file: File) {
+export async function uploadFile(file: File) {
   const formData = new FormData()
   formData.append('file', file)
   // 注意：FormData 上传时不要手动设置 Content-Type，交给浏览器自动携带 boundary
-  return post<UploadResult>(`${BASE_URL}/upload`, formData)
+  const res = await post<UploadResult>(`${BASE_URL}/upload`, formData)
+  if (res.data?.url) res.data.url = normalizeUploadUrl(res.data.url)
+  return res
 }
 
 export interface WxPayPrivateKeyUploadResult {

@@ -210,6 +210,10 @@ export interface ComponentStyle {
   padding_right?: number
   background_color?: string
   border_radius?: number
+  /** 组件内文字颜色 */
+  text_color?: string
+  /** 组件内文字大小（px，0 或未设置表示默认） */
+  font_size?: number
   [key: string]: any
 }
 
