@@ -167,12 +167,20 @@ function processComponent(component) {
     appointment_service: 'appointment_service',
     coupon: 'coupon',
   }
-  const normalizedDataSource = resolvedDataSource && resolvedDataSource.type === 'api' && !resolvedDataSource.api && !(resolvedDataSource.config && resolvedDataSource.config.api)
+  let normalizedDataSource = resolvedDataSource && resolvedDataSource.type === 'api' && !resolvedDataSource.api && !(resolvedDataSource.config && resolvedDataSource.config.api)
     ? {
         ...resolvedDataSource,
         type: dataSourceTypeByComponent[component.type] || resolvedDataSource.type,
       }
     : resolvedDataSource
+
+  // 历史页面可能未配置 data_source：按组件类型自动挂默认数据源
+  if (!normalizedDataSource && dataSourceTypeByComponent[component.type]) {
+    normalizedDataSource = {
+      type: dataSourceTypeByComponent[component.type],
+      params: {},
+    }
+  }
 
   const processed = {
     id: component.id || `comp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,

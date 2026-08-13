@@ -23,7 +23,7 @@ const DS_SLIM_FIELDS = {
   product: ['id', 'name', 'title', 'price', 'originalPrice', 'image', 'coverUrl', 'cover_url', 'mainImage', 'main_image', 'sales', 'status', 'tag', 'categoryId'],
   content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'image', 'summary', 'createdAt', 'created_at', 'categoryId'],
   activity: ['id', 'name', 'title', 'image', 'cover_url', 'coverUrl', 'startTime', 'start_time', 'endTime', 'end_time', 'location', 'venue', 'status'],
-  coupon: ['id', 'name', 'title', 'type', 'value', 'minAmount', 'min_amount', 'startTime', 'start_time', 'endTime', 'end_time', 'status'],
+  coupon: ['id', 'name', 'title', 'type', 'value', 'amount', 'discount', 'minOrderAmount', 'minAmount', 'min_amount', 'startTime', 'start_time', 'endTime', 'end_time', 'status', 'condition'],
   appointment_service: ['id', 'name', 'title', 'description', 'desc', 'image', 'cover_url'],
 }
 

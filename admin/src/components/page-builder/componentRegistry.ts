@@ -179,8 +179,16 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       icon: 'Ticket',
       category: 'commerce',
       categoryLabel: '商品',
-      defaultProps: () => ({ title: '领券中心', limit: 3, style_type: 'horizontal' }),
-      defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
+      defaultProps: () => ({
+        title: '领券中心',
+        limit: 3,
+        style_type: 'horizontal',
+        button_text: '领取',
+        title_font_size: 15,
+        subtitle_font_size: 12,
+        data_source: { type: 'api', params: {} },
+      }),
+      defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 10 }),
       validate: (props) => {
         const warnings: string[] = []
         if (!props.title) {

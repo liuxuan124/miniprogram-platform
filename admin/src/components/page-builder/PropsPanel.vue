@@ -204,6 +204,15 @@ const dataStatus = computed(() => {
       routeName: 'FormTemplate',
     }
   }
+  if (component.type === ComponentType.Coupon) {
+    const linked = !!component.props.data_source
+    return {
+      title: '自动读取已发布优惠券',
+      description: linked ? '数据源已连接，预览时优先显示真实优惠券' : '尚未配置优惠券数据源',
+      tone: linked ? 'success' : 'warning',
+      routeName: 'MarketingCoupon',
+    }
+  }
   return null
 })
 
@@ -264,6 +273,7 @@ const hasSplitTextSize = computed(() => {
     ComponentType.Countdown,
     ComponentType.FormEntry,
     ComponentType.AIEntry,
+    ComponentType.Coupon,
   ].includes(type as ComponentType)
 })
 

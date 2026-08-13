@@ -2,39 +2,98 @@
 const couponService = require('../../services/coupon')
 const { AuthUtil } = require('../../utils/auth')
 
-// Tab 定义
 const TABS = [
   { key: 'available', label: '领券中心' },
   { key: 'my', label: '我的优惠券' },
 ]
 
-// 我的优惠券子 Tab
 const MY_SUB_TABS = [
   { key: 'available', label: '可使用' },
   { key: 'used', label: '已使用' },
   { key: 'expired', label: '已过期' },
 ]
 
+/** 前端 Tab → 后端用户券状态 */
+const MY_STATUS_MAP = {
+  available: 'unused',
+  used: 'used',
+  expired: 'expired',
+}
+
+function toNumber(value, fallback = 0) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function pickList(res) {
+  if (!res) return []
+  if (Array.isArray(res)) return res
+  return res.list || res.items || res.records || []
+}
+
+function normalizeAvailableCoupon(raw) {
+  const type = String((raw && (raw.type || raw.couponType)) || 'fixed')
+  const value = toNumber(
+    raw && (raw.value != null
+      ? raw.value
+      : (raw.couponValue != null
+        ? raw.couponValue
+        : (raw.amount != null ? raw.amount : raw.discount))),
+    0,
+  )
+  const minAmount = toNumber(
+    raw && (raw.minOrderAmount != null
+      ? raw.minOrderAmount
+      : (raw.min_amount != null ? raw.min_amount : raw.minAmount)),
+    0,
+  )
+  const endTime = (raw && (raw.endTime || raw.end_time || raw.expire_at || raw.expire_time)) || ''
+  return {
+    id: raw && (raw.id != null ? raw.id : raw.couponId),
+    name: (raw && (raw.name || raw.title || raw.couponName)) || '优惠券',
+    type,
+    displayValue: type === 'percent' ? `${value}` : `${value}`,
+    unit: type === 'percent' ? '折' : '元',
+    condition: minAmount > 0 ? `满¥${minAmount}可用` : ((raw && raw.condition) || '无门槛'),
+    expireText: endTime ? `${String(endTime).replace('T', ' ').slice(0, 16)}到期` : '',
+    claimed: !!(raw && raw.claimed),
+  }
+}
+
+function normalizeMyCoupon(raw) {
+  const type = String((raw && (raw.couponType || raw.type)) || 'fixed')
+  const value = toNumber(
+    raw && (raw.couponValue != null
+      ? raw.couponValue
+      : (raw.value != null ? raw.value : (raw.amount != null ? raw.amount : raw.discount))),
+    0,
+  )
+  const minAmount = toNumber(raw && (raw.minOrderAmount != null ? raw.minOrderAmount : raw.min_amount), 0)
+  const endTime = (raw && (raw.endTime || raw.end_time || raw.expire_at)) || ''
+  return {
+    id: raw && raw.id,
+    name: (raw && (raw.couponName || raw.name || raw.title)) || '优惠券',
+    type,
+    displayValue: `${value}`,
+    unit: type === 'percent' ? '折' : '元',
+    condition: minAmount > 0 ? `满¥${minAmount}可用` : ((raw && raw.condition) || '无门槛'),
+    expireText: endTime ? `${String(endTime).replace('T', ' ').slice(0, 16)}到期` : '',
+  }
+}
+
 Page({
   data: {
     tabs: TABS,
     activeTab: 'available',
-
-    // 我的优惠券子 Tab
     mySubTabs: MY_SUB_TABS,
     activeMySubTab: 'available',
-
-    // 可领取优惠券
     availableCoupons: [],
     availablePage: 1,
     availableHasMore: true,
-    claimingId: '', // D4：正在领取中的优惠券 id，防止重复提交
-
-    // 我的优惠券
+    claimingId: '',
     myCoupons: [],
     myPage: 1,
     myHasMore: true,
-
     loading: false,
     isEmpty: false,
     pageSize: 20,
@@ -56,7 +115,6 @@ Page({
     }
   },
 
-  /** 切换主 Tab */
   onTabTap(e) {
     const key = e.currentTarget.dataset.key
     if (key === this.data.activeTab) return
@@ -70,7 +128,6 @@ Page({
     this._loadData(true)
   },
 
-  /** 切换我的优惠券子 Tab */
   onMySubTabTap(e) {
     const key = e.currentTarget.dataset.key
     if (key === this.data.activeMySubTab) return
@@ -82,16 +139,13 @@ Page({
     this._loadMyCoupons(true)
   },
 
-  /** 加载数据 */
   _loadData(reset = false) {
     if (this.data.activeTab === 'available') {
       return this._loadAvailableCoupons(reset)
-    } else {
-      return this._loadMyCoupons(reset)
     }
+    return this._loadMyCoupons(reset)
   },
 
-  /** 加载可领取优惠券 */
   _loadAvailableCoupons(reset = false) {
     if (this.data.loading) return Promise.resolve()
 
@@ -100,8 +154,8 @@ Page({
 
     return couponService.getAvailableCoupons({ page, page_size: this.data.pageSize })
       .then((res) => {
-        const list = res.list || res.items || []
-        const total = res.total || 0
+        const list = pickList(res).map(normalizeAvailableCoupon)
+        const total = (res && res.total) || list.length
         const hasMore = page * this.data.pageSize < total
         const availableCoupons = reset ? list : this.data.availableCoupons.concat(list)
 
@@ -119,7 +173,6 @@ Page({
       })
   },
 
-  /** 加载我的优惠券 */
   _loadMyCoupons(reset = false) {
     if (this.data.loading) return Promise.resolve()
 
@@ -129,13 +182,13 @@ Page({
     const params = {
       page,
       page_size: this.data.pageSize,
-      status: this.data.activeMySubTab,
+      status: MY_STATUS_MAP[this.data.activeMySubTab] || 'unused',
     }
 
     return couponService.getMyCoupons(params)
       .then((res) => {
-        const list = res.list || res.items || []
-        const total = res.total || 0
+        const list = pickList(res).map(normalizeMyCoupon)
+        const total = (res && res.total) || list.length
         const hasMore = page * this.data.pageSize < total
         const myCoupons = reset ? list : this.data.myCoupons.concat(list)
 
@@ -153,10 +206,9 @@ Page({
       })
   },
 
-  /** 领取优惠券 */
   onClaimTap(e) {
     if (!AuthUtil.requireLoginForAction('领取优惠券')) return
-    if (this.data.claimingId) return // D4：请求进行中禁止重复点击（含其它卡片）
+    if (this.data.claimingId) return
 
     const id = e.currentTarget.dataset.id
     const idx = e.currentTarget.dataset.index
@@ -165,8 +217,6 @@ Page({
     couponService.claimCoupon(id)
       .then(() => {
         wx.showToast({ title: '领取成功', icon: 'success' })
-
-        // 更新该优惠券的领取状态
         const key = `availableCoupons[${idx}].claimed`
         this.setData({
           [key]: true,
@@ -178,13 +228,5 @@ Page({
         wx.showToast({ title: msg, icon: 'none' })
         this.setData({ claimingId: '' })
       })
-  },
-
-  /** 格式化优惠金额显示 */
-  _formatDiscount(coupon) {
-    if (coupon.type === 'percent') {
-      return (coupon.discount / 10) + '折'
-    }
-    return coupon.discount || coupon.amount || 0
   },
 })

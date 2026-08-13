@@ -7,6 +7,7 @@
           :loading="loading"
           clearable
           filterable
+          teleported
           placeholder="请选择已启用表单"
           style="width: 100%"
           @change="onFormChange"
@@ -20,7 +21,15 @@
         </el-select>
       </el-form-item>
       <el-alert
-        v-if="!loading && templates.length === 0"
+        v-if="!loading && loadError"
+        type="error"
+        :title="loadError"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 12px"
+      />
+      <el-alert
+        v-else-if="!loading && templates.length === 0"
         type="warning"
         title="暂无可用表单，请先在表单管理中创建并启用"
         :closable="false"
@@ -81,9 +90,21 @@ const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const loading = ref(false)
+const loadError = ref('')
 const templates = ref<Array<{ id: number; name: string }>>([])
 const selectedFormId = computed(() => String(data.formTemplateId || data.formId || ''))
 const buttonText = computed(() => data.button_text || data.buttonText || '立即填写')
+
+function normalizeRecords(res: any): any[] {
+  const payload = res?.data || {}
+  const records = payload.records || payload.list || []
+  return Array.isArray(records) ? records : []
+}
+
+function isActiveTemplate(item: any): boolean {
+  const status = item?.status
+  return status === 1 || status === '1' || status === 'active'
+}
 
 function onFormChange(value: string) {
   const id = value || ''
@@ -101,16 +122,25 @@ function onButtonTextInput(value: string) {
 
 onMounted(async () => {
   loading.value = true
+  loadError.value = ''
   try {
-    const res = await getFormTemplateList({ page: 1, page_size: 100, status: 'active' })
-    const payload = (res as any)?.data || {}
-    const records = payload.records || payload.list || []
-    templates.value = (Array.isArray(records) ? records : []).map((item: any) => ({
+    // 后端 status 为 Integer：1=启用；传 'active' 会导致查询失败、下拉为空
+    let records = normalizeRecords(
+      await getFormTemplateList({ page: 1, page_size: 100, status: '1' }),
+    )
+    if (!records.length) {
+      records = normalizeRecords(await getFormTemplateList({ page: 1, page_size: 100 }))
+        .filter(isActiveTemplate)
+    } else {
+      records = records.filter(isActiveTemplate)
+    }
+    templates.value = records.map((item: any) => ({
       id: Number(item.id),
       name: item.name || item.title || `表单 ${item.id}`,
     }))
-  } catch {
+  } catch (e: any) {
     templates.value = []
+    loadError.value = e?.message || '加载表单列表失败'
   } finally {
     loading.value = false
   }
