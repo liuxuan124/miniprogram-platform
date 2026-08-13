@@ -35,14 +35,13 @@
         wx:key="id"
       >
         <view class="coupon-card__left">
-          <text class="coupon-card__amount">{{item.discount || item.amount}}</text>
-          <text class="coupon-card__unit" wx:if="{{item.type !== 'percent'}}">元</text>
-          <text class="coupon-card__unit" wx:if="{{item.type === 'percent'}}">折</text>
+          <text class="coupon-card__amount">{{item.displayValue}}</text>
+          <text class="coupon-card__unit">{{item.unit}}</text>
         </view>
         <view class="coupon-card__right">
-          <text class="coupon-card__name">{{item.name || item.title}}</text>
-          <text class="coupon-card__condition">{{item.condition || '无门槛'}}</text>
-          <text class="coupon-card__expire">{{item.expire_text || item.expire_at}}</text>
+          <text class="coupon-card__name">{{item.name}}</text>
+          <text class="coupon-card__condition">{{item.condition}}</text>
+          <text class="coupon-card__expire">{{item.expireText}}</text>
         </view>
         <view
           class="coupon-card__action {{item.claimed ? 'coupon-card__action--done' : ''}} {{claimingId === item.id ? 'coupon-card__action--loading' : ''}}"
@@ -67,14 +66,13 @@
         wx:key="id"
       >
         <view class="coupon-card__left">
-          <text class="coupon-card__amount">{{item.discount || item.amount}}</text>
-          <text class="coupon-card__unit" wx:if="{{item.type !== 'percent'}}">元</text>
-          <text class="coupon-card__unit" wx:if="{{item.type === 'percent'}}">折</text>
+          <text class="coupon-card__amount">{{item.displayValue}}</text>
+          <text class="coupon-card__unit">{{item.unit}}</text>
         </view>
         <view class="coupon-card__right">
-          <text class="coupon-card__name">{{item.name || item.title}}</text>
-          <text class="coupon-card__condition">{{item.condition || '无门槛'}}</text>
-          <text class="coupon-card__expire">{{item.expire_text || item.expire_at}}</text>
+          <text class="coupon-card__name">{{item.name}}</text>
+          <text class="coupon-card__condition">{{item.condition}}</text>
+          <text class="coupon-card__expire">{{item.expireText}}</text>
         </view>
         <!-- 状态标记 -->
         <view class="coupon-card__status" wx:if="{{activeMySubTab === 'used'}}">

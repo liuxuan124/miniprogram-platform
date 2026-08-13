@@ -115,12 +115,18 @@ const textStyleClass = computed(() => {
   cursor: pointer;
   transition: box-shadow 0.15s, transform 0.15s;
 }
-.component-item:hover {
-  box-shadow: inset 0 0 0 1px rgba(23, 105, 255, 0.45);
+.component-item:hover .component-render {
+  box-shadow:
+    0 2px 10px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(23, 105, 255, 0.35);
 }
 .component-item.selected {
   z-index: 2;
-  box-shadow: inset 0 0 0 2px #1769ff, 0 6px 18px rgba(23, 105, 255, 0.12);
+}
+.component-item.selected .component-render {
+  box-shadow:
+    0 4px 14px rgba(23, 105, 255, 0.14),
+    0 0 0 2px #1769ff;
 }
 .component-toolbar {
   /* 悬浮在选中组件上方外侧，避免遮挡组件内容 */
@@ -161,6 +167,10 @@ const textStyleClass = computed(() => {
 }
 .component-render {
   min-height: 20px;
+  border-radius: 2px;
+  /* 统一轻阴影：白底组件在画布上可区分块边界 */
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  transition: box-shadow 0.15s;
 }
 .component-render-inner {
   display: flow-root;

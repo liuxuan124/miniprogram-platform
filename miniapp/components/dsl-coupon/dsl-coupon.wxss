@@ -2,23 +2,56 @@
 
 .dsl-coupon {
   width: 100%;
+  padding: 0 24rpx;
+  box-sizing: border-box;
 }
 
-.dsl-coupon__grid {
-  display: grid;
+.dsl-coupon__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.dsl-coupon__title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.dsl-coupon__more {
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+.dsl-coupon__list {
+  display: flex;
+  flex-direction: column;
   gap: 16rpx;
+}
+
+.dsl-coupon--horizontal .dsl-coupon__list {
+  flex-direction: row;
+  overflow-x: auto;
+}
+
+.dsl-coupon--horizontal .dsl-coupon__item {
+  flex: 0 0 420rpx;
 }
 
 .dsl-coupon__item {
   display: flex;
   flex-direction: row;
   align-items: center;
+  min-height: 108rpx;
+  overflow: hidden;
   background-color: #fff6f6;
   border: 1rpx solid #ffd6d6;
   border-radius: 12rpx;
-  overflow: hidden;
-  box-shadow: none;
-  min-height: 108rpx;
+}
+
+.dsl-coupon__item--claimed {
+  opacity: 0.72;
 }
 
 .dsl-coupon__item-left {
@@ -26,49 +59,52 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   width: 160rpx;
   min-height: 108rpx;
-  background-color: transparent;
   color: #f0646a;
-  flex-shrink: 0;
-  position: relative;
   border-right: 1rpx dashed #ffd6d6;
 }
 
-.dsl-coupon__item-left::after {
-  display: none;
-}
-
 .dsl-coupon__item-amount {
-  font-size: 42rpx;
-  font-weight: 700;
   color: #f0646a;
+  font-size: 40rpx;
+  font-weight: 700;
 }
 
 .dsl-coupon__item-right {
-  flex: 1;
-  min-width: 0;
-  padding: 16rpx 24rpx;
   display: flex;
+  flex: 1;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
+  padding: 16rpx 20rpx;
 }
 
 .dsl-coupon__item-name {
+  overflow: hidden;
+  color: #172033;
   font-size: 26rpx;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsl-coupon__item-condition {
+  margin-top: 4rpx;
   color: #8b95a5;
-  font-weight: 500;
+  font-size: 22rpx;
 }
 
 .dsl-coupon__item-expire {
+  margin-top: 4rpx;
+  color: #999;
   font-size: 20rpx;
-  color: #999999;
-  margin-top: 8rpx;
 }
 
 .dsl-coupon__item-action {
   flex-shrink: 0;
-  padding-right: 26rpx;
+  padding-right: 20rpx;
 }
 
 .dsl-coupon__item-btn {
@@ -78,11 +114,15 @@
   min-width: 88rpx;
   height: 48rpx;
   padding: 0 18rpx;
-  color: #ffffff;
+  color: #fff;
   font-size: 24rpx;
   font-weight: 700;
   background: #f3656c;
   border-radius: 999rpx;
+}
+
+.dsl-coupon__item--claimed .dsl-coupon__item-btn {
+  background: #cbd5e1;
 }
 
 .dsl-coupon__empty {
@@ -93,6 +133,6 @@
 }
 
 .dsl-coupon__empty-text {
+  color: #999;
   font-size: 26rpx;
-  color: #999999;
 }
