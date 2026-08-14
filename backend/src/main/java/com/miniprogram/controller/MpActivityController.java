@@ -4,6 +4,7 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.ActivitySignupVO;
 import com.miniprogram.dto.ActivityVO;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ActivityService;
 import com.miniprogram.service.ActivitySignupService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +40,16 @@ public class MpActivityController {
     @PostMapping("/{id}/signup")
     @Operation(summary = "提交活动报名")
     public R<ActivitySignupVO> signup(@PathVariable Long id, @RequestBody SignupRequest request) {
-        return R.ok(activitySignupService.createSignup(id, request.getName(), request.getPhone(), request.getSession()));
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        return R.ok(activitySignupService.createSignup(
+                id, userId, request.getName(), request.getPhone(), request.getSession(), request.getSmsCode()));
+    }
+
+    @GetMapping("/{id}/my-signup")
+    @Operation(summary = "我的报名")
+    public R<ActivitySignupVO> mySignup(@PathVariable Long id) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        return R.ok(activitySignupService.getMySignup(id, userId));
     }
 
     @Data
@@ -47,6 +57,7 @@ public class MpActivityController {
         private String name;
         private String phone;
         private String session;
+        private String smsCode;
         private String remark;
     }
 }

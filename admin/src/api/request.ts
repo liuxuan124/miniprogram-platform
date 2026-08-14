@@ -34,9 +34,15 @@ service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // 上传场景：FormData 必须交给浏览器自动设置 Content-Type(boundary)
     // 否则会被默认 application/json 覆盖，后端拿不到 multipart file
-    if (typeof FormData !== 'undefined' && config.data instanceof FormData && config.headers) {
-      delete (config.headers as any)['Content-Type']
-      delete (config.headers as any)['content-type']
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      const headers = config.headers as { delete?: (k: string) => void } & Record<string, unknown>
+      if (typeof headers?.delete === 'function') {
+        headers.delete('Content-Type')
+        headers.delete('content-type')
+      } else if (headers) {
+        delete headers['Content-Type']
+        delete headers['content-type']
+      }
     }
 
     const token = getToken()
@@ -70,7 +76,27 @@ function showErrorDebounced(message: string) {
 
 /** 响应拦截器 */
 service.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  async (response: AxiosResponse<ApiResponse>) => {
+    // 文件下载：跳过 JSON code 校验；保持 { data: Blob } 供调用方使用
+    if (response.config.responseType === 'blob' || response.data instanceof Blob) {
+      const blob = response.data as unknown as Blob
+      const contentType = String(response.headers?.['content-type'] || '')
+      if (contentType.includes('application/json')) {
+        try {
+          const text = await blob.text()
+          const json = JSON.parse(text) as ApiResponse
+          if (json.code !== 0 && json.code !== 200) {
+            const showError = response.config.showError !== false
+            if (showError) showErrorDebounced(json.message || '请求失败')
+            return Promise.reject(new Error(json.message || '请求失败'))
+          }
+        } catch {
+          /* 非 JSON 错误体则按文件处理 */
+        }
+      }
+      return { data: blob, headers: response.headers, status: response.status } as any
+    }
+
     const res = response.data
 
     // 后端当前约定 code=200 表示成功，兼容早期 code=0。

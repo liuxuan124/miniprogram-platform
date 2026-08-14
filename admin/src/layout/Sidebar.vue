@@ -81,6 +81,7 @@ import {
   Goods,
   Box,
   Present,
+  Ticket,
   Flag,
   Calendar,
   Money,
@@ -116,6 +117,7 @@ const iconMap: Record<string, any> = {
   Goods,
   Box,
   Present,
+  Ticket,
   Flag,
   Calendar,
   Money,
@@ -169,14 +171,24 @@ const menuGroups: Array<{ title: string; children: MenuItem[] }> = [
     children: [
       { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce' },
       { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order' },
-      { title: '营销管理', path: '/marketing/coupon', icon: 'Present', activePrefix: '/marketing' },
+      { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
     ],
   },
   {
     title: '活动与预约',
     children: [
       { title: '活动管理', path: '/activity/list', icon: 'Flag', activePrefix: '/activity' },
-      { title: '预约管理', path: '/appointment/list', icon: 'Calendar', activePrefix: '/appointment' },
+      {
+        title: '预约管理',
+        icon: 'Calendar',
+        activePrefix: '/appointment',
+        path: '/appointment/list',
+        children: [
+          { title: '预约看板', path: '/appointment/list', icon: 'Calendar', activePrefix: '/appointment/list' },
+          { title: '预约服务', path: '/appointment/service', icon: 'Guide', activePrefix: '/appointment/service' },
+          { title: '预约时段', path: '/appointment/slot', icon: 'Ticket', activePrefix: '/appointment/slot' },
+        ],
+      },
     ],
   },
   {

@@ -36,6 +36,12 @@ public class CorsConfig {
 
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
+        config.setExposedHeaders(List.of(
+                "Content-Disposition",
+                "X-Export-Total",
+                "X-Export-Count",
+                "X-Export-Truncated"
+        ));
         // 仅在白名单来源下允许携带凭证
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

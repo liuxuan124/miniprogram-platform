@@ -1,7 +1,18 @@
 <template>
   <div class="appointment-service-container">
+    <PageHeader
+      kicker="活动与预约 / 预约服务"
+      title="预约服务"
+      description="配置可预约的服务项目、时长与价格。"
+    >
+      <template #actions>
+        <el-button @click="$router.push('/appointment/list')">返回看板</el-button>
+        <el-button type="primary" icon="Plus" @click="handleCreate">添加服务</el-button>
+      </template>
+    </PageHeader>
+
     <!-- 搜索筛选区 -->
-    <el-card shadow="hover" class="search-card">
+    <el-card shadow="never" class="search-card">
       <el-form :model="searchForm" inline>
         <el-form-item label="关键词">
           <el-input
@@ -35,7 +46,7 @@
         <div class="card-header">
           <span>预约服务列表</span>
           <div class="header-actions">
-            <el-button type="primary" icon="Plus" @click="handleCreate">添加服务</el-button>
+            <span class="muted-tip">也可从上方「添加服务」创建</span>
           </div>
         </div>
       </template>
@@ -147,6 +158,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
 import {
   getAppointmentServiceList,
   createAppointmentService,

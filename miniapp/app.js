@@ -2,6 +2,7 @@
 const { AuthUtil } = require('./utils/auth')
 const { StorageUtil } = require('./utils/storage')
 const SystemService = require('./services/system')
+const { resolveSourceChannel } = require('./utils/source-channel')
 
 App({
   /** 全局共享状态 */
@@ -12,10 +13,13 @@ App({
     systemInfo: null,     // 系统信息
     pageDSLCache: {},     // 页面 DSL 缓存
     miniappThemeConfig: null, // 小程序主题配置
+    sourceChannel: null,  // 首次归因来源
   },
 
   /** 小程序启动 */
-  onLaunch() {
+  onLaunch(options) {
+    this._captureSourceChannel(options)
+
     // 获取系统信息
     this.globalData.systemInfo = {
       ...(wx.getDeviceInfo ? wx.getDeviceInfo() : {}),
@@ -31,6 +35,25 @@ App({
 
     // 加载系统配置并应用主题
     this._loadSystemConfig()
+  },
+
+  onShow(options) {
+    // 冷启动已记录则不覆盖；仅在尚未归因时补充
+    if (!this.globalData.sourceChannel && !StorageUtil.get('sourceChannel')) {
+      this._captureSourceChannel(options)
+    }
+  },
+
+  /** 首次归因：只写一次 */
+  _captureSourceChannel(options) {
+    const cached = StorageUtil.get('sourceChannel')
+    if (cached) {
+      this.globalData.sourceChannel = cached
+      return
+    }
+    const channel = resolveSourceChannel(options || {})
+    this.globalData.sourceChannel = channel
+    StorageUtil.set('sourceChannel', channel)
   },
 
   /** 加载系统配置并应用主题 */

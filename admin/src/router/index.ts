@@ -245,7 +245,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
     path: '/marketing',
     component: Layout,
     name: 'Marketing',
-    meta: { title: '营销中心', icon: 'Present' },
+    meta: { title: '优惠券', icon: 'Ticket' },
     redirect: '/marketing/coupon',
     children: [
       {
@@ -318,7 +318,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'list',
         name: 'AppointmentListAlias',
         component: () => import('@/views/appointment/index.vue'),
-        meta: { title: '预约管理', icon: 'Calendar' },
+        meta: { title: '预约看板', icon: 'Calendar' },
       },
       {
         path: 'service',

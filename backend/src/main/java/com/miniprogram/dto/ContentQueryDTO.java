@@ -25,4 +25,7 @@ public class ContentQueryDTO {
 
     /** 状态筛选 */
     private String status;
+
+    /** 来源筛选 */
+    private String source;
 }

@@ -40,16 +40,28 @@ export const CouponStatusTagType: Record<CouponStatus, string> = {
 
 /** 适用范围 */
 export enum CouponScope {
-  All = 'all', // 全场通用
-  Category = 'category', // 指定分类
-  Product = 'product', // 指定商品
+  All = 'all',
+  Category = 'category',
+  Product = 'product',
 }
 
-/** 适用范围标签 */
 export const CouponScopeLabels: Record<CouponScope, string> = {
   [CouponScope.All]: '全场通用',
   [CouponScope.Category]: '指定分类',
   [CouponScope.Product]: '指定商品',
+}
+
+/** 领取人群 */
+export enum CouponClaimAudience {
+  All = 'all',
+  Members = 'members',
+  Levels = 'levels',
+}
+
+export const CouponClaimAudienceLabels: Record<CouponClaimAudience, string> = {
+  [CouponClaimAudience.All]: '所有人',
+  [CouponClaimAudience.Members]: '任意会员',
+  [CouponClaimAudience.Levels]: '指定会员等级',
 }
 
 /** 优惠券记录 */
@@ -59,15 +71,17 @@ export interface CouponRecord {
   type: CouponType
   status: CouponStatus
   scope: CouponScope
-  scopeIds?: number[] // 适用分类/商品 ID 列表
-  value: number // 优惠金额（满减）或折扣率（折扣，如 85 表示 8.5 折）
-  minOrderAmount: number // 最低消费金额
-  totalCount: number // 发放总量，-1 表示不限量
-  usedCount: number // 已使用数量
-  perUserLimit: number // 每人限领数量
-  startTime: string // 生效开始时间
-  endTime: string // 生效结束时间
-  validDays?: number // 领取后有效天数（与固定时间二选一）
+  scopeIds?: number[]
+  claimAudience?: CouponClaimAudience | string
+  claimLevelIds?: number[]
+  value: number
+  minOrderAmount: number
+  totalCount: number
+  usedCount: number
+  perUserLimit: number
+  startTime: string
+  endTime: string
+  validDays?: number
   description?: string
   createdAt: string
   updatedAt: string
@@ -79,6 +93,8 @@ export interface CreateCouponParams {
   type: CouponType
   scope?: CouponScope
   scopeIds?: number[]
+  claimAudience?: CouponClaimAudience | string
+  claimLevelIds?: number[]
   value: number
   minOrderAmount?: number
   totalCount?: number
@@ -95,6 +111,8 @@ export interface UpdateCouponParams {
   type?: CouponType
   scope?: CouponScope
   scopeIds?: number[]
+  claimAudience?: CouponClaimAudience | string
+  claimLevelIds?: number[]
   value?: number
   minOrderAmount?: number
   totalCount?: number

@@ -1,5 +1,6 @@
 package com.miniprogram.service;
 
+import com.miniprogram.dto.CheckInScanResultVO;
 import com.miniprogram.entity.ActivityCheckIn;
 
 import java.util.List;
@@ -24,4 +25,9 @@ public interface ActivityCheckInService extends BaseService<ActivityCheckIn> {
      * 获取活动签到统计
      */
     Map<String, Object> getActivityStats(Long activityId);
+
+    /**
+     * 扫码核销：raw 可为纯 code 或 JSON {@code {"t":"activity_checkin","c":"..."}}。
+     */
+    CheckInScanResultVO scanVerify(String rawPayload, Long expectedActivityId, Long adminUserId);
 }

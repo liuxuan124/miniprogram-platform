@@ -159,6 +159,17 @@
   line-height: 1.8;
 }
 
+/* 详情长图拼图：去掉图间距与行内空隙 */
+.rich-content image,
+.rich-content img {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  vertical-align: top;
+}
+
 .text-content {
   font-size: 28rpx;
   color: #666;

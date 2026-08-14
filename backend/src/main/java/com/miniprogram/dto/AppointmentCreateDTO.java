@@ -28,6 +28,10 @@ public class AppointmentCreateDTO {
     @Schema(description = "联系人电话")
     private String contactPhone;
 
+    @NotBlank(message = "短信验证码不能为空")
+    @Schema(description = "短信验证码")
+    private String smsCode;
+
     @Schema(description = "备注")
     private String remark;
 }

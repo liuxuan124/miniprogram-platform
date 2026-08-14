@@ -33,6 +33,9 @@ public class ProductCategory implements Serializable {
     @Schema(description = "分类图标URL")
     private String icon;
 
+    @Schema(description = "允许的商品类型 JSON，如 [\"physical\",\"digital\"]")
+    private String allowedProductTypes;
+
     @Schema(description = "状态: 1=启用, 0=禁用")
     private Integer status;
 

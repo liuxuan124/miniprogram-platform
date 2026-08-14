@@ -54,6 +54,11 @@ public interface CouponService {
     UserCouponVO claimCoupon(Long userId, Long couponId);
 
     /**
+     * 系统发放优惠券（跳过领取范围校验，用于生日礼包等）
+     */
+    UserCouponVO issueCoupon(Long userId, Long couponId);
+
+    /**
      * 我的优惠券列表（小程序端）
      */
     PageResult<UserCouponVO> listMyCoupons(Long userId, String status);

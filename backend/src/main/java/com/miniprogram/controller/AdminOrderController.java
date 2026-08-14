@@ -53,7 +53,7 @@ public class AdminOrderController {
     }
 
     @GetMapping("/statistics")
-    @Operation(summary = "订单统计", description = "订单列表页顶部统计卡：本月收入/待结算/退款/手续费（真实数据）")
+    @Operation(summary = "订单统计", description = "订单看板：今日订单/成交额/待付款/待发货/已发货/退款中/本月收入/本月退款")
     public R<OrderStatisticsVO> getOrderStatistics() {
         return R.ok(orderService.getOrderStatistics());
     }

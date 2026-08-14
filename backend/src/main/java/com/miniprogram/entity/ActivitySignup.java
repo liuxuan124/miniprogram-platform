@@ -40,6 +40,16 @@ public class ActivitySignup implements Serializable {
     @Schema(description = "状态: pending/approved/rejected")
     private String status;
 
+    @Schema(description = "个人签到码")
+    private String checkInCode;
+
+    @Schema(description = "审核通过时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime approvedAt;
+
+    @Schema(description = "拒绝原因")
+    private String rejectedReason;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

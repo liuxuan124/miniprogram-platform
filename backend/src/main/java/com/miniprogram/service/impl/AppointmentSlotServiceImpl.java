@@ -7,6 +7,7 @@ import com.miniprogram.dto.*;
 import com.miniprogram.entity.AppointmentSlot;
 import com.miniprogram.mapper.AppointmentSlotMapper;
 import com.miniprogram.service.AppointmentSlotService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,10 @@ import java.time.LocalDate;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AppointmentSlotServiceImpl extends BaseServiceImpl<AppointmentSlotMapper, AppointmentSlot> implements AppointmentSlotService {
+
+    private final com.miniprogram.mapper.AppointmentServiceMapper appointmentServiceMapper;
 
     @Override
     public PageResult<AppointmentSlotVO> listAppointmentSlots(AppointmentSlotQueryDTO queryDTO) {
@@ -105,8 +109,20 @@ public class AppointmentSlotServiceImpl extends BaseServiceImpl<AppointmentSlotM
     private AppointmentSlotVO toVO(AppointmentSlot slot) {
         AppointmentSlotVO vo = new AppointmentSlotVO();
         BeanUtils.copyProperties(slot, vo);
-        vo.setRemainingCapacity(slot.getMaxCapacity() - slot.getBookedCount());
+        int max = slot.getMaxCapacity() == null ? 0 : slot.getMaxCapacity();
+        int booked = slot.getBookedCount() == null ? 0 : slot.getBookedCount();
+        vo.setRemainingCapacity(Math.max(0, max - booked));
         vo.setStatusDesc(AppointmentSlotVO.getStatusDesc(slot.getStatus()));
+        if (slot.getServiceId() != null) {
+            try {
+                com.miniprogram.entity.AppointmentService service = appointmentServiceMapper.selectById(slot.getServiceId());
+                if (service != null) {
+                    vo.setServiceName(service.getName());
+                }
+            } catch (Exception e) {
+                log.warn("填充预约服务名称失败, serviceId={}", slot.getServiceId());
+            }
+        }
         return vo;
     }
 }

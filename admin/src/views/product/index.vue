@@ -6,7 +6,7 @@
       description="统一管理实物、数字权益和服务类商品，完成创建、上架、下架和库存巡检。"
     >
       <template #actions>
-        <el-button @click="fetchList">刷新</el-button>
+        <el-button @click="handleRefresh">刷新</el-button>
         <el-button @click="openCategoryPage">分类管理</el-button>
         <el-button type="primary" @click="handleCreate">新建商品</el-button>
       </template>
@@ -14,24 +14,24 @@
 
     <section class="stat-grid">
       <div class="stat-card">
-        <span>当前筛选商品</span>
-        <strong>{{ pagination.total }}</strong>
-        <p>按当前条件返回的商品总数</p>
+        <span>商品总数</span>
+        <strong>{{ overviewStats.total }}</strong>
+        <p>全量商品</p>
       </div>
       <div class="stat-card">
         <span>已上架</span>
-        <strong>{{ pageStats.onSale }}</strong>
-        <p>当前页可售商品</p>
+        <strong>{{ overviewStats.onSale }}</strong>
+        <p>小程序可见</p>
       </div>
       <div class="stat-card">
-        <span>待处理</span>
-        <strong>{{ pageStats.pending }}</strong>
-        <p>草稿或已下架商品</p>
+        <span>草稿 / 下架</span>
+        <strong>{{ overviewStats.draft + overviewStats.offSale }}</strong>
+        <p>草稿 {{ overviewStats.draft }} · 下架 {{ overviewStats.offSale }}</p>
       </div>
       <div class="stat-card warning">
         <span>低库存</span>
-        <strong>{{ pageStats.lowStock }}</strong>
-        <p>库存少于 10 的实物商品</p>
+        <strong>{{ overviewStats.lowStock }}</strong>
+        <p>非数字商品且库存 &lt; 10</p>
       </div>
     </section>
 
@@ -97,10 +97,12 @@
           :data="tableData"
           stripe
           row-key="id"
+          class="product-table"
+          table-layout="auto"
           @selection-change="handleSelectionChange"
         >
-          <el-table-column type="selection" width="48" />
-          <el-table-column label="商品" min-width="340">
+          <el-table-column type="selection" width="44" />
+          <el-table-column label="商品" min-width="200">
             <template #default="{ row }">
               <div class="product-cell">
                 <div class="product-cover" :class="{ empty: !row.mainImage }">
@@ -109,9 +111,15 @@
                 </div>
                 <div class="product-info">
                   <div class="product-name-line">
-                    <span class="name">{{ row.name }}</span>
-                    <el-tag size="small" effect="plain" :type="productTypeTagType(row.productType)">
-                      {{ productTypeLabel(row.productType) }}
+                    <span class="name" :title="row.name">{{ row.name }}</span>
+                    <el-tag
+                      v-for="t in (row.productTypes || [row.productType])"
+                      :key="t"
+                      size="small"
+                      effect="plain"
+                      :type="productTypeTagType(t)"
+                    >
+                      {{ productTypeLabel(t) }}
                     </el-tag>
                   </div>
                   <div class="meta-line">
@@ -123,33 +131,38 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="价格" width="130" align="right">
+          <el-table-column label="价格" width="100" align="right">
             <template #default="{ row }">
               <span class="price">¥{{ row.price.toFixed(2) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="库存" width="110" align="center">
+          <el-table-column label="库存" width="72" align="center">
             <template #default="{ row }">
-              <span :class="{ 'stock-warning': row.productType !== 'digital' && row.stock < 10 }">
-                {{ row.productType === 'digital' ? '—' : row.stock }}
+              <span :class="{ 'stock-warning': isLowStock(row) }">
+                {{ formatStockLabel(row) }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="120" align="center">
+          <el-table-column label="状态" width="88" align="center">
             <template #default="{ row }">
               <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="更新时间" width="170" align="center">
+          <el-table-column label="更新时间" width="148" align="center">
             <template #default="{ row }">
               {{ row.updatedAt || '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="168" align="right">
             <template #default="{ row }">
               <div class="row-actions">
                 <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button link size="small" @click="toggleOnSale(row)">
+                <el-button
+                  link
+                  size="small"
+                  :type="row.status === 'on_sale' ? 'warning' : 'success'"
+                  @click="toggleOnSale(row)"
+                >
                   {{ row.status === 'on_sale' ? '下架' : '上架' }}
                 </el-button>
                 <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
@@ -185,6 +198,7 @@ import {
   deleteProduct,
   getCategoryList,
   getProductList,
+  getProductStats,
   offSaleProduct,
   onSaleProduct,
 } from '@/api/product'
@@ -197,6 +211,7 @@ interface ProductRow {
   categoryId?: number
   categoryName: string
   productType: 'physical' | 'digital' | 'service'
+  productTypes: Array<'physical' | 'digital' | 'service'>
   price: number
   stock: number
   sales: number
@@ -229,12 +244,31 @@ const pagination = reactive({
   total: 0,
 })
 
-const pageStats = computed(() => {
-  const onSale = tableData.value.filter((item) => item.status === 'on_sale').length
-  const pending = tableData.value.filter((item) => item.status !== 'on_sale').length
-  const lowStock = tableData.value.filter((item) => item.productType !== 'digital' && item.stock < 10).length
-  return { onSale, pending, lowStock }
+const overviewStats = reactive({
+  total: 0,
+  onSale: 0,
+  draft: 0,
+  offSale: 0,
+  lowStock: 0,
 })
+
+async function handleRefresh() {
+  await Promise.all([fetchList(), fetchStats()])
+}
+
+async function fetchStats() {
+  try {
+    const res: any = await getProductStats()
+    const data = res?.data || {}
+    overviewStats.total = Number(data.total || 0)
+    overviewStats.onSale = Number(data.onSale || 0)
+    overviewStats.draft = Number(data.draft || 0)
+    overviewStats.offSale = Number(data.offSale || 0)
+    overviewStats.lowStock = Number(data.lowStock || 0)
+  } catch {
+    /* ignore */
+  }
+}
 
 function normalizeCategory(raw: any): CategoryNode {
   return {
@@ -257,7 +291,10 @@ const flatCategoryOptions = computed(() => {
 })
 
 function inferType(raw: any): 'physical' | 'digital' | 'service' {
-  const v = `${raw.productType || raw.product_type || ''}`.toLowerCase()
+  const list = Array.isArray(raw.productTypes)
+    ? raw.productTypes
+    : (raw.productType || raw.product_type ? [raw.productType || raw.product_type] : [])
+  const v = `${list[0] || ''}`.toLowerCase()
   if (v.includes('digital') || v.includes('数字')) return 'digital'
   if (v.includes('service') || v.includes('服务')) return 'service'
   return 'physical'
@@ -276,13 +313,45 @@ function pickEmoji(type: 'physical' | 'digital' | 'service'): string {
   return '🛍️'
 }
 
+function isDigitalOnlyRow(row: ProductRow) {
+  const types = row.productTypes?.length
+    ? row.productTypes
+    : row.productType
+      ? [row.productType]
+      : []
+  return types.length > 0 && types.every((t) => t === 'digital')
+}
+
+/** 无限 / 无 / 数字 */
+function formatStockLabel(row: ProductRow) {
+  if (isDigitalOnlyRow(row)) return '无限'
+  const n = Number(row.stock)
+  if (!Number.isFinite(n) || n <= 0) return '无'
+  return String(n)
+}
+
+function isLowStock(row: ProductRow) {
+  if (isDigitalOnlyRow(row)) return false
+  const n = Number(row.stock)
+  return Number.isFinite(n) && n > 0 && n < 10
+}
+
 function formatDate(raw: any) {
   const value = raw?.updatedAt ?? raw?.updated_at ?? raw?.updateTime ?? raw?.createdAt ?? raw?.created_at ?? ''
   return String(value || '').replace('T', ' ').slice(0, 16)
 }
 
 function normalizeProduct(raw: any): ProductRow {
-  const productType = inferType(raw)
+  const typesRaw = Array.isArray(raw.productTypes)
+    ? raw.productTypes
+    : (raw.productType || raw.product_type ? [raw.productType || raw.product_type] : ['physical'])
+  const productTypes = typesRaw.map((t: string) => {
+    const v = `${t}`.toLowerCase()
+    if (v.includes('digital')) return 'digital'
+    if (v.includes('service')) return 'service'
+    return 'physical'
+  }) as Array<'physical' | 'digital' | 'service'>
+  const productType = productTypes[0] || inferType(raw)
   const minPrice = Number(raw.min_price ?? raw.minPrice ?? raw.price ?? 0)
   const maxPrice = Number(raw.max_price ?? raw.maxPrice ?? raw.price ?? minPrice)
   const price = Number.isFinite(minPrice) && minPrice > 0 ? minPrice : maxPrice || 0
@@ -297,6 +366,7 @@ function normalizeProduct(raw: any): ProductRow {
     categoryId: Number(raw.category_id ?? raw.categoryId) || undefined,
     categoryName: raw.category_name || raw.categoryName || '未分类',
     productType,
+    productTypes,
     price,
     stock,
     sales,
@@ -407,9 +477,9 @@ async function toggleOnSale(row: ProductRow) {
       await onSaleProduct(row.id)
       ElMessage.success('已上架')
     }
-    await fetchList()
-  } catch {
-    ElMessage.error('操作失败')
+    await Promise.all([fetchList(), fetchStats()])
+  } catch (err: any) {
+    ElMessage.error(err?.message || '操作失败')
   }
 }
 
@@ -424,9 +494,14 @@ async function batchToggleSale(target: 'on_sale' | 'off_sale') {
     const requests = selectedRows.value.map((row) =>
       target === 'on_sale' ? onSaleProduct(row.id) : offSaleProduct(row.id)
     )
-    await Promise.all(requests)
-    ElMessage.success('批量操作成功')
-    await fetchList()
+    const results = await Promise.allSettled(requests)
+    const failed = results.filter((r) => r.status === 'rejected').length
+    if (failed) {
+      ElMessage.warning(`完成 ${results.length - failed} 个，失败 ${failed} 个`)
+    } else {
+      ElMessage.success('批量操作成功')
+    }
+    await Promise.all([fetchList(), fetchStats()])
   } catch (error) {
     if (error !== 'cancel') ElMessage.error('批量操作失败')
   }
@@ -441,7 +516,7 @@ async function handleDelete(row: ProductRow) {
     })
     await deleteProduct(row.id)
     ElMessage.success('删除成功')
-    await fetchList()
+    await Promise.all([fetchList(), fetchStats()])
   } catch (error) {
     if (error !== 'cancel') ElMessage.error('删除失败')
   }
@@ -457,19 +532,19 @@ async function batchDelete() {
     })
     await Promise.all(selectedRows.value.map((row) => deleteProduct(row.id)))
     ElMessage.success('批量删除成功')
-    await fetchList()
+    await Promise.all([fetchList(), fetchStats()])
   } catch (error) {
     if (error !== 'cancel') ElMessage.error('批量删除失败')
   }
 }
 
-function productTypeLabel(type: ProductRow['productType']) {
+function productTypeLabel(type: string) {
   if (type === 'digital') return '数字'
   if (type === 'service') return '服务'
   return '实物'
 }
 
-function productTypeTagType(type: ProductRow['productType']) {
+function productTypeTagType(type: string) {
   if (type === 'digital') return 'primary'
   if (type === 'service') return 'warning'
   return 'success'
@@ -490,7 +565,7 @@ function statusTagType(status: ProductRow['status']) {
 onMounted(async () => {
   restoreListState()
   await fetchCategories()
-  await fetchList()
+  await Promise.all([fetchList(), fetchStats()])
 })
 </script>
 
@@ -569,6 +644,20 @@ onMounted(async () => {
 
   .table-panel {
     padding: 14px;
+    overflow-x: auto;
+  }
+
+  .product-table {
+    width: 100%;
+
+    :deep(.el-table__inner-wrapper::before) {
+      display: none;
+    }
+
+    :deep(.el-table__body),
+    :deep(.el-table__header) {
+      width: 100% !important;
+    }
   }
 
   .table-toolbar {
@@ -655,19 +744,13 @@ onMounted(async () => {
     font-weight: 700;
   }
 
-  /* A7：操作列默认收起，hover 行时浮现，节省横向空间 */
   .row-actions {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
-    opacity: 0;
-    transition: opacity 0.12s ease;
-  }
-
-  :deep(.el-table__row:hover) .row-actions,
-  :deep(.el-table__row:focus-within) .row-actions {
-    opacity: 1;
+    flex-wrap: nowrap;
+    gap: 2px;
+    white-space: nowrap;
   }
 
   .pagination-wrap {

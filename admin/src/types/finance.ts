@@ -137,10 +137,13 @@ export interface CashFlowData {
 
 /** 分类分析数据 */
 export interface CategoryAnalysisItem {
+  type?: 'income' | 'expense'
   category: string
   currentAmount: number
   previousAmount: number
+  /** 小数比率，如 0.15 = +15% */
   changeRate: number
+  /** 0-100 的占比数值 */
   percentage: number
 }
 
@@ -265,11 +268,13 @@ export interface InvoiceFormData {
 /** 税务计算结果 */
 export interface TaxCalcResult {
   taxableIncome: number
+  grossAmount?: number
   vatAmount: number
   surcharge: number
   incomeTax: number
   totalTax: number
   afterTaxIncome: number
+  includeTax?: boolean
 }
 
 // ==================== 财务权限 ====================
@@ -294,7 +299,7 @@ export interface FinancePermission {
   userId: number
   username: string
   realName: string
-  role: FinanceRole
+  role: FinanceRole | null
   scope: string[]
   dataRange: 'self' | 'department' | 'all'
   createdAt: string
@@ -318,6 +323,9 @@ export interface SyncStatus {
   syncStatus: 'idle' | 'syncing' | 'success' | 'failed'
   recordCount: number
   errorMessage?: string
+  /** local_recalc = 仅本地重算，未对接外部入账 */
+  syncMode?: string
+  syncHint?: string
 }
 
 /** 同步配置 */

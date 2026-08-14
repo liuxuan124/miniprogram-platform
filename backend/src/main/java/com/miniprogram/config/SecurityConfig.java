@@ -3,6 +3,7 @@ package com.miniprogram.config;
 import com.miniprogram.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -40,6 +41,8 @@ public class SecurityConfig {
                 // 请求授权配置
                 .authorizeHttpRequests(auth -> auth
                         // ========== 公开接口（无需认证） ==========
+                        // 活动仅 GET 列表/单 id 详情匿名；勿用 /**，否则 signup / my-signup 也会放行
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/activities", "/api/v1/mp/activities/*").permitAll()
                         .requestMatchers(
                                 // 管理后台登录
                                 "/api/v1/admin/auth/login",
@@ -54,9 +57,6 @@ public class SecurityConfig {
                                 "/api/v1/mp/product-categories",
                                 // 小程序优惠券展示接口公开，领取动作仍需登录
                                 "/api/v1/mp/coupons",
-                                // 小程序活动公开接口
-                                "/api/v1/mp/activities",
-                                "/api/v1/mp/activities/**",
                                 // 小程序页面 DSL 公开接口
                                 "/api/v1/mp/pages",
                                 "/api/v1/mp/pages/**",

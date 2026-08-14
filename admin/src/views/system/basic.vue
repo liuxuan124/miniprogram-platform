@@ -64,6 +64,10 @@
 
                 <el-form-item label="Logo图片">
                   <div class="logo-uploader">
+                    <div class="logo-preview-box" :class="{ 'is-empty': !logoPreviewUrl }">
+                      <img v-if="logoPreviewUrl" :src="logoPreviewUrl" alt="Logo预览" />
+                      <span v-else class="logo-preview-placeholder">预览</span>
+                    </div>
                     <el-input v-model="miniProgramForm.logoUrl" placeholder="Logo URL或点击上传" clearable class="logo-input" />
                     <div class="upload-btns">
                       <el-upload :show-file-list="false" :before-upload="beforeImageUpload" :http-request="handleLogoUpload" accept="image/*">
@@ -290,35 +294,73 @@
             </div>
 
             <!-- 运费模板列表 -->
-            <div class="config-section section-spacing">
+            <div class="config-section section-spacing freight-template-section">
               <div class="section-header">
                 <h3 class="section-title">运费模板管理</h3>
-                <el-button type="primary" plain size="small" icon="Plus">新建模板</el-button>
+                <span class="section-desc">按配送区域设置首件/续件或首重/续重运费，支持指定条件包邮</span>
               </div>
 
-              <el-table :data="freightTemplates" border stripe class="data-table">
-                <el-table-column prop="name" label="模板名称" min-width="180" />
-                <el-table-column prop="type" label="类型" width="120" align="center">
-                  <template #default="{ row }">
-                    <el-tag :type="row.type === 'default' ? '' : (row.type === 'free' ? 'success' : 'warning')" size="small">
-                      {{ row.type === 'default' ? '默认' : (row.type === 'free' ? '包邮' : '按重') }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="status" label="状态" width="100" align="center">
-                  <template #default="{ row }">
-                    <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small" effect="plain">
-                      {{ row.status === 'active' ? '使用中' : '已停用' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="160" align="center">
-                  <template #default>
-                    <el-button link type="primary" size="small">编辑</el-button>
-                    <el-button link type="danger" size="small">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+              <div class="toolbar">
+                <span class="toolbar-meta">共 {{ freightTemplates.length }} 个模板</span>
+                <div class="toolbar-spacer" />
+                <el-button type="primary" :icon="Plus" @click="openFreightDialog()">新建模板</el-button>
+              </div>
+
+              <div v-if="!freightTemplates.length" class="table-panel empty-panel">
+                暂无运费模板，请点击「新建模板」
+              </div>
+              <div v-else class="table-panel">
+                <el-table :data="freightTemplates" stripe style="width: 100%">
+                  <el-table-column label="模板名称" min-width="168" show-overflow-tooltip>
+                    <template #default="{ row }">
+                      <div class="freight-name-cell">
+                        <span class="freight-name">{{ row.name }}</span>
+                        <span v-if="row.remark" class="freight-remark">{{ row.remark }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="计费方式" width="100" align="center">
+                    <template #default="{ row }">
+                      <el-tag
+                        :type="row.billingMethod === 'free' ? 'success' : row.billingMethod === 'weight' ? 'warning' : 'info'"
+                        size="small"
+                        effect="plain"
+                      >
+                        {{ billingMethodLabel(row.billingMethod) }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="配送区域" min-width="180" show-overflow-tooltip>
+                    <template #default="{ row }">
+                      {{ regionRulesSummary(row.regionRules) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="条件包邮" width="120" align="center">
+                    <template #default="{ row }">
+                      <span class="freight-free-summary">{{ freeRuleSummary(row.freeRule) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="默认" width="72" align="center">
+                    <template #default="{ row }">
+                      <el-tag v-if="row.isDefault" type="primary" size="small" effect="plain">默认</el-tag>
+                      <span v-else class="text-muted">-</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="状态" width="92" align="center">
+                    <template #default="{ row }">
+                      <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small" effect="plain">
+                        {{ row.status === 'active' ? '使用中' : '已停用' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" min-width="140">
+                    <template #default="{ row }">
+                      <el-button link type="primary" size="small" @click="openFreightDialog(row)">编辑</el-button>
+                      <el-button link type="danger" size="small" @click="handleDeleteFreightTemplate(row)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
             </div>
 
             <div class="action-bar">
@@ -334,15 +376,20 @@
         <el-tab-pane label="权限角色" name="roles">
           <div class="tab-content">
 
-            <div class="config-section">
+            <div class="config-section role-section">
               <div class="section-header">
                 <h3 class="section-title">角色权限矩阵</h3>
-                <span class="section-desc">定义不同角色的功能访问范围</span>
-                <el-button type="primary" plain size="small" icon="Plus" @click="handleAddRole">新建角色</el-button>
+                <span class="section-desc">定义不同角色的功能访问范围（保存全部时一并写入配置）</span>
+              </div>
+
+              <div class="toolbar">
+                <span class="toolbar-meta">共 {{ roleList.length }} 个角色</span>
+                <div class="toolbar-spacer" />
+                <el-button type="primary" :icon="Plus" @click="openRoleDialog()">新建角色</el-button>
               </div>
 
               <div class="role-matrix">
-                <div v-for="role in roleList" :key="role.name" class="role-card-enterprise">
+                <div v-for="role in roleList" :key="role.id" class="role-card-enterprise">
                   <div class="role-main">
                     <div class="role-avatar">{{ role.icon }}</div>
                     <div class="role-detail">
@@ -357,8 +404,16 @@
                     <el-tag v-for="perm in role.permissions" :key="perm" size="small" effect="plain" round>{{ perm }}</el-tag>
                   </div>
                   <div class="role-actions">
-                    <el-button link type="primary" size="small">编辑权限</el-button>
-                    <el-button link type="danger" size="small">删除角色</el-button>
+                    <el-button link type="primary" size="small" @click="openRoleDialog(role)">编辑权限</el-button>
+                    <el-button
+                      link
+                      type="danger"
+                      size="small"
+                      :disabled="role.builtIn"
+                      @click="handleDeleteRole(role)"
+                    >
+                      删除角色
+                    </el-button>
                   </div>
                 </div>
               </div>
@@ -419,14 +474,72 @@
       </el-tabs>
     </main>
 
+    <FreightTemplateEditorDialog
+      v-model:visible="freightDialogVisible"
+      :template="freightEditingTemplate"
+      @save="handleFreightSave"
+    />
+
+    <el-dialog
+      v-model="roleDialogVisible"
+      :title="roleEditingId ? '编辑角色' : '新建角色'"
+      width="560px"
+      append-to-body
+      :close-on-click-modal="false"
+      destroy-on-close
+      @closed="resetRoleForm"
+    >
+      <el-form ref="roleFormRef" :model="roleForm" :rules="roleFormRules" label-width="88px">
+        <el-form-item label="角色图标">
+          <div class="role-icon-field">
+            <el-popover v-model:visible="roleIconPopoverVisible" placement="bottom-start" :width="288" trigger="click">
+              <template #reference>
+                <button type="button" class="role-icon-trigger" title="点击从图标库选择">
+                  {{ roleForm.icon || '👤' }}
+                </button>
+              </template>
+              <div class="role-icon-library">
+                <button
+                  v-for="emoji in ROLE_ICON_LIBRARY"
+                  :key="emoji"
+                  type="button"
+                  class="role-icon-option"
+                  :class="{ active: roleForm.icon === emoji }"
+                  @click="selectRoleIcon(emoji)"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
+            </el-popover>
+            <span class="role-icon-hint">点击左侧图标打开库，选中即可</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="角色名称" prop="name">
+          <el-input v-model="roleForm.name" maxlength="20" show-word-limit placeholder="如：内容运营" />
+        </el-form-item>
+        <el-form-item label="角色说明">
+          <el-input v-model="roleForm.desc" type="textarea" :rows="2" maxlength="80" show-word-limit placeholder="简要描述职责" />
+        </el-form-item>
+        <el-form-item label="权限范围" prop="permissions">
+          <el-checkbox-group v-model="roleForm.permissions" class="role-perm-checkboxes">
+            <el-checkbox v-for="perm in PERMISSION_OPTIONS" :key="perm" :label="perm">{{ perm }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="roleDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitRole">保存</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
-import { Refresh, CircleCheck, ShoppingCart, Document, Promotion } from '@element-plus/icons-vue'
+import { Refresh, CircleCheck, ShoppingCart, Document, Promotion, Plus } from '@element-plus/icons-vue'
 import {
   getConfigsSilent,
   saveUploadKey,
@@ -434,6 +547,7 @@ import {
   updateConfigs,
   uploadFile,
   uploadWxPayPrivateKey,
+  normalizeUploadUrl,
 } from '@/api/system'
 import {
   applyConfigListToForm,
@@ -443,6 +557,14 @@ import {
   toConfigUpdateItems,
   type RawConfigItem,
 } from '@/utils/system-config'
+import FreightTemplateEditorDialog from './components/FreightTemplateEditorDialog.vue'
+import {
+  billingMethodLabel,
+  freeRuleSummary,
+  normalizeFreightTemplate,
+  regionRulesSummary,
+  type FreightTemplate,
+} from '@/types/freight'
 
 const loading = ref(false)
 const savingAll = ref(false)
@@ -521,18 +643,39 @@ interface NotificationItem {
 }
 
 interface RoleItem {
+  id: string
   icon: string
   name: string
   desc: string
   tag?: string
+  builtIn?: boolean
   permissions: string[]
 }
 
-interface FreightTemplate {
-  name: string
-  type: 'default' | 'free' | 'weight'
-  status: 'active' | 'inactive'
-}
+const PERMISSION_OPTIONS = [
+  '全部模块',
+  '系统设置',
+  '用户管理',
+  '日志查看',
+  '内容管理',
+  '活动管理',
+  '表单查看',
+  '素材库',
+  '商品管理',
+  '订单管理',
+  '营销工具',
+  '会员查看',
+  '财务管理',
+  '智能 Agent',
+]
+
+const ROLE_ICON_LIBRARY = [
+  '👤', '👑', '🛡️', '⭐', '🎯', '💼', '📝', '🛍️',
+  '📦', '💰', '📊', '🎨', '🎬', '📚', '🎓', '🏥',
+  '🤖', '💬', '📣', '🎟️', '📅', '📋', '🖼️', '🎵',
+  '🏠', '🚗', '✈️', '🌐', '🔧', '⚙️', '🔑', '🧩',
+  '✅', '❤️', '🔥', '💎', '🎁', '👥', '🧑‍💻', '👩‍💼',
+]
 
 // ==================== 响应式数据 ====================
 
@@ -544,6 +687,15 @@ const miniProgramForm = reactive<MiniProgramForm>({
   originalId: '',
   logoUrl: '',
   shareGuide: '欢迎体验我们的品牌小程序',
+})
+
+const logoPreviewUrl = computed(() => {
+  const raw = miniProgramForm.logoUrl?.trim()
+  if (!raw) return ''
+  const normalized = normalizeUploadUrl(raw)
+  if (/^(https?:\/\/|data:)/i.test(normalized)) return normalized
+  if (normalized.startsWith('/')) return `${window.location.origin}${normalized}`
+  return normalized
 })
 
 const paymentForm = reactive<PaymentForm>({
@@ -596,10 +748,53 @@ const coreModules = allPlugins
 
 // 运费模板数据
 const freightTemplates = ref<FreightTemplate[]>([
-  { name: '全国包邮模板', type: 'default', status: 'active' },
-  { name: '数字商品免运费', type: 'free', status: 'active' },
-  { name: '偏远地区加价', type: 'weight', status: 'active' },
+  normalizeFreightTemplate({
+    id: 'ft_default',
+    name: '全国包邮模板',
+    type: 'free',
+    billingMethod: 'free',
+    status: 'active',
+    isDefault: true,
+  }),
+  normalizeFreightTemplate({
+    id: 'ft_free',
+    name: '数字商品免运费',
+    type: 'free',
+    billingMethod: 'free',
+    status: 'active',
+  }),
+  normalizeFreightTemplate({
+    id: 'ft_weight',
+    name: '偏远地区加价',
+    type: 'weight',
+    billingMethod: 'weight',
+    status: 'active',
+    regionRules: [
+      {
+        id: 'rr_national',
+        regionLabel: '默认地区',
+        regions: ['全国'],
+        firstUnit: 1,
+        firstFee: 8,
+        extraUnit: 1,
+        extraFee: 3,
+      },
+      {
+        id: 'rr_remote',
+        regionLabel: '偏远地区',
+        regions: ['新疆维吾尔自治区', '西藏自治区', '青海省', '内蒙古自治区', '甘肃省', '宁夏回族自治区'],
+        firstUnit: 1,
+        firstFee: 18,
+        extraUnit: 1,
+        extraFee: 8,
+      },
+    ],
+    freeRule: { enabled: true, type: 'amount', threshold: 199 },
+  }),
 ])
+
+const freightDialogVisible = ref(false)
+const freightEditingTemplate = ref<FreightTemplate | null>(null)
 
 const notificationList = reactive<NotificationItem[]>([
   { scene: '📦 订单发货通知', templateId: 'OPENTM407913429', trigger: '填写运单后自动触发' },
@@ -611,25 +806,44 @@ const notificationList = reactive<NotificationItem[]>([
 
 const roleList = reactive<RoleItem[]>([
   {
+    id: 'role_super_admin',
     icon: '👑',
     name: '超级管理员',
     desc: '拥有全部功能权限，可管理系统配置',
     tag: '系统内置',
+    builtIn: true,
     permissions: ['全部模块', '系统设置', '用户管理', '日志查看'],
   },
   {
+    id: 'role_content',
     icon: '📝',
     name: '内容运营',
     desc: '负责内容发布、活动运营、表单管理',
     permissions: ['内容管理', '活动管理', '表单查看', '素材库'],
   },
   {
+    id: 'role_business',
     icon: '🛍️',
     name: '商务运营',
     desc: '负责商品上架、订单处理、营销活动',
     permissions: ['商品管理', '订单管理', '营销工具', '会员查看'],
   },
 ])
+
+const roleDialogVisible = ref(false)
+const roleIconPopoverVisible = ref(false)
+const roleEditingId = ref<string | null>(null)
+const roleFormRef = ref<FormInstance>()
+const roleForm = reactive({
+  icon: '👤',
+  name: '',
+  desc: '',
+  permissions: [] as string[],
+})
+const roleFormRules: FormRules = {
+  name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
+  permissions: [{ type: 'array', required: true, min: 1, message: '请至少选择一项权限', trigger: 'change' }],
+}
 
 // ==================== 验证规则 ====================
 
@@ -707,6 +921,42 @@ function applyNotificationConfigs(configs: RawConfigItem[]) {
   })
 }
 
+function applyRoleConfigs(configs: RawConfigItem[]) {
+  configs.forEach((item) => {
+    const { key, value } = readConfigEntry(item)
+    if (key !== 'roleMatrix' || !value) return
+    try {
+      const list = JSON.parse(value) as RoleItem[]
+      if (!Array.isArray(list) || !list.length) return
+      roleList.splice(0, roleList.length, ...list.map((role, index) => ({
+        id: role.id || `role_${index}`,
+        icon: role.icon || '👤',
+        name: role.name,
+        desc: role.desc || '',
+        tag: role.tag,
+        builtIn: !!role.builtIn,
+        permissions: Array.isArray(role.permissions) ? [...role.permissions] : [],
+      })))
+    } catch {
+      // ignore invalid json
+    }
+  })
+}
+
+function applyFreightConfigs(configs: RawConfigItem[]) {
+  configs.forEach((item) => {
+    const { key, value } = readConfigEntry(item)
+    if (key !== 'freightTemplates' || !value) return
+    try {
+      const list = JSON.parse(value) as FreightTemplate[]
+      if (!Array.isArray(list) || !list.length) return
+      freightTemplates.value = list.map((entry, index) => normalizeFreightTemplate(entry, index))
+    } catch {
+      // ignore invalid json
+    }
+  })
+}
+
 function applyConfigs(configs: RawConfigItem[]) {
   applyConfigListToForm(configs, [
     miniProgramForm as unknown as Record<string, unknown>,
@@ -716,6 +966,15 @@ function applyConfigs(configs: RawConfigItem[]) {
   ])
   applyPluginConfigs(configs)
   applyNotificationConfigs(configs)
+  applyFreightConfigs(configs)
+  applyRoleConfigs(configs)
+}
+
+function buildLogisticsPayload(): Record<string, unknown> {
+  return {
+    ...(logisticsForm as unknown as Record<string, unknown>),
+    freightTemplates: freightTemplates.value,
+  }
 }
 
 async function fetchConfig() {
@@ -769,8 +1028,9 @@ async function handleSaveAll() {
       saveGroup('legal', '法律协议与客服', legalForm as unknown as Record<string, unknown>),
       saveGroup('wechat', '微信支付配置', paymentForm as unknown as Record<string, unknown>),
       saveGroup('basic', '插件开关', { plugins: pluginModules.value }),
-      saveGroup('storage', '物流配置', logisticsForm),
+      saveGroup('storage', '物流配置', buildLogisticsPayload()),
       saveGroup('basic', '通知配置', { notifications: notificationList }),
+      saveGroup('basic', '角色矩阵', { roleMatrix: roleList }),
     ])
 
     markMiniProgramSaved()
@@ -878,7 +1138,7 @@ function handleSavePlugins() {
 
 function handleSaveLogistics() {
   logisticsSaving.value = true
-  saveGroup('storage', '物流配置', logisticsForm).then(() => {
+  saveGroup('storage', '物流配置', buildLogisticsPayload()).then(() => {
     logisticsSaved.value = true
     ElMessage.success('物流配置已保存')
   }).catch((e) => {
@@ -951,8 +1211,76 @@ function handlePickAsset() {
   ElMessage.info('请从素材库选择Logo')
 }
 
-function handleAddRole() {
-  ElMessage.info('新建角色')
+function resetRoleForm() {
+  roleEditingId.value = null
+  roleIconPopoverVisible.value = false
+  roleForm.icon = '👤'
+  roleForm.name = ''
+  roleForm.desc = ''
+  roleForm.permissions = []
+}
+
+function selectRoleIcon(emoji: string) {
+  roleForm.icon = emoji
+  roleIconPopoverVisible.value = false
+}
+
+function openRoleDialog(role?: RoleItem) {
+  if (role) {
+    roleEditingId.value = role.id
+    roleForm.icon = role.icon
+    roleForm.name = role.name
+    roleForm.desc = role.desc
+    roleForm.permissions = [...role.permissions]
+  } else {
+    resetRoleForm()
+  }
+  roleDialogVisible.value = true
+}
+
+async function submitRole() {
+  const valid = await roleFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  const payload: RoleItem = {
+    id: roleEditingId.value || `role_${Date.now()}`,
+    icon: roleForm.icon.trim() || '👤',
+    name: roleForm.name.trim(),
+    desc: roleForm.desc.trim(),
+    permissions: [...roleForm.permissions],
+    builtIn: roleEditingId.value
+      ? roleList.find((item) => item.id === roleEditingId.value)?.builtIn
+      : false,
+    tag: roleEditingId.value
+      ? roleList.find((item) => item.id === roleEditingId.value)?.tag
+      : undefined,
+  }
+
+  const isEdit = !!roleEditingId.value
+  const index = roleList.findIndex((item) => item.id === payload.id)
+  if (index >= 0) roleList[index] = payload
+  else roleList.push(payload)
+
+  roleDialogVisible.value = false
+  allSaved.value = false
+  ElMessage.success(isEdit ? '角色已更新' : '角色已创建')
+}
+
+function handleDeleteRole(role: RoleItem) {
+  if (role.builtIn) {
+    ElMessage.warning('系统内置角色不可删除')
+    return
+  }
+  ElMessageBox.confirm(`确定删除角色「${role.name}」？`, '删除确认', {
+    type: 'warning',
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+  }).then(() => {
+    const index = roleList.findIndex((item) => item.id === role.id)
+    if (index >= 0) roleList.splice(index, 1)
+    allSaved.value = false
+    ElMessage.success('已删除')
+  }).catch(() => {})
 }
 
 function handleGetTemplateId() {
@@ -967,8 +1295,41 @@ function handleTestNotification(row: NotificationItem) {
   ElMessage.success(`已发送测试「${row.scene}」`)
 }
 
-// 其他占位方法
-function handleEditFreightTemplate() { ElMessage.info('编辑运费模板') }
+// 运费模板
+function openFreightDialog(row?: FreightTemplate) {
+  freightEditingTemplate.value = row ? { ...row } : null
+  freightDialogVisible.value = true
+}
+
+function handleFreightSave(template: FreightTemplate) {
+  const existed = freightTemplates.value.some((item) => item.id === template.id)
+  if (template.isDefault) {
+    freightTemplates.value.forEach((item) => {
+      if (item.id !== template.id) item.isDefault = false
+    })
+  }
+  const index = freightTemplates.value.findIndex((item) => item.id === template.id)
+  if (index >= 0) freightTemplates.value[index] = template
+  else freightTemplates.value.push(template)
+
+  logisticsSaved.value = false
+  allSaved.value = false
+  ElMessage.success(existed ? '模板已更新' : '模板已创建')
+}
+
+function handleDeleteFreightTemplate(row: FreightTemplate) {
+  ElMessageBox.confirm(`确定删除运费模板「${row.name}」？`, '删除确认', {
+    type: 'warning',
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+  }).then(() => {
+    freightTemplates.value = freightTemplates.value.filter((item) => item.id !== row.id)
+    logisticsSaved.value = false
+    allSaved.value = false
+    ElMessage.success('已删除')
+  }).catch(() => {})
+}
+
 function handleConfigNoLogistics() { ElMessage.info('数字商品无需物流') }
 
 // Watchers
@@ -976,6 +1337,8 @@ function handleConfigNoLogistics() { ElMessage.info('数字商品无需物流') 
 // 支付开关状态变更由用户手动点击"保存支付配置"按钮提交
 watch(paymentForm, () => { if (paySaved.value) { paySaved.value = false; allSaved.value = false } }, { deep: true })
 watch(logisticsForm, () => { if (logisticsSaved.value) { logisticsSaved.value = false; allSaved.value = false } }, { deep: true })
+watch(freightTemplates, () => { if (logisticsSaved.value) { logisticsSaved.value = false; allSaved.value = false } }, { deep: true })
+watch(roleList, () => { allSaved.value = false }, { deep: true })
 watch(notificationList, () => { if (notificationSaved.value) { notificationSaved.value = false; allSaved.value = false } }, { deep: true })
 
 onMounted(() => {
@@ -1190,6 +1553,40 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
+  width: 100%;
+
+  .logo-preview-box {
+    width: 56px;
+    height: 56px;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
+    &.is-empty {
+      border-style: dashed;
+      background: #fafafa;
+    }
+  }
+
+  .logo-preview-placeholder {
+    font-size: 11px;
+    color: #9ca3af;
+    user-select: none;
+  }
 
   .logo-input {
     flex: 1;
@@ -1198,6 +1595,7 @@ onMounted(() => {
   .upload-btns {
     display: flex;
     gap: 8px;
+    flex-shrink: 0;
   }
 }
 
@@ -1384,6 +1782,72 @@ onMounted(() => {
   }
 }
 
+.text-muted {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.freight-free-summary {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.freight-template-section {
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-meta {
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .table-panel {
+    background: #fff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .empty-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    color: var(--text-muted, #9ca3af);
+    font-size: 14px;
+  }
+
+  .freight-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .freight-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .freight-remark {
+    font-size: 11px;
+    color: #9ca3af;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .scene-cell {
   display: flex;
   align-items: center;
@@ -1476,6 +1940,93 @@ onMounted(() => {
   gap: 8px;
   padding-top: 12px;
   border-top: 1px solid #f3f4f6;
+  position: relative;
+  z-index: 1;
+}
+
+.role-section {
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .toolbar-meta {
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+}
+
+.role-perm-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  width: 100%;
+}
+
+.role-icon-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.role-icon-trigger {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: #fff;
+  border: 1px solid #dce3ef;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #2469f0;
+    box-shadow: 0 0 0 2px rgba(36, 105, 240, 0.12);
+  }
+}
+
+.role-icon-hint {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.role-icon-library {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.role-icon-option {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: #f0f6ff;
+  }
+
+  &.active {
+    border-color: #2469f0;
+    background: #ecf3ff;
+  }
 }
 
 /* ========== 通用按钮增强 ========== */

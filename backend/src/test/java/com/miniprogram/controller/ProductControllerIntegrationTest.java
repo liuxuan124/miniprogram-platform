@@ -1,8 +1,8 @@
 package com.miniprogram.controller;
 
 import com.miniprogram.common.PageResult;
+import com.miniprogram.dto.ProductDetailVO;
 import com.miniprogram.dto.ProductQueryDTO;
-import com.miniprogram.entity.Product;
 import com.miniprogram.service.ProductCategoryService;
 import com.miniprogram.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class ProductControllerIntegrationTest {
     @Test
     @DisplayName("商品列表接口 - 返回分页数据")
     void should_returnPageData_when_listProducts() throws Exception {
-        PageResult<Product> pageResult = new PageResult<>(Collections.emptyList(), 0L, 1L, 10L);
+        PageResult<ProductDetailVO> pageResult = new PageResult<>(Collections.emptyList(), 0L, 1L, 10L);
         when(productService.listProducts(any(ProductQueryDTO.class))).thenReturn(pageResult);
 
         productMvc.perform(get("/api/v1/admin/products")

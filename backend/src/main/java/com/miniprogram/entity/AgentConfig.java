@@ -1,5 +1,6 @@
 package com.miniprogram.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,9 +10,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * AI Agent 配置实体
- * 对应 V7 迁移 mp_ai_conversation 相关表
- * 独立配置表用于管理模型/Prompt/知识库等
+ * AI Agent 配置实体（mp_agent_config）
+ * 兼容 V25 列名：model_name / api_key_encrypted
  */
 @Data
 @TableName("mp_agent_config")
@@ -27,15 +27,17 @@ public class AgentConfig implements Serializable {
     private String name;
 
     @Schema(description = "模型名称")
+    @TableField("model_name")
     private String model;
 
-    @Schema(description = "模型提供商: openai/qwen/anthropic/deepseek/minimax/mimo/doubao/custom")
+    @Schema(description = "模型提供商")
     private String modelProvider;
 
     @Schema(description = "API Base URL")
     private String apiBaseUrl;
 
     @Schema(description = "API密钥")
+    @TableField("api_key_encrypted")
     private String apiKey;
 
     @Schema(description = "系统提示词")
@@ -47,8 +49,23 @@ public class AgentConfig implements Serializable {
     @Schema(description = "最大Token数")
     private Integer maxTokens;
 
-    @Schema(description = "推理强度: none/low/medium/high/xhigh")
+    @Schema(description = "推理强度")
     private String reasoningEffort;
+
+    @Schema(description = "欢迎语")
+    private String welcomeMessage;
+
+    @Schema(description = "无法回答时策略")
+    private String fallbackStrategy;
+
+    @Schema(description = "是否开启推荐")
+    private Integer enableRecommend;
+
+    @Schema(description = "是否开启主动引导")
+    private Integer enableProactive;
+
+    @Schema(description = "对话记忆")
+    private String memoryType;
 
     @Schema(description = "状态 0=禁用 1=启用")
     private Integer status;

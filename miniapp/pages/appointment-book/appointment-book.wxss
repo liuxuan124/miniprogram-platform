@@ -37,6 +37,30 @@
 .fee-row.total { border-top: 1rpx solid var(--line); margin-top: 8rpx; padding-top: 20rpx; }
 .fee-row .lg { font-size: 36rpx; }
 .fee-tip { margin-top: 16rpx; font-size: 24rpx; color: var(--ink-300); }
+
+.sms-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+.sms-input {
+  flex: 1;
+}
+.sms-btn {
+  flex-shrink: 0;
+  padding: 0 24rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 12rpx;
+  background: var(--brand, #2f5bff);
+  color: #fff;
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+.sms-btn.disabled {
+  background: #c5c9d4;
+}
+
 .nav-btns { display: flex; gap: 16rpx; width: 100%; }
 .btn-o {
   flex: 0 0 160rpx; height: 88rpx; border-radius: 999rpx;

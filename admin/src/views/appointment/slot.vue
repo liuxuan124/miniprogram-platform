@@ -1,7 +1,19 @@
 <template>
   <div class="appointment-slot-container">
+    <PageHeader
+      kicker="活动与预约 / 预约时段"
+      title="预约时段"
+      description="按服务与日期管理可约时段；也可在看板里快速批量生成。"
+    >
+      <template #actions>
+        <el-button @click="$router.push('/appointment/list')">返回看板</el-button>
+        <el-button icon="Calendar" @click="handleBatchCreate">批量生成</el-button>
+        <el-button type="primary" icon="Plus" @click="handleCreate">添加时段</el-button>
+      </template>
+    </PageHeader>
+
     <!-- 搜索筛选区 -->
-    <el-card shadow="hover" class="search-card">
+    <el-card shadow="never" class="search-card">
       <el-form :model="searchForm" inline>
         <el-form-item label="预约服务">
           <el-select
@@ -64,8 +76,7 @@
         <div class="card-header">
           <span>预约时段列表</span>
           <div class="header-actions">
-            <el-button type="primary" icon="Plus" @click="handleCreate">添加时段</el-button>
-            <el-button icon="Calendar" @click="handleBatchCreate">批量生成</el-button>
+            <span class="muted-tip">使用顶部按钮添加或批量生成</span>
           </div>
         </div>
       </template>
@@ -294,6 +305,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
 import {
   getAppointmentSlotList,
   createAppointmentSlot,
@@ -369,10 +381,13 @@ function normalizeService(raw: any): AppointmentService {
 }
 
 function normalizeSlot(raw: any): AppointmentSlot {
+  const serviceId = Number(raw?.service_id ?? raw?.serviceId ?? 0)
+  const fromApi = raw?.service_name || raw?.serviceName || ''
+  const fromOptions = serviceOptions.value.find((s) => s.id === serviceId)?.name || ''
   return {
     id: Number(raw?.id || 0),
-    service_id: Number(raw?.service_id ?? raw?.serviceId ?? 0),
-    service_name: raw?.service_name || raw?.serviceName || '',
+    service_id: serviceId,
+    service_name: fromApi || fromOptions || '',
     date: String(raw?.date || ''),
     start_time: raw?.start_time || raw?.startTime || '',
     end_time: raw?.end_time || raw?.endTime || '',

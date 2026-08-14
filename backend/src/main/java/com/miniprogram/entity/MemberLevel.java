@@ -29,6 +29,11 @@ public class MemberLevel implements Serializable {
 
     private BigDecimal discountRate;
 
+    private BigDecimal pointsRate;
+
+    private Long birthdayCouponId;
+
+    /** 固定权益码列表，如 member_discount / points_boost / exclusive_coupon / birthday_gift */
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> rights;
 

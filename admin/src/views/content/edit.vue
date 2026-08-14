@@ -5,7 +5,8 @@
         <div class="card-header">
           <div class="header-title">{{ isEdit ? '编辑内容与 SEO 配置' : '发布新内容' }}</div>
           <div class="header-actions">
-            <el-button @click="goBack">取消</el-button>
+            <el-button @click="goBack()">取消</el-button>
+            <el-button @click="openPreview">预览</el-button>
             <el-button type="primary" :loading="submitLoading" @click="handleSubmit">提交执行</el-button>
           </div>
         </div>
@@ -44,32 +45,12 @@
                 type="datetime"
                 placeholder="选择定时发布时间"
               />
+              <div class="field-hint">当前将先存为草稿；真正到点自动发布需服务端定时任务支持。</div>
             </el-form-item>
 
-            <div class="section-label">正文编辑 (支持表格与代码块)</div>
-            <div class="editor-shell">
-              <div class="editor-toolbar">
-                <button type="button" class="editor-btn" @click="execCommand('bold')">B</button>
-                <button type="button" class="editor-btn" @click="execCommand('italic')">I</button>
-                <button type="button" class="editor-btn" @click="execCommand('underline')">U</button>
-                <button type="button" class="editor-btn" @click="execCommand('formatBlock', '<h1>')">H1</button>
-                <button type="button" class="editor-btn" @click="execCommand('formatBlock', '<h2>')">H2</button>
-                <button type="button" class="editor-btn" @click="insertQuote">引用</button>
-                <button type="button" class="editor-btn" @click="openLinkDialog">链接</button>
-                <button type="button" class="editor-btn" @click="insertSimpleTable">表格</button>
-                <button type="button" class="editor-btn" @click="insertCodeBlock">代码块</button>
-                <button type="button" class="editor-btn" @click="openImageDialog">图片</button>
-                <button type="button" class="editor-btn" @click="insertVideoStub">视频</button>
-                <button type="button" class="editor-btn" @click="execCommand('insertUnorderedList')">列表</button>
-              </div>
-              <div
-                ref="editorRef"
-                class="editor-content"
-                contenteditable="true"
-                @input="syncEditorToForm"
-                @blur="syncEditorToForm"
-              />
-            </div>
+            <div class="section-label">正文编辑（所见即所得）</div>
+            <PageRichTextEditor v-model="formData.content" class="rich-editor" />
+            <div class="editor-tip">编辑区显示效果即为发布后小程序/页面展示效果。</div>
           </el-form>
         </el-tab-pane>
 
@@ -97,40 +78,50 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="linkDialogVisible" title="插入链接" width="420px" destroy-on-close>
-      <el-form label-width="70px">
-        <el-form-item label="文字">
-          <el-input v-model="linkText" placeholder="显示文字" />
-        </el-form-item>
-        <el-form-item label="链接地址">
-          <el-input v-model="linkUrl" placeholder="https://" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="linkDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmInsertLink">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="imageDialogVisible" title="插入图片" width="420px" destroy-on-close>
-      <el-form label-width="70px">
-        <el-form-item label="图片地址">
-          <el-input v-model="imageUrl" placeholder="https://..." />
-        </el-form-item>
-        <el-form-item label="说明">
-          <el-input v-model="imageAlt" placeholder="可选" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="imageDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmInsertImage">确定</el-button>
-      </template>
+    <el-dialog
+      v-model="previewVisible"
+      title="发布预览"
+      width="420px"
+      append-to-body
+      destroy-on-close
+      class="content-preview-dialog"
+      align-center
+    >
+      <div class="preview-shell">
+        <div class="phone-frame">
+          <div class="phone-notch" />
+          <div class="phone-screen">
+            <div class="pv-cover" :style="previewCoverStyle">
+              <img v-if="previewCover" :src="previewCover" alt="" class="pv-cover-img" />
+              <span v-else class="pv-cover-glyph">文</span>
+            </div>
+            <div class="pv-body">
+              <div class="pv-chips">
+                <span class="pv-fmt">长文</span>
+                <span v-if="previewCategoryLabel" class="pv-topic">{{ previewCategoryLabel }}</span>
+              </div>
+              <h1 class="pv-title">{{ formData.title.trim() || '未填写标题' }}</h1>
+              <div class="pv-meta">
+                <div class="pv-av">{{ previewAuthorInitial }}</div>
+                <div class="pv-meta-txt">
+                  <div class="pv-nm">{{ formData.author.trim() || '作者' }}</div>
+                  <div class="pv-dt">{{ previewDateLabel }} · 预计阅读</div>
+                </div>
+                <span class="pv-follow">+ 关注</span>
+              </div>
+              <div v-if="getPlainTextFromHtml(formData.content)" class="pv-content" v-html="formData.content" />
+              <div v-else class="pv-empty">暂无正文，请先在编辑区填写内容</div>
+            </div>
+          </div>
+        </div>
+        <p class="preview-hint">模拟小程序文章详情页，样式供参考，实际以端上为准。</p>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -139,9 +130,11 @@ import {
   getCategoryList,
   getContentDetail,
   publishContent,
+  unpublishContent,
   updateContent,
 } from '@/api/content'
 import { ContentStatus } from '@/types/content'
+import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
 
 interface FlatCategoryOption {
   id: number
@@ -154,9 +147,9 @@ const router = useRouter()
 const activeTab = ref('base')
 const pageLoading = ref(false)
 const submitLoading = ref(false)
+const previewVisible = ref(false)
 const isEdit = computed(() => Boolean(route.query.id))
 const baseFormRef = ref<FormInstance>()
-const editorRef = ref<HTMLDivElement>()
 
 const publishMode = ref<'publish' | 'schedule' | 'draft'>('publish')
 const scheduleTime = ref('')
@@ -218,13 +211,12 @@ async function loadDetail(id: number) {
     formData.author = data.author || ''
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
     formData.status = normalizeContentStatus(data.status)
+    if (formData.status === ContentStatus.Published) publishMode.value = 'publish'
+    else publishMode.value = 'draft'
 
     seoForm.title = data.seoTitle || data.title || ''
     seoForm.description = data.seoDescription || data.summary || ''
     seoForm.cover = data.shareCover || formData.cover_image || ''
-
-    await nextTick()
-    if (editorRef.value) editorRef.value.innerHTML = formData.content || ''
   } finally {
     pageLoading.value = false
   }
@@ -249,86 +241,44 @@ function goBack(refresh = false) {
   })
 }
 
-function syncEditorToForm() {
-  if (!editorRef.value) return
-  formData.content = editorRef.value.innerHTML
-  if (!formData.summary) {
-    const txt = (editorRef.value.innerText || '').trim().slice(0, 120)
-    formData.summary = txt
-  }
+function getPlainTextFromHtml(html: string) {
+  const div = document.createElement('div')
+  div.innerHTML = html || ''
+  return (div.innerText || '').trim()
 }
 
-function getEditorPlainText() {
-  return (editorRef.value?.innerText || '').trim()
+const previewCover = computed(() => seoForm.cover?.trim() || formData.cover_image?.trim() || '')
+
+const previewCoverStyle = computed(() => {
+  if (previewCover.value) return {}
+  return { background: 'linear-gradient(140deg, #5c7cff, #2f5bff)' }
+})
+
+const previewCategoryLabel = computed(() => {
+  const hit = flatCategoryOptions.value.find((item) => item.id === formData.category_id)
+  return hit?.label?.replace(/^└\s*/, '') || ''
+})
+
+const previewAuthorInitial = computed(() => {
+  const name = formData.author.trim() || '作者'
+  return name.slice(0, 1)
+})
+
+const previewDateLabel = computed(() => {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${m}-${day}`
+})
+
+function openPreview() {
+  previewVisible.value = true
 }
 
-function execCommand(command: string, value?: string) {
-  editorRef.value?.focus()
-  document.execCommand(command, false, value || undefined)
-  syncEditorToForm()
-}
-
-function insertHtml(html: string) {
-  editorRef.value?.focus()
-  document.execCommand('insertHTML', false, html)
-  syncEditorToForm()
-}
-
-function insertQuote() {
-  insertHtml('<blockquote style="border-left:3px solid #1769ff;padding:6px 10px;color:#5c6b82;margin:8px 0;">引用内容</blockquote>')
-}
-
-function insertSimpleTable() {
-  insertHtml('<table border="1" style="border-collapse:collapse;width:100%;"><tr><th>列1</th><th>列2</th></tr><tr><td>内容</td><td>内容</td></tr></table>')
-}
-
-function insertCodeBlock() {
-  insertHtml('<pre style="background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;overflow:auto;"><code>代码块内容</code></pre>')
-}
-
-function insertVideoStub() {
-  insertHtml('<div style="padding:12px;border:1px dashed #93a4c0;border-radius:8px;color:#6b7b93;">[视频占位] 请在发布后替换为真实视频地址</div>')
-}
-
-const linkDialogVisible = ref(false)
-const linkText = ref('')
-const linkUrl = ref('')
-
-function openLinkDialog() {
-  linkText.value = ''
-  linkUrl.value = ''
-  linkDialogVisible.value = true
-}
-
-function confirmInsertLink() {
-  if (!linkUrl.value.trim()) {
-    ElMessage.warning('请输入链接地址')
-    return
-  }
-  const text = linkText.value.trim() || linkUrl.value.trim()
-  insertHtml(`<a href="${linkUrl.value.trim()}" target="_blank">${text}</a>`)
-  linkDialogVisible.value = false
-}
-
-const imageDialogVisible = ref(false)
-const imageUrl = ref('')
-const imageAlt = ref('')
-
-function openImageDialog() {
-  imageUrl.value = ''
-  imageAlt.value = ''
-  imageDialogVisible.value = true
-}
-
-function confirmInsertImage() {
-  if (!imageUrl.value.trim()) {
-    ElMessage.warning('请输入图片地址')
-    return
-  }
-  insertHtml(
-    `<img src="${imageUrl.value.trim()}" alt="${imageAlt.value.trim()}" style="max-width:100%;height:auto;border-radius:8px;" />`
-  )
-  imageDialogVisible.value = false
+function ensureSummary() {
+  if (formData.summary?.trim()) return
+  const text = getPlainTextFromHtml(formData.content).slice(0, 120)
+  if (text) formData.summary = text
 }
 
 async function handleSubmit() {
@@ -340,10 +290,15 @@ async function handleSubmit() {
     return
   }
 
-  syncEditorToForm()
-  if (!getEditorPlainText()) {
+  ensureSummary()
+  if (!getPlainTextFromHtml(formData.content)) {
     ElMessage.warning('请输入正文内容')
     activeTab.value = 'base'
+    return
+  }
+
+  if (publishMode.value === 'schedule' && !scheduleTime.value) {
+    ElMessage.warning('请选择定时发布时间')
     return
   }
 
@@ -352,17 +307,14 @@ async function handleSubmit() {
     const payload = {
       title: formData.title.trim(),
       categoryId: formData.category_id,
-      summary: formData.summary?.trim() || undefined,
+      summary: formData.summary?.trim() || seoForm.description?.trim() || undefined,
       content: formData.content,
       coverImage: seoForm.cover?.trim() || formData.cover_image?.trim() || undefined,
       tags: formData.tag_ids.map(String),
       author: formData.author?.trim() || undefined,
       sortOrder: formData.sort,
-      // 前端保留这几个字段，后端如未支持会忽略
       seoTitle: seoForm.title?.trim() || undefined,
       seoDescription: seoForm.description?.trim() || undefined,
-      publishMode: publishMode.value,
-      scheduleTime: publishMode.value === 'schedule' ? scheduleTime.value : undefined,
     } as any
 
     if (isEdit.value) {
@@ -371,21 +323,28 @@ async function handleSubmit() {
       await updateContent(id, payload)
       if (publishMode.value === 'publish' && !wasPublished) {
         await publishContent(id)
+      } else if ((publishMode.value === 'draft' || publishMode.value === 'schedule') && wasPublished) {
+        await unpublishContent(id)
       }
-      ElMessage.success('内容已更新')
+      ElMessage.success(publishMode.value === 'schedule' ? '已保存为草稿（定时发布需服务端调度支持）' : '内容已更新')
     } else {
       const created = await createContent(payload)
-      if (publishMode.value === 'publish') {
-        const createdId = Number((created as any).data?.id ?? (created as any).id)
-        if (createdId) await publishContent(createdId)
+      const createdId = Number((created as any).data?.id ?? (created as any).id)
+      if (publishMode.value === 'publish' && createdId) {
+        await publishContent(createdId)
       }
-      ElMessage.success('内容已创建')
+      ElMessage.success(
+        publishMode.value === 'schedule'
+          ? '已存为草稿（定时发布需服务端调度支持）'
+          : publishMode.value === 'draft'
+            ? '草稿已保存'
+            : '内容已创建',
+      )
     }
 
-    if (publishMode.value === 'schedule') {
-      ElMessage.info('已记录定时发布时间，后端调度生效请确认服务器任务配置')
-    }
     goBack(true)
+  } catch (err: any) {
+    ElMessage.error(err?.message || '提交失败')
   } finally {
     submitLoading.value = false
   }
@@ -395,12 +354,6 @@ onMounted(async () => {
   await fetchCategories()
   if (isEdit.value) {
     await loadDetail(Number(route.query.id))
-  } else {
-    await nextTick()
-    if (editorRef.value) {
-      editorRef.value.innerHTML = ''
-      formData.content = ''
-    }
   }
 })
 </script>
@@ -420,84 +373,254 @@ onMounted(async () => {
   }
 
   .header-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: #0d1b2e;
+    font-size: 16px;
+    font-weight: 700;
+    color: #172033;
   }
 
   .header-actions {
     display: flex;
-    align-items: center;
     gap: 8px;
   }
 
-  .art-tabs {
-    :deep(.el-tabs__item.is-active) {
-      color: #1769ff;
-      font-weight: 700;
-    }
-  }
-
   .section-label {
-    margin-bottom: 6px;
-    color: #6b7b93;
+    margin: 8px 0 10px;
+    color: #607187;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .rich-editor {
+    width: 100%;
+  }
+
+  .editor-tip {
+    margin-top: 8px;
+    color: #8a94a6;
     font-size: 12px;
-    font-weight: 700;
   }
 
-  .editor-shell {
-    border: 1px solid #d5deea;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  .editor-toolbar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 8px;
-    background: #f8faff;
-    border-bottom: 1px solid #d5deea;
-  }
-
-  .editor-btn {
-    border: 1px solid #d5deea;
-    background: #fff;
-    border-radius: 6px;
-    height: 28px;
-    line-height: 26px;
-    padding: 0 10px;
+  .field-hint {
+    margin-top: 6px;
+    color: #8a94a6;
     font-size: 12px;
-    color: #34445c;
-    cursor: pointer;
-  }
-
-  .editor-btn:hover {
-    border-color: #1769ff;
-    color: #1769ff;
-  }
-
-  .editor-content {
-    min-height: 300px;
-    padding: 12px;
-    outline: none;
-    line-height: 1.8;
-    font-size: 14px;
-  }
-
-  .editor-content:empty::before {
-    content: '在此输入内容...';
-    color: #a8b1c2;
-    pointer-events: none;
+    line-height: 1.4;
   }
 
   .seo-tip {
     background: #eff5ff;
-    color: #1769ff;
-    font-size: 12px;
-    border-radius: 10px;
+    border: 1px solid #d6e4ff;
+    border-radius: 8px;
     padding: 10px 12px;
+    color: #3b5bdb;
+    font-size: 12px;
+    line-height: 1.5;
   }
+}
+
+.preview-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.phone-frame {
+  width: 340px;
+  border-radius: 28px;
+  border: 3px solid #1a1f2e;
+  background: #0f1219;
+  padding: 10px 8px 14px;
+  box-shadow: 0 16px 40px rgba(23, 32, 51, 0.22);
+}
+
+.phone-notch {
+  width: 96px;
+  height: 8px;
+  margin: 0 auto 8px;
+  border-radius: 999px;
+  background: #2a3144;
+}
+
+.phone-screen {
+  height: 620px;
+  overflow: auto;
+  border-radius: 18px;
+  background: #f5f6f9;
+}
+
+.pv-cover {
+  height: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pv-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pv-cover-glyph {
+  font-size: 42px;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+}
+
+.pv-body {
+  margin-top: -18px;
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 18px 16px 28px;
+  min-height: calc(100% - 150px);
+}
+
+.pv-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pv-fmt {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e7f5ea;
+  color: #2f9350;
+}
+
+.pv-topic {
+  font-size: 11px;
+  color: #727a8c;
+  background: #f5f6f9;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.pv-title {
+  margin: 0 0 14px;
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: #0f1219;
+  letter-spacing: -0.02em;
+}
+
+.pv-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #edeff4;
+}
+
+.pv-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #5c7cff, #2f5bff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pv-meta-txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.pv-nm {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f1219;
+}
+
+.pv-dt {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #a5abb9;
+}
+
+.pv-follow {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: #2f5bff;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.pv-content {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #39404f;
+  word-break: break-word;
+
+  :deep(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+
+  :deep(p) {
+    margin: 0 0 12px;
+  }
+
+  :deep(h1),
+  :deep(h2),
+  :deep(h3) {
+    margin: 12px 0 8px;
+    line-height: 1.35;
+    color: #0f1219;
+  }
+
+  :deep(ul),
+  :deep(ol) {
+    padding-left: 1.6em;
+    margin: 0 0 12px;
+    list-style-position: outside;
+  }
+
+  :deep(ul) {
+    list-style-type: disc;
+  }
+
+  :deep(ol) {
+    list-style-type: decimal;
+  }
+
+  :deep(li) {
+    display: list-item;
+    margin: 0.15em 0;
+  }
+
+  :deep(a) {
+    color: #2f5bff;
+  }
+}
+
+.pv-empty {
+  padding: 28px 8px;
+  text-align: center;
+  color: #a5abb9;
+  font-size: 13px;
+}
+
+.preview-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #8a94a6;
+  text-align: center;
 }
 </style>

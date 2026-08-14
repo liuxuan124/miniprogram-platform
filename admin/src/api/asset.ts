@@ -58,8 +58,8 @@ export function batchMoveMaterials(data: BatchOperationParams) {
 // ==================== 素材分组 CRUD ====================
 
 /** 获取素材分组列表 */
-export function getGroupList() {
-  return get<ApiResponse<MaterialGroup[]>>(`${BASE}/groups`)
+export function getGroupList(params?: { current?: number; size?: number }) {
+  return get<ApiResponse<{ records: MaterialGroup[]; total: number }>>(`${BASE}/groups`, params as Record<string, any>)
 }
 
 /** 创建素材分组 */

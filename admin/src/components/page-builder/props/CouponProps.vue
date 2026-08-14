@@ -54,7 +54,7 @@
         :closable="false"
         show-icon
         title="自动展示已发布且在有效期内的优惠券"
-        description="在「营销 → 优惠券」中创建并发布后，首页组件与领券中心会同步展示"
+        description="在「优惠券」中创建并发布后，首页组件与领券中心会同步展示"
       />
     </el-form>
   </div>

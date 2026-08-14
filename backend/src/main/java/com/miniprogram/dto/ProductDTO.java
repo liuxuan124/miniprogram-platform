@@ -25,8 +25,11 @@ public class ProductDTO {
     private Long categoryId;
 
     @Pattern(regexp = "^(physical|digital|service)$", message = "商品类型必须为实物商品、数字商品或服务商品")
-    @Schema(description = "商品类型: physical=实物商品, digital=数字商品, service=服务商品")
-    private String productType = "physical";
+    @Schema(description = "主商品类型（兼容）；若传 productTypes 则以列表为准")
+    private String productType;
+
+    @Schema(description = "商品类型列表，可多选: physical/digital/service")
+    private List<String> productTypes;
 
     @Schema(description = "主图URL")
     private String mainImage;

@@ -84,9 +84,13 @@ public interface FinanceService {
 
     void verifyInvoice(Long id);
 
+    void issueInvoice(Long id);
+
     void cancelInvoice(Long id, String reason);
 
-    Map<String, Object> calculateTax(BigDecimal amount, BigDecimal taxRate, String type);
+    Map<String, Object> calculateTax(BigDecimal amount, BigDecimal taxRate, String type, Boolean includeTax);
+
+    Map<String, Object> getInvoiceTaxSummary();
 
     // ==================== 财务权限 ====================
 

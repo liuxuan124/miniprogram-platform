@@ -35,14 +35,12 @@ public class CouponDTO {
     @Schema(description = "适用分类/商品ID列表")
     private List<Long> scopeIds;
 
-    @Schema(description = "生效时间")
-    @NotNull(message = "生效时间不能为空")
-    @JsonFormat(pattern = "yyyy-MM-dd['T'][' ']HH:mm:ss")
+    @Schema(description = "生效时间（固定有效期必填；领取后有效天数模式可省略，服务端自动填充）")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
 
-    @Schema(description = "失效时间")
-    @NotNull(message = "失效时间不能为空")
-    @JsonFormat(pattern = "yyyy-MM-dd['T'][' ']HH:mm:ss")
+    @Schema(description = "失效时间（固定有效期必填；领取后有效天数模式可省略，服务端自动填充）")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
     @Schema(description = "领取后有效天数（与固定时间段二选一，优先使用validDays）")
@@ -57,4 +55,10 @@ public class CouponDTO {
 
     @Schema(description = "使用说明")
     private String description;
+
+    @Schema(description = "领取范围: all=所有人, members=任意会员, levels=指定等级")
+    private String claimAudience;
+
+    @Schema(description = "可领取会员等级ID列表")
+    private List<Long> claimLevelIds;
 }

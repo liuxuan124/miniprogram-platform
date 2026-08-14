@@ -145,6 +145,18 @@ export function confirmAppointment(id: number) {
 }
 
 /** 取消预约 */
-export function cancelAppointment(id: number) {
-  return put<AppointmentRecord>(`${BASE_URL}/appointments/${id}/cancel`)
+export function cancelAppointment(id: number, cancelReason?: string) {
+  return put<AppointmentRecord>(`${BASE_URL}/appointments/${id}/cancel`, {
+    cancelReason: cancelReason || undefined,
+  } as any)
+}
+
+/** 到店核销（完成） */
+export function completeAppointment(id: number) {
+  return put<AppointmentRecord>(`${BASE_URL}/appointments/${id}/complete`)
+}
+
+/** 标记未到 */
+export function markAppointmentNoShow(id: number) {
+  return put<AppointmentRecord>(`${BASE_URL}/appointments/${id}/no-show`)
 }

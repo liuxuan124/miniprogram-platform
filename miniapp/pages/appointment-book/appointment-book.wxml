@@ -1,4 +1,4 @@
-<!-- pages/appointment-book/appointment-book.wxml — 预约下单页（三步对齐原型） -->
+<!-- pages/appointment-book/appointment-book.wxml — 预约：选时段 → 填信息(短信) → 确认提交 -->
 <view class="appointment-book-page">
   <view class="steps">
     <view class="d {{bookStep>=1?'on':''}}">1</view>
@@ -7,7 +7,7 @@
     <view class="bar {{bookStep>=3?'on':''}}"></view>
     <view class="d {{bookStep>=3?'on':''}}">3</view>
   </view>
-  <view class="steps-lb"><text>选时段</text><text>填信息</text><text>支付</text></view>
+  <view class="steps-lb"><text>选时段</text><text>填信息</text><text>确认</text></view>
 
   <view class="service-section" wx:if="{{serviceInfo}}">
     <image
@@ -17,9 +17,10 @@
     />
     <view class="service-detail">
       <text class="service-name">{{serviceInfo.name}}</text>
-      <text class="service-price" wx:if="{{serviceInfo.price !== undefined}}">
+      <text class="service-price" wx:if="{{serviceInfo.price !== undefined && serviceInfo.price !== null}}">
         <text class="price-symbol">&#165;</text>{{serviceInfo.price}}
       </text>
+      <text class="service-price" wx:else>免费</text>
       <text class="service-duration" wx:if="{{serviceInfo.duration}}">时长: {{serviceInfo.duration}}分钟</text>
     </view>
   </view>
@@ -64,29 +65,37 @@
 
   <block wx:if="{{bookStep===2}}">
     <view class="section">
-      <view class="section-title">③ 咨询信息</view>
+      <view class="section-title">③ 联系信息</view>
       <view class="form-group">
-        <text class="form-label">你的称呼</text>
-        <input class="form-input" placeholder="方便咨询时称呼你" value="{{contactName}}" bindinput="onNameInput" />
+        <text class="form-label">姓名</text>
+        <input class="form-input" placeholder="请输入姓名" value="{{contactName}}" bindinput="onNameInput" />
       </view>
       <view class="form-group">
-        <text class="form-label">联系方式（微信 / 手机号）</text>
-        <input class="form-input" maxlength="32" placeholder="用于发送咨询提醒" value="{{contactPhone}}" bindinput="onPhoneInput" />
+        <text class="form-label">手机号</text>
+        <input class="form-input" type="number" maxlength="11" placeholder="用于接收预约提醒" value="{{contactPhone}}" bindinput="onPhoneInput" />
       </view>
       <view class="form-group">
-        <text class="form-label">当前主要卡点（选填）</text>
-        <textarea class="form-textarea" placeholder="例：欧洲站家居收纳，已选出 3 个款，卡在供应商验厂和 VAT 注册顺序" value="{{remark}}" maxlength="200" auto-height bindinput="onRemarkInput" />
+        <text class="form-label">短信验证码</text>
+        <view class="sms-row">
+          <input class="form-input sms-input" type="number" maxlength="6" placeholder="请输入验证码" value="{{smsCode}}" bindinput="onSmsCodeInput" />
+          <view class="sms-btn {{smsCountdown>0?'disabled':''}}" bindtap="onSendSms">{{smsCountdown>0 ? smsCountdown+'s' : '获取验证码'}}</view>
+        </view>
+      </view>
+      <view class="form-group">
+        <text class="form-label">备注（选填）</text>
+        <textarea class="form-textarea" placeholder="如有特殊需求请备注" value="{{remark}}" maxlength="200" auto-height bindinput="onRemarkInput" />
       </view>
     </view>
   </block>
 
   <block wx:if="{{bookStep===3}}">
     <view class="section">
-      <view class="section-title">费用明细</view>
-      <view class="fee-row"><text>{{serviceInfo.name || '1v1 咨询'}}</text><text class="b">¥{{serviceInfo.price || 299}}</text></view>
-      <view class="fee-row"><text>高级会员权益抵扣</text><text class="b accent">-¥{{memberOff}}</text></view>
-      <view class="fee-row total"><text>实付</text><text class="b accent lg">¥{{payAmount}}</text></view>
-      <view class="fee-tip">已选：{{selectedDate}} {{selectedSlotLabel}}</view>
+      <view class="section-title">确认预约</view>
+      <view class="fee-row"><text>服务</text><text class="b">{{serviceInfo.name || '-'}}</text></view>
+      <view class="fee-row"><text>时间</text><text class="b">{{selectedDate}} {{selectedSlotLabel}}</text></view>
+      <view class="fee-row"><text>联系人</text><text class="b">{{contactName}} {{contactPhone}}</text></view>
+      <view class="fee-row total"><text>费用</text><text class="b accent lg">{{priceLabel}}</text></view>
+      <view class="fee-tip">提交后等待商家确认；到店后由商家核销。</view>
     </view>
   </block>
 
@@ -94,7 +103,7 @@
     <view class="nav-btns">
       <view class="btn-o" wx:if="{{bookStep>1}}" bindtap="onPrevStep">上一步</view>
       <view class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="onNextOrSubmit">
-        {{submitting ? '提交中...' : (bookStep===3 ? ('确认预约并支付 ¥' + payAmount) : '下一步')}}
+        {{submitting ? '提交中...' : (bookStep===3 ? '确认提交预约' : '下一步')}}
       </view>
     </view>
   </view>

@@ -4,6 +4,7 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.ProductDTO;
 import com.miniprogram.dto.ProductDetailVO;
 import com.miniprogram.dto.ProductQueryDTO;
+import com.miniprogram.dto.ProductStatsVO;
 import com.miniprogram.entity.Product;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,14 +14,19 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface ProductService extends IService<Product> {
 
     /**
-     * 分页查询商品（后台）
+     * 分页查询商品（后台，含分类名）
      */
-    PageResult<Product> listProducts(ProductQueryDTO query);
+    PageResult<ProductDetailVO> listProducts(ProductQueryDTO query);
 
     /**
      * 分页查询商品（小程序端，仅上架）
      */
     PageResult<Product> listMpProducts(ProductQueryDTO query);
+
+    /**
+     * 商品概览统计
+     */
+    ProductStatsVO getStats();
 
     /**
      * 获取商品详情
@@ -43,12 +49,12 @@ public interface ProductService extends IService<Product> {
     void deleteProduct(Long id);
 
     /**
-     * 上架
+     * 上架（幂等）
      */
     void onSale(Long id);
 
     /**
-     * 下架
+     * 下架（幂等；草稿保持草稿）
      */
     void offSale(Long id);
 }

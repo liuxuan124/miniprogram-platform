@@ -33,6 +33,9 @@ public class User extends BaseEntity {
     @Schema(description = "手机号")
     private String phone;
 
+    @Schema(description = "生日")
+    private java.time.LocalDate birthday;
+
     @Schema(description = "积分")
     private Integer points;
 

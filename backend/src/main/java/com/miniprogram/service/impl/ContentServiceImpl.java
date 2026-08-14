@@ -173,7 +173,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "内容未发布，无法下架");
         }
 
-        entity.setStatus("draft");
+        entity.setStatus("unpublished");
         entity.setPublishedAt(null);
         this.updateById(entity);
 
@@ -245,6 +245,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.like(StringUtils.hasText(queryDTO.getKeyword()), Content::getTitle, queryDTO.getKeyword());
         wrapper.eq(queryDTO.getCategoryId() != null, Content::getCategoryId, queryDTO.getCategoryId());
         wrapper.eq(StringUtils.hasText(queryDTO.getStatus()), Content::getStatus, queryDTO.getStatus());
+        wrapper.eq(StringUtils.hasText(queryDTO.getSource()), Content::getSource, queryDTO.getSource());
 
         // 标签筛选（JSON字段模糊匹配）
         if (StringUtils.hasText(queryDTO.getTag())) {

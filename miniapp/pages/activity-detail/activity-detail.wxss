@@ -6,6 +6,10 @@
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
+.activity-detail-page--signed {
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
 /* ========== 加载状态 ========== */
 .loading-area {
   text-align: center;
@@ -19,12 +23,20 @@
 
 /* ========== 活动封面 ========== */
 .detail-cover {
-  height: 320rpx;
+  position: relative;
+  width: 100%;
+  height: 422rpx;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  position: relative;
+}
+
+.detail-cover-img {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .detail-cover-icon {
@@ -33,6 +45,10 @@
 }
 
 .detail-cover-type {
+  position: absolute;
+  left: 50%;
+  bottom: 28rpx;
+  transform: translateX(-50%);
   padding: 6rpx 24rpx;
   background-color: rgba(255, 255, 255, 0.2);
   color: #fff;
@@ -120,6 +136,16 @@
   line-height: 1.8;
 }
 
+/* 富文本图片：无圆角、上下紧贴（尽量配合编辑器输出的内联样式） */
+.section-content image,
+.section-content img {
+  width: 100% !important;
+  display: block;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  vertical-align: top;
+}
+
 /* ========== 报名表单 ========== */
 .form-group {
   margin-bottom: 24rpx;
@@ -145,6 +171,84 @@
   padding: 0 24rpx;
   font-size: 28rpx;
   color: #333;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.form-input--flex {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.sms-btn {
+  flex-shrink: 0;
+  height: 72rpx;
+  padding: 0 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1890ff;
+  color: #fff;
+  font-size: 24rpx;
+  border-radius: 12rpx;
+}
+
+.sms-btn.disabled {
+  background-color: #ccc;
+  color: #fff;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+.qr-section {
+  text-align: center;
+}
+
+.qr-hint {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 16rpx;
+}
+
+.qr-badge {
+  display: inline-block;
+  margin-bottom: 20rpx;
+  padding: 4rpx 16rpx;
+  font-size: 22rpx;
+  color: #1890ff;
+  background-color: #e6f4ff;
+  border-radius: 16rpx;
+}
+
+.qr-badge--verified {
+  color: #52c41a;
+  background-color: #f6ffed;
+}
+
+.qr-canvas {
+  display: block;
+  margin: 0 auto 16rpx;
+  background-color: #fff;
+}
+
+.qr-code-text {
+  display: block;
+  font-size: 22rpx;
+  color: #666;
+  word-break: break-all;
+  line-height: 1.5;
 }
 
 .form-textarea {

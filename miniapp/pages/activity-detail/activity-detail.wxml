@@ -1,5 +1,5 @@
 <!-- pages/activity-detail/activity-detail.wxml — 活动详情页 -->
-<view class="activity-detail-page">
+<view class="activity-detail-page {{signedUp ? 'activity-detail-page--signed' : ''}}">
   <!-- 加载状态 -->
   <view class="loading-area" wx:if="{{loading}}">
     <text class="loading-text">加载中...</text>
@@ -7,7 +7,11 @@
 
   <view wx:else>
     <!-- 活动封面 -->
-    <view class="detail-cover" style="background: {{activity.cover_color || 'linear-gradient(135deg, #7c3aed, #a855f7)'}};">
+    <view class="detail-cover" wx:if="{{activity.cover}}">
+      <image class="detail-cover-img" src="{{activity.cover}}" mode="aspectFill" />
+      <text class="detail-cover-type">{{activity.type_label || activity.type}}</text>
+    </view>
+    <view class="detail-cover detail-cover--fallback" wx:else style="background: {{activity.cover_color || 'linear-gradient(135deg, #7c3aed, #a855f7)'}};">
       <text class="detail-cover-icon">{{activity.cover_icon || '🎪'}}</text>
       <text class="detail-cover-type">{{activity.type_label || activity.type}}</text>
     </view>
@@ -45,8 +49,32 @@
       </view>
     </view>
 
+    <!-- 已报名：签到码 -->
+    <view class="detail-section qr-section" wx:if="{{signedUp && mySignup.status === 'approved' && mySignup.checkInCode}}">
+      <text class="section-title">签到二维码</text>
+      <text class="qr-hint">入场时请向工作人员出示</text>
+      <view class="qr-badge qr-badge--verified" wx:if="{{checkInVerified}}">已核销</view>
+      <view class="qr-badge" wx:else>待核销</view>
+      <canvas
+        canvas-id="checkinQr"
+        class="qr-canvas"
+        style="width: {{qrCanvasSize}}px; height: {{qrCanvasSize}}px;"
+      ></canvas>
+      <text class="qr-code-text">{{mySignup.checkInCode}}</text>
+    </view>
+
+    <view class="detail-section" wx:elif="{{signedUp && mySignup.status === 'rejected'}}">
+      <text class="section-title">报名结果</text>
+      <text class="full-notice-text">报名未通过{{mySignup.rejectedReason ? '：' + mySignup.rejectedReason : ''}}</text>
+    </view>
+
+    <view class="detail-section" wx:elif="{{signedUp}}">
+      <text class="section-title">已报名</text>
+      <text class="full-notice-text">报名已提交，请稍后查看签到码</text>
+    </view>
+
     <!-- 报名表单 -->
-    <view class="detail-section" wx:if="{{!activity.full}}">
+    <view class="detail-section" wx:elif="{{!activity.full}}">
       <text class="section-title">报名信息</text>
 
       <!-- 场次选择 -->
@@ -77,17 +105,38 @@
         />
       </view>
 
-      <!-- 手机号 -->
+      <!-- 手机号 + 验证码 -->
       <view class="form-group">
         <text class="form-label">手机号</text>
+        <view class="form-row">
+          <input
+            class="form-input form-input--flex"
+            type="number"
+            maxlength="11"
+            placeholder="请输入手机号"
+            value="{{formPhone}}"
+            bindinput="onPhoneInput"
+          />
+          <view
+            class="sms-btn {{smsCountdown > 0 || smsSending ? 'disabled' : ''}}"
+            bindtap="onSendSms"
+          >
+            {{smsCountdown > 0 ? smsCountdown + 's' : '获取验证码'}}
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">验证码</text>
         <input
           class="form-input"
           type="number"
-          maxlength="11"
-          placeholder="请输入手机号"
-          value="{{formPhone}}"
-          bindinput="onPhoneInput"
+          maxlength="6"
+          placeholder="请输入短信验证码"
+          value="{{formSmsCode}}"
+          bindinput="onSmsCodeInput"
         />
+        <text class="form-hint">开发环境 mock 短信时，验证码见后端日志</text>
       </view>
 
       <!-- 备注 -->
@@ -105,13 +154,13 @@
     </view>
 
     <!-- 已满提示 -->
-    <view class="full-notice" wx:if="{{activity.full}}">
+    <view class="full-notice" wx:elif="{{activity.full}}">
       <text class="full-notice-text">该活动名额已满，请关注后续活动</text>
     </view>
   </view>
 
   <!-- 底部报名按钮 -->
-  <view class="bottom-bar" wx:if="{{!activity.full && !loading}}">
+  <view class="bottom-bar" wx:if="{{!activity.full && !loading && !signedUp}}">
     <view
       class="submit-btn {{submitting ? 'disabled' : ''}}"
       bindtap="onSubmitSignup"

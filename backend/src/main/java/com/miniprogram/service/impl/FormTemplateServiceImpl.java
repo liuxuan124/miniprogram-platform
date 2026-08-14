@@ -56,6 +56,12 @@ public class FormTemplateServiceImpl extends BaseServiceImpl<FormTemplateMapper,
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FormTemplateVO createFormTemplate(FormTemplateDTO dto) {
+        if (!StringUtils.hasText(dto.getName())) {
+            throw new BusinessException(800202, "表单名称不能为空");
+        }
+        if (!StringUtils.hasText(dto.getFields())) {
+            throw new BusinessException(800202, "表单字段定义不能为空");
+        }
         // 校验 fields JSON 格式
         validateFieldsJson(dto.getFields());
 
@@ -81,17 +87,17 @@ public class FormTemplateServiceImpl extends BaseServiceImpl<FormTemplateMapper,
     public FormTemplateVO updateFormTemplate(Long id, FormTemplateDTO dto) {
         FormTemplate template = getExistingTemplate(id);
 
-        // 校验 fields JSON 格式
-        validateFieldsJson(dto.getFields());
+        // 仅在传了 fields 时校验 JSON；支持只更新 status
+        if (StringUtils.hasText(dto.getFields())) {
+            validateFieldsJson(dto.getFields());
+            template.setFields(dto.getFields());
+        }
 
         if (StringUtils.hasText(dto.getName())) {
             template.setName(dto.getName());
         }
         if (dto.getDescription() != null) {
             template.setDescription(dto.getDescription());
-        }
-        if (StringUtils.hasText(dto.getFields())) {
-            template.setFields(dto.getFields());
         }
         if (dto.getStatus() != null) {
             template.setStatus(dto.getStatus());

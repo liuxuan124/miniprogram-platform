@@ -62,6 +62,17 @@ const AuthService = {
     if (profile.nickname) payload.nickname = profile.nickname
     if (profile.avatarUrl) payload.avatarUrl = profile.avatarUrl
 
+    try {
+      const app = getApp()
+      const channel =
+        (profile && profile.sourceChannel) ||
+        (app && app.globalData && app.globalData.sourceChannel) ||
+        null
+      if (channel) payload.sourceChannel = channel
+    } catch (e) {
+      /* ignore */
+    }
+
     return post('/api/v1/mp/auth/login', payload, { auth: false }).then((data) => ({
       ...data,
       token: data.accessToken,

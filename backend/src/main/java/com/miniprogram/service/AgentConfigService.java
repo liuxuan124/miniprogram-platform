@@ -4,44 +4,45 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.AgentConfigDTO;
 import com.miniprogram.dto.AgentConfigVO;
 import com.miniprogram.entity.AgentConfig;
+import com.miniprogram.entity.AgentKnowledge;
+import com.miniprogram.entity.AgentVersion;
 
-/**
- * AI Agent 配置 Service
- */
+import java.util.List;
+import java.util.Map;
+
 public interface AgentConfigService extends BaseService<AgentConfig> {
 
-    /**
-     * 分页查询配置列表
-     */
     PageResult<AgentConfigVO> listConfigs(String keyword, Long current, Long size);
 
-    /**
-     * 创建配置
-     */
     AgentConfigVO createConfig(AgentConfigDTO dto);
 
-    /**
-     * 获取配置详情
-     */
     AgentConfigVO getConfigDetail(Long id);
 
-    /**
-     * 更新配置
-     */
     AgentConfigVO updateConfig(Long id, AgentConfigDTO dto);
 
-    /**
-     * 删除配置
-     */
     void deleteConfig(Long id);
 
-    /**
-     * 发布配置（版本递增）
-     */
     AgentConfigVO publishConfig(Long id);
 
-    /**
-     * 获取当前启用的配置
-     */
+    AgentConfigVO rollbackToVersion(Integer version);
+
     AgentConfigVO getActiveConfig();
+
+    Map<String, Object> testConnection(AgentConfigDTO dto);
+
+    Map<String, Object> sandboxChat(Map<String, Object> body);
+
+    List<AgentKnowledge> listKnowledge(Long configId);
+
+    AgentKnowledge addKnowledge(Map<String, Object> body);
+
+    AgentKnowledge uploadKnowledge(org.springframework.web.multipart.MultipartFile file, Long configId);
+
+    void updateKnowledgeWeight(Long id, Double weight);
+
+    void deleteKnowledge(Long id);
+
+    List<AgentVersion> listVersions();
+
+    List<Map<String, Object>> recentConversations(int limit);
 }

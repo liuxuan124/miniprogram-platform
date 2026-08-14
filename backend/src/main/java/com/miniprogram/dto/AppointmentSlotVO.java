@@ -20,6 +20,9 @@ public class AppointmentSlotVO {
     @Schema(description = "预约服务ID")
     private Long serviceId;
 
+    @Schema(description = "预约服务名称")
+    private String serviceName;
+
     @Schema(description = "预约日期")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate date;

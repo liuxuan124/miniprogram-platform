@@ -47,14 +47,10 @@ public class MpMemberController {
         return R.ok(memberPointsService.signIn(userId));
     }
 
-    @GetMapping("/sign-in/status")
-    @Operation(summary = "签到状态")
-    public R<Map<String, Object>> getSignInStatus() {
+    @PostMapping("/birthday-gift/claim")
+    @Operation(summary = "领取生日礼包")
+    public R<?> claimBirthdayGift() {
         Long userId = SecurityUtils.getRequiredCurrentUserId();
-        MemberInfoVO memberInfo = memberPointsService.getMemberInfo(userId);
-        return R.ok(Map.of(
-                "todaySigned", memberInfo.getTodaySigned(),
-                "streak", memberInfo.getContinuousSignDays()
-        ));
+        return R.ok(memberPointsService.claimBirthdayGift(userId));
     }
 }
