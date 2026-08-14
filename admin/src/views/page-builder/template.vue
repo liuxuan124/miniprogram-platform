@@ -163,6 +163,7 @@ import { ComponentType, IndustryLabels } from '@/types/page'
 import { getComponentDef, getDefaultProps, getDefaultStyle } from '@/components/page-builder/componentRegistry'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
+import { applyPageTemplate, isUserCancelError } from '@/components/page-templates/applyPageTemplate'
 
 type TemplateUI = Omit<PageTemplate, 'tags' | 'colors'> & {
   priority: 'P0' | 'P1'
@@ -399,35 +400,16 @@ async function handleUseTemplate(tpl: TemplateUI) {
       },
     )
 
-    const PAGE_TYPE_MAP: Record<string, number> = { home: 1, activity: 2, custom: 3 }
-    const basePathMap: Record<string, string> = {
-      home: '/pages/index/index',
-      activity: '/pages/activity/topic',
-      content: '/pages/content/index',
-      shop: '/pages/shop/index',
-      member: '/pages/member/index',
-      booking: '/pages/booking/index',
-    }
-    const pageTypeStr = tpl.dsl.page.type || 'custom'
-    const payload = {
-      name: `${tpl.name}-${Date.now().toString().slice(-4)}`,
-      type: PAGE_TYPE_MAP[pageTypeStr] ?? 3,
-      path: basePathMap[tpl.category || ''] || `/pages/custom/${Date.now()}`,
-      shareTitle: tpl.dsl.page.share_title || tpl.name,
-      background_color: tpl.dsl.page.background_color || '#f6f8fb',
+    const newPageId = await applyPageTemplate({
+      name: tpl.name,
+      category: tpl.category,
       dsl: tpl.dsl,
-    }
-
-    const res = await createPage(payload)
-    const newPageId = (res.data as any)?.id || (res.data as any)?.pageId
+    })
     ElMessage.success('模板已应用，正在进入装修器')
-    if (newPageId) {
-      router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
-    } else {
-      router.push({ name: 'PageBuilderList' })
-    }
-  } catch {
-    // user canceled
+    router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
+  } catch (err: any) {
+    if (isUserCancelError(err)) return
+    ElMessage.error(err?.message || '使用模板失败')
   }
 }
 

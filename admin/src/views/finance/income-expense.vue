@@ -11,13 +11,14 @@
         class="toolbar-input"
         placeholder="搜索描述/对方单位"
         clearable
-        @keyup.enter="loadList"
+        @keyup.enter="onFilterChange"
+        @clear="onFilterChange"
       />
-      <el-select v-model="search.type" class="toolbar-select" placeholder="类型：全部" clearable @change="loadList">
+      <el-select v-model="search.type" class="toolbar-select" placeholder="类型：全部" clearable @change="onTypeFilterChange">
         <el-option label="收入" value="income" />
         <el-option label="支出" value="expense" />
       </el-select>
-      <el-select v-model="search.category" class="toolbar-select" placeholder="分类：全部" clearable @change="loadList">
+      <el-select v-model="search.category" class="toolbar-select" placeholder="分类：全部" clearable @change="onFilterChange">
         <el-option
           v-for="cat in categoryOptions"
           :key="cat.name"
@@ -33,15 +34,21 @@
         end-placeholder="结束日期"
         value-format="YYYY-MM-DD"
         class="toolbar-daterange"
-        @change="loadList"
+        @change="onFilterChange"
       />
-      <el-select v-model="search.approvalStatus" class="toolbar-select" placeholder="审批状态：全部" clearable @change="loadList">
+      <el-select v-model="search.approvalStatus" class="toolbar-select" placeholder="审批状态：全部" clearable @change="onFilterChange">
         <el-option label="待审批" value="pending" />
         <el-option label="已审批" value="approved" />
         <el-option label="已驳回" value="rejected" />
       </el-select>
+      <el-select v-model="search.invoiceStatus" class="toolbar-select" placeholder="发票状态：全部" clearable @change="onFilterChange">
+        <el-option label="无发票" value="none" />
+        <el-option label="待开具" value="pending" />
+        <el-option label="已收到" value="received" />
+        <el-option label="已开具" value="issued" />
+      </el-select>
       <div class="toolbar-spacer" />
-      <el-button @click="handleImport">导入</el-button>
+      <el-button @click="handleImport">导入 CSV</el-button>
       <el-button @click="handleExport">导出</el-button>
       <el-button type="primary" @click="openCreateDialog">+ 新建记录</el-button>
     </div>
@@ -93,7 +100,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" min-width="180">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openEditDialog(row)">编辑</el-button>
             <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
@@ -217,8 +224,8 @@
       </template>
     </el-dialog>
 
-    <!-- 隐藏文件上传 -->
-    <input ref="fileInputRef" type="file" accept=".xlsx,.xls,.csv" style="display: none" @change="onFileChange" />
+    <!-- 隐藏文件上传：仅 CSV -->
+    <input ref="fileInputRef" type="file" accept=".csv,text/csv" style="display: none" @change="onFileChange" />
   </div>
 </template>
 
@@ -234,7 +241,6 @@ import {
   deleteTransaction,
   approveTransaction,
   getTransactionCategories,
-  exportTransactions,
   importTransactions,
 } from '@/api/finance'
 import type {
@@ -257,12 +263,23 @@ const search = reactive({
   category: '',
   dateRange: null as [string, string] | null,
   approvalStatus: '',
+  invoiceStatus: '',
 })
 
 const pagination = reactive({
   page: 1,
   pageSize: 20,
 })
+
+function onFilterChange() {
+  pagination.page = 1
+  loadList()
+}
+
+function onTypeFilterChange() {
+  search.category = ''
+  onFilterChange()
+}
 
 async function loadList() {
   loading.value = true
@@ -276,6 +293,7 @@ async function loadList() {
       startDate: search.dateRange?.[0] || undefined,
       endDate: search.dateRange?.[1] || undefined,
       approvalStatus: search.approvalStatus || undefined,
+      invoiceStatus: search.invoiceStatus || undefined,
     }
     const res = await getTransactionList(params)
     const pageData = extractPageRecords<TransactionRecord>(res)
@@ -284,6 +302,7 @@ async function loadList() {
   } catch {
     tableData.value = []
     total.value = 0
+    ElMessage.error('加载收支明细失败')
   } finally {
     loading.value = false
   }
@@ -303,7 +322,9 @@ async function loadCategories() {
 }
 
 const categoryOptions = computed(() => {
-  return categories.value.filter((c) => !c.parentId)
+  return categories.value.filter((c) =>
+    !c.parentId && (!search.type || c.type === search.type),
+  )
 })
 
 const filteredCategories = computed(() => {
@@ -338,7 +359,19 @@ const formData = reactive<TransactionFormData>({
 
 const formRules: FormRules = {
   type: [{ required: true, message: '请选择收支类型', trigger: 'change' }],
-  amount: [{ required: true, message: '请输入金额', trigger: 'blur' }],
+  amount: [
+    { required: true, message: '请输入金额', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value == null || Number(value) < 0.01) {
+          callback(new Error('金额须大于 0'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
   category: [{ required: true, message: '请选择一级分类', trigger: 'change' }],
   transactionDate: [{ required: true, message: '请选择交易日期', trigger: 'change' }],
   paymentMethod: [{ required: true, message: '请选择支付方式', trigger: 'change' }],
@@ -399,6 +432,8 @@ async function submitForm() {
     }
     formDialogVisible.value = false
     loadList()
+  } catch {
+    /* 错误由请求拦截器提示 */
   } finally {
     formSubmitting.value = false
   }
@@ -407,14 +442,22 @@ async function submitForm() {
 // ==================== 删除 ====================
 
 async function handleDelete(row: TransactionRecord) {
-  await ElMessageBox.confirm(`确定删除该条${TransactionTypeLabels[row.type]}记录（¥${formatAmount(row.amount)}）？`, '删除确认', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-  await deleteTransaction(row.id)
-  ElMessage.success('删除成功')
-  loadList()
+  try {
+    await ElMessageBox.confirm(`确定删除该条${TransactionTypeLabels[row.type]}记录（¥${formatAmount(row.amount)}）？`, '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  try {
+    await deleteTransaction(row.id)
+    ElMessage.success('删除成功')
+    loadList()
+  } catch {
+    /* 错误由请求拦截器提示 */
+  }
 }
 
 // ==================== 审批 ====================
@@ -438,6 +481,8 @@ async function submitApproval(status: 'approved' | 'rejected') {
     ElMessage.success(status === 'approved' ? '审批通过' : '已驳回')
     approvalDialogVisible.value = false
     loadList()
+  } catch {
+    /* 错误由请求拦截器提示 */
   } finally {
     approvalSubmitting.value = false
   }
@@ -455,6 +500,12 @@ async function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
+  const name = file.name.toLowerCase()
+  if (!name.endsWith('.csv')) {
+    ElMessage.warning('请上传 CSV 文件（暂不支持 Excel）')
+    target.value = ''
+    return
+  }
   try {
     const fd = new FormData()
     fd.append('file', file)
@@ -473,28 +524,77 @@ async function onFileChange(e: Event) {
 
 async function handleExport() {
   try {
-    const params: TransactionListParams = {
+    const baseParams: TransactionListParams = {
       keyword: search.keyword || undefined,
       type: search.type || undefined,
       category: search.category || undefined,
       startDate: search.dateRange?.[0] || undefined,
       endDate: search.dateRange?.[1] || undefined,
       approvalStatus: search.approvalStatus || undefined,
+      invoiceStatus: search.invoiceStatus || undefined,
     }
-    const res = await exportTransactions({ ...params, format: 'xlsx' })
-    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `收支明细-${new Date().toISOString().slice(0, 10)}.xlsx`
-    document.body.appendChild(anchor)
-    anchor.click()
-    document.body.removeChild(anchor)
-    URL.revokeObjectURL(url)
-    ElMessage.success('导出成功')
+    const filename = `收支明细-${new Date().toISOString().slice(0, 10)}.csv`
+
+    // 远程旧后端 xlsx 导出遇空字段会失败；统一走列表接口拼 CSV，不依赖 /export
+    const rows: TransactionRecord[] = []
+    let page = 1
+    const pageSize = 200
+    let totalCount = Infinity
+    while (rows.length < totalCount) {
+      const res = await getTransactionList({ ...baseParams, page, pageSize })
+      const pageData = extractPageRecords<TransactionRecord>(res)
+      totalCount = pageData.total
+      rows.push(...pageData.list)
+      if (pageData.list.length === 0) break
+      page += 1
+      if (page > 100) break
+    }
+    const csv = buildTransactionsCsv(rows)
+    triggerBlobDownload(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), filename)
+    ElMessage.success(`导出成功（${rows.length} 条）`)
   } catch {
     ElMessage.error('导出失败')
   }
+}
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(url)
+}
+
+function csvEscape(value: unknown): string {
+  const s = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function buildTransactionsCsv(rows: TransactionRecord[]): string {
+  const header = [
+    'type', 'amount', 'category', 'subCategory', 'description',
+    'transactionDate', 'paymentMethod', 'counterparty', 'approvalStatus', 'invoiceStatus',
+  ]
+  const lines = [header.join(',')]
+  for (const row of rows) {
+    lines.push([
+      csvEscape(row.type),
+      csvEscape(row.amount),
+      csvEscape(row.category),
+      csvEscape(row.subCategory),
+      csvEscape(row.description),
+      csvEscape(row.transactionDate),
+      csvEscape(row.paymentMethod),
+      csvEscape(row.counterparty),
+      csvEscape(row.approvalStatus),
+      csvEscape(row.invoiceStatus),
+    ].join(','))
+  }
+  return lines.join('\n')
 }
 
 // ==================== 辅助函数 ====================

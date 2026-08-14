@@ -55,23 +55,24 @@
         <template #header>
           <span>收支趋势</span>
         </template>
-        <div ref="trendChartRef" class="chart-container" />
+        <div v-if="!loading && trendData.length === 0" class="empty-chart">暂无数据</div>
+        <div v-show="trendData.length > 0" ref="trendChartRef" class="chart-container" />
       </el-card>
 
       <el-row :gutter="16" class="summary-cards">
-        <el-col :span="6">
+        <el-col :xs="12" :sm="6">
           <el-card shadow="hover" class="summary-card income">
             <div class="summary-label">总收入</div>
             <div class="summary-value">¥{{ formatMoney(trendSummary.totalIncome) }}</div>
           </el-card>
         </el-col>
-        <el-col :span="6">
+        <el-col :xs="12" :sm="6">
           <el-card shadow="hover" class="summary-card expense">
             <div class="summary-label">总支出</div>
             <div class="summary-value">¥{{ formatMoney(trendSummary.totalExpense) }}</div>
           </el-card>
         </el-col>
-        <el-col :span="6">
+        <el-col :xs="12" :sm="6">
           <el-card shadow="hover" class="summary-card profit">
             <div class="summary-label">净利润</div>
             <div class="summary-value" :class="{ negative: trendSummary.netProfit < 0 }">
@@ -79,10 +80,10 @@
             </div>
           </el-card>
         </el-col>
-        <el-col :span="6">
+        <el-col :xs="12" :sm="6">
           <el-card shadow="hover" class="summary-card avg">
-            <div class="summary-label">日均收入</div>
-            <div class="summary-value">¥{{ formatMoney(trendSummary.avgDailyIncome) }}</div>
+            <div class="summary-label">{{ avgIncomeLabel }}</div>
+            <div class="summary-value">¥{{ formatMoney(trendSummary.avgIncome) }}</div>
           </el-card>
         </el-col>
       </el-row>
@@ -160,6 +161,7 @@
                   ¥{{ formatMoney(cashFlow.investingNet) }}
                 </span>
               </div>
+              <div class="cashflow-hint">暂无独立投资科目</div>
             </el-card>
           </el-col>
           <el-col :span="8">
@@ -180,6 +182,7 @@
                   ¥{{ formatMoney(cashFlow.financingNet) }}
                 </span>
               </div>
+              <div class="cashflow-hint">暂无独立筹资科目</div>
             </el-card>
           </el-col>
         </el-row>
@@ -209,20 +212,21 @@
     <template v-if="activeTab === 'category_analysis'">
       <el-card v-loading="loading" shadow="hover" class="chart-card">
         <template #header>
-          <span>分类对比</span>
+          <span>分类对比（含上期）</span>
         </template>
-        <div ref="categoryChartRef" class="chart-container" />
+        <div v-if="!loading && categoryData.length === 0" class="empty-chart">暂无数据</div>
+        <div v-show="categoryData.length > 0" ref="categoryChartRef" class="chart-container" />
       </el-card>
 
       <el-card shadow="hover" style="margin-top: 16px">
         <el-table :data="categoryData" border style="width: 100%">
           <el-table-column prop="category" label="分类" min-width="160" />
-          <el-table-column prop="currentAmount" label="本期金额" align="right" min-width="160">
+          <el-table-column prop="currentAmount" label="本期金额" align="right" min-width="140">
             <template #default="{ row }">
               ¥{{ formatMoney(row.currentAmount) }}
             </template>
           </el-table-column>
-          <el-table-column prop="previousAmount" label="上期金额" align="right" min-width="160">
+          <el-table-column prop="previousAmount" label="上期金额" align="right" min-width="140">
             <template #default="{ row }">
               ¥{{ formatMoney(row.previousAmount) }}
             </template>
@@ -230,13 +234,13 @@
           <el-table-column prop="changeRate" label="变动率" align="right" min-width="120">
             <template #default="{ row }">
               <span :class="{ 'change-up': row.changeRate > 0, 'change-down': row.changeRate < 0 }">
-                {{ row.changeRate > 0 ? '+' : '' }}{{ (row.changeRate * 100).toFixed(2) }}%
+                {{ row.changeRate > 0 ? '+' : '' }}{{ (Number(row.changeRate) * 100).toFixed(2) }}%
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="percentage" label="占比" align="right" min-width="120">
+          <el-table-column prop="percentage" label="占比" align="right" min-width="100">
             <template #default="{ row }">
-              {{ (row.percentage * 100).toFixed(2) }}%
+              {{ Number(row.percentage || 0).toFixed(1) }}%
             </template>
           </el-table-column>
         </el-table>
@@ -335,12 +339,20 @@ function getDefaultDateRange(): [string, string] {
   const end = new Date()
   const start = new Date()
   start.setDate(start.getDate() - 30)
-  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)]
+  return [formatLocalDate(start), formatLocalDate(end)]
+}
+
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function formatMoney(value: number): string {
-  if (value == null) return '0.00'
-  return Math.abs(value).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const n = Number(value) || 0
+  const sign = n < 0 ? '-' : ''
+  return sign + Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 function createEmptyProfitLoss(): ProfitLossData {
@@ -389,17 +401,28 @@ function getQueryParams(): ReportQueryParams {
 const trendSummary = computed(() => {
   const data = trendData.value
   if (!data.length) {
-    return { totalIncome: 0, totalExpense: 0, netProfit: 0, avgDailyIncome: 0 }
+    return { totalIncome: 0, totalExpense: 0, netProfit: 0, avgIncome: 0 }
   }
-  const totalIncome = data.reduce((s, i) => s + i.income, 0)
-  const totalExpense = data.reduce((s, i) => s + i.expense, 0)
-  const days = data.length
+  const totalIncome = data.reduce((s, i) => s + Number(i.income || 0), 0)
+  const totalExpense = data.reduce((s, i) => s + Number(i.expense || 0), 0)
+  const periods = data.length
   return {
     totalIncome,
     totalExpense,
     netProfit: totalIncome - totalExpense,
-    avgDailyIncome: totalIncome / days,
+    avgIncome: totalIncome / periods,
   }
+})
+
+const avgIncomeLabel = computed(() => {
+  const map: Record<string, string> = {
+    day: '日均收入',
+    week: '周均收入',
+    month: '月均收入',
+    quarter: '季均收入',
+    year: '年均收入',
+  }
+  return map[granularity.value] || '期均收入'
 })
 
 // ==================== 利润表行数据 ====================
@@ -416,7 +439,7 @@ const profitLossRows = computed(() => {
     { label: '加：其他收入', amount: d.otherIncome, percentage: d.otherIncome / rev, bold: false, highlight: false },
     { label: '减：其他支出', amount: -d.otherExpense, percentage: d.otherExpense / rev, bold: false, highlight: false },
     { label: '税前利润', amount: d.profitBeforeTax, percentage: d.profitBeforeTax / rev, bold: true, highlight: false },
-    { label: '减：所得税', amount: -d.incomeTax, percentage: d.incomeTax / rev, bold: false, highlight: false },
+    { label: '减：所得税（未计提）', amount: -d.incomeTax, percentage: d.incomeTax / rev, bold: false, highlight: false },
     { label: '净利润', amount: d.netProfit, percentage: d.netProfit / rev, bold: true, highlight: true },
   ]
 })
@@ -466,6 +489,7 @@ async function fetchTrendData(params: ReportQueryParams) {
     renderTrendChart()
   } catch {
     trendData.value = []
+    ElMessage.error('加载收支趋势失败')
   }
 }
 
@@ -475,6 +499,7 @@ async function fetchProfitLossData(params: ReportQueryParams) {
     profitLoss.value = res.data || createEmptyProfitLoss()
   } catch {
     profitLoss.value = createEmptyProfitLoss()
+    ElMessage.error('加载利润表失败')
   }
 }
 
@@ -484,6 +509,7 @@ async function fetchCashFlowData(params: ReportQueryParams) {
     cashFlow.value = res.data || createEmptyCashFlow()
   } catch {
     cashFlow.value = createEmptyCashFlow()
+    ElMessage.error('加载现金流量表失败')
   }
 }
 
@@ -495,23 +521,36 @@ async function fetchCategoryData(params: ReportQueryParams) {
     renderCategoryChart()
   } catch {
     categoryData.value = []
+    ElMessage.error('加载分类对比失败')
   }
 }
 
 // ==================== ECharts 渲染 ====================
 
-function renderTrendChart() {
-  if (!trendChartRef.value) return
-  if (!trendChart) {
-    trendChart = echarts.init(trendChartRef.value)
+function ensureChart(container: HTMLElement | undefined, chart: echarts.ECharts | null): echarts.ECharts | null {
+  if (!container) return null
+  if (chart) {
+    chart.dispose()
   }
+  return echarts.init(container)
+}
+
+function renderTrendChart() {
+  if (!trendChartRef.value || trendData.value.length === 0) {
+    if (trendChart) {
+      trendChart.dispose()
+      trendChart = null
+    }
+    return
+  }
+  trendChart = ensureChart(trendChartRef.value, trendChart)
   const data = trendData.value
   const dates = data.map(i => i.date)
-  const incomes = data.map(i => i.income)
-  const expenses = data.map(i => i.expense)
-  const profits = data.map(i => i.profit)
+  const incomes = data.map(i => Number(i.income) || 0)
+  const expenses = data.map(i => Number(i.expense) || 0)
+  const profits = data.map(i => Number(i.profit) || 0)
 
-  trendChart.setOption({
+  trendChart?.setOption({
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
@@ -578,19 +617,24 @@ function renderTrendChart() {
       },
     ],
   }, true)
+  requestAnimationFrame(() => trendChart?.resize())
 }
 
 function renderCategoryChart() {
-  if (!categoryChartRef.value) return
-  if (!categoryChart) {
-    categoryChart = echarts.init(categoryChartRef.value)
+  if (!categoryChartRef.value || categoryData.value.length === 0) {
+    if (categoryChart) {
+      categoryChart.dispose()
+      categoryChart = null
+    }
+    return
   }
+  categoryChart = ensureChart(categoryChartRef.value, categoryChart)
   const data = categoryData.value
   const categories = data.map(i => i.category)
-  const currentAmounts = data.map(i => i.currentAmount)
-  const previousAmounts = data.map(i => i.previousAmount)
+  const currentAmounts = data.map(i => Number(i.currentAmount) || 0)
+  const previousAmounts = data.map(i => Number(i.previousAmount) || 0)
 
-  categoryChart.setOption({
+  categoryChart?.setOption({
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
@@ -610,7 +654,7 @@ function renderCategoryChart() {
       top: 0,
     },
     grid: {
-      left: 100,
+      left: 120,
       right: 40,
       top: 40,
       bottom: 30,
@@ -644,32 +688,107 @@ function renderCategoryChart() {
       },
     ],
   }, true)
+  requestAnimationFrame(() => categoryChart?.resize())
 }
 
 // ==================== 事件处理 ====================
 
 function handleTabChange() {
+  // Tab 使用 v-if，切换时销毁旧图表实例，避免挂到已卸载 DOM
+  if (trendChart) {
+    trendChart.dispose()
+    trendChart = null
+  }
+  if (categoryChart) {
+    categoryChart.dispose()
+    categoryChart = null
+  }
   fetchData()
 }
 
 async function handleExport() {
   const params = getQueryParams()
+  if (!params.startDate || !params.endDate) {
+    ElMessage.warning('请选择日期范围')
+    return
+  }
   exportLoading.value = true
   try {
-    const res = await exportReport({ ...params, format: 'xlsx' } as any)
-    const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `财务报表_${params.startDate}_${params.endDate}.xlsx`
-    link.click()
-    window.URL.revokeObjectURL(url)
+    const filename = `财务报表_${params.startDate}_${params.endDate}.csv`
+    try {
+      const res = await exportReport({ ...params, format: 'csv' } as any)
+      const blob = res.data instanceof Blob ? res.data : new Blob([res.data])
+      const head = (await blob.slice(0, 80).text()).replace(/^\uFEFF/, '').trimStart()
+      if (head.startsWith('{')) {
+        throw new Error('服务端导出失败')
+      }
+      triggerDownload(blob, filename)
+    } catch {
+      // 兜底：按当前已加载数据拼 CSV
+      const csv = buildReportCsvFallback()
+      triggerDownload(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), filename)
+    }
     ElMessage.success('报表导出成功')
   } catch {
     ElMessage.error('报表导出失败')
   } finally {
     exportLoading.value = false
   }
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  window.URL.revokeObjectURL(url)
+}
+
+function csvCell(v: unknown): string {
+  const s = v == null ? '' : String(v)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function buildReportCsvFallback(): string {
+  const lines: string[] = []
+  const d = profitLoss.value
+  const c = cashFlow.value
+  lines.push('【利润表】')
+  lines.push('项目,金额')
+  lines.push(`营业收入,${csvCell(d.revenue)}`)
+  lines.push(`营业成本,${csvCell(d.costOfGoods)}`)
+  lines.push(`毛利润,${csvCell(d.grossProfit)}`)
+  lines.push(`运营费用,${csvCell(d.operatingExpenses)}`)
+  lines.push(`营业利润,${csvCell(d.operatingIncome)}`)
+  lines.push(`其他收入,${csvCell(d.otherIncome)}`)
+  lines.push(`其他支出,${csvCell(d.otherExpense)}`)
+  lines.push(`税前利润,${csvCell(d.profitBeforeTax)}`)
+  lines.push(`所得税,${csvCell(d.incomeTax)}`)
+  lines.push(`净利润,${csvCell(d.netProfit)}`)
+  lines.push('')
+  lines.push('【现金流量表】')
+  lines.push('项目,金额')
+  lines.push(`经营活动流入,${csvCell(c.operatingInflow)}`)
+  lines.push(`经营活动流出,${csvCell(c.operatingOutflow)}`)
+  lines.push(`经营活动净额,${csvCell(c.operatingNet)}`)
+  lines.push(`期初余额,${csvCell(c.beginningBalance)}`)
+  lines.push(`现金净增加额,${csvCell(c.totalNetCashFlow)}`)
+  lines.push(`期末余额,${csvCell(c.endingBalance)}`)
+  lines.push('')
+  lines.push('【分类分析】')
+  lines.push('分类,本期金额,上期金额,变动率,占比')
+  for (const row of categoryData.value) {
+    lines.push([
+      csvCell(row.category),
+      csvCell(row.currentAmount),
+      csvCell(row.previousAmount),
+      csvCell(row.changeRate),
+      csvCell(row.percentage),
+    ].join(','))
+  }
+  return lines.join('\n')
 }
 
 // ==================== 窗口自适应 ====================
@@ -756,6 +875,15 @@ onBeforeUnmount(() => {
     .chart-container {
       width: 100%;
       height: 400px;
+    }
+
+    .empty-chart {
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
     }
   }
 
@@ -845,6 +973,12 @@ onBeforeUnmount(() => {
     &.financing .cashflow-title {
       border-color: var(--success);
       color: var(--success);
+    }
+
+    .cashflow-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     .cashflow-row {

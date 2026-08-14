@@ -58,11 +58,14 @@ public class Product implements Serializable {
     @Schema(description = "排序")
     private Integer sortOrder;
 
-    @Schema(description = "状态: on_sale/off_sale")
+    @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 
-    @Schema(description = "商品类型: physical/digital/service")
+    @Schema(description = "商品类型: physical/digital/service（主类型，兼容旧逻辑）")
     private String productType = "physical";
+
+    @Schema(description = "商品类型 JSON 数组，可多选")
+    private String productTypes;
 
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -13,6 +13,7 @@ import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.security.JwtTokenProvider;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.WxAuthService;
+import com.miniprogram.user.UserSourceChannels;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,7 +75,7 @@ public class WxAuthServiceImpl implements WxAuthService {
             user.setNickname(dto.getNickname());
             user.setAvatarUrl(dto.getAvatarUrl());
             user.setGender(dto.getGender() != null ? dto.getGender() : 0);
-            user.setSourceChannel(dto.getSourceChannel());
+            user.setSourceChannel(normalizeSourceChannel(dto.getSourceChannel()));
             user.setLastVisitAt(LocalDateTime.now());
             userMapper.insert(user);
             isNewUser = true;
@@ -92,6 +93,11 @@ public class WxAuthServiceImpl implements WxAuthService {
             }
             if (unionId != null && !unionId.equals(user.getUnionId())) {
                 user.setUnionId(unionId);
+                needUpdate = true;
+            }
+            // 首次归因：仅当来源为空时写入
+            if (!StringUtils.hasText(user.getSourceChannel()) && StringUtils.hasText(dto.getSourceChannel())) {
+                user.setSourceChannel(normalizeSourceChannel(dto.getSourceChannel()));
                 needUpdate = true;
             }
             user.setLastVisitAt(LocalDateTime.now());
@@ -227,6 +233,13 @@ public class WxAuthServiceImpl implements WxAuthService {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getOpenid, openid);
         return userMapper.selectOne(wrapper);
+    }
+
+    private String normalizeSourceChannel(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        return UserSourceChannels.normalize(raw);
     }
 
     private String maskPhone(String phone) {

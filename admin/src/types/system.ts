@@ -3,7 +3,7 @@
  */
 
 /** 配置分组枚举 */
-export type ConfigGroup = 'basic' | 'wechat' | 'storage'
+export type ConfigGroup = 'basic' | 'wechat' | 'storage' | 'member' | 'sms' | string
 
 /** 单个配置项 */
 export interface ConfigItem {

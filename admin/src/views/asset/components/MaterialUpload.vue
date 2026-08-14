@@ -3,6 +3,9 @@
     v-model="visibleProxy"
     :title="title"
     width="520px"
+    append-to-body
+    align-center
+    :z-index="4000"
     :close-on-click-modal="false"
     destroy-on-close
     @closed="resetAll"
@@ -12,14 +15,16 @@
       <div
         class="upload-dropzone"
         :class="{ 'is-dragover': dragOver, 'has-files': files.length > 0 }"
+        @click="onDropzoneClick"
         @dragover.prevent="dragOver = true"
         @dragleave.prevent="dragOver = false"
         @drop.prevent="handleDrop"
       >
         <template v-if="!files.length">
           <el-icon class="dropzone-icon" :size="48"><UploadFilled /></el-icon>
-          <p class="dropzone-text">拖拽文件到此处，或点击下方按钮选择文件</p>
-          <p class="dropzone-hint">{{ acceptHint }}</p>
+          <p class="dropzone-text">拖拽多个文件到此处，或点击选择文件</p>
+          <p class="dropzone-hint">{{ acceptHint }}，一次最多 {{ MAX_BATCH }} 个</p>
+          <el-button type="primary" plain @click.stop="addFiles">选择文件（可多选）</el-button>
         </template>
         <template v-else>
           <div class="file-list">
@@ -49,7 +54,9 @@
               <el-button text type="danger" :icon="Close" size="small" @click="removeFile(idx)" />
             </div>
           </div>
-          <el-button type="primary" plain size="small" :icon="Plus" @click="addFiles">继续添加</el-button>
+          <el-button type="primary" plain size="small" :icon="Plus" :disabled="uploading || files.length >= MAX_BATCH" @click.stop="addFiles">
+            继续添加（{{ files.length }}/{{ MAX_BATCH }}）
+          </el-button>
         </template>
       </div>
 
@@ -57,8 +64,21 @@
       <div class="upload-settings">
         <el-form label-width="72px" label-position="left" size="default">
           <el-form-item label="目标分组">
-            <el-select v-model="selectGroupId" placeholder="选择分组（可选）" clearable style="width: 100%">
-              <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
+            <el-select
+              v-model="selectGroupId"
+              placeholder="选择分组（可选）"
+              clearable
+              filterable
+              teleported
+              popper-class="material-upload-group-dropdown"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="g in groupOptions"
+                :key="g.id"
+                :label="g.name"
+                :value="g.id"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="素材描述">
@@ -66,7 +86,7 @@
               v-model="description"
               type="textarea"
               :rows="2"
-              placeholder="添加描述信息（可选）"
+              placeholder="批量上传时，所有文件共用此描述（可选）"
               maxlength="200"
               show-word-limit
             />
@@ -94,17 +114,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef, onBeforeUnmount } from 'vue'
+import { computed, ref, shallowRef, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled, VideoCamera, Headset, Document, Close, Plus } from '@element-plus/icons-vue'
 import { uploadFile } from '@/api/system'
-import { createMaterial } from '@/api/asset'
+import { createMaterial, getGroupList } from '@/api/asset'
 import { MaterialType, type MaterialGroup } from '@/types/asset'
 
 const props = defineProps<{
   visible: boolean
   activeType: MaterialType | ''
   groups: MaterialGroup[]
+  defaultGroupId?: number
 }>()
 
 const emit = defineEmits<{
@@ -116,6 +137,39 @@ const visibleProxy = computed({
   get: () => props.visible,
   set: (val) => emit('update:visible', val),
 })
+
+const localGroups = ref<MaterialGroup[]>([])
+const groupOptions = computed(() => {
+  const parentGroups = (props.groups || []).filter((g) => g.id && g.name)
+  if (parentGroups.length) return parentGroups
+  return localGroups.value
+})
+
+async function loadGroupOptions() {
+  if (props.groups?.length) return
+  try {
+    const res: any = await getGroupList({ current: 1, size: 200 })
+    const list = (res.data?.records || res.data || []) as any[]
+    localGroups.value = list
+      .map((g: any) => ({
+        id: Number(g.id),
+        name: g.name || g.groupName || '',
+        sortOrder: g.sortOrder,
+      }))
+      .filter((g: MaterialGroup) => g.id && g.name)
+  } catch {
+    localGroups.value = []
+  }
+}
+
+watch(
+  () => props.visible,
+  async (visible) => {
+    if (!visible) return
+    await loadGroupOptions()
+    selectGroupId.value = props.defaultGroupId
+  },
+)
 
 const title = computed(() => {
   const labels: Record<string, string> = {
@@ -152,6 +206,8 @@ interface UploadFileItem {
   error?: string
 }
 
+const MAX_BATCH = 20
+const UPLOAD_CONCURRENCY = 3
 const files = ref<UploadFileItem[]>([])
 const dragOver = ref(false)
 const uploading = ref(false)
@@ -170,8 +226,25 @@ function handleFileInput(e: Event) {
   input.value = ''
 }
 
+function onDropzoneClick() {
+  if (!files.value.length && !uploading.value) addFiles()
+}
+
 function addFileItems(newFiles: File[]) {
-  for (const file of newFiles) {
+  const remaining = MAX_BATCH - files.value.length
+  if (remaining <= 0) {
+    ElMessage.warning(`一次最多上传 ${MAX_BATCH} 个文件`)
+    return
+  }
+  const incoming = newFiles.slice(0, remaining)
+  if (newFiles.length > remaining) {
+    ElMessage.warning(`已达上限，仅加入前 ${remaining} 个文件`)
+  }
+  for (const file of incoming) {
+    const duplicated = files.value.some(
+      (item) => item.file && item.file.name === file.name && item.file.size === file.size
+    )
+    if (duplicated) continue
     const valid = validateFile(file)
     if (!valid) continue
     const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : ''
@@ -227,6 +300,42 @@ function handleDrop(e: DragEvent) {
   addFileItems(dropped)
 }
 
+async function uploadOne(item: UploadFileItem) {
+  if (!item.file) return
+  item.status = 'uploading'
+  item.progress = 10
+  item.error = undefined
+  try {
+    const res: any = await uploadFile(item.file)
+    item.progress = 80
+    const rawUrl = res.data?.url || ''
+    const url = resolveUrl(rawUrl)
+    if (!url) throw new Error('上传返回的 URL 为空')
+
+    const file = item.file
+    let type = MaterialType.Image
+    if (file.type.startsWith('video/')) type = MaterialType.Video
+    else if (file.type.startsWith('audio/')) type = MaterialType.Audio
+
+    await createMaterial({
+      name: file.name,
+      type,
+      url,
+      thumbUrl: type === MaterialType.Image ? url : '',
+      size: file.size,
+      format: file.name.split('.').pop()?.toUpperCase(),
+      groupId: selectGroupId.value != null ? Number(selectGroupId.value) : null,
+      description: description.value || undefined,
+    })
+
+    item.progress = 100
+    item.status = 'success'
+  } catch (err: any) {
+    item.status = 'error'
+    item.error = err?.message || '上传失败'
+  }
+}
+
 async function startUpload() {
   const pendingFiles = files.value.filter((f) => f.status !== 'success')
   if (!pendingFiles.length) {
@@ -235,52 +344,29 @@ async function startUpload() {
   }
 
   uploading.value = true
-  let successCount = 0
-
-  for (const item of pendingFiles) {
-    if (!item.file) continue
-    item.status = 'uploading'
-    item.progress = 10
-
-    try {
-      const res: any = await uploadFile(item.file)
-      item.progress = 80
-      const rawUrl = res.data?.url || ''
-      const url = resolveUrl(rawUrl)
-      if (!url) throw new Error('上传返回的 URL 为空')
-
-      const file = item.file
-      let type = MaterialType.Image
-      if (file.type.startsWith('video/')) type = MaterialType.Video
-      else if (file.type.startsWith('audio/')) type = MaterialType.Audio
-
-      await createMaterial({
-        name: file.name,
-        type,
-        url,
-        thumbUrl: type === MaterialType.Image ? url : '',
-        size: file.size,
-        format: file.name.split('.').pop()?.toUpperCase(),
-        groupId: selectGroupId.value ?? null,
-        description: description.value || undefined,
-      })
-
-      item.progress = 100
-      item.status = 'success'
-      successCount++
-    } catch (err: any) {
-      item.status = 'error'
-      item.error = err?.message || '上传失败'
+  const queue = [...pendingFiles]
+  const workers = Array.from({ length: Math.min(UPLOAD_CONCURRENCY, queue.length) }, async () => {
+    while (queue.length) {
+      const item = queue.shift()
+      if (item) await uploadOne(item)
     }
-  }
-
+  })
+  await Promise.all(workers)
   uploading.value = false
 
-  if (successCount > 0) {
+  const successCount = files.value.filter((f) => f.status === 'success').length
+  const failCount = files.value.filter((f) => f.status === 'error').length
+  if (successCount > 0) emit('uploaded')
+  if (failCount === 0 && successCount > 0) {
     ElMessage.success(`成功上传 ${successCount} 个素材`)
     visibleProxy.value = false
-    emit('uploaded')
+    return
   }
+  if (successCount > 0 && failCount > 0) {
+    ElMessage.warning(`成功 ${successCount} 个，失败 ${failCount} 个，可点上传重试失败项`)
+    return
+  }
+  ElMessage.error('全部上传失败')
 }
 
 function resetAll() {
@@ -328,6 +414,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 10px;
+  cursor: pointer;
 
   &.is-dragover {
     border-color: #2469f0;
@@ -337,6 +424,7 @@ onBeforeUnmount(() => {
   &.has-files {
     padding: 16px;
     align-items: stretch;
+    cursor: default;
   }
 }
 
@@ -425,5 +513,12 @@ onBeforeUnmount(() => {
 
 .upload-settings {
   padding-top: 4px;
+}
+</style>
+
+<style lang="scss">
+/* teleported 到 body，需全局样式提高层级，避免被上传弹窗挡住 */
+.material-upload-group-dropdown {
+  z-index: 6000 !important;
 }
 </style>

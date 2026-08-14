@@ -1,58 +1,47 @@
 <template>
   <div class="budget-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-info">
-        <h2 class="header-title">预算管理</h2>
-        <p class="header-desc">预算编制、执行监控与超支预警</p>
-      </div>
-    </div>
+    <PageHeader
+      kicker="财务管理 / 预算管理"
+      title="预算管理"
+      description="预算编制、执行监控与超支预警。"
+    />
 
-    <!-- 主体 Tabs -->
     <el-tabs v-model="activeTab" class="main-tabs">
       <!-- ==================== 预算列表 ==================== -->
       <el-tab-pane label="预算列表" name="budget">
-        <el-card shadow="hover">
-          <!-- 工具栏 -->
-          <div class="toolbar">
-            <el-form :inline="true" :model="budgetQuery" @submit.prevent="fetchBudgetList">
-              <el-form-item label="关键词">
-                <el-input
-                  v-model="budgetQuery.keyword"
-                  placeholder="预算名称"
-                  clearable
-                  style="width: 180px"
-                  @keyup.enter="handleBudgetSearch"
-                />
-              </el-form-item>
-              <el-form-item label="状态">
-                <el-select
-                  v-model="budgetQuery.status"
-                  placeholder="全部状态"
-                  clearable
-                  style="width: 140px"
-                >
-                  <el-option
-                    v-for="(label, key) in BudgetStatusLabels"
-                    :key="key"
-                    :label="label"
-                    :value="key"
-                  />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleBudgetSearch">搜索</el-button>
-                <el-button icon="Refresh" @click="handleBudgetReset">重置</el-button>
-              </el-form-item>
-            </el-form>
-            <el-button type="primary" icon="Plus" @click="handleCreateBudget">+ 新建预算</el-button>
-          </div>
+        <div class="toolbar">
+          <el-input
+            v-model="budgetQuery.keyword"
+            class="toolbar-input"
+            placeholder="搜索预算名称"
+            clearable
+            @keyup.enter="handleBudgetSearch"
+            @clear="handleBudgetSearch"
+          />
+          <el-select
+            v-model="budgetQuery.status"
+            class="toolbar-select"
+            placeholder="状态：全部"
+            clearable
+            @change="handleBudgetSearch"
+          >
+            <el-option
+              v-for="(label, key) in BudgetStatusLabels"
+              :key="key"
+              :label="label"
+              :value="key"
+            />
+          </el-select>
+          <el-button @click="handleBudgetReset">重置</el-button>
+          <div class="toolbar-spacer" />
+          <el-button type="primary" @click="handleCreateBudget">+ 新建预算</el-button>
+        </div>
 
-          <!-- 预算表格 -->
-          <el-table v-loading="budgetLoading" :data="budgetList" border stripe>
+        <div class="table-panel">
+          <el-table v-loading="budgetLoading" :data="budgetList" stripe>
             <el-table-column prop="name" label="预算名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="period" label="预算周期" width="120" align="center" />
-            <el-table-column label="起止日期" width="200" align="center">
+            <el-table-column label="起止日期" min-width="200" align="center">
               <template #default="{ row }">
                 {{ row.startDate?.slice(0, 10) }} ~ {{ row.endDate?.slice(0, 10) }}
               </template>
@@ -72,27 +61,32 @@
                 <span class="amount-remaining">¥{{ formatMoney(row.remainingAmount) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="使用率" width="180" align="center">
+            <el-table-column label="使用率" min-width="180" align="center">
               <template #default="{ row }">
-                <el-progress
-                  :percentage="row.usageRate"
-                  :color="getUsageColor(row.usageRate)"
-                  :stroke-width="14"
-                  :text-inside="true"
-                />
+                <div class="usage-cell">
+                  <el-progress
+                    :percentage="Math.min(Number(row.usageRate) || 0, 100)"
+                    :color="getUsageColor(Number(row.usageRate) || 0)"
+                    :stroke-width="14"
+                    :text-inside="true"
+                    :format="() => formatUsageRate(Number(row.usageRate) || 0)"
+                  />
+                  <el-tag v-if="Number(row.usageRate) > 100" type="danger" size="small" effect="plain">超支</el-tag>
+                </div>
               </template>
             </el-table-column>
             <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }">
                 <el-tag
-                  :type="budgetStatusTagType[row.status as BudgetStatus] || 'info'"
+                  :type="(budgetStatusTagType[row.status as BudgetStatus] || 'info') as any"
                   size="small"
+                  effect="plain"
                 >
                   {{ BudgetStatusLabels[row.status as BudgetStatus] || row.status }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" align="center" fixed="right">
+            <el-table-column label="操作" min-width="180">
               <template #default="{ row }">
                 <el-button
                   v-if="row.status === 'draft'"
@@ -107,26 +101,23 @@
             </el-table-column>
           </el-table>
 
-          <!-- 分页 -->
-          <div class="pagination-wrap">
+          <div v-if="budgetPagination.total > 0" class="pagination-wrap">
             <el-pagination
               v-model:current-page="budgetPagination.page"
               v-model:page-size="budgetPagination.pageSize"
               :total="budgetPagination.total"
               :page-sizes="[10, 20, 50]"
               layout="total, sizes, prev, pager, next, jumper"
-              background
               @size-change="fetchBudgetList"
               @current-change="fetchBudgetList"
             />
           </div>
-        </el-card>
+        </div>
       </el-tab-pane>
 
       <!-- ==================== 预警中心 ==================== -->
       <el-tab-pane label="预警中心" name="alert">
-        <!-- 预警汇总卡片 -->
-        <el-row :gutter="20" class="alert-summary">
+        <el-row :gutter="16" class="alert-summary">
           <el-col :xs="12" :sm="8" v-for="card in alertSummaryCards" :key="card.title">
             <el-card shadow="hover" class="summary-card" :class="card.cls">
               <div class="summary-content">
@@ -144,9 +135,8 @@
           </el-col>
         </el-row>
 
-        <!-- 预警表格 -->
-        <el-card shadow="hover">
-          <el-table v-loading="alertLoading" :data="alertList" border stripe>
+        <div class="table-panel">
+          <el-table v-loading="alertLoading" :data="alertList" stripe>
             <el-table-column prop="budgetName" label="预算名称" min-width="140" show-overflow-tooltip />
             <el-table-column prop="category" label="科目" width="120" align="center" />
             <el-table-column label="预算金额" width="130" align="right">
@@ -169,22 +159,22 @@
                 {{ row.alertThreshold }}%
               </template>
             </el-table-column>
-            <el-table-column prop="alertTime" label="预警时间" width="170" align="center" />
+            <el-table-column prop="alertTime" label="预警时间" min-width="160" align="center" />
             <el-table-column label="级别" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.level === 'danger' ? 'danger' : 'warning'" size="small">
+                <el-tag :type="row.level === 'danger' ? 'danger' : 'warning'" size="small" effect="plain">
                   {{ row.level === 'danger' ? '严重' : '警告' }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="状态" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.handled ? 'success' : 'danger'" size="small">
+                <el-tag :type="row.handled ? 'success' : 'danger'" size="small" effect="plain">
                   {{ row.handled ? '已处理' : '未处理' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="80" align="center" fixed="right">
+            <el-table-column label="操作" min-width="100">
               <template #default="{ row }">
                 <el-button
                   v-if="!row.handled"
@@ -199,7 +189,7 @@
               </template>
             </el-table-column>
           </el-table>
-        </el-card>
+        </div>
       </el-tab-pane>
     </el-tabs>
 
@@ -287,11 +277,25 @@
             >
               <el-form-item
                 :prop="`items.${index}.category`"
-                :rules="[{ required: true, message: '请输入科目名称', trigger: 'blur' }]"
+                :rules="[{ required: true, message: '请选择支出科目', trigger: 'change' }]"
                 label-width="0"
                 class="item-field"
               >
-                <el-input v-model="item.category" placeholder="科目名称" />
+                <el-select
+                  v-model="item.category"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="支出科目（与收支分类一致）"
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="cat in expenseCategoryOptions"
+                    :key="cat"
+                    :label="cat"
+                    :value="cat"
+                  />
+                </el-select>
               </el-form-item>
               <el-form-item
                 :prop="`items.${index}.budgetAmount`"
@@ -336,6 +340,13 @@
             <el-button type="primary" link icon="Plus" @click="addBudgetItem">
               添加科目
             </el-button>
+            <div class="items-sum-hint" :class="{ 'is-mismatch': itemsSumMismatch }">
+              科目合计 ¥{{ formatMoney(itemsBudgetSum) }}
+              <template v-if="budgetForm.totalBudget > 0">
+                ／ 总预算 ¥{{ formatMoney(budgetForm.totalBudget) }}
+                <span v-if="itemsSumMismatch">（须与总预算一致）</span>
+              </template>
+            </div>
           </div>
         </el-form-item>
       </el-form>
@@ -405,6 +416,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { validateFormAndScroll } from '@/utils/formScroll'
 import { extractPageRecords } from '@/utils/pagination'
+import PageHeader from '@/components/PageHeader.vue'
 import {
   getBudgetList,
   createBudget,
@@ -413,6 +425,7 @@ import {
   activateBudget,
   getBudgetAlerts,
   handleBudgetAlert,
+  getTransactionCategories,
 } from '@/api/finance'
 import type {
   BudgetRecord,
@@ -420,6 +433,7 @@ import type {
   BudgetAlert,
   BudgetItem,
   BudgetStatus,
+  TransactionCategory,
 } from '@/types/finance'
 import { BudgetStatusLabels } from '@/types/finance'
 
@@ -430,8 +444,13 @@ function formatMoney(value: number): string {
   return (value ?? 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-/** 使用率颜色阈值：<60% 绿色, 60-80% 橙色, >80% 红色 */
+function formatUsageRate(rate: number): string {
+  return `${Number(rate || 0).toFixed(1)}%`
+}
+
+/** 使用率颜色：含超支 */
 function getUsageColor(rate: number): string {
+  if (rate > 100) return '#f56c6c'
   if (rate > 80) return '#f56c6c'
   if (rate > 60) return '#e6a23c'
   return '#67c23a'
@@ -502,13 +521,37 @@ const editBudgetId = ref<number>(0)
 const budgetSubmitting = ref(false)
 const budgetFormRef = ref<FormInstance>()
 
-const periodOptions = [
-  { label: '2024年Q1', value: '2024-Q1' },
-  { label: '2024年Q2', value: '2024-Q2' },
-  { label: '2024年Q3', value: '2024-Q3' },
-  { label: '2024年Q4', value: '2024-Q4' },
-  { label: '2024年全年', value: '2024-全年' },
-]
+const periodOptions = computed(() => {
+  const year = new Date().getFullYear()
+  const years = [year, year - 1]
+  const opts: { label: string; value: string }[] = []
+  for (const y of years) {
+    for (let q = 1; q <= 4; q++) {
+      opts.push({ label: `${y}年Q${q}`, value: `${y}-Q${q}` })
+    }
+    opts.push({ label: `${y}年全年`, value: `${y}-全年` })
+  }
+  // 编辑旧数据时保留不在列表中的周期
+  if (budgetForm.period && !opts.some((o) => o.value === budgetForm.period)) {
+    opts.unshift({ label: budgetForm.period, value: budgetForm.period })
+  }
+  return opts
+})
+
+const expenseCategoryOptions = ref<string[]>([])
+
+async function loadExpenseCategories() {
+  try {
+    const res = await getTransactionCategories('expense')
+    const list = Array.isArray((res as any).data) ? ((res as any).data as TransactionCategory[]) : []
+    expenseCategoryOptions.value = list
+      .filter((c) => !c.parentId)
+      .map((c) => c.name)
+      .filter(Boolean)
+  } catch {
+    expenseCategoryOptions.value = ['人力成本', '运营费用', '采购成本', '营销推广', '其他支出']
+  }
+}
 
 const departmentOptions = [
   '技术部',
@@ -534,6 +577,15 @@ const budgetForm = reactive({
   totalBudget: 0,
   departments: [] as string[],
   items: [{ category: '', budgetAmount: 0, alertThreshold: 80 }] as BudgetFormItem[],
+})
+
+const itemsBudgetSum = computed(() =>
+  budgetForm.items.reduce((s, item) => s + (Number(item.budgetAmount) || 0), 0),
+)
+
+const itemsSumMismatch = computed(() => {
+  if (!budgetForm.totalBudget || budgetForm.totalBudget <= 0) return false
+  return Math.abs(itemsBudgetSum.value - Number(budgetForm.totalBudget)) > 0.01
 })
 
 const budgetFormRules: FormRules = {
@@ -595,7 +647,11 @@ function handleEditBudget(row: BudgetRecord) {
 }
 
 async function handleDeleteBudget(row: BudgetRecord) {
-  await ElMessageBox.confirm(`确定删除预算「${row.name}」？此操作不可恢复`, '删除确认', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确定删除预算「${row.name}」？此操作不可恢复`, '删除确认', { type: 'warning' })
+  } catch {
+    return
+  }
   try {
     await deleteBudget(row.id)
     ElMessage.success('删除成功')
@@ -606,7 +662,11 @@ async function handleDeleteBudget(row: BudgetRecord) {
 }
 
 async function handleActivateBudget(row: BudgetRecord) {
-  await ElMessageBox.confirm(`确定启用预算「${row.name}」？启用后将开始统计执行率`, '启用确认', { type: 'info' })
+  try {
+    await ElMessageBox.confirm(`确定启用预算「${row.name}」？启用后将开始统计执行率`, '启用确认', { type: 'info' })
+  } catch {
+    return
+  }
   try {
     await activateBudget(row.id)
     ElMessage.success('预算已启用')
@@ -642,6 +702,17 @@ async function submitBudgetForm() {
   const itemsValid = budgetForm.items.every((item) => item.category && item.budgetAmount > 0)
   if (!itemsValid) {
     ElMessage.warning('请完善预算科目明细')
+    return
+  }
+
+  const categories = budgetForm.items.map((i) => i.category.trim())
+  if (new Set(categories).size !== categories.length) {
+    ElMessage.warning('科目名称不能重复')
+    return
+  }
+
+  if (itemsSumMismatch.value) {
+    ElMessage.warning(`科目合计（¥${formatMoney(itemsBudgetSum.value)}）须与总预算（¥${formatMoney(budgetForm.totalBudget)}）一致`)
     return
   }
 
@@ -770,50 +841,64 @@ watch(activeTab, (val) => {
 })
 
 onMounted(() => {
+  loadExpenseCategories()
   fetchBudgetList()
 })
 </script>
 
 <style lang="scss" scoped>
 .budget-page {
-  padding: 20px;
-
-  .page-header {
-    margin-bottom: 20px;
-
-    .header-info {
-      .header-title {
-        font-size: 22px;
-        font-weight: 700;
-        color: #0d1b2e;
-        margin: 0 0 4px;
-      }
-
-      .header-desc {
-        font-size: 13px;
-        color: #6b7b93;
-        margin: 0;
-      }
-    }
-  }
-
   .main-tabs {
     :deep(.el-tabs__header) {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
   }
 
-  // 工具栏
   .toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
     flex-wrap: wrap;
-    gap: 12px;
   }
 
-  // 金额样式
+  .toolbar-input {
+    width: 180px;
+  }
+
+  .toolbar-select {
+    width: 150px;
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .usage-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .items-sum-hint {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+
+    &.is-mismatch {
+      color: var(--danger);
+      font-weight: 600;
+    }
+  }
+
+  .table-panel {
+    background: #fff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
   .amount-text {
     color: #0d1b2e;
     font-weight: 600;
@@ -838,20 +923,18 @@ onMounted(() => {
     color: var(--text-muted);
   }
 
-  // 分页
   .pagination-wrap {
     display: flex;
     justify-content: flex-end;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
-  // 预警汇总卡片
   .alert-summary {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 
     .summary-card {
       margin-bottom: 12px;
-      border-radius: 14px;
+      border-radius: 12px;
 
       .summary-content {
         display: flex;
@@ -891,7 +974,6 @@ onMounted(() => {
     }
   }
 
-  // 预算科目明细
   .budget-items-wrap {
     width: 100%;
 
@@ -932,7 +1014,6 @@ onMounted(() => {
     }
   }
 
-  // 预警详情
   .alert-detail {
     :deep(.el-descriptions) {
       .el-descriptions__label {

@@ -1,7 +1,10 @@
 package com.miniprogram.controller;
 
 import com.miniprogram.common.R;
+import com.miniprogram.dto.CheckInScanResultVO;
+import com.miniprogram.dto.ScanRequest;
 import com.miniprogram.entity.ActivityCheckIn;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ActivityCheckInService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +37,13 @@ public class AdminActivityCheckInController {
                                              @RequestParam String verifyMethod,
                                              @RequestParam Long verifiedBy) {
         return R.ok(activityCheckInService.verifyCheckIn(checkInId, verifyMethod, verifiedBy));
+    }
+
+    @PostMapping("/scan")
+    @Operation(summary = "扫码核销")
+    public R<CheckInScanResultVO> scan(@RequestBody ScanRequest req) {
+        Long adminId = SecurityUtils.getRequiredCurrentUserId();
+        return R.ok(activityCheckInService.scanVerify(req.getRaw(), req.getActivityId(), adminId));
     }
 
     @GetMapping("/{activityId}/stats")

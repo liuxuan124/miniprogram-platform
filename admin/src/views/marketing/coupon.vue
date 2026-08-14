@@ -83,6 +83,11 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="领取人群" width="130" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">{{ claimAudienceLabel(row) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="领取/总量" width="120" align="center">
           <template #default="{ row }">
             {{ row.usedCount }} / {{ row.totalCount === -1 ? '不限' : row.totalCount }}
@@ -217,6 +222,39 @@
                   :key="key"
                   :label="label"
                   :value="key"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="领取人群">
+              <el-select v-model="formData.claimAudience" style="width: 100%">
+                <el-option
+                  v-for="(label, key) in CouponClaimAudienceLabels"
+                  :key="key"
+                  :label="label"
+                  :value="key"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col v-if="formData.claimAudience === CouponClaimAudience.Levels" :span="12">
+            <el-form-item label="可领等级" required>
+              <el-select
+                v-model="formData.claimLevelIds"
+                multiple
+                filterable
+                placeholder="选择会员等级"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="lv in claimLevelOptions"
+                  :key="lv.id"
+                  :label="lv.name + (lv.hasExclusive ? '' : '（未开专属券权益）')"
+                  :value="lv.id"
                 />
               </el-select>
             </el-form-item>
@@ -368,19 +406,23 @@ import {
   disableCoupon,
   getUserCouponList,
 } from '@/api/coupon'
+import { getMemberLevelList } from '@/api/member'
 import type { CouponRecord, CreateCouponParams, CouponListParams } from '@/types/coupon'
 import {
   CouponType,
   CouponStatus,
   CouponScope,
+  CouponClaimAudience,
   CouponTypeLabels,
   CouponStatusLabels,
   CouponStatusTagType,
   CouponScopeLabels,
+  CouponClaimAudienceLabels,
   UserCouponStatusLabels,
   UserCouponStatusTagType,
 } from '@/types/coupon'
 import type { UserCouponRecord } from '@/types/coupon'
+import { MemberBenefitCode } from '@/types/member'
 
 /** 列表数据 */
 const couponList = ref<CouponRecord[]>([])
@@ -406,6 +448,10 @@ function normalizeCoupon(raw: any): CouponRecord {
     status: (raw?.status || CouponStatus.Draft) as CouponStatus,
     scope: (raw?.scope || CouponScope.All) as CouponScope,
     scopeIds: Array.isArray(raw?.scopeIds ?? raw?.scope_ids) ? (raw.scopeIds ?? raw.scope_ids) : [],
+    claimAudience: (raw?.claimAudience ?? raw?.claim_audience ?? CouponClaimAudience.All) as CouponClaimAudience,
+    claimLevelIds: Array.isArray(raw?.claimLevelIds ?? raw?.claim_level_ids)
+      ? (raw.claimLevelIds ?? raw.claim_level_ids)
+      : [],
     value: Number(raw?.value ?? raw?.discount_value ?? 0),
     minOrderAmount: Number(raw?.minOrderAmount ?? raw?.min_amount ?? 0),
     totalCount: Number(raw?.totalCount ?? raw?.total_count ?? -1),
@@ -420,6 +466,29 @@ function normalizeCoupon(raw: any): CouponRecord {
   }
 }
 
+function claimAudienceLabel(row: CouponRecord) {
+  const key = (row.claimAudience || CouponClaimAudience.All) as CouponClaimAudience
+  if (key === CouponClaimAudience.Levels && row.claimLevelIds?.length) {
+    return `指定等级(${row.claimLevelIds.length})`
+  }
+  return CouponClaimAudienceLabels[key] || key
+}
+
+const claimLevelOptions = ref<{ id: number; name: string; hasExclusive: boolean }[]>([])
+
+async function fetchClaimLevels() {
+  try {
+    const res = await getMemberLevelList()
+    claimLevelOptions.value = (res.data || []).map((lv: any) => ({
+      id: Number(lv.id),
+      name: lv.name,
+      hasExclusive: Array.isArray(lv.benefits) && lv.benefits.includes(MemberBenefitCode.ExclusiveCoupon),
+    }))
+  } catch {
+    claimLevelOptions.value = []
+  }
+}
+
 function formatDateTime(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   const y = date.getFullYear()
@@ -428,14 +497,16 @@ function formatDateTime(date: Date): string {
   const hh = pad(date.getHours())
   const mm = pad(date.getMinutes())
   const ss = pad(date.getSeconds())
-  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`
 }
 
 function toApiDateTime(value?: string): string | undefined {
   if (!value) return undefined
   const text = String(value).trim()
   if (!text) return undefined
-  return text.includes('T') ? text : text.replace(' ', 'T')
+  // 统一为 yyyy-MM-dd HH:mm:ss，兼容后端 LocalDateTime
+  const normalized = text.includes('T') ? text.replace('T', ' ') : text
+  return normalized.length === 16 ? `${normalized}:00` : normalized
 }
 
 /** 获取优惠券列表 */
@@ -498,6 +569,8 @@ const formData = reactive<CreateCouponParams>({
   type: CouponType.Fixed,
   scope: CouponScope.All,
   scopeIds: [],
+  claimAudience: CouponClaimAudience.All,
+  claimLevelIds: [],
   value: 10,
   minOrderAmount: 0,
   totalCount: -1,
@@ -532,6 +605,7 @@ function handleCreate() {
   isEdit.value = false
   editId.value = 0
   validityType.value = 'fixed'
+  fetchClaimLevels()
   dialogVisible.value = true
 }
 
@@ -543,6 +617,8 @@ function handleEdit(row: CouponRecord) {
   formData.type = row.type
   formData.scope = row.scope
   formData.scopeIds = row.scopeIds || []
+  formData.claimAudience = (row.claimAudience as CouponClaimAudience) || CouponClaimAudience.All
+  formData.claimLevelIds = row.claimLevelIds || []
   formData.value = row.value
   formData.minOrderAmount = row.minOrderAmount
   formData.totalCount = row.totalCount
@@ -563,6 +639,7 @@ function handleEdit(row: CouponRecord) {
     dateRange.value = []
   }
 
+  fetchClaimLevels()
   dialogVisible.value = true
 }
 
@@ -596,6 +673,8 @@ function resetForm() {
   formData.type = CouponType.Fixed
   formData.scope = CouponScope.All
   formData.scopeIds = []
+  formData.claimAudience = CouponClaimAudience.All
+  formData.claimLevelIds = []
   formData.value = 10
   formData.minOrderAmount = 0
   formData.totalCount = -1
@@ -633,6 +712,11 @@ async function handleSubmit() {
     formData.endTime = undefined
   }
 
+  if (formData.claimAudience === CouponClaimAudience.Levels && !(formData.claimLevelIds || []).length) {
+    ElMessage.warning('请选择可领取的会员等级')
+    return
+  }
+
   const payload: any = {
     name: formData.name,
     type: formData.type,
@@ -642,6 +726,9 @@ async function handleSubmit() {
     perUserLimit: formData.perUserLimit,
     scope: formData.scope,
     scopeIds: formData.scopeIds,
+    claimAudience: formData.claimAudience || CouponClaimAudience.All,
+    claimLevelIds:
+      formData.claimAudience === CouponClaimAudience.Levels ? formData.claimLevelIds || [] : [],
     description: formData.description,
   }
 

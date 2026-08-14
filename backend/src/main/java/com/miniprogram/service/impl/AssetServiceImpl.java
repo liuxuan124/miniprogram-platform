@@ -34,7 +34,11 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
     public PageResult<AssetVO> listAssets(String type, Long groupId, String keyword, Long current, Long size) {
         LambdaQueryWrapper<Asset> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StringUtils.hasText(type), Asset::getType, type);
-        wrapper.eq(groupId != null, Asset::getGroupId, groupId);
+        if (groupId != null && groupId == -1L) {
+            wrapper.and(w -> w.isNull(Asset::getGroupId).or().eq(Asset::getGroupId, 0L));
+        } else if (groupId != null) {
+            wrapper.eq(Asset::getGroupId, groupId);
+        }
         wrapper.like(StringUtils.hasText(keyword), Asset::getName, keyword);
         wrapper.orderByDesc(Asset::getCreatedAt);
 
@@ -87,6 +91,10 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
     @Override
     public PageResult<AssetGroupVO> listGroups(Long current, Long size) {
         List<AssetGroupVO> allGroups = assetGroupService.listGroups();
+        for (AssetGroupVO vo : allGroups) {
+            long count = this.count(new LambdaQueryWrapper<Asset>().eq(Asset::getGroupId, vo.getId()));
+            vo.setCount(count);
+        }
         // 简单分页
         int total = allGroups.size();
         int fromIndex = (int) Math.min((current - 1) * size, total);

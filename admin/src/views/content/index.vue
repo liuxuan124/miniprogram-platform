@@ -33,9 +33,16 @@
         <el-option label="微信公众号" value="微信公众号" />
         <el-option label="原创" value="原创" />
       </el-select>
+      <el-button @click="handleSearch">搜索</el-button>
       <div class="toolbar-spacer" />
       <el-button @click="categoryModalVisible = true">分类</el-button>
       <el-button @click="syncDialogVisible = true">同步导入</el-button>
+      <el-button :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchPublish">
+        批量上架{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
+      </el-button>
+      <el-button :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchUnpublish">
+        批量下架{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
+      </el-button>
       <el-button type="primary" @click="handleCreate">+ 新建</el-button>
     </div>
 
@@ -51,7 +58,14 @@
           <el-button type="primary" @click="handleCreate">+ 新建</el-button>
         </template>
 
-      <el-table :data="filteredRows" stripe>
+      <el-table
+        ref="tableRef"
+        :data="filteredRows"
+        stripe
+        row-key="id"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="48" reserve-selection />
         <el-table-column label="标题" min-width="280">
           <template #default="{ row }">
             <div class="title-cell">
@@ -87,7 +101,7 @@
         <el-table-column label="阅读" width="100" align="center">
           <template #default="{ row }">{{ row.viewCount ?? '—' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button link size="small" @click="handleTogglePublish(row)">
@@ -96,6 +110,7 @@
             <el-button link size="small" @click="toggleRecommend(row)">
               {{ isRecommended(row) ? '取消推荐' : '设为推荐' }}
             </el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -115,7 +130,7 @@
     </div>
 
     <el-dialog v-model="categoryModalVisible" title="内容分类管理" width="760px" destroy-on-close>
-      <div class="category-tip">支持二级分类嵌套，可拖拽调整显示顺序：</div>
+      <div class="category-tip">支持二级分类嵌套。排序请在「分类管理」页调整排序值。</div>
       <div class="category-list" v-loading="categoryLoading">
         <div v-for="item in categoryTree" :key="item.id" class="category-item">
           <div class="category-row">
@@ -208,15 +223,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInstance, FormRules, TableInstance } from 'element-plus'
 import ListStateWrap from '@/components/ListStateWrap.vue'
 import {
   getContentList,
   publishContent,
   unpublishContent,
+  deleteContent,
+  updateContent,
   getCategoryList,
   createCategory,
   updateCategory,
@@ -238,6 +255,8 @@ interface ContentRow {
   typeValue: 'article' | 'rich' | 'video'
   viewCount: number | null
   recommended: boolean
+  tags: string[]
+  sortOrder: number
 }
 
 interface CategoryNode {
@@ -252,10 +271,13 @@ interface CategoryNode {
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
+const batchLoading = ref(false)
+const tableRef = ref<TableInstance>()
+const selectedRows = ref<ContentRow[]>([])
 const categoryLoading = ref(false)
 const rows = ref<ContentRow[]>([])
 const categoryTree = ref<CategoryNode[]>([])
-const recommendMap = reactive<Record<number, boolean>>({})
+const RECOMMEND_TAG = '推荐'
 
 const searchForm = reactive({
   keyword: '',
@@ -302,10 +324,25 @@ function inferType(raw: RawRecord): { typeLabel: '文章' | '图文' | '视频';
   return { typeLabel: '文章', typeValue: 'article' }
 }
 
+function parseTags(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map((t) => String(t)).filter(Boolean)
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed.map((t) => String(t)).filter(Boolean)
+    } catch {
+      return raw.split(',').map((t) => t.trim()).filter(Boolean)
+    }
+  }
+  return []
+}
+
 function normalizeArticle(raw: RawRecord): ContentRow {
   const type = inferType(raw)
-  const recommended = Boolean(
-    raw.recommended ?? raw.recommend ?? raw.isRecommend ?? raw.is_recommend ?? raw.rec ?? false
+  const tags = parseTags(raw.tags)
+  const sortOrder = Number(raw.sortOrder ?? raw.sort ?? 0)
+  const recommended = tags.includes(RECOMMEND_TAG) || sortOrder < 0 || Boolean(
+    raw.recommended ?? raw.recommend ?? raw.isRecommend ?? raw.is_recommend ?? false
   )
   const viewRaw = raw.viewCount ?? raw.view_count ?? raw.views
   return {
@@ -319,6 +356,8 @@ function normalizeArticle(raw: RawRecord): ContentRow {
     typeValue: type.typeValue,
     viewCount: Number.isFinite(Number(viewRaw)) ? Number(viewRaw) : null,
     recommended,
+    tags,
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
   }
 }
 
@@ -351,13 +390,10 @@ const flatCategoryOptions = computed(() => {
 })
 
 const filteredRows = computed(() => {
+  // 类型靠正文推断，服务端无字段，仅在本页结果内二次过滤
   return rows.value.filter((row) => {
-    const kw = searchForm.keyword.trim()
-    const hitKw = !kw || row.title.includes(kw)
     const hitType = !searchForm.type || row.typeValue === searchForm.type
-    const hitSource = !searchForm.source || row.source === searchForm.source
-    const hitCategory = !searchForm.categoryId || row.categoryId === searchForm.categoryId
-    return hitKw && hitType && hitSource && hitCategory
+    return hitType
   })
 })
 
@@ -372,18 +408,33 @@ async function fetchList() {
       keyword: searchForm.keyword || undefined,
       categoryId: searchForm.categoryId,
       category_id: searchForm.categoryId,
+      source: searchForm.source || undefined,
     }
     const res = await getContentList(params as any)
     const data = (res as any).data || {}
     const list = Array.isArray(data) ? data : (data.records || data.list || data.items || [])
     rows.value = Array.isArray(list) ? list.map((item: RawRecord) => normalizeArticle(item)) : []
-    pagination.total = Number(data.total || rows.value.length || 0)
+    const serverTotal = Number(data.total || rows.value.length || 0)
+    // 有类型筛选时，总数按本页过滤结果估算展示（避免与服务端不一致误导）
+    pagination.total = searchForm.type ? filteredRows.value.length : serverTotal
+    clearSelection()
   } catch {
     rows.value = []
     pagination.total = 0
+    clearSelection()
+    ElMessage.error('加载内容列表失败')
   } finally {
     loading.value = false
   }
+}
+
+function handleSelectionChange(selection: ContentRow[]) {
+  selectedRows.value = selection
+}
+
+function clearSelection() {
+  selectedRows.value = []
+  nextTick(() => tableRef.value?.clearSelection())
 }
 
 async function fetchCategories() {
@@ -447,6 +498,7 @@ async function handleSyncImport() {
       }
       const source = String(item.source || syncForm.defaultSource || '小红书').trim()
       const summary = String(item.summary || item.desc || title).slice(0, 512)
+      const defaultCategoryId = flatCategoryOptions.value[0]?.id
       try {
         const res = await createContent({
           title: title.slice(0, 128),
@@ -458,7 +510,7 @@ async function handleSyncImport() {
             `<h2>${title}</h2><p><strong>来源</strong>：${source}</p><p>${summary}</p>`,
           coverImage: item.coverImage || item.cover || '',
           tags: Array.isArray(item.tags) ? item.tags : [source],
-          categoryId: item.categoryId,
+          categoryId: item.categoryId || defaultCategoryId,
           sortOrder: Number(item.sortOrder || 0),
         } as any)
         const id = Number((res as any)?.data?.id)
@@ -501,27 +553,116 @@ function statusTagType(status: ContentStatus): 'success' | 'warning' | 'info' {
 }
 
 async function handleTogglePublish(row: ContentRow) {
-  if (row.status === 'published') {
-    await ElMessageBox.confirm(`确定下架「${row.title}」？`, '下架确认')
-    await unpublishContent(row.id)
-    ElMessage.success('已下架')
-  } else {
-    await ElMessageBox.confirm(`确定上架「${row.title}」？`, '上架确认')
-    await publishContent(row.id)
-    ElMessage.success('已上架')
+  try {
+    if (row.status === 'published') {
+      await ElMessageBox.confirm(`确定下架「${row.title}」？`, '下架确认')
+      await unpublishContent(row.id)
+      ElMessage.success('已下架')
+    } else {
+      await ElMessageBox.confirm(`确定上架「${row.title}」？`, '上架确认')
+      await publishContent(row.id)
+      ElMessage.success('已上架')
+    }
+    fetchList()
+  } catch (err: any) {
+    if (err === 'cancel' || err === 'close') return
+    ElMessage.error(err?.message || '操作失败')
   }
-  fetchList()
+}
+
+async function runBatchStatusChange(action: 'publish' | 'unpublish') {
+  const targets =
+    action === 'publish'
+      ? selectedRows.value.filter((row) => row.status !== 'published')
+      : selectedRows.value.filter((row) => row.status === 'published')
+
+  if (!targets.length) {
+    ElMessage.warning(action === 'publish' ? '所选内容均已上架' : '所选内容均未上架，无需下架')
+    return
+  }
+
+  const label = action === 'publish' ? '上架' : '下架'
+  try {
+    await ElMessageBox.confirm(
+      `将对 ${targets.length} 条内容执行批量${label}，是否继续？`,
+      `批量${label}确认`,
+    )
+  } catch {
+    return
+  }
+
+  batchLoading.value = true
+  let ok = 0
+  let fail = 0
+  try {
+    for (const row of targets) {
+      try {
+        if (action === 'publish') await publishContent(row.id)
+        else await unpublishContent(row.id)
+        ok += 1
+      } catch {
+        fail += 1
+      }
+    }
+    if (fail === 0) ElMessage.success(`已成功${label} ${ok} 条`)
+    else ElMessage.warning(`${label}完成：成功 ${ok} 条，失败 ${fail} 条`)
+    await fetchList()
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+function handleBatchPublish() {
+  if (!selectedRows.value.length) {
+    ElMessage.warning('请先勾选要上架的内容')
+    return
+  }
+  return runBatchStatusChange('publish')
+}
+
+function handleBatchUnpublish() {
+  if (!selectedRows.value.length) {
+    ElMessage.warning('请先勾选要下架的内容')
+    return
+  }
+  return runBatchStatusChange('unpublish')
 }
 
 function isRecommended(row: ContentRow): boolean {
-  if (Object.prototype.hasOwnProperty.call(recommendMap, row.id)) return recommendMap[row.id]
   return row.recommended
 }
 
-function toggleRecommend(row: ContentRow) {
-  const current = isRecommended(row)
-  recommendMap[row.id] = !current
-  ElMessage.success(current ? '已取消推荐' : '已设为推荐')
+async function toggleRecommend(row: ContentRow) {
+  const next = !isRecommended(row)
+  const tags = [...(row.tags || [])].filter((t) => t !== RECOMMEND_TAG)
+  if (next) tags.push(RECOMMEND_TAG)
+  try {
+    await updateContent(row.id, {
+      title: row.title,
+      categoryId: row.categoryId,
+      source: row.source || undefined,
+      tags,
+      sortOrder: next ? -1 : Math.max(row.sortOrder, 0),
+    } as any)
+    row.recommended = next
+    row.tags = tags
+    row.sortOrder = next ? -1 : Math.max(row.sortOrder, 0)
+    ElMessage.success(next ? '已设为推荐' : '已取消推荐')
+  } catch (err: any) {
+    ElMessage.error(err?.message || '更新推荐状态失败')
+  }
+}
+
+async function handleDelete(row: ContentRow) {
+  try {
+    await ElMessageBox.confirm(`确定删除「${row.title}」？删除后不可恢复。`, '删除确认', { type: 'warning' })
+    await deleteContent(row.id)
+    ElMessage.success('已删除')
+    fetchList()
+  } catch (err: any) {
+    if (err === 'cancel' || err === 'close') return
+    ElMessage.error(err?.message || '删除失败')
+  }
 }
 
 const categoryModalVisible = ref(false)
@@ -598,6 +739,14 @@ onActivated(async () => {
   await fetchCategories()
   await fetchList()
 })
+
+watch(
+  () => [searchForm.categoryId, searchForm.source, searchForm.type] as const,
+  () => {
+    pagination.page = 1
+    fetchList()
+  }
+)
 
 watch(
   () => route.query.refresh,

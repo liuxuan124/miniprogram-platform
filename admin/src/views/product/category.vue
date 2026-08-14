@@ -18,6 +18,20 @@
       >
         <el-table-column prop="name" label="分类名称" min-width="200" />
         <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
+        <el-table-column label="允许类型" min-width="180">
+          <template #default="{ row }">
+            <el-tag
+              v-for="t in (row.allowedProductTypes || [])"
+              :key="t"
+              size="small"
+              effect="plain"
+              style="margin-right: 4px"
+            >
+              {{ typeLabel(t) }}
+            </el-tag>
+            <span v-if="!(row.allowedProductTypes || []).length" class="muted">全部</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
@@ -98,6 +112,14 @@
             <div class="field-tip">用于后台和小程序分类展示；不需要图标时可留空。</div>
           </div>
         </el-form-item>
+        <el-form-item label="允许商品类型" prop="allowedProductTypes">
+          <el-checkbox-group v-model="formData.allowedProductTypes">
+            <el-checkbox value="physical">实物商品</el-checkbox>
+            <el-checkbox value="digital">数字商品</el-checkbox>
+            <el-checkbox value="service">服务商品</el-checkbox>
+          </el-checkbox-group>
+          <div class="field-tip">新建商品时只能从这里勾选的类型中选择；可多选（如礼盒类同时支持实物+数字）。</div>
+        </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="formData.status">
             <el-radio :value="1">启用</el-radio>
@@ -139,18 +161,21 @@ const formData = ref<{
   name: string
   sortOrder: number
   icon: string
+  allowedProductTypes: string[]
   status: number
 }>({
   parentId: null,
   name: '',
   sortOrder: 0,
   icon: '',
+  allowedProductTypes: ['physical', 'digital', 'service'],
   status: 1,
 })
 
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
   sortOrder: [{ required: true, message: '请输入排序值', trigger: 'change' }],
+  allowedProductTypes: [{ type: 'array', required: true, min: 1, message: '请至少选择一种商品类型', trigger: 'change' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
 }
 
@@ -192,17 +217,33 @@ async function fetchCategories() {
 }
 
 function normalizeCategory(raw: any): ProductCategory {
+  const sortOrder = Number(raw.sortOrder ?? raw.sort ?? 0)
+  const createTime = raw.createTime ?? raw.created_at ?? raw.createdAt ?? ''
+  const allowed = Array.isArray(raw.allowedProductTypes)
+    ? raw.allowedProductTypes
+    : (typeof raw.allowedProductTypes === 'string'
+      ? (() => { try { return JSON.parse(raw.allowedProductTypes) } catch { return [] } })()
+      : [])
   return {
     id: Number(raw.id),
     name: raw.name || '',
     parent_id: (raw.parentId ?? raw.parent_id ?? 0) === 0 ? null : Number(raw.parentId ?? raw.parent_id),
-    sort: Number(raw.sortOrder ?? raw.sort ?? 0),
+    sort: sortOrder,
+    sortOrder,
     icon: raw.icon || '',
+    allowedProductTypes: allowed.length ? allowed : ['physical', 'digital', 'service'],
     status: Number(raw.status ?? 1),
-    created_at: raw.createTime ?? raw.created_at ?? '',
+    created_at: createTime,
+    createTime,
     updated_at: raw.updateTime ?? raw.updated_at ?? '',
     children: Array.isArray(raw.children) ? raw.children.map((c: any) => normalizeCategory(c)) : [],
-  }
+  } as ProductCategory
+}
+
+function typeLabel(t: string) {
+  if (t === 'digital') return '数字'
+  if (t === 'service') return '服务'
+  return '实物'
 }
 
 /** 新增 */
@@ -213,6 +254,7 @@ function handleAdd(parent: ProductCategory | null) {
     name: '',
     sortOrder: 0,
     icon: '',
+    allowedProductTypes: ['physical', 'digital', 'service'],
     status: 1,
   }
   dialogVisible.value = true
@@ -226,6 +268,7 @@ function handleEdit(row: ProductCategory) {
     name: row.name,
     sortOrder: row.sort,
     icon: row.icon || '',
+    allowedProductTypes: [...((row as any).allowedProductTypes || ['physical', 'digital', 'service'])],
     status: row.status,
   }
   dialogVisible.value = true
@@ -245,7 +288,8 @@ async function handleSubmit() {
         sort: formData.value.sortOrder,
         icon: formData.value.icon,
         status: formData.value.status,
-      }
+        allowedProductTypes: formData.value.allowedProductTypes,
+      } as any
       await updateCategory(editingId.value, params)
       ElMessage.success('更新成功')
     } else {
@@ -255,7 +299,8 @@ async function handleSubmit() {
         sort: formData.value.sortOrder,
         icon: formData.value.icon,
         status: formData.value.status,
-      }
+        allowedProductTypes: formData.value.allowedProductTypes,
+      } as any
       await createCategory(params)
       ElMessage.success('创建成功')
     }

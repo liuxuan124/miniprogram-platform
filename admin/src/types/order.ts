@@ -54,6 +54,7 @@ export interface OrderRecord {
   order_no: string
   user_id: number
   user_nickname?: string
+  user_phone?: string
   user_avatar?: string
   items: OrderItem[]
   total_amount: number
@@ -156,8 +157,14 @@ export interface RefundListParams {
   end_date?: string
 }
 
-/** 订单统计（订单列表页顶部卡片，真实数据） */
+/** 订单统计（订单列表页顶部看板，真实数据） */
 export interface OrderStatistics {
+  todayOrderCount: number
+  todaySalesAmount: number
+  pendingPaymentCount: number
+  pendingShipCount: number
+  shippedCount: number
+  refundingCount: number
   monthIncome: number
   lastMonthIncome: number
   /** 环比(%)，previous 为 0 时为 null */

@@ -50,4 +50,14 @@ public interface ActivityService extends BaseService<Activity> {
      * 审核报名
      */
     ActivitySignupVO approveSignup(Long id, Boolean approved);
+
+    /**
+     * 报名通过时占用名额
+     */
+    void incrementSigned(Long activityId);
+
+    /**
+     * 拒绝/取消时释放名额，不低于 0
+     */
+    void decrementSigned(Long activityId);
 }

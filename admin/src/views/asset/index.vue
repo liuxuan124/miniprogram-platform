@@ -11,7 +11,9 @@
         <el-button text :icon="Link" @click="handleSyncFromWechat" :loading="syncing">
           从微信同步
         </el-button>
-        <el-button type="primary" :icon="Upload" @click="openUploadDialog">上传素材</el-button>
+        <el-button type="primary" native-type="button" :icon="Upload" @click.stop="openUploadDialog">
+          上传素材
+        </el-button>
       </div>
     </header>
 
@@ -46,7 +48,7 @@
           >
             <span class="sidebar-icon">📁</span>
             <span class="sidebar-label">全部素材</span>
-            <span class="sidebar-count">{{ total }}</span>
+            <span class="sidebar-count">{{ allTotal }}</span>
           </button>
           <button
             class="sidebar-item"
@@ -55,7 +57,7 @@
           >
             <span class="sidebar-icon">📂</span>
             <span class="sidebar-label">未分组</span>
-            <span class="sidebar-count">{{ ungroupedCount }}</span>
+            <span class="sidebar-count">{{ ungroupedTotal }}</span>
           </button>
           <div class="sidebar-divider" />
           <button
@@ -160,9 +162,20 @@
             </div>
           </template>
 
-          <el-empty v-else description="暂无素材" :image-size="160">
-            <el-button type="primary" :icon="Upload" @click="openUploadDialog">上传第一批素材</el-button>
-          </el-empty>
+          <div
+            v-else
+            class="empty-drop"
+            :class="{ 'drag-over': dragOver }"
+            @drop.prevent="handleDrop"
+            @dragover.prevent="dragOver = true"
+            @dragleave.prevent="dragOver = false"
+          >
+            <el-empty description="暂无素材" :image-size="160">
+              <el-button type="primary" native-type="button" :icon="Upload" @click.stop="openUploadDialog">
+                上传第一批素材
+              </el-button>
+            </el-empty>
+          </div>
 
           <div class="material-footer">
             <span class="footer-info">{{ rangeStart }}-{{ rangeEnd }} / 共 {{ total }} 个</span>
@@ -252,16 +265,6 @@
       </main>
     </div>
 
-    <!-- 拖拽上传浮层 -->
-    <transition name="fade">
-      <div v-if="dragOver" class="drop-overlay">
-        <div class="drop-content">
-          <Upload class="drop-icon" />
-          <span class="drop-text">释放以上传文件</span>
-        </div>
-      </div>
-    </transition>
-
     <!-- 重命名弹窗 -->
     <el-dialog v-model="renameVisible" title="重命名" width="420px" :close-on-click-modal="false">
       <el-input v-model="renameText" ref="renameInputRef" maxlength="60" show-word-limit @keyup.enter="submitRename" />
@@ -290,11 +293,12 @@
       @changed="refreshGroups"
     />
 
-    <!-- 上传 -->
+    <!-- 上传：挂到 body，避免被页面层叠/overflow 挡住 -->
     <MaterialUpload
       v-model:visible="uploadVisible"
       :active-type="activeType"
       :groups="groups"
+      :default-group-id="uploadDefaultGroupId"
       @uploaded="refreshAll"
     />
 
@@ -316,7 +320,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onActivated, onMounted, ref, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Delete, EditPen, Grid, Link, List, Plus, Refresh, Search, Upload,
@@ -359,6 +363,8 @@ const selectedIds = ref<Set<number>>(new Set())
 const records = ref<MaterialRecord[]>([])
 const groups = ref<MaterialGroup[]>([])
 const total = ref(0)
+const allTotal = ref(0)
+const ungroupedTotal = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(48)
 const loading = ref(false)
@@ -377,6 +383,7 @@ const moveTargetGroupId = ref<number | undefined>()
 const moving = ref(false)
 
 const uploadVisible = ref(false)
+const uploadDefaultGroupId = ref<number | undefined>()
 const previewVisible = ref(false)
 const previewRecord = ref<MaterialRecord | null>(null)
 
@@ -385,17 +392,23 @@ const editTarget = ref<MaterialRecord | null>(null)
 
 const syncing = ref(false)
 
+const typeCounts = ref<Record<MaterialType, number>>({
+  [MaterialType.Image]: 0,
+  [MaterialType.Video]: 0,
+  [MaterialType.Audio]: 0,
+  [MaterialType.RichText]: 0,
+})
+
 // ===== 计算属性 =====
-const ungroupedCount = computed(() => records.value.filter((a) => !a.groupId).length)
 const rangeStart = computed(() => records.value.length ? (currentPage.value - 1) * pageSize.value + 1 : 0)
 const rangeEnd = computed(() => Math.min(currentPage.value * pageSize.value, total.value))
 
 const typeTabs = computed(() => [
-  { key: '', label: '全部', icon: '📋', count: total.value },
-  { key: MaterialType.Image, label: '图片', icon: '🖼️', count: 0 },
-  { key: MaterialType.Video, label: '视频', icon: '🎬', count: 0 },
-  { key: MaterialType.Audio, label: '音频', icon: '🎵', count: 0 },
-  { key: MaterialType.RichText, label: '图文', icon: '📝', count: 0 },
+  { key: '', label: '全部', icon: '📋', count: allTotal.value },
+  { key: MaterialType.Image, label: '图片', icon: '🖼️', count: typeCounts.value[MaterialType.Image] },
+  { key: MaterialType.Video, label: '视频', icon: '🎬', count: typeCounts.value[MaterialType.Video] },
+  { key: MaterialType.Audio, label: '音频', icon: '🎵', count: typeCounts.value[MaterialType.Audio] },
+  { key: MaterialType.RichText, label: '图文', icon: '📝', count: typeCounts.value[MaterialType.RichText] },
 ])
 
 // ===== 工具函数 =====
@@ -446,7 +459,7 @@ function normalizeRecord(raw: any): MaterialRecord {
     height: raw?.height,
     duration: raw?.duration,
     format: raw?.format,
-    groupId: raw?.groupId ?? null,
+    groupId: raw?.groupId ?? raw?.group_id ?? null,
     groupName: raw?.groupName,
     richTextContent: raw?.richTextContent,
     syncStatus: raw?.syncStatus ?? SyncStatus.NotSynced,
@@ -461,15 +474,43 @@ function normalizeRecord(raw: any): MaterialRecord {
 // ===== 数据获取 =====
 async function refreshGroups() {
   try {
-    const res: any = await getGroupList()
-    groups.value = ((res.data?.records || res.data || []) as any[]).map((g: any) => ({
-      id: g.id,
-      name: g.name,
-      sortOrder: g.sortOrder,
-      parentId: g.parentId,
-      count: g.count ?? 0,
-    }))
+    const res: any = await getGroupList({ current: 1, size: 200 })
+    const list = (res.data?.records || res.data || []) as any[]
+    groups.value = list
+      .map((g: any) => ({
+        id: Number(g.id),
+        name: g.name || g.groupName || '',
+        sortOrder: g.sortOrder,
+        parentId: g.parentId,
+        count: Number(g.count ?? 0),
+      }))
+      .filter((g: MaterialGroup) => g.id && g.name)
   } catch { groups.value = [] }
+}
+
+/** 刷新各分组/类型/未分组数量（侧边栏与顶栏统计） */
+async function refreshStats() {
+  try {
+    const allRes: any = await getMaterialList({ current: 1, size: 1 })
+    allTotal.value = Number(allRes.data?.total || 0)
+
+    const ungroupedRes: any = await getMaterialList({ groupId: -1, current: 1, size: 1 })
+    ungroupedTotal.value = Number(ungroupedRes.data?.total || 0)
+
+    const nextTypeCounts = { ...typeCounts.value }
+    for (const type of [MaterialType.Image, MaterialType.Video, MaterialType.Audio, MaterialType.RichText]) {
+      const typeRes: any = await getMaterialList({ type, current: 1, size: 1 })
+      nextTypeCounts[type] = Number(typeRes.data?.total || 0)
+    }
+    typeCounts.value = nextTypeCounts
+
+    if (groups.value.length) {
+      groups.value = await Promise.all(groups.value.map(async (g) => {
+        const groupRes: any = await getMaterialList({ groupId: g.id, current: 1, size: 1 })
+        return { ...g, count: Number(groupRes.data?.total || 0) }
+      }))
+    }
+  } catch { /* ignore */ }
 }
 
 async function fetchRecords() {
@@ -487,13 +528,35 @@ async function fetchRecords() {
 
     const res: any = await getMaterialList(params)
     const page = res.data || {}
-    records.value = (page.records || []).map(normalizeRecord).filter((item: MaterialRecord) => item.id && item.url)
-    total.value = Number(page.total || records.value.length)
+    let list = (page.records || []).map(normalizeRecord).filter((item: MaterialRecord) => item.id)
+
+    // 旧后端把 groupId=-1 当成真实分组，结果为空；改为拉全量再筛未分组
+    if (activeGroup.value === 'ungrouped' && list.length === 0 && Number(page.total || 0) === 0) {
+      const allParams = { ...params }
+      delete (allParams as { groupId?: number }).groupId
+      allParams.size = 200
+      allParams.current = 1
+      const allRes: any = await getMaterialList(allParams)
+      const allPage = allRes.data || {}
+      list = (allPage.records || [])
+        .map(normalizeRecord)
+        .filter((item: MaterialRecord) => item.id && (item.groupId == null || item.groupId === 0))
+      total.value = list.length
+      ungroupedTotal.value = list.length
+      if (Number(allPage.total || 0) > 0) allTotal.value = Number(allPage.total)
+    } else {
+      total.value = Number(page.total || list.length)
+      if (activeGroup.value === 'all') allTotal.value = total.value
+      if (activeGroup.value === 'ungrouped') ungroupedTotal.value = total.value
+    }
+    records.value = list
   } finally { loading.value = false }
 }
 
 async function refreshAll() {
-  await Promise.all([refreshGroups(), fetchRecords()])
+  await refreshGroups()
+  await refreshStats()
+  await fetchRecords()
 }
 
 // ===== 类型切换 =====
@@ -664,7 +727,16 @@ async function submitMove() {
 }
 
 // ===== 上传 =====
-function openUploadDialog() { uploadVisible.value = true }
+function openUploadDialog() {
+  dragOver.value = false
+  if (activeGroup.value !== 'all' && activeGroup.value !== 'ungrouped') {
+    uploadDefaultGroupId.value = Number(activeGroup.value)
+  } else {
+    uploadDefaultGroupId.value = undefined
+  }
+  if (!groups.value.length) refreshGroups()
+  uploadVisible.value = true
+}
 
 // ===== 分组快速添加 =====
 function openGroupQuickAdd() { groupManagerVisible.value = true }
@@ -750,7 +822,13 @@ async function handleDrop(e: DragEvent) {
 }
 
 // ===== 初始化 =====
-onMounted(refreshAll)
+onMounted(() => {
+  refreshAll()
+})
+
+onActivated(() => {
+  dragOver.value = false
+})
 </script>
 
 <style lang="scss" scoped>
@@ -775,7 +853,13 @@ onMounted(refreshAll)
   h1 { margin: 0; font-size: 22px; font-weight: 800; color: #111; }
 }
 .header-meta { color: var(--text-muted); font-size: 13px; }
-.header-right { display: flex; align-items: center; gap: 8px; }
+.header-right {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* ===== 类型标签导航（微盟风格） ===== */
 .type-tabs {
@@ -983,28 +1067,10 @@ onMounted(refreshAll)
 }
 .footer-info { font-size: 12px; color: var(--text-muted); }
 
-/* ===== 拖拽浮层 ===== */
-.drop-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(36, 105, 240, 0.06);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.drop-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 64px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
-  .drop-icon { font-size: 48px; color: #2469f0; }
-  .drop-text { font-size: 16px; color: var(--text); font-weight: 600; }
+.empty-drop {
+  border: 2px dashed transparent;
+  border-radius: 12px;
+  &.drag-over { border-color: #2469f0; background: rgba(36, 105, 240, 0.06); }
 }
 
 /* ===== 过渡 ===== */

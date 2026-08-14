@@ -41,53 +41,71 @@
       </template>
 
       <!-- 数据表格 -->
-      <el-table v-loading="loading" :data="templateList" border stripe style="width: 100%">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="name" label="模板名称" min-width="180" show-overflow-tooltip>
+      <el-table v-loading="loading" :data="templateList" border stripe style="width: 100%" table-layout="auto">
+        <el-table-column prop="id" label="ID" width="64" align="center" />
+        <el-table-column label="类型" width="150">
+          <template #default="{ row }">
+            <div v-for="tags in [getTemplateTypeTags(row)]" :key="row.id" class="type-tags">
+              <el-tag
+                v-for="(t, i) in tags.visible"
+                :key="`${t}-${i}`"
+                size="small"
+                effect="plain"
+                type="primary"
+              >
+                {{ t }}
+              </el-tag>
+              <el-tag v-if="tags.extra > 0" size="small" effect="plain" type="info">
+                +{{ tags.extra }}
+              </el-tag>
+              <span v-if="!tags.visible.length" class="type-empty">未配置</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="模板名称" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">
             <el-link type="primary" @click="handleEdit(row)">{{ row.name }}</el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip>
+        <el-table-column prop="description" label="描述" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">{{ row.description || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="fields" label="字段数" width="90" align="center">
+        <el-table-column prop="fields" label="字段数" width="80" align="center">
           <template #default="{ row }">{{ row.fields?.length || 0 }}</template>
         </el-table-column>
-        <el-table-column prop="submission_count" label="提交数" width="90" align="center" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column prop="submission_count" label="提交数" width="80" align="center" />
+        <el-table-column prop="status" label="状态" width="88" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusTagType(row.status)" size="small">
               {{ getStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="updated_at" label="更新时间" width="170" align="center" />
-        <el-table-column label="操作" width="320" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">
-              <el-icon><Edit /></el-icon>编辑
-            </el-button>
-            <el-button
-              v-if="row.status !== 'active'"
-              link type="success" size="small"
-              @click="handleActivate(row)"
-            >
-              <el-icon><CircleCheck /></el-icon>启用
-            </el-button>
-            <el-button
-              v-if="row.status === 'active'"
-              link type="warning" size="small"
-              @click="handleDeactivate(row)"
-            >
-              <el-icon><CircleClose /></el-icon>停用
-            </el-button>
-            <el-button link type="info" size="small" @click="handleViewSubmissions(row)">
-              <el-icon><Document /></el-icon>数据
-            </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">
-              <el-icon><Delete /></el-icon>删除
-            </el-button>
+            <div class="op-actions">
+              <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button
+                v-if="row.status !== 'active'"
+                link
+                type="success"
+                size="small"
+                @click="handleActivate(row)"
+              >
+                启用
+              </el-button>
+              <el-button
+                v-if="row.status === 'active'"
+                link
+                type="warning"
+                size="small"
+                @click="handleDeactivate(row)"
+              >
+                停用
+              </el-button>
+              <el-button link type="info" size="small" @click="handleViewSubmissions(row)">数据</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -144,7 +162,7 @@
           <div class="field-config-area">
             <!-- 可添加的字段类型 -->
             <div class="field-type-palette">
-              <span class="palette-label">点击添加字段：</span>
+              <span class="palette-label">点一下添加一类问题：</span>
               <el-button
                 v-for="(label, key) in FormFieldTypeLabels"
                 :key="key"
@@ -195,56 +213,139 @@
     <!-- 字段配置弹窗 -->
     <el-dialog
       v-model="fieldDialogVisible"
-      :title="fieldEditMode === 'edit' ? '编辑字段' : '添加字段'"
-      width="560px"
+      :title="fieldEditMode === 'edit' ? `编辑「${currentTypeLabel}」` : `添加「${currentTypeLabel}」`"
+      width="580px"
       append-to-body
       destroy-on-close
       :close-on-click-modal="false"
     >
-      <el-form ref="fieldFormRef" :model="fieldFormData" :rules="fieldFormRules" label-width="100px">
-        <el-form-item label="字段标签" prop="label">
-          <el-input v-model="fieldFormData.label" placeholder="如：姓名、电话、地址" maxlength="30" show-word-limit />
+      <el-alert
+        v-if="fieldPreset.tip"
+        :title="fieldPreset.tip"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+
+      <el-form ref="fieldFormRef" :model="fieldFormData" :rules="fieldFormRules" label-width="120px">
+        <el-form-item label="问题名称" prop="label">
+          <el-input
+            v-model="fieldFormData.label"
+            :placeholder="fieldPreset.labelHint || '如：姓名、公司、备注'"
+            maxlength="30"
+            show-word-limit
+          />
+          <div class="field-help">填表人在小程序里看到的标题</div>
         </el-form-item>
-        <el-form-item label="字段类型" prop="field_type">
-          <el-select v-model="fieldFormData.field_type" :disabled="fieldEditMode === 'edit'" style="width: 100%">
-            <el-option
-              v-for="(label, key) in FormFieldTypeLabels"
-              :key="key"
-              :label="label"
-              :value="key"
-            />
-          </el-select>
+
+        <el-form-item label="填写方式">
+          <el-tag type="primary" effect="plain">{{ currentTypeLabel }}</el-tag>
+          <span class="field-type-lock">已选定，不可更改</span>
         </el-form-item>
-        <el-form-item label="占位提示">
-          <el-input v-model="fieldFormData.placeholder" placeholder="请输入占位提示文字" />
+
+        <!-- 输入框灰色提示：可编辑类型 -->
+        <el-form-item v-if="showPlaceholder && !fieldPreset.lockPlaceholder" label="输入框提示">
+          <el-input
+            v-model="fieldFormData.placeholder"
+            :placeholder="fieldPreset.placeholderHint || '框里先显示的灰色小字，点进去就消失'"
+          />
+          <div class="field-help">提示填表人该怎么填，例如「请输入真实姓名」</div>
         </el-form-item>
-        <el-form-item label="默认值">
-          <el-input v-model="fieldFormData.default_value" placeholder="请输入默认值" />
+
+        <!-- 固定格式：提示只读 -->
+        <el-form-item v-if="showPlaceholder && fieldPreset.lockPlaceholder" label="输入框提示">
+          <el-input v-model="fieldFormData.placeholder" disabled />
+          <div class="field-help">本类型已固定提示文案，避免填错格式</div>
         </el-form-item>
-        <el-form-item label="字段说明">
-          <el-input v-model="fieldFormData.description" placeholder="字段的补充说明" />
+
+        <!-- 默认值：按类型不同控件 -->
+        <el-form-item v-if="showDefaultValue && defaultValueMode !== 'hidden'" label="预先填好">
+          <el-input
+            v-if="defaultValueMode === 'text'"
+            v-model="fieldFormData.default_value"
+            :placeholder="fieldPreset.defaultHint || '可不填；打开表单时自动带上'"
+            :disabled="fieldPreset.lockDefault"
+          />
+          <el-input-number
+            v-else-if="defaultValueMode === 'number'"
+            v-model="defaultNumberValue"
+            :min="fieldFormData.min"
+            :max="fieldFormData.max"
+            style="width: 100%"
+          />
+          <el-switch
+            v-else-if="defaultValueMode === 'switch'"
+            v-model="defaultSwitchValue"
+            active-text="默认打开"
+            inactive-text="默认关闭"
+          />
+          <el-rate v-else-if="defaultValueMode === 'rate'" v-model="defaultRateValue" />
+          <el-date-picker
+            v-else-if="defaultValueMode === 'date'"
+            v-model="fieldFormData.default_value"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="可不选"
+            style="width: 100%"
+          />
+          <el-time-picker
+            v-else-if="defaultValueMode === 'time'"
+            v-model="fieldFormData.default_value"
+            value-format="HH:mm"
+            placeholder="可不选"
+            style="width: 100%"
+          />
+          <el-date-picker
+            v-else-if="defaultValueMode === 'datetime'"
+            v-model="fieldFormData.default_value"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm"
+            placeholder="可不选"
+            style="width: 100%"
+          />
+          <div class="field-help">打开表单时自动填上，填表人仍可改；一般留空即可</div>
         </el-form-item>
-        <el-form-item label="是否必填">
-          <el-switch v-model="fieldFormData.required" />
+
+        <el-form-item v-if="showDescription" label="补充说明">
+          <el-input
+            v-model="fieldFormData.description"
+            :placeholder="fieldPreset.descriptionHint || '可选，显示在问题下方帮助填表'"
+            :disabled="fieldPreset.lockDescription"
+          />
         </el-form-item>
-        <el-form-item v-if="needMaxLength" label="最大长度">
+
+        <el-form-item label="必须填写">
+          <el-switch v-model="fieldFormData.required" active-text="是" inactive-text="否" />
+        </el-form-item>
+
+        <el-form-item v-if="needMaxLength" label="最多几个字">
           <el-input-number v-model="fieldFormData.max_length" :min="1" :max="1000" />
         </el-form-item>
-        <el-form-item v-if="needMinMax" label="最小值">
-          <el-input-number v-model="fieldFormData.min" />
-        </el-form-item>
-        <el-form-item v-if="needMinMax" label="最大值">
-          <el-input-number v-model="fieldFormData.max" />
-        </el-form-item>
-        <!-- 选项配置（Select/Radio/Checkbox） -->
-        <el-form-item v-if="needOptions" label="选项列表" prop="options">
+
+        <template v-if="needMinMax">
+          <el-form-item :label="fieldFormData.field_type === FormFieldType.Rate ? '最低分' : '最小数字'">
+            <el-input-number v-model="fieldFormData.min" />
+          </el-form-item>
+          <el-form-item :label="fieldFormData.field_type === FormFieldType.Rate ? '最高分' : '最大数字'">
+            <el-input-number v-model="fieldFormData.max" />
+          </el-form-item>
+        </template>
+
+        <!-- 选项：只填显示文字，值自动生成 -->
+        <el-form-item v-if="needOptions" label="可选答案" required>
           <div class="option-list">
             <div v-for="(opt, idx) in fieldFormData.options" :key="idx" class="option-row">
-              <el-input v-model="opt.label" placeholder="显示文本" style="width: 180px" />
-              <el-input v-model="opt.value" placeholder="值" style="width: 120px" />
-              <el-button link type="danger" icon="Delete" @click="fieldFormData.options?.splice(idx, 1)" />
+              <el-input
+                v-model="opt.label"
+                :placeholder="`选项 ${idx + 1}`"
+                style="flex: 1"
+                @input="syncOptionValue(idx)"
+              />
+              <el-button link type="danger" @click="removeOption(idx)">删除</el-button>
             </div>
-            <el-button type="primary" link icon="Plus" @click="handleAddOption">添加选项</el-button>
+            <el-button type="primary" link @click="handleAddOption">+ 添加一个选项</el-button>
+            <div class="field-help">只需写填表人看到的文字，系统会自动保存对应值</div>
           </div>
         </el-form-item>
       </el-form>
@@ -315,6 +416,24 @@ function getStatusTagType(status: string): string {
 /** 获取字段类型标签 */
 function getFieldTypeLabel(type: FormFieldType): string {
   return FormFieldTypeLabels[type] || type
+}
+
+/** 列表展示：按字段汇总模板类型标签 */
+function getTemplateTypeTags(row: FormTemplate): { visible: string[]; extra: number } {
+  const fields = normalizeFields(row?.fields || [])
+  const labels: string[] = []
+  const seen = new Set<string>()
+  for (const f of fields) {
+    const label = getFieldTypeLabel(f.field_type as FormFieldType)
+    if (!label || seen.has(label)) continue
+    seen.add(label)
+    labels.push(label)
+  }
+  const maxShow = 2
+  return {
+    visible: labels.slice(0, maxShow),
+    extra: Math.max(0, labels.length - maxShow),
+  }
 }
 
 function mapTemplateStatus(status: number): FormTemplateStatus {
@@ -439,6 +558,27 @@ function handleEdit(row: FormTemplate) {
   dialogVisible.value = true
 }
 
+function buildFieldsPayload(fields: FormFieldConfig[]) {
+  return JSON.stringify(
+    (fields || []).map((f, i) => ({
+      field_key: f.id || `field_${i + 1}`,
+      label: f.label,
+      type: f.field_type,
+      required: Boolean(f.required),
+      placeholder: f.placeholder || undefined,
+      default_value: f.default_value || undefined,
+      description: f.description || undefined,
+      options: f.options && f.options.length ? f.options : undefined,
+      validation: {
+        min: f.min,
+        max: f.max,
+        maxLength: f.max_length,
+      },
+      sort: i,
+    })),
+  )
+}
+
 /** 提交模板 */
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
@@ -455,24 +595,7 @@ async function handleSubmit() {
       name: formData.name,
       description: formData.description || undefined,
       status: toBackendStatus(formData.status),
-      fields: JSON.stringify(
-        formData.fields.map((f, i) => ({
-          field_key: f.id || `field_${i + 1}`,
-          label: f.label,
-          type: f.field_type,
-          required: Boolean(f.required),
-          placeholder: f.placeholder || undefined,
-          default_value: f.default_value || undefined,
-          description: f.description || undefined,
-          options: f.options && f.options.length ? f.options : undefined,
-          validation: {
-            min: f.min,
-            max: f.max,
-            maxLength: f.max_length,
-          },
-          sort: i,
-        }))
-      ),
+      fields: buildFieldsPayload(formData.fields),
     }
     if (isEdit.value) {
       await updateFormTemplate(editId.value, payload)
@@ -488,20 +611,32 @@ async function handleSubmit() {
   }
 }
 
+/** 仅改启用/停用：带上名称与字段，兼容仍强制校验的旧后端 */
+async function updateTemplateStatus(row: FormTemplate, status: 0 | 1, actionLabel: string) {
+  try {
+    await ElMessageBox.confirm(`确定${actionLabel}模板「${row.name}」？`, `${actionLabel}确认`)
+    await updateFormTemplate(row.id, {
+      name: row.name,
+      description: row.description || undefined,
+      fields: buildFieldsPayload(normalizeFields(row.fields || [])),
+      status: status as any,
+    })
+    ElMessage.success(`已${actionLabel}`)
+    fetchList()
+  } catch (err: any) {
+    if (err === 'cancel' || err === 'close') return
+    ElMessage.error(err?.message || `${actionLabel}失败`)
+  }
+}
+
 /** 启用 */
-async function handleActivate(row: FormTemplate) {
-  await ElMessageBox.confirm(`确定启用模板「${row.name}」？`, '启用确认')
-  await updateFormTemplate(row.id, { status: 1 as any })
-  ElMessage.success('已启用')
-  fetchList()
+function handleActivate(row: FormTemplate) {
+  return updateTemplateStatus(row, 1, '启用')
 }
 
 /** 停用 */
-async function handleDeactivate(row: FormTemplate) {
-  await ElMessageBox.confirm(`确定停用模板「${row.name}」？`, '停用确认')
-  await updateFormTemplate(row.id, { status: 0 as any })
-  ElMessage.success('已停用')
-  fetchList()
+function handleDeactivate(row: FormTemplate) {
+  return updateTemplateStatus(row, 0, '停用')
 }
 
 /** 删除 */
@@ -518,6 +653,115 @@ function handleViewSubmissions(row: FormTemplate) {
 }
 
 // ==================== 字段配置 ====================
+
+type FieldPreset = {
+  tip?: string
+  labelHint?: string
+  placeholder?: string
+  placeholderHint?: string
+  defaultHint?: string
+  description?: string
+  descriptionHint?: string
+  lockPlaceholder?: boolean
+  lockDefault?: boolean
+  lockDescription?: boolean
+  hidePlaceholder?: boolean
+  hideDefault?: boolean
+  hideDescription?: boolean
+  defaultLabel?: string
+  maxLength?: number
+  min?: number
+  max?: number
+}
+
+const FIELD_PRESETS: Partial<Record<FormFieldType, FieldPreset>> = {
+  [FormFieldType.Text]: {
+    labelHint: '如：姓名、公司名称',
+    placeholderHint: '例如：请输入真实姓名',
+  },
+  [FormFieldType.Textarea]: {
+    labelHint: '如：备注、详细地址',
+    placeholderHint: '例如：请简要说明需求',
+  },
+  [FormFieldType.Number]: {
+    labelHint: '如：人数、预算',
+    placeholderHint: '例如：请输入数字',
+  },
+  [FormFieldType.Email]: {
+    tip: '邮箱格式已固定：系统会按邮箱规则校验，提示文案已写好，无需自行填写。',
+    labelHint: '如：联系邮箱',
+    placeholder: '例如：name@example.com',
+    description: '请填写有效的邮箱地址',
+    lockPlaceholder: true,
+    lockDescription: true,
+  },
+  [FormFieldType.Phone]: {
+    tip: '手机号格式已固定：系统按 11 位手机号校验，提示文案已写好。',
+    labelHint: '如：联系电话',
+    placeholder: '例如：13800138000',
+    description: '请填写 11 位手机号码',
+    lockPlaceholder: true,
+    lockDescription: true,
+  },
+  [FormFieldType.Select]: {
+    tip: '下拉选择：请添加可选答案，填表人从中挑一项。',
+    labelHint: '如：所在城市、意向套餐',
+    hidePlaceholder: true,
+  },
+  [FormFieldType.Radio]: {
+    tip: '单选：请添加可选答案，填表人只能选一项。',
+    labelHint: '如：性别、是否到店',
+    hidePlaceholder: true,
+  },
+  [FormFieldType.Checkbox]: {
+    tip: '多选：请添加可选答案，填表人可选多项。',
+    labelHint: '如：感兴趣的服务',
+    hidePlaceholder: true,
+  },
+  [FormFieldType.Date]: {
+    tip: '日期选择器已固定，填表人直接点选日期，无需手写格式。',
+    labelHint: '如：预约日期、出生日期',
+    placeholder: '请选择日期',
+    lockPlaceholder: true,
+    hideDescription: false,
+  },
+  [FormFieldType.Time]: {
+    tip: '时间选择器已固定，填表人直接点选时间。',
+    labelHint: '如：到店时间',
+    placeholder: '请选择时间',
+    lockPlaceholder: true,
+  },
+  [FormFieldType.DateTime]: {
+    tip: '日期时间选择器已固定，填表人直接点选。',
+    labelHint: '如：预约到店时间',
+    placeholder: '请选择日期和时间',
+    lockPlaceholder: true,
+  },
+  [FormFieldType.Image]: {
+    tip: '图片上传组件已固定，填表人点选相册/拍照即可。',
+    labelHint: '如：门店照片、证件照',
+    hidePlaceholder: true,
+    hideDefault: true,
+  },
+  [FormFieldType.File]: {
+    tip: '文件上传组件已固定，填表人选择文件即可。',
+    labelHint: '如：合同附件',
+    hidePlaceholder: true,
+    hideDefault: true,
+  },
+  [FormFieldType.Rate]: {
+    tip: '评分组件已固定为星级评分。',
+    labelHint: '如：服务满意度',
+    hidePlaceholder: true,
+    min: 1,
+    max: 5,
+  },
+  [FormFieldType.Switch]: {
+    tip: '开关组件已固定为开/关两种状态。',
+    labelHint: '如：是否需要发票',
+    hidePlaceholder: true,
+  },
+}
 
 const fieldDialogVisible = ref(false)
 const fieldEditMode = ref<'add' | 'edit'>('add')
@@ -549,24 +793,87 @@ const fieldFormData = reactive<{
 })
 
 const fieldFormRules: FormRules = {
-  label: [{ required: true, message: '请输入字段标签', trigger: 'blur' }],
-  field_type: [{ required: true, message: '请选择字段类型', trigger: 'change' }],
+  label: [{ required: true, message: '请填写问题名称', trigger: 'blur' }],
 }
 
-/** 是否需要选项配置 */
-const needOptions = computed(() => {
-  return [FormFieldType.Select, FormFieldType.Radio, FormFieldType.Checkbox].includes(fieldFormData.field_type)
+const fieldPreset = computed(() => FIELD_PRESETS[fieldFormData.field_type] || {})
+const currentTypeLabel = computed(() => FormFieldTypeLabels[fieldFormData.field_type] || fieldFormData.field_type)
+
+const needOptions = computed(() =>
+  [FormFieldType.Select, FormFieldType.Radio, FormFieldType.Checkbox].includes(fieldFormData.field_type),
+)
+
+const needMaxLength = computed(() =>
+  [FormFieldType.Text, FormFieldType.Textarea].includes(fieldFormData.field_type),
+)
+
+const needMinMax = computed(() =>
+  [FormFieldType.Number, FormFieldType.Rate].includes(fieldFormData.field_type),
+)
+
+const showPlaceholder = computed(() => !fieldPreset.value.hidePlaceholder)
+const showDefaultValue = computed(() => !fieldPreset.value.hideDefault)
+const showDescription = computed(() => !fieldPreset.value.hideDescription)
+
+const defaultValueMode = computed(() => {
+  const t = fieldFormData.field_type
+  if (t === FormFieldType.Number) return 'number'
+  if (t === FormFieldType.Switch) return 'switch'
+  if (t === FormFieldType.Rate) return 'rate'
+  if (t === FormFieldType.Date) return 'date'
+  if (t === FormFieldType.Time) return 'time'
+  if (t === FormFieldType.DateTime) return 'datetime'
+  if ([FormFieldType.Select, FormFieldType.Radio, FormFieldType.Checkbox, FormFieldType.Image, FormFieldType.File].includes(t)) {
+    return 'hidden'
+  }
+  return 'text'
 })
 
-/** 是否需要最大长度 */
-const needMaxLength = computed(() => {
-  return [FormFieldType.Text, FormFieldType.Textarea].includes(fieldFormData.field_type)
+const defaultNumberValue = computed({
+  get: () => {
+    const n = Number(fieldFormData.default_value)
+    return Number.isFinite(n) && fieldFormData.default_value !== '' ? n : undefined
+  },
+  set: (v: number | undefined) => {
+    fieldFormData.default_value = v === undefined || v === null ? '' : String(v)
+  },
 })
 
-/** 是否需要最小/最大值 */
-const needMinMax = computed(() => {
-  return [FormFieldType.Number, FormFieldType.Rate].includes(fieldFormData.field_type)
+const defaultSwitchValue = computed({
+  get: () => fieldFormData.default_value === '1' || fieldFormData.default_value === 'true',
+  set: (v: boolean) => {
+    fieldFormData.default_value = v ? '1' : '0'
+  },
 })
+
+const defaultRateValue = computed({
+  get: () => {
+    const n = Number(fieldFormData.default_value)
+    return Number.isFinite(n) && n > 0 ? n : 0
+  },
+  set: (v: number) => {
+    fieldFormData.default_value = v ? String(v) : ''
+  },
+})
+
+function applyTypePreset(type: FormFieldType, force = false) {
+  const preset = FIELD_PRESETS[type] || {}
+  if (force || preset.lockPlaceholder || !fieldFormData.placeholder) {
+    if (preset.placeholder !== undefined) fieldFormData.placeholder = preset.placeholder
+  }
+  if (force || preset.lockDescription || !fieldFormData.description) {
+    if (preset.description !== undefined) fieldFormData.description = preset.description
+  }
+  if (preset.maxLength && !fieldFormData.max_length) fieldFormData.max_length = preset.maxLength
+  if (preset.min !== undefined && fieldFormData.min === undefined) fieldFormData.min = preset.min
+  if (preset.max !== undefined && fieldFormData.max === undefined) fieldFormData.max = preset.max
+  if (needOptions.value && fieldFormData.options.length === 0) {
+    fieldFormData.options = [
+      { label: '选项一', value: '选项一' },
+      { label: '选项二', value: '选项二' },
+    ]
+  }
+}
 
 /** 添加字段 */
 function handleAddField(type: FormFieldType) {
@@ -574,6 +881,7 @@ function handleAddField(type: FormFieldType) {
   fieldEditIndex.value = -1
   resetFieldForm()
   fieldFormData.field_type = type
+  applyTypePreset(type, true)
   fieldDialogVisible.value = true
 }
 
@@ -592,6 +900,14 @@ function handleEditField(index: number) {
   fieldFormData.min = field.min
   fieldFormData.max = field.max
   fieldFormData.options = field.options ? JSON.parse(JSON.stringify(field.options)) : []
+  // 锁定类型补齐固定文案
+  applyTypePreset(field.field_type, false)
+  if (FIELD_PRESETS[field.field_type]?.lockPlaceholder && FIELD_PRESETS[field.field_type]?.placeholder) {
+    fieldFormData.placeholder = FIELD_PRESETS[field.field_type]!.placeholder!
+  }
+  if (FIELD_PRESETS[field.field_type]?.lockDescription && FIELD_PRESETS[field.field_type]?.description) {
+    fieldFormData.description = FIELD_PRESETS[field.field_type]!.description!
+  }
   fieldDialogVisible.value = true
 }
 
@@ -613,10 +929,21 @@ function resetFieldForm() {
   fieldFormData.options = []
 }
 
+function syncOptionValue(idx: number) {
+  const opt = fieldFormData.options[idx]
+  if (!opt) return
+  opt.value = opt.label.trim()
+}
+
+function removeOption(idx: number) {
+  fieldFormData.options.splice(idx, 1)
+}
+
 /** 添加选项 */
 function handleAddOption() {
   if (!fieldFormData.options) fieldFormData.options = []
-  fieldFormData.options.push({ label: '', value: '' })
+  const n = fieldFormData.options.length + 1
+  fieldFormData.options.push({ label: `选项${n}`, value: `选项${n}` })
 }
 
 /** 提交字段配置 */
@@ -624,25 +951,46 @@ async function handleFieldSubmit() {
   const valid = await fieldFormRef.value?.validate().catch(() => false)
   if (!valid) return
 
-  if (needOptions.value && (!fieldFormData.options || fieldFormData.options.length === 0)) {
-    ElMessage.warning('请至少添加一个选项')
-    return
+  if (needOptions.value) {
+    const options = (fieldFormData.options || [])
+      .map((o) => ({ label: o.label.trim(), value: (o.label || o.value).trim() }))
+      .filter((o) => o.label)
+    if (!options.length) {
+      ElMessage.warning('请至少添加一个可选答案')
+      return
+    }
+    fieldFormData.options = options
+  }
+
+  // 固定类型强制写回预设
+  const preset = FIELD_PRESETS[fieldFormData.field_type]
+  if (preset?.lockPlaceholder && preset.placeholder) {
+    fieldFormData.placeholder = preset.placeholder
+  }
+  if (preset?.lockDescription && preset.description) {
+    fieldFormData.description = preset.description
   }
 
   const config: FormFieldConfig = {
-    id: fieldEditMode.value === 'edit' && fieldEditIndex.value >= 0
-      ? formData.fields[fieldEditIndex.value].id
-      : `field_${Date.now()}`,
-    label: fieldFormData.label,
+    id:
+      fieldEditMode.value === 'edit' && fieldEditIndex.value >= 0
+        ? formData.fields[fieldEditIndex.value].id
+        : `field_${Date.now()}`,
+    label: fieldFormData.label.trim(),
     field_type: fieldFormData.field_type,
-    placeholder: fieldFormData.placeholder || undefined,
-    default_value: fieldFormData.default_value || undefined,
-    description: fieldFormData.description || undefined,
+    placeholder: showPlaceholder.value ? fieldFormData.placeholder || undefined : undefined,
+    default_value:
+      showDefaultValue.value && defaultValueMode.value !== 'hidden'
+        ? fieldFormData.default_value || undefined
+        : undefined,
+    description: showDescription.value ? fieldFormData.description || undefined : undefined,
     required: fieldFormData.required,
     sort: fieldEditMode.value === 'edit' ? formData.fields[fieldEditIndex.value].sort : formData.fields.length,
     ...(needMaxLength.value && fieldFormData.max_length ? { max_length: fieldFormData.max_length } : {}),
     ...(needMinMax.value ? { min: fieldFormData.min, max: fieldFormData.max } : {}),
-    ...(needOptions.value ? { options: fieldFormData.options.filter(o => o.label && o.value) } : {}),
+    ...(needOptions.value
+      ? { options: fieldFormData.options.map((o) => ({ label: o.label, value: o.label })) }
+      : {}),
   }
 
   if (fieldEditMode.value === 'edit' && fieldEditIndex.value >= 0) {
@@ -669,6 +1017,25 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .type-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-start;
+  }
+
+  .type-empty {
+    color: #98a2b3;
+    font-size: 12px;
+  }
+
+  .op-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 2px;
   }
 
   .pagination-wrapper {
@@ -751,5 +1118,18 @@ onMounted(() => {
       margin-bottom: 8px;
     }
   }
+}
+
+.field-help {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8a94a6;
+}
+
+.field-type-lock {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #8a94a6;
 }
 </style>

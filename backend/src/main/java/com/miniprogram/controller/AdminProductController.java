@@ -5,7 +5,6 @@ import com.miniprogram.common.R;
 import com.miniprogram.dto.ProductDTO;
 import com.miniprogram.dto.ProductDetailVO;
 import com.miniprogram.dto.ProductQueryDTO;
-import com.miniprogram.entity.Product;
 import com.miniprogram.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,7 +25,7 @@ public class AdminProductController {
 
     @GetMapping
     @Operation(summary = "商品列表")
-    public R<PageResult<Product>> listProducts(ProductQueryDTO query) {
+    public R<PageResult<ProductDetailVO>> listProducts(ProductQueryDTO query) {
         return R.ok(productService.listProducts(query));
     }
 

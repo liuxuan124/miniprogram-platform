@@ -1,147 +1,156 @@
 <template>
   <div class="invoice-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-info">
-        <h2>发票与税务</h2>
-        <p class="header-desc">发票管理、核验与税务计算辅助</p>
-      </div>
-    </div>
+    <PageHeader
+      kicker="财务管理 / 发票与税务"
+      title="发票与税务"
+      description="发票管理、核验与税务计算辅助。"
+    />
 
     <el-tabs v-model="activeTab" class="main-tabs">
       <!-- ==================== 发票管理 Tab ==================== -->
       <el-tab-pane label="发票管理" name="invoice">
-        <!-- 工具栏 -->
-        <el-form :inline="true" :model="searchForm" class="search-form">
-          <el-form-item label="关键词">
-            <el-input
-              v-model="searchForm.keyword"
-              placeholder="发票号/公司名"
-              clearable
-              @keyup.enter="handleSearch"
-            />
-          </el-form-item>
-          <el-form-item label="发票类型">
-            <el-select v-model="searchForm.invoiceType" placeholder="全部类型" clearable style="width: 160px">
-              <el-option
-                v-for="(label, key) in InvoiceTypeLabels"
-                :key="key"
-                :label="label"
-                :value="key"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="状态">
-            <el-select v-model="searchForm.invoiceStatus" placeholder="全部状态" clearable style="width: 130px">
-              <el-option
-                v-for="(label, key) in InvoiceStatusLabels"
-                :key="key"
-                :label="label"
-                :value="key"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="日期范围">
-            <el-date-picker
-              v-model="dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              value-format="YYYY-MM-DD"
-              style="width: 260px"
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">搜索</el-button>
-            <el-button @click="handleReset">重置</el-button>
-            <el-button type="success" @click="handleCreate">+ 新建发票</el-button>
-          </el-form-item>
-        </el-form>
-
-        <!-- 表格 -->
-        <el-table v-loading="loading" :data="tableData" border stripe>
-          <el-table-column prop="invoiceNumber" label="发票号码" width="170" />
-          <el-table-column label="发票类型" width="140" align="center">
-            <template #default="{ row }">
-              <el-tag size="small">{{ InvoiceTypeLabels[row.invoiceType as InvoiceType] }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="statusTagType(row.invoiceStatus)" size="small">
-                {{ InvoiceStatusLabels[row.invoiceStatus as InvoiceStatus] }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="金额" width="110" align="right">
-            <template #default="{ row }">
-              <span>¥{{ formatMoney(row.amount) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="税额" width="110" align="right">
-            <template #default="{ row }">
-              <span>¥{{ formatMoney(row.taxAmount) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="价税合计" width="120" align="right">
-            <template #default="{ row }">
-              <span class="total-amount">¥{{ formatMoney(row.totalAmount) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="税率" width="80" align="center">
-            <template #default="{ row }">
-              <span>{{ row.taxRate }}%</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="issuer" label="开票方" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="receiver" label="收票方" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="issueDate" label="开票日期" width="120" />
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                v-if="row.invoiceStatus === 'draft'"
-                type="primary"
-                link
-                size="small"
-                @click="handleEdit(row)"
-              >编辑</el-button>
-              <el-button
-                v-if="row.invoiceStatus === 'pending' || row.invoiceStatus === 'issued'"
-                type="primary"
-                link
-                size="small"
-                @click="handleVerify(row)"
-              >核验</el-button>
-              <el-button
-                v-if="row.invoiceStatus !== 'cancelled'"
-                type="warning"
-                link
-                size="small"
-                @click="handleCancel(row)"
-              >作废</el-button>
-              <el-button
-                v-if="row.invoiceStatus === 'draft'"
-                type="danger"
-                link
-                size="small"
-                @click="handleDelete(row)"
-              >删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 分页 -->
-        <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.pageSize"
-            :total="pagination.total"
-            :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="fetchList"
-            @current-change="fetchList"
+        <div class="toolbar">
+          <el-input
+            v-model="searchForm.keyword"
+            class="toolbar-input"
+            placeholder="搜索发票号/公司名"
+            clearable
+            @keyup.enter="handleSearch"
+            @clear="handleSearch"
           />
+          <el-select
+            v-model="searchForm.invoiceType"
+            class="toolbar-select"
+            placeholder="类型：全部"
+            clearable
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="(label, key) in InvoiceTypeLabels"
+              :key="key"
+              :label="label"
+              :value="key"
+            />
+          </el-select>
+          <el-select
+            v-model="searchForm.invoiceStatus"
+            class="toolbar-select"
+            placeholder="状态：全部"
+            clearable
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="(label, key) in InvoiceStatusLabels"
+              :key="key"
+              :label="label"
+              :value="key"
+            />
+          </el-select>
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            class="toolbar-daterange"
+            @change="handleSearch"
+          />
+          <el-button @click="handleReset">重置</el-button>
+          <div class="toolbar-spacer" />
+          <el-button type="primary" @click="handleCreate">+ 新建发票</el-button>
+        </div>
+
+        <div class="table-panel">
+          <el-table v-loading="loading" :data="tableData" stripe>
+            <el-table-column prop="invoiceNumber" label="发票号码" min-width="160" show-overflow-tooltip />
+            <el-table-column label="发票类型" width="130" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain">{{ InvoiceTypeLabels[row.invoiceType as InvoiceType] }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="(statusTagType(row.invoiceStatus) as any)" size="small" effect="plain">
+                  {{ InvoiceStatusLabels[row.invoiceStatus as InvoiceStatus] }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="金额" width="110" align="right">
+              <template #default="{ row }">
+                <span>¥{{ formatMoney(row.amount) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="税额" width="110" align="right">
+              <template #default="{ row }">
+                <span>¥{{ formatMoney(row.taxAmount) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="价税合计" width="120" align="right">
+              <template #default="{ row }">
+                <span class="total-amount">¥{{ formatMoney(row.totalAmount) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="税率" width="80" align="center">
+              <template #default="{ row }">
+                <span>{{ row.taxRate }}%</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="issuer" label="开票方" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="receiver" label="收票方" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="issueDate" label="开票日期" width="120" />
+            <el-table-column label="操作" min-width="220">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.invoiceStatus === 'draft'"
+                  type="primary"
+                  link
+                  size="small"
+                  @click="handleEdit(row)"
+                >编辑</el-button>
+                <el-button
+                  v-if="row.invoiceStatus === 'draft'"
+                  type="success"
+                  link
+                  size="small"
+                  @click="handleIssue(row)"
+                >开具</el-button>
+                <el-button
+                  v-if="row.invoiceStatus === 'pending' || row.invoiceStatus === 'issued'"
+                  type="primary"
+                  link
+                  size="small"
+                  @click="handleVerify(row)"
+                >核验</el-button>
+                <el-button
+                  v-if="row.invoiceStatus !== 'cancelled' && row.invoiceStatus !== 'draft'"
+                  type="warning"
+                  link
+                  size="small"
+                  @click="handleCancel(row)"
+                >作废</el-button>
+                <el-button
+                  v-if="row.invoiceStatus === 'draft'"
+                  type="danger"
+                  link
+                  size="small"
+                  @click="handleDelete(row)"
+                >删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div v-if="pagination.total > 0" class="pagination-wrap">
+            <el-pagination
+              v-model:current-page="pagination.page"
+              v-model:page-size="pagination.pageSize"
+              :total="pagination.total"
+              :page-sizes="[10, 20, 50]"
+              layout="total, sizes, prev, pager, next, jumper"
+              @size-change="fetchList"
+              @current-change="fetchList"
+            />
+          </div>
         </div>
       </el-tab-pane>
 
@@ -202,7 +211,11 @@
                 </template>
                 <div class="result-card">
                   <div class="result-row">
-                    <span class="result-label">应税收入</span>
+                    <span class="result-label">含税总额</span>
+                    <span class="result-value">¥{{ formatMoney(taxResult.grossAmount ?? taxResult.taxableIncome) }}</span>
+                  </div>
+                  <div class="result-row">
+                    <span class="result-label">不含税收入</span>
                     <span class="result-value">¥{{ formatMoney(taxResult.taxableIncome) }}</span>
                   </div>
                   <div class="result-row">
@@ -391,14 +404,17 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { extractPageRecords } from '@/utils/pagination'
+import PageHeader from '@/components/PageHeader.vue'
 import {
   getInvoiceList,
   createInvoice,
   updateInvoice,
   deleteInvoice,
+  issueInvoice,
   verifyInvoice,
   cancelInvoice,
   calculateTax,
+  getInvoiceTaxSummary,
 } from '@/api/finance'
 import type {
   InvoiceRecord,
@@ -580,6 +596,7 @@ async function submitInvoice() {
     }
     invoiceDialogVisible.value = false
     fetchList()
+    loadTaxSummary()
   } catch {
     ElMessage.error(isEdit.value ? '更新发票失败' : '创建发票失败')
   } finally {
@@ -587,7 +604,27 @@ async function submitInvoice() {
   }
 }
 
-// ==================== 核验发票 ====================
+// ==================== 核验 / 开具 ====================
+
+async function handleIssue(row: InvoiceRecord) {
+  try {
+    await ElMessageBox.confirm(
+      `确认开具发票 ${row.invoiceNumber}？开具后不可再编辑。`,
+      '开具确认',
+      { type: 'info', confirmButtonText: '确认开具', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await issueInvoice(row.id)
+    ElMessage.success('发票已开具')
+    fetchList()
+    loadTaxSummary()
+  } catch {
+    ElMessage.error('开具失败')
+  }
+}
 
 async function handleVerify(row: InvoiceRecord) {
   try {
@@ -596,11 +633,16 @@ async function handleVerify(row: InvoiceRecord) {
       '核验确认',
       { type: 'info', confirmButtonText: '确认核验', cancelButtonText: '取消' }
     )
+  } catch {
+    return
+  }
+  try {
     await verifyInvoice(row.id)
     ElMessage.success('发票核验成功')
     fetchList()
+    loadTaxSummary()
   } catch {
-    // 用户取消或请求失败
+    ElMessage.error('核验失败')
   }
 }
 
@@ -632,6 +674,7 @@ async function submitCancel() {
     ElMessage.success('发票已作废')
     cancelDialogVisible.value = false
     fetchList()
+    loadTaxSummary()
   } catch {
     ElMessage.error('作废发票失败')
   } finally {
@@ -648,11 +691,15 @@ async function handleDelete(row: InvoiceRecord) {
       '删除确认',
       { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' }
     )
+  } catch {
+    return
+  }
+  try {
     await deleteInvoice(row.id)
     ElMessage.success('发票已删除')
     fetchList()
   } catch {
-    // 用户取消或请求失败
+    ElMessage.error('删除失败')
   }
 }
 
@@ -678,13 +725,18 @@ async function handleCalculate() {
   if (!taxFormRef.value) return
   const valid = await taxFormRef.value.validate().catch(() => false)
   if (!valid) return
+  if (!taxForm.amount || taxForm.amount <= 0) {
+    ElMessage.warning('金额须大于 0')
+    return
+  }
 
   calcLoading.value = true
   try {
     const res = await calculateTax({
       amount: taxForm.amount,
       taxRate: taxForm.taxRate,
-      type: taxForm.includeTax ? `${taxForm.type}_include` : taxForm.type,
+      type: taxForm.type,
+      includeTax: taxForm.includeTax,
     })
     taxResult.value = res.data
   } catch {
@@ -710,44 +762,65 @@ const taxSummary = reactive({
   totalPending: 0,
 })
 
+async function loadTaxSummary() {
+  try {
+    const res = await getInvoiceTaxSummary()
+    const data = res.data || ({} as any)
+    taxSummary.totalInvoiced = Number(data.totalInvoiced) || 0
+    taxSummary.totalPaid = Number(data.totalPaid) || 0
+    taxSummary.totalPending = Number(data.totalPending) || 0
+  } catch {
+    taxSummary.totalInvoiced = 0
+    taxSummary.totalPaid = 0
+    taxSummary.totalPending = 0
+  }
+}
+
 // ==================== 初始化 ====================
 
 onMounted(() => {
   fetchList()
+  loadTaxSummary()
 })
 </script>
 
 <style lang="scss" scoped>
 .invoice-page {
-  padding: 20px;
-
-  .page-header {
-    margin-bottom: 20px;
-
-    .header-info {
-      h2 {
-        margin: 0 0 4px;
-        font-size: 20px;
-        font-weight: 600;
-        color: #303133;
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: #909399;
-      }
-    }
-  }
-
   .main-tabs {
     :deep(.el-tabs__header) {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
   }
 
-  .search-form {
-    margin-bottom: 16px;
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-input {
+    width: 180px;
+  }
+
+  .toolbar-select {
+    width: 150px;
+  }
+
+  .toolbar-daterange {
+    width: 260px;
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .table-panel {
+    background: #fff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    padding: 14px;
   }
 
   .total-amount {
@@ -758,10 +831,9 @@ onMounted(() => {
   .pagination-wrap {
     display: flex;
     justify-content: flex-end;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
-  // 自动计算显示
   .auto-calc {
     display: inline-block;
     width: 100%;
@@ -775,7 +847,6 @@ onMounted(() => {
     }
   }
 
-  // 税务计算
   .tax-calc-container {
     .result-card {
       .result-row {
@@ -825,44 +896,35 @@ onMounted(() => {
       display: flex;
       gap: 16px;
       margin-top: 24px;
+      flex-wrap: wrap;
     }
 
     .tax-summary-card {
       flex: 1;
-      padding: 20px;
-      border-radius: 8px;
-      background: #f5f7fa;
-      border: 1px solid #e4e7ed;
-      text-align: center;
+      min-width: 180px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #e4e9f2;
 
       .summary-value {
-        font-size: 24px;
-        font-weight: 700;
-        color: #303133;
+        font-size: 22px;
+        font-weight: 800;
+        color: #0d1b2e;
       }
 
       .summary-label {
         font-size: 13px;
-        color: #909399;
+        color: #6b7b93;
         margin-top: 6px;
       }
 
-      &.success {
-        background: #f0f9eb;
-        border-color: #b3e19d;
-
-        .summary-value {
-          color: #67c23a;
-        }
+      &.success .summary-value {
+        color: #67c23a;
       }
 
-      &.warning {
-        background: #fdf6ec;
-        border-color: #e6a23c;
-
-        .summary-value {
-          color: #e6a23c;
-        }
+      &.warning .summary-value {
+        color: #e6a23c;
       }
     }
   }

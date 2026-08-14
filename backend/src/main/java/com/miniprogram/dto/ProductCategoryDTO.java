@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 商品分类创建/更新 DTO
  */
@@ -23,6 +25,9 @@ public class ProductCategoryDTO {
 
     @Schema(description = "分类图标URL")
     private String icon;
+
+    @Schema(description = "该分类允许的商品类型，可多选: physical/digital/service")
+    private List<String> allowedProductTypes;
 
     @Schema(description = "状态: 1=启用, 0=禁用")
     private Integer status = 1;

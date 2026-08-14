@@ -96,6 +96,7 @@ export function exportTransactions(params?: TransactionListParams & { format?: s
   return service.get(`${BASE}/transactions/export`, {
     params: { ...params, format: params?.format || 'xlsx' },
     responseType: 'blob',
+    showError: false,
   })
 }
 
@@ -124,8 +125,9 @@ export function getCategoryAnalysisReport(params: ReportQueryParams) {
 /** 导出报表 */
 export function exportReport(params: ReportQueryParams & { format?: string }) {
   return service.get(`${BASE}/reports/export`, {
-    params: { ...params, format: params.format || 'xlsx' },
+    params: { ...params, format: params.format || 'csv' },
     responseType: 'blob',
+    showError: false,
   })
 }
 
@@ -198,6 +200,11 @@ export function deleteInvoice(id: number) {
   return request.delete(`${BASE}/invoices/${id}`)
 }
 
+/** 开具发票（草稿→已开具） */
+export function issueInvoice(id: number) {
+  return request.put(`${BASE}/invoices/${id}/issue`)
+}
+
 /** 核验发票 */
 export function verifyInvoice(id: number) {
   return request.put(`${BASE}/invoices/${id}/verify`)
@@ -209,8 +216,13 @@ export function cancelInvoice(id: number, reason: string) {
 }
 
 /** 税务计算 */
-export function calculateTax(data: { amount: number; taxRate: number; type: string }) {
+export function calculateTax(data: { amount: number; taxRate: number; type: string; includeTax?: boolean }) {
   return request.post<TaxCalcResult>(`${BASE}/tax/calculate`, data)
+}
+
+/** 本月发票税务汇总 */
+export function getInvoiceTaxSummary() {
+  return request.get<{ totalInvoiced: number; totalPaid: number; totalPending: number; month?: string }>(`${BASE}/tax/summary`)
 }
 
 // ==================== 财务权限 ====================

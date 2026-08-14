@@ -14,6 +14,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -120,6 +122,13 @@ public class GlobalExceptionHandler {
         return R.badRequest("缺少请求参数: " + e.getParameterName());
     }
 
+    @ExceptionHandler({MultipartException.class, MissingServletRequestPartException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R<Void> handleMultipartException(Exception e) {
+        log.warn("文件上传解析失败: {}", e.getMessage());
+        return R.badRequest("未接收到上传文件，请选择 PDF/Word/TXT 后重试");
+    }
+
     /**
      * 请求体解析失败（空body、格式错误等）
      */
@@ -171,12 +180,31 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 数据库访问异常（缺列/约束等）
+     */
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public R<Void> handleDataAccessException(org.springframework.dao.DataAccessException e, HttpServletRequest request) {
+        log.error("数据库异常 [{}] {}", request.getMethod(), request.getRequestURI(), e);
+        String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+        if (msg != null && msg.toLowerCase().contains("unknown column")) {
+            return R.fail("数据库结构未升级，请执行最新迁移后重试（优惠券领取范围相关字段）");
+        }
+        return R.fail("数据保存失败，请稍后重试");
+    }
+
+    /**
      * 兜底异常处理
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R<Void> handleException(Exception e, HttpServletRequest request) {
         log.error("系统异常 [{}] {}", request.getMethod(), request.getRequestURI(), e);
+        String detail = e.getMessage();
+        if (detail != null && (detail.contains("mp_agent_knowledge") || detail.contains("Unknown table")
+                || detail.contains("doesn't exist"))) {
+            return R.fail("知识库表不存在或未迁移，请执行 V25 数据库脚本后重试");
+        }
         return R.fail("系统内部错误，请稍后重试");
     }
 }

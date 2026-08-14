@@ -48,6 +48,13 @@ public class Coupon implements Serializable {
 
     private String description;
 
+    /** 领取范围: all / members / levels */
+    private String claimAudience;
+
+    /** 可领取等级 ID，逗号分隔 */
+    @TableField("claim_level_ids")
+    private String claimLevelIds;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField("created_at")
     private LocalDateTime createTime;

@@ -25,8 +25,11 @@ public class ProductDetailVO {
     @Schema(description = "分类名称")
     private String categoryName;
 
-    @Schema(description = "商品类型: physical/digital/service")
+    @Schema(description = "商品类型: physical/digital/service（主类型）")
     private String productType;
+
+    @Schema(description = "商品类型列表（可多选）")
+    private List<String> productTypes;
 
     @Schema(description = "主图URL")
     private String mainImage;
@@ -58,7 +61,7 @@ public class ProductDetailVO {
     @Schema(description = "排序")
     private Integer sortOrder;
 
-    @Schema(description = "状态: on_sale/off_sale")
+    @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 
     @Schema(description = "SKU列表")

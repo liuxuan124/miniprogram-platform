@@ -2,6 +2,7 @@ package com.miniprogram.service;
 
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.MiniProgramUserQueryDTO;
+import com.miniprogram.dto.MiniProgramUserStatsVO;
 import com.miniprogram.dto.MiniProgramUserVO;
 import com.miniprogram.entity.MiniProgramUser;
 
@@ -19,4 +20,9 @@ public interface MiniProgramUserService extends BaseService<MiniProgramUser> {
      * 获取用户画像详情
      */
     MiniProgramUserVO getUserProfile(Long id);
+
+    /**
+     * 用户概览统计
+     */
+    MiniProgramUserStatsVO getStats();
 }

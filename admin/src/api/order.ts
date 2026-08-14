@@ -54,6 +54,8 @@ export async function getOrderList(params?: OrderListParams) {
       size: params?.page_size,
       orderNo: params?.keyword,
       status: params?.status,
+      startDate: params?.start_date,
+      endDate: params?.end_date,
     },
   })
   const records = (response.data?.records || response.data?.items || []).map(normalizeOrder)

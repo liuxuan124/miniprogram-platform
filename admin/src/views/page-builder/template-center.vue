@@ -1,7 +1,7 @@
 <template>
   <div class="template-center">
     <div class="ph">
-      <div class="pt">模板中心</div>
+      <div class="pt">页面模板</div>
       <div class="ps">选择预设模板快速创建页面，支持按行业、场景、风格筛选</div>
     </div>
 
@@ -69,15 +69,12 @@
           <div class="cover" :style="coverStyle(tpl)">
             <div class="cover-phone">
               <div class="cover-top"></div>
-              <div class="cover-lines">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-              <div class="cover-blocks">
-                <i></i>
-                <i></i>
-                <i></i>
+              <div class="cover-preview">
+                <div
+                  v-for="(chip, idx) in coverChips(tpl)"
+                  :key="idx"
+                  class="cover-chip"
+                >{{ chip }}</div>
               </div>
             </div>
             <span class="cover-badge">{{ tpl.sceneLabel }}</span>
@@ -201,11 +198,12 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createPage, getPageTemplates } from '@/api/page'
 import type { ComponentInstance, PageDSL, PageTemplate } from '@/types/page'
-import { ComponentType, IndustryLabels, IndustryColors } from '@/types/page'
+import { ComponentType, IndustryLabels } from '@/types/page'
 import { getComponentDef, getDefaultProps, getDefaultStyle } from '@/components/page-builder/componentRegistry'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import TemplateQuickEditor from '@/components/page-templates/TemplateQuickEditor.vue'
+import { applyPageTemplate, isUserCancelError } from '@/components/page-templates/applyPageTemplate'
 
 type TemplateUI = Omit<PageTemplate, 'tags' | 'colors'> & {
   priority: 'P0' | 'P1'
@@ -300,8 +298,10 @@ const filteredTemplates = computed(() => {
     const byName = !keyword.value || tpl.name.includes(keyword.value.trim())
     const byCategory = !selectedCategory.value || tpl.category === selectedCategory.value
     const byScene = !selectedScene.value || tpl.scene === selectedScene.value
-    const byIndustry = !selectedIndustry.value || tpl.industryCode === selectedIndustry.value || (tpl as any).industry_code === selectedIndustry.value
-    const byStyle = !selectedStyle.value || (tpl as any).style === selectedStyle.value
+    const industryCode = tpl.industryCode || (tpl as any).industry_code || ''
+    const byIndustry = !selectedIndustry.value || !industryCode || industryCode === selectedIndustry.value
+    const style = (tpl as any).style || ''
+    const byStyle = !selectedStyle.value || !style || style === selectedStyle.value
     return byName && byCategory && byScene && byIndustry && byStyle
   })
 })
@@ -412,13 +412,24 @@ function normalizeRemoteTemplate(item: PageTemplate): TemplateUI {
     }
   }
   const fallback = fallbackTemplates().find((tpl) => tpl.name === item.name || tpl.category === item.category)
+  const scene = String((item as any).scene || fallback?.scene || 'default')
+  const sceneLabelMap: Record<string, string> = {
+    default: '默认首页',
+    campaign: '营销活动',
+    publish: '内容发布',
+    sales: '商品销售',
+    retention: '会员运营',
+    service: '预约服务',
+  }
   return {
     ...item,
     priority: fallback?.priority || 'P1',
-    scene: (item as any).scene || fallback?.scene || 'default',
-    sceneLabel: fallback?.sceneLabel || '默认首页',
-    tags: fallback?.tags || ['通用'],
-    recommendation: fallback?.recommendation || '快速搭建',
+    scene: scene as TemplateUI['scene'],
+    sceneLabel: (item as any).sceneLabel || sceneLabelMap[scene] || fallback?.sceneLabel || '默认首页',
+    tags: Array.isArray((item as any).tags) && (item as any).tags.length
+      ? (item as any).tags
+      : (fallback?.tags || ['通用']),
+    recommendation: (item as any).recommendation || fallback?.recommendation || '快速搭建',
     colors: fallback?.colors || ['#1769ff', '#20b7ff'],
     style: (item as any).style || fallback?.style || 'minimal',
     description: item.description || fallback?.description || '预设组件与样式',
@@ -470,21 +481,24 @@ function openCreateTemplateHint() {
     '新建空白页面',
     { confirmButtonText: '继续', cancelButtonText: '取消', type: 'info' },
   ).then(async () => {
-    const suffix = Date.now().toString().slice(-6)
-    const payload = {
-      name: `自定义页面-${suffix}`,
-      type: 3,
-      path: `/pages/custom/page-${suffix}`,
-      shareTitle: `自定义页面-${suffix}`,
-      background_color: '#f6f8fb',
-    }
-    const res = await createPage(payload as any)
-    const newPageId = (res.data as any)?.id || (res.data as any)?.pageId
-    ElMessage.success('已创建空白页面，正在进入装修器')
-    if (newPageId) {
-      router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
-    } else {
-      router.push({ name: 'PageBuilderList' })
+    try {
+      const suffix = Date.now().toString(36)
+      const payload = {
+        name: `自定义页面-${suffix.slice(-6)}`,
+        type: 3,
+        path: `pages/custom/page-${suffix}`,
+        shareTitle: `自定义页面-${suffix.slice(-6)}`,
+      }
+      const res = await createPage(payload as any)
+      const newPageId = (res.data as any)?.id || (res.data as any)?.pageId
+      ElMessage.success('已创建空白页面，正在进入装修器')
+      if (newPageId) {
+        router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
+      } else {
+        router.push({ name: 'PageBuilderList' })
+      }
+    } catch (err: any) {
+      ElMessage.error(err?.message || '创建空白页面失败')
     }
   }).catch(() => {})
 }
@@ -492,6 +506,14 @@ function openCreateTemplateHint() {
 function handlePreviewTemplate(tpl: TemplateUI) {
   previewingTemplate.value = tpl
   previewVisible.value = true
+}
+
+function coverChips(tpl: TemplateUI) {
+  const labels = (tpl.dsl?.components || [])
+    .map((comp) => getComponentDef(comp.type as ComponentType)?.label || '')
+    .filter(Boolean)
+  const unique = Array.from(new Set(labels))
+  return unique.slice(0, 4)
 }
 
 async function handleUseTemplate(tpl: TemplateUI) {
@@ -506,35 +528,16 @@ async function handleUseTemplate(tpl: TemplateUI) {
       },
     )
 
-    const PAGE_TYPE_MAP: Record<string, number> = { home: 1, topic: 2, activity: 2, custom: 3 }
-    const basePathMap: Record<string, string> = {
-      home: '/pages/index/index',
-      activity: '/pages/activity/topic',
-      content: '/pages/content/index',
-      shop: '/pages/shop/index',
-      member: '/pages/member/index',
-      booking: '/pages/booking/index',
-    }
-    const pageTypeStr = tpl.dsl.page.type || 'custom'
-    const payload = {
-      name: `${tpl.name}-${Date.now().toString().slice(-4)}`,
-      type: PAGE_TYPE_MAP[pageTypeStr] ?? 3,
-      path: basePathMap[tpl.category || ''] || `/pages/custom/${Date.now()}`,
-      shareTitle: tpl.dsl.page.share_title || tpl.name,
-      background_color: tpl.dsl.page.background_color || '#f6f8fb',
+    const newPageId = await applyPageTemplate({
+      name: tpl.name,
+      category: tpl.category,
       dsl: tpl.dsl,
-    }
-
-    const res = await createPage(payload)
-    const newPageId = (res.data as any)?.id || (res.data as any)?.pageId
+    })
     ElMessage.success('模板已应用，正在进入装修器')
-    if (newPageId) {
-      router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
-    } else {
-      router.push({ name: 'PageBuilderList' })
-    }
-  } catch {
-    // user canceled
+    router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
+  } catch (err: any) {
+    if (isUserCancelError(err)) return
+    ElMessage.error(err?.message || '使用模板失败')
   }
 }
 
@@ -545,7 +548,28 @@ function confirmFromPreview() {
   handleUseTemplate(tpl)
 }
 
-function openEditor(tpl: TemplateUI) {
+async function openEditor(tpl: TemplateUI) {
+  const fields = tpl.editableFields || []
+  if (!fields.length) {
+    try {
+      await ElMessageBox.confirm(
+        '该模板暂无快速编辑字段，将基于模板创建页面并进入完整装修器，是否继续？',
+        '编辑模板',
+        { confirmButtonText: '进入装修器', cancelButtonText: '取消', type: 'info' },
+      )
+      const newPageId = await applyPageTemplate({
+        name: tpl.name,
+        category: tpl.category,
+        dsl: tpl.dsl,
+      })
+      ElMessage.success('已创建页面，正在进入装修器')
+      router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
+    } catch (err: any) {
+      if (isUserCancelError(err)) return
+      ElMessage.error(err?.message || '进入装修器失败')
+    }
+    return
+  }
   editingTemplate.value = tpl
   editorDsl.value = JSON.parse(JSON.stringify(tpl.dsl))
   editorVisible.value = true
@@ -570,10 +594,9 @@ function handleExport(dsl: any) {
 
 async function handleSaveAndApply() {
   if (editingTemplate.value && editorDsl.value) {
-    // 使用编辑后的 DSL 创建页面
     const tplWithEditedDsl = { ...editingTemplate.value, dsl: editorDsl.value }
-    handleUseTemplate(tplWithEditedDsl)
     editorVisible.value = false
+    await handleUseTemplate(tplWithEditedDsl)
   }
 }
 
@@ -710,10 +733,11 @@ onMounted(() => {
   border-radius: 12px;
   cursor: pointer;
   transition: 0.16s;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
 
   &:hover {
     border-color: var(--brand);
-    box-shadow: 0 8px 24px rgba(23, 105, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(23, 105, 255, 0.12);
     transform: translateY(-2px);
   }
 }
@@ -740,35 +764,32 @@ onMounted(() => {
   background: #111827;
 }
 
-.cover-lines {
+.cover-preview {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: 6px;
+  padding: 10px 8px;
+}
 
-  span {
-    height: 6px;
-    background: #d9e2ef;
-    border-radius: 4px;
-  }
+.cover-chip {
+  height: 18px;
+  padding: 0 6px;
+  overflow: hidden;
+  color: #334155;
+  font-size: 10px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #eef2ff;
+  border-radius: 4px;
+}
+
+.cover-lines {
+  display: none;
 }
 
 .cover-blocks {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 0 8px 8px;
-
-  i {
-    display: block;
-    height: 30px;
-    background: #eff4fb;
-    border-radius: 6px;
-  }
-
-  i:last-child {
-    grid-column: span 2;
-  }
+  display: none;
 }
 
 .cover-badge {

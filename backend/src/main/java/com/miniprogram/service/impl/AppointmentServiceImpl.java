@@ -29,8 +29,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, Appointment> implements AppointmentService2 {
 
+    private static final String SCENE_APPOINTMENT_BOOK = "appointment_book";
+
     private final AppointmentSlotMapper appointmentSlotMapper;
     private final com.miniprogram.mapper.AppointmentServiceMapper appointmentServiceMapper;
+    private final com.miniprogram.service.SmsCodeService smsCodeService;
 
     @Override
     public PageResult<AppointmentVO> listAppointments(AppointmentQueryDTO queryDTO) {
@@ -66,6 +69,34 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
         appointment.setStatus("confirmed");
         this.updateById(appointment);
 
+        return toVO(appointment);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AppointmentVO completeAppointment(Long id) {
+        Appointment appointment = getExistingAppointment(id);
+        if (!"confirmed".equals(appointment.getStatus()) && !"pending".equals(appointment.getStatus())) {
+            throw new BusinessException(900202, "仅待确认/已确认的预约可核销完成");
+        }
+        appointment.setStatus("completed");
+        this.updateById(appointment);
+        return toVO(appointment);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AppointmentVO markNoShow(Long id) {
+        Appointment appointment = getExistingAppointment(id);
+        if (!"confirmed".equals(appointment.getStatus()) && !"pending".equals(appointment.getStatus())) {
+            throw new BusinessException(900202, "仅待确认/已确认的预约可标记未到");
+        }
+        String previousStatus = appointment.getStatus();
+        appointment.setStatus("no_show");
+        this.updateById(appointment);
+        if ("pending".equals(previousStatus) || "confirmed".equals(previousStatus)) {
+            releaseSlotCapacity(appointment.getSlotId());
+        }
         return toVO(appointment);
     }
 
@@ -117,6 +148,12 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
             throw new BusinessException(900201, "预约时段已停用");
         }
 
+        // 手机号须短信验证（与活动报名一致）
+        if (dto.getContactPhone() == null || !dto.getContactPhone().matches("^1[3-9]\\d{9}$")) {
+            throw new BusinessException(900201, "请填写有效手机号");
+        }
+        smsCodeService.verifyAndConsume(dto.getContactPhone(), SCENE_APPOINTMENT_BOOK, dto.getSmsCode());
+
         // 校验时段容量
         if (slot.getBookedCount() >= slot.getMaxCapacity()) {
             throw new BusinessException(900201, "预约时段已满");
@@ -127,6 +164,7 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
                 new LambdaUpdateWrapper<AppointmentSlot>()
                         .eq(AppointmentSlot::getId, dto.getSlotId())
                         .eq(AppointmentSlot::getBookedCount, slot.getBookedCount()) // 乐观锁条件
+                        .lt(AppointmentSlot::getBookedCount, slot.getMaxCapacity())
                         .set(AppointmentSlot::getBookedCount, slot.getBookedCount() + 1)
         );
         if (updated == 0) {

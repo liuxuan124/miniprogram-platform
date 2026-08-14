@@ -1,64 +1,57 @@
 <template>
   <div class="permission-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="page-header__info">
-        <h2 class="page-header__title">财务权限</h2>
-        <p class="page-header__desc">财务数据访问权限的分级控制与管理</p>
-      </div>
-    </div>
+    <PageHeader
+      kicker="财务管理 / 财务权限"
+      title="财务权限"
+      description="财务数据访问权限的分级控制与管理。"
+    />
 
-    <!-- 主内容区 -->
-    <el-card shadow="hover">
-      <el-tabs v-model="activeTab">
-        <!-- ==================== 权限分配 ==================== -->
-        <el-tab-pane label="权限分配" name="permission">
-          <!-- 工具栏 -->
-          <div class="toolbar">
-            <div class="toolbar__filters">
-              <el-select
-                v-model="filterRoleId"
-                placeholder="筛选角色"
-                clearable
-                style="width: 160px"
-                @change="handlePermissionSearch"
-              >
-                <el-option
-                  v-for="role in roleList"
-                  :key="role.id"
-                  :label="role.name"
-                  :value="role.id"
-                />
-              </el-select>
-              <el-select
-                v-model="filterDataRange"
-                placeholder="数据范围"
-                clearable
-                style="width: 140px"
-                @change="handlePermissionSearch"
-              >
-                <el-option label="仅本人" value="self" />
-                <el-option label="本部门" value="department" />
-                <el-option label="全部" value="all" />
-              </el-select>
-            </div>
-            <el-button type="primary" icon="Plus" @click="handleAssignPermission">分配权限</el-button>
-          </div>
+    <el-tabs v-model="activeTab" class="main-tabs">
+      <!-- ==================== 权限分配 ==================== -->
+      <el-tab-pane label="权限分配" name="permission">
+        <div class="toolbar">
+          <el-select
+            v-model="filterRoleId"
+            class="toolbar-select"
+            placeholder="角色：全部"
+            clearable
+            @change="handlePermissionSearch"
+          >
+            <el-option
+              v-for="role in roleList"
+              :key="role.id"
+              :label="role.name"
+              :value="role.id"
+            />
+          </el-select>
+          <el-select
+            v-model="filterDataRange"
+            class="toolbar-select"
+            placeholder="数据范围：全部"
+            clearable
+            @change="handlePermissionSearch"
+          >
+            <el-option label="仅本人" value="self" />
+            <el-option label="本部门" value="department" />
+            <el-option label="全部" value="all" />
+          </el-select>
+          <div class="toolbar-spacer" />
+          <el-button type="primary" @click="handleAssignPermission">分配权限</el-button>
+        </div>
 
-          <!-- 权限表格 -->
+        <div class="table-panel">
           <el-table
             v-loading="permissionLoading"
             :data="permissionList"
-            border
             stripe
             style="width: 100%"
           >
-            <el-table-column prop="username" label="用户名" width="120" align="center" />
-            <el-table-column prop="realName" label="姓名" width="100" align="center" />
+            <el-table-column prop="username" label="用户名" min-width="120" />
+            <el-table-column prop="realName" label="姓名" width="100" />
             <el-table-column label="角色" width="120" align="center">
               <template #default="{ row }">
-                <el-tag :type="getRoleTagType(row.role.level)" effect="dark" size="small">
-                  {{ row.role.name }}
+                <el-tag :type="(getRoleTagType(row.role?.level) as any)" effect="plain" size="small">
+                  {{ row.role?.name || '-' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -68,26 +61,27 @@
                   v-for="(s, idx) in row.scope"
                   :key="idx"
                   size="small"
+                  effect="plain"
                   style="margin: 2px"
                 >
                   {{ getScopeLabel(s) }}
                 </el-tag>
-                <span v-if="!row.scope?.length">-</span>
+                <span v-if="!row.scope?.length" class="text-muted">-</span>
               </template>
             </el-table-column>
             <el-table-column label="数据范围" width="110" align="center">
               <template #default="{ row }">
-                <el-tag :type="getDataRangeTagType(row.dataRange)" size="small">
+                <el-tag :type="(getDataRangeTagType(row.dataRange) as any)" size="small" effect="plain">
                   {{ getDataRangeLabel(row.dataRange) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createdAt" label="分配时间" width="170" align="center">
+            <el-table-column prop="createdAt" label="分配时间" min-width="160" align="center">
               <template #default="{ row }">
                 {{ formatTime(row.createdAt) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="140" align="center" fixed="right">
+            <el-table-column label="操作" min-width="140">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="handleEditPermission(row)">编辑</el-button>
                 <el-button link type="danger" size="small" @click="handleRemovePermission(row)">移除</el-button>
@@ -95,68 +89,68 @@
             </el-table-column>
           </el-table>
 
-          <!-- 分页 -->
-          <div class="pagination-wrapper">
+          <div v-if="permissionPagination.total > 0" class="pagination-wrap">
             <el-pagination
               v-model:current-page="permissionPagination.page"
               v-model:page-size="permissionPagination.pageSize"
               :total="permissionPagination.total"
               :page-sizes="[10, 20, 50, 100]"
               layout="total, sizes, prev, pager, next, jumper"
-              background
               @size-change="fetchPermissionList"
               @current-change="fetchPermissionList"
             />
           </div>
-        </el-tab-pane>
+        </div>
+      </el-tab-pane>
 
-        <!-- ==================== 角色管理 ==================== -->
-        <el-tab-pane label="角色管理" name="role">
-          <div class="toolbar">
-            <span></span>
-            <el-button type="primary" icon="Plus" @click="handleCreateRole">新建角色</el-button>
-          </div>
+      <!-- ==================== 角色管理 ==================== -->
+      <el-tab-pane label="角色管理" name="role">
+        <div class="toolbar">
+          <div class="toolbar-spacer" />
+          <el-button type="primary" @click="handleCreateRole">新建角色</el-button>
+        </div>
 
-          <el-row :gutter="16">
-            <el-col
-              v-for="role in roleList"
-              :key="role.id"
-              :xs="24"
-              :sm="12"
-              :md="8"
-            >
-              <el-card shadow="hover" class="role-card">
-                <div class="role-card__header">
-                  <span class="role-card__name">{{ role.name }}</span>
-                  <el-tag :type="getRoleTagType(role.level)" size="small" effect="dark">
-                    {{ PermissionLevelLabels[role.level] }}
-                  </el-tag>
+        <div v-if="roleList.length === 0" class="table-panel empty-panel">暂无角色，请先新建</div>
+        <el-row v-else :gutter="16">
+          <el-col
+            v-for="role in roleList"
+            :key="role.id"
+            :xs="24"
+            :sm="12"
+            :md="8"
+          >
+            <el-card shadow="hover" class="role-card">
+              <div class="role-card__header">
+                <span class="role-card__name">{{ role.name }}</span>
+                <el-tag :type="(getRoleTagType(role.level) as any)" size="small" effect="plain">
+                  {{ PermissionLevelLabels[role.level] }}
+                </el-tag>
+              </div>
+              <p class="role-card__desc">{{ role.description || '暂无描述' }}</p>
+              <div class="role-card__permissions">
+                <el-tag
+                  v-for="(p, idx) in role.permissions"
+                  :key="idx"
+                  size="small"
+                  type="info"
+                  effect="plain"
+                  style="margin: 2px"
+                >
+                  {{ getScopeLabel(p) }}
+                </el-tag>
+              </div>
+              <div class="role-card__footer">
+                <span class="role-card__count">成员：{{ role.memberCount }} 人</span>
+                <div class="role-card__actions">
+                  <el-button link type="primary" size="small" @click="handleEditRole(role)">编辑</el-button>
+                  <el-button link type="danger" size="small" @click="handleDeleteRole(role)">删除</el-button>
                 </div>
-                <p class="role-card__desc">{{ role.description || '暂无描述' }}</p>
-                <div class="role-card__permissions">
-                  <el-tag
-                    v-for="(p, idx) in role.permissions"
-                    :key="idx"
-                    size="small"
-                    type="info"
-                    style="margin: 2px"
-                  >
-                    {{ getScopeLabel(p) }}
-                  </el-tag>
-                </div>
-                <div class="role-card__footer">
-                  <span class="role-card__count">成员：{{ role.memberCount }} 人</span>
-                  <div class="role-card__actions">
-                    <el-button link type="primary" size="small" @click="handleEditRole(role)">编辑</el-button>
-                    <el-button link type="danger" size="small" @click="handleDeleteRole(role)">删除</el-button>
-                  </div>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- ==================== 分配/编辑权限弹窗 ==================== -->
     <el-dialog
@@ -195,6 +189,7 @@
             v-model="permissionForm.roleId"
             placeholder="选择角色"
             style="width: 100%"
+            @change="handlePermissionRoleChange"
           >
             <el-option
               v-for="role in roleList"
@@ -206,15 +201,18 @@
         </el-form-item>
 
         <el-form-item label="权限范围" prop="scope">
-          <el-checkbox-group v-model="permissionForm.scope">
+          <el-checkbox-group v-model="permissionForm.scope" :disabled="!permissionForm.roleId">
             <el-checkbox
-              v-for="opt in scopeOptions"
+              v-for="opt in availableScopeOptions"
               :key="opt.value"
               :value="opt.value"
             >
               {{ opt.label }}
             </el-checkbox>
           </el-checkbox-group>
+          <div v-if="permissionForm.roleId && availableScopeOptions.length === 0" class="text-muted">
+            该角色未配置权限，请先在角色管理中补充
+          </div>
         </el-form-item>
 
         <el-form-item label="数据范围" prop="dataRange">
@@ -293,9 +291,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
 import {
   getFinanceRoles,
   saveFinanceRole,
@@ -328,6 +327,24 @@ const scopeOptions = [
   { value: 'tax_calc', label: '税务计算' },
   { value: 'permission_manage', label: '权限管理' },
 ]
+
+/** 种子角色旧码 → 新 scope（库内仍是 finance:*） */
+const legacyPermissionMap: Record<string, string[]> = {
+  'finance:view': ['income_view', 'report_view'],
+  'finance:edit': ['income_edit', 'budget_manage', 'invoice_manage', 'tax_calc'],
+  'finance:approve': ['income_view', 'income_edit', 'report_view', 'report_export'],
+  'finance:admin': scopeOptions.map((o) => o.value),
+}
+
+function expandRolePermissions(permissions: string[] | undefined | null): Set<string> {
+  const allowed = new Set<string>()
+  for (const p of permissions || []) {
+    const mapped = legacyPermissionMap[p]
+    if (mapped) mapped.forEach((s) => allowed.add(s))
+    else allowed.add(p)
+  }
+  return allowed
+}
 
 /** 权限级别选项 */
 const levelOptions: { value: PermissionLevel; label: string }[] = [
@@ -390,6 +407,10 @@ async function fetchPermissionList() {
       list = list.filter((p) => p.dataRange === filterDataRange.value)
     }
     permissionPagination.total = list.length
+    const maxPage = Math.max(1, Math.ceil(list.length / permissionPagination.pageSize) || 1)
+    if (permissionPagination.page > maxPage) {
+      permissionPagination.page = maxPage
+    }
     const start = (permissionPagination.page - 1) * permissionPagination.pageSize
     permissionList.value = list.slice(start, start + permissionPagination.pageSize)
   } catch {
@@ -443,26 +464,59 @@ function handleAssignPermission() {
   permissionDialogVisible.value = true
 }
 
+const availableScopeOptions = computed(() => {
+  if (!permissionForm.roleId) return []
+  const role = roleList.value.find((r) => r.id === permissionForm.roleId)
+  const allowed = expandRolePermissions(role?.permissions)
+  if (!allowed.size) return scopeOptions
+  const filtered = scopeOptions.filter((o) => allowed.has(o.value))
+  // 旧码无法映射时回退全部，避免权限范围空白
+  return filtered.length > 0 ? filtered : scopeOptions
+})
+
+function handlePermissionRoleChange() {
+  const allowed = new Set(availableScopeOptions.value.map((o) => o.value))
+  permissionForm.scope = permissionForm.scope.filter((s) => allowed.has(s))
+}
+
 function handleEditPermission(row: FinancePermission) {
   isEditPermission.value = true
   editPermissionId.value = row.id
   permissionForm.userId = row.userId
-  permissionForm.roleId = row.role.id
-  permissionForm.scope = [...row.scope]
+  permissionForm.roleId = row.role?.id as number
   permissionForm.dataRange = row.dataRange
   permissionDialogVisible.value = true
+  if (!row.role?.id) {
+    permissionForm.scope = []
+    ElMessage.warning('该用户角色信息缺失，请重新选择角色')
+    return
+  }
+  const roleAllowed = expandRolePermissions(
+    roleList.value.find((r) => r.id === row.role!.id)?.permissions
+  )
+  const filtered = (row.scope || []).filter((s) => !roleAllowed.size || roleAllowed.has(s))
+  // 历史 scope 若与角色映射无交集，保留原值以免编辑清空
+  permissionForm.scope = filtered.length > 0 ? filtered : [...(row.scope || [])]
 }
 
 async function handleRemovePermission(row: FinancePermission) {
-  await ElMessageBox.confirm(
-    `确定移除用户「${row.realName}」的财务权限？`,
-    '移除确认',
-    { type: 'warning' }
-  )
-  await removePermission(row.id)
-  ElMessage.success('移除成功')
-  fetchPermissionList()
-  fetchRoleList()
+  try {
+    await ElMessageBox.confirm(
+      `确定移除用户「${row.realName}」的财务权限？`,
+      '移除确认',
+      { type: 'warning' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await removePermission(row.id)
+    ElMessage.success('移除成功')
+    fetchPermissionList()
+    fetchRoleList()
+  } catch {
+    ElMessage.error('移除失败')
+  }
 }
 
 function resetPermissionForm() {
@@ -543,14 +597,22 @@ async function handleDeleteRole(role: FinanceRole) {
     ElMessage.warning(`角色「${role.name}」下还有 ${role.memberCount} 位成员，无法删除`)
     return
   }
-  await ElMessageBox.confirm(
-    `确定删除角色「${role.name}」？此操作不可恢复`,
-    '删除确认',
-    { type: 'warning' }
-  )
-  await deleteFinanceRole(role.id)
-  ElMessage.success('删除成功')
-  fetchRoleList()
+  try {
+    await ElMessageBox.confirm(
+      `确定删除角色「${role.name}」？此操作不可恢复`,
+      '删除确认',
+      { type: 'warning' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await deleteFinanceRole(role.id)
+    ElMessage.success('删除成功')
+    fetchRoleList()
+  } catch {
+    ElMessage.error('删除失败')
+  }
 }
 
 function resetRoleForm() {
@@ -589,7 +651,8 @@ async function handleRoleSubmit() {
 
 // ==================== 辅助函数 ====================
 
-function getRoleTagType(level: PermissionLevel): string {
+function getRoleTagType(level?: PermissionLevel | null): string {
+  if (!level) return 'info'
   const map: Record<PermissionLevel, string> = {
     viewer: 'info',
     editor: 'primary',
@@ -613,7 +676,14 @@ function getDataRangeLabel(dataRange: string): string {
 }
 
 function getScopeLabel(scope: string): string {
-  return scopeLabelMap[scope] || scope
+  if (scopeLabelMap[scope]) return scopeLabelMap[scope]
+  const legacyLabels: Record<string, string> = {
+    'finance:view': '财务查看',
+    'finance:edit': '财务编辑',
+    'finance:approve': '财务审批',
+    'finance:admin': '财务管理',
+  }
+  return legacyLabels[scope] || scope
 }
 
 function formatTime(time: string): string {
@@ -648,43 +718,57 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .permission-page {
-  .page-header {
-    margin-bottom: 16px;
-
-    &__title {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: #303133;
-    }
-
-    &__desc {
-      margin: 4px 0 0;
-      font-size: 13px;
-      color: #909399;
+  .main-tabs {
+    :deep(.el-tabs__header) {
+      margin-bottom: 14px;
     }
   }
 
   .toolbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
-
-    &__filters {
-      display: flex;
-      gap: 12px;
-    }
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
   }
 
-  .pagination-wrapper {
+  .toolbar-select {
+    width: 150px;
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .table-panel {
+    background: #fff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .empty-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+
+  .pagination-wrap {
     display: flex;
     justify-content: flex-end;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
   .role-card {
     margin-bottom: 16px;
+    border-radius: 12px;
 
     &__header {
       display: flex;

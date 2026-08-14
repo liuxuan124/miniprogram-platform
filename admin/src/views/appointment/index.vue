@@ -1,9 +1,10 @@
 <template>
   <div class="booking-page">
-    <div class="page-header">
-      <div class="page-title">预约管理</div>
-      <div class="page-desc">服务项目、时间段配置、预约记录管理。</div>
-    </div>
+    <PageHeader
+      kicker="活动与预约 / 预约看板"
+      title="预约看板"
+      description="日历看档期、配置时段与服务；预约记录支持确认、核销、取消。"
+    />
 
     <div class="top-grid">
       <el-card class="calendar-card" shadow="never">
@@ -27,16 +28,19 @@
         </div>
         <div class="calendar-legend">
           <span>🔵 今日</span>
-          <span>● 有预约</span>
+          <span>● 有开放时段</span>
         </div>
       </el-card>
 
       <el-card class="config-card" shadow="never">
         <div class="section-head">
           <h3>时间段配置</h3>
-          <el-button size="small" type="primary" @click="openSlotConfigDialog">配置</el-button>
+          <div class="head-actions">
+            <el-button size="small" @click="$router.push('/appointment/slot')">精细管理</el-button>
+            <el-button size="small" type="primary" @click="openSlotConfigDialog">快速生成</el-button>
+          </div>
         </div>
-        <div class="muted mb8">今日可预约时间段</div>
+        <div class="muted mb8">{{ selectedDate }} 可预约时间段</div>
         <div class="times-grid">
           <button
             v-for="slot in daySlots"
@@ -62,39 +66,103 @@
               <b>{{ svc.name }}（{{ svc.duration }}分钟）</b>
               <span class="muted">{{ svc.price == null ? '免费' : `¥${svc.price}` }}</span>
             </div>
-            <el-button size="small" @click="openServiceDialog(svc)">编辑</el-button>
+            <div class="svc-actions">
+              <el-button size="small" @click="openServicePreview(svc)">预览</el-button>
+              <el-button size="small" @click="openServiceDialog(svc)">编辑</el-button>
+            </div>
           </div>
           <div v-if="services.length === 0" class="empty-text">暂无服务项目</div>
         </div>
       </el-card>
     </div>
 
+    <section class="filter-panel">
+      <div class="filter-grid">
+        <el-input v-model="bookingFilter.keyword" placeholder="搜索联系人" clearable @keyup.enter="loadBookings" />
+        <el-select v-model="bookingFilter.status" placeholder="全部状态" clearable @change="onBookingFilterChange">
+          <el-option label="待确认" value="pending" />
+          <el-option label="已确认" value="confirmed" />
+          <el-option label="已完成" value="completed" />
+          <el-option label="未到" value="no_show" />
+          <el-option label="已取消" value="cancelled" />
+        </el-select>
+        <el-select v-model="bookingFilter.serviceId" placeholder="全部服务" clearable @change="onBookingFilterChange">
+          <el-option v-for="svc in services" :key="svc.id" :label="svc.name" :value="svc.id" />
+        </el-select>
+      </div>
+      <div class="filter-actions">
+        <el-button @click="resetBookingFilter">重置</el-button>
+        <el-button @click="exportBookings">导出</el-button>
+        <el-button type="primary" @click="loadBookings">查询</el-button>
+      </div>
+    </section>
+
     <el-card class="records-card" shadow="never">
       <div class="section-head">
-        <h3>预约记录</h3>
+        <h3>预约记录 · {{ selectedDate }}</h3>
+        <span class="muted">共 {{ bookingTotal }} 条</span>
       </div>
-      <el-table :data="bookingRows" stripe v-loading="bookingLoading">
-        <el-table-column label="服务项目" min-width="180" prop="serviceName" />
+      <el-table :data="bookingRows" stripe v-loading="bookingLoading" table-layout="auto">
+        <el-table-column label="服务项目" min-width="160" prop="serviceName" />
         <el-table-column label="预约用户" width="150">
           <template #default="{ row }">
             <div>{{ row.userName }}</div>
             <div class="muted">{{ row.userPhone }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="日期" width="130" prop="date" />
-        <el-table-column label="时间段" width="120" prop="time" />
-        <el-table-column label="状态" width="110">
+        <el-table-column label="日期" width="120" prop="date" />
+        <el-table-column label="时间段" width="140" prop="time" />
+        <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag :type="statusTagType(row.status)" size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160">
+        <el-table-column label="操作" min-width="260">
           <template #default="{ row }">
-            <el-button link type="success" size="small" @click="confirmBooking(row)" v-if="row.status === 'pending'">确认</el-button>
-            <el-button link size="small" @click="contactUser(row)">联系</el-button>
+            <div class="row-actions">
+              <el-button link type="success" size="small" @click="confirmBooking(row)" v-if="row.status === 'pending'">确认</el-button>
+              <el-button
+                link
+                type="primary"
+                size="small"
+                @click="completeBooking(row)"
+                v-if="row.status === 'pending' || row.status === 'confirmed'"
+              >
+                到店核销
+              </el-button>
+              <el-button
+                link
+                size="small"
+                @click="noShowBooking(row)"
+                v-if="row.status === 'pending' || row.status === 'confirmed'"
+              >
+                未到
+              </el-button>
+              <el-button
+                link
+                type="danger"
+                size="small"
+                @click="cancelBooking(row)"
+                v-if="row.status === 'pending' || row.status === 'confirmed'"
+              >
+                取消
+              </el-button>
+              <el-button link size="small" @click="contactUser(row)">复制手机</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="bookingPage"
+          v-model:page-size="bookingPageSize"
+          :total="bookingTotal"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="loadBookings"
+          @current-change="loadBookings"
+        />
+      </div>
     </el-card>
 
     <el-dialog v-model="slotConfigVisible" title="时间段配置" width="520px" destroy-on-close>
@@ -155,13 +223,68 @@
         <el-button type="primary" :loading="serviceSaving" @click="saveService">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="previewVisible"
+      title="服务预览"
+      width="420px"
+      append-to-body
+      destroy-on-close
+      class="appointment-preview-dialog"
+    >
+      <div class="preview-phone" v-loading="previewLoading" v-if="previewService">
+        <div class="preview-notch" />
+        <div class="preview-scroll">
+          <div class="pv-cover">📅</div>
+          <div class="pv-section">
+            <div class="pv-title">{{ previewService.name }}</div>
+            <div class="pv-row">时长 {{ previewService.duration }} 分钟</div>
+            <div class="pv-row">{{ previewService.price == null || previewService.price === 0 ? '免费' : `¥${previewService.price}` }}</div>
+            <div class="pv-desc">{{ previewService.description || '暂无介绍' }}</div>
+          </div>
+          <div class="pv-section">
+            <div class="pv-section-title">选择日期</div>
+            <div v-if="previewDates.length" class="pv-chip-row">
+              <button
+                v-for="d in previewDates"
+                :key="d.date"
+                type="button"
+                class="pv-chip"
+                :class="{ muted: previewDate !== d.date }"
+                @click="previewDate = d.date"
+              >
+                {{ d.label }}
+              </button>
+            </div>
+            <div v-else class="pv-empty">暂无已配置日期</div>
+
+            <div class="pv-section-title mt">选择时段</div>
+            <div v-if="previewDaySlots.length" class="pv-slot-grid">
+              <div
+                v-for="s in previewDaySlots"
+                :key="s.id"
+                class="pv-slot"
+                :class="{ full: s.full }"
+              >
+                {{ s.label }}
+                <small>{{ s.full ? '已满' : '可约' }}</small>
+              </div>
+            </div>
+            <div v-else class="pv-empty">该日暂无时段</div>
+          </div>
+        </div>
+        <div class="pv-bottom-bar"><div class="pv-submit">立即预约</div></div>
+      </div>
+      <p class="preview-hint">模拟小程序预约页，实际以端上为准。</p>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import PageHeader from '@/components/PageHeader.vue'
 import {
   getAppointmentServiceList,
   createAppointmentService,
@@ -170,6 +293,9 @@ import {
   createAppointmentSlot,
   getAppointmentList,
   confirmAppointment,
+  cancelAppointment,
+  completeAppointment,
+  markAppointmentNoShow,
 } from '@/api/appointment'
 import { AppointmentServiceStatus } from '@/types/appointment'
 
@@ -210,6 +336,72 @@ const daySlots = ref<DaySlot[]>([])
 
 const bookingLoading = ref(false)
 const bookingRows = ref<BookingRow[]>([])
+const bookingPage = ref(1)
+const bookingPageSize = ref(20)
+const bookingTotal = ref(0)
+const bookingFilter = reactive({
+  keyword: '',
+  status: '' as string,
+  serviceId: undefined as number | undefined,
+})
+const previewVisible = ref(false)
+const previewService = ref<ServiceItem | null>(null)
+const previewDate = ref('')
+const previewLoading = ref(false)
+
+const previewDates = computed(() => {
+  const svcId = previewService.value?.id
+  if (!svcId) return [] as Array<{ date: string; label: string }>
+  const todayStr = formatDate(new Date())
+  const dateSet = new Set<string>()
+  for (const s of slots.value) {
+    const sid = Number(s.service_id ?? s.serviceId)
+    if (sid !== svcId) continue
+    if (Number(s.status ?? 1) === 0) continue
+    const date = String(s.date || '')
+    if (!date || date < todayStr) continue
+    dateSet.add(date)
+  }
+  return Array.from(dateSet)
+    .sort()
+    .slice(0, 14)
+    .map((date) => ({
+      date,
+      label: previewDateLabel(date),
+    }))
+})
+
+const previewDaySlots = computed(() => {
+  const svcId = previewService.value?.id
+  const date = previewDate.value
+  if (!svcId || !date) return [] as Array<{ id: number; label: string; full: boolean }>
+  return slots.value
+    .filter((s) => Number(s.service_id ?? s.serviceId) === svcId && String(s.date) === date)
+    .sort((a, b) => String(a.start_time ?? a.startTime).localeCompare(String(b.start_time ?? b.startTime)))
+    .map((s) => {
+      const start = s.start_time ?? s.startTime ?? ''
+      const end = s.end_time ?? s.endTime ?? ''
+      const booked = Number(s.booked_count ?? s.bookedCount ?? 0)
+      const cap = Number(s.capacity ?? s.maxCapacity ?? 0)
+      const full = Number(s.status ?? 1) === 0 || (cap > 0 && booked >= cap)
+      return {
+        id: Number(s.id),
+        label: end ? `${start}-${end}` : String(start),
+        full,
+      }
+    })
+})
+
+function previewDateLabel(date: string) {
+  const todayStr = formatDate(new Date())
+  const t = new Date()
+  t.setDate(t.getDate() + 1)
+  const tomorrowStr = formatDate(t)
+  if (date === todayStr) return '今天'
+  if (date === tomorrowStr) return '明天'
+  const parts = date.split('-')
+  return `${Number(parts[1])}/${Number(parts[2])}`
+}
 
 function formatDate(d: Date) {
   const y = d.getFullYear()
@@ -266,6 +458,7 @@ function selectDate(cell: { date: string; isOtherMonth: boolean }) {
     displayYear.value = d.getFullYear()
     displayMonth.value = d.getMonth()
   }
+  bookingPage.value = 1
   buildDaySlots()
   loadBookings()
 }
@@ -286,13 +479,16 @@ function normalizeService(raw: any): ServiceItem {
 }
 
 function normalizeBooking(raw: any): BookingRow {
+  const date = raw.appointmentDate || raw.appointment_date || raw.slot_date || raw.slotDate || '-'
+  const time = raw.appointmentTime || raw.appointment_time ||
+    `${raw.slot_start_time || raw.slotStartTime || raw.startTime || '--'}-${raw.slot_end_time || raw.slotEndTime || raw.endTime || '--'}`
   return {
     id: Number(raw.id),
-    serviceName: raw.service_name || raw.serviceName || '-',
-    userName: raw.user_name || raw.userName || '-',
-    userPhone: raw.user_phone || raw.userPhone || '-',
-    date: raw.slot_date || raw.slotDate || '-',
-    time: `${raw.slot_start_time || raw.slotStartTime || '--'} - ${raw.slot_end_time || raw.slotEndTime || '--'}`,
+    serviceName: raw.serviceName || raw.service_name || '-',
+    userName: raw.contactName || raw.contact_name || raw.user_name || raw.userName || '-',
+    userPhone: raw.contactPhone || raw.contact_phone || raw.user_phone || raw.userPhone || '-',
+    date: typeof date === 'string' ? date : String(date),
+    time: String(time).replace(/\s*-\s*/, ' - '),
     status: raw.status || 'pending',
   }
 }
@@ -330,18 +526,35 @@ function buildDaySlots() {
   }
 }
 
+function onBookingFilterChange() {
+  bookingPage.value = 1
+  loadBookings()
+}
+
+function resetBookingFilter() {
+  bookingFilter.keyword = ''
+  bookingFilter.status = ''
+  bookingFilter.serviceId = undefined
+  bookingPage.value = 1
+  loadBookings()
+}
+
 async function loadBookings() {
   bookingLoading.value = true
   try {
     const res = await getAppointmentList({
-      page: 1,
-      page_size: 100,
+      page: bookingPage.value,
+      page_size: bookingPageSize.value,
       start_date: selectedDate.value,
       end_date: selectedDate.value,
+      status: bookingFilter.status || undefined,
+      service_id: bookingFilter.serviceId,
+      keyword: bookingFilter.keyword || undefined,
     })
     const data = (res as any).data || {}
     const list = data.list || data.records || []
     bookingRows.value = Array.isArray(list) ? list.map((x: any) => normalizeBooking(x)) : []
+    bookingTotal.value = Number(data.total || bookingRows.value.length)
   } finally {
     bookingLoading.value = false
   }
@@ -351,6 +564,7 @@ function statusLabel(status: string) {
   if (status === 'confirmed') return '已确认'
   if (status === 'cancelled') return '已取消'
   if (status === 'completed') return '已完成'
+  if (status === 'no_show') return '未到'
   return '待确认'
 }
 
@@ -358,6 +572,7 @@ function statusTagType(status: string): 'success' | 'danger' | 'info' | 'warning
   if (status === 'confirmed') return 'success'
   if (status === 'cancelled') return 'danger'
   if (status === 'completed') return 'info'
+  if (status === 'no_show') return 'info'
   return 'warning'
 }
 
@@ -365,10 +580,97 @@ async function confirmBooking(row: BookingRow) {
   await confirmAppointment(row.id)
   ElMessage.success('已确认')
   loadBookings()
+  loadSlots()
 }
 
-function contactUser(_row: BookingRow) {
-  ElMessage.success('已打开联系入口')
+async function completeBooking(row: BookingRow) {
+  await completeAppointment(row.id)
+  ElMessage.success('已核销完成')
+  loadBookings()
+}
+
+async function noShowBooking(row: BookingRow) {
+  await ElMessageBox.confirm(`确认将「${row.userName}」标记为未到？将释放时段名额。`, '标记未到', {
+    type: 'warning',
+  })
+  await markAppointmentNoShow(row.id)
+  ElMessage.success('已标记未到')
+  loadBookings()
+  loadSlots()
+}
+
+async function cancelBooking(row: BookingRow) {
+  try {
+    const { value } = await ElMessageBox.prompt('可选填写取消原因', '取消预约', {
+      confirmButtonText: '确认取消',
+      cancelButtonText: '返回',
+      inputPlaceholder: '取消原因',
+    })
+    await cancelAppointment(row.id, String(value || ''))
+    ElMessage.success('已取消')
+    loadBookings()
+    loadSlots()
+  } catch {
+    /* user cancelled */
+  }
+}
+
+function contactUser(row: BookingRow) {
+  const phone = row.userPhone
+  if (!phone || phone === '-') {
+    ElMessage.warning('无手机号')
+    return
+  }
+  navigator.clipboard.writeText(phone).then(() => {
+    ElMessage.success(`已复制 ${phone}`)
+  }).catch(() => {
+    ElMessage.info(phone)
+  })
+}
+
+async function openServicePreview(svc: ServiceItem) {
+  previewService.value = svc
+  previewDate.value = ''
+  previewVisible.value = true
+  previewLoading.value = true
+  try {
+    const res = await getAppointmentSlotList({
+      page: 1,
+      page_size: 500,
+      service_id: svc.id,
+    })
+    const data = (res as any).data || {}
+    const list = data.list || data.records || []
+    if (Array.isArray(list)) {
+      const others = slots.value.filter((s) => Number(s.service_id ?? s.serviceId) !== svc.id)
+      slots.value = [...others, ...list]
+    }
+    previewDate.value = previewDates.value[0]?.date || ''
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+function exportBookings() {
+  if (!bookingRows.value.length) {
+    ElMessage.warning('暂无数据可导出')
+    return
+  }
+  const header = ['服务项目', '联系人', '手机号', '日期', '时间段', '状态']
+  const lines = bookingRows.value.map((r) =>
+    [r.serviceName, r.userName, r.userPhone, r.date, r.time, statusLabel(r.status)]
+      .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+      .join(',')
+  )
+  const csv = `\uFEFF${header.join(',')}\n${lines.join('\n')}`
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `appointments-${selectedDate.value}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('已导出当前页')
 }
 
 const slotConfigVisible = ref(false)
@@ -506,6 +808,50 @@ onMounted(async () => {
 .booking-page {
   .page-header {
     margin-bottom: 16px;
+  }
+
+  .filter-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .filter-grid :deep(.el-input),
+  .filter-grid :deep(.el-select) {
+    width: 180px;
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .head-actions,
+  .svc-actions,
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .pagination-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
   }
 
   .page-title {
@@ -700,5 +1046,156 @@ onMounted(async () => {
     font-size: 12px;
     padding: 8px 0;
   }
+}
+
+.preview-phone {
+  position: relative;
+  width: 360px;
+  margin: 0 auto;
+  border: 10px solid #1a1a1a;
+  border-radius: 28px;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.preview-notch {
+  width: 120px;
+  height: 18px;
+  margin: 8px auto 0;
+  border-radius: 10px;
+  background: #111;
+}
+
+.preview-scroll {
+  max-height: 480px;
+  overflow: auto;
+  padding-bottom: 72px;
+}
+
+.pv-cover {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: linear-gradient(135deg, #1769ff, #5b8def);
+}
+
+.pv-section {
+  margin-top: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+.pv-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.pv-row {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.pv-desc {
+  margin-top: 8px;
+  color: #333;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pv-section-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pv-chip {
+  display: inline-block;
+  padding: 6px 12px;
+  margin: 0 8px 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: #eef4ff;
+  color: #1769ff;
+  font-size: 12px;
+  cursor: pointer;
+
+  &.muted {
+    background: #f3f4f6;
+    color: #99a3b5;
+  }
+}
+
+.pv-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.pv-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pv-slot {
+  border: 1px solid #d5deea;
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 12px;
+  color: #1f2d3d;
+  background: #fff;
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: #6b7b93;
+    font-size: 11px;
+  }
+
+  &.full {
+    color: #a3afc2;
+    background: #f6f7fa;
+  }
+}
+
+.pv-empty {
+  color: #99a3b5;
+  font-size: 12px;
+  padding: 4px 0 8px;
+}
+
+.pv-section-title.mt {
+  margin-top: 12px;
+}
+
+.pv-bottom-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #eee;
+}
+
+.pv-submit {
+  height: 42px;
+  border-radius: 999px;
+  background: #1769ff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.preview-hint {
+  margin: 12px 0 0;
+  text-align: center;
+  color: #99a3b5;
+  font-size: 12px;
 }
 </style>

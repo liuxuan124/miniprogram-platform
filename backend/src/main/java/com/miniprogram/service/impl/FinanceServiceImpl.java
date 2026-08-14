@@ -87,8 +87,7 @@ public class FinanceServiceImpl implements FinanceService {
         LocalDate prevMonthStart = monthStart.minusMonths(1);
         LocalDate prevMonthEnd = monthStart.minusDays(1);
 
-        BigDecimal totalIncome = sumTransactionAmount("income", null, null);
-        BigDecimal totalExpense = sumTransactionAmount("expense", null, null);
+        // 概览卡片与环比统一为本月口径（已审批流水），避免「累计金额 + 本月环比」误导
         BigDecimal currentIncome = sumTransactionAmount("income", monthStart, now);
         BigDecimal currentExpense = sumTransactionAmount("expense", monthStart, now);
         BigDecimal previousIncome = sumTransactionAmount("income", prevMonthStart, prevMonthEnd);
@@ -100,9 +99,9 @@ public class FinanceServiceImpl implements FinanceService {
                 .in(FinanceInvoice::getInvoiceStatus, "pending", "draft"));
 
         FinanceDashboardVO vo = new FinanceDashboardVO();
-        vo.setTotalIncome(totalIncome);
-        vo.setTotalExpense(totalExpense);
-        vo.setNetProfit(totalIncome.subtract(totalExpense));
+        vo.setTotalIncome(currentIncome);
+        vo.setTotalExpense(currentExpense);
+        vo.setNetProfit(currentProfit);
         vo.setPendingInvoiceCount(pendingInvoices != null ? pendingInvoices.intValue() : 0);
         vo.setBudgetUsageRate(calculateAverageBudgetUsageRate());
         vo.setIncomeChange(calculateChangeRate(currentIncome, previousIncome));
@@ -115,33 +114,58 @@ public class FinanceServiceImpl implements FinanceService {
     public List<FinanceTrendVO> getTrend(String startDate, String endDate, String granularity) {
         LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
         LocalDate end = endDate != null ? LocalDate.parse(endDate, DATE_FORMATTER) : start.plusMonths(5);
+        String grain = granularity == null || granularity.isBlank() ? "month" : granularity.toLowerCase(Locale.ROOT);
 
         List<FinanceTransaction> transactions = listTransactionsBetween(start, end);
-
         Map<String, FinanceTrendVO> trendMap = new LinkedHashMap<>();
-        if ("day".equals(granularity)) {
+
+        if ("day".equals(grain)) {
             LocalDate current = start;
             while (!current.isAfter(end)) {
-                trendMap.put(current.format(DATE_FORMATTER), emptyTrend(current.format(DATE_FORMATTER)));
+                String key = current.format(DATE_FORMATTER);
+                trendMap.put(key, emptyTrend(key));
                 current = current.plusDays(1);
             }
-            for (FinanceTransaction transaction : transactions) {
-                String key = transaction.getTransactionDate().format(DATE_FORMATTER);
-                FinanceTrendVO trend = trendMap.computeIfAbsent(key, this::emptyTrend);
-                applyTransactionToTrend(trend, transaction);
+        } else if ("week".equals(grain)) {
+            LocalDate cursor = start;
+            while (!cursor.isAfter(end)) {
+                String key = weekKey(cursor);
+                trendMap.putIfAbsent(key, emptyTrend(key));
+                cursor = cursor.plusDays(1);
+            }
+        } else if ("quarter".equals(grain)) {
+            YearMonth cursor = YearMonth.from(start);
+            YearMonth endMonth = YearMonth.from(end);
+            while (!cursor.isAfter(endMonth)) {
+                String key = quarterKey(cursor);
+                trendMap.putIfAbsent(key, emptyTrend(key));
+                cursor = cursor.plusMonths(1);
+            }
+        } else if ("year".equals(grain)) {
+            int y = start.getYear();
+            int endY = end.getYear();
+            while (y <= endY) {
+                String key = String.valueOf(y);
+                trendMap.put(key, emptyTrend(key));
+                y++;
             }
         } else {
+            // month（默认）
             YearMonth cursor = YearMonth.from(start);
             YearMonth endMonth = YearMonth.from(end);
             while (!cursor.isAfter(endMonth)) {
                 trendMap.put(cursor.toString(), emptyTrend(cursor.toString()));
                 cursor = cursor.plusMonths(1);
             }
-            for (FinanceTransaction transaction : transactions) {
-                String key = YearMonth.from(transaction.getTransactionDate()).toString();
-                FinanceTrendVO trend = trendMap.computeIfAbsent(key, this::emptyTrend);
-                applyTransactionToTrend(trend, transaction);
+        }
+
+        for (FinanceTransaction transaction : transactions) {
+            if (transaction.getTransactionDate() == null) {
+                continue;
             }
+            String key = trendBucketKey(transaction.getTransactionDate(), grain);
+            FinanceTrendVO trend = trendMap.computeIfAbsent(key, this::emptyTrend);
+            applyTransactionToTrend(trend, transaction);
         }
 
         trendMap.values().forEach(trend -> trend.setProfit(
@@ -177,7 +201,8 @@ public class FinanceServiceImpl implements FinanceService {
                         .like(FinanceTransaction::getDescription, keyword)
                         .or().like(FinanceTransaction::getCounterparty, keyword)
                         .or().like(FinanceTransaction::getCategory, keyword))
-                .orderByDesc(FinanceTransaction::getTransactionDate);
+                .orderByDesc(FinanceTransaction::getTransactionDate)
+                .orderByDesc(FinanceTransaction::getId);
 
         int p = page != null ? page : 1;
         int s = pageSize != null ? pageSize : 20;
@@ -195,19 +220,12 @@ public class FinanceServiceImpl implements FinanceService {
     @Transactional
     public FinanceTransactionVO createTransaction(FinanceTransactionDTO dto) {
         FinanceTransaction entity = new FinanceTransaction();
-        BeanUtils.copyProperties(dto, entity);
-        entity.setTransactionDate(LocalDate.parse(dto.getTransactionDate(), DATE_FORMATTER));
-        if (entity.getInvoiceStatus() == null) {
-            entity.setInvoiceStatus("none");
-        }
+        applyTransactionDto(entity, dto, true);
         entity.setApprovalStatus("pending");
         entity.setCreatedBy("admin");
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         transactionMapper.insert(entity);
-        if ("approved".equals(entity.getApprovalStatus())) {
-            recalculateAllBudgets();
-        }
         return toTransactionVO(entity);
     }
 
@@ -215,10 +233,15 @@ public class FinanceServiceImpl implements FinanceService {
     @Transactional
     public FinanceTransactionVO updateTransaction(Long id, FinanceTransactionDTO dto) {
         FinanceTransaction entity = getTransactionEntity(id);
-        BeanUtils.copyProperties(dto, entity);
+        String previousApproval = entity.getApprovalStatus();
+        applyTransactionDto(entity, dto, false);
         entity.setId(id);
-        entity.setTransactionDate(LocalDate.parse(dto.getTransactionDate(), DATE_FORMATTER));
         entity.setUpdateTime(LocalDateTime.now());
+        // 已审批/已驳回记录被修改后需重新审批，避免静默改写已入账数据
+        if ("approved".equals(previousApproval) || "rejected".equals(previousApproval)) {
+            entity.setApprovalStatus("pending");
+            entity.setApprovalReason(null);
+        }
         transactionMapper.updateById(entity);
         recalculateAllBudgets();
         return toTransactionVO(entity);
@@ -234,7 +257,13 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     @Transactional
     public void approveTransaction(Long id, String approvalStatus, String reason) {
+        if (!"approved".equals(approvalStatus) && !"rejected".equals(approvalStatus)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "审批状态无效");
+        }
         FinanceTransaction entity = getTransactionEntity(id);
+        if (!"pending".equals(entity.getApprovalStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "仅待审批记录可审批");
+        }
         entity.setApprovalStatus(approvalStatus);
         entity.setApprovalReason(reason);
         entity.setUpdateTime(LocalDateTime.now());
@@ -248,6 +277,13 @@ public class FinanceServiceImpl implements FinanceService {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请上传 CSV 文件");
         }
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase(Locale.ROOT) : "";
+        if (filename.endsWith(".xlsx") || filename.endsWith(".xls")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "暂不支持 Excel，请上传 CSV 文件");
+        }
+        if (!filename.isEmpty() && !filename.endsWith(".csv")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请上传 CSV 文件");
+        }
         int success = 0;
         int failed = 0;
         List<String> errors = new ArrayList<>();
@@ -259,25 +295,34 @@ public class FinanceServiceImpl implements FinanceService {
                 if (line.isBlank()) {
                     continue;
                 }
+                // 兼容 UTF-8 BOM
+                if (rowNum == 1 && line.startsWith("\uFEFF")) {
+                    line = line.substring(1);
+                }
                 if (rowNum == 1 && line.toLowerCase(Locale.ROOT).startsWith("type,")) {
                     continue;
                 }
-                String[] cols = line.split(",", -1);
-                if (cols.length < 4) {
+                List<String> cols = parseCsvLine(line);
+                if (cols.size() < 4) {
                     failed++;
                     errors.add("第" + rowNum + "行列数不足");
                     continue;
                 }
                 try {
                     FinanceTransactionDTO dto = new FinanceTransactionDTO();
-                    dto.setType(cols[0].trim());
-                    dto.setAmount(new BigDecimal(cols[1].trim()));
-                    dto.setCategory(cols[2].trim());
-                    dto.setSubCategory(cols.length > 3 && !cols[3].trim().isEmpty() ? cols[3].trim() : null);
-                    dto.setDescription(cols.length > 4 ? cols[4].trim() : null);
-                    dto.setTransactionDate(cols.length > 5 ? cols[5].trim() : LocalDate.now().format(DATE_FORMATTER));
-                    dto.setPaymentMethod(cols.length > 6 ? cols[6].trim() : null);
-                    dto.setCounterparty(cols.length > 7 ? cols[7].trim() : null);
+                    dto.setType(cols.get(0).trim());
+                    dto.setAmount(new BigDecimal(cols.get(1).trim()));
+                    dto.setCategory(cols.get(2).trim());
+                    dto.setSubCategory(cols.size() > 3 && !cols.get(3).trim().isEmpty() ? cols.get(3).trim() : null);
+                    dto.setDescription(cols.size() > 4 ? emptyToNull(cols.get(4).trim()) : null);
+                    dto.setTransactionDate(cols.size() > 5 && !cols.get(5).trim().isEmpty()
+                            ? cols.get(5).trim() : LocalDate.now().format(DATE_FORMATTER));
+                    String payment = cols.size() > 6 ? cols.get(6).trim() : "";
+                    dto.setPaymentMethod(payment.isEmpty() ? "other" : payment);
+                    dto.setCounterparty(cols.size() > 7 ? emptyToNull(cols.get(7).trim()) : null);
+                    if (!"income".equals(dto.getType()) && !"expense".equals(dto.getType())) {
+                        throw new IllegalArgumentException("类型须为 income 或 expense");
+                    }
                     FinanceTransactionVO created = createTransaction(dto);
                     approveTransaction(created.getId(), "approved", "导入自动审批");
                     success++;
@@ -286,6 +331,8 @@ public class FinanceServiceImpl implements FinanceService {
                     errors.add("第" + rowNum + "行: " + ex.getMessage());
                 }
             }
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "文件解析失败: " + e.getMessage());
         }
@@ -301,14 +348,30 @@ public class FinanceServiceImpl implements FinanceService {
     public void exportTransactions(String keyword, String type, String category, String startDate,
                                    String endDate, String approvalStatus, String invoiceStatus,
                                    String format, HttpServletResponse response) {
-        PageResult<FinanceTransactionVO> page = listTransactions(1, 10000, keyword, type, category,
-                startDate, endDate, approvalStatus, invoiceStatus);
+        // 导出不分页截断：按同一筛选条件全量查出
+        LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(type != null && !type.isBlank(), FinanceTransaction::getType, type)
+                .eq(category != null && !category.isBlank(), FinanceTransaction::getCategory, category)
+                .eq(approvalStatus != null && !approvalStatus.isBlank(), FinanceTransaction::getApprovalStatus, approvalStatus)
+                .eq(invoiceStatus != null && !invoiceStatus.isBlank(), FinanceTransaction::getInvoiceStatus, invoiceStatus)
+                .ge(startDate != null && !startDate.isBlank(), FinanceTransaction::getTransactionDate, startDate)
+                .le(endDate != null && !endDate.isBlank(), FinanceTransaction::getTransactionDate, endDate)
+                .and(keyword != null && !keyword.isBlank(), w -> w
+                        .like(FinanceTransaction::getDescription, keyword)
+                        .or().like(FinanceTransaction::getCounterparty, keyword)
+                        .or().like(FinanceTransaction::getCategory, keyword))
+                .orderByDesc(FinanceTransaction::getTransactionDate)
+                .orderByDesc(FinanceTransaction::getId);
+        List<FinanceTransactionVO> records = transactionMapper.selectList(wrapper).stream()
+                .map(this::toTransactionVO)
+                .toList();
         boolean xlsx = "xlsx".equalsIgnoreCase(format) || "excel".equalsIgnoreCase(format);
         try {
             if (xlsx) {
                 List<List<Object>> rows = new ArrayList<>();
-                for (FinanceTransactionVO item : page.getRecords()) {
-                    rows.add(List.of(
+                for (FinanceTransactionVO item : records) {
+                    // Arrays.asList 允许 null，避免 List.of 因空字段 NPE
+                    rows.add(Arrays.asList(
                             item.getType(), item.getAmount(), item.getCategory(), item.getSubCategory(),
                             item.getDescription(), item.getTransactionDate(), item.getPaymentMethod(),
                             item.getCounterparty(), item.getApprovalStatus(), item.getInvoiceStatus()));
@@ -323,7 +386,7 @@ public class FinanceServiceImpl implements FinanceService {
             response.getOutputStream().write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
             PrintWriter writer = new PrintWriter(response.getOutputStream(), true, java.nio.charset.StandardCharsets.UTF_8);
             writer.println("type,amount,category,subCategory,description,transactionDate,paymentMethod,counterparty,approvalStatus,invoiceStatus");
-            for (FinanceTransactionVO item : page.getRecords()) {
+            for (FinanceTransactionVO item : records) {
                 writer.printf(Locale.ROOT, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
                         csv(item.getType()),
                         csv(item.getAmount()),
@@ -347,17 +410,35 @@ public class FinanceServiceImpl implements FinanceService {
         List<Map<String, Object>> list = new ArrayList<>();
         if (type == null || "income".equals(type)) {
             list.add(buildCategory(1L, "商品销售", "income", null));
+            list.add(buildCategory(11L, "实物商品", "income", 1L));
+            list.add(buildCategory(12L, "虚拟商品", "income", 1L));
             list.add(buildCategory(2L, "服务收入", "income", null));
+            list.add(buildCategory(21L, "咨询服务", "income", 2L));
+            list.add(buildCategory(22L, "上门服务", "income", 2L));
             list.add(buildCategory(3L, "会员充值", "income", null));
+            list.add(buildCategory(31L, "余额充值", "income", 3L));
+            list.add(buildCategory(32L, "会员卡", "income", 3L));
             list.add(buildCategory(4L, "广告收入", "income", null));
+            list.add(buildCategory(41L, "品牌广告", "income", 4L));
+            list.add(buildCategory(42L, "效果广告", "income", 4L));
             list.add(buildCategory(5L, "其他收入", "income", null));
+            list.add(buildCategory(51L, "杂项收入", "income", 5L));
         }
         if (type == null || "expense".equals(type)) {
             list.add(buildCategory(6L, "人力成本", "expense", null));
+            list.add(buildCategory(61L, "工资社保", "expense", 6L));
+            list.add(buildCategory(62L, "外包劳务", "expense", 6L));
             list.add(buildCategory(7L, "运营费用", "expense", null));
+            list.add(buildCategory(71L, "房租物业", "expense", 7L));
+            list.add(buildCategory(72L, "水电通讯", "expense", 7L));
             list.add(buildCategory(8L, "采购成本", "expense", null));
+            list.add(buildCategory(81L, "原材料", "expense", 8L));
+            list.add(buildCategory(82L, "库存商品", "expense", 8L));
             list.add(buildCategory(9L, "营销推广", "expense", null));
+            list.add(buildCategory(91L, "线上投放", "expense", 9L));
+            list.add(buildCategory(92L, "线下活动", "expense", 9L));
             list.add(buildCategory(10L, "其他支出", "expense", null));
+            list.add(buildCategory(101L, "杂项支出", "expense", 10L));
         }
         return list;
     }
@@ -531,14 +612,7 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     public FinanceInvoiceVO createInvoice(FinanceInvoiceDTO dto) {
         FinanceInvoice entity = new FinanceInvoice();
-        BeanUtils.copyProperties(dto, entity);
-        entity.setIssueDate(LocalDate.parse(dto.getIssueDate(), DATE_FORMATTER));
-        entity.setDueDate(LocalDate.parse(dto.getDueDate(), DATE_FORMATTER));
-        // 计算税额和价税合计
-        BigDecimal taxAmount = dto.getAmount().multiply(dto.getTaxRate()).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal totalAmount = dto.getAmount().add(taxAmount);
-        entity.setTaxAmount(taxAmount);
-        entity.setTotalAmount(totalAmount);
+        applyInvoiceDto(entity, dto);
         entity.setInvoiceStatus("draft");
         entity.setCreatedBy("admin");
         entity.setCreateTime(LocalDateTime.now());
@@ -550,14 +624,13 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     public FinanceInvoiceVO updateInvoice(Long id, FinanceInvoiceDTO dto) {
         FinanceInvoice entity = getInvoiceEntity(id);
-        BeanUtils.copyProperties(dto, entity);
+        if (!"draft".equals(entity.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "仅草稿发票可编辑");
+        }
+        applyInvoiceDto(entity, dto);
         entity.setId(id);
-        entity.setIssueDate(LocalDate.parse(dto.getIssueDate(), DATE_FORMATTER));
-        entity.setDueDate(LocalDate.parse(dto.getDueDate(), DATE_FORMATTER));
-        BigDecimal taxAmount = dto.getAmount().multiply(dto.getTaxRate()).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal totalAmount = dto.getAmount().add(taxAmount);
-        entity.setTaxAmount(taxAmount);
-        entity.setTotalAmount(totalAmount);
+        // 保持 draft，不覆盖状态
+        entity.setInvoiceStatus("draft");
         entity.setUpdateTime(LocalDateTime.now());
         invoiceMapper.updateById(entity);
         return toInvoiceVO(entity);
@@ -565,12 +638,31 @@ public class FinanceServiceImpl implements FinanceService {
 
     @Override
     public void deleteInvoice(Long id) {
+        FinanceInvoice entity = getInvoiceEntity(id);
+        if (!"draft".equals(entity.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "仅草稿发票可删除");
+        }
         invoiceMapper.deleteById(id);
+    }
+
+    @Override
+    public void issueInvoice(Long id) {
+        FinanceInvoice entity = getInvoiceEntity(id);
+        if (!"draft".equals(entity.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "仅草稿发票可开具");
+        }
+        entity.setInvoiceStatus("issued");
+        entity.setUpdateTime(LocalDateTime.now());
+        invoiceMapper.updateById(entity);
     }
 
     @Override
     public void verifyInvoice(Long id) {
         FinanceInvoice entity = getInvoiceEntity(id);
+        String status = entity.getInvoiceStatus();
+        if (!"pending".equals(status) && !"issued".equals(status)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "仅待处理/已开具发票可核验");
+        }
         entity.setInvoiceStatus("verified");
         entity.setUpdateTime(LocalDateTime.now());
         invoiceMapper.updateById(entity);
@@ -579,6 +671,12 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     public void cancelInvoice(Long id, String reason) {
         FinanceInvoice entity = getInvoiceEntity(id);
+        if ("cancelled".equals(entity.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "发票已作废");
+        }
+        if ("draft".equals(entity.getInvoiceStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "草稿请直接删除，无需作废");
+        }
         entity.setInvoiceStatus("cancelled");
         entity.setCancelReason(reason);
         entity.setUpdateTime(LocalDateTime.now());
@@ -586,22 +684,95 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     @Override
-    public Map<String, Object> calculateTax(BigDecimal amount, BigDecimal taxRate, String type) {
-        Map<String, Object> result = new HashMap<>();
-        BigDecimal vatAmount = amount.multiply(taxRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal surcharge = vatAmount.multiply(new BigDecimal("0.12")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal taxableIncome = amount.subtract(vatAmount).subtract(surcharge);
-        BigDecimal incomeTax = taxableIncome.multiply(new BigDecimal("0.25")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalTax = vatAmount.add(surcharge).add(incomeTax);
-        BigDecimal afterTaxIncome = amount.subtract(totalTax);
+    public Map<String, Object> calculateTax(BigDecimal amount, BigDecimal taxRate, String type, Boolean includeTax) {
+        BigDecimal safeAmount = amount != null ? amount : BigDecimal.ZERO;
+        BigDecimal rate = taxRate != null ? taxRate : BigDecimal.ZERO;
+        BigDecimal rateFactor = rate.divide(new BigDecimal("100"), 8, RoundingMode.HALF_UP);
+        boolean withTax = Boolean.TRUE.equals(includeTax);
 
-        result.put("taxableIncome", taxableIncome);
+        BigDecimal exclusive;
+        BigDecimal vatAmount;
+        BigDecimal gross;
+        if (withTax) {
+            // 含税价拆分
+            gross = safeAmount;
+            exclusive = rate.compareTo(BigDecimal.ZERO) == 0
+                    ? gross
+                    : gross.divide(BigDecimal.ONE.add(rateFactor), 2, RoundingMode.HALF_UP);
+            vatAmount = gross.subtract(exclusive);
+        } else {
+            exclusive = safeAmount;
+            vatAmount = exclusive.multiply(rateFactor).setScale(2, RoundingMode.HALF_UP);
+            gross = exclusive.add(vatAmount);
+        }
+
+        BigDecimal surcharge = vatAmount.multiply(new BigDecimal("0.12")).setScale(2, RoundingMode.HALF_UP);
+        // 企业所得税为示意口径：不含税收入 × 25%
+        BigDecimal incomeTax = exclusive.multiply(new BigDecimal("0.25")).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalTax = vatAmount.add(surcharge).add(incomeTax);
+        BigDecimal afterTaxIncome = exclusive.subtract(surcharge).subtract(incomeTax);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("type", type);
+        result.put("includeTax", withTax);
+        result.put("grossAmount", gross);
+        result.put("taxableIncome", exclusive);
         result.put("vatAmount", vatAmount);
         result.put("surcharge", surcharge);
         result.put("incomeTax", incomeTax);
         result.put("totalTax", totalTax);
         result.put("afterTaxIncome", afterTaxIncome);
         return result;
+    }
+
+    @Override
+    public Map<String, Object> getInvoiceTaxSummary() {
+        LocalDate now = LocalDate.now();
+        LocalDate monthStart = now.withDayOfMonth(1);
+        List<FinanceInvoice> invoices = invoiceMapper.selectList(new LambdaQueryWrapper<FinanceInvoice>()
+                .ge(FinanceInvoice::getIssueDate, monthStart)
+                .le(FinanceInvoice::getIssueDate, now));
+
+        BigDecimal totalInvoiced = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalPending = BigDecimal.ZERO;
+        for (FinanceInvoice inv : invoices) {
+            String status = inv.getInvoiceStatus();
+            if ("draft".equals(status) || "cancelled".equals(status)) {
+                continue;
+            }
+            totalInvoiced = totalInvoiced.add(safeAmount(inv.getTotalAmount()));
+            BigDecimal tax = safeAmount(inv.getTaxAmount());
+            if ("verified".equals(status) || "received".equals(status)) {
+                totalPaid = totalPaid.add(tax);
+            } else if ("pending".equals(status) || "issued".equals(status)) {
+                totalPending = totalPending.add(tax);
+            }
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("totalInvoiced", totalInvoiced);
+        data.put("totalPaid", totalPaid);
+        data.put("totalPending", totalPending);
+        data.put("month", monthStart.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+        return data;
+    }
+
+    private void applyInvoiceDto(FinanceInvoice entity, FinanceInvoiceDTO dto) {
+        entity.setInvoiceNumber(dto.getInvoiceNumber());
+        entity.setInvoiceType(dto.getInvoiceType());
+        entity.setAmount(dto.getAmount());
+        entity.setTaxRate(dto.getTaxRate());
+        entity.setIssuer(dto.getIssuer());
+        entity.setReceiver(dto.getReceiver());
+        entity.setIssueDate(LocalDate.parse(dto.getIssueDate(), DATE_FORMATTER));
+        entity.setDueDate(LocalDate.parse(dto.getDueDate(), DATE_FORMATTER));
+        entity.setTransactionId(dto.getTransactionId());
+        entity.setDescription(dto.getDescription());
+        BigDecimal taxAmount = dto.getAmount().multiply(dto.getTaxRate())
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        entity.setTaxAmount(taxAmount);
+        entity.setTotalAmount(dto.getAmount().add(taxAmount));
     }
 
     // ==================== 财务权限 ====================
@@ -727,6 +898,8 @@ public class FinanceServiceImpl implements FinanceService {
             status.put("syncSource", "erp");
             status.put("syncStatus", "idle");
             status.put("recordCount", 0);
+            status.put("syncMode", "local_recalc");
+            status.put("syncHint", "当前为本地刷新：重算预算占用，未对接外部 ERP/支付入账");
             return status;
         }
         status.put("lastSyncTime", latest.getLastSyncTime() != null
@@ -734,6 +907,8 @@ public class FinanceServiceImpl implements FinanceService {
         status.put("syncSource", latest.getSource());
         status.put("syncStatus", latest.getLastSyncStatus());
         status.put("recordCount", latest.getLastRecordCount());
+        status.put("syncMode", "local_recalc");
+        status.put("syncHint", "当前为本地刷新：重算预算占用，未对接外部 ERP/支付入账");
         return status;
     }
 
@@ -812,24 +987,27 @@ public class FinanceServiceImpl implements FinanceService {
         BigDecimal revenue = sumTransactionAmount("income", start, end);
         BigDecimal totalExpense = sumTransactionAmount("expense", start, end);
         BigDecimal costOfGoods = sumExpenseByCategory(COST_OF_GOODS_CATEGORY, start, end);
-        BigDecimal operatingExpenses = totalExpense.subtract(costOfGoods).max(BigDecimal.ZERO);
-        BigDecimal grossProfit = revenue.subtract(costOfGoods);
-        BigDecimal operatingIncome = revenue.subtract(totalExpense);
-        BigDecimal incomeTax = operatingIncome.max(BigDecimal.ZERO)
-                .multiply(new BigDecimal("0.25"))
-                .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal netProfit = operatingIncome.subtract(incomeTax);
+        BigDecimal otherExpense = sumExpenseByCategory("其他支出", start, end);
+        BigDecimal otherIncome = sumIncomeByCategory("其他收入", start, end);
+        BigDecimal operatingExpenses = totalExpense.subtract(costOfGoods).subtract(otherExpense).max(BigDecimal.ZERO);
+        BigDecimal mainRevenue = revenue.subtract(otherIncome).max(BigDecimal.ZERO);
+        BigDecimal grossProfit = mainRevenue.subtract(costOfGoods);
+        BigDecimal operatingIncome = mainRevenue.subtract(costOfGoods).subtract(operatingExpenses);
+        BigDecimal profitBeforeTax = operatingIncome.add(otherIncome).subtract(otherExpense);
+        // 不虚构所得税
+        BigDecimal incomeTax = BigDecimal.ZERO;
+        BigDecimal netProfit = profitBeforeTax.subtract(incomeTax);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("revenue", revenue);
+        data.put("revenue", mainRevenue);
         data.put("costOfGoods", costOfGoods);
         data.put("grossProfit", grossProfit);
         data.put("operatingExpenses", operatingExpenses);
         data.put("operatingIncome", operatingIncome);
-        data.put("otherIncome", BigDecimal.ZERO);
-        data.put("otherExpense", BigDecimal.ZERO);
-        data.put("profitBeforeTax", operatingIncome);
-        data.put("incomeTax", incomeTax.max(BigDecimal.ZERO));
+        data.put("otherIncome", otherIncome);
+        data.put("otherExpense", otherExpense);
+        data.put("profitBeforeTax", profitBeforeTax);
+        data.put("incomeTax", incomeTax);
         data.put("netProfit", netProfit);
         return data;
     }
@@ -842,6 +1020,11 @@ public class FinanceServiceImpl implements FinanceService {
         BigDecimal operatingOutflow = sumTransactionAmount("expense", start, end);
         BigDecimal operatingNet = operatingInflow.subtract(operatingOutflow);
 
+        LocalDate dayBefore = start.minusDays(1);
+        BigDecimal beginningBalance = sumTransactionAmount("income", null, dayBefore)
+                .subtract(sumTransactionAmount("expense", null, dayBefore));
+        BigDecimal endingBalance = beginningBalance.add(operatingNet);
+
         Map<String, Object> data = new HashMap<>();
         data.put("operatingInflow", operatingInflow);
         data.put("operatingOutflow", operatingOutflow);
@@ -853,8 +1036,8 @@ public class FinanceServiceImpl implements FinanceService {
         data.put("financingOutflow", BigDecimal.ZERO);
         data.put("financingNet", BigDecimal.ZERO);
         data.put("totalNetCashFlow", operatingNet);
-        data.put("beginningBalance", BigDecimal.ZERO);
-        data.put("endingBalance", operatingNet.max(BigDecimal.ZERO));
+        data.put("beginningBalance", beginningBalance);
+        data.put("endingBalance", endingBalance);
         return data;
     }
 
@@ -862,17 +1045,18 @@ public class FinanceServiceImpl implements FinanceService {
     public List<Map<String, Object>> getCategoryAnalysisReport(String startDate, String endDate) {
         LocalDate start = parseDate(startDate);
         LocalDate end = parseDate(endDate);
-        List<FinanceCategorySummaryVO> incomeSummary = buildCategorySummary("income", start, end);
+        long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1);
+        LocalDate prevEnd = start.minusDays(1);
+        LocalDate prevStart = prevEnd.minusDays(days - 1);
+
+        List<FinanceCategorySummaryVO> currentIncome = buildCategorySummary("income", start, end);
+        List<FinanceCategorySummaryVO> currentExpense = buildCategorySummary("expense", start, end);
+        Map<String, BigDecimal> prevIncome = categoryAmountMap("income", prevStart, prevEnd);
+        Map<String, BigDecimal> prevExpense = categoryAmountMap("expense", prevStart, prevEnd);
+
         List<Map<String, Object>> list = new ArrayList<>();
-        for (FinanceCategorySummaryVO item : incomeSummary) {
-            Map<String, Object> row = new HashMap<>();
-            row.put("category", item.getCategory());
-            row.put("currentAmount", item.getAmount());
-            row.put("previousAmount", BigDecimal.ZERO);
-            row.put("changeRate", BigDecimal.ZERO);
-            row.put("percentage", item.getPercentage());
-            list.add(row);
-        }
+        appendCategoryAnalysisRows(list, "income", currentIncome, prevIncome);
+        appendCategoryAnalysisRows(list, "expense", currentExpense, prevExpense);
         return list;
     }
 
@@ -885,23 +1069,29 @@ public class FinanceServiceImpl implements FinanceService {
         try {
             if (xlsx) {
                 List<List<Object>> rows = new ArrayList<>();
-                rows.add(List.of("【利润表】", "", ""));
-                rows.add(List.of("营业收入", profitLoss.get("revenue"), ""));
-                rows.add(List.of("营业成本", profitLoss.get("costOfGoods"), ""));
-                rows.add(List.of("毛利润", profitLoss.get("grossProfit"), ""));
-                rows.add(List.of("运营费用", profitLoss.get("operatingExpenses"), ""));
-                rows.add(List.of("营业利润", profitLoss.get("operatingIncome"), ""));
-                rows.add(List.of("净利润", profitLoss.get("netProfit"), ""));
-                rows.add(List.of("", "", ""));
-                rows.add(List.of("【现金流量表】", "", ""));
-                rows.add(List.of("经营活动流入", cashFlow.get("operatingInflow"), ""));
-                rows.add(List.of("经营活动流出", cashFlow.get("operatingOutflow"), ""));
-                rows.add(List.of("经营活动净额", cashFlow.get("operatingNet"), ""));
-                rows.add(List.of("现金净增加额", cashFlow.get("totalNetCashFlow"), ""));
-                rows.add(List.of("", "", ""));
-                rows.add(List.of("【分类分析】", "本期金额", "占比(%)"));
+                rows.add(Arrays.asList("【利润表】", "", ""));
+                rows.add(Arrays.asList("营业收入", profitLoss.get("revenue"), ""));
+                rows.add(Arrays.asList("营业成本", profitLoss.get("costOfGoods"), ""));
+                rows.add(Arrays.asList("毛利润", profitLoss.get("grossProfit"), ""));
+                rows.add(Arrays.asList("运营费用", profitLoss.get("operatingExpenses"), ""));
+                rows.add(Arrays.asList("营业利润", profitLoss.get("operatingIncome"), ""));
+                rows.add(Arrays.asList("其他收入", profitLoss.get("otherIncome"), ""));
+                rows.add(Arrays.asList("其他支出", profitLoss.get("otherExpense"), ""));
+                rows.add(Arrays.asList("税前利润", profitLoss.get("profitBeforeTax"), ""));
+                rows.add(Arrays.asList("所得税", profitLoss.get("incomeTax"), ""));
+                rows.add(Arrays.asList("净利润", profitLoss.get("netProfit"), ""));
+                rows.add(Arrays.asList("", "", ""));
+                rows.add(Arrays.asList("【现金流量表】", "", ""));
+                rows.add(Arrays.asList("经营活动流入", cashFlow.get("operatingInflow"), ""));
+                rows.add(Arrays.asList("经营活动流出", cashFlow.get("operatingOutflow"), ""));
+                rows.add(Arrays.asList("经营活动净额", cashFlow.get("operatingNet"), ""));
+                rows.add(Arrays.asList("期初余额", cashFlow.get("beginningBalance"), ""));
+                rows.add(Arrays.asList("现金净增加额", cashFlow.get("totalNetCashFlow"), ""));
+                rows.add(Arrays.asList("期末余额", cashFlow.get("endingBalance"), ""));
+                rows.add(Arrays.asList("", "", ""));
+                rows.add(Arrays.asList("【分类分析】", "本期金额", "占比(%)"));
                 for (Map<String, Object> row : categoryAnalysis) {
-                    rows.add(List.of(row.get("category"), row.get("currentAmount"), row.get("percentage")));
+                    rows.add(Arrays.asList(row.get("category"), row.get("currentAmount"), row.get("percentage")));
                 }
                 ExcelExportHelper.writeSheet(response, "finance-report-" + startDate + "-" + endDate,
                         "财务报表", List.of("项目", "金额", "备注"), rows);
@@ -921,6 +1111,9 @@ public class FinanceServiceImpl implements FinanceService {
             writer.printf(Locale.ROOT, "毛利润,%s%n", csv(profitLoss.get("grossProfit")));
             writer.printf(Locale.ROOT, "运营费用,%s%n", csv(profitLoss.get("operatingExpenses")));
             writer.printf(Locale.ROOT, "营业利润,%s%n", csv(profitLoss.get("operatingIncome")));
+            writer.printf(Locale.ROOT, "其他收入,%s%n", csv(profitLoss.get("otherIncome")));
+            writer.printf(Locale.ROOT, "其他支出,%s%n", csv(profitLoss.get("otherExpense")));
+            writer.printf(Locale.ROOT, "税前利润,%s%n", csv(profitLoss.get("profitBeforeTax")));
             writer.printf(Locale.ROOT, "所得税,%s%n", csv(profitLoss.get("incomeTax")));
             writer.printf(Locale.ROOT, "净利润,%s%n%n", csv(profitLoss.get("netProfit")));
 
@@ -929,16 +1122,18 @@ public class FinanceServiceImpl implements FinanceService {
             writer.printf(Locale.ROOT, "经营活动流入,%s%n", csv(cashFlow.get("operatingInflow")));
             writer.printf(Locale.ROOT, "经营活动流出,%s%n", csv(cashFlow.get("operatingOutflow")));
             writer.printf(Locale.ROOT, "经营活动净额,%s%n", csv(cashFlow.get("operatingNet")));
-            writer.printf(Locale.ROOT, "投资活动净额,%s%n", csv(cashFlow.get("investingNet")));
-            writer.printf(Locale.ROOT, "筹资活动净额,%s%n", csv(cashFlow.get("financingNet")));
-            writer.printf(Locale.ROOT, "现金净增加额,%s%n%n", csv(cashFlow.get("totalNetCashFlow")));
+            writer.printf(Locale.ROOT, "期初余额,%s%n", csv(cashFlow.get("beginningBalance")));
+            writer.printf(Locale.ROOT, "现金净增加额,%s%n", csv(cashFlow.get("totalNetCashFlow")));
+            writer.printf(Locale.ROOT, "期末余额,%s%n%n", csv(cashFlow.get("endingBalance")));
 
             writer.println("【分类分析】");
-            writer.println("分类,本期金额,占比(%)");
+            writer.println("分类,本期金额,上期金额,变动率,占比(%)");
             for (Map<String, Object> row : categoryAnalysis) {
-                writer.printf(Locale.ROOT, "%s,%s,%s%n",
+                writer.printf(Locale.ROOT, "%s,%s,%s,%s,%s%n",
                         csv(row.get("category")),
                         csv(row.get("currentAmount")),
+                        csv(row.get("previousAmount")),
+                        csv(row.get("changeRate")),
                         csv(row.get("percentage")));
             }
             writer.flush();
@@ -962,7 +1157,8 @@ public class FinanceServiceImpl implements FinanceService {
 
     private BigDecimal sumTransactionAmount(String type, LocalDate start, LocalDate end) {
         LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FinanceTransaction::getType, type);
+        wrapper.eq(FinanceTransaction::getType, type)
+                .eq(FinanceTransaction::getApprovalStatus, "approved");
         if (start != null) {
             wrapper.ge(FinanceTransaction::getTransactionDate, start);
         }
@@ -977,7 +1173,8 @@ public class FinanceServiceImpl implements FinanceService {
 
     private List<FinanceTransaction> listTransactionsBetween(LocalDate start, LocalDate end) {
         LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(FinanceTransaction::getTransactionDate, start)
+        wrapper.eq(FinanceTransaction::getApprovalStatus, "approved")
+                .ge(FinanceTransaction::getTransactionDate, start)
                 .le(FinanceTransaction::getTransactionDate, end);
         return transactionMapper.selectList(wrapper);
     }
@@ -994,7 +1191,8 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     private BigDecimal calculateAverageBudgetUsageRate() {
-        List<FinanceBudget> budgets = budgetMapper.selectList(new LambdaQueryWrapper<>());
+        List<FinanceBudget> budgets = budgetMapper.selectList(new LambdaQueryWrapper<FinanceBudget>()
+                .eq(FinanceBudget::getStatus, "active"));
         if (budgets.isEmpty()) {
             return BigDecimal.ZERO;
         }
@@ -1024,7 +1222,8 @@ public class FinanceServiceImpl implements FinanceService {
 
     private List<FinanceCategorySummaryVO> buildCategorySummary(String type, LocalDate start, LocalDate end) {
         LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FinanceTransaction::getType, type);
+        wrapper.eq(FinanceTransaction::getType, type)
+                .eq(FinanceTransaction::getApprovalStatus, "approved");
         if (start != null) {
             wrapper.ge(FinanceTransaction::getTransactionDate, start);
         }
@@ -1418,6 +1617,133 @@ public class FinanceServiceImpl implements FinanceService {
             }
         }
         return null;
+    }
+
+    private String trendBucketKey(LocalDate date, String grain) {
+        return switch (grain) {
+            case "day" -> date.format(DATE_FORMATTER);
+            case "week" -> weekKey(date);
+            case "quarter" -> quarterKey(YearMonth.from(date));
+            case "year" -> String.valueOf(date.getYear());
+            default -> YearMonth.from(date).toString();
+        };
+    }
+
+    private String weekKey(LocalDate date) {
+        int week = date.get(java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear());
+        int year = date.get(java.time.temporal.WeekFields.ISO.weekBasedYear());
+        return String.format(Locale.ROOT, "%d-W%02d", year, week);
+    }
+
+    private String quarterKey(YearMonth month) {
+        int q = (month.getMonthValue() - 1) / 3 + 1;
+        return month.getYear() + "-Q" + q;
+    }
+
+    private BigDecimal sumIncomeByCategory(String category, LocalDate start, LocalDate end) {
+        LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(FinanceTransaction::getType, "income")
+                .eq(FinanceTransaction::getCategory, category)
+                .eq(FinanceTransaction::getApprovalStatus, "approved");
+        if (start != null) {
+            wrapper.ge(FinanceTransaction::getTransactionDate, start);
+        }
+        if (end != null) {
+            wrapper.le(FinanceTransaction::getTransactionDate, end);
+        }
+        return transactionMapper.selectList(wrapper).stream()
+                .map(FinanceTransaction::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private Map<String, BigDecimal> categoryAmountMap(String type, LocalDate start, LocalDate end) {
+        return buildCategorySummary(type, start, end).stream()
+                .collect(Collectors.toMap(
+                        FinanceCategorySummaryVO::getCategory,
+                        item -> safeAmount(item.getAmount()),
+                        BigDecimal::add,
+                        LinkedHashMap::new
+                ));
+    }
+
+    private void appendCategoryAnalysisRows(List<Map<String, Object>> list, String type,
+                                            List<FinanceCategorySummaryVO> current,
+                                            Map<String, BigDecimal> previousMap) {
+        for (FinanceCategorySummaryVO item : current) {
+            BigDecimal currentAmount = safeAmount(item.getAmount());
+            BigDecimal previousAmount = safeAmount(previousMap.get(item.getCategory()));
+            BigDecimal changeRate = BigDecimal.ZERO;
+            if (previousAmount.compareTo(BigDecimal.ZERO) != 0) {
+                changeRate = currentAmount.subtract(previousAmount)
+                        .divide(previousAmount, 4, RoundingMode.HALF_UP);
+            } else if (currentAmount.compareTo(BigDecimal.ZERO) != 0) {
+                changeRate = BigDecimal.ONE;
+            }
+            Map<String, Object> row = new HashMap<>();
+            row.put("type", type);
+            row.put("category", ("income".equals(type) ? "收入·" : "支出·") + item.getCategory());
+            row.put("currentAmount", currentAmount);
+            row.put("previousAmount", previousAmount);
+            row.put("changeRate", changeRate);
+            // 与前端约定：percentage 为 0-100 数值，不再二次 *100
+            row.put("percentage", item.getPercentage());
+            list.add(row);
+        }
+    }
+
+    private void applyTransactionDto(FinanceTransaction entity, FinanceTransactionDTO dto, boolean creating) {
+        entity.setType(dto.getType());
+        entity.setAmount(dto.getAmount());
+        entity.setCategory(dto.getCategory());
+        entity.setSubCategory(emptyToNull(dto.getSubCategory()));
+        entity.setDescription(emptyToNull(dto.getDescription()));
+        entity.setTransactionDate(LocalDate.parse(dto.getTransactionDate(), DATE_FORMATTER));
+        entity.setPaymentMethod(emptyToNull(dto.getPaymentMethod()));
+        entity.setCounterparty(emptyToNull(dto.getCounterparty()));
+        if (dto.getInvoiceStatus() != null && !dto.getInvoiceStatus().isBlank()) {
+            entity.setInvoiceStatus(dto.getInvoiceStatus());
+        } else if (creating || entity.getInvoiceStatus() == null) {
+            entity.setInvoiceStatus("none");
+        }
+    }
+
+    /** 简单 CSV 行解析，支持双引号包裹字段（含逗号） */
+    private List<String> parseCsvLine(String line) {
+        List<String> cols = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char ch = line.charAt(i);
+            if (inQuotes) {
+                if (ch == '"') {
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        cur.append('"');
+                        i++;
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    cur.append(ch);
+                }
+            } else if (ch == '"') {
+                inQuotes = true;
+            } else if (ch == ',') {
+                cols.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(ch);
+            }
+        }
+        cols.add(cur.toString());
+        return cols;
+    }
+
+    private String emptyToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
     }
 
     private String csv(Object value) {

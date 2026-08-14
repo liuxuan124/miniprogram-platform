@@ -56,6 +56,12 @@ public class CouponVO {
     @Schema(description = "使用说明")
     private String description;
 
+    @Schema(description = "领取范围: all/members/levels")
+    private String claimAudience;
+
+    @Schema(description = "可领取会员等级ID列表")
+    private List<Long> claimLevelIds;
+
     @Schema(description = "创建时间")
     private String createdAt;
 

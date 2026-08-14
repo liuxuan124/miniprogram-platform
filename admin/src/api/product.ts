@@ -30,6 +30,7 @@ export function createCategory(data: CreateCategoryParams) {
     sortOrder: (data as any).sortOrder ?? (data as any).sort ?? 0,
     icon: (data as any).icon,
     status: (data as any).status ?? 1,
+    allowedProductTypes: (data as any).allowedProductTypes,
   }
   return request.post<ProductCategory>(`${BASE}/product-categories`, payload)
 }
@@ -42,6 +43,7 @@ export function updateCategory(id: number, data: UpdateCategoryParams) {
     sortOrder: (data as any).sortOrder ?? (data as any).sort ?? 0,
     icon: (data as any).icon,
     status: (data as any).status ?? 1,
+    allowedProductTypes: (data as any).allowedProductTypes,
   }
   return request.put<ProductCategory>(`${BASE}/product-categories/${id}`, payload)
 }
@@ -56,6 +58,11 @@ export function deleteCategory(id: number) {
 /** 获取商品列表 */
 export function getProductList(params?: ProductListParams) {
   return request.get<PaginatedResponse<ProductRecord>>(`${BASE}/products`, { params })
+}
+
+/** 商品概览统计（独立路径，避免 /products/stats 被当成 id） */
+export function getProductStats() {
+  return request.get(`${BASE}/product-stats`, { showError: false })
 }
 
 /** 获取商品详情 */

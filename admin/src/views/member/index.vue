@@ -3,196 +3,287 @@
     <div class="page-header">
       <div>
         <div class="page-title">会员运营中心</div>
-        <div class="page-desc">管理会员等级、积分规则、权益配置及用户标签。</div>
+        <div class="page-desc">管理会员列表、等级权益与积分调整。</div>
       </div>
       <div class="header-actions">
         <el-button icon="Refresh" @click="refreshCurrent">刷新</el-button>
-        <el-button type="primary" @click="openLevelDialog()">等级体系配置</el-button>
+        <el-button type="primary" @click="openLevelDialog()">新增等级</el-button>
       </div>
     </div>
 
     <el-tabs v-model="activeTab" class="prototype-tabs" @tab-change="handleTabChange">
       <el-tab-pane label="会员列表" name="members">
         <div class="toolbar">
-          <el-input v-model="memberSearch.keyword" placeholder="搜索昵称/手机号" clearable class="toolbar-input" @keyup.enter="fetchMembers" />
-          <el-select v-model="memberSearch.level" placeholder="会员等级：全部" clearable class="toolbar-select">
-            <el-option label="普通会员" value="普通" />
-            <el-option label="银卡会员" value="银卡" />
-            <el-option label="金卡会员" value="金卡" />
-            <el-option label="钻石会员" value="钻石" />
+          <el-input
+            v-model="memberSearch.keyword"
+            placeholder="搜索昵称或手机号"
+            clearable
+            class="toolbar-input"
+            @keyup.enter="handleMemberSearch"
+          />
+          <el-select
+            v-model="memberSearch.levelId"
+            placeholder="会员等级：全部"
+            clearable
+            class="toolbar-select"
+          >
+            <el-option
+              v-for="lv in enabledLevels"
+              :key="lv.id"
+              :label="lv.name"
+              :value="lv.id"
+            />
           </el-select>
-          <el-select v-model="memberSearch.tag" placeholder="核心标签：全部" clearable class="toolbar-select">
-            <el-option label="高价值" value="高价值" />
-            <el-option label="活跃" value="活跃" />
-            <el-option label="新用户" value="新用户" />
-            <el-option label="活动用户" value="活动用户" />
-          </el-select>
+          <el-button type="primary" @click="handleMemberSearch">搜索</el-button>
           <div class="toolbar-spacer" />
-          <el-button @click="batchTag">批量操作</el-button>
-          <el-button type="primary" @click="openLevelDialog()">等级体系配置</el-button>
+          <el-button type="primary" @click="activeTab = 'levels'">等级体系配置</el-button>
         </div>
 
         <div class="table-panel">
           <ListStateWrap
             :loading="memberLoading"
-            :empty="!memberLoading && filteredMembers.length === 0"
+            :error="memberError"
+            :empty="!memberLoading && !memberError && filteredMembers.length === 0"
             empty-text="暂无会员数据"
+            empty-description="小程序用户注册后会出现在这里"
             @retry="fetchMembers"
           >
-          <el-table :data="filteredMembers" stripe>
-            <el-table-column label="用户信息" min-width="180">
-              <template #default="{ row }">
-                <div class="user-cell">
-                  <el-avatar :size="34" class="avatar">{{ row.name.charAt(0) }}</el-avatar>
-                  <div>
-                    <div class="user-name">{{ row.name }}</div>
-                    <div class="user-phone">{{ row.phone }}</div>
+            <el-table :data="filteredMembers" stripe>
+              <el-table-column label="用户信息" min-width="200">
+                <template #default="{ row }">
+                  <div class="user-cell">
+                    <el-avatar :size="34" :src="row.avatar" class="avatar">
+                      {{ (row.name || '?').charAt(0) }}
+                    </el-avatar>
+                    <div>
+                      <div class="user-name">{{ row.name || '未设置昵称' }}</div>
+                      <div class="user-phone">{{ row.phone || '未绑定手机' }}</div>
+                    </div>
                   </div>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="会员等级" width="130">
-              <template #default="{ row }">
-                <el-tag :type="levelTagType(row.level)" effect="plain">{{ row.level }}会员</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="points" label="积分余额" width="110" align="center" />
-            <el-table-column prop="growth" label="累计成长值" width="120" align="center" />
-            <el-table-column label="消费行为" width="160">
-              <template #default="{ row }">
-                <span class="muted">{{ row.orders }}单 / ¥{{ row.amount }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="用户标签" min-width="180">
-              <template #default="{ row }">
-                <el-tag v-for="tag in row.tags" :key="tag" size="small" effect="plain" class="tag">{{ tag }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="openProfile(row)">画像</el-button>
-                <el-button link type="primary" size="small" @click="openAdjustDialog(row)">调积分</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+                </template>
+              </el-table-column>
+              <el-table-column label="会员等级" width="140">
+                <template #default="{ row }">
+                  <el-tag effect="plain" type="primary">{{ row.levelName }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="points" label="积分余额" width="110" align="center" />
+              <el-table-column label="最近访问" width="170" show-overflow-tooltip>
+                <template #default="{ row }">{{ row.lastVisit || '—' }}</template>
+              </el-table-column>
+              <el-table-column label="注册时间" width="170" show-overflow-tooltip>
+                <template #default="{ row }">{{ row.createdAt || '—' }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="openProfile(row)">画像</el-button>
+                  <el-button link type="primary" size="small" @click="openAdjustDialog(row)">调积分</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <div class="pagination-wrap">
+              <el-pagination
+                v-model:current-page="memberPagination.page"
+                v-model:page-size="memberPagination.pageSize"
+                :total="memberPagination.total"
+                :page-sizes="[10, 20, 50]"
+                layout="total, sizes, prev, pager, next"
+                @size-change="fetchMembers"
+                @current-change="fetchMembers"
+              />
+            </div>
           </ListStateWrap>
         </div>
       </el-tab-pane>
 
       <el-tab-pane label="等级权益设置" name="levels">
-        <div class="level-grid" v-loading="levelLoading">
-          <div v-for="level in levelList" :key="level.id" class="level-card">
-            <div class="level-head">
-              <div>
-                <div class="level-name">{{ level.name }}</div>
-                <div class="muted">条件：成长值 / 积分 >= {{ level.min_points }}</div>
+        <div class="toolbar">
+          <div class="toolbar-spacer" />
+          <el-button type="primary" @click="openLevelDialog()">新增等级</el-button>
+        </div>
+        <ListStateWrap
+          :loading="levelLoading"
+          :error="levelError"
+          :empty="!levelLoading && !levelError && levelList.length === 0"
+          empty-text="暂无会员等级"
+          empty-description="请先新增等级，例如普通会员、金卡会员"
+          @retry="fetchLevelList"
+        >
+          <div class="level-grid">
+            <div v-for="level in levelList" :key="level.id" class="level-card">
+              <div class="level-head">
+                <div>
+                  <div class="level-name">{{ level.name }}</div>
+                  <div class="muted">条件：积分 ≥ {{ level.min_points }} · 排序 {{ level.level }}</div>
+                </div>
+                <el-tag :type="level.status === 1 ? 'success' : 'info'" effect="plain">
+                  {{ level.status === 1 ? '启用' : '禁用' }}
+                </el-tag>
               </div>
-              <el-tag :type="level.status === 1 ? 'success' : 'info'" effect="plain">{{ level.status === 1 ? '启用' : '禁用' }}</el-tag>
+              <div class="benefit-line">
+              折扣：{{ formatDiscount(level.discount_rate) }}
+              · 倍率：{{ level.points_rate || 1 }}x
+              · 权益：{{ formatBenefits(level) }}
             </div>
-            <div class="benefit-line">权益：{{ level.benefits.length ? level.benefits.join('、') : '基础功能使用' }}</div>
-            <div class="level-actions">
-              <el-button link type="primary" @click="openLevelDialog(level)">配置权益</el-button>
-              <el-button link :type="level.status === 1 ? 'warning' : 'success'" @click="toggleLevelStatus(level)">
-                {{ level.status === 1 ? '禁用' : '启用' }}
-              </el-button>
-              <el-button link type="danger" @click="handleDeleteLevel(level)">删除</el-button>
+              <div class="level-actions">
+                <el-button link type="primary" @click="openLevelDialog(level)">配置</el-button>
+                <el-button
+                  link
+                  :type="level.status === 1 ? 'warning' : 'success'"
+                  @click="toggleLevelStatus(level)"
+                >
+                  {{ level.status === 1 ? '禁用' : '启用' }}
+                </el-button>
+                <el-button link type="danger" @click="handleDeleteLevel(level)">删除</el-button>
+              </div>
             </div>
           </div>
-        </div>
+        </ListStateWrap>
       </el-tab-pane>
 
       <el-tab-pane label="积分规则" name="points">
         <div class="toolbar">
-          <el-select v-model="pointsSearch.type" placeholder="积分类型：全部" clearable class="toolbar-select">
-            <el-option label="每日签到" value="sign_in" />
-            <el-option label="消费赠送" value="consume" />
-            <el-option label="积分兑换" value="exchange" />
-            <el-option label="后台调整" value="admin" />
-          </el-select>
+          <div class="muted">配置签到、消费赠送与兑换门槛；用户流水请到「积分日志」查看。</div>
           <div class="toolbar-spacer" />
+          <el-button @click="goPointsLog">查看积分日志</el-button>
           <el-button type="warning" @click="openAdjustDialog()">手动调整积分</el-button>
+          <el-button type="primary" :loading="rulesSaving" @click="savePointsRules">保存规则</el-button>
         </div>
-        <div class="rules-strip">
-          <div v-for="rule in pointRules" :key="rule.title" class="rule-card">
-            <div class="rule-title">{{ rule.title }}</div>
-            <div class="rule-value">{{ rule.value }}</div>
-            <div class="muted">{{ rule.desc }}</div>
+
+        <div class="table-panel rules-panel" v-loading="rulesLoading">
+          <el-form :model="pointsRulesForm" label-width="140px" class="rules-form">
+            <div class="rules-section-title">每日签到</div>
+            <el-form-item label="开启签到送积分">
+              <el-switch v-model="pointsRulesForm.signInEnabled" />
+            </el-form-item>
+            <el-form-item label="每次签到积分">
+              <el-input-number v-model="pointsRulesForm.signInPoints" :min="0" :max="9999" />
+              <div class="field-hint">用户每日首次签到获得的积分</div>
+            </el-form-item>
+
+            <div class="rules-section-title">消费赠送</div>
+            <el-form-item label="开启消费赠送">
+              <el-switch v-model="pointsRulesForm.consumeEnabled" />
+            </el-form-item>
+            <el-form-item label="赠送比例">
+              <el-input-number v-model="pointsRulesForm.consumeRate" :min="0" :max="100" :precision="0" />
+              <div class="field-hint">实付 1 元赠送多少积分（订单完成后按此计算）</div>
+            </el-form-item>
+
+            <div class="rules-section-title">积分兑换</div>
+            <el-form-item label="开启积分兑换">
+              <el-switch v-model="pointsRulesForm.exchangeEnabled" />
+            </el-form-item>
+            <el-form-item label="最低兑换门槛">
+              <el-input-number v-model="pointsRulesForm.exchangeMin" :min="0" :max="999999" />
+              <div class="field-hint">单次兑换至少需要多少积分</div>
+            </el-form-item>
+          </el-form>
+
+          <div class="rules-preview">
+            <div class="rule-card" v-for="item in pointsRulesPreview" :key="item.title">
+              <div class="rule-title">{{ item.title }}</div>
+              <div class="rule-value">{{ item.value }}</div>
+              <div class="muted">{{ item.desc }}</div>
+            </div>
           </div>
-        </div>
-        <div class="table-panel">
-          <el-table :data="pointsList" stripe v-loading="pointsLoading">
-            <el-table-column label="用户" min-width="140">
-              <template #default="{ row }">{{ row.user_nickname || `用户${row.user_id}` }}</template>
-            </el-table-column>
-            <el-table-column label="类型" width="120">
-              <template #default="{ row }">
-                <el-tag size="small" effect="plain">{{ pointsTypeLabel(row.type) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="积分变动" width="120" align="center">
-              <template #default="{ row }">
-                <span :class="row.points >= 0 ? 'points-add' : 'points-sub'">{{ row.points >= 0 ? '+' : '' }}{{ row.points }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="source" label="来源说明" min-width="180" />
-            <el-table-column prop="created_at" label="时间" width="170" />
-          </el-table>
         </div>
       </el-tab-pane>
 
       <el-tab-pane label="标签管理" name="tags">
-        <div class="tag-board">
-          <div v-for="tag in tagGroups" :key="tag.name" class="tag-card">
-            <div class="tag-title">{{ tag.name }}</div>
-            <div class="tag-count">{{ tag.count }} 人</div>
-            <div class="muted">{{ tag.rule }}</div>
-            <el-button link type="primary">配置规则</el-button>
-          </div>
+        <div class="coming-soon">
+          <div class="coming-title">标签管理暂未开放</div>
+          <div class="muted">自动打标与规则配置后续接入，当前请以会员等级与积分管理为主。</div>
         </div>
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="profileVisible" :title="currentMember ? `会员画像：${currentMember.name}` : '会员画像'" width="680px">
+    <el-dialog
+      v-model="profileVisible"
+      :title="currentMember ? `会员画像：${currentMember.name}` : '会员画像'"
+      width="560px"
+    >
       <template v-if="currentMember">
         <div class="profile-stats">
-          <div class="profile-stat"><span>会员等级</span><strong>{{ currentMember.level }}会员</strong></div>
-          <div class="profile-stat"><span>积分余额</span><strong>{{ currentMember.points }}</strong></div>
-          <div class="profile-stat"><span>累计成长值</span><strong>{{ currentMember.growth }}</strong></div>
-          <div class="profile-stat"><span>累计消费</span><strong>¥{{ currentMember.amount }}</strong></div>
+          <div class="profile-stat">
+            <span>会员等级</span>
+            <strong>{{ currentMember.levelName }}</strong>
+          </div>
+          <div class="profile-stat">
+            <span>积分余额</span>
+            <strong>{{ currentMember.points }}</strong>
+          </div>
         </div>
-        <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="微信昵称">{{ currentMember.name }}</el-descriptions-item>
-          <el-descriptions-item label="手机号">{{ currentMember.phone }}</el-descriptions-item>
-          <el-descriptions-item label="订单数">{{ currentMember.orders }}</el-descriptions-item>
-          <el-descriptions-item label="当前标签">
-            <el-tag v-for="tag in currentMember.tags" :key="tag" size="small" class="tag">{{ tag }}</el-tag>
-          </el-descriptions-item>
+        <el-descriptions :column="1" border size="small">
+          <el-descriptions-item label="用户 ID">{{ currentMember.id }}</el-descriptions-item>
+          <el-descriptions-item label="微信昵称">{{ currentMember.name || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">{{ currentMember.phone || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="最近访问">{{ currentMember.lastVisit || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="注册时间">{{ currentMember.createdAt || '—' }}</el-descriptions-item>
         </el-descriptions>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="levelDialogVisible" :title="isEditMode ? '编辑会员等级' : '新增会员等级'" width="560px" @closed="resetLevelForm">
+    <el-dialog
+      v-model="levelDialogVisible"
+      :title="isEditMode ? '编辑会员等级' : '新增会员等级'"
+      width="560px"
+      @closed="resetLevelForm"
+    >
       <el-form ref="levelFormRef" :model="levelForm" :rules="levelRules" label-width="100px">
         <el-form-item label="等级名称" prop="name">
           <el-input v-model="levelForm.name" placeholder="如：金卡会员" />
         </el-form-item>
         <el-form-item label="等级序号" prop="level">
           <el-input-number v-model="levelForm.level" :min="1" :max="99" />
+          <div class="field-hint">数字越大等级越高，用于排序</div>
         </el-form-item>
         <el-form-item label="最低积分" prop="min_points">
           <el-input-number v-model="levelForm.min_points" :min="0" />
         </el-form-item>
         <el-form-item label="折扣率">
-          <el-input-number v-model="levelForm.discount_rate" :min="0.01" :max="1" :step="0.01" :precision="2" />
+          <el-input-number
+            v-model="levelForm.discount_rate"
+            :min="0.01"
+            :max="1"
+            :step="0.01"
+            :precision="2"
+          />
+          <div class="field-hint">1 = 无折扣，0.9 = 九折（勾选「会员折扣」时生效）</div>
         </el-form-item>
-        <el-form-item label="权益描述">
-          <div class="benefits-editor">
-            <div v-for="(_b, i) in levelForm.benefits" :key="i" class="benefit-item">
-              <el-input v-model="levelForm.benefits[i]" placeholder="权益描述" />
-              <el-button type="danger" link @click="removeBenefit(i)"><el-icon><Delete /></el-icon></el-button>
-            </div>
-            <el-button type="primary" link @click="addBenefit"><el-icon><Plus /></el-icon>添加权益</el-button>
+        <el-form-item label="固定权益">
+          <div class="benefit-checks">
+            <el-checkbox-group v-model="levelForm.benefits">
+              <div v-for="code in benefitOptions" :key="code" class="benefit-check-row">
+                <el-checkbox :value="code">{{ MemberBenefitLabels[code] }}</el-checkbox>
+                <span class="field-hint">{{ MemberBenefitHints[code] }}</span>
+              </div>
+            </el-checkbox-group>
           </div>
+        </el-form-item>
+        <el-form-item v-if="levelForm.benefits.includes(MemberBenefitCode.PointsBoost)" label="积分倍率">
+          <el-input-number v-model="levelForm.points_rate" :min="1" :max="10" :step="0.1" :precision="2" />
+        </el-form-item>
+        <el-form-item
+          v-if="levelForm.benefits.includes(MemberBenefitCode.BirthdayGift)"
+          label="生日券"
+          required
+        >
+          <el-select
+            v-model="levelForm.birthday_coupon_id"
+            filterable
+            clearable
+            placeholder="选择已发布的优惠券"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="c in publishedCoupons"
+              :key="c.id"
+              :label="`${c.name} (#${c.id})`"
+              :value="c.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="levelForm.statusBool" active-text="启用" inactive-text="禁用" />
@@ -207,10 +298,20 @@
     <el-dialog v-model="adjustDialogVisible" title="手动调整积分" width="480px" @closed="resetAdjustForm">
       <el-form ref="adjustFormRef" :model="adjustForm" :rules="adjustRules" label-width="100px">
         <el-form-item label="用户ID" prop="user_id">
-          <el-input-number v-model="adjustForm.user_id" :min="1" controls-position="right" class="full" />
+          <el-input-number
+            v-model="adjustForm.user_id"
+            :min="1"
+            controls-position="right"
+            class="full"
+            :disabled="!!adjustForm.lockedUser"
+          />
+        </el-form-item>
+        <el-form-item v-if="adjustForm.userName" label="用户">
+          <span>{{ adjustForm.userName }}</span>
         </el-form-item>
         <el-form-item label="调整积分" prop="points">
           <el-input-number v-model="adjustForm.points" controls-position="right" class="full" />
+          <div class="field-hint">正数增加，负数扣减</div>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="adjustForm.remark" type="textarea" :rows="3" placeholder="请输入调整原因" />
@@ -226,175 +327,297 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Plus } from '@element-plus/icons-vue'
 import ListStateWrap from '@/components/ListStateWrap.vue'
-import request from '@/api/request'
+import { getUserList } from '@/api/user'
+import { getCouponList } from '@/api/coupon'
+import { getConfigByGroupSilent, updateConfigs } from '@/api/system'
 import {
   adjustMemberPoints,
   createMemberLevel,
   deleteMemberLevel,
   getMemberLevelList,
-  getMemberPointsLog,
   updateMemberLevel,
 } from '@/api/member'
-import type { CreateMemberLevelParams, MemberLevel, MemberPointsLogParams, UpdateMemberLevelParams } from '@/types/member'
+import type {
+  CreateMemberLevelParams,
+  MemberLevel,
+  UpdateMemberLevelParams,
+} from '@/types/member'
+import {
+  MemberBenefitCode,
+  MemberBenefitHints,
+  MemberBenefitLabels,
+} from '@/types/member'
 
 interface MemberRow {
   id: number
   name: string
   phone: string
-  level: string
+  avatar?: string
+  levelId?: number
+  levelName: string
   points: number
-  growth: number
-  orders: number
-  amount: number
-  tags: string[]
+  lastVisit: string
+  createdAt: string
 }
 
-const prototypeMembers: MemberRow[] = [
-  { id: 1, name: '张小明', level: '金卡', points: 1280, growth: 5600, orders: 4, amount: 2680, tags: ['高价值', '活跃'], phone: '138****8888' },
-  { id: 2, name: '李小红', level: '银卡', points: 680, growth: 2400, orders: 2, amount: 890, tags: ['活动用户'], phone: '139****9999' },
-  { id: 3, name: '王大力', level: '普通', points: 230, growth: 800, orders: 1, amount: 199, tags: ['新用户'], phone: '135****7777' },
-  { id: 4, name: '赵美丽', level: '钻石', points: 3680, growth: 12000, orders: 12, amount: 8600, tags: ['VIP', '高价值'], phone: '136****6666' },
-]
-
+const router = useRouter()
 const activeTab = ref('members')
 const memberLoading = ref(false)
+const memberError = ref<string | null>(null)
 const members = ref<MemberRow[]>([])
 const levelLoading = ref(false)
+const levelError = ref<string | null>(null)
 const levelList = ref<MemberLevel[]>([])
-const pointsLoading = ref(false)
-const pointsList = ref<any[]>([])
+const rulesLoading = ref(false)
+const rulesSaving = ref(false)
 const profileVisible = ref(false)
 const currentMember = ref<MemberRow | null>(null)
 
-const memberSearch = reactive({ keyword: '', level: '', tag: '' })
-const pointsSearch = reactive({ type: '' })
+const memberSearch = reactive({ keyword: '', levelId: undefined as number | undefined })
+const memberPagination = reactive({ page: 1, pageSize: 10, total: 0 })
 
-const pointRules = [
-  { title: '每日签到', value: '+10 分', desc: '连续签到可叠加活跃标签' },
-  { title: '消费赠送', value: '1 元 = 1 分', desc: '按实付金额计算' },
-  { title: '积分兑换', value: '100 分起兑', desc: '可兑换优惠券或商品' },
-  { title: '后台调整', value: '需备注', desc: '进入积分日志留痕' },
-]
-
-const tagGroups = computed(() => [
-  { name: '高价值', count: members.value.filter((m) => m.tags.includes('高价值')).length, rule: '累计消费 >= 2000 元' },
-  { name: '活跃', count: members.value.filter((m) => m.tags.includes('活跃')).length, rule: '近 30 天有访问或交易' },
-  { name: '新用户', count: members.value.filter((m) => m.tags.includes('新用户')).length, rule: '首次访问或注册 7 天内' },
-  { name: '活动用户', count: members.value.filter((m) => m.tags.includes('活动用户')).length, rule: '参与活动或预约服务' },
-])
-
-const filteredMembers = computed(() => {
-  return members.value.filter((m) => {
-    const keywordMatched = !memberSearch.keyword || m.name.includes(memberSearch.keyword) || m.phone.includes(memberSearch.keyword)
-    const levelMatched = !memberSearch.level || m.level === memberSearch.level
-    const tagMatched = !memberSearch.tag || m.tags.includes(memberSearch.tag)
-    return keywordMatched && levelMatched && tagMatched
-  })
+const pointsRulesForm = reactive({
+  signInEnabled: true,
+  signInPoints: 10,
+  consumeEnabled: true,
+  consumeRate: 1,
+  exchangeEnabled: true,
+  exchangeMin: 100,
 })
 
-function normalizeMember(row: any, index: number): MemberRow {
-  const fallback = prototypeMembers[index % prototypeMembers.length]
-  const points = Number(row.points ?? fallback.points)
-  return {
-    id: row.id,
-    name: row.nickname || row.name || fallback.name,
-    phone: row.phone || fallback.phone,
-    level: levelNameByPoints(points),
-    points,
-    growth: Number(row.growth ?? (points ? points * 4 : fallback.growth)),
-    orders: Number(row.orderCount ?? row.orders ?? fallback.orders),
-    amount: Number(row.totalAmount ?? fallback.amount),
-    tags: row.tags || fallback.tags,
+const pointsRulesPreview = computed(() => [
+  {
+    title: '每日签到',
+    value: pointsRulesForm.signInEnabled ? `+${pointsRulesForm.signInPoints} 分` : '已关闭',
+    desc: '用户每日首次签到发放',
+  },
+  {
+    title: '消费赠送',
+    value: pointsRulesForm.consumeEnabled ? `1 元 = ${pointsRulesForm.consumeRate} 分` : '已关闭',
+    desc: '按实付金额计算',
+  },
+  {
+    title: '积分兑换',
+    value: pointsRulesForm.exchangeEnabled ? `${pointsRulesForm.exchangeMin} 分起兑` : '已关闭',
+    desc: '兑换优惠券或商品时校验',
+  },
+])
+
+const enabledLevels = computed(() =>
+  [...levelList.value]
+    .filter((l) => l.status === 1)
+    .sort((a, b) => a.min_points - b.min_points || a.level - b.level),
+)
+
+const filteredMembers = computed(() => {
+  if (!memberSearch.levelId) return members.value
+  return members.value.filter((m) => m.levelId === memberSearch.levelId)
+})
+
+function formatDiscount(rate?: number) {
+  const r = Number(rate ?? 1)
+  if (!Number.isFinite(r) || r >= 1) return '无折扣'
+  return `${(r * 10).toFixed(1)} 折`
+}
+
+function formatBenefits(level: MemberLevel) {
+  const labels = (level.benefits || [])
+    .map((code) => MemberBenefitLabels[code as MemberBenefitCode] || code)
+    .filter(Boolean)
+  if (labels.length) return labels.join('、')
+  if (level.legacy_rights?.length) return level.legacy_rights.join('、')
+  return '暂无'
+}
+
+const benefitOptions = Object.values(MemberBenefitCode)
+const publishedCoupons = ref<{ id: number; name: string }[]>([])
+
+async function fetchPublishedCoupons() {
+  try {
+    const res: any = await getCouponList({ page: 1, page_size: 100, status: 'published' })
+    const list = res.data?.list || res.data?.records || []
+    publishedCoupons.value = list.map((c: any) => ({ id: Number(c.id), name: c.name }))
+  } catch {
+    publishedCoupons.value = []
   }
 }
 
-function levelNameByPoints(points: number) {
-  if (points >= 3000) return '钻石'
-  if (points >= 1000) return '金卡'
-  if (points >= 500) return '银卡'
-  return '普通'
+function resolveLevel(points: number, levelId?: number | null): { id?: number; name: string } {
+  const levels = enabledLevels.value
+  if (levelId) {
+    const hit = levelList.value.find((l) => l.id === levelId)
+    if (hit) return { id: hit.id, name: hit.name }
+  }
+  if (!levels.length) return { name: '普通会员' }
+  let matched = levels[0]
+  for (const lv of levels) {
+    if (points >= lv.min_points) matched = lv
+  }
+  return { id: matched.id, name: matched.name }
+}
+
+function normalizeMember(row: any): MemberRow {
+  const points = Number(row.points ?? 0)
+  const levelId = row.levelId ?? row.level_id ?? null
+  const level = resolveLevel(points, levelId)
+  return {
+    id: Number(row.id),
+    name: row.nickname || row.name || '',
+    phone: row.phone || '',
+    avatar: row.avatar || undefined,
+    levelId: level.id,
+    levelName: level.name,
+    points,
+    lastVisit: row.lastVisitAt || row.last_visit_at || row.lastVisit || '',
+    createdAt: row.createTime || row.created_at || row.createdAt || '',
+  }
 }
 
 async function fetchMembers() {
   memberLoading.value = true
+  memberError.value = null
   try {
-    const res: any = await request.get('/api/v1/admin/users', {
-      params: { current: 1, size: 50, nickname: memberSearch.keyword || undefined },
-    })
-    const rows = res.data?.records || []
-    members.value = rows.length ? rows.map(normalizeMember) : prototypeMembers
-  } catch {
-    members.value = prototypeMembers
+    const keyword = memberSearch.keyword.trim()
+    const params: Record<string, any> = {
+      current: memberPagination.page,
+      size: memberPagination.pageSize,
+    }
+    if (keyword) {
+      if (/^\d{6,}$/.test(keyword)) params.phone = keyword
+      else params.keyword = keyword
+    }
+    const res: any = await getUserList(params)
+    const page = res.data || {}
+    const rows = page.records || page.list || []
+    members.value = Array.isArray(rows) ? rows.map(normalizeMember) : []
+    memberPagination.total = Number(page.total || members.value.length || 0)
+  } catch (err: any) {
+    members.value = []
+    memberPagination.total = 0
+    memberError.value = err?.message || '加载会员列表失败'
   } finally {
     memberLoading.value = false
   }
 }
 
+function handleMemberSearch() {
+  memberPagination.page = 1
+  fetchMembers()
+}
+
 async function fetchLevelList() {
   levelLoading.value = true
+  levelError.value = null
   try {
     const res = await getMemberLevelList()
-    levelList.value = res.data?.length ? res.data : defaultLevels()
-  } catch {
-    levelList.value = defaultLevels()
+    levelList.value = res.data || []
+  } catch (err: any) {
+    levelList.value = []
+    levelError.value = err?.message || '加载等级失败'
   } finally {
     levelLoading.value = false
   }
 }
 
-function defaultLevels(): MemberLevel[] {
-  return [
-    { id: 1, name: '普通会员', level: 1, min_points: 0, max_points: -1, points_rate: 1, discount_rate: 1, benefits: ['基础功能使用'], status: 1, created_at: '', updated_at: '' },
-    { id: 2, name: '银卡会员', level: 2, min_points: 500, max_points: -1, points_rate: 1.1, discount_rate: 0.95, benefits: ['积分兑换资格'], status: 1, created_at: '', updated_at: '' },
-    { id: 3, name: '金卡会员', level: 3, min_points: 1000, max_points: -1, points_rate: 1.2, discount_rate: 0.9, benefits: ['全年9折', '积分加速'], status: 1, created_at: '', updated_at: '' },
-    { id: 4, name: '钻石会员', level: 4, min_points: 3000, max_points: -1, points_rate: 1.5, discount_rate: 0.85, benefits: ['全年85折', '专属客服', '生日双倍积分'], status: 1, created_at: '', updated_at: '' },
-  ]
+async function fetchPointsRules() {
+  rulesLoading.value = true
+  try {
+    const res: any = await getConfigByGroupSilent('member')
+    const rows = Array.isArray(res?.data) ? res.data : res?.data?.configs || []
+    const map = new Map<string, string>()
+    ;(Array.isArray(rows) ? rows : []).forEach((item: any) => {
+      const key = item.configKey || item.config_key || item.key
+      const val = item.configValue ?? item.config_value ?? item.value
+      if (key != null) map.set(String(key), String(val ?? ''))
+    })
+    pointsRulesForm.signInPoints = Number(map.get('points_sign_in') ?? 10) || 10
+    pointsRulesForm.consumeRate = Number(map.get('points_consume_rate') ?? 1) || 0
+    pointsRulesForm.exchangeMin = Number(map.get('points_exchange_min') ?? 100) || 0
+    pointsRulesForm.signInEnabled = isTruthy(map.get('points_sign_in_enabled'), true)
+    pointsRulesForm.consumeEnabled = isTruthy(map.get('points_consume_enabled'), true)
+    pointsRulesForm.exchangeEnabled = isTruthy(map.get('points_exchange_enabled'), true)
+  } catch {
+    /* 使用默认值 */
+  } finally {
+    rulesLoading.value = false
+  }
 }
 
-async function fetchPointsLog() {
-  pointsLoading.value = true
+function isTruthy(raw: string | undefined, defaultValue: boolean) {
+  if (raw == null || raw === '') return defaultValue
+  const v = raw.trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+}
+
+async function savePointsRules() {
+  rulesSaving.value = true
   try {
-    const params: MemberPointsLogParams = { page: 1, page_size: 20 }
-    if (pointsSearch.type) params.type = pointsSearch.type
-    const res = await getMemberPointsLog(params)
-    pointsList.value = res.data?.list || []
-  } catch {
-    pointsList.value = []
+    await updateConfigs([
+      {
+        configKey: 'points_sign_in',
+        configValue: String(pointsRulesForm.signInPoints ?? 0),
+        configGroup: 'member',
+        description: '每日签到获得积分',
+      },
+      {
+        configKey: 'points_consume_rate',
+        configValue: String(pointsRulesForm.consumeRate ?? 0),
+        configGroup: 'member',
+        description: '消费赠送：每实付1元赠送积分',
+      },
+      {
+        configKey: 'points_exchange_min',
+        configValue: String(pointsRulesForm.exchangeMin ?? 0),
+        configGroup: 'member',
+        description: '积分兑换最低门槛',
+      },
+      {
+        configKey: 'points_sign_in_enabled',
+        configValue: pointsRulesForm.signInEnabled ? '1' : '0',
+        configGroup: 'member',
+        description: '是否开启每日签到送积分',
+      },
+      {
+        configKey: 'points_consume_enabled',
+        configValue: pointsRulesForm.consumeEnabled ? '1' : '0',
+        configGroup: 'member',
+        description: '是否开启消费赠送积分',
+      },
+      {
+        configKey: 'points_exchange_enabled',
+        configValue: pointsRulesForm.exchangeEnabled ? '1' : '0',
+        configGroup: 'member',
+        description: '是否开启积分兑换',
+      },
+    ])
+    ElMessage.success('积分规则已保存')
+  } catch (err: any) {
+    ElMessage.error(err?.message || '保存失败')
   } finally {
-    pointsLoading.value = false
+    rulesSaving.value = false
   }
+}
+
+function goPointsLog() {
+  router.push({ name: 'MemberPoints' })
 }
 
 function handleTabChange(name: string | number) {
   if (name === 'members') fetchMembers()
   if (name === 'levels') fetchLevelList()
-  if (name === 'points') fetchPointsLog()
+  if (name === 'points') fetchPointsRules()
 }
 
 function refreshCurrent() {
   handleTabChange(activeTab.value)
 }
 
-function levelTagType(level: string) {
-  const map: Record<string, string> = { 普通: 'info', 银卡: '', 金卡: 'warning', 钻石: 'danger' }
-  return map[level] || 'info'
-}
-
-function pointsTypeLabel(type: string) {
-  const map: Record<string, string> = { sign_in: '每日签到', consume: '消费赠送', exchange: '积分兑换', admin: '后台调整' }
-  return map[type] || type || '-'
-}
-
 function openProfile(row: MemberRow) {
   currentMember.value = row
   profileVisible.value = true
-}
-
-function batchTag() {
-  ElMessage.success('批量打标签')
 }
 
 const levelDialogVisible = ref(false)
@@ -406,10 +629,10 @@ const levelForm = reactive({
   name: '',
   level: 1,
   min_points: 0,
-  max_points: -1,
-  points_rate: 1,
   discount_rate: 1,
+  points_rate: 1,
   benefits: [] as string[],
+  birthday_coupon_id: undefined as number | undefined,
   statusBool: true,
 })
 
@@ -423,41 +646,45 @@ function openLevelDialog(row?: MemberLevel) {
   editingLevelId.value = row?.id || null
   levelForm.name = row?.name || ''
   levelForm.level = row?.level || 1
-  levelForm.min_points = row?.min_points || 0
-  levelForm.max_points = row?.max_points || -1
-  levelForm.points_rate = row?.points_rate || 1
-  levelForm.discount_rate = row?.discount_rate || 1
+  levelForm.min_points = row?.min_points ?? 0
+  levelForm.discount_rate = row?.discount_rate ?? 1
+  levelForm.points_rate = row?.points_rate ?? 1
   levelForm.benefits = row?.benefits ? [...row.benefits] : []
+  levelForm.birthday_coupon_id = row?.birthday_coupon_id || undefined
   levelForm.statusBool = row ? row.status === 1 : true
+  fetchPublishedCoupons()
   levelDialogVisible.value = true
 }
 
 function resetLevelForm() {
   levelFormRef.value?.resetFields()
   levelForm.benefits = []
-}
-
-function addBenefit() {
-  levelForm.benefits.push('')
-}
-
-function removeBenefit(index: number) {
-  levelForm.benefits.splice(index, 1)
+  levelForm.birthday_coupon_id = undefined
+  levelForm.points_rate = 1
 }
 
 async function handleLevelSubmit() {
   const valid = await levelFormRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (
+    levelForm.benefits.includes(MemberBenefitCode.BirthdayGift) &&
+    !levelForm.birthday_coupon_id
+  ) {
+    ElMessage.warning('生日礼包需选择绑定的优惠券')
+    return
+  }
   levelSubmitting.value = true
   try {
     const payload: CreateMemberLevelParams = {
-      name: levelForm.name,
+      name: levelForm.name.trim(),
       level: levelForm.level,
       min_points: levelForm.min_points,
-      max_points: levelForm.max_points,
-      points_rate: levelForm.points_rate,
       discount_rate: levelForm.discount_rate,
-      benefits: levelForm.benefits.filter((item) => item.trim()),
+      points_rate: levelForm.points_rate,
+      benefits: [...levelForm.benefits],
+      birthday_coupon_id: levelForm.benefits.includes(MemberBenefitCode.BirthdayGift)
+        ? levelForm.birthday_coupon_id
+        : null,
       status: levelForm.statusBool ? 1 : 0,
     }
     if (isEditMode.value && editingLevelId.value !== null) {
@@ -468,7 +695,10 @@ async function handleLevelSubmit() {
       ElMessage.success('创建成功')
     }
     levelDialogVisible.value = false
-    fetchLevelList()
+    await fetchLevelList()
+    if (activeTab.value === 'members') await fetchMembers()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '保存失败')
   } finally {
     levelSubmitting.value = false
   }
@@ -476,22 +706,46 @@ async function handleLevelSubmit() {
 
 async function toggleLevelStatus(row: MemberLevel) {
   const status = row.status === 1 ? 0 : 1
-  await updateMemberLevel(row.id, { status })
-  ElMessage.success(status === 1 ? '启用成功' : '禁用成功')
-  fetchLevelList()
+  try {
+    await updateMemberLevel(row.id, {
+      name: row.name,
+      level: row.level,
+      min_points: row.min_points,
+      discount_rate: row.discount_rate,
+      points_rate: row.points_rate,
+      benefits: row.benefits,
+      birthday_coupon_id: row.birthday_coupon_id,
+      status,
+    })
+    ElMessage.success(status === 1 ? '启用成功' : '禁用成功')
+    fetchLevelList()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '状态更新失败')
+  }
 }
 
 async function handleDeleteLevel(row: MemberLevel) {
-  await ElMessageBox.confirm(`确定删除等级「${row.name}」？`, '删除确认', { type: 'warning' })
-  await deleteMemberLevel(row.id)
-  ElMessage.success('删除成功')
-  fetchLevelList()
+  try {
+    await ElMessageBox.confirm(`确定删除等级「${row.name}」？`, '删除确认', { type: 'warning' })
+    await deleteMemberLevel(row.id)
+    ElMessage.success('删除成功')
+    fetchLevelList()
+  } catch (err: any) {
+    if (err === 'cancel' || err === 'close') return
+    ElMessage.error(err?.message || '删除失败')
+  }
 }
 
 const adjustDialogVisible = ref(false)
 const adjustSubmitting = ref(false)
 const adjustFormRef = ref()
-const adjustForm = reactive({ user_id: undefined as number | undefined, points: undefined as number | undefined, remark: '' })
+const adjustForm = reactive({
+  user_id: undefined as number | undefined,
+  userName: '',
+  lockedUser: false,
+  points: undefined as number | undefined,
+  remark: '',
+})
 const adjustRules = {
   user_id: [{ required: true, message: '请输入用户ID', trigger: 'change' }],
   points: [{ required: true, message: '请输入调整积分', trigger: 'change' }],
@@ -500,6 +754,8 @@ const adjustRules = {
 
 function openAdjustDialog(row?: MemberRow) {
   adjustForm.user_id = row?.id
+  adjustForm.userName = row ? row.name || `用户 #${row.id}` : ''
+  adjustForm.lockedUser = Boolean(row)
   adjustForm.points = undefined
   adjustForm.remark = ''
   adjustDialogVisible.value = true
@@ -507,6 +763,8 @@ function openAdjustDialog(row?: MemberRow) {
 
 function resetAdjustForm() {
   adjustFormRef.value?.resetFields()
+  adjustForm.userName = ''
+  adjustForm.lockedUser = false
 }
 
 async function handleAdjustSubmit() {
@@ -514,19 +772,24 @@ async function handleAdjustSubmit() {
   if (!valid) return
   adjustSubmitting.value = true
   try {
-    await adjustMemberPoints({ user_id: adjustForm.user_id!, points: adjustForm.points!, remark: adjustForm.remark })
+    await adjustMemberPoints({
+      user_id: adjustForm.user_id!,
+      points: adjustForm.points!,
+      remark: adjustForm.remark.trim(),
+    })
     ElMessage.success('积分调整成功')
     adjustDialogVisible.value = false
-    fetchPointsLog()
     fetchMembers()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '积分调整失败')
   } finally {
     adjustSubmitting.value = false
   }
 }
 
-onMounted(() => {
-  fetchMembers()
-  fetchLevelList()
+onMounted(async () => {
+  await fetchLevelList()
+  await fetchMembers()
 })
 </script>
 
@@ -547,9 +810,15 @@ onMounted(() => {
   }
 
   .page-desc,
-  .muted {
+  .muted,
+  .field-hint {
     color: #6b7b93;
     font-size: 13px;
+  }
+
+  .field-hint {
+    margin-top: 4px;
+    font-size: 12px;
   }
 
   .header-actions,
@@ -557,6 +826,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
   }
 
   .prototype-tabs {
@@ -587,12 +857,17 @@ onMounted(() => {
 
   .table-panel,
   .level-card,
-  .rule-card,
-  .tag-card {
+  .rule-card {
     background: #fff;
     border: 1px solid #e4e9f2;
     border-radius: 14px;
     padding: 16px;
+  }
+
+  .pagination-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
   }
 
   .user-cell {
@@ -609,7 +884,7 @@ onMounted(() => {
   .user-name,
   .level-name,
   .rule-title,
-  .tag-title {
+  .coming-title {
     font-weight: 800;
     color: #0d1b2e;
   }
@@ -619,14 +894,8 @@ onMounted(() => {
     font-size: 12px;
   }
 
-  .tag {
-    margin-right: 6px;
-    margin-bottom: 4px;
-  }
-
   .level-grid,
   .rules-strip,
-  .tag-board,
   .profile-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -649,13 +918,57 @@ onMounted(() => {
     margin-top: 12px;
   }
 
-  .rule-value,
-  .tag-count {
+  .rule-value {
     margin: 8px 0 4px;
     font-size: 24px;
     line-height: 1;
     font-weight: 900;
     color: #1769ff;
+  }
+
+  .rules-panel {
+    padding: 20px 24px 28px;
+  }
+
+  .rules-form {
+    max-width: 560px;
+  }
+
+  .rules-section-title {
+    margin: 8px 0 12px;
+    font-weight: 800;
+    color: #0d1b2e;
+    font-size: 15px;
+
+    &:not(:first-child) {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid #eef2f8;
+    }
+  }
+
+  .field-hint {
+    width: 100%;
+    margin-top: 6px;
+    color: #6b7b93;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .rules-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f8;
+  }
+
+  .rule-card {
+    padding: 16px;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    background: #f8faff;
   }
 
   .points-add {
@@ -688,16 +1001,33 @@ onMounted(() => {
     }
   }
 
+  .benefit-checks {
+    width: 100%;
+  }
+
+  .benefit-check-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
   .benefits-editor,
   .full {
     width: 100%;
   }
 
-  .benefit-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .coming-soon {
+    padding: 48px 24px;
+    text-align: center;
+    background: #fff;
+    border: 1px dashed #d8dee9;
+    border-radius: 14px;
+  }
+
+  .coming-title {
     margin-bottom: 8px;
+    font-size: 16px;
   }
 }
 </style>

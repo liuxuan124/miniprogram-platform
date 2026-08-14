@@ -13,6 +13,7 @@
           <span v-if="hasUnsavedChanges" class="draft-pill">未保存</span>
           <span v-if="lastAutoSaveTime" class="autosave-text">自动保存 {{ formatTime(lastAutoSaveTime) }}</span>
           <el-button class="ghost-btn" @click="goBack">返回列表</el-button>
+          <el-button class="ghost-btn" @click="openPreview">预览</el-button>
           <el-button class="primary-btn" type="primary" :loading="submitting" @click="handleSubmit(false)">保存商品</el-button>
         </div>
       </header>
@@ -73,30 +74,21 @@
                   </el-form-item>
                 </div>
 
-                <el-form-item label="商品类型" prop="productType" class="span-all">
-                  <div>
-                    <div class="segmented-control">
-                      <button
-                        v-for="t in typeOptions"
+                <el-form-item label="商品类型" prop="productTypes" class="span-all">
+                  <div v-if="!formData.category_id" class="form-tip">请先选择商品分类，再勾选类型</div>
+                  <div v-else-if="!availableTypeOptions.length" class="form-tip">当前分类未配置允许类型，请先在分类管理中设置</div>
+                  <div v-else>
+                    <el-checkbox-group v-model="formData.productTypes" class="type-check-group">
+                      <el-checkbox
+                        v-for="t in availableTypeOptions"
                         :key="t.value"
-                        type="button"
-                        class="segment-item"
-                        :class="{ active: formData.productType === t.value }"
-                        @click="formData.productType = t.value"
+                        :value="t.value"
+                        border
                       >
-                        <span class="segment-icon">{{ t.icon }}</span>
-                        <span>{{ t.label }}</span>
-                      </button>
-                    </div>
-                    <div v-if="formData.productType === 'digital'" class="form-tip">
-                      数字商品无需收货地址和库存。用户支付后订单进入待发货，请在订单管理中选择虚拟发货并填写发货说明。
-                    </div>
-                    <div v-else-if="formData.productType === 'physical'" class="form-tip">
-                      实物商品需要配置库存。用户下单时填写收货地址，发货时需要填写物流公司和物流单号。
-                    </div>
-                    <div v-else class="form-tip">
-                      服务商品按普通订单管理，可结合预约功能安排具体服务时间。
-                    </div>
+                        {{ t.icon }} {{ t.label }}
+                      </el-checkbox>
+                    </el-checkbox-group>
+                    <div class="form-tip">类型由分类决定，可多选；纯数字商品不校验实体库存。</div>
                   </div>
                 </el-form-item>
               </div>
@@ -124,12 +116,8 @@
                 </el-form-item>
 
                 <el-form-item label="商品详情">
-                  <el-input
-                    v-model="formData.content"
-                    type="textarea"
-                    :rows="10"
-                    placeholder="请输入商品详情（支持 HTML），建议包含规格、适用场景、发货与售后说明。"
-                  />
+                  <PageRichTextEditor v-model="formData.content" seamless-images class="product-rich-editor" />
+                  <div class="form-tip">支持图片、文字混排；连续插图会无缝拼接，适合淘宝式详情长图。</div>
                 </el-form-item>
               </div>
             </section>
@@ -193,7 +181,7 @@
                     </el-table-column>
                     <el-table-column label="库存" min-width="118">
                       <template #default="{ row }">
-                        <span v-if="formData.productType === 'digital'" class="unlimited-stock">不限库存</span>
+                        <span v-if="isDigitalOnly" class="unlimited-stock">无限</span>
                         <el-input-number v-else v-model="row.stock" :min="0" size="small" controls-position="right" />
                       </template>
                     </el-table-column>
@@ -231,7 +219,7 @@
                 <span class="section-no">02</span>
                 <div>
                   <h2>图片素材</h2>
-                  <p>主图影响点击率，轮播图用于详情页展示。</p>
+                  <p>主图作列表封面，并自动作为轮播第一张；轮播图在详情页左右滑动查看。</p>
                 </div>
               </div>
 
@@ -319,8 +307,8 @@
                 <strong>{{ lastAutoSaveTime ? formatTime(lastAutoSaveTime) : '未保存' }}</strong>
               </div>
               <div class="status-hint">
-                {{ formData.productType === 'digital'
-                  ? '上线前请确认主图、SKU 价格和发货说明。数字商品不校验实体库存。'
+                {{ isDigitalOnly
+                  ? '上线前请确认主图、SKU 价格和发货说明。纯数字商品不校验实体库存。'
                   : '上线前请确认主图、SKU 价格和库存。保存后小程序端将按接口状态展示。' }}
               </div>
             </section>
@@ -370,7 +358,111 @@
       </el-form>
     </div>
 
-    <AssetPickerDialog v-model="assetPickerVisible" @select="handleAssetSelected" />
+    <AssetPickerDialog
+      v-model="assetPickerVisible"
+      :multiple="assetPickerTarget === 'gallery'"
+      @select="handleAssetSelected"
+      @select-many="handleAssetSelectedMany"
+    />
+
+    <el-dialog
+      v-model="previewVisible"
+      title="商品预览"
+      width="400px"
+      append-to-body
+      destroy-on-close
+      class="product-preview-dialog"
+      align-center
+    >
+      <div class="preview-phone">
+        <div class="preview-notch" />
+        <div class="preview-scroll">
+          <!-- 轮播 -->
+          <div class="pv-gallery">
+            <el-carousel
+              v-if="previewImages.length"
+              height="280px"
+              :interval="3500"
+              indicator-position="inside"
+              arrow="hover"
+            >
+              <el-carousel-item v-for="(img, idx) in previewImages" :key="`${img}-${idx}`">
+                <img :src="img" alt="" />
+              </el-carousel-item>
+            </el-carousel>
+            <div v-else class="pv-gallery-empty">暂无主图 / 轮播图</div>
+            <div v-if="previewImages.length" class="pv-gallery-count">
+              {{ previewImages.length }} 张
+            </div>
+          </div>
+
+          <!-- 价格标题区 -->
+          <div class="pv-header">
+            <div class="pv-price-row">
+              <span class="pv-yen">¥</span>
+              <span class="pv-price">{{ previewPrice }}</span>
+              <span v-if="previewOriginalPrice" class="pv-origin">¥{{ previewOriginalPrice }}</span>
+            </div>
+            <div class="pv-name">{{ formData.name || '商品名称' }}</div>
+            <div class="pv-meta-row">
+              <span>已售 —</span>
+              <span>库存 {{ previewStockLabel }}</span>
+              <span v-for="t in formData.productTypes" :key="t">{{ typeLabel(t) }}</span>
+            </div>
+            <div v-if="formData.description" class="pv-desc">{{ formData.description }}</div>
+          </div>
+
+          <!-- 规格 / 优惠 / 服务（淘宝式入口行） -->
+          <div class="pv-picks">
+            <div class="pv-pick">
+              <span class="k">规格</span>
+              <span class="v">{{ previewSkuLabel }}</span>
+              <span class="ar">›</span>
+            </div>
+            <div class="pv-pick">
+              <span class="k">优惠券</span>
+              <span class="v">满减可用</span>
+              <span class="ar">›</span>
+            </div>
+            <div class="pv-pick">
+              <span class="k">服务</span>
+              <span class="v">{{ previewServiceLabel }}</span>
+              <span class="ar">›</span>
+            </div>
+          </div>
+
+          <!-- 评价入口 -->
+          <div class="pv-review">
+            <div>
+              <div class="pv-review-t">用户评价</div>
+              <div class="pv-review-s">暂无评价 · 上架后展示</div>
+            </div>
+            <span class="ar">全部 ›</span>
+          </div>
+
+          <!-- 图文详情 -->
+          <div class="pv-detail-card">
+            <div class="pv-section-title">{{ previewDetailTitle }}</div>
+            <div class="pv-rich" v-html="formData.content || '<p style=&quot;color:#999&quot;>暂无详情，可在上方编辑器插入图文</p>'" />
+          </div>
+        </div>
+
+        <!-- 底部栏：对齐淘宝详情（预览固定展示完整操作，不按类型隐藏） -->
+        <div class="pv-bottom">
+          <div class="pv-icon-btn">
+            <span class="emoji">💬</span>
+            <span>客服</span>
+          </div>
+          <div class="pv-icon-btn">
+            <span class="emoji">🛒</span>
+            <span>购物车</span>
+          </div>
+          <button type="button" class="pv-btn pv-btn-cart">加入购物车</button>
+          <button type="button" class="pv-btn pv-btn-buy">立即购买</button>
+        </div>
+      </div>
+      <p class="preview-hint">模拟淘宝/小程序商品详情（含底部购买栏），样式供参考，实际以端上为准。</p>
+    </el-dialog>
   </div>
 </template>
 
@@ -384,6 +476,7 @@ import { getProduct, createProduct, updateProduct, getCategoryList, onSaleProduc
 import { uploadFile } from '@/api/system'
 import { post } from '@/api/request'
 import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
+import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
 import type { ProductCategory, SkuItem, SkuSpec } from '@/types/product'
 
 /** 自定义防抖函数（避免引入额外依赖） */
@@ -428,13 +521,16 @@ const typeOptions = [
   { value: 'service', label: '服务商品', icon: '🎯' },
 ]
 
+const previewVisible = ref(false)
+const categoryNodeMap = ref<Map<number, any>>(new Map())
+
 /** 规格名称列表 */
 const specNames = ref<{ name: string }[]>([{ name: '' }])
 
 const formData = reactive({
   name: '',
   category_id: undefined as number | undefined,
-  productType: 'physical' as string,
+  productTypes: [] as string[],
   main_image: '',
   images: [] as string[],
   description: '',
@@ -446,20 +542,91 @@ const formData = reactive({
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
   category_id: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
-  productType: [{ required: true, message: '请选择商品类型', trigger: 'change' }],
+  productTypes: [{ type: 'array', required: true, min: 1, message: '请至少选择一种商品类型', trigger: 'change' }],
   main_image: [{ required: true, message: '请输入主图URL', trigger: 'blur' }],
+}
+
+const isDigitalOnly = computed(() => {
+  const types = formData.productTypes || []
+  return types.includes('digital') && !types.includes('physical') && !types.includes('service')
+})
+
+const availableTypeOptions = computed(() => {
+  if (!formData.category_id) return []
+  const node = categoryNodeMap.value.get(Number(formData.category_id))
+  const allowed: string[] = Array.isArray(node?.allowedProductTypes) && node.allowedProductTypes.length
+    ? node.allowedProductTypes
+    : ['physical', 'digital', 'service']
+  return typeOptions.filter((t) => allowed.includes(t.value))
+})
+
+const previewPrice = computed(() => {
+  const prices = formData.skus.map((s) => toNumber(s.price, 0)).filter((n) => n > 0)
+  if (!prices.length) return '0.00'
+  return Math.min(...prices).toFixed(2)
+})
+
+/** 预览/小程序轮播：主图优先，再拼轮播图并去重 */
+const previewImages = computed(() => buildSyncedImages(formData.main_image, formData.images))
+
+const previewOriginalPrice = computed(() => {
+  const origins = formData.skus
+    .map((s) => toNumber(s.original_price, 0))
+    .filter((n) => n > toNumber(previewPrice.value, 0))
+  if (!origins.length) return ''
+  return Math.max(...origins).toFixed(2)
+})
+
+const previewStockLabel = computed(() => {
+  if (isDigitalOnly.value) return '无限'
+  const total = formData.skus.reduce((sum, s) => sum + toNumber(s.stock, 0), 0)
+  return total > 0 ? String(total) : '无'
+})
+
+const previewSkuLabel = computed(() => {
+  if (!formData.skus.length) return '请先配置 SKU'
+  if (formData.skus.length === 1) {
+    const s = formData.skus[0]
+    const spec = (s.specs || []).map((x) => x.value).filter(Boolean).join(' / ')
+    return spec || s.sku_code || '默认规格'
+  }
+  return `${formData.skus.length} 个规格可选`
+})
+
+const previewIsService = computed(() => (formData.productTypes || []).includes('service') && !(formData.productTypes || []).includes('physical'))
+const previewServiceLabel = computed(() => {
+  if (isDigitalOnly.value) return '下单后可查'
+  if (previewIsService.value) return '开始前24h可改期'
+  return '假一赔四 · 极速退款'
+})
+const previewDetailTitle = computed(() => {
+  if (isDigitalOnly.value) return '资料介绍'
+  if (previewIsService.value) return '服务说明'
+  return '商品详情'
+})
+
+function buildSyncedImages(main: string, gallery: string[]) {
+  const list: string[] = []
+  const push = (url?: string) => {
+    const u = (url || '').trim()
+    if (u && !list.includes(u)) list.push(u)
+  }
+  push(main)
+  ;(gallery || []).forEach(push)
+  return list
 }
 
 const completionItems = computed(() => [
   { label: '填写商品名称', done: !!formData.name.trim() },
   { label: '选择商品分类', done: !!formData.category_id },
+  { label: '选择商品类型', done: formData.productTypes.length > 0 },
   { label: '上传商品主图', done: !!formData.main_image },
   { label: '添加至少 1 个 SKU', done: formData.skus.length > 0 },
   {
-    label: formData.productType === 'digital' ? '配置商品价格' : '配置价格和库存',
+    label: isDigitalOnly.value ? '配置商品价格' : '配置价格和库存',
     done: formData.skus.some((sku) =>
       toNumber(sku.price, 0) > 0
-      && (formData.productType === 'digital' || toNumber(sku.stock, 0) > 0)
+      && (isDigitalOnly.value || toNumber(sku.stock, 0) > 0)
     ),
   },
 ])
@@ -474,8 +641,46 @@ const incompleteItems = computed(() => completionItems.value.filter((item) => !i
 const statusText = computed(() => {
   if (formStatus.value === 'on_sale') return '已上架'
   if (formStatus.value === 'off_sale') return '已下架'
-  return isEdit.value ? '编辑中' : '草稿'
+  return '草稿'
 })
+
+function filterEnabledCategories(nodes: any[]): any[] {
+  if (!Array.isArray(nodes)) return []
+  return nodes
+    .filter((n) => Number(n?.status ?? 1) === 1)
+    .map((n) => {
+      const allowed = Array.isArray(n.allowedProductTypes)
+        ? n.allowedProductTypes
+        : (typeof n.allowedProductTypes === 'string'
+          ? (() => { try { return JSON.parse(n.allowedProductTypes) } catch { return [] } })()
+          : [])
+      return {
+        ...n,
+        allowedProductTypes: allowed.length ? allowed : ['physical', 'digital', 'service'],
+        children: filterEnabledCategories(n.children || []),
+      }
+    })
+}
+
+function findCategory(nodes: any[], id: number): boolean {
+  for (const n of nodes || []) {
+    if (Number(n.id) === Number(id)) return true
+    if (findCategory(n.children || [], id)) return true
+  }
+  return false
+}
+
+/** 加载分类选项（仅启用） */
+async function fetchCategories() {
+  try {
+    const res = await getCategoryList()
+    const raw = (res as any).data || []
+    categoryOptions.value = filterEnabledCategories(Array.isArray(raw) ? raw : [])
+    const map = new Map<number, any>()
+    collectCategoryNodes(categoryOptions.value, map)
+    categoryNodeMap.value = map
+  } catch { /* ignore */ }
+}
 
 const stepItems = computed(() => [
   {
@@ -587,9 +792,10 @@ function buildApiPayload() {
   return {
     name: formData.name,
     categoryId: formData.category_id,
-    productType: formData.productType,
+    productTypes: [...formData.productTypes],
+    productType: formData.productTypes[0] || 'physical',
     mainImage: formData.main_image,
-    images: formData.images,
+    images: buildSyncedImages(formData.main_image, formData.images),
     description: formData.description,
     detail: formData.content,
     price: minPrice,
@@ -605,15 +811,47 @@ function getPublishErrors() {
   const errors: string[] = []
   if (!formData.name.trim()) errors.push('填写商品名称')
   if (!formData.category_id) errors.push('选择商品分类')
+  if (!formData.productTypes.length) errors.push('选择商品类型')
   if (!formData.main_image) errors.push('上传商品主图')
   if (!formData.skus.length) errors.push('添加至少 1 个 SKU')
   if (formData.skus.some((sku) => toNumber(sku.price, 0) <= 0)) {
     errors.push('填写 SKU 销售价')
   }
-  if (formData.productType !== 'digital' && formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
+  if (!isDigitalOnly.value && formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
     errors.push('配置可售库存')
   }
   return errors
+}
+
+function typeLabel(t: string) {
+  if (t === 'digital') return '数字'
+  if (t === 'service') return '服务'
+  return '实物'
+}
+
+function openPreview() {
+  previewVisible.value = true
+}
+
+function collectCategoryNodes(nodes: any[], map: Map<number, any>) {
+  ;(nodes || []).forEach((n) => {
+    if (n?.id != null) map.set(Number(n.id), n)
+    if (n.children?.length) collectCategoryNodes(n.children, map)
+  })
+}
+
+function syncTypesForCategory(preserveSelection = true) {
+  const allowed = availableTypeOptions.value.map((t) => t.value)
+  if (!allowed.length) {
+    formData.productTypes = []
+    return
+  }
+  if (preserveSelection) {
+    const kept = formData.productTypes.filter((t) => allowed.includes(t))
+    formData.productTypes = kept.length ? kept : [...allowed]
+  } else {
+    formData.productTypes = [...allowed]
+  }
 }
 
 function resolveUploadUrl(url: string) {
@@ -649,14 +887,6 @@ function beforeImageUpload(file: File) {
   return true
 }
 
-/** 加载分类选项 */
-async function fetchCategories() {
-  try {
-    const res = await getCategoryList()
-    categoryOptions.value = res.data || []
-  } catch { /* ignore */ }
-}
-
 /** 加载商品详情（编辑模式） */
 async function fetchProduct() {
   if (!productId.value) return
@@ -666,14 +896,37 @@ async function fetchProduct() {
     const product = (res as any).data || {}
     formData.name = product.name || ''
     formData.category_id = product.categoryId ?? product.category_id
-    formData.productType = product.productType || product.product_type || 'physical'
+    const types = Array.isArray(product.productTypes)
+      ? product.productTypes
+      : (product.productType || product.product_type ? [product.productType || product.product_type] : [])
+    formData.productTypes = types.length ? types.map(String) : []
     formData.main_image = product.mainImage ?? product.main_image ?? ''
-    formData.images = Array.isArray(product.images) ? product.images : []
+    const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
+    formData.images = buildSyncedImages(formData.main_image, rawImages)
+    if (!formData.main_image && formData.images.length) {
+      formData.main_image = formData.images[0]
+    }
     formData.description = product.description || ''
     formData.content = product.detail ?? product.content ?? ''
     formData.sort = product.sortOrder ?? product.sort ?? 0
-    formStatus.value = product.status || 'off_sale'
+    formStatus.value = product.status || 'draft'
     formData.skus = Array.isArray(product.skus) ? product.skus.map((sku: any) => mapApiSkuToForm(sku)) : []
+
+    // 若当前分类已禁用，仍保留在选项中以便展示
+    if (formData.category_id) {
+      const exists = findCategory(categoryOptions.value, formData.category_id)
+      if (!exists) {
+        categoryOptions.value = [
+          ...categoryOptions.value,
+          {
+            id: formData.category_id,
+            name: `${product.categoryName || product.category_name || '原分类'}（已禁用）`,
+            status: 0,
+            children: [],
+          },
+        ]
+      }
+    }
 
     // 从 SKU 推断规格名称
     if (formData.skus.length > 0 && formData.skus[0].specs?.length) {
@@ -689,23 +942,6 @@ async function fetchProduct() {
   } finally {
     pageLoading.value = false
   }
-}
-
-/** 添加图片 */
-function addImage() {
-  const url = newImageUrl.value.trim()
-  if (!url) return
-  if (!isImageLikeUrl(url)) {
-    ElMessage.warning('请输入有效图片URL（http(s):// 或 /uploads/...）')
-    return
-  }
-  formData.images.push(url)
-  newImageUrl.value = ''
-}
-
-/** 移除图片 */
-function removeImage(idx: number) {
-  formData.images.splice(idx, 1)
 }
 
 function handleGalleryDragStart(idx: number) {
@@ -735,6 +971,12 @@ async function handleMainImageUpload(options: { file: File }) {
     if (!url) throw new Error('上传返回地址为空')
     await registerImageAsset(compressed, url)
     formData.main_image = url
+    if (!formData.images.includes(url)) {
+      formData.images.unshift(url)
+    } else {
+      // 主图固定排在轮播第一位
+      formData.images = [url, ...formData.images.filter((x) => x !== url)]
+    }
     ElMessage.success('主图上传成功')
   } catch {
     ElMessage.error('主图上传失败')
@@ -754,6 +996,9 @@ async function handleGalleryImageUpload(options: { file: File }) {
     if (!formData.images.includes(url)) {
       formData.images.push(url)
     }
+    if (!formData.main_image) {
+      formData.main_image = url
+    }
     ElMessage.success('商品图上传成功')
   } catch {
     ElMessage.error('商品图上传失败')
@@ -770,13 +1015,70 @@ function openAssetPicker(target: 'main' | 'gallery') {
 function handleAssetSelected(url: string) {
   if (assetPickerTarget.value === 'main') {
     formData.main_image = url
+    if (!formData.images.includes(url)) {
+      formData.images.unshift(url)
+    } else {
+      formData.images = [url, ...formData.images.filter((x) => x !== url)]
+    }
     ElMessage.success('已选择商品主图')
+    assetPickerVisible.value = false
     return
   }
   if (!formData.images.includes(url)) {
     formData.images.push(url)
   }
+  if (!formData.main_image) {
+    formData.main_image = url
+  }
   ElMessage.success('已添加商品图片')
+  assetPickerVisible.value = false
+}
+
+/** 轮播图：按素材库点击顺序批量追加 */
+function handleAssetSelectedMany(urls: string[]) {
+  if (!urls.length) return
+  let added = 0
+  for (const url of urls) {
+    if (!formData.images.includes(url)) {
+      formData.images.push(url)
+      added += 1
+    }
+  }
+  if (!formData.main_image && formData.images.length) {
+    formData.main_image = formData.images[0]
+  }
+  assetPickerVisible.value = false
+  if (added > 0) {
+    ElMessage.success(`已按选择顺序添加 ${added} 张轮播图`)
+  } else {
+    ElMessage.info('所选图片已在轮播中')
+  }
+}
+
+/** 添加图片 */
+function addImage() {
+  const url = newImageUrl.value.trim()
+  if (!url) return
+  if (!isImageLikeUrl(url)) {
+    ElMessage.warning('请输入有效图片URL（http(s):// 或 /uploads/...）')
+    return
+  }
+  if (!formData.images.includes(url)) {
+    formData.images.push(url)
+  }
+  if (!formData.main_image) {
+    formData.main_image = url
+  }
+  newImageUrl.value = ''
+}
+
+/** 移除图片 */
+function removeImage(idx: number) {
+  const removed = formData.images[idx]
+  formData.images.splice(idx, 1)
+  if (removed && formData.main_image === removed) {
+    formData.main_image = formData.images[0] || ''
+  }
 }
 
 function syncSkuSpecLength() {
@@ -871,27 +1173,29 @@ async function handleSubmit(publish = false) {
     let savedProductId = productId.value
     if (isEdit.value) {
       await updateProduct(productId.value, payload as any)
-      ElMessage.success(publish ? '商品资料已保存' : '更新成功')
     } else {
       const res: any = await createProduct(payload as any)
       savedProductId = Number(res?.data?.id || 0)
-      ElMessage.success(publish ? '商品草稿已创建' : '创建成功')
+      productId.value = savedProductId
+      formStatus.value = 'draft'
     }
     if (publish && savedProductId) {
       if (formStatus.value !== 'on_sale') {
         await onSaleProduct(savedProductId)
       }
+      formStatus.value = 'on_sale'
       ElMessage.success('商品已保存并上线')
+    } else {
+      ElMessage.success(isEdit.value ? '草稿已保存' : '已存为草稿')
     }
+    clearDraft()
+    hasUnsavedChanges.value = false
     goBack()
-  } catch {
-    ElMessage.error('保存失败')
+  } catch (err: any) {
+    ElMessage.error(err?.message || '保存失败')
   } finally {
     submitting.value = false
   }
-  // 保存成功后清除草稿
-  clearDraft()
-  hasUnsavedChanges.value = false
 }
 
 /** 返回列表 */
@@ -957,6 +1261,19 @@ const autoSaveDraft = debounce(() => {
   if (!hasUnsavedChanges.value || submitting.value || pageLoading.value) return
   saveDraft()
 }, 5000)
+
+/** 分类切换 → 同步可选商品类型 */
+watch(
+  () => formData.category_id,
+  (id, prev) => {
+    if (!id) {
+      formData.productTypes = []
+      return
+    }
+    // 首次加载编辑详情时保留已选类型
+    syncTypesForCategory(!!prev || isEdit.value)
+  }
+)
 
 /** 监听表单变化 → 标记未保存 + 触发自动保存 */
 watch(
@@ -1854,6 +2171,316 @@ onUnmounted(() => {
 
 .product-editor-page :deep(.el-table td.el-table__cell) {
   vertical-align: middle;
+}
+
+.type-check-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.product-rich-editor {
+  width: 100%;
+  border: 1px solid var(--border, #e4e9f2);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.preview-phone {
+  position: relative;
+  width: 360px;
+  margin: 0 auto;
+  border: 10px solid #1a1a1a;
+  border-radius: 28px;
+  background: #f5f6f8;
+  overflow: hidden;
+}
+
+.preview-notch {
+  width: 120px;
+  height: 18px;
+  margin: 8px auto 0;
+  border-radius: 10px;
+  background: #111;
+}
+
+.preview-scroll {
+  max-height: 560px;
+  overflow: auto;
+  padding-bottom: 72px;
+  background: #f5f6f8;
+}
+
+.pv-gallery {
+  position: relative;
+  height: 280px;
+  background: #eef1f6;
+}
+
+.pv-gallery :deep(.el-carousel),
+.pv-gallery :deep(.el-carousel__container) {
+  height: 280px !important;
+}
+
+.pv-gallery :deep(.el-carousel__item) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef1f6;
+}
+
+.pv-gallery img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-gallery-empty {
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #99a3b5;
+}
+
+.pv-gallery-count {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 11px;
+}
+
+.pv-header {
+  margin-top: -12px;
+  padding: 16px 14px 12px;
+  border-radius: 14px 14px 0 0;
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.pv-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pv-yen {
+  color: #ff5000;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pv-price {
+  color: #ff5000;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pv-origin {
+  margin-left: 6px;
+  color: #aab0bc;
+  font-size: 13px;
+  text-decoration: line-through;
+}
+
+.pv-name {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.45;
+}
+
+.pv-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  color: #8b93a3;
+  font-size: 12px;
+}
+
+.pv-desc {
+  margin-top: 8px;
+  color: #5b6b82;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pv-picks,
+.pv-review,
+.pv-detail-card {
+  margin: 10px 0 0;
+  background: #fff;
+}
+
+.pv-picks {
+  padding: 0 14px;
+}
+
+.pv-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 13px;
+}
+
+.pv-pick:last-child {
+  border-bottom: 0;
+}
+
+.pv-pick .k {
+  width: 42px;
+  color: #8b93a3;
+  flex: none;
+}
+
+.pv-pick .v {
+  flex: 1;
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pv-pick .ar,
+.pv-review .ar {
+  color: #c0c4cc;
+}
+
+.pv-review {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.pv-review-t {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.pv-review-s {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8b93a3;
+}
+
+.pv-detail-card {
+  padding: 14px 0 20px;
+}
+
+.pv-section-title {
+  padding: 0 14px 10px;
+  font-weight: 700;
+  color: #111;
+  font-size: 14px;
+}
+
+.pv-rich {
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #334155;
+  word-break: break-word;
+}
+
+.pv-rich :deep(p),
+.pv-rich p {
+  margin: 0.35em 14px;
+}
+
+.pv-rich :deep(p:has(> img:only-child)),
+.pv-rich p:has(> img:only-child) {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+}
+
+.pv-rich :deep(img),
+.pv-rich img {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  vertical-align: top;
+}
+
+.pv-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 58px;
+  padding: 0 10px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.pv-icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  color: #666;
+  font-size: 10px;
+  line-height: 1.2;
+  flex: none;
+}
+
+.pv-icon-btn .emoji {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.pv-btn {
+  flex: 1;
+  height: 40px;
+  border: 0;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.pv-btn-cart {
+  color: #fff;
+  background: linear-gradient(90deg, #ffb400, #ff9500);
+}
+
+.pv-btn-buy {
+  color: #fff;
+  background: linear-gradient(90deg, #ff785a, #ff5000);
+}
+
+.preview-hint {
+  margin: 12px 0 0;
+  text-align: center;
+  color: #6b7b93;
+  font-size: 12px;
 }
 
 @media (max-width: 1360px) {

@@ -17,11 +17,18 @@
 }
 
 .activity-cover {
-  height: 180rpx;
+  position: relative;
+  height: 210rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  overflow: hidden;
+}
+
+.activity-cover-img {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .activity-cover-icon {

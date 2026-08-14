@@ -18,4 +18,7 @@ public class AssetGroupVO {
 
     @Schema(description = "排序序号")
     private Integer sortOrder;
+
+    @Schema(description = "分组下素材数量")
+    private Long count;
 }

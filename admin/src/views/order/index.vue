@@ -1,5 +1,5 @@
 <template>
-  <div class="order-list-page">
+  <div class="order-page">
     <PageHeader
       kicker="商业变现 / 订单管理"
       title="订单管理"
@@ -11,168 +11,187 @@
       </template>
     </PageHeader>
 
-    <!-- 顶部财务统计卡片 -->
-    <el-row :gutter="20" class="finance-section">
-      <el-col :xs="12" :sm="6" v-for="item in financeCards" :key="item.title">
-        <el-card shadow="hover" class="finance-card">
-          <div class="finance-content">
-            <div class="finance-info">
-              <p class="finance-title">{{ item.title }}</p>
-              <p class="finance-value">{{ item.value }}</p>
-              <p class="finance-note" :class="{ up: item.up, down: item.down }">
-                {{ item.note }}
-              </p>
-            </div>
-            <div class="finance-icon-wrap" :style="{ background: item.bgColor }">
-              <el-icon class="finance-icon" :style="{ color: item.color }">
-                <component :is="item.icon" />
-              </el-icon>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <section class="stat-grid">
+      <button
+        v-for="item in dashboardCards"
+        :key="item.key"
+        type="button"
+        class="stat-card"
+        :class="{
+          warning: item.tone === 'warning',
+          danger: item.tone === 'danger',
+          active: activeDashKey === item.key,
+        }"
+        @click="applyDashboardFilter(item)"
+      >
+        <span>{{ item.title }}</span>
+        <strong>{{ item.value }}</strong>
+        <p>{{ item.note }}</p>
+      </button>
+    </section>
 
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>订单列表</span>
-        </div>
-      </template>
-
-      <!-- 搜索栏 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="订单号/用户" clearable @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 140px">
-            <el-option
-              v-for="(label, key) in OrderStatusLabels"
-              :key="key"
-              :label="label"
-              :value="key"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="下单时间">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            style="width: 260px"
+    <section class="filter-panel">
+      <div class="filter-grid">
+        <el-input
+          v-model="searchForm.keyword"
+          placeholder="订单号 / 用户"
+          clearable
+          @keyup.enter="handleSearch"
+        />
+        <el-select v-model="searchForm.status" placeholder="全部状态" clearable @change="activeDashKey = ''">
+          <el-option
+            v-for="(label, key) in OrderStatusLabels"
+            :key="key"
+            :label="label"
+            :value="key"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+          <el-option label="未发货" value="unshipped" />
+        </el-select>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          class="filter-date"
+          @change="activeDashKey = ''"
+        />
+      </div>
+      <div class="filter-actions">
+        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+      </div>
+    </section>
 
-      <!-- 表格 -->
+    <section class="table-panel">
+      <div class="table-toolbar">
+        <div>
+          <strong>订单列表</strong>
+          <span>共 {{ pagination.total }} 笔</span>
+        </div>
+      </div>
+
       <ListStateWrap
         :loading="loading"
         :empty="!loading && tableData.length === 0"
         empty-text="暂无订单数据"
         empty-description="调整筛选条件后重新查询，或等待新订单产生"
+        :skeleton-rows="6"
         @retry="fetchList"
       >
-      <el-table :data="tableData" border stripe>
-        <el-table-column prop="order_no" label="订单号" min-width="170" />
-        <el-table-column label="用户" width="130">
-          <template #default="{ row }">
-            <div class="user-cell">
-              <span class="user-name">{{ row.user_nickname }}</span>
-              <span class="user-phone">{{ row.user_phone }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="商品/类型" min-width="240">
-          <template #default="{ row }">
-            <div v-for="(item, idx) in row.items?.slice(0, 2)" :key="idx" class="order-item">
-              <span>{{ item.product_name }}</span>
-              <span class="item-qty">x{{ item.quantity }}</span>
-            </div>
-            <div v-if="row.items?.length > 2" class="more-items">
-              ...共{{ row.items.length }}件商品
-            </div>
-            <div class="goods-type">
+        <el-table :data="tableData" stripe row-key="id" class="order-table" table-layout="auto">
+          <el-table-column label="订单号" min-width="168">
+            <template #default="{ row }">
+              <span class="order-no">{{ row.order_no }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="用户" min-width="120">
+            <template #default="{ row }">
+              <div class="user-cell">
+                <span class="user-name">{{ displayUserName(row) }}</span>
+                <span v-if="displayUserPhone(row)" class="user-phone">{{ displayUserPhone(row) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="商品" min-width="200">
+            <template #default="{ row }">
+              <div class="goods-cell">
+                <div v-for="(item, idx) in row.items?.slice(0, 2)" :key="idx" class="order-item">
+                  <span class="goods-name" :title="item.product_name">{{ item.product_name }}</span>
+                </div>
+                <div v-if="(row.items?.length || 0) > 2" class="more-items">
+                  …共 {{ row.items.length }} 件
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="类型" width="88" align="center">
+            <template #default="{ row }">
               <el-tag
-                v-if="row.fulfillment_type === 'virtual'"
                 size="small"
-                type="warning"
-                class="type-tag"
-              >虚拟</el-tag>
+                effect="plain"
+                :type="row.fulfillment_type === 'virtual' ? 'warning' : 'info'"
+              >
+                {{ row.fulfillment_type === 'virtual' ? '虚拟' : '实物' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="数量" width="72" align="center">
+            <template #default="{ row }">
+              <span class="qty-text">{{ orderQuantity(row) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="订单金额" width="110" align="right">
+            <template #default="{ row }">
+              <span class="amount-text">¥{{ row.pay_amount }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="96" align="center">
+            <template #default="{ row }">
               <el-tag
-                v-else
+                :type="(OrderStatusTagType[row.status as OrderStatus] as any) || 'info'"
                 size="small"
-                type="info"
-                class="type-tag"
-              >实物</el-tag>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="订单金额" width="110" align="center">
-          <template #default="{ row }">
-            <span class="amount-text">¥{{ row.pay_amount }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="(OrderStatusTagType[row.status as OrderStatus] as any) || 'info'"
-              size="small"
-            >
-              {{ OrderStatusLabels[row.status as OrderStatus] || row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="下单时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleDetail(row)">详情</el-button>
-            <el-button
-              v-if="row.status === OrderStatus.Paid"
-              type="success"
-              link
-              size="small"
-              @click="handleShip(row)"
-            >{{ row.fulfillment_type === 'virtual' ? '虚拟发货' : '物流发货' }}</el-button>
-            <el-button
-              v-if="row.status === OrderStatus.Paid || row.status === OrderStatus.Shipped"
-              type="danger"
-              link
-              size="small"
-              @click="handleRefund(row)"
-            >退款</el-button>
-            <el-button
-              v-if="row.status === OrderStatus.Refunding"
-              type="warning"
-              link
-              size="small"
-              @click="goRefund"
-            >退款审核</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+                effect="plain"
+              >
+                {{ OrderStatusLabels[row.status as OrderStatus] || row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="下单时间" width="160">
+            <template #default="{ row }">
+              <span class="time-text">{{ formatOrderTime(row.created_at) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" min-width="180">
+            <template #default="{ row }">
+              <div class="row-actions">
+                <el-button link type="primary" size="small" @click="handleDetail(row)">详情</el-button>
+                <el-button
+                  v-if="row.status === OrderStatus.Paid"
+                  link
+                  type="success"
+                  size="small"
+                  @click="handleShip(row)"
+                >
+                  {{ row.fulfillment_type === 'virtual' ? '虚拟发货' : '物流发货' }}
+                </el-button>
+                <el-button
+                  v-if="row.status === OrderStatus.Paid || row.status === OrderStatus.Shipped"
+                  link
+                  type="danger"
+                  size="small"
+                  @click="handleRefund(row)"
+                >
+                  退款
+                </el-button>
+                <el-button
+                  v-if="row.status === OrderStatus.Refunding"
+                  link
+                  type="warning"
+                  size="small"
+                  @click="goRefund"
+                >
+                  退款审核
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <!-- 分页 -->
-      <div class="pagination-wrap">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.page_size"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="fetchList"
-          @current-change="fetchList"
-        />
-      </div>
+        <div class="pagination-wrap">
+          <el-pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.page_size"
+            :total="pagination.total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="fetchList"
+            @current-change="fetchList"
+          />
+        </div>
       </ListStateWrap>
-    </el-card>
+    </section>
 
     <!-- 发货/核销/确认预约弹窗 -->
     <el-dialog
@@ -249,7 +268,7 @@
     >
       <div class="refund-info">
         <div class="refund-order">订单号：{{ currentRefundOrder?.order_no }}</div>
-        <div class="refund-user">用户：{{ currentRefundOrder?.user_nickname }}</div>
+        <div class="refund-user">用户：{{ displayUserName(currentRefundOrder || {}) }}</div>
         <div class="refund-goods">商品：{{ currentRefundOrder?.items?.[0]?.product_name }}</div>
         <div class="refund-amount">金额：<span class="amount-text">¥{{ currentRefundOrder?.pay_amount }}</span></div>
       </div>
@@ -326,57 +345,311 @@ function formatChange(rate: number | null | undefined): string {
   return `${arrow}${Number(rate).toFixed(1)}%`
 }
 
-const financeCards = computed(() => {
+function formatCount(n: number | null | undefined): string {
+  return String(Number(n || 0))
+}
+
+function todayStr() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function monthStartStr() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}-01`
+}
+
+type DashFilter = {
+  key: string
+  title: string
+  value: string
+  note: string
+  tone?: 'default' | 'warning' | 'danger'
+  status?: string
+  dateMode?: 'today' | 'month' | 'none'
+}
+
+const activeDashKey = ref('')
+
+/** 与列表筛选同源的运营计数（用 page_size=1 取 total，避免和列表不一致） */
+const opsCounts = ref({
+  todayOrderCount: 0,
+  pendingPaymentCount: 0,
+  pendingShipCount: 0,
+  completedCount: 0,
+  refundingCount: 0,
+})
+
+const dashboardCards = computed<DashFilter[]>(() => {
   const s = orderStats.value
+  const c = opsCounts.value
   return [
     {
+      key: 'today_orders',
+      title: '今日订单',
+      value: formatCount(c.todayOrderCount),
+      note: '今日新建订单',
+      dateMode: 'today',
+      status: '',
+    },
+    {
+      key: 'today_sales',
+      title: '今日成交额',
+      value: formatMoney(s?.todaySalesAmount),
+      note: '今日已支付实付',
+      dateMode: 'today',
+      status: '',
+    },
+    {
+      key: 'pending_payment',
+      title: '待付款',
+      value: formatCount(c.pendingPaymentCount),
+      note: '等待买家付款',
+      tone: 'warning',
+      status: OrderStatus.PendingPayment,
+      dateMode: 'none',
+    },
+    {
+      key: 'pending_ship',
+      title: '待发货',
+      value: formatCount(c.pendingShipCount),
+      note: '已付款待履约',
+      tone: 'warning',
+      status: 'unshipped',
+      dateMode: 'none',
+    },
+    {
+      key: 'completed',
+      title: '已完成',
+      value: formatCount(c.completedCount),
+      note: '交易完成订单',
+      status: OrderStatus.Completed,
+      dateMode: 'none',
+    },
+    {
+      key: 'refunding',
+      title: '退款中',
+      value: formatCount(c.refundingCount),
+      note: '待审核售后',
+      tone: 'danger',
+      status: OrderStatus.Refunding,
+      dateMode: 'none',
+    },
+    {
+      key: 'month_income',
       title: '本月收入',
       value: formatMoney(s?.monthIncome),
       note: `较上月 ${formatChange(s?.incomeChangeRate)}`,
-      up: (s?.incomeChangeRate ?? 0) >= 0,
-      down: (s?.incomeChangeRate ?? 0) < 0,
-      icon: 'Money',
-      color: '#0faa6e',
-      bgColor: '#e8faf3',
+      dateMode: 'month',
+      status: '',
     },
     {
-      title: '待结算',
-      value: formatMoney(s?.pendingSettleAmount),
-      note: s?.pendingSettleCount ? `${s.pendingSettleCount} 笔进行中` : '暂无进行中订单',
-      up: false,
-      down: false,
-      icon: 'Clock',
-      color: '#f59e0b',
-      bgColor: '#fff8e6',
-    },
-    {
+      key: 'month_refund',
       title: '本月退款',
       value: formatMoney(s?.monthRefundAmount),
-      note: s?.monthRefundCount ? `退款率 ${Number(s.refundRate || 0).toFixed(1)}%` : '本月无退款',
-      up: false,
-      down: true,
-      icon: 'RefreshLeft',
-      color: '#ef4444',
-      bgColor: '#fff0f0',
-    },
-    {
-      title: '平台手续费',
-      value: formatMoney(s?.platformFee),
-      note: `微信支付费率 ${Number(s?.payFeeRate || 0).toFixed(1)}%`,
-      up: false,
-      down: false,
-      icon: 'Coin',
-      color: '#6b7b93',
-      bgColor: '#f1f5f9',
+      note: s?.monthRefundCount
+        ? `${s.monthRefundCount} 笔 · 退款率 ${Number(s.refundRate || 0).toFixed(1)}%`
+        : '本月无退款',
+      tone: Number(s?.monthRefundAmount || 0) > 0 ? 'danger' : 'default',
+      status: OrderStatus.Refunded,
+      dateMode: 'month',
     },
   ]
 })
+
+function listTotal(res: any): number {
+  return Number(res?.data?.total ?? res?.total ?? 0)
+}
+
+function orderDateOnly(row: OrderRecord | Record<string, any>) {
+  const raw = row.created_at ?? row.createdAt ?? ''
+  return String(raw).replace('T', ' ').slice(0, 10)
+}
+
+/**
+ * 按创建时间倒序扫描，收集 [start, end] 内订单。
+ * 兼容后端尚未支持 startDate/endDate 的环境，保证「今日/本月」看板与列表一致。
+ */
+async function collectOrdersInDateRange(options: {
+  start: string
+  end: string
+  status?: string
+  keyword?: string
+}) {
+  const matched: OrderRecord[] = []
+  let apiPage = 1
+  const pageSize = 100
+  let stop = false
+
+  while (!stop && apiPage <= 40) {
+    const res = await getOrderList({
+      page: apiPage,
+      page_size: pageSize,
+      keyword: options.keyword || undefined,
+      status: resolveStatusQuery(options.status) || undefined,
+      // 仍传给后端；若已支持可减少扫描量
+      start_date: options.start,
+      end_date: options.end,
+    })
+    const batch = (res.data?.items || res.data?.records || []).map((row: any) => normalizeOrderRow(row))
+    if (!batch.length) break
+
+    for (const row of batch) {
+      const d = orderDateOnly(row)
+      if (!d) continue
+      if (d > options.end) continue
+      if (d < options.start) {
+        stop = true
+        break
+      }
+      matched.push(row)
+    }
+
+    const lastDate = orderDateOnly(batch[batch.length - 1])
+    if (!lastDate || lastDate < options.start || batch.length < pageSize) {
+      stop = true
+    } else {
+      apiPage += 1
+    }
+  }
+
+  return matched
+}
+
+async function fetchOpsCounts() {
+  const t = todayStr()
+  try {
+    const [todayMatched, pendingPayRes, pendingShipRes, completedRes, refundingRes] = await Promise.all([
+      collectOrdersInDateRange({ start: t, end: t }),
+      getOrderList({ page: 1, page_size: 1, status: OrderStatus.PendingPayment }),
+      getOrderList({ page: 1, page_size: 1, status: OrderStatus.Paid }),
+      getOrderList({ page: 1, page_size: 1, status: OrderStatus.Completed }),
+      getOrderList({ page: 1, page_size: 1, status: OrderStatus.Refunding }),
+    ])
+    opsCounts.value = {
+      todayOrderCount: todayMatched.length,
+      pendingPaymentCount: listTotal(pendingPayRes),
+      pendingShipCount: listTotal(pendingShipRes),
+      completedCount: listTotal(completedRes),
+      refundingCount: listTotal(refundingRes),
+    }
+  } catch {
+    /* 保留上次计数 */
+  }
+}
+
+function applyDashboardFilter(item: DashFilter) {
+  if (activeDashKey.value === item.key) {
+    activeDashKey.value = ''
+    searchForm.status = ''
+    dateRange.value = []
+    pagination.page = 1
+    fetchList()
+    return
+  }
+  activeDashKey.value = item.key
+  searchForm.status = item.status || ''
+  if (item.dateMode === 'today') {
+    const day = todayStr()
+    dateRange.value = [day, day]
+  } else if (item.dateMode === 'month') {
+    dateRange.value = [monthStartStr(), todayStr()]
+  } else {
+    dateRange.value = []
+  }
+  pagination.page = 1
+  fetchList()
+}
+
+function pickField(row: Record<string, any>, keys: string[]) {
+  for (const key of keys) {
+    const val = row?.[key]
+    if (val !== undefined && val !== null && String(val).trim() !== '') return String(val)
+  }
+  return ''
+}
+
+function displayUserName(row: OrderRecord) {
+  const r = row as OrderRecord & Record<string, any>
+  return pickField(r, ['user_nickname', 'userNickname', 'nickname', 'user_name', 'userName']) || `用户#${row.user_id || '—'}`
+}
+
+function displayUserPhone(row: OrderRecord) {
+  const r = row as OrderRecord & Record<string, any>
+  return pickField(r, ['user_phone', 'userPhone', 'phone', 'mobile'])
+}
+
+function formatOrderTime(value?: string) {
+  return String(value || '').replace('T', ' ').slice(0, 16)
+}
+
+function orderQuantity(row: OrderRecord) {
+  const items = row.items || []
+  if (!items.length) return '—'
+  const total = items.reduce((sum, it) => sum + Number(it.quantity || 0), 0)
+  return total > 0 ? total : '—'
+}
+
+function normalizeOrderRow(raw: any): OrderRecord {
+  const items = (raw.items || raw.orderItems || []).map((it: any) => ({
+    id: Number(it.id || 0),
+    product_id: Number(it.product_id ?? it.productId ?? 0),
+    product_name: it.product_name ?? it.productName ?? '商品',
+    sku_id: Number(it.sku_id ?? it.skuId ?? 0),
+    sku_specs: it.sku_specs ?? it.skuSpecs,
+    sku_image: it.sku_image ?? it.skuImage,
+    price: Number(it.price ?? 0),
+    quantity: Number(it.quantity ?? 1),
+    subtotal: Number(it.subtotal ?? 0),
+  }))
+  return {
+    ...raw,
+    id: Number(raw.id),
+    order_no: raw.order_no ?? raw.orderNo ?? '',
+    user_id: Number(raw.user_id ?? raw.userId ?? 0),
+    user_nickname: pickField(raw, ['user_nickname', 'userNickname', 'nickname', 'user_name', 'userName']),
+    user_avatar: raw.user_avatar ?? raw.userAvatar,
+    user_phone: pickField(raw, ['user_phone', 'userPhone', 'phone', 'mobile']),
+    items,
+    total_amount: Number(raw.total_amount ?? raw.totalAmount ?? 0),
+    pay_amount: Number(raw.pay_amount ?? raw.payAmount ?? 0),
+    freight_amount: Number(raw.freight_amount ?? raw.freightAmount ?? 0),
+    discount_amount: Number(raw.discount_amount ?? raw.discountAmount ?? 0),
+    status: raw.status,
+    fulfillment_type: raw.fulfillment_type ?? raw.fulfillmentType,
+    created_at: raw.created_at ?? raw.createdAt ?? '',
+    updated_at: raw.updated_at ?? raw.updatedAt ?? '',
+  } as OrderRecord
+}
 
 async function fetchStatistics() {
   statsLoading.value = true
   try {
     const res = await getOrderStatistics()
-    orderStats.value = res.data || null
+    const raw: any = res.data || {}
+    orderStats.value = {
+      todayOrderCount: Number(raw.todayOrderCount ?? raw.today_order_count ?? 0),
+      todaySalesAmount: Number(raw.todaySalesAmount ?? raw.today_sales_amount ?? 0),
+      pendingPaymentCount: Number(raw.pendingPaymentCount ?? raw.pending_payment_count ?? 0),
+      pendingShipCount: Number(raw.pendingShipCount ?? raw.pending_ship_count ?? 0),
+      shippedCount: Number(raw.shippedCount ?? raw.shipped_count ?? 0),
+      refundingCount: Number(raw.refundingCount ?? raw.refunding_count ?? 0),
+      monthIncome: Number(raw.monthIncome ?? raw.month_income ?? 0),
+      lastMonthIncome: Number(raw.lastMonthIncome ?? raw.last_month_income ?? 0),
+      incomeChangeRate: raw.incomeChangeRate ?? raw.income_change_rate ?? null,
+      pendingSettleAmount: Number(raw.pendingSettleAmount ?? raw.pending_settle_amount ?? 0),
+      pendingSettleCount: Number(raw.pendingSettleCount ?? raw.pending_settle_count ?? 0),
+      monthRefundAmount: Number(raw.monthRefundAmount ?? raw.month_refund_amount ?? 0),
+      monthRefundCount: Number(raw.monthRefundCount ?? raw.month_refund_count ?? 0),
+      refundRate: Number(raw.refundRate ?? raw.refund_rate ?? 0),
+      platformFee: Number(raw.platformFee ?? raw.platform_fee ?? 0),
+      payFeeRate: Number(raw.payFeeRate ?? raw.pay_fee_rate ?? 0),
+    }
   } catch {
     orderStats.value = null
   } finally {
@@ -415,20 +688,43 @@ const refundForm = reactive({
   reason: '',
 })
 
+function resolveStatusQuery(status?: string) {
+  if (!status) return undefined
+  // 「未发货」= 已付款待发货
+  if (status === 'unshipped') return OrderStatus.Paid
+  return status
+}
+
 /** 加载订单列表 */
 async function fetchList() {
   loading.value = true
   try {
+    const start = dateRange.value?.[0]
+    const end = dateRange.value?.[1]
+
+    // 有日期条件时：本地按创建日过滤，避免后端未部署日期参数时把历史单全拉出来
+    if (start && end) {
+      const matched = await collectOrdersInDateRange({
+        start,
+        end,
+        status: searchForm.status,
+        keyword: searchForm.keyword,
+      })
+      pagination.total = matched.length
+      const from = (pagination.page - 1) * pagination.page_size
+      tableData.value = matched.slice(from, from + pagination.page_size)
+      return
+    }
+
     const params: OrderListParams = {
       page: pagination.page,
       page_size: pagination.page_size,
       keyword: searchForm.keyword || undefined,
-      status: searchForm.status || undefined,
-      start_date: dateRange.value?.[0] || undefined,
-      end_date: dateRange.value?.[1] || undefined,
+      status: resolveStatusQuery(searchForm.status),
     }
     const res = await getOrderList(params)
-    tableData.value = res.data?.items || []
+    const items = res.data?.items || res.data?.records || []
+    tableData.value = items.map((row: any) => normalizeOrderRow(row))
     pagination.total = res.data?.total || 0
   } catch {
     ElMessage.error('获取订单列表失败')
@@ -448,6 +744,7 @@ function handleReset() {
   searchForm.keyword = ''
   searchForm.status = ''
   dateRange.value = []
+  activeDashKey.value = ''
   pagination.page = 1
   fetchList()
 }
@@ -502,6 +799,8 @@ async function submitShip() {
     ElMessage.success(msg)
     shipDialogVisible.value = false
     fetchList()
+    fetchOpsCounts()
+    fetchStatistics()
   } catch {
     ElMessage.error('操作失败')
   } finally {
@@ -525,6 +824,8 @@ async function submitRefund() {
     refundDialogVisible.value = false
     refundSubmitting.value = false
     fetchList()
+    fetchOpsCounts()
+    fetchStatistics()
   }, 500)
 }
 
@@ -537,7 +838,7 @@ async function handleExport() {
       page: 1,
       page_size: 2000,
       keyword: searchForm.keyword || undefined,
-      status: searchForm.status || undefined,
+      status: resolveStatusQuery(searchForm.status),
       start_date: dateRange.value?.[0] || undefined,
       end_date: dateRange.value?.[1] || undefined,
     }
@@ -591,135 +892,212 @@ async function handleExport() {
 onMounted(() => {
   fetchList()
   fetchStatistics()
+  fetchOpsCounts()
 })
 </script>
 
-<style scoped>
-.order-list-page {
-  padding: 20px;
-}
+<style scoped lang="scss">
+.order-page {
+  padding: 4px 4px 24px;
+  background: transparent;
 
-.finance-section {
-  margin-bottom: 20px;
-}
+  .filter-panel,
+  .table-panel,
+  .stat-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
+  }
 
-.finance-card {
-  margin-bottom: 12px;
-  border-radius: 14px;
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
-  .finance-content {
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin: 14px 0;
+  }
+
+  .stat-card {
+    padding: var(--space-4) 18px;
+    box-shadow: var(--shadow-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    font: inherit;
+    color: inherit;
+
+    &:hover {
+      border-color: var(--brand, #1769ff);
+      box-shadow: var(--shadow-md, 0 6px 18px rgba(23, 105, 255, 0.08));
+      transform: translateY(-1px);
+    }
+
+    &.active {
+      border-color: var(--brand, #1769ff);
+      box-shadow: 0 0 0 1px var(--brand, #1769ff);
+    }
+
+    span {
+      color: var(--text-muted);
+      font-size: var(--font-caption);
+    }
+
+    strong {
+      display: block;
+      margin-top: var(--space-2);
+      color: var(--text);
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    p {
+      margin: var(--space-2) 0 0;
+      color: var(--text-muted);
+      font-size: var(--font-caption);
+    }
+
+    &.warning strong {
+      color: #f59e0b;
+    }
+
+    &.danger strong {
+      color: var(--danger, #ef4444);
+    }
+  }
+
+  .filter-panel {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 14px;
   }
 
-  .finance-title {
-    font-size: 13px;
-    color: #6b7b93;
-    margin: 0 0 6px;
-    font-weight: 600;
+  .filter-grid {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.2fr) minmax(140px, 1fr) minmax(260px, 1.4fr);
+    gap: 10px;
+    flex: 1;
   }
 
-  .finance-value {
-    font-size: 24px;
-    font-weight: 800;
-    color: #0d1b2e;
-    margin: 0;
-    letter-spacing: -0.03em;
+  .filter-date { width: 100%; }
+
+  .table-panel {
+    padding: 14px;
+    overflow-x: auto;
   }
 
-  .finance-note {
-    font-size: 12px;
-    margin: 4px 0 0;
-    color: #6b7b93;
-
-    &.up { color: #0faa6e; }
-    &.down { color: #ef4444; }
-  }
-
-  .finance-icon-wrap {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
+  .table-toolbar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
 
-    .finance-icon {
-      font-size: 20px;
+    strong {
+      color: var(--text);
+      font-size: var(--font-h3);
+    }
+
+    span {
+      margin-left: var(--space-2);
+      color: var(--text-muted);
+      font-size: var(--font-caption);
     }
   }
-}
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  .order-table {
+    width: 100%;
+    :deep(.el-table__inner-wrapper::before) { display: none; }
+  }
 
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
+  .order-no {
+    color: var(--text);
+    font-weight: 600;
+    font-size: 13px;
+  }
 
-.search-form {
-  margin-bottom: 16px;
-}
-
-.user-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  .user-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
 
   .user-name {
+    color: var(--text);
     font-weight: 600;
     font-size: 13px;
   }
 
   .user-phone {
-    font-size: 11px;
-    color: #909399;
+    color: var(--text-muted);
+    font-size: 12px;
   }
-}
 
-.order-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
-}
+  .goods-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+  }
 
-.item-qty {
-  color: #909399;
-}
+  .order-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
+  }
 
-.more-items {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 2px;
-}
+  .goods-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.goods-type {
-  margin-top: 4px;
-}
+  .qty-text {
+    color: var(--text);
+    font-weight: 600;
+  }
 
-.type-tag {
-  font-size: 10px;
-  height: 20px;
-  line-height: 18px;
-  padding: 0 6px;
-}
+  .more-items {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
 
-.amount-text {
-  color: #ef4444;
-  font-weight: 700;
-}
+  .amount-text {
+    color: #ef4444;
+    font-weight: 700;
+  }
 
-.pagination-wrap {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+  .time-text {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 4px;
+  }
+
+  .pagination-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
 }
 
 .dialog-tip {
@@ -740,23 +1118,9 @@ onMounted(() => {
   text-align: center;
   padding: 24px 0;
 
-  .ship-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-  }
-
-  .ship-title {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 6px;
-  }
-
-  .ship-desc {
-    font-size: 13px;
-    color: #6b7b93;
-    margin-bottom: 16px;
-  }
-
+  .ship-icon { font-size: 48px; margin-bottom: 12px; }
+  .ship-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .ship-desc { font-size: 13px; color: #6b7b93; margin-bottom: 16px; }
   .ship-notice {
     padding: 12px;
     background: #e8faf3;
@@ -775,8 +1139,14 @@ onMounted(() => {
   .refund-order,
   .refund-user,
   .refund-goods,
-  .refund-amount {
-    padding: 6px 0;
+  .refund-amount { padding: 6px 0; }
+}
+
+@media (max-width: 1100px) {
+  .order-page {
+    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .filter-panel { flex-direction: column; align-items: stretch; }
+    .filter-grid { grid-template-columns: 1fr; }
   }
 }
 </style>

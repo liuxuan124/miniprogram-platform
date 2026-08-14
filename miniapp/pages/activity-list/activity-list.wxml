@@ -13,7 +13,10 @@
       bindtap="onActivityTap"
     >
       <!-- 封面图 -->
-      <view class="activity-cover" style="background: {{item.cover_color || 'linear-gradient(135deg, #7c3aed, #a855f7)'}};">
+      <view class="activity-cover" wx:if="{{item.cover}}">
+        <image class="activity-cover-img" src="{{item.cover}}" mode="aspectFill" />
+      </view>
+      <view class="activity-cover activity-cover--fallback" wx:else style="background: {{item.cover_color || 'linear-gradient(135deg, #7c3aed, #a855f7)'}};">
         <text class="activity-cover-icon">{{item.cover_icon || '🎪'}}</text>
       </view>
 

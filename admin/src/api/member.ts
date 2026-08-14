@@ -16,12 +16,11 @@ import type { PageResult } from '@/types/global'
 const BASE_URL = '/api/v1/admin'
 
 function normalizeLevel(row: any): MemberLevel {
-  const rights = row.rights || row.benefits || []
-  const benefits = Array.isArray(rights)
-    ? rights
-    : Array.isArray(rights?.benefits)
-      ? rights.benefits
-      : Object.values(rights || {}).map(String)
+  const rawRights = row.rights || row.benefits || []
+  const list = Array.isArray(rawRights) ? rawRights.map(String) : []
+  const known = new Set(['member_discount', 'points_boost', 'exclusive_coupon', 'birthday_gift'])
+  const benefits = list.filter((x) => known.has(x))
+  const legacy = list.filter((x) => !known.has(x))
 
   return {
     id: row.id,
@@ -33,6 +32,8 @@ function normalizeLevel(row: any): MemberLevel {
     points_rate: Number(row.pointsRate ?? row.points_rate ?? 1),
     discount_rate: Number(row.discountRate ?? row.discount_rate ?? 1),
     benefits,
+    birthday_coupon_id: row.birthdayCouponId ?? row.birthday_coupon_id ?? null,
+    legacy_rights: legacy.length ? legacy : undefined,
     status: Number(row.status ?? 1),
     member_count: Number(row.memberCount ?? row.member_count ?? 0),
     created_at: row.createdAt ?? row.created_at ?? '',
@@ -46,7 +47,9 @@ function toLevelPayload(data: CreateMemberLevelParams | UpdateMemberLevelParams)
     icon: data.icon,
     minPoints: data.min_points,
     discountRate: data.discount_rate,
-    rights: data.benefits,
+    pointsRate: data.points_rate,
+    benefits: data.benefits,
+    birthdayCouponId: data.birthday_coupon_id,
     sortOrder: data.level,
     status: data.status,
   }

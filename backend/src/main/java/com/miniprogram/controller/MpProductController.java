@@ -31,6 +31,10 @@ public class MpProductController {
     @GetMapping("/{id}")
     @Operation(summary = "商品详情（公开）")
     public R<ProductDetailVO> getProductDetail(@PathVariable Long id) {
-        return R.ok(productService.getProductDetail(id));
+        ProductDetailVO detail = productService.getProductDetail(id);
+        if (!"on_sale".equals(detail.getStatus())) {
+            throw new com.miniprogram.common.BusinessException(404401, "商品不存在或未上架");
+        }
+        return R.ok(detail);
     }
 }

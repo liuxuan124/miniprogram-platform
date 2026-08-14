@@ -46,8 +46,13 @@ export function getCheckinList(params?: Record<string, any>) {
 }
 
 /** 核验签到 */
-export function verifyCheckin(checkInId: number, verifyMethod: string = 'manual') {
+export function verifyCheckin(checkInId: number, verifyMethod: string = 'MANUAL') {
   return post('/api/v1/admin/activity-check-ins/verify', undefined, {
     params: { checkInId, verifyMethod, verifiedBy: 1 },
   })
+}
+
+/** 扫码核销（扫码原文或纯签到码） */
+export function scanCheckIn(raw: string, activityId?: number) {
+  return post('/api/v1/admin/activity-check-ins/scan', { raw, activityId })
 }

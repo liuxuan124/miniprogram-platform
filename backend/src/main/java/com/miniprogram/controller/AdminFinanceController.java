@@ -281,6 +281,13 @@ public class AdminFinanceController {
         return R.ok(null);
     }
 
+    @PutMapping("/invoices/{id}/issue")
+    @Operation(summary = "开具发票（草稿→已开具）")
+    public R<Void> issueInvoice(@PathVariable Long id) {
+        financeService.issueInvoice(id);
+        return R.ok(null);
+    }
+
     @PutMapping("/invoices/{id}/cancel")
     @Operation(summary = "作废发票")
     public R<Void> cancelInvoice(@PathVariable Long id, @RequestBody Map<String, String> body) {
@@ -288,13 +295,25 @@ public class AdminFinanceController {
         return R.ok(null);
     }
 
+    @GetMapping("/tax/summary")
+    @Operation(summary = "本月发票税务汇总")
+    public R<Map<String, Object>> getInvoiceTaxSummary() {
+        return R.ok(financeService.getInvoiceTaxSummary());
+    }
+
     @PostMapping("/tax/calculate")
     @Operation(summary = "税务计算")
     public R<Map<String, Object>> calculateTax(@RequestBody Map<String, Object> body) {
         BigDecimal amount = new BigDecimal(body.get("amount").toString());
         BigDecimal taxRate = new BigDecimal(body.get("taxRate").toString());
-        String type = (String) body.get("type");
-        return R.ok(financeService.calculateTax(amount, taxRate, type));
+        String type = body.get("type") != null ? String.valueOf(body.get("type")) : null;
+        Boolean includeTax = body.get("includeTax") != null && Boolean.parseBoolean(String.valueOf(body.get("includeTax")));
+        // 兼容旧前端：type 以 _include 结尾
+        if (type != null && type.endsWith("_include")) {
+            includeTax = true;
+            type = type.substring(0, type.length() - "_include".length());
+        }
+        return R.ok(financeService.calculateTax(amount, taxRate, type, includeTax));
     }
 
     // ==================== 财务权限 ====================

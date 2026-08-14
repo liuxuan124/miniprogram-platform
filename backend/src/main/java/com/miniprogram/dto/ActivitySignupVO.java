@@ -34,6 +34,25 @@ public class ActivitySignupVO {
     @Schema(description = "状态: pending/approved/rejected")
     private String status;
 
+    @Schema(description = "个人签到码（管理端列表可脱敏；小程序 my-signup 返回完整）")
+    private String checkInCode;
+
+    @Schema(description = "审核通过时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime approvedAt;
+
+    @Schema(description = "拒绝原因")
+    private String rejectedReason;
+
+    @Schema(description = "签到状态: NONE/PENDING/VERIFIED（由 check_in 表聚合）")
+    private String checkInStatus;
+
+    @Schema(description = "微信昵称（管理端展示）")
+    private String wxNickname;
+
+    @Schema(description = "OpenID 脱敏展示，如 oXXX***")
+    private String openidMask;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

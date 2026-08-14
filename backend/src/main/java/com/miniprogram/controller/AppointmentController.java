@@ -37,4 +37,16 @@ public class AppointmentController {
     public R<AppointmentVO> cancelAppointment(@PathVariable Long id, @RequestBody(required = false) AppointmentCancelDTO dto) {
         return R.ok(appointmentService.cancelAppointment(id, dto));
     }
+
+    @Operation(summary = "到店核销", description = "将预约标记为已完成")
+    @PutMapping("/{id}/complete")
+    public R<AppointmentVO> completeAppointment(@PathVariable Long id) {
+        return R.ok(appointmentService.completeAppointment(id));
+    }
+
+    @Operation(summary = "标记未到", description = "将预约标记为未到并释放时段")
+    @PutMapping("/{id}/no-show")
+    public R<AppointmentVO> markNoShow(@PathVariable Long id) {
+        return R.ok(appointmentService.markNoShow(id));
+    }
 }

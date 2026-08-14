@@ -43,6 +43,7 @@ public class FileUploadServiceImpl implements FileUploadService {
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "bmp", "webp",
             "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "txt", "md", "markdown", "csv",
             "zip", "rar", "mp4", "mp3",
             "p12", "pem", "cer", "crt", "key"
     );

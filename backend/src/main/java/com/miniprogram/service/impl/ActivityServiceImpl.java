@@ -125,6 +125,24 @@ public class ActivityServiceImpl extends BaseServiceImpl<ActivityMapper, Activit
         return activitySignupService.approveSignup(id, approved);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void incrementSigned(Long activityId) {
+        Activity activity = getExistingActivity(activityId);
+        int signed = activity.getSigned() == null ? 0 : activity.getSigned();
+        activity.setSigned(signed + 1);
+        this.updateById(activity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void decrementSigned(Long activityId) {
+        Activity activity = getExistingActivity(activityId);
+        int signed = activity.getSigned() == null ? 0 : activity.getSigned();
+        activity.setSigned(Math.max(0, signed - 1));
+        this.updateById(activity);
+    }
+
     private Activity getExistingActivity(Long id) {
         Activity activity = this.getById(id);
         if (activity == null) {

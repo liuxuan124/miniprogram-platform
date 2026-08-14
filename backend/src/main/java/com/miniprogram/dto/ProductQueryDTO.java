@@ -21,6 +21,6 @@ public class ProductQueryDTO extends PageDTO {
     @Schema(description = "商品类型: physical/digital/service")
     private String productType;
 
-    @Schema(description = "状态: on_sale/off_sale")
+    @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 }

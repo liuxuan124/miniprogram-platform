@@ -7,6 +7,30 @@ const orderService = require('../../services/order')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 
+/** 详情长图无缝：图片块级、去边距；包裹段落也去缝 */
+function seamlessDetailImages(html) {
+  if (!html || typeof html !== 'string') return html || ''
+  let out = html.replace(/<img\b([^>]*)>/gi, (_, attrs) => {
+    let next = attrs
+    const styleMatch = next.match(/\sstyle\s*=\s*("([^"]*)"|'([^']*)')/i)
+    const seamless =
+      'display:block;width:100%;max-width:100%;height:auto;margin:0;padding:0;border:0;border-radius:0;vertical-align:top;'
+    if (styleMatch) {
+      const quote = styleMatch[0].includes("'") ? "'" : '"'
+      const oldStyle = styleMatch[2] || styleMatch[3] || ''
+      next = next.replace(styleMatch[0], ` style=${quote}${seamless}${oldStyle}${quote}`)
+    } else {
+      next = `${next} style="${seamless}"`
+    }
+    return `<img${next}>`
+  })
+  out = out.replace(
+    /<(p|div)(\s[^>]*)?>\s*(<img\b[^>]*>)\s*<\/\1>/gi,
+    '<$1 style="margin:0;padding:0;line-height:0;font-size:0;">$3</$1>'
+  )
+  return out
+}
+
 Page({
   ...createSharePageConfig(),
   data: {
@@ -57,10 +81,18 @@ Page({
     productService.getProductDetail(id)
       .then((res) => {
         const product = res.product || res
-        // 处理图片列表
-        if (!product.images || product.images.length === 0) {
-          product.images = product.image ? [product.image] : []
+        // 轮播图 = 主图 + images 去重（兼容只传了 mainImage 的情况）
+        const gallery = Array.isArray(product.images) ? product.images.filter(Boolean) : []
+        const main = product.mainImage || product.main_image || product.image || ''
+        const merged = []
+        const push = (u) => {
+          if (u && merged.indexOf(u) === -1) merged.push(u)
         }
+        push(main)
+        gallery.forEach(push)
+        product.images = merged
+        product.image = merged[0] || ''
+        product.mainImage = merged[0] || main || ''
         // 处理 SKU 列表
         const skus = product.skus || product.sku_list || []
         product.skuList = skus
@@ -80,13 +112,20 @@ Page({
             })
           }
         }
-        // 富文本
+        // 富文本（详情拼图去缝）
         let richContent = ''
         if (product.detail && product.detail.indexOf('<') !== -1) {
           richContent = product.detail
         } else if (product.description && product.description.indexOf('<') !== -1) {
           richContent = product.description
         }
+        richContent = seamlessDetailImages(richContent)
+        const typeList = Array.isArray(product.productTypes)
+          ? product.productTypes
+          : [product.productType || product.product_type || 'physical']
+        const hasDigital = typeList.indexOf('digital') !== -1
+        const hasService = typeList.indexOf('service') !== -1
+        const hasPhysical = typeList.indexOf('physical') !== -1
         this.setData({
           product,
           loading: false,
@@ -94,8 +133,9 @@ Page({
           selectedSkuValues,
           stock: selectedSku ? selectedSku.stock : (product.stock || 0),
           richContent,
-          isDigital: (product.productType || product.product_type) === 'digital',
-          isService: (product.productType || product.product_type) === 'service',
+          isDigital: hasDigital && !hasPhysical,
+          isService: hasService,
+          productTypes: typeList,
         })
         this._loadReviews(id)
       })

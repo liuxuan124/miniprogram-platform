@@ -27,6 +27,9 @@ public class ProductCategoryTreeVO {
     @Schema(description = "分类图标URL")
     private String icon;
 
+    @Schema(description = "该分类允许的商品类型")
+    private List<String> allowedProductTypes;
+
     @Schema(description = "状态: 1=启用, 0=禁用")
     private Integer status;
 

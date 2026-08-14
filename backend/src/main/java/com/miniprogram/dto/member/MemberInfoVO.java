@@ -33,6 +33,15 @@ public class MemberInfoVO {
     @Schema(description = "折扣率")
     private BigDecimal discountRate;
 
+    @Schema(description = "积分倍率")
+    private BigDecimal pointsRate;
+
+    @Schema(description = "固定权益码")
+    private java.util.List<String> benefits;
+
+    @Schema(description = "是否可领生日礼包（今天生日且未领）")
+    private Boolean birthdayGiftAvailable;
+
     @Schema(description = "连续签到天数")
     private Integer continuousSignDays;
 
