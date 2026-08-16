@@ -1,0 +1,87 @@
+{"PASS":43,"FAIL":28,"BLOCKED":10,"PARTIAL":2}
+FP-API-001	PASS	total=4
+FP-API-002	PASS	total=0 (filtered empty; env not globally empty)
+FP-API-003	FAIL	current=1 pageField=undefined (contract page, impl current)
+FP-API-004	FAIL	default size=10 expected 20
+FP-API-005	FAIL	page_size=101 size=10; size=101 size=101
+FP-API-006	PASS	n=2 types=1
+FP-API-007	PASS	n=3 statuses=1
+FP-API-008	PASS	total=2
+FP-API-009	FAIL	http=403 code=undefined
+FP-API-010	FAIL	http=403 code=undefined
+FP-API-011	FAIL	http=400 code=400 msg=Failed to convert property value of type 'java.lang.String' to required type 'java.lang.Long' for property 'current'; For input string: "abc"
+FP-API-012	PASS	http=200 id=5
+FP-API-013	FAIL	http=400 code=400
+FP-API-014	FAIL	http=400 code=400
+FP-API-015	FAIL	http=400 code=400
+FP-API-016	PASS	http=500 code=500
+FP-API-017	FAIL	http=200 code=200 created=true
+FP-API-018	FAIL	http=400 code=400
+FP-API-019	FAIL	http=403 code=undefined
+FP-API-020	BLOCKED	环境仅超管 admin，未创建低权限账号（总控禁止额外开账号）
+FP-API-021	PASS	second create http=422 code=300203
+FP-API-022	PASS	id=5
+FP-API-023	PASS	http=404 code=300401
+FP-API-024	PASS	http=400 code=400
+FP-API-025	FAIL	http=403 code=undefined
+FP-API-026	FAIL	db=QA???-??	updated code=200
+FP-API-027	PASS	http=404 code=300401
+FP-API-028	FAIL	empty PUT http=200 code=200 (UpdateDTO fields optional — may not 400)
+FP-API-029	FAIL	http=403 code=undefined
+FP-API-030	BLOCKED	无低于 content_ops 的第二账号
+FP-API-031	PASS	repeat PUT codes 200/200
+FP-API-032	PASS	http=200 db=7	1
+FP-API-033	PASS	DELETE id=1 http=422 code=300201 msg=页面已发布，不可删除
+FP-API-034	PASS	http=404 code=300401
+FP-API-035	FAIL	http=403 code=undefined
+FP-API-036	BLOCKED	无低于 content_ops 的第二账号
+FP-API-037	PASS	repeat DELETE http=404 code=300401
+FP-API-038	PASS	code=200 versions=1	0
+FP-API-039	PASS	http=400 code=400
+FP-API-040	PASS	http=422 code=300202
+FP-API-041	PASS	http=404 code=300401
+FP-API-042	FAIL	http=403 code=undefined
+FP-API-043	BLOCKED	无低于 content_ops 的第二账号
+FP-API-044	PASS	http=404 code=300409 msg=页面已被其他人修改（服务器版本 v1，您的版本 v0），请刷新后重试
+FP-API-045	PARTIAL	first=200 second=300409
+FP-API-046	PASS	db=1	2 code=200
+FP-API-047	PASS	http=404 code=300401
+FP-API-048	FAIL	http=403 code=undefined
+FP-API-049	BLOCKED	无低于 content_ops 的第二账号
+FP-API-050	PARTIAL	repeat publish 2->2 http=200 code=200
+FP-API-051	PASS	db status=2 code=200
+FP-API-052	PASS	second unpublish http=422 code=300201
+FP-API-053	PASS	http=404 code=300401
+FP-API-054	FAIL	http=403 code=undefined
+FP-API-055	BLOCKED	无低于 content_ops 的第二账号
+FP-API-056	PASS	repeat unpublish http=422 code=300201
+FP-API-057	PASS	type=object n=2
+FP-API-058	PASS	n=0 (create may auto-insert v1)
+FP-API-059	FAIL	http=200 code=200
+FP-API-060	FAIL	http=403 code=undefined
+FP-API-061	PASS	3->4 http=200 code=200
+FP-API-062	PASS	http=404 code=300401
+FP-API-063	PASS	http=404 code=300402
+FP-API-064	FAIL	http=403 code=undefined
+FP-API-065	BLOCKED	无低于 content_ops 的第二账号
+FP-API-066	PASS	repeat rollback 4->5
+FP-API-067	PASS	http=200 total=11
+FP-API-068	PASS	n=0
+FP-API-069	FAIL	http=403 code=undefined
+FP-API-070	PASS	path=pages/index/index http=200 code=200
+FP-API-071	PASS	http=200 code=404
+FP-API-072	PASS	http=200 code=404 msg=页面不存在或未发布
+FP-API-073	PASS	no token http=200 code=200
+FP-API-074	BLOCKED	禁止禁用超管账号；环境无其它可禁用账号
+FP-API-075	FAIL	80 concurrent, 100201/429 count=0
+FP-API-076	BLOCKED	mp_page 无租户字段，无法测越权
+FP-API-077	FAIL	create id typeof number value=5
+FP-API-078	BLOCKED	could not force 500; sample http=400 structured=null
+FP-DB-001	PASS	MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 1062 (23000) at line 1: Duplicate entry '5-1-0' for key 'mp_page_version.uk_page_version'
+
+FP-DB-002	FAIL	no FK
+FP-DB-003	PASS	mp_page	0	uk_path	1	path	A	6	NULL	NULL		BTREE			YES	NULL
+FP-DB-004	PASS	MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 3140 (22032) at line 1: Invalid JSON text: "Invalid value." at position 1 in value for column 'mp_page_
+FP-DB-005	FAIL	current=5 publishedMax=3

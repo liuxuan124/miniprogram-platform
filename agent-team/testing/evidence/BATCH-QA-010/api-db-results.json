@@ -1,0 +1,878 @@
+{
+  "stamp": "2026-08-13T10-06-41-725Z",
+  "qaId": 5,
+  "qaPath": "/pages/custom/qa-api-1786615602428",
+  "summary": {
+    "PASS": 43,
+    "FAIL": 28,
+    "BLOCKED": 10,
+    "PARTIAL": 2
+  },
+  "results": [
+    {
+      "id": "FP-API-001",
+      "status": "PASS",
+      "note": "total=4",
+      "time": "2026-08-13T10:06:41.725Z",
+      "http": 200,
+      "code": 200,
+      "db": 4
+    },
+    {
+      "id": "FP-API-002",
+      "status": "PASS",
+      "note": "total=0 (filtered empty; env not globally empty)",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-003",
+      "status": "FAIL",
+      "note": "current=1 pageField=undefined (contract page, impl current)",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-004",
+      "status": "FAIL",
+      "note": "default size=10 expected 20",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-005",
+      "status": "FAIL",
+      "note": "page_size=101 size=10; size=101 size=101",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-006",
+      "status": "PASS",
+      "note": "n=2 types=1",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-007",
+      "status": "PASS",
+      "note": "n=3 statuses=1",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-008",
+      "status": "PASS",
+      "note": "total=2",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-009",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-010",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-011",
+      "status": "FAIL",
+      "note": "http=400 code=400 msg=Failed to convert property value of type 'java.lang.String' to required type 'java.lang.Long' for property 'current'; For input string: \"abc\"",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-012",
+      "status": "PASS",
+      "note": "http=200 id=5",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-013",
+      "status": "FAIL",
+      "note": "http=400 code=400",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-014",
+      "status": "FAIL",
+      "note": "http=400 code=400",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-015",
+      "status": "FAIL",
+      "note": "http=400 code=400",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-016",
+      "status": "PASS",
+      "note": "http=500 code=500",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-017",
+      "status": "FAIL",
+      "note": "http=200 code=200 created=true",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-018",
+      "status": "FAIL",
+      "note": "http=400 code=400",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-019",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-020",
+      "status": "BLOCKED",
+      "note": "环境仅超管 admin，未创建低权限账号（总控禁止额外开账号）",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-021",
+      "status": "PASS",
+      "note": "second create http=422 code=300203",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-022",
+      "status": "PASS",
+      "note": "id=5",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-023",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-024",
+      "status": "PASS",
+      "note": "http=400 code=400",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-025",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-026",
+      "status": "FAIL",
+      "note": "db=QA???-??\tupdated code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-027",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-028",
+      "status": "FAIL",
+      "note": "empty PUT http=200 code=200 (UpdateDTO fields optional — may not 400)",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-029",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-030",
+      "status": "BLOCKED",
+      "note": "无低于 content_ops 的第二账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-031",
+      "status": "PASS",
+      "note": "repeat PUT codes 200/200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-032",
+      "status": "PASS",
+      "note": "http=200 db=7\t1",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-033",
+      "status": "PASS",
+      "note": "DELETE id=1 http=422 code=300201 msg=页面已发布，不可删除",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-034",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-035",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-036",
+      "status": "BLOCKED",
+      "note": "无低于 content_ops 的第二账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-037",
+      "status": "PASS",
+      "note": "repeat DELETE http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-038",
+      "status": "PASS",
+      "note": "code=200 versions=1\t0",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-039",
+      "status": "PASS",
+      "note": "http=400 code=400",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-040",
+      "status": "PASS",
+      "note": "http=422 code=300202",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-041",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-042",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-043",
+      "status": "BLOCKED",
+      "note": "无低于 content_ops 的第二账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-044",
+      "status": "PASS",
+      "note": "http=404 code=300409 msg=页面已被其他人修改（服务器版本 v1，您的版本 v0），请刷新后重试",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-045",
+      "status": "PARTIAL",
+      "note": "first=200 second=300409",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-046",
+      "status": "PASS",
+      "note": "db=1\t2 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-047",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-048",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-049",
+      "status": "BLOCKED",
+      "note": "无低于 content_ops 的第二账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-050",
+      "status": "PARTIAL",
+      "note": "repeat publish 2->2 http=200 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-051",
+      "status": "PASS",
+      "note": "db status=2 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-052",
+      "status": "PASS",
+      "note": "second unpublish http=422 code=300201",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-053",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-054",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-055",
+      "status": "BLOCKED",
+      "note": "无低于 content_ops 的第二账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-056",
+      "status": "PASS",
+      "note": "repeat unpublish http=422 code=300201",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-057",
+      "status": "PASS",
+      "note": "type=object n=2",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-058",
+      "status": "PASS",
+      "note": "n=0 (create may auto-insert v1)",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-059",
+      "status": "FAIL",
+      "note": "http=200 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-060",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-061",
+      "status": "PASS",
+      "note": "3->4 http=200 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-062",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-063",
+      "status": "PASS",
+      "note": "http=404 code=300402",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-064",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-065",
+      "status": "BLOCKED",
+      "note": "无低于 content_ops 的第二账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-066",
+      "status": "PASS",
+      "note": "repeat rollback 4->5",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-067",
+      "status": "PASS",
+      "note": "http=200 total=11",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-068",
+      "status": "PASS",
+      "note": "n=0",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-069",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-070",
+      "status": "PASS",
+      "note": "path=pages/index/index http=200 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-071",
+      "status": "PASS",
+      "note": "http=200 code=404",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-072",
+      "status": "PASS",
+      "note": "http=200 code=404 msg=页面不存在或未发布",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-073",
+      "status": "PASS",
+      "note": "no token http=200 code=200",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-074",
+      "status": "BLOCKED",
+      "note": "禁止禁用超管账号；环境无其它可禁用账号",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-075",
+      "status": "FAIL",
+      "note": "80 concurrent, 100201/429 count=0",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-076",
+      "status": "BLOCKED",
+      "note": "mp_page 无租户字段，无法测越权",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-077",
+      "status": "FAIL",
+      "note": "create id typeof number value=5",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-API-078",
+      "status": "BLOCKED",
+      "note": "could not force 500; sample http=400 structured=null",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-DB-001",
+      "status": "PASS",
+      "note": "MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.\nERROR 1062 (23000) at line 1: Duplicate entry '5-1-0' for key 'mp_page_version.uk_page_version'\n",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-DB-002",
+      "status": "FAIL",
+      "note": "no FK",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-DB-003",
+      "status": "PASS",
+      "note": "mp_page\t0\tuk_path\t1\tpath\tA\t6\tNULL\tNULL\t\tBTREE\t\t\tYES\tNULL",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-DB-004",
+      "status": "PASS",
+      "note": "MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.\nERROR 3140 (22032) at line 1: Invalid JSON text: \"Invalid value.\" at position 1 in value for column 'mp_page_",
+      "time": "2026-08-13T10:06:41.725Z"
+    },
+    {
+      "id": "FP-DB-005",
+      "status": "FAIL",
+      "note": "current=5 publishedMax=3",
+      "time": "2026-08-13T10:06:41.725Z"
+    }
+  ],
+  "dump": {
+    "login": {
+      "http": 200,
+      "code": 200,
+      "keys": [
+        "accessToken",
+        "refreshToken",
+        "tokenType",
+        "expiresIn",
+        "userId",
+        "username",
+        "realName",
+        "roleCode",
+        "roleName",
+        "mustChangePassword"
+      ]
+    },
+    "dbPages": "1\t??????\t1\tpages/index/index\t1\t9\n2\t??????\t2\tpages/activity/mayday\t0\t3\n3\t??????�?????\t3\t/pages/custom/page-640940\t1\t8\n4\t??????????????????????????????????????????????????\t1\t/pages/index/index-2\t1\t7",
+    "list0": {
+      "http": 200,
+      "code": 200,
+      "total": 4,
+      "size": 100,
+      "current": 1,
+      "n": 4
+    },
+    "emptyKeyword": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "records": [],
+        "total": 0,
+        "current": 1,
+        "size": 10
+      }
+    },
+    "pageParam": {
+      "http": 200,
+      "current": 1,
+      "size": 10,
+      "keys": [
+        "records",
+        "total",
+        "current",
+        "size"
+      ]
+    },
+    "defaultPageSize": {
+      "size": 10,
+      "n": 4
+    },
+    "pageSizeOver": {
+      "page_size": {
+        "http": 200,
+        "code": 200,
+        "size": 10
+      },
+      "size": {
+        "http": 200,
+        "code": 200,
+        "size": 101
+      }
+    },
+    "unauthList": {
+      "http": 403,
+      "text": ""
+    },
+    "expired": {
+      "http": 403,
+      "text": ""
+    },
+    "badParam": {
+      "http": 400,
+      "code": 400,
+      "message": "Failed to convert property value of type 'java.lang.String' to required type 'java.lang.Long' for property 'current'; For input string: \"abc\""
+    },
+    "create": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "id": 5,
+        "name": "QA接口页-602428",
+        "type": 3,
+        "typeDesc": "自定义页",
+        "path": "/pages/custom/qa-api-1786615602428",
+        "status": 0,
+        "statusDesc": "草稿",
+        "currentVersion": 0,
+        "createTime": "2026-08-13 10:06:42",
+        "updateTime": "2026-08-13 10:06:42"
+      }
+    },
+    "createNoName": {
+      "http": 400,
+      "code": 400,
+      "message": "页面名称不能为空"
+    },
+    "createNoType": {
+      "http": 400,
+      "code": 400,
+      "message": "页面类型不能为空"
+    },
+    "createNoPath": {
+      "http": 400,
+      "code": 400,
+      "message": "页面路径不能为空"
+    },
+    "createLongName": {
+      "http": 500,
+      "code": 500,
+      "message": "系统内部错误，请稍后重试"
+    },
+    "createBadType": {
+      "http": 200,
+      "code": 200,
+      "message": "操作成功",
+      "id": 6
+    },
+    "createBadJson": {
+      "http": 400,
+      "code": 400,
+      "message": "请求体格式错误或缺少必填字段"
+    },
+    "createDup": {
+      "http": 422,
+      "code": 300203,
+      "message": "页面路径已存在: /pages/custom/qa-api-1786615602428"
+    },
+    "detail": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "id": 5,
+        "name": "QA接口页-602428",
+        "type": 3,
+        "typeDesc": "自定义页",
+        "path": "/pages/custom/qa-api-1786615602428",
+        "status": 0,
+        "statusDesc": "草稿",
+        "currentVersion": 0,
+        "createTime": "2026-08-13 10:06:42",
+        "updateTime": "2026-08-13 10:06:42"
+      }
+    },
+    "detail404": {
+      "http": 404,
+      "code": 300401,
+      "message": "页面不存在"
+    },
+    "detailBadId": {
+      "http": 400,
+      "code": 400,
+      "message": "参数格式错误: id"
+    },
+    "update": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "id": 5,
+        "name": "QA接口页-改名",
+        "type": 3,
+        "typeDesc": "自定义页",
+        "path": "/pages/custom/qa-api-1786615602428",
+        "status": 0,
+        "statusDesc": "草稿",
+        "currentVersion": 0,
+        "description": "updated",
+        "createTime": "2026-08-13 10:06:42",
+        "updateTime": "2026-08-13 10:06:42"
+      }
+    },
+    "updateEmpty": {
+      "http": 200,
+      "code": 200
+    },
+    "deleteDraft": {
+      "http": 200,
+      "code": 200,
+      "db": "7\t1"
+    },
+    "deleteHome": {
+      "http": 422,
+      "code": 300201,
+      "message": "页面已发布，不可删除"
+    },
+    "deleteAgain": {
+      "http": 404,
+      "code": 300401,
+      "message": "页面不存在"
+    },
+    "draft1": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "id": 28,
+        "pageId": 5,
+        "version": 1,
+        "dslContent": "{\"schema_version\":\"1.0\",\"page\":{\"id\":\"qa_api\",\"name\":\"QA-API\",\"type\":\"custom\",\"path\":\"pages/custom/qa-api\"},\"components\":[{\"id\":\"sp1\",\"type\":\"spacer\",\"props\":{\"height\":16}}],\"global_config\":{\"pull_refresh\":false,\"reach_bottom_load\":false}}",
+        "status": 0,
+        "statusDesc": "草稿",
+        "createTime": "2026-08-13 10:06:42"
+      }
+    },
+    "draftBadJson": {
+      "http": 422,
+      "code": 300202,
+      "message": "DSL 内容格式错误，必须为有效 JSON"
+    },
+    "draftConflict": {
+      "stale": 0,
+      "http": 404,
+      "code": 300409,
+      "message": "页面已被其他人修改（服务器版本 v1，您的版本 v0），请刷新后重试"
+    },
+    "draftIdem": {
+      "cur": 1,
+      "c1": 200,
+      "c2": 300409,
+      "m2": "页面已被其他人修改（服务器版本 v2，您的版本 v1），请刷新后重试"
+    },
+    "publish": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "id": 5,
+        "name": "QA接口页-改名",
+        "type": 3,
+        "typeDesc": "自定义页",
+        "path": "/pages/custom/qa-api-1786615602428",
+        "status": 1,
+        "statusDesc": "已发布",
+        "currentVersion": 2,
+        "description": "idem-1",
+        "createTime": "2026-08-13 10:06:42",
+        "updateTime": "2026-08-13 10:06:42"
+      }
+    },
+    "republish": {
+      "before": "2",
+      "after": "2",
+      "http": 200,
+      "code": 200,
+      "message": "操作成功"
+    },
+    "unpublish": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "id": 5,
+        "name": "QA接口页-改名",
+        "type": 3,
+        "typeDesc": "自定义页",
+        "path": "/pages/custom/qa-api-1786615602428",
+        "status": 2,
+        "statusDesc": "已下架",
+        "currentVersion": 2,
+        "description": "idem-1",
+        "createTime": "2026-08-13 10:06:42",
+        "updateTime": "2026-08-13 10:06:42"
+      }
+    },
+    "unpublishAgain": {
+      "http": 422,
+      "code": 300201,
+      "message": "页面未发布，无法下架"
+    },
+    "versions": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "records": [
+          {
+            "id": 29,
+            "pageId": 5,
+            "version": 2,
+            "dslContent": "{\"page\": {\"id\": \"qa_api\", \"name\": \"QA-API\", \"path\": \"pages/custom/qa-api\", \"type\": \"custom\"}, \"components\": [{\"id\": \"sp1\", \"type\": \"spacer\", \"props\": {\"height\": 16}}], \"global_config\": {\"pull_refresh\": false, \"reach_bottom_load\": false}, \"schema_version\": \"1.0\"}",
+            "status": 1,
+            "statusDesc": "已发布",
+            "publishedAt": "2026-08-13 10:06:43",
+            "publisherId": 1,
+            "createTime": "2026-08-13 10:06:43"
+          },
+          {
+            "id": 28,
+            "pageId": 5,
+            "version": 1,
+            "dslContent": "{\"page\": {\"id\": \"qa_api\", \"name\": \"QA-API\", \"path\": \"pages/custom/qa-api\", \"type\": \"custom\"}, \"components\": [{\"id\": \"sp1\", \"type\": \"spacer\", \"props\": {\"height\": 16}}], \"global_config\": {\"pull_refresh\": false, \"reach_bottom_load\": false}, \"schema_version\": \"1.0\"}",
+            "status": 0,
+            "statusDesc": "草稿",
+            "createTime": "2026-08-13 10:06:43"
+          }
+        ],
+        "total": 2,
+        "current": 1,
+        "size": 10
+      }
+    },
+    "emptyVersions": {
+      "code": 200,
+      "message": "操作成功",
+      "data": {
+        "records": [],
+        "total": 0,
+        "current": 1,
+        "size": 10
+      }
+    },
+    "rollback": {
+      "firstVer": 1,
+      "beforeMax": 3,
+      "afterMax": 4,
+      "http": 200,
+      "code": 200,
+      "message": "操作成功",
+      "vers": "1\t0\n2\t2\n3\t1"
+    },
+    "rollback2": {
+      "beforeMax": 4,
+      "afterMax": 5,
+      "http": 200,
+      "code": 200
+    },
+    "templates": {
+      "http": 200,
+      "code": 200,
+      "total": 11,
+      "n": 10
+    },
+    "mpPage": {
+      "homePath": "pages/index/index",
+      "http": 200,
+      "code": 200,
+      "keys": [
+        "page",
+        "components",
+        "global_config",
+        "schema_version"
+      ],
+      "text": "{\"code\":200,\"message\":\"操作成功\",\"data\":{\"page\":{\"id\":\"1\",\"name\":\"出海笔记首页\",\"path\":\"/pages/index/index\",\"type\":\"home\",\"share_title\":\"出海笔记 · 阿哲｜选品·供应链·独立站\",\"background_color\":\"#f5f6f9\"},\"components\":[{\"id\":\"brand-hero\",\"type\":\"brand_intro\",\"props\":{\"kpi\":\"238 篇内容 · 1.2w 关注者 · 4.9 咨询评分\",\"title\":\"出海笔记 · 阿哲\",\"subtitle\":\"已认证 · 跨境电商实战\",\"description\":\"选品 / 供应链 / 独立站\"},\"style\":{\"margin_top\":0,\"padding_top\":20,\""
+    },
+    "mpDraftOnly": {
+      "http": 200,
+      "code": 404,
+      "message": "页面不存在或未发布"
+    },
+    "ratelimit": {
+      "n": 80,
+      "hit": 0,
+      "codes": [
+        200
+      ]
+    },
+    "pageCols": "id\tbigint\tNO\tPRI\tNULL\tauto_increment\nname\tvarchar(128)\tNO\t\tNULL\t\ntype\ttinyint\tNO\tMUL\tNULL\t\npath\tvarchar(255)\tNO\tMUL\tNULL\t\nshare_title\tvarchar(128)\tYES\t\tNULL\t\nshare_image\tvarchar(512)\tYES\t\tNULL\t\nstatus\ttinyint\tNO\tMUL\t0\t\ncurrent_version\tint\tYES\t\t0\t\ndescription\tvarchar(512)\tYES\t\tNULL\t\ncreate_time\tdatetime\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED\nupdate_time\tdatetime\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\ncreate_by\tbigint\tYES\t\tNULL\t\nupdate_by\tbigint\tYES\t\tNULL\t\ndeleted\tint\tNO\t\t0",
+    "maybe500": {
+      "http": 400,
+      "keys": [],
+      "text": "<!doctype html><html lang=\"en\"><head><title>HTTP Status 400 – Bad Request</title><style type=\"text/css\">body {font-family:Tahoma,Arial,sans-serif;} h1, h2, h3, b {color:white;background-color:#525D76;} h1 {font-size:22px;} h2 {font-size:16px;} h3 {font-size:14px;} p {font-size:12px;} a {color:black;} .line {height:1px;background-color:#525D76;border:none;}</style></head><body><h1>HTTP Status 400 –"
+    },
+    "createVersionTable": "mp_page_version\tCREATE TABLE `mp_page_version` (\\n  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',\\n  `page_id` bigint NOT NULL COMMENT '页面ID',\\n  `version` int NOT NULL COMMENT '版本号',\\n  `dsl_content` json NOT NULL COMMENT '页面DSL内容（符合page-dsl-schema契约）',\\n  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态 0=草稿 1=已发布 2=已回滚',\\n  `published_at` datetime DEFAULT NULL COMMENT '发布时间',\\n  `publisher_id` bigint DEFAULT NULL COMMENT '发布人ID',\\n  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',\\n  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',\\n  `create_by` bigint DEFAULT NULL COMMENT '创建人ID',\\n  `update_by` bigint DEFAULT NULL COMMENT '更新人ID',\\n  `deleted` int NOT NULL DEFAULT '0' COMMENT '逻辑删除 0-未删除 1-已删除',\\n  PRIMARY KEY (`id`),\\n  UNIQUE KEY `uk_page_version` (`page_id`,`version`,`deleted`),\\n  KEY `idx_page_id` (`page_id`),\\n  KEY `idx_status` (`status`)\\n) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='页面版本表'",
+    "ukInsert": "MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.\nERROR 1062 (23000) at line 1: Duplicate entry '5-1-0' for key 'mp_page_version.uk_page_version'\n",
+    "fk": "",
+    "badJsonInsert": "MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.\nERROR 3140 (22032) at line 1: Invalid JSON text: \"Invalid value.\" at position 1 in value for column 'mp_page_version.dsl_content'.\n",
+    "currentVsPub": "5\t3"
+  }
+}

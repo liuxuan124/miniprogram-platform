@@ -1,0 +1,65 @@
+task_id: TASK-QA-BATCH-018
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 开发修复并回归：BUG-UI-002 / BUG-MKT-001 / BUG-UI-003
+  - 后端：PageServiceImpl 路径规则（禁止 index-N、首页路径固定）
+  - 前端：页面新建首页占用检测/禁用；couponDisplay；已发布页禁用自动保存；删除确认
+  - 小程序：dsl-coupon / coupon-list 折扣展示
+  - 清理历史脏数据 page4 → /pages/custom/qa-batch001
+  - 重建并重启 miniapp-backend；证据 BATCH-QA-018
+changed_files:
+  - backend/src/main/java/com/miniprogram/service/impl/PageServiceImpl.java
+  - admin/src/views/page-builder/index.vue
+  - admin/src/views/page-builder/editor.vue
+  - admin/src/utils/couponDisplay.ts
+  - admin/src/views/marketing/coupon.vue
+  - admin/src/components/page-builder/renderers/CouponRenderer.vue
+  - admin/src/components/page-builder/confirmRemoveComponent.ts
+  - miniapp/components/dsl-coupon/dsl-coupon.js
+  - miniapp/pages/coupon-list/coupon-list.js
+  - miniapp/pkg-user/coupon-list/coupon-list.js
+  - agent-team/testing/defects/BUG-UI-002.md
+  - agent-team/testing/defects/BUG-MKT-001.md
+  - agent-team/testing/defects/BUG-UI-003.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-018/
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: index-2 创建/更新 300204；优惠券列表 9折；删除/离开确认可见；首页占用禁用
+downstream_suggestions:
+  - 继续修剩余开放 P1（BUG-FORM-001/004、BUG-PROD-001/003、BUG-MP-001/002、BUG-MEMBER-001、BUG-UI-014 等）
+next_step: 下一批评测剩余客户可见 P1 / 范围 B 冒烟
+notes: 用户要求开发修复并继续；本批关闭 3 个 P1。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-018
+  feature_point_range:
+    - FP-UI-185
+    - EXP-COUPON-LIST
+    - EXP-BUILDER-DELETE-CONFIRM
+    - EXP-BUILDER-LEAVE-UNSAVED
+  executed_count: 6
+  pass_count: 5
+  fail_count: 0
+  partial_count: 1
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "192/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: 剩余开放 P1（FORM/PROD/MP/MEMBER/UI-014）与范围 B 冒烟
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

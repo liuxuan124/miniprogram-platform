@@ -1,0 +1,23 @@
+task_id: TASK-QA-BATCH-021
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 修复 MP-002 tabBar 与 app.json 对齐；MP-003 购物车未登录空态
+  - ACT-001 活动状态映射 + 过期自动结束；PROD-002 商品列表 onActivated 刷新
+  - TPL-001 预约分类含 appointment_service 模板；UI-014 banner link_type 校验加强
+  - APPT-001 服务名不再重复时长；多项已在代码/接口层验证关闭
+changed_files:
+  - miniapp/custom-tab-bar/index.js
+  - miniapp/pages/cart/cart.js
+  - miniapp/pages/cart/cart.wxml
+  - backend/src/main/java/com/miniprogram/service/impl/ActivityServiceImpl.java
+  - admin/src/views/activity/index.vue
+  - admin/src/views/product/index.vue
+  - admin/src/views/page-builder/template-center.vue
+  - admin/src/views/page-builder/editor.vue
+  - admin/src/views/appointment/index.vue
+  - agent-team/testing/defects/BUG-*.md
+self_test:
+  result: 部分通过
+  details: API 已验证 agent/assets/appointment；Activity 后端需 rebuild（Docker 网络失败）
+notes: 开放缺陷剩余见 grep；台账通过率待 UI 回归后更新

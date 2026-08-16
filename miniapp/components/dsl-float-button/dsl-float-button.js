@@ -193,8 +193,12 @@ Component({
         }
         return
       }
+      if (actionType === 'url' && config.link_url) {
+        executeAction({ type: 'webview', url: config.link_url })
+        return
+      }
       if (actionType === 'ai') {
-        navigatePage('/pages/service-chat/service-chat')
+        navigatePage('/pkg-user/service-chat/service-chat')
         return
       }
       if (config.link_url) {

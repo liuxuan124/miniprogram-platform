@@ -1,0 +1,27 @@
+task_id: TASK-QA-BATCH-026
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 探索附录 10 项 PARTIAL→PASS（模板/设置/日志/搜索/报名等）
+  - 修复操作日志操作人显示数字 ID 问题
+  - FP-API-076/078 复探确认仍 BLOCKED
+changed_files:
+  - backend/src/main/java/com/miniprogram/security/JwtAuthenticationFilter.java
+  - backend/src/main/java/com/miniprogram/aspect/OperationLogAspect.java
+  - backend/src/main/java/com/miniprogram/service/impl/OperationLogServiceImpl.java
+  - backend/src/main/java/com/miniprogram/service/impl/VersionOperationLogServiceImpl.java
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-026/exploration-appendix.md
+self_test:
+  result: 通过
+  details: 操作日志 username=admin；configs/basic 200；模板 4 套预约
+notes: 禁止写测试完成。正式台账 266/268 PASS + 2 BLOCKED。探索附录剩 7 PARTIAL + 1 BLOCKED。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-026
+  cumulative_pass_rate: "266/268"
+  executed_count: 12
+  pass_count: 11
+  partial_count: 1
+  blocked_count: 0
+  exploration_pass_upgrades: 10

@@ -5,9 +5,9 @@ const PAGE_SHARE_TITLES = {
   'pages/content-list/content-list': '出海笔记｜跨境实战内容中心',
   'pages/product-list/product-list': '出海笔记｜跨境知识商品与咨询服务',
   'pages/search/search': '出海笔记｜搜索跨境选品与运营干货',
-  'pages/activity-list/activity-list': '出海笔记｜跨境活动与实战服务',
-  'pages/category/category': '出海笔记｜按主题发现跨境干货',
-  'pages/reviews/reviews': '出海笔记｜用户真实评价',
+  'pkg-extra/activity-list/activity-list': '出海笔记｜跨境活动与实战服务',
+  'pkg-trade/category/category': '出海笔记｜按主题发现跨境干货',
+  'pkg-trade/reviews/reviews': '出海笔记｜用户真实评价',
 }
 
 const SAFE_QUERY_KEYS = new Set([

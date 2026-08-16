@@ -75,10 +75,18 @@ function normalizePointsLog(row: any): MemberPointsLog {
 
 /** 获取会员等级列表 */
 export function getMemberLevelList() {
-  return get<any[]>(`${BASE_URL}/member-levels`).then((res: any) => ({
-    ...res,
-    data: (res.data || []).map(normalizeLevel),
-  }))
+  return get<any[]>(`${BASE_URL}/member-levels`).then((res: any) => {
+    const rows = (res.data || []).map(normalizeLevel)
+    const sorted = [...rows].sort((a, b) => a.min_points - b.min_points)
+    for (let i = 0; i < sorted.length; i++) {
+      const next = sorted[i + 1]
+      sorted[i].max_points = next ? next.min_points - 1 : -1
+    }
+    return {
+      ...res,
+      data: sorted,
+    }
+  })
 }
 
 /** 创建会员等级 */

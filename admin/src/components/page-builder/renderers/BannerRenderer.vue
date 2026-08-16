@@ -7,7 +7,7 @@
       :style="bannerWrapStyle"
       @click="handleBannerClick"
     >
-      <img :src="currentBanner.image" alt="" class="banner-image" />
+      <img :src="displayBannerImage" alt="" class="banner-image" @error="onBannerImageError" />
       <div v-if="bannerImages.length > 1" class="banner-dots">
         <span
           v-for="(_, idx) in bannerImages"
@@ -72,6 +72,7 @@ type BannerImage = {
 }
 
 const activeBannerIndex = ref(0)
+const brokenBannerImages = ref<Record<string, boolean>>({})
 let bannerTimer: ReturnType<typeof setInterval> | null = null
 
 const bannerImages = computed<BannerImage[]>(() => {
@@ -94,7 +95,23 @@ function isImageUrl(value?: string) {
   return text.startsWith('/') && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/i.test(text)
 }
 
-const hasValidBannerImage = computed(() => isImageUrl(currentBanner.value.image))
+const hasValidBannerImage = computed(() => {
+  const image = currentBanner.value.image || ''
+  const placeholder = String(props.component.props?.image_error_placeholder || '').trim()
+  return (isImageUrl(image) && !brokenBannerImages.value[image]) || isImageUrl(placeholder)
+})
+
+const displayBannerImage = computed(() => {
+  const image = currentBanner.value.image || ''
+  if (image && !brokenBannerImages.value[image] && isImageUrl(image)) return image
+  return String(props.component.props?.image_error_placeholder || '').trim()
+})
+
+function onBannerImageError() {
+  const image = currentBanner.value.image
+  if (!image) return
+  brokenBannerImages.value = { ...brokenBannerImages.value, [image]: true }
+}
 
 const currentBannerLink = computed(() => (currentBanner.value.link_url || '').trim())
 

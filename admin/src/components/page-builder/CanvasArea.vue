@@ -16,6 +16,7 @@
         </div>
         <div
           class="mini-content"
+          data-testid="canvas-drop-zone"
           :style="{ backgroundColor: pageStore.pageConfig.background_color || '#f6f8fb' }"
           @dragover.prevent="handleContainerDragOver"
           @dragleave="handleContainerDragLeave"
@@ -39,7 +40,7 @@
                     :index="index"
                     :selected="comp.id === pageStore.selectedComponentId"
                     @select="pageStore.selectComponent(comp.id)"
-                    @delete="pageStore.removeComponent(comp.id)"
+                    @delete="handleDeleteComponent(comp)"
                     @copy="pageStore.duplicateComponent(comp.id)"
                     @move-up="handleMoveUp(index)"
                     @move-down="handleMoveDown(index)"
@@ -69,7 +70,7 @@
             :selected="item.comp.id === pageStore.selectedComponentId"
             :fab-only="true"
             @select="pageStore.selectComponent(item.comp.id)"
-            @delete="pageStore.removeComponent(item.comp.id)"
+            @delete="handleDeleteComponent(item.comp)"
             @copy="pageStore.duplicateComponent(item.comp.id)"
             @move-up="handleMoveUp(item.index)"
             @move-down="handleMoveDown(item.index)"
@@ -98,6 +99,8 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
+import { getComponentDef } from './componentRegistry'
+import { confirmRemoveComponent } from './confirmRemoveComponent'
 
 const pageStore = usePageStore()
 
@@ -204,6 +207,12 @@ function handleMoveDown(index: number) {
   }
 }
 
+async function handleDeleteComponent(comp: { id: string; type: ComponentType }) {
+  const label = getComponentDef(comp.type)?.label ?? comp.type
+  if (!(await confirmRemoveComponent(label))) return
+  pageStore.removeComponent(comp.id)
+}
+
 /** B5：Delete 删除选中组件、Ctrl+D 复制选中组件。输入框内不拦截，交给浏览器原生行为 */
 function isEditableTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null
@@ -218,7 +227,8 @@ function handleKeydown(event: KeyboardEvent) {
 
   if (event.key === 'Delete' || event.key === 'Backspace') {
     event.preventDefault()
-    pageStore.removeComponent(selectedId)
+    const target = pageStore.components.find((c) => c.id === selectedId)
+    if (target) void handleDeleteComponent(target)
     return
   }
 

@@ -22,6 +22,27 @@ export function getLatestRelease() {
   return get(`${BASE}/latest`)
 }
 
+export interface PublishPreflightPage {
+  id: number
+  name: string
+  path: string
+  status: number
+  action: 'publish' | 'already_live' | 'empty' | 'builtin'
+}
+
+export interface PublishPreflight {
+  canPublish: boolean
+  blocking: string[]
+  warnings: string[]
+  pages: PublishPreflightPage[]
+  latestSemver?: string
+}
+
+/** 整包发布前检查 */
+export function getPublishPreflight() {
+  return get<PublishPreflight>(`${BASE}/preflight`)
+}
+
 /** 创建版本（双模式：template=保存为模板, publish=发布上线） */
 export function createRelease(data: {
   mode: 'template' | 'publish'

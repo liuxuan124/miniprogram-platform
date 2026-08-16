@@ -2,6 +2,7 @@ package com.miniprogram.service;
 
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.miniapp.CreateReleaseDTO;
+import com.miniprogram.dto.miniapp.PublishPreflightVO;
 import com.miniprogram.dto.miniapp.ReleaseQueryDTO;
 import com.miniprogram.dto.miniapp.RollbackDTO;
 import com.miniprogram.entity.MiniappRelease;
@@ -32,6 +33,11 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
      * 创建版本发布（快照所有已发布页面+系统配置）
      */
     MiniappRelease createRelease(CreateReleaseDTO dto);
+
+    /**
+     * 整包发布前检查：首页、导航绑定、空画布
+     */
+    PublishPreflightVO getPublishPreflight();
 
     /**
      * 发布版本（将草稿状态改为已发布）

@@ -21,6 +21,7 @@
       <view class="lv" wx:else>{{mineConfig.loginSubtitle || '查看订单、预约与会员权益'}}</view>
     </view>
     <view class="login-cta" wx:if="{{!isLoggedIn}}" catchtap="onUserAreaTap">去登录</view>
+    <view class="login-cta login-cta--ghost" wx:else catchtap="goSettings">设置</view>
   </view>
 
   <view class="m-stats">

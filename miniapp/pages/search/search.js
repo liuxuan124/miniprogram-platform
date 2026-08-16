@@ -13,16 +13,18 @@ Page({
     hotKeywords: HOT,
     history: [],
     suggestions: [
-      { icon: '📘', title: '选品资料包', desc: '知识商城 · 资料包', type: 'shop', path: '/pages/product-list/product-list' },
-      { icon: '🗓️', title: '1v1 咨询', desc: '预约咨询服务', type: 'shop', path: '/pages/product-list/product-list?type=service' },
       { icon: '📚', title: '内容中心', desc: '笔记 / 长文 / 数据', type: 'page', path: '/pages/content-list/content-list' },
-      { icon: '🎧', title: '客服中心', desc: '商品、订单与售后咨询', type: 'page', path: '/pages/service-chat/service-chat' },
+      { icon: '🎧', title: '客服中心', desc: '咨询与售后服务', type: 'page', path: '/pkg-user/service-chat/service-chat' },
+      { icon: '👑', title: '会员中心', desc: '积分签到与权益', type: 'page', path: '/pkg-user/member-center/member-center' },
     ],
     results: [],
   },
 
   onLoad(query) {
-    const history = wx.getStorageSync(HISTORY_KEY) || []
+    let history = []
+    try {
+      history = wx.getStorageSync(HISTORY_KEY) || []
+    } catch (e) { /* ignore */ }
     this.setData({ history: Array.isArray(history) ? history.slice(0, 8) : [] })
     if (query && query.q) {
       this.setData({ keyword: decodeURIComponent(query.q) })
@@ -38,6 +40,10 @@ Page({
     this.setData({ keyword: e.detail.value || '' })
   },
 
+  onClearKeyword() {
+    this.setData({ keyword: '', searched: false, results: [] })
+  },
+
   tapKeyword(e) {
     const kw = e.currentTarget.dataset.kw || ''
     this.setData({ keyword: kw })
@@ -45,7 +51,7 @@ Page({
   },
 
   clearHistory() {
-    wx.removeStorageSync(HISTORY_KEY)
+    try { wx.removeStorageSync(HISTORY_KEY) } catch (e) { /* ignore */ }
     this.setData({ history: [] })
     wx.showToast({ title: '已清空', icon: 'none' })
   },
@@ -57,19 +63,13 @@ Page({
     const isTab = [
       '/pages/index/index',
       '/pages/content-list/content-list',
-      '/pages/product-list/product-list',
       '/pages/mine/mine',
     ].indexOf(base) >= 0
+    if (base === '/pages/product-list/product-list') {
+      wx.navigateTo({ url: path })
+      return
+    }
     if (isTab) {
-      const qIdx = path.indexOf('?')
-      if (qIdx >= 0) {
-        const query = {}
-        path.slice(qIdx + 1).split('&').forEach((pair) => {
-          const [k, v = ''] = pair.split('=')
-          if (k) query[decodeURIComponent(k)] = decodeURIComponent(v)
-        })
-        try { wx.setStorageSync('__tab_query__' + base, query) } catch (err) { /* ignore */ }
-      }
       wx.switchTab({ url: base })
     } else {
       wx.navigateTo({ url: path })
@@ -79,7 +79,7 @@ Page({
   pushHistory(kw) {
     const next = [kw, ...this.data.history.filter((x) => x !== kw)].slice(0, 8)
     this.setData({ history: next })
-    wx.setStorageSync(HISTORY_KEY, next)
+    try { wx.setStorageSync(HISTORY_KEY, next) } catch (e) { /* ignore */ }
   },
 
   async onSearch() {
@@ -91,40 +91,47 @@ Page({
     this.pushHistory(keyword)
     this.setData({ searched: true, loading: true, results: [] })
     try {
-      const [contentsRes, productsRes] = await Promise.all([
-        get('/api/v1/mp/contents', { keyword, page: 1, pageSize: 20 }, { auth: false }).catch(() => null),
-        get('/api/v1/mp/products', { keyword, page: 1, pageSize: 20 }, { auth: false }).catch(() => null),
-      ])
+      const contentsRes = await get('/api/v1/mp/contents', { keyword, current: 1, size: 20 }, { auth: false, showError: false }).catch(() => null)
       const contents = this._records(contentsRes).map((item) => ({
         id: item.id,
         type: 'content',
         typeLabel: '内容',
         title: item.title,
-        summary: item.summary || '',
-        cover: item.coverImage || item.cover_url || '',
+        summary: this._plainText(item.summary || item.content || ''),
+        cover: item.coverImage || item.coverUrl || item.cover_url || '',
       }))
-      const products = this._records(productsRes).map((item) => ({
-        id: item.id,
-        type: 'product',
-        typeLabel: item.productType === 'service' ? '咨询' : '资料包',
-        title: item.name || item.title,
-        summary: item.description || ('¥' + (item.price || 0)),
-        cover: item.mainImage || item.coverUrl || '',
-      }))
-      this.setData({ results: [...contents, ...products], loading: false })
+      this.setData({ results: contents, loading: false })
     } catch (e) {
+      console.error('[Search] failed:', e)
       this.setData({ loading: false, results: [] })
+      wx.showToast({ title: '搜索失败，请重试', icon: 'none' })
     }
   },
 
+  _plainText(html) {
+    return String(html || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#165;|&yen;/g, '¥')
+      .replace(/\s+/g, ' ')
+      .trim()
+  },
+
   _records(res) {
-    const data = (res && res.data) || res || {}
+    if (!res) return []
+    if (Array.isArray(res)) return res
+    // request 已解包 data；兼容再包一层
+    const data = res.records ? res : (res.data || res)
     if (Array.isArray(data)) return data
     return data.records || data.list || data.items || []
   },
 
   openResult(e) {
     const { type, id } = e.currentTarget.dataset
+    if (!id) return
     if (type === 'content') {
       wx.navigateTo({ url: `/pages/content-detail/content-detail?id=${id}` })
     } else if (type === 'product') {

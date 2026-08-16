@@ -24,10 +24,11 @@
         <text wx:if="{{processedConfig.date}}">📅 {{processedConfig.date}}</text>
         <text wx:if="{{processedConfig.location}}">📍 {{processedConfig.location}}</text>
       </view>
-      <view class="dsl-activity-entry__countdown" wx:if="{{processedConfig.countdown && countdown}}">
-        <text class="dsl-activity-entry__countdown-label">距结束</text>
+      <view class="dsl-activity-entry__countdown" wx:if="{{processedConfig.show_countdown && countdown}}">
+        <text class="dsl-activity-entry__countdown-label">距开始</text>
         <text class="dsl-activity-entry__countdown-time">{{countdown}}</text>
       </view>
+      <view class="dsl-activity-entry__quota" wx:if="{{processedConfig.show_quota}}">剩余名额 {{processedConfig.quota_text}}</view>
       <view class="dsl-activity-entry__btn" wx:if="{{processedConfig.show_button !== false}}">{{processedConfig.button_text || '立即预约'}}</view>
     </view>
   </view>

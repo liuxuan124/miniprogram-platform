@@ -3,9 +3,15 @@ const request = require('../../utils/request')
 const productService = require('../../services/product')
 const { StorageUtil } = require('../../utils/storage')
 const { createSharePageConfig } = require('../../utils/share')
+const { AuthUtil } = require('../../utils/auth')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
 const FAVORITES_KEY = 'content_favorites'
+const LIKES_KEY = 'content_likes'
+const FOLLOWS_KEY = 'author_follows'
+const COMMENTS_KEY = 'content_comments'
+const AUTHOR_ID = 'aze'
+const AUTHOR_NAME = '出海笔记 · 阿哲'
 
 const CAT_TO_TOPIC = {
   选品洞察: 'select',
@@ -18,7 +24,6 @@ const CAT_TO_TOPIC = {
 
 const PROTO_BY_TITLE = Object.fromEntries(ITEMS.map((i) => [i.title, i]))
 
-/** 优先用 source 字段（种子数据写入的形态），避免标题含「清单」误判 */
 function resolveFormat(item) {
   const source = String(item.source || '').trim()
   if (source === '笔记' || /笔记|小红书|xhs/i.test(source)) {
@@ -73,6 +78,96 @@ function hashTags(tags) {
     .map((t) => (t.startsWith('#') ? t : `#${t}`))
 }
 
+/** 解析原型文案里的 3.4k / 1.2w */
+function parseStatCount(stat) {
+  if (stat == null || stat === '') return 0
+  if (typeof stat === 'number') return stat
+  const s = String(stat).trim().toLowerCase().replace(/,/g, '')
+  const m = s.match(/^([\d.]+)\s*([kw万])?/)
+  if (!m) return parseInt(s, 10) || 0
+  const n = parseFloat(m[1]) || 0
+  const unit = m[2]
+  if (unit === 'w' || unit === '万') return Math.round(n * 10000)
+  if (unit === 'k') return Math.round(n * 1000)
+  return Math.round(n)
+}
+
+function formatCount(n) {
+  const num = Math.max(0, Number(n) || 0)
+  if (num >= 10000) {
+    const v = (num / 10000).toFixed(1).replace(/\.0$/, '')
+    return `${v}w`
+  }
+  if (num >= 1000) {
+    const v = (num / 1000).toFixed(1).replace(/\.0$/, '')
+    return `${v}k`
+  }
+  return String(num)
+}
+
+function readIdList(key) {
+  const raw = StorageUtil.get(key)
+  if (!raw) return []
+  // 兼容旧数组 与 新 map：{ "12": true }
+  if (Array.isArray(raw)) {
+    return raw.map((x) => String(x)).filter(Boolean)
+  }
+  if (typeof raw === 'object') {
+    return Object.keys(raw).filter((k) => !!raw[k])
+  }
+  return []
+}
+
+function writeIdList(key, ids) {
+  const map = {}
+  ;(ids || []).forEach((id) => {
+    const k = String(id)
+    if (k && k !== 'NaN' && k !== 'undefined') map[k] = true
+  })
+  StorageUtil.set(key, map)
+}
+
+function hasStoredId(key, id) {
+  return readIdList(key).includes(String(id))
+}
+
+function readComments(contentId) {
+  const all = StorageUtil.get(COMMENTS_KEY) || {}
+  const list = all[String(contentId)]
+  return Array.isArray(list) ? list : []
+}
+
+function writeComments(contentId, list) {
+  const all = StorageUtil.get(COMMENTS_KEY) || {}
+  all[String(contentId)] = list
+  StorageUtil.set(COMMENTS_KEY, all)
+}
+
+function seedComments(contentId, likeHint) {
+  const existing = readComments(contentId)
+  if (existing.length) return existing
+  const seeded = [
+    {
+      id: `s1-${contentId}`,
+      nickName: '跨境新手小白',
+      avatarText: '白',
+      content: '太真实了，独立站域名和支付这块我刚好卡了很久。',
+      timeText: '2小时前',
+      likes: Math.max(3, Math.floor((likeHint || 20) / 80)),
+    },
+    {
+      id: `s2-${contentId}`,
+      nickName: '选品阿木',
+      avatarText: '木',
+      content: '第3个坑说得对，选品别一上来就铺全品类。',
+      timeText: '昨天',
+      likes: Math.max(1, Math.floor((likeHint || 20) / 120)),
+    },
+  ]
+  writeComments(contentId, seeded)
+  return seeded
+}
+
 Page({
   ...createSharePageConfig(),
   data: {
@@ -95,7 +190,14 @@ Page({
     artStyle: '',
     glyph: '📌',
     metaLine: '',
-    likeStat: '',
+    likeDisplay: '0',
+    commentCount: 0,
+    commentCountDisplay: '0',
+    showCommentSheet: false,
+    comments: [],
+    commentDraft: '',
+    commentSubmitting: false,
+    authorName: AUTHOR_NAME,
   },
 
   onLoad(options) {
@@ -105,6 +207,7 @@ Page({
       setTimeout(() => wx.navigateBack(), 1500)
       return
     }
+    this._contentId = id
     this._loadArticleDetail(id)
     this._loadRelated()
   },
@@ -122,7 +225,16 @@ Page({
     const article = this.data.article
     return {
       title: article.title || '内容详情',
-      path: `/pages/content-detail/content-detail?id=${article.id}`,
+      path: `/pages/content-detail/content-detail?id=${article.id || this._contentId}`,
+      imageUrl: article.cover_url || '',
+    }
+  },
+
+  onShareTimeline() {
+    const article = this.data.article
+    return {
+      title: article.title || '内容详情',
+      query: `id=${article.id || this._contentId}`,
       imageUrl: article.cover_url || '',
     }
   },
@@ -147,7 +259,6 @@ Page({
 
         let gallerySlides = []
         if (isNote) {
-          // 小红书式：优先多图；无图则用主题色画廊 + glyph
           const urls = [cover].concat(extras).filter(Boolean)
           const uniq = urls.filter((u, i, arr) => arr.indexOf(u) === i)
           if (uniq.length >= 2) {
@@ -184,14 +295,31 @@ Page({
           }
         }
 
+        const contentId = article.id
+        const contentIdKey = String(contentId)
+        const liked = hasStoredId(LIKES_KEY, contentIdKey)
+        const favorited = hasStoredId(FAVORITES_KEY, contentIdKey)
+        const followIds = StorageUtil.get(FOLLOWS_KEY) || []
+        const followed = Array.isArray(followIds)
+          ? followIds.map(String).includes(AUTHOR_ID)
+          : !!(followIds && followIds[AUTHOR_ID])
+        const baseLike = Math.max(
+          Number(article.likeCount) || 0,
+          parseStatCount(proto && proto.stat)
+        )
+        // 本地点赞按「基数 ± 1」展示，避免被静态 3.4k 文案锁死
+        const likeCount = liked ? baseLike + 1 : baseLike
+        const comments = seedComments(contentIdKey, likeCount)
+
         this.setData({
           article: {
             ...article,
+            id: contentId,
             cover_url: cover,
             image: cover,
             publish_time: dateStr,
             created_at: fmtDate(article.createTime),
-            like_count: article.likeCount || 0,
+            like_count: likeCount,
             summary: article.summary || '',
           },
           loading: false,
@@ -207,9 +335,14 @@ Page({
           artStyle: artStyle(topic),
           glyph: (proto && proto.glyph) || (isNote ? '📷' : '📄'),
           metaLine,
-          likeStat: (proto && proto.stat) || `${article.likeCount || 0}`,
+          liked,
+          favorited,
+          followed,
+          likeDisplay: formatCount(likeCount),
+          comments,
+          commentCount: comments.length,
+          commentCountDisplay: formatCount(comments.length),
           readProgress: 0,
-          favorited: (StorageUtil.get(FAVORITES_KEY) || []).map(Number).includes(Number(article.id)),
         })
 
         wx.setNavigationBarTitle({ title: isNote ? '笔记' : '文章' })
@@ -245,37 +378,134 @@ Page({
   },
 
   onProductTap(e) {
-    wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${e.currentTarget.dataset.id}` })
+    const id = e.currentTarget.dataset.id
+    if (id) {
+      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
+      return
+    }
+    wx.navigateTo({ url: '/pages/product-list/product-list' })
   },
 
+  /** 关注 / 取消关注（需确认后取消） */
   onFollowTap() {
-    const followed = !this.data.followed
+    if (this.data.followed) {
+      wx.showModal({
+        title: '取消关注',
+        content: `确定不再关注「${AUTHOR_NAME}」吗？`,
+        confirmText: '取消关注',
+        confirmColor: '#db4f3f',
+        success: (res) => {
+          if (res.confirm) this._setFollowed(false)
+        },
+      })
+      return
+    }
+    this._setFollowed(true)
+  },
+
+  _setFollowed(followed) {
+    const raw = StorageUtil.get(FOLLOWS_KEY) || []
+    const list = Array.isArray(raw) ? raw.slice() : []
+    const next = followed
+      ? Array.from(new Set([...list, AUTHOR_ID]))
+      : list.filter((x) => x !== AUTHOR_ID)
+    StorageUtil.set(FOLLOWS_KEY, next)
     this.setData({ followed })
-    wx.showToast({ title: followed ? '已关注' : '取消关注', icon: 'none' })
+    wx.showToast({
+      title: followed ? '关注成功' : '已取消关注',
+      icon: 'none',
+    })
   },
 
   onLikeTap() {
+    const id = this.data.article && this.data.article.id
+    if (id === undefined || id === null || id === '') return
     const liked = !this.data.liked
     const article = { ...this.data.article }
     article.like_count = Math.max(0, (article.like_count || 0) + (liked ? 1 : -1))
-    this.setData({ liked, article })
+
+    const ids = readIdList(LIKES_KEY)
+    const idKey = String(id)
+    const next = liked
+      ? Array.from(new Set([idKey, ...ids]))
+      : ids.filter((x) => x !== idKey)
+    writeIdList(LIKES_KEY, next)
+
+    this.setData({
+      liked,
+      article,
+      likeDisplay: formatCount(article.like_count),
+    })
+    wx.showToast({ title: liked ? '已点赞' : '已取消点赞', icon: 'none', duration: 1000 })
   },
 
   onFavoriteTap() {
-    const id = Number(this.data.id || (this.data.article && this.data.article.id))
-    const favorited = !this.data.favorited
-    this.setData({ favorited })
-    if (id) {
-      const ids = StorageUtil.get(FAVORITES_KEY) || []
-      const next = favorited
-        ? Array.from(new Set([id, ...ids.map(Number)]))
-        : ids.map(Number).filter((x) => x !== id)
-      StorageUtil.set(FAVORITES_KEY, next)
+    const article = this.data.article || {}
+    const id = article.id
+    if (id === undefined || id === null || id === '') {
+      wx.showToast({ title: '内容异常，暂无法收藏', icon: 'none' })
+      return
     }
-    wx.showToast({ title: favorited ? '已收藏' : '取消收藏', icon: 'none' })
+    const favorited = !this.data.favorited
+    const ids = readIdList(FAVORITES_KEY)
+    const idKey = String(id)
+    const next = favorited
+      ? Array.from(new Set([idKey, ...ids]))
+      : ids.filter((x) => x !== idKey)
+    writeIdList(FAVORITES_KEY, next)
+    this.setData({ favorited })
+    wx.showToast({ title: favorited ? '已收藏' : '已取消收藏', icon: 'none' })
   },
 
   onCommentTap() {
-    wx.navigateTo({ url: '/pages/feedback/feedback' })
+    this.setData({ showCommentSheet: true })
+  },
+
+  onCloseCommentSheet() {
+    this.setData({ showCommentSheet: false, commentDraft: '' })
+  },
+
+  noop() {},
+
+  onCommentInput(e) {
+    this.setData({ commentDraft: (e.detail && e.detail.value) || '' })
+  },
+
+  onSubmitComment() {
+    if (this.data.commentSubmitting) return
+    const text = (this.data.commentDraft || '').trim()
+    if (!text) {
+      wx.showToast({ title: '请输入评论内容', icon: 'none' })
+      return
+    }
+    if (!AuthUtil.requireLoginForAction('发表评论', {
+      onSuccess: () => this.onSubmitComment(),
+    })) return
+
+    const id = Number(this.data.article && this.data.article.id)
+    if (!id) return
+
+    this.setData({ commentSubmitting: true })
+    const user = AuthUtil.getUserInfo() || {}
+    const nick = user.nickName || '微信用户'
+    const item = {
+      id: `c-${Date.now()}`,
+      nickName: nick,
+      avatarText: String(nick).slice(0, 1) || '我',
+      content: text.slice(0, 200),
+      timeText: '刚刚',
+      likes: 0,
+      mine: true,
+    }
+    const comments = [item, ...(this.data.comments || [])]
+    writeComments(id, comments)
+    this.setData({
+      comments,
+      commentCount: comments.length,
+      commentCountDisplay: formatCount(comments.length),
+      commentDraft: '',
+      commentSubmitting: false,
+    })
+    wx.showToast({ title: '评论已发布', icon: 'success' })
   },
 })

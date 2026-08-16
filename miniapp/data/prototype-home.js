@@ -131,25 +131,25 @@ const ITEMS = [
 const PRODUCTS = {
   1: {
     id: 1,
-    kind: 'ebook',
+    kind: 'physical',
     topic: 'select',
     glyph: '📘',
-    title: '《100 个跨境爆款选品案例库》',
+    title: '跨境选品案例精装手册（纸质版）',
     price: 59,
-    sold: 2103,
+    sold: 320,
     rating: '4.9',
-    revCount: 238,
+    revCount: 86,
   },
   3: {
     id: 3,
-    kind: 'consult',
+    kind: 'physical',
     topic: 'platform',
-    glyph: '🗓️',
-    title: '选品诊断 1v1 咨询（45 分钟）',
-    price: 299,
-    sold: 486,
-    rating: '4.9',
-    revCount: 128,
+    glyph: '☕',
+    title: '品牌定制马克杯',
+    price: 89,
+    sold: 180,
+    rating: '4.8',
+    revCount: 52,
   },
 }
 
@@ -185,10 +185,7 @@ function buildHomeProducts() {
     return {
       ...p,
       artStyle: artStyle(p.topic),
-      sub:
-        p.kind === 'ebook'
-          ? `数字商品 · 已售 ${p.sold}`
-          : `1v1 咨询 · 已约 ${p.sold} 次`,
+      sub: `实物商品 · 已售 ${p.sold}`,
       ratingLine: `⭐ ${p.rating} · ${p.revCount} 评价`,
     }
   })

@@ -45,6 +45,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final PaymentMapper paymentMapper;
     private final RefundMapper refundMapper;
     private final RefundService refundService;
+    private final MiniProgramUserMapper miniProgramUserMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -531,12 +532,47 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private OrderDetailVO convertToDetailVO(Order order) {
         OrderDetailVO vo = new OrderDetailVO();
         BeanUtils.copyProperties(order, vo);
-        vo.setStatusDesc(OrderDetailVO.getStatusDesc(order.getStatus()));
+
+        // 已有物流单号但状态仍为 paid 时，展示为已发货（兼容脏种子数据）
+        String status = order.getStatus();
+        if ("paid".equals(status) && StringUtils.hasText(order.getLogisticsNo())) {
+            status = "shipped";
+            vo.setStatus(status);
+            if (vo.getShippedAt() == null && order.getUpdatedAt() != null) {
+                vo.setShippedAt(order.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+        }
+        vo.setStatusDesc(OrderDetailVO.getStatusDesc(status));
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         vo.setPaidAt(order.getPaidAt() == null ? null : order.getPaidAt().format(dateTimeFormatter));
-        vo.setShippedAt(order.getShippedAt() == null ? null : order.getShippedAt().format(dateTimeFormatter));
+        if (vo.getShippedAt() == null) {
+            vo.setShippedAt(order.getShippedAt() == null ? null : order.getShippedAt().format(dateTimeFormatter));
+        }
         vo.setCreatedAt(order.getCreatedAt() == null ? null : order.getCreatedAt().format(dateTimeFormatter));
         vo.setUpdatedAt(order.getUpdatedAt() == null ? null : order.getUpdatedAt().format(dateTimeFormatter));
+
+        // 用户昵称
+        if (order.getUserId() != null) {
+            MiniProgramUser user = miniProgramUserMapper.selectById(order.getUserId());
+            if (user != null) {
+                vo.setUserNickname(StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getPhone());
+            }
+        }
+
+        // 支付方式 / 支付时间（订单 paidAt 为空时回落支付单）
+        Payment payment = paymentMapper.selectOne(new LambdaQueryWrapper<Payment>()
+                .eq(Payment::getOrderId, order.getId())
+                .eq(Payment::getStatus, "success")
+                .orderByDesc(Payment::getId)
+                .last("LIMIT 1"));
+        if (payment != null) {
+            vo.setPaymentMethod(payment.getPayMethod());
+            if (vo.getPaidAt() == null && payment.getPaidAt() != null) {
+                vo.setPaidAt(payment.getPaidAt().format(dateTimeFormatter));
+            }
+        } else if ("paid".equals(order.getStatus()) || "shipped".equals(status) || "completed".equals(status)) {
+            vo.setPaymentMethod("wechat");
+        }
 
         // 地址快照
         if (StringUtils.hasText(order.getAddressSnapshot())) {

@@ -1,0 +1,232 @@
+{"PASS":100,"BLOCKED":2,"FAIL":44,"PARTIAL":39}
+FP-UI-001	PASS	list rendered
+FP-UI-002	PASS	empty footer
+FP-UI-003	PASS	table has v-loading; observed list reload after search
+FP-UI-004	PASS	abort GET /pages
+FP-UI-005	BLOCKED	无低权限账号，无法看无权限态
+FP-UI-006	PASS	keyword 出海
+FP-UI-007	PASS	type select 首页/专题/自定义
+FP-UI-008	PASS	status select 已发布/草稿/未发布
+FP-UI-009	PASS	el-pagination
+FP-UI-010	PASS	page-sizes 10/20/50
+FP-UI-011	PASS	new buttons=2
+FP-UI-012	PASS	name field
+FP-UI-013	PASS	请输入页面名称
+FP-UI-014	FAIL	maxlength=50 expected 128
+FP-UI-015	PASS	type options
+FP-UI-016	PASS	path field
+FP-UI-017	PASS	auto path button
+FP-UI-018	PASS	share title
+FP-UI-019	FAIL	no share_image in create dialog
+FP-UI-020	PASS	http://127.0.0.1:3000/page-builder/editor/10
+FP-UI-021	PASS	cancel closes
+FP-UI-022	PASS	http://127.0.0.1:3000/page-builder/editor/10
+FP-UI-023	PASS	list publish/unpublish button
+FP-UI-024	PASS	same button toggles
+FP-UI-025	FAIL	more menu has 删除
+FP-UI-026	PASS	editor chrome
+FP-UI-027	PASS	editor loaded after networkidle
+FP-UI-028	FAIL	no dedicated editor request-fail UI observed this run beyond list abort
+FP-UI-029	BLOCKED	无低权限账号
+FP-UI-030	PASS	empty canvas copy
+FP-UI-031	PASS	http://127.0.0.1:3000/login?redirect=/page-builder/editor/10
+FP-UI-182	PASS	unauth editor
+FP-UI-032	PASS	back button
+FP-UI-033	PASS	leave confirm boxes=2
+FP-UI-034	PASS	undo button
+FP-UI-035	PASS	redo button
+FP-UI-036	PARTIAL	undo disabled at start? after add may be enabled
+FP-UI-037	PASS	clicked 保存草稿
+FP-UI-038	PARTIAL	autosave label
+FP-UI-039	PASS	abort draft
+FP-UI-040	PARTIAL	API 300409 exists; UI conflict dialog not triggered this run
+FP-UI-041	PASS	preview btn
+FP-UI-042	PASS	publish clicked
+FP-UI-083	PASS	发布前检查
+可以发布，但建议先确认
+共 1 个组件 · 1 项提醒
+页面结构
+1 个组件已加载
+保存状态
+草稿已保存为最新版本
+建议确认
+所有轮播图图片地址为空，请至少设置一张图片
+返回修改
+确认并发布
+FP-UI-084	PASS	发布前检查
+可以发布，但建议先确认
+共 1 个组件 · 1 项提醒
+页面结构
+1 个组件已加载
+保存状态
+草稿已保存为最新版本
+建议确认
+所有轮播图图片地址为空，请至少设置一张图片
+返回修改
+确认并发布
+FP-UI-043	PARTIAL	publish updates current_version covered by API-046; UI publish skipped to avoid extra published pages beyond QA
+FP-UI-085	PARTIAL	publish result panel exists in editor; not executed on live home
+FP-UI-044	PASS	history menu
+FP-UI-045	FAIL	view DSL
+FP-UI-089	FAIL	schema 1.0
+FP-UI-046	PASS	copy DSL button
+FP-UI-047	FAIL	no 导入 DSL in editor more menu
+FP-UI-048	FAIL	导入 DSL 入口不存在，无法测缺字段导入
+FP-UI-049	PASS	toggle left
+FP-UI-050	PASS	toggle right
+FP-UI-051	FAIL	page name
+FP-UI-052	PASS	bg color
+FP-UI-053	FAIL	share title in props
+FP-UI-054	FAIL	share_image missing in props
+FP-UI-055	FAIL	pull_refresh
+FP-UI-056	FAIL	reach_bottom
+FP-UI-057	PASS	search 轮播
+FP-UI-058	PASS	click add banner
+FP-UI-059	PARTIAL	drag handlers exist; click-add used instead of full drag
+FP-UI-060	PASS	structure tree
+FP-UI-062	PASS	canvas item selectable
+FP-UI-064	PASS	copy shortcut hint
+FP-UI-065	PARTIAL	move-up control
+FP-UI-066	PARTIAL	move-down control
+FP-UI-067	PASS	draggable items
+FP-UI-068	PASS	zoom controls
+FP-UI-069	PASS	margin top cell
+FP-UI-070	PASS	margin bottom
+FP-UI-071	PASS	margin left
+FP-UI-072	PASS	margin right
+FP-UI-073	FAIL	no padding_top control
+FP-UI-074	FAIL	no padding_bottom
+FP-UI-075	FAIL	no padding_left
+FP-UI-076	FAIL	no padding_right
+FP-UI-077	PASS	style bg
+FP-UI-078	PASS	radius
+FP-UI-079	FAIL	no visible=false control
+FP-UI-080	PASS	小程序端实时预览
+小程序端实时预览 · 当前模式： 真实数据
+真实数据
+演示数据
+首页
+内容
+会员
+商城
+我的
+当前展示线上可用的真实数据。
+18:10
+首页
+
+FP-UI-081	PASS	demo mode option
+FP-UI-082	PASS	preview tabs
+FP-UI-086	PASS	version.vue has 与当前版本对比 copy (opened via 历史版本 later)
+FP-UI-087	PARTIAL	rollback API PASS; UI history entry present
+FP-UI-088	PASS	template center
+FP-UI-090	PASS	component ids generated uniquely on add
+FP-UI-183	PASS	editor id=10
+FP-UI-184	PASS	历史版本 routes to version/:id
+FP-UI-061	PASS	structure delete confirm
+FP-UI-063	PASS	same confirm path
+FP-UI-091	PASS	banner add
+FP-UI-095	PASS	autoplay
+FP-UI-096	PASS	interval
+FP-UI-097	PASS	dots
+FP-UI-092	PARTIAL	items editor present; empty not forced
+FP-UI-093	FAIL	no image-error placeholder control in banner props
+FP-UI-094	PARTIAL	banner defaults with one empty image; missing-items validation not shown
+FP-UI-098	PARTIAL	link types page/url/miniapp; click jump is miniapp-side
+FP-UI-099	PASS	nav
+FP-UI-100	PARTIAL	nav default items; empty not forced
+FP-UI-101	PARTIAL	缺 items 未单独校验
+FP-UI-102	FAIL	nav columns
+FP-UI-103	PARTIAL	nav click jump is miniapp-side
+FP-UI-104	PASS	product_list
+FP-UI-105	PARTIAL	empty data depends on backend list
+FP-UI-106	PARTIAL	preview loading not isolated
+FP-UI-107	PARTIAL	preview fail兜底 not isolated this run
+FP-UI-108	FAIL	layout=columns 1/2/3 not grid/list/waterfall
+FP-UI-109	PARTIAL	product click jump miniapp-side
+FP-UI-110	PASS	auto product source
+FP-UI-152	FAIL	no category_id field
+FP-UI-153	FAIL	no product_type
+FP-UI-154	PASS	status on_sale implied
+FP-UI-155	PASS	sort_by
+FP-UI-156	PARTIAL	sort_order derived from sort_by, no independent control
+FP-UI-157	PASS	limit
+FP-UI-111	PASS	article_list
+FP-UI-112	PARTIAL	empty article not forced
+FP-UI-113	PARTIAL	loading not isolated
+FP-UI-114	PARTIAL	fail兜底 not isolated
+FP-UI-115	PASS	当前组件
+文章列表
+取消选中
+内容与数据
+样式
+自动读取已发布文章
+数据源已连接，预览时显示真实内容
+管理数据
+标题
+样式
+卡片
+列表
+显示封面
+显示日期
+显示
+FP-UI-116	PARTIAL	article click miniapp-side
+FP-UI-117	PASS	content source
+FP-UI-158	FAIL	content category_id
+FP-UI-159	FAIL	content type
+FP-UI-160	FAIL	is_recommended
+FP-UI-161	PASS	content sort
+FP-UI-162	PASS	content limit
+FP-UI-118	PASS	activity_entry
+FP-UI-119	PARTIAL	empty activity
+FP-UI-120	PARTIAL	loading
+FP-UI-121	PARTIAL	fail
+FP-UI-122	FAIL	countdown switch
+FP-UI-123	FAIL	quota switch
+FP-UI-124	PARTIAL	click miniapp
+FP-UI-125	PASS	activity source
+FP-UI-163	PASS	activity type query
+FP-UI-164	FAIL	status registering
+FP-UI-165	FAIL	activity recommended
+FP-UI-166	FAIL	activity limit
+FP-UI-126	PASS	member_card
+FP-UI-127	PARTIAL	empty/unlogin is miniapp-side
+FP-UI-128	PASS	coupon
+FP-UI-129	PARTIAL	empty coupon
+FP-UI-130	PARTIAL	loading
+FP-UI-131	PARTIAL	fail
+FP-UI-132	FAIL	claim btn config
+FP-UI-133	PASS	coupon source
+FP-UI-167	FAIL	coupon type
+FP-UI-168	FAIL	coupon status
+FP-UI-169	PASS	coupon limit
+FP-UI-134	PASS	video
+FP-UI-135	PASS	src field
+FP-UI-136	PARTIAL	play is preview/miniapp
+FP-UI-137	PASS	poster
+FP-UI-138	PASS	countdown
+FP-UI-139	PASS	target_time
+FP-UI-140	PASS	ended_text
+FP-UI-141	FAIL	format
+FP-UI-142	PASS	float_button
+FP-UI-143	PASS	icon
+FP-UI-144	PARTIAL	float click miniapp
+FP-UI-145	PASS	position
+FP-UI-146	PASS	rich_text
+FP-UI-147	PARTIAL	empty content not forced
+FP-UI-148	PASS	divider
+FP-UI-149	PASS	spacer
+FP-UI-150	FAIL	data_source.type 未作为必填校验展示
+FP-UI-151	FAIL	data_source.query 未作为必填校验展示
+FP-UI-179	PASS	components render from props without data_source
+FP-UI-180	PARTIAL	real-data preview requests when data_source present; not fully isolated
+FP-UI-178	FAIL	unknown type skip/log not exercised in admin canvas
+FP-UI-170	PARTIAL	banner link_type=page exists; wx.navigateTo not run (avoid stealing DevTools)
+FP-UI-171	FAIL	url option not named webview
+FP-UI-172	FAIL	miniapp option
+FP-UI-173	FAIL	no phone jump type in banner
+FP-UI-174	FAIL	no type=none
+FP-UI-175	FAIL	缺 type 未校验
+FP-UI-176	FAIL	缺 target 未校验
+FP-UI-177	PARTIAL	link_url present; params not a structured field
+FP-UI-181	PASS	GET /mp/pages draft-only returned 未发布; see BATCH-QA-010
+FP-UI-185	PARTIAL	publish result shows path; miniapp package may not include custom path (BUG-UI-002)

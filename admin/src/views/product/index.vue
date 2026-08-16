@@ -189,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
@@ -565,6 +565,10 @@ function statusTagType(status: ProductRow['status']) {
 onMounted(async () => {
   restoreListState()
   await fetchCategories()
+  await Promise.all([fetchList(), fetchStats()])
+})
+
+onActivated(async () => {
   await Promise.all([fetchList(), fetchStats()])
 })
 </script>

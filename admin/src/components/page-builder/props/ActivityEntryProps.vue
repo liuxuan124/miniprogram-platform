@@ -59,12 +59,19 @@
       <el-form-item label="显示按钮">
         <el-switch :model-value="data.show_button !== false" @change="(v: boolean) => emit('update', { show_button: v })" />
       </el-form-item>
+      <el-form-item label="显示倒计时">
+        <el-switch :model-value="data.show_countdown !== false" @change="(v: boolean) => emit('update', { show_countdown: v, countdown: v })" />
+      </el-form-item>
+      <el-form-item label="显示名额">
+        <el-switch :model-value="data.show_quota !== false" @change="(v: boolean) => emit('update', { show_quota: v })" />
+      </el-form-item>
 
       <el-divider content-position="left" class="field-divider">外观与跳转</el-divider>
       <el-form-item label="卡片样式">
-        <el-radio-group :model-value="data.style_type || 'card'" @change="(v: string) => emit('update', { style_type: v })">
+        <el-radio-group :model-value="layoutValue" @change="onLayoutChange">
           <el-radio-button value="card">卡片</el-radio-button>
-          <el-radio-button value="full">通栏</el-radio-button>
+          <el-radio-button value="banner">通栏</el-radio-button>
+          <el-radio-button value="list">列表</el-radio-button>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="主题色">
@@ -78,12 +85,33 @@
       <el-form-item label="链接类型">
         <el-select :model-value="data.link_type || 'page'" @change="(v: string) => emit('update', { link_type: v })" style="width: 100%">
           <el-option label="页面" value="page" />
+          <el-option label="网页" value="webview" />
           <el-option label="外链" value="url" />
           <el-option label="小程序" value="miniapp" />
+          <el-option label="拨打电话" value="phone" />
+          <el-option label="无跳转" value="none" />
         </el-select>
       </el-form-item>
       <el-form-item label="链接地址">
         <el-input :model-value="data.link_url || ''" @input="emit('update', { link_url: $event })" placeholder="/pages/activity-detail/..." />
+      </el-form-item>
+
+      <el-divider content-position="left" class="field-divider">数据源</el-divider>
+      <el-form-item label="报名中">
+        <el-switch
+          :model-value="queryParams.status === 'registering' || queryParams.status == null"
+          @change="(v: boolean) => patchQuery({ status: v ? 'registering' : undefined })"
+        />
+        <div class="field-hint">开启后只展示正在报名的活动</div>
+      </el-form-item>
+      <el-form-item label="仅推荐">
+        <el-switch
+          :model-value="queryParams.is_recommended === true || queryParams.is_recommended === 1 || queryParams.is_recommended === '1'"
+          @change="(v: boolean) => patchQuery({ is_recommended: v ? true : undefined })"
+        />
+      </el-form-item>
+      <el-form-item label="显示数量">
+        <el-input-number :model-value="Number(data.limit || 4)" :min="1" :max="50" @change="(v: number) => emit('update', { limit: v })" />
       </el-form-item>
 
       <TitleFontSizeFields
@@ -109,6 +137,38 @@ const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const { uploadImage } = useImageUpload()
 const imagePreview = computed(() => normalizeUploadUrl(String(data.image || '')))
+
+const queryParams = computed(() => {
+  const ds = data.data_source || {}
+  return { ...(ds.query || {}), ...(ds.params || {}), ...(ds.config?.params || {}) }
+})
+
+const layoutValue = computed(() => {
+  if (data.layout === 'banner' || data.style_type === 'full') return 'banner'
+  if (data.layout === 'list' || data.style_type === 'list') return 'list'
+  return 'card'
+})
+
+function onLayoutChange(val: string) {
+  emit('update', {
+    layout: val,
+    style_type: val === 'banner' ? 'full' : val,
+  })
+}
+
+function patchQuery(patch: Record<string, any>) {
+  const params = { ...queryParams.value, ...patch }
+  Object.keys(params).forEach((key) => {
+    if (params[key] === '' || params[key] === null || params[key] === undefined) delete params[key]
+  })
+  emit('update', {
+    data_source: {
+      type: 'activity',
+      params,
+      query: params,
+    },
+  })
+}
 
 function parseDateParts(raw?: string) {
   const text = String(raw || '').trim()

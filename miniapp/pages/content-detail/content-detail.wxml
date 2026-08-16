@@ -1,11 +1,12 @@
 <!-- pages/content-detail/content-detail.wxml -->
 <view class="content-detail-page {{isNote ? 'is-note' : 'is-article'}}">
   <view class="skeleton-wrap" wx:if="{{loading}}">
-    <t-skeleton
-      theme="paragraph"
-      animation="gradient"
-      row-col="{{[{width:'120rpx',height:'36rpx'},{width:'100%'},{width:'60%'},{width:'100%',height:'400rpx'},{width:'100%'},{width:'80%'}]}}"
-    />
+    <view class="sk-line sk-line--sm"></view>
+    <view class="sk-line"></view>
+    <view class="sk-line sk-line--md"></view>
+    <view class="sk-block"></view>
+    <view class="sk-line"></view>
+    <view class="sk-line sk-line--lg"></view>
   </view>
 
   <!-- ========== 笔记：小红书图文 ========== -->
@@ -44,22 +45,38 @@
       <view class="a-meta">
         <view class="av">哲</view>
         <view class="a-meta-txt">
-          <view class="nm">出海笔记 · 阿哲</view>
+          <view class="nm">{{authorName}}</view>
           <view class="dt">{{article.publish_time}}</view>
         </view>
-        <view class="follow {{followed ? 'on' : ''}}" bindtap="onFollowTap">{{followed ? '已关注' : '+ 关注'}}</view>
+        <view
+          class="follow {{followed ? 'on' : ''}}"
+          catchtap="onFollowTap"
+          hover-class="follow--pressed"
+        >{{followed ? '已关注' : '+ 关注'}}</view>
       </view>
 
       <view class="n-actions">
-        <view class="{{liked ? 'hot' : ''}}" bindtap="onLikeTap">♡ {{likeStat || article.like_count || 0}}</view>
-        <view bindtap="onCommentTap">💬 86</view>
-        <view bindtap="onFavoriteTap">{{favorited ? '★ 已收藏' : '🔖 收藏'}}</view>
-        <button class="n-share share-button-reset" open-type="share">↗ 分享</button>
+        <view class="n-act {{liked ? 'hot' : ''}}" bindtap="onLikeTap" hover-class="n-act--pressed">
+          <text class="n-act__icon">{{liked ? '♥' : '♡'}}</text>
+          <text>{{likeDisplay}}</text>
+        </view>
+        <view class="n-act" bindtap="onCommentTap" hover-class="n-act--pressed">
+          <text class="n-act__icon">💬</text>
+          <text>{{commentCountDisplay}}</text>
+        </view>
+        <view class="n-act {{favorited ? 'star' : ''}}" bindtap="onFavoriteTap" hover-class="n-act--pressed">
+          <text class="n-act__icon">{{favorited ? '★' : '☆'}}</text>
+          <text>{{favorited ? '已收藏' : '收藏'}}</text>
+        </view>
+        <button class="n-act n-share share-button-reset" open-type="share" hover-class="n-act--pressed">
+          <text class="n-act__icon">↗</text>
+          <text>分享</text>
+        </button>
       </view>
     </view>
 
     <view class="cross" wx:if="{{relatedProducts.length}}">
-      <view class="cross-lb">📎 这篇内容相关的知识产品</view>
+      <view class="cross-lb">这篇内容相关的好物</view>
       <view
         wx:for="{{relatedProducts}}"
         wx:key="id"
@@ -97,10 +114,14 @@
       <view class="a-meta">
         <view class="av">哲</view>
         <view class="a-meta-txt">
-          <view class="nm">出海笔记 · 阿哲</view>
+          <view class="nm">{{authorName}}</view>
           <view class="dt">{{article.publish_time}} · {{metaLine}}</view>
         </view>
-        <view class="follow {{followed ? 'on' : ''}}" bindtap="onFollowTap">{{followed ? '已关注' : '+ 关注'}}</view>
+        <view
+          class="follow {{followed ? 'on' : ''}}"
+          catchtap="onFollowTap"
+          hover-class="follow--pressed"
+        >{{followed ? '已关注' : '+ 关注'}}</view>
       </view>
 
       <view class="a-body">
@@ -108,19 +129,16 @@
       </view>
 
       <view class="detail-tags" wx:if="{{article.tags && article.tags.length}}">
-        <t-tag
+        <text
           wx:for="{{article.tags}}"
           wx:key="index"
-          variant="light"
-          size="small"
-          theme="primary"
           class="tag-comp"
-        >{{item}}</t-tag>
+        >{{item}}</text>
       </view>
     </view>
 
     <view class="cross" wx:if="{{relatedProducts.length}}">
-      <view class="cross-lb">📎 这篇内容相关的知识产品</view>
+      <view class="cross-lb">这篇内容相关的好物</view>
       <view
         wx:for="{{relatedProducts}}"
         wx:key="id"
@@ -135,23 +153,71 @@
         </view>
       </view>
     </view>
-    <view class="footer-spacer"></view>
+    <view class="footer-spacer footer-spacer--bar"></view>
   </view>
 
-  <!-- 底部栏：仅文章模式固定；笔记用页内 n-actions -->
+  <!-- 底部栏：文章模式 -->
   <view class="bottom-bar" wx:if="{{!isNote && !loading}}">
     <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
-      <t-icon name="{{liked ? 'heart-filled' : 'heart'}}" size="44rpx" color="{{liked ? '#ff4d4f' : '#a5abb9'}}" />
-      <text class="action-text">{{article.like_count || 0}}</text>
+      <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
+      <text class="action-text">{{likeDisplay}}</text>
+    </view>
+    <view class="action-item" bindtap="onCommentTap">
+      <text class="action-icon">💬</text>
+      <text class="action-text">{{commentCountDisplay}}</text>
     </view>
     <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap">
-      <t-icon name="{{favorited ? 'star-filled' : 'star'}}" size="44rpx" color="{{favorited ? '#ffaa00' : '#a5abb9'}}" />
+      <text class="action-icon {{favorited ? 'action-icon--star' : ''}}">{{favorited ? '★' : '☆'}}</text>
       <text class="action-text">{{favorited ? '已收藏' : '收藏'}}</text>
     </view>
     <button class="action-item share-button-reset" open-type="share">
-      <t-icon name="share" size="44rpx" color="#a5abb9" />
+      <text class="action-icon">↗</text>
       <text class="action-text">分享</text>
     </button>
+  </view>
+
+  <!-- 评论半屏 -->
+  <view class="cmt-mask" wx:if="{{showCommentSheet}}" catchtouchmove="noop" bindtap="onCloseCommentSheet"></view>
+  <view class="cmt-sheet {{showCommentSheet ? 'cmt-sheet--on' : ''}}" wx:if="{{showCommentSheet}}" catchtouchmove="noop">
+    <view class="cmt-sheet__handle"></view>
+    <view class="cmt-sheet__head">
+      <text class="cmt-sheet__title">评论 {{commentCount}}</text>
+      <view class="cmt-sheet__close" bindtap="onCloseCommentSheet">✕</view>
+    </view>
+
+    <scroll-view scroll-y class="cmt-list" enhanced show-scrollbar="{{false}}">
+      <view wx:if="{{!comments.length}}" class="cmt-empty">
+        <text>还没有评论，来说两句吧</text>
+      </view>
+      <view wx:for="{{comments}}" wx:key="id" class="cmt-item">
+        <view class="cmt-av">{{item.avatarText || '用'}}</view>
+        <view class="cmt-main">
+          <view class="cmt-top">
+            <text class="cmt-nick">{{item.nickName}}</text>
+            <text class="cmt-time">{{item.timeText}}</text>
+          </view>
+          <text class="cmt-text">{{item.content}}</text>
+        </view>
+      </view>
+      <view class="cmt-list__pad"></view>
+    </scroll-view>
+
+    <view class="cmt-composer">
+      <input
+        class="cmt-input"
+        placeholder="友善评论，交流经验"
+        placeholder-class="cmt-input__ph"
+        value="{{commentDraft}}"
+        maxlength="200"
+        confirm-type="send"
+        bindinput="onCommentInput"
+        bindconfirm="onSubmitComment"
+      />
+      <view
+        class="cmt-send {{commentDraft ? '' : 'cmt-send--off'}} {{commentSubmitting ? 'cmt-send--off' : ''}}"
+        bindtap="onSubmitComment"
+      >发送</view>
+    </view>
   </view>
 </view>
 <login-sheet id="global-login-sheet" />

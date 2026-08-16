@@ -1,8 +1,8 @@
 <template>
   <div class="template-center">
     <div class="ph">
-      <div class="pt">页面模板</div>
-      <div class="ps">选择预设模板快速创建页面，支持按行业、场景、风格筛选</div>
+      <div class="pt">模板</div>
+      <div class="ps">创建页面时选用。套用后就是普通页面，可继续在装修器里改。</div>
     </div>
 
     <div class="toolbar">
@@ -296,7 +296,9 @@ const industryCombos: Record<string, Array<{ name: string; desc: string; compone
 const filteredTemplates = computed(() => {
   return templates.value.filter((tpl) => {
     const byName = !keyword.value || tpl.name.includes(keyword.value.trim())
-    const byCategory = !selectedCategory.value || tpl.category === selectedCategory.value
+    const byCategory = !selectedCategory.value
+      || tpl.category === selectedCategory.value
+      || (selectedCategory.value === 'booking' && templateHasBooking(tpl))
     const byScene = !selectedScene.value || tpl.scene === selectedScene.value
     const industryCode = tpl.industryCode || (tpl as any).industry_code || ''
     const byIndustry = !selectedIndustry.value || !industryCode || industryCode === selectedIndustry.value
@@ -305,6 +307,15 @@ const filteredTemplates = computed(() => {
     return byName && byCategory && byScene && byIndustry && byStyle
   })
 })
+
+function templateHasBooking(tpl: TemplateUI): boolean {
+  if (tpl.category === 'booking') return true
+  const comps = tpl.components || (tpl as any).dsl?.components || []
+  return comps.some((c: any) => {
+    const type = String(c?.type || '')
+    return type === 'appointment_service' || type === ComponentType.AppointmentService
+  })
+}
 
 function makeComp(id: string, type: ComponentType, propsOverride?: Record<string, any>, styleOverride?: Record<string, any>): ComponentInstance {
   return {

@@ -1,10 +1,14 @@
 <template>
   <div class="render-product-list split-text-typography" :class="{ 'render-product-list--preview': previewMode }">
     <div v-if="component.props.title" class="section-title">{{ component.props.title }}</div>
-    <div v-if="previewMode && showDataWarning" class="preview-data-empty">
-      暂无商品数据，请确认商品已上架或稍后重试
+    <div v-if="showFailState" class="preview-data-empty preview-data-fail">
+      {{ failMessage }}
     </div>
-    <div v-else class="product-grid" :class="`cols-${component.props.columns || 2}`">
+    <div v-else-if="showEmptyState" class="preview-data-empty">
+      {{ previewMode ? '暂无商品数据，请确认商品已上架或稍后重试' : '当前筛选下没有已上架商品' }}
+    </div>
+    <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已上架商品…</div>
+    <div v-else class="product-grid" :class="[`layout-${productLayout}`, `cols-${columnCount}`]">
       <div
         v-for="(item, idx) in visibleProductItems"
         :key="`${item.id || 'p'}-${idx}`"
@@ -42,6 +46,7 @@ import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 import { titleFontStyle } from '../composables/titleFontStyle'
+import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 
 type PreviewProductItem = {
   id?: number | string
@@ -63,24 +68,46 @@ defineEmits<{
 const showPrice = computed(() => props.component.props?.show_price !== false)
 const showSales = computed(() => props.component.props?.show_sales !== false)
 const showCart = computed(() => props.component.props?.show_cart !== false)
+const productLayout = computed(() => {
+  const raw = String(props.component.props?.layout || 'grid')
+  return ['grid', 'list', 'waterfall'].includes(raw) ? raw : 'grid'
+})
+const columnCount = computed(() => {
+  if (productLayout.value === 'list') return 1
+  if (productLayout.value === 'waterfall') return 2
+  return Number(props.component.props?.columns || 2)
+})
 const itemTitleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 12))
 const itemMetaStyle = computed(() => titleFontStyle(props.component.props?.subtitle_font_size, 11))
 
-const editorFallbackItems: PreviewProductItem[] = [
-  { name: '湘品甄选礼盒', price: '99.00', sales: 128 },
-  { name: '药食同源组合', price: '99.00', sales: 86 },
-  { name: '品牌文创礼盒', price: '99.00', sales: 52 },
-  { name: '品牌定制马克杯', price: '99.00', sales: 31 },
-]
+const { items: liveItems, loading: liveLoading, empty: liveEmpty, failed: liveFailed } = useEditorLiveItems(
+  () => props.component,
+  () => !!props.previewMode,
+)
 
-const showDataWarning = computed(() => {
-  if (!props.previewMode) return false
-  const items = props.component.props?.items
-  return props.component.props?._previewDataFailed || !Array.isArray(items) || items.length === 0
+const showFailState = computed(() => {
+  if (props.previewMode) return !!props.component.props?._previewDataFailed
+  return liveFailed.value
+})
+
+const failMessage = computed(() =>
+  props.previewMode
+    ? '商品数据加载失败，请确认接口可用或稍后重试'
+    : '商品数据请求失败，请检查网络或数据源配置',
+)
+
+const showEmptyState = computed(() => {
+  if (showFailState.value) return false
+  if (props.previewMode) {
+    const items = props.component.props?.items
+    return !Array.isArray(items) || items.length === 0
+  }
+  return !liveLoading.value && liveEmpty.value
 })
 
 function normalizeItem(item: any, index: number): PreviewProductItem {
-  const sales = Number(item.sales ?? item.salesCount ?? item.sold ?? (120 - index * 17))
+  const salesRaw = item.sales ?? item.salesCount ?? item.sold
+  const sales = Number(salesRaw ?? 0)
   return {
     id: item.id,
     name: item.name || item.title || '商品名称',
@@ -99,8 +126,8 @@ const visibleProductItems = computed<PreviewProductItem[]>(() => {
     return items.slice(0, limit).map(normalizeItem)
   }
 
-  const normalized = Array.isArray(items) && items.length > 0 ? items : editorFallbackItems
-  return normalized.slice(0, limit).map(normalizeItem)
+  const source = liveItems.value.length ? liveItems.value : (Array.isArray(items) ? items : [])
+  return source.slice(0, limit).map(normalizeItem)
 })
 
 function onCartClick(item: PreviewProductItem) {
@@ -130,6 +157,11 @@ function onCartClick(item: PreviewProductItem) {
     border-radius: var(--card-radius, 10px);
   }
 
+  .preview-data-fail {
+    color: #b45309;
+    background: #fffbeb;
+  }
+
   .product-grid {
     display: grid;
     gap: 8px;
@@ -144,6 +176,37 @@ function onCartClick(item: PreviewProductItem) {
 
     &.cols-3 {
       grid-template-columns: repeat(3, 1fr);
+    }
+
+    &.layout-list {
+      grid-template-columns: 1fr;
+
+      .product-card {
+        display: flex;
+        flex-direction: row;
+
+        .product-img {
+          width: 92px;
+          height: 92px;
+          flex-shrink: 0;
+        }
+
+        .product-info {
+          flex: 1;
+        }
+      }
+    }
+
+    &.layout-waterfall {
+      grid-template-columns: 1fr 1fr;
+
+      .product-card:nth-child(odd) .product-img {
+        height: 118px;
+      }
+
+      .product-card:nth-child(even) .product-img {
+        height: 78px;
+      }
     }
   }
 

@@ -1,0 +1,24 @@
+/* pkg-trade/order-paid/order-paid.wxss */
+.paid-page { min-height: 100vh; background: var(--bg); padding: 40rpx 24rpx 80rpx; }
+.hero { text-align: center; padding: 40rpx 0 32rpx; }
+.ok { width: 112rpx; height: 112rpx; margin: 0 auto; border-radius: 50%; background: linear-gradient(145deg,#34d399,var(--ok)); color:#fff; font-size: 56rpx; display:flex; align-items:center; justify-content:center; box-shadow: 0 16rpx 40rpx rgba(15,180,127,.35); }
+.title { margin-top: 24rpx; font-size: 40rpx; font-weight: 800; }
+.sub { margin-top: 12rpx; font-size: 26rpx; color: var(--ink-500); line-height: 1.6; }
+.card { background:#fff; border-radius: 32rpx; box-shadow: var(--sh1); padding: 28rpx; margin-bottom: 20rpx; }
+.receipt .row { display:flex; justify-content:space-between; gap: 20rpx; padding: 14rpx 0; font-size: 26rpx; color: var(--ink-500); border-bottom: 1rpx solid var(--line-2); }
+.receipt .row:last-child { border-bottom: none; }
+.price { color: var(--accent); font-weight: 800; }
+.ellipsis { max-width: 60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color: var(--ink); }
+.reward { display:flex; align-items:center; gap: 16rpx; background: linear-gradient(135deg,#fff9ea,#fffdf7); border: 1rpx solid #f7e6c4; }
+.reward .ic { font-size: 36rpx; }
+.reward .t { font-size: 28rpx; font-weight: 700; color: #a37200; }
+.reward .d { font-size: 22rpx; color: #a37200; margin-top: 6rpx; }
+.reward .go { margin-left: auto; color: #a37200; font-size: 24rpx; font-weight: 600; }
+.actions { display:flex; gap: 16rpx; margin: 28rpx 0 40rpx; }
+.btn { flex:1; height: 88rpx; border-radius: 999rpx; display:flex; align-items:center; justify-content:center; font-weight:700; font-size: 28rpx; }
+.sec-h { font-size: 30rpx; font-weight: 800; margin-bottom: 20rpx; }
+.recs { display:flex; gap: 16rpx; overflow-x: auto; }
+.rec { width: 220rpx; flex-shrink: 0; background:#fff; border-radius: 24rpx; overflow:hidden; box-shadow: var(--sh1); }
+.rec image { width: 220rpx; height: 160rpx; background: var(--line-2); }
+.rec .n { padding: 12rpx 16rpx 0; font-size: 24rpx; font-weight: 600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rec .p { padding: 8rpx 16rpx 16rpx; color: var(--accent); font-weight: 700; font-size: 26rpx; }

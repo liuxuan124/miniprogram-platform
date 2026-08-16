@@ -6,6 +6,15 @@ const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
 const { requestPayment } = require('../../utils/payment')
 
+function readWalletBalance() {
+  const user = AuthUtil.getUserInfo() || {}
+  const app = getApp()
+  const gUser = (app && app.globalData && app.globalData.userInfo) || {}
+  const raw = user.balance != null ? user.balance : gUser.balance
+  const n = parseFloat(raw)
+  return (Number.isFinite(n) ? n : 0).toFixed(2)
+}
+
 Page({
   data: {
     // 来源
@@ -32,6 +41,7 @@ Page({
     isVirtual: true,
     payAmount: '0.00',
     payMethod: 'wechat',
+    walletBalance: '0.00',
   },
 
   onLoad(options) {
@@ -48,11 +58,8 @@ Page({
     if (options.items) {
       try {
         const items = JSON.parse(decodeURIComponent(options.items))
-        const isVirtual = items.every((it) => {
-          const t = it.productType || it.product_type || it.type || ''
-          return t === 'digital' || t === 'service' || t === 'ebook' || t === 'consult' || !t
-        })
-        this.setData({ items, isVirtual, hasAddress: isVirtual })
+        // 商城仅售实物：始终需要收货地址
+        this.setData({ items, isVirtual: false, hasAddress: false })
         this._calcTotal()
       } catch (e) {
         wx.showToast({ title: '参数错误', icon: 'none' })
@@ -100,7 +107,7 @@ Page({
   /** 选择地址 */
   onSelectAddress() {
     wx.navigateTo({
-      url: '/pages/address-list/address-list?mode=select',
+      url: '/pkg-user/address-list/address-list?mode=select',
       events: {
         selectAddress: (data) => {
           this.setData({
@@ -166,6 +173,7 @@ Page({
         this.setData({
           submitting: false,
           payAmount: Number(amount).toFixed(2),
+          walletBalance: readWalletBalance(),
           showPaySheet: true,
           pendingOrder: {
             id: orderId,
@@ -173,7 +181,7 @@ Page({
             amount: Number(amount).toFixed(2),
             name: (this.data.items[0] && (this.data.items[0].product_name || this.data.items[0].name)) || '知识商品',
             productId: (this.data.items[0] && (this.data.items[0].productId || this.data.items[0].product_id)) || '',
-            type: (this.data.items[0] && (this.data.items[0].productType || this.data.items[0].product_type)) || 'digital',
+            type: (this.data.items[0] && (this.data.items[0].productType || this.data.items[0].product_type)) || 'physical',
           },
         })
       })
@@ -187,24 +195,85 @@ Page({
     this.setData({ showPaySheet: false })
     const o = this.data.pendingOrder
     if (o && o.id) {
-      wx.redirectTo({ url: `/pages/order-detail/order-detail?id=${o.id}` })
+      wx.redirectTo({ url: `/pkg-trade/order-detail/order-detail?id=${o.id}` })
     }
   },
 
-  onPayConfirm() {
+  onPayConfirm(e) {
+    if (this.data.paying) return
+    const detail = (e && e.detail) || {}
+    const method = detail.method || 'wechat'
+    this.setData({ payMethod: method })
+
+    if (method === 'balance') {
+      this._handleBalancePay(detail)
+      return
+    }
+    this._doWechatPay()
+  },
+
+  _handleBalancePay(detail) {
+    const amount = parseFloat(detail.amount != null ? detail.amount : this.data.payAmount) || 0
+    const balance = parseFloat(detail.balance != null ? detail.balance : this.data.walletBalance) || 0
+    if (balance < amount) {
+      wx.showModal({
+        title: '余额不足',
+        content: `当前可用余额 ¥${balance.toFixed(2)}，本单需支付 ¥${amount.toFixed(2)}。可改用微信支付，或前往充值后再试。`,
+        confirmText: '微信支付',
+        cancelText: '去充值',
+        success: (res) => {
+          if (res.confirm) {
+            const sheet = this.selectComponent('#pay-sheet')
+            if (sheet && sheet.switchToWechat) sheet.switchToWechat()
+            this._doWechatPay()
+          } else if (res.cancel) {
+            this._goRecharge()
+          }
+        },
+      })
+      return
+    }
+    // 后端暂未开通余额扣款，充足时也引导微信，避免误以为已扣款
+    wx.showModal({
+      title: '提示',
+      content: '余额支付暂未开通，请使用微信支付完成付款。',
+      confirmText: '微信支付',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          const sheet = this.selectComponent('#pay-sheet')
+          if (sheet && sheet.switchToWechat) sheet.switchToWechat()
+          this._doWechatPay()
+        }
+      },
+    })
+  },
+
+  _goRecharge() {
+    this.setData({ showPaySheet: false })
+    const o = this.data.pendingOrder
+    wx.showToast({ title: '充值入口即将开放', icon: 'none' })
+    setTimeout(() => {
+      if (o && o.id) {
+        wx.redirectTo({ url: `/pkg-trade/order-detail/order-detail?id=${o.id}` })
+      }
+    }, 500)
+  },
+
+  _doWechatPay() {
     if (this.data.paying) return
     const o = this.data.pendingOrder || {}
     if (!o.id) {
       wx.showToast({ title: '订单信息异常，请重新下单', icon: 'none' })
       return
     }
-    this.setData({ paying: true })
+    this.setData({ paying: true, payMethod: 'wechat' })
     orderService.payOrder(o.id)
       .then((params) => requestPayment(params))
       .then(() => {
         this.setData({ paying: false, showPaySheet: false })
         wx.redirectTo({
-          url: `/pages/order-paid/order-paid?orderId=${o.id}&orderNo=${encodeURIComponent(o.orderNo || '')}&amount=${o.amount || this.data.payAmount}&name=${encodeURIComponent(o.name || '')}&productId=${o.productId || ''}&type=${o.type || 'digital'}`,
+          url: `/pkg-trade/order-paid/order-paid?orderId=${o.id}&orderNo=${encodeURIComponent(o.orderNo || '')}&amount=${o.amount || this.data.payAmount}&name=${encodeURIComponent(o.name || '')}&productId=${o.productId || ''}&type=${o.type || 'physical'}`,
         })
       })
       .catch((err) => {

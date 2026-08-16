@@ -1,0 +1,240 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e3]:
+    - complementary [ref=f8e4]:
+      - generic [ref=f8e7]:
+        - strong [ref=f8e8]: 小程序运营系统
+        - generic [ref=f8e9]: 多场景搭建与运营平台
+      - generic [ref=f8e12]:
+        - generic [ref=f8e13]:
+          - generic [ref=f8e14]: 总览
+          - button "工作台" [ref=f8e15] [cursor=pointer]
+        - generic [ref=f8e23]:
+          - generic [ref=f8e24]: 页面装修
+          - button "搭建小程序" [ref=f8e25] [cursor=pointer]
+          - button "页面管理" [ref=f8e31] [cursor=pointer]
+          - button "页面模板" [ref=f8e37] [cursor=pointer]
+        - generic [ref=f8e43]:
+          - generic [ref=f8e44]: 内容运营
+          - button "内容管理" [ref=f8e45] [cursor=pointer]
+          - button "表单管理" [ref=f8e52] [cursor=pointer]
+        - generic [ref=f8e58]:
+          - generic [ref=f8e59]: 用户与会员
+          - button "会员管理" [ref=f8e60] [cursor=pointer]
+          - button "用户管理" [ref=f8e67] [cursor=pointer]
+        - generic [ref=f8e73]:
+          - generic [ref=f8e74]: 商业变现
+          - button "商品管理" [ref=f8e75] [cursor=pointer]
+          - button "订单管理" [ref=f8e81] [cursor=pointer]
+          - button "营销管理" [ref=f8e89] [cursor=pointer]
+        - generic [ref=f8e98]:
+          - generic [ref=f8e99]: 活动与预约
+          - button "活动管理" [ref=f8e100] [cursor=pointer]
+          - button "预约管理" [ref=f8e106] [cursor=pointer]
+        - generic [ref=f8e112]:
+          - generic [ref=f8e113]: 经营
+          - button "财务管理" [ref=f8e115] [cursor=pointer]
+          - button "智能 Agent" [ref=f8e126] [cursor=pointer]
+        - generic [ref=f8e132]:
+          - generic [ref=f8e133]: 系统
+          - button "素材库" [ref=f8e134] [cursor=pointer]
+          - button "系统设置" [ref=f8e141] [cursor=pointer]
+    - generic [ref=f8e147]:
+      - generic [ref=f8e149]:
+        - generic [ref=f8e150]:
+          - button "收起侧边栏" [ref=f8e151] [cursor=pointer]
+          - navigation "面包屑" [ref=f8e154]:
+            - generic [ref=f8e155]:
+              - link "内容管理" [ref=f8e156]
+              - text: /
+            - link "文章管理" [ref=f8e158]
+        - button "超级管理员" [ref=f8e161] [cursor=pointer]
+      - generic [ref=f8e172]:
+        - link "文章管理 关闭标签 文章管理" [ref=f8e173] [cursor=pointer]:
+          - /url: /content/article
+          - generic [ref=f8e174]: 文章管理
+          - button "关闭标签 文章管理" [ref=f8e175]
+        - link "工作台" [ref=f8e178] [cursor=pointer]:
+          - /url: /dashboard
+      - main [ref=f8e180]:
+        - generic [ref=f8e181]:
+          - generic [ref=f8e183]:
+            - generic [ref=f8e184]: 内容管理
+            - generic [ref=f8e185]: 文章、图文、视频，支持分类、推荐、上下架。
+          - generic [ref=f8e186]:
+            - textbox "搜索标题" [ref=f8e189]
+            - generic [ref=f8e192] [cursor=pointer]:
+              - generic:
+                - combobox [ref=f8e194]
+                - generic [ref=f8e195]: 类型：全部
+            - generic [ref=f8e201] [cursor=pointer]:
+              - generic:
+                - combobox [ref=f8e203]
+                - generic [ref=f8e204]: 分类：全部
+            - generic [ref=f8e210] [cursor=pointer]:
+              - generic:
+                - combobox [ref=f8e212]
+                - generic [ref=f8e213]: 来源：全部
+            - button "分类" [ref=f8e218] [cursor=pointer]
+            - button "同步导入" [ref=f8e220] [cursor=pointer]
+            - button "+ 新建" [ref=f8e222] [cursor=pointer]
+          - generic [ref=f8e224]:
+            - generic [ref=f8e603]:
+              - table [ref=f8e605]:
+                - rowgroup [ref=f8e614]:
+                  - row [ref=f8e615]:
+                    - columnheader "标题" [ref=f8e616]
+                    - columnheader "来源" [ref=f8e618]
+                    - columnheader "类型" [ref=f8e620]
+                    - columnheader "分类" [ref=f8e622]
+                    - columnheader "状态" [ref=f8e624]
+                    - columnheader "阅读" [ref=f8e626]
+                    - columnheader "操作" [ref=f8e628]
+              - table [ref=f8e634]:
+                - rowgroup [ref=f8e643]:
+                  - row [ref=f8e644]:
+                    - cell "TikTok Shop 起号 3 个月，完整数据复盘" [ref=f8e645]
+                    - cell "视频" [ref=f8e649]
+                    - cell "图文" [ref=f8e651]
+                    - cell "平台运营" [ref=f8e653]
+                    - cell "已发布" [ref=f8e655]
+                    - cell "3" [ref=f8e657]
+                    - cell [ref=f8e659]:
+                      - generic [ref=f8e660]:
+                        - button "编辑" [ref=f8e661] [cursor=pointer]
+                        - button "下架" [ref=f8e663] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e665] [cursor=pointer]
+                  - row [ref=f8e667]:
+                    - cell "品牌开放日：从产品到体验的完整旅程" [ref=f8e668]
+                    - cell "本地联调" [ref=f8e672]
+                    - cell "文章" [ref=f8e674]
+                    - cell "活动资讯" [ref=f8e676]
+                    - cell "已发布" [ref=f8e678]
+                    - cell "1286" [ref=f8e680]
+                    - cell [ref=f8e682]:
+                      - generic [ref=f8e683]:
+                        - button "编辑" [ref=f8e684] [cursor=pointer]
+                        - button "下架" [ref=f8e686] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e688] [cursor=pointer]
+                  - row [ref=f8e690]:
+                    - cell "亚马逊选品：从搜索词到利润模型的完整清单" [ref=f8e691]
+                    - cell "原创" [ref=f8e695]
+                    - cell "图文" [ref=f8e697]
+                    - cell "选品方法论" [ref=f8e699]
+                    - cell "草稿" [ref=f8e701]
+                    - cell "1" [ref=f8e703]
+                    - cell [ref=f8e705]:
+                      - generic [ref=f8e706]:
+                        - button "编辑" [ref=f8e707] [cursor=pointer]
+                        - button "上架" [ref=f8e709] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e711] [cursor=pointer]
+                  - row [ref=f8e713]:
+                    - cell "7 月跨境类目动销速报" [ref=f8e714]
+                    - cell "数据" [ref=f8e718]
+                    - cell "图文" [ref=f8e720]
+                    - cell "选品洞察" [ref=f8e722]
+                    - cell "已发布" [ref=f8e724]
+                    - cell "3" [ref=f8e726]
+                    - cell [ref=f8e728]:
+                      - generic [ref=f8e729]:
+                        - button "编辑" [ref=f8e730] [cursor=pointer]
+                        - button "下架" [ref=f8e732] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e734] [cursor=pointer]
+                  - row [ref=f8e736]:
+                    - cell "如何用会员积分兑换专属权益" [ref=f8e737]
+                    - cell "本地联调" [ref=f8e741]
+                    - cell "文章" [ref=f8e743]
+                    - cell "品牌故事" [ref=f8e745]
+                    - cell "草稿" [ref=f8e747]
+                    - cell "860" [ref=f8e749]
+                    - cell [ref=f8e751]:
+                      - generic [ref=f8e752]:
+                        - button "编辑" [ref=f8e753] [cursor=pointer]
+                        - button "上架" [ref=f8e755] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e757] [cursor=pointer]
+                  - row [ref=f8e759]:
+                    - cell "TikTok Shop 冷启动：内容测品比广告更重要" [ref=f8e760]
+                    - cell "原创" [ref=f8e764]
+                    - cell "图文" [ref=f8e766]
+                    - cell "平台运营" [ref=f8e768]
+                    - cell "草稿" [ref=f8e770]
+                    - cell "0" [ref=f8e772]
+                    - cell [ref=f8e774]:
+                      - generic [ref=f8e775]:
+                        - button "编辑" [ref=f8e776] [cursor=pointer]
+                        - button "上架" [ref=f8e778] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e780] [cursor=pointer]
+                  - row [ref=f8e782]:
+                    - cell "2026下半年跨境选品趋势清单，附完整数据源" [ref=f8e783]
+                    - cell "长文" [ref=f8e787]
+                    - cell "图文" [ref=f8e789]
+                    - cell "选品洞察" [ref=f8e791]
+                    - cell "已发布" [ref=f8e793]
+                    - cell "2" [ref=f8e795]
+                    - cell [ref=f8e797]:
+                      - generic [ref=f8e798]:
+                        - button "编辑" [ref=f8e799] [cursor=pointer]
+                        - button "下架" [ref=f8e801] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e803] [cursor=pointer]
+                  - row [ref=f8e805]:
+                    - cell "跨境物流怎么选：专线、UPS、海外仓对照表" [ref=f8e806]
+                    - cell "原创" [ref=f8e810]
+                    - cell "图文" [ref=f8e812]
+                    - cell "物流清关" [ref=f8e814]
+                    - cell "草稿" [ref=f8e816]
+                    - cell "0" [ref=f8e818]
+                    - cell [ref=f8e820]:
+                      - generic [ref=f8e821]:
+                        - button "编辑" [ref=f8e822] [cursor=pointer]
+                        - button "上架" [ref=f8e824] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e826] [cursor=pointer]
+                  - row [ref=f8e828]:
+                    - cell "新手起独立站，这 5 个坑我全踩过一遍" [ref=f8e829]
+                    - cell "笔记" [ref=f8e833]
+                    - cell "图文" [ref=f8e835]
+                    - cell "独立站" [ref=f8e837]
+                    - cell "已发布" [ref=f8e839]
+                    - cell "5" [ref=f8e841]
+                    - cell [ref=f8e843]:
+                      - generic [ref=f8e844]:
+                        - button "编辑" [ref=f8e845] [cursor=pointer]
+                        - button "下架" [ref=f8e847] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e849] [cursor=pointer]
+                  - row [ref=f8e851]:
+                    - cell "供应商谈判：把交期和质检写进合同模板" [ref=f8e852]
+                    - cell "原创" [ref=f8e856]
+                    - cell "图文" [ref=f8e858]
+                    - cell "供应链" [ref=f8e860]
+                    - cell "草稿" [ref=f8e862]
+                    - cell "0" [ref=f8e864]
+                    - cell [ref=f8e866]:
+                      - generic [ref=f8e867]:
+                        - button "编辑" [ref=f8e868] [cursor=pointer]
+                        - button "上架" [ref=f8e870] [cursor=pointer]
+                        - button "设为推荐" [ref=f8e872] [cursor=pointer]
+            - generic [ref=f8e875]:
+              - generic [ref=f8e876]: 共 28 条
+              - generic [ref=f8e879] [cursor=pointer]:
+                - generic:
+                  - combobox [ref=f8e881]
+                  - generic [ref=f8e882]: 10条/页
+              - button "上一页" [disabled] [ref=f8e887]
+              - list [ref=f8e888]:
+                - listitem "第 1 页" [ref=f8e889]: "1"
+                - listitem "第 2 页" [ref=f8e890] [cursor=pointer]: "2"
+                - listitem "第 3 页" [ref=f8e891] [cursor=pointer]: "3"
+              - button "下一页" [ref=f8e892] [cursor=pointer]
+              - generic [ref=f8e893]:
+                - generic [ref=f8e894]: 前往
+                - spinbutton "页" [ref=f8e897]: "1"
+                - generic [ref=f8e898]: 页
+  - dialog "上架确认" [ref=f8e585]:
+    - generic [ref=f8e586]:
+      - generic [ref=f8e587]:
+        - generic [ref=f8e588]: 上架确认
+        - button "关闭此对话框" [ref=f8e589] [cursor=pointer]
+      - paragraph [ref=f8e596]: 确定上架「品牌开放日：从产品到体验的完整旅程」？
+      - generic [ref=f8e597]:
+        - button "取消" [ref=f8e598] [cursor=pointer]
+        - button "确定" [ref=f8e600] [cursor=pointer]
+  - alert [ref=f8e899]:
+    - paragraph [ref=f8e903]: 已上架

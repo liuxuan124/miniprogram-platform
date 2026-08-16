@@ -1,0 +1,63 @@
+task_id: TASK-QA-BATCH-016
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 使用 qa_staff/qa_temp 复测原账号矩阵 BLOCKED 项
+  - 确认禁用账号 110103 通过（FP-API-074）
+  - 发现并登记 P0：低权限可改页面（BUG-API-011 / BUG-UI-015）
+  - 固化 forms/members HTTP 500（BUG-FORM-005 / BUG-MEMBER-003）
+changed_files:
+  - agent-team/testing/scripts/run-batch-qa-016-perm.mjs
+  - agent-team/testing/evidence/BATCH-QA-016/
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/defects/BUG-API-011.md
+  - agent-team/testing/defects/BUG-UI-015.md
+  - agent-team/testing/defects/BUG-FORM-005.md
+  - agent-team/testing/defects/BUG-MEMBER-003.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - BLK-QA-TENANT-SCOPE-001 仍 open
+  - P0 权限漏洞阻断交付门禁
+self_test:
+  result: 不适用
+  details: QA 只验证记缺陷，不改业务代码
+downstream_suggestions:
+  - backend-agent 立刻修页面接口 content_ops+ 校验（BUG-API-011）
+  - admin-agent 按角色隐藏/拦截装修入口（BUG-UI-015）
+  - backend-agent 修 GET /admin/forms 与 /admin/members 500
+next_step: 等 P0 修复后回归；暂缓扩大范围 B 执行，避免在权限模型失效下扩大污染面
+notes: 自行决策：先解阻塞并找门禁级缺陷，再扩全系统用例。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-016
+  feature_point_range:
+    - FP-API-020
+    - FP-API-074
+    - FP-UI-005
+    - FP-UI-029
+  executed_count: 12
+  pass_count: 1
+  fail_count: 11
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "182/268"
+  new_defects:
+    P0:
+      - BUG-API-011
+      - BUG-UI-015
+    P1:
+      - BUG-FORM-005
+      - BUG-MEMBER-003
+    P2: []
+    P3: []
+  next_batch_plan: P0 修复后 BATCH-QA-017 权限回归；再开范围 B 冒烟
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

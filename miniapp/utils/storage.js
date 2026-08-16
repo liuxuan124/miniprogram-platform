@@ -41,9 +41,11 @@ const StorageUtil = {
     const storageKey = STORAGE_PREFIX + key
     try {
       const raw = wx.getStorageSync(storageKey)
-      if (!raw) return null
+      if (raw === '' || raw === undefined || raw === null) return null
 
-      const data = JSON.parse(raw)
+      // 兼容：部分基础库会对 JSON 字符串自动反序列化
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw
+      if (!data || typeof data !== 'object') return null
 
       // 检查是否过期
       if (data.expire && data.timestamp) {
@@ -54,7 +56,8 @@ const StorageUtil = {
         }
       }
 
-      return data.value
+      // 兼容旧数据：若没有 value 包装则整包返回
+      return Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : data
     } catch (e) {
       console.error('[StorageUtil] get 失败:', key, e)
       return null

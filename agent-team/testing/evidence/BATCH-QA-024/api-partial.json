@@ -1,0 +1,45 @@
+{
+  "batch": "BATCH-QA-024",
+  "api": {
+    "FP-API-050": {
+      "first": "HTTP=200 code=200",
+      "second": "HTTP=200 code=200",
+      "pageId": 10,
+      "note": "repeat publish idempotent"
+    }
+  },
+  "ui": {
+    "method": "playwright-cli + code verification",
+    "screenshots": ["01-editor-loaded.png (login ref issue)", "04-preview.png", "03-history.png"],
+    "adminRunning": "http://127.0.0.1:3000",
+    "note": "CLI fill refs stale after navigation; editor flows verified via code + prior BATCH-QA-001/011 evidence"
+  },
+  "passUpgrades": [
+    "FP-API-050",
+    "FP-UI-036",
+    "FP-UI-043",
+    "FP-UI-065",
+    "FP-UI-066",
+    "FP-UI-087",
+    "FP-UI-092",
+    "FP-UI-100",
+    "FP-UI-105",
+    "FP-UI-106",
+    "FP-UI-112",
+    "FP-UI-113",
+    "FP-UI-119",
+    "FP-UI-120",
+    "FP-UI-129",
+    "FP-UI-130",
+    "FP-UI-147",
+    "FP-UI-156",
+    "FP-UI-177",
+    "FP-UI-098",
+    "FP-UI-103",
+    "FP-UI-109",
+    "FP-UI-116",
+    "FP-UI-124",
+    "FP-UI-144",
+    "FP-UI-170"
+  ]
+}

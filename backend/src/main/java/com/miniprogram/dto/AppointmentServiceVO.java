@@ -38,6 +38,9 @@ public class AppointmentServiceVO {
     @Schema(description = "状态描述")
     private String statusDesc;
 
+    @Schema(description = "时段数")
+    private Integer slotCount;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

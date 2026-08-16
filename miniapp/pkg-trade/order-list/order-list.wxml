@@ -1,0 +1,106 @@
+<!-- pkg-trade/order-list/order-list.wxml — 我的订单列表 -->
+<view class="order-list-page">
+  <!-- 状态 Tab -->
+  <scroll-view class="tab-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >
+      {{item.label}}
+    </view>
+  </scroll-view>
+
+  <!-- 首次加载：D1 骨架屏 -->
+  <skeleton wx:if="{{loading && orders.length === 0}}" type="list" rows="{{4}}" />
+
+  <!-- 订单列表 -->
+  <view class="order-list" wx:elif="{{!isEmpty}}">
+    <view
+      wx:for="{{orders}}"
+      wx:key="id"
+      class="order-card"
+      data-id="{{item.id}}"
+      bindtap="onOrderTap"
+    >
+      <!-- 订单头部 -->
+      <view class="order-header">
+        <text class="order-no">订单号: {{item.order_no || item.id}}</text>
+        <text class="order-status" style="color: {{STATUS_MAP[item.status].color || '#999'}}">
+          {{STATUS_MAP[item.status].text || item.status}}
+        </text>
+      </view>
+
+      <!-- 商品列表（最多显示2个） -->
+      <view class="order-goods">
+        <view
+          wx:for="{{item.items}}"
+          wx:key="product_id"
+          wx:for-item="goods"
+          wx:if="{{index < 2}}"
+          class="order-goods-item"
+        >
+          <image class="goods-image" src="{{goods.product_image || goods.image}}" mode="aspectFill" />
+          <view class="goods-info">
+            <text class="goods-name">{{goods.product_name || goods.name}}</text>
+            <view class="goods-bottom">
+              <text class="goods-price">¥{{goods.price}}</text>
+              <text class="goods-qty">x{{goods.quantity}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="goods-more" wx:if="{{item.items.length > 2}}">
+          共{{item.items.length}}件商品
+        </view>
+      </view>
+
+      <!-- 订单底部 -->
+      <view class="order-footer">
+        <text class="order-total">
+          实付: <text class="order-total-price">¥{{item.total_amount || item.total_price}}</text>
+        </text>
+        <view class="order-actions">
+          <view class="action-btn action-btn--default" data-id="{{item.id}}" catchtap="onServiceTap">联系客服</view>
+          <block wx:if="{{item.status === 'pending_payment'}}">
+            <view class="action-btn action-btn--default" data-id="{{item.id}}" catchtap="onCancelTap">取消</view>
+            <view class="action-btn action-btn--primary" data-id="{{item.id}}" catchtap="onPayTap">去支付</view>
+          </block>
+          <block wx:if="{{item.status === 'paid'}}">
+            <view class="action-btn action-btn--primary" data-id="{{item.id}}" catchtap="onDeliveryTap">
+              查看发货进度
+            </view>
+          </block>
+          <block wx:if="{{item.status === 'shipped'}}">
+            <view class="action-btn action-btn--primary" data-id="{{item.id}}" catchtap="onConfirmTap">
+              {{item.fulfillment_type === 'virtual' ? '确认完成' : '确认收货'}}
+            </view>
+          </block>
+          <block wx:if="{{item.status === 'completed'}}">
+            <view class="action-btn action-btn--primary" data-id="{{item.id}}" data-item="{{item}}" catchtap="onReviewTap">评价</view>
+          </block>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载更多状态 -->
+  <view class="loading-area" wx:if="{{loading && orders.length > 0}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && orders.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态：D2 统一空态组件 -->
+  <empty-state
+    wx:if="{{isEmpty && !loading}}"
+    icon="/images/empty-order.png"
+    title="暂无订单"
+    action-text="去逛逛"
+    action-type="primary"
+    bind:action="onGoShopping"
+  />
+</view>
+<login-sheet id="global-login-sheet" />

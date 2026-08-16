@@ -17,7 +17,7 @@
       </el-button>
     </div>
     <component
-      :is="rendererMap[component.type]"
+      :is="resolveRenderer(component.type)"
       :component="component"
       :preview-mode="previewMode"
       :fab-only="true"
@@ -40,7 +40,7 @@
     @move-down="$emit('move-down')"
   >
     <component
-      :is="rendererMap[component.type]"
+      :is="resolveRenderer(component.type)"
       :component="component"
       :preview-mode="previewMode"
       @preview-action="(payload: any) => $emit('preview-action', payload)"
@@ -54,6 +54,7 @@ import { Top, Bottom, CopyDocument, Delete } from '@element-plus/icons-vue'
 import type { ComponentInstance } from '@/types/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
 import BaseRenderer from './renderers/BaseRenderer.vue'
+import UnknownComponentRenderer from './renderers/UnknownComponentRenderer.vue'
 
 defineProps<{
   component: ComponentInstance
@@ -100,6 +101,17 @@ const rendererMap: Record<string, any> = {
   [ComponentType.Spacer]: defineAsyncComponent(() => import('./renderers/SpacerRenderer.vue')),
   [ComponentType.FormEntry]: defineAsyncComponent(() => import('./renderers/FormEntryRenderer.vue')),
   [ComponentType.AIEntry]: defineAsyncComponent(() => import('./renderers/AIEntryRenderer.vue')),
+}
+
+const warnedUnknownTypes = new Set<string>()
+
+function resolveRenderer(type: string) {
+  if (rendererMap[type]) return rendererMap[type]
+  if (!warnedUnknownTypes.has(type)) {
+    warnedUnknownTypes.add(type)
+    console.warn(`[page-builder] 未知组件 type "${type}"，画布以占位展示，小程序端将跳过渲染`)
+  }
+  return UnknownComponentRenderer
 }
 </script>
 

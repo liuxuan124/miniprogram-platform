@@ -6,13 +6,35 @@
         <div class="section-title">页面属性</div>
         <el-form label-width="70px" size="small">
           <el-form-item label="页面名称">
-            <el-input :model-value="pageStore.pageConfig.name" @input="(v: string) => pageStore.updatePageConfig({ name: v })" />
+            <el-input
+              :model-value="pageStore.pageConfig.name"
+              maxlength="128"
+              show-word-limit
+              @input="(v: string) => pageStore.updatePageConfig({ name: v })"
+            />
           </el-form-item>
           <el-form-item label="背景色">
             <el-color-picker :model-value="pageStore.pageConfig.background_color || '#f6f8fb'" @change="(v: string) => pageStore.updatePageConfig({ background_color: v })" />
           </el-form-item>
           <el-form-item label="分享标题">
             <el-input :model-value="pageStore.pageConfig.share_title || ''" @input="(v: string) => pageStore.updatePageConfig({ share_title: v })" />
+          </el-form-item>
+          <el-form-item label="分享封面">
+            <div class="share-image-field">
+              <div v-if="shareImageUrl" class="share-image-preview">
+                <img :src="shareImageUrl" alt="" />
+                <el-button text type="danger" size="small" @click="pageStore.updatePageConfig({ share_image: '' })">移除</el-button>
+              </div>
+              <el-input
+                :model-value="pageStore.pageConfig.share_image || ''"
+                placeholder="分享封面图 URL"
+                @input="(v: string) => pageStore.updatePageConfig({ share_image: v })"
+              />
+              <label class="upload-btn">
+                {{ uploadingShare ? '上传中…' : '本地上传' }}
+                <input type="file" accept="image/*" hidden :disabled="uploadingShare" @change="onUploadShareImage" />
+              </label>
+            </div>
           </el-form-item>
         </el-form>
       </div>
@@ -52,6 +74,31 @@
             <el-button v-if="dataStatus.routeName" text type="primary" size="small" @click="goManageData">
               管理数据
             </el-button>
+          </div>
+          <div v-if="dataSourceBinding" class="ds-binding-card">
+            <div class="ds-binding-card__title">数据源绑定（必填）</div>
+            <el-form label-width="72px" size="small">
+              <el-form-item label="type" required>
+                <el-tag :type="dataSourceBinding.typeOk ? 'success' : 'danger'" size="small">
+                  {{ dataSourceBinding.type || '未配置' }}
+                </el-tag>
+                <span v-if="!dataSourceBinding.typeOk" class="ds-binding-hint">期望：{{ dataSourceBinding.expectedType }}</span>
+              </el-form-item>
+              <el-form-item label="query" required>
+                <el-tag :type="dataSourceBinding.queryOk ? 'success' : 'danger'" size="small">
+                  {{ dataSourceBinding.queryOk ? `已配置 ${dataSourceBinding.queryKeyCount} 项` : '未配置' }}
+                </el-tag>
+              </el-form-item>
+            </el-form>
+            <el-alert
+              v-for="issue in dataSourceBinding.issues"
+              :key="issue"
+              :title="issue"
+              type="warning"
+              :closable="false"
+              show-icon
+              class="ds-binding-alert"
+            />
           </div>
           <div class="panel-section panel-section--content">
             <component
@@ -117,6 +164,58 @@
             </div>
           </div>
 
+          <div class="margin-box">
+            <div class="margin-box__label">
+              <span>内边距</span>
+              <el-tooltip :content="paddingLinked ? '已锁定：四向等比联动' : '点击锁定四向等比联动'" placement="top">
+                <el-button
+                  :type="paddingLinked ? 'primary' : 'default'"
+                  size="small"
+                  circle
+                  class="margin-lock-btn"
+                  :aria-label="paddingLinked ? '已锁定四向等比，点击取消' : '点击锁定四向等比联动'"
+                  @click="paddingLinked = !paddingLinked"
+                >
+                  <el-icon><component :is="paddingLinked ? Lock : Unlock" /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </div>
+            <div class="margin-box__grid">
+              <div class="margin-cell margin-cell--top">
+                <span>上</span>
+                <el-input-number
+                  :model-value="currentStyle.padding_top || 0"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number) => updatePadding('padding_top', v)"
+                />
+              </div>
+              <div class="margin-cell margin-cell--left">
+                <span>左</span>
+                <el-input-number
+                  :model-value="currentStyle.padding_left || 0"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number) => updatePadding('padding_left', v)"
+                />
+              </div>
+              <div class="margin-cell margin-cell--right">
+                <span>右</span>
+                <el-input-number
+                  :model-value="currentStyle.padding_right || 0"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number) => updatePadding('padding_right', v)"
+                />
+              </div>
+              <div class="margin-cell margin-cell--bottom">
+                <span>下</span>
+                <el-input-number
+                  :model-value="currentStyle.padding_bottom || 0"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number) => updatePadding('padding_bottom', v)"
+                />
+              </div>
+            </div>
+          </div>
+
           <el-form label-width="70px" size="small">
             <el-form-item label="圆角">
               <el-input-number :model-value="currentStyle.border_radius || 0" :min="0" :max="50" @change="(v: number) => updateStyle('border_radius', v)" />
@@ -150,6 +249,13 @@
               />
               <div class="style-hint">0 表示使用组件默认字号</div>
             </el-form-item>
+            <el-form-item label="组件可见">
+              <el-switch
+                :model-value="currentStyle.visible !== false"
+                @change="(v: boolean) => updateStyle('visible', v)"
+              />
+              <div class="style-hint">关闭后小程序端不渲染该组件，画布中会半透明显示便于继续编辑</div>
+            </el-form-item>
           </el-form>
           </div>
         </el-tab-pane>
@@ -162,14 +268,26 @@
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { Lock, Unlock } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+import { normalizeUploadUrl } from '@/api/system'
 import { usePageStore } from '@/stores/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
+import { useImageUpload } from './composables/useImageUpload'
+import { getDataSourceBinding } from './dataSourceValidation'
 
 const pageStore = usePageStore()
 const router = useRouter()
+const { uploadImage, uploading: uploadingShare } = useImageUpload()
 
 const activeTab = ref<'content' | 'style'>('content')
 const marginLinked = ref(false)
+const paddingLinked = ref(false)
+const shareImageUrl = computed(() => normalizeUploadUrl(String(pageStore.pageConfig.share_image || '')))
+
+const dataSourceBinding = computed(() => {
+  const comp = pageStore.selectedComponent
+  if (!comp) return null
+  return getDataSourceBinding(comp)
+})
 
 // 切换选中组件时收起，避免上一个组件的展开状态带到下一个组件造成误解
 watch(() => pageStore.selectedComponentId, () => {
@@ -181,17 +299,17 @@ const dataStatus = computed(() => {
   if (!component) return null
   if (component.type === ComponentType.ProductList) {
     return {
-      title: '自动读取已上架商品',
-      description: component.props.data_source ? '数据源已连接，预览时显示真实商品' : '尚未配置商品数据源',
-      tone: component.props.data_source ? 'success' : 'warning',
+      title: '读取已上架商品',
+      description: '改分类后画布会跟着变，不必先点预览',
+      tone: 'success',
       routeName: 'CommerceProduct',
     }
   }
   if (component.type === ComponentType.ArticleList) {
     return {
-      title: '自动读取已发布文章',
-      description: component.props.data_source ? '数据源已连接，预览时显示真实内容' : '尚未配置文章数据源',
-      tone: component.props.data_source ? 'success' : 'warning',
+      title: '读取已发布文章',
+      description: '改分类后画布会跟着变，不必先点预览',
+      tone: 'success',
       routeName: 'ContentList',
     }
   }
@@ -300,6 +418,31 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
   } else {
     updateStyle(key, value)
   }
+}
+
+function updatePadding(key: 'padding_top' | 'padding_bottom' | 'padding_left' | 'padding_right', value: number) {
+  if (!pageStore.selectedComponent) return
+  if (paddingLinked.value) {
+    pageStore.updateComponentStyle(pageStore.selectedComponent.id, {
+      padding_top: value,
+      padding_bottom: value,
+      padding_left: value,
+      padding_right: value,
+    })
+  } else {
+    updateStyle(key, value)
+  }
+}
+
+async function onUploadShareImage(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  await uploadImage(file, {
+    maxSizeMB: 5,
+    onSuccess: (url: string) => pageStore.updatePageConfig({ share_image: normalizeUploadUrl(url) }),
+  })
 }
 </script>
 
@@ -473,4 +616,65 @@ function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'mar
 .margin-cell--left { grid-area: left; }
 .margin-cell--right { grid-area: right; }
 .margin-cell--bottom { grid-area: bottom; }
+
+.share-image-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.share-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-image-preview img {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  background: #eef2f7;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ds-binding-card {
+  margin: 0 12px 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.ds-binding-card__title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ds-binding-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.ds-binding-alert {
+  margin-top: 8px;
+}
 </style>

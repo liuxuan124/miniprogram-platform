@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  * 活动管理 Service 实现
  */
@@ -30,6 +33,7 @@ public class ActivityServiceImpl extends BaseServiceImpl<ActivityMapper, Activit
 
     @Override
     public PageResult<ActivityVO> listActivities(String keyword, String type, Integer status, Long current, Long size) {
+        refreshExpiredActivities();
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(keyword), Activity::getName, keyword);
         wrapper.eq(StringUtils.hasText(type), Activity::getType, type);
@@ -63,6 +67,7 @@ public class ActivityServiceImpl extends BaseServiceImpl<ActivityMapper, Activit
 
     @Override
     public ActivityVO getActivityDetail(Long id) {
+        refreshExpiredActivities();
         Activity activity = getExistingActivity(id);
         return toVO(activity);
     }
@@ -155,5 +160,17 @@ public class ActivityServiceImpl extends BaseServiceImpl<ActivityMapper, Activit
         ActivityVO vo = new ActivityVO();
         BeanUtils.copyProperties(activity, vo);
         return vo;
+    }
+
+    /** 活动日期已过的「报名中/进行中」自动标记为已结束 */
+    private void refreshExpiredActivities() {
+        LocalDate today = LocalDate.now();
+        List<Activity> expired = this.list(new LambdaQueryWrapper<Activity>()
+                .lt(Activity::getDate, today)
+                .in(Activity::getStatus, 1, 2));
+        for (Activity activity : expired) {
+            activity.setStatus(3);
+            this.updateById(activity);
+        }
     }
 }

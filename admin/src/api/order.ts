@@ -28,6 +28,8 @@ function normalizeOrder(raw: any): OrderRecord {
     ...raw,
     order_no: raw?.order_no ?? raw?.orderNo,
     user_id: raw?.user_id ?? raw?.userId,
+    user_nickname: raw?.user_nickname ?? raw?.userNickname,
+    payment_method: raw?.payment_method ?? raw?.paymentMethod,
     total_amount: raw?.total_amount ?? raw?.totalAmount,
     pay_amount: raw?.pay_amount ?? raw?.payAmount,
     freight_amount: raw?.freight_amount ?? raw?.freightAmount,

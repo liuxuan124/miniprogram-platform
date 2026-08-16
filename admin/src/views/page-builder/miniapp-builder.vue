@@ -1,18 +1,28 @@
 <template>
   <div class="miniapp-builder">
+    <el-alert
+      v-if="!hasDecoratedPages"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="还没有可绑定的页面。请先在「页面」里创建并装修首页，再回来配置导航。"
+      style="margin: 12px 20px 0"
+    >
+      <el-button type="primary" size="small" @click="$router.push('/page-builder/list')">去创建页面</el-button>
+    </el-alert>
     <!-- ==================== VIEW A: Template Gallery ==================== -->
     <div v-if="viewMode === 'gallery'" class="template-gallery">
       <div class="builder-toolbar">
         <div class="toolbar-left">
-          <h1>搭建小程序</h1>
-          <p class="toolbar-sub">配置导航、主题并发布小程序。页面内容请先在「页面管理 / 装修器」完成。</p>
+          <h1>导航与外观</h1>
+          <p class="toolbar-sub">配置底部导航、主题和「我的」页。保存后到「发布」一次性上线绑定页面。</p>
         </div>
         <div class="toolbar-right">
           <el-button type="success" plain @click="openFullMiniappPreview()">
             <el-icon><Cellphone /></el-icon> 小程序预览
           </el-button>
           <el-button type="primary" @click="handleNewBuild">
-            <el-icon><Plus /></el-icon> 新建配置
+            <el-icon><Plus /></el-icon> 新建草稿
           </el-button>
           <el-button :loading="galleryLoading" @click="loadGalleryData">
             <el-icon><Refresh /></el-icon> 刷新
@@ -25,7 +35,7 @@
           <div class="stat-card">
             <div class="stat-info">
               <span class="stat-value">{{ templateCount }}</span>
-              <span class="stat-label">配置草稿</span>
+              <span class="stat-label">草稿</span>
             </div>
           </div>
           <div class="stat-card">
@@ -68,7 +78,7 @@
                   已发布
                   <span v-if="item.isCurrentPublished" class="current-live-badge">★ 当前线上</span>
                 </el-tag>
-                <el-tag v-else-if="item.mode === 'template' || item.status === 0" type="primary" size="small" effect="dark">模板</el-tag>
+                <el-tag v-else-if="item.mode === 'template' || item.status === 0" type="primary" size="small" effect="dark">草稿</el-tag>
                 <el-tag v-else-if="item.status === 2" type="info" size="small" effect="dark">已替换</el-tag>
               </div>
               <span class="card-semver" :style="{ color: getChangeTypeColor(item.changeType) }">
@@ -99,9 +109,9 @@
                 size="small"
                 type="success"
                 plain
-                @click="handlePromote(item)"
+                @click="$router.push('/page-builder/release')"
               >
-                发布小程序
+                去发布
               </el-button>
               <el-dropdown trigger="click">
                 <el-button size="small">更多</el-button>
@@ -114,7 +124,7 @@
                       推送体验版
                     </el-dropdown-item>
                     <el-dropdown-item @click="copyFullPreviewLink(item)">复制预览链接</el-dropdown-item>
-                    <el-dropdown-item v-if="item.status === 1" divided @click="handleRollback(item)">回滚到此版本</el-dropdown-item>
+                    <el-dropdown-item v-if="item.status === 2" divided @click="handleRollback(item)">回滚到此版本</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -123,10 +133,10 @@
         </div>
 
         <div v-else class="empty-gallery">
-          <el-empty description="暂无配置。建议先完成首页装修，再新建配置。">
-            <el-button @click="$router.push('/page-builder/list')">去页面管理</el-button>
-            <el-button type="primary" @click="handleNewBuild">
-              <el-icon><Plus /></el-icon> 新建配置
+          <el-empty description="暂无导航配置。请先完成首页装修，再新建草稿绑定导航。">
+            <el-button type="primary" @click="$router.push('/page-builder/list')">去创建页面</el-button>
+            <el-button @click="handleNewBuild">
+              <el-icon><Plus /></el-icon> 新建草稿
             </el-button>
           </el-empty>
         </div>
@@ -138,9 +148,9 @@
       <div class="builder-toolbar">
         <div class="toolbar-left">
           <el-button size="small" plain @click="goToGallery">
-            <el-icon><ArrowLeft /></el-icon> 返回配置列表
+            <el-icon><ArrowLeft /></el-icon> 草稿记录
           </el-button>
-          <h1>{{ editingTemplateId ? '编辑模板' : '新建搭建' }}</h1>
+          <h1>导航与外观</h1>
           <span v-if="isDirty" class="dirty-pill">有未保存更改</span>
         </div>
         <div class="toolbar-right">
@@ -151,11 +161,11 @@
           <el-button size="small" @click="showModuleVersionDialog = true">
             <el-icon><Clock /></el-icon> 📦 模块版本
           </el-button>
-          <el-button type="warning" size="small" :loading="saving" @click="handleSaveAsTemplate">
-            <el-icon><Box /></el-icon> 💾 保存为模板
+          <el-button type="warning" size="small" :loading="saving" @click="handleSave">
+            <el-icon><Box /></el-icon> 保存
           </el-button>
-          <el-button type="primary" size="small" :loading="saving" @click="handlePublishOnline">
-            <el-icon><Check /></el-icon> 🚀 发布上线
+          <el-button type="primary" size="small" :loading="saving" @click="goToRelease">
+            去发布
           </el-button>
         </div>
       </div>
@@ -205,7 +215,7 @@
                   <el-select
                     v-if="minePageMode === 'custom'"
                     v-model="form.minePageId"
-                    placeholder="选择已搭建的页面"
+                    placeholder="选择已装修的页面"
                     clearable
                     filterable
                     style="width:100%; margin-top:8px"
@@ -307,9 +317,9 @@
               <div class="confirm-actions">
                 <el-button @click="activeStep = 2">← 返回修改</el-button>
                 <div class="confirm-btns">
-                  <el-button size="large" @click="handleSaveAsTemplate">保存为草稿</el-button>
-                  <el-button type="primary" size="large" :loading="saving" @click="handlePublishOnline">
-                    <el-icon><Check /></el-icon> 发布小程序
+                  <el-button size="large" @click="handleSave">保存</el-button>
+                  <el-button type="primary" size="large" :loading="saving" @click="goToRelease">
+                    去发布
                   </el-button>
                 </div>
               </div>
@@ -318,8 +328,8 @@
             <!-- Step 5A: Template Saved Success -->
             <div v-show="activeStep === 4 && successMode === 'template'" class="config-section success-section">
               <div class="success-icon ok">OK</div>
-              <h2 class="success-title">配置草稿已保存</h2>
-              <p class="success-desc">导航与主题已保存为草稿。确认无误后可发布小程序，用户端才会生效。</p>
+              <h2 class="success-title">导航草稿已保存</h2>
+              <p class="success-desc">导航与主题已写入系统配置。用户端还不会变，请到「发布」把绑定页面的最新草稿设为线上内容。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card version-release-card-template">
                 <div class="version-release-header">
@@ -344,24 +354,24 @@
               <div class="next-steps">
                 <div class="next-step-title">建议下一步</div>
                 <div class="next-step-list">
-                  <a class="next-step-item highlight" href="#" @click.prevent="handlePublishOnline">
+                  <a class="next-step-item highlight" href="#" @click.prevent="goToRelease">
                     <div class="next-info">
-                      <strong>发布小程序</strong>
-                      <span>让导航配置在小程序端生效</span>
+                      <strong>去发布</strong>
+                      <span>一次性发布首页和已绑定导航页的最新草稿</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
                   <a class="next-step-item" href="#" @click.prevent="goToPageBuilder">
                     <div class="next-info">
                       <strong>检查首页装修</strong>
-                      <span>确认首页内容已发布（装修器里的「发布页面」）</span>
+                      <span>确认绑定页面已有内容，空画布无法发布</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
                   <a class="next-step-item" href="#" @click.prevent="goToGallery">
                     <div class="next-info">
-                      <strong>返回配置列表</strong>
-                      <span>查看全部草稿与已发布版本</span>
+                      <strong>草稿记录</strong>
+                      <span>查看历史配置快照</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
@@ -369,16 +379,16 @@
               </div>
 
               <div class="success-footer">
-                <el-button size="large" @click="goToGallery">返回列表</el-button>
-                <el-button size="large" type="primary" @click="handlePublishOnline">发布小程序</el-button>
+                <el-button size="large" @click="goToGallery">草稿记录</el-button>
+                <el-button size="large" type="primary" @click="goToRelease">去发布</el-button>
               </div>
             </div>
 
             <!-- Step 5B: Publish Success -->
             <div v-show="activeStep === 4 && successMode === 'publish'" class="config-section success-section">
               <div class="success-icon ok">OK</div>
-              <h2 class="success-title">小程序已发布</h2>
-              <p class="success-desc">导航与主题已更新。若首页仍是空的，请回到页面装修器检查是否已「发布页面」。</p>
+              <h2 class="success-title">导航与外观已发布</h2>
+              <p class="success-desc">底部导航和主题已写入配置。整包内容请到「发布」页确认后上线。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card">
                 <div class="version-release-header">
@@ -406,17 +416,17 @@
               <div class="next-steps">
                 <div class="next-step-title">建议下一步</div>
                 <div class="next-step-list">
-                  <a class="next-step-item highlight" href="#" @click.prevent="goToPageBuilder">
+                  <a class="next-step-item highlight" href="#" @click.prevent="goToRelease">
                     <div class="next-info">
-                      <strong>检查并发布页面内容</strong>
-                      <span>打开装修器，确认首页已点「发布页面」</span>
+                      <strong>去整包发布</strong>
+                      <span>把绑定页面的最新草稿设为线上内容</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
                   <a class="next-step-item" href="#" @click.prevent="goToGallery">
                     <div class="next-info">
-                      <strong>返回配置列表</strong>
-                      <span>管理草稿、预览与历史版本</span>
+                      <strong>草稿记录</strong>
+                      <span>管理历史配置快照</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
@@ -431,8 +441,8 @@
               </div>
 
               <div class="success-footer">
-                <el-button size="large" @click="goToGallery">返回列表</el-button>
-                <el-button size="large" type="primary" @click="goToPageBuilder">去检查页面</el-button>
+                <el-button size="large" @click="goToGallery">草稿记录</el-button>
+                <el-button size="large" type="primary" @click="goToRelease">去发布</el-button>
               </div>
             </div>
           </div>
@@ -620,7 +630,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { Check, Connection, Plus, DArrowLeft, DArrowRight, ArrowRight, Refresh, ArrowLeft, Box, Document, Clock, Cellphone } from '@element-plus/icons-vue'
+import { Connection, Plus, DArrowLeft, DArrowRight, ArrowRight, Refresh, ArrowLeft, Box, Document, Clock, Cellphone } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
@@ -656,8 +666,12 @@ const {
   applyTemplate, handleSave, handleReset, autoBindPages,
 } = useMiniappConfig()
 
+const hasDecoratedPages = computed(() =>
+  pages.value.some((p: any) => p && p.type !== 'system' && !String(p.id).startsWith('__')),
+)
+
 const router = useRouter()
-const viewMode = ref<'gallery' | 'editor'>('gallery')
+const viewMode = ref<'gallery' | 'editor'>('editor')
 const editingTemplateId = ref<number | null>(null)
 const galleryLoading = ref(false)
 const releases = ref<ReleaseRecord[]>([])
@@ -690,7 +704,7 @@ const pushPreviewResult = ref<any>(null)
 const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] = [
   { label: '全部', value: 'all' },
   { label: '已发布', value: 'published' },
-  { label: '模板', value: 'template' },
+  { label: '草稿', value: 'template' },
 ]
 
 const personalCenterTemplates: { key: string; name: string; icon: string; gradient: string; border?: string }[] = [
@@ -704,7 +718,7 @@ const steps = [
   { key: 'theme', label: '风格配色' },
   { key: 'navigation', label: '导航配置' },
   { key: 'mine', label: '我的页面' },
-  { key: 'confirm', label: '确认发布' },
+  { key: 'confirm', label: '确认配置' },
   { key: 'success', label: '完成' },
 ]
 
@@ -807,7 +821,7 @@ async function loadGalleryData() {
     })
   } catch (err) {
     console.error('加载模板数据失败:', err)
-    ElMessage.error('加载模板数据失败')
+    ElMessage.error('加载导航配置失败')
   } finally {
     galleryLoading.value = false
   }
@@ -851,7 +865,7 @@ async function handleEditTemplate(item: ReleaseRecord) {
 async function handlePromote(item: ReleaseRecord) {
   try {
     await promoteRelease(item.id)
-    ElMessage.success('模板已发布上线')
+    ElMessage.success('导航与外观已保存。请到「发布」把绑定页面设为线上内容。')
     await loadGalleryData()
   } catch {
     ElMessage.error('发布失败，请重试')
@@ -957,7 +971,7 @@ async function handlePushPreview(item: ReleaseRecord) {
 
   try {
     await ElMessageBox.confirm(
-      `确认将版本 v${item.semver} 对应的 miniapp 代码包推送到微信体验版吗？\n\n说明：页面装修内容已自动同步，本次仅上传代码包。`,
+      `确认将版本 v${item.semver} 对应的代码包推送到微信体验版吗？\n\n这只会上传代码包，不会替你发布页面内容。`,
       '推送体验版',
       {
         confirmButtonText: '确认推送',
@@ -1038,36 +1052,20 @@ async function handleSaveAsTemplate() {
     published.value = true
     activeStep.value = 4
   } catch {
-    ElMessage.error('保存模板失败，请检查配置后重试')
+    ElMessage.error('保存导航草稿失败，请检查配置后重试')
   }
 }
 
-async function handlePublishOnline() {
-  try {
-    if (isDirty.value) {
-      await handleSave()
-    }
-    newReleaseInfo.value = null
-    replacedOldVersion.value = ''
-    if (latestPublished.value) {
-      replacedOldVersion.value = latestPublished.value.semver
-    }
-    try {
-      const res = await createRelease({
-        mode: 'publish',
-        baseReleaseId: editingTemplateId.value || undefined,
-        releaseNotes: `发布配置：${form.templateKey}模板，${form.tabs.length}个导航项`,
-      })
-      newReleaseInfo.value = (res as any).data || res
-    } catch { /* ignore */ }
-    successMode.value = 'publish'
-    published.value = true
-    activeStep.value = 4
-    await loadGalleryData()
-    ElMessage.success('发布成功，微信体验版将与 H5 预览一致（请重新进入小程序）')
-  } catch {
-    ElMessage.error('发布失败，请检查配置后重试')
+async function goToRelease() {
+  if (isDirty.value) {
+    await handleSave()
+    if (isDirty.value) return
   }
+  router.push('/page-builder/release')
+}
+
+async function handlePublishOnline() {
+  await goToRelease()
 }
 
 function goToGallery() {
@@ -1092,7 +1090,7 @@ function goToSystemSettings() {
 }
 
 function goToVersionManagement() {
-  router.push('/page-builder/version-management')
+  router.push('/page-builder/release')
 }
 
 // ==================== Common Helper Functions ====================
@@ -1115,7 +1113,7 @@ function changeTypeLabel(type: string): string {
 }
 
 function getStatusLabel(s: number): string {
-  const map: Record<number, string> = { 0: '草稿/模板', 1: '已发布', 2: '已回滚' }
+  const map: Record<number, string> = { 0: '草稿', 1: '已发布', 2: '已替换' }
   return map[s] || '未知'
 }
 

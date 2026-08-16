@@ -155,7 +155,7 @@ const quickEntries = [
   { title: '页面列表', desc: '管理所有装修页面', icon: '📄', path: '/page-builder/list' },
   { title: '模板市场', desc: '浏览行业模板', icon: '🎨', path: '/shop-decoration/template-market' },
   { title: '行业模块', desc: '按行业配置模块', icon: '🏭', path: '/shop-decoration/industry-modules' },
-  { title: '搭建小程序', desc: '导航与TabBar', icon: '📱', path: '/page-builder/start' },
+  { title: '导航与外观', desc: '导航与TabBar', icon: '📱', path: '/page-builder/start' },
   { title: '素材库', desc: '管理图片素材', icon: '🖼️', path: '/asset/list' },
   { title: '商品管理', desc: '管理商品数据', icon: '🛍️', path: '/commerce/product' },
 ]

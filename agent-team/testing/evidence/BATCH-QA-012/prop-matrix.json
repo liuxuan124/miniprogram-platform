@@ -1,0 +1,1042 @@
+{
+  "pageProps": {
+    "observed": [
+      "页面属性",
+      "页面名称",
+      "背景色",
+      "分享标题",
+      "全局配置",
+      "下拉刷新",
+      "触底加载"
+    ],
+    "missing": [],
+    "extra": [
+      "页面属性",
+      "全局配置"
+    ],
+    "interact": [
+      "名称可改",
+      "下拉刷新可点"
+    ],
+    "verdict": "PASS"
+  },
+  "style": {
+    "observed": [
+      "自动播放",
+      "间隔时间",
+      "指示点",
+      "图片1",
+      "边距",
+      "上",
+      "左",
+      "右",
+      "下",
+      "圆角",
+      "背景色",
+      "文字颜色",
+      "文字大小",
+      "删除此图",
+      "+ 添加图片"
+    ],
+    "missing": [],
+    "extra": [
+      "自动播放",
+      "间隔时间",
+      "指示点",
+      "图片1",
+      "删除此图",
+      "+ 添加图片"
+    ],
+    "interact": [
+      "边距锁定可点",
+      "上边距步进可点"
+    ],
+    "verdict": "PASS"
+  },
+  "components": [
+    {
+      "label": "轮播图",
+      "added": true,
+      "selectedAs": "轮播图",
+      "observed": [
+        "自动播放",
+        "间隔时间",
+        "指示点",
+        "图片1",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小",
+        "删除此图",
+        "+ 添加图片"
+      ],
+      "missing": [
+        "标题",
+        "链接"
+      ],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小",
+        "删除此图"
+      ],
+      "interact": [
+        "locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input__inner, .el-textarea__inner').filter({ hasNot: locator('[disabled]') }).first()\n    - locator resolved to <input step=\"500\" min=\"1000\" max=\"10000\" tabindex=\"0\" type=\"number\" role=\"spinbutton\" autocomplete=\"off\" id=\"el-id-6453-88\" aria-valuemin=\"1000\" aria-valuenow=\"3000\" aria-valuemax=\"10000\" aria-disabled=\"false\" class=\"el-input__inner\"/>\n    - fill(\"3000-QA\")\n  - attempting fill action\n    - waiting for element to be visible, enabled and editable\n"
+      ],
+      "shot": "01-轮播图.png",
+      "verdict": "FAIL"
+    },
+    {
+      "label": "图片",
+      "added": true,
+      "selectedAs": "图片",
+      "observed": [
+        "图片",
+        "链接类型",
+        "链接地址",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "interact": [
+        "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input-number').first().locator('.el-input-number__increase')\n    - locator resolved to <span role=\"button\" aria-label=\"增加数值\" class=\"el-input-number__increase\">…</span>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n"
+      ],
+      "shot": "02-图片.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "视频",
+      "added": true,
+      "selectedAs": "视频",
+      "observed": [
+        "视频地址",
+        "封面图",
+        "自动播放",
+        "循环播放",
+        "控制栏",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "interact": [
+        "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input-number').first().locator('.el-input-number__increase')\n    - locator resolved to <span role=\"button\" aria-label=\"增加数值\" class=\"el-input-number__increase\">…</span>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n"
+      ],
+      "shot": "03-视频.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "图文组合",
+      "added": true,
+      "selectedAs": "图文组合",
+      "observed": [
+        "标题",
+        "布局",
+        "内容",
+        "标题字号",
+        "正文字号",
+        "图片",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "04-图文组合.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "搜索组件",
+      "added": true,
+      "selectedAs": "搜索组件",
+      "observed": [
+        "提示词",
+        "搜索范围",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "interact": [
+        "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input-number').first().locator('.el-input-number__increase')\n    - locator resolved to <span role=\"button\" aria-label=\"增加数值\" class=\"el-input-number__increase\">…</span>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n"
+      ],
+      "shot": "05-搜索组件.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "分类导航",
+      "added": true,
+      "selectedAs": "分类导航",
+      "observed": [
+        "标题",
+        "布局",
+        "列数",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小",
+        "+ 添加分类项"
+      ],
+      "missing": [
+        "图标",
+        "名称",
+        "链接"
+      ],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小",
+        "+ 添加分类项"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "06-分类导航.png",
+      "verdict": "FAIL"
+    },
+    {
+      "label": "商品列表",
+      "added": true,
+      "selectedAs": "商品列表",
+      "observed": [
+        "标题",
+        "列数",
+        "显示价格",
+        "显示销量",
+        "购物车",
+        "显示数量",
+        "标题字号",
+        "元信息字号",
+        "排序方式",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "07-商品列表.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "限时秒杀",
+      "added": true,
+      "selectedAs": "限时秒杀",
+      "observed": [
+        "标题",
+        "商品数量",
+        "标题字号",
+        "元信息字号",
+        "显示倒计时",
+        "结束时间",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "08-限时秒杀.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "优惠券",
+      "added": true,
+      "selectedAs": "优惠券",
+      "observed": [
+        "标题",
+        "样式",
+        "显示数量",
+        "按钮文案",
+        "标题字号",
+        "内容字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "09-优惠券.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "标题栏",
+      "added": true,
+      "selectedAs": "标题栏",
+      "observed": [
+        "标题",
+        "副标题",
+        "对齐",
+        "标题字号",
+        "副标题字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "10-标题栏.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "文章列表",
+      "added": true,
+      "selectedAs": "文章列表",
+      "observed": [
+        "标题",
+        "样式",
+        "显示封面",
+        "显示日期",
+        "显示数量",
+        "标题字号",
+        "元信息字号",
+        "排序方式",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "11-文章列表.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "富文本",
+      "added": true,
+      "selectedAs": "富文本",
+      "observed": [
+        "内容",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input__inner, .el-textarea__inner').filter({ hasNot: locator('[disabled]') }).first()\n    - locator resolved to <input min=\"0\" step=\"1\" max=\"100\" tabindex=\"0\" type=\"number\" role=\"spinbutton\" aria-valuemin=\"0\" aria-valuenow=\"0\" autocomplete=\"off\" id=\"el-id-6453-68\" aria-valuemax=\"100\" aria-disabled=\"false\" class=\"el-input__inner\"/>\n    - fill(\"0-QA\")\n  - attempting fill action\n    2 × waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    60 × waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+      ],
+      "shot": "12-富文本.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "品牌介绍",
+      "added": true,
+      "selectedAs": "品牌介绍",
+      "observed": [
+        "标题",
+        "副标题",
+        "介绍",
+        "标题字号",
+        "副标题字号",
+        "正文字号",
+        "Logo位置",
+        "文字对齐",
+        "Logo尺寸",
+        "左右",
+        "上下",
+        "Logo",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "正文字号",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "13-品牌介绍.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "资质证书",
+      "added": true,
+      "selectedAs": "资质证书",
+      "observed": [
+        "标题",
+        "列数",
+        "标题字号",
+        "名称字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "+ 添加证书"
+      ],
+      "missing": [
+        "说明",
+        "图片"
+      ],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "+ 添加证书"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "14-资质证书.png",
+      "verdict": "FAIL"
+    },
+    {
+      "label": "公告栏",
+      "added": true,
+      "selectedAs": "公告栏",
+      "observed": [
+        "左侧文案",
+        "滚动开关",
+        "滚动方向",
+        "滚动速度",
+        "喇叭图标",
+        "右侧箭头",
+        "关闭按钮",
+        "文字颜色",
+        "背景颜色",
+        "文字大小",
+        "跳转链接",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "删除",
+        "+ 添加公告"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "删除"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改"
+      ],
+      "shot": "15-公告栏.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "活动入口",
+      "added": true,
+      "selectedAs": "活动入口",
+      "observed": [
+        "活动标题",
+        "副标题",
+        "封面文案",
+        "封面图",
+        "活动时间",
+        "活动地点",
+        "按钮文案",
+        "显示按钮",
+        "卡片样式",
+        "主题色",
+        "链接类型",
+        "链接地址",
+        "标题字号",
+        "元信息字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "标题字号",
+        "元信息字号",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "16-活动入口.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "活动列表",
+      "added": true,
+      "selectedAs": "活动列表",
+      "observed": [
+        "模块标题",
+        "显示数量",
+        "按钮文案",
+        "显示按钮",
+        "标题字号",
+        "条目字号",
+        "元信息字号",
+        "名称",
+        "时间",
+        "地点",
+        "封面",
+        "链接",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "删除",
+        "+ 添加活动"
+      ],
+      "missing": [],
+      "extra": [
+        "条目字号",
+        "元信息字号",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "删除",
+        "+ 添加活动"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "17-活动列表.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "预约服务",
+      "added": true,
+      "selectedAs": "预约服务",
+      "observed": [
+        "标题",
+        "标题字号",
+        "服务名字号",
+        "说明字号",
+        "名称",
+        "说明",
+        "按钮",
+        "链接",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "删除",
+        "+ 添加服务"
+      ],
+      "missing": [],
+      "extra": [
+        "服务名字号",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "删除",
+        "+ 添加服务"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "18-预约服务.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "会员卡",
+      "added": true,
+      "selectedAs": "会员卡",
+      "observed": [
+        "标题",
+        "副标题",
+        "标题字号",
+        "副标题字号",
+        "权益字号",
+        "数值字号",
+        "标签字号",
+        "升级字号",
+        "背景类型",
+        "主题色",
+        "显示等级",
+        "显示积分",
+        "显示余额",
+        "显示优惠券",
+        "显示升级",
+        "升级文案",
+        "升级链接",
+        "整卡链接",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "删除",
+        "+ 添加权益"
+      ],
+      "missing": [],
+      "extra": [
+        "主题色",
+        "升级文案",
+        "升级链接",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "删除",
+        "+ 添加权益"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "19-会员卡.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "倒计时",
+      "added": true,
+      "selectedAs": "倒计时",
+      "observed": [
+        "标题",
+        "结束时间",
+        "样式",
+        "显示天数",
+        "结束文案",
+        "标题字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "20-倒计时.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "悬浮按钮",
+      "added": true,
+      "selectedAs": "悬浮按钮",
+      "observed": [
+        "文案",
+        "显示文字",
+        "预设图标",
+        "自定义图",
+        "按钮颜色",
+        "尺寸",
+        "透明度",
+        "停靠位置",
+        "左右边距",
+        "上下边距",
+        "可拖动",
+        "自动收边",
+        "动作",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "missing": [
+        "页面路径"
+      ],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "21-悬浮按钮.png",
+      "verdict": "FAIL"
+    },
+    {
+      "label": "表单入口",
+      "added": true,
+      "selectedAs": "表单入口",
+      "observed": [
+        "关联表单",
+        "标题",
+        "副标题",
+        "按钮文案",
+        "样式",
+        "标题字号",
+        "副标题字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "22-表单入口.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "AI入口",
+      "added": true,
+      "selectedAs": "AI入口",
+      "observed": [
+        "标题",
+        "描述",
+        "头像",
+        "主题色",
+        "标题字号",
+        "描述字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "23-AI入口.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "联系方式",
+      "added": true,
+      "selectedAs": "联系方式",
+      "observed": [
+        "标题",
+        "电话",
+        "地址",
+        "营业时间",
+        "排列方式",
+        "卡片样式",
+        "文字对齐",
+        "显示图标",
+        "显示电话",
+        "显示地址",
+        "显示时间",
+        "标题字号",
+        "内容字号",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "missing": [],
+      "extra": [
+        "内容字号",
+        "圆角",
+        "背景色",
+        "文字颜色"
+      ],
+      "interact": [
+        "开关可切换",
+        "文本可改",
+        "数字步进可点"
+      ],
+      "shot": "24-联系方式.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "导航栏",
+      "added": true,
+      "selectedAs": "导航栏",
+      "observed": [
+        "每行数量",
+        "样式",
+        "图标",
+        "标题",
+        "链接",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小",
+        "删除",
+        "+ 添加导航项"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小",
+        "删除"
+      ],
+      "interact": [
+        "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input-number').first().locator('.el-input-number__increase')\n    - locator resolved to <span role=\"button\" aria-label=\"增加数值\" class=\"el-input-number__increase\">…</span>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    57 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n"
+      ],
+      "shot": "25-导航栏.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "分割线",
+      "added": true,
+      "selectedAs": "分割线",
+      "observed": [
+        "线型",
+        "颜色",
+        "间距",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字大小"
+      ],
+      "interact": [
+        "locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input__inner, .el-textarea__inner').filter({ hasNot: locator('[disabled]') }).first()\n    - locator resolved to <input min=\"0\" step=\"1\" max=\"60\" tabindex=\"0\" type=\"number\" role=\"spinbutton\" aria-valuemin=\"0\" autocomplete=\"off\" aria-valuemax=\"60\" aria-valuenow=\"16\" id=\"el-id-6453-1099\" aria-disabled=\"false\" class=\"el-input__inner\"/>\n    - fill(\"16-QA\")\n  - attempting fill action\n    - waiting for element to be visible, enabled and editable\n"
+      ],
+      "shot": "26-分割线.png",
+      "verdict": "PASS"
+    },
+    {
+      "label": "间距",
+      "added": true,
+      "selectedAs": "间距",
+      "observed": [
+        "高度",
+        "边距",
+        "上",
+        "左",
+        "右",
+        "下",
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "missing": [],
+      "extra": [
+        "圆角",
+        "背景色",
+        "文字颜色",
+        "文字大小"
+      ],
+      "interact": [
+        "locator.fill: Error: Cannot type text into input[type=number]\nCall log:\n  - waiting for locator('.props-panel').locator('.el-input__inner, .el-textarea__inner').filter({ hasNot: locator('[disabled]') }).first()\n    - locator resolved to <input min=\"5\" step=\"5\" max=\"200\" tabindex=\"0\" type=\"number\" role=\"spinbutton\" aria-valuemin=\"5\" autocomplete=\"off\" aria-valuenow=\"20\" aria-valuemax=\"200\" id=\"el-id-6453-1105\" aria-disabled=\"false\" class=\"el-input__inner\"/>\n    - fill(\"20-QA\")\n  - attempting fill action\n    - waiting for element to be visible, enabled and editable\n"
+      ],
+      "shot": "27-间距.png",
+      "verdict": "PASS"
+    }
+  ],
+  "editorUrl": "http://127.0.0.1:3000/page-builder/editor/11"
+}

@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/member/points\",\"title\":\"积分管理 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n会员管理\\n/\\n积分管理\\n超级管理员\\n积分管理\\n工作台\\n积分日志\\n手动调整\\n用户\\n类型\\n全部\\n时间范围\\n至\\n查询\\n重置\\nID\\n\\t\\n用户\\n\\t\\n类型\\n\\t\\n变动积分\\n\\t\\n剩余积分\\n\\t\\n来源\\n\\t\\n关联订单\\n\\t\\n备注\\n\\t\\n时间\\n暂无数据\\n共 0 条\\n20条/页\\n1\\n前往\\n页\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(0, 2600) });\n})()\n)');
+```

@@ -1,0 +1,79 @@
+task_id: TASK-QA-BATCH-010
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 执行页面装修器 FP-API-001~078 与 FP-DB-001~005
+  - 对照 mp_page / mp_page_version
+  - 未发布线上首页 id=1；DELETE id=1 被 300201 拒绝
+changed_files:
+  - agent-team/testing/evidence/BATCH-QA-010/
+  - agent-team/testing/cases/page-builder/TC-API.md
+  - agent-team/testing/cases/page-builder/TC-DB.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/defects/BUG-API-001.md
+  - agent-team/testing/defects/BUG-API-002.md
+  - agent-team/testing/defects/BUG-API-003.md
+  - agent-team/testing/defects/BUG-API-004.md
+  - agent-team/testing/defects/BUG-API-005.md
+  - agent-team/testing/defects/BUG-API-006.md
+  - agent-team/testing/defects/BUG-API-007.md
+  - agent-team/testing/defects/BUG-API-008.md
+  - agent-team/testing/defects/BUG-API-009.md
+  - agent-team/testing/defects/BUG-API-010.md
+  - agent-team/testing/defects/BUG-DB-001.md
+  - agent-team/testing/defects/BUG-DB-002.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 无低于 content_ops 的第二账号，角色类用例 BLOCKED
+  - 未禁用超管，110103 BLOCKED
+  - 非多租户，越权 BLOCKED
+self_test:
+  result: 未执行
+  details: QA 模式只验证不改业务代码
+downstream_suggestions:
+  - 补齐 110101 JSON、分页 page/page_size、非法 type 校验、name 超长勿 500
+  - mp_page_version 补外键；回滚后同步 current_version
+next_step: UI 批 BATCH-QA-011 已并行完成
+notes: 未改业务代码。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-010
+  feature_point_range:
+    - FP-API-001
+    - FP-API-078
+    - FP-DB-001
+    - FP-DB-005
+  executed_count: 83
+  pass_count: 40
+  fail_count: 31
+  partial_count: 2
+  blocked_count: 10
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "141/268"
+  new_defects:
+    P0: []
+    P1:
+      - BUG-DB-001
+      - BUG-DB-002
+    P2:
+      - BUG-API-001
+      - BUG-API-002
+      - BUG-API-003
+      - BUG-API-004
+      - BUG-API-005
+      - BUG-API-006
+      - BUG-API-009
+      - BUG-API-010
+    P3:
+      - BUG-API-007
+      - BUG-API-008
+  next_batch_plan: 缺陷修复后回归 FAIL 项；角色矩阵仍缺第二账号
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

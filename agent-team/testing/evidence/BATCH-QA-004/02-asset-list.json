@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/asset/list\",\"title\":\"素材列表 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n素材库\\n/\\n素材列表\\n超级管理员\\n素材列表\\n工作台\\n素材库\\n共 2 个素材\\n刷新\\n从微信同步\\n上传素材\\n📋\\n全部\\n2\\n🖼️\\n图片\\n0\\n🎬\\n视频\\n0\\n🎵\\n音频\\n0\\n📝\\n图文\\n0\\n分类管理\\n管理\\n📁\\n全部素材\\n2\\n📂\\n未分组\\n0\\n📁\\n首页装修素材\\n0\\n新建分类\\n类型筛选\\n搜索\\n首页活动 Banner\\n图片\\n100.0 KB\\n预览\\n编辑\\n品牌礼盒主图\\n图片\\n200.0 KB\\n预览\\n编辑\\n1-2 / 共 2 个\\n1\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({\n    url: location.href,\n    title: document.title,\n    text: t.slice(0, 2800)\n  });\n})()\n)');
+```

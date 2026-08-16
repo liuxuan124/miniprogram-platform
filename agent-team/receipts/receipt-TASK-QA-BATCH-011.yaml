@@ -1,0 +1,63 @@
+task_id: TASK-QA-BATCH-011
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - Playwright 实操后台页面管理/装修器 FP-UI-001~185
+  - 截图 BATCH-QA-011
+  - 未发布线上首页；小程序跳转未抢 DevTools，记 PARTIAL
+changed_files:
+  - agent-team/testing/evidence/BATCH-QA-011/
+  - agent-team/testing/cases/page-builder/TC-UI-shell.md
+  - agent-team/testing/cases/page-builder/TC-UI-components.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/defects/BUG-UI-009.md
+  - agent-team/testing/defects/BUG-UI-010.md
+  - agent-team/testing/defects/BUG-UI-011.md
+  - agent-team/testing/defects/BUG-UI-012.md
+  - agent-team/testing/defects/BUG-UI-013.md
+  - agent-team/testing/defects/BUG-UI-014.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 无低权限账号，列表/装修器无权限态 BLOCKED
+self_test:
+  result: 未执行
+  details: QA 模式只验证不改业务代码
+downstream_suggestions:
+  - 名称 maxlength 改为 128；补 share_image、导入 DSL、padding/visible
+  - 商品列表布局对齐 grid/list/waterfall；跳转补 phone/none
+next_step: 修复后回归 FAIL；真机跳转需单独批且勿抢 DevTools
+notes: 删除确认与离开未保存确认本批可弹出（相对探索 BUG-UI-003 有改善）。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-011
+  feature_point_range:
+    - FP-UI-001
+    - FP-UI-185
+  executed_count: 185
+  pass_count: 101
+  fail_count: 43
+  partial_count: 39
+  blocked_count: 2
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "141/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2:
+      - BUG-UI-009
+      - BUG-UI-010
+      - BUG-UI-011
+      - BUG-UI-012
+      - BUG-UI-013
+      - BUG-UI-014
+    P3: []
+  next_batch_plan: 回归 FAIL；小程序跳转/空数据源兜底需真机批
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

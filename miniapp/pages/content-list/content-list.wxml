@@ -13,7 +13,7 @@
   </view>
 
   <view class="toolbar">
-    <view class="search-entry" bindtap="onSearchTap">
+    <view class="search-entry" catchtap="onSearchTap" hover-class="search-entry--pressed">
       <text class="search-entry__icon">⌕</text>
       <text class="search-entry__text">搜索内容、主题或关键词</text>
       <text class="search-entry__key">搜索</text>

@@ -2,8 +2,8 @@
 <view class="dsl-product-list" style="{{styleString}}">
   <view wx:if="{{config.title}}" class="dsl-product-list__section-title">{{config.title}}</view>
   <view
-    class="dsl-product-list__grid"
-    style="grid-template-columns: repeat({{config.columns || 2}}, 1fr);"
+    class="dsl-product-list__grid dsl-product-list__grid--{{layout}}"
+    style="grid-template-columns: repeat({{columnCount}}, 1fr);"
   >
     <view
       class="dsl-product-list__item"

@@ -1,0 +1,200 @@
+{
+  "batch": "BATCH-QA-016",
+  "started": "2026-08-15T11:08:09.051Z",
+  "staffLogin": {
+    "http": 200,
+    "code": 200,
+    "role": "service_staff"
+  },
+  "tempLogin": {
+    "http": 200,
+    "code": 200
+  },
+  "pageId": "16",
+  "api020": {
+    "http": 200,
+    "code": 200,
+    "msg": "操作成功",
+    "created": true,
+    "id": "17"
+  },
+  "FP-API-030": {
+    "http": 200,
+    "code": 200,
+    "msg": "操作成功"
+  },
+  "FP-API-036": {
+    "http": 404,
+    "code": 300401,
+    "msg": "页面不存在"
+  },
+  "FP-API-043": {
+    "http": 400,
+    "code": 100101,
+    "msg": "DSL内容不能为空"
+  },
+  "FP-API-049": {
+    "http": 422,
+    "code": 300201,
+    "msg": "页面没有可发布的版本，请先保存草稿"
+  },
+  "FP-API-055": {
+    "http": 422,
+    "code": 300201,
+    "msg": "页面未发布，无法下架"
+  },
+  "FP-API-065": {
+    "http": 404,
+    "code": 300402,
+    "msg": "目标版本不存在: v1"
+  },
+  "tempUser": {
+    "id": 3,
+    "username": "qa_temp",
+    "realName": "QA可禁用账号",
+    "roleId": 4,
+    "roleCode": "service_staff",
+    "roleName": "å®¢æœäººå‘˜",
+    "status": 1,
+    "lastLoginAt": "2026-08-15T11:08:10",
+    "createTime": "2026-08-15T10:50:37",
+    "permissions": [
+      "dashboard",
+      "dashboard:view",
+      "user",
+      "user:list",
+      "user:detail",
+      "order",
+      "order:list",
+      "order:detail",
+      "member",
+      "member:list",
+      "member:detail"
+    ]
+  },
+  "disable": {
+    "http": 200,
+    "code": 200
+  },
+  "loginDisabled": {
+    "http": 401,
+    "code": 110103,
+    "msg": "账号已被禁用"
+  },
+  "forms": {
+    "http": 500,
+    "code": 500,
+    "msg": "系统内部错误，请稍后重试",
+    "text": "{\"code\":500,\"message\":\"系统内部错误，请稍后重试\"}"
+  },
+  "members": {
+    "http": 500,
+    "code": 500,
+    "msg": "系统内部错误，请稍后重试",
+    "text": "{\"code\":500,\"message\":\"系统内部错误，请稍后重试\"}"
+  },
+  "ui005": {
+    "deniedUi": false,
+    "canNew": 2,
+    "url": "http://127.0.0.1:3000/page-builder/list",
+    "snippet": "小程序运营系统\n多场景搭建与运营平台\n总览\n工作台\n小程序\n页面\n导航与外观\n发布\n模板\n内容运营\n内容管理\n表单管理\n用户与会员\n会员管理\n用户管理\n商业变现\n商品管理\n订单管理\n优惠券\n活动与预约\n活动管理\n预约管理\n经营\n财务管理\n智能 Agent\n系统\n素材库\n系统设置\n小程序\n/\n页面\nQA低权限客服\n页面\n工作台\n小程序 / 页面\n页面\n\n在这里创建和装修页面。配好内容并绑定导航后，到「发布」一次性上线。\n\n导航与外观\n发布\n新建页面\n14\n装修页面\n11\n可用模板\n12\n行业方案\n26\n组件类型\n类型：全部\n首页\n专题页\n自定义页\n状态：全部\n已发布\n草稿\n未发布\n模板\n重置\n+"
+  },
+  "ui029": {
+    "deniedEd": false,
+    "hasCanvas": true,
+    "url": "http://127.0.0.1:3000/page-builder/editor/16"
+  },
+  "finished": "2026-08-15T11:08:17.413Z",
+  "results": [
+    {
+      "id": "FP-API-020",
+      "status": "FAIL",
+      "note": "低权限仍可创建页面 id=17",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-030",
+      "status": "FAIL",
+      "note": "低权限写成功 http=200 code=200",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-036",
+      "status": "FAIL",
+      "note": "非契约拒绝 http=404 code=300401",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-043",
+      "status": "FAIL",
+      "note": "非契约拒绝 http=400 code=100101",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-049",
+      "status": "FAIL",
+      "note": "非契约拒绝 http=422 code=300201",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-055",
+      "status": "FAIL",
+      "note": "非契约拒绝 http=422 code=300201",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-065",
+      "status": "FAIL",
+      "note": "非契约拒绝 http=404 code=300402",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-API-011"
+    },
+    {
+      "id": "FP-API-074",
+      "status": "PASS",
+      "note": "禁用后登录 http=401 code=110103 msg=账号已被禁用",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": ""
+    },
+    {
+      "id": "EXP-LINE3-ADMIN-CREATE",
+      "status": "FAIL",
+      "note": "GET /admin/forms http=500 code=500",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-FORM-005"
+    },
+    {
+      "id": "EXP-MEMBER-LIST",
+      "status": "FAIL",
+      "note": "GET /admin/members http=500 code=500",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-MEMBER-003"
+    },
+    {
+      "id": "FP-UI-005",
+      "status": "FAIL",
+      "note": "低权限仍可见页面管理/新建",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-UI-015"
+    },
+    {
+      "id": "FP-UI-029",
+      "status": "FAIL",
+      "note": "低权限仍可进入装修器",
+      "time": "2026-08-15T11:08:09.051Z",
+      "bug": "BUG-UI-015"
+    }
+  ],
+  "summary": {
+    "PASS": 1,
+    "FAIL": 11,
+    "PARTIAL": 0,
+    "BLOCKED": 0
+  }
+}

@@ -1,0 +1,40 @@
+task_id: TASK-QA-000
+agent: qa-release-agent
+status: 开发中 | 已提交回执 | 待联调 | 测试中 | 已完成 | 阻塞
+completed_work: []
+changed_files: []
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 未执行 | 通过 | 失败 | 不适用
+  details: ""
+downstream_suggestions: []
+risks: []
+next_step: ""
+notes: ""
+qa:
+  work_mode: QA | RELEASE
+  batch_id: BATCH-000
+  feature_point_range: []
+  executed_count: 0
+  pass_count: 0
+  fail_count: 0
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "0/0"
+  cumulative_pass_rate: "0/0"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: ""
+  contract_versions:
+    api-contract: ""
+    database-model: ""
+    page-dsl-schema: ""
+    order-state-machine: ""
+    ai-recommendation-contract: ""

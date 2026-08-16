@@ -85,7 +85,7 @@
           <button
             class="remove-btn"
             aria-label="删除该组件"
-            @click.stop="pageStore.removeComponent(comp.id)"
+            @click.stop="handleRemoveComponent(comp)"
           >×</button>
         </div>
         <div v-if="!pageStore.components.length" class="empty-tip">当前页面暂无组件</div>
@@ -100,6 +100,7 @@ import { Search } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
+import { confirmRemoveComponent } from './confirmRemoveComponent'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
 const pageStore = usePageStore()
@@ -134,6 +135,12 @@ function recordRecentUsage(type: ComponentType) {
   } catch {
     // 存储失败（隐私模式等）不影响主流程
   }
+}
+
+async function handleRemoveComponent(comp: { id: string; type: ComponentType }) {
+  const label = getComponentDef(comp.type)?.label ?? comp.type
+  if (!(await confirmRemoveComponent(label))) return
+  pageStore.removeComponent(comp.id)
 }
 
 const recentComponents = computed<ComponentDefinition[]>(() => {

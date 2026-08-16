@@ -1,0 +1,60 @@
+task_id: TASK-QA-BATCH-019
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 开发修复并回归：BUG-FORM-001 / BUG-PROD-001 / BUG-PROD-003 / BUG-MP-001 / BUG-FORM-004
+  - 表单启用 API 助手带全量字段；商品预览仅 on_sale + 排序；小程序 field_key 归一；开放商城导航
+  - 证据 BATCH-QA-019
+changed_files:
+  - admin/src/api/form.ts
+  - admin/src/components/page-builder/composables/useDataSync.ts
+  - admin/src/utils/preview-datasource.ts
+  - admin/src/views/page-builder/MiniPreviewDialog.vue
+  - miniapp/pkg-extra/form/form.js
+  - miniapp/custom-tab-bar/index.js
+  - agent-team/testing/defects/BUG-FORM-001.md
+  - agent-team/testing/defects/BUG-PROD-001.md
+  - agent-team/testing/defects/BUG-PROD-003.md
+  - agent-team/testing/defects/BUG-MP-001.md
+  - agent-team/testing/defects/BUG-FORM-004.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-019/
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: 表单启停 200 且 UI 已启用；商品列表 categoryName=品牌礼盒；on_sale 过滤生效；form field_key 归一
+downstream_suggestions:
+  - 继续 BUG-MEMBER-001、BUG-ORDER-001、BUG-MP-005、BUG-FORM-003、BUG-UI-014
+next_step: 下一批评测剩余开放 P1
+notes: 用户要求继续；本批关闭 5 个 P1。禁止写测试完成。正式分母仍 192/268（本批主要为探索项/缺陷回归）。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-019
+  feature_point_range:
+    - EXP-LINE2-BIND-PREVIEW
+    - EXP-LINE2-MP-ORDER
+    - EXP-LINE3-MP-SUBMIT
+    - EXP-PRODUCT-CATEGORY
+  executed_count: 4
+  pass_count: 2
+  fail_count: 0
+  partial_count: 2
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "192/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: MEMBER-001 / ORDER-001 / MP-005 / FORM-003 / UI-014
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

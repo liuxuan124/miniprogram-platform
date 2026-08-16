@@ -1,7 +1,12 @@
 // pages/login/login.js — 手机号快捷登录
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
-const { upload } = require('../../utils/request')
+const privacyHelper = require('../../utils/privacy')
+const {
+  runOneTapLogin,
+  computeCanSubmit,
+  applyRememberedProfile,
+} = require('../../utils/login-flow')
 
 Page({
   data: {
@@ -18,9 +23,9 @@ Page({
     nicknameError: false,
     privacyError: false,
     formHint: '',
-    showAvatarOptions: false,
-    nicknameEditing: false,
+    showPrivacyPopup: false,
     nicknameFocused: false,
+    pickingAvatar: false,
   },
 
   onLoad(options) {
@@ -36,6 +41,42 @@ Page({
         interceptAction: interceptInfo.action,
       })
     }
+
+    this._unsubscribePrivacy = privacyHelper.subscribe(() => {
+      this.setData({
+        showPrivacyPopup: true,
+        formHint: '请先同意隐私协议，再选择头像或填写昵称',
+      })
+      return true
+    })
+
+    applyRememberedProfile((patch) => {
+      this.setData(patch, () => this._refreshCanSubmit())
+    })
+    AuthService.prefetchLoginCode()
+    this._ensurePrivacyReady()
+  },
+
+  onUnload() {
+    if (this._unsubscribePrivacy) {
+      this._unsubscribePrivacy()
+      this._unsubscribePrivacy = null
+    }
+    clearTimeout(this._avatarPickTimer)
+  },
+
+  noop() {},
+
+  /** 仅在需要时弹出微信隐私授权；协议勾选始终默认未选，需用户手动勾选 */
+  _ensurePrivacyReady() {
+    if (typeof wx.getPrivacySetting !== 'function') return
+    wx.getPrivacySetting({
+      success: (res) => {
+        if (res && res.needAuthorization) {
+          this.setData({ showPrivacyPopup: true })
+        }
+      },
+    })
   },
 
   _maskPhone(phone) {
@@ -47,6 +88,7 @@ Page({
   _setAvatar(avatarUrl) {
     if (!avatarUrl) {
       wx.showToast({ title: '未获取到头像', icon: 'none' })
+      this.setData({ pickingAvatar: false, nicknameFocused: false })
       return
     }
     this.setData({
@@ -54,83 +96,82 @@ Page({
       avatarUrl,
       avatarError: false,
       formHint: '',
+      showPrivacyPopup: false,
+      pickingAvatar: false,
+      nicknameFocused: false,
     }, () => this._refreshCanSubmit())
+    AuthService.prefetchLoginCode()
   },
 
-  onChooseAvatarTap() {
-    this.setData({ showAvatarOptions: true })
-  },
-
-  onCloseAvatarOptions() {
-    this.setData({ showAvatarOptions: false })
+  /** 点头像时先收起键盘并锁住昵称，避免抢焦点导致「先出昵称再出头像」 */
+  onAvatarTap() {
+    try { wx.hideKeyboard() } catch (e) {}
+    this.setData({
+      pickingAvatar: true,
+      nicknameFocused: false,
+    })
+    clearTimeout(this._avatarPickTimer)
+    this._avatarPickTimer = setTimeout(() => {
+      if (this.data.pickingAvatar) {
+        this.setData({ pickingAvatar: false })
+      }
+    }, 5000)
   },
 
   onChooseAvatar(e) {
+    clearTimeout(this._avatarPickTimer)
     const avatarUrl = (e.detail && e.detail.avatarUrl) || ''
-    this._setAvatar(avatarUrl)
-    if (avatarUrl) {
-      this.setData({ showAvatarOptions: false })
+    if (!avatarUrl) {
+      console.warn('[LoginPage] chooseAvatar empty detail:', e)
+      this.setData({ pickingAvatar: false, nicknameFocused: false })
+      if (privacyHelper.hasPending() || !this.data.agreePrivacy) {
+        this.setData({
+          showPrivacyPopup: true,
+          formHint: '请先同意隐私协议后再选择头像',
+        })
+        return
+      }
+      this.setData({
+        formHint: '头像权限未声明：请到公众平台→设置→服务内容声明→用户隐私保护指引，勾选「微信头像」「微信昵称」并保存，约5分钟后生效',
+        avatarError: true,
+      })
+      wx.showToast({ title: '请先在公众平台声明头像权限', icon: 'none', duration: 3000 })
+      return
     }
+    this._setAvatar(avatarUrl)
   },
 
-  onChooseMediaSource(e) {
-    const sourceType = (e.currentTarget.dataset && e.currentTarget.dataset.source) || 'album'
-    this.setData({ showAvatarOptions: false })
-    setTimeout(() => {
-      this._chooseAvatarMedia(sourceType)
-    }, 180)
-  },
-
-  onNicknameOptionsTap() {
-    if (this.data.nicknameEditing) return
-    wx.showActionSheet({
-      itemList: ['使用微信昵称', '手动填写'],
-      success: (res) => {
-        this._focusNickname(res.tapIndex === 0)
-      },
-      fail() {},
-    })
-  },
-
-  _focusNickname(useSystemNickname) {
+  onAgreePrivacyAuthorization(e) {
+    const buttonId = (e && e.currentTarget && e.currentTarget.id) || 'privacy-agree-btn'
+    privacyHelper.agree(buttonId)
     this.setData({
-      nicknameEditing: true,
+      agreePrivacy: true,
+      privacyError: false,
+      formHint: '',
+      showPrivacyPopup: false,
       nicknameFocused: false,
-    }, () => {
-      setTimeout(() => {
-        this.setData({ nicknameFocused: true })
-        if (useSystemNickname) {
-          wx.showToast({
-            title: '请从键盘上方选择昵称',
-            icon: 'none',
-            duration: 1800,
-          })
-        }
-      }, 180)
-    })
+    }, () => this._refreshCanSubmit())
+    AuthService.prefetchLoginCode()
   },
 
-  onNicknameInputFocus() {
-    this.setData({ nicknameFocused: true })
+  onUncheckPrivacy() {
+    this.setData({
+      agreePrivacy: false,
+      formHint: '',
+    }, () => this._refreshCanSubmit())
   },
 
-  _chooseAvatarMedia(sourceType) {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: [sourceType],
-      sizeType: ['compressed'],
-      success: (res) => {
-        const file = res.tempFiles && res.tempFiles[0]
-        this._setAvatar(file && file.tempFilePath)
-      },
-      fail: (err) => {
-        if (!err || !String(err.errMsg || '').includes('cancel')) {
-          console.warn('[LoginPage] 选择头像失败:', err)
-          wx.showToast({ title: '头像选择失败，请重试', icon: 'none' })
-        }
-      },
-    })
+  onRefusePrivacy() {
+    clearTimeout(this._avatarPickTimer)
+    privacyHelper.refuse()
+    this.setData({
+      showPrivacyPopup: false,
+      agreePrivacy: false,
+      pickingAvatar: false,
+      nicknameFocused: false,
+      formHint: '需同意隐私协议后才能选择头像和昵称',
+      privacyError: true,
+    }, () => this._refreshCanSubmit())
   },
 
   onNicknameInput(e) {
@@ -158,38 +199,8 @@ Page({
   },
 
   _refreshCanSubmit() {
-    const { agreePrivacy, avatarLocalPath, avatarUrl, nickName } = this.data
     this.setData({
-      canSubmit: !!(
-        agreePrivacy
-        && (avatarLocalPath || avatarUrl)
-        && nickName
-        && nickName.trim()
-      ),
-    })
-  },
-
-  onTogglePrivacy() {
-    this.setData({
-      agreePrivacy: !this.data.agreePrivacy,
-      privacyError: false,
-      formHint: '',
-    }, () => this._refreshCanSubmit())
-  },
-
-  onPrecheckLogin() {
-    const avatarError = !(this.data.avatarLocalPath || this.data.avatarUrl)
-    const nicknameError = !(this.data.nickName && this.data.nickName.trim())
-    const privacyError = !this.data.agreePrivacy
-    const missing = []
-    if (avatarError) missing.push('头像')
-    if (nicknameError) missing.push('昵称')
-    if (privacyError) missing.push('协议')
-    this.setData({
-      avatarError,
-      nicknameError,
-      privacyError,
-      formHint: missing.length ? '请先完成：' + missing.join('、') : '',
+      canSubmit: computeCanSubmit(this.data),
     })
   },
 
@@ -197,20 +208,24 @@ Page({
   async onOneTapLogin(e) {
     if (this.data.loading) return
 
-    if (!this.data.agreePrivacy) {
-      wx.showToast({ title: '请先同意隐私协议', icon: 'none' })
-      return
-    }
-    if (!(this.data.avatarLocalPath || this.data.avatarUrl)) {
-      wx.showToast({ title: '请先选择头像', icon: 'none' })
-      return
-    }
-    const nickName = (this.data.nickName || '').trim()
-    if (!nickName) {
-      wx.showToast({ title: '请先填写昵称', icon: 'none' })
-      return
-    }
     const { code, errMsg } = e.detail || {}
+    const privacyError = !this.data.agreePrivacy
+    const avatarError = !(this.data.avatarLocalPath || this.data.avatarUrl)
+    const nicknameError = !(this.data.nickName && this.data.nickName.trim())
+
+    // 协议未勾选：立刻拦住，避免继续消耗登录链路
+    if (privacyError) {
+      this.setData({
+        privacyError: true,
+        avatarError,
+        nicknameError,
+        formHint: '请先勾选同意用户协议与隐私政策',
+        showPrivacyPopup: true,
+      })
+      wx.showToast({ title: '请先勾选协议', icon: 'none' })
+      return
+    }
+
     if (!code) {
       console.warn('[LoginPage] 用户未授权手机号:', errMsg)
       wx.showToast({ title: '需要授权手机号才能登录', icon: 'none' })
@@ -219,56 +234,50 @@ Page({
 
     this.setData({ loading: true })
     try {
-      const loginResult = await AuthService.wxLogin({ nickname: nickName })
-
-      let avatarRemoteUrl = ''
-      if (this.data.avatarLocalPath) {
-        try {
-          const uploaded = await upload(this.data.avatarLocalPath, {
-            name: 'file',
-            url: '/api/v1/mp/upload',
-            formData: { subDir: 'avatar' },
-          })
-          avatarRemoteUrl = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
-        } catch (uploadErr) {
-          console.warn('[LoginPage] 头像上传失败，继续完成登录:', uploadErr)
-        }
-      }
-
-      const phone = await AuthService.bindPhone(code, {
-        nickname: nickName,
-        avatarUrl: avatarRemoteUrl,
+      const result = await runOneTapLogin({
+        phoneCode: code,
+        nickName: this.data.nickName,
+        localAvatar: this.data.avatarLocalPath || this.data.avatarUrl || '',
       })
 
-      this.setData({ phoneMasked: this._maskPhone(phone) })
-
-      AuthService.completeLogin({
-        phone,
-        nickName: nickName || (loginResult.userInfo && loginResult.userInfo.nickName) || '',
-        avatarUrl: avatarRemoteUrl || (loginResult.userInfo && loginResult.userInfo.avatarUrl) || '',
-      })
-
+      this.setData({ phoneMasked: this._maskPhone(result.phone) })
       wx.showToast({ title: '登录成功', icon: 'success' })
-      AuthUtil.clearLoginInterceptInfo()
       setTimeout(() => this._navigateAfterLogin(), 800)
     } catch (err) {
       console.error('[LoginPage] 一键登录失败:', err)
-      AuthService.logout({ redirectToLogin: false, manual: false })
-      wx.showToast({
-        title: (err && err.message) || '登录失败，请重试',
-        icon: 'none',
-      })
+      if (err && err.code === 'PROFILE_REQUIRED') {
+        this.setData({
+          avatarError: !(this.data.avatarLocalPath || this.data.avatarUrl),
+          nicknameError: !(this.data.nickName && this.data.nickName.trim()),
+          formHint: '新用户请先选择头像并填写昵称',
+        })
+        wx.showModal({
+          title: '请先完善资料',
+          content: '首次登录请先选择头像并填写昵称，然后再授权手机号。',
+          showCancel: false,
+        })
+      } else if (!AuthUtil.isLoggedIn()) {
+        AuthService.logout({ redirectToLogin: false, manual: false })
+        wx.showToast({
+          title: (err && err.message) || '登录失败，请重试',
+          icon: 'none',
+        })
+      } else {
+        // 已登录却走到异常：按成功收尾，避免「失败但仍已登录」
+        wx.showToast({ title: '登录成功', icon: 'success' })
+        setTimeout(() => this._navigateAfterLogin(), 800)
+      }
     } finally {
       this.setData({ loading: false })
     }
   },
 
   onViewPrivacy() {
-    wx.navigateTo({ url: '/pages/agreement/agreement?type=privacy' })
+    wx.navigateTo({ url: '/pkg-user/agreement/agreement?type=privacy' })
   },
 
   onViewTerms() {
-    wx.navigateTo({ url: '/pages/agreement/agreement?type=terms' })
+    wx.navigateTo({ url: '/pkg-user/agreement/agreement?type=terms' })
   },
 
   _navigateAfterLogin() {
@@ -277,7 +286,6 @@ Page({
       const tabPages = [
         '/pages/index/index',
         '/pages/content-list/content-list',
-        '/pages/product-list/product-list',
         '/pages/mine/mine',
       ]
       if (tabPages.includes(redirect.split('?')[0])) {

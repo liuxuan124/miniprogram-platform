@@ -137,6 +137,9 @@ public class AppointmentServiceServiceImpl extends BaseServiceImpl<com.miniprogr
         AppointmentServiceVO vo = new AppointmentServiceVO();
         BeanUtils.copyProperties(service, vo);
         vo.setStatusDesc(AppointmentServiceVO.getStatusDesc(service.getStatus()));
+        long slots = appointmentSlotService.count(new LambdaQueryWrapper<AppointmentSlot>()
+                .eq(AppointmentSlot::getServiceId, service.getId()));
+        vo.setSlotCount((int) slots);
         return vo;
     }
 

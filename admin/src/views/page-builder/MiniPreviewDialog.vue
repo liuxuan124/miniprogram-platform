@@ -57,6 +57,21 @@
               @preview-action="handlePreviewAction"
             />
           </div>
+          <div v-if="previewDetail?.type === 'form'" class="preview-form-overlay">
+            <div class="mini-detail-card">
+              <h3>{{ previewDetail.title }}</h3>
+              <p>{{ previewDetail.desc }}</p>
+              <div v-if="previewDetail.formFields?.length" class="preview-form-fields">
+                <div v-for="field in previewDetail.formFields" :key="field.id" class="preview-form-field">
+                  <label>{{ field.label }}<span v-if="field.required" class="required">*</span></label>
+                  <div class="preview-field-placeholder">{{ field.placeholder || '请输入' + field.label }}</div>
+                </div>
+              </div>
+              <p v-else class="preview-form-tip">暂无字段配置，请先在表单管理中编辑字段。</p>
+              <p class="preview-form-tip">预览不支持真实提交，请到小程序端填写。</p>
+              <el-button type="primary" plain size="small" @click="clearPreviewDetail">返回页面</el-button>
+            </div>
+          </div>
         </div>
       </template>
 
@@ -177,6 +192,8 @@ import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import { useDataSync } from '@/components/page-builder/composables/useDataSync'
 import { getConfigByGroup } from '@/api/system'
+import { getFormTemplateDetail } from '@/api/form'
+import type { FormFieldConfig } from '@/types/form'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 
@@ -192,7 +209,13 @@ const pageStore = usePageStore()
 const { syncProducts, syncContents, syncActivities } = useDataSync()
 
 type PreviewTab = string
-type PreviewDetail = { type: 'content' | 'product' | 'activity'; title: string; desc: string }
+type PreviewDetail = {
+  type: 'content' | 'product' | 'activity' | 'form'
+  title: string
+  desc: string
+  formId?: string
+  formFields?: FormFieldConfig[]
+}
 
 const previewTab = ref<PreviewTab>('home')
 const previewDataMode = ref<'real' | 'demo'>('real')
@@ -298,9 +321,9 @@ const defaultContentPreviewList: { title: string; desc: string }[] = [
 
 const contentPreviewList = ref<{ title: string; desc: string }[]>([...defaultContentPreviewList])
 
-const shopPreviewList = ref<{ name: string; price: string }[]>([
-  { name: '湘品甄选礼盒', price: '99.00' },
-  { name: '药食同源组合', price: '128.00' },
+const shopPreviewList = ref<{ name: string; price: string; sales?: number }[]>([
+  { name: '湘品甄选礼盒', price: '99.00', sales: 0 },
+  { name: '药食同源组合', price: '128.00', sales: 0 },
 ])
 
 const defaultActivityPreviewList = [
@@ -334,6 +357,7 @@ async function loadShopPreviewList() {
       shopPreviewList.value = items.slice(0, 6).map((item: any) => ({
         name: item.title || '未命名商品',
         price: Number.isFinite(Number(item.price)) ? Number(item.price).toFixed(2) : '0.00',
+        sales: Number(item.sales ?? 0) || 0,
       }))
     }
   })
@@ -384,24 +408,60 @@ async function loadActivityPreviewList() {
   })
 }
 
+function normalizePreviewFormFields(rawFields: unknown): FormFieldConfig[] {
+  try {
+    const source = typeof rawFields === 'string' ? JSON.parse(rawFields) : rawFields
+    if (!Array.isArray(source)) return []
+    return source.map((field: any, index: number) => ({
+      id: field.id || field.field_key || field.key || `field_${index + 1}`,
+      label: field.label || `字段${index + 1}`,
+      field_type: field.field_type || field.type || 'text',
+      placeholder: field.placeholder || '',
+      required: Boolean(field.required),
+      sort: Number(field.sort ?? index),
+      options: Array.isArray(field.options) ? field.options : [],
+    }))
+  } catch {
+    return []
+  }
+}
+
 function handlePreviewAction(payload: {
   tab: PreviewTab
   message: string
   detailType?: string
   detailTitle?: string
   detailDesc?: string
+  formId?: string
 }) {
   if (!payload) return
-  previewTab.value = payload.tab
-  const validTypes = ['content', 'product', 'activity'] as const
-  const detailType = validTypes.includes(payload.detailType as any) ? payload.detailType as 'content' | 'product' | 'activity' : undefined
+  const validTypes = ['content', 'product', 'activity', 'form'] as const
+  const detailType = validTypes.includes(payload.detailType as any) ? payload.detailType as 'content' | 'product' | 'activity' | 'form' : undefined
   const detail = detailType
     ? {
         type: detailType,
         title: payload.detailTitle || '详情',
         desc: payload.detailDesc || '详情预览',
+        formId: payload.formId,
       }
     : null
+  if (detailType === 'form') {
+    void (async () => {
+      let formFields: FormFieldConfig[] = []
+      if (payload.formId && previewDataMode.value === 'real') {
+        try {
+          const res = await getFormTemplateDetail(Number(payload.formId))
+          formFields = normalizePreviewFormFields((res as any)?.data?.fields)
+        } catch {
+          // 预览降级为静态卡片
+        }
+      }
+      previewDetail.value = detail ? { ...detail, formFields } : null
+      ElMessage.info('预览不支持真实提交，请到小程序端填写')
+    })()
+    return
+  }
+  previewTab.value = payload.tab
   // 切 tab 的 watcher 会清空详情，需等其执行完再设置
   void nextTick(() => {
     previewDetail.value = detail
@@ -500,6 +560,59 @@ watch(
 .preview-home-wrap {
   position: relative;
   min-height: 100%;
+}
+
+.preview-form-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.preview-form-overlay .mini-detail-card {
+  width: 100%;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.preview-form-tip {
+  margin: 8px 0 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.preview-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+  text-align: left;
+}
+
+.preview-form-field label {
+  display: block;
+  margin-bottom: 4px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.preview-form-field .required {
+  color: #ef4444;
+}
+
+.preview-field-placeholder {
+  padding: 8px 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
 }
 
 .preview-fab-layer {

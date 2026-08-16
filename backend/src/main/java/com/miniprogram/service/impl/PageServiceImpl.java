@@ -40,6 +40,7 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
 
     @Override
     public PageResult<PageDetailDTO> listPages(PageQueryDTO queryDTO) {
+        queryDTO.normalize();
         LambdaQueryWrapper<Page> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(queryDTO.getKeyword()), Page::getName, queryDTO.getKeyword());
         wrapper.eq(queryDTO.getType() != null, Page::getType, queryDTO.getType());
@@ -59,11 +60,14 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PageDetailDTO createPage(PageCreateDTO createDTO) {
-        // 检查路径唯一性
-        checkPathUnique(createDTO.getPath(), null);
+        String path = normalizePath(createDTO.getPath());
+        createDTO.setPath(path);
+        validatePathRules(createDTO.getType(), path, null);
+        checkPathUnique(path, null);
 
         Page page = new Page();
         BeanUtils.copyProperties(createDTO, page);
+        page.setPath(path);
         page.setStatus(0); // 草稿
         page.setCurrentVersion(0);
         this.save(page);
@@ -76,9 +80,10 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         Page page = getExistingPage(id);
         PageDetailDTO dto = toDetailDTO(page);
 
-        // 获取当前版本的 DSL 内容
-        if (page.getCurrentVersion() != null && page.getCurrentVersion() > 0) {
-            String dsl = pageVersionService.getVersionDsl(id, page.getCurrentVersion());
+        Integer latest = pageVersionService.getLatestVersion(id);
+        dto.setLatestVersion(latest);
+        if (latest != null && latest > 0) {
+            String dsl = pageVersionService.getVersionDsl(id, latest);
             dto.setDraftDslContent(dsl);
         }
 
@@ -88,12 +93,21 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PageDetailDTO updatePage(Long id, PageUpdateDTO updateDTO) {
+        if (updateDTO == null || updateDTO.isEmpty()) {
+            throw new BusinessException(100101, "请至少提供一个要更新的字段");
+        }
         Page page = getExistingPage(id);
 
+        Integer nextType = updateDTO.getType() != null ? updateDTO.getType() : page.getType();
+        String nextPath = StringUtils.hasText(updateDTO.getPath())
+                ? normalizePath(updateDTO.getPath())
+                : normalizePath(page.getPath());
+
         // 如果更新了路径，检查唯一性
-        if (StringUtils.hasText(updateDTO.getPath()) && !updateDTO.getPath().equals(page.getPath())) {
-            checkPathUnique(updateDTO.getPath(), id);
+        if (StringUtils.hasText(updateDTO.getPath()) && !nextPath.equals(normalizePath(page.getPath()))) {
+            checkPathUnique(nextPath, id);
         }
+        validatePathRules(nextType, nextPath, id);
 
         if (StringUtils.hasText(updateDTO.getName())) {
             page.setName(updateDTO.getName());
@@ -102,7 +116,7 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
             page.setType(updateDTO.getType());
         }
         if (StringUtils.hasText(updateDTO.getPath())) {
-            page.setPath(updateDTO.getPath());
+            page.setPath(nextPath);
         }
         if (updateDTO.getShareTitle() != null) {
             page.setShareTitle(updateDTO.getShareTitle());
@@ -139,7 +153,7 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
 
         // 并发冲突检测：客户端传入 expectedVersion 时校验
         if (draftDTO.getExpectedVersion() != null) {
-            int dbVersion = page.getCurrentVersion() == null ? 0 : page.getCurrentVersion();
+            int dbVersion = pageVersionService.getLatestVersion(id);
             if (dbVersion != draftDTO.getExpectedVersion()) {
                 throw new BusinessException(300409,
                     "页面已被其他人修改（服务器版本 v" + dbVersion + "，您的版本 v" + draftDTO.getExpectedVersion() + "），请刷新后重试");
@@ -152,13 +166,10 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         // 保存草稿版本
         PageVersionDTO versionDTO = pageVersionService.saveDraftVersion(id, draftDTO.getDslContent());
 
-        // 更新页面的当前版本号和状态
-        page.setCurrentVersion(versionDTO.getVersion());
-        // 如果之前是已下架状态，改为草稿状态
         if (page.getStatus() == 2) {
             page.setStatus(0);
+            this.updateById(page);
         }
-        this.updateById(page);
 
         return versionDTO;
     }
@@ -167,25 +178,23 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     @Transactional(rollbackFor = Exception.class)
     public PageDetailDTO publishPage(Long id) {
         Page page = getExistingPage(id);
+        validatePathRules(page.getType(), normalizePath(page.getPath()), id);
+        assertPathPublishable(normalizePath(page.getPath()));
 
-        if (page.getCurrentVersion() == null || page.getCurrentVersion() == 0) {
-            throw new BusinessException(300201, "页面没有可发布的版本，请先保存草稿");
-        }
-
-        // 发布当前版本
         PageVersion latestVersion = pageVersionService.lambdaQuery()
                 .eq(PageVersion::getPageId, id)
-                .eq(PageVersion::getVersion, page.getCurrentVersion())
+                .orderByDesc(PageVersion::getVersion)
+                .last("LIMIT 1")
                 .one();
 
         if (latestVersion == null) {
-            throw new BusinessException(300401, "页面版本不存在");
+            throw new BusinessException(300201, "页面没有可发布的版本，请先保存草稿");
         }
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         pageVersionService.publishVersion(latestVersion.getId(), currentUserId);
 
-        // 更新页面状态为已发布
+        page.setCurrentVersion(latestVersion.getVersion());
         page.setStatus(1);
         this.updateById(page);
 
@@ -270,6 +279,47 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         long count = this.count(wrapper);
         if (count > 0) {
             throw new BusinessException(300203, "页面路径已存在: " + path);
+        }
+    }
+
+    /** 统一路径：去掉首尾空白，补齐前导 / */
+    private String normalizePath(String path) {
+        if (!StringUtils.hasText(path)) {
+            return "";
+        }
+        String p = path.trim();
+        if (!p.startsWith("/")) {
+            p = "/" + p;
+        }
+        return p;
+    }
+
+    /**
+     * 首页仅允许唯一路径 /pages/index/index；禁止 index-2 等包外路径。
+     */
+    private void validatePathRules(Integer type, String path, Long excludeId) {
+        String normalized = normalizePath(path);
+        if (!StringUtils.hasText(normalized)) {
+            throw new BusinessException(100101, "页面路径不能为空");
+        }
+        if (normalized.matches("(?i)^/pages/index/index-\\d+$")) {
+            throw new BusinessException(300204,
+                    "路径 " + normalized + " 不在小程序包内。首页请使用 /pages/index/index；其它页面请选专题页或自定义页");
+        }
+        if (type != null && type == 1) {
+            if (!"/pages/index/index".equalsIgnoreCase(normalized)) {
+                throw new BusinessException(300204,
+                        "首页类型路径必须为 /pages/index/index，不能使用 " + normalized);
+            }
+        }
+    }
+
+    /** 发布前再校验：包内可打开路径 */
+    private void assertPathPublishable(String path) {
+        String normalized = normalizePath(path);
+        if (normalized.matches("(?i)^/pages/index/index-\\d+$")) {
+            throw new BusinessException(300204,
+                    "路径 " + normalized + " 不在小程序包内，无法发布。请改为 /pages/index/index 或自定义页路径");
         }
     }
 

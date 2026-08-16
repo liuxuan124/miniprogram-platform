@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/ai/conversation\",\"title\":\"对话记录 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n智能 AI\\n/\\n对话记录\\n超级管理员\\n对话记录\\n工作台\\nAI 对话记录\\n关键词\\n用户ID\\n时间范围\\n至\\n查询\\n重置\\nID\\n\\t\\n用户\\n\\t\\n小程序\\n\\t\\n首条消息\\n\\t\\n消息数\\n\\t\\n最后消息时间\\n\\t\\n创建时间\\n\\t\\n操作\\n暂无数据\\n共 0 条\\n20条/页\\n1\\n前往\\n页\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(0, 2400) });\n})()\n)');
+```

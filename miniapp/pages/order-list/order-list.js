@@ -40,9 +40,13 @@ Page({
   },
 
   onLoad(options) {
-    if (!AuthUtil.requireLoginForAction('查看订单', {
-      onSuccess: () => this._initializePage(options),
-    })) return
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({ loading: false, isEmpty: true, hasMore: false })
+      AuthUtil.requireLoginForAction('查看订单', {
+        onSuccess: () => this._initializePage(options),
+      })
+      return
+    }
     this._initializePage(options)
   },
 
@@ -59,8 +63,7 @@ Page({
   },
 
   onShow() {
-    // 从订单详情返回时刷新
-    if (this.data.orders.length > 0) {
+    if (AuthUtil.isLoggedIn()) {
       this._loadOrders(true)
     }
   },
@@ -79,6 +82,10 @@ Page({
 
   /** 加载订单列表 */
   _loadOrders(reset = false) {
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({ orders: [], loading: false, isEmpty: true, hasMore: false })
+      return Promise.resolve()
+    }
     if (this.data.loading) return Promise.resolve()
 
     const page = reset ? 1 : this.data.page + 1
@@ -121,7 +128,8 @@ Page({
         })
       })
       .catch(() => {
-        this.setData({ loading: false })
+        const empty = this.data.orders.length === 0
+        this.setData({ loading: false, isEmpty: empty, hasMore: false })
         wx.showToast({ title: '加载失败', icon: 'none' })
       })
   },

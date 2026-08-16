@@ -32,7 +32,7 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'media',
       categoryLabel: '媒体',
       defaultProps: () => ({
-        images: [{ image: '', title: '轮播图1', link_type: 'page', link_url: '' }],
+        images: [{ image: '', title: '轮播图1', link_type: 'none', link_url: '' }],
         autoplay: true,
         interval: 3000,
         indicator_dots: true,
@@ -40,9 +40,22 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 14 }),
       validate: (props) => {
         const warnings: string[] = []
-        if (Array.isArray(props.images) && props.images.every((img: any) => !img.image)) {
+        if (!Array.isArray(props.images) || props.images.length === 0) {
+          warnings.push('轮播图至少需要一个图片项（items/images 不能为空）')
+        } else if (props.images.every((img: any) => !img.image)) {
           warnings.push('所有轮播图图片地址为空，请至少设置一张图片')
         }
+        const images = Array.isArray(props.images) ? props.images : []
+        images.forEach((img: any, index: number) => {
+          const type = String(img?.link_type || img?.type || '').trim()
+          const target = String(img?.link_url || img?.target || '').trim()
+          if (!type) warnings.push(`轮播图第 ${index + 1} 张缺少跳转类型`)
+          else if (!['page', 'webview', 'url', 'miniapp', 'phone', 'none'].includes(type)) {
+            warnings.push(`轮播图第 ${index + 1} 张跳转类型不合法`)
+          } else if (type !== 'none' && !target) {
+            warnings.push(`轮播图第 ${index + 1} 张缺少跳转地址`)
+          }
+        })
         return warnings
       },
     },
@@ -55,7 +68,7 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       icon: 'PictureFilled',
       category: 'media',
       categoryLabel: '媒体',
-      defaultProps: () => ({ image: '', link_type: 'page', link_url: '' }),
+      defaultProps: () => ({ image: '', link_type: 'none', link_url: '' }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
     },
   ],
@@ -123,7 +136,17 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       icon: 'Menu',
       category: 'commerce',
       categoryLabel: '商品',
-      defaultProps: () => ({ title: '快捷分类', layout: 'grid', columns: 4, items: [] }),
+      defaultProps: () => ({
+        title: '快捷分类',
+        layout: 'grid',
+        columns: 4,
+        items: [
+          { icon: '🛍️', title: '全部', link_url: '/pages/product-list/product-list' },
+          { icon: '🔥', title: '热卖', link_url: '/pages/product-list/product-list' },
+          { icon: '🎁', title: '新品', link_url: '/pages/product-list/product-list' },
+          { icon: '💎', title: '精选', link_url: '/pages/product-list/product-list' },
+        ],
+      }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
       validate: (props) => {
         const warnings: string[] = []
@@ -144,12 +167,17 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       categoryLabel: '商品',
       defaultProps: () => ({
         title: '商品推荐',
+        layout: 'grid',
         columns: 2,
         show_price: true,
         show_sales: true,
         show_cart: true,
         limit: 6,
-        data_source: { type: 'api', params: { sort_by: 'sales' } },
+        data_source: {
+          type: 'product',
+          params: { status: 'on_sale', sort_by: 'sales', sort_order: 'desc' },
+          query: { status: 'on_sale', sort_by: 'sales', sort_order: 'desc' },
+        },
       }),
       defaultStyle: () => ({ padding_left: 8, padding_right: 8 }),
     },
@@ -182,11 +210,16 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultProps: () => ({
         title: '领券中心',
         limit: 3,
+        layout: 'horizontal',
         style_type: 'horizontal',
         button_text: '领取',
         title_font_size: 15,
         subtitle_font_size: 12,
-        data_source: { type: 'api', params: {} },
+        data_source: {
+          type: 'coupon',
+          params: { status: 'active' },
+          query: { status: 'active' },
+        },
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 10 }),
       validate: (props) => {
@@ -234,7 +267,11 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         limit: 3,
         show_cover: true,
         show_date: true,
-        data_source: { type: 'api', params: {} },
+        data_source: {
+          type: 'content',
+          params: { status: 'published' },
+          query: { status: 'published' },
+        },
       }),
       defaultStyle: () => ({ padding_left: 10, padding_right: 10 }),
     },
@@ -299,7 +336,10 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         columns: 2,
         title_font_size: 15,
         subtitle_font_size: 11,
-        items: [],
+        items: [
+          { name: '营业执照', desc: '', image: '' },
+          { name: '资质证书', desc: '', image: '' },
+        ],
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
     },
@@ -349,12 +389,20 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         location: '品牌中心',
         button_text: '立即预约',
         show_button: true,
+        show_countdown: true,
+        show_quota: true,
+        layout: 'card',
         style_type: 'card',
         theme: 'blue',
         link_type: 'page',
         link_url: '',
         title_font_size: 14,
         subtitle_font_size: 11,
+        data_source: {
+          type: 'activity',
+          params: { status: 'registering' },
+          query: { status: 'registering' },
+        },
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 12 }),
     },
@@ -452,6 +500,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         return {
           title: '距离活动开始',
           end_time,
+          target_time: end_time,
+          format: 'dhms',
           style_type: 'card',
           show_days: true,
           end_text: '已结束',
@@ -603,6 +653,19 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         style_type: 'icon_text',
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
+      validate: (props) => {
+        const warnings: string[] = []
+        const items = Array.isArray(props.items) ? props.items : []
+        if (items.length === 0) {
+          warnings.push('导航栏 items 不能为空，请至少保留一个导航项')
+        }
+        items.forEach((item: any, index: number) => {
+          if (!String(item?.title || '').trim()) {
+            warnings.push(`导航第 ${index + 1} 项缺少标题`)
+          }
+        })
+        return warnings
+      },
     },
   ],
   [
@@ -717,6 +780,11 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
 /** 判断组件类型是否已在小程序端实现渲染 */
 export function isRenderSupportedByMiniapp(type: ComponentType): boolean {
   return MINIAPP_RENDER_SUPPORTED_TYPES.has(type)
+}
+
+/** 后台装修器是否已注册该组件 type */
+export function isKnownComponentType(type: string): type is ComponentType {
+  return componentRegistry.has(type as ComponentType)
 }
 
 /**

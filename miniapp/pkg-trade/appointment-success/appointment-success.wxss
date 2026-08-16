@@ -1,0 +1,13 @@
+/* pkg-trade/appointment-success/appointment-success.wxss */
+.as-page { min-height: 100vh; background: var(--bg); padding: 48rpx 24rpx; }
+.hero { text-align: center; padding-bottom: 32rpx; }
+.ok { font-size: 72rpx; }
+.title { margin-top: 16rpx; font-size: 40rpx; font-weight: 800; }
+.sub { margin-top: 12rpx; color: var(--ink-500); font-size: 26rpx; }
+.card { background:#fff; border-radius: 32rpx; box-shadow: var(--sh1); padding: 8rpx 28rpx; margin-bottom: 32rpx; }
+.row { display:flex; justify-content:space-between; gap: 20rpx; padding: 22rpx 0; border-bottom: 1rpx solid var(--line-2); font-size: 26rpx; color: var(--ink-500); }
+.row:last-child { border-bottom: none; }
+.row b { color: var(--ink); font-weight: 700; text-align: right; }
+.price { color: var(--accent) !important; }
+.actions { display:flex; gap: 16rpx; }
+.btn { flex:1; height: 88rpx; border-radius: 999rpx; display:flex; align-items:center; justify-content:center; font-weight:700; }

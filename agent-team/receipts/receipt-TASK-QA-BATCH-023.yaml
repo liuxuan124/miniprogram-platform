@@ -1,0 +1,58 @@
+task_id: TASK-QA-BATCH-023
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 修复剩余 6 项正式台账 UI FAIL（028/093/150/151/159/178）
+  - 新增页面加载失败态、数据源 type/query 必填展示、未知组件占位与 warn
+  - EXP-SETTINGS-WECHAT 回写 PASS（SET-002 已关）
+  - 证据 agent-team/testing/evidence/BATCH-QA-023/ui-fail-fixes.md
+changed_files:
+  - admin/src/views/page-builder/editor.vue
+  - admin/src/components/page-builder/PropsPanel.vue
+  - admin/src/components/page-builder/dataSourceValidation.ts
+  - admin/src/components/page-builder/ComponentItem.vue
+  - admin/src/components/page-builder/renderers/UnknownComponentRenderer.vue
+  - admin/src/components/page-builder/componentRegistry.ts
+  - agent-team/testing/status-ledger.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: 代码审查 + linter 无报错；6 FAIL 项功能点均已落地
+downstream_suggestions:
+  - 39 项 PARTIAL 待 Playwright/UI 回归（拖拽、预览 loading、发布面板等）
+  - BLOCKED：FP-API-076/078、EXP-ROLE-MATRIX、EXP-MP-LOGIN
+next_step: BATCH-QA-024 推进高价值 PARTIAL + 探索附录
+notes: 禁止写测试完成。268/268 已执行；227 PASS / 0 FAIL / 39 PARTIAL / 2 BLOCKED。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-023
+  feature_point_range:
+    - FP-UI-028
+    - FP-UI-093
+    - FP-UI-150
+    - FP-UI-151
+    - FP-UI-159
+    - FP-UI-178
+  executed_count: 6
+  pass_count: 6
+  fail_count: 0
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "227/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: PARTIAL UI 回归
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

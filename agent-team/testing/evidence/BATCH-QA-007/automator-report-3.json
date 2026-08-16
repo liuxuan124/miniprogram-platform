@@ -1,0 +1,37 @@
+{
+  "startedAt": "2026-08-13T09:14:47.229Z",
+  "steps": [
+    "connected",
+    "home:pages/index/index",
+    "form:pages/index/index{}"
+  ],
+  "errors": [],
+  "home": {
+    "path": "pages/index/index",
+    "query": {},
+    "slim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    }
+  },
+  "form": {
+    "path": "pages/index/index",
+    "query": {},
+    "slim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    }
+  },
+  "formShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/11-form-from-home.png",
+  "finishedAt": "2026-08-13T09:15:00.333Z"
+}

@@ -1,6 +1,7 @@
 package com.miniprogram.config;
 
 import com.miniprogram.security.JwtAuthenticationFilter;
+import com.miniprogram.security.SecurityErrorWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -108,6 +109,12 @@ public class SecurityConfig {
                         // 其他请求需要认证
                         .anyRequest().authenticated()
                 )
+                // 未登录 401 / 无权限 403，与契约错误码对齐
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                SecurityErrorWriter.write(response, 401, 110101, "未登录"))
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                SecurityErrorWriter.write(response, 403, 200301, "无操作权限")))
                 // 添加 JWT 过滤器
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

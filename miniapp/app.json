@@ -4,38 +4,13 @@
     "pages/content-list/content-list",
     "pages/product-list/product-list",
     "pages/mine/mine",
+    "pages/login/login",
     "pages/search/search",
-    "pages/reviews/reviews",
-    "pages/write-review/write-review",
-    "pages/order-paid/order-paid",
-    "pages/appointment-success/appointment-success",
-    "pages/service-chat/service-chat",
-    "pages/content-detail/content-detail",
-    "pages/activity-list/activity-list",
-    "pages/activity-detail/activity-detail",
-    "pages/appointment-calendar/appointment-calendar",
-    "pages/appointment-book/appointment-book",
-    "pages/member-center/member-center",
-    "pages/coupon-list/coupon-list",
     "pages/product-detail/product-detail",
-    "pages/category/category",
+    "pages/content-detail/content-detail",
     "pages/cart/cart",
     "pages/order-create/order-create",
-    "pages/order-list/order-list",
-    "pages/order-detail/order-detail",
-    "pages/login/login",
-    "pages/agreement/agreement",
-    "pages/webview/webview",
-    "pages/my-appointments/my-appointments",
-    "pages/appointment-list/appointment-list",
-    "pages/points-log/points-log",
-    "pages/sign-in/sign-in",
-    "pages/form/form",
-    "pages/detail/detail",
-    "pages/favorites/favorites",
-    "pages/address-list/address-list",
-    "pages/settings/settings",
-    "pages/feedback/feedback"
+    "pages/custom/custom"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -44,6 +19,8 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f5f7fb"
   },
+  "lazyCodeLoading": "requiredComponents",
+  "__usePrivacyCheck__": true,
   "usingComponents": {
     "login-sheet": "/components/login-sheet/login-sheet"
   },
@@ -67,12 +44,6 @@
         "selectedIconPath": "images/tab/content-active.png"
       },
       {
-        "pagePath": "pages/product-list/product-list",
-        "text": "商城",
-        "iconPath": "images/tab/category.png",
-        "selectedIconPath": "images/tab/category-active.png"
-      },
-      {
         "pagePath": "pages/mine/mine",
         "text": "我的",
         "iconPath": "images/tab/mine.png",
@@ -80,5 +51,72 @@
       }
     ]
   },
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "subPackages": [
+    {
+      "root": "pkg-trade",
+      "name": "pkg-trade",
+      "pages": [
+        "appointment-book/appointment-book",
+        "appointment-calendar/appointment-calendar",
+        "appointment-success/appointment-success",
+        "category/category",
+        "order-detail/order-detail",
+        "order-list/order-list",
+        "order-paid/order-paid",
+        "reviews/reviews",
+        "write-review/write-review"
+      ]
+    },
+    {
+      "root": "pkg-user",
+      "name": "pkg-user",
+      "pages": [
+        "address-list/address-list",
+        "agreement/agreement",
+        "appointment-list/appointment-list",
+        "coupon-list/coupon-list",
+        "favorites/favorites",
+        "feedback/feedback",
+        "member-center/member-center",
+        "my-appointments/my-appointments",
+        "points-log/points-log",
+        "service-chat/service-chat",
+        "settings/settings",
+        "sign-in/sign-in",
+        "webview/webview"
+      ]
+    },
+    {
+      "root": "pkg-extra",
+      "name": "pkg-extra",
+      "pages": [
+        "activity-detail/activity-detail",
+        "activity-list/activity-list",
+        "detail/detail",
+        "form/form"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "wifi",
+      "packages": [
+        "pkg-extra"
+      ]
+    },
+    "pages/mine/mine": {
+      "network": "all",
+      "packages": [
+        "pkg-user",
+        "pkg-trade"
+      ]
+    },
+    "pages/content-list/content-list": {
+      "network": "wifi",
+      "packages": [
+        "pkg-extra"
+      ]
+    }
+  }
 }

@@ -2,10 +2,5 @@
   "navigationBarTitleText": "内容详情",
   "navigationBarBackgroundColor": "#2f5bff",
   "navigationBarTextStyle": "white",
-  "usingComponents": {
-    "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-divider": "tdesign-miniprogram/divider/divider",
-    "t-skeleton": "tdesign-miniprogram/skeleton/skeleton",
-    "t-icon": "tdesign-miniprogram/icon/icon"
-  }
+  "usingComponents": {}
 }

@@ -38,7 +38,14 @@ export function setupRouterGuards(router: Router) {
 
       // 检查是否已获取用户信息
       const userStore = useUserStore()
+      const permissionStore = usePermissionStore()
       if (userStore.userInfo) {
+        // 恒定路由（如装修器）也按 meta 权限拦截
+        if (!permissionStore.canAccessMeta(to.meta as Record<string, unknown>)) {
+          next({ path: '/dashboard', replace: true })
+          NProgress.done()
+          return
+        }
         next()
         return
       }
@@ -48,7 +55,6 @@ export function setupRouterGuards(router: Router) {
         const userInfo = await userStore.fetchUserInfo()
 
         // 根据角色生成动态路由
-        const permissionStore = usePermissionStore()
         permissionStore.setRolesAndPermissions(userInfo.roles, userInfo.permissions)
         const accessRoutes = permissionStore.generateRoutes(userInfo.roles)
 
@@ -58,6 +64,12 @@ export function setupRouterGuards(router: Router) {
             router.addRoute(route)
           }
         })
+
+        if (!permissionStore.canAccessMeta(to.meta as Record<string, unknown>)) {
+          next({ path: '/dashboard', replace: true })
+          NProgress.done()
+          return
+        }
 
         // 重新导航到目标路由（确保动态路由已注册）
         next({ ...to, replace: true })

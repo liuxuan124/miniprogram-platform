@@ -1,0 +1,62 @@
+task_id: TASK-QA-BATCH-014
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - QA 模式复测页面装修器 API/DB 既有 FAIL
+  - 证据 agent-team/testing/evidence/BATCH-QA-014/
+  - 多项分页/参数校验/限流/FK/版本一致已回归通过
+changed_files:
+  - agent-team/testing/scripts/run-batch-qa-014-api-retest.mjs
+  - agent-team/testing/evidence/BATCH-QA-014/
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/defects/BUG-API-001.md
+  - agent-team/testing/defects/BUG-API-003.md
+  - agent-team/testing/defects/BUG-API-004.md
+  - agent-team/testing/defects/BUG-API-005.md
+  - agent-team/testing/defects/BUG-API-006.md
+  - agent-team/testing/defects/BUG-API-007.md
+  - agent-team/testing/defects/BUG-API-008.md
+  - agent-team/testing/defects/BUG-DB-001.md
+  - agent-team/testing/defects/BUG-DB-002.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - BLK-QA-ACCOUNT-MATRIX-001
+  - BLK-QA-TENANT-SCOPE-001
+self_test:
+  result: 不适用
+  details: QA 模式只验证，不改业务代码
+downstream_suggestions:
+  - 未登录应返回 HTTP 401 + code 110101，当前多为 HTTP 403 code=undefined（BUG-API-002）
+  - 草稿冲突与 MP 未发布路径应对齐 HTTP 409/404（BUG-API-009/010）
+next_step: C 轨 P1 回归 BATCH-QA-015；B 轨扩展清单待总控确认
+notes: 禁止写测试完成。本批未测角色不足账号矩阵。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-014
+  feature_point_range:
+    - FP-API-003
+    - FP-API-077
+    - FP-DB-002
+    - FP-DB-005
+  executed_count: 31
+  pass_count: 15
+  fail_count: 16
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "181/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: BATCH-QA-015 探索主线 P1；剩余 API 鉴权码 FAIL
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

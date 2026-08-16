@@ -1,0 +1,59 @@
+task_id: TASK-QA-DESIGN-001
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 总控确认页面装修器功能点清单（2026-08-13 17:59）
+  - 按 1 FP = 1 主维度用例设计 268 条，结论全部 NOT_RUN
+  - 八维矩阵逐项标注适用/不适用
+  - 正式台账分母切换为 268；BATCH-QA-001~009 探索项降为附录
+changed_files:
+  - agent-team/testing/feature-inventory.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/cases/page-builder/
+  - agent-team/testing/scripts/generate-page-builder-cases.js
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 14 个后台组件未写入 page-dsl-schema §9，不计入 268
+  - 低权限第二账号仍缺，权限类用例执行时可能 BLOCKED
+self_test:
+  result: 未执行
+  details: 本批只设计用例，未跑接口/后台/小程序
+downstream_suggestions:
+  - 批准后执行首批 TC-API-001 ~ TC-API-030（≤30）
+  - 勿发布线上首页 id=1
+risks:
+  - 用例步骤按功能点描述生成，执行时需对照契约补请求体细节
+next_step: 等待批准后执行 TC-API-001~030
+notes: 0/268 已执行。禁止写测试完成。探索缺陷仍有效，不得当作本 268 条的 PASS。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-DESIGN-001
+  feature_point_range:
+    - FP-API-001
+    - FP-API-078
+    - FP-UI-001
+    - FP-UI-185
+    - FP-DB-001
+    - FP-DB-005
+  executed_count: 0
+  pass_count: 0
+  fail_count: 0
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 268
+  cumulative_execution_rate: "0/268"
+  cumulative_pass_rate: "0/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: TC-API-001 ~ TC-API-030（列表/创建/详情/更新的成功、空、分页、鉴权、缺参）
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

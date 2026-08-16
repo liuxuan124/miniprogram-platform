@@ -56,7 +56,14 @@ public class VersionOperationLogServiceImpl extends BaseServiceImpl<VersionOpera
             var authentication = SecurityUtils.getAuthentication();
             if (authentication != null && authentication.isAuthenticated()
                     && !"anonymousUser".equals(authentication.getPrincipal())) {
-                return authentication.getName();
+                Object details = authentication.getDetails();
+                if (details instanceof String username && org.springframework.util.StringUtils.hasText(username)) {
+                    return username;
+                }
+                String name = authentication.getName();
+                if (org.springframework.util.StringUtils.hasText(name) && !name.matches("\\d+")) {
+                    return name;
+                }
             }
         } catch (Exception e) {
             log.warn("获取当前用户名失败: {}", e.getMessage());

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>跨境通 · 产品架构与信息流转</title>
+<style>
+:root{
+  --brand:#2f5bff; --brand-600:#1c3fd6; --brand-50:#eef2ff;
+  --accent:#ff6b3d; --accent-50:#fff2ee; --gold:#e9a319;
+  --ok:#0fb47f; --purple:#6b4fe0;
+  --ink:#0f1219; --ink-700:#39404f; --ink-500:#727a8c; --ink-300:#a5abb9;
+  --line:#e7e9f0; --card:#fff;
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Segoe UI",Arial,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1000px 700px at 15% 8%, rgba(47,91,255,.08), transparent 60%),
+    radial-gradient(800px 600px at 88% 92%, rgba(255,107,61,.06), transparent 60%),
+    #f4f5fa;
+  padding:44px 32px 80px;line-height:1.6;
+}
+.wrap{max-width:1180px;margin:0 auto;}
+
+/* header */
+.head{text-align:center;margin-bottom:14px;}
+.head .badge{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;
+  color:var(--brand);background:var(--brand-50);padding:6px 16px;border-radius:999px;margin-bottom:18px;}
+.head h1{font-size:32px;font-weight:800;letter-spacing:-.035em;margin-bottom:14px;}
+.head h1 .g{background:linear-gradient(120deg,#2f5bff,#6b4fe0);-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent;}
+.head p{font-size:15px;color:var(--ink-500);max-width:680px;margin:0 auto;letter-spacing:-.01em;}
+
+/* value chain ribbon */
+.chain{display:flex;align-items:center;justify-content:center;gap:0;margin:34px auto 46px;flex-wrap:wrap;}
+.chain .node{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 24px;
+  text-align:center;box-shadow:0 6px 20px rgba(15,18,25,.05);min-width:150px;}
+.chain .node .e{font-size:22px;margin-bottom:8px;}
+.chain .node .t{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+.chain .node .d{font-size:11.5px;color:var(--ink-300);margin-top:4px;}
+.chain .arrow{color:var(--brand);font-size:24px;padding:0 14px;font-weight:300;}
+.chain .node.hl{background:linear-gradient(135deg,#2f5bff,#4668ff);border:none;color:#fff;
+  box-shadow:0 12px 30px rgba(47,91,255,.32);}
+.chain .node.hl .d{color:rgba(255,255,255,.8);}
+
+/* three layers */
+.layers{display:flex;flex-direction:column;gap:26px;}
+.layer{background:var(--card);border-radius:24px;box-shadow:0 10px 40px rgba(15,18,25,.06);
+  overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.6);}
+.layer .lh{display:flex;align-items:center;gap:16px;padding:22px 28px;position:relative;color:#fff;}
+.layer .lh .ln{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;backdrop-filter:blur(6px);}
+.layer .lh .lt{flex:1;}
+.layer .lh h2{font-size:21px;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:10px;}
+.layer .lh h2 .tag{font-size:11px;font-weight:600;background:rgba(255,255,255,.24);
+  padding:3px 10px;border-radius:999px;letter-spacing:.02em;}
+.layer .lh .sub{font-size:12.5px;opacity:.9;margin-top:5px;}
+.layer .lh .role{text-align:right;font-size:11px;opacity:.85;flex-shrink:0;}
+.layer .lh .role b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em;margin-bottom:3px;}
+
+.layer.l1 .lh{background:linear-gradient(120deg,#2f5bff,#4a6dff 60%,#7d8dff);}
+.layer.l2 .lh{background:linear-gradient(120deg,#5b3fd6,#6b4fe0 55%,#8f7aff);}
+.layer.l3 .lh{background:linear-gradient(120deg,#e0632f,#ff6b3d 60%,#ff8f63);}
+
+.layer .lb{padding:24px 28px 28px;}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.cards.c4{grid-template-columns:repeat(4,1fr);}
+.cards.c2{grid-template-columns:repeat(2,1fr);}
+.mod{background:#fafbfd;border:1px solid var(--line);border-radius:15px;padding:17px;transition:.2s var(--ease);}
+.mod:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(15,18,25,.07);border-color:transparent;}
+.mod .mi{font-size:20px;margin-bottom:11px;}
+.mod h4{font-size:14.5px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px;}
+.mod p{font-size:12px;color:var(--ink-500);line-height:1.7;}
+.mod .pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;margin-top:10px;}
+.pill.sub{background:var(--brand-50);color:var(--brand);}
+.pill.free{background:#e7f5ea;color:#2f9350;}
+.pill.pay{background:var(--accent-50);color:var(--accent);}
+.pill.asset{background:#efeaff;color:var(--purple);}
+
+/* flow connector between layers */
+.flow{display:flex;justify-content:center;align-items:center;gap:12px;margin:-12px 0;position:relative;z-index:2;}
+.flow .pipe{background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 20px;
+  font-size:12.5px;color:var(--ink-700);font-weight:600;box-shadow:0 6px 18px rgba(15,18,25,.08);
+  display:flex;align-items:center;gap:9px;}
+.flow .pipe .dn{font-size:15px;color:var(--brand);}
+
+/* business logic strip */
+.biz{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:38px;}
+.biz .b{background:var(--card);border-radius:18px;padding:22px;box-shadow:0 8px 26px rgba(15,18,25,.05);
+  border-top:3px solid var(--brand);}
+.biz .b:nth-child(2){border-top-color:var(--purple);}
+.biz .b:nth-child(3){border-top-color:var(--accent);}
+.biz .b .k{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--ink-300);text-transform:uppercase;margin-bottom:10px;}
+.biz .b h3{font-size:16px;font-weight:800;letter-spacing:-.025em;margin-bottom:8px;}
+.biz .b p{font-size:12.5px;color:var(--ink-500);line-height:1.75;}
+
+.foot{text-align:center;margin-top:40px;font-size:12.5px;color:var(--ink-300);}
+
+/* section label */
+.slabel{display:flex;align-items:center;gap:14px;margin:40px 4px 22px;}
+.slabel h3{font-size:15px;font-weight:700;letter-spacing:.02em;color:var(--ink-700);white-space:nowrap;}
+.slabel .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="badge">跨境通 · CROSS-BORDER INTELLIGENCE</div>
+    <h1>把信息，变成<span class="g">情报</span>；把情报，变成<span class="g">决策</span></h1>
+    <p>AI 时代，执行越来越不值钱，判断力才是稀缺资产。跨境通聚合海量信息、提炼为可用情报，
+      让卖家借力 AI 完成分析与决策，再指挥 AI 与团队去执行。</p>
+  </div>
+
+  <!-- 价值链 -->
+  <div class="chain">
+    <div class="node"><div class="e">🌊</div><div class="t">海量信息</div><div class="d">碎片 · 真假混杂</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="e">🎯</div><div class="t">情报</div><div class="d">聚合 · 提炼 · 实时</div></div>
+    <div class="arrow">→</div>
+    <div class="node hl"><div class="e">🤖</div><div class="t">AI 分析</div><div class="d">辅助研判</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="e">✅</div><div class="t">决策方案</div><div class="d">建议 · 解决方案</div></div>
+  </div>
+
+  <div class="slabel"><h3>产品三层架构</h3><div class="rule"></div></div>
+
+  <div class="layers">
+
+    <!-- Layer 1 情报网站 -->
+    <div class="layer l1">
+      <div class="lh">
+        <div class="ln">📡</div>
+        <div class="lt">
+          <h2>跨境通 · 情报网站 <span class="tag">公开入口</span></h2>
+          <div class="sub">聚合海量信息，提炼成实时更新的情报专题，是所有人的日常触达面</div>
+        </div>
+        <div class="role"><b>拉新 · 触达</b>公域流量入口</div>
+      </div>
+      <div class="lb">
+        <div class="cards c4">
+          <div class="mod"><div class="mi">🔍</div><h4>情报专题栏目</h4>
+            <p>选品、供应链、平台运营、独立站、物流、政策合规六大主题，聚合成可追踪的情报流。</p>
+            <span class="pill sub">可订阅</span></div>
+          <div class="mod"><div class="mi">⚡</div><h4>实时更新</h4>
+            <p>政策变动、平台改规则第一时间收录并解读，情报随时效持续刷新。</p>
+            <span class="pill sub">订阅推送</span></div>
+          <div class="mod"><div class="mi">📊</div><h4>数据速报</h4>
+            <p>类目动销、价格带、趋势指标，把散乱数据变成一眼可读的情报卡。</p>
+            <span class="pill free">公开可看</span></div>
+          <div class="mod"><div class="mi">🔗</div><h4>知识库入口</h4>
+            <p>站内一键跳转高端知识库，从"看情报"进阶到"系统学方法"。</p>
+            <span class="pill pay">引流转化</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow"><div class="pipe"><span class="dn">↓</span>订阅 · 收藏 · 关注 · 调用 AI 分析，个人资产自动沉淀进工作台</div></div>
+
+    <!-- Layer 2 AI 工作台 -->
+    <div class="layer l2">
+      <div class="lh">
+        <div class="ln">🧠</div>
+        <div class="lt">
+          <h2>AI 工作台 <span class="tag">私人空间</span></h2>
+          <div class="sub">把公共情报变成"我的、可复用的决策资产"，是留存与黏性的核心</div>
+        </div>
+        <div class="role"><b>留存 · 黏性</b>越用越懂你</div>
+      </div>
+      <div class="lb">
+        <div class="cards c4">
+          <div class="mod"><div class="mi">📌</div><h4>我的订阅与关注</h4>
+            <p>订阅的情报栏目、关注的主题在此聚合，形成专属的情报仪表盘。</p>
+            <span class="pill asset">信息资产</span></div>
+          <div class="mod"><div class="mi">🔖</div><h4>收藏夹</h4>
+            <p>收藏的情报、内容、解决方案统一归档，随取随用，不再散落。</p>
+            <span class="pill asset">信息资产</span></div>
+          <div class="mod"><div class="mi">📄</div><h4>AI 分析报告</h4>
+            <p>基于情报生成的分析报告在此存档，可回看、可迭代、可对比。</p>
+            <span class="pill asset">AI 产出</span></div>
+          <div class="mod"><div class="mi">💡</div><h4>决策与解决方案</h4>
+            <p>AI 形成的决策建议与解决方案沉淀为个人知识库，复用到下一次判断。</p>
+            <span class="pill asset">AI 产出</span></div>
+        </div>
+        <div class="cards" style="margin-top:16px;">
+          <div class="mod" style="background:linear-gradient(135deg,#f7f4ff,#fff);border-color:#e5ddff;">
+            <div class="mi">🧩</div><h4>Skill 能力中心</h4>
+            <p>选品分析、合规检查、Listing 优化、数据复盘等技能即插即用，替判断落成执行。</p></div>
+          <div class="mod" style="background:linear-gradient(135deg,#f7f4ff,#fff);border-color:#e5ddff;">
+            <div class="mi">👥</div><h4>Agent 伙伴</h4>
+            <p>挑选并组建专属 AI 团队，一个人也能像有一支出海团队随叫随到。</p></div>
+          <div class="mod" style="background:linear-gradient(135deg,#f7f4ff,#fff);border-color:#e5ddff;">
+            <div class="mi">🎛️</div><h4>指挥中枢</h4>
+            <p>你负责判断，工作台把任务分派给 skill 与 agent，AI 负责行动。</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow"><div class="pipe"><span class="dn">↕</span>情报激发深度需求，知识库沉淀方法论，双向联动</div></div>
+
+    <!-- Layer 3 知识库 -->
+    <div class="layer l3">
+      <div class="lh">
+        <div class="ln">📚</div>
+        <div class="lt">
+          <h2>高端知识库 <span class="tag">深度内容</span></h2>
+          <div class="sub">体系化、沉淀型的方法论与专业内容，与实时情报互补，是变现与专业壁垒</div>
+        </div>
+        <div class="role"><b>变现 · 壁垒</b>深度付费内容</div>
+      </div>
+      <div class="lb">
+        <div class="cards">
+          <div class="mod"><div class="mi">📘</div><h4>体系化资料包</h4>
+            <p>选品案例库、合规操作手册等成体系的深度内容，一次购买永久可看。</p>
+            <span class="pill pay">付费购买</span></div>
+          <div class="mod"><div class="mi">🗓️</div><h4>1v1 专家咨询</h4>
+            <p>针对个人具体业务的诊断，把通用方法变成"我这个情况该怎么办"。</p>
+            <span class="pill pay">预约付费</span></div>
+          <div class="mod"><div class="mi">👑</div><h4>会员与专区</h4>
+            <p>会员解锁高阶知识库、抢先更新与专属权益，深度用户长期沉淀。</p>
+            <span class="pill pay">会员订阅</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slabel"><h3>商业逻辑：三层各司其职</h3><div class="rule"></div></div>
+  <div class="biz">
+    <div class="b"><div class="k">情报网站</div><h3>拉新与日常触达</h3>
+      <p>公开情报流以高时效、高价值吸引卖家持续回访，是公域流量入口，用订阅把一次访问变成长期关系。</p></div>
+    <div class="b"><div class="k">AI 工作台</div><h3>留存与黏性</h3>
+      <p>订阅、收藏、AI 报告越积越多，工作台越懂用户、越离不开，是产品最深的护城河与复购基础。</p></div>
+    <div class="b"><div class="k">高端知识库</div><h3>变现与壁垒</h3>
+      <p>资料包、1v1 咨询、会员构成付费闭环，深度内容与专家资源形成难以复制的专业壁垒。</p></div>
+  </div>
+
+  <div class="foot">跨境通产品架构 v1 · 信息 → 情报 → 决策 · 情报为流动的水，工作台为蓄水池，知识库为深井</div>
+</div>
+</body>
+</html>

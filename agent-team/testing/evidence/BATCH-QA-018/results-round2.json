@@ -1,0 +1,12 @@
+[
+  {
+    "case": "create-dialog",
+    "tip": "",
+    "homeDisabled": false
+  },
+  {
+    "case": "delete-confirm",
+    "confirmSeen": true,
+    "delCount": 11
+  }
+]

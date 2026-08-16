@@ -1,6 +1,6 @@
 <!-- pages/cart/cart.wxml — 购物车页面 -->
 <view class="cart-page">
-  <view class="cart-tip" wx:if="{{!isEmpty}}" bindtap="onGoShopping">
+  <view class="cart-tip" wx:if="{{!isEmpty && !loading}}" bindtap="onGoShopping">
     🎫 再买一点可用「满 100 减 20」券<span class="go">去凑单 ›</span>
   </view>
 
@@ -36,7 +36,7 @@
         <text class="item-name">{{item.name || item.product_name}}</text>
         <text class="item-sku" wx:if="{{item.sku_name}}">规格: {{item.sku_name}}</text>
         <view class="item-bottom">
-          <text class="item-price">&#165;{{item.price}}</text>
+          <text class="item-price">¥{{item.price}}</text>
           <view class="item-quantity">
             <view
               class="qty-btn {{item.quantity <= 1 ? 'disabled' : ''}}"
@@ -73,7 +73,7 @@
   />
 
   <!-- 底部结算栏 -->
-  <view class="bottom-bar" wx:if="{{!isEmpty}}">
+  <view class="bottom-bar" wx:if="{{!isEmpty && !loading}}">
     <view class="select-all" bindtap="onSelectAll">
       <view class="item-check {{isAllSelected ? 'checked' : ''}}">
         <text wx:if="{{isAllSelected}}" class="check-mark">&#10003;</text>
@@ -82,7 +82,7 @@
     </view>
     <view class="total-info">
       <text class="total-label">合计:</text>
-      <text class="total-price">&#165;{{selectedPrice}}</text>
+      <text class="total-price">¥{{selectedPrice}}</text>
     </view>
     <view
       class="checkout-btn {{selectedCount === 0 ? 'disabled' : ''}}"

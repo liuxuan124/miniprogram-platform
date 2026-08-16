@@ -1,12 +1,14 @@
 package com.miniprogram.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.miniapp.CreateReleaseDTO;
+import com.miniprogram.dto.miniapp.PublishPreflightVO;
 import com.miniprogram.dto.miniapp.ReleaseQueryDTO;
 import com.miniprogram.dto.miniapp.RollbackDTO;
 import com.miniprogram.entity.MiniappRelease;
@@ -86,6 +88,16 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     }
 
     @Override
+    public PublishPreflightVO getPublishPreflight() {
+        PublishPreflightVO vo = buildPreflight();
+        MiniappRelease latest = getLatestRelease();
+        if (latest != null) {
+            vo.setLatestSemver(latest.getSemver());
+        }
+        return vo;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public MiniappRelease createRelease(CreateReleaseDTO dto) {
         long startTime = System.currentTimeMillis();
@@ -110,6 +122,10 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             int major = Integer.parseInt(parts[0]);
             int minor = Integer.parseInt(parts[1]);
             int patch = Integer.parseInt(parts[2]);
+
+            if ("publish".equals(mode)) {
+                publishBoundPagesOrThrow();
+            }
 
             String snapshot = buildSnapshot();
             validateSnapshotForRelease(snapshot);
@@ -283,7 +299,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
         MiniappRelease targetRelease = this.lambdaQuery()
                 .eq(MiniappRelease::getSemver, dto.getTargetSemver())
-                .eq(MiniappRelease::getStatus, 1)
+                .last("LIMIT 1")
                 .one();
         if (targetRelease == null) {
             throw new BusinessException(ErrorCode.RELEASE_NOT_PUBLISHED,
@@ -690,6 +706,191 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 .orderByDesc(PageVersion::getVersion)
                 .last("LIMIT 1"));
         return latest != null ? latest.getVersion() : 0;
+    }
+
+    private void publishBoundPagesOrThrow() {
+        PublishPreflightVO vo = buildPreflight();
+        if (!vo.isCanPublish()) {
+            throw new BusinessException(ErrorCode.RELEASE_PROMOTE_FAILED,
+                    "无法发布：" + String.join("；", vo.getBlocking()));
+        }
+        Long publisherId = SecurityUtils.getCurrentUserId();
+        for (PublishPreflightVO.Item item : vo.getPages()) {
+            if (!"publish".equals(item.getAction()) || item.getId() == null) {
+                continue;
+            }
+            publishLatestDraft(item.getId(), publisherId);
+        }
+    }
+
+    private PublishPreflightVO buildPreflight() {
+        PublishPreflightVO vo = new PublishPreflightVO();
+        Map<String, String> configs = loadConfigMap();
+        List<Map<String, Object>> tabs = parseTabItems(configs.get("tabbarItems"));
+        Long homeId = parseLongId(configs.get("miniappHomePageId"));
+        Long mineId = parseLongId(configs.get("miniappMinePageId"));
+
+        if (homeId == null) {
+            Page home = pageMapper.selectOne(new LambdaQueryWrapper<Page>()
+                    .eq(Page::getType, 1)
+                    .last("LIMIT 1"));
+            if (home != null) {
+                homeId = home.getId();
+            }
+        }
+        if (homeId == null) {
+            vo.getBlocking().add("尚未绑定首页，请先在「导航与外观」选择首页");
+        }
+
+        Set<Long> boundIds = new LinkedHashSet<>();
+        if (homeId != null) {
+            boundIds.add(homeId);
+        }
+        if (mineId != null) {
+            boundIds.add(mineId);
+        }
+
+        if (tabs.isEmpty()) {
+            vo.getWarnings().add("尚未配置底部导航，发布后将使用小程序默认导航");
+        }
+        for (Map<String, Object> tab : tabs) {
+            String text = firstText(tab.get("text"), tab.get("label"), tab.get("name"));
+            String path = normalizePagePath(firstText(tab.get("pagePath"), tab.get("path"), tab.get("url")));
+            Long pageId = parseLongId(tab.get("pageId"));
+            if (pageId != null) {
+                boundIds.add(pageId);
+                continue;
+            }
+            if (!isBuiltInMiniappPage(path)) {
+                vo.getBlocking().add("导航「" + fallbackText(text) + "」尚未绑定页面");
+            }
+        }
+
+        for (Long id : boundIds) {
+            Page page = pageMapper.selectById(id);
+            PublishPreflightVO.Item item = new PublishPreflightVO.Item();
+            item.setId(id);
+            if (page == null) {
+                item.setName("未知页面 #" + id);
+                item.setAction("empty");
+                vo.getBlocking().add("绑定的页面不存在：#" + id);
+                vo.getPages().add(item);
+                continue;
+            }
+            item.setName(page.getName());
+            item.setPath(page.getPath());
+            item.setStatus(page.getStatus());
+            PageVersion latest = pageVersionMapper.selectOne(new LambdaQueryWrapper<PageVersion>()
+                    .eq(PageVersion::getPageId, id)
+                    .orderByDesc(PageVersion::getVersion)
+                    .last("LIMIT 1"));
+            if (latest == null || !StringUtils.hasText(latest.getDslContent()) || isEmptyCanvas(latest.getDslContent())) {
+                item.setAction("empty");
+                vo.getBlocking().add("页面「" + page.getName() + "」还没有内容，请先装修");
+            } else if (Integer.valueOf(1).equals(latest.getStatus()) && Integer.valueOf(1).equals(page.getStatus())) {
+                item.setAction("already_live");
+            } else {
+                item.setAction("publish");
+            }
+            vo.getPages().add(item);
+        }
+
+        vo.setCanPublish(vo.getBlocking().isEmpty() && !boundIds.isEmpty());
+        if (boundIds.isEmpty() && vo.getBlocking().isEmpty()) {
+            vo.getBlocking().add("没有可发布的绑定页面");
+            vo.setCanPublish(false);
+        }
+        return vo;
+    }
+
+    private void publishLatestDraft(Long pageId, Long publisherId) {
+        Page page = pageMapper.selectById(pageId);
+        if (page == null) {
+            throw new BusinessException(ErrorCode.RELEASE_PROMOTE_FAILED, "页面不存在: " + pageId);
+        }
+        PageVersion latest = pageVersionMapper.selectOne(new LambdaQueryWrapper<PageVersion>()
+                .eq(PageVersion::getPageId, pageId)
+                .orderByDesc(PageVersion::getVersion)
+                .last("LIMIT 1"));
+        if (latest == null) {
+            throw new BusinessException(ErrorCode.RELEASE_PROMOTE_FAILED, "页面没有可发布的版本: " + page.getName());
+        }
+        pageVersionMapper.update(null, new LambdaUpdateWrapper<PageVersion>()
+                .eq(PageVersion::getPageId, pageId)
+                .eq(PageVersion::getStatus, 1)
+                .ne(PageVersion::getId, latest.getId())
+                .set(PageVersion::getStatus, 2));
+        latest.setStatus(1);
+        latest.setPublishedAt(LocalDateTime.now());
+        latest.setPublisherId(publisherId);
+        pageVersionMapper.updateById(latest);
+        page.setStatus(1);
+        page.setCurrentVersion(latest.getVersion());
+        pageMapper.updateById(page);
+    }
+
+    private Map<String, String> loadConfigMap() {
+        Map<String, String> map = new HashMap<>();
+        List<SystemConfig> configs = systemConfigMapper.selectList(null);
+        if (configs == null) {
+            return map;
+        }
+        for (SystemConfig config : configs) {
+            map.put(config.getConfigKey(), config.getConfigValue());
+        }
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> parseTabItems(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return List.of();
+        }
+        try {
+            Object parsed = objectMapper.readValue(raw, Object.class);
+            if (parsed instanceof List<?> list) {
+                List<Map<String, Object>> tabs = new ArrayList<>();
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> map) {
+                        tabs.add((Map<String, Object>) map);
+                    }
+                }
+                return tabs;
+            }
+        } catch (Exception e) {
+            log.warn("解析底部导航配置失败: {}", e.getMessage());
+        }
+        return List.of();
+    }
+
+    private Long parseLongId(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof Number number) {
+            long value = number.longValue();
+            return value > 0 ? value : null;
+        }
+        String text = String.valueOf(raw).trim();
+        if (!StringUtils.hasText(text) || text.startsWith("__")) {
+            return null;
+        }
+        try {
+            long value = Long.parseLong(text);
+            return value > 0 ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private boolean isEmptyCanvas(String dslContent) {
+        try {
+            Map<String, Object> dsl = objectMapper.readValue(dslContent, new TypeReference<Map<String, Object>>() {});
+            Object components = dsl.get("components");
+            return !(components instanceof List<?> list) || list.isEmpty();
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private String getCurrentUsername() {

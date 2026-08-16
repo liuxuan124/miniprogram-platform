@@ -1,0 +1,14 @@
+<view class="page">
+  <block wx:if="{{list.length}}">
+    <view class="card" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="openItem">
+      <image class="cover" src="{{item.cover || item.coverImage || '/images/logo.svg'}}" mode="aspectFill" />
+      <view class="meta">
+        <view class="title">{{item.title}}</view>
+        <view class="sub">{{item.summary || item.categoryName || '已收藏'}}</view>
+      </view>
+      <view class="rm" data-id="{{item.id}}" catchtap="removeItem">移除</view>
+    </view>
+  </block>
+  <empty-state wx:else title="暂无收藏" desc="在内容详情页点收藏，会出现在这里" actionText="去逛内容" actionType="primary" bind:action="goContent" />
+</view>
+<login-sheet id="global-login-sheet" />

@@ -45,8 +45,8 @@
         <el-table-column prop="phone" label="手机号" min-width="130" />
         <el-table-column label="角色" min-width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.roleName" :type="row.roleCode === 'super_admin' ? 'danger' : 'primary'" size="small">
-              {{ row.roleName }}
+            <el-tag v-if="displayRoleName(row)" :type="row.roleCode === 'super_admin' ? 'danger' : 'primary'" size="small">
+              {{ displayRoleName(row) }}
             </el-tag>
             <span v-else class="empty-text">未分配</span>
           </template>
@@ -202,6 +202,20 @@ const rules = computed<FormRules>(() => ({
   realName: [{ max: 64, message: '姓名最长 64 字符', trigger: 'blur' }],
   phone: [{ max: 20, message: '手机号最长 20 字符', trigger: 'blur' }],
 }))
+
+function displayRoleName(row: { roleName?: string; roleCode?: string }) {
+  if (row.roleCode === 'super_admin') return '超级管理员'
+  const name = String(row.roleName || '')
+  if (!name) return ''
+  if (/[^\u0000-\u00ff]/.test(name)) return name
+  try {
+    const fixed = decodeURIComponent(escape(name))
+    if (/[^\u0000-\u00ff]/.test(fixed)) return fixed
+  } catch {
+    // ignore
+  }
+  return name
+}
 
 async function fetchList() {
   loading.value = true

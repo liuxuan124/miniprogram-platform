@@ -13,10 +13,15 @@ function createOrder(data) {
 
 /**
  * 获取我的订单列表
- * @param {Object} params - { status, page, page_size }
+ * @param {Object} params - { status, current|page, size|page_size }
  */
 function getOrderList(params = {}) {
-  return request.get('/api/v1/mp/orders', params)
+  const query = {
+    current: params.current || params.page || 1,
+    size: params.size || params.page_size || 10,
+  }
+  if (params.status) query.status = params.status
+  return request.get('/api/v1/mp/orders', query)
 }
 
 /**

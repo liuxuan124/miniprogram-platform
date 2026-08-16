@@ -1,0 +1,88 @@
+{
+  "startedAt": "2026-08-13T09:12:26.352Z",
+  "steps": [
+    "connected",
+    "content:pages/content-list/content-list",
+    "mine:pages/mine/mine",
+    "orders:pkg-trade/order-list/order-list",
+    "form:pages/mine/mine"
+  ],
+  "errors": [
+    "Error: timeout waiting for automator response\n    at Connection.onMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/miniprogram-automator/out/Connection.js:1:985)\n    at Transport.emit (node:events:519:28)\n    at WebSocket.<anonymous> (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/miniprogram-automator/out/Transport.js:1:220)\n    at WebSocket.onMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/event-target.js:120:16)\n    at WebSocket.emit (node:events:519:28)\n    at Receiver.receiverOnMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/websocket.js:807:20)\n    at Receiver.emit (node:events:519:28)\n    at Receiver.dataMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/receiver.js:458:14)\n    at Receiver.getData (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/receiver.js:379:17)\n    at Receiver.startLoop (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/receiver.js:157:22)"
+  ],
+  "content": {
+    "path": "pages/content-list/content-list",
+    "query": {},
+    "slim": {
+      "formatTabs": "Array(5)",
+      "activeFormat": "",
+      "topicTabs": "Array(7)",
+      "activeTopic": "",
+      "articles": "Array(10)",
+      "page": 1,
+      "pageSize": 10,
+      "total": 18,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    }
+  },
+  "contentShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/06-content-list.png",
+  "mine": {
+    "path": "pages/mine/mine",
+    "query": {},
+    "slim": {
+      "isLoggedIn": false,
+      "userInfo": null,
+      "memberInfo": null,
+      "mineConfig": "object",
+      "servicePhone": "",
+      "continuousDays": 0,
+      "hasSignedIn": false,
+      "orderTabs": "Array(4)",
+      "stats": "object",
+      "badges": "object",
+      "tipText": "",
+      "menuList": "Array(9)",
+      "visibleMenuList": "Array(9)"
+    }
+  },
+  "mineShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/07-mine.png",
+  "orders": {
+    "path": "pkg-trade/order-list/order-list",
+    "query": {},
+    "slim": {
+      "tabs": "Array(6)",
+      "activeTab": "",
+      "STATUS_MAP": "object",
+      "orders": "Array(0)",
+      "page": 1,
+      "pageSize": 10,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    }
+  },
+  "ordersShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/08-order-list.png",
+  "form": {
+    "path": "pages/mine/mine",
+    "query": {},
+    "slim": {
+      "isLoggedIn": false,
+      "userInfo": null,
+      "memberInfo": null,
+      "mineConfig": "object",
+      "servicePhone": "",
+      "continuousDays": 0,
+      "hasSignedIn": false,
+      "orderTabs": "Array(4)",
+      "stats": "object",
+      "badges": "object",
+      "tipText": "",
+      "menuList": "Array(9)",
+      "visibleMenuList": "Array(9)"
+    }
+  },
+  "formShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/09-form.png",
+  "finishedAt": "2026-08-13T09:13:08.568Z"
+}

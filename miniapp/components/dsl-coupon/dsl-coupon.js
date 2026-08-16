@@ -8,6 +8,16 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback
 }
 
+function formatPercentDiscount(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  const zhe = n > 0 && n <= 1 ? n * 10 : n
+  const text = Number.isInteger(zhe)
+    ? String(zhe)
+    : String(Number(zhe.toFixed(1))).replace(/\.0$/, '')
+  return `${text}折`
+}
+
 function normalizeCoupon(raw, index, buttonText) {
   const type = String((raw && raw.type) || 'fixed')
   const value = toNumber(
@@ -25,7 +35,7 @@ function normalizeCoupon(raw, index, buttonText) {
     id: (raw && (raw.id != null ? raw.id : raw.couponId)) || `coupon_${index}`,
     name: (raw && (raw.name || raw.title || raw.couponName)) || '优惠券',
     type,
-    displayValue: type === 'percent' ? `${value}折` : `¥${value}`,
+    displayValue: type === 'percent' ? formatPercentDiscount(value) : `¥${value}`,
     condition: minAmount > 0 ? `满${minAmount}可用` : ((raw && raw.condition) || '无门槛'),
     expireText: endTime ? `${String(endTime).replace('T', ' ').slice(0, 16)}到期` : '',
     button_text: (raw && raw.button_text) || buttonText || '领取',
@@ -84,7 +94,9 @@ Component({
       this.setData({
         title: config.title || '领券中心',
         titleStyle: titleSize > 0 ? `font-size:${titleSize * 2}rpx` : '',
-        layoutClass: config.style_type === 'vertical' ? 'dsl-coupon--vertical' : 'dsl-coupon--horizontal',
+        layoutClass: config.layout === 'stack' || config.style_type === 'stack'
+          ? 'dsl-coupon--stack'
+          : (config.layout === 'vertical' || config.style_type === 'vertical' ? 'dsl-coupon--vertical' : 'dsl-coupon--horizontal'),
         displayCoupons: source.slice(0, limit).map((item, index) => normalizeCoupon(item, index, buttonText)),
       })
     },
@@ -109,7 +121,7 @@ Component({
       if (!AuthUtil.requireLoginForAction('领取优惠券')) return
       if (this.data.claimingId) return
       if (String(id).indexOf('fallback') === 0) {
-        navigatePage('/pages/coupon-list/coupon-list')
+        navigatePage('/pkg-user/coupon-list/coupon-list')
         return
       }
 
@@ -134,7 +146,7 @@ Component({
     },
 
     onMoreTap() {
-      navigatePage('/pages/coupon-list/coupon-list')
+      navigatePage('/pkg-user/coupon-list/coupon-list')
     },
   },
 })

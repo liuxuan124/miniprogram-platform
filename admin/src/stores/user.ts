@@ -14,7 +14,7 @@ export const useUserStore = defineStore('user', () => {
   /** 是否已登录 */
   const isLoggedIn = ref(!!getToken())
   /** 是否需要强制改密 */
-  const mustChangePassword = ref(false)
+  const mustChangePassword = ref(sessionStorage.getItem('mustChangePassword') === '1')
 
   /** 登录 */
   async function login(params: LoginParams) {
@@ -28,6 +28,7 @@ export const useUserStore = defineStore('user', () => {
     setRefreshToken(refreshToken)
     isLoggedIn.value = true
     mustChangePassword.value = !!res.data.mustChangePassword
+    sessionStorage.setItem('mustChangePassword', mustChangePassword.value ? '1' : '0')
     return !!res.data.mustChangePassword
   }
 
@@ -35,6 +36,7 @@ export const useUserStore = defineStore('user', () => {
   async function changePassword(oldPassword: string, newPassword: string) {
     await put('/api/v1/admin/auth/password', { oldPassword, newPassword })
     mustChangePassword.value = false
+    sessionStorage.removeItem('mustChangePassword')
   }
 
   /** 获取用户信息 */
@@ -62,6 +64,8 @@ export const useUserStore = defineStore('user', () => {
     } finally {
       userInfo.value = null
       isLoggedIn.value = false
+      mustChangePassword.value = false
+      sessionStorage.removeItem('mustChangePassword')
       removeToken()
     }
   }
@@ -70,6 +74,8 @@ export const useUserStore = defineStore('user', () => {
   function resetState() {
     userInfo.value = null
     isLoggedIn.value = false
+    mustChangePassword.value = false
+    sessionStorage.removeItem('mustChangePassword')
     removeToken()
   }
 

@@ -1,0 +1,69 @@
+task_id: TASK-QA-BATCH-007
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 确认可用 miniprogram-automator 后台连接 9420，不抢前台窗口、不点 Dock
+  - 首页、内容中心、我的、订单列表、活动中心、表单页均有 automator 数据或截图
+  - 商品列表跳转被「商城暂未开放」打回首页，记 BUG-MP-001
+  - 表单 id=1 打开后无字段，记 BUG-FORM-004
+  - 底栏展示与 app.json 不一致，记 BUG-MP-002
+changed_files:
+  - agent-team/testing/defects/BUG-MP-001.md
+  - agent-team/testing/defects/BUG-MP-002.md
+  - agent-team/testing/defects/BUG-FORM-004.md
+  - agent-team/testing/evidence/BATCH-QA-007/
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/scripts/qa-mp-automator-batch007.js
+  - agent-team/testing/scripts/qa-mp-automator-batch007-b.js
+  - agent-team/testing/scripts/qa-mp-automator-batch007-c.js
+  - agent-team/testing/scripts/qa-mp-automator-batch007-d.js
+  - agent-team/testing/scripts/qa-mp-automator-batch007-e.js
+  - agent-team/testing/scripts/qa-mp-automator-batch007-f.js
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 商城审核期关闭，无法进入商品详情下单
+  - 表单页打开后无字段，未完成提交
+  - 模拟器未登录，订单列表被登录半层挡住
+self_test:
+  result: 不适用
+  details: QA 模式只验证不改业务代码
+downstream_suggestions:
+  - 下一批可继续用 automator.connect(ws://127.0.0.1:9420)，不要 launch、不要点开发者工具窗口
+  - 登录半层与支付未测；角色矩阵仍需第二账号
+risks:
+  - 未改业务代码；未发布出海笔记首页；未打开微信支付
+  - 小程序 request 默认线上 API，与本地后台数据可能不是同一套
+next_step: 等待总控确认后开始下一批
+notes: 探索排查，不得视为测试完成。后台自动化不等于主线二/三已测通。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-007
+  feature_point_range:
+    - EXP-LINE1-MP
+    - EXP-LINE2-MP-ORDER
+    - EXP-LINE3-MP-SUBMIT
+  executed_count: 3
+  pass_count: 0
+  fail_count: 2
+  partial_count: 1
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: 本批探索项已执行；全量功能点分母尚未确认，禁止写测试完成
+  cumulative_pass_rate: 不以全量分母计算
+  new_defects:
+    P0: []
+    P1:
+      - BUG-MP-001
+      - BUG-FORM-004
+    P2:
+      - BUG-MP-002
+    P3: []
+  next_batch_plan: 保持 WorkBuddy 前台；用 automator 测登录半层后的订单/表单提交（若仍无字段则回归 BUG-FORM-004）；角色矩阵仍需第二账号
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

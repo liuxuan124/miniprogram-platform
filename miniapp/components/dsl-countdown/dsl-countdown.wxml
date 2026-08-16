@@ -15,17 +15,23 @@
       </view>
       <text class="dsl-countdown__unit">天</text>
     </block>
-    <view class="dsl-countdown__block">
-      <text class="dsl-countdown__number">{{hours}}</text>
-    </view>
-    <text class="dsl-countdown__unit">时</text>
-    <view class="dsl-countdown__block">
-      <text class="dsl-countdown__number">{{minutes}}</text>
-    </view>
-    <text class="dsl-countdown__unit">分</text>
-    <view class="dsl-countdown__block">
-      <text class="dsl-countdown__number">{{seconds}}</text>
-    </view>
-    <text class="dsl-countdown__unit">秒</text>
+    <block wx:if="{{showHours}}">
+      <view class="dsl-countdown__block">
+        <text class="dsl-countdown__number">{{hours}}</text>
+      </view>
+      <text class="dsl-countdown__unit">时</text>
+    </block>
+    <block wx:if="{{showMinutes}}">
+      <view class="dsl-countdown__block">
+        <text class="dsl-countdown__number">{{minutes}}</text>
+      </view>
+      <text class="dsl-countdown__unit">分</text>
+    </block>
+    <block wx:if="{{showSeconds}}">
+      <view class="dsl-countdown__block">
+        <text class="dsl-countdown__number">{{seconds}}</text>
+      </view>
+      <text class="dsl-countdown__unit">秒</text>
+    </block>
   </view>
 </view>

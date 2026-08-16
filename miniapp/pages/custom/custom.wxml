@@ -1,0 +1,13 @@
+<!--pages/custom/custom.wxml — 装修器自定义页/专题页通用入口-->
+<view class="custom-page">
+  <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
+  <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
+  <view wx:else class="custom-page__body">
+    <dsl-renderer
+      wx:for="{{components}}"
+      wx:key="id"
+      component="{{item}}"
+    />
+    <view wx:if="{{!components.length}}" class="custom-page__state">页面暂无内容</view>
+  </view>
+</view>

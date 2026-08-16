@@ -37,7 +37,7 @@
             <div v-if="!currentPageDsl.components?.length" class="preview-empty">
               <span class="empty-icon">📄</span>
               <p>此页面暂无组件</p>
-              <p class="empty-hint">请前往页面装修器添加组件</p>
+              <p class="empty-hint">请前往装修器添加组件</p>
             </div>
           </div>
 
@@ -96,7 +96,7 @@
             <div v-if="!minePageDsl?.components?.length" class="preview-empty">
               <span class="empty-icon">📄</span>
               <p>此页面暂无组件</p>
-              <p class="empty-hint">请前往页面装修器添加组件</p>
+              <p class="empty-hint">请前往装修器添加组件</p>
             </div>
           </div>
 

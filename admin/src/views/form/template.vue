@@ -148,12 +148,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="formData.status" style="width: 200px">
-            <el-option
-              v-for="(label, key) in FormTemplateStatusLabels"
-              :key="key"
-              :label="label"
-              :value="key"
-            />
+            <el-option :label="FormTemplateStatusLabels[FormTemplateStatus.Draft]" :value="FormTemplateStatus.Draft" />
+            <el-option :label="FormTemplateStatusLabels[FormTemplateStatus.Active]" :value="FormTemplateStatus.Active" />
           </el-select>
         </el-form-item>
 
@@ -438,7 +434,7 @@ function getTemplateTypeTags(row: FormTemplate): { visible: string[]; extra: num
 
 function mapTemplateStatus(status: number): FormTemplateStatus {
   if (status === 1) return FormTemplateStatus.Active
-  return FormTemplateStatus.Inactive
+  return FormTemplateStatus.Draft
 }
 
 function toBackendStatus(status: FormTemplateStatus): number {

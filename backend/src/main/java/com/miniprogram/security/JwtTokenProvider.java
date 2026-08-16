@@ -57,25 +57,28 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    public enum TokenStatus {
+        VALID, EXPIRED, INVALID
+    }
+
     /**
      * 验证 Token 是否有效
      */
     public boolean validateToken(String token) {
+        return inspectToken(token) == TokenStatus.VALID;
+    }
+
+    public TokenStatus inspectToken(String token) {
         try {
             parseToken(token);
-            return true;
-        } catch (SecurityException e) {
-            log.warn("JWT 签名无效: {}", e.getMessage());
-        } catch (MalformedJwtException e) {
-            log.warn("JWT 格式错误: {}", e.getMessage());
+            return TokenStatus.VALID;
         } catch (ExpiredJwtException e) {
             log.warn("JWT 已过期: {}", e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            log.warn("不支持的 JWT: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.warn("JWT 为空: {}", e.getMessage());
+            return TokenStatus.EXPIRED;
+        } catch (SecurityException | MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
+            log.warn("JWT 无效: {}", e.getMessage());
+            return TokenStatus.INVALID;
         }
-        return false;
     }
 
     /**

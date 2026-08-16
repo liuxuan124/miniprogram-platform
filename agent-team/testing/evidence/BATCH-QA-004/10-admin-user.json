@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/settings/admin-user\",\"title\":\"管理员账号 - 小程序搭建与运营系统\",\"text\":\"账号\\n超级管理员\\n管理员账号\\n工作台\\n管理员账号\\n\\n管理系统后台账号、分配角色与权限\\n\\n新建管理员\\n关键词\\n角色\\n全部角色\\n状态\\n全部状态\\n查询\\n重置\\n登录账号\\n\\t\\n真实姓名\\n\\t\\n手机号\\n\\t\\n角色\\n\\t\\n状态\\n\\t\\n最后登录\\n\\t\\n操作\\nadmin\\n\\t\\n超级管理员\\n\\t\\n\\t\\nè¶…çº§ç®¡ç†å‘˜\\n\\t\\n启用\\n\\t\\n2026-08-13T08:33:53\\n\\t\\n编辑\\n删除\\n共 1 条\\n10条/页\\n1\\n前往\\n页\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  const i = Math.max(t.indexOf(\'管理员\'), t.indexOf(\'账号\'));\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(Math.max(i,0), Math.max(i,0)+1600) });\n})()\n)');
+```

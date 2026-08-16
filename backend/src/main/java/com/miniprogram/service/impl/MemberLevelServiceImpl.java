@@ -6,8 +6,10 @@ import com.miniprogram.dto.member.MemberLevelDTO;
 import com.miniprogram.dto.member.MemberLevelVO;
 import com.miniprogram.entity.Coupon;
 import com.miniprogram.entity.MemberLevel;
+import com.miniprogram.entity.MiniProgramUser;
 import com.miniprogram.mapper.CouponMapper;
 import com.miniprogram.mapper.MemberLevelMapper;
+import com.miniprogram.mapper.MiniProgramUserMapper;
 import com.miniprogram.member.MemberBenefitCodes;
 import com.miniprogram.service.MemberLevelService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,13 +35,42 @@ public class MemberLevelServiceImpl extends BaseServiceImpl<MemberLevelMapper, M
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final CouponMapper couponMapper;
+    private final MiniProgramUserMapper miniProgramUserMapper;
 
     @Override
     public List<MemberLevelVO> listAll() {
         LambdaQueryWrapper<MemberLevel> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByAsc(MemberLevel::getSortOrder)
                .orderByAsc(MemberLevel::getMinPoints);
-        return this.list(wrapper).stream().map(this::convertToVO).collect(Collectors.toList());
+        List<MemberLevel> levels = this.list(wrapper);
+        Map<Long, Integer> memberCounts = countMembersByLevel(levels);
+        return levels.stream().map(level -> {
+            MemberLevelVO vo = convertToVO(level);
+            vo.setMemberCount(memberCounts.getOrDefault(level.getId(), 0));
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    /** 按积分落入区间统计会员数（与前端 resolveLevel 规则一致） */
+    private Map<Long, Integer> countMembersByLevel(List<MemberLevel> levels) {
+        Map<Long, Integer> counts = new HashMap<>();
+        if (levels.isEmpty()) return counts;
+        List<MemberLevel> enabled = levels.stream()
+                .filter(l -> l.getStatus() == null || l.getStatus() == 1)
+                .sorted(Comparator.comparing(MemberLevel::getMinPoints, Comparator.nullsFirst(Integer::compareTo)))
+                .toList();
+        if (enabled.isEmpty()) enabled = levels;
+        List<MiniProgramUser> users = miniProgramUserMapper.selectList(new LambdaQueryWrapper<>());
+        for (MiniProgramUser user : users) {
+            int points = user.getPoints() == null ? 0 : user.getPoints();
+            MemberLevel matched = enabled.get(0);
+            for (MemberLevel level : enabled) {
+                int min = level.getMinPoints() == null ? 0 : level.getMinPoints();
+                if (points >= min) matched = level;
+            }
+            counts.merge(matched.getId(), 1, Integer::sum);
+        }
+        return counts;
     }
 
     @Override

@@ -11,7 +11,6 @@ const CONFIG_CACHE_EXPIRE = 10 * 60 * 1000
 const DEFAULT_TABBAR_LIST = [
   { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
   { pagePath: '/pages/content-list/content-list', text: '内容', icon: '📚' },
-  { pagePath: '/pages/product-list/product-list', text: '商城', icon: '🛍️' },
   { pagePath: '/pages/mine/mine', text: '我的', icon: '👤' }
 ]
 
@@ -23,15 +22,15 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
-    { id: 'orders', icon: '🧾', title: '全部订单', url: '/pages/order-list/order-list', enabled: true },
-    { id: 'reservation', icon: '🗓️', title: '我的预约', url: '/pages/my-appointments/my-appointments', enabled: true },
-    { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pages/member-center/member-center', enabled: true },
-    { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true },
-    { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pages/favorites/favorites', enabled: true },
-    { id: 'address', icon: '📍', title: '收货地址', url: '/pages/address-list/address-list', enabled: true },
-    { id: 'contact', icon: '💬', title: '客服 · 售后', url: '/pages/service-chat/service-chat', enabled: true },
-    { id: 'settings', icon: '⚙️', title: '设置', url: '/pages/settings/settings', enabled: true },
-    { id: 'feedback', icon: '✉️', title: '意见反馈', url: '/pages/feedback/feedback', enabled: true },
+    { id: 'orders', icon: '🧾', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
+    { id: 'reservation', icon: '🗓️', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
+    { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pkg-user/member-center/member-center', enabled: true },
+    { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true },
+    { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pkg-user/favorites/favorites', enabled: true },
+    { id: 'address', icon: '📍', title: '收货地址', url: '/pkg-user/address-list/address-list', enabled: true },
+    { id: 'contact', icon: '💬', title: '客服 · 售后', url: '/pkg-user/service-chat/service-chat', enabled: true },
+    { id: 'settings', icon: '⚙️', title: '设置', url: '/pkg-user/settings/settings', enabled: true },
+    { id: 'feedback', icon: '✉️', title: '意见反馈', url: '/pkg-user/feedback/feedback', enabled: true },
   ],
 }
 

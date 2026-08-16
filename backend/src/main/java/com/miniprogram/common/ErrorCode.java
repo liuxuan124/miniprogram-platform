@@ -14,6 +14,9 @@ public enum ErrorCode {
     PARAM_ERROR(1001, "参数错误"),
     PARAM_MISSING(1002, "参数缺失"),
     PARAM_TYPE_ERROR(1003, "参数类型错误"),
+    PARAM_INVALID(100101, "参数校验失败"),
+    REQUEST_FORMAT_ERROR(100102, "请求格式错误"),
+    TOO_MANY_REQUESTS(100201, "请求过于频繁"),
 
     // ==================== 认证错误 1100-1199（契约对齐） ====================
     NOT_LOGIN(110101, "未登录"),
@@ -56,6 +59,7 @@ public enum ErrorCode {
     PAGE_VERSION_NOT_FOUND(300402, "页面版本不存在"),
     PAGE_DSL_INVALID(300202, "DSL内容格式错误"),
     PAGE_PATH_DUPLICATE(300203, "页面路径已存在"),
+    PAGE_VERSION_CONFLICT(300409, "页面版本冲突"),
 
     // ==================== 内容管理相关 7000-7999 ====================
     CONTENT_NOT_FOUND(400401, "内容不存在"),

@@ -61,7 +61,7 @@ Component({
           date: item.activityDate || item.date || item.startTime || '',
           location: item.location || item.venue || '活动会场',
           cover: item.cover || item.image || item.cover_url || '',
-          link_url: item.id ? `/pages/activity-detail/activity-detail?id=${item.id}` : '/pages/activity-list/activity-list',
+          link_url: item.id ? `/pkg-extra/activity-detail/activity-detail?id=${item.id}` : '/pkg-extra/activity-list/activity-list',
         }))
       }
 
@@ -95,8 +95,8 @@ Component({
           desc: item.description || item.desc || '在线预约服务',
           button_text: item.button_text || item.buttonText || '立即预约',
           link_url: item.id
-            ? `/pages/appointment-calendar/appointment-calendar?serviceId=${item.id}`
-            : (item.link_url || item.linkUrl || '/pages/appointment-list/appointment-list'),
+            ? `/pkg-trade/appointment-calendar/appointment-calendar?serviceId=${item.id}`
+            : (item.link_url || item.linkUrl || '/pkg-user/appointment-list/appointment-list'),
         }))
       }
 
@@ -111,7 +111,7 @@ Component({
           name: item.name || '服务名称',
           desc: item.desc || item.description || '服务说明',
           button_text: item.button_text || '立即预约',
-          link_url: item.link_url || '/pages/appointment-list/appointment-list',
+          link_url: item.link_url || '/pkg-user/appointment-list/appointment-list',
         }))
         props._sectionTitleStyle = buildTextStyle(props.section_title_font_size || 15)
 
@@ -180,7 +180,7 @@ Component({
 
       if (type === 'form_entry') {
         const formId = String(props.formId || props.formTemplateId || '').trim()
-        props._formLink = formId ? `/pages/form/form?id=${formId}` : ''
+        props._formLink = formId ? `/pkg-extra/form/form?id=${formId}` : ''
         props._buttonText = props.button_text || props.buttonText || '立即填写'
         const styleRaw = String(props.style || 'card')
         props._styleType = ['card', 'list', 'minimal'].includes(styleRaw) ? styleRaw : 'card'
@@ -226,7 +226,7 @@ Component({
         props.items = processIconItems(runtimeData.slice(0, 10).map((item, index) => ({
           icon: item.icon || '📌',
           title: item.name || item.title || `分类${index + 1}`,
-          link_url: item.linkUrl || item.link_url || '/pages/category/category',
+          link_url: item.linkUrl || item.link_url || '/pkg-trade/category/category',
           link_type: 'page',
         })))
       }
@@ -312,15 +312,15 @@ Component({
     onSearchTap() {
       const scope = ((this.data.comp && this.data.comp.props && this.data.comp.props.scope) || 'all').toString()
       let link = '/pages/search/search'
-      if (scope === 'product') link = '/pages/product-list/product-list'
+      if (scope === 'product') link = '/pages/search/search'
       if (scope === 'article') link = '/pages/content-list/content-list'
-      if (scope === 'activity') link = '/pages/activity-list/activity-list'
+      if (scope === 'activity') link = '/pkg-extra/activity-list/activity-list'
       navigatePage(link)
     },
 
     onAiEntryTap() {
       wx.navigateTo({
-        url: '/pages/service-chat/service-chat',
+        url: '/pkg-user/service-chat/service-chat',
         fail: () => {},
       })
     },

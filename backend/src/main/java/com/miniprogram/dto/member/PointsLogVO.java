@@ -13,6 +13,9 @@ public class PointsLogVO {
     @Schema(description = "用户ID")
     private Long userId;
 
+    @Schema(description = "用户昵称")
+    private String userNickname;
+
     @Schema(description = "积分变动值")
     private Integer points;
 

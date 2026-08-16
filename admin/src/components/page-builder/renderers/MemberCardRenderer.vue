@@ -20,7 +20,7 @@
               {{ component.props.upgrade_text || '升级会员' }}
             </button>
           </div>
-          <div v-if="showLevel" class="member-subtitle" :style="subtitleStyle">{{ subtitle }}</div>
+          <div v-if="showLevel" class="member-subtitle" :style="subtitleStyle">{{ displaySubtitle }}</div>
         </div>
       </div>
 
@@ -62,6 +62,15 @@ const showCoupons = computed(() => props.component.props?.show_coupons !== false
 const showUpgrade = computed(() => props.component.props?.show_upgrade !== false)
 
 const subtitle = computed(() => props.component.props?.subtitle || '点击查看权益')
+const displaySubtitle = computed(() => {
+  if (props.previewMode && props.component.props?.guest_mode !== false) {
+    return '未登录，登录后查看会员信息'
+  }
+  if (!props.previewMode && props.component.props?.show_guest_hint !== false) {
+    return '未登录态示意 · 登录后展示真实会员信息'
+  }
+  return subtitle.value
+})
 const titleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 15))
 const subtitleStyle = computed(() => titleFontStyle(props.component.props?.subtitle_font_size, 11))
 const benefitStyle = computed(() => titleFontStyle(props.component.props?.benefit_font_size, 10))

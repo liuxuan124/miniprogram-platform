@@ -1,0 +1,12 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/settings/basic\",\"title\":\"系统设置 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n系统设置\\n/\\n系统设置\\n超级管理员\\n系统设置\\n工作台\\n系统设置\\n\\n配置小程序基础信息、支付参数、功能模块及通知模板\\n\\n刷新\\n保存全部\\n基础配置\\n功能模块\\n物流配送\\n权限角色\\n订阅消息\\n小程序基本信息\\n用于小程序展示、分享及身份验证\\n小程序名称\\n原始ID\\nAppID\\nAppSecret\\n代码上传密钥\\nLogo图片\\n上传\\n素材库\\n分享引导语\\n20 / 50\\n客服电话\\n隐私政策外链\\n用户协议外链\\n填写代码上传密钥后，请点击右侧按钮保存到服务器 （当前为本地后台，配置保存在本机数据库）\\n保存小程序配置\\n微信支付配置\\n支持沙盒测试与生产环境切换\\n未启用\\n已启用\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({\n    url: location.href,\n    title: document.title,\n    text: t.slice(0, 2800)\n  });\n})()\n)');
+```
+### Page
+- Page URL: http://127.0.0.1:3000/settings/basic
+- Page Title: 系统设置 - 小程序搭建与运营系统
+- Console: 0 errors, 4 warnings
+### Events
+- New console entries: .playwright-cli/console-2026-08-13T08-39-32-898Z.log#L1-L72

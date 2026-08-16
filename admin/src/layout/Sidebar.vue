@@ -66,9 +66,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import { usePermissionStore } from '@/stores/permission'
 import {
   Odometer,
   Document,
@@ -95,6 +96,7 @@ import {
   Setting,
   ArrowRight,
   Guide,
+  Upload,
 } from '@element-plus/icons-vue'
 
 interface MenuItem {
@@ -103,6 +105,8 @@ interface MenuItem {
   icon: string
   activePrefix?: string
   children?: MenuItem[]
+  /** 需要任一权限码；空则不限制（超管仍全部可见） */
+  permissions?: string[]
 }
 
 const iconMap: Record<string, any> = {
@@ -130,14 +134,16 @@ const iconMap: Record<string, any> = {
   Picture,
   Setting,
   Guide,
+  Upload,
 }
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const permissionStore = usePermissionStore()
 const openKeys = ref<string[]>([])
 
-const menuGroups: Array<{ title: string; children: MenuItem[] }> = [
+const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '总览',
     children: [
@@ -145,11 +151,12 @@ const menuGroups: Array<{ title: string; children: MenuItem[] }> = [
     ],
   },
   {
-    title: '页面装修',
+    title: '小程序',
     children: [
-      { title: '搭建小程序', path: '/page-builder/start', icon: 'Cellphone', activePrefix: '/page-builder/start' },
-      { title: '页面管理', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list' },
-      { title: '页面模板', path: '/page-builder/template-center', icon: 'Brush', activePrefix: '/page-builder/template-center' },
+      { title: '页面', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
+      { title: '导航与外观', path: '/page-builder/start', icon: 'Cellphone', activePrefix: '/page-builder/start', permissions: ['page:list'] },
+      { title: '发布', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
+      { title: '模板', path: '/page-builder/template-center', icon: 'Brush', activePrefix: '/page-builder/template-center', permissions: ['page:list'] },
     ],
   },
   {
@@ -162,15 +169,15 @@ const menuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '用户与会员',
     children: [
-      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member' },
-      { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user' },
+      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'] },
+      { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', permissions: ['user:list'] },
     ],
   },
   {
     title: '商业变现',
     children: [
       { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce' },
-      { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order' },
+      { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'] },
       { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
     ],
   },
@@ -219,6 +226,31 @@ const menuGroups: Array<{ title: string; children: MenuItem[] }> = [
     ],
   },
 ]
+
+function allowMenuItem(item: MenuItem): boolean {
+  if (!item.permissions?.length) return true
+  return permissionStore.hasAnyPerm(item.permissions)
+}
+
+const menuGroups = computed(() =>
+  rawMenuGroups
+    .map((group) => ({
+      ...group,
+      children: group.children
+        .map((item) => {
+          if (item.children?.length) {
+            const children = item.children.filter(allowMenuItem)
+            return { ...item, children }
+          }
+          return item
+        })
+        .filter((item) => {
+          if (item.children) return item.children.length > 0 || allowMenuItem(item)
+          return allowMenuItem(item)
+        }),
+    }))
+    .filter((g) => g.children.length > 0),
+)
 
 function isActive(item: MenuItem) {
   if (!item.path && !item.activePrefix) return false

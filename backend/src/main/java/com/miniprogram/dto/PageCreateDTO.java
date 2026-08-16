@@ -1,8 +1,11 @@
 package com.miniprogram.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -13,10 +16,13 @@ import lombok.Data;
 public class PageCreateDTO {
 
     @NotBlank(message = "页面名称不能为空")
+    @Size(max = 128, message = "页面名称不能超过 128 个字符")
     @Schema(description = "页面名称", example = "首页")
     private String name;
 
     @NotNull(message = "页面类型不能为空")
+    @Min(value = 1, message = "页面类型必须为 1/2/3")
+    @Max(value = 3, message = "页面类型必须为 1/2/3")
     @Schema(description = "页面类型 1=首页 2=专题页 3=自定义页", example = "1")
     private Integer type;
 

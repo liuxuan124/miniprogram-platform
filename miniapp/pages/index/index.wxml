@@ -20,10 +20,10 @@
   </view>
 
   <!-- Search -->
-  <view class="searchbar" bindtap="goSearch">
+  <view class="searchbar" catchtap="goSearch" hover-class="searchbar--pressed">
     <text class="searchbar__icon">⌕</text>
     <text class="searchbar__text">搜索选品、验厂、VAT、TikTok</text>
-    <text class="searchbar__action">搜索</text>
+    <view class="searchbar__action" catchtap="goSearch">搜索</view>
   </view>
 
   <!-- Quick nav -->
@@ -36,17 +36,17 @@
       <view class="ic ic-1">✦</view>
       <text>内容中心</text>
     </view>
-    <view class="q" data-action="ebook" bindtap="onQuickNav">
-      <view class="ic ic-2">▤</view>
-      <text>资料包</text>
-    </view>
-    <view class="q" data-action="consult" bindtap="onQuickNav">
-      <view class="ic ic-3">◌</view>
-      <text>1v1咨询</text>
-    </view>
     <view class="q" data-action="member" bindtap="onQuickNav">
-      <view class="ic ic-4">♢</view>
+      <view class="ic ic-2">♢</view>
       <text>会员权益</text>
+    </view>
+    <view class="q" data-action="orders" bindtap="onQuickNav">
+      <view class="ic ic-3">◌</view>
+      <text>我的订单</text>
+    </view>
+    <view class="q" data-action="service" bindtap="onQuickNav">
+      <view class="ic ic-4">◉</view>
+      <text>联系客服</text>
     </view>
   </view>
 
@@ -191,30 +191,14 @@
     </view>
   </view>
 
-  <!-- Products -->
-  <view class="sec">
+  <!-- Products：审核期隐藏商城入口 -->
+  <view class="sec" wx:if="{{false}}">
     <view class="sec-h">
       <view>
-        <view class="sec-title">知识产品</view>
-        <view class="sec-sub">资料包可购 · 咨询按时段预约</view>
+        <view class="sec-title">精选好物</view>
+        <view class="sec-sub">纸质手册与文创周边 · 快递发货</view>
       </view>
       <view class="sec-more" bindtap="goShop">商城 ›</view>
-    </view>
-    <view
-      class="p-card"
-      wx:for="{{products}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="openProduct"
-    >
-      <view class="p-ic" style="{{item.artStyle}}">
-        <view class="glyph sm">{{item.glyph}}</view>
-      </view>
-      <view class="p-in">
-        <view class="p-h4">{{item.title}}</view>
-        <view class="p-sub">{{item.sub}}</view>
-        <view class="p-pr">¥{{item.price}}<text class="p-pr-s">{{item.ratingLine}}</text></view>
-      </view>
     </view>
   </view>
 

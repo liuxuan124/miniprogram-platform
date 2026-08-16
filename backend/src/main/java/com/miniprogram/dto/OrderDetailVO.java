@@ -22,6 +22,12 @@ public class OrderDetailVO {
     @Schema(description = "用户ID")
     private Long userId;
 
+    @Schema(description = "用户昵称")
+    private String userNickname;
+
+    @Schema(description = "支付方式")
+    private String paymentMethod;
+
     @Schema(description = "总金额")
     private BigDecimal totalAmount;
 

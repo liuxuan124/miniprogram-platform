@@ -1,5 +1,8 @@
 <template>
-  <div class="render-nav">
+  <div
+    class="render-nav"
+    :style="{ gridTemplateColumns: `repeat(${columns}, 1fr)` }"
+  >
     <div
       v-for="(item, i) in (component.props.items || [])"
       :key="i"
@@ -15,12 +18,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ComponentInstance } from '@/types/page'
 
-defineProps<{
+const props = defineProps<{
   component: ComponentInstance
   previewMode?: boolean
 }>()
+
+const columns = computed(() => {
+  const n = Number(props.component.props?.columns || 4)
+  return n >= 3 && n <= 5 ? n : 4
+})
 
 defineEmits<{
   'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
@@ -35,7 +44,6 @@ function isImageIcon(icon?: string): boolean {
 <style lang="scss" scoped>
 .render-nav {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   padding: 12px 0;
   background: #fff;
 

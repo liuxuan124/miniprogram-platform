@@ -1,0 +1,50 @@
+task_id: TASK-QA-CTRL-CONFIRM-001
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 总控确认全系统扩展功能点 314（合计 582）
+  - 总控允许创建低权限/可禁用测试账号；已创建 qa_staff、qa_temp
+  - 更新 blockers 账号类阻塞为 resolved
+  - 登记初测：qa_staff 仍可创建页面（权限门禁可疑）
+changed_files:
+  - agent-team/testing/feature-inventory-system-extension.md
+  - agent-team/testing/feature-inventory.md
+  - agent-team/testing/credentials-qa-accounts.md
+  - agent-team/status/blockers.yaml
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - BLK-QA-TENANT-SCOPE-001 仍 open（租户越权）
+  - 支付/真机资料仍缺
+self_test:
+  result: 通过
+  details: qa_staff/qa_temp 可登录；权限拒绝场景需正式批次复测
+downstream_suggestions:
+  - 后端检查 service_staff 为何能 POST /admin/pages（应按 content_ops+ 拒绝）
+next_step: 设计范围 B 用例并从原 BLOCKED 权限 FP 复测；继续开放 P1 回归
+notes: work_mode=QA。扩展清单已确认，可写用例。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-CTRL-CONFIRM
+  feature_point_range: []
+  executed_count: 0
+  pass_count: 0
+  fail_count: 0
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "181/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: BATCH-QA-016 权限账号复测 + 范围 B 用例设计起步
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

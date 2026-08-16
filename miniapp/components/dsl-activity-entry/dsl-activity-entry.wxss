@@ -116,6 +116,13 @@
   letter-spacing: 2rpx;
 }
 
+.dsl-activity-entry__quota {
+  margin-top: 8rpx;
+  color: #1769ff;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
 .dsl-activity-entry__btn {
   margin-top: 16rpx;
   display: inline-flex;

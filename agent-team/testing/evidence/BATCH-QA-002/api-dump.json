@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-08-13T16:17:00+08:00",
+  "product9Detail": {
+    "id": 9,
+    "name": "QA主线商品-0813",
+    "categoryId": 1,
+    "categoryName": "品牌礼盒",
+    "price": 19.9,
+    "stock": 10,
+    "sales": 0,
+    "status": "on_sale"
+  },
+  "productListRecord0": {
+    "id": 9,
+    "categoryId": 1,
+    "note": "list VO has categoryId, no categoryName"
+  },
+  "mpProductsIncludeId9": true,
+  "mpProductsExcludeOffSaleId1": true,
+  "workbenchProductRanking": [
+    { "name": "品牌文创礼盒", "sales": 1, "price": 199 }
+  ],
+  "product1ListSales": 124,
+  "product1Status": "off_sale",
+  "formEnablePut": {
+    "request": { "status": 1 },
+    "response": {
+      "code": 400,
+      "message": "表单名称不能为空; 表单字段定义不能为空"
+    }
+  },
+  "form1AfterCreate": {
+    "id": 1,
+    "name": "QA主线表单-0813",
+    "status": 0,
+    "statusDesc": "停用"
+  },
+  "order1": {
+    "orderNo": "NO202605120001",
+    "status": "paid",
+    "statusDesc": "已付款",
+    "payAmount": 179,
+    "logisticsCompany": "顺丰速运",
+    "logisticsNo": "SF1234567890"
+  }
+}

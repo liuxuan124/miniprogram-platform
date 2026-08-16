@@ -273,7 +273,7 @@ async function handleRollback(row: VersionRecord) {
     fetchVersions()
     // 回滚后提示用户去编辑器发布
     await ElMessageBox.confirm(
-      `已成功回滚到 v${row.version}。\n\n页面当前为草稿状态，需要进入编辑器点击「发布上线」才能在小程序端生效。`,
+      `已成功回滚到 v${row.version}。\n\n页面当前为草稿，需要进入装修器点击「发布此页」后才会在小程序端生效。`,
       '回滚成功',
       {
         confirmButtonText: '去编辑器发布',

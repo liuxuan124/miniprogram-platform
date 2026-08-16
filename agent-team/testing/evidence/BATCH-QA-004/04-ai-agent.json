@@ -1,0 +1,12 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/ai/agent\",\"title\":\"智能 Agent - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n智能 AI\\n/\\n智能 Agent\\n超级管理员\\n智能 Agent\\n工作台\\nAI Agent 配置中心\\n\\n完整的 AI Agent 生命周期管理：接入模型 → 编写 Prompt → 上传知识库 → 沙盒测试 → 发布上线 → 监控运营。\\n\\n① 模型接入\\n② Prompt 配置\\n③ 知识库\\n④ 沙盒测试\\n⑤ 发布管理\\n⑥ 运营监控\\n🔌 选择接入模型\\nOpenAI\\nQwen\\nClaude\\nDeepSeek\\nMiniMax\\nMiMo\\n豆包\\n自定义\\nGPT-5.4\\nOpenAI 最新前沿主力模型，适合复杂 Agent、工具调用和专业任务\\n已选用\\nGPT-5.4 Pro\\n更高性能版本，适合复杂推理和高价值场景\\n切换\\nGPT-5.4 Mini\\n更低成本、更低延迟，适合高频客服对话\\n切换\\n内置列表会随版本更新；如果服务商发布新模型，可在右侧直接输入模型 ID。\\n⚙️ API 密钥配置\\n配置名称\\nBase URL\\nAPI Key\\n模型 ID\\nGPT-5.4 · gpt-5.4\\n推理强度\\nmedium / 平衡\\n温度参数\\n最大回复\\n环境\\n沙盒\\n生产\\n🔌 测试连接\\n保存配置\\n下一步：Prompt 配置 →\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({\n    url: location.href,\n    title: document.title,\n    text: t.slice(0, 2800)\n  });\n})()\n)');
+```
+### Page
+- Page URL: http://127.0.0.1:3000/ai/agent
+- Page Title: 智能 Agent - 小程序搭建与运营系统
+- Console: 1 errors, 8 warnings
+### Events
+- New console entries: .playwright-cli/console-2026-08-13T08-39-42-157Z.log#L1-L105

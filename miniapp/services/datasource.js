@@ -54,7 +54,12 @@ function resolveDataSourceRequest(dataSource) {
 
   const directType = dataSource.type
   const config = dataSource.config || {}
-  const params = { ...(dataSource.params || {}), ...(config.params || {}) }
+  const params = { ...(dataSource.query || {}), ...(dataSource.params || {}), ...(config.params || {}) }
+  Object.keys(params).forEach((key) => {
+    if (params[key] === '' || params[key] === null || params[key] === undefined || params[key] === 'all') {
+      delete params[key]
+    }
+  })
 
   // 标准 type 直接映射
   if (directType && DS_API_MAP[directType]) {

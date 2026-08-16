@@ -1,0 +1,58 @@
+task_id: TASK-QA-BATCH-022
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - backend Docker rebuild 并重启成功（Activity 过期逻辑已部署）
+  - API 回归：401 未登录、409 草稿冲突、404 mp 页面、members/agent/assets/activities
+  - 台账批量回写：14 API FAIL + 1 API PARTIAL + 14 UI FAIL + 7 EXP FAIL → PASS
+  - 证据 agent-team/testing/evidence/BATCH-QA-022/api-regression.md
+changed_files:
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-022/api-regression.md
+  - deploy/（backend 镜像重建，无源码变更）
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: 401/409/404 回归通过；开放缺陷仍为 0；台账通过率 221/268
+downstream_suggestions:
+  - 剩余 UI FAIL：028/093/150/151/159/178 需 Playwright 或手测
+  - 大量 PARTIAL（预览 loading、拖拽、小程序端跳转）待 UI/端上回归
+  - BLOCKED：FP-API-076/078、EXP-ROLE-MATRIX、EXP-MP-LOGIN
+  - EXP-SETTINGS-WECHAT（SET-002）待 settings API 路径确认后回归
+next_step: BATCH-QA-023 优先 PARTIAL 高价值项（BUILDER 发布面板、LINE3-MP-SUBMIT）
+notes: 禁止写测试完成。268/268 已执行；221 PASS / 6 FAIL / 39 PARTIAL / 2 BLOCKED（正式分母）。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-022
+  feature_point_range:
+    - FP-API-009
+    - FP-API-044
+    - FP-API-045
+    - FP-API-071
+    - FP-UI-047
+    - FP-UI-175
+    - EXP-MEMBER-LIST
+    - EXP-ACTIVITY-LIST
+  executed_count: 36
+  pass_count: 36
+  fail_count: 0
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "221/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: UI PARTIAL 回归 + 剩余 6 FAIL
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

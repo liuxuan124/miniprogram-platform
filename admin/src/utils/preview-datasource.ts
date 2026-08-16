@@ -60,11 +60,15 @@ function resolveDataSource(component: ComponentInstance): ComponentDataSource | 
   if (!raw || !raw.type) {
     const fallbackType = DS_COMPONENT_DEFAULT_TYPE[component.type]
     if (!fallbackType) return null
-    return { type: fallbackType, params: { status: 'published' } } as ComponentDataSource
+    const status = fallbackType === 'product' ? 'on_sale' : 'published'
+    return { type: fallbackType, params: { status } } as ComponentDataSource
   }
 
   const config = raw.config || {}
-  const params = { ...(raw.params || {}), ...(config.params || {}) }
+  const params = { ...(raw.query || {}), ...(raw.params || {}), ...(config.params || {}) }
+  Object.keys(params).forEach((key) => {
+    if (params[key] === '' || params[key] === null || params[key] === undefined) delete params[key]
+  })
 
   if (raw.type !== 'api') {
     return { ...raw, params }
@@ -113,7 +117,10 @@ async function fetchDataSourceList(dataSource: ComponentDataSource, limit: numbe
     size: String(Math.max(limit, 6)),
     page: '1',
     page_size: String(Math.max(limit, 6)),
-    ...(dataSource.params || {}),
+  })
+  Object.entries(dataSource.params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '' || value === 'all') return
+    params.set(key, String(value))
   })
 
   const response = await fetch(`${apiPath}?${params.toString()}`)
@@ -141,13 +148,22 @@ function mapArticleItems(list: any[], limit: number) {
   }))
 }
 
-function mapProductItems(list: any[], limit: number) {
-  return list.slice(0, limit).map((item, index) => ({
+function mapProductItems(list: any[], limit: number, sortKey?: string) {
+  let rows = list.filter((item) => item && String(item.status || 'on_sale') === 'on_sale')
+  const sort = String(sortKey || '')
+  if (sort.includes('sales')) {
+    rows = [...rows].sort((a, b) => Number(b.sales ?? 0) - Number(a.sales ?? 0))
+  } else if (sort.includes('price') && sort.includes('asc')) {
+    rows = [...rows].sort((a, b) => Number(a.price ?? 0) - Number(b.price ?? 0))
+  } else if (sort.includes('price')) {
+    rows = [...rows].sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0))
+  }
+  return rows.slice(0, limit).map((item, index) => ({
     id: item.id || index + 1,
     name: item.name || item.title || '商品名称',
     price: String(item.price ?? '0.00'),
     image: item.coverUrl || item.coverImage || item.image || item.mainImage || '',
-    sales: item.sales || item.salesCount || 0,
+    sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
   }))
 }
 
@@ -191,11 +207,17 @@ async function hydrateComponent(
     }
 
     if (component.type === 'product_list') {
+      const sortKey = String(
+        component.props?.sort
+        || component.props?.sort_by
+        || dataSource.params?.sort
+        || '',
+      )
       return {
         ...component,
         props: {
           ...component.props,
-          items: mapProductItems(list, limit),
+          items: mapProductItems(list, limit, sortKey),
           _previewDataFailed: false,
         },
       }
@@ -213,6 +235,10 @@ async function hydrateComponent(
   }
 
   return component
+}
+
+export async function loadHydratedComponent(component: ComponentInstance): Promise<ComponentInstance> {
+  return hydrateComponent(component, [])
 }
 
 export async function hydratePreviewDsl(dsl: PageDSL): Promise<HydratePreviewResult> {

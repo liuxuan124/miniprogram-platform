@@ -21,7 +21,7 @@ Component({
         : (e.detail.href || '')
       if (url) {
         wx.navigateTo({
-          url: '/pages/webview/webview?url=' + encodeURIComponent(url),
+          url: '/pkg-user/webview/webview?url=' + encodeURIComponent(url),
         })
       }
     },

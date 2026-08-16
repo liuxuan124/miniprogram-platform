@@ -12,10 +12,21 @@ function getCartList() {
 
 /**
  * 添加商品到购物车
- * @param {Object} data - { product_id, sku_id, quantity }
+ * @param {Object} data - { productId|product_id, skuId|sku_id, quantity }
  */
-function addToCart(data) {
-  return request.post('/api/v1/mp/cart', data)
+function addToCart(data = {}) {
+  const payload = {
+    productId: Number(data.productId != null ? data.productId : data.product_id),
+    quantity: Math.max(1, parseInt(data.quantity, 10) || 1),
+  }
+  const skuRaw = data.skuId != null ? data.skuId : data.sku_id
+  if (skuRaw !== undefined && skuRaw !== null && skuRaw !== '') {
+    payload.skuId = Number(skuRaw)
+  }
+  if (!payload.productId || Number.isNaN(payload.productId)) {
+    return Promise.reject({ code: 400, message: '商品ID无效' })
+  }
+  return request.post('/api/v1/mp/cart', payload, { showError: false })
 }
 
 /**

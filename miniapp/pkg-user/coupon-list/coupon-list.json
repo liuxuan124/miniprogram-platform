@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "优惠券",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "empty-state": "../../components/empty-state/empty-state"
+  }
+}

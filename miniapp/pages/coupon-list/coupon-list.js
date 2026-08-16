@@ -25,6 +25,16 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback
 }
 
+function formatPercentDiscount(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  const zhe = n > 0 && n <= 1 ? n * 10 : n
+  const text = Number.isInteger(zhe)
+    ? String(zhe)
+    : String(Number(zhe.toFixed(1))).replace(/\.0$/, '')
+  return String(text)
+}
+
 function pickList(res) {
   if (!res) return []
   if (Array.isArray(res)) return res
@@ -52,7 +62,7 @@ function normalizeAvailableCoupon(raw) {
     id: raw && (raw.id != null ? raw.id : raw.couponId),
     name: (raw && (raw.name || raw.title || raw.couponName)) || '优惠券',
     type,
-    displayValue: type === 'percent' ? `${value}` : `${value}`,
+    displayValue: type === 'percent' ? formatPercentDiscount(value) : `${value}`,
     unit: type === 'percent' ? '折' : '元',
     condition: minAmount > 0 ? `满¥${minAmount}可用` : ((raw && raw.condition) || '无门槛'),
     expireText: endTime ? `${String(endTime).replace('T', ' ').slice(0, 16)}到期` : '',
@@ -74,7 +84,7 @@ function normalizeMyCoupon(raw) {
     id: raw && raw.id,
     name: (raw && (raw.couponName || raw.name || raw.title)) || '优惠券',
     type,
-    displayValue: `${value}`,
+    displayValue: type === 'percent' ? formatPercentDiscount(value) : `${value}`,
     unit: type === 'percent' ? '折' : '元',
     condition: minAmount > 0 ? `满¥${minAmount}可用` : ((raw && raw.condition) || '无门槛'),
     expireText: endTime ? `${String(endTime).replace('T', ' ').slice(0, 16)}到期` : '',

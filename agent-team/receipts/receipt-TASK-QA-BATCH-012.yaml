@@ -1,0 +1,45 @@
+task_id: TASK-QA-BATCH-012
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 对后台装修器 26 个组件逐个添加并打开属性面板
+  - 核对页面属性、通用样式、每个内容字段是否出现，并尝试改文本/开关/数字
+changed_files:
+  - agent-team/testing/evidence/BATCH-QA-012/
+  - agent-team/testing/scripts/run-all-component-props.mjs
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 未执行
+  details: QA 只验证
+downstream_suggestions: []
+risks:
+  - 部分数字框自动化 fill 失败，字段仍可见
+next_step: 按清单补缺字段或改契约
+notes: 未改业务代码。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-012
+  feature_point_range: []
+  executed_count: 26
+  pass_count: 23
+  fail_count: 4
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268 正式分母不变；本批为组件属性加测"
+  cumulative_pass_rate: "141/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: 分类导航/证书默认空项、条件字段（悬浮按钮动作）需产品确认
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

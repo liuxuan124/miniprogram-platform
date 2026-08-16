@@ -29,15 +29,17 @@ export function useDataSync() {
 
   async function syncProducts(onSuccess: (items: any[]) => void) {
     await syncFromApi(
-      () => getProductList({ current: 1, size: 50 }),
+      // 预览/同步只取已上架，避免混入下架商品与后台占位销量
+      () => getProductList({ current: 1, size: 50, status: 'on_sale' } as any),
       (item: any) => ({
         id: item.id,
         title: item.name || item.title || '',
         price: item.price || 0,
         image: item.coverImage || item.image || item.mainImage || '',
-        sales: item.sales || item.salesCount || 0,
+        sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
+        status: item.status,
       }),
-      onSuccess
+      (items) => onSuccess(items.filter((item) => item.status === 'on_sale' || !item.status)),
     )
   }
 

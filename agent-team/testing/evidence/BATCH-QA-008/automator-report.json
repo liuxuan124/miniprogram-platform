@@ -1,0 +1,425 @@
+{
+  "startedAt": "2026-08-13T09:32:40.726Z",
+  "steps": [
+    "connected",
+    "cart:pages/cart/cart",
+    "search:pages/search/search",
+    "login:pages/login/login",
+    "member:pkg-user/member-center/member-center",
+    "coupon:pkg-user/coupon-list/coupon-list",
+    "appoint:pkg-user/my-appointments/my-appointments",
+    "settings:pkg-user/settings/settings",
+    "contentDetail:pages/content-detail/content-detail",
+    "activityDetail:pkg-extra/activity-detail/activity-detail",
+    "formSubmit:pkg-extra/form/form:submitted=false",
+    "ordersClose:{\"found\":false}"
+  ],
+  "errors": [],
+  "proto": [
+    "constructor",
+    "pageStack",
+    "navigateTo",
+    "redirectTo",
+    "navigateBack",
+    "reLaunch",
+    "switchTab",
+    "currentPage",
+    "systemInfo",
+    "callWxMethod",
+    "mockWxMethod",
+    "restoreWxMethod",
+    "callPluginWxMethod",
+    "mockPluginWxMethod",
+    "restorePluginWxMethod",
+    "evaluate",
+    "pageScrollTo",
+    "close",
+    "remote",
+    "disconnect",
+    "on",
+    "exposeFunction",
+    "checkVersion",
+    "screenshot",
+    "testAccounts",
+    "stopAudits",
+    "getTicket",
+    "setTicket",
+    "refreshTicket",
+    "native",
+    "changeRoute",
+    "send"
+  ],
+  "mpKeys": [
+    "_events",
+    "_eventsCount",
+    "_maxListeners",
+    "pageMap",
+    "onLogAdded",
+    "onBindingCalled",
+    "onExceptionThrown",
+    "connection",
+    "appBindings"
+  ],
+  "cart": {
+    "path": "pages/cart/cart",
+    "query": {},
+    "slim": {
+      "cartList": "Array(0)",
+      "isAllSelected": false,
+      "selectedCount": 0,
+      "selectedPrice": "0.00",
+      "loading": true,
+      "isEmpty": false
+    },
+    "rawHint": {
+      "loading": true,
+      "isEmpty": false,
+      "cartLen": 0
+    }
+  },
+  "cartShot": "01-cart.png",
+  "search": {
+    "path": "pages/search/search",
+    "query": {},
+    "slim": {
+      "keyword": "",
+      "searched": false,
+      "loading": false,
+      "hotKeywords": "Array(6)",
+      "history": "Array(0)",
+      "suggestions": "Array(3)",
+      "results": "Array(0)"
+    },
+    "rawHint": {
+      "loading": false
+    }
+  },
+  "searchShot": "02-search.png",
+  "login": {
+    "path": "pages/login/login",
+    "query": {},
+    "slim": {
+      "loading": false,
+      "redirectUrl": "",
+      "agreePrivacy": false,
+      "interceptAction": "",
+      "avatarUrl": "",
+      "avatarLocalPath": "",
+      "nickName": "",
+      "phoneMasked": "",
+      "canSubmit": false,
+      "avatarError": false,
+      "nicknameError": false,
+      "privacyError": false,
+      "formHint": "",
+      "showPrivacyPopup": false,
+      "nicknameFocused": false,
+      "pickingAvatar": false
+    },
+    "rawHint": {
+      "loading": false
+    }
+  },
+  "loginShot": "03-login.png",
+  "member": {
+    "path": "pkg-user/member-center/member-center",
+    "query": {},
+    "slim": {
+      "userInfo": "object",
+      "memberInfo": "object",
+      "upgradeInfo": "object",
+      "signInStatus": "object",
+      "signInDays": "Array(0)",
+      "benefitList": "Array(4)",
+      "levelList": "Array(4)"
+    },
+    "rawHint": {}
+  },
+  "memberShot": "04-member.png",
+  "coupon": {
+    "path": "pkg-user/coupon-list/coupon-list",
+    "query": {},
+    "slim": {
+      "tabs": "Array(2)",
+      "activeTab": "available",
+      "mySubTabs": "Array(3)",
+      "activeMySubTab": "available",
+      "availableCoupons": "Array(0)",
+      "availablePage": 1,
+      "availableHasMore": false,
+      "claimingId": "",
+      "myCoupons": "Array(0)",
+      "myPage": 1,
+      "myHasMore": true,
+      "loading": false,
+      "isEmpty": true,
+      "pageSize": 20
+    },
+    "rawHint": {
+      "loading": false,
+      "isEmpty": true
+    }
+  },
+  "couponShot": "05-coupon.png",
+  "appoint": {
+    "path": "pkg-user/my-appointments/my-appointments",
+    "query": {},
+    "slim": {
+      "tabs": "Array(5)",
+      "activeTab": "",
+      "STATUS_MAP": "object",
+      "appointments": "Array(0)",
+      "page": 1,
+      "pageSize": 10,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false,
+      "highlightId": ""
+    },
+    "rawHint": {
+      "loading": false,
+      "isEmpty": false
+    }
+  },
+  "appointShot": "06-appoint.png",
+  "settings": {
+    "path": "pkg-user/settings/settings",
+    "query": {},
+    "slim": {
+      "isLoggedIn": false,
+      "userInfo": null,
+      "editNickName": "",
+      "phoneMasked": "未绑定",
+      "phoneBound": false,
+      "savingProfile": false,
+      "version": "1.10.22"
+    },
+    "rawHint": {
+      "isLoggedIn": false
+    }
+  },
+  "settingsShot": "07-settings.png",
+  "content": {
+    "path": "pages/content-list/content-list",
+    "query": {},
+    "slim": {
+      "formatTabs": "Array(5)",
+      "activeFormat": "",
+      "topicTabs": "Array(7)",
+      "activeTopic": "",
+      "articles": "Array(10)",
+      "page": 1,
+      "pageSize": 10,
+      "total": 18,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    },
+    "rawHint": {
+      "loading": false,
+      "isEmpty": false,
+      "articleCount": 10,
+      "firstArticleId": 3
+    }
+  },
+  "contentShot": "08-content.png",
+  "contentTap": {
+    "found": true
+  },
+  "contentDetail": {
+    "path": "pages/content-detail/content-detail",
+    "query": {
+      "id": "3"
+    },
+    "slim": {
+      "article": "object",
+      "loading": false,
+      "liked": false,
+      "favorited": false,
+      "followed": false,
+      "isNote": false,
+      "formatKey": "article",
+      "formatLabel": "长文",
+      "topicName": "选品洞察",
+      "readProgress": 0,
+      "relatedProducts": "Array(2)",
+      "gallerySlides": "Array(0)",
+      "galleryIndex": 0,
+      "galleryCount": 0,
+      "noteParagraphs": "Array(0)",
+      "hashTags": "Array(0)",
+      "artStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "glyph": "📄",
+      "metaLine": "在此输入内容...c",
+      "likeDisplay": "0",
+      "commentCount": 2,
+      "commentCountDisplay": "2"
+    },
+    "rawHint": {
+      "loading": false
+    }
+  },
+  "contentDetailShot": "09-content-detail.png",
+  "activity": {
+    "path": "pkg-extra/activity-list/activity-list",
+    "query": {},
+    "slim": {
+      "activities": "Array(2)",
+      "page": 1,
+      "pageSize": 10,
+      "total": 2,
+      "hasMore": false,
+      "loading": false,
+      "isEmpty": false
+    },
+    "rawHint": {
+      "loading": false,
+      "isEmpty": false,
+      "activityCount": 2,
+      "firstActivityId": 2
+    }
+  },
+  "activityTap": {
+    "found": true
+  },
+  "activityDetail": {
+    "path": "pkg-extra/activity-detail/activity-detail",
+    "query": {
+      "id": "2"
+    },
+    "slim": {
+      "activityId": "2",
+      "activity": "object",
+      "loading": false,
+      "submitting": false,
+      "sessions": "Array(0)",
+      "selectedSession": "",
+      "formName": "",
+      "formPhone": "",
+      "formRemark": ""
+    },
+    "rawHint": {
+      "loading": false
+    }
+  },
+  "activityDetailShot": "10-activity-detail.png",
+  "signupTap": {
+    "found": false
+  },
+  "afterSignup": {
+    "path": "pkg-extra/activity-detail/activity-detail",
+    "query": {
+      "id": "2"
+    },
+    "slim": {
+      "activityId": "2",
+      "activity": "object",
+      "loading": false,
+      "submitting": false,
+      "sessions": "Array(0)",
+      "selectedSession": "",
+      "formName": "",
+      "formPhone": "",
+      "formRemark": ""
+    },
+    "rawHint": {
+      "loading": false
+    }
+  },
+  "afterSignupShot": "11-after-signup.png",
+  "form": {
+    "path": "pkg-extra/form/form",
+    "query": {
+      "id": "1"
+    },
+    "slim": {
+      "templateId": "1",
+      "templateTitle": "",
+      "templateDesc": "",
+      "fields": "Array(0)",
+      "formValues": "object",
+      "imageTempPaths": "object",
+      "imageUrls": "object",
+      "districtValues": "object",
+      "submitting": false,
+      "submitted": false
+    },
+    "rawHint": {
+      "templateTitle": "",
+      "fieldCount": 0,
+      "submitted": false
+    }
+  },
+  "formShot": "12-form.png",
+  "formSubmitTap": {
+    "found": true
+  },
+  "formAfterSubmit": {
+    "path": "pkg-extra/form/form",
+    "query": {
+      "id": "1"
+    },
+    "slim": {
+      "templateId": "1",
+      "templateTitle": "",
+      "templateDesc": "",
+      "fields": "Array(0)",
+      "formValues": "object",
+      "imageTempPaths": "object",
+      "imageUrls": "object",
+      "districtValues": "object",
+      "submitting": false,
+      "submitted": false
+    },
+    "rawHint": {
+      "templateTitle": "",
+      "fieldCount": 0,
+      "submitted": false
+    }
+  },
+  "formAfterShot": "13-form-after-submit.png",
+  "orders": {
+    "path": "pkg-trade/order-list/order-list",
+    "query": {},
+    "slim": {
+      "tabs": "Array(6)",
+      "activeTab": "",
+      "STATUS_MAP": "object",
+      "orders": "Array(0)",
+      "page": 1,
+      "pageSize": 10,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    },
+    "rawHint": {
+      "loading": false,
+      "isEmpty": false
+    }
+  },
+  "ordersShot": "14-orders.png",
+  "loginClose": {
+    "found": false
+  },
+  "ordersAfterClose": {
+    "path": "pkg-trade/order-list/order-list",
+    "query": {},
+    "slim": {
+      "tabs": "Array(6)",
+      "activeTab": "",
+      "STATUS_MAP": "object",
+      "orders": "Array(0)",
+      "page": 1,
+      "pageSize": 10,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    },
+    "rawHint": {
+      "loading": false,
+      "isEmpty": false
+    }
+  },
+  "ordersAfterCloseShot": "15-orders-after-close.png",
+  "finishedAt": "2026-08-13T09:34:10.445Z"
+}

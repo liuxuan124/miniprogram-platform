@@ -46,9 +46,11 @@
     <view class="avatar-section {{avatarError ? 'avatar-section--error' : ''}}">
       <button
         class="profile-avatar"
-        bindtap="onChooseAvatarTap"
+        open-type="chooseAvatar"
+        bindtap="onAvatarTap"
+        bindchooseavatar="onChooseAvatar"
         hover-class="profile-avatar--pressed"
-        aria-label="选择头像"
+        aria-label="选择微信头像"
       >
         <image
           class="profile-avatar__image"
@@ -57,40 +59,38 @@
         />
         <view class="profile-avatar__action">{{avatarUrl ? '↻' : '+'}}</view>
       </button>
-      <text class="avatar-section__hint">{{avatarUrl ? '点击头像可重新选择' : '点击选择头像'}}</text>
+      <text class="avatar-section__hint">{{avatarUrl ? '点击可更换微信头像' : '点击直接选择微信头像'}}</text>
     </view>
 
     <view class="nickname-section">
-      <view class="nickname-control {{nicknameError ? 'nickname-control--error' : ''}}">
+      <view class="nickname-control {{nicknameError ? 'nickname-control--error' : ''}} {{pickingAvatar ? 'nickname-control--locked' : ''}}">
         <text class="nickname-control__label">昵称</text>
         <view class="nickname-control__divider"></view>
         <input
           class="nickname-control__input"
           type="nickname"
           maxlength="20"
-          placeholder="请输入昵称"
+          placeholder="点击填写或选择微信昵称"
           placeholder-class="nickname-control__placeholder"
           value="{{nickName}}"
-          disabled="{{!nicknameEditing}}"
+          disabled="{{pickingAvatar}}"
           focus="{{nicknameFocused}}"
-          bindfocus="onNicknameInputFocus"
           bindinput="onNicknameInput"
           bindblur="onNicknameBlur"
           bindnicknamereview="onNicknameReview"
         />
-        <button
-          wx:if="{{!nicknameEditing}}"
-          class="nickname-control__tap"
-          catchtap="onNicknameOptionsTap"
-          hover-class="none"
-          aria-label="选择昵称填写方式"
-        ></button>
       </view>
     </view>
 
-    <view class="agreement {{privacyError ? 'agreement--error' : ''}}" bindtap="onTogglePrivacy">
-      <view class="agreement__check {{agreePrivacy ? 'agreement__check--active' : ''}}">
-        <text wx:if="{{agreePrivacy}}">✓</text>
+    <button
+      wx:if="{{!agreePrivacy}}"
+      id="privacy-agree-btn-form"
+      class="agreement {{privacyError ? 'agreement--error' : ''}}"
+      open-type="agreePrivacyAuthorization"
+      bindagreeprivacyauthorization="onAgreePrivacyAuthorization"
+      hover-class="none"
+    >
+      <view class="agreement__check">
       </view>
       <view class="agreement__copy">
         <text>我已阅读并同意</text>
@@ -98,13 +98,30 @@
         <text>与</text>
         <text class="agreement__link" catchtap="onViewPrivacy">《隐私政策》</text>
       </view>
-    </view>
+    </button>
+    <button
+      wx:else
+      class="agreement agreement--on"
+      bindtap="onUncheckPrivacy"
+      hover-class="none"
+    >
+      <view class="agreement__check agreement__check--active">
+        <text>✓</text>
+      </view>
+      <view class="agreement__copy">
+        <text>我已阅读并同意</text>
+        <text class="agreement__link" catchtap="onViewTerms">《用户协议》</text>
+        <text>与</text>
+        <text class="agreement__link" catchtap="onViewPrivacy">《隐私政策》</text>
+      </view>
+    </button>
 
     <text wx:if="{{formHint}}" class="form-hint">{{formHint}}</text>
+    <text wx:else class="form-hint form-hint--muted">新用户请先选择头像和昵称；老用户勾选协议后即可登录</text>
 
+    <!-- 始终使用 getPhoneNumber，避免审核判定「手机号授权无响应」 -->
     <button
-      wx:if="{{canSubmit}}"
-      class="login-button {{loading ? 'login-button--disabled' : ''}}"
+      class="login-button {{loading ? 'login-button--disabled' : ''}} {{canSubmit ? '' : 'login-button--pending'}}"
       open-type="getPhoneNumber"
       bindgetphonenumber="onOneTapLogin"
       loading="{{loading}}"
@@ -113,40 +130,31 @@
     >
       <text class="login-button__title">{{loading ? '正在登录…' : '手机号快捷登录'}}</text>
     </button>
-    <button
-      wx:else
-      class="login-button login-button--pending"
-      bindtap="onPrecheckLogin"
-      hover-class="login-button--pressed"
-    >
-      <text class="login-button__title">手机号快捷登录</text>
-    </button>
 
     <view class="sheet-footer">
       <text class="privacy-note">手机号仅用于登录和必要的服务通知，不会公开展示</text>
     </view>
   </view>
 
-  <view wx:if="{{showAvatarOptions}}" class="source-layer" catchtouchmove="noop">
-    <view class="source-layer__mask" catchtap="onCloseAvatarOptions"></view>
-    <view class="source-sheet" catchtap="noop">
+  <!-- 隐私授权弹窗：未同意时点击头像/昵称会触发，否则会一直无响应 -->
+  <view wx:if="{{showPrivacyPopup}}" class="privacy-layer" catchtouchmove="noop">
+    <view class="privacy-layer__mask" catchtap="onRefusePrivacy"></view>
+    <view class="privacy-layer__panel">
+      <text class="privacy-layer__title">用户隐私保护提示</text>
+      <view class="privacy-layer__desc">
+        <text>在使用头像、昵称前，请阅读并同意</text>
+        <text class="privacy-layer__link" catchtap="onViewPrivacy">《隐私政策》</text>
+        <text>与</text>
+        <text class="privacy-layer__link" catchtap="onViewTerms">《用户协议》</text>
+      </view>
       <button
-        class="source-sheet__option source-sheet__option--primary"
-        open-type="chooseAvatar"
-        bindchooseavatar="onChooseAvatar"
-      >使用微信头像</button>
-      <button
-        class="source-sheet__option"
-        data-source="album"
-        bindtap="onChooseMediaSource"
-      >从相册选择</button>
-      <button
-        class="source-sheet__option"
-        data-source="camera"
-        bindtap="onChooseMediaSource"
-      >拍照</button>
-      <view class="source-sheet__gap"></view>
-      <button class="source-sheet__option source-sheet__cancel" bindtap="onCloseAvatarOptions">取消</button>
+        id="privacy-agree-btn"
+        class="privacy-layer__agree"
+        open-type="agreePrivacyAuthorization"
+        bindagreeprivacyauthorization="onAgreePrivacyAuthorization"
+        hover-class="privacy-layer__agree--pressed"
+      >同意并继续</button>
+      <button class="privacy-layer__refuse" bindtap="onRefusePrivacy" hover-class="none">不同意</button>
     </view>
   </view>
 </view>

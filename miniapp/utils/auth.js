@@ -7,6 +7,7 @@ const TOKEN_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000 // Token 7天过期
 
 const LOGIN_INTERCEPT_KEY = 'login_intercept_info'
 const MANUAL_LOGOUT_KEY = 'manual_logout'
+const LOGIN_PROFILE_CACHE_KEY = 'login_profile_cache'
 
 /**
  * 认证工具类
@@ -79,6 +80,26 @@ const AuthUtil = {
     StorageUtil.remove(TOKEN_KEY)
     StorageUtil.remove(USER_INFO_KEY)
     StorageUtil.remove(LOGIN_INTERCEPT_KEY)
+  },
+
+  /**
+   * 记住上次登录头像/昵称，方便回访用户少填一轮
+   */
+  rememberLoginProfile(profile = {}) {
+    const nickName = (profile.nickName || profile.nickname || '').trim()
+    const avatarUrl = profile.avatarUrl || ''
+    if (!nickName && !avatarUrl) return
+    const prev = this.getRememberedLoginProfile() || {}
+    StorageUtil.set(LOGIN_PROFILE_CACHE_KEY, {
+      nickName: nickName || prev.nickName || '',
+      avatarUrl: (avatarUrl && /^https?:\/\//i.test(avatarUrl))
+        ? avatarUrl
+        : (prev.avatarUrl || ''),
+    })
+  },
+
+  getRememberedLoginProfile() {
+    return StorageUtil.get(LOGIN_PROFILE_CACHE_KEY)
   },
 
   /**

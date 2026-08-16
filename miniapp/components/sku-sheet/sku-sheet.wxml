@@ -1,8 +1,8 @@
 <!-- components/sku-sheet/sku-sheet.wxml -->
-<view class="mask" wx:if="{{show}}" bindtap="onClose"></view>
-<view class="sheet {{show?'on':''}}">
+<view class="mask" wx:if="{{show}}" catchtouchmove="noop" bindtap="onClose"></view>
+<view class="sheet {{show ? 'on' : ''}}" catchtouchmove="noop">
   <view class="h">
-    <image class="img" src="{{image}}" mode="aspectFill" />
+    <image class="img" src="{{image || '/images/default-avatar.svg'}}" mode="aspectFill" />
     <view class="info">
       <view class="price">¥{{price}}</view>
       <view class="stock">库存 {{stock}}</view>
@@ -11,6 +11,7 @@
     <text class="x" bindtap="onClose">✕</text>
   </view>
   <scroll-view scroll-y class="b">
+    <view wx:if="{{!groups.length}}" class="empty-spec">暂无可选规格</view>
     <view wx:for="{{groups}}" wx:key="name" class="group">
       <view class="gn">{{item.name}}</view>
       <view class="vals">
@@ -35,7 +36,8 @@
     </view>
   </scroll-view>
   <view class="f">
-    <view class="btn-o" bindtap="onCart" wx:if="{{mode!=='buy'}}">加入购物车</view>
-    <view class="btn-p" bindtap="onBuy">立即购买</view>
+    <view class="btn-o" bindtap="onCart" wx:if="{{mode !== 'buy'}}">加入购物车</view>
+    <view class="btn-p" bindtap="onBuy" wx:if="{{mode !== 'cart'}}">立即购买</view>
+    <view class="btn-p" bindtap="onCart" wx:if="{{mode === 'cart'}}">确定</view>
   </view>
 </view>

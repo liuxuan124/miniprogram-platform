@@ -1,0 +1,29 @@
+task_id: TASK-QA-BATCH-025
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 修复剩余 13 项正式台账 PARTIAL（fail 兜底、校验、视频播放、冲突/发布）
+  - API 验证 409 冲突与 page/14 发布 path
+  - 台账 266/268 PASS（仅 2 BLOCKED 未测）
+changed_files:
+  - admin/src/components/page-builder/composables/useEditorLiveItems.ts
+  - admin/src/components/page-builder/componentRegistry.ts
+  - admin/src/components/page-builder/CanvasArea.vue
+  - admin/src/components/page-builder/renderers/ProductListRenderer.vue
+  - admin/src/components/page-builder/renderers/ArticleListRenderer.vue
+  - admin/src/components/page-builder/renderers/CouponRenderer.vue
+  - admin/src/components/page-builder/renderers/ActivityEntryRenderer.vue
+  - admin/src/components/page-builder/renderers/MemberCardRenderer.vue
+  - admin/src/components/page-builder/renderers/VideoRenderer.vue
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-025/partial-fixes.md
+self_test:
+  result: 通过
+  details: API 409/200；linter 无报错；正式台账 PARTIAL 清零
+notes: 禁止写测试完成。266 PASS；2 BLOCKED 为环境/架构限制；探索附录 PARTIAL 另计。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-025
+  cumulative_pass_rate: "266/268"
+  executed_count: 13
+  pass_count: 13

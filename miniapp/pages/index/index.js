@@ -27,8 +27,9 @@ Page({
   },
 
   onShow() {
+    wx.hideTabBar({ animation: false, fail() {} })
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0 })
+      this.getTabBar().setData({ selected: 0, hidden: false })
     }
     const app = getApp()
     if (app && !app.globalData.isLoggedIn) {
@@ -65,8 +66,8 @@ Page({
 
       const productIdMap = {}
       const nameByProto = {
-        1: '《100 个跨境爆款选品案例库》',
-        3: '选品诊断 1v1 咨询（45 分钟）',
+        1: '跨境选品案例精装手册（纸质版）',
+        3: '品牌定制马克杯',
       }
       Object.keys(nameByProto).forEach((pid) => {
         const hit = prods.find((p) => p.name === nameByProto[pid])
@@ -80,7 +81,13 @@ Page({
   },
 
   goSearch() {
-    wx.navigateTo({ url: '/pages/search/search' })
+    wx.navigateTo({
+      url: '/pages/search/search',
+      fail: (err) => {
+        console.error('[Index] open search failed:', err)
+        wx.showToast({ title: '无法打开搜索页', icon: 'none' })
+      },
+    })
   },
 
   goContent() {
@@ -88,11 +95,11 @@ Page({
   },
 
   goShop() {
-    wx.switchTab({ url: '/pages/product-list/product-list' })
+    wx.navigateTo({ url: '/pages/product-list/product-list' })
   },
 
   goService() {
-    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+    wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
   },
 
   goTopic(e) {
@@ -109,17 +116,20 @@ Page({
       this.goContent()
       return
     }
-    if (action === 'member') {
-      wx.navigateTo({ url: '/pages/member-center/member-center' })
+    if (action === 'shop') {
+      this.goShop()
       return
     }
-    if (action === 'ebook' || action === 'consult') {
-      try {
-        wx.setStorageSync('__tab_query__/pages/product-list/product-list', {
-          type: action === 'ebook' ? 'digital' : 'service',
-        })
-      } catch (_) {}
-      wx.switchTab({ url: '/pages/product-list/product-list' })
+    if (action === 'service') {
+      this.goService()
+      return
+    }
+    if (action === 'orders') {
+      wx.navigateTo({ url: '/pkg-trade/order-list/order-list' })
+      return
+    }
+    if (action === 'member') {
+      wx.navigateTo({ url: '/pkg-user/member-center/member-center' })
     }
   },
 
@@ -134,20 +144,13 @@ Page({
       wx.navigateTo({ url: `/pages/content-detail/content-detail?id=${realId}` })
       return
     }
-    // 映射未就绪：进入内容中心，避免永久「加载中」
     try {
       wx.setStorageSync('__tab_query__/pages/content-list/content-list', { topic: '' })
     } catch (_) {}
     wx.switchTab({ url: '/pages/content-list/content-list' })
   },
 
-  openProduct(e) {
-    const protoId = Number(e.currentTarget.dataset.id)
-    const realId = this.data.productIdMap[protoId]
-    if (realId) {
-      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${realId}` })
-      return
-    }
-    wx.switchTab({ url: '/pages/product-list/product-list' })
+  openProduct() {
+    wx.navigateTo({ url: '/pages/product-list/product-list' })
   },
 })
