@@ -8,9 +8,10 @@ Component({
     selectedMap: { type: Object, value: {} },
     selectedLabel: { type: String, value: '' },
     quantity: { type: Number, value: 1 },
-    mode: { type: String, value: 'buy' },
+    mode: { type: String, value: 'select' },
   },
   methods: {
+    noop() {},
     onClose() { this.triggerEvent('close') },
     onPick(e) {
       const { name, val } = e.currentTarget.dataset

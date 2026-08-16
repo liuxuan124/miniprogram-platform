@@ -68,6 +68,12 @@
                 </template>
               </el-table-column>
               <el-table-column prop="points" label="积分余额" width="110" align="center" />
+              <el-table-column label="订单数" width="90" align="center">
+                <template #default="{ row }">{{ row.orderCount }}</template>
+              </el-table-column>
+              <el-table-column label="累计消费" width="110" align="center">
+                <template #default="{ row }">¥{{ formatMoney(row.totalSpent) }}</template>
+              </el-table-column>
               <el-table-column label="最近访问" width="170" show-overflow-tooltip>
                 <template #default="{ row }">{{ row.lastVisit || '—' }}</template>
               </el-table-column>
@@ -214,6 +220,14 @@
             <span>积分余额</span>
             <strong>{{ currentMember.points }}</strong>
           </div>
+          <div class="profile-stat">
+            <span>订单数</span>
+            <strong>{{ currentMember.orderCount }}</strong>
+          </div>
+          <div class="profile-stat">
+            <span>累计消费</span>
+            <strong>¥{{ formatMoney(currentMember.totalSpent) }}</strong>
+          </div>
         </div>
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item label="用户 ID">{{ currentMember.id }}</el-descriptions-item>
@@ -359,6 +373,8 @@ interface MemberRow {
   levelId?: number
   levelName: string
   points: number
+  orderCount: number
+  totalSpent: number
   lastVisit: string
   createdAt: string
 }
@@ -459,6 +475,11 @@ function resolveLevel(points: number, levelId?: number | null): { id?: number; n
   return { id: matched.id, name: matched.name }
 }
 
+function formatMoney(value: number | string | undefined) {
+  const n = Number(value ?? 0)
+  return Number.isFinite(n) ? n.toFixed(2) : '0.00'
+}
+
 function normalizeMember(row: any): MemberRow {
   const points = Number(row.points ?? 0)
   const levelId = row.levelId ?? row.level_id ?? null
@@ -471,6 +492,8 @@ function normalizeMember(row: any): MemberRow {
     levelId: level.id,
     levelName: level.name,
     points,
+    orderCount: Number(row.orderCount ?? row.order_count ?? row.orders ?? 0),
+    totalSpent: Number(row.totalSpent ?? row.total_spent ?? 0),
     lastVisit: row.lastVisitAt || row.last_visit_at || row.lastVisit || '',
     createdAt: row.createTime || row.created_at || row.createdAt || '',
   }

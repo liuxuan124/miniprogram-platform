@@ -24,6 +24,9 @@ Component({
     isExpired: false,
     hasEndTime: false,
     showDays: true,
+    showHours: true,
+    showMinutes: true,
+    showSeconds: true,
     displayTitle: '',
     endText: '已结束',
     styleType: 'card',
@@ -53,13 +56,18 @@ Component({
 
     _syncAndStart() {
       const config = this.data.config || {}
-      const showDays = config.show_days !== false
+      const format = config.format === 'd' || config.format === 'dh' || config.format === 'dhm' || config.format === 'dhms'
+        ? config.format
+        : 'dhms'
       const titleSize = Number(config.title_font_size) || 15
       this.setData({
         displayTitle: config.title || config.label || '距离活动开始',
         endText: config.end_text || '已结束',
         styleType: config.style_type === 'banner' ? 'banner' : 'card',
-        showDays,
+        showDays: true,
+        showHours: format !== 'd',
+        showMinutes: format === 'dhm' || format === 'dhms',
+        showSeconds: format === 'dhms',
         titleStyle: 'font-size:' + (titleSize * 2) + 'rpx',
         hasEndTime: !!this._getEndTimeRaw(),
       })
@@ -100,7 +108,8 @@ Component({
         let hours = Math.floor((diff % 86400000) / 3600000)
         const minutes = Math.floor((diff % 3600000) / 60000)
         const seconds = Math.floor((diff % 60000) / 1000)
-        const showDays = (this.data.config || {}).show_days !== false
+        const format = (this.data.config || {}).format
+        const showDays = format !== 'hms'
         if (!showDays) {
           hours = days * 24 + hours
         }

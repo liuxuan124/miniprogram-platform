@@ -1,0 +1,70 @@
+task_id: TASK-QA-BATCH-020
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 开发修复并 API 回归：BUG-MEMBER-001/002、ORDER-001、FIN-001、API-002、FORM-002/003、UI-004/005、MP-005、SET-001
+  - 后端：订单 VO 补全、会员等级计数、财务订单同步、Security 401、版本冲突 409
+  - 前端：会员列表订单/消费列、表单预览字段、工作台排行、表单草稿状态
+  - 种子：用户等级/订单/支付/财务流水对齐
+  - 证据 BATCH-QA-020/api-regression.md
+changed_files:
+  - backend/src/main/java/com/miniprogram/config/SecurityConfig.java
+  - backend/src/main/java/com/miniprogram/common/GlobalExceptionHandler.java
+  - backend/src/main/java/com/miniprogram/service/impl/FinanceServiceImpl.java
+  - backend/src/main/java/com/miniprogram/service/impl/MemberLevelServiceImpl.java
+  - backend/src/test/java/com/miniprogram/service/impl/OrderServiceImplTest.java
+  - admin/src/api/member.ts
+  - admin/src/views/member/index.vue
+  - admin/src/views/dashboard/index.vue
+  - admin/src/views/form/template.vue
+  - admin/src/views/page-builder/MiniPreviewDialog.vue
+  - admin/src/components/page-builder/renderers/FormEntryRenderer.vue
+  - miniapp/pages/order-list/order-list.js
+  - deploy/local-dev-seed.sql
+  - agent-team/testing/defects/BUG-*.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-020/
+added_apis: []
+added_tables: []
+dependencies: []
+blockers: []
+self_test:
+  result: 通过
+  details: 401 未登录；订单详情用户/支付/已发货；用户 1单/179；金卡会员数 1；财务收入 179；积分流水 1 条
+downstream_suggestions:
+  - 剩余开放缺陷：ACT-001、AI-001、APPT-*、ASSET-001、MP-002/003、PROD-002、SET-002、TPL-001、UI-001/006/007/008/011/014 等
+  - BUG-API-009 已改代码待 UI 冲突场景回归
+next_step: 继续 BATCH-QA-021 处理剩余 17 个开放缺陷
+notes: 禁止写测试完成。正式分母仍 268/268 全执行；通过率 200/268。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-020
+  feature_point_range:
+    - EXP-LINE2-ADMIN-ORDER
+    - EXP-LINE2-MP-ORDER
+    - EXP-LINE3-EMBED
+    - EXP-USER-LIST
+    - EXP-FINANCE
+    - EXP-DASH-RANK
+    - EXP-MEMBER-LEVEL
+    - EXP-MEMBER-POINTS
+  executed_count: 8
+  pass_count: 7
+  fail_count: 0
+  partial_count: 1
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "200/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: ACT/AI/APPT/ASSET/MP-002/003/PROD-002/UI-011/014
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

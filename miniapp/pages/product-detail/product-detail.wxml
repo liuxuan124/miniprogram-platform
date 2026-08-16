@@ -27,9 +27,9 @@
   <!-- 价格与标题 -->
   <view class="detail-header">
     <view class="price-row">
-      <text class="price-symbol">&#165;</text>
+      <text class="price-symbol">¥</text>
       <text class="price-value">{{selectedSku ? selectedSku.price : product.price}}</text>
-      <text class="original-price" wx:if="{{product.original_price}}">&#165;{{product.original_price}}</text>
+      <text class="original-price" wx:if="{{product.original_price}}">¥{{product.original_price}}</text>
     </view>
     <text class="product-title">{{product.name}}</text>
     <view class="product-meta">
@@ -40,9 +40,9 @@
 
   <!-- 规格 / 优惠 / 服务 -->
   <view class="pick-rows">
-    <view class="pick" bindtap="onBuyNowTap">
+    <view class="pick" bindtap="onSelectSpecTap">
       <text class="k">规格</text>
-      <text class="v">{{selectedSku ? (selectedSku.skuName || selectedSku.name || '已选') : '请选择版本'}}</text>
+      <text class="v">{{selectedSku ? (selectedSku.skuName || selectedSku.name || '已选') : '请选择规格'}}</text>
       <text class="ar">›</text>
     </view>
     <view class="pick" bindtap="onCouponEntry">
@@ -50,9 +50,9 @@
       <text class="v">满减可用</text>
       <text class="ar">›</text>
     </view>
-    <view class="pick">
+    <view class="pick" bindtap="onServiceEntry" hover-class="pick--pressed">
       <text class="k">服务</text>
-      <text class="v">{{isDigital ? '下单后可查' : (isService ? '开始前24h可改期' : '售后保障')}}</text>
+      <text class="v">快递发货 · 售后保障</text>
       <text class="ar">›</text>
     </view>
   </view>
@@ -77,7 +77,7 @@
 
   <!-- 商品详情（富文本） -->
   <view class="detail-section">
-    <view class="section-title">{{isDigital ? '资料介绍' : (isService ? '服务说明' : '商品详情')}}</view>
+    <view class="section-title">商品详情</view>
     <rich-text wx:if="{{richContent}}" nodes="{{richContent}}" class="rich-content"></rich-text>
     <view wx:else class="text-content">
       <text>{{product.description || '暂无详情'}}</text>
@@ -107,33 +107,25 @@
       <text class="bottom-bar__icon-emoji">💬</text>
       <text class="bottom-bar__icon-text">客服</text>
     </view>
-    <view class="bottom-bar__icon" wx:if="{{!isDigital && !isService}}" bindtap="onAddCartTap">
+    <view class="bottom-bar__icon" bindtap="onGoCartTap">
       <image class="bottom-bar__icon-img" src="/images/icon-cart.svg" mode="aspectFit" />
       <text class="bottom-bar__icon-text">购物车</text>
     </view>
     <view
       class="bottom-bar__btn bottom-bar__btn--cart"
-      wx:if="{{isService}}"
-      bindtap="onBookTap"
-    >选时段预约</view>
-    <view
-      class="bottom-bar__btn bottom-bar__btn--cart"
-      wx:elif="{{!isDigital}}"
       bindtap="onAddCartTap"
     >加入购物车</view>
-    <view class="bottom-bar__btn bottom-bar__btn--buy" bindtap="onBuyNowTap">
-      {{isDigital ? '立即购买' : (isService ? '立即下单' : '立即购买')}}
-    </view>
+    <view class="bottom-bar__btn bottom-bar__btn--buy" bindtap="onBuyNowTap">立即购买</view>
   </view>
 
   <sku-sheet
     show="{{showSkuPanel}}"
-    image="{{product.images[0] || product.image}}"
+    image="{{(selectedSku && selectedSku.skuImage) || product.images[0] || product.mainImage || product.image || ''}}"
     price="{{selectedSku ? selectedSku.price : product.price}}"
     stock="{{stock}}"
     groups="{{product.specList}}"
     selectedMap="{{selectedSkuValues}}"
-    selectedLabel="{{selectedSku ? (selectedSku.name || selectedSku.skuName || '') : ''}}"
+    selectedLabel="{{selectedSku ? (selectedSku.skuName || selectedSku.name || '') : ''}}"
     quantity="{{quantity}}"
     mode="{{skuMode}}"
     bind:close="onSkuPanelClose"
@@ -142,6 +134,32 @@
     bind:cart="onSkuSheetCart"
     bind:buy="onSkuSheetBuy"
   />
+
+  <!-- 服务说明弹层 -->
+  <view class="svc-mask" wx:if="{{showServiceSheet}}" catchtouchmove="noop" bindtap="onServiceClose"></view>
+  <view class="svc-sheet {{showServiceSheet ? 'svc-sheet--on' : ''}}" catchtouchmove="noop">
+    <view class="svc-sheet__handle"></view>
+    <view class="svc-sheet__head">
+      <text class="svc-sheet__title">服务说明</text>
+      <view class="svc-sheet__close" bindtap="onServiceClose">✕</view>
+    </view>
+    <scroll-view scroll-y class="svc-sheet__body">
+      <view class="svc-item" wx:for="{{serviceItems}}" wx:key="title">
+        <view class="svc-item__head">
+          <text class="svc-item__icon">{{item.icon}}</text>
+          <text class="svc-item__title">{{item.title}}</text>
+        </view>
+        <text class="svc-item__desc">{{item.desc}}</text>
+        <view class="svc-item__rules" wx:if="{{item.rules && item.rules.length}}">
+          <text class="svc-rule" wx:for="{{item.rules}}" wx:for-item="rule" wx:key="*this">· {{rule}}</text>
+        </view>
+      </view>
+      <view class="svc-foot">
+        <text class="svc-foot__text">如需帮助，可联系客服进一步咨询</text>
+        <view class="svc-foot__btn" bindtap="onServiceTap">联系客服</view>
+      </view>
+    </scroll-view>
+  </view>
 </view>
 <login-sheet id="global-login-sheet" />
 

@@ -196,6 +196,7 @@ export interface ComponentDataSource {
     | 'category'
   config?: Record<string, any>
   params?: Record<string, any>
+  query?: Record<string, any>
 }
 
 /** 组件样式 */
@@ -214,6 +215,8 @@ export interface ComponentStyle {
   text_color?: string
   /** 组件内文字大小（px，0 或未设置表示默认） */
   font_size?: number
+  /** 是否在小程序端渲染，false 时不展示 */
+  visible?: boolean
   [key: string]: any
 }
 
@@ -270,6 +273,7 @@ export interface PageRecord {
   draftDslContent?: string
   version?: number
   currentVersion?: number
+  latestVersion?: number
   created_at: string
   updated_at: string
   createTime?: string

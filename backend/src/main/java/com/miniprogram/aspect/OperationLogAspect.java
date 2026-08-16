@@ -106,13 +106,26 @@ public class OperationLogAspect {
                 if (principal instanceof Long userId) {
                     operationLog.setUserId(userId);
                 }
-                if (StringUtils.hasText(authentication.getName())) {
-                    operationLog.setUsername(authentication.getName());
+                String username = resolveUsername(authentication);
+                if (StringUtils.hasText(username)) {
+                    operationLog.setUsername(username);
                 }
             }
         } catch (Exception e) {
             log.warn("获取当前用户信息失败: {}", e.getMessage());
         }
+    }
+
+    private String resolveUsername(Authentication authentication) {
+        Object details = authentication.getDetails();
+        if (details instanceof String username && StringUtils.hasText(username)) {
+            return username;
+        }
+        String name = authentication.getName();
+        if (StringUtils.hasText(name) && !name.matches("\\d+")) {
+            return name;
+        }
+        return null;
     }
 
     /**

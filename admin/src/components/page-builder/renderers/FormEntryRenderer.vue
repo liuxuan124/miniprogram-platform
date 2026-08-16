@@ -24,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
+  'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string; formId?: string }]
 }>()
 
 const styleType = computed(() => {
@@ -61,6 +61,7 @@ function onClick() {
     detailType: 'form',
     detailTitle: props.component.props?.title || '表单入口',
     detailDesc: subtitleText.value || (link ? `表单 ID ${formId.value}` : '请先在属性里选择表单'),
+    formId: formId.value || undefined,
   })
 }
 </script>

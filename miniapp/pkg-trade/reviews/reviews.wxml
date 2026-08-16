@@ -1,0 +1,38 @@
+<!-- pkg-trade/reviews/reviews.wxml -->
+<view class="reviews-page">
+  <view class="summary card">
+    <view class="score">
+      <text class="num">{{avgScore}}</text>
+      <text class="label">综合评分</text>
+    </view>
+    <view class="bars">
+      <view wx:for="{{bars}}" wx:key="score" class="bar-row">
+        <text class="s">{{item.score}}星</text>
+        <view class="track"><view class="fill" style="width:{{item.pct}}%;"></view></view>
+        <text class="c">{{item.count}}</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view class="tags" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="tag {{activeTag===''?'on':''}}" data-tag="" bindtap="onTag">全部 {{total}}</view>
+    <view wx:for="{{hotTags}}" wx:key="*this" class="tag {{activeTag===item?'on':''}}" data-tag="{{item}}" bindtap="onTag">{{item}}</view>
+  </scroll-view>
+
+  <view class="list">
+    <view wx:for="{{records}}" wx:key="id" class="card item">
+      <view class="hd">
+        <text class="name">{{item.nickname || '用户'}}</text>
+        <text class="stars">{{item.stars}}</text>
+      </view>
+      <view class="tagline" wx:if="{{item.tags && item.tags.length}}">
+        <text wx:for="{{item.tags}}" wx:for-item="t" wx:key="*this" class="t">{{t}}</text>
+      </view>
+      <view class="body">{{item.content}}</view>
+      <view class="time">{{item.createTime}}</view>
+    </view>
+  </view>
+
+  <empty-state wx:if="{{!loading && records.length===0}}" title="暂无评价" desc="购买后可以来分享体验" />
+</view>
+<login-sheet id="global-login-sheet" />

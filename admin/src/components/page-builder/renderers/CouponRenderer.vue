@@ -6,7 +6,10 @@
     <div v-if="component.props.title" class="section-title" :style="titleStyle">
       {{ component.props.title }}
     </div>
-    <div class="coupon-list">
+    <div v-if="loadFailed" class="preview-data-empty preview-data-fail">优惠券数据请求失败，请稍后重试</div>
+    <div v-else-if="loadingRemote" class="preview-data-empty">正在读取优惠券…</div>
+    <div v-else-if="!displayCoupons.length" class="preview-data-empty">当前没有可用优惠券</div>
+    <div v-else class="coupon-list">
       <div
         v-for="item in displayCoupons"
         :key="item.id"
@@ -31,6 +34,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getCouponList } from '@/api/coupon'
 import type { ComponentInstance } from '@/types/page'
 import { titleFontStyle } from '../composables/titleFontStyle'
+import { formatPercentDiscount } from '@/utils/couponDisplay'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -49,10 +53,13 @@ type DisplayCoupon = {
 }
 
 const remoteCoupons = ref<DisplayCoupon[]>([])
+const loadingRemote = ref(false)
+const loadFailed = ref(false)
 
-const layout = computed(() =>
-  props.component.props?.style_type === 'vertical' ? 'vertical' : 'horizontal',
-)
+const layout = computed(() => {
+  const raw = props.component.props?.layout || props.component.props?.style_type || 'horizontal'
+  return ['horizontal', 'vertical', 'stack'].includes(raw) ? raw : 'horizontal'
+})
 const limit = computed(() => Math.max(Number(props.component.props?.limit) || 3, 1))
 const buttonText = computed(() => props.component.props?.button_text || '领取')
 const titleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 15))
@@ -66,7 +73,8 @@ const fallbackCoupons = computed<DisplayCoupon[]>(() => [
 ])
 
 const displayCoupons = computed(() => {
-  const source = remoteCoupons.value.length ? remoteCoupons.value : fallbackCoupons.value
+  if (loadFailed.value) return []
+  const source = remoteCoupons.value.length ? remoteCoupons.value : (props.previewMode ? [] : fallbackCoupons.value)
   return source.slice(0, limit.value)
 })
 
@@ -77,19 +85,33 @@ function formatCoupon(raw: any): DisplayCoupon {
   return {
     id: raw?.id ?? `coupon-${Math.random()}`,
     name: raw?.name || raw?.title || '优惠券',
-    displayValue: type === 'percent' ? `${value}折` : `¥${value}`,
+    displayValue: type === 'percent' ? formatPercentDiscount(value) : `¥${value}`,
     condition: min > 0 ? `满${min}可用` : '无门槛',
   }
 }
 
 async function loadCoupons() {
+  loadingRemote.value = true
+  loadFailed.value = false
   try {
-    const res = await getCouponList({ page: 1, page_size: 20, status: 'published' })
+    const ds = props.component.props?.data_source || {}
+    const query = { ...(ds.query || {}), ...(ds.params || {}), ...(ds.config?.params || {}) }
+    const res = await getCouponList({
+      page: 1,
+      page_size: 20,
+      status: query.status === 'all' ? undefined : (query.status === 'active' ? 'published' : (query.status || 'published')),
+    } as any)
     const payload = (res as any)?.data || {}
     const records = payload.records || payload.list || []
-    remoteCoupons.value = (Array.isArray(records) ? records : []).map(formatCoupon)
+    const typeFilter = query.type
+    remoteCoupons.value = (Array.isArray(records) ? records : [])
+      .filter((item: any) => !typeFilter || String(item.type || item.coupon_type) === String(typeFilter))
+      .map(formatCoupon)
   } catch {
     remoteCoupons.value = []
+    loadFailed.value = true
+  } finally {
+    loadingRemote.value = false
   }
 }
 
@@ -124,6 +146,20 @@ onMounted(loadCoupons)
     font-weight: 700;
   }
 
+  .preview-data-empty {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: #909399;
+    background: #f8faff;
+    border-radius: 8px;
+  }
+
+  .preview-data-fail {
+    color: #b45309;
+    background: #fffbeb;
+  }
+
   .coupon-list {
     display: flex;
     flex-direction: column;
@@ -137,6 +173,19 @@ onMounted(loadCoupons)
 
     .coupon-item {
       flex: 0 0 220px;
+    }
+  }
+
+  &.layout-stack .coupon-list {
+    gap: 6px;
+
+    .coupon-item {
+      min-height: 56px;
+    }
+
+    .coupon-amount {
+      width: 56px;
+      font-size: 16px;
     }
   }
 

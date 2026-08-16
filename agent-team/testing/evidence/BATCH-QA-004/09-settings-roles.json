@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/settings/basic\",\"text\":\"权限角色\\n订阅消息\\n角色权限矩阵\\n定义不同角色的功能访问范围\\n新建角色\\n👑\\n超级管理员\\n系统内置\\n\\n拥有全部功能权限，可管理系统配置\\n\\n全部模块\\n系统设置\\n用户管理\\n日志查看\\n编辑权限\\n删除角色\\n📝\\n内容运营\\n\\n负责内容发布、活动运营、表单管理\\n\\n内容管理\\n活动管理\\n表单查看\\n素材库\\n编辑权限\\n删除角色\\n🛍️\\n商务运营\\n\\n负责商品上架、订单处理、营销活动\\n\\n商品管理\\n订单管理\\n营销工具\\n会员查看\\n编辑权限\\n删除角色\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  const i = t.indexOf(\'权限角色\');\n  return JSON.stringify({ url: location.href, text: t.slice(i, i+1800) });\n})()\n)');
+```

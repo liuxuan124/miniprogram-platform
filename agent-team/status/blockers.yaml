@@ -64,3 +64,31 @@ blockers:
     status: pending_release_phase
     summary: 试运行监控与问题修复必须在正式发布后执行，目前不能关闭。
     required_resolution: 小程序正式发布并进入试运行后再处理。
+  - id: BLK-QA-ACCOUNT-MATRIX-001
+    source: BATCH-QA-010/011 + 交付前终测
+    severity: P1
+    owner_agent: controller-agent
+    status: resolved
+    summary: 测试环境仅有超管 admin，缺少低于 content_ops 的第二账号，导致角色不足/无权限态功能点持续 BLOCKED。
+    evidence:
+      - FP-API-020/030/036/043/049/055/065
+      - FP-UI-005/029
+      - EXP-ROLE-MATRIX
+    required_resolution: 总控批准创建至少 1 个低权限运营账号（无 content_ops / 无页面发布权限），并提供账号口令给 QA。
+    resolution: 2026-08-15 用户批准；已创建 qa_staff / qa_temp（service_staff）。见 agent-team/testing/credentials-qa-accounts.md。初测发现 qa_staff 仍可创建页面，权限门禁疑似失效，待正式复测记缺陷。
+  - id: BLK-QA-DISABLE-USER-001
+    source: BATCH-QA-010
+    severity: P2
+    owner_agent: controller-agent
+    status: resolved
+    summary: 禁止禁用超管且环境无其它可禁用账号，无法验证账号已禁用 110103（FP-API-074）。
+    required_resolution: 提供可禁用的非超管测试账号，或批准临时创建后禁用。
+    resolution: 2026-08-15 已创建 qa_temp（id=3），可供禁用场景复测。
+  - id: BLK-QA-TENANT-SCOPE-001
+    source: BATCH-QA-010
+    severity: P1
+    owner_agent: controller-agent
+    status: resolved
+    summary: mp_page 无租户字段，无法实测横向越权访问他人页面数据（FP-API-076）；需契约裁决是否单租户或补字段。
+    required_resolution: 总控裁决：单租户豁免并更新契约，或补齐租户隔离后重测。
+    resolution: BATCH-QA-028 裁决单租户 N/A；FP-API-076→PASS。若未来多租户需补 tenant 字段并重开 FP。

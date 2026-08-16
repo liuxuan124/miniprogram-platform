@@ -1,12 +1,13 @@
 <template>
   <div class="pages-list">
     <PageHeader
-      kicker="页面装修 / 页面管理"
-      title="页面管理"
-      description="管理小程序内各个页面。导航与主题请到「搭建小程序」配置并发布。"
+      kicker="小程序 / 页面"
+      title="页面"
+      description="在这里创建和装修页面。配好内容并绑定导航后，到「发布」一次性上线。"
     >
       <template #actions>
-        <el-button @click="router.push('/page-builder/start')">搭建小程序</el-button>
+        <el-button @click="router.push('/page-builder/start')">导航与外观</el-button>
+        <el-button @click="router.push('/page-builder/release')">发布</el-button>
         <el-button type="primary" @click="handleCreate">新建页面</el-button>
       </template>
     </PageHeader>
@@ -41,7 +42,7 @@
         <option :value="2">未发布</option>
       </select>
       <div class="mla actions">
-        <button class="btn" @click="handleSelectTemplate">页面模板</button>
+        <button class="btn" @click="handleSelectTemplate">模板</button>
         <button class="btn" @click="handleReset">重置</button>
         <button class="btn btn-p" @click="handleCreate">+ 新建页面</button>
       </div>
@@ -105,10 +106,9 @@
           <tfoot>
             <tr v-if="!loading && pageList.length === 0">
               <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">
-                <div style="margin-bottom:12px;">还没有页面。建议先创建首页，再去配置小程序导航。</div>
-                <el-button type="primary" @click="handleCreate">创建首页</el-button>
+                <div style="margin-bottom:12px;">还没有页面。请先创建首页并完成装修，再去「导航与外观」绑定底部导航。</div>
+                <el-button type="primary" @click="handleCreate">新建页面</el-button>
                 <el-button @click="handleSelectTemplate">从模板创建</el-button>
-                <el-button text type="primary" @click="$router.push('/page-builder/start')">去搭建小程序</el-button>
               </td>
             </tr>
           </tfoot>
@@ -139,14 +139,27 @@
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="90px">
         <el-form-item label="页面名称" prop="name">
-          <el-input v-model="formData.name" placeholder="请输入页面名称" maxlength="50" show-word-limit />
+          <el-input
+            v-model="formData.name"
+            placeholder="请输入页面名称"
+            maxlength="128"
+            show-word-limit
+            @input="formRef?.clearValidate('name')"
+          />
         </el-form-item>
         <el-form-item label="页面类型" prop="type">
           <el-select v-model="formData.type" placeholder="请选择页面类型" style="width: 100%">
-            <el-option label="首页" :value="1" />
+            <el-option
+              label="首页"
+              :value="1"
+              :disabled="homePathOccupied && !(dialogType === 'edit' && Number(editingType) === 1)"
+            />
             <el-option label="专题页" :value="2" />
             <el-option label="自定义页" :value="3" />
           </el-select>
+          <div v-if="homePathOccupied && dialogType === 'create'" class="form-tip">
+            已有首页占用 /pages/index/index，请新建专题页或自定义页（勿生成 index-2 等小程序打不开的路径）
+          </div>
         </el-form-item>
         <el-form-item label="访问路径" prop="path">
           <el-input v-model="formData.path" placeholder="点击右侧重新生成，无需手输">
@@ -154,10 +167,23 @@
               <el-button @click="handleAutoGeneratePath">重新生成</el-button>
             </template>
           </el-input>
-          <div class="path-hint">建议直接使用自动生成路径，避免跳转失败。</div>
+          <div class="path-hint">首页路径固定为 /pages/index/index，已被占用时请改选专题页或自定义页。建议使用自动生成路径。</div>
         </el-form-item>
         <el-form-item label="分享标题">
           <el-input v-model="formData.shareTitle" placeholder="微信分享标题" maxlength="30" show-word-limit />
+        </el-form-item>
+        <el-form-item label="分享封面">
+          <div class="share-image-field">
+            <div v-if="shareImagePreview" class="share-image-preview">
+              <img :src="shareImagePreview" alt="" />
+              <el-button text type="danger" size="small" @click="formData.shareImage = ''">移除</el-button>
+            </div>
+            <el-input v-model="formData.shareImage" placeholder="分享封面图 URL，可不填" />
+            <label class="upload-btn">
+              {{ uploadingShare ? '上传中…' : '本地上传' }}
+              <input type="file" accept="image/*" hidden :disabled="uploadingShare" @change="onUploadShareImage" />
+            </label>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -171,13 +197,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { Document, Brush, OfficeBuilding, Grid } from '@element-plus/icons-vue'
 import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates } from '@/api/page'
+import { normalizeUploadUrl } from '@/api/system'
+import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import type { PageRecord, CreatePageParams, PageListParams } from '@/types/page'
 
 const router = useRouter()
@@ -215,9 +243,43 @@ const formData = reactive<CreatePageParams>({
   type: 3,
   path: '',
   shareTitle: '',
+  shareImage: '',
   background_color: '#ffffff',
 })
 
+const { uploadImage, uploading: uploadingShare } = useImageUpload()
+const shareImagePreview = computed(() => normalizeUploadUrl(String(formData.shareImage || formData.share_image || '')))
+
+/** 是否已存在首页（全量检测，避免分页漏判） */
+const homePathOccupied = ref(false)
+
+const editingType = computed(() => {
+  if (!editingId.value) return null
+  const row = pageList.value.find((r) => Number(r.id) === Number(editingId.value))
+  return row?.type ?? null
+})
+
+async function refreshHomePathOccupied() {
+  try {
+    const byType = await getPageList({ current: 1, size: 20, type: 1 })
+    const typeRows = (byType.data?.records || []).map(normalizePageRecord)
+    if (typeRows.length > 0) {
+      homePathOccupied.value = true
+      return
+    }
+    const res = await getPageList({ current: 1, size: 100 })
+    const rows = (res.data?.records || []).map(normalizePageRecord)
+    homePathOccupied.value = rows.some((row) => {
+      const path = normalizeBuilderPath(row.path || '')
+      return path === '/pages/index/index' || Number(row.type) === 1
+    })
+  } catch {
+    homePathOccupied.value = pageList.value.some((row) => {
+      const path = normalizeBuilderPath(row.path || '')
+      return path === '/pages/index/index' || Number(row.type) === 1
+    })
+  }
+}
 function normalizeBuilderPath(raw: string): string {
   const value = (raw || '').trim()
   if (!value) return ''
@@ -258,6 +320,9 @@ function resolveUniquePath(basePath: string): string {
   let candidate = normalizeBuilderPath(basePath)
   if (!candidate) return ''
   if (!isPathTaken(candidate)) return candidate
+  if (Number(formData.type) === 1) {
+    return candidate
+  }
   let idx = 2
   while (idx < 1000) {
     const next = `${candidate}-${idx}`
@@ -289,7 +354,19 @@ function validatePagePath(_: unknown, value: string, callback: (error?: Error) =
     callback(new Error('路径格式不正确，应为 /pages/模块/页面'))
     return
   }
+  if (/^\/pages\/index\/index-\d+$/i.test(normalized)) {
+    callback(new Error('该路径不在小程序包内。首页请用 /pages/index/index；其它请用专题/自定义页'))
+    return
+  }
+  if (Number(formData.type) === 1 && normalized !== '/pages/index/index') {
+    callback(new Error('首页类型路径必须为 /pages/index/index'))
+    return
+  }
   if (isPathTaken(normalized)) {
+    if (Number(formData.type) === 1) {
+      callback(new Error('首页路径已被占用。请改选专题页或自定义页，不要生成小程序无法打开的路径'))
+      return
+    }
     callback(new Error('访问路径已存在，请更换'))
     return
   }
@@ -297,7 +374,10 @@ function validatePagePath(_: unknown, value: string, callback: (error?: Error) =
 }
 
 const formRules: FormRules = {
-  name: [{ required: true, message: '请输入页面名称', trigger: 'blur' }],
+  name: [
+    { required: true, message: '请输入页面名称', trigger: ['blur', 'change'] },
+    { max: 128, message: '页面名称不能超过 128 个字符', trigger: ['blur', 'change'] },
+  ],
   type: [{ required: true, message: '请选择页面类型', trigger: 'change' }],
   path: [{ validator: validatePagePath, trigger: 'blur' }],
 }
@@ -380,6 +460,7 @@ async function fetchList() {
   } finally {
     loading.value = false
     loadStats()
+    refreshHomePathOccupied()
   }
 }
 
@@ -396,13 +477,15 @@ function handleReset() {
   fetchList()
 }
 
-function handleCreate() {
+async function handleCreate() {
   dialogType.value = 'create'
   editingId.value = null
-  formData.name = '首页'
-  formData.type = 1
+  await refreshHomePathOccupied()
+  formData.name = ''
+  formData.type = homePathOccupied.value ? 3 : 1
   formData.path = ''
   formData.shareTitle = ''
+  formData.shareImage = ''
   formData.background_color = '#ffffff'
   handleAutoGeneratePath(true)
   dialogVisible.value = true
@@ -477,6 +560,8 @@ function normalizePageRecord(row: PageRecord): PageRecord {
     ...row,
     share_title: row.share_title || row.shareTitle,
     shareTitle: row.shareTitle || row.share_title,
+    share_image: row.share_image || row.shareImage,
+    shareImage: row.shareImage || row.share_image,
     version: row.version || row.currentVersion || 0,
     updated_at: row.updated_at || row.updateTime || '',
     created_at: row.created_at || row.createTime || '',
@@ -490,7 +575,22 @@ function buildPagePayload(): CreatePageParams {
     type: Number(formData.type),
     path: normalizedPath,
     shareTitle: formData.shareTitle || formData.share_title,
+    shareImage: formData.shareImage || formData.share_image,
+    share_image: formData.shareImage || formData.share_image,
   }
+}
+
+async function onUploadShareImage(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  await uploadImage(file, {
+    maxSizeMB: 5,
+    onSuccess: (url: string) => {
+      formData.shareImage = normalizeUploadUrl(url)
+    },
+  })
 }
 
 onMounted(() => {
@@ -678,6 +778,42 @@ th {
   line-height: 1.4;
 }
 
+.share-image-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.share-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-image-preview img {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  background: #eef2f7;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .mono {
   color: var(--text-muted);
   font-size: 11px;
@@ -807,6 +943,17 @@ th {
 
 .nb0 {
   font-weight: 700;
+}
+
+.form-tip {
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  color: #9a6700;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #fffbeb;
+  border: 1px solid #fbd38d;
+  border-radius: 8px;
 }
 
 .summary {

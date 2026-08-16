@@ -1,0 +1,15 @@
+.custom-page {
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.custom-page__state {
+  padding: 120rpx 40rpx;
+  text-align: center;
+  color: #98a2b5;
+  font-size: 28rpx;
+}
+
+.custom-page__body {
+  padding-bottom: 40rpx;
+}

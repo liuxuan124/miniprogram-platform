@@ -1,8 +1,6 @@
 {
-  "name": "miniapp-platform",
+  "name": "miniprogram-platform-miniapp",
   "version": "1.0.0",
-  "description": "微信小程序多场景搭建与运营系统",
-  "dependencies": {
-    "tdesign-miniprogram": "^1.9.5"
-  }
+  "private": true,
+  "dependencies": {}
 }

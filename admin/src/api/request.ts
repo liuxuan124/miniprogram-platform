@@ -64,6 +64,9 @@ const recentErrors = new Map<string, number>()
 const ERROR_DEBOUNCE_MS = 3000
 
 function showErrorDebounced(message: string) {
+  if (router.currentRoute.value.path === '/login') {
+    return
+  }
   const now = Date.now()
   const lastShown = recentErrors.get(message)
   if (lastShown && now - lastShown < ERROR_DEBOUNCE_MS) {
@@ -72,6 +75,34 @@ function showErrorDebounced(message: string) {
   recentErrors.set(message, now)
   ElMessage.error(message)
   setTimeout(() => recentErrors.delete(message), ERROR_DEBOUNCE_MS)
+}
+
+function isAuthExpiredCode(code: unknown) {
+  return code === 401 || code === 110101 || code === 110102
+}
+
+function isAuthFailureResponse(response: { status?: number; data?: { code?: number }; config?: { url?: string } }) {
+  const code = response.data?.code
+  if (isAuthExpiredCode(code)) return true
+  if (response.status === 401 && (code == null || isAuthExpiredCode(code))) return true
+  return response.status === 403 && String(response.config?.url || '').includes('/auth/')
+}
+
+function redirectToLogin() {
+  if (isRefreshing) return
+  isRefreshing = true
+  ElMessageBox.confirm('登录已过期，请重新登录', '提示', {
+    confirmButtonText: '重新登录',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(() => {
+      removeToken()
+      router.push('/login')
+    })
+    .finally(() => {
+      isRefreshing = false
+    })
 }
 
 /** 响应拦截器 */
@@ -107,23 +138,9 @@ service.interceptors.response.use(
         showErrorDebounced(res.message || '请求失败')
       }
 
-      // Token 过期 / 未授权（始终处理，即使静默模式）
-      if (res.code === 401) {
-        if (!isRefreshing) {
-          isRefreshing = true
-          ElMessageBox.confirm('登录已过期，请重新登录', '提示', {
-            confirmButtonText: '重新登录',
-            cancelButtonText: '取消',
-            type: 'warning',
-          })
-          .then(() => {
-            removeToken()
-            router.push('/login')
-          })
-          .finally(() => {
-            isRefreshing = false
-          })
-        }
+      // 仅认证失败才清登录态；业务码 100101 等参数错误不能当成掉线
+      if (isAuthExpiredCode(res.code)) {
+        redirectToLogin()
         return Promise.reject(new Error(res.message || '未授权'))
       }
 
@@ -160,8 +177,7 @@ service.interceptors.response.use(
         showErrorDebounced(message)
       }
 
-      // 未登录/无效 Token 时后端可能返回 401 或 403（CORS 已通时多为 403）
-      if (response.status === 401 || (response.status === 403 && String(response.config?.url || '').includes('/auth/'))) {
+      if (isAuthFailureResponse(response)) {
         removeToken()
         if (router.currentRoute.value.path !== '/login') {
           router.push('/login')

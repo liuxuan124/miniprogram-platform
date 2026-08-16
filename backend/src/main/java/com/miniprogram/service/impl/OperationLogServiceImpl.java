@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.system.OperationLogQueryDTO;
 import com.miniprogram.dto.system.OperationLogVO;
+import com.miniprogram.entity.AdminUser;
 import com.miniprogram.entity.OperationLog;
+import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.OperationLogMapper;
 import com.miniprogram.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ public class OperationLogServiceImpl extends BaseServiceImpl<OperationLogMapper,
         implements OperationLogService {
 
     private static final DateTimeFormatter DTFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private final AdminUserMapper adminUserMapper;
 
     @Override
     public PageResult<OperationLogVO> listOperationLogs(OperationLogQueryDTO query) {
@@ -86,6 +90,16 @@ public class OperationLogServiceImpl extends BaseServiceImpl<OperationLogMapper,
     private OperationLogVO toVO(OperationLog entity) {
         OperationLogVO vo = new OperationLogVO();
         BeanUtils.copyProperties(entity, vo);
+        if (entity.getUserId() != null && isNumericUsername(vo.getUsername())) {
+            AdminUser user = adminUserMapper.selectById(entity.getUserId());
+            if (user != null && StringUtils.hasText(user.getUsername())) {
+                vo.setUsername(user.getUsername());
+            }
+        }
         return vo;
+    }
+
+    private boolean isNumericUsername(String username) {
+        return !StringUtils.hasText(username) || username.matches("\\d+");
     }
 }

@@ -1,0 +1,13 @@
+[
+  {
+    "case": "product-category",
+    "hasUncategorizedAll": false,
+    "hasBrandBox": false,
+    "hasQa": false
+  },
+  {
+    "case": "form-activate",
+    "hasEnabled": true,
+    "hasError400": false
+  }
+]

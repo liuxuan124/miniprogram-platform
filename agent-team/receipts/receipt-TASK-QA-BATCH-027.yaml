@@ -1,0 +1,24 @@
+task_id: TASK-QA-BATCH-027
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 补退款/表单/AI 对话种子并写入 local-dev-seed.sql
+  - MP 表单提交 API 回归（JWT wx_1 → 200）
+  - 角色矩阵 admin vs qa_staff API 对比
+  - 探索附录 7 项 PARTIAL→PASS
+changed_files:
+  - deploy/qa-batch-027-seed.sql
+  - deploy/local-dev-seed.sql
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-027/seed-and-matrix.md
+self_test:
+  result: 通过
+  details: refunds=1; submissions=2; ai conv=1; mp submit=200; role matrix documented
+notes: 禁止写测试完成。正式台账仍 266/268 PASS + 2 BLOCKED。探索附录仅 EXP-MP-LOGIN 仍 BLOCKED。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-027
+  cumulative_pass_rate: "266/268"
+  executed_count: 7
+  pass_count: 7
+  exploration_pass_upgrades: 7

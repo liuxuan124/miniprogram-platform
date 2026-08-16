@@ -1,0 +1,17 @@
+.page { min-height: 100vh; background: #fafafa; padding: 32rpx; box-sizing: border-box; }
+.label { font-size: 26rpx; color: #888888; margin-bottom: 16rpx; }
+.tags { display: flex; flex-wrap: wrap; gap: 16rpx; margin-bottom: 32rpx; }
+.tag {
+  padding: 12rpx 24rpx; border-radius: 999rpx; background: #fff; color: #555555;
+  font-size: 24rpx; border: 1rpx solid #eeeeee;
+}
+.tag.on { background: #111111; color: #ffffff; border-color: #111111; font-weight: 500; }
+.ta {
+  width: 100%; min-height: 260rpx; background: #fff; border-radius: 16rpx; padding: 24rpx;
+  box-sizing: border-box; font-size: 28rpx; line-height: 1.6; border: 1rpx solid #eeeeee;
+}
+.count { text-align: right; color: #bbbbbb; font-size: 22rpx; margin: 12rpx 0 32rpx; }
+.btn {
+  background: #111111; color: #fff; border-radius: 999rpx; font-size: 28rpx; font-weight: 500;
+}
+.btn.ghost { margin-top: 20rpx; background: #fff; color: #111111; border: 1rpx solid #111111; }

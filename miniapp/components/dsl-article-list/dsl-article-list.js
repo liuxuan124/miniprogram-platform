@@ -61,6 +61,7 @@ Component({
     displayData: [],
     titleStyle: '',
     metaStyle: '',
+    layout: 'list',
   },
 
   observers: {
@@ -68,10 +69,13 @@ Component({
       const list = this._normalizeDisplayData(runtimeData, config)
       const titleSize = Number(config && config.title_font_size) > 0 ? Number(config.title_font_size) : 13
       const metaSize = Number(config && config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 11
+      const raw = (config && (config.layout || config.style_type)) || 'list'
+      const layout = ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
       this.setData({
         displayData: list,
         titleStyle: 'font-size:' + (titleSize * 2) + 'rpx',
         metaStyle: 'font-size:' + (metaSize * 2) + 'rpx',
+        layout,
       })
     },
   },

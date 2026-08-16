@@ -47,7 +47,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String token = extractToken(request);
 
-            if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+            if (StringUtils.hasText(token)) {
+                JwtTokenProvider.TokenStatus status = jwtTokenProvider.inspectToken(token);
+                if (status == JwtTokenProvider.TokenStatus.EXPIRED) {
+                    SecurityErrorWriter.write(response, 401, 110102, "Token已过期");
+                    return;
+                }
+                if (status != JwtTokenProvider.TokenStatus.VALID) {
+                    SecurityErrorWriter.write(response, 401, 110101, "未登录");
+                    return;
+                }
+
                 Long userId = jwtTokenProvider.getUserIdFromToken(token);
                 String username = jwtTokenProvider.getUsernameFromToken(token);
 
@@ -61,6 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 null,
                                 authorities
                         );
+                authentication.setDetails(username);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.debug("JWT 认证成功: userId={}, username={}, authorities={}", userId, username, authorities);
@@ -68,6 +79,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.error("JWT 认证处理异常: {}", e.getMessage());
             SecurityContextHolder.clearContext();
+            SecurityErrorWriter.write(response, 401, 110101, "未登录");
+            return;
         }
 
         filterChain.doFilter(request, response);

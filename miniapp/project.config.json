@@ -1,7 +1,40 @@
 {
   "description": "微信小程序多场景搭建与运营系统",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "folder",
+        "value": "miniprogram_npm"
+      },
+      {
+        "type": "folder",
+        "value": "pages/ai-chat"
+      },
+      {
+        "type": "folder",
+        "value": "pages/library"
+      },
+      {
+        "type": "folder",
+        "value": "pages/reader"
+      },
+      {
+        "type": "suffix",
+        "value": ".md"
+      },
+      {
+        "type": "suffix",
+        "value": ".map"
+      },
+      {
+        "type": "file",
+        "value": "package-lock.json"
+      }
+    ],
     "include": []
   },
   "setting": {
@@ -12,27 +45,27 @@
     "coverView": true,
     "es6": true,
     "postcss": true,
-    "compileHotReLoad": false,
+    "compileHotReLoad": true,
     "lazyloadPlaceholderEnable": false,
     "preloadBackgroundData": false,
-    "minified": true,
+    "minified": false,
     "autoAudits": false,
     "newFeature": false,
     "uglifyFileName": false,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "useIsolateContext": true,
-    "nodeModules": true,
+    "nodeModules": false,
     "enhance": true,
     "useMultiFrameRuntime": true,
-    "useApiHook": true,
-    "useApiHostProcess": true,
-    "showShadowRootInWxmlPanel": true,
+    "useApiHook": false,
+    "useApiHostProcess": false,
+    "showShadowRootInWxmlPanel": false,
     "packNpmManually": false,
     "enableEngineNative": false,
     "packNpmRelationList": [],
-    "minifyWXSS": true,
+    "minifyWXSS": false,
     "showES6CompileOption": false,
-    "minifyWXML": true,
+    "minifyWXML": false,
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
@@ -43,8 +76,9 @@
     "localPlugins": false,
     "disableUseStrict": false,
     "useCompilerPlugins": false,
-    "swc": false,
-    "disableSWC": true
+    "swc": true,
+    "disableSWC": false,
+    "ignoreDevUnusedFiles": true
   },
   "compileType": "miniprogram",
   "libVersion": "3.3.4",

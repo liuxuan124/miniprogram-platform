@@ -1,0 +1,13 @@
+{
+  "publish_or_update_index2": {
+    "PUT /pages/4 path=/pages/index/index-2": { "http": 422, "code": 300204 },
+    "POST /pages path=/pages/index/index-2": { "http": 422, "code": 300204 }
+  },
+  "coupon_id2_api_value": 0.9,
+  "coupon_id2_ui": "9折",
+  "ui": {
+    "homeDisabled": true,
+    "deleteConfirm": true,
+    "leaveConfirm": true
+  }
+}

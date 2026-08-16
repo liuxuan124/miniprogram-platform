@@ -67,11 +67,11 @@ public class R<T> implements Serializable {
     // ==================== 常用 HTTP 状态码 ====================
 
     public static <T> R<T> unauthorized(String message) {
-        return new R<>(401, message, null);
+        return new R<>(110101, message, null);
     }
 
     public static <T> R<T> forbidden(String message) {
-        return new R<>(403, message, null);
+        return new R<>(200301, message, null);
     }
 
     public static <T> R<T> notFound(String message) {
@@ -79,6 +79,10 @@ public class R<T> implements Serializable {
     }
 
     public static <T> R<T> badRequest(String message) {
-        return new R<>(400, message, null);
+        return new R<>(100101, message, null);
+    }
+
+    public static <T> R<T> badJson(String message) {
+        return new R<>(100102, message, null);
     }
 }

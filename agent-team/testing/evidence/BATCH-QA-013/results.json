@@ -1,0 +1,160 @@
+{
+  "extra": {
+    "editorUrl": "http://127.0.0.1:3000/page-builder/editor/12",
+    "pageId": "12",
+    "visibleBadge": 1,
+    "bannerHasTitle": true,
+    "bannerHasJump": true,
+    "bannerJumpOpts": [
+      "页面",
+      "网页",
+      "链接",
+      "小程序",
+      "拨打电话",
+      "无跳转"
+    ],
+    "countdownFormatOpts": [
+      "仅天数（d）",
+      "天 + 时（dh）",
+      "天 + 时 + 分（dhm）",
+      "天时分秒（dhms）"
+    ],
+    "categoryNavSeeded": true,
+    "certSeeded": true,
+    "floatAlwaysFields": true,
+    "floatAction": true,
+    "bannerAdded": true
+  },
+  "results": [
+    {
+      "id": "FP-UI-014",
+      "status": "PASS",
+      "note": "maxlength=128"
+    },
+    {
+      "id": "FP-UI-019",
+      "status": "PASS",
+      "note": "create dialog has 分享封面"
+    },
+    {
+      "id": "FP-UI-054",
+      "status": "PASS",
+      "note": "page props has 分享封面"
+    },
+    {
+      "id": "FP-UI-073",
+      "status": "PASS",
+      "note": "padding box present"
+    },
+    {
+      "id": "FP-UI-074",
+      "status": "PASS",
+      "note": "padding_bottom in 四向内边距"
+    },
+    {
+      "id": "FP-UI-075",
+      "status": "PASS",
+      "note": "padding_left in 四向内边距"
+    },
+    {
+      "id": "FP-UI-076",
+      "status": "PASS",
+      "note": "padding_right in 四向内边距"
+    },
+    {
+      "id": "FP-UI-079",
+      "status": "PASS",
+      "note": "visible switch present"
+    },
+    {
+      "id": "FP-UI-171",
+      "status": "PASS",
+      "note": "jump opts=页面|网页|链接|小程序|拨打电话|无跳转"
+    },
+    {
+      "id": "FP-UI-172",
+      "status": "PASS",
+      "note": "miniapp option"
+    },
+    {
+      "id": "FP-UI-173",
+      "status": "PASS",
+      "note": "phone jump type"
+    },
+    {
+      "id": "FP-UI-174",
+      "status": "PASS",
+      "note": "type=none"
+    },
+    {
+      "id": "FP-UI-175",
+      "status": "FAIL",
+      "note": "缺 type 仍无发布/保存校验（本批仅确认选项，未做缺字段拦截）"
+    },
+    {
+      "id": "FP-UI-176",
+      "status": "FAIL",
+      "note": "缺 target 仍无发布/保存校验（本批仅确认选项，未做缺字段拦截）"
+    },
+    {
+      "id": "FP-UI-108",
+      "status": "PASS",
+      "note": "layout grid/list/waterfall"
+    },
+    {
+      "id": "FP-UI-152",
+      "status": "PASS",
+      "note": "category_id field"
+    },
+    {
+      "id": "FP-UI-153",
+      "status": "PASS",
+      "note": "product_type field"
+    },
+    {
+      "id": "FP-UI-115",
+      "status": "PASS",
+      "note": "layout card/list/compact"
+    },
+    {
+      "id": "FP-UI-158",
+      "status": "PASS",
+      "note": "content category_id"
+    },
+    {
+      "id": "FP-UI-160",
+      "status": "PASS",
+      "note": "is_recommended"
+    },
+    {
+      "id": "FP-UI-122",
+      "status": "PASS",
+      "note": "countdown switch"
+    },
+    {
+      "id": "FP-UI-123",
+      "status": "PASS",
+      "note": "quota switch"
+    },
+    {
+      "id": "FP-UI-164",
+      "status": "PASS",
+      "note": "status registering"
+    },
+    {
+      "id": "FP-UI-167",
+      "status": "PASS",
+      "note": "coupon type"
+    },
+    {
+      "id": "FP-UI-168",
+      "status": "PASS",
+      "note": "coupon status=active filter"
+    },
+    {
+      "id": "FP-UI-141",
+      "status": "PASS",
+      "note": "format opts=仅天数（d）|天 + 时（dh）|天 + 时 + 分（dhm）|天时分秒（dhms）"
+    }
+  ]
+}

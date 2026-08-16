@@ -1,0 +1,13 @@
+.page { min-height: 100vh; background: #fafafa; padding: 24rpx; box-sizing: border-box; }
+.card {
+  display: flex; align-items: center; gap: 20rpx; background: #fff; border-radius: 16rpx;
+  padding: 20rpx; margin-bottom: 16rpx; border: 1rpx solid #eeeeee; box-shadow: none;
+}
+.cover { width: 120rpx; height: 120rpx; border-radius: 12rpx; background: #f3f3f3; flex-shrink: 0; }
+.meta { flex: 1; min-width: 0; }
+.title { font-size: 28rpx; font-weight: 500; color: #111111; line-height: 1.4; }
+.sub {
+  margin-top: 10rpx; font-size: 22rpx; color: #999999; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.rm { font-size: 22rpx; color: #111111; padding: 12rpx 8rpx; flex-shrink: 0; }

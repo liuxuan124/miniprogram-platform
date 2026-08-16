@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/finance/income-expense\",\"title\":\"收支明细 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n财务概览\\n收支明细\\n财务报表\\n预算管理\\n发票与税务\\n财务权限\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n财务管理\\n/\\n收支明细\\n超级管理员\\n收支明细\\n工作台\\n收支明细\\n企业收支记录的录入、分类与管理\\n类型：全部\\n分类：全部\\n至\\n审批状态：全部\\n导入\\n导出\\n+ 新建记录\\n日期\\n\\t\\n类型\\n\\t\\n分类\\n\\t\\n描述\\n\\t\\n金额\\n\\t\\n收款/付款方\\n\\t\\n支付方式\\n\\t\\n发票状态\\n\\t\\n审批状态\\n\\t\\n操作\\n暂无数据\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(0, 2600) });\n})()\n)');
+```

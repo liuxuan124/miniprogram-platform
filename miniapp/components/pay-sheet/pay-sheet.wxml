@@ -1,22 +1,57 @@
 <!-- components/pay-sheet/pay-sheet.wxml -->
-<view class="mask" wx:if="{{show}}" bindtap="onClose"></view>
-<view class="sheet {{show?'on':''}}">
-  <view class="h">
-    <text>确认支付</text>
-    <text class="x" bindtap="onClose">✕</text>
+<view class="mask" wx:if="{{show}}" catchtouchmove="noop" bindtap="onClose"></view>
+<view class="sheet {{show ? 'sheet--on' : ''}}" catchtouchmove="noop">
+  <view class="sheet__handle"></view>
+  <view class="sheet__head">
+    <text class="sheet__title">确认支付</text>
+    <view class="sheet__close" bindtap="onClose" hover-class="sheet__close--pressed">✕</view>
   </view>
-  <view class="amount">¥{{amount}}</view>
-  <view class="methods">
-    <view class="m {{method==='wechat'?'on':''}}" data-m="wechat" bindtap="onPick">
-      <text>💚 微信支付</text>
-      <text class="ck">{{method==='wechat'?'●':'○'}}</text>
+
+  <view class="sheet__amount">
+    <text class="sheet__yen">¥</text>
+    <text class="sheet__num">{{amount}}</text>
+  </view>
+  <text class="sheet__sub">请选择支付方式完成付款</text>
+
+  <view class="sheet__methods">
+    <view
+      class="method {{method === 'wechat' ? 'method--on' : ''}}"
+      data-m="wechat"
+      bindtap="onPick"
+      hover-class="method--pressed"
+    >
+      <view class="method__icon method__icon--wx">微</view>
+      <view class="method__copy">
+        <text class="method__name">微信支付</text>
+        <text class="method__desc">推荐使用</text>
+      </view>
+      <view class="radio {{method === 'wechat' ? 'radio--on' : ''}}">
+        <view class="radio__dot" wx:if="{{method === 'wechat'}}"></view>
+      </view>
     </view>
-    <view class="m {{method==='balance'?'on':''}}" data-m="balance" bindtap="onPick">
-      <text>👛 余额支付</text>
-      <text class="ck">{{method==='balance'?'●':'○'}}</text>
+
+    <view
+      class="method {{method === 'balance' ? 'method--on' : ''}} {{insufficient ? 'method--warn' : ''}}"
+      data-m="balance"
+      bindtap="onPick"
+      hover-class="method--pressed"
+    >
+      <view class="method__icon method__icon--bal">余</view>
+      <view class="method__copy">
+        <text class="method__name">余额支付</text>
+        <text class="method__desc {{insufficient ? 'method__desc--warn' : ''}}">
+          可用余额 ¥{{balance}}{{insufficient ? '（不足）' : ''}}
+        </text>
+      </view>
+      <view class="radio {{method === 'balance' ? 'radio--on' : ''}}">
+        <view class="radio__dot" wx:if="{{method === 'balance'}}"></view>
+      </view>
     </view>
   </view>
-  <view class="f">
-    <view class="btn" bindtap="onConfirm">确认支付 ¥{{amount}}</view>
+
+  <view class="sheet__foot">
+    <view class="sheet__btn" bindtap="onConfirm" hover-class="sheet__btn--pressed">
+      确认支付 ¥{{amount}}
+    </view>
   </view>
 </view>

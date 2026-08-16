@@ -5,6 +5,7 @@
     @click="onClick"
   >
     <div class="activity-card">
+      <div v-if="component.props._previewDataFailed" class="activity-fail-hint">活动数据加载失败，请稍后重试</div>
       <div class="activity-image">
         <img v-if="imageUrl" :src="imageUrl" alt="" class="activity-cover" />
         <div v-if="coverText" class="activity-cover-text">{{ coverText }}</div>
@@ -16,6 +17,12 @@
         <div v-if="component.props.date || component.props.location" class="activity-meta" :style="metaStyle">
           <span v-if="component.props.date">📅 {{ component.props.date }}</span>
           <span v-if="component.props.location">📍 {{ component.props.location }}</span>
+        </div>
+        <div v-if="showCountdown && countdownText" class="activity-countdown" :style="metaStyle">
+          距开始 {{ countdownText }}
+        </div>
+        <div v-if="showQuota" class="activity-quota" :style="metaStyle">
+          剩余名额 {{ quotaText }}
         </div>
         <button
           v-if="component.props.show_button !== false"
@@ -51,9 +58,33 @@ const theme = computed(() => {
   const raw = String(props.component.props?.theme || 'blue')
   return ['blue', 'purple', 'dark', 'gold'].includes(raw) ? raw : 'blue'
 })
-const styleType = computed(() => (props.component.props?.style_type === 'full' ? 'full' : 'card'))
+const styleType = computed(() => {
+  const layout = props.component.props?.layout
+  if (layout === 'banner' || props.component.props?.style_type === 'full') return 'full'
+  if (layout === 'list' || props.component.props?.style_type === 'list') return 'list'
+  return 'card'
+})
 const titleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 14))
 const metaStyle = computed(() => titleFontStyle(props.component.props?.subtitle_font_size, 11))
+const showCountdown = computed(() => props.component.props?.show_countdown !== false)
+const showQuota = computed(() => props.component.props?.show_quota !== false)
+const quotaText = computed(() => {
+  const raw = props.component.props?.quota ?? props.component.props?.remain_quota ?? 20
+  return String(raw)
+})
+const countdownText = computed(() => {
+  const raw = String(props.component.props?.date || '').trim()
+  if (!raw) return ''
+  const ms = new Date(raw.replace('T', ' ').replace(/-/g, '/')).getTime()
+  if (!Number.isFinite(ms)) return ''
+  const diff = ms - Date.now()
+  if (diff <= 0) return '已开始'
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  if (days > 0) return `${days}天${hours}时`
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  return `${hours}时${minutes}分`
+})
 
 function onClick() {
   if (!props.previewMode) return
@@ -78,6 +109,10 @@ function onClick() {
     padding: 0;
   }
 
+  &.style-list {
+    padding: 8px;
+  }
+
   &.clickable {
     cursor: pointer;
   }
@@ -87,6 +122,14 @@ function onClick() {
     background: #fff;
     border-radius: var(--card-radius, 12px);
     box-shadow: 0 8px 22px rgba(15, 31, 60, 0.08);
+  }
+
+  .activity-fail-hint {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #b45309;
+    background: #fffbeb;
+    border-bottom: 1px solid #fde68a;
   }
 
   &.style-full .activity-card {
@@ -146,6 +189,29 @@ function onClick() {
     margin-top: 5px;
     color: #7b8798;
     font-size: 11px;
+  }
+
+  .activity-countdown,
+  .activity-quota {
+    margin-top: 4px;
+    color: #f59e0b;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .activity-quota {
+    color: #1769ff;
+  }
+
+  &.style-list .activity-card {
+    display: flex;
+    flex-direction: row;
+
+    .activity-image {
+      width: 96px;
+      height: 96px;
+      flex-shrink: 0;
+    }
   }
 
   .activity-reserve-btn {

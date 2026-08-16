@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/page-builder/template-center\",\"dialog\":true,\"text\":\"模板预览 - 活动裂变专题模板\\n16:52\\n活动专题\\n年度品牌开放日\\n点击了解\\n距离活动开始\\n请设置结束时间\\n进行中活动\\n品牌开放日沙龙\\n2026-05-20 10:00 · 品牌中心\\n报名\\n药食同源研学活动\\n2026-05-24 14:00 · 展会中心\\n报名\\n预约服务\\n专家咨询\\n一对一咨询服务\\n立即预约\\n到店体验\\n门店体验预约\\n立即预约\\n模板名称\\n\\n活动裂变专题模板\\n\\n适用场景\\n\\n营销活动\\n\\n包含组件\\n\\n轮播图 / 倒计时 / 活动列表 / 预约服务\\n\\n推荐用途\\n\\n报名优先\\n\\n设计说明\\n\\n活动列表 + 预约服务 + 倒计时 + 图文种草，适合拉新报名与线下转化。\\n\\n关闭\\n导出配置\\n使用此模板\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => ((() => {\n  const dlg = document.querySelector(\'[role=dialog]\');\n  const t = (dlg && dlg.innerText) || (document.body.innerText||\'\');\n  return JSON.stringify({url:location.href, dialog: !!dlg, text: t.slice(0,1200)});\n})())');
+```

@@ -1,19 +1,23 @@
 <template>
   <div class="render-article-list split-text-typography" :class="{ 'render-article-list--preview': previewMode }">
     <div v-if="component.props.title" class="section-title">{{ component.props.title }}</div>
-    <div v-if="previewMode && showDataWarning" class="preview-data-empty">
-      暂无文章数据，请确认内容已发布或稍后重试
+    <div v-if="showFailState" class="preview-data-empty preview-data-fail">
+      {{ failMessage }}
     </div>
+    <div v-else-if="showEmptyState" class="preview-data-empty">
+      {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
+    </div>
+    <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已发布内容…</div>
     <div
       v-else
       class="article-list-body"
-      :class="articleLayout === 'card' ? 'layout-card' : 'layout-list'"
+      :class="`layout-${articleLayout}`"
     >
       <div
         v-for="(item, index) in visibleArticleItems"
         :key="`${item.title || 'article'}-${index}`"
         class="article-card"
-        :class="articleLayout === 'card' ? 'article-card--card' : 'article-card--list'"
+        :class="`article-card--${articleLayout}`"
       >
         <div v-if="component.props.show_cover !== false" class="article-img">
           <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
@@ -32,6 +36,7 @@
 import { computed } from 'vue'
 import type { ComponentInstance } from '@/types/page'
 import { titleFontStyle } from '../composables/titleFontStyle'
+import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 
 type ArticleItem = {
   id?: number | string
@@ -48,7 +53,7 @@ const props = defineProps<{
 
 const articleLayout = computed(() => {
   const raw = props.component.props?.layout || props.component.props?.style_type || 'list'
-  return raw === 'card' ? 'card' : 'list'
+  return ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
 })
 
 const itemTitleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 13))
@@ -58,15 +63,29 @@ defineEmits<{
   'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
 }>()
 
-const editorFallbackItems: ArticleItem[] = [
-  { title: '品牌故事：从内容到交易闭环', meta: '品牌内容 · 1280阅读', cover: '' },
-  { title: '选品指南：活动与商品联动', meta: '品牌内容 · 1280阅读', cover: '' },
-]
+const { items: liveItems, loading: liveLoading, empty: liveEmpty, failed: liveFailed } = useEditorLiveItems(
+  () => props.component,
+  () => !!props.previewMode,
+)
 
-const showDataWarning = computed(() => {
-  if (!props.previewMode) return false
-  const items = props.component.props?.items
-  return props.component.props?._previewDataFailed || !Array.isArray(items) || items.length === 0
+const showFailState = computed(() => {
+  if (props.previewMode) return !!props.component.props?._previewDataFailed
+  return liveFailed.value
+})
+
+const failMessage = computed(() =>
+  props.previewMode
+    ? '文章数据加载失败，请确认内容已发布或稍后重试'
+    : '文章数据请求失败，请检查网络或数据源配置',
+)
+
+const showEmptyState = computed(() => {
+  if (showFailState.value) return false
+  if (props.previewMode) {
+    const items = props.component.props?.items
+    return !Array.isArray(items) || items.length === 0
+  }
+  return !liveLoading.value && liveEmpty.value
 })
 
 const visibleArticleItems = computed<ArticleItem[]>(() => {
@@ -78,8 +97,8 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
     return items.slice(0, limit)
   }
 
-  const normalized = Array.isArray(items) && items.length > 0 ? items : editorFallbackItems
-  return normalized.slice(0, limit)
+  const source = liveItems.value.length ? liveItems.value : (Array.isArray(items) ? items : [])
+  return source.slice(0, limit)
 })
 </script>
 
@@ -108,6 +127,11 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
     border-radius: var(--card-radius, 10px);
   }
 
+  .preview-data-fail {
+    color: #b45309;
+    background: #fffbeb;
+  }
+
   .article-list-body {
     &.layout-list {
       display: flex;
@@ -119,6 +143,12 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+
+    &.layout-compact {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
   }
 
@@ -194,6 +224,28 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
 
     &--card .article-info {
       padding: 10px 12px;
+    }
+
+    &--compact {
+      display: flex;
+      gap: 8px;
+      padding: 6px 0;
+      background: transparent;
+
+      .article-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+
+      .article-title {
+        -webkit-line-clamp: 1;
+      }
+
+      .article-date {
+        margin-top: 2px;
+      }
     }
   }
 }

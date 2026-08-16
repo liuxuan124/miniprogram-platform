@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "页面",
+  "usingComponents": {
+    "dsl-renderer": "/components/dsl-renderer/dsl-renderer"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "tip": "已有首页占用 /pages/index/index，请新建专题页或自定义页（勿生成 index-2 等小程序打不开的路径）",
+  "homeDisabled": true,
+  "typeShown": ""
+}

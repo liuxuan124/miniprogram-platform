@@ -1,7 +1,7 @@
 <template>
   <div
     class="component-item"
-    :class="{ selected }"
+    :class="{ selected, 'is-hidden': isHidden }"
     :style="marginStyle"
     @click.stop="$emit('select')"
   >
@@ -30,6 +30,7 @@
         </el-tooltip>
       </div>
     </div>
+    <div v-if="isHidden" class="hidden-badge">已隐藏</div>
     <div class="component-render" :style="surfaceStyle">
       <!-- 通过 --card-radius 变量下发圆角：只影响组件内的卡片/按钮，背景层永远保持直角 -->
       <div class="component-render-inner" :class="textStyleClass" :style="innerStyle">
@@ -59,6 +60,8 @@ defineEmits<{
   'move-up': []
   'move-down': []
 }>()
+
+const isHidden = computed(() => props.componentStyle?.visible === false)
 
 const marginStyle = computed(() => {
   const s = props.componentStyle || {}
@@ -119,6 +122,21 @@ const textStyleClass = computed(() => {
   box-shadow:
     0 2px 10px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(23, 105, 255, 0.35);
+}
+.component-item.is-hidden .component-render {
+  opacity: 0.42;
+}
+.hidden-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  padding: 1px 6px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  background: #909399;
+  border-radius: 4px;
 }
 .component-item.selected {
   z-index: 2;

@@ -1,0 +1,59 @@
+{
+  "startedAt": "2026-08-13T09:15:24.937Z",
+  "steps": [],
+  "errors": [],
+  "before": {
+    "path": "pages/index/index",
+    "query": {},
+    "slim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    }
+  },
+  "t400": {
+    "path": "pages/index/index",
+    "query": {},
+    "slim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    }
+  },
+  "shot400": "12-form-t400.png",
+  "t1200": {
+    "path": "pages/index/index",
+    "query": {},
+    "slim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    }
+  },
+  "shot1200": "13-form-t1200.png",
+  "t3200": {
+    "path": "pages/index/index",
+    "query": {},
+    "slim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    }
+  }
+}

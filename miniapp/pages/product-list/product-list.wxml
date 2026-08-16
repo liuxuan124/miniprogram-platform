@@ -5,9 +5,9 @@
     <view class="shop-banner__orb"></view>
     <view class="shop-banner__row">
       <view>
-        <view class="shop-banner__eyebrow">KNOWLEDGE MARKET</view>
-        <view class="shop-banner__t">知识与经验，帮你少走弯路</view>
-        <view class="shop-banner__d">精选数字商品与实战 1v1 咨询</view>
+        <view class="shop-banner__eyebrow">PHYSICAL GOODS</view>
+        <view class="shop-banner__t">精选实物好物</view>
+        <view class="shop-banner__d">纸质手册与文创周边，快递发货</view>
       </view>
       <view class="shop-cart" bindtap="onGoCart">▣</view>
     </view>
@@ -23,7 +23,7 @@
       <text class="search-icon-text">⌕</text>
       <input
         class="search-input"
-        placeholder="搜索数字商品或咨询服务"
+        placeholder="搜索文创礼盒、手册等实物商品"
         value="{{keyword}}"
         confirm-type="search"
         bindinput="onSearchInput"
@@ -42,13 +42,11 @@
   <!-- 分类筛选 -->
   <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
     <view
-      wx:for="{{typeTabs}}"
-      wx:key="key"
-      class="category-item {{activeType === item.key ? 'active' : ''}}"
-      data-key="{{item.key}}"
-      bindtap="onTypeTap"
+      class="category-item {{!activeCategoryId ? 'active' : ''}}"
+      data-id=""
+      bindtap="onCategoryTap"
     >
-      <text>{{item.label}}</text>
+      <text>全部</text>
     </view>
     <view
       wx:for="{{categories}}"
@@ -106,11 +104,11 @@
         binderror="onImageError"
       />
       <view class="product-info">
-        <view class="product-badge">{{item.productType === 'service' ? '1v1 服务' : '精选资料'}}</view>
+        <view class="product-badge">实物发货</view>
         <text class="product-name">{{item.name}}</text>
         <view class="product-price-row">
-          <text class="product-price">&#165;{{item.price}}</text>
-          <text class="product-original-price" wx:if="{{item.original_price || item.originalPrice}}">&#165;{{item.original_price || item.originalPrice}}</text>
+          <text class="product-price">¥{{item.price}}</text>
+          <text class="product-original-price" wx:if="{{item.original_price || item.originalPrice}}">¥{{item.original_price || item.originalPrice}}</text>
         </view>
         <text class="product-sales" wx:if="{{item.sales}}">已售 {{item.sales}}</text>
       </view>

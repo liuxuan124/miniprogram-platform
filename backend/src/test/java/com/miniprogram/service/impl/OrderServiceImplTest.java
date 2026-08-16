@@ -9,6 +9,7 @@ import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Product;
 import com.miniprogram.mapper.OrderItemMapper;
 import com.miniprogram.mapper.OrderMapper;
+import com.miniprogram.mapper.MiniProgramUserMapper;
 import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.ProductSkuMapper;
@@ -120,6 +121,7 @@ class OrderServiceImplTest {
                 mock(PaymentMapper.class),
                 mock(RefundMapper.class),
                 mock(RefundService.class),
+                mock(MiniProgramUserMapper.class),
                 new ObjectMapper()
         );
         ReflectionTestUtils.setField(service, "baseMapper", orderMapper);

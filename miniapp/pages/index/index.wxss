@@ -146,6 +146,8 @@
 }
 
 .searchbar {
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 12rpx;
@@ -156,6 +158,11 @@
   border: 1rpx solid var(--line);
   border-radius: 24rpx;
   box-shadow: var(--sh1);
+}
+
+.searchbar--pressed {
+  opacity: 0.88;
+  transform: scale(0.995);
 }
 
 .searchbar__icon {

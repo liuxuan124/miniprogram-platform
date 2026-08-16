@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-08-13T09:16:17.917Z",
+  "errors": [],
+  "form": {
+    "path": "pkg-extra/form/form",
+    "query": {
+      "id": "1"
+    },
+    "templateId": "1",
+    "templateTitle": "",
+    "templateDesc": "",
+    "fieldCount": 0,
+    "fields": [],
+    "submitted": false,
+    "submitting": false
+  },
+  "shot": "15-form-id1.png"
+}

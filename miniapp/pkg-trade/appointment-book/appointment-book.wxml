@@ -1,0 +1,102 @@
+<!-- pkg-trade/appointment-book/appointment-book.wxml — 预约下单页（三步对齐原型） -->
+<view class="appointment-book-page">
+  <view class="steps">
+    <view class="d {{bookStep>=1?'on':''}}">1</view>
+    <view class="bar {{bookStep>=2?'on':''}}"></view>
+    <view class="d {{bookStep>=2?'on':''}}">2</view>
+    <view class="bar {{bookStep>=3?'on':''}}"></view>
+    <view class="d {{bookStep>=3?'on':''}}">3</view>
+  </view>
+  <view class="steps-lb"><text>选时段</text><text>填信息</text><text>支付</text></view>
+
+  <view class="service-section" wx:if="{{serviceInfo}}">
+    <image
+      class="service-cover"
+      src="{{serviceInfo.cover_url || serviceInfo.image || '/images/default-service.svg'}}"
+      mode="aspectFill"
+    />
+    <view class="service-detail">
+      <text class="service-name">{{serviceInfo.name}}</text>
+      <text class="service-price" wx:if="{{serviceInfo.price !== undefined}}">
+        <text class="price-symbol">¥</text>{{serviceInfo.price}}
+      </text>
+      <text class="service-duration" wx:if="{{serviceInfo.duration}}">时长: {{serviceInfo.duration}}分钟</text>
+    </view>
+  </view>
+
+  <block wx:if="{{bookStep===1}}">
+    <view class="section">
+      <view class="section-title">① 选择日期</view>
+      <scroll-view class="date-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view
+          wx:for="{{dates}}"
+          wx:key="date"
+          class="date-item {{selectedDate === item.date ? 'active' : ''}} {{item.disabled ? 'disabled' : ''}}"
+          data-date="{{item.date}}"
+          data-disabled="{{item.disabled}}"
+          bindtap="onDateTap"
+        >
+          <text class="date-label">{{item.label}}</text>
+          <text class="date-weekday">{{item.weekday}}</text>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">② 选择时段 <text class="rt" wx:if="{{serviceInfo.duration}}">{{serviceInfo.duration}} 分钟 / 场</text></view>
+      <view class="slots-grid" wx:if="{{slots.length > 0}}">
+        <view
+          wx:for="{{slots}}"
+          wx:key="index"
+          class="slot-item {{selectedSlot === index ? 'active' : ''}} {{!item.available ? 'unavailable' : ''}}"
+          data-index="{{index}}"
+          bindtap="onSlotTap"
+        >
+          <text class="slot-time">{{item.label}}</text>
+          <text class="slot-status" wx:if="{{!item.available}}">已满</text>
+        </view>
+      </view>
+      <view class="slots-empty" wx:else>
+        <text class="slots-empty-text">暂无可用时段</text>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{bookStep===2}}">
+    <view class="section">
+      <view class="section-title">③ 咨询信息</view>
+      <view class="form-group">
+        <text class="form-label">你的称呼</text>
+        <input class="form-input" placeholder="方便咨询时称呼你" value="{{contactName}}" bindinput="onNameInput" />
+      </view>
+      <view class="form-group">
+        <text class="form-label">联系方式（微信 / 手机号）</text>
+        <input class="form-input" maxlength="32" placeholder="用于发送咨询提醒" value="{{contactPhone}}" bindinput="onPhoneInput" />
+      </view>
+      <view class="form-group">
+        <text class="form-label">当前主要卡点（选填）</text>
+        <textarea class="form-textarea" placeholder="例：欧洲站家居收纳，已选出 3 个款，卡在供应商验厂和 VAT 注册顺序" value="{{remark}}" maxlength="200" auto-height bindinput="onRemarkInput" />
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{bookStep===3}}">
+    <view class="section">
+      <view class="section-title">费用明细</view>
+      <view class="fee-row"><text>{{serviceInfo.name || '1v1 咨询'}}</text><text class="b">¥{{serviceInfo.price || 299}}</text></view>
+      <view class="fee-row"><text>高级会员权益抵扣</text><text class="b accent">-¥{{memberOff}}</text></view>
+      <view class="fee-row total"><text>实付</text><text class="b accent lg">¥{{payAmount}}</text></view>
+      <view class="fee-tip">已选：{{selectedDate}} {{selectedSlotLabel}}</view>
+    </view>
+  </block>
+
+  <view class="bottom-bar">
+    <view class="nav-btns">
+      <view class="btn-o" wx:if="{{bookStep>1}}" bindtap="onPrevStep">上一步</view>
+      <view class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="onNextOrSubmit">
+        {{submitting ? '提交中...' : (bookStep===3 ? ('确认预约并支付 ¥' + payAmount) : '下一步')}}
+      </view>
+    </view>
+  </view>
+</view>
+<login-sheet id="global-login-sheet" />

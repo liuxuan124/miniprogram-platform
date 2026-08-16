@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/finance/budget\",\"title\":\"预算管理 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n财务概览\\n收支明细\\n财务报表\\n预算管理\\n发票与税务\\n财务权限\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n财务管理\\n/\\n预算管理\\n超级管理员\\n预算管理\\n工作台\\n预算管理\\n\\n预算编制、执行监控与超支预警\\n\\n预算列表\\n预警中心\\n关键词\\n状态\\n全部状态\\n搜索\\n重置\\n+ 新建预算\\n预算名称\\n\\t\\n预算周期\\n\\t\\n起止日期\\n\\t\\n总预算\\n\\t\\n已使用\\n\\t\\n剩余\\n\\t\\n使用率\\n\\t\\n状态\\n\\t\\n操作\\n暂无数据\\n共 0 条\\n10条/页\\n1\\n前往\\n页\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(0, 2200) });\n})()\n)');
+```

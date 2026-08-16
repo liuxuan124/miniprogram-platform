@@ -1,0 +1,22 @@
+[
+  {
+    "case": "coupon-display",
+    "has09": false,
+    "has9": true,
+    "snippet": "会员九折券 | \t | 折扣券 | \t | 9折 | \t | 无门槛 | \t | 全场通用 | \t | 所有人 | \t | 42 / 300 | \t | 42 | \t | 已发布 | \t | 2026-07-22 ~ 2026-08-21 | \t"
+  },
+  {
+    "case": "create-dialog",
+    "tip": "",
+    "homeDisabled": false
+  },
+  {
+    "case": "delete-confirm",
+    "confirmSeen": false,
+    "delCount": 0
+  },
+  {
+    "case": "leave-confirm",
+    "leaveConfirm": true
+  }
+]

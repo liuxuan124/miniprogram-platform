@@ -63,7 +63,7 @@
         <div class="service-list">
           <div v-for="svc in services" :key="svc.id" class="service-row">
             <div class="service-main">
-              <b>{{ svc.name }}（{{ svc.duration }}分钟）</b>
+              <b>{{ formatServiceDisplayName(svc.name, svc.duration) }}</b>
               <span class="muted">{{ svc.price == null ? '免费' : `¥${svc.price}` }}</span>
             </div>
             <div class="svc-actions">
@@ -466,6 +466,13 @@ function selectDate(cell: { date: string; isOtherMonth: boolean }) {
 function pickSlot(slot: DaySlot) {
   if (slot.isFull) return
   selectedSlotId.value = slot.id
+}
+
+function formatServiceDisplayName(name: string, duration: number) {
+  const text = String(name || '').trim()
+  if (!text) return `${duration}分钟`
+  if (/\d+\s*分钟/.test(text)) return text
+  return `${text}（${duration}分钟）`
 }
 
 function normalizeService(raw: any): ServiceItem {

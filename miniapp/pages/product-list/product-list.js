@@ -31,27 +31,21 @@ Page({
     refreshing: false,
     // 空状态
     isEmpty: false,
-    // 商品类型：全部 / 资料包 / 1v1
-    typeTabs: [
-      { key: '', label: '全部' },
-      { key: 'digital', label: '资料包' },
-      { key: 'service', label: '1v1 咨询' },
-    ],
+    typeTabs: [],
     activeType: '',
     productType: '',
   },
 
   onLoad(options) {
-    if (options.category_id) {
+    if (options && options.category_id) {
       this.setData({ activeCategoryId: options.category_id })
     }
-    if (options.keyword) {
+    if (options && options.keyword) {
       this.setData({ keyword: options.keyword })
     }
-    // 原型：资料包 / 1v1 咨询
-    if (options.type === 'digital' || options.type === 'ebook') {
+    if (options && (options.type === 'digital' || options.type === 'ebook')) {
       this.setData({ productType: 'digital', activeType: 'digital' })
-    } else if (options.type === 'service' || options.type === 'consult') {
+    } else if (options && (options.type === 'service' || options.type === 'consult')) {
       this.setData({ productType: 'service', activeType: 'service' })
     }
     this._loadCategories()
@@ -59,10 +53,7 @@ Page({
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 2 })
-    }
-    // 从首页快捷入口 switchTab 带来的 type 筛选
+    wx.hideTabBar({ animation: false, fail() {} })
     try {
       const q = wx.getStorageSync('__tab_query__/pages/product-list/product-list')
       if (q && typeof q === 'object') {
@@ -91,11 +82,12 @@ Page({
     }
   },
 
-  /** 加载分类列表 */
+  /** 加载分类列表（仅启用中的实物分类） */
   _loadCategories() {
     productService.getCategoryList()
       .then((list) => {
-        this.setData({ categories: list || [] })
+        const categories = (list || []).filter((item) => item && item.status !== 0 && item.status !== '0')
+        this.setData({ categories })
       })
       .catch(() => {
         this.setData({ categories: [] })
@@ -155,14 +147,7 @@ Page({
   /** 选择分类 */
   onCategoryTap(e) {
     const id = e.currentTarget.dataset.id
-    this.setData({ activeCategoryId: id })
-    this._loadProducts(true)
-  },
-
-  /** 资料包 / 咨询类型筛选 */
-  onTypeTap(e) {
-    const key = e.currentTarget.dataset.key || ''
-    this.setData({ activeType: key, productType: key })
+    this.setData({ activeCategoryId: id || '' })
     this._loadProducts(true)
   },
 

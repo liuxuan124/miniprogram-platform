@@ -5,11 +5,14 @@
       :description="`欢迎回来，${userStore.userInfo?.nickname || '管理员'} · ${currentDate}`"
     >
       <template #actions>
-        <el-button @click="router.push('/page-builder/start')">搭建小程序</el-button>
-        <el-button type="primary" @click="goDecorateHome">
-          <el-icon><Brush /></el-icon>
-          进入装修器
-        </el-button>
+        <template v-if="canDecorate">
+          <el-button type="primary" @click="goDecorateHome">
+            <el-icon><Brush /></el-icon>
+            进入装修
+          </el-button>
+          <el-button @click="router.push('/page-builder/start')">导航与外观</el-button>
+          <el-button @click="router.push('/page-builder/release')">发布</el-button>
+        </template>
       </template>
     </PageHeader>
 
@@ -87,35 +90,29 @@
           <el-button link type="primary" @click="router.push('/commerce/product')">查看全部商品</el-button>
         </div>
         <div class="rank-list">
+          <EmptyState
+            v-if="displayProducts.length === 0"
+            title="暂无销售数据"
+            description="有成交后会显示销量排行"
+            :icon="Goods"
+          />
           <div
             v-for="(item, index) in displayProducts"
-            :key="item.name || ('empty-' + index)"
+            :key="item.name || index"
             class="rank-item"
-            :class="{ 'rank-empty': !item.name }"
           >
-            <template v-if="item.name">
-              <span class="rank-num">{{ index + 1 }}</span>
-              <span class="product-icon"><el-icon><Goods /></el-icon></span>
-              <div>
-                <strong>{{ item.name }}</strong>
-                <small>¥{{ item.price }}</small>
-              </div>
-              <b>{{ item.sales }}件</b>
-            </template>
-            <template v-else>
-              <span class="rank-num muted">{{ index + 1 }}</span>
-              <span class="product-icon muted"><el-icon><Goods /></el-icon></span>
-              <div>
-                <strong class="muted">暂无数据</strong>
-                <small class="muted">—</small>
-              </div>
-              <b class="muted">—</b>
-            </template>
+            <span class="rank-num">{{ index + 1 }}</span>
+            <span class="product-icon"><el-icon><Goods /></el-icon></span>
+            <div>
+              <strong>{{ item.name }}</strong>
+              <small>¥{{ item.price }}</small>
+            </div>
+            <b>{{ item.sales }}件</b>
           </div>
         </div>
       </div>
 
-      <div class="panel version-panel">
+      <div v-if="canDecorate" class="panel version-panel">
         <div class="panel-head">
           <h2>最近发布版本记录</h2>
           <el-button link type="primary" @click="router.push('/page-builder/list')">查看更多</el-button>
@@ -147,6 +144,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 import { useUserStore } from '@/stores/user'
+import { usePermissionStore } from '@/stores/permission'
 import { getDashboard } from '@/api/statistics'
 import { getPageList } from '@/api/page'
 import PageHeader from '@/components/PageHeader.vue'
@@ -167,8 +165,10 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const route = useRoute()
 const userStore = useUserStore()
+const permissionStore = usePermissionStore()
+const canDecorate = computed(() => permissionStore.hasAnyPerm(['page:list', 'page:create', 'page:update']))
+const route = useRoute()
 
 const currentDate = computed(() => new Date().toLocaleDateString('zh-CN', {
   weekday: 'long',
@@ -197,7 +197,7 @@ function goDecorateHome() {
     router.push({ name: 'PageBuilderEditor', params: { id: homePageId.value } })
     return
   }
-  router.push('/page-builder/start')
+  router.push('/page-builder/list')
 }
 
 // 修复：此前全文件多处引用 dashboardLoading 但从未声明，v-loading 与空态判断实际从未生效
@@ -234,13 +234,7 @@ const summaries = ref([
 const todos = ref<Array<{ label: string; count: number; level: string; path: string }>>([])
 const products = ref<Array<{ name: string; price: number | string; sales: number }>>([])
 
-const displayProducts = computed(() => {
-  const list = [...products.value]
-  while (list.length < 3) {
-    list.push({ name: '', price: '', sales: 0 })
-  }
-  return list
-})
+const displayProducts = computed(() => products.value.filter((item) => item.name))
 
 const versions = ref<Array<{ id?: number | null; name: string; status: string; version: string; time: string }>>([])
 
@@ -397,8 +391,8 @@ async function loadDashboard() {
     if (Array.isArray(data.productRanking) && data.productRanking.length > 0) {
       products.value = data.productRanking.slice(0, 3).map((p: any) => ({
         name: p.name || p.productName || '-',
-        price: p.price || 0,
-        sales: p.sales || p.saleCount || 0,
+        price: p.price ?? p.productPrice ?? 0,
+        sales: p.sales ?? p.saleCount ?? p.salesCount ?? 0,
       }))
     }
 

@@ -46,7 +46,7 @@
             </el-button>
             <el-button type="primary" size="small" @click="handlePublish">
               <el-icon><Upload /></el-icon>
-              发布页面
+              发布此页
             </el-button>
             <el-dropdown trigger="click">
               <el-button size="small">
@@ -56,6 +56,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="handleHistory">历史版本</el-dropdown-item>
+                  <el-dropdown-item @click="handleImportDSL">导入 DSL</el-dropdown-item>
                   <el-dropdown-item divided @click="handleViewDSL">高级：查看 DSL</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -80,7 +81,21 @@
           </div>
         </div>
 
-        <CanvasArea />
+        <!-- 页面加载失败提示条 -->
+        <div v-if="pageLoadError" class="load-error-banner">
+          <el-icon><WarningFilled /></el-icon>
+          <span class="load-error-text">{{ pageLoadError }}</span>
+          <div class="load-error-actions">
+            <el-button size="small" :loading="pageLoadRetrying" @click="loadPage">重试加载</el-button>
+            <el-button size="small" @click="handleBack">返回列表</el-button>
+          </div>
+        </div>
+
+        <CanvasArea v-if="!pageLoadError" />
+        <div v-else class="load-error-placeholder">
+          <div class="load-error-placeholder__title">装修器暂不可用</div>
+          <div class="load-error-placeholder__desc">页面数据未能从服务器读取，请重试或返回列表</div>
+        </div>
       </div>
 
       <div v-show="!rightCollapsed" class="editor-right">
@@ -163,7 +178,7 @@
     </el-dialog>
 
     <!-- C3：发布结果面板，替代原来信息密度过高的单个确认弹窗 -->
-    <el-dialog v-model="publishResult.visible" title="页面发布成功" width="440px" :close-on-click-modal="false">
+    <el-dialog v-model="publishResult.visible" title="此页已发布" width="440px" :close-on-click-modal="false">
       <div class="publish-result">
         <div class="publish-result__row">
           <span class="label">发布版本</span>
@@ -179,12 +194,13 @@
         </div>
       </div>
       <div class="publish-result__tip">
-        若要让用户通过底部导航打开它，请再到「搭建小程序」完成导航绑定并发布。
+        此页内容将按上方路径生效。整包上线（首页 + 导航绑定页）请到「发布」。
       </div>
       <template #footer>
         <el-button @click="publishResult.visible = false">继续装修</el-button>
         <el-button @click="handlePreviewAfterPublish">预览效果</el-button>
-        <el-button type="primary" @click="handleGotoMiniappConfig">去搭建小程序</el-button>
+        <el-button @click="handleGotoMiniappConfig">去绑定导航</el-button>
+        <el-button type="primary" @click="handleGotoRelease">去整包发布</el-button>
       </template>
     </el-dialog>
   </div>
@@ -198,11 +214,19 @@ import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight
 import { usePageStore } from '@/stores/page'
 import { getPageDetail, saveDraft, publishPage, createPage } from '@/api/page'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
+import { collectDataSourceIssues } from '@/components/page-builder/dataSourceValidation'
 import ComponentPanel from '@/components/page-builder/ComponentPanel.vue'
 import CanvasArea from '@/components/page-builder/CanvasArea.vue'
 import PropsPanel from '@/components/page-builder/PropsPanel.vue'
 import MiniPreviewDialog from './MiniPreviewDialog.vue'
 import type { PageDSL, PageRecord } from '@/types/page'
+
+function isConflictError(err: unknown): boolean {
+  const e = err as { response?: { status?: number; data?: { code?: number } }; code?: number }
+  const code = e?.response?.data?.code ?? e?.code
+  const status = e?.response?.status
+  return status === 409 || code === 300409 || code === 409
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -214,6 +238,10 @@ const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
 const leftCollapsed = ref(false)
 const rightCollapsed = ref(false)
+
+/** 页面加载失败态（FP-UI-028） */
+const pageLoadError = ref('')
+const pageLoadRetrying = ref(false)
 
 /** B3：自动保存 */
 const lastAutoSavedAt = ref('')
@@ -238,43 +266,114 @@ const publishCheck = reactive({
   publishing: false,
 })
 
-function isConflictError(err: any): boolean {
-  const msg = err?.response?.data?.message || err?.message || ''
-  return msg.includes('已被其他人修改') || msg.includes('300409')
+function currentExpectedVersion() {
+  const page = pageStore.currentPage
+  if (!page) return undefined
+  return page.latestVersion ?? page.currentVersion ?? page.version
+}
+
+function toMiniappOpenPath(path: string) {
+  const raw = String(path || '').trim()
+  if (!raw) return ''
+  const normalized = raw.startsWith('/') ? raw : `/${raw}`
+  const pathname = normalized.split('?')[0]
+  const registered = new Set([
+    '/pages/index/index',
+    '/pages/content-list/content-list',
+    '/pages/product-list/product-list',
+    '/pages/mine/mine',
+    '/pages/login/login',
+    '/pages/search/search',
+    '/pages/product-detail/product-detail',
+    '/pages/content-detail/content-detail',
+    '/pages/cart/cart',
+    '/pages/order-create/order-create',
+    '/pages/custom/custom',
+  ])
+  if (registered.has(pathname)) return normalized
+  const logical = pathname.replace(/^\//, '')
+  return `/pages/custom/custom?path=${encodeURIComponent(logical)}`
+}
+
+const JUMP_TYPES = ['page', 'webview', 'url', 'miniapp', 'phone', 'none']
+const JUMP_NEED_TARGET = new Set(['page', 'webview', 'url', 'miniapp', 'phone'])
+
+function resolveJump(item: Record<string, any>) {
+  const legacyLink = String(item.link || '').trim()
+  let type = String(item.link_type || item.type || item.jump_type || item.action || '').trim()
+  let target = String(item.link_url || item.target || item.jump_url || item.url || item.phone || '').trim()
+  // 兼容旧 DSL：仅有 link 无 link_type
+  if (!type && legacyLink) {
+    type = legacyLink.startsWith('http') ? 'webview' : 'page'
+    target = target || legacyLink
+  }
+  if (!target && legacyLink) target = legacyLink
+  return { type, target }
+}
+
+function collectJumpIssues(components: any[]): string[] {
+  const issues: string[] = []
+  components.forEach((comp) => {
+    const label = comp.type === 'banner' ? '轮播图' : (comp.type === 'float_button' ? '悬浮按钮' : '组件')
+    const items = comp.type === 'banner'
+      ? (comp.props?.images || [])
+      : comp.type === 'nav' || comp.type === 'category_nav'
+        ? (comp.props?.items || [])
+        : [comp.props || {}]
+    items.forEach((item: any, index: number) => {
+      if (!item || typeof item !== 'object') return
+      const hasJumpField = item.link_type || item.type || item.jump_type || item.link_url || item.target || item.link
+      if (comp.type !== 'banner' && comp.type !== 'float_button' && comp.type !== 'image' && !hasJumpField) return
+      if (comp.type !== 'banner' && comp.type !== 'float_button' && comp.type !== 'image') return
+      // 轮播图有图就必须声明跳转类型（允许 none）
+      const hasImage = Boolean(item.image || item.url || item.src)
+      if (comp.type === 'banner' && hasImage && !item.link_type && !item.type && !item.jump_type && !item.link) {
+        const prefix = items.length > 1 ? `${label}第 ${index + 1} 项` : label
+        issues.push(`${prefix}缺少跳转类型`)
+        return
+      }
+      const { type, target } = resolveJump(item)
+      const prefix = items.length > 1 ? `${label}第 ${index + 1} 项` : label
+      if (!type) {
+        issues.push(`${prefix}缺少跳转类型`)
+        return
+      }
+      if (!JUMP_TYPES.includes(type)) {
+        issues.push(`${prefix}跳转类型不合法`)
+        return
+      }
+      if (JUMP_NEED_TARGET.has(type) && !target) {
+        issues.push(`${prefix}缺少跳转地址`)
+      }
+    })
+  })
+  return issues
 }
 
 /** 加载页面数据 */
 async function loadPage() {
   const id = Number(route.params.id)
   if (!id || isNaN(id)) {
+    pageLoadError.value = '页面 ID 无效'
     ElMessage.error('页面ID无效')
-    router.push({ name: 'PageBuilderList' })
     return
   }
+  pageLoadRetrying.value = true
+  pageLoadError.value = ''
   try {
     const res = await getPageDetail(id)
     if (res.data) {
       pageStore.setCurrentPage(res.data)
     } else {
-      pageStore.setCurrentPage(createFallbackHomePage(id))
+      pageLoadError.value = '服务器未返回页面数据'
+      pageStore.resetEditor()
     }
-  } catch {
-    pageStore.setCurrentPage(createFallbackHomePage(id))
-    ElMessage.warning('未读取到后端页面数据，已打开本地首页装修画布')
-  }
-}
-
-function createFallbackHomePage(id: number): PageRecord {
-  const now = new Date().toLocaleString('zh-CN', { hour12: false })
-  return {
-    id,
-    name: '首页',
-    type: 'home',
-    path: 'pages/index/index',
-    status: 'draft',
-    version: 0,
-    created_at: now,
-    updated_at: now,
+  } catch (err: any) {
+    pageLoadError.value = err?.response?.data?.message || err?.message || '无法加载页面数据，请检查网络连接'
+    pageStore.resetEditor()
+    ElMessage.error('页面加载失败')
+  } finally {
+    pageLoadRetrying.value = false
   }
 }
 
@@ -286,6 +385,7 @@ function syncSavedDraftVersion(saved: any) {
     ...pageStore.currentPage,
     id: Number(saved.pageId ?? pageStore.currentPage.id),
     currentVersion: version,
+    latestVersion: version,
     version,
   }
 }
@@ -308,9 +408,14 @@ async function handleBack() {
 /** 保存草稿（手动点击） */
 async function handleSaveDraft() {
   if (!pageStore.currentPage) return
+  const jumpIssues = collectJumpIssues(pageStore.components)
+  if (jumpIssues.length) {
+    ElMessage.error(jumpIssues[0])
+    return
+  }
   pageStore.saving = true
   try {
-    const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
+    const expectedVersion = currentExpectedVersion()
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
     conflict.visible = false
@@ -319,6 +424,7 @@ async function handleSaveDraft() {
     if (res.data) {
       syncSavedDraftVersion(res.data)
     }
+    ElMessage.closeAll()
     ElMessage.success('草稿保存成功')
   } catch (err: any) {
     if (isConflictError(err)) {
@@ -333,11 +439,21 @@ async function handleSaveDraft() {
   }
 }
 
-/** B3：自动保存（静默，不弹提示，不与手动保存冲突提示抢注意力） */
+/** B3：自动保存（静默）。已发布页不做自动保存，避免清空/误改后无离开确认。 */
 async function performAutoSave() {
   if (!pageStore.currentPage || pageStore.saving || savingAsNew.value) return
+  if (collectJumpIssues(pageStore.components).length) return
+  const published = ['1', 'published'].includes(String(pageStore.currentPage.status))
+  if (published) {
+    // 已发布页必须手动保存；保留 isDirty 以便返回/跳转时二次确认
+    return
+  }
+  if (pageStore.components.length === 0) {
+    autoSaveError.value = '空白页面不会自动保存，请手动确认'
+    return
+  }
   try {
-    const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
+    const expectedVersion = currentExpectedVersion()
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
     autoSaveError.value = ''
@@ -345,6 +461,7 @@ async function performAutoSave() {
       syncSavedDraftVersion(res.data)
     }
     lastAutoSavedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })
+    ElMessage.closeAll()
   } catch (err: any) {
     if (isConflictError(err)) {
       conflict.visible = true
@@ -365,6 +482,11 @@ async function handleReloadFromConflict() {
 /** C5：保留本地修改，另存为一个新页面草稿，不覆盖对方的改动 */
 async function handleSaveAsNewDraft() {
   if (!pageStore.currentPage) return
+  const jumpIssues = collectJumpIssues(pageStore.components)
+  if (jumpIssues.length) {
+    ElMessage.warning(jumpIssues[0])
+    return
+  }
   savingAsNew.value = true
   try {
     const source = pageStore.currentPage
@@ -412,16 +534,23 @@ function validateBeforePublish(): string[] {
       warnings.push('表单入口未关联表单')
     }
   }
+  warnings.push(...collectJumpIssues(components))
+  warnings.push(...collectDataSourceIssues(components))
   return [...new Set(warnings)]
 }
 
 /** 发布 */
 async function handlePublish() {
   if (!pageStore.currentPage) return
+  const jumpIssues = collectJumpIssues(pageStore.components)
+  if (jumpIssues.length) {
+    ElMessage.error(jumpIssues[0])
+    return
+  }
   if (pageStore.isDirty) {
     try {
       pageStore.saving = true
-      const expectedVersion = pageStore.currentPage.currentVersion ?? pageStore.currentPage.version
+      const expectedVersion = currentExpectedVersion()
       const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
       pageStore.isDirty = false
       autoSaveError.value = ''
@@ -442,7 +571,11 @@ async function handlePublish() {
   }
 
   const warnings = validateBeforePublish()
-  const blocking = warnings.filter((w) => w.includes('占位') || w.includes('不支持') || w.includes('未关联表单'))
+  const blocking = warnings.filter((w) =>
+    w.includes('占位') || w.includes('不支持') || w.includes('未关联表单') || w.includes('没有任何组件')
+    || w.includes('缺少跳转') || w.includes('跳转类型不合法') || w.includes('未配置数据源')
+    || w.includes('数据源 type') || w.includes('数据源 query'),
+  )
   publishCheck.warnings = warnings
   publishCheck.blocking = blocking
   publishCheck.visible = true
@@ -457,7 +590,7 @@ async function executePublish() {
     // C3：发布成功后用结果面板展示版本、变更规模和下一步建议，替代信息密度过高的单个确认弹窗
     publishResult.version = published?.currentVersion ?? published?.version ?? (pageStore.currentPage.currentVersion ?? pageStore.currentPage.version ?? 1)
     publishResult.componentCount = pageStore.components.length
-    publishResult.path = pageStore.currentPage.path || pageStore.pageConfig.path || ''
+    publishResult.path = toMiniappOpenPath(pageStore.currentPage.path || pageStore.pageConfig.path || '')
     publishCheck.visible = false
     publishResult.visible = true
     await loadPage()
@@ -471,6 +604,11 @@ async function executePublish() {
 function handleGotoMiniappConfig() {
   publishResult.visible = false
   router.push('/page-builder/start')
+}
+
+function handleGotoRelease() {
+  publishResult.visible = false
+  router.push('/page-builder/release')
 }
 
 function handlePreviewAfterPublish() {
@@ -516,6 +654,8 @@ function handleResetDSL() {
 function isValidImportDSL(value: any): value is PageDSL {
   return !!value
     && typeof value === 'object'
+    && typeof value.schema_version === 'string'
+    && value.schema_version.length > 0
     && !!value.page
     && typeof value.page === 'object'
     && typeof value.page.name === 'string'
@@ -524,11 +664,20 @@ function isValidImportDSL(value: any): value is PageDSL {
     && typeof value.global_config === 'object'
 }
 
+function handleImportDSL() {
+  dslEditorValue.value = ''
+  dslDialogVisible.value = true
+}
+
 function handleApplyDSL() {
   try {
     const parsed = JSON.parse(dslEditorValue.value)
+    if (!parsed?.schema_version || !parsed?.page || !Array.isArray(parsed?.components)) {
+      ElMessage.error('DSL 结构不完整，必须包含 schema_version、page、components')
+      return
+    }
     if (!isValidImportDSL(parsed)) {
-      ElMessage.error('DSL 结构不完整，至少需要 page、components、global_config')
+      ElMessage.error('DSL 结构不完整，至少需要 schema_version、page、components、global_config')
       return
     }
     if (pageStore.currentPage) {
@@ -537,7 +686,7 @@ function handleApplyDSL() {
     }
     pageStore.applyTemplate(parsed)
     dslDialogVisible.value = false
-    ElMessage.success('DSL 已导入，请保存草稿后发布上线')
+    ElMessage.success('DSL 已导入，请保存草稿后发布此页')
   } catch {
     ElMessage.error('DSL JSON 解析失败，请检查格式')
   }
@@ -563,9 +712,16 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+function handleBeforeUnload(event: BeforeUnloadEvent) {
+  if (!pageStore.isDirty) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
 onMounted(() => {
   loadPage()
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('beforeunload', handleBeforeUnload)
   // B3：每 30 秒检查一次，若有未保存修改则静默存草稿，避免刷新/关闭页面丢失编辑
   autoSaveTimer = setInterval(() => {
     if (pageStore.isDirty) performAutoSave()
@@ -603,6 +759,7 @@ onBeforeRouteLeave(async (_to, _from, next) => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
   if (autoSaveTimer) {
     clearInterval(autoSaveTimer)
     autoSaveTimer = null
@@ -745,6 +902,56 @@ onBeforeUnmount(() => {
   display: flex;
   flex-shrink: 0;
   gap: 8px;
+}
+
+.load-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  color: #991b1b;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+
+  .el-icon {
+    flex-shrink: 0;
+    color: var(--danger);
+    font-size: 16px;
+  }
+}
+
+.load-error-text {
+  flex: 1;
+  font-size: 13px;
+}
+
+.load-error-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.load-error-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.load-error-placeholder__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.load-error-placeholder__desc {
+  margin-top: 8px;
+  font-size: 13px;
 }
 
 /* C3：发布结果面板 */

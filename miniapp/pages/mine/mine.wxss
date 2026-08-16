@@ -109,6 +109,13 @@
   box-shadow: 0 8rpx 20rpx rgba(8, 20, 54, 0.14);
 }
 
+.m-hero .login-cta--ghost {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  box-shadow: none;
+}
+
 .m-stats {
   position: relative;
   z-index: 2;
@@ -150,6 +157,117 @@
   margin-top: 7rpx;
   color: var(--ink-3);
   font-size: 18rpx;
+}
+
+.section-head--account {
+  margin-top: 28rpx;
+}
+
+.account-card {
+  margin: 0 24rpx;
+  padding: 4rpx 8rpx;
+  background: #fff;
+  border: 1rpx solid var(--line);
+  border-radius: 28rpx;
+  box-shadow: var(--sh1);
+  overflow: hidden;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 96rpx;
+  padding: 18rpx 18rpx;
+  border-bottom: 1rpx solid var(--line-2);
+  background: transparent;
+  margin: 0;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.account-row::after { border: 0; }
+.account-row--last { border-bottom: 0; }
+.account-row--pressed { opacity: 0.85; }
+
+.account-row__label {
+  width: 110rpx;
+  flex-shrink: 0;
+  color: var(--ink-2);
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.account-row__av {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: #eef2ff;
+  margin-left: auto;
+}
+
+.account-row__hint {
+  color: var(--ink-4);
+  font-size: 22rpx;
+}
+
+.account-row .ar {
+  color: var(--ink-4);
+  font-size: 30rpx;
+}
+
+.account-row__input {
+  flex: 1;
+  text-align: right;
+  color: var(--ink);
+  font-size: 26rpx;
+  min-width: 0;
+}
+
+.account-row__value {
+  flex: 1;
+  text-align: right;
+  color: var(--ink);
+  font-size: 26rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-bind {
+  margin: 0 0 0 12rpx;
+  padding: 0 22rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 999rpx;
+  background: var(--brand-soft, #eaf0ff);
+  color: var(--brand);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.account-bind::after { border: 0; }
+.account-bind--pressed { opacity: 0.85; }
+
+.mine-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 8rpx 24rpx 24rpx;
+}
+
+.mine-foot__link {
+  color: var(--ink-3);
+  font-size: 22rpx;
+  padding: 8rpx;
+}
+
+.mine-foot__link--danger {
+  color: #d14343;
+}
+
+.mine-foot__dot {
+  color: var(--ink-4);
+  font-size: 22rpx;
 }
 
 .section-head {

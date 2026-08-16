@@ -5,16 +5,24 @@ const memberService = require('../../services/member')
 const SystemService = require('../../services/system')
 const { LOGIN_RULES } = require('../../config/login-rules')
 
+/** 过滤无效菜单；设置入口保留（个人信息在设置页） */
+function filterDeadMenuItems(list) {
+  return (list || []).filter((item) => {
+    if (item.enabled === false) return false
+    if (!item.url && item.id !== 'contact') return false
+    return true
+  })
+}
+
 Page({
   data: {
     isLoggedIn: false,
     userInfo: null,
-    memberInfo: null,       // 会员信息（等级、积分等）
+    memberInfo: null,
     mineConfig: SystemService.DEFAULT_MINE_PAGE_CONFIG,
     servicePhone: '',
-    continuousDays: 0,      // 连续签到天数
-    hasSignedIn: false,     // 今日是否已签到
-    // 订单快捷入口
+    continuousDays: 0,
+    hasSignedIn: false,
     orderTabs: [
       { key: 'pending_payment', label: '待付款' },
       { key: 'paid', label: '待发货' },
@@ -24,13 +32,10 @@ Page({
     stats: { coupons: 0, points: 0, growth: 0 },
     badges: { pending: 0, appoint: 0, review: 0 },
     tipText: '',
-    // 菜单列表
     menuList: [
       ...SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems,
     ],
-    visibleMenuList: [
-      ...SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems.filter((item) => item.enabled !== false),
-    ],
+    visibleMenuList: filterDeadMenuItems(SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems),
   },
 
   onLoad() {
@@ -38,8 +43,10 @@ Page({
   },
 
   onShow() {
+    // 自定义 tabBar：始终藏住原生栏，避免双 Tab
+    wx.hideTabBar({ animation: false, fail() {} })
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 3 })
+      this.getTabBar().setData({ selected: 2, hidden: false })
     }
 
     AuthService.silentLogin()
@@ -61,12 +68,7 @@ Page({
         const menuList = Array.isArray(config.menuItems) && config.menuItems.length
           ? config.menuItems
           : SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems
-        const visibleMenuList = menuList.filter((item) => {
-          if (item.enabled === false) return false
-          // F5: 无 url 且非客服入口则隐藏，避免「功能开发中」死入口
-          if (!item.url && item.id !== 'contact') return false
-          return true
-        })
+        const visibleMenuList = filterDeadMenuItems(menuList)
         const servicePhone = config.service_phone || config.servicePhone
           || (config.minePageConfig && config.minePageConfig.servicePhone) || ''
         this.setData({
@@ -82,10 +84,11 @@ Page({
         })
       })
       .catch(() => {
+        const menuList = SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems
         this.setData({
           mineConfig: SystemService.DEFAULT_MINE_PAGE_CONFIG,
-          menuList: SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems,
-          visibleMenuList: SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems.filter((item) => item.enabled !== false),
+          menuList,
+          visibleMenuList: filterDeadMenuItems(menuList),
         })
       })
   },
@@ -179,16 +182,16 @@ Page({
   },
 
   goCoupons() {
-    wx.navigateTo({ url: '/pages/coupon-list/coupon-list' })
+    wx.navigateTo({ url: '/pkg-user/coupon-list/coupon-list' })
   },
 
   goAppointments() {
     if (!AuthUtil.requireLoginForAction('查看预约')) return
-    wx.navigateTo({ url: '/pages/my-appointments/my-appointments' })
+    wx.navigateTo({ url: '/pkg-user/my-appointments/my-appointments' })
   },
 
   goWriteReview() {
-    wx.navigateTo({ url: '/pages/order-list/order-list?status=completed' })
+    wx.navigateTo({ url: '/pkg-trade/order-list/order-list?status=completed' })
   },
 
   /** 点击头像/登录区域 */
@@ -200,37 +203,18 @@ Page({
           this._loadMemberInfo()
         },
       })
-    }
-  },
-
-  /** 获取用户信息（头像昵称） */
-  onGetUserProfile() {
-    if (!this.data.isLoggedIn) {
-      AuthUtil.openLoginSheet({
-        onSuccess: () => {
-          this._refreshUserInfo()
-          this._loadMemberInfo()
-        },
-      })
       return
     }
+    this.goSettings()
+  },
 
-    AuthService.getUserProfile()
-      .then((userInfo) => {
-        return AuthService.updateUserInfo(userInfo)
-      })
-      .then(() => {
-        this._refreshUserInfo()
-        wx.showToast({ title: '更新成功', icon: 'success' })
-      })
-      .catch((err) => {
-        console.error('[MinePage] 更新用户信息失败:', err)
-      })
+  goSettings() {
+    wx.navigateTo({ url: '/pkg-user/settings/settings' })
   },
 
   /** 跳转会员中心 */
   goMemberCenter() {
-    wx.navigateTo({ url: '/pages/member-center/member-center' })
+    wx.navigateTo({ url: '/pkg-user/member-center/member-center' })
   },
 
   /** 订单快捷入口 */
@@ -238,14 +222,14 @@ Page({
     const { key } = e.currentTarget.dataset
     if (!AuthUtil.requireLoginForAction('查看订单')) return
     wx.navigateTo({
-      url: '/pages/order-list/order-list?status=' + key,
+      url: '/pkg-trade/order-list/order-list?status=' + key,
     })
   },
 
   /** 查看全部订单 */
   onViewAllOrders() {
     if (!AuthUtil.requireLoginForAction('查看订单')) return
-    wx.navigateTo({ url: '/pages/order-list/order-list' })
+    wx.navigateTo({ url: '/pkg-trade/order-list/order-list' })
   },
 
   /** 菜单项点击 */
@@ -270,7 +254,7 @@ Page({
     if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title || title || '继续操作')) return
 
     if (id === 'contact' || rawUrl === 'contact' || /客服|售后/.test(menuItem.title || title)) {
-      wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+      wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
       return
     }
 
@@ -284,9 +268,12 @@ Page({
     const isTab = [
       '/pages/index/index',
       '/pages/content-list/content-list',
-      '/pages/product-list/product-list',
       '/pages/mine/mine',
     ].indexOf(path) >= 0
+    if (path === '/pages/product-list/product-list') {
+      wx.navigateTo({ url })
+      return
+    }
     if (isTab) {
       wx.switchTab({ url: path })
       return
@@ -301,22 +288,43 @@ Page({
   },
 
   _resolveMenuUrl(rawUrl, title) {
-    if (!rawUrl && /设置/.test(title || '')) return '/pages/settings/settings'
+    if (!rawUrl && /设置/.test(title || '')) return '/pkg-user/settings/settings'
     if (!rawUrl) return ''
-    if (rawUrl === 'contact') return '/pages/service-chat/service-chat'
-    const aliases = {
-      '/pages/favorites/favorites': '/pages/favorites/favorites',
-      '/pages/address-list/address-list': '/pages/address-list/address-list',
-      '/pages/settings/settings': '/pages/settings/settings',
-      '/pages/feedback/feedback': '/pages/feedback/feedback',
-      '/pages/reservation/reservation': '/pages/my-appointments/my-appointments',
-      '/pages/activity/activity': '/pages/activity-list/activity-list',
-      '/pages/privilege/privilege': '/pages/member-center/member-center',
+    if (rawUrl === 'contact') return '/pkg-user/service-chat/service-chat'
+
+    const moved = {
+      '/pages/favorites/favorites': '/pkg-user/favorites/favorites',
+      '/pages/address-list/address-list': '/pkg-user/address-list/address-list',
+      '/pages/settings/settings': '/pkg-user/settings/settings',
+      '/pages/feedback/feedback': '/pkg-user/feedback/feedback',
+      '/pages/member-center/member-center': '/pkg-user/member-center/member-center',
+      '/pages/coupon-list/coupon-list': '/pkg-user/coupon-list/coupon-list',
+      '/pages/order-list/order-list': '/pkg-trade/order-list/order-list',
+      '/pages/order-detail/order-detail': '/pkg-trade/order-detail/order-detail',
+      '/pages/my-appointments/my-appointments': '/pkg-user/my-appointments/my-appointments',
+      '/pages/appointment-list/appointment-list': '/pkg-user/appointment-list/appointment-list',
+      '/pages/service-chat/service-chat': '/pkg-user/service-chat/service-chat',
+      '/pages/sign-in/sign-in': '/pkg-user/sign-in/sign-in',
+      '/pages/points-log/points-log': '/pkg-user/points-log/points-log',
+      '/pages/activity-list/activity-list': '/pkg-extra/activity-list/activity-list',
+      '/pages/activity-detail/activity-detail': '/pkg-extra/activity-detail/activity-detail',
+      '/pages/agreement/agreement': '/pkg-user/agreement/agreement',
+      '/pages/reservation/reservation': '/pkg-user/my-appointments/my-appointments',
+      '/pages/activity/activity': '/pkg-extra/activity-list/activity-list',
+      '/pages/privilege/privilege': '/pkg-user/member-center/member-center',
     }
-    if (aliases[rawUrl]) return aliases[rawUrl]
-    if (rawUrl.startsWith('/pages/')) return rawUrl
-    if (/反馈/.test(title || '')) return '/pages/feedback/feedback'
-    if (/设置/.test(title || '')) return '/pages/settings/settings'
+    if (moved[rawUrl]) return moved[rawUrl]
+
+    // 兼容带 query 的旧路径
+    const pathOnly = rawUrl.split('?')[0]
+    if (moved[pathOnly]) {
+      const q = rawUrl.includes('?') ? rawUrl.slice(rawUrl.indexOf('?')) : ''
+      return moved[pathOnly] + q
+    }
+
+    if (rawUrl.startsWith('/pages/') || rawUrl.startsWith('/pkg-')) return rawUrl
+    if (/反馈/.test(title || '')) return '/pkg-user/feedback/feedback'
+    if (/设置/.test(title || '')) return '/pkg-user/settings/settings'
     return ''
   },
 

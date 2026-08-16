@@ -1,0 +1,62 @@
+task_id: TASK-QA-BATCH-015
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - QA 模式探索主线 P1 有证据回归（AUTH/UI-002/跳转校验/商品/表单/会员/券/订单）
+  - Playwright + API 证据 agent-team/testing/evidence/BATCH-QA-015/
+  - BUG-AUTH-001 回归通过；BUG-UI-002/014/MKT 等仍失败
+changed_files:
+  - agent-team/testing/scripts/run-batch-qa-015-p1-regression.mjs
+  - agent-team/testing/evidence/BATCH-QA-015/
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/defects/BUG-AUTH-001.md
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - BLK-QA-ACCOUNT-MATRIX-001
+  - 真机/支付沙箱未具备（BLK-REL-001/004）
+self_test:
+  result: 不适用
+  details: QA 模式只验证，不改业务代码
+downstream_suggestions:
+  - 修复发布路径与 app.json 不一致（BUG-UI-002）
+  - 跳转缺 type/target 须在发布前检查拦截（BUG-UI-014）
+  - GET /admin/forms 与 /admin/members 当前 HTTP 500，阻断表单/会员后台验收
+  - 优惠券 0.9折展示（BUG-MKT-001）
+next_step: 等待缺陷修复后回归；全系统扩展清单待总控确认
+notes: 探索项不计入 268 分母。禁止写测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-015
+  feature_point_range:
+    - FP-UI-175
+    - FP-UI-176
+    - EXP-AUTH-FORCE-PWD
+    - EXP-LINE1-MP
+    - EXP-LINE2-ADMIN-CREATE
+    - EXP-LINE2-MP-ORDER
+    - EXP-LINE3-ADMIN-CREATE
+    - EXP-MEMBER-LIST
+    - EXP-COUPON-LIST
+    - EXP-PRODUCT-CATEGORY
+  executed_count: 10
+  pass_count: 2
+  fail_count: 7
+  partial_count: 0
+  blocked_count: 1
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "181/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: 缺陷修复后回归 UI-002/014/MKT/FORM/MEMBER；扩展 FP 待确认
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

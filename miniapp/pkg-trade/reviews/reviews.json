@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "全部评价",
+  "usingComponents": {
+    "empty-state": "../../components/empty-state/empty-state"
+  }
+}

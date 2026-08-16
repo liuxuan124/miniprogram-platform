@@ -1,9 +1,39 @@
 <!--components/dsl-article-list/dsl-article-list.wxml — 文章列表组件-->
 <view class="dsl-article-list" style="{{styleString}}">
   <view wx:if="{{config.title}}" class="dsl-article-list__section-title">{{config.title}}</view>
+  <!-- 紧凑布局 -->
+  <view
+    wx:if="{{layout === 'compact'}}"
+    class="dsl-article-list__list"
+  >
+    <view
+      class="dsl-article-list__item dsl-article-list__item--compact"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        class="dsl-article-list__item-cover dsl-article-list__item-cover--compact"
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-list__item-content">
+        <text class="dsl-article-list__item-title dsl-article-list__item-title--compact" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <text
+          class="dsl-article-list__item-date"
+          style="{{metaStyle}}"
+          wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
+        >{{item.created_at || item.publish_time}}</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 列表布局 -->
   <view
-    wx:if="{{config.layout !== 'card' && config.style_type !== 'card'}}"
+    wx:elif="{{layout !== 'card'}}"
     class="dsl-article-list__list"
   >
     <view

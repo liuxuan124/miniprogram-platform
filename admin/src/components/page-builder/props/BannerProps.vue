@@ -17,6 +17,13 @@
       <el-form-item label="指示点">
         <el-switch :model-value="data.indicator_dots" @change="emit('update', { indicator_dots: $event as boolean })" />
       </el-form-item>
+      <el-form-item label="裂图占位">
+        <el-input
+          :model-value="data.image_error_placeholder || ''"
+          placeholder="图片加载失败时的占位图 URL（可选）"
+          @change="(v: string) => emit('update', { image_error_placeholder: v })"
+        />
+      </el-form-item>
       <el-divider content-position="left">轮播图片</el-divider>
       <div v-for="(img, i) in (data.images || [])" :key="i" class="banner-item">
         <el-form-item :label="`图片${i + 1}`">
@@ -34,25 +41,30 @@
               {{ uploadingIndex === i ? '上传中…' : '本地上传' }}
               <input type="file" accept="image/*" style="display: none" @change="handleUpload($event, i)" />
             </label>
-            <el-input
-              v-model="img.title"
-              placeholder="标题（可选）"
-              @change="handleImagesChange"
-              style="margin-top: 4px"
-            />
-            <div class="link-row">
-              <el-select v-model="img.link_type" @change="handleImagesChange" style="width: 90px">
+            <el-form-item label="标题" label-width="50px" class="nested-item">
+              <el-input
+                v-model="img.title"
+                placeholder="轮播标题（可选）"
+                @change="handleImagesChange"
+              />
+            </el-form-item>
+            <el-form-item label="跳转类型" label-width="50px" class="nested-item">
+              <el-select v-model="img.link_type" @change="handleImagesChange" style="width: 100%">
                 <el-option label="页面" value="page" />
+                <el-option label="网页" value="webview" />
                 <el-option label="链接" value="url" />
                 <el-option label="小程序" value="miniapp" />
+                <el-option label="拨打电话" value="phone" />
+                <el-option label="无跳转" value="none" />
               </el-select>
+            </el-form-item>
+            <el-form-item v-if="img.link_type !== 'none'" label="跳转地址" label-width="50px" class="nested-item">
               <el-input
                 v-model="img.link_url"
-                placeholder="链接地址"
+                :placeholder="img.link_type === 'phone' ? '电话号码' : '链接地址'"
                 @change="handleImagesChange"
-                style="flex: 1"
               />
-            </div>
+            </el-form-item>
             <el-button
               type="danger"
               text
@@ -126,7 +138,7 @@ async function handlePaste(event: ClipboardEvent, index: number) {
 }
 
 function addImage() {
-  const images = [...(data.images || []), { image: '', title: '', link_type: 'page', link_url: '' }]
+  const images = [...(data.images || []), { image: '', title: '', link_type: 'none', link_url: '' }]
   emit('update', { images })
 }
 
@@ -180,6 +192,10 @@ function removeImage(index: number) {
     display: flex;
     gap: 4px;
     margin-top: 4px;
+  }
+
+  .nested-item {
+    margin: 8px 0 0;
   }
 }
 </style>

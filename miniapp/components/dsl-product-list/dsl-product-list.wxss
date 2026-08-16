@@ -132,3 +132,25 @@
   font-size: 26rpx;
   color: #999999;
 }
+
+.dsl-product-list__grid--list .dsl-product-list__item {
+  display: flex;
+  flex-direction: row;
+}
+
+.dsl-product-list__grid--list .dsl-product-list__item-image,
+.dsl-product-list__grid--list .dsl-product-list__item-placeholder {
+  width: 184rpx;
+  height: 184rpx;
+  flex-shrink: 0;
+}
+
+.dsl-product-list__grid--waterfall .dsl-product-list__item:nth-child(odd) .dsl-product-list__item-image,
+.dsl-product-list__grid--waterfall .dsl-product-list__item:nth-child(odd) .dsl-product-list__item-placeholder {
+  height: 236rpx;
+}
+
+.dsl-product-list__grid--waterfall .dsl-product-list__item:nth-child(even) .dsl-product-list__item-image,
+.dsl-product-list__grid--waterfall .dsl-product-list__item:nth-child(even) .dsl-product-list__item-placeholder {
+  height: 156rpx;
+}

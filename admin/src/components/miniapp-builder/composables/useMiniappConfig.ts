@@ -64,7 +64,7 @@ export function useMiniappConfig() {
 
   async function loadPages() {
     try {
-      const res = await getPageList({ current: 1, size: 200 })
+      const res = await getPageList({ current: 1, size: 100 })
       const data = res.data as any
       const userPages = (data?.records || data || []).map((p: any) => ({
         id: p.id,

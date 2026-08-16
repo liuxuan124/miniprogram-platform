@@ -1,6 +1,7 @@
 package com.miniprogram.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -23,6 +24,7 @@ public class FormTemplateVO {
     private String description;
 
     @Schema(description = "表单字段定义JSON")
+    @JsonRawValue
     private String fields;
 
     @Schema(description = "状态 0=停用 1=启用")

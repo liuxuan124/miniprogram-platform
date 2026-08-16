@@ -1,0 +1,173 @@
+- generic [ref=f1e344]:
+  - generic [ref=f1e345]:
+    - generic [ref=f1e347]:
+      - generic [ref=f1e348]:
+        - generic [ref=f1e349]:
+          - generic [ref=f1e350]: 组件库
+          - button "27" [ref=f1e351] [cursor=pointer]
+          - button "收起" [ref=f1e352] [cursor=pointer]
+        - textbox "搜索组件" [ref=f1e360]
+        - generic [ref=f1e362]:
+          - generic [ref=f1e363]: 媒体
+          - button "轮播图" [ref=f1e364] [cursor=pointer]
+          - button "图片" [ref=f1e371] [cursor=pointer]
+          - button "视频" [ref=f1e377] [cursor=pointer]
+          - button "图文组合" [ref=f1e383] [cursor=pointer]
+          - generic [ref=f1e389]: 商品
+          - button "搜索组件" [ref=f1e390] [cursor=pointer]
+          - button "分类导航" [ref=f1e396] [cursor=pointer]
+          - button "商品列表" [ref=f1e402] [cursor=pointer]
+          - button "限时秒杀" [ref=f1e408] [cursor=pointer]
+          - button "优惠券" [ref=f1e416] [cursor=pointer]
+          - generic [ref=f1e422]: 内容
+          - button "标题栏" [ref=f1e423] [cursor=pointer]
+          - button "文章列表" [ref=f1e429] [cursor=pointer]
+          - button "富文本" [ref=f1e436] [cursor=pointer]
+          - button "品牌介绍" [ref=f1e442] [cursor=pointer]
+          - button "资质证书" [ref=f1e450] [cursor=pointer]
+          - generic [ref=f1e457]: 营销
+          - button "公告栏" [ref=f1e458] [cursor=pointer]
+          - button "活动入口" [ref=f1e466] [cursor=pointer]
+          - button "活动列表" [ref=f1e472] [cursor=pointer]
+          - button "预约服务" [ref=f1e478] [cursor=pointer]
+          - button "会员卡" [ref=f1e484] [cursor=pointer]
+          - button "倒计时" [ref=f1e491] [cursor=pointer]
+          - button "悬浮按钮" [ref=f1e499] [cursor=pointer]
+          - button "表单入口" [ref=f1e505] [cursor=pointer]
+          - button "AI入口" [ref=f1e511] [cursor=pointer]
+          - button "联系方式" [ref=f1e518] [cursor=pointer]
+          - generic [ref=f1e524]: 布局
+          - button "导航栏" [ref=f1e525] [cursor=pointer]
+          - button "分割线" [ref=f1e531] [cursor=pointer]
+          - button "间距" [ref=f1e537] [cursor=pointer]
+      - generic "拖动调整组件库高度" [ref=f1e543]
+      - generic [ref=f1e545]:
+        - generic [ref=f1e546]:
+          - generic [ref=f1e547]: 当前页面结构
+          - button "1" [ref=f1e548] [cursor=pointer]
+          - button "收起" [ref=f1e549] [cursor=pointer]
+        - generic [ref=f1e551] [cursor=pointer]:
+          - generic [ref=f1e552]: ⠿
+          - generic [ref=f1e553]: 1. 活动入口
+          - button "删除该组件" [ref=f1e554]: ×
+    - generic [ref=f1e555]:
+      - generic [ref=f1e556]:
+        - generic [ref=f1e557]:
+          - button "切换组件面板" [ref=f1e558] [cursor=pointer]
+          - button "返回" [ref=f1e563] [cursor=pointer]
+          - generic [ref=f1e568]: 五一活动专题
+          - generic [ref=f1e569]: v2
+          - generic [ref=f1e679]: 已自动保存 16:35
+        - generic [ref=f1e570]:
+          - generic [ref=f1e571]:
+            - button "撤销" [ref=f1e572] [cursor=pointer]
+            - button "重做" [disabled] [ref=f1e577]
+          - button "保存草稿" [ref=f1e582] [cursor=pointer]
+          - button "预览" [ref=f1e587] [cursor=pointer]
+          - button "发布页面" [ref=f1e592] [cursor=pointer]
+          - button "更多" [ref=f1e598] [cursor=pointer]
+          - button "切换属性面板" [ref=f1e603] [cursor=pointer]
+      - generic [ref=f1e608]:
+        - generic [ref=f1e609]:
+          - generic [ref=f1e610]: 编辑画布
+          - generic [ref=f1e611]: 手机 · 375 × 812
+        - generic [ref=f1e616]:
+          - generic [ref=f1e617]: 五一活动专题
+          - generic [ref=f1e625] [cursor=pointer]:
+            - generic [ref=f1e626]: 🎪 品牌开放日沙龙
+            - generic [ref=f1e628]:
+              - generic [ref=f1e629]: 品牌开放日沙龙
+              - button "立即预约" [ref=f1e630]
+        - generic [ref=f1e631]:
+          - button "75%" [ref=f1e632] [cursor=pointer]
+          - button "100%" [ref=f1e633] [cursor=pointer]
+          - button "125%" [ref=f1e634] [cursor=pointer]
+        - generic [ref=f1e635]: Delete 删除 · ⌘D 复制 · ⌘Z 撤销
+    - generic [ref=f1e637]:
+      - generic [ref=f1e638]:
+        - generic [ref=f1e639]: 页面属性
+        - generic [ref=f1e640]:
+          - generic [ref=f1e641]:
+            - generic [ref=f1e642]: 页面名称
+            - textbox "页面名称" [ref=f1e646]: 五一活动专题
+          - generic [ref=f1e647]:
+            - generic [ref=f1e648]: 背景色
+            - button "背景色" [ref=f1e650]:
+              - generic [ref=f1e651] [cursor=pointer]
+          - generic [ref=f1e657]:
+            - generic [ref=f1e658]: 分享标题
+            - textbox "分享标题" [ref=f1e662]
+      - generic [ref=f1e663]:
+        - generic [ref=f1e664]: 全局配置
+        - generic [ref=f1e665]:
+          - generic [ref=f1e666]:
+            - generic [ref=f1e667]: 下拉刷新
+            - generic [ref=f1e669]:
+              - switch "下拉刷新" [checked]
+              - generic [ref=f1e670] [cursor=pointer]
+          - generic [ref=f1e672]:
+            - generic [ref=f1e673]: 触底加载
+            - generic [ref=f1e675]:
+              - switch "触底加载"
+              - generic [ref=f1e676] [cursor=pointer]
+  - dialog "小程序端实时预览" [ref=f1e681]:
+    - generic [active] [ref=f1e682]:
+      - banner [ref=f1e683]:
+        - heading "小程序端实时预览" [level=2] [ref=f1e684]
+        - button "关闭此对话框" [ref=f1e685] [cursor=pointer]
+      - generic [ref=f1e689]:
+        - generic [ref=f1e690]:
+          - generic [ref=f1e691]: 小程序端实时预览 · 当前模式： 真实数据
+          - radiogroup "segmented" [ref=f1e692]:
+            - generic [ref=f1e693]:
+              - generic [ref=f1e694] [cursor=pointer]:
+                - radio "真实数据" [checked]
+                - generic [ref=f1e695]: 真实数据
+              - generic [ref=f1e696] [cursor=pointer]:
+                - radio "演示数据"
+                - generic [ref=f1e697]: 演示数据
+          - radiogroup "segmented" [ref=f1e698]:
+            - generic [ref=f1e699]:
+              - generic [ref=f1e700] [cursor=pointer]:
+                - radio "首页" [checked]
+                - generic [ref=f1e701]: 首页
+              - generic [ref=f1e702] [cursor=pointer]:
+                - radio "内容"
+                - generic [ref=f1e703]: 内容
+              - generic [ref=f1e704] [cursor=pointer]:
+                - radio "会员"
+                - generic [ref=f1e705]: 会员
+              - generic [ref=f1e706] [cursor=pointer]:
+                - radio "商城"
+                - generic [ref=f1e707]: 商城
+              - generic [ref=f1e708] [cursor=pointer]:
+                - radio "我的"
+                - generic [ref=f1e709]: 我的
+        - alert [ref=f1e710]:
+          - generic [ref=f1e714]: 当前展示线上可用的真实数据。
+        - generic [ref=f1e717]:
+          - generic [ref=f1e719]: 16:35
+          - generic [ref=f1e735]:
+            - button [ref=f1e736] [cursor=pointer]
+            - generic [ref=f1e740]: 首页
+          - generic [ref=f1e750] [cursor=pointer]:
+            - generic [ref=f1e751]: 🎪 品牌开放日沙龙
+            - generic [ref=f1e753]:
+              - generic [ref=f1e754]: 品牌开放日沙龙
+              - button "立即预约" [ref=f1e755]
+          - generic [ref=f1e756]:
+            - button "🏠 首页" [ref=f1e757] [cursor=pointer]:
+              - generic [ref=f1e758]: 🏠
+              - emphasis [ref=f1e759]: 首页
+            - button "📝 内容" [ref=f1e760] [cursor=pointer]:
+              - generic [ref=f1e761]: 📝
+              - emphasis [ref=f1e762]: 内容
+            - button "👑 会员" [ref=f1e763] [cursor=pointer]:
+              - generic [ref=f1e764]: 👑
+              - emphasis [ref=f1e765]: 会员
+            - button "🛍️ 商城" [ref=f1e766] [cursor=pointer]:
+              - generic [ref=f1e767]: 🛍️
+              - emphasis [ref=f1e768]: 商城
+            - button "👤 我的" [ref=f1e769] [cursor=pointer]:
+              - generic [ref=f1e770]: 👤
+              - emphasis [ref=f1e771]: 我的

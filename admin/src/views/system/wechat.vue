@@ -316,11 +316,11 @@
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag
-              :type="row.enabled ? 'success' : 'info'"
+              :type="row.enabled && row.templateId ? 'success' : 'info'"
               size="small"
               effect="plain"
             >
-              {{ row.enabled ? '已启用' : '未配置' }}
+              {{ row.enabled && row.templateId ? '已启用' : '未配置' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -466,9 +466,9 @@ interface NotificationItem {
 }
 
 const notificationList = reactive<NotificationItem[]>([
-  { scene: '📦 订单发货通知', templateId: 'OPENTM407913429', trigger: '填写运单后自动触发', enabled: true },
-  { scene: '✅ 活动报名成功', templateId: 'OPENTM814637211', trigger: '报名审核通过后', enabled: true },
-  { scene: '📅 预约提醒', templateId: 'OPENTM203748920', trigger: '预约前2小时触发', enabled: true },
+  { scene: '📦 订单发货通知', templateId: '', trigger: '填写运单后自动触发', enabled: false },
+  { scene: '✅ 活动报名成功', templateId: '', trigger: '报名审核通过后', enabled: false },
+  { scene: '📅 预约提醒', templateId: '', trigger: '预约前2小时触发', enabled: false },
   { scene: '💰 支付成功确认', templateId: '', trigger: '微信支付回调后', enabled: false },
   { scene: '🎟️ 优惠券到期提醒', templateId: '', trigger: '到期前3天自动触发', enabled: false },
 ])

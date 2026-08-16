@@ -136,3 +136,15 @@
   color: #999;
   font-size: 26rpx;
 }
+
+.dsl-coupon--stack .dsl-coupon__list {
+  gap: 12rpx;
+}
+
+.dsl-coupon--stack .dsl-coupon__item {
+  min-height: 96rpx;
+}
+
+.dsl-coupon--vertical .dsl-coupon__list {
+  flex-direction: column;
+}

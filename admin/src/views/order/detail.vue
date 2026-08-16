@@ -78,7 +78,7 @@
         <!-- 操作区 -->
         <div style="margin-top: 24px; display: flex; gap: 12px">
           <el-button
-            v-if="order.status === OrderStatus.Paid"
+            v-if="order.status === OrderStatus.Paid && !order.shipping_no"
             type="primary"
             @click="openShipDialog"
           >发货</el-button>

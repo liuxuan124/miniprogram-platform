@@ -102,20 +102,25 @@
           <el-option label="拨打电话" value="phone" />
           <el-option label="打开客服" value="ai" />
         </el-select>
+        <div class="field-hint">切换动作后，下方页面路径 / 电话号码会按当前动作启用</div>
       </el-form-item>
-      <el-form-item v-if="(data.action_type || 'link') === 'link'" label="页面路径">
+      <el-form-item label="页面路径">
         <el-input
           :model-value="data.link_url || ''"
+          :disabled="actionType !== 'link'"
           @input="emit('update', { link_url: $event })"
           placeholder="/pages/service-chat/service-chat"
         />
+        <div v-if="actionType !== 'link'" class="field-hint">当前动作不是「跳转页面」，此项不会生效</div>
       </el-form-item>
-      <el-form-item v-if="data.action_type === 'phone'" label="电话号码">
+      <el-form-item label="电话号码">
         <el-input
           :model-value="data.phone || ''"
+          :disabled="actionType !== 'phone'"
           @input="emit('update', { phone: $event })"
           placeholder="400-000-0000"
         />
+        <div v-if="actionType !== 'phone'" class="field-hint">当前动作不是「拨打电话」，此项不会生效</div>
       </el-form-item>
     </el-form>
   </div>
@@ -148,6 +153,7 @@ const iconPreset = computed(() => {
 })
 
 const iconPreview = computed(() => normalizeUploadUrl(String(data.icon_image || '')))
+const actionType = computed(() => data.action_type || 'link')
 
 function onPresetIcon(key: string) {
   const hit = iconPresets.find((x) => x.key === key)

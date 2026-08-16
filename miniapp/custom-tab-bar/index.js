@@ -1,30 +1,19 @@
 const SystemService = require('../services/system')
 
-const DEFAULT_LIST = [
-  {
-    pagePath: '/pages/index/index',
-    text: '首页',
-    icon: '/images/tab-v2/home.svg',
-    selectedIcon: '/images/tab-v2/home-active.svg',
-  },
-  {
-    pagePath: '/pages/content-list/content-list',
-    text: '内容',
-    icon: '/images/tab-v2/content.svg',
-    selectedIcon: '/images/tab-v2/content-active.svg',
-  },
-  {
-    pagePath: '/pages/product-list/product-list',
-    text: '商城',
-    icon: '/images/tab-v2/shop.svg',
-    selectedIcon: '/images/tab-v2/shop-active.svg',
-  },
-  {
-    pagePath: '/pages/mine/mine',
-    text: '我的',
-    icon: '/images/tab-v2/mine.svg',
-    selectedIcon: '/images/tab-v2/mine-active.svg',
-  },
+const TAB_WHITELIST = {
+  '/pages/index/index': true,
+  '/pages/content-list/content-list': true,
+  '/pages/mine/mine': true,
+  // 允许商城相关页作为导航目标（不再审核期硬关闭）
+  '/pages/product-list/product-list': true,
+  '/pages/cart/cart': true,
+  '/pages/category/category': true,
+}
+
+const REGISTERED_TAB_PATHS = [
+  '/pages/index/index',
+  '/pages/content-list/content-list',
+  '/pages/mine/mine',
 ]
 
 const PATH_META_MAP = {
@@ -38,16 +27,31 @@ const PATH_META_MAP = {
     icon: '/images/tab-v2/content.svg',
     selectedIcon: '/images/tab-v2/content-active.svg',
   },
-  '/pages/product-list/product-list': {
-    text: '商城',
-    icon: '/images/tab-v2/shop.svg',
-    selectedIcon: '/images/tab-v2/shop-active.svg',
-  },
   '/pages/mine/mine': {
     text: '我的',
     icon: '/images/tab-v2/mine.svg',
     selectedIcon: '/images/tab-v2/mine-active.svg',
   },
+  '/pages/product-list/product-list': {
+    text: '商城',
+    icon: '/images/tab-v2/home.svg',
+    selectedIcon: '/images/tab-v2/home-active.svg',
+  },
+}
+
+const DEFAULT_LIST = REGISTERED_TAB_PATHS.map((pagePath) => ({
+  pagePath,
+  text: (PATH_META_MAP[pagePath] || {}).text || '页面',
+  icon: (PATH_META_MAP[pagePath] || {}).icon || '/images/tab-v2/home.svg',
+  selectedIcon: (PATH_META_MAP[pagePath] || {}).selectedIcon || '/images/tab-v2/home-active.svg',
+}))
+
+/** 仅过滤明显无效/占位入口；已注册页面可展示 */
+function isBlockedShopTab(path) {
+  const p = '/' + String(path || '').replace(/^\/+/, '')
+  if (TAB_WHITELIST[p]) return false
+  // 无真实路径、仅文案「分类/购物车」的占位项仍拦截
+  return /分类|购物车|商城/.test(String(path || '')) && !p.startsWith('/pages/')
 }
 
 Component({
@@ -80,14 +84,21 @@ Component({
     async _loadTabbarConfig() {
       try {
         const config = await SystemService.fetchSystemConfig(true)
-        const list = (config.tabbarItems || DEFAULT_LIST).filter((item) => item.enabled !== false)
-        const theme = config.miniappThemeConfig || {}
-        const mappedList = list.map((item) => {
+        const rawItems = (config.tabbarItems || [])
+          .filter((item) => item.enabled !== false)
+        const configByPath = new Map()
+        for (const item of rawItems) {
           const pagePath = this._normalizePath(item.path || item.pagePath)
+          if (REGISTERED_TAB_PATHS.includes(pagePath)) {
+            configByPath.set(pagePath, item)
+          }
+        }
+        const theme = config.miniappThemeConfig || {}
+        const mappedList = REGISTERED_TAB_PATHS.map((pagePath) => {
+          const item = configByPath.get(pagePath) || {}
           const pathMeta = PATH_META_MAP[pagePath] || {}
           const icon = pathMeta.icon || item.iconPath || item.icon || '/images/tab-v2/home.svg'
           const selectedIcon = pathMeta.selectedIcon || item.selectedIconPath || item.selectedIcon || icon
-          // 后台若仍下发 emoji，回退到本地 PNG
           const useEmoji = typeof icon === 'string' && !icon.includes('/') && !icon.startsWith('http')
           return {
             pagePath,
@@ -96,9 +107,10 @@ Component({
             selectedIcon: useEmoji ? (pathMeta.selectedIcon || pathMeta.icon || '/images/tab-v2/home-active.svg') : selectedIcon,
           }
         })
+
         this.setData({
-          list: mappedList.length > 0 ? mappedList : DEFAULT_LIST,
-          selected: this._getCurrentIndex(mappedList.length > 0 ? mappedList : DEFAULT_LIST),
+          list: mappedList,
+          selected: this._getCurrentIndex(mappedList),
           activeColor: theme.tabBarActiveColor || '#315efb',
           inactiveColor: theme.tabBarInactiveColor || '#98a2b5',
           backgroundColor: theme.tabBarBackgroundColor || '#ffffff',
@@ -124,6 +136,10 @@ Component({
     switchTab(e) {
       const { index, path } = e.currentTarget.dataset
       const url = this._normalizePath(path)
+      if (isBlockedShopTab(url)) {
+        wx.showToast({ title: '入口未配置', icon: 'none' })
+        return
+      }
       this.setData({ selected: Number(index) || 0 })
       wx.switchTab({
         url,

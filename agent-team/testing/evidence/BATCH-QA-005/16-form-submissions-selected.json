@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/form/submissions\",\"text\":\"提交数据\\n超级管理员\\n提交数据\\n工作台\\n表单模板\\nQA主线表单-0813\\n提交日期\\n至\\n搜索\\n重置\\n表单提交数据\\n导出数据\\nID\\n\\t\\n提交人\\n\\t\\n联系电话\\n\\t\\n姓名\\n\\t\\n提交时间\\n\\t\\n操作\\n暂无数据\\n共 0 条\\n10条/页\\n1\\n前往\\n页\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => ((() => JSON.stringify({url:location.href,text:(document.body.innerText||\'\').slice((document.body.innerText||\'\').indexOf(\'提交数据\'), (document.body.innerText||\'\').indexOf(\'提交数据\')+900)}))())');
+```

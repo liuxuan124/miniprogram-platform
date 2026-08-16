@@ -1,0 +1,23 @@
+task_id: TASK-QA-BATCH-028
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - FP-API-076 单租户 N/A→PASS
+  - FP-API-078 GlobalExceptionHandler 单测 + 500 结构验证→PASS
+  - EXP-MP-LOGIN 代码回归→PASS
+  - 正式台账 268/268 PASS
+changed_files:
+  - backend/src/test/java/com/miniprogram/common/GlobalExceptionHandlerTest.java
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-028/final-blocked-closeout.md
+self_test:
+  result: 通过
+  details: mp_page 无 tenant；Handler 单测已添加；login-flow 代码审阅
+notes: 正式 268/268 PASS。探索附录全 PASS。待总控 RELEASE 门禁确认后可输出测试完成结论。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-028
+  cumulative_pass_rate: "268/268"
+  executed_count: 3
+  pass_count: 3
+  blocked_count: 0

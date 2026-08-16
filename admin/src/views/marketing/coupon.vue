@@ -67,7 +67,7 @@
               <span class="text-danger">-¥{{ row.value }}</span>
             </template>
             <template v-else>
-              <span class="text-danger">{{ row.value }}折</span>
+              <span class="text-danger">{{ formatPercentDiscount(row.value) }}</span>
             </template>
           </template>
         </el-table-column>
@@ -201,7 +201,7 @@
                 style="width: 100%"
               />
               <div class="form-tip">
-                {{ formData.type === CouponType.Fixed ? '满减金额（元）' : '折扣率，如 8.5 表示 8.5 折' }}
+                {{ formData.type === CouponType.Fixed ? '满减金额（元）' : '折扣：填 9 表示九折；也兼容历史数据 0.9' }}
               </div>
             </el-form-item>
           </el-col>
@@ -362,7 +362,7 @@
               -¥{{ row.discount_value }}
             </template>
             <template v-else>
-              {{ row.discount_value }}折
+              {{ formatPercentDiscount(row.discount_value) }}
             </template>
           </template>
         </el-table-column>
@@ -423,6 +423,7 @@ import {
 } from '@/types/coupon'
 import type { UserCouponRecord } from '@/types/coupon'
 import { MemberBenefitCode } from '@/types/member'
+import { formatPercentDiscount } from '@/utils/couponDisplay'
 
 /** 列表数据 */
 const couponList = ref<CouponRecord[]>([])

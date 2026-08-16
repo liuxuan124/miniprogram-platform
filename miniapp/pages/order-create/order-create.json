@@ -1,7 +1,9 @@
 {
   "navigationBarTitleText": "确认订单",
+  "navigationBarBackgroundColor": "#f5f7fb",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f5f7fb",
   "usingComponents": {
-    "pay-sheet": "../../components/pay-sheet/pay-sheet",
-    "coupon-sheet": "../../components/coupon-sheet/coupon-sheet"
+    "pay-sheet": "../../components/pay-sheet/pay-sheet"
   }
 }

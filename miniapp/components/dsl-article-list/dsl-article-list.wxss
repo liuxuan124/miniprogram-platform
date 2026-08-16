@@ -138,3 +138,25 @@
   font-size: 26rpx;
   color: #999999;
 }
+
+.dsl-article-list__item--compact {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 12rpx 0;
+}
+
+.dsl-article-list__item-cover--compact {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.dsl-article-list__item-title--compact {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}

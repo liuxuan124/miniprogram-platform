@@ -1,100 +1,135 @@
-<!-- pages/order-create/order-create.wxml — 订单创建页 -->
-<view class="order-create-page">
-  <!-- 收货地址（实物） -->
-  <view class="address-section" bindtap="onSelectAddress" wx:if="{{!isVirtual}}">
-    <view wx:if="{{hasAddress && address}}" class="address-card">
-      <view class="address-icon">
-        <image class="address-icon-img" src="/images/icon-location.svg" mode="aspectFit" />
+<!-- pages/order-create/order-create.wxml — 确认订单 -->
+<view class="order-page">
+  <!-- 收货地址 -->
+  <view class="block address-block" bindtap="onSelectAddress" hover-class="block--pressed" wx:if="{{!isVirtual}}">
+    <view wx:if="{{hasAddress && address}}" class="address">
+      <view class="address__pin">
+        <view class="address__pin-dot"></view>
       </view>
-      <view class="address-info">
-        <view class="address-name-phone">
-          <text class="address-name">{{address.name}}</text>
-          <text class="address-phone">{{address.phone}}</text>
+      <view class="address__body">
+        <view class="address__meta">
+          <text class="address__name">{{address.name}}</text>
+          <text class="address__phone">{{address.phone}}</text>
         </view>
-        <text class="address-detail">{{address.province}}{{address.city}}{{address.district}}{{address.detail}}</text>
+        <text class="address__detail">{{address.province}}{{address.city}}{{address.district}}{{address.detail || address.address || ''}}</text>
       </view>
-      <text class="address-arrow">&#10095;</text>
+      <text class="chevron">›</text>
     </view>
-    <view wx:else class="address-empty">
-      <text class="address-empty-text">请选择收货地址</text>
-      <text class="address-arrow">&#10095;</text>
+    <view wx:else class="address address--empty">
+      <view class="address__pin address__pin--muted">
+        <view class="address__pin-dot"></view>
+      </view>
+      <view class="address__body">
+        <text class="address__title">添加收货地址</text>
+        <text class="address__hint">实物商品需填写收货信息</text>
+      </view>
+      <text class="chevron">›</text>
     </view>
   </view>
 
-  <!-- 商品列表 -->
-  <view class="goods-section">
-    <view class="section-title">商品信息 · 共 {{totalQuantity}} 件</view>
+  <!-- 商品 -->
+  <view class="block goods-block">
+    <view class="block__head">
+      <text class="block__title">商品信息</text>
+      <text class="block__meta">共 {{totalQuantity}} 件</text>
+    </view>
     <view
       wx:for="{{items}}"
-      wx:key="product_id"
-      class="goods-item"
+      wx:key="index"
+      class="goods {{index < items.length - 1 ? 'goods--divide' : ''}}"
     >
-      <image class="goods-image" src="{{item.product_image || item.image || item.cover_url}}" mode="aspectFill" />
-      <view class="goods-info">
-        <text class="goods-name">{{item.product_name || item.name}}</text>
-        <text class="goods-sku" wx:if="{{item.sku_name}}">规格: {{item.sku_name}}</text>
-        <view class="goods-bottom">
-          <text class="goods-price">&#165;{{item.price}}</text>
-          <text class="goods-qty">x{{item.quantity}}</text>
+      <image
+        class="goods__cover"
+        src="{{item.product_image || item.productImage || item.image || item.cover_url || '/images/default-avatar.svg'}}"
+        mode="aspectFill"
+      />
+      <view class="goods__main">
+        <text class="goods__name">{{item.product_name || item.productName || item.name}}</text>
+        <text class="goods__sku" wx:if="{{item.sku_name || item.skuName}}">{{item.sku_name || item.skuName}}</text>
+        <view class="goods__foot">
+          <view class="price">
+            <text class="price__yen">¥</text>
+            <text class="price__num">{{item.price}}</text>
+          </view>
+          <text class="goods__qty">×{{item.quantity}}</text>
         </view>
       </view>
     </view>
   </view>
 
   <!-- 支付方式 -->
-  <view class="pay-block">
-    <view class="section-title">支付方式</view>
-    <view class="prefer-row">
-      <text>💚 微信支付</text>
-      <view class="check on">✓</view>
+  <view class="block pay-block">
+    <view class="block__head">
+      <text class="block__title">支付方式</text>
+    </view>
+    <view class="pay-row">
+      <view class="pay-row__icon">
+        <view class="wx-mark">微</view>
+      </view>
+      <text class="pay-row__label">微信支付</text>
+      <view class="radio radio--on">
+        <view class="radio__dot"></view>
+      </view>
     </view>
   </view>
 
   <!-- 备注 -->
-  <view class="remark-section">
-    <text class="remark-label">订单备注</text>
-    <textarea
-      class="remark-input"
-      placeholder="选填，请先和商家协商一致"
-      value="{{remark}}"
-      maxlength="200"
-      bindinput="onRemarkInput"
-    />
-  </view>
-
-  <!-- 价格汇总 -->
-  <view class="price-summary">
-    <view class="summary-row">
-      <text class="summary-label">商品总额</text>
-      <text class="summary-value">&#165;{{totalPrice}}</text>
-    </view>
-    <view class="summary-row">
-      <text class="summary-label">运费</text>
-      <text class="summary-value">&#165;0.00</text>
-    </view>
-    <view class="summary-row total-row">
-      <text class="summary-label">实付</text>
-      <text class="summary-value total-price">&#165;{{payAmount}}</text>
+  <view class="block remark-block">
+    <view class="remark-row">
+      <text class="remark-row__label">订单备注</text>
+      <input
+        class="remark-row__input"
+        placeholder="选填，如配送时间等"
+        placeholder-class="remark-row__ph"
+        value="{{remark}}"
+        maxlength="100"
+        bindinput="onRemarkInput"
+      />
     </view>
   </view>
 
-  <!-- 底部提交栏 -->
-  <view class="bottom-bar">
-    <view class="bottom-total">
-      <text class="bottom-total-label">实付</text>
-      <text class="bottom-total-price">&#165;{{payAmount}}</text>
+  <!-- 金额明细 -->
+  <view class="block summary-block">
+    <view class="summary-row">
+      <text class="summary-row__label">商品总额</text>
+      <text class="summary-row__value">¥{{totalPrice}}</text>
+    </view>
+    <view class="summary-row">
+      <text class="summary-row__label">运费</text>
+      <text class="summary-row__value summary-row__value--muted">免运费</text>
+    </view>
+    <view class="summary-row summary-row--total">
+      <text class="summary-row__label">实付金额</text>
+      <view class="price price--lg">
+        <text class="price__yen">¥</text>
+        <text class="price__num">{{payAmount}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe-tip">提交订单即表示同意相关购买须知，支付信息仅用于完成交易</view>
+
+  <!-- 底部栏 -->
+  <view class="dock">
+    <view class="dock__left">
+      <text class="dock__caption">实付</text>
+      <view class="price price--dock">
+        <text class="price__yen">¥</text>
+        <text class="price__num">{{payAmount}}</text>
+      </view>
     </view>
     <view
-      class="submit-btn {{submitting ? 'disabled' : ''}}"
+      class="dock__btn {{submitting ? 'dock__btn--disabled' : ''}}"
       bindtap="onSubmitOrder"
-    >
-      {{submitting ? '提交中...' : '提交订单'}}
-    </view>
+      hover-class="{{submitting ? '' : 'dock__btn--pressed'}}"
+    >{{submitting ? '提交中…' : '提交订单'}}</view>
   </view>
 
   <pay-sheet
+    id="pay-sheet"
     show="{{showPaySheet}}"
     amount="{{payAmount}}"
+    balance="{{walletBalance}}"
     bind:close="onPayClose"
     bind:confirm="onPayConfirm"
   />

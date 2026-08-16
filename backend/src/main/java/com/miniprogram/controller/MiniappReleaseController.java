@@ -4,6 +4,7 @@ import com.miniprogram.annotation.OperationLog;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.miniapp.CreateReleaseDTO;
+import com.miniprogram.dto.miniapp.PublishPreflightVO;
 import com.miniprogram.dto.miniapp.PushPreviewDTO;
 import com.miniprogram.dto.miniapp.PushPreviewResultVO;
 import com.miniprogram.dto.miniapp.ReleaseQueryDTO;
@@ -37,16 +38,59 @@ public class MiniappReleaseController {
         return R.ok(miniappReleaseService.listReleases(queryDTO));
     }
 
-    @Operation(summary = "版本发布详情", description = "获取版本发布详情（含快照）")
-    @GetMapping("/{id}")
-    public R<MiniappRelease> getReleaseDetail(@PathVariable Long id) {
-        return R.ok(miniappReleaseService.getReleaseDetail(id));
+    @Operation(summary = "整包发布前检查", description = "检查首页、导航绑定与待发布页面，供发布页展示")
+    @GetMapping("/preflight")
+    public R<PublishPreflightVO> getPublishPreflight() {
+        return R.ok(miniappReleaseService.getPublishPreflight());
     }
 
     @Operation(summary = "最新已发布版本", description = "获取最新已发布的版本")
     @GetMapping("/latest")
     public R<MiniappRelease> getLatestRelease() {
         return R.ok(miniappReleaseService.getLatestRelease());
+    }
+
+    @Operation(summary = "获取所有版本列表", description = "不分页获取版本列表，支持按状态筛选")
+    @GetMapping("/list")
+    public R<List<MiniappRelease>> listAllReleases(@RequestParam(required = false) Integer status) {
+        var query = new ReleaseQueryDTO();
+        query.setStatus(status);
+        query.setCurrent(1L);
+        query.setSize(100L);
+        PageResult<MiniappRelease> result = miniappReleaseService.listReleases(query);
+        return R.ok(result.getRecords());
+    }
+
+    @Operation(summary = "版本历史", description = "获取所有已发布版本（用于版本选择器）")
+    @GetMapping("/history")
+    public R<List<MiniappRelease>> getReleaseHistory() {
+        return R.ok(miniappReleaseService.getReleaseHistory());
+    }
+
+    @Operation(summary = "生成下一版本号", description = "根据变更类型自动生成下一语义化版本号")
+    @GetMapping("/next-semver")
+    public R<String> generateNextSemver(@RequestParam(defaultValue = "patch") String changeType) {
+        return R.ok(miniappReleaseService.generateNextSemver(changeType));
+    }
+
+    @Operation(summary = "版本操作日志", description = "分页查询版本操作日志")
+    @GetMapping("/operation-logs")
+    public R<PageResult<VersionOperationLog>> listLogs(
+            @RequestParam(defaultValue = "1") Long current,
+            @RequestParam(defaultValue = "20") Long size) {
+        return R.ok(versionOperationLogService.listLogs(current, size));
+    }
+
+    @Operation(summary = "最近体验版推送状态", description = "获取最近一次体验版推送结果")
+    @GetMapping("/push-preview/status")
+    public R<PushPreviewResultVO> getPushPreviewStatus() {
+        return R.ok(miniappWxUploadService.getLastPushStatus());
+    }
+
+    @Operation(summary = "版本发布详情", description = "获取版本发布详情（含快照）")
+    @GetMapping("/{id}")
+    public R<MiniappRelease> getReleaseDetail(@PathVariable Long id) {
+        return R.ok(miniappReleaseService.getReleaseDetail(id));
     }
 
     @Operation(summary = "创建版本发布", description = "快照当前所有已发布页面和系统配置，创建新版本发布（支持 template/publish 双模式）")
@@ -71,17 +115,6 @@ public class MiniappReleaseController {
         return R.ok();
     }
 
-    @Operation(summary = "获取所有版本列表", description = "不分页获取版本列表，支持按状态筛选")
-    @GetMapping("/list")
-    public R<List<MiniappRelease>> listAllReleases(@RequestParam(required = false) Integer status) {
-        var query = new ReleaseQueryDTO();
-        query.setStatus(status);
-        query.setCurrent(1L);
-        query.setSize(100L);
-        PageResult<MiniappRelease> result = miniappReleaseService.listReleases(query);
-        return R.ok(result.getRecords());
-    }
-
     @Operation(summary = "发布版本", description = "将草稿状态的版本发布")
     @PostMapping("/{id}/publish")
     @OperationLog("发布版本")
@@ -96,36 +129,10 @@ public class MiniappReleaseController {
         return R.ok(miniappReleaseService.rollbackRelease(dto));
     }
 
-    @Operation(summary = "版本历史", description = "获取所有已发布版本（用于版本选择器）")
-    @GetMapping("/history")
-    public R<List<MiniappRelease>> getReleaseHistory() {
-        return R.ok(miniappReleaseService.getReleaseHistory());
-    }
-
-    @Operation(summary = "生成下一版本号", description = "根据变更类型自动生成下一语义化版本号")
-    @GetMapping("/next-semver")
-    public R<String> generateNextSemver(@RequestParam(defaultValue = "patch") String changeType) {
-        return R.ok(miniappReleaseService.generateNextSemver(changeType));
-    }
-
-    @Operation(summary = "版本操作日志", description = "分页查询版本操作日志")
-    @GetMapping("/operation-logs")
-    public R<PageResult<VersionOperationLog>> listLogs(
-            @RequestParam(defaultValue = "1") Long current,
-            @RequestParam(defaultValue = "20") Long size) {
-        return R.ok(versionOperationLogService.listLogs(current, size));
-    }
-
     @Operation(summary = "推送微信小程序体验版", description = "当 miniapp 代码有变更时，一键上传代码到微信体验版")
     @PostMapping("/{id}/push-preview")
     @OperationLog("推送微信小程序体验版")
     public R<PushPreviewResultVO> pushPreview(@PathVariable Long id, @RequestBody(required = false) PushPreviewDTO dto) {
         return R.ok(miniappWxUploadService.pushPreview(id, dto));
-    }
-
-    @Operation(summary = "最近体验版推送状态", description = "获取最近一次体验版推送结果")
-    @GetMapping("/push-preview/status")
-    public R<PushPreviewResultVO> getPushPreviewStatus() {
-        return R.ok(miniappWxUploadService.getLastPushStatus());
     }
 }

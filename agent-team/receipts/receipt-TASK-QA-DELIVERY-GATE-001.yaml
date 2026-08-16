@@ -1,0 +1,58 @@
+task_id: TASK-QA-DELIVERY-GATE-001
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 契约版本声明与 blockers 登记（账号矩阵/禁用账号/租户）
+  - 交付门禁快照 agent-team/reports/2026-08-15-qa-delivery-gate-snapshot.md
+  - A 轨 BATCH-QA-014、C 轨 BATCH-QA-015
+  - B 轨全系统扩展清单 feature-inventory-system-extension.md（314 点，待确认）
+changed_files:
+  - agent-team/status/blockers.yaml
+  - agent-team/reports/2026-08-15-qa-delivery-gate-snapshot.md
+  - agent-team/testing/feature-inventory.md
+  - agent-team/testing/feature-inventory-system-extension.md
+  - agent-team/receipts/receipt-TASK-QA-BATCH-014.yaml
+  - agent-team/receipts/receipt-TASK-QA-BATCH-015.yaml
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - BLK-QA-ACCOUNT-MATRIX-001
+  - BLK-QA-DISABLE-USER-001
+  - BLK-QA-TENANT-SCOPE-001
+  - 扩展清单待总控确认
+self_test:
+  result: 不适用
+  details: QA 模式；未改业务代码
+downstream_suggestions:
+  - 总控确认扩展 314 点后，方可进入对应用例设计
+  - 指派 backend/admin/miniapp 处理仍开放的 P1
+next_step: 等待总控确认扩展清单与账号矩阵；缺陷修复后继续回归批
+notes: 正式分母仍 268；通过率 181/268。禁止写测试完成，无上线建议。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-DELIVERY-GATE
+  feature_point_range:
+    - FP-API-001
+    - FP-UI-185
+    - FP-DB-005
+  executed_count: 0
+  pass_count: 0
+  fail_count: 0
+  partial_count: 0
+  blocked_count: 0
+  not_run_count: 0
+  cumulative_execution_rate: "268/268"
+  cumulative_pass_rate: "181/268"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: 总控确认 feature-inventory-system-extension.md；回归开放 P1
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

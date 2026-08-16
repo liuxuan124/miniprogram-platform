@@ -22,3 +22,10 @@
 .btn-o,.btn-p { flex:1; height:88rpx; border-radius:999rpx; display:flex; align-items:center; justify-content:center; font-weight:700; }
 .btn-o { background:#fff; border:3rpx solid var(--line); color:var(--ink-700); }
 .btn-p { background:var(--brand); color:#fff; box-shadow:0 16rpx 40rpx rgba(47,91,255,.3); }
+.empty-spec {
+  padding: 24rpx 0 8rpx;
+  color: var(--ink-300, #98a1b3);
+  font-size: 24rpx;
+  text-align: center;
+}
+

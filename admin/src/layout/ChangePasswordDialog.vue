@@ -5,7 +5,7 @@
     width="420px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    :show-close="false"
+    :show-close="true"
     align-center
   >
     <el-alert
@@ -40,7 +40,14 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 
-const visible = computed(() => userStore.mustChangePassword)
+const visible = computed({
+  get: () => userStore.mustChangePassword,
+  set: (v: boolean) => {
+    userStore.mustChangePassword = v
+    if (v) sessionStorage.setItem('mustChangePassword', '1')
+    else sessionStorage.removeItem('mustChangePassword')
+  },
+})
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>跨境通 · 出海情报平台</title>
+<style>
+:root{
+  --brand:#2f5bff; --brand-600:#1c3fd6; --brand-50:#eef2ff; --brand-100:#dfe6ff;
+  --accent:#ff6b3d; --accent-50:#fff2ee; --gold:#e9a319; --purple:#6b4fe0; --purple-50:#f1edff;
+  --ok:#0fb47f; --warn:#e2564a;
+  --ink:#0f1219; --ink-700:#39404f; --ink-500:#727a8c; --ink-300:#a5abb9;
+  --line:#e9ebf1; --line-2:#f2f3f8; --bg:#f5f6fa; --card:#fff;
+  --r-s:10px; --r:14px; --r-l:20px; --r-p:999px;
+  --sh1:0 1px 2px rgba(15,18,25,.04),0 4px 14px rgba(15,18,25,.05);
+  --sh2:0 8px 30px rgba(15,18,25,.09);
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+::selection{background:var(--brand-100);}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Segoe UI",Arial,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;font-size:14px;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#d3d7e0;border-radius:4px;}
+
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;}
+.side{background:#0e1220;color:#cdd3e0;padding:22px 16px;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow-y:auto;}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px;}
+.brand .mk{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,#5c7cff,#2f5bff 60%,#1c3fd6);
+  display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 6px 18px rgba(47,91,255,.4);}
+.brand .nm{font-size:16px;font-weight:800;letter-spacing:-.02em;color:#fff;}
+.brand .sl{font-size:10.5px;color:#6b7590;margin-top:2px;}
+.nav-grp{margin-bottom:18px;}
+.nav-grp .gt{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#5a6178;
+  padding:0 10px 8px;font-weight:600;}
+.nav{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;cursor:pointer;
+  font-size:13.5px;color:#aeb5c6;transition:.16s var(--ease);margin-bottom:2px;}
+.nav:hover{background:rgba(255,255,255,.05);color:#fff;}
+.nav.on{background:linear-gradient(120deg,rgba(47,91,255,.22),rgba(107,79,224,.18));color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(120,140,255,.28);}
+.nav .ic{font-size:16px;width:20px;text-align:center;}
+.nav .bdg{margin-left:auto;font-size:10px;background:var(--accent);color:#fff;padding:1px 7px;
+  border-radius:999px;font-weight:700;}
+.nav .bdg.b{background:var(--brand);}
+.side .spacer{flex:1;}
+.side .me{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;
+  background:rgba(255,255,255,.05);cursor:pointer;}
+.side .me .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#ffab7f,#ff6b3d);
+  display:flex;align-items:center;justify-content:center;font-size:15px;}
+.side .me .nm{font-size:13px;font-weight:600;color:#fff;}
+.side .me .lv{font-size:10.5px;color:#8089a0;}
+
+.main{min-width:0;display:flex;flex-direction:column;}
+.topbar{height:64px;background:rgba(255,255,255,.82);backdrop-filter:blur(14px) saturate(1.4);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 30px;
+  position:sticky;top:0;z-index:20;}
+.topbar .search{flex:1;max-width:460px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-p);
+  padding:10px 18px;font-size:13.5px;color:var(--ink-300);display:flex;align-items:center;gap:10px;cursor:text;}
+.topbar .sp{flex:1;}
+.topbar .tbtn{width:38px;height:38px;border-radius:11px;background:var(--bg);display:flex;align-items:center;
+  justify-content:center;font-size:16px;cursor:pointer;position:relative;transition:.15s;}
+.topbar .tbtn:hover{background:var(--brand-50);}
+.topbar .tbtn .d{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
+.topbar .cta{background:linear-gradient(120deg,#2f5bff,#4668ff);color:#fff;border:none;font-family:inherit;
+  font-size:13px;font-weight:600;padding:10px 18px;border-radius:var(--r-p);cursor:pointer;
+  box-shadow:0 6px 16px rgba(47,91,255,.28);transition:.16s;display:flex;align-items:center;gap:7px;}
+.topbar .cta:hover{transform:translateY(-1px);}
+
+.view{flex:1;padding:28px 30px 60px;display:none;animation:fade .3s var(--ease);}
+.view.on{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.ph{margin-bottom:22px;}
+.ph h1{font-size:25px;font-weight:800;letter-spacing:-.035em;}
+.ph p{font-size:13.5px;color:var(--ink-500);margin-top:6px;}
+
+.art{position:relative;overflow:hidden;background:#dfe4f5;flex-shrink:0;}
+.art .g{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));}
+.art .v{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.3));}
+.art .gr{position:absolute;inset:0;opacity:.3;mix-blend-mode:overlay;
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.4) 0 1px,transparent 1px 3px);}
+
+.topics{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:22px;}
+.topics .tp{font-size:13px;padding:8px 16px;border-radius:var(--r-p);background:#fff;border:1px solid var(--line);
+  color:var(--ink-500);cursor:pointer;transition:.16s var(--ease);font-weight:500;}
+.topics .tp:hover{border-color:var(--brand-100);}
+.topics .tp.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+.feed{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start;}
+.feed-main{min-width:0;}
+.hot{border-radius:var(--r-l);overflow:hidden;position:relative;height:230px;cursor:pointer;
+  box-shadow:var(--sh2);margin-bottom:20px;transition:.2s var(--ease);}
+.hot:hover{transform:translateY(-3px);}
+.hot .ov{position:absolute;inset:0;padding:26px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;
+  background:linear-gradient(180deg,rgba(10,14,30,.05) 30%,rgba(10,14,30,.78));}
+.hot .tag{align-self:flex-start;font-size:11px;font-weight:600;background:rgba(255,255,255,.22);
+  backdrop-filter:blur(6px);padding:4px 12px;border-radius:var(--r-p);margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;}
+.hot h2{font-size:24px;font-weight:800;letter-spacing:-.035em;line-height:1.3;margin-bottom:9px;max-width:76%;
+  text-shadow:0 2px 14px rgba(0,0,0,.4);}
+.hot .m{font-size:12px;opacity:.9;display:flex;gap:14px;}
+
+.icard{background:#fff;border-radius:var(--r);box-shadow:var(--sh1);padding:18px;margin-bottom:16px;
+  cursor:pointer;transition:.18s var(--ease);display:flex;gap:16px;}
+.icard:hover{transform:translateY(-2px);box-shadow:var(--sh2);}
+.icard .thumb{width:150px;height:104px;border-radius:12px;flex-shrink:0;}
+.icard .body{flex:1;min-width:0;display:flex;flex-direction:column;}
+.icard .top{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.tp-badge{font-size:10.5px;font-weight:700;padding:2.5px 9px;border-radius:6px;}
+.lvl{font-size:10.5px;font-weight:600;padding:2.5px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;}
+.lvl.urgent{background:#ffece9;color:#e2564a;}
+.lvl.trend{background:#e7f5ea;color:#2f9350;}
+.lvl.deep{background:var(--purple-50);color:var(--purple);}
+.icard h3{font-size:16px;font-weight:700;letter-spacing:-.025em;line-height:1.4;margin-bottom:7px;}
+.icard .ex{font-size:12.5px;color:var(--ink-500);line-height:1.65;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.icard .foot{display:flex;align-items:center;gap:14px;margin-top:auto;padding-top:11px;font-size:11.5px;color:var(--ink-300);}
+.icard .foot .ai{margin-left:auto;font-size:11.5px;color:var(--brand);font-weight:600;
+  display:flex;align-items:center;gap:5px;background:var(--brand-50);padding:5px 11px;border-radius:var(--r-p);}
+
+.rail-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh1);padding:18px;margin-bottom:18px;}
+.rail-card h4{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.rail-card h4 .more{margin-left:auto;font-size:11.5px;color:var(--ink-300);font-weight:500;cursor:pointer;}
+.sub-item{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line-2);cursor:pointer;}
+.sub-item:last-child{border-bottom:none;}
+.sub-item .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;}
+.sub-item .n{font-size:13px;font-weight:600;letter-spacing:-.01em;}
+.sub-item .d{font-size:10.5px;color:var(--ink-300);margin-top:2px;}
+.sub-item .btn{margin-left:auto;font-size:11px;font-weight:600;padding:5px 12px;border-radius:var(--r-p);
+  border:1px solid var(--brand);color:var(--brand);cursor:pointer;transition:.15s;background:#fff;}
+.sub-item .btn.on{background:var(--brand);color:#fff;}
+.rank{display:flex;gap:11px;padding:9px 0;cursor:pointer;align-items:flex-start;}
+.rank .no{font-size:15px;font-weight:800;color:var(--ink-300);width:20px;font-style:italic;flex-shrink:0;}
+.rank:nth-child(2) .no{color:var(--accent);} .rank:nth-child(3) .no{color:#ff9a3d;} .rank:nth-child(4) .no{color:var(--gold);}
+.rank .t{font-size:12.5px;font-weight:500;line-height:1.5;}
+.rank .m{font-size:10.5px;color:var(--ink-300);margin-top:3px;}
+.kb-promo{border-radius:var(--r);padding:20px;color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#e0632f,#ff6b3d 60%,#ff8f63);box-shadow:0 10px 26px rgba(255,107,61,.28);cursor:pointer;}
+.kb-promo::after{content:'';position:absolute;right:-30px;top:-40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.13);}
+.kb-promo h4{font-size:16px;font-weight:800;letter-spacing:-.02em;position:relative;}
+.kb-promo p{font-size:12px;opacity:.92;margin-top:8px;position:relative;line-height:1.65;}
+.kb-promo .b{margin-top:14px;background:#fff;color:var(--accent);border:none;font-family:inherit;font-weight:700;
+  font-size:12.5px;padding:8px 16px;border-radius:var(--r-p);cursor:pointer;position:relative;}
+
+.detail{display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start;}
+.dmain{background:#fff;border-radius:var(--r-l);box-shadow:var(--sh1);overflow:hidden;}
+.dcover{height:240px;position:relative;}
+.dbody{padding:30px 34px 34px;}
+.dbody .dmeta{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:12px;color:var(--ink-300);}
+.dbody h1{font-size:27px;font-weight:800;letter-spacing:-.04em;line-height:1.32;margin-bottom:16px;}
+.dbody .lead{font-size:15px;color:var(--ink-700);line-height:1.9;background:var(--brand-50);border-left:3px solid var(--brand);
+  padding:15px 18px;border-radius:0 12px 12px 0;margin-bottom:24px;}
+.dbody h3{font-size:17px;font-weight:700;letter-spacing:-.028em;margin:26px 0 13px;padding-left:12px;position:relative;}
+.dbody h3::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3.5px;border-radius:2px;
+  background:linear-gradient(180deg,#5c7cff,#2f5bff);}
+.dbody p{font-size:14.5px;line-height:2;color:var(--ink-700);margin-bottom:16px;}
+.dbody .keytable{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+.dbody .keytable .r{display:flex;font-size:13px;border-bottom:1px solid var(--line-2);}
+.dbody .keytable .r:last-child{border-bottom:none;}
+.dbody .keytable .r>div{padding:11px 15px;}
+.dbody .keytable .r .k{width:150px;color:var(--ink-500);background:var(--bg);font-weight:500;flex-shrink:0;}
+.dbody .keytable .r .v{flex:1;font-weight:500;}
+.dbody .keytable .r.head>div{background:var(--ink);color:#fff;font-weight:600;}
+
+.aipanel{background:linear-gradient(160deg,#161a2e,#1f2540);border-radius:var(--r-l);padding:24px;color:#e8ebf5;
+  position:sticky;top:88px;box-shadow:var(--sh2);}
+.aipanel .h{display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.aipanel .h .ic{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,#6d8cff,#2f5bff);
+  display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 6px 16px rgba(47,91,255,.4);}
+.aipanel .h .t{font-size:16px;font-weight:800;letter-spacing:-.02em;color:#fff;}
+.aipanel .h .t .s{font-size:11px;font-weight:500;color:#8b93a8;margin-top:2px;}
+.aipanel .desc{font-size:12.5px;color:#9aa2b6;line-height:1.75;margin-bottom:18px;}
+.aipanel .qbtn{display:block;width:100%;text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:#dfe4ef;font-family:inherit;font-size:12.5px;padding:12px 14px;border-radius:11px;cursor:pointer;
+  margin-bottom:9px;transition:.16s var(--ease);display:flex;align-items:center;gap:9px;}
+.aipanel .qbtn:hover{background:rgba(47,91,255,.2);border-color:rgba(120,140,255,.4);transform:translateX(2px);}
+.aipanel .qbtn .e{font-size:15px;}
+.aipanel .run{width:100%;margin-top:8px;background:linear-gradient(120deg,#2f5bff,#4668ff);border:none;color:#fff;
+  font-family:inherit;font-size:14px;font-weight:700;padding:13px;border-radius:12px;cursor:pointer;
+  box-shadow:0 8px 20px rgba(47,91,255,.4);transition:.16s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.aipanel .run:hover{transform:translateY(-1px);}
+.aipanel .foot{font-size:11px;color:#6b7590;text-align:center;margin-top:14px;line-height:1.6;}
+
+.modal-mask{position:fixed;inset:0;background:rgba(10,13,22,.55);backdrop-filter:blur(4px);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:40px;animation:fade .25s var(--ease);}
+.modal-mask.on{display:flex;}
+.modal{background:#fff;border-radius:22px;width:100%;max-width:720px;max-height:86vh;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:up .34s var(--ease);}
+@keyframes up{from{transform:translateY(24px);opacity:0;}to{transform:none;opacity:1;}}
+.modal .mh{display:flex;align-items:center;gap:12px;padding:22px 26px;border-bottom:1px solid var(--line);}
+.modal .mh .ic{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,#6d8cff,#2f5bff);
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;}
+.modal .mh .t{flex:1;}
+.modal .mh h3{font-size:17px;font-weight:800;letter-spacing:-.025em;}
+.modal .mh .s{font-size:12px;color:var(--ink-300);margin-top:2px;}
+.modal .mh .x{font-size:22px;color:var(--ink-300);cursor:pointer;line-height:1;}
+.modal .mb{padding:24px 26px;overflow-y:auto;}
+.gen-line{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-500);padding:8px 0;}
+.gen-line .dot{width:16px;height:16px;border-radius:50%;background:var(--ok);color:#fff;font-size:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.report h2{font-size:19px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;}
+.report .rsub{font-size:12px;color:var(--ink-300);margin-bottom:20px;}
+.report h4{font-size:14.5px;font-weight:700;margin:20px 0 10px;padding-left:11px;position:relative;letter-spacing:-.02em;}
+.report h4::before{content:'';position:absolute;left:0;top:3px;bottom:3px;width:3px;border-radius:2px;background:var(--brand);}
+.report p{font-size:13.5px;line-height:1.85;color:var(--ink-700);margin-bottom:12px;}
+.report ul{margin:0 0 14px;padding-left:6px;list-style:none;}
+.report li{font-size:13.5px;line-height:1.8;color:var(--ink-700);padding-left:22px;position:relative;margin-bottom:7px;}
+.report li::before{content:'✓';position:absolute;left:0;color:var(--ok);font-weight:700;}
+.report .rec{background:linear-gradient(135deg,#f0f4ff,#f7f4ff);border:1px solid #e2e9ff;border-radius:13px;
+  padding:16px 18px;margin:16px 0;}
+.report .rec .rl{font-size:11px;font-weight:700;color:var(--brand);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;}
+.report .rec p{margin:0;font-size:13.5px;color:var(--ink-700);}
+.modal .mf{padding:16px 26px;border-top:1px solid var(--line);display:flex;gap:11px;align-items:center;}
+.modal .mf .note{font-size:11.5px;color:var(--ink-300);flex:1;}
+.btn{border:none;border-radius:var(--r-p);font-size:13.5px;font-weight:600;padding:11px 20px;cursor:pointer;
+  font-family:inherit;transition:.16s var(--ease);}
+.btn:active{transform:scale(.97);}
+.btn-p{background:var(--brand);color:#fff;box-shadow:0 6px 16px rgba(47,91,255,.28);}
+.btn-o{background:#fff;border:1.5px solid var(--line);color:var(--ink-700);}
+
+.wk-hero{border-radius:var(--r-l);padding:26px 28px;color:#fff;margin-bottom:24px;position:relative;overflow:hidden;
+  background:linear-gradient(130deg,#1c2140,#33306b 55%,#5b4fa8);box-shadow:var(--sh2);}
+.wk-hero::after{content:'';position:absolute;right:-30px;top:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.06);}
+.wk-hero h2{font-size:22px;font-weight:800;letter-spacing:-.03em;position:relative;}
+.wk-hero p{font-size:13px;opacity:.85;margin-top:8px;max-width:560px;position:relative;line-height:1.7;}
+.wk-hero .stats{display:flex;gap:36px;margin-top:20px;position:relative;}
+.wk-hero .stats div{font-size:11.5px;opacity:.82;}
+.wk-hero .stats b{display:block;font-size:22px;font-weight:800;letter-spacing:-.04em;margin-bottom:2px;}
+.wk-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.wk-col{display:flex;flex-direction:column;gap:20px;}
+.panel{background:#fff;border-radius:var(--r);box-shadow:var(--sh1);overflow:hidden;}
+.panel .pt{display:flex;align-items:center;gap:9px;padding:17px 20px;border-bottom:1px solid var(--line-2);}
+.panel .pt h4{font-size:14.5px;font-weight:700;letter-spacing:-.02em;}
+.panel .pt .ic{font-size:17px;}
+.panel .pt .more{margin-left:auto;font-size:11.5px;color:var(--ink-300);cursor:pointer;font-weight:500;}
+.panel .pb{padding:8px 20px 16px;}
+.wrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2);cursor:pointer;transition:.14s;}
+.wrow:last-child{border-bottom:none;}
+.wrow:hover{padding-left:4px;}
+.wrow .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;}
+.wrow .in{flex:1;min-width:0;}
+.wrow .in .n{font-size:13.5px;font-weight:600;letter-spacing:-.015em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wrow .in .d{font-size:11px;color:var(--ink-300);margin-top:3px;}
+.wrow .tail{font-size:10.5px;color:var(--ink-300);flex-shrink:0;text-align:right;}
+.wrow .st{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;}
+.st.new{background:var(--accent-50);color:var(--accent);}
+.st.done{background:#e7f5ea;color:#2f9350;}
+.st.fav{background:var(--purple-50);color:var(--purple);}
+
+.sa-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px 20px;}
+.sa{border:1px solid var(--line);border-radius:13px;padding:14px;cursor:pointer;transition:.18s var(--ease);position:relative;}
+.sa:hover{transform:translateY(-2px);box-shadow:var(--sh1);border-color:transparent;}
+.sa .ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin-bottom:11px;}
+.sa h5{font-size:13.5px;font-weight:700;letter-spacing:-.015em;margin-bottom:5px;}
+.sa p{font-size:11px;color:var(--ink-500);line-height:1.6;}
+.sa .on-tag{position:absolute;top:12px;right:12px;font-size:9.5px;font-weight:700;color:var(--ok);
+  background:#e7f5ea;padding:2px 7px;border-radius:5px;}
+.sa.add{border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--ink-300);text-align:center;}
+.sa.add .plus{font-size:26px;margin-bottom:6px;font-weight:300;}
+.agent-row{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-2);}
+.agent-row:last-child{border-bottom:none;}
+.agent-row .av{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;flex-shrink:0;}
+.agent-row .in{flex:1;min-width:0;}
+.agent-row .in .n{font-size:14px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:7px;}
+.agent-row .in .n .live{font-size:9px;font-weight:700;color:var(--ok);background:#e7f5ea;padding:1.5px 6px;border-radius:5px;}
+.agent-row .in .d{font-size:11.5px;color:var(--ink-500);margin-top:3px;line-height:1.5;}
+.agent-row .use{font-size:12px;font-weight:600;padding:8px 16px;border-radius:var(--r-p);
+  background:var(--brand-50);color:var(--brand);cursor:pointer;flex-shrink:0;transition:.15s;}
+.agent-row .use:hover{background:var(--brand);color:#fff;}
+
+.kb-hero{border-radius:var(--r-l);padding:28px 30px;color:#fff;margin-bottom:24px;position:relative;overflow:hidden;
+  background:linear-gradient(130deg,#b8461f,#ff6b3d 55%,#ff9a6b);box-shadow:0 12px 34px rgba(255,107,61,.28);}
+.kb-hero::after{content:'';position:absolute;right:-20px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.1);}
+.kb-hero h2{font-size:24px;font-weight:800;letter-spacing:-.03em;position:relative;}
+.kb-hero p{font-size:13px;opacity:.92;margin-top:9px;max-width:600px;position:relative;line-height:1.7;}
+.kb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.kb{background:#fff;border-radius:var(--r);box-shadow:var(--sh1);overflow:hidden;cursor:pointer;transition:.2s var(--ease);}
+.kb:hover{transform:translateY(-4px);box-shadow:var(--sh2);}
+.kb .cv{height:130px;position:relative;}
+.kb .cv .kind{position:absolute;top:12px;left:12px;font-size:10.5px;font-weight:700;color:#fff;
+  background:rgba(0,0,0,.4);backdrop-filter:blur(4px);padding:4px 10px;border-radius:6px;}
+.kb .body{padding:16px 17px 18px;}
+.kb h4{font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1.4;margin-bottom:8px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:42px;}
+.kb .kd{font-size:12px;color:var(--ink-500);line-height:1.6;margin-bottom:13px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.kb .kf{display:flex;align-items:center;gap:8px;}
+.kb .kf .pr{font-size:17px;font-weight:800;color:var(--accent);letter-spacing:-.03em;}
+.kb .kf .old{font-size:11.5px;color:var(--ink-300);text-decoration:line-through;}
+.kb .kf .sold{margin-left:auto;font-size:11px;color:var(--ink-300);}
+.section-t{font-size:17px;font-weight:800;letter-spacing:-.028em;margin:30px 0 16px;display:flex;align-items:center;gap:9px;}
+
+.toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);background:rgba(15,18,25,.92);color:#fff;
+  padding:13px 24px;border-radius:13px;font-size:13.5px;z-index:200;box-shadow:0 12px 34px rgba(0,0,0,.35);
+  display:none;animation:up .3s var(--ease);backdrop-filter:blur(8px);}
+.toast.on{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mk">🧭</div>
+      <div><div class="nm">跨境通</div><div class="sl">出海情报 · AI 决策</div></div>
+    </div>
+    <div class="nav-grp">
+      <div class="gt">情报</div>
+      <div class="nav on" data-nav="feed" onclick="go('feed')"><span class="ic">📡</span>情报首页</div>
+      <div class="nav" data-nav="feed" onclick="go('feed')"><span class="ic">🔥</span>今日热点<span class="bdg">12</span></div>
+      <div class="nav" data-nav="detail" onclick="go('detail')"><span class="ic">⚡</span>政策速递<span class="bdg">3</span></div>
+      <div class="nav" data-nav="feed" onclick="go('feed')"><span class="ic">📊</span>数据速报</div>
+    </div>
+    <div class="nav-grp">
+      <div class="gt">我的空间</div>
+      <div class="nav" data-nav="workbench" onclick="go('workbench')"><span class="ic">🧠</span>AI 工作台<span class="bdg b">核心</span></div>
+      <div class="nav" data-nav="workbench" onclick="go('workbench')"><span class="ic">📌</span>我的订阅</div>
+      <div class="nav" data-nav="workbench" onclick="go('workbench')"><span class="ic">📄</span>分析报告</div>
+      <div class="nav" data-nav="workbench" onclick="go('workbench')"><span class="ic">👥</span>Agent 伙伴</div>
+    </div>
+    <div class="nav-grp">
+      <div class="gt">深度内容</div>
+      <div class="nav" data-nav="kb" onclick="go('kb')"><span class="ic">📚</span>高端知识库</div>
+      <div class="nav" data-nav="kb" onclick="go('kb')"><span class="ic">🗓️</span>1v1 专家咨询</div>
+      <div class="nav" data-nav="kb" onclick="go('kb')"><span class="ic">👑</span>会员权益</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="me" onclick="toast('打开个人中心')">
+      <div class="av">🙂</div>
+      <div><div class="nm">Lisa · 跨境在路上</div><div class="lv">高级会员 · 12 项订阅</div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">🔍 搜索情报、政策、数据、解决方案…</div>
+      <div class="sp"></div>
+      <div class="tbtn" onclick="toast('3 条新政策提醒')">🔔<span class="d"></span></div>
+      <div class="tbtn" onclick="go('workbench')">📌</div>
+      <button class="cta" onclick="go('workbench')">🧠 我的 AI 工作台</button>
+    </div>
+
+    <!-- 情报首页 -->
+    <div class="view on" id="v-feed">
+      <div class="ph">
+        <h1>出海情报 · 今日</h1>
+        <p>聚合全网信息，提炼为可用情报。订阅感兴趣的主题，让 AI 帮你把情报变成决策。</p>
+      </div>
+      <div class="topics" id="feed-topics"></div>
+      <div class="feed">
+        <div class="feed-main">
+          <div class="hot" onclick="go('detail')">
+            <div class="art" style="position:absolute;inset:0;"><div class="gr"></div><div class="v"></div><div class="g" style="font-size:60px;">⚡</div></div>
+            <div class="ov">
+              <div class="tag">⚡ 政策速递 · 3 小时前</div>
+              <h2>欧盟 GPSR 新规 7 月全面生效：哪些品类受影响、卖家该怎么办</h2>
+              <div class="m"><span>📌 2,340 人订阅此主题</span><span>🤖 已生成 186 份分析</span></div>
+            </div>
+          </div>
+          <div id="feed-list"></div>
+        </div>
+        <div class="feed-rail">
+          <div class="rail-card">
+            <h4>🔥 热门情报榜 <span class="more" onclick="toast('查看完整榜单')">更多</span></h4>
+            <div id="rank-list"></div>
+          </div>
+          <div class="rail-card">
+            <h4>📌 推荐订阅 <span class="more">全部</span></h4>
+            <div id="sub-list"></div>
+          </div>
+          <div class="kb-promo" onclick="go('kb')">
+            <h4>📚 高端知识库</h4>
+            <p>看完情报，想系统学方法？100+ 深度资料包与专家课程，从情报进阶到体系。</p>
+            <button class="b">进入知识库 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 情报详情 -->
+    <div class="view" id="v-detail">
+      <div class="detail">
+        <div class="dmain">
+          <div class="dcover art"><div class="gr"></div><div class="v"></div><div class="g" style="font-size:56px;">⚡</div></div>
+          <div class="dbody">
+            <div class="dmeta">
+              <span class="tp-badge" style="background:#ffece9;color:#e2564a;">政策合规</span>
+              <span class="lvl urgent">🔴 高时效</span>
+              <span>2026-07-22 更新</span><span>·</span><span>📌 2,340 订阅</span>
+            </div>
+            <h1>欧盟 GPSR 新规 7 月全面生效：影响品类、合规要点与应对清单</h1>
+            <div class="lead">GPSR（通用产品安全法规）已于 2026 年 7 月全面强制执行，所有面向欧盟消费者销售的产品都需满足新的安全与追溯要求。未合规商品将面临下架、罚款乃至封店风险。本情报汇总官方要点、受影响品类与可执行的应对步骤。</div>
+            <h3>哪些品类受影响</h3>
+            <p>几乎所有非食品消费品都在覆盖范围内，家居、玩具、电子配件、服装纺织受影响最直接。带电、儿童相关及直接接触皮肤的产品，审查最为严格。</p>
+            <div class="keytable">
+              <div class="r head"><div class="k">要求项</div><div class="v">具体内容</div></div>
+              <div class="r"><div class="k">欧盟责任人</div><div class="v">必须指定欧盟境内责任主体，信息标注在产品或包装上</div></div>
+              <div class="r"><div class="k">安全信息</div><div class="v">警告语、使用说明须提供当地语言版本</div></div>
+              <div class="r"><div class="k">可追溯性</div><div class="v">批次号、制造商信息完整可查</div></div>
+              <div class="r"><div class="k">技术文档</div><div class="v">风险评估报告，需留存并可随时提交</div></div>
+            </div>
+            <h3>卖家应对清单</h3>
+            <p>合规不是一次性动作，建议按下面顺序推进，并与备货、上架节奏并行，避免临期赶工。</p>
+            <p>第一步，盘点在售 SKU，标记受影响品类；第二步，指定欧盟责任人；第三步，补齐多语言安全信息与技术文档；第四步，更新 Listing 与包装标注。整个周期通常需 3–5 周，务必预留缓冲。</p>
+          </div>
+        </div>
+        <div class="airail">
+          <div class="aipanel">
+            <div class="h">
+              <div class="ic">🤖</div>
+              <div class="t">AI 情报分析<div class="s">基于本篇情报 + 你的业务</div></div>
+            </div>
+            <div class="desc">让 AI 结合你的店铺、品类和所在市场，把这条情报变成属于你的决策建议与应对方案。</div>
+            <button class="qbtn" onclick="openReport()"><span class="e">🎯</span>我的品类是否受影响？</button>
+            <button class="qbtn" onclick="openReport()"><span class="e">📋</span>生成我的专属合规清单</button>
+            <button class="qbtn" onclick="openReport()"><span class="e">⏱️</span>结合我的上架计划排时间</button>
+            <button class="qbtn" onclick="openReport()"><span class="e">💰</span>估算合规成本与影响</button>
+            <button class="run" onclick="openReport()">⚡ 生成决策分析报告</button>
+            <div class="foot">报告将自动保存到你的 AI 工作台</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 工作台 -->
+    <div class="view" id="v-workbench">
+      <div class="wk-hero">
+        <h2>🧠 我的 AI 工作台</h2>
+        <p>你的私人决策空间。订阅的情报、收藏的内容、AI 生成的报告与解决方案都沉淀在这里，
+          skill 与 agent 伙伴替你把判断落成执行——你负责判断，AI 负责行动。</p>
+        <div class="stats">
+          <div><b>12</b>订阅主题</div>
+          <div><b>28</b>收藏情报</div>
+          <div><b>9</b>分析报告</div>
+          <div><b>4</b>Agent 伙伴</div>
+        </div>
+      </div>
+      <div class="wk-grid">
+        <div class="wk-col">
+          <div class="panel">
+            <div class="pt"><span class="ic">📌</span><h4>我的订阅 · 情报动态</h4><span class="more" onclick="go('feed')">管理</span></div>
+            <div class="pb" id="wb-subs"></div>
+          </div>
+          <div class="panel">
+            <div class="pt"><span class="ic">📄</span><h4>AI 分析报告</h4><span class="more" onclick="toast('查看全部报告')">全部</span></div>
+            <div class="pb" id="wb-reports"></div>
+          </div>
+          <div class="panel">
+            <div class="pt"><span class="ic">🔖</span><h4>收藏的情报与方案</h4><span class="more">全部</span></div>
+            <div class="pb" id="wb-favs"></div>
+          </div>
+        </div>
+        <div class="wk-col">
+          <div class="panel">
+            <div class="pt"><span class="ic">👥</span><h4>我的 Agent 伙伴</h4><span class="more" onclick="toast('管理 Agent 团队')">管理</span></div>
+            <div class="pb" style="padding-bottom:8px;" id="wb-agents"></div>
+          </div>
+          <div class="panel">
+            <div class="pt"><span class="ic">🧩</span><h4>Skill 能力中心</h4><span class="more" onclick="toast('浏览 Skill 市场')">市场</span></div>
+            <div class="sa-grid" id="wb-skills"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 知识库 -->
+    <div class="view" id="v-kb">
+      <div class="kb-hero">
+        <h2>📚 高端知识库</h2>
+        <p>情报帮你追踪变化，知识库帮你建立体系。这里沉淀成体系的深度方法论、专家课程与 1v1 咨询，
+          把碎片情报升级为可复用的出海能力。</p>
+      </div>
+      <div class="section-t">📘 精选资料包</div>
+      <div class="kb-grid" id="kb-ebooks"></div>
+      <div class="section-t">🗓️ 1v1 专家咨询</div>
+      <div class="kb-grid" id="kb-consult"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="report-mask">
+  <div class="modal">
+    <div class="mh">
+      <div class="ic">🤖</div>
+      <div class="t"><h3>AI 决策分析报告</h3><div class="s" id="report-sub">正在结合你的业务生成…</div></div>
+      <div class="x" onclick="closeReport()">✕</div>
+    </div>
+    <div class="mb" id="report-body"></div>
+    <div class="mf">
+      <div class="note">分析基于你的店铺画像：欧洲站 · 家居收纳 · 月销 1,200 单</div>
+      <button class="btn btn-o" onclick="closeReport()">关闭</button>
+      <button class="btn btn-p" id="report-save" onclick="saveReport()">保存到工作台</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ART={
+ select:['#4f6dff','#8ea3ff','#2b3fb8','#c3ceff'], supply:['#2f9e6e','#7fd3ab','#186b48','#c8f0dd'],
+ platform:['#f2762a','#ffb37a','#c1490f','#ffd9bd'], dtc:['#6b4fe0','#a99bff','#3f2aa8','#d8d0ff'],
+ logistics:['#2b8cc4','#7cc6e8','#155e8a','#c6e6f5'], compliance:['#d94f78','#f2a0b5','#a12f52','#fbd3dd']};
+function art(t){const c=ART[t]||ART.select;
+ return `background-image:radial-gradient(at 18% 14%, ${c[1]} 0px, transparent 52%),`+
+ `radial-gradient(at 84% 8%, ${c[3]} 0px, transparent 48%),`+
+ `radial-gradient(at 72% 82%, ${c[2]} 0px, transparent 56%),`+
+ `radial-gradient(at 12% 88%, ${c[0]} 0px, transparent 50%);background-color:${c[0]};`;}
+function artEl(t,glyph,size){return `<div class="art" style="${art(t)}width:100%;height:100%;">
+ <div class="gr"></div><div class="v"></div><div class="g" style="font-size:${size||30}px;">${glyph}</div></div>`;}
+const TPC={select:['选品洞察','#eef2ff','#2f5bff'],supply:['供应链','#e7f5ea','#2f9350'],
+ platform:['平台运营','#fff2e8','#e0632f'],dtc:['独立站','#f1edff','#6b4fe0'],
+ logistics:['物流履约','#e8f4fb','#2b8cc4'],compliance:['政策合规','#ffece9','#e2564a']};
+const TOPICS=[['all','全部情报'],['compliance','政策合规'],['select','选品洞察'],['platform','平台运营'],
+ ['supply','供应链'],['dtc','独立站'],['logistics','物流履约']];
+const INTEL=[
+ {topic:'compliance',glyph:'⚖️',lvl:['urgent','🔴 高时效'],title:'美国关税调整落地：3 个高频品类税率变化与转口应对',
+  ex:'新一轮关税清单已生效，家居、五金、部分电子品类税率上调，本情报梳理具体变化并给出成本测算与转口思路。',
+  m:['⚡ 政策速递','5 小时前','📌 1,820 订阅']},
+ {topic:'select',glyph:'📈',lvl:['trend','🟢 趋势'],title:'7 月跨境类目动销速报：宠物智能 +38%，家居收纳承压',
+  ex:'覆盖亚马逊北美/欧洲站及 TikTok Shop 美区的最新动销数据，附增速榜与价格带变化解读。',
+  m:['📊 数据速报','今天','📌 2,640 订阅']},
+ {topic:'platform',glyph:'🛒',lvl:['urgent','🔴 高时效'],title:'亚马逊更新佣金与广告政策：中小卖家利润结构受影响',
+  ex:'平台规则更新，部分类目佣金比例调整、广告竞价机制变化，本情报拆解对不同体量卖家的实际影响。',
+  m:['⚡ 平台动态','1 天前','📌 3,110 订阅']},
+ {topic:'dtc',glyph:'🌐',lvl:['deep','🟣 深度'],title:'独立站支付风控收紧：如何降低拒付率与账户冻结风险',
+  ex:'近期多个支付渠道风控升级，本情报汇总触发风控的常见原因与合规配置建议。',
+  m:['🌐 独立站','2 天前','📌 1,290 订阅']},
+ {topic:'logistics',glyph:'🚢',lvl:['trend','🟢 趋势'],title:'旺季头程价格预测：海运舱位紧张，建议提前锁仓',
+  ex:'结合近三年旺季数据与当前舱位情况，预测 Q4 头程价格走势并给出备货节奏建议。',
+  m:['🚢 物流履约','2 天前','📌 960 订阅']}];
+const RANKS=[
+ ['欧盟 GPSR 新规全面生效','2.3w 阅读 · 政策合规'],
+ ['宠物智能类目还能进吗','1.8w 阅读 · 选品洞察'],
+ ['亚马逊佣金政策变化解读','1.5w 阅读 · 平台运营'],
+ ['海外仓 vs 直发成本临界点','1.1w 阅读 · 物流履约'],
+ ['独立站支付风控应对','9.2k 阅读 · 独立站']];
+const SUBS=[
+ ['compliance','⚖️','欧盟政策合规','每周更新 · 3 条新'],
+ ['select','🔍','选品趋势洞察','每日更新'],
+ ['platform','🛒','亚马逊平台动态','实时推送']];
+const WB_SUBS=[
+ {topic:'compliance',ic:'⚖️',n:'欧盟 GPSR 新规全面生效',d:'欧盟政策合规 · 订阅主题',st:['new','3 条新']},
+ {topic:'select',ic:'🔍',n:'7 月类目动销速报已更新',d:'选品趋势洞察 · 订阅主题',st:['new','更新']},
+ {topic:'platform',ic:'🛒',n:'亚马逊佣金政策变化',d:'亚马逊平台动态 · 订阅主题',st:['','2 天前']}];
+const WB_REPORTS=[
+ {topic:'compliance',ic:'📄',n:'GPSR 新规对我的合规影响分析',d:'欧洲站 · 家居收纳',tail:'今天',st:['done','已完成']},
+ {topic:'select',ic:'📄',n:'宠物智能类目进入可行性评估',d:'北美站 · 新品测算',tail:'3 天前',st:['done','已完成']},
+ {topic:'logistics',ic:'📄',n:'Q4 备货与头程成本方案',d:'海运 · 旺季规划',tail:'1 周前',st:['done','已完成']}];
+const WB_FAVS=[
+ {topic:'compliance',ic:'🔖',n:'欧盟各国 VAT 税率对比表',d:'收藏的情报',st:['fav','情报']},
+ {topic:'supply',ic:'🔖',n:'验厂 18 问核对清单',d:'收藏的解决方案',st:['fav','方案']},
+ {topic:'platform',ic:'🔖',n:'TikTok 起号 30 天节奏表',d:'收藏的情报',st:['fav','情报']}];
+const AGENTS=[
+ {topic:'compliance',av:'⚖️',n:'合规雷达 Agent',live:1,d:'监控你所在市场的政策变化，有新规第一时间提醒并生成应对建议'},
+ {topic:'select',av:'🔍',n:'选品分析师 Agent',live:0,d:'输入品类关键词，自动拉取趋势数据、竞品价格带并给出进入建议'},
+ {topic:'platform',av:'🛒',n:'Listing 优化 Agent',live:0,d:'诊断你的 Listing 并给出标题、关键词、卖点改写方案'},
+ {topic:'dtc',av:'🌐',n:'数据复盘 Agent',live:0,d:'定期读取店铺数据，自动生成经营复盘与异常预警'}];
+const SKILLS=[
+ {topic:'select',ic:'🔍',n:'选品分析',d:'趋势 + 竞品 + 利润测算',on:1},
+ {topic:'compliance',ic:'⚖️',n:'合规检查',d:'政策符合性自查',on:1},
+ {topic:'platform',ic:'📝',n:'Listing 优化',d:'标题关键词卖点',on:0},
+ {topic:'logistics',ic:'📊',n:'数据复盘',d:'经营数据分析',on:0}];
+const EBOOKS=[
+ {topic:'select',glyph:'📘',kind:'资料包',title:'《100 个跨境爆款选品案例库》',
+  d:'四大类目 100 个真实选品案例，含供应商筛选清单与定价模型',price:59,old:99,sold:'已售 2103'},
+ {topic:'compliance',glyph:'⚖️',kind:'资料包',title:'《欧洲站合规与 VAT 操作手册》',
+  d:'VAT / EPR / CE / GPSR 全流程，含各国税率对比与驳回补救',price:39,old:69,sold:'已售 986'},
+ {topic:'platform',glyph:'🛒',kind:'资料包',title:'《亚马逊新品冷启动 30 天手册》',
+  d:'Listing、广告与评论的节奏安排，逐阶段检查清单',price:49,old:79,sold:'已售 1240'}];
+const CONSULT=[
+ {topic:'platform',glyph:'🗓️',kind:'1v1 咨询',title:'选品诊断 1v1 咨询（45 分钟）',
+  d:'围绕你的选品方向、供应链与店铺数据做针对性诊断，含文字纪要',price:299,old:399,sold:'已约 186'},
+ {topic:'dtc',glyph:'🌐',kind:'1v1 咨询',title:'独立站冷启动 1v1 咨询（60 分钟）',
+  d:'建站选型 / 落地页 / 支付物流 / 首波投放逐项诊断',price:399,old:0,sold:'已约 94'},
+ {topic:'compliance',glyph:'⚖️',kind:'1v1 咨询',title:'欧洲站合规诊断 1v1（45 分钟）',
+  d:'VAT / GPSR / EPR 现状核对，给出合规路线与优先级',price:349,old:0,sold:'已约 62'}];
+
+let feedTopic='all';
+function renderTopics(){
+ document.getElementById('feed-topics').innerHTML=TOPICS.map(([k,n])=>
+  `<div class="tp ${k===feedTopic?'on':''}" onclick="setFeedTopic('${k}')">${n}</div>`).join('');}
+function setFeedTopic(k){feedTopic=k;renderTopics();renderFeed();}
+function renderFeed(){
+ const list=INTEL.filter(i=>feedTopic==='all'||i.topic===feedTopic);
+ document.getElementById('feed-list').innerHTML=list.map(i=>{const tp=TPC[i.topic];
+  return `<div class="icard" onclick="go('detail')">
+   <div class="thumb">${artEl(i.topic,i.glyph,28)}</div>
+   <div class="body">
+    <div class="top"><span class="tp-badge" style="background:${tp[1]};color:${tp[2]};">${tp[0]}</span>
+     <span class="lvl ${i.lvl[0]}">${i.lvl[1]}</span></div>
+    <h3>${i.title}</h3><div class="ex">${i.ex}</div>
+    <div class="foot">${i.m.map(x=>`<span>${x}</span>`).join('')}
+     <span class="ai" onclick="event.stopPropagation();go('detail')">🤖 AI 分析</span></div>
+   </div></div>`;}).join('')||'<div style="text-align:center;padding:60px;color:var(--ink-300);">该主题暂无情报</div>';}
+function renderRail(){
+ document.getElementById('rank-list').innerHTML=RANKS.map((r,i)=>
+  `<div class="rank" onclick="go('detail')"><span class="no">${i+1}</span>
+   <div><div class="t">${r[0]}</div><div class="m">${r[1]}</div></div></div>`).join('');
+ document.getElementById('sub-list').innerHTML=SUBS.map((s,i)=>{const tp=TPC[s[0]];
+  return `<div class="sub-item">
+   <div class="ic" style="background:${tp[1]};">${s[1]}</div>
+   <div><div class="n">${s[2]}</div><div class="d">${s[3]}</div></div>
+   <div class="btn ${i===0?'on':''}" onclick="subToggle(this)">${i===0?'已订阅':'+ 订阅'}</div></div>`;}).join('');}
+function subToggle(el){el.classList.toggle('on');
+ el.textContent=el.classList.contains('on')?'已订阅':'+ 订阅';
+ toast(el.classList.contains('on')?'已订阅，动态将同步到工作台':'已取消订阅');}
+
+function wrow(x){const act=(x.st&&x.st[0]==='done')?'openReport':'gDetail';
+ return `<div class="wrow" onclick="${act}()">
+ <div class="ic" style="background:${TPC[x.topic][1]};">${x.ic}</div>
+ <div class="in"><div class="n">${x.n}</div><div class="d">${x.d}</div></div>
+ ${x.st&&x.st[1]?`<span class="st ${x.st[0]}">${x.st[1]}</span>`:''}
+ ${x.tail?`<span class="tail">${x.tail}</span>`:''}</div>`;}
+function renderWorkbench(){
+ document.getElementById('wb-subs').innerHTML=WB_SUBS.map(wrow).join('');
+ document.getElementById('wb-reports').innerHTML=WB_REPORTS.map(wrow).join('');
+ document.getElementById('wb-favs').innerHTML=WB_FAVS.map(wrow).join('');
+ document.getElementById('wb-agents').innerHTML=AGENTS.map(a=>
+  `<div class="agent-row"><div class="av" style="background:${TPC[a.topic][1]};">${a.av}</div>
+   <div class="in"><div class="n">${a.n}${a.live?'<span class="live">● 运行中</span>':''}</div>
+    <div class="d">${a.d}</div></div>
+   <div class="use" onclick="toast('已唤起 ${a.n}')">${a.live?'查看':'启用'}</div></div>`).join('');
+ document.getElementById('wb-skills').innerHTML=SKILLS.map(s=>
+  `<div class="sa" onclick="toast('${s.on?'调用':'启用'} ${s.n} skill')">
+   ${s.on?'<span class="on-tag">已启用</span>':''}
+   <div class="ic" style="background:${TPC[s.topic][1]};">${s.ic}</div>
+   <h5>${s.n}</h5><p>${s.d}</p></div>`).join('')+
+  `<div class="sa add" onclick="toast('打开 Skill 市场')"><div class="plus">+</div><h5>添加 Skill</h5></div>`;}
+function kbCard(k){return `<div class="kb" onclick="toast('查看：${k.title}')">
+ <div class="cv">${artEl(k.topic,k.glyph,34)}<span class="kind">${k.kind}</span></div>
+ <div class="body"><h4>${k.title}</h4><div class="kd">${k.d}</div>
+  <div class="kf"><span class="pr">¥${k.price}</span>${k.old?`<span class="old">¥${k.old}</span>`:''}
+   <span class="sold">${k.sold}</span></div></div></div>`;}
+function renderKb(){
+ document.getElementById('kb-ebooks').innerHTML=EBOOKS.map(kbCard).join('');
+ document.getElementById('kb-consult').innerHTML=CONSULT.map(kbCard).join('');}
+
+function openReport(){
+ const mask=document.getElementById('report-mask');mask.classList.add('on');
+ const body=document.getElementById('report-body');
+ document.getElementById('report-sub').textContent='正在结合你的业务生成…';
+ document.getElementById('report-save').style.display='none';
+ body.innerHTML=['读取你的店铺画像：欧洲站 · 家居收纳','匹配情报：欧盟 GPSR 新规全面生效',
+  '比对你的在售 SKU 与受影响品类','结合你的上架计划测算时间与成本','生成决策建议与应对清单'].map((t,i)=>
+  `<div class="gen-line" style="opacity:0;animation:fade .3s ${i*0.5}s forwards;">
+   <span class="dot">✓</span>${t}</div>`).join('');
+ setTimeout(showReport,2700);}
+function showReport(){
+ document.getElementById('report-sub').textContent='已完成 · 基于你的业务生成';
+ document.getElementById('report-save').style.display='';
+ document.getElementById('report-body').innerHTML=`
+  <div class="report">
+   <h2>GPSR 新规对我的合规影响分析</h2>
+   <div class="rsub">生成时间 2026-07-22 · 店铺画像：欧洲站 · 家居收纳 · 月销 1,200 单</div>
+   <h4>结论：你受直接影响，需在 4 周内完成整改</h4>
+   <p>你的主营品类「家居收纳」属于 GPSR 覆盖范围，且部分 SKU 含儿童使用场景，属于重点审查对象。当前 Listing 缺少欧盟责任人信息与多语言安全说明，存在下架风险。</p>
+   <h4>优先处理清单</h4>
+   <ul>
+    <li>立即指定欧盟责任人，并在包装与 Listing 标注（最紧急）</li>
+    <li>为 12 个在售 SKU 补齐德/法/意语安全警告与使用说明</li>
+    <li>整理批次号与制造商信息，建立可追溯档案</li>
+    <li>补做风险评估技术文档，留存备查</li>
+   </ul>
+   <div class="rec"><div class="rl">时间建议</div>
+    <p>你计划 8 月中旬旺季前补货上新，建议本周即启动责任人指定（约需 5–7 天），与打样、备货并行，避免上架前才发现合规缺口导致延期。</p></div>
+   <div class="rec"><div class="rl">下一步</div>
+    <p>可启用「合规雷达 Agent」持续监控后续细则变化；如需逐项落地，推荐预约《欧洲站合规诊断 1v1》，用你的实际 SKU 走一遍。</p></div>
+  </div>`;}
+function saveReport(){closeReport();toast('报告已保存到 AI 工作台 · 分析报告');
+ setTimeout(()=>go('workbench'),400);}
+function closeReport(){document.getElementById('report-mask').classList.remove('on');}
+function gDetail(){go('detail');}
+
+function go(v){
+ document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+ document.getElementById('v-'+v).classList.add('on');
+ document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.nav===v));
+ window.scrollTo(0,0);}
+let toastTimer;
+function toast(msg){
+ const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2000);}
+
+renderTopics();renderFeed();renderRail();renderWorkbench();renderKb();
+</script>
+</body>
+</html>

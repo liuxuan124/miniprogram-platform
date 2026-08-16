@@ -16,7 +16,7 @@
     <!-- 提示信息 -->
     <div class="info-banner">
       <el-icon :size="18"><InfoFilled /></el-icon>
-      <span>专业版本控制台：查看所有版本历史（含模板、已发布、已替换），执行回滚操作，审计操作日志。日常模板管理请前往「<strong>小程序搭建</strong>」页面。</span>
+      <span>版本记录来自「导航与外观」的草稿与发布。日常编辑请前往该页。</span>
     </div>
 
     <!-- 标签页 -->
@@ -64,9 +64,9 @@
         <el-card shadow="hover" class="timeline-card">
           <div v-loading="recordsLoading" class="timeline-wrapper">
             <el-empty v-if="!recordsLoading && releaseList.length === 0" description="暂无版本记录">
-              <p class="empty-hint">暂无版本记录。前往「小程序搭建」页面保存模板或发布上线后，版本记录将在此处显示。</p>
+              <p class="empty-hint">暂无版本记录。在「导航与外观」保存草稿或发布后，记录会显示在这里。</p>
               <el-button type="primary" @click="$router.push('/page-builder/start')">
-                前往小程序搭建
+                前往导航与外观
               </el-button>
             </el-empty>
             <el-timeline v-else>

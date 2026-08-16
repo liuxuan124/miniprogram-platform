@@ -1,0 +1,62 @@
+task_id: TASK-QA-BATCH-001
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 主线一后台段实操（进入装修器、加组件、配属性、预览、发布）
+  - 装修器空画布/删除/撤销/新建校验/强制改密关闭
+  - 缺陷单 BUG-AUTH-001、BUG-UI-001~004
+changed_files:
+  - agent-team/testing/defects/BUG-AUTH-001.md
+  - agent-team/testing/defects/BUG-UI-001.md
+  - agent-team/testing/defects/BUG-UI-002.md
+  - agent-team/testing/defects/BUG-UI-003.md
+  - agent-team/testing/defects/BUG-UI-004.md
+  - agent-team/testing/evidence/BATCH-QA-001/
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 真实微信小程序端未能打开后台发布路径 /pages/index/index-2 完成对照；主线一在该步中断
+  - 运营/商家/普通用户/未登录账号矩阵未提供，权限十二问未测
+  - 断网保存、双标签页同时编辑未测
+self_test:
+  result: 不适用
+  details: QA 模式只验证不改业务代码
+downstream_suggestions:
+  - 总控确认是否允许在主线一中断的情况下开下一批（商品/表单主线 + 其余模块）
+  - 需要可登录的运营/商家账号，以及微信开发者工具已登录会话以便真机/模拟器打开指定 path
+risks:
+  - 测试页 id=4 仍为「已发布」首页类型，草稿组件为空
+next_step: 等待总控确认后开始下一批
+notes: 本批为总控指定探索排查，功能点清单尚未机械枚举，不得视为测试完成
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-001
+  feature_point_range:
+    - 主线一-装修器
+    - 装修器十二问抽样
+  executed_count: 12
+  pass_count: 4
+  fail_count: 5
+  partial_count: 3
+  blocked_count: 2
+  not_run_count: 0
+  cumulative_execution_rate: 本批探索项已执行；全量功能点分母尚未确认，禁止写测试完成
+  cumulative_pass_rate: 不以全量分母计算
+  new_defects:
+    P0: []
+    P1:
+      - BUG-AUTH-001
+      - BUG-UI-002
+      - BUG-UI-003
+    P2: []
+    P3:
+      - BUG-UI-001
+      - BUG-UI-004
+  next_batch_plan: 若总控允许绕过小程序端阻塞，则测主线二商品/下单与主线三表单；否则先补微信端打开 /pages/index/index-2 的对照
+  contract_versions:
+    api-contract: 本批未重读全量契约（总控指定后台实操排查）
+    database-model: 未作为本批依据
+    page-dsl-schema: 未作为本批依据
+    order-state-machine: 未测
+    ai-recommendation-contract: 未测

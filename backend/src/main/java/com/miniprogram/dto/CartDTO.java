@@ -2,6 +2,7 @@ package com.miniprogram.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 /**
@@ -12,9 +13,11 @@ import lombok.Data;
 public class CartDTO {
 
     @NotNull(message = "商品ID不能为空")
+    @JsonAlias({"product_id"})
     @Schema(description = "商品ID")
     private Long productId;
 
+    @JsonAlias({"sku_id"})
     @Schema(description = "SKU ID")
     private Long skuId;
 

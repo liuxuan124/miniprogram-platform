@@ -1,0 +1,62 @@
+{
+  "startedAt": "2026-08-13T09:10:37.519Z",
+  "steps": [
+    "launching",
+    "connected",
+    "home:pages/index/index",
+    "productList:pages/index/index"
+  ],
+  "errors": [
+    "Error: timeout waiting for automator response\n    at Connection.onMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/miniprogram-automator/out/Connection.js:1:985)\n    at Transport.emit (node:events:519:28)\n    at WebSocket.<anonymous> (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/miniprogram-automator/out/Transport.js:1:220)\n    at WebSocket.onMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/event-target.js:120:16)\n    at WebSocket.emit (node:events:519:28)\n    at Receiver.receiverOnMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/websocket.js:807:20)\n    at Receiver.emit (node:events:519:28)\n    at Receiver.dataMessage (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/receiver.js:458:14)\n    at Receiver.getData (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/receiver.js:379:17)\n    at Receiver.startLoop (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/ws/lib/receiver.js:157:22)"
+  ],
+  "home": {
+    "path": "pages/index/index",
+    "query": {},
+    "dataKeys": [
+      "featureArtStyle",
+      "topics",
+      "feedCards",
+      "masonry",
+      "products",
+      "contentIdMap",
+      "productIdMap"
+    ],
+    "dataSlim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    },
+    "wxmlHead": "page.outerWxml is not a function"
+  },
+  "homeShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/01-home.png",
+  "productList": {
+    "path": "pages/index/index",
+    "query": {},
+    "dataKeys": [
+      "featureArtStyle",
+      "topics",
+      "feedCards",
+      "masonry",
+      "products",
+      "contentIdMap",
+      "productIdMap"
+    ],
+    "dataSlim": {
+      "featureArtStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "topics": "Array(6)",
+      "feedCards": "Array(3)",
+      "masonry": "Array(2)",
+      "products": "Array(2)",
+      "contentIdMap": "object",
+      "productIdMap": "object"
+    },
+    "wxmlHead": "page.outerWxml is not a function"
+  },
+  "productListShot": "/Users/lx/项目文件/liuxuan/小程序搭建运营系统/agent-team/testing/evidence/BATCH-QA-007/02-product-list.png",
+  "ok": false,
+  "finishedAt": "2026-08-13T09:11:09.318Z"
+}

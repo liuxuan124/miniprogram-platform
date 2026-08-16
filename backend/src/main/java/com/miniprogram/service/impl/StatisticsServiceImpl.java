@@ -171,7 +171,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         data.put("totalForms", totalForms);
         data.put("conversionRate", conversion + "%");
 
-        // ===== 商品排行（真实销量 Top5）=====
+        // ===== 商品排行（与商品主数据销量对齐）=====
         List<Map<String, Object>> ranking = new ArrayList<>();
         for (ProductRankingVO p : getProductRanking("sales", 5)) {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -298,57 +298,22 @@ public class StatisticsServiceImpl implements StatisticsService {
             limit = 100;
         }
 
-        // 查询所有已支付/已完成的订单项
-        List<Order> validOrders = orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                .in(Order::getStatus, List.of("paid", "shipped", "completed", "refunding", "refunded")));
+        List<Product> products = productMapper.selectList(new LambdaQueryWrapper<Product>()
+                .gt(Product::getSales, 0)
+                .orderByDesc("amount".equals(type), Product::getPrice)
+                .orderByDesc(!"amount".equals(type), Product::getSales)
+                .last("LIMIT " + limit));
 
-        if (validOrders.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<Long> orderIds = validOrders.stream().map(Order::getId).toList();
-        List<OrderItem> orderItems = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
-                .in(OrderItem::getOrderId, orderIds));
-
-        // 按商品ID聚合
-        Map<Long, Integer> salesCountMap = new LinkedHashMap<>();
-        Map<Long, BigDecimal> salesAmountMap = new LinkedHashMap<>();
-        for (OrderItem item : orderItems) {
-            salesCountMap.merge(item.getProductId(), item.getQuantity(), Integer::sum);
-            salesAmountMap.merge(item.getProductId(), item.getSubtotal(), BigDecimal::add);
-        }
-
-        // 排序
-        List<Long> sortedProductIds;
-        if ("sales".equals(type)) {
-            sortedProductIds = salesCountMap.entrySet().stream()
-                    .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
-                    .limit(limit)
-                    .map(Map.Entry::getKey)
-                    .toList();
-        } else {
-            sortedProductIds = salesAmountMap.entrySet().stream()
-                    .sorted(Map.Entry.<Long, BigDecimal>comparingByValue().reversed())
-                    .limit(limit)
-                    .map(Map.Entry::getKey)
-                    .toList();
-        }
-
-        // 构建结果
         List<ProductRankingVO> result = new ArrayList<>();
-        for (Long productId : sortedProductIds) {
-            Product product = productMapper.selectById(productId);
-            if (product == null) continue;
-
+        for (Product product : products) {
             ProductRankingVO vo = new ProductRankingVO();
             vo.setProductId(product.getId());
             vo.setProductName(product.getName());
             vo.setProductImage(product.getMainImage());
-            vo.setSalesCount(salesCountMap.getOrDefault(productId, 0));
-            vo.setSalesAmount(salesAmountMap.getOrDefault(productId, BigDecimal.ZERO));
+            vo.setSalesCount(product.getSales() == null ? 0 : product.getSales());
+            vo.setSalesAmount(product.getPrice() == null ? BigDecimal.ZERO : product.getPrice());
             result.add(vo);
         }
-
         return result;
     }
 

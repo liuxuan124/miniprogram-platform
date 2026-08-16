@@ -423,14 +423,20 @@ function activityTypeLabel(type: string): string {
 }
 
 function activityStatusLabel(status: number): string {
-  if (status === 1) return '进行中'
-  if (status === 2) return '已结束'
-  return '草稿'
+  const labels: Record<number, string> = {
+    0: '草稿',
+    1: '报名中',
+    2: '进行中',
+    3: '已结束',
+    4: '已取消',
+  }
+  return labels[status] ?? '草稿'
 }
 
-function activityStatusTagType(status: number): 'success' | 'warning' | 'info' {
-  if (status === 1) return 'success'
-  if (status === 2) return 'info'
+function activityStatusTagType(status: number): 'success' | 'warning' | 'info' | 'danger' {
+  if (status === 1 || status === 2) return 'success'
+  if (status === 3) return 'info'
+  if (status === 4) return 'danger'
   return 'warning'
 }
 

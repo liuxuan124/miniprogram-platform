@@ -19,12 +19,13 @@ const BASE_URL = '/api/v1/admin'
 
 /** 获取表单模板列表 */
 export function getFormTemplateList(params?: FormTemplateListParams) {
+  const status = params?.status
   const query = params
     ? {
         current: params.page,
         size: params.page_size,
         keyword: params.keyword,
-        status: params.status,
+        status: status === 'active' || status === 1 ? 1 : status === 'inactive' || status === 0 ? 0 : undefined,
       }
     : undefined
   return get<PageResult<FormTemplate>>(`${BASE_URL}/form-templates`, query as Record<string, unknown>)
@@ -50,14 +51,28 @@ export function deleteFormTemplate(id: number) {
   return del<void>(`${BASE_URL}/form-templates/${id}`)
 }
 
-/** 启用表单模板 */
-export function activateFormTemplate(id: number) {
-  return put<FormTemplate>(`${BASE_URL}/form-templates/${id}`, { status: 1 })
+/** 启用表单模板（带上名称与字段，兼容强制校验的旧后端） */
+export async function activateFormTemplate(id: number) {
+  const detail = await getFormTemplateDetail(id)
+  const row = detail.data as any
+  return put<FormTemplate>(`${BASE_URL}/form-templates/${id}`, {
+    name: row?.name,
+    description: row?.description,
+    fields: typeof row?.fields === 'string' ? row.fields : JSON.stringify(row?.fields || []),
+    status: 1,
+  })
 }
 
 /** 停用表单模板 */
-export function deactivateFormTemplate(id: number) {
-  return put<FormTemplate>(`${BASE_URL}/form-templates/${id}`, { status: 0 })
+export async function deactivateFormTemplate(id: number) {
+  const detail = await getFormTemplateDetail(id)
+  const row = detail.data as any
+  return put<FormTemplate>(`${BASE_URL}/form-templates/${id}`, {
+    name: row?.name,
+    description: row?.description,
+    fields: typeof row?.fields === 'string' ? row.fields : JSON.stringify(row?.fields || []),
+    status: 0,
+  })
 }
 
 // ==================== 表单提交 ====================

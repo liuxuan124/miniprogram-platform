@@ -1,0 +1,429 @@
+{
+  "startedAt": "2026-08-13T09:42:41.627Z",
+  "steps": [
+    "connected",
+    "agreement:pkg-user/agreement/agreement",
+    "ordersClose",
+    "article:like=true:cmt=true",
+    "searchHot:{\"searched\":true,\"keyword\":\"选品趋势清单\",\"resultCount\":1,\"loading\":false}",
+    "pullRefresh:false",
+    "settingsTerms:pkg-user/agreement/agreement",
+    "signup:pkg-extra/activity-detail/activity-detail"
+  ],
+  "errors": [],
+  "login": {
+    "path": "pages/login/login",
+    "query": {},
+    "slim": {
+      "loading": false,
+      "redirectUrl": "",
+      "agreePrivacy": false,
+      "interceptAction": "",
+      "avatarUrl": "",
+      "avatarLocalPath": "",
+      "nickName": "",
+      "phoneMasked": "",
+      "canSubmit": false,
+      "avatarError": false,
+      "nicknameError": false,
+      "privacyError": false,
+      "formHint": "",
+      "showPrivacyPopup": false,
+      "nicknameFocused": false,
+      "pickingAvatar": false
+    },
+    "extra": {
+      "loading": false
+    }
+  },
+  "termsTap": {
+    "found": true,
+    "selector": ".agreement__link"
+  },
+  "agreement": {
+    "path": "pkg-user/agreement/agreement",
+    "query": {
+      "type": "terms"
+    },
+    "slim": {
+      "title": "用户协议",
+      "paragraphs": "Array(6)",
+      "externalUrl": ""
+    },
+    "extra": {
+      "title": "用户协议"
+    }
+  },
+  "agreementShot": "01-agreement.png",
+  "orders": {
+    "path": "pkg-trade/order-list/order-list",
+    "query": {},
+    "slim": {
+      "tabs": "Array(6)",
+      "activeTab": "",
+      "STATUS_MAP": "object",
+      "orders": "Array(0)",
+      "page": 1,
+      "pageSize": 10,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    },
+    "extra": {
+      "loading": false
+    }
+  },
+  "sheetFound": true,
+  "closeTried": [
+    {
+      "found": false,
+      "selector": ".close-button"
+    },
+    {
+      "found": true,
+      "selector": "login-sheet"
+    },
+    {
+      "callMethod": "hide"
+    }
+  ],
+  "ordersAfterClose": {
+    "path": "pkg-trade/order-list/order-list",
+    "query": {},
+    "slim": {
+      "tabs": "Array(6)",
+      "activeTab": "",
+      "STATUS_MAP": "object",
+      "orders": "Array(0)",
+      "page": 1,
+      "pageSize": 10,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    },
+    "extra": {
+      "loading": false
+    }
+  },
+  "ordersAfterCloseShot": "02-orders-after-close.png",
+  "article": {
+    "path": "pages/content-detail/content-detail",
+    "query": {
+      "id": "3"
+    },
+    "slim": {
+      "article": "object",
+      "loading": false,
+      "liked": false,
+      "favorited": false,
+      "followed": false,
+      "isNote": false,
+      "formatKey": "article",
+      "formatLabel": "长文",
+      "topicName": "选品洞察",
+      "readProgress": 0,
+      "relatedProducts": "Array(2)",
+      "gallerySlides": "Array(0)",
+      "galleryIndex": 0,
+      "galleryCount": 0,
+      "noteParagraphs": "Array(0)",
+      "hashTags": "Array(0)",
+      "artStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "glyph": "📄",
+      "metaLine": "在此输入内容...c",
+      "likeDisplay": "0",
+      "commentCount": 2,
+      "commentCountDisplay": "2",
+      "showCommentSheet": false,
+      "comments": "Array(2)"
+    },
+    "extra": {
+      "showCommentSheet": false,
+      "commentCount": 2,
+      "commentsLen": 2,
+      "liked": false,
+      "favorited": false,
+      "loading": false
+    }
+  },
+  "likeTap": {
+    "found": true,
+    "selector": ".action-item"
+  },
+  "afterLike": {
+    "path": "pages/content-detail/content-detail",
+    "query": {
+      "id": "3"
+    },
+    "slim": {
+      "article": "object",
+      "loading": false,
+      "liked": true,
+      "favorited": false,
+      "followed": false,
+      "isNote": false,
+      "formatKey": "article",
+      "formatLabel": "长文",
+      "topicName": "选品洞察",
+      "readProgress": 0,
+      "relatedProducts": "Array(2)",
+      "gallerySlides": "Array(0)",
+      "galleryIndex": 0,
+      "galleryCount": 0,
+      "noteParagraphs": "Array(0)",
+      "hashTags": "Array(0)",
+      "artStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "glyph": "📄",
+      "metaLine": "在此输入内容...c",
+      "likeDisplay": "1",
+      "commentCount": 2,
+      "commentCountDisplay": "2",
+      "showCommentSheet": false,
+      "comments": "Array(2)"
+    },
+    "extra": {
+      "showCommentSheet": false,
+      "commentCount": 2,
+      "commentsLen": 2,
+      "liked": true,
+      "favorited": false,
+      "loading": false
+    }
+  },
+  "actionItemCount": 4,
+  "afterCommentTap": {
+    "path": "pages/content-detail/content-detail",
+    "query": {
+      "id": "3"
+    },
+    "slim": {
+      "article": "object",
+      "loading": false,
+      "liked": true,
+      "favorited": false,
+      "followed": false,
+      "isNote": false,
+      "formatKey": "article",
+      "formatLabel": "长文",
+      "topicName": "选品洞察",
+      "readProgress": 0,
+      "relatedProducts": "Array(2)",
+      "gallerySlides": "Array(0)",
+      "galleryIndex": 0,
+      "galleryCount": 0,
+      "noteParagraphs": "Array(0)",
+      "hashTags": "Array(0)",
+      "artStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "glyph": "📄",
+      "metaLine": "在此输入内容...c",
+      "likeDisplay": "1",
+      "commentCount": 2,
+      "commentCountDisplay": "2",
+      "showCommentSheet": true,
+      "comments": "Array(2)"
+    },
+    "extra": {
+      "showCommentSheet": true,
+      "commentCount": 2,
+      "commentsLen": 2,
+      "liked": true,
+      "favorited": false,
+      "loading": false
+    }
+  },
+  "commentShot": "03-comment-sheet.png",
+  "emptySendTap": {
+    "found": true,
+    "selector": ".cmt-send"
+  },
+  "afterEmptySend": {
+    "path": "pages/content-detail/content-detail",
+    "query": {
+      "id": "3"
+    },
+    "slim": {
+      "article": "object",
+      "loading": false,
+      "liked": true,
+      "favorited": false,
+      "followed": false,
+      "isNote": false,
+      "formatKey": "article",
+      "formatLabel": "长文",
+      "topicName": "选品洞察",
+      "readProgress": 0,
+      "relatedProducts": "Array(2)",
+      "gallerySlides": "Array(0)",
+      "galleryIndex": 0,
+      "galleryCount": 0,
+      "noteParagraphs": "Array(0)",
+      "hashTags": "Array(0)",
+      "artStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "glyph": "📄",
+      "metaLine": "在此输入内容...c",
+      "likeDisplay": "1",
+      "commentCount": 2,
+      "commentCountDisplay": "2",
+      "showCommentSheet": true,
+      "comments": "Array(2)"
+    },
+    "extra": {
+      "showCommentSheet": true,
+      "commentCount": 2,
+      "commentsLen": 2,
+      "liked": true,
+      "favorited": false,
+      "loading": false
+    }
+  },
+  "afterFav": {
+    "path": "pages/content-detail/content-detail",
+    "query": {
+      "id": "3"
+    },
+    "slim": {
+      "article": "object",
+      "loading": false,
+      "liked": true,
+      "favorited": true,
+      "followed": false,
+      "isNote": false,
+      "formatKey": "article",
+      "formatLabel": "长文",
+      "topicName": "选品洞察",
+      "readProgress": 0,
+      "relatedProducts": "Array(2)",
+      "gallerySlides": "Array(0)",
+      "galleryIndex": 0,
+      "galleryCount": 0,
+      "noteParagraphs": "Array(0)",
+      "hashTags": "Array(0)",
+      "artStyle": "background:linear-gradient(135deg,#4f6dff 0%,#8ea3ff 100%);",
+      "glyph": "📄",
+      "metaLine": "在此输入内容...c",
+      "likeDisplay": "1",
+      "commentCount": 2,
+      "commentCountDisplay": "2",
+      "showCommentSheet": true,
+      "comments": "Array(2)"
+    },
+    "extra": {
+      "showCommentSheet": true,
+      "commentCount": 2,
+      "commentsLen": 2,
+      "liked": true,
+      "favorited": true,
+      "loading": false
+    }
+  },
+  "emptySearchTap": {
+    "found": true,
+    "selector": ".action"
+  },
+  "hotTap": {
+    "found": true,
+    "selector": ".hot-item"
+  },
+  "searchHot": {
+    "path": "pages/search/search",
+    "query": {},
+    "slim": {
+      "keyword": "选品趋势清单",
+      "searched": true,
+      "loading": false,
+      "hotKeywords": "Array(6)",
+      "history": "Array(1)",
+      "suggestions": "Array(3)",
+      "results": "Array(1)"
+    },
+    "extra": {
+      "searched": true,
+      "keyword": "选品趋势清单",
+      "resultCount": 1,
+      "loading": false
+    }
+  },
+  "searchHotShot": "04-search-hot.png",
+  "searchKw": {
+    "path": "pages/search/search",
+    "query": {},
+    "slim": {
+      "keyword": "选品",
+      "searched": true,
+      "loading": false,
+      "hotKeywords": "Array(6)",
+      "history": "Array(2)",
+      "suggestions": "Array(3)",
+      "results": "Array(4)"
+    },
+    "extra": {
+      "searched": true,
+      "keyword": "选品",
+      "resultCount": 4,
+      "loading": false
+    }
+  },
+  "searchKwShot": "05-search-keyword.png",
+  "pullRefresh": {
+    "path": "pages/content-list/content-list",
+    "query": {},
+    "slim": {
+      "formatTabs": "Array(5)",
+      "activeFormat": "",
+      "topicTabs": "Array(7)",
+      "activeTopic": "",
+      "articles": "Array(10)",
+      "page": 1,
+      "pageSize": 10,
+      "total": 18,
+      "hasMore": true,
+      "loading": false,
+      "isEmpty": false
+    },
+    "extra": {
+      "loading": false
+    }
+  },
+  "pullRefreshShot": "06-pull-refresh.png",
+  "settingsTerms": {
+    "path": "pkg-user/agreement/agreement",
+    "query": {
+      "type": "terms"
+    },
+    "slim": {
+      "title": "用户协议",
+      "paragraphs": "Array(6)",
+      "externalUrl": ""
+    },
+    "extra": {
+      "title": "用户协议"
+    }
+  },
+  "settingsTermsShot": "07-settings-terms.png",
+  "signTap": {
+    "found": true,
+    "selector": ".submit-btn"
+  },
+  "afterSign": {
+    "path": "pkg-extra/activity-detail/activity-detail",
+    "query": {
+      "id": "2"
+    },
+    "slim": {
+      "activityId": "2",
+      "activity": "object",
+      "loading": false,
+      "submitting": false,
+      "sessions": "Array(0)",
+      "selectedSession": "",
+      "formName": "",
+      "formPhone": "",
+      "formRemark": ""
+    },
+    "extra": {
+      "loading": false
+    }
+  },
+  "afterSignShot": "08-activity-signup.png",
+  "finishedAt": "2026-08-13T09:43:55.784Z"
+}

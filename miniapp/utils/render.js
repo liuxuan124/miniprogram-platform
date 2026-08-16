@@ -90,7 +90,7 @@ function validateDSL(dsl) {
       // 校验组件类型
       const validTypes = Object.values(COMPONENT_TYPES)
       if (comp.type && !validTypes.includes(comp.type)) {
-        errors.push(`components[${index}] 未知组件类型: ${comp.type}`)
+        console.warn(`[RenderEngine] 跳过未知组件类型: ${comp.type}`)
       }
     })
   }
@@ -120,7 +120,8 @@ function parseStyle(style) {
 
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
-    if (key === 'text_color' || key === 'font_size') return
+    if (key === 'text_color' || key === 'font_size' || key === 'visible') return
+    if (typeof value === 'boolean') return
 
     // snake_case / camelCase → kebab-case（border_radius → border-radius）
     const cssKey = key
@@ -156,6 +157,17 @@ function parseActions(actions) {
  * @returns {Object} 处理后的渲染数据
  */
 function processComponent(component) {
+  const validTypes = Object.values(COMPONENT_TYPES)
+  if (component.type && !validTypes.includes(component.type)) {
+    console.warn('[RenderEngine] 跳过未知组件类型:', component.type)
+    return {
+      id: component.id,
+      type: component.type,
+      skipped: true,
+      visible: false,
+      props: component.props || {},
+    }
+  }
   const styleString = parseStyle(component.style || {})
   const props = component.props || {}
   const resolvedDataSource = component.data_source || props.data_source || null
@@ -190,7 +202,7 @@ function processComponent(component) {
     actions: parseActions(component.actions),
     style: component.style || {},
     styleString,
-    visible: component.visible !== false,
+    visible: component.visible !== false && (component.style || {}).visible !== false,
     // 运行时数据（由数据源填充）
     runtimeData: [],
     runtimeDataLoaded: false,
@@ -228,7 +240,9 @@ function parseDSL(dsl) {
   }
 
   // 解析组件列表
-  const components = (dsl.components || []).map((comp) => processComponent(comp))
+  const components = (dsl.components || [])
+    .map((comp) => processComponent(comp))
+    .filter((comp) => !comp.skipped)
 
   return {
     page,
@@ -322,8 +336,19 @@ function isTabPage(path) {
   return TAB_PAGE_PATHS.includes(stripQuery(path))
 }
 
-function navigatePage(path) {
+function rewriteUnregisteredPage(path) {
   const url = normalizeRoutePath(path)
+  const base = stripQuery(url)
+  if (!base || base === '/pages/custom/custom') return url
+  if (base.startsWith('/pages/custom/') || base.startsWith('/pages/activity/')) {
+    const logical = base.replace(/^\//, '')
+    return '/pages/custom/custom?path=' + encodeURIComponent(logical)
+  }
+  return url
+}
+
+function navigatePage(path) {
+  const url = rewriteUnregisteredPage(path)
   if (!url) return
 
   if (isTabPage(url)) {
@@ -371,7 +396,7 @@ function executeAction(action) {
       // WebView 跳转
       if (action.url) {
         wx.navigateTo({
-          url: '/pages/webview/webview?url=' + encodeURIComponent(action.url),
+          url: '/pkg-user/webview/webview?url=' + encodeURIComponent(action.url),
         })
       }
       break

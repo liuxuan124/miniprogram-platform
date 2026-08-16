@@ -67,8 +67,11 @@ Component({
       const processed = {
         ...config,
         theme: config.theme || 'blue',
-        style_type: config.style_type === 'full' ? 'full' : 'card',
+        style_type: (config.layout === 'banner' || config.style_type === 'full') ? 'full' : (config.layout === 'list' ? 'list' : 'card'),
         show_button: config.show_button !== false,
+        show_countdown: config.show_countdown !== false,
+        show_quota: config.show_quota !== false,
+        quota_text: String(config.quota || config.remain_quota || 20),
         button_text: config.button_text || '立即预约',
         hasValidImage: !!(config.image && this._isImageUrl(config.image)),
         titleStyle: this._fontStyle(config.title_font_size, 14),
@@ -76,8 +79,8 @@ Component({
       }
       this.setData({ processedConfig: processed })
 
-      if (config.countdown && config.end_time) {
-        this._startCountdown(config.end_time)
+      if (processed.show_countdown && (config.end_time || config.date)) {
+        this._startCountdown(config.end_time || config.date)
       } else {
         this._clearCountdownTimer()
         this.setData({ countdown: '' })
@@ -117,7 +120,7 @@ Component({
       if (id) {
         executeAction({
           type: 'page',
-          path: '/pages/activity-detail/activity-detail?id=' + id,
+          path: '/pkg-extra/detail/index?id=' + id + '&type=activity',
         })
         return
       }

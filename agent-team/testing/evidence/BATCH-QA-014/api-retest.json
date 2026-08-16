@@ -1,0 +1,392 @@
+{
+  "batch": "BATCH-QA-014",
+  "started": "2026-08-14T16:18:18.805Z",
+  "login": {
+    "http": 200,
+    "code": 200
+  },
+  "api003": {
+    "http": 200,
+    "dataKeys": [
+      "records",
+      "total",
+      "current",
+      "size",
+      "page_size",
+      "page"
+    ],
+    "current": 1,
+    "page": 1
+  },
+  "api004": {
+    "size": 20,
+    "keys": [
+      "records",
+      "total",
+      "current",
+      "size",
+      "page_size",
+      "page"
+    ]
+  },
+  "api005": {
+    "page_size": {
+      "http": 400,
+      "code": 100101
+    },
+    "size": {
+      "http": 400,
+      "code": 100101
+    }
+  },
+  "auth": {
+    "FP-API-009": {
+      "http": 403
+    },
+    "FP-API-019": {
+      "http": 403
+    },
+    "FP-API-025": {
+      "http": 403
+    },
+    "FP-API-029": {
+      "http": 403
+    },
+    "FP-API-035": {
+      "http": 403
+    },
+    "FP-API-042": {
+      "http": 403
+    },
+    "FP-API-048": {
+      "http": 403
+    },
+    "FP-API-054": {
+      "http": 403
+    },
+    "FP-API-060": {
+      "http": 403
+    },
+    "FP-API-064": {
+      "http": 403
+    },
+    "FP-API-069": {
+      "http": 403
+    }
+  },
+  "api010": {
+    "http": 401,
+    "code": 110101,
+    "msg": "未登录"
+  },
+  "api011": {
+    "http": 400,
+    "code": 100101,
+    "msg": "Failed to convert property value of type 'java.lang.String' to required type 'java.lang.Long' for property 'current'; For input string: \"abc\""
+  },
+  "api013": {
+    "http": 400,
+    "code": 100101,
+    "msg": "页面名称不能为空"
+  },
+  "api014": {
+    "http": 400,
+    "code": 100101
+  },
+  "api015": {
+    "http": 400,
+    "code": 100101
+  },
+  "api016": {
+    "http": 400,
+    "code": 100101,
+    "msg": "页面名称不能超过 128 个字符"
+  },
+  "api017": {
+    "http": 400,
+    "code": 100101,
+    "created": false
+  },
+  "api018": {
+    "http": 400,
+    "code": 100101
+  },
+  "created": {
+    "http": 200,
+    "code": 200,
+    "id": "14"
+  },
+  "api028": {
+    "http": 400,
+    "code": 100101
+  },
+  "api059": {
+    "http": 404,
+    "code": 300401
+  },
+  "api044": {
+    "first": {
+      "http": 400,
+      "code": 100101
+    },
+    "second": {
+      "http": 400,
+      "code": 100101,
+      "msg": "DSL内容不能为空"
+    }
+  },
+  "api071": {
+    "http": 400
+  },
+  "api072": {
+    "http": 400
+  },
+  "api075": {
+    "limited": 69,
+    "sample": [
+      {
+        "http": 200,
+        "code": 200
+      },
+      {
+        "http": 200,
+        "code": 200
+      },
+      {
+        "http": 200,
+        "code": 200
+      }
+    ]
+  },
+  "api077": {
+    "typeofId": "undefined"
+  },
+  "db002": "fk_mp_page_version_page_id\tCASCADE",
+  "db005": "MYSQL_ERR mysql: [Warning] Using a password on the command line interface can be insecure.\nERROR 1054 (42S22) at line 1: Unknown column 'v.is_published' in 'field list'\n",
+  "finished": "2026-08-14T16:18:20.702Z",
+  "summary": {
+    "PASS": 15,
+    "FAIL": 16,
+    "PARTIAL": 0,
+    "BLOCKED": 0
+  },
+  "results": [
+    {
+      "id": "FP-API-003",
+      "status": "PASS",
+      "note": "page=1",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-001"
+    },
+    {
+      "id": "FP-API-004",
+      "status": "PASS",
+      "note": "default size=20 expected 20",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-001"
+    },
+    {
+      "id": "FP-API-005",
+      "status": "PASS",
+      "note": "rejected",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-001"
+    },
+    {
+      "id": "FP-API-009",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-019",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-025",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-029",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-035",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-042",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-048",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-054",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-060",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-064",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-069",
+      "status": "FAIL",
+      "note": "http=403 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-010",
+      "status": "PASS",
+      "note": "http=401 code=110101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-002"
+    },
+    {
+      "id": "FP-API-011",
+      "status": "PASS",
+      "note": "http=400 code=100101 msg=Failed to convert property value of type 'java.lang.String' to required type 'java.lang.Long' for property 'current'; For input string: \"abc\"",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-003"
+    },
+    {
+      "id": "FP-API-013",
+      "status": "PASS",
+      "note": "http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-003"
+    },
+    {
+      "id": "FP-API-014",
+      "status": "PASS",
+      "note": "http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-003"
+    },
+    {
+      "id": "FP-API-015",
+      "status": "PASS",
+      "note": "http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-003"
+    },
+    {
+      "id": "FP-API-016",
+      "status": "PASS",
+      "note": "http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-004"
+    },
+    {
+      "id": "FP-API-017",
+      "status": "PASS",
+      "note": "http=400 code=100101 created=false",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-005"
+    },
+    {
+      "id": "FP-API-018",
+      "status": "PASS",
+      "note": "http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-003"
+    },
+    {
+      "id": "FP-API-028",
+      "status": "PASS",
+      "note": "empty PUT http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-003"
+    },
+    {
+      "id": "FP-API-059",
+      "status": "PASS",
+      "note": "http=404 code=300401",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-006"
+    },
+    {
+      "id": "FP-API-044",
+      "status": "FAIL",
+      "note": "conflict http=400 code=100101",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-009"
+    },
+    {
+      "id": "FP-API-071",
+      "status": "FAIL",
+      "note": "http=400 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-010"
+    },
+    {
+      "id": "FP-API-072",
+      "status": "FAIL",
+      "note": "http=400 code=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-010"
+    },
+    {
+      "id": "FP-API-075",
+      "status": "PASS",
+      "note": "80 concurrent, 100201/429 count=69",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-007"
+    },
+    {
+      "id": "FP-API-077",
+      "status": "FAIL",
+      "note": "create id typeof undefined value=undefined",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-API-008"
+    },
+    {
+      "id": "FP-DB-002",
+      "status": "PASS",
+      "note": "fk_mp_page_version_page_id\tCASCADE",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-DB-001"
+    },
+    {
+      "id": "FP-DB-005",
+      "status": "FAIL",
+      "note": "current=NaN publishedMax=NaN",
+      "time": "2026-08-14T16:18:18.805Z",
+      "bug": "BUG-DB-002"
+    }
+  ]
+}

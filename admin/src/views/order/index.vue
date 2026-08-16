@@ -148,7 +148,7 @@
               <div class="row-actions">
                 <el-button link type="primary" size="small" @click="handleDetail(row)">详情</el-button>
                 <el-button
-                  v-if="row.status === OrderStatus.Paid"
+                  v-if="row.status === OrderStatus.Paid && !row.shipping_no"
                   link
                   type="success"
                   size="small"

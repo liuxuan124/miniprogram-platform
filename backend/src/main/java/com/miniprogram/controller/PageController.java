@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -29,6 +30,7 @@ public class PageController {
 
     @Operation(summary = "创建页面", description = "创建新页面")
     @PostMapping
+    @PreAuthorize("hasAuthority('page:create')")
     public R<PageDetailDTO> createPage(@Valid @RequestBody PageCreateDTO createDTO) {
         return R.ok(pageService.createPage(createDTO));
     }
@@ -41,12 +43,14 @@ public class PageController {
 
     @Operation(summary = "更新页面信息", description = "更新页面基本信息（不含DSL）")
     @PutMapping("/{id}")
-    public R<PageDetailDTO> updatePage(@PathVariable Long id, @RequestBody PageUpdateDTO updateDTO) {
+    @PreAuthorize("hasAuthority('page:update')")
+    public R<PageDetailDTO> updatePage(@PathVariable Long id, @Valid @RequestBody PageUpdateDTO updateDTO) {
         return R.ok(pageService.updatePage(id, updateDTO));
     }
 
     @Operation(summary = "删除页面", description = "删除页面（已发布页面不可删除）")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('page:delete')")
     public R<Void> deletePage(@PathVariable Long id) {
         pageService.deletePage(id);
         return R.ok();
@@ -54,18 +58,21 @@ public class PageController {
 
     @Operation(summary = "保存草稿", description = "保存页面草稿，生成新版本")
     @PostMapping("/{id}/draft")
+    @PreAuthorize("hasAuthority('page:update')")
     public R<PageVersionDTO> saveDraft(@PathVariable Long id, @Valid @RequestBody PageDraftDTO draftDTO) {
         return R.ok(pageService.saveDraft(id, draftDTO));
     }
 
     @Operation(summary = "发布页面", description = "发布当前版本页面")
     @PostMapping("/{id}/publish")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<PageDetailDTO> publishPage(@PathVariable Long id) {
         return R.ok(pageService.publishPage(id));
     }
 
     @Operation(summary = "下架页面", description = "下架已发布的页面")
     @PostMapping("/{id}/unpublish")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<PageDetailDTO> unpublishPage(@PathVariable Long id) {
         return R.ok(pageService.unpublishPage(id));
     }

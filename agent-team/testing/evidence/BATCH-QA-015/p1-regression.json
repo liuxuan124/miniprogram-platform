@@ -1,0 +1,243 @@
+{
+  "batch": "BATCH-QA-015",
+  "started": "2026-08-14T16:19:23.844Z",
+  "login": {
+    "http": 200,
+    "code": 200
+  },
+  "auth": {
+    "pwdVisible": true,
+    "dismissed": true,
+    "stillOnLogin": false,
+    "canOperate": false,
+    "url": "http://127.0.0.1:3000/page-builder/list"
+  },
+  "ui002_pages": [
+    {
+      "id": "14",
+      "name": "QA014-retest",
+      "path": "pages/custom/qa014-1786724299298",
+      "status": 0
+    },
+    {
+      "id": "13",
+      "name": "测试",
+      "path": "/pages/custom/page-175159",
+      "status": 0
+    },
+    {
+      "id": "12",
+      "name": "QA-回归属性-382467",
+      "path": "/pages/custom/qa-382467",
+      "status": 0
+    },
+    {
+      "id": "11",
+      "name": "QA-全属性-343646",
+      "path": "/pages/custom/qa-343646",
+      "status": 0
+    },
+    {
+      "id": "10",
+      "name": "QA-UI-812951",
+      "path": "/pages/custom/qa-ui-812951",
+      "status": 0
+    },
+    {
+      "id": "9",
+      "name": "QA仅草稿",
+      "path": "/pages/custom/qa-api-1786615602428-draftonly",
+      "status": 0
+    },
+    {
+      "id": "6",
+      "name": "x",
+      "path": "/pages/custom/qa-api-1786615602428-badtype",
+      "status": 0
+    },
+    {
+      "id": "8",
+      "name": "QA无版本-2428",
+      "path": "/pages/custom/qa-api-1786615602428-nover",
+      "status": 0
+    }
+  ],
+  "ui002": {
+    "samplePath": "pages/index/index-2",
+    "inPackage": false,
+    "index2InPkg": false,
+    "packageSample": [
+      "pages/index/index",
+      "pages/content-list/content-list",
+      "pages/product-list/product-list",
+      "pages/mine/mine",
+      "pages/login/login",
+      "pages/search/search",
+      "pages/product-detail/product-detail",
+      "pages/content-detail/content-detail",
+      "pages/cart/cart",
+      "pages/order-create/order-create",
+      "pages/custom/custom",
+      "pkg-trade/appointment-book/appointment-book",
+      "pkg-trade/appointment-calendar/appointment-calendar",
+      "pkg-trade/appointment-success/appointment-success",
+      "pkg-trade/category/category",
+      "pkg-trade/order-detail/order-detail",
+      "pkg-trade/order-list/order-list",
+      "pkg-trade/order-paid/order-paid",
+      "pkg-trade/reviews/reviews",
+      "pkg-trade/write-review/write-review"
+    ]
+  },
+  "ui014": {
+    "publishMsg": "发布前检查\n可以发布，但建议先确认\n共 1 个组件 · 1 项提醒\n页面结构\n1 个组件已加载\n保存状态\n草稿已保存为最新版本\n建议确认\n所有轮播图图片地址为空，请至少设置一张图片\n返回修改\n确认并发布",
+    "publishBlocked": false
+  },
+  "prod": {
+    "url": "http://127.0.0.1:3000/product",
+    "uncategorized": false,
+    "snippet": "404\n\n页面不存在\n\n返回首页"
+  },
+  "productsApi": {
+    "http": 200,
+    "code": 200,
+    "n": 9
+  },
+  "forms": {
+    "http": 500,
+    "code": 500,
+    "sample": []
+  },
+  "members": {
+    "http": 500,
+    "code": 500,
+    "n": 0,
+    "sample": []
+  },
+  "coupons": {
+    "http": 200,
+    "code": 200,
+    "sample": [
+      {
+        "id": 1,
+        "name": "新人满100减20",
+        "type": "fixed",
+        "value": 20,
+        "minOrderAmount": 100,
+        "scope": "all",
+        "scopeIds": [],
+        "startTime": "2026-07-22T12:55:55",
+        "endTime": "2026-08-21T12:55:55",
+        "totalCount": 500,
+        "usedCount": 86,
+        "perUserLimit": 1,
+        "status": "published",
+        "claimAudience": "all",
+        "claimLevelIds": [],
+        "createdAt": "2026-07-22 12:55:55",
+        "updatedAt": "2026-07-22 12:55:55"
+      },
+      {
+        "id": 2,
+        "name": "会员九折券",
+        "type": "percent",
+        "value": 0.9,
+        "minOrderAmount": 0,
+        "scope": "all",
+        "scopeIds": [],
+        "startTime": "2026-07-22T12:55:55",
+        "endTime": "2026-08-21T12:55:55",
+        "totalCount": 300,
+        "usedCount": 42,
+        "perUserLimit": 1,
+        "status": "published",
+        "claimAudience": "all",
+        "claimLevelIds": [],
+        "createdAt": "2026-07-22 12:55:55",
+        "updatedAt": "2026-07-22 12:55:55"
+      }
+    ]
+  },
+  "mpOrdersUnauth": {
+    "http": 403
+  },
+  "finished": "2026-08-14T16:19:40.138Z",
+  "results": [
+    {
+      "id": "EXP-AUTH-FORCE-PWD",
+      "status": "PASS",
+      "note": "强制改密阻断后续操作",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-AUTH-001"
+    },
+    {
+      "id": "EXP-LINE1-MP",
+      "status": "FAIL",
+      "note": "发布路径不在小程序包内 sample=pages/index/index-2 index2InPkg=false",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-UI-002"
+    },
+    {
+      "id": "FP-UI-175",
+      "status": "FAIL",
+      "note": "发布未校验跳转缺字段 msg=发布前检查\n可以发布，但建议先确认\n共 1 个组件 · 1 项提醒\n页面结构\n1 个组件已加载\n保存状态\n草稿已保存为最新版本\n建议确认\n所有轮播图图片地址为空，请至少设置一张图片\n返回修改\n确认并发布",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-UI-014"
+    },
+    {
+      "id": "FP-UI-176",
+      "status": "FAIL",
+      "note": "缺 target 仍无发布/保存校验",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-UI-014"
+    },
+    {
+      "id": "EXP-PRODUCT-CATEGORY",
+      "status": "BLOCKED",
+      "note": "url=http://127.0.0.1:3000/product",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-PROD-001"
+    },
+    {
+      "id": "EXP-LINE2-ADMIN-CREATE",
+      "status": "PASS",
+      "note": "product id=9 category=1",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-PROD-001"
+    },
+    {
+      "id": "EXP-LINE3-ADMIN-CREATE",
+      "status": "FAIL",
+      "note": "forms=0 sampleStatus=undefined",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-FORM-001"
+    },
+    {
+      "id": "EXP-MEMBER-LIST",
+      "status": "FAIL",
+      "note": "api_n=0",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-MEMBER-001"
+    },
+    {
+      "id": "EXP-COUPON-LIST",
+      "status": "FAIL",
+      "note": "仍展示 0.9折",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-MKT-001"
+    },
+    {
+      "id": "EXP-LINE2-MP-ORDER",
+      "status": "FAIL",
+      "note": "未登录订单 http=403 code=undefined",
+      "time": "2026-08-14T16:19:23.844Z",
+      "bug": "BUG-MP-001"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 7,
+    "PARTIAL": 0,
+    "BLOCKED": 1
+  }
+}

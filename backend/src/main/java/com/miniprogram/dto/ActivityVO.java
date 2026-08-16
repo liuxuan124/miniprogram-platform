@@ -44,6 +44,9 @@ public class ActivityVO {
     @Schema(description = "状态: 0=草稿 1=报名中 2=进行中 3=已结束 4=已取消")
     private Integer status;
 
+    @Schema(description = "状态描述")
+    private String statusDesc;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

@@ -1,0 +1,65 @@
+task_id: TASK-QA-BATCH-008
+agent: qa-release-agent
+status: 已提交回执
+completed_work:
+  - 后台 automator 打开购物车、搜索、登录、会员、优惠券、我的预约、设置、内容详情、活动详情、表单提交、订单
+  - 确认模拟器 api_base_url 为空、无 token，走线上默认域名
+  - 购物车未登录停在加载中，记 BUG-MP-003；合计显示 &#165;，记 BUG-UI-007
+  - 表单点提交弹出登录半层，字段仍为 0，主线三未提交成功
+changed_files:
+  - agent-team/testing/defects/BUG-MP-003.md
+  - agent-team/testing/defects/BUG-UI-007.md
+  - agent-team/testing/evidence/BATCH-QA-008/
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/scripts/qa-mp-automator-batch008.js
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 微信手机号快捷登录 automator 无法完成，订单/表单提交/活动报名停在登录半层
+  - 商城审核期仍关闭（BUG-MP-001）
+  - 表单无字段（BUG-FORM-004）
+self_test:
+  result: 不适用
+  details: QA 模式只验证不改业务代码
+downstream_suggestions:
+  - 下一批仍用 automator.connect(ws://127.0.0.1:9420)，不要点开发者工具
+  - 真机/开发者工具内完成一次手机号登录后，才能测订单与表单提交
+  - 角色矩阵仍需第二后台账号
+risks:
+  - 未改业务代码；未发布出海笔记首页；未打开微信支付
+  - 未写入 api_base_url，避免改动模拟器长期配置
+next_step: 等待总控确认后开始下一批
+notes: 探索排查，不得视为测试完成。
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-008
+  feature_point_range:
+    - EXP-MP-CART
+    - EXP-MP-SEARCH
+    - EXP-MP-CONTENT-DETAIL
+    - EXP-MP-LOGIN
+    - EXP-LINE3-MP-SUBMIT
+    - EXP-ACTIVITY-SIGNUP
+  executed_count: 6
+  pass_count: 0
+  fail_count: 2
+  partial_count: 3
+  blocked_count: 1
+  not_run_count: 0
+  cumulative_execution_rate: 本批探索项已执行；全量功能点分母尚未确认，禁止写测试完成
+  cumulative_pass_rate: 不以全量分母计算
+  new_defects:
+    P0: []
+    P1: []
+    P2:
+      - BUG-MP-003
+    P3:
+      - BUG-UI-007
+  next_batch_plan: 登录半层关闭/协议勾选/用户协议页；内容详情评论；搜索热词；角色矩阵仍需第二账号
+  contract_versions:
+    api-contract: "2026-07-22"
+    database-model: "2026-07-22"
+    page-dsl-schema: "2026-07-22"
+    order-state-machine: "2026-07-22"
+    ai-recommendation-contract: "2026-07-22"

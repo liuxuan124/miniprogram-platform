@@ -1,0 +1,935 @@
+{
+  "summary": {
+    "PASS": 100,
+    "BLOCKED": 2,
+    "FAIL": 44,
+    "PARTIAL": 39
+  },
+  "results": [
+    {
+      "id": "FP-UI-001",
+      "status": "PASS",
+      "note": "list rendered"
+    },
+    {
+      "id": "FP-UI-002",
+      "status": "PASS",
+      "note": "empty footer"
+    },
+    {
+      "id": "FP-UI-003",
+      "status": "PASS",
+      "note": "table has v-loading; observed list reload after search"
+    },
+    {
+      "id": "FP-UI-004",
+      "status": "PASS",
+      "note": "abort GET /pages"
+    },
+    {
+      "id": "FP-UI-005",
+      "status": "BLOCKED",
+      "note": "无低权限账号，无法看无权限态"
+    },
+    {
+      "id": "FP-UI-006",
+      "status": "PASS",
+      "note": "keyword 出海"
+    },
+    {
+      "id": "FP-UI-007",
+      "status": "PASS",
+      "note": "type select 首页/专题/自定义"
+    },
+    {
+      "id": "FP-UI-008",
+      "status": "PASS",
+      "note": "status select 已发布/草稿/未发布"
+    },
+    {
+      "id": "FP-UI-009",
+      "status": "PASS",
+      "note": "el-pagination"
+    },
+    {
+      "id": "FP-UI-010",
+      "status": "PASS",
+      "note": "page-sizes 10/20/50"
+    },
+    {
+      "id": "FP-UI-011",
+      "status": "PASS",
+      "note": "new buttons=2"
+    },
+    {
+      "id": "FP-UI-012",
+      "status": "PASS",
+      "note": "name field"
+    },
+    {
+      "id": "FP-UI-013",
+      "status": "PASS",
+      "note": "请输入页面名称"
+    },
+    {
+      "id": "FP-UI-014",
+      "status": "FAIL",
+      "note": "maxlength=50 expected 128"
+    },
+    {
+      "id": "FP-UI-015",
+      "status": "PASS",
+      "note": "type options"
+    },
+    {
+      "id": "FP-UI-016",
+      "status": "PASS",
+      "note": "path field"
+    },
+    {
+      "id": "FP-UI-017",
+      "status": "PASS",
+      "note": "auto path button"
+    },
+    {
+      "id": "FP-UI-018",
+      "status": "PASS",
+      "note": "share title"
+    },
+    {
+      "id": "FP-UI-019",
+      "status": "FAIL",
+      "note": "no share_image in create dialog"
+    },
+    {
+      "id": "FP-UI-020",
+      "status": "PASS",
+      "note": "http://127.0.0.1:3000/page-builder/editor/10"
+    },
+    {
+      "id": "FP-UI-021",
+      "status": "PASS",
+      "note": "cancel closes"
+    },
+    {
+      "id": "FP-UI-022",
+      "status": "PASS",
+      "note": "http://127.0.0.1:3000/page-builder/editor/10"
+    },
+    {
+      "id": "FP-UI-023",
+      "status": "PASS",
+      "note": "list publish/unpublish button"
+    },
+    {
+      "id": "FP-UI-024",
+      "status": "PASS",
+      "note": "same button toggles"
+    },
+    {
+      "id": "FP-UI-025",
+      "status": "FAIL",
+      "note": "more menu has 删除"
+    },
+    {
+      "id": "FP-UI-026",
+      "status": "PASS",
+      "note": "editor chrome"
+    },
+    {
+      "id": "FP-UI-027",
+      "status": "PASS",
+      "note": "editor loaded after networkidle"
+    },
+    {
+      "id": "FP-UI-028",
+      "status": "FAIL",
+      "note": "no dedicated editor request-fail UI observed this run beyond list abort"
+    },
+    {
+      "id": "FP-UI-029",
+      "status": "BLOCKED",
+      "note": "无低权限账号"
+    },
+    {
+      "id": "FP-UI-030",
+      "status": "PASS",
+      "note": "empty canvas copy"
+    },
+    {
+      "id": "FP-UI-031",
+      "status": "PASS",
+      "note": "http://127.0.0.1:3000/login?redirect=/page-builder/editor/10"
+    },
+    {
+      "id": "FP-UI-182",
+      "status": "PASS",
+      "note": "unauth editor"
+    },
+    {
+      "id": "FP-UI-032",
+      "status": "PASS",
+      "note": "back button"
+    },
+    {
+      "id": "FP-UI-033",
+      "status": "PASS",
+      "note": "leave confirm boxes=2"
+    },
+    {
+      "id": "FP-UI-034",
+      "status": "PASS",
+      "note": "undo button"
+    },
+    {
+      "id": "FP-UI-035",
+      "status": "PASS",
+      "note": "redo button"
+    },
+    {
+      "id": "FP-UI-036",
+      "status": "PARTIAL",
+      "note": "undo disabled at start? after add may be enabled"
+    },
+    {
+      "id": "FP-UI-037",
+      "status": "PASS",
+      "note": "clicked 保存草稿"
+    },
+    {
+      "id": "FP-UI-038",
+      "status": "PARTIAL",
+      "note": "autosave label"
+    },
+    {
+      "id": "FP-UI-039",
+      "status": "PASS",
+      "note": "abort draft"
+    },
+    {
+      "id": "FP-UI-040",
+      "status": "PARTIAL",
+      "note": "API 300409 exists; UI conflict dialog not triggered this run"
+    },
+    {
+      "id": "FP-UI-041",
+      "status": "PASS",
+      "note": "preview btn"
+    },
+    {
+      "id": "FP-UI-042",
+      "status": "PASS",
+      "note": "publish clicked"
+    },
+    {
+      "id": "FP-UI-083",
+      "status": "PASS",
+      "note": "发布前检查\n可以发布，但建议先确认\n共 1 个组件 · 1 项提醒\n页面结构\n1 个组件已加载\n保存状态\n草稿已保存为最新版本\n建议确认\n所有轮播图图片地址为空，请至少设置一张图片\n返回修改\n确认并发布"
+    },
+    {
+      "id": "FP-UI-084",
+      "status": "PASS",
+      "note": "发布前检查\n可以发布，但建议先确认\n共 1 个组件 · 1 项提醒\n页面结构\n1 个组件已加载\n保存状态\n草稿已保存为最新版本\n建议确认\n所有轮播图图片地址为空，请至少设置一张图片\n返回修改\n确认并发布"
+    },
+    {
+      "id": "FP-UI-043",
+      "status": "PARTIAL",
+      "note": "publish updates current_version covered by API-046; UI publish skipped to avoid extra published pages beyond QA"
+    },
+    {
+      "id": "FP-UI-085",
+      "status": "PARTIAL",
+      "note": "publish result panel exists in editor; not executed on live home"
+    },
+    {
+      "id": "FP-UI-044",
+      "status": "PASS",
+      "note": "history menu"
+    },
+    {
+      "id": "FP-UI-045",
+      "status": "FAIL",
+      "note": "view DSL"
+    },
+    {
+      "id": "FP-UI-089",
+      "status": "FAIL",
+      "note": "schema 1.0"
+    },
+    {
+      "id": "FP-UI-046",
+      "status": "PASS",
+      "note": "copy DSL button"
+    },
+    {
+      "id": "FP-UI-047",
+      "status": "FAIL",
+      "note": "no 导入 DSL in editor more menu"
+    },
+    {
+      "id": "FP-UI-048",
+      "status": "FAIL",
+      "note": "导入 DSL 入口不存在，无法测缺字段导入"
+    },
+    {
+      "id": "FP-UI-049",
+      "status": "PASS",
+      "note": "toggle left"
+    },
+    {
+      "id": "FP-UI-050",
+      "status": "PASS",
+      "note": "toggle right"
+    },
+    {
+      "id": "FP-UI-051",
+      "status": "FAIL",
+      "note": "page name"
+    },
+    {
+      "id": "FP-UI-052",
+      "status": "PASS",
+      "note": "bg color"
+    },
+    {
+      "id": "FP-UI-053",
+      "status": "FAIL",
+      "note": "share title in props"
+    },
+    {
+      "id": "FP-UI-054",
+      "status": "FAIL",
+      "note": "share_image missing in props"
+    },
+    {
+      "id": "FP-UI-055",
+      "status": "FAIL",
+      "note": "pull_refresh"
+    },
+    {
+      "id": "FP-UI-056",
+      "status": "FAIL",
+      "note": "reach_bottom"
+    },
+    {
+      "id": "FP-UI-057",
+      "status": "PASS",
+      "note": "search 轮播"
+    },
+    {
+      "id": "FP-UI-058",
+      "status": "PASS",
+      "note": "click add banner"
+    },
+    {
+      "id": "FP-UI-059",
+      "status": "PARTIAL",
+      "note": "drag handlers exist; click-add used instead of full drag"
+    },
+    {
+      "id": "FP-UI-060",
+      "status": "PASS",
+      "note": "structure tree"
+    },
+    {
+      "id": "FP-UI-062",
+      "status": "PASS",
+      "note": "canvas item selectable"
+    },
+    {
+      "id": "FP-UI-064",
+      "status": "PASS",
+      "note": "copy shortcut hint"
+    },
+    {
+      "id": "FP-UI-065",
+      "status": "PARTIAL",
+      "note": "move-up control"
+    },
+    {
+      "id": "FP-UI-066",
+      "status": "PARTIAL",
+      "note": "move-down control"
+    },
+    {
+      "id": "FP-UI-067",
+      "status": "PASS",
+      "note": "draggable items"
+    },
+    {
+      "id": "FP-UI-068",
+      "status": "PASS",
+      "note": "zoom controls"
+    },
+    {
+      "id": "FP-UI-069",
+      "status": "PASS",
+      "note": "margin top cell"
+    },
+    {
+      "id": "FP-UI-070",
+      "status": "PASS",
+      "note": "margin bottom"
+    },
+    {
+      "id": "FP-UI-071",
+      "status": "PASS",
+      "note": "margin left"
+    },
+    {
+      "id": "FP-UI-072",
+      "status": "PASS",
+      "note": "margin right"
+    },
+    {
+      "id": "FP-UI-073",
+      "status": "FAIL",
+      "note": "no padding_top control"
+    },
+    {
+      "id": "FP-UI-074",
+      "status": "FAIL",
+      "note": "no padding_bottom"
+    },
+    {
+      "id": "FP-UI-075",
+      "status": "FAIL",
+      "note": "no padding_left"
+    },
+    {
+      "id": "FP-UI-076",
+      "status": "FAIL",
+      "note": "no padding_right"
+    },
+    {
+      "id": "FP-UI-077",
+      "status": "PASS",
+      "note": "style bg"
+    },
+    {
+      "id": "FP-UI-078",
+      "status": "PASS",
+      "note": "radius"
+    },
+    {
+      "id": "FP-UI-079",
+      "status": "FAIL",
+      "note": "no visible=false control"
+    },
+    {
+      "id": "FP-UI-080",
+      "status": "PASS",
+      "note": "小程序端实时预览\n小程序端实时预览 · 当前模式： 真实数据\n真实数据\n演示数据\n首页\n内容\n会员\n商城\n我的\n当前展示线上可用的真实数据。\n18:10\n首页\n"
+    },
+    {
+      "id": "FP-UI-081",
+      "status": "PASS",
+      "note": "demo mode option"
+    },
+    {
+      "id": "FP-UI-082",
+      "status": "PASS",
+      "note": "preview tabs"
+    },
+    {
+      "id": "FP-UI-086",
+      "status": "PASS",
+      "note": "version.vue has 与当前版本对比 copy (opened via 历史版本 later)"
+    },
+    {
+      "id": "FP-UI-087",
+      "status": "PARTIAL",
+      "note": "rollback API PASS; UI history entry present"
+    },
+    {
+      "id": "FP-UI-088",
+      "status": "PASS",
+      "note": "template center"
+    },
+    {
+      "id": "FP-UI-090",
+      "status": "PASS",
+      "note": "component ids generated uniquely on add"
+    },
+    {
+      "id": "FP-UI-183",
+      "status": "PASS",
+      "note": "editor id=10"
+    },
+    {
+      "id": "FP-UI-184",
+      "status": "PASS",
+      "note": "历史版本 routes to version/:id"
+    },
+    {
+      "id": "FP-UI-061",
+      "status": "PASS",
+      "note": "structure delete confirm"
+    },
+    {
+      "id": "FP-UI-063",
+      "status": "PASS",
+      "note": "same confirm path"
+    },
+    {
+      "id": "FP-UI-091",
+      "status": "PASS",
+      "note": "banner add"
+    },
+    {
+      "id": "FP-UI-095",
+      "status": "PASS",
+      "note": "autoplay"
+    },
+    {
+      "id": "FP-UI-096",
+      "status": "PASS",
+      "note": "interval"
+    },
+    {
+      "id": "FP-UI-097",
+      "status": "PASS",
+      "note": "dots"
+    },
+    {
+      "id": "FP-UI-092",
+      "status": "PARTIAL",
+      "note": "items editor present; empty not forced"
+    },
+    {
+      "id": "FP-UI-093",
+      "status": "FAIL",
+      "note": "no image-error placeholder control in banner props"
+    },
+    {
+      "id": "FP-UI-094",
+      "status": "PARTIAL",
+      "note": "banner defaults with one empty image; missing-items validation not shown"
+    },
+    {
+      "id": "FP-UI-098",
+      "status": "PARTIAL",
+      "note": "link types page/url/miniapp; click jump is miniapp-side"
+    },
+    {
+      "id": "FP-UI-099",
+      "status": "PASS",
+      "note": "nav"
+    },
+    {
+      "id": "FP-UI-100",
+      "status": "PARTIAL",
+      "note": "nav default items; empty not forced"
+    },
+    {
+      "id": "FP-UI-101",
+      "status": "PARTIAL",
+      "note": "缺 items 未单独校验"
+    },
+    {
+      "id": "FP-UI-102",
+      "status": "FAIL",
+      "note": "nav columns"
+    },
+    {
+      "id": "FP-UI-103",
+      "status": "PARTIAL",
+      "note": "nav click jump is miniapp-side"
+    },
+    {
+      "id": "FP-UI-104",
+      "status": "PASS",
+      "note": "product_list"
+    },
+    {
+      "id": "FP-UI-105",
+      "status": "PARTIAL",
+      "note": "empty data depends on backend list"
+    },
+    {
+      "id": "FP-UI-106",
+      "status": "PARTIAL",
+      "note": "preview loading not isolated"
+    },
+    {
+      "id": "FP-UI-107",
+      "status": "PARTIAL",
+      "note": "preview fail兜底 not isolated this run"
+    },
+    {
+      "id": "FP-UI-108",
+      "status": "FAIL",
+      "note": "layout=columns 1/2/3 not grid/list/waterfall"
+    },
+    {
+      "id": "FP-UI-109",
+      "status": "PARTIAL",
+      "note": "product click jump miniapp-side"
+    },
+    {
+      "id": "FP-UI-110",
+      "status": "PASS",
+      "note": "auto product source"
+    },
+    {
+      "id": "FP-UI-152",
+      "status": "FAIL",
+      "note": "no category_id field"
+    },
+    {
+      "id": "FP-UI-153",
+      "status": "FAIL",
+      "note": "no product_type"
+    },
+    {
+      "id": "FP-UI-154",
+      "status": "PASS",
+      "note": "status on_sale implied"
+    },
+    {
+      "id": "FP-UI-155",
+      "status": "PASS",
+      "note": "sort_by"
+    },
+    {
+      "id": "FP-UI-156",
+      "status": "PARTIAL",
+      "note": "sort_order derived from sort_by, no independent control"
+    },
+    {
+      "id": "FP-UI-157",
+      "status": "PASS",
+      "note": "limit"
+    },
+    {
+      "id": "FP-UI-111",
+      "status": "PASS",
+      "note": "article_list"
+    },
+    {
+      "id": "FP-UI-112",
+      "status": "PARTIAL",
+      "note": "empty article not forced"
+    },
+    {
+      "id": "FP-UI-113",
+      "status": "PARTIAL",
+      "note": "loading not isolated"
+    },
+    {
+      "id": "FP-UI-114",
+      "status": "PARTIAL",
+      "note": "fail兜底 not isolated"
+    },
+    {
+      "id": "FP-UI-115",
+      "status": "PASS",
+      "note": "当前组件\n文章列表\n取消选中\n内容与数据\n样式\n自动读取已发布文章\n数据源已连接，预览时显示真实内容\n管理数据\n标题\n样式\n卡片\n列表\n显示封面\n显示日期\n显示"
+    },
+    {
+      "id": "FP-UI-116",
+      "status": "PARTIAL",
+      "note": "article click miniapp-side"
+    },
+    {
+      "id": "FP-UI-117",
+      "status": "PASS",
+      "note": "content source"
+    },
+    {
+      "id": "FP-UI-158",
+      "status": "FAIL",
+      "note": "content category_id"
+    },
+    {
+      "id": "FP-UI-159",
+      "status": "FAIL",
+      "note": "content type"
+    },
+    {
+      "id": "FP-UI-160",
+      "status": "FAIL",
+      "note": "is_recommended"
+    },
+    {
+      "id": "FP-UI-161",
+      "status": "PASS",
+      "note": "content sort"
+    },
+    {
+      "id": "FP-UI-162",
+      "status": "PASS",
+      "note": "content limit"
+    },
+    {
+      "id": "FP-UI-118",
+      "status": "PASS",
+      "note": "activity_entry"
+    },
+    {
+      "id": "FP-UI-119",
+      "status": "PARTIAL",
+      "note": "empty activity"
+    },
+    {
+      "id": "FP-UI-120",
+      "status": "PARTIAL",
+      "note": "loading"
+    },
+    {
+      "id": "FP-UI-121",
+      "status": "PARTIAL",
+      "note": "fail"
+    },
+    {
+      "id": "FP-UI-122",
+      "status": "FAIL",
+      "note": "countdown switch"
+    },
+    {
+      "id": "FP-UI-123",
+      "status": "FAIL",
+      "note": "quota switch"
+    },
+    {
+      "id": "FP-UI-124",
+      "status": "PARTIAL",
+      "note": "click miniapp"
+    },
+    {
+      "id": "FP-UI-125",
+      "status": "PASS",
+      "note": "activity source"
+    },
+    {
+      "id": "FP-UI-163",
+      "status": "PASS",
+      "note": "activity type query"
+    },
+    {
+      "id": "FP-UI-164",
+      "status": "FAIL",
+      "note": "status registering"
+    },
+    {
+      "id": "FP-UI-165",
+      "status": "FAIL",
+      "note": "activity recommended"
+    },
+    {
+      "id": "FP-UI-166",
+      "status": "FAIL",
+      "note": "activity limit"
+    },
+    {
+      "id": "FP-UI-126",
+      "status": "PASS",
+      "note": "member_card"
+    },
+    {
+      "id": "FP-UI-127",
+      "status": "PARTIAL",
+      "note": "empty/unlogin is miniapp-side"
+    },
+    {
+      "id": "FP-UI-128",
+      "status": "PASS",
+      "note": "coupon"
+    },
+    {
+      "id": "FP-UI-129",
+      "status": "PARTIAL",
+      "note": "empty coupon"
+    },
+    {
+      "id": "FP-UI-130",
+      "status": "PARTIAL",
+      "note": "loading"
+    },
+    {
+      "id": "FP-UI-131",
+      "status": "PARTIAL",
+      "note": "fail"
+    },
+    {
+      "id": "FP-UI-132",
+      "status": "FAIL",
+      "note": "claim btn config"
+    },
+    {
+      "id": "FP-UI-133",
+      "status": "PASS",
+      "note": "coupon source"
+    },
+    {
+      "id": "FP-UI-167",
+      "status": "FAIL",
+      "note": "coupon type"
+    },
+    {
+      "id": "FP-UI-168",
+      "status": "FAIL",
+      "note": "coupon status"
+    },
+    {
+      "id": "FP-UI-169",
+      "status": "PASS",
+      "note": "coupon limit"
+    },
+    {
+      "id": "FP-UI-134",
+      "status": "PASS",
+      "note": "video"
+    },
+    {
+      "id": "FP-UI-135",
+      "status": "PASS",
+      "note": "src field"
+    },
+    {
+      "id": "FP-UI-136",
+      "status": "PARTIAL",
+      "note": "play is preview/miniapp"
+    },
+    {
+      "id": "FP-UI-137",
+      "status": "PASS",
+      "note": "poster"
+    },
+    {
+      "id": "FP-UI-138",
+      "status": "PASS",
+      "note": "countdown"
+    },
+    {
+      "id": "FP-UI-139",
+      "status": "PASS",
+      "note": "target_time"
+    },
+    {
+      "id": "FP-UI-140",
+      "status": "PASS",
+      "note": "ended_text"
+    },
+    {
+      "id": "FP-UI-141",
+      "status": "FAIL",
+      "note": "format"
+    },
+    {
+      "id": "FP-UI-142",
+      "status": "PASS",
+      "note": "float_button"
+    },
+    {
+      "id": "FP-UI-143",
+      "status": "PASS",
+      "note": "icon"
+    },
+    {
+      "id": "FP-UI-144",
+      "status": "PARTIAL",
+      "note": "float click miniapp"
+    },
+    {
+      "id": "FP-UI-145",
+      "status": "PASS",
+      "note": "position"
+    },
+    {
+      "id": "FP-UI-146",
+      "status": "PASS",
+      "note": "rich_text"
+    },
+    {
+      "id": "FP-UI-147",
+      "status": "PARTIAL",
+      "note": "empty content not forced"
+    },
+    {
+      "id": "FP-UI-148",
+      "status": "PASS",
+      "note": "divider"
+    },
+    {
+      "id": "FP-UI-149",
+      "status": "PASS",
+      "note": "spacer"
+    },
+    {
+      "id": "FP-UI-150",
+      "status": "FAIL",
+      "note": "data_source.type 未作为必填校验展示"
+    },
+    {
+      "id": "FP-UI-151",
+      "status": "FAIL",
+      "note": "data_source.query 未作为必填校验展示"
+    },
+    {
+      "id": "FP-UI-179",
+      "status": "PASS",
+      "note": "components render from props without data_source"
+    },
+    {
+      "id": "FP-UI-180",
+      "status": "PARTIAL",
+      "note": "real-data preview requests when data_source present; not fully isolated"
+    },
+    {
+      "id": "FP-UI-178",
+      "status": "FAIL",
+      "note": "unknown type skip/log not exercised in admin canvas"
+    },
+    {
+      "id": "FP-UI-170",
+      "status": "PARTIAL",
+      "note": "banner link_type=page exists; wx.navigateTo not run (avoid stealing DevTools)"
+    },
+    {
+      "id": "FP-UI-171",
+      "status": "FAIL",
+      "note": "url option not named webview"
+    },
+    {
+      "id": "FP-UI-172",
+      "status": "FAIL",
+      "note": "miniapp option"
+    },
+    {
+      "id": "FP-UI-173",
+      "status": "FAIL",
+      "note": "no phone jump type in banner"
+    },
+    {
+      "id": "FP-UI-174",
+      "status": "FAIL",
+      "note": "no type=none"
+    },
+    {
+      "id": "FP-UI-175",
+      "status": "FAIL",
+      "note": "缺 type 未校验"
+    },
+    {
+      "id": "FP-UI-176",
+      "status": "FAIL",
+      "note": "缺 target 未校验"
+    },
+    {
+      "id": "FP-UI-177",
+      "status": "PARTIAL",
+      "note": "link_url present; params not a structured field"
+    },
+    {
+      "id": "FP-UI-181",
+      "status": "PASS",
+      "note": "GET /mp/pages draft-only returned 未发布; see BATCH-QA-010"
+    },
+    {
+      "id": "FP-UI-185",
+      "status": "PARTIAL",
+      "note": "publish result shows path; miniapp package may not include custom path (BUG-UI-002)"
+    }
+  ]
+}

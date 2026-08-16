@@ -118,10 +118,11 @@ CREATE TABLE IF NOT EXISTS mp_page_builder_version (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='页面版本表';
 
 INSERT INTO mp_user (id, openid, nickname, avatar_url, phone, gender, source_channel, last_visit_at, points, level_id, continuous_sign_days, last_sign_date)
-VALUES (1, 'dev-openid-001', '张小明', '', '13800000001', 1, 'local-dev', NOW(), 1280, 1, 5, CURDATE())
+VALUES (1, 'dev-openid-001', '张小明', '', '13800000001', 1, 'local-dev', NOW(), 1280, 3, 5, CURDATE())
 ON DUPLICATE KEY UPDATE
   nickname = VALUES(nickname),
   phone = VALUES(phone),
+  level_id = VALUES(level_id),
   last_visit_at = NOW(),
   points = VALUES(points);
 
@@ -273,15 +274,37 @@ ON DUPLICATE KEY UPDATE
   booked_count = VALUES(booked_count),
   status = VALUES(status);
 
-INSERT INTO mp_order (id, order_no, user_id, total_amount, pay_amount, discount_amount, freight_amount, status, remark, address_snapshot, logistics_company, logistics_no)
+INSERT INTO mp_order (id, order_no, user_id, total_amount, pay_amount, discount_amount, freight_amount, status, remark, address_snapshot, logistics_company, logistics_no, paid_at, shipped_at)
 VALUES
-  (1, 'NO202605120001', 1, 199.00, 179.00, 20.00, 0.00, 'paid', '本地联调订单', JSON_OBJECT('name', '张小明', 'phone', '13800000001', 'address', '本地联调地址'), '顺丰速运', 'SF1234567890')
+  (1, 'NO202605120001', 1, 199.00, 179.00, 20.00, 0.00, 'shipped', '本地联调订单', JSON_OBJECT('name', '张小明', 'phone', '13800000001', 'address', '本地联调地址'), '顺丰速运', 'SF1234567890', '2026-05-12 10:30:00', '2026-05-13 09:00:00')
 ON DUPLICATE KEY UPDATE
+  user_id = VALUES(user_id),
   status = VALUES(status),
   pay_amount = VALUES(pay_amount),
+  paid_at = VALUES(paid_at),
+  shipped_at = VALUES(shipped_at),
   logistics_company = VALUES(logistics_company),
   logistics_no = VALUES(logistics_no),
   updated_at = NOW();
+
+INSERT INTO mp_payment (id, order_id, transaction_id, pay_method, amount, status, paid_at)
+VALUES
+  (1, 1, 'WX202605120001', 'wechat', 179.00, 'success', '2026-05-12 10:30:00')
+ON DUPLICATE KEY UPDATE
+  order_id = VALUES(order_id),
+  pay_method = VALUES(pay_method),
+  amount = VALUES(amount),
+  status = VALUES(status),
+  paid_at = VALUES(paid_at);
+
+INSERT INTO mp_finance_transaction (id, type, amount, category, sub_category, description, transaction_date, payment_method, counterparty, approval_status, created_by)
+VALUES
+  (1, 'income', 179.00, '商品销售', '小程序订单', '订单收入 NO202605120001', CURDATE(), 'wechat', '张小明', 'approved', 'system')
+ON DUPLICATE KEY UPDATE
+  amount = VALUES(amount),
+  description = VALUES(description),
+  transaction_date = VALUES(transaction_date),
+  approval_status = VALUES(approval_status);
 
 INSERT INTO mp_order_item (id, order_id, product_id, sku_id, product_name, sku_name, product_image, price, quantity, subtotal)
 VALUES
@@ -303,3 +326,22 @@ ON DUPLICATE KEY UPDATE
   reasoning_effort = VALUES(reasoning_effort),
   status = VALUES(status),
   version = VALUES(version);
+
+-- BATCH-QA-027: 退款/表单提交/AI 对话种子
+INSERT INTO mp_refund (id, order_id, refund_no, amount, reason, status, created_at, updated_at)
+VALUES (1, 1, 'RF202608160001', 179.00, 'QA 批次联调退款申请', 'pending', NOW(), NOW())
+ON DUPLICATE KEY UPDATE amount = VALUES(amount), reason = VALUES(reason), status = VALUES(status), updated_at = NOW();
+
+INSERT INTO mp_form_data (id, form_id, user_id, data, create_time, update_time, deleted)
+VALUES (1, 1, 1, JSON_OBJECT('field_1786608731416', 'QA-BATCH-027 表单提交'), NOW(), NOW(), 0)
+ON DUPLICATE KEY UPDATE data = VALUES(data), update_time = NOW();
+
+UPDATE mp_form_template SET submit_count = GREATEST(submit_count, 1) WHERE id = 1;
+
+INSERT INTO mp_ai_conversation (id, user_id, session_id, question, answer, recommended_items, is_transfer_human, created_at, updated_at, deleted)
+VALUES (
+  1, 1, 'qa-batch-027-session', '有没有适合送礼的礼盒？', '推荐品牌文创礼盒，当前在售且支持小程序下单。',
+  JSON_ARRAY(JSON_OBJECT('type', 'product', 'id', '1', 'title', '品牌文创礼盒', 'reason', 'QA 推荐')),
+  0, NOW(), NOW(), 0
+)
+ON DUPLICATE KEY UPDATE question = VALUES(question), answer = VALUES(answer), updated_at = NOW();

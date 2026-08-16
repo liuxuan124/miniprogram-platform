@@ -43,6 +43,9 @@ public class MemberLevelVO {
     @Schema(description = "状态")
     private Integer status;
 
+    @Schema(description = "当前属于该等级的会员数")
+    private Integer memberCount;
+
     @Schema(description = "创建时间")
     private String createdAt;
 

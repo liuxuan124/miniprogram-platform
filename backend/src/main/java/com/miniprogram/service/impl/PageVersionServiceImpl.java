@@ -3,6 +3,7 @@ package com.miniprogram.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.PageResult;
+import com.miniprogram.dto.PageDTO;
 import com.miniprogram.dto.PageVersionDTO;
 import com.miniprogram.entity.Page;
 import com.miniprogram.entity.PageVersion;
@@ -31,11 +32,21 @@ public class PageVersionServiceImpl extends BaseServiceImpl<PageVersionMapper, P
 
     @Override
     public PageResult<PageVersionDTO> listVersions(Long pageId, Long current, Long size) {
+        if (pageService.getById(pageId) == null) {
+            throw new BusinessException(300401, "页面不存在");
+        }
+        PageDTO paging = new PageDTO();
+        paging.setCurrent(current);
+        paging.setSize(size);
+        paging.normalize();
+
         LambdaQueryWrapper<PageVersion> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PageVersion::getPageId, pageId);
         wrapper.orderByDesc(PageVersion::getVersion);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<PageVersion> page = this.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(current, size), wrapper);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<PageVersion> page = this.page(
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(paging.getCurrent(), paging.getSize()),
+                wrapper);
 
         PageResult<PageVersionDTO> result = new PageResult<>();
         result.setTotal(page.getTotal());
@@ -75,13 +86,10 @@ public class PageVersionServiceImpl extends BaseServiceImpl<PageVersionMapper, P
         newVersion.setStatus(0); // 草稿
         this.save(newVersion);
 
-        // 将目标版本标记为已回滚
         targetVersion.setStatus(2);
         this.updateById(targetVersion);
 
-        // 更新页面的当前版本号
-        page.setCurrentVersion(newVersionNum);
-        page.setStatus(0); // 回滚后变为草稿状态
+        page.setStatus(0);
         pageService.updateById(page);
 
         return toDTO(newVersion);

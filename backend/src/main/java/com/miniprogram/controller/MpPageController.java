@@ -1,5 +1,7 @@
 package com.miniprogram.controller;
 
+import com.miniprogram.common.BusinessException;
+import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.R;
 import com.miniprogram.entity.MiniappRelease;
 import com.miniprogram.service.MiniappReleaseService;
@@ -46,12 +48,15 @@ public class MpPageController {
     }
 
     private R<Map<String, Object>> resolvePageDsl(String path) {
+        if (!StringUtils.hasText(path)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "path 不能为空");
+        }
         String dslContent = getPageDslFromLatestRelease(path);
         if (dslContent == null) {
             dslContent = pageService.getPublishedPageDsl(path);
         }
         if (dslContent == null) {
-            return R.notFound("页面不存在或未发布");
+            throw new BusinessException(ErrorCode.PAGE_NOT_FOUND, "页面不存在或未发布");
         }
 
         try {

@@ -8,7 +8,6 @@ const PROD_BASE_URL = 'https://api.zfculture.site'
 
 function resolveBaseUrl() {
   try {
-    // 调试时可在控制台执行：wx.setStorageSync('api_base_url', 'http://127.0.0.1:8080')
     const custom = wx.getStorageSync('api_base_url')
     if (custom && typeof custom === 'string') {
       return custom.replace(/\/$/, '')
@@ -16,7 +15,14 @@ function resolveBaseUrl() {
   } catch (e) {
     // ignore
   }
-  // 体验版/正式版/开发版默认都走线上 API，避免开发者工具连本地失败看起来像「无法登录」
+  try {
+    const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
+    if (envVersion === 'develop') {
+      return 'http://127.0.0.1:8080'
+    }
+  } catch (e) {
+    // ignore
+  }
   return PROD_BASE_URL
 }
 
@@ -124,9 +130,10 @@ function request(options) {
           _showError('服务器异常，请稍后重试')
           reject({ code: statusCode, message: '服务器异常' })
         } else {
-          // 422/400 等客户端参数错误：开发环境静默处理（如微信登录 code 无效）
-          console.warn(`[Request] ${url} 返回 ${statusCode}`, responseData?.message || '')
-          reject({ code: statusCode, message: responseData?.message || `请求失败(${statusCode})` })
+          // 400/422 等参数错误
+          const errMsg = (responseData && responseData.message) || `请求失败(${statusCode})`
+          if (showError) _showError(errMsg)
+          reject({ code: statusCode, message: errMsg })
         }
       },
       fail(err) {
@@ -210,7 +217,12 @@ function del(url, data, options = {}) {
 
 /** 文件上传 */
 function upload(filePath, options = {}) {
-  const { name = 'file', url = '/api/upload', formData = {} } = options
+  const {
+    name = 'file',
+    url = '/api/upload',
+    formData = {},
+    showError = true,
+  } = options
 
   return new Promise((resolve, reject) => {
     const token = AuthUtil.getToken()
@@ -231,16 +243,16 @@ function upload(filePath, options = {}) {
           if (data.code === 0 || data.code === 200) {
             resolve(data.data)
           } else {
-            _showError(data.message || '上传失败')
+            if (showError) _showError(data.message || '上传失败')
             reject(data)
           }
         } catch (e) {
-          _showError('上传失败')
+          if (showError) _showError('上传失败')
           reject(e)
         }
       },
       fail(err) {
-        _showError('网络异常，上传失败')
+        if (showError) _showError('网络异常，上传失败')
         reject(err)
       },
     })

@@ -1,6 +1,8 @@
 package com.miniprogram.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -14,6 +16,7 @@ import java.time.LocalDateTime;
 public class PageDetailDTO {
 
     @Schema(description = "页面ID")
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     @Schema(description = "页面名称")
@@ -42,6 +45,9 @@ public class PageDetailDTO {
 
     @Schema(description = "当前发布版本号")
     private Integer currentVersion;
+
+    @Schema(description = "最新草稿版本号")
+    private Integer latestVersion;
 
     @Schema(description = "页面描述")
     private String description;

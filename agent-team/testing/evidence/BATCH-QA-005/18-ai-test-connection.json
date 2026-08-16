@@ -1,0 +1,6 @@
+### Result
+"{\"alerts\":[\"内置列表会随版本更新；如果服务商发布新模型，可在右侧直接输入模型 ID。\",\"开启「主动引导」后，AI 将在合适时机主动推荐商品或引导报名活动。\"],\"text\":\"Base URL\\nAPI Key\\n模型 ID\\nGPT-5.4 · gpt-5.4\\n推理强度\\nmedium / 平衡\\n温度参数\\n最大回复\\n环境\\n沙盒\\n生产\\n🔌 测试连接\\n保存配置\\n下一步：Prompt 配置 →\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => ((() => {\n  const alerts = Array.from(document.querySelectorAll(\'[role=alert]\')).map(el => el.innerText.trim());\n  return JSON.stringify({alerts, text: (document.body.innerText||\'\').slice((document.body.innerText||\'\').indexOf(\'测试连接\')-80, (document.body.innerText||\'\').indexOf(\'测试连接\')+200)});\n})())');
+```

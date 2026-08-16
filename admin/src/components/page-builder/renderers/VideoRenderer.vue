@@ -27,7 +27,7 @@
       </template>
       <div
         class="video-overlay"
-        :class="{ 'video-overlay--clickable': previewMode && videoSrc }"
+        :class="{ 'video-overlay--clickable': videoSrc }"
         @click="handlePlayClick"
       >
         <el-icon :size="40" color="#ffffff"><VideoPlay /></el-icon>
@@ -59,7 +59,6 @@ const buffering = ref(false)
 const playerRef = ref<HTMLVideoElement>()
 
 function handlePlayClick() {
-  if (!props.previewMode) return
   if (!videoSrc.value) {
     ElMessage.warning('请先在「内容与数据」中设置视频地址')
     return

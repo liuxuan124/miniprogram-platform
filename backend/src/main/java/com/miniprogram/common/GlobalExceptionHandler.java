@@ -45,20 +45,27 @@ public class GlobalExceptionHandler {
      * 根据业务错误码解析 HTTP 状态码
      */
     private int resolveHttpStatus(int code) {
+        if (code == ErrorCode.PAGE_VERSION_CONFLICT.getCode()) {
+            return 409;
+        }
         // 6位业务码: 模块(2位) + 类型(2位) + 序号(2位)
         // 类型 04 = 不存在 -> 404
         // 类型 02 = 状态错误 -> 422
         // 类型 05 = 冲突/重复 -> 409
-        // 类型 01 = 认证/参数错误 -> 401
+        // 类型 01 = 认证(11xxxx) -> 401；通用参数(10xxxx) -> 400
         int type = (code / 100) % 100;
+        int module = code / 10000;
         if (code >= 5000 && code < 6000) {
             return 422;
+        }
+        if (module == 10 && type == 1) {
+            return 400;
         }
         return switch (type) {
             case 4 -> 404;   // 不存在
             case 2 -> 422;   // 状态错误/业务规则
             case 5 -> 409;   // 冲突/重复
-            case 1 -> 401;   // 认证/参数错误
+            case 1 -> 401;   // 认证错误
             default -> 200;  // 其他业务错误用200，通过code区分
         };
     }
@@ -150,12 +157,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 404 未找到
+     * 404 未找到（旧式 DispatcherServlet）
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public R<Void> handleNoHandlerFoundException(NoHandlerFoundException e) {
         log.warn("接口不存在: {} {}", e.getHttpMethod(), e.getRequestURL());
+        return R.notFound("接口不存在");
+    }
+
+    /**
+     * 404 未找到（Spring 6 / Boot 3 默认：无资源映射）
+     */
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public R<Void> handleNoResourceFoundException(
+            org.springframework.web.servlet.resource.NoResourceFoundException e) {
+        log.warn("接口不存在: {} {}", e.getHttpMethod(), e.getResourcePath());
         return R.notFound("接口不存在");
     }
 

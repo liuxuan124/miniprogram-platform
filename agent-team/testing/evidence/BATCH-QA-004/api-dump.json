@@ -1,0 +1,39 @@
+{
+  "page2": {
+    "code": 200,
+    "id": 2,
+    "name": "五一活动专题",
+    "status": 0,
+    "statusDesc": "草稿",
+    "version": 3,
+    "pull_refresh": true,
+    "share_title": "QA离线保存探测"
+  },
+  "assets": {
+    "records": [
+      {
+        "id": 1,
+        "name": "首页活动 Banner",
+        "type": "image",
+        "url": "/uploads/dev/banner-mayday.png",
+        "thumbUrl": "/uploads/dev/banner-mayday.png",
+        "size": 102400,
+        "groupId": 1,
+        "createdAt": "2026-07-22 12:55:55"
+      },
+      {
+        "id": 2,
+        "name": "品牌礼盒主图",
+        "type": "image",
+        "url": "/uploads/dev/product-gift.png",
+        "thumbUrl": "/uploads/dev/product-gift.png",
+        "size": 204800,
+        "groupId": 1,
+        "createdAt": "2026-07-22 12:55:55"
+      }
+    ],
+    "total": 2,
+    "current": 1,
+    "size": 20
+  }
+}

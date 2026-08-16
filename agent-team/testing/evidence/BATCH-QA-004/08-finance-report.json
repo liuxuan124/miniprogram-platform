@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/finance/report\",\"title\":\"财务报表 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n财务概览\\n收支明细\\n财务报表\\n预算管理\\n发票与税务\\n财务权限\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n财务管理\\n/\\n财务报表\\n超级管理员\\n财务报表\\n工作台\\n财务报表\\n\\n多维度财务数据分析与报表生成\\n\\n收支分析\\n利润表\\n现金流量表\\n分类对比分析\\n至\\n月\\n导出报表\\n收支趋势\\n总收入\\n¥0.00\\n总支出\\n¥0.00\\n净利润\\n¥0.00\\n日均收入\\n¥0.00\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(0, 2600) });\n})()\n)');
+```

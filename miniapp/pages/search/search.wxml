@@ -6,7 +6,7 @@
       class="input"
       focus="{{true}}"
       confirm-type="search"
-      placeholder="搜索内容、资料包、咨询服务"
+      placeholder="搜索内容、文创好物"
       value="{{keyword}}"
       bindinput="onInput"
       bindconfirm="onSearch"

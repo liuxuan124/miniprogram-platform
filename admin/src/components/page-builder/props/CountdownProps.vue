@@ -27,8 +27,13 @@
           <el-radio-button value="banner">横幅</el-radio-button>
         </el-radio-group>
       </el-form-item>
-      <el-form-item label="显示天数">
-        <el-switch :model-value="data.show_days !== false" @change="(v: boolean) => emit('update', { show_days: v })" />
+      <el-form-item label="显示格式">
+        <el-select :model-value="formatValue" style="width: 100%" @change="onFormatChange">
+          <el-option label="仅天数（d）" value="d" />
+          <el-option label="天 + 时（dh）" value="dh" />
+          <el-option label="天 + 时 + 分（dhm）" value="dhm" />
+          <el-option label="天时分秒（dhms）" value="dhms" />
+        </el-select>
       </el-form-item>
       <el-form-item label="结束文案">
         <el-input :model-value="data.end_text || '已结束'" @input="emit('update', { end_text: $event })" placeholder="已结束" />
@@ -68,21 +73,32 @@ function parseParts(raw?: string) {
   return { date, time: timeRaw ? timeRaw.slice(0, 5) : '' }
 }
 
-const datePart = computed(() => parseParts(data.end_time).date)
-const hourPart = computed(() => parseParts(data.end_time).time.slice(0, 2) || '10')
-const minutePart = computed(() => parseParts(data.end_time).time.slice(3, 5) || '00')
+const datePart = computed(() => parseParts(data.end_time || data.target_time).date)
+const hourPart = computed(() => parseParts(data.end_time || data.target_time).time.slice(0, 2) || '10')
+const minutePart = computed(() => parseParts(data.end_time || data.target_time).time.slice(3, 5) || '00')
 const displayTime = computed(() => {
-  const { date, time } = parseParts(data.end_time)
+  const { date, time } = parseParts(data.end_time || data.target_time)
   if (!date) return ''
   return time ? `${date} ${time}` : date
 })
 
+const formatValue = computed(() => {
+  const raw = data.format
+  if (raw === 'd' || raw === 'dh' || raw === 'dhm' || raw === 'dhms') return raw
+  return 'dhms'
+})
+
+function onFormatChange(format: string) {
+  emit('update', { format, show_days: true })
+}
+
 function emitDateTime(date: string, hour: string, minute: string) {
   if (!date) {
-    emit('update', { end_time: '' })
+    emit('update', { end_time: '', target_time: '' })
     return
   }
-  emit('update', { end_time: `${date} ${hour}:${minute}:00` })
+  const value = `${date} ${hour}:${minute}:00`
+  emit('update', { end_time: value, target_time: value })
 }
 
 function onDateChange(event: Event) {
@@ -101,7 +117,8 @@ function onMinuteChange(minute: string) {
 }
 
 function setAfterHours(hours: number) {
-  emit('update', { end_time: formatDateTime(new Date(Date.now() + hours * 3600 * 1000)) })
+  const value = formatDateTime(new Date(Date.now() + hours * 3600 * 1000))
+  emit('update', { end_time: value, target_time: value })
 }
 </script>
 

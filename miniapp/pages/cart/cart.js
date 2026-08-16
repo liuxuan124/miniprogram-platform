@@ -14,10 +14,17 @@ Page({
     isEmpty: false,
   },
 
-  onLoad() {},
+  onLoad() {
+    if (!auth.isLoggedIn()) {
+      this.setData({ loading: false, isEmpty: true, cartList: [] })
+    }
+  },
 
   onShow() {
-    if (!auth.isLoggedIn()) return
+    if (!auth.isLoggedIn()) {
+      this.setData({ loading: false, isEmpty: true, cartList: [] })
+      return
+    }
     this._loadCart()
   },
 

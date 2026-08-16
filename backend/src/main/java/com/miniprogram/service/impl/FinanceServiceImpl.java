@@ -14,6 +14,7 @@ import com.miniprogram.entity.FinanceRole;
 import com.miniprogram.entity.FinanceSyncConfig;
 import com.miniprogram.entity.FinanceTransaction;
 import com.miniprogram.entity.AdminUser;
+import com.miniprogram.entity.Order;
 import com.miniprogram.mapper.FinanceBudgetAlertMapper;
 import com.miniprogram.mapper.FinanceBudgetMapper;
 import com.miniprogram.mapper.FinanceInvoiceMapper;
@@ -22,6 +23,7 @@ import com.miniprogram.mapper.FinanceRoleMapper;
 import com.miniprogram.mapper.FinanceSyncConfigMapper;
 import com.miniprogram.mapper.FinanceTransactionMapper;
 import com.miniprogram.mapper.AdminUserMapper;
+import com.miniprogram.mapper.OrderMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.service.FinanceService;
@@ -67,6 +69,7 @@ public class FinanceServiceImpl implements FinanceService {
     private final FinanceSyncConfigMapper syncConfigMapper;
     private final FinanceBudgetAlertMapper budgetAlertMapper;
     private final AdminUserMapper adminUserMapper;
+    private final OrderMapper orderMapper;
     private final ObjectMapper objectMapper;
 
     @PostConstruct
@@ -82,6 +85,7 @@ public class FinanceServiceImpl implements FinanceService {
 
     @Override
     public FinanceDashboardVO getDashboard() {
+        syncPaidOrdersToFinance();
         LocalDate now = LocalDate.now();
         LocalDate monthStart = now.withDayOfMonth(1);
         LocalDate prevMonthStart = monthStart.minusMonths(1);
@@ -1764,5 +1768,38 @@ public class FinanceServiceImpl implements FinanceService {
         cat.put("type", type);
         cat.put("parentId", parentId);
         return cat;
+    }
+
+    /** 将已付款订单同步为财务收入流水（幂等，按订单号去重） */
+    private void syncPaidOrdersToFinance() {
+        List<Order> orders = orderMapper.selectList(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, List.of("paid", "shipped", "completed")));
+        for (Order order : orders) {
+            if (order.getPayAmount() == null || order.getOrderNo() == null) {
+                continue;
+            }
+            String marker = "订单收入 " + order.getOrderNo();
+            Long exists = transactionMapper.selectCount(new LambdaQueryWrapper<FinanceTransaction>()
+                    .eq(FinanceTransaction::getType, "income")
+                    .like(FinanceTransaction::getDescription, order.getOrderNo()));
+            if (exists != null && exists > 0) {
+                continue;
+            }
+            FinanceTransaction tx = new FinanceTransaction();
+            tx.setType("income");
+            tx.setAmount(order.getPayAmount());
+            tx.setCategory("商品销售");
+            tx.setSubCategory("小程序订单");
+            tx.setDescription(marker);
+            tx.setTransactionDate(order.getPaidAt() != null ? order.getPaidAt().toLocalDate() : LocalDate.now());
+            tx.setPaymentMethod("wechat");
+            tx.setCounterparty("用户" + order.getUserId());
+            tx.setApprovalStatus("approved");
+            tx.setInvoiceStatus("none");
+            tx.setCreatedBy("system");
+            tx.setCreateTime(LocalDateTime.now());
+            tx.setUpdateTime(LocalDateTime.now());
+            transactionMapper.insert(tx);
+        }
     }
 }

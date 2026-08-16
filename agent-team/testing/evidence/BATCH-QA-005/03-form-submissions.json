@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/form/submissions\",\"title\":\"提交数据 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n表单管理\\n/\\n提交数据\\n超级管理员\\n提交数据\\n工作台\\n表单模板\\n选择模板\\n提交日期\\n至\\n搜索\\n重置\\n表单提交数据\\n导出数据\\n请先选择一个表单模板查看提交数据\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => (\n(() => {\n  const t = document.body.innerText || \'\';\n  return JSON.stringify({ url: location.href, title: document.title, text: t.slice(0, 2400) });\n})()\n)');
+```

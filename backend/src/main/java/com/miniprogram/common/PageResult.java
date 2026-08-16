@@ -1,5 +1,6 @@
 package com.miniprogram.common;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -53,5 +54,15 @@ public class PageResult<T> implements Serializable {
      */
     public static <T> PageResult<T> of(com.baomidou.mybatisplus.extension.plugins.pagination.Page<T> page) {
         return new PageResult<>(page.getRecords(), page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    @JsonProperty("page")
+    public Long getPage() {
+        return current;
+    }
+
+    @JsonProperty("page_size")
+    public Long getPageSize() {
+        return size;
     }
 }

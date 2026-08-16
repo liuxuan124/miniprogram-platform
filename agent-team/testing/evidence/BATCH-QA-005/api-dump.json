@@ -1,0 +1,53 @@
+{
+  "agent_active": {
+    "status": 500,
+    "body": {
+      "code": 500,
+      "message": "系统内部错误，请稍后重试"
+    }
+  },
+  "appointment_slots": {
+    "status": 200,
+    "records": [
+      {
+        "id": 1,
+        "serviceId": 1,
+        "date": "2026-07-22",
+        "startTime": "09:00",
+        "endTime": "09:30",
+        "maxCapacity": 3,
+        "bookedCount": 0,
+        "remainingCapacity": 3
+      },
+      {
+        "id": 2,
+        "serviceId": 1,
+        "date": "2026-07-22",
+        "startTime": "10:00",
+        "endTime": "10:30",
+        "maxCapacity": 3,
+        "bookedCount": 1,
+        "remainingCapacity": 2
+      },
+      {
+        "id": 3,
+        "serviceId": 1,
+        "date": "2026-07-23",
+        "startTime": "14:00",
+        "endTime": "14:30",
+        "maxCapacity": 3,
+        "bookedCount": 0,
+        "remainingCapacity": 3
+      }
+    ]
+  },
+  "appointment_services": {
+    "status": 200,
+    "total": 3,
+    "names": [
+      "品牌顾问一对一预约",
+      "选品诊断 1v1（45 分钟）",
+      "独立站冷启动 1v1（60 分钟）"
+    ]
+  }
+}

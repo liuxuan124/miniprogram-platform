@@ -29,6 +29,8 @@ Component({
     displayData: [],
     titleStyle: '',
     metaStyle: '',
+    layout: 'grid',
+    columnCount: 2,
   },
 
   observers: {
@@ -61,10 +63,14 @@ Component({
       }))
       const titleSize = Number(config.title_font_size) > 0 ? Number(config.title_font_size) : 12
       const metaSize = Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 11
+      const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
+      const columnCount = layout === 'list' ? 1 : (layout === 'waterfall' ? 2 : Number(config.columns || 2))
       this.setData({
         displayData,
         titleStyle: 'font-size:' + (titleSize * 2) + 'rpx',
         metaStyle: 'font-size:' + (metaSize * 2) + 'rpx',
+        layout,
+        columnCount,
       })
     },
 

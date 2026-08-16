@@ -1,0 +1,6 @@
+### Result
+"{\"url\":\"http://127.0.0.1:3000/settings/storage\",\"title\":\"存储配置 - 小程序搭建与运营系统\",\"text\":\"小程序运营系统\\n多场景搭建与运营平台\\n总览\\n工作台\\n页面装修\\n搭建小程序\\n页面管理\\n页面模板\\n内容运营\\n内容管理\\n表单管理\\n用户与会员\\n会员管理\\n用户管理\\n商业变现\\n商品管理\\n订单管理\\n营销管理\\n活动与预约\\n活动管理\\n预约管理\\n经营\\n财务管理\\n智能 Agent\\n系统\\n素材库\\n系统设置\\n系统设置\\n/\\n存储配置\\n超级管理员\\n存储配置\\n工作台\\n存储配置\\n测试存储\\n保存设置\\n存储方式\\n存储类型\\n本地存储\\n阿里云 OSS\\n腾讯云 COS\\n七牛云\\n本地存储配置\\n存储路径\\n访问域名\\n上传限制\\n最大文件大小\\n单位：MB，建议不超过 50MB\\n允许的扩展名\\n多个扩展名用英文逗号分隔\"}"
+### Ran Playwright code
+```js
+await page.evaluate('() => ((() => JSON.stringify({url:location.href,title:document.title,text:(document.body.innerText||\'\').slice(0,1600)}))())');
+```

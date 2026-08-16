@@ -1,0 +1,71 @@
+<view class="page">
+  <view class="tip">购买商品时请填写真实有效的收货信息，便于快递配送。</view>
+
+  <block wx:if="{{!editing}}">
+    <view wx:if="{{list.length === 0}}" class="empty">
+      <text class="empty__title">暂无收货地址</text>
+      <text class="empty__desc">点击下方按钮新增地址</text>
+    </view>
+
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="card"
+      data-id="{{item.id}}"
+      bindtap="onSelect"
+    >
+      <view class="name-row">
+        <text class="name">{{item.name}}</text>
+        <text class="phone">{{item.phone}}</text>
+        <text class="default-tag" wx:if="{{item.is_default}}">默认</text>
+      </view>
+      <view class="detail">{{item.province}}{{item.city}}{{item.district}}{{item.detail}}</view>
+      <view class="actions">
+        <button
+          class="text-btn"
+          wx:if="{{!item.is_default}}"
+          data-id="{{item.id}}"
+          catchtap="setDefault"
+        >设为默认</button>
+        <button class="text-btn" data-id="{{item.id}}" catchtap="startEdit">编辑</button>
+        <button class="text-btn danger" data-id="{{item.id}}" catchtap="clearAddress">删除</button>
+      </view>
+    </view>
+
+    <view class="dock-space"></view>
+    <view class="dock">
+      <view class="add-btn" bindtap="onAdd" hover-class="add-btn--pressed">
+        <text class="add-btn__plus">＋</text>
+        <text class="add-btn__label">新增收货地址</text>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="form-card">
+    <view class="form-head">
+      <text class="form-head__title">{{editingId ? '编辑地址' : '新增地址'}}</text>
+      <text class="form-head__cancel" bindtap="cancelEdit">取消</text>
+    </view>
+    <view class="field">
+      <text class="label">收货人</text>
+      <input class="input" placeholder="请输入姓名" value="{{form.name}}" data-field="name" bindinput="onInput" />
+    </view>
+    <view class="field">
+      <text class="label">手机号码</text>
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号" value="{{form.phone}}" data-field="phone" bindinput="onInput" />
+    </view>
+    <picker mode="region" value="{{region}}" bindchange="onRegionChange">
+      <view class="field">
+        <text class="label">所在地区</text>
+        <text class="region {{region.length ? '' : 'placeholder'}}">{{region.length ? regionText : '请选择省市区'}}</text>
+        <text class="arrow">›</text>
+      </view>
+    </picker>
+    <view class="field detail-field">
+      <text class="label">详细地址</text>
+      <textarea class="textarea" maxlength="100" placeholder="街道、楼牌号等" value="{{form.detail}}" data-field="detail" bindinput="onInput" />
+    </view>
+    <button class="btn" bindtap="saveAddress">保存地址</button>
+  </view>
+</view>
+<login-sheet id="global-login-sheet" />
