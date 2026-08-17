@@ -20,7 +20,7 @@
             </el-form-item>
 
             <el-form-item label="内容分类" prop="category_id">
-              <el-select v-model="formData.category_id" style="width: 100%" placeholder="请选择内容分类">
+              <el-select v-model="formData.category_id" style="width: 100%" placeholder="请选择内容分类" filterable>
                 <el-option
                   v-for="item in flatCategoryOptions"
                   :key="item.id"
@@ -28,6 +28,7 @@
                   :label="item.label"
                 />
               </el-select>
+              <div class="field-tip">选项与「跨境资讯」顶栏一致；请在文章管理点「分类」→ 对分类点「发布」后才会出现在这里</div>
             </el-form-item>
 
             <el-form-item label="发布方式">
@@ -183,6 +184,7 @@ const flatCategoryOptions = computed<FlatCategoryOption[]>(() => {
   const output: FlatCategoryOption[] = []
   const walk = (arr: any[], prefix = '') => {
     arr.forEach((node) => {
+      if (node.status !== undefined && Number(node.status) !== 1) return
       output.push({ id: Number(node.id), label: `${prefix}${node.name}` })
       if (Array.isArray(node.children) && node.children.length > 0) {
         walk(node.children, `${prefix}└ `)
@@ -615,6 +617,13 @@ onMounted(async () => {
   text-align: center;
   color: #a5abb9;
   font-size: 13px;
+}
+
+.field-tip {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .preview-hint {

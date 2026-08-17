@@ -27,7 +27,7 @@ export function createPage(data: CreatePageParams) {
 }
 
 /** 获取页面详情 */
-export function getPageDetail(id: number) {
+export function getPageDetail(id: number | string) {
   return get<PageRecord>(`${BASE_URL}/pages/${id}`)
 }
 

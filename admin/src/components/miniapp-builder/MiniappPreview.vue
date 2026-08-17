@@ -22,9 +22,6 @@
 
           <!-- Real page content (DSL rendered，与体验版同源：已发布快照) -->
           <div v-else-if="currentPageDsl" class="preview-dsl">
-            <div v-if="previewWarnings.length" class="preview-warnings">
-              <p v-for="(msg, idx) in previewWarnings" :key="idx">{{ msg }}</p>
-            </div>
             <ComponentItem
               v-for="(comp, idx) in currentPageDsl.components"
               :key="comp.id"
@@ -126,7 +123,7 @@
         </div>
       </div>
     </div>
-    <p class="preview-source-hint">与微信体验版一致：页面结构来自已发布快照，列表数据来自线上接口</p>
+    <p class="preview-source-hint">与绑定页一致：页面结构来自该页最新内容（装修器发布后会同步到这里），列表数据来自线上接口</p>
   </div>
 </template>
 
@@ -143,7 +140,6 @@ import { hydratePreviewDsl } from '@/utils/preview-datasource'
 const props = defineProps<{ form: MiniappForm; pages: PageRecord[]; minePageMode?: 'config' | 'custom' }>()
 const activeTab = ref(0)
 const loading = ref(false)
-const previewWarnings = ref<string[]>([])
 
 const pageDslCache = ref<Map<string, PageDSL | null>>(new Map())
 
@@ -151,48 +147,72 @@ function normalizePreviewPath(path: string) {
   return (path || '').trim().replace(/^\/+/, '')
 }
 
-async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
+function resolveBoundPageId(tab: MiniappForm['tabs'][number]): string {
+  const raw = String(tab.pageId || '').trim()
+  if (/^\d+$/.test(raw) && raw !== '0') return raw
   const path = normalizePreviewPath(tab.pagePath || '')
-  if (!path) return null
-  if (pageDslCache.value.has(path)) {
-    return pageDslCache.value.get(path) || null
-  }
+  const name = String(tab.pageName || tab.text || '').trim()
+  const page = props.pages.find((item) => {
+    const id = String((item as { id?: string | number }).id || '')
+    if (raw && id === raw) return true
+    if (path && normalizePreviewPath(String((item as { path?: string }).path || '')) === path) return true
+    if (name && String((item as { name?: string }).name || '') === name) return true
+    return false
+  })
+  return page ? String((page as { id?: string | number }).id || '') : ''
+}
+
+function cacheKeyForTab(tab: MiniappForm['tabs'][number]) {
+  const path = normalizePreviewPath(tab.pagePath || '')
+  if (path) return path
+  const pageId = resolveBoundPageId(tab)
+  return pageId ? `id:${pageId}` : ''
+}
+
+function writeDslCache(key: string, dsl: PageDSL | null) {
+  if (!key) return
+  const next = new Map(pageDslCache.value)
+  next.set(key, dsl)
+  pageDslCache.value = next
+}
+
+async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
+  const key = cacheKeyForTab(tab)
+  if (!key) return null
 
   loading.value = true
   try {
-    try {
-      const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
-      const payload = await response.json()
-      if (payload.code === 200 && payload.data) {
-        const { dsl, warnings } = await hydratePreviewDsl(payload.data as PageDSL)
-        previewWarnings.value = warnings
-        pageDslCache.value.set(path, dsl)
-        return dsl
-      }
-    } catch {
-      // ignore and fallback to draft
-    }
-
-    if (tab.pageId && /^\d+$/.test(String(tab.pageId))) {
+    const pageId = resolveBoundPageId(tab)
+    if (/^\d+$/.test(pageId)) {
       try {
-        const res = await getPageDetail(Number(tab.pageId))
+        const res = await getPageDetail(pageId)
         const dsl = parseDslFromResponse(res.data)
         if (dsl) {
-          const { dsl: hydrated, warnings } = await hydratePreviewDsl(dsl)
-          previewWarnings.value = warnings
-          pageDslCache.value.set(path, hydrated)
+          const { dsl: hydrated } = await hydratePreviewDsl(dsl)
+          writeDslCache(key, hydrated)
           return hydrated
         }
-        previewWarnings.value = []
-        pageDslCache.value.set(path, null)
-        return null
       } catch {
-        pageDslCache.value.set(path, null)
-        return null
+        // fall through to published path
       }
     }
 
-    pageDslCache.value.set(path, null)
+    const path = normalizePreviewPath(tab.pagePath || '')
+    if (path) {
+      try {
+        const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
+        const payload = await response.json()
+        if (payload.code === 200 && payload.data) {
+          const { dsl } = await hydratePreviewDsl(payload.data as PageDSL)
+          writeDslCache(key, dsl)
+          return dsl
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    writeDslCache(key, null)
     return null
   } finally {
     loading.value = false
@@ -219,15 +239,15 @@ const showMinePageDsl = computed(() => {
 
 const minePageDsl = computed(() => {
   if (!showMinePageDsl.value) return null
-  const tab = currentTab.value
-  const path = normalizePreviewPath(tab?.pagePath || '')
-  return path ? (pageDslCache.value.get(path) || null) : null
+  const key = cacheKeyForTab(currentTab.value)
+  return key ? (pageDslCache.value.get(key) || null) : null
 })
 
 const currentPageDsl = computed(() => {
   const tab = currentTab.value
-  if (!tab?.pagePath) return null
-  return pageDslCache.value.get(normalizePreviewPath(tab.pagePath)) || null
+  const key = cacheKeyForTab(tab)
+  if (!key) return null
+  return pageDslCache.value.get(key) || null
 })
 
 const visibleMenuItems = computed(() => props.form.mineConfig.menuItems.filter(m => m.enabled))
@@ -291,16 +311,19 @@ async function switchTab(idx: number) {
 }
 
 watch(() => props.form.tabs, () => {
-  pageDslCache.value.clear()
-  previewWarnings.value = []
+  pageDslCache.value = new Map()
   const tab = props.form.tabs[activeTab.value]
   if (tab) loadPublishedDslForTab(tab)
 }, { deep: true })
 
 watch(() => props.form.homePageId, () => {
-  pageDslCache.value.clear()
-  previewWarnings.value = []
+  pageDslCache.value = new Map()
   const tab = props.form.tabs[activeTab.value] || props.form.tabs[0]
+  if (tab) loadPublishedDslForTab(tab)
+})
+
+watch(() => props.pages.length, () => {
+  const tab = props.form.tabs[activeTab.value]
   if (tab) loadPublishedDslForTab(tab)
 })
 
@@ -328,7 +351,7 @@ defineExpose({ showMineTab })
 .phone-navbar { height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .navbar-title { color: #fff; font-size: 16px; font-weight: 700; }
 /* 背景透明以透出 phone-screen 上的「页面背景」主题色 */
-.phone-content { flex: 1; overflow-y: auto; padding: 8px; background: transparent; }
+.phone-content { flex: 1; overflow-y: auto; padding: 0; background: transparent; }
 .phone-tabbar { height: 56px; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #e3e8f0; flex-shrink: 0; }
 .tabbar-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; transition: 0.14s; position: relative; }
 .tabbar-item.unbound::after { content: ''; position: absolute; top: -2px; right: -4px; width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
@@ -338,14 +361,11 @@ defineExpose({ showMineTab })
 .preview-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 200px; color: #a0b4d0; font-size: 13px; }
 
 .preview-dsl { animation: fadeIn 0.2s; min-height: 100%; }
-.preview-warnings {
-  margin-bottom: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  p { margin: 0; font-size: 11px; color: #9a3412; line-height: 1.45; }
-  p + p { margin-top: 4px; }
+/* 与真机一致：轮播左右贴屏，不套装修器里的 10px 内边距 */
+.preview-dsl :deep(.render-banner),
+.preview-dsl :deep(.render-banner--preview) {
+  padding-left: 0;
+  padding-right: 0;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 

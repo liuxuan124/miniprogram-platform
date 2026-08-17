@@ -388,7 +388,7 @@
             <div v-show="activeStep === 4 && successMode === 'publish'" class="config-section success-section">
               <div class="success-icon ok">OK</div>
               <h2 class="success-title">导航与外观已发布</h2>
-              <p class="success-desc">底部导航和主题已写入配置。整包内容请到「发布」页确认后上线。</p>
+              <p class="success-desc">底部导航和主题已保存。之后在装修器发布某个页面，「导航与外观」预览会直接同步，不用再整包发布。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card">
                 <div class="version-release-header">
@@ -416,10 +416,10 @@
               <div class="next-steps">
                 <div class="next-step-title">建议下一步</div>
                 <div class="next-step-list">
-                  <a class="next-step-item highlight" href="#" @click.prevent="goToRelease">
+                  <a class="next-step-item highlight" href="#" @click.prevent="$router.push('/page-builder/list')">
                     <div class="next-info">
-                      <strong>去整包发布</strong>
-                      <span>把绑定页面的最新草稿设为线上内容</span>
+                      <strong>去装修页面</strong>
+                      <span>改完点「发布此页」，这里的预览会马上跟上</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>

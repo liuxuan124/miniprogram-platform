@@ -269,10 +269,42 @@ async function loadComponentData(component, forceRefresh = false) {
   }
 
   try {
-    const data = await DatasourceService.fetchData(component.dataSource, forceRefresh)
+    // 商品列表手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
+    let dataSource = component.dataSource
+    if (component.type === 'product_list') {
+      const props = component.props || {}
+      const ids = Array.isArray(props.product_ids) ? props.product_ids : []
+      if (ids.length) {
+        const idStr = ids.map((id) => String(id)).join(',')
+        dataSource = {
+          ...dataSource,
+          params: { ...(dataSource.params || {}), status: 'on_sale', ids: idStr },
+          query: { ...(dataSource.query || {}), status: 'on_sale', ids: idStr },
+        }
+      }
+    }
+
+    const data = await DatasourceService.fetchData(dataSource, forceRefresh)
     // 限制数据量，避免 setData 过大
     const MAX_ITEMS = 10
-    const trimmed = Array.isArray(data) ? data.slice(0, MAX_ITEMS) : data
+    let trimmed = Array.isArray(data) ? data.slice(0, MAX_ITEMS) : data
+
+    // 接口失败/空列表时，手动选品回退到 DSL 内保存的 items
+    if (component.type === 'product_list') {
+      const props = component.props || {}
+      const ids = Array.isArray(props.product_ids) ? props.product_ids.map((id) => String(id)) : []
+      if ((!trimmed || !trimmed.length) && Array.isArray(props.items) && props.items.length) {
+        trimmed = props.items.slice(0, Math.max(Number(props.limit || MAX_ITEMS), 1))
+      } else if (ids.length && Array.isArray(trimmed) && trimmed.length) {
+        const map = {}
+        trimmed.forEach((item) => {
+          if (item && item.id != null) map[String(item.id)] = item
+        })
+        const ordered = ids.map((id) => map[String(id)]).filter(Boolean)
+        if (ordered.length) trimmed = ordered.slice(0, Math.max(Number(props.limit || MAX_ITEMS), 1))
+      }
+    }
+
     return {
       ...component,
       runtimeData: trimmed,
@@ -280,9 +312,13 @@ async function loadComponentData(component, forceRefresh = false) {
     }
   } catch (err) {
     console.error('[RenderEngine] 组件数据源加载失败:', component.id, err)
+    const props = (component && component.props) || {}
+    const fallback = (component.type === 'product_list' && Array.isArray(props.items))
+      ? props.items.slice(0, Math.max(Number(props.limit || 10), 1))
+      : []
     return {
       ...component,
-      runtimeData: [],
+      runtimeData: fallback,
       runtimeDataLoaded: true,
     }
   }

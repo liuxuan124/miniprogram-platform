@@ -15,7 +15,7 @@ import { usePermissionStore } from '@/stores/permission'
 NProgress.configure({ showSpinner: false })
 
 /** 白名单路由（无需登录） */
-const whiteList = ['/login', '/h5/preview', '/h5/miniapp-preview']
+const whiteList = ['/login', '/h5/preview', '/h5/draft-preview', '/h5/miniapp-preview']
 
 /** 注册路由守卫 */
 export function setupRouterGuards(router: Router) {

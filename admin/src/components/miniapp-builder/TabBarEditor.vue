@@ -67,7 +67,7 @@ function emitUpdate() { emit('update:tabs', [...localTabs.value]) }
 
 function onPageChange(index: number) {
   const tab = localTabs.value[index]
-  const page = props.pages.find(p => p.id === tab.pageId)
+  const page = props.pages.find(p => String(p.id) === String(tab.pageId))
   if (page) { tab.pageName = page.name; tab.pagePath = page.path || tab.pagePath }
   emitUpdate()
 }

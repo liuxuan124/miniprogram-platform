@@ -11,6 +11,7 @@
             </el-button>
           </div>
         </div>
+        <div class="card-sub">点「发布到顶栏」后，会出现在「跨境资讯」分类栏，并同步到发文下拉；未发布仅在本处管理。</div>
       </template>
 
       <!-- 树形表格 -->
@@ -32,7 +33,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column prop="status" label="顶栏" width="110" align="center">
           <template #default="{ row }">
             <el-tag
               :type="getStatusTagType(row.status)"
@@ -45,6 +46,14 @@
         <el-table-column prop="created_at" label="创建时间" width="170" align="center" />
         <el-table-column label="操作" width="260" align="center" fixed="right">
           <template #default="{ row }">
+            <el-button
+              link
+              :type="Number(row.status) === 1 ? 'warning' : 'success'"
+              size="small"
+              @click="handleTogglePublish(row)"
+            >
+              {{ Number(row.status) === 1 ? '取消发布' : '发布到顶栏' }}
+            </el-button>
             <el-button link type="primary" size="small" @click="handleAdd(row)">
               <el-icon><Plus /></el-icon>新增子分类
             </el-button>
@@ -92,10 +101,10 @@
         <el-form-item label="排序">
           <el-input-number v-model="formData.sortOrder" :min="0" :max="9999" controls-position="right" />
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item label="顶栏展示" prop="status">
             <el-radio-group v-model="formData.status">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">禁用</el-radio>
+            <el-radio :value="1">发布到顶栏（发文可选）</el-radio>
+            <el-radio :value="0">未发布</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -136,12 +145,12 @@ const formData = reactive({
   parentId: null as number | null,
   sortOrder: 0,
   icon: '',
-  status: 1,
+  status: 0,
 })
 
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
-  status: [{ required: true, message: '请选择状态', trigger: 'change' }],
+  status: [{ required: true, message: '请选择是否发布到顶栏', trigger: 'change' }],
 }
 
 /** 父级分类树形选项（排除当前编辑项及其子项） */
@@ -167,7 +176,7 @@ function filterCategoryTree(tree: ContentCategory[], excludeId: number): Content
 /** 获取状态标签 */
 function getStatusLabel(status: string | number): string {
   const code = Number(status)
-  return code === 1 ? '启用' : '禁用'
+  return code === 1 ? '已发布' : '未发布'
 }
 
 /** 获取状态标签类型 */
@@ -202,7 +211,7 @@ function handleAdd(row: ContentCategory | null) {
   formData.parentId = row?.id ?? null
   formData.sortOrder = 0
   formData.icon = ''
-  formData.status = 1
+  formData.status = 0
   dialogVisible.value = true
 }
 
@@ -216,6 +225,20 @@ function handleEdit(row: ContentCategory) {
   formData.icon = row.icon || ''
   formData.status = Number((row as any).status ?? 1)
   dialogVisible.value = true
+}
+
+/** 发布/取消发布到跨境资讯顶栏（及发文分类下拉） */
+async function handleTogglePublish(row: ContentCategory) {
+  const next = Number(row.status) === 1 ? 0 : 1
+  await updateCategory(row.id, {
+    name: row.name,
+    parentId: (row as any).parentId ?? (row as any).parent_id ?? 0,
+    sortOrder: (row as any).sortOrder ?? (row as any).sort ?? 0,
+    icon: row.icon || '',
+    status: next,
+  })
+  ElMessage.success(next === 1 ? `「${row.name}」已发布到顶栏` : `「${row.name}」已取消发布`)
+  fetchList()
 }
 
 /** 删除分类 */
@@ -268,6 +291,13 @@ onMounted(() => {
       display: flex;
       gap: 8px;
     }
+  }
+
+  .card-sub {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
   }
 }
 </style>

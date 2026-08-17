@@ -6,7 +6,7 @@
 }
 
 .dsl-activity-entry--card {
-  padding: 0 20rpx;
+  padding: 0;
 }
 
 .dsl-activity-entry--full {
@@ -16,7 +16,7 @@
 .dsl-activity-entry__card {
   position: relative;
   width: 100%;
-  border-radius: 16rpx;
+  border-radius: 0;
   overflow: hidden;
   background-color: #ffffff;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1769ff, #20b7ff);
+  background: linear-gradient(135deg, #002FA7, #1A4BBF);
   overflow: hidden;
 }
 
@@ -118,7 +118,7 @@
 
 .dsl-activity-entry__quota {
   margin-top: 8rpx;
-  color: #1769ff;
+  color: #002FA7;
   font-size: 22rpx;
   font-weight: 600;
 }
@@ -132,7 +132,7 @@
   color: #fff;
   font-size: 24rpx;
   font-weight: 700;
-  background: #1769ff;
+  background: linear-gradient(135deg, #002FA7, #1A4BBF);
   border-radius: 12rpx;
 }
 

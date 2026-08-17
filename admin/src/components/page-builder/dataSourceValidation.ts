@@ -1,9 +1,8 @@
-/** 需要 data_source.type + query 的列表类组件 */
+/** 需要 data_source.type + query 的列表类组件。activity_entry 支持静态图文入口，数据源可选。 */
 const DATA_SOURCE_EXPECTED_TYPE: Record<string, string> = {
   product_list: 'product',
   article_list: 'content',
   activity_list: 'activity',
-  activity_entry: 'activity',
   coupon: 'coupon',
   appointment_service: 'appointment',
 }

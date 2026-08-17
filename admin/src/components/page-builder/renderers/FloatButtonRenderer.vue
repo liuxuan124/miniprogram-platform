@@ -5,15 +5,22 @@
   >
     <div
       class="float-fab"
-      :class="[`pos-${positionKey}`, { 'with-text': showText, 'is-docked': docked }]"
+      :class="[
+        `pos-${positionKey}`,
+        {
+          'is-docked': docked,
+          'is-dragging': dragging,
+          'is-draggable': draggableEnabled,
+        },
+      ]"
       :style="fabStyle"
       @click.stop="onFabClick"
+      @pointerdown.stop.prevent="onPointerDown"
       @mouseenter="expandFab"
-      @mouseleave="scheduleDock"
+      @mouseleave="onMouseLeave"
     >
       <img v-if="iconImage" :src="iconImage" class="float-fab__img" alt="" />
       <span v-else class="float-fab__emoji">{{ displayEmoji }}</span>
-      <span v-if="showText" class="float-fab__text">{{ component.props.title || '客服' }}</span>
     </div>
   </div>
 </template>
@@ -31,7 +38,8 @@ const ICON_MAP: Record<string, string> = {
   phone: '📞',
 }
 
-const IDLE_MS = 2500
+const IDLE_MS = 2200
+const EDGE_GAP = 8
 
 const props = defineProps<{
   component: ComponentInstance
@@ -46,10 +54,37 @@ const emit = defineEmits<{
 }>()
 
 const docked = ref(false)
+const dragging = ref(false)
+const dragPos = ref<{ left: number; top: number } | null>(null)
+/** 吸附边：用中心点判断后固化，避免 left<180 误判成只能贴左 */
+const dockSide = ref<'left' | 'right'>('right')
 let dockTimer: ReturnType<typeof setTimeout> | null = null
+let dragOrigin = { left: 0, top: 0, x: 0, y: 0 }
+let moved = false
+let boundWidth = 375
+let boundHeight = 667
+
+function getFabBounds(el?: HTMLElement | null) {
+  const layer =
+    (el?.closest('.phone-fab-layer') as HTMLElement | null) ||
+    (el?.closest('.canvas-fab-layer') as HTMLElement | null) ||
+    (document.querySelector('.phone-fab-layer') as HTMLElement | null) ||
+    (document.querySelector('.canvas-fab-layer') as HTMLElement | null) ||
+    (el?.closest('.render-float-button') as HTMLElement | null) ||
+    (document.querySelector('.render-float-button.is-overlay') as HTMLElement | null)
+  const width = Math.max(200, layer?.clientWidth || 375)
+  const height = Math.max(200, layer?.clientHeight || 667)
+  boundWidth = width
+  boundHeight = height
+  return { width, height, layer }
+}
 
 const edgeHideEnabled = computed(() => props.component.props?.edge_hide !== false)
-const showText = computed(() => !!props.component.props?.show_text)
+const draggableEnabled = computed(() => {
+  const p = props.component.props || {}
+  if (p.allow_drag === true) return true
+  return p.draggable !== false
+})
 const iconImage = computed(() => normalizeUploadUrl(String(props.component.props?.icon_image || '')))
 
 const displayEmoji = computed(() => {
@@ -61,6 +96,8 @@ const displayEmoji = computed(() => {
   return '🎧'
 })
 
+const fabSize = computed(() => Math.min(72, Math.max(40, Number(props.component.props?.size || 52))))
+
 const positionKey = computed(() => {
   const raw = String(props.component.props?.position || 'right_bottom')
   if (raw === 'bottom-right' || raw === 'right_bottom') return 'right_bottom'
@@ -70,24 +107,52 @@ const positionKey = computed(() => {
   return 'right_bottom'
 })
 
-const isLeftSide = computed(() => positionKey.value.includes('left'))
-
 const fabStyle = computed(() => {
-  const size = Math.min(72, Math.max(36, Number(props.component.props?.size || 48)))
+  const size = fabSize.value
   const opacity = Math.min(100, Math.max(40, Number(props.component.props?.opacity ?? 100))) / 100
-  const color = String(props.component.props?.color || props.component.props?.button_color || '#1769ff')
+  const color = String(props.component.props?.color || props.component.props?.button_color || '#0f766e')
   const ox = Number(props.component.props?.offset_x ?? 16)
   const oy = Number(props.component.props?.offset_y ?? 100)
   const style: Record<string, string> = {
-    width: showText.value ? 'auto' : `${size}px`,
-    minWidth: `${size}px`,
+    width: `${size}px`,
     height: `${size}px`,
+    minWidth: `${size}px`,
     background: color,
     opacity: String(opacity),
-    borderRadius: showText.value ? '999px' : '50%',
-    padding: showText.value ? `0 ${Math.round(size / 3)}px` : '0',
-    transition: 'transform 0.28s ease, opacity 0.28s ease',
+    borderRadius: '50%',
+    padding: '0',
+    overflow: 'hidden',
+    transition: dragging.value
+      ? 'opacity 0.15s ease'
+      : 'transform 0.28s ease, opacity 0.28s ease, left 0.2s ease, right 0.2s ease, top 0.2s ease',
   }
+
+  const hideX = Math.round(size * 0.55)
+  const side = dockSide.value
+
+  if (dragPos.value) {
+    style.top = `${dragPos.value.top}px`
+    style.bottom = 'auto'
+    if (side === 'right') {
+      // 右侧用 right 定位，贴边更稳
+      const right = Math.max(EDGE_GAP, boundWidth - dragPos.value.left - size)
+      style.right = `${right}px`
+      style.left = 'auto'
+      if (docked.value && edgeHideEnabled.value) {
+        style.transform = `translateX(${hideX}px)`
+        style.opacity = String(Math.max(0.5, opacity * 0.8))
+      }
+    } else {
+      style.left = `${dragPos.value.left}px`
+      style.right = 'auto'
+      if (docked.value && edgeHideEnabled.value) {
+        style.transform = `translateX(-${hideX}px)`
+        style.opacity = String(Math.max(0.5, opacity * 0.8))
+      }
+    }
+    return style
+  }
+
   const pos = positionKey.value
   if (pos.includes('right')) style.right = `${ox}px`
   else style.left = `${ox}px`
@@ -98,16 +163,16 @@ const fabStyle = computed(() => {
     style.bottom = `${oy}px`
   }
 
-  const hideX = Math.round(size * 0.6)
   if (docked.value && edgeHideEnabled.value) {
+    const towardLeft = side === 'left' || pos.includes('left')
     if (pos.includes('middle')) {
-      style.transform = isLeftSide.value
+      style.transform = towardLeft
         ? `translate(-${hideX}px, -50%)`
         : `translate(${hideX}px, -50%)`
     } else {
-      style.transform = isLeftSide.value ? `translateX(-${hideX}px)` : `translateX(${hideX}px)`
+      style.transform = towardLeft ? `translateX(-${hideX}px)` : `translateX(${hideX}px)`
     }
-    style.opacity = String(Math.max(0.55, opacity * 0.85))
+    style.opacity = String(Math.max(0.5, opacity * 0.8))
   } else if (pos.includes('middle')) {
     style.transform = 'translateY(-50%)'
   }
@@ -127,6 +192,21 @@ function expandFab() {
   clearDockTimer()
 }
 
+function snapDragToEdge() {
+  if (!dragPos.value) return
+  const size = fabSize.value
+  const { width, height } = getFabBounds()
+  const mid = width / 2
+  const centerX = dragPos.value.left + size / 2
+  const side: 'left' | 'right' = centerX < mid ? 'left' : 'right'
+  dockSide.value = side
+  const left = side === 'left'
+    ? EDGE_GAP
+    : Math.max(EDGE_GAP, width - size - EDGE_GAP)
+  const top = Math.max(EDGE_GAP, Math.min(dragPos.value.top, height - size - EDGE_GAP))
+  dragPos.value = { left, top }
+}
+
 function scheduleDock() {
   clearDockTimer()
   if (!edgeHideEnabled.value) {
@@ -134,13 +214,89 @@ function scheduleDock() {
     return
   }
   dockTimer = setTimeout(() => {
+    snapDragToEdge()
     docked.value = true
   }, IDLE_MS)
+}
+
+function onMouseLeave() {
+  if (!dragging.value) scheduleDock()
+}
+
+function ensureDragOrigin(el: HTMLElement) {
+  if (dragPos.value) return
+  const { width, height } = getFabBounds(el)
+  const size = fabSize.value
+  const ox = Number(props.component.props?.offset_x ?? 16)
+  const oy = Number(props.component.props?.offset_y ?? 100)
+  const side: 'left' | 'right' = positionKey.value.includes('left') ? 'left' : 'right'
+  dockSide.value = side
+  const left = side === 'left'
+    ? ox
+    : Math.max(EDGE_GAP, width - size - ox)
+  const top = positionKey.value.includes('middle')
+    ? Math.max(EDGE_GAP, (height - size) / 2)
+    : Math.max(EDGE_GAP, height - size - oy)
+  dragPos.value = { left, top }
+}
+
+function onPointerDown(e: PointerEvent) {
+  expandFab()
+  if (!props.previewMode) {
+    emit('select-hint')
+    return
+  }
+  if (!draggableEnabled.value) return
+  const el = e.currentTarget as HTMLElement
+  getFabBounds(el)
+  ensureDragOrigin(el)
+  dragging.value = true
+  moved = false
+  dragOrigin = {
+    left: dragPos.value!.left,
+    top: dragPos.value!.top,
+    x: e.clientX,
+    y: e.clientY,
+  }
+  el.setPointerCapture?.(e.pointerId)
+  window.addEventListener('pointermove', onPointerMove)
+  window.addEventListener('pointerup', onPointerUp)
+  window.addEventListener('pointercancel', onPointerUp)
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!dragging.value || !dragPos.value) return
+  const { width, height } = getFabBounds()
+  const size = fabSize.value
+  const dx = e.clientX - dragOrigin.x
+  const dy = e.clientY - dragOrigin.y
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
+  let left = dragOrigin.left + dx
+  let top = dragOrigin.top + dy
+  left = Math.max(0, Math.min(left, width - size))
+  top = Math.max(0, Math.min(top, height - size))
+  dragPos.value = { left, top }
+  dockSide.value = left + size / 2 < width / 2 ? 'left' : 'right'
+}
+
+function onPointerUp() {
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('pointercancel', onPointerUp)
+  if (dragging.value) {
+    snapDragToEdge()
+  }
+  dragging.value = false
+  scheduleDock()
 }
 
 function onFabClick() {
   expandFab()
   scheduleDock()
+  if (moved) {
+    moved = false
+    return
+  }
   if (!props.previewMode) {
     emit('select-hint')
     return
@@ -161,11 +317,15 @@ function onFabClick() {
 }
 
 onMounted(() => {
+  dockSide.value = positionKey.value.includes('left') ? 'left' : 'right'
   scheduleDock()
 })
 
 onUnmounted(() => {
   clearDockTimer()
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('pointercancel', onPointerUp)
 })
 
 watch(edgeHideEnabled, (enabled) => {
@@ -185,15 +345,25 @@ watch(edgeHideEnabled, (enabled) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   color: #fff;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   cursor: pointer;
   box-sizing: border-box;
+  user-select: none;
+  touch-action: none;
+}
+
+.float-fab.is-draggable {
+  cursor: grab;
+}
+
+.float-fab.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.3);
 }
 
 .render-float-button:not(.is-overlay) > .float-fab {
-  /* 非浮层模式（极少）也直接显示圆钮 */
   position: relative;
   display: inline-flex;
 }
@@ -219,11 +389,5 @@ watch(edgeHideEnabled, (enabled) => {
   width: 22px;
   height: 22px;
   object-fit: contain;
-}
-
-.float-fab__text {
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
 }
 </style>

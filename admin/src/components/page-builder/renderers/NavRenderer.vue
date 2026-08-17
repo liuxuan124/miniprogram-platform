@@ -44,32 +44,34 @@ function isImageIcon(icon?: string): boolean {
 <style lang="scss" scoped>
 .render-nav {
   display: grid;
-  padding: 12px 0;
+  padding: 6px 0;
   background: #fff;
 
   .nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
+    padding: 4px 0;
 
     .nav-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: #eef4ff;
+      width: auto;
+      height: auto;
+      min-height: 28px;
+      border-radius: 0;
+      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 4px;
 
       span {
-        font-size: 18px;
+        font-size: 26px;
+        line-height: 1;
       }
 
       .nav-icon-img {
-        width: 20px;
-        height: 20px;
+        width: 28px;
+        height: 28px;
         object-fit: contain;
       }
     }

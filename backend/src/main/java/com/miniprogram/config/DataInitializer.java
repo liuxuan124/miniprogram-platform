@@ -50,13 +50,13 @@ public class DataInitializer implements CommandLineRunner {
 
             AdminUser admin = new AdminUser();
             admin.setUsername("admin");
-            admin.setPasswordHash(passwordEncoder.encode("admin123"));
+            admin.setPasswordHash(passwordEncoder.encode("admin@123"));
             admin.setRealName("超级管理员");
             admin.setRoleId(superAdminRole != null ? superAdminRole.getId() : 1L);
             admin.setStatus(1);
 
             adminUserMapper.insert(admin);
-            log.info("初始化默认超级管理员账号: admin / admin123");
+            log.info("初始化默认超级管理员账号: admin / admin@123");
         } else {
             log.info("超级管理员账号已存在，跳过初始化");
         }

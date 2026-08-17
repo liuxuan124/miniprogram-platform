@@ -323,7 +323,13 @@
     class="dsl-cert"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-cert__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '资质证书'}}</view>
+    <view class="dsl-cert__header">
+      <view class="dsl-cert__bars" aria-hidden="true">
+        <view class="dsl-cert__bar dsl-cert__bar--down"></view>
+        <view class="dsl-cert__bar dsl-cert__bar--up"></view>
+      </view>
+      <view class="dsl-cert__title" style="{{comp.props._titleStyle}}">{{comp.props.title || '资质证书'}}</view>
+    </view>
     <view class="dsl-cert__grid dsl-cert__grid--cols-{{comp.props._columns || 2}}">
       <view wx:for="{{comp.props.items || []}}" wx:key="index" class="dsl-cert__item">
         <image

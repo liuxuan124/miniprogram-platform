@@ -95,6 +95,7 @@
                 <details class="more-menu">
                   <summary class="btn xs btn-more">更多</summary>
                   <div class="more-pop">
+                    <button @click="handleEditMeta(row)">编辑信息</button>
                     <button @click="handlePreview(row)">预览</button>
                     <button @click="handleVersion(row)">版本</button>
                     <button class="danger" @click="handleDelete(row)">删除</button>
@@ -162,12 +163,11 @@
           </div>
         </el-form-item>
         <el-form-item label="访问路径" prop="path">
-          <el-input v-model="formData.path" placeholder="点击右侧重新生成，无需手输">
-            <template #append>
-              <el-button @click="handleAutoGeneratePath">重新生成</el-button>
-            </template>
-          </el-input>
-          <div class="path-hint">首页路径固定为 /pages/index/index，已被占用时请改选专题页或自定义页。建议使用自动生成路径。</div>
+          <PagePathField v-model="formData.path" :page-type="formData.type" />
+          <div class="path-hint">前缀固定；仅后缀可改。首页整段锁定为 /pages/index/index。</div>
+          <div v-if="!isHomePathLocked(formData.type)" style="margin-top: 8px">
+            <el-button size="small" @click="handleAutoGeneratePath()">重新生成后缀</el-button>
+          </div>
         </el-form-item>
         <el-form-item label="分享标题">
           <el-input v-model="formData.shareTitle" placeholder="微信分享标题" maxlength="30" show-word-limit />
@@ -206,7 +206,16 @@ import { Document, Brush, OfficeBuilding, Grid } from '@element-plus/icons-vue'
 import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates } from '@/api/page'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
+import PagePathField from '@/components/page-builder/PagePathField.vue'
 import type { PageRecord, CreatePageParams, PageListParams } from '@/types/page'
+import {
+  isHomePathLocked,
+  joinEditablePath,
+  normalizeBuilderPath,
+  pathPrefixByType,
+  splitEditablePath,
+  validatePathSlug,
+} from '@/utils/page-path'
 
 const router = useRouter()
 
@@ -280,11 +289,6 @@ async function refreshHomePathOccupied() {
     })
   }
 }
-function normalizeBuilderPath(raw: string): string {
-  const value = (raw || '').trim()
-  if (!value) return ''
-  return value.startsWith('/') ? value : `/${value}`
-}
 
 function slugifyName(name: string): string {
   const source = (name || '').trim().toLowerCase()
@@ -345,29 +349,28 @@ function handleAutoGeneratePath(silent = false) {
 }
 
 function validatePagePath(_: unknown, value: string, callback: (error?: Error) => void) {
+  const type = Number(formData.type || 3)
+  if (isHomePathLocked(type)) {
+    callback()
+    return
+  }
   const normalized = normalizeBuilderPath(value)
   if (!normalized) {
-    callback(new Error('请先点击“重新生成”获得页面路径'))
+    callback(new Error('请填写访问路径后缀'))
+    return
+  }
+  const { slug } = splitEditablePath(normalized, type)
+  const slugErr = validatePathSlug(slug, type)
+  if (slugErr) {
+    callback(new Error(slugErr))
     return
   }
   if (!/^\/pages\/[a-z0-9/_-]+$/i.test(normalized)) {
-    callback(new Error('路径格式不正确，应为 /pages/模块/页面'))
-    return
-  }
-  if (/^\/pages\/index\/index-\d+$/i.test(normalized)) {
-    callback(new Error('该路径不在小程序包内。首页请用 /pages/index/index；其它请用专题/自定义页'))
-    return
-  }
-  if (Number(formData.type) === 1 && normalized !== '/pages/index/index') {
-    callback(new Error('首页类型路径必须为 /pages/index/index'))
+    callback(new Error('路径格式不正确'))
     return
   }
   if (isPathTaken(normalized)) {
-    if (Number(formData.type) === 1) {
-      callback(new Error('首页路径已被占用。请改选专题页或自定义页，不要生成小程序无法打开的路径'))
-      return
-    }
-    callback(new Error('访问路径已存在，请更换'))
+    callback(new Error('访问路径已存在，请更换后缀'))
     return
   }
   callback()
@@ -499,6 +502,22 @@ function handleEdit(row: PageRecord) {
   router.push({ name: 'PageBuilderEditor', params: { id: row.id } })
 }
 
+function handleEditMeta(row: PageRecord) {
+  dialogType.value = 'edit'
+  editingId.value = Number(row.id)
+  formData.name = row.name || ''
+  formData.type = Number(row.type) || 3
+  formData.path = normalizeBuilderPath(row.path || '')
+  formData.shareTitle = row.shareTitle || row.share_title || ''
+  formData.shareImage = row.shareImage || row.share_image || ''
+  if (isHomePathLocked(formData.type)) {
+    formData.path = '/pages/index/index'
+  } else if (!formData.path) {
+    formData.path = joinEditablePath(pathPrefixByType(formData.type), slugifyName(formData.name), formData.type)
+  }
+  dialogVisible.value = true
+}
+
 function handlePreview(row: PageRecord) {
   router.push({ name: 'PageBuilderPreview', params: { id: row.id } })
 }
@@ -603,6 +622,19 @@ watch(
     if (!visible || mode !== 'create') return
     if (name === prevName && type === prevType && formData.path) return
     handleAutoGeneratePath(true)
+  },
+)
+
+watch(
+  () => formData.type,
+  (type) => {
+    if (!dialogVisible.value) return
+    if (isHomePathLocked(type)) {
+      formData.path = '/pages/index/index'
+      return
+    }
+    const { slug } = splitEditablePath(formData.path, type)
+    formData.path = joinEditablePath(pathPrefixByType(type), slug || slugifyName(formData.name), type)
   },
 )
 </script>

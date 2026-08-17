@@ -21,7 +21,7 @@ const DS_API_MAP = {
 // 每种数据源只保留前端需要的字段，减少 setData 体积
 const DS_SLIM_FIELDS = {
   product: ['id', 'name', 'title', 'price', 'originalPrice', 'image', 'coverUrl', 'cover_url', 'mainImage', 'main_image', 'sales', 'status', 'tag', 'categoryId'],
-  content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'image', 'summary', 'createdAt', 'created_at', 'categoryId'],
+  content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'image', 'summary', 'createdAt', 'created_at', 'publishedAt', 'publish_time', 'publishTime', 'createTime', 'categoryId', 'categoryName', 'source'],
   activity: ['id', 'name', 'title', 'image', 'cover_url', 'coverUrl', 'startTime', 'start_time', 'endTime', 'end_time', 'location', 'venue', 'status'],
   coupon: ['id', 'name', 'title', 'type', 'value', 'amount', 'discount', 'minOrderAmount', 'minAmount', 'min_amount', 'startTime', 'start_time', 'endTime', 'end_time', 'status', 'condition'],
   appointment_service: ['id', 'name', 'title', 'description', 'desc', 'image', 'cover_url'],
@@ -119,6 +119,23 @@ function pickListFromResponse(res) {
   return []
 }
 
+function parseIdsParam(raw) {
+  if (Array.isArray(raw)) return raw.map((id) => String(id)).filter(Boolean)
+  if (typeof raw === 'string' && raw.trim()) {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function orderByIds(list, ids) {
+  if (!ids.length || !Array.isArray(list)) return list
+  const map = {}
+  list.forEach((item) => {
+    if (item && item.id != null) map[String(item.id)] = item
+  })
+  return ids.map((id) => map[String(id)]).filter(Boolean)
+}
+
 /**
  * 数据源服务
  * - 根据 data_source 配置自动请求对应后端接口
@@ -155,17 +172,32 @@ const DatasourceService = {
       }
     }
 
+    // 手动选品：按 ids 过滤并排序（后端列表接口未必支持 ids）
+    const idList = parseIdsParam(params.ids)
+    const requestParams = { ...params }
+    if (idList.length) {
+      const need = Math.max(idList.length, Number(params.size || params.page_size || 20), 20)
+      requestParams.current = 1
+      requestParams.page = 1
+      requestParams.size = Math.min(need, 100)
+      requestParams.page_size = requestParams.size
+    }
+
     // 请求后端
-    return get(apiPath, params, { auth: false }).then((res) => {
+    return get(apiPath, requestParams, { auth: false }).then((res) => {
       let list = pickListFromResponse(res)
 
       // 精简数据，减少 setData 体积
       list = slimData(list, typeKey)
 
-      // 限制数量，首页最多 6 条
-      const MAX_HOME_ITEMS = 6
-      if (list.length > MAX_HOME_ITEMS) {
-        list = list.slice(0, MAX_HOME_ITEMS)
+      if (idList.length) {
+        list = orderByIds(list, idList)
+      } else {
+        // 限制数量，首页最多 6 条
+        const MAX_HOME_ITEMS = 6
+        if (list.length > MAX_HOME_ITEMS) {
+          list = list.slice(0, MAX_HOME_ITEMS)
+        }
       }
 
       // 写入缓存（商品列表走实时，不缓存）

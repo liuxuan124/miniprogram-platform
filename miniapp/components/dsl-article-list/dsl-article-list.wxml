@@ -1,10 +1,47 @@
 <!--components/dsl-article-list/dsl-article-list.wxml — 文章列表组件-->
-<view class="dsl-article-list" style="{{styleString}}">
-  <view wx:if="{{config.title}}" class="dsl-article-list__section-title">{{config.title}}</view>
+<view class="dsl-article-list {{showCategoryTabs ? 'dsl-article-list--tabs' : ''}}" style="{{styleString}}">
+  <view
+    wx:if="{{sectionTitle}}"
+    class="dsl-article-list__section-header dsl-article-list__section-header--{{sectionStyle}} dsl-article-list__section-header--{{sectionAlign}} {{sectionDivider ? 'dsl-article-list__section-header--divider' : ''}}"
+  >
+    <view wx:if="{{sectionStyle === 'bar'}}" class="dsl-article-list__section-bars" aria-hidden="true">
+      <view class="dsl-article-list__section-bar dsl-article-list__section-bar--down"></view>
+      <view class="dsl-article-list__section-bar dsl-article-list__section-bar--up"></view>
+    </view>
+    <view class="dsl-article-list__section-text">
+      <text class="dsl-article-list__section-main" style="{{sectionTitleStyle}}">{{sectionTitle}}</text>
+      <text wx:if="{{sectionSubtitle}}" class="dsl-article-list__section-sub" style="{{sectionSubtitleStyle}}">{{sectionSubtitle}}</text>
+    </view>
+    <text
+      wx:if="{{showMore}}"
+      class="dsl-article-list__section-more"
+      style="{{sectionMoreStyle}}"
+      catchtap="onTapMore"
+    >{{moreText}}</text>
+  </view>
+
+  <view wx:if="{{showCategoryTabs}}" class="dsl-article-list__tabs-bar">
+  <scroll-view
+    class="dsl-article-list__tabs"
+    scroll-x
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view
+      wx:for="{{categoryTabs}}"
+      wx:key="name"
+      class="dsl-article-list__tab {{activeTabId === item.id ? 'is-active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onTapTab"
+    >{{item.name}}</view>
+  </scroll-view>
+  </view>
+
   <!-- 紧凑布局 -->
   <view
     wx:if="{{layout === 'compact'}}"
     class="dsl-article-list__list"
+    style="{{listStyle}}"
   >
     <view
       class="dsl-article-list__item dsl-article-list__item--compact"
@@ -22,11 +59,10 @@
       />
       <view class="dsl-article-list__item-content">
         <text class="dsl-article-list__item-title dsl-article-list__item-title--compact" style="{{titleStyle}}">{{item.title || item.name}}</text>
-        <text
-          class="dsl-article-list__item-date"
-          style="{{metaStyle}}"
-          wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
-        >{{item.created_at || item.publish_time}}</text>
+        <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-list__item-date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -35,6 +71,7 @@
   <view
     wx:elif="{{layout !== 'card'}}"
     class="dsl-article-list__list"
+    style="{{listStyle}}"
   >
     <view
       class="dsl-article-list__item dsl-article-list__item--list"
@@ -55,11 +92,10 @@
       </view>
       <view class="dsl-article-list__item-content">
         <text class="dsl-article-list__item-title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
-        <text
-          class="dsl-article-list__item-date"
-          style="{{metaStyle}}"
-          wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
-        >{{item.created_at || item.publish_time}}</text>
+        <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-list__item-date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -68,6 +104,7 @@
   <view
     wx:else
     class="dsl-article-list__cards"
+    style="{{listStyle}}"
   >
     <view
       class="dsl-article-list__item dsl-article-list__item--card"
@@ -88,19 +125,25 @@
       </view>
       <view class="dsl-article-list__item-content">
         <text class="dsl-article-list__item-title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
-        <view class="dsl-article-list__item-meta">
+        <view class="dsl-article-list__item-meta-row">
           <text
             class="dsl-article-list__item-date"
             style="{{metaStyle}}"
             wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
-          >{{item.created_at || item.publish_time}}</text>
+          >时间 {{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 空状态 -->
-  <view class="dsl-article-list__empty" wx:if="{{!displayData.length}}">
+  <view class="dsl-article-list__empty" wx:if="{{!displayData.length && !tabLoading}}">
     <text class="dsl-article-list__empty-text">暂无内容</text>
+  </view>
+  <view class="dsl-article-list__empty" wx:elif="{{tabLoading}}">
+    <text class="dsl-article-list__empty-text">加载中...</text>
+  </view>
+  <view class="dsl-article-list__footer" wx:elif="{{showCategoryTabs && displayData.length && footerText}}">
+    <text class="dsl-article-list__footer-text">{{footerText}}</text>
   </view>
 </view>

@@ -193,10 +193,10 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .render-banner {
-  padding: 10px;
+  padding: 0;
 
   &.render-banner--preview {
-    padding: 10px;
+    padding: 0;
   }
 
   .banner-image-wrap,

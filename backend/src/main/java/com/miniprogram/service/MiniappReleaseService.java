@@ -68,4 +68,9 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
      * 删除模板（仅允许删除草稿状态的模板）
      */
     void deleteRelease(Long id);
+
+    /**
+     * 单页发布后写入当前线上快照，导航预览和小程序无需再走整包发布
+     */
+    void syncPublishedPageToLatestSnapshot(String path, String name, String dslContent);
 }

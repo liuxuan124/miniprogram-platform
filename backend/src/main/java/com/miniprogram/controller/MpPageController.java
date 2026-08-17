@@ -51,9 +51,10 @@ public class MpPageController {
         if (!StringUtils.hasText(path)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "path 不能为空");
         }
-        String dslContent = getPageDslFromLatestRelease(path);
+        // 此页发布后立即生效；整包快照仅作页面记录缺失时的兜底
+        String dslContent = pageService.getPublishedPageDsl(path);
         if (dslContent == null) {
-            dslContent = pageService.getPublishedPageDsl(path);
+            dslContent = getPageDslFromLatestRelease(path);
         }
         if (dslContent == null) {
             throw new BusinessException(ErrorCode.PAGE_NOT_FOUND, "页面不存在或未发布");

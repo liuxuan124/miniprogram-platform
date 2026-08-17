@@ -863,6 +863,69 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         return List.of();
     }
 
+    @Override
+    public void syncPublishedPageToLatestSnapshot(String path, String name, String dslContent) {
+        if (!StringUtils.hasText(path) || !StringUtils.hasText(dslContent)) {
+            return;
+        }
+        MiniappRelease latest = getLatestRelease();
+        if (latest == null || !StringUtils.hasText(latest.getSnapshot())) {
+            return;
+        }
+        try {
+            Map<String, Object> snapshot = objectMapper.readValue(
+                    latest.getSnapshot(),
+                    new TypeReference<Map<String, Object>>() {}
+            );
+            List<Map<String, Object>> pages = new ArrayList<>();
+            Object pagesValue = snapshot.get("pages");
+            if (pagesValue instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> raw) {
+                        Map<String, Object> page = new LinkedHashMap<>();
+                        raw.forEach((k, v) -> page.put(String.valueOf(k), v));
+                        pages.add(page);
+                    }
+                }
+            }
+            String normalized = normalizeSnapshotPath(path);
+            boolean found = false;
+            for (Map<String, Object> page : pages) {
+                if (normalized.equals(normalizeSnapshotPath(Objects.toString(page.get("path"), "")))) {
+                    page.put("dslContent", dslContent);
+                    if (StringUtils.hasText(name)) {
+                        page.put("name", name);
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                Map<String, Object> pageInfo = new LinkedHashMap<>();
+                pageInfo.put("path", path);
+                pageInfo.put("name", name);
+                pageInfo.put("dslContent", dslContent);
+                pages.add(pageInfo);
+            }
+            snapshot.put("pages", pages);
+            latest.setSnapshot(objectMapper.writeValueAsString(snapshot));
+            this.updateById(latest);
+        } catch (Exception e) {
+            log.warn("同步已发布页面到线上快照失败 path={}", path, e);
+        }
+    }
+
+    private String normalizeSnapshotPath(String path) {
+        if (path == null) {
+            return "";
+        }
+        String normalized = path.trim();
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        return normalized;
+    }
+
     private Long parseLongId(Object raw) {
         if (raw == null) {
             return null;

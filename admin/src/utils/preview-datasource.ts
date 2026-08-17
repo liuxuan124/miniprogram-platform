@@ -131,12 +131,31 @@ async function fetchDataSourceList(dataSource: ComponentDataSource, limit: numbe
   return pickList(payload.data)
 }
 
+function formatPublishDateTime(value: unknown): string {
+  if (value == null || value === '') return ''
+  const raw = String(value).trim()
+  const matched = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/)
+  if (matched) return `${matched[1]} ${matched[2]}`
+  const normalized = raw.includes('T') || raw.includes('-')
+    ? raw.replace(/-/g, '/')
+    : raw
+  const d = new Date(normalized)
+  if (Number.isNaN(d.getTime())) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return `${raw} 00:00`
+    return ''
+  }
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function formatArticleMeta(item: Record<string, any>): string {
-  const summary = stripHtml(item.summary || item.description || item.meta)
-  if (summary) return summary.length > 48 ? `${summary.slice(0, 48)}…` : summary
-  const date = item.publishedAt || item.createTime || item.createdAt || item.created_at
-  if (date) return String(date).slice(0, 10)
-  return '品牌内容'
+  const date = item.publishedAt
+    || item.publishTime
+    || item.publish_time
+    || item.createTime
+    || item.createdAt
+    || item.created_at
+  return formatPublishDateTime(date) || ''
 }
 
 function mapArticleItems(list: any[], limit: number) {
@@ -167,6 +186,54 @@ function mapProductItems(list: any[], limit: number, sortKey?: string) {
   }))
 }
 
+function demoProductItems(limit = 2) {
+  return [
+    { id: 'demo-1', name: '跨境通用知识库', title: '跨境通用知识库', price: '199.00', sales: 128, image: '' },
+    { id: 'demo-2', name: '跨境财税知识库', title: '跨境财税知识库', price: '299.00', sales: 86, image: '' },
+  ].slice(0, Math.max(limit, 1))
+}
+
+function resolveProductIds(component: ComponentInstance): string[] {
+  const raw = component.props?.product_ids
+  if (Array.isArray(raw) && raw.length) return raw.map((id: any) => String(id))
+  const ds = component.data_source || component.props?.data_source || {}
+  const fromDs = ds.params?.ids ?? ds.query?.ids
+  if (typeof fromDs === 'string' && fromDs.trim()) {
+    return fromDs.split(',').map((s: string) => s.trim()).filter(Boolean)
+  }
+  if (Array.isArray(fromDs)) return fromDs.map((id: any) => String(id))
+  return []
+}
+
+function pickProductsByIds(list: any[], ids: string[], limit: number) {
+  if (!ids.length) return mapProductItems(list, limit)
+  const map = new Map(list.map((item) => [String(item.id), item]))
+  const ordered = ids.map((id) => map.get(id)).filter(Boolean)
+  if (!ordered.length) {
+    // 接口无匹配时，优先用组件内已保存的 items
+    return []
+  }
+  return mapProductItems(ordered as any[], limit)
+}
+
+function manualProductItems(component: ComponentInstance, limit: number) {
+  const ids = resolveProductIds(component)
+  const saved = Array.isArray(component.props?.items) ? component.props.items : []
+  if (ids.length && saved.length) {
+    const map = new Map(saved.map((item: any) => [String(item.id), item]))
+    const ordered = ids.map((id) => map.get(id)).filter(Boolean)
+    if (ordered.length) return mapProductItems(ordered as any[], limit)
+  }
+  if (saved.length) return mapProductItems(saved, limit)
+  if (ids.length) {
+    return mapProductItems(
+      demoProductItems(20).filter((item) => ids.includes(String(item.id))),
+      limit,
+    )
+  }
+  return demoProductItems(Math.min(limit, 2))
+}
+
 async function hydrateComponent(
   component: ComponentInstance,
   warnings: string[],
@@ -180,10 +247,43 @@ async function hydrateComponent(
   if (!dataSource) return component
 
   const limit = Math.max(Number(component.props?.limit || 6), 1)
+  const isManualProduct = component.type === 'product_list'
+    && (component.props?.source_mode === 'manual' || resolveProductIds(component).length > 0)
+
+  // 手动选品：优先用已保存 items，避免依赖可能失败的列表接口
+  if (isManualProduct) {
+    const items = manualProductItems(component, limit)
+    if (items.length) {
+      return {
+        ...component,
+        props: {
+          ...component.props,
+          items,
+          _previewDataFailed: false,
+          _previewDataDemo: items.some((x) => String(x.id).startsWith('demo-')),
+        },
+      }
+    }
+  }
 
   try {
-    const list = await fetchDataSourceList(dataSource, limit)
+    const list = await fetchDataSourceList(dataSource, Math.max(limit, 50))
     if (!list.length) {
+      if (component.type === 'product_list') {
+        const items = isManualProduct
+          ? manualProductItems(component, limit)
+          : demoProductItems(Math.min(limit, 2))
+        warnings.push(`${label}：暂无真实商品，已用预览占位数据`)
+        return {
+          ...component,
+          props: {
+            ...component.props,
+            items,
+            _previewDataFailed: false,
+            _previewDataDemo: true,
+          },
+        }
+      }
       warnings.push(`${label}：接口未返回数据，请确认内容已发布`)
       return {
         ...component,
@@ -207,22 +307,44 @@ async function hydrateComponent(
     }
 
     if (component.type === 'product_list') {
+      const ids = resolveProductIds(component)
       const sortKey = String(
         component.props?.sort
         || component.props?.sort_by
         || dataSource.params?.sort
         || '',
       )
+      let items = ids.length
+        ? pickProductsByIds(list, ids, limit)
+        : mapProductItems(list, limit, sortKey)
+      if (!items.length && isManualProduct) {
+        items = manualProductItems(component, limit)
+      }
       return {
         ...component,
         props: {
           ...component.props,
-          items: mapProductItems(list, limit, sortKey),
+          items,
           _previewDataFailed: false,
         },
       }
     }
   } catch (error: any) {
+    if (component.type === 'product_list') {
+      const items = isManualProduct
+        ? manualProductItems(component, limit)
+        : demoProductItems(Math.min(limit, 2))
+      warnings.push(`${label}：接口不可用，已用预览/已选商品数据`)
+      return {
+        ...component,
+        props: {
+          ...component.props,
+          items,
+          _previewDataFailed: false,
+          _previewDataDemo: items.some((x) => String(x.id).startsWith('demo-')),
+        },
+      }
+    }
     warnings.push(`${label}：${error?.message || '数据加载失败'}`)
     return {
       ...component,

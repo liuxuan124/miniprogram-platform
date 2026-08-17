@@ -18,6 +18,16 @@ const SYSTEM_PAGES: { id: string; name: string; path: string; type: 'system' }[]
   { id: '__cart__', name: '🛒 购物车（系统内置）', path: '/pages/cart/cart', type: 'system' },
 ]
 
+function normalizeBindId(id: unknown) {
+  if (id == null || id === '') return ''
+  const s = String(id)
+  return /^\d+$/.test(s) ? Number(s) : s
+}
+
+function isIndexPath(path?: string) {
+  return String(path || '').replace(/\/+$/, '') === '/pages/index/index'
+}
+
 export function useMiniappConfig() {
   const loading = ref(false)
   const saving = ref(false)
@@ -67,7 +77,7 @@ export function useMiniappConfig() {
       const res = await getPageList({ current: 1, size: 100 })
       const data = res.data as any
       const userPages = (data?.records || data || []).map((p: any) => ({
-        id: p.id,
+        id: normalizeBindId(p.id),
         name: p.name || p.shareTitle || '未命名',
         path: p.path || '',
         type: p.type,
@@ -79,6 +89,24 @@ export function useMiniappConfig() {
       pages.value = [...userPages, ...extraSystemPages] as any
     } catch {
       pages.value = SYSTEM_PAGES as any
+    }
+  }
+
+  /** 首页绑定失效时，强制对齐到页面列表中的 /pages/index/index */
+  function syncHomeBinding() {
+    const realHome = pages.value.find((p) => isIndexPath(p.path) && p.type !== 'system')
+      || pages.value.find((p) => isIndexPath(p.path))
+    if (!realHome) return
+    const homeId = normalizeBindId(realHome.id)
+    const homeStillValid = pages.value.some((p) => String(p.id) === String(form.homePageId))
+    if (!homeStillValid || String(form.homePageId) !== String(homeId)) {
+      form.homePageId = homeId
+    }
+    const homeTab = form.tabs.find((t) => t.text === '首页' || isIndexPath(t.pagePath))
+    if (homeTab) {
+      homeTab.pageId = homeId as any
+      homeTab.pageName = realHome.name
+      homeTab.pagePath = realHome.path || '/pages/index/index'
     }
   }
 
@@ -119,7 +147,7 @@ export function useMiniappConfig() {
               text: t.text || t.label || t.name || '',
               icon: t.icon || t.iconPath || '',
               pagePath: t.pagePath || t.path || '',
-              pageId: t.pageId || '',
+              pageId: normalizeBindId(t.pageId) as any,
               pageName: t.pageName || '',
             }))
           }
@@ -342,11 +370,16 @@ export function useMiniappConfig() {
       if (aiPage) { aiTab.pageId = aiPage.id as any; aiTab.pageName = aiPage.name }
     }
 
-    // 首页自动绑定
+    // 首页自动绑定 / 纠正失效绑定
+    syncHomeBinding()
     const homeTab = form.tabs.find(t => t.text === '首页' && !t.pageId)
     if (homeTab) {
-      const homePage = pages.value.find(p => p.path === '/pages/index/index')
-      if (homePage) { homeTab.pageId = homePage.id; homeTab.pageName = homePage.name }
+      const homePage = pages.value.find(p => isIndexPath(p.path))
+      if (homePage) {
+        homeTab.pageId = homePage.id as any
+        homeTab.pageName = homePage.name
+        homeTab.pagePath = homePage.path || '/pages/index/index'
+      }
     }
   }
 

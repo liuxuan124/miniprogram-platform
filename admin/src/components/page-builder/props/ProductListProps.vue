@@ -1,9 +1,96 @@
 <template>
   <div class="product-list-props">
     <el-form label-width="70px" size="small">
-      <el-form-item label="标题">
-        <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="模块标题" />
+      <el-divider content-position="left">标题栏</el-divider>
+      <el-form-item label="标题文案">
+        <el-input
+          :model-value="data.title ?? ''"
+          clearable
+          placeholder="如：精选知识库（可留空不显示）"
+          @input="emit('update', { title: $event })"
+          @clear="emit('update', { title: '' })"
+        />
       </el-form-item>
+      <el-form-item label="副标题">
+        <el-input
+          :model-value="data.subtitle ?? ''"
+          clearable
+          placeholder="可选"
+          @input="emit('update', { subtitle: $event })"
+          @clear="emit('update', { subtitle: '' })"
+        />
+      </el-form-item>
+      <el-form-item label="标题造型">
+        <el-radio-group
+          :model-value="data.section_style || 'bar'"
+          @change="(v: string) => emit('update', { section_style: v })"
+        >
+          <el-radio-button value="bar">渐变条</el-radio-button>
+          <el-radio-button value="card">色块</el-radio-button>
+          <el-radio-button value="plain">纯文字</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="对齐">
+        <el-radio-group
+          :model-value="data.section_align || 'left'"
+          @change="(v: string) => emit('update', { section_align: v })"
+        >
+          <el-radio-button value="left">居左</el-radio-button>
+          <el-radio-button value="center">居中</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="底部分割线">
+        <el-switch
+          :model-value="data.section_divider === true"
+          @change="(v: boolean) => emit('update', { section_divider: v })"
+        />
+      </el-form-item>
+      <el-form-item label="标题加粗">
+        <el-switch
+          :model-value="data.section_title_bold !== false"
+          @change="(v: boolean) => emit('update', { section_title_bold: v })"
+        />
+      </el-form-item>
+      <el-form-item label="标题字号">
+        <el-input-number
+          :model-value="data.section_title_font_size ?? 16"
+          :min="12"
+          :max="28"
+          controls-position="right"
+          @change="(v: number) => emit('update', { section_title_font_size: v })"
+        />
+      </el-form-item>
+      <el-form-item label="标题颜色">
+        <el-color-picker
+          :model-value="data.section_title_color || (data.section_style === 'plain' || data.section_style === 'card' ? '#172033' : '#F3F7FC')"
+          @change="(v: string | null) => emit('update', { section_title_color: v || '#F3F7FC' })"
+        />
+      </el-form-item>
+      <el-form-item label="查看更多">
+        <el-switch
+          :model-value="data.show_more !== false"
+          @change="(v: boolean) => emit('update', { show_more: v })"
+        />
+      </el-form-item>
+      <el-form-item v-if="data.show_more !== false" label="更多文案">
+        <el-input
+          :model-value="data.more_text ?? '查看更多>'"
+          placeholder="查看更多>"
+          @input="emit('update', { more_text: $event })"
+        />
+      </el-form-item>
+      <el-form-item v-if="data.show_more !== false" label="跳转链接">
+        <el-input
+          :model-value="data.more_link ?? '/pages/product-list/product-list'"
+          clearable
+          placeholder="/pages/product-list/product-list 或 https://"
+          @input="emit('update', { more_link: $event })"
+          @clear="emit('update', { more_link: '' })"
+        />
+        <div class="ds-hint">小程序页面路径或外链；留空则默认商品列表页</div>
+      </el-form-item>
+
+      <el-divider content-position="left">商品展示</el-divider>
       <el-form-item label="布局">
         <el-radio-group :model-value="layoutValue" @change="onLayoutChange">
           <el-radio-button value="grid">宫格</el-radio-button>
@@ -17,6 +104,9 @@
           <el-radio :value="2">双列</el-radio>
           <el-radio :value="3">三列</el-radio>
         </el-radio-group>
+      </el-form-item>
+      <el-form-item label="商品名加粗">
+        <el-switch :model-value="data.title_bold !== false" @change="emit('update', { title_bold: $event as boolean })" />
       </el-form-item>
       <el-form-item label="显示价格">
         <el-switch :model-value="data.show_price !== false" @change="emit('update', { show_price: $event as boolean })" />
@@ -36,63 +126,128 @@
           controls-position="right"
         />
       </el-form-item>
-      <TitleFontSizeFields
-        :data="data"
-        subtitle-label="元信息字号"
-        :title-default="13"
-        :subtitle-default="11"
-        @update="(v) => emit('update', v)"
-      />
+      <el-form-item label="商品标题字号">
+        <el-input-number
+          :model-value="data.title_font_size ?? 14"
+          :min="8"
+          :max="48"
+          controls-position="right"
+          @change="(v: number) => emit('update', { title_font_size: v })"
+        />
+      </el-form-item>
+      <el-form-item label="价格字号">
+        <el-input-number
+          :model-value="data.price_font_size ?? 13"
+          :min="8"
+          :max="36"
+          controls-position="right"
+          @change="(v: number) => emit('update', { price_font_size: v })"
+        />
+      </el-form-item>
+      <el-form-item label="已售字号">
+        <el-input-number
+          :model-value="data.sales_font_size ?? 11"
+          :min="8"
+          :max="36"
+          controls-position="right"
+          @change="(v: number) => emit('update', { sales_font_size: v })"
+        />
+      </el-form-item>
 
       <div class="ds-card">
         <div class="ds-card__head">
           <span>展示哪些商品</span>
-          <span class="ds-card__count">{{ liveLoading ? '读取中…' : `${liveItems.length} 件已上架` }}</span>
+          <span class="ds-card__count">
+            {{ sourceMode === 'manual'
+              ? `已选 ${selectedProductIds.length} 件`
+              : (liveLoading ? '读取中…' : `${liveItems.length} 件已上架`) }}
+          </span>
         </div>
-        <el-form-item label="商品分类">
-          <el-select
-            :model-value="queryParams.category_id ?? ''"
-            clearable
-            filterable
-            placeholder="全部分类"
-            style="width: 100%"
-            @change="(v: string | number) => patchQuery({ category_id: v || undefined })"
-          >
-            <el-option label="全部分类" value="" />
-            <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
-          <div v-if="!categoryOptions.length" class="ds-hint">还没有分类，可先到商品管理创建</div>
+        <el-form-item label="选取方式">
+          <el-radio-group :model-value="sourceMode" @change="onSourceModeChange">
+            <el-radio-button value="auto">按规则</el-radio-button>
+            <el-radio-button value="manual">手动选择</el-radio-button>
+          </el-radio-group>
         </el-form-item>
-        <el-form-item label="商品类型">
-          <el-select
-            :model-value="queryParams.product_type || ''"
-            clearable
-            placeholder="全部类型"
-            style="width: 100%"
-            @change="(v: string) => patchQuery({ product_type: v || undefined })"
-          >
-            <el-option label="全部类型" value="" />
-            <el-option label="实物商品" value="physical" />
-            <el-option label="虚拟商品" value="digital" />
-            <el-option label="服务商品" value="service" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序方式">
-          <el-select :model-value="sortBy" @change="onSortByChange" style="width: 100%">
-            <el-option label="按销量排序" value="sales" />
-            <el-option label="最新上架" value="newest" />
-            <el-option label="价格从低到高" value="price_asc" />
-            <el-option label="价格从高到低" value="price_desc" />
-          </el-select>
-        </el-form-item>
-        <div v-if="liveItems.length" class="ds-preview">
-          <div v-for="item in liveItems.slice(0, 3)" :key="item.id || item.name" class="ds-chip">
-            <span class="ds-chip__name">{{ item.name }}</span>
-            <span class="ds-chip__price">¥{{ item.price }}</span>
+
+        <template v-if="sourceMode === 'manual'">
+          <el-form-item label="选择商品">
+            <el-select
+              :model-value="selectedProductIds"
+              multiple
+              filterable
+              clearable
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="请选择要展示的商品"
+              style="width: 100%"
+              :loading="productOptionsLoading"
+              @change="onProductIdsChange"
+            >
+              <el-option
+                v-for="item in productOptions"
+                :key="String(item.id)"
+                :label="`${item.name} ¥${item.price}`"
+                :value="String(item.id)"
+              />
+            </el-select>
+            <div class="ds-hint">可多选；画布按勾选顺序展示（受「显示数量」限制）</div>
+          </el-form-item>
+          <div v-if="selectedProductIds.length" class="ds-preview">
+            <div v-for="item in selectedPreviewItems" :key="String(item.id)" class="ds-chip">
+              <span class="ds-chip__name">{{ item.name }}</span>
+              <span class="ds-chip__price">¥{{ item.price }}</span>
+            </div>
           </div>
-          <div v-if="liveItems.length > 3" class="ds-more">画布还会再显示 {{ liveItems.length - 3 }} 件</div>
-        </div>
-        <div v-else-if="!liveLoading" class="ds-empty">当前筛选下没有已上架商品，画布会显示空态</div>
+          <div v-else class="ds-empty">还没选商品，请在上方勾选</div>
+        </template>
+
+        <template v-else>
+          <el-form-item label="商品分类">
+            <el-select
+              :model-value="queryParams.category_id ?? ''"
+              clearable
+              filterable
+              placeholder="全部分类"
+              style="width: 100%"
+              @change="(v: string | number) => patchQuery({ category_id: v || undefined })"
+            >
+              <el-option label="全部分类" value="" />
+              <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
+            </el-select>
+            <div v-if="!categoryOptions.length" class="ds-hint">还没有分类，可先到商品管理创建</div>
+          </el-form-item>
+          <el-form-item label="商品类型">
+            <el-select
+              :model-value="queryParams.product_type || ''"
+              clearable
+              placeholder="全部类型"
+              style="width: 100%"
+              @change="(v: string) => patchQuery({ product_type: v || undefined })"
+            >
+              <el-option label="全部类型" value="" />
+              <el-option label="实物商品" value="physical" />
+              <el-option label="虚拟商品" value="digital" />
+              <el-option label="服务商品" value="service" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="排序方式">
+            <el-select :model-value="sortBy" @change="onSortByChange" style="width: 100%">
+              <el-option label="按销量排序" value="sales" />
+              <el-option label="最新上架" value="newest" />
+              <el-option label="价格从低到高" value="price_asc" />
+              <el-option label="价格从高到低" value="price_desc" />
+            </el-select>
+          </el-form-item>
+          <div v-if="liveItems.length" class="ds-preview">
+            <div v-for="item in liveItems.slice(0, 3)" :key="item.id || item.name" class="ds-chip">
+              <span class="ds-chip__name">{{ item.name }}</span>
+              <span class="ds-chip__price">¥{{ item.price }}</span>
+            </div>
+            <div v-if="liveItems.length > 3" class="ds-more">画布还会再显示 {{ liveItems.length - 3 }} 件</div>
+          </div>
+          <div v-else-if="!liveLoading" class="ds-empty">当前筛选下没有已上架商品，画布会显示空态</div>
+        </template>
       </div>
     </el-form>
   </div>
@@ -100,15 +255,30 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { getCategoryList } from '@/api/product'
+import { getCategoryList, getProductList } from '@/api/product'
 import { ComponentType, type ComponentInstance } from '@/types/page'
-import TitleFontSizeFields from './TitleFontSizeFields.vue'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+
+type ProductOption = {
+  id: string | number
+  name: string
+  price: string | number
+  sales?: number
+  image?: string
+  status?: string
+}
+
+const DEMO_OPTIONS: ProductOption[] = [
+  { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128, status: 'on_sale' },
+  { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86, status: 'on_sale' },
+]
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const categoryOptions = ref<{ id: number | string; name: string }[]>([])
+const productOptions = ref<ProductOption[]>([])
+const productOptionsLoading = ref(false)
 
 const feedComponent = computed<ComponentInstance>(() => ({
   id: 'props-product-list',
@@ -124,6 +294,26 @@ const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
 const layoutValue = computed(() => {
   const raw = data.layout || 'grid'
   return ['grid', 'list', 'waterfall'].includes(raw) ? raw : 'grid'
+})
+
+const sourceMode = computed(() => (data.source_mode === 'manual' ? 'manual' : 'auto'))
+
+const selectedProductIds = computed(() => {
+  const raw = data.product_ids
+  if (Array.isArray(raw)) return raw.map((id) => String(id))
+  const fromDs = data.data_source?.params?.ids ?? data.data_source?.query?.ids
+  if (typeof fromDs === 'string' && fromDs.trim()) {
+    return fromDs.split(',').map((s: string) => s.trim()).filter(Boolean)
+  }
+  if (Array.isArray(fromDs)) return fromDs.map((id: any) => String(id))
+  return []
+})
+
+const selectedPreviewItems = computed(() => {
+  const map = new Map(productOptions.value.map((p) => [String(p.id), p]))
+  return selectedProductIds.value
+    .map((id) => map.get(String(id)))
+    .filter(Boolean) as ProductOption[]
 })
 
 const queryParams = computed(() => {
@@ -148,12 +338,29 @@ function flattenCategories(nodes: any[], prefix = ''): { id: number | string; na
   return out
 }
 
+function toOption(item: any): ProductOption | null {
+  if (!item) return null
+  const id = item.id
+  if (id == null || id === '') return null
+  return {
+    id,
+    name: item.name || item.title || '未命名商品',
+    price: item.price ?? '0.00',
+    sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
+    image: item.image || item.cover || item.mainImage || item.coverImage || '',
+    status: item.status || 'on_sale',
+  }
+}
+
 function patchQuery(patch: Record<string, any>) {
   const params = { ...queryParams.value, status: 'on_sale', ...patch }
+  delete params.ids
   Object.keys(params).forEach((key) => {
     if (params[key] === '' || params[key] === null || params[key] === undefined) delete params[key]
   })
   emit('update', {
+    source_mode: 'auto',
+    product_ids: [],
     data_source: {
       type: 'product',
       params,
@@ -176,6 +383,76 @@ function onSortByChange(val: string) {
   })
 }
 
+function onSourceModeChange(val: string) {
+  if (val === 'manual') {
+    emit('update', {
+      source_mode: 'manual',
+      product_ids: selectedProductIds.value,
+    })
+    return
+  }
+  patchQuery({})
+}
+
+function onProductIdsChange(ids: string[]) {
+  const uniq = Array.from(new Set((ids || []).map((id) => String(id))))
+  const map = new Map(productOptions.value.map((p) => [String(p.id), p]))
+  const items = uniq
+    .map((id) => map.get(id))
+    .filter(Boolean)
+    .map((p) => ({
+      id: p!.id,
+      name: p!.name,
+      title: p!.name,
+      price: String(p!.price),
+      sales: p!.sales ?? 0,
+      image: p!.image || '',
+    }))
+  emit('update', {
+    source_mode: 'manual',
+    product_ids: uniq,
+    items,
+    data_source: {
+      type: 'product',
+      params: { status: 'on_sale', ids: uniq.join(',') },
+      query: { status: 'on_sale', ids: uniq.join(',') },
+    },
+  })
+}
+
+async function loadProductOptions() {
+  productOptionsLoading.value = true
+  try {
+    const res = await getProductList({ current: 1, size: 100, status: 'on_sale' } as any)
+    const payload = (res as any)?.data
+    const list = Array.isArray(payload) ? payload : payload?.records || payload?.list || []
+    const options = list.map(toOption).filter(Boolean) as ProductOption[]
+    // 保留当前已选项 / 演示项，避免接口失败或下架后选项丢失
+    const existing = [
+      ...DEMO_OPTIONS,
+      ...((Array.isArray(data.items) ? data.items : []).map(toOption).filter(Boolean) as ProductOption[]),
+      ...options,
+    ]
+    const map = new Map<string, ProductOption>()
+    existing.forEach((p) => {
+      if (!map.has(String(p.id))) map.set(String(p.id), p)
+    })
+    productOptions.value = Array.from(map.values())
+  } catch {
+    const existing = [
+      ...DEMO_OPTIONS,
+      ...((Array.isArray(data.items) ? data.items : []).map(toOption).filter(Boolean) as ProductOption[]),
+    ]
+    const map = new Map<string, ProductOption>()
+    existing.forEach((p) => {
+      if (!map.has(String(p.id))) map.set(String(p.id), p)
+    })
+    productOptions.value = Array.from(map.values())
+  } finally {
+    productOptionsLoading.value = false
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await getCategoryList()
@@ -185,6 +462,7 @@ onMounted(async () => {
   } catch {
     categoryOptions.value = []
   }
+  await loadProductOptions()
 })
 </script>
 

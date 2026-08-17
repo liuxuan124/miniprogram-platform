@@ -1,28 +1,22 @@
-/* components/dsl-float-button/dsl-float-button.wxss — 浮动按钮组件样式 */
+/* components/dsl-float-button/dsl-float-button.wxss — 圆形悬浮按钮 */
 
 .dsl-float-button {
-  gap: 10rpx;
+  flex-shrink: 0;
 }
 
 .dsl-float-button.is-dragging {
   opacity: 0.92 !important;
+  box-shadow: 0 12rpx 32rpx rgba(15, 23, 42, 0.28) !important;
 }
 
 .dsl-float-button__icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 44rpx;
+  height: 44rpx;
   flex-shrink: 0;
 }
 
 .dsl-float-button__emoji {
-  font-size: 34rpx;
+  font-size: 36rpx;
   line-height: 1;
   color: #ffffff;
-}
-
-.dsl-float-button__text {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #ffffff;
-  white-space: nowrap;
 }

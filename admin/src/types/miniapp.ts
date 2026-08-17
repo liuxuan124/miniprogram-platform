@@ -184,13 +184,13 @@ export const DEFAULT_USER_PROFILE: UserProfileConfig = {
   memberLevelLabel: '会员等级',
 }
 
-/** 默认主题配色 */
+/** 默认主题配色 — 克莱因蓝 + 渐变辅色 */
 export const DEFAULT_THEME: ThemeConfig = {
-  primaryColor: '#1769ff',
-  secondaryColor: '#20b7ff',
-  navBarColor: '#1769ff',
-  tabBarActiveColor: '#1769ff',
-  tabBarInactiveColor: '#999999',
+  primaryColor: '#002FA7',
+  secondaryColor: '#1A4BBF',
+  navBarColor: '#002FA7',
+  tabBarActiveColor: '#002FA7',
+  tabBarInactiveColor: '#8B93A7',
   tabBarBackgroundColor: '#ffffff',
-  pageBackgroundColor: '#f6f8fb',
+  pageBackgroundColor: '#F2F4FA',
 }

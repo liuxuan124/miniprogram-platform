@@ -15,6 +15,11 @@ public interface ContentCategoryService extends BaseService<com.miniprogram.enti
     List<ContentCategoryDTO> listCategoryTree();
 
     /**
+     * 小程序端：启用中的顶级分类（扁平，用于标签栏）
+     */
+    List<ContentCategoryDTO> listEnabledTopCategories();
+
+    /**
      * 创建分类
      */
     ContentCategoryDTO createCategory(ContentCategoryDTO dto);

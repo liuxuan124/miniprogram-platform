@@ -46,10 +46,10 @@
       <el-switch :model-value="!!data.closable" @change="(v: boolean) => emit('update', { closable: v })" />
     </el-form-item>
     <el-form-item label="文字颜色">
-      <el-color-picker :model-value="data.text_color || '#9a3412'" @change="(v: string) => emit('update', { text_color: v })" />
+      <el-color-picker :model-value="data.text_color || '#E53935'" @change="(v: string) => emit('update', { text_color: v })" />
     </el-form-item>
     <el-form-item label="背景颜色">
-      <el-color-picker :model-value="data.background_color || '#fff7ed'" @change="(v: string) => emit('update', { background_color: v })" />
+      <el-color-picker :model-value="data.background_color || '#FFF9E6'" @change="(v: string) => emit('update', { background_color: v })" />
     </el-form-item>
     <el-form-item label="文字大小">
       <el-input-number

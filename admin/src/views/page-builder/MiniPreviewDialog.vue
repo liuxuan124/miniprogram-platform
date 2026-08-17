@@ -18,6 +18,9 @@
         size="small"
       />
       <el-segmented v-model="previewTab" :options="previewTabs" size="small" />
+      <el-button size="small" type="primary" plain :loading="qrLoading" @click="openMobileQr">
+        手机扫码预览
+      </el-button>
     </div>
     <el-alert
       class="preview-data-notice"
@@ -44,19 +47,6 @@
             @select="() => {}"
             @preview-action="handlePreviewAction"
           />
-          <div class="preview-fab-layer">
-            <ComponentItem
-              v-for="(comp, index) in floatPreviewComponents"
-              :key="`fab-${comp.id}`"
-              :component="comp"
-              :index="index"
-              :selected="false"
-              :preview-mode="true"
-              :fab-only="true"
-              @select="() => {}"
-              @preview-action="handlePreviewAction"
-            />
-          </div>
           <div v-if="previewDetail?.type === 'form'" class="preview-form-overlay">
             <div class="mini-detail-card">
               <h3>{{ previewDetail.title }}</h3>
@@ -167,6 +157,20 @@
         </div>
       </div>
 
+      <template v-if="previewTab === 'home'" #fab>
+        <ComponentItem
+          v-for="(comp, index) in floatPreviewComponents"
+          :key="`fab-${comp.id}`"
+          :component="comp"
+          :index="index"
+          :selected="false"
+          :preview-mode="true"
+          :fab-only="true"
+          @select="() => {}"
+          @preview-action="handlePreviewAction"
+        />
+      </template>
+
       <template #tabbar>
         <div class="mini-bottom-tab" :style="{ gridTemplateColumns: 'repeat(' + tabColumns + ', 1fr)' }">
           <button
@@ -183,21 +187,51 @@
       </template>
     </PreviewPhone>
   </el-dialog>
+
+  <el-dialog
+    v-model="qrVisible"
+    title="手机扫码预览"
+    width="360px"
+    append-to-body
+    destroy-on-close
+    @closed="onQrDialogClosed"
+  >
+    <el-alert
+      v-if="isLocalHost"
+      type="warning"
+      :closable="false"
+      show-icon
+      title="当前是本机地址：手机需与电脑同网，并用局域网 IP 访问；或部署到公网后再扫。"
+      style="margin-bottom: 12px"
+    />
+    <div class="qr-panel">
+      <img v-if="qrDataUrl" :src="qrDataUrl" alt="预览二维码" class="qr-image" />
+      <p class="qr-tip">关闭「小程序端实时预览」窗口后，此码立即失效并清除。</p>
+      <el-input :model-value="qrFullUrl" readonly size="small">
+        <template #append>
+          <el-button @click="copyQrLink">复制</el-button>
+        </template>
+      </el-input>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import QRCode from 'qrcode'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
+import type { PageDSL } from '@/types/page'
 import { useDataSync } from '@/components/page-builder/composables/useDataSync'
 import { getConfigByGroup } from '@/api/system'
 import { getFormTemplateDetail } from '@/api/form'
+import { createPreviewDraft, deletePreviewDraft } from '@/api/preview-draft'
 import type { FormFieldConfig } from '@/types/form'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
 }>()
 
@@ -207,6 +241,90 @@ defineEmits<{
 
 const pageStore = usePageStore()
 const { syncProducts, syncContents, syncActivities } = useDataSync()
+
+const qrVisible = ref(false)
+const qrLoading = ref(false)
+const qrToken = ref('')
+const qrDataUrl = ref('')
+const qrFullUrl = ref('')
+const isLocalHost = computed(() => {
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
+})
+
+async function revokePreviewDraft() {
+  const token = qrToken.value
+  qrToken.value = ''
+  qrDataUrl.value = ''
+  qrFullUrl.value = ''
+  if (!token) return
+  try {
+    await deletePreviewDraft(token)
+  } catch {
+    /* 已失效也忽略，保证关窗不挡操作 */
+  }
+}
+
+async function openMobileQr() {
+  qrLoading.value = true
+  try {
+    if (qrToken.value) {
+      await revokePreviewDraft()
+    }
+    const dsl = JSON.parse(pageStore.serializeDSL()) as PageDSL
+    const pageIdRaw = pageStore.currentPage?.id
+    const pageId = pageIdRaw != null ? Number(pageIdRaw) : undefined
+    const res = await createPreviewDraft({
+      dsl,
+      pageTitle: pageStore.pageConfig?.name || dsl.page?.name,
+      pageId: Number.isFinite(pageId) && pageId! > 0 ? pageId : undefined,
+    })
+    const data = ((res as any)?.data || res) as {
+      token: string
+      previewPath: string
+    }
+    if (!data?.token || !data?.previewPath) {
+      throw new Error('生成预览失败')
+    }
+    qrToken.value = data.token
+    qrFullUrl.value = `${window.location.origin}${data.previewPath}`
+    qrDataUrl.value = await QRCode.toDataURL(qrFullUrl.value, {
+      width: 220,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    })
+    qrVisible.value = true
+  } catch (e: any) {
+    ElMessage.error(e?.message || '生成手机预览失败')
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+function copyQrLink() {
+  if (!qrFullUrl.value) return
+  navigator.clipboard.writeText(qrFullUrl.value)
+    .then(() => ElMessage.success('链接已复制'))
+    .catch(() => ElMessage.error('复制失败，请手动复制'))
+}
+
+function onQrDialogClosed() {
+  /* 二维码弹层关掉不删 token，仍可扫；真正清理在关预览窗 */
+}
+
+watch(
+  () => props.modelValue,
+  async (open, wasOpen) => {
+    if (wasOpen && !open) {
+      qrVisible.value = false
+      await revokePreviewDraft()
+    }
+  },
+)
+
+onUnmounted(() => {
+  void revokePreviewDraft()
+})
 
 type PreviewTab = string
 type PreviewDetail = {
@@ -291,7 +409,10 @@ const previewComponents = computed(() => pageStore.components.map((component) =>
   }
   if (type === 'article_list') {
     const source = previewDataMode.value === 'demo' ? defaultContentPreviewList : contentPreviewList.value
-    const items = source.map((item) => ({ title: item.title, meta: item.desc }))
+    const items = source.map((item) => ({
+      title: item.title,
+      meta: item.desc && /\d{4}/.test(String(item.desc)) ? item.desc : '',
+    }))
     return { ...component, props: { ...component.props, items, _previewDataFailed: items.length === 0 } }
   }
   return component
@@ -315,8 +436,8 @@ const previewDataNotice = computed(() => {
 })
 
 const defaultContentPreviewList: { title: string; desc: string }[] = [
-  { title: '品牌故事', desc: '展示品牌理念、文化内容与图文详情' },
-  { title: '选品指南', desc: '文章内容可关联商品和活动' },
+  { title: '品牌故事', desc: '2026-05-10 10:30' },
+  { title: '选品指南', desc: '2026-05-12 14:20' },
 ]
 
 const contentPreviewList = ref<{ title: string; desc: string }[]>([...defaultContentPreviewList])
@@ -374,17 +495,34 @@ async function loadContentPreviewList() {
     ? localArticleList
         .map((item: any) => ({
           title: item?.title || '未命名内容',
-          desc: item?.meta || item?.summary || '品牌内容',
+          desc: item?.publishedAt || item?.publish_time || item?.created_at || item?.meta || '',
         }))
         .filter((item: { title: string; desc: string }) => !!item.title)
     : []
 
   await syncContents((items) => {
     if (items.length > 0) {
-      contentPreviewList.value = items.map((item: any) => ({
-        title: item.title || '未命名内容',
-        desc: item.cover || '品牌内容',
-      }))
+      contentPreviewList.value = items.map((item: any) => {
+        const dateRaw = item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at
+        let desc = ''
+        if (dateRaw) {
+          const raw = String(dateRaw).trim()
+          const matched = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/)
+          if (matched) desc = `${matched[1]} ${matched[2]}`
+          else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) desc = `${raw} 00:00`
+          else {
+            const d = new Date(raw.replace(/-/g, '/'))
+            if (!Number.isNaN(d.getTime())) {
+              const pad = (n: number) => String(n).padStart(2, '0')
+              desc = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+            }
+          }
+        }
+        return {
+          title: item.title || '未命名内容',
+          desc,
+        }
+      })
     } else {
       contentPreviewList.value = localPreviewList
     }
@@ -562,6 +700,28 @@ watch(
   min-height: 100%;
 }
 
+.qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-image {
+  width: 220px;
+  height: 220px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.qr-tip {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .preview-form-overlay {
   position: absolute;
   inset: 0;
@@ -615,23 +775,6 @@ watch(
   border-radius: 6px;
 }
 
-.preview-fab-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-}
-
-.preview-fab-layer :deep(.render-float-button.is-overlay) {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.preview-fab-layer :deep(.float-fab) {
-  pointer-events: auto;
-}
-
 .mini-preview-head {
   text-align: center;
 
@@ -639,6 +782,10 @@ watch(
     margin-bottom: 10px;
     color: #6b7280;
     font-size: 13px;
+  }
+
+  .el-button {
+    margin-top: 10px;
   }
 }
 
@@ -793,6 +940,8 @@ watch(
 }
 
 .mini-bottom-tab {
+  position: relative;
+  z-index: 30;
   flex-shrink: 0;
   display: grid;
   padding: 6px 0 8px;

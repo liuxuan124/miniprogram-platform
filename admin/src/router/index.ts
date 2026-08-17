@@ -44,6 +44,12 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: { title: 'H5预览', hidden: true },
   },
   {
+    path: '/h5/draft-preview',
+    name: 'H5DraftPreview',
+    component: () => import('@/views/page-builder/draft-preview.vue'),
+    meta: { title: '草稿手机预览', hidden: true },
+  },
+  {
     path: '/h5/miniapp-preview',
     name: 'MiniappFullPreview',
     component: () => import('@/views/page-builder/miniapp-full-preview.vue'),
