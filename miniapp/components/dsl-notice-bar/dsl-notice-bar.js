@@ -75,8 +75,8 @@ Component({
       const len = Math.max(marqueeText.length, 8)
       const duration = Math.max(4, (len * 14) / speed)
       const fontSize = Number(config.font_size) || 12
-      const color = config.text_color || '#9a3412'
-      const bg = config.background_color || '#fff7ed'
+      const color = config.text_color || '#E53935'
+      const bg = config.background_color || '#FFF9E6'
       // 圆角交给 styleString（已含 border-radius）；未设置时给默认 16rpx
       const hasRadius = this.data.styleString && /border-radius\s*:/.test(this.data.styleString)
       const barStyle = `color:${color};background:${bg};font-size:${fontSize * 2}rpx;${hasRadius ? '' : 'border-radius:16rpx;'}`

@@ -194,13 +194,12 @@
         </div>
       </div>
       <div class="publish-result__tip">
-        此页内容将按上方路径生效。整包上线（首页 + 导航绑定页）请到「发布」。
+        此页已上线。打开「导航与外观」即可看到同步后的效果，不用再整包发布。
       </div>
       <template #footer>
         <el-button @click="publishResult.visible = false">继续装修</el-button>
         <el-button @click="handlePreviewAfterPublish">预览效果</el-button>
-        <el-button @click="handleGotoMiniappConfig">去绑定导航</el-button>
-        <el-button type="primary" @click="handleGotoRelease">去整包发布</el-button>
+        <el-button type="primary" @click="handleGotoMiniappConfig">去导航与外观</el-button>
       </template>
     </el-dialog>
   </div>
@@ -212,7 +211,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
-import { getPageDetail, saveDraft, publishPage, createPage } from '@/api/page'
+import { getPageDetail, saveDraft, publishPage, createPage, updatePage } from '@/api/page'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
 import { collectDataSourceIssues } from '@/components/page-builder/dataSourceValidation'
 import ComponentPanel from '@/components/page-builder/ComponentPanel.vue'
@@ -220,6 +219,7 @@ import CanvasArea from '@/components/page-builder/CanvasArea.vue'
 import PropsPanel from '@/components/page-builder/PropsPanel.vue'
 import MiniPreviewDialog from './MiniPreviewDialog.vue'
 import type { PageDSL, PageRecord } from '@/types/page'
+import { isHomePathLocked, normalizeBuilderPath, validatePathSlug, splitEditablePath } from '@/utils/page-path'
 
 function isConflictError(err: unknown): boolean {
   const e = err as { response?: { status?: number; data?: { code?: number } }; code?: number }
@@ -311,6 +311,8 @@ function resolveJump(item: Record<string, any>) {
   return { type, target }
 }
 
+const FLOAT_ACTION_TYPES = ['link', 'top', 'phone', 'ai', 'url']
+
 function collectJumpIssues(components: any[]): string[] {
   const issues: string[] = []
   components.forEach((comp) => {
@@ -322,18 +324,39 @@ function collectJumpIssues(components: any[]): string[] {
         : [comp.props || {}]
     items.forEach((item: any, index: number) => {
       if (!item || typeof item !== 'object') return
+      const prefix = items.length > 1 ? `${label}第 ${index + 1} 项` : label
+
+      // 悬浮按钮使用 action_type（link/top/phone/ai），不是 banner/image 的 link_type
+      if (comp.type === 'float_button') {
+        const action = String(
+          item.action_type
+          || (item.link_url ? 'link' : '')
+          || (item.phone ? 'phone' : '')
+          || 'ai',
+        ).trim()
+        if (!FLOAT_ACTION_TYPES.includes(action)) {
+          issues.push(`${prefix}动作类型不合法`)
+          return
+        }
+        if ((action === 'link' || action === 'url') && !String(item.link_url || '').trim()) {
+          issues.push(`${prefix}缺少跳转地址`)
+        }
+        if (action === 'phone' && !String(item.phone || '').trim()) {
+          issues.push(`${prefix}缺少电话号码`)
+        }
+        return
+      }
+
       const hasJumpField = item.link_type || item.type || item.jump_type || item.link_url || item.target || item.link
-      if (comp.type !== 'banner' && comp.type !== 'float_button' && comp.type !== 'image' && !hasJumpField) return
-      if (comp.type !== 'banner' && comp.type !== 'float_button' && comp.type !== 'image') return
+      if (comp.type !== 'banner' && comp.type !== 'image' && !hasJumpField) return
+      if (comp.type !== 'banner' && comp.type !== 'image') return
       // 轮播图有图就必须声明跳转类型（允许 none）
       const hasImage = Boolean(item.image || item.url || item.src)
       if (comp.type === 'banner' && hasImage && !item.link_type && !item.type && !item.jump_type && !item.link) {
-        const prefix = items.length > 1 ? `${label}第 ${index + 1} 项` : label
         issues.push(`${prefix}缺少跳转类型`)
         return
       }
       const { type, target } = resolveJump(item)
-      const prefix = items.length > 1 ? `${label}第 ${index + 1} 项` : label
       if (!type) {
         issues.push(`${prefix}缺少跳转类型`)
         return
@@ -405,6 +428,31 @@ async function handleBack() {
   await router.push({ name: 'PageBuilderList' })
 }
 
+/** 保存草稿时同步名称/路径到页面表（列表展示依赖库表，不依赖 DSL） */
+async function syncPageMetaToServer() {
+  const page = pageStore.currentPage
+  if (!page?.id) return
+  const name = String(pageStore.pageConfig.name || page.name || '').trim()
+  if (!name) {
+    throw new Error('页面名称不能为空')
+  }
+  const type = Number(page.type || 3)
+  let path = normalizeBuilderPath(page.path || pageStore.pageConfig.path || '')
+  if (isHomePathLocked(type)) {
+    path = '/pages/index/index'
+  } else {
+    const { slug } = splitEditablePath(path, type)
+    const slugErr = validatePathSlug(slug, type)
+    if (slugErr) throw new Error(slugErr)
+  }
+  if (!path) throw new Error('访问路径不能为空')
+
+  await updatePage(page.id, { name, path })
+  page.name = name
+  page.path = path
+  pageStore.updatePageConfig({ name, path })
+}
+
 /** 保存草稿（手动点击） */
 async function handleSaveDraft() {
   if (!pageStore.currentPage) return
@@ -415,6 +463,7 @@ async function handleSaveDraft() {
   }
   pageStore.saving = true
   try {
+    await syncPageMetaToServer()
     const expectedVersion = currentExpectedVersion()
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
@@ -453,6 +502,7 @@ async function performAutoSave() {
     return
   }
   try {
+    await syncPageMetaToServer()
     const expectedVersion = currentExpectedVersion()
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
     pageStore.isDirty = false
@@ -550,6 +600,7 @@ async function handlePublish() {
   if (pageStore.isDirty) {
     try {
       pageStore.saving = true
+      await syncPageMetaToServer()
       const expectedVersion = currentExpectedVersion()
       const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
       pageStore.isDirty = false
@@ -604,11 +655,6 @@ async function executePublish() {
 function handleGotoMiniappConfig() {
   publishResult.visible = false
   router.push('/page-builder/start')
-}
-
-function handleGotoRelease() {
-  publishResult.visible = false
-  router.push('/page-builder/release')
 }
 
 function handlePreviewAfterPublish() {

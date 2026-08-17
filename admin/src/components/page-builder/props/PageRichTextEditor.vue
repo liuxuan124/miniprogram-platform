@@ -15,10 +15,16 @@
         A
         <input type="color" :value="foreColor" @input="onForeColor" />
       </label>
+      <button type="button" class="tb eyedrop" title="吸管取文字色" :disabled="!eyedropperSupported || picking" @click="pickForeColor">
+        吸管
+      </button>
       <label class="tb color-btn bg" title="背景色">
         ▮
         <input type="color" :value="hiliteColor" @input="onHiliteColor" />
       </label>
+      <button type="button" class="tb eyedrop" title="吸管取背景色" :disabled="!eyedropperSupported || picking" @click="pickHiliteColor">
+        吸管
+      </button>
       <select class="tb-select" title="字号" :value="fontSize" @change="onFontSize">
         <option value="">字号</option>
         <option v-for="s in fontSizes" :key="s.value" :value="s.value">{{ s.label }}</option>
@@ -112,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useImageUpload } from '../composables/useImageUpload'
 
@@ -145,6 +151,8 @@ const foreColor = ref('#333333')
 const hiliteColor = ref('#ffff00')
 const fontSize = ref('')
 const activeMap = ref<Record<string, boolean>>({})
+const picking = ref(false)
+const eyedropperSupported = computed(() => typeof window !== 'undefined' && 'EyeDropper' in window)
 
 const linkVisible = ref(false)
 const linkText = ref('')
@@ -367,6 +375,41 @@ function onHiliteColor(e: Event) {
   const color = (e.target as HTMLInputElement).value
   hiliteColor.value = color
   // 兼容不同浏览器
+  focusEditor()
+  if (!document.execCommand('hiliteColor', false, color)) {
+    document.execCommand('backColor', false, color)
+  }
+  emitHtml()
+  refreshState()
+}
+
+async function pickColorFromScreen(): Promise<string | null> {
+  if (!eyedropperSupported.value || picking.value) return null
+  const EyeDropperCtor = (window as any).EyeDropper
+  if (!EyeDropperCtor) return null
+  picking.value = true
+  try {
+    const result = await new EyeDropperCtor().open()
+    return String(result?.sRGBHex || '').trim() || null
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') ElMessage.warning('取色失败，请重试')
+    return null
+  } finally {
+    picking.value = false
+  }
+}
+
+async function pickForeColor() {
+  const color = await pickColorFromScreen()
+  if (!color) return
+  foreColor.value = color
+  cmd('foreColor', color)
+}
+
+async function pickHiliteColor() {
+  const color = await pickColorFromScreen()
+  if (!color) return
+  hiliteColor.value = color
   focusEditor()
   if (!document.execCommand('hiliteColor', false, color)) {
     document.execCommand('backColor', false, color)
@@ -680,6 +723,17 @@ onBeforeUnmount(() => {
     color: #1769ff;
     background: #eaf1ff;
     border-color: #9bb8ff;
+  }
+
+  &.eyedrop {
+    min-width: auto;
+    padding: 0 5px;
+    font-size: 11px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   input[type='file'],

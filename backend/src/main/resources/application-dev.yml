@@ -14,14 +14,8 @@ spring:
       pool-name: MiniProgramHikariCP
   sql:
     init:
-      mode: always
-      encoding: UTF-8
-      continue-on-error: true
-      schema-locations:
-        - classpath:db/migration/V13__asset_tables.sql
-        - classpath:db/migration/V14__activity_tables.sql
-        - classpath:db/migration/V15__agent_config_tables.sql
-        - classpath:db/migration/V22__miniapp_release_tables.sql
+      # 本地已用 db/migration/V*.sql 手工初始化；此处引用文件名与仓库不一致会导致启动失败
+      mode: never
 
   data:
     redis:

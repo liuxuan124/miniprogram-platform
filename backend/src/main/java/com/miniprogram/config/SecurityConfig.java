@@ -61,6 +61,11 @@ public class SecurityConfig {
                                 // 小程序页面 DSL 公开接口
                                 "/api/v1/mp/pages",
                                 "/api/v1/mp/pages/**",
+                                // 装修器临时草稿预览（手机扫码，token 短时有效）
+                                "/api/v1/mp/preview-drafts/**",
+                                // 内容分类标签（公开）
+                                "/api/v1/mp/content-categories",
+                                "/api/v1/mp/content-categories/**",
                                 // 小程序表单公开接口
                                 "/api/v1/mp/form-templates/*",
                                 // 小程序预约服务公开接口

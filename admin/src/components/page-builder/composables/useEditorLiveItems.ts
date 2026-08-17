@@ -39,7 +39,10 @@ export function useEditorLiveItems(
     () => JSON.stringify({
       type: getComponent().type,
       limit: getComponent().props?.limit,
+      sourceMode: getComponent().props?.source_mode,
+      productIds: getComponent().props?.product_ids,
       ds: getComponent().props?.data_source || getComponent().data_source,
+      items: getComponent().props?.items,
     }),
     refresh,
     { immediate: true },

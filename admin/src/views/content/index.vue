@@ -130,12 +130,26 @@
     </div>
 
     <el-dialog v-model="categoryModalVisible" title="内容分类管理" width="760px" destroy-on-close>
-      <div class="category-tip">支持二级分类嵌套。排序请在「分类管理」页调整排序值。</div>
+      <div class="category-tip">
+        点「发布」后，该分类会出现在「跨境资讯」顶栏，并同步到发文时的「内容分类」下拉。未发布的分类仅在本处管理。
+      </div>
       <div class="category-list" v-loading="categoryLoading">
         <div v-for="item in categoryTree" :key="item.id" class="category-item">
           <div class="category-row">
-            <span class="category-name">⠿ {{ item.name }}</span>
+            <span class="category-name">
+              ⠿ {{ item.name }}
+              <el-tag size="small" :type="isCategoryPublished(item) ? 'success' : 'info'" class="cat-pub-tag">
+                {{ isCategoryPublished(item) ? '已发布到顶栏' : '未发布' }}
+              </el-tag>
+            </span>
             <div class="category-actions">
+              <el-button
+                size="small"
+                :type="isCategoryPublished(item) ? 'warning' : 'primary'"
+                @click="toggleCategoryPublish(item)"
+              >
+                {{ isCategoryPublished(item) ? '取消发布' : '发布' }}
+              </el-button>
               <el-button size="small" @click="openCategoryDialog('create', item)">+ 子分类</el-button>
               <el-button size="small" @click="openCategoryDialog('edit', item)">重命名</el-button>
               <el-button size="small" type="danger" plain @click="removeCategory(item)">删除</el-button>
@@ -143,8 +157,20 @@
           </div>
           <div v-if="item.children.length" class="sub-list">
             <div v-for="sub in item.children" :key="sub.id" class="sub-row">
-              <span>⠿ {{ sub.name }}</span>
+              <span>
+                ⠿ {{ sub.name }}
+                <el-tag size="small" :type="isCategoryPublished(sub) ? 'success' : 'info'" class="cat-pub-tag">
+                  {{ isCategoryPublished(sub) ? '已发布' : '未发布' }}
+                </el-tag>
+              </span>
               <div class="category-actions">
+                <el-button
+                  size="small"
+                  :type="isCategoryPublished(sub) ? 'warning' : 'primary'"
+                  @click="toggleCategoryPublish(sub)"
+                >
+                  {{ isCategoryPublished(sub) ? '取消发布' : '发布' }}
+                </el-button>
                 <el-button size="small" @click="openCategoryDialog('edit', sub)">编辑</el-button>
                 <el-button size="small" type="danger" plain @click="removeCategory(sub)">删除</el-button>
               </div>
@@ -209,7 +235,7 @@
         <el-form-item label="上级分类">
           <el-select v-model="categoryForm.parentId" placeholder="无上级分类" clearable style="width: 100%">
             <el-option :value="null" label="无上级分类（一级）" />
-            <el-option v-for="item in flatCategoryOptions" :key="item.id" :value="item.id" :label="item.label" />
+            <el-option v-for="item in allFlatCategoryOptions" :key="item.id" :value="item.id" :label="item.label" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -381,11 +407,22 @@ const flatCategoryOptions = computed(() => {
   const list: Array<{ id: number; label: string }> = []
   const walk = (arr: CategoryNode[], prefix = '') => {
     arr.forEach((item) => {
+      // 仅「已发布到顶栏」的分类出现在发文/筛选下拉（与图1一致）
+      if (!isCategoryPublished(item)) return
       list.push({ id: item.id, label: `${prefix}${item.name}` })
       if (item.children.length) walk(item.children, `${prefix}└ `)
     })
   }
   walk(categoryTree.value)
+  return list
+})
+
+/** 全部一级分类（含未发布），供弹窗里选上级 */
+const allFlatCategoryOptions = computed(() => {
+  const list: Array<{ id: number; label: string }> = []
+  categoryTree.value.forEach((item) => {
+    list.push({ id: item.id, label: item.name })
+  })
   return list
 })
 
@@ -696,6 +733,23 @@ function openCategoryDialog(mode: 'create' | 'edit', target: CategoryNode | null
   categoryDialogVisible.value = true
 }
 
+function isCategoryPublished(item: CategoryNode) {
+  const s = item.status
+  return s === 'enabled' || s === '1' || Number(s) === 1
+}
+
+async function toggleCategoryPublish(item: CategoryNode) {
+  const next = isCategoryPublished(item) ? 0 : 1
+  await updateCategory(item.id, {
+    name: item.name,
+    parentId: item.parentId,
+    sortOrder: item.sort,
+    status: next,
+  } as any)
+  ElMessage.success(next === 1 ? `「${item.name}」已发布到顶栏` : `「${item.name}」已取消发布`)
+  await fetchCategories()
+}
+
 async function submitCategory() {
   const form = categoryFormRef.value
   if (!form) return
@@ -703,17 +757,24 @@ async function submitCategory() {
 
   categorySubmitting.value = true
   try {
-    const payload = {
-      name: categoryForm.name.trim(),
-      parentId: categoryForm.parentId,
-      status: 1,
-      sortOrder: 0,
-    }
     if (categoryDialogMode.value === 'create') {
-      await createCategory(payload as any)
-      ElMessage.success('分类已创建')
+      await createCategory({
+        name: categoryForm.name.trim(),
+        parentId: categoryForm.parentId,
+        status: 0,
+        sortOrder: 0,
+      } as any)
+      ElMessage.success('分类已创建（未发布）。点「发布」后会出现在跨境资讯顶栏与发文下拉')
     } else if (categoryEditingId.value) {
-      await updateCategory(categoryEditingId.value, payload as any)
+      const current = categoryTree.value
+        .flatMap((c) => [c, ...c.children])
+        .find((c) => c.id === categoryEditingId.value)
+      await updateCategory(categoryEditingId.value, {
+        name: categoryForm.name.trim(),
+        parentId: categoryForm.parentId,
+        status: isCategoryPublished(current || ({ status: 'disabled' } as CategoryNode)) ? 1 : 0,
+        sortOrder: current?.sort ?? 0,
+      } as any)
       ElMessage.success('分类已更新')
     }
     categoryDialogVisible.value = false
@@ -863,13 +924,21 @@ watch(
   }
 
   .category-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 700;
     color: #1f2d3d;
+  }
+
+  .cat-pub-tag {
+    font-weight: 500;
   }
 
   .category-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
 

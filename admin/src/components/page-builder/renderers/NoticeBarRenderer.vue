@@ -75,8 +75,8 @@ const barStyle = computed(() => {
   const fontSize = Number(props.component.props?.font_size) || 12
   const radius = props.component.style?.border_radius
   const style: Record<string, string> = {
-    color: props.component.props?.text_color || '#9a3412',
-    backgroundColor: props.component.props?.background_color || '#fff7ed',
+    color: props.component.props?.text_color || '#E53935',
+    backgroundColor: props.component.props?.background_color || '#FFF9E6',
     fontSize: `${fontSize}px`,
   }
   // 显式绑定样式面板圆角（含 0 = 直角），不依赖 CSS 变量继承
@@ -142,7 +142,7 @@ onUnmounted(clearVerticalTimer)
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border: 1px solid rgba(254, 215, 170, 0.7);
+  border: 1px solid rgba(255, 224, 130, 0.8);
   border-radius: var(--card-radius, 8px);
   overflow: hidden;
 

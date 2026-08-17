@@ -1,6 +1,24 @@
 <!--components/dsl-product-list/dsl-product-list.wxml — 商品列表组件-->
 <view class="dsl-product-list" style="{{styleString}}">
-  <view wx:if="{{config.title}}" class="dsl-product-list__section-title">{{config.title}}</view>
+  <view
+    wx:if="{{sectionTitle}}"
+    class="dsl-product-list__section-header dsl-product-list__section-header--{{sectionStyle}} dsl-product-list__section-header--{{sectionAlign}} {{sectionDivider ? 'dsl-product-list__section-header--divider' : ''}}"
+  >
+    <view wx:if="{{sectionStyle === 'bar'}}" class="dsl-product-list__section-bars" aria-hidden="true">
+      <view class="dsl-product-list__section-bar dsl-product-list__section-bar--down"></view>
+      <view class="dsl-product-list__section-bar dsl-product-list__section-bar--up"></view>
+    </view>
+    <view class="dsl-product-list__section-text">
+      <text class="dsl-product-list__section-main" style="{{sectionTitleStyle}}">{{sectionTitle}}</text>
+      <text wx:if="{{sectionSubtitle}}" class="dsl-product-list__section-sub" style="{{sectionSubtitleStyle}}">{{sectionSubtitle}}</text>
+    </view>
+    <text
+      wx:if="{{showMore}}"
+      class="dsl-product-list__section-more"
+      style="{{sectionMoreStyle}}"
+      catchtap="onTapMore"
+    >{{moreText}}</text>
+  </view>
   <view
     class="dsl-product-list__grid dsl-product-list__grid--{{layout}}"
     style="grid-template-columns: repeat({{columnCount}}, 1fr);"
@@ -11,7 +29,7 @@
       wx:key="_key"
       data-id="{{item.id}}"
       bindtap="onTapProduct"
-      style="border-radius: {{config.border_radius || 12}}rpx;"
+      style="border-radius: 0;"
     >
       <!-- 商品图片 -->
       <image
@@ -35,18 +53,11 @@
           <text class="dsl-product-list__item-tag-text">{{item.tag || config.tag_text}}</text>
         </view>
 
-        <!-- 价格与销量 -->
+        <!-- 价格（红）与已售并排 -->
         <view class="dsl-product-list__item-bottom">
-          <view class="dsl-product-list__item-meta">
-            <view class="dsl-product-list__item-price" style="{{metaStyle}}" wx:if="{{config.show_price !== false}}">
-              <text class="dsl-product-list__item-price-symbol">¥</text>
-              <text class="dsl-product-list__item-price-value">{{item.price || item.min_price || item.minPrice || '0.00'}}</text>
-            </view>
-            <text
-              class="dsl-product-list__item-sales"
-              style="{{metaStyle}}"
-              wx:if="{{config.show_sales !== false}}"
-            >已售{{item.sales || item.salesCount || item.sold || 0}}</text>
+          <view class="dsl-product-list__item-meta-row">
+            <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__item-price" style="{{priceStyle}}">¥{{item.price || item.min_price || item.minPrice || '0.00'}}</text>
+            <text wx:if="{{config.show_sales !== false}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">已售{{item.sales || item.salesCount || item.sold || 0}}</text>
           </view>
           <view
             wx:if="{{config.show_cart !== false}}"

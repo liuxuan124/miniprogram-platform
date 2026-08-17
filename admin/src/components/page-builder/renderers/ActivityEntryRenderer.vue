@@ -4,8 +4,7 @@
     :class="[`theme-${theme}`, `style-${styleType}`, { clickable: !!component.props.link_url && previewMode }]"
     @click="onClick"
   >
-    <div class="activity-card">
-      <div v-if="component.props._previewDataFailed" class="activity-fail-hint">活动数据加载失败，请稍后重试</div>
+      <div class="activity-card">
       <div class="activity-image">
         <img v-if="imageUrl" :src="imageUrl" alt="" class="activity-cover" />
         <div v-if="coverText" class="activity-cover-text">{{ coverText }}</div>
@@ -102,7 +101,7 @@ function onClick() {
 <style lang="scss" scoped>
 .render-activity-entry {
   &.style-card {
-    padding: 10px;
+    padding: 0;
   }
 
   &.style-full {
@@ -110,7 +109,7 @@ function onClick() {
   }
 
   &.style-list {
-    padding: 8px;
+    padding: 0;
   }
 
   &.clickable {
@@ -120,16 +119,8 @@ function onClick() {
   .activity-card {
     overflow: hidden;
     background: #fff;
-    border-radius: var(--card-radius, 12px);
+    border-radius: 0;
     box-shadow: 0 8px 22px rgba(15, 31, 60, 0.08);
-  }
-
-  .activity-fail-hint {
-    padding: 8px 12px;
-    font-size: 12px;
-    color: #b45309;
-    background: #fffbeb;
-    border-bottom: 1px solid #fde68a;
   }
 
   &.style-full .activity-card {
@@ -146,7 +137,7 @@ function onClick() {
     color: #fff;
     font-size: 14px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--theme-primary, #1769ff), var(--theme-secondary, #20b7ff));
+    background: linear-gradient(135deg, var(--theme-primary, #002FA7), var(--theme-secondary, #1A4BBF));
     overflow: hidden;
   }
 
@@ -200,7 +191,7 @@ function onClick() {
   }
 
   .activity-quota {
-    color: #1769ff;
+    color: #002FA7;
   }
 
   &.style-list .activity-card {
@@ -220,7 +211,7 @@ function onClick() {
     color: #fff;
     font-size: 12px;
     font-weight: 700;
-    background: var(--theme-primary, #1769ff);
+    background: var(--theme-primary, #002FA7);
     border: 0;
     border-radius: var(--card-radius, 8px);
     cursor: pointer;

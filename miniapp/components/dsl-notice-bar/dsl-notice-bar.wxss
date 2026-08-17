@@ -4,8 +4,8 @@
   align-items: center;
   gap: 10rpx;
   padding: 14rpx 18rpx;
-  background: #fff7ed;
-  border: 1rpx solid #fed7aa;
+  background: #FFF9E6;
+  border: 1rpx solid #FFE082;
   border-radius: 0;
   overflow: hidden;
   box-sizing: border-box;

@@ -34,6 +34,11 @@
         <slot></slot>
       </div>
 
+      <!-- 悬浮按钮：相对手机壳固定，不随 phone-content 滚动 -->
+      <div class="phone-fab-layer">
+        <slot name="fab"></slot>
+      </div>
+
       <!-- 底部 TabBar（固定，不随内容滚动） -->
       <slot name="tabbar"></slot>
 
@@ -171,6 +176,34 @@ function handleBackClick() {
     &::-webkit-scrollbar {
       display: none;
     }
+  }
+
+  .phone-fab-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 25;
+    pointer-events: none;
+  }
+
+  .phone-fab-layer :deep(.fab-only-wrap),
+  .phone-fab-layer :deep(.render-float-button.is-overlay) {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .phone-fab-layer :deep(.float-fab) {
+    pointer-events: auto;
+  }
+
+  /* TabBar 盖在悬浮层之上，避免挡操作时被 FAB 抢事件 */
+  .phone-shell > .mini-bottom-tab,
+  .phone-shell > [class*='tab'] {
+    position: relative;
+    z-index: 30;
   }
 
   .phone-safe-area {

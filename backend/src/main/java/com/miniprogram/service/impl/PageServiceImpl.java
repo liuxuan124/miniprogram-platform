@@ -10,6 +10,7 @@ import com.miniprogram.entity.Page;
 import com.miniprogram.entity.PageVersion;
 import com.miniprogram.mapper.PageMapper;
 import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.PageService;
 import com.miniprogram.service.PageVersionService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,6 +33,10 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     @Lazy
     @Autowired
     private PageVersionService pageVersionService;
+
+    @Lazy
+    @Autowired
+    private MiniappReleaseService miniappReleaseService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -197,6 +202,9 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         page.setCurrentVersion(latestVersion.getVersion());
         page.setStatus(1);
         this.updateById(page);
+
+        miniappReleaseService.syncPublishedPageToLatestSnapshot(
+                page.getPath(), page.getName(), latestVersion.getDslContent());
 
         return toDetailDTO(page);
     }

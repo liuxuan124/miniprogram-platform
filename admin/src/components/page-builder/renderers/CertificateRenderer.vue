@@ -1,6 +1,14 @@
 <template>
   <div class="render-certificate split-text-typography">
-    <div class="section-title" :style="titleStyle">{{ component.props.title || '资质证书' }}</div>
+    <div class="section-header style-bar">
+      <div class="section-header__bars" aria-hidden="true">
+        <span class="section-header__bar section-header__bar--down" />
+        <span class="section-header__bar section-header__bar--up" />
+      </div>
+      <div class="section-header__text">
+        <div class="section-header__main" :style="titleStyle">{{ component.props.title || '资质证书' }}</div>
+      </div>
+    </div>
     <div class="certificate-grid" :class="`cols-${columns}`">
       <div v-for="(item, idx) in certificateItems" :key="`cert-${idx}`" class="certificate-item">
         <div class="img">
@@ -56,13 +64,56 @@ const certificateItems = computed<CertItem[]>(() => {
   padding: 10px;
   background: #fff;
   border: 1px solid #e6edf6;
-  border-radius: var(--card-radius, 10px);
+  border-radius: 0;
 
-  .section-title {
-    margin-bottom: 8px;
-    color: #172033;
-    font-size: 15px;
-    font-weight: 700;
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -10px -10px 10px;
+    padding: 12px 14px 12px 12px;
+    min-height: 48px;
+    background-color: #002FA7;
+    background-image:
+      linear-gradient(90deg, rgba(0, 47, 167, 0.5) 0%, rgba(26, 75, 191, 0.22) 42%, rgba(42, 91, 201, 0.06) 100%),
+      url('/section-bar-tech-bg.jpg'),
+      linear-gradient(90deg, #002FA7 0%, #1A4BBF 52%, #2A5BC9 100%);
+    background-size: cover, cover, auto;
+    background-position: center, center bottom, center;
+    background-repeat: no-repeat;
+
+    &__bars {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 3px;
+      width: 9px;
+      flex-shrink: 0;
+      height: 18px;
+    }
+
+    &__bar {
+      width: 3px;
+      border-radius: 1px;
+      background: #B8D0FF;
+
+      &--down {
+        height: 72%;
+        align-self: flex-start;
+      }
+
+      &--up {
+        height: 72%;
+        align-self: flex-end;
+      }
+    }
+
+    &__main {
+      color: #f3f7fc;
+      font-size: 15px;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
   }
 
   .certificate-grid {
@@ -79,10 +130,11 @@ const certificateItems = computed<CertItem[]>(() => {
   }
 
   .certificate-item {
-    padding: 8px;
+    padding: 0 0 8px;
     text-align: center;
-    background: #f8faff;
-    border-radius: var(--card-radius, 8px);
+    background: #f4f6fc;
+    border-radius: 0;
+    overflow: hidden;
 
     .img {
       display: flex;
@@ -90,8 +142,8 @@ const certificateItems = computed<CertItem[]>(() => {
       justify-content: center;
       height: 72px;
       font-size: 22px;
-      background: #eef2f7;
-      border-radius: 6px;
+      background: #e8ecf8;
+      border-radius: 0;
       overflow: hidden;
     }
 
@@ -104,6 +156,7 @@ const certificateItems = computed<CertItem[]>(() => {
 
     .name {
       margin-top: 6px;
+      padding: 0 8px;
       color: #475569;
       font-size: 11px;
       font-weight: 600;
@@ -116,13 +169,9 @@ const certificateItems = computed<CertItem[]>(() => {
 
     .desc {
       margin-top: 2px;
+      padding: 0 8px 4px;
       color: #94a3b8;
       font-size: 10px;
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
     }
   }
 }

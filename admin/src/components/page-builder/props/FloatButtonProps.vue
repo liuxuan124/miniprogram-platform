@@ -3,9 +3,7 @@
     <el-form label-width="80px" size="small">
       <el-form-item label="文案">
         <el-input :model-value="data.title || ''" @input="emit('update', { title: $event })" placeholder="客服" />
-      </el-form-item>
-      <el-form-item label="显示文字">
-        <el-switch :model-value="!!data.show_text" @change="(v: boolean) => emit('update', { show_text: v })" />
+        <div class="field-hint">仅作标识/预览提示，按钮固定为圆形图标样式</div>
       </el-form-item>
 
       <el-divider content-position="left" class="field-divider">图标</el-divider>
@@ -87,11 +85,15 @@
         />
       </el-form-item>
       <el-form-item label="可拖动">
-        <el-switch :model-value="!!data.draggable" @change="(v: boolean) => emit('update', { draggable: v })" />
+        <el-switch
+          :model-value="data.draggable !== false"
+          @change="(v: boolean) => emit('update', { draggable: v })"
+        />
+        <div class="field-hint">可拖到任意位置，松手后吸附左右边缘</div>
       </el-form-item>
       <el-form-item label="自动收边">
         <el-switch :model-value="data.edge_hide !== false" @change="(v: boolean) => emit('update', { edge_hide: v })" />
-        <div class="field-hint">空闲约 2.5 秒后半藏进屏幕边缘，触摸后展开</div>
+        <div class="field-hint">空闲约 2 秒后半藏进屏幕边缘，点击/拖动后展开</div>
       </el-form-item>
 
       <el-divider content-position="left" class="field-divider">点击动作</el-divider>

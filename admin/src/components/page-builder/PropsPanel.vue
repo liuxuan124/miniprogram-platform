@@ -10,7 +10,14 @@
               :model-value="pageStore.pageConfig.name"
               maxlength="128"
               show-word-limit
-              @input="(v: string) => pageStore.updatePageConfig({ name: v })"
+              @input="(v: string) => onNameInput(v)"
+            />
+          </el-form-item>
+          <el-form-item label="访问路径">
+            <PagePathField
+              :model-value="currentPath"
+              :page-type="currentPageType"
+              @update:model-value="onPathInput"
             />
           </el-form-item>
           <el-form-item label="背景色">
@@ -271,12 +278,44 @@ import { useRouter } from 'vue-router'
 import { normalizeUploadUrl } from '@/api/system'
 import { usePageStore } from '@/stores/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
+import { normalizeBuilderPath } from '@/utils/page-path'
 import { useImageUpload } from './composables/useImageUpload'
 import { getDataSourceBinding } from './dataSourceValidation'
+import PagePathField from './PagePathField.vue'
 
 const pageStore = usePageStore()
 const router = useRouter()
 const { uploadImage, uploading: uploadingShare } = useImageUpload()
+
+const currentPageType = computed(() => {
+  const t = pageStore.currentPage?.type
+  if (t === 1 || t === 2 || t === 3) return t
+  const dslType = String(pageStore.pageConfig.type || '')
+  if (dslType === 'home') return 1
+  if (dslType === 'topic' || dslType === 'activity') return 2
+  return 3
+})
+
+const currentPath = computed(() =>
+  normalizeBuilderPath(
+    pageStore.currentPage?.path || pageStore.pageConfig.path || '',
+  ),
+)
+
+function onNameInput(v: string) {
+  pageStore.updatePageConfig({ name: v })
+  if (pageStore.currentPage) {
+    pageStore.currentPage.name = v
+  }
+}
+
+function onPathInput(v: string) {
+  const path = normalizeBuilderPath(v)
+  pageStore.updatePageConfig({ path })
+  if (pageStore.currentPage) {
+    pageStore.currentPage.path = path
+  }
+}
 
 const activeTab = ref<'content' | 'style'>('content')
 const marginLinked = ref(false)

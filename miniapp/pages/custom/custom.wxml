@@ -2,12 +2,22 @@
 <view class="custom-page">
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
-  <view wx:else class="custom-page__body">
-    <dsl-renderer
-      wx:for="{{components}}"
+  <block wx:else>
+    <view class="custom-page__body">
+      <dsl-renderer
+        wx:for="{{flowComponents}}"
+        wx:key="id"
+        component="{{item}}"
+      />
+      <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="custom-page__state">页面暂无内容</view>
+    </view>
+    <!-- 悬浮按钮独立浮层：相对屏幕固定，不随页面内容滚动 -->
+    <dsl-float-button
+      wx:for="{{floatComponents}}"
       wx:key="id"
-      component="{{item}}"
+      config="{{item.props}}"
+      actions="{{item.actions}}"
+      styleString="{{item.styleString}}"
     />
-    <view wx:if="{{!components.length}}" class="custom-page__state">页面暂无内容</view>
-  </view>
+  </block>
 </view>

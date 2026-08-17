@@ -10,7 +10,7 @@
 .dsl-nav__grid {
   display: grid;
   gap: 0;
-  padding: 24rpx 0;
+  padding: 12rpx 0;
 }
 
 .dsl-nav__item {
@@ -18,32 +18,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16rpx 0;
+  padding: 8rpx 0;
 }
 
 /* emoji 图标容器 */
 .dsl-nav__item-icon {
-  width: 76rpx;
-  height: 76rpx;
+  width: auto;
+  height: auto;
+  min-height: 56rpx;
   margin-bottom: 8rpx;
-  border-radius: 50%;
-  background: #eef4ff;
+  border-radius: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .dsl-nav__emoji {
-  font-size: 36rpx;
+  font-size: 52rpx;
   line-height: 1;
 }
 
 /* 图片图标 */
 .dsl-nav__item-icon-img {
-  width: 76rpx;
-  height: 76rpx;
+  width: 56rpx;
+  height: 56rpx;
   margin-bottom: 8rpx;
-  border-radius: 50%;
+  border-radius: 0;
 }
 
 .dsl-nav__item-text {
@@ -64,11 +65,11 @@
 
 .dsl-nav__scroll-inner {
   display: inline-flex;
-  padding: 24rpx 16rpx;
+  padding: 12rpx 16rpx;
   gap: 24rpx;
 }
 
 .dsl-nav__scroll .dsl-nav__item {
   min-width: 120rpx;
-  padding: 12rpx 8rpx;
+  padding: 6rpx 8rpx;
 }

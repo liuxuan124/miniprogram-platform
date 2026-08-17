@@ -26,20 +26,20 @@
   gap: 12rpx;
   margin-left: 24rpx; margin-right: 24rpx;
   padding: 14rpx 18rpx;
-  background: #fff7ed;
-  border: 1rpx solid #fed7aa;
+  background: #FFF9E6;
+  border: 1rpx solid #FFE082;
   border-radius: 14rpx;
 }
 
 .dsl-notice__title {
-  color: #c2410c;
+  color: #E53935;
   font-size: 20rpx;
   font-weight: 700;
 }
 
 .dsl-notice__text {
   flex: 1;
-  color: #9a3412;
+  color: #E53935;
   font-size: 22rpx;
 }
 
@@ -627,14 +627,55 @@
   padding: 16rpx;
   background: #fff;
   border: 1rpx solid #e6edf6;
-  border-radius: 16rpx;
+  border-radius: 0;
+}
+
+.dsl-cert__header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: -16rpx -16rpx 16rpx;
+  padding: 22rpx 28rpx 22rpx 24rpx;
+  min-height: 96rpx;
+  background-color: #002FA7;
+  background-image: linear-gradient(90deg, rgba(0, 47, 167, 0.5) 0%, rgba(26, 75, 191, 0.22) 42%, rgba(42, 91, 201, 0.06) 100%), url('/images/section-bar-tech-bg.jpg'), linear-gradient(90deg, #002FA7 0%, #1A4BBF 52%, #2A5BC9 100%);
+  background-size: cover, cover, auto;
+  background-position: center, center bottom, center;
+  background-repeat: no-repeat;
+}
+
+.dsl-cert__bars {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 6rpx;
+  width: 18rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+}
+
+.dsl-cert__bar {
+  width: 6rpx;
+  border-radius: 2rpx;
+  background: #B8D0FF;
+}
+
+.dsl-cert__bar--down {
+  height: 72%;
+  align-self: flex-start;
+}
+
+.dsl-cert__bar--up {
+  height: 72%;
+  align-self: flex-end;
 }
 
 .dsl-cert__title {
-  margin-bottom: 12rpx;
-  color: #172033;
-  font-size: 28rpx;
+  margin: 0;
+  color: #f3f7fc;
+  font-size: 30rpx;
   font-weight: 700;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.35);
 }
 
 .dsl-cert__grid {
@@ -648,10 +689,11 @@
 }
 
 .dsl-cert__item {
-  padding: 12rpx;
+  padding: 0 0 12rpx;
   text-align: center;
   background: #f8faff;
   border-radius: 12rpx;
+  overflow: hidden;
 }
 
 .dsl-cert__img {
@@ -661,18 +703,19 @@
   height: 140rpx;
   font-size: 36rpx;
   background: #eef2f7;
-  border-radius: 10rpx;
+  border-radius: 0;
 }
 
 .dsl-cert__img-real {
   width: 100%;
   height: 140rpx;
-  border-radius: 10rpx;
+  border-radius: 0;
   display: block;
 }
 
 .dsl-cert__name {
   margin-top: 8rpx;
+  padding: 0 12rpx;
   color: #475569;
   font-size: 22rpx;
   font-weight: 600;
@@ -680,6 +723,7 @@
 
 .dsl-cert__desc {
   margin-top: 4rpx;
+  padding: 0 12rpx;
   color: #94a3b8;
   font-size: 20rpx;
   line-height: 1.3;

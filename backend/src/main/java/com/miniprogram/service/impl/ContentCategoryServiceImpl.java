@@ -46,6 +46,18 @@ public class ContentCategoryServiceImpl extends BaseServiceImpl<ContentCategoryM
     }
 
     @Override
+    public List<ContentCategoryDTO> listEnabledTopCategories() {
+        return this.lambdaQuery()
+                .eq(ContentCategory::getStatus, 1)
+                .and(w -> w.isNull(ContentCategory::getParentId).or().eq(ContentCategory::getParentId, 0L))
+                .orderByAsc(ContentCategory::getSortOrder)
+                .list()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public ContentCategoryDTO createCategory(ContentCategoryDTO dto) {
         // 校验父分类是否存在

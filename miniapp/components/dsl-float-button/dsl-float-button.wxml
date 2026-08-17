@@ -1,11 +1,12 @@
-<!--components/dsl-float-button/dsl-float-button.wxml — 浮动按钮组件-->
+<!--components/dsl-float-button/dsl-float-button.wxml — 圆形可拖动悬浮按钮-->
 <view
-  class="dsl-float-button {{dragging ? 'is-dragging' : ''}}"
+  class="dsl-float-button {{dragging ? 'is-dragging' : ''}} {{docked ? 'is-docked' : ''}}"
   style="{{floatButtonStyle}}"
   catchtap="onTap"
   catchtouchstart="onTouchStart"
   catchtouchmove="onTouchMove"
   catchtouchend="onTouchEnd"
+  catchtouchcancel="onTouchEnd"
 >
   <image
     wx:if="{{iconSrc}}"
@@ -14,5 +15,4 @@
     mode="aspectFit"
   />
   <text wx:else class="dsl-float-button__emoji">{{displayEmoji}}</text>
-  <text wx:if="{{showText}}" class="dsl-float-button__text">{{displayTitle}}</text>
 </view>
