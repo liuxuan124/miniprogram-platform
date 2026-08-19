@@ -1,3 +1,5 @@
+const { resolveNavIconUrl } = require('./nav-icon-url')
+
 /** TabBar emoji → 扁平图标路径（与 admin navIconSet 保持一致） */
 const TAB_EMOJI_ICON_MAP = {
   '🏠': '/images/nav-icons/g-platform.png',
@@ -22,8 +24,8 @@ function isImageIcon(icon) {
 function migrateTabBarIcon(icon) {
   const raw = String(icon || '').trim()
   if (!raw) return ''
-  if (isImageIcon(raw)) return raw.split('?')[0]
-  return TAB_EMOJI_ICON_MAP[raw] || raw
+  if (isImageIcon(raw)) return resolveNavIconUrl(raw)
+  return resolveNavIconUrl(TAB_EMOJI_ICON_MAP[raw] || raw)
 }
 
 module.exports = {
