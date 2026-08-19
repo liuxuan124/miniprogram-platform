@@ -1,11 +1,11 @@
 <template>
   <div
     class="component-item"
-    :class="{ selected, 'is-hidden': isHidden }"
+    :class="{ selected, 'is-hidden': isHidden, 'stack-on-top': stackOnTop }"
     :style="marginStyle"
     @click.stop="$emit('select')"
   >
-    <div v-if="selected" class="component-toolbar" :class="{ 'component-toolbar--below': index === 0 }">
+    <div v-if="selected" class="component-toolbar" :class="{ 'component-toolbar--below': index === 0 || toolbarAlwaysBelow }">
       <span class="toolbar-label">{{ label }}</span>
       <div class="toolbar-actions">
         <el-tooltip content="上移" placement="top" :show-after="300">
@@ -53,6 +53,10 @@ const props = defineProps<{
   componentStyle?: ComponentStyle
   /** 列表类：外壳透明，避免整块白框包住条目（已全局透明，保留字段兼容） */
   shellTransparent?: boolean
+  /** 导航栏等：负边距重叠时保持在最上层 */
+  stackOnTop?: boolean
+  /** 编辑工具条始终显示在组件下方（品牌顶栏） */
+  toolbarAlwaysBelow?: boolean
 }>()
 
 defineEmits<{
@@ -65,13 +69,18 @@ defineEmits<{
 
 const isHidden = computed(() => props.componentStyle?.visible === false)
 
+function formatMargin(value: unknown) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
 const marginStyle = computed(() => {
   const s = props.componentStyle || {}
   return {
-    marginTop: `${Number(s.margin_top) || 0}px`,
-    marginBottom: `${Number(s.margin_bottom) || 0}px`,
-    marginLeft: `${Number(s.margin_left) || 0}px`,
-    marginRight: `${Number(s.margin_right) || 0}px`,
+    marginTop: `${formatMargin(s.margin_top)}px`,
+    marginBottom: `${formatMargin(s.margin_bottom)}px`,
+    marginLeft: `${formatMargin(s.margin_left)}px`,
+    marginRight: `${formatMargin(s.margin_right)}px`,
   }
 })
 
@@ -139,10 +148,16 @@ const textStyleClass = computed(() => {
   background: #909399;
   border-radius: 4px;
 }
+.component-item.stack-on-top {
+  z-index: 10;
+}
 .component-item.selected {
   z-index: 2;
   outline: 2px dashed #1769ff;
   outline-offset: 3px;
+}
+.component-item.stack-on-top.selected {
+  z-index: 11;
 }
 .component-toolbar {
   /* 悬浮在选中组件上方外侧，避免遮挡组件内容 */
@@ -189,5 +204,7 @@ const textStyleClass = computed(() => {
 }
 .component-render-inner {
   display: flow-root;
+  min-width: 0;
+  overflow: visible;
 }
 </style>

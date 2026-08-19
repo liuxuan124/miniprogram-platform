@@ -1,7 +1,11 @@
 <template>
   <div
     class="render-image"
-    :class="{ 'image-clickable': previewMode && linkUrl }"
+    :class="{
+      'image-clickable': previewMode && linkUrl,
+      'render-image--auto': !fixedRatio,
+      'render-image--ratio': !!fixedRatio,
+    }"
     :style="imageBoxStyle"
     @click="handleClick"
   >
@@ -18,6 +22,7 @@ import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { normalizeUploadUrl } from '@/api/system'
 import type { ComponentInstance } from '@/types/page'
+import { aspectRatioCss, normalizeAspectRatio } from '@/utils/image-aspect-ratio'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -28,25 +33,29 @@ defineEmits<{
   'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
 }>()
 
-// 规范字段为 image，兼容旧数据的 src；修正历史保存的 localhost 上传地址
 const imageUrl = computed(() =>
   normalizeUploadUrl(props.component.props?.image || props.component.props?.src || ''),
 )
 
 const linkUrl = computed(() => (props.component.props?.link_url || '').trim())
 
+const aspectRatio = computed(() => normalizeAspectRatio(props.component.props?.aspect_ratio))
+const fixedRatio = computed(() => aspectRatioCss(aspectRatio.value))
+
 const imageBoxStyle = computed<Record<string, string>>(() => {
-  // 样式面板里设置过圆角（含 0）时以其为准，未设置时才用组件默认值
   const styleRadius = props.component.style?.border_radius
   const radius = styleRadius === undefined || styleRadius === null
     ? Number(props.component.props?.border_radius ?? 8)
     : Number(styleRadius)
-  return {
+  const style: Record<string, string> = {
     borderRadius: `${radius}px`,
   }
+  if (fixedRatio.value) {
+    style.aspectRatio = fixedRatio.value
+  }
+  return style
 })
 
-/** 预览模式下点击图片：外链新开窗口；页面/小程序路径仅提示（真机小程序会真实跳转） */
 function handleClick() {
   if (!props.previewMode || !linkUrl.value) return
   const link = linkUrl.value
@@ -61,7 +70,7 @@ function handleClick() {
 
 <style lang="scss" scoped>
 .render-image {
-  height: 150px;
+  width: 100%;
   overflow: hidden;
   background: #f1f5fb;
 
@@ -69,11 +78,29 @@ function handleClick() {
     cursor: pointer;
   }
 
+  &.render-image--auto {
+    height: auto;
+    min-height: 120px;
+
+    .single-image {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+  }
+
+  &.render-image--ratio {
+    height: auto;
+
+    .single-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
   .single-image {
     display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
 
   .image-placeholder {
@@ -81,6 +108,7 @@ function handleClick() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    min-height: 120px;
     height: 100%;
     color: #8a94a6;
 

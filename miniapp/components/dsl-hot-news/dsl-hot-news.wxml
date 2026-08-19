@@ -1,0 +1,65 @@
+<!--components/dsl-hot-news/dsl-hot-news.wxml-->
+<view class="dsl-hot-news" style="{{styleString}}">
+  <view class="dsl-hot-news__stack">
+    <!-- 内容框：最下层 -->
+    <view class="dsl-hot-news__content" style="{{contentStyle}}">
+      <view class="dsl-hot-news__pad"></view>
+      <view wx:if="{{!displayData.length}}" class="dsl-hot-news__empty">暂无资讯</view>
+      <view wx:else class="dsl-hot-news__body" style="{{listStyle}}">
+        <block wx:if="{{layout === 'star'}}">
+          <view
+            class="dsl-hot-news__row"
+            wx:for="{{displayData}}"
+            wx:key="id"
+            data-index="{{index}}"
+            bindtap="onTapItem"
+          >
+            <text class="dsl-hot-news__star">★</text>
+            <text class="dsl-hot-news__row-title">{{item.title}}</text>
+          </view>
+        </block>
+        <block wx:else>
+          <view
+            class="dsl-hot-news__card-item"
+            wx:for="{{displayData}}"
+            wx:key="id"
+            data-index="{{index}}"
+            bindtap="onTapItem"
+          >
+            <view wx:if="{{showCover}}" class="dsl-hot-news__cover">
+              <image wx:if="{{item.cover}}" src="{{item.cover}}" mode="aspectFill" />
+              <text wx:else>📰</text>
+            </view>
+            <view class="dsl-hot-news__card-info">
+              <text class="dsl-hot-news__card-title">{{item.title}}</text>
+              <text wx:if="{{item.meta}}" class="dsl-hot-news__card-meta">{{item.meta}}</text>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 标题框：最上层左 -->
+    <view class="dsl-hot-news__title-box" style="{{titleBoxStyle}}">
+      <view class="dsl-hot-news__title-bg" style="{{titleBgStyle}}"></view>
+      <view class="dsl-hot-news__title-main">
+        <text class="dsl-hot-news__title">{{titleText}}</text>
+        <view class="dsl-hot-news__date">
+          <text class="dsl-hot-news__date-box">{{dateMonth}}</text>
+          <text class="dsl-hot-news__date-unit">月</text>
+          <text class="dsl-hot-news__date-box">{{dateDay}}</text>
+          <text class="dsl-hot-news__date-unit">日</text>
+          <text class="dsl-hot-news__date-week">{{dateWeek}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 查看更多：右上 -->
+    <view
+      wx:if="{{showMore}}"
+      class="dsl-hot-news__more"
+      style="{{moreStyle}}"
+      catchtap="onTapMore"
+    >{{moreText}}</view>
+  </view>
+</view>

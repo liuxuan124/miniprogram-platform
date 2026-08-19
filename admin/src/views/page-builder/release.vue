@@ -35,7 +35,7 @@
           {{ latestRelease.pageCount || 0 }} 个页面 · {{ formatTime(latestRelease.publishedAt || latestRelease.createTime) }}
         </div>
       </div>
-      <el-button v-if="latestRelease" type="primary" @click="openPreview(latestRelease)">预览当前版本</el-button>
+      <el-button type="primary" @click="openLivePreview">预览当前配置</el-button>
     </section>
 
     <section v-loading="loading" class="card">
@@ -200,6 +200,18 @@ function loadAll() {
   loadHistory()
 }
 
+function openLivePreview() {
+  const { href } = router.resolve({
+    path: '/h5/miniapp-preview',
+    query: {
+      view: 'config',
+      source: 'live',
+    },
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
+
+/** 历史版本：看该 release 快照 */
 function openPreview(row: ReleaseRecord) {
   if (!row?.id) {
     ElMessage.warning('该版本无法预览')

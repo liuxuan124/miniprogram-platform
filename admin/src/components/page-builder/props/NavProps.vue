@@ -14,6 +14,27 @@
           <el-radio value="text_only">纯文字</el-radio>
         </el-radio-group>
       </el-form-item>
+      <el-divider content-position="left">间距</el-divider>
+      <el-form-item label="上留白">
+        <el-input-number
+          :model-value="Number(data.padding_top ?? 14)"
+          :min="0"
+          :max="48"
+          controls-position="right"
+          @change="(v: number | undefined) => emit('update', { padding_top: v ?? 14 })"
+        />
+        <div class="icon-hint" style="margin-top:4px">单位 px</div>
+      </el-form-item>
+      <el-form-item label="下留白">
+        <el-input-number
+          :model-value="Number(data.padding_bottom ?? 10)"
+          :min="0"
+          :max="48"
+          controls-position="right"
+          @change="(v: number | undefined) => emit('update', { padding_bottom: v ?? 10 })"
+        />
+        <div class="icon-hint" style="margin-top:4px">单位 px</div>
+      </el-form-item>
       <el-divider content-position="left">外框</el-divider>
       <el-form-item label="显示外框">
         <el-switch
@@ -85,7 +106,7 @@
                       :title="ic.label"
                       @click="setIcon(i, ic.src)"
                     >
-                      <img :src="ic.src" alt="" />
+                      <img :src="`${ic.src}?t=20260819e`" alt="" />
                     </button>
                   </div>
                   <div class="icon-library__tip">扁平色块图标，无黑边描边</div>
@@ -313,19 +334,22 @@ function removeItem(index: number) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 6px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: #f8fafc;
+  background: #f1f5f9;
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
+  overflow: visible;
+  box-sizing: border-box;
 
   &--flat img {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     display: block;
+    flex-shrink: 0;
   }
 
   &:hover,

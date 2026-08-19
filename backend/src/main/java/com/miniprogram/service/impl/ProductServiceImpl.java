@@ -106,9 +106,10 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
 
         if (dto.getSkus() != null && !dto.getSkus().isEmpty()) {
             upsertSkus(product.getId(), dto.getSkus());
+            syncProductAggregatesFromSkus(product.getId());
         }
 
-        return convertToDetailVO(product, true);
+        return convertToDetailVO(getExistingProduct(product.getId()), true);
     }
 
     @Override
@@ -138,9 +139,10 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
 
         if (dto.getSkus() != null) {
             upsertSkus(id, dto.getSkus());
+            syncProductAggregatesFromSkus(id);
         }
 
-        return convertToDetailVO(product, true);
+        return convertToDetailVO(getExistingProduct(id), true);
     }
 
     @Override
@@ -158,6 +160,8 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if ("on_sale".equals(product.getStatus())) {
             return; // 幂等
         }
+        syncProductAggregatesFromSkus(id);
+        product = getExistingProduct(id);
         validateOnSaleReady(product);
         product.setStatus("on_sale");
         this.updateById(product);
@@ -301,7 +305,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
             }
             sku.setSkuName(skuDTO.getSkuName());
             sku.setSkuImage(skuDTO.getSkuImage());
-            sku.setPrice(skuDTO.getPrice());
+            sku.setPrice(skuDTO.getPrice() != null ? skuDTO.getPrice() : BigDecimal.ZERO);
             sku.setOriginalPrice(skuDTO.getOriginalPrice());
             sku.setStock(skuDTO.getStock());
             sku.setSpecs(toJsonString(skuDTO.getSpecs()));
@@ -325,6 +329,52 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         }
     }
 
+    /** 从 SKU 汇总商品售价/原价/库存，避免主表价格与 SKU 不一致 */
+    private void syncProductAggregatesFromSkus(Long productId) {
+        List<ProductSku> skus = productSkuMapper.selectList(
+                new LambdaQueryWrapper<ProductSku>()
+                        .eq(ProductSku::getProductId, productId)
+                        .eq(ProductSku::getStatus, 1));
+        if (skus.isEmpty()) {
+            return;
+        }
+        Product product = getExistingProduct(productId);
+        BigDecimal minPrice = skus.stream()
+                .map(ProductSku::getPrice)
+                .filter(Objects::nonNull)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+        BigDecimal maxOriginal = skus.stream()
+                .map(s -> s.getOriginalPrice() != null ? s.getOriginalPrice() : s.getPrice())
+                .filter(Objects::nonNull)
+                .max(BigDecimal::compareTo)
+                .orElse(minPrice);
+        int totalStock = skus.stream()
+                .map(ProductSku::getStock)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+        product.setPrice(minPrice);
+        product.setOriginalPrice(maxOriginal);
+        product.setStock(totalStock);
+        this.updateById(product);
+    }
+
+    private boolean isValidSkuPrice(BigDecimal price) {
+        return price != null && price.compareTo(BigDecimal.ZERO) >= 0;
+    }
+
+    private BigDecimal resolveEffectivePrice(Product product, List<ProductSku> skus) {
+        if (isValidSkuPrice(product.getPrice())) {
+            return product.getPrice();
+        }
+        return skus.stream()
+                .map(ProductSku::getPrice)
+                .filter(this::isValidSkuPrice)
+                .min(BigDecimal::compareTo)
+                .orElse(null);
+    }
+
     private void validateOnSaleReady(Product product) {
         List<String> missing = new ArrayList<>();
         if (!StringUtils.hasText(product.getName())) {
@@ -336,19 +386,20 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (!StringUtils.hasText(product.getMainImage())) {
             missing.add("商品主图");
         }
-        if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            missing.add("有效售价");
-        }
 
         List<ProductSku> skus = productSkuMapper.selectList(
                 new LambdaQueryWrapper<ProductSku>()
                         .eq(ProductSku::getProductId, product.getId())
                         .eq(ProductSku::getStatus, 1));
+        BigDecimal effectivePrice = resolveEffectivePrice(product, skus);
+        if (!isValidSkuPrice(effectivePrice)) {
+            missing.add("有效售价");
+        }
+
         if (skus.isEmpty()) {
             missing.add("可用SKU");
         } else {
-            boolean hasValidPrice = skus.stream()
-                    .anyMatch(sku -> sku.getPrice() != null && sku.getPrice().compareTo(BigDecimal.ZERO) > 0);
+            boolean hasValidPrice = skus.stream().anyMatch(sku -> isValidSkuPrice(sku.getPrice()));
             boolean hasStock = skus.stream()
                     .anyMatch(sku -> sku.getStock() != null && sku.getStock() > 0);
             if (!hasValidPrice) {

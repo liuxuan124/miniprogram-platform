@@ -20,6 +20,11 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f5f7fb"
   },
+  "permission": {
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存群二维码到相册"
+    }
+  },
   "lazyCodeLoading": "requiredComponents",
   "__usePrivacyCheck__": true,
   "usingComponents": {

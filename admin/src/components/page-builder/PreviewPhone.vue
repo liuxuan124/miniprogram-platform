@@ -1,11 +1,11 @@
 <template>
   <div class="preview-phone">
-    <div class="phone-shell">
-      <!-- 顶部刘海 -->
-      <div class="phone-notch"></div>
+    <div class="phone-shell" :class="{ 'phone-shell--custom-nav': hideNavBar }">
+      <!-- 顶部刘海（品牌顶栏页不展示，避免顶栏上方多余元素） -->
+      <div v-if="!hideNavBar" class="phone-notch"></div>
 
       <!-- 状态栏 -->
-      <div class="phone-status-bar">
+      <div v-if="!hideNavBar" class="phone-status-bar">
         <span class="time">{{ currentTime }}</span>
         <div class="status-icons">
           <el-icon :size="12"><Connection /></el-icon>
@@ -14,8 +14,8 @@
         </div>
       </div>
 
-      <!-- 导航栏 -->
-      <div class="phone-nav-bar">
+      <!-- 导航栏（自定义顶栏页面可隐藏） -->
+      <div v-if="!hideNavBar" class="phone-nav-bar">
         <button
           class="nav-back-btn"
           type="button"
@@ -27,6 +27,11 @@
         </button>
         <span class="nav-title">{{ pageTitle }}</span>
         <el-icon :size="18"><More /></el-icon>
+      </div>
+
+      <!-- 吸顶品牌顶栏（独立于滚动区，避免 sticky 失效） -->
+      <div v-if="pinnedBrandHeader" class="phone-pinned-brand-header">
+        <slot name="pinnedHeader" />
       </div>
 
       <!-- 页面内容（超出高度时内部滚动） -->
@@ -42,8 +47,8 @@
       <!-- 底部 TabBar（固定，不随内容滚动） -->
       <slot name="tabbar"></slot>
 
-      <!-- 底部安全区 -->
-      <div class="phone-safe-area"></div>
+      <!-- 无 TabBar 时才留底部安全区，避免 Tab 下方出现空白条 -->
+      <div v-if="!$slots.tabbar" class="phone-safe-area"></div>
     </div>
   </div>
 </template>
@@ -58,6 +63,10 @@ const emit = defineEmits<{
 defineProps<{
   pageTitle: string
   pageBgColor: string
+  /** 使用品牌顶栏组件时隐藏模拟系统导航栏 */
+  hideNavBar?: boolean
+  /** 品牌顶栏吸顶：顶栏渲染在 phone-content 外的固定层 */
+  pinnedBrandHeader?: boolean
 }>()
 
 const currentTime = computed(() => {
@@ -90,6 +99,18 @@ function handleBackClick() {
       0 8px 40px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     position: relative;
+  }
+
+  .phone-shell--custom-nav {
+    position: relative;
+  }
+
+  .phone-pinned-brand-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
   }
 
   .phone-notch,

@@ -39,7 +39,7 @@
                 :title="ic.label"
                 @click="onUpdateItem(i, 'icon', ic.src)"
               >
-                <img :src="ic.src" alt="" />
+                <img :src="`${ic.src}?t=20260819e`" alt="" />
               </button>
             </div>
           </el-popover>
@@ -138,16 +138,19 @@ function isEmojiIcon(icon?: string): boolean {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    background: #f8fafc;
+    padding: 6px;
+    background: #f1f5f9;
     border: 1px solid transparent;
     border-radius: 12px;
     cursor: pointer;
+    overflow: visible;
+    box-sizing: border-box;
 
     img {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       object-fit: contain;
+      flex-shrink: 0;
     }
 
     &:hover {

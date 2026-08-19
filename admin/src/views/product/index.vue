@@ -354,7 +354,7 @@ function normalizeProduct(raw: any): ProductRow {
   const productType = productTypes[0] || inferType(raw)
   const minPrice = Number(raw.min_price ?? raw.minPrice ?? raw.price ?? 0)
   const maxPrice = Number(raw.max_price ?? raw.maxPrice ?? raw.price ?? minPrice)
-  const price = Number.isFinite(minPrice) && minPrice > 0 ? minPrice : maxPrice || 0
+  const price = Number.isFinite(minPrice) ? minPrice : (Number.isFinite(maxPrice) ? maxPrice : 0)
   const stock = Number(raw.total_stock ?? raw.totalStock ?? raw.stock ?? 0)
   const sales = Number(raw.sales ?? raw.sales_count ?? raw.saleCount ?? 0)
 

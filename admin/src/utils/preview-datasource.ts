@@ -1,4 +1,10 @@
 import type { ComponentDataSource, ComponentInstance, PageDSL } from '@/types/page'
+import { pickProductCoverUrl, orderProductsByIds } from '@/utils/product-cover'
+import {
+  filterProductsByPrice,
+  priceFilterNeedsWideFetch,
+  resolvePriceFilterConfig,
+} from '@/utils/product-price-filter'
 
 type DataSourceType = ComponentDataSource['type']
 
@@ -9,6 +15,8 @@ export interface HydratePreviewResult {
 
 const COMPONENT_LABELS: Record<string, string> = {
   article_list: '文章列表',
+  article_feed: '文章流',
+  hot_news: '今日热门资讯',
   product_list: '商品列表',
   activity_list: '活动列表',
   activity_entry: '活动入口',
@@ -27,6 +35,8 @@ const DS_API_MAP: Partial<Record<DataSourceType, string>> = {
 const DS_COMPONENT_DEFAULT_TYPE: Partial<Record<string, DataSourceType>> = {
   product_list: 'product',
   article_list: 'content',
+  article_feed: 'content',
+  hot_news: 'content',
   activity_list: 'activity',
   activity_entry: 'activity',
   appointment_service: 'appointment_service',
@@ -102,6 +112,10 @@ function resolveDataSource(component: ComponentInstance): ComponentDataSource | 
   return { ...raw, params }
 }
 
+function capPageSize(limit: number) {
+  return Math.min(Math.max(Number(limit) || 1, 1), 100)
+}
+
 async function fetchDataSourceList(dataSource: ComponentDataSource, limit: number): Promise<any[]> {
   let apiPath = ''
   if (dataSource.type === 'api' && dataSource.config?.api?.startsWith('/api/v1/mp/')) {
@@ -112,11 +126,12 @@ async function fetchDataSourceList(dataSource: ComponentDataSource, limit: numbe
 
   if (!apiPath) return []
 
+  const pageSize = capPageSize(Math.max(limit, 6))
   const params = new URLSearchParams({
     current: '1',
-    size: String(Math.max(limit, 6)),
+    size: String(pageSize),
     page: '1',
-    page_size: String(Math.max(limit, 6)),
+    page_size: String(pageSize),
   })
   Object.entries(dataSource.params || {}).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '' || value === 'all') return
@@ -166,16 +181,66 @@ function formatArticleMeta(item: Record<string, any>): string {
 }
 
 function mapArticleItems(list: any[], limit: number) {
-  return list.slice(0, limit).map((item, index) => ({
-    id: item.id || index + 1,
-    title: item.title || item.name || '文章标题',
-    meta: formatArticleMeta(item),
-    cover: item.coverUrl || item.coverImage || item.cover || item.image || '',
-  }))
+  return list.slice(0, limit).map((item, index) => {
+    const id = item.id || index + 1
+    return {
+      id,
+      title: item.title || item.name || '文章标题',
+      meta: formatArticleMeta(item),
+      cover: item.coverUrl || item.coverImage || item.cover || item.image || '',
+      viewCount: Number(item.viewCount ?? item.view_count ?? 0) || 0,
+      publishedAt: item.publishedAt || item.publishTime || item.publish_time || item.createTime || '',
+      link_url: item.link_url || item.linkUrl || `/pages/content-detail/content-detail?id=${id}`,
+      categoryId: item.categoryId ?? item.category_id,
+      categoryName: item.categoryName || item.category_name || '',
+      source: item.source || item.categoryName || item.category_name || '',
+    }
+  })
 }
 
-function mapProductItems(list: any[], limit: number, sortKey?: string) {
+function dayKeyFromValue(value: unknown): string {
+  if (value == null || value === '') return ''
+  const raw = String(value).trim()
+  const m = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (m) return m[1]
+  const normalized = raw.includes('T') || raw.includes('-') ? raw.replace(/-/g, '/') : raw
+  const d = new Date(normalized)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function prepareHotNewsItems(list: any[], limit: number, params: Record<string, any>) {
+  let rows = Array.isArray(list) ? [...list] : []
+  const publishDate = String(params.publish_date || '').trim()
+  if (publishDate) {
+    rows = rows.filter((item) => {
+      const key = dayKeyFromValue(
+        item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt,
+      )
+      return key === publishDate
+    })
+  }
+  const sortBy = String(params.sort_by || 'popular')
+  if (sortBy === 'popular') {
+    rows.sort((a, b) => (Number(b.viewCount ?? b.view_count ?? 0) || 0) - (Number(a.viewCount ?? a.view_count ?? 0) || 0))
+  } else if (sortBy === 'newest') {
+    rows.sort((a, b) => {
+      const ta = new Date(String(a.publishedAt || a.publishTime || a.createTime || 0).replace(/-/g, '/')).getTime() || 0
+      const tb = new Date(String(b.publishedAt || b.publishTime || b.createTime || 0).replace(/-/g, '/')).getTime() || 0
+      return tb - ta
+    })
+  } else if (sortBy === 'recommended') {
+    rows.sort((a, b) => Number(!!b.isRecommended || !!b.is_recommended) - Number(!!a.isRecommended || !!a.is_recommended))
+  }
+  return mapArticleItems(rows, limit)
+}
+
+function mapProductItems(list: any[], limit: number, sortKey?: string, priceFilter?: ReturnType<typeof resolvePriceFilterConfig>) {
   let rows = list.filter((item) => item && String(item.status || 'on_sale') === 'on_sale')
+  if (priceFilter) {
+    rows = filterProductsByPrice(rows, priceFilter)
+  }
   const sort = String(sortKey || '')
   if (sort.includes('sales')) {
     rows = [...rows].sort((a, b) => Number(b.sales ?? 0) - Number(a.sales ?? 0))
@@ -188,7 +253,7 @@ function mapProductItems(list: any[], limit: number, sortKey?: string) {
     id: item.id || index + 1,
     name: item.name || item.title || '商品名称',
     price: String(item.price ?? '0.00'),
-    image: item.coverUrl || item.coverImage || item.image || item.mainImage || '',
+    image: pickProductCoverUrl(item),
     sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
   }))
 }
@@ -226,12 +291,10 @@ function pickProductsByIds(list: any[], ids: string[], limit: number) {
 function manualProductItems(component: ComponentInstance, limit: number) {
   const ids = resolveProductIds(component)
   const saved = Array.isArray(component.props?.items) ? component.props.items : []
-  if (ids.length && saved.length) {
-    const map = new Map(saved.map((item: any) => [String(item.id), item]))
-    const ordered = ids.map((id) => map.get(id)).filter(Boolean)
-    if (ordered.length) return mapProductItems(ordered as any[], limit)
-  }
-  if (saved.length) return mapProductItems(saved, limit)
+  const ordered = ids.length
+    ? orderProductsByIds(ids, saved)
+    : saved
+  if (ordered.length) return mapProductItems(ordered as any[], limit)
   if (ids.length) {
     return mapProductItems(
       demoProductItems(20).filter((item) => ids.includes(String(item.id))),
@@ -239,6 +302,21 @@ function manualProductItems(component: ComponentInstance, limit: number) {
     )
   }
   return demoProductItems(Math.min(limit, 2))
+}
+
+function resolveManualProductItems(
+  component: ComponentInstance,
+  apiList: any[],
+  limit: number,
+) {
+  const ids = resolveProductIds(component)
+  const saved = Array.isArray(component.props?.items) ? component.props.items : []
+  if (ids.length) {
+    const fromApi = pickProductsByIds(apiList, ids, ids.length)
+    const ordered = orderProductsByIds(ids, fromApi, saved)
+    if (ordered.length) return mapProductItems(ordered as any[], limit)
+  }
+  return manualProductItems(component, limit)
 }
 
 async function hydrateComponent(
@@ -253,28 +331,51 @@ async function hydrateComponent(
   const dataSource = resolveDataSource(component)
   if (!dataSource) return component
 
-  const limit = Math.max(Number(component.props?.limit || 6), 1)
+  const limit = component.type === 'article_feed'
+    ? Math.max(Number(component.props?.page_size || 10), 1)
+    : Math.max(Number(component.props?.limit || 6), 1)
+  const isProductStream = component.type === 'product_list' && component.props?.display_mode === 'stream'
+  const streamPageSize = Math.max(Number(component.props?.page_size || 10), 5)
+  const productIds = component.type === 'product_list' ? resolveProductIds(component) : []
   const isManualProduct = component.type === 'product_list'
-    && (component.props?.source_mode === 'manual' || resolveProductIds(component).length > 0)
-
-  // 手动选品：优先用已保存 items，避免依赖可能失败的列表接口
-  if (isManualProduct) {
-    const items = manualProductItems(component, limit)
-    if (items.length) {
-      return {
-        ...component,
-        props: {
-          ...component.props,
-          items,
-          _previewDataFailed: false,
-          _previewDataDemo: items.some((x) => String(x.id).startsWith('demo-')),
-        },
-      }
-    }
-  }
+    && (component.props?.source_mode === 'manual' || productIds.length > 0)
+  const displayCap = isProductStream && isManualProduct
+    ? Math.max(productIds.length, Array.isArray(component.props?.items) ? component.props.items.length : 0, 50)
+    : (isProductStream ? streamPageSize : limit)
+  const tabsOn = component.type === 'article_feed' && component.props?.show_category_tabs === true
+  const priceFilter = resolvePriceFilterConfig(component.props)
+  const fetchLimit = capPageSize(
+    component.type === 'hot_news'
+      ? Math.max(limit, 50)
+      : tabsOn
+        ? Math.max(limit, 100)
+        : (productIds.length ? Math.max(limit, productIds.length, 100) : (component.type === 'article_feed' ? Math.max(limit, 50) : limit)),
+  )
+  const productFetchLimit = component.type === 'product_list' && (priceFilterNeedsWideFetch(priceFilter) || isProductStream)
+    ? capPageSize(Math.max(fetchLimit, limit * 5, isProductStream ? streamPageSize * 3 : 50, 50))
+    : fetchLimit
 
   try {
-    const list = await fetchDataSourceList(dataSource, Math.max(limit, 50))
+    // 后端 ContentQueryDTO 用 categoryId；前端 props 常用 category_id
+    const params = { ...(dataSource.params || {}) } as Record<string, any>
+    if (params.category_id != null && params.categoryId == null) {
+      params.categoryId = params.category_id
+    }
+    // publish_date / sort_by 由前端二次处理，避免后端未知参数干扰
+    const clientParams = {
+      publish_date: params.publish_date,
+      sort_by: params.sort_by || (component.type === 'hot_news' ? 'popular' : undefined),
+      is_recommended: params.is_recommended,
+    }
+    delete params.publish_date
+    delete params.sort_by
+    delete params.is_recommended
+    delete params.category_id
+
+    const list = await fetchDataSourceList({ ...dataSource, params }, capPageSize(Math.max(
+      component.type === 'product_list' ? productFetchLimit : fetchLimit,
+      50,
+    )))
     if (!list.length) {
       if (component.type === 'product_list') {
         const items = isManualProduct
@@ -302,28 +403,48 @@ async function hydrateComponent(
       }
     }
 
-    if (component.type === 'article_list') {
+    if (component.type === 'hot_news') {
       return {
         ...component,
         props: {
           ...component.props,
-          items: mapArticleItems(list, limit),
+          items: prepareHotNewsItems(list, limit, clientParams),
+          _previewDataFailed: false,
+        },
+      }
+    }
+
+    if (component.type === 'article_list' || component.type === 'article_feed') {
+      const itemLimit = component.type === 'article_feed'
+        ? Math.max(Number(component.props?.page_size || 10), 1)
+        : limit
+      const storeLimit = tabsOn ? Math.min(list.length, fetchLimit) : itemLimit
+      return {
+        ...component,
+        props: {
+          ...component.props,
+          items: mapArticleItems(list, storeLimit),
           _previewDataFailed: false,
         },
       }
     }
 
     if (component.type === 'product_list') {
-      const ids = resolveProductIds(component)
+      const ids = productIds
       const sortKey = String(
         component.props?.sort
         || component.props?.sort_by
         || dataSource.params?.sort
         || '',
       )
-      let items = ids.length
-        ? pickProductsByIds(list, ids, limit)
-        : mapProductItems(list, limit, sortKey)
+      let items = isManualProduct
+        ? resolveManualProductItems(component, list, limit)
+        : (ids.length ? pickProductsByIds(list, ids, limit) : mapProductItems(list, limit, sortKey, priceFilter))
+      if (priceFilter.mode !== 'all') {
+        items = filterProductsByPrice(items as any[], priceFilter).slice(0, displayCap)
+      } else {
+        items = items.slice(0, displayCap)
+      }
       if (!items.length && isManualProduct) {
         items = manualProductItems(component, limit)
       }

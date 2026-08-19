@@ -5,14 +5,30 @@
       <span class="canvas-meta__device">手机 · 375 × 812</span>
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
-    <div class="phone-scale-wrap" :style="{ width: PHONE_WIDTH * zoom + 'px', height: PHONE_HEIGHT * zoom + 'px' }">
-      <div class="phone" :style="{ transform: `scale(${zoom})` }">
-      <div class="phone-notch">
+    <div class="phone-scale-wrap">
+      <div class="phone" :class="{ 'phone--brand-header': hasBrandHeader }" :style="{ zoom }">
+      <div v-if="!hasBrandHeader" class="phone-notch">
         <div class="phone-speaker"></div>
       </div>
-      <div class="phone-screen">
-        <div class="mini-top">
+      <div class="phone-screen" :class="{ 'phone-screen--brand-header': hasBrandHeader }">
+        <div class="mini-top" v-if="!hasBrandHeader">
           <span>{{ pageStore.pageConfig.name || '未命名页面' }}</span>
+        </div>
+        <div
+          v-if="pinnedBrandHeader"
+          ref="pinnedHeaderEl"
+          class="canvas-pinned-brand-header"
+        >
+          <ComponentItem
+            :component="pinnedBrandHeader"
+            :index="pinnedBrandHeaderIndex"
+            :selected="pinnedBrandHeader.id === pageStore.selectedComponentId"
+            @select="pageStore.selectComponent(pinnedBrandHeader.id)"
+            @delete="handleDeleteComponent(pinnedBrandHeader)"
+            @copy="pageStore.duplicateComponent(pinnedBrandHeader.id)"
+            @move-up="handleMoveUp(pinnedBrandHeaderIndex)"
+            @move-down="handleMoveDown(pinnedBrandHeaderIndex)"
+          />
         </div>
         <div
           class="mini-content"
@@ -27,6 +43,12 @@
               <template v-if="comp.type !== ComponentType.FloatButton">
                 <div class="drop-indicator" :class="{ visible: dragOverIndex === index }"></div>
                 <div
+                  v-if="isPinnedBrandHeader(comp, index)"
+                  class="brand-header-flow-spacer"
+                  :style="{ height: `${pinnedBrandHeaderHeight}px` }"
+                />
+                <div
+                  v-else
                   class="canvas-item-wrap"
                   :class="{ dragging: draggingIndex === index }"
                   draggable="true"
@@ -61,7 +83,7 @@
           </div>
         </div>
         <!-- 悬浮按钮贴在手机屏内，不随内容滚动 -->
-        <div v-if="floatEntries.length" class="canvas-fab-layer">
+        <div v-if="floatEntries.length" class="canvas-fab-layer" :class="{ 'canvas-fab-layer--brand-header': hasBrandHeader }">
           <ComponentItem
             v-for="item in floatEntries"
             :key="`fab-${item.comp.id}`"
@@ -101,8 +123,27 @@ import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
 import { getComponentDef } from './componentRegistry'
 import { confirmRemoveComponent } from './confirmRemoveComponent'
+import { usePinnedBrandHeader, estimateBrandHeaderHeight } from './composables/usePinnedBrandHeader'
+import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight'
 
 const pageStore = usePageStore()
+
+const {
+  pinnedBrandHeader,
+  pinnedBrandHeaderIndex,
+  hasBrandHeader,
+  isPinnedBrandHeader,
+} = usePinnedBrandHeader(computed(() => pageStore.components))
+
+const pinnedHeaderEl = ref<HTMLElement | null>(null)
+const measuredPinnedHeight = useMeasuredElementHeight(
+  pinnedHeaderEl,
+  computed(() => !!pinnedBrandHeader.value),
+)
+const pinnedBrandHeaderHeight = computed(() => {
+  if (!pinnedBrandHeader.value) return 0
+  return measuredPinnedHeight.value || estimateBrandHeaderHeight(pinnedBrandHeader.value.props)
+})
 
 const floatEntries = computed(() =>
   pageStore.components
@@ -293,8 +334,11 @@ onBeforeUnmount(() => {
   box-shadow:
     0 0 0 9px #111827,
     0 24px 54px rgba(15, 23, 42, 0.22);
-  transform-origin: top center;
-  transition: transform 0.15s ease;
+  transition: zoom 0.15s ease;
+}
+
+.phone--brand-header {
+  overflow: hidden;
 }
 
 /* B5：缩放档位控制条，吸附在编辑区底部，随滚动保持可见 */
@@ -367,6 +411,23 @@ onBeforeUnmount(() => {
   background: #f6f8fb;
 }
 
+.phone-screen--brand-header .mini-content {
+  height: 636px;
+}
+
+.canvas-pinned-brand-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+}
+
+.brand-header-flow-spacer {
+  flex-shrink: 0;
+  width: 100%;
+}
+
 .mini-top {
   display: flex;
   align-items: center;
@@ -398,6 +459,10 @@ onBeforeUnmount(() => {
   bottom: 0;
   z-index: 40;
   pointer-events: none;
+
+  &.canvas-fab-layer--brand-header {
+    top: 0;
+  }
 }
 
 .canvas-fab-layer :deep(.fab-only-wrap) {

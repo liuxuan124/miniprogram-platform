@@ -1,5 +1,15 @@
 <!--components/dsl-renderer/dsl-renderer.wxml — DSL 渲染引擎-->
 <view class="dsl-renderer" wx:if="{{comp && comp.visible !== false}}">
+  <!-- 品牌顶栏 brand_header -->
+  <dsl-brand-header
+    wx:if="{{comp.type === 'brand_header'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    actions="{{comp.actions}}"
+    styleString="{{comp.styleString}}"
+    bind:componentevent="onComponentEvent"
+  />
+
   <!-- 0. 搜索组件 search -->
   <view
     wx:if="{{comp.type === 'search'}}"
@@ -94,6 +104,7 @@
     wx:elif="{{comp.type === 'product_list'}}"
     config="{{comp.props}}"
     runtimeData="{{comp.runtimeData}}"
+    dataSource="{{comp.dataSource}}"
     actions="{{comp.actions}}"
     styleString="{{comp.styleString}}"
     bind:componentevent="onComponentEvent"
@@ -109,6 +120,36 @@
   <!-- 4. 文章列表 article_list -->
   <dsl-article-list
     wx:elif="{{comp.type === 'article_list'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    actions="{{comp.actions}}"
+    styleString="{{comp.styleString}}"
+    bind:componentevent="onComponentEvent"
+  />
+
+  <!-- 4a. 文章流 article_feed -->
+  <dsl-article-feed
+    wx:elif="{{comp.type === 'article_feed'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    actions="{{comp.actions}}"
+    styleString="{{comp.styleString}}"
+    bind:componentevent="onComponentEvent"
+  />
+
+  <!-- 4b. 今日热门资讯 hot_news -->
+  <dsl-hot-news
+    wx:elif="{{comp.type === 'hot_news'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    actions="{{comp.actions}}"
+    styleString="{{comp.styleString}}"
+    bind:componentevent="onComponentEvent"
+  />
+
+  <!-- 4c. 加入群聊 join_group -->
+  <dsl-join-group
+    wx:elif="{{comp.type === 'join_group'}}"
     config="{{comp.props}}"
     runtimeData="{{comp.runtimeData}}"
     actions="{{comp.actions}}"
@@ -371,7 +412,7 @@
   <view
     wx:elif="{{comp.type === 'section_title'}}"
     class="dsl-section-title {{comp.props.align === 'center' ? 'dsl-section-title--center' : ''}} {{comp.props.show_more ? 'dsl-section-title--more' : ''}}"
-    style="{{comp.styleString}}"
+    style="{{comp.styleString}};{{comp.props._innerPaddingStyle}}"
   >
     <view class="dsl-section-title__text">
       <view class="dsl-section-title__main" style="{{comp.props._titleStyle}}">{{comp.props.title || '分区标题'}}</view>

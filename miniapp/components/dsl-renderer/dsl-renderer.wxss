@@ -739,7 +739,8 @@
   gap: 16rpx;
   margin-left: 24rpx;
   margin-right: 24rpx;
-  padding: 8rpx 4rpx 16rpx;
+  padding-left: 4rpx;
+  padding-right: 4rpx;
   background: transparent;
 }
 

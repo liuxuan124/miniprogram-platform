@@ -1,5 +1,6 @@
 const { PageService } = require('../../services/page')
 const { parseDSL, loadAllComponentData } = require('../../utils/render')
+const { getNavLayout } = require('../../utils/nav-layout')
 
 Page({
   data: {
@@ -7,6 +8,8 @@ Page({
     error: '',
     flowComponents: [],
     floatComponents: [],
+    hasBrandHeader: false,
+    statusBarHeight: 20,
   },
 
   onLoad(options) {
@@ -24,9 +27,11 @@ Page({
   onReachBottom() {
     const renderers = this.selectAllComponents('dsl-renderer') || []
     renderers.forEach((renderer) => {
-      const lists = (renderer.selectAllComponents && renderer.selectAllComponents('dsl-article-list')) || []
-      lists.forEach((list) => {
-        if (list && typeof list.loadMore === 'function') list.loadMore()
+      ;['dsl-article-list', 'dsl-article-feed', 'dsl-product-list'].forEach((selector) => {
+        const lists = (renderer.selectAllComponents && renderer.selectAllComponents(selector)) || []
+        lists.forEach((list) => {
+          if (list && typeof list.loadMore === 'function') list.loadMore()
+        })
       })
     })
   },
@@ -46,13 +51,18 @@ Page({
         if (item && item.type === 'float_button') floatComponents.push(item)
         else flowComponents.push(item)
       })
-      const title = (parsed.page && parsed.page.name) || '页面'
-      wx.setNavigationBarTitle({ title })
+      const hasBrandHeader = flowComponents.some((item) => item && item.type === 'brand_header')
+      const layout = getNavLayout()
+      if (!hasBrandHeader) {
+        wx.setNavigationBarTitle({ title: (parsed.page && parsed.page.name) || '页面' })
+      }
       this.setData({
         loading: false,
         error: '',
         flowComponents,
         floatComponents,
+        hasBrandHeader,
+        statusBarHeight: layout.statusBarHeight,
       })
     } catch (e) {
       this.setData({

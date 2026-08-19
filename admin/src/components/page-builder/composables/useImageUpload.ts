@@ -41,5 +41,14 @@ export function useImageUpload() {
     }
   }
 
-  return { uploading, uploadImage }
+  async function uploadBlob(
+    blob: Blob,
+    filename = 'cropped.jpg',
+    options?: { onSuccess?: (url: string) => void },
+  ): Promise<string | null> {
+    const file = new File([blob], filename, { type: blob.type || 'image/jpeg' })
+    return uploadImage(file, { maxSizeMB: 8, onSuccess: options?.onSuccess })
+  }
+
+  return { uploading, uploadImage, uploadBlob }
 }

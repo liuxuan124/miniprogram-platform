@@ -25,6 +25,7 @@
   >
     <view
       class="dsl-article-list__item dsl-article-list__item--compact"
+      style="{{itemCardStyle}}"
       wx:for="{{displayData}}"
       wx:key="id"
       data-id="{{item.id}}"
@@ -55,6 +56,7 @@
   >
     <view
       class="dsl-article-list__item dsl-article-list__item--list"
+      style="{{itemCardStyle}}"
       wx:for="{{displayData}}"
       wx:key="id"
       data-id="{{item.id}}"
@@ -88,6 +90,7 @@
   >
     <view
       class="dsl-article-list__item dsl-article-list__item--card"
+      style="{{itemCardStyle}}"
       wx:for="{{displayData}}"
       wx:key="id"
       data-id="{{item.id}}"

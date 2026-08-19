@@ -1,17 +1,34 @@
 <template>
   <div class="miniapp-preview">
     <div class="phone">
-      <div class="phone-notch"><div class="phone-speaker"></div></div>
+      <div v-if="!previewHasBrandHeader" class="phone-notch"><div class="phone-speaker"></div></div>
       <div
         class="phone-screen"
+        :class="{ 'phone-screen--brand-header': previewHasBrandHeader }"
         :style="{
           backgroundColor: form.theme.pageBackgroundColor,
           '--theme-primary': form.theme.primaryColor,
           '--theme-secondary': form.theme.secondaryColor,
         }"
       >
-        <div class="phone-navbar" :style="{ backgroundColor: form.theme.navBarColor }">
+        <div
+          v-if="!previewHasBrandHeader"
+          class="phone-navbar"
+          :style="{ backgroundColor: form.theme.navBarColor }"
+        >
           <span class="navbar-title">{{ currentTabLabel }}</span>
+        </div>
+        <div
+          v-if="previewPinnedBrandHeader"
+          ref="previewPinnedHeaderEl"
+          class="preview-pinned-brand-header"
+        >
+          <ComponentItem
+            :component="previewPinnedBrandHeader"
+            :index="previewPinnedBrandHeaderIndex"
+            :selected="false"
+            :preview-mode="true"
+          />
         </div>
         <div class="phone-content">
           <!-- Loading state -->
@@ -22,14 +39,20 @@
 
           <!-- Real page content (DSL rendered，与体验版同源：已发布快照) -->
           <div v-else-if="currentPageDsl" class="preview-dsl">
-            <ComponentItem
-              v-for="(comp, idx) in currentPageDsl.components"
-              :key="comp.id"
-              :component="comp"
-              :index="idx"
-              :selected="false"
-              :preview-mode="true"
-            />
+            <template v-for="(comp, idx) in currentPageDsl.components" :key="comp.id">
+              <div
+                v-if="isPreviewPinnedBrandHeader(comp, idx)"
+                class="brand-header-flow-spacer"
+                :style="{ height: `${previewPinnedBrandHeaderHeight}px` }"
+              />
+              <ComponentItem
+                v-else-if="comp.type !== ComponentType.FloatButton"
+                :component="comp"
+                :index="idx"
+                :selected="false"
+                :preview-mode="true"
+              />
+            </template>
             <!-- Empty state for pages with no components -->
             <div v-if="!currentPageDsl.components?.length" class="preview-empty">
               <span class="empty-icon">📄</span>
@@ -39,46 +62,11 @@
           </div>
 
           <!-- Mine page preview (custom render) -->
-          <div v-else-if="showMinePage" class="preview-section mine-preview">
-            <!-- Login / User card -->
-            <div class="preview-user-card" :class="{ 'mine-card--outline': mineAccentColors.outline }" :style="mineCardStyle">
-              <div v-if="form.mineConfig.userProfile.showAvatar" class="user-avatar">👤</div>
-              <div class="user-info">
-                <strong>{{ form.mineConfig.loginTitle }}</strong>
-                <span v-if="form.mineConfig.userProfile.showNickname" class="user-nickname">微信用户（昵称示例）</span>
-                <span class="user-subtitle">{{ form.mineConfig.loginSubtitle }}</span>
-                <span v-if="form.mineConfig.userProfile.showMemberLevel" class="user-level">
-                  {{ form.mineConfig.userProfile.memberLevelLabel }}
-                </span>
-              </div>
-              <button v-if="form.mineConfig.loginButtonText" class="login-btn">{{ form.mineConfig.loginButtonText }}</button>
-            </div>
-
-            <!-- Member card -->
-            <div v-if="form.mineConfig.memberCardTitle" class="preview-member-card" :class="{ 'mine-card--outline': mineAccentColors.outline }" :style="mineMemberCardStyle">
-              <strong>{{ form.mineConfig.memberCardTitle }}</strong>
-            </div>
-
-            <!-- Order quick access -->
-            <div v-if="form.mineConfig.orderQuickAccess.showOrderTabs" class="order-tabs">
-              <div
-                v-for="(label, key) in form.mineConfig.orderQuickAccess.tabLabels"
-                :key="key"
-                class="order-tab-item"
-              >
-                <span class="order-tab-label">{{ label }}</span>
-              </div>
-            </div>
-            <div v-if="form.mineConfig.orderQuickAccess.showAllOrdersBtn && form.mineConfig.orderQuickAccess.showOrderTabs" class="all-orders-btn">查看全部订单</div>
-
-            <!-- Menu grid -->
-            <div class="preview-menu-grid">
-              <div v-for="item in visibleMenuItems" :key="item.id" class="preview-menu-item">
-                <span class="menu-icon">{{ item.icon }}</span>
-                <span class="menu-text">{{ item.title }}</span>
-              </div>
-            </div>
-          </div>
+          <MinePagePreview
+            v-else-if="showMinePage"
+            :mine-config="form.mineConfig"
+            :theme="form.theme"
+          />
 
           <!-- Mine page: custom DSL mode -->
           <div v-else-if="showMinePageDsl" class="preview-dsl">
@@ -117,7 +105,7 @@
             :style="{ color: activeTab === idx ? form.theme.tabBarActiveColor : form.theme.tabBarInactiveColor }"
             @click="switchTab(idx)"
           >
-            <span class="tabbar-icon">{{ tab.icon }}</span>
+            <TabBarIconDisplay :icon="tab.icon" class="tabbar-icon" />
             <span class="tabbar-label">{{ tab.text }}</span>
           </div>
         </div>
@@ -133,9 +121,13 @@ import { Loading } from '@element-plus/icons-vue'
 import { getPageDetail } from '@/api/page'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import type { MiniappForm } from '@/types/miniapp'
-import type { PageRecord } from '@/types/page'
+import { ComponentType, type PageRecord } from '@/types/page'
 import type { PageDSL } from '@/types/page'
 import { hydratePreviewDsl } from '@/utils/preview-datasource'
+import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vue'
+import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
+import { usePinnedBrandHeader, estimateBrandHeaderHeight } from '@/components/page-builder/composables/usePinnedBrandHeader'
+import { useMeasuredElementHeight } from '@/components/page-builder/composables/useMeasuredElementHeight'
 
 const props = defineProps<{ form: MiniappForm; pages: PageRecord[]; minePageMode?: 'config' | 'custom' }>()
 const activeTab = ref(0)
@@ -250,49 +242,27 @@ const currentPageDsl = computed(() => {
   return pageDslCache.value.get(key) || null
 })
 
-const visibleMenuItems = computed(() => props.form.mineConfig.menuItems.filter(m => m.enabled))
+const previewPageComponents = computed(() => currentPageDsl.value?.components ?? [])
 
-/** 我的页模板风格（标准/尊享/简约/暗黑）：优先取模板色，未选模板时回退全局主题色 */
-const mineAccentColors = computed(() => {
-  const mc = props.form.mineConfig as Record<string, any>
-  return {
-    primary: mc.themeColor || props.form.theme.primaryColor,
-    secondary: mc.themeColorSecondary || props.form.theme.secondaryColor,
-    flat: mc.style === 'flat',
-    outline: mc.style === 'outline',
-  }
-})
+const {
+  pinnedBrandHeader: previewPinnedBrandHeader,
+  pinnedBrandHeaderIndex: previewPinnedBrandHeaderIndex,
+  hasBrandHeader: previewHasBrandHeader,
+  isPinnedBrandHeader: isPreviewPinnedBrandHeader,
+} = usePinnedBrandHeader(previewPageComponents)
 
-const mineCardStyle = computed(() => {
-  const { primary, secondary, flat, outline } = mineAccentColors.value
-  if (outline) {
-    // 简约版：无填充色，白底 + 边框 + 深色文字
-    return {
-      background: '#ffffff',
-      border: '1.5px solid #d7dde6',
-      color: '#1f2937',
-      '--mine-accent': primary,
-    }
-  }
-  return {
-    background: flat ? primary : `linear-gradient(135deg, ${primary}, ${secondary})`,
-    '--mine-accent': primary,
-  }
-})
-
-const mineMemberCardStyle = computed(() => {
-  const { primary, secondary, flat, outline } = mineAccentColors.value
-  if (outline) {
-    return { background: '#ffffff', border: '1.5px solid #d7dde6', color: '#1f2937' }
-  }
-  return {
-    background: flat ? `${primary}dd` : `linear-gradient(135deg, ${primary}dd, ${secondary}dd)`,
-  }
+const previewPinnedHeaderEl = ref<HTMLElement | null>(null)
+const measuredPreviewPinnedHeight = useMeasuredElementHeight(
+  previewPinnedHeaderEl,
+  computed(() => !!previewPinnedBrandHeader.value),
+)
+const previewPinnedBrandHeaderHeight = computed(() => {
+  if (!previewPinnedBrandHeader.value) return 0
+  return measuredPreviewPinnedHeight.value || estimateBrandHeaderHeight(previewPinnedBrandHeader.value.props)
 })
 
 function parseDslFromResponse(data: any): PageDSL | null {
   if (!data) return null
-  // 后端返回 draftDslContent (JSON字符串)
   const raw = data.draftDslContent || data.dsl || data.dslContent
   if (!raw) return null
   if (typeof raw === 'string') {
@@ -347,7 +317,10 @@ defineExpose({ showMineTab })
 .phone { width: 375px; background: #111827; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .phone-notch { height: 30px; display: flex; align-items: center; justify-content: center; }
 .phone-speaker { width: 80px; height: 6px; background: #1f2937; border-radius: 3px; }
-.phone-screen { border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; height: 680px; }
+.phone-screen { border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; height: 680px; position: relative; }
+.phone-screen--brand-header .phone-content { flex: 1; min-height: 0; }
+.preview-pinned-brand-header { position: absolute; top: 0; left: 0; right: 0; z-index: 20; }
+.brand-header-flow-spacer { flex-shrink: 0; width: 100%; }
 .phone-navbar { height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .navbar-title { color: #fff; font-size: 16px; font-weight: 700; }
 /* 背景透明以透出 phone-screen 上的「页面背景」主题色 */

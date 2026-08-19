@@ -1,18 +1,30 @@
 // components/dsl-nav/dsl-nav.js — 导航宫格组件
 const { executeAction, isImageUrl, navigatePage } = require('../../utils/render')
 
-function buildFrame(config) {
+function clampPad(v, fallback) {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : fallback
+}
+
+function buildRootStyle(config) {
   const cfg = config || {}
+  const padTop = clampPad(cfg.padding_top, 14)
+  const padBottom = clampPad(cfg.padding_bottom, 10)
+  const parts = [
+    `padding-top:${padTop * 2}rpx`,
+    `padding-bottom:${padBottom * 2}rpx`,
+  ]
   const showFrame = cfg.show_frame !== false
-  if (!showFrame) {
-    return { showFrame: false, frameStyle: '' }
+  if (showFrame) {
+    const radiusRaw = Number(cfg.frame_radius)
+    const radius = Number.isFinite(radiusRaw) ? Math.max(0, Math.min(radiusRaw, 40)) : 16
+    const bg = cfg.frame_bg || '#ffffff'
+    parts.push(`background:${bg}`)
+    parts.push(`border-radius:${radius * 2}rpx`)
   }
-  const radiusRaw = Number(cfg.frame_radius)
-  const radius = Number.isFinite(radiusRaw) ? Math.max(0, Math.min(radiusRaw, 40)) : 16
-  const bg = cfg.frame_bg || '#ffffff'
   return {
-    showFrame: true,
-    frameStyle: `background:${bg};border-radius:${radius * 2}rpx;`,
+    showFrame,
+    rootStyle: parts.join(';'),
   }
 }
 
@@ -47,27 +59,27 @@ Component({
     scrollLeft: 0,
     processedItems: [],
     showFrame: true,
-    frameStyle: '',
+    rootStyle: '',
   },
 
   observers: {
     'config': function (config) {
-      const frame = buildFrame(config)
+      const root = buildRootStyle(config)
       this.setData({
         processedItems: mapItems(config && config.items),
-        showFrame: frame.showFrame,
-        frameStyle: frame.frameStyle,
+        showFrame: root.showFrame,
+        rootStyle: root.rootStyle,
       })
     },
   },
 
   lifetimes: {
     attached() {
-      const frame = buildFrame(this.data.config)
+      const root = buildRootStyle(this.data.config)
       this.setData({
         processedItems: mapItems(this.data.config && this.data.config.items),
-        showFrame: frame.showFrame,
-        frameStyle: frame.frameStyle,
+        showFrame: root.showFrame,
+        rootStyle: root.rootStyle,
       })
     },
   },

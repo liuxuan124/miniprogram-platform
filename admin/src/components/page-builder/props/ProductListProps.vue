@@ -56,17 +56,34 @@
       <el-form-item label="显示价格">
         <el-switch :model-value="data.show_price !== false" @change="emit('update', { show_price: $event as boolean })" />
       </el-form-item>
+      <el-form-item v-if="data.show_price !== false" label="零价显示">
+        <el-radio-group
+          :model-value="data.zero_price_display === 'free' ? 'free' : 'amount'"
+          @change="(v: string) => emit('update', { zero_price_display: v })"
+        >
+          <el-radio-button value="amount">显示 ¥0</el-radio-button>
+          <el-radio-button value="free">免费领取</el-radio-button>
+        </el-radio-group>
+        <div class="ds-hint">售价为 0 的商品在列表中的展示方式</div>
+      </el-form-item>
       <el-form-item label="显示销量">
         <el-switch :model-value="data.show_sales !== false" @change="emit('update', { show_sales: $event as boolean })" />
+        <div class="ds-hint">数据来自商品销量；售价为 0 时显示「已领 N」</div>
       </el-form-item>
       <el-form-item v-if="layoutValue === 'list'" label="显示评分">
         <el-switch :model-value="data.show_rating !== false" @change="emit('update', { show_rating: $event as boolean })" />
         <div class="ds-hint">列表布局：价格旁显示 ⭐ 评分 · N 评价</div>
       </el-form-item>
-      <el-form-item v-if="layoutValue !== 'list'" label="购物车">
-        <el-switch :model-value="data.show_cart !== false" @change="emit('update', { show_cart: $event as boolean })" />
+      <el-form-item label="展示方式">
+        <el-radio-group :model-value="displayMode" @change="onDisplayModeChange">
+          <el-radio-button value="fixed">固定数量</el-radio-button>
+          <el-radio-button value="stream">商品流</el-radio-button>
+        </el-radio-group>
+        <div class="ds-hint">
+          {{ displayMode === 'stream' ? '展示全部符合筛选的商品，滑到底自动加载下一批' : '只展示指定数量的商品' }}
+        </div>
       </el-form-item>
-      <el-form-item label="显示数量">
+      <el-form-item v-if="displayMode === 'fixed'" label="展示数量">
         <el-input-number
           :model-value="data.limit"
           @change="emit('update', { limit: $event as number })"
@@ -74,6 +91,16 @@
           :max="50"
           controls-position="right"
         />
+      </el-form-item>
+      <el-form-item v-else label="每批加载">
+        <el-input-number
+          :model-value="Number(data.page_size ?? 10)"
+          :min="5"
+          :max="30"
+          controls-position="right"
+          @change="(v: number | undefined) => emit('update', { page_size: v ?? 10 })"
+        />
+        <div class="ds-hint">每次触底加载的商品条数（5–30）</div>
       </el-form-item>
       <el-form-item label="商品标题字号">
         <el-input-number
@@ -99,7 +126,7 @@
           :min="8"
           :max="36"
           controls-position="right"
-          @change="(v: number) => emit('update', { sales_font_size: v })"
+          @change="(v: number | undefined) => emit('update', { sales_font_size: v ?? 11 })"
         />
       </el-form-item>
 
@@ -188,6 +215,46 @@
               <el-option label="价格从高到低" value="price_desc" />
             </el-select>
           </el-form-item>
+          <el-form-item label="价格筛选">
+            <el-select
+              :model-value="priceFilter"
+              style="width: 100%"
+              @change="onPriceFilterChange"
+            >
+              <el-option
+                v-for="opt in priceFilterOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <div class="ds-hint">{{ priceFilterHint }}</div>
+          </el-form-item>
+          <template v-if="priceFilter === 'custom'">
+            <el-form-item label="最低价">
+              <el-input-number
+                :model-value="customPriceMin"
+                :min="0"
+                :precision="2"
+                :step="1"
+                controls-position="right"
+                placeholder="不限"
+                @change="(v: number | undefined) => patchQuery({ price_min: v ?? undefined })"
+              />
+              <div class="ds-hint">留空表示不限；单位为 ¥</div>
+            </el-form-item>
+            <el-form-item label="最高价">
+              <el-input-number
+                :model-value="customPriceMax"
+                :min="0"
+                :precision="2"
+                :step="1"
+                controls-position="right"
+                placeholder="不限"
+                @change="(v: number | undefined) => patchQuery({ price_max: v ?? undefined })"
+              />
+            </el-form-item>
+          </template>
           <div v-if="liveItems.length" class="ds-preview">
             <div v-for="item in liveItems.slice(0, 3)" :key="item.id || item.name" class="ds-chip">
               <span class="ds-chip__name">{{ item.name }}</span>
@@ -205,6 +272,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { getCategoryList, getProductList } from '@/api/product'
+import { pickProductCoverUrl } from '@/utils/product-cover'
+import {
+  PRICE_FILTER_OPTIONS,
+  type PriceFilterMode,
+} from '@/utils/product-price-filter'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 
@@ -245,6 +317,12 @@ const layoutValue = computed(() => {
   return ['grid', 'list', 'waterfall'].includes(raw) ? raw : 'grid'
 })
 
+const displayMode = computed(() => (data.display_mode === 'stream' ? 'stream' : 'fixed'))
+
+function onDisplayModeChange(val: string) {
+  emit('update', { display_mode: val === 'stream' ? 'stream' : 'fixed' })
+}
+
 const sourceMode = computed(() => (data.source_mode === 'manual' ? 'manual' : 'auto'))
 
 const selectedProductIds = computed(() => {
@@ -272,6 +350,23 @@ const queryParams = computed(() => {
 
 const sortBy = computed(() => queryParams.value.sort_by || 'sales')
 
+const priceFilterOptions = PRICE_FILTER_OPTIONS
+const priceFilter = computed(() => {
+  const raw = String(queryParams.value.price_filter || 'all').trim() as PriceFilterMode
+  return priceFilterOptions.some((o) => o.value === raw) ? raw : 'all'
+})
+const priceFilterHint = computed(() =>
+  priceFilterOptions.find((o) => o.value === priceFilter.value)?.hint || '',
+)
+const customPriceMin = computed(() => {
+  const v = queryParams.value.price_min
+  return v === '' || v == null ? undefined : Number(v)
+})
+const customPriceMax = computed(() => {
+  const v = queryParams.value.price_max
+  return v === '' || v == null ? undefined : Number(v)
+})
+
 function flattenCategories(nodes: any[], prefix = ''): { id: number | string; name: string }[] {
   const out: { id: number | string; name: string }[] = []
   for (const node of Array.isArray(nodes) ? nodes : []) {
@@ -296,7 +391,7 @@ function toOption(item: any): ProductOption | null {
     name: item.name || item.title || '未命名商品',
     price: item.price ?? '0.00',
     sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
-    image: item.image || item.cover || item.mainImage || item.coverImage || '',
+    image: pickProductCoverUrl(item),
     status: item.status || 'on_sale',
   }
 }
@@ -332,6 +427,18 @@ function onSortByChange(val: string) {
   })
 }
 
+function onPriceFilterChange(val: PriceFilterMode) {
+  if (val === 'custom') {
+    patchQuery({ price_filter: val })
+    return
+  }
+  patchQuery({
+    price_filter: val,
+    price_min: undefined,
+    price_max: undefined,
+  })
+}
+
 function onSourceModeChange(val: string) {
   if (val === 'manual') {
     emit('update', {
@@ -355,7 +462,8 @@ function onProductIdsChange(ids: string[]) {
       title: p!.name,
       price: String(p!.price),
       sales: p!.sales ?? 0,
-      image: p!.image || '',
+      image: pickProductCoverUrl(p),
+      mainImage: pickProductCoverUrl(p),
     }))
   emit('update', {
     source_mode: 'manual',
@@ -367,6 +475,18 @@ function onProductIdsChange(ids: string[]) {
       query: { status: 'on_sale', ids: uniq.join(',') },
     },
   })
+}
+
+function syncManualItemsIfStale() {
+  if (sourceMode.value !== 'manual' || !selectedProductIds.value.length || !productOptions.value.length) return
+  const optionMap = new Map(productOptions.value.map((p) => [String(p.id), p]))
+  const saved = Array.isArray(data.items) ? data.items : []
+  const needsRefresh = selectedProductIds.value.some((id) => {
+    const opt = optionMap.get(String(id))
+    const row = saved.find((item: any) => String(item.id) === String(id))
+    return !!opt && !!pickProductCoverUrl(opt) && !pickProductCoverUrl(row)
+  })
+  if (needsRefresh) onProductIdsChange(selectedProductIds.value)
 }
 
 async function loadProductOptions() {
@@ -387,6 +507,7 @@ async function loadProductOptions() {
       if (!map.has(String(p.id))) map.set(String(p.id), p)
     })
     productOptions.value = Array.from(map.values())
+    syncManualItemsIfStale()
   } catch {
     const existing = [
       ...DEMO_OPTIONS,

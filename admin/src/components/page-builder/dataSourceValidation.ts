@@ -2,6 +2,7 @@
 const DATA_SOURCE_EXPECTED_TYPE: Record<string, string> = {
   product_list: 'product',
   article_list: 'content',
+  hot_news: 'content',
   activity_list: 'activity',
   coupon: 'coupon',
   appointment_service: 'appointment',

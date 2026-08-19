@@ -13,19 +13,29 @@
           v-for="(item, idx) in visibleProductItems"
           :key="`${item.id || 'p'}-${idx}`"
           class="product-row"
+          :class="{ 'is-clickable': previewMode }"
           :style="itemCardStyle"
+          @click="onProductClick($event, item)"
         >
-          <div class="product-thumb" :style="[itemImageStyle, !item.image ? item.artStyle : null]">
-            <img v-if="item.image" :src="item.image" alt="" class="product-thumb-img" />
+          <div class="product-thumb" :style="[itemImageStyle, !showItemImage(item, idx) ? item.artStyle : null]">
+            <img
+              v-if="showItemImage(item, idx)"
+              :src="item.image"
+              alt=""
+              class="product-thumb-img"
+              @error="markImageBroken(item, idx)"
+            />
             <span v-else>{{ item.glyph || '🛍️' }}</span>
           </div>
           <div class="product-body">
             <div class="product-row-name" :style="itemTitleStyle">{{ item.name }}</div>
-            <div class="product-row-sub">{{ item.meta }}</div>
+            <div class="product-row-sub" :style="salesStyle">{{ item.meta }}</div>
             <div class="product-row-foot">
-              <span v-if="showPrice" class="product-row-price" :style="priceStyle">¥{{ item.price }}</span>
+              <span v-if="showPrice" class="product-row-price" :style="priceStyle">
+                <template v-if="item.priceWithYuan">¥</template>{{ item.priceText }}
+              </span>
               <span v-if="showRating" class="product-row-rate">{{ item.ratingLine }}</span>
-              <span v-else-if="showSales" class="product-row-sales" :style="salesStyle">已售{{ item.sales }}</span>
+              <span v-else-if="showSales" class="product-row-sales" :style="salesStyle">{{ item.salesLabel }}</span>
             </div>
           </div>
         </div>
@@ -35,28 +45,29 @@
           v-for="(item, idx) in visibleProductItems"
           :key="`${item.id || 'p'}-${idx}`"
           class="product-card"
+          :class="{ 'is-clickable': previewMode }"
           :style="itemCardStyle"
+          @click="onProductClick($event, item)"
         >
           <div class="product-img" :style="itemImageStyle">
-            <img v-if="item.image" :src="item.image" alt="" class="product-cover" />
-            <span v-else>🛍️</span>
+            <img
+              v-if="showItemImage(item, idx)"
+              :src="item.image"
+              alt=""
+              class="product-cover"
+              @error="markImageBroken(item, idx)"
+            />
+            <span v-else class="product-img-ph">🛍️</span>
           </div>
           <div class="product-info">
             <div class="product-name" :style="itemTitleStyle">{{ item.name }}</div>
             <div class="product-bottom">
               <div class="product-meta-row">
-                <span v-if="showPrice" class="product-price" :style="priceStyle">¥{{ item.price }}</span>
-                <span v-if="showSales" class="product-sales" :style="salesStyle">已售{{ item.sales }}</span>
+                <span v-if="showPrice" class="product-price" :style="priceStyle">
+                  <template v-if="item.priceWithYuan">¥</template>{{ item.priceText }}
+                </span>
+                <span v-if="showSales" class="product-sales" :style="salesStyle">{{ item.salesLabel }}</span>
               </div>
-              <button
-                v-if="showCart"
-                type="button"
-                class="cart-btn"
-                aria-label="加入购物车"
-                @click.stop="onCartClick(item)"
-              >
-                🛒
-              </button>
             </div>
           </div>
         </div>
@@ -66,17 +77,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import { pickProductCoverUrl, orderProductsByIds } from '@/utils/product-cover'
+import { formatProductPriceLabel, formatProductSalesLabel } from '@/utils/product-price-display'
 
 type PreviewProductItem = {
   id?: number | string
   name: string
   price: string
+  priceText: string
+  priceWithYuan: boolean
   sales: number
+  salesLabel: string
   image?: string
   meta?: string
   ratingLine?: string
@@ -90,12 +106,41 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
+  'preview-action': [payload: {
+    tab: string
+    message: string
+    detailType?: string
+    detailTitle?: string
+    detailDesc?: string
+    productId?: string | number
+  }]
 }>()
 
+const brokenImageKeys = ref(new Set<string>())
+
+function itemKey(item: PreviewProductItem, idx: number) {
+  return `${item.id ?? 'p'}-${idx}`
+}
+
+function isImageBroken(item: PreviewProductItem, idx: number) {
+  return brokenImageKeys.value.has(itemKey(item, idx))
+}
+
+function markImageBroken(item: PreviewProductItem, idx: number) {
+  const key = itemKey(item, idx)
+  if (brokenImageKeys.value.has(key)) return
+  brokenImageKeys.value = new Set(brokenImageKeys.value).add(key)
+}
+
+function showItemImage(item: PreviewProductItem, idx: number) {
+  return !!item.image && !isImageBroken(item, idx)
+}
+
 const showPrice = computed(() => props.component.props?.show_price !== false)
+const zeroPriceDisplay = computed(() =>
+  props.component.props?.zero_price_display === 'free' ? 'free' : 'amount',
+)
 const showSales = computed(() => props.component.props?.show_sales !== false)
-const showCart = computed(() => props.component.props?.show_cart !== false)
 const showRating = computed(() => {
   if (productLayout.value === 'list') return props.component.props?.show_rating !== false
   return props.component.props?.show_rating === true
@@ -179,9 +224,10 @@ const itemCardStyle = computed(() => {
   const fromProp = props.component.props?.item_border_radius
   const fromStyle = props.component.style?.border_radius
   const fallback = productLayout.value === 'list' ? 14 : 12
-  const raw = fromProp !== undefined && fromProp !== null && fromProp !== ''
-    ? fromProp
-    : (fromStyle !== undefined && fromStyle !== null ? fromStyle : fallback)
+  const hasStyleRadius = fromStyle !== undefined && fromStyle !== null && fromStyle !== ''
+  const raw = hasStyleRadius
+    ? fromStyle
+    : (fromProp !== undefined && fromProp !== null && fromProp !== '' ? fromProp : fallback)
   const n = Number(raw)
   const radius = Number.isFinite(n) ? Math.max(0, n) : fallback
   return {
@@ -210,15 +256,19 @@ const DEMO_PRODUCTS: PreviewProductItem[] = [
   { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86 },
 ]
 
-const showFailState = computed(() => false)
+const showFailState = computed(() => !!props.previewMode && props.component.props?._previewDataFailed === true)
 
 const failMessage = computed(() =>
   props.previewMode
-    ? '商品数据加载失败，请确认接口可用或稍后重试'
+    ? '商品数据加载失败，请确认商品已上架或稍后重试'
     : '商品数据请求失败，请检查网络或数据源配置',
 )
 
-const showEmptyState = computed(() => false)
+const showEmptyState = computed(() => {
+  if (showFailState.value) return false
+  if (!props.previewMode) return false
+  return visibleProductItems.value.length === 0 && !liveLoading.value
+})
 
 function formatMoney(value: unknown) {
   const n = Number(value)
@@ -252,55 +302,89 @@ function normalizeItem(item: any, index = 0): PreviewProductItem {
   const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : '4.9'
   const safeReviews = reviews > 0 ? reviews : (86 + (index % 40))
   const art = ART_PALETTE[index % ART_PALETTE.length]
+  const priceLabel = formatProductPriceLabel(price, zeroPriceDisplay.value)
+  const salesCount = Number.isFinite(sales) ? sales : 0
+  const salesLabel = formatProductSalesLabel(price, salesCount)
   return {
     id: item.id,
     name: item.name || item.title || '商品名称',
     price: formatMoney(price),
-    sales: Number.isFinite(sales) ? sales : 0,
-    image: item.image || item.cover || item.coverUrl || item.cover_url || '',
-    meta: `${pickTypeLabel(item)} · 已售 ${Number.isFinite(sales) ? sales : 0}`,
+    priceText: priceLabel.text,
+    priceWithYuan: priceLabel.withYuan,
+    sales: salesCount,
+    salesLabel,
+    image: pickProductCoverUrl(item),
+    meta: `${pickTypeLabel(item)} · ${salesLabel}`,
     ratingLine: `⭐ ${safeScore} · ${safeReviews} 评价`,
     glyph: art.glyph,
     artStyle: { background: art.bg },
   }
 }
 
+function resolveManualDisplayItems(
+  saved: any[],
+  live: any[],
+  ids: string[],
+  limit: number,
+) {
+  const ordered = ids.length
+    ? orderProductsByIds(ids, live, saved)
+    : orderProductsByIds(saved.map((item) => String(item.id)), live, saved)
+  return ordered.slice(0, limit)
+}
+
 const visibleProductItems = computed<PreviewProductItem[]>(() => {
   const items = props.component.props?.items
-  const limit = Math.max(Number(props.component.props?.limit || 4), 1)
+  const displayMode = props.component.props?.display_mode === 'stream' ? 'stream' : 'fixed'
+  const cap = displayMode === 'stream'
+    ? Math.max(Number(props.component.props?.page_size || 10), 5)
+    : Math.max(Number(props.component.props?.limit || 4), 1)
   const ids = Array.isArray(props.component.props?.product_ids)
     ? props.component.props.product_ids.map((id: any) => String(id))
     : []
   const manual = props.component.props?.source_mode === 'manual' || ids.length > 0
+  const saved = Array.isArray(items) ? items : []
+  const live = liveItems.value.length ? liveItems.value : saved
 
   if (props.previewMode) {
-    if (manual && Array.isArray(items) && items.length) {
-      const map = new Map(items.map((item: any) => [String(item.id), item]))
-      const ordered = ids.length
-        ? ids.map((id: string) => map.get(id)).filter(Boolean)
-        : items
-      return ordered.slice(0, limit).map(normalizeItem)
+    if (manual && (saved.length || live.length)) {
+      const ordered = resolveManualDisplayItems(saved, live, ids, cap)
+      if (ordered.length) return ordered.map((item, i) => normalizeItem(item, i))
     }
-    const source = Array.isArray(items) && items.length ? items : DEMO_PRODUCTS
-    return source.slice(0, limit).map(normalizeItem)
+    if (Array.isArray(items) && items.length) {
+      return items.slice(0, cap).map((item, i) => normalizeItem(item, i))
+    }
+    if (props.component.props?._previewDataFailed) return []
+    return DEMO_PRODUCTS.slice(0, cap).map((item, i) => normalizeItem(item, i))
   }
 
-  if (manual && Array.isArray(items) && items.length) {
-    const map = new Map(items.map((item: any) => [String(item.id), item]))
-    const ordered = ids.length
-      ? ids.map((id: string) => map.get(id)).filter(Boolean)
-      : items
-    if (ordered.length) return ordered.slice(0, limit).map(normalizeItem)
+  if (manual && (saved.length || live.length)) {
+    const manualCap = displayMode === 'stream' ? Math.max(ids.length, saved.length, 50) : cap
+    const ordered = resolveManualDisplayItems(saved, live, ids, manualCap)
+    if (ordered.length) return ordered.map(normalizeItem)
   }
 
-  const live = liveItems.value.length ? liveItems.value : (Array.isArray(items) ? items : [])
   const source = live.length ? live : DEMO_PRODUCTS
-  return source.slice(0, limit).map(normalizeItem)
+  return source.slice(0, cap).map(normalizeItem)
 })
 
-function onCartClick(item: PreviewProductItem) {
+function onProductClick(event: MouseEvent, item: PreviewProductItem) {
+  // 编辑画布不拦截点击，让事件冒泡以便选中组件
   if (!props.previewMode) return
-  ElMessage.success(`预览：已将「${item.name}」加入购物车`)
+  event.stopPropagation()
+  const id = item.id
+  if (id == null || String(id).startsWith('demo-')) {
+    ElMessage.info('演示商品无真实详情，请用已上架商品预览')
+    return
+  }
+  emit('preview-action', {
+    tab: 'shop',
+    message: `已打开商品「${item.name}」`,
+    detailType: 'product',
+    detailTitle: item.name,
+    detailDesc: `售价 ¥${item.price}`,
+    productId: id,
+  })
 }
 
 function resolvePreviewTab(link: string, fallback: string) {
@@ -558,16 +642,6 @@ function onMoreClick() {
 
     &.layout-waterfall {
       grid-template-columns: 1fr 1fr;
-
-      .product-card:nth-child(odd) .product-img {
-        aspect-ratio: 4 / 3;
-        height: auto;
-      }
-
-      .product-card:nth-child(even) .product-img {
-        aspect-ratio: 16 / 9;
-        height: auto;
-      }
     }
   }
 
@@ -580,6 +654,15 @@ function onMoreClick() {
     background: #fff;
     border: 1px solid #edf1f7;
     box-sizing: border-box;
+
+    &.is-clickable {
+      cursor: pointer;
+
+      &:hover {
+        border-color: #c9d8ff;
+        box-shadow: 0 6px 16px rgba(28, 43, 76, 0.08);
+      }
+    }
   }
 
   .product-thumb {
@@ -619,10 +702,10 @@ function onMoreClick() {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+    word-break: break-word;
   }
 
   .product-row-sub {
-    font-size: 11px;
     color: #8b95a7;
     white-space: nowrap;
     overflow: hidden;
@@ -645,7 +728,6 @@ function onMoreClick() {
 
   .product-row-rate,
   .product-row-sales {
-    font-size: 11px;
     color: #8b95a7;
   }
 
@@ -656,14 +738,23 @@ function onMoreClick() {
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(28, 43, 76, 0.06);
 
+    &.is-clickable {
+      cursor: pointer;
+
+      &:hover {
+        border-color: #c9d8ff;
+        box-shadow: 0 8px 18px rgba(28, 43, 76, 0.1);
+      }
+    }
+
     .product-img {
+      position: relative;
       width: 100%;
-      height: auto;
       aspect-ratio: 16 / 9;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
       background: #f1f5fb;
 
       .product-cover {
@@ -671,6 +762,10 @@ function onMoreClick() {
         height: 100%;
         object-fit: cover;
         display: block;
+      }
+
+      .product-img-ph {
+        font-size: 32px;
       }
     }
 
@@ -681,16 +776,17 @@ function onMoreClick() {
         font-size: 14px;
         font-weight: 700;
         color: #172033;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        word-break: break-word;
       }
 
       .product-bottom {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 4px;
         margin-top: 4px;
       }
 
@@ -713,29 +809,9 @@ function onMoreClick() {
       .product-sales {
         min-width: 0;
         color: #909399;
-        font-size: 11px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-      }
-
-      .cart-btn {
-        flex-shrink: 0;
-        width: 26px;
-        height: 26px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        font-size: 14px;
-        background: #fff5f5;
-        border: 1px solid #fecaca;
-        border-radius: 50%;
-        cursor: pointer;
-
-        &:hover {
-          background: #fee2e2;
-        }
       }
     }
   }

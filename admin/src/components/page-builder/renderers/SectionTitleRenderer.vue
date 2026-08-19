@@ -2,6 +2,7 @@
   <div
     class="render-section-title"
     :class="[`align-${align}`, { 'has-more': showMore }]"
+    :style="rootStyle"
   >
     <div class="text">
       <div class="main" :style="mainStyle">{{ component.props.title || '分区标题' }}</div>
@@ -18,7 +19,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
+import { resolvePreviewLinkAction, runPreviewLinkAction } from '@/utils/preview-link'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -26,8 +29,26 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
+  'preview-action': [payload: {
+    tab: string
+    message: string
+    detailType?: string
+    detailTitle?: string
+    detailDesc?: string
+    productId?: string | number
+    previewPath?: string
+  }]
 }>()
+
+function clampPad(v: unknown, fallback: number) {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : fallback
+}
+
+const rootStyle = computed(() => ({
+  paddingTop: `${clampPad(props.component.props?.padding_top, 4)}px`,
+  paddingBottom: `${clampPad(props.component.props?.padding_bottom, 8)}px`,
+}))
 
 const align = computed(() => (String(props.component.props?.align || 'left') === 'center' ? 'center' : 'left'))
 const showMore = computed(() => props.component.props?.show_more === true)
@@ -51,11 +72,25 @@ const moreStyle = computed(() => ({
 }))
 
 function onMoreClick() {
-  if (!props.previewMode || !moreLink.value) return
-  emit('preview-action', {
-    tab: 'content',
-    message: `跳转：${moreLink.value}`,
-  })
+  const link = moreLink.value
+  if (!link) {
+    ElMessage.warning('未配置跳转链接')
+    return
+  }
+  if (!props.previewMode) {
+    ElMessage.info(`已配置跳转：${link}`)
+    return
+  }
+  const action = resolvePreviewLinkAction(
+    { link_type: 'page', link_url: link },
+    moreText.value,
+  )
+  if (!action) {
+    ElMessage.warning('未配置跳转链接')
+    return
+  }
+  const message = runPreviewLinkAction(action, (payload) => emit('preview-action', payload))
+  if (message) ElMessage.info(message)
 }
 </script>
 
@@ -64,7 +99,8 @@ function onMoreClick() {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 4px 2px 8px;
+  padding-left: 2px;
+  padding-right: 2px;
   background: transparent;
 
   &.align-center {

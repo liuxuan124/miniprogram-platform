@@ -18,6 +18,27 @@
         @change="(v: boolean) => emit('update', { title_bold: v })"
       />
     </el-form-item>
+    <el-divider content-position="left">间距</el-divider>
+    <el-form-item label="上留白">
+      <el-input-number
+        :model-value="Number(data.padding_top ?? 4)"
+        :min="0"
+        :max="48"
+        controls-position="right"
+        @change="(v: number | undefined) => emit('update', { padding_top: v ?? 4 })"
+      />
+      <div class="hint" style="margin-top:4px">单位 px</div>
+    </el-form-item>
+    <el-form-item label="下留白">
+      <el-input-number
+        :model-value="Number(data.padding_bottom ?? 8)"
+        :min="0"
+        :max="48"
+        controls-position="right"
+        @change="(v: number | undefined) => emit('update', { padding_bottom: v ?? 8 })"
+      />
+      <div class="hint" style="margin-top:4px">单位 px</div>
+    </el-form-item>
     <TitleFontSizeFields
       :data="data"
       subtitle-label="副标题字号"

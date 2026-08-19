@@ -580,6 +580,9 @@ function validateBeforePublish(): string[] {
     if (comp.type === 'article_list' && !comp.props.data_source) {
       warnings.push('文章列表未配置真实数据源，发布后该区域可能为空')
     }
+    if (comp.type === 'hot_news' && !comp.props.data_source) {
+      warnings.push('今日热门资讯未配置真实数据源，发布后该区域可能为空')
+    }
     if (comp.type === 'form_entry' && !(comp.props.formId || comp.props.formTemplateId)) {
       warnings.push('表单入口未关联表单')
     }

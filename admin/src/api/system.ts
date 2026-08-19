@@ -80,9 +80,15 @@ export function getConfigByGroupSilent(group: ConfigGroup) {
 export function normalizeUploadUrl(url: string): string {
   if (!url) return url
   const m = url.match(/^https?:\/\/localhost(?::\d+)?(\/uploads\/.+)$/)
-  if (!m) return url
-  const origin = (import.meta.env.VITE_API_TARGET as string | undefined) || window.location.origin
-  return origin.replace(/\/+$/, '') + m[1]
+  if (m) {
+    const origin = (import.meta.env.VITE_API_TARGET as string | undefined) || window.location.origin
+    return origin.replace(/\/+$/, '') + m[1]
+  }
+  if (url.startsWith('/uploads/')) {
+    const origin = (import.meta.env.VITE_API_TARGET as string | undefined) || window.location.origin
+    return origin.replace(/\/+$/, '') + url
+  }
+  return url
 }
 
 /** 上传文件 */

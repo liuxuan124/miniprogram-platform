@@ -1,0 +1,27 @@
+<!-- components/dsl-brand-header/dsl-brand-header.wxml — 品牌顶栏（替代系统导航栏） -->
+<view class="dsl-brand-header-root">
+  <view
+    class="dsl-brand-header {{fixedTop ? 'dsl-brand-header--pinned' : ''}}"
+    style="{{headerStyle}}"
+  >
+    <view class="dsl-brand-header__safe" style="height:{{statusBarHeight}}px;"></view>
+    <view class="dsl-brand-header__bar" style="{{barStyle}}">
+      <view wx:if="{{logoUrl || logoText}}" class="dsl-brand-header__brand">
+        <image
+          wx:if="{{logoUrl}}"
+          class="dsl-brand-header__logo"
+          src="{{logoUrl}}"
+          mode="aspectFit"
+          style="height:{{logoHeight}}rpx;max-width:{{logoMaxWidth}}rpx;"
+        />
+        <text wx:elif="{{logoText}}" class="dsl-brand-header__logo-text" style="{{logoTextStyle}}">{{logoText}}</text>
+      </view>
+      <view wx:if="{{showDivider && (logoUrl || logoText)}}" class="dsl-brand-header__divider" style="{{dividerStyle}}"></view>
+      <view class="dsl-brand-header__text">
+        <text class="dsl-brand-header__title" style="{{titleStyle}}">{{titleText}}</text>
+        <text wx:if="{{subtitleText}}" class="dsl-brand-header__subtitle" style="{{subtitleStyle}}">{{subtitleText}}</text>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{fixedTop}}" class="dsl-brand-header__spacer" style="height:{{totalHeight}}px;"></view>
+</view>
