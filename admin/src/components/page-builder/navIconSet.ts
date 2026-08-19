@@ -89,7 +89,7 @@ export function navIconDisplaySrc(icon?: string): string {
   const raw = String(icon || '').trim()
   if (!raw) return ''
   if (raw.includes('?')) return raw
-  return isNavFlatIconSrc(raw) ? `${raw}?t=20260819e` : raw
+  return isNavFlatIconSrc(raw) ? `${raw}?t=20260819f` : raw
 }
 
 export function findNavFlatIcon(icon?: string): NavFlatIcon | undefined {
