@@ -1,13 +1,16 @@
 // components/dsl-renderer/dsl-renderer.js — DSL 渲染引擎
 // 接收组件 DSL 数据，根据 type 分发到对应的子组件进行渲染
 const { executeAction, isImageUrl, navigatePage, parseStyle, appendNavStackStyle } = require('../../utils/render')
+const { resolveNavIconUrl } = require('../../utils/nav-icon-url')
 
 /** 预处理 items，标记 icon 是否为真实图片 URL */
 function processIconItems(items) {
   if (!Array.isArray(items)) return []
   return items.map(function (item) {
+    const icon = resolveNavIconUrl(item.icon) || item.icon || ''
     return Object.assign({}, item, {
-      _iconIsImage: !!(item.icon && isImageUrl(item.icon)),
+      icon,
+      _iconIsImage: !!(icon && isImageUrl(icon)),
     })
   })
 }
