@@ -1,7 +1,9 @@
-// pages/knowledge-mall/knowledge-mall.js — 对齐原型「知识商城」
+// pages/knowledge-mall/knowledge-mall.js — Tab 商城页：优先加载导航绑定的装修页 DSL
 const productService = require('../../services/product')
 const cartService = require('../../services/cart')
 const { createSharePageConfig } = require('../../utils/share')
+const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
+const { getNavLayout } = require('../../utils/nav-layout')
 
 const TYPE_TABS = [
   { key: 'all', label: '全部' },
@@ -124,7 +126,12 @@ function normalizeProduct(item) {
 Page({
   ...createSharePageConfig(),
   data: {
-    statusBarHeight: 20,
+    dslMode: false,
+    error: '',
+    flowComponents: [],
+    floatComponents: [],
+    hasBrandHeader: false,
+    statusBarHeight: getNavLayout().statusBarHeight,
     typeTabs: TYPE_TABS,
     activeType: 'all',
     products: [],
@@ -139,14 +146,17 @@ Page({
   },
 
   onLoad(options) {
-    try {
-      const sys = wx.getSystemInfoSync()
-      this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
-    } catch (e) { /* ignore */ }
-    const fromOpt = (options && options.type) || ''
-    if (fromOpt) this.setData({ activeType: fromOpt })
-    this._consumeTabQuery()
-    this._loadProducts(true)
+    loadTabBoundDslPage(this, '/pages/knowledge-mall/knowledge-mall').then((ok) => {
+      if (ok) return
+      try {
+        const sys = wx.getSystemInfoSync()
+        this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
+      } catch (e) { /* ignore */ }
+      const fromOpt = (options && options.type) || ''
+      if (fromOpt) this.setData({ activeType: fromOpt })
+      this._consumeTabQuery()
+      this._loadProducts(true)
+    })
   },
 
   onShow() {
@@ -170,6 +180,10 @@ Page({
   },
 
   onPullDownRefresh() {
+    if (this.data.dslMode) {
+      loadTabBoundDslPage(this, '/pages/knowledge-mall/knowledge-mall', true).finally(() => wx.stopPullDownRefresh())
+      return
+    }
     this._loadProducts(true).finally(() => wx.stopPullDownRefresh())
   },
 
@@ -181,6 +195,10 @@ Page({
   },
 
   onReachBottomLoad() {
+    if (this.data.dslMode) {
+      handleDslReachBottom(this)
+      return
+    }
     if (this.data.hasMore && !this.data.loading) {
       this._loadProducts(false)
     }

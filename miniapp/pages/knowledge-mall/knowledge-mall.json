@@ -2,10 +2,13 @@
   "navigationBarTitleText": "知识商城",
   "navigationStyle": "custom",
   "enablePullDownRefresh": true,
+  "onReachBottomDistance": 80,
   "backgroundTextStyle": "dark",
   "backgroundColor": "#F5F6F8",
   "usingComponents": {
     "skeleton": "../../components/skeleton/skeleton",
-    "empty-state": "../../components/empty-state/empty-state"
+    "empty-state": "../../components/empty-state/empty-state",
+    "dsl-renderer": "/components/dsl-renderer/dsl-renderer",
+    "dsl-float-button": "/components/dsl-float-button/dsl-float-button"
   }
 }

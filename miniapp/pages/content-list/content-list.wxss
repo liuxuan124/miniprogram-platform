@@ -1,4 +1,5 @@
 /* pages/content-list — 对齐出海笔记原型内容中心 */
+@import "../../templates/dsl-tab-body.wxss";
 
 .cc-page {
   display: flex;

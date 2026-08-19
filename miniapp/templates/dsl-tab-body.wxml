@@ -1,0 +1,25 @@
+<!-- miniapp/templates/dsl-tab-body.wxml — Tab 页装修 DSL 渲染片段 -->
+<template name="dsl-tab-body">
+<view wx:if="{{loading}}" class="dsl-tab-page__state">加载中...</view>
+<view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
+<block wx:else>
+  <view
+    class="dsl-tab-page__body"
+    style="{{hasBrandHeader ? '' : 'padding-top:' + statusBarHeight + 'px;'}}"
+  >
+    <dsl-renderer
+      wx:for="{{flowComponents}}"
+      wx:key="id"
+      component="{{item}}"
+    />
+    <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
+  </view>
+  <dsl-float-button
+    wx:for="{{floatComponents}}"
+    wx:key="id"
+    config="{{item.props}}"
+    actions="{{item.actions}}"
+    styleString="{{item.styleString}}"
+  />
+</block>
+</template>

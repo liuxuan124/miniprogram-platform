@@ -1,4 +1,12 @@
-<!-- pages/content-list/content-list.wxml — 对齐原型内容中心 -->
+<!-- pages/content-list/content-list.wxml — Tab 内容页：装修 DSL 或原型兜底 -->
+<import src="../../templates/dsl-tab-body.wxml" />
+<block wx:if="{{dslMode}}">
+  <template
+    is="dsl-tab-body"
+    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight}}"
+  />
+</block>
+<block wx:else>
 <view class="cc-page" style="padding-top: {{statusBarHeight}}px;">
   <view class="cc-nav">
     <text class="cc-nav__title">内容中心</text>
@@ -135,4 +143,5 @@
     bind:action="clearFilters"
   />
 </view>
+</block>
 <login-sheet id="global-login-sheet" />

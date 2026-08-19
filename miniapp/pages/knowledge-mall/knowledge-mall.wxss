@@ -1,4 +1,5 @@
 /* pages/knowledge-mall — 对齐原型知识商城 */
+@import "../../templates/dsl-tab-body.wxss";
 
 .km-page {
   display: flex;
