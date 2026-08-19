@@ -39,7 +39,7 @@
     <div v-else class="fp-config" v-loading="loading">
       <aside class="fp-rail">
         <h4>页面清单</h4>
-        <div v-for="group in screenGroups" :key="group.title" class="fp-rail__group">
+        <div v-for="group in displayScreenGroups" :key="group.title" class="fp-rail__group">
           <div class="fp-rail__label">{{ group.title }}</div>
           <button
             v-for="item in group.items"
@@ -66,8 +66,21 @@
         />
 
         <PreviewPhone :page-title="phoneTitle" :page-bg-color="pageBgColor" @back="handleBack">
-          <!-- 首页 DSL -->
-          <template v-if="activeScreen === 'home'">
+          <!-- 版本快照：按该次发布的真实页面 DSL 渲染 -->
+          <template v-if="snapshotPages.length">
+            <ComponentItem
+              v-for="(comp, index) in activeComponents"
+              :key="comp.id"
+              :component="comp"
+              :index="index"
+              :selected="false"
+              :preview-mode="true"
+            />
+            <div v-if="!loading && activeComponents.length === 0" class="fp-empty">该页在此版本快照中为空</div>
+          </template>
+
+          <!-- 无快照时：首页 DSL -->
+          <template v-else-if="activeScreen === 'home'">
             <ComponentItem
               v-for="(comp, index) in homeComponents"
               :key="comp.id"
@@ -278,11 +291,11 @@
 
           <div class="fp-tabbar" v-if="showTabbar">
             <button
-              v-for="tab in tabs"
+              v-for="tab in displayTabs"
               :key="tab.key"
               type="button"
               class="t"
-              :class="{ on: activeScreen === tab.key }"
+              :class="{ on: isTabOn(tab.key) }"
               @click="openScreen(tab.key)"
             >
               <span>{{ tab.icon }}</span>
@@ -323,8 +336,12 @@ const loading = ref(false)
 const notice = ref('')
 const semver = ref(String(route.query.semver || ''))
 const homeComponents = ref<ComponentInstance[]>([])
+const activeComponents = ref<ComponentInstance[]>([])
+const snapshotPages = ref<Array<{ path: string; name: string; dslContent?: string }>>([])
+const snapshotTabs = ref<Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>>([])
+const pageCache = new Map<string, { title: string; bg: string; components: ComponentInstance[] }>()
 const pageBgColor = ref('#f5f6f9')
-const homeTitle = ref('出海笔记首页')
+const homeTitle = ref('首页')
 const activeScreen = ref('home')
 const products = ref<any[]>([])
 const contents = ref<any[]>([])
@@ -428,9 +445,32 @@ const stubScreens: Record<string, { icon: string; title: string; desc: string }>
 
 const prototypeSrc = computed(() => `/prototype/chuhai-notes.html?embed=1`)
 const modeLabel = computed(() => (previewMode.value === 'prototype' ? '设计原型' : '本版本配置'))
+const displayScreenGroups = computed(() => {
+  if (!snapshotPages.value.length) return screenGroups
+  return [{
+    title: semver.value ? `v${semver.value} 页面快照` : '本版本页面',
+    items: snapshotPages.value.map((page, index) => ({
+      no: String(index + 1).padStart(2, '0'),
+      key: page.path,
+      label: page.name || page.path,
+    })),
+  }]
+})
+const displayTabs = computed(() => {
+  if (!snapshotTabs.value.length) return tabs
+  return snapshotTabs.value.map((tab) => ({
+    key: tab.pagePath || String(tab.pageId || ''),
+    label: tab.text,
+    icon: tab.icon || '●',
+  }))
+})
+const showTabbar = computed(() => {
+  if (snapshotPages.value.length) return displayTabs.value.length > 0
+  return ['home', 'content', 'shop', 'mine'].includes(activeScreen.value)
+})
 const previewLoggedIn = computed(() => authPreviewMode.value === 'member')
-const showTabbar = computed(() => ['home', 'content', 'shop', 'mine'].includes(activeScreen.value))
 const phoneTitle = computed(() => {
+  if (snapshotPages.value.length) return homeTitle.value
   if (activeScreen.value === 'home') return homeTitle.value
   if (activeScreen.value === 'login') return '登录'
   const tab = tabs.find((t) => t.key === activeScreen.value)
@@ -486,7 +526,74 @@ function productKind(p: any) {
   return '知识产品'
 }
 
+function normalizePath(path?: string) {
+  return String(path || '').trim().replace(/^\/+/, '').replace(/\/+$/, '')
+}
+
+function isTabOn(key: string) {
+  return normalizePath(activeScreen.value) === normalizePath(key)
+}
+
+function findSnapshotPage(path: string) {
+  const needle = normalizePath(path)
+  return snapshotPages.value.find((page) => normalizePath(page.path) === needle)
+    || snapshotPages.value.find((page) => {
+      const p = normalizePath(page.path)
+      return p.endsWith(needle) || needle.endsWith(p)
+    })
+}
+
+async function showSnapshotPage(path: string) {
+  activeScreen.value = path
+  const cacheKey = normalizePath(path)
+  const cached = pageCache.get(cacheKey)
+  if (cached) {
+    homeTitle.value = cached.title
+    pageBgColor.value = cached.bg
+    activeComponents.value = cached.components
+    homeComponents.value = cached.components
+    return
+  }
+  const page = findSnapshotPage(path)
+  if (!page?.dslContent) {
+    homeTitle.value = page?.name || '页面预览'
+    activeComponents.value = []
+    homeComponents.value = []
+    return
+  }
+  try {
+    const dsl = JSON.parse(page.dslContent) as PageDSL
+    const rawComponents = Array.isArray(dsl.components) ? dsl.components : []
+    const rawTitle = dsl.page?.name || page.name || '页面预览'
+    const rawBg = dsl.page?.background_color || '#f5f6f9'
+    homeTitle.value = rawTitle
+    pageBgColor.value = rawBg
+    activeComponents.value = rawComponents
+    homeComponents.value = rawComponents
+    pageCache.set(cacheKey, { title: rawTitle, bg: rawBg, components: rawComponents })
+
+    void hydratePreviewDsl(dsl).then(({ dsl: hydrated }) => {
+      const title = hydrated.page?.name || rawTitle
+      const bg = hydrated.page?.background_color || rawBg
+      const components = Array.isArray(hydrated.components) ? hydrated.components : rawComponents
+      pageCache.set(cacheKey, { title, bg, components })
+      if (normalizePath(activeScreen.value) === cacheKey) {
+        homeTitle.value = title
+        pageBgColor.value = bg
+        activeComponents.value = components
+        homeComponents.value = components
+      }
+    }).catch(() => {})
+  } catch (e: any) {
+    notice.value = e?.message || '该页快照解析失败'
+  }
+}
+
 function openScreen(key: string) {
+  if (snapshotPages.value.length) {
+    void showSnapshotPage(key)
+    return
+  }
   activeScreen.value = key
   if (key === 'product' && !currentProduct.value && products.value.length) {
     currentProduct.value = products.value[0]
@@ -558,9 +665,57 @@ async function applyDsl(dsl: PageDSL) {
 function extractDslFromSnapshot(snapshotJson: string, path: string): PageDSL | null {
   if (!snapshotJson) return null
   const snapshot = JSON.parse(snapshotJson) as { pages?: Array<{ path?: string; dslContent?: string }> }
-  const page = snapshot.pages?.find((item) => item.path === path)
+  const needle = normalizePath(path)
+  const page = snapshot.pages?.find((item) => {
+    const p = normalizePath(item.path)
+    return p === needle || p.endsWith(needle) || needle.endsWith(p)
+  })
   if (!page?.dslContent) return null
   return JSON.parse(page.dslContent) as PageDSL
+}
+
+async function loadReleaseSnapshot() {
+  snapshotPages.value = []
+  snapshotTabs.value = []
+  activeComponents.value = []
+  pageCache.clear()
+  notice.value = ''
+  if (!releaseId.value || !isAuthenticated()) {
+    await loadHomeDsl()
+    return
+  }
+  try {
+    const res = await getReleaseDetail(releaseId.value)
+    const release = ((res as any).data || res) as {
+      semver?: string
+      snapshot?: string
+    }
+    semver.value = release.semver || semver.value
+    if (!release.snapshot) {
+      notice.value = '该版本没有页面快照，已改为展示当前线上首页。'
+      await loadHomeDsl()
+      return
+    }
+    const snap = JSON.parse(release.snapshot) as {
+      pages?: Array<{ path?: string; name?: string; dslContent?: string }>
+      systemConfig?: { tabbarItems?: Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }> }
+    }
+    snapshotPages.value = (snap.pages || []).filter((page) => page?.path) as Array<{
+      path: string
+      name: string
+      dslContent?: string
+    }>
+    snapshotTabs.value = Array.isArray(snap.systemConfig?.tabbarItems) ? snap.systemConfig.tabbarItems : []
+    const home = snapshotPages.value.find((page) => /pages\/index\/index/.test(normalizePath(page.path)))
+      || snapshotPages.value[0]
+    if (home) await showSnapshotPage(home.path)
+    else notice.value = '该版本快照里没有可预览页面'
+  } catch (e: any) {
+    const timedOut = e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message || ''))
+    notice.value = timedOut
+      ? '版本快照加载超时，请稍后重试'
+      : (e?.message || e?.msg || '版本快照加载失败')
+  }
 }
 
 async function loadHomeDsl() {
@@ -634,7 +789,7 @@ watch(previewMode, (mode) => {
   router.replace({ query: q })
   if (mode === 'config') {
     loading.value = true
-    Promise.all([loadHomeDsl(), loadBusinessData(), loadMiniappConfig()]).finally(() => {
+    loadReleaseSnapshot().finally(() => {
       loading.value = false
     })
   }
@@ -643,7 +798,7 @@ watch(previewMode, (mode) => {
 onMounted(async () => {
   if (previewMode.value === 'config') {
     loading.value = true
-    await Promise.all([loadHomeDsl(), loadBusinessData(), loadMiniappConfig()])
+    await loadReleaseSnapshot()
     loading.value = false
   }
 })

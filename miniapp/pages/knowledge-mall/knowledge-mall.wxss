@@ -1,0 +1,215 @@
+/* pages/knowledge-mall — 对齐原型知识商城 */
+
+.km-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  background: #f5f6f8;
+}
+
+.km-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 88rpx;
+  padding: 0 32rpx;
+  background: #fff;
+}
+
+.km-header__title {
+  color: #111;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
+.km-header__cart {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.km-header__cart-emoji {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.km-header__badge {
+  position: absolute;
+  top: 2rpx;
+  right: 0;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 6rpx;
+  color: #fff;
+  font-size: 16rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+  text-align: center;
+  background: #e53935;
+  border-radius: 999rpx;
+}
+
+.km-scroll {
+  flex: 1;
+  height: 0;
+  box-sizing: border-box;
+}
+
+.km-banner {
+  position: relative;
+  overflow: hidden;
+  margin: 16rpx 24rpx 20rpx;
+  padding: 36rpx 40rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8a3d 0%, #ff5a3c 55%, #f43f3f 100%);
+  border-radius: 28rpx;
+  box-shadow: 0 16rpx 36rpx rgba(244, 90, 60, 0.28);
+}
+
+.km-banner__title {
+  display: block;
+  position: relative;
+  z-index: 1;
+  font-size: 32rpx;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.km-banner__desc {
+  display: block;
+  position: relative;
+  z-index: 1;
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, 0.93);
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+
+.km-tabs {
+  margin: 0 0 8rpx;
+  padding: 0 24rpx;
+  white-space: nowrap;
+}
+
+.km-tabs__inner {
+  display: inline-flex;
+  gap: 14rpx;
+  padding-bottom: 8rpx;
+}
+
+.km-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56rpx;
+  padding: 0 28rpx;
+  color: #5b6475;
+  font-size: 24rpx;
+  font-weight: 600;
+  background: #fff;
+  border: 1rpx solid #e8edf5;
+  border-radius: 999rpx;
+}
+
+.km-tab--on {
+  color: #fff;
+  background: #111;
+  border-color: #111;
+}
+
+.km-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 8rpx 24rpx 0;
+}
+
+/* 单卡独立白底，不再套外层大框 */
+.km-card {
+  display: flex;
+  gap: 26rpx;
+  padding: 26rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(28, 43, 76, 0.06);
+}
+
+.km-card__cover,
+.km-card__glyph {
+  flex-shrink: 0;
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 30rpx;
+}
+
+.km-card__cover {
+  background: #f0f2f5;
+}
+
+.km-card__glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+}
+
+.km-card__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.km-card__name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #111;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.42;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.km-card__meta {
+  margin-top: 10rpx;
+  color: #8b93a3;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.km-card__foot {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-top: auto;
+  padding-top: 14rpx;
+}
+
+.km-card__price {
+  color: #e53935;
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.km-card__rating-text {
+  color: #8b93a3;
+  font-size: 22rpx;
+}
+
+.km-footer {
+  padding: 28rpx 0 8rpx;
+  color: #98a2b5;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.km-safe {
+  height: calc(140rpx + env(safe-area-inset-bottom));
+}

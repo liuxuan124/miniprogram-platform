@@ -1,25 +1,5 @@
-<!--components/dsl-article-list/dsl-article-list.wxml — 文章列表组件-->
+<!--components/dsl-article-list/dsl-article-list.wxml — 文章列表（无内置标题栏，标题请用 section_title）-->
 <view class="dsl-article-list {{showCategoryTabs ? 'dsl-article-list--tabs' : ''}}" style="{{styleString}}">
-  <view
-    wx:if="{{sectionTitle}}"
-    class="dsl-article-list__section-header dsl-article-list__section-header--{{sectionStyle}} dsl-article-list__section-header--{{sectionAlign}} {{sectionDivider ? 'dsl-article-list__section-header--divider' : ''}}"
-  >
-    <view wx:if="{{sectionStyle === 'bar'}}" class="dsl-article-list__section-bars" aria-hidden="true">
-      <view class="dsl-article-list__section-bar dsl-article-list__section-bar--down"></view>
-      <view class="dsl-article-list__section-bar dsl-article-list__section-bar--up"></view>
-    </view>
-    <view class="dsl-article-list__section-text">
-      <text class="dsl-article-list__section-main" style="{{sectionTitleStyle}}">{{sectionTitle}}</text>
-      <text wx:if="{{sectionSubtitle}}" class="dsl-article-list__section-sub" style="{{sectionSubtitleStyle}}">{{sectionSubtitle}}</text>
-    </view>
-    <text
-      wx:if="{{showMore}}"
-      class="dsl-article-list__section-more"
-      style="{{sectionMoreStyle}}"
-      catchtap="onTapMore"
-    >{{moreText}}</text>
-  </view>
-
   <view wx:if="{{showCategoryTabs}}" class="dsl-article-list__tabs-bar">
   <scroll-view
     class="dsl-article-list__tabs"

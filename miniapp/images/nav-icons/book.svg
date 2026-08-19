@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#E8EEFF"/>
+  <!-- 内容：叠放文稿 -->
+  <path fill="#A8B8F5" d="M34 28h30a4 4 0 0 1 4 4v36a4 4 0 0 1-4 4H34a4 4 0 0 1-4-4V32a4 4 0 0 1 4-4Z"/>
+  <path fill="#4F6DFF" d="M30 24h30a4 4 0 0 1 4 4v36a4 4 0 0 1-4 4H30a4 4 0 0 1-4-4V28a4 4 0 0 1 4-4Z"/>
+  <path fill="#fff" d="M36 36h18v5H36v-5Zm0 10h22v5H36v-5Zm0 10h14v5H36v-5Z"/>
+</svg>

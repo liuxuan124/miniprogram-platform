@@ -367,14 +367,23 @@
     styleString="{{comp.styleString}}"
   />
 
-  <!-- 11. 标题栏 section_title -->
+  <!-- 11. 分区标题 section_title -->
   <view
     wx:elif="{{comp.type === 'section_title'}}"
-    class="dsl-section-title {{comp.props.align === 'center' ? 'dsl-section-title--center' : ''}}"
+    class="dsl-section-title {{comp.props.align === 'center' ? 'dsl-section-title--center' : ''}} {{comp.props.show_more ? 'dsl-section-title--more' : ''}}"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-section-title__main" style="{{comp.props._titleStyle}}">{{comp.props.title || '栏目标题'}}</view>
-    <view wx:if="{{comp.props.subtitle}}" class="dsl-section-title__sub" style="{{comp.props._subtitleStyle}}">{{comp.props.subtitle}}</view>
+    <view class="dsl-section-title__text">
+      <view class="dsl-section-title__main" style="{{comp.props._titleStyle}}">{{comp.props.title || '分区标题'}}</view>
+      <view wx:if="{{comp.props.subtitle}}" class="dsl-section-title__sub" style="{{comp.props._subtitleStyle}}">{{comp.props.subtitle}}</view>
+    </view>
+    <view
+      wx:if="{{comp.props.show_more}}"
+      class="dsl-section-title__more"
+      style="{{comp.props._moreStyle}}"
+      data-link="{{comp.props.more_link}}"
+      catchtap="onQuickNavigate"
+    >{{comp.props.more_text || '查看更多>'}}</view>
   </view>
 
   <!-- 12. 分割线 divider -->

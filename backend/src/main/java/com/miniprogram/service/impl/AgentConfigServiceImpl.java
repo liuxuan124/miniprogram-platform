@@ -62,18 +62,18 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
     @Override
     public PageResult<AgentConfigVO> listConfigs(String keyword, Long current, Long size) {
         try {
-            LambdaQueryWrapper<AgentConfig> wrapper = new LambdaQueryWrapper<>();
-            wrapper.like(StringUtils.hasText(keyword), AgentConfig::getName, keyword);
-            wrapper.orderByDesc(AgentConfig::getUpdatedAt);
+        LambdaQueryWrapper<AgentConfig> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StringUtils.hasText(keyword), AgentConfig::getName, keyword);
+        wrapper.orderByDesc(AgentConfig::getUpdatedAt);
 
-            Page<AgentConfig> page = this.page(new Page<>(current, size), wrapper);
+        Page<AgentConfig> page = this.page(new Page<>(current, size), wrapper);
 
-            PageResult<AgentConfigVO> result = new PageResult<>();
-            result.setTotal(page.getTotal());
-            result.setCurrent(page.getCurrent());
-            result.setSize(page.getSize());
-            result.setRecords(page.getRecords().stream().map(this::toVO).toList());
-            return result;
+        PageResult<AgentConfigVO> result = new PageResult<>();
+        result.setTotal(page.getTotal());
+        result.setCurrent(page.getCurrent());
+        result.setSize(page.getSize());
+        result.setRecords(page.getRecords().stream().map(this::toVO).toList());
+        return result;
         } catch (Exception e) {
             log.warn("listConfigs failed (check V35 migration): {}", e.getMessage());
             PageResult<AgentConfigVO> empty = new PageResult<>();
@@ -94,7 +94,7 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
             config.setStatus(0);
         }
         if (config.getVersion() == null) {
-            config.setVersion(1);
+        config.setVersion(1);
         }
         LocalDateTime now = LocalDateTime.now();
         config.setCreatedAt(now);

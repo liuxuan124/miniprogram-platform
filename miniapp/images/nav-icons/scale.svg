@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#FDECF2"/>
+  <!-- 合规：天平 -->
+  <path fill="#D94F78" d="M46 26h4v8h18v5H50v33h14v5H32v-5h14V39H28v-5h18v-8Z"/>
+  <path fill="#D94F78" d="M22 44l12 18H10L22 44Zm52 0 12 18H62l12-18Z"/>
+</svg>

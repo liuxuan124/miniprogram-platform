@@ -46,7 +46,7 @@ Page({
     // 自定义 tabBar：始终藏住原生栏，避免双 Tab
     wx.hideTabBar({ animation: false, fail() {} })
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 2, hidden: false })
+      this.getTabBar().setData({ selected: 3, hidden: false })
     }
 
     AuthService.silentLogin()
@@ -268,10 +268,12 @@ Page({
     const isTab = [
       '/pages/index/index',
       '/pages/content-list/content-list',
+      '/pages/knowledge-mall/knowledge-mall',
       '/pages/mine/mine',
     ].indexOf(path) >= 0
+    // 旧商城路径转到新 Tab
     if (path === '/pages/product-list/product-list') {
-      wx.navigateTo({ url })
+      wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
       return
     }
     if (isTab) {

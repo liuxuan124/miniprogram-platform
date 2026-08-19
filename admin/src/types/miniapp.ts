@@ -144,7 +144,7 @@ export const NAV_TEMPLATES: NavTemplate[] = [
     icon: '🤖',
     tabs: [
       { text: '首页', icon: '🏠', pagePath: '/pages/index/index' },
-      { text: '商城', icon: '🛍️', pagePath: '/pages/product-list/product-list' },
+      { text: '商城', icon: '🛍️', pagePath: '/pages/knowledge-mall/knowledge-mall' },
       { text: 'AI', icon: '🤖', pagePath: '/pages/ai-chat/ai-chat' },
       { text: '我的', icon: '👤', pagePath: '/pages/mine/mine' },
     ],

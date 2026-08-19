@@ -110,6 +110,21 @@ function parseStyle(style) {
   if (!style || typeof style !== 'object') return ''
 
   const parts = []
+  // 外壳不再吃白底/内边距/圆角，避免「整块外框」；外边距与文字色仍生效
+  const SKIP_SHELL_KEYS = new Set([
+    'background_color',
+    'backgroundColor',
+    'padding_top',
+    'padding_bottom',
+    'padding_left',
+    'padding_right',
+    'paddingTop',
+    'paddingBottom',
+    'paddingLeft',
+    'paddingRight',
+    'border_radius',
+    'borderRadius',
+  ])
 
   if (style.text_color) {
     parts.push(`color: ${style.text_color}`)
@@ -121,6 +136,7 @@ function parseStyle(style) {
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
     if (key === 'text_color' || key === 'font_size' || key === 'visible') return
+    if (SKIP_SHELL_KEYS.has(key)) return
     if (typeof value === 'boolean') return
 
     // snake_case / camelCase → kebab-case（border_radius → border-radius）
@@ -340,6 +356,7 @@ async function loadAllComponentData(components, forceRefresh = false) {
 const TAB_PAGE_PATHS = [
   '/pages/index/index',
   '/pages/content-list/content-list',
+  '/pages/knowledge-mall/knowledge-mall',
   '/pages/product-list/product-list',
   '/pages/mine/mine',
 ]
@@ -384,8 +401,15 @@ function rewriteUnregisteredPage(path) {
 }
 
 function navigatePage(path) {
-  const url = rewriteUnregisteredPage(path)
+  let url = rewriteUnregisteredPage(path)
   if (!url) return
+
+  // 旧商城页统一切到知识商城 Tab
+  if (stripQuery(url) === '/pages/product-list/product-list') {
+    const q = parseQuery(url)
+    const qs = Object.keys(q).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(q[k])}`).join('&')
+    url = '/pages/knowledge-mall/knowledge-mall' + (qs ? '?' + qs : '')
+  }
 
   if (isTabPage(url)) {
     const query = parseQuery(url)

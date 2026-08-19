@@ -24,21 +24,23 @@
       type="info"
       show-icon
       :closable="false"
-      title="请先在「导航与外观」保存底部导航和首页绑定，再到这里一键发布。用户打开小程序看到的是绑定页的最新草稿，不是微信后台审核包。"
+      title="微信里打开的「跨境墨太白」就是下面这些装修页。改完点「进入装修」，再回到这里「发布到小程序」。这不会把代码上传到微信。"
     />
 
     <section class="live-bar">
       <div>
         <div class="live-label">当前线上版本</div>
         <div class="live-value">{{ preflight?.latestSemver || latestRelease?.semver || '尚未发布过' }}</div>
+        <div v-if="latestRelease" class="live-meta">
+          {{ latestRelease.pageCount || 0 }} 个页面 · {{ formatTime(latestRelease.publishedAt || latestRelease.createTime) }}
+        </div>
       </div>
-      <div v-if="latestRelease" class="live-meta">
-        {{ latestRelease.pageCount || 0 }} 个页面 · {{ formatTime(latestRelease.publishedAt || latestRelease.createTime) }}
-      </div>
+      <el-button v-if="latestRelease" type="primary" @click="openPreview(latestRelease)">预览当前版本</el-button>
     </section>
 
     <section v-loading="loading" class="card">
-      <h2>发布前检查</h2>
+      <h2>微信线上页面</h2>
+      <p class="muted section-desc">对应小程序底部导航绑定的页面，可直接进入装修器修改。</p>
       <div v-if="preflight?.blocking?.length" class="issue-list blocking">
         <div v-for="item in preflight.blocking" :key="item" class="issue">{{ item }}</div>
       </div>
@@ -51,6 +53,19 @@
         <el-table-column prop="path" label="路径" min-width="160" />
         <el-table-column label="本次动作" width="160">
           <template #default="{ row }">{{ actionLabel(row.action) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.id && row.action !== 'builtin'"
+              link
+              type="primary"
+              @click="openEditor(row)"
+            >
+              进入装修
+            </el-button>
+            <span v-else class="muted">系统内置</span>
+          </template>
         </el-table-column>
       </el-table>
       <el-input
@@ -67,7 +82,7 @@
     <section class="card">
       <div class="card-head">
         <h2>发布记录</h2>
-        <span class="muted">可回滚到历史整包。回滚会把当时的页面内容和导航配置恢复为线上。</span>
+        <span class="muted">点「预览」看该版本当时的页面快照。回滚会把当时的页面和导航恢复为线上。</span>
       </div>
       <el-table v-loading="historyLoading" :data="history" size="small">
         <el-table-column label="版本" width="140">
@@ -85,8 +100,9 @@
           <template #default="{ row }">{{ formatTime(row.publishedAt || row.createTime) }}</template>
         </el-table-column>
         <el-table-column prop="releaseNotes" label="说明" min-width="180" show-overflow-tooltip />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
+            <el-button link type="primary" @click="openPreview(row)">预览</el-button>
             <el-button
               v-if="row.status === 2"
               link
@@ -184,6 +200,27 @@ function loadAll() {
   loadHistory()
 }
 
+function openPreview(row: ReleaseRecord) {
+  if (!row?.id) {
+    ElMessage.warning('该版本无法预览')
+    return
+  }
+  const { href } = router.resolve({
+    path: '/h5/miniapp-preview',
+    query: {
+      view: 'config',
+      releaseId: String(row.id),
+      semver: row.semver || '',
+    },
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
+
+function openEditor(row: { id?: number | string; action?: string }) {
+  if (!row?.id || row.action === 'builtin') return
+  router.push(`/page-builder/editor/${row.id}`)
+}
+
 async function handlePublish() {
   if (!preflight.value?.canPublish) return
   try {
@@ -275,6 +312,13 @@ onMounted(loadAll)
   border-radius: var(--radius);
 }
 
+.live-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .live-label {
   color: var(--text-muted);
   font-size: 12px;
@@ -310,6 +354,10 @@ onMounted(loadAll)
 .muted {
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.section-desc {
+  margin: -4px 0 12px;
 }
 
 .issue-list {

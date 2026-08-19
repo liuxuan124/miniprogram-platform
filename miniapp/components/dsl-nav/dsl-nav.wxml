@@ -1,5 +1,5 @@
 <!--components/dsl-nav/dsl-nav.wxml — 导航宫格组件-->
-<view class="dsl-nav" style="{{styleString}}">
+<view class="dsl-nav {{showFrame ? 'dsl-nav--frame' : ''}}" style="{{styleString}};{{frameStyle}}">
   <!-- 网格布局 -->
   <view
     wx:if="{{config.layout !== 'scroll'}}"

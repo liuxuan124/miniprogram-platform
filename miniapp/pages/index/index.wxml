@@ -9,7 +9,7 @@
       <view class="hero-av">海</view>
       <view class="hero-meta">
         <view class="hero-nm">出海笔记 · 阿哲 <text class="hero-vf">已认证</text></view>
-        <view class="hero-bio">陪你把跨境生意，从经验变成方法</view>
+        <view class="hero-bio">跨境电商实战 · 选品 / 供应链 / 独立站</view>
       </view>
     </view>
     <view class="hero-kpi">
@@ -22,31 +22,27 @@
   <!-- Search -->
   <view class="searchbar" catchtap="goSearch" hover-class="searchbar--pressed">
     <text class="searchbar__icon">⌕</text>
-    <text class="searchbar__text">搜索选品、验厂、VAT、TikTok</text>
+    <text class="searchbar__text">搜索：选品清单 / 验厂 / VAT / TikTok</text>
     <view class="searchbar__action" catchtap="goSearch">搜索</view>
   </view>
 
-  <!-- Quick nav -->
-  <view class="quick-head">
-    <text>快速开始</text>
-    <text class="quick-head__sub">常用工具与服务</text>
-  </view>
+  <!-- Quick nav（对齐原型：无「快速开始」标题） -->
   <view class="quicknav">
     <view class="q" data-action="content" bindtap="onQuickNav">
-      <view class="ic ic-1">✦</view>
+      <view class="ic ic-1">📚</view>
       <text>内容中心</text>
     </view>
+    <view class="q" data-action="ebook" bindtap="onQuickNav">
+      <view class="ic ic-2">📘</view>
+      <text>资料包</text>
+    </view>
+    <view class="q" data-action="consult" bindtap="onQuickNav">
+      <view class="ic ic-3">🗓️</view>
+      <text>1v1咨询</text>
+    </view>
     <view class="q" data-action="member" bindtap="onQuickNav">
-      <view class="ic ic-2">♢</view>
+      <view class="ic ic-4">👑</view>
       <text>会员权益</text>
-    </view>
-    <view class="q" data-action="orders" bindtap="onQuickNav">
-      <view class="ic ic-3">◌</view>
-      <text>我的订单</text>
-    </view>
-    <view class="q" data-action="service" bindtap="onQuickNav">
-      <view class="ic ic-4">◉</view>
-      <text>联系客服</text>
     </view>
   </view>
 
@@ -191,23 +187,41 @@
     </view>
   </view>
 
-  <!-- Products：审核期隐藏商城入口 -->
-  <view class="sec" wx:if="{{false}}">
+  <!-- Products：知识产品（对齐原型，商品卡独立、无外层大白框） -->
+  <view class="sec">
     <view class="sec-h">
       <view>
-        <view class="sec-title">精选好物</view>
-        <view class="sec-sub">纸质手册与文创周边 · 快递发货</view>
+        <view class="sec-title">知识产品</view>
+        <view class="sec-sub">虚拟商品正常发货 · 咨询按时段预约</view>
       </view>
       <view class="sec-more" bindtap="goShop">商城 ›</view>
+    </view>
+    <view
+      class="p-card"
+      wx:for="{{products}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onProductTap"
+    >
+      <view class="p-ic" style="{{item.artStyle}}">
+        <text class="glyph sm">{{item.glyph}}</text>
+      </view>
+      <view class="p-in">
+        <view class="p-h4">{{item.title}}</view>
+        <view class="p-sub">{{item.sub}}</view>
+        <view class="p-foot">
+          <text class="p-pr">¥{{item.price}}</text>
+          <text class="p-rate">{{item.ratingLine}}</text>
+        </view>
+      </view>
     </view>
   </view>
 
   <view class="pad"></view>
 
-  <!-- 客服入口 -->
-  <view class="fab" bindtap="goService" aria-label="联系客服">
-    <text class="fab__spark">◉</text>
-    <text>客服</text>
+  <!-- 客服/AI：原型为 AI 助手 -->
+  <view class="fab" bindtap="goAi" aria-label="AI 助手">
+    <text class="fab__spark">🤖</text>
   </view>
 </view>
 <login-sheet id="global-login-sheet" />

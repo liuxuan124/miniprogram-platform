@@ -51,6 +51,8 @@ const props = defineProps<{
   selected: boolean
   label: string
   componentStyle?: ComponentStyle
+  /** 列表类：外壳透明，避免整块白框包住条目（已全局透明，保留字段兼容） */
+  shellTransparent?: boolean
 }>()
 
 defineEmits<{
@@ -74,13 +76,13 @@ const marginStyle = computed(() => {
 })
 
 const surfaceStyle = computed(() => {
-  const s = props.componentStyle || {}
+  // 外壳透明、无内边距，避免「整块白外框」；相对屏幕的间距用外边距
   return {
-    paddingTop: `${Number(s.padding_top) || 0}px`,
-    paddingBottom: `${Number(s.padding_bottom) || 0}px`,
-    paddingLeft: `${Number(s.padding_left) || 0}px`,
-    paddingRight: `${Number(s.padding_right) || 0}px`,
-    backgroundColor: s.background_color || 'transparent',
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    paddingLeft: '0px',
+    paddingRight: '0px',
+    backgroundColor: 'transparent',
   }
 })
 
@@ -116,12 +118,11 @@ const textStyleClass = computed(() => {
 .component-item {
   position: relative;
   cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.15s;
+  transition: outline 0.15s;
 }
-.component-item:hover .component-render {
-  box-shadow:
-    0 2px 10px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(23, 105, 255, 0.35);
+.component-item:hover {
+  outline: 1px dashed rgba(23, 105, 255, 0.45);
+  outline-offset: 2px;
 }
 .component-item.is-hidden .component-render {
   opacity: 0.42;
@@ -140,11 +141,8 @@ const textStyleClass = computed(() => {
 }
 .component-item.selected {
   z-index: 2;
-}
-.component-item.selected .component-render {
-  box-shadow:
-    0 4px 14px rgba(23, 105, 255, 0.14),
-    0 0 0 2px #1769ff;
+  outline: 2px dashed #1769ff;
+  outline-offset: 3px;
 }
 .component-toolbar {
   /* 悬浮在选中组件上方外侧，避免遮挡组件内容 */
@@ -185,10 +183,9 @@ const textStyleClass = computed(() => {
 }
 .component-render {
   min-height: 20px;
-  border-radius: 2px;
-  /* 统一轻阴影：白底组件在画布上可区分块边界 */
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
-  transition: box-shadow 0.15s;
+  /* 不再给外壳加阴影/描边，避免「整块外框」 */
+  box-shadow: none;
+  background: transparent;
 }
 .component-render-inner {
   display: flow-root;

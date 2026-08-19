@@ -1,0 +1,94 @@
+<!-- pages/knowledge-mall/knowledge-mall.wxml — 对齐原型「知识商城」 -->
+<view class="km-page" style="padding-top: {{statusBarHeight}}px;">
+  <view class="km-header">
+    <text class="km-header__title">知识商城</text>
+    <view class="km-header__cart" bindtap="onGoCart">
+      <text class="km-header__cart-emoji">🛒</text>
+      <view wx:if="{{cartCount > 0}}" class="km-header__badge">{{cartCount > 99 ? '99+' : cartCount}}</view>
+    </view>
+  </view>
+
+  <scroll-view
+    class="km-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onReachBottomLoad"
+    lower-threshold="120"
+  >
+    <view class="km-banner">
+      <text class="km-banner__title">📦 资料包 + 1v1 咨询</text>
+      <text class="km-banner__desc">虚拟商品由商家正常发货并提供说明 · 咨询下单后自选时段，支持改期</text>
+    </view>
+
+    <!-- 原型类型胶囊：全部 / 电子书 / 1v1 / 组合 -->
+    <scroll-view class="km-tabs" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="km-tabs__inner">
+        <view
+          wx:for="{{typeTabs}}"
+          wx:key="key"
+          class="km-tab {{activeType === item.key ? 'km-tab--on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onTypeTap"
+        >{{item.label}}</view>
+      </view>
+    </scroll-view>
+
+    <skeleton wx:if="{{loading && products.length === 0}}" type="list" rows="{{6}}" />
+
+    <!-- 商品卡直接铺在灰底上，无外层大白框 -->
+    <view class="km-list" wx:else>
+      <view
+        wx:for="{{products}}"
+        wx:key="id"
+        class="km-card"
+        data-id="{{item.id}}"
+        bindtap="onProductTap"
+      >
+        <view wx:if="{{item._useGlyph}}" class="km-card__glyph" style="{{item._artStyle}}">
+          <text>{{item._glyph}}</text>
+        </view>
+        <image
+          wx:else
+          class="km-card__cover"
+          src="{{item._cover}}"
+          mode="aspectFill"
+          lazy-load
+          data-index="{{index}}"
+          binderror="onImageError"
+        />
+        <view class="km-card__main">
+          <text class="km-card__name">{{item.name || item.title}}</text>
+          <text class="km-card__meta">{{item._meta}}</text>
+          <view class="km-card__foot">
+            <text class="km-card__price">¥{{item._price}}</text>
+            <text class="km-card__rating-text">{{item._ratingText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="km-footer" wx:if="{{loading && products.length > 0}}">
+      <text>加载中...</text>
+    </view>
+    <view class="km-footer" wx:elif="{{!hasMore && products.length > 0}}">
+      <text>没有更多了</text>
+    </view>
+
+    <empty-state
+      wx:if="{{isEmpty && !loading}}"
+      icon="/images/empty-product.png"
+      title="暂无此类商品"
+      desc="试试切换上方分类"
+      actionText="查看全部"
+      actionType="primary"
+      bind:action="onClearFilters"
+    />
+
+    <view class="km-safe"></view>
+  </scroll-view>
+</view>
+<login-sheet id="global-login-sheet" />

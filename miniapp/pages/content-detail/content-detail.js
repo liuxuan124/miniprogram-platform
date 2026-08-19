@@ -383,7 +383,7 @@ Page({
       wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
       return
     }
-    wx.navigateTo({ url: '/pages/product-list/product-list' })
+    wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
   },
 
   /** 关注 / 取消关注（需确认后取消） */

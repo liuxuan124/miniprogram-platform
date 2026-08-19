@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#E8F6F1"/>
+  <!-- 供应链：工厂 -->
+  <path fill="#2F9E6E" d="M22 66h52V52L58 60V40L42 50V40L22 52v14Z"/>
+  <path fill="#fff" d="M30 58h8v8h-8v-8Zm14 0h8v8h-8v-8Zm14 0h8v8h-8v-8Z"/>
+  <path fill="#7ED0B0" d="M62 28h8v18h-8V28Z"/>
+</svg>

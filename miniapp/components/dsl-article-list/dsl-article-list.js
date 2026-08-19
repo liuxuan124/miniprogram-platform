@@ -182,7 +182,7 @@ Component({
       const metaSize = Number(cfg.subtitle_font_size) > 0 ? Number(cfg.subtitle_font_size) : 11
       const raw = cfg.layout || cfg.style_type || 'list'
       const layout = ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
-      const sectionStyle = ['bar', 'card', 'plain'].includes(cfg.section_style) ? cfg.section_style : 'bar'
+      const sectionStyle = ['bar', 'card', 'plain'].includes(cfg.section_style) ? cfg.section_style : 'plain'
       const sectionAlign = cfg.section_align === 'center' ? 'center' : 'left'
       const sectionDivider = cfg.section_divider === true
       const sectionTitleSize = Number(cfg.section_title_font_size) > 0 ? Number(cfg.section_title_font_size) : 16

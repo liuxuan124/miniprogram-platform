@@ -3,8 +3,8 @@ const SystemService = require('../services/system')
 const TAB_WHITELIST = {
   '/pages/index/index': true,
   '/pages/content-list/content-list': true,
+  '/pages/knowledge-mall/knowledge-mall': true,
   '/pages/mine/mine': true,
-  // 允许商城相关页作为导航目标（不再审核期硬关闭）
   '/pages/product-list/product-list': true,
   '/pages/cart/cart': true,
   '/pages/category/category': true,
@@ -13,6 +13,7 @@ const TAB_WHITELIST = {
 const REGISTERED_TAB_PATHS = [
   '/pages/index/index',
   '/pages/content-list/content-list',
+  '/pages/knowledge-mall/knowledge-mall',
   '/pages/mine/mine',
 ]
 
@@ -27,6 +28,11 @@ const PATH_META_MAP = {
     icon: '/images/tab-v2/content.svg',
     selectedIcon: '/images/tab-v2/content-active.svg',
   },
+  '/pages/knowledge-mall/knowledge-mall': {
+    text: '商城',
+    icon: '/images/tab-v2/shop.svg',
+    selectedIcon: '/images/tab-v2/shop-active.svg',
+  },
   '/pages/mine/mine': {
     text: '我的',
     icon: '/images/tab-v2/mine.svg',
@@ -34,8 +40,8 @@ const PATH_META_MAP = {
   },
   '/pages/product-list/product-list': {
     text: '商城',
-    icon: '/images/tab-v2/home.svg',
-    selectedIcon: '/images/tab-v2/home-active.svg',
+    icon: '/images/tab-v2/shop.svg',
+    selectedIcon: '/images/tab-v2/shop-active.svg',
   },
 }
 
@@ -50,7 +56,6 @@ const DEFAULT_LIST = REGISTERED_TAB_PATHS.map((pagePath) => ({
 function isBlockedShopTab(path) {
   const p = '/' + String(path || '').replace(/^\/+/, '')
   if (TAB_WHITELIST[p]) return false
-  // 无真实路径、仅文案「分类/购物车」的占位项仍拦截
   return /分类|购物车|商城/.test(String(path || '')) && !p.startsWith('/pages/')
 }
 
@@ -59,7 +64,7 @@ Component({
     selected: 0,
     hidden: false,
     list: DEFAULT_LIST,
-    activeColor: '#315efb',
+    activeColor: '#002FA7',
     inactiveColor: '#98a2b5',
     backgroundColor: '#ffffff',
   },
@@ -89,8 +94,12 @@ Component({
         const configByPath = new Map()
         for (const item of rawItems) {
           const pagePath = this._normalizePath(item.path || item.pagePath)
-          if (REGISTERED_TAB_PATHS.includes(pagePath)) {
-            configByPath.set(pagePath, item)
+          // 旧配置「商城」指向 product-list 时，映射到新页
+          const normalized = pagePath === '/pages/product-list/product-list'
+            ? '/pages/knowledge-mall/knowledge-mall'
+            : pagePath
+          if (REGISTERED_TAB_PATHS.includes(normalized)) {
+            configByPath.set(normalized, item)
           }
         }
         const theme = config.miniappThemeConfig || {}
@@ -111,7 +120,7 @@ Component({
         this.setData({
           list: mappedList,
           selected: this._getCurrentIndex(mappedList),
-          activeColor: theme.tabBarActiveColor || '#315efb',
+          activeColor: theme.tabBarActiveColor || '#002FA7',
           inactiveColor: theme.tabBarInactiveColor || '#98a2b5',
           backgroundColor: theme.tabBarBackgroundColor || '#ffffff',
         })

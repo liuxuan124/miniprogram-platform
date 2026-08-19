@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#FFF6DF"/>
+  <!-- 会员：VIP 徽章 -->
+  <path fill="#E8B923" d="M48 22l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2 6-12Z"/>
+  <path fill="#fff" d="M43 44h4.2l2.3 7.2L52 44h4l-5.2 14h-4.2L43 44Z"/>
+</svg>

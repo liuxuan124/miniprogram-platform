@@ -1,92 +1,135 @@
-<!-- pages/content-list/content-list.wxml — 内容中心 -->
-<view class="content-list-page">
-  <view class="content-hero">
-    <view>
-      <text class="content-hero__eyebrow">KNOWLEDGE LIBRARY</text>
-      <view class="content-hero__title">内容灵感库</view>
-      <view class="content-hero__desc">把复杂的跨境问题，整理成可执行的方法</view>
-    </view>
-    <view class="content-hero__badge">
-      <text>{{total || 238}}</text>
-      <text>篇干货</text>
-    </view>
+<!-- pages/content-list/content-list.wxml — 对齐原型内容中心 -->
+<view class="cc-page" style="padding-top: {{statusBarHeight}}px;">
+  <view class="cc-nav">
+    <text class="cc-nav__title">内容中心</text>
+    <view class="cc-nav__search" bindtap="onSearchTap" hover-class="cc-nav__search--on">⌕</view>
   </view>
 
-  <view class="toolbar">
-    <view class="search-entry" catchtap="onSearchTap" hover-class="search-entry--pressed">
-      <text class="search-entry__icon">⌕</text>
-      <text class="search-entry__text">搜索内容、主题或关键词</text>
-      <text class="search-entry__key">搜索</text>
-    </view>
+  <view class="cc-sticky">
+    <scroll-view class="catbar" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{topicTabs}}"
+        wx:key="id"
+        class="cat {{activeTopic === item.id ? 'on' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onTopicTap"
+      >{{item.name}}</view>
+    </scroll-view>
+    <scroll-view class="fmtbar" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{formatTabs}}"
+        wx:key="key"
+        class="fmt-chip {{activeFormat === item.key ? 'on' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onFormatTap"
+      >{{item.label}}</view>
+    </scroll-view>
   </view>
 
-  <scroll-view class="format-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{formatTabs}}"
-      wx:key="key"
-      class="format-item {{activeFormat === item.key ? 'active' : ''}}"
-      data-key="{{item.key}}"
-      bindtap="onFormatTap"
-    >{{item.label}}</view>
-  </scroll-view>
+  <skeleton wx:if="{{loading && allArticles.length === 0}}" type="list" rows="{{4}}" />
 
-  <scroll-view class="topic-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{topicTabs}}"
-      wx:key="id"
-      class="topic-item {{activeTopic === item.id ? 'active' : ''}}"
-      data-id="{{item.id}}"
-      bindtap="onTopicTap"
-    >{{item.name}}</view>
-  </scroll-view>
-
-  <skeleton wx:if="{{loading && articles.length === 0}}" type="list" rows="{{4}}" />
-
-  <view class="content-list" wx:elif="{{!isEmpty}}">
-    <view class="list-heading">
-      <text>为你精选</text>
-      <text class="list-heading__count">{{articles.length}} 条内容</text>
-    </view>
-    <view
-      wx:for="{{articles}}"
-      wx:key="id"
-      class="content-card"
-      data-id="{{item.id}}"
-      bindtap="onContentTap"
-    >
-      <image
-        class="content-cover"
-        src="{{item.cover_url || item.image || '/images/default-article.svg'}}"
-        mode="aspectFill"
-        lazy-load
-        data-index="{{index}}"
-        binderror="onImageError"
-      />
-      <view class="content-info">
-        <view class="content-tags" wx:if="{{item.formatLabel || item.source}}">
-          <text class="tag">{{item.formatLabel || item.source}}</text>
-          <text class="content-topic">{{item.categoryName || '跨境实战'}}</text>
+  <scroll-view
+    wx:elif="{{!isEmpty}}"
+    class="cc-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view class="cc-body">
+      <block wx:for="{{feed}}" wx:key="id">
+        <!-- 长文：左缩略图 + 右文案 -->
+        <view
+          wx:if="{{item.formatKey === 'longform' || item.formatKey === 'article'}}"
+          class="c-long"
+          data-id="{{item.id}}"
+          bindtap="onContentTap"
+        >
+          <view class="c-long__thumb" style="{{item.artStyle}}">
+            <text class="c-long__glyph">{{item.glyph}}</text>
+          </view>
+          <view class="c-long__in">
+            <view class="c-long__tags">
+              <text class="pill pill--longform">长文</text>
+              <text class="pill pill--topic">{{item.topicName}}</text>
+            </view>
+            <text class="c-long__title">{{item.title}}</text>
+            <text class="c-long__meta">{{item.meta}}</text>
+          </view>
         </view>
-        <text class="content-title text-ellipsis-2">{{item.title}}</text>
-        <text class="content-summary text-ellipsis-2" wx:if="{{item.summary}}">{{item.summary}}</text>
-        <view class="content-meta">
-          <text class="content-date">{{item.publish_time || item.created_at}}</text>
-          <text class="content-views">◉ {{item.views || 0}} 阅读</text>
+
+        <!-- 视频 -->
+        <view
+          wx:elif="{{item.formatKey === 'video'}}"
+          class="c-video"
+          data-id="{{item.id}}"
+          bindtap="onContentTap"
+        >
+          <view class="c-video__cv" style="{{item.artStyle}}">
+            <text class="c-video__glyph">{{item.glyph}}</text>
+            <view class="c-video__play">▶</view>
+            <view wx:if="{{item.dur}}" class="c-video__dur">{{item.dur}}</view>
+          </view>
+          <view class="c-video__txt">
+            <view class="c-video__tags">
+              <text class="pill pill--video">视频</text>
+              <text class="pill pill--topic">{{item.topicName}}</text>
+            </view>
+            <text class="c-video__title">{{item.title}}</text>
+            <text class="c-video__meta">{{item.meta}}</text>
+          </view>
+        </view>
+
+        <!-- 数据速报 -->
+        <view
+          wx:elif="{{item.formatKey === 'data'}}"
+          class="c-data"
+          data-id="{{item.id}}"
+          bindtap="onContentTap"
+        >
+          <view class="c-data__tags">
+            <text class="pill pill--data">数据</text>
+            <text class="pill pill--topic">{{item.topicName}}</text>
+          </view>
+          <text class="c-data__title">{{item.title}}</text>
+          <view class="c-data__nums" wx:if="{{item.nums && item.nums.length}}">
+            <view wx:for="{{item.nums}}" wx:for-item="n" wx:key="k" class="c-data__num">
+              <text class="c-data__val {{n.up ? 'up' : 'dn'}}">{{n.v}}</text>
+              <text class="c-data__key">{{n.k}}</text>
+            </view>
+          </view>
+          <text class="c-data__meta">{{item.meta}}</text>
+        </view>
+      </block>
+
+      <!-- 笔记双列 -->
+      <view class="masonry" wx:if="{{notes.length}}">
+        <view
+          wx:for="{{notes}}"
+          wx:key="id"
+          class="c-note"
+          data-id="{{item.id}}"
+          bindtap="onContentTap"
+        >
+          <view class="c-note__art" style="{{item.artStyle}}">
+            <text class="c-note__glyph">{{item.glyph}}</text>
+          </view>
+          <view class="c-note__txt">
+            <text class="c-note__title">{{item.title}}</text>
+            <view class="c-note__foot">
+              <text class="c-note__av">哲</text>
+              <text>出海笔记</text>
+              <text class="c-note__meta">♡ {{item.likeText}}</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
-  </view>
-
-  <view class="loading-area" wx:if="{{loading && articles.length > 0}}">
-    <text class="loading-text">加载中...</text>
-  </view>
-  <view class="loading-area" wx:elif="{{!hasMore && articles.length > 0}}">
-    <text class="loading-text">没有更多了</text>
-  </view>
+    <view class="cc-safe"></view>
+  </scroll-view>
 
   <empty-state
     wx:if="{{isEmpty && !loading}}"
-    title="暂无内容"
+    title="该主题下暂无此形态的内容"
     desc="试试切换主题，或清除筛选条件"
     actionText="清除筛选"
     bind:action="clearFilters"

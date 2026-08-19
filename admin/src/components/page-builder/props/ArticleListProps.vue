@@ -1,94 +1,9 @@
 <template>
   <div class="article-list-props">
     <el-form label-width="70px" size="small">
-      <el-divider content-position="left">标题栏</el-divider>
-      <el-form-item label="标题文案">
-        <el-input
-          :model-value="data.title ?? ''"
-          clearable
-          placeholder="如：精选内容（可留空不显示）"
-          @input="emit('update', { title: $event })"
-          @clear="emit('update', { title: '' })"
-        />
-      </el-form-item>
-      <el-form-item label="副标题">
-        <el-input
-          :model-value="data.subtitle ?? ''"
-          clearable
-          placeholder="可选"
-          @input="emit('update', { subtitle: $event })"
-          @clear="emit('update', { subtitle: '' })"
-        />
-      </el-form-item>
-      <el-form-item label="标题造型">
-        <el-radio-group
-          :model-value="data.section_style || 'bar'"
-          @change="(v: string) => emit('update', { section_style: v })"
-        >
-          <el-radio-button value="bar">渐变条</el-radio-button>
-          <el-radio-button value="card">色块</el-radio-button>
-          <el-radio-button value="plain">纯文字</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="对齐">
-        <el-radio-group
-          :model-value="data.section_align || 'left'"
-          @change="(v: string) => emit('update', { section_align: v })"
-        >
-          <el-radio-button value="left">居左</el-radio-button>
-          <el-radio-button value="center">居中</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="底部分割线">
-        <el-switch
-          :model-value="data.section_divider === true"
-          @change="(v: boolean) => emit('update', { section_divider: v })"
-        />
-      </el-form-item>
-      <el-form-item label="标题加粗">
-        <el-switch
-          :model-value="data.section_title_bold !== false"
-          @change="(v: boolean) => emit('update', { section_title_bold: v })"
-        />
-      </el-form-item>
-      <el-form-item label="标题字号">
-        <el-input-number
-          :model-value="data.section_title_font_size ?? 16"
-          :min="12"
-          :max="28"
-          controls-position="right"
-          @change="(v: number) => emit('update', { section_title_font_size: v })"
-        />
-      </el-form-item>
-      <el-form-item label="标题颜色">
-        <el-color-picker
-          :model-value="data.section_title_color || (data.section_style === 'plain' || data.section_style === 'card' ? '#172033' : '#F3F7FC')"
-          @change="(v: string | null) => emit('update', { section_title_color: v || '#F3F7FC' })"
-        />
-      </el-form-item>
-      <el-form-item label="查看更多">
-        <el-switch
-          :model-value="data.show_more !== false"
-          @change="(v: boolean) => emit('update', { show_more: v })"
-        />
-      </el-form-item>
-      <el-form-item v-if="data.show_more !== false" label="更多文案">
-        <el-input
-          :model-value="data.more_text ?? '查看更多>'"
-          placeholder="查看更多>"
-          @input="emit('update', { more_text: $event })"
-        />
-      </el-form-item>
-      <el-form-item v-if="data.show_more !== false" label="跳转链接">
-        <el-input
-          :model-value="data.more_link ?? '/pages/content-list/content-list'"
-          clearable
-          placeholder="/pages/content-list/content-list 或 https://"
-          @input="emit('update', { more_link: $event })"
-          @clear="emit('update', { more_link: '' })"
-        />
-        <div class="ds-hint">小程序页面路径或外链；留空则默认内容列表页</div>
-      </el-form-item>
+      <div class="ds-hint ds-hint--block">
+        标题请单独拖入「标题栏」组件放在本列表上方；本组件只渲染文章卡。
+      </div>
 
       <el-divider content-position="left">文章展示</el-divider>
       <el-form-item label="分类标签">
@@ -120,7 +35,7 @@
           controls-position="right"
         />
       </el-form-item>
-      <el-form-item label="文章间距">
+      <el-form-item label="卡片间距">
         <el-input-number
           :model-value="data.item_gap ?? 8"
           @change="(v: number | undefined) => emit('update', { item_gap: v ?? 8 })"
@@ -128,7 +43,7 @@
           :max="48"
           controls-position="right"
         />
-        <div class="ds-hint">单位 px，控制每篇文章上下间距</div>
+        <div class="ds-hint">单位 px，控制每张文章卡之间的空隙</div>
       </el-form-item>
       <TitleFontSizeFields
         :data="data"
@@ -317,6 +232,13 @@ onMounted(async () => {
   color: #7b8798;
   font-size: 11px;
   line-height: 1.4;
+}
+
+.ds-hint--block {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: #f5f7fb;
+  border-radius: 6px;
 }
 
 .ds-preview {

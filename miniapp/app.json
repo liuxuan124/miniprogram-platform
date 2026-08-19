@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/content-list/content-list",
+    "pages/knowledge-mall/knowledge-mall",
     "pages/product-list/product-list",
     "pages/mine/mine",
     "pages/login/login",
@@ -27,7 +28,7 @@
   "tabBar": {
     "custom": true,
     "color": "#999999",
-    "selectedColor": "#315efb",
+    "selectedColor": "#002FA7",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
@@ -42,6 +43,12 @@
         "text": "内容",
         "iconPath": "images/tab/content.png",
         "selectedIconPath": "images/tab/content-active.png"
+      },
+      {
+        "pagePath": "pages/knowledge-mall/knowledge-mall",
+        "text": "商城",
+        "iconPath": "images/tab/shop.png",
+        "selectedIconPath": "images/tab/shop-active.png"
       },
       {
         "pagePath": "pages/mine/mine",

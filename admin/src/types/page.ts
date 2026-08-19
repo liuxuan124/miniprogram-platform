@@ -58,7 +58,7 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.Countdown]: '倒计时',
   [ComponentType.FloatButton]: '悬浮按钮',
   [ComponentType.RichText]: '富文本',
-  [ComponentType.SectionTitle]: '标题栏',
+  [ComponentType.SectionTitle]: '分区标题',
   [ComponentType.Divider]: '分割线',
   [ComponentType.Spacer]: '间距',
   [ComponentType.FormEntry]: '表单入口',

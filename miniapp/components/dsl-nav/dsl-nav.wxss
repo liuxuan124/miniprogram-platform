@@ -2,8 +2,15 @@
 
 .dsl-nav {
   width: 100%;
-  background-color: #ffffff;
+  background-color: transparent;
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+.dsl-nav--frame {
+  padding: 20rpx 8rpx 16rpx;
+  border: 1rpx solid #edf1f7;
+  box-shadow: 0 8rpx 28rpx rgba(28, 43, 76, 0.06);
 }
 
 /* 网格布局 */
@@ -23,28 +30,29 @@
 
 /* emoji 图标容器 */
 .dsl-nav__item-icon {
-  width: auto;
-  height: auto;
-  min-height: 56rpx;
-  margin-bottom: 8rpx;
-  border-radius: 0;
+  width: 96rpx;
+  height: 96rpx;
+  margin-bottom: 10rpx;
+  border-radius: 32rpx;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .dsl-nav__emoji {
-  font-size: 52rpx;
+  font-size: 44rpx;
   line-height: 1;
 }
 
-/* 图片图标 */
+/* 图片 / SVG 扁平图标（自带柔和色底，无黑边） */
 .dsl-nav__item-icon-img {
-  width: 56rpx;
-  height: 56rpx;
-  margin-bottom: 8rpx;
-  border-radius: 0;
+  width: 96rpx;
+  height: 96rpx;
+  margin-bottom: 10rpx;
+  border-radius: 32rpx;
+  display: block;
 }
 
 .dsl-nav__item-text {

@@ -63,10 +63,11 @@ Page({
     const isTab = [
       '/pages/index/index',
       '/pages/content-list/content-list',
+      '/pages/knowledge-mall/knowledge-mall',
       '/pages/mine/mine',
     ].indexOf(base) >= 0
     if (base === '/pages/product-list/product-list') {
-      wx.navigateTo({ url: path })
+      wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
       return
     }
     if (isTab) {

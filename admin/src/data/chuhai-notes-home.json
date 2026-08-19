@@ -1,0 +1,120 @@
+{
+  "page": {
+    "id": "home",
+    "name": "出海笔记首页",
+    "path": "/pages/index/index",
+    "type": "home",
+    "share_title": "出海笔记 · 阿哲｜选品·供应链·独立站",
+    "background_color": "#f5f7fb"
+  },
+  "global_config": { "pull_refresh": true, "reach_bottom_load": false },
+  "schema_version": "1.0",
+  "components": [
+    {
+      "id": "brand-hero",
+      "type": "brand_intro",
+      "props": {
+        "eyebrow": "CROSS-BORDER GROWTH LAB",
+        "avatar_text": "海",
+        "title": "出海笔记 · 阿哲",
+        "subtitle": "已认证",
+        "verified": true,
+        "desc": "陪你把跨境生意，从经验变成方法",
+        "kpi": "238 篇内容 · 1.2w 关注者 · 4.9 咨询评分"
+      },
+      "style": { "margin_left": 0, "margin_right": 0, "margin_bottom": 8 }
+    },
+    {
+      "id": "search-home",
+      "type": "search",
+      "props": {
+        "placeholder": "搜索选品、验厂、VAT、TikTok",
+        "scope": "all",
+        "shape": "round"
+      },
+      "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 8 }
+    },
+    {
+      "id": "quick-head",
+      "type": "section_title",
+      "props": {
+        "title": "快速开始",
+        "subtitle": "常用工具与服务",
+        "title_color": "#172033",
+        "subtitle_color": "#7c879d"
+      },
+      "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 4 }
+    },
+    {
+      "id": "quick-nav",
+      "type": "nav",
+      "props": {
+        "columns": 4,
+        "items": [
+          { "icon": "✦", "title": "内容中心", "link_type": "page", "link_url": "/pages/content-list/content-list" },
+          { "icon": "📘", "title": "文创商城", "link_type": "page", "link_url": "/pages/knowledge-mall/knowledge-mall" },
+          { "icon": "◌", "title": "我的订单", "link_type": "page", "link_url": "/pkg-trade/order-list/order-list" },
+          { "icon": "♢", "title": "会员权益", "link_type": "page", "link_url": "/pages/member-center/member-center" }
+        ]
+      },
+      "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 10, "padding_top": 8, "padding_bottom": 8, "background_color": "#ffffff", "border_radius": 14 }
+    },
+    {
+      "id": "feature-pick",
+      "type": "activity_entry",
+      "props": {
+        "theme": "blue",
+        "style_type": "card",
+        "title": "2026 下半年跨境选品趋势清单",
+        "subtitle": "12 分钟读懂趋势 立即阅读 →",
+        "cover_text": "EDITOR'S PICK · 本周精选",
+        "button_text": "立即阅读",
+        "show_button": false,
+        "link_type": "page",
+        "link_url": "/pages/content-list/content-list"
+      },
+      "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 10, "border_radius": 16 }
+    },
+    {
+      "id": "topics-title",
+      "type": "section_title",
+      "props": {
+        "title": "按主题逛",
+        "subtitle": "内容都按业务环节归好类了",
+        "title_color": "#172033",
+        "subtitle_color": "#7c879d"
+      },
+      "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 4 }
+    },
+    {
+      "id": "topics-nav",
+      "type": "nav",
+      "props": {
+        "columns": 3,
+        "items": [
+          { "icon": "🔍", "title": "选品洞察", "link_type": "page", "link_url": "/pages/content-list/content-list" },
+          { "icon": "🏭", "title": "供应链", "link_type": "page", "link_url": "/pages/content-list/content-list" },
+          { "icon": "🛒", "title": "平台运营", "link_type": "page", "link_url": "/pages/content-list/content-list" },
+          { "icon": "🌐", "title": "独立站", "link_type": "page", "link_url": "/pages/content-list/content-list" },
+          { "icon": "🚢", "title": "物流履约", "link_type": "page", "link_url": "/pages/content-list/content-list" },
+          { "icon": "⚖️", "title": "合规税务", "link_type": "page", "link_url": "/pages/content-list/content-list" }
+        ]
+      },
+      "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 10, "padding_top": 8, "padding_bottom": 8, "background_color": "#ffffff", "border_radius": 14 }
+    },
+    {
+      "id": "home-float",
+      "type": "float_button",
+      "props": {
+        "icon": "service",
+        "icon_emoji": "🎧",
+        "title": "客服",
+        "show_text": true,
+        "position": "right_bottom",
+        "link_type": "page",
+        "link_url": "/pages/service-chat/service-chat"
+      },
+      "style": {}
+    }
+  ]
+}

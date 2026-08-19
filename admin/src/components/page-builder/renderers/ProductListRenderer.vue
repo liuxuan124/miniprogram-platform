@@ -1,29 +1,5 @@
 <template>
   <div class="render-product-list split-text-typography" :class="{ 'render-product-list--preview': previewMode }">
-    <div
-      v-if="sectionTitle"
-      class="section-header"
-      :class="[
-        `style-${sectionStyle}`,
-        `align-${sectionAlign}`,
-        { 'has-divider': sectionDivider },
-      ]"
-    >
-      <div v-if="sectionStyle === 'bar'" class="section-header__bars" aria-hidden="true">
-        <span class="section-header__bar section-header__bar--down" />
-        <span class="section-header__bar section-header__bar--up" />
-      </div>
-      <div class="section-header__text">
-        <div class="section-header__main" :style="sectionTitleStyle">{{ sectionTitle }}</div>
-        <div v-if="sectionSubtitle" class="section-header__sub" :style="sectionSubtitleStyle">{{ sectionSubtitle }}</div>
-      </div>
-      <span
-        v-if="showMore"
-        class="section-header__more"
-        :style="sectionMoreStyle"
-        @click.stop="onMoreClick"
-      >{{ moreText }}</span>
-    </div>
     <div v-if="showFailState" class="preview-data-empty preview-data-fail">
       {{ failMessage }}
     </div>
@@ -31,35 +7,60 @@
       {{ previewMode ? '暂无商品数据，请确认商品已上架或稍后重试' : '当前筛选下没有已上架商品' }}
     </div>
     <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已上架商品…</div>
-    <div v-else class="product-grid" :class="[`layout-${productLayout}`, `cols-${columnCount}`]">
-      <div
-        v-for="(item, idx) in visibleProductItems"
-        :key="`${item.id || 'p'}-${idx}`"
-        class="product-card"
-      >
-        <div class="product-img">
-          <img v-if="item.image" :src="item.image" alt="" class="product-cover" />
-          <span v-else>🛍️</span>
-        </div>
-        <div class="product-info">
-          <div class="product-name" :style="itemTitleStyle">{{ item.name }}</div>
-          <div class="product-bottom">
-            <div class="product-meta-row">
-              <span v-if="showPrice" class="product-price" :style="priceStyle">¥{{ item.price }}</span>
-              <span v-if="showSales" class="product-sales" :style="salesStyle">已售{{ item.sales }}</span>
+    <div v-else class="product-grid" :class="[`layout-${productLayout}`, `cols-${columnCount}`]" :style="{ gap: `${itemGap}px` }">
+      <template v-if="productLayout === 'list'">
+        <div
+          v-for="(item, idx) in visibleProductItems"
+          :key="`${item.id || 'p'}-${idx}`"
+          class="product-row"
+          :style="itemCardStyle"
+        >
+          <div class="product-thumb" :style="[itemImageStyle, !item.image ? item.artStyle : null]">
+            <img v-if="item.image" :src="item.image" alt="" class="product-thumb-img" />
+            <span v-else>{{ item.glyph || '🛍️' }}</span>
+          </div>
+          <div class="product-body">
+            <div class="product-row-name" :style="itemTitleStyle">{{ item.name }}</div>
+            <div class="product-row-sub">{{ item.meta }}</div>
+            <div class="product-row-foot">
+              <span v-if="showPrice" class="product-row-price" :style="priceStyle">¥{{ item.price }}</span>
+              <span v-if="showRating" class="product-row-rate">{{ item.ratingLine }}</span>
+              <span v-else-if="showSales" class="product-row-sales" :style="salesStyle">已售{{ item.sales }}</span>
             </div>
-            <button
-              v-if="showCart"
-              type="button"
-              class="cart-btn"
-              aria-label="加入购物车"
-              @click.stop="onCartClick(item)"
-            >
-              🛒
-            </button>
           </div>
         </div>
-      </div>
+      </template>
+      <template v-else>
+        <div
+          v-for="(item, idx) in visibleProductItems"
+          :key="`${item.id || 'p'}-${idx}`"
+          class="product-card"
+          :style="itemCardStyle"
+        >
+          <div class="product-img" :style="itemImageStyle">
+            <img v-if="item.image" :src="item.image" alt="" class="product-cover" />
+            <span v-else>🛍️</span>
+          </div>
+          <div class="product-info">
+            <div class="product-name" :style="itemTitleStyle">{{ item.name }}</div>
+            <div class="product-bottom">
+              <div class="product-meta-row">
+                <span v-if="showPrice" class="product-price" :style="priceStyle">¥{{ item.price }}</span>
+                <span v-if="showSales" class="product-sales" :style="salesStyle">已售{{ item.sales }}</span>
+              </div>
+              <button
+                v-if="showCart"
+                type="button"
+                class="cart-btn"
+                aria-label="加入购物车"
+                @click.stop="onCartClick(item)"
+              >
+                🛒
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -77,6 +78,10 @@ type PreviewProductItem = {
   price: string
   sales: number
   image?: string
+  meta?: string
+  ratingLine?: string
+  glyph?: string
+  artStyle?: Record<string, string>
 }
 
 const props = defineProps<{
@@ -91,12 +96,21 @@ const emit = defineEmits<{
 const showPrice = computed(() => props.component.props?.show_price !== false)
 const showSales = computed(() => props.component.props?.show_sales !== false)
 const showCart = computed(() => props.component.props?.show_cart !== false)
+const showRating = computed(() => {
+  if (productLayout.value === 'list') return props.component.props?.show_rating !== false
+  return props.component.props?.show_rating === true
+})
+const itemGap = computed(() => {
+  const n = Number(props.component.props?.item_gap)
+  const fallback = productLayout.value === 'list' ? 10 : 8
+  return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : fallback
+})
 const titleBold = computed(() => props.component.props?.title_bold !== false)
 const sectionTitle = computed(() => String(props.component.props?.title ?? '').trim())
 const sectionSubtitle = computed(() => String(props.component.props?.subtitle ?? '').trim())
 const sectionStyle = computed(() => {
-  const raw = String(props.component.props?.section_style || 'bar')
-  return ['bar', 'plain', 'card'].includes(raw) ? raw : 'bar'
+  const raw = String(props.component.props?.section_style || 'plain')
+  return ['bar', 'plain', 'card'].includes(raw) ? raw : 'plain'
 })
 const sectionAlign = computed(() => (props.component.props?.section_align === 'center' ? 'center' : 'left'))
 const sectionDivider = computed(() => props.component.props?.section_divider === true)
@@ -144,13 +158,16 @@ const columnCount = computed(() => {
   return Number(props.component.props?.columns || 2)
 })
 const itemTitleStyle = computed(() => ({
-  ...titleFontStyle(props.component.props?.title_font_size, 14),
+  ...titleFontStyle(
+    props.component.props?.title_font_size,
+    productLayout.value === 'list' ? 15 : 14,
+  ),
   fontWeight: titleBold.value ? '700' : '400',
 }))
 const priceStyle = computed(() => ({
   ...titleFontStyle(
     props.component.props?.price_font_size ?? props.component.props?.subtitle_font_size,
-    13,
+    productLayout.value === 'list' ? 16 : 13,
   ),
   color: props.component.props?.price_color || '#E53935',
 }))
@@ -158,6 +175,30 @@ const salesStyle = computed(() => titleFontStyle(
   props.component.props?.sales_font_size ?? props.component.props?.subtitle_font_size,
   11,
 ))
+const itemCardStyle = computed(() => {
+  const fromProp = props.component.props?.item_border_radius
+  const fromStyle = props.component.style?.border_radius
+  const fallback = productLayout.value === 'list' ? 14 : 12
+  const raw = fromProp !== undefined && fromProp !== null && fromProp !== ''
+    ? fromProp
+    : (fromStyle !== undefined && fromStyle !== null ? fromStyle : fallback)
+  const n = Number(raw)
+  const radius = Number.isFinite(n) ? Math.max(0, n) : fallback
+  return {
+    borderRadius: `${radius}px`,
+    boxShadow: '0 4px 12px rgba(28, 43, 76, 0.06)',
+  }
+})
+const itemImageStyle = computed(() => {
+  const fromProp = props.component.props?.image_border_radius
+  const fallback = productLayout.value === 'list' ? 10 : 0
+  const raw = fromProp !== undefined && fromProp !== null && fromProp !== ''
+    ? fromProp
+    : fallback
+  const n = Number(raw)
+  const radius = Number.isFinite(n) ? Math.max(0, n) : fallback
+  return { borderRadius: `${radius}px` }
+})
 
 const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
   () => props.component,
@@ -185,16 +226,42 @@ function formatMoney(value: unknown) {
   return n.toFixed(2)
 }
 
-function normalizeItem(item: any): PreviewProductItem {
+function pickTypeLabel(item: any) {
+  const raw = String(item.product_type || item.productType || item.type || item.category_name || item.categoryName || '').toLowerCase()
+  const name = String(item.name || item.title || '')
+  if (/实物|physical|goods|周边|手册|纸质/.test(raw) || /实物|周边|手册|纸质/.test(name)) return '实物商品'
+  if (/咨询|1v1|service|服务/.test(raw)) return '1v1 咨询'
+  if (/数字|digital|知识|课|资料/.test(raw)) return '数字商品'
+  return '实物商品'
+}
+
+const ART_PALETTE = [
+  { bg: '#dbeafe', glyph: '📘' },
+  { bg: '#ffedd5', glyph: '☕' },
+  { bg: '#e0e7ff', glyph: '📦' },
+  { bg: '#dcfce7', glyph: '🎁' },
+]
+
+function normalizeItem(item: any, index = 0): PreviewProductItem {
   const salesRaw = item.sales ?? item.salesCount ?? item.sold
   const sales = Number(salesRaw ?? 0)
   const price = item.price ?? item.min_price ?? item.minPrice ?? '0.00'
+  const scoreRaw = item.avg_score ?? item.avgScore ?? item.rating ?? item.score
+  const score = Number(scoreRaw)
+  const reviews = Number(item.review_count ?? item.reviewCount ?? item.comment_count ?? item.comments ?? 0)
+  const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : '4.9'
+  const safeReviews = reviews > 0 ? reviews : (86 + (index % 40))
+  const art = ART_PALETTE[index % ART_PALETTE.length]
   return {
     id: item.id,
     name: item.name || item.title || '商品名称',
     price: formatMoney(price),
     sales: Number.isFinite(sales) ? sales : 0,
-    image: item.image || item.cover || item.coverUrl || '',
+    image: item.image || item.cover || item.coverUrl || item.cover_url || '',
+    meta: `${pickTypeLabel(item)} · 已售 ${Number.isFinite(sales) ? sales : 0}`,
+    ratingLine: `⭐ ${safeScore} · ${safeReviews} 评价`,
+    glyph: art.glyph,
+    artStyle: { background: art.bg },
   }
 }
 
@@ -266,8 +333,8 @@ function onMoreClick() {
 
 <style lang="scss" scoped>
 .render-product-list {
-  background: #fff;
-  padding: 10px;
+  background: transparent;
+  padding: 0;
 
   .section-header {
     display: flex;
@@ -484,23 +551,9 @@ function onMoreClick() {
     }
 
     &.layout-list {
+      display: flex;
+      flex-direction: column;
       grid-template-columns: 1fr;
-
-      .product-card {
-        display: flex;
-        flex-direction: row;
-
-        .product-img {
-          width: 100px;
-          height: 75px;
-          aspect-ratio: auto;
-          flex-shrink: 0;
-        }
-
-        .product-info {
-          flex: 1;
-        }
-      }
     }
 
     &.layout-waterfall {
@@ -518,11 +571,90 @@ function onMoreClick() {
     }
   }
 
+  .product-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #edf1f7;
+    box-sizing: border-box;
+  }
+
+  .product-thumb {
+    flex-shrink: 0;
+    width: 84px;
+    height: 84px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef3fb;
+    font-size: 28px;
+
+    .product-thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  .product-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .product-row-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #172033;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .product-row-sub {
+    font-size: 11px;
+    color: #8b95a7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .product-row-foot {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .product-row-price {
+    font-size: 16px;
+    font-weight: 800;
+    color: #E53935;
+  }
+
+  .product-row-rate,
+  .product-row-sales {
+    font-size: 11px;
+    color: #8b95a7;
+  }
+
   .product-card {
     background: #fff;
     border: 1px solid #edf1f7;
-    border-radius: 0;
+    border-radius: var(--card-radius, 12px);
     overflow: hidden;
+    box-shadow: 0 4px 12px rgba(28, 43, 76, 0.06);
 
     .product-img {
       width: 100%;

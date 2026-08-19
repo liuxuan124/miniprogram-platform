@@ -436,8 +436,7 @@
 .c-video,
 .c-data,
 .c-long,
-.c-note,
-.p-card {
+.c-note {
   background: #fff;
   border: 1rpx solid var(--line);
   box-shadow: var(--sh1);
@@ -654,7 +653,10 @@
   gap: 22rpx;
   margin-bottom: 18rpx;
   padding: 20rpx;
+  background: #fff;
+  border: 1rpx solid var(--line);
   border-radius: 28rpx;
+  box-shadow: var(--sh1);
 }
 
 .p-ic {
@@ -687,7 +689,7 @@
 }
 
 .p-pr {
-  color: #f05b45;
+  color: #E53935;
   font-size: 32rpx;
   font-weight: 800;
 }
@@ -697,6 +699,19 @@
   color: var(--ink-3);
   font-size: 18rpx;
   font-weight: 500;
+}
+
+.p-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.p-rate {
+  color: var(--ink-3);
+  font-size: 20rpx;
+  white-space: nowrap;
 }
 
 .pad {

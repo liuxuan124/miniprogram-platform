@@ -12,9 +12,9 @@ export function getAllReleases(status?: number) {
   return get(`${BASE}/list`, status !== undefined ? { status } : {})
 }
 
-/** 获取版本详情 */
+/** 获取版本详情（含快照，体积较大） */
 export function getReleaseDetail(id: number) {
-  return get(`${BASE}/${id}`)
+  return get(`${BASE}/${id}`, undefined, { timeout: 60000, showError: false })
 }
 
 /** 获取最新版本 */
