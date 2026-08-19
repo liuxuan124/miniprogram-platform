@@ -485,12 +485,17 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         try {
             Map<String, Object> snapshot = new LinkedHashMap<>();
 
-            List<Page> publishedPages = pageMapper.selectList(new LambdaQueryWrapper<Page>()
-                    .eq(Page::getStatus, 1));
+            Map<String, String> configs = loadConfigMap();
+            Set<Long> boundIds = collectBoundPageIds(configs);
 
             List<Map<String, Object>> pageSnapshots = new ArrayList<>();
-            for (Page page : publishedPages) {
+            for (Long pageId : boundIds) {
+                Page page = pageMapper.selectById(pageId);
+                if (page == null) {
+                    continue;
+                }
                 Map<String, Object> pageInfo = new LinkedHashMap<>();
+                pageInfo.put("pageId", page.getId());
                 pageInfo.put("path", page.getPath());
                 pageInfo.put("name", page.getName());
 
@@ -505,9 +510,9 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             }
             snapshot.put("pages", pageSnapshots);
 
-            List<SystemConfig> configs = systemConfigMapper.selectList(null);
+            List<SystemConfig> systemConfigs = systemConfigMapper.selectList(null);
             Map<String, Object> systemConfigMap = new LinkedHashMap<>();
-            for (SystemConfig config : configs) {
+            for (SystemConfig config : systemConfigs) {
                 String value = config.getConfigValue();
                 if (StringUtils.hasText(value)) {
                     try {
@@ -728,7 +733,6 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         Map<String, String> configs = loadConfigMap();
         List<Map<String, Object>> tabs = parseTabItems(configs.get("tabbarItems"));
         Long homeId = parseLongId(configs.get("miniappHomePageId"));
-        Long mineId = parseLongId(configs.get("miniappMinePageId"));
 
         if (homeId == null) {
             Page home = pageMapper.selectOne(new LambdaQueryWrapper<Page>()
@@ -742,13 +746,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             vo.getBlocking().add("尚未绑定首页，请先在「导航与外观」选择首页");
         }
 
-        Set<Long> boundIds = new LinkedHashSet<>();
-        if (homeId != null) {
-            boundIds.add(homeId);
-        }
-        if (mineId != null) {
-            boundIds.add(mineId);
-        }
+        Set<Long> boundIds = collectBoundPageIds(configs);
 
         if (tabs.isEmpty()) {
             vo.getWarnings().add("尚未配置底部导航，发布后将使用小程序默认导航");
@@ -757,11 +755,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             String text = firstText(tab.get("text"), tab.get("label"), tab.get("name"));
             String path = normalizePagePath(firstText(tab.get("pagePath"), tab.get("path"), tab.get("url")));
             Long pageId = parseLongId(tab.get("pageId"));
-            if (pageId != null) {
-                boundIds.add(pageId);
-                continue;
-            }
-            if (!isBuiltInMiniappPage(path)) {
+            if (pageId == null && !isBuiltInMiniappPage(path)) {
                 vo.getBlocking().add("导航「" + fallbackText(text) + "」尚未绑定页面");
             }
         }
@@ -944,6 +938,34 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** 导航与外观绑定的页面 ID：首页 + TabBar 绑定页 + 我的页（若绑定自定义页） */
+    private Set<Long> collectBoundPageIds(Map<String, String> configs) {
+        Set<Long> boundIds = new LinkedHashSet<>();
+        Long homeId = parseLongId(configs.get("miniappHomePageId"));
+        Long mineId = parseLongId(configs.get("miniappMinePageId"));
+        if (homeId == null) {
+            Page home = pageMapper.selectOne(new LambdaQueryWrapper<Page>()
+                    .eq(Page::getType, 1)
+                    .last("LIMIT 1"));
+            if (home != null) {
+                homeId = home.getId();
+            }
+        }
+        if (homeId != null) {
+            boundIds.add(homeId);
+        }
+        if (mineId != null) {
+            boundIds.add(mineId);
+        }
+        for (Map<String, Object> tab : parseTabItems(configs.get("tabbarItems"))) {
+            Long pageId = parseLongId(tab.get("pageId"));
+            if (pageId != null) {
+                boundIds.add(pageId);
+            }
+        }
+        return boundIds;
     }
 
     private boolean isEmptyCanvas(String dslContent) {

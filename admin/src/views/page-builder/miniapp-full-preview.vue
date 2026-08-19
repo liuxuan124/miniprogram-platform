@@ -751,6 +751,39 @@ function pickInitialHomePath(
     || ''
 }
 
+function filterBoundSnapshotPages(
+  pages: Array<{ path: string; name?: string; dslContent?: string; pageId?: string }>,
+  tabs: Array<{ pagePath?: string; pageId?: string }>,
+  homeId: string,
+) {
+  const boundIds = new Set<string>()
+  if (/^\d+$/.test(homeId)) boundIds.add(homeId)
+  for (const tab of tabs) {
+    const id = String(tab.pageId || '').trim()
+    if (/^\d+$/.test(id)) boundIds.add(id)
+  }
+
+  const boundPaths = new Set<string>()
+  for (const tab of tabs) {
+    const p = normalizePath(tab.pagePath || '')
+    if (!p || p === 'pages/mine/mine') continue
+    boundPaths.add(p)
+  }
+
+  if (!boundIds.size && !boundPaths.size) return pages
+
+  return pages.filter((page) => {
+    const id = String(page.pageId || '').trim()
+    if (id && boundIds.has(id)) return true
+    const p = normalizePath(page.path)
+    if (boundPaths.has(p)) return true
+    for (const bp of boundPaths) {
+      if (p === bp || p.endsWith(bp) || bp.endsWith(p)) return true
+    }
+    return false
+  })
+}
+
 function syncTabPagePaths(
   tabs: Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>,
   pages: Array<{ path: string; pageId?: string }>,
@@ -1039,18 +1072,28 @@ async function loadReleaseSnapshot() {
       return
     }
     const snap = JSON.parse(release.snapshot) as {
-      pages?: Array<{ path?: string; name?: string; dslContent?: string }>
-      systemConfig?: { tabbarItems?: Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }> }
+      pages?: Array<{ path?: string; name?: string; dslContent?: string; pageId?: string | number }>
+      systemConfig?: Record<string, unknown> & {
+        tabbarItems?: Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>
+        miniappHomePageId?: string | number
+      }
     }
-    snapshotPages.value = (snap.pages || []).filter((page) => page?.path) as Array<{
-      path: string
-      name: string
-      dslContent?: string
-    }>
-    snapshotTabs.value = Array.isArray(snap.systemConfig?.tabbarItems) ? snap.systemConfig.tabbarItems : []
-    const home = snapshotPages.value.find((page) => /pages\/index\/index/.test(normalizePath(page.path)))
-      || snapshotPages.value[0]
-    if (home) await showSnapshotPage(home.path)
+    const configMap = snap.systemConfig || {}
+    const homeId = String(configMap.miniappHomePageId || '').trim()
+    snapshotTabs.value = Array.isArray(configMap.tabbarItems) ? configMap.tabbarItems : []
+    const allPages = (snap.pages || [])
+      .filter((page) => page?.path)
+      .map((page) => ({
+        path: page.path as string,
+        name: page.name || page.path as string,
+        dslContent: page.dslContent,
+        pageId: page.pageId != null ? String(page.pageId) : undefined,
+      }))
+    const pages = filterBoundSnapshotPages(allPages, snapshotTabs.value, homeId)
+    snapshotPages.value = pages
+    snapshotTabs.value = syncTabPagePaths(snapshotTabs.value, pages)
+    const homePathPreferred = pickInitialHomePath(homeId, snapshotTabs.value, pages)
+    if (homePathPreferred) await showSnapshotPage(homePathPreferred)
     else notice.value = '该版本快照里没有可预览页面'
   } catch (e: any) {
     const timedOut = e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message || ''))
