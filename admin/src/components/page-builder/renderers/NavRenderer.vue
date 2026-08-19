@@ -16,7 +16,7 @@
         @click.stop="onItemClick(item)"
       >
         <div class="nav-icon" :class="{ 'nav-icon--img': isImageIcon(item.icon) }">
-          <img v-if="isImageIcon(item.icon)" :src="item.icon" alt="" class="nav-icon-img" />
+          <img v-if="isImageIcon(item.icon)" :src="navIconDisplaySrc(item.icon)" alt="" class="nav-icon-img" />
           <span v-else>{{ item.icon || '▦' }}</span>
         </div>
         <span class="nav-text">{{ item.title }}</span>
@@ -30,6 +30,7 @@ import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 import { resolveJump, resolvePreviewLinkAction, runPreviewLinkAction } from '@/utils/preview-link'
+import { isNavImageIcon, navIconDisplaySrc } from '@/components/page-builder/navIconSet'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -77,8 +78,7 @@ const rootStyle = computed(() => {
 })
 
 function isImageIcon(icon?: string): boolean {
-  if (!icon) return false
-  return /^(https?:\/\/|\/|data:image|\.\/|\.\.\/)/i.test(icon.trim())
+  return isNavImageIcon(icon)
 }
 
 function hasLink(item: Record<string, unknown>) {
