@@ -1,7 +1,9 @@
-// pages/content-list/content-list.js — 内容中心（对齐设计原型，数据走 CMS）
+// pages/content-list/content-list.js — Tab 内容页：优先加载导航绑定的装修页 DSL
 
 const request = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
+const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
+const { getNavLayout } = require('../../utils/nav-layout')
 
 const TOPIC_TABS = [
   { id: '', name: '推荐' },
@@ -186,7 +188,12 @@ function mapRecord(item) {
 Page({
   ...createSharePageConfig(),
   data: {
-    statusBarHeight: 20,
+    dslMode: false,
+    error: '',
+    flowComponents: [],
+    floatComponents: [],
+    hasBrandHeader: false,
+    statusBarHeight: getNavLayout().statusBarHeight,
     formatTabs: FORMAT_TABS,
     topicTabs: TOPIC_TABS,
     activeFormat: '',
@@ -199,11 +206,14 @@ Page({
   },
 
   onLoad() {
-    try {
-      const sys = wx.getSystemInfoSync()
-      this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
-    } catch (_) {}
-    this._loadArticles()
+    loadTabBoundDslPage(this, '/pages/content-list/content-list').then((ok) => {
+      if (ok) return
+      try {
+        const sys = wx.getSystemInfoSync()
+        this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
+      } catch (_) {}
+      this._loadArticles()
+    })
   },
 
   onShow() {
@@ -227,7 +237,15 @@ Page({
   },
 
   onPullDownRefresh() {
+    if (this.data.dslMode) {
+      loadTabBoundDslPage(this, '/pages/content-list/content-list', true).finally(() => wx.stopPullDownRefresh())
+      return
+    }
     this._loadArticles().then(() => wx.stopPullDownRefresh())
+  },
+
+  onReachBottom() {
+    if (this.data.dslMode) handleDslReachBottom(this)
   },
 
   onSearchTap() {

@@ -1,4 +1,4 @@
-// pages/index/index.js — 原型首页（布局+数据与完整版 HTML 对齐）
+// pages/index/index.js — Tab 首页：优先加载导航绑定的装修页 DSL
 const { get } = require('../../utils/request')
 const {
   ITEMS,
@@ -9,10 +9,19 @@ const {
 } = require('../../data/prototype-home')
 const { AuthService } = require('../../services/auth')
 const { createSharePageConfig } = require('../../utils/share')
+const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
+const { getNavLayout } = require('../../utils/nav-layout')
 
 Page({
   ...createSharePageConfig(),
   data: {
+    dslMode: false,
+    loading: true,
+    error: '',
+    flowComponents: [],
+    floatComponents: [],
+    hasBrandHeader: false,
+    statusBarHeight: getNavLayout().statusBarHeight,
     featureArtStyle: artStyle('select'),
     topics: buildTopics(),
     feedCards: [],
@@ -23,7 +32,9 @@ Page({
   },
 
   onLoad() {
-    this._hydrate()
+    loadTabBoundDslPage(this, '/pages/index/index').then((ok) => {
+      if (!ok) this._hydrate()
+    })
   },
 
   onShow() {
@@ -38,7 +49,15 @@ Page({
   },
 
   onPullDownRefresh() {
+    if (this.data.dslMode) {
+      loadTabBoundDslPage(this, '/pages/index/index', true).finally(() => wx.stopPullDownRefresh())
+      return
+    }
     this._hydrate().finally(() => wx.stopPullDownRefresh())
+  },
+
+  onReachBottom() {
+    if (this.data.dslMode) handleDslReachBottom(this)
   },
 
   async _hydrate() {

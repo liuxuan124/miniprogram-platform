@@ -1,4 +1,5 @@
 /* pages/index/index.wxss — 出海笔记首页 2.0 */
+@import "../../templates/dsl-tab-body.wxss";
 
 .home {
   position: relative;

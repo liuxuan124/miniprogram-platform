@@ -1,4 +1,12 @@
-<!-- pages/knowledge-mall/knowledge-mall.wxml — 对齐原型「知识商城」 -->
+<!-- pages/knowledge-mall/knowledge-mall.wxml — Tab 商城页：装修 DSL 或原型兜底 -->
+<import src="../../templates/dsl-tab-body.wxml" />
+<block wx:if="{{dslMode}}">
+  <template
+    is="dsl-tab-body"
+    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight}}"
+  />
+</block>
+<block wx:else>
 <view class="km-page" style="padding-top: {{statusBarHeight}}px;">
   <view class="km-header">
     <text class="km-header__title">知识商城</text>
@@ -91,4 +99,5 @@
     <view class="km-safe"></view>
   </scroll-view>
 </view>
+</block>
 <login-sheet id="global-login-sheet" />

@@ -1,4 +1,12 @@
-<!--pages/index/index.wxml — 原型首页（与完整版 HTML 同结构同数据）-->
+<!--pages/index/index.wxml — Tab 首页：装修 DSL 或原型兜底-->
+<import src="../../templates/dsl-tab-body.wxml" />
+<block wx:if="{{dslMode}}">
+  <template
+    is="dsl-tab-body"
+    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight}}"
+  />
+</block>
+<block wx:else>
 <view class="home">
   <!-- Hero -->
   <view class="hero">
@@ -224,4 +232,5 @@
     <text class="fab__spark">🤖</text>
   </view>
 </view>
+</block>
 <login-sheet id="global-login-sheet" />

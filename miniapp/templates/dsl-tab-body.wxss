@@ -1,0 +1,11 @@
+.dsl-tab-page__state {
+  padding: 48rpx 32rpx;
+  text-align: center;
+  color: #98a2b5;
+  font-size: 28rpx;
+}
+
+.dsl-tab-page__body {
+  min-height: 100vh;
+  box-sizing: border-box;
+}
