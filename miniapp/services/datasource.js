@@ -21,7 +21,7 @@ const DS_API_MAP = {
 // 每种数据源只保留前端需要的字段，减少 setData 体积
 const DS_SLIM_FIELDS = {
   product: ['id', 'name', 'title', 'price', 'originalPrice', 'image', 'coverUrl', 'cover_url', 'mainImage', 'main_image', 'sales', 'status', 'tag', 'categoryId'],
-  content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'image', 'summary', 'createdAt', 'created_at', 'publishedAt', 'publish_time', 'publishTime', 'createTime', 'categoryId', 'categoryName', 'source'],
+  content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'image', 'summary', 'createdAt', 'created_at', 'publishedAt', 'publish_time', 'publishTime', 'createTime', 'categoryId', 'categoryName', 'source', 'viewCount', 'view_count'],
   activity: ['id', 'name', 'title', 'image', 'cover_url', 'coverUrl', 'startTime', 'start_time', 'endTime', 'end_time', 'location', 'venue', 'status'],
   coupon: ['id', 'name', 'title', 'type', 'value', 'amount', 'discount', 'minOrderAmount', 'minAmount', 'min_amount', 'startTime', 'start_time', 'endTime', 'end_time', 'status', 'condition'],
   appointment_service: ['id', 'name', 'title', 'description', 'desc', 'image', 'cover_url'],
@@ -60,6 +60,19 @@ function resolveDataSourceRequest(dataSource) {
       delete params[key]
     }
   })
+  // 兼容前端字段：category_id → categoryId；剔除仅前端使用的筛选字段
+  if (params.category_id != null && params.categoryId == null) {
+    params.categoryId = params.category_id
+  }
+  delete params.category_id
+  delete params.publish_date
+  delete params.sort_by
+  delete params.is_recommended
+  delete params.display_mode
+  // 文章 type 筛选后端暂不支持，避免未知参数
+  if (directType === 'content' || String(config.api || '').includes('/contents')) {
+    delete params.type
+  }
 
   // 标准 type 直接映射
   if (directType && DS_API_MAP[directType]) {
@@ -174,7 +187,9 @@ const DatasourceService = {
 
     // 手动选品：按 ids 过滤并排序（后端列表接口未必支持 ids）
     const idList = parseIdsParam(params.ids)
+    const isStreamMode = params.display_mode === 'stream'
     const requestParams = { ...params }
+    delete requestParams.display_mode
     if (idList.length) {
       const need = Math.max(idList.length, Number(params.size || params.page_size || 20), 20)
       requestParams.current = 1
@@ -192,8 +207,8 @@ const DatasourceService = {
 
       if (idList.length) {
         list = orderByIds(list, idList)
-      } else {
-        // 限制数量，首页最多 6 条
+      } else if (!isStreamMode) {
+        // 限制数量，首页最多 6 条（商品流模式由组件自行分页）
         const MAX_HOME_ITEMS = 6
         if (list.length > MAX_HOME_ITEMS) {
           list = list.slice(0, MAX_HOME_ITEMS)

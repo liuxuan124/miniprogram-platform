@@ -1,5 +1,14 @@
 // components/dsl-product-list/dsl-product-list.js — 商品列表组件
 const { executeAction } = require('../../utils/render')
+const { formatProductPriceLabel, formatProductSalesLabel } = require('../../utils/product-price-display')
+const { filterProductsByPrice, resolvePriceFilterConfig } = require('../../utils/product-price-filter')
+const DatasourceService = require('../../services/datasource')
+
+function calcPageSize(config) {
+  const raw = Number(config && config.page_size)
+  if (Number.isFinite(raw) && raw >= 5) return Math.min(raw, 30)
+  return 10
+}
 
 Component({
   properties: {
@@ -12,6 +21,11 @@ Component({
     runtimeData: {
       type: Array,
       value: [],
+    },
+    /** 数据源配置（商品流触底加载用） */
+    dataSource: {
+      type: Object,
+      value: null,
     },
     /** 组件动作列表 */
     actions: {
@@ -47,24 +61,78 @@ Component({
     itemImageStyle: '',
     gridGapStyle: 'gap:16rpx;',
     showRating: true,
+    isStreamMode: false,
+    hasMore: false,
+    loadingMore: false,
+    footerText: '',
+    page: 0,
   },
 
   observers: {
-    'runtimeData, config': function () {
-      this._refreshDisplayData()
+    'runtimeData, config, dataSource': function () {
+      this._onInputsChanged()
     },
   },
 
   lifetimes: {
     attached() {
-      this._refreshDisplayData()
+      this._lastDisplayMode = ''
+      this._streamBootstrapped = false
+      this._onInputsChanged()
     },
   },
 
   methods: {
-    _refreshDisplayData() {
-      const runtimeData = Array.isArray(this.data.runtimeData) ? this.data.runtimeData : []
+    loadMore() {
+      if (!this.data.isStreamMode || !this.data.hasMore || this.data.loadingMore) return
+      this._fetchStreamPage(false)
+    },
+
+    _onInputsChanged() {
       const config = this.data.config || {}
+      const mode = config.display_mode === 'stream' ? 'stream' : 'fixed'
+      if (this._lastDisplayMode !== mode) {
+        this._streamBootstrapped = false
+        this._lastDisplayMode = mode
+      }
+      this._applyPresentationStyles(config)
+      if (mode === 'stream') {
+        if (!this._streamBootstrapped) {
+          this._bootstrapStream()
+        }
+        return
+      }
+      this._streamBootstrapped = false
+      this._refreshDisplayDataFixed()
+    },
+
+    _isManualPick(config) {
+      const ids = Array.isArray(config.product_ids)
+        ? config.product_ids.map((id) => String(id)).filter(Boolean)
+        : []
+      return config.source_mode === 'manual' || ids.length > 0
+    },
+
+    _pageSize() {
+      return calcPageSize(this.data.config || {})
+    },
+
+    _buildDataSource(config) {
+      const ds = this.data.dataSource
+      if (ds && ds.type) return ds
+      const ids = Array.isArray(config.product_ids)
+        ? config.product_ids.map((id) => String(id)).filter(Boolean)
+        : []
+      const base = { type: 'product', params: { status: 'on_sale' }, query: { status: 'on_sale' } }
+      if (ids.length) {
+        const idStr = ids.join(',')
+        base.params.ids = idStr
+        base.query.ids = idStr
+      }
+      return base
+    },
+
+    _resolveSource(config, runtimeData) {
       const fallback = [
         { id: 'preview-1', name: '跨境通用知识库', price: '199.00', sales: 128 },
         { id: 'preview-2', name: '跨境财税知识库', price: '299.00', sales: 86 },
@@ -73,25 +141,46 @@ Component({
         ? config.product_ids.map((id) => String(id)).filter(Boolean)
         : []
       const savedItems = Array.isArray(config.items) ? config.items : []
-      let source = runtimeData.length ? runtimeData : []
-      // 手动选品：按勾选顺序展示；接口无数据时回退到 DSL 内已保存 items
+      let source = Array.isArray(runtimeData) && runtimeData.length ? runtimeData : []
+      const mergeItem = (saved, fresh) => {
+        if (!saved && !fresh) return null
+        const merged = { ...(saved || {}), ...(fresh || {}) }
+        const main = (fresh && (fresh.mainImage || fresh.main_image))
+          || (saved && (saved.mainImage || saved.main_image))
+          || ''
+        if (main) {
+          merged.mainImage = main
+          merged.main_image = main
+        }
+        return merged
+      }
       if (ids.length) {
-        const pool = (runtimeData.length ? runtimeData : savedItems)
-        const map = {}
-        pool.forEach((item) => {
-          if (item && item.id != null) map[String(item.id)] = item
+        const runtimeMap = {}
+        ;(runtimeData || []).forEach((item) => {
+          if (item && item.id != null) runtimeMap[String(item.id)] = item
         })
-        const ordered = ids.map((id) => map[String(id)]).filter(Boolean)
+        const savedMap = {}
+        savedItems.forEach((item) => {
+          if (item && item.id != null) savedMap[String(item.id)] = item
+        })
+        const ordered = ids.map((id) => mergeItem(savedMap[String(id)], runtimeMap[String(id)])).filter(Boolean)
         if (ordered.length) source = ordered
         else if (savedItems.length) source = savedItems
       } else if (!source.length && savedItems.length) {
         source = savedItems
       }
       if (!source.length) source = fallback
-      const limit = Math.max(Number(config.limit || source.length), 1)
-      const titleBold = config.title_bold !== false
+      return source
+    },
+
+    _applyPriceFilter(source, config) {
+      const priceFilter = resolvePriceFilterConfig(config)
+      if (priceFilter.mode === 'all') return source
+      return filterProductsByPrice(source, priceFilter)
+    },
+
+    _mapDisplayItems(source, config, startIndex = 0) {
       const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
-      const showRating = layout === 'list' ? config.show_rating !== false : config.show_rating === true
       const artPalette = [
         { bg: '#dbeafe', glyph: '📘' },
         { bg: '#ffedd5', glyph: '☕' },
@@ -106,28 +195,47 @@ Component({
         if (/数字|digital|知识|课|资料/.test(raw)) return '数字商品'
         return '实物商品'
       }
-      const displayData = source.slice(0, limit).map((item, index) => {
-        const cover = item.cover_url || item.image || item.pic || item.mainImage || item.main_image || ''
+      const pickCover = (item) => {
+        const gallery = item.images
+        const firstFromGallery = Array.isArray(gallery) && gallery.length ? String(gallery[0] || '').trim() : ''
+        return String(
+          item.mainImage || item.main_image || item.coverUrl || item.cover_url
+          || item.coverImage || item.cover || item.image || item.pic || firstFromGallery || '',
+        ).trim()
+      }
+      const zeroPriceDisplay = config.zero_price_display === 'free' ? 'free' : 'amount'
+      return source.map((item, index) => {
+        const globalIndex = startIndex + index
+        const cover = pickCover(item)
         const sales = Number(item.sales || item.salesCount || item.sold || 0) || 0
         const price = item.price || item.min_price || item.minPrice || '0.00'
+        const priceLabel = formatProductPriceLabel(price, zeroPriceDisplay)
+        const salesLabel = formatProductSalesLabel(price, sales)
         const scoreRaw = item.avg_score || item.avgScore || item.rating || item.score
         const score = Number(scoreRaw)
         const reviews = Number(item.review_count || item.reviewCount || item.comment_count || item.comments || 0)
         const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : '4.9'
-        const safeReviews = reviews > 0 ? reviews : (86 + (index % 40))
-        const art = artPalette[index % artPalette.length]
+        const safeReviews = reviews > 0 ? reviews : (86 + (globalIndex % 40))
+        const art = artPalette[globalIndex % artPalette.length]
         return {
           ...item,
-          _key: item._key || `product_${item.id || index}_${index}`,
+          _key: item._key || `product_${item.id || globalIndex}_${globalIndex}`,
           _cover: cover,
           _price: price,
+          _priceLabel: (priceLabel.withYuan ? '¥' : '') + priceLabel.text,
           _sales: sales,
-          _meta: pickTypeLabel(item) + ' · 已售 ' + sales,
+          _salesLabel: salesLabel,
+          _meta: pickTypeLabel(item) + ' · ' + salesLabel,
           _ratingLine: '⭐ ' + safeScore + ' · ' + safeReviews + ' 评价',
           _glyph: art.glyph,
           _artStyle: 'background:' + art.bg + ';',
         }
       })
+    },
+
+    _applyPresentationStyles(config) {
+      const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
+      const showRating = layout === 'list' ? config.show_rating !== false : config.show_rating === true
       const titleSize = Number(config.title_font_size) > 0 ? Number(config.title_font_size) : (layout === 'list' ? 15 : 14)
       const priceSize = Number(config.price_font_size) > 0
         ? Number(config.price_font_size)
@@ -170,8 +278,8 @@ Component({
       const gridGapStyle = layout === 'list'
         ? ('gap:' + (itemGap * 2) + 'rpx;')
         : ('grid-template-columns:repeat(' + columnCount + ',1fr);gap:' + (itemGap * 2) + 'rpx;')
+      const titleBold = config.title_bold !== false
       this.setData({
-        displayData,
         sectionTitle: String(config.title || '').trim(),
         sectionSubtitle: String(config.subtitle || '').trim(),
         sectionStyle,
@@ -195,6 +303,108 @@ Component({
       })
     },
 
+    _bootstrapStream() {
+      const config = this.data.config || {}
+      const runtimeData = Array.isArray(this.data.runtimeData) ? this.data.runtimeData : []
+      const pageSize = this._pageSize()
+      const source = this._resolveSource(config, runtimeData)
+
+      if (this._isManualPick(config)) {
+        const filtered = this._applyPriceFilter(source, config)
+        const mapped = this._mapDisplayItems(filtered, config, 0)
+        this.setData({
+          displayData: mapped,
+          isStreamMode: false,
+          hasMore: false,
+          loadingMore: false,
+          page: mapped.length ? 1 : 0,
+          footerText: mapped.length ? '没有更多了' : '',
+        })
+        this._streamBootstrapped = true
+        return
+      }
+
+      const filtered = this._applyPriceFilter(source, config)
+      const slice = filtered.slice(0, pageSize)
+      const mapped = this._mapDisplayItems(slice, config, 0)
+      this.setData({
+        displayData: mapped,
+        isStreamMode: true,
+        page: mapped.length ? 1 : 0,
+        hasMore: slice.length >= pageSize,
+        loadingMore: false,
+        footerText: slice.length >= pageSize ? '' : (mapped.length ? '没有更多了' : ''),
+      })
+      this._localPool = filtered
+      this._streamBootstrapped = true
+    },
+
+    _fetchStreamPage(reset) {
+      const config = this.data.config || {}
+      const pageSize = this._pageSize()
+      const nextPage = reset ? 1 : (this.data.page || 0) + 1
+      const dataSource = this._buildDataSource(config)
+
+      if (reset) {
+        this.setData({ loadingMore: false, footerText: '' })
+      } else {
+        this.setData({ loadingMore: true, footerText: '加载中...' })
+      }
+
+      DatasourceService.fetchPagedData(dataSource, nextPage, pageSize)
+        .then(({ list, hasMore }) => {
+          let filtered = this._applyPriceFilter(list || [], config)
+          const startIndex = reset ? 0 : (this.data.displayData || []).length
+          const mapped = this._mapDisplayItems(filtered, config, startIndex)
+          const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
+          const stillHasMore = hasMore || filtered.length >= pageSize
+          this.setData({
+            displayData: merged,
+            page: nextPage,
+            hasMore: stillHasMore,
+            loadingMore: false,
+            footerText: stillHasMore ? '' : (merged.length ? '没有更多了' : ''),
+          })
+        })
+        .catch(() => {
+          this._sliceLocalPool(reset, nextPage, pageSize, config)
+        })
+    },
+
+    _sliceLocalPool(reset, nextPage, pageSize, config) {
+      const pool = this._localPool || []
+      const start = (nextPage - 1) * pageSize
+      const slice = pool.slice(start, start + pageSize)
+      const startIndex = reset ? 0 : (this.data.displayData || []).length
+      const mapped = this._mapDisplayItems(slice, config, startIndex)
+      const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
+      const hasMore = start + pageSize < pool.length
+      this.setData({
+        displayData: merged,
+        page: nextPage,
+        hasMore,
+        loadingMore: false,
+        footerText: hasMore ? '' : (merged.length ? '没有更多了' : ''),
+      })
+    },
+
+    _refreshDisplayDataFixed() {
+      const runtimeData = Array.isArray(this.data.runtimeData) ? this.data.runtimeData : []
+      const config = this.data.config || {}
+      let source = this._resolveSource(config, runtimeData)
+      source = this._applyPriceFilter(source, config)
+      const limit = Math.max(Number(config.limit || source.length), 1)
+      const displayData = this._mapDisplayItems(source.slice(0, limit), config, 0)
+      this.setData({
+        displayData,
+        isStreamMode: false,
+        hasMore: false,
+        loadingMore: false,
+        footerText: '',
+        page: 0,
+      })
+    },
+
     onTapMore() {
       const link = String(this.data.moreLink || '/pages/knowledge-mall/knowledge-mall').trim()
       if (!link) return
@@ -205,13 +415,6 @@ Component({
       executeAction({ type: 'page', path: link })
     },
 
-    /** 点击购物车 */
-    onTapCart(e) {
-      const name = e.currentTarget.dataset.name || '商品'
-      wx.showToast({ title: `已加入「${name}」`, icon: 'none' })
-    },
-
-    /** 点击商品 */
     onTapProduct(e) {
       const id = e.currentTarget.dataset.id
       const product = this.data.displayData.find((p) => p.id === id)
@@ -219,7 +422,6 @@ Component({
       if (product && product.action) {
         executeAction(product.action)
       } else {
-        // 默认跳转商品详情
         executeAction({
           type: 'page',
           path: '/pages/product-detail/product-detail?id=' + id,

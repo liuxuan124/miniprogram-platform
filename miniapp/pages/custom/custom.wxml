@@ -3,7 +3,10 @@
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
   <block wx:else>
-    <view class="custom-page__body">
+    <view
+      class="custom-page__body"
+      style="{{hasBrandHeader ? '' : 'padding-top:' + statusBarHeight + 'px;'}}"
+    >
       <dsl-renderer
         wx:for="{{flowComponents}}"
         wx:key="id"

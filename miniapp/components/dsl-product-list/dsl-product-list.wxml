@@ -27,12 +27,12 @@
           </view>
         </view>
         <view class="dsl-product-list__body">
-          <text class="dsl-product-list__row-name" style="{{titleStyle}}">{{item.name || item.title}}</text>
-          <text class="dsl-product-list__row-sub">{{item._meta}}</text>
+          <text class="dsl-product-list__row-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
+          <text class="dsl-product-list__row-sub" style="{{salesStyle}}">{{item._meta}}</text>
           <view class="dsl-product-list__row-foot">
-            <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__row-price" style="{{priceStyle}}">¥{{item._price}}</text>
+            <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__row-price" style="{{priceStyle}}">{{item._priceLabel}}</text>
             <text wx:if="{{showRating}}" class="dsl-product-list__row-rate">{{item._ratingLine}}</text>
-            <text wx:elif="{{config.show_sales !== false}}" class="dsl-product-list__row-sales" style="{{salesStyle}}">已售{{item._sales}}</text>
+            <text wx:elif="{{config.show_sales !== false}}" class="dsl-product-list__row-sales" style="{{salesStyle}}">{{item._salesLabel}}</text>
           </view>
         </view>
       </view>
@@ -48,15 +48,18 @@
         bindtap="onTapProduct"
         style="{{itemCardStyle}}"
       >
-        <image
-          wx:if="{{item._cover}}"
-          class="dsl-product-list__item-image"
-          style="{{itemImageStyle}}"
-          src="{{item._cover}}"
-          mode="aspectFill"
-          lazy-load
-        />
-        <view wx:else class="dsl-product-list__item-placeholder" style="{{itemImageStyle}}">🛍️</view>
+        <view class="dsl-product-list__item-media" style="{{itemImageStyle}}">
+          <image
+            wx:if="{{item._cover}}"
+            class="dsl-product-list__item-image"
+            src="{{item._cover}}"
+            mode="aspectFill"
+            lazy-load
+          />
+          <view wx:else class="dsl-product-list__item-placeholder">
+            <text>🛍️</text>
+          </view>
+        </view>
 
         <view class="dsl-product-list__item-info">
           <text class="dsl-product-list__item-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
@@ -68,17 +71,8 @@
           </view>
           <view class="dsl-product-list__item-bottom">
             <view class="dsl-product-list__item-meta-row">
-              <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__item-price" style="{{priceStyle}}">¥{{item._price}}</text>
-              <text wx:if="{{config.show_sales !== false}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">已售{{item._sales}}</text>
-            </view>
-            <view
-              wx:if="{{config.show_cart !== false}}"
-              class="dsl-product-list__item-cart"
-              catchtap="onTapCart"
-              data-id="{{item.id}}"
-              data-name="{{item.name || item.title}}"
-            >
-              <text>🛒</text>
+              <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__item-price" style="{{priceStyle}}">{{item._priceLabel}}</text>
+              <text wx:if="{{config.show_sales !== false}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">{{item._salesLabel}}</text>
             </view>
           </view>
         </view>
@@ -86,7 +80,10 @@
     </block>
   </view>
 
-  <view class="dsl-product-list__empty" wx:if="{{!displayData.length}}">
+  <view class="dsl-product-list__empty" wx:if="{{!displayData.length && !loadingMore}}">
     <text class="dsl-product-list__empty-text">暂无商品</text>
+  </view>
+  <view class="dsl-product-list__footer" wx:elif="{{footerText}}">
+    <text>{{footerText}}</text>
   </view>
 </view>

@@ -122,6 +122,7 @@ Component({
     titleStyle: '',
     metaStyle: '',
     listStyle: '',
+    itemCardStyle: '',
     layout: 'list',
     showCategoryTabs: false,
     categoryTabs: [],
@@ -199,6 +200,13 @@ Component({
       const moreColor = cfg.more_color || (isBand ? '#D4E2FF' : '#7b8798')
       const gapRaw = Number(cfg.item_gap)
       const itemGap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 48)) : 8
+      const radiusRaw = cfg.item_border_radius
+      const radiusNum = radiusRaw === undefined || radiusRaw === null || radiusRaw === ''
+        ? 12
+        : Number(radiusRaw)
+      const itemCardStyle = Number.isFinite(radiusNum)
+        ? ('border-radius:' + Math.max(0, radiusNum) * 2 + 'rpx;')
+        : ''
       const showCategoryTabs = cfg.show_category_tabs === true
       const categoryTabs = showCategoryTabs ? normalizeTabs(cfg) : []
       const activeTabId = this.data.activeTabId || ''
@@ -220,6 +228,7 @@ Component({
         titleStyle: 'font-size:' + (titleSize * 2) + 'rpx',
         metaStyle: 'font-size:' + (metaSize * 2) + 'rpx',
         listStyle: 'gap:' + (itemGap * 2) + 'rpx;',
+        itemCardStyle,
         layout,
         showCategoryTabs,
         categoryTabs,

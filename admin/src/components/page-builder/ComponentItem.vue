@@ -33,6 +33,8 @@
     :selected="selected"
     :label="ComponentTypeLabels[component.type] || component.type"
     :component-style="component.style"
+    :stack-on-top="component.type === ComponentType.Nav || component.type === ComponentType.ProductList || component.type === ComponentType.BrandHeader"
+    :toolbar-always-below="component.type === ComponentType.BrandHeader"
     @select="$emit('select')"
     @delete="$emit('delete')"
     @copy="$emit('copy')"
@@ -70,7 +72,15 @@ defineEmits<{
   copy: []
   'move-up': []
   'move-down': []
-  'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
+  'preview-action': [payload: {
+    tab: string
+    message: string
+    detailType?: string
+    detailTitle?: string
+    detailDesc?: string
+    formId?: string
+    productId?: string | number
+  }]
 }>()
 
 const rendererMap: Record<string, any> = {
@@ -83,6 +93,8 @@ const rendererMap: Record<string, any> = {
   [ComponentType.ProductList]: defineAsyncComponent(() => import('./renderers/ProductListRenderer.vue')),
   [ComponentType.FlashSale]: defineAsyncComponent(() => import('./renderers/FlashSaleRenderer.vue')),
   [ComponentType.ArticleList]: defineAsyncComponent(() => import('./renderers/ArticleListRenderer.vue')),
+  [ComponentType.ArticleFeed]: defineAsyncComponent(() => import('./renderers/ArticleFeedRenderer.vue')),
+  [ComponentType.HotNews]: defineAsyncComponent(() => import('./renderers/HotNewsRenderer.vue')),
   [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./renderers/ActivityEntryRenderer.vue')),
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./renderers/ActivityListRenderer.vue')),
   [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./renderers/AppointmentServiceRenderer.vue')),
@@ -101,6 +113,8 @@ const rendererMap: Record<string, any> = {
   [ComponentType.Spacer]: defineAsyncComponent(() => import('./renderers/SpacerRenderer.vue')),
   [ComponentType.FormEntry]: defineAsyncComponent(() => import('./renderers/FormEntryRenderer.vue')),
   [ComponentType.AIEntry]: defineAsyncComponent(() => import('./renderers/AIEntryRenderer.vue')),
+  [ComponentType.JoinGroup]: defineAsyncComponent(() => import('./renderers/JoinGroupRenderer.vue')),
+  [ComponentType.BrandHeader]: defineAsyncComponent(() => import('./renderers/BrandHeaderRenderer.vue')),
 }
 
 const warnedUnknownTypes = new Set<string>()

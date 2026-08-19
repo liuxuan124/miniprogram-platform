@@ -196,12 +196,19 @@
             <div v-show="activeStep === 1" class="config-section">
               <NavTemplateSelector v-model="form.templateKey" @update:model-value="onTemplateChange" />
               <div class="section-divider"></div>
-              <TabBarEditor :tabs="form.tabs" :pages="pages" @update:tabs="form.tabs = $event" />
+              <TabBarEditor :tabs="form.tabs" :pages="pages" @update:tabs="onTabsUpdate" />
               <div class="section-divider"></div>
               <div class="section-label">核心页面绑定</div>
               <el-form label-width="80px" size="small">
                 <el-form-item label="首页">
-                  <el-select v-model="form.homePageId" placeholder="选择首页" clearable filterable style="width:100%">
+                  <el-select
+                    v-model="form.homePageId"
+                    placeholder="选择首页"
+                    clearable
+                    filterable
+                    style="width:100%"
+                    @change="onHomePageIdChange"
+                  >
                     <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
                   </el-select>
                 </el-form-item>
@@ -460,7 +467,7 @@
                 size="small"
                 type="primary"
                 link
-                @click="openFullMiniappPreview(editingTemplateId ? { id: editingTemplateId, semver: '' } as any : undefined)"
+                @click="openFullMiniappPreview()"
               >
                 完整预览 ›
               </el-button>
@@ -765,6 +772,28 @@ watch(() => (form.mineConfig as any).mode, (mode) => {
   }
 }, { immediate: true })
 
+function onTabsUpdate(tabs: typeof form.tabs) {
+  form.tabs = tabs
+  const homeTab = form.tabs.find((t) => t.text === '首页' || String(t.pagePath || '').replace(/\/+$/, '') === '/pages/index/index')
+  if (homeTab?.pageId != null && homeTab.pageId !== '') {
+    form.homePageId = homeTab.pageId as any
+  }
+}
+
+function onHomePageIdChange(pageId: string | number | undefined | null) {
+  const homeTab = form.tabs.find((t) => t.text === '首页')
+  if (!homeTab) return
+  if (pageId == null || pageId === '') {
+    homeTab.pageId = '' as any
+    homeTab.pageName = ''
+    return
+  }
+  const page = pages.value.find((p: any) => String(p.id) === String(pageId))
+  homeTab.pageId = pageId as any
+  homeTab.pageName = page?.name || homeTab.pageName
+  if (page?.path) homeTab.pagePath = page.path
+}
+
 function onTemplateChange(key: string) {
   applyTemplate(key)
 }
@@ -919,10 +948,9 @@ function buildFullPreviewUrl(item?: ReleaseRecord | null, view: 'prototype' | 'c
   const query: Record<string, string> = { view }
   if (item?.id) {
     query.releaseId = String(item.id)
-    query.semver = item.semver || ''
-  } else if (latestPublished.value?.id) {
-    query.releaseId = String(latestPublished.value.id)
-    query.semver = latestPublished.value.semver || ''
+    if (item.semver) query.semver = item.semver
+  } else {
+    query.source = 'live'
   }
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
   return `${window.location.origin}${href}`
@@ -932,10 +960,9 @@ function openH5Preview(item: ReleaseRecord) {
   window.open(buildH5PreviewUrl(item), '_blank', 'noopener,noreferrer')
 }
 
-/** 预览该版本真实配置（首页 DSL + Tab），与「编辑」侧实时预览同源数据 */
+/** 无参=当前已保存配置；传入 release=该版本快照 */
 function openFullMiniappPreview(item?: ReleaseRecord) {
-  const target = item || latestPublished.value
-  window.open(buildFullPreviewUrl(target, 'config'), '_blank', 'noopener,noreferrer')
+  window.open(buildFullPreviewUrl(item || null, 'config'), '_blank', 'noopener,noreferrer')
 }
 
 function openPrototypeDemo() {
@@ -1057,11 +1084,15 @@ async function handleSaveAsTemplate() {
 }
 
 async function goToRelease() {
-  if (isDirty.value) {
-    await handleSave()
-    if (isDirty.value) return
+  try {
+    if (isDirty.value) {
+      const ok = await handleSave()
+      if (!ok) return
+    }
+    await router.push({ path: '/page-builder/release' })
+  } catch {
+    // 保存失败时 handleSave 已提示，不跳转
   }
-  router.push('/page-builder/release')
 }
 
 async function handlePublishOnline() {

@@ -65,30 +65,62 @@
           :title="notice"
         />
 
-        <PreviewPhone :page-title="phoneTitle" :page-bg-color="pageBgColor" @back="handleBack">
+        <PreviewPhone
+          :page-title="phoneTitle"
+          :page-bg-color="pageBgColor"
+          :hide-nav-bar="currentHasBrandHeader"
+          :pinned-brand-header="!!currentPinnedBrandHeader"
+          @back="handleBack"
+        >
+          <template v-if="currentPinnedBrandHeader" #pinnedHeader>
+            <div ref="pinnedHeaderEl">
+              <ComponentItem
+                :component="currentPinnedBrandHeader"
+                :index="currentPinnedBrandHeaderIndex"
+                :selected="false"
+                :preview-mode="true"
+                @preview-action="handlePreviewAction"
+              />
+            </div>
+          </template>
+
           <!-- 版本快照：按该次发布的真实页面 DSL 渲染 -->
-          <template v-if="snapshotPages.length">
-            <ComponentItem
-              v-for="(comp, index) in activeComponents"
-              :key="comp.id"
-              :component="comp"
-              :index="index"
-              :selected="false"
-              :preview-mode="true"
-            />
+          <template v-if="showBoundPageContent">
+            <template v-for="(comp, index) in activeComponents" :key="comp.id">
+              <div
+                v-if="isCurrentPinnedBrandHeader(comp, index)"
+                class="brand-header-flow-spacer"
+                :style="{ height: `${currentPinnedBrandHeaderHeight}px` }"
+              />
+              <ComponentItem
+                v-else-if="comp.type !== ComponentType.FloatButton"
+                :component="comp"
+                :index="index"
+                :selected="false"
+                :preview-mode="true"
+                @preview-action="handlePreviewAction"
+              />
+            </template>
             <div v-if="!loading && activeComponents.length === 0" class="fp-empty">该页在此版本快照中为空</div>
           </template>
 
           <!-- 无快照时：首页 DSL -->
-          <template v-else-if="activeScreen === 'home'">
-            <ComponentItem
-              v-for="(comp, index) in homeComponents"
-              :key="comp.id"
-              :component="comp"
-              :index="index"
-              :selected="false"
-              :preview-mode="true"
-            />
+          <template v-else-if="!snapshotPages.length && activeScreen === 'home'">
+            <template v-for="(comp, index) in homeComponents" :key="comp.id">
+              <div
+                v-if="isCurrentPinnedBrandHeader(comp, index)"
+                class="brand-header-flow-spacer"
+                :style="{ height: `${currentPinnedBrandHeaderHeight}px` }"
+              />
+              <ComponentItem
+                v-else-if="comp.type !== ComponentType.FloatButton"
+                :component="comp"
+                :index="index"
+                :selected="false"
+                :preview-mode="true"
+                @preview-action="handlePreviewAction"
+              />
+            </template>
             <div v-if="!loading && homeComponents.length === 0" class="fp-empty">暂无首页内容</div>
           </template>
 
@@ -185,32 +217,7 @@
             </template>
 
             <template v-else-if="activeScreen === 'mine'">
-              <div class="fp-mine-hero" :class="{ 'is-guest': !previewLoggedIn }">
-                <div class="av">🧭</div>
-                <div>
-                  <div class="nm">{{ previewLoggedIn ? '出海笔记用户' : mineConfig.loginTitle }}</div>
-                  <div class="lv">{{ previewLoggedIn ? '出海会员 · LV.2' : mineConfig.loginSubtitle }}</div>
-                </div>
-                <button v-if="!previewLoggedIn" class="fp-login-cta" @click="openScreen('login')">
-                  {{ mineConfig.loginButtonText }}
-                </button>
-              </div>
-              <div class="fp-stats">
-                <div @click="openProtectedScreen('coupons')"><b>{{ previewLoggedIn ? (coupons.length || 3) : '—' }}</b><span>优惠券</span></div>
-                <div @click="openProtectedScreen('member')"><b>{{ previewLoggedIn ? '860' : '—' }}</b><span>积分</span></div>
-                <div @click="openProtectedScreen('member')"><b>{{ previewLoggedIn ? '1,360' : '—' }}</b><span>成长值</span></div>
-              </div>
-              <div class="fp-quick">
-                <div @click="openProtectedScreen('orders')">💳<br>待付款</div>
-                <div @click="openProtectedScreen('orders')">📦<br>待发货</div>
-                <div @click="openProtectedScreen('booked')">🗓️<br>我的预约</div>
-                <div @click="openProtectedScreen('writereview')">✍️<br>待评价</div>
-              </div>
-              <div class="fp-menu">
-                <div v-for="m in mineMenus" :key="m.key" class="row" @click="openProtectedScreen(m.key)">
-                  <span>{{ m.icon }} {{ m.label }}</span><em>›</em>
-                </div>
-              </div>
+              <MinePagePreview :mine-config="mineConfigFull" :theme="themeConfig" />
             </template>
 
             <template v-else-if="activeScreen === 'login'">
@@ -289,19 +296,25 @@
             </template>
           </div>
 
-          <div class="fp-tabbar" v-if="showTabbar">
-            <button
-              v-for="tab in displayTabs"
-              :key="tab.key"
-              type="button"
-              class="t"
-              :class="{ on: isTabOn(tab.key) }"
-              @click="openScreen(tab.key)"
+          <template #tabbar>
+            <div
+              v-if="showTabbar"
+              class="fp-tabbar"
+              :style="{ gridTemplateColumns: `repeat(${Math.max(displayTabs.length, 1)}, 1fr)` }"
             >
-              <span>{{ tab.icon }}</span>
-              <em>{{ tab.label }}</em>
-            </button>
-          </div>
+              <button
+                v-for="tab in displayTabs"
+                :key="tab.key"
+                type="button"
+                class="t"
+                :class="{ on: isTabOn(tab.key) }"
+                @click="openScreen(tab.key)"
+              >
+                <TabBarIconDisplay :icon="tab.icon" />
+                <em>{{ tab.label }}</em>
+              </button>
+            </div>
+          </template>
         </PreviewPhone>
       </div>
     </div>
@@ -318,17 +331,33 @@ import { isAuthenticated } from '@/utils/auth'
 import { getProductList } from '@/api/product'
 import { getContentList } from '@/api/content'
 import { getConfigByGroup } from '@/api/system'
+import { getPageDetail } from '@/api/page'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import type { ComponentInstance, PageDSL } from '@/types/page'
+import { ComponentType } from '@/types/page'
+import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vue'
+import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
 import { hydratePreviewDsl } from '@/utils/preview-datasource'
+import {
+  CONFIG_KEYS,
+  DEFAULT_MINE_MENU,
+  DEFAULT_ORDER_QUICK_ACCESS,
+  DEFAULT_USER_PROFILE,
+  DEFAULT_THEME,
+  type MinePageConfig,
+  type ThemeConfig,
+} from '@/types/miniapp'
+import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
+import { usePinnedBrandHeader, estimateBrandHeaderHeight } from '@/components/page-builder/composables/usePinnedBrandHeader'
+import { useMeasuredElementHeight } from '@/components/page-builder/composables/useMeasuredElementHeight'
 
 const route = useRoute()
 const router = useRouter()
 
 const previewMode = ref<'prototype' | 'config'>((route.query.view as string) === 'prototype' ? 'prototype' : 'config')
 const modeOptions = [
-  { label: '本版本配置', value: 'config' },
+  { label: '当前配置', value: 'config' },
   { label: '设计原型（22屏）', value: 'prototype' },
 ]
 
@@ -337,7 +366,7 @@ const notice = ref('')
 const semver = ref(String(route.query.semver || ''))
 const homeComponents = ref<ComponentInstance[]>([])
 const activeComponents = ref<ComponentInstance[]>([])
-const snapshotPages = ref<Array<{ path: string; name: string; dslContent?: string }>>([])
+const snapshotPages = ref<Array<{ path: string; name: string; dslContent?: string; pageId?: string }>>([])
 const snapshotTabs = ref<Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>>([])
 const pageCache = new Map<string, { title: string; bg: string; components: ComponentInstance[] }>()
 const pageBgColor = ref('#f5f6f9')
@@ -353,12 +382,69 @@ const authModeOptions = [
   { label: '未登录态', value: 'guest' },
   { label: '已登录态', value: 'member' },
 ]
-const mineConfig = ref({
+const mineConfigFull = ref<MinePageConfig>({
   loginTitle: '登录出海笔记',
   loginSubtitle: '查看订单、预约与会员权益',
   loginButtonText: '微信一键登录',
+  memberCardTitle: '会员中心',
+  menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
+  orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS },
+  userProfile: { ...DEFAULT_USER_PROFILE },
 })
+const themeConfig = ref<ThemeConfig>({ ...DEFAULT_THEME })
 
+function parseMineConfig(raw: unknown): MinePageConfig {
+  const src = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {}
+  const tabLabels = (src.orderQuickAccess as Record<string, unknown> | undefined)?.tabLabels as Record<string, string> | undefined
+  return {
+    loginTitle: String(src.loginTitle || mineConfigFull.value.loginTitle),
+    loginSubtitle: String(src.loginSubtitle || mineConfigFull.value.loginSubtitle),
+    loginButtonText: String(src.loginButtonText || mineConfigFull.value.loginButtonText),
+    memberCardTitle: String(src.memberCardTitle || mineConfigFull.value.memberCardTitle),
+    menuItems: Array.isArray(src.menuItems)
+      ? src.menuItems as MinePageConfig['menuItems']
+      : DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
+    orderQuickAccess: {
+      ...DEFAULT_ORDER_QUICK_ACCESS,
+      ...(src.orderQuickAccess as object || {}),
+      tabLabels: {
+        ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels,
+        ...(tabLabels || {}),
+      },
+    },
+    userProfile: {
+      ...DEFAULT_USER_PROFILE,
+      ...(src.userProfile as object || {}),
+    },
+    ...(src.style ? { style: src.style } : {}),
+    ...(src.themeColor ? { themeColor: src.themeColor } : {}),
+    ...(src.themeColorSecondary ? { themeColorSecondary: src.themeColorSecondary } : {}),
+  } as MinePageConfig
+}
+
+function parseThemeConfig(raw: unknown): ThemeConfig {
+  if (!raw) return { ...DEFAULT_THEME }
+  try {
+    const src = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return { ...DEFAULT_THEME, ...(src as object) }
+  } catch {
+    return { ...DEFAULT_THEME }
+  }
+}
+
+function applyMineAndThemeFromMap(configMap: Record<string, string>) {
+  const mineRaw = configMap[CONFIG_KEYS.MINE_PAGE_CONFIG]
+  if (mineRaw) {
+    try {
+      const mine = typeof mineRaw === 'string' ? JSON.parse(mineRaw) : mineRaw
+      mineConfigFull.value = parseMineConfig(mine)
+    } catch { /* ignore */ }
+  }
+  const themeRaw = configMap[CONFIG_KEYS.THEME_CONFIG]
+  if (themeRaw) {
+    themeConfig.value = parseThemeConfig(themeRaw)
+  }
+}
 const contentTopic = ref('全部')
 const contentFormat = ref('全部')
 const shopFilter = ref('all')
@@ -372,10 +458,10 @@ const shopFilters = [
 ]
 
 const tabs = [
-  { key: 'home', label: '首页', icon: '🏠' },
-  { key: 'content', label: '内容', icon: '📚' },
-  { key: 'shop', label: '商城', icon: '🛍️' },
-  { key: 'mine', label: '我的', icon: '👤' },
+  { key: 'home', label: '首页', icon: '/images/nav-icons/g-platform.png' },
+  { key: 'content', label: '内容', icon: '/images/nav-icons/g-content.png' },
+  { key: 'shop', label: '商城', icon: '/images/nav-icons/g-bag.png' },
+  { key: 'mine', label: '我的', icon: '/images/nav-icons/g-user.png' },
 ]
 
 const mineMenus = [
@@ -444,11 +530,25 @@ const stubScreens: Record<string, { icon: string; title: string; desc: string }>
 }
 
 const prototypeSrc = computed(() => `/prototype/chuhai-notes.html?embed=1`)
-const modeLabel = computed(() => (previewMode.value === 'prototype' ? '设计原型' : '本版本配置'))
+const releaseId = computed(() => {
+  const value = Number(route.query.releaseId)
+  return Number.isFinite(value) && value > 0 ? value : 0
+})
+const useLiveConfig = computed(() => {
+  if (String(route.query.source || '') === 'live') return true
+  return !releaseId.value
+})
+const modeLabel = computed(() => {
+  if (previewMode.value === 'prototype') return '设计原型'
+  if (useLiveConfig.value) return '当前已保存配置'
+  return semver.value ? `版本快照 v${semver.value}` : '版本快照'
+})
 const displayScreenGroups = computed(() => {
   if (!snapshotPages.value.length) return screenGroups
   return [{
-    title: semver.value ? `v${semver.value} 页面快照` : '本版本页面',
+    title: useLiveConfig.value
+      ? '当前绑定页面（最新草稿）'
+      : (semver.value ? `v${semver.value} 页面快照` : '本版本页面'),
     items: snapshotPages.value.map((page, index) => ({
       no: String(index + 1).padStart(2, '0'),
       key: page.path,
@@ -458,21 +558,68 @@ const displayScreenGroups = computed(() => {
 })
 const displayTabs = computed(() => {
   if (!snapshotTabs.value.length) return tabs
-  return snapshotTabs.value.map((tab) => ({
-    key: tab.pagePath || String(tab.pageId || ''),
-    label: tab.text,
-    icon: tab.icon || '●',
-  }))
+  return snapshotTabs.value.map((tab) => {
+    const tabId = String(tab.pageId || '').trim()
+    const bound = /^\d+$/.test(tabId)
+      ? snapshotPages.value.find((p) => p.pageId === tabId)
+      : undefined
+    const key = bound?.path || tab.pagePath || String(tab.pageId || '')
+    return {
+      key,
+      label: tab.text,
+      icon: migrateTabBarIcon(tab.icon) || '/images/nav-icons/g-bag.png',
+    }
+  })
 })
 const showTabbar = computed(() => {
+  if (activeScreen.value === 'login') return false
   if (snapshotPages.value.length) return displayTabs.value.length > 0
   return ['home', 'content', 'shop', 'mine'].includes(activeScreen.value)
 })
+
+const showBoundPageContent = computed(() => {
+  if (!snapshotPages.value.length) return false
+  if (activeScreen.value === 'login') return false
+  if (activeScreen.value === 'mine' && activeComponents.value.length === 0) return false
+  return snapshotPages.value.some((p) => normalizePath(p.path) === normalizePath(activeScreen.value))
+    || activeComponents.value.length > 0
+})
+
+const currentViewComponents = computed(() => {
+  if (showBoundPageContent.value) return activeComponents.value
+  if (!snapshotPages.value.length && activeScreen.value === 'home') return homeComponents.value
+  return []
+})
+
+const {
+  pinnedBrandHeader: currentPinnedBrandHeader,
+  pinnedBrandHeaderIndex: currentPinnedBrandHeaderIndex,
+  hasBrandHeader: currentHasBrandHeader,
+  isPinnedBrandHeader: isCurrentPinnedBrandHeader,
+} = usePinnedBrandHeader(currentViewComponents)
+
+const pinnedHeaderEl = ref<HTMLElement | null>(null)
+const measuredPinnedHeight = useMeasuredElementHeight(
+  pinnedHeaderEl,
+  computed(() => !!currentPinnedBrandHeader.value),
+)
+const currentPinnedBrandHeaderHeight = computed(() => {
+  if (!currentPinnedBrandHeader.value) return 0
+  return measuredPinnedHeight.value || estimateBrandHeaderHeight(currentPinnedBrandHeader.value.props)
+})
+
 const previewLoggedIn = computed(() => authPreviewMode.value === 'member')
 const phoneTitle = computed(() => {
-  if (snapshotPages.value.length) return homeTitle.value
-  if (activeScreen.value === 'home') return homeTitle.value
   if (activeScreen.value === 'login') return '登录'
+  if (activeScreen.value === 'mine') return '我的'
+  if (snapshotPages.value.length) {
+    const page = findSnapshotPage(activeScreen.value)
+    if (page?.name) return page.name
+    const tab = displayTabs.value.find((t) => isTabOn(t.key))
+    if (tab) return tab.label
+    return '页面预览'
+  }
+  if (activeScreen.value === 'home') return homeTitle.value
   const tab = tabs.find((t) => t.key === activeScreen.value)
   if (tab) return tab.label
   return stubScreens[activeScreen.value]?.title || '页面预览'
@@ -509,11 +656,6 @@ const filteredProducts = computed(() => {
   })
 })
 
-const releaseId = computed(() => {
-  const value = Number(route.query.releaseId)
-  return Number.isFinite(value) && value > 0 ? value : 0
-})
-
 function formatPrice(v: unknown) {
   const n = Number(v)
   return Number.isFinite(n) ? (n % 1 === 0 ? String(n) : n.toFixed(2)) : '0'
@@ -534,13 +676,93 @@ function isTabOn(key: string) {
   return normalizePath(activeScreen.value) === normalizePath(key)
 }
 
-function findSnapshotPage(path: string) {
-  const needle = normalizePath(path)
+function findSnapshotPage(ref: string) {
+  const needle = normalizePath(ref)
+  if (!needle) return undefined
   return snapshotPages.value.find((page) => normalizePath(page.path) === needle)
+    || snapshotPages.value.find((page) => page.pageId === ref || page.pageId === needle)
     || snapshotPages.value.find((page) => {
       const p = normalizePath(page.path)
       return p.endsWith(needle) || needle.endsWith(p)
     })
+}
+
+async function fetchPageSnapshot(id: string) {
+  try {
+    const detailRes = await getPageDetail(id, { silent: true })
+    const page = ((detailRes as any)?.data || detailRes) as {
+      id?: number | string
+      name?: string
+      path?: string
+      draftDslContent?: string
+      dslContent?: string
+    }
+    const path = String(page.path || '').trim() || `pages/custom/page-${id}`
+    let raw = page.draftDslContent || page.dslContent
+    if (!raw) {
+      try {
+        const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
+        const payload = await response.json()
+        if (payload.code === 200 && payload.data) {
+          raw = typeof payload.data === 'string' ? payload.data : JSON.stringify(payload.data)
+        }
+      } catch {
+        // ignore published fallback errors
+      }
+    }
+    if (!raw) return null
+    return {
+      pageId: id,
+      path,
+      name: page.name || path,
+      dslContent: typeof raw === 'string' ? raw : JSON.stringify(raw),
+    }
+  } catch {
+    return null
+  }
+}
+
+function pickInitialHomePath(
+  homeId: string,
+  tabs: Array<{ pagePath?: string; pageId?: string }>,
+  pages: Array<{ path: string; pageId?: string }>,
+) {
+  if (/^\d+$/.test(homeId)) {
+    const byHome = pages.find((p) => p.pageId === homeId)
+    if (byHome) return byHome.path
+  }
+  for (const tab of tabs) {
+    const tabId = String(tab.pageId || '').trim()
+    if (/^\d+$/.test(tabId)) {
+      const byTab = pages.find((p) => p.pageId === tabId)
+      if (byTab) return byTab.path
+    }
+    const tabPath = normalizePath(tab.pagePath)
+    if (tabPath && tabPath !== 'pages/index/index') {
+      const byPath = pages.find((p) => {
+        const pPath = normalizePath(p.path)
+        return pPath === tabPath || pPath.endsWith(tabPath) || tabPath.endsWith(pPath)
+      })
+      if (byPath) return byPath.path
+    }
+  }
+  return pages.find((p) => /pages\/index\/index/.test(normalizePath(p.path)))?.path
+    || pages[0]?.path
+    || ''
+}
+
+function syncTabPagePaths(
+  tabs: Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>,
+  pages: Array<{ path: string; pageId?: string }>,
+) {
+  return tabs.map((tab) => {
+    const tabId = String(tab.pageId || '').trim()
+    if (/^\d+$/.test(tabId)) {
+      const page = pages.find((p) => p.pageId === tabId)
+      if (page) return { ...tab, pagePath: page.path }
+    }
+    return tab
+  })
 }
 
 async function showSnapshotPage(path: string) {
@@ -591,6 +813,17 @@ async function showSnapshotPage(path: string) {
 
 function openScreen(key: string) {
   if (snapshotPages.value.length) {
+    const page = findSnapshotPage(key)
+    if (page?.path) {
+      void showSnapshotPage(page.path)
+      return
+    }
+    if (key === 'mine' || key === '__mine__' || normalizePath(key) === 'pages/mine/mine') {
+      activeScreen.value = 'mine'
+      activeComponents.value = []
+      homeComponents.value = []
+      return
+    }
     void showSnapshotPage(key)
     return
   }
@@ -598,6 +831,32 @@ function openScreen(key: string) {
   if (key === 'product' && !currentProduct.value && products.value.length) {
     currentProduct.value = products.value[0]
   }
+}
+
+function handlePreviewAction(payload: {
+  tab?: string
+  message?: string
+  detailType?: string
+  detailTitle?: string
+  detailDesc?: string
+}) {
+  if (!payload) return
+  if (payload.detailType === 'content' || payload.tab === 'content') {
+    openScreen('content')
+    ElMessage.success(payload.message || `已打开「${payload.detailTitle || '内容'}」`)
+    return
+  }
+  if (payload.detailType === 'product' || payload.tab === 'shop') {
+    openScreen('shop')
+    ElMessage.success(payload.message || '已打开商品')
+    return
+  }
+  if (payload.detailType === 'activity' || payload.tab === 'activity') {
+    openScreen('activity')
+    ElMessage.success(payload.message || '已打开活动')
+    return
+  }
+  if (payload.message) ElMessage.success(payload.message)
 }
 
 function openProtectedScreen(key: string) {
@@ -674,6 +933,89 @@ function extractDslFromSnapshot(snapshotJson: string, path: string): PageDSL | n
   return JSON.parse(page.dslContent) as PageDSL
 }
 
+async function loadLiveConfig() {
+  snapshotPages.value = []
+  snapshotTabs.value = []
+  homeComponents.value = []
+  activeComponents.value = []
+  pageCache.clear()
+  notice.value = ''
+  semver.value = ''
+
+  if (!isAuthenticated()) {
+    notice.value = '未登录，无法读取当前后台配置；请登录后重试。'
+    await loadHomeDsl()
+    return
+  }
+
+  try {
+    const res = await getConfigByGroup('basic')
+    const configs = ((res as any)?.data?.configs || (res as any)?.data || []) as Array<{
+      configKey?: string
+      configValue?: string
+    }>
+    const configMap: Record<string, string> = {}
+    for (const c of configs) {
+      if (c?.configKey != null && c.configValue !== undefined) {
+        configMap[c.configKey] = c.configValue
+      }
+    }
+
+    let tabsRaw: any[] = []
+    const tabStr = configMap[CONFIG_KEYS.TABBAR_ITEMS]
+    if (tabStr) {
+      try {
+        tabsRaw = typeof tabStr === 'string' ? JSON.parse(tabStr) : (tabStr as any)
+      } catch {
+        tabsRaw = []
+      }
+    }
+    snapshotTabs.value = (Array.isArray(tabsRaw) ? tabsRaw : []).map((t: any) => ({
+      text: t.text || t.label || t.name || '未命名',
+      icon: migrateTabBarIcon(t.icon || t.iconPath || '') || '/images/nav-icons/g-bag.png',
+      pagePath: t.pagePath || t.path || '',
+      pageId: t.pageId != null ? String(t.pageId) : '',
+    }))
+
+    applyMineAndThemeFromMap(configMap)
+
+    const pageIds = new Set<string>()
+    const homeId = String(configMap[CONFIG_KEYS.HOME_PAGE_ID] || '').trim()
+    if (/^\d+$/.test(homeId)) pageIds.add(homeId)
+    for (const tab of snapshotTabs.value) {
+      const id = String(tab.pageId || '').trim()
+      if (/^\d+$/.test(id)) pageIds.add(id)
+    }
+
+    const pages: Array<{ path: string; name: string; dslContent?: string; pageId?: string }> = []
+    for (const id of pageIds) {
+      const snapshot = await fetchPageSnapshot(id)
+      if (snapshot) pages.push(snapshot)
+    }
+
+    snapshotPages.value = pages
+    snapshotTabs.value = syncTabPagePaths(snapshotTabs.value, pages)
+    const homePathPreferred = pickInitialHomePath(homeId, snapshotTabs.value, pages)
+    if (homePathPreferred) {
+      await showSnapshotPage(homePathPreferred)
+    } else {
+      notice.value = '当前配置未绑定可预览页面，请先在导航里绑定首页。'
+      await loadHomeDsl()
+    }
+  } catch (e: any) {
+    notice.value = e?.message || '读取当前配置失败'
+    await loadHomeDsl()
+  }
+}
+
+async function loadPreviewSource() {
+  if (useLiveConfig.value) {
+    await loadLiveConfig()
+    return
+  }
+  await loadReleaseSnapshot()
+}
+
 async function loadReleaseSnapshot() {
   snapshotPages.value = []
   snapshotTabs.value = []
@@ -681,7 +1023,7 @@ async function loadReleaseSnapshot() {
   pageCache.clear()
   notice.value = ''
   if (!releaseId.value || !isAuthenticated()) {
-    await loadHomeDsl()
+    await loadLiveConfig()
     return
   }
   try {
@@ -692,8 +1034,8 @@ async function loadReleaseSnapshot() {
     }
     semver.value = release.semver || semver.value
     if (!release.snapshot) {
-      notice.value = '该版本没有页面快照，已改为展示当前线上首页。'
-      await loadHomeDsl()
+      notice.value = '该版本没有页面快照，已改为展示当前已保存配置。'
+      await loadLiveConfig()
       return
     }
     const snap = JSON.parse(release.snapshot) as {
@@ -768,19 +1110,21 @@ async function loadMiniappConfig() {
   try {
     const res = await getConfigByGroup('basic')
     const data = (res as any)?.data || {}
-    let mine = data.minePageConfig
-    if (typeof mine === 'string') {
-      try { mine = JSON.parse(mine) } catch { mine = null }
-    }
-    if (mine && typeof mine === 'object') {
-      mineConfig.value = {
-        loginTitle: mine.loginTitle || mineConfig.value.loginTitle,
-        loginSubtitle: mine.loginSubtitle || mineConfig.value.loginSubtitle,
-        loginButtonText: mine.loginButtonText || mineConfig.value.loginButtonText,
+    const configs = (data.configs || []) as Array<{ configKey?: string; configValue?: string }>
+    const configMap: Record<string, string> = { ...data }
+    for (const c of configs) {
+      if (c?.configKey != null && c.configValue !== undefined) {
+        configMap[c.configKey] = c.configValue
       }
     }
+    if (data.minePageConfig && !configMap[CONFIG_KEYS.MINE_PAGE_CONFIG]) {
+      configMap[CONFIG_KEYS.MINE_PAGE_CONFIG] = typeof data.minePageConfig === 'string'
+        ? data.minePageConfig
+        : JSON.stringify(data.minePageConfig)
+    }
+    applyMineAndThemeFromMap(configMap)
   } catch {
-    // 保留登录页默认配置
+    // 保留默认配置
   }
 }
 
@@ -789,7 +1133,7 @@ watch(previewMode, (mode) => {
   router.replace({ query: q })
   if (mode === 'config') {
     loading.value = true
-    loadReleaseSnapshot().finally(() => {
+    loadPreviewSource().finally(() => {
       loading.value = false
     })
   }
@@ -798,7 +1142,7 @@ watch(previewMode, (mode) => {
 onMounted(async () => {
   if (previewMode.value === 'config') {
     loading.value = true
-    await loadReleaseSnapshot()
+    await loadPreviewSource()
     loading.value = false
   }
 })
@@ -1617,13 +1961,12 @@ onMounted(async () => {
 }
 
 .fp-tabbar {
-  position: sticky;
-  bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: rgba(255, 255, 255, 0.96);
+  background: #fff;
   border-top: 1px solid #e8ebf2;
-  padding: 6px 0 calc(8px + env(safe-area-inset-bottom));
+  padding: 6px 0 8px;
+  flex-shrink: 0;
+  width: 100%;
 
   .t {
     border: 0;
@@ -1640,6 +1983,11 @@ onMounted(async () => {
       font-weight: 700;
     }
   }
+}
+
+.brand-header-flow-spacer {
+  flex-shrink: 0;
+  width: 100%;
 }
 
 @media (max-width: 900px) {

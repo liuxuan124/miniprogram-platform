@@ -1,0 +1,111 @@
+<!-- components/dsl-article-feed/dsl-article-feed.wxml — 文章流（无限加载） -->
+<view class="dsl-article-feed {{showCategoryTabs ? 'dsl-article-feed--tabs' : ''}}" style="{{styleString}}">
+  <view wx:if="{{showCategoryTabs}}" class="dsl-article-feed__tabs-bar">
+    <view class="dsl-article-feed__tabs">
+      <view class="dsl-article-feed__tabs-inner">
+        <view
+          wx:for="{{categoryTabs}}"
+          wx:key="name"
+          class="dsl-article-feed__tab {{activeTabId === item.id ? 'is-active' : ''}}"
+          style="{{activeTabId === item.id ? activeTabStyle : ''}}"
+          data-id="{{item.id}}"
+          catchtap="onTapTab"
+        >{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{layout === 'compact'}}" class="dsl-article-feed__list" style="{{listStyle}}">
+    <view
+      class="dsl-article-feed__item dsl-article-feed__item--compact"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        class="dsl-article-feed__cover dsl-article-feed__cover--compact"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-feed__content">
+        <text class="dsl-article-feed__title dsl-article-feed__title--compact" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{layout === 'card'}}" class="dsl-article-feed__cards" style="{{listStyle}}">
+    <view
+      class="dsl-article-feed__item dsl-article-feed__item--card"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        class="dsl-article-feed__cover-card"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__placeholder dsl-article-feed__placeholder--card">
+        <text>📖</text>
+      </view>
+      <view class="dsl-article-feed__content">
+        <text class="dsl-article-feed__title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="dsl-article-feed__list" style="{{listStyle}}">
+    <view
+      class="dsl-article-feed__item dsl-article-feed__item--list"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        class="dsl-article-feed__cover"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__placeholder">
+        <text>📖</text>
+      </view>
+      <view class="dsl-article-feed__content">
+        <text class="dsl-article-feed__title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="dsl-article-feed__empty" wx:if="{{!displayData.length && (loading || tabLoading)}}">
+    <text>加载中...</text>
+  </view>
+  <view class="dsl-article-feed__empty" wx:elif="{{!displayData.length && !loading && !tabLoading}}">
+    <text>暂无内容</text>
+  </view>
+  <view class="dsl-article-feed__footer" wx:elif="{{footerText}}">
+    <text>{{footerText}}</text>
+  </view>
+</view>

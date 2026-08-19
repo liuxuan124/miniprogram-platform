@@ -1,6 +1,6 @@
 // components/dsl-renderer/dsl-renderer.js — DSL 渲染引擎
 // 接收组件 DSL 数据，根据 type 分发到对应的子组件进行渲染
-const { executeAction, isImageUrl, navigatePage, parseStyle } = require('../../utils/render')
+const { executeAction, isImageUrl, navigatePage, parseStyle, appendNavStackStyle } = require('../../utils/render')
 
 /** 预处理 items，标记 icon 是否为真实图片 URL */
 function processIconItems(items) {
@@ -203,7 +203,7 @@ Component({
       }
 
       // 列表类：外层不要白底大框/圆角，条目各自成卡
-      if (type === 'product_list' || type === 'article_list' || type === 'flash_sale') {
+      if (type === 'product_list' || type === 'article_list' || type === 'article_feed' || type === 'hot_news' || type === 'flash_sale') {
         const rawStyle = component.style || {}
         const shellStyle = { ...rawStyle }
         delete shellStyle.border_radius
@@ -214,6 +214,37 @@ Component({
             props.item_border_radius = radius === undefined || radius === null ? 12 : Number(radius)
           }
         }
+        if (type === 'article_list' || type === 'article_feed' || type === 'hot_news') {
+          const radius = rawStyle.border_radius
+          if (props.item_border_radius === undefined || props.item_border_radius === null || props.item_border_radius === '') {
+            props.item_border_radius = radius === undefined || radius === null ? 12 : Number(radius)
+          }
+        }
+        component.style = shellStyle
+        component.styleString = parseStyle(shellStyle)
+      }
+
+      if (type === 'brand_header') {
+        const rawStyle = component.style || {}
+        const shellStyle = { ...rawStyle }
+        delete shellStyle.margin_top
+        delete shellStyle.margin_left
+        delete shellStyle.margin_right
+        delete shellStyle.margin_bottom
+        delete shellStyle.border_radius
+        delete shellStyle.background_color
+        component.style = shellStyle
+        component.styleString = parseStyle(shellStyle)
+      }
+
+      if (type === 'join_group') {
+        const rawStyle = component.style || {}
+        const shellStyle = { ...rawStyle }
+        delete shellStyle.border_radius
+        const radius = rawStyle.border_radius ?? props.card_radius
+        props._cardStyle = parseStyle({
+          border_radius: radius === undefined || radius === null ? 12 : Number(radius),
+        })
         component.style = shellStyle
         component.styleString = parseStyle(shellStyle)
       }
@@ -253,6 +284,12 @@ Component({
       }
 
       if (type === 'section_title') {
+        const clampPad = (v, fallback) => {
+          const n = Number(v)
+          return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : fallback
+        }
+        const padTop = clampPad(props.padding_top, 4)
+        const padBottom = clampPad(props.padding_bottom, 8)
         props._titleStyle = [
           buildTextStyle(props.title_font_size || 16, props.title_color || '#172033'),
           props.title_bold === false ? 'font-weight:400' : 'font-weight:800',
@@ -261,6 +298,7 @@ Component({
         props.show_more = props.show_more === true
         props.more_text = String(props.more_text || '查看更多>').trim() || '查看更多>'
         props._moreStyle = buildTextStyle(12, props.more_color || '#7b8798')
+        props._innerPaddingStyle = 'padding-top:' + (padTop * 2) + 'rpx;padding-bottom:' + (padBottom * 2) + 'rpx'
       }
 
       if (type === 'activity_list' || type === 'appointment_service' || type === 'contact_info' || type === 'image_text' || type === 'brand_intro' || type === 'flash_sale' || type === 'certificate') {
@@ -295,12 +333,16 @@ Component({
     /** 处理组件数据 */
     _processComponent(component) {
       const normalized = this._normalizeByType(component)
+      let styleString = normalized.styleString || parseStyle(normalized.style || component.style || {})
+      if (normalized.type === 'nav' || normalized.type === 'product_list') {
+        styleString = appendNavStackStyle(styleString)
+      }
       this.setData({
         comp: {
           ...normalized,
           props: normalized.props || {},
           actions: normalized.actions || [],
-          styleString: normalized.styleString || '',
+          styleString,
           runtimeData: normalized.runtimeData || [],
         },
       })

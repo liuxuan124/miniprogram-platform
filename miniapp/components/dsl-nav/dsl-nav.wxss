@@ -5,10 +5,13 @@
   background-color: transparent;
   overflow: hidden;
   box-sizing: border-box;
+  padding-left: 8rpx;
+  padding-right: 8rpx;
 }
 
 .dsl-nav--frame {
-  padding: 20rpx 8rpx 16rpx;
+  padding-left: 16rpx;
+  padding-right: 16rpx;
   border: 1rpx solid #edf1f7;
   box-shadow: 0 8rpx 28rpx rgba(28, 43, 76, 0.06);
 }
@@ -17,7 +20,7 @@
 .dsl-nav__grid {
   display: grid;
   gap: 0;
-  padding: 12rpx 0;
+  padding: 0;
 }
 
 .dsl-nav__item {
@@ -25,14 +28,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8rpx 0;
+  padding: 0;
 }
 
 /* emoji 图标容器 */
 .dsl-nav__item-icon {
   width: 96rpx;
   height: 96rpx;
-  margin-bottom: 10rpx;
+  margin-bottom: 4rpx;
   border-radius: 32rpx;
   background: transparent;
   display: flex;
@@ -50,13 +53,14 @@
 .dsl-nav__item-icon-img {
   width: 96rpx;
   height: 96rpx;
-  margin-bottom: 10rpx;
+  margin-bottom: 4rpx;
   border-radius: 32rpx;
   display: block;
 }
 
 .dsl-nav__item-text {
   font-size: 22rpx;
+  line-height: 1.2;
   color: #4b5563;
   text-align: center;
   overflow: hidden;
@@ -73,11 +77,11 @@
 
 .dsl-nav__scroll-inner {
   display: inline-flex;
-  padding: 12rpx 16rpx;
+  padding: 0 16rpx;
   gap: 24rpx;
 }
 
 .dsl-nav__scroll .dsl-nav__item {
   min-width: 120rpx;
-  padding: 6rpx 8rpx;
+  padding: 0 8rpx;
 }

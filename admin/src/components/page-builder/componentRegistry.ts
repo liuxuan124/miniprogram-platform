@@ -9,7 +9,7 @@ export interface ComponentDefinition {
   /** Element Plus 图标名称 */
   icon: string
   /** 组件分类 */
-  category: 'media' | 'commerce' | 'content' | 'marketing' | 'layout'
+  category: 'commerce' | 'content' | 'marketing' | 'layout'
   /** 中文分类名称 */
   categoryLabel: string
   /** 默认属性工厂函数 */
@@ -22,15 +22,15 @@ export interface ComponentDefinition {
 
 /** 组件注册表 */
 export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
-  // ==================== 媒体 ====================
+  // ==================== 内容（含原媒体组件） ====================
   [
     ComponentType.Banner,
     {
       type: ComponentType.Banner,
       label: '轮播图',
       icon: 'Picture',
-      category: 'media',
-      categoryLabel: '媒体',
+      category: 'content',
+      categoryLabel: '内容',
       defaultProps: () => ({
         images: [{ image: '', title: '轮播图1', link_type: 'none', link_url: '' }],
         autoplay: true,
@@ -66,9 +66,14 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       type: ComponentType.Image,
       label: '图片',
       icon: 'PictureFilled',
-      category: 'media',
-      categoryLabel: '媒体',
-      defaultProps: () => ({ image: '', link_type: 'none', link_url: '' }),
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        image: '',
+        aspect_ratio: '16:9',
+        link_type: 'none',
+        link_url: '',
+      }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
     },
   ],
@@ -78,8 +83,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       type: ComponentType.Video,
       label: '视频',
       icon: 'VideoPlay',
-      category: 'media',
-      categoryLabel: '媒体',
+      category: 'content',
+      categoryLabel: '内容',
       defaultProps: () => ({
         title: '视频播放',
         src: '',
@@ -103,8 +108,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       type: ComponentType.ImageText,
       label: '图文组合',
       icon: 'Document',
-      category: 'media',
-      categoryLabel: '媒体',
+      category: 'content',
+      categoryLabel: '内容',
       defaultProps: () => ({
         title: '图文介绍',
         layout: 'left-image',
@@ -171,8 +176,9 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         layout: 'grid',
         columns: 2,
         show_price: true,
+        zero_price_display: 'amount',
         show_sales: true,
-        show_cart: true,
+        show_cart: false,
         title_bold: true,
         title_font_size: 14,
         price_font_size: 13,
@@ -183,7 +189,9 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         item_gap: 8,
         source_mode: 'auto',
         product_ids: [],
+        display_mode: 'fixed',
         limit: 6,
+        page_size: 10,
         items: [
           { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128 },
           { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86 },
@@ -247,7 +255,7 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
     },
   ],
 
-  // ==================== 内容 ====================
+  // ==================== 内容（续） ====================
   [
     ComponentType.SectionTitle,
     {
@@ -261,6 +269,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         subtitle: '',
         align: 'left',
         title_bold: true,
+        padding_top: 4,
+        padding_bottom: 8,
         title_font_size: 16,
         subtitle_font_size: 11,
         title_color: '#172033',
@@ -305,6 +315,69 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
           type: 'content',
           params: { status: 'published' },
           query: { status: 'published' },
+        },
+      }),
+      defaultStyle: () => ({ margin_left: 12, margin_right: 12, border_radius: 12 }),
+    },
+  ],
+  [
+    ComponentType.ArticleFeed,
+    {
+      type: ComponentType.ArticleFeed,
+      label: '文章流',
+      icon: 'Reading',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        layout: 'list',
+        page_size: 10,
+        show_cover: true,
+        show_date: true,
+        show_category_tabs: false,
+        item_gap: 8,
+        title_font_size: 13,
+        subtitle_font_size: 11,
+        data_source: {
+          type: 'content',
+          params: { status: 'published' },
+          query: { status: 'published' },
+        },
+      }),
+      defaultStyle: () => ({ margin_left: 12, margin_right: 12, border_radius: 12 }),
+    },
+  ],
+  [
+    ComponentType.HotNews,
+    {
+      type: ComponentType.HotNews,
+      label: '今日热门资讯',
+      icon: 'Histogram',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        title: '今日跨境头条',
+        layout: 'star',
+        limit: 3,
+        item_gap: 10,
+        show_cover: true,
+        date_mode: 'today',
+        header_date: '',
+        show_more: true,
+        more_text: '查看更多 >',
+        more_link: '/pages/content-list/content-list',
+        more_bg: '#EEF1FF',
+        more_color: '#5B6CFF',
+        more_radius: 20,
+        header_from: '#4F7CFF',
+        header_to: '#7BA3FF',
+        header_opacity: 96,
+        title_width: 72,
+        title_radius: 12,
+        content_radius: 14,
+        data_source: {
+          type: 'content',
+          params: { status: 'published', sort_by: 'popular' },
+          query: { status: 'published', sort_by: 'popular' },
         },
       }),
       defaultStyle: () => ({ margin_left: 12, margin_right: 12 }),
@@ -670,8 +743,82 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 10 }),
     },
   ],
+  [
+    ComponentType.JoinGroup,
+    {
+      type: ComponentType.JoinGroup,
+      label: '加入群聊',
+      icon: 'ChatLineSquare',
+      category: 'marketing',
+      categoryLabel: '营销',
+      defaultProps: () => ({
+        avatar: '',
+        title: '跨境电商交流群',
+        tags: ['跨境咨询', '找资源'],
+        button_text: '加入群聊',
+        sheet_title: '加入群聊',
+        tip_text: '长按二维码可识别加群',
+        groups: [
+          { id: 'g1', name: '深跨协交流群', icon: '', qrcode: '' },
+          { id: 'g2', name: '数据报告分享群', icon: '', qrcode: '' },
+        ],
+      }),
+      defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 12 }),
+      validate: (props) => {
+        const warnings: string[] = []
+        const groups = Array.isArray(props.groups) ? props.groups : []
+        if (!groups.length) warnings.push('请至少添加一个群')
+        groups.forEach((g: any, i: number) => {
+          if (!String(g?.name || '').trim()) warnings.push(`第 ${i + 1} 个群缺少名称`)
+          if (!String(g?.qrcode || '').trim()) warnings.push(`「${g?.name || `群${i + 1}`}」未上传二维码`)
+        })
+        return warnings
+      },
+    },
+  ],
 
   // ==================== 布局 ====================
+  [
+    ComponentType.BrandHeader,
+    {
+      type: ComponentType.BrandHeader,
+      label: '品牌顶栏',
+      icon: 'OfficeBuilding',
+      category: 'layout',
+      categoryLabel: '布局',
+      defaultProps: () => ({
+        logo: '',
+        logo_text: '墨太白',
+        title: '墨太白 · 跨境工具与知识平台',
+        subtitle: '',
+        style_type: 'plain',
+        background_color: '#ffffff',
+        gradient_from: '#002FA7',
+        gradient_to: '#1A4BBF',
+        title_color: '#172033',
+        title_color_light: '#ffffff',
+        subtitle_color: '#7b8798',
+        show_divider: true,
+        logo_height: 28,
+        logo_max_width: 88,
+        title_font_size: 15,
+        subtitle_font_size: 11,
+        logo_text_color: '#002FA7',
+        divider_color: '#d0d8e8',
+        bar_padding_left: 12,
+        bar_padding_right: 12,
+        fixed_top: true,
+      }),
+      defaultStyle: () => ({ margin_left: 0, margin_right: 0, margin_top: 0, margin_bottom: 0 }),
+      validate: (props) => {
+        const warnings: string[] = []
+        if (!String(props.title || '').trim()) {
+          warnings.push('品牌顶栏主标题不能为空')
+        }
+        return warnings
+      },
+    },
+  ],
   [
     ComponentType.Nav,
     {
@@ -692,6 +839,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         show_frame: true,
         frame_radius: 16,
         frame_bg: '#ffffff',
+        padding_top: 14,
+        padding_bottom: 10,
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
       validate: (props) => {
@@ -763,15 +912,19 @@ export function getComponentsByCategory(category: string): ComponentDefinition[]
   return result
 }
 
-/** 获取所有分类 */
+/** 获取所有分类（固定展示顺序；已无独立「媒体」分类） */
 export function getAllCategories(): Array<{ value: string; label: string }> {
-  const seen = new Map<string, string>()
+  const preferred = [
+    { value: 'content', label: '内容' },
+    { value: 'commerce', label: '商品' },
+    { value: 'marketing', label: '营销' },
+    { value: 'layout', label: '布局' },
+  ]
+  const present = new Set<string>()
   for (const def of componentRegistry.values()) {
-    if (!seen.has(def.category)) {
-      seen.set(def.category, def.categoryLabel)
-    }
+    present.add(def.category)
   }
-  return Array.from(seen.entries()).map(([value, label]) => ({ value, label }))
+  return preferred.filter((cat) => present.has(cat.value))
 }
 
 /**
@@ -798,6 +951,8 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.ProductList,
   ComponentType.FlashSale,
   ComponentType.ArticleList,
+  ComponentType.ArticleFeed,
+  ComponentType.HotNews,
   ComponentType.ActivityEntry,
   ComponentType.ActivityList,
   ComponentType.AppointmentService,
@@ -816,6 +971,8 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.Divider,
   ComponentType.Spacer,
   ComponentType.FormEntry,
+  ComponentType.JoinGroup,
+  ComponentType.BrandHeader,
 ])
 
 /** 判断组件类型是否已在小程序端实现渲染 */

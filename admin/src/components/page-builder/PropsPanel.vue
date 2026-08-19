@@ -124,7 +124,10 @@
           </div>
 
           <!-- 相对屏幕边缘的外边距 -->
-          <div class="margin-box">
+          <div v-if="hideMarginEditor" class="shell-note">
+            品牌顶栏始终铺满屏幕宽度并替代系统导航栏，无需设置外边距。
+          </div>
+          <div v-else class="margin-box">
             <div class="margin-box__label">
               <span>外边距（相对屏幕）</span>
               <el-tooltip :content="marginLinked ? '已锁定：四向等比联动' : '点击锁定四向等比联动'" placement="top">
@@ -144,8 +147,11 @@
               <div class="margin-cell margin-cell--top">
                 <span>上</span>
                 <el-input-number
-                  :model-value="currentStyle.margin_top || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
+                  :model-value="Number(currentStyle.margin_top ?? 0)"
+                  :min="allowsNegativeMargin ? -120 : 0"
+                  :max="100"
+                  size="small"
+                  controls-position="right"
                   @change="(v: number) => updateMargin('margin_top', v)"
                 />
               </div>
@@ -168,15 +174,31 @@
               <div class="margin-cell margin-cell--bottom">
                 <span>下</span>
                 <el-input-number
-                  :model-value="currentStyle.margin_bottom || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
+                  :model-value="Number(currentStyle.margin_bottom ?? 0)"
+                  :min="allowsNegativeMargin ? -120 : 0"
+                  :max="100"
+                  size="small"
+                  controls-position="right"
                   @change="(v: number) => updateMargin('margin_bottom', v)"
                 />
               </div>
             </div>
+            <div v-if="allowsNegativeMargin" class="style-hint margin-overlap-hint">
+              上下边距可设为负数，与相邻组件重叠；重叠时本组件始终显示在最上层。
+            </div>
           </div>
 
           <el-form label-width="90px" size="small">
+            <el-form-item label="圆角">
+              <el-input-number
+                :model-value="Number(currentStyle.border_radius ?? 0)"
+                :min="0"
+                :max="40"
+                controls-position="right"
+                @change="(v: number | undefined) => updateStyle('border_radius', v ?? 0)"
+              />
+              <div class="style-hint">单位 px，作用于组件内容区/卡片（非整块外框）</div>
+            </el-form-item>
             <el-form-item v-if="isListComponent" label="卡片间距">
               <el-input-number
                 :model-value="Number(currentProps.item_gap ?? 8)"
@@ -301,7 +323,7 @@ const dataStatus = computed(() => {
       routeName: 'CommerceProduct',
     }
   }
-  if (component.type === ComponentType.ArticleList) {
+  if (component.type === ComponentType.ArticleList || component.type === ComponentType.HotNews) {
     return {
       title: '读取已发布文章',
       description: '改分类后画布会跟着变，不必先点预览',
@@ -344,6 +366,8 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.ProductList]: defineAsyncComponent(() => import('./props/ProductListProps.vue')),
   [ComponentType.FlashSale]: defineAsyncComponent(() => import('./props/FlashSaleProps.vue')),
   [ComponentType.ArticleList]: defineAsyncComponent(() => import('./props/ArticleListProps.vue')),
+  [ComponentType.ArticleFeed]: defineAsyncComponent(() => import('./props/ArticleFeedProps.vue')),
+  [ComponentType.HotNews]: defineAsyncComponent(() => import('./props/HotNewsProps.vue')),
   [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./props/ActivityEntryProps.vue')),
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./props/ActivityListProps.vue')),
   [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./props/AppointmentServiceProps.vue')),
@@ -362,6 +386,8 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.Spacer]: defineAsyncComponent(() => import('./props/SpacerProps.vue')),
   [ComponentType.FormEntry]: defineAsyncComponent(() => import('./props/FormEntryProps.vue')),
   [ComponentType.AIEntry]: defineAsyncComponent(() => import('./props/AIEntryProps.vue')),
+  [ComponentType.JoinGroup]: defineAsyncComponent(() => import('./props/JoinGroupProps.vue')),
+  [ComponentType.BrandHeader]: defineAsyncComponent(() => import('./props/BrandHeaderProps.vue')),
 }
 
 const currentStyle = computed(() => {
@@ -372,10 +398,22 @@ const currentProps = computed(() => {
   return pageStore.selectedComponent?.props || {}
 })
 
+/** 导航栏、商品列表：允许负边距重叠并置顶 */
+const allowsNegativeMargin = computed(() => {
+  const type = pageStore.selectedComponent?.type
+  return type === ComponentType.Nav || type === ComponentType.ProductList
+})
+
+const hideMarginEditor = computed(() => {
+  return pageStore.selectedComponent?.type === ComponentType.BrandHeader
+})
+
 const isListComponent = computed(() => {
   const type = pageStore.selectedComponent?.type
   return type === ComponentType.ProductList
     || type === ComponentType.ArticleList
+    || type === ComponentType.ArticleFeed
+    || type === ComponentType.HotNews
     || type === ComponentType.FlashSale
     || type === ComponentType.ActivityList
 })
@@ -385,6 +423,8 @@ const hasSplitTextSize = computed(() => {
   return [
     ComponentType.SectionTitle,
     ComponentType.ArticleList,
+    ComponentType.ArticleFeed,
+    ComponentType.HotNews,
     ComponentType.ProductList,
     ComponentType.ActivityList,
     ComponentType.ActivityEntry,

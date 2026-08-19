@@ -35,6 +35,11 @@ export default defineConfig(({ mode }) => {
             })
           },
         },
+        // 上传静态资源同源代理，便于装修预览里「保存图片」直接下载到本地
+        '/uploads': {
+          target: env.VITE_API_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
       },
     },
     css: {

@@ -14,6 +14,8 @@ export enum ComponentType {
   ProductList = 'product_list',
   FlashSale = 'flash_sale',
   ArticleList = 'article_list',
+  ArticleFeed = 'article_feed',
+  HotNews = 'hot_news',
   ActivityEntry = 'activity_entry',
   ActivityList = 'activity_list',
   AppointmentService = 'appointment_service',
@@ -32,6 +34,8 @@ export enum ComponentType {
   Spacer = 'spacer',
   FormEntry = 'form_entry',
   AIEntry = 'ai_entry',
+  JoinGroup = 'join_group',
+  BrandHeader = 'brand_header',
 }
 
 /** 组件类型标签映射 */
@@ -45,6 +49,8 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.ProductList]: '商品列表',
   [ComponentType.FlashSale]: '限时秒杀',
   [ComponentType.ArticleList]: '文章列表',
+  [ComponentType.ArticleFeed]: '文章流',
+  [ComponentType.HotNews]: '今日热门资讯',
   [ComponentType.ActivityEntry]: '活动入口',
   [ComponentType.ActivityList]: '活动列表',
   [ComponentType.AppointmentService]: '预约服务',
@@ -63,6 +69,8 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.Spacer]: '间距',
   [ComponentType.FormEntry]: '表单入口',
   [ComponentType.AIEntry]: 'AI入口',
+  [ComponentType.JoinGroup]: '加入群聊',
+  [ComponentType.BrandHeader]: '品牌顶栏',
 }
 
 /** 组件类型图标映射 */
@@ -76,6 +84,8 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.ProductList]: 'Goods',
   [ComponentType.FlashSale]: 'Timer',
   [ComponentType.ArticleList]: 'Notebook',
+  [ComponentType.ArticleFeed]: 'Reading',
+  [ComponentType.HotNews]: 'Histogram',
   [ComponentType.ActivityEntry]: 'Promotion',
   [ComponentType.ActivityList]: 'Tickets',
   [ComponentType.AppointmentService]: 'Calendar',
@@ -94,11 +104,12 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.Spacer]: 'Expand',
   [ComponentType.FormEntry]: 'Document',
   [ComponentType.AIEntry]: 'ChatDotRound',
+  [ComponentType.JoinGroup]: 'ChatLineSquare',
+  [ComponentType.BrandHeader]: 'OfficeBuilding',
 }
 
 /** 组件分类 */
 export enum ComponentCategory {
-  Media = 'media',
   Commerce = 'commerce',
   Content = 'content',
   Marketing = 'marketing',
@@ -107,7 +118,6 @@ export enum ComponentCategory {
 
 /** 组件分类标签 */
 export const ComponentCategoryLabels: Record<ComponentCategory, string> = {
-  [ComponentCategory.Media]: '媒体',
   [ComponentCategory.Commerce]: '商品',
   [ComponentCategory.Content]: '内容',
   [ComponentCategory.Marketing]: '营销',
@@ -116,10 +126,21 @@ export const ComponentCategoryLabels: Record<ComponentCategory, string> = {
 
 /** 组件分类与类型映射 */
 export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = {
-  [ComponentCategory.Media]: [ComponentType.Banner, ComponentType.Image, ComponentType.Video, ComponentType.ImageText],
   [ComponentCategory.Commerce]: [ComponentType.Search, ComponentType.CategoryNav, ComponentType.ProductList, ComponentType.FlashSale, ComponentType.Coupon],
-  [ComponentCategory.Content]: [ComponentType.SectionTitle, ComponentType.ArticleList, ComponentType.RichText, ComponentType.BrandIntro, ComponentType.Certificate],
-  [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo],
+  [ComponentCategory.Content]: [
+    ComponentType.Banner,
+    ComponentType.Image,
+    ComponentType.Video,
+    ComponentType.ImageText,
+    ComponentType.SectionTitle,
+    ComponentType.ArticleList,
+    ComponentType.ArticleFeed,
+    ComponentType.HotNews,
+    ComponentType.RichText,
+    ComponentType.BrandIntro,
+    ComponentType.Certificate,
+  ],
+  [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
   [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer],
 }
 

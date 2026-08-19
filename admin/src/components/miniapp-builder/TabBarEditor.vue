@@ -13,7 +13,7 @@
         <div class="tab-item" :class="{ unbound: !tab.pageId && !tab.pagePath.includes('index') }">
           <div class="drag-handle">⠿</div>
           <div class="tab-icon-wrap" @click="openIconPicker(index)">
-            <span class="tab-icon-emoji">{{ tab.icon || '📦' }}</span>
+            <TabBarIconDisplay :icon="tab.icon" fallback="📦" />
           </div>
           <div class="tab-fields">
             <el-input v-model="tab.text" placeholder="导航名称" size="small" @input="emitUpdate" />
@@ -32,12 +32,21 @@
       <el-icon><Plus /></el-icon> 添加导航项
     </el-button>
 
-    <el-dialog v-model="iconPickerVisible" title="选择图标" width="400px" destroy-on-close>
-      <div class="icon-grid">
-        <button v-for="icon in iconList" :key="icon" class="icon-option" :class="{ active: selectedIcon === icon }" @click="selectIcon(icon)">
-          {{ icon }}
+    <el-dialog v-model="iconPickerVisible" title="选择图标" width="520px" destroy-on-close>
+      <div class="icon-library">
+        <button
+          v-for="ic in iconLibrary"
+          :key="ic.id"
+          type="button"
+          class="icon-option icon-option--flat"
+          :class="{ active: selectedIcon === ic.src }"
+          :title="ic.label"
+          @click="selectIcon(ic.src)"
+        >
+          <img :src="`${ic.src}?t=20260819e`" alt="" />
         </button>
       </div>
+      <div class="icon-library__tip">与页面装修「导航栏」相同的扁平图标库</div>
       <template #footer>
         <el-button @click="iconPickerVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmIcon">确认</el-button>
@@ -52,6 +61,8 @@ import { Delete, Plus } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import type { NavTab } from '@/types/miniapp'
 import type { PageRecord } from '@/types/page'
+import { NAV_FLAT_ICONS } from '@/components/page-builder/navIconSet'
+import TabBarIconDisplay from './TabBarIconDisplay.vue'
 
 const props = defineProps<{ tabs: NavTab[]; pages: PageRecord[] }>()
 const emit = defineEmits<{ 'update:tabs': [value: NavTab[]] }>()
@@ -63,17 +74,29 @@ const boundCount = computed(() => localTabs.value.filter(t => t.pageId || t.page
 const progressPercent = computed(() => localTabs.value.length ? Math.round(boundCount.value / localTabs.value.length * 100) : 0)
 const progressColor = computed(() => progressPercent.value === 100 ? '#0faa6e' : progressPercent.value >= 50 ? '#f59e0b' : '#ef4444')
 
+const iconLibrary = NAV_FLAT_ICONS
+
 function emitUpdate() { emit('update:tabs', [...localTabs.value]) }
 
 function onPageChange(index: number) {
   const tab = localTabs.value[index]
   const page = props.pages.find(p => String(p.id) === String(tab.pageId))
-  if (page) { tab.pageName = page.name; tab.pagePath = page.path || tab.pagePath }
+  if (page) {
+    tab.pageName = page.name
+    tab.pagePath = page.path || tab.pagePath
+  }
   emitUpdate()
 }
 
 function addTab() {
-  localTabs.value.push({ id: `tab-${Date.now()}`, text: '新导航', icon: '📦', pagePath: '/pages/custom/custom', pageId: '', pageName: '' })
+  localTabs.value.push({
+    id: `tab-${Date.now()}`,
+    text: '新导航',
+    icon: '/images/nav-icons/g-bag.png',
+    pagePath: '/pages/custom/custom',
+    pageId: '',
+    pageName: '',
+  })
   emitUpdate()
 }
 
@@ -85,7 +108,6 @@ function removeTab(index: number) {
 const iconPickerVisible = ref(false)
 const editingIndex = ref(-1)
 const selectedIcon = ref('')
-const iconList = ['🏠','📋','🛒','👤','📝','🔍','📅','🛍️','🤖','👑','❤️','⭐','📦','💰','🎫','📞','⚙️','💬','🎯','📊','🎪','🎮','🎵','📸','🔔','🎁','🚀','💡','🔑','📱']
 
 function openIconPicker(index: number) {
   editingIndex.value = index
@@ -116,12 +138,64 @@ function confirmIcon() {
 .tab-item.unbound { border-color: #fbbf24; background: #fffbeb; }
 .drag-handle { cursor: grab; color: #a0b4d0; font-size: 16px; padding: 0 4px; }
 .drag-handle:active { cursor: grabbing; }
-.tab-icon-wrap { width: 36px; height: 36px; display: grid; place-items: center; background: #f0f4ff; border: 1px solid #d9e2ef; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+.tab-icon-wrap {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: #f0f4ff;
+  border: 1px solid #d9e2ef;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 18px;
+}
 .tab-icon-wrap:hover { border-color: #1769ff; }
-.tab-icon-emoji { font-size: 18px; }
 .tab-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.icon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-.icon-option { width: 40px; height: 40px; display: grid; place-items: center; font-size: 20px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.14s; }
-.icon-option:hover { border-color: #1769ff; background: #f8faff; }
-.icon-option.active { border-color: #1769ff; background: #eff6ff; box-shadow: 0 0 0 2px rgba(23,105,255,0.2); }
+
+.icon-library {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.icon-option {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.14s;
+  padding: 6px;
+}
+
+.icon-option--flat img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+
+.icon-option:hover {
+  border-color: #1769ff;
+  background: #f8faff;
+}
+
+.icon-option.active {
+  border-color: #1769ff;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(23, 105, 255, 0.2);
+}
+
+.icon-library__tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #94a3b8;
+}
 </style>

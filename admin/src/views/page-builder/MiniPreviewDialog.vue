@@ -33,20 +33,41 @@
     <PreviewPhone
       :page-title="previewTitle"
       :page-bg-color="previewBgColor"
+      :hide-nav-bar="previewHasBrandHeader"
+      :pinned-brand-header="!!previewPinnedBrandHeader"
       @back="handlePreviewBack"
     >
-      <template v-if="previewTab === 'home'">
-        <div class="preview-home-wrap">
+      <template v-if="previewPinnedBrandHeader" #pinnedHeader>
+        <div ref="previewPinnedHeaderEl">
           <ComponentItem
-            v-for="(comp, index) in flowPreviewComponents"
-            :key="comp.id"
-            :component="comp"
-            :index="index"
+            :component="previewPinnedBrandHeader"
+            :index="previewPinnedBrandHeaderIndex"
             :selected="false"
             :preview-mode="true"
             @select="() => {}"
             @preview-action="handlePreviewAction"
           />
+        </div>
+      </template>
+      <template v-if="previewTab === 'home'">
+        <div class="preview-home-wrap">
+          <div v-if="previewPageLoading" class="preview-page-loading">正在加载页面…</div>
+          <template v-for="(comp, index) in flowPreviewComponents" :key="comp.id">
+            <div
+              v-if="isPreviewPinnedBrandHeader(comp, index)"
+              class="brand-header-flow-spacer"
+              :style="{ height: `${previewPinnedBrandHeaderHeight}px` }"
+            />
+            <ComponentItem
+              v-else
+              :component="comp"
+              :index="index"
+              :selected="false"
+              :preview-mode="true"
+              @select="() => {}"
+              @preview-action="handlePreviewAction"
+            />
+          </template>
           <div v-if="previewDetail?.type === 'form'" class="preview-form-overlay">
             <div class="mini-detail-card">
               <h3>{{ previewDetail.title }}</h3>
@@ -131,10 +152,19 @@
         </div>
 
         <div v-else-if="previewTab === 'shop' && previewDetail?.type === 'product'" class="mini-section">
-          <div class="mini-detail-card">
-            <h3>{{ previewDetail.title }}</h3>
-            <p>{{ previewDetail.desc }}</p>
-            <el-button type="primary" plain size="small" @click="clearPreviewDetail">返回商城列表</el-button>
+          <div class="mini-detail-card product-detail-card">
+            <div v-if="productDetailLoading" class="product-detail-loading">正在加载商品详情…</div>
+            <template v-else>
+              <div v-if="previewDetail.cover" class="product-detail-cover">
+                <img :src="previewDetail.cover" alt="" />
+              </div>
+              <h3>{{ previewDetail.title }}</h3>
+              <p class="product-detail-price">¥{{ previewDetail.price || '0.00' }}</p>
+              <p v-if="previewDetail.sales != null" class="product-detail-meta">已售 {{ previewDetail.sales }}</p>
+              <p v-if="previewDetail.categoryName" class="product-detail-meta">分类：{{ previewDetail.categoryName }}</p>
+              <p class="product-detail-desc">{{ previewDetail.desc || '暂无简介' }}</p>
+              <el-button type="primary" plain size="small" @click="clearPreviewDetail">返回</el-button>
+            </template>
           </div>
         </div>
 
@@ -143,7 +173,7 @@
           <div class="mini-product-grid">
             <div
               v-for="item in shopPreviewList"
-              :key="item.name"
+              :key="item.id || item.name"
               class="mini-product-card clickable-card"
               @click="openProductDetail(item)"
             >
@@ -180,7 +210,7 @@
             :class="{ active: previewTab === tab.value }"
             @click="previewTab = tab.value"
           >
-            <span>{{ tab.icon }}</span>
+            <TabBarIconDisplay :icon="tab.icon" />
             <em>{{ tab.label }}</em>
           </button>
         </div>
@@ -221,15 +251,22 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'
 import { usePageStore } from '@/stores/page'
-import { ComponentType } from '@/types/page'
+import { ComponentType, type ComponentInstance } from '@/types/page'
 import type { PageDSL } from '@/types/page'
 import { useDataSync } from '@/components/page-builder/composables/useDataSync'
-import { getConfigByGroup } from '@/api/system'
+import { loadHydratedComponent } from '@/utils/preview-datasource'
+import { loadPagePreviewByPath, clearPreviewPageCache, type PreviewPageFrame } from '@/utils/preview-page-nav'
+import { getProductList, getProduct } from '@/api/product'
+import { normalizeUploadUrl, getConfigByGroup } from '@/api/system'
+import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
 import { getFormTemplateDetail } from '@/api/form'
 import { createPreviewDraft, deletePreviewDraft } from '@/api/preview-draft'
 import type { FormFieldConfig } from '@/types/form'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
+import { usePinnedBrandHeader, estimateBrandHeaderHeight } from '@/components/page-builder/composables/usePinnedBrandHeader'
+import { useMeasuredElementHeight } from '@/components/page-builder/composables/useMeasuredElementHeight'
+import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -240,7 +277,7 @@ defineEmits<{
 }>()
 
 const pageStore = usePageStore()
-const { syncProducts, syncContents, syncActivities } = useDataSync()
+const { syncContents, syncActivities } = useDataSync()
 
 const qrVisible = ref(false)
 const qrLoading = ref(false)
@@ -333,19 +370,29 @@ type PreviewDetail = {
   desc: string
   formId?: string
   formFields?: FormFieldConfig[]
+  productId?: string | number
+  price?: string
+  cover?: string
+  sales?: number
+  categoryName?: string
 }
 
 const previewTab = ref<PreviewTab>('home')
 const previewDataMode = ref<'real' | 'demo'>('real')
 const previewDetail = ref<PreviewDetail | null>(null)
+const productDetailLoading = ref(false)
+const hydratedComponents = ref<ComponentInstance[]>([])
+const previewHydrating = ref(false)
+const previewPageStack = ref<PreviewPageFrame[]>([])
+const previewPageLoading = ref(false)
 
 /** 从系统配置加载真实 TabBar，确保管理后台预览与小程序端一致 */
 const miniTabs = ref<Array<{ value: string; label: string; icon: string }>>([
-  { value: 'home', label: '首页', icon: '🏠' },
-  { value: 'content', label: '内容', icon: '📝' },
-  { value: 'member', label: '会员', icon: '👑' },
-  { value: 'shop', label: '商城', icon: '🛍️' },
-  { value: 'mine', label: '我的', icon: '👤' },
+  { value: 'home', label: '首页', icon: '/images/nav-icons/g-platform.png' },
+  { value: 'content', label: '内容', icon: '/images/nav-icons/g-content.png' },
+  { value: 'member', label: '会员', icon: '/images/nav-icons/g-crown.png' },
+  { value: 'shop', label: '商城', icon: '/images/nav-icons/g-bag.png' },
+  { value: 'mine', label: '我的', icon: '/images/nav-icons/g-user.png' },
 ])
 
 async function loadTabbarConfig() {
@@ -369,7 +416,7 @@ async function loadTabbarConfig() {
           else if (path.includes('product')) value = 'shop'
           else if (path.includes('mine')) value = 'mine'
           else if (path.includes('ai-chat')) value = 'ai'
-          return { value, label: item.name || item.text || '', icon: item.icon || '📌' }
+          return { value, label: item.name || item.text || '', icon: migrateTabBarIcon(item.icon || item.iconPath || '') || '/images/nav-icons/g-bag.png' }
         })
       if (mapped.length > 0) miniTabs.value = mapped
     }
@@ -387,40 +434,116 @@ const previewModeOptions = [
 
 const realDataWarnings = computed(() => {
   const warnings: string[] = []
-  const types = new Set<string>(pageStore.components.map((item) => String(item.type)))
-  if (types.has('product_list') && shopPreviewList.value.length === 0) warnings.push('商品')
-  if (types.has('article_list') && contentPreviewList.value.length === 0) warnings.push('文章')
-  if (types.has('form_entry') && pageStore.components.some((item) =>
+  const components = previewComponents.value
+  const types = new Set<string>(components.map((item) => String(item.type)))
+  if (types.has('product_list') && components.some((c) =>
+    c.type === 'product_list' && !(Array.isArray(c.props?.items) && c.props.items.length)
+  )) warnings.push('商品')
+  if (types.has('article_list') && components.some((c) =>
+    c.type === 'article_list' && !(Array.isArray(c.props?.items) && c.props.items.length)
+  )) warnings.push('文章')
+  if (types.has('article_feed') && components.some((c) =>
+    c.type === 'article_feed' && !(Array.isArray(c.props?.items) && c.props.items.length)
+  )) warnings.push('文章流')
+  if (types.has('hot_news') && components.some((c) =>
+    c.type === 'hot_news' && !(Array.isArray(c.props?.items) && c.props.items.length)
+  )) warnings.push('热门资讯')
+  if (types.has('form_entry') && components.some((item) =>
     item.type === 'form_entry' && !(item.props.formId || item.props.formTemplateId)
   )) warnings.push('表单')
   return warnings
 })
 
-const previewComponents = computed(() => pageStore.components.map((component) => {
-  const type = String(component.type)
-  if (type === 'product_list') {
-    const items = previewDataMode.value === 'demo'
-      ? [
-          { name: '湘品甄选礼盒', price: '99.00' },
-          { name: '药食同源组合', price: '128.00' },
-        ]
-      : shopPreviewList.value
-    return { ...component, props: { ...component.props, items, _previewDataFailed: items.length === 0 } }
+function demoProductItems(limit = 2) {
+  return [
+    { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128, image: '' },
+    { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86, image: '' },
+  ].slice(0, limit)
+}
+
+async function hydratePreviewComponents() {
+  previewHydrating.value = true
+  const base = pageStore.components
+  try {
+    if (previewDataMode.value === 'demo') {
+      hydratedComponents.value = base.map((component) => {
+        const type = String(component.type)
+        if (type === 'product_list') {
+          const limit = Math.max(Number(component.props?.limit || 4), 1)
+          return {
+            ...component,
+            props: {
+              ...component.props,
+              items: demoProductItems(limit),
+              _previewDataFailed: false,
+            },
+          }
+        }
+        if (type === 'article_list' || type === 'article_feed' || type === 'hot_news') {
+          const items = defaultContentPreviewList.map((item) => ({
+            title: item.title,
+            meta: item.desc,
+            cover: '',
+          }))
+          return { ...component, props: { ...component.props, items, _previewDataFailed: false } }
+        }
+        return component
+      })
+      return
+    }
+
+    hydratedComponents.value = await Promise.all(
+      base.map(async (component) => {
+        const type = String(component.type)
+        if (type === 'product_list' || type === 'article_list' || type === 'article_feed' || type === 'hot_news') {
+          try {
+            return await loadHydratedComponent(component)
+          } catch {
+            return component
+          }
+        }
+        return component
+      }),
+    )
+  } finally {
+    previewHydrating.value = false
   }
-  if (type === 'article_list') {
-    const source = previewDataMode.value === 'demo' ? defaultContentPreviewList : contentPreviewList.value
-    const items = source.map((item) => ({
-      title: item.title,
-      meta: item.desc && /\d{4}/.test(String(item.desc)) ? item.desc : '',
-    }))
-    return { ...component, props: { ...component.props, items, _previewDataFailed: items.length === 0 } }
+}
+
+const activePreviewPage = computed(() => {
+  const stack = previewPageStack.value
+  return stack.length ? stack[stack.length - 1] : null
+})
+
+const previewComponents = computed(() => {
+  if (activePreviewPage.value?.components?.length) {
+    return activePreviewPage.value.components
   }
-  return component
-}))
+  if (hydratedComponents.value.length === pageStore.components.length && pageStore.components.length > 0) {
+    return hydratedComponents.value
+  }
+  return pageStore.components
+})
 
 const flowPreviewComponents = computed(() =>
   previewComponents.value.filter((c) => c.type !== ComponentType.FloatButton),
 )
+const {
+  pinnedBrandHeader: previewPinnedBrandHeader,
+  pinnedBrandHeaderIndex: previewPinnedBrandHeaderIndex,
+  hasBrandHeader: previewHasBrandHeader,
+  isPinnedBrandHeader: isPreviewPinnedBrandHeader,
+} = usePinnedBrandHeader(flowPreviewComponents)
+
+const previewPinnedHeaderEl = ref<HTMLElement | null>(null)
+const measuredPreviewPinnedHeight = useMeasuredElementHeight(
+  previewPinnedHeaderEl,
+  computed(() => !!previewPinnedBrandHeader.value),
+)
+const previewPinnedBrandHeaderHeight = computed(() => {
+  if (!previewPinnedBrandHeader.value) return 0
+  return measuredPreviewPinnedHeight.value || estimateBrandHeaderHeight(previewPinnedBrandHeader.value.props)
+})
 const floatPreviewComponents = computed(() =>
   previewComponents.value.filter((c) => c.type === ComponentType.FloatButton),
 )
@@ -442,7 +565,7 @@ const defaultContentPreviewList: { title: string; desc: string }[] = [
 
 const contentPreviewList = ref<{ title: string; desc: string }[]>([...defaultContentPreviewList])
 
-const shopPreviewList = ref<{ name: string; price: string; sales?: number }[]>([
+const shopPreviewList = ref<{ id?: string | number; name: string; price: string; sales?: number }[]>([
   { name: '湘品甄选礼盒', price: '99.00', sales: 0 },
   { name: '药食同源组合', price: '128.00', sales: 0 },
 ])
@@ -456,32 +579,53 @@ const activityPreviewList = ref<{ id: number | string; name: string; desc: strin
 ])
 
 const previewTitle = computed(() => {
+  if (activePreviewPage.value?.title) return activePreviewPage.value.title
   const tab = miniTabs.value.find((item) => item.value === previewTab.value)
   return tab?.label || pageStore.pageConfig.name || '首页'
 })
 
 const previewBgColor = computed(() => {
-  return pageStore.pageConfig.background_color || '#f6f8fb'
+  return activePreviewPage.value?.bg || pageStore.pageConfig.background_color || '#f6f8fb'
 })
 
 async function loadShopPreviewList() {
   if (previewDataMode.value === 'demo') {
     shopPreviewList.value = [
-      { name: '湘品甄选礼盒', price: '99.00' },
-      { name: '药食同源组合', price: '128.00' },
+      { name: '跨境通用知识库', price: '199.00', sales: 128 },
+      { name: '跨境财税知识库', price: '299.00', sales: 86 },
     ]
     return
   }
   shopPreviewList.value = []
-  await syncProducts((items) => {
-    if (items.length > 0) {
-      shopPreviewList.value = items.slice(0, 6).map((item: any) => ({
-        name: item.title || '未命名商品',
+  try {
+    const res = await getProductList({ current: 1, size: 50, status: 'on_sale' } as any)
+    const data = (res as any)?.data
+    const records = data?.records || data?.list || (Array.isArray(data) ? data : [])
+    if (records.length) {
+      shopPreviewList.value = records.slice(0, 6).map((item: any) => ({
+        id: item.id,
+        name: item.name || item.title || '未命名商品',
         price: Number.isFinite(Number(item.price)) ? Number(item.price).toFixed(2) : '0.00',
-        sales: Number(item.sales ?? 0) || 0,
+        sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
       }))
     }
-  })
+  } catch {
+    // 接口失败时从已水合组件回退
+  }
+  if (!shopPreviewList.value.length) {
+    for (const comp of hydratedComponents.value) {
+      if (comp.type !== 'product_list') continue
+      const items = Array.isArray(comp.props?.items) ? comp.props.items : []
+      if (!items.length) continue
+      shopPreviewList.value = items.slice(0, 6).map((item: any) => ({
+        id: item.id,
+        name: item.name || item.title || '未命名商品',
+        price: Number.isFinite(Number(item.price)) ? Number(item.price).toFixed(2) : '0.00',
+        sales: Number(item.sales ?? item.salesCount ?? 0) || 0,
+      }))
+      break
+    }
+  }
 }
 
 async function loadContentPreviewList() {
@@ -571,8 +715,14 @@ function handlePreviewAction(payload: {
   detailTitle?: string
   detailDesc?: string
   formId?: string
+  productId?: string | number
+  previewPath?: string
 }) {
   if (!payload) return
+  if (payload.previewPath) {
+    void navigatePreviewToPage(payload.previewPath, payload.message)
+    return
+  }
   const validTypes = ['content', 'product', 'activity', 'form'] as const
   const detailType = validTypes.includes(payload.detailType as any) ? payload.detailType as 'content' | 'product' | 'activity' | 'form' : undefined
   const detail = detailType
@@ -581,6 +731,7 @@ function handlePreviewAction(payload: {
         title: payload.detailTitle || '详情',
         desc: payload.detailDesc || '详情预览',
         formId: payload.formId,
+        productId: payload.productId,
       }
     : null
   if (detailType === 'form') {
@@ -599,6 +750,17 @@ function handlePreviewAction(payload: {
     })()
     return
   }
+  if (detailType === 'product' && payload.productId != null && previewDataMode.value === 'real') {
+    previewTab.value = payload.tab || 'shop'
+    void nextTick(() => {
+      void openRealProductDetail(payload.productId!, {
+        title: payload.detailTitle || '商品详情',
+        desc: payload.detailDesc || '',
+      })
+    })
+    ElMessage.success(payload.message)
+    return
+  }
   previewTab.value = payload.tab
   // 切 tab 的 watcher 会清空详情，需等其执行完再设置
   void nextTick(() => {
@@ -607,10 +769,76 @@ function handlePreviewAction(payload: {
   ElMessage.success(payload.message)
 }
 
+async function openRealProductDetail(
+  productId: string | number,
+  fallback: { title: string; desc: string },
+) {
+  productDetailLoading.value = true
+  previewDetail.value = {
+    type: 'product',
+    title: fallback.title,
+    desc: fallback.desc,
+    productId,
+  }
+  try {
+    const res = await getProduct(Number(productId))
+    const p = (res as any)?.data || {}
+    const priceRaw = p.min_price ?? p.minPrice ?? p.price ?? p.skus?.[0]?.price
+    const price = Number.isFinite(Number(priceRaw)) ? Number(priceRaw).toFixed(2) : '0.00'
+    const cover = normalizeUploadUrl(
+      String(p.main_image || p.mainImage || p.coverImage || p.cover || p.images?.[0] || ''),
+    )
+    const sales = Number(p.sales ?? p.salesCount ?? p.sold ?? 0) || 0
+    const desc = String(p.description || p.content || fallback.desc || '暂无简介')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 200)
+    previewDetail.value = {
+      type: 'product',
+      title: String(p.name || fallback.title),
+      desc: desc || '暂无简介',
+      productId,
+      price,
+      cover,
+      sales,
+      categoryName: String(p.category_name || p.categoryName || ''),
+    }
+  } catch {
+    ElMessage.warning('商品详情加载失败，已展示列表摘要')
+  } finally {
+    productDetailLoading.value = false
+  }
+}
+
+async function navigatePreviewToPage(path: string, message?: string) {
+  previewPageLoading.value = true
+  previewDetail.value = null
+  try {
+    const loaded = await loadPagePreviewByPath(path, previewDataMode.value)
+    if (!loaded) {
+      ElMessage.warning(`未找到页面：${path}`)
+      return
+    }
+    previewTab.value = 'home'
+    previewPageStack.value.push(loaded)
+    ElMessage.success(message || `已打开「${loaded.title}」`)
+  } catch {
+    ElMessage.error('页面加载失败')
+  } finally {
+    previewPageLoading.value = false
+  }
+}
+
 function handlePreviewBack() {
   if (previewDetail.value) {
     previewDetail.value = null
     ElMessage.success('已返回列表')
+    return
+  }
+  if (previewPageStack.value.length > 0) {
+    previewPageStack.value.pop()
+    ElMessage.success('已返回上一页')
     return
   }
   if (previewTab.value !== 'home') {
@@ -631,9 +859,22 @@ function openContentDetail(item: { title: string; desc: string }) {
   ElMessage.success(`已打开「${item.title}」`)
 }
 
-function openProductDetail(item: { name: string; price: string }) {
+function openProductDetail(item: { name: string; price: string; id?: string | number }) {
   previewTab.value = 'shop'
-  previewDetail.value = { type: 'product', title: item.name, desc: `售价 ¥${item.price}` }
+  if (item.id != null && previewDataMode.value === 'real') {
+    void openRealProductDetail(item.id, {
+      title: item.name,
+      desc: `售价 ¥${item.price}`,
+    })
+    ElMessage.success(`已打开商品「${item.name}」`)
+    return
+  }
+  previewDetail.value = {
+    type: 'product',
+    title: item.name,
+    desc: `售价 ¥${item.price}`,
+    price: item.price,
+  }
   ElMessage.success(`已打开商品「${item.name}」`)
 }
 
@@ -648,10 +889,13 @@ function confirmPreviewAppointment() {
 }
 
 /** 外部调用：打开预览并加载数据 */
-function open() {
+async function open() {
   previewTab.value = 'home'
   previewDetail.value = null
+  previewPageStack.value = []
+  clearPreviewPageCache()
   loadTabbarConfig()
+  await hydratePreviewComponents()
   loadContentPreviewList()
   loadActivityPreviewList()
   loadShopPreviewList()
@@ -668,6 +912,9 @@ watch(
   () => previewTab.value,
   (tab) => {
     previewDetail.value = null
+    if (tab !== 'home') {
+      previewPageStack.value = []
+    }
     if (tab === 'content') {
       loadContentPreviewList()
       return
@@ -680,7 +927,8 @@ watch(
 
 watch(
   () => previewDataMode.value,
-  () => {
+  async () => {
+    await hydratePreviewComponents()
     loadShopPreviewList()
     loadContentPreviewList()
     loadActivityPreviewList()
@@ -698,6 +946,22 @@ watch(
 .preview-home-wrap {
   position: relative;
   min-height: 100%;
+}
+
+.brand-header-flow-spacer {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.preview-page-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  color: #64748b;
+  font-size: 13px;
 }
 
 .qr-panel {
@@ -849,6 +1113,47 @@ watch(
     font-size: 13px;
     line-height: 1.6;
   }
+}
+
+.product-detail-card {
+  .product-detail-cover {
+    width: 100%;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #f1f5fb;
+
+    img {
+      display: block;
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+    }
+  }
+
+  .product-detail-price {
+    margin: 0 0 6px !important;
+    color: #e53935 !important;
+    font-size: 20px !important;
+    font-weight: 800;
+  }
+
+  .product-detail-meta {
+    margin: 0 0 4px !important;
+    color: #94a3b8 !important;
+    font-size: 12px !important;
+  }
+
+  .product-detail-desc {
+    margin: 10px 0 14px !important;
+  }
+}
+
+.product-detail-loading {
+  padding: 28px 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
 }
 
 .activity-preview-card {

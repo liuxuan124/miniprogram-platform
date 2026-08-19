@@ -1,0 +1,65 @@
+<!-- components/dsl-join-group/dsl-join-group.wxml -->
+<view class="dsl-jg" style="{{styleString}}">
+  <view class="dsl-jg__card" style="{{config._cardStyle || cardStyle}}">
+    <view class="dsl-jg__avatar">
+      <image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill" />
+      <text wx:else class="dsl-jg__avatar-fallback">👥</text>
+    </view>
+    <view class="dsl-jg__main">
+      <text class="dsl-jg__title">{{titleText}}</text>
+      <view wx:if="{{tagList.length}}" class="dsl-jg__tags">
+        <text class="dsl-jg__tag" wx:for="{{tagList}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+    <view class="dsl-jg__btn" catchtap="onOpenSheet">{{buttonText}}</view>
+  </view>
+</view>
+
+<!-- 群列表底栏 -->
+<view wx:if="{{sheetVisible}}" class="dsl-jg-mask" catchtouchmove="noop">
+  <view class="dsl-jg-mask__bg" catchtap="onCloseAll"></view>
+  <view class="dsl-jg-sheet">
+    <view class="dsl-jg-sheet__head">
+      <text class="dsl-jg-sheet__title">{{sheetTitle}}</text>
+      <text class="dsl-jg-sheet__close" catchtap="onCloseAll">×</text>
+    </view>
+    <scroll-view scroll-y class="dsl-jg-sheet__list">
+      <view
+        class="dsl-jg-group"
+        wx:for="{{groupList}}"
+        wx:key="id"
+        data-index="{{index}}"
+        catchtap="onOpenQr"
+      >
+        <view class="dsl-jg-group__icon">
+          <image wx:if="{{item.icon}}" src="{{item.icon}}" mode="aspectFill" />
+          <text wx:else>👥</text>
+        </view>
+        <text class="dsl-jg-group__name">{{item.name}}</text>
+        <text class="dsl-jg-group__arrow">›</text>
+      </view>
+      <view wx:if="{{!groupList.length}}" class="dsl-jg-empty">暂未配置群</view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 二维码弹层 -->
+<view wx:if="{{qrVisible}}" class="dsl-jg-mask dsl-jg-mask--center" catchtouchmove="noop">
+  <view class="dsl-jg-mask__bg" catchtap="onCloseQr"></view>
+  <view class="dsl-jg-qr">
+    <view class="dsl-jg-qr__head">
+      <text class="dsl-jg-qr__name">{{activeName}}</text>
+      <text class="dsl-jg-sheet__close" catchtap="onCloseQr">×</text>
+    </view>
+    <image
+      wx:if="{{activeQrcode}}"
+      class="dsl-jg-qr__img"
+      src="{{activeQrcode}}"
+      mode="aspectFit"
+      show-menu-by-longpress="{{true}}"
+    />
+    <view wx:else class="dsl-jg-empty">尚未上传二维码</view>
+    <text class="dsl-jg-qr__tip">{{tipText}}</text>
+    <view wx:if="{{activeQrcode}}" class="dsl-jg-qr__save" catchtap="onSaveImage">保存图片</view>
+  </view>
+</view>

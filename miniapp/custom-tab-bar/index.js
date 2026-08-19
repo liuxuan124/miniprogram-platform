@@ -1,4 +1,5 @@
 const SystemService = require('../services/system')
+const { migrateTabBarIcon, isImageIcon } = require('../utils/tabbar-icon')
 
 const TAB_WHITELIST = {
   '/pages/index/index': true,
@@ -106,9 +107,11 @@ Component({
         const mappedList = REGISTERED_TAB_PATHS.map((pagePath) => {
           const item = configByPath.get(pagePath) || {}
           const pathMeta = PATH_META_MAP[pagePath] || {}
-          const icon = pathMeta.icon || item.iconPath || item.icon || '/images/tab-v2/home.svg'
-          const selectedIcon = pathMeta.selectedIcon || item.selectedIconPath || item.selectedIcon || icon
-          const useEmoji = typeof icon === 'string' && !icon.includes('/') && !icon.startsWith('http')
+          const rawIcon = item.icon || item.iconPath || pathMeta.icon || '/images/tab-v2/home.svg'
+          const icon = migrateTabBarIcon(rawIcon) || pathMeta.icon || '/images/tab-v2/home.svg'
+          const rawSelected = item.selectedIconPath || item.selectedIcon || pathMeta.selectedIcon || icon
+          const selectedIcon = migrateTabBarIcon(rawSelected) || icon
+          const useEmoji = !isImageIcon(icon)
           return {
             pagePath,
             text: item.text || item.name || pathMeta.text || '页面',

@@ -5,6 +5,7 @@ import { getConfigByGroup, updateConfigs, normalizeUploadUrl } from '@/api/syste
 import type { PageRecord } from '@/types/page'
 import type { MiniappForm } from '@/types/miniapp'
 import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE } from '@/types/miniapp'
+import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
 
 /** 系统内置页面（不在页面列表中，但可作为TabBar绑定目标） */
 const SYSTEM_PAGES: { id: string; name: string; path: string; type: 'system' }[] = [
@@ -92,22 +93,42 @@ export function useMiniappConfig() {
     }
   }
 
-  /** 首页绑定失效时，强制对齐到页面列表中的 /pages/index/index */
+  /** 仅当首页绑定失效或为空时补绑；不强制覆盖用户已选的其它页面 */
   function syncHomeBinding() {
-    const realHome = pages.value.find((p) => isIndexPath(p.path) && p.type !== 'system')
+    const fallbackHome = pages.value.find((p) => isIndexPath(p.path) && p.type !== 'system')
       || pages.value.find((p) => isIndexPath(p.path))
-    if (!realHome) return
-    const homeId = normalizeBindId(realHome.id)
-    const homeStillValid = pages.value.some((p) => String(p.id) === String(form.homePageId))
-    if (!homeStillValid || String(form.homePageId) !== String(homeId)) {
-      form.homePageId = homeId
+
+    const homeStillValid = form.homePageId != null && form.homePageId !== ''
+      && pages.value.some((p) => String(p.id) === String(form.homePageId))
+
+    if (!homeStillValid && fallbackHome) {
+      form.homePageId = normalizeBindId(fallbackHome.id)
     }
+
     const homeTab = form.tabs.find((t) => t.text === '首页' || isIndexPath(t.pagePath))
-    if (homeTab) {
-      homeTab.pageId = homeId as any
-      homeTab.pageName = realHome.name
-      homeTab.pagePath = realHome.path || '/pages/index/index'
+    if (!homeTab) return
+
+    const tabBoundValid = homeTab.pageId != null && String(homeTab.pageId) !== ''
+      && pages.value.some((p) => String(p.id) === String(homeTab.pageId))
+
+    if (tabBoundValid) {
+      const bound = pages.value.find((p) => String(p.id) === String(homeTab.pageId))
+      if (bound) {
+        homeTab.pageName = bound.name
+        if (bound.path) homeTab.pagePath = bound.path
+      }
+      // 与「首页」Tab 保持一致，避免两处配置打架
+      if (String(form.homePageId) !== String(homeTab.pageId)) {
+        form.homePageId = normalizeBindId(homeTab.pageId)
+      }
+      return
     }
+
+    const preferred = pages.value.find((p) => String(p.id) === String(form.homePageId)) || fallbackHome
+    if (!preferred) return
+    homeTab.pageId = normalizeBindId(preferred.id) as any
+    homeTab.pageName = preferred.name
+    homeTab.pagePath = preferred.path || homeTab.pagePath || '/pages/index/index'
   }
 
   async function loadConfig() {
@@ -145,7 +166,7 @@ export function useMiniappConfig() {
             form.tabs = items.map((t: any, i: number) => ({
               id: t.id || `tab-${i}`,
               text: t.text || t.label || t.name || '',
-              icon: t.icon || t.iconPath || '',
+              icon: migrateTabBarIcon(t.icon || t.iconPath || ''),
               pagePath: t.pagePath || t.path || '',
               pageId: normalizeBindId(t.pageId) as any,
               pageName: t.pageName || '',
@@ -239,7 +260,7 @@ export function useMiniappConfig() {
     }))
   }
 
-  async function handleSave() {
+  async function handleSave(): Promise<boolean> {
     const warnings = validateTabsBeforeSave()
     if (warnings.length > 0) {
       try {
@@ -249,7 +270,7 @@ export function useMiniappConfig() {
           { confirmButtonText: '继续保存', cancelButtonText: '去绑定', type: 'warning' },
         )
       } catch {
-        return
+        return false
       }
     }
 
@@ -268,6 +289,7 @@ export function useMiniappConfig() {
       await updateConfigs(configs as any)
       markSaved()
       ElMessage.success('配置已保存')
+      return true
     } catch (e: any) {
       ElMessage.error('保存失败：' + (e?.message || '未知错误'))
       throw e
@@ -370,17 +392,8 @@ export function useMiniappConfig() {
       if (aiPage) { aiTab.pageId = aiPage.id as any; aiTab.pageName = aiPage.name }
     }
 
-    // 首页自动绑定 / 纠正失效绑定
+    // 首页：仅补齐空/失效绑定，不覆盖用户已保存选择
     syncHomeBinding()
-    const homeTab = form.tabs.find(t => t.text === '首页' && !t.pageId)
-    if (homeTab) {
-      const homePage = pages.value.find(p => isIndexPath(p.path))
-      if (homePage) {
-        homeTab.pageId = homePage.id as any
-        homeTab.pageName = homePage.name
-        homeTab.pagePath = homePage.path || '/pages/index/index'
-      }
-    }
   }
 
   // ✅ onMounted 放在顶层，确保组件挂载时自动加载配置
@@ -388,6 +401,8 @@ export function useMiniappConfig() {
     await loadPages()
     await loadConfig()
     autoBindPages()
+    // autoBind 只补空位，结束后记为已保存，避免一进页就显示「有未保存更改」
+    markSaved()
   })
 
   return {

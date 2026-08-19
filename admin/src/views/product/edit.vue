@@ -561,7 +561,10 @@ const availableTypeOptions = computed(() => {
 })
 
 const previewPrice = computed(() => {
-  const prices = formData.skus.map((s) => toNumber(s.price, 0)).filter((n) => n > 0)
+  const prices = formData.skus
+    .map((s) => s.price)
+    .filter((v) => isSkuPriceFilled(v))
+    .map((v) => toNumber(v, 0))
   if (!prices.length) return '0.00'
   return Math.min(...prices).toFixed(2)
 })
@@ -625,7 +628,7 @@ const completionItems = computed(() => [
   {
     label: isDigitalOnly.value ? '配置商品价格' : '配置价格和库存',
     done: formData.skus.some((sku) =>
-      toNumber(sku.price, 0) > 0
+      isSkuPriceFilled(sku.price)
       && (isDigitalOnly.value || toNumber(sku.stock, 0) > 0)
     ),
   },
@@ -733,6 +736,13 @@ function toNumber(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? n : fallback
 }
 
+/** 销售价已填写：允许 0，不允许空值或负数 */
+function isSkuPriceFilled(value: unknown): boolean {
+  if (value === '' || value === null || value === undefined) return false
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0
+}
+
 function mapApiSpecsToForm(specs: unknown): SkuSpec[] {
   if (Array.isArray(specs)) {
     return specs.map((item: any) => ({
@@ -814,7 +824,7 @@ function getPublishErrors() {
   if (!formData.productTypes.length) errors.push('选择商品类型')
   if (!formData.main_image) errors.push('上传商品主图')
   if (!formData.skus.length) errors.push('添加至少 1 个 SKU')
-  if (formData.skus.some((sku) => toNumber(sku.price, 0) <= 0)) {
+  if (formData.skus.some((sku) => !isSkuPriceFilled(sku.price))) {
     errors.push('填写 SKU 销售价')
   }
   if (!isDigitalOnly.value && formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {

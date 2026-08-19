@@ -3,6 +3,7 @@
 // 支持数据源绑定、事件处理、样式解析
 
 const { DatasourceService } = require('../services/datasource')
+const { filterProductsByPrice, resolvePriceFilterConfig } = require('./product-price-filter')
 
 // ========== 工具函数 ==========
 
@@ -32,6 +33,10 @@ const COMPONENT_TYPES = {
   PRODUCT_LIST: 'product_list',
   FLASH_SALE: 'flash_sale',
   ARTICLE_LIST: 'article_list',
+  ARTICLE_FEED: 'article_feed',
+  HOT_NEWS: 'hot_news',
+  JOIN_GROUP: 'join_group',
+  BRAND_HEADER: 'brand_header',
   ACTIVITY_ENTRY: 'activity_entry',
   ACTIVITY_LIST: 'activity_list',
   APPOINTMENT_SERVICE: 'appointment_service',
@@ -58,6 +63,8 @@ const DATASOURCE_COMPONENTS = [
   COMPONENT_TYPES.CATEGORY_NAV,
   COMPONENT_TYPES.PRODUCT_LIST,
   COMPONENT_TYPES.ARTICLE_LIST,
+  COMPONENT_TYPES.ARTICLE_FEED,
+  COMPONENT_TYPES.HOT_NEWS,
   COMPONENT_TYPES.ACTIVITY_ENTRY,
   COMPONENT_TYPES.ACTIVITY_LIST,
   COMPONENT_TYPES.APPOINTMENT_SERVICE,
@@ -153,6 +160,12 @@ function parseStyle(style) {
   return parts.join('; ')
 }
 
+/** 导航栏负边距重叠时保持在最上层（z-index 勿放入 parseStyle，会被当成 rpx） */
+function appendNavStackStyle(styleString) {
+  const stack = 'position: relative; z-index: 10'
+  return styleString ? `${styleString}; ${stack}` : stack
+}
+
 /**
  * 解析组件的 actions 配置
  * @param {Array} actions 动作列表
@@ -184,12 +197,17 @@ function processComponent(component) {
       props: component.props || {},
     }
   }
-  const styleString = parseStyle(component.style || {})
+  let styleString = parseStyle(component.style || {})
+  if (component.type === 'nav' || component.type === 'product_list') {
+    styleString = appendNavStackStyle(styleString)
+  }
   const props = component.props || {}
   const resolvedDataSource = component.data_source || props.data_source || null
   const dataSourceTypeByComponent = {
     product_list: 'product',
     article_list: 'content',
+    article_feed: 'content',
+    hot_news: 'content',
     activity_list: 'activity',
     activity_entry: 'activity',
     appointment_service: 'appointment_service',
@@ -287,37 +305,95 @@ async function loadComponentData(component, forceRefresh = false) {
   try {
     // 商品列表手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
     let dataSource = component.dataSource
+    const props = component.props || {}
+    const isProductStream = component.type === 'product_list' && props.display_mode === 'stream'
     if (component.type === 'product_list') {
-      const props = component.props || {}
       const ids = Array.isArray(props.product_ids) ? props.product_ids : []
+      const extraParams = isProductStream ? { display_mode: 'stream' } : {}
       if (ids.length) {
         const idStr = ids.map((id) => String(id)).join(',')
         dataSource = {
           ...dataSource,
-          params: { ...(dataSource.params || {}), status: 'on_sale', ids: idStr },
-          query: { ...(dataSource.query || {}), status: 'on_sale', ids: idStr },
+          params: { ...(dataSource.params || {}), status: 'on_sale', ids: idStr, ...extraParams },
+          query: { ...(dataSource.query || {}), status: 'on_sale', ids: idStr, ...extraParams },
+        }
+      } else if (isProductStream) {
+        dataSource = {
+          ...dataSource,
+          params: { ...(dataSource.params || {}), ...extraParams },
+          query: { ...(dataSource.query || {}), ...extraParams },
         }
       }
     }
 
     const data = await DatasourceService.fetchData(dataSource, forceRefresh)
-    // 限制数据量，避免 setData 过大
-    const MAX_ITEMS = 10
+    // 限制数据量，避免 setData 过大；热门资讯需多取一点做前端排序/日期筛选
+    const limit = Math.max(Number(props.limit || 10), 1)
+    const feedPageSize = Math.max(Number(props.page_size || 10), 5)
+    const priceFilter = component.type === 'product_list'
+      ? resolvePriceFilterConfig(props)
+      : { mode: 'all' }
+    const MAX_ITEMS = component.type === 'hot_news'
+      ? Math.max(limit, 50)
+      : (component.type === 'article_feed'
+        ? feedPageSize
+        : (component.type === 'product_list' && isProductStream
+          ? feedPageSize
+          : (component.type === 'product_list' && priceFilter.mode !== 'all'
+            ? Math.min(Math.max(limit * 5, 50), 100)
+            : 10)))
     let trimmed = Array.isArray(data) ? data.slice(0, MAX_ITEMS) : data
+
+    if (component.type === 'hot_news' && Array.isArray(trimmed)) {
+      const ds = dataSource || {}
+      const q = { ...(ds.query || {}), ...(ds.params || {}) }
+      const publishDate = String(q.publish_date || '').trim()
+      if (publishDate) {
+        trimmed = trimmed.filter((item) => {
+          const raw = String(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || '')
+          return raw.indexOf(publishDate) === 0
+        })
+      }
+      const sortBy = String(q.sort_by || 'popular')
+      if (sortBy === 'popular') {
+        trimmed = trimmed.slice().sort((a, b) => (Number(b.viewCount || b.view_count || 0) || 0) - (Number(a.viewCount || a.view_count || 0) || 0))
+      } else if (sortBy === 'newest') {
+        trimmed = trimmed.slice().sort((a, b) => {
+          const ta = new Date(String(a.publishedAt || a.publishTime || a.createTime || 0).replace(/-/g, '/')).getTime() || 0
+          const tb = new Date(String(b.publishedAt || b.publishTime || b.createTime || 0).replace(/-/g, '/')).getTime() || 0
+          return tb - ta
+        })
+      }
+      trimmed = trimmed.slice(0, limit)
+    }
+
+    // 商品列表：按售价筛选后再截断
+    if (component.type === 'product_list' && Array.isArray(trimmed)) {
+      if (priceFilter.mode !== 'all') {
+        trimmed = filterProductsByPrice(trimmed, priceFilter)
+      }
+      if (!isProductStream) {
+        trimmed = trimmed.slice(0, limit)
+      } else {
+        trimmed = trimmed.slice(0, feedPageSize)
+      }
+    }
 
     // 接口失败/空列表时，手动选品回退到 DSL 内保存的 items
     if (component.type === 'product_list') {
-      const props = component.props || {}
       const ids = Array.isArray(props.product_ids) ? props.product_ids.map((id) => String(id)) : []
+      const sliceCap = isProductStream && ids.length
+        ? Math.max(ids.length, Array.isArray(props.items) ? props.items.length : 0, feedPageSize)
+        : Math.max(Number(props.limit || MAX_ITEMS), 1)
       if ((!trimmed || !trimmed.length) && Array.isArray(props.items) && props.items.length) {
-        trimmed = props.items.slice(0, Math.max(Number(props.limit || MAX_ITEMS), 1))
+        trimmed = props.items.slice(0, sliceCap)
       } else if (ids.length && Array.isArray(trimmed) && trimmed.length) {
         const map = {}
         trimmed.forEach((item) => {
           if (item && item.id != null) map[String(item.id)] = item
         })
         const ordered = ids.map((id) => map[String(id)]).filter(Boolean)
-        if (ordered.length) trimmed = ordered.slice(0, Math.max(Number(props.limit || MAX_ITEMS), 1))
+        if (ordered.length) trimmed = ordered.slice(0, sliceCap)
       }
     }
 
@@ -590,7 +666,9 @@ function updateComponent(components, id, newProps) {
         ...comp,
         props: { ...comp.props, ...newProps },
         style: updatedStyle,
-        styleString: parseStyle(updatedStyle),
+        styleString: comp.type === 'nav' || comp.type === 'product_list'
+          ? appendNavStackStyle(parseStyle(updatedStyle))
+          : parseStyle(updatedStyle),
       }
     }
     return comp
@@ -603,6 +681,7 @@ module.exports = {
   isImageUrl,
   validateDSL,
   parseStyle,
+  appendNavStackStyle,
   parseActions,
   processComponent,
   parseDSL,

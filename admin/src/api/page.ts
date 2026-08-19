@@ -26,9 +26,11 @@ export function createPage(data: CreatePageParams) {
   return post<PageRecord>(`${BASE_URL}/pages`, data as unknown as Record<string, unknown>)
 }
 
-/** 获取页面详情 */
-export function getPageDetail(id: number | string) {
-  return get<PageRecord>(`${BASE_URL}/pages/${id}`)
+/** 获取页面详情；silent 为 true 时不弹全局错误（预览兜底查询用） */
+export function getPageDetail(id: number | string, options?: { silent?: boolean }) {
+  return get<PageRecord>(`${BASE_URL}/pages/${id}`, undefined, {
+    showError: options?.silent ? false : undefined,
+  })
 }
 
 /** 更新页面 */

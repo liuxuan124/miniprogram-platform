@@ -18,8 +18,8 @@
         />
       </div>
       <div v-show="!collapsed.components" class="component-grid">
-        <!-- B4：最近使用，仅在未搜索时展示 -->
-        <template v-if="!searchKeyword && recentComponents.length">
+        <!-- B4：最近使用，仅在未搜索且未聚焦某分类时展示 -->
+        <template v-if="!searchKeyword && !focusedCategory && recentComponents.length">
           <div class="category-label">最近使用</div>
           <button
             v-for="item in recentComponents"
@@ -35,8 +35,21 @@
           </button>
         </template>
 
-        <template v-for="cat in categories" :key="cat.value">
-          <div v-if="filteredComponentsByCategory(cat.value).length" class="category-label">{{ cat.label }}</div>
+        <template v-for="cat in visibleCategories" :key="cat.value">
+          <div
+            v-if="filteredComponentsByCategory(cat.value).length"
+            class="category-label category-label--row"
+          >
+            <span>{{ cat.label }}</span>
+            <button
+              type="button"
+              class="category-all"
+              :class="{ active: focusedCategory === cat.value }"
+              @click.stop="toggleCategoryFocus(cat.value)"
+            >
+              {{ focusedCategory === cat.value ? '返回' : '全部' }}
+            </button>
+          </div>
           <button
             v-for="item in filteredComponentsByCategory(cat.value)"
             :key="item.type"
@@ -110,6 +123,8 @@ const collapsed = ref({
   structure: false,
 })
 const searchKeyword = ref('')
+/** 点击分类「全部」后，只展示该分类全部组件；再点「返回」退出 */
+const focusedCategory = ref<string | null>(null)
 
 /** B4：最近使用的组件类型，持久化到 localStorage，跨会话保留 */
 const RECENT_KEY = 'pagebuilder_recent_components'
@@ -156,6 +171,11 @@ const resizing = ref<{
 
 const categories = getAllCategories()
 
+const visibleCategories = computed(() => {
+  if (!focusedCategory.value) return categories
+  return categories.filter((cat) => cat.value === focusedCategory.value)
+})
+
 const totalComponentCount = computed(() => {
   let count = 0
   for (const cat of categories) {
@@ -173,8 +193,13 @@ function filteredComponentsByCategory(category: string): ComponentDefinition[] {
 }
 
 const hasSearchResults = computed(() => {
-  return categories.some((cat) => filteredComponentsByCategory(cat.value).length > 0)
+  return visibleCategories.value.some((cat) => filteredComponentsByCategory(cat.value).length > 0)
 })
+
+function toggleCategoryFocus(category: string) {
+  focusedCategory.value = focusedCategory.value === category ? null : category
+  if (focusedCategory.value) searchKeyword.value = ''
+}
 
 /** Element Plus icon name → component map */
 const iconMap: Record<string, any> = ElementPlusIcons
@@ -375,6 +400,30 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.5px;
+}
+
+.category-label--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.category-all {
+  padding: 0;
+  color: #1769ff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+
+  &:hover,
+  &.active {
+    color: #0b4fd6;
+    text-decoration: underline;
+  }
 }
 
 .component-card {

@@ -577,7 +577,7 @@ function formatDisplayDate(value: unknown): string {
   .article-card {
     background: #fff;
     border: 1px solid #edf1f7;
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
     box-shadow: 0 4px 12px rgba(28, 43, 76, 0.06);
 
     &--list {

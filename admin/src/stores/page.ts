@@ -292,6 +292,8 @@ export const usePageStore = defineStore('page', () => {
     }
     if (index !== undefined && index >= 0) {
       dsl.value.components.splice(index, 0, comp)
+    } else if (type === ComponentType.BrandHeader) {
+      dsl.value.components.unshift(comp)
     } else {
       dsl.value.components.push(comp)
     }

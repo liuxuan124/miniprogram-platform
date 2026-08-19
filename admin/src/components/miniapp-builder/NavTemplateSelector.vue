@@ -15,7 +15,7 @@
           <p>{{ tpl.desc }}</p>
         </div>
         <div class="tpl-tabs">
-          <span v-for="tab in tpl.tabs" :key="tab.text">{{ tab.icon }} {{ tab.text }}</span>
+          <span v-for="tab in tpl.tabs" :key="tab.text">{{ tab.text }}</span>
         </div>
         <div v-if="modelValue === tpl.key" class="tpl-check">✓</div>
       </button>
