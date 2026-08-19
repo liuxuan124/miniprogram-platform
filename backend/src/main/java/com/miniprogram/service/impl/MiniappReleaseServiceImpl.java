@@ -38,11 +38,11 @@ import java.util.stream.Collectors;
 public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMapper, MiniappRelease> implements MiniappReleaseService {
 
     private static final Set<String> SUPPORTED_COMPONENT_TYPES = Set.of(
-            "search", "notice_bar", "category_nav", "banner", "nav", "product_list",
-            "flash_sale", "article_list", "activity_entry", "activity_list",
+            "search", "notice_bar", "category_nav", "banner", "image", "nav", "product_list",
+            "flash_sale", "article_list", "article_feed", "hot_news", "activity_entry", "activity_list",
             "appointment_service", "member_card", "coupon", "ai_entry", "video",
-            "brand_intro", "image_text", "contact_info", "certificate", "countdown",
-            "float_button", "rich_text", "section_title", "divider", "spacer"
+            "brand_intro", "brand_header", "image_text", "contact_info", "certificate", "countdown",
+            "float_button", "rich_text", "section_title", "divider", "spacer", "form_entry", "join_group"
     );
 
     private final PageMapper pageMapper;
