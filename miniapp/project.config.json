@@ -3,36 +3,36 @@
   "packOptions": {
     "ignore": [
       {
-        "type": "folder",
-        "value": "node_modules"
+        "value": "node_modules",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "miniprogram_npm"
+        "value": "miniprogram_npm",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "pages/ai-chat"
+        "value": "pages/ai-chat",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "pages/library"
+        "value": "pages/library",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "pages/reader"
+        "value": "pages/reader",
+        "type": "folder"
       },
       {
-        "type": "suffix",
-        "value": ".md"
+        "value": ".md",
+        "type": "suffix"
       },
       {
-        "type": "suffix",
-        "value": ".map"
+        "value": ".map",
+        "type": "suffix"
       },
       {
-        "type": "file",
-        "value": "package-lock.json"
+        "value": "package-lock.json",
+        "type": "file"
       }
     ],
     "include": []

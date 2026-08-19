@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#E8EEFF"/>
+  <!-- 选品：上升趋势图 -->
+  <path fill="#A8B8F5" d="M28 66h40v6H28z"/>
+  <path fill="#4F6DFF" d="M30 58V46h10v12H30Zm14 0V34h10v24H44Zm14 0V40h10v18H58Z"/>
+  <path fill="#2F5BFF" d="M32 44l14-12 10 8 16-14 3 3-18 16-10-8-12 10-3-3Z"/>
+</svg>

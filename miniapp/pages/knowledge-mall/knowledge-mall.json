@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "知识商城",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "backgroundColor": "#F5F6F8",
+  "usingComponents": {
+    "skeleton": "../../components/skeleton/skeleton",
+    "empty-state": "../../components/empty-state/empty-state"
+  }
+}

@@ -1,79 +1,91 @@
-<!--components/dsl-product-list/dsl-product-list.wxml — 商品列表组件-->
+<!--components/dsl-product-list/dsl-product-list.wxml — 商品列表-->
 <view class="dsl-product-list" style="{{styleString}}">
   <view
-    wx:if="{{sectionTitle}}"
-    class="dsl-product-list__section-header dsl-product-list__section-header--{{sectionStyle}} dsl-product-list__section-header--{{sectionAlign}} {{sectionDivider ? 'dsl-product-list__section-header--divider' : ''}}"
-  >
-    <view wx:if="{{sectionStyle === 'bar'}}" class="dsl-product-list__section-bars" aria-hidden="true">
-      <view class="dsl-product-list__section-bar dsl-product-list__section-bar--down"></view>
-      <view class="dsl-product-list__section-bar dsl-product-list__section-bar--up"></view>
-    </view>
-    <view class="dsl-product-list__section-text">
-      <text class="dsl-product-list__section-main" style="{{sectionTitleStyle}}">{{sectionTitle}}</text>
-      <text wx:if="{{sectionSubtitle}}" class="dsl-product-list__section-sub" style="{{sectionSubtitleStyle}}">{{sectionSubtitle}}</text>
-    </view>
-    <text
-      wx:if="{{showMore}}"
-      class="dsl-product-list__section-more"
-      style="{{sectionMoreStyle}}"
-      catchtap="onTapMore"
-    >{{moreText}}</text>
-  </view>
-  <view
     class="dsl-product-list__grid dsl-product-list__grid--{{layout}}"
-    style="grid-template-columns: repeat({{columnCount}}, 1fr);"
+    style="{{gridGapStyle}}"
   >
-    <view
-      class="dsl-product-list__item"
-      wx:for="{{displayData}}"
-      wx:key="_key"
-      data-id="{{item.id}}"
-      bindtap="onTapProduct"
-      style="border-radius: 0;"
-    >
-      <!-- 商品图片 -->
-      <image
-        wx:if="{{item.cover_url || item.image || item.pic || item.mainImage || item.main_image}}"
-        class="dsl-product-list__item-image"
-        src="{{item.cover_url || item.image || item.pic || item.mainImage || item.main_image}}"
-        mode="aspectFill"
-        lazy-load
-      />
-      <view wx:else class="dsl-product-list__item-placeholder">🛍️</view>
-
-      <!-- 商品信息 -->
-      <view class="dsl-product-list__item-info">
-        <text class="dsl-product-list__item-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
-
-        <!-- 标签 -->
-        <view
-          class="dsl-product-list__item-tag"
-          wx:if="{{config.show_tag && (item.tag || config.tag_text)}}"
-        >
-          <text class="dsl-product-list__item-tag-text">{{item.tag || config.tag_text}}</text>
-        </view>
-
-        <!-- 价格（红）与已售并排 -->
-        <view class="dsl-product-list__item-bottom">
-          <view class="dsl-product-list__item-meta-row">
-            <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__item-price" style="{{priceStyle}}">¥{{item.price || item.min_price || item.minPrice || '0.00'}}</text>
-            <text wx:if="{{config.show_sales !== false}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">已售{{item.sales || item.salesCount || item.sold || 0}}</text>
+    <!-- 列表布局：横卡 + 正方形图留白 + 标题/副文案/价格评分 -->
+    <block wx:if="{{layout === 'list'}}">
+      <view
+        class="dsl-product-list__row"
+        wx:for="{{displayData}}"
+        wx:key="_key"
+        data-id="{{item.id}}"
+        bindtap="onTapProduct"
+        style="{{itemCardStyle}}"
+      >
+        <view class="dsl-product-list__thumb" style="{{itemImageStyle}}">
+          <image
+            wx:if="{{item._cover}}"
+            class="dsl-product-list__thumb-img"
+            src="{{item._cover}}"
+            mode="aspectFill"
+            lazy-load
+          />
+          <view wx:else class="dsl-product-list__thumb-ph" style="{{item._artStyle}}">
+            <text>{{item._glyph || '🛍️'}}</text>
           </view>
-          <view
-            wx:if="{{config.show_cart !== false}}"
-            class="dsl-product-list__item-cart"
-            catchtap="onTapCart"
-            data-id="{{item.id}}"
-            data-name="{{item.name || item.title}}"
-          >
-            <text>🛒</text>
+        </view>
+        <view class="dsl-product-list__body">
+          <text class="dsl-product-list__row-name" style="{{titleStyle}}">{{item.name || item.title}}</text>
+          <text class="dsl-product-list__row-sub">{{item._meta}}</text>
+          <view class="dsl-product-list__row-foot">
+            <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__row-price" style="{{priceStyle}}">¥{{item._price}}</text>
+            <text wx:if="{{showRating}}" class="dsl-product-list__row-rate">{{item._ratingLine}}</text>
+            <text wx:elif="{{config.show_sales !== false}}" class="dsl-product-list__row-sales" style="{{salesStyle}}">已售{{item._sales}}</text>
           </view>
         </view>
       </view>
-    </view>
+    </block>
+
+    <!-- 宫格 / 瀑布流 -->
+    <block wx:else>
+      <view
+        class="dsl-product-list__item"
+        wx:for="{{displayData}}"
+        wx:key="_key"
+        data-id="{{item.id}}"
+        bindtap="onTapProduct"
+        style="{{itemCardStyle}}"
+      >
+        <image
+          wx:if="{{item._cover}}"
+          class="dsl-product-list__item-image"
+          style="{{itemImageStyle}}"
+          src="{{item._cover}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view wx:else class="dsl-product-list__item-placeholder" style="{{itemImageStyle}}">🛍️</view>
+
+        <view class="dsl-product-list__item-info">
+          <text class="dsl-product-list__item-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
+          <view
+            class="dsl-product-list__item-tag"
+            wx:if="{{config.show_tag && (item.tag || config.tag_text)}}"
+          >
+            <text class="dsl-product-list__item-tag-text">{{item.tag || config.tag_text}}</text>
+          </view>
+          <view class="dsl-product-list__item-bottom">
+            <view class="dsl-product-list__item-meta-row">
+              <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__item-price" style="{{priceStyle}}">¥{{item._price}}</text>
+              <text wx:if="{{config.show_sales !== false}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">已售{{item._sales}}</text>
+            </view>
+            <view
+              wx:if="{{config.show_cart !== false}}"
+              class="dsl-product-list__item-cart"
+              catchtap="onTapCart"
+              data-id="{{item.id}}"
+              data-name="{{item.name || item.title}}"
+            >
+              <text>🛒</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
   </view>
 
-  <!-- 空状态 -->
   <view class="dsl-product-list__empty" wx:if="{{!displayData.length}}">
     <text class="dsl-product-list__empty-text">暂无商品</text>
   </view>

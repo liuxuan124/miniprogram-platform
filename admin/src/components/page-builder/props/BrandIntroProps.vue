@@ -1,13 +1,25 @@
 <template>
   <el-form label-width="80px" size="small">
     <el-form-item label="标题">
-      <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="品牌介绍" />
+      <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="出海笔记 · 阿哲" />
+    </el-form-item>
+    <el-form-item label="眉标">
+      <el-input :model-value="data.eyebrow" @input="emit('update', { eyebrow: $event })" placeholder="CROSS-BORDER GROWTH LAB" />
+    </el-form-item>
+    <el-form-item label="头像字">
+      <el-input :model-value="data.avatar_text" @input="emit('update', { avatar_text: $event })" maxlength="2" placeholder="海" />
+    </el-form-item>
+    <el-form-item label="认证">
+      <el-switch :model-value="!!data.verified" @change="(v: boolean) => emit('update', { verified: v })" />
     </el-form-item>
     <el-form-item label="副标题">
-      <el-input :model-value="data.subtitle" @input="emit('update', { subtitle: $event })" placeholder="副标题" />
+      <el-input :model-value="data.subtitle" @input="emit('update', { subtitle: $event })" placeholder="已认证 · 跨境电商实战" />
     </el-form-item>
     <el-form-item label="介绍">
-      <el-input :model-value="data.desc" @input="emit('update', { desc: $event })" type="textarea" :rows="4" placeholder="品牌介绍内容" />
+      <el-input :model-value="data.desc" @input="emit('update', { desc: $event })" type="textarea" :rows="3" placeholder="陪你把跨境生意，从经验变成方法" />
+    </el-form-item>
+    <el-form-item label="数据条">
+      <el-input :model-value="data.kpi" @input="emit('update', { kpi: $event })" placeholder="238 篇内容 · 1.2w 关注者 · 4.9 咨询评分" />
     </el-form-item>
     <TitleFontSizeFields
       :data="data"

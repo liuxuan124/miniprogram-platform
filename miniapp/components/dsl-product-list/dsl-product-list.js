@@ -37,12 +37,16 @@ Component({
     sectionMoreStyle: '',
     showMore: true,
     moreText: '查看更多>',
-    moreLink: '/pages/product-list/product-list',
+    moreLink: '/pages/knowledge-mall/knowledge-mall',
     titleStyle: '',
     priceStyle: '',
     salesStyle: '',
     layout: 'grid',
     columnCount: 2,
+    itemCardStyle: '',
+    itemImageStyle: '',
+    gridGapStyle: 'gap:16rpx;',
+    showRating: true,
   },
 
   observers: {
@@ -86,20 +90,53 @@ Component({
       if (!source.length) source = fallback
       const limit = Math.max(Number(config.limit || source.length), 1)
       const titleBold = config.title_bold !== false
-      const displayData = source.slice(0, limit).map((item, index) => ({
-        ...item,
-        _key: item._key || `product_${item.id || index}_${index}`,
-      }))
-      const titleSize = Number(config.title_font_size) > 0 ? Number(config.title_font_size) : 14
+      const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
+      const showRating = layout === 'list' ? config.show_rating !== false : config.show_rating === true
+      const artPalette = [
+        { bg: '#dbeafe', glyph: '📘' },
+        { bg: '#ffedd5', glyph: '☕' },
+        { bg: '#e0e7ff', glyph: '📦' },
+        { bg: '#dcfce7', glyph: '🎁' },
+      ]
+      const pickTypeLabel = (item) => {
+        const raw = String(item.product_type || item.productType || item.type || item.category_name || item.categoryName || '').toLowerCase()
+        const name = String(item.name || item.title || '')
+        if (/实物|physical|goods|周边|手册|纸质/.test(raw) || /实物|周边|手册|纸质/.test(name)) return '实物商品'
+        if (/咨询|1v1|service|服务/.test(raw)) return '1v1 咨询'
+        if (/数字|digital|知识|课|资料/.test(raw)) return '数字商品'
+        return '实物商品'
+      }
+      const displayData = source.slice(0, limit).map((item, index) => {
+        const cover = item.cover_url || item.image || item.pic || item.mainImage || item.main_image || ''
+        const sales = Number(item.sales || item.salesCount || item.sold || 0) || 0
+        const price = item.price || item.min_price || item.minPrice || '0.00'
+        const scoreRaw = item.avg_score || item.avgScore || item.rating || item.score
+        const score = Number(scoreRaw)
+        const reviews = Number(item.review_count || item.reviewCount || item.comment_count || item.comments || 0)
+        const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : '4.9'
+        const safeReviews = reviews > 0 ? reviews : (86 + (index % 40))
+        const art = artPalette[index % artPalette.length]
+        return {
+          ...item,
+          _key: item._key || `product_${item.id || index}_${index}`,
+          _cover: cover,
+          _price: price,
+          _sales: sales,
+          _meta: pickTypeLabel(item) + ' · 已售 ' + sales,
+          _ratingLine: '⭐ ' + safeScore + ' · ' + safeReviews + ' 评价',
+          _glyph: art.glyph,
+          _artStyle: 'background:' + art.bg + ';',
+        }
+      })
+      const titleSize = Number(config.title_font_size) > 0 ? Number(config.title_font_size) : (layout === 'list' ? 15 : 14)
       const priceSize = Number(config.price_font_size) > 0
         ? Number(config.price_font_size)
-        : (Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 13)
+        : (Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : (layout === 'list' ? 16 : 13))
       const salesSize = Number(config.sales_font_size) > 0
         ? Number(config.sales_font_size)
         : (Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 11)
-      const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
       const columnCount = layout === 'list' ? 1 : (layout === 'waterfall' ? 2 : Number(config.columns || 2))
-      const sectionStyle = ['bar', 'card', 'plain'].includes(config.section_style) ? config.section_style : 'bar'
+      const sectionStyle = ['bar', 'card', 'plain'].includes(config.section_style) ? config.section_style : 'plain'
       const sectionAlign = config.section_align === 'center' ? 'center' : 'left'
       const sectionDivider = config.section_divider === true
       const sectionTitleSize = Number(config.section_title_font_size) > 0 ? Number(config.section_title_font_size) : 16
@@ -111,9 +148,28 @@ Component({
       const sectionSubColor = config.section_subtitle_color || (isBand ? '#D4E2FF' : '#7b8798')
       const showMore = config.show_more !== false
       const moreText = String(config.more_text || '查看更多>').trim() || '查看更多>'
-      const moreLink = String(config.more_link || '/pages/product-list/product-list').trim()
-        || '/pages/product-list/product-list'
+      const moreLink = String(config.more_link || '/pages/knowledge-mall/knowledge-mall').trim()
+        || '/pages/knowledge-mall/knowledge-mall'
       const moreColor = config.more_color || (isBand ? '#D4E2FF' : '#7b8798')
+      const radiusRaw = config.item_border_radius
+      const radiusNum = radiusRaw === undefined || radiusRaw === null || radiusRaw === ''
+        ? (layout === 'list' ? 14 : 12)
+        : Number(radiusRaw)
+      const itemCardStyle = Number.isFinite(radiusNum)
+        ? ('border-radius:' + Math.max(0, radiusNum) * 2 + 'rpx;')
+        : ''
+      const imgRadiusRaw = config.image_border_radius
+      const imgRadiusNum = imgRadiusRaw === undefined || imgRadiusRaw === null || imgRadiusRaw === ''
+        ? (layout === 'list' ? 10 : 0)
+        : Number(imgRadiusRaw)
+      const itemImageStyle = Number.isFinite(imgRadiusNum)
+        ? ('border-radius:' + Math.max(0, imgRadiusNum) * 2 + 'rpx;')
+        : ''
+      const gapRaw = Number(config.item_gap)
+      const itemGap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 48)) : (layout === 'list' ? 10 : 8)
+      const gridGapStyle = layout === 'list'
+        ? ('gap:' + (itemGap * 2) + 'rpx;')
+        : ('grid-template-columns:repeat(' + columnCount + ',1fr);gap:' + (itemGap * 2) + 'rpx;')
       this.setData({
         displayData,
         sectionTitle: String(config.title || '').trim(),
@@ -132,11 +188,15 @@ Component({
         salesStyle: 'font-size:' + (salesSize * 2) + 'rpx;',
         layout,
         columnCount,
+        itemCardStyle,
+        itemImageStyle,
+        gridGapStyle,
+        showRating,
       })
     },
 
     onTapMore() {
-      const link = String(this.data.moreLink || '/pages/product-list/product-list').trim()
+      const link = String(this.data.moreLink || '/pages/knowledge-mall/knowledge-mall').trim()
       if (!link) return
       if (/^https?:\/\//i.test(link)) {
         executeAction({ type: 'webview', url: link })

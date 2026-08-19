@@ -14,6 +14,31 @@
           <el-radio value="text_only">纯文字</el-radio>
         </el-radio-group>
       </el-form-item>
+      <el-divider content-position="left">外框</el-divider>
+      <el-form-item label="显示外框">
+        <el-switch
+          :model-value="data.show_frame !== false"
+          @change="(v: boolean) => emit('update', { show_frame: v })"
+        />
+      </el-form-item>
+      <template v-if="data.show_frame !== false">
+        <el-form-item label="外框圆角">
+          <el-input-number
+            :model-value="Number(data.frame_radius ?? 16)"
+            :min="0"
+            :max="40"
+            controls-position="right"
+            @change="(v: number | undefined) => emit('update', { frame_radius: v ?? 16 })"
+          />
+          <div class="icon-hint" style="margin-top:4px">单位 px，白底卡片圆角</div>
+        </el-form-item>
+        <el-form-item label="外框底色">
+          <el-color-picker
+            :model-value="data.frame_bg || '#ffffff'"
+            @change="(v: string | null) => emit('update', { frame_bg: v || '#ffffff' })"
+          />
+        </el-form-item>
+      </template>
       <el-divider content-position="left">导航项（拖拽可排序）</el-divider>
       <draggable
         class="nav-list"
@@ -38,7 +63,7 @@
             </div>
             <el-form-item v-if="data.style_type !== 'text_only'" label="图标">
               <div class="icon-field">
-                <el-popover placement="bottom-start" :width="280" trigger="click">
+                <el-popover placement="bottom-start" :width="320" trigger="click">
                   <template #reference>
                     <button type="button" class="icon-trigger" title="点击选择图标">
                       <img
@@ -52,17 +77,18 @@
                   </template>
                   <div class="icon-library">
                     <button
-                      v-for="emoji in iconLibrary"
-                      :key="emoji"
+                      v-for="ic in iconLibrary"
+                      :key="ic.id"
                       type="button"
-                      class="icon-option"
-                      :class="{ active: item.icon === emoji }"
-                      @click="setIcon(i, emoji)"
+                      class="icon-option icon-option--flat"
+                      :class="{ active: item.icon === ic.src }"
+                      :title="ic.label"
+                      @click="setIcon(i, ic.src)"
                     >
-                      {{ emoji }}
+                      <img :src="ic.src" alt="" />
                     </button>
                   </div>
-                  <div class="icon-library__tip">点击上方图标即可选用</div>
+                  <div class="icon-library__tip">扁平色块图标，无黑边描边</div>
                 </el-popover>
                 <span class="icon-hint">点击左侧图标库选择</span>
               </div>
@@ -106,18 +132,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import draggable from 'vuedraggable'
+import { NAV_FLAT_ICONS } from '../navIconSet'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
-/** 常用导航图标库 */
-const iconLibrary = [
-  '📚', '📖', '📝', '✏️', '🛠️', '🔧', '💬', '💭',
-  '🏠', '🔥', '⭐', '🎁', '🛍️', '🛒', '💎', '👑',
-  '📱', '💻', '🎧', '📢', '🎯', '🚀', '💡', '✅',
-  '📦', '🗂️', '📌', '🔗', '🌐', '📞', '👤', '🤝',
-  '🍎', '🍵', '🎨', '🎵', '🎬', '⚽', '🎫', '💰',
-]
+/** 扁平 SVG 图标库（无黑描边） */
+const iconLibrary = NAV_FLAT_ICONS
 
 const sortableItems = computed(() =>
   (Array.isArray(data.items) ? data.items : []).map((item: any, index: number) => ({
@@ -280,31 +301,45 @@ function removeItem(index: number) {
 
 .icon-library {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 4px;
-  max-height: 220px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-height: 280px;
   overflow-y: auto;
 }
 
 .icon-option {
-  width: 30px;
-  height: 30px;
+  width: 56px;
+  height: 56px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 4px;
   border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
+  border-radius: 12px;
+  background: #f8fafc;
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
+
+  &--flat img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    display: block;
+  }
 
   &:hover,
   &.active {
     border-color: #1769ff;
     background: #eef4ff;
   }
+}
+
+.icon-trigger__img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .icon-library__tip {

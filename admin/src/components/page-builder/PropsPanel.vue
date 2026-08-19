@@ -118,10 +118,15 @@
 
         <el-tab-pane label="样式" name="style">
           <div class="style-section-body">
-          <!-- B6：四向边距合并为一个联动控件，可锁定等比同步调整 -->
+          <div class="shell-note">
+            「外边距」= 内容相对手机屏幕边缘的距离，不会再套一层白外框。<br />
+            选中时的虚线只是编辑指示，真机不显示。
+          </div>
+
+          <!-- 相对屏幕边缘的外边距 -->
           <div class="margin-box">
             <div class="margin-box__label">
-              <span>边距</span>
+              <span>外边距（相对屏幕）</span>
               <el-tooltip :content="marginLinked ? '已锁定：四向等比联动' : '点击锁定四向等比联动'" placement="top">
                 <el-button
                   :type="marginLinked ? 'primary' : 'default'"
@@ -171,64 +176,16 @@
             </div>
           </div>
 
-          <div class="margin-box">
-            <div class="margin-box__label">
-              <span>内边距</span>
-              <el-tooltip :content="paddingLinked ? '已锁定：四向等比联动' : '点击锁定四向等比联动'" placement="top">
-                <el-button
-                  :type="paddingLinked ? 'primary' : 'default'"
-                  size="small"
-                  circle
-                  class="margin-lock-btn"
-                  :aria-label="paddingLinked ? '已锁定四向等比，点击取消' : '点击锁定四向等比联动'"
-                  @click="paddingLinked = !paddingLinked"
-                >
-                  <el-icon><component :is="paddingLinked ? Lock : Unlock" /></el-icon>
-                </el-button>
-              </el-tooltip>
-            </div>
-            <div class="margin-box__grid">
-              <div class="margin-cell margin-cell--top">
-                <span>上</span>
-                <el-input-number
-                  :model-value="currentStyle.padding_top || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
-                  @change="(v: number) => updatePadding('padding_top', v)"
-                />
-              </div>
-              <div class="margin-cell margin-cell--left">
-                <span>左</span>
-                <el-input-number
-                  :model-value="currentStyle.padding_left || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
-                  @change="(v: number) => updatePadding('padding_left', v)"
-                />
-              </div>
-              <div class="margin-cell margin-cell--right">
-                <span>右</span>
-                <el-input-number
-                  :model-value="currentStyle.padding_right || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
-                  @change="(v: number) => updatePadding('padding_right', v)"
-                />
-              </div>
-              <div class="margin-cell margin-cell--bottom">
-                <span>下</span>
-                <el-input-number
-                  :model-value="currentStyle.padding_bottom || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
-                  @change="(v: number) => updatePadding('padding_bottom', v)"
-                />
-              </div>
-            </div>
-          </div>
-
-          <el-form label-width="70px" size="small">
-            <el-form-item label="圆角">
-              <el-input-number :model-value="currentStyle.border_radius || 0" :min="0" :max="50" @change="(v: number) => updateStyle('border_radius', v)" />
-            </el-form-item>
-            <el-form-item label="背景色">
-              <el-color-picker :model-value="currentStyle.background_color || '#ffffff'" @change="(v: string) => updateStyle('background_color', v)" />
+          <el-form label-width="90px" size="small">
+            <el-form-item v-if="isListComponent" label="卡片间距">
+              <el-input-number
+                :model-value="Number(currentProps.item_gap ?? 8)"
+                :min="0"
+                :max="48"
+                controls-position="right"
+                @change="(v: number | undefined) => handlePropsUpdate({ item_gap: v ?? 8 })"
+              />
+              <div class="style-hint">单位 px，控制小卡片之间的空隙</div>
             </el-form-item>
             <el-form-item label="文字颜色">
               <div class="style-color-row">
@@ -409,6 +366,18 @@ const propsPanelMap: Record<string, any> = {
 
 const currentStyle = computed(() => {
   return pageStore.selectedComponent?.style || {}
+})
+
+const currentProps = computed(() => {
+  return pageStore.selectedComponent?.props || {}
+})
+
+const isListComponent = computed(() => {
+  const type = pageStore.selectedComponent?.type
+  return type === ComponentType.ProductList
+    || type === ComponentType.ArticleList
+    || type === ComponentType.FlashSale
+    || type === ComponentType.ActivityList
 })
 
 const hasSplitTextSize = computed(() => {
@@ -611,6 +580,17 @@ async function onUploadShareImage(event: Event) {
   background: var(--bg-page, #f5f7fb);
   border: 1px solid var(--border, #e3e8f0);
   border-radius: var(--radius, 8px);
+}
+
+.shell-note {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
 }
 
 .margin-box__label {

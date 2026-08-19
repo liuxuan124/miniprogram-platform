@@ -1,7 +1,9 @@
 {
   "navigationBarTitleText": "内容中心",
+  "navigationStyle": "custom",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
+  "backgroundColor": "#f7f8fc",
   "usingComponents": {
     "skeleton": "../../components/skeleton/skeleton",
     "empty-state": "../../components/empty-state/empty-state"

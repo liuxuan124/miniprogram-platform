@@ -22,22 +22,24 @@
       </div>
       <el-form-item label="图标" label-width="50px">
         <div class="icon-field">
-          <el-popover placement="bottom-start" :width="264" trigger="click">
+          <el-popover placement="bottom-start" :width="320" trigger="click">
             <template #reference>
               <button type="button" class="icon-trigger" title="点击从图标库选择">
-                {{ isEmojiIcon(item.icon) ? item.icon : '📌' }}
+                <img v-if="!isEmojiIcon(item.icon)" :src="item.icon" alt="" class="icon-trigger__img" />
+                <span v-else>{{ item.icon || '📌' }}</span>
               </button>
             </template>
             <div class="icon-library">
               <button
-                v-for="emoji in iconLibrary"
-                :key="emoji"
+                v-for="ic in iconLibrary"
+                :key="ic.id"
                 type="button"
                 class="icon-option"
-                :class="{ active: item.icon === emoji }"
-                @click="onUpdateItem(i, 'icon', emoji)"
+                :class="{ active: item.icon === ic.src }"
+                :title="ic.label"
+                @click="onUpdateItem(i, 'icon', ic.src)"
               >
-                {{ emoji }}
+                <img :src="ic.src" alt="" />
               </button>
             </div>
           </el-popover>
@@ -64,9 +66,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useListEditor } from '../composables/useListEditor'
+import { NAV_FLAT_ICONS } from '../navIconSet'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
+
+const iconLibrary = NAV_FLAT_ICONS
 
 const items = computed(() => {
   const raw = data.items
@@ -74,7 +79,7 @@ const items = computed(() => {
 })
 
 const { addItem, removeItem, updateItem } = useListEditor(items, {
-  createDefault: () => ({ icon: '📌', title: '', link_url: '' }),
+  createDefault: () => ({ icon: '/images/nav-icons/cart.svg', title: '', link_url: '' }),
   maxItems: 20,
 })
 
@@ -89,15 +94,6 @@ function onRemoveItem(index: number) {
 function onUpdateItem(index: number, field: string, value: string) {
   emit('update', { items: updateItem(index, (item) => ({ ...item, [field]: value })) })
 }
-
-/** 常用分类图标库 */
-const iconLibrary = [
-  '📌', '🔥', '⭐', '🎁', '🛍️', '🛒', '💎', '👑',
-  '👗', '👜', '👟', '💄', '🧴', '🧸', '⌚', '📱',
-  '🍎', '🍵', '☕', '🍰', '🥘', '🍜', '🍷', '🥗',
-  '🏠', '🛋️', '🛠️', '💊', '🌿', '🐾', '🚗', '✈️',
-  '📚', '🎮', '🎵', '🎬', '🎨', '⚽', '🎫', '💰',
-]
 
 function isEmojiIcon(icon?: string): boolean {
   if (!icon) return false
@@ -133,20 +129,26 @@ function isEmojiIcon(icon?: string): boolean {
 
 .icon-library {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
 
   .icon-option {
-    width: 28px;
-    height: 28px;
+    width: 56px;
+    height: 56px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    background: transparent;
+    padding: 4px;
+    background: #f8fafc;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 12px;
     cursor: pointer;
+
+    img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
 
     &:hover {
       background: #f0f6ff;
@@ -157,5 +159,12 @@ function isEmojiIcon(icon?: string): boolean {
       background: #e8f1ff;
     }
   }
+}
+
+.icon-trigger__img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 6px;
 }
 </style>

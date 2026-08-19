@@ -2,7 +2,7 @@
 
 .dsl-article-list {
   width: 100%;
-  background: #ffffff;
+  background: transparent;
   padding: 0;
   box-sizing: border-box;
 }
@@ -61,23 +61,24 @@
   font-size: 22rpx;
 }
 
+.dsl-article-list--tabs {
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+}
+
 .dsl-article-list--tabs .dsl-article-list__list {
-  padding: 8rpx 0 8rpx;
-  background: #f3f5f8;
-  gap: 4rpx !important;
+  padding: 0 20rpx;
+  gap: 16rpx;
+  background: transparent;
 }
 
 .dsl-article-list--tabs .dsl-article-list__item--list {
   margin-bottom: 0;
   padding: 20rpx 24rpx;
   background: #fff;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.dsl-article-list--tabs .dsl-article-list__item-cover,
-.dsl-article-list--tabs .dsl-article-list__item-placeholder {
-  border-radius: 0;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(28, 43, 76, 0.06);
 }
 
 
@@ -252,11 +253,12 @@
   line-height: 1.35;
 }
 
-/* 列表布局 */
+/* 列表布局：条目独立成卡，无外层大白框 */
 .dsl-article-list__list {
   width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 16rpx;
 }
 
 .dsl-article-list__item--list {
@@ -264,11 +266,13 @@
   flex-direction: row;
   gap: 16rpx;
   margin-bottom: 0;
-  padding: 16rpx 20rpx;
-  background: #f8faff;
-  border-bottom: 0;
-  border-radius: 0;
+  padding: 20rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #edf1f7;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(28, 43, 76, 0.06);
   align-items: flex-start;
+  box-sizing: border-box;
 }
 
 .dsl-article-list__item--list:last-child {
@@ -392,7 +396,11 @@
   align-items: center;
   gap: 16rpx;
   margin-bottom: 0;
-  padding: 12rpx 20rpx;
+  padding: 16rpx 20rpx;
+  background: #fff;
+  border: 1rpx solid #edf1f7;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(28, 43, 76, 0.06);
 }
 
 .dsl-article-list__item-cover--compact {

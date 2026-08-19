@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#EFEBFF"/>
+  <!-- 独立站：地球 -->
+  <circle cx="48" cy="48" r="22" fill="#6B4FE0"/>
+  <ellipse cx="48" cy="48" rx="10" ry="22" fill="#8B75F0"/>
+  <path fill="#C4B5FD" d="M28 42h40v6H28v-6Zm0 12h40v6H28v-6Z"/>
+</svg>

@@ -202,6 +202,22 @@ Component({
           : ''
       }
 
+      // 列表类：外层不要白底大框/圆角，条目各自成卡
+      if (type === 'product_list' || type === 'article_list' || type === 'flash_sale') {
+        const rawStyle = component.style || {}
+        const shellStyle = { ...rawStyle }
+        delete shellStyle.border_radius
+        delete shellStyle.background_color
+        if (type === 'product_list') {
+          const radius = rawStyle.border_radius
+          if (props.item_border_radius === undefined || props.item_border_radius === null || props.item_border_radius === '') {
+            props.item_border_radius = radius === undefined || radius === null ? 12 : Number(radius)
+          }
+        }
+        component.style = shellStyle
+        component.styleString = parseStyle(shellStyle)
+      }
+
       if (type === 'member_card') {
         const rawStyle = component.style || {}
         const shellStyle = { ...rawStyle }
@@ -237,8 +253,14 @@ Component({
       }
 
       if (type === 'section_title') {
-        props._titleStyle = buildTextStyle(props.title_font_size || 17, props.title_color)
-        props._subtitleStyle = buildTextStyle(props.subtitle_font_size || 11, props.subtitle_color)
+        props._titleStyle = [
+          buildTextStyle(props.title_font_size || 16, props.title_color || '#172033'),
+          props.title_bold === false ? 'font-weight:400' : 'font-weight:800',
+        ].filter(Boolean).join(';')
+        props._subtitleStyle = buildTextStyle(props.subtitle_font_size || 11, props.subtitle_color || '#7b8798')
+        props.show_more = props.show_more === true
+        props.more_text = String(props.more_text || '查看更多>').trim() || '查看更多>'
+        props._moreStyle = buildTextStyle(12, props.more_color || '#7b8798')
       }
 
       if (type === 'activity_list' || type === 'appointment_service' || type === 'contact_info' || type === 'image_text' || type === 'brand_intro' || type === 'flash_sale' || type === 'certificate') {

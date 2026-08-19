@@ -66,8 +66,8 @@ Page({
 
       const productIdMap = {}
       const nameByProto = {
-        1: '跨境选品案例精装手册（纸质版）',
-        3: '品牌定制马克杯',
+        1: '《100 个跨境爆款选品案例库》',
+        3: '选品诊断 1v1 咨询（45 分钟）',
       }
       Object.keys(nameByProto).forEach((pid) => {
         const hit = prods.find((p) => p.name === nameByProto[pid])
@@ -95,7 +95,16 @@ Page({
   },
 
   goShop() {
-    wx.navigateTo({ url: '/pages/product-list/product-list' })
+    wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
+  },
+
+  goAi() {
+    wx.navigateTo({
+      url: '/pkg-user/service-chat/service-chat',
+      fail: () => {
+        wx.showToast({ title: 'AI 助手即将开放', icon: 'none' })
+      },
+    })
   },
 
   goService() {
@@ -116,20 +125,30 @@ Page({
       this.goContent()
       return
     }
-    if (action === 'shop') {
+    if (action === 'ebook') {
+      try {
+        wx.setStorageSync('__tab_query__/pages/knowledge-mall/knowledge-mall', { type: 'ebook' })
+      } catch (_) {}
       this.goShop()
       return
     }
-    if (action === 'service') {
-      this.goService()
+    if (action === 'consult') {
+      try {
+        wx.setStorageSync('__tab_query__/pages/knowledge-mall/knowledge-mall', { type: 'consult' })
+      } catch (_) {}
+      this.goShop()
+      return
+    }
+    if (action === 'member') {
+      wx.navigateTo({ url: '/pkg-user/member-center/member-center' })
       return
     }
     if (action === 'orders') {
       wx.navigateTo({ url: '/pkg-trade/order-list/order-list' })
       return
     }
-    if (action === 'member') {
-      wx.navigateTo({ url: '/pkg-user/member-center/member-center' })
+    if (action === 'service') {
+      this.goService()
     }
   },
 
@@ -151,6 +170,16 @@ Page({
   },
 
   openProduct() {
-    wx.navigateTo({ url: '/pages/product-list/product-list' })
+    wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
+  },
+
+  onProductTap(e) {
+    const protoId = Number(e.currentTarget.dataset.id)
+    const realId = this.data.productIdMap[protoId]
+    if (realId) {
+      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${realId}` })
+      return
+    }
+    this.goShop()
   },
 })

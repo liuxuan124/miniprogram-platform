@@ -123,7 +123,14 @@ async function fetchDataSourceList(dataSource: ComponentDataSource, limit: numbe
     params.set(key, String(value))
   })
 
-  const response = await fetch(`${apiPath}?${params.toString()}`)
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  const timer = controller ? window.setTimeout(() => controller.abort(), 6000) : 0
+  let response: Response
+  try {
+    response = await fetch(`${apiPath}?${params.toString()}`, controller ? { signal: controller.signal } : undefined)
+  } finally {
+    if (timer) window.clearTimeout(timer)
+  }
   const payload = await response.json()
   if (payload.code !== 200) {
     throw new Error(payload.message || '接口请求失败')

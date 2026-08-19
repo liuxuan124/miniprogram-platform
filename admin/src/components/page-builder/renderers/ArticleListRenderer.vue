@@ -1,30 +1,6 @@
 <template>
   <div class="render-article-list split-text-typography" :class="{ 'render-article-list--preview': previewMode }">
     <div
-      v-if="sectionTitle"
-      class="section-header"
-      :class="[
-        `style-${sectionStyle}`,
-        `align-${sectionAlign}`,
-        { 'has-divider': sectionDivider },
-      ]"
-    >
-      <div v-if="sectionStyle === 'bar'" class="section-header__bars" aria-hidden="true">
-        <span class="section-header__bar section-header__bar--down" />
-        <span class="section-header__bar section-header__bar--up" />
-      </div>
-      <div class="section-header__text">
-        <div class="section-header__main" :style="sectionTitleStyle">{{ sectionTitle }}</div>
-        <div v-if="sectionSubtitle" class="section-header__sub" :style="sectionSubtitleStyle">{{ sectionSubtitle }}</div>
-      </div>
-      <span
-        v-if="showMore"
-        class="section-header__more"
-        :style="sectionMoreStyle"
-        @click.stop="onMoreClick"
-      >{{ moreText }}</span>
-    </div>
-    <div
       v-if="showCategoryTabs && categoryTabs.length"
       class="article-tabs"
     >
@@ -157,8 +133,8 @@ const itemGap = computed(() => {
 const sectionTitle = computed(() => String(props.component.props?.title ?? '').trim())
 const sectionSubtitle = computed(() => String(props.component.props?.subtitle ?? '').trim())
 const sectionStyle = computed(() => {
-  const raw = String(props.component.props?.section_style || 'bar')
-  return ['bar', 'plain', 'card'].includes(raw) ? raw : 'bar'
+  const raw = String(props.component.props?.section_style || 'plain')
+  return ['bar', 'plain', 'card'].includes(raw) ? raw : 'plain'
 })
 const sectionAlign = computed(() => (props.component.props?.section_align === 'center' ? 'center' : 'left'))
 const sectionDivider = computed(() => props.component.props?.section_divider === true)
@@ -371,15 +347,16 @@ function formatDisplayDate(value: unknown): string {
 }
 
 .article-list-body.is-tabs-mode {
-  padding: 4px 0;
-  background: #f3f5f8;
+  padding: 8px 10px;
+  background: transparent;
+  gap: 8px;
 }
 
 .article-list-body.is-tabs-mode .article-card--list {
   padding: 10px 12px;
   background: #fff;
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(28, 43, 76, 0.06);
 }
 
 .article-list-body.is-tabs-mode .article-img,
@@ -388,7 +365,7 @@ function formatDisplayDate(value: unknown): string {
 }
 
 .render-article-list {
-  background: #fff;
+  background: transparent;
   padding: 0;
 
   &.render-article-list--preview {
@@ -586,23 +563,27 @@ function formatDisplayDate(value: unknown): string {
   .article-list-body {
     display: flex;
     flex-direction: column;
+    gap: 8px;
 
     &.layout-list,
     &.layout-card,
     &.layout-compact {
       display: flex;
       flex-direction: column;
+      gap: 8px;
     }
   }
 
   .article-card {
-    background: #f8faff;
-    border-radius: 0;
+    background: #fff;
+    border: 1px solid #edf1f7;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(28, 43, 76, 0.06);
 
     &--list {
       display: flex;
       gap: 8px;
-      padding: 8px 10px;
+      padding: 10px 12px;
     }
 
     &--card {

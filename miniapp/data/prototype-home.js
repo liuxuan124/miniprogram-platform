@@ -131,25 +131,25 @@ const ITEMS = [
 const PRODUCTS = {
   1: {
     id: 1,
-    kind: 'physical',
+    kind: 'ebook',
     topic: 'select',
     glyph: '📘',
-    title: '跨境选品案例精装手册（纸质版）',
+    title: '《100 个跨境爆款选品案例库》',
     price: 59,
-    sold: 320,
+    sold: 2103,
     rating: '4.9',
-    revCount: 86,
+    revCount: 238,
   },
   3: {
     id: 3,
-    kind: 'physical',
+    kind: 'consult',
     topic: 'platform',
-    glyph: '☕',
-    title: '品牌定制马克杯',
-    price: 89,
-    sold: 180,
-    rating: '4.8',
-    revCount: 52,
+    glyph: '🗓️',
+    title: '选品诊断 1v1 咨询（45 分钟）',
+    price: 299,
+    sold: 186,
+    rating: '4.9',
+    revCount: 186,
   },
 }
 
@@ -182,10 +182,13 @@ function buildHomeFeed() {
 function buildHomeProducts() {
   return [1, 3].map((id) => {
     const p = PRODUCTS[id]
+    const sub = p.kind === 'ebook'
+      ? `数字商品 · 虚拟发货 · 已售 ${p.sold}`
+      : `1v1 咨询 · 已约 ${p.sold} 次`
     return {
       ...p,
       artStyle: artStyle(p.topic),
-      sub: `实物商品 · 已售 ${p.sold}`,
+      sub,
       ratingLine: `⭐ ${p.rating} · ${p.revCount} 评价`,
     }
   })

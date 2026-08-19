@@ -1,6 +1,32 @@
 // components/dsl-nav/dsl-nav.js — 导航宫格组件
 const { executeAction, isImageUrl, navigatePage } = require('../../utils/render')
 
+function buildFrame(config) {
+  const cfg = config || {}
+  const showFrame = cfg.show_frame !== false
+  if (!showFrame) {
+    return { showFrame: false, frameStyle: '' }
+  }
+  const radiusRaw = Number(cfg.frame_radius)
+  const radius = Number.isFinite(radiusRaw) ? Math.max(0, Math.min(radiusRaw, 40)) : 16
+  const bg = cfg.frame_bg || '#ffffff'
+  return {
+    showFrame: true,
+    frameStyle: `background:${bg};border-radius:${radius * 2}rpx;`,
+  }
+}
+
+function mapItems(items) {
+  if (!Array.isArray(items)) return []
+  return items.map((item) => ({
+    ...item,
+    text: item.title || item.text || '',
+    isImageIcon: isImageUrl(item.icon),
+    icon: item.icon || '',
+    linkUrl: item.link_url || item.linkUrl || '',
+  }))
+}
+
 Component({
   properties: {
     config: {
@@ -20,38 +46,29 @@ Component({
   data: {
     scrollLeft: 0,
     processedItems: [],
+    showFrame: true,
+    frameStyle: '',
   },
 
   observers: {
-    'config.items': function (items) {
-      if (!Array.isArray(items)) {
-        this.setData({ processedItems: [] })
-        return
-      }
-      const processed = items.map((item) => ({
-        ...item,
-        text: item.title || item.text || '',
-        isImageIcon: this._isImageUrl(item.icon),
-        icon: item.icon || '',
-        linkUrl: item.link_url || item.linkUrl || '',
-      }))
-      this.setData({ processedItems: processed })
+    'config': function (config) {
+      const frame = buildFrame(config)
+      this.setData({
+        processedItems: mapItems(config && config.items),
+        showFrame: frame.showFrame,
+        frameStyle: frame.frameStyle,
+      })
     },
   },
 
   lifetimes: {
     attached() {
-      const items = this.data.config.items || []
-      if (items.length > 0) {
-        const processed = items.map((item) => ({
-          ...item,
-          text: item.title || item.text || '',
-          isImageIcon: this._isImageUrl(item.icon),
-          icon: item.icon || '',
-          linkUrl: item.link_url || item.linkUrl || '',
-        }))
-        this.setData({ processedItems: processed })
-      }
+      const frame = buildFrame(this.data.config)
+      this.setData({
+        processedItems: mapItems(this.data.config && this.data.config.items),
+        showFrame: frame.showFrame,
+        frameStyle: frame.frameStyle,
+      })
     },
   },
 

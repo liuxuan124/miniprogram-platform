@@ -36,7 +36,7 @@
 }
 
 .tab-item.active .tab-icon-shell {
-  background: #eef3ff;
+  background: rgba(0, 47, 167, 0.1);
 }
 
 .tab-icon {
@@ -63,6 +63,6 @@
 }
 
 .tab-item.active .tab-text {
-  color: #315efb;
+  color: #002FA7;
   font-weight: 700;
 }
