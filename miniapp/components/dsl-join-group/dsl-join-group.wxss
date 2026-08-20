@@ -1,6 +1,7 @@
 /* components/dsl-join-group/dsl-join-group.wxss */
 .dsl-jg {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   box-sizing: border-box;
 }
 

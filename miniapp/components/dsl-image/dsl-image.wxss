@@ -1,9 +1,11 @@
 /* components/dsl-image/dsl-image.wxss — 单图组件样式 */
 .dsl-image {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   overflow: hidden;
   background: #f1f5fb;
   border-radius: 16rpx;
+  box-sizing: border-box;
 }
 
 .dsl-image__media {

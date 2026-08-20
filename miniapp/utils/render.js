@@ -140,6 +140,7 @@ function parseStyle(style) {
     parts.push(`font-size: ${Number(style.font_size) * 2}rpx`)
   }
 
+  let hasHorizontalMargin = false
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
     if (key === 'text_color' || key === 'font_size' || key === 'visible') return
@@ -151,11 +152,24 @@ function parseStyle(style) {
       .replace(/_/g, '-')
       .replace(/([A-Z])/g, '-$1')
       .toLowerCase()
+    if (cssKey === 'margin-left' || cssKey === 'margin-right') {
+      const n = typeof value === 'number' ? value : Number(value)
+      if (Number.isFinite(n) ? n !== 0 : String(value).trim() !== '0') {
+        hasHorizontalMargin = true
+      }
+    }
     const cssValue = typeof value === 'number'
       ? (value === 0 ? '0' : (value * 2) + 'rpx')
       : value
     parts.push(`${cssKey}: ${cssValue}`)
   })
+
+  // width:100% + 左右 margin 会撑出视口，导致整页可左右拖歪、右边贴边
+  if (hasHorizontalMargin) {
+    parts.push('width: auto')
+    parts.push('max-width: 100%')
+    parts.push('box-sizing: border-box')
+  }
 
   return parts.join('; ')
 }

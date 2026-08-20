@@ -1,7 +1,8 @@
 /* components/dsl-article-list/dsl-article-list.wxss — 文章列表组件样式 */
 
 .dsl-article-list {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   background: transparent;
   padding: 0;
   box-sizing: border-box;

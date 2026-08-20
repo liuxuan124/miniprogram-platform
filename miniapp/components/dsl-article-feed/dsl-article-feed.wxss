@@ -1,6 +1,7 @@
 /* components/dsl-article-feed/dsl-article-feed.wxss */
 .dsl-article-feed {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
   background: transparent;
   box-sizing: border-box;
