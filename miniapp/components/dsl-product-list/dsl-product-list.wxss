@@ -1,7 +1,8 @@
 /* components/dsl-product-list/dsl-product-list.wxss — 商品列表组件样式 */
 
 .dsl-product-list {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   padding: 0;
   background: transparent;
   box-sizing: border-box;

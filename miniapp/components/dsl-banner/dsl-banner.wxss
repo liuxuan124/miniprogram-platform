@@ -1,8 +1,10 @@
 /* components/dsl-banner/dsl-banner.wxss — 轮播图组件样式 */
 
 .dsl-banner {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .dsl-banner__swiper {

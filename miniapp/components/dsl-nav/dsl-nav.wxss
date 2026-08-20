@@ -1,7 +1,8 @@
 /* components/dsl-nav/dsl-nav.wxss — 导航宫格组件样式 */
 
 .dsl-nav {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   background-color: transparent;
   overflow: hidden;
   box-sizing: border-box;

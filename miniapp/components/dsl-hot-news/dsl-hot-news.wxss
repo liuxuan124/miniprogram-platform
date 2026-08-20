@@ -1,6 +1,7 @@
 /* components/dsl-hot-news/dsl-hot-news.wxss */
 .dsl-hot-news {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
