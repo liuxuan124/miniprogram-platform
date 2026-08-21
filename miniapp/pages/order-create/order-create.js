@@ -42,6 +42,12 @@ Page({
     payAmount: '0.00',
     payMethod: 'wechat',
     walletBalance: '0.00',
+    userCouponId: '',
+    couponName: '',
+    couponLabel: '',
+    couponType: '',
+    couponValue: '',
+    discountAmount: '0.00',
   },
 
   onLoad(options) {
@@ -53,7 +59,14 @@ Page({
 
   _initializePage(options) {
     const from = options.from || 'cart'
-    this.setData({ from })
+    const userCouponId = options.userCouponId ? decodeURIComponent(options.userCouponId) : ''
+    const couponName = options.couponName ? decodeURIComponent(options.couponName) : ''
+    const couponLabel = options.couponLabel ? decodeURIComponent(options.couponLabel) : ''
+    const couponType = options.couponType ? decodeURIComponent(options.couponType) : ''
+    const couponValue = options.couponValue != null && options.couponValue !== ''
+      ? decodeURIComponent(options.couponValue)
+      : ''
+    this.setData({ from, userCouponId, couponName, couponLabel, couponType, couponValue })
 
     if (options.items) {
       try {
@@ -79,15 +92,39 @@ Page({
       totalPrice += (parseFloat(item.price) || 0) * (item.quantity || 0)
       totalQuantity += item.quantity || 0
     })
+    const discount = this._estimateDiscount(totalPrice)
     this.setData({
       totalPrice: totalPrice.toFixed(2),
       totalQuantity,
-      payAmount: this._calcPay(totalPrice.toFixed(2)),
+      discountAmount: discount.toFixed(2),
+      payAmount: this._calcPay(totalPrice, discount),
     })
   },
 
-  _calcPay(total) {
-    return (parseFloat(total) || 0).toFixed(2)
+  _estimateDiscount(total) {
+    if (!this.data.userCouponId) return 0
+    const type = String(this.data.couponType || '').toLowerCase()
+    const value = Number(this.data.couponValue)
+    if (Number.isFinite(value) && value > 0) {
+      if (type === 'percent' || type === 'discount') {
+        const rate = value > 1 ? value / 10 : value
+        return Math.max(0, Number((total - total * rate).toFixed(2)))
+      }
+      return Math.min(value, total)
+    }
+    if (!this.data.couponLabel) return 0
+    const label = String(this.data.couponLabel)
+    const m = label.match(/¥\s*([\d.]+)/)
+    if (m) {
+      const v = parseFloat(m[1]) || 0
+      return Math.min(v, total)
+    }
+    return 0
+  },
+
+  _calcPay(total, discount) {
+    const pay = (parseFloat(total) || 0) - (parseFloat(discount) || 0)
+    return (pay > 0 ? pay : 0).toFixed(2)
   },
 
   /** 加载默认收货地址 */
@@ -152,6 +189,7 @@ Page({
     const data = {
       items: orderItems,
       remark: this.data.remark,
+      userCouponId: this.data.userCouponId ? Number(this.data.userCouponId) : undefined,
       addressSnapshot: this.data.isVirtual
         ? null
         : {
@@ -169,21 +207,31 @@ Page({
       .then((res) => {
         const orderId = res.order_id || res.id
         const orderNo = res.orderNo || res.order_no || String(orderId)
-        const amount = res.payAmount || res.pay_amount || this.data.totalPrice
+        // payAmount 可能为 0（券后/免费），不能用 || 回退到原价
+        const rawAmount = res.payAmount != null
+          ? res.payAmount
+          : (res.pay_amount != null ? res.pay_amount : this.data.payAmount)
+        const amountNum = Number(rawAmount)
+        const amountStr = (Number.isFinite(amountNum) ? amountNum : 0).toFixed(2)
+        const pendingOrder = {
+          id: orderId,
+          orderNo,
+          amount: amountStr,
+          name: (this.data.items[0] && (this.data.items[0].product_name || this.data.items[0].name)) || '知识商品',
+          productId: (this.data.items[0] && (this.data.items[0].productId || this.data.items[0].product_id)) || '',
+          type: (this.data.items[0] && (this.data.items[0].productType || this.data.items[0].product_type)) || 'physical',
+        }
         this.setData({
           submitting: false,
-          payAmount: Number(amount).toFixed(2),
+          payAmount: amountStr,
           walletBalance: readWalletBalance(),
-          showPaySheet: true,
-          pendingOrder: {
-            id: orderId,
-            orderNo,
-            amount: Number(amount).toFixed(2),
-            name: (this.data.items[0] && (this.data.items[0].product_name || this.data.items[0].name)) || '知识商品',
-            productId: (this.data.items[0] && (this.data.items[0].productId || this.data.items[0].product_id)) || '',
-            type: (this.data.items[0] && (this.data.items[0].productType || this.data.items[0].product_type)) || 'physical',
-          },
+          pendingOrder,
+          showPaySheet: amountNum > 0,
         })
+        // 实付 0 元：不弹微信支付，直接走免支付完成
+        if (amountNum <= 0) {
+          this._doWechatPay()
+        }
       })
       .catch(() => {
         this.setData({ submitting: false })
@@ -272,8 +320,9 @@ Page({
       .then((params) => requestPayment(params))
       .then(() => {
         this.setData({ paying: false, showPaySheet: false })
+        const paidAmount = o.amount != null && o.amount !== '' ? o.amount : this.data.payAmount
         wx.redirectTo({
-          url: `/pkg-trade/order-paid/order-paid?orderId=${o.id}&orderNo=${encodeURIComponent(o.orderNo || '')}&amount=${o.amount || this.data.payAmount}&name=${encodeURIComponent(o.name || '')}&productId=${o.productId || ''}&type=${o.type || 'physical'}`,
+          url: `/pkg-trade/order-paid/order-paid?orderId=${o.id}&orderNo=${encodeURIComponent(o.orderNo || '')}&amount=${paidAmount}&name=${encodeURIComponent(o.name || '')}&productId=${o.productId || ''}&type=${o.type || 'physical'}`,
         })
       })
       .catch((err) => {

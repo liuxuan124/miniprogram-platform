@@ -119,6 +119,12 @@ page {
   box-shadow: 0 10rpx 24rpx rgba(7, 20, 54, 0.18);
 }
 
+.brand-mark--img {
+  padding: 0;
+  background: #fff;
+  object-fit: cover;
+}
+
 .brand-copy {
   display: flex;
   flex-direction: column;

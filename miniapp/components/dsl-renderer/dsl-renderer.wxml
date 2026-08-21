@@ -141,6 +141,16 @@
     bind:componentevent="onComponentEvent"
   />
 
+  <!-- 4a2. 笔记瀑布流 note_feed -->
+  <dsl-note-feed
+    wx:elif="{{comp.type === 'note_feed'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    actions="{{comp.actions}}"
+    styleString="{{comp.styleString}}"
+    bind:componentevent="onComponentEvent"
+  />
+
   <!-- 4b. 今日热门资讯 hot_news -->
   <dsl-hot-news
     wx:elif="{{comp.type === 'hot_news'}}"

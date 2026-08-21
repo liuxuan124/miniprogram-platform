@@ -94,6 +94,7 @@ const rendererMap: Record<string, any> = {
   [ComponentType.FlashSale]: defineAsyncComponent(() => import('./renderers/FlashSaleRenderer.vue')),
   [ComponentType.ArticleList]: defineAsyncComponent(() => import('./renderers/ArticleListRenderer.vue')),
   [ComponentType.ArticleFeed]: defineAsyncComponent(() => import('./renderers/ArticleFeedRenderer.vue')),
+  [ComponentType.NoteFeed]: defineAsyncComponent(() => import('./renderers/NoteFeedRenderer.vue')),
   [ComponentType.HotNews]: defineAsyncComponent(() => import('./renderers/HotNewsRenderer.vue')),
   [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./renderers/ActivityEntryRenderer.vue')),
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./renderers/ActivityListRenderer.vue')),

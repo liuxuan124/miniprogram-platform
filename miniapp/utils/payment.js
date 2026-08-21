@@ -1,3 +1,8 @@
+function isFreePayResponse(res) {
+  if (!res || typeof res !== 'object') return false
+  return res.free === true || res.free === 'true' || res.freeOrder === true
+}
+
 function normalizePaymentParams(res) {
   const params = (res && (res.payment || res.pay_params)) || res || {}
   return {
@@ -10,6 +15,10 @@ function normalizePaymentParams(res) {
 }
 
 function requestPayment(res) {
+  // 后端对实付 0 元直接完成，无需调起微信支付
+  if (isFreePayResponse(res)) {
+    return Promise.resolve({ free: true })
+  }
   const params = normalizePaymentParams(res)
   if (!params.timeStamp || !params.nonceStr || !params.package || !params.paySign) {
     return Promise.reject({ code: 'INVALID_PAY_PARAMS', message: '支付参数不完整' })
@@ -23,4 +32,4 @@ function requestPayment(res) {
   })
 }
 
-module.exports = { normalizePaymentParams, requestPayment }
+module.exports = { normalizePaymentParams, requestPayment, isFreePayResponse }

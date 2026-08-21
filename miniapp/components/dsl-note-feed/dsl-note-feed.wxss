@@ -1,0 +1,128 @@
+.dsl-note-feed {
+  box-sizing: border-box;
+}
+
+.dsl-note-feed__tabs-bar {
+  margin-bottom: 16rpx;
+}
+
+.dsl-note-feed__tabs {
+  white-space: nowrap;
+}
+
+.dsl-note-feed__tab {
+  display: inline-block;
+  padding: 10rpx 24rpx;
+  margin-right: 12rpx;
+  color: #727a8c;
+  font-size: 26rpx;
+  font-weight: 500;
+  background: #f5f6f9;
+  border-radius: 999rpx;
+}
+
+.dsl-note-feed__tab.is-active {
+  color: #ec2f55;
+  background: #ffedf1;
+  font-weight: 700;
+}
+
+.dsl-note-feed__masonry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22rpx;
+}
+
+.dsl-note-feed__card {
+  display: flex;
+  flex-direction: column;
+  width: calc(50% - 11rpx);
+  overflow: hidden;
+  background: #fff;
+  border-radius: 28rpx;
+  box-shadow: 0 2rpx 4rpx rgba(15, 18, 25, 0.04), 0 6rpx 20rpx rgba(15, 18, 25, 0.045);
+}
+
+.dsl-note-feed__art {
+  position: relative;
+  width: 100%;
+  padding-top: 125%;
+}
+
+.dsl-note-feed__cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dsl-note-feed__glyph {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 56rpx;
+}
+
+.dsl-note-feed__txt {
+  padding: 16rpx 18rpx 18rpx;
+}
+
+.dsl-note-feed__title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #0f1219;
+  font-size: 26rpx;
+  font-weight: 600;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dsl-note-feed__foot {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 14rpx;
+  color: #727a8c;
+  font-size: 21rpx;
+}
+
+.dsl-note-feed__av,
+.dsl-note-feed__av-img {
+  flex-shrink: 0;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+}
+
+.dsl-note-feed__av {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4f6dff, #8ea3ff);
+}
+
+.dsl-note-feed__author {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsl-note-feed__like {
+  flex-shrink: 0;
+  color: #a5abb9;
+}
+
+.dsl-note-feed__empty,
+.dsl-note-feed__footer {
+  padding: 24rpx 0;
+  color: #a5abb9;
+  font-size: 24rpx;
+  text-align: center;
+}

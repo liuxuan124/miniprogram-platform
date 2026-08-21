@@ -214,8 +214,13 @@ def main():
             )
         body = {
             "title": title[:128],
+            "contentType": "note" if source == "小红书" else "article",
             "categoryId": cat_ids.get(post["category"]),
             "coverImage": f"https://picsum.photos/seed/{abs(hash(title)) % 100000}/600/800",
+            "images": [
+                f"https://picsum.photos/seed/{abs(hash(title)) % 100000}/600/800",
+                f"https://picsum.photos/seed/{abs(hash(title + 'b')) % 100000}/600/800",
+            ] if source == "小红书" else None,
             "summary": post["summary"][:512],
             "content": build_html(
                 title,
@@ -226,6 +231,8 @@ def main():
             "author": "跨境IP博主",
             "source": source,
             "tags": tags,
+            "likeCount": int(post.get("likeCount") or 0),
+            "favoriteCount": int(post.get("favoriteCount") or 0),
             "sortOrder": sort_base + idx,
         }
 
@@ -249,10 +256,11 @@ def main():
         # 注意：不要在 docker mysql -e 里写中文 source，会乱码；source 已由 API 写入
         view = int(post.get("viewCount") or 0)
         like = int(post.get("likeCount") or 0)
+        favorite = int(post.get("favoriteCount") or 0)
         published = post.get("publishedAt") or "2026-07-22 20:30:00"
         mysql(
             "UPDATE mp_content SET "
-            f"view_count={view}, like_count={like}, "
+            f"view_count={view}, like_count={like}, favorite_count={favorite}, "
             f"published_at='{published}', "
             f"status='published' WHERE id={cid};"
         )

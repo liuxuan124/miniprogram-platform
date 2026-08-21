@@ -43,7 +43,8 @@
       </view>
 
       <view class="a-meta">
-        <view class="av">哲</view>
+        <image wx:if="{{authorAvatar}}" class="av av-img" src="{{authorAvatar}}" mode="aspectFill" />
+        <view wx:else class="av">{{authorInitial}}</view>
         <view class="a-meta-txt">
           <view class="nm">{{authorName}}</view>
           <view class="dt">{{article.publish_time}}</view>
@@ -112,7 +113,8 @@
       <view class="a-title">{{article.title}}</view>
 
       <view class="a-meta">
-        <view class="av">哲</view>
+        <image wx:if="{{authorAvatar}}" class="av av-img" src="{{authorAvatar}}" mode="aspectFill" />
+        <view wx:else class="av">{{authorInitial}}</view>
         <view class="a-meta-txt">
           <view class="nm">{{authorName}}</view>
           <view class="dt">{{article.publish_time}} · {{metaLine}}</view>

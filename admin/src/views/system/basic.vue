@@ -25,29 +25,94 @@
         <el-tab-pane label="基础配置" name="basic">
           <div class="tab-content">
 
-            <!-- 小程序信息卡片 -->
+            <!-- 品牌基础信息（登录半屏 / 分享 / 导航同步） -->
             <div class="config-section">
               <div class="section-header">
-                <h3 class="section-title">小程序基本信息</h3>
-                <span class="section-desc">用于小程序展示、分享及身份验证</span>
+                <h3 class="section-title">品牌基础信息</h3>
+                <span class="section-desc">配置小程序名称、Logo 与登录半屏文案；保存后体验版/真机自动同步，未配置时使用默认值</span>
+              </div>
+
+              <el-form ref="brandFormRef" :model="miniProgramForm" :rules="brandRules" label-width="120px" label-position="left" class="compact-form">
+                <div class="form-grid-2col">
+                  <el-form-item label="小程序名称" prop="appName">
+                    <el-input v-model="miniProgramForm.appName" placeholder="如：出海笔记" clearable />
+                  </el-form-item>
+
+                  <el-form-item label="文字 Logo">
+                    <el-input v-model="miniProgramForm.logoMark" maxlength="2" placeholder="无图片时显示，如：海" clearable />
+                  </el-form-item>
+                </div>
+
+                <el-form-item label="Logo 图片">
+                  <div class="logo-uploader">
+                    <div class="logo-preview-box" :class="{ 'is-empty': !logoPreviewUrl }">
+                      <img v-if="logoPreviewUrl" :src="logoPreviewUrl" alt="Logo预览" />
+                      <span v-else class="logo-preview-placeholder">{{ miniProgramForm.logoMark || '预览' }}</span>
+                    </div>
+                    <el-input v-model="miniProgramForm.logoUrl" placeholder="Logo URL 或点击上传" clearable class="logo-input" />
+                    <div class="upload-btns">
+                      <el-upload :show-file-list="false" :before-upload="beforeImageUpload" :http-request="handleLogoUpload" accept="image/*">
+                        <el-button>上传</el-button>
+                      </el-upload>
+                      <el-button @click="handlePickAsset">素材库</el-button>
+                    </div>
+                  </div>
+                </el-form-item>
+
+                <div class="form-grid-2col">
+                  <el-form-item label="登录副标题">
+                    <el-input
+                      v-model="miniProgramForm.loginTagline"
+                      placeholder="如：想认识一下你，可以吗？"
+                      maxlength="40"
+                      show-word-limit
+                      clearable
+                    />
+                  </el-form-item>
+
+                  <el-form-item label="英文副标">
+                    <el-input
+                      v-model="miniProgramForm.brandEyebrow"
+                      placeholder="如：CROSS-BORDER NOTES"
+                      maxlength="40"
+                      show-word-limit
+                      clearable
+                    />
+                  </el-form-item>
+                </div>
+
+                <el-form-item label="分享引导语">
+                  <el-input v-model="miniProgramForm.shareGuide" placeholder="用户分享时显示的文案" maxlength="50" show-word-limit />
+                </el-form-item>
+
+                <div class="action-bar">
+                  <span class="upload-hint">保存后立即同步到小程序登录页、半屏登录与分享文案</span>
+                  <el-button type="primary" size="small" :loading="brandSaving" @click="handleSaveBrandConfig">
+                    {{ brandSaving ? '保存中...' : '保存品牌信息' }}
+                  </el-button>
+                </div>
+              </el-form>
+            </div>
+
+            <!-- 微信接入与密钥 -->
+            <div class="config-section section-spacing">
+              <div class="section-header">
+                <h3 class="section-title">微信接入配置</h3>
+                <span class="section-desc">AppID、AppSecret 与代码上传密钥</span>
               </div>
 
               <el-form ref="miniFormRef" :model="miniProgramForm" :rules="miniRules" label-width="120px" label-position="left" class="compact-form">
                 <div class="form-grid-2col">
-                  <el-form-item label="小程序名称" prop="appName">
-                    <el-input v-model="miniProgramForm.appName" placeholder="请输入小程序名称" clearable />
-                  </el-form-item>
-
                   <el-form-item label="原始ID">
                     <el-input v-model="miniProgramForm.originalId" placeholder="gh_xxxxxxxxxxxx" clearable />
+                  </el-form-item>
+
+                  <el-form-item label="AppID" prop="appId">
+                    <el-input v-model="miniProgramForm.appId" placeholder="wx1234567890abcdef" clearable />
                   </el-form-item>
                 </div>
 
                 <div class="form-grid-2col">
-                  <el-form-item label="AppID" prop="appId">
-                    <el-input v-model="miniProgramForm.appId" placeholder="wx1234567890abcdef" clearable />
-                  </el-form-item>
-
                   <el-form-item label="AppSecret" prop="appSecret">
                     <el-input v-model="miniProgramForm.appSecret" type="password" show-password placeholder="请输入AppSecret" />
                   </el-form-item>
@@ -60,26 +125,6 @@
                     :rows="3"
                     placeholder="粘贴微信公众平台下载的代码上传密钥，用于「推送体验版」"
                   />
-                </el-form-item>
-
-                <el-form-item label="Logo图片">
-                  <div class="logo-uploader">
-                    <div class="logo-preview-box" :class="{ 'is-empty': !logoPreviewUrl }">
-                      <img v-if="logoPreviewUrl" :src="logoPreviewUrl" alt="Logo预览" />
-                      <span v-else class="logo-preview-placeholder">预览</span>
-                    </div>
-                    <el-input v-model="miniProgramForm.logoUrl" placeholder="Logo URL或点击上传" clearable class="logo-input" />
-                    <div class="upload-btns">
-                      <el-upload :show-file-list="false" :before-upload="beforeImageUpload" :http-request="handleLogoUpload" accept="image/*">
-                        <el-button>上传</el-button>
-                      </el-upload>
-                      <el-button @click="handlePickAsset">素材库</el-button>
-                    </div>
-                  </div>
-                </el-form-item>
-
-                <el-form-item label="分享引导语">
-                  <el-input v-model="miniProgramForm.shareGuide" placeholder="用户分享时显示的文案" maxlength="50" show-word-limit />
                 </el-form-item>
 
                 <el-form-item label="客服电话">
@@ -98,7 +143,7 @@
                     <template v-if="isLocalAdmin">（当前为本地后台，配置保存在本机数据库）</template>
                   </span>
                   <el-button type="primary" size="small" :loading="miniSaving" @click="handleSaveMiniProgram">
-                    {{ miniSaving ? '保存中...' : '保存小程序配置' }}
+                    {{ miniSaving ? '保存中...' : '保存微信配置' }}
                   </el-button>
                 </div>
               </el-form>
@@ -557,7 +602,12 @@ import {
   toConfigUpdateItems,
   type RawConfigItem,
 } from '@/utils/system-config'
-import FreightTemplateEditorDialog from './components/FreightTemplateEditorDialog.vue'
+import {
+  applyBrandConfigToForm,
+  buildBrandConfigUpdateItems,
+  normalizeBrandConfig,
+} from '@/utils/brand-config'
+import { DEFAULT_MINIAPP_BRAND_CONFIG } from '@/types/miniapp'
 import {
   billingMethodLabel,
   freeRuleSummary,
@@ -569,6 +619,7 @@ import {
 const loading = ref(false)
 const savingAll = ref(false)
 const miniSaving = ref(false)
+const brandSaving = ref(false)
 const uploadKeyStored = ref(false)
 const isLocalAdmin = computed(() => {
   const host = window.location.hostname
@@ -588,6 +639,7 @@ const miniSaved = ref(false)
 const miniProgramSavedSnapshot = ref('')
 const miniProgramSavedAt = ref('')
 const miniFormRef = ref<FormInstance>()
+const brandFormRef = ref<FormInstance>()
 const payFormRef = ref<FormInstance>()
 
 // 当前激活的Tab
@@ -602,6 +654,9 @@ interface MiniProgramForm {
   uploadKey: string
   originalId: string
   logoUrl: string
+  logoMark: string
+  loginTagline: string
+  brandEyebrow: string
   shareGuide: string
 }
 
@@ -680,12 +735,15 @@ const ROLE_ICON_LIBRARY = [
 // ==================== 响应式数据 ====================
 
 const miniProgramForm = reactive<MiniProgramForm>({
-  appName: '品牌小程序',
+  appName: DEFAULT_MINIAPP_BRAND_CONFIG.appName,
   appId: '',
   appSecret: '',
   uploadKey: '',
   originalId: '',
-  logoUrl: '',
+  logoUrl: DEFAULT_MINIAPP_BRAND_CONFIG.logoUrl,
+  logoMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
+  loginTagline: DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline,
+  brandEyebrow: DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow,
   shareGuide: '欢迎体验我们的品牌小程序',
 })
 
@@ -847,8 +905,11 @@ const roleFormRules: FormRules = {
 
 // ==================== 验证规则 ====================
 
-const miniRules: FormRules = {
+const brandRules: FormRules = {
   appName: [{ required: true, message: '请输入小程序名称', trigger: 'blur' }],
+}
+
+const miniRules: FormRules = {
   appId: [{ required: true, message: '请输入AppID', trigger: 'blur' }],
 }
 
@@ -866,6 +927,9 @@ function getMiniProgramSnapshot() {
     uploadKey: miniProgramForm.uploadKey,
     originalId: miniProgramForm.originalId,
     logoUrl: miniProgramForm.logoUrl,
+    logoMark: miniProgramForm.logoMark,
+    loginTagline: miniProgramForm.loginTagline,
+    brandEyebrow: miniProgramForm.brandEyebrow,
     shareGuide: miniProgramForm.shareGuide,
   })
 }
@@ -958,6 +1022,7 @@ function applyFreightConfigs(configs: RawConfigItem[]) {
 }
 
 function applyConfigs(configs: RawConfigItem[]) {
+  applyBrandConfigToForm(configs, miniProgramForm)
   applyConfigListToForm(configs, [
     miniProgramForm as unknown as Record<string, unknown>,
     paymentForm as unknown as Record<string, unknown>,
@@ -968,6 +1033,29 @@ function applyConfigs(configs: RawConfigItem[]) {
   applyNotificationConfigs(configs)
   applyFreightConfigs(configs)
   applyRoleConfigs(configs)
+}
+
+function buildBrandSaveItems() {
+  const brand = normalizeBrandConfig(miniProgramForm)
+  const items = buildBrandConfigUpdateItems(brand)
+  if (miniProgramForm.shareGuide?.trim()) {
+    items.push({
+      configKey: 'miniappShareTitle',
+      configValue: miniProgramForm.shareGuide.trim(),
+      configGroup: 'basic',
+      description: '分享引导语',
+    })
+  }
+  return items
+}
+
+function pickWechatFormPayload() {
+  return {
+    appId: miniProgramForm.appId,
+    appSecret: miniProgramForm.appSecret,
+    originalId: miniProgramForm.originalId,
+    uploadKey: miniProgramForm.uploadKey,
+  }
 }
 
 function buildLogisticsPayload(): Record<string, unknown> {
@@ -1016,15 +1104,17 @@ async function saveGroup(group: string, _label: string, data: Record<string, unk
 // ==================== 事件处理 ====================
 
 async function handleSaveAll() {
+  const brandValid = await brandFormRef.value?.validate().catch(() => false)
   const miniValid = await miniFormRef.value?.validate().catch(() => false)
   const payValid = paymentForm.enablePayment ? await payFormRef.value?.validate().catch(() => false) : true
 
-  if (!miniValid || !payValid) return
+  if (!brandValid || !miniValid || !payValid) return
 
   savingAll.value = true
   try {
     await Promise.all([
-      saveGroup('wechat', '微信小程序配置', miniProgramForm as unknown as Record<string, unknown>),
+      updateConfigs(buildBrandSaveItems()),
+      saveGroup('wechat', '微信小程序配置', pickWechatFormPayload()),
       saveGroup('legal', '法律协议与客服', legalForm as unknown as Record<string, unknown>),
       saveGroup('wechat', '微信支付配置', paymentForm as unknown as Record<string, unknown>),
       saveGroup('basic', '插件开关', { plugins: pluginModules.value }),
@@ -1049,6 +1139,22 @@ async function handleSaveAll() {
   }
 }
 
+async function handleSaveBrandConfig() {
+  const valid = await brandFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  brandSaving.value = true
+  try {
+    await updateConfigs(buildBrandSaveItems())
+    markMiniProgramSaved()
+    ElMessage.success('品牌信息已保存，小程序端将自动同步')
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    brandSaving.value = false
+  }
+}
+
 async function handleSaveMiniProgram() {
   const valid = await miniFormRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -1062,7 +1168,7 @@ async function handleSaveMiniProgram() {
   try {
     await saveUploadKey(uploadKeyValue)
     const otherItems = toConfigUpdateItems(
-      miniProgramForm as unknown as Record<string, unknown>,
+      pickWechatFormPayload(),
       'wechat',
     ).filter(item => item.configKey !== 'wx_upload_key')
     if (otherItems.length) {

@@ -68,11 +68,27 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         Content entity = new Content();
         BeanUtils.copyProperties(dto, entity);
         entity.setTags(toJsonString(dto.getTags()));
+        entity.setImages(toJsonString(dto.getImages()));
+        if (!StringUtils.hasText(entity.getContentType())) {
+            entity.setContentType("article");
+        }
         entity.setStatus("draft");
         entity.setViewCount(0);
-        entity.setLikeCount(0);
+        if (entity.getLikeCount() == null) {
+            entity.setLikeCount(0);
+        }
+        if (entity.getFavoriteCount() == null) {
+            entity.setFavoriteCount(0);
+        }
         if (entity.getSortOrder() == null) {
             entity.setSortOrder(0);
+        }
+        if ("note".equals(entity.getContentType()) && !StringUtils.hasText(entity.getCoverImage())
+                && StringUtils.hasText(entity.getImages())) {
+            List<String> imgs = parseStringList(entity.getImages());
+            if (!imgs.isEmpty()) {
+                entity.setCoverImage(imgs.get(0));
+            }
         }
         this.save(entity);
 
@@ -102,11 +118,17 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getTitle() != null) {
             entity.setTitle(dto.getTitle());
         }
+        if (dto.getContentType() != null) {
+            entity.setContentType(dto.getContentType());
+        }
         if (dto.getCategoryId() != null) {
             entity.setCategoryId(dto.getCategoryId());
         }
         if (dto.getCoverImage() != null) {
             entity.setCoverImage(dto.getCoverImage());
+        }
+        if (dto.getImages() != null) {
+            entity.setImages(toJsonString(dto.getImages()));
         }
         if (dto.getSummary() != null) {
             entity.setSummary(dto.getSummary());
@@ -117,14 +139,29 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getAuthor() != null) {
             entity.setAuthor(dto.getAuthor());
         }
+        if (dto.getAuthorAvatar() != null) {
+            entity.setAuthorAvatar(dto.getAuthorAvatar());
+        }
         if (dto.getSource() != null) {
             entity.setSource(dto.getSource());
         }
         if (dto.getTags() != null) {
             entity.setTags(toJsonString(dto.getTags()));
         }
+        if (dto.getLikeCount() != null) {
+            entity.setLikeCount(dto.getLikeCount());
+        }
+        if (dto.getFavoriteCount() != null) {
+            entity.setFavoriteCount(dto.getFavoriteCount());
+        }
         if (dto.getSortOrder() != null) {
             entity.setSortOrder(dto.getSortOrder());
+        }
+        if ("note".equals(entity.getContentType()) && !StringUtils.hasText(entity.getCoverImage())) {
+            List<String> imgs = parseStringList(entity.getImages());
+            if (!imgs.isEmpty()) {
+                entity.setCoverImage(imgs.get(0));
+            }
         }
         this.updateById(entity);
 
@@ -189,6 +226,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         mpQuery.setKeyword(queryDTO.getKeyword());
         mpQuery.setCategoryId(queryDTO.getCategoryId());
         mpQuery.setTag(queryDTO.getTag());
+        mpQuery.setContentType(queryDTO.getContentType());
         mpQuery.setStatus("published");
 
         LambdaQueryWrapper<Content> wrapper = buildQueryWrapper(mpQuery);
@@ -245,6 +283,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.like(StringUtils.hasText(queryDTO.getKeyword()), Content::getTitle, queryDTO.getKeyword());
         wrapper.eq(queryDTO.getCategoryId() != null, Content::getCategoryId, queryDTO.getCategoryId());
         wrapper.eq(StringUtils.hasText(queryDTO.getStatus()), Content::getStatus, queryDTO.getStatus());
+        wrapper.eq(StringUtils.hasText(queryDTO.getContentType()), Content::getContentType, queryDTO.getContentType());
         wrapper.eq(StringUtils.hasText(queryDTO.getSource()), Content::getSource, queryDTO.getSource());
 
         // 标签筛选（JSON字段模糊匹配）
@@ -259,8 +298,21 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         ContentDetailDTO dto = new ContentDetailDTO();
         BeanUtils.copyProperties(entity, dto);
         dto.setTags(parseTags(entity.getTags()));
+        dto.setImages(parseStringList(entity.getImages()));
         dto.setCategoryName(categoryService.getCategoryName(entity.getCategoryId()));
         return dto;
+    }
+
+    private List<String> parseStringList(String json) {
+        if (!StringUtils.hasText(json)) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("JSON 数组反序列化失败: {}", json, e);
+            return Collections.emptyList();
+        }
     }
 
     private String toJsonString(List<String> tags) {

@@ -99,7 +99,8 @@
   <!-- 空状态：D2 统一空态组件 -->
   <empty-state
     wx:if="{{isEmpty && !loading}}"
-    title="{{activeTab === 'available' ? '暂无可领取优惠券' : '暂无优惠券'}}"
+    title="{{activeTab === 'available' ? '暂无在有效期内的可领优惠券' : '暂无优惠券'}}"
+    desc="{{activeTab === 'available' ? '请稍后再来，或在后台检查优惠券是否已发布且未过期' : ''}}"
   />
 </view>
 <login-sheet id="global-login-sheet" />

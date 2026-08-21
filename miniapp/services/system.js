@@ -4,6 +4,14 @@
 const { get } = require('../utils/request')
 const { StorageUtil } = require('../utils/storage')
 const { LOGIN_RULES } = require('../config/login-rules')
+const {
+  DEFAULT_MINIAPP_BRAND_CONFIG,
+  normalizeBrandConfig,
+  setMediaUrlResolver,
+} = require('../utils/brand-config')
+const { resolveMediaUrl } = require('../utils/media-url')
+
+setMediaUrlResolver(resolveMediaUrl)
 
 const CONFIG_CACHE_KEY = 'system_config'
 const CONFIG_CACHE_EXPIRE = 10 * 60 * 1000
@@ -14,25 +22,48 @@ const DEFAULT_TABBAR_LIST = [
   { pagePath: '/pages/mine/mine', text: '我的', icon: '👤' }
 ]
 
+const DEFAULT_ORDER_QUICK_ACCESS = {
+  showOrderTabs: true,
+  showAllOrdersBtn: true,
+  tabLabels: {
+    pending: '待付款',
+    paid: '待发货',
+    shipped: '待收货',
+    completed: '已完成',
+  },
+}
+
+const DEFAULT_USER_PROFILE = {
+  showAvatar: true,
+  showNickname: true,
+  showMemberLevel: true,
+  allowEditProfile: true,
+  memberLevelLabel: '会员等级',
+}
+
 const DEFAULT_MINE_PAGE_CONFIG = {
-  loginTitle: '登录出海笔记',
-  loginSubtitle: '查看订单、预约与会员权益',
-  loginButtonText: '微信一键登录',
-  memberCardTitle: '出海会员中心',
+  loginTitle: '点击登录，解锁会员权益',
+  loginSubtitle: '查看订单、已购资料、预约与会员权益',
+  loginButtonText: '登录',
+  memberCardTitle: '会员中心',
+  showMenuIcons: false,
+  showDecorBackground: true,
   showMemberCard: true,
+  templateStyle: 'basic',
+  style: 'gradient',
+  themeColor: '#5B7FEA',
+  themeColorSecondary: '#7BA3F7',
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
-    { id: 'orders', icon: '🧾', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
-    { id: 'reservation', icon: '🗓️', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
-    { id: 'member-center', icon: '👑', title: '会员中心 · 权益', url: '/pkg-user/member-center/member-center', enabled: true },
-    { id: 'coupons', icon: '🎫', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true },
-    { id: 'favorites', icon: '🔖', title: '我的收藏', url: '/pkg-user/favorites/favorites', enabled: true },
-    { id: 'address', icon: '📍', title: '收货地址', url: '/pkg-user/address-list/address-list', enabled: true },
-    { id: 'contact', icon: '💬', title: '客服 · 售后', url: '/pkg-user/service-chat/service-chat', enabled: true },
-    { id: 'settings', icon: '⚙️', title: '设置', url: '/pkg-user/settings/settings', enabled: true },
-    { id: 'feedback', icon: '✉️', title: '意见反馈', url: '/pkg-user/feedback/feedback', enabled: true },
+    { id: 'orders', icon: 'line:document', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
+    { id: 'library', icon: 'line:books', title: '已购资料', url: '/pkg-trade/order-list/order-list', enabled: true },
+    { id: 'reservation', icon: 'line:calendar', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
+    { id: 'member-center', icon: 'line:crown', title: '会员中心', url: '/pkg-user/member-center/member-center', enabled: true },
+    { id: 'coupons', icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true },
   ],
+  orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS, tabLabels: { ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels } },
+  userProfile: { ...DEFAULT_USER_PROFILE },
 }
 
 function parseConfigField(value, fallback) {
@@ -59,6 +90,63 @@ function normalizeTabbarItems(items) {
   })
 }
 
+function normalizeOrderTabLabels(raw) {
+  const src = raw || {}
+  return {
+    pending: src.pending || DEFAULT_ORDER_QUICK_ACCESS.tabLabels.pending,
+    paid: src.paid || DEFAULT_ORDER_QUICK_ACCESS.tabLabels.paid,
+    shipped: src.shipped || DEFAULT_ORDER_QUICK_ACCESS.tabLabels.shipped,
+    completed:
+      src.completed
+      || (src.refund === '退换/售后' ? DEFAULT_ORDER_QUICK_ACCESS.tabLabels.completed : src.refund)
+      || DEFAULT_ORDER_QUICK_ACCESS.tabLabels.completed,
+  }
+}
+
+function resolveMineStyleKey(mine) {
+  if (!mine) return 'basic'
+  const raw = String(mine.templateStyle || '')
+  if (raw === 'member' || raw === 'premium') return 'member'
+  if (raw === 'minimal' || raw === 'dark' || raw === 'simple') return 'basic'
+  if (raw === 'basic' || raw === 'standard') return 'basic'
+  const tc = String(mine.themeColor || '').toLowerCase()
+  if (
+    tc === '#b8860b' || tc === '#9a7b1c' || tc === '#d4af37' || tc === '#f0d060'
+    || tc === '#6b9fd9' || tc === '#9bbfe8' || tc === '#e8eef8'
+  ) return 'member'
+  return 'basic'
+}
+
+function normalizeMinePageConfig(raw) {
+  const base = { ...DEFAULT_MINE_PAGE_CONFIG }
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const orderQuickAccess = {
+    ...DEFAULT_ORDER_QUICK_ACCESS,
+    ...(src.orderQuickAccess || {}),
+    tabLabels: normalizeOrderTabLabels(
+      (src.orderQuickAccess && src.orderQuickAccess.tabLabels) || src.tabLabels,
+    ),
+  }
+  const userProfile = {
+    ...DEFAULT_USER_PROFILE,
+    ...(src.userProfile || {}),
+  }
+  const menuItems = Array.isArray(src.menuItems) && src.menuItems.length
+    ? src.menuItems
+    : DEFAULT_MINE_PAGE_CONFIG.menuItems
+
+  return {
+    ...base,
+    ...src,
+    showMenuIcons: src.showMenuIcons === true,
+    showDecorBackground: src.showDecorBackground !== false,
+    showMemberCard: src.showMemberCard !== false,
+    orderQuickAccess,
+    userProfile,
+    menuItems,
+  }
+}
+
 function getCachedConfig() {
   return StorageUtil.get(CONFIG_CACHE_KEY) || null
 }
@@ -82,6 +170,7 @@ async function fetchSystemConfig(forceRefresh) {
       return {
         tabbarItems: cached,
         minePageConfig: DEFAULT_MINE_PAGE_CONFIG,
+        miniappBrandConfig: DEFAULT_MINIAPP_BRAND_CONFIG,
       }
     }
     if (cached) return cached
@@ -92,8 +181,18 @@ async function fetchSystemConfig(forceRefresh) {
     const config = res && res.data ? res.data : res
     if (config && typeof config === 'object') {
       config.tabbarItems = parseConfigField(config.tabbarItems, null)
-      config.minePageConfig = parseConfigField(config.minePageConfig, DEFAULT_MINE_PAGE_CONFIG)
+      config.minePageConfig = normalizeMinePageConfig(
+        parseConfigField(config.minePageConfig, DEFAULT_MINE_PAGE_CONFIG),
+      )
       config.miniappThemeConfig = parseConfigField(config.miniappThemeConfig, null)
+      config.miniappBrandConfig = normalizeBrandConfig(
+        parseConfigField(config.miniappBrandConfig, null),
+        {
+          site_name: config.site_name,
+          site_logo: config.site_logo,
+          appName: config.appName,
+        },
+      )
       config.tabbarItems = normalizeTabbarItems(config.tabbarItems)
       StorageUtil.set(CONFIG_CACHE_KEY, config, CONFIG_CACHE_EXPIRE)
       return config
@@ -106,6 +205,7 @@ async function fetchSystemConfig(forceRefresh) {
     tabbarItems: DEFAULT_TABBAR_LIST,
     minePageConfig: DEFAULT_MINE_PAGE_CONFIG,
     miniappThemeConfig: null,
+    miniappBrandConfig: DEFAULT_MINIAPP_BRAND_CONFIG,
   }
 }
 
@@ -117,29 +217,39 @@ async function fetchTabbarList(forceRefresh) {
 
 async function fetchMinePageConfig(forceRefresh) {
   const config = await fetchSystemConfig(forceRefresh)
-  const mineConfig = config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG
-  // 兼容后台历史配置：独立“已购资料/数字领取”入口已取消，统一从订单查看发货通知。
+  const mineConfig = normalizeMinePageConfig(config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG)
   const menuItems = (mineConfig.menuItems || DEFAULT_MINE_PAGE_CONFIG.menuItems)
-    .filter((item) => item.id !== 'library' && item.id !== 'ai' && item.url !== '/pages/ai-chat/ai-chat')
+    .filter((item) => item.enabled !== false)
   const rawLoginSubtitle = String(mineConfig.loginSubtitle || '')
   const loginSubtitle = rawLoginSubtitle
-    .replace(/、?(已购资料|领取通知)/g, '')
     .replace(/订单、订单/g, '订单')
     || DEFAULT_MINE_PAGE_CONFIG.loginSubtitle
   return {
     ...mineConfig,
     loginSubtitle,
     menuItems,
+    styleKey: resolveMineStyleKey(mineConfig),
   }
+}
+
+async function fetchBrandConfig(forceRefresh) {
+  const config = await fetchSystemConfig(forceRefresh)
+  return config.miniappBrandConfig || DEFAULT_MINIAPP_BRAND_CONFIG
 }
 
 module.exports = {
   DEFAULT_TABBAR_LIST,
   DEFAULT_MINE_PAGE_CONFIG,
+  DEFAULT_ORDER_QUICK_ACCESS,
+  DEFAULT_USER_PROFILE,
+  DEFAULT_MINIAPP_BRAND_CONFIG,
   getCachedConfig,
   getTabbarList,
   getTabbarListSync,
   fetchSystemConfig,
   fetchTabbarList,
-  fetchMinePageConfig
+  fetchMinePageConfig,
+  fetchBrandConfig,
+  resolveMineStyleKey,
+  normalizeMinePageConfig,
 }

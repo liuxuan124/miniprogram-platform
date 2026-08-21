@@ -1,6 +1,7 @@
 // pages/knowledge-mall/knowledge-mall.js — Tab 商城页：优先加载导航绑定的装修页 DSL
 const productService = require('../../services/product')
 const cartService = require('../../services/cart')
+const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
 const { getNavLayout } = require('../../utils/nav-layout')
@@ -238,13 +239,17 @@ Page({
 
   _refreshCartCount() {
     if (!cartService || typeof cartService.getCartList !== 'function') return
-    cartService.getCartList()
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({ cartCount: 0 })
+      return
+    }
+    cartService.getCartList({ showError: false })
       .then((res) => {
         const items = res.items || res.list || res.records || (Array.isArray(res) ? res : [])
         const count = items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0)
         this.setData({ cartCount: count })
       })
-      .catch(() => { /* 未登录等忽略 */ })
+      .catch(() => { /* 未登录或 token 失效时静默 */ })
   },
 
   onTypeTap(e) {

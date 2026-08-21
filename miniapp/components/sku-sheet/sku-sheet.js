@@ -3,6 +3,8 @@ Component({
     show: { type: Boolean, value: false },
     image: { type: String, value: '' },
     price: { type: String, value: '0' },
+    originalPrice: { type: String, value: '' },
+    couponHint: { type: String, value: '' },
     stock: { type: Number, value: 0 },
     groups: { type: Array, value: [] },
     selectedMap: { type: Object, value: {} },

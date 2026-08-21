@@ -1,12 +1,17 @@
 <!-- components/sku-sheet/sku-sheet.wxml -->
 <view class="mask" wx:if="{{show}}" catchtouchmove="noop" bindtap="onClose"></view>
-<view class="sheet {{show ? 'on' : ''}}" catchtouchmove="noop">
+<view class="sheet {{show ? 'on' : ''}}" wx:if="{{show}}" catchtouchmove="noop">
   <view class="h">
     <image class="img" src="{{image || '/images/default-avatar.svg'}}" mode="aspectFill" />
     <view class="info">
-      <view class="price">¥{{price}}</view>
+      <view class="price-row">
+        <view class="price">¥{{price}}</view>
+        <text class="orig" wx:if="{{originalPrice}}">¥{{originalPrice}}</text>
+        <text class="tag" wx:if="{{originalPrice}}">券后</text>
+      </view>
       <view class="stock">库存 {{stock}}</view>
       <view class="sel" wx:if="{{selectedLabel}}">已选：{{selectedLabel}}</view>
+      <view class="coupon" wx:if="{{couponHint}}">{{couponHint}}</view>
     </view>
     <text class="x" bindtap="onClose">✕</text>
   </view>
@@ -36,8 +41,9 @@
     </view>
   </scroll-view>
   <view class="f">
-    <view class="btn-o" bindtap="onCart" wx:if="{{mode !== 'buy'}}">加入购物车</view>
-    <view class="btn-p" bindtap="onBuy" wx:if="{{mode !== 'cart'}}">立即购买</view>
+    <view class="btn-o" bindtap="onCart" wx:if="{{mode !== 'buy' && mode !== 'select'}}">加入购物车</view>
+    <view class="btn-p" bindtap="onBuy" wx:if="{{mode !== 'cart' && mode !== 'select'}}">立即购买</view>
     <view class="btn-p" bindtap="onCart" wx:if="{{mode === 'cart'}}">确定</view>
+    <view class="btn-p" bindtap="onBuy" wx:if="{{mode === 'select'}}">确定</view>
   </view>
 </view>

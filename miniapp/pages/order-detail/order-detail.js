@@ -138,11 +138,12 @@ Page({
 
     orderService.payOrder(this.data.id)
       .then((res) => {
-        return requestPayment(res)
+        return requestPayment(res).then(() => res)
       })
-      .then(() => {
+      .then((res) => {
         this.setData({ paying: false })
-        wx.showToast({ title: '支付成功', icon: 'success' })
+        const free = res && (res.free === true || res.free === 'true')
+        wx.showToast({ title: free ? '领取成功' : '支付成功', icon: 'success' })
         setTimeout(() => this._loadDetail(this.data.id), 600)
       })
       .catch((err) => {

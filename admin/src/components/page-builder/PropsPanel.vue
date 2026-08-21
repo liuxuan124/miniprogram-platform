@@ -367,6 +367,7 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.FlashSale]: defineAsyncComponent(() => import('./props/FlashSaleProps.vue')),
   [ComponentType.ArticleList]: defineAsyncComponent(() => import('./props/ArticleListProps.vue')),
   [ComponentType.ArticleFeed]: defineAsyncComponent(() => import('./props/ArticleFeedProps.vue')),
+  [ComponentType.NoteFeed]: defineAsyncComponent(() => import('./props/NoteFeedProps.vue')),
   [ComponentType.HotNews]: defineAsyncComponent(() => import('./props/HotNewsProps.vue')),
   [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./props/ActivityEntryProps.vue')),
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./props/ActivityListProps.vue')),
@@ -413,6 +414,7 @@ const isListComponent = computed(() => {
   return type === ComponentType.ProductList
     || type === ComponentType.ArticleList
     || type === ComponentType.ArticleFeed
+    || type === ComponentType.NoteFeed
     || type === ComponentType.HotNews
     || type === ComponentType.FlashSale
     || type === ComponentType.ActivityList

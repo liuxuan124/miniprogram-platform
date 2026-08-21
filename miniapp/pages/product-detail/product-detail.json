@@ -1,6 +1,8 @@
 {
   "navigationBarTitleText": "商品详情",
   "usingComponents": {
-    "sku-sheet": "../../components/sku-sheet/sku-sheet"
+    "sku-sheet": "../../components/sku-sheet/sku-sheet",
+    "coupon-sheet": "../../components/coupon-sheet/coupon-sheet",
+    "login-sheet": "/components/login-sheet/login-sheet"
   }
 }

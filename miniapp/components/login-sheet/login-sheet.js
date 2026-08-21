@@ -1,6 +1,12 @@
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
 const privacyHelper = require('../../utils/privacy')
+const SystemService = require('../../services/system')
+const {
+  DEFAULT_MINIAPP_BRAND_CONFIG,
+  normalizeBrandConfig,
+  resolveLoginTagline,
+} = require('../../utils/brand-config')
 const {
   runOneTapLogin,
   computeCanSubmit,
@@ -25,6 +31,10 @@ Component({
     showPrivacyPopup: false,
     nicknameFocused: false,
     pickingAvatar: false,
+    brandName: DEFAULT_MINIAPP_BRAND_CONFIG.appName,
+    brandMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
+    brandLogoUrl: '',
+    brandTagline: DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline,
   },
 
   lifetimes: {
@@ -59,7 +69,7 @@ Component({
       })
       this.setData({
         mounted: true,
-        visible: false,
+        visible: true,
         interceptAction: options.action || '',
         showPrivacyPopup: false,
         nicknameFocused: false,
@@ -78,12 +88,10 @@ Component({
         applyRememberedProfile((patch) => {
           this.setData(patch, () => this._refreshCanSubmit())
         })
+        this._loadBrandConfig(options.action || '')
         AuthService.prefetchLoginCode()
         this._setCustomTabBarHidden(true)
-        wx.nextTick(() => {
-          this.setData({ visible: true })
-          this._ensurePrivacyReady()
-        })
+        this._ensurePrivacyReady()
       })
     },
 
@@ -123,6 +131,41 @@ Component({
 
     noop() {},
 
+    _readBrandFromApp() {
+      try {
+        const app = getApp()
+        const cfg = app && app.globalData && app.globalData.miniappBrandConfig
+        return normalizeBrandConfig(cfg)
+      } catch (e) {
+        return normalizeBrandConfig(null)
+      }
+    },
+
+    _applyBrandPatch(brand, interceptAction) {
+      const normalized = normalizeBrandConfig(brand)
+      this.setData({
+        brandName: normalized.appName,
+        brandMark: normalized.logoMark,
+        brandLogoUrl: normalized.logoUrl,
+        brandTagline: resolveLoginTagline(normalized, interceptAction),
+      })
+    },
+
+    async _loadBrandConfig(interceptAction) {
+      const cached = this._readBrandFromApp()
+      this._applyBrandPatch(cached, interceptAction)
+      try {
+        const brand = await SystemService.fetchBrandConfig(false)
+        const app = getApp()
+        if (app && app.globalData) {
+          app.globalData.miniappBrandConfig = brand
+        }
+        this._applyBrandPatch(brand, interceptAction)
+      } catch (e) {
+        console.warn('[LoginSheet] 加载品牌配置失败，使用默认值:', e)
+      }
+    },
+
     /** 仅在需要时弹出微信隐私授权；协议勾选始终默认未选，需用户手动勾选 */
     _ensurePrivacyReady() {
       if (typeof wx.getPrivacySetting !== 'function') return
@@ -148,7 +191,7 @@ Component({
         formHint: '',
         showPrivacyPopup: false,
         pickingAvatar: false,
-        nicknameFocused: false,
+        nicknameFocused: true,
       }, () => this._refreshCanSubmit())
       AuthService.prefetchLoginCode()
     },
@@ -251,6 +294,16 @@ Component({
       this.setData({
         canSubmit: computeCanSubmit(this.data),
       })
+    },
+
+    onPhoneRowTap() {
+      if (this.data.loading) return
+      try { wx.hideKeyboard() } catch (e) {}
+      this.setData({
+        privacyError: true,
+        formHint: '请先勾选同意用户协议与隐私政策',
+      })
+      wx.showToast({ title: '请先勾选协议', icon: 'none' })
     },
 
     async onOneTapLogin(e) {

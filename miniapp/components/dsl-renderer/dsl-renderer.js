@@ -206,7 +206,7 @@ Component({
       }
 
       // 列表类：外层不要白底大框/圆角，条目各自成卡
-      if (type === 'product_list' || type === 'article_list' || type === 'article_feed' || type === 'hot_news' || type === 'flash_sale') {
+      if (type === 'product_list' || type === 'article_list' || type === 'article_feed' || type === 'note_feed' || type === 'hot_news' || type === 'flash_sale') {
         const rawStyle = component.style || {}
         const shellStyle = { ...rawStyle }
         delete shellStyle.border_radius
@@ -217,7 +217,7 @@ Component({
             props.item_border_radius = radius === undefined || radius === null ? 12 : Number(radius)
           }
         }
-        if (type === 'article_list' || type === 'article_feed' || type === 'hot_news') {
+        if (type === 'article_list' || type === 'article_feed' || type === 'note_feed' || type === 'hot_news') {
           const radius = rawStyle.border_radius
           if (props.item_border_radius === undefined || props.item_border_radius === null || props.item_border_radius === '') {
             props.item_border_radius = radius === undefined || radius === null ? 12 : Number(radius)

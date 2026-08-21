@@ -2,7 +2,34 @@
 // 商品列表、数量调整、选中/全选、结算
 
 const cartService = require('../../services/cart')
-const auth = require('../../utils/auth')
+const { AuthUtil } = require('../../utils/auth')
+
+function normalizeCartList(res) {
+  const raw = Array.isArray(res)
+    ? res
+    : (res && (res.list || res.items || res.records)) || []
+  if (!Array.isArray(raw)) return []
+  return raw.map((item) => {
+    const selectedRaw = item.selected
+    const selected = selectedRaw === undefined || selectedRaw === null
+      ? true
+      : !!(selectedRaw === true || selectedRaw === 1 || selectedRaw === '1')
+    return {
+      ...item,
+      id: item.id,
+      product_id: item.product_id != null ? item.product_id : item.productId,
+      name: item.name || item.product_name || item.productName || '',
+      product_name: item.product_name || item.productName || item.name || '',
+      image: item.image || item.product_image || item.productImage || item.cover_url || '',
+      product_image: item.product_image || item.productImage || item.image || '',
+      sku_name: item.sku_name || item.skuName || '',
+      price: item.price,
+      quantity: item.quantity || 1,
+      stock: item.stock,
+      selected,
+    }
+  })
+}
 
 Page({
   data: {
@@ -12,32 +39,30 @@ Page({
     selectedPrice: '0.00',
     loading: true,
     isEmpty: false,
+    needLogin: false,
   },
 
   onLoad() {
-    if (!auth.isLoggedIn()) {
-      this.setData({ loading: false, isEmpty: true, cartList: [] })
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({ loading: false, isEmpty: true, cartList: [], needLogin: true })
     }
   },
 
   onShow() {
-    if (!auth.isLoggedIn()) {
-      this.setData({ loading: false, isEmpty: true, cartList: [] })
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({ loading: false, isEmpty: true, cartList: [], needLogin: true })
       return
     }
+    this.setData({ needLogin: false })
     this._loadCart()
   },
 
   /** 加载购物车 */
   _loadCart() {
-    this.setData({ loading: true })
+    this.setData({ loading: true, needLogin: false })
     cartService.getCartList()
       .then((res) => {
-        const list = res.list || res.items || res || []
-        const cartList = list.map((item) => ({
-          ...item,
-          selected: item.selected !== undefined ? item.selected : true,
-        }))
+        const cartList = normalizeCartList(res)
         this.setData({
           cartList,
           loading: false,
@@ -48,6 +73,11 @@ Page({
       .catch(() => {
         this.setData({ loading: false, isEmpty: true, cartList: [] })
       })
+  },
+
+  onLoginTap() {
+    // 空态按钮已写明「去登录」，直接进登录页，避免再套一层弹窗
+    AuthUtil.requireLoginForAction('查看购物车', { silent: true })
   },
 
   /** 计算选中统计 */
@@ -78,8 +108,7 @@ Page({
     this.setData({ [key]: selected })
     this._calcStats()
 
-    // 同步服务端
-    cartService.updateCartItem(item.id, { selected }).catch(() => {})
+    cartService.updateCartItem(item.id, { selected: selected ? 1 : 0 }).catch(() => {})
   },
 
   /** 全选/取消全选 */
@@ -92,9 +121,8 @@ Page({
     this.setData({ cartList, isAllSelected })
     this._calcStats()
 
-    // 批量同步
     cartList.forEach((item) => {
-      cartService.updateCartItem(item.id, { selected: isAllSelected }).catch(() => {})
+      cartService.updateCartItem(item.id, { selected: isAllSelected ? 1 : 0 }).catch(() => {})
     })
   },
 

@@ -101,8 +101,9 @@
         <el-table-column label="阅读" width="100" align="center">
           <template #default="{ row }">{{ row.viewCount ?? '—' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="320" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="handlePreview(row)">预览</el-button>
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button link size="small" @click="handleTogglePublish(row)">
               {{ row.status === 'published' ? '下架' : '上架' }}
@@ -245,6 +246,20 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="previewVisible"
+      :title="previewTitle"
+      width="440px"
+      append-to-body
+      destroy-on-close
+      align-center
+      class="content-preview-dialog"
+    >
+      <div v-loading="previewLoading" class="preview-dialog-body">
+        <ContentPreviewPanel v-if="previewModel" :model="previewModel" />
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -254,8 +269,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, TableInstance } from 'element-plus'
 import ListStateWrap from '@/components/ListStateWrap.vue'
+import ContentPreviewPanel from '@/components/content/ContentPreviewPanel.vue'
 import {
   getContentList,
+  getContentDetail,
   publishContent,
   unpublishContent,
   deleteContent,
@@ -266,6 +283,7 @@ import {
   deleteCategory,
   createContent,
 } from '@/api/content'
+import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
 
 type RawRecord = Record<string, any>
 type ContentStatus = 'draft' | 'published' | 'unpublished' | 'archived'
@@ -314,6 +332,10 @@ const searchForm = reactive({
 
 const syncDialogVisible = ref(false)
 const syncSubmitting = ref(false)
+const previewVisible = ref(false)
+const previewLoading = ref(false)
+const previewTitle = ref('内容预览')
+const previewModel = ref<ContentPreviewModel | null>(null)
 const syncForm = reactive({
   defaultSource: '小红书',
   jsonText: '',
@@ -574,6 +596,23 @@ function handleCreate() {
 
 function handleEdit(row: ContentRow) {
   router.push({ name: 'ContentEdit', query: { id: String(row.id) } })
+}
+
+async function handlePreview(row: ContentRow) {
+  previewTitle.value = `预览 · ${row.title}`
+  previewModel.value = null
+  previewVisible.value = true
+  previewLoading.value = true
+  try {
+    const res = await getContentDetail(row.id)
+    const data = (res as any).data || {}
+    previewModel.value = buildPreviewFromDetail(data, row.categoryName)
+  } catch (err: any) {
+    previewVisible.value = false
+    ElMessage.error(err?.message || '加载预览失败')
+  } finally {
+    previewLoading.value = false
+  }
 }
 
 function statusLabel(status: ContentStatus): string {
@@ -955,6 +994,10 @@ watch(
   .add-root-btn {
     width: 100%;
     margin-top: 8px;
+  }
+
+  .preview-dialog-body {
+    min-height: 680px;
   }
 }
 </style>

@@ -3,7 +3,8 @@
 .product-detail-page {
   min-height: 100vh;
   background: var(--bg);
-  padding-bottom: 150rpx;
+  /* 预留贴底操作栏高度，避免正文被挡住 */
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
 /* ========== 轮播图 ========== */
@@ -86,6 +87,17 @@
   margin-left: 16rpx;
 }
 
+.coupon-price-tag {
+  margin-left: 12rpx;
+  padding: 2rpx 10rpx;
+  font-size: 20rpx;
+  color: #f05b45;
+  background: rgba(240, 91, 69, 0.1);
+  border-radius: 6rpx;
+  font-weight: 600;
+  align-self: center;
+}
+
 .product-title {
   font-size: 32rpx;
   color: var(--ink);
@@ -134,6 +146,7 @@
 .pick { display:flex; align-items:center; padding:25rpx 26rpx; border-bottom:1rpx solid var(--line-2); font-size:25rpx; }
 .pick .k { width:100rpx; color:#727a8c; }
 .pick .v { flex:1; color:#0f1219; font-weight:500; }
+.pick .v--coupon { color:#f05b45; }
 .pick .ar { color:#a5abb9; }
 .author-card {
   display:flex; gap:20rpx; align-items:center; margin:0 24rpx 18rpx; padding:26rpx; background:#fff; border:1rpx solid var(--line); border-radius:26rpx; box-shadow:var(--sh1);
@@ -207,21 +220,22 @@
   line-height: 1.8;
 }
 
-/* ========== 底部操作栏 ========== */
+/* ========== 底部操作栏（贴底固定，不随页面滚动） ========== */
 .bottom-bar {
   position: fixed;
-  left: 16rpx;
-  right: 16rpx;
-  bottom: calc(12rpx + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
-  height: 104rpx;
+  min-height: 104rpx;
   background-color: #fff;
-  padding: 0 24rpx;
-  border: 1rpx solid var(--line);
-  border-radius: 30rpx;
-  box-shadow: 0 16rpx 42rpx rgba(30, 49, 91, 0.16);
-  z-index: 50;
+  padding: 12rpx 24rpx calc(12rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--line);
+  border-radius: 0;
+  box-shadow: 0 -8rpx 24rpx rgba(30, 49, 91, 0.08);
+  z-index: 100;
+  box-sizing: border-box;
 }
 
 .bottom-bar__icon {
@@ -468,4 +482,89 @@
   height: 100vh;
   font-size: 28rpx;
   color: #999;
+}
+
+/* ========== 服务说明弹层 ========== */
+.svc-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 13, 20, 0.45);
+  z-index: 180;
+}
+.svc-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 70%;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  z-index: 181;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.svc-sheet__handle {
+  width: 64rpx;
+  height: 8rpx;
+  border-radius: 8rpx;
+  background: #e5e7eb;
+  margin: 16rpx auto 0;
+}
+.svc-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx;
+}
+.svc-sheet__title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111;
+}
+.svc-sheet__close {
+  font-size: 32rpx;
+  color: #999;
+  padding: 8rpx;
+}
+.svc-sheet__body {
+  max-height: 55vh;
+  padding: 0 32rpx 32rpx;
+  box-sizing: border-box;
+}
+.svc-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.svc-item__head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+.svc-item__icon { font-size: 28rpx; }
+.svc-item__title { font-size: 28rpx; font-weight: 600; color: #222; }
+.svc-item__desc { font-size: 24rpx; color: #666; line-height: 1.6; }
+.svc-item__rules { margin-top: 8rpx; }
+.svc-rule { display: block; font-size: 22rpx; color: #999; line-height: 1.6; }
+.svc-foot {
+  margin-top: 24rpx;
+  padding-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+.svc-foot__text { font-size: 22rpx; color: #999; }
+.svc-foot__btn {
+  height: 72rpx;
+  padding: 0 48rpx;
+  border-radius: 999rpx;
+  background: var(--brand, #315efb);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

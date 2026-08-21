@@ -41,7 +41,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
     private static final Set<String> PUBLIC_CONFIG_KEYS = Set.of(
             "site_name", "site_logo", "site_description",
             "wx_appid", "wx_version", "wx_version_desc",
-            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappShareTitle", "miniappShareImage", "plugins",
+            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappBrandConfig", "miniappShareTitle", "miniappShareImage", "plugins",
             "privacy_policy_url", "user_agreement_url", "service_phone"
     );
 
@@ -49,7 +49,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      * 需要解析为 JSON 对象的配置键
      */
     private static final Set<String> JSON_CONFIG_KEYS = Set.of(
-            "tabbarItems", "minePageConfig", "miniappThemeConfig", "plugins", "roles", "notifications"
+            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappBrandConfig", "plugins", "roles", "notifications"
     );
 
     /**
@@ -65,7 +65,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      * 运行期配置键：发布快照提供页面外观基线，但这些键需要跟随当前系统配置实时生效。
      */
     private static final Set<String> RUNTIME_PUBLIC_CONFIG_KEYS = Set.of(
-            "wx_appid", "wx_version", "wx_version_desc", "tabbarItems"
+            "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "miniappBrandConfig", "site_name", "site_logo"
     );
 
     @Override

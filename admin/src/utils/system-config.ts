@@ -12,7 +12,7 @@ const SENSITIVE_FORM_KEYS = new Set(['appSecret', 'apiV3Key', 'uploadKey', 'ossA
 
 /** 表单字段 -> 数据库 configKey */
 export const FORM_TO_DB_KEY: Record<string, string> = {
-  appName: 'appName',
+  appName: 'site_name',
   appId: 'wx_appid',
   appSecret: 'wx_app_secret',
   originalId: 'originalId',
@@ -35,6 +35,7 @@ export const FORM_TO_DB_KEY: Record<string, string> = {
 /** 数据库 configKey -> 表单字段 */
 export const DB_TO_FORM_KEY: Record<string, string> = {
   appName: 'appName',
+  site_name: 'appName',
   wx_appid: 'appId',
   appId: 'appId',
   wx_app_secret: 'appSecret',

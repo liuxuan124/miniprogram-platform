@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "购物车",
   "usingComponents": {
-    "empty-state": "../../components/empty-state/empty-state"
+    "empty-state": "../../components/empty-state/empty-state",
+    "login-sheet": "/components/login-sheet/login-sheet"
   }
 }

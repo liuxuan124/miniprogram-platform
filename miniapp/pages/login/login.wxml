@@ -12,10 +12,16 @@
       <view class="brand-hero__orb brand-hero__orb--two"></view>
 
       <view class="brand-identity">
-        <view class="brand-mark">海</view>
+        <image
+          wx:if="{{brandLogoUrl}}"
+          class="brand-mark brand-mark--img"
+          src="{{brandLogoUrl}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="brand-mark">{{brandMark}}</view>
         <view class="brand-copy">
-          <text class="brand-copy__eyebrow">CROSS-BORDER NOTES</text>
-          <text class="brand-copy__name">出海笔记</text>
+          <text class="brand-copy__eyebrow">{{brandEyebrow}}</text>
+          <text class="brand-copy__name">{{brandName}}</text>
         </view>
       </view>
 

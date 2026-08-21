@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "知识商城",
+  "navigationStyle": "custom",
   "enablePullDownRefresh": true,
   "onReachBottomDistance": 80,
   "backgroundTextStyle": "dark",

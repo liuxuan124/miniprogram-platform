@@ -13,6 +13,7 @@ App({
     systemInfo: null,     // 系统信息
     pageDSLCache: {},     // 页面 DSL 缓存
     miniappThemeConfig: null, // 小程序主题配置
+    miniappBrandConfig: null, // 品牌基础信息（名称/Logo/登录文案）
     sourceChannel: null,  // 首次归因来源
   },
 
@@ -60,6 +61,9 @@ App({
   async _loadSystemConfig() {
     try {
       const config = await SystemService.fetchSystemConfig()
+      if (config.miniappBrandConfig) {
+        this.globalData.miniappBrandConfig = config.miniappBrandConfig
+      }
       if (config.miniappThemeConfig) {
         this.globalData.miniappThemeConfig = config.miniappThemeConfig
         const navBarColor = config.miniappThemeConfig.navBarColor

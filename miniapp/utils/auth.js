@@ -147,11 +147,29 @@ const AuthUtil = {
   },
 
   openLoginSheet(options = {}) {
-    const open = (attempt) => {
+    const goLoginPage = () => {
+      const redirect = options.redirect || this._getCurrentPagePath() || ''
+      const url = redirect
+        ? '/pages/login/login?redirect=' + encodeURIComponent(redirect)
+        : '/pages/login/login'
+      wx.navigateTo({
+        url,
+        fail: () => {
+          wx.reLaunch({ url: '/pages/login/login' })
+        },
+      })
+    }
+
+    if (options.preferPage) {
+      goLoginPage()
+      return
+    }
+
+    const tryOpen = (attempt) => {
       try {
         const pages = getCurrentPages()
         const currentPage = pages[pages.length - 1]
-        const sheet = currentPage && currentPage.selectComponent
+        const sheet = currentPage && typeof currentPage.selectComponent === 'function'
           ? currentPage.selectComponent('#global-login-sheet')
           : null
         if (sheet && typeof sheet.show === 'function') {
@@ -162,19 +180,16 @@ const AuthUtil = {
         console.warn('[AuthUtil] 打开登录面板失败:', e)
       }
 
-      if (attempt < 3) {
-        setTimeout(() => open(attempt + 1), 80)
+      if (attempt < 4) {
+        setTimeout(() => tryOpen(attempt + 1), 80 * (attempt + 1))
         return
       }
 
-      const redirect = options.redirect || ''
-      const url = redirect
-        ? '/pages/login/login?redirect=' + encodeURIComponent(redirect)
-        : '/pages/login/login'
-      wx.navigateTo({ url })
+      wx.showToast({ title: '无法打开登录面板', icon: 'none' })
+      goLoginPage()
     }
 
-    open(0)
+    tryOpen(0)
   },
 
   /**
@@ -202,12 +217,13 @@ const AuthUtil = {
    * 用于"加入购物车、立即购买、报名活动、预约服务、领取优惠券"等关键业务动作
    *
    * 用法:
-   *   if (!AuthUtil.requireLoginForAction('claim_coupon')) return
+   *   if (!AuthUtil.requireLoginForAction('加入购物车')) return
    *
    * @param {string} [actionDesc] 动作描述，用于提示文案（可选）
    * @param {Object} [options]
    * @param {string} [options.redirect] 登录后回跳路径
-   * @returns {boolean} true=已登录可继续, false=已拦截并跳转登录
+   * @param {boolean} [options.silent] 为 true 时不弹确认框，直接去登录
+   * @returns {boolean} true=已登录可继续, false=已拦截并引导登录
    */
   requireLoginForAction(actionDesc, options) {
     if (this.isLoggedIn()) {
@@ -215,18 +231,36 @@ const AuthUtil = {
     }
 
     const opts = typeof actionDesc === 'object' ? actionDesc : (options || {})
-    const desc = typeof actionDesc === 'string' ? actionDesc : (opts.desc || '')
+    const desc = typeof actionDesc === 'string' ? actionDesc : (opts.desc || opts.action || '')
     const redirect = opts.redirect || this._getCurrentPagePath()
 
-    // 存储拦截信息，登录页读取后可展示友好提示
     if (desc) {
       StorageUtil.set(LOGIN_INTERCEPT_KEY, { action: desc, redirect, timestamp: Date.now() }, 5 * 60 * 1000)
     }
 
-    this.openLoginSheet({
-      ...opts,
-      action: desc,
-      redirect,
+    const goLogin = () => {
+      this.openLoginSheet({
+        ...opts,
+        action: desc,
+        redirect,
+      })
+    }
+
+    if (opts.silent) {
+      goLogin()
+      return false
+    }
+
+    wx.showModal({
+      title: '请先登录',
+      content: desc ? `登录后即可${desc}` : '登录后即可使用该功能',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          goLogin()
+        }
+      },
     })
 
     return false

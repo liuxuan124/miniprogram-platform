@@ -16,6 +16,7 @@ export interface HydratePreviewResult {
 const COMPONENT_LABELS: Record<string, string> = {
   article_list: '文章列表',
   article_feed: '文章流',
+  note_feed: '笔记瀑布流',
   hot_news: '今日热门资讯',
   product_list: '商品列表',
   activity_list: '活动列表',
@@ -36,6 +37,7 @@ const DS_COMPONENT_DEFAULT_TYPE: Partial<Record<string, DataSourceType>> = {
   product_list: 'product',
   article_list: 'content',
   article_feed: 'content',
+  note_feed: 'content',
   hot_news: 'content',
   activity_list: 'activity',
   activity_entry: 'activity',

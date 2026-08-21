@@ -79,7 +79,13 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
       pageCtx.setData({ dslMode: false, loading: false })
       return false
     }
-    const useCustomNav = normalizePath(tabRoute) === '/pages/index/index'
+    const route = normalizePath(tabRoute)
+    // 首页 / 内容 / 商城 均用自定义顶栏（与 brand_header 对齐，避免系统栏+空隙）
+    const useCustomNav = [
+      '/pages/index/index',
+      '/pages/content-list/content-list',
+      '/pages/knowledge-mall/knowledge-mall',
+    ].indexOf(route) >= 0
     const state = await loadDslPageState(path, forceRefresh, { useCustomNav })
     pageCtx.setData(state)
     if (state.pageTitle && !useCustomNav) {
@@ -101,7 +107,7 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
 function handleDslReachBottom(pageCtx) {
   const renderers = pageCtx.selectAllComponents('dsl-renderer') || []
   renderers.forEach((renderer) => {
-    ;['dsl-article-list', 'dsl-article-feed', 'dsl-product-list'].forEach((selector) => {
+    ;['dsl-article-list', 'dsl-article-feed', 'dsl-note-feed', 'dsl-product-list'].forEach((selector) => {
       const lists = (renderer.selectAllComponents && renderer.selectAllComponents(selector)) || []
       lists.forEach((list) => {
         if (list && typeof list.loadMore === 'function') list.loadMore()

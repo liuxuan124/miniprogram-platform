@@ -62,9 +62,17 @@
     </view>
   </view>
 
-  <!-- 空状态：D2 统一空态组件 -->
+  <!-- 空状态：未登录引导登录 / 已登录去逛逛 -->
   <empty-state
-    wx:if="{{isEmpty && !loading}}"
+    wx:if="{{isEmpty && !loading && needLogin}}"
+    icon="/images/empty-cart.png"
+    title="登录后查看购物车"
+    action-text="去登录"
+    action-type="primary"
+    bind:action="onLoginTap"
+  />
+  <empty-state
+    wx:if="{{isEmpty && !loading && !needLogin}}"
     icon="/images/empty-cart.png"
     title="购物车空空如也"
     action-text="去逛逛"

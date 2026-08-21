@@ -8,7 +8,7 @@ const request = require('../utils/request')
  * @param {Object} params - { category_id, keyword, sort, page, page_size }
  */
 function getProductList(params = {}) {
-  return request.get('/api/v1/mp/products', params)
+  return request.get('/api/v1/mp/products', params, { auth: false })
 }
 
 /**
@@ -16,7 +16,7 @@ function getProductList(params = {}) {
  * @param {string|number} id - 商品ID
  */
 function getProductDetail(id) {
-  return request.get(`/api/v1/mp/products/${id}`)
+  return request.get(`/api/v1/mp/products/${id}`, {}, { auth: false })
 }
 
 /**

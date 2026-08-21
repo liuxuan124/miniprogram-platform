@@ -16,6 +16,9 @@ public class ContentDetailDTO {
     /** 文章标题 */
     private String title;
 
+    /** 内容形态 article=长文 note=笔记 video=视频 data=数据 */
+    private String contentType;
+
     /** 分类ID */
     private Long categoryId;
 
@@ -25,6 +28,9 @@ public class ContentDetailDTO {
     /** 封面图URL */
     private String coverImage;
 
+    /** 笔记多图 URL 列表 */
+    private List<String> images;
+
     /** 文章摘要 */
     private String summary;
 
@@ -33,6 +39,9 @@ public class ContentDetailDTO {
 
     /** 作者 */
     private String author;
+
+    /** 作者头像 URL */
+    private String authorAvatar;
 
     /** 来源 */
     private String source;
@@ -45,6 +54,9 @@ public class ContentDetailDTO {
 
     /** 点赞量 */
     private Integer likeCount;
+
+    /** 收藏量（展示用） */
+    private Integer favoriteCount;
 
     /** 排序值 */
     private Integer sortOrder;

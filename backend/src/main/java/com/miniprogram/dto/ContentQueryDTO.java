@@ -26,6 +26,9 @@ public class ContentQueryDTO {
     /** 状态筛选 */
     private String status;
 
+    /** 内容形态筛选 note/article/video/data */
+    private String contentType;
+
     /** 来源筛选 */
     private String source;
 }

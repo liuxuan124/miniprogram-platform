@@ -17,11 +17,17 @@ public class ContentDTO {
     @Size(max = 128, message = "文章标题最长128个字符")
     private String title;
 
+    /** 内容形态 article=长文 note=笔记 video=视频 data=数据 */
+    private String contentType;
+
     /** 分类ID */
     private Long categoryId;
 
     /** 封面图URL */
     private String coverImage;
+
+    /** 笔记多图 URL 列表 */
+    private List<String> images;
 
     /** 文章摘要 */
     @Size(max = 512, message = "文章摘要最长512个字符")
@@ -34,12 +40,21 @@ public class ContentDTO {
     @Size(max = 64, message = "作者最长64个字符")
     private String author;
 
+    /** 作者头像 URL */
+    private String authorAvatar;
+
     /** 来源 */
     @Size(max = 128, message = "来源最长128个字符")
     private String source;
 
     /** 标签列表 */
     private List<String> tags;
+
+    /** 点赞量（运营填写，展示用） */
+    private Integer likeCount;
+
+    /** 收藏量（运营填写，展示用） */
+    private Integer favoriteCount;
 
     /** 排序值 */
     private Integer sortOrder;
