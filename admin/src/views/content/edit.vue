@@ -23,8 +23,9 @@
               <el-radio-group v-model="contentType">
                 <el-radio-button value="article">长文</el-radio-button>
                 <el-radio-button value="note">笔记</el-radio-button>
+                <el-radio-button value="moment">动态</el-radio-button>
               </el-radio-group>
-              <div class="field-hint">笔记适合多图短内容（小红书风格）；长文使用富文本编辑器。</div>
+              <div class="field-hint">笔记偏小红书；动态偏知识星球（正文+多图+资料附件，可分享取文件）。</div>
             </el-form-item>
 
             <template v-if="contentType === 'note'">
@@ -99,6 +100,69 @@
                   <span class="stats-label">收藏</span>
                 </div>
                 <div class="field-hint">仅用于卡片/详情页展示，非真实互动数据。</div>
+              </el-form-item>
+            </template>
+
+            <template v-else-if="contentType === 'moment'">
+              <el-form-item label="动态图片">
+                <div class="note-images">
+                  <div v-for="(url, idx) in noteImages" :key="`${url}-${idx}`" class="note-images__item">
+                    <img :src="normalizePreviewUrl(url)" alt="" />
+                    <div class="note-images__actions">
+                      <el-button text size="small" :disabled="idx === 0" @click="moveNoteImage(idx, -1)">前移</el-button>
+                      <el-button text size="small" :disabled="idx >= noteImages.length - 1" @click="moveNoteImage(idx, 1)">后移</el-button>
+                      <el-button text type="danger" size="small" @click="removeNoteImage(idx)">删除</el-button>
+                    </div>
+                  </div>
+                  <label v-if="noteImages.length < 9" class="note-images__add">
+                    {{ noteImageUploading ? '上传中…' : '+ 添加图片' }}
+                    <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden :disabled="noteImageUploading" @change="onUploadNoteImage" />
+                  </label>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="正文">
+                <el-input v-model="noteBody" type="textarea" :rows="8" maxlength="5000" show-word-limit placeholder="输入动态正文" />
+              </el-form-item>
+
+              <el-form-item label="资料附件">
+                <div class="attachment-list">
+                  <div v-for="(item, idx) in momentAttachments" :key="item.id" class="attachment-item">
+                    <span class="attachment-item__icon">{{ fileTypeIcon(item.fileType) }}</span>
+                    <div class="attachment-item__meta">
+                      <div class="attachment-item__name">{{ item.name }}</div>
+                      <div class="attachment-item__size">{{ formatFileSize(item.size) }}</div>
+                    </div>
+                    <el-button text type="danger" size="small" @click="removeAttachment(idx)">删除</el-button>
+                  </div>
+                  <label v-if="momentAttachments.length < 5" class="upload-btn">
+                    {{ attachmentUploading ? '上传中…' : '+ 上传资料文件' }}
+                    <input type="file" hidden :disabled="attachmentUploading" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.zip,.rar" @change="onUploadAttachment" />
+                  </label>
+                </div>
+                <div class="field-hint">最多 5 个附件，单文件 ≤ 20MB。支持 PDF / Office / ZIP 等。</div>
+              </el-form-item>
+
+              <el-form-item label="作者">
+                <el-input v-model="formData.author" maxlength="64" placeholder="博主昵称" />
+              </el-form-item>
+
+              <el-form-item label="作者头像">
+                <div class="cover-field">
+                  <div v-if="authorAvatarPreview" class="cover-preview">
+                    <img :src="authorAvatarPreview" alt="" class="avatar-preview" />
+                    <el-button text type="danger" size="small" @click="formData.author_avatar = ''">清除</el-button>
+                  </div>
+                  <el-input v-model="formData.author_avatar" placeholder="头像 URL" />
+                  <label class="upload-btn">
+                    {{ avatarUploading ? '上传中…' : '本地上传' }}
+                    <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden :disabled="avatarUploading" @change="onUploadAuthorAvatar" />
+                  </label>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="分享封面">
+                <el-input v-model="formData.cover_image" placeholder="留空则使用首图；无图时使用默认封面" />
               </el-form-item>
             </template>
 
@@ -236,6 +300,13 @@ import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEdit
 import ContentPreviewPanel from '@/components/content/ContentPreviewPanel.vue'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import { getPlainTextFromHtml, type ContentPreviewModel } from '@/utils/content-preview'
+import {
+  type ContentAttachment,
+  fileTypeIcon,
+  formatFileSize,
+  normalizeAttachment,
+  uploadAttachmentFile,
+} from '@/utils/content-attachment'
 
 interface FlatCategoryOption {
   id: number
@@ -254,11 +325,13 @@ const baseFormRef = ref<FormInstance>()
 
 const publishMode = ref<'publish' | 'schedule' | 'draft'>('publish')
 const scheduleTime = ref('')
-const contentType = ref<'article' | 'note'>('article')
+const contentType = ref<'article' | 'note' | 'moment'>('article')
 const noteImages = ref<string[]>([])
 const noteBody = ref('')
 const noteTagsText = ref('')
+const momentAttachments = ref<ContentAttachment[]>([])
 const noteImageUploading = ref(false)
+const attachmentUploading = ref(false)
 const avatarUploading = ref(false)
 
 const formData = reactive({
@@ -325,9 +398,13 @@ async function loadDetail(id: number) {
     formData.favorite_count = Number(data.favoriteCount ?? data.favorite_count ?? 0)
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
     formData.status = normalizeContentStatus(data.status)
-    contentType.value = (data.contentType || data.content_type || 'article') === 'note' ? 'note' : 'article'
+    const rawType = String(data.contentType || data.content_type || 'article')
+    contentType.value = rawType === 'note' ? 'note' : rawType === 'moment' ? 'moment' : 'article'
     noteImages.value = Array.isArray(data.images) ? [...data.images] : (formData.cover_image ? [formData.cover_image] : [])
     noteBody.value = getPlainTextFromHtml(formData.content)
+    momentAttachments.value = Array.isArray(data.attachments)
+      ? data.attachments.map((item: Record<string, unknown>, idx: number) => normalizeAttachment(item, idx))
+      : []
     const tags = Array.isArray(data.tags) ? data.tags : []
     noteTagsText.value = tags.join(', ')
     formData.tag_ids = tags.map(String)
@@ -438,6 +515,30 @@ async function onUploadAuthorAvatar(event: Event) {
   avatarUploading.value = false
 }
 
+function removeAttachment(index: number) {
+  momentAttachments.value = momentAttachments.value.filter((_, i) => i !== index)
+}
+
+async function onUploadAttachment(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || momentAttachments.value.length >= 5) return
+  attachmentUploading.value = true
+  try {
+    const item = await uploadAttachmentFile(file, 20)
+    if (item) {
+      item.sortOrder = momentAttachments.value.length
+      momentAttachments.value = [...momentAttachments.value, item]
+      ElMessage.success('附件已上传')
+    }
+  } catch (err: any) {
+    ElMessage.error(err?.message || '附件上传失败')
+  } finally {
+    attachmentUploading.value = false
+  }
+}
+
 function syncCoverToSeo() {
   seoForm.cover = formData.cover_image || ''
 }
@@ -476,6 +577,8 @@ const previewModel = computed<ContentPreviewModel>(() => {
     noteBody: noteBody.value,
     coverImage: formData.cover_image,
     images: noteImages.value,
+    attachments: momentAttachments.value,
+    attachmentCount: momentAttachments.value.length,
     author: formData.author,
     authorAvatar: formData.author_avatar,
     categoryLabel: category?.label || '',
@@ -509,6 +612,12 @@ async function handleSubmit() {
       activeTab.value = 'base'
       return
     }
+  } else if (contentType.value === 'moment') {
+    if (!noteBody.value.trim() && !noteImages.value.length && !momentAttachments.value.length) {
+      ElMessage.warning('请至少填写正文、图片或资料附件之一')
+      activeTab.value = 'base'
+      return
+    }
   } else if (!getPlainTextFromHtml(formData.content)) {
     ElMessage.warning('请输入正文内容')
     activeTab.value = 'base'
@@ -523,20 +632,31 @@ async function handleSubmit() {
   submitLoading.value = true
   try {
     const tags = contentType.value === 'note' ? parseNoteTags() : formData.tag_ids.map(String)
+    const isShortForm = contentType.value === 'note' || contentType.value === 'moment'
     const payload = {
       title: formData.title.trim(),
       contentType: contentType.value,
       categoryId: formData.category_id,
-      summary: formData.summary?.trim() || seoForm.description?.trim() || (contentType.value === 'note' ? noteBody.value.trim().slice(0, 120) : undefined),
-      content: contentType.value === 'note' ? noteBodyToHtml(noteBody.value) : formData.content,
-      coverImage: (contentType.value === 'note' ? (noteImages.value[0] || formData.cover_image) : formData.cover_image)?.trim() || undefined,
-      images: contentType.value === 'note' ? noteImages.value : undefined,
+      summary:
+        formData.summary?.trim()
+        || seoForm.description?.trim()
+        || (isShortForm ? noteBody.value.trim().slice(0, 120) : undefined),
+      content: isShortForm ? noteBodyToHtml(noteBody.value) : formData.content,
+      coverImage: (
+        contentType.value === 'note' || contentType.value === 'moment'
+          ? (noteImages.value[0] || formData.cover_image)
+          : formData.cover_image
+      )?.trim() || undefined,
+      images: isShortForm ? noteImages.value : undefined,
+      attachments: contentType.value === 'moment'
+        ? momentAttachments.value.map((item, idx) => ({ ...item, sortOrder: idx }))
+        : undefined,
       tags,
       author: formData.author?.trim() || undefined,
       authorAvatar: formData.author_avatar?.trim() || undefined,
       likeCount: formData.like_count,
       favoriteCount: formData.favorite_count,
-      source: contentType.value === 'note' ? '笔记' : undefined,
+      source: contentType.value === 'note' ? '笔记' : contentType.value === 'moment' ? '动态' : undefined,
       sortOrder: formData.sort,
       seoTitle: seoForm.title?.trim() || undefined,
       seoDescription: seoForm.description?.trim() || undefined,
@@ -742,8 +862,49 @@ onMounted(async () => {
   .stats-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+  }
+
+  .attachment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid #e3e8f0;
+    border-radius: 8px;
+    background: #f8faff;
+  }
+
+  .attachment-item__icon {
+    font-size: 18px;
+  }
+
+  .attachment-item__meta {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .attachment-item__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2d3d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attachment-item__size {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #8a94a6;
   }
 
   .stats-label {

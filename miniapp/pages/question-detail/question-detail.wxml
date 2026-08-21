@@ -1,0 +1,14 @@
+<view wx:if="{{!loading && question}}" class="qa-detail">
+  <view class="qa-block">
+    <view class="qa-block__label">提问 · {{question.userNickname}}</view>
+    <text class="qa-block__body">{{question.body}}</text>
+    <text class="qa-block__time">{{question.createTime}}</text>
+  </view>
+  <view class="qa-block qa-block--answer">
+    <view class="qa-block__label">博主回答 · {{question.adminName}}</view>
+    <rich-text wx:if="{{answerHtml}}" nodes="{{answerHtml}}" />
+    <text wx:else class="qa-block__body">{{answerPlain || '博主尚未回答'}}</text>
+  </view>
+  <button class="qa-ask-btn" bindtap="onGoAsk">我也要提问</button>
+</view>
+<view wx:elif="{{loading}}" class="qa-loading">加载中...</view>

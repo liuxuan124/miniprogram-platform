@@ -17,7 +17,7 @@ public class ContentDTO {
     @Size(max = 128, message = "文章标题最长128个字符")
     private String title;
 
-    /** 内容形态 article=长文 note=笔记 video=视频 data=数据 */
+    /** 内容形态 article=长文 note=笔记 moment=动态 video=视频 data=数据 */
     private String contentType;
 
     /** 分类ID */
@@ -28,6 +28,9 @@ public class ContentDTO {
 
     /** 笔记多图 URL 列表 */
     private List<String> images;
+
+    /** 资料附件列表 */
+    private List<ContentAttachmentDTO> attachments;
 
     /** 文章摘要 */
     @Size(max = 512, message = "文章摘要最长512个字符")

@@ -76,6 +76,7 @@ public class SecurityConfig {
                                 "/api/v1/mp/payments/wx-refund-notify",
                                 // 小程序页面访问上报（公开）
                                 "/api/v1/mp/statistics/page-access",
+                                // 小程序问答公开读接口（提问 POST、/my 仍需登录）
                                 // 小程序端公开配置
                                 "/api/v1/mp/system/config",
                                 "/api/v1/mp/config/public",
@@ -91,6 +92,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/questions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/questions/{id:\\d+}").permitAll()
                         // ========== 敏感模块：仅超级管理员（S1 两级 RBAC） ==========
                         // 财务中心、AI 配置(含各厂商 API Key)、退款、系统配置、用户/角色/权限管理
                         .requestMatchers(

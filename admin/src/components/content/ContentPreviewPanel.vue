@@ -5,15 +5,15 @@
       <div class="phone-screen">
         <div class="pv-cover" :style="coverStyle">
           <img v-if="coverUrl" :src="coverUrl" alt="" class="pv-cover-img" />
-          <span v-else class="pv-cover-glyph">{{ contentType === 'note' ? '笔' : '文' }}</span>
+          <span v-else class="pv-cover-glyph">{{ contentType === 'note' ? '笔' : contentType === 'moment' ? '动' : '文' }}</span>
         </div>
         <div class="pv-body">
           <div class="pv-chips">
-            <span class="pv-fmt">{{ contentType === 'note' ? '笔记' : '长文' }}</span>
+            <span class="pv-fmt">{{ contentType === 'note' ? '笔记' : contentType === 'moment' ? '动态' : '长文' }}</span>
             <span v-if="categoryLabel" class="pv-topic">{{ categoryLabel }}</span>
           </div>
           <h1 class="pv-title">{{ titleText }}</h1>
-          <div v-if="contentType === 'note' && galleryImages.length" class="pv-note-gallery">
+          <div v-if="(contentType === 'note' || contentType === 'moment') && galleryImages.length" class="pv-note-gallery">
             <img v-for="(url, idx) in galleryImages.slice(0, 3)" :key="`${url}-${idx}`" :src="url" alt="" />
           </div>
           <div class="pv-meta">
@@ -27,9 +27,15 @@
             </div>
             <span class="pv-follow">+ 关注</span>
           </div>
-          <div v-if="contentType === 'note' && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
+          <div v-if="(contentType === 'note' || contentType === 'moment') && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
           <div v-else-if="hasArticleBody" class="pv-content" v-html="contentHtml" />
-          <div v-else class="pv-empty">暂无正文</div>
+          <div v-if="contentType === 'moment' && attachmentItems.length" class="pv-attachments">
+            <div v-for="item in attachmentItems" :key="item.id || item.name" class="pv-attachment">
+              <span>{{ item.icon }}</span>
+              <span class="pv-attachment__name">{{ item.name }}</span>
+            </div>
+          </div>
+          <div v-if="!(noteBodyText || hasArticleBody || attachmentItems.length)" class="pv-empty">暂无正文</div>
         </div>
       </div>
     </div>
@@ -45,6 +51,7 @@ import {
   normalizePreviewMediaUrl,
   type ContentPreviewModel,
 } from '@/utils/content-preview'
+import { fileTypeIcon, formatFileSize } from '@/utils/content-attachment'
 
 const props = withDefaults(
   defineProps<{
@@ -80,6 +87,15 @@ const galleryImages = computed(() =>
 )
 
 const authorAvatarUrl = computed(() => normalizePreviewMediaUrl(props.model.authorAvatar))
+
+const attachmentItems = computed(() =>
+  (props.model.attachments || []).map((item) => ({
+    id: item.id,
+    name: item.name || '未命名文件',
+    icon: fileTypeIcon(String(item.fileType || 'other')),
+    sizeText: formatFileSize(Number(item.size || 0)),
+  })),
+)
 
 const coverStyle = computed(() => {
   if (coverUrl.value) return {}
@@ -304,6 +320,29 @@ const coverStyle = computed(() => {
 
 .pv-content--plain {
   white-space: pre-wrap;
+}
+
+.pv-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv-attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f5f6f9;
+  font-size: 12px;
+  color: #39404f;
+}
+
+.pv-attachment__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pv-empty {

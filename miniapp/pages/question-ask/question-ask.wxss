@@ -1,0 +1,3 @@
+.ask-page { padding: 24rpx; }
+.ask-input { width: 100%; min-height: 280rpx; background: #fff; border-radius: 16rpx; padding: 20rpx; box-sizing: border-box; font-size: 28rpx; }
+.ask-btn { margin-top: 24rpx; background: #2f5bff; color: #fff; border-radius: 999rpx; }

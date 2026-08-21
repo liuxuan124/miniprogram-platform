@@ -24,4 +24,9 @@ public interface FileUploadService {
      * @return 上传结果
      */
     UploadResultVO upload(MultipartFile file, String subDir);
+
+    /**
+     * 上传字节数组（远程图片转存等）
+     */
+    UploadResultVO uploadBytes(byte[] data, String originalFileName, String subDir);
 }

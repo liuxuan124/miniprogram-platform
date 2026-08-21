@@ -16,6 +16,7 @@
         @keyup.enter="handleSearch"
       />
       <el-select v-model="searchForm.type" class="toolbar-select" placeholder="类型：全部" clearable>
+        <el-option label="动态" value="moment" />
         <el-option label="文章" value="article" />
         <el-option label="图文" value="rich" />
         <el-option label="视频" value="video" />
@@ -183,12 +184,49 @@
     </el-dialog>
 
     <el-dialog v-model="syncDialogVisible" title="同步导入小红书 / 公众号内容" width="720px" destroy-on-close>
+      <el-tabs v-model="syncTab">
+        <el-tab-pane label="公众号全量导入" name="wechat">
+          <el-alert
+            type="success"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 12px"
+            title="从已认证企业服务号拉取全部「已发布」图文，一次性导入内容库。需在「系统设置 → 微信配置」填写公众号 AppID/AppSecret（可与小程序不同）。"
+          />
+          <el-form label-width="96px">
+            <el-form-item label="默认分类">
+              <el-select v-model="wechatSyncForm.categoryId" placeholder="不指定分类" clearable style="width: 100%">
+                <el-option
+                  v-for="item in flatCategoryOptions"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="导入状态">
+              <el-radio-group v-model="wechatSyncForm.publish">
+                <el-radio-button :value="true">直接上架（已发布）</el-radio-button>
+                <el-radio-button :value="false">存为草稿</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+          <div v-if="wechatSyncResult" class="sync-result-box">
+            <div>{{ wechatSyncResult.message }}</div>
+            <div v-if="wechatSyncResult.failures?.length" class="sync-failures">
+              <div v-for="(item, idx) in wechatSyncResult.failures" :key="idx">
+                {{ item.title }}：{{ item.reason }}
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="JSON 手动导入" name="json">
       <el-alert
         type="info"
         :closable="false"
         show-icon
         style="margin-bottom: 12px"
-        title="小红书暂无稳定官方拉取接口，建议粘贴导出 JSON；公众号可先手动导入，后续可接素材库 API 自动同步。"
+        title="小红书暂无稳定官方拉取接口，建议粘贴导出 JSON；公众号也可先用 JSON 手动导入。"
       />
       <el-form label-width="88px">
         <el-form-item label="默认来源">
@@ -216,10 +254,20 @@
           />
         </el-form-item>
       </el-form>
+        </el-tab-pane>
+      </el-tabs>
       <template #footer>
+        <template v-if="syncTab === 'wechat'">
+          <el-button @click="syncDialogVisible = false">关闭</el-button>
+          <el-button type="primary" :loading="wechatSyncSubmitting" @click="handleWeChatSyncImport">
+            开始全量导入
+          </el-button>
+        </template>
+        <template v-else>
         <el-button @click="fillSyncSample">填入示例</el-button>
         <el-button @click="syncDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="syncSubmitting" @click="handleSyncImport">开始导入</el-button>
+        </template>
       </template>
     </el-dialog>
 
@@ -283,6 +331,7 @@ import {
   deleteCategory,
   createContent,
 } from '@/api/content'
+import { syncWeChatPublishedContents, type WeChatContentSyncResult } from '@/api/wechat'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
 
 type RawRecord = Record<string, any>
@@ -295,8 +344,8 @@ interface ContentRow {
   categoryId?: number
   categoryName: string
   source: string
-  typeLabel: '文章' | '图文' | '视频'
-  typeValue: 'article' | 'rich' | 'video'
+  typeLabel: '文章' | '图文' | '视频' | '动态'
+  typeValue: 'article' | 'rich' | 'video' | 'moment'
   viewCount: number | null
   recommended: boolean
   tags: string[]
@@ -331,7 +380,10 @@ const searchForm = reactive({
 })
 
 const syncDialogVisible = ref(false)
+const syncTab = ref('wechat')
 const syncSubmitting = ref(false)
+const wechatSyncSubmitting = ref(false)
+const wechatSyncResult = ref<WeChatContentSyncResult | null>(null)
 const previewVisible = ref(false)
 const previewLoading = ref(false)
 const previewTitle = ref('内容预览')
@@ -339,6 +391,10 @@ const previewModel = ref<ContentPreviewModel | null>(null)
 const syncForm = reactive({
   defaultSource: '小红书',
   jsonText: '',
+})
+const wechatSyncForm = reactive({
+  categoryId: undefined as number | undefined,
+  publish: true,
 })
 
 const pagination = reactive({
@@ -360,8 +416,9 @@ function normalizeStatus(statusRaw: unknown): ContentStatus {
   return 'draft'
 }
 
-function inferType(raw: RawRecord): { typeLabel: '文章' | '图文' | '视频'; typeValue: 'article' | 'rich' | 'video' } {
+function inferType(raw: RawRecord): { typeLabel: '文章' | '图文' | '视频' | '动态'; typeValue: 'article' | 'rich' | 'video' | 'moment' } {
   const explicit = `${raw.type || raw.contentType || raw.content_type || ''}`.toLowerCase()
+  if (explicit === 'moment') return { typeLabel: '动态', typeValue: 'moment' }
   if (explicit.includes('video') || explicit.includes('视频')) return { typeLabel: '视频', typeValue: 'video' }
   if (explicit.includes('rich') || explicit.includes('graphic') || explicit.includes('图文')) {
     return { typeLabel: '图文', typeValue: 'rich' }
@@ -529,6 +586,31 @@ function fillSyncSample() {
     null,
     2,
   )
+}
+
+async function handleWeChatSyncImport() {
+  wechatSyncSubmitting.value = true
+  wechatSyncResult.value = null
+  try {
+    await ElMessageBox.confirm(
+      '将从公众号拉取全部已发布图文并导入内容库。已导入过的文章会更新正文与封面，是否继续？',
+      '公众号全量导入',
+      { type: 'warning', confirmButtonText: '开始导入', cancelButtonText: '取消' },
+    )
+    const res = await syncWeChatPublishedContents({
+      categoryId: wechatSyncForm.categoryId,
+      publish: wechatSyncForm.publish,
+    })
+    wechatSyncResult.value = (res as any)?.data || res
+    ElMessage.success(wechatSyncResult.value?.message || '导入完成')
+    fetchList()
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.message !== 'cancel') {
+      ElMessage.error(e?.message || '公众号导入失败')
+    }
+  } finally {
+    wechatSyncSubmitting.value = false
+  }
 }
 
 async function handleSyncImport() {
@@ -903,6 +985,21 @@ watch(
 
   .toolbar-spacer {
     flex: 1;
+  }
+
+  .sync-result-box {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f5f7fa;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #606266;
+  }
+
+  .sync-failures {
+    margin-top: 8px;
+    color: #f56c6c;
+    line-height: 1.6;
   }
 
   .table-panel {
