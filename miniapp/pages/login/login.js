@@ -6,6 +6,11 @@ const {
   runOneTapLogin,
   computeCanSubmit,
 } = require('../../utils/login-flow')
+const SystemService = require('../../services/system')
+const {
+  DEFAULT_MINIAPP_BRAND_CONFIG,
+  normalizeBrandConfig,
+} = require('../../utils/brand-config')
 
 Page({
   data: {
@@ -18,6 +23,10 @@ Page({
     privacyError: false,
     formHint: '',
     showPrivacyPopup: false,
+    brandName: DEFAULT_MINIAPP_BRAND_CONFIG.appName,
+    brandMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
+    brandLogoUrl: '',
+    brandEyebrow: DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow,
   },
 
   onLoad(options) {
@@ -45,6 +54,26 @@ Page({
     AuthService.prefetchLoginCode()
     this._ensurePrivacyReady()
     this._refreshCanSubmit()
+    this._loadBrandConfig()
+  },
+
+  async _loadBrandConfig() {
+    try {
+      const app = getApp()
+      const cached = app && app.globalData && app.globalData.miniappBrandConfig
+      const brand = normalizeBrandConfig(cached || await SystemService.fetchBrandConfig(false))
+      if (app && app.globalData) {
+        app.globalData.miniappBrandConfig = brand
+      }
+      this.setData({
+        brandName: brand.appName,
+        brandMark: brand.logoMark,
+        brandLogoUrl: brand.logoUrl,
+        brandEyebrow: brand.brandEyebrow,
+      })
+    } catch (e) {
+      console.warn('[LoginPage] 加载品牌配置失败:', e)
+    }
   },
 
   onUnload() {

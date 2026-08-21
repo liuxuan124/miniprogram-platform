@@ -39,8 +39,10 @@
   <view class="detail-header">
     <view class="price-row">
       <text class="price-symbol">¥</text>
-      <text class="price-value">{{selectedSku ? selectedSku.price : product.price}}</text>
-      <text class="original-price" wx:if="{{product.original_price}}">¥{{product.original_price}}</text>
+      <text class="price-value">{{displayPrice || (selectedSku ? selectedSku.price : product.price)}}</text>
+      <text class="original-price" wx:if="{{hasCouponDiscount && displayOriginalPrice}}">¥{{displayOriginalPrice}}</text>
+      <text class="original-price" wx:elif="{{!hasCouponDiscount && product.original_price}}">¥{{product.original_price}}</text>
+      <text class="coupon-price-tag" wx:if="{{hasCouponDiscount}}">券后价</text>
     </view>
     <text class="product-title">{{product.name}}</text>
     <view class="product-meta">
@@ -58,7 +60,7 @@
     </view>
     <view class="pick" bindtap="onCouponEntry">
       <text class="k">优惠券</text>
-      <text class="v">满减可用</text>
+      <text class="v {{hasCouponDiscount ? 'v--coupon' : ''}}">{{couponEntryText}}</text>
       <text class="ar">›</text>
     </view>
     <view class="pick" bindtap="onServiceEntry" hover-class="pick--pressed">
@@ -132,7 +134,9 @@
   <sku-sheet
     show="{{showSkuPanel}}"
     image="{{(selectedSku && selectedSku.skuImage) || product.images[0] || product.mainImage || product.image || ''}}"
-    price="{{selectedSku ? selectedSku.price : product.price}}"
+    price="{{displayPrice || (selectedSku ? selectedSku.price : product.price)}}"
+    originalPrice="{{hasCouponDiscount ? displayOriginalPrice : ''}}"
+    couponHint="{{skuCouponHint}}"
     stock="{{stock}}"
     groups="{{product.specList}}"
     selectedMap="{{selectedSkuValues}}"
@@ -146,31 +150,42 @@
     bind:buy="onSkuSheetBuy"
   />
 
+  <coupon-sheet
+    show="{{showCouponSheet}}"
+    coupons="{{couponList}}"
+    selectedId="{{selectedCouponId}}"
+    bind:close="onCouponSheetClose"
+    bind:pick="onCouponSheetPick"
+    bind:confirm="onCouponSheetConfirm"
+  />
+
   <!-- 服务说明弹层 -->
-  <view class="svc-mask" wx:if="{{showServiceSheet}}" catchtouchmove="noop" bindtap="onServiceClose"></view>
-  <view class="svc-sheet {{showServiceSheet ? 'svc-sheet--on' : ''}}" catchtouchmove="noop">
-    <view class="svc-sheet__handle"></view>
-    <view class="svc-sheet__head">
-      <text class="svc-sheet__title">服务说明</text>
-      <view class="svc-sheet__close" bindtap="onServiceClose">✕</view>
+  <block wx:if="{{showServiceSheet}}">
+    <view class="svc-mask" catchtouchmove="noop" bindtap="onServiceClose"></view>
+    <view class="svc-sheet svc-sheet--on" catchtouchmove="noop">
+      <view class="svc-sheet__handle"></view>
+      <view class="svc-sheet__head">
+        <text class="svc-sheet__title">服务说明</text>
+        <view class="svc-sheet__close" bindtap="onServiceClose">✕</view>
+      </view>
+      <scroll-view scroll-y class="svc-sheet__body">
+        <view class="svc-item" wx:for="{{serviceItems}}" wx:key="title">
+          <view class="svc-item__head">
+            <text class="svc-item__icon">{{item.icon}}</text>
+            <text class="svc-item__title">{{item.title}}</text>
+          </view>
+          <text class="svc-item__desc">{{item.desc}}</text>
+          <view class="svc-item__rules" wx:if="{{item.rules && item.rules.length}}">
+            <text class="svc-rule" wx:for="{{item.rules}}" wx:for-item="rule" wx:key="*this">· {{rule}}</text>
+          </view>
+        </view>
+        <view class="svc-foot">
+          <text class="svc-foot__text">如需帮助，可联系客服进一步咨询</text>
+          <view class="svc-foot__btn" bindtap="onServiceTap">联系客服</view>
+        </view>
+      </scroll-view>
     </view>
-    <scroll-view scroll-y class="svc-sheet__body">
-      <view class="svc-item" wx:for="{{serviceItems}}" wx:key="title">
-        <view class="svc-item__head">
-          <text class="svc-item__icon">{{item.icon}}</text>
-          <text class="svc-item__title">{{item.title}}</text>
-        </view>
-        <text class="svc-item__desc">{{item.desc}}</text>
-        <view class="svc-item__rules" wx:if="{{item.rules && item.rules.length}}">
-          <text class="svc-rule" wx:for="{{item.rules}}" wx:for-item="rule" wx:key="*this">· {{rule}}</text>
-        </view>
-      </view>
-      <view class="svc-foot">
-        <text class="svc-foot__text">如需帮助，可联系客服进一步咨询</text>
-        <view class="svc-foot__btn" bindtap="onServiceTap">联系客服</view>
-      </view>
-    </scroll-view>
-  </view>
+  </block>
 </view>
 <login-sheet id="global-login-sheet" />
 

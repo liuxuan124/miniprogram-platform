@@ -4,6 +4,7 @@ const request = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
 const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
 const { getNavLayout } = require('../../utils/nav-layout')
+const { resolveMediaUrl } = require('../../utils/media-url')
 
 const TOPIC_TABS = [
   { id: '', name: '推荐' },
@@ -86,6 +87,12 @@ function resolveTopic(item) {
 }
 
 function resolveFormat(item) {
+  const type = String(item.contentType || item.content_type || '').toLowerCase()
+  if (type === 'note') return { key: 'note', label: '笔记' }
+  if (type === 'video') return { key: 'video', label: '视频' }
+  if (type === 'data') return { key: 'data', label: '数据' }
+  if (type === 'article' || type === 'longform') return { key: 'longform', label: '长文' }
+
   const blob = blobOf(item)
   if (/视频|video|reel/i.test(blob) || (/TikTok/.test(blob) && /起号|复盘/.test(blob))) {
     return { key: 'video', label: '视频' }
@@ -160,10 +167,12 @@ function mapRecord(item) {
   if (fmt.key === 'video') metaParts.push(item.duration || '08:24')
   if (fmt.key === 'data') metaParts.push(item.summary ? String(item.summary).slice(0, 24) : '采样 3 个平台')
   if (views && fmt.key !== 'data') metaParts.push(views)
-  const likeCount = Number(item.likeCount || item.viewCount || 0)
+  const likeCount = Number(item.likeCount || item.like_count || 0)
   const likeText = likeCount >= 1000
     ? `${(likeCount / 1000).toFixed(1).replace(/\.0$/, '')}k`
-    : String(likeCount || '286')
+    : String(likeCount || 0)
+  const author = String(item.author || '作者').trim() || '作者'
+  const authorAvatar = resolveMediaUrl(item.authorAvatar || item.author_avatar || '')
   const nums = fmt.key === 'data'
     ? DATA_NUM_POOL[Number(item.id || 0) % DATA_NUM_POOL.length]
     : []
@@ -181,7 +190,10 @@ function mapRecord(item) {
     dur: fmt.key === 'video' ? (item.duration || '08:24') : '',
     nums,
     likeText,
-    cover_url: item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || '',
+    author,
+    author_initial: author.slice(0, 1),
+    author_avatar: authorAvatar,
+    cover_url: resolveMediaUrl(item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || ''),
   }
 }
 

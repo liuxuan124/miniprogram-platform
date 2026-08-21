@@ -126,8 +126,9 @@
           <view class="c-note__txt">
             <text class="c-note__title">{{item.title}}</text>
             <view class="c-note__foot">
-              <text class="c-note__av">哲</text>
-              <text>出海笔记</text>
+              <image wx:if="{{item.author_avatar}}" class="c-note__av-img" src="{{item.author_avatar}}" mode="aspectFill" />
+              <text wx:else class="c-note__av">{{item.author_initial}}</text>
+              <text>{{item.author}}</text>
               <text class="c-note__meta">♡ {{item.likeText}}</text>
             </view>
           </view>

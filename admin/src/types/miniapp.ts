@@ -208,6 +208,7 @@ export const CONFIG_KEYS = {
   THEME_CONFIG: 'miniappThemeConfig',
   SHARE_TITLE: 'miniappShareTitle',
   SHARE_IMAGE: 'miniappShareImage',
+  BRAND_CONFIG: 'miniappBrandConfig',
 } as const
 
 /** 导航模板预设 */
@@ -320,4 +321,24 @@ export const DEFAULT_THEME: ThemeConfig = {
   tabBarInactiveColor: '#8B93A7',
   tabBarBackgroundColor: '#ffffff',
   pageBackgroundColor: '#F2F4FA',
+}
+
+/** 小程序品牌基础信息（登录半屏、分享、导航同步） */
+export interface MiniappBrandConfig {
+  appName: string
+  logoUrl: string
+  /** 无 Logo 图片时显示的单字/短字标识 */
+  logoMark: string
+  /** 登录半屏默认副标题 */
+  loginTagline: string
+  /** 登录页/品牌区英文副标（可选） */
+  brandEyebrow: string
+}
+
+export const DEFAULT_MINIAPP_BRAND_CONFIG: MiniappBrandConfig = {
+  appName: '出海笔记',
+  logoUrl: '',
+  logoMark: '海',
+  loginTagline: '想认识一下你，可以吗？',
+  brandEyebrow: 'CROSS-BORDER NOTES',
 }

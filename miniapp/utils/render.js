@@ -34,6 +34,7 @@ const COMPONENT_TYPES = {
   FLASH_SALE: 'flash_sale',
   ARTICLE_LIST: 'article_list',
   ARTICLE_FEED: 'article_feed',
+  NOTE_FEED: 'note_feed',
   HOT_NEWS: 'hot_news',
   JOIN_GROUP: 'join_group',
   BRAND_HEADER: 'brand_header',
@@ -64,6 +65,7 @@ const DATASOURCE_COMPONENTS = [
   COMPONENT_TYPES.PRODUCT_LIST,
   COMPONENT_TYPES.ARTICLE_LIST,
   COMPONENT_TYPES.ARTICLE_FEED,
+  COMPONENT_TYPES.NOTE_FEED,
   COMPONENT_TYPES.HOT_NEWS,
   COMPONENT_TYPES.ACTIVITY_ENTRY,
   COMPONENT_TYPES.ACTIVITY_LIST,
@@ -260,6 +262,7 @@ function processComponent(component) {
     product_list: 'product',
     article_list: 'content',
     article_feed: 'content',
+    note_feed: 'content',
     hot_news: 'content',
     activity_list: 'activity',
     activity_entry: 'activity',
@@ -390,7 +393,7 @@ async function loadComponentData(component, forceRefresh = false) {
       : { mode: 'all' }
     const MAX_ITEMS = component.type === 'hot_news'
       ? Math.max(limit, 50)
-      : (component.type === 'article_feed'
+      : (component.type === 'article_feed' || component.type === 'note_feed'
         ? feedPageSize
         : (component.type === 'product_list' && isProductStream
           ? feedPageSize

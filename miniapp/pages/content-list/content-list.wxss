@@ -441,17 +441,22 @@
   font-size: 20rpx;
 }
 
+.c-note__av,
+.c-note__av-img {
+  flex-shrink: 0;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+}
+
 .c-note__av {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34rpx;
-  height: 34rpx;
   color: #fff;
   font-size: 16rpx;
   font-weight: 600;
   background: linear-gradient(140deg, #5c7cff, #2f5bff);
-  border-radius: 50%;
 }
 
 .c-note__meta {

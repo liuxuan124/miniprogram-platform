@@ -1,12 +1,37 @@
 /* components/sku-sheet/sku-sheet.wxss */
-.mask { position:fixed; inset:0; background:rgba(10,13,20,.45); z-index:90; }
-.sheet { position:fixed; left:0; right:0; bottom:0; max-height:78%; background:#fff; border-radius:40rpx 40rpx 0 0; z-index:91; transform:translateY(110%); transition:transform .28s cubic-bezier(.32,.72,0,1); display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom); }
-.sheet.on { transform:none; }
+.mask { position:fixed; inset:0; background:rgba(10,13,20,.45); z-index:200; }
+.sheet {
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  max-height:78%;
+  background:#fff;
+  border-radius:40rpx 40rpx 0 0;
+  z-index:201;
+  transform:translateY(110%);
+  transition:transform .28s cubic-bezier(.32,.72,0,1);
+  display:flex;
+  flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom);
+  /* 关闭时不拦截底栏点击（微信对 transform 离屏层仍可能命中） */
+  pointer-events:none;
+  visibility:hidden;
+}
+.sheet.on {
+  transform:none;
+  pointer-events:auto;
+  visibility:visible;
+}
 .h { display:flex; gap:20rpx; padding:28rpx 32rpx 16rpx; align-items:flex-start; }
 .img { width:140rpx; height:140rpx; border-radius:20rpx; background:var(--line-2); flex-shrink:0; }
 .info { flex:1; min-width:0; }
+.price-row { display:flex; align-items:baseline; flex-wrap:wrap; gap:8rpx; }
 .price { font-size:40rpx; font-weight:800; color:var(--accent); }
+.orig { font-size:24rpx; color:var(--ink-300); text-decoration:line-through; }
+.tag { font-size:20rpx; color:var(--accent); font-weight:600; }
 .stock,.sel { margin-top:8rpx; font-size:24rpx; color:var(--ink-300); }
+.coupon { margin-top:8rpx; font-size:22rpx; color:var(--accent); }
 .x { font-size:34rpx; color:var(--ink-300); }
 .b { flex:1; max-height:46vh; padding:0 32rpx; }
 .group { margin-bottom:24rpx; }

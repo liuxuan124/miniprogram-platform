@@ -4,6 +4,7 @@ const productService = require('../../services/product')
 const { StorageUtil } = require('../../utils/storage')
 const { createSharePageConfig } = require('../../utils/share')
 const { AuthUtil } = require('../../utils/auth')
+const { resolveMediaUrl } = require('../../utils/media-url')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
 const FAVORITES_KEY = 'content_favorites'
@@ -25,6 +26,20 @@ const CAT_TO_TOPIC = {
 const PROTO_BY_TITLE = Object.fromEntries(ITEMS.map((i) => [i.title, i]))
 
 function resolveFormat(item) {
+  const type = String(item.contentType || item.content_type || '').toLowerCase()
+  if (type === 'note') {
+    return { key: 'note', label: '笔记', isNote: true }
+  }
+  if (type === 'video') {
+    return { key: 'video', label: '视频', isNote: false }
+  }
+  if (type === 'data') {
+    return { key: 'data', label: '数据', isNote: false }
+  }
+  if (type === 'article' || type === 'longform') {
+    return { key: 'article', label: '长文', isNote: false }
+  }
+
   const source = String(item.source || '').trim()
   if (source === '笔记' || /笔记|小红书|xhs/i.test(source)) {
     return { key: 'note', label: '笔记', isNote: true }
@@ -198,6 +213,8 @@ Page({
     commentDraft: '',
     commentSubmitting: false,
     authorName: AUTHOR_NAME,
+    authorAvatar: '',
+    authorInitial: '哲',
   },
 
   onLoad(options) {
@@ -250,18 +267,16 @@ Page({
           'select'
         const fmt = resolveFormat(article)
         const isNote = fmt.isNote
-        const cover = article.coverUrl || article.coverImage || ''
-        const extras = Array.isArray(article.images)
-          ? article.images
-          : Array.isArray(article.gallery)
-            ? article.gallery
-            : []
+        const cover = resolveMediaUrl(article.coverUrl || article.coverImage || article.cover_url || '')
+        const extras = (Array.isArray(article.images) ? article.images : (Array.isArray(article.gallery) ? article.gallery : []))
+          .map((url) => resolveMediaUrl(url))
+          .filter(Boolean)
 
         let gallerySlides = []
         if (isNote) {
           const urls = [cover].concat(extras).filter(Boolean)
           const uniq = urls.filter((u, i, arr) => arr.indexOf(u) === i)
-          if (uniq.length >= 2) {
+          if (uniq.length >= 1) {
             gallerySlides = uniq.map((url, i) => ({ type: 'image', url, key: `img-${i}` }))
           } else {
             const glyphs = [proto && proto.glyph, '📸', '✨', '💡', '🔥', '📌'].filter(Boolean)
@@ -311,6 +326,10 @@ Page({
         const likeCount = liked ? baseLike + 1 : baseLike
         const comments = seedComments(contentIdKey, likeCount)
 
+        const authorName = String(article.author || AUTHOR_NAME).trim() || AUTHOR_NAME
+        const authorAvatar = resolveMediaUrl(article.authorAvatar || article.author_avatar || '')
+        const favoriteBase = Number(article.favoriteCount || article.favorite_count || 0)
+
         this.setData({
           article: {
             ...article,
@@ -320,7 +339,9 @@ Page({
             publish_time: dateStr,
             created_at: fmtDate(article.createTime),
             like_count: likeCount,
+            favorite_count: favoriteBase,
             summary: article.summary || '',
+            author_avatar: authorAvatar,
           },
           loading: false,
           isNote,
@@ -343,6 +364,9 @@ Page({
           commentCount: comments.length,
           commentCountDisplay: formatCount(comments.length),
           readProgress: 0,
+          authorName,
+          authorAvatar,
+          authorInitial: authorName.slice(0, 1),
         })
 
         wx.setNavigationBarTitle({ title: isNote ? '笔记' : '文章' })

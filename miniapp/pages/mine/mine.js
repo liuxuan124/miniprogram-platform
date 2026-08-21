@@ -1,101 +1,183 @@
-// pages/mine/mine.js — 我的页面（会员中心入口）
+// pages/mine/mine.js — 我的页（对齐后台 minePageConfig）
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
 const memberService = require('../../services/member')
 const SystemService = require('../../services/system')
 const { LOGIN_RULES } = require('../../config/login-rules')
 
-/** 过滤无效菜单；设置入口保留（个人信息在设置页） */
-function filterDeadMenuItems(list) {
+const ORDER_TAB_KEYS = ['pending', 'paid', 'shipped', 'completed']
+const ORDER_STATUS_API = {
+  pending: 'pending_payment',
+  paid: 'paid',
+  shipped: 'shipped',
+  completed: 'completed',
+}
+const ORDER_TAB_EMOJI = {
+  pending: '💰',
+  paid: '📦',
+  shipped: '🚚',
+  completed: '✅',
+}
+const LINE_ICON_EMOJI = {
+  'line:document': '📄',
+  'line:books': '📚',
+  'line:calendar': '📅',
+  'line:crown': '👑',
+  'line:coupon': '🎫',
+  'line:wallet': '💰',
+  'line:package': '📦',
+  'line:truck': '🚚',
+  'line:check': '✅',
+  'line:star': '⭐',
+  'line:pin': '📍',
+  'line:chat': '💬',
+  'line:gear': '⚙️',
+  'line:mail': '✉️',
+  'line:user': '👤',
+  'line:heart': '❤️',
+  'line:bag': '🛍️',
+  'line:gift': '🎁',
+  'line:phone': '📞',
+  'line:ticket': '🎟️',
+  'line:clipboard': '📋',
+  'line:feedback': '📝',
+  'line:idcard': '🪪',
+  'line:list': '📃',
+  'line:bell': '🔔',
+  'line:shield': '🛡️',
+  'line:home': '🏠',
+  'line:grid': '▦',
+  'line:tag': '🏷️',
+  'line:search': '🔍',
+  'line:pencil': '✏️',
+  'line:sun': '☀️',
+}
+
+function iconDisplay(icon) {
+  if (!icon) return '•'
+  if (String(icon).startsWith('line:')) return LINE_ICON_EMOJI[icon] || '•'
+  return icon
+}
+
+function filterMenuItems(list) {
   return (list || []).filter((item) => {
     if (item.enabled === false) return false
     if (!item.url && item.id !== 'contact') return false
     return true
-  })
+  }).map((item) => ({
+    ...item,
+    iconText: iconDisplay(item.icon),
+  }))
+}
+
+function buildOrderTabs(mineConfig) {
+  const labels = (mineConfig.orderQuickAccess && mineConfig.orderQuickAccess.tabLabels)
+    || SystemService.DEFAULT_ORDER_QUICK_ACCESS.tabLabels
+  return ORDER_TAB_KEYS.map((key) => ({
+    key,
+    apiStatus: ORDER_STATUS_API[key],
+    label: labels[key] || SystemService.DEFAULT_ORDER_QUICK_ACCESS.tabLabels[key],
+    iconText: ORDER_TAB_EMOJI[key],
+  }))
+}
+
+function memberCtaText(mineConfig, isLoggedIn) {
+  if (isLoggedIn) return '查看权益'
+  const raw = String((mineConfig && mineConfig.loginButtonText) || '').trim()
+  if (raw && raw !== '微信一键登录') return raw
+  return '登录'
+}
+
+function memberBenefitsLine(styleKey, isLoggedIn) {
+  if (styleKey === 'member') return '专属折扣 · 积分加速 · 优先预约'
+  if (isLoggedIn) return '查看会员权益与成长进度'
+  return '登录后查看会员权益与成长进度'
 }
 
 Page({
   data: {
+    statusBarHeight: 20,
     isLoggedIn: false,
     userInfo: null,
     memberInfo: null,
     mineConfig: SystemService.DEFAULT_MINE_PAGE_CONFIG,
-    servicePhone: '',
+    styleKey: 'basic',
+    showDecor: true,
+    showMemberCard: true,
+    showOrderTabs: true,
+    showAllOrdersBtn: true,
+    showMenuIcons: true,
+    showAvatar: true,
+    memberCta: '登录',
+    memberBenefits: '登录后查看会员权益与成长进度',
+    levelLabel: '会员等级',
+    orderTabs: buildOrderTabs(SystemService.DEFAULT_MINE_PAGE_CONFIG),
+    menuList: filterMenuItems(SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems),
     continuousDays: 0,
-    hasSignedIn: false,
-    orderTabs: [
-      { key: 'pending_payment', label: '待付款' },
-      { key: 'paid', label: '待发货' },
-      { key: 'shipped', label: '待收货' },
-      { key: 'refund', label: '退款' },
-    ],
-    stats: { coupons: 0, points: 0, growth: 0 },
     badges: { pending: 0, appoint: 0, review: 0 },
-    tipText: '',
-    menuList: [
-      ...SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems,
-    ],
-    visibleMenuList: filterDeadMenuItems(SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems),
   },
 
   onLoad() {
-    this._loadMinePageConfig()
+    try {
+      const sys = wx.getSystemInfoSync()
+      this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
+    } catch (e) { /* ignore */ }
+    this._loadMinePageConfig(true)
+  },
+
+  onReady() {
+    this._loginSheet = this.selectComponent('#global-login-sheet')
   },
 
   onShow() {
-    // 自定义 tabBar：始终藏住原生栏，避免双 Tab
     wx.hideTabBar({ animation: false, fail() {} })
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 3, hidden: false })
     }
 
+    this._resetStuckLoginSheet()
+    this._loadMinePageConfig(false)
     AuthService.silentLogin()
       .then((loggedIn) => {
         this._refreshUserInfo()
-        if (loggedIn) {
-          this._loadMemberInfo()
-        }
+        if (loggedIn) this._loadMemberInfo()
       })
       .catch(() => {
         this._refreshUserInfo()
       })
   },
 
-  /** 加载后台配置的我的页面内容 */
-  _loadMinePageConfig() {
-    SystemService.fetchMinePageConfig()
-      .then((config) => {
-        const menuList = Array.isArray(config.menuItems) && config.menuItems.length
-          ? config.menuItems
-          : SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems
-        const visibleMenuList = filterDeadMenuItems(menuList)
-        const servicePhone = config.service_phone || config.servicePhone
-          || (config.minePageConfig && config.minePageConfig.servicePhone) || ''
-        const mergedMine = {
-          ...SystemService.DEFAULT_MINE_PAGE_CONFIG,
-          ...config.minePageConfig,
-          ...config,
-          servicePhone,
-        }
-        mergedMine.showMemberCard = mergedMine.showMemberCard !== false
-        this.setData({
-          mineConfig: mergedMine,
-          servicePhone,
-          menuList,
-          visibleMenuList,
-        })
-      })
-      .catch(() => {
-        const menuList = SystemService.DEFAULT_MINE_PAGE_CONFIG.menuItems
-        this.setData({
-          mineConfig: SystemService.DEFAULT_MINE_PAGE_CONFIG,
-          menuList,
-          visibleMenuList: filterDeadMenuItems(menuList),
-        })
-      })
+  _applyMineConfig(config) {
+    const mineConfig = SystemService.normalizeMinePageConfig(config)
+    const styleKey = config.styleKey || SystemService.resolveMineStyleKey(mineConfig)
+    const menuList = filterMenuItems(mineConfig.menuItems)
+    const orderQa = mineConfig.orderQuickAccess || SystemService.DEFAULT_ORDER_QUICK_ACCESS
+    const userProfile = mineConfig.userProfile || SystemService.DEFAULT_USER_PROFILE
+    const isLoggedIn = this.data.isLoggedIn
+
+    this.setData({
+      mineConfig,
+      styleKey,
+      showDecor: mineConfig.showDecorBackground !== false,
+      showMemberCard: mineConfig.showMemberCard !== false,
+      showOrderTabs: orderQa.showOrderTabs !== false,
+      showAllOrdersBtn: orderQa.showAllOrdersBtn !== false,
+      showMenuIcons: !!mineConfig.showMenuIcons,
+      showAvatar: userProfile.showAvatar !== false,
+      orderTabs: buildOrderTabs(mineConfig),
+      menuList,
+      memberCta: memberCtaText(mineConfig, isLoggedIn),
+      memberBenefits: memberBenefitsLine(styleKey, isLoggedIn),
+      levelLabel: userProfile.memberLevelLabel || '会员等级',
+    })
   },
 
-  /** 刷新用户信息 */
+  _loadMinePageConfig(force) {
+    SystemService.fetchMinePageConfig(!!force)
+      .then((config) => this._applyMineConfig(config))
+      .catch(() => this._applyMineConfig(SystemService.DEFAULT_MINE_PAGE_CONFIG))
+  },
+
   _refreshUserInfo() {
     const app = getApp()
     const isLoggedIn = AuthUtil.isLoggedIn()
@@ -109,146 +191,127 @@ Page({
       app.globalData.userInfo = userInfo
     }
 
-    // 未登录不展示假数据
     if (!isLoggedIn) {
       this.setData({
         isLoggedIn: false,
         userInfo: null,
         memberInfo: null,
-        stats: { coupons: 0, points: 0, growth: 0 },
         badges: { pending: 0, appoint: 0, review: 0 },
-        tipText: '',
+        memberCta: memberCtaText(this.data.mineConfig, false),
+        memberBenefits: memberBenefitsLine(this.data.styleKey, false),
       })
       return
     }
 
-    this.setData({ isLoggedIn, userInfo })
+    this.setData({
+      isLoggedIn: true,
+      userInfo,
+      memberCta: memberCtaText(this.data.mineConfig, true),
+      memberBenefits: memberBenefitsLine(this.data.styleKey, true),
+    })
   },
 
-  /** 加载会员信息 */
   _loadMemberInfo() {
-    if (!AuthUtil.isLoggedIn()) {
-      this.setData({
-        stats: { coupons: 0, points: 0, growth: 0 },
-        tipText: '',
-      })
-      return
-    }
-
+    if (!AuthUtil.isLoggedIn()) return
     memberService.getMemberInfo()
       .then((data) => {
         this.setData({
           memberInfo: data,
           continuousDays: data.continuous_days || data.continuousDays || 0,
-          hasSignedIn: data.has_signed_in || false,
-          stats: {
-            coupons: data.couponCount || data.coupon_count || 0,
-            points: data.points || data.availablePoints || 0,
-            growth: data.growthValue || data.growth_value || 0,
-          },
-          tipText: data.appointmentTip || '',
         })
       })
       .catch((err) => {
         console.error('[MinePage] 获取会员信息失败:', err)
-        this.setData({
-          stats: { coupons: 0, points: 0, growth: 0 },
-          tipText: '',
-        })
-        if (err && (err.code === 401 || err.code === 403)) {
-          AuthService.silentLogin()
-            .then((loggedIn) => {
-              if (!loggedIn) return
-              this._refreshUserInfo()
-              return memberService.getMemberInfo()
-            })
-            .then((data) => {
-              if (!data) return
-              this.setData({
-                memberInfo: data,
-                continuousDays: data.continuous_days || 0,
-                hasSignedIn: data.has_signed_in || false,
-                stats: {
-                  coupons: data.couponCount || data.coupon_count || 0,
-                  points: data.points || data.availablePoints || 0,
-                  growth: data.growthValue || data.growth_value || 0,
-                },
-                tipText: data.appointmentTip || '',
-              })
-            })
-            .catch((retryErr) => {
-              console.error('[MinePage] 重新登录后获取会员信息失败:', retryErr)
-            })
-        }
       })
   },
 
-  goCoupons() {
-    wx.navigateTo({ url: '/pkg-user/coupon-list/coupon-list' })
+  _resetStuckLoginSheet() {
+    const sheet = this._loginSheet || this.selectComponent('#global-login-sheet')
+    if (!sheet || !sheet.data) return
+    if (sheet.data.mounted && !sheet.data.visible && !sheet.data.loading) {
+      sheet.setData({ mounted: false, visible: false })
+    }
   },
 
-  goAppointments() {
-    if (!AuthUtil.requireLoginForAction('查看预约')) return
-    wx.navigateTo({ url: '/pkg-user/my-appointments/my-appointments' })
+  /** 半屏登录面板（不跳转登录页） */
+  _openLoginSheet(action) {
+    const options = {
+      action: action || '',
+      onSuccess: () => {
+        this._refreshUserInfo()
+        this._loadMemberInfo()
+      },
+    }
+
+    const tryShow = () => {
+      const sheet = this._loginSheet || this.selectComponent('#global-login-sheet')
+      if (sheet && typeof sheet.show === 'function') {
+        sheet.show(options)
+        return true
+      }
+      return false
+    }
+
+    if (tryShow()) return true
+
+    wx.nextTick(() => {
+      if (tryShow()) return
+      setTimeout(() => {
+        if (tryShow()) return
+        AuthUtil.openLoginSheet(options)
+      }, 100)
+    })
+    return false
   },
 
-  goWriteReview() {
-    wx.navigateTo({ url: '/pkg-trade/order-list/order-list?status=completed' })
+  _ensureLogin(desc) {
+    if (AuthUtil.isLoggedIn()) return true
+    this._openLoginSheet(desc)
+    return false
   },
 
-  /** 头像区 / 会员卡：未登录跳转登录页；已登录分别进设置或会员中心 */
   onUserAreaTap() {
     if (!this.data.isLoggedIn) {
-      const pages = getCurrentPages()
-      const cur = pages[pages.length - 1]
-      const redirect = cur ? '/' + cur.route : '/pages/mine/mine'
-      wx.navigateTo({
-        url: '/pages/login/login?redirect=' + encodeURIComponent(redirect),
-      })
+      this._openLoginSheet('解锁会员权益')
       return
     }
-    this.goSettings()
-  },
-
-  goSettings() {
     wx.navigateTo({ url: '/pkg-user/settings/settings' })
   },
 
-  /** 会员卡：未登录跳转登录页；已登录进会员中心 */
-  onMemberCardTap() {
-    if (!this.data.isLoggedIn) {
-      const pages = getCurrentPages()
-      const cur = pages[pages.length - 1]
-      const redirect = cur ? '/' + cur.route : '/pages/mine/mine'
-      wx.navigateTo({
-        url: '/pages/login/login?redirect=' + encodeURIComponent(redirect),
-      })
+  onLoginTap() {
+    if (this.data.isLoggedIn) {
+      wx.navigateTo({ url: '/pkg-user/member-center/member-center' })
       return
     }
-    this.goMemberCenter()
+    this._openLoginSheet('查看会员权益')
   },
 
-  /** 跳转会员中心 */
-  goMemberCenter() {
+  onMemberCardTap() {
+    if (!this.data.isLoggedIn) {
+      this._openLoginSheet('查看会员权益')
+      return
+    }
     wx.navigateTo({ url: '/pkg-user/member-center/member-center' })
   },
 
-  /** 订单快捷入口 */
+  onMemberCtaTap() {
+    this.onLoginTap()
+  },
+
   onOrderTabTap(e) {
-    const { key } = e.currentTarget.dataset
-    if (!AuthUtil.requireLoginForAction('查看订单')) return
+    const key = e.currentTarget.dataset.key
+    if (!this._ensureLogin('查看订单')) return
+    const apiStatus = ORDER_STATUS_API[key] || key
     wx.navigateTo({
-      url: '/pkg-trade/order-list/order-list?status=' + key,
+      url: '/pkg-trade/order-list/order-list?status=' + apiStatus,
     })
   },
 
-  /** 查看全部订单 */
   onViewAllOrders() {
-    if (!AuthUtil.requireLoginForAction('查看订单')) return
+    if (!this._ensureLogin('查看订单')) return
     wx.navigateTo({ url: '/pkg-trade/order-list/order-list' })
   },
 
-  /** 菜单项点击 */
   onMenuTap(e) {
     const ds = e.currentTarget.dataset || {}
     const id = ds.id
@@ -260,14 +323,13 @@ Page({
       url: rawUrl,
     }
 
-    // 根据登录规则判断是否需要登录（设置/客服/反馈无需登录）
     const skipLogin = id === 'settings' || id === 'contact' || id === 'feedback'
       || /设置|客服|反馈|协议|隐私/.test(menuItem.title || title)
     const requireLogin = !skipLogin && (
       LOGIN_RULES.mineMenuRequireLogin[id]
-      || /订单|资产|优惠券|收藏|地址|预约/.test(menuItem.title || title)
+      || /订单|资产|优惠券|收藏|地址|预约|已购|会员|资料/.test(menuItem.title || title)
     )
-    if (requireLogin && !AuthUtil.requireLoginForAction(menuItem.title || title || '继续操作')) return
+    if (requireLogin && !this._ensureLogin(menuItem.title || title || '继续操作')) return
 
     if (id === 'contact' || rawUrl === 'contact' || /客服|售后/.test(menuItem.title || title)) {
       wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
@@ -287,7 +349,6 @@ Page({
       '/pages/knowledge-mall/knowledge-mall',
       '/pages/mine/mine',
     ].indexOf(path) >= 0
-    // 旧商城路径转到新 Tab
     if (path === '/pages/product-list/product-list') {
       wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
       return
@@ -333,7 +394,6 @@ Page({
     }
     if (moved[rawUrl]) return moved[rawUrl]
 
-    // 兼容带 query 的旧路径
     const pathOnly = rawUrl.split('?')[0]
     if (moved[pathOnly]) {
       const q = rawUrl.includes('?') ? rawUrl.slice(rawUrl.indexOf('?')) : ''
@@ -344,19 +404,5 @@ Page({
     if (/反馈/.test(title || '')) return '/pkg-user/feedback/feedback'
     if (/设置/.test(title || '')) return '/pkg-user/settings/settings'
     return ''
-  },
-
-  /** 退出登录 */
-  onLogout() {
-    wx.showModal({
-      title: '提示',
-      content: '确定要退出登录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          AuthService.logout({ redirectToLogin: false })
-          this._refreshUserInfo()
-        }
-      },
-    })
   },
 })

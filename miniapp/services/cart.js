@@ -6,8 +6,8 @@ const request = require('../utils/request')
 /**
  * 获取购物车列表
  */
-function getCartList() {
-  return request.get('/api/v1/mp/cart')
+function getCartList(options = {}) {
+  return request.get('/api/v1/mp/cart', {}, options)
 }
 
 /**

@@ -57,6 +57,18 @@
     </view>
   </view>
 
+  <!-- 优惠券 -->
+  <view class="block pay-block" wx:if="{{userCouponId}}">
+    <view class="pay-row">
+      <text class="pay-row__label">优惠券</text>
+      <text class="pay-row__label" style="margin-left:auto;color:#315efb;">{{couponName || couponLabel || '已选'}}</text>
+    </view>
+    <view class="pay-row" wx:if="{{discountAmount > 0}}">
+      <text class="pay-row__label">优惠</text>
+      <text class="pay-row__label" style="margin-left:auto;color:#ff4d4f;">-¥{{discountAmount}}</text>
+    </view>
+  </view>
+
   <!-- 支付方式 -->
   <view class="block pay-block">
     <view class="block__head">

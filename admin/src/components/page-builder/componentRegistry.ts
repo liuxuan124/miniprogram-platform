@@ -347,6 +347,27 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
     },
   ],
   [
+    ComponentType.NoteFeed,
+    {
+      type: ComponentType.NoteFeed,
+      label: '笔记瀑布流',
+      icon: 'PictureFilled',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        page_size: 12,
+        show_category_tabs: true,
+        item_gap: 11,
+        data_source: {
+          type: 'content',
+          params: { status: 'published', contentType: 'note' },
+          query: { status: 'published', contentType: 'note' },
+        },
+      }),
+      defaultStyle: () => ({ margin_left: 12, margin_right: 12, border_radius: 12 }),
+    },
+  ],
+  [
     ComponentType.HotNews,
     {
       type: ComponentType.HotNews,
@@ -952,6 +973,7 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.FlashSale,
   ComponentType.ArticleList,
   ComponentType.ArticleFeed,
+  ComponentType.NoteFeed,
   ComponentType.HotNews,
   ComponentType.ActivityEntry,
   ComponentType.ActivityList,
