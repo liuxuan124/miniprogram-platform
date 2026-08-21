@@ -71,13 +71,15 @@ Page({
         const visibleMenuList = filterDeadMenuItems(menuList)
         const servicePhone = config.service_phone || config.servicePhone
           || (config.minePageConfig && config.minePageConfig.servicePhone) || ''
+        const mergedMine = {
+          ...SystemService.DEFAULT_MINE_PAGE_CONFIG,
+          ...config.minePageConfig,
+          ...config,
+          servicePhone,
+        }
+        mergedMine.showMemberCard = mergedMine.showMemberCard !== false
         this.setData({
-          mineConfig: {
-            ...SystemService.DEFAULT_MINE_PAGE_CONFIG,
-            ...config.minePageConfig,
-            ...config,
-            servicePhone,
-          },
+          mineConfig: mergedMine,
           servicePhone,
           menuList,
           visibleMenuList,
@@ -194,14 +196,14 @@ Page({
     wx.navigateTo({ url: '/pkg-trade/order-list/order-list?status=completed' })
   },
 
-  /** 点击头像/登录区域 */
+  /** 头像区 / 会员卡：未登录跳转登录页；已登录分别进设置或会员中心 */
   onUserAreaTap() {
     if (!this.data.isLoggedIn) {
-      AuthUtil.openLoginSheet({
-        onSuccess: () => {
-          this._refreshUserInfo()
-          this._loadMemberInfo()
-        },
+      const pages = getCurrentPages()
+      const cur = pages[pages.length - 1]
+      const redirect = cur ? '/' + cur.route : '/pages/mine/mine'
+      wx.navigateTo({
+        url: '/pages/login/login?redirect=' + encodeURIComponent(redirect),
       })
       return
     }
@@ -210,6 +212,20 @@ Page({
 
   goSettings() {
     wx.navigateTo({ url: '/pkg-user/settings/settings' })
+  },
+
+  /** 会员卡：未登录跳转登录页；已登录进会员中心 */
+  onMemberCardTap() {
+    if (!this.data.isLoggedIn) {
+      const pages = getCurrentPages()
+      const cur = pages[pages.length - 1]
+      const redirect = cur ? '/' + cur.route : '/pages/mine/mine'
+      wx.navigateTo({
+        url: '/pages/login/login?redirect=' + encodeURIComponent(redirect),
+      })
+      return
+    }
+    this.goMemberCenter()
   },
 
   /** 跳转会员中心 */

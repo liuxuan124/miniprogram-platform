@@ -3,6 +3,7 @@ const { executeAction } = require('../../utils/render')
 const { formatProductPriceLabel, formatProductSalesLabel } = require('../../utils/product-price-display')
 const { filterProductsByPrice, resolvePriceFilterConfig } = require('../../utils/product-price-filter')
 const DatasourceService = require('../../services/datasource')
+const { normalizeImageUrl } = require('../../utils/image-preload')
 
 function calcPageSize(config) {
   const raw = Number(config && config.page_size)
@@ -198,10 +199,10 @@ Component({
       const pickCover = (item) => {
         const gallery = item.images
         const firstFromGallery = Array.isArray(gallery) && gallery.length ? String(gallery[0] || '').trim() : ''
-        return String(
+        return normalizeImageUrl(String(
           item.mainImage || item.main_image || item.coverUrl || item.cover_url
           || item.coverImage || item.cover || item.image || item.pic || firstFromGallery || '',
-        ).trim()
+        ).trim())
       }
       const zeroPriceDisplay = config.zero_price_display === 'free' ? 'free' : 'amount'
       return source.map((item, index) => {
@@ -221,6 +222,7 @@ Component({
           ...item,
           _key: item._key || `product_${item.id || globalIndex}_${globalIndex}`,
           _cover: cover,
+          _eager: globalIndex < 6,
           _price: price,
           _priceLabel: (priceLabel.withYuan ? '¥' : '') + priceLabel.text,
           _sales: sales,

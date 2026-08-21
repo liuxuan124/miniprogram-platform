@@ -25,7 +25,7 @@ page {
 
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  /* 勿设 overflow-x:hidden：会隐式变成裁切容器，导航负 margin 叠在头图上会被裁掉 */
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
@@ -47,7 +47,6 @@ view, text, image, button, input, textarea, scroll-view {
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
   background-color: var(--bg);
   box-sizing: border-box;
 }

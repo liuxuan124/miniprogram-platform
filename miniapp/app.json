@@ -11,7 +11,8 @@
     "pages/content-detail/content-detail",
     "pages/cart/cart",
     "pages/order-create/order-create",
-    "pages/custom/custom"
+    "pages/custom/custom",
+    "pages/custom-nav/custom-nav"
   ],
   "window": {
     "backgroundTextStyle": "dark",

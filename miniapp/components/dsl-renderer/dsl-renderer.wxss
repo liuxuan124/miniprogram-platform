@@ -1,10 +1,21 @@
 /* components/dsl-renderer/dsl-renderer.wxss ??DSL ?????? */
 
 .dsl-renderer {
+  /* 勿设 overflow，否则负 margin 叠层（导航盖住头图）会被裁切 */
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
   box-sizing: border-box;
+}
+
+/* 叠层组件：z-index 必须打在自定义组件外壳上，内部 style 跨组件不生效 */
+.dsl-renderer--stack {
+  position: relative;
+  z-index: 20;
+}
+
+.dsl-renderer--below {
+  position: relative;
+  z-index: 1;
 }
 
 .dsl-search {

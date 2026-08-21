@@ -109,9 +109,14 @@ Component({
       } else {
         barBgStyle = 'background:' + ((cfg && cfg.background_color) || '#ffffff') + ';'
       }
-      const shell = shellStyle ? shellStyle + ';' : ''
+      // 过滤会顶掉 fixed 的 position，避免顶栏占位空白翻倍
+      const shell = String(shellStyle || '')
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s && !/^position\s*:/i.test(s))
+        .join(';')
       this.setData({
-        headerStyle: shell + barBgStyle,
+        headerStyle: (shell ? shell + ';' : '') + barBgStyle,
       })
     },
   },

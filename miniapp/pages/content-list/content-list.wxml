@@ -3,13 +3,12 @@
 <block wx:if="{{dslMode}}">
   <template
     is="dsl-tab-body"
-    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight}}"
+    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight, statusPadPx}}"
   />
 </block>
 <block wx:else>
-<view class="cc-page" style="padding-top: {{statusBarHeight}}px;">
-  <view class="cc-nav">
-    <text class="cc-nav__title">内容中心</text>
+<view class="cc-page">
+  <view class="cc-nav cc-nav--under-sys">
     <view class="cc-nav__search" bindtap="onSearchTap" hover-class="cc-nav__search--on">⌕</view>
   </view>
 
@@ -53,7 +52,8 @@
           bindtap="onContentTap"
         >
           <view class="c-long__thumb" style="{{item.artStyle}}">
-            <text class="c-long__glyph">{{item.glyph}}</text>
+            <image wx:if="{{item.cover_url}}" class="c-long__cover" src="{{item.cover_url}}" mode="aspectFill" />
+            <text wx:else class="c-long__glyph">{{item.glyph}}</text>
           </view>
           <view class="c-long__in">
             <view class="c-long__tags">
@@ -73,7 +73,8 @@
           bindtap="onContentTap"
         >
           <view class="c-video__cv" style="{{item.artStyle}}">
-            <text class="c-video__glyph">{{item.glyph}}</text>
+            <image wx:if="{{item.cover_url}}" class="c-video__cover" src="{{item.cover_url}}" mode="aspectFill" />
+            <text wx:else class="c-video__glyph">{{item.glyph}}</text>
             <view class="c-video__play">▶</view>
             <view wx:if="{{item.dur}}" class="c-video__dur">{{item.dur}}</view>
           </view>
@@ -119,7 +120,8 @@
           bindtap="onContentTap"
         >
           <view class="c-note__art" style="{{item.artStyle}}">
-            <text class="c-note__glyph">{{item.glyph}}</text>
+            <image wx:if="{{item.cover_url}}" class="c-note__cover" src="{{item.cover_url}}" mode="aspectFill" />
+            <text wx:else class="c-note__glyph">{{item.glyph}}</text>
           </view>
           <view class="c-note__txt">
             <text class="c-note__title">{{item.title}}</text>

@@ -100,6 +100,56 @@ const AuthService = {
   },
 
   /**
+   * 更新资料（后端暂无专用资料接口时，本地持久化）
+   * @param {{ nickname?: string, avatarUrl?: string, phone?: string, email?: string }} profile
+   */
+  updateProfile(profile = {}) {
+    const current = AuthUtil.getUserInfo() || {}
+    const nickName =
+      profile.nickname != null
+        ? String(profile.nickname)
+        : (current.nickName || current.nickname || '')
+    const avatarUrl =
+      profile.avatarUrl != null
+        ? String(profile.avatarUrl)
+        : (current.avatarUrl || '')
+    const phone =
+      profile.phone != null
+        ? String(profile.phone)
+        : (current.phone || '')
+    const email =
+      profile.email != null
+        ? String(profile.email)
+        : (current.email || '')
+
+    if (String(nickName).length > 10) {
+      return Promise.reject({ code: -1, message: '昵称不能超过10个字' })
+    }
+
+    const nextUserInfo = {
+      ...current,
+      nickName,
+      nickname: nickName,
+      avatarUrl,
+      phone,
+      phoneBound: !!String(phone).trim(),
+      email,
+    }
+
+    const app = getApp()
+    if (app && typeof app.setAuthState === 'function') {
+      const token = (app.globalData && app.globalData.token) || AuthUtil.getToken()
+      app.setAuthState({ token, userInfo: nextUserInfo })
+    } else if (app && typeof app.updateUserInfo === 'function') {
+      app.updateUserInfo(nextUserInfo)
+    } else {
+      AuthUtil.setUserInfo(nextUserInfo)
+    }
+    AuthUtil.rememberLoginProfile({ nickName, avatarUrl })
+    return Promise.resolve(nextUserInfo)
+  },
+
+  /**
    * 完成正式登录（绑定手机号后）
    */
   completeLogin({ phone, nickName, avatarUrl }) {

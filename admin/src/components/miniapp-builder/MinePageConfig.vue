@@ -2,6 +2,24 @@
   <div class="mine-page-config">
     <div class="config-label">我的页面配置</div>
 
+    <div class="config-block">
+      <div class="block-title">装饰背景区</div>
+      <el-form label-width="100px" size="small" class="compact-form">
+        <el-form-item label="显示装饰背景">
+          <el-switch
+            :model-value="modelValue.showDecorBackground !== false"
+            @update:model-value="(v) => updateField('showDecorBackground', v !== false)"
+          />
+        </el-form-item>
+        <el-form-item label="显示会员卡片">
+          <el-switch
+            :model-value="modelValue.showMemberCard !== false"
+            @update:model-value="(v) => updateField('showMemberCard', v !== false)"
+          />
+        </el-form-item>
+      </el-form>
+    </div>
+
     <!-- 登录区域 -->
     <div class="config-block">
       <div class="block-title">登录提示区</div>
@@ -54,6 +72,16 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-form-item label="预览昵称" :error="previewNicknameError || undefined">
+          <el-input
+            :model-value="modelValue.previewNickname ?? '微信用户'"
+            @input="(v: string) => updateField('previewNickname', v)"
+            placeholder="微信用户"
+            maxlength="10"
+            show-word-limit
+          />
+          <div v-if="previewNicknameError" class="field-error">{{ previewNicknameError }}</div>
+        </el-form-item>
       </el-form>
     </div>
 
@@ -82,8 +110,8 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="退换/售后">
-                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.refund" @input="(v: string) => updateTabLabel('refund', v)" />
+              <el-form-item label="已完成">
+                <el-input :model-value="modelValue.orderQuickAccess.tabLabels.completed" @input="(v: string) => updateTabLabel('completed', v)" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -103,11 +131,22 @@
         </el-button>
       </div>
 
+      <el-form label-width="100px" size="small" class="compact-form" style="margin-bottom: 8px">
+        <el-form-item label="菜单显示图标">
+          <el-switch
+            :model-value="modelValue.showMenuIcons === true"
+            @change="(v: boolean) => updateField('showMenuIcons', v)"
+          />
+        </el-form-item>
+      </el-form>
+
       <draggable v-model="menuItems" item-key="id" handle=".drag-handle" @update:modelValue="emitUpdate" class="menu-list">
         <template #item="{ element: item, index }">
           <div class="menu-item" :class="{ hidden: !item.enabled }">
             <div class="drag-handle">⠿</div>
-            <span class="menu-icon" @click="editMenuIcon(index)">{{ item.icon }}</span>
+            <span class="menu-icon" @click="editMenuIcon(index)">
+              <MenuIconDisplay :icon="item.icon" :size="26" />
+            </span>
             <div class="menu-fields">
               <el-input v-model="item.title" placeholder="菜单名称" size="small" @input="emitUpdate" />
               <el-input v-model="item.url" placeholder="页面路径 / action标识" size="small" @input="emitUpdate" />
@@ -122,9 +161,43 @@
         </template>
       </draggable>
 
-      <el-dialog v-model="iconDialogVisible" title="选择图标" width="400px" destroy-on-close>
-        <div class="icon-grid">
-          <button v-for="icon in menuIconList" :key="icon" class="icon-opt" :class="{ active: pickedIcon === icon }" @click="pickedIcon = icon">{{ icon }}</button>
+      <el-dialog v-model="iconDialogVisible" title="选择图标" width="440px" destroy-on-close>
+        <div class="icon-tabs">
+          <button
+            type="button"
+            class="icon-tab"
+            :class="{ active: iconTab === 'line' }"
+            @click="iconTab = 'line'"
+          >线条</button>
+          <button
+            type="button"
+            class="icon-tab"
+            :class="{ active: iconTab === 'color' }"
+            @click="iconTab = 'color'"
+          >彩色</button>
+        </div>
+        <div v-if="iconTab === 'line'" class="icon-grid">
+          <button
+            v-for="ic in MENU_LINE_ICONS"
+            :key="ic.id"
+            type="button"
+            class="icon-opt icon-opt--line"
+            :class="{ active: pickedIcon === ic.id }"
+            :title="ic.name"
+            @click="pickedIcon = ic.id"
+          >
+            <span class="icon-opt-svg" v-html="ic.svg" />
+          </button>
+        </div>
+        <div v-else class="icon-grid">
+          <button
+            v-for="icon in MENU_COLOR_ICONS"
+            :key="icon"
+            type="button"
+            class="icon-opt"
+            :class="{ active: pickedIcon === icon }"
+            @click="pickedIcon = icon"
+          >{{ icon }}</button>
         </div>
         <template #footer>
           <el-button @click="iconDialogVisible = false">取消</el-button>
@@ -136,10 +209,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import type { MineMenuItem, MinePageConfig } from '@/types/miniapp'
+import MenuIconDisplay from './MenuIconDisplay.vue'
+import {
+  DEFAULT_MENU_LINE_ICON,
+  MENU_COLOR_ICONS,
+  MENU_LINE_ICONS,
+  isMenuLineIcon,
+} from './menuLineIcons'
+
+const NICKNAME_MAX_LEN = 10
 
 const props = defineProps<{ modelValue: MinePageConfig }>()
 const emit = defineEmits<{ 'update:modelValue': [value: MinePageConfig] }>()
@@ -147,7 +229,16 @@ const emit = defineEmits<{ 'update:modelValue': [value: MinePageConfig] }>()
 const menuItems = ref<MineMenuItem[]>([...props.modelValue.menuItems])
 watch(() => props.modelValue.menuItems, (v) => { menuItems.value = [...v] }, { deep: true })
 
+const previewNicknameError = computed(() => {
+  const nick = String(props.modelValue.previewNickname ?? '')
+  if (nick.length > NICKNAME_MAX_LEN) return `昵称不能超过${NICKNAME_MAX_LEN}个字`
+  return ''
+})
+
 function updateField(key: string, value: any) {
+  // 就地写入 + 新对象发射，避免开关状态与预览不同步
+  const current = props.modelValue as Record<string, unknown>
+  current[key] = value
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
 
@@ -176,7 +267,14 @@ function emitUpdate() {
 }
 
 function addMenuItem() {
-  menuItems.value.push({ id: `mine-${Date.now()}`, icon: '📦', title: '新菜单', url: '', enabled: true, group: '' })
+  menuItems.value.push({
+    id: `mine-${Date.now()}`,
+    icon: DEFAULT_MENU_LINE_ICON,
+    title: '新菜单',
+    url: '',
+    enabled: true,
+    group: '',
+  })
   emitUpdate()
 }
 
@@ -188,11 +286,13 @@ function removeMenuItem(index: number) {
 const iconDialogVisible = ref(false)
 const editingMenuIdx = ref(-1)
 const pickedIcon = ref('')
-const menuIconList = ['📦','💰','🎫','❤️','📍','📞','⚙️','💬','🎯','📊','🎪','🎮','🎵','📸','🔔','🎁','🚀','💡','🔑','📱','🛒','📋','👤','👑','📝','🔍','📅','🛍️','🤖','⭐']
+const iconTab = ref<'line' | 'color'>('line')
 
 function editMenuIcon(index: number) {
   editingMenuIdx.value = index
-  pickedIcon.value = menuItems.value[index].icon
+  const current = menuItems.value[index].icon
+  pickedIcon.value = current
+  iconTab.value = isMenuLineIcon(current) ? 'line' : 'color'
   iconDialogVisible.value = true
 }
 
@@ -219,12 +319,30 @@ function confirmMenuIcon() {
 .menu-item.hidden { opacity: 0.5; }
 .drag-handle { cursor: grab; color: #a0b4d0; font-size: 14px; }
 .drag-handle:active { cursor: grabbing; }
-.menu-icon { width: 32px; height: 32px; display: grid; place-items: center; font-size: 18px; cursor: pointer; border-radius: 6px; background: #f0f4ff; }
+.menu-icon { width: 40px; height: 40px; display: grid; place-items: center; font-size: 22px; cursor: pointer; border-radius: 8px; background: #f0f4ff; }
 .menu-icon:hover { background: #e0e7ff; }
 .menu-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .menu-actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.icon-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.icon-tab {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #e3e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.14s;
+}
+.icon-tab:hover { border-color: #1769ff; color: #1769ff; }
+.icon-tab.active { border-color: #1769ff; background: #eff6ff; color: #1769ff; font-weight: 600; }
 .icon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-.icon-opt { width: 40px; height: 40px; display: grid; place-items: center; font-size: 20px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.14s; }
+.icon-opt { width: 44px; height: 44px; display: grid; place-items: center; font-size: 22px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.14s; padding: 0; }
 .icon-opt:hover { border-color: #1769ff; }
 .icon-opt.active { border-color: #1769ff; background: #eff6ff; box-shadow: 0 0 0 2px rgba(23,105,255,0.2); }
+.icon-opt--line { padding: 8px; }
+.icon-opt-svg { width: 26px; height: 26px; display: grid; place-items: center; }
+.icon-opt-svg :deep(svg) { width: 100%; height: 100%; display: block; }
+.field-error { margin-top: 4px; color: #f56c6c; font-size: 12px; line-height: 1.4; }
 </style>

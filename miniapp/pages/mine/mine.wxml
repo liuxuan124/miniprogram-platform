@@ -24,6 +24,21 @@
     <view class="login-cta login-cta--ghost" wx:else catchtap="goSettings">设置</view>
   </view>
 
+  <!-- 会员中心卡片：未登录点「登录」进登录页；已登录进会员中心 -->
+  <view
+    class="m-member-card"
+    wx:if="{{mineConfig.showMemberCard !== false}}"
+    bindtap="onMemberCardTap"
+  >
+    <view class="m-member-card__main">
+      <view class="m-member-card__title">{{mineConfig.memberCardTitle || '会员中心'}}</view>
+      <view class="m-member-card__level" wx:if="{{isLoggedIn && memberInfo.level_name}}">{{memberInfo.level_name}}</view>
+      <view class="m-member-card__level" wx:elif="{{!isLoggedIn}}">VIP专属</view>
+      <view class="m-member-card__desc">专属折扣 · 积分加速 · 优先预约</view>
+    </view>
+    <view class="m-member-card__cta" catchtap="onMemberCardTap">{{isLoggedIn ? '查看权益' : '登录'}}</view>
+  </view>
+
   <view class="m-stats">
     <view class="s" bindtap="goCoupons">
       <text class="num">{{isLoggedIn ? stats.coupons : '—'}}</text>

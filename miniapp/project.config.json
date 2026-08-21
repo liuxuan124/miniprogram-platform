@@ -78,7 +78,7 @@
     "useCompilerPlugins": false,
     "swc": true,
     "disableSWC": false,
-    "ignoreDevUnusedFiles": true
+    "ignoreDevUnusedFiles": false
   },
   "compileType": "miniprogram",
   "libVersion": "3.3.4",

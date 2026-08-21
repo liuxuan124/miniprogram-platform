@@ -661,7 +661,12 @@ import {
 } from '@/api/module-version'
 import type { ReleaseRecord } from '@/types/page'
 import { useMiniappConfig } from '@/components/miniapp-builder/composables/useMiniappConfig'
-import { NAV_TEMPLATES } from '@/types/miniapp'
+import {
+  NAV_TEMPLATES,
+  MINE_STYLE_TEMPLATES,
+  resolveMineStyleKey,
+  applyMineStylePreset,
+} from '@/types/miniapp'
 import NavTemplateSelector from '@/components/miniapp-builder/NavTemplateSelector.vue'
 import TabBarEditor from '@/components/miniapp-builder/TabBarEditor.vue'
 import MinePageConfig from '@/components/miniapp-builder/MinePageConfig.vue'
@@ -691,7 +696,7 @@ const previewCollapsed = ref(false)
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
 const published = ref(false)
-const selectedMineTemplate = ref('standard')
+const selectedMineTemplate = ref('basic')
 const newReleaseInfo = ref<any>(null)
 const successMode = ref<'template' | 'publish'>('template')
 const replacedOldVersion = ref<string>('')
@@ -714,12 +719,7 @@ const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] =
   { label: '草稿', value: 'template' },
 ]
 
-const personalCenterTemplates: { key: string; name: string; icon: string; gradient: string; border?: string }[] = [
-  { key: 'standard', name: '标准版', icon: '👤', gradient: 'linear-gradient(135deg, #1769ff, #5b8def)' },
-  { key: 'premium', name: '尊享版', icon: '👑', gradient: 'linear-gradient(135deg, #9a7b1c, #d4af37 55%, #f6e27a)' },
-  { key: 'minimal', name: '简约版', icon: '🍃', gradient: '#ffffff', border: '1.5px solid #cbd5e1' },
-  { key: 'dark', name: '暗黑版', icon: '🌙', gradient: 'linear-gradient(135deg, #1e293b, #475569)' },
-]
+const personalCenterTemplates = MINE_STYLE_TEMPLATES
 
 const steps = [
   { key: 'theme', label: '风格配色' },
@@ -747,20 +747,42 @@ const filteredReleases = computed(() => {
 })
 
 function selectMineTemplate(key: string) {
-  selectedMineTemplate.value = key
-  const tplMap: Record<string, any> = {
-    standard: { style: 'gradient', themeColor: '#1769ff', themeColorSecondary: '#5b8def' },
-    premium: { style: 'gradient', themeColor: '#b8860b', themeColorSecondary: '#f0d060' },
-    minimal: { style: 'outline', themeColor: '#334155', themeColorSecondary: '#94a3b8' },
-    dark: { style: 'gradient', themeColor: '#1e293b', themeColorSecondary: '#475569' },
-  }
-  const preset = tplMap[key]
-  if (preset && form.mineConfig) {
-    Object.assign(form.mineConfig, preset)
-  }
+  const resolved = applyMineStylePreset(form.mineConfig as Record<string, unknown>, key)
+  selectedMineTemplate.value = resolved
   // 模板风格作用于「我的」页，预览自动切过去，让效果立即可见
   previewRef.value?.showMineTab()
 }
+
+/** 配置/快照加载后同步选中态；已删除的简约/暗黑回退基础版配色 */
+function syncMineTemplateFromConfig() {
+  const mc = form.mineConfig as Record<string, unknown>
+  const rawKey = String(mc.templateStyle || '')
+  const needsFallback =
+    mc.style === 'outline'
+    || rawKey === 'minimal'
+    || rawKey === 'dark'
+    || rawKey === 'simple'
+    || rawKey === 'standard'
+    || rawKey === 'premium'
+    || ['#1e293b', '#334155'].includes(String(mc.themeColor || '').toLowerCase())
+  const key = resolveMineStyleKey(mc as { templateStyle?: string; style?: string; themeColor?: string })
+  if (needsFallback) {
+    applyMineStylePreset(mc, key)
+  }
+  if (selectedMineTemplate.value !== key) {
+    selectedMineTemplate.value = key
+  }
+}
+
+watch(
+  () => [
+    (form.mineConfig as any).templateStyle,
+    (form.mineConfig as any).style,
+    (form.mineConfig as any).themeColor,
+  ],
+  () => syncMineTemplateFromConfig(),
+  { immediate: true },
+)
 
 watch(activeStep, (step) => {
   if (step === 2) previewRef.value?.showMineTab()
@@ -1168,7 +1190,10 @@ function parseSnapshotToForm(snapshotJson: string) {
         pageName: t.pageName || '',
       }))
     }
-    if (snap.mineConfig) Object.assign(form.mineConfig, snap.mineConfig)
+    if (snap.mineConfig) {
+      Object.assign(form.mineConfig, snap.mineConfig)
+      syncMineTemplateFromConfig()
+    }
     if (snap.theme) Object.assign(form.theme, snap.theme)
     if (snap.shareTitle !== undefined) form.shareTitle = snap.shareTitle
     if (snap.shareImage !== undefined) form.shareImage = normalizeUploadUrl(snap.shareImage)
@@ -1297,7 +1322,10 @@ async function handleModuleRollback(row: ModuleVersionRecord) {
       if (snap.minePageId !== undefined) form.minePageId = snap.minePageId
     } else if (snap.step === 'mine' && snap.mineConfig) {
       Object.assign(form.mineConfig, snap.mineConfig)
-      if (snap.selectedMineTemplate) selectedMineTemplate.value = snap.selectedMineTemplate
+      if (snap.selectedMineTemplate) {
+        ;(form.mineConfig as any).templateStyle = snap.selectedMineTemplate
+      }
+      syncMineTemplateFromConfig()
     }
     ElMessage.success(`已回滚到版本 ${row.semver}`)
     loadModuleVersions()
@@ -1657,12 +1685,15 @@ onMounted(() => {
 }
 .mine-tpl-preview {
   height: 56px;
-  border-radius: 8px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   margin-bottom: 6px;
+  box-shadow:
+    0 8px 18px rgba(15, 23, 42, 0.12),
+    0 2px 4px rgba(15, 23, 42, 0.06);
 }
-.mine-tpl-icon { font-size: 22px; }
+.mine-tpl-icon { font-size: 22px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08)); }
 .mine-tpl-name { font-size: 12px; font-weight: 600; color: var(--text); }
 
 .step-footer {

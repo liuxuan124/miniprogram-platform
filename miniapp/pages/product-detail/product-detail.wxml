@@ -1,28 +1,39 @@
 <!-- pages/product-detail/product-detail.wxml — 商品详情页 -->
 <view class="product-detail-page" wx:if="{{!loading}}">
-  <!-- 图片轮播 -->
-  <swiper
-    class="detail-swiper"
-    indicator-dots="{{product.images.length > 1}}"
-    indicator-active-color="#fff"
-    autoplay="{{true}}"
-    circular="{{true}}"
-    current="{{swiperCurrent}}"
-    bindchange="onSwiperChange"
-  >
-    <swiper-item
-      wx:for="{{product.images}}"
-      wx:key="index"
+  <!-- 图片轮播：固定高度占位，避免图未加载时内容顶上去 -->
+  <view class="detail-swiper-wrap">
+    <swiper
+      class="detail-swiper"
+      indicator-dots="{{product.images.length > 1}}"
+      indicator-active-color="#fff"
+      autoplay="{{product.images.length > 1}}"
+      circular="{{product.images.length > 1}}"
+      current="{{swiperCurrent}}"
+      bindchange="onSwiperChange"
     >
-      <image
-        class="swiper-image"
-        src="{{item}}"
-        mode="aspectFill"
-        data-src="{{item}}"
-        bindtap="onImagePreview"
-      />
-    </swiper-item>
-  </swiper>
+      <swiper-item wx:if="{{!product.images.length}}">
+        <view class="swiper-placeholder">
+          <text class="swiper-placeholder__icon">🛍️</text>
+          <text class="swiper-placeholder__text">暂无图片</text>
+        </view>
+      </swiper-item>
+      <swiper-item
+        wx:for="{{product.images}}"
+        wx:key="*this"
+      >
+        <image
+          class="swiper-image"
+          src="{{item}}"
+          mode="aspectFill"
+          lazy-load="{{false}}"
+          data-src="{{item}}"
+          bindtap="onImagePreview"
+          binderror="onSwiperImageError"
+          data-index="{{index}}"
+        />
+      </swiper-item>
+    </swiper>
+  </view>
 
   <!-- 价格与标题 -->
   <view class="detail-header">

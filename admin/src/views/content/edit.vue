@@ -19,6 +19,30 @@
               <el-input v-model="formData.title" maxlength="128" show-word-limit placeholder="请输入标题" />
             </el-form-item>
 
+            <el-form-item label="封面图">
+              <div class="cover-field">
+                <div v-if="coverPreviewUrl" class="cover-preview">
+                  <img :src="coverPreviewUrl" alt="" />
+                  <el-button text type="danger" size="small" @click="clearCover">清除</el-button>
+                </div>
+                <el-input
+                  v-model="formData.cover_image"
+                  placeholder="封面图 URL（可上传或粘贴）"
+                  @input="syncCoverToSeo"
+                />
+                <label class="upload-btn">
+                  {{ coverUploading ? '上传中…' : '本地上传' }}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    hidden
+                    :disabled="coverUploading"
+                    @change="onUploadCover"
+                  />
+                </label>
+              </div>
+            </el-form-item>
+
             <el-form-item label="内容分类" prop="category_id">
               <el-select v-model="formData.category_id" style="width: 100%" placeholder="请选择内容分类" filterable>
                 <el-option
@@ -69,7 +93,28 @@
               />
             </el-form-item>
             <el-form-item label="分享封面">
-              <el-input v-model="seoForm.cover" placeholder="请输入封面图 URL" />
+              <div class="cover-field">
+                <div v-if="coverPreviewUrl" class="cover-preview">
+                  <img :src="coverPreviewUrl" alt="" />
+                  <el-button text type="danger" size="small" @click="clearCover">清除</el-button>
+                </div>
+                <el-input
+                  v-model="formData.cover_image"
+                  placeholder="与基础内容封面图共用"
+                  @input="syncCoverToSeo"
+                />
+                <label class="upload-btn">
+                  {{ coverUploading ? '上传中…' : '本地上传' }}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    hidden
+                    :disabled="coverUploading"
+                    @change="onUploadCover"
+                  />
+                </label>
+                <div class="field-hint">与「基础内容」封面图同一字段，用于微信分享卡片。</div>
+              </div>
             </el-form-item>
             <div class="seo-tip">
               提示：优化 SEO 配置可提升内容在微信搜一搜及社交平台卡片点击率。
@@ -134,8 +179,10 @@ import {
   unpublishContent,
   updateContent,
 } from '@/api/content'
+import { normalizeUploadUrl } from '@/api/system'
 import { ContentStatus } from '@/types/content'
 import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
+import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 
 interface FlatCategoryOption {
   id: number
@@ -144,6 +191,7 @@ interface FlatCategoryOption {
 
 const route = useRoute()
 const router = useRouter()
+const { uploadImage, uploading: coverUploading } = useImageUpload()
 
 const activeTab = ref('base')
 const pageLoading = ref(false)
@@ -209,7 +257,7 @@ async function loadDetail(id: number) {
     formData.category_id = Number(data.categoryId ?? data.category_id) || undefined
     formData.summary = data.summary || ''
     formData.content = data.content || ''
-    formData.cover_image = data.coverImage || data.cover_image || ''
+    formData.cover_image = data.coverImage || data.cover_image || data.shareCover || ''
     formData.author = data.author || ''
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
     formData.status = normalizeContentStatus(data.status)
@@ -218,7 +266,7 @@ async function loadDetail(id: number) {
 
     seoForm.title = data.seoTitle || data.title || ''
     seoForm.description = data.seoDescription || data.summary || ''
-    seoForm.cover = data.shareCover || formData.cover_image || ''
+    syncCoverToSeo()
   } finally {
     pageLoading.value = false
   }
@@ -249,7 +297,36 @@ function getPlainTextFromHtml(html: string) {
   return (div.innerText || '').trim()
 }
 
-const previewCover = computed(() => seoForm.cover?.trim() || formData.cover_image?.trim() || '')
+function syncCoverToSeo() {
+  seoForm.cover = formData.cover_image || ''
+}
+
+function clearCover() {
+  formData.cover_image = ''
+  syncCoverToSeo()
+}
+
+async function onUploadCover(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  await uploadImage(file, {
+    maxSizeMB: 5,
+    onSuccess: (url: string) => {
+      formData.cover_image = normalizeUploadUrl(url)
+      syncCoverToSeo()
+      ElMessage.success('封面已上传')
+    },
+  })
+}
+
+const coverPreviewUrl = computed(() => {
+  const raw = formData.cover_image?.trim() || ''
+  return raw ? normalizeUploadUrl(raw) : ''
+})
+
+const previewCover = computed(() => coverPreviewUrl.value)
 
 const previewCoverStyle = computed(() => {
   if (previewCover.value) return {}
@@ -311,7 +388,7 @@ async function handleSubmit() {
       categoryId: formData.category_id,
       summary: formData.summary?.trim() || seoForm.description?.trim() || undefined,
       content: formData.content,
-      coverImage: seoForm.cover?.trim() || formData.cover_image?.trim() || undefined,
+      coverImage: formData.cover_image?.trim() || undefined,
       tags: formData.tag_ids.map(String),
       author: formData.author?.trim() || undefined,
       sortOrder: formData.sort,
@@ -407,6 +484,42 @@ onMounted(async () => {
     color: #8a94a6;
     font-size: 12px;
     line-height: 1.4;
+  }
+
+  .cover-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .cover-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cover-preview img {
+    width: 120px;
+    height: 72px;
+    object-fit: cover;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #eef2f7;
+  }
+
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    cursor: pointer;
   }
 
   .seo-tip {

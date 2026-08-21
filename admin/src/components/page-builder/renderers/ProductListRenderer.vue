@@ -378,7 +378,7 @@ function onProductClick(event: MouseEvent, item: PreviewProductItem) {
     return
   }
   emit('preview-action', {
-    tab: 'shop',
+    tab: 'product',
     message: `已打开商品「${item.name}」`,
     detailType: 'product',
     detailTitle: item.name,

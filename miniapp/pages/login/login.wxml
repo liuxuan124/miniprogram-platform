@@ -1,4 +1,4 @@
-<!-- pages/login/login.wxml -->
+<!-- pages/login/login.wxml — 手机号快捷登录（登录信息，非完善资料） -->
 <view class="login-page">
   <view class="login-backdrop">
     <view class="safe-top">
@@ -29,56 +29,17 @@
     </view>
   </view>
 
-  <view class="login-sheet">
+  <view class="login-sheet login-sheet--auth">
     <view class="sheet-handle"></view>
 
     <view class="sheet-heading">
       <view>
-        <text class="sheet-heading__title">完善个人资料</text>
-        <text class="sheet-heading__description">首次登录只需完成一次</text>
+        <text class="sheet-heading__title">手机号快捷登录</text>
+        <text class="sheet-heading__description">使用微信绑定手机号一键登录</text>
       </view>
       <view class="security-badge">
         <text class="security-badge__dot"></text>
         <text>安全登录</text>
-      </view>
-    </view>
-
-    <view class="avatar-section {{avatarError ? 'avatar-section--error' : ''}}">
-      <button
-        class="profile-avatar"
-        open-type="chooseAvatar"
-        bindtap="onAvatarTap"
-        bindchooseavatar="onChooseAvatar"
-        hover-class="profile-avatar--pressed"
-        aria-label="选择微信头像"
-      >
-        <image
-          class="profile-avatar__image"
-          src="{{avatarUrl || '/images/default-avatar.svg'}}"
-          mode="aspectFill"
-        />
-        <view class="profile-avatar__action">{{avatarUrl ? '↻' : '+'}}</view>
-      </button>
-      <text class="avatar-section__hint">{{avatarUrl ? '点击可更换微信头像' : '点击直接选择微信头像'}}</text>
-    </view>
-
-    <view class="nickname-section">
-      <view class="nickname-control {{nicknameError ? 'nickname-control--error' : ''}} {{pickingAvatar ? 'nickname-control--locked' : ''}}">
-        <text class="nickname-control__label">昵称</text>
-        <view class="nickname-control__divider"></view>
-        <input
-          class="nickname-control__input"
-          type="nickname"
-          maxlength="20"
-          placeholder="点击填写或选择微信昵称"
-          placeholder-class="nickname-control__placeholder"
-          value="{{nickName}}"
-          disabled="{{pickingAvatar}}"
-          focus="{{nicknameFocused}}"
-          bindinput="onNicknameInput"
-          bindblur="onNicknameBlur"
-          bindnicknamereview="onNicknameReview"
-        />
       </view>
     </view>
 
@@ -90,8 +51,7 @@
       bindagreeprivacyauthorization="onAgreePrivacyAuthorization"
       hover-class="none"
     >
-      <view class="agreement__check">
-      </view>
+      <view class="agreement__check"></view>
       <view class="agreement__copy">
         <text>我已阅读并同意</text>
         <text class="agreement__link" catchtap="onViewTerms">《用户协议》</text>
@@ -117,9 +77,8 @@
     </button>
 
     <text wx:if="{{formHint}}" class="form-hint">{{formHint}}</text>
-    <text wx:else class="form-hint form-hint--muted">新用户请先选择头像和昵称；老用户勾选协议后即可登录</text>
+    <text wx:else class="form-hint form-hint--muted">勾选协议后即可授权手机号登录</text>
 
-    <!-- 始终使用 getPhoneNumber，避免审核判定「手机号授权无响应」 -->
     <button
       class="login-button {{loading ? 'login-button--disabled' : ''}} {{canSubmit ? '' : 'login-button--pending'}}"
       open-type="getPhoneNumber"
@@ -136,13 +95,12 @@
     </view>
   </view>
 
-  <!-- 隐私授权弹窗：未同意时点击头像/昵称会触发，否则会一直无响应 -->
   <view wx:if="{{showPrivacyPopup}}" class="privacy-layer" catchtouchmove="noop">
     <view class="privacy-layer__mask" catchtap="onRefusePrivacy"></view>
     <view class="privacy-layer__panel">
       <text class="privacy-layer__title">用户隐私保护提示</text>
       <view class="privacy-layer__desc">
-        <text>在使用头像、昵称前，请阅读并同意</text>
+        <text>在使用登录服务前，请阅读并同意</text>
         <text class="privacy-layer__link" catchtap="onViewPrivacy">《隐私政策》</text>
         <text>与</text>
         <text class="privacy-layer__link" catchtap="onViewTerms">《用户协议》</text>

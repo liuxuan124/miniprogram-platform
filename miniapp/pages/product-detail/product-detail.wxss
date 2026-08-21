@@ -7,6 +7,14 @@
 }
 
 /* ========== 轮播图 ========== */
+.detail-swiper-wrap {
+  width: 100%;
+  height: 650rpx;
+  background: #e8eef8;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
 .detail-swiper {
   width: 100%;
   height: 650rpx;
@@ -15,6 +23,29 @@
 .swiper-image {
   width: 100%;
   height: 650rpx;
+  display: block;
+  background: #e8eef8;
+}
+
+.swiper-placeholder {
+  width: 100%;
+  height: 650rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #e8eef8;
+  color: #98a2b5;
+}
+
+.swiper-placeholder__icon {
+  font-size: 64rpx;
+  line-height: 1.2;
+}
+
+.swiper-placeholder__text {
+  margin-top: 12rpx;
+  font-size: 24rpx;
 }
 
 /* ========== 价格与标题 ========== */

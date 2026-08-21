@@ -1,5 +1,23 @@
 <template>
   <div class="miniapp-preview">
+    <div
+      v-if="showMinePage"
+      class="preview-login-toggle"
+      @click.stop
+    >
+      <button
+        type="button"
+        class="login-toggle-btn"
+        :class="{ active: !previewLoggedIn }"
+        @click="previewLoggedIn = false"
+      >未登录</button>
+      <button
+        type="button"
+        class="login-toggle-btn"
+        :class="{ active: previewLoggedIn }"
+        @click="previewLoggedIn = true"
+      >已登录</button>
+    </div>
     <div class="phone">
       <div v-if="!previewHasBrandHeader" class="phone-notch"><div class="phone-speaker"></div></div>
       <div
@@ -12,7 +30,7 @@
         }"
       >
         <div
-          v-if="!previewHasBrandHeader"
+          v-if="showPreviewNavBar"
           class="phone-navbar"
           :style="{ backgroundColor: form.theme.navBarColor }"
         >
@@ -64,8 +82,13 @@
           <!-- Mine page preview (custom render) -->
           <MinePagePreview
             v-else-if="showMinePage"
+            v-model:preview-logged-in="previewLoggedIn"
             :mine-config="form.mineConfig"
             :theme="form.theme"
+            @update:preview-nickname="onPreviewNicknameUpdate"
+            @update:preview-avatar="onPreviewAvatarUpdate"
+            @update:preview-phone="onPreviewPhoneUpdate"
+            @update:preview-email="onPreviewEmailUpdate"
           />
 
           <!-- Mine page: custom DSL mode -->
@@ -132,6 +155,24 @@ import { useMeasuredElementHeight } from '@/components/page-builder/composables/
 const props = defineProps<{ form: MiniappForm; pages: PageRecord[]; minePageMode?: 'config' | 'custom' }>()
 const activeTab = ref(0)
 const loading = ref(false)
+/** 我的页预览登录态（外层 chrome 切换） */
+const previewLoggedIn = ref(false)
+
+function onPreviewNicknameUpdate(value: string) {
+  props.form.mineConfig.previewNickname = value
+}
+
+function onPreviewAvatarUpdate(value: string) {
+  props.form.mineConfig.previewAvatar = value
+}
+
+function onPreviewPhoneUpdate(value: string) {
+  props.form.mineConfig.previewPhone = value
+}
+
+function onPreviewEmailUpdate(value: string) {
+  props.form.mineConfig.previewEmail = value
+}
 
 const pageDslCache = ref<Map<string, PageDSL | null>>(new Map())
 
@@ -251,6 +292,11 @@ const {
   isPinnedBrandHeader: isPreviewPinnedBrandHeader,
 } = usePinnedBrandHeader(previewPageComponents)
 
+/** 「我的」预览不画假顶栏（与真实小程序导航栏配置无关） */
+const showPreviewNavBar = computed(
+  () => !previewHasBrandHeader.value && !showMinePage.value && !showMinePageDsl.value,
+)
+
 const previewPinnedHeaderEl = ref<HTMLElement | null>(null)
 const measuredPreviewPinnedHeight = useMeasuredElementHeight(
   previewPinnedHeaderEl,
@@ -313,6 +359,29 @@ defineExpose({ showMineTab })
 
 <style scoped>
 .miniapp-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.preview-login-toggle {
+  display: inline-flex;
+  padding: 2px;
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 8px;
+  gap: 2px;
+}
+.login-toggle-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.login-toggle-btn.active {
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
 .preview-source-hint { margin: 0; font-size: 12px; color: #64748b; text-align: center; max-width: 375px; }
 .phone { width: 375px; background: #111827; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .phone-notch { height: 30px; display: flex; align-items: center; justify-content: center; }

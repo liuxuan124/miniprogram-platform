@@ -729,3 +729,7 @@ page {
     margin-top: 18rpx;
   }
 }
+
+.login-sheet--auth { min-height: 42vh; }
+.login-sheet--auth .sheet-heading { margin-bottom: 28rpx; }
+

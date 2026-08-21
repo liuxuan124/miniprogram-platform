@@ -56,22 +56,21 @@ Page({
       const loaded = await preloadImages(heroUrls, 550)
       const annotated = annotateHeroImageSize(flowComponents, loaded)
       const hasBrandHeader = annotated.some((item) => item && item.type === 'brand_header')
-      // brand_header 需自定义顶栏：跳到 custom-nav（navigationStyle:custom）
-      if (hasBrandHeader) {
+      const layout = getNavLayout()
+      // 无 brand_header 时改走系统导航页，避免自定义顶栏空占位
+      if (!hasBrandHeader) {
         wx.redirectTo({
-          url: '/pages/custom-nav/custom-nav?path=' + encodeURIComponent(path),
+          url: '/pages/custom/custom?path=' + encodeURIComponent(path),
           fail() {},
         })
         return
       }
-      const layout = getNavLayout()
-      wx.setNavigationBarTitle({ title: (parsed.page && parsed.page.name) || '页面' })
       this.setData({
         loading: false,
         error: '',
         flowComponents: annotated,
         floatComponents,
-        hasBrandHeader: false,
+        hasBrandHeader,
         statusBarHeight: layout.statusBarHeight,
       })
     } catch (e) {

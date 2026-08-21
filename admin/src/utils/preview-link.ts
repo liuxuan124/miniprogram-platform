@@ -77,7 +77,7 @@ export function resolvePreviewLinkAction(
     return {
       kind: 'emit',
       payload: {
-        tab: 'shop',
+        tab: 'product',
         message: `已打开「${name}」`,
         detailType: 'product',
         detailTitle: name,

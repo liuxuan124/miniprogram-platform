@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "页面",
+  "navigationStyle": "custom",
   "onReachBottomDistance": 80,
   "usingComponents": {
     "dsl-renderer": "/components/dsl-renderer/dsl-renderer",

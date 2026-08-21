@@ -1,20 +1,15 @@
 <!--components/dsl-image/dsl-image.wxml — 单图组件-->
 <view class="dsl-image" style="{{styleString}}" bindtap="onTap">
-  <block wx:if="{{config.image || config.src}}">
-    <view wx:if="{{isFixedRatio}}" class="dsl-image__media" style="{{mediaBoxStyle}}">
+  <block wx:if="{{imageSrc}}">
+    <view class="dsl-image__media" style="{{mediaBoxStyle}}">
       <image
-        class="dsl-image__img dsl-image__img--cover"
+        class="dsl-image__img dsl-image__img--cover {{imgReady ? 'dsl-image__img--ready' : 'dsl-image__img--pending'}}"
         style="{{mediaFillStyle}}"
-        src="{{config.image || config.src}}"
+        src="{{imageSrc}}"
         mode="aspectFill"
+        bindload="onImageLoad"
       />
     </view>
-    <image
-      wx:else
-      class="dsl-image__img dsl-image__img--auto"
-      src="{{config.image || config.src}}"
-      mode="widthFix"
-    />
   </block>
   <view wx:else class="dsl-image__placeholder">
     <text class="dsl-image__icon">📷</text>

@@ -25,6 +25,10 @@
   font-weight: 800;
 }
 
+.km-header--under-sys {
+  justify-content: flex-end;
+}
+
 .km-header__cart {
   position: relative;
   display: flex;

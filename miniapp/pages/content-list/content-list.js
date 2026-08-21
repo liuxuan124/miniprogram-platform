@@ -181,7 +181,7 @@ function mapRecord(item) {
     dur: fmt.key === 'video' ? (item.duration || '08:24') : '',
     nums,
     likeText,
-    cover_url: item.coverUrl || item.coverImage || '',
+    cover_url: item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || '',
   }
 }
 

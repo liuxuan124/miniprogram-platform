@@ -1,6 +1,5 @@
 {
   "navigationBarTitleText": "内容中心",
-  "navigationStyle": "custom",
   "enablePullDownRefresh": true,
   "onReachBottomDistance": 80,
   "backgroundTextStyle": "dark",

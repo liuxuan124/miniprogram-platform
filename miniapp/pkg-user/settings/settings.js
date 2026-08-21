@@ -2,15 +2,34 @@ const { AuthUtil } = require('../../utils/auth')
 const { AuthService } = require('../../services/auth')
 const { upload } = require('../../utils/request')
 
-function maskPhone(phone) {
-  const p = String(phone || '').replace(/\D/g, '')
-  if (p.length >= 11) return `${p.slice(0, 3)}****${p.slice(-4)}`
-  if (p.length >= 7) return `${p.slice(0, 3)}****${p.slice(-2)}`
-  return p || '未绑定'
-}
+const NICKNAME_MAX_LEN = 10
 
 function isRemoteUrl(url) {
   return !!(url && /^https?:\/\//i.test(String(url)))
+}
+
+function softPhoneTip(phone) {
+  const p = String(phone || '').trim()
+  if (!p) return ''
+  const digits = p.replace(/\D/g, '')
+  if (/[a-zA-Z]/.test(p) || digits.length < 7 || digits.length > 15) {
+    return '手机号格式可能不正确'
+  }
+  return ''
+}
+
+function softEmailTip(email) {
+  const e = String(email || '').trim()
+  if (!e) return ''
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+    return '邮箱格式可能不正确'
+  }
+  return ''
+}
+
+function calcCanSave(nick) {
+  const n = String(nick || '').trim()
+  return n.length > 0 && n.length <= NICKNAME_MAX_LEN
 }
 
 Page({
@@ -18,8 +37,14 @@ Page({
     isLoggedIn: false,
     userInfo: null,
     editNickName: '',
-    phoneMasked: '未绑定',
-    phoneBound: false,
+    editAvatarUrl: '',
+    editPhone: '',
+    editEmail: '',
+    pendingAvatarLocal: '',
+    nicknameError: false,
+    phoneSoftTip: '',
+    emailSoftTip: '',
+    canSave: false,
     savingProfile: false,
     version: '1.10.22',
   },
@@ -31,12 +56,22 @@ Page({
   _refresh() {
     const isLoggedIn = !!AuthUtil.isLoggedIn()
     const userInfo = isLoggedIn ? (AuthUtil.getUserInfo() || {}) : null
+    const editNickName = (userInfo && (userInfo.nickName || userInfo.nickname)) || ''
+    const editAvatarUrl = (userInfo && userInfo.avatarUrl) || ''
+    const editPhone = (userInfo && userInfo.phone) || ''
+    const editEmail = (userInfo && userInfo.email) || ''
     this.setData({
       isLoggedIn,
       userInfo,
-      editNickName: (userInfo && (userInfo.nickName || userInfo.nickname)) || '',
-      phoneMasked: maskPhone(userInfo && userInfo.phone),
-      phoneBound: !!(userInfo && (userInfo.phoneBound || userInfo.phone)),
+      editNickName,
+      editAvatarUrl,
+      editPhone,
+      editEmail,
+      pendingAvatarLocal: '',
+      nicknameError: String(editNickName).length > NICKNAME_MAX_LEN,
+      phoneSoftTip: softPhoneTip(editPhone),
+      emailSoftTip: softEmailTip(editEmail),
+      canSave: calcCanSave(editNickName),
     })
   },
 
@@ -46,92 +81,137 @@ Page({
     })
   },
 
-  onChooseAvatar(e) {
+  onChooseAvatar() {
     if (!this.data.isLoggedIn) return
-    const localPath = (e.detail && e.detail.avatarUrl) || ''
-    if (!localPath) {
-      wx.showToast({ title: '未获取到头像', icon: 'none' })
-      return
-    }
-    const nick = this.data.editNickName || (this.data.userInfo && this.data.userInfo.nickName) || ''
-    const phone = (this.data.userInfo && this.data.userInfo.phone) || ''
-    wx.showLoading({ title: '上传中', mask: true })
-    const finish = (remoteUrl) => {
-      wx.hideLoading()
-      if (!remoteUrl) {
-        wx.showToast({ title: '头像上传失败', icon: 'none' })
+    const applyLocal = (localPath) => {
+      if (!localPath) {
+        wx.showToast({ title: '未获取到头像', icon: 'none' })
         return
       }
-      AuthService.updateProfile({ nickname: nick || undefined, avatarUrl: remoteUrl })
-        .then(() => {
-          AuthService.completeLogin({ phone, nickName: nick, avatarUrl: remoteUrl })
-          AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl: remoteUrl })
-          this._refresh()
-          wx.showToast({ title: '头像已更新', icon: 'success' })
-        })
-        .catch(() => wx.showToast({ title: '头像保存失败', icon: 'none' }))
+      this.setData({
+        editAvatarUrl: localPath,
+        pendingAvatarLocal: isRemoteUrl(localPath) ? '' : localPath,
+      })
     }
-    if (isRemoteUrl(localPath)) {
-      finish(localPath)
+
+    if (typeof wx.chooseMedia === 'function') {
+      wx.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const file = (res.tempFiles && res.tempFiles[0]) || null
+          applyLocal((file && file.tempFilePath) || '')
+        },
+        fail: () => wx.showToast({ title: '取消选择', icon: 'none' }),
+      })
       return
     }
-    upload(localPath, {
-      name: 'file',
-      url: '/api/v1/mp/upload',
-      formData: { subDir: 'avatar' },
-      showError: false,
-    }).then((uploaded) => {
-      finish((uploaded && (uploaded.url || uploaded.fileUrl)) || '')
-    }).catch(() => {
-      wx.hideLoading()
-      wx.showToast({ title: '头像上传失败', icon: 'none' })
+
+    wx.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        applyLocal((res.tempFilePaths && res.tempFilePaths[0]) || '')
+      },
+      fail: () => wx.showToast({ title: '取消选择', icon: 'none' }),
     })
   },
 
   onNickInput(e) {
-    this.setData({ editNickName: (e.detail && e.detail.value) || '' })
+    const value = (e.detail && e.detail.value) || ''
+    this.setData({
+      editNickName: value,
+      nicknameError: String(value).length > NICKNAME_MAX_LEN,
+      canSave: calcCanSave(value),
+    })
   },
 
-  onNickBlur(e) {
+  onNicknameReview(e) {
+    const pass = !e.detail || e.detail.pass !== false
+    if (!pass) {
+      this.setData({ editNickName: '', nicknameError: false, canSave: false })
+      wx.showToast({ title: '昵称未通过安全检测', icon: 'none' })
+    }
+  },
+
+  onPhoneInput(e) {
+    const value = (e.detail && e.detail.value) || ''
+    this.setData({
+      editPhone: value,
+      phoneSoftTip: softPhoneTip(value),
+    })
+  },
+
+  onEmailInput(e) {
+    const value = (e.detail && e.detail.value) || ''
+    this.setData({
+      editEmail: value,
+      emailSoftTip: softEmailTip(value),
+    })
+  },
+
+  _uploadAvatarIfNeeded() {
+    const local = this.data.pendingAvatarLocal
+    if (!local) {
+      return Promise.resolve(this.data.editAvatarUrl || '')
+    }
+    if (isRemoteUrl(local)) {
+      return Promise.resolve(local)
+    }
+    return upload(local, {
+      name: 'file',
+      url: '/api/v1/mp/upload',
+      formData: { subDir: 'avatar' },
+      showError: false,
+    }).then((uploaded) => (uploaded && (uploaded.url || uploaded.fileUrl)) || '')
+  },
+
+  onSaveProfile() {
     if (!this.data.isLoggedIn || this.data.savingProfile) return
-    const nick = String((e.detail && e.detail.value) || this.data.editNickName || '').trim()
-    const current = (this.data.userInfo && (this.data.userInfo.nickName || this.data.userInfo.nickname)) || ''
-    if (!nick || nick === current) return
-    this.setData({ savingProfile: true, editNickName: nick })
-    const phone = (this.data.userInfo && this.data.userInfo.phone) || ''
-    const avatarUrl = (this.data.userInfo && this.data.userInfo.avatarUrl) || ''
-    AuthService.updateProfile({ nickname: nick, avatarUrl: avatarUrl || undefined })
-      .then(() => {
-        AuthService.completeLogin({ phone, nickName: nick, avatarUrl })
-        AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl })
-        this._refresh()
-        wx.showToast({ title: '昵称已更新', icon: 'success' })
-      })
-      .catch(() => wx.showToast({ title: '昵称保存失败', icon: 'none' }))
-      .finally(() => this.setData({ savingProfile: false }))
-  },
-
-  onBindPhone(e) {
-    if (!this.data.isLoggedIn) return
-    const detail = (e && e.detail) || {}
-    if (!detail.code) {
-      wx.showToast({ title: '未授权手机号', icon: 'none' })
+    const nick = String(this.data.editNickName || '').trim()
+    if (!nick) {
+      wx.showToast({ title: '请输入昵称', icon: 'none' })
       return
     }
-    const nick = this.data.editNickName || (this.data.userInfo && this.data.userInfo.nickName) || ''
-    const avatarUrl = (this.data.userInfo && this.data.userInfo.avatarUrl) || ''
-    wx.showLoading({ title: '绑定中', mask: true })
-    AuthService.bindPhone(detail.code, {
-      nickname: nick || undefined,
-      avatarUrl: isRemoteUrl(avatarUrl) ? avatarUrl : undefined,
-    })
-      .then((phone) => {
-        AuthService.completeLogin({ phone, nickName: nick, avatarUrl })
-        this._refresh()
-        wx.showToast({ title: '手机号已绑定', icon: 'success' })
+    if (nick.length > NICKNAME_MAX_LEN) {
+      this.setData({ nicknameError: true, canSave: false })
+      wx.showToast({ title: '昵称不能超过10个字', icon: 'none' })
+      return
+    }
+
+    const phone = String(this.data.editPhone || '').trim()
+    const email = String(this.data.editEmail || '').trim()
+    this.setData({ savingProfile: true, editNickName: nick, nicknameError: false })
+
+    this._uploadAvatarIfNeeded()
+      .then((avatarUrl) => {
+        if (!avatarUrl && this.data.pendingAvatarLocal) {
+          throw new Error('avatar_upload_failed')
+        }
+        const finalAvatar = avatarUrl || this.data.editAvatarUrl || ''
+        return AuthService.updateProfile({
+          nickname: nick,
+          avatarUrl: finalAvatar || undefined,
+          phone,
+          email,
+        }).then((userInfo) => ({ userInfo, finalAvatar }))
       })
-      .catch(() => wx.showToast({ title: '绑定失败，请重试', icon: 'none' }))
-      .finally(() => wx.hideLoading())
+      .then(({ finalAvatar }) => {
+        AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl: finalAvatar })
+        this.setData({ pendingAvatarLocal: '', editAvatarUrl: finalAvatar || this.data.editAvatarUrl })
+        this._refresh()
+        wx.showToast({ title: '已保存', icon: 'success' })
+      })
+      .catch((err) => {
+        const msg =
+          (err && err.message === 'avatar_upload_failed')
+            ? '头像上传失败'
+            : ((err && err.message) || '保存失败')
+        wx.showToast({ title: msg, icon: 'none' })
+      })
+      .finally(() => this.setData({ savingProfile: false }))
   },
 
   goAddress() {
