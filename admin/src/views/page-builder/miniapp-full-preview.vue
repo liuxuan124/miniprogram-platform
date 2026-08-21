@@ -68,7 +68,7 @@
         <PreviewPhone
           :page-title="phoneTitle"
           :page-bg-color="pageBgColor"
-          :hide-nav-bar="currentHasBrandHeader"
+          :hide-nav-bar="currentHasBrandHeader || activeScreen === 'mine'"
           :pinned-brand-header="!!currentPinnedBrandHeader"
           @back="handleBack"
         >
@@ -217,7 +217,15 @@
             </template>
 
             <template v-else-if="activeScreen === 'mine'">
-              <MinePagePreview :mine-config="mineConfigFull" :theme="themeConfig" />
+              <MinePagePreview
+                v-model:preview-logged-in="previewLoggedIn"
+                :mine-config="mineConfigFull"
+                :theme="themeConfig"
+                @update:preview-nickname="onFullPreviewNicknameUpdate"
+                @update:preview-avatar="onFullPreviewAvatarUpdate"
+                @update:preview-phone="onFullPreviewPhoneUpdate"
+                @update:preview-email="onFullPreviewEmailUpdate"
+              />
             </template>
 
             <template v-else-if="activeScreen === 'login'">
@@ -237,36 +245,6 @@
                   <div class="fp-login__eyebrow"><i></i>MEMBER ACCESS</div>
                   <div class="fp-login__brand">欢迎回来</div>
                   <div class="fp-login__desc">登录后同步订单、预约与会员权益</div>
-                </div>
-
-                <div class="fp-login__card">
-                  <div class="fp-login__card-head">
-                    <div>
-                      <b>完善个人资料</b>
-                      <span>首次登录只需完成一次</span>
-                    </div>
-                    <em>01</em>
-                  </div>
-
-                  <div class="fp-login__profile-row">
-                    <div class="fp-login__avatar">
-                      <div class="avatar-ring">人</div>
-                      <i>+</i>
-                    </div>
-                    <div class="fp-login__profile-copy">
-                      <b>个人头像</b>
-                      <span>点击使用你的头像</span>
-                    </div>
-                    <em>选择</em>
-                  </div>
-
-                  <div class="fp-login__nickname">
-                    <label><span>昵称</span><em>必填</em></label>
-                    <div class="nickname-input">
-                      <span>填写你希望展示的昵称</span>
-                      <b>Aa</b>
-                    </div>
-                  </div>
                 </div>
 
                 <div class="fp-login__bottom">
@@ -345,10 +323,14 @@ import {
   DEFAULT_ORDER_QUICK_ACCESS,
   DEFAULT_USER_PROFILE,
   DEFAULT_THEME,
+  normalizeOrderTabLabels,
+  resolveMineStyleKey,
+  applyMineStylePreset,
   type MinePageConfig,
   type ThemeConfig,
 } from '@/types/miniapp'
 import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
+import { suggestMenuLineIcon } from '@/components/miniapp-builder/menuLineIcons'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from '@/components/page-builder/composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from '@/components/page-builder/composables/useMeasuredElementHeight'
 
@@ -376,6 +358,8 @@ const products = ref<any[]>([])
 const contents = ref<any[]>([])
 const coupons = ref<any[]>([])
 const currentProduct = ref<any | null>(null)
+/** 从商品详情返回时的上一屏（模拟真机 navigateBack） */
+const screenBeforeProduct = ref('home')
 const authPreviewMode = ref<'guest' | 'member'>('guest')
 const previewPrivacyAccepted = ref(false)
 const authModeOptions = [
@@ -387,39 +371,85 @@ const mineConfigFull = ref<MinePageConfig>({
   loginSubtitle: '查看订单、预约与会员权益',
   loginButtonText: '微信一键登录',
   memberCardTitle: '会员中心',
+  previewNickname: '微信用户',
+  previewAvatar: '',
+  previewPhone: '',
+  previewEmail: '',
+  showMenuIcons: false,
+  showDecorBackground: true,
+  showMemberCard: true,
   menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
   orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS },
   userProfile: { ...DEFAULT_USER_PROFILE },
 })
 const themeConfig = ref<ThemeConfig>({ ...DEFAULT_THEME })
 
+function onFullPreviewNicknameUpdate(value: string) {
+  mineConfigFull.value.previewNickname = value
+}
+
+function onFullPreviewAvatarUpdate(value: string) {
+  mineConfigFull.value.previewAvatar = value
+}
+
+function onFullPreviewPhoneUpdate(value: string) {
+  mineConfigFull.value.previewPhone = value
+}
+
+function onFullPreviewEmailUpdate(value: string) {
+  mineConfigFull.value.previewEmail = value
+}
+
 function parseMineConfig(raw: unknown): MinePageConfig {
   const src = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {}
   const tabLabels = (src.orderQuickAccess as Record<string, unknown> | undefined)?.tabLabels as Record<string, string> | undefined
-  return {
+  const parsed = {
     loginTitle: String(src.loginTitle || mineConfigFull.value.loginTitle),
     loginSubtitle: String(src.loginSubtitle || mineConfigFull.value.loginSubtitle),
     loginButtonText: String(src.loginButtonText || mineConfigFull.value.loginButtonText),
     memberCardTitle: String(src.memberCardTitle || mineConfigFull.value.memberCardTitle),
+    previewNickname: String(src.previewNickname || '微信用户'),
+    previewAvatar: String(src.previewAvatar || ''),
+    previewPhone: String(src.previewPhone || ''),
+    previewEmail: String(src.previewEmail || ''),
+    showMenuIcons: src.showMenuIcons === true,
+    showDecorBackground: src.showDecorBackground !== false,
+    showMemberCard: src.showMemberCard !== false,
     menuItems: Array.isArray(src.menuItems)
-      ? src.menuItems as MinePageConfig['menuItems']
+      ? (src.menuItems as MinePageConfig['menuItems']).map((m, i) => ({
+          ...m,
+          id: m.id || `mine-${i + 1}`,
+          icon: suggestMenuLineIcon(m.title || '', m.icon),
+        }))
       : DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
     orderQuickAccess: {
       ...DEFAULT_ORDER_QUICK_ACCESS,
       ...(src.orderQuickAccess as object || {}),
-      tabLabels: {
-        ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels,
-        ...(tabLabels || {}),
-      },
+      tabLabels: normalizeOrderTabLabels(tabLabels),
     },
     userProfile: {
       ...DEFAULT_USER_PROFILE,
       ...(src.userProfile as object || {}),
     },
-    ...(src.style ? { style: src.style } : {}),
-    ...(src.themeColor ? { themeColor: src.themeColor } : {}),
-    ...(src.themeColorSecondary ? { themeColorSecondary: src.themeColorSecondary } : {}),
+    ...(src.templateStyle ? { templateStyle: String(src.templateStyle) } : {}),
+    ...(src.style ? { style: String(src.style) } : {}),
+    ...(src.themeColor ? { themeColor: String(src.themeColor) } : {}),
+    ...(src.themeColorSecondary ? { themeColorSecondary: String(src.themeColorSecondary) } : {}),
   } as MinePageConfig
+
+  const rawStyleKey = String(src.templateStyle || '')
+  const needsStyleFallback =
+    src.style === 'outline'
+    || rawStyleKey === 'minimal'
+    || rawStyleKey === 'dark'
+    || rawStyleKey === 'simple'
+    || rawStyleKey === 'standard'
+    || rawStyleKey === 'premium'
+    || ['#1e293b', '#334155'].includes(String(src.themeColor || '').toLowerCase())
+  if (needsStyleFallback || src.themeColor || src.templateStyle) {
+    applyMineStylePreset(parsed as Record<string, unknown>, resolveMineStyleKey(parsed))
+  }
+  return parsed
 }
 
 function parseThemeConfig(raw: unknown): ThemeConfig {
@@ -573,6 +603,8 @@ const displayTabs = computed(() => {
 })
 const showTabbar = computed(() => {
   if (activeScreen.value === 'login') return false
+  // 真机商品详情为 navigateTo 子页，不显示 TabBar
+  if (activeScreen.value === 'product') return false
   if (snapshotPages.value.length) return displayTabs.value.length > 0
   return ['home', 'content', 'shop', 'mine'].includes(activeScreen.value)
 })
@@ -580,6 +612,7 @@ const showTabbar = computed(() => {
 const showBoundPageContent = computed(() => {
   if (!snapshotPages.value.length) return false
   if (activeScreen.value === 'login') return false
+  if (activeScreen.value === 'product') return false
   if (activeScreen.value === 'mine' && activeComponents.value.length === 0) return false
   return snapshotPages.value.some((p) => normalizePath(p.path) === normalizePath(activeScreen.value))
     || activeComponents.value.length > 0
@@ -608,10 +641,16 @@ const currentPinnedBrandHeaderHeight = computed(() => {
   return measuredPinnedHeight.value || estimateBrandHeaderHeight(currentPinnedBrandHeader.value.props)
 })
 
-const previewLoggedIn = computed(() => authPreviewMode.value === 'member')
+const previewLoggedIn = computed({
+  get: () => authPreviewMode.value === 'member',
+  set: (v: boolean) => {
+    authPreviewMode.value = v ? 'member' : 'guest'
+  },
+})
 const phoneTitle = computed(() => {
   if (activeScreen.value === 'login') return '登录'
   if (activeScreen.value === 'mine') return '我的'
+  if (activeScreen.value === 'product') return currentProduct.value?.name || '商品详情'
   if (snapshotPages.value.length) {
     const page = findSnapshotPage(activeScreen.value)
     if (page?.name) return page.name
@@ -845,6 +884,17 @@ async function showSnapshotPage(path: string) {
 }
 
 function openScreen(key: string) {
+  // 商品详情为子页，不走版本快照路由（真机为 /pages/product-detail）
+  if (key === 'product') {
+    if (activeScreen.value !== 'product') {
+      screenBeforeProduct.value = activeScreen.value
+    }
+    activeScreen.value = 'product'
+    if (!currentProduct.value && products.value.length) {
+      currentProduct.value = products.value[0]
+    }
+    return
+  }
   if (snapshotPages.value.length) {
     const page = findSnapshotPage(key)
     if (page?.path) {
@@ -872,6 +922,8 @@ function handlePreviewAction(payload: {
   detailType?: string
   detailTitle?: string
   detailDesc?: string
+  productId?: string | number
+  previewPath?: string
 }) {
   if (!payload) return
   if (payload.detailType === 'content' || payload.tab === 'content') {
@@ -879,7 +931,21 @@ function handlePreviewAction(payload: {
     ElMessage.success(payload.message || `已打开「${payload.detailTitle || '内容'}」`)
     return
   }
-  if (payload.detailType === 'product' || payload.tab === 'shop') {
+  // 点商品 → 商品介绍页（对齐真机 product-detail），不是商品 Tab 列表
+  if (payload.detailType === 'product' || payload.tab === 'product') {
+    const id = payload.productId
+    const found = id != null
+      ? products.value.find((p) => String(p.id) === String(id))
+      : null
+    openProduct(found || {
+      id,
+      name: payload.detailTitle || '商品详情',
+      description: payload.detailDesc || '',
+    })
+    ElMessage.success(payload.message || '已打开商品详情')
+    return
+  }
+  if (payload.tab === 'shop') {
     openScreen('shop')
     ElMessage.success(payload.message || '已打开商品')
     return
@@ -887,6 +953,18 @@ function handlePreviewAction(payload: {
   if (payload.detailType === 'activity' || payload.tab === 'activity') {
     openScreen('activity')
     ElMessage.success(payload.message || '已打开活动')
+    return
+  }
+  if (payload.previewPath) {
+    void showSnapshotPage(payload.previewPath)
+    return
+  }
+  if (payload.tab === 'mine') {
+    openScreen('mine')
+    return
+  }
+  if (payload.tab === 'home') {
+    openScreen('home')
     return
   }
   if (payload.message) ElMessage.success(payload.message)
@@ -912,8 +990,11 @@ function completePreviewLogin() {
 }
 
 function openProduct(p: any) {
+  if (activeScreen.value !== 'product') {
+    screenBeforeProduct.value = activeScreen.value
+  }
   currentProduct.value = p
-  openScreen('product')
+  activeScreen.value = 'product'
 }
 
 function handleBack() {
@@ -922,7 +1003,8 @@ function handleBack() {
     return
   }
   if (activeScreen.value === 'product') {
-    openScreen('shop')
+    const back = screenBeforeProduct.value || 'home'
+    openScreen(back)
     return
   }
   if (!showTabbar.value) {

@@ -2,6 +2,7 @@ const SystemService = require('../services/system')
 const { PageService } = require('../services/page')
 const { parseDSL, loadAllComponentData } = require('./render')
 const { getNavLayout } = require('./nav-layout')
+const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('./image-preload')
 
 /** 与 custom-tab-bar REGISTERED_TAB_PATHS 顺序一致 */
 const TAB_SLOT_ROUTES = [
@@ -34,7 +35,7 @@ async function resolveBoundPathForTabRoute(tabRoute) {
   return boundPath.replace(/^\//, '')
 }
 
-async function loadDslPageState(path, forceRefresh) {
+async function loadDslPageState(path, forceRefresh, options) {
   const dsl = await PageService.getPageDSL(path, forceRefresh)
   const parsed = parseDSL(dsl)
   const components = await loadAllComponentData(parsed.components || [])
@@ -44,16 +45,24 @@ async function loadDslPageState(path, forceRefresh) {
     if (item && item.type === 'float_button') floatComponents.push(item)
     else flowComponents.push(item)
   })
-  const hasBrandHeader = flowComponents.some((item) => item && item.type === 'brand_header')
+  const heroUrls = collectHeroImageUrls(flowComponents)
+  // 等顶图预载（或 550ms）后再一次 setData，首绘即带正确比例与缓存
+  const loaded = await preloadImages(heroUrls, 550)
+  const annotated = annotateHeroImageSize(flowComponents, loaded)
+  const hasBrandHeader = annotated.some((item) => item && item.type === 'brand_header')
   const layout = getNavLayout()
+  // 仅自定义导航栏页且无 brand_header 时，用 statusBar 垫高；系统默认导航栏不需要
+  const useCustomNav = !!(options && options.useCustomNav)
+  const statusPadPx = useCustomNav && !hasBrandHeader ? layout.statusBarHeight : 0
   return {
     dslMode: true,
     loading: false,
     error: '',
-    flowComponents,
+    flowComponents: annotated,
     floatComponents,
     hasBrandHeader,
     statusBarHeight: layout.statusBarHeight,
+    statusPadPx,
     pageTitle: (parsed.page && parsed.page.name) || '',
   }
 }
@@ -70,9 +79,10 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
       pageCtx.setData({ dslMode: false, loading: false })
       return false
     }
-    const state = await loadDslPageState(path, forceRefresh)
+    const useCustomNav = normalizePath(tabRoute) === '/pages/index/index'
+    const state = await loadDslPageState(path, forceRefresh, { useCustomNav })
     pageCtx.setData(state)
-    if (!state.hasBrandHeader && state.pageTitle) {
+    if (state.pageTitle && !useCustomNav) {
       wx.setNavigationBarTitle({ title: state.pageTitle })
     }
     return true

@@ -1,9 +1,12 @@
-<!--pages/custom/custom.wxml — 装修器自定义页/专题页通用入口-->
+<!--pages/custom-nav/custom-nav.wxml — 含 brand_header 的装修页（自定义顶栏）-->
 <view class="custom-page">
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
   <block wx:else>
-    <view class="custom-page__body">
+    <view
+      class="custom-page__body"
+      style="{{hasBrandHeader ? '' : 'padding-top:' + statusBarHeight + 'px;'}}"
+    >
       <view
         wx:for="{{flowComponents}}"
         wx:key="id"
@@ -14,7 +17,6 @@
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="custom-page__state">页面暂无内容</view>
     </view>
-    <!-- 悬浮按钮独立浮层：相对屏幕固定，不随页面内容滚动 -->
     <dsl-float-button
       wx:for="{{floatComponents}}"
       wx:key="id"

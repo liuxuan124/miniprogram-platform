@@ -19,6 +19,7 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   loginSubtitle: '查看订单、预约与会员权益',
   loginButtonText: '微信一键登录',
   memberCardTitle: '出海会员中心',
+  showMemberCard: true,
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [

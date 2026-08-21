@@ -4,7 +4,8 @@ import { getPageList } from '@/api/page'
 import { getConfigByGroup, updateConfigs, normalizeUploadUrl } from '@/api/system'
 import type { PageRecord } from '@/types/page'
 import type { MiniappForm } from '@/types/miniapp'
-import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE } from '@/types/miniapp'
+import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE, normalizeOrderTabLabels, resolveMineStyleKey, applyMineStylePreset } from '@/types/miniapp'
+import { suggestMenuLineIcon } from '../menuLineIcons'
 import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
 
 /** 系统内置页面（不在页面列表中，但可作为TabBar绑定目标） */
@@ -45,6 +46,13 @@ export function useMiniappConfig() {
       loginSubtitle: '登录后查看订单、优惠券、积分等个人信息',
       loginButtonText: '微信一键登录',
       memberCardTitle: '我的会员中心',
+      previewNickname: '微信用户',
+      previewAvatar: '',
+      previewPhone: '',
+      previewEmail: '',
+      showMenuIcons: false,
+      showDecorBackground: true,
+      showMemberCard: true,
       menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
       orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS },
       userProfile: { ...DEFAULT_USER_PROFILE },
@@ -187,20 +195,30 @@ export function useMiniappConfig() {
               loginSubtitle: mine.loginSubtitle || '登录后查看订单、优惠券、积分等个人信息',
               loginButtonText: mine.loginButtonText || '微信一键登录',
               memberCardTitle: mine.memberCardTitle || '我的会员中心',
+              previewNickname: mine.previewNickname || '微信用户',
+              previewAvatar: String(mine.previewAvatar || ''),
+              previewPhone: String(mine.previewPhone || ''),
+              previewEmail: String(mine.previewEmail || ''),
+              showMenuIcons: mine.showMenuIcons === true,
+              showDecorBackground: mine.showDecorBackground !== false,
+              showMemberCard: mine.showMemberCard !== false,
               menuItems: Array.isArray(mine.menuItems || mine.menu_items)
-                ? (mine.menuItems || mine.menu_items).map((m: any, i: number) => ({
-                    id: m.id || `mine-${i + 1}`,
-                    icon: m.icon || '📦',
-                    title: m.title || m.name || '',
-                    url: m.url || m.linkUrl || m.link_url || '',
-                    enabled: m.enabled !== undefined ? m.enabled : (m.visible !== false),
-                    group: m.group || '',
-                  }))
+                ? (mine.menuItems || mine.menu_items).map((m: any, i: number) => {
+                    const title = m.title || m.name || ''
+                    return {
+                      id: m.id || `mine-${i + 1}`,
+                      icon: suggestMenuLineIcon(title, m.icon),
+                      title,
+                      url: m.url || m.linkUrl || m.link_url || '',
+                      enabled: m.enabled !== undefined ? m.enabled : (m.visible !== false),
+                      group: m.group || '',
+                    }
+                  })
                 : form.mineConfig.menuItems,
               orderQuickAccess: {
                 showOrderTabs: mine.orderQuickAccess?.showOrderTabs ?? mine.showOrderTabs ?? DEFAULT_ORDER_QUICK_ACCESS.showOrderTabs,
                 showAllOrdersBtn: mine.orderQuickAccess?.showAllOrdersBtn ?? mine.showAllOrdersBtn ?? DEFAULT_ORDER_QUICK_ACCESS.showAllOrdersBtn,
-                tabLabels: mine.orderQuickAccess?.tabLabels || mine.orderTabLabels || { ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels },
+                tabLabels: normalizeOrderTabLabels(mine.orderQuickAccess?.tabLabels || mine.orderTabLabels),
               },
               userProfile: {
                 showAvatar: mine.userProfile?.showAvatar ?? true,
@@ -209,6 +227,24 @@ export function useMiniappConfig() {
                 allowEditProfile: mine.userProfile?.allowEditProfile ?? true,
                 memberLevelLabel: mine.userProfile?.memberLevelLabel || '会员等级',
               },
+              ...(mine.templateStyle ? { templateStyle: mine.templateStyle } : {}),
+              ...(mine.style ? { style: mine.style } : {}),
+              ...(mine.themeColor ? { themeColor: mine.themeColor } : {}),
+              ...(mine.themeColorSecondary ? { themeColorSecondary: mine.themeColorSecondary } : {}),
+            }
+            // 已删除的简约/暗黑风格安全回退到基础版；旧 standard/premium 归一到 basic/member
+            const styleKey = resolveMineStyleKey(form.mineConfig)
+            const rawStyleKey = String(mine.templateStyle || '')
+            const needsStyleFallback =
+              mine.style === 'outline'
+              || rawStyleKey === 'minimal'
+              || rawStyleKey === 'dark'
+              || rawStyleKey === 'simple'
+              || rawStyleKey === 'standard'
+              || rawStyleKey === 'premium'
+              || ['#1e293b', '#334155'].includes(String(mine.themeColor || '').toLowerCase())
+            if (needsStyleFallback || mine.themeColor || mine.templateStyle) {
+              applyMineStylePreset(form.mineConfig as Record<string, unknown>, styleKey)
             }
           }
         } catch { /* ignore */ }
@@ -261,6 +297,12 @@ export function useMiniappConfig() {
   }
 
   async function handleSave(): Promise<boolean> {
+    const previewNick = String(form.mineConfig?.previewNickname ?? '')
+    if (previewNick.length > 10) {
+      ElMessage.error('预览昵称不能超过10个字')
+      return false
+    }
+
     const warnings = validateTabsBeforeSave()
     if (warnings.length > 0) {
       try {
@@ -353,6 +395,13 @@ export function useMiniappConfig() {
         loginSubtitle: '登录后查看订单、优惠券、积分等个人信息',
         loginButtonText: '微信一键登录',
         memberCardTitle: '我的会员中心',
+        previewNickname: '微信用户',
+        previewAvatar: '',
+        previewPhone: '',
+        previewEmail: '',
+        showMenuIcons: false,
+        showDecorBackground: true,
+        showMemberCard: true,
         menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
         orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS },
         userProfile: { ...DEFAULT_USER_PROFILE },

@@ -3,7 +3,7 @@
 <block wx:if="{{dslMode}}">
   <template
     is="dsl-tab-body"
-    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight}}"
+    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight, statusPadPx}}"
   />
 </block>
 <block wx:else>

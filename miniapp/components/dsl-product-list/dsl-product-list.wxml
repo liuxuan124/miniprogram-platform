@@ -20,7 +20,7 @@
             class="dsl-product-list__thumb-img"
             src="{{item._cover}}"
             mode="aspectFill"
-            lazy-load
+            lazy-load="{{!item._eager}}"
           />
           <view wx:else class="dsl-product-list__thumb-ph" style="{{item._artStyle}}">
             <text>{{item._glyph || '🛍️'}}</text>
@@ -54,7 +54,7 @@
             class="dsl-product-list__item-image"
             src="{{item._cover}}"
             mode="aspectFill"
-            lazy-load
+            lazy-load="{{!item._eager}}"
           />
           <view wx:else class="dsl-product-list__item-placeholder">
             <text>🛍️</text>

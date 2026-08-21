@@ -7,6 +7,21 @@ const orderService = require('../../services/order')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 
+/** 相对上传路径 → 可访问的完整 URL */
+function resolveMediaUrl(url) {
+  const raw = String(url || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw) || raw.indexOf('//') === 0) return raw
+  const path = raw.indexOf('/') === 0 ? raw : `/${raw}`
+  if (/^\/?uploads\//i.test(path) || path.indexOf('/uploads/') === 0) {
+    return `https://zfculture.site${path}`
+  }
+  if (path.indexOf('/') === 0) {
+    return `https://zfculture.site${path}`
+  }
+  return raw
+}
+
 /** 详情长图无缝：图片块级、去边距；包裹段落也去缝 */
 function seamlessDetailImages(html) {
   if (!html || typeof html !== 'string') return html || ''
@@ -86,13 +101,27 @@ Page({
         const main = product.mainImage || product.main_image || product.image || ''
         const merged = []
         const push = (u) => {
-          if (u && merged.indexOf(u) === -1) merged.push(u)
+          const full = resolveMediaUrl(u)
+          if (full && merged.indexOf(full) === -1) merged.push(full)
         }
         push(main)
         gallery.forEach(push)
         product.images = merged
         product.image = merged[0] || ''
-        product.mainImage = merged[0] || main || ''
+        product.mainImage = merged[0] || resolveMediaUrl(main) || ''
+        // 富文本内相对图也补全域名
+        if (product.detail) {
+          product.detail = String(product.detail).replace(
+            /(src=["'])(\/uploads\/[^"']+)(["'])/gi,
+            (_, a, p, b) => `${a}https://zfculture.site${p}${b}`,
+          )
+        }
+        if (product.description) {
+          product.description = String(product.description).replace(
+            /(src=["'])(\/uploads\/[^"']+)(["'])/gi,
+            (_, a, p, b) => `${a}https://zfculture.site${p}${b}`,
+          )
+        }
         // 处理 SKU 列表
         const skus = product.skus || product.sku_list || []
         product.skuList = skus
@@ -148,6 +177,18 @@ Page({
   /** 轮播图切换 */
   onSwiperChange(e) {
     this.setData({ swiperCurrent: e.detail.current })
+  },
+
+  /** 轮播图加载失败：去掉坏图，避免空白顶布局 */
+  onSwiperImageError(e) {
+    const idx = Number(e.currentTarget.dataset.index)
+    const images = (this.data.product && this.data.product.images) || []
+    if (!Number.isFinite(idx) || idx < 0 || idx >= images.length) return
+    const next = images.filter((_, i) => i !== idx)
+    this.setData({
+      'product.images': next,
+      swiperCurrent: Math.min(this.data.swiperCurrent, Math.max(0, next.length - 1)),
+    })
   },
 
   /** 预览图片 */

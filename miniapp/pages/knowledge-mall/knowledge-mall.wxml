@@ -3,13 +3,12 @@
 <block wx:if="{{dslMode}}">
   <template
     is="dsl-tab-body"
-    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight}}"
+    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight, statusPadPx}}"
   />
 </block>
 <block wx:else>
-<view class="km-page" style="padding-top: {{statusBarHeight}}px;">
-  <view class="km-header">
-    <text class="km-header__title">知识商城</text>
+<view class="km-page">
+  <view class="km-header km-header--under-sys">
     <view class="km-header__cart" bindtap="onGoCart">
       <text class="km-header__cart-emoji">🛒</text>
       <view wx:if="{{cartCount > 0}}" class="km-header__badge">{{cartCount > 99 ? '99+' : cartCount}}</view>

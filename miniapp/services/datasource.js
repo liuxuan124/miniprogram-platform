@@ -21,7 +21,7 @@ const DS_API_MAP = {
 // 每种数据源只保留前端需要的字段，减少 setData 体积
 const DS_SLIM_FIELDS = {
   product: ['id', 'name', 'title', 'price', 'originalPrice', 'image', 'coverUrl', 'cover_url', 'mainImage', 'main_image', 'sales', 'status', 'tag', 'categoryId'],
-  content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'image', 'summary', 'createdAt', 'created_at', 'publishedAt', 'publish_time', 'publishTime', 'createTime', 'categoryId', 'categoryName', 'source', 'viewCount', 'view_count'],
+  content: ['id', 'title', 'name', 'coverUrl', 'cover_url', 'coverImage', 'image', 'summary', 'createdAt', 'created_at', 'publishedAt', 'publish_time', 'publishTime', 'createTime', 'categoryId', 'categoryName', 'source', 'viewCount', 'view_count'],
   activity: ['id', 'name', 'title', 'image', 'cover_url', 'coverUrl', 'startTime', 'start_time', 'endTime', 'end_time', 'location', 'venue', 'status'],
   coupon: ['id', 'name', 'title', 'type', 'value', 'amount', 'discount', 'minOrderAmount', 'minAmount', 'min_amount', 'startTime', 'start_time', 'endTime', 'end_time', 'status', 'condition'],
   appointment_service: ['id', 'name', 'title', 'description', 'desc', 'image', 'cover_url'],

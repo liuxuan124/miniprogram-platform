@@ -4,7 +4,8 @@
   max-width: 100%;
   overflow: hidden;
   background: #f1f5fb;
-  border-radius: 16rpx;
+  /* 圆角由 styleString 注入；默认直角，与装修面板一致 */
+  border-radius: 0;
   box-sizing: border-box;
 }
 
@@ -14,6 +15,15 @@
 
 .dsl-image__img--cover {
   display: block;
+}
+
+.dsl-image__img--pending {
+  opacity: 0;
+}
+
+.dsl-image__img--ready {
+  opacity: 1;
+  transition: opacity 0.18s ease-out;
 }
 
 .dsl-image__img--auto {

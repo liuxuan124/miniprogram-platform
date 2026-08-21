@@ -176,7 +176,7 @@ function parseStyle(style) {
 
 /** 导航栏负边距重叠时保持在最上层（z-index 勿放入 parseStyle，会被当成 rpx） */
 function appendNavStackStyle(styleString) {
-  const stack = 'position: relative; z-index: 10'
+  const stack = 'position: relative; z-index: 20'
   return styleString ? `${styleString}; ${stack}` : stack
 }
 
@@ -212,8 +212,47 @@ function processComponent(component) {
     }
   }
   let styleString = parseStyle(component.style || {})
-  if (component.type === 'nav' || component.type === 'product_list') {
+  const rawStyle = component.style || {}
+  const stackTypes = ['nav', 'product_list', 'hot_news', 'brand_header']
+  const belowTypes = ['image', 'banner']
+  const isStack = stackTypes.includes(component.type)
+  const isBelow = belowTypes.includes(component.type)
+
+  // 负边距 + z-index 打在页面原生外层，避免自定义组件叠层失效
+  const hostParts = ['position:relative']
+  if (isStack) hostParts.push('z-index:20')
+  else if (isBelow) hostParts.push('z-index:1')
+  ;['margin_top', 'margin_bottom', 'margin_left', 'margin_right'].forEach((key) => {
+    const val = rawStyle[key]
+    if (val === undefined || val === null || val === '') return
+    const n = Number(val)
+    if (!Number.isFinite(n)) return
+    hostParts.push(`${key.replace(/_/g, '-')}:${n * 2}rpx`)
+  })
+  const hostStyle = hostParts.join(';')
+
+  // 内层不再重复外边距，避免双倍间距
+  if (isStack || isBelow || rawStyle.margin_top || rawStyle.margin_bottom || rawStyle.margin_left || rawStyle.margin_right) {
+    const innerStyle = { ...rawStyle }
+    delete innerStyle.margin_top
+    delete innerStyle.margin_bottom
+    delete innerStyle.margin_left
+    delete innerStyle.margin_right
+    styleString = parseStyle(innerStyle)
+  }
+  if (isStack && component.type !== 'brand_header') {
+    // brand_header 自带 fixed 顶栏，不能注入 position:relative，否则会顶掉 fixed 并叠出空白
     styleString = appendNavStackStyle(styleString)
+  }
+  // image：圆角跟样式面板，显式 0 生效；未设置默认 0（勿写死 CSS 圆角）
+  if (component.type === 'image') {
+    const raw = component.style || {}
+    const radius = raw.border_radius
+    const r = radius === undefined || radius === null || radius === ''
+      ? 0
+      : Number(radius)
+    const radiusCss = `border-radius:${(Number.isFinite(r) ? r : 0) * 2}rpx;overflow:hidden`
+    styleString = styleString ? `${styleString};${radiusCss}` : radiusCss
   }
   const props = component.props || {}
   const resolvedDataSource = component.data_source || props.data_source || null
@@ -250,6 +289,8 @@ function processComponent(component) {
     actions: parseActions(component.actions),
     style: component.style || {},
     styleString,
+    hostStyle,
+    _stackClass: isStack ? 'dsl-flow--stack' : (isBelow ? 'dsl-flow--below' : ''),
     visible: component.visible !== false && (component.style || {}).visible !== false,
     // 运行时数据（由数据源填充）
     runtimeData: [],

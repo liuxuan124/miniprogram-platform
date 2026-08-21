@@ -337,8 +337,17 @@ Component({
     _processComponent(component) {
       const normalized = this._normalizeByType(component)
       let styleString = normalized.styleString || parseStyle(normalized.style || component.style || {})
-      if (normalized.type === 'nav' || normalized.type === 'product_list') {
+      if (normalized.type === 'nav' || normalized.type === 'product_list' || normalized.type === 'hot_news') {
         styleString = appendNavStackStyle(styleString)
+      }
+      if (normalized.type === 'image') {
+        const raw = normalized.style || component.style || {}
+        const radius = raw.border_radius
+        const r = radius === undefined || radius === null || radius === ''
+          ? 0
+          : Number(radius)
+        const radiusCss = `border-radius:${(Number.isFinite(r) ? r : 0) * 2}rpx;overflow:hidden`
+        styleString = styleString ? `${styleString};${radiusCss}` : radiusCss
       }
       this.setData({
         comp: {

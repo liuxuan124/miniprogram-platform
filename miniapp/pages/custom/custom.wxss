@@ -2,7 +2,6 @@
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
   background: #f5f7fb;
   box-sizing: border-box;
 }
@@ -17,7 +16,23 @@
 .custom-page__body {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
   padding-bottom: 40rpx;
   box-sizing: border-box;
+}
+
+.dsl-flow {
+  /* 勿 width:100%：再叠加左右 margin 会撑出视口，右边被裁切贴边 */
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dsl-flow--stack {
+  position: relative;
+  z-index: 20;
+}
+
+.dsl-flow--below {
+  position: relative;
+  z-index: 1;
 }

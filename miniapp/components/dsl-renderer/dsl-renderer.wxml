@@ -1,18 +1,22 @@
 <!--components/dsl-renderer/dsl-renderer.wxml — DSL 渲染引擎-->
-<view class="dsl-renderer" wx:if="{{comp && comp.visible !== false}}">
-  <!-- 品牌顶栏 brand_header -->
-  <dsl-brand-header
-    wx:if="{{comp.type === 'brand_header'}}"
-    config="{{comp.props}}"
-    runtimeData="{{comp.runtimeData}}"
-    actions="{{comp.actions}}"
-    styleString="{{comp.styleString}}"
-    bind:componentevent="onComponentEvent"
-  />
+<view
+  class="dsl-renderer"
+  wx:if="{{comp && comp.visible !== false}}"
+>
+  <!-- 品牌顶栏：必须用 block 包住自定义组件，否则部分基础库 if/elif 链会落到未知组件 -->
+  <block wx:if="{{comp.type === 'brand_header'}}">
+    <dsl-brand-header
+      config="{{comp.props}}"
+      runtimeData="{{comp.runtimeData}}"
+      actions="{{comp.actions}}"
+      styleString="{{comp.styleString}}"
+      bind:componentevent="onComponentEvent"
+    />
+  </block>
 
   <!-- 0. 搜索组件 search -->
   <view
-    wx:if="{{comp.type === 'search'}}"
+    wx:elif="{{comp.type === 'search'}}"
     class="dsl-search"
     style="{{comp.styleString}}"
     bindtap="onSearchTap"

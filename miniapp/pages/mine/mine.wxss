@@ -116,6 +116,64 @@
   box-shadow: none;
 }
 
+/* 会员中心卡片（搭建 showMemberCard） */
+.m-member-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin: 20rpx 24rpx 0;
+  padding: 28rpx 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(to right, #e8eef8 0%, #c8daf0 48%, #a8c8ec 100%);
+  box-shadow: 0 12rpx 28rpx rgba(80, 120, 180, 0.14);
+}
+
+.m-member-card__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.m-member-card__title {
+  color: #3a6bb5;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.m-member-card__level {
+  display: inline-block;
+  margin-top: 10rpx;
+  padding: 4rpx 14rpx;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  background: #6b9fd9;
+  border-radius: 999rpx;
+}
+
+.m-member-card__desc {
+  margin-top: 12rpx;
+  color: #5a6a80;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.m-member-card__cta {
+  flex-shrink: 0;
+  padding: 14rpx 26rpx;
+  color: #3a6bb5;
+  font-size: 24rpx;
+  font-weight: 700;
+  background: #fff;
+  border-radius: 999rpx;
+  box-shadow: 0 6rpx 16rpx rgba(90, 140, 200, 0.16);
+}
+
+/* 有会员卡时，统计区不再贴在头图底部 */
+.m-member-card + .m-stats {
+  margin-top: 16rpx;
+  border-radius: 26rpx;
+}
+
 .m-stats {
   position: relative;
   z-index: 2;

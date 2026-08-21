@@ -36,19 +36,15 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
   const serverUser = (loginResult && loginResult.userInfo) || {}
   const alreadyBound = !!serverUser.phoneBound
 
-  // 新用户必须有头像+昵称；老用户可直接用服务端资料
-  if (!alreadyBound && !hasLocalProfile(trimmedNick, localAvatar)) {
-    AuthService.logout({ redirectToLogin: false, manual: false })
-    const err = new Error('请先选择头像并填写昵称')
-    err.code = 'PROFILE_REQUIRED'
-    throw err
-  }
+  // 新用户无头像昵称也可登录（用默认昵称）；资料可之后在设置里完善
+  const finalNick = trimmedNick || serverUser.nickName || '微信用户'
+  const displayAvatar = localAvatar || serverUser.avatarUrl || ''
 
   let phone
   try {
     phone = await AuthService.bindPhone(
       phoneCode,
-      { nickname: trimmedNick || undefined },
+      { nickname: finalNick || undefined },
       { showError: false }
     )
   } catch (bindErr) {
@@ -61,9 +57,6 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
       throw bindErr
     }
   }
-
-  const finalNick = trimmedNick || serverUser.nickName || ''
-  const displayAvatar = localAvatar || serverUser.avatarUrl || ''
 
   AuthService.completeLogin({
     phone,

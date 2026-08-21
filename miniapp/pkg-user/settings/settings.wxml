@@ -1,48 +1,64 @@
 <!-- pkg-user/settings/settings.wxml -->
 <view class="page">
-  <!-- 个人信息 -->
-  <view class="section-label">个人信息</view>
-  <view class="group" wx:if="{{isLoggedIn}}">
-    <button
-      class="row row--btn"
-      open-type="chooseAvatar"
-      bindchooseavatar="onChooseAvatar"
-      hover-class="row--pressed"
-    >
-      <text class="label">头像</text>
-      <image class="avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.svg'}}" mode="aspectFill" />
-      <text class="hint">点击更换</text>
-      <text class="ar">›</text>
-    </button>
+  <!-- 编辑资料 -->
+  <view class="section-label">编辑资料</view>
+  <view class="edit-card" wx:if="{{isLoggedIn}}">
+    <view class="avatar-wrap" bindtap="onChooseAvatar">
+      <image class="avatar-lg" src="{{editAvatarUrl || '/images/default-avatar.svg'}}" mode="aspectFill" />
+      <view class="avatar-cam">📷</view>
+    </view>
 
-    <view class="row">
-      <text class="label">昵称</text>
+    <view class="field">
+      <text class="field-label">昵称</text>
       <input
-        class="nick-input"
+        class="field-input {{nicknameError ? 'field-input--error' : ''}}"
         type="nickname"
         maxlength="20"
         placeholder="请输入昵称"
         value="{{editNickName}}"
         bindinput="onNickInput"
-        bindblur="onNickBlur"
-        bindchange="onNickBlur"
+        bindnicknamereview="onNicknameReview"
       />
+      <text class="field-tip" wx:if="{{nicknameError}}">昵称不能超过10个字</text>
+      <text class="field-hint" wx:else>最多 10 个字</text>
     </view>
 
-    <view class="row row--last">
-      <text class="label">手机号</text>
-      <text class="val phone">{{phoneMasked}}</text>
-      <button
-        class="bind-btn"
-        open-type="getPhoneNumber"
-        bindgetphonenumber="onBindPhone"
-        hover-class="bind-btn--pressed"
-      >{{phoneBound ? '更换' : '去绑定'}}</button>
+    <view class="field">
+      <text class="field-label">手机号</text>
+      <input
+        class="field-input {{phoneSoftTip ? 'field-input--warn' : ''}}"
+        type="number"
+        maxlength="15"
+        placeholder="请输入手机号"
+        value="{{editPhone}}"
+        bindinput="onPhoneInput"
+      />
+      <text class="field-soft" wx:if="{{phoneSoftTip}}">{{phoneSoftTip}}</text>
     </view>
+
+    <view class="field">
+      <text class="field-label">邮箱</text>
+      <input
+        class="field-input {{emailSoftTip ? 'field-input--warn' : ''}}"
+        type="text"
+        maxlength="64"
+        placeholder="请输入邮箱"
+        value="{{editEmail}}"
+        bindinput="onEmailInput"
+      />
+      <text class="field-soft" wx:if="{{emailSoftTip}}">{{emailSoftTip}}</text>
+    </view>
+
+    <button
+      class="save-btn {{canSave ? '' : 'save-btn--disabled'}}"
+      bindtap="onSaveProfile"
+      loading="{{savingProfile}}"
+      disabled="{{!canSave || savingProfile}}"
+    >保存</button>
   </view>
   <view class="group login-tip" wx:else bindtap="onLoginTap">
     <view class="row row--last">
-      <text class="label">登录后可编辑头像、昵称与手机号</text>
+      <text class="login-tip-text">登录后可编辑头像、昵称、手机号与邮箱</text>
       <text class="link">去登录 ›</text>
     </view>
   </view>
