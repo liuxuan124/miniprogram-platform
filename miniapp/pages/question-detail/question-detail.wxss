@@ -1,0 +1,8 @@
+.qa-detail { padding: 24rpx; background: #f5f7fb; min-height: 100vh; box-sizing: border-box; }
+.qa-block { background: #fff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.qa-block--answer { border: 1rpx solid #dbeafe; }
+.qa-block__label { font-size: 24rpx; color: #64748b; margin-bottom: 12rpx; }
+.qa-block__body { display: block; font-size: 28rpx; line-height: 1.7; color: #1e293b; white-space: pre-wrap; }
+.qa-block__time { display: block; margin-top: 12rpx; font-size: 22rpx; color: #94a3b8; }
+.qa-ask-btn { margin-top: 8rpx; background: #2f5bff; color: #fff; border-radius: 999rpx; }
+.qa-loading { padding: 80rpx 0; text-align: center; color: #94a3b8; }

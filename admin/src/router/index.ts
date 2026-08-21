@@ -140,6 +140,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/content/edit.vue'),
         meta: { title: '编辑文章', icon: 'Edit', hidden: true },
       },
+      {
+        path: 'qa',
+        name: 'ContentQA',
+        component: () => import('@/views/qa/index.vue'),
+        meta: { title: '问答管理', icon: 'ChatDotRound' },
+      },
     ],
   },
   {

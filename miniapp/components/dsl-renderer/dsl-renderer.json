@@ -10,6 +10,7 @@
     "dsl-article-list": "../dsl-article-list/dsl-article-list",
     "dsl-article-feed": "../dsl-article-feed/dsl-article-feed",
     "dsl-note-feed": "../dsl-note-feed/dsl-note-feed",
+    "dsl-moments-feed": "../dsl-moments-feed/dsl-moments-feed",
     "dsl-hot-news": "../dsl-hot-news/dsl-hot-news",
     "dsl-join-group": "../dsl-join-group/dsl-join-group",
     "dsl-brand-header": "../dsl-brand-header/dsl-brand-header",

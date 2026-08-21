@@ -1,0 +1,4 @@
+<view class="ask-page">
+  <textarea class="ask-input" placeholder="描述你的问题，博主会看到并回复" maxlength="1000" value="{{body}}" bindinput="onInput" />
+  <button class="ask-btn" loading="{{submitting}}" bindtap="onSubmit">提交问题</button>
+</view>

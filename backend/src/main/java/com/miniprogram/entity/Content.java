@@ -20,7 +20,7 @@ public class Content extends BaseEntity {
     /** 文章标题 */
     private String title;
 
-    /** 内容形态 article=长文 note=笔记 video=视频 data=数据 */
+    /** 内容形态 article=长文 note=笔记 moment=动态 video=视频 data=数据 */
     private String contentType;
 
     /** 分类ID */
@@ -31,6 +31,12 @@ public class Content extends BaseEntity {
 
     /** 笔记多图 URL 列表（JSON 数组） */
     private String images;
+
+    /** 资料附件列表（JSON 数组） */
+    private String attachments;
+
+    /** 附件数量 */
+    private Integer attachmentCount;
 
     /** 文章摘要 */
     private String summary;
@@ -46,6 +52,12 @@ public class Content extends BaseEntity {
 
     /** 来源 */
     private String source;
+
+    /** 外部来源标识，如 wechat_oa */
+    private String externalSource;
+
+    /** 外部唯一 ID */
+    private String externalId;
 
     /** 标签列表（JSON数组） */
     private String tags;

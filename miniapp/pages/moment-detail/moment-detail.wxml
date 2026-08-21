@@ -1,0 +1,50 @@
+<view class="moment-page" wx:if="{{!loading && moment}}">
+  <view class="moment-head">
+    <image wx:if="{{moment.author_avatar}}" class="moment-av-img" src="{{moment.author_avatar}}" mode="aspectFill" />
+    <text wx:else class="moment-av">{{moment.author_initial}}</text>
+    <view class="moment-meta">
+      <text class="moment-name">{{moment.author}}</text>
+      <text class="moment-time">{{moment.time_text}}</text>
+    </view>
+  </view>
+
+  <view class="moment-title" wx:if="{{moment.title}}">{{moment.title}}</view>
+
+  <view class="moment-body">
+    <text wx:for="{{paragraphs}}" wx:key="*this" class="moment-p">{{item}}</text>
+  </view>
+
+  <view wx:if="{{images.length}}" class="moment-images">
+    <image
+      wx:for="{{images}}"
+      wx:key="*this"
+      class="moment-img"
+      src="{{item}}"
+      mode="aspectFill"
+      data-url="{{item}}"
+      bindtap="onPreviewImage"
+    />
+  </view>
+
+  <view wx:if="{{attachments.length}}" class="moment-files">
+    <view class="moment-files__title">资料附件</view>
+    <view
+      wx:for="{{attachments}}"
+      wx:key="id"
+      class="moment-file"
+      data-index="{{index}}"
+      bindtap="onOpenAttachment"
+    >
+      <text class="moment-file__icon">{{item.icon}}</text>
+      <view class="moment-file__meta">
+        <text class="moment-file__name">{{item.name}}</text>
+        <text class="moment-file__size">{{item.sizeText}}</text>
+      </view>
+      <text class="moment-file__action">下载</text>
+    </view>
+  </view>
+
+  <view wx:if="{{shareDesc}}" class="moment-share-tip">分享后好友可查看{{shareDesc}}</view>
+</view>
+
+<view wx:elif="{{loading}}" class="moment-loading">加载中...</view>

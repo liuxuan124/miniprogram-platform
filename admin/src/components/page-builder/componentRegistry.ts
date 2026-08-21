@@ -368,6 +368,28 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
     },
   ],
   [
+    ComponentType.MomentsFeed,
+    {
+      type: ComponentType.MomentsFeed,
+      label: '动态时间线',
+      icon: 'ChatLineSquare',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        page_size: 10,
+        show_author: true,
+        show_publish_time: true,
+        item_gap: 12,
+        data_source: {
+          type: 'content',
+          params: { status: 'published', contentType: 'moment' },
+          query: { status: 'published', contentType: 'moment' },
+        },
+      }),
+      defaultStyle: () => ({ margin_left: 12, margin_right: 12, border_radius: 12 }),
+    },
+  ],
+  [
     ComponentType.HotNews,
     {
       type: ComponentType.HotNews,
@@ -974,6 +996,7 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.ArticleList,
   ComponentType.ArticleFeed,
   ComponentType.NoteFeed,
+  ComponentType.MomentsFeed,
   ComponentType.HotNews,
   ComponentType.ActivityEntry,
   ComponentType.ActivityList,

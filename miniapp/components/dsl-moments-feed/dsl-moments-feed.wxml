@@ -1,0 +1,27 @@
+<view class="dsl-moments-feed" style="{{styleString}}">
+  <view class="dsl-moments-feed__list" style="{{listStyle}}">
+    <view
+      wx:for="{{displayData}}"
+      wx:key="id"
+      class="dsl-moments-feed__card"
+      data-id="{{item.id}}"
+      bindtap="onTapMoment"
+    >
+      <view wx:if="{{showAuthor}}" class="dsl-moments-feed__head">
+        <image wx:if="{{item.author_avatar}}" class="dsl-moments-feed__av-img" src="{{item.author_avatar}}" mode="aspectFill" />
+        <text wx:else class="dsl-moments-feed__av">{{item.author_initial}}</text>
+        <view class="dsl-moments-feed__meta">
+          <text class="dsl-moments-feed__name">{{item.author_name}}</text>
+          <text wx:if="{{showPublishTime && item.time_text}}" class="dsl-moments-feed__time">{{item.time_text}}</text>
+        </view>
+      </view>
+      <text class="dsl-moments-feed__body">{{item.body}}</text>
+      <view wx:if="{{item.images.length}}" class="dsl-moments-feed__images">
+        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" wx:if="{{index < 3}}" class="dsl-moments-feed__img" src="{{img}}" mode="aspectFill" />
+      </view>
+      <view wx:if="{{item.attachment_count > 0}}" class="dsl-moments-feed__files">📎 {{item.attachment_count}} 个资料文件</view>
+    </view>
+  </view>
+  <view wx:if="{{loading || loadingMore}}" class="dsl-moments-feed__footer">加载中...</view>
+  <view wx:elif="{{footerText}}" class="dsl-moments-feed__footer">{{footerText}}</view>
+</view>

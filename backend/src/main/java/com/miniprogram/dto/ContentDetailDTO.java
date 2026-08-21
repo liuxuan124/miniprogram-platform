@@ -16,7 +16,7 @@ public class ContentDetailDTO {
     /** 文章标题 */
     private String title;
 
-    /** 内容形态 article=长文 note=笔记 video=视频 data=数据 */
+    /** 内容形态 article=长文 note=笔记 moment=动态 video=视频 data=数据 */
     private String contentType;
 
     /** 分类ID */
@@ -30,6 +30,12 @@ public class ContentDetailDTO {
 
     /** 笔记多图 URL 列表 */
     private List<String> images;
+
+    /** 资料附件列表 */
+    private List<ContentAttachmentDTO> attachments;
+
+    /** 附件数量 */
+    private Integer attachmentCount;
 
     /** 文章摘要 */
     private String summary;

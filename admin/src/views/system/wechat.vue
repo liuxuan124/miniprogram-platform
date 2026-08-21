@@ -92,6 +92,37 @@
       </el-form>
     </el-card>
 
+    <!-- 微信公众号配置（内容同步） -->
+    <el-card shadow="hover" class="mb16">
+      <template #header>
+        <div class="card-header">
+          <span><el-icon style="vertical-align: middle; margin-right: 4px"><ChatDotRound /></el-icon>微信公众号配置</span>
+          <el-button type="primary" icon="Check" :loading="oaSaving" @click="handleSaveOa">保存公众号配置</el-button>
+        </div>
+      </template>
+      <el-alert
+        title="用于「内容管理 → 同步导入 → 公众号全量导入」。同主体服务号请填写公众号 AppID/AppSecret；若与小程序相同可留空，将回退使用上方小程序凭证。"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 20px"
+      />
+      <el-form label-width="140px" label-position="right" v-loading="loading">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="公众号 AppID">
+              <el-input v-model="oaFormData.oaAppId" placeholder="留空则使用小程序 AppID" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="公众号 AppSecret">
+              <el-input v-model="oaFormData.oaAppSecret" type="password" show-password placeholder="留空则使用小程序 AppSecret" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+    </el-card>
+
     <!-- 微信支付配置 -->
     <el-card shadow="hover" class="mb16">
       <template #header>
@@ -385,6 +416,22 @@ const formData = reactive<WechatFullConfigForm>({
   qrcodeUrl: '',
 })
 
+const oaSaving = ref(false)
+const oaFormData = reactive({
+  oaAppId: '',
+  oaAppSecret: '',
+})
+
+const OA_CONFIG_KEY_MAP: Record<string, string> = {
+  oaAppId: 'wx_oa_appid',
+  oaAppSecret: 'wx_oa_app_secret',
+}
+
+const OA_CONFIG_KEY_REVERSE: Record<string, keyof typeof oaFormData> = {
+  wx_oa_appid: 'oaAppId',
+  wx_oa_app_secret: 'oaAppSecret',
+}
+
 const CONFIG_KEY_MAP: Record<string, string> = {
   appId: 'wx_appid',
   appSecret: 'wx_app_secret',
@@ -500,6 +547,12 @@ async function fetchConfig() {
     const configs = extractConfigList(res.data)
     applyConfigListToForm(configs, [formData as unknown as Record<string, unknown>])
     applyConfigListToForm(configs, [payFormData as unknown as Record<string, unknown>])
+    for (const cfg of configs) {
+      const oaKey = OA_CONFIG_KEY_REVERSE[cfg.configKey]
+      if (oaKey) {
+        oaFormData[oaKey] = cfg.configValue || ''
+      }
+    }
     if (payFormData.mchId || payFormData.apiV3Key) {
       paySaved.value = true
     }
@@ -551,6 +604,25 @@ async function handleTestConnection() {
     ElMessage.error('连接测试失败，请检查配置')
   } finally {
     testing.value = false
+  }
+}
+
+/** 保存公众号配置 */
+async function handleSaveOa() {
+  oaSaving.value = true
+  try {
+    const configItems = Object.entries(oaFormData).map(([key, value]) => ({
+      configKey: OA_CONFIG_KEY_MAP[key] || key,
+      configValue: String(value ?? ''),
+      configGroup: 'wechat',
+      description: key,
+    }))
+    await updateConfigs(configItems)
+    ElMessage.success('公众号配置已保存')
+  } catch {
+    ElMessage.error('保存失败')
+  } finally {
+    oaSaving.value = false
   }
 }
 

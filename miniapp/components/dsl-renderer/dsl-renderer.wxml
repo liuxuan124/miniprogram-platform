@@ -151,6 +151,16 @@
     bind:componentevent="onComponentEvent"
   />
 
+  <!-- 4a3. 动态时间线 moments_feed -->
+  <dsl-moments-feed
+    wx:elif="{{comp.type === 'moments_feed'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    actions="{{comp.actions}}"
+    styleString="{{comp.styleString}}"
+    bind:componentevent="onComponentEvent"
+  />
+
   <!-- 4b. 今日热门资讯 hot_news -->
   <dsl-hot-news
     wx:elif="{{comp.type === 'hot_news'}}"

@@ -107,7 +107,7 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
 function handleDslReachBottom(pageCtx) {
   const renderers = pageCtx.selectAllComponents('dsl-renderer') || []
   renderers.forEach((renderer) => {
-    ;['dsl-article-list', 'dsl-article-feed', 'dsl-note-feed', 'dsl-product-list'].forEach((selector) => {
+    ;['dsl-article-list', 'dsl-article-feed', 'dsl-note-feed', 'dsl-moments-feed', 'dsl-product-list'].forEach((selector) => {
       const lists = (renderer.selectAllComponents && renderer.selectAllComponents(selector)) || []
       lists.forEach((list) => {
         if (list && typeof list.loadMore === 'function') list.loadMore()

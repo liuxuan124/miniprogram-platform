@@ -66,17 +66,34 @@ public class FileUploadServiceImpl implements FileUploadService {
         // 生成存储路径: {subDir}/{yyyy-MM-dd}/{uuid}.{ext}
         String originalFileName = file.getOriginalFilename();
         String ext = getExtension(originalFileName);
-        String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String fileName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        return saveBytesToUploadDir(file, subDir, originalFileName, ext);
+    }
 
-        String relativePath;
-        if (StringUtils.hasText(subDir)) {
-            relativePath = subDir + "/" + datePath + "/" + fileName;
-        } else {
-            relativePath = datePath + "/" + fileName;
+    @Override
+    public UploadResultVO uploadBytes(byte[] data, String originalFileName, String subDir) {
+        if (data == null || data.length == 0) {
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
+        String ext = getExtension(originalFileName);
+        if (!StringUtils.hasText(ext) || !ALLOWED_EXTENSIONS.contains(ext.toLowerCase())) {
+            ext = "jpg";
+            originalFileName = (StringUtils.hasText(originalFileName) ? originalFileName : "remote") + ".jpg";
+        }
+        String maxSizeStr = systemConfigService.getConfigValue("upload_max_size", String.valueOf(DEFAULT_MAX_SIZE));
+        long maxSize;
+        try {
+            maxSize = Long.parseLong(maxSizeStr);
+        } catch (NumberFormatException e) {
+            maxSize = DEFAULT_MAX_SIZE;
+        }
+        if (data.length > maxSize) {
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+        return saveBytesToUploadDir(data, subDir, originalFileName, ext);
+    }
 
-        // 保存文件到本地
+    private UploadResultVO saveBytesToUploadDir(MultipartFile file, String subDir, String originalFileName, String ext) {
+        String relativePath = buildRelativePath(subDir, ext);
         try {
             Path filePath = Paths.get(uploadDir, relativePath);
             Files.createDirectories(filePath.getParent());
@@ -86,20 +103,42 @@ public class FileUploadServiceImpl implements FileUploadService {
             log.error("文件上传失败: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
+        return buildUploadResult(originalFileName, relativePath, file.getSize(), file.getContentType());
+    }
 
-        // 构建返回结果
+    private UploadResultVO saveBytesToUploadDir(byte[] data, String subDir, String originalFileName, String ext) {
+        String relativePath = buildRelativePath(subDir, ext);
+        try {
+            Path filePath = Paths.get(uploadDir, relativePath);
+            Files.createDirectories(filePath.getParent());
+            Files.write(filePath, data);
+            log.info("字节文件上传成功: {}", filePath);
+        } catch (IOException e) {
+            log.error("字节文件上传失败: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+        return buildUploadResult(originalFileName, relativePath, data.length, "application/octet-stream");
+    }
+
+    private String buildRelativePath(String subDir, String ext) {
+        String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String fileName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        if (StringUtils.hasText(subDir)) {
+            return subDir + "/" + datePath + "/" + fileName;
+        }
+        return datePath + "/" + fileName;
+    }
+
+    private UploadResultVO buildUploadResult(String originalFileName, String relativePath, long size, String contentType) {
         UploadResultVO result = new UploadResultVO();
-        result.setFileName(fileName);
+        result.setFileName(relativePath.substring(relativePath.lastIndexOf('/') + 1));
         result.setOriginalFileName(originalFileName);
         result.setUrl(baseUrl + "/uploads/" + relativePath);
-        result.setFileSize(file.getSize());
-        result.setContentType(file.getContentType());
+        result.setFileSize(size);
+        result.setContentType(contentType);
         return result;
     }
 
-    /**
-     * 校验文件
-     */
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);

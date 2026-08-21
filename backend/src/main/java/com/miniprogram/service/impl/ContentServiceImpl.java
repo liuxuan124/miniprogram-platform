@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
+import com.miniprogram.dto.ContentAttachmentDTO;
 import com.miniprogram.dto.ContentDTO;
 import com.miniprogram.dto.ContentDetailDTO;
 import com.miniprogram.dto.ContentQueryDTO;
@@ -69,6 +70,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         BeanUtils.copyProperties(dto, entity);
         entity.setTags(toJsonString(dto.getTags()));
         entity.setImages(toJsonString(dto.getImages()));
+        applyAttachments(entity, dto.getAttachments());
         if (!StringUtils.hasText(entity.getContentType())) {
             entity.setContentType("article");
         }
@@ -90,6 +92,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                 entity.setCoverImage(imgs.get(0));
             }
         }
+        applyMomentCover(entity);
         this.save(entity);
 
         // 更新标签使用次数
@@ -130,6 +133,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getImages() != null) {
             entity.setImages(toJsonString(dto.getImages()));
         }
+        if (dto.getAttachments() != null) {
+            applyAttachments(entity, dto.getAttachments());
+        }
         if (dto.getSummary() != null) {
             entity.setSummary(dto.getSummary());
         }
@@ -163,6 +169,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                 entity.setCoverImage(imgs.get(0));
             }
         }
+        applyMomentCover(entity);
         this.updateById(entity);
 
         // 更新标签使用次数：旧标签-1，新标签+1
@@ -299,8 +306,50 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         BeanUtils.copyProperties(entity, dto);
         dto.setTags(parseTags(entity.getTags()));
         dto.setImages(parseStringList(entity.getImages()));
+        dto.setAttachments(parseAttachments(entity.getAttachments()));
+        dto.setAttachmentCount(entity.getAttachmentCount() != null ? entity.getAttachmentCount() : dto.getAttachments().size());
         dto.setCategoryName(categoryService.getCategoryName(entity.getCategoryId()));
         return dto;
+    }
+
+    private void applyAttachments(Content entity, List<ContentAttachmentDTO> attachments) {
+        List<ContentAttachmentDTO> list = attachments != null ? attachments : Collections.emptyList();
+        entity.setAttachments(toAttachmentsJson(list));
+        entity.setAttachmentCount(list.size());
+    }
+
+    private void applyMomentCover(Content entity) {
+        if (!"moment".equals(entity.getContentType()) || StringUtils.hasText(entity.getCoverImage())) {
+            return;
+        }
+        List<String> imgs = parseStringList(entity.getImages());
+        if (!imgs.isEmpty()) {
+            entity.setCoverImage(imgs.get(0));
+        }
+    }
+
+    private List<ContentAttachmentDTO> parseAttachments(String json) {
+        if (!StringUtils.hasText(json)) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<ContentAttachmentDTO>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("附件 JSON 反序列化失败: {}", json, e);
+            return Collections.emptyList();
+        }
+    }
+
+    private String toAttachmentsJson(List<ContentAttachmentDTO> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(attachments);
+        } catch (JsonProcessingException e) {
+            log.warn("附件序列化失败", e);
+            return null;
+        }
     }
 
     private List<String> parseStringList(String json) {
