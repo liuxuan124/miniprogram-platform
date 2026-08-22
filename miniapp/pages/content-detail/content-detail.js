@@ -54,12 +54,11 @@ function resolveFormat(item) {
   if (wxTags.some((t) => t === 'wx-type:newspic')) {
     return { key: 'note', label: '笔记', isNote: true }
   }
-  if (wxTags.some((t) => t === 'wx-type:news')) {
-    return { key: 'article', label: '长文', isNote: false }
-  }
-
   if (inferWechatNewspic(item)) {
     return { key: 'note', label: '笔记', isNote: true }
+  }
+  if (wxTags.some((t) => t === 'wx-type:news')) {
+    return { key: 'article', label: '长文', isNote: false }
   }
 
   const source = String(item.source || '').trim()
