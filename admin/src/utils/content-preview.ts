@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from '@/utils/media-url'
+import { inferPreviewType } from '@/utils/content-format'
 import {
   buildNoteGalleryUrls,
   extractImagesFromHtml,
@@ -46,8 +47,7 @@ export function normalizePreviewMediaUrl(raw?: string): string {
 }
 
 export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLabel = ''): ContentPreviewModel {
-  const rawType = String(data.contentType || data.content_type || 'article')
-  const contentType: ContentPreviewType = rawType === 'note' ? 'note' : rawType === 'moment' ? 'moment' : 'article'
+  const contentType = inferPreviewType(data)
   const coverImage = String(data.coverImage || data.cover_image || '')
   const contentHtml = String(data.content || '')
   const rawImages = Array.isArray(data.images) ? data.images.map(String) : []
