@@ -153,7 +153,7 @@ const textStyleClass = computed(() => {
 }
 .component-item.selected {
   z-index: 2;
-  outline: 2px dashed #1769ff;
+  outline: 2px dashed var(--color-primary);
   outline-offset: 3px;
 }
 .component-item.stack-on-top.selected {

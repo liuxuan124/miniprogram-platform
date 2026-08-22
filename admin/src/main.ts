@@ -9,6 +9,7 @@ import App from './App.vue'
 import router from './router'
 import { setupRouterGuards } from './router/guards'
 import '@/assets/styles/index.scss'
+import '@/styles/tokens.css'
 import ColorPickerField from '@/components/ColorPickerField.vue'
 
 // 注册路由守卫

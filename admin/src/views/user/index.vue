@@ -218,7 +218,7 @@ const stats = reactive({
 })
 
 const statsCards = computed(() => [
-  { title: '总用户数', value: String(stats.totalUsers), note: '全量用户', icon: 'User', color: '#1769ff', bg: '#eaf1ff' },
+  { title: '总用户数', value: String(stats.totalUsers), note: '全量用户', icon: 'User', color: 'var(--color-primary)', bg: '#eaf1ff' },
   { title: '近7日活跃', value: String(stats.activeUsers7d), note: '有访问记录', icon: 'View', color: '#0faa6e', bg: '#e8faf3' },
   { title: '有订单用户', value: String(stats.usersWithOrders), note: '有效订单口径', icon: 'UserFilled', color: '#f59e0b', bg: '#fff8e6' },
   { title: '有效订单数', value: String(stats.totalOrders), note: '已支付及后续状态', icon: 'ShoppingCart', color: '#7c3aed', bg: '#f3eeff' },
@@ -493,7 +493,7 @@ onMounted(async () => {
       align-items: center;
       gap: 8px;
       .user-avatar {
-        background: linear-gradient(135deg, #1769ff, #20b7ff);
+        background: linear-gradient(135deg, var(--color-primary), #20b7ff);
         color: #fff;
         font-size: 12px;
         flex-shrink: 0;

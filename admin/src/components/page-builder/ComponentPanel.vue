@@ -316,7 +316,7 @@ onBeforeUnmount(() => {
   .section-count {
     min-width: 20px;
     padding: 1px 6px;
-    color: #1769ff;
+    color: var(--color-primary);
     font-family: inherit;
     font-size: 11px;
     text-align: center;
@@ -336,7 +336,7 @@ onBeforeUnmount(() => {
     cursor: pointer;
 
     &:hover {
-      color: #1769ff;
+      color: var(--color-primary);
     }
   }
 }
@@ -365,7 +365,7 @@ onBeforeUnmount(() => {
     background: #eaf2ff;
 
     span {
-      background: #1769ff;
+      background: var(--color-primary);
     }
   }
 }
@@ -411,7 +411,7 @@ onBeforeUnmount(() => {
 
 .category-all {
   padding: 0;
-  color: #1769ff;
+  color: var(--color-primary);
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
@@ -445,10 +445,10 @@ onBeforeUnmount(() => {
 
   &:hover,
   &.active {
-    color: #1769ff;
+    color: var(--color-primary);
     font-weight: 700;
     background: #eaf2ff;
-    border-color: #1769ff;
+    border-color: var(--color-primary);
   }
 
   &:active {
@@ -484,9 +484,9 @@ onBeforeUnmount(() => {
 
   &:hover,
   &.active {
-    color: #1769ff;
+    color: var(--color-primary);
     background: #eaf2ff;
-    border-color: #1769ff;
+    border-color: var(--color-primary);
   }
 }
 

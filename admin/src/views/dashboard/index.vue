@@ -10,7 +10,7 @@
             <el-icon><Brush /></el-icon>
             进入装修
           </el-button>
-          <el-button @click="router.push('/page-builder/start')">导航与外观</el-button>
+          <el-button @click="router.push('/page-builder/start')">外观</el-button>
           <el-button @click="router.push('/page-builder/release')">发布</el-button>
         </template>
       </template>
@@ -311,7 +311,7 @@ function renderVisitChart() {
   // echarts 无法直接用 CSS var()，从 :root 读取当前 token 实际值，保持与全站配色联动
   const rootStyle = getComputedStyle(document.documentElement)
   const tokenColor = (name: string, fallback: string) => rootStyle.getPropertyValue(name)?.trim() || fallback
-  const brand = tokenColor('--brand', '#1769ff')
+  const brand = tokenColor('--brand', 'var(--color-primary)')
   const border = tokenColor('--border', '#e5eaf3')
   const textSecondary = tokenColor('--text-secondary', '#64748b')
   const textMuted = tokenColor('--text-muted', '#94a3b8')

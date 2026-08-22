@@ -69,7 +69,7 @@ const richTextStyle = computed<Record<string, string>>(() => {
   }
 
   :deep(a) {
-    color: #1769ff;
+    color: var(--color-primary);
   }
 
   :deep(img) {

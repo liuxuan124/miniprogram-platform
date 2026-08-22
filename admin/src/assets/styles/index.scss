@@ -4,7 +4,7 @@
 
 :root {
   /* Brand */
-  --brand: #1769ff;
+  --brand: var(--color-primary);
   --brand-hover: #1458d9;
   --brand-soft: #eaf1ff;
   --brand-ink: #0f172a;

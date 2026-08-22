@@ -122,7 +122,7 @@ function isEmojiIcon(icon?: string): boolean {
     cursor: pointer;
 
     &:hover {
-      border-color: #1769ff;
+      border-color: var(--color-primary);
     }
   }
 }
@@ -158,7 +158,7 @@ function isEmojiIcon(icon?: string): boolean {
     }
 
     &.active {
-      border-color: #1769ff;
+      border-color: var(--color-primary);
       background: #e8f1ff;
     }
   }

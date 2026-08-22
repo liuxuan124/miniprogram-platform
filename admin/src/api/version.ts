@@ -71,6 +71,7 @@ export function deleteRelease(id: number) {
 export function rollbackRelease(data: {
   targetSemver: string
   reason?: string
+  offlineExtraPages?: boolean
 }) {
   return post(`${BASE}/rollback`, data)
 }

@@ -9,6 +9,7 @@
       <button type="button" class="tb" title="标题1" @click="cmd('formatBlock', 'h1')">H1</button>
       <button type="button" class="tb" title="标题2" @click="cmd('formatBlock', 'h2')">H2</button>
       <button type="button" class="tb" title="标题3" @click="cmd('formatBlock', 'h3')">H3</button>
+      <button type="button" class="tb" title="引用" :class="{ on: isBlockquoteActive }" @click="cmd('formatBlock', 'blockquote')">引用</button>
       <button type="button" class="tb" title="正文" @click="cmd('formatBlock', 'p')">P</button>
       <span class="sep" />
       <label class="tb color-btn" title="文字颜色">
@@ -151,6 +152,20 @@ const foreColor = ref('#333333')
 const hiliteColor = ref('#ffff00')
 const fontSize = ref('')
 const activeMap = ref<Record<string, boolean>>({})
+const isBlockquoteActive = computed(() => {
+  try {
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount || !editorRef.value) return false
+    let node: Node | null = sel.anchorNode
+    while (node && node !== editorRef.value) {
+      if (node instanceof HTMLElement && node.tagName === 'BLOCKQUOTE') return true
+      node = node.parentNode
+    }
+  } catch {
+    /* ignore */
+  }
+  return false
+})
 const picking = ref(false)
 const eyedropperSupported = computed(() => typeof window !== 'undefined' && 'EyeDropper' in window)
 
@@ -715,12 +730,12 @@ onBeforeUnmount(() => {
   user-select: none;
 
   &:hover {
-    color: #1769ff;
+    color: var(--color-primary);
     border-color: #bcd0ff;
   }
 
   &.on {
-    color: #1769ff;
+    color: var(--color-primary);
     background: #eaf1ff;
     border-color: #9bb8ff;
   }
@@ -821,6 +836,14 @@ onBeforeUnmount(() => {
     font-weight: 700;
   }
 
+  :deep(blockquote) {
+    margin: 0.4em 0;
+    padding: 0.35em 0.75em;
+    color: #475569;
+    border-left: 3px solid #cbd5e1;
+    background: #f8fafc;
+  }
+
   :deep(p) {
     margin: 0.35em 0;
   }
@@ -846,7 +869,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(a) {
-    color: #1769ff;
+    color: var(--color-primary);
   }
 
   :deep(img) {
@@ -858,7 +881,7 @@ onBeforeUnmount(() => {
     outline-offset: 2px;
 
     &.is-selected {
-      outline-color: #1769ff;
+      outline-color: var(--color-primary);
     }
   }
 

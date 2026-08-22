@@ -247,7 +247,7 @@ async function onUploadQrcode(index: number, event: Event) {
   height: 28px;
   padding: 0 10px;
   font-size: 12px;
-  color: #1769ff;
+  color: var(--color-primary);
   background: #fff;
   border: 1px solid #c9d8ff;
   border-radius: 6px;

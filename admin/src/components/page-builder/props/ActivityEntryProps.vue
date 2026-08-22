@@ -267,7 +267,7 @@ async function onUploadImage(event: Event) {
 }
 
 .datetime-input:focus {
-  border-color: #1769ff;
+  border-color: var(--color-primary);
 }
 
 .time-select {

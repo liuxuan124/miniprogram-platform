@@ -1,8 +1,8 @@
 <template>
   <div class="prototype-canvas">
     <div class="canvas-meta">
-      <span class="canvas-meta__title">编辑画布</span>
-      <span class="canvas-meta__device">手机 · 375 × 812</span>
+      <span class="canvas-meta__title">编辑画布 · 结构示意</span>
+      <span class="canvas-meta__device">真机效果以扫码预览为准 · 375 × 812</span>
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap">
@@ -50,13 +50,17 @@
                 <div
                   v-else
                   class="canvas-item-wrap"
-                  :class="{ dragging: draggingIndex === index }"
+                  :class="{ dragging: draggingIndex === index, 'heat-on': heatMode }"
+                  :style="heatStyle(comp.id)"
                   draggable="true"
                   @dragstart="handleItemDragStart($event, index)"
                   @dragend="handleDragEnd"
                   @dragover.prevent.stop="handleItemDragOver($event, index)"
                   @drop.stop="handleItemDrop($event, index)"
                 >
+                  <div v-if="heatMode && heatMap[comp.id]" class="heat-badge">
+                    {{ heatMap[comp.id].clicks || 0 }} 次点击
+                  </div>
                   <ComponentItem
                     :component="comp"
                     :index="index"
@@ -105,6 +109,11 @@
     <!-- B5：缩放档位，小屏笔记本上装修时可以缩小画布看到更多内容 -->
     <div class="zoom-controls">
       <button
+        class="zoom-btn"
+        :class="{ active: heatMode }"
+        @click="toggleHeatMode"
+      >热力</button>
+      <button
         v-for="level in ZOOM_LEVELS"
         :key="level"
         class="zoom-btn"
@@ -125,6 +134,7 @@ import { getComponentDef } from './componentRegistry'
 import { confirmRemoveComponent } from './confirmRemoveComponent'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from './composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight'
+import { get } from '@/api/request'
 
 const pageStore = usePageStore()
 
@@ -156,6 +166,55 @@ const PHONE_WIDTH = 334
 const PHONE_HEIGHT = 636 // 26px 刘海 + 610px 屏幕
 const ZOOM_LEVELS = [0.75, 1, 1.25]
 const zoom = ref(1)
+
+/** U3：组件热力叠加 */
+const heatMode = ref(false)
+const heatMap = ref<Record<string, { clicks: number; impressions: number }>>({})
+const heatMaxClicks = computed(() => {
+  let max = 0
+  Object.values(heatMap.value).forEach((r) => {
+    if (r.clicks > max) max = r.clicks
+  })
+  return max || 1
+})
+
+function heatStyle(componentId: string) {
+  if (!heatMode.value) return undefined
+  const row = heatMap.value[componentId]
+  if (!row) return { outline: '1px dashed rgba(120,120,120,0.25)' }
+  const ratio = Math.min(1, row.clicks / heatMaxClicks.value)
+  const alpha = 0.12 + ratio * 0.55
+  return {
+    background: `rgba(220, 38, 38, ${alpha})`,
+    outline: `2px solid rgba(185, 28, 28, ${0.3 + ratio * 0.5})`,
+    borderRadius: '8px',
+  }
+}
+
+async function toggleHeatMode() {
+  heatMode.value = !heatMode.value
+  if (heatMode.value && !Object.keys(heatMap.value).length) {
+    try {
+      const res = await get<Array<{ componentId: string; clicks: number; impressions: number }>>(
+        '/api/v1/admin/growth/component-heat',
+        { days: 7 },
+      )
+      const list = (res as any)?.data || []
+      const map: Record<string, { clicks: number; impressions: number }> = {}
+      ;(Array.isArray(list) ? list : []).forEach((row: any) => {
+        if (row?.componentId) {
+          map[String(row.componentId)] = {
+            clicks: Number(row.clicks) || 0,
+            impressions: Number(row.impressions) || 0,
+          }
+        }
+      })
+      heatMap.value = map
+    } catch {
+      heatMap.value = {}
+    }
+  }
+}
 
 /** B2：拖拽落点指示。dragOverIndex 表示"插入到该下标之前"，null 表示无有效落点 */
 const dragOverIndex = ref<number | null>(null)
@@ -377,14 +436,14 @@ onBeforeUnmount(() => {
   cursor: pointer;
 
   &:hover {
-    color: var(--brand, #1769ff);
+    color: var(--brand, var(--color-primary));
     background: var(--brand-soft, #eaf1ff);
   }
 
   &.active {
     color: #fff;
     font-weight: 600;
-    background: var(--brand, #1769ff);
+    background: var(--brand, var(--color-primary));
   }
 }
 
@@ -476,16 +535,21 @@ onBeforeUnmount(() => {
 }
 
 .canvas-fab-layer :deep(.fab-only-wrap.selected .float-fab) {
-  outline: 2px solid #1769ff;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .canvas-item-wrap {
   cursor: grab;
-  transition: opacity 0.12s ease;
+  transition: opacity 0.12s ease, background 0.2s ease;
+  position: relative;
 
   &.dragging {
     opacity: 0.35;
+  }
+
+  &.heat-on {
+    cursor: default;
   }
 
   &:active {
@@ -493,11 +557,25 @@ onBeforeUnmount(() => {
   }
 }
 
+.heat-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(127, 29, 29, 0.85);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
 /* B2：拖拽落点指示线 */
 .drop-indicator {
   height: 0;
   margin: 0 10px;
-  background: var(--brand, #1769ff);
+  background: var(--brand, var(--color-primary));
   border-radius: 2px;
   opacity: 0;
   transition: height 0.1s ease, opacity 0.1s ease, margin 0.1s ease;
@@ -524,7 +602,7 @@ onBeforeUnmount(() => {
 
   &.drag-hover {
     background: var(--brand-soft, #eaf1ff);
-    border-color: var(--brand, #1769ff);
+    border-color: var(--brand, var(--color-primary));
     border-style: solid;
   }
 }

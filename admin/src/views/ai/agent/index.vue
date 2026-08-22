@@ -1091,7 +1091,7 @@ async function handleKnowledgeUpload(options: { file: File }) {
   uploadingKnowledge.value = true
   try {
     const res = await uploadFile(file)
-    const data = (res.data || {}) as Record<string, unknown>
+    const data = (res.data || {}) as unknown as Record<string, unknown>
     const url = String(data.url || '')
     if (!url) throw new Error('上传返回地址为空')
     const fileName = String(data.originalFileName || data.originalName || file.name)

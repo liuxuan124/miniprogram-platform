@@ -80,7 +80,7 @@ const barStyle = computed(() => {
     fontSize: `${fontSize}px`,
   }
   // 显式绑定样式面板圆角（含 0 = 直角），不依赖 CSS 变量继承
-  if (radius !== undefined && radius !== null && radius !== '') {
+  if (radius !== undefined && radius !== null && (radius as number | string) !== '') {
     style.borderRadius = `${Number(radius)}px`
   }
   return style

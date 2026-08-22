@@ -109,7 +109,7 @@ async function onUploadAvatar(event: Event) {
   justify-content: center;
   width: fit-content;
   padding: 4px 12px;
-  color: #1769ff;
+  color: var(--color-primary);
   font-size: 12px;
   cursor: pointer;
   background: #eaf1ff;

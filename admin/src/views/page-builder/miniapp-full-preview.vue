@@ -448,7 +448,7 @@ function parseMineConfig(raw: unknown): MinePageConfig {
     || rawStyleKey === 'premium'
     || ['#1e293b', '#334155'].includes(String(src.themeColor || '').toLowerCase())
   if (needsStyleFallback || src.themeColor || src.templateStyle) {
-    applyMineStylePreset(parsed as Record<string, unknown>, resolveMineStyleKey(parsed))
+    applyMineStylePreset(parsed as unknown as Record<string, unknown>, resolveMineStyleKey(parsed))
   }
   return parsed
 }
@@ -792,7 +792,7 @@ function pickInitialHomePath(
 }
 
 function filterBoundSnapshotPages(
-  pages: Array<{ path: string; name?: string; dslContent?: string; pageId?: string }>,
+  pages: Array<{ path: string; name: string; dslContent?: string; pageId?: string }>,
   tabs: Array<{ pagePath?: string; pageId?: string }>,
   homeId: string,
 ) {

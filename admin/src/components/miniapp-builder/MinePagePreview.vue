@@ -617,7 +617,7 @@ function tabLabel(key: OrderTabKey): string {
 }
 
 const mineAccentColors = computed(() => {
-  const mc = props.mineConfig as Record<string, unknown>
+  const mc = props.mineConfig as unknown as Record<string, unknown>
   return {
     primary: (mc.themeColor as string) || props.theme.primaryColor,
     secondary: (mc.themeColorSecondary as string) || props.theme.secondaryColor,
@@ -851,7 +851,7 @@ const memberCardStyle = computed(() => {
   outline: none;
 
   &:focus {
-    border-color: #1769ff;
+    border-color: var(--color-primary);
   }
 }
 
@@ -894,7 +894,7 @@ const memberCardStyle = computed(() => {
   height: 42px;
   border: none;
   border-radius: 99px;
-  background: #1769ff;
+  background: var(--color-primary);
   color: #fff;
   font-size: 15px;
   font-weight: 600;
@@ -1278,7 +1278,7 @@ const memberCardStyle = computed(() => {
 
 .all-orders-link {
   font-size: 12px;
-  color: #1769ff;
+  color: var(--color-primary);
   white-space: nowrap;
 }
 

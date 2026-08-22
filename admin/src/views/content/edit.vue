@@ -24,8 +24,9 @@
                 <el-radio-button value="article">长文</el-radio-button>
                 <el-radio-button value="note">笔记</el-radio-button>
                 <el-radio-button value="moment">动态</el-radio-button>
+                <el-radio-button value="video">视频</el-radio-button>
               </el-radio-group>
-              <div class="field-hint">笔记偏小红书；动态偏知识星球（正文+多图+资料附件，可分享取文件）。</div>
+              <div class="field-hint">笔记偏小红书；动态偏知识星球；视频需填写视频地址与封面。</div>
             </el-form-item>
 
             <template v-if="contentType === 'note'">
@@ -196,7 +197,7 @@
                 type="datetime"
                 placeholder="选择定时发布时间"
               />
-              <div class="field-hint">当前将先存为草稿；真正到点自动发布需服务端定时任务支持。</div>
+              <div class="field-hint">到点后由服务端每分钟扫描自动发布。</div>
             </el-form-item>
 
             <template v-if="contentType === 'article'">
@@ -225,9 +226,75 @@
             </el-form-item>
 
             <div class="section-label">正文编辑（所见即所得）</div>
+            <div class="editor-toolbar-extra">
+              <el-button size="small" @click="insertProductCard">插入商品卡</el-button>
+              <el-select v-model="formData.layout_theme" size="small" style="width: 140px" placeholder="排版主题">
+                <el-option label="标准阅读" value="standard" />
+                <el-option label="杂志风" value="magazine" />
+                <el-option label="极简" value="minimal" />
+                <el-option label="大字号" value="large" />
+                <el-option label="深色" value="dark" />
+              </el-select>
+            </div>
             <PageRichTextEditor v-model="formData.content" class="rich-editor" />
-            <div class="editor-tip">编辑区显示效果即为发布后小程序/页面展示效果。</div>
+            <div class="editor-tip">编辑区显示效果即为发布后小程序/页面展示效果。商品卡写法：&lt;product id="商品ID"/&gt;</div>
             </template>
+
+            <template v-else-if="contentType === 'video'">
+              <el-form-item label="视频地址" required>
+                <el-input v-model="formData.video_url" placeholder="https://... 或上传后的视频 URL" />
+              </el-form-item>
+              <el-form-item label="封面图">
+                <div class="cover-field">
+                  <div v-if="coverPreviewUrl" class="cover-preview">
+                    <img :src="coverPreviewUrl" alt="" />
+                    <el-button text type="danger" size="small" @click="clearCover">清除</el-button>
+                  </div>
+                  <el-input v-model="formData.cover_image" placeholder="封面图 URL" @input="syncCoverToSeo" />
+                  <label class="upload-btn">
+                    {{ coverUploading ? '上传中…' : '本地上传' }}
+                    <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden :disabled="coverUploading" @change="onUploadCover" />
+                  </label>
+                </div>
+              </el-form-item>
+              <el-form-item label="时长(秒)">
+                <el-input-number v-model="formData.video_duration" :min="0" :max="86400" controls-position="right" />
+              </el-form-item>
+              <el-form-item label="简介">
+                <el-input v-model="formData.content" type="textarea" :rows="5" placeholder="可选：视频说明文字（支持简单 HTML）" />
+              </el-form-item>
+            </template>
+
+            <el-form-item label="运营位">
+              <el-checkbox v-model="formData.is_pinned">频道置顶</el-checkbox>
+              <el-checkbox v-model="formData.is_recommended" style="margin-left: 16px">首页推荐</el-checkbox>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane label="关联商品" name="products">
+          <el-form label-width="90px">
+            <el-form-item label="挂载商品">
+              <el-select
+                v-model="linkedProductIds"
+                multiple
+                filterable
+                remote
+                reserve-keyword
+                placeholder="搜索并选择商品"
+                :remote-method="searchProducts"
+                :loading="productSearchLoading"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="p in productOptions"
+                  :key="p.id"
+                  :label="`${p.name}（¥${p.price ?? '-'}）`"
+                  :value="p.id"
+                />
+              </el-select>
+              <div class="field-hint">内容详情页底部将展示这些商品，下单可归因到本内容。</div>
+            </el-form-item>
           </el-form>
         </el-tab-pane>
 
@@ -297,6 +364,8 @@ import {
   unpublishContent,
   updateContent,
 } from '@/api/content'
+import { getProductList } from '@/api/product'
+import { get, put } from '@/api/request'
 import { normalizeUploadUrl } from '@/api/system'
 import { ContentStatus } from '@/types/content'
 import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
@@ -327,10 +396,13 @@ const pageLoading = ref(false)
 const submitLoading = ref(false)
 const isEdit = computed(() => Boolean(route.query.id))
 const baseFormRef = ref<FormInstance>()
+const linkedProductIds = ref<number[]>([])
+const productOptions = ref<Array<{ id: number; name: string; price?: number | string }>>([])
+const productSearchLoading = ref(false)
 
 const publishMode = ref<'publish' | 'schedule' | 'draft'>('publish')
 const scheduleTime = ref('')
-const contentType = ref<'article' | 'note' | 'moment'>('article')
+const contentType = ref<'article' | 'note' | 'moment' | 'video'>('article')
 const noteImages = ref<string[]>([])
 const noteBody = ref('')
 const noteTagsText = ref('')
@@ -346,6 +418,9 @@ const formData = reactive({
   summary: '',
   content: '',
   cover_image: '',
+  video_url: '',
+  video_duration: 0,
+  layout_theme: 'standard',
   tag_ids: [] as number[],
   status: ContentStatus.Draft,
   author: '',
@@ -353,7 +428,8 @@ const formData = reactive({
   like_count: 0,
   favorite_count: 0,
   sort: 0,
-  is_top: false,
+  is_pinned: false,
+  is_recommended: false,
 })
 
 const seoForm = reactive({
@@ -388,6 +464,44 @@ async function fetchCategories() {
   categoryTree.value = (res as any).data || []
 }
 
+async function searchProducts(keyword: string) {
+  productSearchLoading.value = true
+  try {
+    const res = await getProductList({ keyword: keyword || undefined, page: 1, size: 20, status: 'on_sale' } as any)
+    const list = (res as any).data?.list || (res as any).data?.records || (res as any).data || []
+    productOptions.value = (Array.isArray(list) ? list : []).map((p: any) => ({
+      id: Number(p.id),
+      name: p.name,
+      price: p.price,
+    }))
+  } catch {
+    productOptions.value = []
+  } finally {
+    productSearchLoading.value = false
+  }
+}
+
+async function loadLinkedProducts(contentId: number) {
+  try {
+    const res = await get(`/api/v1/mp/contents/${contentId}/products`)
+    const list = (res as any).data || []
+    linkedProductIds.value = list.map((p: any) => Number(p.id)).filter(Boolean)
+    productOptions.value = list.map((p: any) => ({
+      id: Number(p.id),
+      name: p.name,
+      price: p.price,
+    }))
+  } catch {
+    linkedProductIds.value = []
+  }
+}
+
+async function saveLinkedProducts(contentId: number) {
+  await put(`/api/v1/admin/contents/${contentId}/products`, {
+    productIds: linkedProductIds.value,
+  })
+}
+
 async function loadDetail(id: number) {
   pageLoading.value = true
   try {
@@ -405,9 +519,14 @@ async function loadDetail(id: number) {
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
     formData.status = normalizeContentStatus(data.status)
     const rawType = String(data.contentType || data.content_type || 'article')
-    contentType.value = rawType === 'note' ? 'note' : rawType === 'moment' ? 'moment' : 'article'
+    contentType.value = (['note', 'moment', 'video'].includes(rawType) ? rawType : 'article') as typeof contentType.value
     noteImages.value = Array.isArray(data.images) ? [...data.images] : (formData.cover_image ? [formData.cover_image] : [])
     noteBody.value = getPlainTextFromHtml(formData.content)
+    formData.video_url = data.videoUrl || data.video_url || ''
+    formData.video_duration = Number(data.videoDuration ?? data.video_duration ?? 0)
+    formData.layout_theme = data.layoutTheme || data.layout_theme || 'standard'
+    formData.is_pinned = !!(data.isPinned ?? data.is_pinned)
+    formData.is_recommended = !!(data.isRecommended ?? data.is_recommended)
     momentAttachments.value = Array.isArray(data.attachments)
       ? data.attachments.map((item: Record<string, unknown>, idx: number) => normalizeAttachment(item, idx))
       : []
@@ -415,11 +534,15 @@ async function loadDetail(id: number) {
     noteTagsText.value = tags.join(', ')
     formData.tag_ids = tags.map(String)
     if (formData.status === ContentStatus.Published) publishMode.value = 'publish'
-    else publishMode.value = 'draft'
+    else if (data.scheduledAt) {
+      publishMode.value = 'schedule'
+      scheduleTime.value = String(data.scheduledAt).replace('T', ' ').slice(0, 19)
+    } else publishMode.value = 'draft'
 
     seoForm.title = data.seoTitle || data.title || ''
     seoForm.description = data.seoDescription || data.summary || ''
     syncCoverToSeo()
+    await loadLinkedProducts(id)
   } finally {
     pageLoading.value = false
   }
@@ -604,6 +727,14 @@ function ensureSummary() {
   if (text) formData.summary = text
 }
 
+function insertProductCard() {
+  const id = window.prompt('请输入商品 ID')
+  if (!id || !String(id).trim()) return
+  const tag = `<p><product id="${String(id).trim()}"/></p>`
+  formData.content = `${formData.content || ''}${tag}`
+  ElMessage.success('已插入商品卡标签，可在正文末尾继续编辑')
+}
+
 async function handleSubmit() {
   const form = baseFormRef.value
   if (!form) return
@@ -628,6 +759,12 @@ async function handleSubmit() {
   } else if (contentType.value === 'moment') {
     if (!noteBody.value.trim() && !noteImages.value.length && !momentAttachments.value.length) {
       ElMessage.warning('请至少填写正文、图片或资料附件之一')
+      activeTab.value = 'base'
+      return
+    }
+  } else if (contentType.value === 'video') {
+    if (!formData.video_url?.trim()) {
+      ElMessage.warning('请填写视频地址')
       activeTab.value = 'base'
       return
     }
@@ -669,31 +806,43 @@ async function handleSubmit() {
       authorAvatar: formData.author_avatar?.trim() || undefined,
       likeCount: formData.like_count,
       favoriteCount: formData.favorite_count,
-      source: contentType.value === 'note' ? '笔记' : contentType.value === 'moment' ? '动态' : undefined,
+      source: contentType.value === 'note' ? '笔记' : contentType.value === 'moment' ? '动态' : contentType.value === 'video' ? '视频' : undefined,
       sortOrder: formData.sort,
       seoTitle: seoForm.title?.trim() || undefined,
       seoDescription: seoForm.description?.trim() || undefined,
+      scheduledAt: publishMode.value === 'schedule' ? scheduleTime.value : '',
+      videoUrl: contentType.value === 'video' ? formData.video_url.trim() : undefined,
+      videoDuration: contentType.value === 'video' ? formData.video_duration : undefined,
+      layoutTheme: formData.layout_theme || 'standard',
+      isPinned: formData.is_pinned ? 1 : 0,
+      isRecommended: formData.is_recommended ? 1 : 0,
     } as any
 
     if (isEdit.value) {
       const id = Number(route.query.id)
       const wasPublished = formData.status === ContentStatus.Published
       await updateContent(id, payload)
+      await saveLinkedProducts(id)
       if (publishMode.value === 'publish' && !wasPublished) {
         await publishContent(id)
       } else if ((publishMode.value === 'draft' || publishMode.value === 'schedule') && wasPublished) {
         await unpublishContent(id)
       }
-      ElMessage.success(publishMode.value === 'schedule' ? '已保存为草稿（定时发布需服务端调度支持）' : '内容已更新')
+      ElMessage.success(
+        publishMode.value === 'schedule'
+          ? `已设定定时发布：${scheduleTime.value}`
+          : '内容已更新',
+      )
     } else {
       const created = await createContent(payload)
       const createdId = Number((created as any).data?.id ?? (created as any).id)
+      if (createdId) await saveLinkedProducts(createdId)
       if (publishMode.value === 'publish' && createdId) {
         await publishContent(createdId)
       }
       ElMessage.success(
         publishMode.value === 'schedule'
-          ? '已存为草稿（定时发布需服务端调度支持）'
+          ? `已设定定时发布：${scheduleTime.value}`
           : publishMode.value === 'draft'
             ? '草稿已保存'
             : '内容已创建',
@@ -763,6 +912,13 @@ onMounted(async () => {
   .header-actions {
     display: flex;
     gap: 8px;
+  }
+
+  .editor-toolbar-extra {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
   }
 
   .section-label {

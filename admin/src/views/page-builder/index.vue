@@ -3,11 +3,11 @@
     <PageHeader
       kicker="小程序 / 页面"
       title="页面"
-      description="在这里创建和装修页面。配好内容并绑定导航后，到「发布」一次性上线。"
+      description="创建和装修页面。改完点「上线」，小程序里立刻生效。"
     >
       <template #actions>
-        <el-button @click="router.push('/page-builder/start')">导航与外观</el-button>
-        <el-button @click="router.push('/page-builder/release')">发布</el-button>
+        <el-button @click="router.push('/page-builder/overview')">总览</el-button>
+        <el-button @click="router.push('/page-builder/start')">外观</el-button>
         <el-button type="primary" @click="handleCreate">新建页面</el-button>
       </template>
     </PageHeader>
@@ -30,16 +30,16 @@
         @keyup.enter="handleSearch"
       />
       <select v-model="searchForm.type" class="sel">
-        <option value="">类型：全部</option>
-        <option :value="1">首页</option>
+        <option value="">用途：全部</option>
+        <option value="home">首页</option>
         <option :value="2">专题页</option>
         <option :value="3">自定义页</option>
       </select>
       <select v-model="searchForm.status" class="sel">
         <option value="">状态：全部</option>
-        <option :value="1">已发布</option>
-        <option :value="0">草稿</option>
-        <option :value="2">未发布</option>
+        <option value="live">已上线</option>
+        <option value="dirty">有未上线的改动</option>
+        <option value="draft">草稿</option>
       </select>
       <div class="mla actions">
         <button class="btn" @click="handleSelectTemplate">模板</button>
@@ -54,50 +54,63 @@
           <thead>
             <tr>
               <th>页面名称</th>
-              <th>类型</th>
+              <th>用途</th>
               <th>访问路径</th>
               <th>状态</th>
-              <th>版本</th>
               <th>更新时间</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in pageList" :key="row.id">
+            <tr class="mine-row">
+              <td>
+                <b>我的</b>
+                <br />
+                <span class="sub">系统个人中心页，使用表单配置</span>
+              </td>
+              <td><span class="tag">我的</span></td>
+              <td><span class="mono">/pages/mine/mine</span></td>
+              <td><span class="badge bg">系统页</span></td>
+              <td>—</td>
+              <td class="ops">
+                <button class="btn xs btn-p" @click="router.push('/page-builder/mine')">配置</button>
+              </td>
+            </tr>
+            <tr v-for="row in displayList" :key="row.id">
               <td>
                 <b>{{ row.name }}</b>
                 <br />
                 <span class="sub">{{ row.shareTitle || row.share_title || '用于小程序页面展示' }}</span>
               </td>
               <td>
-                <span class="tag">{{ getPageTypeLabel(row.type) }}</span>
+                <span class="tag">{{ getPageTypeLabel(row) }}</span>
               </td>
               <td>
                 <div class="path-cell">
                   <span class="mono">{{ row.path }}</span>
                   <div class="path-actions">
-                    <button class="btn xs btn-copy" @click="copyPath(row)">复制页面路径</button>
+                    <button class="btn xs btn-copy" @click="copyPath(row)">复制路径</button>
+                    <button class="btn xs btn-copy" @click="showQr(row)">二维码</button>
                   </div>
                 </div>
               </td>
               <td>
-                <span class="badge" :class="getStatusBadgeClass(row.status)">
-                  {{ getStatusLabel(row.status) }}
+                <span class="badge" :class="getLiveStatusBadgeClass(row)">
+                  {{ getLiveStatusLabel(row) }}
                 </span>
-              </td>
-              <td>
-                <span class="badge bbl nb0">v{{ row.version || 1 }}</span>
               </td>
               <td>{{ row.updated_at }}</td>
               <td class="ops">
                 <button class="btn xs btn-p" @click="handleEdit(row)">装修</button>
-                <button class="btn xs btn-s" @click="handlePublish(row)">{{ isPublished(row.status) ? '下架' : '发布' }}</button>
+                <button class="btn xs btn-s" @click="handlePublish(row)">{{ isPublished(row.status) ? '下架' : '上线' }}</button>
                 <details class="more-menu">
                   <summary class="btn xs btn-more">更多</summary>
                   <div class="more-pop">
+                    <button @click="handleDuplicate(row)">复制页面</button>
                     <button @click="handleEditMeta(row)">编辑信息</button>
                     <button @click="handlePreview(row)">预览</button>
-                    <button @click="handleVersion(row)">版本</button>
+                    <button @click="showQr(row)">扫码查看</button>
+                    <button @click="handleVersion(row)">历史版本</button>
                     <button class="danger" @click="handleDelete(row)">删除</button>
                   </div>
                 </details>
@@ -105,9 +118,9 @@
             </tr>
           </tbody>
           <tfoot>
-            <tr v-if="!loading && pageList.length === 0">
-              <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">
-                <div style="margin-bottom:12px;">还没有页面。请先创建首页并完成装修，再去「导航与外观」绑定底部导航。</div>
+            <tr v-if="!loading && displayList.length === 0">
+              <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div style="margin-bottom:12px;">还没有装修页面。请先创建页面并完成装修，再到「外观」绑定底部导航。</div>
                 <el-button type="primary" @click="handleCreate">新建页面</el-button>
                 <el-button @click="handleSelectTemplate">从模板创建</el-button>
               </td>
@@ -148,19 +161,12 @@
             @input="formRef?.clearValidate('name')"
           />
         </el-form-item>
-        <el-form-item label="页面类型" prop="type">
-          <el-select v-model="formData.type" placeholder="请选择页面类型" style="width: 100%">
-            <el-option
-              label="首页"
-              :value="1"
-              :disabled="homePathOccupied && !(dialogType === 'edit' && Number(editingType) === 1)"
-            />
+        <el-form-item label="用途标签">
+          <el-select v-model="formData.type" placeholder="可选，仅用于列表筛选" clearable style="width: 100%">
             <el-option label="专题页" :value="2" />
             <el-option label="自定义页" :value="3" />
           </el-select>
-          <div v-if="homePathOccupied && dialogType === 'create'" class="form-tip">
-            已有首页占用 /pages/index/index，请新建专题页或自定义页（勿生成 index-2 等小程序打不开的路径）
-          </div>
+          <div class="form-tip">首页由「外观 → 首页绑定」决定，不在此处设置。</div>
         </el-form-item>
         <el-form-item label="访问路径" prop="path">
           <PagePathField v-model="formData.path" :page-type="formData.type" />
@@ -193,6 +199,18 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="qrVisible" title="扫码查看" width="360px" destroy-on-close>
+      <div class="qr-panel">
+        <img v-if="qrDataUrl" :src="qrDataUrl" alt="预览二维码" />
+        <p class="qr-tip">手机扫码打开 H5 预览（需与后台同网或公网可访问）</p>
+        <el-input v-model="qrUrl" readonly size="small" />
+      </div>
+      <template #footer>
+        <el-button @click="qrVisible = false">关闭</el-button>
+        <el-button type="primary" @click="copyToClipboard(qrUrl, '预览链接已复制')">复制链接</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -203,11 +221,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import { Document, Brush, OfficeBuilding, Grid } from '@element-plus/icons-vue'
-import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates } from '@/api/page'
-import { normalizeUploadUrl } from '@/api/system'
+import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates, duplicatePage } from '@/api/page'
+import { normalizeUploadUrl, getConfigsSilent } from '@/api/system'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import PagePathField from '@/components/page-builder/PagePathField.vue'
 import type { PageRecord, CreatePageParams, PageListParams } from '@/types/page'
+import QRCode from 'qrcode'
 import {
   isHomePathLocked,
   joinEditablePath,
@@ -219,10 +238,10 @@ import {
 
 const router = useRouter()
 
-const searchForm = reactive<PageListParams>({
+const searchForm = reactive({
   keyword: '',
-  type: '',
-  status: '',
+  type: '' as string | number,
+  status: '' as string | number,
 })
 
 const pagination = reactive({
@@ -233,6 +252,24 @@ const pagination = reactive({
 
 const pageList = ref<PageRecord[]>([])
 const loading = ref(false)
+const qrVisible = ref(false)
+const qrDataUrl = ref('')
+const qrUrl = ref('')
+
+const displayList = computed(() => {
+  let rows = pageList.value
+  if (searchForm.type === 'home') {
+    rows = rows.filter((row) => boundHomePageId.value && String(row.id) === boundHomePageId.value)
+  }
+  if (searchForm.status === 'live') {
+    rows = rows.filter((row) => getLiveStatusKey(row) === 'live')
+  } else if (searchForm.status === 'dirty') {
+    rows = rows.filter((row) => getLiveStatusKey(row) === 'dirty')
+  } else if (searchForm.status === 'draft') {
+    rows = rows.filter((row) => getLiveStatusKey(row) === 'draft')
+  }
+  return rows
+})
 
 const statsCards = ref([
   { label: '装修页面', value: '-', icon: Document, bg: 'var(--brand-soft)' },
@@ -259,34 +296,17 @@ const formData = reactive<CreatePageParams>({
 const { uploadImage, uploading: uploadingShare } = useImageUpload()
 const shareImagePreview = computed(() => normalizeUploadUrl(String(formData.shareImage || formData.share_image || '')))
 
-/** 是否已存在首页（全量检测，避免分页漏判） */
-const homePathOccupied = ref(false)
+/** 外观里绑定的首页 pageId */
+const boundHomePageId = ref('')
 
-const editingType = computed(() => {
-  if (!editingId.value) return null
-  const row = pageList.value.find((r) => Number(r.id) === Number(editingId.value))
-  return row?.type ?? null
-})
-
-async function refreshHomePathOccupied() {
+async function loadBoundHomePageId() {
   try {
-    const byType = await getPageList({ current: 1, size: 20, type: 1 })
-    const typeRows = (byType.data?.records || []).map(normalizePageRecord)
-    if (typeRows.length > 0) {
-      homePathOccupied.value = true
-      return
-    }
-    const res = await getPageList({ current: 1, size: 100 })
-    const rows = (res.data?.records || []).map(normalizePageRecord)
-    homePathOccupied.value = rows.some((row) => {
-      const path = normalizeBuilderPath(row.path || '')
-      return path === '/pages/index/index' || Number(row.type) === 1
-    })
+    const res = await getConfigsSilent()
+    const configs = (res as any)?.data || []
+    const hit = configs.find((c: { configKey?: string }) => c.configKey === 'miniappHomePageId')
+    boundHomePageId.value = String(hit?.configValue || '').trim()
   } catch {
-    homePathOccupied.value = pageList.value.some((row) => {
-      const path = normalizeBuilderPath(row.path || '')
-      return path === '/pages/index/index' || Number(row.type) === 1
-    })
+    boundHomePageId.value = ''
   }
 }
 
@@ -381,22 +401,53 @@ const formRules: FormRules = {
     { required: true, message: '请输入页面名称', trigger: ['blur', 'change'] },
     { max: 128, message: '页面名称不能超过 128 个字符', trigger: ['blur', 'change'] },
   ],
-  type: [{ required: true, message: '请选择页面类型', trigger: 'change' }],
+  type: [{ required: false, trigger: 'change' }],
   path: [{ validator: validatePagePath, trigger: 'blur' }],
 }
 
-function getPageTypeLabel(type: string | number): string {
-  const map: Record<string, string> = { '1': '首页', '2': '专题页', '3': '自定义页', home: '首页', topic: '专题页', custom: '自定义页', activity: '活动页' }
-  return map[String(type)] || String(type)
+function getLiveStatusKey(row: PageRecord): 'draft' | 'live' | 'dirty' {
+  const status = Number(row.status)
+  const current = Number(row.currentVersion || row.version || 0)
+  const latest = Number(row.latestVersion || row.version || 0)
+  const dirty = row.hasUnpublishedChanges === true || (status === 1 && latest > current)
+  if (status === 1 && dirty) return 'dirty'
+  if (status === 1) return 'live'
+  return 'draft'
+}
+
+function getLiveStatusLabel(row: PageRecord): string {
+  const map = { draft: '草稿', live: '已上线', dirty: '有未上线的改动' }
+  return map[getLiveStatusKey(row)]
+}
+
+function getLiveStatusBadgeClass(row: PageRecord): string {
+  const map = { draft: 'bo', live: 'bg', dirty: 'bw' }
+  return map[getLiveStatusKey(row)]
+}
+
+function getPageTypeLabel(row: PageRecord): string {
+  if (boundHomePageId.value && String(row.id) === boundHomePageId.value) {
+    return '首页'
+  }
+  const map: Record<string, string> = {
+    '1': '自定义页',
+    '2': '专题页',
+    '3': '自定义页',
+    home: '自定义页',
+    topic: '专题页',
+    custom: '自定义页',
+    activity: '活动页',
+  }
+  return map[String(row.type ?? 3)] || '自定义页'
 }
 
 function getStatusLabel(status: string | number): string {
-  const map: Record<string, string> = { '0': '草稿', '1': '已发布', '2': '未发布', draft: '草稿', published: '已发布', unpublished: '未发布' }
+  const map: Record<string, string> = { '0': '草稿', '1': '已上线', '2': '草稿', draft: '草稿', published: '已上线', unpublished: '草稿' }
   return map[String(status)] || String(status)
 }
 
 function getStatusBadgeClass(status: string | number): string {
-  const map: Record<string, string> = { '0': 'bo', '1': 'bg', '2': 'bb', draft: 'bo', published: 'bg', unpublished: 'bb' }
+  const map: Record<string, string> = { '0': 'bo', '1': 'bg', '2': 'bo', draft: 'bo', published: 'bg', unpublished: 'bo' }
   return map[String(status)] || 'bb'
 }
 
@@ -451,11 +502,20 @@ async function loadStats() {
 async function fetchList() {
   loading.value = true
   try {
-    const res = await getPageList({
+    const params: PageListParams = {
       current: pagination.page,
       size: pagination.pageSize,
-      ...searchForm,
-    })
+      keyword: searchForm.keyword || undefined,
+    }
+    if (searchForm.type && searchForm.type !== 'home') {
+      params.type = Number(searchForm.type)
+    }
+    if (searchForm.status === 'live' || searchForm.status === 'dirty') {
+      params.status = 1
+    } else if (searchForm.status === 'draft') {
+      // 草稿含未上线：前端再筛；后端拉全部后本地过滤更准，这里不传 status
+    }
+    const res = await getPageList(params)
     pageList.value = (res.data?.records || []).map(normalizePageRecord)
     pagination.total = res.data?.total || 0
   } catch {
@@ -463,7 +523,7 @@ async function fetchList() {
   } finally {
     loading.value = false
     loadStats()
-    refreshHomePathOccupied()
+    loadBoundHomePageId()
   }
 }
 
@@ -483,9 +543,8 @@ function handleReset() {
 async function handleCreate() {
   dialogType.value = 'create'
   editingId.value = null
-  await refreshHomePathOccupied()
   formData.name = ''
-  formData.type = homePathOccupied.value ? 3 : 1
+  formData.type = 3
   formData.path = ''
   formData.shareTitle = ''
   formData.shareImage = ''
@@ -526,17 +585,47 @@ function handleVersion(row: PageRecord) {
   router.push({ name: 'PageBuilderVersion', params: { id: row.id } })
 }
 
+async function handleDuplicate(row: PageRecord) {
+  try {
+    await ElMessageBox.confirm(`复制页面「${row.name}」为新草稿？`, '复制页面')
+    const res = await duplicatePage(row.id)
+    ElMessage.success('已复制为草稿')
+    const newId = (res as any)?.data?.id
+    fetchList()
+    if (newId) {
+      router.push({ name: 'PageBuilderEditor', params: { id: newId } })
+    }
+  } catch (err: any) {
+    if (err !== 'cancel') ElMessage.error(err?.response?.data?.message || err?.message || '复制失败')
+  }
+}
+
+async function showQr(row: PageRecord) {
+  try {
+    const { href } = router.resolve({ path: `/page-builder/preview/${row.id}` })
+    qrUrl.value = `${window.location.origin}${href}`
+    qrDataUrl.value = await QRCode.toDataURL(qrUrl.value, {
+      width: 220,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    })
+    qrVisible.value = true
+  } catch {
+    ElMessage.error('生成二维码失败')
+  }
+}
+
 async function handlePublish(row: PageRecord) {
   if (['1', 'published'].includes(String(row.status))) {
-    await ElMessageBox.confirm(`页面「${row.name}」已发布，是否下架？`, '操作确认', { type: 'warning' })
+    await ElMessageBox.confirm(`页面「${row.name}」已上线，是否下架？`, '操作确认', { type: 'warning' })
     await unpublishPage(row.id)
     ElMessage.success('已下架')
     fetchList()
     return
   }
-  await ElMessageBox.confirm(`确定发布页面「${row.name}」？`, '发布确认')
+  await ElMessageBox.confirm(`确定上线页面「${row.name}」？`, '上线确认')
   await publishPage(row.id)
-  ElMessage.success('发布成功')
+  ElMessage.success('已上线')
   fetchList()
 }
 
@@ -582,6 +671,9 @@ function normalizePageRecord(row: PageRecord): PageRecord {
     share_image: row.share_image || row.shareImage,
     shareImage: row.shareImage || row.share_image,
     version: row.version || row.currentVersion || 0,
+    currentVersion: row.currentVersion ?? row.version ?? 0,
+    latestVersion: row.latestVersion,
+    hasUnpublishedChanges: row.hasUnpublishedChanges,
     updated_at: row.updated_at || row.updateTime || '',
     created_at: row.created_at || row.createTime || '',
   }
@@ -591,7 +683,7 @@ function buildPagePayload(): CreatePageParams {
   const normalizedPath = normalizeBuilderPath(formData.path)
   return {
     name: formData.name,
-    type: Number(formData.type),
+    type: Number(formData.type || 3),
     path: normalizedPath,
     shareTitle: formData.shareTitle || formData.share_title,
     shareImage: formData.shareImage || formData.share_image,
@@ -612,7 +704,8 @@ async function onUploadShareImage(event: Event) {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadBoundHomePageId()
   fetchList()
 })
 
@@ -961,6 +1054,12 @@ th {
   background: #fffbeb;
 }
 
+.bw {
+  color: #c2410c;
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
 .bb {
   color: #607187;
   border-color: #d9e2ef;
@@ -1029,5 +1128,28 @@ th {
     color: var(--text-muted);
     font-weight: 600;
   }
+}
+
+.mine-row td {
+  background: #f8fafc;
+}
+
+.qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.qr-panel img {
+  width: 220px;
+  height: 220px;
+}
+
+.qr-tip {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
 }
 </style>

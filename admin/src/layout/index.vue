@@ -17,6 +17,7 @@
       </el-main>
     </el-container>
     <ChangePasswordDialog />
+    <CommandPalette />
   </el-container>
 </template>
 
@@ -25,6 +26,7 @@ import Sidebar from './Sidebar.vue'
 import Header from './Header.vue'
 import TagsView from './TagsView.vue'
 import ChangePasswordDialog from './ChangePasswordDialog.vue'
+import CommandPalette from '@/components/CommandPalette.vue'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()

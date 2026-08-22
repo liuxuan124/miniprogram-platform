@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ props: Record<string, any> }>()
+const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 </script>
 

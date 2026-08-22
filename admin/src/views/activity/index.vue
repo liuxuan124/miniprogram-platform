@@ -979,7 +979,7 @@ onMounted(() => {
   }
 
   .stat-num {
-    color: #1769ff;
+    color: var(--color-primary);
     font-size: 20px;
     font-weight: 800;
   }

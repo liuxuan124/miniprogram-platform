@@ -685,7 +685,7 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         icon: 'service',
         icon_emoji: '🎧',
         icon_image: '',
-        color: '#1769ff',
+        color: '#002FA7',
         action_type: 'ai',
         link_url: '/pages/service-chat/service-chat',
         phone: '',
@@ -925,6 +925,84 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultStyle: () => ({}),
     },
   ],
+  [
+    ComponentType.Container,
+    {
+      type: ComponentType.Container,
+      label: '容器/分栏',
+      icon: 'Grid',
+      category: 'layout',
+      categoryLabel: '布局',
+      defaultProps: () => ({
+        layout: 'row',
+        columns: 2,
+        gap: 12,
+        background_color: '',
+        title: '',
+      }),
+      defaultStyle: () => ({ padding_top: 12, padding_bottom: 12, padding_left: 12, padding_right: 12 }),
+    },
+  ],
+  [
+    ComponentType.ImageHotspot,
+    {
+      type: ComponentType.ImageHotspot,
+      label: '图片热区',
+      icon: 'Picture',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        image: '',
+        aspect_ratio: '750:400',
+        hotspots: [],
+      }),
+      defaultStyle: () => ({}),
+      validate: (props) => {
+        const warnings: string[] = []
+        if (!String(props.image || '').trim()) warnings.push('图片热区未设置底图')
+        return warnings
+      },
+    },
+  ],
+  [
+    ComponentType.SectionBg,
+    {
+      type: ComponentType.SectionBg,
+      label: '通栏背景',
+      icon: 'CollectionTag',
+      category: 'layout',
+      categoryLabel: '布局',
+      defaultProps: () => ({
+        background_type: 'color',
+        background_color: '#F5F7FB',
+        gradient_from: '#F5F7FB',
+        gradient_to: '#FFFFFF',
+        background_image: '',
+        min_height: 120,
+        title: '',
+      }),
+      defaultStyle: () => ({ padding_top: 16, padding_bottom: 16 }),
+    },
+  ],
+  [
+    ComponentType.FeatureCards,
+    {
+      type: ComponentType.FeatureCards,
+      label: '卖点卡片组',
+      icon: 'Postcard',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        columns: 3,
+        items: [
+          { icon: '✨', title: '卖点一', desc: '一句话说明' },
+          { icon: '🚀', title: '卖点二', desc: '一句话说明' },
+          { icon: '🛡️', title: '卖点三', desc: '一句话说明' },
+        ],
+      }),
+      defaultStyle: () => ({ item_gap: 10 }),
+    },
+  ],
 ])
 
 // ==================== 辅助函数 ====================
@@ -1018,6 +1096,10 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.FormEntry,
   ComponentType.JoinGroup,
   ComponentType.BrandHeader,
+  ComponentType.Container,
+  ComponentType.ImageHotspot,
+  ComponentType.SectionBg,
+  ComponentType.FeatureCards,
 ])
 
 /** 判断组件类型是否已在小程序端实现渲染 */

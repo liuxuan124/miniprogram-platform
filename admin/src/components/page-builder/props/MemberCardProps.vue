@@ -230,7 +230,7 @@ function onUpdateBenefit(index: number, value: string) {
   justify-content: center;
   width: fit-content;
   padding: 4px 10px;
-  color: #1769ff;
+  color: var(--color-primary);
   font-size: 12px;
   border: 1px dashed #93c5fd;
   border-radius: 4px;

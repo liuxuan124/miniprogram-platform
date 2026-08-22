@@ -304,7 +304,7 @@ function removeItem(index: number) {
   transition: border-color 0.15s, background 0.15s;
 
   &:hover {
-    border-color: #1769ff;
+    border-color: var(--color-primary);
     background: #eef4ff;
   }
 
@@ -354,7 +354,7 @@ function removeItem(index: number) {
 
   &:hover,
   &.active {
-    border-color: #1769ff;
+    border-color: var(--color-primary);
     background: #eef4ff;
   }
 }

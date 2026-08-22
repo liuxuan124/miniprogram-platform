@@ -100,9 +100,11 @@ export function inferContentFormat(data: Record<string, unknown>): ContentFormat
   return 'article'
 }
 
-export function inferPreviewType(data: Record<string, unknown>): 'article' | 'note' | 'moment' {
+export function inferPreviewType(data: Record<string, unknown>): 'article' | 'note' | 'moment' | 'rich' | 'video' {
   const fmt = inferContentFormat(data)
   if (fmt === 'note') return 'note'
   if (fmt === 'moment') return 'moment'
+  if (fmt === 'rich') return 'rich'
+  if (fmt === 'video') return 'video'
   return 'article'
 }

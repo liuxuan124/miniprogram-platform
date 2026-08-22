@@ -132,7 +132,7 @@ function onLayoutChange(val: string) {
 }
 
 .ds-card__count {
-  color: #1769ff;
+  color: var(--color-primary);
   font-weight: 500;
 }
 

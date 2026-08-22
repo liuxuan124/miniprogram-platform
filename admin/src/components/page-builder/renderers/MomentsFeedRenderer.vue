@@ -34,13 +34,13 @@ const itemGap = computed(() => Number(config.value.item_gap ?? 12))
 const showAuthor = computed(() => config.value.show_author !== false)
 const showPublishTime = computed(() => config.value.show_publish_time !== false)
 
-const { items: liveItems, loading: liveLoading, error: liveError } = useEditorLiveItems(
+const { items: liveItems, loading: liveLoading, failed: liveFailed } = useEditorLiveItems(
   () => props.component,
   () => props.previewMode === true,
 )
 
 const momentItems = computed(() => {
-  const source = props.previewMode ? liveItems.value : (props.component.runtimeData?.items || liveItems.value || [])
+  const source = props.previewMode ? liveItems.value : (props.component.props?.items || liveItems.value || [])
   return (Array.isArray(source) ? source : []).map((raw: Record<string, any>, index: number) => {
     const author = String(raw.author || '博主').trim() || '博主'
     const images = (Array.isArray(raw.images) ? raw.images : []).map((u: string) => resolveMediaUrl(String(u))).filter(Boolean)
@@ -59,8 +59,8 @@ const momentItems = computed(() => {
   })
 })
 
-const showFailState = computed(() => Boolean(liveError.value))
-const failMessage = computed(() => String(liveError.value || '加载失败'))
+const showFailState = computed(() => Boolean(liveFailed.value))
+const failMessage = computed(() => (liveFailed.value ? '加载失败' : ''))
 const showEmpty = computed(() => !liveLoading.value && momentItems.value.length === 0)
 </script>
 

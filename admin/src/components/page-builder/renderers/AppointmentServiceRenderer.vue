@@ -136,7 +136,7 @@ function onItemClick(item: ServiceItem) {
     color: #fff;
     font-size: 11px;
     font-weight: 700;
-    background: var(--theme-primary, #1769ff);
+    background: var(--theme-primary, var(--color-primary));
     border: 0;
     border-radius: 999px;
     cursor: pointer;

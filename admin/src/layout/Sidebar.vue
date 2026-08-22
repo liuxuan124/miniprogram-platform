@@ -153,10 +153,10 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '小程序',
     children: [
+      { title: '总览', path: '/page-builder/overview', icon: 'Odometer', activePrefix: '/page-builder/overview', permissions: ['page:list'] },
       { title: '页面', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
-      { title: '导航与外观', path: '/page-builder/start', icon: 'Cellphone', activePrefix: '/page-builder/start', permissions: ['page:list'] },
-      { title: '发布', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
-      { title: '模板', path: '/page-builder/template-center', icon: 'Brush', activePrefix: '/page-builder/template-center', permissions: ['page:list'] },
+      { title: '外观', path: '/page-builder/start', icon: 'Cellphone', activePrefix: '/page-builder/start', permissions: ['page:list'] },
+      { title: '版本', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {
@@ -179,6 +179,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce' },
       { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'] },
       { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
+      { title: '增长数据', path: '/growth/overview', icon: 'DataLine', activePrefix: '/growth' },
     ],
   },
   {

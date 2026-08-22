@@ -38,6 +38,10 @@ export enum ComponentType {
   AIEntry = 'ai_entry',
   JoinGroup = 'join_group',
   BrandHeader = 'brand_header',
+  Container = 'container',
+  ImageHotspot = 'image_hotspot',
+  SectionBg = 'section_bg',
+  FeatureCards = 'feature_cards',
 }
 
 /** 组件类型标签映射 */
@@ -75,6 +79,10 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.AIEntry]: 'AI入口',
   [ComponentType.JoinGroup]: '加入群聊',
   [ComponentType.BrandHeader]: '品牌顶栏',
+  [ComponentType.Container]: '容器/分栏',
+  [ComponentType.ImageHotspot]: '图片热区',
+  [ComponentType.SectionBg]: '通栏背景',
+  [ComponentType.FeatureCards]: '卖点卡片组',
 }
 
 /** 组件类型图标映射 */
@@ -112,6 +120,10 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.AIEntry]: 'ChatDotRound',
   [ComponentType.JoinGroup]: 'ChatLineSquare',
   [ComponentType.BrandHeader]: 'OfficeBuilding',
+  [ComponentType.Container]: 'Grid',
+  [ComponentType.ImageHotspot]: 'Crop',
+  [ComponentType.SectionBg]: 'PictureFilled',
+  [ComponentType.FeatureCards]: 'Postcard',
 }
 
 /** 组件分类 */
@@ -149,7 +161,7 @@ export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = 
     ComponentType.Certificate,
   ],
   [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
-  [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer],
+  [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer, ComponentType.Container, ComponentType.SectionBg],
 }
 
 /** 页面类型 */
@@ -257,6 +269,8 @@ export interface ComponentInstance {
   data_source?: ComponentDataSource
   actions?: ComponentAction[]
   style?: ComponentStyle
+  /** DSL v2：容器子组件（最多两层） */
+  children?: ComponentInstance[]
 }
 
 /** 页面配置 */
@@ -303,6 +317,7 @@ export interface PageRecord {
   version?: number
   currentVersion?: number
   latestVersion?: number
+  hasUnpublishedChanges?: boolean
   created_at: string
   updated_at: string
   createTime?: string

@@ -949,7 +949,7 @@ async function handleFieldSubmit() {
 
   if (needOptions.value) {
     const options = (fieldFormData.options || [])
-      .map((o) => ({ label: o.label.trim(), value: (o.label || o.value).trim() }))
+      .map((o) => ({ label: String(o.label).trim(), value: String(o.label || o.value).trim() }))
       .filter((o) => o.label)
     if (!options.length) {
       ElMessage.warning('请至少添加一个可选答案')

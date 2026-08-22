@@ -74,6 +74,7 @@ export interface OrderRecord {
   close_time?: string
   refund_status?: string
   created_at: string
+  createdAt?: string
   updated_at: string
 }
 

@@ -1,0 +1,16 @@
+/* U1: 设计 token 收口入口 — 后续色值逐步替换为这些变量 */
+:root {
+  --color-primary: #002FA7;
+  --color-brand-legacy: var(--color-primary); /* 旧蓝，统一替换为 var(--color-primary) */
+  --color-primary-soft: #e8eefc;
+  --color-ink: #172033;
+  --color-muted: #64748b;
+  --color-line: #e7ebf3;
+  --color-bg: #f5f7fb;
+  --color-success: #0aaa75;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --shadow-card: 0 1px 2px rgba(23, 32, 51, 0.06);
+}

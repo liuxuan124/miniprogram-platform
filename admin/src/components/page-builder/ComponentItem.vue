@@ -117,6 +117,10 @@ const rendererMap: Record<string, any> = {
   [ComponentType.AIEntry]: defineAsyncComponent(() => import('./renderers/AIEntryRenderer.vue')),
   [ComponentType.JoinGroup]: defineAsyncComponent(() => import('./renderers/JoinGroupRenderer.vue')),
   [ComponentType.BrandHeader]: defineAsyncComponent(() => import('./renderers/BrandHeaderRenderer.vue')),
+  [ComponentType.Container]: defineAsyncComponent(() => import('./renderers/ContainerRenderer.vue')),
+  [ComponentType.ImageHotspot]: defineAsyncComponent(() => import('./renderers/ImageHotspotRenderer.vue')),
+  [ComponentType.SectionBg]: defineAsyncComponent(() => import('./renderers/SectionBgRenderer.vue')),
+  [ComponentType.FeatureCards]: defineAsyncComponent(() => import('./renderers/FeatureCardsRenderer.vue')),
 }
 
 const warnedUnknownTypes = new Set<string>()

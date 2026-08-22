@@ -92,12 +92,12 @@ const itemGap = computed(() => Number(props.component.props.item_gap ?? 11))
 
 const feedComponent = computed(() => props.component)
 
-const { items: liveItems, loading: liveLoading, error: liveError } = useEditorLiveItems(
+const { items: liveItems, loading: liveLoading, failed: liveFailed } = useEditorLiveItems(
   () => feedComponent.value,
   () => props.previewMode === true,
 )
 
-const showFailState = computed(() => !!failMessage.value || !!liveError.value)
+const showFailState = computed(() => !!failMessage.value || !!liveFailed.value)
 const sourceItems = computed(() => {
   if (props.previewMode && hydratedItems.value.length) return hydratedItems.value
   return liveItems.value as NoteItem[]
@@ -167,7 +167,7 @@ async function loadPreviewItems() {
   if (!props.previewMode) return
   try {
     const result = await loadHydratedComponent(props.component)
-    const rows = Array.isArray(result?.runtimeData) ? result.runtimeData : []
+    const rows = Array.isArray(result?.props?.items) ? result.props.items : []
     hydratedItems.value = rows
       .filter((item: Record<string, any>) => {
         const t = String(item.contentType || item.content_type || '').toLowerCase()

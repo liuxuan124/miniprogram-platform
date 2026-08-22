@@ -14,8 +14,8 @@
     <div v-if="viewMode === 'gallery'" class="template-gallery">
       <div class="builder-toolbar">
         <div class="toolbar-left">
-          <h1>导航与外观</h1>
-          <p class="toolbar-sub">配置底部导航、主题和「我的」页。保存后到「发布」一次性上线绑定页面。</p>
+          <h1>外观</h1>
+          <p class="toolbar-sub">配置底部导航、首页绑定与主题。页面内容在「页面」里装修并上线；「我的」页在页面列表中配置。</p>
         </div>
         <div class="toolbar-right">
           <el-button type="success" plain @click="openFullMiniappPreview()">
@@ -41,7 +41,7 @@
           <div class="stat-card">
             <div class="stat-info">
               <span class="stat-value">{{ latestPublished ? latestPublished.semver : '无' }}</span>
-              <span class="stat-label">已发布版本</span>
+              <span class="stat-label">当前还原点</span>
             </div>
           </div>
           <div class="stat-card">
@@ -111,7 +111,7 @@
                 plain
                 @click="$router.push('/page-builder/release')"
               >
-                去发布
+                去版本
               </el-button>
               <el-dropdown trigger="click">
                 <el-button size="small">更多</el-button>
@@ -121,7 +121,7 @@
                     <el-dropdown-item @click="openH5Preview(item)">仅首页 H5</el-dropdown-item>
                     <el-dropdown-item @click="openPrototypeDemo">设计原型演示（22屏）</el-dropdown-item>
                     <el-dropdown-item :disabled="pushingReleaseId === item.id" @click="handlePushPreview(item)">
-                      推送体验版
+                      上传代码到微信
                     </el-dropdown-item>
                     <el-dropdown-item @click="copyFullPreviewLink(item)">复制预览链接</el-dropdown-item>
                     <el-dropdown-item v-if="item.status === 2" divided @click="handleRollback(item)">回滚到此版本</el-dropdown-item>
@@ -150,7 +150,7 @@
           <el-button size="small" plain @click="goToGallery">
             <el-icon><ArrowLeft /></el-icon> 草稿记录
           </el-button>
-          <h1>导航与外观</h1>
+          <h1>外观</h1>
           <span v-if="isDirty" class="dirty-pill">有未保存更改</span>
         </div>
         <div class="toolbar-right">
@@ -165,7 +165,7 @@
             <el-icon><Box /></el-icon> 保存
           </el-button>
           <el-button type="primary" size="small" :loading="saving" @click="goToRelease">
-            去发布
+            保存还原点
           </el-button>
         </div>
       </div>
@@ -231,38 +231,29 @@
                   </el-select>
                   <div v-else class="mine-mode-hint">
                     <span class="hint-icon">⚙️</span>
-                    <span>使用第3步「我的页面」的配置模板（登录区+菜单+订单入口）</span>
-                    <el-button text type="primary" size="small" @click="activeStep = 2">去配置 →</el-button>
+                    <span>使用「我的」配置模板（登录区+菜单+订单入口）</span>
+                    <el-button text type="primary" size="small" @click="$router.push('/page-builder/mine')">去配置 →</el-button>
                   </div>
                 </el-form-item>
               </el-form>
               <div class="step-footer">
                 <el-button @click="activeStep = 0">← 上一步</el-button>
-                <el-button type="primary" @click="activeStep = 2">下一步：我的页面 →</el-button>
+                <el-button type="primary" @click="activeStep = 3">下一步：确认保存 →</el-button>
               </div>
             </div>
 
             <div v-show="activeStep === 2" class="config-section">
-              <div class="section-label" style="margin-bottom:8px">选择模板风格</div>
-              <div class="mine-template-picker">
-                <div
-                  v-for="tpl in personalCenterTemplates"
-                  :key="tpl.key"
-                  class="mine-tpl-card"
-                  :class="{ selected: selectedMineTemplate === tpl.key }"
-                  @click="selectMineTemplate(tpl.key)"
-                >
-                  <div class="mine-tpl-preview" :style="{ background: tpl.gradient, border: tpl.border }">
-                    <div class="mine-tpl-icon">{{ tpl.icon }}</div>
-                  </div>
-                  <div class="mine-tpl-name">{{ tpl.name }}</div>
-                </div>
-              </div>
-              <div class="section-divider"></div>
-              <MinePageConfig v-model="form.mineConfig" />
-              <div class="step-footer">
+              <el-alert
+                type="info"
+                :closable="false"
+                show-icon
+                title="「我的」页已移到页面列表"
+                description="与拖拽装修页同级：打开「页面」→ 顶部「我的」→「配置」。"
+              />
+              <div class="step-footer" style="margin-top:16px">
                 <el-button @click="activeStep = 1">← 上一步</el-button>
-                <el-button type="primary" @click="activeStep = 3">下一步：确认发布 →</el-button>
+                <el-button type="primary" @click="$router.push('/page-builder/mine')">去配置「我的」</el-button>
+                <el-button @click="activeStep = 3">跳过，确认保存 →</el-button>
               </div>
             </div>
 
@@ -326,7 +317,7 @@
                 <div class="confirm-btns">
                   <el-button size="large" @click="handleSave">保存</el-button>
                   <el-button type="primary" size="large" :loading="saving" @click="goToRelease">
-                    去发布
+                    去版本
                   </el-button>
                 </div>
               </div>
@@ -336,7 +327,7 @@
             <div v-show="activeStep === 4 && successMode === 'template'" class="config-section success-section">
               <div class="success-icon ok">OK</div>
               <h2 class="success-title">导航草稿已保存</h2>
-              <p class="success-desc">导航与主题已写入系统配置。用户端还不会变，请到「发布」把绑定页面的最新草稿设为线上内容。</p>
+              <p class="success-desc">导航与主题已保存。各绑定页面请在装修器点「上线」后，小程序里才会更新内容。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card version-release-card-template">
                 <div class="version-release-header">
@@ -363,15 +354,15 @@
                 <div class="next-step-list">
                   <a class="next-step-item highlight" href="#" @click.prevent="goToRelease">
                     <div class="next-info">
-                      <strong>去发布</strong>
-                      <span>一次性发布首页和已绑定导航页的最新草稿</span>
+                      <strong>保存还原点</strong>
+                      <span>大改版前可存一个可回滚的存档（可选）</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
                   <a class="next-step-item" href="#" @click.prevent="goToPageBuilder">
                     <div class="next-info">
                       <strong>检查首页装修</strong>
-                      <span>确认绑定页面已有内容，空画布无法发布</span>
+                      <span>确认绑定页面已有内容，空画布无法上线</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
@@ -387,15 +378,15 @@
 
               <div class="success-footer">
                 <el-button size="large" @click="goToGallery">草稿记录</el-button>
-                <el-button size="large" type="primary" @click="goToRelease">去发布</el-button>
+                <el-button size="large" type="primary" @click="goToRelease">保存还原点</el-button>
               </div>
             </div>
 
             <!-- Step 5B: Publish Success -->
             <div v-show="activeStep === 4 && successMode === 'publish'" class="config-section success-section">
               <div class="success-icon ok">OK</div>
-              <h2 class="success-title">导航与外观已发布</h2>
-              <p class="success-desc">底部导航和主题已保存。之后在装修器发布某个页面，「导航与外观」预览会直接同步，不用再整包发布。</p>
+              <h2 class="success-title">外观已保存</h2>
+              <p class="success-desc">底部导航和主题已保存。页面在装修器点「上线」后，小程序里立刻生效。</p>
 
               <div v-if="newReleaseInfo" class="version-release-card">
                 <div class="version-release-header">
@@ -426,7 +417,7 @@
                   <a class="next-step-item highlight" href="#" @click.prevent="$router.push('/page-builder/list')">
                     <div class="next-info">
                       <strong>去装修页面</strong>
-                      <span>改完点「发布此页」，这里的预览会马上跟上</span>
+                      <span>改完点「上线」，预览会马上跟上</span>
                     </div>
                     <el-icon><ArrowRight /></el-icon>
                   </a>
@@ -449,7 +440,7 @@
 
               <div class="success-footer">
                 <el-button size="large" @click="goToGallery">草稿记录</el-button>
-                <el-button size="large" type="primary" @click="goToRelease">去发布</el-button>
+                <el-button size="large" type="primary" @click="goToRelease">保存还原点</el-button>
               </div>
             </div>
           </div>
@@ -724,7 +715,7 @@ const personalCenterTemplates = MINE_STYLE_TEMPLATES
 const steps = [
   { key: 'theme', label: '风格配色' },
   { key: 'navigation', label: '导航配置' },
-  { key: 'mine', label: '我的页面' },
+  { key: 'mine', label: '我的（可选）' },
   { key: 'confirm', label: '确认配置' },
   { key: 'success', label: '完成' },
 ]
@@ -916,7 +907,7 @@ async function handleEditTemplate(item: ReleaseRecord) {
 async function handlePromote(item: ReleaseRecord) {
   try {
     await promoteRelease(item.id)
-    ElMessage.success('导航与外观已保存。请到「发布」把绑定页面设为线上内容。')
+    ElMessage.success('外观已保存。绑定页面请在装修器点「上线」。')
     await loadGalleryData()
   } catch {
     ElMessage.error('发布失败，请重试')
@@ -1014,16 +1005,16 @@ async function copyFullPreviewLink(item: ReleaseRecord) {
 async function handlePushPreview(item: ReleaseRecord) {
   const releaseId = Number(item.id)
   if (!Number.isFinite(releaseId) || releaseId <= 0) {
-    ElMessage.warning('请先保存并发布版本后再推送体验版')
+    ElMessage.warning('请先保存还原点后再上传代码到微信')
     return
   }
 
   try {
     await ElMessageBox.confirm(
-      `确认将版本 v${item.semver} 对应的代码包推送到微信体验版吗？\n\n这只会上传代码包，不会替你发布页面内容。`,
-      '推送体验版',
+      `确认将版本 v${item.semver} 对应的代码包上传到微信体验版吗？\n\n这只会上传代码包，不会替你上线页面内容。`,
+      '上传代码到微信',
       {
-        confirmButtonText: '确认推送',
+        confirmButtonText: '确认上传',
         cancelButtonText: '取消',
         type: 'warning',
       },
@@ -1035,14 +1026,14 @@ async function handlePushPreview(item: ReleaseRecord) {
   pushingReleaseId.value = item.id
   pushPreviewResult.value = null
   const loadingMsg = ElMessage({
-    message: '正在推送体验版到微信，请稍候（约 10–60 秒）…',
+    message: '正在上传代码到微信，请稍候（约 10–60 秒）…',
     type: 'info',
     duration: 0,
     showClose: false,
   })
   try {
     const res = await pushPreviewRelease(releaseId, {
-      versionDesc: item.releaseNotes || `后台推送体验版 v${item.semver}`,
+      versionDesc: item.releaseNotes || `后台上传体验版 v${item.semver}`,
       confirmCodeChange: true,
     })
     pushPreviewResult.value = (res as any).data || res

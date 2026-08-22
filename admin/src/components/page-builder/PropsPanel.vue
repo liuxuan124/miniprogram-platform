@@ -199,6 +199,72 @@
               />
               <div class="style-hint">单位 px，作用于组件内容区/卡片（非整块外框）</div>
             </el-form-item>
+            <el-form-item label="背景色">
+              <div class="style-color-row">
+                <el-color-picker
+                  :model-value="currentStyle.background_color || ''"
+                  show-alpha
+                  @change="(v: string | null) => updateStyle('background_color', v || undefined)"
+                />
+                <el-button
+                  v-if="currentStyle.background_color"
+                  text
+                  size="small"
+                  @click="updateStyle('background_color', undefined)"
+                >
+                  清除
+                </el-button>
+              </div>
+            </el-form-item>
+            <div class="margin-box" style="margin-bottom: 12px">
+              <div class="margin-box__label"><span>内边距</span></div>
+              <div class="margin-box__grid">
+                <div class="margin-cell margin-cell--top">
+                  <span>上</span>
+                  <el-input-number
+                    :model-value="Number(currentStyle.padding_top ?? 0)"
+                    :min="0"
+                    :max="100"
+                    size="small"
+                    controls-position="right"
+                    @change="(v: number | undefined) => updateStyle('padding_top', v ?? 0)"
+                  />
+                </div>
+                <div class="margin-cell margin-cell--bottom">
+                  <span>下</span>
+                  <el-input-number
+                    :model-value="Number(currentStyle.padding_bottom ?? 0)"
+                    :min="0"
+                    :max="100"
+                    size="small"
+                    controls-position="right"
+                    @change="(v: number | undefined) => updateStyle('padding_bottom', v ?? 0)"
+                  />
+                </div>
+                <div class="margin-cell margin-cell--left">
+                  <span>左</span>
+                  <el-input-number
+                    :model-value="Number(currentStyle.padding_left ?? 0)"
+                    :min="0"
+                    :max="100"
+                    size="small"
+                    controls-position="right"
+                    @change="(v: number | undefined) => updateStyle('padding_left', v ?? 0)"
+                  />
+                </div>
+                <div class="margin-cell margin-cell--right">
+                  <span>右</span>
+                  <el-input-number
+                    :model-value="Number(currentStyle.padding_right ?? 0)"
+                    :min="0"
+                    :max="100"
+                    size="small"
+                    controls-position="right"
+                    @change="(v: number | undefined) => updateStyle('padding_right', v ?? 0)"
+                  />
+                </div>
+              </div>
+            </div>
             <el-form-item v-if="isListComponent" label="卡片间距">
               <el-input-number
                 :model-value="Number(currentProps.item_gap ?? 8)"
@@ -390,6 +456,10 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.AIEntry]: defineAsyncComponent(() => import('./props/AIEntryProps.vue')),
   [ComponentType.JoinGroup]: defineAsyncComponent(() => import('./props/JoinGroupProps.vue')),
   [ComponentType.BrandHeader]: defineAsyncComponent(() => import('./props/BrandHeaderProps.vue')),
+  [ComponentType.Container]: defineAsyncComponent(() => import('./props/ContainerProps.vue')),
+  [ComponentType.ImageHotspot]: defineAsyncComponent(() => import('./props/ImageHotspotProps.vue')),
+  [ComponentType.SectionBg]: defineAsyncComponent(() => import('./props/SectionBgProps.vue')),
+  [ComponentType.FeatureCards]: defineAsyncComponent(() => import('./props/FeatureCardsProps.vue')),
 }
 
 const currentStyle = computed(() => {
@@ -536,7 +606,7 @@ async function onUploadShareImage(event: Event) {
   color: #7b8798;
   margin-bottom: 8px;
   padding-left: 8px;
-  border-left: 3px solid #1769ff;
+  border-left: 3px solid var(--color-primary);
 }
 
 .style-section-body {

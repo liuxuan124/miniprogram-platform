@@ -224,10 +224,10 @@ const itemCardStyle = computed(() => {
   const fromProp = props.component.props?.item_border_radius
   const fromStyle = props.component.style?.border_radius
   const fallback = productLayout.value === 'list' ? 14 : 12
-  const hasStyleRadius = fromStyle !== undefined && fromStyle !== null && fromStyle !== ''
+  const hasStyleRadius = fromStyle !== undefined && fromStyle !== null && (fromStyle as number | string) !== ''
   const raw = hasStyleRadius
     ? fromStyle
-    : (fromProp !== undefined && fromProp !== null && fromProp !== '' ? fromProp : fallback)
+    : (fromProp !== undefined && fromProp !== null && (fromProp as number | string) !== '' ? fromProp : fallback)
   const n = Number(raw)
   const radius = Number.isFinite(n) ? Math.max(0, n) : fallback
   return {
@@ -238,7 +238,7 @@ const itemCardStyle = computed(() => {
 const itemImageStyle = computed(() => {
   const fromProp = props.component.props?.image_border_radius
   const fallback = productLayout.value === 'list' ? 10 : 0
-  const raw = fromProp !== undefined && fromProp !== null && fromProp !== ''
+  const raw = fromProp !== undefined && fromProp !== null && (fromProp as number | string) !== ''
     ? fromProp
     : fallback
   const n = Number(raw)
@@ -252,8 +252,8 @@ const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
 )
 
 const DEMO_PRODUCTS: PreviewProductItem[] = [
-  { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128 },
-  { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86 },
+  { id: 'demo-1', name: '跨境通用知识库', price: '199.00', priceText: '199.00', priceWithYuan: true, sales: 128, salesLabel: '已售128' },
+  { id: 'demo-2', name: '跨境财税知识库', price: '299.00', priceText: '299.00', priceWithYuan: true, sales: 86, salesLabel: '已售86' },
 ]
 
 const showFailState = computed(() => !!props.previewMode && props.component.props?._previewDataFailed === true)
@@ -512,7 +512,7 @@ function onMoreClick() {
     &__bar {
       width: 3px;
       border-radius: 1px;
-      background: var(--theme-primary, #1769ff);
+      background: var(--theme-primary, var(--color-primary));
 
       &--down {
         height: 72%;

@@ -91,6 +91,19 @@
                     <div class="form-tip">类型由分类决定，可多选；纯数字商品不校验实体库存。</div>
                   </div>
                 </el-form-item>
+
+                <el-form-item v-if="isDigitalOnly" label="自动发货" class="span-all">
+                  <el-switch v-model="formData.autoFulfill" :active-value="1" :inactive-value="0" />
+                  <div class="form-tip">开启后，支付成功将自动履约并写入发货内容，无需人工点「虚拟发货」。</div>
+                </el-form-item>
+                <el-form-item v-if="isDigitalOnly && formData.autoFulfill === 1" label="发货内容" class="span-all">
+                  <el-input
+                    v-model="formData.fulfillContent"
+                    type="textarea"
+                    :rows="4"
+                    placeholder="兑换码 / 课程链接 / 卡密说明等，支付成功后展示给用户"
+                  />
+                </el-form-item>
               </div>
             </section>
 
@@ -537,6 +550,8 @@ const formData = reactive({
   content: '',
   sort: 0,
   skus: [] as SkuItem[],
+  autoFulfill: 0,
+  fulfillContent: '',
 })
 
 const formRules: FormRules = {
@@ -814,6 +829,8 @@ function buildApiPayload() {
     unit: '件',
     sortOrder: toNumber(formData.sort, 0),
     skus: mappedSkus,
+    autoFulfill: isDigitalOnly.value ? formData.autoFulfill : 0,
+    fulfillContent: isDigitalOnly.value && formData.autoFulfill === 1 ? formData.fulfillContent : '',
   }
 }
 
@@ -911,6 +928,8 @@ async function fetchProduct() {
       : (product.productType || product.product_type ? [product.productType || product.product_type] : [])
     formData.productTypes = types.length ? types.map(String) : []
     formData.main_image = product.mainImage ?? product.main_image ?? ''
+    formData.autoFulfill = Number(product.autoFulfill ?? product.auto_fulfill ?? 0) ? 1 : 0
+    formData.fulfillContent = product.fulfillContent ?? product.fulfill_content ?? ''
     const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
     formData.images = buildSyncedImages(formData.main_image, rawImages)
     if (!formData.main_image && formData.images.length) {
@@ -931,8 +950,12 @@ async function fetchProduct() {
           {
             id: formData.category_id,
             name: `${product.categoryName || product.category_name || '原分类'}（已禁用）`,
+            parent_id: null,
+            sort: 0,
             status: 0,
             children: [],
+            created_at: '',
+            updated_at: '',
           },
         ]
       }
@@ -1186,7 +1209,6 @@ async function handleSubmit(publish = false) {
     } else {
       const res: any = await createProduct(payload as any)
       savedProductId = Number(res?.data?.id || 0)
-      productId.value = savedProductId
       formStatus.value = 'draft'
     }
     if (publish && savedProductId) {

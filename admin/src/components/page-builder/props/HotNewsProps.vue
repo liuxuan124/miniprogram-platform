@@ -318,7 +318,7 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 600;
 }
-.ds-card__count { color: #1769ff; font-weight: 500; }
+.ds-card__count { color: var(--color-primary); font-weight: 500; }
 .ds-empty { margin: 0 0 4px; color: #7b8798; font-size: 11px; line-height: 1.4; }
 .ds-hint { margin: 4px 0 0; color: #7b8798; font-size: 11px; line-height: 1.4; }
 :deep(.hot-news-slider.el-slider) {
