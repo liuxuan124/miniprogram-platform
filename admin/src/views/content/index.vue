@@ -17,6 +17,7 @@
       />
       <el-select v-model="searchForm.type" class="toolbar-select" placeholder="类型：全部" clearable>
         <el-option label="动态" value="moment" />
+        <el-option label="笔记" value="note" />
         <el-option label="文章" value="article" />
         <el-option label="图文" value="rich" />
         <el-option label="视频" value="video" />
@@ -88,7 +89,7 @@
         </el-table-column>
         <el-table-column label="类型" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.typeLabel }}</el-tag>
+            <el-tag size="small" effect="plain" :type="typeTagType(row) || undefined">{{ row.typeLabel }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="categoryName" label="分类" width="160" show-overflow-tooltip />
@@ -191,7 +192,7 @@
             :closable="false"
             show-icon
             style="margin-bottom: 12px"
-            title="从企业服务号拉取全部「已发布」内容：长文导入为文章，贴图（小红书风格多图+短文）导入为笔记。需在「系统设置 → 微信配置」填写公众号 AppID/AppSecret。"
+            title="从企业服务号拉取全部「已发布」内容：长文导入为文章，贴图（小红书风格多图+短文）导入为笔记。需在「系统设置 → 基础配置 → 微信公众号配置」填写公众号 AppID/AppSecret。"
           />
           <el-form label-width="96px">
             <el-form-item label="默认分类">
@@ -344,8 +345,8 @@ interface ContentRow {
   categoryId?: number
   categoryName: string
   source: string
-  typeLabel: '文章' | '图文' | '视频' | '动态'
-  typeValue: 'article' | 'rich' | 'video' | 'moment'
+  typeLabel: '长文' | '笔记' | '图文' | '视频' | '动态'
+  typeValue: 'article' | 'note' | 'rich' | 'video' | 'moment'
   viewCount: number | null
   recommended: boolean
   tags: string[]
@@ -416,17 +417,37 @@ function normalizeStatus(statusRaw: unknown): ContentStatus {
   return 'draft'
 }
 
-function inferType(raw: RawRecord): { typeLabel: '文章' | '图文' | '视频' | '动态'; typeValue: 'article' | 'rich' | 'video' | 'moment' } {
+function inferType(raw: RawRecord): { typeLabel: ContentRow['typeLabel']; typeValue: ContentRow['typeValue'] } {
   const explicit = `${raw.type || raw.contentType || raw.content_type || ''}`.toLowerCase()
+  if (explicit === 'note') return { typeLabel: '笔记', typeValue: 'note' }
+  if (explicit === 'article') return { typeLabel: '长文', typeValue: 'article' }
   if (explicit === 'moment') return { typeLabel: '动态', typeValue: 'moment' }
+
+  const tags = parseTags(raw.tags)
+  if (tags.some((t) => t === 'wx-type:newspic')) {
+    return { typeLabel: '笔记', typeValue: 'note' }
+  }
+  if (tags.some((t) => t === 'wx-type:news')) {
+    return { typeLabel: '长文', typeValue: 'article' }
+  }
+
   if (explicit.includes('video') || explicit.includes('视频')) return { typeLabel: '视频', typeValue: 'video' }
   if (explicit.includes('rich') || explicit.includes('graphic') || explicit.includes('图文')) {
     return { typeLabel: '图文', typeValue: 'rich' }
   }
+
   const html = `${raw.content || ''}`.toLowerCase()
   if (html.includes('<video')) return { typeLabel: '视频', typeValue: 'video' }
-  if (html.includes('<img') || raw.coverImage || raw.cover_image) return { typeLabel: '图文', typeValue: 'rich' }
-  return { typeLabel: '文章', typeValue: 'article' }
+  if (html.includes('<img')) return { typeLabel: '图文', typeValue: 'rich' }
+  return { typeLabel: '长文', typeValue: 'article' }
+}
+
+function typeTagType(row: ContentRow): 'success' | 'warning' | 'info' | 'danger' | '' {
+  if (row.typeValue === 'note') return 'warning'
+  if (row.typeValue === 'article') return 'success'
+  if (row.typeValue === 'video') return 'danger'
+  if (row.typeValue === 'moment') return 'info'
+  return ''
 }
 
 function parseTags(raw: unknown): string[] {

@@ -167,13 +167,30 @@ async function fetchSystemConfig(forceRefresh) {
   if (!forceRefresh) {
     const cached = getCachedConfig()
     if (Array.isArray(cached)) {
-      return {
-        tabbarItems: cached,
-        minePageConfig: DEFAULT_MINE_PAGE_CONFIG,
-        miniappBrandConfig: DEFAULT_MINIAPP_BRAND_CONFIG,
+      forceRefresh = true
+    } else if (cached && typeof cached === 'object') {
+      if (!cached.miniappBrandConfig) {
+        forceRefresh = true
+      } else {
+        cached.miniappBrandConfig = normalizeBrandConfig(
+          parseConfigField(cached.miniappBrandConfig, null),
+          {
+            site_name: cached.site_name,
+            site_logo: cached.site_logo,
+            appName: cached.appName,
+          },
+        )
+        if (cached.minePageConfig) {
+          cached.minePageConfig = normalizeMinePageConfig(
+            parseConfigField(cached.minePageConfig, DEFAULT_MINE_PAGE_CONFIG),
+          )
+        }
+        if (cached.tabbarItems) {
+          cached.tabbarItems = normalizeTabbarItems(parseConfigField(cached.tabbarItems, null))
+        }
+        return cached
       }
     }
-    if (cached) return cached
   }
 
   try {

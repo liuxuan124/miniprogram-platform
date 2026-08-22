@@ -8,13 +8,15 @@ export interface RawConfigItem {
   type?: string
 }
 
-const SENSITIVE_FORM_KEYS = new Set(['appSecret', 'apiV3Key', 'uploadKey', 'ossAccessKeySecret', 'cosSecretKey', 'qiniuSecretKey'])
+const SENSITIVE_FORM_KEYS = new Set(['appSecret', 'oaAppSecret', 'apiV3Key', 'uploadKey', 'ossAccessKeySecret', 'cosSecretKey', 'qiniuSecretKey'])
 
 /** 表单字段 -> 数据库 configKey */
 export const FORM_TO_DB_KEY: Record<string, string> = {
   appName: 'site_name',
   appId: 'wx_appid',
   appSecret: 'wx_app_secret',
+  oaAppId: 'wx_oa_appid',
+  oaAppSecret: 'wx_oa_app_secret',
   originalId: 'originalId',
   logoUrl: 'site_logo',
   shareGuide: 'miniappShareTitle',
@@ -40,6 +42,10 @@ export const DB_TO_FORM_KEY: Record<string, string> = {
   appId: 'appId',
   wx_app_secret: 'appSecret',
   appSecret: 'appSecret',
+  wx_oa_appid: 'oaAppId',
+  oaAppId: 'oaAppId',
+  wx_oa_app_secret: 'oaAppSecret',
+  oaAppSecret: 'oaAppSecret',
   originalId: 'originalId',
   site_logo: 'logoUrl',
   logoUrl: 'logoUrl',

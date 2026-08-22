@@ -44,6 +44,17 @@
         <slot name="fab"></slot>
       </div>
 
+      <!-- 固定浮层：登录半屏等（不随 phone-content 滚动） -->
+      <div class="phone-overlay-layer" :class="{ 'phone-overlay-layer--tabbar': !!$slots.tabbar }">
+        <PreviewLoginSheet
+          v-model:privacy-accepted="previewLoginPrivacyAccepted"
+          :visible="previewLoginSheetOpen"
+          :brand="previewLoginBrand"
+          @close="closePreviewLoginSheet"
+          @complete="completePreviewLoginSheet"
+        />
+      </div>
+
       <!-- 底部 TabBar（固定，不随内容滚动） -->
       <slot name="tabbar"></slot>
 
@@ -54,7 +65,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, provide, ref } from 'vue'
+import PreviewLoginSheet from '@/components/miniapp-builder/PreviewLoginSheet.vue'
+import { usePreviewBrandConfig } from '@/components/miniapp-builder/composables/usePreviewBrandConfig'
+import {
+  PREVIEW_LOGIN_SHEET_API,
+} from '@/utils/preview-phone-overlay'
 
 const emit = defineEmits<{
   back: []
@@ -72,6 +88,34 @@ defineProps<{
 const currentTime = computed(() => {
   const now = new Date()
   return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+})
+
+const previewLoginSheetOpen = ref(false)
+const previewLoginPrivacyAccepted = ref(false)
+const previewLoginBrand = usePreviewBrandConfig()
+let previewLoginCompleteHandler: (() => void) | null = null
+
+function openPreviewLoginSheet() {
+  previewLoginPrivacyAccepted.value = false
+  previewLoginSheetOpen.value = true
+}
+
+function closePreviewLoginSheet() {
+  previewLoginSheetOpen.value = false
+}
+
+function completePreviewLoginSheet() {
+  if (!previewLoginPrivacyAccepted.value) return
+  previewLoginCompleteHandler?.()
+  previewLoginSheetOpen.value = false
+}
+
+provide(PREVIEW_LOGIN_SHEET_API, {
+  open: openPreviewLoginSheet,
+  close: closePreviewLoginSheet,
+  setCompleteHandler: (handler) => {
+    previewLoginCompleteHandler = handler
+  },
 })
 
 function handleBackClick() {
@@ -99,6 +143,7 @@ function handleBackClick() {
       0 8px 40px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     position: relative;
+    transform: translateZ(0);
   }
 
   .phone-shell--custom-nav {
@@ -207,6 +252,22 @@ function handleBackClick() {
     bottom: 0;
     z-index: 25;
     pointer-events: none;
+  }
+
+  .phone-overlay-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 28;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .phone-overlay-layer--tabbar {
+    bottom: 50px;
+  }
+
+  .phone-overlay-layer :deep(.preview-login-overlay) {
+    pointer-events: auto;
   }
 
   .phone-fab-layer :deep(.fab-only-wrap),

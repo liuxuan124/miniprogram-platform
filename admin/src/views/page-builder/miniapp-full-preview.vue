@@ -229,35 +229,36 @@
             </template>
 
             <template v-else-if="activeScreen === 'login'">
-              <div class="fp-login">
-                <div class="fp-login__ambient fp-login__ambient--top"></div>
-                <div class="fp-login__ambient fp-login__ambient--bottom"></div>
-
-                <div class="fp-login__brand-lockup">
-                  <div class="fp-login__logo">海</div>
-                  <div>
-                    <b>出海笔记</b>
-                    <span>CROSS-BORDER NOTES</span>
+              <div class="fp-login-overlay">
+                <div class="fp-login-overlay__mask" @click="openScreen('mine')" />
+                <div class="fp-login-overlay__sheet">
+                  <div class="fp-login-overlay__handle" />
+                  <div class="fp-login-overlay__brand">
+                    <span class="fp-login-overlay__mark">海</span>
+                    <div class="fp-login-overlay__brand-copy">
+                      <strong>出海笔记</strong>
+                      <span>想认识一下你，可以吗？</span>
+                    </div>
                   </div>
-                </div>
-
-                <div class="fp-login__hero">
-                  <div class="fp-login__eyebrow"><i></i>MEMBER ACCESS</div>
-                  <div class="fp-login__brand">欢迎回来</div>
-                  <div class="fp-login__desc">登录后同步订单、预约与会员权益</div>
-                </div>
-
-                <div class="fp-login__bottom">
-                  <label class="privacy-row">
+                  <div class="fp-login-overlay__panel">
+                    <div class="fp-login-overlay__row">
+                      <span>头像、昵称</span>
+                      <em>让主页有你的样子</em>
+                    </div>
+                    <div class="fp-login-overlay__divider" />
+                    <div class="fp-login-overlay__row">
+                      <span>手机号</span>
+                      <em>点击授权微信手机号</em>
+                    </div>
+                  </div>
+                  <label class="fp-login-overlay__agreement">
                     <input v-model="previewPrivacyAccepted" type="checkbox" />
-                    <span>我已阅读并同意 <b>《用户协议》</b> 与 <b>《隐私政策》</b></span>
+                    <span>已阅读并同意《用户协议》与《隐私政策》</span>
                   </label>
-                  <button class="one-tap-login" :disabled="!previewPrivacyAccepted" @click="completePreviewLogin">
-                    <span>手机号快捷登录</span><i>→</i>
+                  <button class="fp-login-overlay__cta" :disabled="!previewPrivacyAccepted" @click="completePreviewLogin">
+                    微信一键登录
                   </button>
-                  <div class="fp-login__trust">
-                    <span>✓ 手机号仅用于登录及必要的服务通知</span>
-                  </div>
+                  <button type="button" class="fp-login-overlay__skip" @click="openScreen('mine')">先随便逛逛</button>
                 </div>
               </div>
             </template>
@@ -973,7 +974,7 @@ function handlePreviewAction(payload: {
 function openProtectedScreen(key: string) {
   if (!previewLoggedIn.value) {
     activeScreen.value = 'login'
-    ElMessage.info('该功能需要登录，已进入登录页')
+    ElMessage.info('该功能需要登录，已唤起登录面板')
     return
   }
   openScreen(key)
@@ -1717,6 +1718,125 @@ onMounted(async () => {
 
     em { color: #c0c4cc; font-style: normal; }
   }
+}
+
+.fp-login-overlay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 520px;
+  background: #f5f6f9;
+}
+
+.fp-login-overlay__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 18, 33, 0.42);
+}
+
+.fp-login-overlay__sheet {
+  position: relative;
+  z-index: 1;
+  padding: 8px 18px 24px;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 24px rgba(23, 32, 51, 0.12);
+}
+
+.fp-login-overlay__handle {
+  width: 32px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 99px;
+  background: #e5dfd6;
+}
+
+.fp-login-overlay__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fp-login-overlay__mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #315efb, #2446c7);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.fp-login-overlay__brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong { font-size: 17px; font-weight: 800; color: #2a3142; }
+  span { font-size: 12px; color: #9aa3b5; }
+}
+
+.fp-login-overlay__panel {
+  margin-bottom: 14px;
+  padding: 4px 14px;
+  background: #f6f3ee;
+  border-radius: 14px;
+}
+
+.fp-login-overlay__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  font-size: 14px;
+  color: #2a3142;
+
+  em { font-style: normal; font-size: 12px; color: #9aa3b5; }
+}
+
+.fp-login-overlay__divider {
+  height: 1px;
+  background: rgba(42, 49, 66, 0.08);
+}
+
+.fp-login-overlay__agreement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: #7c879d;
+  cursor: pointer;
+}
+
+.fp-login-overlay__cta {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #315efb;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.fp-login-overlay__skip {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #9aa3b5;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 .fp-login {

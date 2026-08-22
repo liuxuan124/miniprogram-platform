@@ -39,14 +39,19 @@
                   </el-form-item>
 
                   <el-form-item label="文字 Logo">
-                    <el-input v-model="miniProgramForm.logoMark" maxlength="2" placeholder="无图片时显示，如：海" clearable />
+                    <el-input v-model="miniProgramForm.logoMark" maxlength="4" placeholder="无图片时显示，如：海" clearable />
                   </el-form-item>
                 </div>
 
                 <el-form-item label="Logo 图片">
                   <div class="logo-uploader">
-                    <div class="logo-preview-box" :class="{ 'is-empty': !logoPreviewUrl }">
-                      <img v-if="logoPreviewUrl" :src="logoPreviewUrl" alt="Logo预览" />
+                    <div class="logo-preview-box" :class="{ 'is-empty': !logoPreviewDisplay }">
+                      <img
+                        v-if="logoPreviewUrl && !logoImageBroken"
+                        :src="logoPreviewUrl"
+                        alt="Logo预览"
+                        @error="logoImageBroken = true"
+                      />
                       <span v-else class="logo-preview-placeholder">{{ miniProgramForm.logoMark || '预览' }}</span>
                     </div>
                     <el-input v-model="miniProgramForm.logoUrl" placeholder="Logo URL 或点击上传" clearable class="logo-input" />
@@ -94,11 +99,11 @@
               </el-form>
             </div>
 
-            <!-- 微信接入与密钥 -->
+            <!-- 微信小程序凭证 -->
             <div class="config-section section-spacing">
               <div class="section-header">
-                <h3 class="section-title">微信接入配置</h3>
-                <span class="section-desc">AppID、AppSecret 与代码上传密钥</span>
+                <h3 class="section-title">微信小程序配置</h3>
+                <span class="section-desc">小程序 AppID、AppSecret 与代码上传密钥</span>
               </div>
 
               <el-form ref="miniFormRef" :model="miniProgramForm" :rules="miniRules" label-width="120px" label-position="left" class="compact-form">
@@ -107,13 +112,13 @@
                     <el-input v-model="miniProgramForm.originalId" placeholder="gh_xxxxxxxxxxxx" clearable />
                   </el-form-item>
 
-                  <el-form-item label="AppID" prop="appId">
+                  <el-form-item label="小程序 AppID" prop="appId">
                     <el-input v-model="miniProgramForm.appId" placeholder="wx1234567890abcdef" clearable />
                   </el-form-item>
                 </div>
 
                 <div class="form-grid-2col">
-                  <el-form-item label="AppSecret" prop="appSecret">
+                  <el-form-item label="小程序 AppSecret" prop="appSecret">
                     <el-input v-model="miniProgramForm.appSecret" type="password" show-password placeholder="请输入AppSecret" />
                   </el-form-item>
                 </div>
@@ -123,7 +128,7 @@
                     v-model="miniProgramForm.uploadKey"
                     type="textarea"
                     :rows="3"
-                    placeholder="粘贴微信公众平台下载的代码上传密钥，用于「推送体验版」"
+                    placeholder="粘贴微信小程序后台下载的代码上传密钥，用于「推送体验版」"
                   />
                 </el-form-item>
 
@@ -143,7 +148,44 @@
                     <template v-if="isLocalAdmin">（当前为本地后台，配置保存在本机数据库）</template>
                   </span>
                   <el-button type="primary" size="small" :loading="miniSaving" @click="handleSaveMiniProgram">
-                    {{ miniSaving ? '保存中...' : '保存微信配置' }}
+                    {{ miniSaving ? '保存中...' : '保存小程序配置' }}
+                  </el-button>
+                </div>
+              </el-form>
+            </div>
+
+            <!-- 微信公众号（内容同步） -->
+            <div class="config-section section-spacing">
+              <div class="section-header">
+                <h3 class="section-title">微信公众号配置</h3>
+                <span class="section-desc">内容管理 → 同步导入 → 公众号全量导入</span>
+              </div>
+              <el-alert
+                title="用于从认证服务号拉取已发布图文。同主体可留空，将回退使用上方小程序 AppID/AppSecret。"
+                type="info"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 16px"
+              />
+              <el-form label-width="120px" label-position="left" class="compact-form">
+                <div class="form-grid-2col">
+                  <el-form-item label="公众号 AppID">
+                    <el-input v-model="oaFormData.oaAppId" placeholder="留空则使用小程序 AppID" clearable />
+                  </el-form-item>
+                  <el-form-item label="公众号 AppSecret">
+                    <el-input
+                      v-model="oaFormData.oaAppSecret"
+                      type="password"
+                      show-password
+                      placeholder="留空则使用小程序 AppSecret"
+                      clearable
+                    />
+                  </el-form-item>
+                </div>
+                <div class="action-bar">
+                  <span class="upload-hint">需已认证的微信服务号；订阅号无法使用全量导入接口</span>
+                  <el-button type="primary" size="small" :loading="oaSaving" @click="handleSaveOa">
+                    {{ oaSaving ? '保存中...' : '保存公众号配置' }}
                   </el-button>
                 </div>
               </el-form>
@@ -577,6 +619,11 @@
       </template>
     </el-dialog>
 
+    <AssetPickerDialog
+      v-model="assetPickerVisible"
+      @select="handleLogoAssetSelected"
+    />
+
   </div>
 </template>
 
@@ -615,10 +662,12 @@ import {
   regionRulesSummary,
   type FreightTemplate,
 } from '@/types/freight'
+import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 
 const loading = ref(false)
 const savingAll = ref(false)
 const miniSaving = ref(false)
+const oaSaving = ref(false)
 const brandSaving = ref(false)
 const uploadKeyStored = ref(false)
 const isLocalAdmin = computed(() => {
@@ -641,6 +690,8 @@ const miniProgramSavedAt = ref('')
 const miniFormRef = ref<FormInstance>()
 const brandFormRef = ref<FormInstance>()
 const payFormRef = ref<FormInstance>()
+const assetPickerVisible = ref(false)
+const logoImageBroken = ref(false)
 
 // 当前激活的Tab
 const activeTab = ref('basic')
@@ -747,6 +798,11 @@ const miniProgramForm = reactive<MiniProgramForm>({
   shareGuide: '欢迎体验我们的品牌小程序',
 })
 
+const oaFormData = reactive({
+  oaAppId: '',
+  oaAppSecret: '',
+})
+
 const logoPreviewUrl = computed(() => {
   const raw = miniProgramForm.logoUrl?.trim()
   if (!raw) return ''
@@ -755,6 +811,18 @@ const logoPreviewUrl = computed(() => {
   if (normalized.startsWith('/')) return `${window.location.origin}${normalized}`
   return normalized
 })
+
+const logoPreviewDisplay = computed(() => {
+  if (logoPreviewUrl.value && !logoImageBroken.value) return logoPreviewUrl.value
+  return miniProgramForm.logoMark?.trim() || ''
+})
+
+watch(
+  () => miniProgramForm.logoUrl,
+  () => {
+    logoImageBroken.value = false
+  },
+)
 
 const paymentForm = reactive<PaymentForm>({
   enablePayment: false,
@@ -1022,9 +1090,9 @@ function applyFreightConfigs(configs: RawConfigItem[]) {
 }
 
 function applyConfigs(configs: RawConfigItem[]) {
-  applyBrandConfigToForm(configs, miniProgramForm)
   applyConfigListToForm(configs, [
     miniProgramForm as unknown as Record<string, unknown>,
+    oaFormData as unknown as Record<string, unknown>,
     paymentForm as unknown as Record<string, unknown>,
     logisticsForm as unknown as Record<string, unknown>,
     legalForm as unknown as Record<string, unknown>,
@@ -1033,6 +1101,11 @@ function applyConfigs(configs: RawConfigItem[]) {
   applyNotificationConfigs(configs)
   applyFreightConfigs(configs)
   applyRoleConfigs(configs)
+  // 品牌 JSON 需在 flat 字段（site_logo/site_name）之后应用，避免被旧值覆盖
+  applyBrandConfigToForm(configs, miniProgramForm)
+  if (miniProgramForm.logoUrl) {
+    miniProgramForm.logoUrl = normalizeUploadUrl(miniProgramForm.logoUrl)
+  }
 }
 
 function buildBrandSaveItems() {
@@ -1055,6 +1128,13 @@ function pickWechatFormPayload() {
     appSecret: miniProgramForm.appSecret,
     originalId: miniProgramForm.originalId,
     uploadKey: miniProgramForm.uploadKey,
+  }
+}
+
+function pickOaFormPayload() {
+  return {
+    oaAppId: oaFormData.oaAppId,
+    oaAppSecret: oaFormData.oaAppSecret,
   }
 }
 
@@ -1115,6 +1195,7 @@ async function handleSaveAll() {
     await Promise.all([
       updateConfigs(buildBrandSaveItems()),
       saveGroup('wechat', '微信小程序配置', pickWechatFormPayload()),
+      saveGroup('wechat', '微信公众号配置', pickOaFormPayload()),
       saveGroup('legal', '法律协议与客服', legalForm as unknown as Record<string, unknown>),
       saveGroup('wechat', '微信支付配置', paymentForm as unknown as Record<string, unknown>),
       saveGroup('basic', '插件开关', { plugins: pluginModules.value }),
@@ -1152,6 +1233,18 @@ async function handleSaveBrandConfig() {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
   } finally {
     brandSaving.value = false
+  }
+}
+
+async function handleSaveOa() {
+  oaSaving.value = true
+  try {
+    await saveGroup('wechat', '微信公众号配置', pickOaFormPayload())
+    ElMessage.success('公众号配置已保存')
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    oaSaving.value = false
   }
 }
 
@@ -1314,7 +1407,14 @@ async function handleCertUpload(options: UploadRequestOptions) {
 }
 
 function handlePickAsset() {
-  ElMessage.info('请从素材库选择Logo')
+  assetPickerVisible.value = true
+}
+
+function handleLogoAssetSelected(url: string) {
+  miniProgramForm.logoUrl = normalizeUploadUrl(url)
+  logoImageBroken.value = false
+  assetPickerVisible.value = false
+  ElMessage.success('已选择 Logo 图片')
 }
 
 function resetRoleForm() {

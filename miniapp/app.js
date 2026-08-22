@@ -60,7 +60,7 @@ App({
   /** 加载系统配置并应用主题 */
   async _loadSystemConfig() {
     try {
-      const config = await SystemService.fetchSystemConfig()
+      const config = await SystemService.fetchSystemConfig(true)
       if (config.miniappBrandConfig) {
         this.globalData.miniappBrandConfig = config.miniappBrandConfig
       }

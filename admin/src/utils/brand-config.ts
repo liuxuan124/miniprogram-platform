@@ -53,6 +53,9 @@ export function applyBrandConfigToForm(
   })
 
   const normalized = normalizeBrandConfig(parsed, legacy)
+  if (normalized.logoUrl) {
+    normalized.logoUrl = normalized.logoUrl.trim()
+  }
   Object.assign(target, normalized)
 }
 

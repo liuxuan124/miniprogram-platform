@@ -93,6 +93,10 @@ function resolveFormat(item) {
   if (type === 'data') return { key: 'data', label: '数据' }
   if (type === 'article' || type === 'longform') return { key: 'longform', label: '长文' }
 
+  const tags = Array.isArray(item.tags) ? item.tags : []
+  if (tags.some((t) => t === 'wx-type:newspic')) return { key: 'note', label: '笔记' }
+  if (tags.some((t) => t === 'wx-type:news')) return { key: 'longform', label: '长文' }
+
   const blob = blobOf(item)
   if (/视频|video|reel/i.test(blob) || (/TikTok/.test(blob) && /起号|复盘/.test(blob))) {
     return { key: 'video', label: '视频' }
@@ -162,6 +166,10 @@ function mapRecord(item) {
   const date = formatPublishTime(item.publishedAt || item.createTime)
   const views = formatViews(item.viewCount)
   const read = estimateRead(item)
+  const imageList = Array.isArray(item.images) ? item.images : (Array.isArray(item.gallery) ? item.gallery : [])
+  const coverFromImages = imageList.map((url) => resolveMediaUrl(url)).find(Boolean) || ''
+  const coverFallback = resolveMediaUrl(item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || '')
+  const cover_url = fmt.key === 'note' ? (coverFromImages || coverFallback) : coverFallback
   const metaParts = [date]
   if (fmt.key === 'longform') metaParts.push(read)
   if (fmt.key === 'video') metaParts.push(item.duration || '08:24')
@@ -193,7 +201,7 @@ function mapRecord(item) {
     author,
     author_initial: author.slice(0, 1),
     author_avatar: authorAvatar,
-    cover_url: resolveMediaUrl(item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || ''),
+    cover_url,
   }
 }
 

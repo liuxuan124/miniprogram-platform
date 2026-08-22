@@ -118,6 +118,16 @@
           </div>
         </div>
 
+        <div class="phone-overlay-layer">
+          <PreviewLoginSheet
+            v-model:privacy-accepted="previewLoginPrivacyAccepted"
+            :visible="previewLoginSheetOpen"
+            :brand="previewLoginBrand"
+            @close="closePreviewLoginSheet"
+            @complete="completePreviewLoginSheet"
+          />
+        </div>
+
         <!-- TabBar -->
         <div class="phone-tabbar" :style="{ backgroundColor: form.theme.tabBarBackgroundColor }">
           <div
@@ -139,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, provide } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { getPageDetail } from '@/api/page'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
@@ -149,12 +159,44 @@ import type { PageDSL } from '@/types/page'
 import { hydratePreviewDsl } from '@/utils/preview-datasource'
 import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vue'
 import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
+import PreviewLoginSheet from '@/components/miniapp-builder/PreviewLoginSheet.vue'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from '@/components/page-builder/composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from '@/components/page-builder/composables/useMeasuredElementHeight'
+import {
+  PREVIEW_LOGIN_SHEET_API,
+} from '@/utils/preview-phone-overlay'
+import { usePreviewBrandConfig } from '@/components/miniapp-builder/composables/usePreviewBrandConfig'
 
 const props = defineProps<{ form: MiniappForm; pages: PageRecord[]; minePageMode?: 'config' | 'custom' }>()
 const activeTab = ref(0)
 const loading = ref(false)
+const previewLoginSheetOpen = ref(false)
+const previewLoginPrivacyAccepted = ref(false)
+const previewLoginBrand = usePreviewBrandConfig()
+let previewLoginCompleteHandler: (() => void) | null = null
+
+function openPreviewLoginSheet() {
+  previewLoginPrivacyAccepted.value = false
+  previewLoginSheetOpen.value = true
+}
+
+function closePreviewLoginSheet() {
+  previewLoginSheetOpen.value = false
+}
+
+function completePreviewLoginSheet() {
+  if (!previewLoginPrivacyAccepted.value) return
+  previewLoginCompleteHandler?.()
+  previewLoginSheetOpen.value = false
+}
+
+provide(PREVIEW_LOGIN_SHEET_API, {
+  open: openPreviewLoginSheet,
+  close: closePreviewLoginSheet,
+  setCompleteHandler: (handler) => {
+    previewLoginCompleteHandler = handler
+  },
+})
 /** 我的页预览登录态（外层 chrome 切换） */
 const previewLoggedIn = ref(false)
 
@@ -386,7 +428,7 @@ defineExpose({ showMineTab })
 .phone { width: 375px; background: #111827; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .phone-notch { height: 30px; display: flex; align-items: center; justify-content: center; }
 .phone-speaker { width: 80px; height: 6px; background: #1f2937; border-radius: 3px; }
-.phone-screen { border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; height: 680px; position: relative; }
+.phone-screen { border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; height: 680px; position: relative; transform: translateZ(0); }
 .phone-screen--brand-header .phone-content { flex: 1; min-height: 0; }
 .preview-pinned-brand-header { position: absolute; top: 0; left: 0; right: 0; z-index: 20; }
 .brand-header-flow-spacer { flex-shrink: 0; width: 100%; }
@@ -394,7 +436,18 @@ defineExpose({ showMineTab })
 .navbar-title { color: #fff; font-size: 16px; font-weight: 700; }
 /* 背景透明以透出 phone-screen 上的「页面背景」主题色 */
 .phone-content { flex: 1; overflow-y: auto; padding: 0; background: transparent; }
-.phone-tabbar { height: 56px; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #e3e8f0; flex-shrink: 0; }
+.phone-overlay-layer {
+  position: absolute;
+  inset: 0;
+  bottom: 56px;
+  z-index: 28;
+  pointer-events: none;
+  overflow: hidden;
+}
+.phone-overlay-layer :deep(.preview-login-overlay) {
+  pointer-events: auto;
+}
+.phone-tabbar { height: 56px; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #e3e8f0; flex-shrink: 0; position: relative; z-index: 30; }
 .tabbar-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; transition: 0.14s; position: relative; }
 .tabbar-item.unbound::after { content: ''; position: absolute; top: -2px; right: -4px; width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
 .tabbar-icon { font-size: 20px; }

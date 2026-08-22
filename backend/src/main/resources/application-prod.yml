@@ -43,3 +43,7 @@ logging:
   level:
     root: WARN
     com.miniprogram: INFO
+
+# 上传文件公网访问根地址（生产必须配置，避免写入 localhost）
+file:
+  base-url: ${FILE_BASE_URL:https://api.zfculture.site}

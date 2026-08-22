@@ -48,6 +48,10 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             "(<img[^>]*?\\s(?:src|data-src)\\s*=\\s*[\"'])([^\"']+)([\"'][^>]*>)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
+    /** 已发布接口无 image_info 时，用标题特征辅助识别贴图 */
+    private static final Pattern NOTE_TITLE_HINT = Pattern.compile(
+            "一张图|一图|图解|地图|海报|图看懂|图讲透|结构拆解|流程图|思维导图|合规SOP|财税地图",
+            Pattern.CASE_INSENSITIVE);
 
     private final WeChatOfficialAccountClient weChatOfficialAccountClient;
     private final ContentMapper contentMapper;
@@ -76,21 +80,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
 
         for (JSONObject record : records) {
             String articleId = record.getStr("article_id");
-            JSONObject contentWrapper = record.getJSONObject("content");
-            JSONArray newsItems = contentWrapper != null ? contentWrapper.getJSONArray("news_item") : null;
-
-            if ((newsItems == null || newsItems.isEmpty()) && StringUtils.hasText(articleId)) {
-                try {
-                    JSONObject detail = weChatOfficialAccountClient.getPublishedArticle(articleId);
-                    newsItems = detail.getJSONArray("news_item");
-                } catch (Exception e) {
-                    log.warn("拉取 article_id={} 详情失败: {}", articleId, e.getMessage());
-                    result.setFailed(result.getFailed() + 1);
-                    result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
-                            articleId, e.getMessage()));
-                    continue;
-                }
-            }
+            JSONArray newsItems = resolveNewsItems(record, articleId, result);
 
             if (newsItems == null || newsItems.isEmpty()) {
                 result.setSkipped(result.getSkipped() + 1);
@@ -134,6 +124,29 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 result.getSkipped(),
                 result.getFailed()));
         return result;
+    }
+
+    private JSONArray resolveNewsItems(
+            JSONObject record,
+            String articleId,
+            WeChatContentSyncResultVO result) {
+        JSONArray newsItems = null;
+        if (StringUtils.hasText(articleId)) {
+            try {
+                JSONObject detail = weChatOfficialAccountClient.getPublishedArticle(articleId);
+                newsItems = detail.getJSONArray("news_item");
+            } catch (Exception e) {
+                log.warn("拉取 article_id={} 详情失败: {}", articleId, e.getMessage());
+                result.setFailed(result.getFailed() + 1);
+                result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
+                        articleId, e.getMessage()));
+            }
+        }
+        if (newsItems == null || newsItems.isEmpty()) {
+            JSONObject contentWrapper = record.getJSONObject("content");
+            newsItems = contentWrapper != null ? contentWrapper.getJSONArray("news_item") : null;
+        }
+        return newsItems;
     }
 
     private SyncAction upsertPublishedItem(
@@ -254,7 +267,14 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         String plainText = extractPlainText(item.getStr("content"));
         String digest = trim(item.getStr("digest"));
         if (!StringUtils.hasText(plainText) && StringUtils.hasText(digest)) {
-            plainText = digest;
+            plainText = extractPlainText(digest);
+        }
+        // 贴图正文常比 digest 短，优先用较短者作为笔记文案
+        if (StringUtils.hasText(digest)) {
+            String digestPlain = extractPlainText(digest);
+            if (StringUtils.hasText(digestPlain) && digestPlain.length() < plainText.length()) {
+                plainText = digestPlain;
+            }
         }
         entity.setSummary(StringUtils.hasText(plainText)
                 ? (plainText.length() > 512 ? plainText.substring(0, 512) : plainText)
@@ -326,21 +346,53 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     }
 
     private boolean isNewspic(JSONObject item) {
-        if ("newspic".equalsIgnoreCase(trim(item.getStr("article_type")))) {
+        String articleType = trim(item.getStr("article_type"));
+        if ("newspic".equalsIgnoreCase(articleType)) {
             return true;
         }
+        if ("news".equalsIgnoreCase(articleType)) {
+            return false;
+        }
+
         JSONObject imageInfo = item.getJSONObject("image_info");
         JSONArray imageList = imageInfo != null ? imageInfo.getJSONArray("image_list") : null;
         if (imageList != null && !imageList.isEmpty()) {
             return true;
         }
+
         String content = item.getStr("content");
-        if (!StringUtils.hasText(content)) {
+        String plain = extractPlainText(content);
+        List<String> htmlImages = extractImageUrlsFromHtml(content);
+        String title = trim(item.getStr("title"));
+        boolean hasThumb = StringUtils.hasText(item.getStr("thumb_url"));
+
+        // 长文：正文较长时一律按文章处理
+        if (plain.length() > 800) {
             return false;
         }
-        List<String> htmlImages = extractImageUrlsFromHtml(content);
-        String plain = extractPlainText(content);
-        return htmlImages.size() >= 2 && plain.length() <= 300;
+
+        if (htmlImages.size() >= 2 && plain.length() <= 500) {
+            return true;
+        }
+        if (htmlImages.size() >= 1 && plain.length() <= 200) {
+            return true;
+        }
+
+        if (!StringUtils.hasText(content) && hasThumb) {
+            return plain.length() <= 300 || !StringUtils.hasText(plain);
+        }
+
+        // 微信已发布 freepublish 接口通常不返回 image_info / 正文内 img，贴图仅保留封面+短文
+        if (htmlImages.isEmpty() && hasThumb) {
+            if (plain.length() > 0 && plain.length() <= 520) {
+                return true;
+            }
+            if (plain.length() <= 680 && StringUtils.hasText(title) && NOTE_TITLE_HINT.matcher(title).find()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private List<String> collectNewspicImages(
@@ -348,6 +400,11 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Map<String, String> imageCache,
             Map<String, byte[]> mediaCache) {
         LinkedHashMap<String, String> ordered = new LinkedHashMap<>();
+
+        String thumbUrl = trim(item.getStr("thumb_url"));
+        if (StringUtils.hasText(thumbUrl)) {
+            ordered.put(thumbUrl, mirrorRemoteImage(thumbUrl, imageCache));
+        }
 
         JSONObject imageInfo = item.getJSONObject("image_info");
         JSONArray imageList = imageInfo != null ? imageInfo.getJSONArray("image_list") : null;
@@ -377,11 +434,6 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
 
         for (String url : extractImageUrlsFromHtml(item.getStr("content"))) {
             ordered.putIfAbsent(url, mirrorRemoteImage(url, imageCache));
-        }
-
-        String thumbUrl = trim(item.getStr("thumb_url"));
-        if (StringUtils.hasText(thumbUrl)) {
-            ordered.putIfAbsent(thumbUrl, mirrorRemoteImage(thumbUrl, imageCache));
         }
 
         return new ArrayList<>(ordered.values());
