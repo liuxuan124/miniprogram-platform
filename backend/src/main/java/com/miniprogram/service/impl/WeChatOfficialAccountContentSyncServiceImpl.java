@@ -317,9 +317,14 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
 
         if (publish) {
             entity.setStatus("published");
-            entity.setPublishedAt(publishedAt != null ? publishedAt : LocalDateTime.now());
-        } else if (!StringUtils.hasText(entity.getStatus())) {
+            if (publishedAt != null) {
+                entity.setPublishedAt(publishedAt);
+            } else if (entity.getPublishedAt() == null) {
+                entity.setPublishedAt(LocalDateTime.now());
+            }
+        } else {
             entity.setStatus("draft");
+            entity.setPublishedAt(null);
         }
 
         if (entity.getViewCount() == null) {
