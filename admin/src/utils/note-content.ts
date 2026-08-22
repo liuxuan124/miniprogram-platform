@@ -17,11 +17,28 @@ export function filterNoteDisplayTags(tags: unknown): string[] {
     .filter((t) => t && !isInternalNoteTag(t))
 }
 
+/** 同一上传文件不同域名/参数视为同一张图 */
+export function mediaUrlDedupeKey(url: string): string {
+  const value = String(url || '').trim()
+  if (!value) return ''
+  try {
+    if (value.startsWith('/')) return value.split('?')[0]
+    return new URL(value).pathname.split('?')[0]
+  } catch {
+    return value.split('?')[0]
+  }
+}
+
 export function buildNoteGalleryUrls(cover?: string, images?: string[]): string[] {
   const list: string[] = []
+  const seen = new Set<string>()
   const push = (url?: string) => {
     const v = String(url || '').trim()
-    if (v && !list.includes(v)) list.push(v)
+    if (!v) return
+    const key = mediaUrlDedupeKey(v)
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    list.push(v)
   }
   push(cover)
   if (Array.isArray(images)) images.forEach((url) => push(url))
