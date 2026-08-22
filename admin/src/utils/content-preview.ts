@@ -55,7 +55,9 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
     (contentType === 'note' || contentType === 'moment') && rawImages.length === 0
       ? extractImagesFromHtml(contentHtml)
       : []
-  const images = buildNoteGalleryUrls(coverImage, [...rawImages, ...htmlImages])
+  const images = rawImages.length > 0
+    ? buildNoteGalleryUrls('', rawImages)
+    : buildNoteGalleryUrls(coverImage, htmlImages)
   const tags = Array.isArray(data.tags) ? data.tags.map(String) : []
   const attachments = Array.isArray(data.attachments)
     ? data.attachments.map((item, idx) => {
