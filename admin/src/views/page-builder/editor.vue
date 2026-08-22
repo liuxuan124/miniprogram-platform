@@ -38,7 +38,7 @@
             </el-button-group>
             <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
               <el-icon><Document /></el-icon>
-              保存草稿
+              保存
             </el-button>
             <el-button size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
@@ -46,7 +46,7 @@
             </el-button>
             <el-button type="primary" size="small" @click="handlePublish">
               <el-icon><Upload /></el-icon>
-              发布此页
+              上线
             </el-button>
             <el-dropdown trigger="click">
               <el-button size="small">
@@ -124,7 +124,7 @@
 
     <el-dialog
       v-model="publishCheck.visible"
-      title="发布前检查"
+      title="上线前检查"
       width="560px"
       :close-on-click-modal="false"
       class="publish-check-dialog"
@@ -135,7 +135,7 @@
         </div>
         <div>
           <div class="publish-check-title">
-            {{ publishCheck.blocking.length ? '还有问题需要处理' : (publishCheck.warnings.length ? '可以发布，但建议先确认' : '检查通过，可以发布') }}
+            {{ publishCheck.blocking.length ? '还有问题需要处理' : (publishCheck.warnings.length ? '可以上线，但建议先确认' : '检查通过，可以上线') }}
           </div>
           <div class="publish-check-desc">
             共 {{ pageStore.components.length }} 个组件 · {{ publishCheck.warnings.length }} 项提醒
@@ -166,22 +166,22 @@
         </div>
         <div v-if="publishCheck.warnings.length === 0" class="check-row is-success">
           <el-icon><CircleCheckFilled /></el-icon>
-          <div><b>内容与数据</b><span>未发现影响发布的问题</span></div>
+          <div><b>内容与数据</b><span>未发现影响上线的问题</span></div>
         </div>
       </div>
       <template #footer>
         <el-button @click="publishCheck.visible = false">返回修改</el-button>
         <el-button type="primary" :loading="publishCheck.publishing" :disabled="publishCheck.blocking.length > 0" @click="executePublish">
-          {{ publishCheck.warnings.length ? '确认并发布' : '立即发布' }}
+          {{ publishCheck.warnings.length ? '确认并上线' : '立即上线' }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- C3：发布结果面板，替代原来信息密度过高的单个确认弹窗 -->
-    <el-dialog v-model="publishResult.visible" title="此页已发布" width="440px" :close-on-click-modal="false">
+    <el-dialog v-model="publishResult.visible" title="已上线" width="440px" :close-on-click-modal="false">
       <div class="publish-result">
         <div class="publish-result__row">
-          <span class="label">发布版本</span>
+          <span class="label">当前版本</span>
           <span class="value">v{{ publishResult.version }}</span>
         </div>
         <div class="publish-result__row">
@@ -194,12 +194,11 @@
         </div>
       </div>
       <div class="publish-result__tip">
-        此页已上线。打开「导航与外观」即可看到同步后的效果，不用再整包发布。
+        已上线，小程序里刷新即可看到。
       </div>
       <template #footer>
         <el-button @click="publishResult.visible = false">继续装修</el-button>
-        <el-button @click="handlePreviewAfterPublish">预览效果</el-button>
-        <el-button type="primary" @click="handleGotoMiniappConfig">去导航与外观</el-button>
+        <el-button type="primary" @click="handlePreviewAfterPublish">预览效果</el-button>
       </template>
     </el-dialog>
   </div>
@@ -649,7 +648,7 @@ async function executePublish() {
     publishResult.visible = true
     await loadPage()
   } catch (err: any) {
-    ElMessage.error(`发布失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
+    ElMessage.error(`上线失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
   } finally {
     publishCheck.publishing = false
   }
@@ -735,7 +734,7 @@ function handleApplyDSL() {
     }
     pageStore.applyTemplate(parsed)
     dslDialogVisible.value = false
-    ElMessage.success('DSL 已导入，请保存草稿后发布此页')
+    ElMessage.success('DSL 已导入，请保存后上线')
   } catch {
     ElMessage.error('DSL JSON 解析失败，请检查格式')
   }

@@ -180,7 +180,7 @@ watch(
 }
 
 .asset-hint strong {
-  color: #1769ff;
+  color: var(--color-primary);
 }
 
 .asset-grid {
@@ -236,7 +236,7 @@ watch(
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #1769ff;
+  background: var(--color-primary);
   color: #fff;
   font-size: 12px;
   font-style: normal;

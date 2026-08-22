@@ -9,7 +9,7 @@ import {
   noteHashTags,
 } from '@/utils/note-content'
 
-export type ContentPreviewType = 'article' | 'note' | 'moment'
+export type ContentPreviewType = 'article' | 'note' | 'moment' | 'rich' | 'video'
 
 export interface ContentPreviewAttachment {
   id?: string

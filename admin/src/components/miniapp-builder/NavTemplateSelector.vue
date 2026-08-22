@@ -42,11 +42,11 @@ const templates: NavTemplate[] = NAV_TEMPLATES
   cursor: pointer; transition: 0.16s; background: #fff; text-align: left;
 }
 .template-card:hover { border-color: #a0b4d0; }
-.template-card.active { border-color: #1769ff; background: #f8faff; }
+.template-card.active { border-color: var(--color-primary); background: #f8faff; }
 .tpl-icon { font-size: 28px; margin-bottom: 6px; }
 .tpl-info strong { font-size: 14px; font-weight: 700; display: block; }
 .tpl-info p { color: #7b8798; font-size: 12px; margin-top: 4px; line-height: 1.4; }
 .tpl-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .tpl-tabs span { padding: 2px 8px; font-size: 11px; color: #607187; background: #f0f4ff; border: 1px solid #d9e2ef; border-radius: 99px; }
-.tpl-check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; background: #1769ff; color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.tpl-check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; background: var(--color-primary); color: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
 </style>

@@ -237,7 +237,7 @@ const previewNicknameError = computed(() => {
 
 function updateField(key: string, value: any) {
   // 就地写入 + 新对象发射，避免开关状态与预览不同步
-  const current = props.modelValue as Record<string, unknown>
+  const current = props.modelValue as unknown as Record<string, unknown>
   current[key] = value
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
@@ -335,12 +335,12 @@ function confirmMenuIcon() {
   cursor: pointer;
   transition: 0.14s;
 }
-.icon-tab:hover { border-color: #1769ff; color: #1769ff; }
-.icon-tab.active { border-color: #1769ff; background: #eff6ff; color: #1769ff; font-weight: 600; }
+.icon-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.icon-tab.active { border-color: var(--color-primary); background: #eff6ff; color: var(--color-primary); font-weight: 600; }
 .icon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
 .icon-opt { width: 44px; height: 44px; display: grid; place-items: center; font-size: 22px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; cursor: pointer; transition: 0.14s; padding: 0; }
-.icon-opt:hover { border-color: #1769ff; }
-.icon-opt.active { border-color: #1769ff; background: #eff6ff; box-shadow: 0 0 0 2px rgba(23,105,255,0.2); }
+.icon-opt:hover { border-color: var(--color-primary); }
+.icon-opt.active { border-color: var(--color-primary); background: #eff6ff; box-shadow: 0 0 0 2px rgba(23,105,255,0.2); }
 .icon-opt--line { padding: 8px; }
 .icon-opt-svg { width: 26px; height: 26px; display: grid; place-items: center; }
 .icon-opt-svg :deep(svg) { width: 100%; height: 100%; display: block; }

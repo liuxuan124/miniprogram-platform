@@ -264,7 +264,7 @@ function handleViewDSL(row: VersionRecord) {
 async function handleRollback(row: VersionRecord) {
   try {
     await ElMessageBox.confirm(
-      `确定回滚到版本 v${row.version}？回滚后页面将变为草稿状态，需要重新发布才能在小程序端生效。`,
+      `确定回滚到版本 v${row.version}？回滚后页面将变为草稿状态，需要重新上线才能在小程序端生效。`,
       '版本回滚',
       { type: 'warning', confirmButtonText: '确定回滚', cancelButtonText: '取消' }
     )
@@ -273,10 +273,10 @@ async function handleRollback(row: VersionRecord) {
     fetchVersions()
     // 回滚后提示用户去编辑器发布
     await ElMessageBox.confirm(
-      `已成功回滚到 v${row.version}。\n\n页面当前为草稿，需要进入装修器点击「发布此页」后才会在小程序端生效。`,
+      `已成功回滚到 v${row.version}。\n\n页面当前为草稿，需要进入装修器点击「上线」后才会在小程序端生效。`,
       '回滚成功',
       {
-        confirmButtonText: '去编辑器发布',
+        confirmButtonText: '去装修器上线',
         cancelButtonText: '留在版本列表',
         type: 'success',
       }

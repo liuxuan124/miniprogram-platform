@@ -40,5 +40,5 @@ export function syncWeChatPublishedContents(data?: WeChatContentSyncRequest) {
 
 /** 公众号文章链接批量导入 */
 export function importWeChatArticleUrls(data: WeChatUrlImportRequest) {
-  return post<WeChatContentSyncResult>(`${BASE_URL}/import-urls`, data as Record<string, unknown>)
+  return post<WeChatContentSyncResult>(`${BASE_URL}/import-urls`, data as unknown as Record<string, unknown>)
 }

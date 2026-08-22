@@ -1159,7 +1159,7 @@ watch(
 .activity-preview-card {
   flex-direction: column;
   align-items: flex-start;
-  background: linear-gradient(135deg, #1769ff, #0faa6e);
+  background: linear-gradient(135deg, var(--color-primary), #0faa6e);
   color: #fff;
 
   .mini-item-desc {
@@ -1276,7 +1276,7 @@ watch(
   }
 
   &.active {
-    color: #1769ff;
+    color: var(--color-primary);
     font-weight: 700;
   }
 }

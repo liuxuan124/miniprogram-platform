@@ -158,7 +158,7 @@ function onUpgrade() {
   .member-bg {
     padding: 16px;
     color: var(--component-text-color, #fff);
-    background: linear-gradient(135deg, #0f2150, var(--theme-primary, #1769ff));
+    background: linear-gradient(135deg, #0f2150, var(--theme-primary, var(--color-primary)));
     background-size: cover;
     background-position: center;
     overflow: hidden;

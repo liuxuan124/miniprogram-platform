@@ -854,11 +854,11 @@ onMounted(async () => {
 
   .prototype-tabs {
     :deep(.el-tabs__item.is-active) {
-      color: #1769ff;
+      color: var(--color-primary);
       font-weight: 800;
     }
     :deep(.el-tabs__active-bar) {
-      background: #1769ff;
+      background: var(--color-primary);
     }
   }
 
@@ -900,7 +900,7 @@ onMounted(async () => {
   }
 
   .avatar {
-    background: linear-gradient(135deg, #1769ff, #20b7ff);
+    background: linear-gradient(135deg, var(--color-primary), #20b7ff);
     color: #fff;
   }
 
@@ -946,7 +946,7 @@ onMounted(async () => {
     font-size: 24px;
     line-height: 1;
     font-weight: 900;
-    color: #1769ff;
+    color: var(--color-primary);
   }
 
   .rules-panel {

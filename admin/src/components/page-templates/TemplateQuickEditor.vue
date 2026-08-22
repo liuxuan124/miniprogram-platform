@@ -43,7 +43,7 @@
                 </template>
                 <template v-else-if="field.type === 'color'">
                   <el-color-picker
-                    :model-value="getValue(field.path) || '#1769ff'"
+                    :model-value="getValue(field.path) || 'var(--color-primary)'"
                     size="small"
                     @update:model-value="(val: string) => setValue(field.path, val)"
                   />

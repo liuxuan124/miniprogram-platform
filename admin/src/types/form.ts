@@ -116,7 +116,7 @@ export interface FormTemplateListParams {
   page?: number
   page_size?: number
   keyword?: string
-  status?: string
+  status?: string | number
 }
 
 /** 表单提交记录 */

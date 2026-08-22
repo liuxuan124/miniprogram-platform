@@ -174,7 +174,7 @@ function onItemClick(item: ActivityItem) {
       padding: 4px 10px;
       color: #fff;
       font-size: 11px;
-      background: var(--theme-primary, #1769ff);
+      background: var(--theme-primary, var(--color-primary));
       border: 0;
       border-radius: 999px;
       cursor: pointer;

@@ -288,7 +288,7 @@ async function onUploadLogo(e: Event) {
   justify-content: center;
   padding: 6px 12px;
   font-size: 12px;
-  color: #1769ff;
+  color: var(--color-primary);
   border: 1px dashed #c9d8ff;
   border-radius: 6px;
   cursor: pointer;

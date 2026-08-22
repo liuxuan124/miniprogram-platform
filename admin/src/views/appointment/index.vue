@@ -1085,7 +1085,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  background: linear-gradient(135deg, #1769ff, #5b8def);
+  background: linear-gradient(135deg, var(--color-primary), #5b8def);
 }
 
 .pv-section {
@@ -1125,7 +1125,7 @@ onMounted(async () => {
   border: none;
   border-radius: 8px;
   background: #eef4ff;
-  color: #1769ff;
+  color: var(--color-primary);
   font-size: 12px;
   cursor: pointer;
 
@@ -1191,7 +1191,7 @@ onMounted(async () => {
 .pv-submit {
   height: 42px;
   border-radius: 999px;
-  background: #1769ff;
+  background: var(--color-primary);
   color: #fff;
   display: flex;
   align-items: center;

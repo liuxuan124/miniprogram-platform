@@ -480,7 +480,7 @@ defineExpose({ showMineTab })
 .user-info strong { font-size: 14px; display: block; }
 .user-subtitle { font-size: 11px; opacity: 0.8; margin-top: 2px; display: block; }
 .user-level { display: inline-block; font-size: 10px; background: rgba(255,255,255,0.2); padding: 1px 8px; border-radius: 99px; margin-top: 4px; }
-.login-btn { margin-left: auto; padding: 6px 16px; background: #fff; color: var(--mine-accent, var(--theme-primary, #1769ff)); border: none; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.login-btn { margin-left: auto; padding: 6px 16px; background: #fff; color: var(--mine-accent, var(--theme-primary, var(--color-primary))); border: none; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .user-nickname { font-size: 12px; font-weight: 600; margin-top: 2px; display: block; }
 .preview-member-card { padding: 14px 16px; border-radius: 10px; margin-bottom: 12px; color: #fff; }
 .preview-member-card strong { display: block; font-size: 14px; }
@@ -495,7 +495,7 @@ defineExpose({ showMineTab })
 .order-tab-item { flex: 1; text-align: center; padding: 8px 4px; background: #f8faff; border: 1px solid #eef0f4; border-radius: 8px; cursor: pointer; transition: 0.14s; }
 .order-tab-item:hover { border-color: #a0b4d0; }
 .order-tab-label { font-size: 11px; color: #607187; display: block; }
-.all-orders-btn { text-align: center; font-size: 12px; color: #1769ff; padding: 8px 0; margin-bottom: 8px; }
+.all-orders-btn { text-align: center; font-size: 12px; color: var(--color-primary); padding: 8px 0; margin-bottom: 8px; }
 
 .preview-menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .preview-menu-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; }

@@ -30,6 +30,27 @@ function isIndexPath(path?: string) {
   return String(path || '').replace(/\/+$/, '') === '/pages/index/index'
 }
 
+const TABBAR_SLOT_COUNT = 4
+
+function normalizeTabBarSlots(tabs: MiniappForm['tabs']): MiniappForm['tabs'] {
+  const source = Array.isArray(tabs) ? tabs : []
+  const result = source.slice(0, TABBAR_SLOT_COUNT).map((tab, index) => ({
+    ...tab,
+    id: tab.id || `tab-${index}`,
+  }))
+  while (result.length < TABBAR_SLOT_COUNT) {
+    result.push({
+      id: `tab-${result.length}-${Date.now()}`,
+      text: `导航${result.length + 1}`,
+      icon: '/images/nav-icons/g-bag.png',
+      pagePath: '/pages/custom/custom',
+      pageId: '',
+      pageName: '',
+    })
+  }
+  return result
+}
+
 export function useMiniappConfig() {
   const loading = ref(false)
   const saving = ref(false)
@@ -171,14 +192,14 @@ export function useMiniappConfig() {
             ? JSON.parse(configMap[CONFIG_KEYS.TABBAR_ITEMS])
             : configMap[CONFIG_KEYS.TABBAR_ITEMS]
           if (Array.isArray(items) && items.length > 0) {
-            form.tabs = items.map((t: any, i: number) => ({
+            form.tabs = normalizeTabBarSlots(items.map((t: any, i: number) => ({
               id: t.id || `tab-${i}`,
               text: t.text || t.label || t.name || '',
               icon: migrateTabBarIcon(t.icon || t.iconPath || ''),
               pagePath: t.pagePath || t.path || '',
               pageId: normalizeBindId(t.pageId) as any,
               pageName: t.pageName || '',
-            }))
+            })))
           }
         } catch { /* ignore parse errors */ }
       }
@@ -273,6 +294,8 @@ export function useMiniappConfig() {
       // If no tabs loaded, apply template
       if (form.tabs.length === 0) {
         applyTemplate(form.templateKey)
+      } else {
+        form.tabs = normalizeTabBarSlots(form.tabs)
       }
     } catch {
       applyTemplate('standard')
@@ -294,6 +317,7 @@ export function useMiniappConfig() {
       pageId: '',
       pageName: '',
     }))
+    form.tabs = normalizeTabBarSlots(form.tabs)
   }
 
   async function handleSave(): Promise<boolean> {
@@ -322,7 +346,7 @@ export function useMiniappConfig() {
         { configKey: CONFIG_KEYS.TEMPLATE_KEY, configValue: form.templateKey, configGroup: 'basic', description: '小程序导航模板' },
         { configKey: CONFIG_KEYS.HOME_PAGE_ID, configValue: String(form.homePageId), configGroup: 'basic', description: '首页绑定' },
         { configKey: CONFIG_KEYS.MINE_PAGE_ID, configValue: String(form.minePageId), configGroup: 'basic', description: '我的页面绑定' },
-        { configKey: CONFIG_KEYS.TABBAR_ITEMS, configValue: JSON.stringify(form.tabs), configGroup: 'basic', description: '底部导航配置' },
+        { configKey: CONFIG_KEYS.TABBAR_ITEMS, configValue: JSON.stringify(normalizeTabBarSlots(form.tabs)), configGroup: 'basic', description: '底部导航配置' },
         { configKey: CONFIG_KEYS.MINE_PAGE_CONFIG, configValue: JSON.stringify(form.mineConfig), configGroup: 'basic', description: '我的页面配置' },
         { configKey: CONFIG_KEYS.THEME_CONFIG, configValue: JSON.stringify(form.theme), configGroup: 'basic', description: '主题配色' },
         { configKey: CONFIG_KEYS.SHARE_TITLE, configValue: form.shareTitle, configGroup: 'basic', description: '小程序分享标题' },
@@ -465,5 +489,6 @@ export function useMiniappConfig() {
     handleReset,
     autoBindPages,
     loadPages,
+    loadConfig,
   }
 }

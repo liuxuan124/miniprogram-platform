@@ -463,7 +463,7 @@ function formatDisplayDate(value: unknown): string {
     &__bar {
       width: 3px;
       border-radius: 1px;
-      background: var(--theme-primary, #1769ff);
+      background: var(--theme-primary, var(--color-primary));
 
       &--down {
         height: 72%;

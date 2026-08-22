@@ -122,7 +122,7 @@ function onCountdownToggle(enabled: boolean) {
   box-sizing: border-box;
 
   &:focus {
-    border-color: #1769ff;
+    border-color: var(--color-primary);
   }
 }
 
@@ -143,7 +143,7 @@ function onCountdownToggle(enabled: boolean) {
   cursor: pointer;
 
   &:hover {
-    color: #1769ff;
+    color: var(--color-primary);
     border-color: #bfd4ff;
     background: #eff6ff;
   }

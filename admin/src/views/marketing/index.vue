@@ -119,7 +119,7 @@ function handleCardClick(item: MarketingCard) {
     .card-stat {
       font-size: 17px;
       font-weight: 800;
-      color: #1769ff;
+      color: var(--color-primary);
       margin-bottom: 4px;
     }
 

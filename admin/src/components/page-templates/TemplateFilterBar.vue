@@ -189,13 +189,13 @@ function reset() {
   white-space: nowrap;
 }
 .pill:hover {
-  border-color: var(--accent, #1769ff);
-  color: var(--accent, #1769ff);
+  border-color: var(--accent, var(--color-primary));
+  color: var(--accent, var(--color-primary));
 }
 .pill.active {
   color: #fff;
-  border-color: var(--accent, #1769ff);
-  background: var(--accent, #1769ff);
+  border-color: var(--accent, var(--color-primary));
+  background: var(--accent, var(--color-primary));
 }
 .feature-chips {
   display: flex;

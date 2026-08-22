@@ -38,8 +38,8 @@ export function resolvePriceFilterConfig(source: Record<string, unknown> | null 
   const mode = PRICE_FILTER_OPTIONS.some((o) => o.value === modeRaw) ? modeRaw : 'all'
   return {
     mode,
-    price_min: query.price_min ?? source?.price_min,
-    price_max: query.price_max ?? source?.price_max,
+    price_min: (query.price_min ?? source?.price_min) as PriceFilterConfig['price_min'],
+    price_max: (query.price_max ?? source?.price_max) as PriceFilterConfig['price_max'],
   }
 }
 

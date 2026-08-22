@@ -43,6 +43,11 @@ export function deletePage(id: number) {
   return del<void>(`${BASE_URL}/pages/${id}`)
 }
 
+/** 复制页面 */
+export function duplicatePage(id: number | string) {
+  return post<PageRecord>(`${BASE_URL}/pages/${id}/duplicate`)
+}
+
 /** 保存草稿
  * @param expectedVersion 客户端最后已知版本号，传入时后端会做并发冲突检测
  */

@@ -352,9 +352,9 @@ function onTabsWheel(event: WheelEvent) {
 }
 
 .feed-tab.active {
-  color: var(--theme-primary, #1769ff);
+  color: var(--theme-primary, var(--color-primary));
   font-weight: 700;
-  background: color-mix(in srgb, var(--theme-primary, #1769ff) 14%, transparent);
+  background: color-mix(in srgb, var(--theme-primary, var(--color-primary)) 14%, transparent);
 }
 
 .feed-body.is-tabs-mode {

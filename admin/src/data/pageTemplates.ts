@@ -9,7 +9,7 @@ const PRESET_TEMPLATES: PageTemplate[] = [
     style: TemplateStyle.MODERN,
     description: '经典现代风格首页模板，包含轮播图、导航宫格、商品推荐和优惠券模块，适合大多数零售行业快速搭建专业首页。',
     icon: '🏠',
-    coverColor: '#1769ff',
+    coverColor: '#002FA7',
     features: {
       hasBanner: true,
       hasNavGrid: true,
@@ -65,7 +65,7 @@ const PRESET_TEMPLATES: PageTemplate[] = [
             autoplay: true,
             interval: 3000,
             indicator_color: '#fff',
-            indicator_active_color: '#1769ff',
+            indicator_active_color: '#002FA7',
             border_radius: 12,
             height: 360,
           },

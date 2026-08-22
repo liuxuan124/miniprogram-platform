@@ -139,7 +139,7 @@ function onClick() {
     color: #fff;
     font-size: 12px;
     font-weight: 700;
-    background: var(--theme-primary, #1769ff);
+    background: var(--theme-primary, var(--color-primary));
     border-radius: 999px;
   }
 }

@@ -238,10 +238,21 @@ export const usePageStore = defineStore('page', () => {
     reconcileSelection()
   }
 
+  function findComponentDeep(list: ComponentInstance[], id: string): ComponentInstance | null {
+    for (const c of list) {
+      if (c.id === id) return c
+      if (c.children?.length) {
+        const found = findComponentDeep(c.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   /** 当前选中的组件实例 */
   const selectedComponent = computed<ComponentInstance | null>(() => {
     if (!selectedComponentId.value) return null
-    return dsl.value.components.find((c) => c.id === selectedComponentId.value) ?? null
+    return findComponentDeep(dsl.value.components, selectedComponentId.value)
   })
 
   /** 组件列表 */
@@ -292,7 +303,7 @@ export const usePageStore = defineStore('page', () => {
     }
     if (index !== undefined && index >= 0) {
       dsl.value.components.splice(index, 0, comp)
-    } else if (type === ComponentType.BrandHeader) {
+    } else if (type === CT.BrandHeader) {
       dsl.value.components.unshift(comp)
     } else {
       dsl.value.components.push(comp)
@@ -341,7 +352,7 @@ export const usePageStore = defineStore('page', () => {
 
   /** 更新组件 props（连续输入合并为一条历史） */
   function updateComponentProps(id: string, props: Record<string, any>) {
-    const comp = dsl.value.components.find((c) => c.id === id)
+    const comp = findComponentDeep(dsl.value.components, id)
     if (comp) {
       commitHistoryDebounced()
       comp.props = { ...comp.props, ...props }
@@ -351,7 +362,7 @@ export const usePageStore = defineStore('page', () => {
 
   /** 更新组件样式（连续输入合并为一条历史） */
   function updateComponentStyle(id: string, style: Record<string, any>) {
-    const comp = dsl.value.components.find((c) => c.id === id)
+    const comp = findComponentDeep(dsl.value.components, id)
     if (comp) {
       commitHistoryDebounced()
       const next = { ...comp.style, ...style }
@@ -361,6 +372,33 @@ export const usePageStore = defineStore('page', () => {
       comp.style = next
       isDirty.value = true
     }
+  }
+
+  /** 向容器/通栏添加子组件 */
+  function addChildComponent(parentId: string, type: ComponentType) {
+    const parent = findComponentDeep(dsl.value.components, parentId)
+    if (!parent) return null
+    if (parent.type !== CT.Container && parent.type !== CT.SectionBg) return null
+    commitHistory()
+    const child: ComponentInstance = {
+      id: generateId(),
+      type,
+      props: getDefaultProps(type),
+      style: getDefaultStyle(type),
+    }
+    if (!parent.children) parent.children = []
+    parent.children.push(child)
+    isDirty.value = true
+    return child
+  }
+
+  /** 删除容器内子组件 */
+  function removeChildComponent(parentId: string, childIndex: number) {
+    const parent = findComponentDeep(dsl.value.components, parentId)
+    if (!parent?.children) return
+    commitHistory()
+    parent.children.splice(childIndex, 1)
+    isDirty.value = true
   }
 
   /** 移动组件 */
@@ -437,6 +475,8 @@ export const usePageStore = defineStore('page', () => {
     resetEditor,
     addComponent,
     addComponentWithProps,
+    addChildComponent,
+    removeChildComponent,
     removeComponent,
     selectComponent,
     updateComponentProps,

@@ -94,7 +94,6 @@ export const PointsChangeTypeLabels: Record<string, string> = {
   sign_in: '每日签到',
   exchange: '积分兑换',
   admin: '后台调整',
-  consume: '消费赠送',
   [PointsChangeType.Earn]: '获取',
   [PointsChangeType.Consume]: '消耗',
   [PointsChangeType.AdminAdjust]: '管理员调整',

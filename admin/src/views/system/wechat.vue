@@ -548,6 +548,7 @@ async function fetchConfig() {
     applyConfigListToForm(configs, [formData as unknown as Record<string, unknown>])
     applyConfigListToForm(configs, [payFormData as unknown as Record<string, unknown>])
     for (const cfg of configs) {
+      if (!cfg.configKey) continue
       const oaKey = OA_CONFIG_KEY_REVERSE[cfg.configKey]
       if (oaKey) {
         oaFormData[oaKey] = cfg.configValue || ''

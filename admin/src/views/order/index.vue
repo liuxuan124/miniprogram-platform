@@ -933,14 +933,14 @@ onMounted(() => {
     color: inherit;
 
     &:hover {
-      border-color: var(--brand, #1769ff);
+      border-color: var(--brand, var(--color-primary));
       box-shadow: var(--shadow-md, 0 6px 18px rgba(23, 105, 255, 0.08));
       transform: translateY(-1px);
     }
 
     &.active {
-      border-color: var(--brand, #1769ff);
-      box-shadow: 0 0 0 1px var(--brand, #1769ff);
+      border-color: var(--brand, var(--color-primary));
+      box-shadow: 0 0 0 1px var(--brand, var(--color-primary));
     }
 
     span {

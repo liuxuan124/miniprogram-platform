@@ -35,7 +35,7 @@ export const TemplateStyleLabels: Record<TemplateStyle, string> = {
 }
 
 export const TemplateStyleColorMap: Record<TemplateStyle, { start: string; end: string }> = {
-  [TemplateStyle.MODERN]: { start: '#1769ff', end: '#20b7ff' },
+  [TemplateStyle.MODERN]: { start: '#002FA7', end: '#20b7ff' },
   [TemplateStyle.LUXURY]: { start: '#1a1a2e', end: '#c9a96e' },
   [TemplateStyle.CUTE]: { start: '#ff6b9d', end: '#ffa07a' },
   [TemplateStyle.BUSINESS]: { start: '#1e3a5f', end: '#3d6ba8' },

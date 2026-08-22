@@ -45,7 +45,7 @@ const featureTags = computed(() => {
 })
 
 const coverGradient = computed(() => {
-  const c = props.template.coverColor || '#1769ff'
+  const c = props.template.coverColor || 'var(--color-primary)'
   return `linear-gradient(135deg, ${c}, ${c}99)`
 })
 </script>
@@ -65,7 +65,7 @@ const coverGradient = computed(() => {
   border-color: #a0b4d0;
 }
 .tpl-card.active {
-  border-color: #1769ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(23, 105, 255, 0.15);
 }
 .tpl-cover {
@@ -86,7 +86,7 @@ const coverGradient = computed(() => {
   padding: 2px 8px;
   font-size: 10px;
   background: rgba(255, 255, 255, 0.9);
-  color: #1769ff;
+  color: var(--color-primary);
   border-radius: 99px;
   font-weight: 700;
 }
@@ -118,7 +118,7 @@ const coverGradient = computed(() => {
 }
 .tag.cat {
   background: #eff6ff;
-  color: #1769ff;
+  color: var(--color-primary);
 }
 .tag.style {
   background: #f0fdf4;

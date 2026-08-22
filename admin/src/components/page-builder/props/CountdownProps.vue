@@ -157,7 +157,7 @@ function setAfterHours(hours: number) {
 
 .quick-btn {
   padding: 2px 8px;
-  color: #1769ff;
+  color: var(--color-primary);
   font-size: 12px;
   background: #eff6ff;
   border: 1px solid #bfdbfe;

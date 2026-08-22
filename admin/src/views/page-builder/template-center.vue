@@ -215,6 +215,7 @@ type TemplateUI = Omit<PageTemplate, 'tags' | 'colors'> & {
   style?: string
   editableFields?: any[]
   industryCode?: string
+  components?: any[]
 }
 
 const router = useRouter()
@@ -441,7 +442,7 @@ function normalizeRemoteTemplate(item: PageTemplate): TemplateUI {
       ? (item as any).tags
       : (fallback?.tags || ['通用']),
     recommendation: (item as any).recommendation || fallback?.recommendation || '快速搭建',
-    colors: fallback?.colors || ['#1769ff', '#20b7ff'],
+    colors: fallback?.colors || ['var(--color-primary)', '#20b7ff'],
     style: (item as any).style || fallback?.style || 'minimal',
     description: item.description || fallback?.description || '预设组件与样式',
     dsl: parsedDsl || fallback?.dsl || fallbackTemplates()[0].dsl,

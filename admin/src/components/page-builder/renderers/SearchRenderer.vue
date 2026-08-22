@@ -189,7 +189,7 @@ function clearResults() {
     padding: 5px 12px;
     border: 0;
     border-radius: 999px;
-    background: var(--theme-primary, #1769ff);
+    background: var(--theme-primary, var(--color-primary));
     color: #fff;
     font-size: 12px;
     cursor: pointer;

@@ -1,88 +1,67 @@
 <template>
   <div class="release-page">
     <PageHeader
-      kicker="小程序 / 发布"
-      title="发布到小程序"
-      description="会保存当前已写入的导航配置，并把已绑定页面的最新草稿设为线上内容。这不会把代码上传到微信。"
+      kicker="小程序 / 版本"
+      title="还原点"
+      description="为大改版存一个可回滚的存档。日常改页面内容：装修器点「上线」即可，不必每次来这里。"
     >
       <template #actions>
-        <el-button @click="router.push('/page-builder/start')">导航与外观</el-button>
-        <el-button @click="loadAll">刷新检查</el-button>
+        <el-button @click="router.push('/page-builder/overview')">总览</el-button>
+        <el-button @click="loadAll">刷新</el-button>
         <el-button
           type="primary"
           :loading="publishing"
           :disabled="!preflight?.canPublish"
           @click="handlePublish"
         >
-          发布到小程序
+          保存还原点
         </el-button>
       </template>
     </PageHeader>
 
-    <el-alert
-      class="hint"
-      type="info"
-      show-icon
-      :closable="false"
-      title="微信里打开的「跨境墨太白」就是下面这些装修页。改完点「进入装修」，再回到这里「发布到小程序」。这不会把代码上传到微信。"
-    />
-
     <section class="live-bar">
       <div>
-        <div class="live-label">当前线上版本</div>
-        <div class="live-value">{{ preflight?.latestSemver || latestRelease?.semver || '尚未发布过' }}</div>
+        <div class="live-label">当前还原点</div>
+        <div class="live-value">{{ preflight?.latestSemver || latestRelease?.semver || '尚未创建' }}</div>
         <div v-if="latestRelease" class="live-meta">
           {{ latestRelease.pageCount || 0 }} 个页面 · {{ formatTime(latestRelease.publishedAt || latestRelease.createTime) }}
         </div>
       </div>
-      <el-button type="primary" @click="openLivePreview">预览当前配置</el-button>
+      <div class="live-actions">
+        <el-input
+          v-model="releaseNotes"
+          class="notes-inline"
+          maxlength="200"
+          show-word-limit
+          placeholder="备注说明（可选）"
+        />
+        <el-button @click="openLivePreview">预览当前配置</el-button>
+      </div>
     </section>
 
-    <section v-loading="loading" class="card">
-      <h2>微信线上页面</h2>
-      <p class="muted section-desc">对应小程序底部导航绑定的页面，可直接进入装修器修改。</p>
-      <div v-if="preflight?.blocking?.length" class="issue-list blocking">
-        <div v-for="item in preflight.blocking" :key="item" class="issue">{{ item }}</div>
+    <div v-if="preflight?.blocking?.length" class="issue-list blocking">
+      <div v-for="item in preflight.blocking" :key="item" class="issue">{{ item }}</div>
+    </div>
+    <div v-if="preflight?.warnings?.length" class="issue-list warning">
+      <div v-for="item in preflight.warnings" :key="item" class="issue">{{ item }}</div>
+    </div>
+
+    <div v-if="pushStatus" class="issue-list warning" style="margin-top: 12px">
+      <div class="issue">
+        体验版推送：{{ pushStatus.message || '—' }}
+        <template v-if="pushStatus.uploadAvailable === false">
+          · 本机上传不可用（{{ pushStatus.capabilityReason || '缺源码/脚本/密钥' }}），请用 GitHub Actions「push-miniprogram-preview」
+        </template>
+        <template v-else-if="pushStatus.preferCi">
+          · 推荐改走 CI，避免生产机持有上传私钥
+        </template>
       </div>
-      <div v-if="preflight?.warnings?.length" class="issue-list warning">
-        <div v-for="item in preflight.warnings" :key="item" class="issue">{{ item }}</div>
-      </div>
-      <el-empty v-if="!loading && !preflight?.pages?.length" description="还没有绑定可发布的页面" />
-      <el-table v-else :data="preflight?.pages || []" size="small">
-        <el-table-column prop="name" label="页面" min-width="140" />
-        <el-table-column prop="path" label="路径" min-width="160" />
-        <el-table-column label="本次动作" width="160">
-          <template #default="{ row }">{{ actionLabel(row.action) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.id && row.action !== 'builtin'"
-              link
-              type="primary"
-              @click="openEditor(row)"
-            >
-              进入装修
-            </el-button>
-            <span v-else class="muted">系统内置</span>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-input
-        v-model="releaseNotes"
-        class="notes"
-        type="textarea"
-        :rows="3"
-        maxlength="200"
-        show-word-limit
-        placeholder="发布说明（可选）"
-      />
-    </section>
+    </div>
 
     <section class="card">
       <div class="card-head">
-        <h2>发布记录</h2>
-        <span class="muted">点「预览」看该版本当时的页面快照。回滚会把当时的页面和导航恢复为线上。</span>
+        <h2>还原点记录</h2>
+        <span class="muted">预览看快照；回滚会恢复当时的页面与导航。上传代码到微信仅在需要发版时使用。</span>
       </div>
       <el-table v-loading="historyLoading" :data="history" size="small">
         <el-table-column label="版本" width="140">
@@ -90,7 +69,7 @@
         </el-table-column>
         <el-table-column label="状态" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 1" type="success" size="small">当前线上</el-tag>
+            <el-tag v-if="row.status === 1" type="success" size="small">当前</el-tag>
             <el-tag v-else-if="row.status === 2" type="info" size="small">已替换</el-tag>
             <el-tag v-else size="small">草稿</el-tag>
           </template>
@@ -100,7 +79,7 @@
           <template #default="{ row }">{{ formatTime(row.publishedAt || row.createTime) }}</template>
         </el-table-column>
         <el-table-column prop="releaseNotes" label="说明" min-width="180" show-overflow-tooltip />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openPreview(row)">预览</el-button>
             <el-button
@@ -109,16 +88,18 @@
               type="warning"
               @click="handleRollback(row)"
             >
-              回滚到此版本
+              回滚
             </el-button>
             <el-button
               v-if="row.status === 1"
               link
               type="primary"
               :loading="pushing"
+              :disabled="pushStatus?.uploadAvailable === false"
+              :title="pushStatus?.uploadAvailable === false ? (pushStatus.capabilityReason || '请用 CI 推送') : ''"
               @click="handlePushPreview(row)"
             >
-              推送到微信
+              上传代码到微信
             </el-button>
           </template>
         </el-table-column>
@@ -139,6 +120,7 @@ import {
   getLatestRelease,
   rollbackRelease,
   pushPreviewRelease,
+  getPushPreviewStatus,
   type PublishPreflight,
 } from '@/api/version'
 import type { ReleaseRecord } from '@/types/page'
@@ -152,14 +134,12 @@ const preflight = ref<PublishPreflight | null>(null)
 const latestRelease = ref<ReleaseRecord | null>(null)
 const history = ref<ReleaseRecord[]>([])
 const releaseNotes = ref('')
-
-function actionLabel(action: string) {
-  if (action === 'publish') return '将发布最新草稿'
-  if (action === 'already_live') return '已与线上一致'
-  if (action === 'empty') return '画布为空，无法发布'
-  if (action === 'builtin') return '内置页，跳过'
-  return action || '—'
-}
+const pushStatus = ref<{
+  message?: string
+  uploadAvailable?: boolean
+  preferCi?: boolean
+  capabilityReason?: string
+} | null>(null)
 
 function formatTime(value?: string) {
   if (!value) return '—'
@@ -181,13 +161,8 @@ async function loadPreflight() {
 async function loadHistory() {
   historyLoading.value = true
   try {
-    const [listRes, latestRes] = await Promise.all([
-      getAllReleases(),
-      getLatestRelease().catch(() => null),
-    ])
-    const list = Array.isArray(listRes.data) ? listRes.data : []
-    history.value = list.filter((item: ReleaseRecord) => item.status === 1 || item.status === 2)
-    latestRelease.value = (latestRes as any)?.data || list.find((item: ReleaseRecord) => item.status === 1) || null
+    const res = await getAllReleases()
+    history.value = ((res as any)?.data || []) as ReleaseRecord[]
   } catch {
     history.value = []
   } finally {
@@ -195,28 +170,34 @@ async function loadHistory() {
   }
 }
 
-function loadAll() {
-  loadPreflight()
-  loadHistory()
+async function loadLatest() {
+  try {
+    const res = await getLatestRelease()
+    latestRelease.value = (res as any)?.data || null
+  } catch {
+    latestRelease.value = null
+  }
+}
+
+async function loadPushStatus() {
+  try {
+    const res = await getPushPreviewStatus()
+    pushStatus.value = (res as any)?.data || null
+  } catch {
+    pushStatus.value = null
+  }
+}
+
+async function loadAll() {
+  await Promise.all([loadPreflight(), loadHistory(), loadLatest(), loadPushStatus()])
 }
 
 function openLivePreview() {
-  const { href } = router.resolve({
-    path: '/h5/miniapp-preview',
-    query: {
-      view: 'config',
-      source: 'live',
-    },
-  })
+  const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config' } })
   window.open(href, '_blank', 'noopener,noreferrer')
 }
 
-/** 历史版本：看该 release 快照 */
 function openPreview(row: ReleaseRecord) {
-  if (!row?.id) {
-    ElMessage.warning('该版本无法预览')
-    return
-  }
   const { href } = router.resolve({
     path: '/h5/miniapp-preview',
     query: {
@@ -228,18 +209,13 @@ function openPreview(row: ReleaseRecord) {
   window.open(href, '_blank', 'noopener,noreferrer')
 }
 
-function openEditor(row: { id?: number | string; action?: string }) {
-  if (!row?.id || row.action === 'builtin') return
-  router.push(`/page-builder/editor/${row.id}`)
-}
-
 async function handlePublish() {
   if (!preflight.value?.canPublish) return
   try {
     await ElMessageBox.confirm(
-      '将把已绑定页面的最新草稿设为线上内容，并生成一版整包记录。不会上传代码到微信。',
-      '发布到小程序',
-      { type: 'warning', confirmButtonText: '确认发布', cancelButtonText: '取消' },
+      '将把当前配置与已绑定页面存为一个可回滚的还原点。不会上传代码到微信。',
+      '保存还原点',
+      { type: 'warning', confirmButtonText: '确认保存', cancelButtonText: '取消' },
     )
   } catch {
     return
@@ -248,43 +224,61 @@ async function handlePublish() {
   try {
     const res = await createRelease({
       mode: 'publish',
-      releaseNotes: releaseNotes.value || '整包发布：导航配置 + 绑定页面最新草稿',
+      releaseNotes: releaseNotes.value || '保存还原点：导航配置 + 绑定页面最新草稿',
     })
     const semver = (res as any)?.data?.semver || preflight.value.latestSemver
-    ElMessage.success(semver ? `已发布 ${semver}。用户打开小程序即可看到绑定页最新内容。` : '已发布到小程序')
+    ElMessage.success(semver ? `已保存还原点 ${semver}` : '已保存还原点')
     releaseNotes.value = ''
     await loadAll()
   } catch (err: any) {
-    ElMessage.error(err?.response?.data?.message || err?.message || '发布失败')
+    ElMessage.error(err?.response?.data?.message || err?.message || '保存失败')
   } finally {
     publishing.value = false
   }
 }
 
 async function handleRollback(row: ReleaseRecord) {
+  let offlineExtraPages = false
   try {
     await ElMessageBox.confirm(
-      `确认把线上内容回滚到 v${row.semver}？当前线上会被替换。`,
-      '回滚整包',
-      { type: 'warning', confirmButtonText: '确认回滚', cancelButtonText: '取消' },
+      `确认回滚到 v${row.semver}？当前线上内容会被替换。\n若存在快照之后新建的已发布页面，可选择一并下线。`,
+      '回滚还原点',
+      {
+        type: 'warning',
+        distinguishCancelAndClose: true,
+        confirmButtonText: '回滚并下线多余页面',
+        cancelButtonText: '仅回滚',
+      },
     )
+    offlineExtraPages = true
+  } catch (action) {
+    if (action === 'close') return
+    if (action !== 'cancel') {
+      ElMessage.error((action as any)?.message || '回滚取消')
+      return
+    }
+    offlineExtraPages = false
+  }
+
+  try {
     await rollbackRelease({
       targetSemver: row.semver,
       reason: `回滚到 ${row.semver}`,
+      offlineExtraPages,
     })
-    ElMessage.success(`已回滚到 ${row.semver}`)
+    ElMessage.success(`已回滚到 ${row.semver}${offlineExtraPages ? '（已下线快照外页面）' : ''}`)
     await loadAll()
   } catch (err: any) {
-    if (err !== 'cancel') ElMessage.error(err?.response?.data?.message || '回滚失败')
+    ElMessage.error(err?.response?.data?.message || '回滚失败')
   }
 }
 
 async function handlePushPreview(row: ReleaseRecord) {
   try {
     await ElMessageBox.confirm(
-      '这会尝试把小程序代码上传到微信体验版，需要已配置上传密钥。日常改页面内容不必走这一步。',
-      '推送到微信',
-      { type: 'info', confirmButtonText: '继续推送', cancelButtonText: '取消' },
+      '这会上传小程序代码到微信体验版，需要已配置上传密钥。日常改页面内容不必走这一步。',
+      '上传代码到微信',
+      { type: 'info', confirmButtonText: '继续上传', cancelButtonText: '取消' },
     )
   } catch {
     return
@@ -292,12 +286,12 @@ async function handlePushPreview(row: ReleaseRecord) {
   pushing.value = true
   try {
     const res = await pushPreviewRelease(row.id, {
-      versionDesc: row.releaseNotes || `后台推送体验版 v${row.semver}`,
+      versionDesc: row.releaseNotes || `后台上传体验版 v${row.semver}`,
     })
     const message = (res as any)?.data?.message || (res as any)?.message
-    ElMessage.success(message || '已提交微信推送')
+    ElMessage.success(message || '已提交微信上传')
   } catch (err: any) {
-    ElMessage.error(err?.response?.data?.message || err?.message || '推送失败')
+    ElMessage.error(err?.response?.data?.message || err?.message || '上传失败')
   } finally {
     pushing.value = false
   }
@@ -311,10 +305,6 @@ onMounted(loadAll)
   padding-bottom: 24px;
 }
 
-.hint {
-  margin-bottom: 16px;
-}
-
 .live-bar,
 .card {
   margin-bottom: 16px;
@@ -326,9 +316,24 @@ onMounted(loadAll)
 
 .live-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.live-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 280px;
+}
+
+.notes-inline {
+  max-width: 320px;
+  flex: 1;
 }
 
 .live-label {
@@ -339,28 +344,25 @@ onMounted(loadAll)
 .live-value {
   margin-top: 4px;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .live-meta {
-  margin-top: 8px;
+  margin-top: 4px;
   color: var(--text-muted);
-}
-
-.card h2 {
-  margin: 0 0 12px;
-  font-size: 16px;
+  font-size: 12px;
 }
 
 .card-head {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   margin-bottom: 12px;
 }
 
 .card-head h2 {
   margin: 0;
+  font-size: 16px;
 }
 
 .muted {
@@ -368,31 +370,23 @@ onMounted(loadAll)
   font-size: 13px;
 }
 
-.section-desc {
-  margin: -4px 0 12px;
-}
-
 .issue-list {
   margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
 }
 
-.issue {
-  padding: 8px 10px;
-  border-radius: 6px;
-  margin-bottom: 6px;
-}
-
-.blocking .issue {
+.issue-list.blocking {
   background: #fef2f2;
   color: #b91c1c;
 }
 
-.warning .issue {
+.issue-list.warning {
   background: #fffbeb;
   color: #92400e;
 }
 
-.notes {
-  margin-top: 16px;
+.issue + .issue {
+  margin-top: 4px;
 }
 </style>

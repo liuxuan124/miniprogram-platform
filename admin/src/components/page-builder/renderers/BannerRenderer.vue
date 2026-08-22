@@ -147,7 +147,7 @@ const bannerContentStyle = computed<Record<string, string>>(() => {
     borderRadius: `${bannerRadius.value}px`,
     backgroundImage: image
       ? `linear-gradient(135deg, rgba(23, 105, 255, 0.28), rgba(32, 183, 255, 0.28)), url(${image})`
-      : 'linear-gradient(135deg, var(--theme-primary, #1769ff), var(--theme-secondary, #20b7ff))',
+      : 'linear-gradient(135deg, var(--theme-primary, var(--color-primary)), var(--theme-secondary, #20b7ff))',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',

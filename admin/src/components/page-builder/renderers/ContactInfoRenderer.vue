@@ -149,7 +149,7 @@ function onItemClick(item: { key: string; text: string }) {
 
   &.clickable .item.is-phone {
     cursor: pointer;
-    color: #1769ff;
+    color: var(--color-primary);
   }
 
   .item {

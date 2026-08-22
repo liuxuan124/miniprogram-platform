@@ -35,8 +35,8 @@
       <el-divider content-position="left" class="field-divider">外观</el-divider>
       <el-form-item label="按钮颜色">
         <el-color-picker
-          :model-value="data.color || '#1769ff'"
-          @change="(v: string | null) => emit('update', { color: v || '#1769ff' })"
+          :model-value="data.color || 'var(--color-primary)'"
+          @change="(v: string | null) => emit('update', { color: v || 'var(--color-primary)' })"
         />
       </el-form-item>
       <el-form-item label="尺寸">
@@ -231,7 +231,7 @@ async function onUploadIcon(event: Event) {
   display: inline-flex;
   width: fit-content;
   padding: 4px 10px;
-  color: #1769ff;
+  color: var(--color-primary);
   font-size: 12px;
   border: 1px dashed #93c5fd;
   border-radius: 4px;

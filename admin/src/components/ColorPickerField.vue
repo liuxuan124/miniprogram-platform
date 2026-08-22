@@ -126,8 +126,8 @@ async function pickFromScreen() {
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 
   &:hover:not(:disabled) {
-    border-color: #1769ff;
-    color: #1769ff;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
     background: #f0f6ff;
   }
 
