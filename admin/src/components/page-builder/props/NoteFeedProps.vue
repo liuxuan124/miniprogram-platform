@@ -6,6 +6,15 @@
       </div>
 
       <el-divider content-position="left">笔记展示</el-divider>
+      <el-form-item label="列表样式">
+        <el-radio-group
+          :model-value="data.layout || 'masonry'"
+          @change="(v: string) => emit('update', { layout: v })"
+        >
+          <el-radio-button value="masonry">小红书双列</el-radio-button>
+          <el-radio-button value="wechat">公众号贴图横滑</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
       <el-form-item label="分类标签">
         <el-switch
           :model-value="data.show_category_tabs === true"

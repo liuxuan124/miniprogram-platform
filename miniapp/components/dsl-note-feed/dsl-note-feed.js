@@ -32,6 +32,7 @@ function normalizeNoteItem(item, index) {
     author_avatar: resolveMediaUrl(item.authorAvatar || item.author_avatar || ''),
     author_initial: author.slice(0, 1),
     like_text: formatLikeCount(item.likeCount || item.like_count || 0),
+    view_text: `阅读 ${Math.max(0, Number(item.viewCount || item.view_count || 0))}`,
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
   }
@@ -110,6 +111,7 @@ Component({
     categoryTabs: [],
     activeTabId: '',
     activeTabStyle: '',
+    layout: 'masonry',
   },
 
   lifetimes: {
@@ -188,10 +190,13 @@ Component({
         ? (`border-radius:${Math.max(0, radiusNum) * 2}rpx;`)
         : ''
       const showCategoryTabs = config.show_category_tabs === true
+      const layoutRaw = String(config.layout || 'masonry').toLowerCase()
+      const layout = layoutRaw === 'wechat' ? 'wechat' : 'masonry'
       this.setData({
         listStyle: `gap:${itemGap * 2}rpx;`,
         itemCardStyle,
         showCategoryTabs,
+        layout,
       })
       if (showCategoryTabs) {
         if (!this.data.categoryTabs.length) {

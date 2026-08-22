@@ -1,5 +1,5 @@
 <!-- pages/content-detail/content-detail.wxml -->
-<view class="content-detail-page {{isNote ? 'is-note' : 'is-article'}}">
+<view class="content-detail-page {{isNote ? 'is-note' : 'is-article'}} {{isWechatNewspic ? 'is-wechat-note' : ''}}">
   <view class="skeleton-wrap" wx:if="{{loading}}">
     <view class="sk-line sk-line--sm"></view>
     <view class="sk-line"></view>
@@ -7,6 +7,67 @@
     <view class="sk-block"></view>
     <view class="sk-line"></view>
     <view class="sk-line sk-line--lg"></view>
+  </view>
+
+  <!-- ========== 公众号贴图 ========== -->
+  <view class="note-mode note-mode--wechat" wx:elif="{{isNote && isWechatNewspic}}">
+    <view class="wx-gallery-zone">
+      <swiper
+        class="wx-gallery"
+        current="{{galleryIndex}}"
+        circular
+        bindchange="onGalleryChange"
+      >
+        <swiper-item wx:for="{{gallerySlides}}" wx:key="key">
+          <view class="wx-slide">
+            <image
+              wx:if="{{item.type === 'image'}}"
+              src="{{item.url}}"
+              mode="aspectFill"
+              class="wx-img"
+            />
+            <view wx:else class="wx-art" style="{{item.artStyle}}">
+              <text class="wx-glyph">{{item.glyph}}</text>
+            </view>
+          </view>
+        </swiper-item>
+      </swiper>
+      <view wx:if="{{galleryCount > 1}}" class="wx-nav wx-nav--prev" bindtap="onGalleryPrev">‹</view>
+      <view wx:if="{{galleryCount > 1}}" class="wx-nav wx-nav--next" bindtap="onGalleryNext">›</view>
+      <scroll-view
+        wx:if="{{galleryCount > 1}}"
+        class="wx-thumbs"
+        scroll-x
+        enhanced
+        show-scrollbar="{{false}}"
+        scroll-into-view="wx-thumb-{{galleryIndex}}"
+      >
+        <view
+          wx:for="{{gallerySlides}}"
+          wx:key="key"
+          id="wx-thumb-{{index}}"
+          class="wx-thumb {{galleryIndex === index ? 'on' : ''}}"
+          data-index="{{index}}"
+          bindtap="onGalleryThumbTap"
+        >
+          <image wx:if="{{item.type === 'image'}}" src="{{item.url}}" mode="aspectFill" class="wx-thumb__img" />
+          <view wx:else class="wx-thumb__art" style="{{item.artStyle}}">
+            <text>{{item.glyph}}</text>
+          </view>
+          <text class="wx-thumb__num">{{index + 1}}</text>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="wx-body">
+      <view class="wx-title">{{article.title}}</view>
+      <view class="wx-paras" wx:if="{{noteParagraphs.length}}">
+        <view class="wx-p" wx:for="{{noteParagraphs}}" wx:key="*this">{{item}}</view>
+      </view>
+      <view class="wx-meta">阅读 {{article.view_count || 0}}</view>
+    </view>
+
+    <view class="footer-spacer footer-spacer--bar"></view>
   </view>
 
   <!-- ========== 笔记：小红书图文 ========== -->
@@ -161,8 +222,8 @@
   </view>
 
   <!-- 底部栏 -->
-  <view class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}}" wx:if="{{!loading}}">
-    <view wx:if="{{isNote}}" class="note-bottom-input" bindtap="onCommentTap">说点什么...</view>
+  <view class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}} {{isWechatNewspic ? 'bottom-bar--wechat' : ''}}" wx:if="{{!loading}}">
+    <view wx:if="{{isNote && !isWechatNewspic}}" class="note-bottom-input" bindtap="onCommentTap">说点什么...</view>
     <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
       <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
       <text class="action-text">{{likeDisplay}}</text>

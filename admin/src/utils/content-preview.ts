@@ -1,5 +1,5 @@
 import { resolveMediaUrl } from '@/utils/media-url'
-import { inferPreviewType } from '@/utils/content-format'
+import { inferPreviewType, inferWechatNewspic } from '@/utils/content-format'
 import {
   buildNoteGalleryUrls,
   extractImagesFromHtml,
@@ -32,6 +32,8 @@ export interface ContentPreviewModel {
   authorAvatar?: string
   categoryLabel?: string
   tags?: string[]
+  source?: string
+  isWechatNewspic?: boolean
 }
 
 export function getPlainTextFromHtml(html: string): string {
@@ -87,6 +89,8 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
     author: String(data.author || ''),
     authorAvatar: String(data.authorAvatar || data.author_avatar || ''),
     categoryLabel,
+    source: String(data.source || ''),
+    isWechatNewspic: inferWechatNewspic(data),
   }
 }
 
