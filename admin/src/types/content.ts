@@ -127,6 +127,29 @@ export interface UpdateContentParams {
   is_top?: boolean
 }
 
+/** 内容形态（列表筛选 / 表格展示 / 编辑页统一） */
+export type ContentFormatType = 'article' | 'note' | 'moment' | 'rich' | 'video'
+
+export const CONTENT_FORMAT_META: Record<
+  ContentFormatType,
+  { label: string; tagType: 'success' | 'warning' | 'info' | 'danger' | '' }
+> = {
+  article: { label: '长文', tagType: 'success' },
+  note: { label: '笔记', tagType: 'warning' },
+  moment: { label: '动态', tagType: 'info' },
+  rich: { label: '图文', tagType: '' },
+  video: { label: '视频', tagType: 'danger' },
+}
+
+/** 筛选下拉顺序（与表格 typeLabel 一致） */
+export const CONTENT_FORMAT_FILTER_OPTIONS: Array<{ value: ContentFormatType; label: string }> = [
+  { value: 'article', label: CONTENT_FORMAT_META.article.label },
+  { value: 'note', label: CONTENT_FORMAT_META.note.label },
+  { value: 'moment', label: CONTENT_FORMAT_META.moment.label },
+  { value: 'rich', label: CONTENT_FORMAT_META.rich.label },
+  { value: 'video', label: CONTENT_FORMAT_META.video.label },
+]
+
 /** 内容列表查询参数 */
 export interface ContentListParams {
   page?: number

@@ -6,72 +6,70 @@
         <!-- 笔记：小红书图文详情 -->
         <template v-if="contentType === 'note'">
           <div class="pv-note-wrap">
-            <div class="pv-note-gallery">
-              <img
-                v-if="currentGalleryUrl"
-                :src="currentGalleryUrl"
-                alt=""
-                class="pv-note-slide"
-              />
-              <div v-else class="pv-note-slide pv-note-slide--empty">
-                <span>📷</span>
-              </div>
-              <div v-if="galleryUrls.length > 1" class="pv-note-idx">
-                {{ galleryIndex + 1 }} / {{ galleryUrls.length }}
-              </div>
-              <div v-if="galleryUrls.length > 1" class="pv-note-dots">
-                <i
-                  v-for="(_, idx) in galleryUrls"
-                  :key="idx"
-                  :class="{ on: idx === galleryIndex }"
-                  @click="galleryIndex = idx"
-                />
-              </div>
-              <button
-                v-if="galleryUrls.length > 1"
-                type="button"
-                class="pv-note-nav pv-note-nav--prev"
-                aria-label="上一张"
-                @click="prevGallery"
-              >‹</button>
-              <button
-                v-if="galleryUrls.length > 1"
-                type="button"
-                class="pv-note-nav pv-note-nav--next"
-                aria-label="下一张"
-                @click="nextGallery"
-              >›</button>
-            </div>
-
-            <div class="pv-note-body">
-              <h1 class="pv-note-title">{{ titleText }}</h1>
-
-              <div v-if="noteParagraphs.length" class="pv-note-paras">
-                <p v-for="(para, idx) in noteParagraphs" :key="idx">{{ para }}</p>
-              </div>
-
-              <div v-if="displayHashTags.length" class="pv-note-tags">
-                <span v-for="tag in displayHashTags" :key="tag">{{ tag }}</span>
-              </div>
-
-              <div class="pv-meta pv-meta--note">
-                <div class="pv-av">
+            <div class="pv-note-scroll">
+              <!-- 顶部作者栏（小红书详情页头部） -->
+              <div class="pv-note-topbar">
+                <div class="pv-av pv-av--sm">
                   <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
                   <span v-else>{{ authorInitial }}</span>
                 </div>
-                <div class="pv-meta-txt">
-                  <div class="pv-nm">{{ authorName }}</div>
-                  <div class="pv-dt">{{ dateLabel }}</div>
+                <div class="pv-note-topbar__name">{{ authorName }}</div>
+                <span class="pv-follow pv-follow--sm">关注</span>
+                <span class="pv-note-topbar__share">⋯</span>
+              </div>
+
+              <!-- 图集：纵向完整展示每一张（信息图不裁切，多图全部可见） -->
+              <div class="pv-note-gallery-stack">
+                <figure
+                  v-for="(url, idx) in galleryUrls"
+                  :key="`${url}-${idx}`"
+                  class="pv-note-gallery-item"
+                >
+                  <img :src="url" alt="" class="pv-note-slide" loading="lazy" />
+                  <figcaption v-if="galleryUrls.length > 1" class="pv-note-idx">
+                    {{ idx + 1 }} / {{ galleryUrls.length }}
+                  </figcaption>
+                </figure>
+                <div v-if="!galleryUrls.length" class="pv-note-slide pv-note-slide--empty">
+                  <span>📷</span>
                 </div>
-                <span class="pv-follow">+ 关注</span>
+              </div>
+
+              <div class="pv-note-body">
+                <h1 class="pv-note-title">{{ titleText }}</h1>
+
+                <div v-if="noteParagraphs.length" class="pv-note-paras">
+                  <p v-for="(para, idx) in noteParagraphs" :key="idx">{{ para }}</p>
+                </div>
+
+                <div v-if="displayHashTags.length" class="pv-note-tags">
+                  <span v-for="tag in displayHashTags" :key="tag">{{ tag }}</span>
+                </div>
+
+                <div class="pv-note-date">{{ dateLabel }} · 编辑于 {{ dateLabel }}</div>
+              </div>
+
+              <div class="pv-note-comments">
+                <div class="pv-note-comments__head">共 {{ commentPreviewCount }} 条评论</div>
+                <div v-for="item in commentPreview" :key="item.id" class="pv-note-comment">
+                  <div class="pv-av pv-av--xs">{{ item.avatar }}</div>
+                  <div class="pv-note-comment__main">
+                    <div class="pv-note-comment__nick">{{ item.nick }}</div>
+                    <div class="pv-note-comment__text">{{ item.text }}</div>
+                  </div>
+                  <div class="pv-note-comment__like">♡ {{ item.likes }}</div>
+                </div>
               </div>
             </div>
 
+            <!-- 底部栏：说点什么 + 赞/收藏/评论 -->
             <div class="pv-note-bottom">
-              <span>♡ {{ likeLabel }}</span>
-              <span>💬 评论</span>
-              <span>☆ 收藏</span>
-              <span class="pv-note-bottom__share">↗ 分享</span>
+              <div class="pv-note-bottom__input">说点什么...</div>
+              <div class="pv-note-bottom__acts">
+                <span class="pv-note-bottom__act">♡ {{ likeLabel }}</span>
+                <span class="pv-note-bottom__act">☆</span>
+                <span class="pv-note-bottom__act">💬 {{ commentPreviewCount }}</span>
+              </div>
             </div>
           </div>
         </template>
@@ -117,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import {
   formatPreviewDateLabel,
   getPlainTextFromHtml,
@@ -137,9 +135,11 @@ const props = withDefaults(
   },
 )
 
-const galleryIndex = ref(0)
-
-const contentType = computed(() => props.model.contentType || 'article')
+const galleryUrls = computed(() =>
+  (props.model.images || [])
+    .map((url) => normalizePreviewMediaUrl(url))
+    .filter(Boolean),
+)
 const titleText = computed(() => props.model.title?.trim() || '未填写标题')
 const categoryLabel = computed(() => props.model.categoryLabel?.replace(/^└\s*/, '') || '')
 const authorName = computed(() => props.model.author?.trim() || '作者')
@@ -150,13 +150,13 @@ const noteBodyText = computed(() => props.model.noteBody?.trim() || '')
 const hasArticleBody = computed(() => getPlainTextFromHtml(contentHtml.value).length > 0)
 const likeLabel = computed(() => '赞')
 
-const galleryUrls = computed(() =>
-  (props.model.images || [])
-    .map((url) => normalizePreviewMediaUrl(url))
-    .filter(Boolean),
-)
+const commentPreviewCount = computed(() => 86)
+const commentPreview = computed(() => [
+  { id: 1, avatar: '用', nick: '跨境小白', text: '收藏了，正好在办 VAT', likes: 12 },
+  { id: 2, avatar: '税', nick: '财税老司机', text: '第 3 张图讲得很清楚 👍', likes: 28 },
+])
 
-const currentGalleryUrl = computed(() => galleryUrls.value[galleryIndex.value] || '')
+const contentType = computed(() => props.model.contentType || 'article')
 
 const noteParagraphs = computed(() => {
   if (contentType.value !== 'note') return []
@@ -194,18 +194,6 @@ const coverStyle = computed(() => {
   if (coverUrl.value) return {}
   return { background: 'linear-gradient(140deg, #5c7cff, #2f5bff)' }
 })
-
-function prevGallery() {
-  const len = galleryUrls.value.length
-  if (len <= 1) return
-  galleryIndex.value = (galleryIndex.value - 1 + len) % len
-}
-
-function nextGallery() {
-  const len = galleryUrls.value.length
-  if (len <= 1) return
-  galleryIndex.value = (galleryIndex.value + 1) % len
-}
 </script>
 
 <style lang="scss" scoped>
@@ -242,7 +230,7 @@ function nextGallery() {
 }
 
 .phone-screen--note {
-  background: #0f1219;
+  background: #fff;
   overflow: hidden;
 }
 
@@ -251,26 +239,89 @@ function nextGallery() {
   flex-direction: column;
   height: 100%;
   min-height: 620px;
+  background: #fff;
 }
 
-.pv-note-gallery {
-  position: relative;
+.pv-note-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.pv-note-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  border-bottom: 1px solid #f5f6f9;
+}
+
+.pv-note-topbar__name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f1219;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pv-note-topbar__share {
+  font-size: 18px;
+  color: #39404f;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.pv-follow--sm {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ff2442;
+}
+
+.pv-av--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.pv-av--xs {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
   flex-shrink: 0;
-  height: 300px;
+}
+
+.pv-note-gallery-stack {
   background: #0f1219;
+}
+
+.pv-note-gallery-item {
+  position: relative;
+  margin: 0;
+  background: #0f1219;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child {
+    border-bottom: 0;
+  }
 }
 
 .pv-note-slide {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
+  object-fit: contain;
+  vertical-align: top;
 }
 
 .pv-note-slide--empty {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 220px;
   font-size: 48px;
   background: linear-gradient(140deg, #2a3144, #1a1f2e);
 }
@@ -285,66 +336,17 @@ function nextGallery() {
   padding: 4px 10px;
   border-radius: 999px;
   z-index: 3;
+  margin: 0;
 }
-
-.pv-note-dots {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 5px;
-  z-index: 3;
-}
-
-.pv-note-dots i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pv-note-dots i.on {
-  width: 15px;
-  border-radius: 3px;
-  background: #fff;
-}
-
-.pv-note-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  z-index: 3;
-}
-
-.pv-note-nav--prev { left: 8px; }
-.pv-note-nav--next { right: 8px; }
 
 .pv-note-body {
-  flex: 1;
-  overflow-y: auto;
   background: #fff;
-  border-radius: 20px 20px 0 0;
-  margin-top: -14px;
-  position: relative;
-  z-index: 2;
-  padding: 18px 16px 12px;
+  padding: 16px 14px 10px;
 }
 
 .pv-note-title {
-  margin: 0 0 14px;
-  font-size: 18px;
+  margin: 0 0 12px;
+  font-size: 17px;
   line-height: 1.48;
   font-weight: 700;
   color: #0f1219;
@@ -352,46 +354,106 @@ function nextGallery() {
 }
 
 .pv-note-paras p {
-  margin: 0 0 14px;
-  font-size: 14.5px;
-  line-height: 1.95;
-  color: #39404f;
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #333;
   white-space: pre-wrap;
 }
 
 .pv-note-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .pv-note-tags span {
-  font-size: 12.5px;
-  color: #2f5bff;
+  font-size: 14px;
+  color: #13386c;
   font-weight: 500;
 }
 
-.pv-meta--note {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0;
+.pv-note-date {
+  font-size: 11px;
+  color: #a5abb9;
+  margin-bottom: 8px;
+}
+
+.pv-note-comments {
+  padding: 0 14px 12px;
+  border-top: 8px solid #f7f8fc;
+}
+
+.pv-note-comments__head {
+  padding: 12px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f1219;
+}
+
+.pv-note-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.pv-note-comment__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pv-note-comment__nick {
+  font-size: 12px;
+  color: #727a8c;
+  margin-bottom: 4px;
+}
+
+.pv-note-comment__text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #0f1219;
+}
+
+.pv-note-comment__like {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #a5abb9;
 }
 
 .pv-note-bottom {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 12px 16px 14px;
-  background: rgba(255, 255, 255, 0.96);
+  gap: 10px;
+  padding: 10px 12px 12px;
+  background: #fff;
   border-top: 1px solid #edeff4;
-  font-size: 12.5px;
-  color: #727a8c;
 }
 
-.pv-note-bottom__share {
-  margin-left: auto;
+.pv-note-bottom__input {
+  flex: 1;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f5f6f9;
+  color: #a5abb9;
+  font-size: 13px;
+  line-height: 34px;
+}
+
+.pv-note-bottom__acts {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.pv-note-bottom__act {
+  font-size: 12px;
+  color: #39404f;
+  white-space: nowrap;
 }
 
 .pv-cover {

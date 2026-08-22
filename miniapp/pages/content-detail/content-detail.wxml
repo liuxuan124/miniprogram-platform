@@ -11,23 +11,34 @@
 
   <!-- ========== 笔记：小红书图文 ========== -->
   <view class="note-mode" wx:elif="{{isNote}}">
+    <view class="n-topbar">
+      <image wx:if="{{authorAvatar}}" class="n-topbar__av" src="{{authorAvatar}}" mode="aspectFill" />
+      <view wx:else class="n-topbar__av n-topbar__av--txt">{{authorInitial}}</view>
+      <text class="n-topbar__name">{{authorName}}</text>
+      <view
+        class="n-topbar__follow {{followed ? 'on' : ''}}"
+        catchtap="onFollowTap"
+        hover-class="follow--pressed"
+      >{{followed ? '已关注' : '关注'}}</view>
+    </view>
+
     <view class="n-gallery-wrap">
       <swiper
         class="n-gallery"
-        style="height: {{galleryHeight}}rpx;"
         circular
         bindchange="onGalleryChange"
       >
         <swiper-item wx:for="{{gallerySlides}}" wx:key="key">
-          <image
-            wx:if="{{item.type === 'image'}}"
-            src="{{item.url}}"
-            mode="widthFix"
-            class="n-img"
-            bindload="onGalleryImageLoad"
-          />
-          <view wx:else class="n-art" style="{{item.artStyle}}">
-            <text class="n-glyph">{{item.glyph}}</text>
+          <view class="n-slide">
+            <image
+              wx:if="{{item.type === 'image'}}"
+              src="{{item.url}}"
+              mode="aspectFit"
+              class="n-img"
+            />
+            <view wx:else class="n-art" style="{{item.artStyle}}">
+              <text class="n-glyph">{{item.glyph}}</text>
+            </view>
           </view>
         </swiper-item>
       </swiper>
@@ -52,19 +63,19 @@
         <text wx:for="{{hashTags}}" wx:key="*this">{{item}}</text>
       </view>
 
-      <view class="a-meta a-meta--note">
-        <image wx:if="{{authorAvatar}}" class="av av-img" src="{{authorAvatar}}" mode="aspectFill" />
-        <view wx:else class="av">{{authorInitial}}</view>
-        <view class="a-meta-txt">
-          <view class="nm">{{authorName}}</view>
-          <view class="dt">{{article.publish_time}}</view>
+      <view class="n-date">{{article.publish_time}}</view>
+    </view>
+
+    <view class="n-comments" wx:if="{{comments.length}}">
+      <view class="n-comments__head">共 {{commentCount}} 条评论</view>
+      <view wx:for="{{comments}}" wx:key="id" wx:if="{{index < 3}}" class="n-comment">
+        <view class="n-comment__av">{{item.avatarText || '用'}}</view>
+        <view class="n-comment__main">
+          <view class="n-comment__nick">{{item.nickName}}</view>
+          <text class="n-comment__text">{{item.content}}</text>
         </view>
-        <view
-          class="follow {{followed ? 'on' : ''}}"
-          catchtap="onFollowTap"
-          hover-class="follow--pressed"
-        >{{followed ? '已关注' : '+ 关注'}}</view>
       </view>
+      <view class="n-comments__more" bindtap="onCommentTap" wx:if="{{commentCount > 3}}">查看全部评论</view>
     </view>
 
     <view class="cross" wx:if="{{relatedProducts.length}}">
@@ -150,7 +161,8 @@
   </view>
 
   <!-- 底部栏 -->
-  <view class="bottom-bar" wx:if="{{!loading}}">
+  <view class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}}" wx:if="{{!loading}}">
+    <view wx:if="{{isNote}}" class="note-bottom-input" bindtap="onCommentTap">说点什么...</view>
     <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
       <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
       <text class="action-text">{{likeDisplay}}</text>
