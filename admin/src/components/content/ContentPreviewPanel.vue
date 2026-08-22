@@ -18,21 +18,48 @@
                 <span class="pv-note-topbar__share">⋯</span>
               </div>
 
-              <!-- 图集：纵向完整展示每一张（信息图不裁切，多图全部可见） -->
-              <div class="pv-note-gallery-stack">
-                <figure
-                  v-for="(url, idx) in galleryUrls"
-                  :key="`${url}-${idx}`"
-                  class="pv-note-gallery-item"
+              <!-- 图集：3:4 竖向视口 + 左右切换（对齐小程序笔记详情） -->
+              <div class="pv-note-gallery">
+                <div
+                  class="pv-note-gallery__track"
+                  :style="{ transform: `translateX(-${galleryIndex * 100}%)` }"
                 >
-                  <img :src="url" alt="" class="pv-note-slide" loading="lazy" />
-                  <figcaption v-if="galleryUrls.length > 1" class="pv-note-idx">
-                    {{ idx + 1 }} / {{ galleryUrls.length }}
-                  </figcaption>
-                </figure>
+                  <div
+                    v-for="(url, idx) in galleryUrls"
+                    :key="`${url}-${idx}`"
+                    class="pv-note-gallery__slide"
+                  >
+                    <img :src="url" alt="" class="pv-note-slide" loading="lazy" />
+                  </div>
+                </div>
                 <div v-if="!galleryUrls.length" class="pv-note-slide pv-note-slide--empty">
                   <span>📷</span>
                 </div>
+                <div v-if="galleryUrls.length > 1" class="pv-note-idx">
+                  {{ galleryIndex + 1 }} / {{ galleryUrls.length }}
+                </div>
+                <div v-if="galleryUrls.length > 1" class="pv-note-dots">
+                  <i
+                    v-for="(_, idx) in galleryUrls"
+                    :key="idx"
+                    :class="{ on: idx === galleryIndex }"
+                    @click="galleryIndex = idx"
+                  />
+                </div>
+                <button
+                  v-if="galleryUrls.length > 1"
+                  type="button"
+                  class="pv-note-nav pv-note-nav--prev"
+                  aria-label="上一张"
+                  @click="prevGallery"
+                >‹</button>
+                <button
+                  v-if="galleryUrls.length > 1"
+                  type="button"
+                  class="pv-note-nav pv-note-nav--next"
+                  aria-label="下一张"
+                  @click="nextGallery"
+                >›</button>
               </div>
 
               <div class="pv-note-body">
@@ -115,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   formatPreviewDateLabel,
   getPlainTextFromHtml,
@@ -135,10 +162,20 @@ const props = withDefaults(
   },
 )
 
+const galleryIndex = ref(0)
+
 const galleryUrls = computed(() =>
   (props.model.images || [])
     .map((url) => normalizePreviewMediaUrl(url))
     .filter(Boolean),
+)
+
+watch(
+  () => props.model,
+  () => {
+    galleryIndex.value = 0
+  },
+  { deep: true },
 )
 const titleText = computed(() => props.model.title?.trim() || '未填写标题')
 const categoryLabel = computed(() => props.model.categoryLabel?.replace(/^└\s*/, '') || '')
@@ -194,6 +231,18 @@ const coverStyle = computed(() => {
   if (coverUrl.value) return {}
   return { background: 'linear-gradient(140deg, #5c7cff, #2f5bff)' }
 })
+
+function prevGallery() {
+  const len = galleryUrls.value.length
+  if (len <= 1) return
+  galleryIndex.value = (galleryIndex.value - 1 + len) % len
+}
+
+function nextGallery() {
+  const len = galleryUrls.value.length
+  if (len <= 1) return
+  galleryIndex.value = (galleryIndex.value + 1) % len
+}
 </script>
 
 <style lang="scss" scoped>
@@ -294,34 +343,42 @@ const coverStyle = computed(() => {
   flex-shrink: 0;
 }
 
-.pv-note-gallery-stack {
-  background: #0f1219;
+.pv-note-gallery {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #111;
+  overflow: hidden;
 }
 
-.pv-note-gallery-item {
-  position: relative;
-  margin: 0;
-  background: #0f1219;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.pv-note-gallery__track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.28s ease;
+}
 
-  &:last-child {
-    border-bottom: 0;
-  }
+.pv-note-gallery__slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pv-note-slide {
   width: 100%;
-  height: auto;
-  display: block;
+  height: 100%;
   object-fit: contain;
-  vertical-align: top;
+  display: block;
 }
 
 .pv-note-slide--empty {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 220px;
   font-size: 48px;
   background: linear-gradient(140deg, #2a3144, #1a1f2e);
 }
@@ -336,8 +393,51 @@ const coverStyle = computed(() => {
   padding: 4px 10px;
   border-radius: 999px;
   z-index: 3;
-  margin: 0;
 }
+
+.pv-note-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+}
+
+.pv-note-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pv-note-dots i.on {
+  width: 15px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.pv-note-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.pv-note-nav--prev { left: 8px; }
+.pv-note-nav--next { right: 8px; }
 
 .pv-note-body {
   background: #fff;
