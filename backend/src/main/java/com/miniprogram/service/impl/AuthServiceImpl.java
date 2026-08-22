@@ -8,6 +8,7 @@ import com.miniprogram.entity.AdminUser;
 import com.miniprogram.entity.Role;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.RoleMapper;
+import com.miniprogram.security.JwtBlacklistService;
 import com.miniprogram.security.JwtTokenProvider;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.AdminUserService;
@@ -36,19 +37,28 @@ public class AuthServiceImpl implements AuthService {
     private final PermissionService permissionService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final JwtBlacklistService jwtBlacklistService;
+
+    private final java.util.concurrent.ConcurrentHashMap<String, long[]> loginFailWindow = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Override
     public LoginVO login(LoginDTO dto) {
+        String lockKey = dto.getUsername() == null ? "" : dto.getUsername().trim().toLowerCase();
+        assertNotLocked(lockKey);
+
         // 1. 查找用户
         AdminUser adminUser = adminUserService.getByUsername(dto.getUsername());
         if (adminUser == null) {
+            recordLoginFail(lockKey);
             throw new BusinessException(110101, "用户名或密码错误");
         }
 
         // 2. 校验密码
         if (!passwordEncoder.matches(dto.getPassword(), adminUser.getPasswordHash())) {
+            recordLoginFail(lockKey);
             throw new BusinessException(110101, "用户名或密码错误");
         }
+        loginFailWindow.remove(lockKey);
 
         // 3. 校验状态
         if (adminUser.getStatus() == 0) {
@@ -86,6 +96,34 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    private void assertNotLocked(String key) {
+        long[] win = loginFailWindow.get(key);
+        if (win == null) return;
+        long until = win[1];
+        if (System.currentTimeMillis() < until) {
+            long mins = Math.max(1, (until - System.currentTimeMillis() + 59_999) / 60_000);
+            throw new BusinessException(110104, "登录失败过多，请 " + mins + " 分钟后再试");
+        }
+    }
+
+    private void recordLoginFail(String key) {
+        long now = System.currentTimeMillis();
+        loginFailWindow.compute(key, (k, win) -> {
+            if (win == null || now > win[1]) {
+                return new long[]{1, now + 15 * 60_000L};
+            }
+            win[0] = win[0] + 1;
+            if (win[0] >= 5) {
+                win[1] = now + 15 * 60_000L;
+            }
+            return win;
+        });
+        long[] win = loginFailWindow.get(key);
+        if (win != null && win[0] >= 5 && now < win[1]) {
+            throw new BusinessException(110104, "登录失败过多，请 15 分钟后再试");
+        }
+    }
+
     /** 判断是否使用默认或弱密码（命中即要求改密） */
     private boolean isUsingDefaultOrWeakPassword(AdminUser adminUser) {
         if (adminUser.getPasswordHash() == null) return false;
@@ -99,12 +137,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private static final java.util.List<String> DEFAULT_WEAK_PASSWORDS =
-            java.util.List.of("admin123", "123456", "password", "admin", "12345678");
+            java.util.List.of("admin123", "123456", "password", "admin", "12345678", "admin@123");
 
     @Override
     public LoginVO refreshToken(RefreshTokenDTO dto) {
         // 1. 验证刷新Token
-        if (!jwtTokenProvider.validateToken(dto.getRefreshToken())) {
+        if (!jwtTokenProvider.validateRefreshToken(dto.getRefreshToken())) {
             throw new BusinessException(110102, "刷新Token无效或已过期");
         }
 
@@ -146,8 +184,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout() {
-        // JWT 无状态，退出登录前端清除Token即可
-        // 如需服务端失效，可在此处将Token加入Redis黑名单
+        logout(null);
+    }
+
+    @Override
+    public void logout(String accessToken) {
+        if (accessToken != null && !accessToken.isBlank()) {
+            jwtBlacklistService.blacklist(accessToken.trim());
+        }
         log.info("用户 {} 退出登录", SecurityUtils.getCurrentUserId());
     }
 
@@ -197,6 +241,7 @@ public class AuthServiceImpl implements AuthService {
         PasswordValidator.validateNewPassword(dto.getNewPassword());
         adminUser.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
         adminUserMapper.updateById(adminUser);
+        // 改密后：若请求携带当前 token，由 Controller 一并拉黑；此处仅记日志
         log.info("管理员 {} 修改密码成功", userId);
     }
 }

@@ -35,9 +35,9 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# JWT（密钥必须由环境变量 JWT_SECRET 注入，禁止使用代码库内默认值上生产）
+# JWT（密钥必须由环境变量 JWT_SECRET 注入，禁止使用代码库内默认值）
 jwt:
-  secret: ${JWT_SECRET:miniprogram-platform-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  secret: ${JWT_SECRET}
   expiration: 86400000
   refresh-expiration: 604800000
 
@@ -83,3 +83,16 @@ logging:
     root: INFO
     com.miniprogram: DEBUG
     com.baomidou.mybatisplus: DEBUG
+
+# Actuator / Prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}

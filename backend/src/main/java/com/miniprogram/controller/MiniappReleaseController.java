@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,24 +35,28 @@ public class MiniappReleaseController {
 
     @Operation(summary = "版本发布列表", description = "分页查询版本发布列表")
     @GetMapping
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PageResult<MiniappRelease>> listReleases(ReleaseQueryDTO queryDTO) {
         return R.ok(miniappReleaseService.listReleases(queryDTO));
     }
 
     @Operation(summary = "整包发布前检查", description = "检查首页、导航绑定与待发布页面，供发布页展示")
     @GetMapping("/preflight")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PublishPreflightVO> getPublishPreflight() {
         return R.ok(miniappReleaseService.getPublishPreflight());
     }
 
     @Operation(summary = "最新已发布版本", description = "获取最新已发布的版本")
     @GetMapping("/latest")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<MiniappRelease> getLatestRelease() {
         return R.ok(miniappReleaseService.getLatestRelease());
     }
 
     @Operation(summary = "获取所有版本列表", description = "不分页获取版本列表，支持按状态筛选")
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<List<MiniappRelease>> listAllReleases(@RequestParam(required = false) Integer status) {
         var query = new ReleaseQueryDTO();
         query.setStatus(status);
@@ -63,18 +68,21 @@ public class MiniappReleaseController {
 
     @Operation(summary = "版本历史", description = "获取所有已发布版本（用于版本选择器）")
     @GetMapping("/history")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<List<MiniappRelease>> getReleaseHistory() {
         return R.ok(miniappReleaseService.getReleaseHistory());
     }
 
     @Operation(summary = "生成下一版本号", description = "根据变更类型自动生成下一语义化版本号")
     @GetMapping("/next-semver")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<String> generateNextSemver(@RequestParam(defaultValue = "patch") String changeType) {
         return R.ok(miniappReleaseService.generateNextSemver(changeType));
     }
 
     @Operation(summary = "版本操作日志", description = "分页查询版本操作日志")
     @GetMapping("/operation-logs")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PageResult<VersionOperationLog>> listLogs(
             @RequestParam(defaultValue = "1") Long current,
             @RequestParam(defaultValue = "20") Long size) {
@@ -83,12 +91,14 @@ public class MiniappReleaseController {
 
     @Operation(summary = "最近体验版推送状态", description = "获取最近一次体验版推送结果")
     @GetMapping("/push-preview/status")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PushPreviewResultVO> getPushPreviewStatus() {
         return R.ok(miniappWxUploadService.getLastPushStatus());
     }
 
     @Operation(summary = "版本发布详情", description = "获取版本发布详情（含快照）")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<MiniappRelease> getReleaseDetail(@PathVariable Long id) {
         return R.ok(miniappReleaseService.getReleaseDetail(id));
     }
@@ -96,6 +106,7 @@ public class MiniappReleaseController {
     @Operation(summary = "创建版本发布", description = "快照当前所有已发布页面和系统配置，创建新版本发布（支持 template/publish 双模式）")
     @PostMapping
     @OperationLog("创建版本发布")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<MiniappRelease> createRelease(@Valid @RequestBody CreateReleaseDTO dto) {
         return R.ok(miniappReleaseService.createRelease(dto));
     }
@@ -103,6 +114,7 @@ public class MiniappReleaseController {
     @Operation(summary = "提升模板为已发布版本", description = "将草稿/模板状态的版本直接提升为已发布状态")
     @PutMapping("/{id}/promote")
     @OperationLog("提升模板为已发布版本")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<MiniappRelease> promoteRelease(@PathVariable Long id) {
         return R.ok(miniappReleaseService.promoteRelease(id));
     }
@@ -110,6 +122,7 @@ public class MiniappReleaseController {
     @Operation(summary = "删除模板", description = "逻辑删除版本（仅当前线上版本不允许删除）")
     @DeleteMapping("/{id}")
     @OperationLog("删除模板")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<Void> deleteRelease(@PathVariable Long id) {
         miniappReleaseService.deleteRelease(id);
         return R.ok();
@@ -118,6 +131,7 @@ public class MiniappReleaseController {
     @Operation(summary = "发布版本", description = "将草稿状态的版本发布")
     @PostMapping("/{id}/publish")
     @OperationLog("发布版本")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<MiniappRelease> publishRelease(@PathVariable Long id) {
         return R.ok(miniappReleaseService.publishRelease(id));
     }
@@ -125,6 +139,7 @@ public class MiniappReleaseController {
     @Operation(summary = "版本回滚", description = "回滚到指定版本")
     @PostMapping("/rollback")
     @OperationLog("版本回滚")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<MiniappRelease> rollbackRelease(@Valid @RequestBody RollbackDTO dto) {
         return R.ok(miniappReleaseService.rollbackRelease(dto));
     }
@@ -132,6 +147,7 @@ public class MiniappReleaseController {
     @Operation(summary = "推送微信小程序体验版", description = "当 miniapp 代码有变更时，一键上传代码到微信体验版")
     @PostMapping("/{id}/push-preview")
     @OperationLog("推送微信小程序体验版")
+    @PreAuthorize("hasAuthority('page:publish')")
     public R<PushPreviewResultVO> pushPreview(@PathVariable Long id, @RequestBody(required = false) PushPreviewDTO dto) {
         return R.ok(miniappWxUploadService.pushPreview(id, dto));
     }

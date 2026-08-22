@@ -5,6 +5,7 @@ import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -12,65 +13,78 @@ import java.util.Date;
 
 /**
  * JWT Token 提供者
- * 负责 Token 的生成、解析和验证
+ * 负责 Token 的生成、解析和验证（access / refresh 分 typ）
  */
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:miniprogram-platform-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}")
+    public static final String TYP_ACCESS = "access";
+    public static final String TYP_REFRESH = "refresh";
+
+    @Value("${jwt.secret:}")
     private String jwtSecret;
 
     @Value("${jwt.expiration:86400000}")
-    private long jwtExpiration; // 默认 24 小时
+    private long jwtExpiration;
 
     @Value("${jwt.refresh-expiration:604800000}")
-    private long refreshExpiration; // 默认 7 天
+    private long refreshExpiration;
 
-    /**
-     * 生成访问 Token
-     */
     public String generateToken(Long userId, String username) {
-        return buildToken(userId, username, jwtExpiration);
+        return buildToken(userId, username, jwtExpiration, TYP_ACCESS);
     }
 
-    /**
-     * 生成刷新 Token
-     */
     public String generateRefreshToken(Long userId, String username) {
-        return buildToken(userId, username, refreshExpiration);
+        return buildToken(userId, username, refreshExpiration, TYP_REFRESH);
     }
 
-    /**
-     * 从 Token 中获取用户ID
-     */
     public Long getUserIdFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.get("userId", Long.class);
     }
 
-    /**
-     * 从 Token 中获取用户名
-     */
     public String getUsernameFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.getSubject();
+    }
+
+    public String getTokenType(String token) {
+        Claims claims = parseToken(token);
+        Object typ = claims.get("typ");
+        return typ == null ? null : String.valueOf(typ);
     }
 
     public enum TokenStatus {
         VALID, EXPIRED, INVALID
     }
 
-    /**
-     * 验证 Token 是否有效
-     */
     public boolean validateToken(String token) {
-        return inspectToken(token) == TokenStatus.VALID;
+        return inspectToken(token, TYP_ACCESS) == TokenStatus.VALID;
+    }
+
+    public boolean validateRefreshToken(String token) {
+        return inspectToken(token, TYP_REFRESH) == TokenStatus.VALID;
     }
 
     public TokenStatus inspectToken(String token) {
+        return inspectToken(token, null);
+    }
+
+    public TokenStatus inspectToken(String token, String expectedTyp) {
         try {
-            parseToken(token);
+            Claims claims = parseToken(token);
+            if (StringUtils.hasText(expectedTyp)) {
+                Object typ = claims.get("typ");
+                // 兼容旧 token：无 typ 时仅在 expectedTyp=access 时放行一轮过渡
+                if (typ == null) {
+                    if (!TYP_ACCESS.equals(expectedTyp)) {
+                        return TokenStatus.INVALID;
+                    }
+                } else if (!expectedTyp.equals(String.valueOf(typ))) {
+                    return TokenStatus.INVALID;
+                }
+            }
             return TokenStatus.VALID;
         } catch (ExpiredJwtException e) {
             log.warn("JWT 已过期: {}", e.getMessage());
@@ -81,9 +95,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 判断 Token 是否即将过期（剩余时间小于 30 分钟）
-     */
     public boolean isTokenExpiringSoon(String token) {
         try {
             Claims claims = parseToken(token);
@@ -95,15 +106,25 @@ public class JwtTokenProvider {
         }
     }
 
-    // ==================== 私有方法 ====================
+    /** 剩余有效毫秒；无法解析时返回 0 */
+    public long remainingTtlMs(String token) {
+        try {
+            Claims claims = parseToken(token);
+            Date expiration = claims.getExpiration();
+            return Math.max(0, expiration.getTime() - System.currentTimeMillis());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 
-    private String buildToken(Long userId, String username, long expiration) {
+    private String buildToken(Long userId, String username, long expiration, String typ) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
+                .claim("typ", typ)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -119,6 +140,9 @@ public class JwtTokenProvider {
     }
 
     private SecretKey getSigningKey() {
+        if (!StringUtils.hasText(jwtSecret) || jwtSecret.length() < 32) {
+            throw new IllegalStateException("jwt.secret 未配置或过短（至少 32 字符），拒绝启动签发");
+        }
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }

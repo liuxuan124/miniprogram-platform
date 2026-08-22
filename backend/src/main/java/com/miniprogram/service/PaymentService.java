@@ -15,9 +15,9 @@ public interface PaymentService extends IService<Payment> {
     WxPayResponse createWxPayOrder(Long userId, Long orderId);
 
     /**
-     * 微信支付回调处理
+     * 微信支付回调处理（须先平台证书/公钥验签）
      */
-    void handleWxNotify(String xmlData);
+    void handleWxNotify(String body, String timestamp, String nonce, String signature, String serial);
 
     /**
      * 查询支付状态

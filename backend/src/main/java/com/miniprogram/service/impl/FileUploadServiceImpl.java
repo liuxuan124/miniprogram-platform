@@ -44,8 +44,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             "jpg", "jpeg", "png", "gif", "bmp", "webp",
             "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
             "txt", "md", "markdown", "csv",
-            "zip", "rar", "mp4", "mp3",
-            "p12", "pem", "cer", "crt", "key"
+            "zip", "rar", "mp4", "mp3"
     );
 
     /**
@@ -123,10 +122,20 @@ public class FileUploadServiceImpl implements FileUploadService {
     private String buildRelativePath(String subDir, String ext) {
         String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String fileName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
-        if (StringUtils.hasText(subDir)) {
-            return subDir + "/" + datePath + "/" + fileName;
+        String safeSub = sanitizeSubDir(subDir);
+        if (StringUtils.hasText(safeSub)) {
+            return safeSub + "/" + datePath + "/" + fileName;
         }
         return datePath + "/" + fileName;
+    }
+
+    private String sanitizeSubDir(String subDir) {
+        if (!StringUtils.hasText(subDir)) return "";
+        String s = subDir.trim().replace('\\', '/');
+        if (s.contains("..") || s.startsWith("/") || !s.matches("^[a-zA-Z0-9_-]{1,32}$")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "非法上传目录");
+        }
+        return s;
     }
 
     private UploadResultVO buildUploadResult(String originalFileName, String relativePath, long size, String contentType) {

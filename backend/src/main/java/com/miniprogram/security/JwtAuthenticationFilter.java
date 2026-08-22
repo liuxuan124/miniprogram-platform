@@ -36,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final AdminUserMapper adminUserMapper;
     private final RoleMapper roleMapper;
     private final PermissionService permissionService;
+    private final JwtBlacklistService jwtBlacklistService;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -48,13 +49,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = extractToken(request);
 
             if (StringUtils.hasText(token)) {
-                JwtTokenProvider.TokenStatus status = jwtTokenProvider.inspectToken(token);
+                JwtTokenProvider.TokenStatus status = jwtTokenProvider.inspectToken(token, JwtTokenProvider.TYP_ACCESS);
                 if (status == JwtTokenProvider.TokenStatus.EXPIRED) {
                     SecurityErrorWriter.write(response, 401, 110102, "Token已过期");
                     return;
                 }
                 if (status != JwtTokenProvider.TokenStatus.VALID) {
                     SecurityErrorWriter.write(response, 401, 110101, "未登录");
+                    return;
+                }
+                if (jwtBlacklistService.isBlacklisted(token)) {
+                    SecurityErrorWriter.write(response, 401, 110103, "Token已失效，请重新登录");
                     return;
                 }
 

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
+import com.miniprogram.common.MoneyUtils;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.config.WxPayRuntimeConfig;
 import com.miniprogram.dto.RefundVO;
@@ -16,6 +17,7 @@ import com.miniprogram.mapper.RefundMapper;
 import com.miniprogram.service.RefundService;
 import com.miniprogram.service.WxPayConfigService;
 import com.miniprogram.support.WxPayNotifyCrypto;
+import com.miniprogram.support.WxPayNotifyVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -41,6 +43,7 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
     private final PaymentMapper paymentMapper;
     private final WxPayConfigService wxPayConfigService;
     private final WxPayNotifyCrypto wxPayNotifyCrypto;
+    private final WxPayNotifyVerifier wxPayNotifyVerifier;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -98,9 +101,10 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void handleWxRefundNotify(String jsonData) {
+    public void handleWxRefundNotify(String body, String timestamp, String nonce, String signature, String serial) {
+        wxPayNotifyVerifier.verify(body, timestamp, nonce, signature, serial);
         try {
-            Map<String, Object> refundData = wxPayNotifyCrypto.decryptNotifyPayload(jsonData);
+            Map<String, Object> refundData = wxPayNotifyCrypto.decryptNotifyPayload(body);
             String outRefundNo = (String) refundData.get("out_refund_no");
             String refundStatus = (String) refundData.get("refund_status");
 
@@ -132,6 +136,8 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
             }
 
             log.info("退款回调处理完成, refundNo={}, status={}", outRefundNo, refundStatus);
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("退款回调处理失败", e);
             throw new BusinessException(700201, "退款回调处理失败");
@@ -186,8 +192,8 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
         body.put("reason", refund.getReason());
 
         Map<String, Object> amount = new LinkedHashMap<>();
-        amount.put("refund", refund.getAmount().multiply(java.math.BigDecimal.valueOf(100)).intValue());
-        amount.put("total", order.getPayAmount().multiply(java.math.BigDecimal.valueOf(100)).intValue());
+        amount.put("refund", MoneyUtils.toCents(refund.getAmount()));
+        amount.put("total", MoneyUtils.toCents(order.getPayAmount()));
         amount.put("currency", "CNY");
         body.put("amount", amount);
 

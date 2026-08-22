@@ -5,8 +5,10 @@ import com.miniprogram.dto.*;
 import com.miniprogram.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -33,9 +35,9 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "退出登录", description = "退出登录，前端清除Token")
-    public R<Void> logout() {
-        authService.logout();
+    @Operation(summary = "退出登录", description = "退出登录并将当前 access token 加入黑名单")
+    public R<Void> logout(HttpServletRequest request) {
+        authService.logout(extractBearer(request));
         return R.ok();
     }
 
@@ -47,15 +49,25 @@ public class AuthController {
 
     @PutMapping("/password")
     @Operation(summary = "修改密码", description = "修改当前登录管理员的密码")
-    public R<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto) {
+    public R<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto, HttpServletRequest request) {
         authService.changePassword(dto);
+        authService.logout(extractBearer(request));
         return R.ok();
     }
 
     @PostMapping({"/password", "/change-password"})
     @Operation(summary = "修改密码（兼容）", description = "兼容 POST 方式的改密接口")
-    public R<Void> changePasswordPost(@Valid @RequestBody ChangePasswordDTO dto) {
+    public R<Void> changePasswordPost(@Valid @RequestBody ChangePasswordDTO dto, HttpServletRequest request) {
         authService.changePassword(dto);
+        authService.logout(extractBearer(request));
         return R.ok();
+    }
+
+    private static String extractBearer(HttpServletRequest request) {
+        String h = request.getHeader("Authorization");
+        if (StringUtils.hasText(h) && h.startsWith("Bearer ")) {
+            return h.substring(7);
+        }
+        return null;
     }
 }

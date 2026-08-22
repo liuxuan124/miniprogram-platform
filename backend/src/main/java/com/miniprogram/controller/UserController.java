@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -36,18 +37,21 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "小程序用户列表", description = "分页查询小程序用户列表")
+    @PreAuthorize("hasAuthority('member:list')")
     public R<PageResult<MiniProgramUserVO>> list(MiniProgramUserQueryDTO queryDTO) {
         return R.ok(miniProgramUserService.listUsers(queryDTO));
     }
 
     @GetMapping("/stats")
     @Operation(summary = "用户概览统计")
+    @PreAuthorize("hasAuthority('member:list')")
     public R<MiniProgramUserStatsVO> stats() {
         return R.ok(miniProgramUserService.getStats());
     }
 
     @GetMapping("/export")
     @Operation(summary = "导出用户", description = "按当前筛选条件导出小程序用户为 CSV")
+    @PreAuthorize("hasAuthority('member:list')")
     public void export(MiniProgramUserQueryDTO queryDTO, HttpServletResponse response) throws IOException {
         queryDTO.setCurrent(1L);
         queryDTO.setSize(EXPORT_LIMIT);
@@ -81,6 +85,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     @Operation(summary = "用户详情", description = "获取小程序用户画像")
+    @PreAuthorize("hasAuthority('member:detail') or hasAuthority('member:list')")
     public R<MiniProgramUserVO> detail(@PathVariable Long id) {
         return R.ok(miniProgramUserService.getUserProfile(id));
     }
