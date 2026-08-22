@@ -1,4 +1,5 @@
 <!--pages/coupon-list/coupon-list.wxml — 优惠券列表页面-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="coupon-list-page">
   <!-- 主 Tab -->
   <view class="main-tabs">

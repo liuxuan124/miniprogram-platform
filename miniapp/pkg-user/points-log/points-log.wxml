@@ -1,4 +1,5 @@
 <!--pkg-user/points-log/points-log.wxml — 积分记录页面-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="points-log-page">
   <!-- 积分总览 -->
   <view class="points-summary">

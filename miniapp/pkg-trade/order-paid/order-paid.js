@@ -1,5 +1,6 @@
 const productService = require('../../services/product')
 const orderService = require('../../services/order')
+const { get } = require('../../utils/request')
 
 Page({
   data: {
@@ -29,6 +30,23 @@ Page({
     })
     this._loadRecs()
     this._confirmPayment()
+    this._requestSubscribe()
+  },
+
+  async _requestSubscribe() {
+    try {
+      const list = await get('/api/v1/mp/subscribe/templates', {}, { auth: false, showError: false })
+      const rows = Array.isArray(list) ? list : []
+      const tmplIds = rows
+        .map((r) => r && r.templateId)
+        .filter(Boolean)
+        .slice(0, 3)
+      if (!tmplIds.length || typeof wx.requestSubscribeMessage !== 'function') return
+      wx.requestSubscribeMessage({
+        tmplIds,
+        fail() {},
+      })
+    } catch (_) { /* ignore */ }
   },
 
   async _confirmPayment(attempt = 0) {

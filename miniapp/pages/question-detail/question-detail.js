@@ -1,5 +1,6 @@
 const qaService = require('../../services/qa')
 const { createSharePageConfig } = require('../../utils/share')
+const { previewRichHtmlImages } = require('../../utils/rich-html')
 
 function stripHtml(html) {
   return String(html || '').replace(/<[^>]+>/g, '\n').replace(/\n+/g, '\n').trim()
@@ -38,6 +39,10 @@ Page({
 
   onGoAsk() {
     wx.navigateTo({ url: '/pages/question-ask/question-ask' })
+  },
+
+  onRichContentTap() {
+    previewRichHtmlImages(this.data.answerHtml)
   },
 
   _loadDetail(id) {

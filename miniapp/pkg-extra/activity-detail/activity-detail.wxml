@@ -1,4 +1,5 @@
 <!-- pkg-extra/activity-detail/activity-detail.wxml — 活动详情页 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="activity-detail-page">
   <!-- 加载状态 -->
   <view class="loading-area" wx:if="{{loading}}">
@@ -41,7 +42,7 @@
     <view class="detail-section">
       <text class="section-title">活动介绍</text>
       <view class="section-content">
-        <rich-text nodes="{{activity.description || activity.content}}"></rich-text>
+        <rich-text nodes="{{activity.description || activity.content}}" bindtap="onRichContentTap"></rich-text>
       </view>
     </view>
 

@@ -14,7 +14,7 @@
 }
 .c {
   display:flex; align-items:center; gap:16rpx; padding:24rpx;
-  border:2rpx solid var(--line, #e7ebf3); border-radius:24rpx; margin-bottom:16rpx;
+  border:2rpx solid var(--line, var(--line)); border-radius:24rpx; margin-bottom:16rpx;
   background:#fff;
 }
 .c.on { border-color:var(--brand, #315efb); background:var(--brand-50, #eef2ff); }
@@ -25,7 +25,7 @@
 .c.disabled .n, .c.disabled .d { color:#9aa3b2; }
 .amt { min-width:120rpx; color:var(--accent, #ff4d4f); font-weight:800; font-size:32rpx; }
 .meta { flex:1; min-width:0; }
-.n { font-size:28rpx; font-weight:600; color:#172033; }
+.n { font-size:28rpx; font-weight:600; color:var(--ink); }
 .d { margin-top:6rpx; font-size:22rpx; color:var(--ink-300, #98a1b3); }
 .tag {
   margin-top:8rpx; display:inline-block; font-size:20rpx; color:#9aa3b2;

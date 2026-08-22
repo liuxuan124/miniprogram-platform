@@ -34,6 +34,7 @@ Page({
   onLoad() {
     loadTabBoundDslPage(this, '/pages/index/index').then((ok) => {
       if (!ok) this._hydrate()
+      else this._mergePersonalized()
     })
   },
 
@@ -50,10 +51,62 @@ Page({
 
   onPullDownRefresh() {
     if (this.data.dslMode) {
-      loadTabBoundDslPage(this, '/pages/index/index', true).finally(() => wx.stopPullDownRefresh())
+      loadTabBoundDslPage(this, '/pages/index/index', true)
+        .then((ok) => { if (ok) return this._mergePersonalized() })
+        .finally(() => wx.stopPullDownRefresh())
       return
     }
     this._hydrate().finally(() => wx.stopPullDownRefresh())
+  },
+
+  /**
+   * U5：登录后拉取个性化首页，合并 product_list / article_list 的 items
+   */
+  async _mergePersonalized() {
+    try {
+      const app = getApp()
+      const loggedIn = !!(app && app.globalData && app.globalData.isLoggedIn)
+      if (!loggedIn) return
+      const dsl = await get('/api/v1/mp/pages/personalized-home', {}, {
+        auth: true,
+        showError: false,
+      })
+      if (!dsl || !Array.isArray(dsl.components)) return
+      let productItems = null
+      let articleItems = null
+      dsl.components.forEach((c) => {
+        if (!c || !c.props) return
+        if (c.type === 'product_list' && Array.isArray(c.props.items) && c.props.items.length) {
+          productItems = c.props.items
+        }
+        if ((c.type === 'article_list' || c.type === 'article_feed')
+            && Array.isArray(c.props.items) && c.props.items.length) {
+          articleItems = c.props.items
+        }
+      })
+      if (!productItems && !articleItems) return
+      const flow = (this.data.flowComponents || []).map((comp) => {
+        if (!comp) return comp
+        if (comp.type === 'product_list' && productItems) {
+          return Object.assign({}, comp, {
+            props: Object.assign({}, comp.props || {}, { items: productItems }),
+            runtimeData: productItems,
+            runtimeDataLoaded: true,
+          })
+        }
+        if ((comp.type === 'article_list' || comp.type === 'article_feed') && articleItems) {
+          return Object.assign({}, comp, {
+            props: Object.assign({}, comp.props || {}, { items: articleItems }),
+            runtimeData: articleItems,
+            runtimeDataLoaded: true,
+          })
+        }
+        return comp
+      })
+      this.setData({ flowComponents: flow })
+    } catch (_) {
+      // 个性化失败不影响首页
+    }
   },
 
   onReachBottom() {

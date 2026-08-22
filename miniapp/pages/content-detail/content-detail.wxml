@@ -1,4 +1,5 @@
 <!-- pages/content-detail/content-detail.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="content-detail-page {{isNote ? 'is-note' : 'is-article'}} {{isWechatNewspic ? 'is-wechat-note' : ''}}">
   <view class="skeleton-wrap" wx:if="{{loading}}">
     <view class="sk-line sk-line--sm"></view>
@@ -159,7 +160,7 @@
   </view>
 
   <!-- ========== 长文 / 视频 / 数据：普通文章 ========== -->
-    <view class="article-mode" wx:else>
+    <view class="article-mode theme-{{layoutTheme || 'standard'}}" wx:else>
     <view class="progress-wrap">
       <view class="progress" style="width: {{readProgress}}%;"></view>
     </view>
@@ -180,8 +181,26 @@
         </view>
       </view>
 
+      <view wx:if="{{videoUrl}}" class="a-video-wrap">
+        <video
+          src="{{videoUrl}}"
+          poster="{{article.cover_url || article.coverImage}}"
+          controls
+          show-center-play-btn
+          object-fit="contain"
+          class="a-video"
+        />
+      </view>
+
       <view class="a-body">
-        <rich-text nodes="{{article.content || article.body}}"></rich-text>
+        <mp-html
+          wx:if="{{article.content || article.body}}"
+          content="{{article.content || article.body}}"
+          lazy-load
+          selectable
+          show-img-menu
+          domain=""
+        />
       </view>
 
       <view class="detail-tags" wx:if="{{article.tags && article.tags.length}}">

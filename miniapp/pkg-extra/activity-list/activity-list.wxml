@@ -1,4 +1,5 @@
 <!-- pkg-extra/activity-list/activity-list.wxml — 活动列表页 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="activity-list-page">
   <!-- 首次加载：D1 骨架屏 -->
   <skeleton wx:if="{{loading && activities.length === 0}}" type="list" rows="{{3}}" />

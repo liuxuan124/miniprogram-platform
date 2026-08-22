@@ -2,7 +2,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fb;
+  background: var(--bg);
 }
 
 .svc-header {
@@ -13,7 +13,7 @@
   padding: 28rpx;
   border: 2rpx solid #e7eaf2;
   border-radius: 28rpx;
-  background: #ffffff;
+  background: var(--card);
 }
 
 .svc-header__icon {
@@ -25,7 +25,7 @@
   flex-shrink: 0;
   border-radius: 22rpx;
   background: #1f4fd1;
-  color: #ffffff;
+  color: var(--card);
   font-size: 32rpx;
   font-weight: 700;
 }
@@ -37,7 +37,7 @@
 }
 
 .svc-header__title {
-  color: #172033;
+  color: var(--ink);
   font-size: 32rpx;
   font-weight: 700;
 }
@@ -84,7 +84,7 @@
   flex-shrink: 0;
   border-radius: 18rpx;
   background: #1f4fd1;
-  color: #ffffff;
+  color: var(--card);
   font-size: 24rpx;
   font-weight: 700;
 }
@@ -99,7 +99,7 @@
   padding: 20rpx 24rpx;
   border: 2rpx solid #e7eaf2;
   border-radius: 8rpx 26rpx 26rpx;
-  background: #ffffff;
+  background: var(--card);
   color: #35405a;
   font-size: 28rpx;
   line-height: 1.65;
@@ -109,7 +109,7 @@
   border-color: #1f4fd1;
   border-radius: 26rpx 8rpx 26rpx 26rpx;
   background: #1f4fd1;
-  color: #ffffff;
+  color: var(--card);
 }
 
 .quick-title {
@@ -129,7 +129,7 @@
   padding: 14rpx 24rpx;
   border: 2rpx solid #dfe4ee;
   border-radius: 999rpx;
-  background: #ffffff;
+  background: var(--card);
   color: #35405a;
   font-size: 25rpx;
 }
@@ -137,7 +137,7 @@
 .contact-bar {
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   border-top: 2rpx solid #e8ebf2;
-  background: #ffffff;
+  background: var(--card);
 }
 
 .contact-btn {
@@ -149,7 +149,7 @@
   margin: 0;
   border-radius: 24rpx;
   background: #1f4fd1;
-  color: #ffffff;
+  color: var(--card);
   font-size: 30rpx;
   font-weight: 700;
   line-height: 92rpx;

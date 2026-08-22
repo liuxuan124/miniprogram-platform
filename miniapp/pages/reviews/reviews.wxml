@@ -1,4 +1,5 @@
 <!-- pages/reviews/reviews.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="reviews-page">
   <view class="summary card">
     <view class="score">

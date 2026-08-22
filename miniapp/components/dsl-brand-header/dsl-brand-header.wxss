@@ -6,7 +6,7 @@
 .dsl-brand-header {
   width: 100%;
   box-sizing: border-box;
-  background: #ffffff;
+  background: var(--card);
 }
 
 .dsl-brand-header--pinned {
@@ -45,7 +45,7 @@
 .dsl-brand-header__logo-text {
   font-size: 28rpx;
   font-weight: 800;
-  color: #002FA7;
+  color: var(--brand);
   white-space: nowrap;
 }
 
@@ -70,7 +70,7 @@
 .dsl-brand-header__title {
   font-size: 28rpx;
   font-weight: 700;
-  color: #172033;
+  color: var(--ink);
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;

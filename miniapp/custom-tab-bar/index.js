@@ -80,6 +80,10 @@ Component({
         const config = await SystemService.fetchSystemConfig(true)
         const rawItems = (config.tabbarItems || []).filter((item) => item.enabled !== false)
         const theme = config.miniappThemeConfig || {}
+        try {
+          const { applyThemeCssVars } = require('../utils/theme')
+          applyThemeCssVars(theme)
+        } catch (e) {}
 
         const mappedList = TAB_SLOT_ROUTES.map((pagePath, slotIndex) => {
           const item = rawItems[slotIndex] || {}

@@ -13,7 +13,7 @@
 .dsl-hot-news__content {
   position: relative;
   z-index: 1;
-  background: #ffffff;
+  background: var(--card);
   box-shadow: 0 12rpx 36rpx rgba(47, 84, 160, 0.08);
   overflow: hidden;
 }
@@ -54,7 +54,7 @@
   gap: 16rpx;
   min-width: 0;
   white-space: nowrap;
-  color: #ffffff;
+  color: var(--card);
 }
 
 .dsl-hot-news__title {
@@ -63,7 +63,7 @@
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
-  color: #ffffff;
+  color: var(--card);
 }
 
 .dsl-hot-news__date {
@@ -73,7 +73,7 @@
   gap: 6rpx;
   font-size: 22rpx;
   white-space: nowrap;
-  color: #ffffff;
+  color: var(--card);
 }
 
 .dsl-hot-news__date-box {
@@ -151,7 +151,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #e8eefc;
+  background: var(--brand-soft);
   border-radius: 16rpx;
   color: #7b8798;
   font-size: 32rpx;

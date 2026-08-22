@@ -57,6 +57,10 @@ const COMPONENT_TYPES = {
   DIVIDER: 'divider',
   SPACER: 'spacer',
   FORM_ENTRY: 'form_entry',
+  CONTAINER: 'container',
+  IMAGE_HOTSPOT: 'image_hotspot',
+  SECTION_BG: 'section_bg',
+  FEATURE_CARDS: 'feature_cards',
 }
 
 // 需要数据源的组件类型
@@ -121,21 +125,10 @@ function parseStyle(style) {
   if (!style || typeof style !== 'object') return ''
 
   const parts = []
-  // 外壳不再吃白底/内边距/圆角，避免「整块外框」；外边距与文字色仍生效
-  const SKIP_SHELL_KEYS = new Set([
-    'background_color',
-    'backgroundColor',
-    'padding_top',
-    'padding_bottom',
-    'padding_left',
-    'padding_right',
-    'paddingTop',
-    'paddingBottom',
-    'paddingLeft',
-    'paddingRight',
-    'border_radius',
-    'borderRadius',
-  ])
+  // 外壳：外边距 / 背景 / 内边距 / 圆角 / 阴影 / 边框均可作用；visible 单独控制显隐
+  if (style.visible === false) {
+    parts.push('display:none')
+  }
 
   if (style.text_color) {
     parts.push(`color: ${style.text_color}`)
@@ -148,10 +141,8 @@ function parseStyle(style) {
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
     if (key === 'text_color' || key === 'font_size' || key === 'visible') return
-    if (SKIP_SHELL_KEYS.has(key)) return
     if (typeof value === 'boolean') return
 
-    // snake_case / camelCase → kebab-case（border_radius → border-radius）
     const cssKey = key
       .replace(/_/g, '-')
       .replace(/([A-Z])/g, '-$1')
@@ -301,6 +292,9 @@ function processComponent(component) {
     // 运行时数据（由数据源填充）
     runtimeData: [],
     runtimeDataLoaded: false,
+    children: Array.isArray(component.children)
+      ? component.children.map((child) => processComponent(child)).filter((c) => !c.skipped)
+      : undefined,
   }
 
   return processed
@@ -484,7 +478,19 @@ async function loadComponentData(component, forceRefresh = false) {
  * @returns {Promise<Array>} 更新后的组件列表
  */
 async function loadAllComponentData(components, forceRefresh = false) {
-  const tasks = components.map((comp) => loadComponentData(comp, forceRefresh))
+  const list = Array.isArray(components) ? components : []
+  const tasks = list.map(async (comp) => {
+    const loaded = await loadComponentData(comp, forceRefresh)
+    const childKeys = ['children', 'components']
+    for (let i = 0; i < childKeys.length; i++) {
+      const key = childKeys[i]
+      const nested = loaded && loaded[key]
+      if (Array.isArray(nested) && nested.length) {
+        loaded[key] = await loadAllComponentData(nested, forceRefresh)
+      }
+    }
+    return loaded
+  })
   return Promise.all(tasks)
 }
 

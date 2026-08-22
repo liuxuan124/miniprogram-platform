@@ -13,7 +13,7 @@
   background: linear-gradient(135deg, #0f2150, #1769ff);
   background-size: cover;
   background-position: center;
-  color: #ffffff;
+  color: var(--card);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -100,7 +100,7 @@
   min-width: 0;
   font-size: 30rpx;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--card);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -160,7 +160,7 @@
 .dsl-member-card__stat-value {
   font-size: 32rpx;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--card);
 }
 
 .dsl-member-card__stat-label {

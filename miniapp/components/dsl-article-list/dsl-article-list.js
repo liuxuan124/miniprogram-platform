@@ -53,11 +53,7 @@ function normalizeTabs(config) {
     })
     .filter(Boolean)
   if (!tabs.length) {
-    return [
-      { id: '', name: '全部' },
-      { id: '行业动态', name: '行业动态' },
-      { id: '协会动态', name: '协会动态' },
-    ]
+    return []
   }
   if (!tabs.some((t) => t.name === '全部')) {
     tabs.unshift({ id: '', name: '全部' })
@@ -396,8 +392,8 @@ Component({
 
       const items = Array.isArray(config && config.items) ? config.items : []
       const source = items.length ? items : [
-        { title: '品牌故事：从内容到交易闭环', publishedAt: '2026-05-10', source: '跨境电商头条' },
-        { title: '选品指南：活动与商品联动', publishedAt: '2026-05-12', source: '直击跨境' },
+        { title: '品牌故事：从内容到交易闭环', publishedAt: '2026-05-10', source: '官方资讯' },
+        { title: '选品指南：活动与商品联动', publishedAt: '2026-05-12', source: '运营精选' },
       ]
       const limit = Math.max(Number((config && config.limit) || source.length), 1)
       return source.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))

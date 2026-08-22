@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="svc-page">
   <view class="svc-header">
     <view class="svc-header__icon">客</view>

@@ -4,6 +4,7 @@
 const request = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
+const { previewRichHtmlImages } = require('../../utils/rich-html')
 
 Page({
   ...createSharePageConfig(),
@@ -130,5 +131,11 @@ Page({
       .catch(() => {
         this.setData({ submitting: false })
       })
+  },
+
+  /** 富文本图片预览 */
+  onRichContentTap() {
+    const activity = this.data.activity || {}
+    previewRichHtmlImages(activity.description || activity.content)
   },
 })

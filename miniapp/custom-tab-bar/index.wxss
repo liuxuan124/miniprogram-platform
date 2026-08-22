@@ -54,7 +54,7 @@
   max-width: 100rpx;
   margin-top: 2rpx;
   overflow: hidden;
-  color: #7c879d;
+  color: var(--ink-3);
   font-size: 19rpx;
   font-weight: 500;
   line-height: 25rpx;
@@ -63,6 +63,6 @@
 }
 
 .tab-item.active .tab-text {
-  color: #002FA7;
+  color: var(--brand);
   font-weight: 700;
 }

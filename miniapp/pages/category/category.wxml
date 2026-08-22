@@ -1,4 +1,5 @@
 <!--pages/category/category.wxml — 分类页-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page-wrapper">
   <loading wx:if="{{loading}}" />
 

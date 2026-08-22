@@ -5,6 +5,23 @@
   padding: 16rpx 0;
 }
 
+.dsl-rich-text__toolbar {
+  margin-bottom: 12rpx;
+}
+
+.dsl-rich-text__preview-btn {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  font-size: 24rpx;
+  color: var(--brand, #002FA7);
+  background: var(--brand-soft, #eaf1ff);
+  border-radius: 999rpx;
+}
+
+.dsl-rich-text__body {
+  width: 100%;
+}
+
 .dsl-rich-text__content {
   font-size: 28rpx;
   line-height: 1.8;

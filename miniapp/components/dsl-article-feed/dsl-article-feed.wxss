@@ -137,7 +137,7 @@
 }
 
 .dsl-article-feed__title {
-  color: #172033;
+  color: var(--ink);
   font-size: 26rpx;
   font-weight: 600;
   line-height: 1.4;

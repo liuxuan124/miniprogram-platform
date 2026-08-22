@@ -1,4 +1,5 @@
 <!-- pages/appointment-book/appointment-book.wxml — 预约：选时段 → 填信息(短信) → 确认提交 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="appointment-book-page">
   <view class="steps">
     <view class="d {{bookStep>=1?'on':''}}">1</view>

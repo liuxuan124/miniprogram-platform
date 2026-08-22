@@ -1,4 +1,5 @@
 <!-- pages/cart/cart.wxml — 购物车页面 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="cart-page">
   <view class="cart-tip" wx:if="{{!isEmpty && !loading}}" bindtap="onGoShopping">
     🎫 再买一点可用「满 100 减 20」券<span class="go">去凑单 ›</span>

@@ -1,6 +1,7 @@
 {
   "component": true,
   "usingComponents": {
+    "dsl-renderer": "./dsl-renderer",
     "dsl-notice-bar": "../dsl-notice-bar/dsl-notice-bar",
     "dsl-banner": "../dsl-banner/dsl-banner",
     "dsl-image": "../dsl-image/dsl-image",

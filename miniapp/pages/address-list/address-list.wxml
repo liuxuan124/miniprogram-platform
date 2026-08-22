@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page">
   <view class="tip">购买实体商品时，请填写真实有效的收货信息。资料包与咨询服务无需填写地址。</view>
 

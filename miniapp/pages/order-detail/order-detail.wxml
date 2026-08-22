@@ -1,4 +1,5 @@
 <!-- pages/order-detail/order-detail.wxml — 订单详情页 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="order-detail-page" wx:if="{{!loading && order}}">
   <!-- 订单状态头部 -->
   <view class="status-header" style="background-color: {{STATUS_MAP[order.status].color || '#999'}}">

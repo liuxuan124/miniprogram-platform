@@ -1,4 +1,5 @@
 <!--pages/custom/custom.wxml — 装修器自定义页/专题页通用入口-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="custom-page">
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>

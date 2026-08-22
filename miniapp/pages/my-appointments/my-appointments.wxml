@@ -1,4 +1,5 @@
 <!-- pages/my-appointments/my-appointments.wxml — 我的预约列表 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="my-appointments-page">
   <!-- 状态 Tab -->
   <scroll-view class="tab-scroll" scroll-x enhanced show-scrollbar="{{false}}">

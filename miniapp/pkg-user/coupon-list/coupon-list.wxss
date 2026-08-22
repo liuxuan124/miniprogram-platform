@@ -8,7 +8,7 @@
 /* ========== 主 Tab ========== */
 .main-tabs {
   display: flex;
-  background-color: #ffffff;
+  background-color: var(--card);
   border-bottom: 1rpx solid #eee;
 }
 
@@ -41,7 +41,7 @@
 /* ========== 子 Tab ========== */
 .sub-tabs {
   display: flex;
-  background-color: #ffffff;
+  background-color: var(--card);
   padding: 0 24rpx 16rpx;
 }
 
@@ -73,7 +73,7 @@
 .coupon-card {
   display: flex;
   align-items: center;
-  background-color: #ffffff;
+  background-color: var(--card);
   border-radius: 16rpx;
   margin-bottom: 16rpx;
   overflow: hidden;
@@ -103,7 +103,7 @@
 
 .coupon-card__amount {
   font-size: 52rpx;
-  color: #ffffff;
+  color: var(--card);
   font-weight: 800;
   line-height: 1;
 }

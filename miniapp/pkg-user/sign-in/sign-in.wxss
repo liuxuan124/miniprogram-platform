@@ -30,7 +30,7 @@
 
 .sign-header__title {
   font-size: 40rpx;
-  color: #ffffff;
+  color: var(--card);
   font-weight: 700;
 }
 
@@ -48,7 +48,7 @@
 
 .sign-days-num {
   font-size: 80rpx;
-  color: #ffffff;
+  color: var(--card);
   font-weight: 800;
   line-height: 1;
 }
@@ -109,7 +109,7 @@
 
 .week-day__check {
   font-size: 28rpx;
-  color: #ffffff;
+  color: var(--card);
   font-weight: 700;
 }
 
@@ -163,7 +163,7 @@
 
 .sign-btn {
   background: linear-gradient(135deg, #ff6b6b, #ff4757);
-  color: #ffffff;
+  color: var(--card);
   text-align: center;
   padding: 28rpx 0;
   border-radius: 48rpx;
@@ -223,7 +223,7 @@
   justify-content: space-between;
   margin: 0 24rpx 32rpx;
   padding: 24rpx;
-  background-color: #ffffff;
+  background-color: var(--card);
   border-radius: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }

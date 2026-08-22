@@ -248,7 +248,7 @@
   width: 56rpx;
   height: 56rpx;
   border-radius: 16rpx;
-  background: linear-gradient(145deg, #1aad19, #07c160);
+  background: linear-gradient(145deg, #1aad19, var(--wx));
   color: #fff;
   font-size: 26rpx;
   font-weight: 800;

@@ -70,7 +70,7 @@
   margin-bottom: 20rpx;
   padding: 16rpx;
   background: #fff;
-  border: 1rpx solid #e7ebf3;
+  border: 1rpx solid var(--line);
   border-radius: 24rpx;
   box-shadow: 0 8rpx 24rpx rgba(30, 49, 91, 0.05);
 }
@@ -102,7 +102,7 @@
   margin-bottom: 20rpx;
   padding: 14rpx;
   background: #fff;
-  border: 1rpx solid #e7ebf3;
+  border: 1rpx solid var(--line);
   border-radius: 24rpx;
   box-shadow: 0 8rpx 24rpx rgba(30, 49, 91, 0.05);
 }

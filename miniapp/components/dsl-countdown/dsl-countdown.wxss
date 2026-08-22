@@ -12,7 +12,7 @@
 
 .dsl-countdown--card {
   padding: 24rpx;
-  background: #ffffff;
+  background: var(--card);
   border: 1rpx solid #e6edf6;
   border-radius: 20rpx;
 }
@@ -28,7 +28,7 @@
   margin-bottom: 16rpx;
   font-size: 30rpx;
   font-weight: 700;
-  color: #172033;
+  color: var(--ink);
   text-align: center;
 }
 
@@ -55,8 +55,8 @@
   min-width: 56rpx;
   height: 56rpx;
   padding: 0 8rpx;
-  background-color: #172033;
-  color: #ffffff;
+  background-color: var(--ink);
+  color: var(--card);
   font-size: 28rpx;
   font-weight: 700;
   border-radius: 8rpx;

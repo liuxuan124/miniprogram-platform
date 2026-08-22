@@ -1,4 +1,5 @@
 <!--pkg-user/sign-in/sign-in.wxml — 每日签到页面-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="sign-in-page">
   <!-- 签到头部 -->
   <view class="sign-header">

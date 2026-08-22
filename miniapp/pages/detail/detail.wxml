@@ -1,4 +1,5 @@
 <!--pages/detail/detail.wxml — 通用详情页-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page-wrapper">
   <!-- 加载状态 -->
   <loading wx:if="{{loading}}" />
@@ -29,6 +30,7 @@
           class="detail-page__content"
           wx:if="{{detail.description || detail.content}}"
           nodes="{{detail.description || detail.content}}"
+          bindtap="onRichContentTap"
         />
       </view>
     </block>
@@ -50,6 +52,7 @@
           class="detail-page__content"
           wx:if="{{detail.content || detail.description}}"
           nodes="{{detail.content || detail.description}}"
+          bindtap="onRichContentTap"
         />
       </view>
     </block>

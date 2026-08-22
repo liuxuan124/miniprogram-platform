@@ -1,4 +1,5 @@
 <!-- pages/appointment-success/appointment-success.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="as-page">
   <view class="hero">
     <view class="ok">🗓️</view>

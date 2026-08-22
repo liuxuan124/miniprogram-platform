@@ -2,6 +2,7 @@
 // 根据传入的 id 和 type 加载不同类型的详情内容
 const { get } = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
+const { previewRichHtmlImages } = require('../../utils/rich-html')
 
 Page({
   ...createSharePageConfig(),
@@ -67,5 +68,10 @@ Page({
   onRetry() {
     this.setData({ loading: true, error: null })
     this._loadDetail(this.data.id, this.data.type)
+  },
+
+  onRichContentTap() {
+    const detail = this.data.detail || {}
+    previewRichHtmlImages(detail.content || detail.description)
   },
 })

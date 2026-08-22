@@ -129,7 +129,7 @@
 }
 
 .method__icon--wx {
-  background: linear-gradient(145deg, #1aad19, #07c160);
+  background: linear-gradient(145deg, #1aad19, var(--wx));
 }
 
 .method__icon--bal {

@@ -1,24 +1,24 @@
 /* pages/login/login.wxss — Half-screen login, aligned with app design system */
 
 page {
-  background: #f5f7fb;
+  background: var(--bg);
 }
 
 .login-page {
   --brand: #315efb;
   --brand-dark: #2446c7;
   --brand-soft: #eef3ff;
-  --ink: #172033;
-  --ink-2: #44506a;
-  --ink-3: #7c879d;
-  --line: #e7ebf3;
+  --ink: var(--ink);
+  --ink-2: var(--ink-2);
+  --ink-3: var(--ink-3);
+  --line: var(--line);
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   overflow: hidden;
   color: var(--ink);
-  background: #f5f7fb;
+  background: var(--bg);
 }
 
 .login-backdrop {
@@ -29,7 +29,7 @@ page {
   overflow: hidden;
   background:
     radial-gradient(circle at 84% 18%, rgba(49, 94, 251, 0.13) 0%, rgba(49, 94, 251, 0) 31%),
-    #f5f7fb;
+    var(--bg);
   animation: backdrop-fade-in 320ms ease-out both;
 }
 

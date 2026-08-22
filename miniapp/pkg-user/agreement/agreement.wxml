@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page">
   <view class="header">{{title}}</view>
   <view class="content">

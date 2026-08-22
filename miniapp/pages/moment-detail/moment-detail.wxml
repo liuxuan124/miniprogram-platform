@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="moment-page" wx:if="{{!loading && moment}}">
   <view class="moment-head">
     <image wx:if="{{moment.author_avatar}}" class="moment-av-img" src="{{moment.author_avatar}}" mode="aspectFill" />
