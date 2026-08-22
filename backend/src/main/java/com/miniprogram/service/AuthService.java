@@ -22,6 +22,8 @@ public interface AuthService {
      */
     void logout();
 
+    void logout(String accessToken);
+
     /**
      * 获取当前用户信息
      */

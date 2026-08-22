@@ -3,14 +3,20 @@ package com.miniprogram.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
+import com.miniprogram.common.MoneyUtils;
 import com.miniprogram.config.WxPayRuntimeConfig;
 import com.miniprogram.dto.WxPayResponse;
 import com.miniprogram.entity.Order;
+import com.miniprogram.entity.OrderItem;
 import com.miniprogram.entity.Payment;
+import com.miniprogram.entity.Product;
+import com.miniprogram.mapper.OrderItemMapper;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
+import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.PaymentService;
+import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.WxPayConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +24,12 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.miniprogram.support.WxPayNotifyCrypto;
+import com.miniprogram.support.WxPayNotifyVerifier;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.util.StringUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -34,11 +43,16 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         implements PaymentService {
 
     private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final ProductMapper productMapper;
     private final UserMapper userMapper;
     private final WxPayConfigService wxPayConfigService;
     private final WxPayNotifyCrypto wxPayNotifyCrypto;
+    private final WxPayNotifyVerifier wxPayNotifyVerifier;
+    private final StringRedisTemplate stringRedisTemplate;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final SubscribeMessageService subscribeMessageService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -91,39 +105,42 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void handleWxNotify(String xmlData) {
+    public void handleWxNotify(String body, String timestamp, String nonce, String signature, String serial) {
+        // 1) 平台证书/公钥验签（防伪造）
+        wxPayNotifyVerifier.verify(body, timestamp, nonce, signature, serial);
+
         Map<String, Object> paymentData;
         try {
-            // AES-GCM 为认证加密：解密成功即证明报文由持有 apiV3Key 的微信侧产生（防伪造）
-            paymentData = wxPayNotifyCrypto.decryptNotifyPayload(xmlData);
+            paymentData = wxPayNotifyCrypto.decryptNotifyPayload(body);
         } catch (Exception e) {
-            // 解密/验签失败：拒绝处理，返回 FAIL（由 Controller 包装），可疑报文不入库
-            log.error("微信支付回调验签/解密失败，已拒绝", e);
-            throw new BusinessException(700402, "回调验签失败");
+            log.error("微信支付回调解密失败，已拒绝", e);
+            throw new BusinessException(700402, "回调解密失败");
         }
 
         String outTradeNo = (String) paymentData.get("out_trade_no");
         String transactionId = (String) paymentData.get("transaction_id");
         String tradeState = (String) paymentData.get("trade_state");
 
-        // 非成功状态：确认接收即可，无需处理，返回 SUCCESS 避免微信无意义重试
         if (!"SUCCESS".equals(tradeState)) {
             log.info("微信支付回调非成功状态: {}, orderNo={}", tradeState, outTradeNo);
+            return;
+        }
+
+        // 2) Redis 防重放（多实例共享）
+        if (StringUtils.hasText(transactionId) && !markNotifyOnce(transactionId)) {
+            log.info("微信支付回调重放忽略 orderNo={} tx={}", outTradeNo, transactionId);
             return;
         }
 
         Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
                 .eq(Order::getOrderNo, outTradeNo));
         if (order == null) {
-            // 订单不存在：无法处理，确认接收避免无限重试
             log.warn("微信支付回调订单不存在: {}", outTradeNo);
             return;
         }
 
-        // 金额一致性校验，防止金额被篡改（amount.total 单位为分）
         verifyNotifyAmount(paymentData, order, outTradeNo);
 
-        // 幂等：仅当支付记录处于 pending 时更新
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
                 .eq(Payment::getOrderId, order.getId()));
         if (payment != null && "pending".equals(payment.getStatus())) {
@@ -133,16 +150,61 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             this.updateById(payment);
         }
 
-        // 幂等：仅当订单待支付时更新
         if ("pending_payment".equals(order.getStatus())) {
             order.setPaidAt(LocalDateTime.now());
-            // 所有商品统一进入待发货，由商家在订单中完成后续发货。
-            order.setStatus("paid");
+            if (Boolean.TRUE.equals(order.getAutoFulfill()) && "virtual".equalsIgnoreCase(order.getFulfillmentType())) {
+                String content = buildAutoFulfillContent(order.getId());
+                order.setStatus("completed");
+                order.setVirtualDeliveryContent(content);
+                order.setShippedAt(LocalDateTime.now());
+            } else {
+                order.setStatus("paid");
+            }
             orderMapper.updateById(order);
+            try {
+                subscribeMessageService.enqueue(order.getUserId(), "order_status", order.getOrderNo(),
+                        Map.of("status", order.getStatus(), "orderNo", order.getOrderNo()));
+            } catch (Exception e) {
+                log.warn("订阅消息入队失败 orderNo={}", order.getOrderNo(), e);
+            }
         }
 
         log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
-        // 处理过程中若抛出异常（如 DB 失败），将向上传播，Controller 返回 FAIL 触发微信重试
+    }
+
+    /** @return true 表示首次见到，可继续处理 */
+    private boolean markNotifyOnce(String transactionId) {
+        try {
+            Boolean ok = stringRedisTemplate.opsForValue()
+                    .setIfAbsent("wxpay:notify:" + transactionId, "1", Duration.ofHours(24));
+            return Boolean.TRUE.equals(ok);
+        } catch (Exception e) {
+            log.warn("Redis 防重放失败，降级为放行单次处理 tx={}", transactionId, e);
+            return true;
+        }
+    }
+
+    private String buildAutoFulfillContent(Long orderId) {
+        try {
+            List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
+                    .eq(OrderItem::getOrderId, orderId));
+            StringBuilder sb = new StringBuilder();
+            for (OrderItem item : items) {
+                Product product = productMapper.selectById(item.getProductId());
+                if (product == null) continue;
+                if (StringUtils.hasText(product.getFulfillContent())) {
+                    sb.append(product.getName()).append("：\n")
+                            .append(product.getFulfillContent()).append("\n\n");
+                } else {
+                    sb.append(product.getName()).append("：已自动开通，请在「我的」查看权益。\n\n");
+                }
+            }
+            String text = sb.toString().trim();
+            return StringUtils.hasText(text) ? text : "支付成功，权益已自动发放。";
+        } catch (Exception e) {
+            log.warn("自动履约内容生成失败 orderId={}", orderId, e);
+            return "支付成功，权益已自动发放。";
+        }
     }
 
     /**
@@ -160,7 +222,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             return;
         }
         long notifyCents = Long.parseLong(String.valueOf(total));
-        long orderCents = order.getPayAmount().movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+        long orderCents = MoneyUtils.toCentsLong(order.getPayAmount());
         if (notifyCents != orderCents) {
             log.error("微信支付回调金额不一致, orderNo={}, notify={}分, order={}分", outTradeNo, notifyCents, orderCents);
             throw new BusinessException(700403, "回调金额与订单不一致");
@@ -192,7 +254,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         body.put("notify_url", payConfig.notifyUrl());
 
         Map<String, Object> amount = new LinkedHashMap<>();
-        amount.put("total", order.getPayAmount().multiply(java.math.BigDecimal.valueOf(100)).intValue()); // 分
+        amount.put("total", MoneyUtils.toCents(order.getPayAmount())); // 分
         amount.put("currency", "CNY");
         body.put("amount", amount);
 

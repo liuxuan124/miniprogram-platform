@@ -3,19 +3,28 @@ package com.miniprogram.config;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.entity.AdminUser;
 import com.miniprogram.entity.PageTemplate;
+import com.miniprogram.entity.Permission;
 import com.miniprogram.entity.Role;
+import com.miniprogram.entity.RolePermission;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.PageTemplateMapper;
+import com.miniprogram.mapper.PermissionMapper;
 import com.miniprogram.mapper.RoleMapper;
+import com.miniprogram.mapper.RolePermissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * 数据初始化器
- * 应用启动时检查并创建默认超级管理员账号
+ * 应用启动时检查并创建默认超级管理员账号；补齐 super_admin 全部权限点
  */
 @Slf4j
 @Component
@@ -26,37 +35,80 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleMapper roleMapper;
     private final PageTemplateMapper pageTemplateMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PermissionMapper permissionMapper;
+    private final RolePermissionMapper rolePermissionMapper;
 
     @Override
     public void run(String... args) {
         initDefaultAdmin();
+        ensureSuperAdminPermissions();
         initDefaultTemplates();
+    }
+
+    /**
+     * 启动时把所有权限点补齐给 super_admin，避免新迁移漏绑导致 403
+     */
+    private void ensureSuperAdminPermissions() {
+        Role superAdminRole = roleMapper.selectOne(new LambdaQueryWrapper<Role>()
+                .eq(Role::getCode, "super_admin").last("LIMIT 1"));
+        if (superAdminRole == null) {
+            log.warn("未找到 super_admin 角色，跳过权限自愈");
+            return;
+        }
+        List<Permission> all = permissionMapper.selectList(null);
+        if (all == null || all.isEmpty()) return;
+
+        Set<Long> bound = rolePermissionMapper.selectList(new LambdaQueryWrapper<RolePermission>()
+                        .eq(RolePermission::getRoleId, superAdminRole.getId()))
+                .stream().map(RolePermission::getPermissionId).collect(Collectors.toCollection(HashSet::new));
+
+        int added = 0;
+        for (Permission p : all) {
+            if (p.getId() == null || bound.contains(p.getId())) continue;
+            RolePermission rp = new RolePermission();
+            rp.setRoleId(superAdminRole.getId());
+            rp.setPermissionId(p.getId());
+            rolePermissionMapper.insert(rp);
+            added++;
+        }
+        if (added > 0) {
+            log.info("已为 super_admin 补齐 {} 个权限点", added);
+        }
     }
 
     /**
      * 初始化默认超级管理员
      */
     private void initDefaultAdmin() {
-        // 检查是否已存在admin用户
         LambdaQueryWrapper<AdminUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AdminUser::getUsername, "admin");
         AdminUser existing = adminUserMapper.selectOne(wrapper);
 
         if (existing == null) {
-            // 查找超级管理员角色
             LambdaQueryWrapper<Role> roleWrapper = new LambdaQueryWrapper<>();
             roleWrapper.eq(Role::getCode, "super_admin");
             Role superAdminRole = roleMapper.selectOne(roleWrapper);
 
+            String initialPassword = System.getenv("ADMIN_INITIAL_PASSWORD");
+            boolean generated = false;
+            if (initialPassword == null || initialPassword.isBlank()) {
+                initialPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+                generated = true;
+            }
+
             AdminUser admin = new AdminUser();
             admin.setUsername("admin");
-            admin.setPasswordHash(passwordEncoder.encode("admin@123"));
+            admin.setPasswordHash(passwordEncoder.encode(initialPassword));
             admin.setRealName("超级管理员");
             admin.setRoleId(superAdminRole != null ? superAdminRole.getId() : 1L);
             admin.setStatus(1);
 
             adminUserMapper.insert(admin);
-            log.info("初始化默认超级管理员账号: admin / admin@123");
+            if (generated) {
+                log.warn("已初始化超级管理员 admin，初始密码（仅打印一次）: {}", initialPassword);
+            } else {
+                log.info("已初始化超级管理员 admin（密码来自 ADMIN_INITIAL_PASSWORD）");
+            }
         } else {
             log.info("超级管理员账号已存在，跳过初始化");
         }

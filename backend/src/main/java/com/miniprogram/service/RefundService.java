@@ -21,7 +21,7 @@ public interface RefundService extends IService<Refund> {
     void executeRefund(Long refundId);
 
     /**
-     * 微信退款回调处理
+     * 微信退款回调处理（须先平台证书/公钥验签）
      */
-    void handleWxRefundNotify(String jsonData);
+    void handleWxRefundNotify(String body, String timestamp, String nonce, String signature, String serial);
 }

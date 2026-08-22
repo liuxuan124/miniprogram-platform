@@ -44,46 +44,50 @@ public class SecurityConfig {
                         // ========== 公开接口（无需认证） ==========
                         // 活动仅 GET 列表/单 id 详情匿名；勿用 /**，否则 signup / my-signup 也会放行
                         .requestMatchers(HttpMethod.GET, "/api/v1/mp/activities", "/api/v1/mp/activities/*").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/mp/contents",
+                                "/api/v1/mp/contents/**",
+                                "/api/v1/mp/products",
+                                "/api/v1/mp/products/**",
+                                "/api/v1/mp/product-categories",
+                                "/api/v1/mp/coupons",
+                                "/api/v1/mp/pages",
+                                "/api/v1/mp/pages/**",
+                                "/api/v1/mp/preview-drafts/**",
+                                "/api/v1/mp/content-categories",
+                                "/api/v1/mp/content-categories/**",
+                                "/api/v1/mp/form-templates/*",
+                                "/api/v1/mp/appointment-services",
+                                "/api/v1/mp/appointment-services/*/slots",
+                                "/api/v1/mp/search/insights",
+                                "/api/v1/mp/subscribe/templates",
+                                "/api/v1/mp/system/config",
+                                "/api/v1/mp/config/public",
+                                "/api/v1/mp/questions",
+                                "/api/v1/mp/questions/{id:\\d+}",
+                                "/api/v1/mp/files/{id:\\d+}",
+                                "/api/v1/mp/files/{id:\\d+}/download",
+                                "/api/v1/mp/files/{id:\\d+}/preview"
+                        ).permitAll()
                         .requestMatchers(
                                 // 管理后台登录
                                 "/api/v1/admin/auth/login",
                                 // 小程序微信登录
                                 "/api/v1/mp/auth/login",
-                                // 小程序内容公开接口
-                                "/api/v1/mp/contents",
-                                "/api/v1/mp/contents/**",
-                                // 小程序商品公开接口
-                                "/api/v1/mp/products",
-                                "/api/v1/mp/products/**",
-                                "/api/v1/mp/product-categories",
-                                // 小程序优惠券展示接口公开，领取动作仍需登录
-                                "/api/v1/mp/coupons",
-                                // 小程序页面 DSL 公开接口
-                                "/api/v1/mp/pages",
-                                "/api/v1/mp/pages/**",
-                                // 装修器临时草稿预览（手机扫码，token 短时有效）
-                                "/api/v1/mp/preview-drafts/**",
-                                // 内容分类标签（公开）
-                                "/api/v1/mp/content-categories",
-                                "/api/v1/mp/content-categories/**",
-                                // 小程序表单公开接口
-                                "/api/v1/mp/form-templates/*",
-                                // 小程序预约服务公开接口
-                                "/api/v1/mp/appointment-services",
-                                "/api/v1/mp/appointment-services/*/slots",
                                 // 微信支付回调（公开）
                                 "/api/v1/mp/payments/wx-notify",
                                 "/api/v1/mp/payments/wx-refund-notify",
                                 // 小程序页面访问上报（公开）
                                 "/api/v1/mp/statistics/page-access",
-                                // 小程序问答公开读接口（提问 POST、/my 仍需登录）
-                                // 小程序端公开配置
-                                "/api/v1/mp/system/config",
-                                "/api/v1/mp/config/public",
+                                "/api/v1/mp/events",
+                                "/api/v1/mp/events/batch",
+                                "/api/v1/mp/search/log",
                                 // 上传文件静态资源访问
                                 "/uploads/**",
                                 // 健康检查
                                 "/api/health",
+                                "/actuator/health",
+                                "/actuator/health/**",
                                 // Swagger / OpenAPI
                                 "/doc.html",
                                 "/swagger-ui/**",
@@ -92,11 +96,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/questions").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/questions/{id:\\d+}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/files/{id:\\d+}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/files/{id:\\d+}/download").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/files/{id:\\d+}/preview").permitAll()
+                        // prometheus：仅内网 compose 抓取（不映射到公网），允许无鉴权
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // ========== 敏感模块：仅超级管理员（S1 两级 RBAC） ==========
                         // 财务中心、AI 配置(含各厂商 API Key)、退款、系统配置、用户/角色/权限管理
                         .requestMatchers(
