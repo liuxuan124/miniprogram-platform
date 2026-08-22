@@ -7,8 +7,10 @@ const { AuthUtil } = require('../../utils/auth')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const {
   buildNoteGalleryUrls,
+  extractImagesFromHtml,
   extractNoteParagraphs,
   hashTags: buildHashTags,
+  inferWechatNewspic,
 } = require('../../utils/note-content')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
@@ -42,6 +44,9 @@ function resolveFormat(item) {
     return { key: 'data', label: '数据', isNote: false }
   }
   if (type === 'article' || type === 'longform') {
+    if (inferWechatNewspic(item)) {
+      return { key: 'note', label: '笔记', isNote: true }
+    }
     return { key: 'article', label: '长文', isNote: false }
   }
 
@@ -51,6 +56,10 @@ function resolveFormat(item) {
   }
   if (wxTags.some((t) => t === 'wx-type:news')) {
     return { key: 'article', label: '长文', isNote: false }
+  }
+
+  if (inferWechatNewspic(item)) {
+    return { key: 'note', label: '笔记', isNote: true }
   }
 
   const source = String(item.source || '').trim()
@@ -272,7 +281,10 @@ Page({
         let gallerySlides = []
         let galleryHeight = 750
         if (isNote) {
-          const uniq = buildNoteGalleryUrls(cover, extras)
+          const htmlImages = extras.length
+            ? []
+            : extractImagesFromHtml(article.content).map((url) => resolveMediaUrl(url)).filter(Boolean)
+          const uniq = buildNoteGalleryUrls(cover, extras.length ? extras : htmlImages)
           if (uniq.length >= 1) {
             gallerySlides = uniq.map((url, i) => ({ type: 'image', url, key: `img-${i}` }))
           } else {

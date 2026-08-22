@@ -366,7 +366,11 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         String title = trim(item.getStr("title"));
         boolean hasThumb = StringUtils.hasText(item.getStr("thumb_url"));
 
-        // 长文：正文较长时一律按文章处理
+        // 长文：正文较长时一律按文章处理（贴图判定在此之前）
+        if (htmlImages.size() >= 1 && htmlImages.size() <= 4 && plain.length() <= 1200 && hasThumb) {
+            return true;
+        }
+
         if (plain.length() > 800) {
             return false;
         }

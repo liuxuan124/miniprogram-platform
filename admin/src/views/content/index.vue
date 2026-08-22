@@ -335,6 +335,7 @@ import {
 } from '@/api/content'
 import { syncWeChatPublishedContents, type WeChatContentSyncResult } from '@/api/wechat'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
+import { inferContentFormat, parseContentTags } from '@/utils/content-format'
 import {
   CONTENT_FORMAT_FILTER_OPTIONS,
   CONTENT_FORMAT_META,
@@ -426,52 +427,20 @@ function normalizeStatus(statusRaw: unknown): ContentStatus {
 }
 
 function inferType(raw: RawRecord): { typeLabel: string; typeValue: ContentFormatType } {
-  const explicit = `${raw.type || raw.contentType || raw.content_type || ''}`.toLowerCase()
-  if (explicit === 'note') return { typeLabel: CONTENT_FORMAT_META.note.label, typeValue: 'note' }
-  if (explicit === 'article') return { typeLabel: CONTENT_FORMAT_META.article.label, typeValue: 'article' }
-  if (explicit === 'moment') return { typeLabel: CONTENT_FORMAT_META.moment.label, typeValue: 'moment' }
-
-  const tags = parseTags(raw.tags)
-  if (tags.some((t) => t === 'wx-type:newspic')) {
-    return { typeLabel: CONTENT_FORMAT_META.note.label, typeValue: 'note' }
+  const typeValue = inferContentFormat(raw as Record<string, unknown>)
+  return {
+    typeLabel: CONTENT_FORMAT_META[typeValue]?.label ?? '长文',
+    typeValue,
   }
-  if (tags.some((t) => t === 'wx-type:news')) {
-    return { typeLabel: CONTENT_FORMAT_META.article.label, typeValue: 'article' }
-  }
-
-  if (explicit.includes('video') || explicit.includes('视频')) {
-    return { typeLabel: CONTENT_FORMAT_META.video.label, typeValue: 'video' }
-  }
-  if (explicit.includes('rich') || explicit.includes('graphic') || explicit.includes('图文')) {
-    return { typeLabel: CONTENT_FORMAT_META.rich.label, typeValue: 'rich' }
-  }
-
-  const html = `${raw.content || ''}`.toLowerCase()
-  if (html.includes('<video')) return { typeLabel: CONTENT_FORMAT_META.video.label, typeValue: 'video' }
-  if (html.includes('<img')) return { typeLabel: CONTENT_FORMAT_META.rich.label, typeValue: 'rich' }
-  return { typeLabel: CONTENT_FORMAT_META.article.label, typeValue: 'article' }
 }
 
 function typeTagType(row: ContentRow): 'success' | 'warning' | 'info' | 'danger' | '' {
   return CONTENT_FORMAT_META[row.typeValue]?.tagType ?? ''
 }
 
-function parseTags(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map((t) => String(t)).filter(Boolean)
-  if (typeof raw === 'string' && raw.trim()) {
-    try {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed.map((t) => String(t)).filter(Boolean)
-    } catch {
-      return raw.split(',').map((t) => t.trim()).filter(Boolean)
-    }
-  }
-  return []
-}
-
 function normalizeArticle(raw: RawRecord): ContentRow {
   const type = inferType(raw)
-  const tags = parseTags(raw.tags)
+  const tags = parseContentTags(raw.tags)
   const sortOrder = Number(raw.sortOrder ?? raw.sort ?? 0)
   const recommended = tags.includes(RECOMMEND_TAG) || sortOrder < 0 || Boolean(
     raw.recommended ?? raw.recommend ?? raw.isRecommend ?? raw.is_recommend ?? false
