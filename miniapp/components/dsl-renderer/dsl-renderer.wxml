@@ -465,6 +465,56 @@
     styleString="{{comp.styleString}}"
   />
 
+  <!-- 容器/通栏/热区/卖点（DSL v2 轻量渲染） -->
+  <view wx:elif="{{comp.type === 'container'}}" class="dsl-container" style="{{comp.styleString}}">
+    <view wx:if="{{comp.props.title}}" class="dsl-container__title">{{comp.props.title}}</view>
+    <view class="dsl-container__body dsl-container__body--{{comp.props.layout || 'row'}}" style="gap: {{(comp.props.gap || 12) * 2}}rpx;">
+      <view
+        wx:for="{{comp.children}}"
+        wx:key="id"
+        class="dsl-container__child"
+        style="{{comp.props.layout === 'grid' ? ('width:' + (100 / (comp.props.columns || 2)) + '%;box-sizing:border-box;') : (comp.props.layout === 'stack' ? 'width:100%;' : 'flex:1;min-width:0;')}}"
+      >
+        <dsl-renderer component="{{item}}" />
+      </view>
+    </view>
+  </view>
+
+  <view
+    wx:elif="{{comp.type === 'section_bg'}}"
+    class="dsl-section-bg"
+    style="{{comp.styleString}};min-height:{{(comp.props.min_height || 120) * 2}}rpx;{{comp.props.background_type === 'gradient' ? ('background:linear-gradient(180deg,' + (comp.props.gradient_from || '#F5F7FB') + ',' + (comp.props.gradient_to || '#fff') + ');') : (comp.props.background_type === 'image' && comp.props.background_image ? ('background-image:url(' + comp.props.background_image + ');background-size:cover;background-position:center;') : ('background:' + (comp.props.background_color || '#F5F7FB') + ';'))}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="dsl-section-bg__title">{{comp.props.title}}</view>
+    <dsl-renderer wx:for="{{comp.children}}" wx:key="id" component="{{item}}" />
+  </view>
+
+  <view wx:elif="{{comp.type === 'image_hotspot'}}" class="dsl-hotspot" style="{{comp.styleString}}">
+    <image wx:if="{{comp.props.image}}" src="{{comp.props.image}}" mode="widthFix" class="dsl-hotspot__img" />
+    <view wx:else class="dsl-hotspot__empty">请配置热区底图</view>
+    <view
+      wx:for="{{comp.props.hotspots}}"
+      wx:key="index"
+      class="dsl-hotspot__spot"
+      style="left:{{item.x || 0}}%;top:{{item.y || 0}}%;width:{{item.w || 20}}%;height:{{item.h || 15}}%;"
+      data-url="{{item.link_url}}"
+      bindtap="onHotspotTap"
+    ></view>
+  </view>
+
+  <view wx:elif="{{comp.type === 'feature_cards'}}" class="dsl-feature-cards" style="{{comp.styleString}}">
+    <view
+      wx:for="{{comp.props.items}}"
+      wx:key="title"
+      class="dsl-feature-card"
+      style="width: {{100 / (comp.props.columns || 3)}}%;"
+    >
+      <text class="dsl-feature-card__icon">{{item.icon}}</text>
+      <text class="dsl-feature-card__title">{{item.title}}</text>
+      <text class="dsl-feature-card__desc">{{item.desc}}</text>
+    </view>
+  </view>
+
   <!-- 未知组件类型 -->
   <view
     wx:else

@@ -1,4 +1,5 @@
 <!-- pages/product-list/product-list.wxml — 商品列表页 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="product-list-page">
   <!-- 搜索栏 -->
   <view class="shop-banner">

@@ -2,5 +2,7 @@
   "navigationBarTitleText": "内容详情",
   "navigationBarBackgroundColor": "#2f5bff",
   "navigationBarTextStyle": "white",
-  "usingComponents": {}
+  "usingComponents": {
+    "mp-html": "/components/mp-html/index"
+  }
 }

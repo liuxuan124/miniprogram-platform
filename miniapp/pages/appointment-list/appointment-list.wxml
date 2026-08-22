@@ -1,4 +1,5 @@
 <!-- pages/appointment-list/appointment-list.wxml — 预约服务列表 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="appointment-list-page">
   <!-- 搜索栏 -->
   <view class="search-bar">

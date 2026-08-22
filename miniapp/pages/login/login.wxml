@@ -1,4 +1,5 @@
 <!-- pages/login/login.wxml — 手机号快捷登录（登录信息，非完善资料） -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="login-page">
   <view class="login-backdrop">
     <view class="safe-top">

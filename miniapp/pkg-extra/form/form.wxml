@@ -1,4 +1,5 @@
 <!-- pkg-extra/form/form.wxml — 动态表单页 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="form-page" wx:if="{{!submitted}}">
   <!-- 模板描述 -->
   <view class="form-header" wx:if="{{templateDesc}}">

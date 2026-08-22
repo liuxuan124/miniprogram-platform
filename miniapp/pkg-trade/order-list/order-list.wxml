@@ -1,4 +1,5 @@
 <!-- pkg-trade/order-list/order-list.wxml — 我的订单列表 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="order-list-page">
   <!-- 状态 Tab -->
   <scroll-view class="tab-scroll" scroll-x enhanced show-scrollbar="{{false}}">

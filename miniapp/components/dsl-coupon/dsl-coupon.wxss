@@ -14,7 +14,7 @@
 }
 
 .dsl-coupon__title {
-  color: #172033;
+  color: var(--ink);
   font-size: 30rpx;
   font-weight: 700;
 }
@@ -83,7 +83,7 @@
 
 .dsl-coupon__item-name {
   overflow: hidden;
-  color: #172033;
+  color: var(--ink);
   font-size: 26rpx;
   font-weight: 600;
   text-overflow: ellipsis;

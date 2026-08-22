@@ -1,4 +1,5 @@
 <!-- pages/mine/mine.wxml — 对齐后台搭建「我的」配置 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="mine-page">
   <view
     wx:if="{{showDecor}}"

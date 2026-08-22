@@ -1,11 +1,13 @@
 const { StorageUtil } = require('../../utils/storage')
+const { post } = require('../../utils/request')
+const { AuthUtil } = require('../../utils/auth')
 
 const HISTORY_KEY = 'service_chat_history'
 const MAX_MESSAGES = 80
 const WELCOME = {
   id: 1,
   role: 'service',
-  text: '你好，这里是出海笔记客服中心。你可以先查看常见问题，也可以直接联系人工客服。',
+  text: '你好，这里是出海笔记客服中心。你可以先查看常见问题，也可以直接输入问题或联系人工客服。',
 }
 
 const QUICK_REPLY = {
@@ -23,13 +25,15 @@ function loadHistory() {
   return {
     messages: messages.slice(-MAX_MESSAGES),
     nextId: Math.max(2, Number(raw.nextId) || messages.length + 1),
+    sessionId: raw.sessionId || '',
   }
 }
 
-function saveHistory(messages, nextId) {
+function saveHistory(messages, nextId, sessionId) {
   StorageUtil.set(HISTORY_KEY, {
     messages: (messages || []).slice(-MAX_MESSAGES),
     nextId: nextId || 2,
+    sessionId: sessionId || '',
     updatedAt: Date.now(),
   })
 }
@@ -40,6 +44,9 @@ Page({
     quick: ['商品咨询', '订单问题', '发货进度', '退款售后'],
     scrollInto: 'm1',
     nextId: 2,
+    inputText: '',
+    sending: false,
+    sessionId: '',
   },
 
   onLoad() {
@@ -47,7 +54,6 @@ Page({
   },
 
   onShow() {
-    // 从官方客服会话返回时，保持本页 FAQ 记录
     if (!this._restoredOnce) this._restore()
   },
 
@@ -55,25 +61,64 @@ Page({
     const saved = loadHistory()
     this._restoredOnce = true
     if (!saved) {
-      this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1' })
-      saveHistory([WELCOME], 2)
+      this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1', sessionId: '' })
+      saveHistory([WELCOME], 2, '')
       return
     }
     const last = saved.messages[saved.messages.length - 1]
     this.setData({
       messages: saved.messages,
       nextId: saved.nextId,
+      sessionId: saved.sessionId || '',
       scrollInto: last ? ('m' + last.id) : 'm1',
     })
+  },
+
+  onInput(e) {
+    this.setData({ inputText: (e.detail && e.detail.value) || '' })
   },
 
   onQuick(e) {
     const q = e.currentTarget.dataset.q
     if (!q) return
-    this._push('me', q)
-    setTimeout(() => {
-      this._push('service', QUICK_REPLY[q] || '请联系人工客服进一步处理。')
-    }, 220)
+    this._ask(q)
+  },
+
+  onSend() {
+    const q = (this.data.inputText || '').trim()
+    if (!q || this.data.sending) return
+    this.setData({ inputText: '' })
+    this._ask(q)
+  },
+
+  async _ask(question) {
+    this._push('me', question)
+    this.setData({ sending: true })
+    try {
+      if (!AuthUtil.isLoggedIn()) {
+        throw new Error('need_login')
+      }
+      const res = await post('/api/v1/mp/ai/chat', {
+        question,
+        sessionId: this.data.sessionId || undefined,
+      }, { showError: false })
+      const answer = (res && res.answer) || ''
+      const sessionId = (res && res.sessionId) || this.data.sessionId
+      if (sessionId) this.setData({ sessionId })
+      let text = answer || QUICK_REPLY[question] || '已收到，如需进一步帮助可联系人工客服。'
+      if (res && res.action && res.action.type) {
+        const tip = res.action.confirmRequired
+          ? '\n\n（该操作需你自行确认，系统不会自动执行）'
+          : ''
+        text += tip
+      }
+      this._push('service', text, sessionId)
+    } catch (e) {
+      const fallback = QUICK_REPLY[question] || '暂时无法连接智能客服，请稍后再试或联系人工客服。'
+      this._push('service', fallback)
+    } finally {
+      this.setData({ sending: false })
+    }
   },
 
   onClearHistory() {
@@ -83,17 +128,18 @@ Page({
       success: (res) => {
         if (!res.confirm) return
         StorageUtil.remove(HISTORY_KEY)
-        this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1' })
-        saveHistory([WELCOME], 2)
+        this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1', sessionId: '' })
+        saveHistory([WELCOME], 2, '')
       },
     })
   },
 
-  _push(role, text) {
+  _push(role, text, sessionId) {
     const id = this.data.nextId
     const messages = this.data.messages.concat([{ id, role, text, ts: Date.now() }])
     const nextId = id + 1
-    this.setData({ messages, nextId, scrollInto: 'm' + id })
-    saveHistory(messages, nextId)
+    const sid = sessionId != null ? sessionId : this.data.sessionId
+    this.setData({ messages, nextId, scrollInto: 'm' + id, sessionId: sid })
+    saveHistory(messages, nextId, sid)
   },
 })

@@ -1,4 +1,5 @@
 <!-- pages/order-create/order-create.wxml — 确认订单 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="order-page">
   <!-- 收货地址 -->
   <view class="block address-block" bindtap="onSelectAddress" hover-class="block--pressed" wx:if="{{!isVirtual}}">

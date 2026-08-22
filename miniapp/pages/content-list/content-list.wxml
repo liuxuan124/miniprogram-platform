@@ -1,4 +1,5 @@
 <!-- pages/content-list/content-list.wxml — Tab 内容页：装修 DSL 或原型兜底 -->
+<page-meta page-style="{{themePageStyle}}" />
 <import src="../../templates/dsl-tab-body.wxml" />
 <block wx:if="{{dslMode}}">
   <template

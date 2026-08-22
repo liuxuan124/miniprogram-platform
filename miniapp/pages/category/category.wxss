@@ -26,7 +26,7 @@
 }
 
 .category-nav__item--active {
-  background-color: #ffffff;
+  background-color: var(--card);
   color: #1890ff;
   font-weight: 600;
 }

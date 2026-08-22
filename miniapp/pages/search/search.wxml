@@ -1,4 +1,5 @@
 <!-- pages/search/search.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="search-page">
   <view class="search-bar">
     <view class="back" bindtap="goBack">‹</view>

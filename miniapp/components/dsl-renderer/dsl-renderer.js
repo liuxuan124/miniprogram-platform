@@ -375,6 +375,11 @@ Component({
 
     onQuickNavigate(e) {
       const link = (e.currentTarget.dataset.link || '').trim()
+      const compId = (e.currentTarget.dataset.id || (this.data.comp && this.data.comp.id) || '').toString()
+      try {
+        const { track } = require('../../utils/track')
+        track('component_click', { componentId: compId, itemId: link, props: { link } })
+      } catch (err) {}
       if (!link) return
       navigatePage(link)
     },
@@ -399,6 +404,20 @@ Component({
         url: '/pkg-user/service-chat/service-chat',
         fail: () => {},
       })
+    },
+
+    onHotspotTap(e) {
+      const link = (e.currentTarget.dataset.url || '').trim()
+      try {
+        const { track } = require('../../utils/track')
+        track('component_click', {
+          componentId: (this.data.comp && this.data.comp.id) || 'hotspot',
+          itemId: link,
+          props: { type: 'hotspot' },
+        })
+      } catch (err) {}
+      if (!link) return
+      navigatePage(link)
     },
   },
 })

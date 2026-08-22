@@ -18,5 +18,5 @@
 .dsl-float-button__emoji {
   font-size: 36rpx;
   line-height: 1;
-  color: #ffffff;
+  color: var(--card);
 }

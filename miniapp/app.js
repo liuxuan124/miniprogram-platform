@@ -3,6 +3,11 @@ const { AuthUtil } = require('./utils/auth')
 const { StorageUtil } = require('./utils/storage')
 const SystemService = require('./services/system')
 const { resolveSourceChannel } = require('./utils/source-channel')
+const { applyThemeCssVars, installPageThemeHook } = require('./utils/theme')
+const { installPageShareHook } = require('./utils/share')
+
+installPageThemeHook()
+installPageShareHook()
 
 App({
   /** 全局共享状态 */
@@ -50,11 +55,22 @@ App({
     const cached = StorageUtil.get('sourceChannel')
     if (cached) {
       this.globalData.sourceChannel = cached
-      return
+    } else {
+      const channel = resolveSourceChannel(options || {})
+      this.globalData.sourceChannel = channel
+      StorageUtil.set('sourceChannel', channel)
     }
-    const channel = resolveSourceChannel(options || {})
-    this.globalData.sourceChannel = channel
-    StorageUtil.set('sourceChannel', channel)
+    // F6 邀请归因
+    try {
+      const q = (options && options.query) || {}
+      const inviterId = q.inviterId || (options && options.inviterId)
+      if (inviterId) {
+        this.globalData.inviterId = Number(inviterId) || inviterId
+        StorageUtil.set('inviterId', this.globalData.inviterId)
+      } else {
+        this.globalData.inviterId = StorageUtil.get('inviterId') || null
+      }
+    } catch (e) {}
   },
 
   /** 加载系统配置并应用主题 */
@@ -66,13 +82,16 @@ App({
       }
       if (config.miniappThemeConfig) {
         this.globalData.miniappThemeConfig = config.miniappThemeConfig
+        applyThemeCssVars(config.miniappThemeConfig)
         const navBarColor = config.miniappThemeConfig.navBarColor
         // 极简默认：白底黑字；后台显式配置时仍可覆盖
         wx.setNavigationBarColor({
           frontColor: (navBarColor && navBarColor.frontColor) || '#000000',
-          backgroundColor: (navBarColor && navBarColor.backgroundColor) || '#ffffff',
+          backgroundColor: (navBarColor && (navBarColor.backgroundColor || navBarColor)) || '#ffffff',
           animation: { duration: 200, timingFunc: 'easeIn' },
         })
+      } else {
+        applyThemeCssVars({ primaryColor: '#002FA7' })
       }
     } catch (e) {
       console.warn('[App] 加载系统配置失败:', e)

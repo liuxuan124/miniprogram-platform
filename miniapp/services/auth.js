@@ -29,6 +29,15 @@ const AuthService = {
                     token: data.accessToken,
                     userInfo: data.userInfo,
                   })
+                  try {
+                    const inviterId = app.globalData.inviterId || require('../utils/storage').StorageUtil.get('inviterId')
+                    if (inviterId) {
+                      require('../utils/request').post('/api/v1/mp/invite/bind', {
+                        inviterId: Number(inviterId) || inviterId,
+                        scene: 'share',
+                      }, { showError: false }).catch(() => {})
+                    }
+                  } catch (e) {}
                 } else {
                   AuthUtil.setToken(data.accessToken)
                   AuthUtil.setUserInfo(data.userInfo)

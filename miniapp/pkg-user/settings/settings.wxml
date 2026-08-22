@@ -1,4 +1,5 @@
 <!-- pkg-user/settings/settings.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page">
   <!-- 编辑资料 -->
   <view class="section-label">编辑资料</view>

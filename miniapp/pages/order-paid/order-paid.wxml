@@ -1,4 +1,5 @@
 <!-- pages/order-paid/order-paid.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="paid-page">
   <view class="hero">
     <view class="ok">{{paymentConfirmed ? '✓' : '…'}}</view>

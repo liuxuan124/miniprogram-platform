@@ -1,4 +1,5 @@
 <!-- pages/product-detail/product-detail.wxml — 商品详情页 -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="product-detail-page" wx:if="{{!loading}}">
   <!-- 图片轮播：固定高度占位，避免图未加载时内容顶上去 -->
   <view class="detail-swiper-wrap">
@@ -91,7 +92,7 @@
   <!-- 商品详情（富文本） -->
   <view class="detail-section">
     <view class="section-title">商品详情</view>
-    <rich-text wx:if="{{richContent}}" nodes="{{richContent}}" class="rich-content"></rich-text>
+    <rich-text wx:if="{{richContent}}" nodes="{{richContent}}" class="rich-content" bindtap="onRichContentTap"></rich-text>
     <view wx:else class="text-content">
       <text>{{product.description || '暂无详情'}}</text>
     </view>

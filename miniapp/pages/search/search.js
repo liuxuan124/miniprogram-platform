@@ -102,9 +102,17 @@ Page({
         cover: item.coverImage || item.coverUrl || item.cover_url || '',
       }))
       this.setData({ results: contents, loading: false })
+      try {
+        const { trackSearch } = require('../../utils/track')
+        trackSearch(keyword, contents.length)
+      } catch (e) {}
     } catch (e) {
       console.error('[Search] failed:', e)
       this.setData({ loading: false, results: [] })
+      try {
+        const { trackSearch } = require('../../utils/track')
+        trackSearch(keyword, 0)
+      } catch (err) {}
       wx.showToast({ title: '搜索失败，请重试', icon: 'none' })
     }
   },

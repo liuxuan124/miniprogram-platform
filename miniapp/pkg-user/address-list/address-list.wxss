@@ -170,7 +170,7 @@
   bottom: 0;
   z-index: 20;
   padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
-  background: #ffffff;
+  background: var(--card);
   border-top: 1rpx solid #edf0f4;
   box-shadow: 0 -8rpx 24rpx rgba(17, 24, 39, 0.06);
 }

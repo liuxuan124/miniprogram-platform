@@ -26,7 +26,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  color: #ffffff;
+  color: var(--card);
   background: linear-gradient(135deg, #1d73ff 0%, #25b9f6 100%);
 }
 
@@ -43,7 +43,7 @@
 .dsl-banner__fallback-title {
   position: relative;
   z-index: 1;
-  color: #ffffff;
+  color: var(--card);
   font-size: 30rpx;
   font-weight: 800;
 }

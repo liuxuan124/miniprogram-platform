@@ -18,7 +18,7 @@
   width: 100%;
   border-radius: 0;
   overflow: hidden;
-  background-color: #ffffff;
+  background-color: var(--card);
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   margin-bottom: 20rpx;
 }
@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #002FA7, #1A4BBF);
+  background: linear-gradient(135deg, var(--brand), #1A4BBF);
   overflow: hidden;
 }
 
@@ -76,7 +76,7 @@
 
 .dsl-activity-entry__title {
   font-size: 30rpx;
-  color: #172033;
+  color: var(--ink);
   font-weight: 700;
   display: block;
 }
@@ -118,7 +118,7 @@
 
 .dsl-activity-entry__quota {
   margin-top: 8rpx;
-  color: #002FA7;
+  color: var(--brand);
   font-size: 22rpx;
   font-weight: 600;
 }
@@ -132,7 +132,7 @@
   color: #fff;
   font-size: 24rpx;
   font-weight: 700;
-  background: linear-gradient(135deg, #002FA7, #1A4BBF);
+  background: linear-gradient(135deg, var(--brand), #1A4BBF);
   border-radius: 12rpx;
 }
 

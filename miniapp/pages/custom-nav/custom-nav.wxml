@@ -1,4 +1,5 @@
 <!--pages/custom-nav/custom-nav.wxml — 含 brand_header 的装修页（自定义顶栏）-->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="custom-page">
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>

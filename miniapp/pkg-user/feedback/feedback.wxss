@@ -5,7 +5,7 @@
   padding: 12rpx 24rpx; border-radius: 999rpx; background: #fff; color: #555555;
   font-size: 24rpx; border: 1rpx solid #eeeeee;
 }
-.tag.on { background: #111111; color: #ffffff; border-color: #111111; font-weight: 500; }
+.tag.on { background: #111111; color: var(--card); border-color: #111111; font-weight: 500; }
 .ta {
   width: 100%; min-height: 260rpx; background: #fff; border-radius: 16rpx; padding: 24rpx;
   box-sizing: border-box; font-size: 28rpx; line-height: 1.6; border: 1rpx solid #eeeeee;

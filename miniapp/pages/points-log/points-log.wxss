@@ -21,7 +21,7 @@
 
 .points-summary__value {
   font-size: 72rpx;
-  color: #ffffff;
+  color: var(--card);
   font-weight: 800;
   line-height: 1.2;
   margin-top: 8rpx;

@@ -1,4 +1,4 @@
-.qa-detail { padding: 24rpx; background: #f5f7fb; min-height: 100vh; box-sizing: border-box; }
+.qa-detail { padding: 24rpx; background: var(--bg); min-height: 100vh; box-sizing: border-box; }
 .qa-block { background: #fff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 16rpx; }
 .qa-block--answer { border: 1rpx solid #dbeafe; }
 .qa-block__label { font-size: 24rpx; color: #64748b; margin-bottom: 12rpx; }

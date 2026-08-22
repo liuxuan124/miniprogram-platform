@@ -1,4 +1,5 @@
 <!-- pages/write-review/write-review.wxml -->
+<page-meta page-style="{{themePageStyle}}" />
 <view class="wr-page">
   <view class="card prod">
     <image class="cover" src="{{productImage || '/images/default-product.svg'}}" mode="aspectFill" />

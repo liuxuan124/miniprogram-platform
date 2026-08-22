@@ -6,6 +6,7 @@ const cartService = require('../../services/cart')
 const couponService = require('../../services/coupon')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
+const { previewRichHtmlImages } = require('../../utils/rich-html')
 
 /** 相对上传路径 → 可访问的完整 URL */
 function resolveMediaUrl(url) {
@@ -651,6 +652,11 @@ Page({
     }
     wx.navigateTo({ url })
     this.setData({ showSkuPanel: false })
+  },
+
+  /** 富文本图片预览 */
+  onRichContentTap() {
+    previewRichHtmlImages(this.data.richContent)
   },
 
   /** 分享 */

@@ -2,5 +2,7 @@
   "name": "miniprogram-platform-miniapp",
   "version": "1.0.0",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "mp-html": "^2.5.2"
+  }
 }

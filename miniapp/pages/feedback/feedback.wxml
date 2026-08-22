@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page">
   <view class="label">反馈类型</view>
   <view class="tags">

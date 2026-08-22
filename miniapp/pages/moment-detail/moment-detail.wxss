@@ -1,4 +1,4 @@
-.moment-page { padding: 24rpx; background: #f5f7fb; min-height: 100vh; box-sizing: border-box; }
+.moment-page { padding: 24rpx; background: var(--bg); min-height: 100vh; box-sizing: border-box; }
 .moment-head { display: flex; align-items: center; gap: 16rpx; margin-bottom: 20rpx; }
 .moment-av, .moment-av-img { width: 80rpx; height: 80rpx; border-radius: 50%; flex-shrink: 0; }
 .moment-av { display: flex; align-items: center; justify-content: center; background: linear-gradient(140deg, #5c7cff, #2f5bff); color: #fff; font-size: 30rpx; font-weight: 700; }

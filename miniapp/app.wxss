@@ -1,10 +1,13 @@
 /* app.wxss — 出海笔记 Design System 2.0 */
 
 page {
-  --brand: #315efb;
-  --brand-dark: #2446c7;
-  --brand-soft: #eef3ff;
+  --brand: #002FA7;
+  --brand-dark: #00227a;
+  --brand-soft: #e8eefc;
   --brand-muted: #6f85c9;
+  --brand-50: #e8eefc;
+  --brand-100: #d4dff8;
+  --accent: #315efb;
   --ink: #172033;
   --ink-2: #44506a;
   --ink-3: #7c879d;

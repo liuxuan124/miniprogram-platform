@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="page">
   <block wx:if="{{list.length}}">
     <view class="card" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="openItem">

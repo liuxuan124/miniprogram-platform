@@ -39,6 +39,15 @@ const CAT_TO_TOPIC = {
 
 const PROTO_BY_TITLE = Object.fromEntries(ITEMS.map((i) => [i.title, i]))
 
+/** 将 <product id="123"/> 转为可点击商品卡 HTML（mp-html 渲染） */
+function embedProductCards(html) {
+  if (!html || typeof html !== 'string') return html || ''
+  return html.replace(/<product\s+id=["']?(\d+)["']?\s*\/?>/gi, (_m, id) => {
+    const url = `/pages/product-detail/product-detail?id=${id}`
+    return `<a href="${url}" class="mp-product-card" style="display:block;margin:16px 0;padding:12px 14px;border:1px solid #e8edf5;border-radius:10px;background:#f8fafc;text-decoration:none;color:#172033;"><div style="font-size:12px;color:#64748b;margin-bottom:4px;">相关商品</div><div style="font-size:15px;font-weight:700;">查看商品 #${id}</div><div style="font-size:12px;color:#1769ff;margin-top:6px;">点击进入详情 →</div></a>`
+  })
+}
+
 function resolveFormat(item) {
   const type = String(item.contentType || item.content_type || '').toLowerCase()
   if (type === 'note') {
@@ -207,6 +216,8 @@ Page({
     formatKey: 'article',
     formatLabel: '长文',
     topicName: '',
+    layoutTheme: 'standard',
+    videoUrl: '',
     articleMetaLine: '',
     articleLede: '',
     readProgress: 0,
@@ -281,7 +292,7 @@ Page({
   onShareAppMessage() {
     const article = this.data.article
     return {
-      title: article.title || '内容详情',
+      title: article.seoTitle || article.seo_title || article.title || '内容详情',
       path: `/pages/content-detail/content-detail?id=${article.id || this._contentId}`,
       imageUrl: article.cover_url || '',
     }
@@ -290,7 +301,7 @@ Page({
   onShareTimeline() {
     const article = this.data.article
     return {
-      title: article.title || '内容详情',
+      title: article.seoTitle || article.seo_title || article.title || '内容详情',
       query: `id=${article.id || this._contentId}`,
       imageUrl: article.cover_url || '',
     }
@@ -310,9 +321,12 @@ Page({
         const isWechatNewspic = isNote && inferWechatNewspic(article)
         const cover = resolveMediaUrl(article.coverUrl || article.coverImage || article.cover_url || '')
         const rawContent = String(article.content || article.body || '')
+        const withProducts = embedProductCards(rawContent)
         const preparedContent = !isNote
-          ? prepareArticleContentHtml(rawContent, cover, article.title || '')
-          : rawContent
+          ? prepareArticleContentHtml(withProducts, cover, article.title || '')
+          : withProducts
+        const videoUrl = resolveMediaUrl(article.videoUrl || article.video_url || '')
+        const layoutTheme = String(article.layoutTheme || article.layout_theme || 'standard')
         const extras = (Array.isArray(article.images) ? article.images : (Array.isArray(article.gallery) ? article.gallery : []))
           .map((url) => resolveMediaUrl(url))
           .filter(Boolean)
@@ -368,19 +382,28 @@ Page({
         const topicName = isDisplayableCategory(rawTopicName) ? rawTopicName : ''
         const contentId = article.id
         const contentIdKey = String(contentId)
-        const liked = hasStoredId(LIKES_KEY, contentIdKey)
-        const favorited = hasStoredId(FAVORITES_KEY, contentIdKey)
+        const liked = !!article.liked
+        const favorited = !!article.favorited
         const followIds = StorageUtil.get(FOLLOWS_KEY) || []
         const followed = Array.isArray(followIds)
           ? followIds.map(String).includes(AUTHOR_ID)
           : !!(followIds && followIds[AUTHOR_ID])
-        const baseLike = Math.max(
+        const likeCount = Math.max(
           Number(article.likeCount) || 0,
           parseStatCount(proto && proto.stat)
         )
-        // 本地点赞按「基数 ± 1」展示，避免被静态 3.4k 文案锁死
-        const likeCount = liked ? baseLike + 1 : baseLike
-        const comments = seedComments(contentIdKey, likeCount)
+        const serverComments = Array.isArray(article.comments) ? article.comments : null
+        const comments = serverComments
+          ? serverComments.map((c) => ({
+              id: c.id,
+              nickName: c.nickname || '用户',
+              avatarText: String(c.nickname || '用').slice(0, 1),
+              content: c.content,
+              timeText: String(c.createTime || '').replace('T', ' ').slice(0, 16) || '',
+              likes: 0,
+              mine: false,
+            }))
+          : []
 
         const authorName = String(article.author || AUTHOR_NAME).trim() || AUTHOR_NAME
         const authorAvatar = resolveMediaUrl(article.authorAvatar || article.author_avatar || '')
@@ -406,8 +429,11 @@ Page({
             view_count: Number(article.viewCount || article.view_count || 0),
             like_count: likeCount,
             favorite_count: favoriteBase,
-            summary: article.summary || '',
+            seoTitle: article.seoTitle || article.seo_title || '',
+            summary: article.summary || article.seoDescription || '',
             author_avatar: authorAvatar,
+            videoUrl,
+            layoutTheme,
           },
           loading: false,
           isNote,
@@ -415,6 +441,8 @@ Page({
           formatKey: fmt.key,
           formatLabel: fmt.label,
           topicName,
+          layoutTheme,
+          videoUrl,
           gallerySlides,
           galleryIndex: 0,
           galleryCount: gallerySlides.length,
@@ -431,13 +459,34 @@ Page({
           followed,
           likeDisplay: formatCount(likeCount),
           comments,
-          commentCount: comments.length,
-          commentCountDisplay: formatCount(comments.length),
+          commentCount: Number(article.commentCount) || comments.length,
+          commentCountDisplay: formatCount(Number(article.commentCount) || comments.length),
           readProgress: 0,
           authorName,
           authorAvatar,
           authorInitial: authorName.slice(0, 1),
         })
+
+        // 拉取评论列表（公开）
+        request.get(`/api/v1/mp/contents/${contentId}/comments`, {}, { auth: false })
+          .then((list) => {
+            const rows = Array.isArray(list) ? list : []
+            const mapped = rows.map((c) => ({
+              id: c.id,
+              nickName: c.nickname || '用户',
+              avatarText: String(c.nickname || '用').slice(0, 1),
+              content: c.content,
+              timeText: String(c.createTime || '').replace('T', ' ').slice(0, 16) || '',
+              likes: 0,
+              mine: false,
+            }))
+            this.setData({
+              comments: mapped,
+              commentCount: mapped.length,
+              commentCountDisplay: formatCount(mapped.length),
+            })
+          })
+          .catch(() => {})
 
         wx.setNavigationBarTitle({ title: isNote ? '笔记' : '文章' })
         wx.setNavigationBarColor({
@@ -457,10 +506,18 @@ Page({
 
   async _loadRelated() {
     try {
-      const res = await productService.getProductList({ current: 1, size: 4 })
-      const list = res.records || res.list || []
+      const id = this._contentId || (this.data.article && this.data.article.id)
+      let list = []
+      if (id) {
+        const bound = await request.get(`/api/v1/mp/contents/${id}/products`, {}, { auth: false, showError: false }).catch(() => null)
+        list = Array.isArray(bound) ? bound : (bound && bound.records) || []
+      }
+      if (!list.length) {
+        const res = await productService.getProductList({ current: 1, size: 4 })
+        list = res.records || res.list || []
+      }
       this.setData({
-        relatedProducts: list.slice(0, 2).map((p) => ({
+        relatedProducts: list.slice(0, 4).map((p) => ({
           id: p.id,
           name: p.name,
           price: p.price,
@@ -549,23 +606,18 @@ Page({
   onLikeTap() {
     const id = this.data.article && this.data.article.id
     if (id === undefined || id === null || id === '') return
-    const liked = !this.data.liked
-    const article = { ...this.data.article }
-    article.like_count = Math.max(0, (article.like_count || 0) + (liked ? 1 : -1))
-
-    const ids = readIdList(LIKES_KEY)
-    const idKey = String(id)
-    const next = liked
-      ? Array.from(new Set([idKey, ...ids]))
-      : ids.filter((x) => x !== idKey)
-    writeIdList(LIKES_KEY, next)
-
-    this.setData({
-      liked,
-      article,
-      likeDisplay: formatCount(article.like_count),
-    })
-    wx.showToast({ title: liked ? '已点赞' : '已取消点赞', icon: 'none', duration: 1000 })
+    if (!AuthUtil.requireLoginForAction('点赞', { onSuccess: () => this.onLikeTap() })) return
+    request.post(`/api/v1/mp/contents/${id}/like`, {})
+      .then((state) => {
+        const article = { ...this.data.article }
+        article.like_count = state.likeCount || 0
+        this.setData({
+          liked: !!state.liked,
+          article,
+          likeDisplay: formatCount(article.like_count),
+        })
+      })
+      .catch(() => wx.showToast({ title: '点赞失败', icon: 'none' }))
   },
 
   onFavoriteTap() {
@@ -575,15 +627,13 @@ Page({
       wx.showToast({ title: '内容异常，暂无法收藏', icon: 'none' })
       return
     }
-    const favorited = !this.data.favorited
-    const ids = readIdList(FAVORITES_KEY)
-    const idKey = String(id)
-    const next = favorited
-      ? Array.from(new Set([idKey, ...ids]))
-      : ids.filter((x) => x !== idKey)
-    writeIdList(FAVORITES_KEY, next)
-    this.setData({ favorited })
-    wx.showToast({ title: favorited ? '已收藏' : '已取消收藏', icon: 'none' })
+    if (!AuthUtil.requireLoginForAction('收藏', { onSuccess: () => this.onFavoriteTap() })) return
+    request.post(`/api/v1/mp/contents/${id}/favorite`, {})
+      .then((state) => {
+        this.setData({ favorited: !!state.favorited })
+        wx.showToast({ title: state.favorited ? '已收藏' : '已取消收藏', icon: 'none' })
+      })
+      .catch(() => wx.showToast({ title: '收藏失败', icon: 'none' }))
   },
 
   onCommentTap() {
@@ -616,25 +666,22 @@ Page({
 
     this.setData({ commentSubmitting: true })
     const user = AuthUtil.getUserInfo() || {}
-    const nick = user.nickName || '微信用户'
-    const item = {
-      id: `c-${Date.now()}`,
-      nickName: nick,
-      avatarText: String(nick).slice(0, 1) || '我',
-      content: text.slice(0, 200),
-      timeText: '刚刚',
-      likes: 0,
-      mine: true,
-    }
-    const comments = [item, ...(this.data.comments || [])]
-    writeComments(id, comments)
-    this.setData({
-      comments,
-      commentCount: comments.length,
-      commentCountDisplay: formatCount(comments.length),
-      commentDraft: '',
-      commentSubmitting: false,
+    request.post(`/api/v1/mp/contents/${id}/comments`, {
+      content: text.slice(0, 500),
+      nickname: user.nickName || '微信用户',
+      avatar: user.avatarUrl || '',
     })
-    wx.showToast({ title: '评论已发布', icon: 'success' })
+      .then((row) => {
+        // 评论默认待审隐藏，不立即插入公开列表
+        this.setData({
+          commentDraft: '',
+          commentSubmitting: false,
+        })
+        wx.showToast({ title: '已提交，审核后可见', icon: 'none' })
+      })
+      .catch(() => {
+        this.setData({ commentSubmitting: false })
+        wx.showToast({ title: '评论失败', icon: 'none' })
+      })
   },
 })

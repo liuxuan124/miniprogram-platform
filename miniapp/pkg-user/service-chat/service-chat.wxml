@@ -1,3 +1,4 @@
+<page-meta page-style="{{themePageStyle}}" />
 <view class="svc-page">
   <view class="svc-header">
     <view class="svc-header__icon">客</view>
@@ -5,7 +6,7 @@
       <text class="svc-header__title">出海笔记客服</text>
       <view class="svc-header__status">
         <view class="svc-header__dot"></view>
-        <text>人工客服工作日 10:00–19:00 在线</text>
+        <text>智能客服 + 人工 10:00–19:00</text>
       </view>
     </view>
   </view>
@@ -23,6 +24,21 @@
   </view>
   <view class="quick">
     <view wx:for="{{quick}}" wx:key="*this" class="q" data-q="{{item}}" bindtap="onQuick">{{item}}</view>
+  </view>
+
+  <view class="composer">
+    <input
+      class="composer__input"
+      value="{{inputText}}"
+      placeholder="描述你的问题…"
+      confirm-type="send"
+      bindinput="onInput"
+      bindconfirm="onSend"
+      disabled="{{sending}}"
+    />
+    <button class="composer__send" size="mini" bindtap="onSend" disabled="{{sending || !inputText}}">
+      {{sending ? '…' : '发送'}}
+    </button>
   </view>
 
   <view class="contact-bar">
