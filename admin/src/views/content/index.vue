@@ -128,6 +128,47 @@
       </el-table>
 
       <div class="pagination-wrap">
+        <div class="list-metrics">
+          <div class="list-metrics__counts">
+            <button
+              type="button"
+              class="metric-chip"
+              :class="{ active: searchForm.status === 'draft' }"
+              @click="toggleStatusFilter('draft')"
+            >
+              草稿 <strong>{{ statusMetrics.draft }}</strong>
+            </button>
+            <button
+              type="button"
+              class="metric-chip metric-chip--published"
+              :class="{ active: searchForm.status === 'published' }"
+              @click="toggleStatusFilter('published')"
+            >
+              已发布 <strong>{{ statusMetrics.published }}</strong>
+            </button>
+            <button
+              type="button"
+              class="metric-chip metric-chip--unpublished"
+              :class="{ active: searchForm.status === 'unpublished' }"
+              @click="toggleStatusFilter('unpublished')"
+            >
+              已下架 <strong>{{ statusMetrics.unpublished }}</strong>
+            </button>
+            <button
+              type="button"
+              class="metric-chip metric-chip--total"
+              :class="{ active: !searchForm.status }"
+              @click="toggleStatusFilter('')"
+            >
+              合计 <strong>{{ statusMetrics.total }}</strong>
+            </button>
+          </div>
+          <div class="list-metrics__summary">
+            <span>当前列表 <strong>{{ pagination.total }}</strong> 条</span>
+            <span v-if="pageRangeText"> · 本页 {{ pageRangeText }}</span>
+            <span v-if="searchForm.type"> · 类型筛选后本页 {{ filteredRows.length }} 条</span>
+          </div>
+        </div>
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
@@ -437,6 +478,13 @@ const pagination = reactive({
   total: 0,
 })
 
+const statusMetrics = reactive({
+  draft: 0,
+  published: 0,
+  unpublished: 0,
+  total: 0,
+})
+
 function normalizeStatus(statusRaw: unknown): ContentStatus {
   if (typeof statusRaw === 'number') {
     if (statusRaw === 1) return 'published'
@@ -548,6 +596,60 @@ const filteredRows = computed(() => {
   })
 })
 
+const pageRangeText = computed(() => {
+  const visible = filteredRows.value.length
+  if (!visible || !pagination.total) return ''
+  const start = (pagination.page - 1) * pagination.pageSize + 1
+  const end = start + visible - 1
+  return `${start}-${Math.min(end, pagination.total)}`
+})
+
+function metricQueryBase(): Record<string, unknown> {
+  return {
+    current: 1,
+    size: 1,
+    keyword: searchForm.keyword || undefined,
+    categoryId: searchForm.categoryId,
+    category_id: searchForm.categoryId,
+    source: searchForm.source || undefined,
+  }
+}
+
+async function fetchStatusMetricCount(status?: ContentStatus): Promise<number> {
+  const res = await getContentList({
+    ...metricQueryBase(),
+    status: status || undefined,
+  } as any)
+  const data = (res as any).data || {}
+  return Number(data.total || 0)
+}
+
+async function fetchStatusMetrics() {
+  try {
+    const [draft, published, unpublished, total] = await Promise.all([
+      fetchStatusMetricCount('draft'),
+      fetchStatusMetricCount('published'),
+      fetchStatusMetricCount('unpublished'),
+      fetchStatusMetricCount(),
+    ])
+    statusMetrics.draft = draft
+    statusMetrics.published = published
+    statusMetrics.unpublished = unpublished
+    statusMetrics.total = total
+  } catch {
+    statusMetrics.draft = 0
+    statusMetrics.published = 0
+    statusMetrics.unpublished = 0
+    statusMetrics.total = pagination.total
+  }
+}
+
+function toggleStatusFilter(status: ContentStatus | '') {
+  searchForm.status = searchForm.status === status ? '' : status
+  pagination.page = 1
+  fetchList()
+}
+
 async function fetchList() {
   loading.value = true
   try {
@@ -569,6 +671,7 @@ async function fetchList() {
     const serverTotal = Number(data.total || rows.value.length || 0)
     // 有类型筛选时，总数按本页过滤结果估算展示（避免与服务端不一致误导）
     pagination.total = searchForm.type ? filteredRows.value.length : serverTotal
+    await fetchStatusMetrics()
     clearSelection()
   } catch {
     rows.value = []
@@ -1065,6 +1168,83 @@ watch(
   .pagination-wrap {
     margin-top: 14px;
     display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  .list-metrics {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    background: #f8faff;
+    border: 1px solid #e8edf5;
+    border-radius: 10px;
+  }
+
+  .list-metrics__counts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .metric-chip {
+    border: 1px solid #dce3ef;
+    background: #fff;
+    color: #5c6b82;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    strong {
+      margin-left: 4px;
+      color: #1f2d3d;
+      font-weight: 700;
+    }
+
+    &:hover {
+      border-color: #9cb4ff;
+      color: #2f5bff;
+    }
+
+    &.active {
+      border-color: #2f5bff;
+      background: #edf2ff;
+      color: #2f5bff;
+    }
+  }
+
+  .metric-chip--published.active {
+    border-color: #67c23a;
+    background: #f0f9eb;
+    color: #67c23a;
+  }
+
+  .metric-chip--unpublished.active {
+    border-color: #e6a23c;
+    background: #fdf6ec;
+    color: #e6a23c;
+  }
+
+  .list-metrics__summary {
+    font-size: 12px;
+    color: #6b7b93;
+    white-space: nowrap;
+
+    strong {
+      color: #1f2d3d;
+      font-weight: 700;
+    }
+  }
+
+  .pagination-wrap :deep(.el-pagination) {
     justify-content: flex-end;
     overflow-x: auto;
     max-width: 100%;
