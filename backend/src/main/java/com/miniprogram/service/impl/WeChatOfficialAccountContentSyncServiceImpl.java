@@ -124,8 +124,6 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         result.setTotalArticles(articlesProcessed);
-        result.setArticleCount(articleCount);
-        result.setNoteCount(noteCount);
         result.setMessage(String.format(
                 "共同步 %d 条：长文 %d，贴图 %d；新建 %d，更新 %d，跳过 %d，失败 %d",
                 result.getTotalArticles(),
