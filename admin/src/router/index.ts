@@ -146,6 +146,18 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/qa/index.vue'),
         meta: { title: '问答管理', icon: 'ChatDotRound' },
       },
+      {
+        path: 'files',
+        name: 'FileLibrary',
+        component: () => import('@/views/files/index.vue'),
+        meta: { title: '文件库', icon: 'FolderOpened' },
+      },
+      {
+        path: 'files/edit',
+        name: 'FileEdit',
+        component: () => import('@/views/files/edit.vue'),
+        meta: { title: '编辑文件', hidden: true },
+      },
     ],
   },
   {

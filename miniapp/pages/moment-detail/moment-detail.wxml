@@ -31,16 +31,17 @@
     <view
       wx:for="{{attachments}}"
       wx:key="id"
-      class="moment-file"
+      class="moment-file {{item.locked ? 'moment-file--locked' : ''}}"
       data-index="{{index}}"
       bindtap="onOpenAttachment"
     >
       <text class="moment-file__icon">{{item.icon}}</text>
       <view class="moment-file__meta">
         <text class="moment-file__name">{{item.name}}</text>
-        <text class="moment-file__size">{{item.sizeText}}</text>
+        <text class="moment-file__size">{{item.sizeText}}{{item.qualityTier === 'premium' ? ' · 精品' : ''}}</text>
+        <text wx:if="{{item.lockedReason && item.locked}}" class="moment-file__lock">{{item.lockedReason}}</text>
       </view>
-      <text class="moment-file__action">下载</text>
+      <text class="moment-file__action">{{item.actionText}}</text>
     </view>
   </view>
 

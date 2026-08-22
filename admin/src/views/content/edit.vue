@@ -139,9 +139,12 @@
                     {{ attachmentUploading ? '上传中…' : '+ 上传资料文件' }}
                     <input type="file" hidden :disabled="attachmentUploading" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.zip,.rar" @change="onUploadAttachment" />
                   </label>
+                  <el-button v-if="momentAttachments.length < 5" class="upload-btn" @click="filePickerVisible = true">从文件库选择</el-button>
                 </div>
-                <div class="field-hint">最多 5 个附件，单文件 ≤ 20MB。支持 PDF / Office / ZIP 等。</div>
+                <div class="field-hint">最多 5 个附件。推荐使用文件库以配置阅读/下载权限。</div>
               </el-form-item>
+
+              <FilePickerDialog v-model="filePickerVisible" @select="onPickLibraryFile" />
 
               <el-form-item label="作者">
                 <el-input v-model="formData.author" maxlength="64" placeholder="博主昵称" />
@@ -298,6 +301,7 @@ import { normalizeUploadUrl } from '@/api/system'
 import { ContentStatus } from '@/types/content'
 import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
 import ContentPreviewPanel from '@/components/content/ContentPreviewPanel.vue'
+import FilePickerDialog from '@/components/files/FilePickerDialog.vue'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import { getPlainTextFromHtml, type ContentPreviewModel } from '@/utils/content-preview'
 import {
@@ -306,6 +310,7 @@ import {
   formatFileSize,
   normalizeAttachment,
   uploadAttachmentFile,
+  attachmentFromFileLibrary,
 } from '@/utils/content-attachment'
 
 interface FlatCategoryOption {
@@ -330,6 +335,7 @@ const noteImages = ref<string[]>([])
 const noteBody = ref('')
 const noteTagsText = ref('')
 const momentAttachments = ref<ContentAttachment[]>([])
+const filePickerVisible = ref(false)
 const noteImageUploading = ref(false)
 const attachmentUploading = ref(false)
 const avatarUploading = ref(false)
@@ -517,6 +523,13 @@ async function onUploadAuthorAvatar(event: Event) {
 
 function removeAttachment(index: number) {
   momentAttachments.value = momentAttachments.value.filter((_, i) => i !== index)
+}
+
+function onPickLibraryFile(file: { id: number; name: string; size?: number; mimeType?: string; fileType?: string }) {
+  if (momentAttachments.value.length >= 5) return
+  const item = attachmentFromFileLibrary(file, momentAttachments.value.length)
+  momentAttachments.value = [...momentAttachments.value, item]
+  ElMessage.success('已添加文件库附件')
 }
 
 async function onUploadAttachment(event: Event) {

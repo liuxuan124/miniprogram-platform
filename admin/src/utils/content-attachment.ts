@@ -9,6 +9,7 @@ export interface ContentAttachment {
   mimeType: string
   fileType: string
   sortOrder: number
+  fileId?: number
 }
 
 const FILE_TYPE_MAP: Record<string, string> = {
@@ -65,6 +66,8 @@ export function normalizeAttachment(raw: Record<string, unknown>, index = 0): Co
   const name = String(raw.name || raw.fileName || '未命名文件')
   const url = normalizeUploadUrl(String(raw.url || ''))
   const mimeType = String(raw.mimeType || raw.contentType || '')
+  const fileIdRaw = raw.fileId ?? raw.file_id
+  const fileId = fileIdRaw != null && fileIdRaw !== '' ? Number(fileIdRaw) : undefined
   return {
     id: String(raw.id || createAttachmentId()),
     name,
@@ -73,6 +76,26 @@ export function normalizeAttachment(raw: Record<string, unknown>, index = 0): Co
     mimeType,
     fileType: String(raw.fileType || detectFileType(name, mimeType)),
     sortOrder: Number(raw.sortOrder ?? index),
+    fileId: Number.isFinite(fileId) ? fileId : undefined,
+  }
+}
+
+export function attachmentFromFileLibrary(file: {
+  id: number
+  name: string
+  size?: number
+  mimeType?: string
+  fileType?: string
+}, sortOrder = 0): ContentAttachment {
+  return {
+    id: createAttachmentId(),
+    fileId: file.id,
+    name: file.name,
+    url: '',
+    size: Number(file.size || 0),
+    mimeType: file.mimeType || '',
+    fileType: file.fileType || detectFileType(file.name, file.mimeType || ''),
+    sortOrder,
   }
 }
 

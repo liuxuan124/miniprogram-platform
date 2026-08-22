@@ -17,6 +17,8 @@
 .moment-file__meta { flex: 1; min-width: 0; }
 .moment-file__name { display: block; font-size: 26rpx; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moment-file__size { display: block; margin-top: 4rpx; font-size: 22rpx; color: #94a3b8; }
+.moment-file__lock { display: block; margin-top: 4rpx; font-size: 20rpx; color: #f59e0b; }
+.moment-file--locked .moment-file__action { color: #94a3b8; }
 .moment-file__action { font-size: 24rpx; color: #2f5bff; font-weight: 600; }
 .moment-share-tip { text-align: center; color: #94a3b8; font-size: 22rpx; padding: 12rpx 0 40rpx; }
 .moment-loading { padding: 80rpx 0; text-align: center; color: #94a3b8; font-size: 28rpx; }

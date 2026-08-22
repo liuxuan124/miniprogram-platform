@@ -94,6 +94,9 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mp/questions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mp/questions/{id:\\d+}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/files/{id:\\d+}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/files/{id:\\d+}/download").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mp/files/{id:\\d+}/preview").permitAll()
                         // ========== 敏感模块：仅超级管理员（S1 两级 RBAC） ==========
                         // 财务中心、AI 配置(含各厂商 API Key)、退款、系统配置、用户/角色/权限管理
                         .requestMatchers(
