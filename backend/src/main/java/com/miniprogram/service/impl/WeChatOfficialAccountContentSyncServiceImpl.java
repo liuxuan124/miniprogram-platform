@@ -75,7 +75,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         WeChatContentSyncResultVO result = new WeChatContentSyncResultVO();
         List<JSONObject> records = weChatOfficialAccountClient.listAllPublishedRecords();
         result.setTotalPublishRecords(records.size());
-        Map<String, JSONObject> draftNewsByTitle = buildDraftNewsIndex();
+        Map<String, JSONObject> newspicIndex = buildNewspicIndex(records);
 
         Map<String, String> imageCache = new LinkedHashMap<>();
         Map<String, byte[]> mediaCache = new LinkedHashMap<>();
@@ -100,7 +100,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 if (item == null) {
                     continue;
                 }
-                enrichNewsItemFromDraft(item, draftNewsByTitle);
+                enrichNewsItemFromIndex(item, newspicIndex);
                 articlesProcessed++;
                 LocalDateTime importTime = syncBase.plusNanos((long) importSeq++ * 1_000_000L);
                 try {
@@ -174,19 +174,40 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         for (int i = 0; i < size; i++) {
             JSONObject batchItem = i < fromBatch.size() ? fromBatch.getJSONObject(i) : null;
             JSONObject detailItem = i < fromDetail.size() ? fromDetail.getJSONObject(i) : null;
-            JSONObject target = detailItem != null ? JSONUtil.parseObj(detailItem.toString()) : new JSONObject();
+            JSONObject target;
             if (batchItem != null) {
-                mergeNewspicFields(batchItem, target);
-                if (!StringUtils.hasText(target.getStr("title"))) {
-                    target.set("title", batchItem.getStr("title"));
+                target = JSONUtil.parseObj(batchItem.toString());
+                if (detailItem != null) {
+                    if (StringUtils.hasText(detailItem.getStr("content"))) {
+                        target.set("content", detailItem.getStr("content"));
+                    }
+                    if (StringUtils.hasText(detailItem.getStr("url"))) {
+                        target.set("url", detailItem.getStr("url"));
+                    }
+                    if (StringUtils.hasText(detailItem.getStr("digest")) && !StringUtils.hasText(target.getStr("digest"))) {
+                        target.set("digest", detailItem.getStr("digest"));
+                    }
+                    if (StringUtils.hasText(detailItem.getStr("author")) && !StringUtils.hasText(target.getStr("author"))) {
+                        target.set("author", detailItem.getStr("author"));
+                    }
+                    mergeNewspicFields(batchItem, target);
                 }
-                if (!StringUtils.hasText(target.getStr("content"))) {
-                    target.set("content", batchItem.getStr("content"));
-                }
+            } else {
+                target = JSONUtil.parseObj(detailItem.toString());
             }
+            applyNewspicTypeFromSource(batchItem, target);
             merged.add(target);
         }
         return merged;
+    }
+
+    private void applyNewspicTypeFromSource(JSONObject source, JSONObject target) {
+        if (source == null || target == null) {
+            return;
+        }
+        if ("newspic".equalsIgnoreCase(trim(source.getStr("article_type")))) {
+            target.set("article_type", "newspic");
+        }
     }
 
     private void mergeNewspicFields(JSONObject source, JSONObject target) {
@@ -196,13 +217,34 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         if (isEmptyImageInfo(target) && !isEmptyImageInfo(source)) {
             target.set("image_info", source.getJSONObject("image_info"));
         }
-        if (!StringUtils.hasText(target.getStr("article_type")) && StringUtils.hasText(source.getStr("article_type"))) {
-            target.set("article_type", source.getStr("article_type"));
+        String sourceType = trim(source.getStr("article_type"));
+        if ("newspic".equalsIgnoreCase(sourceType)) {
+            target.set("article_type", "newspic");
+        } else if (!StringUtils.hasText(target.getStr("article_type")) && StringUtils.hasText(sourceType)) {
+            target.set("article_type", sourceType);
+        }
+        if (!StringUtils.hasText(target.getStr("thumb_media_id")) && StringUtils.hasText(source.getStr("thumb_media_id"))) {
+            target.set("thumb_media_id", source.getStr("thumb_media_id"));
+        }
+        if (!StringUtils.hasText(target.getStr("thumb_url")) && StringUtils.hasText(source.getStr("thumb_url"))) {
+            target.set("thumb_url", source.getStr("thumb_url"));
         }
     }
 
-    private Map<String, JSONObject> buildDraftNewsIndex() {
+    private Map<String, JSONObject> buildNewspicIndex(List<JSONObject> publishedRecords) {
         Map<String, JSONObject> map = new LinkedHashMap<>();
+        indexNewspicItems(map, buildDraftNewsItems());
+        for (JSONObject record : publishedRecords) {
+            JSONObject content = record.getJSONObject("content");
+            JSONArray newsItems = content != null ? content.getJSONArray("news_item") : null;
+            indexNewspicItems(map, newsItems);
+        }
+        log.info("贴图索引 {} 条（草稿+已发布 batch）", map.size());
+        return map;
+    }
+
+    private List<JSONObject> buildDraftNewsItems() {
+        List<JSONObject> items = new ArrayList<>();
         try {
             for (JSONObject record : weChatOfficialAccountClient.listAllDraftRecords()) {
                 JSONObject content = record.getJSONObject("content");
@@ -212,38 +254,85 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 }
                 for (int i = 0; i < newsItems.size(); i++) {
                     JSONObject item = newsItems.getJSONObject(i);
-                    if (item == null || isEmptyImageInfo(item)) {
-                        continue;
-                    }
-                    String title = trim(item.getStr("title"));
-                    if (StringUtils.hasText(title)) {
-                        map.putIfAbsent(title, item);
+                    if (item != null) {
+                        items.add(item);
                     }
                 }
             }
-            log.info("草稿箱贴图索引 {} 条", map.size());
         } catch (Exception e) {
             log.warn("拉取草稿箱贴图索引失败: {}", e.getMessage());
         }
-        return map;
+        return items;
     }
 
-    private void enrichNewsItemFromDraft(JSONObject item, Map<String, JSONObject> draftIndex) {
-        if (item == null || draftIndex == null || draftIndex.isEmpty() || !isEmptyImageInfo(item)) {
+    private void indexNewspicItems(Map<String, JSONObject> map, JSONArray newsItems) {
+        if (newsItems == null || newsItems.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < newsItems.size(); i++) {
+            JSONObject item = newsItems.getJSONObject(i);
+            if (item == null || !shouldIndexNewspicItem(item)) {
+                continue;
+            }
+            putNewspicIndex(map, trim(item.getStr("title")), item);
+        }
+    }
+
+    private void indexNewspicItems(Map<String, JSONObject> map, List<JSONObject> items) {
+        for (JSONObject item : items) {
+            if (item == null || !shouldIndexNewspicItem(item)) {
+                continue;
+            }
+            putNewspicIndex(map, trim(item.getStr("title")), item);
+        }
+    }
+
+    private boolean shouldIndexNewspicItem(JSONObject item) {
+        if ("newspic".equalsIgnoreCase(trim(item.getStr("article_type")))) {
+            return true;
+        }
+        return !isEmptyImageInfo(item);
+    }
+
+    private void putNewspicIndex(Map<String, JSONObject> map, String title, JSONObject item) {
+        if (!StringUtils.hasText(title)) {
+            return;
+        }
+        map.putIfAbsent(title, item);
+        String normalized = normalizeTitleKey(title);
+        if (StringUtils.hasText(normalized)) {
+            map.putIfAbsent(normalized, item);
+        }
+    }
+
+    private String normalizeTitleKey(String title) {
+        if (!StringUtils.hasText(title)) {
+            return "";
+        }
+        return title
+                .replaceAll("[\\p{So}\\p{Cn}]", "")
+                .replaceAll("\\s+", "")
+                .trim()
+                .toLowerCase();
+    }
+
+    private void enrichNewsItemFromIndex(JSONObject item, Map<String, JSONObject> index) {
+        if (item == null || index == null || index.isEmpty()) {
             return;
         }
         String title = trim(item.getStr("title"));
         if (!StringUtils.hasText(title)) {
             return;
         }
-        JSONObject draftItem = draftIndex.get(title);
-        if (draftItem == null) {
+        JSONObject indexed = index.get(title);
+        if (indexed == null) {
+            indexed = index.get(normalizeTitleKey(title));
+        }
+        if (indexed == null) {
             return;
         }
-        mergeNewspicFields(draftItem, item);
-        if ("newspic".equalsIgnoreCase(trim(draftItem.getStr("article_type")))) {
-            item.set("article_type", "newspic");
-        }
+        mergeNewspicFields(indexed, item);
+        applyNewspicTypeFromSource(indexed, item);
     }
 
     private boolean isEmptyImageInfo(JSONObject item) {
@@ -409,7 +498,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         entity.setImages(toJson(imageUrls));
         entity.setCoverImage(imageUrls.get(0));
 
-        String plainText = extractPlainText(item.getStr("content"));
+        String plainText = resolveNewspicPlainText(item);
         String digest = trim(item.getStr("digest"));
         if (!StringUtils.hasText(plainText) && StringUtils.hasText(digest)) {
             plainText = extractPlainText(digest);
@@ -502,9 +591,6 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         if ("newspic".equalsIgnoreCase(articleType)) {
             return true;
         }
-        if ("news".equalsIgnoreCase(articleType)) {
-            return false;
-        }
 
         JSONObject imageInfo = item.getJSONObject("image_info");
         JSONArray imageList = imageInfo != null ? imageInfo.getJSONArray("image_list") : null;
@@ -512,43 +598,79 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             return true;
         }
 
-        String content = item.getStr("content");
-        String plain = extractPlainText(content);
-        List<String> htmlImages = extractImageUrlsFromHtml(content);
-        String title = trim(item.getStr("title"));
-        boolean hasThumb = StringUtils.hasText(item.getStr("thumb_url"));
-
-        // 长文：正文较长时一律按文章处理（贴图判定在此之前）
-        if (htmlImages.size() >= 1 && htmlImages.size() <= 4 && plain.length() <= 1200 && hasThumb) {
-            return true;
-        }
-
-        if (plain.length() > 800) {
+        if ("news".equalsIgnoreCase(articleType)) {
             return false;
         }
 
-        if (htmlImages.size() >= 2 && plain.length() <= 500) {
+        String content = item.getStr("content");
+        String plain = resolveNewspicPlainText(item);
+        List<String> htmlImages = extractImageUrlsFromHtml(content);
+        String title = trim(item.getStr("title"));
+        boolean hasThumb = StringUtils.hasText(item.getStr("thumb_url"))
+                || StringUtils.hasText(item.getStr("thumb_media_id"));
+
+        if (hasThumb && isNewspicStyleContent(content, plain)) {
             return true;
         }
-        if (htmlImages.size() >= 1 && plain.length() <= 200) {
+
+        if (htmlImages.size() >= 1 && htmlImages.size() <= 20 && plain.length() <= 1200 && hasThumb) {
+            return true;
+        }
+
+        if (htmlImages.size() >= 2 && plain.length() <= 800) {
+            return true;
+        }
+        if (htmlImages.size() >= 1 && plain.length() <= 300) {
             return true;
         }
 
         if (!StringUtils.hasText(content) && hasThumb) {
-            return plain.length() <= 300 || !StringUtils.hasText(plain);
+            return plain.length() <= 680 || !StringUtils.hasText(plain);
         }
 
-        // 微信已发布 freepublish 接口通常不返回 image_info / 正文内 img，贴图仅保留封面+短文
         if (htmlImages.isEmpty() && hasThumb) {
-            if (plain.length() > 0 && plain.length() <= 520) {
+            if (plain.length() > 0 && plain.length() <= 680) {
                 return true;
             }
-            if (plain.length() <= 680 && StringUtils.hasText(title) && NOTE_TITLE_HINT.matcher(title).find()) {
+            if (plain.length() <= 800 && StringUtils.hasText(title) && NOTE_TITLE_HINT.matcher(title).find()) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private String resolveNewspicPlainText(JSONObject item) {
+        String digestPlain = extractPlainText(item.getStr("digest"));
+        String contentPlain = extractPlainText(item.getStr("content"));
+        if (StringUtils.hasText(digestPlain) && digestPlain.length() <= 800) {
+            if (!StringUtils.hasText(contentPlain) || digestPlain.length() <= contentPlain.length()) {
+                return digestPlain;
+            }
+        }
+        return contentPlain;
+    }
+
+    private boolean isNewspicStyleContent(String content, String plain) {
+        if (!StringUtils.hasText(content)) {
+            return plain.length() <= 1200;
+        }
+        String html = content.trim();
+        if (html.contains("<section") || html.contains("data-tools") || html.contains("rich_pages")) {
+            return plain.length() <= 600;
+        }
+        int paragraphCount = 0;
+        Matcher matcher = Pattern.compile("<p\\b", Pattern.CASE_INSENSITIVE).matcher(html);
+        while (matcher.find()) {
+            paragraphCount++;
+        }
+        if (paragraphCount >= 8 && plain.length() > 700) {
+            return false;
+        }
+        if (!html.contains("<img") && plain.length() <= 1200) {
+            return true;
+        }
+        return plain.length() <= 600;
     }
 
     private List<String> collectNewspicImages(
@@ -584,9 +706,16 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         if (ordered.isEmpty()) {
+            String thumbMediaId = trim(item.getStr("thumb_media_id"));
+            if (StringUtils.hasText(thumbMediaId)) {
+                String localUrl = mirrorMediaId(thumbMediaId, mediaCache, imageCache);
+                if (StringUtils.hasText(localUrl)) {
+                    ordered.put("media:" + thumbMediaId, localUrl);
+                }
+            }
             String thumbUrl = trim(item.getStr("thumb_url"));
             if (StringUtils.hasText(thumbUrl)) {
-                ordered.put(thumbUrl, mirrorRemoteImage(thumbUrl, imageCache));
+                ordered.putIfAbsent(thumbUrl, mirrorRemoteImage(thumbUrl, imageCache));
             }
             for (String url : extractImageUrlsFromHtml(item.getStr("content"))) {
                 ordered.putIfAbsent(url, mirrorRemoteImage(url, imageCache));

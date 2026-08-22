@@ -82,9 +82,8 @@ export function inferContentFormat(data: Record<string, unknown>): ContentFormat
 
   const tags = parseContentTags(data.tags)
   if (tags.includes('wx-type:newspic')) return 'note'
-  if (tags.includes('wx-type:news')) return 'article'
-
   if (inferWechatNewspic(data)) return 'note'
+  if (tags.includes('wx-type:news')) return 'article'
   if (explicit === 'article') return 'article'
 
   if (explicit.includes('video') || explicit.includes('视频') || tags.some((t) => t.includes('视频'))) {
