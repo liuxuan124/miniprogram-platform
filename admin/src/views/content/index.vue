@@ -404,7 +404,7 @@ const syncForm = reactive({
 })
 const wechatSyncForm = reactive({
   categoryId: undefined as number | undefined,
-  publish: true,
+  publish: false,
 })
 
 const pagination = reactive({
@@ -589,7 +589,9 @@ async function handleWeChatSyncImport() {
   wechatSyncResult.value = null
   try {
     await ElMessageBox.confirm(
-      '将从公众号拉取全部已发布图文并导入内容库。已导入过的文章会更新正文与封面，是否继续？',
+      wechatSyncForm.publish
+        ? '将从公众号拉取全部已发布图文，并以「已发布」状态写入内容库（已存在的条目也会更新为上架）。是否继续？'
+        : '将从公众号拉取全部已发布图文，并以「草稿」状态写入内容库（已存在的条目也会改为草稿）。是否继续？',
       '公众号全量导入',
       { type: 'warning', confirmButtonText: '开始导入', cancelButtonText: '取消' },
     )
