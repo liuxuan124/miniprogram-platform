@@ -14,27 +14,37 @@
     <view class="n-gallery-wrap">
       <swiper
         class="n-gallery"
+        style="height: {{galleryHeight}}rpx;"
         circular
         bindchange="onGalleryChange"
       >
         <swiper-item wx:for="{{gallerySlides}}" wx:key="key">
-          <image wx:if="{{item.type === 'image'}}" src="{{item.url}}" mode="aspectFill" class="n-img" />
+          <image
+            wx:if="{{item.type === 'image'}}"
+            src="{{item.url}}"
+            mode="widthFix"
+            class="n-img"
+            bindload="onGalleryImageLoad"
+          />
           <view wx:else class="n-art" style="{{item.artStyle}}">
             <text class="n-glyph">{{item.glyph}}</text>
           </view>
         </swiper-item>
       </swiper>
       <view class="n-idx" wx:if="{{galleryCount > 1}}">{{galleryIndex + 1}} / {{galleryCount}}</view>
+      <view class="n-dots" wx:if="{{galleryCount > 1}}">
+        <view
+          wx:for="{{gallerySlides}}"
+          wx:key="key"
+          class="n-dot {{galleryIndex === index ? 'on' : ''}}"
+        ></view>
+      </view>
     </view>
 
     <view class="n-body">
-      <view class="n-chips">
-        <text class="fmt note">笔记</text>
-        <text class="topic" wx:if="{{topicName}}">{{topicName}}</text>
-      </view>
       <view class="n-title">{{article.title}}</view>
 
-      <view class="n-paras">
+      <view class="n-paras" wx:if="{{noteParagraphs.length}}">
         <view class="n-p" wx:for="{{noteParagraphs}}" wx:key="*this">{{item}}</view>
       </view>
 
@@ -42,7 +52,7 @@
         <text wx:for="{{hashTags}}" wx:key="*this">{{item}}</text>
       </view>
 
-      <view class="a-meta">
+      <view class="a-meta a-meta--note">
         <image wx:if="{{authorAvatar}}" class="av av-img" src="{{authorAvatar}}" mode="aspectFill" />
         <view wx:else class="av">{{authorInitial}}</view>
         <view class="a-meta-txt">
@@ -54,25 +64,6 @@
           catchtap="onFollowTap"
           hover-class="follow--pressed"
         >{{followed ? '已关注' : '+ 关注'}}</view>
-      </view>
-
-      <view class="n-actions">
-        <view class="n-act {{liked ? 'hot' : ''}}" bindtap="onLikeTap" hover-class="n-act--pressed">
-          <text class="n-act__icon">{{liked ? '♥' : '♡'}}</text>
-          <text>{{likeDisplay}}</text>
-        </view>
-        <view class="n-act" bindtap="onCommentTap" hover-class="n-act--pressed">
-          <text class="n-act__icon">💬</text>
-          <text>{{commentCountDisplay}}</text>
-        </view>
-        <view class="n-act {{favorited ? 'star' : ''}}" bindtap="onFavoriteTap" hover-class="n-act--pressed">
-          <text class="n-act__icon">{{favorited ? '★' : '☆'}}</text>
-          <text>{{favorited ? '已收藏' : '收藏'}}</text>
-        </view>
-        <button class="n-act n-share share-button-reset" open-type="share" hover-class="n-act--pressed">
-          <text class="n-act__icon">↗</text>
-          <text>分享</text>
-        </button>
       </view>
     </view>
 
@@ -92,7 +83,7 @@
         </view>
       </view>
     </view>
-    <view class="footer-spacer"></view>
+    <view class="footer-spacer footer-spacer--bar"></view>
   </view>
 
   <!-- ========== 长文 / 视频 / 数据：普通文章 ========== -->
@@ -158,8 +149,8 @@
     <view class="footer-spacer footer-spacer--bar"></view>
   </view>
 
-  <!-- 底部栏：文章模式 -->
-  <view class="bottom-bar" wx:if="{{!isNote && !loading}}">
+  <!-- 底部栏 -->
+  <view class="bottom-bar" wx:if="{{!loading}}">
     <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
       <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
       <text class="action-text">{{likeDisplay}}</text>

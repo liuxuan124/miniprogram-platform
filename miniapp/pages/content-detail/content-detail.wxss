@@ -6,7 +6,8 @@
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
 
-.content-detail-page.is-article {
+.content-detail-page.is-article,
+.content-detail-page.is-note {
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
@@ -146,16 +147,19 @@
 }
 
 .n-gallery {
-  height: 720rpx;
+  width: 100%;
 }
 
-.n-img,
+.n-img {
+  width: 100%;
+  display: block;
+  vertical-align: top;
+}
+
 .n-art {
   width: 100%;
-  height: 720rpx;
-}
-
-.n-art {
+  height: 100%;
+  min-height: 520rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -177,6 +181,30 @@
   z-index: 4;
 }
 
+.n-dots {
+  position: absolute;
+  bottom: 24rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10rpx;
+  z-index: 4;
+}
+
+.n-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.n-dot.on {
+  width: 30rpx;
+  border-radius: 6rpx;
+  background: #fff;
+}
+
 .n-body {
   background: #fff;
   padding: 36rpx 32rpx 28rpx;
@@ -191,19 +219,19 @@
   line-height: 1.48;
   font-weight: 700;
   letter-spacing: -0.028em;
-  margin-bottom: 28rpx;
+  margin-bottom: 24rpx;
   color: #0f1219;
 }
 
 .n-paras {
-  margin-bottom: 8rpx;
+  margin-bottom: 4rpx;
 }
 
 .n-p {
   font-size: 29rpx;
   line-height: 1.95;
   color: #39404f;
-  margin-bottom: 28rpx;
+  margin-bottom: 24rpx;
   white-space: pre-wrap;
 }
 
@@ -220,44 +248,10 @@
   font-weight: 500;
 }
 
-.n-actions {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  padding-top: 28rpx;
-  font-size: 25rpx;
-  color: #727a8c;
-}
-
-.n-act {
-  display: inline-flex;
-  align-items: center;
-  gap: 8rpx;
-  padding: 8rpx 12rpx;
-  margin-right: 12rpx;
-  line-height: 1;
-}
-
-.n-act__icon {
-  font-size: 28rpx;
-  line-height: 1;
-}
-
-.n-act.hot {
-  color: #ec2f55;
-}
-
-.n-act.star {
-  color: #f0a020;
-}
-
-.n-act--pressed {
-  opacity: 0.7;
-}
-
-.n-share {
-  margin-left: auto;
-  margin-right: 0;
+.a-meta--note {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .share-button-reset {

@@ -170,6 +170,7 @@ function mapRecord(item) {
   const coverFromImages = imageList.map((url) => resolveMediaUrl(url)).find(Boolean) || ''
   const coverFallback = resolveMediaUrl(item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || '')
   const cover_url = fmt.key === 'note' ? (coverFromImages || coverFallback) : coverFallback
+  const image_count = fmt.key === 'note' ? Math.max(imageList.length, cover_url ? 1 : 0) : 0
   const metaParts = [date]
   if (fmt.key === 'longform') metaParts.push(read)
   if (fmt.key === 'video') metaParts.push(item.duration || '08:24')
@@ -202,6 +203,7 @@ function mapRecord(item) {
     author_initial: author.slice(0, 1),
     author_avatar: authorAvatar,
     cover_url,
+    image_count,
   }
 }
 

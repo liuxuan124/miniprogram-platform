@@ -31,6 +31,7 @@
           lazy-load
         />
         <text wx:else class="dsl-note-feed__glyph">📷</text>
+        <view wx:if="{{item.image_count > 1}}" class="dsl-note-feed__count">{{item.image_count}} 图</view>
       </view>
       <view class="dsl-note-feed__txt">
         <text class="dsl-note-feed__title">{{item.title}}</text>

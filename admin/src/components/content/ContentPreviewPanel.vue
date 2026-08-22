@@ -2,55 +2,129 @@
   <div class="content-preview-panel">
     <div class="phone-frame">
       <div class="phone-notch" />
-      <div class="phone-screen">
-        <div class="pv-cover" :style="coverStyle">
-          <img v-if="coverUrl" :src="coverUrl" alt="" class="pv-cover-img" />
-          <span v-else class="pv-cover-glyph">{{ contentType === 'note' ? '笔' : contentType === 'moment' ? '动' : '文' }}</span>
-        </div>
-        <div class="pv-body">
-          <div class="pv-chips">
-            <span class="pv-fmt">{{ contentType === 'note' ? '笔记' : contentType === 'moment' ? '动态' : '长文' }}</span>
-            <span v-if="categoryLabel" class="pv-topic">{{ categoryLabel }}</span>
-          </div>
-          <h1 class="pv-title">{{ titleText }}</h1>
-          <div v-if="(contentType === 'note' || contentType === 'moment') && galleryImages.length" class="pv-note-gallery">
-            <img v-for="(url, idx) in galleryImages.slice(0, 3)" :key="`${url}-${idx}`" :src="url" alt="" />
-          </div>
-          <div class="pv-meta">
-            <div class="pv-av">
-              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
-              <span v-else>{{ authorInitial }}</span>
+      <div class="phone-screen" :class="{ 'phone-screen--note': contentType === 'note' }">
+        <!-- 笔记：小红书图文详情 -->
+        <template v-if="contentType === 'note'">
+          <div class="pv-note-wrap">
+            <div class="pv-note-gallery">
+              <img
+                v-if="currentGalleryUrl"
+                :src="currentGalleryUrl"
+                alt=""
+                class="pv-note-slide"
+              />
+              <div v-else class="pv-note-slide pv-note-slide--empty">
+                <span>📷</span>
+              </div>
+              <div v-if="galleryUrls.length > 1" class="pv-note-idx">
+                {{ galleryIndex + 1 }} / {{ galleryUrls.length }}
+              </div>
+              <div v-if="galleryUrls.length > 1" class="pv-note-dots">
+                <i
+                  v-for="(_, idx) in galleryUrls"
+                  :key="idx"
+                  :class="{ on: idx === galleryIndex }"
+                  @click="galleryIndex = idx"
+                />
+              </div>
+              <button
+                v-if="galleryUrls.length > 1"
+                type="button"
+                class="pv-note-nav pv-note-nav--prev"
+                aria-label="上一张"
+                @click="prevGallery"
+              >‹</button>
+              <button
+                v-if="galleryUrls.length > 1"
+                type="button"
+                class="pv-note-nav pv-note-nav--next"
+                aria-label="下一张"
+                @click="nextGallery"
+              >›</button>
             </div>
-            <div class="pv-meta-txt">
-              <div class="pv-nm">{{ authorName }}</div>
-              <div class="pv-dt">{{ dateLabel }} · 预计阅读</div>
+
+            <div class="pv-note-body">
+              <h1 class="pv-note-title">{{ titleText }}</h1>
+
+              <div v-if="noteParagraphs.length" class="pv-note-paras">
+                <p v-for="(para, idx) in noteParagraphs" :key="idx">{{ para }}</p>
+              </div>
+
+              <div v-if="displayHashTags.length" class="pv-note-tags">
+                <span v-for="tag in displayHashTags" :key="tag">{{ tag }}</span>
+              </div>
+
+              <div class="pv-meta pv-meta--note">
+                <div class="pv-av">
+                  <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
+                  <span v-else>{{ authorInitial }}</span>
+                </div>
+                <div class="pv-meta-txt">
+                  <div class="pv-nm">{{ authorName }}</div>
+                  <div class="pv-dt">{{ dateLabel }}</div>
+                </div>
+                <span class="pv-follow">+ 关注</span>
+              </div>
             </div>
-            <span class="pv-follow">+ 关注</span>
-          </div>
-          <div v-if="(contentType === 'note' || contentType === 'moment') && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
-          <div v-else-if="hasArticleBody" class="pv-content" v-html="contentHtml" />
-          <div v-if="contentType === 'moment' && attachmentItems.length" class="pv-attachments">
-            <div v-for="item in attachmentItems" :key="item.id || item.name" class="pv-attachment">
-              <span>{{ item.icon }}</span>
-              <span class="pv-attachment__name">{{ item.name }}</span>
+
+            <div class="pv-note-bottom">
+              <span>♡ {{ likeLabel }}</span>
+              <span>💬 评论</span>
+              <span>☆ 收藏</span>
+              <span class="pv-note-bottom__share">↗ 分享</span>
             </div>
           </div>
-          <div v-if="!(noteBodyText || hasArticleBody || attachmentItems.length)" class="pv-empty">暂无正文</div>
-        </div>
+        </template>
+
+        <!-- 长文 / 动态 -->
+        <template v-else>
+          <div class="pv-cover" :style="coverStyle">
+            <img v-if="coverUrl" :src="coverUrl" alt="" class="pv-cover-img" />
+            <span v-else class="pv-cover-glyph">{{ contentType === 'moment' ? '动' : '文' }}</span>
+          </div>
+          <div class="pv-body">
+            <div class="pv-chips">
+              <span class="pv-fmt">{{ contentType === 'moment' ? '动态' : '长文' }}</span>
+              <span v-if="categoryLabel" class="pv-topic">{{ categoryLabel }}</span>
+            </div>
+            <h1 class="pv-title">{{ titleText }}</h1>
+            <div class="pv-meta">
+              <div class="pv-av">
+                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
+                <span v-else>{{ authorInitial }}</span>
+              </div>
+              <div class="pv-meta-txt">
+                <div class="pv-nm">{{ authorName }}</div>
+                <div class="pv-dt">{{ dateLabel }} · 预计阅读</div>
+              </div>
+              <span class="pv-follow">+ 关注</span>
+            </div>
+            <div v-if="contentType === 'moment' && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
+            <div v-else-if="hasArticleBody" class="pv-content" v-html="contentHtml" />
+            <div v-if="contentType === 'moment' && attachmentItems.length" class="pv-attachments">
+              <div v-for="item in attachmentItems" :key="item.id || item.name" class="pv-attachment">
+                <span>{{ item.icon }}</span>
+                <span class="pv-attachment__name">{{ item.name }}</span>
+              </div>
+            </div>
+            <div v-if="!(noteBodyText || hasArticleBody || attachmentItems.length)" class="pv-empty">暂无正文</div>
+          </div>
+        </template>
       </div>
     </div>
-    <p v-if="showHint" class="preview-hint">模拟小程序详情页，样式供参考，实际以端上为准。</p>
+    <p v-if="showHint" class="preview-hint">模拟小程序笔记详情，样式供参考，实际以端上为准。</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import {
   formatPreviewDateLabel,
   getPlainTextFromHtml,
   normalizePreviewMediaUrl,
   type ContentPreviewModel,
 } from '@/utils/content-preview'
+import { extractNoteParagraphs, noteHashTags } from '@/utils/note-content'
 import { fileTypeIcon, formatFileSize } from '@/utils/content-attachment'
 
 const props = withDefaults(
@@ -63,6 +137,8 @@ const props = withDefaults(
   },
 )
 
+const galleryIndex = ref(0)
+
 const contentType = computed(() => props.model.contentType || 'article')
 const titleText = computed(() => props.model.title?.trim() || '未填写标题')
 const categoryLabel = computed(() => props.model.categoryLabel?.replace(/^└\s*/, '') || '')
@@ -72,6 +148,29 @@ const dateLabel = computed(() => formatPreviewDateLabel())
 const contentHtml = computed(() => props.model.contentHtml || '')
 const noteBodyText = computed(() => props.model.noteBody?.trim() || '')
 const hasArticleBody = computed(() => getPlainTextFromHtml(contentHtml.value).length > 0)
+const likeLabel = computed(() => '赞')
+
+const galleryUrls = computed(() =>
+  (props.model.images || [])
+    .map((url) => normalizePreviewMediaUrl(url))
+    .filter(Boolean),
+)
+
+const currentGalleryUrl = computed(() => galleryUrls.value[galleryIndex.value] || '')
+
+const noteParagraphs = computed(() => {
+  if (contentType.value !== 'note') return []
+  const fromHtml = extractNoteParagraphs(contentHtml.value)
+  if (fromHtml.length) return fromHtml
+  return noteBodyText.value ? noteBodyText.value.split(/\n\n+/).map((s) => s.trim()).filter(Boolean) : []
+})
+
+const displayHashTags = computed(() => {
+  const fromTags = noteHashTags(props.model.tags || [])
+  if (fromTags.length) return fromTags
+  if (categoryLabel.value) return [`#${categoryLabel.value}`]
+  return []
+})
 
 const coverUrl = computed(() => {
   const fromCover = normalizePreviewMediaUrl(props.model.coverImage)
@@ -79,12 +178,6 @@ const coverUrl = computed(() => {
   const firstImage = props.model.images?.[0]
   return firstImage ? normalizePreviewMediaUrl(firstImage) : ''
 })
-
-const galleryImages = computed(() =>
-  (props.model.images || [])
-    .map((url) => normalizePreviewMediaUrl(url))
-    .filter(Boolean),
-)
 
 const authorAvatarUrl = computed(() => normalizePreviewMediaUrl(props.model.authorAvatar))
 
@@ -101,6 +194,18 @@ const coverStyle = computed(() => {
   if (coverUrl.value) return {}
   return { background: 'linear-gradient(140deg, #5c7cff, #2f5bff)' }
 })
+
+function prevGallery() {
+  const len = galleryUrls.value.length
+  if (len <= 1) return
+  galleryIndex.value = (galleryIndex.value - 1 + len) % len
+}
+
+function nextGallery() {
+  const len = galleryUrls.value.length
+  if (len <= 1) return
+  galleryIndex.value = (galleryIndex.value + 1) % len
+}
 </script>
 
 <style lang="scss" scoped>
@@ -134,6 +239,159 @@ const coverStyle = computed(() => {
   overflow: auto;
   border-radius: 18px;
   background: #f5f6f9;
+}
+
+.phone-screen--note {
+  background: #0f1219;
+  overflow: hidden;
+}
+
+.pv-note-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 620px;
+}
+
+.pv-note-gallery {
+  position: relative;
+  flex-shrink: 0;
+  height: 300px;
+  background: #0f1219;
+}
+
+.pv-note-slide {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-note-slide--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: linear-gradient(140deg, #2a3144, #1a1f2e);
+}
+
+.pv-note-idx {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  z-index: 3;
+}
+
+.pv-note-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+}
+
+.pv-note-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pv-note-dots i.on {
+  width: 15px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.pv-note-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.pv-note-nav--prev { left: 8px; }
+.pv-note-nav--next { right: 8px; }
+
+.pv-note-body {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  margin-top: -14px;
+  position: relative;
+  z-index: 2;
+  padding: 18px 16px 12px;
+}
+
+.pv-note-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  line-height: 1.48;
+  font-weight: 700;
+  color: #0f1219;
+  letter-spacing: -0.028em;
+}
+
+.pv-note-paras p {
+  margin: 0 0 14px;
+  font-size: 14.5px;
+  line-height: 1.95;
+  color: #39404f;
+  white-space: pre-wrap;
+}
+
+.pv-note-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.pv-note-tags span {
+  font-size: 12.5px;
+  color: #2f5bff;
+  font-weight: 500;
+}
+
+.pv-meta--note {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.pv-note-bottom {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid #edeff4;
+  font-size: 12.5px;
+  color: #727a8c;
+}
+
+.pv-note-bottom__share {
+  margin-left: auto;
 }
 
 .pv-cover {
@@ -197,20 +455,6 @@ const coverStyle = computed(() => {
   font-weight: 700;
   color: #0f1219;
   letter-spacing: -0.02em;
-}
-
-.pv-note-gallery {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-  overflow-x: auto;
-}
-
-.pv-note-gallery img {
-  width: 88px;
-  height: 88px;
-  object-fit: cover;
-  border-radius: 8px;
 }
 
 .pv-meta {
@@ -283,38 +527,6 @@ const coverStyle = computed(() => {
 
   :deep(p) {
     margin: 0 0 12px;
-  }
-
-  :deep(h1),
-  :deep(h2),
-  :deep(h3) {
-    margin: 12px 0 8px;
-    line-height: 1.35;
-    color: #0f1219;
-  }
-
-  :deep(ul),
-  :deep(ol) {
-    padding-left: 1.6em;
-    margin: 0 0 12px;
-    list-style-position: outside;
-  }
-
-  :deep(ul) {
-    list-style-type: disc;
-  }
-
-  :deep(ol) {
-    list-style-type: decimal;
-  }
-
-  :deep(li) {
-    display: list-item;
-    margin: 0.15em 0;
-  }
-
-  :deep(a) {
-    color: #2f5bff;
   }
 }
 
