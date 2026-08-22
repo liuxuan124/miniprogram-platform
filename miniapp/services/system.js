@@ -46,7 +46,7 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   loginSubtitle: '查看订单、已购资料、预约与会员权益',
   loginButtonText: '登录',
   memberCardTitle: '会员中心',
-  showMenuIcons: false,
+  showMenuIcons: true,
   showDecorBackground: true,
   showMemberCard: true,
   templateStyle: 'basic',
@@ -138,7 +138,7 @@ function normalizeMinePageConfig(raw) {
   return {
     ...base,
     ...src,
-    showMenuIcons: src.showMenuIcons === true,
+    showMenuIcons: src.showMenuIcons !== false,
     showDecorBackground: src.showDecorBackground !== false,
     showMemberCard: src.showMemberCard !== false,
     orderQuickAccess,

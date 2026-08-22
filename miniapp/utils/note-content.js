@@ -131,6 +131,14 @@ function splitLongParagraph(text) {
   return [raw]
 }
 
+function isTrackingNoise(text) {
+  const value = String(text || '').trim()
+  if (!value) return true
+  if (value.startsWith('__biz=')) return true
+  if (/mp\.weixin\.qq\.com\/s\?/.test(value)) return true
+  return value.includes('__biz=') && value.includes('&amp;') && value.length > 60
+}
+
 function extractNoteParagraphs(html) {
   if (!html) return []
   const source = String(html)
@@ -144,10 +152,10 @@ function extractNoteParagraphs(html) {
 
   if (!blocks.length) {
     const plain = source.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
-    return plain ? splitLongParagraph(plain) : []
+    return plain ? splitLongParagraph(plain).filter((p) => !isTrackingNoise(p)) : []
   }
 
-  return blocks.flatMap((block) => splitLongParagraph(block))
+  return blocks.flatMap((block) => splitLongParagraph(block)).filter((p) => !isTrackingNoise(p))
 }
 
 function hashTags(tags) {

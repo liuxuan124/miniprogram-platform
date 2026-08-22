@@ -1,22 +1,6 @@
 const SystemService = require('../services/system')
 const { migrateTabBarIcon, isImageIcon } = require('../utils/tabbar-icon')
-
-const TAB_WHITELIST = {
-  '/pages/index/index': true,
-  '/pages/content-list/content-list': true,
-  '/pages/knowledge-mall/knowledge-mall': true,
-  '/pages/mine/mine': true,
-  '/pages/product-list/product-list': true,
-  '/pages/cart/cart': true,
-  '/pages/category/category': true,
-}
-
-const REGISTERED_TAB_PATHS = [
-  '/pages/index/index',
-  '/pages/content-list/content-list',
-  '/pages/knowledge-mall/knowledge-mall',
-  '/pages/mine/mine',
-]
+const { TAB_SLOT_ROUTES } = require('../utils/dsl-tab-page')
 
 const PATH_META_MAP = {
   '/pages/index/index': {
@@ -39,24 +23,22 @@ const PATH_META_MAP = {
     icon: '/images/tab-v2/mine.svg',
     selectedIcon: '/images/tab-v2/mine-active.svg',
   },
-  '/pages/product-list/product-list': {
-    text: '商城',
-    icon: '/images/tab-v2/shop.svg',
-    selectedIcon: '/images/tab-v2/shop-active.svg',
-  },
 }
 
-const DEFAULT_LIST = REGISTERED_TAB_PATHS.map((pagePath) => ({
-  pagePath,
-  text: (PATH_META_MAP[pagePath] || {}).text || '页面',
-  icon: (PATH_META_MAP[pagePath] || {}).icon || '/images/tab-v2/home.svg',
-  selectedIcon: (PATH_META_MAP[pagePath] || {}).selectedIcon || '/images/tab-v2/home-active.svg',
-}))
+const DEFAULT_LIST = TAB_SLOT_ROUTES.map((pagePath) => {
+  const meta = PATH_META_MAP[pagePath] || {}
+  return {
+    pagePath,
+    text: meta.text || '页面',
+    icon: meta.icon || '/images/tab-v2/home.svg',
+    selectedIcon: meta.selectedIcon || meta.icon || '/images/tab-v2/home-active.svg',
+  }
+})
 
 /** 仅过滤明显无效/占位入口；已注册页面可展示 */
 function isBlockedShopTab(path) {
   const p = '/' + String(path || '').replace(/^\/+/, '')
-  if (TAB_WHITELIST[p]) return false
+  if (TAB_SLOT_ROUTES.includes(p)) return false
   return /分类|购物车|商城/.test(String(path || '')) && !p.startsWith('/pages/')
 }
 
@@ -87,36 +69,33 @@ Component({
       return '/' + String(path || '').replace(/^\/+/, '')
     },
 
+    _resolveTabIcon(rawIcon, fallback) {
+      const migrated = migrateTabBarIcon(rawIcon)
+      if (migrated && isImageIcon(migrated)) return migrated
+      return fallback
+    },
+
     async _loadTabbarConfig() {
       try {
         const config = await SystemService.fetchSystemConfig(true)
-        const rawItems = (config.tabbarItems || [])
-          .filter((item) => item.enabled !== false)
-        const configByPath = new Map()
-        for (const item of rawItems) {
-          const pagePath = this._normalizePath(item.path || item.pagePath)
-          // 旧配置「商城」指向 product-list 时，映射到新页
-          const normalized = pagePath === '/pages/product-list/product-list'
-            ? '/pages/knowledge-mall/knowledge-mall'
-            : pagePath
-          if (REGISTERED_TAB_PATHS.includes(normalized)) {
-            configByPath.set(normalized, item)
-          }
-        }
+        const rawItems = (config.tabbarItems || []).filter((item) => item.enabled !== false)
         const theme = config.miniappThemeConfig || {}
-        const mappedList = REGISTERED_TAB_PATHS.map((pagePath) => {
-          const item = configByPath.get(pagePath) || {}
+
+        const mappedList = TAB_SLOT_ROUTES.map((pagePath, slotIndex) => {
+          const item = rawItems[slotIndex] || {}
           const pathMeta = PATH_META_MAP[pagePath] || {}
-          const rawIcon = item.icon || item.iconPath || pathMeta.icon || '/images/tab-v2/home.svg'
-          const icon = migrateTabBarIcon(rawIcon) || pathMeta.icon || '/images/tab-v2/home.svg'
-          const rawSelected = item.selectedIconPath || item.selectedIcon || pathMeta.selectedIcon || icon
-          const selectedIcon = migrateTabBarIcon(rawSelected) || icon
-          const useEmoji = !isImageIcon(icon)
+          const fallbackIcon = pathMeta.icon || '/images/tab-v2/home.svg'
+          const fallbackSelected = pathMeta.selectedIcon || fallbackIcon
+          const icon = this._resolveTabIcon(item.icon || item.iconPath, fallbackIcon)
+          const selectedIcon = this._resolveTabIcon(
+            item.selectedIconPath || item.selectedIcon || item.icon || item.iconPath,
+            fallbackSelected,
+          )
           return {
             pagePath,
             text: item.text || item.name || pathMeta.text || '页面',
-            icon: useEmoji ? (pathMeta.icon || '/images/tab-v2/home.svg') : icon,
-            selectedIcon: useEmoji ? (pathMeta.selectedIcon || pathMeta.icon || '/images/tab-v2/home-active.svg') : selectedIcon,
+            icon,
+            selectedIcon: selectedIcon || icon,
           }
         })
 

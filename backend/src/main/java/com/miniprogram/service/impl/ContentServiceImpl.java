@@ -20,6 +20,7 @@ import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.ContentService;
 import com.miniprogram.service.FileEntitlementService;
+import com.miniprogram.util.ContentSourceResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -316,6 +317,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         dto.setAttachments(parseAttachments(entity.getAttachments()));
         dto.setAttachmentCount(entity.getAttachmentCount() != null ? entity.getAttachmentCount() : dto.getAttachments().size());
         dto.setCategoryName(categoryService.getCategoryName(entity.getCategoryId()));
+        dto.setExternalSource(entity.getExternalSource());
+        dto.setSource(ContentSourceResolver.resolvePlatformSource(entity));
         return dto;
     }
 

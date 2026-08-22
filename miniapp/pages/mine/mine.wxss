@@ -243,8 +243,13 @@
 }
 
 .order-tab__icon {
-  font-size: 40rpx;
+  display: block;
+  margin-bottom: 4rpx;
   line-height: 1;
+}
+
+.order-tab__icon--text {
+  font-size: 40rpx;
 }
 
 .order-tab__label {
@@ -282,8 +287,10 @@
 .menu-row__icon {
   width: 48rpx;
   margin-right: 16rpx;
-  font-size: 34rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .menu-row__text {

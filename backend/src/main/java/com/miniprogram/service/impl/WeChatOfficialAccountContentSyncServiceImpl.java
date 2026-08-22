@@ -11,14 +11,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.dto.system.UploadResultVO;
+import com.miniprogram.dto.wechat.ParsedWeChatArticle;
 import com.miniprogram.dto.wechat.WeChatContentSyncRequestDTO;
 import com.miniprogram.dto.wechat.WeChatContentSyncResultVO;
+import com.miniprogram.dto.wechat.WeChatUrlImportRequestDTO;
 import com.miniprogram.entity.Content;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.FileUploadService;
 import com.miniprogram.service.WeChatOfficialAccountClient;
 import com.miniprogram.service.WeChatOfficialAccountContentSyncService;
+import com.miniprogram.service.wechat.WeChatArticlePageParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,6 +47,7 @@ import java.util.regex.Pattern;
 public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOfficialAccountContentSyncService {
 
     private static final String EXTERNAL_SOURCE = "wechat_oa";
+    private static final String EXTERNAL_SOURCE_URL = "wechat_url";
     private static final String SOURCE_LABEL = "微信公众号";
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
             "(<img[^>]*?\\s(?:src|data-src)\\s*=\\s*[\"'])([^\"']+)([\"'][^>]*>)",
@@ -55,6 +59,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Pattern.CASE_INSENSITIVE);
 
     private final WeChatOfficialAccountClient weChatOfficialAccountClient;
+    private final WeChatArticlePageParser weChatArticlePageParser;
     private final ContentMapper contentMapper;
     private final ContentCategoryService categoryService;
     private final FileUploadService fileUploadService;
@@ -135,6 +140,144 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 result.getSkipped(),
                 result.getFailed()));
         return result;
+    }
+
+    @Override
+    public WeChatContentSyncResultVO importFromUrls(WeChatUrlImportRequestDTO request) {
+        WeChatUrlImportRequestDTO safeRequest = request != null ? request : new WeChatUrlImportRequestDTO();
+        boolean publish = Boolean.TRUE.equals(safeRequest.getPublish());
+        Long categoryId = safeRequest.getCategoryId();
+        if (categoryId != null && categoryService.getById(categoryId) == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "分类不存在");
+        }
+
+        List<String> urls = normalizeImportUrls(safeRequest.getUrls());
+        if (urls.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请至少填写一条公众号文章链接");
+        }
+
+        WeChatContentSyncResultVO result = new WeChatContentSyncResultVO();
+        result.setTotalPublishRecords(urls.size());
+        result.setTotalArticles(urls.size());
+
+        Map<String, String> imageCache = new LinkedHashMap<>();
+        LocalDateTime syncBase = LocalDateTime.now();
+        int importSeq = 0;
+
+        for (String url : urls) {
+            try {
+                ParsedWeChatArticle parsed = weChatArticlePageParser.fetchAndParse(url);
+                LocalDateTime importTime = syncBase.plusNanos((long) importSeq++ * 1_000_000L);
+                SyncAction action = upsertFromArticleUrl(parsed, categoryId, publish, imageCache, importTime);
+                switch (action) {
+                    case CREATE -> {
+                        result.setCreated(result.getCreated() + 1);
+                        result.setArticleCount(result.getArticleCount() + 1);
+                    }
+                    case UPDATE -> {
+                        result.setUpdated(result.getUpdated() + 1);
+                        result.setArticleCount(result.getArticleCount() + 1);
+                    }
+                    default -> result.setSkipped(result.getSkipped() + 1);
+                }
+            } catch (Exception e) {
+                log.warn("链接导入失败 url={}: {}", url, e.getMessage());
+                result.setFailed(result.getFailed() + 1);
+                result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
+                        shortenUrl(url), e.getMessage()));
+            }
+        }
+
+        result.setMessage(String.format(
+                "链接导入：共 %d 条，新建 %d，更新 %d，跳过 %d，失败 %d",
+                urls.size(),
+                result.getCreated(),
+                result.getUpdated(),
+                result.getSkipped(),
+                result.getFailed()));
+        return result;
+    }
+
+    private List<String> normalizeImportUrls(List<String> rawUrls) {
+        List<String> urls = new ArrayList<>();
+        if (rawUrls == null) {
+            return urls;
+        }
+        for (String line : rawUrls) {
+            if (!StringUtils.hasText(line)) {
+                continue;
+            }
+            for (String part : line.split("[\\s,，;；]+")) {
+                if (StringUtils.hasText(part)) {
+                    urls.add(part.trim());
+                }
+            }
+        }
+        return urls;
+    }
+
+    private SyncAction upsertFromArticleUrl(
+            ParsedWeChatArticle parsed,
+            Long categoryId,
+            boolean publish,
+            Map<String, String> imageCache,
+            LocalDateTime importTime) {
+
+        String slug = parsed.getSlug();
+        Content entity = loadOrCreateByUrl(slug, parsed.getTitle());
+        boolean isCreate = entity.getId() == null;
+
+        String title = trim(parsed.getTitle());
+        entity.setTitle(title.length() > 128 ? title.substring(0, 128) : title);
+        entity.setContentType("article");
+        entity.setAuthor(trim(parsed.getAuthor()));
+        entity.setSource(SOURCE_LABEL);
+        entity.setExternalSource(EXTERNAL_SOURCE_URL);
+        entity.setExternalId(slug);
+
+        String plain = extractPlainText(parsed.getContentHtml());
+        entity.setSummary(StringUtils.hasText(plain)
+                ? (plain.length() > 512 ? plain.substring(0, 512) : plain)
+                : entity.getTitle());
+
+        if (StringUtils.hasText(parsed.getCoverImageUrl())) {
+            entity.setCoverImage(mirrorRemoteImage(parsed.getCoverImageUrl(), imageCache, "wechat-url"));
+        }
+        entity.setImages(null);
+        entity.setContent(rewriteHtmlImages(parsed.getContentHtml(), imageCache, "wechat-url"));
+        appendOriginalLink(entity, parsed.getSourceUrl(), parsed.getSourceUrl());
+
+        applyCommonFields(entity, "url:" + slug, categoryId, publish,
+                parsed.getPublishedAt() != null ? parsed.getPublishedAt() : LocalDateTime.now(), "news");
+
+        return persist(entity, isCreate, importTime);
+    }
+
+    private Content loadOrCreateByUrl(String slug, String title) {
+        Content existing = contentMapper.selectOne(new LambdaQueryWrapper<Content>()
+                .eq(Content::getExternalSource, EXTERNAL_SOURCE_URL)
+                .eq(Content::getExternalId, slug)
+                .last("LIMIT 1"));
+        if (existing != null) {
+            return existing;
+        }
+        if (StringUtils.hasText(title)) {
+            existing = contentMapper.selectOne(new LambdaQueryWrapper<Content>()
+                    .eq(Content::getTitle, title)
+                    .eq(Content::getSource, SOURCE_LABEL)
+                    .last("LIMIT 1"));
+            if (existing != null) {
+                return existing;
+            }
+        }
+        return new Content();
+    }
+
+    private String shortenUrl(String url) {
+        if (!StringUtils.hasText(url) || url.length() <= 48) {
+            return url;
+        }
+        return url.substring(0, 45) + "...";
     }
 
     private JSONArray resolveNewsItems(
@@ -603,6 +746,10 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         String content = item.getStr("content");
+        // 已发布接口可能不返回 article_type；贴图正文是纯文本，出现富文本结构或正文图片时应判为文章。
+        if (isRichArticleContent(content)) {
+            return false;
+        }
         String plain = resolveNewspicPlainText(item);
         List<String> htmlImages = extractImageUrlsFromHtml(content);
         String title = trim(item.getStr("title"));
@@ -638,6 +785,20 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         return false;
+    }
+
+    private boolean isRichArticleContent(String content) {
+        if (!StringUtils.hasText(content)) {
+            return false;
+        }
+        String html = content.toLowerCase();
+        return html.contains("<section")
+                || html.contains("<img")
+                || html.contains("<table")
+                || html.contains("<blockquote")
+                || html.matches("(?s).*<h[1-6]\\b.*")
+                || html.contains("data-tools")
+                || html.contains("rich_pages");
     }
 
     private String resolveNewspicPlainText(JSONObject item) {
@@ -807,15 +968,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     }
 
     private void appendOriginalLink(Content entity, String url, String sourceUrl) {
-        String link = StringUtils.hasText(url) ? url : sourceUrl;
-        if (!StringUtils.hasText(link)) {
-            return;
-        }
-        String footer = "<p style=\"margin-top:16px;color:#888;font-size:12px;\">"
-                + "原文链接：<a href=\"" + escapeHtml(link) + "\" target=\"_blank\" rel=\"noopener noreferrer\">"
-                + escapeHtml(link) + "</a></p>";
-        String content = entity.getContent();
-        entity.setContent((StringUtils.hasText(content) ? content : "") + footer);
+        // 原文 URL 已记录在 external_id / 导入来源，不再写入正文，避免底部多余链接
     }
 
     private String buildFallbackHtml(String title, String summary, String url) {
@@ -831,6 +984,10 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     }
 
     private String rewriteHtmlImages(String html, Map<String, String> imageCache) {
+        return rewriteHtmlImages(html, imageCache, "wechat-oa");
+    }
+
+    private String rewriteHtmlImages(String html, Map<String, String> imageCache, String uploadFolder) {
         if (!StringUtils.hasText(html)) {
             return html;
         }
@@ -840,7 +997,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             String prefix = matcher.group(1);
             String src = matcher.group(2);
             String suffix = matcher.group(3);
-            String mirrored = mirrorRemoteImage(src, imageCache);
+            String mirrored = mirrorRemoteImage(src, imageCache, uploadFolder);
             matcher.appendReplacement(sb, Matcher.quoteReplacement(prefix + mirrored + suffix));
         }
         matcher.appendTail(sb);
@@ -848,6 +1005,10 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     }
 
     private String mirrorRemoteImage(String remoteUrl, Map<String, String> imageCache) {
+        return mirrorRemoteImage(remoteUrl, imageCache, "wechat-oa");
+    }
+
+    private String mirrorRemoteImage(String remoteUrl, Map<String, String> imageCache, String uploadFolder) {
         if (!StringUtils.hasText(remoteUrl)) {
             return remoteUrl;
         }
@@ -872,7 +1033,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 return remoteUrl;
             }
             String fileName = guessFileName(remoteUrl, response.header("Content-Type"));
-            UploadResultVO uploaded = fileUploadService.uploadBytes(bytes, fileName, "wechat-oa");
+            UploadResultVO uploaded = fileUploadService.uploadBytes(bytes, fileName, uploadFolder);
             String localUrl = uploaded.getUrl();
             imageCache.put(remoteUrl, localUrl);
             return localUrl;

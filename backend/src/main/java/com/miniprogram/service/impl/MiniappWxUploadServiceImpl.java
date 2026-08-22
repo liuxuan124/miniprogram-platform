@@ -207,7 +207,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
         if (!StringUtils.hasText(uploadKey) || !uploadKey.contains("PRIVATE KEY")) {
             return null;
         }
-        return uploadKey.trim();
+        return uploadKey.replace("\\n", "\n").trim();
     }
 
     private Path resolveProjectRoot() {

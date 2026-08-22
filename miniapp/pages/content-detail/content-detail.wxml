@@ -159,34 +159,25 @@
   </view>
 
   <!-- ========== 长文 / 视频 / 数据：普通文章 ========== -->
-  <view class="article-mode" wx:else>
+    <view class="article-mode" wx:else>
     <view class="progress-wrap">
       <view class="progress" style="width: {{readProgress}}%;"></view>
     </view>
 
-    <view class="a-cover" style="{{artStyle}}">
-      <text class="a-cover-glyph">{{glyph}}</text>
-    </view>
-
-    <view class="a-wrap">
+    <view class="a-wrap a-wrap--flat">
       <view class="n-chips">
         <text class="fmt {{formatKey}}">{{formatLabel}}</text>
         <text class="topic" wx:if="{{topicName}}">{{topicName}}</text>
       </view>
       <view class="a-title">{{article.title}}</view>
+      <view wx:if="{{articleLede}}" class="a-lede">{{articleLede}}</view>
 
-      <view class="a-meta">
+      <view class="a-meta a-meta--compact">
         <image wx:if="{{authorAvatar}}" class="av av-img" src="{{authorAvatar}}" mode="aspectFill" />
         <view wx:else class="av">{{authorInitial}}</view>
         <view class="a-meta-txt">
-          <view class="nm">{{authorName}}</view>
-          <view class="dt">{{article.publish_time}} · {{metaLine}}</view>
+          <view class="dt">{{articleMetaLine}}</view>
         </view>
-        <view
-          class="follow {{followed ? 'on' : ''}}"
-          catchtap="onFollowTap"
-          hover-class="follow--pressed"
-        >{{followed ? '已关注' : '+ 关注'}}</view>
       </view>
 
       <view class="a-body">

@@ -41,7 +41,7 @@ async function main() {
   const appid = args.appid
   const version = args.version
   const desc = args.desc || '后台一键推送体验版'
-  const uploadKey = process.env.WX_UPLOAD_KEY
+  const uploadKey = String(process.env.WX_UPLOAD_KEY || '').replace(/\\n/g, '\n')
 
   if (!projectPath || !appid || !version) {
     fail('缺少必要参数 project/appid/version')
