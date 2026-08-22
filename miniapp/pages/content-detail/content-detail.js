@@ -197,6 +197,7 @@ Page({
     favorited: false,
     followed: false,
     isNote: false,
+    isWechatNewspic: false,
     formatKey: 'article',
     formatLabel: '长文',
     topicName: '',
@@ -273,13 +274,14 @@ Page({
           'select'
         const fmt = resolveFormat(article)
         const isNote = fmt.isNote
+        const isWechatNewspic = isNote && inferWechatNewspic(article)
         const cover = resolveMediaUrl(article.coverUrl || article.coverImage || article.cover_url || '')
         const extras = (Array.isArray(article.images) ? article.images : (Array.isArray(article.gallery) ? article.gallery : []))
           .map((url) => resolveMediaUrl(url))
           .filter(Boolean)
 
         let gallerySlides = []
-        let galleryHeight = 750
+        let galleryHeight = isWechatNewspic ? 1000 : 750
         if (isNote) {
           const htmlImages = extras.length
             ? []
@@ -348,6 +350,7 @@ Page({
             image: cover,
             publish_time: dateStr,
             created_at: fmtDate(article.createTime),
+            view_count: Number(article.viewCount || article.view_count || 0),
             like_count: likeCount,
             favorite_count: favoriteBase,
             summary: article.summary || '',
@@ -355,6 +358,7 @@ Page({
           },
           loading: false,
           isNote,
+          isWechatNewspic,
           formatKey: fmt.key,
           formatLabel: fmt.label,
           topicName: TOPIC_NAME[topic] || article.categoryName || '',
@@ -413,7 +417,26 @@ Page({
     this.setData({ galleryIndex: index })
   },
 
+  onGalleryPrev() {
+    const len = this.data.galleryCount
+    if (len <= 1) return
+    this.setData({ galleryIndex: (this.data.galleryIndex - 1 + len) % len })
+  },
+
+  onGalleryNext() {
+    const len = this.data.galleryCount
+    if (len <= 1) return
+    this.setData({ galleryIndex: (this.data.galleryIndex + 1) % len })
+  },
+
+  onGalleryThumbTap(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    if (!Number.isFinite(index)) return
+    this.setData({ galleryIndex: index })
+  },
+
   onGalleryImageLoad(e) {
+    if (this.data.isWechatNewspic) return
     const { width, height } = e.detail || {}
     if (!width || !height) return
     const sys = wx.getSystemInfoSync()

@@ -2,9 +2,64 @@
   <div class="content-preview-panel">
     <div class="phone-frame">
       <div class="phone-notch" />
-      <div class="phone-screen" :class="{ 'phone-screen--note': contentType === 'note' }">
+      <div class="phone-screen" :class="phoneScreenClass">
+        <!-- 公众号贴图 -->
+        <template v-if="contentType === 'note' && isWechatNewspic">
+          <div class="pv-wx-wrap">
+            <div class="pv-wx-gallery">
+              <div
+                class="pv-wx-gallery__track"
+                :style="{ transform: `translateX(-${galleryIndex * 100}%)` }"
+              >
+                <div
+                  v-for="(url, idx) in galleryUrls"
+                  :key="`${url}-${idx}`"
+                  class="pv-wx-gallery__slide"
+                >
+                  <img :src="url" alt="" class="pv-wx-slide" loading="lazy" />
+                </div>
+              </div>
+              <div v-if="!galleryUrls.length" class="pv-wx-slide pv-wx-slide--empty">📷</div>
+              <button
+                v-if="galleryUrls.length > 1"
+                type="button"
+                class="pv-wx-nav pv-wx-nav--prev"
+                aria-label="上一张"
+                @click="prevGallery"
+              >‹</button>
+              <button
+                v-if="galleryUrls.length > 1"
+                type="button"
+                class="pv-wx-nav pv-wx-nav--next"
+                aria-label="下一张"
+                @click="nextGallery"
+              >›</button>
+              <div v-if="galleryUrls.length > 1" class="pv-wx-thumbs">
+                <button
+                  v-for="(url, idx) in galleryUrls"
+                  :key="`thumb-${url}-${idx}`"
+                  type="button"
+                  class="pv-wx-thumb"
+                  :class="{ on: idx === galleryIndex }"
+                  @click="galleryIndex = idx"
+                >
+                  <img :src="url" alt="" />
+                  <span>{{ idx + 1 }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="pv-wx-body">
+              <h1 class="pv-wx-title">{{ titleText }}</h1>
+              <div v-if="noteParagraphs.length" class="pv-wx-paras">
+                <p v-for="(para, idx) in noteParagraphs" :key="idx">{{ para }}</p>
+              </div>
+            </div>
+          </div>
+        </template>
+
         <!-- 笔记：小红书图文详情 -->
-        <template v-if="contentType === 'note'">
+        <template v-else-if="contentType === 'note'">
           <div class="pv-note-wrap">
             <div class="pv-note-scroll">
               <!-- 顶部作者栏（小红书详情页头部） -->
@@ -137,7 +192,7 @@
         </template>
       </div>
     </div>
-    <p v-if="showHint" class="preview-hint">模拟小程序笔记详情，样式供参考，实际以端上为准。</p>
+    <p v-if="showHint" class="preview-hint">{{ previewHintText }}</p>
   </div>
 </template>
 
@@ -150,6 +205,7 @@ import {
   type ContentPreviewModel,
 } from '@/utils/content-preview'
 import { extractNoteParagraphs, noteHashTags } from '@/utils/note-content'
+import { inferWechatNewspic } from '@/utils/content-format'
 import { fileTypeIcon, formatFileSize } from '@/utils/content-attachment'
 
 const props = withDefaults(
@@ -194,6 +250,30 @@ const commentPreview = computed(() => [
 ])
 
 const contentType = computed(() => props.model.contentType || 'article')
+
+const isWechatNewspic = computed(() => {
+  if (props.model.isWechatNewspic != null) return Boolean(props.model.isWechatNewspic)
+  if (contentType.value !== 'note') return false
+  return inferWechatNewspic({
+    tags: props.model.tags,
+    source: props.model.source,
+    title: props.model.title,
+    content: props.model.contentHtml,
+    images: props.model.images,
+    coverImage: props.model.coverImage,
+  } as Record<string, unknown>)
+})
+
+const phoneScreenClass = computed(() => ({
+  'phone-screen--note': contentType.value === 'note' && !isWechatNewspic.value,
+  'phone-screen--wechat': isWechatNewspic.value,
+}))
+
+const previewHintText = computed(() =>
+  isWechatNewspic.value
+    ? '模拟公众号贴图详情（3:4 竖图 + 底部缩略图），实际以端上为准。'
+    : '模拟小程序笔记详情，样式供参考，实际以端上为准。',
+)
 
 const noteParagraphs = computed(() => {
   if (contentType.value !== 'note') return []
@@ -276,6 +356,149 @@ function nextGallery() {
   overflow: auto;
   border-radius: 18px;
   background: #f5f6f9;
+}
+
+.phone-screen--wechat {
+  background: #1f1f1f;
+  overflow: hidden;
+}
+
+.pv-wx-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 620px;
+  background: #1f1f1f;
+  color: #f2f2f2;
+}
+
+.pv-wx-gallery {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #111;
+  overflow: hidden;
+}
+
+.pv-wx-gallery__track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.28s ease;
+}
+
+.pv-wx-gallery__slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+}
+
+.pv-wx-slide {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-wx-slide--empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: #2a2a2a;
+}
+
+.pv-wx-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.pv-wx-nav--prev { left: 10px; }
+.pv-wx-nav--next { right: 10px; }
+
+.pv-wx-thumbs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.72));
+  z-index: 3;
+}
+
+.pv-wx-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 58px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #333;
+  cursor: pointer;
+}
+
+.pv-wx-thumb.on {
+  border-color: #07c160;
+}
+
+.pv-wx-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-wx-thumb span {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.pv-wx-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px 20px;
+}
+
+.pv-wx-title {
+  margin: 0 0 12px;
+  font-size: 17px;
+  line-height: 1.48;
+  font-weight: 700;
+  color: #f5f5f5;
+}
+
+.pv-wx-paras p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.78);
+  white-space: pre-wrap;
 }
 
 .phone-screen--note {

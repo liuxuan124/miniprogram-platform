@@ -1,5 +1,5 @@
 <!-- components/dsl-note-feed/dsl-note-feed.wxml — 笔记瀑布流（小红书双列） -->
-<view class="dsl-note-feed" style="{{styleString}}">
+<view class="dsl-note-feed {{layout === 'wechat' ? 'dsl-note-feed--wechat' : ''}}" style="{{styleString}}">
   <view wx:if="{{showCategoryTabs}}" class="dsl-note-feed__tabs-bar">
     <scroll-view class="dsl-note-feed__tabs" scroll-x enhanced show-scrollbar="{{false}}">
       <view
@@ -13,7 +13,35 @@
     </scroll-view>
   </view>
 
-  <view class="dsl-note-feed__masonry" style="{{listStyle}}">
+  <view wx:if="{{layout === 'wechat'}}" class="dsl-note-feed__wechat-row" style="{{listStyle}}">
+    <scroll-view class="dsl-note-feed__wechat-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{displayData}}"
+        wx:key="id"
+        class="dsl-note-feed__wechat-card"
+        style="{{itemCardStyle}}"
+        data-id="{{item.id}}"
+        bindtap="onTapNote"
+      >
+        <view class="dsl-note-feed__wechat-art">
+          <image
+            wx:if="{{item.cover_url}}"
+            class="dsl-note-feed__wechat-cover"
+            src="{{item.cover_url}}"
+            mode="aspectFill"
+            lazy-load
+          />
+          <text wx:else class="dsl-note-feed__glyph">📷</text>
+        </view>
+        <view class="dsl-note-feed__wechat-txt">
+          <text class="dsl-note-feed__wechat-title">{{item.title}}</text>
+          <text class="dsl-note-feed__wechat-meta">{{item.view_text}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view wx:else class="dsl-note-feed__masonry" style="{{listStyle}}">
     <view
       wx:for="{{displayData}}"
       wx:key="id"
