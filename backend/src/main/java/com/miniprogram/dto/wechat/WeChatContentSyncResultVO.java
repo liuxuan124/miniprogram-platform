@@ -36,6 +36,9 @@ public class WeChatContentSyncResultVO {
     @Schema(description = "同步为贴图笔记的条数")
     private int noteCount;
 
+    @Schema(description = "因同步范围筛选跳过的条数")
+    private int typeFiltered;
+
     @Schema(description = "摘要说明")
     private String message;
 

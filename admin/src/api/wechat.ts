@@ -5,9 +5,12 @@ import { post } from './request'
 
 const BASE_URL = '/api/v1/admin/wechat/official-account'
 
+export type WeChatSyncScope = 'all' | 'newspic' | 'news'
+
 export interface WeChatContentSyncRequest {
   categoryId?: number
   publish?: boolean
+  syncScope?: WeChatSyncScope
 }
 
 export interface WeChatContentSyncResult {
@@ -16,6 +19,7 @@ export interface WeChatContentSyncResult {
   created: number
   updated: number
   skipped: number
+  typeFiltered?: number
   failed: number
   articleCount?: number
   noteCount?: number

@@ -206,6 +206,13 @@
                 />
               </el-select>
             </el-form-item>
+            <el-form-item label="同步范围">
+              <el-radio-group v-model="wechatSyncForm.syncScope">
+                <el-radio-button value="all">贴图 + 文章</el-radio-button>
+                <el-radio-button value="newspic">仅贴图</el-radio-button>
+                <el-radio-button value="news">仅文章</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
             <el-form-item label="导入状态">
               <el-radio-group v-model="wechatSyncForm.publish">
                 <el-radio-button :value="true">直接上架（已发布）</el-radio-button>
@@ -333,7 +340,7 @@ import {
   deleteCategory,
   createContent,
 } from '@/api/content'
-import { syncWeChatPublishedContents, type WeChatContentSyncResult } from '@/api/wechat'
+import { syncWeChatPublishedContents, type WeChatContentSyncResult, type WeChatSyncScope } from '@/api/wechat'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
 import { inferContentFormat, parseContentTags } from '@/utils/content-format'
 import {
@@ -405,7 +412,14 @@ const syncForm = reactive({
 const wechatSyncForm = reactive({
   categoryId: undefined as number | undefined,
   publish: false,
+  syncScope: 'all' as WeChatSyncScope,
 })
+
+const WECHAT_SYNC_SCOPE_LABEL: Record<WeChatSyncScope, string> = {
+  all: '贴图 + 文章',
+  newspic: '仅贴图',
+  news: '仅文章',
+}
 
 const pagination = reactive({
   page: 1,
@@ -588,16 +602,17 @@ async function handleWeChatSyncImport() {
   wechatSyncSubmitting.value = true
   wechatSyncResult.value = null
   try {
+    const scopeLabel = WECHAT_SYNC_SCOPE_LABEL[wechatSyncForm.syncScope]
+    const statusLabel = wechatSyncForm.publish ? '已发布' : '草稿'
     await ElMessageBox.confirm(
-      wechatSyncForm.publish
-        ? '将从公众号拉取全部已发布图文，并以「已发布」状态写入内容库（已存在的条目也会更新为上架）。是否继续？'
-        : '将从公众号拉取全部已发布图文，并以「草稿」状态写入内容库（已存在的条目也会改为草稿）。是否继续？',
+      `将从公众号拉取全部已发布图文，同步范围：${scopeLabel}；入库状态：${statusLabel}。已存在的条目会按本次选项更新，是否继续？`,
       '公众号全量导入',
       { type: 'warning', confirmButtonText: '开始导入', cancelButtonText: '取消' },
     )
     const res = await syncWeChatPublishedContents({
       categoryId: wechatSyncForm.categoryId,
       publish: wechatSyncForm.publish,
+      syncScope: wechatSyncForm.syncScope,
     })
     wechatSyncResult.value = (res as any)?.data || res
     ElMessage.success(wechatSyncResult.value?.message || '导入完成')
