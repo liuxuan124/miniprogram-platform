@@ -33,7 +33,7 @@ public class WeChatContentSyncResultVO {
     @Schema(description = "同步为长图文的条数")
     private int articleCount;
 
-    @Schema(description = "同步为图集笔记的条数")
+    @Schema(description = "同步为贴图笔记的条数")
     private int noteCount;
 
     @Schema(description = "摘要说明")
