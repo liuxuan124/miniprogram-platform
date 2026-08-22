@@ -99,3 +99,35 @@ export function updateTag(id: number, data: UpdateTagParams) {
 export function deleteTag(id: number) {
   return del<void>(`${BASE_URL}/content-tags/${id}`)
 }
+
+export interface ContentCommentItem {
+  id: number
+  contentId: number
+  userId?: number
+  nickname?: string
+  avatar?: string
+  content: string
+  status: number
+  createTime?: string
+}
+
+/** 评论列表（含待审） */
+export function listContentComments(params?: {
+  contentId?: number
+  status?: number
+  current?: number
+  size?: number
+}) {
+  return get<PageResult<ContentCommentItem>>(`${BASE_URL}/contents/comments`, params as Record<string, unknown>)
+}
+
+/** 审核评论 status=1 公开 / 0 隐藏 */
+export function updateCommentStatus(commentId: number, status: number) {
+  return put<void>(`${BASE_URL}/contents/comments/${commentId}/status`, undefined, { params: { status } })
+}
+
+/** 删除评论 */
+export function deleteComment(commentId: number) {
+  return del<void>(`${BASE_URL}/contents/comments/${commentId}`)
+}
+

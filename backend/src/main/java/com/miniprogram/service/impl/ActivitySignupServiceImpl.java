@@ -68,12 +68,29 @@ public class ActivitySignupServiceImpl extends BaseServiceImpl<ActivitySignupMap
         }
 
         int quota = activity.getQuota() == null ? 0 : activity.getQuota();
-        int signed = activity.getSigned() == null ? 0 : activity.getSigned();
-        if (quota > 0 && signed >= quota) {
-            throw new BusinessException("名额已满");
+        // 先原子占座，再写报名；失败则释放
+        if (quota > 0) {
+            try {
+                activityService.incrementSigned(activityId);
+            } catch (BusinessException e) {
+                throw e;
+            }
         }
 
-        smsCodeService.verifyAndConsume(phone, SCENE_ACTIVITY_SIGNUP, smsCode);
+        // 已绑定微信手机号且一致时，跳过短信验证码
+        User user = userMapper.selectById(userId);
+        boolean phoneBoundMatch = user != null && StringUtils.hasText(user.getPhone())
+                && phone.trim().equals(user.getPhone().trim());
+        if (!phoneBoundMatch) {
+            try {
+                smsCodeService.verifyAndConsume(phone, SCENE_ACTIVITY_SIGNUP, smsCode);
+            } catch (RuntimeException e) {
+                if (quota > 0) {
+                    activityService.decrementSigned(activityId);
+                }
+                throw e;
+            }
+        }
 
         String checkInCode = UUID.randomUUID().toString().replace("-", "");
         LocalDateTime now = LocalDateTime.now();
@@ -87,9 +104,18 @@ public class ActivitySignupServiceImpl extends BaseServiceImpl<ActivitySignupMap
         signup.setStatus(STATUS_APPROVED);
         signup.setCheckInCode(checkInCode);
         signup.setApprovedAt(now);
-        this.save(signup);
+        try {
+            this.save(signup);
+        } catch (RuntimeException e) {
+            if (quota > 0) {
+                activityService.decrementSigned(activityId);
+            }
+            throw e;
+        }
 
-        activityService.incrementSigned(activityId);
+        if (quota <= 0) {
+            activityService.incrementSigned(activityId);
+        }
 
         ActivityCheckIn checkIn = new ActivityCheckIn();
         checkIn.setActivityId(activityId);
