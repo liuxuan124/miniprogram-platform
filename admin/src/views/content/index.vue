@@ -36,6 +36,11 @@
         <el-option label="微信公众号" value="微信公众号" />
         <el-option label="原创" value="原创" />
       </el-select>
+      <el-select v-model="searchForm.status" class="toolbar-select" placeholder="状态：全部" clearable>
+        <el-option label="草稿" value="draft" />
+        <el-option label="已发布" value="published" />
+        <el-option label="已下架" value="unpublished" />
+      </el-select>
       <el-button @click="handleSearch">搜索</el-button>
       <div class="toolbar-spacer" />
       <el-button @click="categoryModalVisible = true">分类</el-button>
@@ -100,6 +105,9 @@
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="168" align="center">
+          <template #default="{ row }">{{ formatContentTime(row.createTime) }}</template>
         </el-table-column>
         <el-table-column label="阅读" width="100" align="center">
           <template #default="{ row }">{{ row.viewCount ?? '—' }}</template>
@@ -367,6 +375,7 @@ interface ContentRow {
   recommended: boolean
   tags: string[]
   sortOrder: number
+  createTime: string
 }
 
 interface CategoryNode {
@@ -393,6 +402,7 @@ const searchForm = reactive({
   keyword: '',
   type: '',
   source: '',
+  status: '' as '' | ContentStatus,
   categoryId: undefined as number | undefined,
 })
 
@@ -473,7 +483,22 @@ function normalizeArticle(raw: RawRecord): ContentRow {
     recommended,
     tags,
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+    createTime: String(raw.createTime || raw.create_time || raw.createdAt || raw.created_at || ''),
   }
+}
+
+function formatContentTime(value?: string): string {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) {
+    return String(value).replace('T', ' ').slice(0, 16)
+  }
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${h}:${min}`
 }
 
 function normalizeCategory(raw: RawRecord): CategoryNode {
@@ -535,6 +560,7 @@ async function fetchList() {
       categoryId: searchForm.categoryId,
       category_id: searchForm.categoryId,
       source: searchForm.source || undefined,
+      status: searchForm.status || undefined,
     }
     const res = await getContentList(params as any)
     const data = (res as any).data || {}
@@ -936,7 +962,7 @@ onActivated(async () => {
 })
 
 watch(
-  () => [searchForm.categoryId, searchForm.source, searchForm.type] as const,
+  () => [searchForm.categoryId, searchForm.source, searchForm.type, searchForm.status] as const,
   () => {
     pagination.page = 1
     fetchList()
