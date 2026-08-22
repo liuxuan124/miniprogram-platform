@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  backend:
+    name: Backend test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Unit tests
+        run: mvn -B test
+      - name: Package
+        run: mvn -B -DskipTests package
+
+  admin:
+    name: Admin typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+      - run: npx vue-tsc --noEmit
+      - run: npm run build
+
+  migrate-order:
+    name: Migration sort check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify V*.sql sort -V order
+        run: |
+          set -euo pipefail
+          DIR=backend/src/main/resources/db/migration
+          mapfile -t files < <(ls "$DIR"/V*.sql | sort -V)
+          prev=0
+          for f in "${files[@]}"; do
+            base=$(basename "$f")
+            ver=${base%%__*}
+            num=${ver#V}
+            if ! [[ "$num" =~ ^[0-9]+$ ]]; then
+              echo "skip non-numeric $base"
+              continue
+            fi
+            if (( num < prev )); then
+              echo "ORDER FAIL: $base after V$prev"
+              exit 1
+            fi
+            prev=$num
+            echo "OK $base"
+          done
