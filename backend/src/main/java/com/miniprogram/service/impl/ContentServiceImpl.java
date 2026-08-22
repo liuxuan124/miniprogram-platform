@@ -51,6 +51,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         LambdaQueryWrapper<Content> wrapper = buildQueryWrapper(queryDTO);
         wrapper.orderByAsc(Content::getSortOrder);
         wrapper.orderByDesc(Content::getUpdateTime);
+        wrapper.orderByDesc(Content::getId);
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Content> page =
                 this.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
