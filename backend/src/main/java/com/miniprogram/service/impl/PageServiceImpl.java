@@ -58,7 +58,7 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         result.setTotal(page.getTotal());
         result.setCurrent(page.getCurrent());
         result.setSize(page.getSize());
-        result.setRecords(page.getRecords().stream().map(this::toDetailDTO).toList());
+        result.setRecords(page.getRecords().stream().map(this::toDetailDTOWithVersions).toList());
         return result;
     }
 
@@ -225,6 +225,43 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PageDetailDTO duplicatePage(Long id) {
+        Page source = getExistingPage(id);
+
+        Integer nextType = source.getType() != null && source.getType() == 1 ? 3 : (source.getType() != null ? source.getType() : 3);
+        String basePath = normalizePath(source.getPath());
+        if ("/pages/index/index".equalsIgnoreCase(basePath) || nextType == 1) {
+            nextType = 3;
+            basePath = "/pages/custom/copy-" + System.currentTimeMillis() % 100000;
+        } else {
+            basePath = resolveUniqueCopyPath(basePath);
+        }
+
+        Page page = new Page();
+        page.setName(buildCopyName(source.getName()));
+        page.setType(nextType);
+        page.setPath(basePath);
+        page.setShareTitle(source.getShareTitle());
+        page.setShareImage(source.getShareImage());
+        page.setDescription(source.getDescription());
+        page.setStatus(0);
+        page.setCurrentVersion(0);
+        this.save(page);
+
+        Integer latest = pageVersionService.getLatestVersion(id);
+        if (latest != null && latest > 0) {
+            String dsl = pageVersionService.getVersionDsl(id, latest);
+            if (StringUtils.hasText(dsl)) {
+                String rewritten = rewriteDslForCopy(dsl, page);
+                pageVersionService.saveDraftVersion(page.getId(), rewritten);
+            }
+        }
+
+        return toDetailDTOWithVersions(page);
+    }
+
+    @Override
     public String getPublishedPageDsl(String path) {
         Page page = findPublishedPageByPath(path);
 
@@ -379,6 +416,63 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
             throw e;
         } catch (Exception e) {
             throw new BusinessException(300202, "DSL 内容格式错误，必须为有效 JSON");
+        }
+    }
+
+    private PageDetailDTO toDetailDTOWithVersions(Page page) {
+        PageDetailDTO dto = toDetailDTO(page);
+        Integer latest = pageVersionService.getLatestVersion(page.getId());
+        dto.setLatestVersion(latest);
+        int current = page.getCurrentVersion() != null ? page.getCurrentVersion() : 0;
+        int latestVal = latest != null ? latest : 0;
+        dto.setHasUnpublishedChanges(page.getStatus() != null && page.getStatus() == 1 && latestVal > current);
+        return dto;
+    }
+
+    private String buildCopyName(String name) {
+        String base = StringUtils.hasText(name) ? name.trim() : "未命名页面";
+        String candidate = base + " 副本";
+        return candidate.length() > 128 ? candidate.substring(0, 128) : candidate;
+    }
+
+    private String resolveUniqueCopyPath(String sourcePath) {
+        String normalized = normalizePath(sourcePath);
+        if (!StringUtils.hasText(normalized)) {
+            normalized = "/pages/custom/copy";
+        }
+        String candidate = normalized + "-copy";
+        if (!pathExists(candidate, null)) {
+            return candidate;
+        }
+        for (int i = 2; i < 1000; i++) {
+            String next = candidate + "-" + i;
+            if (!pathExists(next, null)) {
+                return next;
+            }
+        }
+        return candidate + "-" + System.currentTimeMillis() % 10000;
+    }
+
+    private boolean pathExists(String path, Long excludeId) {
+        LambdaQueryWrapper<Page> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Page::getPath, path);
+        wrapper.ne(excludeId != null, Page::getId, excludeId);
+        return this.count(wrapper) > 0;
+    }
+
+    private String rewriteDslForCopy(String dslContent, Page page) {
+        try {
+            JsonNode root = objectMapper.readTree(dslContent);
+            if (root.isObject() && root.has("page") && root.get("page").isObject()) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) root.get("page"))
+                        .put("id", String.valueOf(page.getId()))
+                        .put("name", page.getName())
+                        .put("path", page.getPath());
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception e) {
+            log.warn("复制页面时重写 DSL 失败，将使用原始内容: {}", e.getMessage());
+            return dslContent;
         }
     }
 

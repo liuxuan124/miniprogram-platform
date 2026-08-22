@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>整改复验报告</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#15181e; --muted:#5e6673; --line:#e2e6eb;
+    --ok:#0f766e; --warn:#b45309; --bad:#b91c1c; --b:#1d4ed8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1020px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:28px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:26px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--ok);
+    border-radius:10px;padding:20px 22px;margin-bottom:26px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  .stats{display:flex;flex-wrap:wrap;gap:11px;margin:20px 0 30px}
+  .stat{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .stat b{display:block;font-size:23px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--muted)}
+  h2.sec{font-size:20px;margin:40px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h3{margin:0 0 8px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.bad{background:var(--bad)} .n.warn{background:var(--warn)} .n.ok{background:var(--ok)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:11px 13px;overflow-x:auto;font-size:12.4px;line-height:1.55}
+  .why{border-top:1px dashed var(--line);margin-top:10px;padding-top:9px;font-size:14px}
+  .why b{color:var(--ok)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:680px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .y{color:var(--ok);font-weight:700;white-space:nowrap}
+  .p{color:var(--warn);font-weight:700;white-space:nowrap}
+  .n2{color:var(--bad);font-weight:700;white-space:nowrap}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:8px}
+  footer{margin-top:44px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>整改复验报告</h1>
+<div class="sub">对照前四份报告逐条复核 · 2026-08-22 · 含本次整改新引入的问题</div>
+
+<div class="lead">
+  <h2>整改质量很高：38 项已关闭，其中流程重设计和搭建器断链是全量落地</h2>
+  <p>先给最直接的数字：<b>管理后台 TypeScript 错误从 36 降到 0</b>（实跑 <span class="loc">vue-tsc --noEmit</span> 验证）；三处组件白名单从 31/33/33 变成 <b>37/37/37 完全一致</b>；4143 行死代码已删除；流程重设计的每一条——术语统一、删除矛盾提示、菜单改为总览/外观/页面/版本、新增总览页与"我的"页归位、复制页面、行内二维码、命令面板——<b>全部落地</b>。产品建议里的优惠券闭环、事件埋点、订阅消息、分享归因、签到任务、搜索沉淀、A/B 分桶也都建了接口和表。</p>
+  <p>但复验也发现<b>三类需要注意的情况</b>：一是有 14 项遗留未动（多数是中期项，可以接受，但其中 3 项属于当初标为高危的）；二是有 <b>2 项"改了一半反而更隐蔽"</b>——JWT 密钥的默认值其实还在生效，Prometheus 现在要鉴权但抓取端没配凭据；三是<b>本次整改新引入了 10 个问题</b>，其中 2 个是高危：新写的迁移脚本执行顺序是错的，新上线的评论功能没有内容安全检测。</p>
+  <p>下面按"已关闭 / 半修复 / 未动 / 新引入"四类给出，每条都可复核。</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><b style="color:var(--ok)">38</b><span>已关闭</span></div>
+  <div class="stat"><b style="color:var(--warn)">6</b><span>半修复</span></div>
+  <div class="stat"><b style="color:var(--muted)">14</b><span>未动（多为中期项）</span></div>
+  <div class="stat"><b style="color:var(--bad)">10</b><span>本次新引入</span></div>
+  <div class="stat"><b style="color:var(--ok)">0</b><span>TS 错误（原 36）</span></div>
+</div>
+
+<h2 class="sec">一、本次新引入的问题</h2>
+<p class="secnote">这部分优先看——都是整改过程中带进来的，其中前两条建议今天就处理。</p>
+
+<div class="item">
+  <h3><span class="n bad">N1</span>迁移脚本的执行顺序是错的，全新库跑必失败</h3>
+  <p>新增的 <span class="loc">deploy/scripts/migrate.sh</span> 思路对（schema_version 表 + 幂等跳过），但遍历用的是 bash glob：</p>
+  <pre>for f in "$SQL_DIR"/V*.sql; do   # ← 字典序，不是版本序</pre>
+  <p>实测该目录下的展开顺序是：<span class="loc">V10 → V11 → … → V47 → V4__content_tables → V5 → …</span>。也就是说 <b>V16（给 mp_user 加列）会在 V11（建 mp_user）之前执行，V44（改 mp_content）会在 V4（建 mp_content）之前执行</b>，全新库必然中途报错退出。</p>
+  <p>现有生产库因为 V1~V43 已手工执行过，只会跑 V44~V47，这四个恰好字典序也正确，所以<b>暂时看不出问题</b>——但只要有人用它初始化一套新环境（测试环境、新客户），立刻踩雷。</p>
+  <p class="why"><b>一行修复：</b><span class="loc">for f in $(ls "$SQL_DIR"/V*.sql | sort -V); do</span>。另外建议把它接进 <span class="loc">server-rebuild-backend.sh</span>，否则仍然依赖人记得手动跑；密码目前走命令行参数（<span class="loc">-p"$DB_PASS"</span>），在 <span class="loc">ps</span> 里可见，建议改用 <span class="loc">MYSQL_PWD</span> 或 defaults-file。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n bad">N2</span>评论功能上线了，但没有内容安全检测，也没有后台管理入口</h3>
+  <p>新增的 <span class="loc">mp_content_comment</span> 表默认 <span class="loc">status TINYINT NOT NULL DEFAULT 1</span>（1=可见），<span class="loc">ContentInteractServiceImpl</span> 里没有任何审核或过滤逻辑，全项目搜不到 <span class="loc">msgSecCheck</span>；后台 <span class="loc">admin/src/views</span> 下也没有任何评论管理页面。</p>
+  <p>这意味着：用户发的评论<b>直接公开可见，没有敏感词拦截，出了问题运营也没有地方删</b>。微信对小程序内的 UGC 有明确要求，未接内容安全接口的社区功能是审核驳回和封禁的高频原因。</p>
+  <p class="why"><b>建议（按紧急程度）：</b>① 接微信 <span class="loc">security.msgSecCheck</span>（用已有的 <span class="loc">WxMiniappTokenService</span> 拿 access_token），命中即置 status=0；② 后台加一个评论列表页，支持隐藏/删除；③ 在这两项完成之前，如果要上线，先把评论入口关掉——现在的状态比没有评论更危险。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">N3</span>点赞/收藏会把整行内容回写，可能覆盖后台正在编辑的正文</h3>
+  <p><span class="loc">ContentInteractServiceImpl.toggleLike</span>：</p>
+  <pre>int likeCount = content.getLikeCount() ...;
+content.setLikeCount(likeCount + 1);
+contentMapper.updateById(content);   // ← 全字段回写整行</pre>
+  <p>两个问题叠加：一是计数走"先读后写"，并发点赞会丢更新（库存那边已经改成原子 SQL 了，这里是新写的代码又回到了老模式）；二是 <span class="loc">updateById</span> 会把这条内容的<b>所有字段</b>（含 MEDIUMTEXT 正文）按点赞时读到的快照写回去——如果此刻运营正好在后台保存了这篇文章，用户的一次点赞就能把编辑覆盖掉。</p>
+  <p class="why"><b>建议：</b>改成 <span class="loc">UPDATE mp_content SET like_count = like_count + 1 WHERE id = ?</span> 的定向更新（收藏同理）。这也和库存修复保持同一套写法。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">N4</span>事件批量上报接口公开且不限条数</h3>
+  <p><span class="loc">POST /api/v1/mp/events/batch</span> 在 SecurityConfig 里是 permitAll，而 <span class="loc">MpGrowthController.trackBatch</span> 对 list 长度<b>没有任何上限校验</b>，直接 for 循环逐条落库。配合 <span class="loc">max-request-size: 100MB</span>，一次请求可以写入数万行 <span class="loc">mp_analytics_event</span>。</p>
+  <p class="why"><b>建议：</b>单次限 50 条；给 <span class="loc">/events*</span> 单独设更严的 IP 限流；考虑改为需要登录（小程序用户几乎都有 token），匿名事件保留 page-access 那一条即可。另外事件表建议现在就定好保留期（如 90 天）和清理任务，否则半年后它会是最大的表。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">N5</span>监控两头没对上：指标端点要 super_admin，抓取端没配凭据</h3>
+  <p>好消息是 actuator + micrometer 依赖加上了，<span class="loc">management.endpoints.web.exposure.include: health,prometheus,info</span> 也配了。但 <span class="loc">SecurityConfig</span> 里 <span class="loc">/actuator/prometheus</span> 是 <span class="loc">.hasRole("super_admin")</span>，而 <span class="loc">deploy/monitoring/prometheus.yml</span> 里这个 job <b>没有任何 authorization 配置</b> → 抓取会 401，Grafana 依然是空的。</p>
+  <p class="why"><b>建议：</b>二选一——把 <span class="loc">/actuator/prometheus</span> 改为仅内网可达（compose 内网 + 不映射端口）并 permitAll；或给 prometheus job 配 <span class="loc">authorization: { credentials: ... }</span>。前者更简单。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">N6</span>主题换肤依赖一个可能不存在的 API，需要真机确认</h3>
+  <p>新增的 <span class="loc">miniapp/utils/theme.js</span> 思路是对的：把主色算成一组 CSS 变量（含 brand-dark/soft/muted 派生色），让全站 371 处 <span class="loc">var(--brand)</span> 生效，<span class="loc">app.wxss</span> 的 <span class="loc">--brand</span> 也统一成了 <span class="loc">#002FA7</span>。</p>
+  <p>但注入方式是：</p>
+  <pre>if (typeof wx.setPageStyle === 'function') { wx.setPageStyle({ style }) }</pre>
+  <p><span class="loc">wx.setPageStyle</span> 不在微信公开 API 列表里（页面级样式注入的公开做法是 <span class="loc">&lt;page-meta page-style="…"&gt;</span>），而全项目<b>没有任何页面使用 page-meta</b>。由于外层有 try/catch 和"旧基础库无此 API，忽略"的注释，如果该 API 不存在，整个换肤会<b>静默失效</b>，看不出任何报错。</p>
+  <p class="why"><b>建议：</b>务必用真机跑一次——改一次主色看小程序是否真的变了。如果没变，改为在每个页面根节点套 <span class="loc">&lt;page-meta page-style="{{themePageStyle}}"&gt;</span>（Page hook 已经在往 data 里塞 <span class="loc">themePageStyle</span> 了，改造量很小）。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n">N7~N10</span>其余四条较轻</h3>
+  <p>· <b>容器内子组件的数据源不会加载</b>：<span class="loc">loadAllComponentData</span> 只遍历顶层 components，不递归 children。当前容器只允许放分区标题/图片/富文本/卖点卡/间距这几种静态组件，所以暂时无碍；一旦允许把商品列表放进容器就会空白。</p>
+  <p>· <b>两处全局 Page 包装</b>：<span class="loc">theme.js</span> 和 <span class="loc">share.js</span> 都重写了全局 <span class="loc">Page</span>，其中 theme 有 <span class="loc">__themeHookInstalled</span> 幂等标记，share 没有。建议补上，避免将来重复注册导致 onShow/onShare 被包两层。</p>
+  <p>· <b>退款金额换算漏改</b>：<span class="loc">MoneyUtils</span> 已在下单与支付回调统一，但 <span class="loc">RefundServiceImpl:189-190</span> 仍是 <span class="loc">multiply(100).intValue()</span> 截断，没跟着改。</p>
+  <p>· <b>4 这个数字散在三处</b>：<span class="loc">TabBarEditor.vue</span>、<span class="loc">useMiniappConfig.ts</span> 各定义一次 <span class="loc">TABBAR_SLOT_COUNT = 4</span>，小程序端 <span class="loc">TAB_SLOT_ROUTES</span> 是第三处。建议注释里互相指认，避免将来改一处漏两处。</p>
+</div>
+
+<h2 class="sec">二、已关闭的问题（38 项）</h2>
+<p class="secnote">逐条复核结果，均已在代码中确认。</p>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>原问题</th><th>复验结果</th><th>状态</th></tr>
+<tr><td class="c">P0-1 admin 36 个 TS 错误</td><td>实跑 <span class="loc">vue-tsc --noEmit</span> 返回 0 条</td><td class="y">已关闭</td></tr>
+<tr><td class="c">P0-2 默认口令 admin@123</td><td>改为随机 16 位或 <span class="loc">ADMIN_INITIAL_PASSWORD</span> 注入、仅打印一次；弱口令表补入 admin@123；新增登录失败锁定</td><td class="y">已关闭</td></tr>
+<tr><td class="c">P0-4 短信未接入</td><td>prod 禁止 mock；已绑定微信手机号且一致时跳过短信；<span class="loc">/mp/auth/phone</span> 绑定接口在位</td><td class="y">已关闭</td></tr>
+<tr><td class="c">P1-1 商品库存超卖</td><td><span class="loc">ProductMapper.deductStock</span> / <span class="loc">ProductSkuMapper.deductStock</span> 改为 <span class="loc">WHERE stock &gt;= #{qty}</span> 条件更新，按影响行数判定</td><td class="y">已关闭</td></tr>
+<tr><td class="c">P1-2 上传目录穿越</td><td><span class="loc">sanitizeSubDir</span> 白名单正则 <span class="loc">^[a-zA-Z0-9_-]{1,32}$</span> + 拒绝 <span class="loc">..</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">P1-4 金额换算不一致</td><td>新增 <span class="loc">MoneyUtils</span>，下单/回调统一 HALF_UP（退款处漏改，见 N9）</td><td class="y">主链路关闭</td></tr>
+<tr><td class="c">P1-5 退款金额无上限</td><td>校验 <span class="loc">0 &lt; amount ≤ payAmount − 已退（含 pending/approved）</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">P1-8 无定时任务</td><td><span class="loc">@EnableScheduling</span> + <span class="loc">OrderTimeoutJob</span>（5 分钟扫超时关单并回补库存）+ <span class="loc">ContentScheduleJob</span>（每分钟发布到点内容）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">P2-1 监控是摆设</td><td>actuator + micrometer 已引入，端点已暴露（抓取鉴权未对上，见 N5）</td><td class="p">半关闭</td></tr>
+<tr><td class="c">P2-2 限流可绕过/内存泄漏</td><td>改为优先信任 <span class="loc">X-Real-IP</span>；windows 超 1 万条时清理空闲 IP</td><td class="y">已关闭</td></tr>
+<tr><td class="c">M1 三处组件白名单不同步</td><td>脚本比对：backend 37 / admin 37 / miniapp 37，<b>三向差集均为空</b></td><td class="y">已关闭</td></tr>
+<tr><td class="c">M1b 发布校验顺序颠倒</td><td><span class="loc">createRelease</span> 已改为先 <span class="loc">validateSnapshotForRelease</span> 再 <span class="loc">publishBoundPagesOrThrow</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">P1 preflight 建议补充项</td><td>已补：组件类型校验前移、递归遍历 children、localhost 图片地址检测、非 HTTPS 外链警告</td><td class="y">已关闭</td></tr>
+<tr><td class="c">M2 tab 后台可配 2~5</td><td>增删按钮移除、归一化到 4 个、界面写明"固定 4 个入口，增减需发版"</td><td class="y">已关闭</td></tr>
+<tr><td class="c">M4 4143 行死代码</td><td><span class="loc">shop-decoration/</span> 四个文件、<span class="loc">template.vue</span>、<span class="loc">version-management.vue</span> 均已删除</td><td class="y">已关闭</td></tr>
+<tr><td class="c">B1 样式系统只有 6 项</td><td><span class="loc">SKIP_SHELL_KEYS</span> 已移除，背景/内边距/圆角/阴影/边框可传导；面板补了背景色与四向内边距</td><td class="y">已关闭</td></tr>
+<tr><td class="c">B2 DSL 无嵌套</td><td>新增 <span class="loc">container</span>（横向/纵向/网格/横滑）、<span class="loc">section_bg</span>（色/渐变/图）、<span class="loc">image_hotspot</span>、<span class="loc">feature_cards</span>；小程序端 <span class="loc">dsl-renderer</span> 自引用递归渲染 children</td><td class="y">已关闭</td></tr>
+<tr><td class="c">C1 SEO 字段静默丢弃</td><td>V44 加 <span class="loc">seo_title / seo_description</span>，实体与 DTO 已贯通</td><td class="y">已关闭</td></tr>
+<tr><td class="c">C2 定时发布不生效</td><td>V44 加 <span class="loc">scheduled_at</span> + 索引，<span class="loc">ContentScheduleJob</span> 每分钟扫描</td><td class="y">已关闭</td></tr>
+<tr><td class="c">C4 video 形态半成品</td><td>编辑器补视频形态（源/封面/时长），详情页有 <span class="loc">&lt;video&gt;</span> 渲染</td><td class="y">已关闭</td></tr>
+<tr><td class="c">C6 互动是本地假态</td><td>V44 建点赞/收藏/评论三表；<span class="loc">/mp/contents/{id}/like|favorite|comments</span> 接口在位；小程序端已调接口</td><td class="y">已关闭</td></tr>
+<tr><td class="c">P3 mp/contents 通配 permitAll</td><td>已改为 <span class="loc">HttpMethod.GET</span> 限定，POST 互动需登录</td><td class="y">已关闭</td></tr>
+<tr><td class="c">C7 rich-text 天花板</td><td>内容详情页已换 <span class="loc">mp-html</span>（其他页面未跟进，见遗留清单）</td><td class="y">主页面关闭</td></tr>
+<tr><td class="c">F1 优惠券用不掉</td><td><span class="loc">OrderCreateDTO.userCouponId</span> + 归属/状态/有效期/门槛校验 + <span class="loc">mp_coupon_effect</span> 效果表</td><td class="y">已关闭</td></tr>
+<tr><td class="c">F2 数字商品人工发货</td><td>支付回调按 <span class="loc">autoFulfill + virtual</span> 直接完成并写虚拟发货内容</td><td class="y">已关闭</td></tr>
+<tr><td class="c">F3 内容挂不了商品</td><td>V46 新增 <span class="loc">mp_content_product</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">F4 无事件埋点</td><td><span class="loc">mp_analytics_event</span>（三条组合索引）+ <span class="loc">/mp/events</span> + <span class="loc">miniapp/utils/track.js</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">F5 无订阅消息</td><td><span class="loc">SubscribeMessageService</span> + 模板表/发送日志表，已接入支付成功链路</td><td class="y">已关闭</td></tr>
+<tr><td class="c">F6 分享覆盖率低</td><td><span class="loc">installPageShareHook</span> 全局注入 <span class="loc">onShareAppMessage</span> 与 <span class="loc">onShareTimeline</span>，分享路径自动带 <span class="loc">inviterId</span>；<span class="loc">/mp/invite/bind</span> 归因接口在位</td><td class="y">已关闭</td></tr>
+<tr><td class="c">F7 会员无日活循环</td><td>签到、任务中心、完成任务领积分接口 + 三张表</td><td class="y">已关闭</td></tr>
+<tr><td class="c">F8 搜索词不沉淀</td><td><span class="loc">mp_search_log</span> + <span class="loc">/mp/search/log</span> + <span class="loc">/mp/search/insights</span>（热搜/无结果词）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">F13 无 A/B 实验</td><td><span class="loc">mp_page_experiment</span> + 分桶接口</td><td class="y">已关闭</td></tr>
+<tr><td class="c">D1 两个"发布"自相矛盾</td><td>两句矛盾提示均已删除；术语统一为<b>上线 / 保存还原点</b>；发布页文案改为"日常改页面内容：装修器点「上线」即可，不必每次来这里"</td><td class="y">已关闭</td></tr>
+<tr><td class="c">D2 首页两套定义</td><td>新建页面的"页面类型"改为可选（"仅用于列表筛选"）</td><td class="p">半关闭</td></tr>
+<tr><td class="c">D4 「我的」页范式割裂</td><td>独立为 <span class="loc">page-builder/mine-config.vue</span>，从"导航与外观"中拆出</td><td class="y">已关闭</td></tr>
+<tr><td class="c">R1/R2 菜单与总览页</td><td>菜单改为 <b>总览 / 外观 / 页面 / 版本</b>；新增 <span class="loc">overview.vue</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">R3 页面列表能力</td><td>三态化（草稿 / 已上线 / 有未上线的改动）+ 复制页面 + 行内二维码 + 扫码查看</td><td class="y">已关闭</td></tr>
+<tr><td class="c">U2 命令面板</td><td><span class="loc">CommandPalette.vue</span> 已挂进 <span class="loc">layout/index.vue</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">P0-5a Redis 配置不兼容</td><td>compose 补 <span class="loc">SPRING_DATA_REDIS_*</span>；<span class="loc">JWT_SECRET</span> / <span class="loc">REDIS_PASSWORD</span> 改为 <span class="loc">:?</span> 必填</td><td class="y">已关闭</td></tr>
+<tr><td class="c">.env 泄露风险</td><td><span class="loc">.gitignore</span> 已含 <span class="loc">deploy/.env</span> 与 <span class="loc">.cursor/</span>，且未被 git 跟踪</td><td class="y">已关闭</td></tr>
+</table>
+</div>
+
+<h2 class="sec">三、半修复：两条"看起来修好了，其实没生效"</h2>
+
+<div class="item">
+  <h3><span class="n bad">H1</span>JWT 密钥的代码库默认值仍在生效</h3>
+  <p><span class="loc">JwtTokenProvider</span> 确实改好了：<span class="loc">@Value("${jwt.secret:}")</span> + 长度不足 32 拒绝启动。但 <span class="loc">application.yml</span> 里那行没删：</p>
+  <pre>jwt:
+  secret: ${JWT_SECRET:miniprogram-platform-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}</pre>
+  <p>Spring 解析属性时，yml 里的值优先于 <span class="loc">@Value</span> 的冒号默认值——<span class="loc">@Value</span> 的 <span class="loc">:""</span> 只在属性完全不存在时才用。所以 <b>环境变量漏配时，签名密钥依然是这串写在开源代码里的字符串</b>，而且它足够长，新加的长度校验也拦不住，反而给人"已经防住了"的错觉。</p>
+  <p class="why"><b>修复：</b>把 yml 改成 <span class="loc">secret: ${JWT_SECRET}</span>（不带默认值），缺失时启动直接失败。这是一行改动，建议今天做。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">H2</span>compose 里仍有三处弱默认口令，数据库端口仍对宿主机开放</h3>
+  <p>JWT 和 Redis 密码改成必填了，但同一个文件里：<span class="loc">MYSQL_ROOT_PASSWORD:-root123456</span>、<span class="loc">MYSQL_PASSWORD:-miniapp123456</span>、<span class="loc">GRAFANA_PASSWORD:-admin123456</span> 原样保留；<span class="loc">3306:3306</span> 与 <span class="loc">6379:6379</span> 也仍映射到宿主机。</p>
+  <p class="why"><b>修复：</b>三处一并改 <span class="loc">:?</span> 必填；数据库与缓存端口去掉映射或绑定 <span class="loc">127.0.0.1:3306:3306</span>。</p>
+</div>
+
+<h2 class="sec">四、仍未处理的遗留项</h2>
+<p class="secnote">按当初的严重度排序。前三条是当时标为高危的，建议排进本周。</p>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>#</th><th>问题</th><th>现状</th></tr>
+<tr><td class="c n2">高</td><td>活动名额仍可超额报名</td><td><span class="loc">ActivityServiceImpl.incrementSigned</span> 仍是先读后写；配额判断也仍在 service 层查完再改。商品库存那半边改了，活动这半边没改</td></tr>
+<tr><td class="c n2">高</td><td>支付回调未做平台证书验签</td><td><span class="loc">MpPaymentController</span> 仍只接 body、不取微信签名头；只加了<b>内存级</b> transactionId 防重放（多实例失效、重启失效）</td></tr>
+<tr><td class="c n2">高</td><td>受保护上传目录仍可绕过</td><td><span class="loc">ProtectedUploadFilter</span> 仍是 <span class="loc">uri.contains("/uploads/protected/")</span> 未解码黑名单；<span class="loc">p12/pem/cer/crt/key</span> 仍在允许扩展名内</td></tr>
+<tr><td class="c p">中</td><td>28 个后台控制器仍无细粒度权限</td><td>@PreAuthorize 从 18 处/2 个控制器涨到 <b>68 处/17 个控制器</b>（商品、订单、内容、活动、优惠券、会员已覆盖），但 <span class="loc">miniapp-releases</span>（发布/回滚小程序）、<span class="loc">users</span>、<span class="loc">wechat/official-account</span>、预约、表单、素材等仍只要求登录</td></tr>
+<tr><td class="c p">中</td><td>JWT 无黑名单</td><td>typ 分离与密钥校验做了，但登出/禁用/改密后旧 token 仍有效到过期</td></tr>
+<tr><td class="c p">中</td><td>统计日报无生产者</td><td><span class="loc">mp_statistics_daily</span> 仍没有任何写入方，运维手册里的"统计日报"仍不存在</td></tr>
+<tr><td class="c p">中</td><td>后台 UI token 化几乎没推进</td><td><span class="loc">#1769ff</span> 硬编码 107 → <b>99</b> 处；引用 <span class="loc">var(--brand)</span> 的文件 19 → 14 个（下降是因为删了死代码）</td></tr>
+<tr><td class="c p">中</td><td>小程序硬编码色值不降反升</td><td>wxss 中六位色值 1258 → <b>1278</b>（新组件带来），<span class="loc">var(--)</span> 引用 370 → 371。主题机制建好了，但底层色值没跟着换</td></tr>
+<tr><td class="c p">中</td><td>富文本编辑器仍用 execCommand</td><td><span class="loc">PageRichTextEditor.vue</span> 仍有 11 处 <span class="loc">execCommand</span>；引用块/代码块/表格/图注/一键排版均未补</td></tr>
+<tr><td class="c p">中</td><td>其他页面仍用原生 rich-text</td><td>商品详情、活动详情、问答详情、<span class="loc">dsl-rich-text</span> 组件仍是 <span class="loc">&lt;rich-text&gt;</span>，图片依然不能点开预览</td></tr>
+<tr><td class="c">低</td><td>文章列表默认分类仍是行业硬编码</td><td><span class="loc">category_tabs</span> 默认值里"行业动态/协会动态/政策解读/出海干货/税务合规…"原样保留</td></tr>
+<tr><td class="c">低</td><td>测试与 CI</td><td>后端 21 个测试类 / 542 个源文件；<span class="loc">.github/workflows</span> 只有体验版推送一个流水线，<b>没有构建与测试流水线</b>；三个部署脚本仍全部 <span class="loc">-DskipTests</span></td></tr>
+<tr><td class="c">低</td><td>体验版推送仍在业务后端</td><td>仍是服务器上 fork <span class="loc">node scripts/push-miniprogram-preview.js</span>（不过已新增 GitHub Actions 版本，可考虑切过去）</td></tr>
+<tr><td class="c">低</td><td>回滚不清理新增页面</td><td><span class="loc">rollbackRelease</span> 仍只恢复快照内的页面，快照之后新建并发布的页面回滚后依然在线</td></tr>
+</table>
+</div>
+
+<h2 class="sec">五、建议的下一步</h2>
+<ol class="road">
+  <li><b>今天（约 1 小时）</b>：N1 迁移脚本改 <span class="loc">sort -V</span>；H1 删掉 yml 里的 JWT 密钥默认值；N5 监控二选一对齐；N9 退款金额换算改用 MoneyUtils。四条都是一两行。</li>
+  <li><b>本周</b>：N2 评论内容安全 + 后台管理（或先关入口）；N3 点赞计数改定向更新；活动名额原子化；支付回调补平台证书验签；<span class="loc">ProtectedUploadFilter</span> 改白名单式校验并把证书移出 uploads；H2 compose 弱口令与端口。</li>
+  <li><b>下周</b>：N6 真机验证主题是否生效（不生效改 page-meta）；给 <span class="loc">miniapp-releases</span> / <span class="loc">users</span> / <span class="loc">wechat</span> 三个控制器补权限；补统计日报任务；加一条 CI（<span class="loc">mvn test</span> + <span class="loc">npm run build</span>），把"能不能构建"从人工判断变成流水线判断。</li>
+  <li><b>持续</b>：色值 token 化（后台 99 处 + 小程序 1278 处）；富文本编辑器替换；其余页面接 mp-html。</li>
+</ol>
+
+<footer>
+  本次复验实跑了 <span class="loc">vue-tsc --noEmit</span>（0 错误）与三处组件白名单的脚本比对（37/37/37 一致）；<span class="loc">vite build</span> 因本机 <span class="loc">node_modules</span> 与运行平台不匹配（rollup 原生模块缺失）未能验证，建议在 CI 中补一次真实构建。其余结论均来自对整改后代码的逐条核对，文中所有文件位置可直接复核。
+</footer>
+
+</div>
+</body>
+</html>

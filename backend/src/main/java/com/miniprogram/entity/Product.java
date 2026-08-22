@@ -67,6 +67,12 @@ public class Product implements Serializable {
     @Schema(description = "商品类型 JSON 数组，可多选")
     private String productTypes;
 
+    @Schema(description = "支付成功后自动履约（数字商品）")
+    private Integer autoFulfill;
+
+    @Schema(description = "自动发货内容")
+    private String fulfillContent;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

@@ -17,4 +17,7 @@ public class RollbackDTO {
 
     @Schema(description = "回滚原因")
     private String reason;
+
+    @Schema(description = "是否将快照之后新增的已发布页面一并下线")
+    private Boolean offlineExtraPages;
 }

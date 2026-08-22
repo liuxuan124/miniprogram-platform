@@ -21,6 +21,12 @@ public class OrderCreateDTO {
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "用户优惠券 ID（mp_user_coupon.id）")
+    private Long userCouponId;
+
+    @Schema(description = "来源内容 ID（内容带货归因）")
+    private Long sourceContentId;
+
     @Schema(description = "收货地址快照")
     private AddressSnapshot addressSnapshot;
 }

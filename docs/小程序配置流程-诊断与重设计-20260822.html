@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配置流程诊断与重设计</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#15181e; --muted:#5e6673; --line:#e2e6eb;
+    --r:#b91c1c; --o:#b45309; --b:#1d4ed8; --g:#0f766e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:28px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--r);
+    border-radius:10px;padding:20px 22px;margin-bottom:30px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:42px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 20px;margin-bottom:13px}
+  .item h3{margin:0 0 9px;font-size:16px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.r{background:var(--r)} .n.o{background:var(--o)} .n.g{background:var(--g)}
+  .item p{margin:0 0 8px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  .quote{border-left:3px solid var(--o);background:#fffaf2;padding:9px 13px;margin:9px 0;
+    font-size:14px;color:#5a4a2e;border-radius:0 6px 6px 0}
+  .why{border-top:1px dashed var(--line);margin-top:11px;padding-top:9px;font-size:14px}
+  .why b{color:var(--g)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.5px;min-width:620px}
+  th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .flow{display:flex;gap:9px;flex-wrap:wrap;align-items:stretch;margin:14px 0}
+  .box{flex:1 1 150px;min-width:140px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px}
+  .box b{display:block;font-size:14px;margin-bottom:4px}
+  .box span{font-size:12.5px;color:var(--muted);line-height:1.5;display:block}
+  .box.bad{border-color:#f0c2c2;background:#fef7f7}
+  .box.good{border-color:#bfe0d5;background:#f4fbf8}
+  .arrow{align-self:center;color:#a9b1bd;font-size:19px;padding:0 1px}
+  .cmp{display:grid;grid-template-columns:1fr;gap:16px;margin:16px 0}
+  @media(min-width:760px){.cmp{grid-template-columns:1fr 1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+  .panel h4{margin:0 0 10px;font-size:15px}
+  .panel.now h4{color:var(--r)} .panel.next h4{color:var(--g)}
+  .panel ul{margin:0;padding-left:18px} .panel li{margin-bottom:6px;font-size:14px}
+  .copy{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin:9px 0;font-size:14px}
+  .copy .old{color:var(--r);text-decoration:line-through;margin-right:8px}
+  .copy .new{color:var(--g);font-weight:600}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:9px}
+  footer{margin-top:44px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>小程序配置流程：诊断与重设计</h1>
+<div class="sub">为什么它难懂，以及怎么改 · 2026-08-22</div>
+
+<div class="lead">
+  <h2>你的感觉是对的，而且系统自己都没说清楚——两处提示互相矛盾</h2>
+  <p>装修器里发布一个页面后，弹窗写的是：</p>
+  <div class="quote">"此页已上线。打开「导航与外观」即可看到同步后的效果，<b>不用再整包发布</b>。"　<span class="loc">editor.vue:196</span></div>
+  <p>而「发布」页顶部写的是：</p>
+  <div class="quote">"微信里打开的「跨境墨太白」就是下面这些装修页。<b>改完点「进入装修」，再回到这里「发布到小程序」</b>。这不会把代码上传到微信。"　<span class="loc">release.vue:27</span></div>
+  <p>一个说不用再发，一个说改完要回来发。运营看到这两句话，不可能建立正确的心智模型——他只能靠试。</p>
+  <p><b>真相是哪个？</b>后端代码里有一句注释说得很清楚：<span class="loc">MpPageController:54　// 此页发布后立即生效；整包快照仅作页面记录缺失时的兜底</span>。也就是说<b>页面一发布就上线了，整包"发布到小程序"的实质是"批量发布还没发的页面 + 存一个可回滚的存档点"</b>。它不是上线开关，是版本存档。但界面把它做成了流程的最后一步、还叫"发布到小程序"，于是所有人都以为不点它小程序就不更新。</p>
+  <p>这不是文案没写好，是<b>概念模型本身重了</b>。下面先说重在哪，再给一版重设计。改动主要在前端和文案，后端几乎不用动。</p>
+</div>
+
+<h2 class="sec">一、运营现在要同时理解 9 个概念</h2>
+<p class="secnote">做一件事（"把首页改一下"）需要在脑子里同时装下这些东西：</p>
+
+<div class="tbl-wrap">
+<table>
+  <tr><th>概念</th><th>存在哪</th><th>问题</th></tr>
+  <tr><td class="c">页面（Page）</td><td><span class="loc">mp_page</span></td><td>—</td></tr>
+  <tr><td class="c">页面类型</td><td><span class="loc">page.type</span>（新建时必填）</td><td>type=1 表示首页，与下面的"首页绑定"重复定义</td></tr>
+  <tr><td class="c">页面版本</td><td><span class="loc">mp_page_version</span></td><td>草稿/已发布/历史三态，运营基本不需要感知</td></tr>
+  <tr><td class="c">页面发布</td><td>装修器按钮</td><td>实际＝上线，但界面暗示只是"提交"</td></tr>
+  <tr><td class="c">首页绑定</td><td><span class="loc">config.miniappHomePageId</span></td><td>与 page.type=1 两套定义，preflight 里先读配置再回退到 type</td></tr>
+  <tr><td class="c">我的页面绑定</td><td><span class="loc">config.miniappMinePageId</span></td><td>第三套绑定关系</td></tr>
+  <tr><td class="c">底部导航</td><td><span class="loc">config.tabbarItems</span></td><td>绑定的是 pageId，真机按 4 个固定槽位映射</td></tr>
+  <tr><td class="c">整包版本（Release）</td><td><span class="loc">mp_miniapp_release</span></td><td>叫"发布"，实为存档点</td></tr>
+  <tr><td class="c">体验版推送</td><td>微信 CI</td><td>唯一真正"上传代码到微信"的动作，却和上面几个混在同一屏</td></tr>
+</table>
+</div>
+
+<p>九个概念里，<b>运营真正需要知道的只有三个</b>：我在改哪个页面、改完有没有上线、出问题怎么退回去。其余六个是实现细节漏进了界面。</p>
+
+<h2 class="sec">二、五处具体的断点</h2>
+
+<div class="item">
+  <h3><span class="n r">D1</span>两个"发布"，且没有任何地方解释它们的区别</h3>
+  <p>模块里"发布"字样出现在四个地方：装修器的「发布」（单页上线）、页面列表的「发布」、发布页的「发布到小程序」（整包存档）、模板中心的「发布」。四个按钮做的是三件不同的事，名字几乎一样。</p>
+  <p class="why"><b>建议：</b>术语分家——单页动作叫<b>「上线」</b>，整包动作叫<b>「保存版本」/「创建还原点」</b>，微信 CI 那个叫<b>「上传代码到微信」</b>。三个词一眼能分清做的是什么。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n r">D2</span>"谁是首页"有两套定义</h3>
+  <p>新建页面时要选「页面类型」，选"首页"会写进 <span class="loc">page.type=1</span>；同时「导航与外观」里还要再绑一次首页，写进 <span class="loc">config.miniappHomePageId</span>。<span class="loc">buildPreflight</span> 的逻辑是：先读配置，读不到再去找 <span class="loc">type=1</span> 的页面。</p>
+  <p>于是可能出现：A 页面 type=1（列表里显示"首页"标签），但配置绑定的是 B 页面（真机上打开的是 B）。运营看到的标签和实际不符，且没有任何提示。</p>
+  <p class="why"><b>建议：</b>只保留绑定关系这一套。新建页面时去掉"页面类型"必填（或降级为可选的"用途标签"，仅用于列表筛选），首页由「外观 → 首页」唯一决定，页面列表里的"首页"标签直接从绑定关系读。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">D3</span>底部导航配了不一定生效</h3>
+  <p>后台允许配 2~5 个 tab，小程序端固定渲染 4 个槽位（上一份报告 M2 已详述）。运营配了 5 个保存成功、预览也正常，真机上第 5 个不见了——而且系统不会给任何提示。</p>
+  <p class="why"><b>建议：</b>锁死 4 个，界面上直接写"底部导航固定 4 个入口（受小程序代码限制，增减需发版）"。<b>与其让人配了才发现无效，不如一开始就说清边界。</b></p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">D4</span>"我的"页面是另一套范式，却混在同一个菜单里</h3>
+  <p>首页、内容页、商城页是<b>拖拽装修</b>；「我的」页面却是一套<b>表单开关</b>（显示装饰背景 / 显示会员卡片 / 登录标题 / 按钮文字 / 待付款文案…共二十多个开关，<span class="loc">MinePageConfig.vue</span> + <span class="loc">MinePagePreview.vue</span> 合计 1704 行），藏在「导航与外观」里面。</p>
+  <p>运营的困惑很自然："为什么别的页面能拖，这个页面只能填表？我要改'我的'页面应该去装修器还是去导航与外观？"</p>
+  <p class="why"><b>建议：</b>短期——把它从「导航与外观」里拿出来，在页面列表里作为一个特殊页面呈现（名称"我的"，操作按钮叫「配置」而不是「装修」），让所有页面都能在同一个列表里找到。长期——等容器组件（上一份报告 B2）落地后，用装修器 + 专用组件（会员卡、订单入口、菜单列表）取代这套表单，范式归一。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">D5</span>菜单名与内容对不上</h3>
+  <p>「导航与外观」里实际包含：导航模板、首页绑定、我的页绑定、底部导航、我的页详细配置、主题配色、分享标题与封面、预览昵称。这已经不是"导航与外观"，是"除了页面内容之外的所有设置"。</p>
+  <p>而「模板」（template-center）与「页面」的关系也不清楚：模板是用来新建页面的，但它是独立菜单项，运营新建页面时不一定会想到先去模板里逛一圈（页面列表里其实有"从模板创建"，两个入口做同一件事）。</p>
+</div>
+
+<h2 class="sec">三、重设计：把 9 个概念压到 3 个</h2>
+
+<div class="cmp">
+  <div class="panel now">
+    <h4>现在的菜单</h4>
+    <ul>
+      <li><b>导航与外观</b>——导航+首页+我的页+主题+分享，五件事</li>
+      <li><b>页面</b>——页面列表</li>
+      <li><b>模板</b>——与"从模板创建"重复</li>
+      <li><b>发布</b>——整包存档，但叫"发布到小程序"</li>
+    </ul>
+    <p style="font-size:13.5px;color:var(--muted);margin:10px 0 0">入口之间没有顺序关系，但界面暗示有顺序。</p>
+  </div>
+  <div class="panel next">
+    <h4>建议的菜单</h4>
+    <ul>
+      <li><b>总览</b>——当前线上状态一屏看清（新增）</li>
+      <li><b>页面</b>——所有页面（含"我的"），装修与上线都在这里</li>
+      <li><b>外观</b>——底部导航、首页绑定、主题、分享</li>
+      <li><b>版本</b>——还原点列表、回滚、上传体验版</li>
+    </ul>
+    <p style="font-size:13.5px;color:var(--muted);margin:10px 0 0">四个入口各管一件事，不再暗示先后顺序。</p>
+  </div>
+</div>
+
+<div class="item">
+  <h3><span class="n g">R1</span>核心改变：把"发布"从流程终点改回它本来的样子</h3>
+  <p>让运营记住的规则只有一句：<b>「页面点上线 → 小程序立刻更新」</b>。因为这本来就是事实。</p>
+  <div class="flow">
+    <div class="box good"><b>① 装修页面</b><span>保存＝草稿，上线＝立刻生效</span></div>
+    <div class="arrow">→</div>
+    <div class="box good"><b>② 真机扫码验收</b><span>草稿态就能扫码看</span></div>
+    <div class="arrow">→</div>
+    <div class="box good"><b>③ 点「上线」</b><span>这一步之后就结束了</span></div>
+  </div>
+  <p>整包版本从主流程里移出去，放进「版本」菜单，定位改成：<b>"给当前状态存一个还原点，方便随时退回"</b>。它变成一个可选动作（大改版之前存一个），而不是每次改完都要点的第四步。</p>
+  <p class="why"><b>为什么这样更对：</b>因为系统实际就是这么运行的。现在的界面是在描述一个并不存在的流程，运营越认真看说明越糊涂。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n g">R2</span>新增「总览」页，回答"我的小程序现在长什么样"</h3>
+  <p>进「小程序」菜单默认落在这里，一屏包含：</p>
+  <p>· <b>顶部状态条</b>：小程序名称、当前还原点版本号与时间、最近一次代码上传时间（体验版）。</p>
+  <p>· <b>四个 tab 的实况</b>：四个卡片，每个显示 tab 名称、绑定的页面名、该页面状态（已上线 / 有未上线的改动 / 空白）、缩略图，点击直接进装修。<b>这一屏就取代了现在"发布页"承担的检查职能</b>，而且是常驻可见的，不用等到发布前才知道有问题。</p>
+  <p>· <b>待办条</b>：把 preflight 的检查结果常驻显示（"「活动页」还没有内容""导航③未绑定页面"），有问题就能点进去修。</p>
+  <p>· <b>一个按钮</b>：「预览真机」。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n g">R3</span>页面列表：所有页面都在一个地方，状态只有三种</h3>
+  <p>页面状态收敛为运营能理解的三个词：<b>草稿</b>（从没上线过）、<b>已上线</b>、<b>有未上线的改动</b>。后台的版本号、version 状态码这些不出现在列表里，需要时进「历史版本」看。</p>
+  <p>列表补三个操作：<b>复制页面</b>（做相似活动页）、<b>行内二维码</b>（直接扫码看）、<b>标记用途</b>（首页/tab 页/活动页/独立页，只用于筛选，不改变行为）。「我的」页面作为一条特殊记录出现在这里，操作按钮是「配置」。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n g">R4</span>统一术语表</h3>
+  <p>整个模块（含提示文案、弹窗、日志）只用这套词：</p>
+  <div class="copy"><span class="old">发布（装修器）</span><span class="new">上线</span>　—— 让这一页在小程序里生效</div>
+  <div class="copy"><span class="old">保存草稿</span><span class="new">保存</span>　—— 存起来但不影响线上（自动保存已有，手动保存保留）</div>
+  <div class="copy"><span class="old">发布到小程序 / 整包发布</span><span class="new">保存还原点</span>　—— 存档当前全部页面与配置，可回滚</div>
+  <div class="copy"><span class="old">版本管理</span><span class="new">还原点</span>　—— 列表 + 回滚</div>
+  <div class="copy"><span class="old">推送体验版</span><span class="new">上传代码到微信</span>　—— 唯一涉及微信平台的动作</div>
+  <div class="copy"><span class="old">导航与外观</span><span class="new">外观</span>　—— 导航、首页、主题、分享</div>
+  <p style="margin-top:10px">同时删掉现在那两句互相矛盾的长提示。装修器发布成功后只说一句：<b>"已上线，小程序里刷新即可看到。"</b></p>
+</div>
+
+<h2 class="sec">四、改动清单</h2>
+<p class="secnote">这次重设计的好消息是：后端几乎不用动，主要是前端的信息架构与文案。</p>
+
+<div class="tbl-wrap">
+<table>
+  <tr><th>改动</th><th>涉及</th><th>量级</th></tr>
+  <tr><td class="c">术语统一（R4）</td><td>editor / index / release / miniapp-builder 的按钮与提示文案</td><td>半天</td></tr>
+  <tr><td class="c">删掉两句矛盾提示</td><td><span class="loc">editor.vue:196</span>、<span class="loc">release.vue:27</span></td><td>10 分钟</td></tr>
+  <tr><td class="c">菜单重排为 总览/页面/外观/版本</td><td><span class="loc">router/index.ts</span> + 菜单标题</td><td>半天</td></tr>
+  <tr><td class="c">新增总览页（R2）</td><td>新页面，数据全部复用现成接口（<span class="loc">preflight</span>、<span class="loc">latest</span>、<span class="loc">push-preview/status</span>、页面列表）</td><td>2~3 天</td></tr>
+  <tr><td class="c">发布页改造为「版本/还原点」</td><td><span class="loc">release.vue</span> 去掉流程叙事，保留列表+创建+回滚</td><td>1 天</td></tr>
+  <tr><td class="c">页面状态三态化 + 复制页面 + 行内二维码</td><td><span class="loc">index.vue</span>；复制页面需后端加一个 <span class="loc">POST /pages/{id}/duplicate</span></td><td>1~2 天</td></tr>
+  <tr><td class="c">首页定义归一（D2）</td><td>新建表单去掉"页面类型"必填；列表标签改读绑定关系</td><td>半天</td></tr>
+  <tr><td class="c">tab 锁死 4 个 + 边界说明（D3）</td><td><span class="loc">TabBarEditor.vue</span></td><td>1 小时</td></tr>
+  <tr><td class="c">「我的」页移入页面列表（D4）</td><td>入口迁移，配置组件本身不动</td><td>半天</td></tr>
+</table>
+</div>
+
+<h2 class="sec">五、建议分两批做</h2>
+<ol class="road">
+  <li><b>第一批（1~2 天，立刻见效）</b>：删掉两句矛盾提示 → 统一术语 → tab 锁 4 个 → 首页定义归一。这一批不改结构、不动后端，纯文案与小逻辑，但能消除大部分"看不懂"的来源。<b>建议先做这批，然后找一个没碰过系统的同事来走一遍，看他能不能自己完成"改首页并上线"。</b></li>
+  <li><b>第二批（约 1 周）</b>：菜单重排 → 新增总览页 → 发布页改为还原点 → 页面列表三态化与复制页面 → 「我的」页归位。这一批做完，配置小程序这件事应该能在不看说明的情况下走通。</li>
+</ol>
+
+<div class="item" style="margin-top:22px">
+  <h3><span class="n">验收标准</span>怎么判断改好了</h3>
+  <p>给一个从没用过的人一句话任务：<b>"把首页的轮播图换一张，让它在小程序里生效。"</b> 不给任何指导，观察他能否在 3 分钟内完成，且中途不问"这样就行了吗"。</p>
+  <p>现在的流程里，绝大多数人会在点完装修器的「发布」之后卡住——因为他不确定还要不要去点那个「发布到小程序」。这就是要修的东西。</p>
+</div>
+
+<footer>
+  本文结论基于对 <span class="loc">editor.vue</span>、<span class="loc">release.vue</span>、<span class="loc">index.vue</span>、<span class="loc">miniapp-builder.vue</span>、<span class="loc">useMiniappConfig.ts</span>、<span class="loc">MinePageConfig.vue</span>、<span class="loc">router/index.ts</span> 与后端 <span class="loc">MpPageController</span>、<span class="loc">MiniappReleaseServiceImpl</span> 的实际逻辑核对，两段互相矛盾的提示文案与"页面发布即生效"的注释均可在标注行号处复核。
+</footer>
+
+</div>
+</body>
+</html>

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,12 +31,14 @@ public class ProductCategoryController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('product:create')")
     @Operation(summary = "创建分类")
     public R<ProductCategoryTreeVO> createCategory(@Valid @RequestBody ProductCategoryDTO dto) {
         return R.ok(productCategoryService.createCategory(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('product:update')")
     @Operation(summary = "更新分类")
     public R<ProductCategoryTreeVO> updateCategory(@PathVariable Long id,
                                                     @Valid @RequestBody ProductCategoryDTO dto) {
@@ -43,6 +46,7 @@ public class ProductCategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('product:delete')")
     @Operation(summary = "删除分类")
     public R<Void> deleteCategory(@PathVariable Long id) {
         productCategoryService.deleteCategory(id);

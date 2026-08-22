@@ -20,11 +20,13 @@ miniapp/project.private.config.json
 # Client-specific delivery artifacts (not part of open-source product)
 deploy-artifacts/
 docs/跨境墨太白*
+docs/上线前全面检查报告*.html
 verify-crossborder-motaibai-launch.js
 
 # IDE & OS
 .idea/
 .vscode/
+.cursor/
 *.iml
 .DS_Store
 Thumbs.db

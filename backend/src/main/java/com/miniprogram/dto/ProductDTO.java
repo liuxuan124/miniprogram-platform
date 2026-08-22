@@ -59,6 +59,12 @@ public class ProductDTO {
     @Schema(description = "排序")
     private Integer sortOrder = 0;
 
+    @Schema(description = "数字商品支付后自动履约")
+    private Integer autoFulfill;
+
+    @Schema(description = "自动发货内容")
+    private String fulfillContent;
+
     @Schema(description = "SKU列表")
     private List<ProductSkuDTO> skus;
 }

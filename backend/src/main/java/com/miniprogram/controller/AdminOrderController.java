@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -25,18 +26,21 @@ public class AdminOrderController {
     private final RefundService refundService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('order:list')")
     @Operation(summary = "订单列表")
     public R<PageResult<OrderDetailVO>> listOrders(OrderQueryDTO query) {
         return R.ok(orderService.listAdminOrders(query));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('order:detail')")
     @Operation(summary = "订单详情")
     public R<OrderDetailVO> getOrderDetail(@PathVariable Long id) {
         return R.ok(orderService.getOrderDetail(id));
     }
 
     @PutMapping("/{id}/ship")
+    @PreAuthorize("hasAuthority('order:ship')")
     @Operation(summary = "发货")
     public R<Void> shipOrder(@PathVariable Long id,
                               @Valid @RequestBody OrderShipDTO dto) {
@@ -45,6 +49,7 @@ public class AdminOrderController {
     }
 
     @PutMapping("/{id}/refund-approve")
+    @PreAuthorize("hasAuthority('order:refund')")
     @Operation(summary = "退款审批")
     public R<Void> approveRefund(@PathVariable Long id,
                                   @Valid @RequestBody RefundApproveDTO dto) {

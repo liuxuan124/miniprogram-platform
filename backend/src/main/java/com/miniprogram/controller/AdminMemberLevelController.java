@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,18 +25,21 @@ public class AdminMemberLevelController {
     private final MemberLevelService memberLevelService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('member:list')")
     @Operation(summary = "会员等级列表")
     public R<List<MemberLevelVO>> listLevels() {
         return R.ok(memberLevelService.listAll());
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('member:update')")
     @Operation(summary = "创建会员等级")
     public R<MemberLevelVO> createLevel(@Valid @RequestBody MemberLevelDTO dto) {
         return R.ok(memberLevelService.createLevel(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('member:update')")
     @Operation(summary = "更新会员等级")
     public R<MemberLevelVO> updateLevel(@PathVariable Long id,
                                          @Valid @RequestBody MemberLevelDTO dto) {
@@ -43,6 +47,7 @@ public class AdminMemberLevelController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('member:update')")
     @Operation(summary = "删除会员等级")
     public R<Void> deleteLevel(@PathVariable Long id) {
         memberLevelService.deleteLevel(id);

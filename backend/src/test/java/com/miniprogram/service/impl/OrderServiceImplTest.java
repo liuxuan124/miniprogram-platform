@@ -14,6 +14,9 @@ import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.ProductSkuMapper;
 import com.miniprogram.mapper.RefundMapper;
+import com.miniprogram.mapper.UserCouponMapper;
+import com.miniprogram.mapper.CouponMapper;
+import com.miniprogram.mapper.CouponEffectMapper;
 import com.miniprogram.service.RefundService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -122,6 +125,9 @@ class OrderServiceImplTest {
                 mock(RefundMapper.class),
                 mock(RefundService.class),
                 mock(MiniProgramUserMapper.class),
+                mock(UserCouponMapper.class),
+                mock(CouponMapper.class),
+                mock(CouponEffectMapper.class),
                 new ObjectMapper()
         );
         ReflectionTestUtils.setField(service, "baseMapper", orderMapper);

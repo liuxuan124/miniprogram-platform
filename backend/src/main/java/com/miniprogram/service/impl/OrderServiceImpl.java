@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
+import com.miniprogram.common.MoneyUtils;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
 import com.miniprogram.entity.*;
@@ -46,6 +47,9 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final RefundMapper refundMapper;
     private final RefundService refundService;
     private final MiniProgramUserMapper miniProgramUserMapper;
+    private final UserCouponMapper userCouponMapper;
+    private final CouponMapper couponMapper;
+    private final CouponEffectMapper couponEffectMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -126,48 +130,125 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             throw new BusinessException(600203, "实体商品必须填写收货地址");
         }
 
-        // 3. 扣减库存
+        // 3. 扣减库存（原子条件更新，防超卖）
         for (OrderItem item : orderItems) {
             Product product = productMapper.selectById(item.getProductId());
-            if ("digital".equalsIgnoreCase(product.getProductType())) {
-                // 数字商品由商家虚拟发货，不占用实体库存。
-                product.setSales(product.getSales() + item.getQuantity());
-                productMapper.updateById(product);
+            if ("digital".equalsIgnoreCase(product.getProductType())
+                    || (StringUtils.hasText(product.getProductTypes())
+                    && product.getProductTypes().toLowerCase().contains("digital")
+                    && !product.getProductTypes().toLowerCase().contains("physical"))) {
+                productMapper.increaseSales(product.getId(), item.getQuantity());
                 continue;
             }
             if (item.getSkuId() != null) {
-                ProductSku sku = productSkuMapper.selectById(item.getSkuId());
-                sku.setStock(sku.getStock() - item.getQuantity());
-                productSkuMapper.updateById(sku);
+                int skuOk = productSkuMapper.deductStock(item.getSkuId(), item.getQuantity());
+                if (skuOk == 0) {
+                    throw new BusinessException(600202, "商品库存不足：" + product.getName());
+                }
             }
-            product.setStock(product.getStock() - item.getQuantity());
-            product.setSales(product.getSales() + item.getQuantity());
-            productMapper.updateById(product);
+            int ok = productMapper.deductStock(product.getId(), item.getQuantity());
+            if (ok == 0) {
+                throw new BusinessException(600202, "商品库存不足：" + product.getName());
+            }
         }
 
-        // 4. 创建订单
+        // 4. 优惠券
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        UserCoupon usedUserCoupon = null;
+        if (dto.getUserCouponId() != null) {
+            usedUserCoupon = userCouponMapper.selectById(dto.getUserCouponId());
+            if (usedUserCoupon == null || !Objects.equals(usedUserCoupon.getUserId(), userId)) {
+                throw new BusinessException(400201, "优惠券不存在或不属于当前用户");
+            }
+            if (!"unused".equalsIgnoreCase(String.valueOf(usedUserCoupon.getStatus()))) {
+                throw new BusinessException(400201, "优惠券已使用或不可用");
+            }
+            Coupon coupon = couponMapper.selectById(usedUserCoupon.getCouponId());
+            if (coupon == null) {
+                throw new BusinessException(400201, "优惠券模板不存在");
+            }
+            LocalDateTime now = LocalDateTime.now();
+            if (coupon.getStartTime() != null && coupon.getStartTime().isAfter(now)) {
+                throw new BusinessException(400201, "优惠券尚未开始");
+            }
+            if (coupon.getEndTime() != null && coupon.getEndTime().isBefore(now)) {
+                throw new BusinessException(400201, "优惠券已过期");
+            }
+            BigDecimal minAmount = coupon.getMinOrderAmount() == null ? BigDecimal.ZERO : coupon.getMinOrderAmount();
+            if (totalAmount.compareTo(minAmount) < 0) {
+                throw new BusinessException(400201, "未达到优惠券使用门槛");
+            }
+            // scope 校验：product / category（简单包含）
+            if ("product".equalsIgnoreCase(coupon.getScope()) && StringUtils.hasText(coupon.getScopeIds())) {
+                java.util.Set<String> allow = java.util.Arrays.stream(coupon.getScopeIds().split(","))
+                        .map(String::trim).filter(StringUtils::hasText).collect(Collectors.toSet());
+                boolean hit = orderItems.stream().anyMatch(i -> allow.contains(String.valueOf(i.getProductId())));
+                if (!hit) {
+                    throw new BusinessException(400201, "优惠券不适用于当前商品");
+                }
+            }
+            discountAmount = calcCouponDiscount(coupon, totalAmount);
+            if (discountAmount.compareTo(totalAmount) > 0) {
+                discountAmount = totalAmount;
+            }
+        }
+
+        BigDecimal payAmount = MoneyUtils.normalizeYuan(
+                totalAmount.subtract(discountAmount).max(BigDecimal.ZERO));
+        totalAmount = MoneyUtils.normalizeYuan(totalAmount);
+        discountAmount = MoneyUtils.normalizeYuan(discountAmount);
+
+        // 5. 创建订单
         Order order = new Order();
         order.setOrderNo(orderNo);
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
-        order.setPayAmount(totalAmount); // 暂无优惠
-        order.setDiscountAmount(BigDecimal.ZERO);
+        order.setPayAmount(payAmount);
+        order.setDiscountAmount(discountAmount);
         order.setFreightAmount(BigDecimal.ZERO);
         order.setStatus("pending_payment");
         order.setFulfillmentType(hasPhysicalProduct ? "physical" : "virtual");
-        // 所有订单统一由商家发货，支付回调不会自动完成订单。
-        order.setAutoFulfill(false);
+        boolean anyAutoFulfill = orderItems.stream().anyMatch(item -> {
+            Product p = productMapper.selectById(item.getProductId());
+            if (p == null || !Integer.valueOf(1).equals(p.getAutoFulfill())) return false;
+            if ("digital".equalsIgnoreCase(p.getProductType())) return true;
+            String types = p.getProductTypes();
+            return StringUtils.hasText(types) && types.toLowerCase().contains("digital");
+        });
+        // 纯虚拟且存在可自动履约数字商品时，支付后自动完成
+        order.setAutoFulfill(!hasPhysicalProduct && anyAutoFulfill);
         order.setRemark(dto.getRemark());
         order.setAddressSnapshot(toJsonString(dto.getAddressSnapshot()));
+        order.setSourceContentId(dto.getSourceContentId());
+        order.setUserCouponId(dto.getUserCouponId());
         this.save(order);
 
-        // 5. 保存订单项
+        // 6. 核销优惠券
+        if (usedUserCoupon != null) {
+            usedUserCoupon.setStatus("used");
+            usedUserCoupon.setUsedAt(LocalDateTime.now());
+            usedUserCoupon.setOrderId(order.getId());
+            userCouponMapper.updateById(usedUserCoupon);
+            CouponEffect effect = new CouponEffect();
+            effect.setCouponId(usedUserCoupon.getCouponId());
+            effect.setUserCouponId(usedUserCoupon.getId());
+            effect.setUserId(userId);
+            effect.setOrderId(order.getId());
+            effect.setOrderNo(orderNo);
+            effect.setAction("use");
+            effect.setDiscountAmount(discountAmount);
+            effect.setOrderPayAmount(payAmount);
+            effect.setCreateTime(LocalDateTime.now());
+            couponEffectMapper.insert(effect);
+        }
+
+        // 7. 保存订单项
         for (OrderItem item : orderItems) {
             item.setOrderId(order.getId());
             orderItemMapper.insert(item);
         }
 
-        // 6. 创建支付记录
+        // 8. 创建支付记录
         Payment payment = new Payment();
         payment.setOrderId(order.getId());
         payment.setPayMethod("wechat");
@@ -176,6 +257,23 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         paymentMapper.insert(payment);
 
         return convertToDetailVO(order);
+    }
+
+    private BigDecimal calcCouponDiscount(Coupon coupon, BigDecimal totalAmount) {
+        if (coupon.getValue() == null) return BigDecimal.ZERO;
+        String type = String.valueOf(coupon.getType() == null ? "fixed" : coupon.getType()).toLowerCase();
+        if ("percent".equals(type) || "discount".equals(type)) {
+            BigDecimal rate = coupon.getValue();
+            // 9 = 九折；0.9 = 九折
+            if (rate.compareTo(BigDecimal.ONE) > 0) {
+                rate = rate.movePointLeft(1);
+            }
+            if (rate.compareTo(BigDecimal.ZERO) <= 0 || rate.compareTo(BigDecimal.ONE) >= 0) {
+                return BigDecimal.ZERO;
+            }
+            return totalAmount.multiply(BigDecimal.ONE.subtract(rate)).setScale(2, RoundingMode.HALF_UP);
+        }
+        return coupon.getValue().min(totalAmount).setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override
@@ -258,6 +356,20 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         }
         validateTransition(order.getStatus(), "refunding");
 
+        BigDecimal requestAmount = dto.getAmount() != null ? dto.getAmount() : order.getPayAmount();
+        requestAmount = MoneyUtils.normalizeYuan(requestAmount);
+        BigDecimal alreadyRefunded = refundMapper.selectList(new LambdaQueryWrapper<Refund>()
+                        .eq(Refund::getOrderId, order.getId())
+                        .in(Refund::getStatus, java.util.List.of("success", "pending", "approved")))
+                .stream()
+                .map(Refund::getAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal remaining = MoneyUtils.normalizeYuan(order.getPayAmount()).subtract(alreadyRefunded);
+        if (requestAmount.compareTo(BigDecimal.ZERO) <= 0 || requestAmount.compareTo(remaining) > 0) {
+            throw new BusinessException(600203, "退款金额无效，可退余额：" + remaining);
+        }
+
         // 更新订单状态
         order.setStatus("refunding");
         this.updateById(order);
@@ -266,7 +378,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         Refund refund = new Refund();
         refund.setOrderId(order.getId());
         refund.setRefundNo(generateRefundNo());
-        refund.setAmount(dto.getAmount() != null ? dto.getAmount() : order.getPayAmount());
+        refund.setAmount(requestAmount);
         refund.setReason(dto.getReason());
         refund.setStatus("pending");
         refundMapper.insert(refund);
@@ -498,16 +610,16 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         for (OrderItem item : items) {
             Product product = productMapper.selectById(item.getProductId());
             if (product != null) {
-                product.setStock(product.getStock() + item.getQuantity());
-                product.setSales(Math.max(0, product.getSales() - item.getQuantity()));
-                productMapper.updateById(product);
+                boolean digital = "digital".equalsIgnoreCase(product.getProductType())
+                        || (StringUtils.hasText(product.getProductTypes())
+                        && product.getProductTypes().toLowerCase().contains("digital")
+                        && !product.getProductTypes().toLowerCase().contains("physical"));
+                if (!digital) {
+                    productMapper.restoreStock(product.getId(), item.getQuantity());
+                }
             }
             if (item.getSkuId() != null) {
-                ProductSku sku = productSkuMapper.selectById(item.getSkuId());
-                if (sku != null) {
-                    sku.setStock(sku.getStock() + item.getQuantity());
-                    productSkuMapper.updateById(sku);
-                }
+                productSkuMapper.restoreStock(item.getSkuId(), item.getQuantity());
             }
         }
     }

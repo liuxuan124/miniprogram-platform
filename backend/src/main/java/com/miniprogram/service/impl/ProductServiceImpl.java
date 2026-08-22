@@ -134,6 +134,8 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getStock() != null) product.setStock(dto.getStock());
         if (dto.getUnit() != null) product.setUnit(dto.getUnit());
         if (dto.getSortOrder() != null) product.setSortOrder(dto.getSortOrder());
+        if (dto.getAutoFulfill() != null) product.setAutoFulfill(dto.getAutoFulfill());
+        if (dto.getFulfillContent() != null) product.setFulfillContent(dto.getFulfillContent());
 
         this.updateById(product);
 

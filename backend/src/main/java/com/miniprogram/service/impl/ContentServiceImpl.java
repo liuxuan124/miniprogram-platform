@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -90,6 +92,15 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (entity.getSortOrder() == null) {
             entity.setSortOrder(0);
         }
+        if (entity.getIsPinned() == null) {
+            entity.setIsPinned(0);
+        }
+        if (entity.getIsRecommended() == null) {
+            entity.setIsRecommended(0);
+        }
+        if (!StringUtils.hasText(entity.getLayoutTheme())) {
+            entity.setLayoutTheme("standard");
+        }
         if ("note".equals(entity.getContentType()) && !StringUtils.hasText(entity.getCoverImage())
                 && StringUtils.hasText(entity.getImages())) {
             List<String> imgs = parseStringList(entity.getImages());
@@ -98,6 +109,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             }
         }
         applyMomentCover(entity);
+        applyScheduleFields(entity, dto);
         this.save(entity);
 
         // 更新标签使用次数
@@ -135,6 +147,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getCoverImage() != null) {
             entity.setCoverImage(dto.getCoverImage());
         }
+        if (dto.getVideoUrl() != null) {
+            entity.setVideoUrl(dto.getVideoUrl());
+        }
+        if (dto.getVideoDuration() != null) {
+            entity.setVideoDuration(dto.getVideoDuration());
+        }
         if (dto.getImages() != null) {
             entity.setImages(toJsonString(dto.getImages()));
         }
@@ -143,6 +161,18 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         if (dto.getSummary() != null) {
             entity.setSummary(dto.getSummary());
+        }
+        if (dto.getSeoTitle() != null) {
+            entity.setSeoTitle(dto.getSeoTitle());
+        }
+        if (dto.getSeoDescription() != null) {
+            entity.setSeoDescription(dto.getSeoDescription());
+        }
+        if (dto.getLayoutTheme() != null) {
+            entity.setLayoutTheme(dto.getLayoutTheme());
+        }
+        if (dto.getScheduledAt() != null) {
+            entity.setScheduledAt(parseScheduledAt(dto.getScheduledAt()));
         }
         if (dto.getContent() != null) {
             entity.setContent(dto.getContent());
@@ -168,6 +198,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getSortOrder() != null) {
             entity.setSortOrder(dto.getSortOrder());
         }
+        if (dto.getIsPinned() != null) {
+            entity.setIsPinned(dto.getIsPinned());
+        }
+        if (dto.getIsRecommended() != null) {
+            entity.setIsRecommended(dto.getIsRecommended());
+        }
         if ("note".equals(entity.getContentType()) && !StringUtils.hasText(entity.getCoverImage())) {
             List<String> imgs = parseStringList(entity.getImages());
             if (!imgs.isEmpty()) {
@@ -175,6 +211,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             }
         }
         applyMomentCover(entity);
+        applyScheduleFields(entity, dto);
         this.updateById(entity);
 
         // 更新标签使用次数：旧标签-1，新标签+1
@@ -208,6 +245,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
 
         entity.setStatus("published");
         entity.setPublishedAt(LocalDateTime.now());
+        entity.setScheduledAt(null);
         this.updateById(entity);
 
         return toDetailDTO(entity);
@@ -413,5 +451,57 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                                 .set(ContentTag::getUseCount, newCount));
             }
         }
+    }
+
+    private void applyScheduleFields(Content entity, ContentDTO dto) {
+        if (dto.getSeoTitle() != null) {
+            entity.setSeoTitle(dto.getSeoTitle().isBlank() ? null : dto.getSeoTitle().trim());
+        }
+        if (dto.getSeoDescription() != null) {
+            entity.setSeoDescription(dto.getSeoDescription().isBlank() ? null : dto.getSeoDescription().trim());
+        }
+        if (dto.getScheduledAt() != null) {
+            String raw = dto.getScheduledAt().trim();
+            entity.setScheduledAt(raw.isEmpty() ? null : parseScheduledAt(raw));
+        }
+    }
+
+    private LocalDateTime parseScheduledAt(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        String text = raw.trim().replace('T', ' ');
+        if (text.length() == 16) {
+            text = text + ":00";
+        }
+        try {
+            return LocalDateTime.parse(text, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        } catch (DateTimeParseException e1) {
+            try {
+                return LocalDateTime.parse(raw.trim());
+            } catch (DateTimeParseException e2) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "定时发布时间格式不正确");
+            }
+        }
+    }
+
+    /** 扫描到期定时发布内容并发布 */
+    @Transactional(rollbackFor = Exception.class)
+    public int publishDueScheduledContents() {
+        List<Content> due = this.lambdaQuery()
+                .eq(Content::getStatus, "draft")
+                .isNotNull(Content::getScheduledAt)
+                .le(Content::getScheduledAt, LocalDateTime.now())
+                .list();
+        int count = 0;
+        for (Content item : due) {
+            item.setStatus("published");
+            item.setPublishedAt(LocalDateTime.now());
+            item.setScheduledAt(null);
+            this.updateById(item);
+            count++;
+            log.info("定时发布内容 id={} title={}", item.getId(), item.getTitle());
+        }
+        return count;
     }
 }

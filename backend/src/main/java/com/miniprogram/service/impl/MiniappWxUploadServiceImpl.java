@@ -59,6 +59,13 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
     @Override
     public PushPreviewResultVO pushPreview(Long releaseId, PushPreviewDTO dto) {
         long start = System.currentTimeMillis();
+        Capability capability = probeCapability();
+        if (!capability.available) {
+            throw new BusinessException(ErrorCode.MINIAPP_PUBLISH_FAILED,
+                    "服务器不具备本地上传条件：" + capability.reason
+                            + "。请改用 CI 推送（仓库 Actions: push-miniprogram-preview），业务后端不应持有上传私钥。");
+        }
+
         MiniappRelease release = miniappReleaseService.getReleaseDetail(releaseId);
         if (dto != null && Boolean.FALSE.equals(dto.getConfirmCodeChange())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请确认本次包含 miniapp 代码变更后再推送");
@@ -154,6 +161,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
 
     @Override
     public PushPreviewResultVO getLastPushStatus() {
+        Capability capability = probeCapability();
         String version = systemConfigService.getConfigValue("wx_last_pushed_version");
         String versionDesc = systemConfigService.getConfigValue("wx_version_desc");
         String pushedAt = systemConfigService.getConfigValue("wx_last_pushed_at");
@@ -161,6 +169,9 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
             return PushPreviewResultVO.builder()
                     .message("尚未推送过体验版")
                     .manageUrl("https://mp.weixin.qq.com/")
+                    .uploadAvailable(capability.available)
+                    .preferCi(true)
+                    .capabilityReason(capability.reason)
                     .build();
         }
 
@@ -179,7 +190,41 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
                 .uploadedAt(uploadedAt)
                 .manageUrl("https://mp.weixin.qq.com/")
                 .message("最近一次体验版推送版本：" + version)
+                .uploadAvailable(capability.available)
+                .preferCi(true)
+                .capabilityReason(capability.reason)
                 .build();
+    }
+
+    private record Capability(boolean available, String reason) {}
+
+    private Capability probeCapability() {
+        String uploadKey = resolveUploadKey();
+        if (!StringUtils.hasText(uploadKey)) {
+            return new Capability(false, "未配置微信上传私钥（建议放到 CI Secrets，而不是生产机）");
+        }
+        try {
+            Path projectRoot = resolveProjectRootQuiet();
+            if (projectRoot == null) {
+                return new Capability(false, "未找到 miniapp 工程目录 / 上传脚本");
+            }
+            Path miniappPath = projectRoot.resolve("miniapp");
+            Path scriptPath = projectRoot.resolve("scripts").resolve("push-miniprogram-preview.js");
+            if (!Files.isDirectory(miniappPath) || !Files.isRegularFile(scriptPath)) {
+                return new Capability(false, "未找到 miniapp 目录或 scripts/push-miniprogram-preview.js");
+            }
+            return new Capability(true, "本地上传可用（仍建议改走 CI）");
+        } catch (Exception e) {
+            return new Capability(false, e.getMessage());
+        }
+    }
+
+    private Path resolveProjectRootQuiet() {
+        try {
+            return resolveProjectRoot();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String resolveAppId() {

@@ -49,6 +49,9 @@ public class PageDetailDTO {
     @Schema(description = "最新草稿版本号")
     private Integer latestVersion;
 
+    @Schema(description = "是否有未上线的草稿改动（已上线且最新草稿 > 当前线上版本）")
+    private Boolean hasUnpublishedChanges;
+
     @Schema(description = "页面描述")
     private String description;
 

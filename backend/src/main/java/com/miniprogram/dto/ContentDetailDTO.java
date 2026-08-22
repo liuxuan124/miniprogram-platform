@@ -28,6 +28,12 @@ public class ContentDetailDTO {
     /** 封面图URL */
     private String coverImage;
 
+    /** 视频地址 */
+    private String videoUrl;
+
+    /** 视频时长（秒） */
+    private Integer videoDuration;
+
     /** 笔记多图 URL 列表 */
     private List<String> images;
 
@@ -39,6 +45,15 @@ public class ContentDetailDTO {
 
     /** 文章摘要 */
     private String summary;
+
+    /** SEO/分享标题 */
+    private String seoTitle;
+
+    /** SEO/分享描述 */
+    private String seoDescription;
+
+    /** 正文排版主题 */
+    private String layoutTheme;
 
     /** 文章内容（富文本HTML） */
     private String content;
@@ -70,11 +85,29 @@ public class ContentDetailDTO {
     /** 排序值 */
     private Integer sortOrder;
 
+    /** 频道置顶 */
+    private Integer isPinned;
+
+    /** 首页推荐 */
+    private Integer isRecommended;
+
     /** 状态 draft=草稿 published=已发布 archived=已归档 */
     private String status;
 
     /** 发布时间 */
     private LocalDateTime publishedAt;
+
+    /** 定时发布时间 */
+    private LocalDateTime scheduledAt;
+
+    /** 当前用户是否已点赞（小程序详情） */
+    private Boolean liked;
+
+    /** 当前用户是否已收藏（小程序详情） */
+    private Boolean favorited;
+
+    /** 评论数 */
+    private Integer commentCount;
 
     /** 创建时间 */
     private LocalDateTime createTime;

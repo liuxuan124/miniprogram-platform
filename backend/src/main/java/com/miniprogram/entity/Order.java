@@ -52,6 +52,12 @@ public class Order implements Serializable {
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "来源内容ID")
+    private Long sourceContentId;
+
+    @Schema(description = "使用的用户券ID")
+    private Long userCouponId;
+
     @Schema(description = "收货地址快照JSON")
     private String addressSnapshot;
 

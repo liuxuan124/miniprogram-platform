@@ -133,23 +133,26 @@ docker compose logs -f backend
 
 ## 6. 数据库初始化
 
-Flyway自动迁移，启动后端服务时自动执行V1~V10迁移脚本。
+**注意：当前生产未启用 Flyway 自动迁移。** 请用 `deploy/scripts/migrate.sh` 按序执行
+`backend/src/main/resources/db/migration/V*.sql`，并写入 `schema_version` 表。
 
-如需手动初始化：
 ```bash
-mysql -u root -p mp_platform < backend/src/main/resources/db/migration/V1__init_user_tables.sql
-# 依次执行 V2~V10
+# 推荐：按序迁移（已执行的版本会自动跳过）
+export DB_HOST=... DB_USER=... DB_PASS=... DB_NAME=miniprogram_prod
+./deploy/scripts/migrate.sh
+
+# 或手工逐个执行（不推荐）
+# mysql -u ... miniprogram_prod < backend/src/main/resources/db/migration/V1__....sql
 ```
+
+线上 systemd 部署见 `docs/服务器同步部署方案-20260525.md`；`deploy/docker-compose.yml` 需自备强口令环境变量，勿用默认弱口令。
 
 ## 7. 健康检查
 
 ```bash
-# 后端健康检查
+# 业务健康检查
+curl http://localhost:8080/api/health
+
+# Actuator（生产已开启 health；prometheus 需超级管理员鉴权）
 curl http://localhost:8080/actuator/health
-
-# 数据库连接检查
-curl http://localhost:8080/actuator/health/db
-
-# Redis连接检查
-curl http://localhost:8080/actuator/health/redis
 ```

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>搭建器与内容模块细化升级</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#15181e; --muted:#5e6673; --line:#e2e6eb;
+    --b:#1d4ed8; --g:#0f766e; --o:#b45309; --r:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1060px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:28px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--b);
+    border-radius:10px;padding:20px 22px;margin-bottom:32px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:42px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  h3.grp{font-size:16px;margin:26px 0 10px;color:var(--b)}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h4{margin:0 0 8px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.g{background:var(--g)} .n.o{background:var(--o)} .n.r{background:var(--r)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  .why{border-top:1px dashed var(--line);margin-top:10px;padding-top:9px;font-size:14px}
+  .why b{color:var(--g)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0 6px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:720px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .miss{color:var(--r)}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:9px}
+  footer{margin-top:44px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>搭建器与内容模块：组件级细化升级建议</h1>
+<div class="sub">微信小程序多场景搭建与运营系统 · 2026-08-22 · 逐组件核对 33 个装修组件 + 内容管理全链路</div>
+
+<div class="lead">
+  <h2>结论：组件数量够了，缺的是"表现力"——样式系统只有 6 个可调项，页面结构只能一维平铺</h2>
+  <p>33 个组件在后台和小程序端<b>双端都已实现</b>（<span class="loc">MINIAPP_RENDER_SUPPORTED_TYPES</span> 与实际 wxml 分支完全对齐，还有发布前拦截，这块做得比多数同类系统扎实）。所以问题不在"组件少"。</p>
+  <p>真正的天花板有两个。<b>第一，组件的样式只能调 6 项</b>：四向外边距、圆角、卡片间距、文字色、字号、显隐——没有背景色、没有背景图、没有内边距、没有阴影、没有边框、没有对齐、没有动效。更关键的是 <span class="loc">ComponentStyle</span> 类型里明明声明了 <span class="loc">padding_*</span> 和 <span class="loc">background_color</span>，但小程序端 <span class="loc">utils/render.js</span> 的 <span class="loc">parseStyle</span> 里有一个 <span class="loc">SKIP_SHELL_KEYS</span> 集合，把它们<b>主动丢弃</b>了（注释写着"外壳不再吃白底/内边距/圆角，避免整块外框"）。这是一个为了修某个视觉 bug 而做的全局阉割，代价是整套背景与留白能力都没了。</p>
+  <p>
+  <b>第二，DSL 没有 children</b>：<span class="loc">ComponentInstance</span> 只有 id / type / props / style，组件之间是平级数组。这意味着永远做不出左右分栏、卡片容器、Tab 切换区、吸顶锚点导航、通栏背景区块——而这些恰恰是"页面看起来丰富"的主要来源。</p>
+  <p>下面分四部分：架构级瓶颈 → 逐组件清单 → 建议新增组件 → 内容模块。每条都标了代码位置。</p>
+</div>
+
+<h2 class="sec">一、搭建器的四个架构级瓶颈</h2>
+<p class="secnote">这四条不解决，逐个组件加 props 的收益会被结构限制吃掉大半。建议先做 B1 和 B2。</p>
+
+<div class="item">
+  <h4><span class="n r">B1</span>样式系统只有 6 个可调项，背景与内边距在渲染端被主动丢弃</h4>
+  <p>属性面板「样式」页签的全部内容：<span class="loc">margin_top/bottom/left/right</span>（含四向联动锁）、<span class="loc">border_radius</span>、<span class="loc">item_gap</span>、<span class="loc">text_color</span>、<span class="loc">font_size</span>、<span class="loc">visible</span>。<span class="loc">PropsPanel.vue</span> 里没有第七个样式控件。</p>
+  <p>而 <span class="loc">miniapp/utils/render.js:125</span> 的 <span class="loc">SKIP_SHELL_KEYS</span> 明确跳过 <span class="loc">background_color / padding_* / border_radius</span>。<span class="loc">dsl-renderer.js</span> 里还有十几处 <span class="loc">delete shellStyle.border_radius</span> / <span class="loc">delete shellStyle.background_color</span> 的手工补丁——说明这套样式传导机制已经打了很多补丁，是时候重做而不是继续补。</p>
+  <p class="why"><b>建议：</b>重建一层「组件外观」模型，明确区分<b>外壳</b>（margin、背景、圆角、阴影、边框）与<b>内容区</b>（padding、对齐、字体）。外壳背景支持：纯色 / 渐变（起止色+角度）/ 图片（含平铺、定位、蒙层透明度）。这一步做完，同样 33 个组件能搭出来的视觉效果会有量级差异——因为大部分"高级感"来自背景分区和留白节奏，而不是组件本身。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n r">B2</span>DSL 无嵌套，页面只能一维堆叠</h4>
+  <p><span class="loc">types/page.ts:253</span> 的 <span class="loc">ComponentInstance</span> 没有 children 字段，<span class="loc">CanvasArea.vue</span> 也不处理嵌套。所以现在的页面本质是"组件从上往下排队"。</p>
+  <p>做不出来的效果包括：左右两列（左图右文卡片组）、九宫格金刚区外的自由栅格、Tab 分组区（一个区域内切换"推荐/最新/热门"）、横向滑动卡片组、通栏背景包住若干组件、吸顶锚点导航、折叠展开区。</p>
+  <p class="why"><b>建议：</b>引入一个 <span class="loc">container</span> 组件类型，props 含 <span class="loc">layout: row|grid|tabs|scroll-x|collapse</span>、列数、间距、背景，children 放子组件。DSL 升 <span class="loc">schema_version: 2.0</span>，渲染端做递归渲染（小程序端可用模板递归或限制两层嵌套以避免性能问题）。<b>这是本清单里对"页面丰富度"影响最大的一条。</b></p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">B3</span>样式配置分裂在 props 与 style 两处，字段命名各自为政</h4>
+  <p>同一件事有三套写法：分区标题把内边距和颜色写进 props（<span class="loc">padding_top / title_color / subtitle_color / more_color</span>），品牌顶栏也在 props 里（<span class="loc">background_color / gradient_from / gradient_to / bar_padding_left</span>），而通用样式又在 <span class="loc">style</span> 里。字号字段则有 <span class="loc">font_size</span>、<span class="loc">title_font_size</span>、<span class="loc">subtitle_font_size</span>、<span class="loc">section_title_font_size</span>、<span class="loc">stat_value_font_size</span>、<span class="loc">benefit_font_size</span> 等至少 8 种命名。</p>
+  <p>后果：运营调样式要在两个页签之间来回找；开发新增组件时不知道该往哪放；将来做"全局主题"时无法统一改写。</p>
+  <p class="why"><b>建议：</b>定一条规则——<b>凡是"长什么样"进 style，凡是"显示什么"进 props</b>，字号统一为 <span class="loc">style.typography.{title,subtitle,body}.size</span> 结构。旧数据写一个迁移函数在读取时归一化，不必改历史 DSL。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">B4</span>没有区块复用，<span class="loc">actions</span> 是死字段</h4>
+  <p>搭好的一组组件不能保存成"区块"复用，也不能跨页复制（<span class="loc">editor.vue</span> 里无相关能力）。运营做第二个活动页只能从零再拖一遍。</p>
+  <p><span class="loc">ComponentInstance.actions?: ComponentAction[]</span> 在类型里声明了，但全项目没有任何地方读它——交互行为目前散在各组件的 <span class="loc">link_type / link_url / action_type</span> 里，五六种写法。</p>
+  <p class="why"><b>建议：</b>① 支持多选组件「存为区块」进模板库，跨页/跨小程序复用；② 统一 <span class="loc">actions</span> 模型（跳页 / 打开 webview / 拨电话 / 打开小程序 / 复制 / 客服 / 分享 / 弹层），让所有组件共用一个"点击行为"配置器，顺便解决现在轮播图和图片各写一套 link 的问题。</p>
+</div>
+
+<h2 class="sec">二、逐组件清单</h2>
+<p class="secnote">下表按分类列出全部 33 个组件的当前可配置能力与建议补齐项。"当前"一列取自 <span class="loc">componentRegistry.ts</span> 的 defaultProps 实际字段。</p>
+
+<h3 class="grp">内容类（11 个）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>组件</th><th>当前可配置</th><th>短板</th><th>建议补齐</th></tr>
+<tr><td class="c">轮播图 banner</td><td>images[]、autoplay、interval、indicator_dots</td><td class="miss">只有 4 项。无高度/比例、无指示器样式、无切换动效、无一屏多图</td><td>宽高比预设(16:9/4:3/1:1/自定义)、卡片式轮播（露出左右邻图）、指示器样式（点/线/数字）、切换动效（滑动/淡入/3D）、自动轮播暂停时机、每张图独立蒙层与标题层</td></tr>
+<tr><td class="c">图片 image</td><td>image、aspect_ratio、link_type、link_url</td><td class="miss">单图单链接，无热区</td><td><b>图片热区（image map）</b>：一张图上画多个可点区域分别跳转——这是电商专题页最常用的能力；补点击预览大图、懒加载、加载占位</td></tr>
+<tr><td class="c">视频 video</td><td>title、src、poster、button_text、autoplay</td><td class="miss">只支持直链，无封面自动抽帧、无视频号</td><td>支持微信视频号视频组件、自动静音播放、循环、进度记忆、多视频列表模式</td></tr>
+<tr><td class="c">图文组合 image_text</td><td>title、layout、content、image</td><td class="miss">仅 4 项，单图单段</td><td>左右图文比例、图片圆角与蒙层、正文富文本、按钮行、多组图文循环（"卖点三连"）</td></tr>
+<tr><td class="c">富文本 rich_text</td><td>content、text_color、background_color</td><td class="miss">背景色字段存在但渲染端被丢弃（见 B1）</td><td>接排版模板（见第五部分）、支持锚点、支持内嵌商品卡</td></tr>
+<tr><td class="c">分区标题 section_title</td><td>14 项（对齐、粗细、上下留白、主副标题色与字号、更多入口）</td><td>能力较全，但样式项塞在 props 里</td><td>标题装饰样式（左竖条/居中线/背景块/序号）、图标位、随主题色联动</td></tr>
+<tr><td class="c">文章列表 article_list</td><td>12 项（布局、列数、条数、封面、日期、分类 Tab）</td><td class="miss">默认 category_tabs 里<b>硬编码了跨境行业分类名</b>（行业动态/协会动态/税务合规…）</td><td>Tab 改为从内容分类接口动态拉取；补排序方式（最新/最热/手动置顶）、手动选文章、摘要行数、标签展示、阅读量展示</td></tr>
+<tr><td class="c">文章流 article_feed</td><td>9 项</td><td>与 article_list 能力重叠、边界不清</td><td>合并为一个组件的两种 display_mode（固定条数 / 滚动加载），减少运营的选择困惑</td></tr>
+<tr><td class="c">笔记瀑布流 note_feed</td><td class="miss">仅 4 项：page_size、分类 Tab、item_gap、数据源</td><td class="miss">不能改列数、不能改卡片样式、不能选显示字段</td><td>列数 2/3、卡片圆角与阴影、显示项开关（作者/点赞/收藏/标签）、封面裁剪方式（等高/瀑布流原比例）、首图角标</td></tr>
+<tr><td class="c">动态时间线 moments_feed</td><td class="miss">仅 5 项</td><td class="miss">同上，样式几乎不可调</td><td>时间轴样式（左线/卡片/纯文）、折叠长文"展开全文"、图片九宫格布局、附件样式</td></tr>
+<tr><td class="c">今日热门 hot_news</td><td>20 项（含渐变头部 header_from/to、圆角、更多入口）</td><td>反而是最"能调"的组件，说明能力是按需临时加的</td><td>把它的渐变头部能力抽成<b>通用外观模型</b>供所有组件使用（呼应 B1）</td></tr>
+</table>
+</div>
+
+<h3 class="grp">商品与营销类（12 个）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>组件</th><th>当前可配置</th><th>短板</th><th>建议补齐</th></tr>
+<tr><td class="c">商品列表 product_list</td><td>23 项，能力最全：布局、列数、价格/销量/评分开关、字号、圆角、手动选品、固定/分页</td><td>缺角标与营销标识</td><td>促销角标（新品/热卖/折扣）、划线原价、会员价、标签墙、加购动效、"一行两个/一行三个/大图/横滑"四种预设、售罄置灰</td></tr>
+<tr><td class="c">限时秒杀 flash_sale</td><td>8 项</td><td class="miss">无倒计时联动、无库存进度条</td><td>与倒计时组件合并联动、售出进度条、开抢提醒（配合订阅消息）、多场次切换</td></tr>
+<tr><td class="c">分类导航 category_nav</td><td>title、layout(grid/scroll)、columns、items[]</td><td>图标依赖手填 URL</td><td>内置图标库选择器、多行分页滑动、圆形/方形/无底图样式、角标（"新"）、背景卡片</td></tr>
+<tr><td class="c">搜索 search</td><td class="miss">仅 placeholder、scope</td><td class="miss">2 个字段，样式完全不可调</td><td>圆角/描边/底色、左右对齐、是否显示扫码与语音入口、热词轮播（与搜索词沉淀联动）、吸顶开关</td></tr>
+<tr><td class="c">优惠券 coupon</td><td>title、limit、layout、button_text、字号、数据源</td><td class="miss">券样式固定，无领取状态</td><td>券面样式（撕票口/纯色/渐变/图片）、已领/已抢光状态、倒计时到期、点击直接跳可用商品</td></tr>
+<tr><td class="c">会员卡 member_card</td><td>20 项（主题、背景图、等级/积分/余额/券数开关、升级入口）</td><td>能力较全</td><td>成长值进度条、权益图标行、未登录态引导样式</td></tr>
+<tr><td class="c">公告栏 notice_bar</td><td>13 项（滚动方向、速度、图标、可关闭、颜色）</td><td>能力较全</td><td>多条公告分别跳转、重要级别配色预设、定时上下线</td></tr>
+<tr><td class="c">倒计时 countdown</td><td>title、end_time、format、style_type、show_days、结束文案</td><td class="miss">结束后只换文案</td><td>结束后可切换展示内容（如显示"已开始"按钮）、循环周期（每日场次）、数字块样式（方块/圆角/极简）</td></tr>
+<tr><td class="c">活动入口 activity_entry</td><td>18 项（封面、日期、地点、按钮、倒计时、名额、主题）</td><td>能力较全</td><td>报名进度条、已报名状态回显</td></tr>
+<tr><td class="c">活动列表 activity_list</td><td>8 项</td><td class="miss">样式项少</td><td>卡片/列表/横滑三种、状态标签（报名中/即将开始/已结束）、按状态过滤</td></tr>
+<tr><td class="c">预约服务 appointment_service</td><td class="miss">仅 5 项</td><td class="miss">几乎不可调</td><td>服务卡片样式、价格与时长展示、可预约时段预览、"最近可约"提示</td></tr>
+<tr><td class="c">表单入口 form_entry</td><td>10 项，且同时存在 <span class="loc">button_text/buttonText</span>、<span class="loc">formTemplateId/formId</span> 两套命名</td><td class="miss">字段冗余（历史遗留）</td><td>清理重复字段；补已提交状态、表单预览、提交后跳转配置</td></tr>
+</table>
+</div>
+
+<h3 class="grp">品牌与布局类（10 个）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>组件</th><th>当前可配置</th><th>短板</th><th>建议补齐</th></tr>
+<tr><td class="c">品牌顶栏 brand_header</td><td>21 项（渐变、logo 尺寸与偏移、吸顶）</td><td>能力最全，但配置项过于底层（要运营填 logo_offset_x）</td><td>改为 3~4 套预设样式 + 微调，降低使用门槛</td></tr>
+<tr><td class="c">品牌介绍 brand_intro</td><td>15 项（含 logo 位置、文字偏移量）</td><td>同上，偏移量式配置对运营不友好</td><td>预设版式（居中/左图右文/大图背景）</td></tr>
+<tr><td class="c">资质证书 certificate</td><td class="miss">仅 5 项</td><td class="miss">无点击查看大图</td><td>点击预览、横滑展示、水印、证书有效期</td></tr>
+<tr><td class="c">联系方式 contact_info</td><td>13 项</td><td>能力较全</td><td>一键复制微信号、地图定位跳转、多门店切换</td></tr>
+<tr><td class="c">加入群聊 join_group</td><td>7 项</td><td>群二维码需手动换</td><td>多群轮换（满员自动切下一个）、进群引导图文</td></tr>
+<tr><td class="c">AI 入口 ai_entry</td><td>6 项</td><td class="miss">仅一个入口卡片</td><td>预设问题气泡、打字机欢迎语、可嵌入式对话窗（不跳页）</td></tr>
+<tr><td class="c">悬浮按钮 float_button</td><td>16 项（位置、偏移、尺寸、透明度、可拖拽、边缘隐藏）</td><td>能力较全</td><td>多按钮组（展开式菜单）、滚动方向感知显隐</td></tr>
+<tr><td class="c">导航栏 nav</td><td>8 项（列数、样式、外框、圆角、底色）</td><td>—</td><td>选中态、徽标数字、图标+文字上下/左右排布</td></tr>
+<tr><td class="c">分割线 divider</td><td>style、color、thickness、margin</td><td>—</td><td>虚线/波浪/渐变消隐、带文字的分割线（"—— 精选 ——"）</td></tr>
+<tr><td class="c">间距 spacer</td><td class="miss">仅 height</td><td>—</td><td>补背景色/背景图，让它同时能当"通栏色块"用（B1 落地后自然获得）</td></tr>
+</table>
+</div>
+
+<h2 class="sec">三、建议新增的组件</h2>
+<p class="secnote">按"能明显扩展页面表现力"排序，前四个建议优先。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>组件</th><th>作用</th><th>为什么值得做</th></tr>
+<tr><td class="c">容器 / 分栏 container</td><td>row / grid / tabs / 横滑 / 折叠，内含子组件</td><td>B2 的载体，一个组件解锁全部复合版式</td></tr>
+<tr><td class="c">图片热区 image_hotspot</td><td>一张长图上划多个可点区域</td><td>专题页、活动页最高频，设计师给一张图就能上线</td></tr>
+<tr><td class="c">富文本卡片组 feature_cards</td><td>图标+标题+描述的 N 宫格</td><td>服务介绍、卖点罗列，现在只能用图文组合硬凑</td></tr>
+<tr><td class="c">通栏背景区块 section_bg</td><td>包裹一段组件并铺背景色/图/渐变</td><td>页面"分区感"的主要来源</td></tr>
+<tr><td class="c">锚点导航 anchor_nav</td><td>吸顶 Tab，点击滚动到对应区块</td><td>长页面必备</td></tr>
+<tr><td class="c">数据看板 stats</td><td>数字+标签的成绩展示（服务人数、案例数）</td><td>B 端品牌页高频</td></tr>
+<tr><td class="c">用户评价 testimonial</td><td>头像+评价+评分轮播</td><td>转化率提升明显，且商品评价数据已有（V28）</td></tr>
+<tr><td class="c">FAQ 折叠</td><td>问答折叠列表</td><td>问答表已有（V41），可直接接数据源</td></tr>
+<tr><td class="c">团队/讲师</td><td>头像墙+简介</td><td>知识付费、服务类客户刚需</td></tr>
+<tr><td class="c">进度/步骤条</td><td>流程说明</td><td>预约、报名、服务流程说明</td></tr>
+<tr><td class="c">地图</td><td>门店位置</td><td>本地生活类目必备</td></tr>
+<tr><td class="c">拼团/助力入口</td><td>裂变玩法</td><td>配合分享归因（见上一份建议 F6）</td></tr>
+</table>
+</div>
+
+<h2 class="sec">四、内容管理模块</h2>
+<p class="secnote">内容模块的编辑侧有三个"填了没用"的功能，展示侧有一个天花板。这几条都可验证。</p>
+
+<h3 class="grp">编辑侧</h3>
+
+<div class="item">
+  <h4><span class="n r">C1</span>SEO 标题与描述填了会被静默丢弃</h4>
+  <p><span class="loc">content/edit.vue</span> 有完整的「SEO 与分享配置」页签，提交时带上 <span class="loc">seoTitle</span> / <span class="loc">seoDescription</span>。但后端全项目搜不到这两个字段，<span class="loc">mp_content</span> 表也没有对应列——<b>运营认真填的内容，保存后消失</b>。</p>
+  <p class="why"><b>建议：</b>要么补字段（并接入分享卡片标题、小程序页面 <span class="loc">share_title</span>），要么把这个页签去掉。静默丢数据比没有功能更糟。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n r">C2</span>「定时发布」到点不会发</h4>
+  <p>编辑页有发布方式：立即发布 / 定时发布 / 存为草稿，选定时还能选具体时间。但后端<b>没有任何 <span class="loc">@Scheduled</span> 任务</b>（上一份检查报告 P1-8 已确认），也没有发布调度逻辑。运营设了明早 9 点发布，到点内容还是草稿。</p>
+  <p class="why"><b>建议：</b>补一个每分钟扫描的发布任务；同时在列表页给"待发布"内容一个明确的状态标识和倒计时。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">C3</span>富文本编辑器基于已废弃的 execCommand，缺块级排版能力</h4>
+  <p><span class="loc">PageRichTextEditor.vue</span>（906 行）是手写的 contenteditable，全部依赖 <span class="loc">document.execCommand</span>——这个 API 已被各浏览器标记为 deprecated，行为在不同浏览器下不一致，未来有失效风险。</p>
+  <p>现有能力：粗斜体下划线删除线、H1~H3、文字色/背景色（含吸管）、字号、三种对齐、缩进、有序无序列表、链接、图片（可设 100%/75%/50%/自定义宽度）、清除格式。</p>
+  <p><b>缺的都是"让内容好看"的部分</b>：引用块、代码块、高亮提示框（信息/警告/要点三色卡）、分割线、表格、图注（图片下方小字说明）、多图并排、折叠区、行间距与首行缩进、字间距、视频嵌入、锚点目录。</p>
+  <p class="why"><b>建议：</b>换成基于 ProseMirror 的编辑器（TipTap）或 wangEditor 5，两者都支持自定义节点——这样才能实现下面 C4 说的"内嵌商品卡"。同时补两个国内内容工具的标配：<b>一键排版</b>（统一字号行距、段间距、首行缩进、清理空段）和<b>公众号粘贴清洗</b>（粘进来的富文本自动剥离 section 嵌套与内联样式，现在这件事是靠 <span class="loc">article-content.js</span> 里近 200 行正则在后期补救的）。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">C4</span>内容形态做了一半：video 能识别不能创建，也没有渲染</h4>
+  <p><span class="loc">V37</span> 迁移里 <span class="loc">content_type</span> 的注释是 <span class="loc">article=长文 note=笔记 video=视频 data=数据</span>，小程序 <span class="loc">content-detail.js</span> 也有 video / data 的形态判断分支。但：后台编辑器只提供 <b>长文 / 笔记 / 动态</b> 三种（<span class="loc">moment</span> 还不在 V37 的注释里），而详情页 wxml 里<b>连一个 <span class="loc">&lt;video&gt;</span> 标签都没有</b>——选了视频形态也放不出视频。</p>
+  <p class="why"><b>建议：</b>先把形态定义统一（建议 article / note / moment / video 四种，去掉 data 或明确它的形态），再补视频形态的编辑（视频源+封面+时长）与详情页渲染。视频内容是当前最有效的内容形式，值得补齐。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">C5</span>内容运营缺少几个高频动作</h4>
+  <p>· <b>置顶与推荐位</b>：只有 <span class="loc">sort_order</span>，没有"首页推荐""频道置顶"这类位置标记，运营只能靠调排序值猜。</p>
+  <p>· <b>批量操作</b>：批量改分类、批量打标签、批量上下线。</p>
+  <p>· <b>版本与草稿</b>：页面有版本管理，内容没有——改坏了无法回滚。</p>
+  <p>· <b>内容模板</b>：常用结构（活动通知、产品说明、案例分享）存成模板，新建时套用。</p>
+  <p>· <b>敏感词与合规校验</b>：发布前扫描违禁词（微信审核对医疗、金融、绝对化用语很敏感），现在完全没有。</p>
+</div>
+
+<h3 class="grp">展示侧</h3>
+
+<div class="item">
+  <h4><span class="n r">C6</span>点赞、收藏、评论、关注全部是本地假态</h4>
+  <p><span class="loc">content-detail.js</span> 里 <span class="loc">onLikeTap</span> / <span class="loc">onFavoriteTap</span> / <span class="loc">onSubmitComment</span> / 关注，全部只写 <span class="loc">StorageUtil</span> 本地缓存，一个接口都没调。后端 <span class="loc">MpContentController</span> 也确实只有两个 GET 接口。</p>
+  <p>后果：<b>换台手机全没了；后台看不到任何互动数据；用户 A 的评论用户 B 永远看不到</b>。UI 上却做得很完整（评论抽屉、点赞动效、评论数展示），用户会当真。</p>
+  <p class="why"><b>建议：</b>这是"看起来有社区，实际没有社区"。补三张表（点赞/收藏/评论）+ 对应接口，评论要带审核开关（内容安全是小程序审核重点）。如果短期不做，<b>建议先把评论入口隐藏</b>——留着比去掉伤害更大。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">C7</span>正文用原生 rich-text 渲染，样式与交互都被卡死</h4>
+  <p><span class="loc">content-detail.wxml:184</span>：<span class="loc">&lt;rich-text nodes="{{article.content}}"&gt;</span>。微信原生 rich-text 的限制很硬：<b>图片不能点击预览、不能长按识别、不支持懒加载、不支持 video/audio、不响应任何事件、部分标签与样式被过滤</b>。</p>
+  <p>这直接意味着：公众号文章搬过来后，用户点图片没反应（这是最被投诉的一点）；文章里的视频显示不出来；无法在正文中插入可点击的商品卡。</p>
+  <p class="why"><b>建议：</b>换成 <b>mp-html</b> 这类富文本渲染组件（开源、微信生态通用），一次性获得图片预览与懒加载、视频播放、表格、代码块、自定义标签、锚点跳转、内容内嵌小程序组件的能力。这是内容模块投产比最高的单点改造，工作量约 1~2 天。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">C8</span>正文里挂不了商品，内容与交易之间没有桥</h4>
+  <p>接上 C7 的 mp-html 后，可以支持自定义标签 <span class="loc">&lt;product id="123"/&gt;</span>，编辑器里插入商品卡、正文中原位渲染、点击直达详情页，订单记录来源内容 ID。<b>这是把已有的公众号内容同步投入变现的关键一步</b>（上一份建议 F3 讲的是数据模型，这里是渲染实现）。</p>
+</div>
+
+<h2 class="sec">五、内容样式体系：从"逐条调字号"到"套排版模板"</h2>
+
+<div class="item">
+  <h4><span class="n g">S1</span>正文排版主题</h4>
+  <p>目前每篇文章的观感取决于编辑当时手调的字号和颜色，同一个小程序里的文章风格各不相同。建议提供 4~6 套<b>正文排版主题</b>（标准阅读 / 杂志风 / 极简 / 大字号适老 / 深色），主题定义标题层级、正文字号行距、段间距、引用块与图注样式、配图圆角。编辑只选主题，不调具体值。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n g">S2</span>页面主题令牌</h4>
+  <p>页面级配置现在只有 <span class="loc">background_color</span> 和分享标题图（<span class="loc">PageConfig</span> 共 7 个字段），全局配置只有下拉刷新和触底加载两项。建议加一层<b>页面主题</b>：主色、辅助色、圆角档位、卡片阴影档位、字体规模、背景（色/渐变/图）。组件默认继承主题，个别覆盖。<b>换一次主题，整个小程序换肤</b>——这是同类产品拉开差距的能力，也是多客户复用模板的前提。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n g">S3</span>内容卡片样式库</h4>
+  <p>文章/笔记/动态在列表中的卡片样式目前是写死的。建议每种内容形态提供 3~4 种卡片样式（大图/左图右文/纯文/瀑布流/横滑），由组件的 <span class="loc">style_type</span> 统一选择，与 S2 的主题联动。这样同一批内容在首页、频道页、专题页能呈现不同观感。</p>
+</div>
+
+<h2 class="sec">六、实施顺序</h2>
+<ol class="road">
+  <li><b>第一步（约 1 周，收益最直接）</b>：C7 换 mp-html 渲染器（解锁图片预览与视频）+ C1 SEO 字段落库或下线 + C2 定时发布调度 + C6 互动接口（或先隐藏入口）。这四条都是"用户已经能看到但实际不工作"的问题，优先级高于任何新功能。</li>
+  <li><b>第二步（约 2 周，解锁表现力）</b>：B1 重建外观模型（背景/内边距/阴影/边框/渐变）——这一步做完，现有 33 个组件的搭建效果会立刻上一个台阶，且不需要新增任何组件。</li>
+  <li><b>第三步（约 2~3 周，结构升级）</b>：B2 容器组件 + DSL v2 递归渲染，配套新增图片热区、通栏背景块、卡片组、锚点导航四个组件。到这一步，搭建器才真正具备做"专题页"的能力。</li>
+  <li><b>第四步（持续）</b>：B3 字段归一 + B4 区块复用与统一 actions；C3 换编辑器并补块级排版；S1~S3 主题体系；逐组件按第二部分的清单补齐 props。</li>
+</ol>
+
+<footer>
+  本报告逐个核对了 <span class="loc">componentRegistry.ts</span>（1053 行，33 个组件）、<span class="loc">PropsPanel.vue</span>、<span class="loc">miniapp/components/dsl-renderer/</span>（1799 行）、<span class="loc">utils/render.js</span>、<span class="loc">content/edit.vue</span>、<span class="loc">PageRichTextEditor.vue</span> 与 <span class="loc">content-detail</span> 全套文件，所有"当前能力"与"缺失"均可在标注位置复核。双端组件覆盖度已对齐（33/33），本报告不涉及组件缺失问题，只涉及能力深度。
+</footer>
+
+</div>
+</body>
+</html>

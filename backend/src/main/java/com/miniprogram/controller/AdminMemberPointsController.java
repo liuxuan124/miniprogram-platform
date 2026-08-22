@@ -8,6 +8,7 @@ import com.miniprogram.service.MemberPointsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,12 +25,14 @@ public class AdminMemberPointsController {
     private final MemberPointsService memberPointsService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('member:list')")
     @Operation(summary = "积分日志列表")
     public R<PageResult<PointsLogVO>> listPointsLog(PointsLogQueryDTO queryDTO) {
         return R.ok(memberPointsService.listPointsLog(queryDTO));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('member:update')")
     @Operation(summary = "管理员调整积分")
     public R<Void> adjustPoints(@RequestBody Map<String, Object> body) {
         Long userId = getLong(body, "userId", "user_id");

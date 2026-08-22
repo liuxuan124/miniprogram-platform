@@ -6,12 +6,14 @@ import com.miniprogram.service.SmsCodeStore;
 import com.miniprogram.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
@@ -35,6 +37,7 @@ public class SmsCodeServiceImpl implements SmsCodeService {
 
     private final SmsCodeStore store;
     private final SystemConfigService systemConfigService;
+    private final Environment environment;
 
     @Override
     public void sendCode(Long userId, String phone, String scene) {
@@ -42,10 +45,14 @@ public class SmsCodeServiceImpl implements SmsCodeService {
         validateScene(scene);
 
         boolean mock = "1".equals(systemConfigService.getConfigValue("sms_mock_enabled"));
+        boolean prod = Arrays.stream(environment.getActiveProfiles()).anyMatch(p -> "prod".equalsIgnoreCase(p));
+        if (mock && prod) {
+            throw new BusinessException("生产环境禁止开启短信 mock");
+        }
         if (!mock) {
-            requireSmsConfigured();
+            // 未接短信商时：引导使用微信授权手机号，避免假可用
             throw new BusinessException(
-                    "真实短信发送尚未接入，请开启 sms_mock_enabled=1（仅开发）或接入短信服务商");
+                    "请使用微信授权手机号完成验证，或配置短信服务商后关闭本提示");
         }
 
         if (!store.setIfAbsent(gapKey(scene, phone), "1", GAP_TTL)) {

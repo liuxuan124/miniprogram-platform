@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第二轮复验</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--ok);
+    border-radius:10px;padding:20px 22px;margin-bottom:24px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  .stats{display:flex;flex-wrap:wrap;gap:11px;margin:18px 0 28px}
+  .stat{flex:1 1 130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .stat b{display:block;font-size:22px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--muted)}
+  h2.sec{font-size:20px;margin:38px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h3{margin:0 0 8px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.bad{background:var(--bad)} .n.warn{background:var(--warn)} .n.ok{background:var(--ok)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:11px 13px;overflow-x:auto;font-size:12.4px;line-height:1.55}
+  .why{border-top:1px dashed var(--line);margin-top:10px;padding-top:9px;font-size:14px}
+  .why b{color:var(--ok)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:640px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .y{color:var(--ok);font-weight:700;white-space:nowrap}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:8px}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>第二轮复验</h1>
+<div class="sub">对照上一份复验报告的 10 项新问题 + 3 项高危遗留 · 2026-08-22</div>
+
+<div class="lead">
+  <h2>上轮点的问题基本清干净了，剩下一条真正的暴露面：指标端点现在公网可读</h2>
+  <p>上次列的 4 个"今天能做"的速修项<b>全部完成</b>；3 项高危遗留（活动名额超额、支付回调不验签、受保护目录可绕过）<b>全部关闭</b>，而且实现质量高于我给的最低要求——支付验签是完整的平台证书链路（fail-closed、5 分钟时间窗、证书缓存与自动刷新、公钥模式兜底），不是糊一个。评论合规也做全了：接了 <span class="loc">msgSecCheck</span>、默认先审后发、后台有管理页、小程序提示"已提交，审核后可见"。</p>
+  <p>本轮只发现<b>一个新引入的问题</b>：为了让 Prometheus 抓得到，把 <span class="loc">/actuator/prometheus</span> 改成了 permitAll，但配套的网络隔离没做——nginx 里的 IP 白名单还是注释状态，后端 8080 也直接映射到宿主机。结果是指标端点从"抓不到"变成了"谁都能抓"。</p>
+  <p>另外有一件事这几轮一直没动，现在风险比技术问题更大：<b>205 个文件仍然全部未提交</b>（130 个修改、69 个新增、6 个删除）。这么大一批改动没有基线，出问题连回滚的位置都没有。</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><b style="color:var(--ok)">13</b><span>本轮关闭</span></div>
+  <div class="stat"><b style="color:var(--bad)">1</b><span>新引入</span></div>
+  <div class="stat"><b style="color:var(--warn)">3</b><span>建议补强</span></div>
+  <div class="stat"><b style="color:var(--muted)">11</b><span>中期项未动（符合预期）</span></div>
+  <div class="stat"><b style="color:var(--bad)">205</b><span>未提交文件</span></div>
+</div>
+
+<h2 class="sec">一、本轮新引入 / 需要立刻处理</h2>
+
+<div class="item">
+  <h3><span class="n bad">X1</span>指标端点公网可读</h3>
+  <p>三个条件同时成立：</p>
+  <p>① <span class="loc">SecurityConfig:100</span> → <span class="loc">.requestMatchers("/actuator/prometheus").permitAll()</span>（上轮还是 <span class="loc">hasRole("super_admin")</span>）；<br>
+  ② <span class="loc">deploy/nginx/default.conf:102</span> 有 <span class="loc">location /actuator/</span> 直通后端，注释里写着"生产环境应限制访问 IP"，但 <span class="loc">allow/deny</span> 四行<b>全是注释</b>；<br>
+  ③ <span class="loc">docker-compose.yml:104</span> → <span class="loc">"${BACKEND_PORT:-8080}:8080"</span>，未绑 <span class="loc">127.0.0.1</span>（MySQL 和 Redis 这轮都绑了，后端漏了）。</p>
+  <p>暴露的内容包括 JVM 内存与线程、HTTP 各路径的请求量与耗时分布（等于把接口清单和流量结构公开）、数据库连接池状态。<span class="loc">/actuator/health</span> 同样 permitAll，好在 <span class="loc">show-details: when_authorized</span> 限制了细节。</p>
+  <p class="why"><b>三选一，任一即可：</b>① nginx 里取消那四行注释；② compose 改成 <span class="loc">"127.0.0.1:${BACKEND_PORT:-8080}:8080"</span>（与本轮 MySQL/Redis 的处理保持一致，最省事）；③ 配 <span class="loc">management.server.port</span> 走独立内网端口。改完确认 <span class="loc">curl https://你的域名/actuator/prometheus</span> 返回 403 或不可达。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n bad">X2</span>205 个文件未进版本库</h3>
+  <p><span class="loc">git status</span>：130 个 M、69 个 ??、6 个 D，最近一次提交还停在整改之前的 <span class="loc">0a5c539</span>。这几轮所有整改——支付验签、评论合规、容器组件、流程重设计、四个新迁移——<b>全部只存在于工作区</b>。</p>
+  <p>风险不是理论上的：一旦上线后需要回滚，没有可回滚的提交；任何一次误操作或磁盘问题会同时丢掉所有整改成果；也没有任何 code review 的机会。</p>
+  <p class="why"><b>建议：</b>上线前按语义拆 4~6 个提交入库并打 tag（安全修复 / 搭建器与容器组件 / 内容与互动 / 增长模块 / 流程重设计 / 部署脚本），至少也要先整体提交一次保住基线。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">X3</span>支付回调仍不限流，且未知 serial 会触发对微信的证书拉取</h3>
+  <p>验签本身写得很好，但两处配合起来有放大风险：<span class="loc">RateLimitFilter.shouldNotFilter</span> 仍把两个回调路径完全排除在限流外；而 <span class="loc">WxPayNotifyVerifier.resolvePublicKey</span> 遇到未知 serial 会把 <span class="loc">certCacheAt</span> 归零并<b>强制刷新一次平台证书</b>（一次对 <span class="loc">api.mch.weixin.qq.com</span> 的出站请求）。</p>
+  <p>也就是说：外部只要不断用伪造的 <span class="loc">Wechatpay-Serial</span> 打这个公开端点，就能驱动后端不停地去请求微信的证书接口，可能触发微信侧频控，进而影响真实回调的验签。</p>
+  <p class="why"><b>建议：</b>给回调路径加一个宽松但存在的限流（例如 300 次/分钟）；证书强制刷新加节流（同一分钟内最多一次），未知 serial 直接拒绝而不刷新。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">X4</span>微信 access_token 是进程内缓存，多实例会互相挤掉</h3>
+  <p><span class="loc">WxMiniappTokenServiceImpl</span> 用 <span class="loc">volatile</span> 字段 + <span class="loc">synchronized</span> 缓存 token。access_token 在微信侧是<b>账号级单例</b>，多个实例各自申请会让先拿到的失效。现在 <span class="loc">msgSecCheck</span>（评论合规）和订阅消息都依赖它——多实例部署时会出现评论校验和消息下发间歇性失败。</p>
+  <p class="why"><b>建议：</b>单实例期间无碍，但在扩容前改成 Redis 共享缓存（提前量留好，别等出问题）。</p>
+</div>
+
+<h2 class="sec">二、本轮已关闭</h2>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>上轮问题</th><th>复验结果</th><th>状态</th></tr>
+<tr><td class="c">N1 迁移脚本排序错误</td><td>改为 <span class="loc">done &lt; &lt;(ls "$SQL_DIR"/V*.sql | sort -V)</span>，实测 V1→V2→…→V47 顺序正确，注释说明兼容 bash 3</td><td class="y">已关闭</td></tr>
+<tr><td class="c">H1 JWT 密钥默认值仍生效</td><td><span class="loc">application.yml</span> 改为 <span class="loc">secret: ${JWT_SECRET}</span>，无默认值</td><td class="y">已关闭</td></tr>
+<tr><td class="c">N9 退款金额未用 MoneyUtils</td><td><span class="loc">RefundServiceImpl:195-196</span> 已改为 <span class="loc">MoneyUtils.toCents</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">N2 评论无内容安全检测</td><td>接入 <span class="loc">wxa/msg_sec_check</span>（87014 直接拒绝，异常时保守待审）；落库默认 <span class="loc">status=0</span> 先审后发；后台新增 <span class="loc">content/comments.vue</span>；管理接口带 <span class="loc">content:update / content:delete</span> 权限；小程序提示"已提交，审核后可见"</td><td class="y">已关闭</td></tr>
+<tr><td class="c">N3 点赞会回写整行</td><td>改为 <span class="loc">adjustLikeCount / adjustFavoriteCount</span> 定向原子更新（含 GREATEST 兜底）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">N4 事件批量无上限</td><td>单次上限 50 条并返回明确错误</td><td class="y">已关闭</td></tr>
+<tr><td class="c">遗留 活动名额可超额</td><td><span class="loc">ActivityMapper.tryOccupySeat</span>：<span class="loc">WHERE quota IS NULL OR quota=0 OR signed &lt; quota</span> 原子占位，影响行数为 0 时区分"活动不存在"与"名额已满"</td><td class="y">已关闭</td></tr>
+<tr><td class="c">遗留 支付回调不验签</td><td>新增 <span class="loc">WxPayNotifyVerifier</span>（198 行）：签名头缺失即拒、5 分钟时间窗、平台证书自动拉取并用 APIv3 解密、1 小时缓存、支持公钥模式、找不到密钥即抛错（fail-closed）；防重放改为 Redis 共享</td><td class="y">已关闭</td></tr>
+<tr><td class="c">遗留 受保护目录可绕过</td><td><span class="loc">ProtectedUploadFilter</span> 改为多次解码 + 反斜杠归一 + 多斜杠折叠 + 正则匹配；<span class="loc">p12/pem/cer/crt/key</span> 已从上传白名单移除</td><td class="y">已关闭</td></tr>
+<tr><td class="c">H2 compose 弱口令与端口</td><td>MySQL root/user、Redis、Grafana 密码全部改 <span class="loc">:?</span> 必填；MySQL 与 Redis 端口绑定 <span class="loc">127.0.0.1</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">回归验证</td><td><span class="loc">vue-tsc --noEmit</span> 仍 0 错误；三处组件白名单仍 37/37/37 完全一致；V47 新增的 coupon 权限点已补 super_admin 绑定，全部 <span class="loc">@PreAuthorize</span> 用到的权限码都能在种子数据里找到</td><td class="y">通过</td></tr>
+</table>
+</div>
+
+<h2 class="sec">三、仍未处理（与上轮一致，多为中期项）</h2>
+<p class="secnote">这些不阻塞上线，但建议排期。标★的两条建议优先。</p>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>项目</th><th>现状</th></tr>
+<tr><td class="c">★ 三个控制器仍无细粒度权限</td><td><span class="loc">MiniappReleaseController</span>（发布/回滚小程序）、<span class="loc">UserController</span>、<span class="loc">WeChatOfficialAccountController</span> 仍只要求登录。全项目 <span class="loc">@PreAuthorize</span> 71 处 / 17 个控制器，发布与回滚这类高影响操作没被覆盖</td></tr>
+<tr><td class="c">★ 主题是否真的生效未验证</td><td><span class="loc">theme.js</span> 仍靠 <span class="loc">wx.setPageStyle</span>（非公开 API，失败会静默跳过），全项目仍无 <span class="loc">page-meta</span>。<b>请务必真机改一次主色确认</b>，不生效就改 page-meta</td></tr>
+<tr><td class="c">JWT 无黑名单</td><td>登出/禁用/改密后旧 token 仍有效到过期；<span class="loc">AuthServiceImpl:186</span> 还是那句"如需服务端失效，可在此处…"</td></tr>
+<tr><td class="c">统计日报无生产者</td><td><span class="loc">job/</span> 下仍只有 <span class="loc">OrderTimeoutJob</span> 与 <span class="loc">ContentScheduleJob</span>，<span class="loc">mp_statistics_daily</span> 无人写入</td></tr>
+<tr><td class="c">CI 与测试</td><td><span class="loc">.github/workflows</span> 仍只有体验版推送；三个部署入口仍全部 <span class="loc">-DskipTests</span>；后端 21 个测试类 / 542 个源文件</td></tr>
+<tr><td class="c">容器子组件数据源不加载</td><td><span class="loc">loadAllComponentData</span> 仍只遍历顶层，不递归 children（当前容器只允许放静态组件，暂不触发）</td></tr>
+<tr><td class="c">share hook 无幂等标记</td><td><span class="loc">theme.js</span> 有 <span class="loc">__themeHookInstalled</span>，<span class="loc">share.js</span> 没有</td></tr>
+<tr><td class="c">色值 token 化</td><td>后台 <span class="loc">#1769ff</span> 仍 99 处；小程序 wxss 六位色值 1278 处</td></tr>
+<tr><td class="c">富文本编辑器</td><td>仍 11 处 <span class="loc">execCommand</span>，块级排版能力未补</td></tr>
+<tr><td class="c">其他页面仍用原生 rich-text</td><td>6 个文件（商品详情、活动详情、问答详情、<span class="loc">dsl-rich-text</span> 等）图片仍不能点开预览</td></tr>
+<tr><td class="c">文章列表默认分类硬编码</td><td><span class="loc">category_tabs</span> 仍是跨境行业的固定分类名</td></tr>
+</table>
+</div>
+
+<div class="item" style="margin-top:18px">
+  <h3><span class="n">补充建议</span>权限种子的长期隐患</h3>
+  <p>super_admin 的权限绑定来自 <span class="loc">V2__auth_tables.sql</span> 里的一次性 <span class="loc">INSERT … SELECT 1, id FROM mp_permission</span>。这轮 V47 记得补了 coupon 权限的绑定，做得对——但下次新增权限点如果忘了补，超级管理员就会莫名其妙 403。</p>
+  <p class="why"><b>建议：</b>在 <span class="loc">DataInitializer</span> 里加一步"启动时把所有权限点补齐给 super_admin"，让它自愈，不再依赖每张迁移脚本的自觉。</p>
+</div>
+
+<h2 class="sec">四、下一步</h2>
+<ol class="road">
+  <li><b>现在（10 分钟）</b>：X1 把后端端口绑 <span class="loc">127.0.0.1</span>（或打开 nginx 的 allow/deny），堵住指标端点公网可读。</li>
+  <li><b>上线前必做</b>：X2 把 205 个文件按语义拆分提交入库并打 tag。这是回滚能力的前提。</li>
+  <li><b>本周</b>：X3 回调限流与证书刷新节流；给 <span class="loc">miniapp-releases</span> / <span class="loc">users</span> / <span class="loc">wechat</span> 三个控制器补权限；真机验证主题换肤是否生效。</li>
+  <li><b>扩容前</b>：X4 access_token 改 Redis 共享；两个定时任务加分布式锁（多实例会重复执行）。</li>
+  <li><b>持续</b>：CI 补构建与测试流水线、统计日报任务、JWT 黑名单、色值 token 化、富文本编辑器。</li>
+</ol>
+
+<footer>
+  本轮实跑 <span class="loc">vue-tsc --noEmit</span>（0 错误）、迁移脚本排序实测、三处组件白名单脚本比对（37/37/37）、权限码与种子数据交叉核对。<span class="loc">vite build</span> 仍因本机 <span class="loc">node_modules</span> 与运行平台不匹配无法验证，建议随 CI 一并补上。文中所有位置可直接复核。
+</footer>
+
+</div>
+</body>
+</html>
