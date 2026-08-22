@@ -80,6 +80,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         Map<String, String> imageCache = new LinkedHashMap<>();
         Map<String, byte[]> mediaCache = new LinkedHashMap<>();
         int articlesProcessed = 0;
+        LocalDateTime syncBase = LocalDateTime.now();
+        int importSeq = 0;
 
         for (JSONObject record : records) {
             String articleId = record.getStr("article_id");
@@ -100,9 +102,11 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 }
                 enrichNewsItemFromDraft(item, draftNewsByTitle);
                 articlesProcessed++;
+                LocalDateTime importTime = syncBase.plusNanos((long) importSeq++ * 1_000_000L);
                 try {
                     SyncAction action = upsertPublishedItem(
-                            item, articleId, i, categoryId, publish, publishedAt, syncScope, imageCache, mediaCache, result);
+                            item, articleId, i, categoryId, publish, publishedAt, syncScope,
+                            imageCache, mediaCache, result, importTime);
                     switch (action) {
                         case CREATE -> result.setCreated(result.getCreated() + 1);
                         case UPDATE -> result.setUpdated(result.getUpdated() + 1);
@@ -264,7 +268,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             SyncScope syncScope,
             Map<String, String> imageCache,
             Map<String, byte[]> mediaCache,
-            WeChatContentSyncResultVO result) {
+            WeChatContentSyncResultVO result,
+            LocalDateTime importTime) {
         boolean newspic = isNewspic(item);
         if (syncScope == SyncScope.NEWSPIC && !newspic) {
             result.setTypeFiltered(result.getTypeFiltered() + 1);
@@ -276,14 +281,14 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
         if (newspic) {
             SyncAction action = upsertNewspicNote(
-                    item, articleId, index, categoryId, publish, publishedAt, imageCache, mediaCache);
+                    item, articleId, index, categoryId, publish, publishedAt, imageCache, mediaCache, importTime);
             if (action != SyncAction.SKIP) {
                 result.setNoteCount(result.getNoteCount() + 1);
             }
             return action;
         }
         SyncAction action = upsertNewsArticle(
-                item, articleId, index, categoryId, publish, publishedAt, imageCache);
+                item, articleId, index, categoryId, publish, publishedAt, imageCache, importTime);
         if (action != SyncAction.SKIP) {
             result.setArticleCount(result.getArticleCount() + 1);
         }
@@ -324,7 +329,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Long categoryId,
             boolean publish,
             LocalDateTime publishedAt,
-            Map<String, String> imageCache) {
+            Map<String, String> imageCache,
+            LocalDateTime importTime) {
 
         if (Boolean.TRUE.equals(item.getBool("is_deleted"))) {
             return SyncAction.SKIP;
@@ -366,7 +372,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         appendOriginalLink(entity, item.getStr("url"), item.getStr("content_source_url"));
         applyCommonFields(entity, articleId, categoryId, publish, publishedAt, "news");
 
-        return persist(entity, isCreate);
+        return persist(entity, isCreate, importTime);
     }
 
     private SyncAction upsertNewspicNote(
@@ -377,7 +383,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             boolean publish,
             LocalDateTime publishedAt,
             Map<String, String> imageCache,
-            Map<String, byte[]> mediaCache) {
+            Map<String, byte[]> mediaCache,
+            LocalDateTime importTime) {
 
         if (Boolean.TRUE.equals(item.getBool("is_deleted"))) {
             return SyncAction.SKIP;
@@ -421,7 +428,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         appendOriginalLink(entity, item.getStr("url"), item.getStr("content_source_url"));
         applyCommonFields(entity, articleId, categoryId, publish, publishedAt, "newspic");
 
-        return persist(entity, isCreate);
+        return persist(entity, isCreate, importTime);
     }
 
     private Content loadOrCreate(String articleId, int index, String title) {
@@ -479,8 +486,10 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
     }
 
-    private SyncAction persist(Content entity, boolean isCreate) {
+    private SyncAction persist(Content entity, boolean isCreate, LocalDateTime importTime) {
+        entity.setUpdateTime(importTime);
         if (isCreate) {
+            entity.setCreateTime(importTime);
             contentMapper.insert(entity);
             return SyncAction.CREATE;
         }

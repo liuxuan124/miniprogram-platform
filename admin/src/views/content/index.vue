@@ -106,8 +106,8 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="168" align="center">
-          <template #default="{ row }">{{ formatContentTime(row.createTime) }}</template>
+        <el-table-column label="导入时间" width="168" align="center">
+          <template #default="{ row }">{{ formatContentTime(row.importTime) }}</template>
         </el-table-column>
         <el-table-column label="阅读" width="100" align="center">
           <template #default="{ row }">{{ row.viewCount ?? '—' }}</template>
@@ -417,6 +417,7 @@ interface ContentRow {
   tags: string[]
   sortOrder: number
   createTime: string
+  importTime: string
 }
 
 interface CategoryNode {
@@ -532,6 +533,7 @@ function normalizeArticle(raw: RawRecord): ContentRow {
     tags,
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     createTime: String(raw.createTime || raw.create_time || raw.createdAt || raw.created_at || ''),
+    importTime: String(raw.updateTime || raw.update_time || raw.importTime || raw.import_time || raw.createTime || raw.create_time || raw.createdAt || raw.created_at || ''),
   }
 }
 
