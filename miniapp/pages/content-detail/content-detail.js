@@ -40,6 +40,14 @@ function resolveFormat(item) {
     return { key: 'article', label: '长文', isNote: false }
   }
 
+  const wxTags = Array.isArray(item.tags) ? item.tags : []
+  if (wxTags.some((t) => t === 'wx-type:newspic')) {
+    return { key: 'note', label: '笔记', isNote: true }
+  }
+  if (wxTags.some((t) => t === 'wx-type:news')) {
+    return { key: 'article', label: '长文', isNote: false }
+  }
+
   const source = String(item.source || '').trim()
   if (source === '笔记' || /笔记|小红书|xhs/i.test(source)) {
     return { key: 'note', label: '笔记', isNote: true }

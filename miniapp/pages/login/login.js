@@ -61,7 +61,7 @@ Page({
     try {
       const app = getApp()
       const cached = app && app.globalData && app.globalData.miniappBrandConfig
-      const brand = normalizeBrandConfig(cached || await SystemService.fetchBrandConfig(false))
+      const brand = normalizeBrandConfig(cached || await SystemService.fetchBrandConfig(true))
       if (app && app.globalData) {
         app.globalData.miniappBrandConfig = brand
       }

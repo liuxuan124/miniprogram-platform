@@ -1,46 +1,7 @@
 <template>
   <div class="mine-page-preview">
-    <!-- 机内登录页预览：手机号快捷登录（与真机一致） -->
-    <div v-if="showLoginPage" class="preview-login-page">
-      <div class="preview-login-backdrop">
-        <button type="button" class="preview-login-back" @click="closeLoginPage">‹</button>
-        <div class="preview-login-hero">
-          <div class="preview-login-brand-row">
-            <span class="preview-login-mark">海</span>
-            <div class="preview-login-brand-copy">
-              <em>CROSS-BORDER NOTES</em>
-              <b>出海笔记</b>
-            </div>
-          </div>
-          <h2>欢迎回来</h2>
-          <p>登录后同步订单、预约与会员权益</p>
-        </div>
-      </div>
-      <div class="preview-login-sheet">
-        <div class="preview-login-handle" />
-        <div class="preview-login-heading">
-          <div>
-            <b>手机号快捷登录</b>
-            <span>使用微信绑定手机号一键登录</span>
-          </div>
-          <em>安全登录</em>
-        </div>
-        <label class="preview-login-privacy">
-          <input v-model="previewPrivacyAccepted" type="checkbox" />
-          <span>我已阅读并同意《用户协议》与《隐私政策》</span>
-        </label>
-        <button
-          type="button"
-          class="preview-login-cta"
-          :disabled="!previewPrivacyAccepted"
-          @click="completePreviewLogin"
-        >手机号快捷登录</button>
-        <p class="preview-login-note">手机号仅用于登录和必要的服务通知，不会公开展示</p>
-      </div>
-    </div>
-
     <!-- 机内「编辑资料」假页（非真实跳转） -->
-    <div v-else-if="showProfileEdit" class="profile-edit">
+    <div v-if="showProfileEdit" class="profile-edit">
       <div class="profile-edit-nav">
         <button type="button" class="profile-edit-back" @click="closeProfileEdit">‹</button>
         <span class="profile-edit-title">编辑资料</span>
@@ -424,7 +385,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
+import { PREVIEW_LOGIN_SHEET_API } from '@/utils/preview-phone-overlay'
 import type { MinePageConfig, MineMenuItem, ThemeConfig, OrderTabKey } from '@/types/miniapp'
 import {
   ORDER_TAB_KEYS,
@@ -454,8 +416,17 @@ const emit = defineEmits<{
 const previewLoggedIn = defineModel<boolean>('previewLoggedIn', { default: false })
 
 const showProfileEdit = ref(false)
-const showLoginPage = ref(false)
-const previewPrivacyAccepted = ref(false)
+const loginSheetApi = inject(PREVIEW_LOGIN_SHEET_API, null)
+
+onMounted(() => {
+  loginSheetApi?.setCompleteHandler(() => {
+    previewLoggedIn.value = true
+  })
+})
+
+onUnmounted(() => {
+  loginSheetApi?.setCompleteHandler(null)
+})
 const editNickname = ref('')
 const editAvatar = ref('')
 const editPhone = ref('')
@@ -530,7 +501,7 @@ watch(
 
 function openProfileEdit() {
   if (!previewLoggedIn.value) {
-    openLoginPage()
+    openLoginSheet()
     return
   }
   editNickname.value = String(props.mineConfig.previewNickname ?? '微信用户')
@@ -540,19 +511,8 @@ function openProfileEdit() {
   showProfileEdit.value = true
 }
 
-function openLoginPage() {
-  previewPrivacyAccepted.value = false
-  showLoginPage.value = true
-}
-
-function closeLoginPage() {
-  showLoginPage.value = false
-}
-
-function completePreviewLogin() {
-  if (!previewPrivacyAccepted.value) return
-  previewLoggedIn.value = true
-  showLoginPage.value = false
+function openLoginSheet() {
+  loginSheetApi?.open()
 }
 
 function closeProfileEdit() {
@@ -639,10 +599,10 @@ const memberCtaText = computed(() => {
   return '登录'
 })
 
-/** 预览与真机一致：点登录进入手机号快捷登录页 */
+/** 预览与真机一致：点登录唤起半屏 login-sheet */
 function onMemberCtaClick() {
   if (!previewLoggedIn.value) {
-    openLoginPage()
+    openLoginSheet()
   }
 }
 
@@ -768,179 +728,6 @@ const memberCardStyle = computed(() => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.preview-login-page {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #f5f7fb;
-  animation: fadeIn 0.2s;
-}
-
-.preview-login-backdrop {
-  flex: 1;
-  padding: 12px 12px 28px;
-  background:
-    radial-gradient(circle at 84% 18%, rgba(49, 94, 251, 0.13) 0%, rgba(49, 94, 251, 0) 31%),
-    #f5f7fb;
-}
-
-.preview-login-back {
-  width: 34px;
-  height: 34px;
-  margin-top: 8px;
-  border: 1px solid #e7ebf3;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  color: #44506a;
-  font-size: 26px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.preview-login-hero {
-  margin-top: 16px;
-  padding: 18px 16px 16px;
-  border-radius: 16px;
-  color: #fff;
-  background: linear-gradient(138deg, #152443 0%, #2547af 60%, #315efb 100%);
-  box-shadow: 0 12px 28px rgba(30, 55, 125, 0.22);
-}
-
-.preview-login-brand-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.preview-login-mark {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.18);
-  font-weight: 800;
-}
-
-.preview-login-brand-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
-  em {
-    font-style: normal;
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    opacity: 0.75;
-  }
-
-  b {
-    font-size: 13px;
-  }
-}
-
-.preview-login-hero h2 {
-  margin: 18px 0 6px;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.preview-login-hero p {
-  margin: 0;
-  font-size: 12px;
-  opacity: 0.88;
-  line-height: 1.4;
-}
-
-.preview-login-sheet {
-  margin-top: -18px;
-  padding: 14px 16px 20px;
-  background: #fff;
-  border-radius: 18px 18px 0 0;
-  box-shadow: 0 -8px 24px rgba(30, 49, 91, 0.08);
-}
-
-.preview-login-handle {
-  width: 36px;
-  height: 4px;
-  margin: 0 auto 14px;
-  border-radius: 99px;
-  background: #e7ebf3;
-}
-
-.preview-login-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-
-  b {
-    display: block;
-    font-size: 16px;
-    color: #172033;
-  }
-
-  span {
-    display: block;
-    margin-top: 4px;
-    font-size: 11px;
-    color: #7c879d;
-  }
-
-  em {
-    flex-shrink: 0;
-    font-style: normal;
-    font-size: 10px;
-    font-weight: 700;
-    color: #315efb;
-    background: #eef3ff;
-    padding: 4px 8px;
-    border-radius: 99px;
-  }
-}
-
-.preview-login-privacy {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 11px;
-  color: #7c879d;
-  line-height: 1.45;
-  cursor: pointer;
-
-  input {
-    margin-top: 2px;
-  }
-}
-
-.preview-login-cta {
-  width: 100%;
-  min-height: 44px;
-  border: 0;
-  border-radius: 12px;
-  background: #315efb;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 8px 18px rgba(49, 94, 251, 0.28);
-}
-
-.preview-login-cta:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.preview-login-note {
-  margin: 10px 0 0;
-  font-size: 10px;
-  color: #9aa3b5;
-  text-align: center;
 }
 
 .profile-edit {

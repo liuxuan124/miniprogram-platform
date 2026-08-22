@@ -155,7 +155,7 @@ Component({
       const cached = this._readBrandFromApp()
       this._applyBrandPatch(cached, interceptAction)
       try {
-        const brand = await SystemService.fetchBrandConfig(false)
+        const brand = await SystemService.fetchBrandConfig(true)
         const app = getApp()
         if (app && app.globalData) {
           app.globalData.miniappBrandConfig = brand
