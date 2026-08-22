@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 微信公众号已发布图文 → 内容库同步
+ * 微信公众号已发布内容 → 内容库同步（长图文 news + 图集 newspic）
  */
 @Slf4j
 @Service
@@ -45,8 +45,9 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     private static final String EXTERNAL_SOURCE = "wechat_oa";
     private static final String SOURCE_LABEL = "微信公众号";
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
-            "(<img[^>]*?\\ssrc\\s*=\\s*[\"'])([^\"']+)([\"'][^>]*>)",
+            "(<img[^>]*?\\s(?:src|data-src)\\s*=\\s*[\"'])([^\"']+)([\"'][^>]*>)",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
     private final WeChatOfficialAccountClient weChatOfficialAccountClient;
     private final ContentMapper contentMapper;
@@ -70,6 +71,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         result.setTotalPublishRecords(records.size());
 
         Map<String, String> imageCache = new LinkedHashMap<>();
+        Map<String, byte[]> mediaCache = new LinkedHashMap<>();
         int articlesProcessed = 0;
 
         for (JSONObject record : records) {
@@ -105,7 +107,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 }
                 articlesProcessed++;
                 try {
-                    SyncAction action = upsertNewsItem(item, articleId, i, categoryId, publish, publishedAt, imageCache);
+                    SyncAction action = upsertPublishedItem(
+                            item, articleId, i, categoryId, publish, publishedAt, imageCache, mediaCache, result);
                     switch (action) {
                         case CREATE -> result.setCreated(result.getCreated() + 1);
                         case UPDATE -> result.setUpdated(result.getUpdated() + 1);
@@ -121,9 +124,13 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         result.setTotalArticles(articlesProcessed);
+        result.setArticleCount(articleCount);
+        result.setNoteCount(noteCount);
         result.setMessage(String.format(
-                "共同步 %d 篇图文：新建 %d，更新 %d，跳过 %d，失败 %d",
+                "共同步 %d 条：长图文 %d，图集 %d；新建 %d，更新 %d，跳过 %d，失败 %d",
                 result.getTotalArticles(),
+                result.getArticleCount(),
+                result.getNoteCount(),
                 result.getCreated(),
                 result.getUpdated(),
                 result.getSkipped(),
@@ -131,11 +138,37 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         return result;
     }
 
+    private SyncAction upsertPublishedItem(
+            JSONObject item,
+            String articleId,
+            int index,
+            Long categoryId,
+            boolean publish,
+            LocalDateTime publishedAt,
+            Map<String, String> imageCache,
+            Map<String, byte[]> mediaCache,
+            WeChatContentSyncResultVO result) {
+        if (isNewspic(item)) {
+            SyncAction action = upsertNewspicNote(
+                    item, articleId, index, categoryId, publish, publishedAt, imageCache, mediaCache);
+            if (action != SyncAction.SKIP) {
+                result.setNoteCount(result.getNoteCount() + 1);
+            }
+            return action;
+        }
+        SyncAction action = upsertNewsArticle(
+                item, articleId, index, categoryId, publish, publishedAt, imageCache);
+        if (action != SyncAction.SKIP) {
+            result.setArticleCount(result.getArticleCount() + 1);
+        }
+        return action;
+    }
+
     private enum SyncAction {
         CREATE, UPDATE, SKIP
     }
 
-    private SyncAction upsertNewsItem(
+    private SyncAction upsertNewsArticle(
             JSONObject item,
             String articleId,
             int index,
@@ -148,26 +181,20 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             return SyncAction.SKIP;
         }
 
-        String title = trim(item.getStr("title"));
+        String title = resolveTitle(item, articleId, index);
         if (!StringUtils.hasText(title)) {
             return SyncAction.SKIP;
         }
 
-        String externalId = buildExternalId(articleId, index, title);
-        Content existing = contentMapper.selectOne(new LambdaQueryWrapper<Content>()
-                .eq(Content::getExternalSource, EXTERNAL_SOURCE)
-                .eq(Content::getExternalId, externalId)
-                .last("LIMIT 1"));
-
-        Content entity = existing != null ? existing : new Content();
-        boolean isCreate = existing == null;
+        Content entity = loadOrCreate(articleId, index, title);
+        boolean isCreate = entity.getId() == null;
 
         entity.setTitle(title.length() > 128 ? title.substring(0, 128) : title);
         entity.setContentType("article");
         entity.setAuthor(trim(item.getStr("author")));
         entity.setSource(SOURCE_LABEL);
         entity.setExternalSource(EXTERNAL_SOURCE);
-        entity.setExternalId(externalId);
+        entity.setExternalId(buildExternalId(articleId, index, title));
 
         String digest = trim(item.getStr("digest"));
         entity.setSummary(StringUtils.hasText(digest)
@@ -178,6 +205,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         if (StringUtils.hasText(thumbUrl)) {
             entity.setCoverImage(mirrorRemoteImage(thumbUrl, imageCache));
         }
+        entity.setImages(null);
 
         String html = item.getStr("content");
         if (StringUtils.hasText(html)) {
@@ -187,15 +215,85 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         appendOriginalLink(entity, item.getStr("url"), item.getStr("content_source_url"));
+        applyCommonFields(entity, articleId, categoryId, publish, publishedAt, "news");
 
+        return persist(entity, isCreate);
+    }
+
+    private SyncAction upsertNewspicNote(
+            JSONObject item,
+            String articleId,
+            int index,
+            Long categoryId,
+            boolean publish,
+            LocalDateTime publishedAt,
+            Map<String, String> imageCache,
+            Map<String, byte[]> mediaCache) {
+
+        if (Boolean.TRUE.equals(item.getBool("is_deleted"))) {
+            return SyncAction.SKIP;
+        }
+
+        String title = resolveTitle(item, articleId, index);
+        List<String> imageUrls = collectNewspicImages(item, imageCache, mediaCache);
+        if (imageUrls.isEmpty()) {
+            log.warn("图集无可用图片，跳过 articleId={} idx={}", articleId, index);
+            return SyncAction.SKIP;
+        }
+
+        Content entity = loadOrCreate(articleId, index, title);
+        boolean isCreate = entity.getId() == null;
+
+        entity.setTitle(title.length() > 128 ? title.substring(0, 128) : title);
+        entity.setContentType("note");
+        entity.setAuthor(trim(item.getStr("author")));
+        entity.setSource(SOURCE_LABEL);
+        entity.setExternalSource(EXTERNAL_SOURCE);
+        entity.setExternalId(buildExternalId(articleId, index, title));
+        entity.setImages(toJson(imageUrls));
+        entity.setCoverImage(imageUrls.get(0));
+
+        String plainText = extractPlainText(item.getStr("content"));
+        String digest = trim(item.getStr("digest"));
+        if (!StringUtils.hasText(plainText) && StringUtils.hasText(digest)) {
+            plainText = digest;
+        }
+        entity.setSummary(StringUtils.hasText(plainText)
+                ? (plainText.length() > 512 ? plainText.substring(0, 512) : plainText)
+                : entity.getTitle());
+        entity.setContent(buildNoteHtml(plainText, imageUrls));
+        appendOriginalLink(entity, item.getStr("url"), item.getStr("content_source_url"));
+        applyCommonFields(entity, articleId, categoryId, publish, publishedAt, "newspic");
+
+        return persist(entity, isCreate);
+    }
+
+    private Content loadOrCreate(String articleId, int index, String title) {
+        String externalId = buildExternalId(articleId, index, title);
+        Content existing = contentMapper.selectOne(new LambdaQueryWrapper<Content>()
+                .eq(Content::getExternalSource, EXTERNAL_SOURCE)
+                .eq(Content::getExternalId, externalId)
+                .last("LIMIT 1"));
+        return existing != null ? existing : new Content();
+    }
+
+    private void applyCommonFields(
+            Content entity,
+            String articleId,
+            Long categoryId,
+            boolean publish,
+            LocalDateTime publishedAt,
+            String wxType) {
         if (categoryId != null) {
             entity.setCategoryId(categoryId);
         }
 
         List<String> tags = new ArrayList<>();
         tags.add(SOURCE_LABEL);
+        tags.add("wx-type:" + wxType);
         if (StringUtils.hasText(articleId)) {
             tags.add("wx:" + articleId);
+            tags.add("wx-batch:" + articleId);
         }
         entity.setTags(toJson(tags));
 
@@ -218,13 +316,154 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         if (entity.getSortOrder() == null) {
             entity.setSortOrder(0);
         }
+    }
 
+    private SyncAction persist(Content entity, boolean isCreate) {
         if (isCreate) {
             contentMapper.insert(entity);
             return SyncAction.CREATE;
         }
         contentMapper.updateById(entity);
         return SyncAction.UPDATE;
+    }
+
+    private boolean isNewspic(JSONObject item) {
+        if ("newspic".equalsIgnoreCase(trim(item.getStr("article_type")))) {
+            return true;
+        }
+        JSONObject imageInfo = item.getJSONObject("image_info");
+        JSONArray imageList = imageInfo != null ? imageInfo.getJSONArray("image_list") : null;
+        if (imageList != null && !imageList.isEmpty()) {
+            return true;
+        }
+        String content = item.getStr("content");
+        if (!StringUtils.hasText(content)) {
+            return false;
+        }
+        List<String> htmlImages = extractImageUrlsFromHtml(content);
+        String plain = extractPlainText(content);
+        return htmlImages.size() >= 2 && plain.length() <= 300;
+    }
+
+    private List<String> collectNewspicImages(
+            JSONObject item,
+            Map<String, String> imageCache,
+            Map<String, byte[]> mediaCache) {
+        LinkedHashMap<String, String> ordered = new LinkedHashMap<>();
+
+        JSONObject imageInfo = item.getJSONObject("image_info");
+        JSONArray imageList = imageInfo != null ? imageInfo.getJSONArray("image_list") : null;
+        if (imageList != null) {
+            for (int i = 0; i < imageList.size(); i++) {
+                JSONObject image = imageList.getJSONObject(i);
+                if (image == null) {
+                    continue;
+                }
+                String url = firstNonBlank(
+                        image.getStr("image_url"),
+                        image.getStr("url"),
+                        image.getStr("thumb_url"));
+                if (StringUtils.hasText(url)) {
+                    ordered.putIfAbsent(url, mirrorRemoteImage(url, imageCache));
+                    continue;
+                }
+                String mediaId = image.getStr("image_media_id");
+                if (StringUtils.hasText(mediaId)) {
+                    String localUrl = mirrorMediaId(mediaId, mediaCache, imageCache);
+                    if (StringUtils.hasText(localUrl)) {
+                        ordered.putIfAbsent(localUrl, localUrl);
+                    }
+                }
+            }
+        }
+
+        for (String url : extractImageUrlsFromHtml(item.getStr("content"))) {
+            ordered.putIfAbsent(url, mirrorRemoteImage(url, imageCache));
+        }
+
+        String thumbUrl = trim(item.getStr("thumb_url"));
+        if (StringUtils.hasText(thumbUrl)) {
+            ordered.putIfAbsent(thumbUrl, mirrorRemoteImage(thumbUrl, imageCache));
+        }
+
+        return new ArrayList<>(ordered.values());
+    }
+
+    private String mirrorMediaId(String mediaId, Map<String, byte[]> mediaCache, Map<String, String> imageCache) {
+        if (imageCache.containsKey("media:" + mediaId)) {
+            return imageCache.get("media:" + mediaId);
+        }
+        try {
+            byte[] bytes = mediaCache.computeIfAbsent(mediaId, weChatOfficialAccountClient::downloadPermanentImage);
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+            UploadResultVO uploaded = fileUploadService.uploadBytes(bytes, mediaId + ".jpg", "wechat-oa");
+            String localUrl = uploaded.getUrl();
+            imageCache.put("media:" + mediaId, localUrl);
+            return localUrl;
+        } catch (Exception e) {
+            log.warn("转存永久素材失败 mediaId={}: {}", mediaId, e.getMessage());
+            return null;
+        }
+    }
+
+    private List<String> extractImageUrlsFromHtml(String html) {
+        List<String> urls = new ArrayList<>();
+        if (!StringUtils.hasText(html)) {
+            return urls;
+        }
+        Matcher matcher = IMG_SRC_PATTERN.matcher(html);
+        while (matcher.find()) {
+            String src = trim(matcher.group(2));
+            if (StringUtils.hasText(src) && !urls.contains(src)) {
+                urls.add(src);
+            }
+        }
+        return urls;
+    }
+
+    private String extractPlainText(String html) {
+        if (!StringUtils.hasText(html)) {
+            return "";
+        }
+        String text = HTML_TAG_PATTERN.matcher(html).replaceAll("");
+        return text.replace("&nbsp;", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    private String buildNoteHtml(String plainText, List<String> imageUrls) {
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.hasText(plainText)) {
+            for (String line : plainText.split("\\n+")) {
+                if (StringUtils.hasText(line)) {
+                    sb.append("<p>").append(escapeHtml(line.trim())).append("</p>");
+                }
+            }
+        }
+        for (String imageUrl : imageUrls) {
+            sb.append("<p><img src=\"").append(escapeHtml(imageUrl)).append("\" alt=\"\" /></p>");
+        }
+        return sb.toString();
+    }
+
+    private String resolveTitle(JSONObject item, String articleId, int index) {
+        String title = trim(item.getStr("title"));
+        if (StringUtils.hasText(title)) {
+            return title;
+        }
+        if (StringUtils.hasText(articleId)) {
+            return "公众号内容 " + articleId.substring(0, Math.min(8, articleId.length())) + "-" + (index + 1);
+        }
+        return "公众号内容-" + (index + 1);
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value.trim();
+            }
+        }
+        return "";
     }
 
     private String buildExternalId(String articleId, int index, String title) {

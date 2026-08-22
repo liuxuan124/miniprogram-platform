@@ -31,4 +31,9 @@ public interface WeChatOfficialAccountClient {
      * 拉取全部已发布记录（自动分页）
      */
     List<JSONObject> listAllPublishedRecords();
+
+    /**
+     * 下载永久素材（图片类型返回二进制，失败返回 null）
+     */
+    byte[] downloadPermanentImage(String mediaId);
 }
