@@ -17,6 +17,8 @@ export interface WeChatContentSyncResult {
   updated: number
   skipped: number
   failed: number
+  articleCount?: number
+  noteCount?: number
   message: string
   failures?: Array<{ title: string; reason: string }>
 }

@@ -1,5 +1,7 @@
 package com.miniprogram.service.impl;
 
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
@@ -28,6 +30,7 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
     private static final String TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
     private static final String BATCH_GET_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/batchget";
     private static final String GET_ARTICLE_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/getarticle";
+    private static final String GET_MATERIAL_URL = "https://api.weixin.qq.com/cgi-bin/material/get_material";
 
     private final SystemConfigService systemConfigService;
 
@@ -116,6 +119,31 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
             }
         }
         return all;
+    }
+
+    @Override
+    public byte[] downloadPermanentImage(String mediaId) {
+        if (!StringUtils.hasText(mediaId)) {
+            return null;
+        }
+        String accessToken = getAccessToken();
+        String url = GET_MATERIAL_URL + "?access_token=" + accessToken;
+        HttpResponse response = HttpRequest.post(url)
+                .body(JSONUtil.createObj().set("media_id", mediaId).toString())
+                .contentType("application/json")
+                .timeout(30_000)
+                .execute();
+        String contentType = response.header("Content-Type");
+        if (contentType != null && contentType.toLowerCase().contains("application/json")) {
+            JSONObject json = JSONUtil.parseObj(response.body());
+            Integer errCode = json.getInt("errcode");
+            if (errCode != null && errCode != 0) {
+                log.warn("下载永久素材失败 mediaId={}: {}", mediaId, json.getStr("errmsg"));
+            }
+            return null;
+        }
+        byte[] bytes = response.bodyBytes();
+        return bytes == null || bytes.length == 0 ? null : bytes;
     }
 
     private JSONObject postWithToken(String baseUrl, JSONObject body) {

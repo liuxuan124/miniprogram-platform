@@ -191,7 +191,7 @@
             :closable="false"
             show-icon
             style="margin-bottom: 12px"
-            title="从已认证企业服务号拉取全部「已发布」图文，一次性导入内容库。需在「系统设置 → 微信配置」填写公众号 AppID/AppSecret（可与小程序不同）。"
+            title="从企业服务号拉取全部「已发布」内容：长图文导入为文章，小绿书图集导入为笔记（多图）。需在「系统设置 → 微信配置」填写公众号 AppID/AppSecret。"
           />
           <el-form label-width="96px">
             <el-form-item label="默认分类">
