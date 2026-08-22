@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 微信公众号已发布内容 → 内容库同步（长图文 news + 图集 newspic）
+ * 微信公众号已发布内容 → 内容库同步（长文 news + 贴图 newspic）
  */
 @Slf4j
 @Service
@@ -127,7 +127,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         result.setArticleCount(articleCount);
         result.setNoteCount(noteCount);
         result.setMessage(String.format(
-                "共同步 %d 条：长图文 %d，图集 %d；新建 %d，更新 %d，跳过 %d，失败 %d",
+                "共同步 %d 条：长文 %d，贴图 %d；新建 %d，更新 %d，跳过 %d，失败 %d",
                 result.getTotalArticles(),
                 result.getArticleCount(),
                 result.getNoteCount(),
@@ -237,7 +237,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         String title = resolveTitle(item, articleId, index);
         List<String> imageUrls = collectNewspicImages(item, imageCache, mediaCache);
         if (imageUrls.isEmpty()) {
-            log.warn("图集无可用图片，跳过 articleId={} idx={}", articleId, index);
+            log.warn("贴图无可用图片，跳过 articleId={} idx={}", articleId, index);
             return SyncAction.SKIP;
         }
 
