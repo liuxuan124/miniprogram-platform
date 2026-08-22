@@ -30,6 +30,7 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
     private static final String TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
     private static final String BATCH_GET_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/batchget";
     private static final String GET_ARTICLE_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/getarticle";
+    private static final String DRAFT_BATCH_GET_URL = "https://api.weixin.qq.com/cgi-bin/draft/batchget";
     private static final String GET_MATERIAL_URL = "https://api.weixin.qq.com/cgi-bin/material/get_material";
 
     private final SystemConfigService systemConfigService;
@@ -98,6 +99,40 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
         int totalCount = Integer.MAX_VALUE;
         while (offset < totalCount) {
             JSONObject page = batchGetPublished(offset, 20);
+            totalCount = page.getInt("total_count", 0);
+            JSONArray items = page.getJSONArray("item");
+            int itemCount = page.getInt("item_count", items == null ? 0 : items.size());
+            if (items == null || items.isEmpty()) {
+                break;
+            }
+            for (int i = 0; i < items.size(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                if (item != null) {
+                    all.add(item);
+                }
+            }
+            if (itemCount <= 0) {
+                break;
+            }
+            offset += itemCount;
+            if (offset >= totalCount) {
+                break;
+            }
+        }
+        return all;
+    }
+
+    @Override
+    public List<JSONObject> listAllDraftRecords() {
+        List<JSONObject> all = new ArrayList<>();
+        int offset = 0;
+        int totalCount = Integer.MAX_VALUE;
+        while (offset < totalCount) {
+            JSONObject body = JSONUtil.createObj()
+                    .set("offset", Math.max(offset, 0))
+                    .set("count", 20)
+                    .set("no_content", 0);
+            JSONObject page = postWithToken(DRAFT_BATCH_GET_URL, body);
             totalCount = page.getInt("total_count", 0);
             JSONArray items = page.getJSONArray("item");
             int itemCount = page.getInt("item_count", items == null ? 0 : items.size());

@@ -33,6 +33,11 @@ public interface WeChatOfficialAccountClient {
     List<JSONObject> listAllPublishedRecords();
 
     /**
+     * 拉取草稿箱条目（含贴图 image_info）
+     */
+    List<JSONObject> listAllDraftRecords();
+
+    /**
      * 下载永久素材（图片类型返回二进制，失败返回 null）
      */
     byte[] downloadPermanentImage(String mediaId);
