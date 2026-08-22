@@ -16,8 +16,10 @@ import com.miniprogram.entity.Content;
 import com.miniprogram.entity.ContentTag;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ContentTagMapper;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.ContentService;
+import com.miniprogram.service.FileEntitlementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -42,6 +44,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final ContentCategoryService categoryService;
     private final ContentTagMapper tagMapper;
     private final ObjectMapper objectMapper;
+    private final FileEntitlementService fileEntitlementService;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -263,7 +266,10 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         entity.setViewCount(entity.getViewCount() + 1);
         this.updateById(entity);
 
-        return toDetailDTO(entity);
+        ContentDetailDTO dto = toDetailDTO(entity);
+        dto.setAttachments(fileEntitlementService.enrichAttachments(
+                dto.getAttachments(), SecurityUtils.getCurrentUserId()));
+        return dto;
     }
 
     // ==================== 私有方法 ====================

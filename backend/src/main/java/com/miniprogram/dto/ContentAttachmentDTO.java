@@ -28,4 +28,15 @@ public class ContentAttachmentDTO {
 
     /** 排序 */
     private Integer sortOrder;
+
+    /** 文件库 ID（优先于 url 直链） */
+    private Long fileId;
+
+    /** 以下字段由服务端鉴权后填充，客户端只读 */
+    private Boolean canRead;
+    private Boolean canDownload;
+    private Boolean canPreview;
+    private String previewText;
+    private String lockedReason;
+    private String qualityTier;
 }
