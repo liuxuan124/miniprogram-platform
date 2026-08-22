@@ -63,6 +63,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     public WeChatContentSyncResultVO syncAllPublished(WeChatContentSyncRequestDTO request) {
         WeChatContentSyncRequestDTO safeRequest = request != null ? request : new WeChatContentSyncRequestDTO();
         boolean publish = safeRequest.getPublish() == null || Boolean.TRUE.equals(safeRequest.getPublish());
+        SyncScope syncScope = SyncScope.from(safeRequest.getSyncScope());
         Long categoryId = safeRequest.getCategoryId();
         if (categoryId != null) {
             if (categoryService.getById(categoryId) == null) {
@@ -98,11 +99,12 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 articlesProcessed++;
                 try {
                     SyncAction action = upsertPublishedItem(
-                            item, articleId, i, categoryId, publish, publishedAt, imageCache, mediaCache, result);
+                            item, articleId, i, categoryId, publish, publishedAt, syncScope, imageCache, mediaCache, result);
                     switch (action) {
                         case CREATE -> result.setCreated(result.getCreated() + 1);
                         case UPDATE -> result.setUpdated(result.getUpdated() + 1);
                         case SKIP -> result.setSkipped(result.getSkipped() + 1);
+                        case TYPE_FILTERED -> { /* counted in upsertPublishedItem */ }
                     }
                 } catch (Exception e) {
                     log.warn("同步图文失败 articleId={} idx={}: {}", articleId, i, e.getMessage());
@@ -115,12 +117,14 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
 
         result.setTotalArticles(articlesProcessed);
         result.setMessage(String.format(
-                "共同步 %d 条：长文 %d，贴图 %d；新建 %d，更新 %d，跳过 %d，失败 %d",
+                "范围「%s」：扫描 %d 条，长文 %d，贴图 %d；新建 %d，更新 %d，类型筛选跳过 %d，其他跳过 %d，失败 %d",
+                syncScope.label(),
                 result.getTotalArticles(),
                 result.getArticleCount(),
                 result.getNoteCount(),
                 result.getCreated(),
                 result.getUpdated(),
+                result.getTypeFiltered(),
                 result.getSkipped(),
                 result.getFailed()));
         return result;
@@ -156,10 +160,20 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Long categoryId,
             boolean publish,
             LocalDateTime publishedAt,
+            SyncScope syncScope,
             Map<String, String> imageCache,
             Map<String, byte[]> mediaCache,
             WeChatContentSyncResultVO result) {
-        if (isNewspic(item)) {
+        boolean newspic = isNewspic(item);
+        if (syncScope == SyncScope.NEWSPIC && !newspic) {
+            result.setTypeFiltered(result.getTypeFiltered() + 1);
+            return SyncAction.TYPE_FILTERED;
+        }
+        if (syncScope == SyncScope.NEWS && newspic) {
+            result.setTypeFiltered(result.getTypeFiltered() + 1);
+            return SyncAction.TYPE_FILTERED;
+        }
+        if (newspic) {
             SyncAction action = upsertNewspicNote(
                     item, articleId, index, categoryId, publish, publishedAt, imageCache, mediaCache);
             if (action != SyncAction.SKIP) {
@@ -176,7 +190,30 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     }
 
     private enum SyncAction {
-        CREATE, UPDATE, SKIP
+        CREATE, UPDATE, SKIP, TYPE_FILTERED
+    }
+
+    private enum SyncScope {
+        ALL, NEWSPIC, NEWS;
+
+        static SyncScope from(String raw) {
+            if (!StringUtils.hasText(raw)) {
+                return ALL;
+            }
+            return switch (raw.trim().toLowerCase()) {
+                case "newspic", "note", "贴图" -> NEWSPIC;
+                case "news", "article", "文章", "长文" -> NEWS;
+                default -> ALL;
+            };
+        }
+
+        String label() {
+            return switch (this) {
+                case NEWSPIC -> "仅贴图";
+                case NEWS -> "仅文章";
+                default -> "贴图+文章";
+            };
+        }
     }
 
     private SyncAction upsertNewsArticle(
