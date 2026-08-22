@@ -64,6 +64,12 @@ public class ProductDetailVO {
     @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 
+    @Schema(description = "支付后自动履约")
+    private Integer autoFulfill;
+
+    @Schema(description = "自动发货内容")
+    private String fulfillContent;
+
     @Schema(description = "SKU列表")
     private List<ProductSkuVO> skus;
 

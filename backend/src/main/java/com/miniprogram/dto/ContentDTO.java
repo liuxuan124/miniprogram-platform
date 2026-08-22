@@ -26,6 +26,12 @@ public class ContentDTO {
     /** 封面图URL */
     private String coverImage;
 
+    /** 视频地址 */
+    private String videoUrl;
+
+    /** 视频时长（秒） */
+    private Integer videoDuration;
+
     /** 笔记多图 URL 列表 */
     private List<String> images;
 
@@ -35,6 +41,20 @@ public class ContentDTO {
     /** 文章摘要 */
     @Size(max = 512, message = "文章摘要最长512个字符")
     private String summary;
+
+    /** SEO/分享标题 */
+    @Size(max = 128, message = "SEO标题最长128个字符")
+    private String seoTitle;
+
+    /** SEO/分享描述 */
+    @Size(max = 512, message = "SEO描述最长512个字符")
+    private String seoDescription;
+
+    /** 正文排版主题 */
+    private String layoutTheme;
+
+    /** 定时发布时间（ISO 字符串或 yyyy-MM-dd HH:mm:ss） */
+    private String scheduledAt;
 
     /** 文章内容（富文本HTML） */
     private String content;
@@ -61,4 +81,10 @@ public class ContentDTO {
 
     /** 排序值 */
     private Integer sortOrder;
+
+    /** 频道置顶 0/1 */
+    private Integer isPinned;
+
+    /** 首页推荐 0/1 */
+    private Integer isRecommended;
 }

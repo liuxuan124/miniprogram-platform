@@ -31,4 +31,13 @@ public class PushPreviewResultVO {
 
     @Schema(description = "提示信息")
     private String message;
+
+    @Schema(description = "本机是否具备上传条件（源码+脚本+密钥）")
+    private Boolean uploadAvailable;
+
+    @Schema(description = "是否建议走 CI 推送")
+    private Boolean preferCi;
+
+    @Schema(description = "不可用原因")
+    private String capabilityReason;
 }

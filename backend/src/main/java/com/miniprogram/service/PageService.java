@@ -50,6 +50,11 @@ public interface PageService extends BaseService<Page> {
     PageDetailDTO unpublishPage(Long id);
 
     /**
+     * 复制页面（含最新草稿 DSL）
+     */
+    PageDetailDTO duplicatePage(Long id);
+
+    /**
      * 根据 path 获取已发布页面的当前版本 DSL
      */
     String getPublishedPageDsl(String path);

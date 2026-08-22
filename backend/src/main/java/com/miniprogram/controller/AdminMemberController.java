@@ -8,6 +8,7 @@ import com.miniprogram.service.MiniProgramUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -23,12 +24,14 @@ public class AdminMemberController {
 
     @Operation(summary = "会员列表")
     @GetMapping
+    @PreAuthorize("hasAuthority('member:list')")
     public R<PageResult<MiniProgramUserVO>> list(MiniProgramUserQueryDTO queryDTO) {
         return R.ok(miniProgramUserService.listUsers(queryDTO));
     }
 
     @Operation(summary = "会员详情")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('member:detail')")
     public R<MiniProgramUserVO> detail(@PathVariable Long id) {
         return R.ok(miniProgramUserService.getUserProfile(id));
     }

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -24,6 +25,7 @@ public class AdminActivityController {
     private final ActivityService activityService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('activity:list')")
     @Operation(summary = "活动列表")
     public R<PageResult<ActivityVO>> listActivities(@RequestParam(required = false) String keyword,
                                                      @RequestParam(required = false) String type,
@@ -34,24 +36,28 @@ public class AdminActivityController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('activity:list')")
     @Operation(summary = "活动详情")
     public R<ActivityVO> getActivityDetail(@PathVariable Long id) {
         return R.ok(activityService.getActivityDetail(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('activity:create')")
     @Operation(summary = "创建活动")
     public R<ActivityVO> createActivity(@Valid @RequestBody ActivityDTO dto) {
         return R.ok(activityService.createActivity(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('activity:update')")
     @Operation(summary = "更新活动")
     public R<ActivityVO> updateActivity(@PathVariable Long id, @Valid @RequestBody ActivityDTO dto) {
         return R.ok(activityService.updateActivity(id, dto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('activity:delete')")
     @Operation(summary = "删除活动")
     public R<Void> deleteActivity(@PathVariable Long id) {
         activityService.deleteActivity(id);
@@ -59,6 +65,7 @@ public class AdminActivityController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('activity:update')")
     @Operation(summary = "更新活动状态")
     public R<ActivityVO> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         return R.ok(activityService.updateStatus(id, status));
@@ -67,6 +74,7 @@ public class AdminActivityController {
     // ==================== 报名管理 ====================
 
     @GetMapping("/{id}/signups")
+    @PreAuthorize("hasAuthority('activity:list')")
     @Operation(summary = "报名列表")
     public R<PageResult<ActivitySignupVO>> listSignups(@PathVariable Long id,
                                                         @RequestParam(required = false) String status,
@@ -76,6 +84,7 @@ public class AdminActivityController {
     }
 
     @PutMapping("/signups/{signupId}/approve")
+    @PreAuthorize("hasAuthority('activity:update')")
     @Operation(summary = "审核报名")
     public R<ActivitySignupVO> approveSignup(@PathVariable Long signupId,
                                               @RequestParam Boolean approved) {

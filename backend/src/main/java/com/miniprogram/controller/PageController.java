@@ -76,4 +76,11 @@ public class PageController {
     public R<PageDetailDTO> unpublishPage(@PathVariable Long id) {
         return R.ok(pageService.unpublishPage(id));
     }
+
+    @Operation(summary = "复制页面", description = "复制页面基本信息与最新草稿内容，生成新草稿页")
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAuthority('page:create')")
+    public R<PageDetailDTO> duplicatePage(@PathVariable Long id) {
+        return R.ok(pageService.duplicatePage(id));
+    }
 }

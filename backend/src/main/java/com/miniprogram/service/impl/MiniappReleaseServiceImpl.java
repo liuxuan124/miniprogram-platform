@@ -30,6 +30,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -39,10 +40,12 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
     private static final Set<String> SUPPORTED_COMPONENT_TYPES = Set.of(
             "search", "notice_bar", "category_nav", "banner", "image", "nav", "product_list",
-            "flash_sale", "article_list", "article_feed", "hot_news", "activity_entry", "activity_list",
+            "flash_sale", "article_list", "article_feed", "note_feed", "moments_feed", "hot_news",
+            "activity_entry", "activity_list",
             "appointment_service", "member_card", "coupon", "ai_entry", "video",
             "brand_intro", "brand_header", "image_text", "contact_info", "certificate", "countdown",
-            "float_button", "rich_text", "section_title", "divider", "spacer", "form_entry", "join_group"
+            "float_button", "rich_text", "section_title", "divider", "spacer", "form_entry", "join_group",
+            "container", "image_hotspot", "section_bg", "feature_cards"
     );
 
     private final PageMapper pageMapper;
@@ -123,12 +126,15 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             int minor = Integer.parseInt(parts[1]);
             int patch = Integer.parseInt(parts[2]);
 
-            if ("publish".equals(mode)) {
-                publishBoundPagesOrThrow();
-            }
-
             String snapshot = buildSnapshot();
             validateSnapshotForRelease(snapshot);
+
+            if ("publish".equals(mode)) {
+                publishBoundPagesOrThrow();
+                // 页面发布后快照可能变化，重建再校验一次
+                snapshot = buildSnapshot();
+                validateSnapshotForRelease(snapshot);
+            }
 
             MiniappRelease release = new MiniappRelease();
             release.setSemver(semver);
@@ -402,6 +408,43 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 }
             }
 
+            // P2: 快照外已发布页面 — 提示或按需下线
+            Set<String> snapshotPaths = new LinkedHashSet<>();
+            if (pages != null) {
+                for (Map<String, Object> pageData : pages) {
+                    String p = normalizePagePath(Objects.toString(pageData.get("path"), ""));
+                    if (StringUtils.hasText(p)) {
+                        snapshotPaths.add(p);
+                    }
+                }
+            }
+            List<Page> livePages = pageMapper.selectList(new LambdaQueryWrapper<Page>()
+                    .eq(Page::getStatus, 1));
+            List<String> extraNames = new ArrayList<>();
+            if (livePages != null) {
+                for (Page live : livePages) {
+                    String livePath = normalizePagePath(live.getPath());
+                    if (StringUtils.hasText(livePath) && !snapshotPaths.contains(livePath)) {
+                        extraNames.add(live.getName() + "(" + livePath + ")");
+                        if (Boolean.TRUE.equals(dto.getOfflineExtraPages())) {
+                            live.setStatus(0);
+                            pageMapper.updateById(live);
+                        }
+                    }
+                }
+            }
+            String extraNote = "";
+            if (!extraNames.isEmpty()) {
+                if (Boolean.TRUE.equals(dto.getOfflineExtraPages())) {
+                    extraNote = "；已下线快照外页面 " + extraNames.size() + " 个：" + String.join("、", extraNames);
+                } else {
+                    extraNote = "；快照外仍有已发布页面 " + extraNames.size() + " 个（未下线）："
+                            + String.join("、", extraNames)
+                            + "。如需一并下线请勾选 offlineExtraPages";
+                    log.warn("回滚差异：{}", extraNote);
+                }
+            }
+
             MiniappRelease currentPublished = getLatestRelease();
             if (currentPublished != null) {
                 currentPublished.setStatus(2);
@@ -417,7 +460,9 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             rollbackRelease.setMinor(targetRelease.getMinor());
             rollbackRelease.setPatch(targetRelease.getPatch());
             rollbackRelease.setChangeType("patch");
-            rollbackRelease.setReleaseNotes("回滚至版本 " + dto.getTargetSemver() + (StringUtils.hasText(dto.getReason()) ? "，原因: " + dto.getReason() : ""));
+            rollbackRelease.setReleaseNotes("回滚至版本 " + dto.getTargetSemver()
+                    + (StringUtils.hasText(dto.getReason()) ? "，原因: " + dto.getReason() : "")
+                    + extraNote);
             rollbackRelease.setSnapshot(targetRelease.getSnapshot());
             rollbackRelease.setBackupSnapshot(backupSnapshot);
             rollbackRelease.setPageCount(targetRelease.getPageCount());
@@ -572,17 +617,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                         errors.add("页面 " + path + " 的 components[" + i + "] 不是对象");
                         continue;
                     }
-                    Object id = component.get("id");
-                    Object type = component.get("type");
-                    if (!StringUtils.hasText(Objects.toString(id, ""))) {
-                        errors.add("页面 " + path + " 的 components[" + i + "] 缺少 id");
-                    }
-                    String typeValue = Objects.toString(type, "");
-                    if (!StringUtils.hasText(typeValue)) {
-                        errors.add("页面 " + path + " 的 components[" + i + "] 缺少 type");
-                    } else if (!SUPPORTED_COMPONENT_TYPES.contains(typeValue)) {
-                        errors.add("页面 " + path + " 的 components[" + i + "] 使用未知组件类型: " + typeValue);
-                    }
+                    collectComponentTypeErrors(path, component, i, errors);
                 }
             }
 
@@ -593,6 +628,29 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             throw e;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.RELEASE_PROMOTE_FAILED, "发布前校验失败: " + e.getMessage());
+        }
+    }
+
+    private void collectComponentTypeErrors(String path, Map<?, ?> component, int index, List<String> errors) {
+        Object id = component.get("id");
+        Object type = component.get("type");
+        if (!StringUtils.hasText(Objects.toString(id, ""))) {
+            errors.add("页面 " + path + " 的 components[" + index + "] 缺少 id");
+        }
+        String typeValue = Objects.toString(type, "");
+        if (!StringUtils.hasText(typeValue)) {
+            errors.add("页面 " + path + " 的 components[" + index + "] 缺少 type");
+        } else if (!SUPPORTED_COMPONENT_TYPES.contains(typeValue)) {
+            errors.add("页面 " + path + " 的 components[" + index + "] 使用未知组件类型: " + typeValue);
+        }
+        Object children = component.get("children");
+        if (children instanceof List<?> childList) {
+            for (int i = 0; i < childList.size(); i++) {
+                Object child = childList.get(i);
+                if (child instanceof Map<?, ?> childMap) {
+                    collectComponentTypeErrors(path, childMap, i, errors);
+                }
+            }
         }
     }
 
@@ -750,6 +808,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
         if (tabs.isEmpty()) {
             vo.getWarnings().add("尚未配置底部导航，发布后将使用小程序默认导航");
+        } else if (tabs.size() != 4) {
+            vo.getBlocking().add("底部导航必须固定 4 个入口（当前 " + tabs.size() + " 个），请到「外观」调整");
         }
         for (Map<String, Object> tab : tabs) {
             String text = firstText(tab.get("text"), tab.get("label"), tab.get("name"));
@@ -794,7 +854,142 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             vo.getBlocking().add("没有可发布的绑定页面");
             vo.setCanPublish(false);
         }
+        appendAdvancedPreflightChecks(vo, boundIds);
+        vo.setCanPublish(vo.getBlocking().isEmpty() && !boundIds.isEmpty());
         return vo;
+    }
+
+    /** P1: 组件白名单前移、图片 localhost、数据源空配置、外链域名警告 */
+    private void appendAdvancedPreflightChecks(PublishPreflightVO vo, Set<Long> boundIds) {
+        Set<String> unknownTypes = new LinkedHashSet<>();
+        Set<String> sampleLocalhost = new LinkedHashSet<>();
+        Set<String> sampleExternalHttp = new LinkedHashSet<>();
+        int emptyDatasourceHits = 0;
+
+        for (Long id : boundIds) {
+            PageVersion latest = pageVersionMapper.selectOne(new LambdaQueryWrapper<PageVersion>()
+                    .eq(PageVersion::getPageId, id)
+                    .orderByDesc(PageVersion::getVersion)
+                    .last("LIMIT 1"));
+            if (latest == null || !StringUtils.hasText(latest.getDslContent())) {
+                continue;
+            }
+            try {
+                Map<String, Object> dsl = objectMapper.readValue(latest.getDslContent(), new TypeReference<Map<String, Object>>() {});
+                Object componentsValue = dsl.get("components");
+                if (!(componentsValue instanceof List<?> components)) {
+                    continue;
+                }
+                walkComponentsForPreflight(components, unknownTypes, sampleLocalhost, sampleExternalHttp);
+                emptyDatasourceHits += countEmptyDatasources(components);
+            } catch (Exception e) {
+                vo.getWarnings().add("页面 #" + id + " DSL 解析失败，跳过深度检查");
+            }
+        }
+
+        if (!unknownTypes.isEmpty()) {
+            vo.getBlocking().add("存在未知组件类型（请先升级小程序渲染端）：" + String.join("、", unknownTypes));
+        }
+        if (!sampleLocalhost.isEmpty()) {
+            vo.getBlocking().add("页面资源指向 localhost/127.0.0.1（上线后必裂图），示例："
+                    + sampleLocalhost.stream().limit(3).collect(Collectors.joining("；")));
+        }
+        if (emptyDatasourceHits > 0) {
+            vo.getWarnings().add("有 " + emptyDatasourceHits + " 个数据源组件未配置有效 query/params，上线后模块可能为空");
+        }
+        if (!sampleExternalHttp.isEmpty()) {
+            vo.getWarnings().add("检测到非 HTTPS 外链，请确认微信合法域名配置。示例："
+                    + sampleExternalHttp.stream().limit(3).collect(Collectors.joining("；")));
+        }
+    }
+
+    private void walkComponentsForPreflight(List<?> components, Set<String> unknownTypes,
+                                            Set<String> sampleLocalhost, Set<String> sampleExternalHttp) {
+        if (components == null) return;
+        for (Object componentValue : components) {
+            if (!(componentValue instanceof Map<?, ?> component)) continue;
+            String typeValue = Objects.toString(component.get("type"), "");
+            if (StringUtils.hasText(typeValue) && !SUPPORTED_COMPONENT_TYPES.contains(typeValue)) {
+                unknownTypes.add(typeValue);
+            }
+            Object props = component.get("props");
+            if (props instanceof Map<?, ?> propsMap) {
+                scanUrlsInMap(propsMap, sampleLocalhost, sampleExternalHttp);
+            }
+            Object style = component.get("style");
+            if (style instanceof Map<?, ?> styleMap) {
+                scanUrlsInMap(styleMap, sampleLocalhost, sampleExternalHttp);
+            }
+            Object children = component.get("children");
+            if (children instanceof List<?> childList) {
+                walkComponentsForPreflight(childList, unknownTypes, sampleLocalhost, sampleExternalHttp);
+            }
+        }
+    }
+
+    private int countEmptyDatasources(List<?> components) {
+        int count = 0;
+        if (components == null) return 0;
+        for (Object componentValue : components) {
+            if (!(componentValue instanceof Map<?, ?> component)) continue;
+            String type = Objects.toString(component.get("type"), "");
+            Object ds = component.get("data_source");
+            if (ds == null && component.get("props") instanceof Map<?, ?> props) {
+                ds = props.get("data_source");
+            }
+            boolean needsDs = Set.of("product_list", "article_list", "article_feed", "note_feed",
+                    "moments_feed", "hot_news", "activity_list", "flash_sale").contains(type);
+            if (needsDs) {
+                if (!(ds instanceof Map<?, ?> dsMap) || dsMap.isEmpty()) {
+                    count++;
+                } else {
+                    Object params = dsMap.get("params");
+                    Object query = dsMap.get("query");
+                    boolean emptyParams = !(params instanceof Map<?, ?> m) || m.isEmpty();
+                    boolean emptyQuery = !(query instanceof Map<?, ?> q) || q.isEmpty();
+                    Object dsType = dsMap.get("type");
+                    if (emptyParams && emptyQuery && dsType == null) {
+                        count++;
+                    }
+                }
+            }
+            Object children = component.get("children");
+            if (children instanceof List<?> childList) {
+                count += countEmptyDatasources(childList);
+            }
+        }
+        return count;
+    }
+
+    private void scanUrlsInMap(Map<?, ?> map, Set<String> sampleLocalhost, Set<String> sampleExternalHttp) {
+        for (Object value : map.values()) {
+            if (value instanceof String s) {
+                classifyUrl(s, sampleLocalhost, sampleExternalHttp);
+            } else if (value instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof String s) {
+                        classifyUrl(s, sampleLocalhost, sampleExternalHttp);
+                    } else if (item instanceof Map<?, ?> m) {
+                        scanUrlsInMap(m, sampleLocalhost, sampleExternalHttp);
+                    }
+                }
+            } else if (value instanceof Map<?, ?> m) {
+                scanUrlsInMap(m, sampleLocalhost, sampleExternalHttp);
+            }
+        }
+    }
+
+    private void classifyUrl(String raw, Set<String> sampleLocalhost, Set<String> sampleExternalHttp) {
+        if (!StringUtils.hasText(raw)) return;
+        String url = raw.trim().toLowerCase(Locale.ROOT);
+        if (!(url.startsWith("http://") || url.startsWith("https://"))) return;
+        if (url.contains("localhost") || url.contains("127.0.0.1")) {
+            if (sampleLocalhost.size() < 5) sampleLocalhost.add(raw.trim());
+            return;
+        }
+        if (url.startsWith("http://") && sampleExternalHttp.size() < 5) {
+            sampleExternalHttp.add(raw.trim());
+        }
     }
 
     private void publishLatestDraft(Long pageId, Long publisherId) {

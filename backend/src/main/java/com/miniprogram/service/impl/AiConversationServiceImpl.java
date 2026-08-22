@@ -7,9 +7,11 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
 import com.miniprogram.entity.AiConversation;
 import com.miniprogram.entity.Content;
+import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Product;
 import com.miniprogram.mapper.AiConversationMapper;
 import com.miniprogram.mapper.ContentMapper;
+import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.service.AiClientService;
 import com.miniprogram.service.AiConversationService;
@@ -39,6 +41,7 @@ public class AiConversationServiceImpl implements AiConversationService {
     private final AiRecommendationService recommendationService;
     private final ProductMapper productMapper;
     private final ContentMapper contentMapper;
+    private final OrderMapper orderMapper;
 
     private static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -54,11 +57,20 @@ public class AiConversationServiceImpl implements AiConversationService {
         // 获取会话历史（用于AI上下文）
         List<AiConversation> history = getSessionHistory(sessionId);
 
-        // 调用AI服务
-        AiClientService.AiResponse aiResponse = aiClientService.chat(chatDTO.getQuestion(), sessionId, history);
+        // F11：能办事客服 — 白名单意图优先（查单安全执行；退款/预约仅返回确认步骤）
+        ActionResult actionResult = resolveWhitelistedAction(userId, chatDTO.getQuestion());
 
-        // 根据用户问题查询真实商品/内容数据，填充推荐项
-        List<AiConversation.RecommendedItem> recommendedItems = buildRecommendedItems(chatDTO.getQuestion());
+        AiClientService.AiResponse aiResponse;
+        List<AiConversation.RecommendedItem> recommendedItems;
+        if (actionResult != null && StringUtils.hasText(actionResult.answer)) {
+            aiResponse = new AiClientService.AiResponse();
+            aiResponse.setAnswer(actionResult.answer);
+            aiResponse.setTransferHuman(false);
+            recommendedItems = Collections.emptyList();
+        } else {
+            aiResponse = aiClientService.chat(chatDTO.getQuestion(), sessionId, history);
+            recommendedItems = buildRecommendedItems(chatDTO.getQuestion());
+        }
 
         // 保存对话记录
         AiConversation conversation = new AiConversation();
@@ -84,8 +96,127 @@ public class AiConversationServiceImpl implements AiConversationService {
         vo.setRecommendedItems(recommendedItems);
         vo.setIsTransferHuman(aiResponse.isTransferHuman());
         vo.setSessionId(sessionId);
+        if (actionResult != null) {
+            vo.setAction(actionResult.action);
+        }
 
         return vo;
+    }
+
+    private static final class ActionResult {
+        final String answer;
+        final Map<String, Object> action;
+
+        ActionResult(String answer, Map<String, Object> action) {
+            this.answer = answer;
+            this.action = action;
+        }
+    }
+
+    /**
+     * 白名单意图：query_order（查最近 3 单）、apply_refund_hint / book_appointment_hint（仅引导，不自动执行）
+     */
+    private ActionResult resolveWhitelistedAction(Long userId, String question) {
+        if (!StringUtils.hasText(question)) return null;
+        String q = question.trim().toLowerCase(Locale.ROOT);
+        String raw = question.trim();
+
+        boolean wantOrder = containsAny(raw, "订单", "物流", "发货", "到哪了", "状态")
+                || containsAny(q, "order", "shipping");
+        boolean wantRefund = containsAny(raw, "退款", "退货", "售后", "取消订单")
+                || containsAny(q, "refund");
+        boolean wantAppt = containsAny(raw, "预约", "约时间", "改期", "咨询时间")
+                || containsAny(q, "appointment", "booking");
+
+        if (wantRefund) {
+            Map<String, Object> action = new LinkedHashMap<>();
+            action.put("type", "apply_refund_hint");
+            action.put("confirmRequired", true);
+            action.put("steps", List.of(
+                    "打开「我的 → 全部订单」找到目标订单",
+                    "进入订单详情，确认是否在售后时效内",
+                    "点击申请退款并填写原因（不会自动提交）",
+                    "如需协助，可转人工客服并提供订单号"
+            ));
+            action.put("path", "/pkg-trade/order-list/order-list");
+            String answer = "退款涉及资金，我不会自动替你提交。请按以下步骤确认后自行操作：\n"
+                    + "1. 打开「我的 → 全部订单」\n"
+                    + "2. 进入订单详情核对金额与状态\n"
+                    + "3. 点击申请退款并填写原因\n"
+                    + "需要人工协助时，请提供订单号。";
+            return new ActionResult(answer, action);
+        }
+
+        if (wantAppt) {
+            Map<String, Object> action = new LinkedHashMap<>();
+            action.put("type", "book_appointment_hint");
+            action.put("confirmRequired", true);
+            action.put("steps", List.of(
+                    "进入预约服务页选择时段",
+                    "确认联系人与备注信息",
+                    "提交前核对时间（系统不会自动帮你下单预约）"
+            ));
+            action.put("path", "/pkg-user/my-appointments/my-appointments");
+            String answer = "预约需要你确认时段后提交，我不会自动下单。可到「我的预约」查看已有预约，或从商品/服务页选择时段完成预约。";
+            return new ActionResult(answer, action);
+        }
+
+        if (wantOrder && userId != null) {
+            List<Order> orders = orderMapper.selectList(new LambdaQueryWrapper<Order>()
+                    .eq(Order::getUserId, userId)
+                    .orderByDesc(Order::getCreatedAt)
+                    .last("LIMIT 3"));
+            List<Map<String, Object>> rows = new ArrayList<>();
+            StringBuilder sb = new StringBuilder();
+            if (orders.isEmpty()) {
+                sb.append("暂未查到你的订单。可到「我的 → 全部订单」确认是否已登录同一账号。");
+            } else {
+                sb.append("为你查到最近 ").append(orders.size()).append(" 笔订单：\n");
+                for (Order o : orders) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("orderId", o.getId());
+                    row.put("orderNo", o.getOrderNo());
+                    row.put("status", o.getStatus());
+                    row.put("payAmount", o.getPayAmount());
+                    rows.add(row);
+                    sb.append("· ").append(o.getOrderNo())
+                            .append("｜").append(statusLabel(o.getStatus()))
+                            .append("｜¥").append(o.getPayAmount() == null ? "0" : o.getPayAmount())
+                            .append("\n");
+                }
+                sb.append("如需退款请明确说「申请退款」，我会给出操作指引（不会自动退款）。");
+            }
+            Map<String, Object> action = new LinkedHashMap<>();
+            action.put("type", "query_order");
+            action.put("confirmRequired", false);
+            action.put("orders", rows);
+            action.put("path", "/pkg-trade/order-list/order-list");
+            return new ActionResult(sb.toString().trim(), action);
+        }
+
+        return null;
+    }
+
+    private static boolean containsAny(String text, String... keys) {
+        if (text == null) return false;
+        for (String k : keys) {
+            if (text.contains(k)) return true;
+        }
+        return false;
+    }
+
+    private static String statusLabel(String status) {
+        if (status == null) return "未知";
+        return switch (status) {
+            case "pending_payment" -> "待支付";
+            case "paid" -> "已支付";
+            case "shipped" -> "已发货";
+            case "completed" -> "已完成";
+            case "closed" -> "已关闭";
+            case "refunding" -> "退款中";
+            case "refunded" -> "已退款";
+            default -> status;
+        };
     }
 
     @Override

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>产品升级建议</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#15181e; --muted:#5e6673; --line:#e2e6eb;
+    --a1:#0f766e; --a2:#4f46e5; --a3:#b45309; --hi:#0e7490;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.78 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:44px 20px 90px}
+  h1{font-size:29px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:30px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--a1);
+    border-radius:10px;padding:20px 22px;margin-bottom:34px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3c4450}
+  .lead p:last-child{margin-bottom:0}
+  h2.sec{font-size:20px;margin:44px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  h3.grp{font-size:16px;margin:28px 0 12px;color:var(--a2)}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 20px;margin-bottom:13px}
+  .item h4{margin:0 0 9px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--a2);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.g{background:var(--a1)} .n.o{background:var(--a3)} .n.c{background:var(--hi)}
+  .item p{margin:0 0 8px}
+  .item p:last-child{margin:0}
+  .ev{color:var(--muted);font-size:13.5px}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#404853;
+    background:#f0f2f5;border-radius:5px;padding:1px 6px}
+  .why{border-top:1px dashed var(--line);margin-top:11px;padding-top:9px;font-size:14px}
+  .why b{color:var(--a1)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.8px;margin:14px 0}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600}
+  tr:last-child td{border-bottom:none}
+  .tbl-wrap{overflow-x:auto}
+  .pill{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);
+    color:var(--muted);background:#f7f8fa;margin-left:4px}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:10px}
+  footer{margin-top:46px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>产品升级建议：功能与 UI</h1>
+<div class="sub">微信小程序多场景搭建与运营系统 · 2026-08-22 · 基于当前代码实况，非通用建议</div>
+
+<div class="lead">
+  <h2>先说结论：现在的问题不是"功能不够多"，是"链路没有闭环、数据没有回流、AI 没有进主路径"</h2>
+  <p>系统已经覆盖了 7 大模块、43 张迁移、175 个后台页面、34 个装修组件、43 个小程序页面。功能广度在同类自研系统里属于偏上水平，搭建器的撤销重做、自动保存、版本管理、发布前占位校验也都真实落地了 —— 这些是 7 月那版优化方案里承诺的东西，确实做到了。</p>
+  <p>但把它放到"最先进的产品理念"这个尺子下看，差的不是模块数量，是三件事：<b>一，用户在小程序里的每一次行为都没有被结构化地采集回来</b>（只有页面访问日志，没有事件漏斗），所以运营决策仍然靠拍脑袋；<b>二，微信生态里最强的两个杠杆——分享裂变和订阅消息——几乎为零</b>（43 个页面只有 5 个实现了分享，订阅消息一行代码都没有）；<b>三，AI 停在"客服+推荐"的侧边位置</b>，没有进入"搭页面、写文案、看数据"这条主路径，而这恰恰是这类产品今天唯一真正的差异化空间。</p>
+  <p>下面按 <b>功能补足</b> 和 <b>UI/UX 升级</b> 两块展开，每条都标了现状证据和判断依据，末尾给了优先级与三阶段路线。</p>
+</div>
+
+<h2 class="sec">一、功能补足</h2>
+<p class="secnote">分四层：闭环缺口（现在就在漏钱漏人）→ 增长引擎（微信生态该拿没拿的杠杆）→ AI 原生（差异化）→ 平台化（商业模式天花板）</p>
+
+<h3 class="grp">第 1 层 · 闭环缺口：已经建好一半的链路，把另一半接上</h3>
+
+<div class="item">
+  <h4><span class="n g">F1</span>优惠券在结算页用不掉，营销模块是个断头路</h4>
+  <p class="ev">证据：<span class="loc">OrderCreateDTO</span> 无 couponId 字段；<span class="loc">createOrder</span> 里写着 <span class="loc">setPayAmount(totalAmount); // 暂无优惠</span>，discount 恒为 0。而 V20/V30/V33 三个迁移、后台优惠券管理、会员权益领券、小程序 coupon-list 页面全都在。</p>
+  <p>用户能领、能看、就是不能用。这不是"少个功能"，是<b>整条营销投入的 ROI 无法度量</b>——发了多少券、核销率多少、带动了多少 GMV，一个数都算不出来。</p>
+  <p class="why"><b>建议：</b>下单接口补 couponId + 服务端校验（归属/有效期/门槛/适用范围）+ 核销与失败回滚；同步把「优惠券效果」做成一张表（发放/领取/核销/带动 GMV）。这是本清单里投入产出比最高的一条。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n g">F2</span>数字商品仍要人工发货，虚拟履约体验断层</h4>
+  <p class="ev">证据：<span class="loc">createOrder</span> 里 <span class="loc">order.setAutoFulfill(false)</span>，注释写「所有订单统一由商家发货」；数字商品只是不扣库存，仍要等商家在后台点"虚拟发货"填说明。</p>
+  <p>知识付费、课程、会员卡这类商品，用户付完款期待的是<b>秒到账</b>。现在的流程等于把 24 小时的等待强加给用户，退款率会明显偏高。</p>
+  <p class="why"><b>建议：</b>商品维度增加「自动发货」开关与发货内容模板（兑换码池 / 固定链接 / 卡密），支付回调成功后直接完成履约并推送。<span class="pill">与 P1-8 定时任务一并做</span></p>
+</div>
+
+<div class="item">
+  <h4><span class="n g">F3</span>内容与商品之间没有任何关联，内容电商只有"内容"没有"电商"</h4>
+  <p class="ev">证据：<span class="loc">V4__content_tables.sql</span> 里没有任何 product 关联字段，也没有中间表。而公众号/小红书内容同步这条线已经做得很深（外部同步、图集、笔记形态还原）。</p>
+  <p>费了很大力气把内容搬进来，用户看完之后<b>无处可去</b>。内容电商的核心机制是"内容种草 → 挂载商品 → 转化归因"，现在只做了第一步。</p>
+  <p class="why"><b>建议：</b>加 <span class="loc">mp_content_product</span> 关联表；内容详情页底部挂商品卡；订单记录来源内容 ID，做「内容带货榜」。这会让公众号内容同步这条已有投入立刻产生营收意义。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n g">F4</span>只有页面访问日志，没有事件级埋点，运营看不到漏斗</h4>
+  <p class="ev">证据：<span class="loc">mp_page_access_log</span> 只有 page_path / user_id / session_id / stay_duration；后台统计接口是 dashboard / sales-trend / product-ranking / user-growth / page-access 五个聚合。</p>
+  <p>现在能回答"哪个页面访问多"，不能回答任何真正重要的问题：<b>商品详情页到加购的转化率是多少？下单页在哪一步流失？哪个装修组件被点了？改版之后是变好了还是变差了？</b>没有这层数据，装修器就退化成了"换皮工具"。</p>
+  <p class="why"><b>建议：</b>定义统一事件模型（<span class="loc">event_name / page / component_id / item_id / props / ts</span>），小程序端做曝光与点击自动上报（DSL 渲染器统一注入，不需要逐页埋）；后端补漏斗、留存、来源分析三张基础报表。<b>这是所有数据驱动能力的地基，建议排在增长功能之前做。</b></p>
+</div>
+
+<h3 class="grp">第 2 层 · 增长引擎：微信生态里最该拿、目前基本没拿的杠杆</h3>
+
+<div class="item">
+  <h4><span class="n o">F5</span>订阅消息完全没做 —— 等于放弃了唯一的免费召回通道</h4>
+  <p class="ev">证据：全项目搜不到 <span class="loc">requestSubscribeMessage</span> / 订阅消息相关代码，后端也没有下发通道。</p>
+  <p>小程序没有推送，用户关掉就再也找不回来。订阅消息是微信官方给的<b>唯一能主动触达的免费通道</b>：订单发货、预约提醒、活动开始前提醒、优惠券到期、拼团成功——这些恰好都是本系统已有的业务场景。</p>
+  <p class="why"><b>建议：</b>优先做四类：订单状态变更、预约到期前 24h、活动开始前 2h、优惠券到期前 1 天。后端做一张模板配置表 + 发送记录表（用于合规与去重），前端在关键动作后申请授权（下单成功页、报名成功页是授权通过率最高的时机）。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">F6</span>43 个页面只有 5 个实现了分享，没有海报、没有邀请归因</h4>
+  <p class="ev">证据：<span class="loc">grep onShareAppMessage/onShareTimeline</span> 命中 5 个页面；<span class="loc">utils/qrcode.js</span> 已有二维码能力（目前用于活动核销）。</p>
+  <p>小程序的自然流量几乎全部来自分享。现在商品详情、内容详情、优惠券、会员页这些最该被转发的页面都不可分享，等于把增长引擎拆了。</p>
+  <p class="why"><b>建议：</b>① 全站默认分享（在页面基类统一注入 <span class="loc">onShareAppMessage</span>，各页覆盖标题与图）；② 商品/内容/活动生成分享海报（canvas + 已有二维码能力，成本很低）；③ 分享链接带 <span class="loc">inviterId + scene</span>，建立邀请归因与奖励（邀请得券、邀请解锁权益），和已有的会员积分体系天然衔接。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">F7</span>会员体系有骨架无驱动力：有等级积分，没有"每天回来一次"的理由</h4>
+  <p class="ev">证据：V8/V31 有会员等级、积分规则、权益、领券；缺签到、任务、成长值可视化、积分商城。</p>
+  <p class="why"><b>建议：</b>补三件小东西即可形成日活循环：每日签到（连签递增）、任务中心（浏览/分享/下单/评价得积分）、积分可兑换（券/商品/权益）。这三件的开发量都不大，但它们是把"注册用户"变成"活跃用户"的转轴。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n o">F8</span>搜索是黑盒：没有搜索词沉淀，也没有无结果兜底</h4>
+  <p>已有 search 页面，但搜索词没有落库。<b>用户搜什么，是最诚实的需求表达</b>。建议记录搜索词与结果数，后台出「热搜榜 / 无结果词榜」——无结果词直接就是选品和内容选题清单；前端补搜索历史、热搜推荐、无结果时的相关推荐。</p>
+</div>
+
+<h3 class="grp">第 3 层 · AI 原生：把 AI 从侧边栏搬进主路径</h3>
+
+<div class="item">
+  <h4><span class="n c">F9</span>自然语言生成页面 —— 这是本产品最值得做的一件事</h4>
+  <p class="ev">现状：AI 模块 = 客服会话 + 商品推荐 + 知识库（<span class="loc">AdminAgentController</span> 的 meta/knowledge、conversations）。搭建器与 AI 之间没有任何连接。</p>
+  <p>但前置条件其实已经全部具备：结构化的 <span class="loc">PageDSL</span> schema、34 个组件的 props 定义（<span class="loc">componentRegistry.ts</span>）、模板库、发布前校验。<b>"输入一句话，直接生成一版可编辑的画布"</b> 在这套架构上是可实现的——让大模型输出受 schema 约束的 DSL JSON，校验通过后灌进 <span class="loc">applyTemplate</span> 即可。</p>
+  <p>产品意义上，这一步把系统从"给会用装修器的人用的工具"变成"给不会装修的老板用的工具"，是从工具到产品的分水岭。竞品（有赞、微盟）今天也刚走到这一步。</p>
+  <p class="why"><b>建议路径：</b>先做「AI 生成初稿」（一句话 + 行业 → 整页 DSL），再做「AI 局部改」（选中组件说"这块换成三列，主色改暖一点"），最后做「AI 按数据改」（结合 F4 的漏斗数据主动建议改版）。第一步可以在两周内出可用版本。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n c">F10</span>AI 文案与素材：商品和内容的生产环节最耗人力</h4>
+  <p>商品标题/卖点/详情、内容摘要与标签、活动文案、分享话术——这些现在全靠运营手写。接入生成能力后，配合已有的 <span class="loc">ImageCropDialog</span> 与素材库，可以把上新一个商品的时间从 20 分钟压到 3 分钟。<span class="pill">见效快、风险低</span></p>
+</div>
+
+<div class="item">
+  <h4><span class="n c">F11</span>AI 客服升级为"能办事"的助手</h4>
+  <p>现在的客服只能答（知识库召回）。接上已有的订单/预约/券接口后，可以直接办：查订单、催发货、改预约时间、发补偿券、发起退款申请。<b>能执行动作的客服，才真正省下人力</b>。注意做好动作白名单与二次确认，涉及资金的动作走审批。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n c">F12</span>数据洞察从"给图表"升级为"给结论和动作"</h4>
+  <p>现有统计接口给的是趋势线和排行榜，看图的人还得自己判断。更先进的做法是每日自动生成一段话：<b>"昨天 GMV 环比 -18%，主要来自商品详情页到下单的转化率从 6.2% 掉到 3.1%，同期该页在 8 月 20 日改版新增了两个 Banner，建议回滚 A 版本对比"</b>——结论 + 归因 + 可点击执行的动作。这需要 F4 的事件数据做支撑，属于第二阶段。</p>
+</div>
+
+<h3 class="grp">第 4 层 · 平台化：决定这套系统的天花板</h3>
+
+<div class="item">
+  <h4><span class="n">F13</span>页面级 A/B 实验与灰度</h4>
+  <p>版本管理（<span class="loc">version-management.vue</span> / <span class="loc">mp_page_version</span>）已经有了，距离 A/B 只差一个分流器：按 userId hash 分桶，两个版本同时在线，用 F4 的事件数据自动判定胜出。<b>有了它，装修器才从"改样式"变成"提升转化"</b>，这是运营愿意持续付费的理由。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">F14</span>多租户与模板市场</h4>
+  <p>当前是单租户结构（无 tenant_id）。如果商业模式是"给多个客户搭小程序"，现在每来一个客户就要部署一套，成本线性增长。建议评估：短期可用"一套部署一个客户"扛过去，但<b>如果 6 个月内客户数会过 10 家，租户隔离要现在就规划</b>（改造成本随数据量增长而急剧上升）。配套的模板市场（行业模板 + 组件市场）是 SaaS 化后的自然延伸，V19 的 <span class="loc">industry_templates</span> 已经开了个头。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">F15</span>一套 DSL 多端渲染</h4>
+  <p>DSL 是抽象的，但目前只有小程序渲染器。同一份 DSL 输出 H5（公众号菜单落地页、朋友圈广告落地页）成本很低，却能让客户的一次装修覆盖多个入口。<span class="loc">h5-preview.vue</span> 已经存在，可以作为起点。</p>
+</div>
+
+<h2 class="sec">二、UI / UX 升级</h2>
+<p class="secnote">7 月那份《全面优化方案》定的方向是对的，但只落地了一半。下面先给落地实况，再说下一步。</p>
+
+<div class="tbl-wrap">
+<table>
+  <tr><th>7 月方案条目</th><th>当前实况（本次实测）</th><th>判断</th></tr>
+  <tr><td>B1 撤销/重做</td><td><span class="loc">stores/page.ts</span> 有完整历史栈 + undo/redo</td><td>✅ 已落地</td></tr>
+  <tr><td>B3 自动保存草稿</td><td><span class="loc">editor.vue</span> 有 autoSave + "已自动保存"提示</td><td>✅ 已落地</td></tr>
+  <tr><td>A2 色值 token 化</td><td><span class="loc">#1769ff</span> 仍有 <b>107 处</b>硬编码；175 个 vue 中仅 <b>19 个</b>用 <span class="loc">var(--brand)</span></td><td>⚠️ 约完成 15%</td></tr>
+  <tr><td>A4 空态组件铺开</td><td>EmptyState 仅 <b>3</b> 处引用，ListStateWrap 仅 <b>7</b> 处（共 38 个列表页）</td><td>⚠️ 约完成 20%</td></tr>
+  <tr><td>A5 骨架屏替代遮罩</td><td>全站仅 <b>1</b> 个文件用了 el-skeleton</td><td>❌ 基本未动</td></tr>
+  <tr><td>A6 PageHeader 统一</td><td>14 / 175 文件引用</td><td>⚠️ 部分</td></tr>
+</table>
+</div>
+
+<div class="item">
+  <h4><span class="n">U1</span>把 token 化和三态组件这两件事做完，而不是再开新的 UI 计划</h4>
+  <p>这是机械工作，风险低、收益直接可见：107 处色值替换 + 38 个列表页接三态组件 + 骨架屏。<b>没做完之前，任何新的视觉方案都只会让不一致的地方更多。</b>建议用脚本批量替换 + 人工过 diff，两天内可以收口。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">U2</span>后台的下一档体验：从"能操作"到"少操作"</h4>
+  <p>· <b>命令面板（Ctrl+K）</b>：175 个页面靠左侧菜单找太慢，一个搜索面板可以直达页面、直达商品、直达订单号。这是现代后台的标配，实现成本一天。</p>
+  <p>· <b>批量与撤销</b>：列表页支持批量操作，且危险操作给"撤销"而不是"二次确认弹窗"（Gmail 模式）——确认弹窗打断操作流，撤销不打断。</p>
+  <p>· <b>行内编辑</b>：商品价格、库存、排序这类高频字段，应该在列表里直接改，而不是进详情页改完再返回。</p>
+  <p>· <b>保存态可见</b>：装修器已经做到了「已自动保存 HH:mm」，这个模式应该扩展到商品编辑、内容编辑等长表单。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">U3</span>装修器：从"排列组件"到"看得见效果"</h4>
+  <p>· <b>真机同步预览</b>：现在靠扫码打开预览草稿（已有 <span class="loc">preview-drafts</span>），可以再进一步——编辑器改动实时推到手机上，边改边看。</p>
+  <p>· <b>数据叠加视图</b>：接上 F4 的事件数据后，在画布上直接叠加每个组件的曝光量与点击率热力，<b>运营一眼就知道哪块该删</b>。这是装修器区别于"网页编辑器"的关键一步。</p>
+  <p>· <b>响应式与安全区</b>：目前预览按单一机型渲染，建议补 iPhone 小屏 / 大屏 / 折叠屏三档切换与底部安全区提示，避免上线后底部按钮被遮挡。</p>
+  <p>· <b>组件面板搜索</b>：34 个组件平铺仍需要搜索与"最近使用"（7 月方案 B4，尚未落地）。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">U4</span>小程序端：三个直接影响转化的基础项</h4>
+  <p>· <b>骨架屏与占位</b>：部分页面（content-list、knowledge-mall、order-list）已有，应铺到全部首屏页面。白屏是小程序流失率最高的瞬间。</p>
+  <p>· <b>暗色模式</b>：<span class="loc">app.json</span> 无 <span class="loc">darkmode</span> 配置。微信已支持随系统切换，且这是审核与体验加分项。</p>
+  <p>· <b>无障碍与字号</b>：目前没有 aria 语义标注；微信支持系统字号放大，需确认放大后布局不破。做本地生活/知识付费类目时，中老年用户占比往往超预期。</p>
+  <p>· <b>加载与错误态一致性</b>：网络失败时应给可重试的错误态而非空白，与后台的 ListStateWrap 是同一件事的两端。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">U5</span>首屏千人千面</h4>
+  <p>DSL 目前是静态的：所有人看到同一个首页。接上已有的推荐能力（<span class="loc">AiRecommendationLog</span> 已在记录）后，可以让组件支持"数据源=个性化推荐"，新客看爆款、老客看复购、会员看专属权益。<b>这是把"页面搭建"和"AI 推荐"两个已有模块连起来的一步，价值高于任何一个单独模块的深化。</b></p>
+</div>
+
+<h2 class="sec">三、优先级与路线</h2>
+
+<div class="tbl-wrap">
+<table>
+  <tr><th>优先级</th><th>条目</th><th>理由</th></tr>
+  <tr><td><b>做在最前面</b></td><td>F1 优惠券闭环 · F4 事件埋点 · U1 UI 收口</td><td>F1 立刻止血；F4 是后面所有数据能力的地基，越晚做补数据越贵；U1 是低风险高感知</td></tr>
+  <tr><td><b>紧随其后</b></td><td>F5 订阅消息 · F6 分享裂变 · F2 自动发货</td><td>微信生态的免费流量与留存杠杆，投入小、见效快</td></tr>
+  <tr><td><b>差异化投入</b></td><td>F9 AI 生成页面 · U3 数据叠加视图 · F13 A/B 实验</td><td>决定这套系统是"工具"还是"产品"</td></tr>
+  <tr><td><b>看商业模式再定</b></td><td>F14 多租户 · F15 多端渲染</td><td>客户数超过 10 家就必须提前规划，否则改造成本会失控</td></tr>
+  <tr><td><b>持续做</b></td><td>F3 内容挂商品 · F7 会员任务 · F8 搜索沉淀 · F10~F12 AI 深化 · U2/U4/U5</td><td>迭代型收益</td></tr>
+</table>
+</div>
+
+<ol class="road">
+  <li><b>第一阶段（上线后 1 个月内）</b>：先清完上一份检查报告里的 P0/P1，同期做 F1 优惠券闭环、F4 事件埋点、U1 UI 收口、U4 小程序基础体验。目标是<b>让业务跑起来并且能被度量</b>。</li>
+  <li><b>第二阶段（2~3 个月）</b>：F5 订阅消息、F6 分享裂变、F2 自动发货、F7 会员任务、F8 搜索。目标是<b>把留存和自然增长的引擎装上</b>，这时 F4 的数据开始能证明每一项的效果。</li>
+  <li><b>第三阶段（4~6 个月）</b>：F9 AI 生成页面、F13 A/B 实验、U3 数据叠加、F12 智能洞察、U5 千人千面。目标是<b>形成"AI 生成 → 上线 → 数据反馈 → AI 优化"的自迭代循环</b>，这也是当下最先进的产品形态。</li>
+</ol>
+
+<h2 class="sec">四、建议不要做的事</h2>
+<div class="item">
+  <p>· <b>不要再加新的业务模块。</b>7 大模块已经超出多数客户的实际使用量，继续横向铺开只会稀释开发资源，也让后台菜单更难找（这正是 U2 命令面板要解决的问题）。</p>
+  <p>· <b>不要在没有事件数据之前做智能推荐的深度优化。</b>没有行为数据的推荐算法调优是空转。</p>
+  <p>· <b>不要为了"有 AI"而加 AI 入口。</b>目前的 AI 客服和推荐已经在侧边位置，再加几个入口不会改变什么。F9 那一步（AI 进入搭建主路径）才是真正的分界线，其余可以等。</p>
+  <p>· <b>不要在多租户方向上做半吊子改造。</b>要么现在明确规划并一次做对，要么明确"一客户一部署"并把部署自动化做扎实。加一个 tenant_id 字段但查询不全覆盖，是最危险的中间态。</p>
+</div>
+
+<footer>
+  本建议基于 2026-08-22 的代码实况（含未提交改动）撰写，所有"现状证据"均可在标注的文件位置复核。功能建议未包含上一份《上线前全面检查报告》已列出的缺陷修复项，两份文档配合使用：先修，再升级。
+</footer>
+
+</div>
+</body>
+</html>

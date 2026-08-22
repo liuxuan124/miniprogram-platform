@@ -1,0 +1,54 @@
+# 推送微信小程序体验版（推荐替代生产机 ProcessBuilder）
+# Secrets 需要：WX_UPLOAD_KEY（私钥全文）、WX_APPID
+# 触发：手动 workflow_dispatch，可选输入版本号与描述
+name: push-miniprogram-preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '体验版版本号（如 1.2.3）'
+        required: true
+        type: string
+      desc:
+        description: '版本描述'
+        required: false
+        default: 'CI 推送体验版'
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install miniprogram-ci
+        run: npm install --no-save miniprogram-ci@^2
+
+      - name: Write upload key
+        env:
+          WX_UPLOAD_KEY: ${{ secrets.WX_UPLOAD_KEY }}
+        run: |
+          if [ -z "$WX_UPLOAD_KEY" ]; then
+            echo "缺少 Secrets.WX_UPLOAD_KEY"
+            exit 1
+          fi
+          printf '%s\n' "$WX_UPLOAD_KEY" > /tmp/wx_upload.key
+
+      - name: Upload preview
+        env:
+          WX_UPLOAD_KEY: ${{ secrets.WX_UPLOAD_KEY }}
+          WX_APPID: ${{ secrets.WX_APPID }}
+        run: |
+          node scripts/push-miniprogram-preview.js \
+            --project miniapp \
+            --appid "${WX_APPID}" \
+            --version "${{ inputs.version }}" \
+            --desc "${{ inputs.desc }}"

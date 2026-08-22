@@ -29,6 +29,12 @@ public class Content extends BaseEntity {
     /** 封面图URL */
     private String coverImage;
 
+    /** 视频地址（contentType=video） */
+    private String videoUrl;
+
+    /** 视频时长（秒） */
+    private Integer videoDuration;
+
     /** 笔记多图 URL 列表（JSON 数组） */
     private String images;
 
@@ -40,6 +46,15 @@ public class Content extends BaseEntity {
 
     /** 文章摘要 */
     private String summary;
+
+    /** SEO/分享标题 */
+    private String seoTitle;
+
+    /** SEO/分享描述 */
+    private String seoDescription;
+
+    /** 正文排版主题 standard/magazine/minimal/large/dark */
+    private String layoutTheme;
 
     /** 文章内容（富文本HTML） */
     private String content;
@@ -74,9 +89,18 @@ public class Content extends BaseEntity {
     /** 排序值，越小越靠前 */
     private Integer sortOrder;
 
+    /** 频道置顶 */
+    private Integer isPinned;
+
+    /** 首页推荐 */
+    private Integer isRecommended;
+
     /** 状态 draft=草稿 published=已发布 archived=已归档 */
     private String status;
 
     /** 发布时间 */
     private LocalDateTime publishedAt;
+
+    /** 定时发布时间（草稿态，到点自动发布） */
+    private LocalDateTime scheduledAt;
 }

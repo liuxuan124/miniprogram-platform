@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小程序搭建模块专项检查</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#15181e; --muted:#5e6673; --line:#e2e6eb;
+    --r:#b91c1c; --o:#b45309; --b:#1d4ed8; --g:#0f766e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:28px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--r);
+    border-radius:10px;padding:20px 22px;margin-bottom:30px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:42px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px 20px;margin-bottom:13px}
+  .item h3{margin:0 0 9px;font-size:16px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.r{background:var(--r)} .n.o{background:var(--o)} .n.g{background:var(--g)}
+  .item p{margin:0 0 8px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  .why{border-top:1px dashed var(--line);margin-top:11px;padding-top:9px;font-size:14px}
+  .why b{color:var(--g)}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:11px 13px;overflow-x:auto;font-size:12.4px;line-height:1.55}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.5px;min-width:640px}
+  th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .ok{color:var(--g);font-weight:600}
+  .bad{color:var(--r);font-weight:600}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:9px}
+  footer{margin-top:44px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>小程序搭建模块：专项检查与优化指导</h1>
+<div class="sub">范围：后台「小程序」菜单全部功能 + 发布链路 + 小程序端承接 · 2026-08-22</div>
+
+<div class="lead">
+  <h2>结论：发布链路的设计水平明显高于其他部分，但有三条"后台配了、真机不生效"的断链，其中一条会直接卡住发布</h2>
+  <p>先说好的：整包发布做了<b>发布前检查（preflight）、语义化版本、全量快照、一键回滚、操作日志、体验版推送</b>，preflight 还区分了阻断项与警告项、能识别空画布和"已经是线上态"的页面。这套设计在自研系统里属于少见的完整，思路是对的，值得保留并继续投入。</p>
+  <p>问题出在<b>同一份"组件白名单"被抄了三份</b>（后台注册表、小程序 wxml 分支、后端发布校验），三份已经不同步了：后端那份缺了 <span class="loc">note_feed</span> 和 <span class="loc">moments_feed</span>。结果是——只要页面里用了「笔记瀑布流」或「动态时间线」，<b>整包发布会被后端拦下并报"使用未知组件类型"</b>。而这两个组件恰恰是最近在做的小红书笔记 / 知识星球动态形态的展示载体。</p>
+  <p>另外两条断链：底部导航后台可配 2~5 个，小程序端却写死 4 个槽位；主题配置有 6 个颜色，小程序端只有 4 处真正读取。再加上 4143 行已经不可达的死代码。下面逐条说明。</p>
+</div>
+
+<h2 class="sec">一、必须先修的断链</h2>
+
+<div class="item">
+  <h3><span class="n r">M1</span>后端组件白名单缺两个组件，用了就发不了版</h3>
+  <p>同一份能力清单存在三处：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>位置</th><th>作用</th><th>组件数</th><th>状态</th></tr>
+    <tr><td><span class="loc">componentRegistry.ts</span> → MINIAPP_RENDER_SUPPORTED_TYPES</td><td>装修器发布前提示</td><td>33</td><td class="ok">完整</td></tr>
+    <tr><td><span class="loc">dsl-renderer.wxml</span> 的 wx:if 分支</td><td>小程序实际渲染</td><td>33</td><td class="ok">完整</td></tr>
+    <tr><td><span class="loc">MiniappReleaseServiceImpl</span> → SUPPORTED_COMPONENT_TYPES</td><td>整包发布校验</td><td class="bad">31</td><td class="bad">缺 note_feed、moments_feed</td></tr>
+  </table>
+  </div>
+  <p>触发路径：装修器允许拖入 → 小程序能正常渲染 → 但 <span class="loc">createRelease</span> 里的 <span class="loc">validateSnapshotForRelease</span> 遍历快照组件，命中不在集合里的类型就抛错。运营会看到一句莫名其妙的"使用未知组件类型: note_feed"，而这个组件在装修器里明明是正常的。</p>
+  <p>还有一处顺序问题：<span class="loc">createRelease</span> 里 <span class="loc">publishBoundPagesOrThrow()</span> 在 <span class="loc">validateSnapshotForRelease()</span> <b>之前</b>执行。虽然有 <span class="loc">@Transactional</span> 兜底能回滚，但语义上是"先把页面全发了，再检查能不能发"，一旦将来有非事务副作用（缓存刷新、消息通知）就会出问题。</p>
+  <p class="why"><b>建议：</b>① 立刻把两个类型补进后端集合；② 更根本的做法是<b>让三份白名单只留一份</b>——后端提供 <span class="loc">GET /admin/page-components/supported</span> 返回权威列表，装修器启动时拉取，发布校验直接用它，小程序端在 CI 里做一致性断言；③ 把组件类型校验提前到 preflight，让运营在发布前就看到问题，而不是点了发布才报错。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n r">M2</span>底部导航：后台可配 2~5 个，真机永远显示 4 个</h3>
+  <p><span class="loc">TabBarEditor.vue</span> 的规则是「少于 2 个不能删、少于 5 个可以加」，也就是运营能配 2、3、4、5 个 tab。</p>
+  <p>但小程序端 <span class="loc">custom-tab-bar/index.js</span> 是这样渲染的：</p>
+  <pre>const mappedList = TAB_SLOT_ROUTES.map((pagePath, slotIndex) =&gt; {
+  const item = rawItems[slotIndex] || {}      // ← 槽位数固定，多的丢弃、少的用兜底
+  ...
+})</pre>
+  <p><span class="loc">TAB_SLOT_ROUTES</span> 写死 4 条（<span class="loc">index / content-list / knowledge-mall / mine</span>），<span class="loc">app.json</span> 的 tabBar.list 也是这 4 条。所以：<b>配 5 个 → 第 5 个消失；配 2 个 → 真机仍显示 4 个</b>，多出来的两个用默认文案"内容""商城"。只有正好配 4 个时，后台和真机才一致。</p>
+  <p>而后台的保存校验（<span class="loc">useMiniappConfig.validateTabsBeforeSave</span>）检查的是"未绑定页面""路径重复""指向未发布页面"——<b>唯独不检查数量</b>。</p>
+  <p class="why"><b>建议：</b>短期把 TabBarEditor 锁死为 4 个（禁用增删，只允许改文案/图标/绑定页面），并在界面上说明"底部导航固定 4 个入口，数量调整需要小程序发版"。中期如果要支持可变数量，需要小程序端改造：app.json 里预留 5 个槽位页面，自绘 tabbar 按配置渲染前 N 个，未使用的槽位页面不出现在导航里。这件事必须双端一起改，单改后台没有意义。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">M3</span>主题配置 6 个颜色，小程序端只有 4 处读取，改主色几乎看不到变化</h3>
+  <p><span class="loc">ThemeConfig.vue</span> 提供：主色调、辅助色、导航栏色、Tab 选中色、Tab 未选色、页面背景。</p>
+  <p>小程序端消费 <span class="loc">miniappThemeConfig</span> 的地方一共只有：<span class="loc">custom-tab-bar</span>（三个 tab 颜色）、<span class="loc">app.js</span>（导航栏色）、<span class="loc">dsl-note-feed</span> 与 <span class="loc">dsl-article-feed</span>（各取一次 primaryColor 当强调色）。<b>辅助色和页面背景没有任何地方读取</b>。</p>
+  <p>根因是小程序端有 CSS 变量体系（<span class="loc">app.wxss</span> 定义了 <span class="loc">--brand</span> 等，全站 370 处引用），但同时还有 <b>1258 处硬编码色值</b>，而且 <span class="loc">--brand: #315efb</span> 与后台默认主色 <span class="loc">#002FA7</span> 根本不是同一个颜色——两套色板并存。</p>
+  <p class="why"><b>建议：</b>① 在 <span class="loc">app.js</span> 拿到主题后，把颜色写进页面根节点的行内 CSS 变量（每个页面根 view 挂 <span class="loc">style="--brand:{{theme.primary}}"</span>，或用 <span class="loc">page-meta</span>），让已有的 370 处 <span class="loc">var(--brand)</span> 立刻随主题变化；② 把 1258 处硬编码按密度分批换成变量（与后台 U1 的 token 化是同一件事的两端）；③ 统一后台默认主色与 <span class="loc">--brand</span> 的取值。做完这三步，"换肤"才是真的，也才谈得上多客户复用模板。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">M4</span>4143 行不可达的死代码</h3>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>文件</th><th>行数</th><th>状态</th></tr>
+    <tr><td><span class="loc">views/shop-decoration/index.vue</span></td><td>668</td><td class="bad">路由与组件中均无引用</td></tr>
+    <tr><td><span class="loc">views/shop-decoration/industry-modules.vue</span></td><td>853</td><td class="bad">同上</td></tr>
+    <tr><td><span class="loc">views/shop-decoration/personal-center-templates.vue</span></td><td>724</td><td class="bad">同上</td></tr>
+    <tr><td><span class="loc">views/shop-decoration/template-market.vue</span></td><td>408</td><td class="bad">同上</td></tr>
+    <tr><td><span class="loc">views/page-builder/version-management.vue</span></td><td>728</td><td class="bad">路由已 redirect 到 release</td></tr>
+    <tr><td><span class="loc">views/page-builder/template.vue</span></td><td>762</td><td class="bad">路由只注册了 template-center</td></tr>
+  </table>
+  </div>
+  <p>这些文件里有"行业模块""模板市场""个人中心模板"这类明显是产品方向的东西，被 template-center 取代后没有删除。留着的代价：新人接手时分不清哪个是活的；全局搜索会命中错误位置；上一份报告里 36 个 TS 错误有一部分就来自这些没人维护的文件。</p>
+  <p class="why"><b>建议：</b>确认无用后直接删除（git 有历史，不需要留在工作区）。如果"模板市场"是要做的方向，也应该基于现在活着的 template-center 重做，而不是复活旧文件。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">M5</span>体验版推送依赖服务器上有完整源码与 node 环境</h3>
+  <p><span class="loc">MiniappWxUploadServiceImpl</span> 的实现是在服务器上 <span class="loc">ProcessBuilder</span> 起一个进程：<span class="loc">node {projectRoot}/scripts/push-miniprogram-preview.js</span>，并要求 <span class="loc">{projectRoot}/miniapp</span> 目录存在、<span class="loc">WX_UPLOAD_KEY</span> 可用。</p>
+  <p>这意味着生产服务器上必须同时具备：完整项目源码、node 运行时、miniprogram-ci 依赖、微信小程序上传私钥。而实际部署是 systemd 跑 app.jar（<span class="loc">server-rebuild-backend.sh</span>）——如果服务器上只有后端产物，这个按钮点了必然失败；如果服务器上确实放了全套源码和上传私钥，那是另一个安全面（私钥留在应用服务器上）。</p>
+  <p class="why"><b>建议：</b>把"推送体验版"从业务后端里剥出去，改由 CI（GitHub Actions / 本地流水线）执行，后台只展示最近一次推送的状态。业务系统不应该持有小程序上传私钥，也不应该在生产进程里 fork 外部命令。若坚持保留，至少要在界面上明确前置条件，并在检测不到 <span class="loc">projectRoot</span> 时把按钮置灰而不是让用户点了才报错。</p>
+</div>
+
+<h2 class="sec">二、架构层面：一个组件要改五个地方</h2>
+
+<div class="item">
+  <h3><span class="n">A1</span>后台预览与真机是两套独立实现，样式漂移无法避免</h3>
+  <p>新增一个装修组件，现在需要改动：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>#</th><th>位置</th><th>内容</th></tr>
+    <tr><td>1</td><td><span class="loc">types/page.ts</span></td><td>ComponentType 枚举 + 中文名</td></tr>
+    <tr><td>2</td><td><span class="loc">componentRegistry.ts</span></td><td>defaultProps / defaultStyle / validate / 渲染支持集合</td></tr>
+    <tr><td>3</td><td><span class="loc">props/XxxProps.vue</span></td><td>属性面板</td></tr>
+    <tr><td>4</td><td><span class="loc">renderers/XxxRenderer.vue</span></td><td>后台画布渲染（Vue 实现）</td></tr>
+    <tr><td>5</td><td><span class="loc">miniapp/components/dsl-xxx/</span> 或 <span class="loc">dsl-renderer.wxml</span> 分支</td><td>真机渲染（小程序实现）</td></tr>
+    <tr><td>6</td><td><span class="loc">MiniappReleaseServiceImpl</span></td><td>后端白名单（本次漏的就是这一步）</td></tr>
+  </table>
+  </div>
+  <p>第 4 步和第 5 步是<b>同一个组件的两套代码</b>——后台用 Vue+CSS 画一遍，小程序用 wxml+wxss 再画一遍。这导致两个必然结果：装修器里看到的效果和真机永远有差异（运营会反复反馈"预览和实际不一样"）；每次改样式要改两处，漏一处就漂移。</p>
+  <p>小程序端本身还有第二重不一致：22 个组件抽成了 <span class="loc">dsl-*</span> 子组件，其余直接内联在 <span class="loc">dsl-renderer.wxml</span>（476 行）里，新人不知道该走哪条路。</p>
+  <p class="why"><b>建议（按投入从小到大）：</b><br>
+  ① <b>短期</b>：把"真机预览"作为唯一可信预览——装修器里的画布明确标注为"结构示意"，同时把扫码真机预览做成常驻（现在 <span class="loc">preview-drafts</span> 已有 2 小时 TTL 的 Redis 草稿机制，基础是现成的），运营验收以真机为准。<br>
+  ② <b>中期</b>：把后台画布换成 <b>iframe 加载真实 H5 渲染器</b>（<span class="loc">h5-preview.vue</span> 已经存在），一套渲染代码同时服务后台预览和 H5 落地页，只保留小程序一套额外实现，从"两套"降到"一套半"。<br>
+  ③ <b>长期</b>：把 34 个 renderer 的样式抽成共享的 token 与 class 规范，Vue 与 wxss 从同一份 SCSS 变量生成，杜绝色值和间距的手工同步。<br>
+  另外把小程序端组件实现方式统一（都抽子组件），并给新增组件写一份 6 步 checklist 放进仓库。</p>
+</div>
+
+<h2 class="sec">三、发布链路：已经做得好的与还缺的</h2>
+
+<div class="item">
+  <h3><span class="n g">P1</span>preflight 的思路值得保留，建议再补五项检查</h3>
+  <p>现有检查（<span class="loc">buildPreflight</span>）：首页是否绑定、每个 tab 是否绑定页面、绑定的页面是否存在、页面是否为空画布、页面是否已是线上态；输出分 <span class="loc">blocking</span> 与 <span class="loc">warnings</span> 两级，<span class="loc">canPublish</span> 由阻断项决定。这套结构是对的。</p>
+  <p>建议补充：</p>
+  <p>· <b>组件类型校验前移</b>（见 M1）——现在这项在发布时才做，属于最容易踩的坑。</p>
+  <p>· <b>tab 数量必须等于 4</b>（见 M2）。</p>
+  <p>· <b>资源可达性</b>：快照里所有图片 URL 抽样请求一次，把 404 或指向 <span class="loc">localhost</span> 的地址列为阻断（<span class="loc">file.base-url</span> 配错时会批量产生 localhost 图片地址，这是很容易发生的事故）。</p>
+  <p>· <b>数据源有效性</b>：绑定了 <span class="loc">data_source</span> 的组件，实际查一次能否取到数据，空结果给警告——避免上线后首页某个模块空着。</p>
+  <p>· <b>外链域名白名单</b>：页面里的 webview / 图片域名是否在微信后台配置的合法域名内，不在则警告。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n o">P2</span>回滚不会清理"目标版本之后新增的页面"</h3>
+  <p><span class="loc">rollbackRelease</span> 会遍历目标快照里的页面逐个恢复 DSL 并置为已发布，同时恢复系统配置——这部分做得很完整，还先 <span class="loc">buildSnapshot()</span> 备份了当前状态。</p>
+  <p>但快照里<b>没有</b>的页面不会被处理。假设 v1.2 之后新建并发布了一个"双十一专题"页并挂进了导航，回滚到 v1.2 后：导航配置被恢复了（专题页入口消失），但那个页面本身仍是已发布状态，路径仍可直接访问、仍可被分享出去。</p>
+  <p class="why"><b>建议：</b>回滚时对比快照与当前页面集合，对"多出来的页面"给出提示并让操作者选择是否一并下线；操作日志里记录这次差异。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n">P3</span>缺少灰度、定时发布与发布审批</h3>
+  <p>现在是"一点即全量"。建议按顺序补：<b>定时发布</b>（约定时间自动生效，配合活动上线）→ <b>发布审批</b>（内容运营提交、负责人审批，配合 P1-6 的权限收敛）→ <b>灰度</b>（按用户分桶生效，与上一份建议里的 A/B 实验共用分流器）。三者共用同一套版本快照机制，增量成本不高。</p>
+</div>
+
+<h2 class="sec">四、后台使用体验</h2>
+
+<div class="item">
+  <h3><span class="n">U1</span>四个入口之间的关系需要一条明线</h3>
+  <p>「小程序」菜单下有：导航与外观 / 页面 / 模板 / 发布。运营的心智负担在于——<b>改完页面到底要不要点发布？点了"页面发布"和点了"发布到小程序"有什么区别？</b>（前者是单页 publish，后者是整包快照 release）。<span class="loc">release.vue</span> 里已经用了一段很长的白话提示来解释这件事，说明这个困惑是真实存在的。</p>
+  <p class="why"><b>建议：</b>在「小程序」下增加一个<b>总览页</b>作为默认落地页：顶部显示当前线上版本号与发布时间、四个 tab 的绑定状态缩略图、待发布页面数量、最近一次体验版推送状态；中间是一条固定的流程条「① 装修页面 → ② 配置导航 → ③ 预览确认 → ④ 发布上线」，每一步显示完成状态并可直接跳转。把"当前小程序长什么样、还差什么"这件事一屏说清楚。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n">U2</span>缺几个高频操作</h3>
+  <p>· <b>页面复制</b>：现在只能"复制页面路径"，不能复制页面本身。运营做第二个活动页只能从零拖。<br>
+  · <b>页面分组/标签</b>：页面多了以后列表只能靠搜索，没有分组（活动页/落地页/常驻页）。<br>
+  · <b>页面预览二维码常驻</b>：现在预览要走"进编辑器→生成草稿→扫码"，建议列表页每行直接给二维码。<br>
+  · <b>回收站</b>：删除页面目前是逻辑删除，但后台没有恢复入口。<br>
+  · <b>操作留痕可见</b>：版本操作日志后端已有（<span class="loc">/operation-logs</span>），前端建议在发布页常驻展示"谁在什么时候发了什么版本"。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n">U3</span>两个 2000 行级的巨型组件建议拆分</h3>
+  <p><span class="loc">miniapp-full-preview.vue</span>（2257 行）与 <span class="loc">miniapp-builder.vue</span>（2058 行）都属于典型的 god component，上一份报告里 36 个 TS 错误也有多条出自这两个文件。建议按职责拆：配置态管理（已有 <span class="loc">useMiniappConfig</span>，可继续下沉）、预览渲染、tabbar 编辑、主题编辑、模板套用各自独立。这不是洁癖——这两个文件是本模块改动最频繁的地方，越大越容易改出问题。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n g">U4</span>已经做得好的地方，建议保留并推广</h3>
+  <p>· <b>编辑冲突处理</b>：<span class="loc">editor.vue</span> 里检测到版本冲突时提供"保留我的修改，另存为新草稿"，而不是简单地覆盖或丢弃——这个处理比多数系统体面，建议推广到商品、内容等长表单编辑。<br>
+  · <b>DSL 导入导出</b>：工具栏的"复制 DSL / 导入并应用"给了高级用户一条逃生通道，也方便技术支持排障。<br>
+  · <b>发布前占位内容检测</b>：registry 里多个组件的 <span class="loc">validate</span> 会检查"富文本仍是默认占位文本""轮播图未设置图片""缺少跳转地址"，这是很实用的细节。<br>
+  · <b>草稿预览走 Redis + 2 小时 TTL + 独立 token</b>：设计合理，注意它强依赖 Redis 可用（与上线报告 P0-5 的 Redis 配置问题相关联）。</p>
+</div>
+
+<h2 class="sec">五、建议的推进顺序</h2>
+<ol class="road">
+  <li><b>本周（断链修复，半天到一天）</b>：M1 补后端白名单两个类型并把校验前移到 preflight；M2 把 tab 数量锁为 4 并加校验提示；M4 删除 4143 行死代码。这三条改动小、风险低、立刻消除"莫名其妙发不了版"和"配了不生效"两类投诉。</li>
+  <li><b>下周（主题打通，二到三天）</b>：M3 把主题色注入页面根节点 CSS 变量，让已有的 370 处 <span class="loc">var(--brand)</span> 生效；统一后台与小程序的默认主色；开始分批替换 1258 处硬编码色值。</li>
+  <li><b>两周内（发布链路补强）</b>：P1 补五项 preflight 检查（图片可达性和数据源为空这两项最能防事故）；P2 回滚差异提示；M5 把体验版推送迁到 CI。</li>
+  <li><b>一个月内（体验与架构）</b>：U1 总览页；U2 页面复制、分组、常驻二维码、回收站；U3 拆分两个巨型组件；A1 ② 用 H5 渲染器替换后台画布，把"两套渲染"降为"一套半"。</li>
+  <li><b>更长期</b>：P3 定时发布 / 审批 / 灰度；A1 ③ 样式从同一份 token 生成；多小程序（多租户）管理。</li>
+</ol>
+
+<footer>
+  本次核对了 <span class="loc">admin/src/views/page-builder/</span>（13 个文件 11574 行）、<span class="loc">components/miniapp-builder/</span>（11 个文件 3345 行）、<span class="loc">views/shop-decoration/</span>、<span class="loc">router/index.ts</span>、<span class="loc">MiniappReleaseServiceImpl</span>（993 行）、<span class="loc">MiniappWxUploadServiceImpl</span>、<span class="loc">PreviewDraftServiceImpl</span>，以及小程序端 <span class="loc">custom-tab-bar</span>、<span class="loc">utils/dsl-tab-page.js</span>、<span class="loc">pages/custom</span>、<span class="loc">app.json</span>。三份组件白名单的差异由脚本比对得出，可复核。
+</footer>
+
+</div>
+</body>
+</html>
