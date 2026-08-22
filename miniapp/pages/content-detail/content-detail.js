@@ -5,6 +5,11 @@ const { StorageUtil } = require('../../utils/storage')
 const { createSharePageConfig } = require('../../utils/share')
 const { AuthUtil } = require('../../utils/auth')
 const { resolveMediaUrl } = require('../../utils/media-url')
+const {
+  buildNoteGalleryUrls,
+  extractNoteParagraphs,
+  hashTags: buildHashTags,
+} = require('../../utils/note-content')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
 const FAVORITES_KEY = 'content_favorites'
@@ -82,23 +87,6 @@ function fmtDate(iso) {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${m}-${day}`
-}
-
-function stripHtmlToParagraphs(html) {
-  if (!html) return []
-  return String(html)
-    .replace(/<br\s*\/?>/gi, '\n')
-    .split(/<\/p>|<\/div>/i)
-    .map((chunk) => chunk.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim())
-    .filter(Boolean)
-}
-
-function hashTags(tags) {
-  if (!Array.isArray(tags)) return []
-  return tags
-    .map((t) => String(t || '').trim())
-    .filter(Boolean)
-    .map((t) => (t.startsWith('#') ? t : `#${t}`))
 }
 
 /** 解析原型文案里的 3.4k / 1.2w */
@@ -208,6 +196,7 @@ Page({
     gallerySlides: [],
     galleryIndex: 0,
     galleryCount: 0,
+    galleryHeight: 750,
     noteParagraphs: [],
     hashTags: [],
     artStyle: '',
@@ -281,9 +270,9 @@ Page({
           .filter(Boolean)
 
         let gallerySlides = []
+        let galleryHeight = 750
         if (isNote) {
-          const urls = [cover].concat(extras).filter(Boolean)
-          const uniq = urls.filter((u, i, arr) => arr.indexOf(u) === i)
+          const uniq = buildNoteGalleryUrls(cover, extras)
           if (uniq.length >= 1) {
             gallerySlides = uniq.map((url, i) => ({ type: 'image', url, key: `img-${i}` }))
           } else {
@@ -294,14 +283,15 @@ Page({
               glyph: g,
               key: `art-${i}`,
             }))
-            if (uniq[0]) {
-              gallerySlides[0] = { type: 'image', url: uniq[0], key: 'img-0' }
-            }
           }
         }
 
         const tags = Array.isArray(article.tags) ? article.tags : []
-        const noteParagraphs = isNote ? stripHtmlToParagraphs(article.content) : []
+        const noteParagraphs = isNote ? extractNoteParagraphs(article.content) : []
+        const displayTags = buildHashTags(tags)
+        const hashTagList = displayTags.length
+          ? displayTags
+          : (TOPIC_NAME[topic] || article.categoryName ? [`#${TOPIC_NAME[topic] || article.categoryName}`] : [])
         const dateStr = proto && proto.date
           ? proto.date
           : fmtDate(article.publishedAt || article.createTime)
@@ -359,8 +349,9 @@ Page({
           gallerySlides,
           galleryIndex: 0,
           galleryCount: gallerySlides.length,
+          galleryHeight,
           noteParagraphs,
-          hashTags: hashTags(tags.filter((t) => !['笔记', '长文', '视频', '数据'].includes(t))),
+          hashTags: hashTagList,
           artStyle: artStyle(topic),
           glyph: (proto && proto.glyph) || (isNote ? '📷' : '📄'),
           metaLine,
@@ -406,7 +397,20 @@ Page({
   },
 
   onGalleryChange(e) {
-    this.setData({ galleryIndex: e.detail.current || 0 })
+    const index = e.detail.current || 0
+    this.setData({ galleryIndex: index })
+  },
+
+  onGalleryImageLoad(e) {
+    const { width, height } = e.detail || {}
+    if (!width || !height) return
+    const sys = wx.getSystemInfoSync()
+    const screenW = sys.windowWidth || 375
+    const nextHeight = Math.round((screenW / width) * height * (750 / screenW))
+    const clamped = Math.min(Math.max(nextHeight, 520), 980)
+    if (clamped !== this.data.galleryHeight) {
+      this.setData({ galleryHeight: clamped })
+    }
   },
 
   onProductTap(e) {

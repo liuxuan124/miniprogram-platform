@@ -1,4 +1,10 @@
 import { resolveMediaUrl } from '@/utils/media-url'
+import {
+  buildNoteGalleryUrls,
+  extractNoteParagraphs,
+  filterNoteDisplayTags,
+  noteHashTags,
+} from '@/utils/note-content'
 
 export type ContentPreviewType = 'article' | 'note' | 'moment'
 
@@ -23,6 +29,7 @@ export interface ContentPreviewModel {
   author?: string
   authorAvatar?: string
   categoryLabel?: string
+  tags?: string[]
 }
 
 export function getPlainTextFromHtml(html: string): string {
@@ -41,8 +48,9 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
   const rawType = String(data.contentType || data.content_type || 'article')
   const contentType: ContentPreviewType = rawType === 'note' ? 'note' : rawType === 'moment' ? 'moment' : 'article'
   const coverImage = String(data.coverImage || data.cover_image || '')
-  const images = Array.isArray(data.images) ? data.images.map(String) : coverImage ? [coverImage] : []
+  const images = buildNoteGalleryUrls(coverImage, Array.isArray(data.images) ? data.images.map(String) : [])
   const contentHtml = String(data.content || '')
+  const tags = Array.isArray(data.tags) ? data.tags.map(String) : []
   const attachments = Array.isArray(data.attachments)
     ? data.attachments.map((item, idx) => {
         const row = item as Record<string, unknown>
@@ -62,9 +70,10 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
     title: String(data.title || ''),
     contentType,
     contentHtml,
-    noteBody: contentType === 'note' || contentType === 'moment' ? getPlainTextFromHtml(contentHtml) : '',
-    coverImage,
+    noteBody: contentType === 'note' || contentType === 'moment' ? extractNoteParagraphs(contentHtml).join('\n\n') : '',
+    coverImage: images[0] || coverImage,
     images,
+    tags,
     attachments,
     attachmentCount,
     author: String(data.author || ''),

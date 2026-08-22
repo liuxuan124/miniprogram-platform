@@ -122,6 +122,7 @@
           <view class="c-note__art" style="{{item.artStyle}}">
             <image wx:if="{{item.cover_url}}" class="c-note__cover" src="{{item.cover_url}}" mode="aspectFill" />
             <text wx:else class="c-note__glyph">{{item.glyph}}</text>
+            <view wx:if="{{item.image_count > 1}}" class="c-note__count">{{item.image_count}} 图</view>
           </view>
           <view class="c-note__txt">
             <text class="c-note__title">{{item.title}}</text>

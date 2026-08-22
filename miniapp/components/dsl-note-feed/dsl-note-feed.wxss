@@ -65,6 +65,18 @@
   font-size: 56rpx;
 }
 
+.dsl-note-feed__count {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  padding: 4rpx 12rpx;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 999rpx;
+}
+
 .dsl-note-feed__txt {
   padding: 16rpx 18rpx 18rpx;
 }

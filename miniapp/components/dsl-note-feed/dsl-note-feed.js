@@ -2,6 +2,7 @@
 const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveMediaUrl } = require('../../utils/media-url')
+const { buildNoteGalleryUrls } = require('../../utils/note-content')
 
 function formatLikeCount(n) {
   const num = Math.max(0, Number(n) || 0)
@@ -17,16 +18,16 @@ function formatLikeCount(n) {
 }
 
 function normalizeNoteItem(item, index) {
-  const cover = resolveMediaUrl(
-    item.cover_url || item.cover || item.image || item.coverUrl || item.coverImage || '',
-  )
   const images = Array.isArray(item.images) ? item.images : []
-  const firstImage = images.length ? resolveMediaUrl(images[0]) : ''
+  const coverRaw = item.cover_url || item.cover || item.image || item.coverUrl || item.coverImage || ''
+  const gallery = buildNoteGalleryUrls(coverRaw, images)
+  const cover = resolveMediaUrl(gallery[0] || '')
   const author = String(item.author || item.authorName || '作者').trim() || '作者'
   return {
     id: item.id || `local_${index + 1}`,
     title: item.title || item.name || '笔记标题',
-    cover_url: cover || firstImage,
+    cover_url: cover,
+    image_count: gallery.length,
     author_name: author,
     author_avatar: resolveMediaUrl(item.authorAvatar || item.author_avatar || ''),
     author_initial: author.slice(0, 1),
