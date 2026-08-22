@@ -1,0 +1,8 @@
+<image
+  wx:if="{{isLine && src}}"
+  class="menu-icon menu-icon--line"
+  src="{{src}}"
+  style="width: {{sizePx}}px; height: {{sizePx}}px;"
+  mode="aspectFit"
+/>
+<text wx:else class="menu-icon menu-icon--emoji" style="font-size: {{sizePx}}px;">{{emoji}}</text>

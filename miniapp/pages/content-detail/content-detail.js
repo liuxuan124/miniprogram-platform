@@ -12,6 +12,13 @@ const {
   hashTags: buildHashTags,
   inferWechatNewspic,
 } = require('../../utils/note-content')
+const {
+  estimateReadMinutes,
+  extractArticleSummary,
+  formatReadTimeLabel,
+  isDisplayableCategory,
+  prepareArticleContentHtml,
+} = require('../../utils/article-content')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
 const FAVORITES_KEY = 'content_favorites'
@@ -200,6 +207,8 @@ Page({
     formatKey: 'article',
     formatLabel: '长文',
     topicName: '',
+    articleMetaLine: '',
+    articleLede: '',
     readProgress: 0,
     relatedProducts: [],
     gallerySlides: [],
@@ -237,11 +246,36 @@ Page({
 
   onPageScroll(e) {
     if (this.data.isNote) return
-    const top = e.scrollTop || 0
-    const pct = Math.min(100, Math.max(0, Math.round(top / 6)))
+    const scrollTop = e.scrollTop || 0
+    const windowHeight = this._windowHeight || 667
+    const scrollHeight = this._articleScrollHeight || scrollTop + windowHeight
+    const maxScroll = Math.max(1, scrollHeight - windowHeight)
+    const pct = Math.min(100, Math.round((scrollTop / maxScroll) * 100))
     if (pct !== this.data.readProgress) {
       this.setData({ readProgress: pct })
     }
+  },
+
+  onReady() {
+    wx.getSystemInfo({
+      success: (res) => {
+        this._windowHeight = res.windowHeight
+      },
+    })
+    this._measureArticleHeight()
+  },
+
+  _measureArticleHeight() {
+    if (this.data.isNote) return
+    wx.createSelectorQuery()
+      .in(this)
+      .select('.article-mode')
+      .boundingClientRect((rect) => {
+        if (rect && rect.height > 0) {
+          this._articleScrollHeight = rect.height
+        }
+      })
+      .exec()
   },
 
   onShareAppMessage() {
@@ -275,6 +309,10 @@ Page({
         const isNote = fmt.isNote
         const isWechatNewspic = isNote && inferWechatNewspic(article)
         const cover = resolveMediaUrl(article.coverUrl || article.coverImage || article.cover_url || '')
+        const rawContent = String(article.content || article.body || '')
+        const preparedContent = !isNote
+          ? prepareArticleContentHtml(rawContent, cover, article.title || '')
+          : rawContent
         const extras = (Array.isArray(article.images) ? article.images : (Array.isArray(article.gallery) ? article.gallery : []))
           .map((url) => resolveMediaUrl(url))
           .filter(Boolean)
@@ -317,10 +355,17 @@ Page({
             metaLine = (proto && proto.stat) || article.summary || '数据速报'
           } else {
             metaLine = [proto && proto.read, proto && proto.stat].filter(Boolean).join(' · ')
-            if (!metaLine) metaLine = article.summary || '长文'
+            const readLabel = formatReadTimeLabel(estimateReadMinutes(preparedContent))
+            if (readLabel) {
+              metaLine = readLabel
+            } else if (!metaLine) {
+              metaLine = article.summary || ''
+            }
           }
         }
 
+        const rawTopicName = TOPIC_NAME[topic] || article.categoryName || ''
+        const topicName = isDisplayableCategory(rawTopicName) ? rawTopicName : ''
         const contentId = article.id
         const contentIdKey = String(contentId)
         const liked = hasStoredId(LIKES_KEY, contentIdKey)
@@ -340,11 +385,20 @@ Page({
         const authorName = String(article.author || AUTHOR_NAME).trim() || AUTHOR_NAME
         const authorAvatar = resolveMediaUrl(article.authorAvatar || article.author_avatar || '')
         const favoriteBase = Number(article.favoriteCount || article.favorite_count || 0)
+        let articleMetaLine = ''
+        let articleLede = ''
+        if (!isNote) {
+          const readLabel = formatReadTimeLabel(estimateReadMinutes(preparedContent))
+          articleMetaLine = [authorName, dateStr, readLabel || metaLine].filter(Boolean).join(' · ')
+          articleLede = extractArticleSummary(preparedContent, 88)
+        }
 
         this.setData({
           article: {
             ...article,
             id: contentId,
+            content: preparedContent,
+            body: preparedContent,
             cover_url: cover,
             image: cover,
             publish_time: dateStr,
@@ -360,7 +414,7 @@ Page({
           isWechatNewspic,
           formatKey: fmt.key,
           formatLabel: fmt.label,
-          topicName: TOPIC_NAME[topic] || article.categoryName || '',
+          topicName,
           gallerySlides,
           galleryIndex: 0,
           galleryCount: gallerySlides.length,
@@ -370,6 +424,8 @@ Page({
           artStyle: artStyle(topic),
           glyph: (proto && proto.glyph) || (isNote ? '📷' : '📄'),
           metaLine,
+          articleMetaLine,
+          articleLede,
           liked,
           favorited,
           followed,
@@ -389,6 +445,9 @@ Page({
           backgroundColor: isNote ? '#0f1219' : '#2f5bff',
           animation: { duration: 0 },
         })
+        if (!isNote) {
+          setTimeout(() => this._measureArticleHeight(), 120)
+        }
       })
       .catch(() => {
         this.setData({ loading: false })

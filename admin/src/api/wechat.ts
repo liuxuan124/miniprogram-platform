@@ -27,7 +27,18 @@ export interface WeChatContentSyncResult {
   failures?: Array<{ title: string; reason: string }>
 }
 
+export interface WeChatUrlImportRequest {
+  urls: string[]
+  categoryId?: number
+  publish?: boolean
+}
+
 /** 全量同步公众号已发布图文 */
 export function syncWeChatPublishedContents(data?: WeChatContentSyncRequest) {
   return post<WeChatContentSyncResult>(`${BASE_URL}/sync-published`, data as Record<string, unknown>)
+}
+
+/** 公众号文章链接批量导入 */
+export function importWeChatArticleUrls(data: WeChatUrlImportRequest) {
+  return post<WeChatContentSyncResult>(`${BASE_URL}/import-urls`, data as Record<string, unknown>)
 }

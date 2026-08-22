@@ -4,6 +4,7 @@ const { AuthUtil } = require('../../utils/auth')
 const memberService = require('../../services/member')
 const SystemService = require('../../services/system')
 const { LOGIN_RULES } = require('../../config/login-rules')
+const { ORDER_TAB_ICONS } = require('../../utils/menu-line-icons')
 
 const ORDER_TAB_KEYS = ['pending', 'paid', 'shipped', 'completed']
 const ORDER_STATUS_API = {
@@ -12,62 +13,13 @@ const ORDER_STATUS_API = {
   shipped: 'shipped',
   completed: 'completed',
 }
-const ORDER_TAB_EMOJI = {
-  pending: '💰',
-  paid: '📦',
-  shipped: '🚚',
-  completed: '✅',
-}
-const LINE_ICON_EMOJI = {
-  'line:document': '📄',
-  'line:books': '📚',
-  'line:calendar': '📅',
-  'line:crown': '👑',
-  'line:coupon': '🎫',
-  'line:wallet': '💰',
-  'line:package': '📦',
-  'line:truck': '🚚',
-  'line:check': '✅',
-  'line:star': '⭐',
-  'line:pin': '📍',
-  'line:chat': '💬',
-  'line:gear': '⚙️',
-  'line:mail': '✉️',
-  'line:user': '👤',
-  'line:heart': '❤️',
-  'line:bag': '🛍️',
-  'line:gift': '🎁',
-  'line:phone': '📞',
-  'line:ticket': '🎟️',
-  'line:clipboard': '📋',
-  'line:feedback': '📝',
-  'line:idcard': '🪪',
-  'line:list': '📃',
-  'line:bell': '🔔',
-  'line:shield': '🛡️',
-  'line:home': '🏠',
-  'line:grid': '▦',
-  'line:tag': '🏷️',
-  'line:search': '🔍',
-  'line:pencil': '✏️',
-  'line:sun': '☀️',
-}
-
-function iconDisplay(icon) {
-  if (!icon) return '•'
-  if (String(icon).startsWith('line:')) return LINE_ICON_EMOJI[icon] || '•'
-  return icon
-}
 
 function filterMenuItems(list) {
   return (list || []).filter((item) => {
     if (item.enabled === false) return false
     if (!item.url && item.id !== 'contact') return false
     return true
-  }).map((item) => ({
-    ...item,
-    iconText: iconDisplay(item.icon),
-  }))
+  })
 }
 
 function buildOrderTabs(mineConfig) {
@@ -77,7 +29,7 @@ function buildOrderTabs(mineConfig) {
     key,
     apiStatus: ORDER_STATUS_API[key],
     label: labels[key] || SystemService.DEFAULT_ORDER_QUICK_ACCESS.tabLabels[key],
-    iconText: ORDER_TAB_EMOJI[key],
+    icon: ORDER_TAB_ICONS[key],
   }))
 }
 
@@ -94,6 +46,21 @@ function memberBenefitsLine(styleKey, isLoggedIn) {
   return '登录后查看会员权益与成长进度'
 }
 
+function buildThemeStyles(mineConfig, styleKey) {
+  const primary = String(mineConfig.themeColor || '#5B7FEA').trim()
+  const secondary = String(mineConfig.themeColorSecondary || '#7BA3F7').trim()
+  if (styleKey === 'member') {
+    return {
+      decorStyle: '',
+      memberCardStyle: '',
+    }
+  }
+  return {
+    decorStyle: `background: linear-gradient(180deg, ${primary} 0%, ${secondary} 42%, rgba(168, 192, 250, 0.12) 100%);`,
+    memberCardStyle: `background: linear-gradient(135deg, ${primary} 0%, ${secondary} 100%);`,
+  }
+}
+
 Page({
   data: {
     statusBarHeight: 20,
@@ -108,6 +75,8 @@ Page({
     showAllOrdersBtn: true,
     showMenuIcons: true,
     showAvatar: true,
+    decorStyle: '',
+    memberCardStyle: '',
     memberCta: '登录',
     memberBenefits: '登录后查看会员权益与成长进度',
     levelLabel: '会员等级',
@@ -154,6 +123,7 @@ Page({
     const orderQa = mineConfig.orderQuickAccess || SystemService.DEFAULT_ORDER_QUICK_ACCESS
     const userProfile = mineConfig.userProfile || SystemService.DEFAULT_USER_PROFILE
     const isLoggedIn = this.data.isLoggedIn
+    const themeStyles = buildThemeStyles(mineConfig, styleKey)
 
     this.setData({
       mineConfig,
@@ -162,8 +132,10 @@ Page({
       showMemberCard: mineConfig.showMemberCard !== false,
       showOrderTabs: orderQa.showOrderTabs !== false,
       showAllOrdersBtn: orderQa.showAllOrdersBtn !== false,
-      showMenuIcons: !!mineConfig.showMenuIcons,
+      showMenuIcons: mineConfig.showMenuIcons !== false,
       showAvatar: userProfile.showAvatar !== false,
+      decorStyle: themeStyles.decorStyle,
+      memberCardStyle: themeStyles.memberCardStyle,
       orderTabs: buildOrderTabs(mineConfig),
       menuList,
       memberCta: memberCtaText(mineConfig, isLoggedIn),
@@ -174,7 +146,12 @@ Page({
 
   _loadMinePageConfig(force) {
     SystemService.fetchMinePageConfig(!!force)
-      .then((config) => this._applyMineConfig(config))
+      .then((config) => {
+        this._applyMineConfig(config)
+        if (typeof this.getTabBar === 'function' && this.getTabBar() && this.getTabBar().refresh) {
+          this.getTabBar().refresh()
+        }
+      })
       .catch(() => this._applyMineConfig(SystemService.DEFAULT_MINE_PAGE_CONFIG))
   },
 
@@ -372,6 +349,7 @@ Page({
     if (rawUrl === 'contact') return '/pkg-user/service-chat/service-chat'
 
     const moved = {
+      '/pages/library/library': '/pkg-trade/order-list/order-list',
       '/pages/favorites/favorites': '/pkg-user/favorites/favorites',
       '/pages/address-list/address-list': '/pkg-user/address-list/address-list',
       '/pages/settings/settings': '/pkg-user/settings/settings',

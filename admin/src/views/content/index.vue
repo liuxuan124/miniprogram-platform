@@ -51,6 +51,15 @@
       <el-button :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchUnpublish">
         批量下架{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
       </el-button>
+      <el-button
+        type="danger"
+        plain
+        :disabled="!selectedRows.length"
+        :loading="batchLoading"
+        @click="handleBatchDelete"
+      >
+        批量删除{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
+      </el-button>
       <el-button type="primary" @click="handleCreate">+ 新建</el-button>
     </div>
 
@@ -87,7 +96,7 @@
             <el-tag
               size="small"
               effect="plain"
-              :type="row.source === '小红书' ? 'danger' : row.source === '微信公众号' ? 'success' : 'info'"
+              :type="platformSourceTagType(row.source) || undefined"
             >
               {{ row.source || '未标注' }}
             </el-tag>
@@ -278,6 +287,50 @@
             </div>
           </div>
         </el-tab-pane>
+        <el-tab-pane label="公众号链接导入" name="wechat-url">
+          <el-alert
+            type="info"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 12px"
+            title="粘贴 mp.weixin.qq.com/s/... 文章链接，可导入 API 拉不到的历史长文。每行一条，或用逗号/空格分隔。正文图片会自动转存到服务器。"
+          />
+          <el-form label-width="96px">
+            <el-form-item label="文章链接">
+              <el-input
+                v-model="wechatUrlForm.urlText"
+                type="textarea"
+                :rows="10"
+                placeholder="每行一条，例如：
+https://mp.weixin.qq.com/s/6hytke48TCsE8NJk_DQyTQ"
+              />
+            </el-form-item>
+            <el-form-item label="默认分类">
+              <el-select v-model="wechatUrlForm.categoryId" placeholder="不指定分类" clearable style="width: 100%">
+                <el-option
+                  v-for="item in flatCategoryOptions"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="导入状态">
+              <el-radio-group v-model="wechatUrlForm.publish">
+                <el-radio-button :value="true">直接上架（已发布）</el-radio-button>
+                <el-radio-button :value="false">存为草稿</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+          <div v-if="wechatUrlResult" class="sync-result-box">
+            <div>{{ wechatUrlResult.message }}</div>
+            <div v-if="wechatUrlResult.failures?.length" class="sync-failures">
+              <div v-for="(item, idx) in wechatUrlResult.failures" :key="idx">
+                {{ item.title }}：{{ item.reason }}
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
         <el-tab-pane label="JSON 手动导入" name="json">
       <el-alert
         type="info"
@@ -321,6 +374,12 @@
             开始全量导入
           </el-button>
         </template>
+        <template v-else-if="syncTab === 'wechat-url'">
+          <el-button @click="syncDialogVisible = false">关闭</el-button>
+          <el-button type="primary" :loading="wechatUrlSubmitting" @click="handleWeChatUrlImport">
+            开始链接导入
+          </el-button>
+        </template>
         <template v-else>
         <el-button @click="fillSyncSample">填入示例</el-button>
         <el-button @click="syncDialogVisible = false">取消</el-button>
@@ -354,13 +413,14 @@
 
     <el-dialog
       v-model="previewVisible"
-      :title="previewTitle"
-      width="440px"
+      title="内容预览"
+      width="500px"
       append-to-body
       destroy-on-close
       align-center
       class="content-preview-dialog"
     >
+      <p v-if="previewSubtitle" class="preview-dialog-subtitle">{{ previewSubtitle }}</p>
       <div v-loading="previewLoading" class="preview-dialog-body">
         <ContentPreviewPanel v-if="previewModel" :model="previewModel" />
       </div>
@@ -389,9 +449,10 @@ import {
   deleteCategory,
   createContent,
 } from '@/api/content'
-import { syncWeChatPublishedContents, type WeChatContentSyncResult, type WeChatSyncScope } from '@/api/wechat'
+import { syncWeChatPublishedContents, importWeChatArticleUrls, type WeChatContentSyncResult, type WeChatSyncScope } from '@/api/wechat'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
 import { inferContentFormat, parseContentTags } from '@/utils/content-format'
+import { platformSourceTagType, resolvePlatformSource } from '@/utils/content-source'
 import {
   CONTENT_FORMAT_FILTER_OPTIONS,
   CONTENT_FORMAT_META,
@@ -452,10 +513,12 @@ const syncDialogVisible = ref(false)
 const syncTab = ref('wechat')
 const syncSubmitting = ref(false)
 const wechatSyncSubmitting = ref(false)
+const wechatUrlSubmitting = ref(false)
 const wechatSyncResult = ref<WeChatContentSyncResult | null>(null)
+const wechatUrlResult = ref<WeChatContentSyncResult | null>(null)
 const previewVisible = ref(false)
 const previewLoading = ref(false)
-const previewTitle = ref('内容预览')
+const previewSubtitle = ref('')
 const previewModel = ref<ContentPreviewModel | null>(null)
 const syncForm = reactive({
   defaultSource: '小红书',
@@ -465,6 +528,11 @@ const wechatSyncForm = reactive({
   categoryId: undefined as number | undefined,
   publish: false,
   syncScope: 'all' as WeChatSyncScope,
+})
+const wechatUrlForm = reactive({
+  urlText: '',
+  categoryId: undefined as number | undefined,
+  publish: false,
 })
 
 const WECHAT_SYNC_SCOPE_LABEL: Record<WeChatSyncScope, string> = {
@@ -525,7 +593,11 @@ function normalizeArticle(raw: RawRecord): ContentRow {
     status: normalizeStatus(raw.status),
     categoryId: Number(raw.categoryId ?? raw.category_id) || undefined,
     categoryName: raw.categoryName || raw.category_name || '未分类',
-    source: String(raw.source || '').trim(),
+    source: resolvePlatformSource({
+      source: String(raw.source || '').trim(),
+      tags,
+      externalSource: String(raw.externalSource || raw.external_source || '').trim(),
+    }),
     typeLabel: type.typeLabel,
     typeValue: type.typeValue,
     viewCount: Number.isFinite(Number(viewRaw)) ? Number(viewRaw) : null,
@@ -757,6 +829,45 @@ async function handleWeChatSyncImport() {
   }
 }
 
+function parseWeChatUrlLines(text: string): string[] {
+  return String(text || '')
+    .split(/[\n,，;；\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.includes('mp.weixin.qq.com/s/'))
+}
+
+async function handleWeChatUrlImport() {
+  const urls = parseWeChatUrlLines(wechatUrlForm.urlText)
+  if (!urls.length) {
+    ElMessage.warning('请粘贴至少一条有效的公众号文章链接（mp.weixin.qq.com/s/...）')
+    return
+  }
+  wechatUrlSubmitting.value = true
+  wechatUrlResult.value = null
+  try {
+    const statusLabel = wechatUrlForm.publish ? '已发布' : '草稿'
+    await ElMessageBox.confirm(
+      `将导入 ${urls.length} 条公众号链接，入库状态：${statusLabel}。相同链接或同标题会更新已有内容，是否继续？`,
+      '公众号链接导入',
+      { type: 'warning', confirmButtonText: '开始导入', cancelButtonText: '取消' },
+    )
+    const res = await importWeChatArticleUrls({
+      urls,
+      categoryId: wechatUrlForm.categoryId,
+      publish: wechatUrlForm.publish,
+    })
+    wechatUrlResult.value = (res as any)?.data || res
+    ElMessage.success(wechatUrlResult.value?.message || '导入完成')
+    fetchList()
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.message !== 'cancel') {
+      ElMessage.error(e?.message || '链接导入失败')
+    }
+  } finally {
+    wechatUrlSubmitting.value = false
+  }
+}
+
 async function handleSyncImport() {
   let items: any[] = []
   try {
@@ -825,7 +936,7 @@ function handleEdit(row: ContentRow) {
 }
 
 async function handlePreview(row: ContentRow) {
-  previewTitle.value = `预览 · ${row.title}`
+  previewSubtitle.value = row.title || ''
   previewModel.value = null
   previewVisible.value = true
   previewLoading.value = true
@@ -928,6 +1039,47 @@ function handleBatchUnpublish() {
     return
   }
   return runBatchStatusChange('unpublish')
+}
+
+async function handleBatchDelete() {
+  const targets = [...selectedRows.value]
+  if (!targets.length) {
+    ElMessage.warning('请先勾选要删除的内容')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定删除所选 ${targets.length} 条内容吗？删除后不可恢复。`,
+      '批量删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+      },
+    )
+  } catch {
+    return
+  }
+
+  batchLoading.value = true
+  try {
+    const results = await Promise.allSettled(targets.map((row) => deleteContent(row.id)))
+    const ok = results.filter((result) => result.status === 'fulfilled').length
+    const fail = results.length - ok
+
+    clearSelection()
+    await fetchList()
+    if (!rows.value.length && pagination.page > 1) {
+      pagination.page -= 1
+      await fetchList()
+    }
+
+    if (fail === 0) ElMessage.success(`已成功删除 ${ok} 条`)
+    else ElMessage.warning(`删除完成：成功 ${ok} 条，失败 ${fail} 条`)
+  } finally {
+    batchLoading.value = false
+  }
 }
 
 function isRecommended(row: ContentRow): boolean {
@@ -1314,8 +1466,19 @@ watch(
     margin-top: 8px;
   }
 
+  .preview-dialog-subtitle {
+    margin: -8px 0 12px;
+    font-size: 13px;
+    color: #727a8c;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   .preview-dialog-body {
-    min-height: 680px;
+    min-height: 720px;
   }
 }
 </style>

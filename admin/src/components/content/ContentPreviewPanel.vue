@@ -2,7 +2,7 @@
   <div class="content-preview-panel">
     <div class="phone-frame">
       <div class="phone-notch" />
-      <div class="phone-screen" :class="phoneScreenClass">
+      <div class="phone-screen" :class="phoneScreenClass" @scroll="onPhoneScroll">
         <!-- 公众号贴图 -->
         <template v-if="contentType === 'note' && isWechatNewspic">
           <div class="pv-wx-wrap">
@@ -158,29 +158,44 @@
 
         <!-- 长文 / 动态 -->
         <template v-else>
-          <div class="pv-cover" :style="coverStyle">
-            <img v-if="coverUrl" :src="coverUrl" alt="" class="pv-cover-img" />
-            <span v-else class="pv-cover-glyph">{{ contentType === 'moment' ? '动' : '文' }}</span>
-          </div>
-          <div class="pv-body">
-            <div class="pv-chips">
-              <span class="pv-fmt">{{ contentType === 'moment' ? '动态' : '长文' }}</span>
-              <span v-if="categoryLabel" class="pv-topic">{{ categoryLabel }}</span>
+          <div class="pv-article">
+            <div v-if="isArticleMode" class="pv-read-progress">
+              <div class="pv-read-progress__bar" :style="{ width: `${readProgress}%` }" />
             </div>
-            <h1 class="pv-title">{{ titleText }}</h1>
-            <div class="pv-meta">
-              <div class="pv-av">
-                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
-                <span v-else>{{ authorInitial }}</span>
-              </div>
-              <div class="pv-meta-txt">
-                <div class="pv-nm">{{ authorName }}</div>
-                <div class="pv-dt">{{ dateLabel }} · 预计阅读</div>
-              </div>
-              <span class="pv-follow">+ 关注</span>
+            <div
+              v-if="!isArticleMode"
+              class="pv-cover"
+              :style="coverStyle"
+            >
+              <img v-if="coverUrl" :src="coverUrl" alt="" class="pv-cover-img" />
+              <span v-else class="pv-cover-glyph">动</span>
             </div>
-            <div v-if="contentType === 'moment' && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
-            <div v-else-if="hasArticleBody" class="pv-content" v-html="contentHtml" />
+            <div
+              class="pv-body"
+              :class="{
+                'pv-body--article': isArticleMode,
+                'pv-body--moment-cover': !isArticleMode && coverUrl,
+              }"
+            >
+              <div class="pv-chips">
+                <span class="pv-fmt">{{ contentType === 'moment' ? '动态' : '长文' }}</span>
+                <span v-if="showCategoryLabel" class="pv-topic">{{ categoryLabel }}</span>
+              </div>
+              <h1 class="pv-title" :class="{ 'pv-title--article': isArticleMode }">{{ titleText }}</h1>
+              <p v-if="isArticleMode && articleLede" class="pv-lede">{{ articleLede }}</p>
+              <div class="pv-meta" :class="{ 'pv-meta--compact': isArticleMode }">
+                <div class="pv-av">
+                  <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
+                  <span v-else>{{ authorInitial }}</span>
+                </div>
+                <div class="pv-meta-txt">
+                  <div v-if="!isArticleMode" class="pv-nm">{{ authorName }}</div>
+                  <div class="pv-dt">{{ metaSubtitle }}</div>
+                </div>
+                <span v-if="!isArticleMode" class="pv-follow pv-follow--decorative" aria-hidden="true">+ 关注</span>
+              </div>
+              <div v-if="contentType === 'moment' && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
+              <div v-else-if="hasArticleBody" class="pv-content pv-content--article" v-html="articleContentHtml" />
             <div v-if="contentType === 'moment' && attachmentItems.length" class="pv-attachments">
               <div v-for="item in attachmentItems" :key="item.id || item.name" class="pv-attachment">
                 <span>{{ item.icon }}</span>
@@ -188,6 +203,7 @@
               </div>
             </div>
             <div v-if="!(noteBodyText || hasArticleBody || attachmentItems.length)" class="pv-empty">暂无正文</div>
+          </div>
           </div>
         </template>
       </div>
@@ -204,6 +220,13 @@ import {
   normalizePreviewMediaUrl,
   type ContentPreviewModel,
 } from '@/utils/content-preview'
+import {
+  estimateReadMinutes,
+  extractArticleSummary,
+  formatReadTimeLabel,
+  isDisplayableCategory,
+  prepareArticleContentHtml,
+} from '@/utils/article-content'
 import { extractNoteParagraphs, noteHashTags } from '@/utils/note-content'
 import { inferWechatNewspic } from '@/utils/content-format'
 import { fileTypeIcon, formatFileSize } from '@/utils/content-attachment'
@@ -219,6 +242,7 @@ const props = withDefaults(
 )
 
 const galleryIndex = ref(0)
+const readProgress = ref(0)
 
 const galleryUrls = computed(() =>
   (props.model.images || [])
@@ -230,17 +254,62 @@ watch(
   () => props.model,
   () => {
     galleryIndex.value = 0
+    readProgress.value = 0
   },
   { deep: true },
 )
 const titleText = computed(() => props.model.title?.trim() || '未填写标题')
 const categoryLabel = computed(() => props.model.categoryLabel?.replace(/^└\s*/, '') || '')
+const showCategoryLabel = computed(() => isDisplayableCategory(categoryLabel.value))
 const authorName = computed(() => props.model.author?.trim() || '作者')
 const authorInitial = computed(() => authorName.value.slice(0, 1))
 const dateLabel = computed(() => formatPreviewDateLabel())
+const contentType = computed(() => props.model.contentType || 'article')
 const contentHtml = computed(() => props.model.contentHtml || '')
+const coverUrl = computed(() => {
+  const fromCover = normalizePreviewMediaUrl(props.model.coverImage)
+  if (fromCover) return fromCover
+  const firstImage = props.model.images?.[0]
+  return firstImage ? normalizePreviewMediaUrl(firstImage) : ''
+})
+const articleContentHtml = computed(() => {
+  if (contentType.value !== 'article' && contentType.value !== 'rich') return contentHtml.value
+  return prepareArticleContentHtml(
+    contentHtml.value,
+    props.model.coverImage || coverUrl.value,
+    titleText.value,
+  )
+})
+const isArticleMode = computed(() => contentType.value === 'article' || contentType.value === 'rich')
+const articleLede = computed(() => {
+  if (!isArticleMode.value) return ''
+  return extractArticleSummary(articleContentHtml.value, 88)
+})
+const hasArticleBody = computed(() => getPlainTextFromHtml(articleContentHtml.value).length > 0)
+const readTimeLabel = computed(() => {
+  if (!isArticleMode.value) return ''
+  return formatReadTimeLabel(estimateReadMinutes(articleContentHtml.value))
+})
+const metaSubtitle = computed(() => {
+  if (isArticleMode.value) {
+    const parts = [authorName.value, dateLabel.value, readTimeLabel.value].filter(Boolean)
+    return parts.join(' · ')
+  }
+  if (readTimeLabel.value) {
+    return `${dateLabel.value} · ${readTimeLabel.value}`
+  }
+  return dateLabel.value
+})
 const noteBodyText = computed(() => props.model.noteBody?.trim() || '')
-const hasArticleBody = computed(() => getPlainTextFromHtml(contentHtml.value).length > 0)
+
+function onPhoneScroll(event: Event) {
+  if (!isArticleMode.value) return
+  const el = event.target as HTMLElement | null
+  if (!el) return
+  const maxScroll = Math.max(1, el.scrollHeight - el.clientHeight)
+  readProgress.value = Math.min(100, Math.round((el.scrollTop / maxScroll) * 100))
+}
+
 const likeLabel = computed(() => '赞')
 
 const commentPreviewCount = computed(() => 86)
@@ -248,8 +317,6 @@ const commentPreview = computed(() => [
   { id: 1, avatar: '用', nick: '跨境小白', text: '收藏了，正好在办 VAT', likes: 12 },
   { id: 2, avatar: '税', nick: '财税老司机', text: '第 3 张图讲得很清楚 👍', likes: 28 },
 ])
-
-const contentType = computed(() => props.model.contentType || 'article')
 
 const isWechatNewspic = computed(() => {
   if (props.model.isWechatNewspic != null) return Boolean(props.model.isWechatNewspic)
@@ -267,13 +334,18 @@ const isWechatNewspic = computed(() => {
 const phoneScreenClass = computed(() => ({
   'phone-screen--note': contentType.value === 'note' && !isWechatNewspic.value,
   'phone-screen--wechat': isWechatNewspic.value,
+  'phone-screen--article': isArticleMode.value,
 }))
 
-const previewHintText = computed(() =>
-  isWechatNewspic.value
-    ? '模拟公众号贴图详情（3:4 竖图 + 底部缩略图），实际以端上为准。'
-    : '模拟小程序笔记详情，样式供参考，实际以端上为准。',
-)
+const previewHintText = computed(() => {
+  if (isWechatNewspic.value) {
+    return '公众号贴图预览 · 实际以小程序为准'
+  }
+  if (isArticleMode.value) {
+    return '长文详情预览 · 封面仅用于分享，正文不展示'
+  }
+  return '笔记详情预览 · 实际以小程序为准'
+})
 
 const noteParagraphs = computed(() => {
   if (contentType.value !== 'note') return []
@@ -287,13 +359,6 @@ const displayHashTags = computed(() => {
   if (fromTags.length) return fromTags
   if (categoryLabel.value) return [`#${categoryLabel.value}`]
   return []
-})
-
-const coverUrl = computed(() => {
-  const fromCover = normalizePreviewMediaUrl(props.model.coverImage)
-  if (fromCover) return fromCover
-  const firstImage = props.model.images?.[0]
-  return firstImage ? normalizePreviewMediaUrl(firstImage) : ''
 })
 
 const authorAvatarUrl = computed(() => normalizePreviewMediaUrl(props.model.authorAvatar))
@@ -358,16 +423,25 @@ function nextGallery() {
   background: #f5f6f9;
 }
 
+.phone-screen--article {
+  height: 680px;
+  background: #fff;
+}
+
+.pv-article {
+  position: relative;
+  background: #fff;
+}
+
 .phone-screen--wechat {
   background: #1f1f1f;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .pv-wx-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 620px;
+  min-height: 100%;
   background: #1f1f1f;
   color: #f2f2f2;
 }
@@ -480,9 +554,9 @@ function nextGallery() {
 }
 
 .pv-wx-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 14px 20px;
+  flex: none;
+  overflow: visible;
+  padding: 16px 14px 28px;
 }
 
 .pv-wx-title {
@@ -787,10 +861,42 @@ function nextGallery() {
   overflow: hidden;
 }
 
+.pv-cover--article {
+  height: auto;
+  min-height: 0;
+  background: #111;
+}
+
 .pv-cover-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.pv-cover--article .pv-cover-img {
+  height: auto;
+  max-height: 180px;
+  object-fit: contain;
+  display: block;
+}
+
+.pv-article {
+  position: relative;
+}
+
+.pv-read-progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 4px;
+  background: #e8ecef;
+}
+
+.pv-read-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #2f9350, #3eb86a);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.12s ease-out;
 }
 
 .pv-cover-glyph {
@@ -807,6 +913,55 @@ function nextGallery() {
   border-radius: 20px 20px 0 0;
   padding: 18px 16px 28px;
   min-height: calc(100% - 150px);
+}
+
+.pv-body--article {
+  margin-top: 0;
+  border-radius: 0;
+  padding: 20px 20px 36px;
+  min-height: calc(100% - 12px);
+  background: #fff;
+}
+
+.pv-body--moment-cover {
+  margin-top: -8px;
+}
+
+.pv-chips {
+  margin-bottom: 14px;
+}
+
+.pv-title--article {
+  font-size: 22px;
+  line-height: 1.36;
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+}
+
+.pv-lede {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #727a8c;
+}
+
+.pv-meta--compact {
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eef1f5;
+
+  .pv-av {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+
+  .pv-dt {
+    font-size: 12px;
+    color: #8a94a6;
+    margin-top: 0;
+    line-height: 1.4;
+  }
 }
 
 .pv-chips {
@@ -846,8 +1001,8 @@ function nextGallery() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-bottom: 14px;
-  margin-bottom: 14px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
   border-bottom: 1px solid #edeff4;
 }
 
@@ -898,9 +1053,16 @@ function nextGallery() {
   border-radius: 999px;
 }
 
+.pv-follow--decorative {
+  opacity: 0.42;
+  pointer-events: none;
+  font-size: 11px;
+  padding: 5px 10px;
+}
+
 .pv-content {
-  font-size: 14px;
-  line-height: 1.9;
+  font-size: 15px;
+  line-height: 1.85;
   color: #39404f;
   word-break: break-word;
 
@@ -908,10 +1070,91 @@ function nextGallery() {
     max-width: 100%;
     height: auto;
     border-radius: 8px;
+    margin: 8px 0 14px;
   }
 
   :deep(p) {
-    margin: 0 0 12px;
+    margin: 0 0 14px;
+  }
+}
+
+.pv-content--article {
+  max-width: 100%;
+
+  :deep(section) {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-sizing: border-box;
+  }
+
+  :deep(h1) {
+    display: none !important;
+  }
+
+  :deep(h2),
+  :deep(h3),
+  :deep(h4) {
+    margin: 28px 0 12px;
+    font-size: 17px;
+    line-height: 1.45;
+    font-weight: 700;
+    color: #0f1219;
+    padding-left: 12px;
+    border-left: 3px solid #c8973a;
+    background: transparent !important;
+  }
+
+  :deep(h2:first-child),
+  :deep(h3:first-child) {
+    margin-top: 0;
+  }
+
+  :deep(p) {
+    margin: 0 0 16px;
+    font-size: 15px;
+    line-height: 1.85;
+    color: #3d4554 !important;
+    background: transparent !important;
+  }
+
+  :deep(span) {
+    color: inherit !important;
+    background: transparent !important;
+  }
+
+  :deep(strong) {
+    color: #0f1219;
+    font-weight: 700;
+  }
+
+  :deep(blockquote) {
+    margin: 14px 0;
+    padding: 12px 14px;
+    border-left: 3px solid #2f9350;
+    background: #f7faf8;
+    color: #4a5568;
+    border-radius: 0 8px 8px 0;
+  }
+
+  :deep(ul),
+  :deep(ol) {
+    margin: 0 0 16px 1.2em;
+    padding: 0;
+  }
+
+  :deep(li) {
+    margin-bottom: 8px;
+    line-height: 1.75;
+  }
+
+  :deep(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin: 12px 0 18px;
+    display: block;
   }
 }
 

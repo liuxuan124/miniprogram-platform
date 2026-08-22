@@ -1,5 +1,6 @@
 import { resolveMediaUrl } from '@/utils/media-url'
 import { inferPreviewType, inferWechatNewspic } from '@/utils/content-format'
+import { prepareArticleContentHtml } from '@/utils/article-content'
 import {
   buildNoteGalleryUrls,
   extractImagesFromHtml,
@@ -76,10 +77,14 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
       })
     : []
   const attachmentCount = Number(data.attachmentCount ?? data.attachment_count ?? attachments.length)
+  const preparedHtml =
+    contentType === 'article' || contentType === 'rich'
+      ? prepareArticleContentHtml(contentHtml, coverImage, String(data.title || ''))
+      : contentHtml
   return {
     title: String(data.title || ''),
     contentType,
-    contentHtml,
+    contentHtml: preparedHtml,
     noteBody: contentType === 'note' || contentType === 'moment' ? extractNoteParagraphs(contentHtml).join('\n\n') : '',
     coverImage: images[0] || coverImage,
     images,

@@ -3,6 +3,7 @@
   <view
     wx:if="{{showDecor}}"
     class="mine-decor mine-decor--{{styleKey}}"
+    style="{{decorStyle}}"
   ></view>
 
   <view class="mine-body {{showDecor ? 'mine-body--decor' : ''}}" style="padding-top: {{statusBarHeight + (showDecor ? 28 : 12)}}px;">
@@ -39,6 +40,7 @@
     <view
       wx:if="{{showMemberCard}}"
       class="member-card member-card--{{styleKey}}"
+      style="{{memberCardStyle}}"
       bindtap="onMemberCardTap"
     >
       <view class="member-card__main">
@@ -70,7 +72,8 @@
           data-key="{{item.key}}"
           bindtap="onOrderTabTap"
         >
-          <text class="order-tab__icon">{{item.iconText}}</text>
+          <menu-icon wx:if="{{showMenuIcons}}" icon="{{item.icon}}" size="24" class="order-tab__icon" />
+          <text wx:else class="order-tab__icon order-tab__icon--text">•</text>
           <text class="order-tab__label">{{item.label}}</text>
           <view class="order-tab__badge" wx:if="{{item.key === 'pending' && badges.pending}}">{{badges.pending}}</view>
         </view>
@@ -88,7 +91,7 @@
         data-title="{{item.title}}"
         bindtap="onMenuTap"
       >
-        <text class="menu-row__icon" wx:if="{{showMenuIcons}}">{{item.iconText}}</text>
+        <menu-icon wx:if="{{showMenuIcons}}" icon="{{item.icon}}" size="26" class="menu-row__icon" />
         <text class="menu-row__text">{{item.title}}</text>
         <text class="menu-row__chevron">›</text>
       </view>

@@ -52,6 +52,9 @@ public class ContentDetailDTO {
     /** 来源 */
     private String source;
 
+    /** 外部来源标识，如 wechat_oa */
+    private String externalSource;
+
     /** 标签列表 */
     private List<String> tags;
 
