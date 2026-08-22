@@ -28,6 +28,19 @@ export function buildNoteGalleryUrls(cover?: string, images?: string[]): string[
   return list
 }
 
+/** 从正文 HTML 提取图片 URL（公众号长文/笔记正文内嵌图） */
+export function extractImagesFromHtml(html: string): string[] {
+  const urls: string[] = []
+  const source = String(html || '')
+  const re = /<img[^>]+src=["']([^"']+)["']/gi
+  let match: RegExpExecArray | null
+  while ((match = re.exec(source)) !== null) {
+    const url = String(match[1] || '').trim()
+    if (url && !urls.includes(url)) urls.push(url)
+  }
+  return urls
+}
+
 function splitLongParagraph(text: string): string[] {
   const raw = String(text || '').trim()
   if (!raw) return []

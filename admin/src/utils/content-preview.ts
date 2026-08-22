@@ -1,6 +1,7 @@
 import { resolveMediaUrl } from '@/utils/media-url'
 import {
   buildNoteGalleryUrls,
+  extractImagesFromHtml,
   extractNoteParagraphs,
   filterNoteDisplayTags,
   noteHashTags,
@@ -48,8 +49,12 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
   const rawType = String(data.contentType || data.content_type || 'article')
   const contentType: ContentPreviewType = rawType === 'note' ? 'note' : rawType === 'moment' ? 'moment' : 'article'
   const coverImage = String(data.coverImage || data.cover_image || '')
-  const images = buildNoteGalleryUrls(coverImage, Array.isArray(data.images) ? data.images.map(String) : [])
   const contentHtml = String(data.content || '')
+  const rawImages = Array.isArray(data.images) ? data.images.map(String) : []
+  const htmlImages = contentType === 'note' || contentType === 'moment'
+    ? extractImagesFromHtml(contentHtml)
+    : []
+  const images = buildNoteGalleryUrls(coverImage, [...rawImages, ...htmlImages])
   const tags = Array.isArray(data.tags) ? data.tags.map(String) : []
   const attachments = Array.isArray(data.attachments)
     ? data.attachments.map((item, idx) => {

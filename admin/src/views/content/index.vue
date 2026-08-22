@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <div class="page-title">内容管理</div>
-        <div class="page-desc">文章、图文、视频，支持分类、推荐、上下架。</div>
+        <div class="page-desc">长文、笔记、图文、视频，支持分类、推荐、上下架。</div>
       </div>
     </div>
 
@@ -16,11 +16,12 @@
         @keyup.enter="handleSearch"
       />
       <el-select v-model="searchForm.type" class="toolbar-select" placeholder="类型：全部" clearable>
-        <el-option label="动态" value="moment" />
-        <el-option label="笔记" value="note" />
-        <el-option label="文章" value="article" />
-        <el-option label="图文" value="rich" />
-        <el-option label="视频" value="video" />
+        <el-option
+          v-for="item in contentFormatFilterOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
       </el-select>
       <el-select v-model="searchForm.categoryId" class="toolbar-select" placeholder="分类：全部" clearable>
         <el-option
@@ -334,6 +335,13 @@ import {
 } from '@/api/content'
 import { syncWeChatPublishedContents, type WeChatContentSyncResult } from '@/api/wechat'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
+import {
+  CONTENT_FORMAT_FILTER_OPTIONS,
+  CONTENT_FORMAT_META,
+  type ContentFormatType,
+} from '@/types/content'
+
+const contentFormatFilterOptions = CONTENT_FORMAT_FILTER_OPTIONS
 
 type RawRecord = Record<string, any>
 type ContentStatus = 'draft' | 'published' | 'unpublished' | 'archived'
@@ -345,8 +353,8 @@ interface ContentRow {
   categoryId?: number
   categoryName: string
   source: string
-  typeLabel: '长文' | '笔记' | '图文' | '视频' | '动态'
-  typeValue: 'article' | 'note' | 'rich' | 'video' | 'moment'
+  typeLabel: string
+  typeValue: ContentFormatType
   viewCount: number | null
   recommended: boolean
   tags: string[]
@@ -417,37 +425,35 @@ function normalizeStatus(statusRaw: unknown): ContentStatus {
   return 'draft'
 }
 
-function inferType(raw: RawRecord): { typeLabel: ContentRow['typeLabel']; typeValue: ContentRow['typeValue'] } {
+function inferType(raw: RawRecord): { typeLabel: string; typeValue: ContentFormatType } {
   const explicit = `${raw.type || raw.contentType || raw.content_type || ''}`.toLowerCase()
-  if (explicit === 'note') return { typeLabel: '笔记', typeValue: 'note' }
-  if (explicit === 'article') return { typeLabel: '长文', typeValue: 'article' }
-  if (explicit === 'moment') return { typeLabel: '动态', typeValue: 'moment' }
+  if (explicit === 'note') return { typeLabel: CONTENT_FORMAT_META.note.label, typeValue: 'note' }
+  if (explicit === 'article') return { typeLabel: CONTENT_FORMAT_META.article.label, typeValue: 'article' }
+  if (explicit === 'moment') return { typeLabel: CONTENT_FORMAT_META.moment.label, typeValue: 'moment' }
 
   const tags = parseTags(raw.tags)
   if (tags.some((t) => t === 'wx-type:newspic')) {
-    return { typeLabel: '笔记', typeValue: 'note' }
+    return { typeLabel: CONTENT_FORMAT_META.note.label, typeValue: 'note' }
   }
   if (tags.some((t) => t === 'wx-type:news')) {
-    return { typeLabel: '长文', typeValue: 'article' }
+    return { typeLabel: CONTENT_FORMAT_META.article.label, typeValue: 'article' }
   }
 
-  if (explicit.includes('video') || explicit.includes('视频')) return { typeLabel: '视频', typeValue: 'video' }
+  if (explicit.includes('video') || explicit.includes('视频')) {
+    return { typeLabel: CONTENT_FORMAT_META.video.label, typeValue: 'video' }
+  }
   if (explicit.includes('rich') || explicit.includes('graphic') || explicit.includes('图文')) {
-    return { typeLabel: '图文', typeValue: 'rich' }
+    return { typeLabel: CONTENT_FORMAT_META.rich.label, typeValue: 'rich' }
   }
 
   const html = `${raw.content || ''}`.toLowerCase()
-  if (html.includes('<video')) return { typeLabel: '视频', typeValue: 'video' }
-  if (html.includes('<img')) return { typeLabel: '图文', typeValue: 'rich' }
-  return { typeLabel: '长文', typeValue: 'article' }
+  if (html.includes('<video')) return { typeLabel: CONTENT_FORMAT_META.video.label, typeValue: 'video' }
+  if (html.includes('<img')) return { typeLabel: CONTENT_FORMAT_META.rich.label, typeValue: 'rich' }
+  return { typeLabel: CONTENT_FORMAT_META.article.label, typeValue: 'article' }
 }
 
 function typeTagType(row: ContentRow): 'success' | 'warning' | 'info' | 'danger' | '' {
-  if (row.typeValue === 'note') return 'warning'
-  if (row.typeValue === 'article') return 'success'
-  if (row.typeValue === 'video') return 'danger'
-  if (row.typeValue === 'moment') return 'info'
-  return ''
+  return CONTENT_FORMAT_META[row.typeValue]?.tagType ?? ''
 }
 
 function parseTags(raw: unknown): string[] {
