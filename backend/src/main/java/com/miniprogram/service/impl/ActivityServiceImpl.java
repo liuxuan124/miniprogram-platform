@@ -133,19 +133,19 @@ public class ActivityServiceImpl extends BaseServiceImpl<ActivityMapper, Activit
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void incrementSigned(Long activityId) {
-        Activity activity = getExistingActivity(activityId);
-        int signed = activity.getSigned() == null ? 0 : activity.getSigned();
-        activity.setSigned(signed + 1);
-        this.updateById(activity);
+        int updated = getBaseMapper().tryOccupySeat(activityId);
+        if (updated == 0) {
+            // 区分「活动不存在」与「名额已满」
+            getExistingActivity(activityId);
+            throw new BusinessException(5001, "名额已满");
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void decrementSigned(Long activityId) {
-        Activity activity = getExistingActivity(activityId);
-        int signed = activity.getSigned() == null ? 0 : activity.getSigned();
-        activity.setSigned(Math.max(0, signed - 1));
-        this.updateById(activity);
+        getExistingActivity(activityId);
+        getBaseMapper().releaseSeat(activityId);
     }
 
     private Activity getExistingActivity(Long id) {

@@ -64,13 +64,19 @@ export const asyncRoutes: RouteRecordRaw[] = [
     component: Layout,
     name: 'PageBuilder',
     meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-    redirect: '/page-builder/list',
+    redirect: '/page-builder/overview',
     children: [
+      {
+        path: 'overview',
+        name: 'PageBuilderOverview',
+        component: () => import('@/views/page-builder/overview.vue'),
+        meta: { title: '总览', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
       {
         path: 'start',
         name: 'PageBuilderStart',
         component: () => import('@/views/page-builder/miniapp-builder.vue'),
-        meta: { title: '导航与外观', icon: 'Cellphone', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '外观', icon: 'Cellphone', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         // 兼容旧链接「小程序配置」
@@ -84,28 +90,34 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '页面', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
+        path: 'mine',
+        name: 'PageBuilderMine',
+        component: () => import('@/views/page-builder/mine-config.vue'),
+        meta: { title: '我的', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
         path: 'template-center',
         name: 'TemplateCenter',
         component: () => import('@/views/page-builder/template-center.vue'),
-        meta: { title: '模板', icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '模板', hidden: true, icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'release',
         name: 'PageBuilderRelease',
         component: () => import('@/views/page-builder/release.vue'),
-        meta: { title: '发布', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+        meta: { title: '版本', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
         path: 'version-management',
         name: 'VersionManagement',
         redirect: '/page-builder/release',
-        meta: { title: '版本管理', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '还原点', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'version/:id',
         name: 'PageBuilderVersion',
         component: () => import('@/views/page-builder/version.vue'),
-        meta: { title: '版本管理', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '历史版本', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
     ],
   },
@@ -133,6 +145,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         name: 'ContentCategory',
         component: () => import('@/views/content/category.vue'),
         meta: { title: '分类管理', icon: 'Folder' },
+      },
+      {
+        path: 'comments',
+        name: 'ContentComments',
+        component: () => import('@/views/content/comments.vue'),
+        meta: { title: '评论审核', icon: 'ChatLineSquare' },
       },
       {
         path: 'edit',
@@ -283,6 +301,21 @@ export const asyncRoutes: RouteRecordRaw[] = [
         name: 'MarketingCoupon',
         component: () => import('@/views/marketing/coupon.vue'),
         meta: { title: '优惠券', icon: 'Ticket' },
+      },
+    ],
+  },
+  {
+    path: '/growth',
+    component: Layout,
+    name: 'Growth',
+    meta: { title: '增长数据', icon: 'DataLine' },
+    redirect: '/growth/overview',
+    children: [
+      {
+        path: 'overview',
+        name: 'GrowthOverview',
+        component: () => import('@/views/growth/overview.vue'),
+        meta: { title: '增长与数据', icon: 'DataLine' },
       },
     ],
   },
