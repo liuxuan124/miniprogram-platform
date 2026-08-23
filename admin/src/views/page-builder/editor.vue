@@ -44,10 +44,12 @@
               <el-icon><View /></el-icon>
               预览
             </el-button>
-            <el-button type="primary" size="small" @click="handlePublish">
-              <el-icon><Upload /></el-icon>
-              上线
-            </el-button>
+            <el-tooltip content="上线后，用户刷新小程序就能看到这一页的改动，不需要发版" placement="bottom">
+              <el-button type="primary" size="small" @click="handlePublish">
+                <el-icon><Upload /></el-icon>
+                上线
+              </el-button>
+            </el-tooltip>
             <el-dropdown trigger="click">
               <el-button size="small">
                 更多

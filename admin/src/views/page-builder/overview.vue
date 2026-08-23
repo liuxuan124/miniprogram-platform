@@ -3,7 +3,7 @@
     <PageHeader
       kicker="小程序 / 总览"
       title="总览"
-      description="一眼看清当前线上状态。改页面请在装修器点「上线」，小程序立刻生效。"
+      description="小程序的当前状态都在这里。改页面内容后点「上线」，用户刷新就能看到，不需要发版。"
     >
       <template #actions>
         <el-button @click="openAiDraft">AI 生成页面</el-button>
@@ -18,19 +18,43 @@
         <div class="status-value">{{ appName }}</div>
       </div>
       <div class="status-item">
-        <div class="status-label">当前还原点</div>
-        <div class="status-value">{{ latestSemver || '尚未创建' }}</div>
+        <div class="status-label">已保存版本</div>
+        <div class="status-value">{{ latestSemver || '尚未保存过' }}</div>
         <div v-if="latestReleaseTime" class="status-meta">{{ latestReleaseTime }}</div>
       </div>
       <div class="status-item">
-        <div class="status-label">最近上传体验版</div>
+        <div class="status-label">最近上传代码到微信</div>
         <div class="status-value">{{ pushVersion || '尚未上传' }}</div>
         <div v-if="pushTime" class="status-meta">{{ pushTime }}</div>
       </div>
     </section>
 
+    <section class="howto">
+      <div class="howto-title">怎么让用户看到我的改动？</div>
+      <div class="howto-grid">
+        <div class="howto-card">
+          <div class="howto-tag ok">最常用</div>
+          <div class="howto-head">改页面内容</div>
+          <p>换图、加商品、改文案 → 在装修器点「<b>上线</b>」→ 用户刷新小程序<b>立刻看到</b>，不用发版。</p>
+          <el-button size="small" @click="router.push('/page-builder/list')">去页面列表</el-button>
+        </div>
+        <div class="howto-card">
+          <div class="howto-tag">偶尔</div>
+          <div class="howto-head">存一个可回退的版本</div>
+          <p>大改版之前存个档，万一改坏了能一键退回。不影响用户当前看到的内容。</p>
+          <el-button size="small" @click="router.push('/page-builder/release')">去发布与版本</el-button>
+        </div>
+        <div class="howto-card">
+          <div class="howto-tag">很少</div>
+          <div class="howto-head">小程序代码更新了</div>
+          <p>技术同事改了小程序端功能时才需要。上传后还要<b>去微信公众平台提交审核</b>，通过后才生效。</p>
+          <el-button size="small" @click="router.push('/page-builder/release')">去上传代码</el-button>
+        </div>
+      </div>
+    </section>
+
     <section v-if="todos.length" class="todo-bar">
-      <div class="todo-title">待办</div>
+      <div class="todo-title">还需要处理（点击直达）</div>
       <button
         v-for="(item, idx) in todos"
         :key="idx"
@@ -261,6 +285,62 @@ onMounted(loadAll)
 </script>
 
 <style scoped lang="scss">
+.howto {
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.howto-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.howto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.howto-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.howto-tag {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #eef1f4;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.howto-tag.ok {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.howto-head {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.howto-card p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
 .overview-page { padding-bottom: 24px; }
 
 .status-bar {
