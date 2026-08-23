@@ -12,6 +12,7 @@ import com.miniprogram.entity.AdminUser;
 import com.miniprogram.entity.Role;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.RoleMapper;
+import com.miniprogram.security.JwtBlacklistService;
 import com.miniprogram.service.AdminUserService;
 import com.miniprogram.service.PermissionService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final RoleMapper roleMapper;
     private final PermissionService permissionService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtBlacklistService jwtBlacklistService;
 
     @Override
     public PageResult<AdminUserVO> pageList(AdminUserQueryDTO queryDTO) {
@@ -99,8 +101,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // 密码不为空则更新
+        boolean passwordChanged = false;
         if (StringUtils.hasText(dto.getPassword())) {
             adminUser.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+            passwordChanged = true;
         }
 
         if (dto.getRealName() != null) {
@@ -124,6 +128,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         adminUserMapper.updateById(adminUser);
+
+        boolean disabled = dto.getStatus() != null && dto.getStatus() == 0;
+        if (passwordChanged || disabled) {
+            jwtBlacklistService.revokeAllForUser(id);
+        }
         log.info("更新管理员: id={}", id);
         return toVO(adminUser);
     }
@@ -142,6 +151,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         adminUserMapper.deleteById(id);
+        jwtBlacklistService.revokeAllForUser(id);
         log.info("删除管理员: id={}", id);
     }
 

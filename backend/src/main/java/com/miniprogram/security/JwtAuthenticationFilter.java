@@ -66,8 +66,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtTokenProvider.getUserIdFromToken(token);
                 String username = jwtTokenProvider.getUsernameFromToken(token);
 
-                // 构建权限列表
-                List<SimpleGrantedAuthority> authorities = buildAuthorities(userId, username);
+                long issuedAt = jwtTokenProvider.getIssuedAtEpochSeconds(token);
+                if (jwtBlacklistService.isRevokedForUser(userId, issuedAt)) {
+                    SecurityErrorWriter.write(response, 401, 110103, "Token已失效，请重新登录");
+                    return;
+                }
+
+                // 构建权限列表（管理端会校验账号 status）
+                List<SimpleGrantedAuthority> authorities = buildAuthorities(userId, username, response);
+                if (authorities == null) {
+                    return;
+                }
 
                 // 构建认证对象
                 UsernamePasswordAuthenticationToken authentication =
@@ -92,40 +101,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 构建用户权限列表
-     * 管理后台用户：加载角色和权限点
-     * 小程序用户：仅赋予基础角色
+     * @return null 表示已写 401 响应，调用方应直接 return
      */
-    private List<SimpleGrantedAuthority> buildAuthorities(Long userId, String username) {
+    private List<SimpleGrantedAuthority> buildAuthorities(Long userId, String username,
+                                                          HttpServletResponse response) throws IOException {
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-        // 判断是管理后台用户还是小程序用户
         if (username.startsWith("wx_")) {
-            // 小程序用户，赋予基础角色
             authorities.add(new SimpleGrantedAuthority("ROLE_mp_user"));
-        } else {
-            // 管理后台用户，从数据库加载角色和权限
-            AdminUser adminUser = adminUserMapper.selectById(userId);
-            if (adminUser != null && adminUser.getRoleId() != null) {
-                // 加载角色
-                Role role = roleMapper.selectById(adminUser.getRoleId());
-                if (role != null && StringUtils.hasText(role.getCode())) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()));
-                }
+            return authorities;
+        }
 
-                // 加载权限点
-                List<String> permissionCodes = permissionService.getPermissionCodesByRoleId(adminUser.getRoleId());
-                for (String permCode : permissionCodes) {
-                    authorities.add(new SimpleGrantedAuthority(permCode));
-                }
+        AdminUser adminUser = adminUserMapper.selectById(userId);
+        if (adminUser == null) {
+            SecurityErrorWriter.write(response, 401, 110101, "未登录");
+            return null;
+        }
+        if (adminUser.getStatus() == null || adminUser.getStatus() == 0) {
+            SecurityErrorWriter.write(response, 401, 110104, "账号已禁用");
+            return null;
+        }
+
+        if (adminUser.getRoleId() != null) {
+            Role role = roleMapper.selectById(adminUser.getRoleId());
+            if (role != null && StringUtils.hasText(role.getCode())) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()));
             }
-
-            // 如果没有任何权限，赋予基础用户角色
-            if (authorities.isEmpty()) {
-                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+            List<String> permissionCodes = permissionService.getPermissionCodesByRoleId(adminUser.getRoleId());
+            for (String permCode : permissionCodes) {
+                authorities.add(new SimpleGrantedAuthority(permCode));
             }
         }
 
+        if (authorities.isEmpty()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        }
         return authorities;
     }
 

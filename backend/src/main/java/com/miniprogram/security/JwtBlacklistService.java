@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 
 /**
- * JWT 黑名单（登出 / 改密后使旧 access token 立即失效）
+ * JWT 黑名单 / 按用户吊销（登出、改密、禁用账号）
  */
 @Slf4j
 @Service
@@ -20,6 +20,9 @@ import java.util.HexFormat;
 public class JwtBlacklistService {
 
     private static final String KEY_PREFIX = "jwt:bl:";
+    private static final String USER_REVOKE_PREFIX = "jwt:user:revoke:";
+    /** 覆盖最长 refresh 周期（7 天）+ 缓冲 */
+    private static final Duration USER_REVOKE_TTL = Duration.ofDays(8);
 
     private final StringRedisTemplate stringRedisTemplate;
     private final JwtTokenProvider jwtTokenProvider;
@@ -41,6 +44,37 @@ public class JwtBlacklistService {
             return Boolean.TRUE.equals(stringRedisTemplate.hasKey(KEY_PREFIX + hash(token)));
         } catch (Exception e) {
             log.warn("JWT 黑名单查询失败，放行: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 吊销该用户在此刻之前签发的全部 token（禁用 / 改密 / 删除）。
+     */
+    public void revokeAllForUser(Long userId) {
+        if (userId == null) return;
+        try {
+            long nowSec = System.currentTimeMillis() / 1000;
+            stringRedisTemplate.opsForValue().set(
+                    USER_REVOKE_PREFIX + userId,
+                    String.valueOf(nowSec),
+                    USER_REVOKE_TTL
+            );
+        } catch (Exception e) {
+            log.warn("JWT 用户吊销标记写入失败 userId={}: {}", userId, e.getMessage());
+        }
+    }
+
+    /** token 签发时间（秒）若早于或等于用户吊销时间戳，则视为已失效 */
+    public boolean isRevokedForUser(Long userId, long issuedAtEpochSec) {
+        if (userId == null) return false;
+        try {
+            String raw = stringRedisTemplate.opsForValue().get(USER_REVOKE_PREFIX + userId);
+            if (!StringUtils.hasText(raw)) return false;
+            long revokeAt = Long.parseLong(raw.trim());
+            return issuedAtEpochSec <= revokeAt;
+        } catch (Exception e) {
+            log.warn("JWT 用户吊销查询失败，放行: {}", e.getMessage());
             return false;
         }
     }
