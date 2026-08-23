@@ -117,6 +117,17 @@ public class JwtTokenProvider {
         }
     }
 
+    /** 签发时间（epoch 秒）；无法解析时返回 0 */
+    public long getIssuedAtEpochSeconds(String token) {
+        try {
+            Claims claims = parseToken(token);
+            Date issued = claims.getIssuedAt();
+            return issued == null ? 0L : issued.getTime() / 1000;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     private String buildToken(Long userId, String username, long expiration, String typ) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);

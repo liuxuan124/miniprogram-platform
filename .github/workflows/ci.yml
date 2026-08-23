@@ -68,3 +68,11 @@ jobs:
             prev=$num
             echo "OK $base"
           done
+
+  component-whitelist:
+    name: Component whitelist sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare admin / miniapp / backend types
+        run: python3 scripts/check-component-whitelist.py

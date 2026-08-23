@@ -1,8 +1,7 @@
 package com.miniprogram.job;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.miniprogram.entity.Order;
-import com.miniprogram.entity.Refund;
+import com.miniprogram.entity.PageAccessLog;
 import com.miniprogram.entity.StatisticsDaily;
 import com.miniprogram.entity.User;
 import com.miniprogram.mapper.OrderMapper;
@@ -10,7 +9,6 @@ import com.miniprogram.mapper.PageAccessLogMapper;
 import com.miniprogram.mapper.RefundMapper;
 import com.miniprogram.mapper.StatisticsDailyMapper;
 import com.miniprogram.mapper.UserMapper;
-import com.miniprogram.entity.PageAccessLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -22,7 +20,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 /**
  * 日统计汇总写入 mp_statistics_daily（多实例用 Redis 锁防重）
@@ -33,6 +32,7 @@ import java.util.List;
 public class StatisticsDailyJob {
 
     private static final String LOCK_KEY = "job:lock:statistics_daily";
+    private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final StatisticsDailyMapper statisticsDailyMapper;
     private final UserMapper userMapper;
@@ -69,34 +69,23 @@ public class StatisticsDailyJob {
 
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.atTime(LocalTime.MAX);
+        String startStr = start.format(DT);
+        String endStr = end.format(DT);
 
         int newUsers = (int) userMapper.selectCount(new LambdaQueryWrapper<User>()
                 .ge(User::getCreateTime, start).le(User::getCreateTime, end));
         int pageViews = (int) pageAccessLogMapper.selectCount(new LambdaQueryWrapper<PageAccessLog>()
                 .ge(PageAccessLog::getCreatedAt, start).le(PageAccessLog::getCreatedAt, end));
 
-        List<Order> orders = orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                .ge(Order::getCreatedAt, start).le(Order::getCreatedAt, end)
-                .ne(Order::getStatus, "cancelled"));
-        int orderCount = orders.size();
-        BigDecimal orderAmount = orders.stream()
-                .map(o -> o.getPayAmount() == null ? BigDecimal.ZERO : o.getPayAmount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Map<String, Object> orderAgg = orderMapper.sumOrdersBetween(startStr, endStr);
+        int orderCount = toInt(orderAgg != null ? orderAgg.get("cnt") : null);
+        BigDecimal orderAmount = toDecimal(orderAgg != null ? orderAgg.get("amount") : null);
 
-        List<Refund> refunds = refundMapper.selectList(new LambdaQueryWrapper<Refund>()
-                .ge(Refund::getCreatedAt, start).le(Refund::getCreatedAt, end)
-                .eq(Refund::getStatus, "success"));
-        int refundCount = refunds.size();
-        BigDecimal refundAmount = refunds.stream()
-                .map(r -> r.getAmount() == null ? BigDecimal.ZERO : r.getAmount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Map<String, Object> refundAgg = refundMapper.sumRefundsBetween(startStr, endStr);
+        int refundCount = toInt(refundAgg != null ? refundAgg.get("cnt") : null);
+        BigDecimal refundAmount = toDecimal(refundAgg != null ? refundAgg.get("amount") : null);
 
-        // 活跃用户：当日有访问的去重
-        long activeUsers = pageAccessLogMapper.selectList(new LambdaQueryWrapper<PageAccessLog>()
-                        .ge(PageAccessLog::getCreatedAt, start).le(PageAccessLog::getCreatedAt, end)
-                        .isNotNull(PageAccessLog::getUserId)
-                        .select(PageAccessLog::getUserId))
-                .stream().map(PageAccessLog::getUserId).distinct().count();
+        long activeUsers = pageAccessLogMapper.countDistinctUsers(startStr, endStr);
 
         StatisticsDaily existing = statisticsDailyMapper.selectByStatDate(date);
         StatisticsDaily row = existing == null ? new StatisticsDaily() : existing;
@@ -115,5 +104,26 @@ public class StatisticsDailyJob {
             statisticsDailyMapper.updateById(row);
         }
         log.info("日统计已写入 date={} orders={} amount={}", date, orderCount, orderAmount);
+    }
+
+    private static int toInt(Object v) {
+        if (v == null) return 0;
+        if (v instanceof Number n) return n.intValue();
+        try {
+            return Integer.parseInt(v.toString());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static BigDecimal toDecimal(Object v) {
+        if (v == null) return BigDecimal.ZERO;
+        if (v instanceof BigDecimal bd) return bd;
+        if (v instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        try {
+            return new BigDecimal(v.toString());
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
     }
 }

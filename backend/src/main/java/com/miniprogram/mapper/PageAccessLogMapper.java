@@ -1,11 +1,11 @@
 package com.miniprogram.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.miniprogram.entity.PageAccessLog;
-import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -36,4 +36,11 @@ public interface PageAccessLogMapper extends BaseMapper<PageAccessLog> {
             "ORDER BY stat_date ASC")
     List<Map<String, Object>> selectDailyAccessStats(@Param("startDateTime") String startDateTime,
                                                       @Param("endDateTime") String endDateTime);
+
+    @Select("SELECT COUNT(DISTINCT user_id) FROM mp_page_access_log " +
+            "WHERE created_at BETWEEN #{start} AND #{end} AND user_id IS NOT NULL")
+    long countDistinctUsers(@Param("start") String start, @Param("end") String end);
+
+    @Delete("DELETE FROM mp_page_access_log WHERE created_at < #{before} LIMIT #{limit}")
+    int deleteOlderThan(@Param("before") String before, @Param("limit") int limit);
 }

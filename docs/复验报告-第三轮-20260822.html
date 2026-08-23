@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第三轮复验</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--ok);
+    border-radius:10px;padding:20px 22px;margin-bottom:24px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  .stats{display:flex;flex-wrap:wrap;gap:11px;margin:18px 0 28px}
+  .stat{flex:1 1 130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .stat b{display:block;font-size:22px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--muted)}
+  h2.sec{font-size:20px;margin:38px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h3{margin:0 0 8px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.bad{background:var(--bad)} .n.warn{background:var(--warn)} .n.ok{background:var(--ok)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:11px 13px;overflow-x:auto;font-size:12.4px;line-height:1.55}
+  .why{border-top:1px dashed var(--line);margin-top:10px;padding-top:9px;font-size:14px}
+  .why b{color:var(--ok)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:620px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .y{color:var(--ok);font-weight:700;white-space:nowrap}
+  ol.road{padding-left:20px} ol.road li{margin-bottom:8px}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>第三轮复验</h1>
+<div class="sub">2026-08-22 · 对照上一轮的 4 项新问题 + 2 项★优先项 + 11 项中期遗留</div>
+
+<div class="lead">
+  <h2>上一轮的问题全部关闭，中期项也清掉大半——现在具备上线条件了</h2>
+  <p>4 项新问题（指标端点暴露、代码未入库、回调放大、token 单机缓存）<b>全部修复</b>；两项★优先项<b>全部完成</b>：三个高影响控制器补齐了权限（发布 15 处 / 用户 4 处 / 公众号 2 处），主题改用了官方的 <span class="loc">page-meta</span> 并覆盖 <b>68/69 个页面</b>。</p>
+  <p>更值得说的是主动多做的部分：<b>JWT 黑名单</b>（Redis + SHA-256 摘要 + 按剩余 TTL 过期）、<b>三个定时任务都加了 Redis 分布式锁</b>、<b>日统计任务补上了</b>（每日 00:15 + 每小时刷新今日，upsert 无重复键问题）、<b>CI 建起来了</b>（后端 <span class="loc">mvn test</span> + 前端 <span class="loc">vue-tsc</span> 与 <span class="loc">npm run build</span> + 一个专门检查迁移脚本版本序的 job）。后台硬编码主色 <span class="loc">#1769ff</span> 从 99 处降到 <b>0</b>。代码也按语义拆成了 6 个提交，工作区干净。</p>
+  <p>本轮只发现<b>一个中等问题</b>（禁用/改密后旧 token 仍可用）和几条性能与收尾建议，没有阻断项。</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><b style="color:var(--ok)">6</b><span>上轮问题全关</span></div>
+  <div class="stat"><b style="color:var(--ok)">8</b><span>中期项主动完成</span></div>
+  <div class="stat"><b style="color:var(--warn)">1</b><span>本轮新发现（中）</span></div>
+  <div class="stat"><b style="color:var(--ok)">0</b><span>TS 错误</span></div>
+  <div class="stat"><b style="color:var(--ok)">0</b><span>未提交文件</span></div>
+</div>
+
+<h2 class="sec">一、本轮发现</h2>
+
+<div class="item">
+  <h3><span class="n warn">Y1</span>黑名单只覆盖登出，禁用账号和改密后旧 token 仍然可用</h3>
+  <p><span class="loc">JwtBlacklistService</span> 写得很干净（Redis 存 token 的 SHA-256，TTL 按剩余有效期），但全项目只有一处调用：<span class="loc">AuthServiceImpl:193</span> 的 <span class="loc">logout</span>。</p>
+  <p>于是这两条路径仍然漏：<b>改密码</b>（<span class="loc">changePassword</span> 只更新 <span class="loc">passwordHash</span>，不吊销已签发的 token）；<b>禁用管理员</b>（<span class="loc">JwtAuthenticationFilter.buildAuthorities</span> 读 <span class="loc">AdminUser</span> 只为取角色，<b>不判断 <span class="loc">status</span></b>）。所以员工离职被禁用后，他手上的 token 在有效期内（最长 24 小时）照样能操作后台。</p>
+  <p class="why"><b>建议：</b>① 改密时把当前 token 加入黑名单并要求重新登录；② 过滤器里加一句 <span class="loc">if (adminUser.getStatus() == 0) → 401</span>——这一句成本最低、收益最大；③ 禁用账号时可顺带按 userId 打一个"签发时间早于此刻的一律失效"的标记。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n warn">Y2</span>日统计的活跃用户去重是在内存里做的</h3>
+  <p><span class="loc">StatisticsDailyJob</span> 里：</p>
+  <pre>pageAccessLogMapper.selectList(...当日全部记录...)
+    .stream().map(PageAccessLog::getUserId).distinct().count();</pre>
+  <p>把当天所有页面访问日志<b>全量拉进 JVM</b> 再去重。日活几千时无所谓，但这张表是增长最快的表之一，加上任务每小时还跑一次今日快照，量上来后会明显变慢甚至 OOM（后端堆只有 512M）。订单那段也是全量拉取再求和，风险小一些。</p>
+  <p class="why"><b>建议：</b><span class="loc">PageAccessLogMapper</span> 里<b>已经有现成的 <span class="loc">COUNT(DISTINCT user_id)</span> 写法</b>（第 20、32 行），补一个按日期的 count 方法直接用即可；订单同理改成 <span class="loc">SELECT COUNT(*), SUM(pay_amount)</span>。顺带给 <span class="loc">mp_page_access_log</span> 和 <span class="loc">mp_analytics_event</span> 定个保留期（比如 90 天）和清理任务。</p>
+</div>
+
+<div class="item">
+  <h3><span class="n">Y3</span>三条收尾建议</h3>
+  <p>· <b>黑名单在 Redis 故障时是 fail-open</b>（<span class="loc">isBlacklisted</span> 异常返回 false 放行）。这是合理取舍——Redis 挂了不至于全站登录失效——但要知道：Redis 不可用期间吊销是失效的。建议在监控里给 Redis 加告警。</p>
+  <p>· <b>CI 没有组件白名单一致性检查。</b>迁移排序检查加得很好，但"后台注册表 / 小程序 wxml / 后端发布校验"三处一致才是历史上真正漂移过的地方（当初就是它卡住了发布）。建议照着迁移那个 job 的写法再加一个，十几行脚本。</p>
+  <p>· <b>装修器富文本组件仍是原生 <span class="loc">rich-text</span></b>，只是加了个"查看图片 (N)"的按钮兜底——务实，但不是原位点击预览。商品详情、活动详情、问答详情三个页面同理。什么时候有空可以统一换 mp-html。</p>
+</div>
+
+<h2 class="sec">二、本轮关闭</h2>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>上轮问题</th><th>复验结果</th><th>状态</th></tr>
+<tr><td class="c">X1 指标端点公网可读</td><td>compose 改为 <span class="loc">"127.0.0.1:${BACKEND_PORT:-8080}:8080"</span>；nginx 的 <span class="loc">allow 10/172/192/127 + deny all</span> 已启用（不再是注释）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">X2 205 个文件未入库</td><td>拆成 6 个语义提交（安全 / 内容互动 / 运维任务与 CI / 后台 token / 小程序主题分享 / 增长能力），<span class="loc">git status</span> 干净，380 文件 +11455 / −7002</td><td class="y">已关闭</td></tr>
+<tr><td class="c">X3 回调不限流 + 证书刷新可被放大</td><td>限流按路径分桶（支付回调、事件上报各自独立配额）；<span class="loc">WxPayNotifyVerifier</span> 加 <span class="loc">lastRefreshAttemptMs</span> 一分钟节流</td><td class="y">已关闭</td></tr>
+<tr><td class="c">X4 access_token 进程内缓存</td><td>改为 Redis 共享（<span class="loc">StringRedisTemplate</span> + TTL），Redis 异常时降级本地拉取</td><td class="y">已关闭</td></tr>
+<tr><td class="c">★ 三个控制器无细粒度权限</td><td><span class="loc">MiniappReleaseController</span> 15 处、<span class="loc">UserController</span> 4 处、<span class="loc">WeChatOfficialAccountController</span> 2 处；全项目 <b>92 处 / 20 个控制器</b>（上轮 71/17）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">★ 主题可能不生效</td><td>改用官方 <span class="loc">&lt;page-meta page-style="{{themePageStyle}}"&gt;</span>，<b>68/69 个页面</b>已注入（<span class="loc">wx.setPageStyle</span> 保留为兼容分支）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">JWT 无黑名单</td><td>新增 <span class="loc">JwtBlacklistService</span>，过滤器已接入（覆盖面见 Y1）</td><td class="y">部分关闭</td></tr>
+<tr><td class="c">统计日报无生产者</td><td>新增 <span class="loc">StatisticsDailyJob</span>：每日 00:15 汇总昨日 + 每小时刷新今日，按日期 upsert</td><td class="y">已关闭</td></tr>
+<tr><td class="c">多实例会重复执行定时任务</td><td>三个 Job 全部加 Redis 锁（内容 50s / 关单 4min / 统计 10min）</td><td class="y">已关闭</td></tr>
+<tr><td class="c">无 CI、部署全 skipTests</td><td>新增 <span class="loc">.github/workflows/ci.yml</span>：后端 <span class="loc">mvn test</span> + package、前端 <span class="loc">vue-tsc</span> + <span class="loc">npm run build</span>、迁移脚本版本序校验</td><td class="y">已关闭</td></tr>
+<tr><td class="c">后台色值未 token 化</td><td><span class="loc">#1769ff</span> 硬编码 99 → <b>0</b> 处</td><td class="y">已关闭</td></tr>
+<tr><td class="c">share hook 无幂等</td><td><span class="loc">__shareHookInstalled</span> 标记已加</td><td class="y">已关闭</td></tr>
+<tr><td class="c">容器子组件数据源不加载</td><td><span class="loc">loadAllComponentData</span> 已递归 <span class="loc">children / components</span></td><td class="y">已关闭</td></tr>
+<tr><td class="c">回归验证</td><td><span class="loc">vue-tsc</span> 0 错误；三处组件白名单仍 37/37/37 一致；小程序 wxss 硬编码色值 1278 → 1139</td><td class="y">通过</td></tr>
+</table>
+</div>
+
+<h2 class="sec">三、上线前最后要做的事</h2>
+<p class="secnote">技术侧已经清干净，剩下的是验证与流程。</p>
+<ol class="road">
+  <li><b>补那一句状态校验</b>（Y1 第 ② 条）：过滤器里判断 <span class="loc">AdminUser.status</span>，一行代码，堵住"禁用后仍可操作"。</li>
+  <li><b>真机跑一遍关键链路</b>：微信登录 → 浏览装修页 → 下单用券 → 支付 → 收到订阅消息 → 申请退款；再验一次改主色是否全站生效、评论提交后是否进待审、扫码预览是否正常。代码层面我能验的都验了，剩下的必须真机。</li>
+  <li><b>确认线上库迁移到 V47</b>：用 <span class="loc">deploy/scripts/migrate.sh</span> 跑一次（它现在顺序正确且幂等），并确认 <span class="loc">schema_version</span> 表里 V1~V47 齐全。</li>
+  <li><b>确认环境变量齐备</b>：<span class="loc">JWT_SECRET</span>、<span class="loc">MYSQL_ROOT_PASSWORD</span>、<span class="loc">MYSQL_PASSWORD</span>、<span class="loc">REDIS_PASSWORD</span>、<span class="loc">GRAFANA_PASSWORD</span> 现在都是缺失即启动失败，<b>上线前先在预发环境起一次</b>，别在生产才发现漏配。</li>
+  <li><b>人工资质项</b>：小程序类目与隐私协议、ICP 与公安备案、微信支付商户号与证书、服务器合法域名——这几项在最早那份报告里就标了"需人工"，代码改不了，确认状态。</li>
+  <li><b>灰度</b>：先小流量试运行一两天再全量，重点盯支付回调成功率、评论审核队列、订阅消息下发成功率三个指标。</li>
+</ol>
+
+<footer>
+  本轮实跑 <span class="loc">vue-tsc --noEmit</span>（0 错误）、组件白名单三向比对（37/37/37）、page-meta 覆盖率统计（68/69）、git 提交与工作区状态核对。后端 <span class="loc">mvn test</span> 本机无 Maven 无法执行，但 CI 已覆盖，首次推送即可验证。文中所有位置可直接复核。
+</footer>
+
+</div>
+</body>
+</html>

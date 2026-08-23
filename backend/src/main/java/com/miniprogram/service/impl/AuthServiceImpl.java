@@ -241,7 +241,8 @@ public class AuthServiceImpl implements AuthService {
         PasswordValidator.validateNewPassword(dto.getNewPassword());
         adminUser.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
         adminUserMapper.updateById(adminUser);
-        // 改密后：若请求携带当前 token，由 Controller 一并拉黑；此处仅记日志
+        // 吊销该用户全部旧会话；当前请求 token 仍由 Controller 再加一条黑名单
+        jwtBlacklistService.revokeAllForUser(userId);
         log.info("管理员 {} 修改密码成功", userId);
     }
 }
