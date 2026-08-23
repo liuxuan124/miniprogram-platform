@@ -44,6 +44,7 @@ logging:
     root: WARN
     com.miniprogram: INFO
 
-# 上传文件公网访问根地址（生产必须配置，避免写入 localhost）
+# 上传文件（生产必须绝对路径 + 公网根地址）
 file:
+  upload-dir: ${FILE_UPLOAD_DIR:/opt/miniprogram-platform/backend/uploads}
   base-url: ${FILE_BASE_URL:https://api.zfculture.site}

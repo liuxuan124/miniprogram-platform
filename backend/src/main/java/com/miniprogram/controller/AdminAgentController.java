@@ -30,15 +30,31 @@ public class AdminAgentController {
     @GetMapping
     @Operation(summary = "配置列表")
     public R<PageResult<AgentConfigVO>> listConfigs(@RequestParam(required = false) String keyword,
+                                                     @RequestParam(required = false) String role,
                                                      @RequestParam(defaultValue = "1") Long current,
                                                      @RequestParam(defaultValue = "10") Long size) {
-        return R.ok(agentConfigService.listConfigs(keyword, current, size));
+        return R.ok(agentConfigService.listConfigs(keyword, role, current, size));
+    }
+
+    @GetMapping("/meta/roles")
+    @Operation(summary = "岗位清单")
+    public R<List<Map<String, Object>>> listRoles() {
+        return R.ok(agentConfigService.listRoles());
+    }
+
+    @GetMapping("/meta/cost")
+    @Operation(summary = "岗位成本统计")
+    public R<Map<String, Object>> costStats(@RequestParam(defaultValue = "service") String role) {
+        return R.ok(agentConfigService.costStats(role));
     }
 
     /** 两段路径，避免被 /{id} 误匹配（含旧版路由） */
     @GetMapping("/meta/active")
     @Operation(summary = "当前启用配置")
-    public R<AgentConfigVO> getActiveConfig() {
+    public R<AgentConfigVO> getActiveConfig(@RequestParam(required = false) String role) {
+        if (role != null && !role.isBlank()) {
+            return R.ok(agentConfigService.getActiveConfigByRole(role));
+        }
         return R.ok(agentConfigService.getActiveConfig());
     }
 
@@ -93,7 +109,10 @@ public class AdminAgentController {
     /** 兼容旧前端路径 */
     @GetMapping("/active")
     @Operation(summary = "当前启用配置（兼容）")
-    public R<AgentConfigVO> getActiveConfigLegacy() {
+    public R<AgentConfigVO> getActiveConfigLegacy(@RequestParam(required = false) String role) {
+        if (role != null && !role.isBlank()) {
+            return R.ok(agentConfigService.getActiveConfigByRole(role));
+        }
         return R.ok(agentConfigService.getActiveConfig());
     }
 

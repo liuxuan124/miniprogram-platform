@@ -72,10 +72,10 @@ public class StatisticsDailyJob {
         String startStr = start.format(DT);
         String endStr = end.format(DT);
 
-        int newUsers = (int) userMapper.selectCount(new LambdaQueryWrapper<User>()
-                .ge(User::getCreateTime, start).le(User::getCreateTime, end));
-        int pageViews = (int) pageAccessLogMapper.selectCount(new LambdaQueryWrapper<PageAccessLog>()
-                .ge(PageAccessLog::getCreatedAt, start).le(PageAccessLog::getCreatedAt, end));
+        int newUsers = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .ge(User::getCreateTime, start).le(User::getCreateTime, end)).intValue();
+        int pageViews = pageAccessLogMapper.selectCount(new LambdaQueryWrapper<PageAccessLog>()
+                .ge(PageAccessLog::getCreatedAt, start).le(PageAccessLog::getCreatedAt, end)).intValue();
 
         Map<String, Object> orderAgg = orderMapper.sumOrdersBetween(startStr, endStr);
         int orderCount = toInt(orderAgg != null ? orderAgg.get("cnt") : null);

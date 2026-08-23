@@ -45,6 +45,9 @@
       <div class="toolbar-spacer" />
       <el-button @click="categoryModalVisible = true">分类</el-button>
       <el-button @click="syncDialogVisible = true">同步导入</el-button>
+      <el-button :disabled="!selectedRows.length" @click="agentDialogVisible = true">
+        交给 Agent{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
+      </el-button>
       <el-button :disabled="!selectedRows.length" :loading="batchLoading" @click="handleBatchPublish">
         批量上架{{ selectedRows.length ? ` (${selectedRows.length})` : '' }}
       </el-button>
@@ -243,7 +246,14 @@
       <el-button type="primary" class="add-root-btn" @click="openCategoryDialog('create', null)">+ 新增一级分类</el-button>
     </el-dialog>
 
-    <el-dialog v-model="syncDialogVisible" title="同步导入小红书 / 公众号内容" width="720px" destroy-on-close>
+    <el-dialog
+      v-model="syncDialogVisible"
+      title="同步导入小红书 / 公众号内容"
+      width="720px"
+      destroy-on-close
+      @open="onSyncDialogOpen"
+      @closed="onSyncDialogClosed"
+    >
       <el-tabs v-model="syncTab">
         <el-tab-pane label="公众号全量导入" name="wechat">
           <el-alert
@@ -278,13 +288,37 @@
               </el-radio-group>
             </el-form-item>
           </el-form>
-          <div v-if="wechatSyncResult" class="sync-result-box">
-            <div>{{ wechatSyncResult.message }}</div>
+          <div v-if="importTask && importTask.type === 'sync' && (isImportRunning(importTask) || importTask.status === 'success')" class="sync-progress-box">
+            <el-progress
+              :percentage="importTask.status === 'success' ? 100 : importProgressPercent(importTask)"
+              :status="importTask.status === 'success' ? 'success' : undefined"
+              :stroke-width="14"
+              :striped="isImportRunning(importTask)"
+              :striped-flow="isImportRunning(importTask)"
+            />
+            <div class="sync-progress-meta">
+              <template v-if="importTask.status === 'success'">导入完成</template>
+              <template v-else>
+                {{ importTask.processed }} / {{ Math.max(importTask.total, importTask.processed) || '…' }}
+                <span v-if="importTask.currentTitle"> · 正在处理：{{ importTask.currentTitle }}</span>
+              </template>
+            </div>
+          </div>
+          <div v-if="wechatSyncResult" class="sync-result-box" :class="{ success: !wechatSyncResult.failed, danger: !!wechatSyncResult.failed }">
+            <div class="sync-result-title">{{ wechatSyncResult.failed ? '导入结束（含失败）' : '导入成功' }}</div>
+            <div class="sync-result-stats">
+              <span>新建 <b>{{ wechatSyncResult.created }}</b></span>
+              <span>更新 <b>{{ wechatSyncResult.updated }}</b></span>
+              <span>跳过 <b>{{ wechatSyncResult.skipped }}</b></span>
+              <span>失败 <b>{{ wechatSyncResult.failed }}</b></span>
+            </div>
+            <div class="sync-result-msg">{{ wechatSyncResult.message }}</div>
             <div v-if="wechatSyncResult.failures?.length" class="sync-failures">
               <div v-for="(item, idx) in wechatSyncResult.failures" :key="idx">
                 {{ item.title }}：{{ item.reason }}
               </div>
             </div>
+            <div class="sync-result-hint">列表已按「{{ wechatSyncForm.publish ? '已发布' : '草稿' }}」刷新，可关闭弹窗查看。</div>
           </div>
         </el-tab-pane>
         <el-tab-pane label="公众号链接导入" name="wechat-url">
@@ -322,13 +356,37 @@ https://mp.weixin.qq.com/s/6hytke48TCsE8NJk_DQyTQ"
               </el-radio-group>
             </el-form-item>
           </el-form>
-          <div v-if="wechatUrlResult" class="sync-result-box">
-            <div>{{ wechatUrlResult.message }}</div>
+          <div v-if="importTask && importTask.type === 'url' && (isImportRunning(importTask) || importTask.status === 'success')" class="sync-progress-box">
+            <el-progress
+              :percentage="importTask.status === 'success' ? 100 : importProgressPercent(importTask)"
+              :status="importTask.status === 'success' ? 'success' : undefined"
+              :stroke-width="14"
+              :striped="isImportRunning(importTask)"
+              :striped-flow="isImportRunning(importTask)"
+            />
+            <div class="sync-progress-meta">
+              <template v-if="importTask.status === 'success'">导入完成</template>
+              <template v-else>
+                {{ importTask.processed }} / {{ Math.max(importTask.total, importTask.processed) || '…' }}
+                <span v-if="importTask.currentTitle"> · 正在处理：{{ importTask.currentTitle }}</span>
+              </template>
+            </div>
+          </div>
+          <div v-if="wechatUrlResult" class="sync-result-box" :class="{ success: !wechatUrlResult.failed, danger: !!wechatUrlResult.failed }">
+            <div class="sync-result-title">{{ wechatUrlResult.failed ? '导入结束（含失败）' : '导入成功' }}</div>
+            <div class="sync-result-stats">
+              <span>新建 <b>{{ wechatUrlResult.created }}</b></span>
+              <span>更新 <b>{{ wechatUrlResult.updated }}</b></span>
+              <span>跳过 <b>{{ wechatUrlResult.skipped }}</b></span>
+              <span>失败 <b>{{ wechatUrlResult.failed }}</b></span>
+            </div>
+            <div class="sync-result-msg">{{ wechatUrlResult.message }}</div>
             <div v-if="wechatUrlResult.failures?.length" class="sync-failures">
               <div v-for="(item, idx) in wechatUrlResult.failures" :key="idx">
                 {{ item.title }}：{{ item.reason }}
               </div>
             </div>
+            <div class="sync-result-hint">列表已按「{{ wechatUrlForm.publish ? '已发布' : '草稿' }}」刷新，可关闭弹窗查看。</div>
           </div>
         </el-tab-pane>
         <el-tab-pane label="JSON 手动导入" name="json">
@@ -369,15 +427,25 @@ https://mp.weixin.qq.com/s/6hytke48TCsE8NJk_DQyTQ"
       </el-tabs>
       <template #footer>
         <template v-if="syncTab === 'wechat'">
-          <el-button @click="syncDialogVisible = false">关闭</el-button>
-          <el-button type="primary" :loading="wechatSyncSubmitting" @click="handleWeChatSyncImport">
-            开始全量导入
+          <el-button @click="closeSyncDialogSafely">关闭</el-button>
+          <el-button
+            type="primary"
+            :loading="wechatSyncSubmitting"
+            :disabled="isImportRunning(importTask)"
+            @click="handleWeChatSyncImport"
+          >
+            {{ isImportRunning(importTask) && importTask?.type === 'sync' ? '导入中…' : (wechatSyncResult ? '再导一批' : '开始全量导入') }}
           </el-button>
         </template>
         <template v-else-if="syncTab === 'wechat-url'">
-          <el-button @click="syncDialogVisible = false">关闭</el-button>
-          <el-button type="primary" :loading="wechatUrlSubmitting" @click="handleWeChatUrlImport">
-            开始链接导入
+          <el-button @click="closeSyncDialogSafely">关闭</el-button>
+          <el-button
+            type="primary"
+            :loading="wechatUrlSubmitting"
+            :disabled="isImportRunning(importTask)"
+            @click="handleWeChatUrlImport"
+          >
+            {{ isImportRunning(importTask) && importTask?.type === 'url' ? '导入中…' : (wechatUrlResult ? '再导一批' : '开始链接导入') }}
           </el-button>
         </template>
         <template v-else>
@@ -426,16 +494,23 @@ https://mp.weixin.qq.com/s/6hytke48TCsE8NJk_DQyTQ"
       </div>
     </el-dialog>
 
+    <ContentAgentDialog
+      v-model="agentDialogVisible"
+      :content-ids="selectedRows.map((r) => r.id)"
+      @done="fetchList"
+    />
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, TableInstance } from 'element-plus'
 import ListStateWrap from '@/components/ListStateWrap.vue'
 import ContentPreviewPanel from '@/components/content/ContentPreviewPanel.vue'
+import ContentAgentDialog from '@/views/content/ContentAgentDialog.vue'
 import {
   getContentList,
   getContentDetail,
@@ -449,7 +524,15 @@ import {
   deleteCategory,
   createContent,
 } from '@/api/content'
-import { syncWeChatPublishedContents, importWeChatArticleUrls, type WeChatContentSyncResult, type WeChatSyncScope } from '@/api/wechat'
+import {
+  syncWeChatPublishedContents,
+  importWeChatArticleUrls,
+  getImportTask,
+  getRunningImportTask,
+  type WeChatContentSyncResult,
+  type WeChatSyncScope,
+  type ImportTask,
+} from '@/api/wechat'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
 import { inferContentFormat, parseContentTags } from '@/utils/content-format'
 import { platformSourceTagType, resolvePlatformSource } from '@/utils/content-source'
@@ -510,12 +593,16 @@ const searchForm = reactive({
 })
 
 const syncDialogVisible = ref(false)
+const agentDialogVisible = ref(false)
 const syncTab = ref('wechat')
 const syncSubmitting = ref(false)
 const wechatSyncSubmitting = ref(false)
 const wechatUrlSubmitting = ref(false)
 const wechatSyncResult = ref<WeChatContentSyncResult | null>(null)
 const wechatUrlResult = ref<WeChatContentSyncResult | null>(null)
+const importTask = ref<ImportTask | null>(null)
+let importPollTimer: ReturnType<typeof setInterval> | null = null
+let importPollFailCount = 0
 const previewVisible = ref(false)
 const previewLoading = ref(false)
 const previewSubtitle = ref('')
@@ -817,9 +904,7 @@ async function handleWeChatSyncImport() {
       publish: wechatSyncForm.publish,
       syncScope: wechatSyncForm.syncScope,
     })
-    wechatSyncResult.value = (res as any)?.data || res
-    ElMessage.success(wechatSyncResult.value?.message || '导入完成')
-    fetchList()
+    await handleImportSubmitResponse(res, 'sync')
   } catch (e: any) {
     if (e !== 'cancel' && e?.message !== 'cancel') {
       ElMessage.error(e?.message || '公众号导入失败')
@@ -842,6 +927,10 @@ async function handleWeChatUrlImport() {
     ElMessage.warning('请粘贴至少一条有效的公众号文章链接（mp.weixin.qq.com/s/...）')
     return
   }
+  if (urls.length > 10) {
+    ElMessage.warning('单次最多导入 10 条链接，请分批提交')
+    return
+  }
   wechatUrlSubmitting.value = true
   wechatUrlResult.value = null
   try {
@@ -856,9 +945,7 @@ async function handleWeChatUrlImport() {
       categoryId: wechatUrlForm.categoryId,
       publish: wechatUrlForm.publish,
     })
-    wechatUrlResult.value = (res as any)?.data || res
-    ElMessage.success(wechatUrlResult.value?.message || '导入完成')
-    fetchList()
+    await handleImportSubmitResponse(res, 'url')
   } catch (e: any) {
     if (e !== 'cancel' && e?.message !== 'cancel') {
       ElMessage.error(e?.message || '链接导入失败')
@@ -867,6 +954,167 @@ async function handleWeChatUrlImport() {
     wechatUrlSubmitting.value = false
   }
 }
+
+function isImportTaskPayload(data: any): data is ImportTask {
+  return !!(data && typeof data === 'object' && data.taskId && data.status)
+}
+
+function isSyncResultPayload(data: any): data is WeChatContentSyncResult {
+  return !!(data && typeof data === 'object' && typeof data.message === 'string' && !data.taskId)
+}
+
+function isImportRunning(task: ImportTask | null | undefined) {
+  return !!task && (task.status === 'pending' || task.status === 'running')
+}
+
+function importProgressPercent(task: ImportTask | null | undefined) {
+  if (!task) return 0
+  const total = Math.max(task.total || 0, 1)
+  return Math.min(100, Math.round((Math.min(task.processed, total) / total) * 100))
+}
+
+function stopImportPolling() {
+  if (importPollTimer) {
+    clearInterval(importPollTimer)
+    importPollTimer = null
+  }
+  importPollFailCount = 0
+}
+
+async function handleImportSubmitResponse(res: any, expectedType: 'sync' | 'url') {
+  const data = (res as any)?.data ?? res
+  if (isImportTaskPayload(data) && isImportRunning(data)) {
+    importTask.value = data
+    if (data.type === 'sync') syncTab.value = 'wechat'
+    if (data.type === 'url') syncTab.value = 'wechat-url'
+    ElMessage.info('导入任务已启动，正在后台处理…')
+    startImportPolling(data.taskId)
+    return
+  }
+  if (isImportTaskPayload(data) && data.status === 'success' && data.result) {
+    applyImportResult(data.result, data.type || expectedType)
+    return
+  }
+  if (isSyncResultPayload(data)) {
+    applyImportResult(data, expectedType)
+    return
+  }
+  ElMessage.warning('导入已提交，但未拿到可识别的进度信息')
+}
+
+function applyImportResult(result: WeChatContentSyncResult, type: string) {
+  const asPublish = type === 'url' ? wechatUrlForm.publish : wechatSyncForm.publish
+  if (type === 'url') {
+    wechatUrlResult.value = result
+  } else {
+    wechatSyncResult.value = result
+  }
+  // 保留任务态为 success，弹窗内进度条停在 100%
+  if (importTask.value) {
+    importTask.value = {
+      ...importTask.value,
+      status: 'success',
+      processed: Math.max(importTask.value.processed, importTask.value.total, result.totalArticles || 0),
+      total: Math.max(importTask.value.total, result.totalArticles || 0),
+    }
+  }
+  // 切到对应状态筛选，避免「存为草稿」后列表仍看已发布导致以为没导入
+  searchForm.status = asPublish ? 'published' : 'draft'
+  pagination.page = 1
+  ElMessage.success(
+    `导入完成：新建 ${result.created}，更新 ${result.updated}` +
+      (result.failed ? `，失败 ${result.failed}` : ''),
+  )
+  fetchList()
+}
+
+function startImportPolling(taskId: string) {
+  stopImportPolling()
+  importPollFailCount = 0
+  const tick = async () => {
+    try {
+      const res = await getImportTask(taskId)
+      const task = ((res as any)?.data ?? res) as ImportTask
+      importPollFailCount = 0
+      if (!task?.taskId) return
+      importTask.value = task
+      if (task.type === 'sync') syncTab.value = 'wechat'
+      if (task.type === 'url') syncTab.value = 'wechat-url'
+      if (task.status === 'success') {
+        stopImportPolling()
+        if (task.result) {
+          applyImportResult(task.result, task.type)
+        } else {
+          ElMessage.success('导入完成')
+          fetchList()
+        }
+      } else if (task.status === 'failed') {
+        stopImportPolling()
+        ElMessage.error(task.error || '导入失败')
+        if (task.type === 'url') {
+          wechatUrlResult.value = {
+            totalPublishRecords: 0,
+            totalArticles: 0,
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            failed: 1,
+            message: task.error || '导入失败',
+          }
+        } else {
+          wechatSyncResult.value = {
+            totalPublishRecords: 0,
+            totalArticles: 0,
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            failed: 1,
+            message: task.error || '导入失败',
+          }
+        }
+      }
+    } catch {
+      importPollFailCount += 1
+      if (importPollFailCount >= 3) {
+        stopImportPolling()
+        ElMessage.error('进度查询连续失败，请稍后重新打开弹窗查看')
+      }
+    }
+  }
+  tick()
+  importPollTimer = setInterval(tick, 2000)
+}
+
+async function onSyncDialogOpen() {
+  try {
+    const res = await getRunningImportTask()
+    const task = ((res as any)?.data ?? res) as ImportTask | null
+    if (task && isImportRunning(task)) {
+      importTask.value = task
+      if (task.type === 'sync') syncTab.value = 'wechat'
+      if (task.type === 'url') syncTab.value = 'wechat-url'
+      startImportPolling(task.taskId)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function onSyncDialogClosed() {
+  stopImportPolling()
+}
+
+function closeSyncDialogSafely() {
+  if (isImportRunning(importTask.value)) {
+    ElMessage.info('任务在后台继续，可稍后回来查看进度')
+  }
+  syncDialogVisible.value = false
+}
+
+onBeforeUnmount(() => {
+  stopImportPolling()
+})
+
 
 async function handleSyncImport() {
   let items: any[] = []
@@ -1285,11 +1533,68 @@ watch(
 
   .sync-result-box {
     margin-top: 12px;
-    padding: 12px;
+    padding: 14px 16px;
     background: #f5f7fa;
     border-radius: 8px;
     font-size: 13px;
     color: #606266;
+    border: 1px solid #e4e7ed;
+
+    &.success {
+      background: #f0f9eb;
+      border-color: #c2e7b0;
+      color: #3d7a2e;
+    }
+
+    &.danger {
+      background: #fef0f0;
+      border-color: #fbc4c4;
+      color: #c45656;
+    }
+  }
+
+  .sync-result-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .sync-result-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    margin-bottom: 8px;
+
+    b {
+      font-size: 16px;
+      margin-left: 2px;
+    }
+  }
+
+  .sync-result-msg {
+    line-height: 1.55;
+    opacity: 0.9;
+  }
+
+  .sync-result-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  .sync-progress-box {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #f0f7ff;
+    border: 1px solid #d6e8ff;
+    border-radius: 8px;
+  }
+
+  .sync-progress-meta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #606266;
+    line-height: 1.5;
   }
 
   .sync-failures {

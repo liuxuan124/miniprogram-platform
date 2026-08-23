@@ -10,6 +10,9 @@ public class AgentConfigDTO {
     @Schema(description = "配置名称")
     private String name;
 
+    @Schema(description = "Agent 角色 service / content_ops")
+    private String role;
+
     @Schema(description = "模型名称")
     private String model;
 
@@ -48,4 +51,16 @@ public class AgentConfigDTO {
 
     @Schema(description = "对话记忆条数或类型")
     private String memoryType;
+
+    @Schema(description = "工具授权 JSON")
+    private String toolGrants;
+
+    @Schema(description = "日 token 预算")
+    private Integer dailyTokenBudget;
+
+    @Schema(description = "超支行为 warn/stop")
+    private String overBudgetAction;
+
+    @Schema(description = "评测用例 JSON")
+    private String evalCases;
 }

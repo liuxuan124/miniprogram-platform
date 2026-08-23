@@ -19,11 +19,13 @@ import com.miniprogram.entity.Content;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.FileUploadService;
+import com.miniprogram.service.ImportTaskService;
 import com.miniprogram.service.WeChatOfficialAccountClient;
 import com.miniprogram.service.WeChatOfficialAccountContentSyncService;
 import com.miniprogram.service.wechat.WeChatArticlePageParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -50,13 +52,19 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     private static final String EXTERNAL_SOURCE_URL = "wechat_url";
     private static final String SOURCE_LABEL = "微信公众号";
     private static final Pattern IMG_SRC_PATTERN = Pattern.compile(
-            "(<img[^>]*?\\s(?:src|data-src)\\s*=\\s*[\"'])([^\"']+)([\"'][^>]*>)",
+            "(<img[^>]*?\\s)(?:src|data-src)(\\s*=\\s*[\"'])([^\"']+)([\"'][^>]*>)",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern IFRAME_SRC_PATTERN = Pattern.compile(
+            "<iframe[^>]+\\ssrc\\s*=\\s*[\"']([^\"']+)[\"']",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern STYLE_BLOCK_PATTERN = Pattern.compile("<style[\\s>]", Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
     /** 已发布接口无 image_info 时，用标题特征辅助识别贴图 */
     private static final Pattern NOTE_TITLE_HINT = Pattern.compile(
             "一张图|一图|图解|地图|海报|图看懂|图讲透|结构拆解|流程图|思维导图|合规SOP|财税地图",
             Pattern.CASE_INSENSITIVE);
+
+    private static final int MAX_URL_IMPORT = 10;
 
     private final WeChatOfficialAccountClient weChatOfficialAccountClient;
     private final WeChatArticlePageParser weChatArticlePageParser;
@@ -64,9 +72,28 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
     private final ContentCategoryService categoryService;
     private final FileUploadService fileUploadService;
     private final ObjectMapper objectMapper;
+    private final ImportTaskService importTaskService;
 
     @Override
     public WeChatContentSyncResultVO syncAllPublished(WeChatContentSyncRequestDTO request) {
+        return syncAllPublished(request, null);
+    }
+
+    @Override
+    @Async("importExecutor")
+    public void syncAllPublishedAsync(WeChatContentSyncRequestDTO request, String taskId) {
+        try {
+            importTaskService.markRunning(taskId);
+            WeChatContentSyncResultVO result = syncAllPublished(request, taskId);
+            importTaskService.finish(taskId, result);
+        } catch (Exception e) {
+            log.error("异步全量导入失败 taskId={}: {}", taskId, e.getMessage(), e);
+            importTaskService.fail(taskId, e.getMessage());
+        }
+    }
+
+    @Override
+    public WeChatContentSyncResultVO syncAllPublished(WeChatContentSyncRequestDTO request, String taskId) {
         WeChatContentSyncRequestDTO safeRequest = request != null ? request : new WeChatContentSyncRequestDTO();
         boolean publish = safeRequest.getPublish() == null || Boolean.TRUE.equals(safeRequest.getPublish());
         SyncScope syncScope = SyncScope.from(safeRequest.getSyncScope());
@@ -80,6 +107,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         WeChatContentSyncResultVO result = new WeChatContentSyncResultVO();
         List<JSONObject> records = weChatOfficialAccountClient.listAllPublishedRecords();
         result.setTotalPublishRecords(records.size());
+        reportProgress(taskId, 0, records.size(), null);
         Map<String, JSONObject> newspicIndex = buildNewspicIndex(records);
 
         Map<String, String> imageCache = new LinkedHashMap<>();
@@ -124,6 +152,9 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                     result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
                             item.getStr("title", articleId + "#" + i), e.getMessage()));
                 }
+                // total 用发布记录数；processed 可能超过 total，前端 Math.min
+                reportProgress(taskId, articlesProcessed, records.size(),
+                        item.getStr("title", articleId));
             }
         }
 
@@ -144,6 +175,24 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
 
     @Override
     public WeChatContentSyncResultVO importFromUrls(WeChatUrlImportRequestDTO request) {
+        return importFromUrls(request, null);
+    }
+
+    @Override
+    @Async("importExecutor")
+    public void importFromUrlsAsync(WeChatUrlImportRequestDTO request, String taskId) {
+        try {
+            importTaskService.markRunning(taskId);
+            WeChatContentSyncResultVO result = importFromUrls(request, taskId);
+            importTaskService.finish(taskId, result);
+        } catch (Exception e) {
+            log.error("异步链接导入失败 taskId={}: {}", taskId, e.getMessage(), e);
+            importTaskService.fail(taskId, e.getMessage());
+        }
+    }
+
+    @Override
+    public WeChatContentSyncResultVO importFromUrls(WeChatUrlImportRequestDTO request, String taskId) {
         WeChatUrlImportRequestDTO safeRequest = request != null ? request : new WeChatUrlImportRequestDTO();
         boolean publish = Boolean.TRUE.equals(safeRequest.getPublish());
         Long categoryId = safeRequest.getCategoryId();
@@ -155,10 +204,15 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         if (urls.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请至少填写一条公众号文章链接");
         }
+        if (urls.size() > MAX_URL_IMPORT) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "单次最多导入 " + MAX_URL_IMPORT + " 条链接，请分批提交");
+        }
 
         WeChatContentSyncResultVO result = new WeChatContentSyncResultVO();
         result.setTotalPublishRecords(urls.size());
         result.setTotalArticles(urls.size());
+        reportProgress(taskId, 0, urls.size(), null);
 
         Map<String, String> imageCache = new LinkedHashMap<>();
         LocalDateTime syncBase = LocalDateTime.now();
@@ -168,7 +222,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             try {
                 ParsedWeChatArticle parsed = weChatArticlePageParser.fetchAndParse(url);
                 LocalDateTime importTime = syncBase.plusNanos((long) importSeq++ * 1_000_000L);
-                SyncAction action = upsertFromArticleUrl(parsed, categoryId, publish, imageCache, importTime);
+                SyncAction action = upsertFromArticleUrl(parsed, categoryId, publish, imageCache, importTime, result);
                 switch (action) {
                     case CREATE -> {
                         result.setCreated(result.getCreated() + 1);
@@ -180,11 +234,15 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                     }
                     default -> result.setSkipped(result.getSkipped() + 1);
                 }
+                reportProgress(taskId, importSeq, urls.size(),
+                        parsed != null ? parsed.getTitle() : shortenUrl(url));
             } catch (Exception e) {
                 log.warn("链接导入失败 url={}: {}", url, e.getMessage());
                 result.setFailed(result.getFailed() + 1);
                 result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
                         shortenUrl(url), e.getMessage()));
+                importSeq++;
+                reportProgress(taskId, importSeq, urls.size(), shortenUrl(url));
             }
         }
 
@@ -196,6 +254,13 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
                 result.getSkipped(),
                 result.getFailed()));
         return result;
+    }
+
+    private void reportProgress(String taskId, int processed, int total, String currentTitle) {
+        if (!StringUtils.hasText(taskId)) {
+            return;
+        }
+        importTaskService.updateProgress(taskId, processed, total, currentTitle);
     }
 
     private List<String> normalizeImportUrls(List<String> rawUrls) {
@@ -221,7 +286,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Long categoryId,
             boolean publish,
             Map<String, String> imageCache,
-            LocalDateTime importTime) {
+            LocalDateTime importTime,
+            WeChatContentSyncResultVO result) {
 
         String slug = parsed.getSlug();
         Content entity = loadOrCreateByUrl(slug, parsed.getTitle());
@@ -245,6 +311,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
         entity.setImages(null);
         entity.setContent(rewriteHtmlImages(parsed.getContentHtml(), imageCache, "wechat-url"));
+        applyWechatSpecialElementHints(entity, parsed.getTitle(), result);
         appendOriginalLink(entity, parsed.getSourceUrl(), parsed.getSourceUrl());
 
         applyCommonFields(entity, "url:" + slug, categoryId, publish,
@@ -520,7 +587,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             return action;
         }
         SyncAction action = upsertNewsArticle(
-                item, articleId, index, categoryId, publish, publishedAt, imageCache, importTime);
+                item, articleId, index, categoryId, publish, publishedAt, imageCache, importTime, result);
         if (action != SyncAction.SKIP) {
             result.setArticleCount(result.getArticleCount() + 1);
         }
@@ -562,7 +629,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             boolean publish,
             LocalDateTime publishedAt,
             Map<String, String> imageCache,
-            LocalDateTime importTime) {
+            LocalDateTime importTime,
+            WeChatContentSyncResultVO result) {
 
         if (Boolean.TRUE.equals(item.getBool("is_deleted"))) {
             return SyncAction.SKIP;
@@ -597,6 +665,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         String html = item.getStr("content");
         if (StringUtils.hasText(html)) {
             entity.setContent(rewriteHtmlImages(html, imageCache));
+            applyWechatSpecialElementHints(entity, entity.getTitle(), result);
         } else if (!StringUtils.hasText(entity.getContent())) {
             entity.setContent(buildFallbackHtml(entity.getTitle(), entity.getSummary(), item.getStr("url")));
         }
@@ -912,12 +981,41 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
         Matcher matcher = IMG_SRC_PATTERN.matcher(html);
         while (matcher.find()) {
-            String src = trim(matcher.group(2));
+            String src = trim(matcher.group(3));
             if (StringUtils.hasText(src) && !urls.contains(src)) {
                 urls.add(src);
             }
         }
         return urls;
+    }
+
+    /** R5：标记 iframe / style 等微信特有元素；尝试提取 iframe 视频直链 */
+    private void applyWechatSpecialElementHints(Content entity, String title, WeChatContentSyncResultVO result) {
+        if (entity == null || result == null) {
+            return;
+        }
+        String html = entity.getContent();
+        if (!StringUtils.hasText(html)) {
+            return;
+        }
+        List<String> hints = new ArrayList<>();
+        if (html.toLowerCase().contains("<iframe") || html.toLowerCase().contains("<mpvoice")) {
+            hints.add("内嵌视频/音频");
+            if (!StringUtils.hasText(entity.getVideoUrl())) {
+                Matcher iframe = IFRAME_SRC_PATTERN.matcher(html);
+                if (iframe.find()) {
+                    entity.setVideoUrl(trim(iframe.group(1)));
+                }
+            }
+        }
+        if (STYLE_BLOCK_PATTERN.matcher(html).find()) {
+            hints.add("style 块样式");
+        }
+        if (!hints.isEmpty()) {
+            result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
+                    StringUtils.hasText(title) ? title : "未命名",
+                    "含微信特有元素，建议人工处理：" + String.join("、", hints)));
+        }
     }
 
     private String extractPlainText(String html) {
@@ -995,10 +1093,12 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
             String prefix = matcher.group(1);
-            String src = matcher.group(2);
-            String suffix = matcher.group(3);
+            String eq = matcher.group(2);
+            String src = matcher.group(3);
+            String suffix = matcher.group(4);
             String mirrored = mirrorRemoteImage(src, imageCache, uploadFolder);
-            matcher.appendReplacement(sb, Matcher.quoteReplacement(prefix + mirrored + suffix));
+            String replacement = prefix + "src" + eq + mirrored + suffix;
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(sb);
         return sb.toString();

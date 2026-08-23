@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 平台能力规划</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8;--p:#6d28d9}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1020px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--p);
+    border-radius:10px;padding:20px 22px;margin-bottom:26px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:40px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  h3.grp{font-size:16px;margin:26px 0 10px;color:var(--b)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h4{margin:0 0 9px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.ok{background:var(--ok)} .n.warn{background:var(--warn)} .n.bad{background:var(--bad)} .n.p{background:var(--p)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.4px;line-height:1.6}
+  .why{border-top:1px dashed var(--line);margin-top:11px;padding-top:9px;font-size:14px}
+  .why b{color:var(--ok)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:660px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .tier{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff}
+  .t1{background:var(--bad)} .t2{background:var(--warn)} .t3{background:var(--muted)}
+  ol,ul{padding-left:20px} li{margin-bottom:6px}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Agent 平台：能力规划建议</h1>
+<div class="sub">从「一个客服助手」到「多岗位 Agent + 多模型」· 2026-08-22</div>
+
+<div class="lead">
+  <h2>先纠正三个认知：现在的 Agent 比字段名看起来的要单薄</h2>
+  <p><b>① 知识库不参与回答。</b><span class="loc">mp_agent_knowledge</span> 目前只有增删查和权重字段，<span class="loc">AgentConfigServiceImpl</span> 里<b>没有任何检索或拼接逻辑</b>，<span class="loc">vector_status</span> 只是个状态位、没有向量化流程。也就是说客服现在完全靠 <span class="loc">system_prompt</span> 在答，知识库是个登记表。</p>
+  <p><b>② 对话是单轮的。</b>调用时 messages 里只有 <span class="loc">system + 当前问题</span>，<b>不带历史</b>。<span class="loc">memory_type</span> 那个 short/long/hybrid 字段目前没有实现对应逻辑。</p>
+  <p><b>③ <span class="loc">api_key_encrypted</span> 只是列名，实际是明文存取</b>，代码里没有任何加解密调用。</p>
+  <p>说这些不是挑毛病——是因为你接下来要做的三件事（页面搭建 Agent、客服 Agent、多模型），恰好每一件都踩在这三个空白上。下面按「不补就不成立 / 决定好不好用 / 做大了才需要」三档给建议。</p>
+</div>
+
+<h2 class="sec">第一梯队 · 不补就不成立</h2>
+<p class="secnote">这四块是地基。没有它们，多 Agent 只能靠复制粘贴配置，多模型只能靠改代码。</p>
+
+<div class="item">
+  <h4><span class="n bad">P1</span>数据模型：从单例改成多 Agent</h4>
+  <p>现在是「一个 active config」。要改成：</p>
+  <pre>mp_agent            -- 一个 Agent 就是一个岗位
+  id / code(content_ops|customer_service|page_builder) / name / avatar
+  status / description / systemPrompt / modelProfileId / version
+
+mp_agent_tool       -- 这个 Agent 被授权了哪些能力
+  agentId / toolCode / authLevel(suggest|write_draft|execute) / needReview
+
+mp_agent_knowledge_rel  -- 知识库多对多（现在是全局共享，要能按 Agent 隔离）
+  agentId / knowledgeId / recallWeight</pre>
+  <p class="why"><b>关键判断：</b>Agent 的身份是<b>岗位</b>，不是模型。同一个岗位可以换模型，同一个模型可以服务多个岗位。所以模型配置要从 Agent 里拆出去（见 P3）。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n bad">P2</span>工具层（Tool Registry）——这是 Agent 平台真正的心脏</h4>
+  <p>「Agent 能干什么」不该写在提示词里，而应该是一份<b>可授权、可审计、有 schema 的工具清单</b>。把系统已有能力封装成 tool：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>类别</th><th>工具举例</th><th>默认授权</th></tr>
+    <tr><td class="c">内容</td><td>查内容、改元数据（分类/标签/摘要/SEO）、生成正文、挂载商品、内容质检</td><td>write_draft</td></tr>
+    <tr><td class="c">页面</td><td>读组件清单、生成页面 DSL、校验 DSL、存草稿、生成预览二维码</td><td>write_draft</td></tr>
+    <tr><td class="c">交易</td><td>查订单、查物流、查库存</td><td>suggest（只读）</td></tr>
+    <tr><td class="c">高危</td><td>发券、发起退款、改价格、发布上线</td><td>needReview 强制人审</td></tr>
+    <tr><td class="c">数据</td><td>查搜索热词、查内容效果、查转化漏斗</td><td>suggest</td></tr>
+  </table>
+  </div>
+  <p>每个 tool 声明：入参 JSON Schema、授权等级、是否幂等、是否需人审、预估成本。<b>模型只能调用被授权的 tool，越权直接拒绝并记录。</b></p>
+  <p class="why"><b>为什么这块最重要：</b>没有工具层，Agent 就只能"说"不能"做"，你要的页面搭建和内容处理都落不了地；有了工具层，加一个新岗位只是配一份工具授权，不用改代码。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n bad">P3</span>模型路由层（多供应商适配）</h4>
+  <p>现在是写死的 OpenAI 兼容 <span class="loc">/chat/completions</span>。要接「全球各个模型」，需要一层适配：</p>
+  <pre>mp_model_profile    -- 模型档案，与 Agent 解耦
+  id / name / provider(openai|anthropic|gemini|deepseek|moonshot|zhipu|qwen|doubao|spark)
+  baseUrl / modelId / apiKeyRef / maxTokens / temperature
+  supportsTools / supportsJsonSchema / supportsVision
+  inputPricePer1k / outputPricePer1k / region(cn|global)</pre>
+  <p><b>四个必须处理的差异点：</b></p>
+  <ul>
+    <li><b>函数调用格式不统一</b>：OpenAI 的 <span class="loc">tools</span>、Anthropic 的 <span class="loc">tool_use</span>、Gemini 的 <span class="loc">functionDeclarations</span> 三套结构完全不同。适配层要做双向转换——这是接多模型工作量的大头，不是换个 baseUrl 那么简单。</li>
+    <li><b>结构化输出能力不同</b>：页面搭建 Agent 依赖严格 JSON 输出，要按 <span class="loc">supportsJsonSchema</span> 选模型，不支持的走「提示词约束 + 校验重试」降级。</li>
+    <li><b>降级链</b>：主模型超时/限流 → 备用模型 → 规则兜底。配置成 <span class="loc">primary + fallback[]</span>，不要在业务代码里写 if。</li>
+    <li><b>境内外分流</b>：境外模型的网络出口、延迟、以及<b>数据出境合规</b>。建议明确一条：<b>C 端客服只用境内模型，境外模型只用于后台内容生产</b>——用户对话数据出境是实打实的合规风险。</li>
+  </ul>
+  <p class="why"><b>按任务选模型才是多模型的价值：</b>批量打标签用便宜快的，写长文用强的，页面 DSL 用结构化输出好的，客服用延迟低的。建议在 Agent 上配「任务类型 → 模型档案」的映射，而不是一个 Agent 绑死一个模型。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n bad">P4</span>密钥与成本</h4>
+  <p>· <b>密钥</b>：现在明文存库。至少改成环境变量注入 + 库里只存引用（<span class="loc">apiKeyRef</span>），或用 AES 加密 + 密钥走环境变量。后台展示一律脱敏，测试连通性用后端持有的真值。</p>
+  <p>· <b>成本记账</b>：每次调用落一条记录——agent / 模型 / 输入输出 token / 耗时 / 估算费用 / 是否命中缓存。没有这个，多模型跑起来你不知道钱花在哪。</p>
+  <p>· <b>预算熔断</b>：按 Agent 和按天设上限，超了自动停并告警。批量任务 × 长文很容易失控。</p>
+  <p>· <b>缓存</b>：相同输入 + 相同模型 + 内容未变 → 直接复用结果。内容类批处理的重复率比想象中高。</p>
+</div>
+
+<h2 class="sec">第二梯队 · 决定好不好用</h2>
+
+<div class="item">
+  <h4><span class="n warn">P5</span>RAG 真正落地（客服 Agent 的前提）</h4>
+  <p>现在的知识库不参与回答，所以客服的知识全靠提示词硬塞，改一次知识要改一次提示词。完整链路需要：<b>文档切片 → 向量化 → 存储 → 召回 → 重排 → 拼进上下文 → 回答带出处</b>。</p>
+  <p>务实的做法：<b>先做关键词检索版</b>（MySQL 全文索引 + 分词），把「知识能进回答」这条链路先跑通，再换向量库。很多客服场景关键词召回的效果已经够用，而且没有额外基础设施成本。</p>
+  <p class="why"><b>一个容易忽略的点：</b>回答要<b>带出处</b>（引用了哪篇知识的哪一段）。这既是让人敢信的基础，也是发现"知识库写得不对"的唯一途径。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n warn">P6</span>多轮记忆与会话管理</h4>
+  <p>现在每次只发当前问题，用户说「那第二个方案呢」模型完全接不住。需要：短期记忆（最近 N 轮，按 token 预算截断）+ 长期记忆（用户画像摘要，如"跨境卖家、关注合规"）+ 转人工衔接（把上下文一并交给客服，<span class="loc">is_transfer_human</span> 字段已有）。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n warn">P7</span>评测与回归（这是团队做 Agent 最容易缺的一块）</h4>
+  <p>提示词改了一版，怎么知道是变好还是变坏？现在只能凭感觉。建议建一套最小评测：</p>
+  <ul>
+    <li>每个 Agent 维护 30~50 条<b>评测集</b>（典型问题 + 期望要点，不必是标准答案）</li>
+    <li>改配置后一键跑分，用另一个模型当 judge 打分（相关性/准确性/是否越界）</li>
+    <li>上线前把新旧版本的输出做<b>并排 diff</b>，人工扫一眼</li>
+    <li>把线上被人工驳回的 case 自动沉淀进评测集</li>
+  </ul>
+  <p class="why"><b>成本很低但收益极高：</b>没有评测，提示词优化就是碰运气，而且改坏了没人发现——直到运营开始抱怨。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n warn">P8</span>可观测</h4>
+  <p>每次调用记录完整链路：请求内容、命中的知识、调用了哪些工具及参数、模型返回、token 与费用、耗时、人工是否驳回。后台给一个 Agent 工作台：今日任务数、成功率、平均耗时、成本、驳回率 Top 原因。<b>驳回率是最重要的指标</b>——它直接告诉你这个 Agent 值不值得提权。</p>
+</div>
+
+<h2 class="sec">第三梯队 · 做大了才需要</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>能力</th><th>说明</th><th>建议时机</th></tr>
+<tr><td class="c">灰度与 A/B</td><td><span class="loc">mp_agent_version</span> 已有版本基础，加分流即可；与页面 A/B 共用分桶器</td><td>有两个以上稳定 Agent 后</td></tr>
+<tr><td class="c">提示词注入防护</td><td><b>内容 Agent 会读外部导入的公众号文章</b>，文章里可能藏「忽略以上指令」。外部内容必须包在明确的数据边界里，并禁止其触发工具调用</td><td>内容 Agent 上线时就要做</td></tr>
+<tr><td class="c">PII 脱敏</td><td>客服对话里的手机号、地址进模型前脱敏</td><td>客服 Agent 上线时</td></tr>
+<tr><td class="c">多 Agent 协作</td><td>选题 Agent → 写作 Agent → 审校 Agent 流水线</td><td><b>最后再做</b>，单 Agent 没打磨好之前做协作只会放大问题</td></tr>
+</table>
+</div>
+
+<h2 class="sec">两个岗位的特殊要求</h2>
+
+<h3 class="grp">页面搭建 Agent（三个岗位里最难的）</h3>
+<div class="item">
+  <p><b>难在输出必须严格合法。</b>DSL 有 37 个组件、每个组件一套 props、还有容器嵌套——让模型自由生成 JSON 必然出错。四条建议：</p>
+  <ol>
+    <li><b>用结构化输出而非自由文本</b>：把 <span class="loc">componentRegistry.ts</span> 导出成 JSON Schema，走 function calling 或 json_schema 模式强约束。这也是选模型时要看 <span class="loc">supportsJsonSchema</span> 的原因。</li>
+    <li><b>生成后必须过校验再落库</b>：复用现有的 <span class="loc">validateComponent</span> 和发布前 preflight。校验失败把错误信息回喂给模型重试，最多 2 次。</li>
+    <li><b>分步生成而不是一次成页</b>：先定骨架（页面类型 + 分几个区 + 每区放什么组件），再逐区填充 props。一次生成整页的成功率远低于分步。</li>
+    <li><b>给模型看的组件说明要单独写</b>：不是把 TS 类型扔给它，而是每个组件配一句「适合什么场景、什么时候不要用」。这份说明本身就是提示词工程的主要工作量。</li>
+  </ol>
+  <p><b>产出永远是草稿 + 预览二维码</b>，人扫码看过才能上线。这条不要妥协。</p>
+</div>
+
+<h3 class="grp">客服 Agent</h3>
+<div class="item">
+  <p>· <b>RAG 是前提</b>（P5），否则知识只能硬编码在提示词里。</p>
+  <p>· <b>工具分级很关键</b>：查订单、查物流可以自动执行；发券、退款必须转人工确认。这正是 P2 授权等级的用武之地。</p>
+  <p>· <b>兜底要诚实</b>：答不上来就说「这个我不确定，帮您转人工」，不要编。宁可转人工率高一点，也不要一次错误答复。</p>
+  <p>· <b>会话质检</b>：每天抽样若干条，用另一个模型打分，低分的进人工复核。</p>
+  <p>· <b>合规</b>：C 端对话建议只走境内模型。</p>
+</div>
+
+<h2 class="sec">建议的路线</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>阶段</th><th>内容</th><th>产出</th></tr>
+<tr><td class="c"><span class="tier t1">一期</span></td><td>P1 多 Agent 模型 + P2 工具层骨架 + P3 模型路由（先接 2~3 家）+ P4 密钥与成本</td><td>内容管理 Agent 真正跑起来，把存量草稿处理掉</td></tr>
+<tr><td class="c"><span class="tier t2">二期</span></td><td>P5 RAG（先关键词版）+ P6 多轮记忆 + P8 可观测</td><td>客服 Agent 从「靠提示词」变成「靠知识库」</td></tr>
+<tr><td class="c"><span class="tier t2">三期</span></td><td>页面搭建 Agent（结构化输出 + 校验重试 + 分步生成 + 预览）</td><td>一句话生成可编辑页面初稿</td></tr>
+<tr><td class="c"><span class="tier t3">四期</span></td><td>P7 评测体系 + 灰度 A/B + 注入防护补全</td><td>从「能用」到「能持续优化」</td></tr>
+</table>
+</div>
+<p class="secnote">P7 评测虽然排在四期，但<b>建议一期就先建一个最简版</b>（每个 Agent 20 条评测集 + 手动跑）。等到三个 Agent 都上线再补，那时改任何提示词都会变成不敢动的状态。</p>
+
+<h2 class="sec">三个「别做」</h2>
+<ul>
+  <li><b>别做「什么都能干」的通用 Agent。</b>按岗位定义能力边界，一个岗位一套工具授权。通用 Agent 的结果通常是什么都干不好，而且没法授权——因为你不知道它会去动什么。</li>
+  <li><b>别让 Agent 直接操作生产数据。</b>永远走「产出 → 审核 → 应用」，哪怕将来提权到自动执行，也要保留完整留痕和一键回滚。</li>
+  <li><b>别一上来接十家模型。</b>先接 2~3 家（一个境内主力、一个境外强模型、一个便宜的批量模型）把适配层跑通。函数调用格式的差异比想象中麻烦，接第四家时你会庆幸前三家的抽象做对了。</li>
+</ul>
+
+<footer>
+  本建议基于 2026-08-22 的代码实况：<span class="loc">mp_agent_config</span> 为单例配置（模型/提示词/温度/知识库/版本/连通性测试），调用走 OpenAI 兼容 <span class="loc">/chat/completions</span>；知识库无检索实现、对话无历史、API Key 明文存储——这三点已在文首说明。<span class="loc">mp_agent_version</span>、<span class="loc">mp_ai_conversation</span>（含转人工标记）、页面 DSL 校验与 preflight 均可作为新架构的复用基础。
+</footer>
+
+</div>
+</body>
+</html>

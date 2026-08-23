@@ -196,6 +196,9 @@
         <mp-html
           wx:if="{{article.content || article.body}}"
           content="{{article.content || article.body}}"
+          container-style="{{bodyContainerStyle}}"
+          tag-style="{{bodyTagStyle}}"
+          scroll-table
           lazy-load
           selectable
           show-img-menu

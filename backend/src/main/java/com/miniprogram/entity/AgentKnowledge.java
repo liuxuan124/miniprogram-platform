@@ -1,7 +1,6 @@
 package com.miniprogram.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -22,14 +21,20 @@ public class AgentKnowledge implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** V25 无此列，避免 INSERT/SELECT 把 config_id 带上 */
-    @TableField(exist = false)
     private Long configId;
+
+    /** file|content|qa|product|manual */
+    private String sourceType;
+
+    private Long sourceId;
 
     private String fileName;
     private Long fileSize;
     private String fileUrl;
     private String vectorStatus;
+    private String statusMessage;
+    private Integer chunkCount;
+    private LocalDateTime lastSyncedAt;
     private BigDecimal recallWeight;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

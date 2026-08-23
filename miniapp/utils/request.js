@@ -6,6 +6,14 @@ const { AuthUtil } = require('./auth')
 // ========== 配置 ==========
 const PROD_BASE_URL = 'https://api.zfculture.site'
 
+function resolveDevelopBaseUrl() {
+  try {
+    return require('./dev-config').resolveDevelopBaseUrl()
+  } catch (e) {
+    return 'http://127.0.0.1:8080'
+  }
+}
+
 function resolveBaseUrl() {
   try {
     const custom = wx.getStorageSync('api_base_url')
@@ -18,7 +26,7 @@ function resolveBaseUrl() {
   try {
     const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
     if (envVersion === 'develop') {
-      return 'http://127.0.0.1:8080'
+      return resolveDevelopBaseUrl()
     }
   } catch (e) {
     // ignore

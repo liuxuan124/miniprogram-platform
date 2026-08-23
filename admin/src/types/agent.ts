@@ -18,6 +18,11 @@ export interface AgentConfig {
   version: number
   createdAt?: string
   updatedAt?: string
+  role?: string
+  toolGrants?: string
+  dailyTokenBudget?: number
+  overBudgetAction?: string
+  evalCases?: unknown[] | string
 }
 
 export interface AgentConfigPayload {
@@ -35,6 +40,26 @@ export interface AgentConfigPayload {
   enableRecommend?: boolean
   enableProactive?: boolean
   memoryType?: string
+  role?: string
+  toolGrants?: string
+  dailyTokenBudget?: number
+  overBudgetAction?: string
+  evalCases?: string
+}
+
+export interface AgentRoleCard {
+  role: string
+  name: string
+  configured: boolean
+  activeConfigId?: number | null
+  model?: string
+  version?: number
+  updatedAt?: string
+  fallbackTo?: string
+  comingSoon?: boolean
+  todayCalls?: number
+  todayTokens?: number
+  todayCost?: number
 }
 
 export interface AgentKnowledgeItem {

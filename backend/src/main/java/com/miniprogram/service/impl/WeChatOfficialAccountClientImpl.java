@@ -32,6 +32,7 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
     private static final String GET_ARTICLE_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/getarticle";
     private static final String DRAFT_BATCH_GET_URL = "https://api.weixin.qq.com/cgi-bin/draft/batchget";
     private static final String GET_MATERIAL_URL = "https://api.weixin.qq.com/cgi-bin/material/get_material";
+    private static final String BATCH_GET_MATERIAL_URL = "https://api.weixin.qq.com/cgi-bin/material/batchget_material";
 
     private final SystemConfigService systemConfigService;
 
@@ -179,6 +180,17 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
         }
         byte[] bytes = response.bodyBytes();
         return bytes == null || bytes.length == 0 ? null : bytes;
+    }
+
+    @Override
+    public JSONObject batchGetMaterials(String type, int offset, int count) {
+        String materialType = StringUtils.hasText(type) ? type : "image";
+        int safeCount = Math.min(Math.max(count, 1), 20);
+        JSONObject body = JSONUtil.createObj()
+                .set("type", materialType)
+                .set("offset", Math.max(offset, 0))
+                .set("count", safeCount);
+        return postWithToken(BATCH_GET_MATERIAL_URL, body);
     }
 
     private JSONObject postWithToken(String baseUrl, JSONObject body) {

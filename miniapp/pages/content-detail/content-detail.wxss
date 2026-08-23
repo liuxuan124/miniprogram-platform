@@ -672,21 +672,7 @@
 }
 
 .a-body {
-  font-size: 32rpx;
-  line-height: 1.88;
-  color: #39404f;
   max-width: 100%;
-}
-
-.a-body rich-text {
-  width: 100%;
-  word-break: break-word;
-}
-
-.a-body rich-text image {
-  max-width: 100%;
-  border-radius: 16rpx;
-  margin: 16rpx 0 24rpx;
 }
 
 .detail-tags {

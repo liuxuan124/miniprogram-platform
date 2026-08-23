@@ -114,6 +114,13 @@
             <version>${hutool.version}</version>
         </dependency>
 
+        <!-- HTML 解析（内容 Agent 质检/排版） -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

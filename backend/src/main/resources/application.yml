@@ -72,6 +72,11 @@ wx:
     notify-url: ${WX_PAY_NOTIFY_URL:https://your-domain.com/api/v1/mp/payments/wx-notify}
     refund-notify-url: ${WX_PAY_REFUND_NOTIFY_URL:https://your-domain.com/api/v1/mp/payments/wx-refund-notify}
 
+# 上传文件（生产务必用绝对路径 FILE_UPLOAD_DIR，避免相对路径随 cwd 漂移）
+file:
+  upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+  base-url: ${FILE_BASE_URL:http://localhost:8080}
+
 # 小程序代码推送
 miniapp:
   project-root: ${MINIAPP_PROJECT_ROOT:}

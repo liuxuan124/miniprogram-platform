@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>导入样式还原改动方案</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1020px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--bad);
+    border-radius:10px;padding:20px 22px;margin-bottom:26px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:40px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h3{margin:0 0 9px;font-size:16px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.bad{background:var(--bad)} .n.warn{background:var(--warn)} .n.ok{background:var(--ok)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  .file{font-family:ui-monospace,Menlo,monospace;font-size:12.6px;font-weight:600}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.4px;line-height:1.6}
+  pre .del{color:#ff9a9a} pre .add{color:#9ae6b4}
+  .why{border-top:1px dashed var(--line);margin-top:11px;padding-top:9px;font-size:14px}
+  .why b{color:var(--ok)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:660px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .danger{background:#fef7f7;border:1px solid #f0c2c2;border-radius:9px;padding:14px 16px;margin:14px 0}
+  .danger b{color:var(--bad)}
+  ol,ul{padding-left:20px} li{margin-bottom:6px}
+  .chk{list-style:none;padding-left:0} .chk li{padding-left:24px;position:relative}
+  .chk li:before{content:"☐";position:absolute;left:4px;color:var(--muted)}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>公众号导入内容：样式还原改动方案</h1>
+<div class="sub">交付给开发执行 · 2026-08-22 · 解决「导入后与公众号原文差距很大」</div>
+
+<div class="lead">
+  <h2>结论：不是微信排版太复杂，是导入链路上有三处代码在主动删内容，其中两处是 bug</h2>
+  <p>排查结果：<b>正文图片的地址被删光了</b>（最致命，整篇图片消失）、<b>文章开头被整段裁掉</b>、<b>开头一到两张图被当作 banner 删除</b>，另外<b>排版参数完全没对齐</b>（mp-html 的 container-style / tag-style 一个都没传，且旧的图片样式选择器已失效）。</p>
+  <p>前四项都能修好，第一项<b>改一行正则就能让图片全部回来</b>。第五项（公众号内嵌视频、style 块、伪元素）属于渲染器能力边界，只能降级处理。</p>
+  <p class="secnote">另外：这套清洗逻辑在 <span class="file">miniapp/utils/article-content.js</span> 和 <span class="file">admin/src/utils/article-content.ts</span> 各写了一份，逻辑完全相同。<b>每一处改动两边都要同步改</b>，否则后台预览与真机会不一致。</p>
+</div>
+
+<div class="danger">
+  <b>⚠ 施工顺序警告：R1 和 R3 必须在同一批次改，不能只改 R1。</b><br>
+  现在 <span class="loc">stripLeadingBannerImages</span> 用的正则要求 <span class="loc">src=</span>，而公众号图片只有 <span class="loc">data-src</span>，所以它<b>目前根本没生效</b>。一旦按 R1 把 data-src 改写成 src，这个删图逻辑会<b>立刻被激活</b>——图片刚回来就又被删掉首图。两项必须一起上线。
+</div>
+
+<h2 class="sec">改动一览</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>编号</th><th>问题</th><th>改哪里</th><th>成本</th></tr>
+<tr><td class="c">R1</td><td>正文图片全部不显示</td><td>后端 <span class="file">WeChatOfficialAccountContentSyncServiceImpl:54</span></td><td>1 行</td></tr>
+<tr><td class="c">R2</td><td>文章开头被整段裁掉</td><td>两端 <span class="file">article-content.js/ts</span> 的 <span class="loc">stripWechatEditorPreamble</span></td><td>0.5 天</td></tr>
+<tr><td class="c">R3</td><td>开头 1~2 张图被删</td><td>两端 <span class="loc">prepareArticleContentHtml</span></td><td>0.5 小时</td></tr>
+<tr><td class="c">R4</td><td>字号行距与图片样式不对</td><td><span class="file">content-detail.wxml:196</span> + <span class="file">.wxss:674-690</span></td><td>0.5 天</td></tr>
+<tr><td class="c">R5</td><td>内嵌视频等元素丢失</td><td>降级提示，非修复</td><td>0.5 天</td></tr>
+</table>
+</div>
+
+<h2 class="sec">R1　正文图片全部不显示 <span class="n bad">最高优先级</span></h2>
+<div class="item">
+  <h3>成因</h3>
+  <p>公众号正文的图片标签通常是 <span class="loc">&lt;img data-src="https://mmbiz.qpic.cn/..." class="rich_pages" style="..."&gt;</span>——<b>只有 <span class="loc">data-src</span>，没有 <span class="loc">src</span></b>（微信自己的懒加载机制）。</p>
+  <p>链路在两个地方接不上：</p>
+  <ol>
+    <li>后端 <span class="loc">rewriteHtmlImages</span>（1047~1066 行）把 <span class="loc">data-src</span> 的<b>值</b>换成转存后的本地地址，但<b>属性名原样保留</b>，仍是 <span class="loc">data-src</span>。</li>
+    <li>小程序端 <span class="file">miniapp/utils/article-content.js:165</span> 的 <span class="loc">cleanupWechatEditorMarkup</span> 有一行 <span class="loc">.replace(/\sdata-[a-z0-9-]+="[^"]*"/gi, '')</span>，<b>把所有 data-* 属性删光</b>。</li>
+  </ol>
+  <p>结果：<span class="loc">&lt;img&gt;</span> 既没有 <span class="loc">src</span> 也没有 <span class="loc">data-src</span>，<b>整篇文章的图片全部消失</b>。</p>
+  <p class="secnote">这也解释了为什么「贴图形式还行、文章形式差得远」——这套清洗只在 <span class="loc">!isNote</span> 时执行（<span class="file">content-detail.js:326</span>），笔记不走这条路。</p>
+  <h3>改法</h3>
+  <p>在后端<b>输出时统一把属性名规范化为 <span class="loc">src</span></b>。修改 <span class="file">WeChatOfficialAccountContentSyncServiceImpl</span>：</p>
+  <pre>// 第 54 行：正则增加一个捕获组，把属性名单独捕获出来
+<span class="del">- "(&lt;img[^&gt;]*?\\s(?:src|data-src)\\s*=\\s*[\"'])([^\"']+)([\"'][^&gt;]*&gt;)"</span>
+<span class="add">+ "(&lt;img[^&gt;]*?\\s)(?:src|data-src)(\\s*=\\s*[\"'])([^\"']+)([\"'][^&gt;]*&gt;)"</span>
+
+// rewriteHtmlImages（1051 行）里改写时固定输出 src
+<span class="add">+ String replacement = prefix + "src" + eq + mirrored + suffix;</span></pre>
+  <p><b>注意</b>：<span class="loc">IMG_SRC_PATTERN</span> 还被 <span class="loc">extractImageUrlsFromHtml</span>（969 行）使用，改捕获组编号后<b>那里的 <span class="loc">group(2)</span> 要同步改成 <span class="loc">group(3)</span></b>，否则取到的是等号而不是 URL。这是最容易漏的一处。</p>
+  <p><b>兜底</b>：前端 <span class="loc">cleanupWechatEditorMarkup</span> 的 data-* 清理保留，但<b>把 data-src 排除在外</b>，防止历史已入库的数据仍是 data-src：</p>
+  <pre><span class="del">- .replace(/\sdata-[a-z0-9-]+="[^"]*"/gi, '')</span>
+<span class="add">+ .replace(/\sdata-src=(["'])([^"']*)\1/gi, ' src=$1$2$1')   // 先转成 src</span>
+<span class="add">+ .replace(/\sdata-[a-z0-9-]+="[^"]*"/gi, '')                // 再清其余 data-*</span></pre>
+  <p class="why"><b>存量数据处理：</b>已经导入的 6 篇（以及后续的）正文里存的是 data-src。上面的前端兜底能让它们正常显示；如果想彻底清干净，写一个一次性 SQL 或脚本把 <span class="loc">mp_content.content</span> 里的 <span class="loc">data-src=</span> 批量替换成 <span class="loc">src=</span> 即可，改动幂等。</p>
+</div>
+
+<h2 class="sec">R2　文章开头被整段裁掉</h2>
+<div class="item">
+  <h3>成因</h3>
+  <p><span class="loc">stripWechatEditorPreamble</span>（<span class="file">article-content.js:122</span>）的逻辑是：只要正文前 12000 字符内出现 <span class="loc">&lt;h2&gt;</span> 且不在开头，就执行</p>
+  <pre>return result.slice(sectionStart >= 0 ? sectionStart : h2Index)</pre>
+  <p>也就是<b>从第一个 h2 之前最近的 <span class="loc">&lt;section&gt;</span> 处直接截断，前面全丢</b>。对于「导语 + 首图 + 小标题」这种最常见的结构，开头的导语和首图会被整块删除。</p>
+  <p>而且函数里的判断规则是<b>针对某一个特定模板硬编码的</b>——它在找 <span class="loc">周报|WEEKLY|第\d+期</span> 关键词，还有一条写死的背景色 <span class="loc">#2A1F14</span>。这明显是当初为某个号的固定版式调的，套到普通文章上就变成了误删。</p>
+  <h3>改法</h3>
+  <p><b>把「默认裁剪」改成「命中特征才裁剪」</b>：</p>
+  <ol>
+    <li>删掉最后那句无条件的 <span class="loc">return result.slice(...)</span> 兜底——只有 <span class="loc">looksLikeMasthead</span> 为 true 时才裁。</li>
+    <li><span class="loc">looksLikeMasthead</span> 的判定条件收紧：必须<b>同时</b>满足「h2 之前的纯文本 ≤ 300 字」且「与标题高度重合或命中刊头关键词」。现在的 900 字上限太宽松。</li>
+    <li>硬编码的 <span class="loc">周报|WEEKLY|第\d+期</span> 和 <span class="loc">#2A1F14</span> 抽成配置项，见下面的「配置化建议」。</li>
+    <li>保留 <span class="loc">removeDuplicateBodyHeadings</span>（去掉与标题重复的 h1）——这条是合理的，误伤概率低。</li>
+  </ol>
+  <p class="why"><b>判断原则：</b>删内容这件事，<b>宁可少删也不要多删</b>。多留一段刊头，运营看一眼就能手动删；删错了正文，运营根本不知道丢了什么。</p>
+</div>
+
+<h2 class="sec">R3　开头 1~2 张图被当作 banner 删除</h2>
+<div class="item">
+  <h3>成因</h3>
+  <p><span class="loc">prepareArticleContentHtml</span> 里调用 <span class="loc">stripLeadingBannerImages(out, 2)</span>：<b>无条件删掉开头第一张图</b>（<span class="loc">i === 0</span> 分支直接删），第二张图在剩余正文 ≥ 60 字时也删。作者习惯用大图开篇的话，那张图就没了。</p>
+  <h3>改法</h3>
+  <p>默认关闭，改为可配置：</p>
+  <pre><span class="del">- out = stripLeadingBannerImages(out, 2)</span>
+<span class="add">+ out = stripLeadingBannerImages(out, options.stripBanner ?? 0)   // 默认不删</span></pre>
+  <p>同时 <span class="loc">stripLeadingDuplicateCoverImages</span>（删与封面重复的首图）<b>保留</b>——这条判断有明确依据（URL 与封面相同），误伤概率低，而且能避免封面和首图重复展示。</p>
+  <div class="danger" style="margin-top:12px">
+    <b>再次提醒：</b>该函数的正则 <span class="loc">LEADING_IMG_RE</span>（第 69 行）要求 <span class="loc">src=</span>。R1 生效后它才会真正开始工作——所以 R1 和 R3 必须同批上线，否则会出现「图片刚修好，首图又被删」。
+  </div>
+</div>
+
+<h2 class="sec">R4　排版参数没对齐</h2>
+<div class="item">
+  <h3>成因</h3>
+  <p><b>其一</b>：<span class="file">content-detail.wxml:196</span> 调用 mp-html 时只传了 <span class="loc">lazy-load / selectable / show-img-menu / domain</span>，而 mp-html 支持的 <span class="loc">container-style</span>、<span class="loc">tag-style</span>、<span class="loc">scroll-table</span>、<span class="loc">use-anchor</span> <b>一个都没传</b>，正文排版完全靠原文内联样式，缺失的地方用组件默认值。</p>
+  <p><b>其二</b>：<span class="file">content-detail.wxss:686</span> 的 <span class="loc">.a-body rich-text image { max-width:100%; border-radius:16rpx; margin:16rpx 0 24rpx }</span> 是给旧的 <span class="loc">&lt;rich-text&gt;</span> 写的。换成 mp-html 之后<b>页面上已经没有 rich-text 节点，这条规则永远不命中</b>——图片的宽度限制、圆角、上下间距全部失效。</p>
+  <p><b>其三</b>：<span class="loc">.a-body</span> 设的是 <span class="loc">font-size: 32rpx</span>（16px）、<span class="loc">line-height: 1.88</span>，而微信正文是 17px / 1.6 左右。</p>
+  <h3>改法</h3>
+  <p>用 mp-html 的属性传样式，<b>不要去改 wxss 选择器</b>——自定义组件有样式隔离，从页面样式去够组件内部节点既不可靠也难维护。</p>
+  <pre>&lt;mp-html
+  content="{{article.content || article.body}}"
+  container-style="{{bodyContainerStyle}}"
+  tag-style="{{bodyTagStyle}}"
+  scroll-table
+  lazy-load selectable show-img-menu domain="" /&gt;</pre>
+  <p>在 <span class="file">content-detail.js</span> 里按 <span class="loc">layoutTheme</span> 生成（正文排版主题字段 <span class="loc">layout_theme</span> 已存在，V45 加的，现有 <span class="loc">theme-magazine / minimal / large</span> 三档正好复用）：</p>
+  <pre>const BODY_STYLE = {
+  standard: {
+    container: 'font-size:34rpx;line-height:1.75;color:#2b2f38;',
+    tag: {
+      p:   'margin:0 0 24rpx;',
+      img: 'max-width:100%;border-radius:12rpx;margin:16rpx 0 24rpx;display:block;',
+      h2:  'font-size:38rpx;font-weight:700;margin:40rpx 0 20rpx;',
+      h3:  'font-size:36rpx;font-weight:600;margin:32rpx 0 16rpx;',
+      blockquote: 'border-left:6rpx solid #d5dae3;padding-left:20rpx;color:#5e6673;margin:24rpx 0;',
+      table: 'width:100%;border-collapse:collapse;',
+      td:  'border:1rpx solid #e2e6eb;padding:12rpx;',
+    },
+  },
+  magazine: { ... }, minimal: { ... }, large: { ... },
+}</pre>
+  <p>同时<b>删除</b> <span class="file">.wxss:681-690</span> 那两条已失效的 <span class="loc">.a-body rich-text</span> 规则，避免误导后来的人。</p>
+  <p class="why"><b>参数建议：</b>字号 34rpx（17px）、行高 1.75、段间距 24rpx、正文色 #2b2f38 —— 这组值接近微信正文观感。上线后拿真机对照微调即可。</p>
+</div>
+
+<h2 class="sec">R5　微信特有元素（能力边界，做降级）</h2>
+<div class="item">
+  <p>mp-html 的 <span class="loc">ignoreTags</span> 包含 <span class="loc">iframe / script / style / input / textarea</span> 等，所以以下内容<b>无法还原</b>，这是渲染器的边界，不是 bug：</p>
+  <ul>
+    <li>公众号内嵌视频（<span class="loc">iframe</span> / <span class="loc">mpvoice</span> 音频）</li>
+    <li><span class="loc">&lt;style&gt;</span> 块里定义的类样式（只有内联 style 生效）</li>
+    <li>伪元素装饰、部分绝对定位与复杂 flex 排版</li>
+    <li>投票、小程序卡片、名片等微信独有组件</li>
+  </ul>
+  <h3>建议做法</h3>
+  <ol>
+    <li><b>导入时检测并标记</b>：正文含 iframe/mpvoice/style 块时，在导入结果里列为「需人工处理」，而不是静默丢弃。这一条可以直接并入内容管理 Agent 的「导入质检」任务。</li>
+    <li><b>视频降级</b>：把 iframe 的 src 提取出来存进 <span class="loc">video_url</span> 字段（V45 已有），详情页用原生 <span class="loc">&lt;video&gt;</span> 播放——很多公众号视频其实能提取到直链。</li>
+    <li><b>其余情况</b>：在编辑页给出提示「本文含微信特有元素 N 处，建议人工调整」，让运营心里有数。</li>
+  </ol>
+</div>
+
+<h2 class="sec">配置化建议（避免下次又写死）</h2>
+<div class="item">
+  <p>把清洗策略做成后台可配，放在<b>系统设置 → 内容导入</b>下，而不是硬编码在代码里：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>配置项</th><th>默认值</th><th>说明</th></tr>
+    <tr><td class="c">删除开头图片数</td><td>0</td><td>0=不删；用大图开篇的号设 1</td></tr>
+    <tr><td class="c">裁剪刊头</td><td>关</td><td>开启后才执行 R2 的截断</td></tr>
+    <tr><td class="c">刊头关键词</td><td>空</td><td>逗号分隔，替代写死的「周报/WEEKLY/第N期」</td></tr>
+    <tr><td class="c">刊头背景色</td><td>空</td><td>替代写死的 #2A1F14</td></tr>
+    <tr><td class="c">去除与标题重复的 h1</td><td>开</td><td>这条误伤低，保持默认开</td></tr>
+    <tr><td class="c">正文排版主题</td><td>standard</td><td>已有 layout_theme 字段，作为导入默认值</td></tr>
+  </table>
+  </div>
+  <p class="why"><b>为什么值得做：</b>不同公众号的版式差异很大，写死任何一套规则都会在另一个号上翻车。做成配置后，换客户只改配置不改代码。</p>
+</div>
+
+<h2 class="sec">验收标准</h2>
+<p class="secnote">测试方法：挑 3 篇结构不同的原文——① 导语+首图+多个小标题 ② 纯图文混排无小标题 ③ 含表格或引用块——导入后与公众号原文<b>并排截图对比</b>。</p>
+<ul class="chk">
+  <li>正文所有图片正常显示，不再有空白占位</li>
+  <li>文章开头的导语段落完整保留，没有被截断</li>
+  <li>开篇大图保留（配置为不删时）</li>
+  <li>封面与正文首图重复时，正文首图仍被正确去重</li>
+  <li>正文字号、行距、段间距与公众号原文观感接近</li>
+  <li>图片有圆角与上下间距，宽度不溢出屏幕</li>
+  <li>含表格的文章，表格可横向滚动不挤压</li>
+  <li>已导入的存量内容（那 6 篇）刷新后图片也能显示</li>
+  <li>后台预览面板与真机效果一致（两端逻辑同步改到位）</li>
+  <li>含 iframe 视频的文章，导入结果里被标记为「需人工处理」</li>
+</ul>
+
+<h2 class="sec">工作量与顺序</h2>
+<ol>
+  <li><b>R1 + R3 同批</b>（后端 1 行 + <span class="loc">extractImageUrlsFromHtml</span> 组号 + 两端前端兜底与开关）：约 <b>2 小时</b>。<b>先做这个，效果最直观。</b></li>
+  <li><b>R4</b>（mp-html 传参 + 四套主题样式 + 清理失效 wxss）：约 <b>0.5 天</b></li>
+  <li><b>R2</b>（收紧裁剪逻辑，两端同步）：约 <b>0.5 天</b></li>
+  <li><b>配置化 + R5 降级标记</b>：约 <b>0.5 天</b></li>
+  <li><b>三篇对照验收</b>：约 <b>2 小时</b></li>
+</ol>
+<p>合计约 <b>2 人天</b>。</p>
+
+<footer>
+  本方案基于 2026-08-22 的代码实况撰写，所有文件路径与行号可直接定位：后端 <span class="file">WeChatOfficialAccountContentSyncServiceImpl</span>（54 / 969 / 1047-1066 行），前端 <span class="file">miniapp/utils/article-content.js</span>（69 / 103 / 122 / 163 / 170 行）与镜像文件 <span class="file">admin/src/utils/article-content.ts</span>（93 / 120 / 163 / 174 行），渲染 <span class="file">content-detail.wxml:196</span> 与 <span class="file">content-detail.wxss:674-690</span>。
+</footer>
+
+</div>
+</body>
+</html>

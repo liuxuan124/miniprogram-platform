@@ -26,6 +26,9 @@ public class AgentConfig implements Serializable {
     @Schema(description = "配置名称")
     private String name;
 
+    @Schema(description = "Agent 角色 service=客服 content_ops=内容员工")
+    private String role;
+
     @Schema(description = "模型名称")
     @TableField("model_name")
     private String model;
@@ -66,6 +69,18 @@ public class AgentConfig implements Serializable {
 
     @Schema(description = "对话记忆")
     private String memoryType;
+
+    @Schema(description = "工具授权 JSON")
+    private String toolGrants;
+
+    @Schema(description = "日 token 预算")
+    private Integer dailyTokenBudget;
+
+    @Schema(description = "超支行为 warn/stop")
+    private String overBudgetAction;
+
+    @Schema(description = "评测用例 JSON")
+    private String evalCases;
 
     @Schema(description = "状态 0=禁用 1=启用")
     private Integer status;

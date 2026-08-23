@@ -12,7 +12,7 @@ import java.util.Map;
 
 public interface AgentConfigService extends BaseService<AgentConfig> {
 
-    PageResult<AgentConfigVO> listConfigs(String keyword, Long current, Long size);
+    PageResult<AgentConfigVO> listConfigs(String keyword, String role, Long current, Long size);
 
     AgentConfigVO createConfig(AgentConfigDTO dto);
 
@@ -27,6 +27,15 @@ public interface AgentConfigService extends BaseService<AgentConfig> {
     AgentConfigVO rollbackToVersion(Integer version);
 
     AgentConfigVO getActiveConfig();
+
+    AgentConfigVO getActiveConfigByRole(String role);
+
+    List<Map<String, Object>> listRoles();
+
+    Map<String, Object> costStats(String role);
+
+    /** 内容 Agent 专用：返回 answer + mode + estimatedTokens */
+    Map<String, Object> chatForRole(String role, String systemPrompt, String userPrompt, Integer maxTokens);
 
     Map<String, Object> testConnection(AgentConfigDTO dto);
 

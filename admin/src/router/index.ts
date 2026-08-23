@@ -439,9 +439,21 @@ export const asyncRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'agent',
-        name: 'AiAgent',
-        component: () => import('@/views/ai/agent/index.vue'),
+        name: 'AiAgentList',
+        component: () => import('@/views/ai/agent/list.vue'),
         meta: { title: '智能 Agent', icon: 'MagicStick', roles: ['super_admin'] },
+      },
+      {
+        path: 'agent/:role',
+        name: 'AiAgentConfig',
+        component: () => import('@/views/ai/agent/index.vue'),
+        meta: { title: 'Agent 配置', hidden: true, roles: ['super_admin'] },
+      },
+      {
+        path: 'knowledge',
+        name: 'AiKnowledge',
+        component: () => import('@/views/ai/knowledge/index.vue'),
+        meta: { title: '知识库管理', icon: 'Collection', roles: ['super_admin'] },
       },
     ],
   },

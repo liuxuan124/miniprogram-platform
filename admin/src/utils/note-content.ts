@@ -49,7 +49,7 @@ export function buildNoteGalleryUrls(cover?: string, images?: string[]): string[
 export function extractImagesFromHtml(html: string): string[] {
   const urls: string[] = []
   const source = String(html || '')
-  const re = /<img[^>]+src=["']([^"']+)["']/gi
+  const re = /<img[^>]+(?:src|data-src)=["']([^"']+)["']/gi
   let match: RegExpExecArray | null
   while ((match = re.exec(source)) !== null) {
     const url = String(match[1] || '').trim()
