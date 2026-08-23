@@ -41,4 +41,9 @@ public interface WeChatOfficialAccountClient {
      * 下载永久素材（图片类型返回二进制，失败返回 null）
      */
     byte[] downloadPermanentImage(String mediaId);
+
+    /**
+     * 分页拉取永久素材列表（type: image/video/voice/news）
+     */
+    JSONObject batchGetMaterials(String type, int offset, int count);
 }

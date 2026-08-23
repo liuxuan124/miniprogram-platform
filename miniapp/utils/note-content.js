@@ -37,7 +37,7 @@ function mediaUrlDedupeKey(url) {
 function extractImagesFromHtml(html) {
   const urls = []
   const source = String(html || '')
-  const re = /<img[^>]+src=["']([^"']+)["']/gi
+  const re = /<img[^>]+(?:src|data-src)=["']([^"']+)["']/gi
   let match
   while ((match = re.exec(source)) !== null) {
     const url = String(match[1] || '').trim()

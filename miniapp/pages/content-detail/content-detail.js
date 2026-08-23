@@ -18,6 +18,7 @@ const {
   formatReadTimeLabel,
   isDisplayableCategory,
   prepareArticleContentHtml,
+  buildMpHtmlBodyStyles,
 } = require('../../utils/article-content')
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 
@@ -217,6 +218,8 @@ Page({
     formatLabel: '长文',
     topicName: '',
     layoutTheme: 'standard',
+    bodyContainerStyle: '',
+    bodyTagStyle: {},
     videoUrl: '',
     articleMetaLine: '',
     articleLede: '',
@@ -327,6 +330,7 @@ Page({
           : withProducts
         const videoUrl = resolveMediaUrl(article.videoUrl || article.video_url || '')
         const layoutTheme = String(article.layoutTheme || article.layout_theme || 'standard')
+        const bodyStyles = buildMpHtmlBodyStyles(layoutTheme)
         const extras = (Array.isArray(article.images) ? article.images : (Array.isArray(article.gallery) ? article.gallery : []))
           .map((url) => resolveMediaUrl(url))
           .filter(Boolean)
@@ -442,6 +446,8 @@ Page({
           formatLabel: fmt.label,
           topicName,
           layoutTheme,
+          bodyContainerStyle: bodyStyles.container,
+          bodyTagStyle: bodyStyles.tag,
           videoUrl,
           gallerySlides,
           galleryIndex: 0,

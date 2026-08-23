@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容管理 Agent 设计</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8;--p:#6d28d9}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1020px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--p);
+    border-radius:10px;padding:20px 22px;margin-bottom:26px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:40px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  h3.grp{font-size:16px;margin:26px 0 10px;color:var(--b)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h4{margin:0 0 9px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.ok{background:var(--ok)} .n.warn{background:var(--warn)} .n.p{background:var(--p)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.4px;line-height:1.6}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:660px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .lv{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;color:#fff}
+  .l1{background:var(--ok)} .l2{background:var(--warn)} .l3{background:var(--bad)}
+  ol,ul{padding-left:20px} li{margin-bottom:6px}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>内容管理 Agent：设计方案</h1>
+<div class="sub">把 AI 从「客服问答」扩展为「能在内容库里干活的员工」· 2026-08-22</div>
+
+<div class="lead">
+  <h2>核心主张：它是个「员工」，不是「聊天框」——所以设计的重点不是提示词，是授权边界和审核动线</h2>
+  <p>你现在内容库里 6 篇导入的文章，状态全是<b>草稿 / 未分类</b>。这就是 Agent 最该干的活：分类、打标签、写摘要、查排版问题、补 SEO。这些活单调、重复、有明确对错，正好是 AI 擅长而人不愿意干的。</p>
+  <p>但一个能改内容库的 AI，做错了代价也是真实的——分类错了影响频道展示，改了正文可能把原意改没，误发布就直接到用户面前。所以整套设计围绕三件事展开：<b>它能做什么（任务清单）、它能改到什么程度（三层授权）、改完谁点头（审核动线）</b>。</p>
+  <p>好消息是底子现成：已有的 <span class="loc">mp_agent_config</span> 有模型配置、系统提示词、知识库、版本管理和连通性测试，调用走的是 OpenAI 兼容的 <span class="loc">/chat/completions</span>。这次是<b>在它上面加一个角色维度和一套任务系统</b>，不是从零建。</p>
+</div>
+
+<h2 class="sec">一、三层授权模型（整个设计的骨架）</h2>
+<p class="secnote">每个任务单独配授权等级，默认全部 L1。跑顺了再逐个提权——这个顺序不要反。</p>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>等级</th><th>能做什么</th><th>典型任务</th><th>风险</th></tr>
+<tr><td class="c"><span class="lv l1">L1 只读</span></td><td>只产出建议和问题清单，<b>不写任何字段</b></td><td>排版质检、合规预检、选题建议、效果复盘</td><td>几乎为零，可以放心开</td></tr>
+<tr><td class="c"><span class="lv l2">L2 改草稿</span></td><td>可写<b>草稿状态</b>内容的元数据字段：<span class="loc">categoryId / tags / summary / seoTitle / seoDescription / coverImage / layoutTheme</span>；正文改动必须走 diff 审核</td><td>自动分类、打标签、生成摘要与 SEO、排版规范化</td><td>可控，改错了在草稿里，且可回滚</td></tr>
+<tr><td class="c"><span class="lv l3">L3 可发布</span></td><td>可改 <span class="loc">status / isPinned / isRecommended / scheduledAt</span>，即能让内容出现在用户面前</td><td>定时发布、自动上架、推荐位编排</td><td>高。建议前三个月<b>不要开</b></td></tr>
+</table>
+</div>
+
+<p>再叠一层<b>禁改清单</b>（无论什么等级都不许动）：商品价格与优惠券相关文案、订单/支付说明、法律与资质声明、已发布内容的正文。这类内容改错的后果不是"不好看"，是纠纷。</p>
+
+<h2 class="sec">二、任务清单</h2>
+<p class="secnote">按你当前最痛的顺序排。每条都标了建议的授权等级和是否需要调模型——规则能解决的绝不调模型，又快又准还省钱。</p>
+
+<h3 class="grp">A 组 · 入库体检（直接对应你刚遇到的排版问题）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>#</th><th>任务</th><th>做什么</th><th>授权</th><th>调模型</th></tr>
+<tr><td>A1</td><td class="c">导入质检</td><td>扫描正文，报出：<b>图片无 src（图片丢失）</b>、开头疑似被裁、连续空段落、超长段落（&gt;500 字无分段）、正文 h1 与标题重复、图片指向 localhost 或外域、缺封面、正文过短</td><td><span class="lv l1">L1</span></td><td>否（正则）</td></tr>
+<tr><td>A2</td><td class="c">排版规范化</td><td>统一段间距与字号、清理空 <span class="loc">&lt;section&gt;</span> 与冗余 span、图片补 alt、标题层级归一（h1→h2）、中英文间距、全半角标点统一</td><td><span class="lv l2">L2</span></td><td>否（规则）+ 可选模型润色</td></tr>
+<tr><td>A3</td><td class="c">合规预检</td><td>调已接入的 <span class="loc">msgSecCheck</span> + 违禁词库（绝对化用语「最」「第一」、医疗功效、金融收益承诺、竞品攻击）</td><td><span class="lv l1">L1</span></td><td>否 + 模型兜底判语境</td></tr>
+</table>
+</div>
+<p class="secnote">A1 建议做成<b>导入完成后自动触发</b>：导完 187 篇，直接给一张"32 篇有问题"的清单，比人工一篇篇点开看强得多。</p>
+
+<h3 class="grp">B 组 · 元数据补全（你截图里 6 篇全是「未分类」）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>#</th><th>任务</th><th>做什么</th><th>授权</th><th>调模型</th></tr>
+<tr><td>B1</td><td class="c">自动分类</td><td>读现有分类树 + 正文，给出分类 + <b>置信度</b>。置信度低于阈值不自动填，转人工</td><td><span class="lv l2">L2</span></td><td>是</td></tr>
+<tr><td>B2</td><td class="c">自动打标签</td><td><b>优先复用已有标签库</b>，确实没有再建新标签，单篇上限 5 个——不加这条约束标签会爆炸</td><td><span class="lv l2">L2</span></td><td>是</td></tr>
+<tr><td>B3</td><td class="c">摘要与 SEO</td><td>生成 <span class="loc">summary</span>（列表页用）、<span class="loc">seoTitle</span>、<span class="loc">seoDescription</span>、以及三种长度的分享文案（微信卡片 / 朋友圈 / 社群）</td><td><span class="lv l2">L2</span></td><td>是</td></tr>
+<tr><td>B4</td><td class="c">封面建议</td><td>从正文图里挑最合适的一张作封面；无图时提示需人工补</td><td><span class="lv l2">L2</span></td><td>是（多模态）或规则取首图</td></tr>
+</table>
+</div>
+
+<h3 class="grp">C 组 · 内容再生产</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>#</th><th>任务</th><th>做什么</th><th>授权</th></tr>
+<tr><td>C1</td><td class="c">一稿多态</td><td>长文 → 笔记（小红书风多图短文）/ 动态 / 朋友圈文案 / 口播稿。一篇内容吃干榨净，这是投产比最高的一条</td><td><span class="lv l2">L2</span> 落草稿</td></tr>
+<tr><td>C2</td><td class="c">选题与初稿</td><td>基于知识库 + <b>搜索无结果词</b> + 热搜词生成选题列表；选定后写初稿。<b>永远只落草稿</b></td><td><span class="lv l2">L2</span></td></tr>
+<tr><td>C3</td><td class="c">旧文焕新</td><td>把半年前的文章按新政策更新，<b>明确标注哪些地方需要人工核实</b>（政策类内容 AI 最容易编）</td><td><span class="lv l1">L1</span> 出建议</td></tr>
+</table>
+</div>
+<p class="secnote">C2 里"搜索无结果词"这个数据源值得强调——用户搜了但没搜到的词，就是最诚实的选题清单。<span class="loc">mp_search_log</span> 和 <span class="loc">/mp/search/insights</span> 已经在采集了，直接可用。</p>
+
+<h3 class="grp">D 组 · 运营闭环</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>#</th><th>任务</th><th>做什么</th><th>授权</th></tr>
+<tr><td>D1</td><td class="c">商品挂载建议</td><td>基于正文语义推荐挂哪些商品（<span class="loc">mp_content_product</span> 表已建好）</td><td><span class="lv l2">L2</span></td></tr>
+<tr><td>D2</td><td class="c">内容效果复盘</td><td>结合 <span class="loc">mp_analytics_event</span>，每周给一份：哪类内容阅读完成率高、哪些带来了加购、下周选题建议</td><td><span class="lv l1">L1</span></td></tr>
+<tr><td>D3</td><td class="c">发布排期建议</td><td>结合历史阅读时段分布，建议每篇的发布时间（配合已有的 <span class="loc">scheduledAt</span> 定时发布）</td><td><span class="lv l1">L1</span> → 熟了给 <span class="lv l3">L3</span></td></tr>
+</table>
+</div>
+
+<h2 class="sec">三、交互形态：任务卡片，不是对话框</h2>
+<div class="item">
+  <p>这是我认为最关键的产品判断——<b>不要做成一个聊天窗口</b>。运营要处理的是 187 篇内容，不是跟 AI 聊天。</p>
+  <p><b>动线：</b></p>
+  <pre>内容列表 → 勾选若干篇（或"全选草稿"）
+   → 点「交给 Agent」→ 选任务（可多选：分类 + 标签 + 摘要）
+   → 生成任务，后台异步跑，列表页顶部显示进度条
+   → 完成后进「待审核」→ 逐条 diff 或批量确认
+   → 采纳 / 部分采纳 / 驳回（驳回可填原因，作为下次的反馈）</pre>
+  <p><b>两种审核视图：</b></p>
+  <p>· <b>批量确认视图</b>——元数据类任务用这个。6 篇文章的分类建议一屏列完，每行「标题 / 建议分类 / 置信度 / ✓✗」，全部采纳一键搞定。</p>
+  <p>· <b>逐条 diff 视图</b>——正文改动类任务必须用这个。左原文右建议，改动高亮，支持单独接受某一处。</p>
+  <p>另外<b>保留一个对话入口</b>做兜底：选中一篇 → 「让 Agent 处理」→ 自由输入"帮我把这篇改成小红书风格，控制在 300 字"。任务化覆盖 90% 的重复劳动，对话覆盖剩下的长尾。</p>
+</div>
+
+<h2 class="sec">四、必须有的安全阀</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>机制</th><th>怎么做</th><th>为什么</th></tr>
+<tr><td class="c">全量留痕 + 回滚</td><td>每次采纳生成一条内容版本快照，可一键还原到 Agent 改动前</td><td>没有回滚就不敢授权，这是提权的前提</td></tr>
+<tr><td class="c">置信度阈值</td><td>分类/标签低于阈值（如 0.7）不自动填，强制转人工</td><td>AI 不确定时最容易一本正经地胡说</td></tr>
+<tr><td class="c">成本闸门</td><td>单篇 token 上限、日预算上限、超支自动停机并告警</td><td>批量任务 × 长文 = 账单很容易失控</td></tr>
+<tr><td class="c">幂等</td><td>同一篇 + 同一任务 + 内容未变 → 直接复用上次结果，不重复调模型</td><td>省钱，也避免同一篇给出两次不同建议</td></tr>
+<tr><td class="c">降级</td><td>模型不可用时，规则类任务（A1/A2/A3 的规则部分）照常跑</td><td>体检和规范化不该依赖模型可用性</td></tr>
+<tr><td class="c">审核时效</td><td>待审核超过 7 天提醒，30 天自动作废</td><td>避免堆积成"永远看不完的建议"</td></tr>
+<tr><td class="c">禁改清单</td><td>价格、优惠券、订单、法律声明、已发布正文——硬编码拦截</td><td>这类改错是纠纷不是瑕疵</td></tr>
+</table>
+</div>
+
+<h2 class="sec">五、技术落地</h2>
+<div class="item">
+  <h4><span class="n">复用</span>现有的东西</h4>
+  <p>· <span class="loc">mp_agent_config</span>：加一个 <span class="loc">role</span> 字段（<span class="loc">service</span>=现有客服 / <span class="loc">content_ops</span>=内容员工），每个角色一套 system_prompt 与模型参数，其余字段与版本管理机制不变。</p>
+  <p>· 知识库 <span class="loc">mp_agent_knowledge</span>：内容员工挂"品牌调性说明、行业术语表、违禁词库、往期优质文章"，用来约束文风。</p>
+  <p>· 模型调用：沿用 <span class="loc">AgentConfigServiceImpl</span> 里的 <span class="loc">/chat/completions</span> 封装与 ping 测试。</p>
+  <p>· 异步执行：<b>直接复用公众号导入改造那套线程池 + Redis 进度</b>（见《公众号内容导入改造方案》），一套机制两处用，别再造一个。</p>
+</div>
+<div class="item">
+  <h4><span class="n">新增</span>两张表 + 权限点</h4>
+  <pre>mp_agent_task          -- 任务：id / role / taskType / scope(内容ID列表) /
+                          status / total / processed / operatorId / costTokens / createdAt
+mp_agent_task_item     -- 逐条结果：taskId / contentId / field / oldValue / newValue /
+                          confidence / reviewStatus(pending|accepted|rejected) / rejectReason</pre>
+  <p>权限点：<span class="loc">content:agent</span>（发起任务）、<span class="loc">content:agent_apply</span>（采纳建议）。<b>发起和采纳要分开</b>——让编辑能发起、主编才能采纳，是个很自然的分工。</p>
+</div>
+
+<h2 class="sec">六、分期</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>期</th><th>范围</th><th>目标</th><th>估算</th></tr>
+<tr><td class="c">第一期</td><td>A1 导入质检 + B1 分类 + B2 标签 + B3 摘要SEO + 批量确认审核 UI</td><td><b>把你现在这 6 篇（以及后续导入的几百篇）从"未分类草稿"变成可发布状态</b></td><td>约 1 周</td></tr>
+<tr><td class="c">第二期</td><td>A2 排版规范化 + A3 合规预检 + C1 一稿多态 + diff 审核 UI</td><td>解决导入内容"不好看"和"不合规"</td><td>约 1.5 周</td></tr>
+<tr><td class="c">第三期</td><td>C2 选题初稿 + D1 商品挂载 + D2 效果复盘</td><td>从"处理存量"转向"生产增量"，形成闭环</td><td>约 2 周</td></tr>
+</table>
+</div>
+<p class="secnote">强烈建议第一期就把<b>留痕与回滚</b>做进去，不要留到后面——它是后续所有提权的前提。</p>
+
+<h2 class="sec">七、明确不做的事</h2>
+<ul>
+  <li><b>不做全自动发布</b>（至少前三个月）。内容直接到用户面前的路径上必须有人。</li>
+  <li><b>不做自主规划的 agent loop</b>。当前场景是明确任务的批处理，任务式设计足够且可控；让它自己决定"接下来干什么"只会增加不可预测性。</li>
+  <li><b>不做多 Agent 协作</b>。一个角色一套提示词，够用很久。</li>
+  <li><b>不做长期记忆</b>。内容处理是无状态的，每次任务独立，反而更稳定。</li>
+  <li><b>不追求一步到位的"全自动"</b>。先让它把"未分类"这件事干利索，人对它有信心了，再谈更多授权。</li>
+</ul>
+
+<footer>
+  本方案基于 2026-08-22 的代码实况设计：现有 Agent 为单例配置（<span class="loc">mp_agent_config</span> + 知识库 + 版本管理 + OpenAI 兼容调用），内容表字段（分类/标签/摘要/SEO/排版主题/置顶推荐/定时发布）均已具备，<span class="loc">mp_content_product</span>、<span class="loc">mp_search_log</span>、<span class="loc">mp_analytics_event</span> 可直接作为数据源。
+</footer>
+
+</div>
+</body>
+</html>

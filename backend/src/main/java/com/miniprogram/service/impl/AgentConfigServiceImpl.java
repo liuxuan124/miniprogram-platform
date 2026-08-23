@@ -10,18 +10,23 @@ import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.AgentConfigDTO;
 import com.miniprogram.dto.AgentConfigVO;
+import com.miniprogram.entity.AgentCallLog;
 import com.miniprogram.entity.AgentConfig;
 import com.miniprogram.entity.AgentKnowledge;
 import com.miniprogram.entity.AgentVersion;
 import com.miniprogram.entity.AiConversation;
 import com.miniprogram.entity.Product;
+import com.miniprogram.mapper.AgentCallLogMapper;
 import com.miniprogram.mapper.AgentConfigMapper;
+import com.miniprogram.mapper.AgentKnowledgeChunkMapper;
 import com.miniprogram.mapper.AgentKnowledgeMapper;
 import com.miniprogram.mapper.AgentVersionMapper;
 import com.miniprogram.mapper.AiConversationMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.service.AgentConfigService;
 import com.miniprogram.service.FileUploadService;
+import com.miniprogram.service.knowledge.KnowledgeIngestService;
+import com.miniprogram.service.knowledge.KnowledgeRetrievalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -52,18 +57,23 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final AgentKnowledgeMapper agentKnowledgeMapper;
+    private final AgentKnowledgeChunkMapper agentKnowledgeChunkMapper;
     private final AgentVersionMapper agentVersionMapper;
     private final AiConversationMapper aiConversationMapper;
     private final ProductMapper productMapper;
     private final FileUploadService fileUploadService;
     private final ObjectMapper objectMapper;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final KnowledgeIngestService knowledgeIngestService;
+    private final AgentCallLogMapper agentCallLogMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
-    public PageResult<AgentConfigVO> listConfigs(String keyword, Long current, Long size) {
+    public PageResult<AgentConfigVO> listConfigs(String keyword, String role, Long current, Long size) {
         try {
         LambdaQueryWrapper<AgentConfig> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(keyword), AgentConfig::getName, keyword);
+        wrapper.eq(StringUtils.hasText(role), AgentConfig::getRole, role);
         wrapper.orderByDesc(AgentConfig::getUpdatedAt);
 
         Page<AgentConfig> page = this.page(new Page<>(current, size), wrapper);
@@ -133,10 +143,12 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请先完善模型与提供商后再发布");
         }
 
-        // 其它配置全部下线
+        // 同角色其它配置全部下线
+        String role = StringUtils.hasText(config.getRole()) ? config.getRole() : "service";
         this.update(new LambdaUpdateWrapper<AgentConfig>()
                 .ne(AgentConfig::getId, id)
                 .eq(AgentConfig::getStatus, 1)
+                .eq(AgentConfig::getRole, role)
                 .set(AgentConfig::getStatus, 0));
 
         int nextVersion;
@@ -216,16 +228,218 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
 
     @Override
     public AgentConfigVO getActiveConfig() {
+        return getActiveConfigByRole("service");
+    }
+
+    @Override
+    public AgentConfigVO getActiveConfigByRole(String role) {
+        String r = StringUtils.hasText(role) ? role : "service";
         try {
             AgentConfig config = this.lambdaQuery()
                     .eq(AgentConfig::getStatus, 1)
+                    .eq(AgentConfig::getRole, r)
                     .orderByDesc(AgentConfig::getVersion)
                     .last("LIMIT 1")
                     .one();
+            if (config == null && "service".equals(r)) {
+                config = this.lambdaQuery()
+                        .eq(AgentConfig::getStatus, 1)
+                        .and(w -> w.isNull(AgentConfig::getRole).or().eq(AgentConfig::getRole, ""))
+                        .orderByDesc(AgentConfig::getVersion)
+                        .last("LIMIT 1")
+                        .one();
+            }
             return config == null ? null : toVO(config);
         } catch (Exception e) {
-            log.warn("getActiveConfig failed (check V35 migration): {}", e.getMessage());
+            log.warn("getActiveConfigByRole({}) failed: {}", r, e.getMessage());
             return null;
+        }
+    }
+
+    @Override
+    public Map<String, Object> chatForRole(String role, String systemPrompt, String userPrompt, Integer maxTokens) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("mode", "mock");
+        result.put("estimatedTokens", 0);
+        if (!StringUtils.hasText(userPrompt)) {
+            result.put("answer", "");
+            return result;
+        }
+        String r = StringUtils.hasText(role) ? role : "service";
+        AgentConfigVO published = getActiveConfigByRole(r);
+        boolean fallback = false;
+        if (published == null && !"service".equals(r)) {
+            published = getActiveConfig();
+            fallback = published != null;
+            if (fallback) {
+                log.warn("岗位 {} 未配置模型，已回退到客服配置", r);
+            }
+        }
+        boolean canCall = published != null
+                && StringUtils.hasText(published.getApiKey())
+                && StringUtils.hasText(published.getApiBaseUrl());
+        if (!canCall) {
+            result.put("answer", "");
+            result.put("hint", "未配置 Agent 模型，规则类任务仍可执行");
+            return result;
+        }
+        if (isOverBudget(r, published)) {
+            result.put("answer", "");
+            result.put("hint", "已达日 token 预算上限");
+            result.put("mode", "budget_stop");
+            return result;
+        }
+        List<Map<String, Object>> sources = knowledgeRetrievalService.retrieve(
+                published.getId(), userPrompt, KnowledgeRetrievalService.DEFAULT_TOP_K);
+        String ragBlock = knowledgeRetrievalService.buildContextBlock(sources);
+        long start = System.currentTimeMillis();
+        try {
+            String baseUrl = trimSlash(published.getApiBaseUrl());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(published.getApiKey());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            List<Map<String, String>> messages = new ArrayList<>();
+            StringBuilder sys = new StringBuilder();
+            if (StringUtils.hasText(published.getSystemPrompt())) {
+                sys.append(published.getSystemPrompt().trim());
+            }
+            if (StringUtils.hasText(systemPrompt)) {
+                if (sys.length() > 0) sys.append("\n\n");
+                sys.append(systemPrompt.trim());
+            }
+            if (StringUtils.hasText(ragBlock)) {
+                if (sys.length() > 0) sys.append("\n\n");
+                sys.append(ragBlock);
+            }
+            if (sys.length() > 0) {
+                messages.add(Map.of("role", "system", "content", sys.toString()));
+            }
+            messages.add(Map.of("role", "user", "content", userPrompt));
+            int cap = maxTokens != null ? maxTokens
+                    : (published.getMaxTokens() != null ? Math.min(published.getMaxTokens(), 2048) : 1024);
+            Map<String, Object> req = new HashMap<>();
+            req.put("model", published.getModel());
+            req.put("messages", messages);
+            req.put("temperature", published.getTemperature() != null ? published.getTemperature() : 0.3);
+            req.put("max_tokens", cap);
+            ResponseEntity<String> resp = restTemplate.exchange(
+                    baseUrl + "/chat/completions",
+                    HttpMethod.POST,
+                    new HttpEntity<>(req, headers),
+                    String.class
+            );
+            String answer = extractChatContent(resp.getBody());
+            result.put("answer", answer != null ? answer : "");
+            result.put("mode", "live");
+            result.put("sources", sources);
+            int est = Math.min(cap, (userPrompt.length() + (answer != null ? answer.length() : 0)) / 2);
+            result.put("estimatedTokens", est);
+            writeCallLog(r, published.getModel(), est / 2, est / 2, (int) (System.currentTimeMillis() - start), true, null);
+        } catch (Exception e) {
+            log.warn("chatForRole failed: {}", e.getMessage());
+            result.put("answer", "");
+            result.put("hint", "模型调用失败：" + e.getMessage());
+            writeCallLog(r, published.getModel(), 0, 0, (int) (System.currentTimeMillis() - start), false, e.getMessage());
+        }
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> listRoles() {
+        List<Map<String, Object>> roles = new ArrayList<>();
+        roles.add(roleCard("service", "客服助手", false));
+        roles.add(roleCard("content_ops", "内容运营", false));
+        Map<String, Object> page = roleCard("page_builder", "页面搭建", true);
+        page.put("comingSoon", true);
+        roles.add(page);
+        return roles;
+    }
+
+    @Override
+    public Map<String, Object> costStats(String role) {
+        String r = StringUtils.hasText(role) ? role : "service";
+        Map<String, Object> stats = new LinkedHashMap<>();
+        try {
+            Map<String, Object> row = agentCallLogMapper.todayStatsByRole(r);
+            stats.put("todayCalls", row == null ? 0 : row.getOrDefault("callCount", 0));
+            stats.put("todayTokens", row == null ? 0 : row.getOrDefault("tokenSum", 0));
+            stats.put("todayCost", row == null ? 0 : row.getOrDefault("costSum", 0));
+        } catch (Exception e) {
+            stats.put("todayCalls", 0);
+            stats.put("todayTokens", 0);
+            stats.put("todayCost", 0);
+        }
+        AgentConfigVO active = getActiveConfigByRole(r);
+        if (active != null) {
+            stats.put("dailyTokenBudget", active.getDailyTokenBudget());
+            stats.put("overBudgetAction", active.getOverBudgetAction());
+        }
+        return stats;
+    }
+
+    private Map<String, Object> roleCard(String role, String name, boolean comingSoon) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("role", role);
+        m.put("name", name);
+        m.put("comingSoon", comingSoon);
+        AgentConfigVO active = comingSoon ? null : getActiveConfigByRole(role);
+        boolean configured = active != null
+                && StringUtils.hasText(active.getApiKey())
+                && StringUtils.hasText(active.getApiBaseUrl());
+        m.put("configured", configured);
+        m.put("activeConfigId", active != null ? active.getId() : null);
+        m.put("model", active != null ? active.getModel() : null);
+        m.put("version", active != null ? active.getVersion() : null);
+        m.put("updatedAt", active != null && active.getUpdatedAt() != null
+                ? active.getUpdatedAt().toString() : null);
+        if (!configured && !"service".equals(role) && !comingSoon) {
+            m.put("fallbackTo", "service");
+        }
+        try {
+            Map<String, Object> row = agentCallLogMapper.todayStatsByRole(role);
+            m.put("todayCalls", row == null ? 0 : row.getOrDefault("callCount", 0));
+            m.put("todayTokens", row == null ? 0 : row.getOrDefault("tokenSum", 0));
+            m.put("todayCost", row == null ? 0 : row.getOrDefault("costSum", 0));
+        } catch (Exception e) {
+            m.put("todayCalls", 0);
+            m.put("todayTokens", 0);
+            m.put("todayCost", 0);
+        }
+        return m;
+    }
+
+    private boolean isOverBudget(String role, AgentConfigVO published) {
+        if (published == null || published.getDailyTokenBudget() == null) {
+            return false;
+        }
+        if (!"stop".equalsIgnoreCase(published.getOverBudgetAction())) {
+            return false;
+        }
+        try {
+            Map<String, Object> row = agentCallLogMapper.todayStatsByRole(role);
+            long used = row == null ? 0L : Long.parseLong(String.valueOf(row.getOrDefault("tokenSum", 0)));
+            return used >= published.getDailyTokenBudget();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void writeCallLog(String role, String model, int promptTokens, int completionTokens,
+                              int latencyMs, boolean success, String error) {
+        try {
+            AgentCallLog logRow = new AgentCallLog();
+            logRow.setAgentRole(role);
+            logRow.setModel(model);
+            logRow.setPromptTokens(Math.max(0, promptTokens));
+            logRow.setCompletionTokens(Math.max(0, completionTokens));
+            logRow.setCostEstimate(BigDecimal.valueOf((promptTokens + completionTokens) * 0.000002));
+            logRow.setLatencyMs(latencyMs);
+            logRow.setSuccess(success ? 1 : 0);
+            logRow.setErrorMessage(error != null && error.length() > 500 ? error.substring(0, 500) : error);
+            logRow.setCreateTime(LocalDateTime.now());
+            agentCallLogMapper.insert(logRow);
+        } catch (Exception e) {
+            log.debug("write call log failed: {}", e.getMessage());
         }
     }
 
@@ -301,7 +515,14 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
     }
 
     private Map<String, Object> sandboxChatInternal(String question, Map<String, Object> body) {
-        AgentConfigVO published = getActiveConfig();
+        String role = firstText(body, "role", "service");
+        AgentConfigVO published = getActiveConfigByRole(role);
+        if (published == null) {
+            published = getActiveConfig();
+            if (published != null && !"service".equals(role)) {
+                log.warn("岗位 {} 未配置模型，沙盒已回退到客服配置", role);
+            }
+        }
         boolean enableRecommend = resolveBool(body, "enableRecommend",
                 published != null && Boolean.TRUE.equals(published.getEnableRecommend()));
         boolean enableProactive = resolveBool(body, "enableProactive",
@@ -312,11 +533,15 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
                 published != null ? published.getSystemPrompt() : null);
         String productCatalog = enableRecommend ? loadProductCatalog(3) : "";
         String policyPrompt = buildPolicyPrompt(enableRecommend, enableProactive, fallback, productCatalog);
+        List<Map<String, Object>> sources = knowledgeRetrievalService.retrieve(
+                published != null ? published.getId() : null, question, KnowledgeRetrievalService.DEFAULT_TOP_K);
+        String ragBlock = knowledgeRetrievalService.buildContextBlock(sources);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("question", question);
         result.put("mode", "mock");
         result.put("enableRecommend", enableRecommend);
+        result.put("sources", sources);
 
         boolean canCallModel = published != null
                 && StringUtils.hasText(published.getApiKey())
@@ -329,6 +554,7 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
             return result;
         }
 
+        long start = System.currentTimeMillis();
         try {
             String baseUrl = trimSlash(published.getApiBaseUrl());
             HttpHeaders headers = new HttpHeaders();
@@ -344,6 +570,10 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
                     sys.append("\n\n");
                 }
                 sys.append(policyPrompt);
+            }
+            if (StringUtils.hasText(ragBlock)) {
+                if (sys.length() > 0) sys.append("\n\n");
+                sys.append(ragBlock);
             }
             if (sys.length() > 0) {
                 messages.add(Map.of("role", "system", "content", sys.toString()));
@@ -365,20 +595,28 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
                     ? answer
                     : mockReply(question, enableRecommend, enableProactive, fallback, productCatalog));
             result.put("mode", "live");
+            int est = (question.length() + String.valueOf(result.get("answer")).length()) / 2;
+            writeCallLog(role, published.getModel(), est / 2, est / 2,
+                    (int) (System.currentTimeMillis() - start), true, null);
         } catch (Exception e) {
             log.warn("Agent sandbox chat failed: {}", e.getMessage());
             result.put("answer", mockReply(question, enableRecommend, enableProactive, fallback, productCatalog));
             result.put("mode", "mock");
             result.put("hint", "模型调用失败，已回退模拟回复：" + e.getMessage());
+            writeCallLog(role, published.getModel(), 0, 0,
+                    (int) (System.currentTimeMillis() - start), false, e.getMessage());
         }
         return result;
     }
 
     @Override
     public List<AgentKnowledge> listKnowledge(Long configId) {
-        // config_id 列可能尚未迁移，不做库内过滤
-        return agentKnowledgeMapper.selectList(new LambdaQueryWrapper<AgentKnowledge>()
-                .orderByDesc(AgentKnowledge::getCreatedAt));
+        LambdaQueryWrapper<AgentKnowledge> w = new LambdaQueryWrapper<AgentKnowledge>()
+                .orderByDesc(AgentKnowledge::getCreatedAt);
+        if (configId != null) {
+            w.and(q -> q.eq(AgentKnowledge::getConfigId, configId).or().isNull(AgentKnowledge::getConfigId));
+        }
+        return agentKnowledgeMapper.selectList(w);
     }
 
     @Override
@@ -397,12 +635,19 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         Object size = body.get("fileSize");
         k.setFileSize(size == null ? 0L : Long.valueOf(String.valueOf(size)));
         k.setFileUrl(fileUrl);
+        k.setSourceType("file");
+        Object cfg = body.get("configId");
+        if (cfg != null && StringUtils.hasText(String.valueOf(cfg)) && !"null".equals(String.valueOf(cfg))) {
+            k.setConfigId(Long.valueOf(String.valueOf(cfg)));
+        }
         k.setVectorStatus("pending");
+        k.setChunkCount(0);
         Object weight = body.get("recallWeight");
         k.setRecallWeight(weight == null ? BigDecimal.ONE : new BigDecimal(String.valueOf(weight)));
         k.setCreatedAt(LocalDateTime.now());
         try {
             agentKnowledgeMapper.insert(k);
+            knowledgeIngestService.ingestAsync(k.getId());
         } catch (Exception e) {
             log.error("insert agent knowledge failed: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.PARAM_ERROR,
@@ -417,10 +662,14 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要上传的文件");
         }
+        String name = file.getOriginalFilename() != null
+                ? file.getOriginalFilename().toLowerCase() : "";
+        if (name.endsWith(".pdf")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "暂不支持 PDF，请转成 Word(.docx) 或 Markdown");
+        }
         com.miniprogram.dto.system.UploadResultVO uploaded;
         try {
-            // 使用单参数 upload，避免旧版 FileUploadService 没有子目录重载
-            uploaded = fileUploadService.upload(file);
+            uploaded = fileUploadService.upload(file, "protected/knowledge");
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -435,6 +684,9 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         body.put("fileUrl", uploaded.getUrl());
         body.put("fileSize", uploaded.getFileSize() != null ? uploaded.getFileSize() : file.getSize());
         body.put("recallWeight", 1);
+        if (configId != null) {
+            body.put("configId", configId);
+        }
         return addKnowledge(body);
     }
 
@@ -455,6 +707,8 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         if (agentKnowledgeMapper.selectById(id) == null) {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "知识库文件不存在");
         }
+        agentKnowledgeChunkMapper.delete(new LambdaQueryWrapper<com.miniprogram.entity.AgentKnowledgeChunk>()
+                .eq(com.miniprogram.entity.AgentKnowledgeChunk::getKnowledgeId, id));
         agentKnowledgeMapper.deleteById(id);
     }
 
@@ -491,6 +745,9 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         }
         if (StringUtils.hasText(dto.getName()) || creating) {
             config.setName(StringUtils.hasText(dto.getName()) ? dto.getName() : "未命名 Agent");
+        }
+        if (dto.getRole() != null || creating) {
+            config.setRole(StringUtils.hasText(dto.getRole()) ? dto.getRole() : "service");
         }
         if (StringUtils.hasText(dto.getModel()) || creating) {
             config.setModel(dto.getModel());
@@ -530,6 +787,18 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         }
         if (dto.getMemoryType() != null) {
             config.setMemoryType(dto.getMemoryType());
+        }
+        if (dto.getToolGrants() != null) {
+            config.setToolGrants(dto.getToolGrants());
+        }
+        if (dto.getDailyTokenBudget() != null) {
+            config.setDailyTokenBudget(dto.getDailyTokenBudget());
+        }
+        if (dto.getOverBudgetAction() != null) {
+            config.setOverBudgetAction(dto.getOverBudgetAction());
+        }
+        if (dto.getEvalCases() != null) {
+            config.setEvalCases(dto.getEvalCases());
         }
     }
 

@@ -7,6 +7,7 @@
       <div v-show="!appStore.sidebarCollapsed" class="brand-text">
         <strong>小程序运营系统</strong>
         <span>多场景搭建与运营平台</span>
+        <span class="brand-version">平台 v{{ PLATFORM_VERSION }}</span>
       </div>
     </div>
 
@@ -70,6 +71,7 @@ import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
+import { PLATFORM_VERSION } from '@/constants/platform'
 import {
   Odometer,
   Document,
@@ -88,6 +90,7 @@ import {
   Money,
   Tickets,
   TrendCharts,
+  DataLine,
   Aim,
   Document as InvoiceIcon,
   Lock,
@@ -97,6 +100,7 @@ import {
   ArrowRight,
   Guide,
   Upload,
+  Collection,
 } from '@element-plus/icons-vue'
 
 interface MenuItem {
@@ -127,6 +131,7 @@ const iconMap: Record<string, any> = {
   Money,
   Tickets,
   TrendCharts,
+  DataLine,
   Aim,
   InvoiceIcon,
   Lock,
@@ -135,6 +140,7 @@ const iconMap: Record<string, any> = {
   Setting,
   Guide,
   Upload,
+  Collection,
 }
 
 const route = useRoute()
@@ -216,7 +222,8 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
           { title: '财务权限', path: '/finance/permission', icon: 'Lock', activePrefix: '/finance/permission' },
         ],
       },
-      { title: '智能 Agent', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai' },
+      { title: '智能 Agent', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai/agent' },
+      { title: '知识库管理', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge' },
     ],
   },
   {
@@ -306,8 +313,9 @@ watch(
 }
 
 .brand {
-  height: 72px;
-  padding: 16px;
+  min-height: 72px;
+  height: auto;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -346,10 +354,17 @@ watch(
     font-size: 12px;
     white-space: nowrap;
   }
+
+  .brand-version {
+    margin-top: 2px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    opacity: 0.85;
+  }
 }
 
 .menu-scroll {
-  height: calc(100vh - 72px);
+  height: calc(100vh - 88px);
 }
 
 .menu-group {

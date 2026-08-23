@@ -1,14 +1,20 @@
 package com.miniprogram.service.impl;
 
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
+import com.miniprogram.dto.system.UploadResultVO;
 import com.miniprogram.entity.Asset;
 import com.miniprogram.mapper.AssetMapper;
 import com.miniprogram.service.AssetGroupService;
 import com.miniprogram.service.AssetService;
+import com.miniprogram.service.FileUploadService;
+import com.miniprogram.service.WeChatOfficialAccountClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -28,7 +34,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implements AssetService {
 
+    private static final int SYNC_PAGE_SIZE = 20;
+    private static final int SYNC_MAX_ITEMS = 200;
+
     private final AssetGroupService assetGroupService;
+    private final WeChatOfficialAccountClient weChatOfficialAccountClient;
+    private final FileUploadService fileUploadService;
 
     @Override
     public PageResult<AssetVO> listAssets(String type, Long groupId, String keyword, Long current, Long size) {
@@ -118,7 +129,6 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteGroup(Long id) {
-        // 检查分组下是否有素材
         long count = this.count(new LambdaQueryWrapper<Asset>().eq(Asset::getGroupId, id));
         if (count > 0) {
             throw new BusinessException(4002, "分组下有素材，不可删除");
@@ -152,13 +162,98 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
 
     @Override
     public Map<String, Object> syncFromWechat() {
-        // 微信素材同步需要公众号或小程序 access_token
-        // 当前为示例实现，返回提示信息
         Map<String, Object> result = new HashMap<>();
-        result.put("synced", 0);
-        result.put("message", "微信素材同步功能需要配置微信公众号/小程序AppID和AppSecret");
-        log.warn("微信素材同步：未配置微信凭证，跳过同步");
+        int synced = 0;
+        int skipped = 0;
+        int failed = 0;
+
+        // 先校验凭证（未配置会抛明确错误，不再返回假提示）
+        weChatOfficialAccountClient.getAccessToken();
+
+        int offset = 0;
+        int totalCount = Integer.MAX_VALUE;
+        while (offset < totalCount && synced + skipped + failed < SYNC_MAX_ITEMS) {
+            JSONObject page = weChatOfficialAccountClient.batchGetMaterials("image", offset, SYNC_PAGE_SIZE);
+            totalCount = page.getInt("total_count", 0);
+            JSONArray items = page.getJSONArray("item");
+            int itemCount = page.getInt("item_count", items == null ? 0 : items.size());
+            if (items == null || items.isEmpty()) {
+                break;
+            }
+            for (int i = 0; i < items.size(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                try {
+                    if (importWechatImage(item)) {
+                        synced++;
+                    } else {
+                        skipped++;
+                    }
+                } catch (Exception e) {
+                    failed++;
+                    log.warn("同步微信素材失败 mediaId={}: {}", item.getStr("media_id"), e.getMessage());
+                }
+            }
+            if (itemCount <= 0) {
+                break;
+            }
+            offset += itemCount;
+            if (offset >= totalCount) {
+                break;
+            }
+        }
+
+        result.put("synced", synced);
+        result.put("skipped", skipped);
+        result.put("failed", failed);
+        result.put("totalOnWechat", totalCount == Integer.MAX_VALUE ? 0 : totalCount);
+        result.put("message", String.format("已同步 %d 个，跳过 %d 个，失败 %d 个", synced, skipped, failed));
+        log.info("微信素材同步完成 synced={} skipped={} failed={}", synced, skipped, failed);
         return result;
+    }
+
+    /**
+     * @return true 新建；false 已存在跳过
+     */
+    private boolean importWechatImage(JSONObject item) {
+        String mediaId = item.getStr("media_id");
+        String name = item.getStr("name");
+        if (!StringUtils.hasText(name)) {
+            name = StringUtils.hasText(mediaId) ? mediaId : "wechat-image";
+        }
+        // 同名已存在则跳过（避免重复入库）
+        long exists = this.count(new LambdaQueryWrapper<Asset>()
+                .eq(Asset::getName, name)
+                .eq(Asset::getType, "image"));
+        if (exists > 0) {
+            return false;
+        }
+
+        byte[] bytes = weChatOfficialAccountClient.downloadPermanentImage(mediaId);
+        if (bytes == null || bytes.length == 0) {
+            // 部分素材返回微信 CDN url，可直接下载
+            String remoteUrl = item.getStr("url");
+            if (StringUtils.hasText(remoteUrl)) {
+                bytes = HttpUtil.downloadBytes(remoteUrl);
+            }
+        }
+        if (bytes == null || bytes.length == 0) {
+            throw new BusinessException(6003, "无法下载素材: " + name);
+        }
+
+        String fileName = name.contains(".") ? name : name + ".jpg";
+        UploadResultVO uploaded = fileUploadService.uploadBytes(bytes, fileName, "wechat-material");
+
+        Asset asset = new Asset();
+        asset.setName(name);
+        asset.setType("image");
+        asset.setUrl(uploaded.getUrl());
+        asset.setThumbUrl(uploaded.getUrl());
+        asset.setSize(uploaded.getFileSize() != null ? uploaded.getFileSize() : (long) bytes.length);
+        this.save(asset);
+        return true;
     }
 
     @Override
@@ -167,10 +262,8 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException(4001, "素材ID列表不能为空");
         }
-        // 微信素材上传需要公众号 access_token
-        // 当前为示例实现，仅更新同步状态
         List<Asset> assets = this.listByIds(ids);
-        log.info("微信素材同步：标记 {} 个素材为已同步", assets.size());
+        log.info("同步到微信尚未实现，已选 {} 个素材", assets.size());
     }
 
     private AssetVO toAssetVO(Asset asset) {

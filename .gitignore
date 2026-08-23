@@ -80,3 +80,6 @@ admin-dist.zip
 # WeChat npm build output
 miniapp/miniprogram_npm/
 miniapp/node_modules/
+
+# 本地真机局域网 API（勿提交）
+miniapp/utils/dev-config.js

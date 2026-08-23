@@ -3,6 +3,7 @@ import type {
   AgentConfig,
   AgentConfigPayload,
   AgentKnowledgeItem,
+  AgentRoleCard,
   AgentVersionItem,
 } from '@/types/agent'
 import type { PageResult } from '@/types/global'
@@ -11,12 +12,31 @@ const BASE_URL = '/api/v1/admin/agent'
 /** 两段路径，避免被后端 /{id} 误当成数字 id */
 const META = `${BASE_URL}/meta`
 
+/** 配置列表；params.role 可按岗位过滤 */
 export function getAgentConfigs(params?: Record<string, unknown>) {
   return get<PageResult<AgentConfig>>(BASE_URL, params, { showError: false })
 }
 
+export function getAgentRoles() {
+  return get<AgentRoleCard[]>(`${META}/roles`, undefined, { showError: false })
+}
+
 export function getActiveAgentConfig() {
   return get<AgentConfig | null>(`${META}/active`, undefined, { showError: false })
+}
+
+export function getActiveAgentConfigByRole(role: string) {
+  return get<AgentConfig | null>(`${META}/active`, { role }, { showError: false })
+}
+
+export function getAgentCostStats(role: string) {
+  return get<{
+    todayCalls?: number
+    todayTokens?: number
+    todayCost?: number
+    dailyTokenBudget?: number
+    overBudgetAction?: string
+  }>(`${META}/cost`, { role }, { showError: false })
 }
 
 export function createAgentConfig(data: AgentConfigPayload) {
@@ -41,12 +61,18 @@ export function testAgentConnection(data: AgentConfigPayload) {
 
 export function sandboxAgentChat(payload: {
   question: string
+  role?: string
   systemPrompt?: string
   enableRecommend?: boolean
   enableProactive?: boolean
   fallbackStrategy?: string
 }) {
-  return post<{ answer: string; mode?: string; hint?: string }>(`${BASE_URL}/sandbox/chat`, payload, {
+  return post<{
+    answer: string
+    mode?: string
+    hint?: string
+    sources?: Array<{ title?: string; body?: string; sourceRef?: string }>
+  }>(`${BASE_URL}/sandbox/chat`, payload, {
     showError: false,
   })
 }

@@ -58,7 +58,7 @@ public class ContentInteractServiceImpl implements ContentInteractService {
             dto.setLiked(false);
             dto.setFavorited(false);
         }
-        dto.setCommentCount(commentCount(contentId));
+        dto.setCommentCount((int) commentCount(contentId));
         return dto;
     }
 

@@ -12,6 +12,7 @@ public class AgentConfigVO {
 
     private Long id;
     private String name;
+    private String role;
     private String model;
     private String modelProvider;
     private String apiBaseUrl;
@@ -25,6 +26,10 @@ public class AgentConfigVO {
     private Boolean enableRecommend;
     private Boolean enableProactive;
     private String memoryType;
+    private String toolGrants;
+    private Integer dailyTokenBudget;
+    private String overBudgetAction;
+    private String evalCases;
     private Integer status;
     private Integer version;
 

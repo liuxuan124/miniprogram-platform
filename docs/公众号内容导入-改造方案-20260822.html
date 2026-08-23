@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>公众号导入改造方案</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--b);
+    border-radius:10px;padding:20px 22px;margin-bottom:26px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:40px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  h3.grp{font-size:16px;margin:26px 0 10px;color:var(--b)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h4{margin:0 0 9px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.ok{background:var(--ok)} .n.warn{background:var(--warn)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.4px;line-height:1.6}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:640px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .file{font-family:ui-monospace,Menlo,monospace;font-size:12.6px}
+  ol,ul{padding-left:20px} li{margin-bottom:6px}
+  .chk{list-style:none;padding-left:0} .chk li{padding-left:24px;position:relative}
+  .chk li:before{content:"☐";position:absolute;left:4px;color:var(--muted)}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>公众号内容导入：改造方案</h1>
+<div class="sub">交付给开发执行 · 2026-08-22 · 目标：把全量导入从「同步阻塞 + 前端超时」改为「异步任务 + 进度可见」</div>
+
+<div class="lead">
+  <h2>一句话：功能是好的，问题只在于它跑得比前端等得久</h2>
+  <p>公众号导入的两条链路（<b>API 全量同步</b> 和 <b>链接批量导入</b>）已经实现且逻辑完整——分页拉到底、长文与贴图分别入库、正文图片自动转存、按 <span class="loc">external_id</span> 去重可重复跑。不需要重写。</p>
+  <p>唯一的硬伤是它是<b>同步阻塞</b>的：一次请求里要拉列表、逐篇取详情、下载并转存每一张图片。而前端 axios 的超时是 <b>15 秒</b>（<span class="file">admin/src/api/request.ts:26</span>）。几十篇内容以上必然超时报错，但后端其实还在跑——运营看到"失败"会重复点击，反而造成并发拉取、更慢，还容易撞微信的接口配额。</p>
+  <p>本方案把它改成<b>提交即返回任务号 + 前端轮询进度</b>。后端核心导入逻辑<b>基本不动</b>，只在主循环里加进度上报。工作量约 1.5 人天。</p>
+</div>
+
+<h2 class="sec">一、现状（改动前需要知道的）</h2>
+
+<div class="tbl-wrap">
+<table>
+<tr><th>位置</th><th>说明</th></tr>
+<tr><td class="file">WeChatOfficialAccountController</td><td><span class="loc">POST /api/v1/admin/wechat/official-account/sync-published</span>、<span class="loc">/import-urls</span>，均带 <span class="loc">@PreAuthorize</span></td></tr>
+<tr><td class="file">WeChatOfficialAccountContentSyncServiceImpl</td><td><span class="loc">syncAllPublished</span> 主循环在 91~130 行：外层 for 遍历发布记录，内层 for 遍历图文条目，逐条 <span class="loc">upsertPublishedItem</span></td></tr>
+<tr><td class="file">WeChatOfficialAccountClientImpl</td><td><span class="loc">listAllPublishedRecords()</span> 每页 20 条循环到 <span class="loc">total_count</span>，已是全量</td></tr>
+<tr><td class="file">WeChatContentSyncResultVO</td><td>统计字段齐全：total/created/updated/skipped/failed/articleCount/noteCount/typeFiltered/message/failures</td></tr>
+<tr><td class="file">admin/src/views/content/index.vue</td><td><span class="loc">handleWeChatSyncImport()</span> 在 803 行，await 一个请求后直接展示结果</td></tr>
+<tr><td class="file">admin/src/api/request.ts:26</td><td><span class="loc">timeout: 15000</span></td></tr>
+<tr><td class="file">（无）</td><td>项目当前<b>没有</b> <span class="loc">@EnableAsync</span>，也没有自定义线程池，需要新增</td></tr>
+</table>
+</div>
+
+<h2 class="sec">二、方案总览</h2>
+<pre>[运营点击导入]
+   ↓ POST /sync-published            → 立即返回 { taskId }
+   ↓ 后台线程开始跑（原有导入逻辑不变，加进度上报）
+   ↓ 进度写入 Redis: wechat:import:{taskId}
+[前端每 2 秒]
+   ↓ GET /import-tasks/{taskId}      → { status, processed, total, result }
+   ↓ status=running → 更新进度条
+   ↓ status=success/failed → 停止轮询，展示结果，刷新内容列表</pre>
+<p>三条设计约束，请开发遵守：</p>
+<ul>
+  <li><b>同一时间只允许一个导入任务</b>（Redis 全局锁）。微信接口有调用配额，并发拉取只会更糟。重复提交时直接返回正在跑的那个 taskId，而不是报错。</li>
+  <li><b>进度信息放 Redis，不建表</b>。这是过程数据，TTL 24 小时即可，项目里 <span class="file">PreviewDraftServiceImpl</span> 已有同款写法可参考。</li>
+  <li><b>不动 <span class="loc">upsertPublishedItem</span> 及其以下的任何导入逻辑</b>。这次只做"包一层异步 + 报进度"。</li>
+</ul>
+
+<h2 class="sec">三、后端改动</h2>
+
+<h3 class="grp">B1　新增异步线程池配置</h3>
+<div class="item">
+  <p><b>新增</b> <span class="file">backend/src/main/java/com/miniprogram/config/AsyncConfig.java</span></p>
+  <pre>@Configuration
+@EnableAsync
+public class AsyncConfig {
+    @Bean("importExecutor")
+    public ThreadPoolTaskExecutor importExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(1);          // 串行执行，避免并发打微信接口
+        ex.setMaxPoolSize(1);
+        ex.setQueueCapacity(5);
+        ex.setThreadNamePrefix("import-");
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        ex.initialize();
+        return ex;
+    }
+}</pre>
+  <p class="secnote">注意：核心线程数设 1 是刻意的。这类任务不需要并发，串行反而稳定。</p>
+</div>
+
+<h3 class="grp">B2　新增任务状态服务</h3>
+<div class="item">
+  <p><b>新增</b> <span class="file">service/ImportTaskService.java</span> + <span class="file">service/impl/ImportTaskServiceImpl.java</span></p>
+  <p>Redis 键设计：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>键</th><th>值</th><th>TTL</th><th>用途</th></tr>
+    <tr><td><span class="loc">wechat:import:{taskId}</span></td><td>任务 JSON（见下）</td><td>24 小时</td><td>任务状态与进度</td></tr>
+    <tr><td><span class="loc">wechat:import:running</span></td><td>当前 taskId</td><td>2 小时</td><td>全局互斥锁，SETNX</td></tr>
+  </table>
+  </div>
+  <p>任务 JSON 结构（前后端契约，字段名请勿改）：</p>
+  <pre>{
+  "taskId": "a1b2c3d4",
+  "type": "sync",              // sync = API 全量同步；url = 链接导入
+  "status": "running",         // pending | running | success | failed
+  "total": 187,                // 待处理条目总数；拉到列表前为 0
+  "processed": 32,             // 已处理条目数
+  "currentTitle": "跨境电商合规指南",   // 当前处理的标题，前端展示用
+  "startedAt": "2026-08-22T14:03:11",
+  "finishedAt": null,
+  "operatorId": 1,
+  "error": null,               // status=failed 时的错误摘要
+  "result": null               // 完成时放 WeChatContentSyncResultVO 原样
+}</pre>
+  <p>需要的方法：<span class="loc">String tryStart(String type, Long operatorId)</span>（拿不到锁返回已有 taskId）、<span class="loc">void updateProgress(String taskId, int processed, int total, String currentTitle)</span>、<span class="loc">void finish(String taskId, WeChatContentSyncResultVO result)</span>、<span class="loc">void fail(String taskId, String error)</span>、<span class="loc">TaskVO get(String taskId)</span>、<span class="loc">TaskVO getRunning()</span>。</p>
+  <p><b>务必</b>：<span class="loc">finish</span> 和 <span class="loc">fail</span> 里都要释放 <span class="loc">wechat:import:running</span> 锁，且放在 finally 中——否则一次异常会让导入功能锁死到 TTL 过期。</p>
+</div>
+
+<h3 class="grp">B3　改造导入服务</h3>
+<div class="item">
+  <p><b>修改</b> <span class="file">service/WeChatOfficialAccountContentSyncService.java</span>，加两个异步方法（保留原同步方法不动，内部复用）：</p>
+  <pre>@Async("importExecutor")
+void syncAllPublishedAsync(WeChatContentSyncRequestDTO request, String taskId);
+
+@Async("importExecutor")
+void importFromUrlsAsync(WeChatUrlImportRequestDTO request, String taskId);</pre>
+  <p><b>修改</b> <span class="file">WeChatOfficialAccountContentSyncServiceImpl</span>：</p>
+  <ol>
+    <li>给 <span class="loc">syncAllPublished</span> 加一个重载 <span class="loc">syncAllPublished(request, taskId)</span>，taskId 为 null 时行为与现在完全一致。</li>
+    <li>在 <span class="loc">listAllPublishedRecords()</span> 返回之后（约 81 行），先算出待处理条目总数并写一次进度：<span class="loc">importTaskService.updateProgress(taskId, 0, records.size(), null)</span>。<br>
+    <span class="secnote">注：总数用发布记录数即可，不必精确到图文条目数——多图文会让 processed 超过 total，前端按 <span class="loc">Math.min</span> 处理即可；或者在内层循环前把 total 修正为累计条目数，二选一，实现时说明清楚。</span></li>
+    <li>内层 for 每处理完一条（约 122 行 switch 之后），调一次 <span class="loc">updateProgress(taskId, articlesProcessed, total, item.getStr("title"))</span>。<b>注意节流</b>：每条都写 Redis 没问题（一次写入不到 1ms），但如果担心，可以每 5 条写一次。</li>
+    <li>异步方法体：try 调用带 taskId 的同步方法 → <span class="loc">finish(taskId, result)</span>；catch → <span class="loc">fail(taskId, e.getMessage())</span>。<b>异步方法内必须自己兜住所有异常</b>，@Async 方法抛出的异常不会传播给调用方。</li>
+    <li>链接导入 <span class="loc">importFromUrls</span> 同样处理：total = urls.size()，每条抓完报一次进度。</li>
+  </ol>
+</div>
+
+<h3 class="grp">B4　改造 Controller</h3>
+<div class="item">
+  <p><b>修改</b> <span class="file">controller/WeChatOfficialAccountController.java</span>：</p>
+  <pre>@PostMapping("/sync-published")
+@PreAuthorize("hasAuthority('content:update')")
+public R&lt;ImportTaskVO&gt; syncPublished(@RequestBody(required = false) WeChatContentSyncRequestDTO request) {
+    String taskId = importTaskService.tryStart("sync", SecurityUtils.getCurrentUserId());
+    ImportTaskVO existing = importTaskService.get(taskId);
+    if ("running".equals(existing.getStatus()) &amp;&amp; !existing.isJustCreated()) {
+        return R.ok("已有导入任务正在执行，返回该任务进度", existing);   // 不报错，直接给回正在跑的任务
+    }
+    contentSyncService.syncAllPublishedAsync(request, taskId);
+    return R.ok(existing);
+}
+
+@GetMapping("/import-tasks/{taskId}")
+@PreAuthorize("hasAuthority('content:list')")
+public R&lt;ImportTaskVO&gt; getTask(@PathVariable String taskId) { ... }
+
+@GetMapping("/import-tasks/running")
+@PreAuthorize("hasAuthority('content:list')")
+public R&lt;ImportTaskVO&gt; getRunning() { ... }   // 前端打开弹窗时恢复进度用</pre>
+  <p><span class="loc">/import-urls</span> 同样改为返回 taskId。</p>
+  <p class="secnote">参数校验（分类是否存在、URL 是否合法、条数上限 10）要<b>放在 tryStart 之前同步做完</b>，参数错误就直接报错，不要先建任务再失败。</p>
+</div>
+
+<h2 class="sec">四、前端改动</h2>
+
+<div class="item">
+  <h4><span class="n">F1</span><span class="file">admin/src/api/wechat.ts</span></h4>
+  <p>新增类型与方法：</p>
+  <pre>export interface ImportTask {
+  taskId: string
+  type: 'sync' | 'url'
+  status: 'pending' | 'running' | 'success' | 'failed'
+  total: number
+  processed: number
+  currentTitle?: string
+  error?: string
+  result?: WeChatContentSyncResult
+}
+export function getImportTask(taskId: string) { return get&lt;ImportTask&gt;(`${BASE_URL}/import-tasks/${taskId}`) }
+export function getRunningImportTask() { return get&lt;ImportTask&gt;(`${BASE_URL}/import-tasks/running`) }</pre>
+  <p>原有两个提交方法的返回类型改为 <span class="loc">ImportTask</span>。</p>
+</div>
+
+<div class="item">
+  <h4><span class="n">F2</span><span class="file">admin/src/views/content/index.vue</span></h4>
+  <p>改造 <span class="loc">handleWeChatSyncImport()</span>（803 行）与链接导入那个函数：</p>
+  <ul>
+    <li>提交后拿到 <span class="loc">taskId</span>，存进 <span class="loc">ref</span>，启动 <span class="loc">setInterval</span> 每 <b>2 秒</b>轮询一次。</li>
+    <li>弹窗里用 <span class="loc">&lt;el-progress&gt;</span> 显示 <span class="loc">processed / total</span>，下方一行小字显示 <span class="loc">currentTitle</span>（"正在处理：xxx"）。</li>
+    <li><span class="loc">status</span> 变为 success/failed 时：清除定时器、展示原来那套结果面板（<span class="loc">message</span> + <span class="loc">failures</span> 列表）、调 <span class="loc">fetchList()</span> 刷新列表。</li>
+    <li><b>组件卸载与弹窗关闭时必须 <span class="loc">clearInterval</span></b>（<span class="loc">onBeforeUnmount</span> + 弹窗 close 事件），否则切页面后定时器泄漏。</li>
+    <li>任务进行中：提交按钮置灰并显示"导入中…"；<b>允许关闭弹窗</b>，并提示"任务在后台继续，可稍后回来查看"。</li>
+    <li>打开弹窗时先调一次 <span class="loc">getRunningImportTask()</span>，如果有正在跑的任务就直接进入进度态——这样刷新页面/换台电脑也能看到进度。</li>
+    <li>轮询容错：单次请求失败不要立刻停，连续失败 3 次再停并提示。</li>
+  </ul>
+</div>
+
+<div class="item">
+  <h4><span class="n warn">F3</span>不要用调大 timeout 的方式绕过</h4>
+  <p>有人可能会想直接把 <span class="file">api/request.ts</span> 的 <span class="loc">timeout: 15000</span> 改成 10 分钟——<b>不要这么做</b>。那会让所有接口都失去超时保护，真出问题时页面会一直转圈。如果一定要临时救急，只在这两个导入请求上单独传 <span class="loc">{ timeout: 600000 }</span>，但正式方案还是走异步。</p>
+</div>
+
+<h2 class="sec">五、边界与异常清单</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>场景</th><th>期望行为</th></tr>
+<tr><td class="c">重复点击提交</td><td>返回正在跑的 taskId，前端直接进入进度态，不新建任务</td></tr>
+<tr><td class="c">导入中刷新页面/关闭弹窗</td><td>任务继续；重新打开弹窗通过 <span class="loc">/import-tasks/running</span> 恢复进度</td></tr>
+<tr><td class="c">后端重启</td><td>任务中断，Redis 里状态仍是 running。需在任务服务里加判断：<span class="loc">startedAt</span> 超过 2 小时仍是 running 视为失效，允许重新发起</td></tr>
+<tr><td class="c">Redis 不可用</td><td>降级为原同步逻辑（直接执行并返回结果），不能因为 Redis 挂了就不能导入</td></tr>
+<tr><td class="c">单篇图文失败</td><td>已有逻辑：计入 failed + failures，继续跑下一篇。保持不变</td></tr>
+<tr><td class="c">微信配额耗尽 / token 失效</td><td>整个任务失败，<span class="loc">error</span> 里带上微信返回的 errcode，前端原样展示（40164=IP 白名单，45009=配额）</td></tr>
+<tr><td class="c">任务锁未释放</td><td>锁 TTL 2 小时兜底；同时提供一个手动清理入口或直接删 Redis 键的运维说明</td></tr>
+</table>
+</div>
+
+<h2 class="sec">六、验收标准</h2>
+<ul class="chk">
+  <li>点击导入后 <b>1 秒内</b>返回，弹窗出现进度条，不再出现 15 秒超时报错</li>
+  <li>进度条数字随处理推进，能看到当前正在处理的标题</li>
+  <li>导入过程中关闭弹窗再打开，进度能恢复</li>
+  <li>导入过程中再次点击提交，不会启动第二个任务</li>
+  <li>完成后自动刷新内容列表，结果面板显示新建/更新/失败数量与失败明细</li>
+  <li>用一个不存在的分类 ID 提交，立即报参数错误，且不占用任务锁</li>
+  <li>把 Redis 停掉后提交，仍能完成导入（走降级同步路径）</li>
+  <li>连续两次全量导入，第二次结果里 <b>created=0、updated=N</b>（验证去重仍然生效）</li>
+</ul>
+
+<h2 class="sec">七、工作量与顺序</h2>
+<ol>
+  <li><b>后端 B1+B2</b>（线程池 + 任务服务）：约 3 小时</li>
+  <li><b>后端 B3+B4</b>（导入服务加进度 + Controller）：约 3 小时</li>
+  <li><b>前端 F1+F2</b>（API + 弹窗进度轮询）：约 4 小时</li>
+  <li><b>联调与验收</b>：约 2 小时</li>
+</ol>
+<p>合计约 <b>1.5 人天</b>。建议先做后端并用 Swagger/Postman 验通，再接前端。</p>
+
+<h2 class="sec">八、本次不做的事</h2>
+<ul>
+  <li><b>不做任务历史列表</b>——只保留"当前/最近一个任务"，够用。将来真需要再建表。</li>
+  <li><b>不做断点续传</b>——导入本身幂等，失败重跑一遍即可，续传的复杂度不值得。</li>
+  <li><b>不做并发导入</b>——串行是刻意的设计。</li>
+  <li><b>不改动导入的解析逻辑</b>（长文/贴图识别、图片转存、去重）——那部分现在是对的。</li>
+</ul>
+
+<h2 class="sec">附录：给运营的导入操作说明</h2>
+<div class="item">
+  <h4><span class="n ok">前置配置</span>只需做一次</h4>
+  <p>① 后台 <b>系统设置 → 微信小程序配置 → 公众号配置</b>，填公众号的 AppID 与 AppSecret（留空会退回用小程序凭证，通常不对）。</p>
+  <p>② 微信公众平台 → 开发 → 基本配置 → <b>IP 白名单</b>，加入服务器公网 IP，否则报 <span class="loc">errcode 40164</span>。</p>
+  <p>③ 接口权限要求<b>已认证的服务号/订阅号</b>；未认证账号只能用"链接导入"。</p>
+</div>
+<div class="item">
+  <h4><span class="n ok">导入步骤</span>建议顺序</h4>
+  <ol>
+    <li>先用<b>链接导入</b>试 1~2 篇，确认图片正常转存显示（验证链路通）</li>
+    <li><b>全量导入</b>：同步范围选「只要长文」，导入状态选「存为草稿」</li>
+    <li>再跑一次：同步范围选「只要贴图」，同样存为草稿</li>
+    <li>内容列表按"导入时间"倒序检查，重点看图片与排版</li>
+    <li>确认无误后批量发布；API 没拉到的历史文章用链接导入补（单次 10 条以内）</li>
+  </ol>
+  <p class="secnote">说明：导入按 <span class="loc">external_id</span> 去重，<b>重复跑是安全的</b>，已存在的条目会更新而不是新建。正文图片会自动下载转存到自己的服务器（公众号图片有防盗链，不能直接外链）。</p>
+</div>
+
+<footer>
+  本方案基于 2026-08-22 的代码实况撰写，所有文件路径与行号可直接定位。核心导入逻辑（<span class="loc">upsertPublishedItem</span> 及以下）不在本次改动范围内。
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 管理与知识库改造方案</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#15181e;--muted:#5e6673;--line:#e2e6eb;
+    --ok:#0f766e;--warn:#b45309;--bad:#b91c1c;--b:#1d4ed8;--p:#6d28d9}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1020px;margin:0 auto;padding:42px 20px 90px}
+  h1{font-size:27px;margin:0 0 8px;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .lead{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--ok);
+    border-radius:10px;padding:20px 22px;margin-bottom:26px}
+  .lead h2{margin:0 0 10px;font-size:18px}
+  .lead p{margin:0 0 10px;color:#3a424e} .lead p:last-child{margin:0}
+  h2.sec{font-size:20px;margin:40px 0 6px;padding-bottom:9px;border-bottom:2px solid var(--ink)}
+  h2.part{background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:19px;margin:44px 0 14px}
+  h3.grp{font-size:16px;margin:26px 0 10px;color:var(--b)}
+  .secnote{color:var(--muted);font-size:13.5px;margin:0 0 15px}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 19px;margin-bottom:12px}
+  .item h4{margin:0 0 9px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .n{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;background:var(--b);
+     border-radius:5px;padding:1px 7px;font-weight:600}
+  .n.ok{background:var(--ok)} .n.warn{background:var(--warn)} .n.bad{background:var(--bad)} .n.p{background:var(--p)}
+  .item p{margin:0 0 7px} .item p:last-child{margin:0}
+  .loc{font-family:ui-monospace,Menlo,monospace;font-size:12.4px;color:#3b434f;
+    background:#eef1f4;border-radius:5px;padding:1px 6px}
+  .file{font-family:ui-monospace,Menlo,monospace;font-size:12.6px;font-weight:600}
+  pre{background:#1f2430;color:#e6e9ef;border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.4px;line-height:1.6}
+  .why{border-top:1px dashed var(--line);margin-top:11px;padding-top:9px;font-size:14px}
+  .why b{color:var(--ok)}
+  .tbl-wrap{overflow-x:auto;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:13.4px;min-width:640px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eceff3;font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.c{white-space:nowrap;font-weight:600}
+  .y{color:var(--ok);font-weight:700} .no{color:var(--bad);font-weight:700}
+  .danger{background:#fef7f7;border:1px solid #f0c2c2;border-radius:9px;padding:14px 16px;margin:14px 0}
+  .danger b{color:var(--bad)}
+  ol,ul{padding-left:20px} li{margin-bottom:6px}
+  .chk{list-style:none;padding-left:0} .chk li{padding-left:24px;position:relative}
+  .chk li:before{content:"☐";position:absolute;left:4px;color:var(--muted)}
+  footer{margin-top:42px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Agent 管理 + 知识库：改造方案</h1>
+<div class="sub">交付给开发执行 · 2026-08-22 · 基于 V48 内容 Agent 已上线后的最新代码</div>
+
+<div class="lead">
+  <h2>先更新一下现状：后端已经跑在前面了，缺的是前端入口和知识库后端</h2>
+  <p>复核代码发现，<b>多岗位 Agent 的后端基本已经就位</b>：<span class="loc">mp_agent_config.role</span> 字段（V48）、<span class="loc">getActiveConfigByRole()</span>、<span class="loc">publishConfig()</span> 发布时按角色下线同角色其它配置、<span class="loc">chatForRole()</span> 按岗位取配置——都实现了。内容管理 Agent 的 <b>13 项任务全部落地</b>（A1~D3 + 自由指令），含任务表、明细表、进度、批量审核、采纳与<b>回滚</b>。执行得很扎实。</p>
+  <p>所以这份方案不是"新建两个功能"，而是补两个明确的缺口：</p>
+  <p><b>缺口一：前端还是单配置页，导致内容 Agent 在借用客服的模型和提示词。</b><span class="file">admin/src/api/agent.ts</span> 的所有接口都不带 role，页面只能编辑一份配置。<span class="loc">chatForRole("content_ops", ...)</span> 找不到内容岗位的配置时会回退到客服配置（<span class="file">AgentConfigServiceImpl:258-261</span>）——功能不报错，但内容 Agent 现在是拿着"你是客服"的提示词在做分类和写摘要。</p>
+  <p><b>缺口二：知识库仍是空壳。</b><span class="loc">uploadKnowledge</span> 只做两件事——存文件、插一条记录，没有解析、切片、检索；回答链路里知识一个字都没进去。</p>
+</div>
+
+<div class="danger">
+  <b>⚠ 顺带发现一个安全问题（建议一并修）：</b>知识库文件用 <span class="loc">fileUploadService.upload(file)</span> 单参数版本上传（<span class="file">AgentConfigServiceImpl:504</span>），<b>没有传 subDir</b>，文件落在 <span class="loc">/uploads/{日期}/{uuid}.ext</span>——而 <span class="loc">/uploads/**</span> 是 permitAll 的公开静态目录。<b>内部知识资料任何人拿到 URL 就能下载。</b>改法：传 <span class="loc">"protected"</span> 作为 subDir（<span class="loc">ProtectedUploadFilter</span> 已能拦截该目录的直接访问），并改为通过带鉴权的接口下载。
+</div>
+
+<h2 class="part">Part A　Agent 管理：加一层列表，不重做</h2>
+
+<h3 class="grp">A0　现状盘点</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>能力</th><th>后端</th><th>前端</th></tr>
+<tr><td class="c">多岗位配置（role）</td><td class="y">已支持</td><td class="no">无入口</td></tr>
+<tr><td class="c">按岗位取配置 / 发布 / 版本回滚</td><td class="y">已支持</td><td class="y">有（但只作用于单份）</td></tr>
+<tr><td class="c">模型接入 / Prompt / 沙盒 / 监控</td><td class="y">已支持</td><td class="y">六步向导 1474 行</td></tr>
+<tr><td class="c">工具授权</td><td class="no">无</td><td class="no">无</td></tr>
+<tr><td class="c">成本与配额</td><td>任务级有 <span class="loc">cost_tokens</span></td><td class="no">无</td></tr>
+<tr><td class="c">评测集</td><td class="no">无</td><td>仅单条沙盒试问</td></tr>
+</table>
+</div>
+
+<h3 class="grp">A1　后端改动（小）</h3>
+<div class="item">
+  <p><b>1. 配置列表支持按角色过滤</b>——<span class="file">AdminAgentController</span> 的 <span class="loc">GET /api/v1/admin/agent</span> 增加可选参数 <span class="loc">role</span>。</p>
+  <p><b>2. 新增岗位清单接口</b> <span class="loc">GET /api/v1/admin/agent/roles</span>，返回：</p>
+  <pre>[
+  { "role":"service",      "name":"客服助手",   "configured":true,
+    "activeConfigId":3, "model":"deepseek-chat", "updatedAt":"..." },
+  { "role":"content_ops",  "name":"内容运营",   "configured":false,
+    "activeConfigId":null, "fallbackTo":"service" },   // ← 前端据此给出「未配置，正在借用客服配置」的警示
+  { "role":"page_builder", "name":"页面搭建",   "configured":false, "comingSoon":true }
+]</pre>
+  <p><b>3. 创建配置时接受 role</b>——<span class="loc">POST /api/v1/admin/agent</span> 的 DTO 里 <span class="loc">role</span> 字段已有（<span class="file">AgentConfigDTO:13</span>），确认保存链路没有把它丢掉即可。</p>
+  <p><b>4. 回退时打警告日志</b>——<span class="loc">chatForRole</span> 走到回退分支时 <span class="loc">log.warn("岗位 {} 未配置模型，已回退到客服配置", role)</span>，便于运维发现。</p>
+  <p class="why"><b>合计约 3 小时。</b>后端的数据模型不用动，V48 已经把地基打好了。</p>
+</div>
+
+<h3 class="grp">A2　前端改动（主要工作量）</h3>
+<div class="item">
+  <h4><span class="n">A2-1</span>新增 Agent 列表页</h4>
+  <p>路由 <span class="loc">/ai/agent</span> 改为列表页，现有配置页移到 <span class="loc">/ai/agent/:role</span>。</p>
+  <p>列表用卡片，每个岗位一张：</p>
+  <pre>┌─────────────────────────────┐
+│ 🎧 客服助手          [已启用] │
+│ deepseek-chat · v7           │
+│ 今日 128 次 · ¥2.4 · 转人工 6%│
+│            [配置]  [沙盒测试] │
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│ ✍️ 内容运营      [⚠ 未配置]   │
+│ 正在借用「客服助手」的模型与提示词│
+│ 今日任务 6 · 驳回率 12%        │
+│            [立即配置]         │
+└─────────────────────────────┘</pre>
+  <p>「未配置」那张卡片的警示文案很重要——这正是当前的真实状态，要让人一眼看到。</p>
+</div>
+<div class="item">
+  <h4><span class="n">A2-2</span>现有配置页改成按岗位加载</h4>
+  <p><span class="file">admin/src/api/agent.ts</span> 全部接口加 <span class="loc">role</span> 参数；<span class="file">views/ai/agent/index.vue</span> 从路由取 role 后加载对应配置。<b>六个 tab 的内容不动</b>，只在页头加一个岗位标识和返回列表的入口。</p>
+</div>
+<div class="item">
+  <h4><span class="n">A2-3</span>新建 Agent 从岗位模板起步</h4>
+  <p>点「立即配置」时，预填该岗位的推荐配置，运营只需填 API Key：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>岗位</th><th>预置 system_prompt 要点</th><th>推荐参数</th></tr>
+    <tr><td class="c">客服助手</td><td>身份、答不上来必须说转人工、禁止承诺价格与时效、只依据知识库回答</td><td>temperature 0.3，max_tokens 512</td></tr>
+    <tr><td class="c">内容运营</td><td>身份、品牌调性、分类与标签必须从给定清单里选、输出 JSON、不确定就返回低置信度</td><td>temperature 0.2，max_tokens 2048</td></tr>
+    <tr><td class="c">页面搭建</td><td>（预留）只输出符合 schema 的 DSL、组件只能用给定清单</td><td>temperature 0.1</td></tr>
+  </table>
+  </div>
+  <p class="why"><b>为什么模板重要：</b>内容 Agent 的提示词要求"输出 JSON、分类从清单里选、不确定给低置信度"，和客服的完全不同。没有模板，运营大概率会照抄客服的那份，然后发现效果很差。</p>
+</div>
+
+<h3 class="grp">A3　新增三个 tab（可在 A2 之后分批做）</h3>
+<div class="item">
+  <p><b>⑦ 工具授权</b>——先做<b>展示 + 开关</b>，不做完整 Tool Registry。列出该岗位能调用的能力（内容 Agent：改元数据 / 改正文 / 挂商品 / 定时发布），每项三档：<span class="loc">仅建议 / 可改草稿 / 可执行</span>，以及「是否需人审」。存进 <span class="loc">mp_agent_config</span> 新增的 <span class="loc">tool_grants JSON</span> 字段即可，不用建表。</p>
+  <p class="why">这一步的价值不在技术，在<b>让授权边界变成看得见的配置</b>——现在这些规则散在代码里（比如已发布内容不许改正文那条硬编码在 <span class="file">ContentAgentTaskServiceImpl:339</span>）。</p>
+</div>
+<div class="item">
+  <p><b>⑧ 成本与配额</b>——展示按天/按岗位的调用次数与 token 消耗，配置日预算上限与超支行为（告警 / 停机）。数据来源：新增一张 <span class="loc">mp_agent_call_log</span>（agentRole / model / promptTokens / completionTokens / costEstimate / latencyMs / taskId / success），在 <span class="loc">chatForRole</span> 和 <span class="loc">chat</span> 里各埋一行。</p>
+</div>
+<div class="item">
+  <p><b>④ 沙盒测试升级为评测集</b>——保留单条试问，增加「批量评测」：维护 20~50 条用例（输入 + 期望要点），一键跑分并与上一版本并排对比。<b>建议本期就做最简版</b>：用例存 JSON、跑完人工打勾，先不做自动 judge。</p>
+</div>
+
+<h2 class="part">Part B　知识库：先补后端，再做界面</h2>
+
+<h3 class="grp">B0　立刻要做的一件小事（半天）</h3>
+<div class="item">
+  <p>在现有「③ 知识库」tab 顶部加一条醒目提示：</p>
+  <pre>⚠ 知识库文件已保存，但尚未接入回答链路。
+   当前 AI 回答仅依据「② Prompt 配置」中的提示词。</pre>
+  <p>同时把上传路径改到 <span class="loc">protected</span> 子目录（见文首安全问题）。</p>
+  <p class="why"><b>为什么先做这个：</b>运营现在会传文件、设权重，然后以为生效了。诚实标注的成本是半天，误导的成本是他们对整个 AI 能力失去信任。</p>
+</div>
+
+<h3 class="grp">B1　最小可用 RAG（后端，本方案核心）</h3>
+<div class="item">
+  <h4><span class="n">B1-1</span>新增切片表</h4>
+  <pre>CREATE TABLE mp_agent_knowledge_chunk (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  knowledge_id BIGINT NOT NULL COMMENT '所属知识源',
+  config_id    BIGINT NULL     COMMENT '所属 Agent 配置（沿用 V35 已加的 config_id 语义）',
+  seq          INT NOT NULL    COMMENT '切片序号',
+  title        VARCHAR(255)    COMMENT '所属小节标题，召回时一并给模型',
+  body         TEXT NOT NULL   COMMENT '切片正文',
+  char_len     INT NOT NULL DEFAULT 0,
+  source_ref   VARCHAR(500)    COMMENT '出处：文件名#段落 或 内容ID',
+  hit_count    INT NOT NULL DEFAULT 0 COMMENT '被召回次数',
+  create_time  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_knowledge (knowledge_id),
+  FULLTEXT KEY ft_body (title, body) WITH PARSER ngram
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识库切片';</pre>
+  <div class="danger">
+    <b>中文全文检索必须加 <span class="loc">WITH PARSER ngram</span></b>，否则 MySQL 默认按空格分词，中文一个词都切不出来，检索永远返回空。同时确认 <span class="loc">ngram_token_size</span>（默认 2）符合预期。这是这一步最容易踩的坑。
+  </div>
+</div>
+<div class="item">
+  <h4><span class="n">B1-2</span>解析与切片</h4>
+  <p>新增 <span class="file">service/knowledge/KnowledgeIngestService.java</span>：</p>
+  <ul>
+    <li><b>解析</b>：<span class="loc">.txt / .md</span> 直接读；<span class="loc">.html</span> 用 <b>jsoup</b>（pom 已有）取正文；<span class="loc">.docx / .xlsx</span> 用 <b>poi-ooxml</b>（pom 已有）；<b><span class="loc">.pdf</span> 需要新增 pdfbox 依赖</b>——如果不想加依赖，就在上传时明确拒绝 PDF 并提示"请转成 Word 或 Markdown"，不要静默失败。</li>
+    <li><b>切片</b>：优先按标题（h1~h3 / Markdown # ）切，再按段落合并到 <b>500~800 字</b>，相邻切片<b>重叠 100 字</b>避免语义断裂。每片记录所属标题。</li>
+    <li><b>状态机</b>：复用现有 <span class="loc">vector_status</span> 字段（<span class="loc">pending → processing → done / failed</span>），失败要写明原因。</li>
+    <li><b>异步执行</b>：复用已有的 <span class="loc">importExecutor</span> 线程池 + Redis 进度（与公众号导入同一套机制）。</li>
+  </ul>
+</div>
+<div class="item">
+  <h4><span class="n">B1-3</span>检索与注入</h4>
+  <pre>// KnowledgeRetrievalService.retrieve(role, question, topK)
+SELECT id, title, body, source_ref,
+       MATCH(title, body) AGAINST(? IN NATURAL LANGUAGE MODE) AS score
+FROM mp_agent_knowledge_chunk c
+JOIN mp_agent_knowledge k ON k.id = c.knowledge_id
+WHERE (c.config_id IS NULL OR c.config_id = ?)
+  AND MATCH(title, body) AGAINST(? IN NATURAL LANGUAGE MODE)
+ORDER BY score * k.recall_weight DESC     -- 复用已有的 recall_weight 字段
+LIMIT ?</pre>
+  <p>在 <span class="file">AgentConfigServiceImpl</span> 的 <span class="loc">chat</span> 与 <span class="loc">chatForRole</span> 里，把召回结果拼进 system message：</p>
+  <pre>【参考资料】（回答必须依据以下资料，资料中没有的信息请说明你不确定）
+[1] {title}：{body}
+[2] ...
+回答末尾用 [1][2] 标注引用来源。</pre>
+  <p><b>三条硬性要求：</b></p>
+  <ol>
+    <li><b>topK 默认 4，总长度上限按 token 预算截断</b>——塞太多反而稀释重点，还烧钱。</li>
+    <li><b>召回为空时不要硬编</b>——提示词里明确"没有相关资料时应告知用户并建议转人工"。</li>
+    <li><b>返回值带 sources</b>，前端沙盒和小程序端都能展示"依据了哪几条知识"。</li>
+  </ol>
+  <p>同时把召回到的切片 <span class="loc">hit_count + 1</span>（异步累加，别阻塞回答）。</p>
+</div>
+
+<h3 class="grp">B2　从内容库同步知识（这一项最有价值）</h3>
+<div class="item">
+  <p>你已经有一整个内容库——导入后的公众号文章、问答库、商品与活动信息。<b>不该让运营把系统里已有的内容导出成文档再传回来。</b></p>
+  <p><b>数据模型</b>：<span class="loc">mp_agent_knowledge</span> 加两个字段：</p>
+  <pre>source_type VARCHAR(16) NOT NULL DEFAULT 'file'   -- file|content|qa|product|manual
+source_id   BIGINT NULL                            -- 对应业务表主键</pre>
+  <p><b>同步配置</b>（放在知识库管理页）：</p>
+  <pre>☑ 已发布内容    分类：[跨境合规] [税务] [物流]  （不选=全部）
+☑ 已采纳问答    （mp_question + mp_answer，status=answered）
+☐ 商品说明
+☐ 活动规则
+[立即同步]   上次同步：2026-08-22 14:03 · 187 篇 · 1,240 个切片</pre>
+  <p><b>实现要点：</b></p>
+  <ul>
+    <li>正文用 jsoup 转纯文本后再切片（HTML 标签进知识库是纯噪音）</li>
+    <li><span class="loc">source_ref</span> 存内容 ID 和标题，将来可以做「点击引用跳到原文」</li>
+    <li><b>增量更新</b>：按 <span class="loc">mp_content.update_time</span> 比对，只重建变更过的；内容删除时同步删切片</li>
+    <li>问答对不用切片，一问一答直接作为一个 chunk，检索命中率最高</li>
+    <li>同步是<b>手动触发 + 可选定时</b>（每日一次），不要做成实时——没必要，还会拖慢内容保存</li>
+  </ul>
+  <p class="why"><b>这是你相对通用 Agent 平台的独有优势：</b>别人的知识库要从零喂，你的开箱就有一整个持续更新的内容库。客服 Agent 上线第一天就能回答"跨境电商 0110 报关怎么做"——因为你正好有那篇文章。</p>
+</div>
+
+<h3 class="grp">B3　知识库管理界面</h3>
+<div class="item">
+  <p>做到这一步，界面才有意义。建议独立成 <span class="loc">/ai/knowledge</span> 页面（不再挤在 Agent 配置的 tab 里，因为知识是跨 Agent 共享的）：</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>模块</th><th>内容</th><th>优先级</th></tr>
+    <tr><td class="c">知识源列表</td><td>名称 / 来源类型 / 切片数 / 生效状态 / 最后更新 / <b>累计命中次数</b> / 召回权重 / 授权给哪些 Agent</td><td>必做</td></tr>
+    <tr><td class="c">检索测试</td><td>输入问题 → 展示召回的 top5 切片与分数（<b>不调模型</b>，纯检索，快且免费）</td><td><b>必做</b></td></tr>
+    <tr><td class="c">切片预览</td><td>点开知识源看被切成了什么样，支持手动合并/删除某片</td><td>必做</td></tr>
+    <tr><td class="c">手动问答录入</td><td>一问一答直接入库，不必写成文档再上传</td><td>必做</td></tr>
+    <tr><td class="c">内容库同步</td><td>B2 的勾选面板 + 同步进度</td><td>必做</td></tr>
+    <tr><td class="c">零命中清理</td><td>筛出长期零命中的切片，一键停用</td><td>可选</td></tr>
+  </table>
+  </div>
+  <p class="why"><b>「检索测试」是这一页最有用的工具。</b>当运营抱怨"AI 答得不对"，第一步就是在这里输入那个问题——看是召回错了（知识库问题）还是召回对了但答歪了（提示词问题）。没有它，排查全靠猜。</p>
+</div>
+
+<h2 class="sec">验收标准</h2>
+<p class="secnote">Part A 与 Part B 可分别验收。</p>
+<h3 class="grp">Part A</h3>
+<ul class="chk">
+  <li>Agent 列表能看到三个岗位，未配置的岗位有明确警示</li>
+  <li>给「内容运营」单独配置模型与提示词后，<span class="loc">chatForRole("content_ops")</span> 不再回退到客服配置（看日志确认无 warn）</li>
+  <li>客服与内容运营各自发布版本互不影响（发布其一，另一个仍是启用状态）</li>
+  <li>新建岗位时提示词模板已预填</li>
+  <li>成本 tab 能看到分岗位的当日调用次数与 token</li>
+</ul>
+<h3 class="grp">Part B</h3>
+<ul class="chk">
+  <li>上传一份 docx，能看到解析出的切片列表，状态为「已生效」</li>
+  <li>知识库文件不再能通过 <span class="loc">/uploads/</span> 直接下载</li>
+  <li>检索测试输入中文问题能返回相关切片（<b>验证 ngram 分词器生效</b>）</li>
+  <li>沙盒对话中问一个只有知识库里才有答案的问题，AI 能答对<b>并标注引用来源</b></li>
+  <li>知识库里没有的问题，AI 明确说不确定并建议转人工，<b>不编造</b></li>
+  <li>从内容库同步后，问一个只有某篇公众号文章里才有的细节，能答对</li>
+  <li>修改一篇内容后重新同步，只有该篇的切片被重建</li>
+  <li>切片的 <span class="loc">hit_count</span> 随召回累加</li>
+</ul>
+
+<h2 class="sec">工作量与顺序</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>顺序</th><th>内容</th><th>估算</th></tr>
+<tr><td class="c">① 立刻</td><td>B0 知识库未生效提示 + 上传路径改 protected</td><td>0.5 天</td></tr>
+<tr><td class="c">②</td><td>A1 + A2 Agent 列表层与岗位模板（<b>解除内容 Agent 借用客服配置的现状</b>）</td><td>2.5 天</td></tr>
+<tr><td class="c">③</td><td>B1 最小可用 RAG（解析 / 切片 / 检索 / 注入 / 引用）</td><td>3 天</td></tr>
+<tr><td class="c">④</td><td>B2 内容库同步</td><td>1.5 天</td></tr>
+<tr><td class="c">⑤</td><td>B3 知识库管理页</td><td>2 天</td></tr>
+<tr><td class="c">⑥</td><td>A3 三个新 tab（工具授权 / 成本 / 评测集）</td><td>2 天</td></tr>
+</table>
+</div>
+<p>合计约 <b>11.5 人天</b>。②③④ 是主线，⑤⑥ 可以并行或后置。</p>
+
+<h2 class="sec">本次不做</h2>
+<ul>
+  <li><b>不上向量库。</b>先用 MySQL 全文检索把链路跑通，效果不够再换 pgvector / Milvus。中文客服场景关键词召回往往已经够用，而且省一整套基础设施。切片表设计已经为将来加 embedding 列留了余地。</li>
+  <li><b>不做完整 Tool Registry。</b>先用 <span class="loc">tool_grants JSON</span> 把授权变成可见配置，等第三个岗位上线再抽象成表。</li>
+  <li><b>不做多模型路由。</b>等有第二个供应商的实际需求时再做适配层——现在做是过早抽象。</li>
+  <li><b>不做知识库的自动质量评分。</b>先让「命中次数」和「检索测试」跑起来，人看得见就够了。</li>
+</ul>
+
+<footer>
+  本方案基于 2026-08-22 最新代码（HEAD <span class="loc">a499b31</span>）：V48 已建 <span class="loc">mp_agent_task</span> / <span class="loc">mp_agent_task_item</span> 与 <span class="loc">role</span> 字段，内容 Agent 13 项任务（<span class="file">ContentAgentTaskType</span>）与审核采纳回滚链路均已实现；<span class="loc">chatForRole</span> 的岗位回退逻辑在 <span class="file">AgentConfigServiceImpl:258-261</span>；知识库上传在同文件 <span class="loc">497-509</span> 行。依赖方面 jsoup 与 poi-ooxml 已在 pom 中，PDF 解析需另加 pdfbox。
+</footer>
+
+</div>
+</body>
+</html>

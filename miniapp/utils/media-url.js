@@ -10,6 +10,13 @@ function getApiOrigin() {
       return custom.replace(/\/+$/, '')
     }
   } catch (e) { /* ignore */ }
+  try {
+    const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
+    if (envVersion === 'develop') {
+      const { resolveDevelopBaseUrl } = require('./dev-config')
+      return resolveDevelopBaseUrl()
+    }
+  } catch (e) { /* ignore */ }
   return PROD_API_ORIGIN
 }
 

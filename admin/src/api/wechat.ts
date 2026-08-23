@@ -1,7 +1,7 @@
 /**
  * 微信公众号相关 API
  */
-import { post } from './request'
+import { get, post } from './request'
 
 const BASE_URL = '/api/v1/admin/wechat/official-account'
 
@@ -33,12 +33,34 @@ export interface WeChatUrlImportRequest {
   publish?: boolean
 }
 
-/** 全量同步公众号已发布图文 */
-export function syncWeChatPublishedContents(data?: WeChatContentSyncRequest) {
-  return post<WeChatContentSyncResult>(`${BASE_URL}/sync-published`, data as Record<string, unknown>)
+export interface ImportTask {
+  taskId: string
+  type: 'sync' | 'url'
+  status: 'pending' | 'running' | 'success' | 'failed'
+  total: number
+  processed: number
+  currentTitle?: string
+  startedAt?: string
+  finishedAt?: string
+  operatorId?: number
+  error?: string
+  result?: WeChatContentSyncResult
 }
 
-/** 公众号文章链接批量导入 */
+/** 全量同步公众号已发布图文（异步：返回 ImportTask；降级同步时直接返回 Result） */
+export function syncWeChatPublishedContents(data?: WeChatContentSyncRequest) {
+  return post<ImportTask | WeChatContentSyncResult>(`${BASE_URL}/sync-published`, data as Record<string, unknown>)
+}
+
+/** 公众号文章链接批量导入（异步） */
 export function importWeChatArticleUrls(data: WeChatUrlImportRequest) {
-  return post<WeChatContentSyncResult>(`${BASE_URL}/import-urls`, data as unknown as Record<string, unknown>)
+  return post<ImportTask | WeChatContentSyncResult>(`${BASE_URL}/import-urls`, data as unknown as Record<string, unknown>)
+}
+
+export function getImportTask(taskId: string) {
+  return get<ImportTask>(`${BASE_URL}/import-tasks/${taskId}`)
+}
+
+export function getRunningImportTask() {
+  return get<ImportTask | null>(`${BASE_URL}/import-tasks/running`)
 }

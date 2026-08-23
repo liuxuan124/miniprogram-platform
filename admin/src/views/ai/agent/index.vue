@@ -2,9 +2,14 @@
   <div class="agent-page">
     <PageHeader
       kicker="系统 / 智能 Agent"
-      title="智能 Agent"
-      description="完整生命周期：接入模型 → 编写 Prompt → 上传知识库 → 沙盒测试 → 发布上线 → 监控运营。"
-    />
+      :title="`${roleDisplayName} · 配置`"
+      :description="rolePageDescription"
+    >
+      <template #actions>
+        <el-button @click="$router.push('/ai/agent')">← 返回列表</el-button>
+        <el-button plain @click="$router.push('/ai/knowledge')">知识库管理</el-button>
+      </template>
+    </PageHeader>
 
     <el-tabs v-model="activeTab" class="agent-tabs">
       <el-tab-pane label="① 模型接入" name="model">
@@ -183,7 +188,7 @@
               <span>📚 知识库文件管理</span>
               <el-upload
                 :show-file-list="false"
-                accept=".pdf,.doc,.docx,.txt,.md,.markdown,.csv"
+                accept=".docx,.txt,.md,.markdown,.html,.xlsx,.csv"
                 :disabled="uploadingKnowledge"
                 :http-request="handleKnowledgeUpload"
               >
@@ -191,14 +196,21 @@
               </el-upload>
             </div>
           </template>
-          <el-alert type="info" :closable="false" show-icon style="margin-bottom:14px">
-            <template #title>支持 PDF / Word / Markdown / TXT。文件会先上传到服务器再登记；向量化尚未实现，状态先为 pending。</template>
+          <el-alert type="warning" :closable="false" show-icon style="margin-bottom:14px">
+            <template #title>
+              知识库已接入回答链路：沙盒与岗位对话会自动召回切片。请在「知识库管理」查看切片、检索测试与内容库同步。文件存于受保护目录，不可通过 /uploads 直接下载。
+            </template>
           </el-alert>
+          <div style="margin-bottom:14px">
+            <el-button size="small" type="primary" plain @click="$router.push('/ai/knowledge')">
+              前往知识库管理
+            </el-button>
+          </div>
           <el-upload
             drag
             class="knowledge-uploader"
             :show-file-list="false"
-            accept=".pdf,.doc,.docx,.txt,.md,.markdown,.csv"
+            accept=".docx,.txt,.md,.markdown,.html,.xlsx,.csv"
             :disabled="uploadingKnowledge"
             :http-request="handleKnowledgeUpload"
           >
@@ -442,19 +454,129 @@
           </div>
         </el-card>
       </el-tab-pane>
+
+      <el-tab-pane label="⑦ 工具授权" name="tools">
+        <el-card shadow="never">
+          <template #header><span>🔧 内容运营工具授权</span></template>
+          <el-alert
+            v-if="agentRole !== 'content_ops'"
+            type="info"
+            :closable="false"
+            show-icon
+            style="margin-bottom:14px"
+            title="当前岗位无工具授权项；内容运营 Agent 可配置改元数据、正文、挂商品与定时发布。"
+          />
+          <el-table v-else :data="toolGrantRows" stripe style="width:100%">
+            <el-table-column label="工具" prop="label" width="140" />
+            <el-table-column label="授权级别" min-width="280">
+              <template #default="{ row }">
+                <el-radio-group v-model="row.level" size="small">
+                  <el-radio-button label="suggest">仅建议</el-radio-button>
+                  <el-radio-button label="draft">可改草稿</el-radio-button>
+                  <el-radio-button label="execute">可执行</el-radio-button>
+                </el-radio-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="需人审" width="100" align="center">
+              <template #default="{ row }">
+                <el-checkbox v-model="row.requireReview" />
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button
+            type="primary"
+            style="margin-top:14px"
+            :loading="savingConfig"
+            @click="saveToolGrants"
+          >
+            保存工具授权
+          </el-button>
+        </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="⑧ 成本与配额" name="cost">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-card shadow="never">
+              <template #header><span>📈 今日消耗</span></template>
+              <el-descriptions :column="1" border size="small">
+                <el-descriptions-item label="调用次数">{{ costStats.todayCalls ?? 0 }}</el-descriptions-item>
+                <el-descriptions-item label="Token">{{ costStats.todayTokens ?? 0 }}</el-descriptions-item>
+                <el-descriptions-item label="预估费用">¥{{ costStats.todayCost ?? 0 }}</el-descriptions-item>
+              </el-descriptions>
+              <el-button size="small" style="margin-top:12px" @click="loadCostStats">刷新</el-button>
+            </el-card>
+          </el-col>
+          <el-col :span="12">
+            <el-card shadow="never">
+              <template #header><span>⚙️ 配额设置</span></template>
+              <el-form label-width="110px">
+                <el-form-item label="日 Token 预算">
+                  <el-input-number
+                    v-model="costForm.dailyTokenBudget"
+                    :min="0"
+                    :step="1000"
+                    style="width:100%"
+                    placeholder="0 表示不限制"
+                  />
+                </el-form-item>
+                <el-form-item label="超支行为">
+                  <el-select v-model="costForm.overBudgetAction" style="width:100%">
+                    <el-option label="告警（warn）" value="warn" />
+                    <el-option label="停机（stop）" value="stop" />
+                  </el-select>
+                </el-form-item>
+              </el-form>
+              <el-button type="primary" :loading="savingConfig" @click="saveCostQuota">保存配额</el-button>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-tab-pane>
+
+      <el-tab-pane label="评测集" name="eval">
+        <el-card shadow="never">
+          <template #header><span>📋 批量评测</span></template>
+          <el-alert type="info" :closable="false" show-icon style="margin-bottom:12px">
+            <template #title>用例 JSON 格式：[{ "input": "问题", "expect": "期望要点" }]。跑批后人工勾选通过。</template>
+          </el-alert>
+          <el-input
+            v-model="evalCasesJson"
+            type="textarea"
+            :rows="8"
+            placeholder='[{"input":"金卡会员有什么权益？","expect":"积分"}]'
+            style="font-size:12px"
+          />
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <el-button type="primary" :loading="runningEval" @click="runEvalBatch">运行批量评测</el-button>
+            <el-button @click="saveEvalCases">保存用例</el-button>
+          </div>
+          <el-table v-if="evalResults.length" :data="evalResults" stripe style="margin-top:16px" size="small">
+            <el-table-column label="输入" prop="input" min-width="140" show-overflow-tooltip />
+            <el-table-column label="期望" prop="expect" width="120" show-overflow-tooltip />
+            <el-table-column label="回答" prop="answer" min-width="160" show-overflow-tooltip />
+            <el-table-column label="通过" width="72" align="center">
+              <template #default="{ row }">
+                <el-checkbox v-model="row.passed" />
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import {
   addAgentKnowledge,
   createAgentConfig,
   deleteAgentKnowledge,
-  getActiveAgentConfig,
+  getActiveAgentConfigByRole,
+  getAgentCostStats,
   getAgentConfigs,
   getAgentKnowledge,
   getAgentRecentConversations,
@@ -467,7 +589,18 @@ import {
   updateAgentKnowledgeWeight,
 } from '@/api/agent'
 import { uploadFile } from '@/api/system'
+import { ROLE_NAMES, ROLE_TEMPLATES } from '@/constants/agentRoles'
 import type { AgentConfigPayload, AgentKnowledgeItem, AgentVersionItem } from '@/types/agent'
+
+const route = useRoute()
+const agentRole = computed(() => {
+  const r = route.params.role as string
+  return r && ['service', 'content_ops', 'page_builder'].includes(r) ? r : 'service'
+})
+const roleDisplayName = computed(() => ROLE_NAMES[agentRole.value] || agentRole.value)
+const rolePageDescription = computed(() =>
+  `岗位：${roleDisplayName.value}。完整生命周期：接入模型 → Prompt → 知识库 → 沙盒 → 发布 → 监控。`
+)
 
 const activeTab = ref('model')
 
@@ -760,6 +893,41 @@ const sandboxHint = ref('')
 
 const publishMode = ref('full')
 
+interface ToolGrantRow {
+  key: string
+  label: string
+  level: 'suggest' | 'draft' | 'execute'
+  requireReview: boolean
+}
+
+const TOOL_DEFS: ToolGrantRow[] = [
+  { key: 'metadata', label: '改元数据', level: 'suggest', requireReview: true },
+  { key: 'content', label: '改正文', level: 'draft', requireReview: true },
+  { key: 'product', label: '挂商品', level: 'suggest', requireReview: true },
+  { key: 'schedule', label: '定时发布', level: 'suggest', requireReview: true },
+]
+
+const toolGrantRows = ref<ToolGrantRow[]>(TOOL_DEFS.map((t) => ({ ...t })))
+
+const costStats = ref({
+  todayCalls: 0,
+  todayTokens: 0,
+  todayCost: 0,
+})
+const costForm = ref({
+  dailyTokenBudget: 0,
+  overBudgetAction: 'warn',
+})
+
+const evalCasesJson = ref('[]')
+const evalResults = ref<Array<{
+  input: string
+  expect: string
+  answer: string
+  passed: boolean
+}>>([])
+const runningEval = ref(false)
+
 const intents = ref([
   { name: '产品咨询', pct: 68 },
   { name: '会员权益', pct: 52 },
@@ -802,6 +970,7 @@ function defaultBaseUrl(provider: string) {
 function buildConfigPayload(): AgentConfigPayload {
   return {
     name: apiConfig.value.name,
+    role: agentRole.value,
     model: apiConfig.value.model,
     modelProvider: apiConfig.value.modelProvider,
     apiBaseUrl: apiConfig.value.apiBaseUrl,
@@ -815,6 +984,54 @@ function buildConfigPayload(): AgentConfigPayload {
     enableRecommend: behavior.value.enableRecommend,
     enableProactive: behavior.value.enableProactive,
     memoryType: behavior.value.memory,
+    toolGrants: JSON.stringify(buildToolGrantsMap()),
+    dailyTokenBudget: costForm.value.dailyTokenBudget,
+    overBudgetAction: costForm.value.overBudgetAction,
+    evalCases: evalCasesJson.value || '[]',
+  }
+}
+
+function buildToolGrantsMap() {
+  const map: Record<string, { level: string; requireReview: boolean }> = {}
+  for (const row of toolGrantRows.value) {
+    map[row.key] = { level: row.level, requireReview: row.requireReview }
+  }
+  return map
+}
+
+function applyToolGrantsFromConfig(raw?: string) {
+  const defaults = TOOL_DEFS.map((t) => ({ ...t }))
+  if (!raw) {
+    toolGrantRows.value = defaults
+    return
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, { level?: string; requireReview?: boolean }>
+    toolGrantRows.value = defaults.map((d) => {
+      const item = parsed[d.key]
+      if (!item) return { ...d }
+      const level: ToolGrantRow['level'] =
+        item.level === 'draft' || item.level === 'execute' ? item.level : 'suggest'
+      return {
+        ...d,
+        level,
+        requireReview: item.requireReview ?? d.requireReview,
+      }
+    })
+  } catch {
+    toolGrantRows.value = defaults
+  }
+}
+
+function applyRoleTemplate(role: string) {
+  const tpl = ROLE_TEMPLATES[role] || ROLE_TEMPLATES.service
+  apiConfig.value.name = tpl.name
+  apiConfig.value.temperature = tpl.temperature
+  apiConfig.value.maxTokens = tpl.maxTokens
+  systemPrompt.value = tpl.systemPrompt
+  if (tpl.welcomeMessage) behavior.value.welcome = tpl.welcomeMessage
+  if (chatMessages.value.length === 1 && chatMessages.value[0].role === 'ai') {
+    chatMessages.value[0].content = behavior.value.welcome
   }
 }
 
@@ -835,6 +1052,10 @@ function applyConfigToForm(config: {
   enableProactive?: boolean
   memoryType?: string
   version?: number
+  toolGrants?: string
+  dailyTokenBudget?: number
+  overBudgetAction?: string
+  evalCases?: unknown[] | string
 }) {
   apiConfig.value.id = config.id
   apiConfig.value.name = config.name || apiConfig.value.name
@@ -855,21 +1076,156 @@ function applyConfigToForm(config: {
   if (chatMessages.value.length === 1 && chatMessages.value[0].role === 'ai') {
     chatMessages.value[0].content = behavior.value.welcome
   }
+  applyToolGrantsFromConfig(config.toolGrants)
+  if (config.dailyTokenBudget != null) costForm.value.dailyTokenBudget = config.dailyTokenBudget
+  if (config.overBudgetAction) costForm.value.overBudgetAction = config.overBudgetAction
+  if (typeof config.evalCases === 'string' && config.evalCases.trim()) {
+    try {
+      evalCasesJson.value = JSON.stringify(JSON.parse(config.evalCases), null, 2)
+    } catch {
+      evalCasesJson.value = config.evalCases
+    }
+  } else if (Array.isArray(config.evalCases) && config.evalCases.length) {
+    evalCasesJson.value = JSON.stringify(config.evalCases, null, 2)
+  }
 }
 
 async function loadActiveConfig() {
-  const res = await getActiveAgentConfig()
+  const role = agentRole.value
+  const res = await getActiveAgentConfigByRole(role)
   if (res.data) {
     applyConfigToForm(res.data)
     return
   }
-  // 无已发布配置时，加载最新一条草稿，避免保存后刷新丢失
   try {
-    const listRes = await getAgentConfigs({ current: 1, size: 1 })
+    const listRes = await getAgentConfigs({ current: 1, size: 1, role })
     const first = listRes.data?.records?.[0] || listRes.data?.list?.[0]
-    if (first) applyConfigToForm(first)
+    if (first) {
+      applyConfigToForm(first)
+      return
+    }
   } catch {
     // ignore
+  }
+  apiConfig.value.id = 0
+  apiConfig.value.version = 0
+  applyRoleTemplate(role)
+}
+
+async function loadCostStats() {
+  try {
+    const res = await getAgentCostStats(agentRole.value)
+    const d = res.data
+    if (d) {
+      costStats.value = {
+        todayCalls: d.todayCalls ?? 0,
+        todayTokens: d.todayTokens ?? 0,
+        todayCost: d.todayCost ?? 0,
+      }
+      if (d.dailyTokenBudget != null) costForm.value.dailyTokenBudget = d.dailyTokenBudget
+      if (d.overBudgetAction) costForm.value.overBudgetAction = d.overBudgetAction
+    }
+  } catch {
+    // ignore
+  }
+}
+
+async function saveToolGrants() {
+  savingConfig.value = true
+  try {
+    await persistConfig()
+    ElMessage.success('工具授权已保存')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '保存失败'
+    ElMessage.error(msg)
+  } finally {
+    savingConfig.value = false
+  }
+}
+
+async function saveCostQuota() {
+  savingConfig.value = true
+  try {
+    await persistConfig()
+    ElMessage.success('配额已保存')
+    await loadCostStats()
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '保存失败'
+    ElMessage.error(msg)
+  } finally {
+    savingConfig.value = false
+  }
+}
+
+function parseEvalCases(): Array<{ input: string; expect: string }> {
+  try {
+    const arr = JSON.parse(evalCasesJson.value || '[]')
+    if (!Array.isArray(arr)) throw new Error('必须是数组')
+    return arr.map((item) => ({
+      input: String(item?.input ?? ''),
+      expect: String(item?.expect ?? ''),
+    }))
+  } catch {
+    throw new Error('用例 JSON 格式错误')
+  }
+}
+
+async function saveEvalCases() {
+  try {
+    const cases = parseEvalCases()
+    evalCasesJson.value = JSON.stringify(cases, null, 2)
+    savingConfig.value = true
+    await persistConfig()
+    ElMessage.success('评测用例已保存')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '保存失败'
+    ElMessage.error(msg)
+  } finally {
+    savingConfig.value = false
+  }
+}
+
+async function runEvalBatch() {
+  let cases: Array<{ input: string; expect: string }>
+  try {
+    cases = parseEvalCases()
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : '用例格式错误'
+    ElMessage.error(msg)
+    return
+  }
+  if (!cases.length) {
+    ElMessage.warning('请至少添加一条用例')
+    return
+  }
+  runningEval.value = true
+  evalResults.value = []
+  try {
+    for (const c of cases) {
+      let answer = ''
+      try {
+        const res = await sandboxAgentChat({
+          question: c.input,
+          role: agentRole.value,
+          systemPrompt: systemPrompt.value,
+          enableRecommend: behavior.value.enableRecommend,
+          enableProactive: behavior.value.enableProactive,
+          fallbackStrategy: behavior.value.fallback,
+        })
+        answer = res.data?.answer || ''
+      } catch {
+        answer = localSandboxReply(c.input)
+      }
+      evalResults.value.push({
+        input: c.input,
+        expect: c.expect,
+        answer,
+        passed: false,
+      })
+    }
+    ElMessage.success('批量评测完成，请人工勾选通过项')
+  } finally {
+    runningEval.value = false
   }
 }
 
@@ -1074,14 +1430,14 @@ async function loadKnowledge() {
   }
 }
 
-const KNOWLEDGE_ACCEPT = ['pdf', 'doc', 'docx', 'txt', 'md', 'markdown', 'csv']
+const KNOWLEDGE_ACCEPT = ['docx', 'txt', 'md', 'markdown', 'html', 'xlsx', 'csv']
 const KNOWLEDGE_MAX_SIZE = 10 * 1024 * 1024
 
 async function handleKnowledgeUpload(options: { file: File }) {
   const file = options.file
   const ext = (file.name.split('.').pop() || '').toLowerCase()
   if (!KNOWLEDGE_ACCEPT.includes(ext)) {
-    ElMessage.warning('请上传 PDF / Word / Markdown / TXT / CSV')
+    ElMessage.warning('请上传 docx / txt / md / html / xlsx / csv（不支持 PDF）')
     return
   }
   if (file.size > KNOWLEDGE_MAX_SIZE) {
@@ -1210,6 +1566,7 @@ async function sendChat() {
   try {
     const res = await sandboxAgentChat({
       question,
+      role: agentRole.value,
       systemPrompt: systemPrompt.value,
       enableRecommend: behavior.value.enableRecommend,
       enableProactive: behavior.value.enableProactive,
@@ -1339,13 +1696,23 @@ async function loadConversations() {
 }
 
 onMounted(() => {
+  const tab = route.query.tab as string
+  if (tab) activeTab.value = tab
   void Promise.allSettled([
     loadActiveConfig(),
     loadKnowledge(),
     loadVersions(),
     loadConversations(),
+    loadCostStats(),
   ])
 })
+
+watch(
+  () => route.params.role,
+  () => {
+    void Promise.allSettled([loadActiveConfig(), loadCostStats()])
+  }
+)
 </script>
 
 <style scoped lang="scss">
