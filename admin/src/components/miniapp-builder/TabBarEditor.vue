@@ -18,9 +18,10 @@
           </div>
           <div class="tab-fields">
             <el-input v-model="tab.text" placeholder="导航名称" size="small" @input="emitUpdate" />
-            <el-select v-model="tab.pageId" placeholder="绑定页面" size="small" clearable @change="onPageChange(index)" style="width:100%">
+            <el-select v-model="tab.pageId" placeholder="点了打开哪个页面" size="small" clearable @change="onPageChange(index)" style="width:100%">
               <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
+            <div v-if="!tab.pageId && !tab.pagePath.includes('index')" class="unbound-tip">还没选页面，用户点了会是空白页</div>
           </div>
         </div>
       </template>
@@ -144,7 +145,8 @@ function confirmIcon() {
 .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
 .tab-list { display: flex; flex-direction: column; gap: 8px; }
 .tab-item { display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; transition: 0.14s; }
-.tab-item.unbound { border-color: #fbbf24; background: #fffbeb; }
+.tab-item.unbound { border-color: #ef4444; background: #fef2f2; }
+.unbound-tip { font-size: 11.5px; color: #b91c1c; margin-top: 4px; }
 .drag-handle { cursor: grab; color: #a0b4d0; font-size: 16px; padding: 0 4px; }
 .drag-handle:active { cursor: grabbing; }
 .tab-icon-wrap {
