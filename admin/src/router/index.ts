@@ -93,7 +93,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'mine',
         name: 'PageBuilderMine',
         component: () => import('@/views/page-builder/mine-config.vue'),
-        meta: { title: '我的', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '我的页配置', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'template-center',
@@ -105,13 +105,13 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'release',
         name: 'PageBuilderRelease',
         component: () => import('@/views/page-builder/release.vue'),
-        meta: { title: '版本', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+        meta: { title: '发布与版本', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
         path: 'version-management',
         name: 'VersionManagement',
         redirect: '/page-builder/release',
-        meta: { title: '还原点', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '版本记录', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'version/:id',
