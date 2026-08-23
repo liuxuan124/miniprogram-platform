@@ -145,327 +145,179 @@
 
     <!-- ==================== VIEW B: Editor ==================== -->
     <div v-else class="editor-view">
-      <div class="builder-toolbar">
-        <div class="toolbar-left">
-          <el-button size="small" plain @click="goToGallery">
-            <el-icon><ArrowLeft /></el-icon> 草稿记录
-          </el-button>
+      <div class="ap-header">
+        <div class="ap-title">
           <h1>外观</h1>
-          <span v-if="isDirty" class="dirty-pill">有未保存更改</span>
+          <p>小程序的底部导航、配色，以及首页和「我的」页。改完点右上角「保存」，小程序里就会更新。</p>
         </div>
-        <div class="toolbar-right">
-          <el-button size="small" @click="autoBindPages">
-            <el-icon><Connection /></el-icon> 自动绑定
+        <div class="ap-actions">
+          <span v-if="isDirty" class="dirty-pill">有未保存的修改</span>
+          <el-button @click="openFullMiniappPreview()">
+            <el-icon><Cellphone /></el-icon> 在手机上看
           </el-button>
-          <el-button size="small" @click="handleReset">恢复默认</el-button>
-          <el-button size="small" @click="showModuleVersionDialog = true">
-            <el-icon><Clock /></el-icon> 📦 模块版本
-          </el-button>
-          <el-button type="warning" size="small" :loading="saving" @click="handleSave">
-            <el-icon><Box /></el-icon> 保存
-          </el-button>
-          <el-button type="primary" size="small" :loading="saving" @click="goToRelease">
-            保存还原点
-          </el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+          <el-dropdown trigger="click">
+            <el-button class="ap-more" title="更多操作">
+              <el-icon><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="goToGallery">草稿记录</el-dropdown-item>
+                <el-dropdown-item @click="goToRelease">去「发布与版本」</el-dropdown-item>
+                <el-dropdown-item divided @click="autoBindPages">按名称自动绑定页面</el-dropdown-item>
+                <el-dropdown-item @click="showModuleVersionDialog = true">配置快照与回滚</el-dropdown-item>
+                <el-dropdown-item divided @click="handleReset">恢复成默认配置</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
 
-      <div class="step-bar">
-        <button
-          v-for="(step, idx) in steps"
-          :key="step.key"
-          class="step-item"
-          :class="{ active: activeStep === idx, done: published ? idx < 5 : (idx < activeStep) }"
-          @click="activeStep = idx"
-        >
-          <span class="step-num">{{ idx + 1 }}</span>
-          <span class="step-text">{{ step.label }}</span>
-        </button>
-      </div>
-
-      <div class="builder-body">
-        <div class="config-panel">
-          <div v-loading="loading" class="config-scroll">
-            <div v-show="activeStep === 0" class="config-section">
-              <ThemeConfig v-model="form.theme" />
-              <div class="step-footer">
-                <el-button type="primary" @click="activeStep = 1">下一步：导航配置 →</el-button>
-              </div>
-            </div>
-
-            <div v-show="activeStep === 1" class="config-section">
-              <NavTemplateSelector v-model="form.templateKey" @update:model-value="onTemplateChange" />
-              <div class="section-divider"></div>
-              <TabBarEditor :tabs="form.tabs" :pages="pages" @update:tabs="onTabsUpdate" />
-              <div class="section-divider"></div>
-              <div class="section-label">核心页面绑定</div>
-              <el-form label-width="80px" size="small">
-                <el-form-item label="首页">
-                  <el-select
-                    v-model="form.homePageId"
-                    placeholder="选择首页"
-                    clearable
-                    filterable
-                    style="width:100%"
-                    @change="onHomePageIdChange"
-                  >
-                    <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="我的页面">
-                  <div class="mine-mode-selector">
-                    <el-radio-group v-model="minePageMode" size="small" @change="onMinePageModeChange">
-                      <el-radio-button value="config">配置模板</el-radio-button>
-                      <el-radio-button value="custom">自定义页面</el-radio-button>
-                    </el-radio-group>
-                  </div>
-                  <el-select
-                    v-if="minePageMode === 'custom'"
-                    v-model="form.minePageId"
-                    placeholder="选择已装修的页面"
-                    clearable
-                    filterable
-                    style="width:100%; margin-top:8px"
-                  >
-                    <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
-                  </el-select>
-                  <div v-else class="mine-mode-hint">
-                    <span class="hint-icon">⚙️</span>
-                    <span>使用「我的」配置模板（登录区+菜单+订单入口）</span>
-                    <el-button text type="primary" size="small" @click="$router.push('/page-builder/mine')">去配置 →</el-button>
-                  </div>
-                </el-form-item>
-              </el-form>
-              <div class="step-footer">
-                <el-button @click="activeStep = 0">← 上一步</el-button>
-                <el-button type="primary" @click="activeStep = 3">下一步：确认保存 →</el-button>
-              </div>
-            </div>
-
-            <div v-show="activeStep === 2" class="config-section">
-              <el-alert
-                type="info"
-                :closable="false"
-                show-icon
-                title="「我的」页已移到页面列表"
-                description="与拖拽装修页同级：打开「页面」→ 顶部「我的」→「配置」。"
-              />
-              <div class="step-footer" style="margin-top:16px">
-                <el-button @click="activeStep = 1">← 上一步</el-button>
-                <el-button type="primary" @click="$router.push('/page-builder/mine')">去配置「我的」</el-button>
-                <el-button @click="activeStep = 3">跳过，确认保存 →</el-button>
-              </div>
-            </div>
-
-            <div v-show="activeStep === 3" class="config-section">
-              <div class="confirm-header">配置确认</div>
-              <div class="confirm-summary">
-                <div class="summary-item">
-                  <span class="summary-label">导航模板</span>
-                  <span class="summary-value">{{ templateName }}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">导航项</span>
-                  <span class="summary-value">{{ form.tabs.length }} 个，已绑定 {{ boundCount }} 个</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">主题色</span>
-                  <span class="summary-value">
-                    <span class="color-dot" :style="{ background: form.theme.primaryColor }"></span>
-                    {{ form.theme.primaryColor }}
-                  </span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">我的页面菜单</span>
-                  <span class="summary-value">{{ visibleMenuCount }} 项可见</span>
-                </div>
-              </div>
-
-              <div class="section-divider"></div>
-
-              <div class="share-config">
-                <div class="section-label">分享配置</div>
-                <el-form label-width="80px" size="small">
-                  <el-form-item label="分享标题">
-                    <el-input v-model="form.shareTitle" placeholder="小程序分享卡片标题" maxlength="30" show-word-limit />
-                  </el-form-item>
-                  <el-form-item label="分享图片">
-                    <div class="share-image-upload" @click="triggerShareImageUpload">
-                      <img v-if="form.shareImage" :src="form.shareImage" class="share-preview" />
-                      <div v-else class="upload-placeholder">
-                        <el-icon><Plus /></el-icon>
-                        <span>上传分享图</span>
-                      </div>
-                    </div>
-                    <input ref="shareImageInput" type="file" accept="image/*" style="display:none" @change="handleShareImageChange" />
-                  </el-form-item>
-                </el-form>
-              </div>
-
-              <div class="section-divider"></div>
-
-              <div v-if="unboundTabs.length > 0" class="confirm-warnings">
-                <el-alert type="warning" :closable="false">
-                  <template #title>
-                    以下导航项尚未绑定页面：{{ unboundTabs.map(t => t.text).join('、') }}
-                  </template>
-                </el-alert>
-              </div>
-
-              <div class="confirm-actions">
-                <el-button @click="activeStep = 2">← 返回修改</el-button>
-                <div class="confirm-btns">
-                  <el-button size="large" @click="handleSave">保存</el-button>
-                  <el-button type="primary" size="large" :loading="saving" @click="goToRelease">
-                    去版本
-                  </el-button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Step 5A: Template Saved Success -->
-            <div v-show="activeStep === 4 && successMode === 'template'" class="config-section success-section">
-              <div class="success-icon ok">OK</div>
-              <h2 class="success-title">导航草稿已保存</h2>
-              <p class="success-desc">导航与主题已保存。各绑定页面请在装修器点「上线」后，小程序里才会更新内容。</p>
-
-              <div v-if="newReleaseInfo" class="version-release-card version-release-card-template">
-                <div class="version-release-header">
-                  <el-tag type="primary" effect="dark" size="large" round>
-                    草稿 {{ newReleaseInfo.semver || 'v1.0.0' }}
-                  </el-tag>
-                  <span class="version-release-time">{{ formatTime(new Date()) }}</span>
-                </div>
-                <div class="version-release-body">
-                  <div class="release-detail-row">
-                    <span>变更类型</span><strong>{{ changeTypeLabel(newReleaseInfo.changeType) }}</strong>
-                  </div>
-                  <div class="release-detail-row">
-                    <span>包含页面</span><strong>{{ newReleaseInfo.pageCount ?? 0 }} 个页面</strong>
-                  </div>
-                  <div class="release-detail-row" v-if="newReleaseInfo.releaseNotes">
-                    <span>备注说明</span><strong>{{ newReleaseInfo.releaseNotes }}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div class="next-steps">
-                <div class="next-step-title">建议下一步</div>
-                <div class="next-step-list">
-                  <a class="next-step-item highlight" href="#" @click.prevent="goToRelease">
-                    <div class="next-info">
-                      <strong>保存还原点</strong>
-                      <span>大改版前可存一个可回滚的存档（可选）</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                  <a class="next-step-item" href="#" @click.prevent="goToPageBuilder">
-                    <div class="next-info">
-                      <strong>检查首页装修</strong>
-                      <span>确认绑定页面已有内容，空画布无法上线</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                  <a class="next-step-item" href="#" @click.prevent="goToGallery">
-                    <div class="next-info">
-                      <strong>草稿记录</strong>
-                      <span>查看历史配置快照</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                </div>
-              </div>
-
-              <div class="success-footer">
-                <el-button size="large" @click="goToGallery">草稿记录</el-button>
-                <el-button size="large" type="primary" @click="goToRelease">保存还原点</el-button>
-              </div>
-            </div>
-
-            <!-- Step 5B: Publish Success -->
-            <div v-show="activeStep === 4 && successMode === 'publish'" class="config-section success-section">
-              <div class="success-icon ok">OK</div>
-              <h2 class="success-title">外观已保存</h2>
-              <p class="success-desc">底部导航和主题已保存。页面在装修器点「上线」后，小程序里立刻生效。</p>
-
-              <div v-if="newReleaseInfo" class="version-release-card">
-                <div class="version-release-header">
-                  <el-tag type="success" effect="dark" size="large" round>
-                    版本 {{ newReleaseInfo.semver || 'v1.0.0' }} · 已线上
-                  </el-tag>
-                  <span class="version-release-time">{{ formatTime(new Date()) }}</span>
-                </div>
-                <div class="version-release-body">
-                  <div class="release-detail-row">
-                    <span>变更类型</span><strong>{{ changeTypeLabel(newReleaseInfo.changeType) }}</strong>
-                  </div>
-                  <div class="release-detail-row">
-                    <span>包含页面</span><strong>{{ newReleaseInfo.pageCount ?? 0 }} 个已发布页面</strong>
-                  </div>
-                  <div class="release-detail-row" v-if="replacedOldVersion">
-                    <span>替换旧版本</span><strong>{{ replacedOldVersion }}</strong>
-                  </div>
-                  <div class="release-detail-row" v-if="newReleaseInfo.releaseNotes">
-                    <span>发布说明</span><strong>{{ newReleaseInfo.releaseNotes }}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div class="next-steps">
-                <div class="next-step-title">建议下一步</div>
-                <div class="next-step-list">
-                  <a class="next-step-item highlight" href="#" @click.prevent="$router.push('/page-builder/list')">
-                    <div class="next-info">
-                      <strong>去装修页面</strong>
-                      <span>改完点「上线」，预览会马上跟上</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                  <a class="next-step-item" href="#" @click.prevent="goToGallery">
-                    <div class="next-info">
-                      <strong>草稿记录</strong>
-                      <span>管理历史配置快照</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                  <a class="next-step-item" href="#" @click.prevent="$router.push('/page-builder/list')">
-                    <div class="next-info">
-                      <strong>管理页面</strong>
-                      <span>查看并装修小程序内各页面</span>
-                    </div>
-                    <el-icon><ArrowRight /></el-icon>
-                  </a>
-                </div>
-              </div>
-
-              <div class="success-footer">
-                <el-button size="large" @click="goToGallery">草稿记录</el-button>
-                <el-button size="large" type="primary" @click="goToRelease">保存还原点</el-button>
-              </div>
-            </div>
+      <div class="ap-body">
+        <nav class="ap-nav">
+          <button
+            v-for="g in groups"
+            :key="g.key"
+            class="ap-nav-item"
+            :class="{ active: activeGroup === g.key }"
+            @click="activeGroup = g.key"
+          >
+            <span class="ap-nav-text">
+              <span class="ap-nav-label">{{ g.label }}</span>
+              <span class="ap-nav-desc">{{ g.desc }}</span>
+            </span>
+            <span v-if="g.issues > 0" class="ap-badge warn">{{ g.issues }}</span>
+            <span v-else class="ap-badge ok">✓</span>
+          </button>
+          <div class="ap-nav-tip">
+            四组可以随便点，不用按顺序走完。
           </div>
-        </div>
+        </nav>
 
-        <div class="preview-panel" :class="{ collapsed: previewCollapsed }">
-          <div class="preview-toggle" @click="previewCollapsed = !previewCollapsed">
-            <DArrowLeft v-if="previewCollapsed" />
-            <DArrowRight v-else />
+        <div class="ap-config" v-loading="loading">
+          <!-- 品牌与配色 -->
+          <div v-show="activeGroup === 'brand'" class="ap-card">
+            <div class="ap-card-head">
+              <h2>品牌与配色</h2>
+              <p>先选一个行业配色，右侧预览会立刻变。不满意再单独调下面的颜色。</p>
+            </div>
+            <ThemeConfig v-model="form.theme" />
           </div>
-          <div v-if="!previewCollapsed" class="preview-content">
-            <div class="preview-label-row">
-              <div class="preview-label">实时预览（当前编辑配置）</div>
-              <el-button
-                size="small"
-                type="primary"
-                link
-                @click="openFullMiniappPreview()"
+
+          <!-- 底部导航 -->
+          <div v-show="activeGroup === 'tabbar'" class="ap-card">
+            <div class="ap-card-head">
+              <h2>底部导航</h2>
+              <p>小程序最下面那一排按钮。每个按钮要写清「显示什么字、用什么图标、点了打开哪个页面」。</p>
+            </div>
+            <el-alert
+              v-if="unboundTabs.length > 0"
+              type="warning"
+              show-icon
+              :closable="false"
+              class="ap-inline-alert"
+              :title="`还有 ${unboundTabs.length} 个导航没有绑定页面：${unboundTabs.map(t => t.text).join('、')}。没绑定的按钮点了会是空白页，发布前要补上。`"
+            />
+            <TabBarEditor :tabs="form.tabs" :pages="pages" @update:tabs="onTabsUpdate" />
+          </div>
+
+          <!-- 首页与我的页 -->
+          <div v-show="activeGroup === 'pages'" class="ap-card">
+            <div class="ap-card-head">
+              <h2>首页与我的页</h2>
+              <p>用户打开小程序看到的第一屏，以及「我的」页面长什么样。</p>
+            </div>
+
+            <div class="ap-row">
+              <div class="ap-row-text">
+                <strong>首页</strong>
+                <span>用户打开小程序第一眼看到的页面</span>
+              </div>
+              <el-select
+                v-model="form.homePageId"
+                placeholder="选择一个已装修的页面"
+                clearable
+                filterable
+                class="ap-row-field"
+                @change="onHomePageIdChange"
               >
-                完整预览 ›
-              </el-button>
+                <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+              <el-button @click="goToPageBuilder">去装修</el-button>
             </div>
-            <MiniappPreview ref="previewRef" :form="form" :pages="pages" :mine-page-mode="minePageMode" />
+
+            <div class="ap-block">
+              <div class="ap-row ap-row-inblock">
+                <div class="ap-row-text">
+                  <strong>我的页面</strong>
+                  <span>用户查看订单、优惠券、个人资料的地方</span>
+                </div>
+                <el-radio-group v-model="minePageMode" size="small" @change="onMinePageModeChange">
+                  <el-radio-button value="config">用现成模板</el-radio-button>
+                  <el-radio-button value="custom">自己装修一个</el-radio-button>
+                </el-radio-group>
+              </div>
+
+              <div class="ap-block-body">
+                <el-select
+                  v-if="minePageMode === 'custom'"
+                  v-model="form.minePageId"
+                  placeholder="选择已装修的页面"
+                  clearable
+                  filterable
+                  style="width: 100%"
+                >
+                  <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
+                </el-select>
+                <template v-else>
+                  <div class="ap-block-hint">模板里显示哪些内容 —— 改动会实时反映到右侧预览。</div>
+                  <MinePageConfig v-model="form.mineConfig" />
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- 高级设置 -->
+          <div v-show="activeGroup === 'advanced'" class="ap-card">
+            <div class="ap-card-head">
+              <h2>高级设置</h2>
+              <p>分享出去的样子，以及一键套用整套导航布局。平时不用动。</p>
+            </div>
+
+            <div class="section-label">分享出去时长什么样</div>
+            <el-form label-width="80px" size="small">
+              <el-form-item label="分享标题">
+                <el-input v-model="form.shareTitle" placeholder="用户转发给好友时显示的标题" maxlength="30" show-word-limit />
+              </el-form-item>
+              <el-form-item label="分享封面">
+                <div class="share-image-upload" @click="triggerShareImageUpload">
+                  <img v-if="form.shareImage" :src="form.shareImage" class="share-preview" />
+                  <div v-else class="upload-placeholder">
+                    <el-icon><Plus /></el-icon>
+                    <span>上传分享图</span>
+                  </div>
+                </div>
+                <input ref="shareImageInput" type="file" accept="image/*" style="display:none" @change="handleShareImageChange" />
+              </el-form-item>
+            </el-form>
+
+            <div class="section-divider"></div>
+
+            <div class="section-label">一键套用导航布局</div>
+            <div class="ap-block-hint" style="margin-bottom: 10px">
+              套用会覆盖当前的底部导航配置，请谨慎使用。当前：{{ templateName }}
+            </div>
+            <NavTemplateSelector v-model="form.templateKey" @update:model-value="onTemplateChange" />
           </div>
         </div>
+
+        <aside class="ap-preview">
+          <div class="ap-preview-head">
+            <span>实时预览</span>
+            <el-button size="small" type="primary" link @click="openFullMiniappPreview()">完整预览 ›</el-button>
+          </div>
+          <MiniappPreview ref="previewRef" :form="form" :pages="pages" :mine-page-mode="minePageMode" />
+        </aside>
       </div>
     </div>
 
@@ -628,7 +480,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { Connection, Plus, DArrowLeft, DArrowRight, ArrowRight, Refresh, ArrowLeft, Box, Document, Clock, Cellphone } from '@element-plus/icons-vue'
+import { Plus, Refresh, Document, Cellphone, MoreFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
@@ -681,16 +533,13 @@ const releases = ref<ReleaseRecord[]>([])
 const latestPublished = ref<ReleaseRecord | null>(null)
 const galleryFilter = ref<'all' | 'published' | 'template'>('all')
 
-const activeStep = ref(0)
+type GroupKey = 'brand' | 'tabbar' | 'pages' | 'advanced'
+const activeGroup = ref<GroupKey>('brand')
 const previewRef = ref<{ showMineTab: () => void } | null>(null)
-const previewCollapsed = ref(false)
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
-const published = ref(false)
 const selectedMineTemplate = ref('basic')
 const newReleaseInfo = ref<any>(null)
-const successMode = ref<'template' | 'publish'>('template')
-const replacedOldVersion = ref<string>('')
 
 const showModuleVersionDialog = ref(false)
 const moduleVersionTab = ref<'theme' | 'navigation' | 'mine'>('theme')
@@ -712,13 +561,18 @@ const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] =
 
 const personalCenterTemplates = MINE_STYLE_TEMPLATES
 
-const steps = [
-  { key: 'theme', label: '风格配色' },
-  { key: 'navigation', label: '导航配置' },
-  { key: 'mine', label: '我的（可选）' },
-  { key: 'confirm', label: '确认配置' },
-  { key: 'success', label: '完成' },
-]
+/** 左侧四组导航：可随意点，不用按顺序走完；红色数字=这一组里还有几处要处理 */
+const groups = computed<{ key: GroupKey; label: string; desc: string; issues: number }[]>(() => [
+  { key: 'brand', label: '品牌与配色', desc: '主色、导航栏、页面背景', issues: 0 },
+  { key: 'tabbar', label: '底部导航', desc: '最下面那一排按钮', issues: unboundTabs.value.length },
+  {
+    key: 'pages',
+    label: '首页与我的页',
+    desc: '打开小程序看到的第一屏',
+    issues: form.homePageId ? 0 : 1,
+  },
+  { key: 'advanced', label: '高级设置', desc: '分享卡片、导航布局', issues: 0 },
+])
 
 const templateName = computed(() => {
   const tpl = NAV_TEMPLATES.find(t => t.key === form.templateKey)
@@ -775,8 +629,9 @@ watch(
   { immediate: true },
 )
 
-watch(activeStep, (step) => {
-  if (step === 2) previewRef.value?.showMineTab()
+watch(activeGroup, (key) => {
+  // 切到「首页与我的页」时预览自动跳到「我的」tab，改开关能立刻看到效果
+  if (key === 'pages' && minePageMode.value === 'config') previewRef.value?.showMineTab()
 })
 
 watch(() => (form.mineConfig as any).mode, (mode) => {
@@ -871,21 +726,15 @@ async function loadGalleryData() {
 
 function handleNewBuild() {
   editingTemplateId.value = null
-  published.value = false
-  successMode.value = 'template'
   newReleaseInfo.value = null
-  replacedOldVersion.value = ''
   applyTemplate('standard')
-  activeStep.value = 0
+  activeGroup.value = 'brand'
   viewMode.value = 'editor'
 }
 
 async function handleEditTemplate(item: ReleaseRecord) {
   editingTemplateId.value = item.id
-  published.value = false
-  successMode.value = 'template'
   newReleaseInfo.value = null
-  replacedOldVersion.value = ''
   viewMode.value = 'editor'
   loading.value = true
   try {
@@ -901,7 +750,7 @@ async function handleEditTemplate(item: ReleaseRecord) {
   } finally {
     loading.value = false
   }
-  activeStep.value = 0
+  activeGroup.value = 'brand'
 }
 
 async function handlePromote(item: ReleaseRecord) {
@@ -1088,9 +937,6 @@ async function handleSaveAsTemplate() {
       })
       newReleaseInfo.value = (res as any).data || res
     } catch { /* ignore */ }
-    successMode.value = 'template'
-    published.value = true
-    activeStep.value = 4
   } catch {
     ElMessage.error('保存导航草稿失败，请检查配置后重试')
   }
@@ -1115,8 +961,6 @@ async function handlePublishOnline() {
 function goToGallery() {
   viewMode.value = 'gallery'
   editingTemplateId.value = null
-  published.value = false
-  successMode.value = 'template'
   newReleaseInfo.value = null
   loadGalleryData()
 }
@@ -1355,6 +1199,284 @@ onMounted(() => {
   background: #f6f8fb;
 }
 
+.dirty-pill {
+  padding: 3px 12px;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* ====== 外观设置页（Header + 左侧分组 + 常驻预览） ====== */
+.editor-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ap-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ap-title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ap-title p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.ap-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ap-more {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.ap-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 左侧分组导航 */
+.ap-nav {
+  width: 216px;
+  flex-shrink: 0;
+  padding: 16px 12px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.ap-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.14s;
+}
+
+.ap-nav-item:hover {
+  background: var(--bg-page, #f5f7fb);
+}
+
+.ap-nav-item.active {
+  background: #eef3ff;
+  border-color: #c7d6ed;
+}
+
+.ap-nav-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ap-nav-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ap-nav-item.active .ap-nav-label {
+  color: var(--brand);
+}
+
+.ap-nav-desc {
+  font-size: 11.5px;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.35;
+}
+
+.ap-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ap-badge.ok {
+  color: #0faa6e;
+  background: #e7f7f0;
+}
+
+.ap-badge.warn {
+  color: #fff;
+  background: #ef4444;
+}
+
+.ap-nav-tip {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--bg-page, #f5f7fb);
+  color: var(--text-muted, #94a3b8);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* 中间配置区 */
+.ap-config {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.ap-card {
+  max-width: 720px;
+  padding: 22px 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.ap-card-head {
+  margin-bottom: 18px;
+}
+
+.ap-card-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ap-card-head p {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.55;
+}
+
+.ap-inline-alert {
+  margin-bottom: 16px;
+}
+
+.ap-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ap-row + .ap-row,
+.ap-row + .ap-block {
+  margin-top: 12px;
+}
+
+.ap-row-inblock {
+  border: none;
+  border-radius: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ap-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ap-row-text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ap-row-text span {
+  font-size: 12.5px;
+  color: var(--text-secondary, #64748b);
+}
+
+.ap-row-field {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.ap-block {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ap-block-body {
+  padding: 16px;
+  background: var(--bg-page, #f5f7fb);
+}
+
+.ap-block-hint {
+  font-size: 12.5px;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 12px;
+  line-height: 1.55;
+}
+
+/* 右侧常驻预览 */
+.ap-preview {
+  width: 400px;
+  flex-shrink: 0;
+  padding: 16px;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.ap-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ====== Gallery 顶部工具栏（保留） ====== */
 .builder-toolbar {
   display: flex;
   align-items: center;
@@ -1391,104 +1513,6 @@ onMounted(() => {
   gap: 8px;
 }
 
-.dirty-pill {
-  padding: 2px 10px;
-  color: var(--warning);
-  font-size: 12px;
-  font-weight: 600;
-  background: #fffbeb;
-  border: 1px solid #fbbf24;
-  border-radius: 99px;
-}
-
-.step-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 12px 20px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.step-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  background: #fff;
-  cursor: pointer;
-  transition: 0.14s;
-  font-size: 13px;
-  color: #607187;
-}
-
-.step-item:hover {
-  border-color: #a0b4d0;
-}
-
-.step-item.active {
-  color: var(--brand);
-  border-color: var(--brand);
-  background: #eff6ff;
-  font-weight: 700;
-}
-
-.step-item.done {
-  color: var(--success);
-  border-color: var(--success);
-  background: #ecfdf5;
-}
-
-.step-num {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 700;
-  background: var(--border);
-  color: #607187;
-}
-
-.step-item.active .step-num {
-  background: var(--brand);
-  color: #fff;
-}
-
-.step-item.done .step-num {
-  background: var(--success);
-  color: #fff;
-}
-
-.builder-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.config-panel {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.config-scroll {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.config-section {
-  padding: 20px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
 .section-divider {
   height: 1px;
   background: var(--border);
@@ -1503,118 +1527,6 @@ onMounted(() => {
   padding-left: 8px;
   border-left: 3px solid var(--brand);
 }
-
-.preview-panel {
-  width: 420px;
-  padding: 16px;
-  background: #fff;
-  border-left: 1px solid var(--border);
-  flex-shrink: 0;
-  overflow-y: auto;
-  position: relative;
-  transition: width 0.3s;
-}
-
-.preview-panel.collapsed {
-  width: 40px;
-  padding: 8px;
-}
-
-.preview-toggle {
-  position: absolute;
-  top: 50%;
-  left: -14px;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  z-index: 5;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.preview-toggle:hover {
-  border-color: var(--brand);
-  color: var(--brand);
-}
-
-.preview-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.preview-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.preview-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 0;
-}
-
-.confirm-header {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text);
-  margin-bottom: 16px;
-}
-
-.confirm-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.summary-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: var(--bg-page);
-  border-radius: 8px;
-}
-
-.summary-label {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.summary-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.color-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-}
-
-.confirm-warnings {
-  margin: 12px 0;
-}
-
-.confirm-actions {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
-}
-.confirm-btns { display: flex; gap: 10px; }
 
 .share-config {
   margin-top: 4px;
@@ -1650,63 +1562,41 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.mine-mode-selector { margin-bottom: 8px; }
-.mine-mode-hint {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; background: #f0f4ff; border: 1px solid #d9e2ef; border-radius: 8px;
-  margin-top: 8px; font-size: 12px; color: #607187;
+@media (max-width: 1400px) {
+  .ap-preview {
+    width: 348px;
+  }
 }
-.hint-icon { font-size: 16px; }
 
-.mine-template-picker {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-.mine-tpl-card {
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  padding: 10px;
-  text-align: center;
-  cursor: pointer;
-  transition: 0.16s;
-  background: #fff;
-  &:hover { border-color: var(--brand); transform: translateY(-1px); }
-  &.selected { border-color: var(--brand); background: #f0f4ff; box-shadow: 0 0 0 1px var(--brand); }
-}
-.mine-tpl-preview {
-  height: 56px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  margin-bottom: 6px;
-  box-shadow:
-    0 8px 18px rgba(15, 23, 42, 0.12),
-    0 2px 4px rgba(15, 23, 42, 0.06);
-}
-.mine-tpl-icon { font-size: 22px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08)); }
-.mine-tpl-name { font-size: 12px; font-weight: 600; color: var(--text); }
-
-.step-footer {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 20px; padding-top: 16px; border-top: 1px solid #eef0f4;
-}
-.step-footer .el-button { min-width: 120px; }
-
-@media (max-width: 1024px) {
-  .builder-body {
+@media (max-width: 1180px) {
+  .ap-body {
     flex-direction: column;
+    overflow-y: auto;
   }
 
-  .preview-panel {
+  .ap-nav {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ap-nav-item {
+    width: auto;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  .ap-nav-tip {
+    display: none;
+  }
+
+  .ap-preview {
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--border);
-  }
-
-  .preview-panel.collapsed {
-    width: 100%;
-    height: 40px;
   }
 }
 
@@ -1924,110 +1814,6 @@ onMounted(() => {
 }
 
 /* ====== Success Pages ====== */
-.success-section {
-  text-align: center; padding: 32px 20px 24px;
-}
-.success-icon {
-  font-size: 56px; margin-bottom: 12px; display: block;
-  animation: bounceIn 0.6s ease;
-
-  &.ok {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 12px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: var(--brand-soft, var(--brand-soft));
-    color: var(--brand, var(--brand));
-    font-size: 14px;
-    font-weight: 800;
-  }
-}
-@keyframes bounceIn {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); opacity: 1; }
-}
-.success-title {
-  font-size: 22px; font-weight: 800; color: var(--text); margin: 0 0 8px;
-}
-.success-desc {
-  font-size: 14px; color: var(--text-muted); margin: 0 0 20px;
-}
-
-.version-release-card {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-  border: 1.5px solid #86efac; border-radius: 12px;
-  margin-bottom: 24px; overflow: hidden; animation: slideUp 0.4s ease;
-}
-
-.version-release-card-template {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #93c5fd;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.version-release-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px; background: rgba(16,185,129,0.06);
-  border-bottom: 1px solid rgba(16,185,129,0.12);
-}
-.version-release-card-template .version-release-header {
-  background: rgba(23,105,255,0.06);
-  border-bottom-color: rgba(23,105,255,0.12);
-}
-.version-release-time { font-size: 12px; color: #6b7280; }
-.version-release-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
-.release-detail-row {
-  display: flex; justify-content: space-between; align-items: center;
-  font-size: 13px; padding: 4px 0;
-}
-.release-detail-row span { color: var(--text-muted); }
-.release-detail-row strong { color: var(--text); }
-
-.publish-summary {
-  text-align: left; margin-bottom: 28px;
-}
-.summary-card {
-  background: var(--bg-page); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
-}
-.summary-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid #eef0f4; font-size: 13px;
-}
-.summary-row:last-child { border-bottom: none; }
-.summary-row span { color: var(--text-muted); }
-
-.next-steps { text-align: left; margin-bottom: 28px; }
-.next-step-title {
-  font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px;
-}
-.next-step-list { display: flex; flex-direction: column; gap: 8px; }
-.next-step-item {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-  background: #fff; border: 1px solid var(--border); border-radius: 10px;
-  cursor: pointer; transition: 0.16s; text-decoration: none; color: inherit;
-}
-.next-step-item:hover { border-color: var(--brand); box-shadow: 0 2px 8px rgba(23,105,255,0.1); transform: translateX(2px); }
-.next-icon { font-size: 28px; flex-shrink: 0; }
-.next-info { flex: 1; min-width: 0; }
-.next-info strong { display: block; font-size: 13px; color: var(--text); }
-.next-info span { display: block; font-size: 11px; color: #a0b4d0; margin-top: 2px; }
-.next-step-item .el-icon { color: #a0b4d0; flex-shrink: 0; }
-.next-step-item.highlight {
-  border-color: #10b981; background: linear-gradient(135deg, #f0fdf4, #fff);
-}
-.next-step-item.highlight:hover { border-color: #059669; box-shadow: 0 2px 12px rgba(16,185,129,0.15); }
-
-.success-footer {
-  display: flex; justify-content: center; gap: 12px; padding-top: 20px; border-top: 1px solid #eef0f4;
-  flex-wrap: wrap;
-}
-
 .module-version-content {
   padding: 8px 0;
 }
