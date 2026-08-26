@@ -38,32 +38,57 @@ async function resolveBoundPathForTabRoute(tabRoute) {
 async function loadDslPageState(path, forceRefresh, options) {
   const dsl = await PageService.getPageDSL(path, forceRefresh)
   const parsed = parseDSL(dsl)
-  const components = await loadAllComponentData(parsed.components || [])
-  const flowComponents = []
-  const floatComponents = []
-  components.forEach((item) => {
-    if (item && item.type === 'float_button') floatComponents.push(item)
-    else flowComponents.push(item)
-  })
-  const heroUrls = collectHeroImageUrls(flowComponents)
-  // 等顶图预载（或 550ms）后再一次 setData，首绘即带正确比例与缓存
-  const loaded = await preloadImages(heroUrls, 550)
-  const annotated = annotateHeroImageSize(flowComponents, loaded)
-  const hasBrandHeader = annotated.some((item) => item && item.type === 'brand_header')
+  const rawComponents = parsed.components || []
   const layout = getNavLayout()
-  // 仅自定义导航栏页且无 brand_header 时，用 statusBar 垫高；系统默认导航栏不需要
   const useCustomNav = !!(options && options.useCustomNav)
+
+  // 先按 DSL 骨架分好流式/悬浮组件（尚未灌接口数据）
+  const skeletonFlow = []
+  const skeletonFloat = []
+  rawComponents.forEach((item) => {
+    if (item && item.type === 'float_button') skeletonFloat.push(item)
+    else skeletonFlow.push(item)
+  })
+  const hasBrandHeader = skeletonFlow.some((item) => item && item.type === 'brand_header')
   const statusPadPx = useCustomNav && !hasBrandHeader ? layout.statusBarHeight : 0
+  const pageTitle = (parsed.page && parsed.page.name) || ''
+
   return {
-    dslMode: true,
-    loading: false,
-    error: '',
-    flowComponents: annotated,
-    floatComponents,
-    hasBrandHeader,
-    statusBarHeight: layout.statusBarHeight,
-    statusPadPx,
-    pageTitle: (parsed.page && parsed.page.name) || '',
+    skeleton: {
+      dslMode: true,
+      loading: false,
+      error: '',
+      flowComponents: skeletonFlow,
+      floatComponents: skeletonFloat,
+      hasBrandHeader,
+      statusBarHeight: layout.statusBarHeight,
+      statusPadPx,
+      pageTitle,
+    },
+    enrich: async () => {
+      const components = await loadAllComponentData(rawComponents)
+      const flowComponents = []
+      const floatComponents = []
+      components.forEach((item) => {
+        if (item && item.type === 'float_button') floatComponents.push(item)
+        else flowComponents.push(item)
+      })
+      const heroUrls = collectHeroImageUrls(flowComponents)
+      // 顶图预载最多等 300ms，超时也放行，避免真机白屏
+      const loaded = await preloadImages(heroUrls, 300)
+      const annotated = annotateHeroImageSize(flowComponents, loaded)
+      return {
+        dslMode: true,
+        loading: false,
+        error: '',
+        flowComponents: annotated,
+        floatComponents,
+        hasBrandHeader: annotated.some((item) => item && item.type === 'brand_header'),
+        statusBarHeight: layout.statusBarHeight,
+        statusPadPx,
+        pageTitle,
+      }
+    },
   }
 }
 
@@ -71,12 +96,29 @@ async function loadDslPageState(path, forceRefresh, options) {
  * Tab 宿主页加载导航绑定的装修页 DSL（与后台实时预览同源）
  * @returns {Promise<boolean>} 是否已进入 DSL 模式
  */
+/** Tab 壳页初始态：dslPending 期间不渲染原型兜底，避免闪屏 */
+const TAB_DSL_INITIAL = {
+  dslPending: true,
+  dslMode: false,
+  loading: true,
+  error: '',
+  flowComponents: [],
+  floatComponents: [],
+  hasBrandHeader: false,
+  statusPadPx: 0,
+}
+
 async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
   pageCtx.setData({ loading: true, error: '' })
   try {
     const path = await resolveBoundPathForTabRoute(tabRoute)
     if (!path) {
-      pageCtx.setData({ dslMode: false, loading: false })
+      pageCtx.setData({
+        dslPending: false,
+        dslMode: false,
+        loading: false,
+        error: '',
+      })
       return false
     }
     const route = normalizePath(tabRoute)
@@ -86,14 +128,19 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
       '/pages/content-list/content-list',
       '/pages/knowledge-mall/knowledge-mall',
     ].indexOf(route) >= 0
-    const state = await loadDslPageState(path, forceRefresh, { useCustomNav })
-    pageCtx.setData(state)
-    if (state.pageTitle && !useCustomNav) {
-      wx.setNavigationBarTitle({ title: state.pageTitle })
+    const { skeleton, enrich } = await loadDslPageState(path, forceRefresh, { useCustomNav })
+    // 先出骨架，再异步灌列表与顶图
+    pageCtx.setData(Object.assign({}, skeleton, { dslPending: false }))
+    if (skeleton.pageTitle && !useCustomNav) {
+      wx.setNavigationBarTitle({ title: skeleton.pageTitle })
     }
+    enrich().then((state) => {
+      pageCtx.setData(state)
+    }).catch(() => {})
     return true
   } catch (e) {
     pageCtx.setData({
+      dslPending: false,
       dslMode: false,
       loading: false,
       error: '',
@@ -117,6 +164,7 @@ function handleDslReachBottom(pageCtx) {
 }
 
 module.exports = {
+  TAB_DSL_INITIAL,
   TAB_SLOT_ROUTES,
   loadTabBoundDslPage,
   handleDslReachBottom,

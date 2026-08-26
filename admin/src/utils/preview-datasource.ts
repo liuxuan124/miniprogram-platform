@@ -350,10 +350,10 @@ async function hydrateComponent(
   const priceFilter = resolvePriceFilterConfig(component.props)
   const fetchLimit = capPageSize(
     component.type === 'hot_news'
-      ? Math.max(limit, 50)
+      ? Math.max(limit, 12)
       : tabsOn
-        ? Math.max(limit, 100)
-        : (productIds.length ? Math.max(limit, productIds.length, 100) : (component.type === 'article_feed' ? Math.max(limit, 50) : limit)),
+        ? Math.max(limit, 20)
+        : (productIds.length ? Math.max(limit, productIds.length, 20) : (component.type === 'article_feed' ? Math.max(limit, 12) : limit)),
   )
   const productFetchLimit = component.type === 'product_list' && (priceFilterNeedsWideFetch(priceFilter) || isProductStream)
     ? capPageSize(Math.max(fetchLimit, limit * 5, isProductStream ? streamPageSize * 3 : 50, 50))
@@ -376,10 +376,9 @@ async function hydrateComponent(
     delete params.is_recommended
     delete params.category_id
 
-    const list = await fetchDataSourceList({ ...dataSource, params }, capPageSize(Math.max(
+    const list = await fetchDataSourceList({ ...dataSource, params }, capPageSize(
       component.type === 'product_list' ? productFetchLimit : fetchLimit,
-      50,
-    )))
+    ))
     if (!list.length) {
       if (component.type === 'product_list') {
         const items = isManualProduct

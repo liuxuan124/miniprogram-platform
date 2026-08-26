@@ -615,6 +615,11 @@ const showBoundPageContent = computed(() => {
   if (activeScreen.value === 'login') return false
   if (activeScreen.value === 'product') return false
   if (activeScreen.value === 'mine' && activeComponents.value.length === 0) return false
+  // 兼容默认 'home'：已加载出组件时仍按绑定页渲染，避免落到空壳 stub
+  if ((activeScreen.value === 'home' || activeScreen.value === 'pages/index/index')
+    && activeComponents.value.length > 0) {
+    return true
+  }
   return snapshotPages.value.some((p) => normalizePath(p.path) === normalizePath(activeScreen.value))
     || activeComponents.value.length > 0
 })
@@ -710,6 +715,45 @@ function productKind(p: any) {
 
 function normalizePath(path?: string) {
   return String(path || '').trim().replace(/^\/+/, '').replace(/\/+$/, '')
+}
+
+function parseJsonValue<T = unknown>(raw: unknown): T | null {
+  if (raw == null || raw === '') return null
+  if (typeof raw === 'object') return raw as T
+  if (typeof raw !== 'string') return null
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return null
+  }
+}
+
+function parseDslContent(raw: unknown): PageDSL | null {
+  const parsed = parseJsonValue<PageDSL>(raw)
+  if (!parsed || typeof parsed !== 'object') return null
+  return parsed
+}
+
+function normalizeTabbarItems(raw: unknown): Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }> {
+  const parsed = Array.isArray(raw) ? raw : parseJsonValue<unknown[]>(raw)
+  if (!Array.isArray(parsed)) return []
+  return parsed.map((t: any) => ({
+    text: t?.text || t?.label || t?.name || '未命名',
+    icon: migrateTabBarIcon(t?.icon || t?.iconPath || '') || '/images/nav-icons/g-bag.png',
+    pagePath: t?.pagePath || t?.path || '',
+    pageId: t?.pageId != null ? String(t.pageId) : '',
+  }))
+}
+
+function resolveSnapshotHomePath(
+  homeId: string,
+  tabs: Array<{ pagePath?: string; pageId?: string }>,
+  pages: Array<{ path: string; pageId?: string }>,
+) {
+  return pickInitialHomePath(homeId, tabs, pages)
+    || pages.find((p) => /pages\/index\/index/.test(normalizePath(p.path)))?.path
+    || pages[0]?.path
+    || ''
 }
 
 function isTabOn(key: string) {
@@ -839,8 +883,10 @@ function syncTabPagePaths(
 }
 
 async function showSnapshotPage(path: string) {
-  activeScreen.value = path
-  const cacheKey = normalizePath(path)
+  const page = findSnapshotPage(path)
+  const resolvedPath = page?.path || path
+  activeScreen.value = resolvedPath
+  const cacheKey = normalizePath(resolvedPath)
   const cached = pageCache.get(cacheKey)
   if (cached) {
     homeTitle.value = cached.title
@@ -849,7 +895,6 @@ async function showSnapshotPage(path: string) {
     homeComponents.value = cached.components
     return
   }
-  const page = findSnapshotPage(path)
   if (!page?.dslContent) {
     homeTitle.value = page?.name || '页面预览'
     activeComponents.value = []
@@ -857,7 +902,13 @@ async function showSnapshotPage(path: string) {
     return
   }
   try {
-    const dsl = JSON.parse(page.dslContent) as PageDSL
+    const dsl = parseDslContent(page.dslContent)
+    if (!dsl) {
+      notice.value = '该页快照解析失败'
+      activeComponents.value = []
+      homeComponents.value = []
+      return
+    }
     const rawComponents = Array.isArray(dsl.components) ? dsl.components : []
     const rawTitle = dsl.page?.name || page.name || '页面预览'
     const rawBg = dsl.page?.background_color || '#f5f6f9'
@@ -897,6 +948,14 @@ function openScreen(key: string) {
     return
   }
   if (snapshotPages.value.length) {
+    // 「回首页」等入口仍传 home，需映射到快照里的真实首页 path
+    if (key === 'home' || normalizePath(key) === 'pages/index/index') {
+      const homePath = resolveSnapshotHomePath('', snapshotTabs.value, snapshotPages.value)
+      if (homePath) {
+        void showSnapshotPage(homePath)
+        return
+      }
+    }
     const page = findSnapshotPage(key)
     if (page?.path) {
       void showSnapshotPage(page.path)
@@ -1039,14 +1098,15 @@ async function applyDsl(dsl: PageDSL) {
 
 function extractDslFromSnapshot(snapshotJson: string, path: string): PageDSL | null {
   if (!snapshotJson) return null
-  const snapshot = JSON.parse(snapshotJson) as { pages?: Array<{ path?: string; dslContent?: string }> }
+  const snapshot = parseJsonValue<{ pages?: Array<{ path?: string; dslContent?: string }> }>(snapshotJson)
+  if (!snapshot) return null
   const needle = normalizePath(path)
   const page = snapshot.pages?.find((item) => {
     const p = normalizePath(item.path)
     return p === needle || p.endsWith(needle) || needle.endsWith(p)
   })
   if (!page?.dslContent) return null
-  return JSON.parse(page.dslContent) as PageDSL
+  return parseDslContent(page.dslContent)
 }
 
 async function loadLiveConfig() {
@@ -1146,7 +1206,7 @@ async function loadReleaseSnapshot() {
     const res = await getReleaseDetail(releaseId.value)
     const release = ((res as any).data || res) as {
       semver?: string
-      snapshot?: string
+      snapshot?: string | Record<string, unknown>
     }
     semver.value = release.semver || semver.value
     if (!release.snapshot) {
@@ -1154,35 +1214,70 @@ async function loadReleaseSnapshot() {
       await loadLiveConfig()
       return
     }
-    const snap = JSON.parse(release.snapshot) as {
+    const snap = parseJsonValue<{
       pages?: Array<{ path?: string; name?: string; dslContent?: string; pageId?: string | number }>
       systemConfig?: Record<string, unknown> & {
-        tabbarItems?: Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>
+        tabbarItems?: unknown
         miniappHomePageId?: string | number
+        minePageConfig?: unknown
+        miniappThemeConfig?: unknown
       }
+    }>(release.snapshot)
+    if (!snap) {
+      notice.value = '版本快照解析失败，已改为展示当前已保存配置。'
+      await loadLiveConfig()
+      return
     }
     const configMap = snap.systemConfig || {}
     const homeId = String(configMap.miniappHomePageId || '').trim()
-    snapshotTabs.value = Array.isArray(configMap.tabbarItems) ? configMap.tabbarItems : []
+    snapshotTabs.value = normalizeTabbarItems(configMap.tabbarItems)
+    // 主题 / 我的页配置（systemConfig 值可能是对象或 JSON 字符串）
+    const themeMineMap: Record<string, string> = {}
+    if (configMap.minePageConfig != null) {
+      themeMineMap[CONFIG_KEYS.MINE_PAGE_CONFIG] = typeof configMap.minePageConfig === 'string'
+        ? configMap.minePageConfig
+        : JSON.stringify(configMap.minePageConfig)
+    }
+    if (configMap.miniappThemeConfig != null) {
+      themeMineMap[CONFIG_KEYS.THEME_CONFIG] = typeof configMap.miniappThemeConfig === 'string'
+        ? configMap.miniappThemeConfig
+        : JSON.stringify(configMap.miniappThemeConfig)
+    }
+    if (Object.keys(themeMineMap).length) applyMineAndThemeFromMap(themeMineMap)
+
     const allPages = (snap.pages || [])
       .filter((page) => page?.path)
       .map((page) => ({
         path: page.path as string,
         name: page.name || page.path as string,
-        dslContent: page.dslContent,
+        dslContent: typeof page.dslContent === 'string'
+          ? page.dslContent
+          : (page.dslContent != null ? JSON.stringify(page.dslContent) : undefined),
         pageId: page.pageId != null ? String(page.pageId) : undefined,
       }))
     const pages = filterBoundSnapshotPages(allPages, snapshotTabs.value, homeId)
     snapshotPages.value = pages
     snapshotTabs.value = syncTabPagePaths(snapshotTabs.value, pages)
-    const homePathPreferred = pickInitialHomePath(homeId, snapshotTabs.value, pages)
-    if (homePathPreferred) await showSnapshotPage(homePathPreferred)
-    else notice.value = '该版本快照里没有可预览页面'
+    const homePathPreferred = resolveSnapshotHomePath(homeId, snapshotTabs.value, pages)
+    if (homePathPreferred) {
+      await showSnapshotPage(homePathPreferred)
+      if (!activeComponents.value.length) {
+        notice.value = '该版本首页快照组件为空，请检查发布时页面是否已上线'
+      }
+    } else {
+      notice.value = '该版本快照里没有可预览页面，已改为展示当前配置'
+      await loadLiveConfig()
+    }
   } catch (e: any) {
     const timedOut = e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message || ''))
     notice.value = timedOut
       ? '版本快照加载超时，请稍后重试'
       : (e?.message || e?.msg || '版本快照加载失败')
+    try {
+      await loadLiveConfig()
+    } catch {
+      /* ignore */
+    }
   }
 }
 

@@ -9,18 +9,13 @@ const {
 } = require('../../data/prototype-home')
 const { AuthService } = require('../../services/auth')
 const { createSharePageConfig } = require('../../utils/share')
-const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
+const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { getNavLayout } = require('../../utils/nav-layout')
 
 Page({
   ...createSharePageConfig(),
   data: {
-    dslMode: false,
-    loading: true,
-    error: '',
-    flowComponents: [],
-    floatComponents: [],
-    hasBrandHeader: false,
+    ...TAB_DSL_INITIAL,
     statusBarHeight: getNavLayout().statusBarHeight,
     featureArtStyle: artStyle('select'),
     topics: buildTopics(),

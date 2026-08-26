@@ -76,6 +76,9 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     public MiniappRelease getReleaseDetail(Long id) {
         MiniappRelease release = this.getById(id);
         BusinessException.throwIf(release == null, ErrorCode.RELEASE_NOT_FOUND);
+        // 预览/详情不回传私钥等敏感字段，减小体积并避免误泄露到浏览器
+        release.setSnapshot(sanitizeSnapshotForClient(release.getSnapshot()));
+        release.setBackupSnapshot(null);
         return release;
     }
 
@@ -1171,6 +1174,51 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         } catch (Exception e) {
             return true;
         }
+    }
+
+    private String sanitizeSnapshotForClient(String snapshotJson) {
+        if (!StringUtils.hasText(snapshotJson)) {
+            return snapshotJson;
+        }
+        try {
+            Map<String, Object> snapshot = objectMapper.readValue(snapshotJson, new TypeReference<Map<String, Object>>() {});
+            Object systemConfigObj = snapshot.get("systemConfig");
+            if (systemConfigObj instanceof Map<?, ?> rawMap) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> systemConfig = (Map<String, Object>) rawMap;
+                List<String> toRemove = new ArrayList<>();
+                for (String key : systemConfig.keySet()) {
+                    if (isSensitiveConfigKey(key)) {
+                        toRemove.add(key);
+                    }
+                }
+                for (String key : toRemove) {
+                    systemConfig.remove(key);
+                }
+            }
+            snapshot.remove("backup_snapshot");
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (Exception e) {
+            log.warn("sanitize snapshot for client failed: {}", e.getMessage());
+            return snapshotJson;
+        }
+    }
+
+    private boolean isSensitiveConfigKey(String key) {
+        if (!StringUtils.hasText(key)) {
+            return false;
+        }
+        String k = key.toLowerCase();
+        return k.contains("secret")
+                || k.contains("private_key")
+                || k.contains("privatekey")
+                || k.endsWith("_key")
+                || k.equals("wx_upload_key")
+                || k.equals("wx_mch_key")
+                || k.equals("apiv3key")
+                || k.equals("access_secret")
+                || k.equals("sms_access_secret")
+                || k.equals("storage_oss_access_secret");
     }
 
     private String getCurrentUsername() {

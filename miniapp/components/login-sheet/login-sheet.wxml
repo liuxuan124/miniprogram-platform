@@ -93,38 +93,33 @@
       </view>
     </view>
 
-    <button
-      wx:if="{{!agreePrivacy}}"
-      id="privacy-agree-btn-form"
-      class="agreement {{privacyError ? 'agreement--error' : ''}}"
-      open-type="agreePrivacyAuthorization"
-      bindagreeprivacyauthorization="onAgreePrivacyAuthorization"
-      hover-class="none"
-    >
-      <view class="agreement__check"></view>
-      <view class="agreement__copy">
-        <text>已阅读并同意</text>
-        <text class="agreement__link" catchtap="onViewTerms">《用户协议》</text>
-        <text>与</text>
-        <text class="agreement__link" catchtap="onViewPrivacy">《隐私政策》</text>
-      </view>
-    </button>
-    <button
-      wx:else
-      class="agreement agreement--on"
-      bindtap="onUncheckPrivacy"
-      hover-class="none"
-    >
-      <view class="agreement__check agreement__check--active">
+    <view class="agreement {{privacyError ? 'agreement--error' : ''}} {{agreePrivacy ? 'agreement--on' : ''}}">
+      <button
+        wx:if="{{!agreePrivacy}}"
+        id="privacy-agree-btn-form"
+        class="agreement__check-btn"
+        open-type="agreePrivacyAuthorization"
+        bindagreeprivacyauthorization="onAgreePrivacyAuthorization"
+        hover-class="none"
+        aria-label="同意用户协议与隐私政策"
+      >
+        <view class="agreement__check"></view>
+      </button>
+      <view
+        wx:else
+        class="agreement__check agreement__check--active"
+        catchtap="onUncheckPrivacy"
+        aria-label="取消同意用户协议与隐私政策"
+      >
         <text>✓</text>
       </view>
       <view class="agreement__copy">
-        <text>已阅读并同意</text>
+        <text class="agreement__text">已阅读并同意</text>
         <text class="agreement__link" catchtap="onViewTerms">《用户协议》</text>
-        <text>与</text>
+        <text class="agreement__text">与</text>
         <text class="agreement__link" catchtap="onViewPrivacy">《隐私政策》</text>
       </view>
-    </button>
+    </view>
 
     <text wx:if="{{formHint}}" class="form-hint">{{formHint}}</text>
 
@@ -136,7 +131,7 @@
       disabled="{{loading}}"
       hover-class="login-primary--pressed"
     >
-      {{loading ? '正在登录…' : '微信一键登录'}}
+      {{loading ? '正在登录…' : '手机号快捷登录'}}
     </button>
 
     <view class="skip-link" catchtap="hide">先随便逛逛</view>

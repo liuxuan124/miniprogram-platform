@@ -36,8 +36,8 @@ function buildOrderTabs(mineConfig) {
 function memberCtaText(mineConfig, isLoggedIn) {
   if (isLoggedIn) return '查看权益'
   const raw = String((mineConfig && mineConfig.loginButtonText) || '').trim()
-  if (raw && raw !== '微信一键登录') return raw
-  return '登录'
+  if (raw && raw !== '微信一键登录' && raw !== '快捷登录' && raw !== '手机号快捷登录') return raw
+  return '手机号快捷登录'
 }
 
 function memberBenefitsLine(styleKey, isLoggedIn) {

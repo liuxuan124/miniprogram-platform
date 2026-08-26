@@ -469,16 +469,29 @@ page {
   display: flex;
   align-items: flex-start;
   width: 100%;
+  gap: 12rpx;
   margin-top: 24rpx;
   padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
   line-height: 1.5;
   text-align: left;
 }
 
-.agreement::after {
+.agreement__check-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 31rpx;
+  height: 31rpx;
+  min-height: 31rpx;
+  margin-top: 2rpx;
+  padding: 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+}
+
+.agreement__check-btn::after {
   border: 0;
 }
 
@@ -508,13 +521,19 @@ page {
   align-items: center;
   flex: 1;
   flex-wrap: wrap;
-  margin-left: 12rpx;
+  min-width: 0;
   color: var(--ink-3);
   font-size: 19rpx;
   line-height: 1.6;
 }
 
+.agreement__text {
+  color: var(--ink-3);
+}
+
 .agreement__link {
+  display: inline-block;
+  margin: 0 4rpx;
   color: var(--brand);
   font-weight: 650;
 }

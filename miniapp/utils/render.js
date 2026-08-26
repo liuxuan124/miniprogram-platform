@@ -389,13 +389,13 @@ async function loadComponentData(component, forceRefresh = false) {
       ? resolvePriceFilterConfig(props)
       : { mode: 'all' }
     const MAX_ITEMS = component.type === 'hot_news'
-      ? Math.max(limit, 50)
+      ? Math.max(limit, 12)
       : (component.type === 'article_feed' || component.type === 'note_feed'
         ? feedPageSize
         : (component.type === 'product_list' && isProductStream
           ? feedPageSize
           : (component.type === 'product_list' && priceFilter.mode !== 'all'
-            ? Math.min(Math.max(limit * 5, 50), 100)
+            ? Math.min(Math.max(limit * 5, 30), 50)
             : 10)))
     let trimmed = Array.isArray(data) ? data.slice(0, MAX_ITEMS) : data
 

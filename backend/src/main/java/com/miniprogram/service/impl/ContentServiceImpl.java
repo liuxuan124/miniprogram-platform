@@ -280,6 +280,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         mpQuery.setStatus("published");
 
         LambdaQueryWrapper<Content> wrapper = buildQueryWrapper(mpQuery);
+        // 列表接口不查正文/附件大字段，避免小程序与预览拉取过慢
+        wrapper.select(Content.class, info ->
+                !"content".equals(info.getColumn()) && !"attachments".equals(info.getColumn()));
         wrapper.orderByAsc(Content::getSortOrder);
         wrapper.orderByDesc(Content::getPublishedAt);
 
@@ -288,7 +291,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                         mpQuery.getCurrent(), mpQuery.getSize()), wrapper);
 
         List<ContentDetailDTO> records = page.getRecords().stream()
-                .map(this::toDetailDTO)
+                .map(this::toListDTO)
                 .toList();
 
         return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
@@ -357,6 +360,14 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         dto.setCategoryName(categoryService.getCategoryName(entity.getCategoryId()));
         dto.setExternalSource(entity.getExternalSource());
         dto.setSource(ContentSourceResolver.resolvePlatformSource(entity));
+        return dto;
+    }
+
+    /** 列表场景：不含正文与附件详情，减小响应体积 */
+    private ContentDetailDTO toListDTO(Content entity) {
+        ContentDetailDTO dto = toDetailDTO(entity);
+        dto.setContent(null);
+        dto.setAttachments(null);
         return dto;
     }
 
