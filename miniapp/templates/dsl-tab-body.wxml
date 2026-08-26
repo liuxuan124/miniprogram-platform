@@ -1,4 +1,6 @@
-<!-- miniapp/templates/dsl-tab-body.wxml — Tab 页装修 DSL 渲染片段 -->
+<!-- miniapp/templates/dsl-tab-body.wxml — 已废弃：勿再 import。
+     lazyCodeLoading + template 内自定义组件会导致 Tab 页白屏；
+     请直接内联到 index / content-list / knowledge-mall.wxml（与 custom.wxml 同构）。 -->
 <template name="dsl-tab-body">
 <view wx:if="{{loading}}" class="dsl-tab-page__state">加载中...</view>
 <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>

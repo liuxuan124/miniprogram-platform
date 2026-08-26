@@ -114,6 +114,7 @@
 }
 
 .user-subtitle {
+  display: block;
   margin-top: 8rpx;
   font-size: 24rpx;
   color: #6b7280;

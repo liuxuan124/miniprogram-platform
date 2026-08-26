@@ -251,6 +251,15 @@ function writeDslCache(key: string, dsl: PageDSL | null) {
   pageDslCache.value = next
 }
 
+async function hydrateDslInBackground(key: string, dsl: PageDSL) {
+  try {
+    const { dsl: hydrated } = await hydratePreviewDsl(dsl)
+    writeDslCache(key, hydrated)
+  } catch {
+    // 保留已展示的 DSL 骨架
+  }
+}
+
 async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
   const key = cacheKeyForTab(tab)
   if (!key) return null
@@ -263,9 +272,10 @@ async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
         const res = await getPageDetail(pageId)
         const dsl = parseDslFromResponse(res.data)
         if (dsl) {
-          const { dsl: hydrated } = await hydratePreviewDsl(dsl)
-          writeDslCache(key, hydrated)
-          return hydrated
+          writeDslCache(key, dsl)
+          loading.value = false
+          void hydrateDslInBackground(key, dsl)
+          return dsl
         }
       } catch {
         // fall through to published path
@@ -278,8 +288,10 @@ async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
         const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
         const payload = await response.json()
         if (payload.code === 200 && payload.data) {
-          const { dsl } = await hydratePreviewDsl(payload.data as PageDSL)
+          const dsl = payload.data as PageDSL
           writeDslCache(key, dsl)
+          loading.value = false
+          void hydrateDslInBackground(key, dsl)
           return dsl
         }
       } catch {

@@ -13,6 +13,7 @@ deploy/.env
 .env
 .env.local
 *.local
+.local/
 
 # WeChat DevTools local overrides
 miniapp/project.private.config.json

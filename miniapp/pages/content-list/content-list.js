@@ -2,7 +2,7 @@
 
 const request = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
-const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
+const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 
@@ -210,11 +210,7 @@ function mapRecord(item) {
 Page({
   ...createSharePageConfig(),
   data: {
-    dslMode: false,
-    error: '',
-    flowComponents: [],
-    floatComponents: [],
-    hasBrandHeader: false,
+    ...TAB_DSL_INITIAL,
     statusBarHeight: getNavLayout().statusBarHeight,
     formatTabs: FORMAT_TABS,
     topicTabs: TOPIC_TABS,

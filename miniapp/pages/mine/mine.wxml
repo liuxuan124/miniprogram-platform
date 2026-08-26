@@ -31,8 +31,8 @@
           <view class="user-subtitle">会员至：— · 已加入 {{continuousDays || 0}} 天</view>
         </block>
         <block wx:else>
-          <text class="user-title">{{mineConfig.loginTitle || '点击登录，解锁会员权益'}}</text>
-          <text class="user-subtitle" wx:if="{{mineConfig.loginSubtitle}}">{{mineConfig.loginSubtitle}}</text>
+          <view class="user-title">{{mineConfig.loginTitle || '点击登录，解锁会员权益'}}</view>
+          <view class="user-subtitle" wx:if="{{mineConfig.loginSubtitle}}">{{mineConfig.loginSubtitle}}</view>
         </block>
       </view>
     </view>

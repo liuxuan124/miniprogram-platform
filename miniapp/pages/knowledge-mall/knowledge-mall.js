@@ -3,7 +3,7 @@ const productService = require('../../services/product')
 const cartService = require('../../services/cart')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
-const { loadTabBoundDslPage, handleDslReachBottom } = require('../../utils/dsl-tab-page')
+const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { getNavLayout } = require('../../utils/nav-layout')
 
 const TYPE_TABS = [
@@ -127,11 +127,7 @@ function normalizeProduct(item) {
 Page({
   ...createSharePageConfig(),
   data: {
-    dslMode: false,
-    error: '',
-    flowComponents: [],
-    floatComponents: [],
-    hasBrandHeader: false,
+    ...TAB_DSL_INITIAL,
     statusBarHeight: getNavLayout().statusBarHeight,
     typeTabs: TYPE_TABS,
     activeType: 'all',

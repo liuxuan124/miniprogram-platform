@@ -1,11 +1,35 @@
 <!-- pages/knowledge-mall/knowledge-mall.wxml — Tab 商城页：装修 DSL 或原型兜底 -->
+<!-- 勿用 <template> 包 dsl-renderer：lazyCodeLoading 下会白屏 -->
 <page-meta page-style="{{themePageStyle}}" />
-<import src="../../templates/dsl-tab-body.wxml" />
-<block wx:if="{{dslMode}}">
-  <template
-    is="dsl-tab-body"
-    data="{{loading, error, flowComponents, floatComponents, hasBrandHeader, statusBarHeight, statusPadPx}}"
-  />
+<block wx:if="{{dslPending}}">
+  <view class="dsl-tab-page__state">加载中...</view>
+</block>
+<block wx:elif="{{dslMode}}">
+  <view wx:if="{{loading}}" class="dsl-tab-page__state">加载中...</view>
+  <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
+  <block wx:else>
+    <view
+      class="dsl-tab-page__body"
+      style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}"
+    >
+      <view
+        wx:for="{{flowComponents}}"
+        wx:key="id"
+        class="dsl-flow {{item._stackClass}}"
+        style="{{item.hostStyle}}"
+      >
+        <dsl-renderer component="{{item}}" />
+      </view>
+      <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
+    </view>
+    <dsl-float-button
+      wx:for="{{floatComponents}}"
+      wx:key="id"
+      config="{{item.props}}"
+      actions="{{item.actions}}"
+      styleString="{{item.styleString}}"
+    />
+  </block>
 </block>
 <block wx:else>
 <view class="km-page">
