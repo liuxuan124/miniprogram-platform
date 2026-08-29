@@ -5,6 +5,7 @@
     "pages/knowledge-mall/knowledge-mall",
     "pages/product-list/product-list",
     "pages/mine/mine",
+    "pages/tab-hub/tab-hub",
     "pages/login/login",
     "pages/search/search",
     "pages/product-detail/product-detail",
@@ -64,6 +65,12 @@
         "text": "我的",
         "iconPath": "images/tab/mine.png",
         "selectedIconPath": "images/tab/mine-active.png"
+      },
+      {
+        "pagePath": "pages/tab-hub/tab-hub",
+        "text": "更多",
+        "iconPath": "images/tab/content.png",
+        "selectedIconPath": "images/tab/content-active.png"
       }
     ]
   },

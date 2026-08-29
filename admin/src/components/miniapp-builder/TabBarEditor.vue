@@ -2,9 +2,9 @@
   <div class="tabbar-editor">
     <div class="editor-header">
       <span class="editor-label">底部导航配置</span>
-      <span class="bind-progress">已绑定 {{ boundCount }}/{{ TABBAR_SLOT_COUNT }}</span>
+      <span class="bind-progress">已绑定 {{ boundCount }}/{{ localTabs.length }}</span>
     </div>
-    <p class="tabbar-limit-tip">底部导航固定 {{ TABBAR_SLOT_COUNT }} 个入口（受小程序代码限制，增减需发版）。</p>
+    <p class="tabbar-limit-tip">支持 {{ TABBAR_MIN }}~{{ TABBAR_MAX }} 个入口，保存后小程序自定义 TabBar 即时生效（无需发版改数量）。</p>
     <div class="progress-bar">
       <div class="progress-fill" :style="{ width: progressPercent + '%', background: progressColor }"></div>
     </div>
@@ -21,11 +21,25 @@
             <el-select v-model="tab.pageId" placeholder="点了打开哪个页面" size="small" clearable @change="onPageChange(index)" style="width:100%">
               <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
+            <div class="tab-shell-hint">Tab 槽位：{{ shellLabel(tab, index) }}</div>
             <div v-if="!tab.pageId && !tab.pagePath.includes('index')" class="unbound-tip">还没选页面，用户点了会是空白页</div>
           </div>
+          <el-button
+            v-if="localTabs.length > TABBAR_MIN"
+            type="danger"
+            link
+            class="tab-remove"
+            @click="removeTab(index)"
+          >删除</el-button>
         </div>
       </template>
     </draggable>
+
+    <el-button
+      v-if="localTabs.length < TABBAR_MAX"
+      class="tab-add"
+      @click="addTab"
+    >+ 添加导航（{{ localTabs.length }}/{{ TABBAR_MAX }}）</el-button>
 
     <el-dialog v-model="iconPickerVisible" title="选择图标" width="520px" destroy-on-close>
       <div class="icon-library">
@@ -57,46 +71,56 @@ import type { NavTab } from '@/types/miniapp'
 import type { PageRecord } from '@/types/page'
 import { NAV_FLAT_ICONS } from '@/components/page-builder/navIconSet'
 import TabBarIconDisplay from './TabBarIconDisplay.vue'
-
-const TABBAR_SLOT_COUNT = 4
+import {
+  TABBAR_MIN,
+  TABBAR_MAX,
+  TAB_SHELL_ROUTES,
+  normalizeTabBarItems,
+  createEmptyTab,
+  resolveTabShellRoute,
+} from '@/utils/tabbar'
 
 const props = defineProps<{ tabs: NavTab[]; pages: PageRecord[] }>()
 const emit = defineEmits<{ 'update:tabs': [value: NavTab[]] }>()
 
-function createEmptyTab(index: number): NavTab {
-  return {
-    id: `tab-${index}-${Date.now()}`,
-    text: `导航${index + 1}`,
-    icon: '/images/nav-icons/g-bag.png',
-    pagePath: '/pages/custom/custom',
-    pageId: '',
-    pageName: '',
-  }
+const SHELL_LABELS: Record<string, string> = {
+  '/pages/index/index': '首页槽',
+  '/pages/content-list/content-list': '内容槽',
+  '/pages/knowledge-mall/knowledge-mall': '商城槽',
+  '/pages/mine/mine': '我的槽',
+  '/pages/tab-hub/tab-hub': '扩展槽',
 }
 
-function normalizeTabs(tabs: NavTab[]): NavTab[] {
-  const source = Array.isArray(tabs) ? tabs : []
-  const result = source.slice(0, TABBAR_SLOT_COUNT).map((tab, index) => ({
-    ...tab,
-    id: tab.id || `tab-${index}`,
-  }))
-  while (result.length < TABBAR_SLOT_COUNT) {
-    result.push(createEmptyTab(result.length))
-  }
-  return result
-}
-
-const localTabs = ref<NavTab[]>(normalizeTabs(props.tabs))
-watch(() => props.tabs, (v) => { localTabs.value = normalizeTabs(v) }, { deep: true })
+const localTabs = ref<NavTab[]>(normalizeTabBarItems(props.tabs))
+watch(() => props.tabs, (v) => { localTabs.value = normalizeTabBarItems(v) }, { deep: true })
 
 const boundCount = computed(() => localTabs.value.filter(t => t.pageId || t.pagePath.includes('index')).length)
-const progressPercent = computed(() => Math.round(boundCount.value / TABBAR_SLOT_COUNT * 100))
+const progressPercent = computed(() => {
+  const total = localTabs.value.length || 1
+  return Math.round(boundCount.value / total * 100)
+})
 const progressColor = computed(() => progressPercent.value === 100 ? '#0faa6e' : progressPercent.value >= 50 ? '#f59e0b' : '#ef4444')
 
 const iconLibrary = NAV_FLAT_ICONS
 
+function shellLabel(tab: NavTab, index: number) {
+  return SHELL_LABELS[resolveTabShellRoute(tab, index)] || TAB_SHELL_ROUTES[index] || '—'
+}
+
 function emitUpdate() {
-  emit('update:tabs', normalizeTabs(localTabs.value))
+  emit('update:tabs', normalizeTabBarItems(localTabs.value))
+}
+
+function addTab() {
+  if (localTabs.value.length >= TABBAR_MAX) return
+  localTabs.value.push(createEmptyTab(localTabs.value))
+  emitUpdate()
+}
+
+function removeTab(index: number) {
+  if (localTabs.value.length <= TABBAR_MIN) return
+  localTabs.value.splice(index, 1)
+  emitUpdate()
 }
 
 function onPageChange(index: number) {
@@ -147,6 +171,7 @@ function confirmIcon() {
 .tab-item { display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; transition: 0.14s; }
 .tab-item.unbound { border-color: #ef4444; background: #fef2f2; }
 .unbound-tip { font-size: 11.5px; color: #b91c1c; margin-top: 4px; }
+.tab-shell-hint { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 .drag-handle { cursor: grab; color: #a0b4d0; font-size: 16px; padding: 0 4px; }
 .drag-handle:active { cursor: grabbing; }
 .tab-icon-wrap {
@@ -163,6 +188,8 @@ function confirmIcon() {
 }
 .tab-icon-wrap:hover { border-color: var(--color-primary); }
 .tab-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tab-remove { flex-shrink: 0; }
+.tab-add { width: 100%; margin-top: 8px; }
 
 .icon-library {
   display: grid;

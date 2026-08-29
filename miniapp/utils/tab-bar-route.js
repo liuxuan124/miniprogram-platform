@@ -1,11 +1,10 @@
 const SystemService = require('../services/system')
-
-const TAB_SLOT_ROUTES = [
-  '/pages/index/index',
-  '/pages/content-list/content-list',
-  '/pages/knowledge-mall/knowledge-mall',
-  '/pages/mine/mine',
-]
+const {
+  TAB_SLOT_ROUTES,
+  resolveActiveTabItems,
+  resolveVisibleTabRoutes,
+  resolveItemShellRoute,
+} = require('./tabbar-config')
 
 function normalizePath(path) {
   return '/' + String(path || '').replace(/^\/+/, '')
@@ -15,21 +14,7 @@ function isCustomDecoratedPath(path) {
   return /\/pages\/custom\//.test(normalizePath(path))
 }
 
-function resolveVisibleTabRoutes(plugins, tabbarItems) {
-  return TAB_SLOT_ROUTES.filter((route, slotIndex) => {
-    if (
-      route === '/pages/knowledge-mall/knowledge-mall'
-      && !SystemService.isProductModuleEnabled(plugins)
-    ) {
-      return false
-    }
-    const item = (tabbarItems || [])[slotIndex]
-    if (item && item.enabled === false) return false
-    return true
-  })
-}
-
-/** 装修页若已绑定某 Tab，返回对应 Tab 路由 */
+/** 装修页若已绑定某 Tab，返回对应 Tab 壳路由 */
 function resolveTabRouteForBoundCustomPath(customPath) {
   const config = SystemService.getCachedConfig() || {}
   const tabbarItems = config.tabbarItems || []
@@ -37,16 +22,9 @@ function resolveTabRouteForBoundCustomPath(customPath) {
   const target = normalizePath(customPath)
   if (!isCustomDecoratedPath(target)) return null
 
-  for (let slotIndex = 0; slotIndex < TAB_SLOT_ROUTES.length; slotIndex += 1) {
-    const slotRoute = TAB_SLOT_ROUTES[slotIndex]
-    if (
-      slotRoute === '/pages/knowledge-mall/knowledge-mall'
-      && !SystemService.isProductModuleEnabled(plugins)
-    ) {
-      continue
-    }
-    const item = tabbarItems[slotIndex] || {}
-    if (item.enabled === false) continue
+  const rows = resolveActiveTabItems(plugins, tabbarItems)
+  for (let i = 0; i < rows.length; i += 1) {
+    const { item, slotRoute } = rows[i]
     const bound = normalizePath(item.path || item.pagePath || '')
     if (bound && bound === target) return slotRoute
   }
@@ -77,6 +55,9 @@ function showTabBarForRoute(pageCtx, tabRoute) {
 
 module.exports = {
   TAB_SLOT_ROUTES,
+  resolveItemShellRoute,
+  resolveActiveTabItems,
+  resolveVisibleTabRoutes,
   resolveTabRouteForBoundCustomPath,
   showTabBarForRoute,
   getTabSelectedIndex,

@@ -4,6 +4,7 @@ const { parseDSL, loadAllComponentData } = require('./render')
 const { getNavLayout } = require('./nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('./image-preload')
 const { TAB_SLOT_ROUTES, showTabBarForRoute } = require('./tab-bar-route')
+const { resolveActiveTabItems } = require('./tabbar-config')
 
 function normalizePath(path) {
   return '/' + String(path || '').replace(/^\/+/, '')
@@ -16,19 +17,12 @@ function isCustomDecoratedPath(path) {
 
 async function resolveBoundPathForTabRoute(tabRoute) {
   const config = await SystemService.fetchSystemConfig()
-  if (
-    normalizePath(tabRoute) === '/pages/knowledge-mall/knowledge-mall'
-    && !SystemService.isProductModuleEnabled(config.plugins)
-  ) {
-    return null
-  }
   const route = normalizePath(tabRoute)
-  const slotIndex = TAB_SLOT_ROUTES.indexOf(route)
-  if (slotIndex < 0) return null
+  const rows = resolveActiveTabItems(config.plugins, config.tabbarItems || [])
+  const hit = rows.find((row) => row.slotRoute === route)
+  if (!hit) return null
 
-  const tab = (config.tabbarItems || [])[slotIndex] || {}
-  if (tab.enabled === false) return null
-  const boundPath = normalizePath(tab.path || tab.pagePath || '')
+  const boundPath = normalizePath(hit.item.path || hit.item.pagePath || '')
   if (!boundPath || boundPath === route) return null
   if (!isCustomDecoratedPath(boundPath)) return null
   return boundPath.replace(/^\//, '')
@@ -126,6 +120,7 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
       '/pages/index/index',
       '/pages/content-list/content-list',
       '/pages/knowledge-mall/knowledge-mall',
+      '/pages/tab-hub/tab-hub',
     ].indexOf(route) >= 0
     const { skeleton, enrich } = await loadDslPageState(path, forceRefresh, { useCustomNav })
     // 先出骨架，再异步灌列表与顶图

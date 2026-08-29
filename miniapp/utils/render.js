@@ -517,6 +517,7 @@ const TAB_PAGE_PATHS = [
   '/pages/knowledge-mall/knowledge-mall',
   '/pages/product-list/product-list',
   '/pages/mine/mine',
+  '/pages/tab-hub/tab-hub',
 ]
 
 function normalizeRoutePath(path) {

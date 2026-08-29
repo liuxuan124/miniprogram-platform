@@ -5,6 +5,7 @@ const SWITCH_TAB_PATHS = new Set([
   '/pages/content-list/content-list',
   '/pages/product-list/product-list',
   '/pages/mine/mine',
+  '/pages/tab-hub/tab-hub',
 ])
 
 const LEGACY_SHELL_BY_HINT = {
