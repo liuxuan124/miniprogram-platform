@@ -11,6 +11,7 @@ import 'nprogress/nprogress.css'
 import { isAuthenticated } from '@/utils/auth'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
+import { useFeatureModulesStore } from '@/stores/feature-modules'
 
 NProgress.configure({ showSpinner: false })
 
@@ -39,6 +40,19 @@ export function setupRouterGuards(router: Router) {
       // 检查是否已获取用户信息
       const userStore = useUserStore()
       const permissionStore = usePermissionStore()
+      const featureModulesStore = useFeatureModulesStore()
+      if (!featureModulesStore.loaded) {
+        await featureModulesStore.load()
+      }
+      const featureBlocked = to.matched.some((record) => {
+        const key = record.meta?.featureModule as string | undefined
+        return key ? !featureModulesStore.isEnabled(key) : false
+      })
+      if (featureBlocked) {
+        next({ path: '/dashboard', replace: true })
+        NProgress.done()
+        return
+      }
       if (userStore.userInfo) {
         // 恒定路由（如装修器）也按 meta 权限拦截
         if (!permissionStore.canAccessMeta(to.meta as Record<string, unknown>)) {
@@ -66,6 +80,16 @@ export function setupRouterGuards(router: Router) {
         })
 
         if (!permissionStore.canAccessMeta(to.meta as Record<string, unknown>)) {
+          next({ path: '/dashboard', replace: true })
+          NProgress.done()
+          return
+        }
+
+        const featureBlockedLate = to.matched.some((record) => {
+          const key = record.meta?.featureModule as string | undefined
+          return key ? !featureModulesStore.isEnabled(key) : false
+        })
+        if (featureBlockedLate) {
           next({ path: '/dashboard', replace: true })
           NProgress.done()
           return

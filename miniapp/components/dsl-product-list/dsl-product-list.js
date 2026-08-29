@@ -77,6 +77,11 @@ Component({
 
   lifetimes: {
     attached() {
+      const { getProductEnabledSync } = require('../../utils/product-module-gate')
+      if (!getProductEnabledSync()) {
+        this.setData({ displayData: [], hidden: true, showMore: false })
+        return
+      }
       this._lastDisplayMode = ''
       this._streamBootstrapped = false
       this._onInputsChanged()

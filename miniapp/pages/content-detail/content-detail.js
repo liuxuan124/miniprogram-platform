@@ -38,11 +38,14 @@ const CAT_TO_TOPIC = {
   合规税务: 'compliance',
 }
 
-const PROTO_BY_TITLE = Object.fromEntries(ITEMS.map((i) => [i.title, i]))
+const { getProductEnabledSync, blockTradeNavigation } = require('../../utils/product-module-gate')
 
-/** 将 <product id="123"/> 转为可点击商品卡 HTML（mp-html 渲染） */
+const PROTO_BY_TITLE = Object.fromEntries(ITEMS.map((i) => [i.title, i]))
 function embedProductCards(html) {
   if (!html || typeof html !== 'string') return html || ''
+  if (!getProductEnabledSync()) {
+    return html.replace(/<product\s+id=["']?(\d+)["']?\s*\/?>/gi, '')
+  }
   return html.replace(/<product\s+id=["']?(\d+)["']?\s*\/?>/gi, (_m, id) => {
     const url = `/pages/product-detail/product-detail?id=${id}`
     return `<a href="${url}" class="mp-product-card" style="display:block;margin:16px 0;padding:12px 14px;border:1px solid #e8edf5;border-radius:10px;background:#f8fafc;text-decoration:none;color:#172033;"><div style="font-size:12px;color:#64748b;margin-bottom:4px;">相关商品</div><div style="font-size:15px;font-weight:700;">查看商品 #${id}</div><div style="font-size:12px;color:#1769ff;margin-top:6px;">点击进入详情 →</div></a>`
@@ -511,6 +514,10 @@ Page({
   },
 
   async _loadRelated() {
+    if (!getProductEnabledSync()) {
+      this.setData({ relatedProducts: [] })
+      return
+    }
     try {
       const id = this._contentId || (this.data.article && this.data.article.id)
       let list = []
@@ -519,7 +526,7 @@ Page({
         list = Array.isArray(bound) ? bound : (bound && bound.records) || []
       }
       if (!list.length) {
-        const res = await productService.getProductList({ current: 1, size: 4 })
+        const res = await productService.getProductList({ current: 1, size: 4, showError: false })
         list = res.records || res.list || []
       }
       this.setData({
@@ -572,9 +579,12 @@ Page({
   onProductTap(e) {
     const id = e.currentTarget.dataset.id
     if (id) {
-      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
+      const url = `/pages/product-detail/product-detail?id=${id}`
+      if (blockTradeNavigation(url)) return
+      wx.navigateTo({ url })
       return
     }
+    if (blockTradeNavigation('/pages/knowledge-mall/knowledge-mall')) return
     wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
   },
 

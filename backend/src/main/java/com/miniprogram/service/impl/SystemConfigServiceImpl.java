@@ -65,7 +65,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      * 运行期配置键：发布快照提供页面外观基线，但这些键需要跟随当前系统配置实时生效。
      */
     private static final Set<String> RUNTIME_PUBLIC_CONFIG_KEYS = Set.of(
-            "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "miniappBrandConfig", "site_name", "site_logo"
+            "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "minePageConfig", "plugins",
+            "miniappBrandConfig", "site_name", "site_logo"
     );
 
     @Override

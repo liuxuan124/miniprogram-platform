@@ -5,9 +5,11 @@ const SystemService = require('./services/system')
 const { resolveSourceChannel } = require('./utils/source-channel')
 const { applyThemeCssVars, installPageThemeHook } = require('./utils/theme')
 const { installPageShareHook } = require('./utils/share')
+const { installPageProductGuardHook, refreshProductModuleState } = require('./utils/product-module-gate')
 
 installPageThemeHook()
 installPageShareHook()
+installPageProductGuardHook()
 
 App({
   /** 全局共享状态 */
@@ -77,6 +79,7 @@ App({
   async _loadSystemConfig() {
     try {
       const config = await SystemService.fetchSystemConfig(true)
+      await refreshProductModuleState(false)
       if (config.miniappBrandConfig) {
         this.globalData.miniappBrandConfig = config.miniappBrandConfig
       }

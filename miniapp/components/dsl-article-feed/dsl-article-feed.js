@@ -1,6 +1,7 @@
 // components/dsl-article-feed/dsl-article-feed.js — 文章流（全站无限加载 + 可选分类 Tab）
 const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
+const { resolveArticleCover } = require('../../utils/article-cover')
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -15,12 +16,13 @@ function formatPublishDateTime(value) {
 }
 
 function normalizeArticleItem(item, index) {
+  const cover = resolveArticleCover(item)
   return {
     id: item.id || `local_${index + 1}`,
     title: item.title || item.name || '文章标题',
     name: item.name || item.title || '文章标题',
-    cover_url: item.cover_url || item.cover || item.image || item.coverUrl || item.coverImage || '',
-    image: item.image || item.cover || item.cover_url || item.coverUrl || item.coverImage || '',
+    cover_url: cover,
+    image: cover,
     link_url: item.link_url || '',
     created_at: formatPublishDateTime(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at),
     publish_time: formatPublishDateTime(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at),

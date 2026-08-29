@@ -1,5 +1,7 @@
 /** 图片 URL 规范化 + 预加载（减少首屏顶图空白 / 闪跳） */
 
+const { isUnusableImageUrl, resolveDisplayImageUrl, DEFAULT_HERO } = require('./image-fallback')
+
 /** 商城/工具顶图常见比例 1500×1000 */
 const DEFAULT_HERO_RATIO = '3:2'
 
@@ -7,13 +9,14 @@ function normalizeImageUrl(url) {
   const raw = String(url || '').trim()
   if (!raw) return ''
   if (/^data:/i.test(raw)) return raw
-  if (/^\/\//.test(raw)) return 'https:' + raw
-  // 内网 IP 上传地址 → 公网 CDN
-  const m = raw.match(/^https?:\/\/(?:124\.220\.11\.79(?::\d+)?)(\/uploads\/.+)$/i)
-  if (m) return 'https://api.zfculture.site' + m[1]
-  if (raw.startsWith('/uploads/')) return 'https://api.zfculture.site' + raw
-  if (raw.startsWith('uploads/')) return 'https://api.zfculture.site/' + raw
-  return raw
+  let resolved = raw
+  if (/^\/\//.test(resolved)) resolved = 'https:' + resolved
+  const m = resolved.match(/^https?:\/\/(?:124\.220\.11\.79(?::\d+)?)(\/uploads\/.+)$/i)
+  if (m) resolved = 'https://api.zfculture.site' + m[1]
+  else if (resolved.startsWith('/uploads/')) resolved = 'https://api.zfculture.site' + resolved
+  else if (resolved.startsWith('uploads/')) resolved = 'https://api.zfculture.site/' + resolved
+  if (isUnusableImageUrl(resolved)) return DEFAULT_HERO
+  return resolved
 }
 
 function collectHeroImageUrls(components) {
@@ -78,8 +81,9 @@ function annotateHeroImageSize(flowComponents, loaded) {
     const props = Object.assign({}, c.props || {})
     const src = normalizeImageUrl(props.image || props.src || '')
     if (src) {
-      props.image = src
-      props.src = src
+      const safe = resolveDisplayImageUrl(src, i)
+      props.image = safe
+      props.src = safe
     }
     const ar = String(props.aspect_ratio || '').trim()
     const isAuto = !ar || ar === 'auto' || ar === 'widthFix'

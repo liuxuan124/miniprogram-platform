@@ -71,6 +71,7 @@ import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
+import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { PLATFORM_VERSION } from '@/constants/platform'
 import {
   Odometer,
@@ -111,6 +112,8 @@ interface MenuItem {
   children?: MenuItem[]
   /** 需要任一权限码；空则不限制（超管仍全部可见） */
   permissions?: string[]
+  /** 功能模块开关 key（对应系统配置 plugins） */
+  featureModule?: string
 }
 
 const iconMap: Record<string, any> = {
@@ -147,7 +150,12 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
+const featureModulesStore = useFeatureModulesStore()
 const openKeys = ref<string[]>([])
+
+if (!featureModulesStore.loaded) {
+  featureModulesStore.load()
+}
 
 const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
@@ -175,15 +183,15 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '用户与会员',
     children: [
-      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'] },
+      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'], featureModule: 'member' },
       { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', permissions: ['user:list'] },
     ],
   },
   {
     title: '商业变现',
     children: [
-      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce' },
-      { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'] },
+      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce', featureModule: 'product' },
+      { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'], featureModule: 'product' },
       { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
       { title: '增长数据', path: '/growth/overview', icon: 'DataLine', activePrefix: '/growth' },
     ],
@@ -236,6 +244,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
 ]
 
 function allowMenuItem(item: MenuItem): boolean {
+  if (item.featureModule && !featureModulesStore.isEnabled(item.featureModule)) return false
   if (!item.permissions?.length) return true
   return permissionStore.hasAnyPerm(item.permissions)
 }

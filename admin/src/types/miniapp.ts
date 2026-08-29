@@ -266,7 +266,7 @@ export const NAV_TEMPLATES: NavTemplate[] = [
 /** 默认我的页面菜单 - 字段名与小程序端对齐（图标为 line:* 线条标） */
 export const DEFAULT_MINE_MENU: Omit<MineMenuItem, 'id'>[] = [
   { icon: 'line:document', title: '我的订单', url: '/pages/order-list/order-list', enabled: true, group: '订单服务' },
-  { icon: 'line:wallet', title: '我的资产', url: '/pages/member-center/member-center', enabled: true, group: '订单服务' },
+  { icon: 'line:wallet', title: '我的资产', url: '/pages/member-center/member-center', enabled: false, group: '订单服务' },
   { icon: 'line:coupon', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true, group: '订单服务' },
   { icon: 'line:star', title: '我的收藏', url: '/pages/favorites/favorites', enabled: true, group: '订单服务' },
   { icon: 'line:pin', title: '收货地址', url: '/pages/address-list/address-list', enabled: true, group: '常用工具' },

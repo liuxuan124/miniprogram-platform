@@ -6,6 +6,7 @@ import com.miniprogram.dto.CartItemVO;
 import com.miniprogram.entity.Cart;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.CartService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,10 +25,12 @@ import java.util.List;
 public class MpCartController {
 
     private final CartService cartService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @GetMapping
     @Operation(summary = "获取购物车列表")
     public R<List<CartItemVO>> getCartList() {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(cartService.getCartList(userId));
     }
@@ -35,6 +38,7 @@ public class MpCartController {
     @PostMapping
     @Operation(summary = "添加到购物车")
     public R<CartItemVO> addToCart(@Valid @RequestBody CartDTO dto) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(cartService.addToCart(userId, dto));
     }
@@ -43,6 +47,7 @@ public class MpCartController {
     @Operation(summary = "更新购物车项")
     public R<CartItemVO> updateCartItem(@PathVariable Long id,
                                          @Valid @RequestBody CartDTO dto) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(cartService.updateCartItem(userId, id, dto));
     }
@@ -50,6 +55,7 @@ public class MpCartController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除购物车项")
     public R<Void> deleteCartItem(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         cartService.deleteCartItem(userId, id);
         return R.ok(null);

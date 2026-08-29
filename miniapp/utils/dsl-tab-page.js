@@ -3,14 +3,7 @@ const { PageService } = require('../services/page')
 const { parseDSL, loadAllComponentData } = require('./render')
 const { getNavLayout } = require('./nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('./image-preload')
-
-/** 与 custom-tab-bar REGISTERED_TAB_PATHS 顺序一致 */
-const TAB_SLOT_ROUTES = [
-  '/pages/index/index',
-  '/pages/content-list/content-list',
-  '/pages/knowledge-mall/knowledge-mall',
-  '/pages/mine/mine',
-]
+const { TAB_SLOT_ROUTES, showTabBarForRoute } = require('./tab-bar-route')
 
 function normalizePath(path) {
   return '/' + String(path || '').replace(/^\/+/, '')
@@ -23,12 +16,18 @@ function isCustomDecoratedPath(path) {
 
 async function resolveBoundPathForTabRoute(tabRoute) {
   const config = await SystemService.fetchSystemConfig()
-  const items = (config.tabbarItems || []).filter((item) => item.enabled !== false)
+  if (
+    normalizePath(tabRoute) === '/pages/knowledge-mall/knowledge-mall'
+    && !SystemService.isProductModuleEnabled(config.plugins)
+  ) {
+    return null
+  }
   const route = normalizePath(tabRoute)
   const slotIndex = TAB_SLOT_ROUTES.indexOf(route)
-  if (slotIndex < 0 || slotIndex >= items.length) return null
+  if (slotIndex < 0) return null
 
-  const tab = items[slotIndex] || {}
+  const tab = (config.tabbarItems || [])[slotIndex] || {}
+  if (tab.enabled === false) return null
   const boundPath = normalizePath(tab.path || tab.pagePath || '')
   if (!boundPath || boundPath === route) return null
   if (!isCustomDecoratedPath(boundPath)) return null
@@ -136,6 +135,7 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
     }
     enrich().then((state) => {
       pageCtx.setData(state)
+      showTabBarForRoute(pageCtx, tabRoute)
     }).catch(() => {})
     return true
   } catch (e) {

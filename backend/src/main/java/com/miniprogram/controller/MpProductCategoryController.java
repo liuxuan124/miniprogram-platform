@@ -3,6 +3,7 @@ package com.miniprogram.controller;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.ProductCategoryTreeVO;
 import com.miniprogram.service.ProductCategoryService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,12 @@ import java.util.List;
 public class MpProductCategoryController {
 
     private final ProductCategoryService productCategoryService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @GetMapping
     @Operation(summary = "商品分类树（公开）")
     public R<List<ProductCategoryTreeVO>> getCategoryTree() {
+        featureModuleGuard.requireProductModule();
         return R.ok(productCategoryService.getCategoryTree());
     }
 }

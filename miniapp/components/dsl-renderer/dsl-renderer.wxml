@@ -22,7 +22,7 @@
     bindtap="onSearchTap"
   >
     <text class="dsl-search__icon">🔍</text>
-    <text class="dsl-search__text">{{comp.props.placeholder || '搜索商品 / 文章 / 活动'}}</text>
+    <text class="dsl-search__text">{{comp.props.placeholder || '搜索文章 / 活动 / 话题'}}</text>
   </view>
 
   <!-- 0. 公告栏 notice_bar -->

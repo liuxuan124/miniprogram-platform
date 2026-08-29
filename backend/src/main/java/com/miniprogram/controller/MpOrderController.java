@@ -7,6 +7,7 @@ import com.miniprogram.entity.Payment;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.OrderService;
 import com.miniprogram.service.PaymentService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,10 +25,12 @@ public class MpOrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @PostMapping
     @Operation(summary = "创建订单")
     public R<OrderDetailVO> createOrder(@Valid @RequestBody OrderCreateDTO dto) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.createOrder(userId, dto));
     }
@@ -35,6 +38,7 @@ public class MpOrderController {
     @GetMapping
     @Operation(summary = "我的订单列表")
     public R<PageResult<OrderDetailVO>> listMyOrders(OrderQueryDTO query) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.listUserOrders(userId, query));
     }
@@ -42,6 +46,7 @@ public class MpOrderController {
     @GetMapping("/{id}")
     @Operation(summary = "订单详情")
     public R<OrderDetailVO> getOrderDetail(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.getUserOrderDetail(userId, id));
     }
@@ -49,6 +54,7 @@ public class MpOrderController {
     @PostMapping("/{id}/pay")
     @Operation(summary = "支付订单")
     public R<WxPayResponse> payOrder(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(paymentService.createWxPayOrder(userId, id));
     }
@@ -56,6 +62,7 @@ public class MpOrderController {
     @PostMapping("/{id}/cancel")
     @Operation(summary = "取消订单")
     public R<Void> cancelOrder(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         orderService.cancelOrder(userId, id);
         return R.ok(null);
@@ -64,6 +71,7 @@ public class MpOrderController {
     @PostMapping("/{id}/confirm")
     @Operation(summary = "确认收货/确认完成")
     public R<Void> confirmOrder(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         orderService.confirmOrder(userId, id);
         return R.ok(null);
@@ -73,6 +81,7 @@ public class MpOrderController {
     @Operation(summary = "申请退款")
     public R<RefundVO> applyRefund(@PathVariable Long id,
                                     @Valid @RequestBody RefundApplyDTO dto) {
+        featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.applyRefund(userId, id, dto));
     }

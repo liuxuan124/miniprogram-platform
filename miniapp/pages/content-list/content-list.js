@@ -3,6 +3,7 @@
 const request = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
+const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 
@@ -235,10 +236,7 @@ Page({
   },
 
   onShow() {
-    wx.hideTabBar({ animation: false, fail() {} })
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1, hidden: false })
-    }
+    showTabBarForRoute(this, '/pages/content-list/content-list')
     this._consumeTabQuery()
   },
 

@@ -15,7 +15,6 @@ Page({
     suggestions: [
       { icon: '📚', title: '内容中心', desc: '笔记 / 长文 / 数据', type: 'page', path: '/pages/content-list/content-list' },
       { icon: '🎧', title: '客服中心', desc: '咨询与售后服务', type: 'page', path: '/pkg-user/service-chat/service-chat' },
-      { icon: '👑', title: '会员中心', desc: '积分签到与权益', type: 'page', path: '/pkg-user/member-center/member-center' },
     ],
     results: [],
   },
@@ -60,6 +59,12 @@ Page({
     const { path } = e.currentTarget.dataset
     if (!path) return
     const base = path.split('?')[0]
+    const { getProductEnabledSync } = require('../../utils/product-module-gate')
+    const productOn = getProductEnabledSync()
+    if (!productOn && (base === '/pages/knowledge-mall/knowledge-mall' || base === '/pages/product-list/product-list')) {
+      wx.switchTab({ url: '/pages/content-list/content-list' })
+      return
+    }
     const isTab = [
       '/pages/index/index',
       '/pages/content-list/content-list',
@@ -99,7 +104,7 @@ Page({
         typeLabel: '内容',
         title: item.title,
         summary: this._plainText(item.summary || item.content || ''),
-        cover: item.coverImage || item.coverUrl || item.cover_url || '',
+        cover: require('../../utils/article-cover').resolveArticleCover(item),
       }))
       this.setData({ results: contents, loading: false })
       try {
@@ -144,7 +149,10 @@ Page({
     if (type === 'content') {
       wx.navigateTo({ url: `/pages/content-detail/content-detail?id=${id}` })
     } else if (type === 'product') {
-      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
+      const { blockTradeNavigation } = require('../../utils/product-module-gate')
+      const url = `/pages/product-detail/product-detail?id=${id}`
+      if (blockTradeNavigation(url)) return
+      wx.navigateTo({ url })
     }
   },
 })
