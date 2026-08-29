@@ -612,7 +612,19 @@ function syncMineTemplateFromConfig() {
     || ['#1e293b', '#334155'].includes(String(mc.themeColor || '').toLowerCase())
   const key = resolveMineStyleKey(mc as { templateStyle?: string; style?: string; themeColor?: string })
   if (needsFallback) {
+    const before = JSON.stringify({
+      templateStyle: mc.templateStyle,
+      style: mc.style,
+      themeColor: mc.themeColor,
+    })
     applyMineStylePreset(mc, key)
+    const after = JSON.stringify({
+      templateStyle: mc.templateStyle,
+      style: mc.style,
+      themeColor: mc.themeColor,
+    })
+    // 无实际变化时不要反复 Object.assign，避免脏状态抖动
+    if (before === after && selectedMineTemplate.value === key) return
   }
   if (selectedMineTemplate.value !== key) {
     selectedMineTemplate.value = key
@@ -641,10 +653,14 @@ watch(() => (form.mineConfig as any).mode, (mode) => {
 }, { immediate: true })
 
 function onTabsUpdate(tabs: typeof form.tabs) {
-  form.tabs = tabs
+  const next = tabs
+  form.tabs = next
   const homeTab = form.tabs.find((t) => t.text === '首页' || String(t.pagePath || '').replace(/\/+$/, '') === '/pages/index/index')
   if (homeTab?.pageId != null && homeTab.pageId !== '') {
-    form.homePageId = homeTab.pageId as any
+    const nextHomeId = homeTab.pageId as any
+    if (String(form.homePageId) !== String(nextHomeId)) {
+      form.homePageId = nextHomeId
+    }
   }
 }
 

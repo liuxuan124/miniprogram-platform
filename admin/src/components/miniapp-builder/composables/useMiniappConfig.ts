@@ -7,7 +7,7 @@ import type { MiniappForm } from '@/types/miniapp'
 import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE, normalizeOrderTabLabels, resolveMineStyleKey, applyMineStylePreset } from '@/types/miniapp'
 import { suggestMenuLineIcon } from '../menuLineIcons'
 import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
-import { normalizeTabBarItems } from '@/utils/tabbar'
+import { normalizeTabBarItems, tabBarSnapshot } from '@/utils/tabbar'
 
 /** 系统内置页面（不在页面列表中，但可作为TabBar绑定目标） */
 const SYSTEM_PAGES: { id: string; name: string; path: string; type: 'system' }[] = [
@@ -69,9 +69,9 @@ export function useMiniappConfig() {
   function getSnapshot(): string {
     return JSON.stringify({
       templateKey: form.templateKey,
-      homePageId: form.homePageId,
-      minePageId: form.minePageId,
-      tabs: form.tabs,
+      homePageId: form.homePageId == null || form.homePageId === '' ? '' : String(form.homePageId),
+      minePageId: form.minePageId == null || form.minePageId === '' ? '' : String(form.minePageId),
+      tabs: tabBarSnapshot(form.tabs),
       mineConfig: form.mineConfig,
       theme: form.theme,
       shareTitle: form.shareTitle,
@@ -80,6 +80,7 @@ export function useMiniappConfig() {
   }
 
   function markSaved() {
+    form.tabs = normalizeTabBarItems(form.tabs)
     savedSnapshot = getSnapshot()
   }
 
@@ -180,6 +181,7 @@ export function useMiniappConfig() {
               pagePath: t.pagePath || t.path || '',
               pageId: normalizeBindId(t.pageId) as any,
               pageName: t.pageName || '',
+              tabRoute: t.tabRoute || t.slotRoute || '',
             })))
           }
         } catch { /* ignore parse errors */ }
@@ -323,11 +325,12 @@ export function useMiniappConfig() {
 
     saving.value = true
     try {
+      form.tabs = normalizeTabBarItems(form.tabs)
       const configs = [
         { configKey: CONFIG_KEYS.TEMPLATE_KEY, configValue: form.templateKey, configGroup: 'basic', description: '小程序导航模板' },
         { configKey: CONFIG_KEYS.HOME_PAGE_ID, configValue: String(form.homePageId), configGroup: 'basic', description: '首页绑定' },
         { configKey: CONFIG_KEYS.MINE_PAGE_ID, configValue: String(form.minePageId), configGroup: 'basic', description: '我的页面绑定' },
-        { configKey: CONFIG_KEYS.TABBAR_ITEMS, configValue: JSON.stringify(normalizeTabBarItems(form.tabs)), configGroup: 'basic', description: '底部导航配置' },
+        { configKey: CONFIG_KEYS.TABBAR_ITEMS, configValue: JSON.stringify(form.tabs), configGroup: 'basic', description: '底部导航配置' },
         { configKey: CONFIG_KEYS.MINE_PAGE_CONFIG, configValue: JSON.stringify(form.mineConfig), configGroup: 'basic', description: '我的页面配置' },
         { configKey: CONFIG_KEYS.THEME_CONFIG, configValue: JSON.stringify(form.theme), configGroup: 'basic', description: '主题配色' },
         { configKey: CONFIG_KEYS.SHARE_TITLE, configValue: form.shareTitle, configGroup: 'basic', description: '小程序分享标题' },

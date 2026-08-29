@@ -78,6 +78,7 @@ import {
   normalizeTabBarItems,
   createEmptyTab,
   resolveTabShellRoute,
+  tabBarSnapshot,
 } from '@/utils/tabbar'
 
 const props = defineProps<{ tabs: NavTab[]; pages: PageRecord[] }>()
@@ -92,7 +93,15 @@ const SHELL_LABELS: Record<string, string> = {
 }
 
 const localTabs = ref<NavTab[]>(normalizeTabBarItems(props.tabs))
-watch(() => props.tabs, (v) => { localTabs.value = normalizeTabBarItems(v) }, { deep: true })
+watch(
+  () => props.tabs,
+  (v) => {
+    const next = normalizeTabBarItems(v)
+    if (JSON.stringify(tabBarSnapshot(next)) === JSON.stringify(tabBarSnapshot(localTabs.value))) return
+    localTabs.value = next
+  },
+  { deep: true },
+)
 
 const boundCount = computed(() => localTabs.value.filter(t => t.pageId || t.pagePath.includes('index')).length)
 const progressPercent = computed(() => {
@@ -108,7 +117,13 @@ function shellLabel(tab: NavTab, index: number) {
 }
 
 function emitUpdate() {
-  emit('update:tabs', normalizeTabBarItems(localTabs.value))
+  const next = normalizeTabBarItems(localTabs.value)
+  if (JSON.stringify(tabBarSnapshot(next)) === JSON.stringify(tabBarSnapshot(props.tabs))) {
+    localTabs.value = next
+    return
+  }
+  localTabs.value = next
+  emit('update:tabs', next)
 }
 
 function addTab() {
