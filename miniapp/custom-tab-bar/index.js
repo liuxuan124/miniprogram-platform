@@ -1,6 +1,6 @@
 const SystemService = require('../services/system')
 const { migrateTabBarIcon, isImageIcon } = require('../utils/tabbar-icon')
-const { TAB_SLOT_ROUTES } = require('../utils/dsl-tab-page')
+const { TAB_SLOT_ROUTES, resolveActiveTabItems } = require('../utils/tabbar-config')
 
 const PATH_META_MAP = {
   '/pages/index/index': {
@@ -23,6 +23,11 @@ const PATH_META_MAP = {
     icon: '/images/tab-v2/mine.svg',
     selectedIcon: '/images/tab-v2/mine-active.svg',
   },
+  '/pages/tab-hub/tab-hub': {
+    text: '更多',
+    icon: '/images/tab-v2/hub.svg',
+    selectedIcon: '/images/tab-v2/hub-active.svg',
+  },
 }
 
 const DEFAULT_LIST = buildTabList(TAB_SLOT_ROUTES)
@@ -36,15 +41,6 @@ function buildTabList(slotRoutes) {
       icon: meta.icon || '/images/tab-v2/home.svg',
       selectedIcon: meta.selectedIcon || meta.icon || '/images/tab-v2/home-active.svg',
     }
-  })
-}
-
-function resolveVisibleTabRoutes(productEnabled, tabbarItems) {
-  return TAB_SLOT_ROUTES.filter((route, slotIndex) => {
-    if (productEnabled === false && route === '/pages/knowledge-mall/knowledge-mall') return false
-    const item = (tabbarItems || [])[slotIndex]
-    if (item && item.enabled === false) return false
-    return true
   })
 }
 
@@ -91,22 +87,16 @@ Component({
     async _loadTabbarConfig() {
       try {
         const config = await SystemService.fetchSystemConfig(true)
-        const productEnabled = SystemService.isProductModuleEnabled(config.plugins)
         const tabbarItems = config.tabbarItems || []
-        const visibleRoutes = resolveVisibleTabRoutes(productEnabled, tabbarItems)
-        const rawItems = SystemService.applyProductModuleGate(
-          tabbarItems,
-          config.plugins,
-        ).filter((item) => item.enabled !== false)
+        const visibleRows = resolveActiveTabItems(config.plugins, tabbarItems)
         const theme = config.miniappThemeConfig || {}
         try {
           const { applyThemeCssVars } = require('../utils/theme')
           applyThemeCssVars(theme)
         } catch (e) {}
 
-        const mappedList = visibleRoutes.map((pagePath) => {
-          const slotIndex = TAB_SLOT_ROUTES.indexOf(pagePath)
-          const item = tabbarItems[slotIndex] || {}
+        const mappedList = visibleRows.map((row) => {
+          const { item, slotRoute: pagePath } = row
           const pathMeta = PATH_META_MAP[pagePath] || {}
           const fallbackIcon = pathMeta.icon || '/images/tab-v2/home.svg'
           const fallbackSelected = pathMeta.selectedIcon || fallbackIcon

@@ -6,6 +6,8 @@ export interface NavTab {
   icon: string
   /** 页面路径，小程序端读取 pagePath 字段 */
   pagePath: string
+  /** Tab 壳路由（switchTab 目标），与 app.json tabBar 注册页面对应 */
+  tabRoute?: string
   pageId?: number | string
   pageName?: string
 }

@@ -811,8 +811,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
         if (tabs.isEmpty()) {
             vo.getWarnings().add("尚未配置底部导航，发布后将使用小程序默认导航");
-        } else if (tabs.size() != 4) {
-            vo.getBlocking().add("底部导航必须固定 4 个入口（当前 " + tabs.size() + " 个），请到「外观」调整");
+        } else if (tabs.size() < 2 || tabs.size() > 5) {
+            vo.getBlocking().add("底部导航需配置 2~5 个入口（当前 " + tabs.size() + " 个），请到「外观」调整");
         }
         for (Map<String, Object> tab : tabs) {
             String text = firstText(tab.get("text"), tab.get("label"), tab.get("name"));

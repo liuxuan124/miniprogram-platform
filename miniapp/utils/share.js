@@ -39,6 +39,7 @@ const DEFAULT_SHARE_TITLE = '出海笔记｜跨境干货、选品与增长实战
 const PAGE_SHARE_TITLES = {
   'pages/index/index': DEFAULT_SHARE_TITLE,
   'pages/content-list/content-list': '出海笔记｜跨境实战内容中心',
+  'pages/tab-hub/tab-hub': '出海笔记',
   'pages/product-list/product-list': '出海笔记｜跨境知识商品与咨询服务',
   'pages/knowledge-mall/knowledge-mall': '出海笔记｜知识商城',
   'pages/search/search': '出海笔记｜搜索跨境选品与运营干货',

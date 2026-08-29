@@ -53,7 +53,9 @@ function isTradeMenuItem(item: Record<string, unknown>): boolean {
 }
 
 function isProductTabItem(item: Record<string, unknown>, index: number): boolean {
-  if (index === PRODUCT_TAB_SLOT_INDEX) return true
+  const shell = String(item.tabRoute || item.slotRoute || '')
+  if (shell.includes('knowledge-mall')) return true
+  if (!shell && index === PRODUCT_TAB_SLOT_INDEX) return true
   const path = String(item.pagePath || item.path || '')
   const text = String(item.text || item.name || '')
   const pageName = String(item.pageName || '')

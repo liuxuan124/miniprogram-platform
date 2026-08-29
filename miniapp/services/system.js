@@ -262,7 +262,9 @@ function isProductModuleEnabled(plugins) {
 }
 
 function isProductTabItem(item, index) {
-  if (index === PRODUCT_TAB_SLOT_INDEX) return true
+  const shell = String((item && (item.tabRoute || item.slotRoute)) || '')
+  if (shell.includes('knowledge-mall')) return true
+  if (!shell && index === 2) return true
   const path = String((item && (item.pagePath || item.path)) || '')
   const text = String((item && (item.text || item.name)) || '')
   const pageName = String((item && item.pageName) || '')
