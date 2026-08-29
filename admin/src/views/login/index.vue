@@ -67,11 +67,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { removeToken } from '@/utils/auth'
+
+function resolveLoginErrorMessage(error: unknown): string {
+  const err = error as {
+    message?: string
+    response?: { data?: { message?: string; code?: number } }
+  }
+  const apiMessage = err?.response?.data?.message
+  if (apiMessage) return apiMessage
+  if (err?.message && !/^Request failed with status code \d+$/i.test(err.message)) {
+    return err.message
+  }
+  return '登录失败，请检查用户名和密码'
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -85,6 +99,12 @@ const showForgetDialog = ref(false)
 const loginForm = reactive({
   username: '',
   password: '',
+})
+
+onMounted(() => {
+  // 避免过期 Token 触发其它接口 401 刷屏
+  removeToken()
+  userStore.resetState()
 })
 
 const loginRules: FormRules = {
@@ -111,8 +131,8 @@ async function handleLogin() {
       ElMessage.success('登录成功')
       const redirect = (route.query.redirect as string) || '/dashboard'
       router.replace(redirect)
-    } catch (e: any) {
-      ElMessage.error(e?.message || '登录失败')
+    } catch (e: unknown) {
+      ElMessage.error(resolveLoginErrorMessage(e))
     } finally {
       loading.value = false
     }

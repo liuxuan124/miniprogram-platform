@@ -6,7 +6,7 @@ import type { LoginParams, LoginResult, UserInfo } from '@/types/global'
 
 /** 用户登录 */
 export function loginApi(data: LoginParams) {
-  return post<LoginResult>('/api/v1/admin/auth/login', data)
+  return post<LoginResult>('/api/v1/admin/auth/login', data, { showError: false })
 }
 
 /** 获取当前用户信息 */
