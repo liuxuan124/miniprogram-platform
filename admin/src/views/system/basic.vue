@@ -655,6 +655,7 @@ import {
   normalizeBrandConfig,
 } from '@/utils/brand-config'
 import { DEFAULT_MINIAPP_BRAND_CONFIG } from '@/types/miniapp'
+import { useFeatureModulesStore } from '@/stores/feature-modules'
 import {
   billingMethodLabel,
   freeRuleSummary,
@@ -679,6 +680,7 @@ const payTesting = ref(false)
 const paySaved = ref(false)
 const pluginSaving = ref(false)
 const pluginSaved = ref(false)
+const featureModulesStore = useFeatureModulesStore()
 const logisticsSaving = ref(false)
 const logisticsSaved = ref(false)
 const notificationSaving = ref(false)
@@ -850,7 +852,7 @@ const legalForm = reactive<LegalForm>({
 // 模块分组数据
 const allPlugins = reactive<PluginModule[]>([
   { key: 'product', name: '商品模块', desc: '商品管理、订单处理、在线支付', icon: '🛍️', enabled: true },
-  { key: 'member', name: '会员模块', desc: '等级体系、积分权益、会员卡', icon: '👥', enabled: true },
+  { key: 'member', name: '会员模块', desc: '等级体系、积分权益、会员卡', icon: '👥', enabled: false },
   { key: 'order', name: '订单模块', desc: '订单全流程管理与售后', icon: '📦', enabled: true },
 ])
 
@@ -1033,6 +1035,7 @@ function applyPluginConfigs(configs: RawConfigItem[]) {
         const plugin = pluginModules.value.find(p => p.key === entry.key)
         if (plugin) plugin.enabled = entry.enabled !== false
       })
+      featureModulesStore.setModules(pluginModules.value.map((p) => ({ key: p.key, enabled: p.enabled })))
     } catch {
       // ignore invalid json
     }
@@ -1325,14 +1328,23 @@ async function handleTestPay() {
 
 function handleSavePlugins() {
   pluginSaving.value = true
-  saveGroup('basic', '模块开关', { plugins: pluginModules.value }).then(() => {
-    pluginSaved.value = true
-    ElMessage.success('模块配置已保存')
-  }).catch((e) => {
-    ElMessage.error(e instanceof Error ? e.message : '保存失败')
-  }).finally(() => {
-    pluginSaving.value = false
-  })
+  const memberOn = pluginModules.value.find((p) => p.key === 'member')?.enabled !== false
+  const productOn = pluginModules.value.find((p) => p.key === 'product')?.enabled !== false
+  saveGroup('basic', '模块开关', { plugins: pluginModules.value })
+    .then(() => featureModulesStore.setModules(pluginModules.value.map((p) => ({ key: p.key, enabled: p.enabled }))))
+    .then(() => featureModulesStore.syncMinePageForMemberModule(memberOn))
+    .then(() => featureModulesStore.syncTabbarForProductModule(productOn))
+    .then(() => featureModulesStore.syncMinePageForProductModule(productOn))
+    .then(() => {
+      pluginSaved.value = true
+      ElMessage.success('模块配置已保存')
+    })
+    .catch((e) => {
+      ElMessage.error(e instanceof Error ? e.message : '保存失败')
+    })
+    .finally(() => {
+      pluginSaving.value = false
+    })
 }
 
 function handleSaveLogistics() {
@@ -1359,8 +1371,10 @@ function handleSaveNotifications() {
   })
 }
 
-function onModuleToggle(plugin: PluginModule, enabled: boolean) {
-  ElMessage.success(`${plugin.name}已${enabled ? '启用' : '禁用'}`)
+function onModuleToggle(plugin: PluginModule, _enabled: boolean) {
+  // 切换后立即保存，保证侧栏/小程序入口同步生效
+  handleSavePlugins()
+  void plugin
 }
 
 // 上传相关

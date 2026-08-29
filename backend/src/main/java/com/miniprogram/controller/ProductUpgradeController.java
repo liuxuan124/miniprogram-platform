@@ -12,6 +12,7 @@ import com.miniprogram.mapper.ContentProductMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.service.AgentConfigService;
 import com.miniprogram.service.AiClientService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
@@ -35,10 +36,12 @@ public class ProductUpgradeController {
     private final AgentConfigService agentConfigService;
     private final AiClientService aiClientService;
     private final ObjectMapper objectMapper;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @Operation(summary = "内容关联商品列表")
     @GetMapping("/api/v1/mp/contents/{id}/products")
     public R<List<Product>> listContentProducts(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         List<ContentProduct> links = contentProductMapper.selectList(new LambdaQueryWrapper<ContentProduct>()
                 .eq(ContentProduct::getContentId, id)
                 .orderByAsc(ContentProduct::getSortOrder));

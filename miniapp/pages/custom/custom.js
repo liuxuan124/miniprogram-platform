@@ -2,6 +2,7 @@ const { PageService } = require('../../services/page')
 const { parseDSL, loadAllComponentData } = require('../../utils/render')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('../../utils/image-preload')
+const { resolveTabRouteForBoundCustomPath } = require('../../utils/tab-bar-route')
 
 Page({
   data: {
@@ -15,6 +16,11 @@ Page({
 
   onLoad(options) {
     const path = decodeURIComponent(options.path || options.p || '')
+    const tabRoute = resolveTabRouteForBoundCustomPath(path)
+    if (tabRoute) {
+      wx.switchTab({ url: tabRoute })
+      return
+    }
     this._load(path)
   },
 
@@ -56,7 +62,11 @@ Page({
       const loaded = await preloadImages(heroUrls, 550)
       const annotated = annotateHeroImageSize(flowComponents, loaded)
       const hasBrandHeader = annotated.some((item) => item && item.type === 'brand_header')
-      // brand_header 需自定义顶栏：跳到 custom-nav（navigationStyle:custom）
+      const tabRoute = resolveTabRouteForBoundCustomPath(path)
+      if (tabRoute) {
+        wx.switchTab({ url: tabRoute })
+        return
+      }
       if (hasBrandHeader) {
         wx.redirectTo({
           url: '/pages/custom-nav/custom-nav?path=' + encodeURIComponent(path),

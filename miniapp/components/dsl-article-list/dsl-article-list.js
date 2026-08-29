@@ -1,6 +1,7 @@
 // components/dsl-article-list/dsl-article-list.js — 文章列表（支持顶部分类标签 + 触底加载）
 const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
+const { resolveArticleCover } = require('../../utils/article-cover')
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -27,12 +28,13 @@ function formatArticleMeta(item) {
 }
 
 function normalizeArticleItem(item, index) {
+  const cover = resolveArticleCover(item)
   return {
     id: item.id || `local_${index + 1}`,
     title: item.title || item.name || '文章标题',
     name: item.name || item.title || '文章标题',
-    cover_url: item.cover_url || item.cover || item.image || item.coverUrl || item.coverImage || '',
-    image: item.image || item.cover || item.cover_url || item.coverUrl || item.coverImage || '',
+    cover_url: cover,
+    image: cover,
     link_url: item.link_url || '',
     created_at: formatArticleMeta(item),
     publish_time: formatArticleMeta(item),

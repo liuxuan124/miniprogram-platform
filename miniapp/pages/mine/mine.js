@@ -4,6 +4,8 @@ const { AuthUtil } = require('../../utils/auth')
 const memberService = require('../../services/member')
 const SystemService = require('../../services/system')
 const { LOGIN_RULES } = require('../../config/login-rules')
+const { blockTradeNavigation } = require('../../utils/product-module-gate')
+const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { ORDER_TAB_ICONS } = require('../../utils/menu-line-icons')
 
 const ORDER_TAB_KEYS = ['pending', 'paid', 'shipped', 'completed']
@@ -99,10 +101,7 @@ Page({
   },
 
   onShow() {
-    wx.hideTabBar({ animation: false, fail() {} })
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 3, hidden: false })
-    }
+    showTabBarForRoute(this, '/pages/mine/mine')
 
     this._resetStuckLoginSheet()
     this._loadMinePageConfig(false)
@@ -276,6 +275,7 @@ Page({
   },
 
   onOrderTabTap(e) {
+    if (blockTradeNavigation('/pkg-trade/order-list/order-list')) return
     const key = e.currentTarget.dataset.key
     if (!this._ensureLogin('查看订单')) return
     const apiStatus = ORDER_STATUS_API[key] || key
@@ -285,6 +285,7 @@ Page({
   },
 
   onViewAllOrders() {
+    if (blockTradeNavigation('/pkg-trade/order-list/order-list')) return
     if (!this._ensureLogin('查看订单')) return
     wx.navigateTo({ url: '/pkg-trade/order-list/order-list' })
   },
@@ -318,6 +319,7 @@ Page({
       wx.showToast({ title: '功能暂不可用', icon: 'none' })
       return
     }
+    if (blockTradeNavigation(url)) return
 
     const path = url.split('?')[0]
     const isTab = [

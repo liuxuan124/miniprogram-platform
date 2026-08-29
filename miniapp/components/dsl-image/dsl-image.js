@@ -2,6 +2,8 @@
 const { executeAction } = require('../../utils/render')
 const { aspectRatioBoxStyle, aspectRatioFillStyle, parseAspectRatio } = require('../../utils/image-aspect-ratio')
 const { normalizeImageUrl, DEFAULT_HERO_RATIO } = require('../../utils/image-preload')
+const { resolveMediaUrl } = require('../../utils/media-url')
+const { resolveDisplayImageUrl, DEFAULT_HERO } = require('../../utils/image-fallback')
 
 // 默认按商城/工具顶图 3:2，避免旧 750:420 骨架高度跳变
 const DEFAULT_AUTO_RATIO = 3 / 2
@@ -50,7 +52,8 @@ Component({
     },
 
     _applyAspect(config) {
-      const src = normalizeImageUrl(config.image || config.src || '')
+      const raw = config.image || config.src || ''
+      let src = resolveDisplayImageUrl(resolveMediaUrl(normalizeImageUrl(raw)), config.id || raw)
       const prevSrc = this.data.imageSrc
       // src 未变时不要重置 imgReady，避免 config 注解二次 setData 闪一下
       const srcChanged = src !== prevSrc
@@ -88,6 +91,17 @@ Component({
 
     onImageLoad() {
       // 只做透明度显现，不改容器高度、不换 mode，避免闪跳
+      if (!this.data.imgReady) {
+        this.setData({ imgReady: true })
+      }
+    },
+
+    onImageError() {
+      const fallback = DEFAULT_HERO
+      if (this.data.imageSrc !== fallback) {
+        this.setData({ imageSrc: fallback, imgReady: false })
+        return
+      }
       if (!this.data.imgReady) {
         this.setData({ imgReady: true })
       }

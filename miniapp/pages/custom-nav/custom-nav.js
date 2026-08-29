@@ -2,6 +2,7 @@ const { PageService } = require('../../services/page')
 const { parseDSL, loadAllComponentData } = require('../../utils/render')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('../../utils/image-preload')
+const { resolveTabRouteForBoundCustomPath } = require('../../utils/tab-bar-route')
 
 Page({
   data: {
@@ -15,6 +16,11 @@ Page({
 
   onLoad(options) {
     const path = decodeURIComponent(options.path || options.p || '')
+    const tabRoute = resolveTabRouteForBoundCustomPath(path)
+    if (tabRoute) {
+      wx.switchTab({ url: tabRoute })
+      return
+    }
     this._load(path)
   },
 

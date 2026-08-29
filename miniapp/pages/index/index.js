@@ -10,7 +10,9 @@ const {
 const { AuthService } = require('../../services/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
+const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
+const { blockTradeNavigation } = require('../../utils/product-module-gate')
 
 Page({
   ...createSharePageConfig(),
@@ -34,10 +36,7 @@ Page({
   },
 
   onShow() {
-    wx.hideTabBar({ animation: false, fail() {} })
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0, hidden: false })
-    }
+    showTabBarForRoute(this, '/pages/index/index')
     const app = getApp()
     if (app && !app.globalData.isLoggedIn) {
       AuthService.silentLogin().catch(() => {})
@@ -211,6 +210,7 @@ Page({
       return
     }
     if (action === 'orders') {
+      if (blockTradeNavigation('/pkg-trade/order-list/order-list')) return
       wx.navigateTo({ url: '/pkg-trade/order-list/order-list' })
       return
     }
@@ -237,6 +237,7 @@ Page({
   },
 
   openProduct() {
+    if (blockTradeNavigation('/pages/knowledge-mall/knowledge-mall')) return
     wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
   },
 
@@ -244,7 +245,9 @@ Page({
     const protoId = Number(e.currentTarget.dataset.id)
     const realId = this.data.productIdMap[protoId]
     if (realId) {
-      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${realId}` })
+      const url = `/pages/product-detail/product-detail?id=${realId}`
+      if (blockTradeNavigation(url)) return
+      wx.navigateTo({ url })
       return
     }
     this.goShop()

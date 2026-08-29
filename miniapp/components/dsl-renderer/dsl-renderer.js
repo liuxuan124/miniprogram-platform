@@ -391,10 +391,16 @@ Component({
     },
 
     onSearchTap() {
-      const scope = ((this.data.comp && this.data.comp.props && this.data.comp.props.scope) || 'all').toString()
+      const props = (this.data.comp && this.data.comp.props) || {}
+      const linkFromProps = String(props.link_url || props.linkUrl || '').trim()
+      if (linkFromProps) {
+        navigatePage(linkFromProps)
+        return
+      }
+      const scope = (props.scope || 'all').toString()
       let link = '/pages/search/search'
       if (scope === 'product') link = '/pages/search/search'
-      if (scope === 'article') link = '/pages/content-list/content-list'
+      if (scope === 'article' || scope === 'content') link = '/pages/search/search'
       if (scope === 'activity') link = '/pkg-extra/activity-list/activity-list'
       navigatePage(link)
     },

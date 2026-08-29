@@ -6,6 +6,7 @@ import com.miniprogram.dto.ProductDetailVO;
 import com.miniprogram.dto.ProductQueryDTO;
 import com.miniprogram.entity.Product;
 import com.miniprogram.service.ProductService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +22,19 @@ import org.springframework.web.bind.annotation.*;
 public class MpProductController {
 
     private final ProductService productService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @GetMapping
     @Operation(summary = "商品列表（公开）")
     public R<PageResult<Product>> listProducts(ProductQueryDTO query) {
+        featureModuleGuard.requireProductModule();
         return R.ok(productService.listMpProducts(query));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "商品详情（公开）")
     public R<ProductDetailVO> getProductDetail(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
         ProductDetailVO detail = productService.getProductDetail(id);
         if (!"on_sale".equals(detail.getStatus())) {
             throw new com.miniprogram.common.BusinessException(404401, "商品不存在或未上架");

@@ -8,6 +8,7 @@
         src="{{imageSrc}}"
         mode="aspectFill"
         bindload="onImageLoad"
+        binderror="onImageError"
       />
     </view>
   </block>

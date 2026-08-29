@@ -111,12 +111,14 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
+import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { ComponentType } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
 import { confirmRemoveComponent } from './confirmRemoveComponent'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
 const pageStore = usePageStore()
+const featureModulesStore = useFeatureModulesStore()
 const componentSectionHeight = ref(520)
 const collapsed = ref({
   components: false,
@@ -159,9 +161,16 @@ async function handleRemoveComponent(comp: { id: string; type: ComponentType }) 
 }
 
 const recentComponents = computed<ComponentDefinition[]>(() => {
+  const commerceTypes = new Set(
+    getComponentsByCategory('commerce').map((item) => item.type),
+  )
   return recentTypes.value
     .map((type) => getComponentDef(type))
-    .filter((def): def is ComponentDefinition => !!def)
+    .filter((def): def is ComponentDefinition => {
+      if (!def) return false
+      if (!featureModulesStore.productEnabled && commerceTypes.has(def.type)) return false
+      return true
+    })
 })
 const resizing = ref<{
   target: 'components'
@@ -169,16 +178,20 @@ const resizing = ref<{
   startHeight: number
 } | null>(null)
 
-const categories = getAllCategories()
+const categories = computed(() => {
+  const all = getAllCategories()
+  if (featureModulesStore.productEnabled) return all
+  return all.filter((cat) => cat.value !== 'commerce')
+})
 
 const visibleCategories = computed(() => {
-  if (!focusedCategory.value) return categories
-  return categories.filter((cat) => cat.value === focusedCategory.value)
+  if (!focusedCategory.value) return categories.value
+  return categories.value.filter((cat) => cat.value === focusedCategory.value)
 })
 
 const totalComponentCount = computed(() => {
   let count = 0
-  for (const cat of categories) {
+  for (const cat of categories.value) {
     count += getComponentsByCategory(cat.value).length
   }
   return count
@@ -186,6 +199,7 @@ const totalComponentCount = computed(() => {
 
 /** B4：按搜索关键字过滤分类下的组件（匹配组件名称） */
 function filteredComponentsByCategory(category: string): ComponentDefinition[] {
+  if (!featureModulesStore.productEnabled && category === 'commerce') return []
   const list = getComponentsByCategory(category)
   const kw = searchKeyword.value.trim().toLowerCase()
   if (!kw) return list
@@ -262,6 +276,9 @@ onMounted(() => {
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mouseup', handleMouseUp)
   loadRecentTypes()
+  if (!featureModulesStore.loaded) {
+    featureModulesStore.load()
+  }
 })
 
 onBeforeUnmount(() => {

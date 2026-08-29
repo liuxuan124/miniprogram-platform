@@ -4,6 +4,9 @@
 
 const { DatasourceService } = require('../services/datasource')
 const { filterProductsByPrice, resolvePriceFilterConfig } = require('./product-price-filter')
+const SystemService = require('../services/system')
+const { filterTradeComponents, blockTradeNavigation, getProductEnabledSync } = require('./product-module-gate')
+const { resolveTabRouteForBoundCustomPath } = require('./tab-bar-route')
 
 // ========== 工具函数 ==========
 
@@ -329,9 +332,15 @@ function parseDSL(dsl) {
   }
 
   // 解析组件列表
-  const components = (dsl.components || [])
+  let components = (dsl.components || [])
     .map((comp) => processComponent(comp))
     .filter((comp) => !comp.skipped)
+  try {
+    const cached = SystemService.getCachedConfig()
+    components = filterTradeComponents(components, cached && cached.plugins)
+  } catch (e) {
+    // ignore
+  }
 
   return {
     page,
@@ -478,7 +487,13 @@ async function loadComponentData(component, forceRefresh = false) {
  * @returns {Promise<Array>} 更新后的组件列表
  */
 async function loadAllComponentData(components, forceRefresh = false) {
-  const list = Array.isArray(components) ? components : []
+  let list = Array.isArray(components) ? components : []
+  try {
+    const cached = SystemService.getCachedConfig()
+    list = filterTradeComponents(list, cached && cached.plugins)
+  } catch (e) {
+    // ignore
+  }
   const tasks = list.map(async (comp) => {
     const loaded = await loadComponentData(comp, forceRefresh)
     const childKeys = ['children', 'components']
@@ -544,11 +559,26 @@ function rewriteUnregisteredPage(path) {
 }
 
 function navigatePage(path) {
+  if (blockTradeNavigation(path)) return
+
+  const customBase = stripQuery(normalizeRoutePath(path))
+  if (customBase.startsWith('/pages/custom/')) {
+    const tabRoute = resolveTabRouteForBoundCustomPath(customBase)
+    if (tabRoute) {
+      wx.switchTab({ url: tabRoute })
+      return
+    }
+  }
+
   let url = rewriteUnregisteredPage(path)
   if (!url) return
 
-  // 旧商城页统一切到知识商城 Tab
+  // 旧商城页统一切到知识商城 Tab（商品模块关闭时改去内容 Tab，避免「功能暂未开放」）
   if (stripQuery(url) === '/pages/product-list/product-list') {
+    if (!getProductEnabledSync()) {
+      wx.switchTab({ url: '/pages/content-list/content-list' })
+      return
+    }
     const q = parseQuery(url)
     const qs = Object.keys(q).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(q[k])}`).join('&')
     url = '/pages/knowledge-mall/knowledge-mall' + (qs ? '?' + qs : '')
@@ -557,6 +587,13 @@ function navigatePage(path) {
   if (isTabPage(url)) {
     const query = parseQuery(url)
     const base = stripQuery(url)
+    if (
+      !getProductEnabledSync()
+      && (base === '/pages/knowledge-mall/knowledge-mall' || base === '/pages/product-list/product-list')
+    ) {
+      wx.switchTab({ url: '/pages/content-list/content-list' })
+      return
+    }
     // switchTab 不支持 query，暂存给目标 Tab 页 onShow 读取
     if (Object.keys(query).length) {
       try {

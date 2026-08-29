@@ -1,9 +1,11 @@
 // pages/knowledge-mall/knowledge-mall.js — Tab 商城页：优先加载导航绑定的装修页 DSL
 const productService = require('../../services/product')
 const cartService = require('../../services/cart')
+const SystemService = require('../../services/system')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
+const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
 
 const TYPE_TABS = [
@@ -143,26 +145,38 @@ Page({
   },
 
   onLoad(options) {
-    loadTabBoundDslPage(this, '/pages/knowledge-mall/knowledge-mall').then((ok) => {
-      if (ok) return
-      try {
-        const sys = wx.getSystemInfoSync()
-        this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
-      } catch (e) { /* ignore */ }
-      const fromOpt = (options && options.type) || ''
-      if (fromOpt) this.setData({ activeType: fromOpt })
-      this._consumeTabQuery()
-      this._loadProducts(true)
+    SystemService.fetchSystemConfig().then((config) => {
+      if (!SystemService.isProductModuleEnabled(config.plugins)) {
+        wx.switchTab({ url: '/pages/index/index' })
+        return
+      }
+      loadTabBoundDslPage(this, '/pages/knowledge-mall/knowledge-mall').then((ok) => {
+        if (ok) return
+        try {
+          const sys = wx.getSystemInfoSync()
+          this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
+        } catch (e) { /* ignore */ }
+        const fromOpt = (options && options.type) || ''
+        if (fromOpt) this.setData({ activeType: fromOpt })
+        this._consumeTabQuery()
+        this._loadProducts(true)
+      })
     })
   },
 
   onShow() {
     wx.hideTabBar({ animation: false, fail() {} })
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 2, hidden: false })
-    }
-    this._consumeTabQuery()
-    this._refreshCartCount()
+    SystemService.fetchSystemConfig().then((config) => {
+      if (!SystemService.isProductModuleEnabled(config.plugins)) {
+        wx.switchTab({ url: '/pages/index/index' })
+        return
+      }
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        showTabBarForRoute(this, '/pages/knowledge-mall/knowledge-mall')
+      }
+      this._consumeTabQuery()
+      this._refreshCartCount()
+    })
   },
 
   _consumeTabQuery() {

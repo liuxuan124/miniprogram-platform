@@ -32,8 +32,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useFeatureModulesStore } from '@/stores/feature-modules'
 
 const router = useRouter()
+const featureModulesStore = useFeatureModulesStore()
 const visible = ref(false)
 const query = ref('')
 const active = ref(0)
@@ -45,14 +47,14 @@ const routes = [
   { title: '页面管理', path: '/page-builder/pages' },
   { title: '外观配置', path: '/page-builder/miniapp' },
   { title: '版本发布', path: '/page-builder/release' },
-  { title: '商品列表', path: '/product/list' },
-  { title: '新建商品', path: '/product/edit' },
+  { title: '商品列表', path: '/product/list', featureModule: 'product' },
+  { title: '新建商品', path: '/product/edit', featureModule: 'product' },
   { title: '内容列表', path: '/content/list' },
   { title: '发布内容', path: '/content/edit' },
-  { title: '订单管理', path: '/order/list' },
+  { title: '订单管理', path: '/order/list', featureModule: 'product' },
   { title: '优惠券', path: '/marketing/coupon' },
-  { title: '会员列表', path: '/member/list' },
-  { title: '积分管理', path: '/member/points' },
+  { title: '会员列表', path: '/member/list', featureModule: 'member' },
+  { title: '积分管理', path: '/member/points', featureModule: 'member' },
   { title: '活动管理', path: '/activity/list' },
   { title: '预约管理', path: '/appointment/list' },
   { title: '增长与数据', path: '/growth/overview' },
@@ -61,8 +63,12 @@ const routes = [
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return routes
-  return routes.filter((r) => r.title.toLowerCase().includes(q) || r.path.toLowerCase().includes(q))
+  const visibleRoutes = routes.filter((r) => {
+    if (r.featureModule && !featureModulesStore.isEnabled(r.featureModule)) return false
+    return true
+  })
+  if (!q) return visibleRoutes
+  return visibleRoutes.filter((r) => r.title.toLowerCase().includes(q) || r.path.toLowerCase().includes(q))
 })
 
 function open() {

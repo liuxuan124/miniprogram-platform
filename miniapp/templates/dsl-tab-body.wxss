@@ -9,6 +9,7 @@
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
   /* 允许负 margin 叠层露出，勿 overflow hidden */
   box-sizing: border-box;
 }

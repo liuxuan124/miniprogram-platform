@@ -25,15 +25,28 @@ const PATH_META_MAP = {
   },
 }
 
-const DEFAULT_LIST = TAB_SLOT_ROUTES.map((pagePath) => {
-  const meta = PATH_META_MAP[pagePath] || {}
-  return {
-    pagePath,
-    text: meta.text || '页面',
-    icon: meta.icon || '/images/tab-v2/home.svg',
-    selectedIcon: meta.selectedIcon || meta.icon || '/images/tab-v2/home-active.svg',
-  }
-})
+const DEFAULT_LIST = buildTabList(TAB_SLOT_ROUTES)
+
+function buildTabList(slotRoutes) {
+  return slotRoutes.map((pagePath) => {
+    const meta = PATH_META_MAP[pagePath] || {}
+    return {
+      pagePath,
+      text: meta.text || '页面',
+      icon: meta.icon || '/images/tab-v2/home.svg',
+      selectedIcon: meta.selectedIcon || meta.icon || '/images/tab-v2/home-active.svg',
+    }
+  })
+}
+
+function resolveVisibleTabRoutes(productEnabled, tabbarItems) {
+  return TAB_SLOT_ROUTES.filter((route, slotIndex) => {
+    if (productEnabled === false && route === '/pages/knowledge-mall/knowledge-mall') return false
+    const item = (tabbarItems || [])[slotIndex]
+    if (item && item.enabled === false) return false
+    return true
+  })
+}
 
 /** 仅过滤明显无效/占位入口；已注册页面可展示 */
 function isBlockedShopTab(path) {
@@ -78,15 +91,22 @@ Component({
     async _loadTabbarConfig() {
       try {
         const config = await SystemService.fetchSystemConfig(true)
-        const rawItems = (config.tabbarItems || []).filter((item) => item.enabled !== false)
+        const productEnabled = SystemService.isProductModuleEnabled(config.plugins)
+        const tabbarItems = config.tabbarItems || []
+        const visibleRoutes = resolveVisibleTabRoutes(productEnabled, tabbarItems)
+        const rawItems = SystemService.applyProductModuleGate(
+          tabbarItems,
+          config.plugins,
+        ).filter((item) => item.enabled !== false)
         const theme = config.miniappThemeConfig || {}
         try {
           const { applyThemeCssVars } = require('../utils/theme')
           applyThemeCssVars(theme)
         } catch (e) {}
 
-        const mappedList = TAB_SLOT_ROUTES.map((pagePath, slotIndex) => {
-          const item = rawItems[slotIndex] || {}
+        const mappedList = visibleRoutes.map((pagePath) => {
+          const slotIndex = TAB_SLOT_ROUTES.indexOf(pagePath)
+          const item = tabbarItems[slotIndex] || {}
           const pathMeta = PATH_META_MAP[pagePath] || {}
           const fallbackIcon = pathMeta.icon || '/images/tab-v2/home.svg'
           const fallbackSelected = pathMeta.selectedIcon || fallbackIcon

@@ -27,7 +27,7 @@
       </view>
 
       <text class="brand-title">欢迎回来</text>
-      <text class="brand-description">登录后同步订单、预约与会员权益</text>
+      <text class="brand-description">登录后同步收藏、预约与阅读记录</text>
 
       <view class="intercept-tip" wx:if="{{interceptAction}}">
         <text class="intercept-tip__icon">✓</text>

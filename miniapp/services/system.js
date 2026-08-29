@@ -48,7 +48,7 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   memberCardTitle: '会员中心',
   showMenuIcons: true,
   showDecorBackground: true,
-  showMemberCard: true,
+  showMemberCard: false,
   templateStyle: 'basic',
   style: 'gradient',
   themeColor: '#5B7FEA',
@@ -59,7 +59,7 @@ const DEFAULT_MINE_PAGE_CONFIG = {
     { id: 'orders', icon: 'line:document', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
     { id: 'library', icon: 'line:books', title: '已购资料', url: '/pkg-trade/order-list/order-list', enabled: true },
     { id: 'reservation', icon: 'line:calendar', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
-    { id: 'member-center', icon: 'line:crown', title: '会员中心', url: '/pkg-user/member-center/member-center', enabled: true },
+    { id: 'member-center', icon: 'line:crown', title: '会员中心', url: '/pkg-user/member-center/member-center', enabled: false },
     { id: 'coupons', icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true },
   ],
   orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS, tabLabels: { ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels } },
@@ -186,7 +186,10 @@ async function fetchSystemConfig(forceRefresh) {
           )
         }
         if (cached.tabbarItems) {
-          cached.tabbarItems = normalizeTabbarItems(parseConfigField(cached.tabbarItems, null))
+          cached.tabbarItems = applyProductModuleGate(
+            normalizeTabbarItems(parseConfigField(cached.tabbarItems, null)),
+            cached.plugins,
+          )
         }
         return cached
       }
@@ -201,6 +204,7 @@ async function fetchSystemConfig(forceRefresh) {
       config.minePageConfig = normalizeMinePageConfig(
         parseConfigField(config.minePageConfig, DEFAULT_MINE_PAGE_CONFIG),
       )
+      config.plugins = parseConfigField(config.plugins, [])
       config.miniappThemeConfig = parseConfigField(config.miniappThemeConfig, null)
       config.miniappBrandConfig = normalizeBrandConfig(
         parseConfigField(config.miniappBrandConfig, null),
@@ -211,6 +215,7 @@ async function fetchSystemConfig(forceRefresh) {
         },
       )
       config.tabbarItems = normalizeTabbarItems(config.tabbarItems)
+      config.tabbarItems = applyProductModuleGate(config.tabbarItems, config.plugins)
       StorageUtil.set(CONFIG_CACHE_KEY, config, CONFIG_CACHE_EXPIRE)
       return config
     }
@@ -229,13 +234,98 @@ async function fetchSystemConfig(forceRefresh) {
 async function fetchTabbarList(forceRefresh) {
   const config = await fetchSystemConfig(forceRefresh)
   const list = config.tabbarItems || DEFAULT_TABBAR_LIST
-  return list.filter(item => item.enabled !== false)
+  return applyProductModuleGate(list, config.plugins).filter(item => item.enabled !== false)
+}
+
+function isMemberMenuItem(item) {
+  const id = String((item && item.id) || '')
+  const url = String((item && (item.url || item.pagePath)) || '')
+  return id === 'member-center' || url.indexOf('member-center') >= 0
+}
+
+function isMemberModuleEnabled(plugins) {
+  const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
+  if (!Array.isArray(list) || !list.length) return true
+  const hit = list.find((p) => p && p.key === 'member')
+  if (!hit) return true
+  return hit.enabled !== false
+}
+
+const PRODUCT_TAB_SLOT_INDEX = 2
+
+function isProductModuleEnabled(plugins) {
+  const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
+  if (!Array.isArray(list) || !list.length) return true
+  const hit = list.find((p) => p && p.key === 'product')
+  if (!hit) return true
+  return hit.enabled !== false
+}
+
+function isProductTabItem(item, index) {
+  if (index === PRODUCT_TAB_SLOT_INDEX) return true
+  const path = String((item && (item.pagePath || item.path)) || '')
+  const text = String((item && (item.text || item.name)) || '')
+  const pageName = String((item && item.pageName) || '')
+  if (/knowledge-mall|product-list|product-detail|\/cart/.test(path)) return true
+  return /商品|商城/.test(text) || /商城|商品/.test(pageName)
+}
+
+function isTradeMenuItem(item) {
+  const id = String((item && item.id) || '')
+  const url = String((item && (item.url || item.pagePath)) || '')
+  if (id === 'orders' || id === 'library' || id === 'coupons') return true
+  return /order-list|coupon-list|product-detail|\/cart|order-create|knowledge-mall/.test(url)
+}
+
+function isOrderMenuItem(item) {
+  return isTradeMenuItem(item)
+}
+
+function applyProductModuleGate(tabbarItems, plugins) {
+  if (isProductModuleEnabled(plugins)) return tabbarItems || []
+  return (tabbarItems || []).map((item, index) => {
+    if (!isProductTabItem(item, index)) return item
+    return { ...item, enabled: false }
+  })
+}
+
+function applyProductMineGate(mineConfig, plugins) {
+  if (isProductModuleEnabled(plugins)) return mineConfig
+  const menuItems = (mineConfig.menuItems || []).filter((item) => !isTradeMenuItem(item))
+  const orderQuickAccess = {
+    ...(mineConfig.orderQuickAccess || DEFAULT_ORDER_QUICK_ACCESS),
+    showOrderTabs: false,
+    showAllOrdersBtn: false,
+  }
+  return {
+    ...mineConfig,
+    orderQuickAccess,
+    menuItems,
+  }
+}
+
+function applyMemberModuleGate(mineConfig, plugins) {
+  const enabled = isMemberModuleEnabled(plugins)
+  if (enabled) return mineConfig
+  const menuItems = (mineConfig.menuItems || [])
+    .filter((item) => item.enabled !== false && !isMemberMenuItem(item))
+  return {
+    ...mineConfig,
+    showMemberCard: false,
+    menuItems,
+  }
 }
 
 async function fetchMinePageConfig(forceRefresh) {
   const config = await fetchSystemConfig(forceRefresh)
-  const mineConfig = normalizeMinePageConfig(config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG)
-  const menuItems = (mineConfig.menuItems || DEFAULT_MINE_PAGE_CONFIG.menuItems)
+  const mineConfig = applyProductMineGate(
+    applyMemberModuleGate(
+      normalizeMinePageConfig(config.minePageConfig || DEFAULT_MINE_PAGE_CONFIG),
+      config.plugins,
+    ),
+    config.plugins,
+  )
+  const menuItems = (mineConfig.menuItems || [])
     .filter((item) => item.enabled !== false)
   const rawLoginSubtitle = String(mineConfig.loginSubtitle || '')
   const loginSubtitle = rawLoginSubtitle
@@ -269,4 +359,9 @@ module.exports = {
   fetchBrandConfig,
   resolveMineStyleKey,
   normalizeMinePageConfig,
+  isMemberModuleEnabled,
+  isProductModuleEnabled,
+  applyMemberModuleGate,
+  applyProductModuleGate,
+  applyProductMineGate,
 }

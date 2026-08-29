@@ -8,7 +8,8 @@ const request = require('../utils/request')
  * @param {Object} params - { category_id, keyword, sort, page, page_size }
  */
 function getProductList(params = {}) {
-  return request.get('/api/v1/mp/products', params, { auth: false })
+  const { showError, ...query } = params
+  return request.get('/api/v1/mp/products', query, { auth: false, showError: showError !== false })
 }
 
 /**
