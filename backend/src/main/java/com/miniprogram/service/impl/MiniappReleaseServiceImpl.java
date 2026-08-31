@@ -453,15 +453,18 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 currentPublished.setStatus(2);
                 currentPublished.setRolledBackAt(LocalDateTime.now());
                 currentPublished.setRolledBackBy(SecurityUtils.getCurrentUserId());
-                currentPublished.setRolledBackFrom(currentPublished.getSemver());
+                currentPublished.setRolledBackFrom(dto.getTargetSemver());
                 this.updateById(currentPublished);
             }
 
+            // semver 列仅 varchar(20)，不能拼长后缀；用下一个 patch 号作为回滚产物版本
+            String rollbackSemver = generateNextSemver("patch");
+            String[] parts = rollbackSemver.split("\\.");
             MiniappRelease rollbackRelease = new MiniappRelease();
-            rollbackRelease.setSemver(targetRelease.getSemver() + "-rollback-" + System.currentTimeMillis());
-            rollbackRelease.setMajor(targetRelease.getMajor());
-            rollbackRelease.setMinor(targetRelease.getMinor());
-            rollbackRelease.setPatch(targetRelease.getPatch());
+            rollbackRelease.setSemver(rollbackSemver);
+            rollbackRelease.setMajor(Integer.parseInt(parts[0]));
+            rollbackRelease.setMinor(Integer.parseInt(parts[1]));
+            rollbackRelease.setPatch(Integer.parseInt(parts[2]));
             rollbackRelease.setChangeType("patch");
             rollbackRelease.setReleaseNotes("回滚至版本 " + dto.getTargetSemver()
                     + (StringUtils.hasText(dto.getReason()) ? "，原因: " + dto.getReason() : "")
@@ -473,6 +476,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             rollbackRelease.setPublishedAt(LocalDateTime.now());
             rollbackRelease.setPublisherId(SecurityUtils.getCurrentUserId());
             rollbackRelease.setPublisherName(getCurrentUsername());
+            rollbackRelease.setRolledBackFrom(dto.getTargetSemver());
             this.save(rollbackRelease);
 
             long duration = System.currentTimeMillis() - startTime;
