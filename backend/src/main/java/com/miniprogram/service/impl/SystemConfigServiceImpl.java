@@ -66,7 +66,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      */
     private static final Set<String> RUNTIME_PUBLIC_CONFIG_KEYS = Set.of(
             "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "minePageConfig", "plugins",
-            "miniappBrandConfig", "site_name", "site_logo"
+            "miniappBrandConfig", "miniappThemeConfig", "site_name", "site_logo"
     );
 
     @Override

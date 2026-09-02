@@ -94,25 +94,43 @@ const tplMap = reactive<Record<string, string>>({})
 
 async function loadAll() {
   loading.value = true
+  let okCount = 0
   try {
-    const [f, c, s, g, n, t] = await Promise.all([
-      get('/api/v1/admin/growth/funnel', { days }),
-      get('/api/v1/admin/growth/coupon-effect'),
-      get('/api/v1/admin/growth/search-insights'),
-      get('/api/v1/admin/growth/content-gmv'),
-      get('/api/v1/admin/growth/insight-narrative'),
-      get('/api/v1/admin/growth/subscribe/templates'),
+    const results = await Promise.allSettled([
+      get('/api/v1/admin/growth/funnel', { days }, { showError: false }),
+      get('/api/v1/admin/growth/coupon-effect', undefined, { showError: false }),
+      get('/api/v1/admin/growth/search-insights', undefined, { showError: false }),
+      get('/api/v1/admin/growth/content-gmv', undefined, { showError: false }),
+      get('/api/v1/admin/growth/insight-narrative', undefined, { showError: false }),
+      get('/api/v1/admin/growth/subscribe/templates', undefined, { showError: false }),
     ])
-    funnel.value = (f as any).data?.funnel || []
-    Object.assign(coupon, (c as any).data || {})
-    hot.value = (s as any).data?.hot || []
-    noResult.value = (s as any).data?.noResult || []
-    contentGmv.value = (g as any).data || []
-    narrative.value = (n as any).data?.narrative || ''
-    scenes.forEach((sc) => { tplMap[sc] = '' })
-    ;((t as any).data || []).forEach((row: any) => {
-      if (row.scene) tplMap[row.scene] = row.templateId || ''
-    })
+    const pick = (i: number) => (results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<any>).value : null)
+
+    const f = pick(0)
+    if (f) { funnel.value = (f as any).data?.funnel || []; okCount++ }
+    const c = pick(1)
+    if (c) { Object.assign(coupon, (c as any).data || {}); okCount++ }
+    const s = pick(2)
+    if (s) {
+      hot.value = (s as any).data?.hot || []
+      noResult.value = (s as any).data?.noResult || []
+      okCount++
+    }
+    const g = pick(3)
+    if (g) { contentGmv.value = (g as any).data || []; okCount++ }
+    const n = pick(4)
+    if (n) { narrative.value = (n as any).data?.narrative || ''; okCount++ }
+    const t = pick(5)
+    if (t) {
+      scenes.forEach((sc) => { tplMap[sc] = '' })
+      ;((t as any).data || []).forEach((row: any) => {
+        if (row.scene) tplMap[row.scene] = row.templateId || ''
+      })
+      okCount++
+    }
+    if (okCount === 0) {
+      narrative.value = '增长数据接口暂不可用，请确认后端已部署最新版本并执行数据库迁移（V46+）。'
+    }
   } finally {
     loading.value = false
   }
