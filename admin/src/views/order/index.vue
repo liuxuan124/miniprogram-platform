@@ -130,11 +130,11 @@
           <el-table-column label="状态" width="96" align="center">
             <template #default="{ row }">
               <el-tag
-                :type="(OrderStatusTagType[row.status as OrderStatus] as any) || 'info'"
+                :type="displayListStatusTag(row)"
                 size="small"
                 effect="plain"
               >
-                {{ OrderStatusLabels[row.status as OrderStatus] || row.status }}
+                {{ displayListStatus(row) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -259,10 +259,10 @@
       </template>
     </el-dialog>
 
-    <!-- 退款审核弹窗 -->
+    <!-- 发起退款弹窗 -->
     <el-dialog
       v-model="refundDialogVisible"
-      title="退款审核"
+      title="发起退款"
       width="520px"
       destroy-on-close
     >
@@ -273,20 +273,20 @@
         <div class="refund-amount">金额：<span class="amount-text">¥{{ currentRefundOrder?.pay_amount }}</span></div>
       </div>
       <el-divider />
-      <el-form ref="refundFormRef" :model="refundForm" label-width="100px">
-        <el-form-item label="审核结果" prop="approved">
-          <el-radio-group v-model="refundForm.approved">
-            <el-radio :value="true">批准退款</el-radio>
-            <el-radio :value="false">拒绝退款</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="审核备注" prop="reason">
+      <el-form ref="refundFormRef" :model="refundForm" :rules="refundRules" label-width="100px">
+        <el-form-item label="退款原因" prop="reason">
           <el-input
             v-model="refundForm.reason"
             type="textarea"
             :rows="3"
-            :placeholder="refundForm.approved ? '选填，退款说明' : '请填写拒绝原因'"
+            placeholder="请填写退款原因"
           />
+        </el-form-item>
+        <el-form-item label="处理方式">
+          <el-radio-group v-model="refundForm.approved">
+            <el-radio :value="true">立即批准并退款</el-radio>
+            <el-radio :value="false">仅提交申请，稍后审核</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <div v-if="refundForm.approved" class="dialog-tip warning">
@@ -295,7 +295,7 @@
       <template #footer>
         <el-button @click="refundDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="refundSubmitting" @click="submitRefund">
-          提交审核
+          确认提交
         </el-button>
       </template>
     </el-dialog>
@@ -309,7 +309,7 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import ListStateWrap from '@/components/ListStateWrap.vue'
-import { getOrderList, shipOrder, getOrderStatistics } from '@/api/order'
+import { getOrderList, shipOrder, getOrderStatistics, applyOrderRefund, refundApprove } from '@/api/order'
 import type { OrderRecord, OrderListParams, OrderStatistics } from '@/types/order'
 import { OrderStatus, OrderStatusLabels, OrderStatusTagType } from '@/types/order'
 
@@ -527,7 +527,7 @@ async function fetchOpsCounts() {
     const [todayMatched, pendingPayRes, pendingShipRes, completedRes, refundingRes] = await Promise.all([
       collectOrdersInDateRange({ start: t, end: t }),
       getOrderList({ page: 1, page_size: 1, status: OrderStatus.PendingPayment }),
-      getOrderList({ page: 1, page_size: 1, status: OrderStatus.Paid }),
+      getOrderList({ page: 1, page_size: 1, status: 'unshipped' }),
       getOrderList({ page: 1, page_size: 1, status: OrderStatus.Completed }),
       getOrderList({ page: 1, page_size: 1, status: OrderStatus.Refunding }),
     ])
@@ -584,6 +584,16 @@ function displayUserPhone(row: OrderRecord) {
   return pickField(r, ['user_phone', 'userPhone', 'phone', 'mobile'])
 }
 
+function displayListStatus(row: OrderRecord) {
+  if (row.status === OrderStatus.Paid) return '待发货'
+  return OrderStatusLabels[row.status as OrderStatus] || String(row.status || '')
+}
+
+function displayListStatusTag(row: OrderRecord) {
+  if (row.status === OrderStatus.Paid) return 'warning'
+  return (OrderStatusTagType[row.status as OrderStatus] as any) || 'info'
+}
+
 function formatOrderTime(value?: string) {
   return String(value || '').replace('T', ' ').slice(0, 16)
 }
@@ -622,6 +632,8 @@ function normalizeOrderRow(raw: any): OrderRecord {
     discount_amount: Number(raw.discount_amount ?? raw.discountAmount ?? 0),
     status: raw.status,
     fulfillment_type: raw.fulfillment_type ?? raw.fulfillmentType,
+    shipping_company: raw.shipping_company ?? raw.logisticsCompany,
+    shipping_no: raw.shipping_no ?? raw.logisticsNo,
     created_at: raw.created_at ?? raw.createdAt ?? '',
     updated_at: raw.updated_at ?? raw.updatedAt ?? '',
   } as OrderRecord
@@ -687,11 +699,14 @@ const refundForm = reactive({
   approved: true,
   reason: '',
 })
+const refundRules: FormRules = {
+  reason: [{ required: true, message: '请填写退款原因', trigger: 'blur' }],
+}
 
 function resolveStatusQuery(status?: string) {
   if (!status) return undefined
-  // 「未发货」= 已付款待发货
-  if (status === 'unshipped') return OrderStatus.Paid
+  // 「未发货」= 已付款且无物流单号（后端 status=unshipped）
+  if (status === 'unshipped') return 'unshipped'
   return status
 }
 
@@ -816,17 +831,29 @@ function handleRefund(row: OrderRecord) {
   refundDialogVisible.value = true
 }
 
-/** 提交退款审核 */
+/** 提交退款 */
 async function submitRefund() {
+  const valid = await refundFormRef.value?.validate().catch(() => false)
+  if (!valid || !currentRefundOrder.value?.id) return
   refundSubmitting.value = true
-  setTimeout(() => {
-    ElMessage.success(refundForm.approved ? '退款已批准' : '退款已拒绝')
+  try {
+    const orderId = currentRefundOrder.value.id
+    await applyOrderRefund(orderId, { reason: refundForm.reason.trim() })
+    if (refundForm.approved) {
+      await refundApprove(orderId, { approved: true, reason: refundForm.reason.trim() })
+      ElMessage.success('退款已提交并批准')
+    } else {
+      ElMessage.success('退款申请已提交，请在退款审核中处理')
+    }
     refundDialogVisible.value = false
-    refundSubmitting.value = false
     fetchList()
     fetchOpsCounts()
     fetchStatistics()
-  }, 500)
+  } catch {
+    ElMessage.error('退款操作失败，请稍后重试')
+  } finally {
+    refundSubmitting.value = false
+  }
 }
 
 /** 导出报表 */

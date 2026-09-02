@@ -48,6 +48,11 @@ public interface OrderService extends IService<Order> {
     RefundVO applyRefund(Long userId, Long id, RefundApplyDTO dto);
 
     /**
+     * 后台发起退款（代用户申请）
+     */
+    RefundVO adminApplyRefund(Long orderId, RefundApplyDTO dto);
+
+    /**
      * 发货
      */
     void shipOrder(Long id, OrderShipDTO dto);
