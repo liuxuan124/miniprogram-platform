@@ -48,6 +48,14 @@ public class AdminOrderController {
         return R.ok(null);
     }
 
+    @PostMapping("/{id}/refund")
+    @PreAuthorize("hasAuthority('order:refund')")
+    @Operation(summary = "发起退款")
+    public R<RefundVO> applyRefund(@PathVariable Long id,
+                                   @Valid @RequestBody RefundApplyDTO dto) {
+        return R.ok(orderService.adminApplyRefund(id, dto));
+    }
+
     @PutMapping("/{id}/refund-approve")
     @PreAuthorize("hasAuthority('order:refund')")
     @Operation(summary = "退款审批")

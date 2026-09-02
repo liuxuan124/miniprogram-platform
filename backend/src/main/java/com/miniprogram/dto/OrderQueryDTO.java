@@ -24,7 +24,7 @@ public class OrderQueryDTO extends PageDTO {
     @Schema(description = "用户ID")
     private Long userId;
 
-    @Schema(description = "状态: pending_payment/paid/shipped/completed/closed/refunding/refunded")
+    @Schema(description = "状态: pending_payment/paid/shipped/completed/closed/refunding/refunded/unshipped(已付款未发货)")
     private String status;
 
     @Schema(description = "下单开始日期")

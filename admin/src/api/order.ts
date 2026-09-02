@@ -77,6 +77,11 @@ export function shipOrder(id: number, data: ShipParams) {
   return request.put(`${BASE}/orders/${id}/ship`, data)
 }
 
+/** 发起退款（后台代申请） */
+export function applyOrderRefund(id: number, data: { reason: string; amount?: number }) {
+  return request.post(`${BASE}/orders/${id}/refund`, data)
+}
+
 /** 退款审批 */
 export function refundApprove(id: number, data: RefundApproveParams) {
   return request.put(`${BASE}/orders/${id}/refund-approve`, data)
