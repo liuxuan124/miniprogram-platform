@@ -278,6 +278,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     public PageResult<OrderDetailVO> listUserOrders(Long userId, OrderQueryDTO query) {
+        query.normalize();
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
                 .eq(Order::getUserId, userId)
@@ -289,9 +290,11 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     public PageResult<OrderDetailVO> listAdminOrders(OrderQueryDTO query) {
+        query.normalize();
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
+        String orderNoKeyword = StringUtils.hasText(query.getOrderNo()) ? query.getOrderNo() : query.getKeyword();
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
-                .like(StringUtils.hasText(query.getOrderNo()), Order::getOrderNo, query.getOrderNo())
+                .like(StringUtils.hasText(orderNoKeyword), Order::getOrderNo, orderNoKeyword)
                 .eq(query.getUserId() != null, Order::getUserId, query.getUserId())
                 .eq(StringUtils.hasText(query.getStatus()), Order::getStatus, query.getStatus())
                 .ge(query.getStartDate() != null, Order::getCreatedAt,

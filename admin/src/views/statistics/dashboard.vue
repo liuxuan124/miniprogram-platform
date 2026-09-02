@@ -162,7 +162,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ShoppingCart, Money, User, View } from '@element-plus/icons-vue'
-import { getDashboard, getSalesTrend, getProductRanking, getUserGrowth, getPageAccess } from '@/api/statistics'
+import { getStatisticsDashboard, getSalesTrend, getProductRanking, getUserGrowth, getPageAccess } from '@/api/statistics'
 import type { DashboardData, SalesTrendItem, ProductRankingItem, UserGrowthItem, PageAccessItem } from '@/types/statistics'
 
 const dashboard = ref<DashboardData>({} as DashboardData)
@@ -185,8 +185,22 @@ function getDateRange(days: number) {
 
 async function fetchDashboard() {
   try {
-    const res = await getDashboard()
-    dashboard.value = res.data || ({} as DashboardData)
+    const res = await getStatisticsDashboard()
+    const raw = res.data || {}
+    dashboard.value = {
+      todayOrderCount: raw.todayOrderCount ?? 0,
+      todayOrderAmount: Number(raw.todayOrderAmount ?? 0),
+      todayNewUsers: raw.todayNewUsers ?? 0,
+      todayPageViews: raw.todayPageViews ?? 0,
+      yesterdayOrderCount: raw.yesterdayOrderCount ?? 0,
+      yesterdayOrderAmount: Number(raw.yesterdayOrderAmount ?? 0),
+      yesterdayNewUsers: raw.yesterdayNewUsers ?? 0,
+      yesterdayPageViews: raw.yesterdayPageViews ?? 0,
+      orderCountChange: Number(raw.orderCountChangeRate ?? raw.orderCountChange ?? 0),
+      orderAmountChange: Number(raw.orderAmountChangeRate ?? raw.orderAmountChange ?? 0),
+      newUserChange: Number(raw.newUserChangeRate ?? raw.newUserChange ?? 0),
+      pageViewChange: Number(raw.pageViewChangeRate ?? raw.pageViewChange ?? 0),
+    }
   } catch { /* ignore */ }
 }
 
@@ -221,7 +235,11 @@ async function fetchPageAccess() {
   try {
     const range = getDateRange(7)
     const res = await getPageAccess(range.start_date, range.end_date)
-    pageAccess.value = res.data || []
+    const list = res.data || []
+    pageAccess.value = (Array.isArray(list) ? list : []).map((item: any) => ({
+      pagePath: item.pagePath || item.page_path || '',
+      visitCount: item.visitCount ?? item.accessCount ?? 0,
+    }))
   } catch { pageAccess.value = [] }
 }
 

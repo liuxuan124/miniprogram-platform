@@ -6,6 +6,11 @@ export function getDashboard() {
   return request.get('/api/v1/admin/statistics/workbench')
 }
 
+/** 统计概览页：今日/昨日对比指标卡 */
+export function getStatisticsDashboard() {
+  return request.get('/api/v1/admin/statistics/dashboard')
+}
+
 export function getSalesTrend(params: { start_date: string; end_date: string; granularity: string }) {
   return request.get('/api/v1/admin/statistics/sales-trend', { params })
 }

@@ -507,9 +507,19 @@ Page({
           setTimeout(() => this._measureArticleHeight(), 120)
         }
       })
-      .catch(() => {
+      .catch((err) => {
         this.setData({ loading: false })
-        wx.showToast({ title: '内容不存在', icon: 'none' })
+        const msg = (err && err.message) || ''
+        const code = err && err.code
+        let title = '内容不存在'
+        if (msg.includes('未发布') || msg.includes('草稿') || code === 400402) {
+          title = '内容未发布'
+        } else if (code === 404 || msg.includes('不存在')) {
+          title = '内容不存在'
+        } else if (msg.includes('网络') || code === -1) {
+          title = '网络异常，请稍后重试'
+        }
+        wx.showToast({ title, icon: 'none' })
       })
   },
 

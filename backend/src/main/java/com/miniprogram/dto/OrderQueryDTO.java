@@ -18,6 +18,9 @@ public class OrderQueryDTO extends PageDTO {
     @Schema(description = "订单号")
     private String orderNo;
 
+    @Schema(description = "关键词（兼容前端 keyword，按订单号模糊搜索）")
+    private String keyword;
+
     @Schema(description = "用户ID")
     private Long userId;
 
