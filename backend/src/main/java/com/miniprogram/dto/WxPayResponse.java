@@ -30,4 +30,7 @@ public class WxPayResponse {
 
     @Schema(description = "小程序appid")
     private String appId;
+
+    @Schema(description = "是否零元免支付（true 时无需调起微信支付）")
+    private Boolean free;
 }

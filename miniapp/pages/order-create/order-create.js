@@ -228,9 +228,9 @@ Page({
           pendingOrder,
           showPaySheet: amountNum > 0,
         })
-        // 实付 0 元：不弹微信支付，直接走免支付完成
+        // 实付 0 元：不弹收银台，走后端免支付完成（返回 free=true，不调微信）
         if (amountNum <= 0) {
-          this._doWechatPay()
+          this._completeFreePay()
         }
       })
       .catch(() => {
@@ -308,6 +308,37 @@ Page({
     }, 500)
   },
 
+  _goPaidSuccess(o) {
+    const paidAmount = o.amount != null && o.amount !== '' ? o.amount : this.data.payAmount
+    wx.redirectTo({
+      url: `/pkg-trade/order-paid/order-paid?orderId=${o.id}&orderNo=${encodeURIComponent(o.orderNo || '')}&amount=${paidAmount}&name=${encodeURIComponent(o.name || '')}&productId=${o.productId || ''}&type=${o.type || 'physical'}`,
+    })
+  },
+
+  /** 零元订单：调支付接口由后端直接落成 paid，不调起微信支付 */
+  _completeFreePay() {
+    if (this.data.paying) return
+    const o = this.data.pendingOrder || {}
+    if (!o.id) {
+      wx.showToast({ title: '订单信息异常，请重新下单', icon: 'none' })
+      return
+    }
+    this.setData({ paying: true, payMethod: 'free' })
+    orderService.payOrder(o.id)
+      .then((res) => requestPayment(res))
+      .then(() => {
+        this.setData({ paying: false, showPaySheet: false })
+        this._goPaidSuccess(o)
+      })
+      .catch((err) => {
+        this.setData({ paying: false })
+        wx.showToast({
+          title: (err && err.message) || '免支付完成失败，请重试',
+          icon: 'none',
+        })
+      })
+  },
+
   _doWechatPay() {
     if (this.data.paying) return
     const o = this.data.pendingOrder || {}
@@ -315,15 +346,17 @@ Page({
       wx.showToast({ title: '订单信息异常，请重新下单', icon: 'none' })
       return
     }
+    const amount = parseFloat(o.amount != null ? o.amount : this.data.payAmount) || 0
+    if (amount <= 0) {
+      this._completeFreePay()
+      return
+    }
     this.setData({ paying: true, payMethod: 'wechat' })
     orderService.payOrder(o.id)
       .then((params) => requestPayment(params))
       .then(() => {
         this.setData({ paying: false, showPaySheet: false })
-        const paidAmount = o.amount != null && o.amount !== '' ? o.amount : this.data.payAmount
-        wx.redirectTo({
-          url: `/pkg-trade/order-paid/order-paid?orderId=${o.id}&orderNo=${encodeURIComponent(o.orderNo || '')}&amount=${paidAmount}&name=${encodeURIComponent(o.name || '')}&productId=${o.productId || ''}&type=${o.type || 'physical'}`,
-        })
+        this._goPaidSuccess(o)
       })
       .catch((err) => {
         this.setData({ paying: false })
