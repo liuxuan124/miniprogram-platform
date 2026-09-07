@@ -88,7 +88,7 @@
                         {{ t.icon }} {{ t.label }}
                       </el-checkbox>
                     </el-checkbox-group>
-                    <div class="form-tip">类型由分类决定，可多选；纯数字商品不校验实体库存。</div>
+                    <div class="form-tip">类型由分类决定，可多选；所有类型均可配置可售库存。</div>
                   </div>
                 </el-form-item>
 
@@ -194,8 +194,7 @@
                     </el-table-column>
                     <el-table-column label="库存" min-width="118">
                       <template #default="{ row }">
-                        <span v-if="isDigitalOnly" class="unlimited-stock">无限</span>
-                        <el-input-number v-else v-model="row.stock" :min="0" size="small" controls-position="right" />
+                        <el-input-number v-model="row.stock" :min="0" size="small" controls-position="right" />
                       </template>
                     </el-table-column>
                     <el-table-column label="SKU 编码" min-width="160">
@@ -321,7 +320,7 @@
               </div>
               <div class="status-hint">
                 {{ isDigitalOnly
-                  ? '上线前请确认主图、SKU 价格和发货说明。纯数字商品不校验实体库存。'
+                  ? '上线前请确认主图、SKU 价格、库存和发货说明。保存后小程序端将按接口状态展示。'
                   : '上线前请确认主图、SKU 价格和库存。保存后小程序端将按接口状态展示。' }}
               </div>
             </section>
@@ -596,7 +595,6 @@ const previewOriginalPrice = computed(() => {
 })
 
 const previewStockLabel = computed(() => {
-  if (isDigitalOnly.value) return '无限'
   const total = formData.skus.reduce((sum, s) => sum + toNumber(s.stock, 0), 0)
   return total > 0 ? String(total) : '无'
 })
@@ -641,10 +639,9 @@ const completionItems = computed(() => [
   { label: '上传商品主图', done: !!formData.main_image },
   { label: '添加至少 1 个 SKU', done: formData.skus.length > 0 },
   {
-    label: isDigitalOnly.value ? '配置商品价格' : '配置价格和库存',
+    label: '配置价格和库存',
     done: formData.skus.some((sku) =>
-      isSkuPriceFilled(sku.price)
-      && (isDigitalOnly.value || toNumber(sku.stock, 0) > 0)
+      isSkuPriceFilled(sku.price) && toNumber(sku.stock, 0) > 0
     ),
   },
 ])
@@ -844,7 +841,7 @@ function getPublishErrors() {
   if (formData.skus.some((sku) => !isSkuPriceFilled(sku.price))) {
     errors.push('填写 SKU 销售价')
   }
-  if (!isDigitalOnly.value && formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
+  if (formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
     errors.push('配置可售库存')
   }
   return errors
@@ -1904,18 +1901,6 @@ onUnmounted(() => {
 
 .sku-table {
   width: 100%;
-}
-
-.unlimited-stock {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  color: #0f8a5f;
-  background: #edf9f4;
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .money-input :deep(.el-input__prefix) {
