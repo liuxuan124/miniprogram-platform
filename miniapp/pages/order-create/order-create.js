@@ -2,6 +2,7 @@
 // 地址选择、商品确认、提交订单
 
 const orderService = require('../../services/order')
+const addressService = require('../../services/address')
 const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
 const { requestPayment } = require('../../utils/payment')
@@ -127,18 +128,31 @@ Page({
     return (pay > 0 ? pay : 0).toFixed(2)
   },
 
-  /** 加载默认收货地址 */
+  /** 加载默认收货地址（服务端 + 本地缓存） */
   _loadDefaultAddress() {
-    // 从本地缓存读取默认地址（地址管理页写入）
-    const addressList = StorageUtil.get('addressList') || []
-    const defaultAddr = addressList.find((a) => a.is_default) || addressList[0]
-    if (defaultAddr) {
-      this.setData({
-        address: defaultAddr,
-        addressId: defaultAddr.id,
-        hasAddress: true,
+    addressService.migrateLocalIfNeeded()
+      .then(() => addressService.listAddresses())
+      .then((list) => {
+        const defaultAddr = (list || []).find((a) => a.is_default) || (list || [])[0]
+        if (defaultAddr) {
+          this.setData({
+            address: defaultAddr,
+            addressId: defaultAddr.id,
+            hasAddress: true,
+          })
+        }
       })
-    }
+      .catch(() => {
+        const addressList = addressService.readCache()
+        const defaultAddr = addressList.find((a) => a.is_default) || addressList[0]
+        if (defaultAddr) {
+          this.setData({
+            address: defaultAddr,
+            addressId: defaultAddr.id,
+            hasAddress: true,
+          })
+        }
+      })
   },
 
   /** 选择地址 */

@@ -1,0 +1,17 @@
+-- 用户收货地址（小程序端持久化）
+CREATE TABLE IF NOT EXISTS mp_user_address (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  name VARCHAR(64) NOT NULL COMMENT '收货人',
+  phone VARCHAR(20) NOT NULL COMMENT '手机号',
+  province VARCHAR(64) NOT NULL DEFAULT '' COMMENT '省',
+  city VARCHAR(64) NOT NULL DEFAULT '' COMMENT '市',
+  district VARCHAR(64) NOT NULL DEFAULT '' COMMENT '区',
+  detail VARCHAR(255) NOT NULL DEFAULT '' COMMENT '详细地址',
+  is_default TINYINT NOT NULL DEFAULT 0 COMMENT '是否默认 1是 0否',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_user_default (user_id, is_default)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户收货地址';
