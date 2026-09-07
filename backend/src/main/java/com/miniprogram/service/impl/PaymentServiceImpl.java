@@ -29,6 +29,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -64,7 +65,6 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (!"pending_payment".equals(order.getStatus())) {
             throw new BusinessException(600201, "订单状态错误，无法支付");
         }
-        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         // 查找支付记录
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
@@ -73,6 +73,18 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (payment == null) {
             throw new BusinessException(700401, "支付记录不存在");
         }
+
+        // 实付 ≤ 0：本地直接完成，不调微信（微信要求金额 > 0）
+        BigDecimal payAmount = order.getPayAmount() == null ? BigDecimal.ZERO : order.getPayAmount();
+        if (payAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            markPaid(order, payment, "FREE-" + order.getOrderNo());
+            WxPayResponse free = new WxPayResponse();
+            free.setOrderNo(order.getOrderNo());
+            free.setFree(true);
+            return free;
+        }
+
+        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         try {
             // 微信支付V3统一下单
@@ -86,6 +98,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             response.setTimeStamp(String.valueOf(System.currentTimeMillis() / 1000));
             response.setNonceStr(UUID.randomUUID().toString().replace("-", "").substring(0, 32));
             response.setSignType("RSA");
+            response.setFree(false);
 
             // 签名
             String signStr = response.getAppId() + "\n"
@@ -143,6 +156,13 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
                 .eq(Payment::getOrderId, order.getId()));
+        markPaid(order, payment, transactionId);
+
+        log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
+    }
+
+    /** 将待支付订单标记为已支付（含零元免支付与微信回调） */
+    private void markPaid(Order order, Payment payment, String transactionId) {
         if (payment != null && "pending".equals(payment.getStatus())) {
             payment.setStatus("success");
             payment.setTransactionId(transactionId);
@@ -150,26 +170,25 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             this.updateById(payment);
         }
 
-        if ("pending_payment".equals(order.getStatus())) {
-            order.setPaidAt(LocalDateTime.now());
-            if (Boolean.TRUE.equals(order.getAutoFulfill()) && "virtual".equalsIgnoreCase(order.getFulfillmentType())) {
-                String content = buildAutoFulfillContent(order.getId());
-                order.setStatus("completed");
-                order.setVirtualDeliveryContent(content);
-                order.setShippedAt(LocalDateTime.now());
-            } else {
-                order.setStatus("paid");
-            }
-            orderMapper.updateById(order);
-            try {
-                subscribeMessageService.enqueue(order.getUserId(), "order_status", order.getOrderNo(),
-                        Map.of("status", order.getStatus(), "orderNo", order.getOrderNo()));
-            } catch (Exception e) {
-                log.warn("订阅消息入队失败 orderNo={}", order.getOrderNo(), e);
-            }
+        if (!"pending_payment".equals(order.getStatus())) {
+            return;
         }
-
-        log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
+        order.setPaidAt(LocalDateTime.now());
+        if (Boolean.TRUE.equals(order.getAutoFulfill()) && "virtual".equalsIgnoreCase(order.getFulfillmentType())) {
+            String content = buildAutoFulfillContent(order.getId());
+            order.setStatus("completed");
+            order.setVirtualDeliveryContent(content);
+            order.setShippedAt(LocalDateTime.now());
+        } else {
+            order.setStatus("paid");
+        }
+        orderMapper.updateById(order);
+        try {
+            subscribeMessageService.enqueue(order.getUserId(), "order_status", order.getOrderNo(),
+                    Map.of("status", order.getStatus(), "orderNo", order.getOrderNo()));
+        } catch (Exception e) {
+            log.warn("订阅消息入队失败 orderNo={}", order.getOrderNo(), e);
+        }
     }
 
     /** @return true 表示首次见到，可继续处理 */
