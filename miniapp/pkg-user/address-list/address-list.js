@@ -1,6 +1,5 @@
-const { StorageUtil } = require('../../utils/storage')
+const addressService = require('../../services/address')
 
-const ADDRESS_LIST_KEY = 'addressList'
 const EMPTY_FORM = {
   name: '',
   phone: '',
@@ -19,6 +18,7 @@ Page({
     form: { ...EMPTY_FORM },
     region: [],
     regionText: '',
+    loading: false,
   },
 
   onLoad(options) {
@@ -31,17 +31,25 @@ Page({
   },
 
   _loadList() {
-    const list = StorageUtil.get(ADDRESS_LIST_KEY) || []
-    this.setData({
-      list: Array.isArray(list) ? list : [],
-      editing: false,
-      editingId: '',
-    })
-  },
-
-  _persist(list) {
-    StorageUtil.set(ADDRESS_LIST_KEY, list)
-    this.setData({ list })
+    this.setData({ loading: true })
+    addressService.migrateLocalIfNeeded()
+      .then(() => addressService.listAddresses())
+      .then((list) => {
+        this.setData({
+          list: list || [],
+          editing: false,
+          editingId: '',
+          loading: false,
+        })
+      })
+      .catch(() => {
+        this.setData({
+          list: addressService.readCache(),
+          editing: false,
+          editingId: '',
+          loading: false,
+        })
+      })
   },
 
   onAdd() {
@@ -112,37 +120,36 @@ Page({
       return
     }
 
-    const list = this.data.list.slice()
     const editingId = this.data.editingId
     const payload = {
-      id: editingId || `local_${Date.now()}`,
       name: form.name.trim(),
       phone: form.phone.trim(),
       province: form.province,
       city: form.city,
       district: form.district,
       detail: form.detail.trim(),
-      is_default: false,
+      is_default: !editingId && this.data.list.length === 0,
     }
 
-    const idx = list.findIndex((item) => String(item.id) === String(editingId))
-    if (idx >= 0) {
-      payload.is_default = !!list[idx].is_default
-      list[idx] = payload
-    } else {
-      payload.is_default = list.length === 0
-      list.push(payload)
-    }
+    const req = editingId
+      ? addressService.updateAddress(editingId, payload)
+      : addressService.createAddress(payload)
 
-    this._persist(list)
-    this.setData({ editing: false, editingId: '', form: { ...EMPTY_FORM }, region: [], regionText: '' })
-    wx.showToast({ title: '地址已保存', icon: 'success' })
-
-    if (this.data.mode === 'select' && !editingId) {
-      const eventChannel = this.getOpenerEventChannel()
-      eventChannel.emit('selectAddress', payload)
-      setTimeout(() => wx.navigateBack(), 300)
-    }
+    wx.showLoading({ title: '保存中', mask: true })
+    req.then((saved) => {
+      wx.hideLoading()
+      this.setData({ editing: false, editingId: '', form: { ...EMPTY_FORM }, region: [], regionText: '' })
+      wx.showToast({ title: '地址已保存', icon: 'success' })
+      this._loadList()
+      if (this.data.mode === 'select' && !editingId) {
+        const eventChannel = this.getOpenerEventChannel()
+        eventChannel.emit('selectAddress', saved)
+        setTimeout(() => wx.navigateBack(), 300)
+      }
+    }).catch((err) => {
+      wx.hideLoading()
+      wx.showToast({ title: (err && err.message) || '保存失败', icon: 'none' })
+    })
   },
 
   onSelect(e) {
@@ -157,12 +164,12 @@ Page({
 
   setDefault(e) {
     const id = e.currentTarget.dataset.id
-    const list = this.data.list.map((item) => ({
-      ...item,
-      is_default: String(item.id) === String(id),
-    }))
-    this._persist(list)
-    wx.showToast({ title: '已设为默认', icon: 'success' })
+    addressService.setDefaultAddress(id).then((list) => {
+      this.setData({ list })
+      wx.showToast({ title: '已设为默认', icon: 'success' })
+    }).catch((err) => {
+      wx.showToast({ title: (err && err.message) || '设置失败', icon: 'none' })
+    })
   },
 
   clearAddress(e) {
@@ -172,11 +179,11 @@ Page({
       content: '确定删除该收货地址吗？',
       success: (res) => {
         if (!res.confirm) return
-        let list = this.data.list.filter((item) => String(item.id) !== String(id))
-        if (list.length && !list.some((item) => item.is_default)) {
-          list = list.map((item, i) => ({ ...item, is_default: i === 0 }))
-        }
-        this._persist(list)
+        addressService.deleteAddress(id).then((list) => {
+          this.setData({ list })
+        }).catch((err) => {
+          wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' })
+        })
       },
     })
   },

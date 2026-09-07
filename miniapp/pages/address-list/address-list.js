@@ -1,6 +1,5 @@
-const { StorageUtil } = require('../../utils/storage')
+const addressService = require('../../services/address')
 
-const ADDRESS_LIST_KEY = 'addressList'
 const EMPTY_FORM = {
   name: '',
   phone: '',
@@ -25,15 +24,18 @@ Page({
   },
 
   onShow() {
-    const addressList = StorageUtil.get(ADDRESS_LIST_KEY) || []
-    const address = addressList.find((item) => item.is_default) || addressList[0] || null
-    this.setData({
-      address,
-      editing: !address,
-      form: address ? { ...EMPTY_FORM, ...address } : { ...EMPTY_FORM },
-      region: address ? [address.province, address.city, address.district].filter(Boolean) : [],
-      regionText: address ? [address.province, address.city, address.district].filter(Boolean).join(' ') : '',
-    })
+    addressService.migrateLocalIfNeeded()
+      .then(() => addressService.listAddresses())
+      .then((list) => {
+        const address = (list || []).find((item) => item.is_default) || (list || [])[0] || null
+        this.setData({
+          address,
+          editing: !address,
+          form: address ? { ...EMPTY_FORM, ...address } : { ...EMPTY_FORM },
+          region: address ? [address.province, address.city, address.district].filter(Boolean) : [],
+          regionText: address ? [address.province, address.city, address.district].filter(Boolean).join(' ') : '',
+        })
+      })
   },
 
   startEdit() {
@@ -81,8 +83,8 @@ Page({
       return
     }
 
-    const address = {
-      id: (this.data.address && this.data.address.id) || `local_${Date.now()}`,
+    const current = this.data.address
+    const payload = {
       name: form.name.trim(),
       phone: form.phone.trim(),
       province: form.province,
@@ -91,31 +93,51 @@ Page({
       detail: form.detail.trim(),
       is_default: true,
     }
-    StorageUtil.set(ADDRESS_LIST_KEY, [address])
-    this.setData({ address, editing: false, form: address })
-    wx.showToast({ title: '地址已保存', icon: 'success' })
 
-    if (this.data.mode === 'select') {
-      const eventChannel = this.getOpenerEventChannel()
-      eventChannel.emit('selectAddress', address)
-      setTimeout(() => wx.navigateBack(), 300)
-    }
+    const isServerId = current && current.id && !String(current.id).startsWith('local_')
+    const req = isServerId
+      ? addressService.updateAddress(current.id, payload)
+      : addressService.createAddress(payload)
+
+    wx.showLoading({ title: '保存中', mask: true })
+    req.then((address) => {
+      wx.hideLoading()
+      this.setData({ address, editing: false, form: { ...EMPTY_FORM, ...address } })
+      wx.showToast({ title: '地址已保存', icon: 'success' })
+      if (this.data.mode === 'select') {
+        const eventChannel = this.getOpenerEventChannel()
+        eventChannel.emit('selectAddress', address)
+        setTimeout(() => wx.navigateBack(), 300)
+      }
+    }).catch((err) => {
+      wx.hideLoading()
+      wx.showToast({ title: (err && err.message) || '保存失败', icon: 'none' })
+    })
   },
 
   clearAddress() {
+    const current = this.data.address
     wx.showModal({
       title: '删除收货地址',
       content: '确定删除当前收货地址吗？',
       success: (res) => {
         if (!res.confirm) return
-        StorageUtil.remove(ADDRESS_LIST_KEY)
-        this.setData({
-          address: null,
-          editing: true,
-          form: { ...EMPTY_FORM },
-          region: [],
-          regionText: '',
-        })
+        const done = () => {
+          this.setData({
+            address: null,
+            editing: true,
+            form: { ...EMPTY_FORM },
+            region: [],
+            regionText: '',
+          })
+        }
+        if (current && current.id && !String(current.id).startsWith('local_')) {
+          addressService.deleteAddress(current.id).then(done).catch((err) => {
+            wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' })
+          })
+        } else {
+          done()
+        }
       },
     })
   },
