@@ -313,25 +313,14 @@ function pickEmoji(type: 'physical' | 'digital' | 'service'): string {
   return '🛍️'
 }
 
-function isDigitalOnlyRow(row: ProductRow) {
-  const types = row.productTypes?.length
-    ? row.productTypes
-    : row.productType
-      ? [row.productType]
-      : []
-  return types.length > 0 && types.every((t) => t === 'digital')
-}
-
-/** 无限 / 无 / 数字 */
+/** 无 / 数字 */
 function formatStockLabel(row: ProductRow) {
-  if (isDigitalOnlyRow(row)) return '无限'
   const n = Number(row.stock)
   if (!Number.isFinite(n) || n <= 0) return '无'
   return String(n)
 }
 
 function isLowStock(row: ProductRow) {
-  if (isDigitalOnlyRow(row)) return false
   const n = Number(row.stock)
   return Number.isFinite(n) && n > 0 && n < 10
 }
