@@ -83,7 +83,12 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
                 throw new BusinessException(500201, "商品已下架: " + product.getName());
             }
             boolean digitalProduct = "digital".equalsIgnoreCase(product.getProductType());
-            if ("physical".equalsIgnoreCase(product.getProductType())) {
+            String typesRaw = product.getProductTypes();
+            boolean typesHasPhysical = StringUtils.hasText(typesRaw)
+                    && typesRaw.toLowerCase().contains("physical");
+            if ("physical".equalsIgnoreCase(product.getProductType()) || typesHasPhysical) {
+                hasPhysicalProduct = true;
+            } else if (!StringUtils.hasText(product.getProductType()) && !StringUtils.hasText(typesRaw)) {
                 hasPhysicalProduct = true;
             }
             BigDecimal price = product.getPrice();

@@ -48,6 +48,12 @@ public class CartItemVO {
     @Schema(description = "商品状态: on_sale/off_sale")
     private String productStatus;
 
+    @Schema(description = "主商品类型 physical/digital/service")
+    private String productType;
+
+    @Schema(description = "商品类型列表 JSON 或逗号串（兼容）")
+    private String productTypes;
+
     @Schema(description = "库存")
     private Integer stock;
 }

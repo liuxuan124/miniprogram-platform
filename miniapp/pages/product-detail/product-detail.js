@@ -628,7 +628,10 @@ Page({
 
   /** 立即购买 → 跳转订单创建页 */
   _buyNow() {
-    const { product, selectedSku, quantity, selectedCouponId, selectedCoupon } = this.data
+    const { product, selectedSku, quantity, selectedCouponId, selectedCoupon, productTypes } = this.data
+    const typeList = Array.isArray(productTypes) && productTypes.length
+      ? productTypes
+      : [product.productType || product.product_type || 'physical']
     const item = {
       product_id: product.id,
       product_name: product.name,
@@ -637,6 +640,8 @@ Page({
       sku_name: selectedSku ? (selectedSku.skuName || selectedSku.name || '') : '',
       price: selectedSku ? selectedSku.price : product.price,
       quantity,
+      productType: typeList[0],
+      productTypes: typeList,
     }
     const items = encodeURIComponent(JSON.stringify([item]))
     let url = `/pages/order-create/order-create?items=${items}&from=buy_now`
