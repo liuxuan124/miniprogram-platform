@@ -27,15 +27,16 @@ export const useUserStore = defineStore('user', () => {
     setToken(loginToken)
     setRefreshToken(refreshToken)
     isLoggedIn.value = true
-    mustChangePassword.value = !!res.data.mustChangePassword
+    mustChangePassword.value = !!(res.data.mustChangePassword ?? (res.data as any).must_change_password)
     sessionStorage.setItem('mustChangePassword', mustChangePassword.value ? '1' : '0')
-    return !!res.data.mustChangePassword
+    return mustChangePassword.value
   }
 
   /** 修改密码 */
   async function changePassword(oldPassword: string, newPassword: string) {
     await put('/api/v1/admin/auth/password', { oldPassword, newPassword })
     mustChangePassword.value = false
+    sessionStorage.setItem('mustChangePassword', '0')
     sessionStorage.removeItem('mustChangePassword')
   }
 

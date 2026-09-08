@@ -5,11 +5,12 @@
     width="420px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    :show-close="true"
+    :show-close="false"
+    :before-close="blockClose"
     align-center
   >
     <el-alert
-      title="检测到您正在使用默认/弱密码，为保障账号安全，请先修改密码再继续操作。"
+      title="检测到您正在使用默认/弱密码，为保障账号安全，请先修改密码再继续操作。关闭无效，必须完成修改。"
       type="warning"
       :closable="false"
       show-icon
@@ -34,20 +35,34 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { removeToken } from '@/utils/auth'
 
 const userStore = useUserStore()
+const router = useRouter()
 
 const visible = computed({
   get: () => userStore.mustChangePassword,
   set: (v: boolean) => {
-    userStore.mustChangePassword = v
-    if (v) sessionStorage.setItem('mustChangePassword', '1')
-    else sessionStorage.removeItem('mustChangePassword')
+    // 仅允许在改密成功后关闭（设为 false）；禁止用户手动关掉弹窗绕过
+    if (v) {
+      userStore.mustChangePassword = true
+      sessionStorage.setItem('mustChangePassword', '1')
+    }
   },
 })
+
+function blockClose(done: () => void) {
+  // 未改密成功前禁止关闭
+  if (userStore.mustChangePassword) {
+    ElMessage.warning('请先完成密码修改')
+    return
+  }
+  done()
+}
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
@@ -67,6 +82,9 @@ const rules: FormRules = {
         if (!value) return cb()
         if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
           return cb(new Error('密码须同时包含字母和数字'))
+        }
+        if (value === form.oldPassword) {
+          return cb(new Error('新密码不能与旧密码相同'))
         }
         cb()
       },
@@ -92,10 +110,14 @@ async function submit() {
   submitting.value = true
   try {
     await userStore.changePassword(form.oldPassword, form.newPassword)
-    ElMessage.success('密码修改成功')
+    ElMessage.success('密码修改成功，请使用新密码重新登录')
     form.oldPassword = ''
     form.newPassword = ''
     form.confirmPassword = ''
+    // 后端会吊销旧 Token：本地清会话并回到登录页
+    removeToken()
+    userStore.resetState()
+    router.replace({ path: '/login', query: { reason: 'password_changed' } })
   } catch (e: any) {
     ElMessage.error(e?.message || '密码修改失败，请检查旧密码是否正确')
   } finally {
