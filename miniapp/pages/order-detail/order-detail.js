@@ -247,9 +247,4 @@ Page({
   onContactTap() {
     wx.navigateTo({ url: '/pages/service-chat/service-chat' })
   },
-
-  /** 拨打电话 */
-  onCallTap() {
-    wx.makePhoneCall({ phoneNumber: this.data.order.store_phone || '400-000-0000' })
-  },
 })

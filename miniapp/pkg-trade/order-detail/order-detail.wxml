@@ -145,7 +145,7 @@
     </block>
     <!-- 已完成 -->
     <block wx:if="{{order.status === 'completed'}}">
-      <view class="action-btn action-btn--default" bindtap="onCallTap">联系客服</view>
+      <view class="action-btn action-btn--default" bindtap="onContactTap">联系客服</view>
     </block>
   </view>
 
