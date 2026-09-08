@@ -71,14 +71,6 @@
     </view>
   </view>
 
-  <view class="author-card">
-    <view class="av">🧭</view>
-    <view class="info">
-      <view class="nm">出海笔记 · 阿哲 <text class="vf">已认证</text></view>
-      <view class="bio">跨境电商实战 · 选品 / 供应链 / 独立站</view>
-    </view>
-  </view>
-
   <view class="detail-section" wx:if="{{gains.length}}">
     <view class="section-title">你将获得</view>
     <view wx:for="{{gains}}" wx:key="*this" class="bullet">· {{item}}</view>
