@@ -148,16 +148,6 @@
 .pick .v { flex:1; color:#0f1219; font-weight:500; }
 .pick .v--coupon { color:#f05b45; }
 .pick .ar { color:#a5abb9; }
-.author-card {
-  display:flex; gap:20rpx; align-items:center; margin:0 24rpx 18rpx; padding:26rpx; background:#fff; border:1rpx solid var(--line); border-radius:26rpx; box-shadow:var(--sh1);
-}
-.author-card .av {
-  width:88rpx; height:88rpx; border-radius:50%; background:linear-gradient(145deg,#6d8cff,#2f5bff);
-  color:#fff; display:flex; align-items:center; justify-content:center; font-size:36rpx;
-}
-.author-card .nm { font-size:30rpx; font-weight:700; }
-.author-card .vf { font-size:20rpx; color:#2f5bff; background:#eef2ff; padding:2rpx 10rpx; border-radius:8rpx; margin-left:8rpx; }
-.author-card .bio { margin-top:8rpx; font-size:22rpx; color:#a5abb9; }
 .bullet { font-size:28rpx; color:#39404f; line-height:1.8; padding:4rpx 0; }
 .faq { padding:16rpx 0; border-bottom:1rpx solid #f5f6f9; }
 .faq .q { font-size:28rpx; font-weight:600; color:#0f1219; }
