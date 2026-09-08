@@ -16,6 +16,54 @@ function readWalletBalance() {
   return (Number.isFinite(n) ? n : 0).toFixed(2)
 }
 
+/** 收集商品类型标记（physical / digital / service） */
+function collectProductTypes(item) {
+  const types = []
+  const push = (v) => {
+    if (v == null || v === '') return
+    if (Array.isArray(v)) {
+      v.forEach(push)
+      return
+    }
+    if (typeof v === 'string') {
+      const s = v.trim()
+      if (s.startsWith('[')) {
+        try {
+          const arr = JSON.parse(s)
+          if (Array.isArray(arr)) {
+            arr.forEach(push)
+            return
+          }
+        } catch (e) { /* ignore */ }
+      }
+      s.split(/[,|，]/)
+        .map((part) => part.trim().toLowerCase().replace(/["[\]]/g, ''))
+        .filter(Boolean)
+        .forEach((t) => types.push(t))
+      return
+    }
+    push(String(v))
+  }
+  push(item.productTypes)
+  push(item.product_types)
+  push(item.productType)
+  push(item.product_type)
+  push(item.type)
+  return types
+}
+
+/** 含实物则需要收货地址；纯数字/服务不需要 */
+function itemNeedsShipping(item) {
+  const types = collectProductTypes(item)
+  if (!types.length) return true
+  if (types.indexOf('physical') !== -1) return true
+  return !types.every((t) => t === 'digital' || t === 'service' || t === 'virtual')
+}
+
+function isVirtualOrder(items) {
+  return Array.isArray(items) && items.length > 0 && !items.some(itemNeedsShipping)
+}
+
 Page({
   data: {
     // 来源
@@ -72,8 +120,8 @@ Page({
     if (options.items) {
       try {
         const items = JSON.parse(decodeURIComponent(options.items))
-        // 商城仅售实物：始终需要收货地址
-        this.setData({ items, isVirtual: false, hasAddress: false })
+        const isVirtual = isVirtualOrder(items)
+        this.setData({ items, isVirtual, hasAddress: false })
         this._calcTotal()
       } catch (e) {
         wx.showToast({ title: '参数错误', icon: 'none' })
