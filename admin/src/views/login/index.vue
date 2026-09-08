@@ -105,6 +105,9 @@ onMounted(() => {
   // 避免过期 Token 触发其它接口 401 刷屏
   removeToken()
   userStore.resetState()
+  if (route.query.reason === 'password_changed') {
+    ElMessage.success('密码已更新，请使用新密码登录')
+  }
 })
 
 const loginRules: FormRules = {
