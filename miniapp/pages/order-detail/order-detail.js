@@ -140,6 +140,7 @@ Page({
       .then((res) => {
         return requestPayment(res).then(() => res)
       })
+      .then((res) => orderService.syncPay(this.data.id).catch(() => null).then(() => res))
       .then((res) => {
         this.setData({ paying: false })
         const free = res && (res.free === true || res.free === 'true')

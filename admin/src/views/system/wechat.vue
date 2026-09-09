@@ -240,6 +240,30 @@
             <el-input v-model="payFormData.refundNotifyUrl" placeholder="https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify" />
           </el-form-item>
 
+          <el-alert
+            type="warning"
+            :closable="false"
+            show-icon
+            title="若商户已切换「微信支付公钥」模式，必须配置下方公钥，否则支付回调无法验签、订单状态不会更新。"
+            style="margin-bottom: 16px"
+          />
+
+          <el-form-item label="微信支付公钥ID" prop="wxPayPublicKeyId">
+            <el-input
+              v-model="payFormData.wxPayPublicKeyId"
+              placeholder="PUB_KEY_ID_xxxxxxxx（商户平台 → API安全 → 微信支付公钥）"
+            />
+          </el-form-item>
+
+          <el-form-item label="微信支付公钥" prop="wxPayPublicKey">
+            <el-input
+              v-model="payFormData.wxPayPublicKey"
+              type="textarea"
+              :rows="6"
+              placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+            />
+          </el-form-item>
+
           <div class="pay-actions">
             <el-button icon="MagicStick" :loading="payTesting" @click="handleTestPay">
               {{ payTesting ? '验证中...' : '验证支付配置' }}
@@ -474,6 +498,8 @@ interface PayConfigForm {
   certUploaded: boolean
   paymentNotifyUrl: string
   refundNotifyUrl: string
+  wxPayPublicKeyId: string
+  wxPayPublicKey: string
 }
 
 const payFormData = reactive<PayConfigForm>({
@@ -485,6 +511,8 @@ const payFormData = reactive<PayConfigForm>({
   certUploaded: false,
   paymentNotifyUrl: '',
   refundNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify',
+  wxPayPublicKeyId: '',
+  wxPayPublicKey: '',
 })
 
 const payFormRules: FormRules = {

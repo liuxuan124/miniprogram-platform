@@ -3,7 +3,6 @@ package com.miniprogram.controller;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.*;
-import com.miniprogram.entity.Payment;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.OrderService;
 import com.miniprogram.service.PaymentService;
@@ -13,6 +12,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 小程序端-订单接口
@@ -57,6 +58,15 @@ public class MpOrderController {
         featureModuleGuard.requireProductModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(paymentService.createWxPayOrder(userId, id));
+    }
+
+    @PostMapping("/{id}/sync-pay")
+    @Operation(summary = "支付成功后同步微信查单结果")
+    public R<Map<String, Object>> syncPay(@PathVariable Long id) {
+        featureModuleGuard.requireProductModule();
+        Long userId = SecurityUtils.getCurrentUserId();
+        boolean paid = paymentService.syncPaidFromWx(userId, id);
+        return R.ok(Map.of("paid", paid));
     }
 
     @PostMapping("/{id}/cancel")

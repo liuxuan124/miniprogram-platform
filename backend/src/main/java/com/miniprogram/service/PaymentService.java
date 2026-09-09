@@ -23,4 +23,10 @@ public interface PaymentService extends IService<Payment> {
      * 查询支付状态
      */
     Payment queryPaymentStatus(Long orderId);
+
+    /**
+     * 客户端支付成功后主动向微信查单并落库（回调失败时的兜底）
+     * @return true 表示已确认支付并更新订单
+     */
+    boolean syncPaidFromWx(Long userId, Long orderId);
 }
