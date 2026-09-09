@@ -41,6 +41,13 @@ function payOrder(id) {
 }
 
 /**
+ * 支付成功后同步微信查单（回调失败兜底）
+ */
+function syncPay(id) {
+  return request.post(`/api/v1/mp/orders/${id}/sync-pay`, {}, { showError: false })
+}
+
+/**
  * 取消订单
  * @param {string|number} id - 订单ID
  */
@@ -70,6 +77,7 @@ module.exports = {
   getOrderList,
   getOrderDetail,
   payOrder,
+  syncPay,
   cancelOrder,
   confirmOrder,
   refundOrder

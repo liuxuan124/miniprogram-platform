@@ -416,6 +416,7 @@ Page({
     this.setData({ paying: true, payMethod: 'wechat' })
     orderService.payOrder(o.id)
       .then((params) => requestPayment(params))
+      .then(() => orderService.syncPay(o.id).catch(() => null))
       .then(() => {
         this.setData({ paying: false, showPaySheet: false })
         this._goPaidSuccess(o)

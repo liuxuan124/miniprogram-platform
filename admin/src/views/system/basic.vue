@@ -235,6 +235,27 @@
                   </el-form-item>
                 </div>
 
+                <el-alert
+                  type="warning"
+                  :closable="false"
+                  show-icon
+                  title="商户若已切换微信支付公钥模式，须配置公钥ID与公钥，否则支付回调无法更新订单。"
+                  style="margin-bottom: 12px"
+                />
+                <div class="form-grid-2col">
+                  <el-form-item label="微信支付公钥ID">
+                    <el-input v-model="paymentForm.wxPayPublicKeyId" placeholder="PUB_KEY_ID_xxxxxxxx" clearable />
+                  </el-form-item>
+                </div>
+                <el-form-item label="微信支付公钥">
+                  <el-input
+                    v-model="paymentForm.wxPayPublicKey"
+                    type="textarea"
+                    :rows="5"
+                    placeholder="-----BEGIN PUBLIC KEY-----"
+                  />
+                </el-form-item>
+
                 <el-form-item label="商户API私钥">
                   <div class="cert-upload-row">
                     <el-upload :show-file-list="false" :before-upload="beforeCertUpload" :http-request="handleCertUpload" accept=".p12,.pem,.key">
@@ -722,6 +743,8 @@ interface PaymentForm {
   certUploaded: boolean
   paymentNotifyUrl: string
   refundNotifyUrl: string
+  wxPayPublicKeyId: string
+  wxPayPublicKey: string
 }
 
 interface LogisticsForm {
@@ -835,6 +858,8 @@ const paymentForm = reactive<PaymentForm>({
   certUploaded: false,
   paymentNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-notify',
   refundNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify',
+  wxPayPublicKeyId: '',
+  wxPayPublicKey: '',
 })
 
 const logisticsForm = reactive<LogisticsForm>({

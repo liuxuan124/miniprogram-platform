@@ -55,8 +55,12 @@ Page({
       return
     }
     try {
+      if (attempt === 0) {
+        await orderService.syncPay(this.data.orderId).catch(() => null)
+      }
       const order = await orderService.getOrderDetail(this.data.orderId)
-      const confirmed = ['paid', 'shipped', 'completed'].includes(order.status)
+      const status = order.status || (order.order && order.order.status)
+      const confirmed = ['paid', 'shipped', 'completed'].includes(status)
       if (confirmed) {
         this.setData({ paymentConfirmed: true, confirming: false })
         return
