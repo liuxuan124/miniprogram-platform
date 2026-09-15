@@ -63,31 +63,46 @@
     <view class="wx-body">
       <view class="wx-title">{{article.title}}</view>
       <view class="wx-paras" wx:if="{{noteParagraphs.length}}">
-        <view class="wx-p" wx:for="{{noteParagraphs}}" wx:key="*this">{{item}}</view>
+        <view class="wx-p" wx:for="{{noteParagraphs}}" wx:key="text">{{item.text || item}}</view>
       </view>
       <view class="wx-meta">阅读 {{article.view_count || 0}}</view>
+      <view class="member-wall" wx:if="{{contentLocked}}">
+        <view class="member-wall__fade"></view>
+        <view class="member-wall__box">
+          <text class="member-wall__kicker">MEMBER ONLY</text>
+          <text class="member-wall__title">剩余内容为会员专享</text>
+          <text class="member-wall__desc">{{lockedReason || '开通会员后可查看全文并下载资料'}}</text>
+          <view class="member-wall__btn" catchtap="onGoUnlockPlanet">去星球开通</view>
+          <view class="member-wall__alt" catchtap="onGoUnlockMember">会员中心 ›</view>
+        </view>
+      </view>
     </view>
 
     <view class="footer-spacer footer-spacer--bar"></view>
   </view>
 
-  <!-- ========== 笔记：小红书图文 ========== -->
-  <view class="note-mode" wx:elif="{{isNote}}">
-    <view class="n-topbar">
-      <image wx:if="{{authorAvatar}}" class="n-topbar__av" src="{{authorAvatar}}" mode="aspectFill" />
+  <!-- ========== 笔记：暖阁图文（prototypes-warm/note.html） ========== -->
+  <view class="note-mode {{isWarmNote ? 'note-mode--warm' : ''}}" wx:elif="{{isNote}}">
+    <view class="n-topbar" style="padding-top: {{statusBarHeight + 8}}px;">
+      <view class="n-topbar__bk" bindtap="onBack">‹</view>
+      <image wx:if="{{authorAvatar}}" class="n-topbar__av warm-ph" src="{{authorAvatar}}" mode="aspectFill" />
       <view wx:else class="n-topbar__av n-topbar__av--txt">{{authorInitial}}</view>
       <text class="n-topbar__name">{{authorName}}</text>
+      <text class="n-topbar__role warm-tag warm-tag--gold" wx:if="{{authorRole}}">{{authorRole}}</text>
       <view
         class="n-topbar__follow {{followed ? 'on' : ''}}"
         catchtap="onFollowTap"
         hover-class="follow--pressed"
       >{{followed ? '已关注' : '关注'}}</view>
+      <view class="n-topbar__more" bindtap="onShareTap">···</view>
     </view>
 
-    <view class="n-gallery-wrap">
+    <view class="n-gallery-wrap" style="height: {{galleryHeight}}rpx;">
       <swiper
         class="n-gallery"
+        style="height: {{galleryHeight}}rpx;"
         circular
+        current="{{galleryIndex}}"
         bindchange="onGalleryChange"
       >
         <swiper-item wx:for="{{gallerySlides}}" wx:key="key">
@@ -95,7 +110,7 @@
             <image
               wx:if="{{item.type === 'image'}}"
               src="{{item.url}}"
-              mode="aspectFit"
+              mode="aspectFill"
               class="n-img"
             />
             <view wx:else class="n-art" style="{{item.artStyle}}">
@@ -104,7 +119,7 @@
           </view>
         </swiper-item>
       </swiper>
-      <view class="n-idx" wx:if="{{galleryCount > 1}}">{{galleryIndex + 1}} / {{galleryCount}}</view>
+      <view class="n-idx" wx:if="{{galleryCount > 1}}">{{galleryIndex + 1}}/{{galleryCount}}</view>
       <view class="n-dots" wx:if="{{galleryCount > 1}}">
         <view
           wx:for="{{gallerySlides}}"
@@ -118,24 +133,51 @@
       <view class="n-title">{{article.title}}</view>
 
       <view class="n-paras" wx:if="{{noteParagraphs.length}}">
-        <view class="n-p" wx:for="{{noteParagraphs}}" wx:key="*this">{{item}}</view>
+        <view
+          class="n-p {{item.isList ? 'n-p--list' : ''}}"
+          wx:for="{{noteParagraphs}}"
+          wx:key="text"
+        >{{item.text || item}}</view>
       </view>
 
-      <view class="n-tags" wx:if="{{hashTags.length}}">
+      <view class="member-wall" wx:if="{{contentLocked}}">
+        <view class="member-wall__fade"></view>
+        <view class="member-wall__box">
+          <text class="member-wall__kicker">MEMBER ONLY</text>
+          <text class="member-wall__title">剩余内容为会员专享</text>
+          <text class="member-wall__desc">{{lockedReason || '开通会员后可查看全文并下载资料'}}</text>
+          <view class="member-wall__btn" catchtap="onGoUnlockPlanet">去星球开通</view>
+          <view class="member-wall__alt" catchtap="onGoUnlockMember">会员中心 ›</view>
+        </view>
+      </view>
+
+      <view class="n-tags" wx:if="{{hashTags.length && !contentLocked}}">
         <text wx:for="{{hashTags}}" wx:key="*this">{{item}}</text>
       </view>
 
       <view class="n-date">{{article.publish_time}}</view>
     </view>
 
-    <view class="n-comments" wx:if="{{comments.length}}">
-      <view class="n-comments__head">共 {{commentCount}} 条评论</view>
+    <view class="n-goods" wx:if="{{noteGoods}}" catchtap="onNoteGoodsTap" hover-class="n-goods--pressed">
+      <image class="n-goods__im warm-ph" src="{{noteGoods.cover}}" mode="aspectFill" />
+      <view style="flex:1">
+        <view class="n-goods__h">{{noteGoods.title}}</view>
+        <view class="n-goods__p">{{noteGoods.desc}}</view>
+      </view>
+      <text class="n-goods__go" catchtap="onNoteGoodsTap">去看看</text>
+    </view>
+
+    <view class="n-comments" wx:if="{{commentEnabled && comments.length}}">
+      <view class="n-comments__head">共 {{commentCountDisplay || commentCount}} 条评论</view>
       <view wx:for="{{comments}}" wx:key="id" wx:if="{{index < 3}}" class="n-comment">
-        <view class="n-comment__av">{{item.avatarText || '用'}}</view>
+        <image wx:if="{{item.avatar}}" class="n-comment__av" src="{{item.avatar}}" mode="aspectFill" />
+        <view wx:else class="n-comment__av">{{item.avatarText || '用'}}</view>
         <view class="n-comment__main">
           <view class="n-comment__nick">{{item.nickName}}</view>
           <text class="n-comment__text">{{item.content}}</text>
+          <view class="n-comment__rp" wx:if="{{item.reply}}">{{item.reply}}</view>
         </view>
+        <view class="n-comment__hb" wx:if="{{item.likes}}">❤\n{{item.likes}}</view>
       </view>
       <view class="n-comments__more" bindtap="onCommentTap" wx:if="{{commentCount > 3}}">查看全部评论</view>
     </view>
@@ -160,26 +202,50 @@
   </view>
 
   <!-- ========== 长文 / 视频 / 数据：普通文章 ========== -->
-    <view class="article-mode theme-{{layoutTheme || 'standard'}}" wx:else>
-    <view class="progress-wrap">
+    <view class="article-mode theme-{{layoutTheme || 'warm'}}" wx:elif="{{!loadFailed && article.title}}">
+    <view class="a-cover" wx:if="{{articleCover || article.cover_url}}">
+      <image class="a-cover__img" src="{{articleCover || article.cover_url}}" mode="aspectFill" />
+      <view class="a-cover__sc"></view>
+      <view
+        class="a-cover__bk"
+        style="top: {{statusBarHeight + 12}}px;"
+        bindtap="onBack"
+        hover-class="a-cover__bk--pressed"
+      >‹</view>
+      <view class="a-cover__bd">
+        <text class="warm-tag warm-tag--soft" wx:if="{{articleTag || formatLabel}}">{{articleTag || formatLabel}}</text>
+        <view class="a-cover__title warm-serif">{{article.title}}</view>
+      </view>
+    </view>
+    <view class="a-topbar" style="padding-top: {{statusBarHeight}}px;" wx:else>
+      <view class="a-topbar__bk" bindtap="onBack">‹</view>
+      <text class="a-topbar__t">{{formatLabel || '文章'}}</text>
+    </view>
+
+    <view class="progress-wrap" wx:if="{{!articleCover && !article.cover_url}}">
       <view class="progress" style="width: {{readProgress}}%;"></view>
     </view>
 
     <view class="a-wrap a-wrap--flat">
-      <view class="n-chips">
+      <view class="a-author">
+        <image wx:if="{{authorAvatar}}" class="a-author__av" src="{{authorAvatar}}" mode="aspectFill" />
+        <view wx:else class="a-author__av a-author__av--txt">{{authorInitial}}</view>
+        <view class="a-author__meta">
+          <view class="a-author__name">
+            {{authorName}}
+            <text class="warm-tag warm-tag--gold" wx:if="{{authorRole}}">{{authorRole}}</text>
+          </view>
+          <view class="a-author__sub">{{articleMetaLine}}</view>
+        </view>
+        <view class="a-follow {{followed ? 'on' : ''}}" catchtap="onFollowTap">{{followed ? '已关注' : '＋ 关注'}}</view>
+      </view>
+
+      <view class="n-chips" wx:if="{{!articleCover && !article.cover_url}}">
         <text class="fmt {{formatKey}}">{{formatLabel}}</text>
         <text class="topic" wx:if="{{topicName}}">{{topicName}}</text>
       </view>
-      <view class="a-title">{{article.title}}</view>
+      <view class="a-title" wx:if="{{!articleCover && !article.cover_url}}">{{article.title}}</view>
       <view wx:if="{{articleLede}}" class="a-lede">{{articleLede}}</view>
-
-      <view class="a-meta a-meta--compact">
-        <image wx:if="{{authorAvatar}}" class="av av-img" src="{{authorAvatar}}" mode="aspectFill" />
-        <view wx:else class="av">{{authorInitial}}</view>
-        <view class="a-meta-txt">
-          <view class="dt">{{articleMetaLine}}</view>
-        </view>
-      </view>
 
       <view wx:if="{{videoUrl}}" class="a-video-wrap">
         <video
@@ -206,16 +272,46 @@
         />
       </view>
 
+      <view class="member-wall" wx:if="{{contentLocked}}">
+        <view class="member-wall__fade"></view>
+        <view class="member-wall__box">
+          <text class="member-wall__kicker">MEMBER ONLY</text>
+          <text class="member-wall__title">剩余 68% 为会员内容</text>
+          <text class="member-wall__desc">{{lockedReason || '开通会员后可查看全文并下载资料'}}</text>
+          <view class="member-wall__btn" catchtap="onGoMembership">开通会员 ¥168/年</view>
+          <view class="member-wall__alt" catchtap="onGoColumnUnlock">已购专栏？免费解锁 ›</view>
+        </view>
+      </view>
+
+      <!-- 标签仅展示，不跳转（对齐 prototypes-warm/article.html） -->
       <view class="detail-tags" wx:if="{{article.tags && article.tags.length}}">
-        <text
-          wx:for="{{article.tags}}"
-          wx:key="index"
-          class="tag-comp"
-        >{{item}}</text>
+        <text wx:for="{{article.tags}}" wx:key="index" class="tag-comp"># {{item}}</text>
       </view>
     </view>
 
-    <view class="cross" wx:if="{{relatedProducts.length}}">
+    <view class="warm-sep" wx:if="{{relatedReads.length}}"></view>
+    <view class="rel-hd" wx:if="{{relatedReads.length}}">
+      <text class="rel-hd__t warm-serif">相关阅读</text>
+      <text class="rel-hd__more" bindtap="onGoList">更多 ›</text>
+    </view>
+    <view class="rel" wx:if="{{relatedReads.length}}">
+      <view
+        wx:for="{{relatedReads}}"
+        wx:key="id"
+        class="rel__it"
+        data-id="{{item.id}}"
+        data-moment="{{item.toMoment}}"
+        bindtap="onRelatedTap"
+      >
+        <view style="flex:1">
+          <view class="rel__title">{{item.title}}</view>
+          <view class="rel__mt">{{item.meta}}</view>
+        </view>
+        <image class="rel__im" src="{{item.cover}}" mode="aspectFill" />
+      </view>
+    </view>
+
+    <view class="cross" wx:if="{{relatedProducts.length && !relatedReads.length}}">
       <view class="cross-lb">这篇内容相关的好物</view>
       <view
         wx:for="{{relatedProducts}}"
@@ -234,28 +330,70 @@
     <view class="footer-spacer footer-spacer--bar"></view>
   </view>
 
+  <view class="content-unavailable" wx:elif="{{loadFailed}}">
+    <view class="offbar">😔 这篇内容<text class="offbar__b">已被作者下架</text>，暂时无法查看。
+如果你此前已购买，权限不受影响，可在「我的 - 已购内容」中继续阅读。</view>
+    <view class="ph-wrap">
+      <view class="ph-art">📭</view>
+      <view class="ph-h">内容不可用</view>
+      <view class="ph-p">{{loadErrorText || '可能已下架、被删除，或仅对特定人群可见'}}</view>
+    </view>
+    <view class="recs-hd warm-serif">你可能还想读</view>
+    <view class="recs" wx:if="{{relatedReads.length}}">
+      <view
+        class="recs__it"
+        wx:for="{{relatedReads}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onRelatedTap"
+      >
+        <view class="recs__main">
+          <view class="recs__title">{{item.title}}</view>
+          <view class="recs__mt">{{item.meta}}</view>
+        </view>
+        <view class="recs__im"><image src="{{item.cover}}" mode="aspectFill" /></view>
+      </view>
+    </view>
+    <view class="ph-actions">
+      <view class="st-btn" bindtap="onRetryLoad">重新加载</view>
+      <view class="ph-sub" bindtap="onGoPurchased">去「已购内容」看看 ›</view>
+    </view>
+  </view>
+
   <!-- 底部栏 -->
-  <view class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}} {{isWechatNewspic ? 'bottom-bar--wechat' : ''}}" wx:if="{{!loading}}">
-    <view wx:if="{{isNote && !isWechatNewspic}}" class="note-bottom-input" bindtap="onCommentTap">说点什么...</view>
+  <view
+    class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}} {{isWechatNewspic ? 'bottom-bar--wechat' : ''}} {{isWarmArticle || isWarmNote ? 'bottom-bar--warm' : ''}}"
+    wx:if="{{!loading && !loadFailed}}"
+  >
+    <view
+      wx:if="{{isWarmArticle || isWarmNote || (commentEnabled && isNote && !isWechatNewspic)}}"
+      class="note-bottom-input {{isWarmArticle || isWarmNote ? 'warm-bottom-input' : ''}}"
+      bindtap="onCommentTap"
+    >{{isWarmArticle ? '写下你的想法…' : '说点什么...'}}</view>
     <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
-      <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
+      <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{isWarmArticle || isWarmNote ? '❤️' : (liked ? '♥' : '♡')}}</text>
       <text class="action-text">{{likeDisplay}}</text>
     </view>
-    <view class="action-item" bindtap="onCommentTap">
+    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap" wx:if="{{isWarmArticle || isWarmNote}}">
+      <text class="action-icon {{favorited ? 'action-icon--star' : ''}}">{{isWarmArticle || isWarmNote ? '⭐️' : (favorited ? '★' : '☆')}}</text>
+      <text class="action-text">{{favoriteDisplay}}</text>
+    </view>
+    <view class="action-item" bindtap="onCommentTap" wx:if="{{commentEnabled && !isWarmArticle}}">
       <text class="action-icon">💬</text>
       <text class="action-text">{{commentCountDisplay}}</text>
     </view>
-    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap">
+    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap" wx:if="{{!isWarmArticle && !isWarmNote}}">
       <text class="action-icon {{favorited ? 'action-icon--star' : ''}}">{{favorited ? '★' : '☆'}}</text>
-      <text class="action-text">{{favorited ? '已收藏' : '收藏'}}</text>
+      <text class="action-text">{{favoriteDisplay}}</text>
     </view>
-    <button class="action-item share-button-reset" open-type="share">
-      <text class="action-icon">↗</text>
-      <text class="action-text">分享</text>
-    </button>
+    <view class="action-item" bindtap="onShareTap">
+      <text class="action-icon">{{isWarmArticle || isWarmNote ? '↗️' : '↗'}}</text>
+      <text class="action-text">{{isWarmNote ? '分享' : '分享'}}</text>
+    </view>
   </view>
 
   <!-- 评论半屏 -->
+  <block wx:if="{{commentEnabled}}">
   <view class="cmt-mask" wx:if="{{showCommentSheet}}" catchtouchmove="noop" bindtap="onCloseCommentSheet"></view>
   <view class="cmt-sheet {{showCommentSheet ? 'cmt-sheet--on' : ''}}" wx:if="{{showCommentSheet}}" catchtouchmove="noop">
     <view class="cmt-sheet__handle"></view>
@@ -269,13 +407,15 @@
         <text>还没有评论，来说两句吧</text>
       </view>
       <view wx:for="{{comments}}" wx:key="id" class="cmt-item">
-        <view class="cmt-av">{{item.avatarText || '用'}}</view>
+        <image wx:if="{{item.avatar}}" class="cmt-av cmt-av--img" src="{{item.avatar}}" mode="aspectFill" />
+        <view wx:else class="cmt-av">{{item.avatarText || '用'}}</view>
         <view class="cmt-main">
           <view class="cmt-top">
             <text class="cmt-nick">{{item.nickName}}</text>
             <text class="cmt-time">{{item.timeText}}</text>
           </view>
           <text class="cmt-text">{{item.content}}</text>
+          <view class="n-comment__rp" wx:if="{{item.reply}}" style="margin-top:12rpx">{{item.reply}}</view>
         </view>
       </view>
       <view class="cmt-list__pad"></view>
@@ -298,5 +438,6 @@
       >发送</view>
     </view>
   </view>
+  </block>
 </view>
 <login-sheet id="global-login-sheet" />

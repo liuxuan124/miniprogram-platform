@@ -1,0 +1,1246 @@
+{
+  "meta": {
+    "brand": "暖阁",
+    "exportedAt": "2026-09-14T08:14:49.765Z",
+    "source": "miniapp/data/warm-*.js",
+    "note": "灌库后将 USE_LOCAL_SOURCE 改为 false"
+  },
+  "system": {
+    "theme": {
+      "primaryColor": "#C2410C",
+      "tabBarActiveColor": "#C2410C",
+      "pageBgColor": "#FDF6EC"
+    },
+    "searchHot": [
+      "内容生意",
+      "日更是伪命题",
+      "社群运营 SOP",
+      "选题库",
+      "私域搭建",
+      "年度会员"
+    ],
+    "tabs": [
+      {
+        "text": "首页",
+        "path": "/pages/index/index"
+      },
+      {
+        "text": "发现",
+        "path": "/pages/discover/discover"
+      },
+      {
+        "text": "星球",
+        "path": "/pages/planet/planet"
+      },
+      {
+        "text": "商城",
+        "path": "/pages/shop/shop"
+      },
+      {
+        "text": "我的",
+        "path": "/pages/mine/mine"
+      }
+    ]
+  },
+  "home": {
+    "authors": [
+      {
+        "id": "mobai",
+        "name": "墨白",
+        "role": "主理人",
+        "avatar": "https://picsum.photos/seed/u3/90/90",
+        "apply": false
+      },
+      {
+        "id": "editor",
+        "name": "编辑部",
+        "role": "官方",
+        "avatar": "https://picsum.photos/seed/ed1/90/90",
+        "apply": false
+      },
+      {
+        "id": "xiaoman",
+        "name": "小满",
+        "role": "特约",
+        "avatar": "https://picsum.photos/seed/u1/90/90",
+        "apply": false
+      },
+      {
+        "id": "laochen",
+        "name": "老陈",
+        "role": "特约",
+        "avatar": "https://picsum.photos/seed/u7/90/90",
+        "apply": false
+      },
+      {
+        "id": "apply",
+        "name": "投稿",
+        "role": "招募中",
+        "avatar": "",
+        "apply": true
+      }
+    ],
+    "navs": [
+      {
+        "key": "list",
+        "icon": "📚",
+        "label": "内容列表",
+        "url": "/pages/content-list/content-list"
+      },
+      {
+        "key": "column",
+        "icon": "🎧",
+        "label": "专栏课",
+        "url": "/pages/product-detail/product-detail?demo=column"
+      },
+      {
+        "key": "planet",
+        "icon": "🪐",
+        "label": "星球",
+        "url": "/pages/planet/planet",
+        "tab": true
+      },
+      {
+        "key": "shop",
+        "icon": "🛍",
+        "label": "商城",
+        "url": "/pages/shop/shop",
+        "tab": true
+      },
+      {
+        "key": "resources",
+        "icon": "🗂",
+        "label": "资料库",
+        "url": "/pages/resources/resources"
+      }
+    ],
+    "feature": {
+      "tag": "今日精选 · 深度",
+      "title": "当内容不再免费：\n一个创作者的第 1000 天",
+      "cover": "https://picsum.photos/seed/warmfeat/900/700",
+      "meta": [
+        "墨白 · 主理人",
+        "12 分钟阅读",
+        "2.3 万阅读"
+      ],
+      "url": "/pages/content-detail/content-detail?demo=1"
+    },
+    "columns": [
+      {
+        "id": "c1",
+        "title": "一个人的内容生意",
+        "cover": "https://picsum.photos/seed/warmc1/500/340",
+        "badge": "连载中",
+        "badgeGold": true,
+        "desc": "32 讲 · 1.2 万人在学",
+        "price": "¥199",
+        "origin": "¥399",
+        "url": "/pages/product-detail/product-detail?demo=column"
+      },
+      {
+        "id": "c2",
+        "title": "从 0 搭一套私域",
+        "cover": "https://picsum.photos/seed/warmc2/500/340",
+        "badge": "口碑",
+        "badgeGold": false,
+        "desc": "24 讲 · 8600 人在学",
+        "price": "¥149",
+        "origin": "¥259",
+        "url": "/pages/product-detail/product-detail?demo=column"
+      },
+      {
+        "id": "c3",
+        "title": "写作即复利",
+        "cover": "https://picsum.photos/seed/warmc3/500/340",
+        "badge": "",
+        "badgeGold": false,
+        "desc": "18 讲 · 5400 人在学",
+        "price": "¥99",
+        "origin": "",
+        "url": "/pages/product-detail/product-detail?demo=column"
+      }
+    ],
+    "planet": {
+      "title": "暖阁星球 · 内容创作者",
+      "members": "3,241 位球友",
+      "items": [
+        {
+          "tag": "热议",
+          "text": "小红书新规之后，图文号还值得做吗？"
+        },
+        {
+          "tag": "精华",
+          "text": "我用 3 个月把公众号做到 5000 付费"
+        },
+        {
+          "tag": "提问",
+          "text": "知识付费定价 99 和 199 差别有多大？"
+        }
+      ],
+      "cta": "今日 27 条新动态 · 去看看"
+    },
+    "feed": [
+      {
+        "id": "f1",
+        "seg": "article",
+        "type": "post",
+        "title": "做内容的第三年，我终于承认「日更」是个伪命题",
+        "summary": "把节奏交还给作品本身，比交给算法更稳。这篇聊聊我如何重建选题库与发布节奏。",
+        "tag": "深度长文",
+        "tagGold": false,
+        "meta": "墨白 · 主理人 · 1.8 万阅读",
+        "cover": "https://picsum.photos/seed/warmp1/400/400",
+        "url": "/pages/content-detail/content-detail?demo=1"
+      },
+      {
+        "id": "f2",
+        "seg": "note",
+        "type": "post",
+        "title": "我的书桌改造 ✨ 一个内容人的效率角落",
+        "summary": "暖光 + 原木 + 一把好椅子，成本 2000 出头。附全部清单与踩坑。",
+        "tag": "图文笔记",
+        "tagGold": true,
+        "meta": "小满 · 特约 · ❤ 4.2k",
+        "cover": "https://picsum.photos/seed/warmp2/400/400",
+        "url": "/pages/content-detail/content-detail?demo=note"
+      },
+      {
+        "id": "f3",
+        "seg": "note",
+        "type": "grid",
+        "title": "一周三餐记录｜在家做饭其实很省时间",
+        "images": [
+          "https://picsum.photos/seed/warmg1/300/300",
+          "https://picsum.photos/seed/warmg2/300/300",
+          "https://picsum.photos/seed/warmg3/300/300"
+        ],
+        "tag": "九宫格",
+        "meta": "暖阁编辑部 · ❤ 1.9k",
+        "url": "/pages/content-detail/content-detail?demo=note"
+      },
+      {
+        "id": "f4",
+        "seg": "article",
+        "type": "post",
+        "title": "付费社群运营 SOP：从冷启动到第一个 100 人",
+        "summary": "含欢迎语模板、周更节奏表、活跃度指标三张表，可直接抄作业。",
+        "tag": "会员专享",
+        "tagGold": false,
+        "meta": "老陈 · 特约 · 9.4k 阅读",
+        "cover": "https://picsum.photos/seed/warmp4/400/400",
+        "url": "/pages/content-detail/content-detail?demo=1"
+      },
+      {
+        "id": "f5",
+        "seg": "qa",
+        "type": "post",
+        "title": "知识付费定价 99 和 199，差别到底有多大？",
+        "summary": "星主答：差的不只是内容量，更是交付强度与社群陪伴。附我的三档定价表。",
+        "tag": "星球问答",
+        "tagGold": true,
+        "meta": "墨白 · 已解答 · 864 围观",
+        "cover": "https://picsum.photos/seed/warmq1/400/400",
+        "url": "/pages/moment-detail/moment-detail?demo=1"
+      },
+      {
+        "id": "f6",
+        "seg": "qa",
+        "type": "post",
+        "title": "小红书新规之后，图文号还值得做吗？",
+        "summary": "本周热议：仍值得，但要把「完播/收藏」换成「私域转化」来衡量。",
+        "tag": "热议问答",
+        "tagGold": false,
+        "meta": "编辑部整理 · 27 条回复",
+        "cover": "https://picsum.photos/seed/warmq2/400/400",
+        "url": "/pages/moment-detail/moment-detail?demo=1"
+      }
+    ]
+  },
+  "discover": {
+    "tabs": [
+      {
+        "key": "note",
+        "label": "笔记"
+      },
+      {
+        "key": "article",
+        "label": "长文"
+      },
+      {
+        "key": "goods",
+        "label": "好物"
+      }
+    ],
+    "notes": [
+      {
+        "uid": "d1",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "我的书桌改造 ✨ 一个内容人的暖光角落，成本 2k 出头",
+        "cover": "https://picsum.photos/seed/nt1/600/800",
+        "hasCover": true,
+        "pill": "图文 9",
+        "cnt": "1/9",
+        "author": "小满",
+        "role": "特约",
+        "avatar": "https://picsum.photos/seed/u1/60/60",
+        "likeText": "4.2k"
+      },
+      {
+        "uid": "d2",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "一周三餐记录｜在家做饭其实很省时间",
+        "cover": "https://picsum.photos/seed/nt2/600/460",
+        "hasCover": true,
+        "author": "编辑部",
+        "role": "官方",
+        "avatar": "https://picsum.photos/seed/u2/60/60",
+        "likeText": "1.9k"
+      },
+      {
+        "uid": "d3",
+        "id": "",
+        "isDemo": true,
+        "isText": true,
+        "kind": "note",
+        "quote": "「别把更新频率当成努力的证据。\n作品的密度，才是。」",
+        "hasCover": false,
+        "author": "墨白",
+        "role": "主理人",
+        "avatar": "https://picsum.photos/seed/u3/60/60",
+        "likeText": "866"
+      },
+      {
+        "uid": "d4",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "把「选题库」搬进 Notion 的第 4 版模板，免费领",
+        "cover": "https://picsum.photos/seed/nt3/600/760",
+        "hasCover": true,
+        "pill": "视频 03:12",
+        "author": "编辑部",
+        "role": "官方",
+        "avatar": "https://picsum.photos/seed/u4/60/60",
+        "likeText": "3.1k"
+      },
+      {
+        "uid": "d5",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "裸辞第 90 天：我的现金流账本长这样",
+        "cover": "https://picsum.photos/seed/nt4/600/520",
+        "hasCover": true,
+        "author": "老陈",
+        "role": "特约",
+        "avatar": "https://picsum.photos/seed/u5/60/60",
+        "likeText": "7.8k"
+      },
+      {
+        "uid": "d6",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "秋天该喝的 6 杯手冲｜浅烘也能很暖",
+        "cover": "https://picsum.photos/seed/nt5/600/840",
+        "hasCover": true,
+        "pill": "图文 6",
+        "author": "编辑部",
+        "role": "官方",
+        "avatar": "https://picsum.photos/seed/u6/60/60",
+        "likeText": "2.4k"
+      },
+      {
+        "uid": "d7",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "读完《深度工作》后，我删掉了 11 个 App",
+        "cover": "https://picsum.photos/seed/nt6/600/600",
+        "hasCover": true,
+        "author": "墨白",
+        "role": "主理人",
+        "avatar": "https://picsum.photos/seed/u7/60/60",
+        "likeText": "1.2k"
+      },
+      {
+        "uid": "d8",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "note",
+        "title": "在县城开一家小书店，第一年的真实账",
+        "cover": "https://picsum.photos/seed/nt7/600/720",
+        "hasCover": true,
+        "author": "小满",
+        "role": "特约",
+        "avatar": "https://picsum.photos/seed/u8/60/60",
+        "likeText": "5.6k"
+      }
+    ],
+    "articles": [
+      {
+        "uid": "a1",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "article",
+        "title": "做内容的第三年，我终于承认「日更」是个伪命题",
+        "cover": "https://picsum.photos/seed/warmp1/600/720",
+        "hasCover": true,
+        "pill": "深度长文",
+        "author": "墨白",
+        "role": "主理人",
+        "avatar": "https://picsum.photos/seed/u3/60/60",
+        "likeText": "1.8万"
+      },
+      {
+        "uid": "a2",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "article",
+        "title": "付费社群运营 SOP：从冷启动到第一个 100 人",
+        "cover": "https://picsum.photos/seed/warmp4/600/560",
+        "hasCover": true,
+        "pill": "会员专享",
+        "author": "老陈",
+        "role": "特约",
+        "avatar": "https://picsum.photos/seed/u7/60/60",
+        "likeText": "9.4k"
+      },
+      {
+        "uid": "a3",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "article",
+        "title": "当内容不再免费：一个创作者的第 1000 天",
+        "cover": "https://picsum.photos/seed/warmfeat/600/800",
+        "hasCover": true,
+        "pill": "年度精选",
+        "author": "墨白",
+        "role": "主理人",
+        "avatar": "https://picsum.photos/seed/u3/60/60",
+        "likeText": "2.3万"
+      },
+      {
+        "uid": "a4",
+        "id": "",
+        "isDemo": true,
+        "isText": true,
+        "kind": "article",
+        "quote": "「免费培养的是消费习惯，而不是付费意愿。」",
+        "hasCover": false,
+        "author": "编辑部",
+        "role": "官方",
+        "avatar": "https://picsum.photos/seed/ed1/60/60",
+        "likeText": "3.2k"
+      }
+    ],
+    "goods": [
+      {
+        "uid": "g1",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "goods",
+        "title": "内容生意手册 · EPUB / PDF",
+        "cover": "https://picsum.photos/seed/eb1/600/600",
+        "hasCover": true,
+        "pill": "¥39",
+        "author": "暖阁商城",
+        "role": "电子书",
+        "avatar": "https://picsum.photos/seed/shop1/60/60",
+        "likeText": "2.1k"
+      },
+      {
+        "uid": "g2",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "goods",
+        "title": "选题库 Notion 模板包",
+        "cover": "https://picsum.photos/seed/eb2/600/720",
+        "hasCover": true,
+        "pill": "¥29",
+        "author": "暖阁商城",
+        "role": "资料包",
+        "avatar": "https://picsum.photos/seed/shop1/60/60",
+        "likeText": "1.8k"
+      },
+      {
+        "uid": "g3",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "goods",
+        "title": "一个人的内容生意 · 32 讲",
+        "cover": "https://picsum.photos/seed/warmc1/600/520",
+        "hasCover": true,
+        "pill": "¥199",
+        "author": "暖阁商城",
+        "role": "专栏课",
+        "avatar": "https://picsum.photos/seed/shop1/60/60",
+        "likeText": "8.2k"
+      },
+      {
+        "uid": "g4",
+        "id": "",
+        "isDemo": true,
+        "isText": false,
+        "kind": "goods",
+        "title": "暖阁陶土杯垫 · 秋日限定",
+        "cover": "https://picsum.photos/seed/eb4/600/640",
+        "hasCover": true,
+        "pill": "¥68",
+        "author": "暖阁商城",
+        "role": "周边",
+        "avatar": "https://picsum.photos/seed/shop1/60/60",
+        "likeText": "312"
+      }
+    ]
+  },
+  "planet": {
+    "home": {
+      "title": "暖阁星球",
+      "subtitle": "内容创作者的自留地 · 由 墨白 主理",
+      "memberActive": true
+    },
+    "feed": [
+      {
+        "uid": "p1",
+        "id": "",
+        "isDemo": true,
+        "top": true,
+        "hot": true,
+        "author": "墨白",
+        "authorInitial": "墨",
+        "tagGold": "置顶",
+        "tag": "星主",
+        "avatar": "https://picsum.photos/seed/u3/80/80",
+        "time": "2 小时前 · 官方发布",
+        "content": "【9 月共读】本月我们读《认知盈余》。读完在评论区交一份 300 字笔记，我会逐条点评，优秀的直接进精华区 📌",
+        "file": {
+          "name": "9月共读·领读提纲.pdf",
+          "meta": "2.4 MB · 812 人看过 · 星球会员可看"
+        },
+        "topics": "#共读计划 #认知盈余",
+        "images": [],
+        "likes": "486",
+        "comments": "142",
+        "type": "official"
+      },
+      {
+        "uid": "p2",
+        "id": "",
+        "isDemo": true,
+        "hot": true,
+        "author": "十一",
+        "authorInitial": "十",
+        "tag": "读者提问",
+        "avatar": "https://picsum.photos/seed/u5/80/80",
+        "time": "4 小时前 · 杭州",
+        "content": "知识付费定价 99 和 199 差别有多大？我的专栏内容体量大概 20 讲，纠结一周了。",
+        "answer": "差别不在转化率，在你后面还想不想卖第二个产品。99 是引流位，199 才是利润位——先想清楚它在你产品矩阵里站哪个位置…",
+        "images": [],
+        "likes": "231",
+        "comments": "86",
+        "type": "ask"
+      },
+      {
+        "uid": "p3",
+        "id": "",
+        "isDemo": true,
+        "hot": true,
+        "author": "小满",
+        "authorInitial": "小",
+        "tagGold": "精华",
+        "tag": "特约作者",
+        "avatar": "https://picsum.photos/seed/u1/80/80",
+        "time": "昨天 21:40",
+        "content": "我用 3 个月把公众号做到 5000 付费，把踩过的坑整理成了 9 张图。核心就一句：别追热点，追人群。",
+        "images": [
+          "https://picsum.photos/seed/pg1/300/300",
+          "https://picsum.photos/seed/pg2/300/300",
+          "https://picsum.photos/seed/pg3/300/300"
+        ],
+        "likes": "1.1k",
+        "comments": "203",
+        "type": "essence"
+      },
+      {
+        "uid": "p4",
+        "id": "",
+        "isDemo": true,
+        "author": "阿柚",
+        "authorInitial": "阿",
+        "tag": "读者打卡 Day 42",
+        "avatar": "https://picsum.photos/seed/u8/80/80",
+        "time": "昨天 08:12",
+        "content": "晨写第 42 天。今天写了 1200 字关于小书店选品的复盘，发现自己开始能一口气写完不卡壳了。",
+        "images": [
+          "https://picsum.photos/seed/pg4/400/300",
+          "https://picsum.photos/seed/pg5/400/300"
+        ],
+        "likes": "96",
+        "comments": "18",
+        "type": "checkin"
+      }
+    ],
+    "topics": [
+      {
+        "name": "AI 写作工具",
+        "width": 88,
+        "pct": "↑ 62%"
+      },
+      {
+        "name": "小红书新规",
+        "width": 71,
+        "pct": "↑ 34%"
+      },
+      {
+        "name": "付费社群定价",
+        "width": 54,
+        "pct": "↑ 12%"
+      },
+      {
+        "name": "公众号流量主",
+        "width": 31,
+        "pct": "↓ 8%",
+        "down": true
+      }
+    ],
+    "kpis": [
+      {
+        "value": "3,241",
+        "label": "球友"
+      },
+      {
+        "value": "1.2万",
+        "label": "沉淀内容"
+      },
+      {
+        "value": "27",
+        "label": "今日新增"
+      },
+      {
+        "value": "98%",
+        "label": "问必答"
+      }
+    ],
+    "expireText": "会员有效期至 2027-03-18 · 剩余 185 天 · 续费享 8 折"
+  },
+  "shop": {
+    "vip": {
+      "icon": "🎫",
+      "title": "开通年度会员",
+      "desc": "全站长文免费读 · 资料库全解锁 · 商品 8 折",
+      "priceLabel": "¥168/年",
+      "price": 168,
+      "unit": "年",
+      "productName": "暖阁星球 · 年度会员",
+      "url": "/pkg-user/member-center/member-center"
+    },
+    "cats": [
+      {
+        "icon": "📘",
+        "label": "电子书",
+        "url": "/pages/product-list/product-list?type=ebook"
+      },
+      {
+        "icon": "🗂",
+        "label": "资料包",
+        "url": "/pages/resources/resources"
+      },
+      {
+        "icon": "🎧",
+        "label": "专栏课",
+        "url": "/pages/product-list/product-list?type=column"
+      },
+      {
+        "icon": "🪐",
+        "label": "星球",
+        "tab": "/pages/planet/planet"
+      },
+      {
+        "icon": "🎁",
+        "label": "周边",
+        "url": "/pages/product-list/product-list?type=physical"
+      }
+    ],
+    "flash": [
+      {
+        "uid": "f1",
+        "id": "",
+        "isDemo": true,
+        "name": "《内容生意手册》电子书",
+        "cover": "https://picsum.photos/seed/eb1/200/200",
+        "price": "39",
+        "origin": "79"
+      },
+      {
+        "uid": "f2",
+        "id": "",
+        "isDemo": true,
+        "name": "选题库 Notion 模板包",
+        "cover": "https://picsum.photos/seed/eb2/200/200",
+        "price": "29",
+        "origin": "59"
+      },
+      {
+        "uid": "f3",
+        "id": "",
+        "isDemo": true,
+        "name": "年度长文合集 PDF",
+        "cover": "https://picsum.photos/seed/eb3/200/200",
+        "price": "19",
+        "origin": "49"
+      },
+      {
+        "uid": "f4",
+        "id": "",
+        "isDemo": true,
+        "name": "从 0 搭一套私域",
+        "cover": "https://picsum.photos/seed/warmc2/200/200",
+        "price": "149",
+        "origin": "259"
+      }
+    ],
+    "feat": {
+      "uid": "feat",
+      "id": "",
+      "isDemo": true,
+      "name": "内容生意手册",
+      "desc": "12 万字 · EPUB / PDF 双格式\n购买后在小程序内直接阅读",
+      "cover": "https://picsum.photos/seed/eb1/900/460",
+      "price": "39",
+      "origin": "79",
+      "tag": "新书首发 · 虚拟商品"
+    },
+    "products": [
+      {
+        "uid": "g1",
+        "id": "",
+        "isDemo": true,
+        "tag": "电子书",
+        "format": "EPUB / PDF",
+        "cover": "https://picsum.photos/seed/eb1/400/400",
+        "name": "内容生意手册：一个人也能跑通的 12 个模型",
+        "sub": "12 万字 · 可试读前 2 章",
+        "price": "39",
+        "origin": "79",
+        "sold": "2,140",
+        "memberPrice": "会员价 ¥31"
+      },
+      {
+        "uid": "g2",
+        "id": "",
+        "isDemo": true,
+        "tag": "资料包",
+        "tagGold": true,
+        "format": "Notion / Excel",
+        "cover": "https://picsum.photos/seed/eb2/400/400",
+        "name": "选题库模板包：3 张表管住全年选题",
+        "sub": "7 个文件 · 终身更新",
+        "price": "29",
+        "origin": "59",
+        "sold": "1,806",
+        "memberPrice": "会员免费"
+      },
+      {
+        "uid": "g3",
+        "id": "",
+        "isDemo": true,
+        "tag": "电子书",
+        "format": "PDF",
+        "cover": "https://picsum.photos/seed/eb3/400/400",
+        "name": "暖阁年度长文合集 2026",
+        "sub": "32 篇精选 · 268 页",
+        "price": "19",
+        "origin": "49",
+        "sold": "3,412",
+        "memberPrice": "会员免费"
+      },
+      {
+        "uid": "g4",
+        "id": "",
+        "isDemo": true,
+        "tag": "周边",
+        "tagGold": true,
+        "format": "实物",
+        "cover": "https://picsum.photos/seed/eb4/400/400",
+        "name": "暖阁陶土杯垫 · 秋日限定",
+        "sub": "需填写收货地址",
+        "price": "68",
+        "origin": "",
+        "sold": "312",
+        "memberPrice": "会员价 ¥54"
+      },
+      {
+        "uid": "g5",
+        "id": "",
+        "isDemo": true,
+        "tag": "专栏课",
+        "format": "音频 + 讲稿",
+        "cover": "https://picsum.photos/seed/warmc1/400/400",
+        "name": "一个人的内容生意 · 32 讲",
+        "sub": "含 90 天星球会员",
+        "price": "199",
+        "origin": "399",
+        "sold": "8,214",
+        "memberPrice": "会员价 ¥159"
+      },
+      {
+        "uid": "g6",
+        "id": "",
+        "isDemo": true,
+        "tag": "社群",
+        "tagGold": true,
+        "format": "年卡",
+        "cover": "https://picsum.photos/seed/pl9/400/400",
+        "name": "暖阁星球 · 年度会员",
+        "sub": "3,241 位球友 · 资料库全解锁",
+        "price": "168",
+        "origin": "",
+        "sold": "3,241",
+        "memberPrice": "老球友续费 8 折"
+      }
+    ]
+  },
+  "content": {
+    "list": {
+      "cats": [
+        "全部",
+        "内容创业",
+        "写作方法",
+        "私域运营",
+        "工具",
+        "访谈",
+        "年度精选"
+      ],
+      "ranks": [
+        {
+          "id": "d1",
+          "title": "当内容不再免费：一个创作者的第 1000 天",
+          "views": "2.3万",
+          "top": true
+        },
+        {
+          "id": "d2",
+          "title": "做内容的第三年，我承认日更是伪命题",
+          "views": "1.8万",
+          "top": true
+        },
+        {
+          "id": "d3",
+          "title": "付费社群运营 SOP：冷启动到第一个 100 人",
+          "views": "9.4k",
+          "top": true
+        },
+        {
+          "id": "d4",
+          "title": "我把公众号后台数据全部公开了",
+          "views": "7.2k",
+          "top": false
+        }
+      ],
+      "big": {
+        "id": "big1",
+        "title": "被算法推着走的三年，和我决定停下来的那天",
+        "summary": "一篇关于节奏、耐心与长期主义的长文。附我重建内容系统的完整方法论与三张可用表格。",
+        "cover": "https://picsum.photos/seed/ls1/800/420",
+        "author": "墨白 · 主理人",
+        "avatar": "https://picsum.photos/seed/u3/40/40",
+        "meta": "09-13 · 18 分钟阅读",
+        "tag": "年度精选"
+      },
+      "rows": [
+        {
+          "id": "r1",
+          "layout": "row",
+          "title": "付费社群运营 SOP：从冷启动到第一个 100 人",
+          "summary": "含欢迎语模板、周更节奏表、活跃度指标三张表，可直接抄作业。",
+          "cover": "https://picsum.photos/seed/warmp4/300/240",
+          "meta": "会员专享 · 老陈 · 9.4k 阅读",
+          "tag": "会员专享"
+        },
+        {
+          "id": "r2",
+          "layout": "audio",
+          "title": "访谈 EP.24｜和一位月入 3 万的独立写作者聊聊",
+          "duration": "42:18"
+        },
+        {
+          "id": "r3",
+          "layout": "row",
+          "title": "视频课：一条选题从想法到发布的完整 30 分钟",
+          "summary": "全程录屏，不剪辑。看我如何把一个模糊念头变成可发布的稿子。",
+          "cover": "https://picsum.photos/seed/ls2/300/240",
+          "meta": "视频 · 墨白 · 5.6k 播放",
+          "tag": "视频",
+          "duration": "30:12"
+        },
+        {
+          "id": "r4",
+          "layout": "grid3",
+          "title": "我的 2026 工位全家桶｜9 张图讲清一个内容人的装备",
+          "images": [
+            "https://picsum.photos/seed/lg1/300/300",
+            "https://picsum.photos/seed/lg2/300/300",
+            "https://picsum.photos/seed/lg3/300/300"
+          ],
+          "meta": "图文笔记 · 小满 · ❤ 4.2k",
+          "tag": "图文笔记",
+          "contentType": "note"
+        },
+        {
+          "id": "r5",
+          "layout": "row",
+          "title": "星球精选：知识付费定价 99 和 199 差别有多大？",
+          "summary": "星主长回答 + 86 条球友真实数据，已收录进「资料库 · 定价」。",
+          "cover": "https://picsum.photos/seed/pp1/300/240",
+          "meta": "星球内容 · 暖阁星球 · 3.1k 浏览",
+          "tag": "星球内容",
+          "toMoment": true
+        }
+      ]
+    },
+    "article": {
+      "title": "当内容不再免费：一个创作者的第 1000 天",
+      "cover": "https://picsum.photos/seed/warmfeat/900/760",
+      "tag": "深度 · 创作者手记",
+      "author": "墨白",
+      "authorRole": "主理人",
+      "avatar": "https://picsum.photos/seed/u3/90/90",
+      "meta": "09-13 · 12 分钟阅读 · 2.3 万阅读",
+      "lead": "这篇写给所有正在犹豫「要不要收费」的人。1000 天里我换过三次模式，亏过钱，也第一次靠文字养活了自己。",
+      "related": [
+        {
+          "id": "rel1",
+          "title": "付费社群运营 SOP：从冷启动到第一个 100 人",
+          "meta": "老陈 · 9.4k 阅读",
+          "cover": "https://picsum.photos/seed/warmp4/300/240"
+        },
+        {
+          "id": "rel2",
+          "title": "做内容的第三年，我终于承认「日更」是个伪命题",
+          "meta": "墨白 · 1.8 万阅读",
+          "cover": "https://picsum.photos/seed/warmp1/300/240"
+        },
+        {
+          "id": "rel3",
+          "title": "星球热议：知识付费定价 99 和 199 差别有多大？",
+          "meta": "暖阁星球 · 142 条讨论",
+          "cover": "https://picsum.photos/seed/pp1/300/240",
+          "toMoment": true
+        }
+      ]
+    },
+    "note": {
+      "title": "我的书桌改造 ✨ 一个内容人的暖光角落",
+      "author": "小满",
+      "authorRole": "特约作者",
+      "avatar": "https://picsum.photos/seed/u1/80/80",
+      "gallery": [
+        "https://picsum.photos/seed/nt1/780/940",
+        "https://picsum.photos/seed/nt1b/780/940",
+        "https://picsum.photos/seed/nt1c/780/940"
+      ],
+      "topics": [
+        "#书桌改造",
+        "#工位美学",
+        "#内容创作者日常",
+        "#暖光"
+      ],
+      "meta": "编辑于 09-12 · 杭州",
+      "goods": {
+        "title": "一个人的内容生意 · 专栏",
+        "desc": "笔记提到的选题库模板在第 6 讲",
+        "cover": "https://picsum.photos/seed/warmc1/200/200"
+      },
+      "comments": [
+        {
+          "nick": "阿桃",
+          "avatar": "https://picsum.photos/seed/u2/80/80",
+          "text": "1！求收纳篇，我桌面线材已经乱成一团了 😭",
+          "likes": 128,
+          "reply": "小满（作者）：这周就写！线材我全走了桌下理线架，超救命"
+        },
+        {
+          "nick": "十一",
+          "avatar": "https://picsum.photos/seed/u5/80/80",
+          "text": "升降桌真的有用吗，一直在犹豫要不要上",
+          "likes": 46
+        },
+        {
+          "nick": "豆先生",
+          "avatar": "https://picsum.photos/seed/u6/80/80",
+          "text": "3000K 这个建议太真实了，冷光下我一个字都写不出来",
+          "likes": 31
+        }
+      ]
+    },
+    "resources": {
+      "cats": [
+        "全部 128",
+        "模板",
+        "提纲",
+        "数据表",
+        "清单",
+        "合集"
+      ],
+      "groups": [
+        {
+          "title": "本周更新",
+          "items": [
+            {
+              "id": "f1",
+              "name": "9月共读·领读提纲",
+              "ext": "PDF",
+              "meta": "2.4 MB · 12 页 · 812 人看过",
+              "locked": false,
+              "actionText": "试读 ›",
+              "tryHint": "可看前 2 页"
+            },
+            {
+              "id": "f2",
+              "name": "2026 全年选题库模板（含公式）",
+              "ext": "XLSX",
+              "meta": "860 KB · 3 个工作表 · 会员专享",
+              "locked": true,
+              "actionText": "🔒 解锁",
+              "tryHint": "仅首页可见"
+            },
+            {
+              "id": "f3",
+              "name": "付费社群冷启动 SOP 全套",
+              "ext": "PDF",
+              "meta": "4.1 MB · 28 页 · 会员专享",
+              "locked": true,
+              "actionText": "🔒 解锁",
+              "tryHint": "可看前 2 页"
+            }
+          ]
+        },
+        {
+          "title": "高频下载",
+          "items": [
+            {
+              "id": "f4",
+              "name": "暖阁封面模板包 · 24 款",
+              "ext": "ZIP",
+              "meta": "36 MB · 含 PSD / Figma · 1,204 人看过",
+              "locked": false,
+              "actionText": "试读 ›",
+              "tryHint": "可预览缩略图"
+            },
+            {
+              "id": "f5",
+              "name": "内容账号数据周报表",
+              "ext": "XLSX",
+              "meta": "420 KB · 自动计算 · 会员专享",
+              "locked": true,
+              "actionText": "🔒 解锁",
+              "tryHint": "仅首页可见"
+            }
+          ]
+        }
+      ]
+    },
+    "join": {
+      "title": "来加个微信吧\n有问题随时找得到人",
+      "desc": "新书首发、资料更新、线下活动都会先在群里通知。购买、发票、解锁异常也可以直接找客服处理。",
+      "memberCount": "已有 2,860 位读者加入读者群",
+      "avatars": [
+        "https://picsum.photos/seed/u1/50/50",
+        "https://picsum.photos/seed/u2/50/50",
+        "https://picsum.photos/seed/u5/50/50",
+        "https://picsum.photos/seed/u8/50/50"
+      ],
+      "ownerWay": {
+        "name": "加主理人墨白",
+        "desc": "仅限年度会员与专栏学员，验证时请备注手机号后四位",
+        "icon": "✍️",
+        "qrcode": ""
+      },
+      "groups": [
+        {
+          "id": "g1",
+          "name": "内容创业交流群 · 7 群",
+          "desc": "186 / 200 人",
+          "icon": "💡",
+          "fill": 93,
+          "full": false,
+          "tip": "入群后请修改备注为「城市 + 方向」"
+        },
+        {
+          "id": "g2",
+          "name": "共读打卡群 · 3 群",
+          "desc": "124 / 200 人",
+          "icon": "📖",
+          "fill": 62,
+          "full": false
+        },
+        {
+          "id": "g3",
+          "name": "新书 / 上新通知群",
+          "desc": "200 / 200 人 · 已满",
+          "icon": "🛍",
+          "fill": 100,
+          "full": true
+        }
+      ],
+      "faqs": [
+        {
+          "q": "买了电子书打不开怎么办？",
+          "a": "先在「我的 - 已购内容」确认订单状态。若显示已支付但未解锁，把订单号发给在线客服，通常 5 分钟内手动补发。"
+        },
+        {
+          "q": "进群需要付费吗？",
+          "a": "读者群免费。星球和专栏是单独的付费产品，不影响进群。"
+        },
+        {
+          "q": "群二维码扫不出来？",
+          "a": "群码 7 天更新一次，过期请回到本页重新获取，或直接联系在线客服拉你进群。"
+        }
+      ]
+    },
+    "column": {
+      "title": "一个人的内容生意",
+      "cover": "https://picsum.photos/seed/warmc1/900/700",
+      "tag": "连载中 · 每周三更新",
+      "price": 168,
+      "original": 298,
+      "teacher": {
+        "name": "墨白",
+        "role": "暖阁主理人",
+        "avatar": "https://picsum.photos/seed/u3/90/90",
+        "bio": "写了 1000 天，带过 3 个付费社群"
+      },
+      "chapters": [
+        {
+          "no": "01",
+          "title": "为什么你的内容总是换不来钱",
+          "free": true,
+          "meta": "试看 · 18 分钟"
+        },
+        {
+          "no": "02",
+          "title": "产品矩阵：引流位与利润位",
+          "free": true,
+          "meta": "试看 · 22 分钟"
+        },
+        {
+          "no": "03",
+          "title": "定价实验：99 / 199 / 399",
+          "free": false,
+          "meta": "会员 · 26 分钟"
+        },
+        {
+          "no": "04",
+          "title": "选题库怎么从「想写」变成「会卖」",
+          "free": false,
+          "meta": "会员 · 20 分钟"
+        }
+      ]
+    },
+    "goods": {
+      "title": "内容生意手册",
+      "cover": "https://picsum.photos/seed/eb1/400/560",
+      "bg": "https://picsum.photos/seed/eb1/900/700",
+      "price": 39,
+      "original": 79,
+      "memberPrice": 31,
+      "specs": [
+        {
+          "k": "形态",
+          "v": "EPUB / PDF · 12 万字"
+        },
+        {
+          "k": "交付",
+          "v": "支付后立即开通阅读"
+        },
+        {
+          "k": "退款",
+          "v": "虚拟商品不支持退款"
+        }
+      ]
+    },
+    "planetPost": {
+      "author": "十一",
+      "authorTag": "读者提问",
+      "avatar": "https://picsum.photos/seed/u5/90/90",
+      "time": "今天 05:26 · 杭州",
+      "title": "知识付费定价 99 和 199，差别到底有多大？",
+      "content": "我的专栏大概 20 讲，录了一半。身边朋友劝我定 99 先跑量，但我自己算下来 199 才刚够覆盖成本。\n\n纠结了整整一周，想听听球友们真实的数据：你们的第一款产品定了多少？转化率如何？",
+      "images": [
+        "https://picsum.photos/seed/pp1/320/320",
+        "https://picsum.photos/seed/pp2/320/320",
+        "https://picsum.photos/seed/pp3/320/320"
+      ],
+      "topics": "#定价策略 #知识付费 #新手提问",
+      "stats": "3,124 浏览 · 86 条讨论 · 收录于「资料库 · 定价」",
+      "answer": {
+        "bar": "⭐️ 星主回答 · 已设为精华",
+        "paras": [
+          "差别不在转化率，在你后面还想不想卖第二个产品。",
+          "99 是引流位，199 才是利润位。先想清楚它在你产品矩阵里站哪个位置，再倒推价格——而不是反过来用价格去凑成本。",
+          "如果这是你唯一的产品，且短期不打算做第二款，定 199；如果你后面还有社群、陪跑、线下课，那第一款就该定 99 甚至 69，把人筛进来。"
+        ],
+        "likes": 231,
+        "asks": 24
+      },
+      "likeWall": {
+        "avatars": [
+          "https://picsum.photos/seed/u1/60/60",
+          "https://picsum.photos/seed/u2/60/60",
+          "https://picsum.photos/seed/u4/60/60",
+          "https://picsum.photos/seed/u6/60/60",
+          "https://picsum.photos/seed/u8/60/60"
+        ],
+        "text": "小满、阿桃 等 231 位球友觉得有用"
+      },
+      "comments": [
+        {
+          "nick": "墨白",
+          "badge": "星主",
+          "isHost": true,
+          "avatar": "https://picsum.photos/seed/u3/80/80",
+          "text": "先把产品在矩阵里的位置想清楚，再倒推价格。引流位和利润位别混成一锅。",
+          "likes": 312
+        },
+        {
+          "nick": "小满",
+          "badge": "特约作者",
+          "avatar": "https://picsum.photos/seed/u1/80/80",
+          "text": "我第一款 99，转化 3.2%；第二款同样内容换个封面卖 199，转化 2.8%。说明什么？价格不是主要变量，信任才是。",
+          "likes": 189,
+          "reply": "十一：这个数据太有说服力了，谢谢！那我先做信任资产"
+        },
+        {
+          "nick": "Ray",
+          "avatar": "https://picsum.photos/seed/u4/80/80",
+          "text": "补充一个坑：别一上来就打折。首发价就是你的锚点，后面再想涨回去基本不可能。",
+          "likes": 112
+        },
+        {
+          "nick": "野格",
+          "avatar": "https://picsum.photos/seed/u7/80/80",
+          "text": "我是 20 讲定 149，算是折中。真实反馈是：买的人根本没提价格，提的都是更新太慢 😅",
+          "likes": 64
+        }
+      ]
+    }
+  }
+}

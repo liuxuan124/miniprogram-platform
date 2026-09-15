@@ -6,6 +6,7 @@ import com.miniprogram.dto.ActivityVO;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.RoleMapper;
 import com.miniprogram.security.JwtAuthenticationFilter;
+import com.miniprogram.security.JwtBlacklistService;
 import com.miniprogram.security.JwtTokenProvider;
 import com.miniprogram.service.ActivityService;
 import com.miniprogram.service.ActivitySignupService;
@@ -18,6 +19,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
@@ -35,6 +37,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(controllers = {MpActivityController.class, MpSmsController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@TestPropertySource(properties = {
+        "JWT_SECRET=test-jwt-secret-for-unit-and-integration-testing-only",
+        "jwt.secret=test-jwt-secret-for-unit-and-integration-testing-only"
+})
 class MpActivitySecurityTest {
 
     @Autowired
@@ -48,6 +54,8 @@ class MpActivitySecurityTest {
     private SmsCodeService smsCodeService;
     @MockBean
     private JwtTokenProvider jwtTokenProvider;
+    @MockBean
+    private JwtBlacklistService jwtBlacklistService;
     @MockBean
     private AdminUserMapper adminUserMapper;
     @MockBean

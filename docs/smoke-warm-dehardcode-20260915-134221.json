@@ -1,0 +1,226 @@
+{
+  "ts": "2026-09-15T13:42:21",
+  "base": "https://api.zfculture.site",
+  "elapsed_sec": 1.98,
+  "pass": 35,
+  "fail": 1,
+  "total": 36,
+  "checks": [
+    {
+      "group": "P0-首页",
+      "name": "接口 200",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "group": "P0-首页",
+      "name": "精选真实 contentId",
+      "ok": true,
+      "detail": "158"
+    },
+    {
+      "group": "P0-首页",
+      "name": "精选标题非空",
+      "ok": true,
+      "detail": "当内容不再免费：一个创作者的第 1000 天"
+    },
+    {
+      "group": "P0-首页",
+      "name": "专栏>=1 且含 productId",
+      "ok": true,
+      "detail": "n=3"
+    },
+    {
+      "group": "P0-首页",
+      "name": "信息流>=1 且含 contentId",
+      "ok": true,
+      "detail": "n=6"
+    },
+    {
+      "group": "P0-首页",
+      "name": "VIP 非硬编码空壳",
+      "ok": true,
+      "detail": "¥168/年"
+    },
+    {
+      "group": "P0-首页",
+      "name": "navs/authors/segs 有配置",
+      "ok": true,
+      "detail": "navs=5 authors=5 segs=4"
+    },
+    {
+      "group": "P0-首页",
+      "name": "精选详情可打开",
+      "ok": true,
+      "detail": "id=158 code=200"
+    },
+    {
+      "group": "P0-星球",
+      "name": "home 200",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P0-星球",
+      "name": "kpis 来自配置",
+      "ok": true,
+      "detail": "4"
+    },
+    {
+      "group": "P0-星球",
+      "name": "topics 来自配置",
+      "ok": true,
+      "detail": "4"
+    },
+    {
+      "group": "P0-星球",
+      "name": "expireText",
+      "ok": true,
+      "detail": "会员有效期至 2027-03-18 · 剩余 185 天 · 续费享 8 折"
+    },
+    {
+      "group": "P0-星球",
+      "name": "segs",
+      "ok": true,
+      "detail": "6"
+    },
+    {
+      "group": "P0-星球",
+      "name": "feed 200 且有数据",
+      "ok": true,
+      "detail": "n=7"
+    },
+    {
+      "group": "P0-星球",
+      "name": "共读 PDF 附件卡片",
+      "ok": true,
+      "detail": "content=159 fileId=1 name=9月共读·领读提纲.pdf"
+    },
+    {
+      "group": "P0-星球",
+      "name": "PDF 文件元数据可取",
+      "ok": true,
+      "detail": "9月共读·领读提纲.pdf canPreview=True locked=None"
+    },
+    {
+      "group": "P0-商城",
+      "name": "商品列表 200",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P0-商城",
+      "name": "上架>=6",
+      "ok": true,
+      "detail": "8"
+    },
+    {
+      "group": "P0-商城",
+      "name": "含年度会员",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P0-商城",
+      "name": "含专栏课",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P0-商城",
+      "name": "商品详情可打开",
+      "ok": true,
+      "detail": "id=28 code=200"
+    },
+    {
+      "group": "P1-配置",
+      "name": "warm_home_config",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P1-配置",
+      "name": "planet_config",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P1-配置",
+      "name": "joinGroupConfig",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P1-配置",
+      "name": "contributeConfig",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P1-配置",
+      "name": "creator_recruit_banner",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P1-配置",
+      "name": "search_hot",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "P1-配置",
+      "name": "五 Tab 暖阁导航",
+      "ok": true,
+      "detail": "['首页', '发现', '星球', '商城', '我的']"
+    },
+    {
+      "group": "P1-发现",
+      "name": "笔记列表",
+      "ok": true,
+      "detail": "n=5"
+    },
+    {
+      "group": "P1-发现",
+      "name": "长文列表",
+      "ok": true,
+      "detail": "n=5"
+    },
+    {
+      "group": "代码门禁",
+      "name": "FORCE_LOCAL_DEMO=false",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "代码门禁",
+      "name": "首页调用 /home/warm",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "代码门禁",
+      "name": "首页非默认 require 全量 warm-home 渲染",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "代码门禁",
+      "name": "商城初始非 DEMO 货架",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "代码门禁",
+      "name": "商城失败不回退 DEMO_PRODUCTS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "group": "代码门禁",
+      "name": "星球去掉认知盈余字符串特判",
+      "ok": false,
+      "detail": ""
+    }
+  ]
+}

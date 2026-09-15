@@ -3,6 +3,7 @@ const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { buildNoteGalleryUrls } = require('../../utils/note-content')
+const { isValidContentId } = require('../../utils/content-id')
 
 function formatLikeCount(n) {
   const num = Math.max(0, Number(n) || 0)
@@ -23,8 +24,11 @@ function normalizeNoteItem(item, index) {
   const gallery = buildNoteGalleryUrls(coverRaw, images)
   const cover = resolveMediaUrl(gallery[0] || '')
   const author = String(item.author || item.authorName || '作者').trim() || '作者'
+  const rawId = item.id != null ? item.id : (item.contentId != null ? item.contentId : item.content_id)
+  const id = isValidContentId(rawId) ? String(rawId) : ''
   return {
-    id: item.id || `local_${index + 1}`,
+    id,
+    navigable: !!id,
     title: item.title || item.name || '笔记标题',
     cover_url: cover,
     image_count: gallery.length,
@@ -278,7 +282,7 @@ Component({
       get('/api/v1/mp/contents', params, { auth: false, showError: false })
         .then((data) => {
           const records = extractRecords(data)
-          const mapped = records.map((item, index) => normalizeNoteItem(item, index))
+          const mapped = records.map((item, index) => normalizeNoteItem(item, index)).filter((item) => item.navigable)
           const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
           const hasMore = resolveHasMore(data, nextPage, pageSize, mapped.length)
           this.setData({
@@ -329,6 +333,10 @@ Component({
 
     onTapNote(e) {
       const id = e.currentTarget.dataset.id
+      if (!isValidContentId(id)) {
+        wx.showToast({ title: '内容暂不可用', icon: 'none' })
+        return
+      }
       executeAction({
         type: 'page',
         path: '/pages/content-detail/content-detail?id=' + id,

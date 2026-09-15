@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 文件预览</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .stage { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; align-items: flex-start; }
+  .scroll { padding-top: 98px; }
+  .fhead { margin: 14px 16px 0; padding: 16px 16px 15px; border-radius: 20px; background: var(--sheet); box-shadow: var(--shadow-s); display: flex; gap: 13px; align-items: center; }
+  .fhead .ic { width: 48px; height: 58px; border-radius: 9px; flex: none; background: linear-gradient(160deg,#fff,#f4e2cc); border: 1px solid #ecd6ba; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #c2410c; letter-spacing: .04em; box-shadow: 0 6px 14px rgba(140,80,30,.1); }
+  .fhead h4 { font-size: 15px; font-weight: 750; line-height: 1.4; }
+  .fhead p { margin-top: 6px; font-size: 10.5px; color: var(--mute); line-height: 1.6; }
+  .fhead p b { color: var(--gold); }
+
+  .src { margin: 10px 16px 0; padding: 10px 13px; border-radius: 14px; background: #f8ecdd; font-size: 11.5px; color: var(--ink-2); display: flex; align-items: center; gap: 7px; }
+  .src .av { width: 20px; height: 20px; }
+  .src a { margin-left: auto; color: var(--brand); font-weight: 650; }
+
+  /* 加载态 */
+  .loading { margin: 12px 16px 0; padding: 13px 15px; border-radius: 15px; background: linear-gradient(135deg,#fdeedb,#fffaf3); border: 1px solid var(--line); }
+  .loading .rw { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 680; color: var(--brand); }
+  .loading .bar { margin-top: 9px; height: 5px; border-radius: 99px; background: #f0ddc6; overflow: hidden; }
+  .loading .bar i { display: block; height: 100%; width: 68%; border-radius: 99px; background: linear-gradient(90deg,var(--gold),var(--brand-2)); }
+  .loading .tx { margin-top: 7px; font-size: 10px; color: var(--mute); }
+
+  /* 预览纸张 */
+  .paper { margin: 12px 16px 0; border-radius: 14px; background: #fff; box-shadow: 0 10px 26px rgba(120,64,24,.14); padding: 22px 20px 24px; position: relative; }
+  .paper + .paper { margin-top: 10px; }
+  .paper .pg { position: absolute; right: 12px; top: 10px; font-size: 9.5px; color: #c3ab96; }
+  .paper h5 { font-size: 16px; font-weight: 780; letter-spacing: -.01em; font-family: "Songti SC","Noto Serif SC",serif; }
+  .paper .sub { margin-top: 7px; font-size: 11px; color: var(--mute); }
+  .paper .ln { margin-top: 16px; display: grid; gap: 9px; }
+  .paper .ln i { display: block; height: 8px; border-radius: 3px; background: #f0e6da; }
+  .paper .h2 { margin-top: 18px; font-size: 13px; font-weight: 760; color: #5c3a1c; }
+  .paper .li { margin-top: 9px; font-size: 12px; line-height: 1.75; color: #4a3526; }
+
+  .hint { margin: 14px 16px 0; padding: 11px 13px; border-radius: 13px; border: 1px dashed #e3c9a8; background: #fffdf9; font-size: 11px; line-height: 1.65; color: var(--ink-2); }
+  .hint b { color: var(--brand); }
+
+  /* 未解锁遮罩版 */
+  .lockbox { margin: 12px 16px 0; border-radius: 18px; padding: 24px 18px 20px; text-align: center; background: linear-gradient(150deg,#fff6ea,#fdeedb); border: 1px solid var(--line); }
+  .lockbox .ic { font-size: 26px; }
+  .lockbox h5 { margin-top: 9px; font-size: 15px; font-weight: 780; }
+  .lockbox p { margin-top: 7px; font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
+  .lockbox .btn { margin: 14px auto 0; }
+
+  .actionbar .ic2 { width: 52px; text-align: center; font-size: 10px; color: var(--ink-2); }
+  .actionbar .ic2 span { display: block; font-size: 18px; margin-bottom: 3px; }
+  .end { text-align: center; font-size: 10px; color: var(--mute); padding: 16px 0 6px; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./planet.html">‹</a>
+    <h4>文件预览</h4>
+    <span style="font-size:17px;color:var(--ink-2)">···</span>
+  </div>
+
+  <div class="scroll full">
+    <div class="fhead">
+      <div class="ic">PDF</div>
+      <div>
+        <h4>9月共读·领读提纲.pdf</h4>
+        <p>2.4 MB · 12 页 · 更新于 09-13<br />星球会员可看 · <b>你已解锁</b></p>
+      </div>
+    </div>
+
+    <div class="src">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&q=80" alt="" /></span>
+      <span>来自 墨白 的星球动态《9 月共读》</span>
+      <a href="./planet-post.html">查看原帖 ›</a>
+    </div>
+
+    <div class="loading">
+      <div class="rw"><span>⏳</span>正在打开文件… 68%</div>
+      <div class="bar"><i></i></div>
+      <div class="tx">首次打开需缓存到本地，之后再看无需等待</div>
+    </div>
+
+    <div class="paper">
+      <span class="pg">1 / 12</span>
+      <h5>《认知盈余》9 月共读 · 领读提纲</h5>
+      <div class="sub">暖阁星球 · 墨白 · 2026.09</div>
+      <div class="h2">一、为什么今年要读这本书</div>
+      <div class="li">1. 自由时间正在被重新定价<br />2. 「业余者」如何形成生产力<br />3. 对内容创作者的三个直接启发</div>
+      <div class="ln"><i style="width:100%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:99%"></i><i style="width:72%"></i></div>
+      <div class="h2">二、四周阅读计划</div>
+      <div class="ln"><i style="width:100%"></i><i style="width:93%"></i><i style="width:80%"></i></div>
+    </div>
+
+    <div class="paper">
+      <span class="pg">2 / 12</span>
+      <div class="h2" style="margin-top:0">三、每周讨论题</div>
+      <div class="li">W1｜你每天有多少「认知盈余」被平台吃掉了？</div>
+      <div class="ln"><i style="width:100%"></i><i style="width:90%"></i><i style="width:97%"></i><i style="width:64%"></i><i style="width:100%"></i><i style="width:86%"></i></div>
+    </div>
+
+    <div class="hint">
+      💡 小程序内为<b>在线预览</b>，文件不会保存到手机相册或文件夹。需要留存请点下方<b>「转发给朋友」</b>发到自己的微信，或用「···」在其他应用中打开。
+    </div>
+
+    <div class="end">—— 共 12 页 · 上滑继续 ——</div>
+  </div>
+
+  <div class="actionbar">
+    <a class="ic2" href="./share.html"><span>↗️</span>转发保存</a>
+    <div class="ic2"><span>⭐️</span>收藏</div>
+    <a class="btn" style="flex:1" href="./planet-post.html">回到原帖讨论</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./planet.html">‹</a>
+    <h4>文件预览</h4>
+    <span style="font-size:17px;color:var(--ink-2)">···</span>
+  </div>
+
+  <div class="scroll full">
+    <div class="fhead">
+      <div class="ic">PDF</div>
+      <div>
+        <h4>9月共读·领读提纲.pdf</h4>
+        <p>2.4 MB · 12 页 · 更新于 09-13<br />星球会员可看 · <b style="color:#a16207">未解锁</b></p>
+      </div>
+    </div>
+
+    <div class="src">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&q=80" alt="" /></span>
+      <span>来自 墨白 的星球动态《9 月共读》</span>
+      <a href="./planet-post.html">查看原帖 ›</a>
+    </div>
+
+    <div class="paper" style="filter:blur(3px);opacity:.65;pointer-events:none">
+      <span class="pg">1 / 12</span>
+      <h5>《认知盈余》9 月共读 · 领读提纲</h5>
+      <div class="sub">暖阁星球 · 墨白 · 2026.09</div>
+      <div class="h2">一、为什么今年要读这本书</div>
+      <div class="ln"><i style="width:100%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:99%"></i><i style="width:72%"></i></div>
+    </div>
+
+    <div class="lockbox">
+      <div class="ic">🔒</div>
+      <h5>该资料仅限星球会员查看</h5>
+      <p>加入暖阁星球即可解锁全部 128 份资料<br />含模板、提纲、数据表，持续更新</p>
+      <a class="btn" href="./mine.html">加入星球 ¥168/年</a>
+    </div>
+
+    <div class="hint">
+      预览页仅展示前 1 页。解锁后可在小程序内在线阅读全部 12 页，并转发保存到微信。
+    </div>
+    <div class="end">—— 未解锁状态 ——</div>
+  </div>
+
+  <div class="actionbar">
+    <div class="ic2" style="opacity:.4"><span>↗️</span>转发保存</div>
+    <div class="ic2" style="opacity:.4"><span>⭐️</span>收藏</div>
+    <a class="btn" style="flex:1" href="./mine.html">解锁后查看</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+</div>
+</body>
+</html>

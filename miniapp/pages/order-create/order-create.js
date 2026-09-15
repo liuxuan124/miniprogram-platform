@@ -6,6 +6,8 @@ const addressService = require('../../services/address')
 const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
 const { requestPayment } = require('../../utils/payment')
+const { requestOrderSubscribe } = require('../../utils/subscribe')
+const { WARM_PAGE_STYLE } = require('../../data/warm-source')
 
 function readWalletBalance() {
   const user = AuthUtil.getUserInfo() || {}
@@ -18,6 +20,7 @@ function readWalletBalance() {
 
 Page({
   data: {
+    themePageStyle: WARM_PAGE_STYLE,
     // 来源
     from: '', // 'cart' | 'buy_now'
 
@@ -366,7 +369,8 @@ Page({
       return
     }
     this.setData({ paying: true, payMethod: 'wechat' })
-    orderService.payOrder(o.id)
+    requestOrderSubscribe()
+      .then(() => orderService.payOrder(o.id))
       .then((params) => requestPayment(params))
       .then(() => {
         this.setData({ paying: false, showPaySheet: false })

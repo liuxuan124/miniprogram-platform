@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 消息</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .head { position: sticky; top: 0; z-index: 12; background: linear-gradient(180deg,#fbeeda,#fdf6ec 92%); }
+  .head .status { padding: 15px 24px 0; }
+  .head .tt { display: flex; align-items: center; gap: 10px; padding: 8px 16px 12px; }
+  .head .tt .bk { font-size: 21px; width: 26px; }
+  .head .tt h4 { font-size: 18px; font-weight: 780; flex: 1; letter-spacing: -.02em; }
+  .head .tt .all { font-size: 12px; color: var(--brand); font-weight: 650; }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 4px 18px 10px; font-size: 11.5px; color: var(--mute); }
+
+  .card {
+    margin: 0 16px 10px; border-radius: 16px; background: var(--sheet); box-shadow: var(--shadow-s);
+    padding: 14px 14px 13px; display: flex; gap: 10px; align-items: flex-start; position: relative;
+    border: 1px solid transparent;
+  }
+  .card.unread { border-color: rgba(194,65,12,.18); background: linear-gradient(150deg,#fff7ee,#fffaf3); }
+  .card .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--brand-2); margin-top: 7px; flex: none; }
+  .card .main { flex: 1; min-width: 0; }
+  .card .top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .card .tag {
+    font-size: 10px; font-weight: 700; color: var(--brand); background: rgba(194,65,12,.1);
+    padding: 2px 8px; border-radius: 99px;
+  }
+  .card .time { margin-left: auto; font-size: 10.5px; color: var(--mute); }
+  .card h5 { font-size: 14px; font-weight: 720; line-height: 1.4; }
+  .card p { margin-top: 5px; font-size: 12px; color: var(--ink-2); line-height: 1.55; }
+  .card .ar { color: #ccb49c; font-size: 16px; margin-top: 4px; }
+
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 18px 0 28px; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+
+  <div class="scroll">
+    <div class="head">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="tt">
+        <a class="bk" href="./mine.html">‹</a>
+        <h4 class="serif">消息</h4>
+        <a class="all" href="./notice.html" onclick="this.textContent='已全部标为已读';return false">全部已读</a>
+      </div>
+    </div>
+
+    <div class="toolbar"><span>共 4 条 · 2 条未读</span></div>
+
+    <a class="card unread" href="./order.html">
+      <span class="dot"></span>
+      <div class="main">
+        <div class="top"><span class="tag">支付</span><span class="time">今天 14:22</span></div>
+        <h5>专栏已开通</h5>
+        <p>「一个人的内容生意」已到账，可在「继续学习」里接着看。</p>
+      </div>
+      <span class="ar">›</span>
+    </a>
+
+    <a class="card unread" href="./planet.html">
+      <span class="dot"></span>
+      <div class="main">
+        <div class="top"><span class="tag">星球</span><span class="time">昨天 21:08</span></div>
+        <h5>星主回复了你的提问</h5>
+        <p>关于「冷启动第一个 100 人」的追问已有精华回答。</p>
+      </div>
+      <span class="ar">›</span>
+    </a>
+
+    <a class="card" href="./goods.html">
+      <div class="main" style="margin-left:18px">
+        <div class="top"><span class="tag">发货</span><span class="time">03-12 09:40</span></div>
+        <h5>资料包已送达</h5>
+        <p>「私域运营 SOP 合集」可在资料库预览，也可转发给朋友留存。</p>
+      </div>
+      <span class="ar">›</span>
+    </a>
+
+    <a class="card" href="./mine.html">
+      <div class="main" style="margin-left:18px">
+        <div class="top"><span class="tag">会员</span><span class="time">03-08 11:16</span></div>
+        <h5>暖阁会员即将到期</h5>
+        <p>年度会员还剩 7 天，续费可继续全站长文免费读。</p>
+      </div>
+      <span class="ar">›</span>
+    </a>
+
+    <div class="end">— 站内通知会出现在这里 —</div>
+  </div>
+</div></div></div>
+</body>
+</html>

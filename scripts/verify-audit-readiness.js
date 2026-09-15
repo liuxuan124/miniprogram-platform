@@ -18,6 +18,14 @@ const BAD_PATTERNS = [
 ]
 
 const TRADE_COMPONENTS = ['product_list', 'product_card', 'flash_sale', 'category_nav']
+const QA_COMPONENTS = ['ai_entry', 'form_entry']
+
+function pluginEnabled(plugins, key, defaultEnabled) {
+  const list = Array.isArray(plugins) ? plugins : []
+  const hit = list.find((p) => p && p.key === key)
+  if (!hit) return defaultEnabled !== false
+  return hit.enabled !== false && hit.enabled !== 'false'
+}
 
 function filterTradeComponents(components) {
   const list = Array.isArray(components) ? components : []
@@ -79,14 +87,10 @@ function scanDsl(dsl, label, { clientFilter = false } = {}) {
   for (const t of TRADE_COMPONENTS) {
     if (types.includes(t)) return fail(`${label} 含交易组件: ${t}`)
   }
+  for (const t of QA_COMPONENTS) {
+    if (types.includes(t)) return fail(`${label} 含问答/表单组件: ${t}`)
+  }
   return null
-}
-
-function pluginEnabled(plugins, key) {
-  const list = Array.isArray(plugins) ? plugins : []
-  const hit = list.find((p) => p && p.key === key)
-  if (!hit) return true
-  return hit.enabled !== false && hit.enabled !== 'false'
 }
 
 async function fetchAllPublished(base) {
@@ -118,8 +122,12 @@ async function main() {
   const cfg = cfgRes.body?.data || {}
   if (!cfg.plugins) add('系统配置', fail('plugins 缺失'))
   else {
-    if (pluginEnabled(cfg.plugins, 'product')) add('商品模块', fail('product 仍为开启'))
+    if (pluginEnabled(cfg.plugins, 'product', true)) add('商品模块', fail('product 仍为开启'))
     else add('商品模块', pass('已关闭'))
+    if (pluginEnabled(cfg.plugins, 'form', false)) add('表单模块', fail('form 仍为开启'))
+    else add('表单模块', pass('已关闭'))
+    if (pluginEnabled(cfg.plugins, 'qa', false)) add('问答模块', fail('qa 仍为开启'))
+    else add('问答模块', pass('已关闭'))
     const tabTexts = (cfg.tabbarItems || []).filter((t) => t.enabled !== false).map((t) => t.text)
     if (tabTexts.some((t) => /商品|商城|购物/.test(String(t)))) {
       add('TabBar', fail(`含商城 Tab: ${tabTexts.join(', ')}`))
@@ -200,6 +208,10 @@ async function main() {
     ? fail(`仍命中 ${hits.length} 条: ${hits.map((h) => h.title).join('; ')}`)
     : pass('无结果')
   add('搜索「测试」', searchBad)
+
+  const qaApi = await requestJson(`${base}/api/v1/mp/questions?page=1&size=1`)
+  const qaBlocked = qaApi.body?.code !== 200
+  add('问答API', qaBlocked ? pass('已拦截') : fail('仍可访问'))
 
   const failed = results.filter((r) => !r.ok)
   const summary = {

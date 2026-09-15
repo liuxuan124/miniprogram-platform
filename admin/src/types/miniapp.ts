@@ -65,8 +65,8 @@ export interface UserProfileConfig {
   memberLevelLabel: string
 }
 
-/** 「我的」页模板风格：基础版 / 会员版（兼容旧 standard/premium） */
-export type MineStyleKey = 'basic' | 'member'
+/** 「我的」页模板风格：暖阁纸感 / 基础版 / 会员版（兼容旧 standard/premium） */
+export type MineStyleKey = 'warm' | 'basic' | 'member'
 
 /** 我的页面配置 - 完整版 */
 export interface MinePageConfig {
@@ -91,7 +91,7 @@ export interface MinePageConfig {
   menuItems: MineMenuItem[]
   orderQuickAccess: OrderQuickAccess
   userProfile: UserProfileConfig
-  /** 模板风格 key：basic | member（旧值 standard/premium/minimal/dark 会归一化） */
+  /** 模板风格 key：warm | basic | member（旧值 standard/premium/minimal/dark 会归一化） */
   templateStyle?: string
   /** 卡片样式：gradient | outline（outline 为已删除的简约版，加载时回退） */
   style?: string
@@ -99,25 +99,34 @@ export interface MinePageConfig {
   themeColorSecondary?: string
 }
 
-/** 「我的」页风格模板卡片（仅保留基础版 / 会员版） */
+/** 「我的」页风格模板卡片 */
 export const MINE_STYLE_TEMPLATES: Array<{
   key: MineStyleKey
   name: string
   icon: string
+  desc: string
   gradient: string
   border?: string
 }> = [
   {
+    key: 'warm',
+    name: '暖阁纸感',
+    icon: '📙',
+    desc: '内容社群 · 砖橘渐变',
+    gradient: 'linear-gradient(145deg, #f6ddbf 0%, #d97706 48%, #7c2d12 100%)',
+  },
+  {
     key: 'basic',
-    name: '基础版',
+    name: '经典蓝',
     icon: '👤',
+    desc: '通用商务 · 清爽蓝',
     gradient: 'linear-gradient(145deg, #7BA3F7 0%, #5B7FEA 55%, #6B6FE8 100%)',
   },
   {
     key: 'member',
-    name: '会员版',
+    name: '会员铂金',
     icon: '👑',
-    // 铂金冷蓝：浅紫蓝 → 冰蓝 → 天空蓝
+    desc: '会员运营 · 冷蓝铂金',
     gradient: 'linear-gradient(145deg, #E8EEF8 0%, #C5D8F0 55%, #9BBFE8 100%)',
   },
 ]
@@ -126,15 +135,35 @@ export const MINE_STYLE_PRESETS: Record<MineStyleKey, {
   style: 'gradient'
   themeColor: string
   themeColorSecondary: string
+  showMemberCard: boolean
 }> = {
-  basic: { style: 'gradient', themeColor: '#5B7FEA', themeColorSecondary: '#7BA3F7' },
-  member: { style: 'gradient', themeColor: '#6B9FD9', themeColorSecondary: '#E8EEF8' },
+  warm: {
+    style: 'gradient',
+    themeColor: '#C2410C',
+    themeColorSecondary: '#EA580C',
+    showMemberCard: true,
+  },
+  basic: {
+    style: 'gradient',
+    themeColor: '#5B7FEA',
+    themeColorSecondary: '#7BA3F7',
+    showMemberCard: true,
+  },
+  member: {
+    style: 'gradient',
+    themeColor: '#6B9FD9',
+    themeColorSecondary: '#E8EEF8',
+    showMemberCard: true,
+  },
 }
 
 /** 旧 key → 新 key；已删除的简约/暗黑 → basic */
 export function normalizeMineStyleKey(key?: string | null): MineStyleKey {
-  if (key === 'member' || key === 'premium') return 'member'
-  return 'basic'
+  const raw = String(key || '').trim().toLowerCase()
+  if (raw === 'warm' || raw === 'nuange' || raw === 'content') return 'warm'
+  if (raw === 'member' || raw === 'premium') return 'member'
+  if (raw === 'basic' || raw === 'standard') return 'basic'
+  return 'warm'
 }
 
 /** 从已保存配置推断风格（outline / 暗黑色 → basic） */
@@ -143,7 +172,7 @@ export function resolveMineStyleKey(mine?: {
   style?: string
   themeColor?: string
 } | null): MineStyleKey {
-  if (!mine) return 'basic'
+  if (!mine) return 'warm'
   if (mine.templateStyle) {
     const raw = String(mine.templateStyle)
     if (raw === 'minimal' || raw === 'dark' || raw === 'simple') return 'basic'
@@ -153,16 +182,22 @@ export function resolveMineStyleKey(mine?: {
   const tc = String(mine.themeColor || '').toLowerCase()
   if (tc === '#1e293b' || tc === '#334155' || tc === '#475569') return 'basic'
   if (
+    tc === '#c2410c' || tc === '#ea580c' || tc === '#7c2d12' || tc === '#d97706'
+    || tc === '#b45309' || tc === '#9a3412'
+  ) return 'warm'
+  if (
     tc === '#b8860b' || tc === '#9a7b1c' || tc === '#d4af37' || tc === '#f0d060'
     || tc === '#d4a017' || tc === '#e8c547' || tc === '#f5e08a' || tc === '#c9a227'
     || tc === '#f5a24a' || tc === '#ffc56a' || tc === '#f08a38'
     || tc === '#f0a020' || tc === '#fde389' || tc === '#fcbc29' || tc === '#e78507'
     || tc === '#fecd41' || tc === '#fff6e8' || tc === '#e8b923' || tc === '#fff6df'
+    || tc === '#6b9fd9' || tc === '#9bbfe8' || tc === '#e8eef8'
   ) return 'member'
-  return 'basic'
+  if (tc === '#5b7fea' || tc === '#7ba3f7' || tc === '#002fa7' || tc === '#315efb') return 'basic'
+  return 'warm'
 }
 
-/** 写入风格预设；对已删除风格强制回退到 basic */
+/** 写入风格预设；对已删除风格强制回退到 basic/warm */
 export function applyMineStylePreset(
   mine: Record<string, unknown>,
   key?: string | null,
@@ -335,12 +370,106 @@ export interface MiniappBrandConfig {
   loginTagline: string
   /** 登录页/品牌区英文副标（可选） */
   brandEyebrow: string
+  /** 登录半屏风格模板 */
+  loginStyleKey?: LoginStyleKey
+}
+
+export type LoginStyleKey = 'classic' | 'warm' | 'ink'
+
+export const LOGIN_STYLE_TEMPLATES: Array<{
+  key: LoginStyleKey
+  name: string
+  icon: string
+  desc: string
+  gradient: string
+}> = [
+  {
+    key: 'classic',
+    name: '经典蓝',
+    icon: '🔵',
+    desc: '通用商务，默认风格',
+    gradient: 'linear-gradient(145deg, #5980ff 0%, #315efb 55%, #2446c7 100%)',
+  },
+  {
+    key: 'warm',
+    name: '暖阁纸感',
+    icon: '📙',
+    desc: '内容社群，砖橘纸感',
+    gradient: 'linear-gradient(145deg, #f6ddbf 0%, #ea580c 55%, #c2410c 100%)',
+  },
+  {
+    key: 'ink',
+    name: '墨色极简',
+    icon: '⬛',
+    desc: '低调克制，深色强调',
+    gradient: 'linear-gradient(145deg, #9ca3af 0%, #374151 55%, #111827 100%)',
+  },
+]
+
+export const LOGIN_STYLE_PRESETS: Record<LoginStyleKey, {
+  brand: string
+  brandDeep: string
+  panelBg: string
+  brandShadow: string
+  defaultTagline: string
+}> = {
+  classic: {
+    brand: '#315efb',
+    brandDeep: '#2446c7',
+    panelBg: '#f6f3ee',
+    brandShadow: 'rgba(49, 94, 251, 0.28)',
+    defaultTagline: '想认识一下你，可以吗？',
+  },
+  warm: {
+    brand: '#C2410C',
+    brandDeep: '#9A3412',
+    panelBg: '#f8f1e7',
+    brandShadow: 'rgba(194, 65, 12, 0.24)',
+    defaultTagline: '登录后继续 · 收藏 / 星球 / 已购',
+  },
+  ink: {
+    brand: '#1f2937',
+    brandDeep: '#111827',
+    panelBg: '#f3f4f6',
+    brandShadow: 'rgba(17, 24, 39, 0.22)',
+    defaultTagline: '登录后同步你的阅读与收藏',
+  },
+}
+
+export function normalizeLoginStyleKey(key?: string | null): LoginStyleKey {
+  const raw = String(key || '').trim().toLowerCase()
+  if (raw === 'warm' || raw === 'nuange' || raw === 'content') return 'warm'
+  if (raw === 'ink' || raw === 'minimal' || raw === 'dark' || raw === 'mono') return 'ink'
+  return 'classic'
+}
+
+export function resolveLoginStylePreset(key?: string | null) {
+  return LOGIN_STYLE_PRESETS[normalizeLoginStyleKey(key)]
+}
+
+/** 选用登录模板；若副标题仍是其他模板默认文案，则一并换成新模板默认 */
+export function applyLoginStylePreset(
+  brand: Partial<MiniappBrandConfig>,
+  key?: string | null,
+): LoginStyleKey {
+  const resolved = normalizeLoginStyleKey(key)
+  const preset = LOGIN_STYLE_PRESETS[resolved]
+  const currentTagline = String(brand.loginTagline || '').trim()
+  const isPresetTagline = Object.values(LOGIN_STYLE_PRESETS).some(
+    (item) => item.defaultTagline === currentTagline,
+  )
+  brand.loginStyleKey = resolved
+  if (!currentTagline || isPresetTagline) {
+    brand.loginTagline = preset.defaultTagline
+  }
+  return resolved
 }
 
 export const DEFAULT_MINIAPP_BRAND_CONFIG: MiniappBrandConfig = {
-  appName: '出海笔记',
+  appName: '我的小程序',
   logoUrl: '',
-  logoMark: '海',
+  logoMark: '品',
   loginTagline: '想认识一下你，可以吗？',
-  brandEyebrow: 'CROSS-BORDER NOTES',
+  brandEyebrow: 'MINIAPP',
+  loginStyleKey: 'classic',
 }

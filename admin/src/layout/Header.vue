@@ -1,7 +1,6 @@
 <template>
   <div class="header-container">
     <div class="header-left">
-      <!-- 折叠按钮：A9 补充可访问性——键盘可达 + aria-label -->
       <el-icon
         class="collapse-btn"
         role="button"
@@ -14,7 +13,6 @@
         <Fold v-if="!appStore.sidebarCollapsed" />
         <Expand v-else />
       </el-icon>
-      <!-- 面包屑导航 -->
       <el-breadcrumb separator="/">
         <el-breadcrumb-item
           v-for="item in breadcrumbs"
@@ -26,7 +24,24 @@
       </el-breadcrumb>
     </div>
     <div class="header-right">
-      <!-- 用户下拉菜单 -->
+      <el-select
+        v-if="showTenantSwitcher"
+        v-model="tenantSelectId"
+        class="tenant-switcher"
+        size="small"
+        placeholder="切换租户"
+        filterable
+        @change="onTenantChange"
+      >
+        <el-option
+          v-for="t in tenantStore.tenants"
+          :key="t.id || t.tenantId"
+          :label="`${t.name || t.code} (#${t.id || t.tenantId})`"
+          :value="Number(t.id || t.tenantId)"
+        />
+      </el-select>
+      <span v-else-if="tenantStore.current?.name" class="tenant-label">{{ tenantStore.displayName }}</span>
+
       <el-dropdown trigger="click" @command="handleCommand">
         <span class="user-info">
           <span class="avatar-wrap">
@@ -47,18 +62,53 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
+import { useTenantStore } from '@/stores/tenant'
+import { usePermissionStore } from '@/stores/permission'
 import { ElMessageBox } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
+const tenantStore = useTenantStore()
+const permissionStore = usePermissionStore()
 
-/** 面包屑数据 */
+const tenantSelectId = ref<number | undefined>()
+const showTenantSwitcher = computed(
+  () => permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
+)
+
+watch(
+  () => tenantStore.activeTenantId,
+  (id) => {
+    if (id) tenantSelectId.value = id
+  },
+  { immediate: true },
+)
+
+onMounted(async () => {
+  if (!tenantStore.loaded) await tenantStore.load()
+  if (tenantStore.activeTenantId) tenantSelectId.value = tenantStore.activeTenantId
+})
+
+async function onTenantChange(id: number) {
+  if (!id || id === tenantStore.activeTenantId) return
+  try {
+    await ElMessageBox.confirm(`切换到租户 #${id}？页面将刷新。`, '切换租户', {
+      type: 'warning',
+      confirmButtonText: '切换',
+      cancelButtonText: '取消',
+    })
+    await tenantStore.switchTenant(id)
+  } catch {
+    tenantSelectId.value = tenantStore.activeTenantId || undefined
+  }
+}
+
 const breadcrumbs = computed(() => {
   const matched = route.matched.filter((item) => item.meta?.title)
   return matched.map((item) => ({
@@ -67,7 +117,6 @@ const breadcrumbs = computed(() => {
   }))
 })
 
-/** 下拉菜单命令处理 */
 async function handleCommand(command: string) {
   if (command === 'logout') {
     try {
@@ -79,10 +128,8 @@ async function handleCommand(command: string) {
       await userStore.logout()
       router.push('/login')
     } catch {
-      // 取消退出
+      // cancel
     }
-  } else if (command === 'profile') {
-    // TODO: 跳转个人中心
   }
 }
 </script>
@@ -127,7 +174,21 @@ async function handleCommand(command: string) {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
   flex-shrink: 0;
+}
+
+.tenant-switcher {
+  width: 220px;
+}
+
+.tenant-label {
+  font-size: 13px;
+  color: #64748b;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-info {

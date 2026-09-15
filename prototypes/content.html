@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>出海笔记 · 资讯</title>
+  <link rel="stylesheet" href="./proto.css" />
+  <style>
+    .search {
+      margin: 0 16px 8px; height: 40px; border-radius: 14px;
+      background: #ebe7de; display: flex; align-items: center; padding: 0 14px;
+      color: #8b919c; font-size: 13px;
+    }
+    .cats { display: flex; gap: 18px; padding: 4px 18px 10px; overflow: auto; }
+    .cats span { font-size: 14px; color: #98a0ab; white-space: nowrap; }
+    .cats .on { color: var(--ink); font-weight: 800; }
+    .fmts { display: flex; gap: 8px; padding: 0 16px 12px; overflow: auto; }
+    .fmts span { flex: none; font-size: 12px; padding: 6px 12px; border-radius: 99px; background: #fff; color: #667085; }
+    .fmts .on { background: var(--ink); color: #fff; }
+
+    .hero { margin: 0 16px 8px; height: 250px; border-radius: 24px; overflow: hidden; position: relative; color: #fff; box-shadow: var(--shadow); cursor: pointer; }
+    .hero .cap { position: absolute; inset: auto 0 0; padding: 50px 16px 16px; background: linear-gradient(180deg, transparent, rgba(10,14,24,.9)); }
+    .hero h2 { font-size: 22px; line-height: 1.28; margin-top: 6px; }
+
+    .ed { padding: 2px 18px 0; }
+    .ed a { display: grid; grid-template-columns: 1fr 96px; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .ed h3 { font-size: 16px; font-weight: 700; line-height: 1.35; letter-spacing: -.01em; }
+    .ed p { margin-top: 6px; font-size: 12px; color: var(--mute); line-height: 1.55; }
+    .ed .m { margin-top: 8px; font-size: 11px; color: #a3a8b0; }
+    .ed .ph { height: 74px; border-radius: 8px; overflow: hidden; }
+
+    .masonry { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px 20px; }
+    .note { background: var(--sheet); border-radius: 16px; overflow: hidden; }
+    .note .art { height: 118px; }
+    .note .t { padding: 10px 11px 4px; font-size: 13px; font-weight: 700; line-height: 1.4; }
+    .note .f { padding: 0 11px 12px; font-size: 11px; color: var(--mute); }
+
+    .screen { display: none; height: 100%; }
+    .screen.on { display: block; }
+    .article { height: 100%; overflow: auto; background: #fff; padding-bottom: 70px; }
+    .article::-webkit-scrollbar { display: none; }
+    .cover { height: 240px; position: relative; }
+    .back {
+      position: absolute; left: 16px; top: 54px;
+      width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,.35); color: #fff;
+      display: grid; place-items: center;
+    }
+    .abody { padding: 22px 22px 30px; }
+    .chip { font-size: 11px; color: var(--brand); font-weight: 750; letter-spacing: .08em; }
+    .abody h1 { font-size: 26px; line-height: 1.28; margin: 10px 0 12px; }
+    .lede { font-size: 14px; color: #5c6573; line-height: 1.75; margin-bottom: 16px; }
+    .by { display: flex; gap: 10px; align-items: center; margin-bottom: 22px; font-size: 12px; color: var(--mute); }
+    .av { width: 34px; height: 34px; border-radius: 12px; background: linear-gradient(145deg,#f4efe4,#d7c39a); display: grid; place-items: center; font-weight: 800; color: #3b2a16; }
+    .abody p { font-size: 16px; line-height: 1.9; margin-bottom: 16px; color: #262b33; }
+    .bar {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 64px;
+      background: rgba(255,255,255,.94); backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: space-around;
+      font-size: 12px; color: #5b6573; border-top: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="device">
+      <div class="device-screen">
+        <div class="notch"></div>
+        <section id="list" class="screen on">
+          <div class="status"><span>9:41</span><span>资讯</span><span>􀙇</span></div>
+          <div class="scroll">
+            <div class="search">⌕  搜索选品 / VAT / TikTok</div>
+            <div class="cats"><span class="on">推荐</span><span>选品洞察</span><span>供应链</span><span>平台运营</span><span>合规税务</span></div>
+            <div class="fmts"><span class="on">全部</span><span>笔记</span><span>长文</span><span>视频</span><span>数据</span></div>
+            <div class="hero" onclick="openArticle()">
+              <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1100&q=80" alt="" />
+              <div class="cap">
+                <div class="kicker" style="color:rgba(255,255,255,.7)">Magazine · 选品洞察</div>
+                <h2 class="serif">2026 下半年跨境选品趋势清单</h2>
+              </div>
+            </div>
+            <div class="ed">
+              <a href="#" onclick="openArticle();return false;">
+                <div>
+                  <h3 class="serif">亚马逊广告结构：从自动广告到精准投放</h3>
+                  <p>先用自动广告找词，再拆精准与商品投放，避免预算空转。</p>
+                  <div class="m">平台运营 · 09-08</div>
+                </div>
+                <div class="ph"><img src="https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=400&q=80" alt="" /></div>
+              </a>
+              <a href="#" onclick="openArticle();return false;">
+                <div>
+                  <h3 class="serif">欧洲站 VAT 注册避坑：德法申报节奏</h3>
+                  <p>罚款往往来自节奏错配，而不是税率本身。</p>
+                  <div class="m">合规税务 · 09-06</div>
+                </div>
+                <div class="ph"><img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=400&q=80" alt="" /></div>
+              </a>
+            </div>
+            <div class="masonry">
+              <div class="note">
+                <div class="art"><img src="https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=600&q=80" alt="" /></div>
+                <div class="t">工厂验厂当天我只看这 6 个角落</div>
+                <div class="f">♡ 328</div>
+              </div>
+              <div class="note">
+                <div class="art"><img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80" alt="" /></div>
+                <div class="t">独立站首页首屏，不要再堆 8 个卖点</div>
+                <div class="f">♡ 196</div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <a href="./home.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg>首页</a>
+            <a class="on" href="./content.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v16H5z"/></svg>资讯</a>
+            <a href="./product.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 7h16l-1 13H5L4 7z"/></svg>知识库</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/></svg>我的</a>
+          </nav>
+        </section>
+
+        <section id="detail" class="screen">
+          <div class="article">
+            <div class="cover">
+              <a class="back" href="#" onclick="closeArticle();return false;">‹</a>
+              <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80" alt="" />
+            </div>
+            <div class="abody">
+              <span class="chip">长文 · 选品洞察</span>
+              <h1 class="serif">2026 下半年跨境选品趋势清单</h1>
+              <p class="lede">把趋势写成可执行的清单：平台、人群、履约和合规四条线同时看，而不是只追爆款词。</p>
+              <div class="by"><div class="av">哲</div>出海笔记 · 阿哲 · 09-04 · 12 分钟</div>
+              <p>选品不再是「找一个能打的品」，而是判断这条链路能不能在 90 天内完成测款、履约和回款。</p>
+              <p>先用三个过滤器：需求是否稳定、供应链是否可复制、合规成本是否可预期。三个里有一个答不上，就不要把预算压到单一 SKU。</p>
+              <p>下半年更值得看的，是能复用内容资产的品类：教程、配件、可标准化的小家电，而不是强季节、强认证的重货。</p>
+            </div>
+          </div>
+          <div class="bar"><span>♡  1.2k</span><span>★  收藏</span><span>↗  分享</span></div>
+        </section>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function openArticle(){ list.classList.remove('on'); detail.classList.add('on'); }
+    function closeArticle(){ detail.classList.remove('on'); list.classList.add('on'); }
+  </script>
+</body>
+</html>

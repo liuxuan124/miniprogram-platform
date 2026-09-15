@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 异常与空状态</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .stage { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; padding-top: 16px; }
+  .unit { display: flex; flex-direction: column; align-items: center; width: 410px; }
+  .cap { margin-bottom: 10px; font-size: 12px; font-weight: 700; color: #7c4a1d; background: rgba(255,255,255,.6); padding: 5px 13px; border-radius: 99px; }
+  .note { margin-top: 9px; width: 390px; font-size: 11px; line-height: 1.65; color: #7c6455; text-align: center; }
+
+  /* 通用空态 */
+  .ph-wrap { display: grid; place-items: center; text-align: center; padding: 0 36px; height: 100%; }
+  .ph-wrap .art { width: 120px; height: 120px; border-radius: 36px; display: grid; place-items: center; font-size: 48px;
+    background: linear-gradient(150deg,#fdeedb,#f6ddbf); box-shadow: 0 14px 30px rgba(140,80,30,.12); }
+  .ph-wrap h3 { margin-top: 20px; font-size: 17px; font-weight: 760; }
+  .ph-wrap p { margin-top: 10px; font-size: 12.5px; line-height: 1.72; color: var(--ink-2); }
+  .ph-wrap .btn { margin-top: 20px; }
+  .ph-wrap .sub { margin-top: 13px; font-size: 11px; color: var(--mute); }
+  .ph-wrap .sub a { color: var(--brand); font-weight: 680; }
+
+  /* 未登录：对齐现行微信规则 + 现网 login-sheet（暖阁配色） */
+  .loginsheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 41; background: #fff; border-radius: 24px 24px 0 0;
+    padding: 10px 18px 18px; box-shadow: 0 -10px 28px rgba(80,40,10,.12); }
+  .loginsheet .sheet-top { position: relative; margin-bottom: 4px; }
+  .loginsheet .handle { width: 36px; height: 4px; margin: 0 auto 10px; background: #e8dccf; border-radius: 99px; }
+  .loginsheet .close { position: absolute; top: -2px; right: 0; width: 28px; height: 28px; border-radius: 99px; background: #f3eee7;
+    display: grid; place-items: center; font-size: 13px; color: #8a7464; }
+  .loginsheet .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .loginsheet .lg { width: 42px; height: 42px; border-radius: 99px; display: grid; place-items: center; font-size: 18px; font-weight: 800;
+    background: linear-gradient(135deg,#7c2d12,#d97706); color: #fff; flex: none; box-shadow: 0 6px 14px rgba(124,45,18,.22); }
+  .loginsheet .brand-copy { min-width: 0; }
+  .loginsheet .brand-name { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
+  .loginsheet .brand-tag { margin-top: 4px; font-size: 12px; color: var(--mute); line-height: 1.35; }
+  .loginsheet .panel { margin-bottom: 12px; padding: 2px 14px; background: #f8f1e7; border-radius: 14px; }
+  .loginsheet .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 46px; }
+  .loginsheet .row + .row { border-top: 1px solid rgba(124,74,29,.08); }
+  .loginsheet .row-label { flex: none; font-size: 14px; font-weight: 650; color: var(--ink); }
+  .loginsheet .row-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; flex: 1; }
+  .loginsheet .avatar { width: 32px; height: 32px; border-radius: 99px; background: linear-gradient(145deg,#f0dfc8,#e4c9a8);
+    display: grid; place-items: center; font-size: 14px; color: #9a7a58; }
+  .loginsheet .nick { font-size: 13px; color: #b8a090; text-align: right; flex: 1; }
+  .loginsheet .phone-hint { font-size: 12px; color: #b8a090; }
+  .loginsheet .agree { display: flex; align-items: flex-start; gap: 8px; margin: 2px 2px 12px; }
+  .loginsheet .check { width: 16px; height: 16px; border-radius: 99px; border: 1.5px solid #c4a888; margin-top: 1px; flex: none;
+    display: grid; place-items: center; font-size: 10px; color: #fff; background: #fff; }
+  .loginsheet .check.on { background: var(--brand); border-color: var(--brand); }
+  .loginsheet .agree-copy { font-size: 11px; line-height: 1.55; color: var(--mute); }
+  .loginsheet .agree-copy a { color: var(--brand); }
+  .loginsheet .primary { height: 46px; border-radius: 99px; background: linear-gradient(135deg,#c2410c,#ea580c); color: #fff;
+    font-size: 15px; font-weight: 720; display: grid; place-items: center; box-shadow: 0 10px 22px rgba(194,65,12,.22); }
+  .loginsheet .later { margin-top: 12px; text-align: center; font-size: 13px; color: var(--mute); font-weight: 560; }
+  .loginsheet .skip { margin-top: 8px; text-align: center; font-size: 11px; color: #b5a090; }
+  .blurbg { filter: blur(4px) brightness(.97); }
+
+  /* 骨架屏 */
+  .sk { padding: 8px 16px 0; }
+  .sk .bar { border-radius: 8px; background: linear-gradient(90deg,#f2e5d6 25%,#f9efe2 50%,#f2e5d6 75%); background-size: 300% 100%; }
+  .sk .card { margin-bottom: 16px; display: flex; gap: 12px; }
+  .sk .card .tx { flex: 1; }
+  .sk .card .im { width: 96px; height: 76px; border-radius: 13px; flex: none; }
+  .sk .big { height: 168px; border-radius: 20px; margin-bottom: 18px; }
+
+  /* 支付失败 */
+  .failbox { margin: 108px 18px 0; border-radius: 20px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 24px 18px 20px; text-align: center; }
+  .failbox .ring { width: 62px; height: 62px; margin: 0 auto; border-radius: 99px; display: grid; place-items: center; font-size: 28px; color: #fff;
+    background: linear-gradient(135deg,#f87171,#dc2626); box-shadow: 0 12px 26px rgba(220,38,38,.26); }
+  .failbox h3 { margin-top: 15px; font-size: 18px; font-weight: 780; }
+  .failbox p { margin-top: 9px; font-size: 12px; color: var(--ink-2); line-height: 1.7; }
+  .failbox .code { margin-top: 12px; padding: 9px 11px; border-radius: 11px; background: #f8ecdd; font-size: 10.5px; color: var(--mute); line-height: 1.7; }
+  .failbox .btns { margin-top: 18px; display: flex; gap: 10px; }
+  .failbox .btns .btn { flex: 1; }
+  .reasons { margin: 14px 18px 0; border-radius: 16px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 4px 15px 10px; }
+  .reasons .li { padding: 11px 0; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); line-height: 1.6; }
+  .reasons .li:first-child { border: 0; }
+  .reasons .li b { color: var(--ink); }
+
+  /* 下架 */
+  .offbar { margin: 108px 16px 0; padding: 13px 15px; border-radius: 14px; background: #f5e8d8; font-size: 11.5px; line-height: 1.7; color: var(--ink-2); }
+  .offbar b { color: var(--brand); }
+  .recs { padding: 6px 16px 0; }
+  .recs .it { display: flex; gap: 11px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .recs .it h5 { font-size: 14px; font-weight: 680; line-height: 1.45; }
+  .recs .it .mt { margin-top: 7px; font-size: 10.5px; color: var(--mute); }
+  .recs .it .im { width: 78px; height: 60px; border-radius: 11px; overflow: hidden; flex: none; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+<!-- 未登录：现行合规结构（头像昵称填写 + 手机号快捷登录 + 隐私勾选） -->
+<div class="unit">
+  <div class="cap">① 未登录 · 合规登录弹层</div>
+  <div class="device"><div class="device-screen">
+    <div class="notch"></div>
+    <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="scroll full blurbg" style="padding-top:60px">
+      <div style="padding:16px">
+        <div style="height:150px;border-radius:20px;overflow:hidden"><img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=700&h=400&fit=crop&q=80" alt="" /></div>
+        <div style="margin-top:16px;font-size:18px;font-weight:740">当内容不再免费：一个创作者的第 1000 天</div>
+        <div style="margin-top:12px;font-size:14px;line-height:1.8;color:#3a2a1c">第 1000 天的早上，我把后台数据导出来算了一笔账……</div>
+      </div>
+    </div>
+    <div class="loginsheet">
+      <div class="sheet-top">
+        <div class="handle"></div>
+        <div class="close">✕</div>
+      </div>
+      <div class="brand">
+        <div class="lg">阁</div>
+        <div class="brand-copy">
+          <div class="brand-name">暖阁</div>
+          <div class="brand-tag">登录后继续 · 收藏 / 星球 / 已购</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="row">
+          <div class="row-label">头像</div>
+          <div class="row-right">
+            <div class="avatar">+</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="row-label">昵称</div>
+          <div class="nick">点击填写昵称</div>
+        </div>
+        <div class="row">
+          <div class="row-label">手机号</div>
+          <div class="phone-hint">点击授权手机号</div>
+        </div>
+      </div>
+      <div class="agree">
+        <div class="check on">✓</div>
+        <div class="agree-copy">已阅读并同意<a href="./mine.html">《用户协议》</a>与<a href="./mine.html">《隐私政策》</a></div>
+      </div>
+      <div class="primary">手机号快捷登录</div>
+      <div class="later">暂不登录</div>
+      <div class="skip">未登录也可浏览公开内容</div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+  <div class="note">身份靠静默 <code>wx.login</code>；头像昵称用填写能力（不可再 getUserProfile 一键拿）；手机号用 getPhoneNumber 且非强制。公开内容可逛，收藏 / 评论 / 购买 / 进星球再唤起。</div>
+</div>
+
+<!-- 加载中骨架屏 -->
+<div class="unit">
+  <div class="cap">② 加载中 · 骨架屏</div>
+  <div class="device"><div class="device-screen">
+    <div class="notch"></div>
+    <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="topbar glass"><span class="bk">‹</span><h4>长文</h4></div>
+    <div class="scroll full" style="padding-top:104px">
+      <div class="sk">
+        <div class="bar big"></div>
+        <div class="card">
+          <div class="tx">
+            <div class="bar" style="height:15px;width:92%"></div>
+            <div class="bar" style="height:15px;width:66%;margin-top:9px"></div>
+            <div class="bar" style="height:11px;width:44%;margin-top:14px"></div>
+          </div>
+          <div class="bar im"></div>
+        </div>
+        <div class="card">
+          <div class="tx">
+            <div class="bar" style="height:15px;width:88%"></div>
+            <div class="bar" style="height:15px;width:52%;margin-top:9px"></div>
+            <div class="bar" style="height:11px;width:40%;margin-top:14px"></div>
+          </div>
+          <div class="bar im"></div>
+        </div>
+        <div class="card">
+          <div class="tx">
+            <div class="bar" style="height:15px;width:95%"></div>
+            <div class="bar" style="height:15px;width:60%;margin-top:9px"></div>
+            <div class="bar" style="height:11px;width:48%;margin-top:14px"></div>
+          </div>
+          <div class="bar im"></div>
+        </div>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+  <div class="note">首屏用骨架屏而非转圈，结构与真实列表一致；超过 8 秒转为「加载失败」态。</div>
+</div>
+
+<!-- 无网络 -->
+<div class="unit">
+  <div class="cap">③ 无网络 / 加载失败</div>
+  <div class="device"><div class="device-screen">
+    <div class="notch"></div>
+    <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="topbar glass"><a class="bk" href="./home.html">‹</a><h4>长文</h4></div>
+    <div class="scroll full" style="padding-top:96px">
+      <div class="ph-wrap" style="height:calc(100% - 96px)">
+        <div>
+          <div class="art">📡</div>
+          <h3>网络好像开小差了</h3>
+          <p>检查一下 Wi-Fi 或移动网络<br />连上后点下面的按钮重试</p>
+          <a class="btn" href="./list.html">重新加载</a>
+          <div class="sub">一直失败？<a href="./service-chat.html">联系客服</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+  <div class="note">区分「无网络」与「服务异常」：前者提示检查网络，后者显示错误码并给客服入口。</div>
+</div>
+
+<!-- 空列表 -->
+<div class="unit">
+  <div class="cap">④ 空列表 · 我的收藏</div>
+  <div class="device"><div class="device-screen">
+    <div class="notch"></div>
+    <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="topbar glass"><a class="bk" href="./mine.html">‹</a><h4>我的收藏</h4></div>
+    <div class="scroll full" style="padding-top:96px">
+      <div class="ph-wrap" style="height:calc(100% - 96px)">
+        <div>
+          <div class="art">⭐️</div>
+          <h3>还没有收藏任何内容</h3>
+          <p>读到好文章时点一下右下角的星星<br />之后在这里随时找得到</p>
+          <a class="btn" href="./list.html">去逛逛长文</a>
+          <div class="sub">也可以看看<a href="./discover.html">大家在读什么</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+  <div class="note">空态必须给出口：说明怎么产生数据 + 一个主行动按钮。搜索无结果时改为「换个词试试」并给热门词。</div>
+</div>
+
+<!-- 支付失败 -->
+<div class="unit">
+  <div class="cap">⑤ 支付失败 / 未完成</div>
+  <div class="device"><div class="device-screen">
+    <div class="notch"></div>
+    <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="topbar glass"><a class="bk" href="./order.html">‹</a><h4>支付结果</h4></div>
+    <div class="scroll full">
+      <div class="failbox">
+        <div class="ring">!</div>
+        <h3>支付未完成</h3>
+        <p>订单已保留，<b style="color:var(--brand)">15 分钟内</b>可继续支付<br />超时后将自动关闭，需重新下单</p>
+        <div class="code">订单号 NG202609140941<br />错误码 PAY_CANCELED · 用户取消支付</div>
+        <div class="btns">
+          <a class="btn ghost" href="./mine.html">稍后再说</a>
+          <a class="btn" href="./order.html">继续支付</a>
+        </div>
+      </div>
+      <div class="reasons">
+        <div class="li"><b>余额不足</b>：换一张银行卡或先充值零钱</div>
+        <div class="li"><b>已扣款但未开通</b>：通常 1 分钟内自动同步，可下拉刷新；仍未到账请联系客服并提供订单号</div>
+        <div class="li"><b>重复支付</b>：系统会自动识别并原路退回多付部分</div>
+      </div>
+      <div style="text-align:center;margin-top:16px;font-size:11.5px"><a href="./service-chat.html" style="color:var(--brand);font-weight:700">💬 找客服核实订单 ›</a></div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+  <div class="note">最关键的一态：必须区分「未支付」「已扣款未开通」「重复支付」，并在文案里给出各自动作，否则客服会被淹没。</div>
+</div>
+
+<!-- 内容下架 -->
+<div class="unit">
+  <div class="cap">⑥ 内容已下架 / 无权限</div>
+  <div class="device"><div class="device-screen">
+    <div class="notch"></div>
+    <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+    <div class="topbar glass"><a class="bk" href="./list.html">‹</a><h4>内容详情</h4></div>
+    <div class="scroll full">
+      <div class="offbar">
+        😔 这篇内容<b>已被作者下架</b>，暂时无法查看。<br />如果你此前已购买，权限不受影响，可在「我的 - 已购内容」中继续阅读。
+      </div>
+      <div class="ph-wrap" style="height:auto;padding:26px 36px 6px">
+        <div>
+          <div class="art" style="width:96px;height:96px;border-radius:30px;font-size:38px">📭</div>
+          <h3 style="font-size:16px">内容不可用</h3>
+          <p style="font-size:12px">可能已下架、被删除，或仅对特定人群可见</p>
+        </div>
+      </div>
+      <div class="hd"><h3 class="serif">你可能还想读</h3></div>
+      <div class="recs">
+        <a class="it" href="./article.html">
+          <div style="flex:1"><h5>做内容的第三年，我承认日更是伪命题</h5><div class="mt">墨白 · 主理人 · 1.8 万阅读</div></div>
+          <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=300&h=240&fit=crop&q=80" alt="" /></div>
+        </a>
+        <a class="it" href="./article.html">
+          <div style="flex:1"><h5>付费社群运营 SOP：冷启动到第一个 100 人</h5><div class="mt">老陈 · 特约 · 9.4k 阅读</div></div>
+          <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=300&h=240&fit=crop&q=80" alt="" /></div>
+        </a>
+      </div>
+    </div>
+    <div class="home-indicator"></div>
+  </div></div>
+  <div class="note">下架不等于失去权限——已购用户必须仍能阅读，这是虚拟商品的合规底线。页面要给替代内容，别让用户走进死路。</div>
+</div>
+
+</div>
+</body>
+</html>

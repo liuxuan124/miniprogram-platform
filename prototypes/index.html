@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>出海笔记 · 原型</title>
+  <style>
+    body { margin: 0; background: #bdb6a8; font-family: "Iowan Old Style", "Songti SC", serif; color: #1a1712; }
+    .wrap { max-width: 1320px; margin: 0 auto; padding: 48px 24px 80px; }
+    h1 { font-size: 40px; font-weight: 600; letter-spacing: -.03em; margin: 0; }
+    p { color: #5c564c; margin: 10px 0 36px; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+    iframe { width: 430px; height: 900px; border: 0; background: transparent; }
+    .col { display: flex; flex-direction: column; align-items: center; }
+    .col a { margin-bottom: 12px; font-size: 14px; color: #0b2a8a; font-family: -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>墨太白 · 出海笔记</h1>
+    <p>首页 / 知识库 / 资讯。点卡片进详情，底栏可切换。</p>
+    <div class="grid">
+      <div class="col"><a href="./home.html">home.html</a><iframe src="./home.html"></iframe></div>
+      <div class="col"><a href="./product.html">product.html</a><iframe src="./product.html"></iframe></div>
+      <div class="col"><a href="./content.html">content.html</a><iframe src="./content.html"></iframe></div>
+    </div>
+  </div>
+</body>
+</html>

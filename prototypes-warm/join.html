@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 加入社群</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .stage { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; align-items: flex-start; }
+  .scroll { padding-top: 98px; }
+
+  .intro { margin: 14px 16px 0; border-radius: 22px; padding: 20px 18px 18px; color: #fff; position: relative; overflow: hidden;
+    background: linear-gradient(140deg,#7c2d12,#b45309 60%,#d97706); box-shadow: 0 16px 34px rgba(124,45,18,.26); }
+  .intro::after { content:""; position:absolute; width:180px; height:180px; border-radius:99px; right:-66px; top:-76px; background:rgba(255,255,255,.1); }
+  .intro h2 { position: relative; font-size: 20px; font-weight: 760; line-height: 1.38; letter-spacing: -.02em; }
+  .intro p { position: relative; margin-top: 9px; font-size: 12px; line-height: 1.7; opacity: .84; }
+  .intro .rw { position: relative; margin-top: 14px; display: flex; align-items: center; gap: 7px; }
+  .intro .avs { display: flex; }
+  .intro .avs .av { width: 24px; height: 24px; border: 1.5px solid #b45309; margin-left: -8px; }
+  .intro .avs .av:first-child { margin-left: 0; }
+  .intro .rw span { font-size: 11px; opacity: .85; }
+
+  .ways { margin: 14px 16px 0; display: grid; gap: 11px; }
+  .way { border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 15px 15px 14px; display: block; }
+  .way .hh { display: flex; align-items: center; gap: 11px; }
+  .way .ic { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; flex: none;
+    background: linear-gradient(135deg,#fdeedb,#f6ddbf); }
+  .way h4 { font-size: 15px; font-weight: 760; display: flex; align-items: center; gap: 6px; }
+  .way p { font-size: 11px; color: var(--ink-2); margin-top: 5px; line-height: 1.6; }
+  .way .go { margin-left: auto; flex: none; height: 32px; padding: 0 15px; border-radius: 99px; font-size: 12.5px; font-weight: 740;
+    background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; display: grid; place-items: center; box-shadow: 0 8px 18px rgba(194,65,12,.26); }
+  .way .go.ghost { background: #fbe6d4; color: var(--brand); box-shadow: none; }
+  .way.primary { border: 1px solid #f0d3ad; background: linear-gradient(150deg,#fff7ec,#fffaf3); }
+  .way .tip { margin-top: 11px; padding: 9px 11px; border-radius: 11px; background: #f8ecdd; font-size: 10.5px; line-height: 1.6; color: var(--ink-2); }
+  .way .tip b { color: var(--brand); }
+
+  /* 群列表 */
+  .grps { margin: 12px 16px 0; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); overflow: hidden; }
+  .grps .t { padding: 14px 15px 8px; display: flex; align-items: center; }
+  .grps .t h4 { font-size: 14.5px; font-weight: 770; }
+  .grps .t span { margin-left: auto; font-size: 10.5px; color: var(--mute); }
+  .grps .li { display: flex; align-items: center; gap: 11px; padding: 12px 15px; border-top: 1px solid var(--line); }
+  .grps .lg { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; flex: none;
+    background: linear-gradient(135deg,#fdeedb,#f6ddbf); }
+  .grps h6 { font-size: 13.5px; font-weight: 700; }
+  .grps p { font-size: 10.5px; color: var(--mute); margin-top: 4px; }
+  .grps .bar { margin-top: 6px; width: 96px; height: 4px; border-radius: 99px; background: #f3e3d0; overflow: hidden; }
+  .grps .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--gold),var(--brand-2)); }
+  .grps .jn { margin-left: auto; flex: none; font-size: 12px; font-weight: 720; padding: 7px 14px; border-radius: 99px; background: #fbe6d4; color: var(--brand); }
+  .grps .jn.full { background: #f2e6d8; color: #9c8878; }
+
+  .faq { margin: 14px 16px 0; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 4px 15px 10px; }
+  .faq .li { padding: 13px 0; border-top: 1px solid var(--line); }
+  .faq .li:first-child { border: 0; }
+  .faq h6 { font-size: 13px; font-weight: 720; }
+  .faq p { margin-top: 6px; font-size: 11.5px; line-height: 1.7; color: var(--ink-2); }
+  .note { margin: 12px 16px 0; padding: 12px 14px; border-radius: 13px; border: 1px dashed #e3c9a8; background: #fffdf9; font-size: 10.5px; line-height: 1.75; color: var(--ink-2); }
+  .note b { color: var(--brand); }
+
+  /* 二维码弹层 */
+  .mask { position: absolute; inset: 0; z-index: 40; background: rgba(38,20,8,.55); backdrop-filter: blur(3px); }
+  .sheet2 { position: absolute; z-index: 41; left: 0; right: 0; bottom: 0; border-radius: 26px 26px 0 0; background: var(--bg); padding: 20px 20px 26px; text-align: center; }
+  .sheet2 .hd2 { display: flex; align-items: center; }
+  .sheet2 .hd2 h4 { flex: 1; text-align: center; font-size: 16px; font-weight: 770; }
+  .sheet2 .hd2 .cl { width: 26px; font-size: 19px; color: var(--mute); }
+  .sheet2 .qrbox { margin: 16px auto 0; width: 210px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 12px 28px rgba(120,64,24,.16); }
+  .sheet2 .qr { width: 182px; height: 182px; border-radius: 8px; overflow: hidden; }
+  .sheet2 .nm2 { margin-top: 11px; font-size: 13px; font-weight: 720; }
+  .sheet2 .sb2 { margin-top: 5px; font-size: 10.5px; color: var(--mute); }
+  .sheet2 .press { margin-top: 15px; padding: 11px 13px; border-radius: 13px; background: #fbe6d4; font-size: 12px; line-height: 1.6; color: #8a3b0c; font-weight: 640; }
+  .sheet2 .btns { margin-top: 14px; display: flex; gap: 10px; }
+  .sheet2 .btns .btn { flex: 1; }
+  .sheet2 .exp { margin-top: 12px; font-size: 10px; color: var(--mute); }
+</style>
+</head>
+<body>
+<div class="stage">
+
+<!-- 主页面 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./mine.html">‹</a>
+    <h4>加入社群 · 联系我们</h4>
+  </div>
+
+  <div class="scroll full">
+    <section class="intro">
+      <h2 class="serif">来加个微信吧<br />有问题随时找得到人</h2>
+      <p>新书首发、资料更新、线下活动都会先在群里通知。购买、发票、解锁异常也可以直接找客服处理。</p>
+      <div class="rw">
+        <span class="avs">
+          <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&q=80" alt="" /></span>
+          <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=50&h=50&fit=crop&q=80" alt="" /></span>
+          <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=50&h=50&fit=crop&q=80" alt="" /></span>
+          <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50&h=50&fit=crop&q=80" alt="" /></span>
+        </span>
+        <span>已有 2,860 位读者加入读者群</span>
+      </div>
+    </section>
+
+    <div class="ways">
+      <a class="way primary" href="./service-chat.html">
+        <div class="hh">
+          <span class="ic">💬</span>
+          <div><h4>在线客服 <span class="tag gold">推荐</span></h4><p>购买、发票、解锁问题，工作日 9:00-21:00 秒回</p></div>
+          <span class="go">去咨询</span>
+        </div>
+        <div class="tip">小程序内直接开启会话，<b>无需添加好友</b>，可发图片与订单截图</div>
+      </a>
+
+      <div class="way">
+        <div class="hh">
+          <span class="ic">🧑‍💼</span>
+          <div><h4>添加企微客服</h4><p>加为企业微信好友，长期跟进你的问题</p></div>
+          <span class="go ghost">加好友</span>
+        </div>
+        <div class="tip">点击后跳转企业微信完成添加，<b>换设备也不会丢失聊天记录</b></div>
+      </div>
+
+      <div class="way">
+        <div class="hh">
+          <span class="ic">✍️</span>
+          <div><h4>加主理人墨白</h4><p>仅限年度会员与专栏学员，验证时请备注手机号后四位</p></div>
+          <span class="go ghost">看二维码</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="grps">
+      <div class="t"><h4>按方向进群</h4><span>群满自动开新群</span></div>
+      <div class="li">
+        <span class="lg">💡</span>
+        <div>
+          <h6>内容创业交流群 · 7 群</h6>
+          <p>186 / 200 人</p>
+          <div class="bar"><i style="width:93%"></i></div>
+        </div>
+        <span class="jn">进群</span>
+      </div>
+      <div class="li">
+        <span class="lg">📖</span>
+        <div>
+          <h6>共读打卡群 · 3 群</h6>
+          <p>124 / 200 人</p>
+          <div class="bar"><i style="width:62%"></i></div>
+        </div>
+        <span class="jn">进群</span>
+      </div>
+      <div class="li">
+        <span class="lg">🛍</span>
+        <div>
+          <h6>新书 / 上新通知群</h6>
+          <p>200 / 200 人 · 已满</p>
+          <div class="bar"><i style="width:100%"></i></div>
+        </div>
+        <span class="jn full">已满</span>
+      </div>
+    </section>
+
+    <div class="hd"><h3 class="serif">常见问题</h3></div>
+    <div class="faq">
+      <div class="li"><h6>买了电子书打不开怎么办？</h6><p>先在「我的 - 已购内容」确认订单状态。若显示已支付但未解锁，把订单号发给在线客服，通常 5 分钟内手动补发。</p></div>
+      <div class="li"><h6>进群需要付费吗？</h6><p>读者群免费。星球和专栏是单独的付费产品，不影响进群。</p></div>
+      <div class="li"><h6>群二维码扫不出来？</h6><p>群码 7 天更新一次，过期请回到本页重新获取，或直接联系在线客服拉你进群。</p></div>
+    </div>
+
+    <div class="note">
+      ℹ️ 群内禁止发布广告与无关链接。客服<b>不会以任何理由索要你的微信支付密码或验证码</b>，谨防冒充。
+    </div>
+    <div style="height:18px"></div>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+<!-- 二维码弹层 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./mine.html">‹</a>
+    <h4>加入社群 · 联系我们</h4>
+  </div>
+
+  <div class="scroll full">
+    <section class="intro">
+      <h2 class="serif">来加个微信吧<br />有问题随时找得到人</h2>
+      <p>新书首发、资料更新、线下活动都会先在群里通知。</p>
+    </section>
+    <div class="ways">
+      <div class="way primary"><div class="hh"><span class="ic">💬</span><div><h4>在线客服</h4><p>购买、发票、解锁问题</p></div><span class="go">去咨询</span></div></div>
+      <div class="way"><div class="hh"><span class="ic">🧑‍💼</span><div><h4>添加企微客服</h4><p>加为企业微信好友</p></div><span class="go ghost">加好友</span></div></div>
+    </div>
+  </div>
+
+  <div class="mask"></div>
+  <div class="sheet2">
+    <div class="hd2"><span class="cl"></span><h4>内容创业交流群 · 7 群</h4><a class="cl" href="./join.html">×</a></div>
+    <div class="qrbox">
+      <div class="qr"><img class="ph" src="https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=https%3A%2F%2Fnuange.example%2Fgroup%2F7&margin=0" alt="" /></div>
+    </div>
+    <div class="nm2">186 / 200 人 · 群主：暖阁小助手</div>
+    <div class="sb2">入群后请修改备注为「城市 + 方向」</div>
+    <div class="press">📌 长按上方二维码识别进群<br />或点「保存到相册」后用微信扫一扫</div>
+    <div class="btns">
+      <a class="btn ghost" href="./join.html">保存到相册</a>
+      <a class="btn" href="./service-chat.html">扫不出？找客服</a>
+    </div>
+    <div class="exp">二维码 7 天后失效 · 剩余 5 天 14 小时</div>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+</div>
+</body>
+</html>

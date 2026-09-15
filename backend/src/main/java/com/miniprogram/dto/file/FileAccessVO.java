@@ -23,6 +23,22 @@ public class FileAccessVO {
 
     private Integer previewPercent;
 
+    private String previewMode;
+
+    private Integer previewValue;
+
+    private Integer pageCount;
+
+    private Boolean allowForward;
+
+    private Boolean watermark;
+
+    private String watermarkText;
+
+    private Integer previewPages;
+
+    private Long boundProductId;
+
     private Boolean canRead;
 
     private Boolean canDownload;
@@ -36,4 +52,7 @@ public class FileAccessVO {
     private String minReadLevelName;
 
     private String minDownloadLevelName;
+
+    /** PDF/DOCX 试读流地址（相对 API 路径） */
+    private String previewUrl;
 }

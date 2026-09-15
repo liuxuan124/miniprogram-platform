@@ -20,6 +20,7 @@ import com.miniprogram.mapper.MemberLevelMapper;
 import com.miniprogram.mapper.MemberPointsLogMapper;
 import com.miniprogram.mapper.MiniProgramUserMapper;
 import com.miniprogram.mapper.OrderMapper;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniProgramUserService;
 import com.miniprogram.user.UserSourceChannels;
 import lombok.RequiredArgsConstructor;
@@ -106,6 +107,7 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
 
     private LambdaQueryWrapper<MiniProgramUser> buildListWrapper(MiniProgramUserQueryDTO queryDTO) {
         LambdaQueryWrapper<MiniProgramUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MiniProgramUser::getTenantId, SecurityUtils.getCurrentTenantId());
         if (StringUtils.hasText(queryDTO.getKeyword())) {
             String keyword = queryDTO.getKeyword().trim();
             wrapper.and(w -> w.like(MiniProgramUser::getNickname, keyword)

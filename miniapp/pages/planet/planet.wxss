@@ -1,0 +1,14 @@
+@import "../../styles/warm-theme.wxss";
+@import "../../templates/dsl-tab-body.wxss";
+@import "../../styles/planet-blocks.wxss";
+
+.pl-page {
+  min-height: 100vh;
+  background: #fdf6ec;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.pl-scroll {
+  height: 100vh;
+}

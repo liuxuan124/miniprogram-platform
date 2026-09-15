@@ -3,12 +3,42 @@
     <PageHeader
       kicker="系统 / 智能 Agent"
       title="智能 Agent"
-      description="按岗位管理模型、Prompt、知识库与发布。未单独配置的岗位会借用客服配置。"
+      description="按岗位管理模型、Prompt、语料库与发布。未单独配置的岗位会借用客服配置。"
     >
       <template #actions>
-        <el-button type="primary" plain @click="$router.push('/ai/knowledge')">知识库管理</el-button>
+        <el-button type="primary" plain @click="$router.push('/ai/knowledge')">AI 语料库</el-button>
+        <el-button type="primary" @click="$router.push('/ai/drafts')">草稿箱</el-button>
       </template>
     </PageHeader>
+
+    <el-card shadow="never" class="public-switch-card">
+      <div class="public-switch">
+        <div>
+          <strong>小程序 Agent 入口</strong>
+          <span class="muted">agent_public_enabled · 默认关闭，用户看不到 AI 入口</span>
+        </div>
+        <el-switch v-model="agentPublicEnabled" :loading="savingPublic" @change="onPublicToggle" />
+      </div>
+    </el-card>
+
+    <el-card shadow="never" class="public-switch-card">
+      <div class="trigger-head">
+        <strong>触发位（需先打开总开关）</strong>
+        <el-button size="small" type="primary" :loading="savingTriggers" @click="saveTriggers">保存</el-button>
+      </div>
+      <div class="trigger-row">
+        <span>搜索页「问问暖阁」</span>
+        <el-switch v-model="triggerConfig.searchEntry" />
+      </div>
+      <div class="trigger-row">
+        <span>首页悬浮入口</span>
+        <el-switch v-model="triggerConfig.homeFab" />
+      </div>
+      <div class="trigger-row">
+        <span>星球页悬浮入口</span>
+        <el-switch v-model="triggerConfig.planetFab" />
+      </div>
+    </el-card>
 
     <el-row :gutter="16" v-loading="loading">
       <el-col v-for="card in roleCards" :key="card.role" :xs="24" :sm="12" :lg="8">
@@ -75,16 +105,74 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
+import { ElMessage } from 'element-plus'
+import { get, put } from '@/api/request'
 import { getAgentRoles } from '@/api/agent'
 import { ROLE_NAMES } from '@/constants/agentRoles'
+import { useIndustryProfileStore } from '@/stores/industry-profile'
 import type { AgentRoleCard } from '@/types/agent'
 
 const router = useRouter()
+const industryProfileStore = useIndustryProfileStore()
 const loading = ref(false)
 const roleCards = ref<AgentRoleCard[]>([])
+const agentPublicEnabled = ref(false)
+const savingPublic = ref(false)
+const savingTriggers = ref(false)
+const triggerConfig = reactive({
+  searchEntry: true,
+  homeFab: false,
+  planetFab: true,
+})
+
+async function loadPublicSwitch() {
+  try {
+    const res = await get<any>('/api/v1/admin/agent/public-enabled')
+    agentPublicEnabled.value = Boolean((res as any)?.data?.enabled)
+  } catch {
+    agentPublicEnabled.value = false
+  }
+}
+
+async function onPublicToggle(val: boolean) {
+  savingPublic.value = true
+  try {
+    await put('/api/v1/admin/agent/public-enabled', { enabled: val })
+    ElMessage.success(val ? '已开放小程序入口' : '已关闭小程序入口')
+  } catch (e: any) {
+    agentPublicEnabled.value = !val
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    savingPublic.value = false
+  }
+}
+
+async function loadTriggerConfig() {
+  try {
+    const res = await get<any>('/api/v1/admin/agent/trigger-config')
+    const data = (res as any)?.data ?? res ?? {}
+    triggerConfig.searchEntry = data.searchEntry !== false
+    triggerConfig.homeFab = Boolean(data.homeFab)
+    triggerConfig.planetFab = data.planetFab !== false
+  } catch {
+    /* keep defaults */
+  }
+}
+
+async function saveTriggers() {
+  savingTriggers.value = true
+  try {
+    await put('/api/v1/admin/agent/trigger-config', { ...triggerConfig })
+    ElMessage.success('触发位已保存')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    savingTriggers.value = false
+  }
+}
 
 const FALLBACK_ORDER: AgentRoleCard[] = [
   { role: 'service', name: '客服助手', configured: false },
@@ -117,18 +205,19 @@ function goSandbox(role: string) {
   router.push({ path: `/ai/agent/${role}`, query: { tab: 'sandbox' } })
 }
 
+function filterByIndustry(list: AgentRoleCard[]) {
+  return list.filter((card) => industryProfileStore.isAgentRoleAllowed(card.role) || card.comingSoon)
+}
+
 async function loadRoles() {
   loading.value = true
   try {
+    if (!industryProfileStore.loaded) await industryProfileStore.load()
     const res = await getAgentRoles()
     const list = res.data || []
-    if (list.length > 0) {
-      roleCards.value = list
-    } else {
-      roleCards.value = FALLBACK_ORDER
-    }
+    roleCards.value = filterByIndustry(list.length > 0 ? list : FALLBACK_ORDER)
   } catch {
-    roleCards.value = FALLBACK_ORDER
+    roleCards.value = filterByIndustry(FALLBACK_ORDER)
   } finally {
     loading.value = false
   }
@@ -136,12 +225,40 @@ async function loadRoles() {
 
 onMounted(() => {
   void loadRoles()
+  void loadPublicSwitch()
+  void loadTriggerConfig()
 })
 </script>
 
 <style scoped lang="scss">
 .agent-list-page {
   padding: 20px;
+}
+.public-switch-card { margin-bottom: 16px; }
+.public-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.trigger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.trigger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.public-switch .muted {
+  display: block;
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
 }
 .role-card {
   margin-bottom: 16px;

@@ -2,9 +2,12 @@ package com.miniprogram.security;
 
 import com.miniprogram.entity.AdminUser;
 import com.miniprogram.entity.Role;
+import com.miniprogram.entity.User;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.RoleMapper;
+import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.PermissionService;
+import com.miniprogram.tenant.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,15 +40,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final RoleMapper roleMapper;
     private final PermissionService permissionService;
     private final JwtBlacklistService jwtBlacklistService;
+    private final UserMapper userMapper;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String TENANT_HEADER = "X-Tenant-Id";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
+            resolveTenant(request);
             String token = extractToken(request);
 
             if (StringUtils.hasText(token)) {
@@ -72,13 +78,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                // 构建权限列表（管理端会校验账号 status）
                 List<SimpleGrantedAuthority> authorities = buildAuthorities(userId, username, response);
                 if (authorities == null) {
                     return;
                 }
 
-                // 构建认证对象
+                bindTenantForUser(userId, username, request);
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userId,
@@ -88,16 +94,70 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(username);
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("JWT 认证成功: userId={}, username={}, authorities={}", userId, username, authorities);
+                log.debug("JWT 认证成功: userId={}, tenantId={}, username={}", userId, TenantContext.getTenantId(), username);
             }
         } catch (Exception e) {
             log.error("JWT 认证处理异常: {}", e.getMessage());
             SecurityContextHolder.clearContext();
+            TenantContext.clear();
             SecurityErrorWriter.write(response, 401, 110101, "未登录");
             return;
         }
 
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    /** 匿名请求：Header 优先，否则默认租户 */
+    private void resolveTenant(HttpServletRequest request) {
+        String header = request.getHeader(TENANT_HEADER);
+        if (StringUtils.hasText(header)) {
+            try {
+                TenantContext.setTenantId(Long.parseLong(header.trim()));
+                return;
+            } catch (NumberFormatException ignored) {
+                // fallthrough
+            }
+        }
+        TenantContext.setTenantId(TenantContext.DEFAULT_TENANT_ID);
+    }
+
+    private void bindTenantForUser(Long userId, String username, HttpServletRequest request) {
+        if (username != null && username.startsWith("wx_")) {
+            User user = userMapper.selectById(userId);
+            if (user != null && user.getTenantId() != null) {
+                TenantContext.setTenantId(user.getTenantId());
+            }
+            return;
+        }
+        AdminUser adminUser = adminUserMapper.selectById(userId);
+        if (adminUser != null && adminUser.getTenantId() != null) {
+            TenantContext.setTenantId(adminUser.getTenantId());
+        }
+        // 仅超管可用 X-Tenant-Id 切换租户上下文
+        String header = request.getHeader(TENANT_HEADER);
+        if (!StringUtils.hasText(header) || adminUser == null) {
+            return;
+        }
+        if (!isSuperAdmin(adminUser)) {
+            return;
+        }
+        try {
+            TenantContext.setTenantId(Long.parseLong(header.trim()));
+        } catch (NumberFormatException ignored) {
+            // keep admin tenant
+        }
+    }
+
+    private boolean isSuperAdmin(AdminUser adminUser) {
+        if (adminUser.getRoleId() == null) {
+            return false;
+        }
+        Role role = roleMapper.selectById(adminUser.getRoleId());
+        return role != null && "super_admin".equals(role.getCode());
     }
 
     /**

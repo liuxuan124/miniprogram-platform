@@ -1,13 +1,24 @@
 import type { NavTab } from '@/types/miniapp'
 
-/** 与小程序 app.json tabBar 注册的壳页面一一对应（微信上限 5） */
+/**
+ * 与小程序 app.json tabBar 注册的壳页面一一对应（微信上限 5）
+ * 契约与 miniapp/utils/tabbar-config.js 的 TAB_SLOT_ROUTES 保持同步
+ */
 export const TAB_SHELL_ROUTES = [
   '/pages/index/index',
-  '/pages/content-list/content-list',
-  '/pages/knowledge-mall/knowledge-mall',
+  '/pages/discover/discover',
+  '/pages/planet/planet',
+  '/pages/shop/shop',
   '/pages/mine/mine',
-  '/pages/tab-hub/tab-hub',
 ] as const
+
+/** 历史壳页 → 现行壳页（兼容旧配置） */
+export const LEGACY_TAB_SHELL_ALIASES: Record<string, TabShellRoute> = {
+  '/pages/content-list/content-list': '/pages/discover/discover',
+  '/pages/knowledge-mall/knowledge-mall': '/pages/shop/shop',
+  '/pages/product-list/product-list': '/pages/shop/shop',
+  '/pages/tab-hub/tab-hub': '/pages/mine/mine',
+}
 
 export type TabShellRoute = typeof TAB_SHELL_ROUTES[number]
 
@@ -19,6 +30,10 @@ function normalizeShellRoute(route?: string): string {
   return '/' + String(route).trim().replace(/^\/+/, '')
 }
 
+function mapLegacyShell(route: string): string {
+  return LEGACY_TAB_SHELL_ALIASES[route] || route
+}
+
 function isShellRoute(route: string): route is TabShellRoute {
   return (TAB_SHELL_ROUTES as readonly string[]).includes(route)
 }
@@ -28,28 +43,38 @@ function inferShellRouteFromTab(tab: NavTab): TabShellRoute | '' {
   const path = normalizeShellRoute(tab.pagePath)
   const text = String(tab.text || tab.pageName || '')
   if (path.includes('/pages/mine/mine') || /我的|mine/i.test(text)) return '/pages/mine/mine'
-  if (path.includes('/pages/tab-hub/tab-hub') || /更多|工具|扩展/.test(text)) return '/pages/tab-hub/tab-hub'
-  if (path.includes('/pages/knowledge-mall') || path.includes('/pages/product-list') || /商品|商城/.test(text)) {
-    return '/pages/knowledge-mall/knowledge-mall'
+  if (path.includes('/pages/planet') || /星球/.test(text)) return '/pages/planet/planet'
+  if (
+    path.includes('/pages/shop')
+    || path.includes('/pages/knowledge-mall')
+    || path.includes('/pages/product-list')
+    || /商品|商城/.test(text)
+  ) {
+    return '/pages/shop/shop'
   }
-  if (path.includes('/pages/content-list') || /内容|资讯|干货/.test(text)) {
-    return '/pages/content-list/content-list'
+  if (
+    path.includes('/pages/discover')
+    || path.includes('/pages/content-list')
+    || /发现|内容|资讯|干货/.test(text)
+  ) {
+    return '/pages/discover/discover'
   }
   if (path.includes('/pages/index/index') || /首页|home/i.test(text)) return '/pages/index/index'
   if (path.startsWith('/pages/custom/')) {
     if (/我的/.test(text)) return '/pages/mine/mine'
-    if (/内容|资讯/.test(text)) return '/pages/content-list/content-list'
-    if (/商品|商城/.test(text)) return '/pages/knowledge-mall/knowledge-mall'
+    if (/星球/.test(text)) return '/pages/planet/planet'
+    if (/发现|内容|资讯/.test(text)) return '/pages/discover/discover'
+    if (/商品|商城/.test(text)) return '/pages/shop/shop'
     if (/首页/.test(text)) return '/pages/index/index'
   }
   return ''
 }
 
 export function resolveTabShellRoute(tab: NavTab, index: number): TabShellRoute {
-  const raw = normalizeShellRoute(
+  const raw = mapLegacyShell(normalizeShellRoute(
     (tab as NavTab & { tabRoute?: string; slotRoute?: string }).tabRoute
       || (tab as NavTab & { slotRoute?: string }).slotRoute,
-  )
+  ))
   if (raw && isShellRoute(raw)) return raw
 
   const inferred = inferShellRouteFromTab(tab)
@@ -77,7 +102,6 @@ export function normalizeTabBarItems(tabs: NavTab[]): NavTab[] {
 
   source.slice(0, TABBAR_MAX).forEach((tab, index) => {
     let tabRoute = resolveTabShellRoute(tab, index)
-    // 同一壳页只能出现一次：冲突时改分空闲壳
     if (usedRoutes.has(tabRoute)) {
       const free = TAB_SHELL_ROUTES.find((route) => !usedRoutes.has(route))
       if (free) tabRoute = free
@@ -86,6 +110,11 @@ export function normalizeTabBarItems(tabs: NavTab[]): NavTab[] {
 
     let pagePath = String(tab.pagePath || '').trim()
     if (pagePath && !pagePath.startsWith('/')) pagePath = `/${pagePath}`
+    // 历史 pagePath 归一到现行壳
+    const mappedPath = mapLegacyShell(normalizeShellRoute(pagePath))
+    if (mappedPath && isShellRoute(mappedPath) && (!pagePath || LEGACY_TAB_SHELL_ALIASES[normalizeShellRoute(pagePath)])) {
+      pagePath = mappedPath
+    }
     if (!pagePath) pagePath = tabRoute
 
     sliced.push({
@@ -119,15 +148,21 @@ export function normalizeTabBarItems(tabs: NavTab[]): NavTab[] {
 
 export function createEmptyTab(tabs: NavTab[]): NavTab & { tabRoute: string } {
   const tabRoute = pickNextShellRoute(tabs)
+  const index = tabs.length
   return {
-    id: `tab-${Date.now()}`,
-    text: '新导航',
+    id: `tab-${index}`,
+    text: `导航${index + 1}`,
     icon: '/images/nav-icons/g-bag.png',
     pagePath: tabRoute,
     pageId: '',
     pageName: '',
     tabRoute,
   }
+}
+
+export function isTabShellRoute(route: string): boolean {
+  const n = mapLegacyShell(normalizeShellRoute(route))
+  return isShellRoute(n)
 }
 
 /** 用于脏检查：忽略无关字段波动，只比业务字段 */
@@ -138,6 +173,6 @@ export function tabBarSnapshot(tabs: NavTab[]): unknown {
     pagePath: tab.pagePath,
     pageId: tab.pageId == null || tab.pageId === '' ? '' : String(tab.pageId),
     pageName: tab.pageName || '',
-    tabRoute: tab.tabRoute || '',
+    tabRoute: (tab as NavTab & { tabRoute?: string }).tabRoute || '',
   }))
 }

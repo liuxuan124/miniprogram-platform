@@ -372,12 +372,12 @@
   gap: 14rpx;
   padding: 16rpx;
   color: #fff;
-  background: linear-gradient(135deg, #409eff, #337ecc);
+  background: linear-gradient(135deg, #c2410c, #d97706);
   border-radius: 20rpx;
 }
 
 .dsl-ai-entry--blue {
-  background: linear-gradient(135deg, #409eff, #337ecc);
+  background: linear-gradient(135deg, #c2410c, #d97706);
 }
 
 .dsl-ai-entry--green {

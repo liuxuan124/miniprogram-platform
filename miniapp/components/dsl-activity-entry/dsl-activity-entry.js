@@ -28,7 +28,7 @@ Component({
       title: '热门活动',
       show_button: true,
       button_text: '立即预约',
-      theme: 'blue',
+      theme: 'gold',
       style_type: 'card',
       hasValidImage: false,
     },
@@ -66,7 +66,7 @@ Component({
       if (!config) return
       const processed = {
         ...config,
-        theme: config.theme || 'blue',
+        theme: config.theme || 'gold',
         style_type: (config.layout === 'banner' || config.style_type === 'full') ? 'full' : (config.layout === 'list' ? 'list' : 'card'),
         show_button: config.show_button !== false,
         show_countdown: config.show_countdown !== false,

@@ -1,52 +1,132 @@
 <page-meta page-style="{{themePageStyle}}" />
 <view class="moment-page" wx:if="{{!loading && moment}}">
-  <view class="moment-head">
-    <image wx:if="{{moment.author_avatar}}" class="moment-av-img" src="{{moment.author_avatar}}" mode="aspectFill" />
-    <text wx:else class="moment-av">{{moment.author_initial}}</text>
-    <view class="moment-meta">
-      <text class="moment-name">{{moment.author}}</text>
-      <text class="moment-time">{{moment.time_text}}</text>
+  <view class="md-post">
+    <view class="md-hh">
+      <image wx:if="{{moment.author_avatar}}" class="md-av" src="{{moment.author_avatar}}" mode="aspectFill" />
+      <view wx:else class="md-av md-av--txt">{{moment.author_initial}}</view>
+      <view>
+        <view class="md-nm">
+          <text>{{moment.author}}</text>
+          <text class="warm-tag" wx:if="{{moment.authorTag}}">{{moment.authorTag}}</text>
+        </view>
+        <view class="md-tm">{{moment.time_text}}</view>
+      </view>
+      <view class="md-fo" bindtap="onFollowTap">＋ 关注</view>
+    </view>
+
+    <view class="md-title warm-serif" wx:if="{{moment.title}}">{{moment.title}}</view>
+    <view class="md-ct" wx:if="{{bodyText}}">{{bodyText}}</view>
+
+    <view wx:if="{{images.length}}" class="md-gg">
+      <image
+        wx:for="{{images}}"
+        wx:key="*this"
+        src="{{item}}"
+        mode="aspectFill"
+        data-url="{{item}}"
+        bindtap="onPreviewImage"
+      />
+    </view>
+
+    <view class="md-tp" wx:if="{{topics}}">{{topics}}</view>
+    <view class="md-st" wx:if="{{statsLine}}">{{statsLine}}</view>
+  </view>
+
+  <view class="md-answer" wx:if="{{answer}}">
+    <view class="md-answer__bar">{{answer.bar}}</view>
+    <view class="md-answer__bd">
+      <view class="md-answer__p" wx:for="{{answer.paras}}" wx:key="*this">{{item}}</view>
+    </view>
+    <view class="md-answer__ft">
+      <text>❤️ {{answer.likes}}</text>
+      <text>💬 {{answer.asks}} 条追问</text>
+      <text>⭐️ 收藏</text>
     </view>
   </view>
 
-  <view class="moment-title" wx:if="{{moment.title}}">{{moment.title}}</view>
-
-  <view class="moment-body">
-    <text wx:for="{{paragraphs}}" wx:key="*this" class="moment-p">{{item}}</text>
-  </view>
-
-  <view wx:if="{{images.length}}" class="moment-images">
+  <view class="md-likes" wx:if="{{likeWall}}">
     <image
-      wx:for="{{images}}"
+      wx:for="{{likeWall.avatars}}"
       wx:key="*this"
-      class="moment-img"
+      class="md-likes__av"
       src="{{item}}"
       mode="aspectFill"
-      data-url="{{item}}"
-      bindtap="onPreviewImage"
     />
+    <text class="md-likes__tx">{{likeWall.text}}</text>
   </view>
 
-  <view wx:if="{{attachments.length}}" class="moment-files">
-    <view class="moment-files__title">资料附件</view>
+  <view class="md-files" wx:if="{{attachments.length}}">
+    <view class="md-answer__bar" style="margin:-24rpx -24rpx 12rpx;border-radius:28rpx 28rpx 0 0">资料附件</view>
     <view
       wx:for="{{attachments}}"
       wx:key="id"
-      class="moment-file {{item.locked ? 'moment-file--locked' : ''}}"
+      class="md-file"
       data-index="{{index}}"
       bindtap="onOpenAttachment"
     >
-      <text class="moment-file__icon">{{item.icon}}</text>
-      <view class="moment-file__meta">
-        <text class="moment-file__name">{{item.name}}</text>
-        <text class="moment-file__size">{{item.sizeText}}{{item.qualityTier === 'premium' ? ' · 精品' : ''}}</text>
-        <text wx:if="{{item.lockedReason && item.locked}}" class="moment-file__lock">{{item.lockedReason}}</text>
+      <text>{{item.icon}}</text>
+      <view style="flex:1">
+        <view style="font-size:28rpx;font-weight:700">{{item.name}}</view>
+        <view style="font-size:22rpx;color:var(--mute);margin-top:6rpx">{{item.sizeText}}</view>
       </view>
-      <text class="moment-file__action">{{item.actionText}}</text>
+      <text style="color:var(--brand);font-size:24rpx">{{item.actionText}}</text>
     </view>
   </view>
 
-  <view wx:if="{{shareDesc}}" class="moment-share-tip">分享后好友可查看{{shareDesc}}</view>
+  <view class="warm-sep"></view>
+
+  <view class="md-cmts">
+    <view class="md-bar2">
+      <text class="md-bar2__on">讨论 {{commentCount}}</text>
+      <text class="md-bar2__mute {{hostOnly ? 'on' : ''}}" bindtap="onToggleHostOnly">只看星主</text>
+      <text class="md-bar2__sort" bindtap="onSortTap">{{sortLabel || '按热度'}} ⌄</text>
+    </view>
+
+    <view wx:if="{{!displayDiscussions.length}}" class="md-empty-cmt">暂无星主讨论</view>
+
+    <view wx:for="{{displayDiscussions}}" wx:key="id" class="md-cm">
+      <image class="md-cm__av" src="{{item.avatar}}" mode="aspectFill" />
+      <view style="flex:1">
+        <view class="md-cm__nm">
+          <text>{{item.nick}}</text>
+          <text class="md-badge" wx:if="{{item.badge}}">{{item.badge}}</text>
+        </view>
+        <view class="md-cm__tx">{{item.text}}</view>
+        <view class="md-cm__ft">回复</view>
+        <view class="md-cm__rp" wx:if="{{item.reply}}">{{item.reply}}</view>
+      </view>
+      <view class="md-cm__hb">❤\n{{item.likes}}</view>
+    </view>
+  </view>
 </view>
 
-<view wx:elif="{{loading}}" class="moment-loading">加载中...</view>
+<view wx:elif="{{loading}}" class="md-loading">加载中...</view>
+<view wx:else class="md-empty">内容不存在或已下架</view>
+
+<view class="warm-actionbar md-composer" wx:if="{{!loading && moment}}">
+  <block wx:if="{{showInput}}">
+    <input
+      class="warm-ipt md-input"
+      focus="{{showInput}}"
+      value="{{draft}}"
+      placeholder="参与讨论…"
+      confirm-type="send"
+      bindinput="onDraftInput"
+      bindconfirm="onSendComment"
+      bindblur="onInputBlur"
+    />
+    <view class="md-send" bindtap="onSendComment">发送</view>
+  </block>
+  <block wx:else>
+    <view class="warm-ipt" bindtap="onCommentTap">参与讨论…</view>
+    <view class="md-ac {{liked ? 'md-ac--on' : ''}}" bindtap="onLikeTap">
+      <text class="md-ac__ic">{{liked ? '❤️' : '♡'}}</text>{{likeCount}}
+    </view>
+    <view class="md-ac {{favorited ? 'md-ac--on' : ''}}" bindtap="onFavoriteTap">
+      <text class="md-ac__ic">{{favorited ? '⭐️' : '☆'}}</text>{{favorited ? '已收藏' : '收藏'}}
+    </view>
+    <view class="md-ac" bindtap="onShareTap">
+      <text class="md-ac__ic">↗️</text>分享
+    </view>
+  </block>
+</view>

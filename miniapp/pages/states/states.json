@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "异常与空状态",
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FDF6EC",
+  "usingComponents": {
+    "login-sheet": "/components/login-sheet/login-sheet"
+  }
+}

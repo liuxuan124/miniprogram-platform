@@ -256,7 +256,7 @@
 
 | 属性 | 类型 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
-| layout | String | 否 | "card" | 布局：card / list / compact |
+| layout | String | 否 | "card" | 布局：card / list / compact / overlay（封面沉浸） / magazine（杂志首篇） / grid（双列网格） / editorial（报刊细排） |
 | show_cover | Boolean | 否 | true | 显示封面 |
 | show_summary | Boolean | 否 | true | 显示摘要 |
 | show_date | Boolean | 否 | true | 显示日期 |
@@ -791,7 +791,7 @@
 | banner | 轮播组件 | static | 支持多图轮播，每项可配跳转 |
 | nav | 快捷导航 | static | 宫格导航，可配行列数 |
 | product_list | 商品列表 | product | 支持网格/列表/瀑布流布局 |
-| article_list | 文章列表 | content | 支持卡片/列表/紧凑布局 |
+| article_list | 文章列表 | content | 卡片/列表/紧凑 + 封面沉浸/杂志首篇/双列网格/报刊细排 |
 | activity_entry | 活动入口 | activity | 支持倒计时和名额展示 |
 | member_card | 会员卡 | static | 展示会员信息和权益 |
 | coupon | 优惠券 | coupon | 支持领取和展示 |
@@ -801,6 +801,19 @@
 | rich_text | 富文本 | static | HTML 内容展示 |
 | divider | 分割线 | static | 视觉分隔 |
 | spacer | 间距 | static | 空白间距 |
+
+### 4.14 已实现组件清单（须与代码同步）
+
+后台 `ComponentType` 与小程序 `COMPONENT_TYPES` 当前包含以下 type（含 2026-09-10 补齐）：
+
+search, notice_bar, category_nav, banner, image, nav, product_list, flash_sale, article_list, article_feed, note_feed, moments_feed, hot_news, activity_entry, activity_list, appointment_service, member_card, coupon, video, brand_intro, image_text, contact_info, certificate, countdown, float_button, rich_text, section_title, divider, spacer, form_entry, ai_entry, join_group, brand_header, container, image_hotspot, section_bg, feature_cards, **image_cube（图片魔方）**, **content_tabs（选项卡）**, **planet_hero（星球顶栏）**, **planet_topics（星球话题预测）**, **planet_feed（星球动态流）**。
+
+`join_group.groups[]` 入群双通道：
+
+- `join_type=qrcode` + `qrcode`：个人微信群，长按/保存二维码（微信无点按进个人群接口）
+- `join_type=wecom` + `wecom_url`：企业微信「加入群聊」插件，跳转 `pkg-user/wecom-join` 拉起 `plugin://materialPlugin/cell`
+
+`image_cube.layout`：`2x2` | `1-2` | `3x3`。`content_tabs.panes[]`：`title` + `items[{title,desc,link_url}]`。
 
 ---
 

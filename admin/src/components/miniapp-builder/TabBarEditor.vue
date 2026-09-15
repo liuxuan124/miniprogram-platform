@@ -4,25 +4,27 @@
       <span class="editor-label">底部导航配置</span>
       <span class="bind-progress">已绑定 {{ boundCount }}/{{ localTabs.length }}</span>
     </div>
-    <p class="tabbar-limit-tip">支持 {{ TABBAR_MIN }}~{{ TABBAR_MAX }} 个入口，保存后小程序自定义 TabBar 即时生效（无需发版改数量）。</p>
+    <p class="tabbar-limit-tip">支持 {{ TABBAR_MIN }}~{{ TABBAR_MAX }} 个入口，保存后小程序底部导航即时生效。</p>
+    <p class="tabbar-limit-tip">首页默认用系统自带暖阁版式；星球默认用系统自带暖阁星球页。只有给该槽位选了「装修页」才会换成拖出来的布局；发现/商城同理，不选则继续走原有页面。模板中心可套用「暖阁星球页模板」再绑到星球槽。</p>
     <div class="progress-bar">
       <div class="progress-fill" :style="{ width: progressPercent + '%', background: progressColor }"></div>
     </div>
 
     <draggable v-model="localTabs" item-key="id" handle=".drag-handle" @update:modelValue="emitUpdate" class="tab-list">
       <template #item="{ element: tab, index }">
-        <div class="tab-item" :class="{ unbound: !tab.pageId && !tab.pagePath.includes('index') }">
+        <div class="tab-item" :class="{ unbound: !tab.pageId && !tab.pagePath.includes('index') && !isNativeShell(tab, index) }">
           <div class="drag-handle">⠿</div>
           <div class="tab-icon-wrap" @click="openIconPicker(index)">
             <TabBarIconDisplay :icon="tab.icon" fallback="📦" />
           </div>
           <div class="tab-fields">
             <el-input v-model="tab.text" placeholder="导航名称" size="small" @input="emitUpdate" />
-            <el-select v-model="tab.pageId" placeholder="点了打开哪个页面" size="small" clearable @change="onPageChange(index)" style="width:100%">
+            <el-select v-model="tab.pageId" placeholder="点了打开哪个页面（可空=系统自带页）" size="small" clearable @change="onPageChange(index)" style="width:100%">
               <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
             <div class="tab-shell-hint">Tab 槽位：{{ shellLabel(tab, index) }}</div>
-            <div v-if="!tab.pageId && !tab.pagePath.includes('index')" class="unbound-tip">还没选页面，用户点了会是空白页</div>
+            <div v-if="isNativeShell(tab, index)" class="native-tip">未选装修页：用户看到系统自带页面（首页=暖阁原生，星球=暖阁星球原生）</div>
+            <div v-else-if="!tab.pageId && !tab.pagePath.includes('index')" class="unbound-tip">还没选页面，用户点了会是空白页</div>
           </div>
           <el-button
             v-if="localTabs.length > TABBAR_MIN"
@@ -86,10 +88,10 @@ const emit = defineEmits<{ 'update:tabs': [value: NavTab[]] }>()
 
 const SHELL_LABELS: Record<string, string> = {
   '/pages/index/index': '首页槽',
-  '/pages/content-list/content-list': '内容槽',
-  '/pages/knowledge-mall/knowledge-mall': '商城槽',
+  '/pages/discover/discover': '发现槽',
+  '/pages/planet/planet': '星球槽',
+  '/pages/shop/shop': '商城槽',
   '/pages/mine/mine': '我的槽',
-  '/pages/tab-hub/tab-hub': '扩展槽',
 }
 
 const localTabs = ref<NavTab[]>(normalizeTabBarItems(props.tabs))
@@ -114,6 +116,20 @@ const iconLibrary = NAV_FLAT_ICONS
 
 function shellLabel(tab: NavTab, index: number) {
   return SHELL_LABELS[resolveTabShellRoute(tab, index)] || TAB_SHELL_ROUTES[index] || '—'
+}
+
+function isNativeShell(tab: NavTab, index: number) {
+  const shell = resolveTabShellRoute(tab, index)
+  const path = String(tab.pagePath || '')
+  const boundCustom = /\/pages\/custom\//.test(path)
+  if (boundCustom && tab.pageId) return false
+  return (
+    shell === '/pages/index/index'
+    || shell === '/pages/discover/discover'
+    || shell === '/pages/planet/planet'
+    || shell === '/pages/shop/shop'
+    || shell === '/pages/mine/mine'
+  ) && !boundCustom
 }
 
 function emitUpdate() {
@@ -186,6 +202,7 @@ function confirmIcon() {
 .tab-item { display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; transition: 0.14s; }
 .tab-item.unbound { border-color: #ef4444; background: #fef2f2; }
 .unbound-tip { font-size: 11.5px; color: #b91c1c; margin-top: 4px; }
+.native-tip { font-size: 11.5px; color: #0f766e; margin-top: 4px; }
 .tab-shell-hint { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 .drag-handle { cursor: grab; color: #a0b4d0; font-size: 16px; padding: 0 4px; }
 .drag-handle:active { cursor: grabbing; }

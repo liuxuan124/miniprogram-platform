@@ -42,7 +42,7 @@
     <view class="sheet-heading">
       <view>
         <text class="sheet-heading__title">手机号快捷登录</text>
-        <text class="sheet-heading__description">使用微信授权信息快速登录</text>
+        <text class="sheet-heading__description">使用授权信息快速登录</text>
       </view>
       <view class="security-badge">
         <text class="security-badge__dot"></text>
@@ -92,8 +92,15 @@
       <text class="login-button__title">{{loading ? '正在登录…' : '手机号快捷登录'}}</text>
     </button>
 
+    <button
+      class="login-skip"
+      bindtap="onBack"
+      disabled="{{loading}}"
+      hover-class="login-skip--pressed"
+    >暂不登录</button>
+
     <view class="sheet-footer">
-      <text class="privacy-note">手机号仅用于登录和必要的服务通知，不会公开展示</text>
+      <text class="privacy-note">未登录也可浏览资讯；手机号仅用于登录，不会公开展示</text>
     </view>
   </view>
 

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 笔记详情</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .nav2 { position: absolute; top: 0; left: 0; right: 0; z-index: 18; height: 96px; padding: 54px 14px 0; display: flex; align-items: center; gap: 10px;
+    background: rgba(255,250,243,.9); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+  .nav2 .bk { width: 30px; font-size: 21px; }
+  .nav2 .av { width: 32px; height: 32px; }
+  .nav2 .nm { font-size: 14px; font-weight: 700; }
+  .nav2 .fo { margin-left: auto; height: 30px; padding: 0 15px; border-radius: 99px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; display: grid; place-items: center; }
+  .nav2 .mo { width: 28px; text-align: right; font-size: 18px; color: var(--ink-2); }
+
+  .scroll { padding-top: 96px; }
+  .gal { position: relative; background: #f3e3d0; }
+  .gal .strip { display: flex; overflow: auto; scroll-snap-type: x mandatory; }
+  .gal .strip::-webkit-scrollbar { display: none; }
+  .gal .strip > div { flex: none; width: 390px; height: 470px; scroll-snap-align: start; }
+  .gal .idx { position: absolute; right: 12px; top: 12px; padding: 3px 9px; border-radius: 99px; font-size: 11px; background: rgba(40,18,6,.5); color: #fff; }
+  .gal .dots { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; display: flex; gap: 5px; }
+  .gal .dots i { width: 5px; height: 5px; border-radius: 99px; background: rgba(255,255,255,.55); }
+  .gal .dots i.on { width: 14px; background: #fff; }
+
+  .body { padding: 16px 18px 6px; }
+  .body h1 { font-size: 19px; line-height: 1.4; font-weight: 800; letter-spacing: -.01em; }
+  .body p { margin-top: 12px; font-size: 14.5px; line-height: 1.82; color: #3b2a1c; }
+  .body .list { margin-top: 12px; font-size: 14.5px; line-height: 1.9; color: #3b2a1c; }
+  .topics { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .topics span { font-size: 12.5px; color: var(--brand); font-weight: 600; }
+  .meta { margin-top: 14px; font-size: 11px; color: var(--mute); }
+
+  .goods {
+    margin: 14px 18px 0; display: flex; gap: 11px; align-items: center; padding: 11px;
+    border-radius: 16px; background: linear-gradient(135deg,#fdeedb,#fffaf3); border: 1px solid var(--line);
+    text-decoration: none; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .goods .im { width: 52px; height: 52px; border-radius: 11px; overflow: hidden; flex: none; background: #f3e3d0; }
+  .goods .im img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .goods h5 { font-size: 13px; font-weight: 700; }
+  .goods p { font-size: 10.5px; color: var(--mute); margin-top: 3px; }
+  .goods b { margin-left: auto; font-size: 12px; color: #fff; background: linear-gradient(135deg,var(--brand-2),var(--brand)); padding: 7px 14px; border-radius: 99px; flex: none; }
+
+  .sep { height: 8px; background: #f5e8d8; margin-top: 18px; }
+
+  .cmts { padding: 14px 18px 10px; }
+  .cmts h5 { font-size: 13px; color: var(--ink-2); font-weight: 700; margin-bottom: 4px; }
+  .cm { display: flex; gap: 10px; padding: 12px 0; }
+  .cm .av { width: 32px; height: 32px; }
+  .cm .nm { font-size: 11.5px; color: var(--mute); }
+  .cm .tx { font-size: 13.5px; line-height: 1.62; margin-top: 4px; }
+  .cm .ft { margin-top: 6px; font-size: 10.5px; color: var(--mute); display: flex; gap: 12px; }
+  .cm .rp { margin-top: 9px; background: #f8ecdd; border-radius: 12px; padding: 9px 11px; font-size: 12.5px; line-height: 1.6; }
+  .cm .rp b { color: var(--brand); }
+  .cm .hb { margin-left: auto; font-size: 11px; color: var(--mute); text-align: center; }
+
+  .actionbar .ipt { flex: 1; height: 38px; border-radius: 99px; background: #f5e8d8; display: flex; align-items: center; padding: 0 15px; font-size: 12.5px; color: var(--mute); }
+  .actionbar .ac { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-2); }
+  .actionbar .ac span { font-size: 17px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="nav2">
+    <a class="bk" href="./discover.html">‹</a>
+    <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&amp;h=80&amp;fit=crop&amp;q=80" alt="" /></span>
+    <span class="nm">小满 <i class="tag gold" style="font-style:normal">特约作者</i></span>
+    <span class="fo">关注</span>
+    <span class="mo">···</span>
+  </div>
+
+  <div class="scroll full">
+    <div class="gal">
+      <div class="strip">
+        <div><img class="ph" src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=780&amp;h=940&amp;fit=crop&amp;q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1497366811353-687086791d93?w=780&amp;h=940&amp;fit=crop&amp;q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1513694203232-719a280e022f?w=780&amp;h=940&amp;fit=crop&amp;q=80" alt="" /></div>
+      </div>
+      <span class="idx">1/9</span>
+      <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <div class="body">
+      <h1>我的书桌改造 ✨ 一个内容人的暖光角落</h1>
+      <p>去年整整一年，我都在客厅那张餐桌上写东西。腰酸、没有仪式感、一到晚上灯光冷得像办公室。今年终于给自己搭了一个只属于写作的角落，成本 2000 出头。</p>
+      <div class="list">
+        1 桌板｜橡木直拼 120×60，2cm 厚，¥399<br />
+        2 桌腿｜手摇升降，站着写更专注，¥520<br />
+        3 灯｜3000K 暖光落地灯，是整个角落的灵魂，¥289<br />
+        4 椅子｜二手人体工学，闲鱼 ¥650，成色九成<br />
+        5 小物｜陶土杯垫、藤编收纳、一束永生花
+      </div>
+      <p>最想说的一点：<b>灯光比家具更重要</b>。把顶灯关掉，只留一盏暖光，桌面立刻从"工位"变成"书房"。我现在晚上坐下就想写字，这件事本身就值回票价。</p>
+      <p>下一篇写我的收纳逻辑，想看的评论区扣 1 🙋‍♀️</p>
+      <div class="topics"><span>#书桌改造</span><span>#工位美学</span><span>#内容创作者日常</span><span>#暖光</span></div>
+      <div class="meta">编辑于 09-12 · 杭州</div>
+    </div>
+
+    <a class="goods" href="./column.html" title="去专栏详情">
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=200&amp;h=200&amp;fit=crop&amp;q=80" alt="" /></div>
+      <div><h5>一个人的内容生意 · 专栏</h5><p>笔记提到的选题库模板在第 6 讲</p></div>
+      <b>去看看</b>
+    </a>
+
+    <div class="sep"></div>
+
+    <div class="cmts">
+      <h5>共 286 条评论</h5>
+      <div class="cm">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&amp;h=80&amp;fit=crop&amp;q=80" alt="" /></span>
+        <div style="flex:1">
+          <div class="nm">阿桃</div>
+          <div class="tx">1！求收纳篇，我桌面线材已经乱成一团了 😭</div>
+          <div class="ft"><span>09-12</span><span>回复</span></div>
+          <div class="rp"><b>小满（作者）</b>：这周就写！线材我全走了桌下理线架，超救命</div>
+        </div>
+        <div class="hb">❤<br />128</div>
+      </div>
+      <div class="cm">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&amp;h=80&amp;fit=crop&amp;q=80" alt="" /></span>
+        <div style="flex:1">
+          <div class="nm">十一</div>
+          <div class="tx">升降桌真的有用吗，一直在犹豫要不要上</div>
+          <div class="ft"><span>09-12</span><span>回复</span><span>3 条回复 ›</span></div>
+        </div>
+        <div class="hb">❤<br />46</div>
+      </div>
+      <div class="cm">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&amp;h=80&amp;fit=crop&amp;q=80" alt="" /></span>
+        <div style="flex:1">
+          <div class="nm">豆先生</div>
+          <div class="tx">3000K 这个建议太真实了，冷光下我一个字都写不出来</div>
+          <div class="ft"><span>09-13</span><span>回复</span></div>
+        </div>
+        <div class="hb">❤<br />31</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actionbar">
+    <div class="ipt">说点什么…</div>
+    <div class="ac"><span>❤️</span>4.2k</div>
+    <div class="ac"><span>⭐️</span>1.1k</div>
+    <div class="ac"><span>💬</span>286</div>
+    <a class="ac" href="./share.html"><span>↗️</span>分享</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

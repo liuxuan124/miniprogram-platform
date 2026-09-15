@@ -800,6 +800,15 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         if (dto.getEvalCases() != null) {
             config.setEvalCases(dto.getEvalCases());
         }
+        if (dto.getPersonaId() != null) {
+            config.setPersonaId(dto.getPersonaId());
+        }
+        if (dto.getPersonaName() != null) {
+            config.setPersonaName(dto.getPersonaName());
+        }
+        if (dto.getPersonaTone() != null) {
+            config.setPersonaTone(dto.getPersonaTone());
+        }
     }
 
     private AgentConfig getExistingConfig(Long id) {

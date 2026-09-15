@@ -30,7 +30,7 @@ public class MpOrderController {
     @PostMapping
     @Operation(summary = "创建订单")
     public R<OrderDetailVO> createOrder(@Valid @RequestBody OrderCreateDTO dto) {
-        featureModuleGuard.requireProductModule();
+        featureModuleGuard.requireProductOrPlanetCheckout();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.createOrder(userId, dto));
     }
@@ -46,7 +46,7 @@ public class MpOrderController {
     @GetMapping("/{id}")
     @Operation(summary = "订单详情")
     public R<OrderDetailVO> getOrderDetail(@PathVariable Long id) {
-        featureModuleGuard.requireProductModule();
+        featureModuleGuard.requireProductOrPlanetCheckout();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.getUserOrderDetail(userId, id));
     }
@@ -54,9 +54,18 @@ public class MpOrderController {
     @PostMapping("/{id}/pay")
     @Operation(summary = "支付订单")
     public R<WxPayResponse> payOrder(@PathVariable Long id) {
-        featureModuleGuard.requireProductModule();
+        featureModuleGuard.requireProductOrPlanetCheckout();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(paymentService.createWxPayOrder(userId, id));
+    }
+
+    @PostMapping("/{id}/sync-pay")
+    @Operation(summary = "同步微信支付结果")
+    public R<OrderDetailVO> syncPay(@PathVariable Long id) {
+        featureModuleGuard.requireProductOrPlanetCheckout();
+        Long userId = SecurityUtils.getCurrentUserId();
+        paymentService.syncPaidFromWechat(userId, id);
+        return R.ok(orderService.getUserOrderDetail(userId, id));
     }
 
     @PostMapping("/{id}/cancel")

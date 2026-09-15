@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 资料库</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .stage { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; align-items: flex-start; }
+  .head { position: sticky; top: 0; z-index: 12; background: linear-gradient(180deg,#fbeeda,#fdf6ec 92%); }
+  .head .status { padding: 15px 24px 0; }
+  .head .tt { display: flex; align-items: center; gap: 10px; padding: 8px 16px 0; }
+  .head .tt .bk { font-size: 21px; width: 26px; }
+  .head .tt h4 { font-size: 18px; font-weight: 780; flex: 1; letter-spacing: -.02em; }
+  .head .tt .sr { width: 30px; height: 30px; border-radius: 99px; background: rgba(255,255,255,.85); display: grid; place-items: center; font-size: 13px; }
+  .cats { display: flex; gap: 7px; overflow: auto; padding: 12px 16px 10px; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cats a { flex: none; padding: 7px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 650; background: #fffaf3; border: 1px solid var(--line); color: var(--ink-2); }
+  .cats a.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border-color: transparent; }
+
+  /* 会员状态条 */
+  .gate { margin: 2px 16px 0; border-radius: 18px; padding: 14px 15px; display: flex; align-items: center; gap: 11px;
+    text-decoration: none; color: inherit;
+    background: linear-gradient(120deg,#3b2110,#5c3418); color: #f8e3c6; box-shadow: 0 12px 26px rgba(60,30,10,.24); }
+  .gate .ic { font-size: 21px; }
+  .gate h5 { font-size: 13px; font-weight: 770; color: #fbe3bc; }
+  .gate p { font-size: 10.5px; opacity: .74; margin-top: 4px; line-height: 1.5; }
+  .gate b { margin-left: auto; flex: none; font-size: 11.5px; color: #3b2110; background: linear-gradient(135deg,#fbd38d,#e0a355); padding: 8px 14px; border-radius: 99px; font-weight: 770; }
+  .gate.ok { background: linear-gradient(120deg,#7c2d12,#b45309); color: #fff; }
+  .gate.ok h5 { color: #fff; }
+  .gate.ok b { background: rgba(255,255,255,.92); color: #9a3412; }
+
+  .cfgnote { margin: 10px 16px 0; padding: 10px 13px; border-radius: 12px; border: 1px dashed #ddbe98; background: #fffdf9; font-size: 10.5px; line-height: 1.7; color: var(--ink-2); }
+  .cfgnote b { color: var(--brand); }
+
+  .grp { padding: 16px 18px 4px; font-size: 11px; color: var(--gold); font-weight: 760; letter-spacing: .12em; }
+
+  .fl { margin: 0 16px 10px; border-radius: 16px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 13px 14px; display: flex; gap: 12px; align-items: center; }
+  .fl .ic { width: 42px; height: 50px; border-radius: 7px; flex: none; background: linear-gradient(160deg,#fff,#f4e2cc); border: 1px solid #ecd6ba; display: grid; place-items: center; font-size: 9.5px; font-weight: 800; color: #c2410c; letter-spacing: .03em; }
+  .fl .ic.xls { color: #15803d; }
+  .fl .ic.zip { color: #a16207; }
+  .fl .tx { flex: 1; min-width: 0; }
+  .fl h5 { font-size: 14px; font-weight: 720; line-height: 1.4; }
+  .fl p { margin-top: 6px; font-size: 10.5px; color: var(--mute); }
+  .fl .st { flex: none; text-align: center; }
+  .fl .st .btn2 { font-size: 11.5px; font-weight: 720; padding: 7px 13px; border-radius: 99px; background: #fbe6d4; color: var(--brand); }
+  .fl .st .btn2.lock { background: #f2e6d8; color: #9c8878; }
+  .fl .st .try { display: block; margin-top: 5px; font-size: 9px; color: var(--gold); }
+  .fl.locked h5 { color: #86705f; }
+
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 14px 0 6px; letter-spacing: .1em; }
+  .caption { width: 100%; text-align: center; font-size: 12px; color: #7c6455; font-weight: 650; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+<!-- 非会员 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="scroll">
+    <div class="head">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="tt"><a class="bk" href="./shop.html">‹</a><h4 class="serif">资料库</h4><div class="sr">🔍</div></div>
+      <div class="cats"><a class="on">全部 128</a><a>模板</a><a>提纲</a><a>数据表</a><a>清单</a><a>合集</a></div>
+    </div>
+
+    <a class="gate" href="./mine.html">
+      <span class="ic">🔒</span>
+      <div><h5>你当前是普通用户</h5><p>可免费查看每份资料的前 2 页 / 20%，加入会员后全部解锁并可转发保存</p></div>
+      <b>¥168/年</b>
+    </a>
+
+    <div class="cfgnote">
+      💡 试读范围由后台按资料单独配置：可设「前 N 页」「前 N%」「仅首页」或「完全不可见」，也可整类设为免费。<b>本页展示的是默认策略：前 2 页</b>
+    </div>
+
+    <div class="grp">本周更新</div>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic">PDF</div>
+      <div class="tx"><h5>9月共读·领读提纲</h5><p>2.4 MB · 12 页 · 812 人看过</p></div>
+      <div class="st"><span class="btn2">试读 ›</span><i class="try">可看前 2 页</i></div>
+    </a>
+
+    <a class="fl locked" href="./file-preview.html">
+      <div class="ic xls">XLSX</div>
+      <div class="tx"><h5>2026 全年选题库模板（含公式）</h5><p>860 KB · 3 个工作表 · 会员专享</p></div>
+      <div class="st"><span class="btn2 lock">🔒 解锁</span><i class="try">仅首页可见</i></div>
+    </a>
+
+    <a class="fl locked" href="./file-preview.html">
+      <div class="ic">PDF</div>
+      <div class="tx"><h5>付费社群冷启动 SOP 全套</h5><p>4.1 MB · 28 页 · 会员专享</p></div>
+      <div class="st"><span class="btn2 lock">🔒 解锁</span><i class="try">可看前 2 页</i></div>
+    </a>
+
+    <div class="grp">高频下载</div>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic zip">ZIP</div>
+      <div class="tx"><h5>暖阁封面模板包 · 24 款</h5><p>36 MB · 含 PSD / Figma · 1,204 人看过</p></div>
+      <div class="st"><span class="btn2">试读 ›</span><i class="try">可预览缩略图</i></div>
+    </a>
+
+    <a class="fl locked" href="./file-preview.html">
+      <div class="ic xls">XLSX</div>
+      <div class="tx"><h5>内容账号数据周报表</h5><p>420 KB · 自动计算 · 会员专享</p></div>
+      <div class="st"><span class="btn2 lock">🔒 解锁</span><i class="try">仅首页可见</i></div>
+    </a>
+
+    <div class="end">—— 共 128 份 · 已解锁 2 份 ——</div>
+  </div>
+
+  <nav class="tabbar">
+    <a href="./home.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a href="./discover.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a href="./planet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div>
+
+<!-- 会员 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="scroll">
+    <div class="head">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="tt"><a class="bk" href="./shop.html">‹</a><h4 class="serif">资料库</h4><div class="sr">🔍</div></div>
+      <div class="cats"><a class="on">全部 128</a><a>模板</a><a>提纲</a><a>数据表</a><a>清单</a><a>合集</a></div>
+    </div>
+
+    <a class="gate ok" href="./mine.html">
+      <span class="ic">🎫</span>
+      <div><h5>年度会员已生效</h5><p>128 份资料全部解锁 · 有效期至 2027-03-18 · 剩余 185 天</p></div>
+      <b>续费 8 折</b>
+    </a>
+
+    <div class="grp">本周更新</div>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic">PDF</div>
+      <div class="tx"><h5>9月共读·领读提纲</h5><p>2.4 MB · 12 页 · 已看过</p></div>
+      <div class="st"><span class="btn2">预览 ›</span><i class="try">可转发保存</i></div>
+    </a>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic xls">XLSX</div>
+      <div class="tx"><h5>2026 全年选题库模板（含公式）</h5><p>860 KB · 3 个工作表 · 已解锁</p></div>
+      <div class="st"><span class="btn2">预览 ›</span><i class="try">可转发保存</i></div>
+    </a>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic">PDF</div>
+      <div class="tx"><h5>付费社群冷启动 SOP 全套</h5><p>4.1 MB · 28 页 · 已解锁</p></div>
+      <div class="st"><span class="btn2">预览 ›</span><i class="try">可转发保存</i></div>
+    </a>
+
+    <div class="grp">高频下载</div>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic zip">ZIP</div>
+      <div class="tx"><h5>暖阁封面模板包 · 24 款</h5><p>36 MB · 含 PSD / Figma · 已解锁</p></div>
+      <div class="st"><span class="btn2">预览 ›</span><i class="try">可转发保存</i></div>
+    </a>
+
+    <a class="fl" href="./file-preview.html">
+      <div class="ic xls">XLSX</div>
+      <div class="tx"><h5>内容账号数据周报表</h5><p>420 KB · 自动计算 · 已解锁</p></div>
+      <div class="st"><span class="btn2">预览 ›</span><i class="try">可转发保存</i></div>
+    </a>
+
+    <div class="end">—— 共 128 份 · 全部已解锁 ——</div>
+  </div>
+
+  <nav class="tabbar">
+    <a href="./home.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a href="./discover.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a href="./planet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div>
+
+</div>
+</body>
+</html>

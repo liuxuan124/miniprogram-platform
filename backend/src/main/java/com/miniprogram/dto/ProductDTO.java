@@ -24,11 +24,11 @@ public class ProductDTO {
     @Schema(description = "分类ID")
     private Long categoryId;
 
-    @Pattern(regexp = "^(physical|digital|service)$", message = "商品类型必须为实物商品、数字商品或服务商品")
-    @Schema(description = "主商品类型（兼容）；若传 productTypes 则以列表为准")
+    @Pattern(regexp = "^(physical|digital|service|membership|ebook|column|resource_pack)$", message = "商品类型不合法")
+    @Schema(description = "主商品类型；若传 productTypes 则以列表为准")
     private String productType;
 
-    @Schema(description = "商品类型列表，可多选: physical/digital/service")
+    @Schema(description = "商品类型列表，可多选")
     private List<String> productTypes;
 
     @Schema(description = "主图URL")
@@ -50,6 +50,12 @@ public class ProductDTO {
     @Schema(description = "原价")
     private BigDecimal originalPrice;
 
+    @Schema(description = "会员价")
+    private BigDecimal memberPrice;
+
+    @Schema(description = "会员免费")
+    private Integer memberFree;
+
     @Schema(description = "总库存")
     private Integer stock = 0;
 
@@ -62,9 +68,27 @@ public class ProductDTO {
     @Schema(description = "数字商品支付后自动履约")
     private Integer autoFulfill;
 
+    @Schema(description = "交付方式 auto/manual/redeem_code")
+    private String deliveryMode;
+
+    @Schema(description = "退款政策 none/before_read/seven_days")
+    private String refundPolicy;
+
+    @Schema(description = "免费试读章数")
+    private Integer previewChapters;
+
     @Schema(description = "自动发货内容")
     private String fulfillContent;
 
+    @Schema(description = "会员天数，0=终身")
+    private Integer membershipDays;
+
+    @Schema(description = "开通后的会员等级ID")
+    private Long membershipLevelId;
+
     @Schema(description = "SKU列表")
     private List<ProductSkuDTO> skus;
+
+    @Schema(description = "定时上架时间")
+    private java.time.LocalDateTime publishAt;
 }

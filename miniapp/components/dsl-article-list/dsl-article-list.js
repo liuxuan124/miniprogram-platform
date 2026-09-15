@@ -2,6 +2,7 @@
 const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveArticleCover } = require('../../utils/article-cover')
+const { isValidContentId } = require('../../utils/content-id')
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -29,8 +30,11 @@ function formatArticleMeta(item) {
 
 function normalizeArticleItem(item, index) {
   const cover = resolveArticleCover(item)
+  const rawId = item.id != null ? item.id : (item.contentId != null ? item.contentId : item.content_id)
+  const id = isValidContentId(rawId) ? String(rawId) : ''
   return {
-    id: item.id || `local_${index + 1}`,
+    id,
+    navigable: !!id,
     title: item.title || item.name || '文章标题',
     name: item.name || item.title || '文章标题',
     cover_url: cover,
@@ -39,6 +43,7 @@ function normalizeArticleItem(item, index) {
     created_at: formatArticleMeta(item),
     publish_time: formatArticleMeta(item),
     source: item.source || item.categoryName || item.category_name || '',
+    summary: String(item.summary || item.excerpt || item.subtitle || '').trim(),
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
   }
@@ -71,12 +76,18 @@ function calcPageSize(layout) {
     let itemH = 76
     if (layout === 'compact') itemH = 56
     if (layout === 'card') itemH = 200
+    if (layout === 'overlay') itemH = 220
+    if (layout === 'magazine') itemH = 140
+    if (layout === 'grid') itemH = 130
+    if (layout === 'editorial') itemH = 88
     const n = Math.ceil(h / itemH) + 2
     return Math.max(5, Math.min(n, 30))
   } catch (e) {
     return 10
   }
 }
+
+const ARTICLE_LAYOUTS = ['card', 'list', 'compact', 'overlay', 'magazine', 'grid', 'editorial']
 
 function extractRecords(data) {
   if (!data) return []
@@ -180,7 +191,7 @@ Component({
       const titleSize = Number(cfg.title_font_size) > 0 ? Number(cfg.title_font_size) : 13
       const metaSize = Number(cfg.subtitle_font_size) > 0 ? Number(cfg.subtitle_font_size) : 11
       const raw = cfg.layout || cfg.style_type || 'list'
-      const layout = ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
+      const layout = ARTICLE_LAYOUTS.indexOf(raw) >= 0 ? raw : 'list'
       const sectionStyle = ['bar', 'card', 'plain'].includes(cfg.section_style) ? cfg.section_style : 'plain'
       const sectionAlign = cfg.section_align === 'center' ? 'center' : 'left'
       const sectionDivider = cfg.section_divider === true
@@ -323,7 +334,7 @@ Component({
       get('/api/v1/mp/contents', params, { auth: false, showError: false })
         .then((data) => {
           const records = extractRecords(data)
-          const mapped = records.map((item, index) => normalizeArticleItem(item, index))
+          const mapped = records.map((item, index) => normalizeArticleItem(item, index)).filter((item) => item.navigable)
           const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
           const hasMore = resolveHasMore(data, nextPage, pageSize, mapped.length)
           this.setData({
@@ -403,6 +414,10 @@ Component({
 
     onTapArticle(e) {
       const id = e.currentTarget.dataset.id
+      if (!isValidContentId(id)) {
+        wx.showToast({ title: '内容暂不可用', icon: 'none' })
+        return
+      }
       const article = this.data.displayData.find((a) => String(a.id) === String(id))
 
       if (article && article.action) {

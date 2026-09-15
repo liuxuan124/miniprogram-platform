@@ -1,8 +1,10 @@
+@import "/styles/warm-theme.wxss";
+
 /* pages/order-detail/order-detail.wxss — 订单详情页样式 */
 
 .order-detail-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #fdf6ec;
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
@@ -345,7 +347,7 @@
   height: 160rpx;
   font-size: 28rpx;
   color: #333;
-  background-color: #f5f5f5;
+  background-color: #fdf6ec;
   border-radius: 12rpx;
   padding: 16rpx;
 }
@@ -366,7 +368,7 @@
 }
 
 .refund-btn--cancel {
-  background-color: #f5f5f5;
+  background-color: #fdf6ec;
   color: #666;
   margin-right: 16rpx;
 }
@@ -376,6 +378,37 @@
   color: #fff;
 }
 
+.delivery-card {
+  margin: 24rpx 32rpx 0;
+  border-radius: 36rpx;
+  padding: 28rpx 30rpx;
+  background: linear-gradient(135deg, #7c2d12, #b45309);
+  color: #fff;
+  box-shadow: 0 16rpx 40rpx rgba(124, 45, 18, 0.22);
+}
+.delivery-card__h {
+  font-size: 30rpx;
+  font-weight: 770;
+}
+.delivery-card__p {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.65;
+  opacity: 0.88;
+}
+
+.refund-note {
+  margin: 24rpx 32rpx 0;
+  padding: 24rpx 28rpx;
+  border-radius: 26rpx;
+  border: 1rpx dashed #e3c9a8;
+  background: #fffdf9;
+  font-size: 21rpx;
+  line-height: 1.75;
+  color: #6b5443;
+}
+.refund-note__b { color: #c2410c; font-weight: 700; }
+
 /* ========== 加载状态 ========== */
 .loading-page {
   display: flex;
@@ -384,4 +417,9 @@
   height: 100vh;
   font-size: 28rpx;
   color: #999;
+}
+.status-header {
+  margin: 28rpx 32rpx 0;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #7c2d12, #b45309) !important;
 }

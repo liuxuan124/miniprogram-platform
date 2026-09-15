@@ -29,6 +29,21 @@
     </view>
   </block>
 
+  <!-- 长文列表：大图 + 左文右图（对齐 states.html / list） -->
+  <block wx:elif="{{type === 'feed'}}">
+    <view class="sk-feed">
+      <view class="sk-feed__big sk-shimmer"></view>
+      <view class="sk-feed__card" wx:for="{{rows}}" wx:key="*this">
+        <view class="sk-feed__tx">
+          <view class="sk-line sk-line--wide sk-shimmer"></view>
+          <view class="sk-line sk-line--mid sk-shimmer"></view>
+          <view class="sk-line sk-line--short sk-shimmer" style="margin-top:28rpx"></view>
+        </view>
+        <view class="sk-feed__im sk-shimmer"></view>
+      </view>
+    </view>
+  </block>
+
   <!-- 通用列表：图 + 两行文字，用于内容/订单等列表页 -->
   <block wx:else>
     <view class="sk-card" wx:for="{{rows}}" wx:key="*this">

@@ -48,9 +48,140 @@
     </view>
   </view>
 
+  <!-- 封面沉浸 -->
+  <view
+    wx:elif="{{layout === 'overlay'}}"
+    class="dsl-article-list__overlay"
+    style="{{listStyle}}"
+  >
+    <view
+      class="dsl-article-list__item dsl-article-list__item--overlay"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        class="dsl-article-list__overlay-cover"
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-list__overlay-cover dsl-article-list__overlay-cover--ph" wx:elif="{{config.show_cover !== false}}"></view>
+      <view class="dsl-article-list__overlay-mask">
+        <text class="dsl-article-list__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
+        <text class="dsl-article-list__overlay-title">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 杂志首篇 -->
+  <view wx:elif="{{layout === 'magazine'}}" class="dsl-article-list__magazine">
+    <block wx:for="{{displayData}}" wx:key="id">
+      <view
+        wx:if="{{index === 0}}"
+        class="dsl-article-list__item dsl-article-list__item--overlay"
+        style="{{itemCardStyle}}"
+        data-id="{{item.id}}"
+        bindtap="onTapArticle"
+      >
+        <image
+          class="dsl-article-list__overlay-cover dsl-article-list__overlay-cover--hero"
+          wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+          src="{{item.cover_url || item.image}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view class="dsl-article-list__overlay-cover dsl-article-list__overlay-cover--hero dsl-article-list__overlay-cover--ph" wx:elif="{{config.show_cover !== false}}"></view>
+        <view class="dsl-article-list__overlay-mask">
+          <text class="dsl-article-list__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
+          <text class="dsl-article-list__overlay-title">{{item.title || item.name}}</text>
+          <text class="dsl-article-list__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+        </view>
+      </view>
+      <view
+        wx:else
+        class="dsl-article-list__item dsl-article-list__item--editorial"
+        data-id="{{item.id}}"
+        bindtap="onTapArticle"
+      >
+        <image
+          class="dsl-article-list__editorial-cover"
+          wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+          src="{{item.cover_url || item.image}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view class="dsl-article-list__editorial-body">
+          <text class="dsl-article-list__editorial-title">{{item.title || item.name}}</text>
+          <text class="dsl-article-list__editorial-excerpt" wx:if="{{item.summary}}">{{item.summary}}</text>
+          <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
+            <text class="dsl-article-list__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
+            <text class="dsl-article-list__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 双列网格 -->
+  <view wx:elif="{{layout === 'grid'}}" class="dsl-article-list__grid">
+    <view
+      class="dsl-article-list__item dsl-article-list__item--grid"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        class="dsl-article-list__grid-cover"
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-list__grid-cover dsl-article-list__grid-cover--ph" wx:elif="{{config.show_cover !== false}}"></view>
+      <view class="dsl-article-list__grid-body">
+        <text class="dsl-article-list__grid-title">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__grid-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 报刊细排 -->
+  <view wx:elif="{{layout === 'editorial'}}" class="dsl-article-list__editorial">
+    <view
+      class="dsl-article-list__item dsl-article-list__item--editorial"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        class="dsl-article-list__editorial-cover"
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-list__editorial-body">
+        <text class="dsl-article-list__editorial-title">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__editorial-excerpt" wx:if="{{item.summary}}">{{item.summary}}</text>
+        <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-list__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-list__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 列表布局 -->
   <view
-    wx:elif="{{layout !== 'card'}}"
+    wx:elif="{{layout === 'list'}}"
     class="dsl-article-list__list"
     style="{{listStyle}}"
   >
@@ -84,7 +215,7 @@
 
   <!-- 卡片布局 -->
   <view
-    wx:else
+    wx:elif="{{layout === 'card'}}"
     class="dsl-article-list__cards"
     style="{{listStyle}}"
   >

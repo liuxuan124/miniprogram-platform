@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 在线客服</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .scroll { padding-top: 98px; background: #f7ece0; }
+  .day { text-align: center; font-size: 10.5px; color: #a79383; padding: 14px 0 6px; }
+  .sysbar { margin: 4px 16px 0; padding: 10px 13px; border-radius: 12px; background: rgba(255,255,255,.7); border: 1px solid var(--line); font-size: 10.5px; line-height: 1.65; color: var(--ink-2); text-align: center; }
+  .sysbar b { color: var(--brand); }
+
+  .msg { display: flex; gap: 9px; padding: 9px 16px; align-items: flex-start; }
+  .msg .av { width: 34px; height: 34px; flex: none; }
+  .msg .bb { max-width: 232px; padding: 11px 13px; border-radius: 4px 14px 14px 14px; background: #fff; font-size: 14px; line-height: 1.68; box-shadow: 0 4px 12px rgba(120,64,24,.07); }
+  .msg.me { flex-direction: row-reverse; }
+  .msg.me .bb { border-radius: 14px 4px 14px 14px; background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; box-shadow: 0 6px 16px rgba(194,65,12,.24); }
+  .msg .nm { font-size: 10px; color: var(--mute); margin-bottom: 5px; }
+  .msg.me .nm { text-align: right; }
+
+  /* 订单卡片消息 */
+  .ordcard { max-width: 250px; padding: 11px; border-radius: 4px 14px 14px 14px; background: #fff; box-shadow: 0 4px 12px rgba(120,64,24,.07); }
+  .ordcard .rw { display: flex; gap: 10px; align-items: center; }
+  .ordcard .im { width: 44px; height: 44px; border-radius: 9px; overflow: hidden; flex: none; }
+  .ordcard h6 { font-size: 12.5px; font-weight: 720; line-height: 1.4; }
+  .ordcard p { font-size: 10px; color: var(--mute); margin-top: 4px; }
+  .ordcard .ft { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); display: flex; align-items: center; font-size: 10.5px; color: var(--mute); }
+  .ordcard .ft b { color: var(--brand); font-weight: 740; }
+  .ordcard .ft a { margin-left: auto; color: var(--brand); font-weight: 680; }
+
+  /* 快捷问题 */
+  .quick { padding: 4px 16px 10px 59px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .quick span { padding: 7px 12px; border-radius: 99px; background: #fff; border: 1px solid #f0dcc4; font-size: 12px; color: var(--brand); font-weight: 640; }
+
+  /* 图片消息 */
+  .imgmsg { width: 132px; height: 176px; border-radius: 14px 4px 14px 14px; overflow: hidden; box-shadow: 0 6px 16px rgba(120,64,24,.12); }
+
+  /* 转人工 / 入群卡 */
+  .actcard { margin: 9px 16px 0 59px; padding: 13px 14px; border-radius: 4px 14px 14px 14px; background: linear-gradient(135deg,#fff6ea,#ffffff); border: 1px solid #f0d3ad; }
+  .actcard h6 { font-size: 13px; font-weight: 760; }
+  .actcard p { font-size: 11px; color: var(--ink-2); margin-top: 6px; line-height: 1.6; }
+  .actcard .btns { margin-top: 11px; display: flex; gap: 8px; }
+  .actcard .bt { flex: 1; text-align: center; height: 34px; line-height: 34px; border-radius: 99px; font-size: 12.5px; font-weight: 720;
+    background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; }
+  .actcard .bt.ghost { background: #fbe6d4; color: var(--brand); }
+
+  .typing { padding: 4px 16px 10px 59px; font-size: 11px; color: var(--mute); }
+
+  .inputbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 16; padding: 10px 14px 22px;
+    background: rgba(255,250,243,.96); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
+  .inputbar .rw { display: flex; align-items: center; gap: 10px; }
+  .inputbar .ipt { flex: 1; height: 38px; border-radius: 99px; background: #f3e6d6; display: flex; align-items: center; padding: 0 15px; font-size: 13px; color: var(--mute); }
+  .inputbar .ic { font-size: 21px; color: var(--ink-2); }
+  .inputbar .tools { margin-top: 11px; display: flex; gap: 20px; font-size: 10.5px; color: var(--ink-2); }
+  .inputbar .tools div { text-align: center; }
+  .inputbar .tools span { display: block; font-size: 19px; margin-bottom: 3px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./join.html">‹</a>
+    <div style="flex:1">
+      <h4 style="font-size:15px">暖阁客服 · 小助手</h4>
+      <div style="font-size:10px;color:var(--gold);margin-top:2px">● 在线 · 平均 1 分钟回复</div>
+    </div>
+    <a href="./join.html" style="font-size:11.5px;color:var(--brand);font-weight:700">加入读者群</a>
+  </div>
+
+  <div class="scroll full" style="height:calc(100% - 54px - 96px)">
+    <div class="day">今天 09:38</div>
+
+    <div class="sysbar">
+      工作日 9:00-21:00 真人值守 · 非工作时间留言次日回复<br />
+      客服<b>不会索要支付密码或验证码</b>，谨防冒充
+    </div>
+
+    <div class="msg">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=80&h=80&fit=crop&q=80" alt="" /></span>
+      <div>
+        <div class="nm">暖阁小助手</div>
+        <div class="bb">你好呀 👋 我是暖阁小助手。购买、发票、资料解锁的问题都可以直接问我。</div>
+      </div>
+    </div>
+
+    <div class="quick">
+      <span>电子书打不开</span><span>申请发票</span><span>资料库没解锁</span><span>怎么进读者群</span><span>会员有效期</span>
+    </div>
+
+    <div class="msg me">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&q=80" alt="" /></span>
+      <div>
+        <div class="bb">我昨天买的电子书，付完款在「已购内容」里看不到</div>
+      </div>
+    </div>
+
+    <div class="msg me">
+      <span class="av" style="visibility:hidden"></span>
+      <div>
+        <div class="ordcard">
+          <div class="rw">
+            <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=120&h=120&fit=crop&q=80" alt="" /></div>
+            <div><h6>内容生意手册（EPUB / PDF）</h6><p>订单号 NG202609130847</p></div>
+          </div>
+          <div class="ft"><b>¥39 已支付</b><a href="./goods.html">查看订单 ›</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="msg">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=80&h=80&fit=crop&q=80" alt="" /></span>
+      <div>
+        <div class="nm">暖阁小助手</div>
+        <div class="bb">收到，我查一下这笔订单 🔍</div>
+      </div>
+    </div>
+
+    <div class="msg">
+      <span class="av" style="visibility:hidden"></span>
+      <div class="bb">看到了，支付成功但权限同步延迟了。已经手动为你补发，<b>退出重进小程序</b>就能在「我的 - 已购内容」看到，麻烦你试试～</div>
+    </div>
+
+    <div class="msg me">
+      <span class="av" style="visibility:hidden"></span>
+      <div class="imgmsg"><img class="ph" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&h=400&fit=crop&q=80" alt="" /></div>
+    </div>
+
+    <div class="msg me">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&q=80" alt="" /></span>
+      <div><div class="bb">可以了，谢谢！</div></div>
+    </div>
+
+    <div class="actcard">
+      <h6>顺便邀请你进读者群 🎉</h6>
+      <p>新书首发、资料更新、线下活动都会先在群里通知。目前「内容创业交流群 · 7 群」还有 14 个名额。</p>
+      <div class="btns">
+        <a class="bt" href="./join.html">立即进群</a>
+        <a class="bt ghost" href="./join.html">加企微客服</a>
+      </div>
+    </div>
+
+    <div class="typing">对方正在输入…</div>
+  </div>
+
+  <div class="inputbar">
+    <div class="rw">
+      <span class="ic">😊</span>
+      <div class="ipt">输入你的问题…</div>
+      <span class="ic">＋</span>
+    </div>
+    <div class="tools">
+      <div><span>🖼️</span>图片</div>
+      <div><span>🧾</span>发订单</div>
+      <div><span>👤</span>转人工</div>
+      <div><span>👥</span>进群</div>
+    </div>
+  </div>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

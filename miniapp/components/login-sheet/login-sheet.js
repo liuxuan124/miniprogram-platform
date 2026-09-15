@@ -96,11 +96,12 @@ Component({
     },
 
     hide() {
-      if (this.data.loading || !this.data.mounted) return
+      if (!this.data.mounted) return
       this._unsubPrivacy()
       this.setData({
         visible: false,
         showPrivacyPopup: false,
+        loading: false,
       })
       setTimeout(() => {
         if (!this.data.visible) {
@@ -108,6 +109,15 @@ Component({
           this._restoreTabBar()
         }
       }, 280)
+    },
+
+    onCancelLogin() {
+      if (this.data.loading) {
+        wx.showToast({ title: '登录处理中，请稍候', icon: 'none' })
+        return
+      }
+      this.hide()
+      this.triggerEvent('cancel')
     },
 
     _restoreTabBar() {
@@ -328,7 +338,10 @@ Component({
 
       if (!code) {
         console.warn('[LoginSheet] 用户未授权手机号:', errMsg)
-        wx.showToast({ title: '需要授权手机号才能登录', icon: 'none' })
+        // 用户拒绝授权：明确关闭弹层，不强制反复要求登录
+        this.hide()
+        this.triggerEvent('cancel')
+        wx.showToast({ title: '已取消登录，可继续浏览', icon: 'none' })
         return
       }
 

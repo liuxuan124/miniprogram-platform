@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 专栏详情</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .cover { position: relative; height: 268px; color: #fff; }
+  .cover img { position: absolute; inset: 0; }
+  .cover .sc { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60,26,6,.5), rgba(60,26,6,.25) 42%, rgba(60,26,6,.9)); }
+  .cover .bk { position: absolute; top: 56px; left: 14px; z-index: 3; width: 32px; height: 32px; border-radius: 99px; background: rgba(30,14,4,.4); backdrop-filter: blur(8px); display: grid; place-items: center; font-size: 20px; }
+  .cover .bd { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px 18px; }
+  .cover h1 { margin-top: 9px; font-size: 24px; line-height: 1.32; letter-spacing: -.025em; font-weight: 730; }
+  .cover .sb { margin-top: 9px; font-size: 12px; opacity: .85; display: flex; align-items: center; gap: 8px; }
+
+  .price { margin: -20px 16px 0; position: relative; z-index: 4; border-radius: 20px; padding: 15px 16px; background: linear-gradient(150deg,#fff7ec,#fffaf3); box-shadow: var(--shadow); display: flex; align-items: center; gap: 11px; }
+  .price .now { font-size: 27px; font-weight: 820; color: var(--brand); letter-spacing: -.02em; }
+  .price .now i { font-size: 15px; font-style: normal; }
+  .price s { font-size: 12px; color: var(--mute); }
+  .price .cd { margin-left: auto; text-align: right; }
+  .price .cd b { display: block; font-size: 11px; color: var(--brand); font-weight: 750; }
+  .price .cd span { font-size: 10px; color: var(--mute); }
+
+  .teacher { margin: 12px 16px 0; padding: 14px 15px; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); display: flex; gap: 12px; align-items: center; }
+  .teacher .av { width: 46px; height: 46px; }
+  .teacher h5 { font-size: 14px; font-weight: 760; }
+  .teacher p { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.5; }
+
+  .pts { margin: 12px 16px 0; display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; }
+  .pts div { padding: 12px 13px; border-radius: 15px; background: var(--sheet); box-shadow: var(--shadow-s); }
+  .pts b { display: block; font-size: 13px; font-weight: 740; }
+  .pts span { display: block; font-size: 10.5px; color: var(--mute); margin-top: 4px; line-height: 1.5; }
+
+  .intro { padding: 4px 20px 0; }
+  .intro p { font-size: 15px; line-height: 1.85; color: #3a2a1c; margin-bottom: 14px; }
+  .intro .pic { height: 170px; border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+
+  .segs { display: flex; gap: 20px; padding: 8px 20px 0; border-bottom: 1px solid var(--line); margin: 8px 0 0; }
+  .segs a { font-size: 14.5px; color: var(--mute); font-weight: 650; padding-bottom: 10px; position: relative; }
+  .segs a.on { color: var(--ink); font-weight: 800; }
+  .segs a.on::after { content:""; position:absolute; left:50%; transform:translateX(-50%); bottom:-1px; width:22px; height:3px; border-radius:3px; background:var(--brand-2); }
+
+  .ch { padding: 0 20px; }
+  .ch .grp { font-size: 11px; color: var(--gold); font-weight: 750; letter-spacing: .12em; padding: 16px 0 4px; }
+  .ch .li { display: flex; align-items: center; gap: 11px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .ch .li .no { width: 24px; font-size: 13px; font-weight: 780; color: #d6b894; font-family: "Iowan Old Style", serif; }
+  .ch .li .tx { flex: 1; }
+  .ch .li h6 { font-size: 14px; font-weight: 660; line-height: 1.45; }
+  .ch .li .mt { margin-top: 5px; font-size: 10.5px; color: var(--mute); display: flex; gap: 9px; align-items: center; }
+  .ch .li .ico { font-size: 15px; color: var(--mute); }
+  .ch .li.free h6 { color: var(--ink); }
+  .ch .li.lock h6 { color: #9c8878; }
+
+  .sep { height: 8px; background: #f5e8d8; margin-top: 18px; }
+  .rv { padding: 2px 20px 0; }
+  .rv .it { padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .rv .hh { display: flex; align-items: center; gap: 9px; }
+  .rv .hh .av { width: 28px; height: 28px; }
+  .rv .hh .nm { font-size: 12px; font-weight: 700; }
+  .rv .hh .st { margin-left: auto; font-size: 11px; color: #e08b1f; }
+  .rv .tx { margin-top: 8px; font-size: 13.5px; line-height: 1.7; color: #3a2a1c; }
+
+  .actionbar .ic2 { width: 46px; text-align: center; font-size: 10px; color: var(--ink-2); }
+  .actionbar .ic2 span { display: block; font-size: 18px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status light" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="scroll full">
+    <div class="cover">
+      <img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=900&h=700&fit=crop&q=80" alt="" />
+      <div class="sc"></div>
+      <a class="bk" href="./home.html">‹</a>
+      <div class="bd">
+        <span class="tag soft">连载中 · 每周三更新</span>
+        <h1 class="serif">一个人的<br />内容生意</h1>
+        <div class="sb"><span>32 讲</span><i class="dot"></i><span>1.2 万人在学</span><i class="dot"></i><span>⭐️ 4.9</span></div>
+      </div>
+    </div>
+
+    <div class="price">
+      <div>
+        <div class="now"><i>¥</i>199</div>
+        <s>原价 ¥399</s>
+      </div>
+      <div class="cd">
+        <b>早鸟价剩余 02 天 14:26</b>
+        <span>已有 8,214 人加入</span>
+      </div>
+    </div>
+
+    <div class="teacher">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80" alt="" /></span>
+      <div>
+        <h5>墨白 <span class="tag gold" style="margin-left:4px">暖阁主理人</span></h5>
+        <p>前媒体主编，独立创作第 1000 天。公众号 5 万订阅、星球 3241 人，全部一个人完成。</p>
+      </div>
+    </div>
+
+    <div class="pts">
+      <div><b>📐 可复用模板</b><span>选题库 / 发布节奏表 / 定价模型</span></div>
+      <div><b>🎧 音频 + 讲稿</b><span>通勤能听，回看有文字稿</span></div>
+      <div><b>🪐 星球陪跑</b><span>购买即赠 90 天星球会员</span></div>
+      <div><b>♾️ 永久回看</b><span>更新不加价，一次买断</span></div>
+    </div>
+
+    <div class="hd"><h3 class="serif">这门课讲什么</h3></div>
+    <div class="intro">
+      <p>这不是一门教你「涨粉」的课。它讲的是，当你只有一个人、没有团队也没有预算时，如何把写作变成一门能长期养活自己的生意。</p>
+      <div class="pic"><img class="ph" src="https://images.unsplash.com/photo-1516321497487-e814afdc6b81?w=800&h=440&fit=crop&q=80" alt="" /></div>
+      <p>全部内容来自我三年里真实跑通（和跑砸）的实验：三次改版、两次定价失败、一次被平台限流到归零。每一讲都会给出可以直接抄走的表格或模板。</p>
+    </div>
+
+    <div class="segs"><a class="on">目录 32</a><a>评价 1.6k</a><a>常见问题</a></div>
+    <div class="ch">
+      <div class="grp">第一章 · 先想清楚你在卖什么</div>
+      <div class="li free">
+        <span class="no">01</span>
+        <div class="tx"><h6>为什么「涨粉」是最没用的目标</h6><div class="mt"><span class="tag gold">免费试听</span><span>12:40</span></div></div>
+        <span class="ico">▶︎</span>
+      </div>
+      <div class="li free">
+        <span class="no">02</span>
+        <div class="tx"><h6>找到你的 100 个真实读者</h6><div class="mt"><span class="tag gold">免费试听</span><span>15:02</span></div></div>
+        <span class="ico">▶︎</span>
+      </div>
+      <div class="li lock">
+        <span class="no">03</span>
+        <div class="tx"><h6>内容产品的三层货架结构</h6><div class="mt"><span>18:24</span><span>含模板 ×2</span></div></div>
+        <span class="ico">🔒</span>
+      </div>
+      <div class="grp">第二章 · 把写作变成系统</div>
+      <div class="li lock">
+        <span class="no">04</span>
+        <div class="tx"><h6>选题库：我用了三年的那张表</h6><div class="mt"><span>21:10</span><span>含模板 ×1</span></div></div>
+        <span class="ico">🔒</span>
+      </div>
+      <div class="li lock">
+        <span class="no">05</span>
+        <div class="tx"><h6>停掉日更之后，我的数据反而涨了</h6><div class="mt"><span>16:38</span></div></div>
+        <span class="ico">🔒</span>
+      </div>
+      <div class="li lock" style="border:0">
+        <span class="no">06</span>
+        <div class="tx"><h6>如何一稿三用：长文 / 笔记 / 星球</h6><div class="mt"><span>19:55</span></div></div>
+        <span class="ico">🔒</span>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="hd"><h3 class="serif">学员评价</h3><a>全部 1.6k ›</a></div>
+    <div class="rv">
+      <div class="it">
+        <div class="hh"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">阿桃</span><span class="st">★★★★★</span></div>
+        <div class="tx">第 4 讲那张选题表我直接搬到 Notion 用了两个月，现在写东西再也不会开天窗。光这一张表就值回价格。</div>
+      </div>
+      <div class="it" style="border:0">
+        <div class="hh"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">阿柚</span><span class="st">★★★★★</span></div>
+        <div class="tx">很少见到把失败案例讲这么细的课。第 11 讲那次限流复盘，我听了三遍。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actionbar">
+    <a class="ic2" href="./service-chat.html"><span>💬</span>咨询</a>
+    <div class="ic2"><span>⭐️</span>收藏</div>
+    <a class="btn ghost" href="./article.html">试听</a>
+    <a class="btn" style="flex:1" href="./order.html">¥199 立即加入</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

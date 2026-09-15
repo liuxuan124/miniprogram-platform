@@ -80,7 +80,7 @@
       >
         <!-- 会员版：丝绸感装饰（柔滑褶皱光泽） -->
         <svg
-          v-if="styleKey === 'member'"
+          v-if="styleKey === 'member' || styleKey === 'warm'"
           class="mine-decor-ribbons"
           viewBox="0 0 375 220"
           preserveAspectRatio="xMidYMid slice"
@@ -442,7 +442,7 @@ const styleKey = computed(() => resolveMineStyleKey(props.mineConfig))
 const loggedInLevelLabel = computed(() => {
   const custom = (props.mineConfig.userProfile.memberLevelLabel || '').trim()
   if (custom && custom !== '会员等级') return custom
-  return styleKey.value === 'member' ? '黄金会员' : '普通会员'
+  return styleKey.value === 'member' ? '黄金会员' : (styleKey.value === 'warm' ? '常读者' : '普通会员')
 })
 
 const loggedInSubtitle = computed(() => '会员至：2027-02-03')
@@ -583,10 +583,16 @@ const memberBenefitsLine = computed(() => {
     if (styleKey.value === 'member') {
       return '专属折扣 · 积分加速 · 优先预约'
     }
+    if (styleKey.value === 'warm') {
+      return '星球通行 · 精选资料 · 共读陪伴'
+    }
     return '成长值 320 · 距下一等级还差 180'
   }
   if (styleKey.value === 'member') {
     return '专属折扣 · 积分加速 · 优先预约'
+  }
+  if (styleKey.value === 'warm') {
+    return '开通会员解锁星球与精选资料'
   }
   return '登录后查看会员权益与成长进度'
 })
@@ -675,6 +681,17 @@ const memberCardStyle = computed(() => {
     #A8C0FA 78%,
     rgba(168, 192, 250, 0.12) 100%
   );
+}
+
+.mine-decor--warm {
+  background: linear-gradient(
+    180deg,
+    #7c2d12 0%,
+    #b45309 42%,
+    #d97706 78%,
+    rgba(217, 119, 6, 0.12) 100%
+  );
+  overflow: hidden;
 }
 
 .mine-decor--member {
@@ -937,6 +954,12 @@ const memberCardStyle = computed(() => {
   opacity: 0.72;
 }
 
+.profile-row--on-decor.profile-row--warm .user-title,
+.profile-row--on-decor.profile-row--warm .user-subtitle,
+.profile-row--on-decor.profile-row--warm .user-expire-chevron {
+  color: #fff7ed;
+}
+
 .profile-row--plain {
   color: #1f2937;
   padding-top: 16px;
@@ -1047,6 +1070,11 @@ const memberCardStyle = computed(() => {
   color: #eef4ff;
 }
 
+.user-level--warm {
+  background: rgba(255, 247, 237, 0.28);
+  color: #fff7ed;
+}
+
 /* 会员版：铂金冷蓝 */
 .user-level--member {
   background: rgba(255, 255, 255, 0.42);
@@ -1114,6 +1142,27 @@ const memberCardStyle = computed(() => {
     0 0 6px 2px rgba(255, 255, 255, 0.28),
     0 10px 18px rgba(0, 0, 0, 0.10),
     0 3px 6px rgba(0, 0, 0, 0.06);
+}
+
+.member-info-card--warm {
+  background: linear-gradient(120deg, #3b2110, #5c3418 55%, #7c2d12);
+  color: #f8e3c6;
+  border: none;
+  box-shadow:
+    0 0 6px 2px rgba(255, 236, 210, 0.18),
+    0 10px 18px rgba(60, 30, 10, 0.22),
+    0 3px 6px rgba(60, 30, 10, 0.12);
+}
+
+.member-info-card--warm .member-info-level,
+.member-info-card--warm .member-info-benefits,
+.member-info-card--warm .member-info-title {
+  color: #fbe3bc;
+}
+
+.member-info-card--warm .member-cta {
+  color: #3b2110;
+  background: linear-gradient(135deg, #fbd38d, #e0a355);
 }
 
 .member-info-card--member {

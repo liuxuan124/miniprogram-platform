@@ -117,3 +117,28 @@
 .sk-grid-card .sk-line {
   margin-bottom: 10rpx;
 }
+
+/* 长文 feed：对齐 prototypes-warm/states.html */
+.sk-feed { padding: 8rpx 8rpx 0; }
+.sk-feed .sk-shimmer {
+  background: linear-gradient(90deg, #f2e5d6 25%, #f9efe2 50%, #f2e5d6 75%);
+  background-size: 300% 100%;
+}
+.sk-feed .sk-shimmer::after { display: none; }
+.sk-feed__big {
+  height: 336rpx;
+  border-radius: 40rpx;
+  margin-bottom: 36rpx;
+}
+.sk-feed__card {
+  display: flex;
+  gap: 24rpx;
+  margin-bottom: 32rpx;
+}
+.sk-feed__tx { flex: 1; }
+.sk-feed__im {
+  width: 192rpx;
+  height: 152rpx;
+  border-radius: 26rpx;
+  flex-shrink: 0;
+}

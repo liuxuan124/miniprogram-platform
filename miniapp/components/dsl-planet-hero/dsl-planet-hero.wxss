@@ -1,0 +1,2 @@
+@import "../../styles/planet-blocks.wxss";
+.dsl-planet-hero { width: 100%; }

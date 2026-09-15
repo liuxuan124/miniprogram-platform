@@ -1,0 +1,13 @@
+<view class="cube cube--{{config.layout || '2x2'}}" style="{{styleString}};gap:{{(config.gap || 6) * 2}}rpx;">
+  <view
+    wx:for="{{config.items}}"
+    wx:key="index"
+    class="cube__cell"
+    style="border-radius:{{(config.radius || 8) * 2}}rpx;"
+    data-url="{{item.link_url}}"
+    bindtap="onTap"
+  >
+    <image wx:if="{{item.image}}" src="{{item.image}}" mode="aspectFill" class="cube__img" />
+    <view wx:else class="cube__ph"></view>
+  </view>
+</view>

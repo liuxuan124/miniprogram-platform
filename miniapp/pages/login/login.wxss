@@ -601,6 +601,26 @@ page {
   box-shadow: none;
 }
 
+.login-skip {
+  margin-top: 16rpx;
+  height: 88rpx;
+  color: #4b5563;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 88rpx;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 999rpx;
+}
+
+.login-skip::after {
+  border: none;
+}
+
+.login-skip--pressed {
+  opacity: 0.85;
+}
+
 .sheet-footer {
   display: flex;
   align-items: center;

@@ -1,0 +1,161 @@
+<page-meta page-style="background:#20140a" />
+<view class="sh-page">
+  <block wx:if="{{!showPoster}}">
+    <view class="sh-bg">
+      <view class="sh-cover">
+        <image src="{{cover}}" mode="aspectFill" />
+        <view class="sh-sc"></view>
+        <view class="sh-bd">
+          <text class="warm-tag warm-tag--soft">深度 · 创作者手记</text>
+          <view class="sh-bd__title warm-serif">{{title}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="sh-mask" bindtap="onCancel"></view>
+    <view class="sh-panel">
+      <view class="sh-pt">
+        <view class="sh-pt__h">分享这篇文章</view>
+        <view class="sh-pt__p">{{tip}}</view>
+      </view>
+      <view class="sh-reward">
+        <text style="font-size:34rpx">🎁</text>
+        <view style="flex:1">
+          <view class="sh-reward__b">邀请有礼进行中</view>
+          <view class="sh-reward__p">已成功邀请 {{inviteCount}} 人 · 累计获得 {{inviteDays}} 天会员</view>
+        </view>
+        <view class="sh-reward__ct">查看战绩 ›</view>
+      </view>
+      <view class="sh-row">
+        <button class="sh-act share-button-reset" open-type="share" style="background:transparent;padding:0;margin:0;line-height:1.2;border:0">
+          <view class="sh-act__ic wx">💬</view>
+          微信好友
+          <text class="sh-act__bdg" wx:if="{{shortCode}}">带邀请码</text>
+        </button>
+        <view class="sh-act" bindtap="onTimelineHint">
+          <view class="sh-act__ic pyq">☀️</view>
+          朋友圈
+          <text class="sh-act__bdg">需生成图</text>
+        </view>
+        <view class="sh-act" bindtap="onMakePoster">
+          <view class="sh-act__ic ps">🖼</view>
+          生成海报
+          <text class="sh-act__bdg">可长按识别</text>
+        </view>
+        <view class="sh-act" bindtap="onSendToGroup">
+          <view class="sh-act__ic">👥</view>
+          发到读者群
+        </view>
+      </view>
+      <view class="sh-div"></view>
+      <view class="sh-row" style="padding-top:28rpx">
+        <view class="sh-act" bindtap="onFav">
+          <view class="sh-act__ic">{{favorited ? '⭐️' : '☆'}}</view>{{favorited ? '已收藏' : '收藏'}}
+        </view>
+        <view class="sh-act" bindtap="onCopyTitle"><view class="sh-act__ic">🔤</view>复制标题</view>
+        <view class="sh-act" bindtap="onFontSize"><view class="sh-act__ic">🅰️</view>字号</view>
+        <view class="sh-act" bindtap="onReport"><view class="sh-act__ic">⚠️</view>举报</view>
+      </view>
+      <view class="sh-cancel" bindtap="onCancel">取消</view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="sh-poster-view">
+      <view class="sh-ptop" style="padding-top: {{statusBarHeight}}px; height: {{navTotalHeight}}px;">
+        <view class="sh-ptop__row" style="height: {{navBarHeight}}px;">
+          <view class="sh-ptop__bk" bindtap="onClosePoster">‹</view>
+          <view class="sh-ptop__title">分享海报</view>
+          <view class="sh-ptop__sp" style="width: {{capsuleRight}}px;"></view>
+        </view>
+      </view>
+
+      <view class="sh-poster-stage" style="padding-top: {{navTotalHeight + 12}}px;">
+        <!-- cover template -->
+        <view class="sh-poster" wx:if="{{posterStyle === 'cover'}}">
+          <view class="sh-poster__pc">
+            <image src="{{cover}}" mode="aspectFill" />
+            <view class="sh-poster__sc"></view>
+            <view class="sh-poster__fade"></view>
+            <view class="sh-poster__kk">
+              <text>暖阁 · 创作者手记</text>
+              <view class="sh-poster__title warm-serif">{{title}}</view>
+            </view>
+          </view>
+          <view class="sh-poster__pb">
+            <view class="sh-poster__quote">「{{quote}}」</view>
+            <view class="sh-poster__ft">
+              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
+              <view class="sh-poster__meta">
+                <view class="sh-poster__nm">{{author}} · 主理人</view>
+                <view class="sh-poster__sb">{{shareFrom}}</view>
+              </view>
+              <view class="sh-poster__qr">
+                <image wx:if="{{qrImageUrl}}" src="{{qrImageUrl}}" mode="aspectFill" />
+                <text wx:else>…</text>
+              </view>
+            </view>
+            <view class="sh-poster__tip">长按识别小程序码 · 阅读全文</view>
+          </view>
+        </view>
+
+        <!-- quote template -->
+        <view class="sh-poster sh-poster--quote" wx:elif="{{posterStyle === 'quote'}}">
+          <view class="sh-poster__pb sh-poster__pb--quote">
+            <view class="sh-poster__brand">暖阁 · 金句</view>
+            <view class="sh-poster__bigq warm-serif">「{{quote}}」</view>
+            <view class="sh-poster__from">—— {{title}}</view>
+            <view class="sh-poster__ft">
+              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
+              <view class="sh-poster__meta">
+                <view class="sh-poster__nm">{{author}} · 主理人</view>
+                <view class="sh-poster__sb">{{shareFrom}}</view>
+              </view>
+              <view class="sh-poster__qr">
+                <image wx:if="{{qrImageUrl}}" src="{{qrImageUrl}}" mode="aspectFill" />
+                <text wx:else>…</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- text template -->
+        <view class="sh-poster sh-poster--text" wx:else>
+          <view class="sh-poster__pb sh-poster__pb--text">
+            <view class="sh-poster__brand">暖阁 · 深度阅读</view>
+            <view class="sh-poster__title warm-serif sh-poster__title--ink">{{title}}</view>
+            <view class="sh-poster__quote sh-poster__quote--gap">{{quote}}</view>
+            <view class="sh-poster__ft">
+              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
+              <view class="sh-poster__meta">
+                <view class="sh-poster__nm">{{author}} · 主理人</view>
+                <view class="sh-poster__sb">邀请码 {{shortCode || '登录后生成'}}</view>
+              </view>
+              <view class="sh-poster__qr">
+                <image wx:if="{{qrImageUrl}}" src="{{qrImageUrl}}" mode="aspectFill" />
+                <text wx:else>…</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="sh-styles">
+          <view class="sh-styles__item {{posterStyle === 'cover' ? 'on' : ''}}" data-style="cover" bindtap="onSwitchStyle">封面款</view>
+          <view class="sh-styles__item {{posterStyle === 'quote' ? 'on' : ''}}" data-style="quote" bindtap="onSwitchStyle">金句款</view>
+          <view class="sh-styles__item {{posterStyle === 'text' ? 'on' : ''}}" data-style="text" bindtap="onSwitchStyle">纯文字</view>
+        </view>
+
+        <view class="sh-poster-spacer"></view>
+
+        <view class="sh-savehint">海报含你的专属邀请码，好友扫码进入即算邀请成功</view>
+
+        <view class="sh-pbtns">
+          <view class="sh-pbtns__save" bindtap="onSavePoster">保存到相册</view>
+          <button class="sh-pbtns__send" open-type="share">发送给朋友</button>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <canvas canvas-id="shareQrCanvas" class="sh-qr-canvas" style="width:174px;height:174px;"></canvas>
+  <canvas type="2d" id="posterCanvas" class="sh-canvas" style="width:{{canvasW}}px;height:{{canvasH}}px"></canvas>
+</view>

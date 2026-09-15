@@ -165,6 +165,7 @@ function hashTags(tags) {
 module.exports = {
   FORMAT_TAGS,
   filterNoteDisplayTags,
+  mediaUrlDedupeKey,
   buildNoteGalleryUrls,
   extractImagesFromHtml,
   extractNoteParagraphs,

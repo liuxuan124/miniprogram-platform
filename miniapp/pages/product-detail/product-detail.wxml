@@ -1,7 +1,267 @@
-<!-- pages/product-detail/product-detail.wxml — 商品详情页 -->
+<!-- pages/product-detail/product-detail.wxml — column.html + goods.html + physical -->
 <page-meta page-style="{{themePageStyle}}" />
-<view class="product-detail-page" wx:if="{{!loading}}">
-  <!-- 图片轮播：固定高度占位，避免图未加载时内容顶上去 -->
+
+<!-- ========== 专栏 column ========== -->
+<view class="pd-warm pd-column" wx:if="{{!loading && isColumn}}">
+  <view class="col-cover">
+    <image class="col-cover__img" src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <view class="col-cover__sc"></view>
+    <view class="pd-back" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
+    <view class="col-cover__bd">
+      <text class="warm-tag warm-tag--soft">{{product.tag || '连载中 · 每周三更新'}}</text>
+      <view class="col-cover__title warm-serif">{{product.name}}</view>
+      <view class="col-cover__sb" wx:if="{{columnMetaLine}}">{{columnMetaLine}}</view>
+    </view>
+  </view>
+
+  <view class="col-price">
+    <view>
+      <text class="col-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+      <text class="col-price__old" wx:if="{{product.original_price}}">¥{{product.original_price}}</text>
+    </view>
+    <view class="col-price__cd">
+      <text class="col-price__cd-b">{{earlyBirdLabel || '早鸟价剩余 02 天 14:26'}}</text>
+      <text class="col-price__cd-s">开通即看全部已更新章节</text>
+    </view>
+  </view>
+
+  <view class="col-teacher" wx:if="{{teacher}}">
+    <image class="col-teacher__av" src="{{teacher.avatar}}" mode="aspectFill" />
+    <view>
+      <view class="col-teacher__nm">{{teacher.name}} <text class="warm-tag warm-tag--gold" wx:if="{{teacher.role}}">{{teacher.role}}</text></view>
+      <view class="col-teacher__bio">{{teacher.bio}}</view>
+    </view>
+  </view>
+
+  <view class="col-pts">
+    <view wx:for="{{columnPts}}" wx:key="b">
+      <text class="col-pts__b">{{item.b}}</text>
+      <text class="col-pts__s">{{item.s}}</text>
+    </view>
+  </view>
+
+  <view class="col-hd">
+    <text class="col-hd__t warm-serif">这门课讲什么</text>
+  </view>
+  <view class="col-intro">
+    <view class="col-intro__p" wx:for="{{columnIntro}}" wx:key="*this">{{item}}</view>
+    <image wx:if="{{columnIntroImage}}" class="col-intro__img" src="{{columnIntroImage}}" mode="aspectFill" />
+  </view>
+
+  <view class="col-segs">
+    <text
+      wx:for="{{columnSegs}}"
+      wx:key="key"
+      class="{{columnSeg === item.key ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onColumnSeg"
+    >{{item.label}}</text>
+  </view>
+
+  <view class="col-ch" wx:if="{{columnSeg === 'toc'}}">
+    <block wx:for="{{columnGroups}}" wx:key="title">
+      <view class="col-ch__grp">{{item.title}}</view>
+      <view wx:for="{{item.items}}" wx:for-item="ch" wx:key="no" class="col-ch__li {{ch.free ? 'free' : 'lock'}}">
+        <text class="col-ch__no">{{ch.no}}</text>
+        <view class="col-ch__tx">
+          <view class="col-ch__title">{{ch.title}}</view>
+          <view class="col-ch__mt">{{ch.meta}}</view>
+        </view>
+        <text class="col-ch__ico">{{ch.free ? '▶' : '🔒'}}</text>
+      </view>
+    </block>
+  </view>
+
+  <view class="col-rv" wx:elif="{{columnSeg === 'reviews'}}">
+    <view class="col-rv-hd">学员评价 · {{reviewScore}} 分 · {{reviewCountLabel}}</view>
+    <view wx:for="{{columnReviews}}" wx:key="nick" class="col-rv__it">
+      <view class="col-rv__hh">
+        <image wx:if="{{item.avatar}}" class="col-rv__av" src="{{item.avatar}}" mode="aspectFill" />
+        <text class="col-rv__nm">{{item.nick}}</text>
+        <text class="col-rv__st">{{item.stars}}</text>
+      </view>
+      <view class="col-rv__tx">{{item.text}}</view>
+    </view>
+  </view>
+
+  <view class="col-faq" wx:else>
+    <view class="col-faq__it" wx:for="{{columnFaqs}}" wx:key="q">
+      <view class="col-faq__q">{{item.q}}</view>
+      <view class="col-faq__a">{{item.a}}</view>
+    </view>
+  </view>
+
+  <view class="warm-actionbar">
+    <view class="pd-ic2" bindtap="onServiceTap"><text>💬</text>咨询</view>
+    <view class="pd-ic2" bindtap="onFavoriteTap"><text>⭐️</text>收藏</view>
+    <view class="warm-btn warm-btn--ghost" bindtap="onTryListenTap" wx:if="{{!purchased}}">试听</view>
+    <view class="warm-btn" style="flex:1" bindtap="onBuyNowTap">¥{{displayPrice || product.price}} 立即加入</view>
+  </view>
+</view>
+
+<!-- ========== 电子书 goods ========== -->
+<view class="pd-warm pd-ebook" wx:elif="{{!loading && isEbook}}">
+  <view class="eb-cover">
+    <image class="eb-cover__bg" src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <view class="eb-cover__sc"></view>
+    <view class="pd-back" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
+    <view class="eb-book">
+      <image src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    </view>
+  </view>
+
+  <view class="eb-tt">
+    <view class="eb-tt__h warm-serif">{{ebookTitle || product.name}}</view>
+    <view class="eb-tt__sb">{{ebookMetaLine}}</view>
+  </view>
+
+  <view class="eb-price">
+    <view class="eb-price__rw">
+      <text class="eb-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+      <text class="eb-price__old" wx:if="{{product.original_price || product.originalPrice}}">¥{{product.original_price || product.originalPrice}}</text>
+      <text class="eb-price__cd">{{launchCountdown || '首发价剩余 02:14:26'}}</text>
+    </view>
+    <view class="eb-vip" wx:if="{{memberPrice != null && memberPrice !== ''}}">
+      <text class="eb-vip__lb">会员</text>
+      <text class="eb-vip__tx">会员价 <text class="eb-vip__price">¥{{memberPrice}}</text>，{{memberPerk}}</text>
+      <text class="eb-vip__go" catchtap="onGoMember">开通 ›</text>
+    </view>
+  </view>
+
+  <view class="eb-spec">
+    <view class="eb-spec__li" wx:for="{{goodsSpecs}}" wx:key="k">
+      <text class="eb-spec__k">{{item.k}}</text>
+      <view class="eb-spec__v" wx:if="{{item.em}}">
+        <text>{{item.vBefore}}</text><text class="eb-spec__em">{{item.em}}</text><text>{{item.vAfter}}</text>
+      </view>
+      <text class="eb-spec__v" wx:else>{{item.v}}</text>
+    </view>
+  </view>
+
+  <view class="eb-try">
+    <view class="eb-try__hh" bindtap="onTrialTap">
+      <text>📖 免费试读</text>
+      <text class="eb-try__cfg">{{tryReadCfg}}</text>
+    </view>
+    <view class="eb-try__bd">
+      <view class="eb-try__h">{{tryReadTitle}}</view>
+      <view class="eb-try__p" wx:for="{{tryReadParagraphs}}" wx:key="*this">{{item}}</view>
+      <view class="eb-try__fade"></view>
+      <view class="eb-try__bar">
+        <view class="eb-try__pgs"><view style="width:{{tryReadPercent}}%"></view></view>
+        <view class="eb-try__pgt">已试读 {{tryReadDone}} / {{tryReadTotal}} 章 · 约占全书 {{tryReadPercent}}%</view>
+        <view class="warm-btn eb-try__cta" bindtap="onBuyNowTap">购买后继续阅读</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="col-hd">
+    <text class="col-hd__t warm-serif">关于这本书</text>
+  </view>
+  <view class="col-intro">
+    <view class="col-intro__p" wx:for="{{ebookAbout}}" wx:key="*this">{{item}}</view>
+    <image wx:if="{{ebookIntroImage}}" class="col-intro__img" src="{{ebookIntroImage}}" mode="aspectFill" />
+  </view>
+
+  <view class="col-hd col-hd--row">
+    <text class="col-hd__t warm-serif">目录</text>
+    <text class="col-hd__more">共 {{tryReadTotal || ebookToc.length || 12}} 章 ›</text>
+  </view>
+  <view class="eb-toc">
+    <view class="eb-toc__li" wx:for="{{ebookToc}}" wx:key="no" data-free="{{item.free}}" bindtap="onTocTap">
+      <text class="eb-toc__no">{{item.no}}</text>
+      <text class="eb-toc__nm">{{item.title}}</text>
+      <text class="eb-toc__st {{item.free ? 'free' : ''}}">{{item.free ? '可试读' : '🔒'}}</text>
+    </view>
+  </view>
+
+  <view class="eb-notice">⚠️ 虚拟商品说明：电子书为数字内容，支付成功后立即开通阅读权限，不支持退款。购买前请先使用免费试读确认内容是否适合你。发票可在「我的 - 订单与发票」申请。</view>
+
+  <view class="col-hd col-hd--row">
+    <text class="col-hd__t warm-serif">读者评价</text>
+    <text class="col-hd__more">全部 {{reviewCountLabel || '826'}} ›</text>
+  </view>
+  <view class="col-rv">
+    <view wx:for="{{ebookReviews}}" wx:key="nick" class="col-rv__it">
+      <view class="col-rv__hh">
+        <image wx:if="{{item.avatar}}" class="col-rv__av" src="{{item.avatar}}" mode="aspectFill" />
+        <text class="col-rv__nm">{{item.nick}}</text>
+        <text class="col-rv__st">{{item.stars}}</text>
+      </view>
+      <view class="col-rv__tx">{{item.text}}</view>
+    </view>
+  </view>
+
+  <view class="warm-actionbar">
+    <view class="pd-ic2" bindtap="onServiceTap"><text>💬</text>客服</view>
+    <view class="pd-ic2" bindtap="onShareTap"><text>↗️</text>分享</view>
+    <view class="warm-btn warm-btn--ghost" bindtap="onTrialTap" wx:if="{{!purchased}}">试读</view>
+    <view class="warm-btn" style="flex:1" bindtap="onBuyNowTap">{{ebookCtaText}}</view>
+  </view>
+</view>
+
+<!-- ========== 虚拟资料包 / ¥1 体验包（暖色，对齐 goods 虚拟模板） ========== -->
+<view class="pd-warm pd-digital" wx:elif="{{!loading && isWarmDigital}}">
+  <view class="eb-cover digi-cover">
+    <image class="eb-cover__bg" src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <view class="eb-cover__sc"></view>
+    <view class="pd-back" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
+    <view class="digi-pack">
+      <image src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    </view>
+  </view>
+
+  <view class="eb-tt">
+    <view class="eb-tt__h warm-serif">{{ebookTitle || product.name}}</view>
+    <view class="eb-tt__sb">{{ebookMetaLine}}</view>
+  </view>
+
+  <view class="eb-price">
+    <view class="eb-price__rw">
+      <text class="eb-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+      <text class="eb-price__old" wx:if="{{product.original_price || product.originalPrice}}">¥{{product.original_price || product.originalPrice}}</text>
+    </view>
+  </view>
+
+  <view class="eb-spec" wx:if="{{goodsSpecs.length}}">
+    <view class="eb-spec__li" wx:for="{{goodsSpecs}}" wx:key="k">
+      <text class="eb-spec__k">{{item.k}}</text>
+      <view class="eb-spec__v" wx:if="{{item.em}}">
+        <text>{{item.vBefore}}</text><text class="eb-spec__em">{{item.em}}</text><text>{{item.vAfter}}</text>
+      </view>
+      <text class="eb-spec__v" wx:else>{{item.v}}</text>
+    </view>
+  </view>
+
+  <view class="digi-gains" wx:if="{{gains.length}}">
+    <view class="col-hd">
+      <text class="col-hd__t warm-serif">你将获得</text>
+    </view>
+    <view class="digi-gains__card">
+      <view wx:for="{{gains}}" wx:key="*this" class="digi-gains__li">· {{item}}</view>
+    </view>
+  </view>
+
+  <view class="col-hd" wx:if="{{ebookAbout.length}}">
+    <text class="col-hd__t warm-serif">关于本包</text>
+  </view>
+  <view class="col-intro" wx:if="{{ebookAbout.length}}">
+    <view class="col-intro__p" wx:for="{{ebookAbout}}" wx:key="*this">{{item}}</view>
+  </view>
+
+  <view class="eb-notice">{{digiNotice || '⚠️ 虚拟商品说明：数字内容支付成功后立即开通权限，不支持退款。'}}</view>
+
+  <view class="warm-actionbar">
+    <view class="pd-ic2" bindtap="onServiceTap"><text>💬</text>客服</view>
+    <view class="pd-ic2" bindtap="onShareTap"><text>↗️</text>分享</view>
+    <view class="pd-ic2" bindtap="onFavoriteTap"><text>⭐️</text>收藏</view>
+    <view class="warm-btn" style="flex:1" bindtap="onBuyNowTap">{{ebookCtaText}}</view>
+  </view>
+</view>
+
+<!-- ========== 默认实物/通用 ========== -->
+<view class="product-detail-page" wx:elif="{{!loading}}">
+  <view class="pd-back pd-back--dark" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
   <view class="detail-swiper-wrap">
     <swiper
       class="detail-swiper"
@@ -18,10 +278,7 @@
           <text class="swiper-placeholder__text">暂无图片</text>
         </view>
       </swiper-item>
-      <swiper-item
-        wx:for="{{product.images}}"
-        wx:key="*this"
-      >
+      <swiper-item wx:for="{{product.images}}" wx:key="*this">
         <image
           class="swiper-image"
           src="{{item}}"
@@ -36,7 +293,6 @@
     </swiper>
   </view>
 
-  <!-- 价格与标题 -->
   <view class="detail-header">
     <view class="price-row">
       <text class="price-symbol">¥</text>
@@ -44,6 +300,8 @@
       <text class="original-price" wx:if="{{hasCouponDiscount && displayOriginalPrice}}">¥{{displayOriginalPrice}}</text>
       <text class="original-price" wx:elif="{{!hasCouponDiscount && product.original_price}}">¥{{product.original_price}}</text>
       <text class="coupon-price-tag" wx:if="{{hasCouponDiscount}}">券后价</text>
+      <text class="member-free-tag" wx:if="{{memberFree}}">会员免费</text>
+      <text class="member-price-tag" wx:elif="{{memberPrice != null && memberPrice !== ''}}">会员价 ¥{{memberPrice}}</text>
     </view>
     <text class="product-title">{{product.name}}</text>
     <view class="product-meta">
@@ -52,7 +310,6 @@
     </view>
   </view>
 
-  <!-- 规格 / 优惠 / 服务 -->
   <view class="pick-rows">
     <view class="pick" bindtap="onSelectSpecTap">
       <text class="k">规格</text>
@@ -66,7 +323,7 @@
     </view>
     <view class="pick" bindtap="onServiceEntry" hover-class="pick--pressed">
       <text class="k">服务</text>
-      <text class="v">快递发货 · 售后保障</text>
+      <text class="v">{{isDigital ? '自动发货 · 售后保障' : '快递发货 · 售后保障'}}</text>
       <text class="ar">›</text>
     </view>
   </view>
@@ -74,8 +331,8 @@
   <view class="author-card">
     <view class="av">🧭</view>
     <view class="info">
-      <view class="nm">出海笔记 · 阿哲 <text class="vf">已认证</text></view>
-      <view class="bio">跨境电商实战 · 选品 / 供应链 / 独立站</view>
+      <view class="nm">暖阁 · 墨白 <text class="vf">已认证</text></view>
+      <view class="bio">内容创业实战 · 专栏 / 电子书 / 星球</view>
     </view>
   </view>
 
@@ -84,12 +341,6 @@
     <view wx:for="{{gains}}" wx:key="*this" class="bullet">· {{item}}</view>
   </view>
 
-  <view class="detail-section" wx:if="{{whoFor}}">
-    <view class="section-title">适合谁</view>
-    <view class="text-content">{{whoFor}}</view>
-  </view>
-
-  <!-- 商品详情（富文本） -->
   <view class="detail-section">
     <view class="section-title">商品详情</view>
     <rich-text wx:if="{{richContent}}" nodes="{{richContent}}" class="rich-content" bindtap="onRichContentTap"></rich-text>
@@ -98,15 +349,6 @@
     </view>
   </view>
 
-  <view class="detail-section" wx:if="{{faqs.length}}">
-    <view class="section-title">常见问题</view>
-    <view wx:for="{{faqs}}" wx:key="q" class="faq">
-      <view class="q">Q：{{item.q}}</view>
-      <view class="a">A：{{item.a}}</view>
-    </view>
-  </view>
-
-  <!-- 评价入口 -->
   <view class="review-entry" bindtap="onReviewsTap">
     <view class="review-entry__l">
       <text class="review-entry__t">用户评价</text>
@@ -115,7 +357,6 @@
     <text class="review-entry__ar">全部 ›</text>
   </view>
 
-  <!-- 底部操作栏 -->
   <view class="bottom-bar">
     <view class="bottom-bar__icon" bindtap="onServiceTap">
       <text class="bottom-bar__icon-emoji">💬</text>
@@ -125,72 +366,59 @@
       <image class="bottom-bar__icon-img" src="/images/icon-cart.svg" mode="aspectFit" />
       <text class="bottom-bar__icon-text">购物车</text>
     </view>
-    <view
-      class="bottom-bar__btn bottom-bar__btn--cart"
-      bindtap="onAddCartTap"
-    >加入购物车</view>
+    <view class="bottom-bar__btn bottom-bar__btn--cart" bindtap="onAddCartTap">加入购物车</view>
     <view class="bottom-bar__btn bottom-bar__btn--buy" bindtap="onBuyNowTap">立即购买</view>
   </view>
+</view>
 
-  <sku-sheet
-    show="{{showSkuPanel}}"
-    image="{{(selectedSku && selectedSku.skuImage) || product.images[0] || product.mainImage || product.image || ''}}"
-    price="{{displayPrice || (selectedSku ? selectedSku.price : product.price)}}"
-    originalPrice="{{hasCouponDiscount ? displayOriginalPrice : ''}}"
-    couponHint="{{skuCouponHint}}"
-    stock="{{stock}}"
-    groups="{{product.specList}}"
-    selectedMap="{{selectedSkuValues}}"
-    selectedLabel="{{selectedSku ? (selectedSku.skuName || selectedSku.name || '') : ''}}"
-    quantity="{{quantity}}"
-    mode="{{skuMode}}"
-    bind:close="onSkuPanelClose"
-    bind:pick="onSkuSheetPick"
-    bind:qty="onSkuSheetQty"
-    bind:cart="onSkuSheetCart"
-    bind:buy="onSkuSheetBuy"
-  />
+<!-- 购买/优惠券等弹层：挂在各布局分支外，专栏/电子书/实物共用（否则 isEbook 时 showSkuPanel 无效） -->
+<sku-sheet
+  show="{{showSkuPanel}}"
+  image="{{(selectedSku && selectedSku.skuImage) || product.images[0] || product.mainImage || product.image || ''}}"
+  price="{{displayPrice || (selectedSku ? selectedSku.price : product.price)}}"
+  originalPrice="{{hasCouponDiscount ? displayOriginalPrice : ''}}"
+  couponHint="{{skuCouponHint}}"
+  stock="{{stock}}"
+  groups="{{product.specList}}"
+  selectedMap="{{selectedSkuValues}}"
+  selectedLabel="{{selectedSku ? (selectedSku.skuName || selectedSku.name || '') : ''}}"
+  quantity="{{quantity}}"
+  mode="{{skuMode}}"
+  bind:close="onSkuPanelClose"
+  bind:pick="onSkuSheetPick"
+  bind:qty="onSkuSheetQty"
+  bind:cart="onSkuSheetCart"
+  bind:buy="onSkuSheetBuy"
+/>
 
-  <coupon-sheet
-    show="{{showCouponSheet}}"
-    coupons="{{couponList}}"
-    selectedId="{{selectedCouponId}}"
-    bind:close="onCouponSheetClose"
-    bind:pick="onCouponSheetPick"
-    bind:confirm="onCouponSheetConfirm"
-  />
+<coupon-sheet
+  show="{{showCouponSheet}}"
+  coupons="{{couponList}}"
+  selectedId="{{selectedCouponId}}"
+  bind:close="onCouponSheetClose"
+  bind:pick="onCouponSheetPick"
+  bind:confirm="onCouponSheetConfirm"
+/>
 
-  <!-- 服务说明弹层 -->
-  <block wx:if="{{showServiceSheet}}">
-    <view class="svc-mask" catchtouchmove="noop" bindtap="onServiceClose"></view>
-    <view class="svc-sheet svc-sheet--on" catchtouchmove="noop">
-      <view class="svc-sheet__handle"></view>
-      <view class="svc-sheet__head">
-        <text class="svc-sheet__title">服务说明</text>
-        <view class="svc-sheet__close" bindtap="onServiceClose">✕</view>
-      </view>
-      <scroll-view scroll-y class="svc-sheet__body">
-        <view class="svc-item" wx:for="{{serviceItems}}" wx:key="title">
-          <view class="svc-item__head">
-            <text class="svc-item__icon">{{item.icon}}</text>
-            <text class="svc-item__title">{{item.title}}</text>
-          </view>
-          <text class="svc-item__desc">{{item.desc}}</text>
-          <view class="svc-item__rules" wx:if="{{item.rules && item.rules.length}}">
-            <text class="svc-rule" wx:for="{{item.rules}}" wx:for-item="rule" wx:key="*this">· {{rule}}</text>
-          </view>
-        </view>
-        <view class="svc-foot">
-          <text class="svc-foot__text">如需帮助，可联系客服进一步咨询</text>
-          <view class="svc-foot__btn" bindtap="onServiceTap">联系客服</view>
-        </view>
-      </scroll-view>
+<block wx:if="{{showServiceSheet}}">
+  <view class="svc-mask" catchtouchmove="noop" bindtap="onServiceClose"></view>
+  <view class="svc-sheet svc-sheet--on" catchtouchmove="noop">
+    <view class="svc-sheet__handle"></view>
+    <view class="svc-sheet__head">
+      <text class="svc-sheet__title">服务说明</text>
+      <view class="svc-sheet__close" bindtap="onServiceClose">✕</view>
     </view>
-  </block>
-</view>
-<login-sheet id="global-login-sheet" />
+    <scroll-view scroll-y class="svc-sheet__body">
+      <view class="svc-item" wx:for="{{serviceItems}}" wx:key="title">
+        <view class="svc-item__head">
+          <text class="svc-item__icon">{{item.icon}}</text>
+          <text class="svc-item__title">{{item.title}}</text>
+        </view>
+        <text class="svc-item__desc">{{item.desc}}</text>
+      </view>
+    </scroll-view>
+  </view>
+</block>
 
-<!-- 加载状态 -->
-<view class="loading-page" wx:if="{{loading}}">
-  <text>加载中...</text>
-</view>
+<login-sheet id="global-login-sheet" />
+<view class="loading-page" wx:if="{{loading}}"><text>加载中...</text></view>

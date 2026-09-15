@@ -1,0 +1,21 @@
+<view class="dsl-planet-hero pl-hero" style="padding-top: {{padTop}}px;">
+  <view class="pl-hero__rw">
+    <view class="pl-hero__lg">{{logoEmoji}}</view>
+    <view class="pl-hero__meta">
+      <text class="pl-hero__title warm-serif">{{title}}</text>
+      <text class="pl-hero__sb">{{subtitle}}</text>
+    </view>
+    <view class="pl-hero__jn" catchtap="onJoin">{{joinText}}</view>
+  </view>
+  <view class="pl-kpi">
+    <view wx:for="{{kpis}}" wx:key="label" class="pl-kpi__item">
+      <text class="pl-kpi__b">{{item.value}}</text>
+      <text class="pl-kpi__s">{{item.label}}</text>
+    </view>
+  </view>
+  <view class="pl-exp" wx:if="{{expireText}}" catchtap="onRenew">🎫 {{expireText}}</view>
+  <view class="pl-joinrow" catchtap="onJoinRow">
+    <text>{{joinRowText || '👥 加入球友微信群，第一时间收到更新通知'}}</text>
+    <text class="pl-joinrow__go">{{joinRowGo || '去加入 ›'}}</text>
+  </view>
+</view>

@@ -23,6 +23,9 @@ public class SystemConfig implements Serializable {
     @Schema(description = "主键ID")
     private Long id;
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     /**
      * 配置键
      */

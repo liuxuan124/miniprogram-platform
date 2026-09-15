@@ -460,6 +460,11 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.ImageHotspot]: defineAsyncComponent(() => import('./props/ImageHotspotProps.vue')),
   [ComponentType.SectionBg]: defineAsyncComponent(() => import('./props/SectionBgProps.vue')),
   [ComponentType.FeatureCards]: defineAsyncComponent(() => import('./props/FeatureCardsProps.vue')),
+  [ComponentType.ImageCube]: defineAsyncComponent(() => import('./props/ImageCubeProps.vue')),
+  [ComponentType.ContentTabs]: defineAsyncComponent(() => import('./props/ContentTabsProps.vue')),
+  [ComponentType.PlanetHero]: defineAsyncComponent(() => import('./props/PlanetHeroProps.vue')),
+  [ComponentType.PlanetTopics]: defineAsyncComponent(() => import('./props/PlanetTopicsProps.vue')),
+  [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./props/PlanetFeedProps.vue')),
 }
 
 const currentStyle = computed(() => {

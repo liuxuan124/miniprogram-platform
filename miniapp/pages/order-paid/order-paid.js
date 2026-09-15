@@ -1,115 +1,13 @@
-const productService = require('../../services/product')
-const orderService = require('../../services/order')
-const { get } = require('../../utils/request')
-
+/** 深链兼容壳（非 Tab）：旧主包 order-paid → pkg-trade/order-paid */
 Page({
-  data: {
-    orderId: '',
-    orderNo: '',
-    payAmount: '0.00',
-    productName: '',
-    productId: '',
-    isDigital: true,
-    isService: false,
-    rewardText: '',
-    recs: [],
-    paymentConfirmed: false,
-    confirming: true,
-  },
-
   onLoad(q) {
-    const productType = q.type || 'digital'
-    this.setData({
-      orderId: q.orderId || '',
-      orderNo: q.orderNo ? decodeURIComponent(q.orderNo) : '',
-      payAmount: q.amount || '0.00',
-      productName: q.name ? decodeURIComponent(q.name) : '知识商品',
-      productId: q.productId || '',
-      isDigital: ['digital', 'ebook'].includes(productType),
-      isService: productType === 'service' || productType === 'consult',
+    const keys = Object.keys(q || {})
+    const qs = keys.map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(q[k])).join('&')
+    wx.redirectTo({
+      url: '/pkg-trade/order-paid/order-paid' + (qs ? '?' + qs : ''),
+      fail() {
+        wx.navigateBack({ fail() { wx.switchTab({ url: '/pages/mine/mine' }) } })
+      },
     })
-    this._loadRecs()
-    this._confirmPayment()
-    this._requestSubscribe()
-  },
-
-  async _requestSubscribe() {
-    try {
-      const list = await get('/api/v1/mp/subscribe/templates', {}, { auth: false, showError: false })
-      const rows = Array.isArray(list) ? list : []
-      const tmplIds = rows
-        .map((r) => r && r.templateId)
-        .filter(Boolean)
-        .slice(0, 3)
-      if (!tmplIds.length || typeof wx.requestSubscribeMessage !== 'function') return
-      wx.requestSubscribeMessage({
-        tmplIds,
-        fail() {},
-      })
-    } catch (_) { /* ignore */ }
-  },
-
-  async _confirmPayment(attempt = 0) {
-    if (!this.data.orderId) {
-      this.setData({ confirming: false })
-      return
-    }
-    try {
-      const order = await orderService.getOrderDetail(this.data.orderId)
-      const confirmed = ['paid', 'shipped', 'completed'].includes(order.status)
-      if (confirmed) {
-        this.setData({ paymentConfirmed: true, confirming: false })
-        return
-      }
-    } catch (_) {}
-    if (attempt < 5) {
-      setTimeout(() => this._confirmPayment(attempt + 1), 800)
-    } else {
-      this.setData({ confirming: false })
-      wx.showModal({
-        title: '支付结果确认中',
-        content: '支付结果尚未同步，请稍后在订单列表查看，系统不会重复扣款。',
-        showCancel: false,
-      })
-    }
-  },
-
-  async _loadRecs() {
-    try {
-      const res = await productService.getProductList({ current: 1, size: 6 })
-      const list = (res.records || res.list || []).filter((p) => String(p.id) !== String(this.data.productId)).slice(0, 4)
-      this.setData({
-        recs: list.map((p) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-          cover: p.mainImage || p.main_image || '/images/default-product.svg',
-        })),
-      })
-    } catch (e) { /* ignore */ }
-  },
-
-  goOrders() {
-    wx.redirectTo({ url: '/pages/order-list/order-list' })
-  },
-
-  goOrderDetail() {
-    if (!this.data.paymentConfirmed) {
-      wx.showToast({ title: '支付结果确认中，请稍候', icon: 'none' })
-      return
-    }
-    wx.redirectTo({ url: `/pages/order-detail/order-detail?id=${this.data.orderId}` })
-  },
-
-  goAppointments() {
-    wx.redirectTo({ url: '/pages/my-appointments/my-appointments' })
-  },
-
-  goCoupons() {
-    wx.navigateTo({ url: '/pages/coupon-list/coupon-list' })
-  },
-
-  goProduct(e) {
-    wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${e.currentTarget.dataset.id}` })
   },
 })

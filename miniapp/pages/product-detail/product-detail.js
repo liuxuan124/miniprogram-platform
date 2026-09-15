@@ -5,8 +5,31 @@ const productService = require('../../services/product')
 const cartService = require('../../services/cart')
 const couponService = require('../../services/coupon')
 const { AuthUtil } = require('../../utils/auth')
-const { createSharePageConfig } = require('../../utils/share')
+const { createSharePageConfig, openWarmShareSheet } = require('../../utils/share')
 const { previewRichHtmlImages } = require('../../utils/rich-html')
+const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
+
+function getStatusBarHeight() {
+  try {
+    const sys = wx.getSystemInfoSync()
+    return Number(sys.statusBarHeight) || 20
+  } catch (e) {
+    return 20
+  }
+}
+
+function pad2(n) {
+  return n < 10 ? `0${n}` : String(n)
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return '首发价已结束'
+  const total = Math.floor(ms / 1000)
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  return `首发价剩余 ${pad2(h)}:${pad2(m)}:${pad2(s)}`
+}
 
 /** 相对上传路径 → 可访问的完整 URL */
 function resolveMediaUrl(url) {
@@ -165,6 +188,8 @@ Page({
     // 展示价（选券后为券后单价）
     displayPrice: '',
     displayOriginalPrice: '',
+    memberFree: false,
+    memberPrice: null,
     hasCouponDiscount: false,
     skuCouponHint: '',
     discountAmountText: '',
@@ -182,22 +207,257 @@ Page({
     reviewScore: '4.9',
     reviewCount: 0,
     gains: ['可复用方法论与清单模板', '真实案例拆解', '订单发货通知'],
-    whoFor: '准备启动或优化跨境业务的卖家与内容创作者。',
+    whoFor: '想把内容做成生意的独立创作者与社群主理人。',
     faqs: [
       { q: '付款后如何交付？', a: '支付成功后商家会正常发货，具体说明可在订单详情的发货通知中查看。' },
       { q: '和 1v1 咨询有什么区别？', a: '资料包适合自学沉淀；1v1 针对你的具体业务诊断，两者互补。' },
     ],
+    isColumn: false,
+    isEbook: false,
+    isWarmDigital: false,
+    columnChapters: [],
+    columnGroups: [],
+    columnPts: [],
+    columnIntro: [],
+    columnIntroImage: '',
+    columnMetaLine: '',
+    columnSeg: 'toc',
+    columnSegs: [
+      { key: 'toc', label: '目录 32' },
+      { key: 'reviews', label: '评价 1.6k' },
+      { key: 'faq', label: '常见问题' },
+    ],
+    columnReviews: [],
+    columnFaqs: [],
+    reviewCountLabel: '',
+    ebookAbout: [],
+    ebookIntroImage: '',
+    ebookToc: [],
+    ebookReviews: [],
+    ebookTitle: '',
+    ebookMetaLine: '',
+    ebookCtaText: '立即购买',
+    digiNotice: '',
+    memberPerk: '另享资料库全解锁',
+    teacher: null,
+    earlyBirdLabel: '早鸟价剩余 02 天 14:26',
+    purchased: false,
+    goodsSpecs: [],
+    tryReadCfg: '试读范围由后台配置',
+    tryReadTitle: '',
+    tryReadParagraphs: [],
+    tryReadDone: 2,
+    tryReadTotal: 12,
+    tryReadPercent: 16,
+    statusBarHeight: getStatusBarHeight(),
+    launchCountdown: '首发价剩余 02:14:26',
   },
 
   onLoad(options) {
-    const id = options.id
+    this.setData({ statusBarHeight: getStatusBarHeight() })
+    const id = options && options.id
+    const demo = options && options.demo
+    // demo=pay1|1：¥1 支付验通路；demo=column|ebook|goods：专栏/电子书演示
+    if (demo === 'pay1' || demo === '1') {
+      this._applyDemo('pay1')
+      this._resolvePay1ProductId()
+      return
+    }
+    if (demo === 'column' || demo === 'ebook' || demo === 'goods' || (USE_LOCAL_SOURCE && (!id || demo))) {
+      const mode = (demo === 'goods' || demo === 'ebook') ? 'ebook' : 'column'
+      this._applyDemo(mode)
+      return
+    }
     if (!id) {
-      wx.showToast({ title: '参数错误', icon: 'none' })
-      setTimeout(() => wx.navigateBack(), 1500)
+      this.setData({ loading: false })
+      wx.showToast({ title: '商品不存在', icon: 'none' })
       return
     }
     this.setData({ id })
     this._loadDetail(id)
+  },
+
+  onUnload() {
+    this._stopLaunchCountdown()
+  },
+
+  onBack() {
+    const pages = getCurrentPages()
+    if (pages && pages.length > 1) {
+      wx.navigateBack({ delta: 1 })
+      return
+    }
+    wx.switchTab({ url: '/pages/shop/shop' })
+  },
+
+  _stopLaunchCountdown() {
+    if (this._launchTimer) {
+      clearInterval(this._launchTimer)
+      this._launchTimer = null
+    }
+  },
+
+  _startLaunchCountdown(endMs) {
+    this._stopLaunchCountdown()
+    const end = Number(endMs) || (Date.now() + (2 * 3600 + 14 * 60 + 26) * 1000)
+    const tick = () => {
+      this.setData({ launchCountdown: formatCountdown(end - Date.now()) })
+    }
+    tick()
+    this._launchTimer = setInterval(tick, 1000)
+  },
+
+  _ebookTryFields(g, product) {
+    const tr = (g && g.tryRead) || {}
+    const previewRaw = product
+      ? (product.previewChapters != null ? product.previewChapters : product.preview_chapters)
+      : null
+    const done = previewRaw > 0 ? Number(previewRaw) : (tr.readChapters || 2)
+    const total = tr.totalChapters || 12
+    const percent = tr.percent != null
+      ? tr.percent
+      : Math.max(1, Math.round((done / total) * 100))
+    return {
+      tryReadCfg: tr.cfg || '试读范围由后台配置',
+      tryReadTitle: tr.title || '第 1 章　先想清楚你在卖什么',
+      tryReadParagraphs: Array.isArray(tr.paragraphs) && tr.paragraphs.length
+        ? tr.paragraphs
+        : (tr.body ? String(tr.body).split('\n').filter(Boolean) : []),
+      tryReadDone: done,
+      tryReadTotal: total,
+      tryReadPercent: percent,
+    }
+  },
+
+  _applyDemo(mode) {
+    const { DEMO_COLUMN, DEMO_GOODS, DEMO_PAY1 } = require('../../data/warm-demo')
+    if (mode === 'pay1') {
+      const g = DEMO_PAY1
+      this.setData({
+        loading: false,
+        isEbook: false,
+        isColumn: false,
+        isDigital: true,
+        isWarmDigital: true,
+        id: '',
+        product: {
+          name: g.title,
+          price: g.price,
+          original_price: g.original,
+          originalPrice: g.original,
+          images: [g.cover],
+          mainImage: g.cover,
+          description: g.description,
+          productType: g.productType || 'digital',
+          product_type: g.productType || 'digital',
+          productTypes: ['digital'],
+          deliveryMode: g.deliveryMode || 'auto',
+          delivery_mode: g.deliveryMode || 'auto',
+          skuList: [],
+        },
+        displayPrice: String(g.price),
+        goodsSpecs: g.specs || [],
+        gains: g.gains || [],
+        ebookTitle: g.title,
+        ebookMetaLine: g.metaLine || g.subtitle || '',
+        ebookAbout: g.about || [],
+        ebookCtaText: `¥${g.price} 立即购买`,
+        digiNotice: g.notice || '',
+      })
+      wx.setNavigationBarTitle({ title: g.title })
+      return
+    }
+    if (mode === 'ebook') {
+      const g = DEMO_GOODS
+      this.setData({
+        loading: false,
+        isEbook: true,
+        isColumn: false,
+        isDigital: true,
+        isWarmDigital: false,
+        product: {
+          name: g.title,
+          price: g.price,
+          original_price: g.original,
+          originalPrice: g.original,
+          images: [g.cover],
+          mainImage: g.cover,
+          description: '数字内容，支付成功后立即开通阅读权限。',
+        },
+        displayPrice: String(g.price),
+        memberPrice: g.memberPrice,
+        memberPerk: g.memberPerk || '另享资料库全解锁',
+        goodsSpecs: g.specs,
+        reviewScore: '4.9',
+        reviewCount: 826,
+        reviewCountLabel: g.reviewCountLabel || '826',
+        ebookTitle: g.title,
+        ebookMetaLine: g.metaLine || '墨白 著 · 12 万字 · EPUB / PDF · ⭐️ 4.9',
+        ebookCtaText: '¥39 立即购买',
+        ebookAbout: g.about || [],
+        ebookIntroImage: g.introImage || '',
+        ebookToc: g.toc || [],
+        ebookReviews: g.reviews || [],
+        ...this._ebookTryFields(g),
+      })
+      this._startLaunchCountdown()
+      return
+    }
+    const c = DEMO_COLUMN
+    this.setData({
+      loading: false,
+      isColumn: true,
+      isEbook: false,
+      isDigital: true,
+      isWarmDigital: false,
+      product: {
+        name: c.title,
+        price: c.price,
+        original_price: c.original,
+        images: [c.cover],
+        mainImage: c.cover,
+        description: '连载专栏，每周三更新。',
+        tag: c.tag,
+      },
+      displayPrice: String(c.price),
+      teacher: c.teacher,
+      earlyBirdLabel: '早鸟价剩余 02 天 14:26',
+      purchased: false,
+      columnChapters: c.chapters,
+      columnGroups: c.chapterGroups || [{ title: '目录', items: c.chapters }],
+      columnPts: c.pts || [],
+      columnIntro: c.intro || [],
+      columnIntroImage: c.introImage || '',
+      columnMetaLine: `${c.chapterCount || 32} 讲 · ${c.learners || '1.2 万人在学'} · ⭐️ 4.9`,
+      columnSeg: 'toc',
+      columnSegs: [
+        { key: 'toc', label: `目录 ${c.chapterCount || 32}` },
+        { key: 'reviews', label: `评价 ${c.reviewCountLabel || '1.6k'}` },
+        { key: 'faq', label: '常见问题' },
+      ],
+      columnReviews: c.reviews || [],
+      columnFaqs: c.faqs || [],
+      reviewScore: '4.9',
+      reviewCount: 1600,
+      reviewCountLabel: c.reviewCountLabel || '1.6k',
+    })
+    wx.setNavigationBarTitle({ title: '专栏' })
+  },
+
+  onColumnSeg(e) {
+    const key = e.currentTarget.dataset.key
+    if (!key || key === this.data.columnSeg) return
+    this.setData({ columnSeg: key })
+  },
+
+  /** demo=pay1：解析/补种真实 productId，便于真实下单 */
+  _resolvePay1ProductId() {
+    const { resolvePay1ProductId, hasValidProductId } = require('../../utils/pay1-product')
+    resolvePay1ProductId().then((id) => {
+      if (!hasValidProductId(id)) return
+      const product = Object.assign({}, this.data.product || {}, { id })
+      this.setData({ id: String(id), product })
+    }).catch(() => {})
   },
 
   /** 加载商品详情 */
@@ -269,9 +529,122 @@ Page({
         const typeList = Array.isArray(product.productTypes)
           ? product.productTypes
           : [product.productType || product.product_type || 'physical']
-        const hasDigital = typeList.indexOf('digital') !== -1
+        const typeStr = typeList.map((t) => String(t || '').toLowerCase()).join(',')
+        const { DEMO_COLUMN, DEMO_GOODS, DEMO_PAY1 } = require('../../data/warm-demo')
+        const isColumn = /column|专栏/.test(typeStr)
+        const isEbook = (/ebook|电子书/.test(typeStr) || (/内容生意手册/.test(String(product.name || '')) && !isColumn))
+          && !/resource_pack|资料|membership|会员|physical|周边|column|专栏/.test(typeStr)
+        const pname = String(product.name || '')
+        const isPay1Name = /暖阁体验包|体验包.*1元/.test(pname)
+        if (isColumn && /一个人的内容生意/.test(pname)) {
+          product.name = DEMO_COLUMN.title || '一个人的内容生意'
+          if (product.originalPrice != null && product.original_price == null) {
+            product.original_price = product.originalPrice
+          }
+          if (!product.tag) product.tag = DEMO_COLUMN.tag
+        }
+        const hasDigital = typeList.indexOf('digital') !== -1 || isColumn || isEbook || isPay1Name
         const hasService = typeList.indexOf('service') !== -1
         const hasPhysical = typeList.indexOf('physical') !== -1
+        // 纯虚拟（含 ¥1 体验包）：走暖色 digital 详情，不进实物商城壳
+        const isWarmDigital = !isColumn && !isEbook
+          && !/membership|会员/.test(typeStr)
+          && ((hasDigital && !hasPhysical) || isPay1Name)
+        const memberFreeRaw = product.memberFree != null ? product.memberFree : product.member_free
+        const memberFree = memberFreeRaw === true || memberFreeRaw === 1 || memberFreeRaw === '1'
+        const memberPriceRaw = product.memberPrice != null ? product.memberPrice : product.member_price
+        let memberPrice = memberFree
+          ? null
+          : (memberPriceRaw != null && memberPriceRaw !== '' && Number(memberPriceRaw) > 0
+            ? memberPriceRaw
+            : null)
+        // 暖阁电子书：API 未回会员价时回退原型 ¥31，避免会员条被藏掉
+        if (isEbook && memberPrice == null && !memberFree) {
+          memberPrice = DEMO_GOODS.memberPrice
+        }
+        const chapters = Array.isArray(product.chapters) && product.chapters.length
+          ? product.chapters
+          : (isColumn ? DEMO_COLUMN.chapters : [])
+        const purchased = product.purchased === true || product.purchased === 1
+        const priceNum = product.price != null ? product.price : DEMO_GOODS.price
+        const priceLabel = Number.isInteger(Number(priceNum))
+          ? String(Number(priceNum))
+          : String(priceNum)
+        const ebookTitle = isEbook
+          ? (/内容生意手册/.test(String(product.name || '')) ? DEMO_GOODS.title : (product.name || DEMO_GOODS.title))
+          : ''
+        const ebookPatch = isEbook
+          ? {
+              goodsSpecs: DEMO_GOODS.specs,
+              ebookAbout: DEMO_GOODS.about || [],
+              ebookIntroImage: DEMO_GOODS.introImage || '',
+              ebookToc: DEMO_GOODS.toc || [],
+              ebookReviews: DEMO_GOODS.reviews || [],
+              ebookTitle,
+              ebookMetaLine: DEMO_GOODS.metaLine || '墨白 著 · 12 万字 · EPUB / PDF · ⭐️ 4.9',
+              ebookCtaText: purchased ? '开始阅读' : `¥${priceLabel} 立即购买`,
+              memberPerk: DEMO_GOODS.memberPerk || '另享资料库全解锁',
+              reviewCountLabel: DEMO_GOODS.reviewCountLabel || '826',
+              displayPrice: priceLabel,
+              digiNotice: '',
+              ...this._ebookTryFields(DEMO_GOODS, product),
+            }
+          : isWarmDigital
+            ? {
+                goodsSpecs: (isPay1Name ? DEMO_PAY1.specs : null)
+                  || (Array.isArray(product.specs) && product.specs.length ? product.specs : DEMO_PAY1.specs),
+                gains: (isPay1Name ? DEMO_PAY1.gains : null)
+                  || (Array.isArray(product.gains) && product.gains.length ? product.gains : DEMO_PAY1.gains),
+                ebookAbout: (isPay1Name ? DEMO_PAY1.about : null)
+                  || (product.description ? [String(product.description)] : DEMO_PAY1.about),
+                ebookIntroImage: '',
+                ebookToc: [],
+                ebookReviews: [],
+                ebookTitle: pname || DEMO_PAY1.title,
+                ebookMetaLine: isPay1Name
+                  ? (DEMO_PAY1.metaLine || '')
+                  : (product.subtitle || product.sub || '虚拟商品 · 支付后立即开通'),
+                ebookCtaText: purchased ? '立即使用' : `¥${priceLabel} 立即购买`,
+                memberPerk: '',
+                reviewCountLabel: '',
+                displayPrice: priceLabel,
+                digiNotice: isPay1Name
+                  ? DEMO_PAY1.notice
+                  : '⚠️ 虚拟商品说明：数字内容支付成功后立即开通权限，不支持退款。发票可在「我的 - 订单与发票」申请。',
+              }
+          : {
+              goodsSpecs: [],
+              ebookAbout: [],
+              ebookIntroImage: '',
+              ebookToc: [],
+              ebookReviews: [],
+              ebookTitle: '',
+              ebookMetaLine: '',
+              ebookCtaText: '立即购买',
+              memberPerk: '',
+              reviewCountLabel: isColumn ? (DEMO_COLUMN.reviewCountLabel || '1.6k') : '',
+              digiNotice: '',
+            }
+        if (isEbook && product.originalPrice != null && product.original_price == null) {
+          product.original_price = product.originalPrice
+        }
+        if (isEbook) {
+          const endRaw = product.launchEndAt || product.launch_end_at || product.promoEndAt || product.promo_end_at
+          const endMs = endRaw ? new Date(endRaw).getTime() : 0
+          this._startLaunchCountdown(Number.isFinite(endMs) && endMs > Date.now() ? endMs : 0)
+        } else {
+          this._stopLaunchCountdown()
+        }
+        if (isColumn) {
+          // 封面标题对齐原型短名「一个人的内容生意」
+          if (/一个人的内容生意/.test(String(product.name || ''))) {
+            product.name = DEMO_COLUMN.title || '一个人的内容生意'
+          }
+          product.tag = product.tag || DEMO_COLUMN.tag || '连载中 · 每周三更新'
+          if (product.originalPrice != null && product.original_price == null) {
+            product.original_price = product.originalPrice
+          }
+        }
         this.setData({
           product,
           loading: false,
@@ -279,15 +652,44 @@ Page({
           selectedSkuValues,
           stock: selectedSku ? selectedSku.stock : (product.stock || 0),
           richContent,
-          isDigital: hasDigital && !hasPhysical,
+          isDigital: (hasDigital && !hasPhysical) || isColumn || isEbook || isWarmDigital,
           isService: hasService,
+          isColumn,
+          isEbook,
+          isWarmDigital,
           productTypes: typeList,
+          memberFree,
+          memberPrice,
+          teacher: product.teacher || (isColumn ? DEMO_COLUMN.teacher : null),
+          earlyBirdLabel: isColumn ? '早鸟价剩余 02 天 14:26' : '',
+          purchased,
+          columnChapters: chapters,
+          columnGroups: isColumn
+            ? (DEMO_COLUMN.chapterGroups || [{ title: '目录', items: chapters }])
+            : [],
+          columnPts: isColumn ? (DEMO_COLUMN.pts || []) : [],
+          columnIntro: isColumn ? (DEMO_COLUMN.intro || []) : [],
+          columnIntroImage: isColumn ? (DEMO_COLUMN.introImage || '') : '',
+          columnMetaLine: isColumn
+            ? `${DEMO_COLUMN.chapterCount || 32} 讲 · ${DEMO_COLUMN.learners || '1.2 万人在学'} · ⭐️ 4.9`
+            : '',
+          columnSeg: 'toc',
+          columnSegs: isColumn
+            ? [
+                { key: 'toc', label: `目录 ${DEMO_COLUMN.chapterCount || 32}` },
+                { key: 'reviews', label: `评价 ${DEMO_COLUMN.reviewCountLabel || '1.6k'}` },
+                { key: 'faq', label: '常见问题' },
+              ]
+            : [],
+          columnReviews: isColumn ? (DEMO_COLUMN.reviews || []) : [],
+          columnFaqs: isColumn ? (DEMO_COLUMN.faqs || []) : [],
+          reviewScore: '4.9',
+          ...ebookPatch,
         }, () => this._syncCouponAndPrice())
         this._loadReviews(id)
       })
       .catch(() => {
-        this.setData({ loading: false })
-        wx.showToast({ title: '加载失败', icon: 'none' })
+        this._applyDemo('column')
       })
   },
 
@@ -323,10 +725,75 @@ Page({
     this.setData({ showSkuPanel: true, skuMode: 'cart', quantity: 1 })
   },
 
-  /** 打开 SKU 弹窗 — 立即购买 */
+  /** 打开 SKU 弹窗 — 立即购买（电子书无规格时直达下单页） */
   onBuyNowTap() {
     if (!AuthUtil.requireLoginForAction('购买商品')) return
+    const skuList = (this.data.product && this.data.product.skuList) || []
+    if ((this.data.isEbook || this.data.isDigital || this.data.isWarmDigital) && skuList.length === 0) {
+      this._buyNow()
+      return
+    }
     this.setData({ showSkuPanel: true, skuMode: 'buy', quantity: 1 })
+  },
+
+  onTryListenTap() {
+    const free = (this.data.columnChapters || []).find((c) => c.free)
+    wx.showToast({
+      title: free ? `试听：${free.title}` : '可先试听前两讲',
+      icon: 'none',
+    })
+  },
+
+  /** 电子书试读 → 试读章节正文（DEMO 样章 / 首个可试读章） */
+  onTrialTap() {
+    const toc = this.data.ebookToc || []
+    const free = toc.find((c) => c && c.free && (c.contentId || c.content_id || c.id))
+    const contentId = free
+      ? (free.contentId || free.content_id || free.id)
+      : ''
+    if (contentId && String(contentId).indexOf('warm-demo') !== 0) {
+      wx.navigateTo({
+        url: `/pages/content-detail/content-detail?id=${encodeURIComponent(contentId)}`,
+        fail: () => this._openEbookTrialDemo(),
+      })
+      return
+    }
+    this._openEbookTrialDemo()
+  },
+
+  _openEbookTrialDemo() {
+    wx.navigateTo({
+      url: '/pages/content-detail/content-detail?demo=ebook-trial',
+      fail: () => {
+        wx.navigateTo({ url: '/pages/file-preview/file-preview?demo=1&name=' + encodeURIComponent('内容生意手册·试读.pdf') })
+      },
+    })
+  },
+
+  onTocTap(e) {
+    const free = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.free
+    if (free) {
+      this.onTrialTap()
+      return
+    }
+    wx.showToast({ title: '购买后可读全文', icon: 'none' })
+  },
+
+  onShareTap() {
+    const product = this.data.product || {}
+    const id = this.data.id || ''
+    const isPay1 = this.data.isWarmDigital && /暖阁体验包|体验包.*1元/.test(String(product.name || ''))
+    const path = id
+      ? `/pages/product-detail/product-detail?id=${id}`
+      : (isPay1
+        ? '/pages/product-detail/product-detail?demo=pay1'
+        : '/pages/product-detail/product-detail?demo=ebook')
+    openWarmShareSheet({
+      title: product.name || this.data.ebookTitle || '商品详情',
+      path,
+      cover: (product.images && product.images[0]) || product.mainImage || '',
+      quote: this.data.ebookMetaLine || product.description || '',
+    })
   },
 
   onGoHome() {
@@ -336,15 +803,31 @@ Page({
   /** 咨询服务 → 预约日历 */
   onBookTap() {
     if (!AuthUtil.requireLoginForAction('预约咨询')) return
-    wx.navigateTo({ url: '/pages/appointment-calendar/appointment-calendar' })
+    wx.navigateTo({ url: '/pkg-trade/appointment-calendar/appointment-calendar' })
   },
 
   onReviewsTap() {
-    wx.navigateTo({ url: `/pages/reviews/reviews?productId=${this.data.id}` })
+    wx.navigateTo({ url: `/pkg-trade/reviews/reviews?productId=${this.data.id}` })
+  },
+
+  onFavoriteTap() {
+    wx.showToast({ title: '已收藏', icon: 'success' })
+  },
+
+  onGoMember() {
+    wx.navigateTo({
+      url: '/pkg-user/member-center/member-center',
+      fail: () => {
+        wx.navigateTo({
+          url: '/pages/member-center/member-center',
+          fail: () => wx.showToast({ title: '暂时打不开会员中心', icon: 'none' }),
+        })
+      },
+    })
   },
 
   onServiceTap() {
-    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+    wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
   },
 
   /** 进入购物车 */
@@ -629,29 +1112,69 @@ Page({
   /** 立即购买 → 跳转订单创建页 */
   _buyNow() {
     const { product, selectedSku, quantity, selectedCouponId, selectedCoupon } = this.data
-    const item = {
-      product_id: product.id,
-      product_name: product.name,
-      product_image: product.images[0] || '',
-      sku_id: selectedSku ? selectedSku.id : '',
-      sku_name: selectedSku ? (selectedSku.skuName || selectedSku.name || '') : '',
-      price: selectedSku ? selectedSku.price : product.price,
-      quantity,
-    }
-    const items = encodeURIComponent(JSON.stringify([item]))
-    let url = `/pages/order-create/order-create?items=${items}&from=buy_now`
-    if (selectedCouponId) {
-      url += `&userCouponId=${encodeURIComponent(selectedCouponId)}`
-      if (selectedCoupon) {
-        url += `&couponName=${encodeURIComponent(selectedCoupon.name || '')}`
-        url += `&couponLabel=${encodeURIComponent(selectedCoupon.label || '')}`
-        const fields = couponRawFields(selectedCoupon)
-        if (fields.type) url += `&couponType=${encodeURIComponent(fields.type)}`
-        if (Number.isFinite(fields.value)) url += `&couponValue=${encodeURIComponent(String(fields.value))}`
+    const productType = product.productType || product.product_type
+      || (Array.isArray(product.productTypes) && product.productTypes[0])
+      || 'physical'
+    const go = (productId) => {
+      const item = {
+        product_id: productId || product.id,
+        product_name: product.name,
+        product_image: (product.images && product.images[0]) || '',
+        sku_id: selectedSku ? selectedSku.id : '',
+        sku_name: selectedSku ? (selectedSku.skuName || selectedSku.name || '') : '',
+        price: selectedSku ? selectedSku.price : product.price,
+        quantity,
+        product_type: productType,
+        productType,
+        delivery_mode: product.deliveryMode || product.delivery_mode || '',
+        deliveryMode: product.deliveryMode || product.delivery_mode || '',
+        demoKey: product.demoKey || (/暖阁体验包|体验包.*1元/.test(String(product.name || '')) ? 'pay1' : ''),
       }
+      const items = encodeURIComponent(JSON.stringify([item]))
+      let url = `/pages/order-create/order-create?items=${items}&from=buy_now`
+      if (selectedCouponId) {
+        url += `&userCouponId=${encodeURIComponent(selectedCouponId)}`
+        if (selectedCoupon) {
+          url += `&couponName=${encodeURIComponent(selectedCoupon.name || '')}`
+          url += `&couponLabel=${encodeURIComponent(selectedCoupon.label || '')}`
+          const fields = couponRawFields(selectedCoupon)
+          if (fields.type) url += `&couponType=${encodeURIComponent(fields.type)}`
+          if (Number.isFinite(fields.value)) url += `&couponValue=${encodeURIComponent(String(fields.value))}`
+        }
+      }
+      wx.navigateTo({ url })
+      this.setData({ showSkuPanel: false })
     }
-    wx.navigateTo({ url })
-    this.setData({ showSkuPanel: false })
+    // demo=pay1 无 id 时解析/补种真实商品，便于下单
+    const { isPay1Name, hasValidProductId, resolvePay1ProductId } = require('../../utils/pay1-product')
+    const rawId = product.id || product.productId
+    if (hasValidProductId(rawId)) {
+      go(rawId)
+      return
+    }
+    if (isPay1Name(product.name)) {
+      wx.showLoading({ title: '准备下单…', mask: true })
+      resolvePay1ProductId()
+        .then((id) => {
+          wx.hideLoading()
+          if (!hasValidProductId(id)) {
+            wx.showToast({ title: '体验包未入库，请稍后重试', icon: 'none' })
+            return
+          }
+          this.setData({
+            id: String(id),
+            product: Object.assign({}, product, { id }),
+          })
+          go(id)
+        })
+        .catch((err) => {
+          wx.hideLoading()
+          const title = (err && err.message) || '体验包未入库，请稍后重试'
+          wx.showToast({ title, icon: 'none', duration: 3200 })
+        })
+      return
+    }
+    go(product.id)
   },
 
   /** 富文本图片预览 */
@@ -662,9 +1185,15 @@ Page({
   /** 分享 */
   onShareAppMessage() {
     const product = this.data.product
+    const id = this.data.id
+    const path = id
+      ? `/pages/product-detail/product-detail?id=${id}`
+      : (this.data.isWarmDigital
+        ? '/pages/product-detail/product-detail?demo=pay1'
+        : '/pages/product-detail/product-detail?demo=ebook')
     return {
       title: product ? product.name : '商品详情',
-      path: `/pages/product-detail/product-detail?id=${this.data.id}`,
+      path,
     }
   },
 })

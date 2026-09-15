@@ -59,7 +59,7 @@ Page({
 
   /** D2：空态"去逛逛"行动按钮 */
   onGoShopping() {
-    wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
+    wx.switchTab({ url: '/pages/shop/shop' })
   },
 
   onShow() {
@@ -144,14 +144,14 @@ Page({
   /** 跳转订单详情 */
   onOrderTap(e) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + id })
+    wx.navigateTo({ url: '/pkg-trade/order-detail/order-detail?id=' + id })
   },
 
   /** 待确认 — 查看详情 */
   onPayTap(e) {
     const id = e.currentTarget.dataset.id
     e.stopPropagation()
-    wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + id })
+    wx.navigateTo({ url: '/pkg-trade/order-detail/order-detail?id=' + id })
   },
 
   /** 待确认 — 取消订单 */
@@ -199,12 +199,12 @@ Page({
   },
 
   onServiceTap() {
-    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+    wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
   },
 
   onDeliveryTap(e) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + id })
+    wx.navigateTo({ url: '/pkg-trade/order-detail/order-detail?id=' + id })
   },
 
   onReviewTap(e) {
@@ -214,7 +214,7 @@ Page({
     const name = encodeURIComponent(goods.productName || goods.product_name || goods.name || '')
     const image = encodeURIComponent(goods.productImage || goods.product_image || goods.image || '')
     wx.navigateTo({
-      url: `/pages/write-review/write-review?productId=${pid}&orderId=${item.id || ''}&name=${name}&image=${image}`,
+      url: `/pkg-trade/write-review/write-review?productId=${pid}&orderId=${item.id || ''}&name=${name}&image=${image}`,
     })
   },
 

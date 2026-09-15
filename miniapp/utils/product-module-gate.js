@@ -51,6 +51,8 @@ function getProductEnabledSync() {
   } catch (e) {
     // ignore
   }
+  // 配置未就绪时默认开启（与 isProductModuleEnabled 空列表语义一致），
+  // 避免进商城/交易页后被误判关闭再 switchTab 踢走
   return true
 }
 
@@ -73,11 +75,13 @@ async function refreshProductModuleState(forceRefresh) {
 }
 
 function redirectFromTradePage() {
-  wx.switchTab({ url: '/pages/content-list/content-list' })
+  wx.switchTab({ url: '/pages/discover/discover' })
 }
 
 function blockTradeNavigation(path) {
   if (!path || getProductEnabledSync()) return false
+  // 暖阁 demo=column|ebook|goods 等预览路径放行，避免「去看看」被总开关挡住
+  if (/[?&]demo=/.test(String(path))) return false
   if (!isTradePath(path)) return false
   wx.showToast({ title: '功能暂未开放', icon: 'none' })
   return true
@@ -115,7 +119,13 @@ function installPageProductGuardHook() {
         const pages = getCurrentPages()
         const route = (this && this.route)
           || (pages.length ? pages[pages.length - 1].route : '')
-        if (isTradeRoute(route) && !getProductEnabledSync()) {
+        const loadOpts = (args && args[0] && typeof args[0] === 'object') ? args[0] : null
+        const pageOpts = (this && this.options) || (pages.length ? pages[pages.length - 1].options : null) || {}
+        const allowDemoPreview = !!(
+          (loadOpts && loadOpts.demo) || (pageOpts && pageOpts.demo)
+        )
+        // demo=column|ebook 等暖阁演示页允许预览，不被商品总开关踢出
+        if (isTradeRoute(route) && !getProductEnabledSync() && !allowDemoPreview) {
           redirectFromTradePage()
           return
         }

@@ -41,6 +41,12 @@ public class MemberLevel implements Serializable {
 
     private Integer status;
 
+    /** 开通本档额外赠送星球天数 */
+    private Integer giftPlanetDays;
+
+    /** 到期前提醒天数 */
+    private Integer expireRemindDays;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField("created_at")
     private LocalDateTime createTime;

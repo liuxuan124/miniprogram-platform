@@ -48,7 +48,7 @@ public class SecurityConfig {
                                 "/api/v1/mp/contents",
                                 "/api/v1/mp/contents/**",
                                 "/api/v1/mp/products",
-                                "/api/v1/mp/products/**",
+                                "/api/v1/mp/products/**", // 含 GET .../smoke/pay1（¥1 验通路补种）
                                 "/api/v1/mp/product-categories",
                                 "/api/v1/mp/coupons",
                                 "/api/v1/mp/pages",
@@ -65,9 +65,14 @@ public class SecurityConfig {
                                 "/api/v1/mp/config/public",
                                 "/api/v1/mp/questions",
                                 "/api/v1/mp/questions/{id:\\d+}",
+                                "/api/v1/mp/files",
                                 "/api/v1/mp/files/{id:\\d+}",
                                 "/api/v1/mp/files/{id:\\d+}/download",
-                                "/api/v1/mp/files/{id:\\d+}/preview"
+                                "/api/v1/mp/files/{id:\\d+}/preview",
+                                "/api/v1/mp/planet/**",
+                                "/api/v1/mp/home/**",
+                                // 邀请短码仅 GET 解析公开；POST /scene 创建须登录（勿用 invite/** 无方法限制）
+                                "/api/v1/mp/invite/scene/*"
                         ).permitAll()
                         .requestMatchers(
                                 // 管理后台登录
@@ -82,6 +87,8 @@ public class SecurityConfig {
                                 "/api/v1/mp/events",
                                 "/api/v1/mp/events/batch",
                                 "/api/v1/mp/search/log",
+                                // 创作者申请（可匿名提交）
+                                "/api/v1/mp/creator/apply",
                                 // 上传文件静态资源访问
                                 "/uploads/**",
                                 // 健康检查

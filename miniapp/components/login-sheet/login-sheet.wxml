@@ -2,10 +2,18 @@
   wx:if="{{mounted}}"
   class="login-overlay {{visible ? 'login-overlay--visible' : ''}}"
 >
-  <view class="login-mask" catchtap="hide" catchtouchmove="noop"></view>
+  <view class="login-mask" catchtap="onCancelLogin" catchtouchmove="noop"></view>
 
   <view class="login-sheet" catchtouchmove="noop">
-    <view class="sheet-handle"></view>
+    <view class="sheet-top">
+      <view class="sheet-handle"></view>
+      <view
+        class="sheet-close"
+        catchtap="onCancelLogin"
+        hover-class="sheet-close--pressed"
+        aria-label="关闭登录"
+      >✕</view>
+    </view>
 
     <view class="brand-block">
       <image
@@ -22,58 +30,50 @@
     </view>
 
     <view class="profile-panel {{avatarError || nicknameError ? 'profile-panel--error' : ''}}">
-      <view class="profile-panel__row profile-panel__row--profile">
-        <text class="profile-panel__label">头像、昵称</text>
-        <view class="profile-panel__right">
-          <block wx:if="{{avatarUrl}}">
-            <button
-              class="profile-panel__avatar-btn"
-              open-type="chooseAvatar"
-              bindtap="onAvatarTap"
-              bindchooseavatar="onChooseAvatar"
-              hover-class="profile-panel__avatar-btn--pressed"
-              aria-label="更换微信头像"
-            >
-              <image
-                class="profile-panel__avatar"
-                src="{{avatarUrl}}"
-                mode="aspectFill"
-              />
-            </button>
-            <input
-              class="profile-panel__nickname {{nicknameError ? 'profile-panel__nickname--error' : ''}}"
-              type="nickname"
-              maxlength="20"
-              placeholder="填写昵称"
-              placeholder-class="profile-panel__nickname-ph"
-              value="{{nickName}}"
-              disabled="{{pickingAvatar}}"
-              focus="{{nicknameFocused}}"
-              bindinput="onNicknameInput"
-              bindblur="onNicknameBlur"
-              bindnicknamereview="onNicknameReview"
-            />
-          </block>
-          <block wx:else>
-            <text class="profile-panel__hint">让主页有你的样子</text>
-          </block>
-        </view>
+      <view class="profile-panel__row profile-panel__row--avatar {{avatarError ? 'profile-panel__row--invalid' : ''}}">
+        <text class="profile-panel__label">头像</text>
         <button
-          wx:if="{{!avatarUrl}}"
-          class="profile-panel__avatar-trigger"
+          class="profile-panel__avatar-btn"
           open-type="chooseAvatar"
           bindtap="onAvatarTap"
           bindchooseavatar="onChooseAvatar"
-          hover-class="profile-panel__row--pressed"
-          aria-label="选择微信头像"
-        ></button>
+          hover-class="profile-panel__avatar-btn--pressed"
+          aria-label="{{avatarUrl ? '更换头像' : '选择头像'}}"
+        >
+          <image
+            wx:if="{{avatarUrl}}"
+            class="profile-panel__avatar"
+            src="{{avatarUrl}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="profile-panel__avatar profile-panel__avatar--empty">+</view>
+        </button>
+      </view>
+
+      <view class="profile-panel__divider"></view>
+
+      <view class="profile-panel__row profile-panel__row--nickname {{nicknameError ? 'profile-panel__row--invalid' : ''}}">
+        <text class="profile-panel__label">昵称</text>
+        <input
+          class="profile-panel__nickname {{nicknameError ? 'profile-panel__nickname--error' : ''}}"
+          type="nickname"
+          maxlength="20"
+          placeholder="点击填写昵称"
+          placeholder-class="profile-panel__nickname-ph"
+          value="{{nickName}}"
+          disabled="{{pickingAvatar}}"
+          focus="{{nicknameFocused}}"
+          bindinput="onNicknameInput"
+          bindblur="onNicknameBlur"
+          bindnicknamereview="onNicknameReview"
+        />
       </view>
 
       <view class="profile-panel__divider"></view>
 
       <view class="profile-panel__row profile-panel__row--phone">
         <text class="profile-panel__label">手机号</text>
-        <text class="profile-panel__hint">点击授权微信手机号</text>
+        <text class="profile-panel__hint">点击授权手机号</text>
         <button
           wx:if="{{agreePrivacy}}"
           class="profile-panel__phone-trigger"
@@ -134,7 +134,14 @@
       {{loading ? '正在登录…' : '手机号快捷登录'}}
     </button>
 
-    <view class="skip-link" catchtap="hide">先随便逛逛</view>
+    <button
+      class="login-cancel"
+      bindtap="onCancelLogin"
+      disabled="{{loading}}"
+      hover-class="login-cancel--pressed"
+    >暂不登录</button>
+
+    <view class="skip-hint">未登录也可浏览公开内容</view>
   </view>
 
   <view wx:if="{{showPrivacyPopup}}" class="privacy-layer" catchtouchmove="noop">

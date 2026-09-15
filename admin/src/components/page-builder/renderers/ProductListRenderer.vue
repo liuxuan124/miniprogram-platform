@@ -252,8 +252,8 @@ const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
 )
 
 const DEMO_PRODUCTS: PreviewProductItem[] = [
-  { id: 'demo-1', name: '跨境通用知识库', price: '199.00', priceText: '199.00', priceWithYuan: true, sales: 128, salesLabel: '已售128' },
-  { id: 'demo-2', name: '跨境财税知识库', price: '299.00', priceText: '299.00', priceWithYuan: true, sales: 86, salesLabel: '已售86' },
+  { id: 'demo-1', name: '示例商品 A', price: '199.00', priceText: '199.00', priceWithYuan: true, sales: 128, salesLabel: '已售128' },
+  { id: 'demo-2', name: '示例商品 B', price: '299.00', priceText: '299.00', priceWithYuan: true, sales: 86, salesLabel: '已售86' },
 ]
 
 const showFailState = computed(() => !!props.previewMode && props.component.props?._previewDataFailed === true)

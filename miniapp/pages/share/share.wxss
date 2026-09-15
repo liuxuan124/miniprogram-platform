@@ -1,0 +1,405 @@
+@import "/styles/warm-theme.wxss";
+
+.sh-page {
+  min-height: 100vh;
+  background: #20140a;
+  position: relative;
+}
+
+.sh-bg {
+  filter: brightness(0.98);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sh-cover {
+  position: relative;
+  height: 500rpx;
+  color: #fff;
+}
+
+.sh-cover image { width: 100%; height: 100%; }
+.sh-sc {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(50,22,6,.4), rgba(50,22,6,.15) 42%, rgba(50,22,6,.86));
+}
+.sh-bd {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 0 40rpx 36rpx;
+}
+.sh-bd__title {
+  margin-top: 18rpx;
+  font-size: 42rpx;
+  line-height: 1.34;
+  font-weight: 720;
+}
+
+.sh-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(38, 20, 8, 0.5);
+}
+
+.sh-panel {
+  position: fixed;
+  z-index: 41;
+  left: 0; right: 0; bottom: 0;
+  border-radius: 48rpx 48rpx 0 0;
+  background: var(--bg);
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sh-pt { padding: 32rpx 36rpx 8rpx; text-align: center; }
+.sh-pt__h { font-size: 29rpx; font-weight: 770; }
+.sh-pt__p { margin-top: 10rpx; font-size: 22rpx; color: var(--mute); }
+
+.sh-reward {
+  margin: 24rpx 32rpx 0;
+  padding: 22rpx 26rpx;
+  border-radius: 26rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  background: linear-gradient(120deg, #3b2110, #5c3418);
+  color: #f8e3c6;
+}
+
+.sh-reward__b { font-size: 23rpx; font-weight: 740; color: #fbe3bc; }
+.sh-reward__p { font-size: 20rpx; opacity: 0.74; margin-top: 6rpx; }
+.sh-reward__ct { margin-left: auto; font-size: 20rpx; text-align: right; opacity: 0.8; }
+
+.sh-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 32rpx 16rpx 12rpx;
+}
+
+.sh-act { text-align: center; font-size: 22rpx; color: var(--ink-2); font-weight: 620; }
+.sh-act__ic {
+  width: 100rpx;
+  height: 100rpx;
+  margin: 0 auto 16rpx;
+  border-radius: 34rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46rpx;
+  background: var(--sheet);
+  box-shadow: 0 12rpx 30rpx rgba(140, 80, 30, 0.09);
+}
+.sh-act__ic.wx { background: linear-gradient(135deg, #4ecb73, #22a95a); }
+.sh-act__ic.pyq { background: linear-gradient(135deg, #f4a11d, #e07b0a); }
+.sh-act__ic.ps { background: linear-gradient(135deg, var(--brand-2), var(--brand)); }
+.sh-act__bdg { display: block; font-size: 18rpx; color: var(--gold); margin-top: 6rpx; }
+
+.sh-div { height: 1rpx; background: var(--line); margin: 24rpx 36rpx 0; }
+
+.sh-cancel {
+  margin-top: 28rpx;
+  padding: 30rpx 0 40rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  border-top: 16rpx solid #f0e2d0;
+}
+
+.sh-ptop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #3b2110 55%, rgba(59, 33, 16, 0));
+  color: #f8e3c6;
+  pointer-events: none;
+}
+.sh-ptop__row {
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+.sh-ptop__bk {
+  width: 60rpx;
+  font-size: 42rpx;
+  line-height: 1;
+  font-weight: 300;
+}
+.sh-ptop__title {
+  flex: 1;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 720;
+}
+.sh-ptop__sp { flex: none; }
+
+/* poster page: column flex so tip sits just above action row */
+.sh-poster-view {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #3b2110, #20140a);
+  box-sizing: border-box;
+}
+
+.sh-poster-stage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 274px @ 390 device ≈ 528rpx — slender centered card */
+.sh-poster {
+  width: 528rpx;
+  margin: 0 auto;
+  border-radius: 32rpx;
+  overflow: hidden;
+  background: #fffaf3;
+  box-shadow: 0 44rpx 100rpx rgba(0, 0, 0, 0.45);
+  flex: none;
+}
+
+.sh-poster--quote,
+.sh-poster--text {
+  min-height: 520rpx;
+}
+
+.sh-poster__pc {
+  height: 352rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.sh-poster__pc image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.sh-poster__sc {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(50, 22, 6, 0.18) 0%,
+    rgba(50, 22, 6, 0.32) 38%,
+    rgba(50, 22, 6, 0.62) 72%,
+    rgba(50, 22, 6, 0.82) 100%
+  );
+}
+/* soft feather into cream card (avoids hard cut) */
+.sh-poster__fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 36rpx;
+  background: linear-gradient(180deg, rgba(255, 250, 243, 0), #fffaf3);
+  pointer-events: none;
+}
+.sh-poster__kk {
+  position: absolute;
+  left: 30rpx;
+  bottom: 36rpx;
+  right: 30rpx;
+  z-index: 3;
+  color: #fff;
+}
+.sh-poster__kk text {
+  font-size: 18rpx;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+}
+.sh-poster__title {
+  margin-top: 12rpx;
+  font-size: 34rpx;
+  line-height: 1.35;
+  font-weight: 720;
+}
+.sh-poster__title--ink {
+  color: var(--ink);
+  font-size: 36rpx;
+  margin-top: 28rpx;
+}
+
+.sh-poster__pb { padding: 32rpx 32rpx 28rpx; }
+.sh-poster__pb--quote { padding-top: 48rpx; }
+.sh-poster__pb--text { padding-top: 56rpx; padding-bottom: 40rpx; }
+.sh-poster__brand {
+  font-size: 20rpx;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  font-weight: 700;
+}
+.sh-poster__quote {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 26rpx;
+  line-height: 1.72;
+  color: #4a3526;
+}
+.sh-poster__quote--gap { margin-top: 28rpx; }
+.sh-poster__bigq {
+  margin-top: 36rpx;
+  font-size: 36rpx;
+  line-height: 1.55;
+  color: #3a2a1c;
+  font-weight: 720;
+}
+.sh-poster__from {
+  margin-top: 28rpx;
+  font-size: 22rpx;
+  color: var(--mute);
+}
+.sh-poster__ft {
+  margin-top: 32rpx;
+  padding-top: 28rpx;
+  border-top: 1rpx dashed #e8d5bd;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+.sh-poster__av {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 999rpx;
+  flex: none;
+  background: #f0e2d0;
+}
+.sh-poster__meta { min-width: 0; flex: 1; }
+.sh-poster__nm { font-size: 23rpx; font-weight: 720; color: var(--ink); }
+.sh-poster__sb { font-size: 18rpx; color: var(--mute); margin-top: 6rpx; }
+.sh-poster__qr {
+  margin-left: auto;
+  width: 116rpx;
+  height: 116rpx;
+  border-radius: 14rpx;
+  overflow: hidden;
+  background: #fff;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  color: var(--mute);
+}
+.sh-poster__qr image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.sh-poster__tip {
+  margin-top: 18rpx;
+  font-size: 17rpx;
+  color: var(--mute);
+  text-align: right;
+}
+
+.sh-styles {
+  margin: 32rpx auto 0;
+  width: 528rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24rpx;
+  flex: none;
+}
+.sh-styles__item {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  border-radius: 18rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  color: #d6bfa4;
+  background: rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+.sh-styles__item.on {
+  background: rgba(255, 255, 255, 0.92);
+  color: #7c2d12;
+  font-weight: 740;
+}
+
+.sh-poster-spacer {
+  flex: 1;
+  min-height: 32rpx;
+}
+
+.sh-savehint {
+  flex: none;
+  margin: 0 0 16rpx;
+  text-align: center;
+  font-size: 20rpx;
+  color: #b59c80;
+  padding: 0 48rpx;
+  line-height: 1.5;
+}
+
+/* compact pill actions — match prototype .pbtns / .btn */
+.sh-pbtns {
+  flex: none;
+  padding: 0 36rpx 28rpx;
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+}
+
+.sh-pbtns__save,
+.sh-pbtns__send {
+  flex: 1;
+  height: 80rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.sh-pbtns__save {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f8e3c6;
+  box-shadow: none;
+}
+
+.sh-pbtns__send {
+  margin: 0;
+  border: 0;
+  min-height: 80rpx;
+  line-height: 80rpx;
+  background: linear-gradient(135deg, var(--brand-2), var(--brand)) !important;
+  color: #fff !important;
+  box-shadow: 0 20rpx 44rpx rgba(194, 65, 12, 0.3);
+}
+.sh-pbtns__send::after { border: 0; }
+
+.share-button-reset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+.share-button-reset::after { border: 0; }
+
+.sh-qr-canvas,
+.sh-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 375px;
+  height: 560px;
+  pointer-events: none;
+}

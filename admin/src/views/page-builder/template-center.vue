@@ -18,6 +18,7 @@
         <option value="content">内容</option>
         <option value="shop">商城</option>
         <option value="member">会员</option>
+        <option value="planet">星球</option>
         <option value="booking">预约</option>
       </select>
       <select v-model="selectedIndustry" class="sel">
@@ -241,6 +242,7 @@ const categoryTabs = [
   { value: 'content', label: '内容' },
   { value: 'shop', label: '商城' },
   { value: 'member', label: '会员' },
+  { value: 'planet', label: '星球' },
   { value: 'booking', label: '预约' },
 ]
 
@@ -292,6 +294,16 @@ const industryCombos: Record<string, Array<{ name: string; desc: string; compone
   pet: [
     { name: '宠物用品组合', desc: '搜索 + 分类导航 + 商品列表 + 优惠券', components: ['搜索', '分类导航', '商品列表', '优惠券'] },
   ],
+  knowledge_pay: [
+    { name: '课程转化组合', desc: 'Banner + 课程商品 + 会员卡 + 长文', components: ['轮播Banner', '商品列表', '会员卡', '文章列表'] },
+    { name: '社群陪跑组合', desc: '动态 + 入群 + AI 助教', components: ['动态时间线', '加群', 'AI导购'] },
+  ],
+  local_life: [
+    { name: '到店转化组合', desc: '分类 + 秒杀 + 预约 + 优惠券', components: ['分类导航', '限时秒杀', '预约服务', '优惠券'] },
+  ],
+  content_ip: [
+    { name: '创作者主页组合', desc: '品牌头 + 笔记流 + 专栏商品', components: ['品牌头', '笔记瀑布流', '商品列表', '加群'] },
+  ],
 }
 
 const filteredTemplates = computed(() => {
@@ -338,6 +350,135 @@ function makeDsl(name: string, type: string, path: string, components: Component
 
 function fallbackTemplates(): TemplateUI[] {
   return [
+    {
+      id: 2000,
+      name: '暖阁内容首页模板',
+      description: '对齐系统自带暖阁首页：品牌顶栏、搜索、快捷入口、精选文章、专栏课、内容流。套用后绑定到底栏首页槽即可替换原生版式。',
+      category: 'home',
+      created_at: '',
+      priority: 'P0',
+      scene: 'publish',
+      sceneLabel: '内容发布',
+      tags: ['暖阁', '内容', '专栏', '星球'],
+      recommendation: '内容优先',
+      colors: ['#C2410C', '#EA580C'],
+      style: 'minimal',
+      industryCode: 'content_ip',
+      dsl: (() => {
+        const dsl = makeDsl('暖阁内容首页', 'home', 'pages/index/index', [
+          makeComp('bh1', ComponentType.BrandHeader, {
+            logo_text: '暖阁',
+            title: '暖阁 · 慢一点，也很好',
+            subtitle: '内容、专栏与星球',
+            style_type: 'plain',
+            background_color: '#FDF6EC',
+            title_color: '#9A3412',
+            subtitle_color: '#C2410C',
+          }),
+          makeComp('s1', ComponentType.Search, { placeholder: '搜索文章、笔记、专栏', scope: 'all' }),
+          makeComp('n1', ComponentType.Nav, {
+            columns: 5,
+            items: [
+              { icon: '📚', title: '内容列表', link_type: 'page', link_url: '/pages/content-list/content-list' },
+              { icon: '🎧', title: '专栏课', link_type: 'page', link_url: '/pages/shop/shop' },
+              { icon: '🪐', title: '星球', link_type: 'page', link_url: '/pages/planet/planet' },
+              { icon: '🛍', title: '商城', link_type: 'page', link_url: '/pages/shop/shop' },
+              { icon: '🗂', title: '资料库', link_type: 'page', link_url: '/pages/resources/resources' },
+            ],
+          }),
+          makeComp('st1', ComponentType.SectionTitle, { title: '今日精选', subtitle: '深度内容' }),
+          makeComp('al1', ComponentType.ArticleList, { limit: 1, columns: 1, layout: 'list' }),
+          makeComp('st2', ComponentType.SectionTitle, { title: '精品专栏', subtitle: '连载课' }),
+          makeComp('pl1', ComponentType.ProductList, {
+            layout: 'list',
+            columns: 1,
+            limit: 4,
+            source_mode: 'auto',
+            data_source: {
+              type: 'product',
+              params: { status: 'on_sale', product_type: 'column' },
+              query: { status: 'on_sale', product_type: 'column' },
+            },
+          }),
+          makeComp('bi1', ComponentType.BrandIntro, {
+            title: '我的星球',
+            subtitle: '共读与连载陪伴',
+            desc: '点底栏「星球」进入；也可在装修里把这块换成入群组件。',
+          }),
+          makeComp('af1', ComponentType.ArticleFeed, { layout: 'list', page_size: 10, show_cover: true, show_date: true }),
+          makeComp('nf1', ComponentType.NoteFeed, { page_size: 8, show_category_tabs: false }),
+        ], '#FDF6EC')
+        dsl.global_config = { pull_refresh: true, reach_bottom_load: true }
+        return dsl
+      })(),
+    },
+    {
+      id: 2002,
+      name: '暖阁星球页模板',
+      description: '对齐系统自带暖阁星球页：顶栏、数据看板、会员入口、加群、话题洞察、动态时间线、提问悬浮钮。套用后绑定到底栏星球槽即可替换原生版式。',
+      category: 'planet',
+      created_at: '',
+      priority: 'P0',
+      scene: 'retention',
+      sceneLabel: '会员运营',
+      tags: ['暖阁', '星球', '动态', '会员'],
+      recommendation: '社群优先',
+      colors: ['#C2410C', '#EA580C'],
+      style: 'minimal',
+      industryCode: 'content_ip',
+      dsl: (() => {
+        const dsl = makeDsl('暖阁星球', 'custom', 'pages/planet/planet', [
+          makeComp('ph1', ComponentType.PlanetHero, {
+            source_mode: 'auto',
+            logo_emoji: '🪐',
+            title: '暖阁星球',
+            subtitle: '内容创作者的自留地 · 由 墨白 主理',
+            join_text: '加入',
+            join_link: '/pages/member-center/member-center',
+            expire_text: '会员有效期至 2027-03-18 · 剩余 185 天 · 续费享 8 折',
+            join_row_text: '👥 加入球友微信群，第一时间收到更新通知',
+            join_row_go: '去加入 ›',
+            kpis: [
+              { value: '3,241', label: '球友' },
+              { value: '1.2万', label: '沉淀内容' },
+              { value: '27', label: '今日新增' },
+              { value: '98%', label: '问必答' },
+            ],
+          }),
+          makeComp('pt1', ComponentType.PlanetTopics, {
+            source_mode: 'auto',
+            title: '本周星球话题预测',
+            badge: 'AI 推演',
+            note: '基于近 30 天星球发帖、提问与互动数据推演。预计下周「AI 写作工具」将持续升温，建议提前储备相关选题。',
+            items: [
+              { name: 'AI 写作工具', width: 88, pct: '↑ 62%' },
+              { name: '小红书新规', width: 71, pct: '↑ 34%' },
+              { name: '付费社群定价', width: 54, pct: '↑ 12%' },
+              { name: '公众号流量主', width: 31, pct: '↓ 8%', down: true },
+            ],
+          }),
+          makeComp('pf1', ComponentType.PlanetFeed, {
+            source_mode: 'auto',
+            page_size: 20,
+            resources_url: '/pages/resources/resources',
+          }),
+          makeComp('fb1', ComponentType.FloatButton, {
+            title: '提问 / 打卡',
+            icon_emoji: '🙋',
+            color: '#EA580C',
+            action_type: 'link',
+            link_url: '/pages/moment-detail/moment-detail',
+            position: 'right_bottom',
+            offset_x: 16,
+            offset_y: 120,
+            size: 56,
+            show_text: true,
+          }),
+        ], '#FDF6EC')
+        dsl.global_config = { pull_refresh: true, reach_bottom_load: true }
+        return dsl
+      })(),
+    },
     {
       id: 2001,
       name: '电商增长首页模板',
@@ -461,7 +602,13 @@ async function fetchTemplates() {
     const remote = rows
       .filter((item) => !!(item?.dsl || item?.dslContent || item?.dsl_content))
       .map((item) => normalizeRemoteTemplate(item as PageTemplate))
-    templates.value = remote.length > 0 ? remote : fallbackTemplates()
+    if (!remote.length) {
+      templates.value = fallbackTemplates()
+    } else {
+      const names = new Set(remote.map((tpl) => tpl.name))
+      const extras = fallbackTemplates().filter((tpl) => !names.has(tpl.name))
+      templates.value = extras.length ? [...extras, ...remote] : remote
+    }
   } catch {
     templates.value = fallbackTemplates()
   } finally {

@@ -6,10 +6,14 @@ const { resolveSourceChannel } = require('./utils/source-channel')
 const { applyThemeCssVars, installPageThemeHook } = require('./utils/theme')
 const { installPageShareHook } = require('./utils/share')
 const { installPageProductGuardHook, refreshProductModuleState } = require('./utils/product-module-gate')
+const { installPageQaGuardHook, refreshQaModuleState } = require('./utils/qa-module-gate')
+const { installPageFormGuardHook, refreshFormModuleState } = require('./utils/form-module-gate')
 
 installPageThemeHook()
 installPageShareHook()
 installPageProductGuardHook()
+installPageQaGuardHook()
+installPageFormGuardHook()
 
 App({
   /** 全局共享状态 */
@@ -21,7 +25,9 @@ App({
     pageDSLCache: {},     // 页面 DSL 缓存
     miniappThemeConfig: null, // 小程序主题配置
     miniappBrandConfig: null, // 品牌基础信息（名称/Logo/登录文案）
+    shareConfig: null,        // 全局分享标题/图（来自系统配置）
     sourceChannel: null,  // 首次归因来源
+    commentModuleEnabled: true,
   },
 
   /** 小程序启动 */
@@ -80,21 +86,44 @@ App({
     try {
       const config = await SystemService.fetchSystemConfig(true)
       await refreshProductModuleState(false)
+      await refreshQaModuleState(false)
+      await refreshFormModuleState(false)
+      this.globalData.commentModuleEnabled = SystemService.isCommentModuleEnabled(config.plugins)
       if (config.miniappBrandConfig) {
         this.globalData.miniappBrandConfig = config.miniappBrandConfig
       }
-      if (config.miniappThemeConfig) {
+      this.globalData.shareConfig = {
+        title: String(config.miniappShareTitle || (config.miniappBrandConfig && config.miniappBrandConfig.appName) || '').trim(),
+        imageUrl: String(config.miniappShareImage || '').trim(),
+      }
+      try {
+        StorageUtil.set('system_config', {
+          ...(StorageUtil.get('system_config') || {}),
+          miniappShareTitle: this.globalData.shareConfig.title,
+          miniappShareImage: this.globalData.shareConfig.imageUrl,
+          miniappBrandConfig: config.miniappBrandConfig || null,
+        })
+      } catch (e) { /* ignore */ }
+      const { USE_LOCAL_SOURCE, WARM_THEME_CONFIG, WARM_PAGE_BG } = require('./data/warm-source')
+      if (USE_LOCAL_SOURCE) {
+        this.globalData.miniappThemeConfig = WARM_THEME_CONFIG
+        applyThemeCssVars(WARM_THEME_CONFIG)
+        wx.setNavigationBarColor({
+          frontColor: '#000000',
+          backgroundColor: WARM_PAGE_BG,
+          animation: { duration: 200, timingFunc: 'easeIn' },
+        })
+      } else if (config.miniappThemeConfig) {
         this.globalData.miniappThemeConfig = config.miniappThemeConfig
         applyThemeCssVars(config.miniappThemeConfig)
         const navBarColor = config.miniappThemeConfig.navBarColor
-        // 极简默认：白底黑字；后台显式配置时仍可覆盖
         wx.setNavigationBarColor({
           frontColor: (navBarColor && navBarColor.frontColor) || '#000000',
           backgroundColor: (navBarColor && (navBarColor.backgroundColor || navBarColor)) || '#ffffff',
           animation: { duration: 200, timingFunc: 'easeIn' },
         })
       } else {
-        applyThemeCssVars({ primaryColor: '#002FA7' })
+        applyThemeCssVars({ primaryColor: '#C2410C' })
       }
     } catch (e) {
       console.warn('[App] 加载系统配置失败:', e)

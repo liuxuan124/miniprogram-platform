@@ -31,4 +31,13 @@ public class ContentQueryDTO {
 
     /** 来源筛选 */
     private String source;
+
+    /** 星球专属 0/1 */
+    private Integer planetExclusive;
+
+    /** 审核状态 pending/machine_passed/approved/rejected/auto_blocked */
+    private String auditStatus;
+
+    /** 作者身份 owner/editor/contributor/user 等 */
+    private String authorRole;
 }

@@ -66,6 +66,9 @@ public class KnowledgeSyncService {
                 k.setFileUrl("content://" + c.getId());
                 k.setVectorStatus("processing");
                 k.setRecallWeight(BigDecimal.ONE);
+                if (!StringUtils.hasText(k.getCitePolicy())) {
+                    k.setCitePolicy("full");
+                }
                 k.setCreatedAt(k.getCreatedAt() != null ? k.getCreatedAt() : LocalDateTime.now());
                 if (k.getId() == null) {
                     agentKnowledgeMapper.insert(k);
@@ -105,6 +108,9 @@ public class KnowledgeSyncService {
                 k.setFileSize(0L);
                 k.setFileUrl("qa://" + q.getId());
                 k.setRecallWeight(new BigDecimal("1.2"));
+                if (!StringUtils.hasText(k.getCitePolicy())) {
+                    k.setCitePolicy("full");
+                }
                 k.setCreatedAt(k.getCreatedAt() != null ? k.getCreatedAt() : LocalDateTime.now());
                 if (k.getId() == null) {
                     agentKnowledgeMapper.insert(k);
@@ -119,7 +125,7 @@ public class KnowledgeSyncService {
         Map<String, Object> result = new HashMap<>();
         result.put("synced", synced);
         result.put("chunks", chunks);
-        result.put("message", "同步完成：知识源 " + synced + "，切片约 " + chunks);
+        result.put("message", "同步完成：语料源 " + synced + "，切片约 " + chunks);
         return result;
     }
 }

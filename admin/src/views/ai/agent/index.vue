@@ -7,7 +7,7 @@
     >
       <template #actions>
         <el-button @click="$router.push('/ai/agent')">← 返回列表</el-button>
-        <el-button plain @click="$router.push('/ai/knowledge')">知识库管理</el-button>
+        <el-button plain @click="$router.push('/ai/knowledge')">AI 语料库</el-button>
       </template>
     </PageHeader>
 
@@ -107,6 +107,20 @@
       <el-tab-pane label="② Prompt 配置" name="prompt">
         <el-row :gutter="16">
           <el-col :span="14">
+            <el-card shadow="never" style="margin-bottom: 12px">
+              <template #header><span>🎭 人格绑定（作者矩阵）</span></template>
+              <el-form label-width="88px" size="small">
+                <el-form-item label="persona_id">
+                  <el-input v-model="persona.id" placeholder="owner / editor / contributor 或自定义" />
+                </el-form-item>
+                <el-form-item label="展示名">
+                  <el-input v-model="persona.name" placeholder="如：墨白" />
+                </el-form-item>
+                <el-form-item label="语气标签">
+                  <el-input v-model="persona.tone" placeholder="温和、克制，拼进提示词" />
+                </el-form-item>
+              </el-form>
+            </el-card>
             <el-card shadow="never">
               <template #header><span>✏️ System Prompt 编写</span></template>
               <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">定义 AI 的角色、能力范围、回答风格与禁止行为</div>
@@ -131,7 +145,7 @@
                 </el-dropdown>
                 <el-button size="small" @click="estimateCost">估算费用</el-button>
                 <el-button size="small" type="success" :loading="savingConfig" @click="savePromptConfig">保存 Prompt 与策略</el-button>
-                <el-button size="small" type="primary" @click="activeTab = 'knowledge'">下一步：知识库 →</el-button>
+                <el-button size="small" type="primary" @click="activeTab = 'knowledge'">下一步：语料库 →</el-button>
               </div>
             </el-card>
           </el-col>
@@ -181,29 +195,29 @@
         </el-row>
       </el-tab-pane>
 
-      <el-tab-pane label="③ 知识库" name="knowledge">
+      <el-tab-pane label="③ 语料库" name="knowledge">
         <el-card shadow="never">
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <span>📚 知识库文件管理</span>
+              <span>📚 语料库文件管理</span>
               <el-upload
                 :show-file-list="false"
                 accept=".docx,.txt,.md,.markdown,.html,.xlsx,.csv"
                 :disabled="uploadingKnowledge"
                 :http-request="handleKnowledgeUpload"
               >
-                <el-button size="small" type="primary" :loading="uploadingKnowledge">+ 上传知识文档</el-button>
+                <el-button size="small" type="primary" :loading="uploadingKnowledge">+ 上传语料文档</el-button>
               </el-upload>
             </div>
           </template>
           <el-alert type="warning" :closable="false" show-icon style="margin-bottom:14px">
             <template #title>
-              知识库已接入回答链路：沙盒与岗位对话会自动召回切片。请在「知识库管理」查看切片、检索测试与内容库同步。文件存于受保护目录，不可通过 /uploads 直接下载。
+              语料库已接入回答链路：沙盒与岗位对话会自动召回切片。请在「AI 语料库」查看切片、检索测试与内容库同步。文件存于受保护目录，不可通过 /uploads 直接下载。
             </template>
           </el-alert>
           <div style="margin-bottom:14px">
             <el-button size="small" type="primary" plain @click="$router.push('/ai/knowledge')">
-              前往知识库管理
+              前往 AI 语料库
             </el-button>
           </div>
           <el-upload
@@ -215,7 +229,7 @@
             :http-request="handleKnowledgeUpload"
           >
             <div class="knowledge-uploader__text">
-              {{ uploadingKnowledge ? '正在上传…' : '将知识文档拖到此处，或点击选择文件' }}
+              {{ uploadingKnowledge ? '正在上传…' : '将语料文档拖到此处，或点击选择文件' }}
             </div>
             <div class="knowledge-uploader__hint">单文件不超过 10MB</div>
           </el-upload>
@@ -305,7 +319,7 @@
                 </div>
                 <div class="eval-item eval-warn">
                   <div class="eval-title">⚠️ 待优化</div>
-                  <div class="eval-desc">退换货政策问题回答不够精准，建议补充知识库</div>
+                  <div class="eval-desc">退换货政策问题回答不够精准，建议补充语料库</div>
                 </div>
                 <div class="eval-item eval-pending">
                   <div class="eval-title">📝 未测试</div>
@@ -599,7 +613,7 @@ const agentRole = computed(() => {
 })
 const roleDisplayName = computed(() => ROLE_NAMES[agentRole.value] || agentRole.value)
 const rolePageDescription = computed(() =>
-  `岗位：${roleDisplayName.value}。完整生命周期：接入模型 → Prompt → 知识库 → 沙盒 → 发布 → 监控。`
+  `岗位：${roleDisplayName.value}。完整生命周期：接入模型 → Prompt → 语料库 → 沙盒 → 发布 → 监控。`
 )
 
 const activeTab = ref('model')
@@ -828,6 +842,8 @@ interface ConversationRow {
   time: string
 }
 
+const persona = ref({ id: '', name: '', tone: '' })
+
 const apiConfig = ref({
   id: 0,
   name: '生产客服 Agent',
@@ -988,6 +1004,9 @@ function buildConfigPayload(): AgentConfigPayload {
     dailyTokenBudget: costForm.value.dailyTokenBudget,
     overBudgetAction: costForm.value.overBudgetAction,
     evalCases: evalCasesJson.value || '[]',
+    personaId: persona.value.id || undefined,
+    personaName: persona.value.name || undefined,
+    personaTone: persona.value.tone || undefined,
   }
 }
 
@@ -1056,8 +1075,14 @@ function applyConfigToForm(config: {
   dailyTokenBudget?: number
   overBudgetAction?: string
   evalCases?: unknown[] | string
+  personaId?: string
+  personaName?: string
+  personaTone?: string
 }) {
   apiConfig.value.id = config.id
+  persona.value.id = config.personaId || ''
+  persona.value.name = config.personaName || ''
+  persona.value.tone = config.personaTone || ''
   apiConfig.value.name = config.name || apiConfig.value.name
   apiConfig.value.modelProvider = config.modelProvider || inferProvider(config.model || '')
   apiConfig.value.model = config.model || apiConfig.value.model

@@ -17,11 +17,17 @@ public class Content extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
+    /** 租户ID */
+    private Long tenantId;
+
     /** 文章标题 */
     private String title;
 
     /** 内容形态 article=长文 note=笔记 moment=动态 video=视频 data=数据 */
     private String contentType;
+
+    /** 是否星球专属（付费会员可见全文/下载） */
+    private Integer planetExclusive;
 
     /** 分类ID */
     private Long categoryId;
@@ -62,6 +68,9 @@ public class Content extends BaseEntity {
     /** 作者 */
     private String author;
 
+    /** 作者角色: owner/editor/contributor/user */
+    private String authorRole;
+
     /** 作者头像 URL */
     private String authorAvatar;
 
@@ -92,11 +101,20 @@ public class Content extends BaseEntity {
     /** 频道置顶 */
     private Integer isPinned;
 
+    /** 星球精华 */
+    private Integer isEssence;
+
     /** 首页推荐 */
     private Integer isRecommended;
 
     /** 状态 draft=草稿 published=已发布 archived=已归档 */
     private String status;
+
+    /** 审核状态 pending/machine_passed/approved/rejected/auto_blocked */
+    private String auditStatus;
+
+    /** 可见性 public/member_only/removed */
+    private String visibility;
 
     /** 发布时间 */
     private LocalDateTime publishedAt;

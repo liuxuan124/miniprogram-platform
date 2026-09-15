@@ -9,12 +9,14 @@ import com.miniprogram.dto.ContentQueryDTO;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ContentInteractService;
 import com.miniprogram.service.ContentService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -28,6 +30,7 @@ public class MpContentController {
 
     private final ContentService contentService;
     private final ContentInteractService contentInteractService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @Operation(summary = "内容列表", description = "小程序端获取已发布内容列表，支持分类/标签筛选")
     @GetMapping
@@ -49,11 +52,13 @@ public class MpContentController {
             ContentInteractStateDTO state = contentInteractService.getState(id, userId);
             dto.setLiked(state.getLiked());
             dto.setFavorited(state.getFavorited());
-            dto.setCommentCount(state.getCommentCount());
+            dto.setCommentCount(featureModuleGuard.isEnabled("comment") ? state.getCommentCount() : 0);
         } else {
             dto.setLiked(false);
             dto.setFavorited(false);
-            dto.setCommentCount(contentInteractService.listComments(id).size());
+            dto.setCommentCount(featureModuleGuard.isEnabled("comment")
+                    ? contentInteractService.listComments(id).size()
+                    : 0);
         }
         return R.ok(dto);
     }
@@ -82,12 +87,16 @@ public class MpContentController {
     @Operation(summary = "评论列表")
     @GetMapping("/{id}/comments")
     public R<List<ContentCommentDTO>> listComments(@PathVariable Long id) {
+        if (!featureModuleGuard.isEnabled("comment")) {
+            return R.ok(Collections.emptyList());
+        }
         return R.ok(contentInteractService.listComments(id));
     }
 
     @Operation(summary = "发表评论")
     @PostMapping("/{id}/comments")
     public R<ContentCommentDTO> addComment(@PathVariable Long id, @RequestBody CommentBody body) {
+        featureModuleGuard.requireCommentModule();
         Long userId = requireUserId();
         return R.ok(contentInteractService.addComment(
                 id, userId, body.getNickname(), body.getAvatar(), body.getContent()));

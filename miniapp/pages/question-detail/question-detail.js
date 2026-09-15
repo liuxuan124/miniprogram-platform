@@ -1,6 +1,7 @@
 const qaService = require('../../services/qa')
 const { createSharePageConfig } = require('../../utils/share')
 const { previewRichHtmlImages } = require('../../utils/rich-html')
+const { getQaEnabledSync, blockQaNavigation } = require('../../utils/qa-module-gate')
 
 function stripHtml(html) {
   return String(html || '').replace(/<[^>]+>/g, '\n').replace(/\n+/g, '\n').trim()
@@ -9,6 +10,8 @@ function stripHtml(html) {
 Page({
   ...createSharePageConfig(),
   data: {
+    moduleEnabled: false,
+    askLabel: '我也要提问',
     loading: true,
     question: null,
     answerHtml: '',
@@ -16,6 +19,9 @@ Page({
   },
 
   onLoad(options) {
+    const enabled = getQaEnabledSync()
+    this.setData({ moduleEnabled: enabled })
+    if (!enabled) return
     this._questionId = options.id
     if (!this._questionId) return
     this._loadDetail(this._questionId)
@@ -38,6 +44,7 @@ Page({
   },
 
   onGoAsk() {
+    if (blockQaNavigation('/pages/question-ask/question-ask')) return
     wx.navigateTo({ url: '/pages/question-ask/question-ask' })
   },
 

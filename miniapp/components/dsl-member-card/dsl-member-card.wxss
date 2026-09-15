@@ -10,7 +10,7 @@
   width: 100%;
   border-radius: 28rpx;
   padding: 32rpx;
-  background: linear-gradient(135deg, #0f2150, #1769ff);
+  background: linear-gradient(135deg, #7c2d12, #d97706);
   background-size: cover;
   background-position: center;
   color: var(--card);
@@ -31,18 +31,18 @@
 }
 
 .dsl-member-card--solid {
-  background: #0f2150;
+  background: #7c2d12;
 }
 
 .dsl-member-card--image {
-  background-color: #0f2150;
+  background-color: #7c2d12;
 }
 
 .dsl-member-card--image::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 33, 80, 0.25), rgba(15, 33, 80, 0.55));
+  background: linear-gradient(180deg, rgba(124, 45, 18, 0.25), rgba(124, 45, 18, 0.55));
   pointer-events: none;
 }
 

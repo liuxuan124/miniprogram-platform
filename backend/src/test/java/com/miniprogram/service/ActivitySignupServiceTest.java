@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -65,7 +66,9 @@ class ActivitySignupServiceTest {
 
         verify(signupMapper, never()).insert(any());
         verify(activityCheckInService, never()).save(any());
-        verify(activityService, never()).incrementSigned(any());
+        // quota>0 时先占座，验证失败后释放
+        verify(activityService).incrementSigned(ACTIVITY_ID);
+        verify(activityService).decrementSigned(ACTIVITY_ID);
     }
 
     @Test
@@ -79,6 +82,8 @@ class ActivitySignupServiceTest {
                 service.createSignup(ACTIVITY_ID, USER_ID, NAME, PHONE, SESSION, null));
 
         verify(signupMapper, never()).insert(any());
+        verify(activityService).incrementSigned(ACTIVITY_ID);
+        verify(activityService).decrementSigned(ACTIVITY_ID);
     }
 
     @Test
@@ -105,9 +110,10 @@ class ActivitySignupServiceTest {
         InOrder order = inOrder(activityService, signupMapper, smsCodeService, activityCheckInService);
         order.verify(activityService).getById(ACTIVITY_ID);
         order.verify(signupMapper).selectCount(any());
+        // 有名额时先占座，再验短信，再落库
+        order.verify(activityService).incrementSigned(ACTIVITY_ID);
         order.verify(smsCodeService).verifyAndConsume(PHONE, SCENE, SMS_OK);
         order.verify(signupMapper).insert(any());
-        order.verify(activityService).incrementSigned(ACTIVITY_ID);
         order.verify(activityCheckInService).save(any());
 
         ArgumentCaptor<ActivitySignup> signupCaptor = ArgumentCaptor.forClass(ActivitySignup.class);
@@ -145,6 +151,8 @@ class ActivitySignupServiceTest {
     void fullQuotaRejects() {
         stubOpenActivity(5, 5);
         when(signupMapper.selectCount(any())).thenReturn(0L);
+        doThrow(new BusinessException("活动名额已满"))
+                .when(activityService).incrementSigned(ACTIVITY_ID);
 
         BusinessException ex = assertThrows(BusinessException.class, () ->
                 service.createSignup(ACTIVITY_ID, USER_ID, NAME, PHONE, SESSION, SMS_OK));
@@ -153,7 +161,6 @@ class ActivitySignupServiceTest {
         verify(smsCodeService, never()).verifyAndConsume(any(), any(), any());
         verify(signupMapper, never()).insert(any());
         verify(activityCheckInService, never()).save(any());
-        verify(activityService, never()).incrementSigned(any());
     }
 
     @Test
@@ -165,7 +172,7 @@ class ActivitySignupServiceTest {
         signup.setStatus("approved");
         signup.setCheckInCode("abc123");
         signup.setApprovedAt(LocalDateTime.now());
-        when(signupMapper.selectList(any())).thenReturn(List.of(signup));
+        when(signupMapper.selectOne(any(), anyBoolean())).thenReturn(signup);
 
         ActivityCheckIn checkIn = new ActivityCheckIn();
         checkIn.setStatus("VERIFIED");

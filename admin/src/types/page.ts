@@ -42,6 +42,11 @@ export enum ComponentType {
   ImageHotspot = 'image_hotspot',
   SectionBg = 'section_bg',
   FeatureCards = 'feature_cards',
+  ImageCube = 'image_cube',
+  ContentTabs = 'content_tabs',
+  PlanetHero = 'planet_hero',
+  PlanetTopics = 'planet_topics',
+  PlanetFeed = 'planet_feed',
 }
 
 /** 组件类型标签映射 */
@@ -83,6 +88,11 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.ImageHotspot]: '图片热区',
   [ComponentType.SectionBg]: '通栏背景',
   [ComponentType.FeatureCards]: '卖点卡片组',
+  [ComponentType.ImageCube]: '图片魔方',
+  [ComponentType.ContentTabs]: '选项卡',
+  [ComponentType.PlanetHero]: '星球顶栏',
+  [ComponentType.PlanetTopics]: '星球话题预测',
+  [ComponentType.PlanetFeed]: '星球动态流',
 }
 
 /** 组件类型图标映射 */
@@ -124,6 +134,11 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.ImageHotspot]: 'Crop',
   [ComponentType.SectionBg]: 'PictureFilled',
   [ComponentType.FeatureCards]: 'Postcard',
+  [ComponentType.ImageCube]: 'Grid',
+  [ComponentType.ContentTabs]: 'Menu',
+  [ComponentType.PlanetHero]: 'Sunrise',
+  [ComponentType.PlanetTopics]: 'DataLine',
+  [ComponentType.PlanetFeed]: 'ChatLineSquare',
 }
 
 /** 组件分类 */
@@ -132,6 +147,7 @@ export enum ComponentCategory {
   Content = 'content',
   Marketing = 'marketing',
   Layout = 'layout',
+  Planet = 'planet',
 }
 
 /** 组件分类标签 */
@@ -140,6 +156,7 @@ export const ComponentCategoryLabels: Record<ComponentCategory, string> = {
   [ComponentCategory.Content]: '内容',
   [ComponentCategory.Marketing]: '营销',
   [ComponentCategory.Layout]: '布局',
+  [ComponentCategory.Planet]: '星球',
 }
 
 /** 组件分类与类型映射 */
@@ -162,6 +179,7 @@ export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = 
   ],
   [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
   [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer, ComponentType.Container, ComponentType.SectionBg],
+  [ComponentCategory.Planet]: [ComponentType.PlanetHero, ComponentType.PlanetTopics, ComponentType.PlanetFeed],
 }
 
 /** 页面类型 */
@@ -387,6 +405,12 @@ export enum IndustryCode {
   Medical = 'medical',
   Wedding = 'wedding',
   Pet = 'pet',
+  /** 知识付费 */
+  KnowledgePay = 'knowledge_pay',
+  /** 本地生活 */
+  LocalLife = 'local_life',
+  /** 内容 IP */
+  ContentIp = 'content_ip',
 }
 
 /** 行业标签映射 */
@@ -403,6 +427,9 @@ export const IndustryLabels: Record<string, string> = {
   [IndustryCode.Medical]: '医疗健康',
   [IndustryCode.Wedding]: '婚庆服务',
   [IndustryCode.Pet]: '宠物生活',
+  [IndustryCode.KnowledgePay]: '知识付费',
+  [IndustryCode.LocalLife]: '本地生活',
+  [IndustryCode.ContentIp]: '内容 IP',
 }
 
 /** 行业色系映射 */
@@ -419,6 +446,9 @@ export const IndustryColors: Record<string, [string, string]> = {
   [IndustryCode.Medical]: ['#0891b2', '#22d3ee'],
   [IndustryCode.Wedding]: ['#f43f5e', '#fbbf24'],
   [IndustryCode.Pet]: ['#f59e0b', '#f97316'],
+  [IndustryCode.KnowledgePay]: ['#0d9488', '#2dd4bf'],
+  [IndustryCode.LocalLife]: ['#ea580c', '#fb923c'],
+  [IndustryCode.ContentIp]: ['#c2410c', '#ea580c'],
 }
 
 /** 页面模板（扩展） */

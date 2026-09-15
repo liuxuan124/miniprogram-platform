@@ -3,7 +3,7 @@
     <PageHeader
       kicker="小程序 / 页面"
       title="我的"
-      description="「我的」页使用表单配置（会员卡、订单入口、菜单等），与拖拽装修页不同。保存后真机立即读取。"
+      description="先选一套「我的」页模板外观，再配置会员卡、订单入口、菜单。保存后真机立即读取。"
     >
       <template #actions>
         <el-button @click="router.push('/page-builder/list')">返回页面列表</el-button>
@@ -14,6 +14,7 @@
     <div v-loading="loading" class="mine-layout">
       <div class="mine-form">
         <div class="section-label">模板风格</div>
+        <p class="section-hint">点选一套「我的」页外观，右侧实时预览；保存后真机同步。</p>
         <div class="mine-template-picker">
           <button
             v-for="tpl in personalCenterTemplates"
@@ -27,6 +28,7 @@
               <div class="mine-tpl-icon">{{ tpl.icon }}</div>
             </div>
             <div class="mine-tpl-name">{{ tpl.name }}</div>
+            <div class="mine-tpl-desc">{{ tpl.desc }}</div>
           </button>
         </div>
         <div class="section-divider"></div>
@@ -88,7 +90,13 @@ onMounted(async () => {
 .section-label {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+}
+.section-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.5;
 }
 .section-divider {
   height: 1px;
@@ -97,28 +105,31 @@ onMounted(async () => {
 }
 .mine-template-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
 }
 .mine-tpl-card {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px;
+  border-radius: 12px;
+  padding: 10px;
   background: #fff;
   cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .mine-tpl-card.selected {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(23, 105, 255, 0.15);
 }
 .mine-tpl-preview {
-  height: 56px;
-  border-radius: 8px;
+  height: 64px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
 }
-.mine-tpl-icon { font-size: 20px; }
-.mine-tpl-name { margin-top: 6px; font-size: 12px; text-align: center; }
+.mine-tpl-icon { font-size: 22px; }
+.mine-tpl-name { margin-top: 8px; font-size: 13px; font-weight: 700; text-align: center; }
+.mine-tpl-desc { margin-top: 2px; font-size: 11px; color: #8b93a7; text-align: center; line-height: 1.35; }
 
 @media (max-width: 960px) {
   .mine-layout { grid-template-columns: 1fr; }

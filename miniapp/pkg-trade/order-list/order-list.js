@@ -59,7 +59,7 @@ Page({
 
   /** D2：空态"去逛逛"行动按钮 */
   onGoShopping() {
-    wx.switchTab({ url: '/pages/knowledge-mall/knowledge-mall' })
+    wx.switchTab({ url: '/pages/shop/shop' })
   },
 
   onShow() {

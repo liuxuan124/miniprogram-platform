@@ -41,12 +41,12 @@ class RTest {
     @Test
     void testUnauthorized() {
         R<Void> result = R.unauthorized("未登录");
-        assertEquals(401, result.getCode());
+        assertEquals(110101, result.getCode());
     }
 
     @Test
     void testForbidden() {
         R<Void> result = R.forbidden("无权限");
-        assertEquals(403, result.getCode());
+        assertEquals(200301, result.getCode());
     }
 }
