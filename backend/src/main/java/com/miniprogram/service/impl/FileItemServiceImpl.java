@@ -199,6 +199,11 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
         item.setQualityTier(StringUtils.hasText(dto.getQualityTier()) ? dto.getQualityTier() : "normal");
         item.setReadMode(StringUtils.hasText(dto.getReadMode()) ? dto.getReadMode() : "free");
         item.setPreviewPercent(dto.getPreviewPercent() != null ? clampPercent(dto.getPreviewPercent()) : 30);
+        item.setPreviewMode(StringUtils.hasText(dto.getPreviewMode()) ? dto.getPreviewMode() : "percent");
+        item.setPreviewValue(dto.getPreviewValue() != null ? dto.getPreviewValue() : item.getPreviewPercent());
+        item.setPageCount(dto.getPageCount() != null ? dto.getPageCount() : 0);
+        item.setAllowForward(dto.getAllowForward() != null ? dto.getAllowForward() : 1);
+        item.setWatermark(dto.getWatermark() != null ? dto.getWatermark() : 0);
         item.setMinReadLevelId(dto.getMinReadLevelId());
         item.setAllowDownload(dto.getAllowDownload() != null ? dto.getAllowDownload() : 1);
         item.setDownloadAudience(StringUtils.hasText(dto.getDownloadAudience()) ? dto.getDownloadAudience() : "all");

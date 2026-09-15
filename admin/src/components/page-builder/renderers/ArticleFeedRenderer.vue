@@ -36,7 +36,7 @@
         v-for="(item, index) in filteredArticleItems"
         :key="`${item.id || item.title || 'article'}-${index}`"
         class="article-card"
-        :class="[`article-card--${articleLayout}`, { 'is-clickable': previewMode }]"
+        :class="[`article-card--${cardModifier(index)}`, { 'is-clickable': previewMode }]"
         @click="onArticleClick($event, item)"
       >
         <div v-if="component.props.show_cover !== false" class="article-img">
@@ -44,10 +44,12 @@
           <span v-else>📖</span>
         </div>
         <div class="article-info">
-          <div class="article-title" :style="itemTitleStyle">{{ item.title || '文章标题' }}</div>
+          <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
+          <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">{{ item.title || '文章标题' }}</div>
+          <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
           <div v-if="component.props.show_date !== false && (item.meta || item.source)" class="article-meta-row" :style="itemMetaStyle">
-            <span v-if="item.meta">时间 {{ item.meta }}</span>
-            <span v-if="item.source">来源 {{ item.source }}</span>
+            <span v-if="item.meta">{{ item.meta }}</span>
+            <span v-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
           </div>
         </div>
       </div>
@@ -66,12 +68,14 @@ import { fetchTopContentCategoryTabs, withAllCategoryTab } from '@/utils/content
 import { loadHydratedComponent } from '@/utils/preview-datasource'
 import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import { articleCardModifier, resolveArticleLayout } from '../articleLayouts'
 
 type ArticleItem = {
   id?: number | string
   title?: string
   meta?: string
   cover?: string
+  excerpt?: string
   link_url?: string
   source?: string
   categoryId?: string | number
@@ -162,10 +166,20 @@ watch(
   { immediate: true },
 )
 
-const articleLayout = computed(() => {
-  const raw = props.component.props?.layout || props.component.props?.style_type || 'list'
-  return ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
-})
+const articleLayout = computed(() => resolveArticleLayout(
+  props.component.props?.layout || props.component.props?.style_type,
+  'list',
+))
+
+const showExcerpt = computed(() => articleLayout.value === 'editorial' || articleLayout.value === 'magazine')
+
+function cardModifier(index: number) {
+  return articleCardModifier(articleLayout.value, index)
+}
+
+function isOverlayCard(index: number) {
+  return cardModifier(index) === 'overlay'
+}
 
 const itemGap = computed(() => {
   const n = Number(props.component.props?.item_gap)
@@ -219,6 +233,7 @@ function mapArticle(item: any): ArticleItem {
     title: item.title || item.name || '文章标题',
     meta: formatDisplayDate(dateRaw),
     cover: item.cover || item.coverUrl || item.image || '',
+    excerpt: String(item.summary || item.excerpt || item.subtitle || '').trim(),
     link_url: item.link_url,
     source: item.source || item.categoryName || item.category_name || '',
     categoryId: item.categoryId ?? item.category_id,
@@ -378,6 +393,16 @@ function onTabsWheel(event: WheelEvent) {
 .feed-body {
   display: flex;
   flex-direction: column;
+
+  &.layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  &.layout-editorial,
+  &.layout-magazine {
+    gap: 0 !important;
+  }
 }
 
 .article-card {
@@ -439,6 +464,107 @@ function onTabsWheel(event: WheelEvent) {
 .article-card--compact .article-img {
   width: 48px;
   height: 40px;
+}
+
+.article-card--overlay {
+  position: relative;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+}
+
+.article-card--overlay .article-img {
+  width: 100%;
+  height: 188px;
+  border-radius: 0;
+}
+
+.article-card--overlay .article-info {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 36px 14px 14px;
+  background: linear-gradient(180deg, transparent 0%, rgba(12, 18, 32, 0.82) 72%);
+}
+
+.article-kicker {
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.article-card--overlay .article-title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.article-card--overlay .article-meta-row {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.article-card--grid {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.article-card--grid .article-img {
+  width: 100%;
+  height: 96px;
+  border-radius: 0;
+}
+
+.article-card--grid .article-info {
+  padding: 8px 10px 10px;
+}
+
+.article-card--editorial {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 14px;
+  padding: 16px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ece7de;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.article-card--editorial .article-img {
+  width: 86px;
+  height: 64px;
+  border-radius: 2px;
+}
+
+.article-excerpt {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  color: #7a7468;
+  font-size: 11px;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.layout-magazine .article-card--overlay {
+  margin-bottom: 8px;
+  border-radius: 18px;
+}
+
+.layout-magazine .article-card--overlay .article-img {
+  height: 210px;
 }
 
 .article-info {

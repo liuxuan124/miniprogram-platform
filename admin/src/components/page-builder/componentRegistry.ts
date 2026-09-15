@@ -9,7 +9,7 @@ export interface ComponentDefinition {
   /** Element Plus 图标名称 */
   icon: string
   /** 组件分类 */
-  category: 'commerce' | 'content' | 'marketing' | 'layout'
+  category: 'commerce' | 'content' | 'marketing' | 'layout' | 'planet'
   /** 中文分类名称 */
   categoryLabel: string
   /** 默认属性工厂函数 */
@@ -193,8 +193,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         limit: 6,
         page_size: 10,
         items: [
-          { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128 },
-          { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86 },
+          { id: 'demo-1', name: '示例商品 A', price: '99.00', sales: 128 },
+          { id: 'demo-2', name: '示例商品 B', price: '199.00', sales: 86 },
         ],
         data_source: {
           type: 'product',
@@ -307,7 +307,7 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
           { id: '行业动态', name: '行业动态' },
           { id: '协会动态', name: '协会动态' },
           { id: '政策解读', name: '政策解读' },
-          { id: '出海干货', name: '出海干货' },
+          { id: '精选', name: '精选' },
           { id: '税务合规', name: '税务合规' },
           { id: '物流仓储', name: '物流仓储' },
         ],
@@ -398,7 +398,7 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'content',
       categoryLabel: '内容',
       defaultProps: () => ({
-        title: '今日跨境头条',
+        title: '今日精选',
         layout: 'star',
         limit: 3,
         item_gap: 10,
@@ -458,11 +458,11 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'content',
       categoryLabel: '内容',
       defaultProps: () => ({
-        title: '出海笔记 · 阿哲',
+        title: '品牌介绍',
         subtitle: '已认证',
-        desc: '陪你把跨境生意，从经验变成方法',
-        eyebrow: 'CROSS-BORDER GROWTH LAB',
-        avatar_text: '海',
+        desc: '一句话介绍你的产品与服务',
+        eyebrow: 'BRAND',
+        avatar_text: '品',
         verified: true,
         kpi: '238 篇内容 · 1.2w 关注者 · 4.9 咨询评分',
         logo: '',
@@ -796,14 +796,14 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       categoryLabel: '营销',
       defaultProps: () => ({
         avatar: '',
-        title: '跨境电商交流群',
-        tags: ['跨境咨询', '找资源'],
+        title: '读者交流群',
+        tags: ['咨询', '找资源'],
         button_text: '加入群聊',
         sheet_title: '加入群聊',
         tip_text: '长按二维码可识别加群',
         groups: [
-          { id: 'g1', name: '深跨协交流群', icon: '', qrcode: '' },
-          { id: 'g2', name: '数据报告分享群', icon: '', qrcode: '' },
+          { id: 'g1', name: '深跨协交流群', icon: '', join_type: 'qrcode', qrcode: '', wecom_url: '' },
+          { id: 'g2', name: '数据报告分享群', icon: '', join_type: 'qrcode', qrcode: '', wecom_url: '' },
         ],
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 12 }),
@@ -813,7 +813,14 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         if (!groups.length) warnings.push('请至少添加一个群')
         groups.forEach((g: any, i: number) => {
           if (!String(g?.name || '').trim()) warnings.push(`第 ${i + 1} 个群缺少名称`)
-          if (!String(g?.qrcode || '').trim()) warnings.push(`「${g?.name || `群${i + 1}`}」未上传二维码`)
+          const mode = String(g?.join_type || 'qrcode')
+          if (mode === 'wecom') {
+            if (!String(g?.wecom_url || '').trim()) {
+              warnings.push(`「${g?.name || `群${i + 1}`}」未填写企微加入群聊链接`)
+            }
+          } else if (!String(g?.qrcode || '').trim()) {
+            warnings.push(`「${g?.name || `群${i + 1}`}」未上传二维码`)
+          }
         })
         return warnings
       },
@@ -831,8 +838,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       categoryLabel: '布局',
       defaultProps: () => ({
         logo: '',
-        logo_text: '墨太白',
-        title: '墨太白 · 跨境工具与知识平台',
+        logo_text: '品牌',
+        title: '品牌名称 · 一句话定位',
         subtitle: '',
         style_type: 'plain',
         background_color: '#ffffff',
@@ -873,8 +880,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultProps: () => ({
         items: [
           { icon: '/images/nav-icons/book.svg', title: '首页', link_type: 'page', link_url: '/pages/index/index' },
-          { icon: '/images/nav-icons/chart.svg', title: '分类', link_type: 'page', link_url: '/pages/category/category' },
-          { icon: '/images/nav-icons/cart.svg', title: '购物车', link_type: 'page', link_url: '/pages/cart/cart' },
+          { icon: '/images/nav-icons/chart.svg', title: '资讯', link_type: 'page', link_url: '/pages/content-list/content-list' },
+          { icon: '/images/nav-icons/fire.svg', title: '长文', link_type: 'page', link_url: '/pages/content-list/content-list' },
           { icon: '/images/nav-icons/user.svg', title: '我的', link_type: 'page', link_url: '/pages/mine/mine' },
         ],
         columns: 4,
@@ -1003,6 +1010,144 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultStyle: () => ({ item_gap: 10 }),
     },
   ],
+  [
+    ComponentType.ImageCube,
+    {
+      type: ComponentType.ImageCube,
+      label: '图片魔方',
+      icon: 'Grid',
+      category: 'layout',
+      categoryLabel: '布局',
+      defaultProps: () => ({
+        layout: '2x2',
+        gap: 6,
+        radius: 8,
+        items: [
+          { image: '', link_type: 'none', link_url: '' },
+          { image: '', link_type: 'none', link_url: '' },
+          { image: '', link_type: 'none', link_url: '' },
+          { image: '', link_type: 'none', link_url: '' },
+        ],
+      }),
+      defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
+      validate: (props) => {
+        const items = Array.isArray(props.items) ? props.items : []
+        if (!items.some((it: any) => String(it?.image || '').trim())) {
+          return ['图片魔方请至少上传一张图']
+        }
+        return []
+      },
+    },
+  ],
+  [
+    ComponentType.ContentTabs,
+    {
+      type: ComponentType.ContentTabs,
+      label: '选项卡',
+      icon: 'Menu',
+      category: 'layout',
+      categoryLabel: '布局',
+      defaultProps: () => ({
+        panes: [
+          {
+            title: '资讯',
+            items: [
+              { image: '', title: '条目一', desc: '', link_type: 'page', link_url: '/pages/content-list/content-list' },
+            ],
+          },
+          {
+            title: '活动',
+            items: [
+              { image: '', title: '条目一', desc: '', link_type: 'page', link_url: '/pkg-extra/activity-list/activity-list' },
+            ],
+          },
+        ],
+      }),
+      defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
+      validate: (props) => {
+        const panes = Array.isArray(props.panes) ? props.panes : []
+        if (panes.length < 2) return ['选项卡至少需要 2 个分页']
+        return []
+      },
+    },
+  ],
+  [
+    ComponentType.PlanetHero,
+    {
+      type: ComponentType.PlanetHero,
+      label: '星球顶栏',
+      icon: 'Sunrise',
+      category: 'planet',
+      categoryLabel: '星球',
+      defaultProps: () => ({
+        source_mode: 'auto',
+        logo_emoji: '🪐',
+        title: '暖阁星球',
+        subtitle: '内容创作者的自留地 · 由 墨白 主理',
+        join_text: '加入',
+        join_link: '/pages/member-center/member-center',
+        expire_text: '会员有效期至 2027-03-18 · 剩余 185 天 · 续费享 8 折',
+        join_row_text: '👥 加入球友微信群，第一时间收到更新通知',
+        join_row_go: '去加入 ›',
+        join_row_link: '',
+        kpis: [
+          { value: '3,241', label: '球友' },
+          { value: '1.2万', label: '沉淀内容' },
+          { value: '27', label: '今日新增' },
+          { value: '98%', label: '问必答' },
+        ],
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.PlanetTopics,
+    {
+      type: ComponentType.PlanetTopics,
+      label: '星球话题预测',
+      icon: 'DataLine',
+      category: 'planet',
+      categoryLabel: '星球',
+      defaultProps: () => ({
+        source_mode: 'auto',
+        icon: '📈',
+        title: '本周星球话题预测',
+        badge: 'AI 推演',
+        note: '基于近 30 天星球发帖、提问与互动数据推演。预计下周「AI 写作工具」将持续升温，建议提前储备相关选题。',
+        items: [
+          { name: 'AI 写作工具', width: 88, pct: '↑ 62%' },
+          { name: '小红书新规', width: 71, pct: '↑ 34%' },
+          { name: '付费社群定价', width: 54, pct: '↑ 12%' },
+          { name: '公众号流量主', width: 31, pct: '↓ 8%', down: true },
+        ],
+      }),
+      defaultStyle: () => ({ margin_left: 16, margin_right: 16 }),
+    },
+  ],
+  [
+    ComponentType.PlanetFeed,
+    {
+      type: ComponentType.PlanetFeed,
+      label: '星球动态流',
+      icon: 'ChatLineSquare',
+      category: 'planet',
+      categoryLabel: '星球',
+      defaultProps: () => ({
+        source_mode: 'auto',
+        page_size: 20,
+        resources_url: '/pages/resources/resources',
+        segs: [
+          { key: 'all', label: '全部' },
+          { key: 'official', label: '官方更新' },
+          { key: 'essence', label: '精华 ⭐️' },
+          { key: 'ask', label: '读者提问' },
+          { key: 'checkin', label: '打卡' },
+          { key: 'resources', label: '资料库' },
+        ],
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
 ])
 
 // ==================== 辅助函数 ====================
@@ -1037,6 +1182,7 @@ export function getComponentsByCategory(category: string): ComponentDefinition[]
 export function getAllCategories(): Array<{ value: string; label: string }> {
   const preferred = [
     { value: 'content', label: '内容' },
+    { value: 'planet', label: '星球' },
     { value: 'commerce', label: '商品' },
     { value: 'marketing', label: '营销' },
     { value: 'layout', label: '布局' },
@@ -1100,6 +1246,11 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.ImageHotspot,
   ComponentType.SectionBg,
   ComponentType.FeatureCards,
+  ComponentType.ImageCube,
+  ComponentType.ContentTabs,
+  ComponentType.PlanetHero,
+  ComponentType.PlanetTopics,
+  ComponentType.PlanetFeed,
 ])
 
 /** 判断组件类型是否已在小程序端实现渲染 */

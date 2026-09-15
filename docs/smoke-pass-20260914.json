@@ -1,0 +1,318 @@
+{
+  "at": "2026-09-15T03:08:04.114Z",
+  "automator": "connected:9422",
+  "tabs": [
+    {
+      "url": "/pages/index/index",
+      "mode": "tab",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/index/index",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/discover/discover",
+      "mode": "tab",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/discover/discover",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/planet/planet",
+      "mode": "tab",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/planet/planet",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/shop/shop",
+      "mode": "tab",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/shop/shop",
+      "title": ""
+    },
+    {
+      "url": "/pages/mine/mine",
+      "mode": "tab",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/mine/mine",
+      "title": "",
+      "hasData": true
+    }
+  ],
+  "pages": [
+    {
+      "url": "/pages/search/search",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/search/search",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/join/join",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/join/join",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/share/share",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/share/share",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/contribute/contribute",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/contribute/contribute",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/resources/resources",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/resources/resources",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/states/states?state=payfail",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/states/states",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/cart/cart",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/cart/cart",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/content-list/content-list",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/content-list/content-list",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/product-detail/product-detail?demo=1",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/product-detail/product-detail",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/content-detail/content-detail?demo=1",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/content-detail/content-detail",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/moment-detail/moment-detail?demo=1",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/moment-detail/moment-detail",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pages/file-preview/file-preview?demo=1",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pages/file-preview/file-preview",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pkg-trade/order-list/order-list",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pkg-trade/order-list/order-list",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pkg-trade/reviews/reviews",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pkg-trade/reviews/reviews",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pkg-user/favorites/favorites",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pkg-user/favorites/favorites",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pkg-user/service-chat/service-chat",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pkg-user/service-chat/service-chat",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pkg-user/settings/settings",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pkg-user/settings/settings",
+      "title": "",
+      "hasData": true
+    },
+    {
+      "url": "/pkg-user/member-center/member-center",
+      "mode": "nav",
+      "status": "PASS",
+      "error": "",
+      "path": "pkg-user/member-center/member-center",
+      "title": "",
+      "hasData": true
+    }
+  ],
+  "code": [
+    {
+      "id": "A2",
+      "status": "PASS",
+      "file": "miniapp/pages/product-detail/product-detail.js",
+      "needle": "/pkg-trade/reviews/reviews",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "A3",
+      "status": "PASS",
+      "file": "backend/src/main/java/com/miniprogram/dto/CartItemVO.java",
+      "needle": "productType",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "A3b",
+      "status": "PASS",
+      "file": "backend/src/main/java/com/miniprogram/service/impl/CartServiceImpl.java",
+      "needle": "setProductType",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "A4",
+      "status": "PASS",
+      "file": "miniapp/pkg-trade/order-list/order-list.js",
+      "needle": "/pages/shop/shop",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "A5",
+      "status": "PASS",
+      "file": "miniapp/pkg-user/favorites/favorites.js",
+      "needle": "/pages/discover/discover",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "A6",
+      "status": "PASS",
+      "file": "miniapp/pages/search/search.js",
+      "needle": "/pages/shop/shop",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "B2",
+      "status": "PASS",
+      "file": "miniapp/pages/contribute/contribute.js",
+      "needle": "/api/v1/mp/creator/contents",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "B4",
+      "status": "PASS",
+      "file": "miniapp/pkg-user/service-chat/service-chat.js",
+      "needle": "getOrderList",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "B5",
+      "status": "PASS",
+      "file": "miniapp/pages/order-create/order-create.js",
+      "needle": "state=payfail",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "B6",
+      "status": "PASS",
+      "file": "miniapp/pages/file-preview/file-preview.wxml",
+      "needle": "loadProgress",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "B7",
+      "status": "PASS",
+      "file": "miniapp/pages/moment-detail/moment-detail.js",
+      "needle": "onSortTap",
+      "expect": true,
+      "error": ""
+    },
+    {
+      "id": "B8",
+      "status": "PASS",
+      "file": "miniapp/pages/planet/planet.js",
+      "needle": "isPinned",
+      "expect": true,
+      "error": ""
+    }
+  ],
+  "summary": {
+    "total": 35,
+    "pass": 35,
+    "fail": 0,
+    "automator": "connected:9422"
+  }
+}

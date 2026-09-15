@@ -36,7 +36,7 @@
           <text wx:else>👥</text>
         </view>
         <text class="dsl-jg-group__name">{{item.name}}</text>
-        <text class="dsl-jg-group__arrow">›</text>
+        <text class="dsl-jg-group__arrow">{{item.join_type === 'wecom' ? '入群' : '›'}}</text>
       </view>
       <view wx:if="{{!groupList.length}}" class="dsl-jg-empty">暂未配置群</view>
     </scroll-view>

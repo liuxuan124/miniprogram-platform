@@ -8,7 +8,7 @@ Component({
   },
 
   data: {
-    titleText: '跨境电商交流群',
+    titleText: '读者交流群',
     buttonText: '加入群聊',
     sheetTitle: '加入群聊',
     tipText: '长按二维码可识别加群',
@@ -45,6 +45,8 @@ Component({
         name: String((g && g.name) || `群 ${i + 1}`).trim() || `群 ${i + 1}`,
         icon: String((g && g.icon) || ''),
         qrcode: String((g && g.qrcode) || ''),
+        join_type: String((g && g.join_type) || 'qrcode') === 'wecom' ? 'wecom' : 'qrcode',
+        wecom_url: String((g && g.wecom_url) || '').trim(),
       }))
       let cardStyle = String(cfg._cardStyle || '').trim()
       if (!cardStyle) {
@@ -53,7 +55,7 @@ Component({
         cardStyle = 'border-radius:' + (radius * 2) + 'rpx;'
       }
       this.setData({
-        titleText: String(cfg.title || '跨境电商交流群').trim() || '跨境电商交流群',
+        titleText: String(cfg.title || '读者交流群').trim() || '读者交流群',
         buttonText: String(cfg.button_text || '加入群聊').trim() || '加入群聊',
         sheetTitle: String(cfg.sheet_title || '加入群聊').trim() || '加入群聊',
         tipText: String(cfg.tip_text || '长按二维码可识别加群').trim() || '长按二维码可识别加群',
@@ -82,6 +84,18 @@ Component({
       const index = Number(e.currentTarget.dataset.index)
       const group = (this.data.groupList || [])[index]
       if (!group) return
+      if (group.join_type === 'wecom') {
+        const url = String(group.wecom_url || '').trim()
+        if (!url) {
+          wx.showToast({ title: '未配置企微入群链接', icon: 'none' })
+          return
+        }
+        wx.navigateTo({
+          url: '/pkg-user/wecom-join/wecom-join?url=' + encodeURIComponent(url) + '&name=' + encodeURIComponent(group.name || ''),
+          fail: () => wx.showToast({ title: '无法打开入群页', icon: 'none' }),
+        })
+        return
+      }
       this.setData({
         qrVisible: true,
         activeName: group.name,

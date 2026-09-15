@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # 生产安全同步：永远排除 uploads / 密钥 / 构建产物
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DEPLOY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_ROOT="$(cd "$DEPLOY_DIR/.." && pwd)"
 REMOTE="${DEPLOY_HOST:-zfculture}"
 DEST="${DEPLOY_PATH:-/opt/miniprogram-platform}"
 
@@ -17,15 +18,17 @@ RSYNC_COMMON=(
   --exclude 'backend.env'
 )
 
-echo "[safe-rsync] $ROOT -> $REMOTE:$DEST (uploads 已排除)"
+echo "[safe-rsync] $PROJECT_ROOT -> $REMOTE:$DEST (uploads 已排除)"
 rsync "${RSYNC_COMMON[@]}" --delete \
-  "$ROOT/backend/" "$REMOTE:$DEST/backend/"
+  "$PROJECT_ROOT/backend/" "$REMOTE:$DEST/backend/"
 rsync "${RSYNC_COMMON[@]}" --delete \
   --exclude 'dist/' \
-  "$ROOT/admin/" "$REMOTE:$DEST/admin/"
+  "$PROJECT_ROOT/admin/" "$REMOTE:$DEST/admin/"
 rsync "${RSYNC_COMMON[@]}" \
   --exclude 'unpackage/' \
-  "$ROOT/miniapp/" "$REMOTE:$DEST/miniapp/"
+  "$PROJECT_ROOT/miniapp/" "$REMOTE:$DEST/miniapp/"
+rsync "${RSYNC_COMMON[@]}" \
+  "$DEPLOY_DIR/" "$REMOTE:$DEST/deploy/"
 
 echo "[safe-rsync] rebuild admin-static on $REMOTE"
 ssh "$REMOTE" "bash $DEST/deploy/scripts/rebuild-admin-static.sh $DEST"

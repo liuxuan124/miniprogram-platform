@@ -146,7 +146,10 @@ public class ProductCategoryServiceImpl extends BaseServiceImpl<ProductCategoryM
 
     private List<String> suggestByName(String name) {
         if (name == null) return new ArrayList<>(ProductTypes.ALL);
-        String n = name.toLowerCase();
+        String n = name.trim().toLowerCase();
+        if (n.contains("会员") || n.contains("星球")) {
+            return List.of(ProductTypes.MEMBERSHIP, ProductTypes.DIGITAL, ProductTypes.SERVICE);
+        }
         if (n.contains("资料") || n.contains("知识") || n.contains("课程") || n.contains("数字")) {
             return List.of(ProductTypes.DIGITAL);
         }

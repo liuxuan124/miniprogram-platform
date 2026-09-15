@@ -1,1 +1,6 @@
-{ "navigationBarTitleText": "客服中心" }
+{
+  "navigationBarTitleText": "暖阁客服 · 小助手",
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FDF6EC"
+}

@@ -1,0 +1,151 @@
+<!-- pages/shop/shop.wxml — 默认暖阁原生商城；底栏绑了装修页则走 DSL -->
+<page-meta page-style="{{themePageStyle}}" />
+<!-- dslPending 期间先画 DEMO 原生壳，避免空白/二次跳转；DSL 就绪后再切 -->
+<block wx:if="{{dslMode && !dslPending}}">
+  <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
+  <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
+  <block wx:else>
+    <view class="dsl-tab-page__body" style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+      <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
+        <dsl-renderer component="{{item}}" />
+      </view>
+      <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
+      <view wx:if="{{flowComponents.length}}" class="warm-end sh-dsl-end">—— 虚拟商品一经购买不支持退款 ——</view>
+    </view>
+    <dsl-float-button
+      wx:for="{{floatComponents}}"
+      wx:key="id"
+      config="{{item.props}}"
+      actions="{{item.actions}}"
+      styleString="{{item.styleString}}"
+    />
+  </block>
+</block>
+<view wx:else class="sh-page">
+  <scroll-view
+    class="sh-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onReachBottomLoad"
+    lower-threshold="120"
+  >
+    <view class="sh-top" style="padding-top: {{statusBarHeight}}px;">
+      <view class="sh-tt">
+        <text class="sh-tt__h warm-serif">暖阁商城</text>
+        <text class="sh-tt__ord" bindtap="onGoOrders">🧾 订单</text>
+        <text class="sh-tt__ord" bindtap="onGoService">💬 客服</text>
+      </view>
+      <view class="sh-search" bindtap="onGoSearch">
+        <text>🔍</text>
+        <text class="sh-search__em">搜电子书、资料包、专栏…</text>
+        <text class="sh-search__btn">搜索</text>
+      </view>
+    </view>
+
+    <view class="sh-vip" hover-class="sh-vip--hover" catchtap="onGoMember">
+      <text class="sh-vip__ic">{{vip.icon || '🎫'}}</text>
+      <view class="sh-vip__tx">
+        <text class="sh-vip__h">{{vip.title}}</text>
+        <text class="sh-vip__p">{{vip.desc}}</text>
+      </view>
+      <view class="sh-vip__b" catchtap="onGoMember">{{vip.priceLabel || '¥168/年'}}</view>
+    </view>
+
+    <view class="sh-cats">
+      <view class="sh-cat" wx:for="{{cats}}" wx:key="label" data-url="{{item.url}}" data-tab="{{item.tab}}" bindtap="onCatTap">
+        <view class="sh-cat__ic">{{item.icon}}</view>
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+
+    <view class="sh-flash">
+      <view class="sh-flash__hh">
+        <text>⚡️</text>
+        <text class="sh-flash__h">限时特惠</text>
+        <view class="sh-flash__cd">
+          <text>距结束 </text>
+          <text class="sh-flash__i">{{cd.h}}</text>
+          <text>:</text>
+          <text class="sh-flash__i">{{cd.m}}</text>
+          <text>:</text>
+          <text class="sh-flash__i">{{cd.s}}</text>
+        </view>
+      </view>
+      <scroll-view class="sh-flash__rail" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="sh-flash__inner">
+          <view
+            class="sh-flash__it"
+            wx:for="{{flashList}}"
+            wx:key="uid"
+            data-id="{{item.id}}"
+            data-demo="{{item.isDemo}}"
+            bindtap="onProductTap"
+          >
+            <image class="sh-flash__cv warm-ph" src="{{item.cover}}" mode="aspectFill" />
+            <text class="sh-flash__name">{{item.name}}</text>
+            <view class="sh-flash__pr">¥{{item.price}}<text class="sh-flash__old" wx:if="{{item.origin}}">¥{{item.origin}}</text></view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="sh-feat" wx:if="{{feat}}" data-id="{{feat.id}}" bindtap="onProductTap">
+      <view class="sh-feat__cv">
+        <image class="warm-ph" src="{{feat.cover}}" mode="aspectFill" />
+        <view class="sh-feat__sc"></view>
+      </view>
+      <view class="sh-feat__bd">
+        <text class="warm-tag warm-tag--soft">{{feat.tag || '新书首发 · 虚拟商品'}}</text>
+        <text class="sh-feat__h warm-serif">{{feat.name}}</text>
+        <text class="sh-feat__p">{{feat.desc}}</text>
+      </view>
+      <view class="sh-feat__pr">
+        <text class="sh-feat__price"><text class="sh-feat__yen">¥</text>{{feat.price}}</text>
+        <text class="sh-feat__old" wx:if="{{feat.origin}}">¥{{feat.origin}}</text>
+      </view>
+    </view>
+
+    <view class="sh-hd">
+      <text class="sh-hd__h warm-serif">全部商品</text>
+      <text class="sh-hd__a">综合 ⌄</text>
+    </view>
+
+    <view class="sh-gg">
+      <view
+        class="sh-gd"
+        wx:for="{{products}}"
+        wx:key="uid"
+        data-id="{{item.id}}"
+        data-tag="{{item.tag}}"
+        data-name="{{item.name}}"
+        data-demo-key="{{item.demoKey}}"
+        bindtap="onProductTap"
+      >
+        <view class="sh-gd__cv">
+          <image class="warm-ph" src="{{item.cover}}" mode="aspectFill" />
+          <text class="warm-tag {{item.tagGold ? 'warm-tag--gold' : ''}}">{{item.tag}}</text>
+          <text class="sh-gd__fm" wx:if="{{item.format}}">{{item.format}}</text>
+        </view>
+        <view class="sh-gd__bd">
+          <text class="sh-gd__name">{{item.name}}</text>
+          <text class="sh-gd__sb">{{item.sub}}</text>
+          <view class="sh-gd__pr">
+            <text class="sh-gd__price"><text class="sh-gd__yen">¥</text>{{item.price}}</text>
+            <text class="sh-gd__old" wx:if="{{item.origin}}">¥{{item.origin}}</text>
+            <text class="sh-gd__sold" wx:if="{{item.sold}}">已售 {{item.sold}}</text>
+          </view>
+          <text class="sh-gd__vp" wx:if="{{item.memberPrice}}">{{item.memberPrice}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{loadError && !usingDemo}}" class="warm-end" bindtap="onRetry">加载失败，点此重试</view>
+    <view wx:elif="{{empty && !loading && !usingDemo}}" class="warm-end">暂无上架商品</view>
+    <view wx:elif="{{!empty || usingDemo}}" class="warm-end">—— 虚拟商品一经购买不支持退款 ——</view>
+    <view class="warm-safe"></view>
+  </scroll-view>
+</view>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 投稿与发布</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .stage { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; align-items: flex-start; }
+  .scroll { padding-top: 98px; }
+
+  /* 阶段一：申请 */
+  .apphero { margin: 14px 16px 0; border-radius: 22px; padding: 22px 18px 20px; color: #fff; position: relative; overflow: hidden;
+    background: linear-gradient(140deg,#7c2d12,#b45309 60%,#d97706); box-shadow: 0 16px 34px rgba(124,45,18,.26); }
+  .apphero::after { content:""; position:absolute; width:180px; height:180px; border-radius:99px; right:-64px; top:-74px; background:rgba(255,255,255,.1); }
+  .apphero h2 { position: relative; font-size: 21px; font-weight: 760; letter-spacing: -.02em; line-height: 1.35; }
+  .apphero p { position: relative; margin-top: 10px; font-size: 12px; line-height: 1.7; opacity: .84; }
+  .apphero .st { position: relative; margin-top: 16px; display: flex; gap: 8px; }
+  .apphero .st div { flex: 1; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 9px 8px; text-align: center; }
+  .apphero .st b { display: block; font-size: 15px; font-weight: 780; }
+  .apphero .st span { font-size: 9.5px; opacity: .78; }
+
+  .why { margin: 14px 16px 0; display: grid; gap: 9px; }
+  .why div { background: var(--sheet); border-radius: 15px; padding: 13px 14px; box-shadow: var(--shadow-s); display: flex; gap: 11px; align-items: flex-start; }
+  .why .ic { font-size: 19px; }
+  .why b { font-size: 13.5px; font-weight: 740; }
+  .why p { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.6; }
+
+  .form { margin: 14px 16px 0; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 4px 15px 14px; }
+  .form .fi { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .form .fi:last-child { border: 0; }
+  .form label { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+  .form label em { font-style: normal; color: var(--brand); margin-left: 3px; }
+  .form .ip { margin-top: 9px; height: 40px; border-radius: 11px; background: #f8ecdd; display: flex; align-items: center; padding: 0 13px; font-size: 13px; color: var(--mute); }
+  .form .ip.filled { color: var(--ink); }
+  .form .ta { margin-top: 9px; min-height: 78px; border-radius: 11px; background: #f8ecdd; padding: 11px 13px; font-size: 13px; color: var(--mute); line-height: 1.65; }
+  .form .picks { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .form .picks span { padding: 6px 12px; border-radius: 99px; font-size: 12px; background: #f8ecdd; color: var(--ink-2); border: 1px solid transparent; }
+  .form .picks span.on { background: #fbe6d4; color: var(--brand); border-color: #f0c49c; font-weight: 700; }
+  .form .up { margin-top: 9px; display: flex; gap: 8px; }
+  .form .up .sl { width: 66px; height: 66px; border-radius: 12px; overflow: hidden; }
+  .form .up .add { width: 66px; height: 66px; border-radius: 12px; border: 1px dashed #ddbe98; background: #fffdf9; display: grid; place-items: center; color: #c79a6c; font-size: 20px; }
+
+  .note { margin: 12px 16px 0; padding: 12px 14px; border-radius: 13px; border: 1px dashed #e3c9a8; background: #fffdf9; font-size: 11px; line-height: 1.72; color: var(--ink-2); }
+  .note b { color: var(--brand); }
+
+  /* 阶段二：编辑器 */
+  .etop { position: absolute; top: 0; left: 0; right: 0; z-index: 18; height: 98px; padding: 54px 14px 0; display: flex; align-items: center; gap: 10px;
+    background: rgba(255,250,243,.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+  .etop .cc { font-size: 13.5px; color: var(--ink-2); }
+  .etop .tt { flex: 1; text-align: center; font-size: 15px; font-weight: 750; }
+  .etop .pb { height: 30px; padding: 0 15px; border-radius: 99px; font-size: 12.5px; font-weight: 750; background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; display: grid; place-items: center; }
+
+  .types { display: flex; gap: 7px; padding: 12px 16px 2px; }
+  .types span { flex: 1; text-align: center; padding: 9px 0; border-radius: 12px; font-size: 12.5px; font-weight: 680; background: #f8ecdd; color: var(--ink-2); }
+  .types span.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; }
+
+  .editor { padding: 14px 18px 0; }
+  .editor .ti { font-size: 19px; font-weight: 780; letter-spacing: -.01em; }
+  .editor .ti.ph2 { color: #c9b29d; }
+  .editor .bdy { margin-top: 14px; font-size: 15px; line-height: 1.85; color: #3a2a1c; }
+  .editor .bdy .cur { display: inline-block; width: 1.5px; height: 17px; background: var(--brand-2); vertical-align: -3px; }
+  .editor .imgs { margin-top: 14px; display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+  .editor .imgs div { height: 92px; border-radius: 11px; overflow: hidden; position: relative; }
+  .editor .imgs div .x { position: absolute; right: 4px; top: 4px; width: 17px; height: 17px; border-radius: 99px; background: rgba(30,14,4,.6); color: #fff; font-size: 11px; display: grid; place-items: center; }
+  .editor .imgs .add { border: 1px dashed #ddbe98; background: #fffdf9; display: grid; place-items: center; color: #c79a6c; font-size: 21px; }
+
+  .opts { margin: 16px 16px 0; border-radius: 16px; background: var(--sheet); box-shadow: var(--shadow-s); overflow: hidden; }
+  .opts .li { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .opts .li:first-child { border: 0; }
+  .opts .ic { font-size: 16px; width: 20px; }
+  .opts .vv { margin-left: auto; font-size: 11.5px; color: var(--mute); }
+  .opts .sw { margin-left: auto; width: 38px; height: 22px; border-radius: 99px; background: #e8d7c3; position: relative; }
+  .opts .sw.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); }
+  .opts .sw i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 99px; background: #fff; }
+  .opts .sw.on i { left: auto; right: 2px; }
+
+  .toolbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 16; padding: 11px 14px 22px; display: flex; align-items: center; gap: 18px;
+    background: rgba(255,250,243,.95); backdrop-filter: blur(18px); border-top: 1px solid var(--line); font-size: 19px; color: var(--ink-2); }
+  .toolbar .rt { margin-left: auto; font-size: 12px; color: var(--mute); }
+
+  .caption { width: 100%; text-align: center; font-size: 12px; color: #7c6455; margin-bottom: 10px; font-weight: 650; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+<!-- 阶段一：申请成为创作者 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./discover.html">‹</a>
+    <h4>成为创作者</h4>
+    <span class="tag gold">阶段一</span>
+  </div>
+
+  <div class="scroll full">
+    <section class="apphero">
+      <h2 class="serif">暖阁正在招募<br />长期供稿的创作者</h2>
+      <p>目前站内内容由编辑部与特约作者产出。我们每月放开少量名额，通过后即可在小程序内直接发布长文与图文笔记。</p>
+      <div class="st">
+        <div><b>12</b><span>本月名额</span></div>
+        <div><b>3-5 天</b><span>审核周期</span></div>
+        <div><b>60%</b><span>内容分成</span></div>
+      </div>
+    </section>
+
+    <div class="why">
+      <div><span class="ic">🪧</span><div><b>署名与身份标识</b><p>通过后获得「特约作者」标识，出现在首页作者位与每篇内容署名处。</p></div></div>
+      <div><span class="ic">💰</span><div><b>付费内容分成</b><p>你的长文进入会员区后，按阅读时长与转化参与分成，月度结算。</p></div></div>
+      <div><span class="ic">🪐</span><div><b>星球共建权限</b><p>可在星球发起话题、回答读者提问，内容沉淀进资料库。</p></div></div>
+    </div>
+
+    <div class="hd"><h3 class="serif">投稿申请</h3></div>
+    <div class="form">
+      <div class="fi">
+        <label>笔名 / 昵称<em>*</em></label>
+        <div class="ip filled">林砚</div>
+      </div>
+      <div class="fi">
+        <label>你想长期写的方向<em>*</em>（最多选 2 个）</label>
+        <div class="picks"><span class="on">内容创业</span><span>写作方法</span><span class="on">工位美学</span><span>读书</span><span>副业</span><span>咖啡</span></div>
+      </div>
+      <div class="fi">
+        <label>擅长的内容形态<em>*</em></label>
+        <div class="picks"><span class="on">深度长文</span><span class="on">图文笔记</span><span>音频</span><span>视频</span></div>
+      </div>
+      <div class="fi">
+        <label>一句话自我介绍<em>*</em></label>
+        <div class="ta">写了三年独立博客，专注一个人如何把写作做成可持续的小生意。日更过，也停更过，更想聊真实的那部分。</div>
+      </div>
+      <div class="fi">
+        <label>代表作（链接或截图，1-3 份）</label>
+        <div class="ip">粘贴公众号 / 小红书 / 博客链接</div>
+        <div class="up">
+          <div class="sl"><img class="ph" src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=200&h=200&fit=crop&q=80" alt="" /></div>
+          <div class="sl"><img class="ph" src="https://images.unsplash.com/photo-1497366811353-687086791d93?w=200&h=200&fit=crop&q=80" alt="" /></div>
+          <div class="add">＋</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      提交后由编辑部人工审核，结果通过<b>服务通知</b>告知。未通过不影响你继续在星球提问、评论与打卡。
+    </div>
+    <div style="height:14px"></div>
+  </div>
+
+  <div class="actionbar">
+    <a class="btn block" href="./mine.html">提交申请</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+<!-- 阶段二：发布编辑器 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="etop">
+    <a class="cc" href="./discover.html">取消</a>
+    <span class="tt">写笔记</span>
+    <span class="pb">发布</span>
+  </div>
+
+  <div class="scroll" style="padding-top:98px;height:calc(100% - 54px - 66px)">
+    <div class="types"><span class="on">图文笔记</span><span>长文</span><span>星球动态</span></div>
+
+    <div class="editor">
+      <div class="ti">我的书桌改造 ✨ 一个内容人的暖光角落</div>
+      <div class="imgs">
+        <div><img class="ph" src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=200&h=200&fit=crop&q=80" alt="" /><span class="x">×</span></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1497366811353-687086791d93?w=200&h=200&fit=crop&q=80" alt="" /><span class="x">×</span></div>
+        <div class="add">＋</div>
+      </div>
+      <div class="bdy">去年整整一年，我都在客厅那张餐桌上写东西。今年终于给自己搭了一个只属于写作的角落，成本 2000 出头。<br /><br />最想说的一点：灯光比家具更重要<span class="cur"></span></div>
+    </div>
+
+    <div class="opts">
+      <div class="li"><span class="ic">#️⃣</span>添加话题<span class="vv">#书桌改造 #工位美学</span></div>
+      <div class="li"><span class="ic">📍</span>所在位置<span class="vv">杭州</span></div>
+      <div class="li"><span class="ic">🔗</span>关联专栏 / 商品<span class="vv">一个人的内容生意</span></div>
+      <div class="li"><span class="ic">🪐</span>同步到星球<span class="sw on"><i></i></span></div>
+      <div class="li"><span class="ic">👀</span>仅会员可见<span class="sw"><i></i></span></div>
+    </div>
+
+    <div class="note">
+      内容将经编辑部审核后展示（一般 2 小时内）。草稿会自动保存。
+    </div>
+    <div style="height:16px"></div>
+  </div>
+
+  <div class="toolbar">
+    <span>🖼️</span><span>📎</span><span>#️⃣</span><span>😊</span>
+    <span class="rt">存草稿 · 已保存</span>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+</div>
+</body>
+</html>

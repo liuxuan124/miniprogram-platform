@@ -52,7 +52,7 @@ Component({
     sectionMoreStyle: '',
     showMore: true,
     moreText: '查看更多>',
-    moreLink: '/pages/knowledge-mall/knowledge-mall',
+    moreLink: '/pages/shop/shop',
     titleStyle: '',
     priceStyle: '',
     salesStyle: '',
@@ -140,8 +140,8 @@ Component({
 
     _resolveSource(config, runtimeData) {
       const fallback = [
-        { id: 'preview-1', name: '跨境通用知识库', price: '199.00', sales: 128 },
-        { id: 'preview-2', name: '跨境财税知识库', price: '299.00', sales: 86 },
+        { id: 'preview-1', name: '示例商品 A', price: '199.00', sales: 128 },
+        { id: 'preview-2', name: '示例商品 B', price: '299.00', sales: 86 },
       ]
       const ids = Array.isArray(config.product_ids)
         ? config.product_ids.map((id) => String(id)).filter(Boolean)
@@ -263,8 +263,8 @@ Component({
       const sectionSubColor = config.section_subtitle_color || (isBand ? '#D4E2FF' : '#7b8798')
       const showMore = config.show_more !== false
       const moreText = String(config.more_text || '查看更多>').trim() || '查看更多>'
-      const moreLink = String(config.more_link || '/pages/knowledge-mall/knowledge-mall').trim()
-        || '/pages/knowledge-mall/knowledge-mall'
+      const moreLink = String(config.more_link || '/pages/shop/shop').trim()
+        || '/pages/shop/shop'
       const moreColor = config.more_color || (isBand ? '#D4E2FF' : '#7b8798')
       const radiusRaw = config.item_border_radius
       const radiusNum = radiusRaw === undefined || radiusRaw === null || radiusRaw === ''
@@ -413,7 +413,7 @@ Component({
     },
 
     onTapMore() {
-      const link = String(this.data.moreLink || '/pages/knowledge-mall/knowledge-mall').trim()
+      const link = String(this.data.moreLink || '/pages/shop/shop').trim()
       if (!link) return
       if (/^https?:\/\//i.test(link)) {
         executeAction({ type: 'webview', url: link })

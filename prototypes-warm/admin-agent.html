@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · Agent 与知识库后台</title>
+<link rel="stylesheet" href="./admin.css" />
+<style>
+  .persona { display: inline-flex; align-items: center; gap: 7px; }
+  .persona .av { width: 26px; height: 26px; border-radius: 99px; flex: none; display: grid; place-items: center; font-size: 12px; color: #fff; }
+  .persona .av.a1 { background: linear-gradient(135deg,#d97706,#7c2d12); }
+  .persona .av.a2 { background: linear-gradient(135deg,#0e7490,#155e75); }
+  .persona .av.a3 { background: linear-gradient(135deg,#15803d,#14532d); }
+  .persona b { font-size: 12.5px; font-weight: 680; }
+  .persona span { font-size: 10.5px; color: var(--mute); margin-left: 2px; }
+
+  .kbchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .kbchips span { padding: 4px 10px; border-radius: 7px; background: #f6efe6; font-size: 11.5px; color: #7c4a1d; border: 1px solid var(--line); }
+  .kbchips span.add { border-style: dashed; color: var(--mute); background: #fff; }
+  .kbchips span.no { background: #fee2e2; color: #b91c1c; border-color: #f3d0d0; }
+
+  .scopes { display: grid; gap: 8px; }
+  .scopes label { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: #fff; font-size: 12.5px; line-height: 1.55; }
+  .scopes label.on { border-color: var(--brand); background: #fef3ea; }
+  .scopes label .bx { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid #d8c3ab; flex: none; margin-top: 1px; display: grid; place-items: center; font-size: 10px; color: #fff; }
+  .scopes label.on .bx { background: var(--brand); border-color: var(--brand); }
+  .scopes label em { font-style: normal; display: block; font-size: 10.5px; color: var(--mute); margin-top: 3px; }
+  .scopes label .off2 { margin-left: auto; font-size: 10.5px; color: var(--mute); flex: none; }
+
+  .prompt { border: 1px solid var(--line); border-radius: 9px; background: #fffdf9; padding: 12px 13px; font-size: 12.5px; line-height: 1.85; color: #4a3526;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .prompt b { color: #9a3412; font-weight: 700; }
+
+  .flow { display: flex; align-items: center; gap: 0; margin: 4px 0 2px; flex-wrap: wrap; }
+  .flow .st { padding: 9px 14px; border-radius: 8px; background: #fff; border: 1px solid var(--line); font-size: 12px; font-weight: 640; }
+  .flow .st.hl { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border-color: transparent; }
+  .flow .st.stop { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+  .flow .ar2 { padding: 0 9px; color: #c9b096; font-size: 13px; }
+
+  .draft { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px dashed var(--line); }
+  .draft:last-child { border: 0; }
+  .draft .src { width: 150px; flex: none; font-size: 11px; color: var(--mute); line-height: 1.65; }
+  .draft .src b { display: block; color: var(--ink); font-size: 12px; font-weight: 680; margin-bottom: 4px; }
+  .draft .out { flex: 1; border-left: 2px solid #f0dcc4; padding-left: 13px; }
+  .draft .out h5 { font-size: 13.5px; font-weight: 700; }
+  .draft .out p { margin-top: 6px; font-size: 12px; color: var(--ink-2); line-height: 1.7; }
+  .draft .out .cite { margin-top: 8px; font-size: 10.5px; color: var(--mute); }
+  .draft .out .cite a { color: var(--brand); }
+  .draft .rt2 { width: 128px; flex: none; display: flex; flex-direction: column; gap: 6px; }
+
+  .kbrow .nm2 { display: flex; align-items: center; gap: 9px; }
+  .kbrow .ic2 { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg,#f6ddbf,#e8c9a0); display: grid; place-items: center; font-size: 15px; flex: none; }
+  .bar2 { width: 92px; height: 5px; border-radius: 99px; background: #efe3d4; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 7px; }
+  .bar2 i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--gold),var(--brand-2)); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ① Agent 列表 -->
+<div class="ptt">Agent 后台 ①　智能体管理</div>
+<div class="pnote">阶段一 <b>不向用户开放</b>：所有 Agent 只在后台运行，小程序端不出现任何入口。每个 Agent 绑定一个<b>人格身份</b>，产出物以该身份署名（按你的决定，前端不加「AI 辅助」标记，视为团队自产）。产出一律进草稿箱，<b>必须人工确认后才能发布</b>。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🌿</span>笔记管理</a>
+    <a><span class="ic">🗂</span>资料库</a>
+    <a><span class="ic">🪐</span>星球运营</a>
+    <div class="grp">智能体</div>
+    <a class="on"><span class="ic">🤖</span>Agent 管理</a>
+    <a><span class="ic">📚</span>知识库</a>
+    <a><span class="ic">📥</span>草稿箱 <span class="pill wait" style="margin-left:auto">7</span></a>
+    <div class="grp">交易</div>
+    <a><span class="ic">🛍</span>商品管理</a>
+    <a><span class="ic">🎫</span>会员与权益</a>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1>Agent 管理</h1><span class="crumb">/ 全部智能体</span><div class="me"><span>运营 · 小周</span><span class="av"></span></div></div>
+    <div class="body2">
+      <div class="stats">
+        <div><b>3</b><span>已配置 Agent</span></div>
+        <div><b>7</b><span>待确认草稿</span></div>
+        <div><b>128</b><span>本月产出 / 采用 89</span></div>
+        <div><b>关闭</b><span>前端入口<em>阶段一</em></span></div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>智能体列表</h3><span class="sub">身份决定产出物在前端的署名</span>
+          <div class="rt"><button class="btn gh">运行日志</button><button class="btn">＋ 新建 Agent</button></div></div>
+        <table>
+          <thead><tr><th style="width:22%">Agent</th><th style="width:16%">人格身份</th><th style="width:20%">可读知识库</th><th>触发场景</th><th>发布卡点</th><th>状态</th><th style="width:90px">操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="gname"><div class="im">✂️</div><div><b>一稿三用改写</b><span>长文 → 笔记 / 动态 / 金句</span></div></div></td>
+              <td><div class="persona"><span class="av a1">墨</span><b>跟随原文作者</b></div></td>
+              <td><div class="kbchips"><span>站内长文</span><span>品牌语气库</span></div></td>
+              <td>编辑器辅助按钮</td>
+              <td><span class="pill wait">人工确认</span></td>
+              <td><span class="pill on2">启用</span></td>
+              <td><button class="btn gh sm">配置</button></td>
+            </tr>
+            <tr>
+              <td><div class="gname"><div class="im">🔍</div><div><b>知识检索问答</b><span>从存量内容里找答案</span></div></div></td>
+              <td><div class="persona"><span class="av a2">编</span><b>暖阁编辑部</b><span>官方</span></div></td>
+              <td><div class="kbchips"><span>站内长文</span><span>星球沉淀</span><span>资料库</span></div></td>
+              <td>后台内部问答 · 客服辅助</td>
+              <td><span class="pill wait">人工确认</span></td>
+              <td><span class="pill on2">启用</span></td>
+              <td><button class="btn gh sm">配置</button></td>
+            </tr>
+            <tr>
+              <td><div class="gname"><div class="im">✍️</div><div><b>主理人分身</b><span>起草读者提问的回答</span></div></div></td>
+              <td><div class="persona"><span class="av a1">墨</span><b>墨白</b><span>主理人</span></div></td>
+              <td><div class="kbchips"><span>墨白全部作品</span><span>星球问答</span><span class="no">排除：会员专享原文</span></div></td>
+              <td>星球提问触发 · 定时</td>
+              <td><span class="pill no">强制人工确认</span></td>
+              <td><span class="pill wait">灰度</span></td>
+              <td><button class="btn gh sm">配置</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>前端开放开关</h3><span class="sub">阶段二再打开，届时无需改版</span></div>
+        <div class="cb">
+          <div class="fr"><div class="lb">小程序端 Agent 入口<em>agent_public_enabled</em></div><div class="ct"><span class="sw"><i></i></span><span class="unit">关闭中 · 用户看不到任何 AI 入口</span><div class="hint">打开后，检索 Agent 会以「问问暖阁」的形式出现在搜索页；建议同时设为会员权益并限制非会员每日次数。</div></div></div>
+          <div class="fr"><div class="lb">产出物标注</div><div class="ct"><div class="radios"><label><i></i>显示「AI 辅助」角标</label><label class="on"><i></i>不标注，视为团队自产</label></div><div class="hint">已按你的决定选择不标注。前端展示逻辑因此无需改动，署名沿用作者矩阵。</div></div></div>
+          <div class="fr"><div class="lb">内容安全检查</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">发布前调用 security.msgSecCheck</span><div class="hint">AI 产出同样受微信内容安全规则约束，这一层不能省。</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ② Agent 配置详情 -->
+<div class="ptt" style="margin-top:38px">Agent 后台 ②　单个 Agent 配置（以「主理人分身」为例）</div>
+<div class="pnote">这一屏是整套设计的核心：<b>身份</b>决定它像谁，<b>知识库</b>决定它知道什么，<b>触发场景</b>决定它在哪里被调用，<b>发布卡点</b>决定它能不能直接对外。四者组合出一个可控的 Agent。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">智能体</div>
+    <a class="on"><span class="ic">🤖</span>Agent 管理</a>
+    <a><span class="ic">📚</span>知识库</a>
+    <a><span class="ic">📥</span>草稿箱</a>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🪐</span>星球运营</a>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1>Agent 管理</h1><span class="crumb">/ 主理人分身</span>
+      <div class="me"><button class="btn gh">试运行</button><button class="btn">保存</button></div></div>
+    <div class="body2">
+
+      <div class="card">
+        <div class="ch"><h3>身份与人格</h3><span class="sub">产出物在前端以此身份署名</span></div>
+        <div class="cb">
+          <div class="fr">
+            <div class="lb">绑定身份<em>persona_id</em></div>
+            <div class="ct">
+              <div class="radios">
+                <label class="on"><i></i>墨白 · 主理人</label>
+                <label><i></i>暖阁编辑部 · 官方</label>
+                <label><i></i>小满 · 特约</label>
+                <label><i></i>跟随原文作者</label>
+              </div>
+              <div class="hint">直接复用作者矩阵，不新建「机器人」账号。读者看到的始终是一致的人格。</div>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="lb">语气与风格</div>
+            <div class="ct"><div class="kbchips"><span>第一人称</span><span>克制、不煽动</span><span>多用真实数据</span><span>不喊口号</span><span class="add">＋ 添加</span></div>
+              <div class="hint">这些标签会拼进系统提示词，也作为「品牌语气库」知识库的检索条件。</div></div>
+          </div>
+          <div class="fr">
+            <div class="lb">系统提示词</div>
+            <div class="ct"><div class="prompt">你是「墨白」，暖阁的主理人，独立写作第 1000 天。
+回答读者提问时：
+1. 只依据<b>知识库中你本人写过的内容</b>作答，没写过的直接说「这个我还没写过」；
+2. 每个结论必须<b>标注出处</b>（文章标题 + 段落），便于读者跳转；
+3. 涉及会员专享内容时<b>只给结论摘要</b>，不复述原文，并附购买入口；
+4. 语气克制，第一人称，不使用「首先、其次、总之」这类模板结构。</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>可读知识库</h3><span class="sub">决定它知道什么，以及能说多少</span><div class="rt"><button class="btn gh sm">＋ 关联知识库</button></div></div>
+        <table>
+          <thead><tr><th style="width:26%">知识库</th><th>条目</th><th>引用策略</th><th>说明</th><th style="width:80px">操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">📄</span><b>墨白全部作品</b></div></td>
+              <td>412 篇</td>
+              <td><span class="pill on2">完整引用</span></td>
+              <td>公开长文，可直接引用原文并跳转</td>
+              <td><button class="btn gh sm">移除</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">🪐</span><b>星球问答沉淀</b></div></td>
+              <td>1.2 万条</td>
+              <td><span class="pill on2">完整引用</span></td>
+              <td>历史提问与星主回答，复用率最高</td>
+              <td><button class="btn gh sm">移除</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">🔒</span><b>会员专享长文</b></div></td>
+              <td>86 篇</td>
+              <td><span class="pill wait">仅摘要 + 引导购买</span></td>
+              <td>只给结论，不复述原文，附会员入口</td>
+              <td><button class="btn gh sm">移除</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">💰</span><b>付费资料原文</b></div></td>
+              <td>128 份</td>
+              <td><span class="pill no">不可引用</span></td>
+              <td>模板与数据表，引用等于白送</td>
+              <td><button class="btn gh sm">移除</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="cb" style="padding-top:0">
+          <div class="hint" style="margin-top:0">⚠️ <b style="color:#9a3412">付费墙防护</b>：引用策略必须在<b style="color:#9a3412">服务端检索阶段</b>生效——标记为「仅摘要」的条目，检索时就只返回摘要向量与结论字段，原文根本不进入上下文。不要依赖提示词约束模型「别说原文」，那是不可靠的。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>触发场景</h3><span class="sub">在哪里被调用 · 阶段一全部限定在后台</span></div>
+        <div class="cb">
+          <div class="scopes">
+            <label class="on"><span class="bx">✓</span><div>星球读者提问时自动起草<em>新提问进入队列后 5 分钟内生成回答草稿，推送给主理人确认</em></div><span class="off2">后台</span></label>
+            <label class="on"><span class="bx">✓</span><div>编辑器内手动调用<em>写作时点「让墨白起草」按钮</em></div><span class="off2">后台</span></label>
+            <label class="on"><span class="bx">✓</span><div>定时任务<em>每周一 09:00 生成「本周星球话题预测」草稿</em></div><span class="off2">后台</span></label>
+            <label><span class="bx"></span><div>客服会话辅助<em>客服回复时提供参考答案，不直接发给用户</em></div><span class="off2">后台</span></label>
+            <label><span class="bx"></span><div>小程序端用户直接对话<em>阶段二开放，需先打开前端总开关</em></div><span class="off2" style="color:#b91c1c">前端 · 未开放</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>发布流程与限额</h3></div>
+        <div class="cb">
+          <div class="fr">
+            <div class="lb">发布链路</div>
+            <div class="ct">
+              <div class="flow">
+                <span class="st">触发</span><span class="ar2">→</span>
+                <span class="st">检索知识库</span><span class="ar2">→</span>
+                <span class="st">生成草稿</span><span class="ar2">→</span>
+                <span class="st stop">⏸ 人工确认</span><span class="ar2">→</span>
+                <span class="st">安全检查</span><span class="ar2">→</span>
+                <span class="st hl">以「墨白」身份发布</span>
+              </div>
+              <div class="hint">人工确认为<b style="color:#9a3412">强制卡点，不可关闭</b>。主理人分身一旦说错话，信任损失很难补回来。</div>
+            </div>
+          </div>
+          <div class="fr"><div class="lb">确认人</div><div class="ct"><span class="ipt w140">墨白（主理人）</span><span class="unit">超时未处理</span><span class="ipt w80">48</span><span class="unit">小时后自动废弃草稿</span></div></div>
+          <div class="fr"><div class="lb">调用限额</div><div class="ct"><span class="ipt w80">200</span><span class="unit">次 / 天</span>　<span class="ipt w80">¥50</span><span class="unit">日成本上限，超出暂停并告警</span></div></div>
+          <div class="fr"><div class="lb">留痕</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">记录每条产出的模型、提示词版本、引用来源与确认人</span><div class="hint">出问题时能追溯到具体哪一次生成、引用了哪些原文、谁点的确认。</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 知识库管理 -->
+<div class="ptt" style="margin-top:38px">Agent 后台 ③　知识库管理</div>
+<div class="pnote">知识库是 Agent 的<b>可读范围</b>。一个知识库可被多个 Agent 引用，一个 Agent 可关联多个知识库。站内内容走<b>自动同步</b>（发布即入库），外部资料走手动上传。每个知识库带默认引用策略，Agent 关联时可再收紧、不可放宽。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">智能体</div>
+    <a><span class="ic">🤖</span>Agent 管理</a>
+    <a class="on"><span class="ic">📚</span>知识库</a>
+    <a><span class="ic">📥</span>草稿箱</a>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🗂</span>资料库</a>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1>知识库</h1><span class="crumb">/ 全部知识库</span><div class="me"><span>运营 · 小周</span><span class="av"></span></div></div>
+    <div class="body2">
+      <div class="stats">
+        <div><b>6</b><span>知识库</span></div>
+        <div><b>1.4 万</b><span>已索引条目</span></div>
+        <div><b>98%</b><span>索引完成度</span></div>
+        <div><b>自动</b><span>站内内容同步</span></div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>知识库列表</h3><div class="rt"><button class="btn gh">＋ 上传文档</button><button class="btn">＋ 新建知识库</button></div></div>
+        <table>
+          <thead><tr><th style="width:20%">知识库</th><th>来源</th><th>条目</th><th>索引状态</th><th>默认引用策略</th><th>被引用</th><th style="width:90px">操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">📄</span><div><b>墨白全部作品</b></div></div></td>
+              <td>站内长文 · 自动同步</td><td>412</td>
+              <td><span class="bar2"><i style="width:100%"></i></span>100%</td>
+              <td><span class="pill on2">完整引用</span></td>
+              <td>3 个 Agent</td>
+              <td><button class="btn gh sm">管理</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">🪐</span><div><b>星球问答沉淀</b></div></div></td>
+              <td>星球动态 · 自动同步</td><td>12,064</td>
+              <td><span class="bar2"><i style="width:96%"></i></span>96%</td>
+              <td><span class="pill on2">完整引用</span></td>
+              <td>2 个 Agent</td>
+              <td><button class="btn gh sm">管理</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">🔒</span><div><b>会员专享长文</b></div></div></td>
+              <td>站内长文 · 自动同步</td><td>86</td>
+              <td><span class="bar2"><i style="width:100%"></i></span>100%</td>
+              <td><span class="pill wait">仅摘要 + 引导购买</span></td>
+              <td>2 个 Agent</td>
+              <td><button class="btn gh sm">管理</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">💰</span><div><b>付费资料原文</b></div></div></td>
+              <td>资料库 · 自动同步</td><td>128</td>
+              <td><span class="bar2"><i style="width:100%"></i></span>100%</td>
+              <td><span class="pill no">不可引用</span></td>
+              <td>1 个 Agent</td>
+              <td><button class="btn gh sm">管理</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">🎨</span><div><b>品牌语气库</b></div></div></td>
+              <td>手动上传 · 12 份</td><td>312</td>
+              <td><span class="bar2"><i style="width:100%"></i></span>100%</td>
+              <td><span class="pill on2">完整引用</span></td>
+              <td>3 个 Agent</td>
+              <td><button class="btn gh sm">管理</button></td>
+            </tr>
+            <tr>
+              <td><div class="kbrow nm2"><span class="ic2">🛍</span><div><b>商品与客服话术</b></div></div></td>
+              <td>商品库 + 上传 · 混合</td><td>486</td>
+              <td><span class="bar2"><i style="width:72%"></i></span>72% 索引中</td>
+              <td><span class="pill on2">完整引用</span></td>
+              <td>1 个 Agent</td>
+              <td><button class="btn gh sm">管理</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>知识库详情 · 会员专享长文</h3><span class="sub">同步规则与引用策略</span></div>
+        <div class="cb">
+          <div class="fr">
+            <div class="lb">内容来源<em>source_type</em></div>
+            <div class="ct"><div class="radios"><label class="on"><i></i>站内内容自动同步</label><label><i></i>手动上传文档</label><label><i></i>外部链接抓取</label><label><i></i>混合</label></div></div>
+          </div>
+          <div class="fr">
+            <div class="lb">同步范围</div>
+            <div class="ct"><div class="kbchips"><span>内容类型：长文</span><span>可见性：member_only</span><span>状态：已发布</span><span class="add">＋ 添加条件</span></div>
+              <div class="hint">命中条件的内容<b>发布即自动入库</b>，下架即自动移除。不需要人工维护同步。</div></div>
+          </div>
+          <div class="fr">
+            <div class="lb">默认引用策略<em>cite_policy</em></div>
+            <div class="ct">
+              <div class="radios"><label><i></i>完整引用</label><label class="on"><i></i>仅摘要 + 引导购买</label><label><i></i>不可引用</label></div>
+              <div class="hint">当前设置下，Agent 回答会是：「这个问题我在《付费社群运营 SOP》里详细算过，结论是先做信任资产再提价 —— <b>完整方法和三张表在会员文里</b>」，并附解锁入口。既解决了问题，又不洗稿。</div>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="lb">切片设置</div>
+            <div class="ct"><span class="unit" style="margin-left:0">每片</span><span class="ipt w80">800</span><span class="unit">字，重叠</span><span class="ipt w80">120</span><span class="unit">字</span>
+              <div class="hint">长文建议按小标题切，保持语义完整；星球问答按「一问一答」为最小单元，不要跨条切。</div></div>
+          </div>
+          <div class="fr">
+            <div class="lb">重建索引</div>
+            <div class="ct"><button class="btn gh sm">立即重建</button><span class="unit">上次：2026-09-13 22:40 · 耗时 4 分 12 秒</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 草稿箱 -->
+<div class="ptt" style="margin-top:38px">Agent 后台 ④　草稿箱（人工确认卡点）</div>
+<div class="pnote">所有 Agent 产出都落在这里等人工处理。这是整套设计的<b>安全阀</b>：Agent 只负责把空白页变成初稿，最终对外说什么，仍然由人决定。采用率是衡量 Agent 是否真正好用的核心指标。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">智能体</div>
+    <a><span class="ic">🤖</span>Agent 管理</a>
+    <a><span class="ic">📚</span>知识库</a>
+    <a class="on"><span class="ic">📥</span>草稿箱</a>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🪐</span>星球运营</a>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1>草稿箱</h1><span class="crumb">/ 待确认 7</span><div class="me"><span>墨白 · 主理人</span><span class="av"></span></div></div>
+    <div class="body2">
+      <div class="stats">
+        <div><b>7</b><span>待确认</span></div>
+        <div><b>89 / 128</b><span>本月采用率 70%</span></div>
+        <div><b>2.4 小时</b><span>平均确认耗时</span></div>
+        <div><b>¥38</b><span>本月 Agent 成本</span></div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>待确认草稿</h3>
+          <div class="rt"><button class="btn gh">全部展开</button><button class="btn gh">按 Agent 筛选</button></div></div>
+        <div class="tabs2"><a class="on">待确认 7</a><a>已采用 89</a><a>已修改后采用 34</a><a>已废弃 5</a></div>
+        <div class="cb">
+
+          <div class="draft">
+            <div class="src">
+              <b>主理人分身</b>
+              触发：星球提问<br />
+              来源：十一《定价 99 还是 199》<br />
+              生成于 09-14 05:31
+            </div>
+            <div class="out">
+              <h5>拟以「墨白 · 主理人」身份回答</h5>
+              <p>差别不在转化率，在你后面还想不想卖第二个产品。99 是引流位，199 才是利润位——先想清楚它在你产品矩阵里站哪个位置，再倒推价格，而不是反过来用价格去凑成本。</p>
+              <div class="cite">引用：<a>《内容产品的三层货架结构》第 2 节</a> · <a>星球问答 #2841</a> · <span style="color:#a16207">《付费社群 SOP》仅摘要（会员文）</span></div>
+            </div>
+            <div class="rt2">
+              <button class="btn sm">确认发布</button>
+              <button class="btn gh sm">编辑后发布</button>
+              <button class="btn dg sm">废弃</button>
+            </div>
+          </div>
+
+          <div class="draft">
+            <div class="src">
+              <b>一稿三用改写</b>
+              触发：编辑器手动<br />
+              来源：《第 1000 天》长文<br />
+              生成于 09-14 09:12
+            </div>
+            <div class="out">
+              <h5>拟发布为「图文笔记」· 署名跟随原文（墨白）</h5>
+              <p>做内容第 1000 天，我把后台数据全导出来算了一笔账 📊<br />412 篇文章、3241 位付费读者，但真正养活我的不到 20 篇。<br />说个反常识的：免费培养的是消费习惯，不是付费意愿……</p>
+              <div class="cite">已生成 9 张配图文案 · 话题标签：#内容创业 #知识付费</div>
+            </div>
+            <div class="rt2">
+              <button class="btn sm">确认发布</button>
+              <button class="btn gh sm">编辑后发布</button>
+              <button class="btn dg sm">废弃</button>
+            </div>
+          </div>
+
+          <div class="draft">
+            <div class="src">
+              <b>主理人分身</b>
+              触发：定时任务<br />
+              每周一 09:00<br />
+              生成于 09-14 09:00
+            </div>
+            <div class="out">
+              <h5>拟更新「本周星球话题预测」模块</h5>
+              <p>AI 写作工具 ↑62%、小红书新规 ↑34%、付费社群定价 ↑12%、公众号流量主 ↓8%。预计下周「AI 写作工具」持续升温，建议提前储备相关选题。</p>
+              <div class="cite">数据来源：近 30 天星球发帖 1,204 条 · 提问 386 条 · 互动 2.1 万次</div>
+            </div>
+            <div class="rt2">
+              <button class="btn sm">确认发布</button>
+              <button class="btn gh sm">编辑后发布</button>
+              <button class="btn dg sm">废弃</button>
+            </div>
+          </div>
+
+          <div class="draft">
+            <div class="src">
+              <b>知识检索问答</b>
+              触发：客服会话辅助<br />
+              来源：用户「电子书打不开」<br />
+              生成于 09-14 09:38
+            </div>
+            <div class="out">
+              <h5>拟提供给客服的参考答案（不直接发送给用户）</h5>
+              <p>先让用户在「我的 - 已购内容」确认订单状态。若显示已支付但未解锁，大概率是支付回调延迟，可手动补发权限；若订单不存在，需核对微信支付账单流水号。</p>
+              <div class="cite">引用：<a>客服话术库 · 订单异常处理</a> · <a>常见问题 #12</a></div>
+            </div>
+            <div class="rt2">
+              <button class="btn sm">发给客服</button>
+              <button class="btn dg sm">废弃</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

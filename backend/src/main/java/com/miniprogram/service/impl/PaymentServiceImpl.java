@@ -15,9 +15,13 @@ import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.UserMapper;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.PaymentService;
+import com.miniprogram.service.PurchaseEntitlementService;
 import com.miniprogram.service.SubscribeMessageService;
+import com.miniprogram.service.UserNoticeService;
 import com.miniprogram.service.WxPayConfigService;
+import com.miniprogram.product.ProductTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -54,6 +58,9 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final SubscribeMessageService subscribeMessageService;
+    private final UserNoticeService userNoticeService;
+    private final MembershipAccessService membershipAccessService;
+    private final PurchaseEntitlementService purchaseEntitlementService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -153,7 +160,38 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         }
 
         verifyNotifyAmount(paymentData, order, outTradeNo);
+        markOrderPaid(order, transactionId, paymentData);
+        log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
+    }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void syncPaidFromWechat(Long userId, Long orderId) {
+        Order order = orderMapper.selectById(orderId);
+        if (order == null || !order.getUserId().equals(userId)) {
+            throw new BusinessException(600401, "订单不存在");
+        }
+        if (!"pending_payment".equals(order.getStatus())) {
+            return;
+        }
+        try {
+            Map<String, Object> paymentData = queryWxTransaction(order);
+            String tradeState = String.valueOf(paymentData.getOrDefault("trade_state", ""));
+            if (!"SUCCESS".equals(tradeState)) {
+                log.info("微信查单未支付 orderNo={} state={}", order.getOrderNo(), tradeState);
+                return;
+            }
+            String transactionId = (String) paymentData.get("transaction_id");
+            verifyNotifyAmount(paymentData, order, order.getOrderNo());
+            markOrderPaid(order, transactionId, paymentData);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("微信查单失败 orderNo={}", order.getOrderNo(), e);
+        }
+    }
+
+    private void markOrderPaid(Order order, String transactionId, Map<String, Object> paymentData) {
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
                 .eq(Payment::getOrderId, order.getId()));
         markPaid(order, payment, transactionId);
@@ -184,11 +222,45 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         }
         orderMapper.updateById(order);
         try {
-            subscribeMessageService.enqueue(order.getUserId(), "order_status", order.getOrderNo(),
-                    Map.of("status", order.getStatus(), "orderNo", order.getOrderNo()));
+            grantMembershipIfNeeded(order);
+        } catch (Exception e) {
+            log.warn("会员开通失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            grantVirtualEntitlements(order);
+        } catch (Exception e) {
+            log.warn("虚拟权益开通失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            userNoticeService.notifyOrderPaid(order);
+        } catch (Exception e) {
+            log.warn("站内通知失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("orderNo", order.getOrderNo());
+            payload.put("orderId", order.getId());
+            payload.put("amount", order.getPayAmount() == null ? "0.00" : order.getPayAmount().toPlainString());
+            payload.put("productName", firstProductName(order.getId()));
+            payload.put("time", java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .format(order.getPaidAt() == null ? LocalDateTime.now() : order.getPaidAt()));
+            payload.put("statusText", "支付成功");
+            subscribeMessageService.enqueue(order.getUserId(), "order_status", order.getOrderNo(), payload);
         } catch (Exception e) {
             log.warn("订阅消息入队失败 orderNo={}", order.getOrderNo(), e);
         }
+    }
+
+    private String firstProductName(Long orderId) {
+        try {
+            List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
+                    .eq(OrderItem::getOrderId, orderId)
+                    .last("LIMIT 1"));
+            if (items != null && !items.isEmpty() && StringUtils.hasText(items.get(0).getProductName())) {
+                return items.get(0).getProductName();
+            }
+        } catch (Exception ignored) {}
+        return "订单商品";
     }
 
     /** @return true 表示首次见到，可继续处理 */
@@ -200,6 +272,42 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         } catch (Exception e) {
             log.warn("Redis 防重放失败，降级为放行单次处理 tx={}", transactionId, e);
             return true;
+        }
+    }
+
+    private void grantMembershipIfNeeded(Order order) {
+        if (order == null || order.getUserId() == null) {
+            return;
+        }
+        List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
+                .eq(OrderItem::getOrderId, order.getId()));
+        for (OrderItem item : items) {
+            Product product = productMapper.selectById(item.getProductId());
+            if (product == null || !ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) {
+                continue;
+            }
+            Long levelId = product.getMembershipLevelId();
+            if (levelId == null) {
+                log.warn("会员商品未配置等级 productId={}", product.getId());
+                continue;
+            }
+            membershipAccessService.grantMembership(order.getUserId(), levelId, product.getMembershipDays());
+        }
+    }
+
+    /** 虚拟商品（电子书/专栏/资料包/digital）支付成功后写入购后权益，幂等 */
+    private void grantVirtualEntitlements(Order order) {
+        if (order == null || order.getUserId() == null) return;
+        List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
+                .eq(OrderItem::getOrderId, order.getId()));
+        for (OrderItem item : items) {
+            if (item.getProductId() == null) continue;
+            Product product = productMapper.selectById(item.getProductId());
+            if (product == null) continue;
+            if (!ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) continue;
+            if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) continue;
+            purchaseEntitlementService.grantProduct(
+                    order.getUserId(), product.getId(), order.getId(), order.getOrderNo());
         }
     }
 
@@ -258,6 +366,26 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             throw new BusinessException(700401, "支付记录不存在");
         }
         return payment;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> queryWxTransaction(Order order) throws Exception {
+        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
+        String path = "/v3/pay/transactions/out-trade-no/" + order.getOrderNo()
+                + "?mchid=" + payConfig.mchId();
+        String authorization = buildAuthorization("GET", path, "", payConfig);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", authorization);
+        headers.set("Accept", "application/json");
+        ResponseEntity<String> response = restTemplate.exchange(
+                "https://api.mch.weixin.qq.com" + path,
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class);
+        if (response.getStatusCode() != HttpStatus.OK || !StringUtils.hasText(response.getBody())) {
+            throw new BusinessException(700201, "查询微信支付失败");
+        }
+        return objectMapper.readValue(response.getBody(), Map.class);
     }
 
     // ==================== 微信支付V3 API ====================

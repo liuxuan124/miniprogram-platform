@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/admin/knowledge")
 @RequiredArgsConstructor
-@Tag(name = "后台-知识库管理")
+@Tag(name = "后台-AI 语料库")
 public class KnowledgeAdminController {
 
     private static final String PROTECTED_DIR = "protected/knowledge";
@@ -55,8 +55,23 @@ public class KnowledgeAdminController {
     @Value("${file.upload.dir:./uploads}")
     private String uploadDir;
 
+    @GetMapping("/stats")
+    @Operation(summary = "语料库概览统计")
+    public R<Map<String, Object>> stats() {
+        long sources = agentKnowledgeMapper.selectCount(null);
+        long chunks = chunkMapper.selectCount(new LambdaQueryWrapper<AgentKnowledgeChunk>().eq(AgentKnowledgeChunk::getStatus, 1));
+        long indexed = agentKnowledgeMapper.selectCount(new LambdaQueryWrapper<AgentKnowledge>()
+                .eq(AgentKnowledge::getVectorStatus, "done"));
+        Map<String, Object> m = new HashMap<>();
+        m.put("sourceCount", sources);
+        m.put("chunkCount", chunks);
+        m.put("indexedCount", indexed);
+        m.put("indexPercent", sources > 0 ? Math.min(100, (int) (indexed * 100 / sources)) : 0);
+        return R.ok(m);
+    }
+
     @GetMapping
-    @Operation(summary = "知识源列表")
+    @Operation(summary = "语料源列表")
     public R<List<Map<String, Object>>> list(@RequestParam(required = false) String sourceType) {
         LambdaQueryWrapper<AgentKnowledge> w = new LambdaQueryWrapper<AgentKnowledge>()
                 .orderByDesc(AgentKnowledge::getCreatedAt);
@@ -73,6 +88,7 @@ public class KnowledgeAdminController {
             m.put("vectorStatus", k.getVectorStatus());
             m.put("statusMessage", k.getStatusMessage());
             m.put("recallWeight", k.getRecallWeight());
+            m.put("citePolicy", StringUtils.hasText(k.getCitePolicy()) ? k.getCitePolicy() : "full");
             m.put("chunkCount", k.getChunkCount());
             m.put("fileSize", k.getFileSize());
             m.put("fileUrl", k.getFileUrl());
@@ -122,9 +138,10 @@ public class KnowledgeAdminController {
     }
 
     @PostMapping("/upload")
-    @Operation(summary = "上传知识文件")
+    @Operation(summary = "上传语料文件")
     public R<AgentKnowledge> upload(@RequestPart("file") MultipartFile file,
-                                    @RequestParam(required = false) Long configId) {
+                                    @RequestParam(required = false) Long configId,
+                                    @RequestParam(required = false) String citePolicy) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择文件");
         }
@@ -142,6 +159,7 @@ public class KnowledgeAdminController {
         k.setFileUrl(uploaded.getUrl());
         k.setVectorStatus("pending");
         k.setRecallWeight(BigDecimal.ONE);
+        k.setCitePolicy(normalizeCitePolicy(citePolicy));
         k.setChunkCount(0);
         k.setCreatedAt(LocalDateTime.now());
         agentKnowledgeMapper.insert(k);
@@ -165,9 +183,28 @@ public class KnowledgeAdminController {
         k.setVectorStatus("pending");
         Object weight = body.get("recallWeight");
         k.setRecallWeight(weight == null ? BigDecimal.ONE : new BigDecimal(String.valueOf(weight)));
+        Object cite = body.get("citePolicy");
+        k.setCitePolicy(normalizeCitePolicy(cite == null ? null : String.valueOf(cite)));
         k.setCreatedAt(LocalDateTime.now());
         agentKnowledgeMapper.insert(k);
         knowledgeIngestService.ingestQaPair(k, question, answer, "manual:" + k.getId());
+        return R.ok(k);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "更新语料源（引用策略等）")
+    public R<AgentKnowledge> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        AgentKnowledge k = agentKnowledgeMapper.selectById(id);
+        if (k == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "语料源不存在");
+        }
+        if (body != null && body.containsKey("citePolicy")) {
+            k.setCitePolicy(normalizeCitePolicy(String.valueOf(body.get("citePolicy"))));
+        }
+        if (body != null && body.containsKey("recallWeight") && body.get("recallWeight") != null) {
+            k.setRecallWeight(new BigDecimal(String.valueOf(body.get("recallWeight"))));
+        }
+        agentKnowledgeMapper.updateById(k);
         return R.ok(k);
     }
 
@@ -228,5 +265,14 @@ public class KnowledgeAdminController {
             return Paths.get(uploadDir).resolve(url.substring(idx + "/uploads/".length())).normalize();
         }
         return null;
+    }
+
+    private String normalizeCitePolicy(String raw) {
+        if (!StringUtils.hasText(raw)) return "full";
+        String v = raw.trim().toLowerCase(Locale.ROOT);
+        if ("summary".equals(v) || "none".equals(v) || "full".equals(v)) {
+            return v;
+        }
+        return "full";
     }
 }

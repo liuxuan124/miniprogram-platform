@@ -2,6 +2,7 @@
 const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveArticleCover } = require('../../utils/article-cover')
+const { isValidContentId } = require('../../utils/content-id')
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -17,8 +18,11 @@ function formatPublishDateTime(value) {
 
 function normalizeArticleItem(item, index) {
   const cover = resolveArticleCover(item)
+  const rawId = item.id != null ? item.id : (item.contentId != null ? item.contentId : item.content_id)
+  const id = isValidContentId(rawId) ? String(rawId) : ''
   return {
-    id: item.id || `local_${index + 1}`,
+    id,
+    navigable: !!id,
     title: item.title || item.name || '文章标题',
     name: item.name || item.title || '文章标题',
     cover_url: cover,
@@ -27,6 +31,7 @@ function normalizeArticleItem(item, index) {
     created_at: formatPublishDateTime(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at),
     publish_time: formatPublishDateTime(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at),
     source: item.source || item.categoryName || item.category_name || '',
+    summary: String(item.summary || item.excerpt || item.subtitle || '').trim(),
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
   }
@@ -42,6 +47,10 @@ function calcPageSize(config) {
     let itemH = 76
     if (layout === 'compact') itemH = 56
     if (layout === 'card') itemH = 200
+    if (layout === 'overlay') itemH = 220
+    if (layout === 'magazine') itemH = 140
+    if (layout === 'grid') itemH = 130
+    if (layout === 'editorial') itemH = 88
     const n = Math.ceil(h / itemH) + 2
     return Math.max(5, Math.min(n, 30))
   } catch (e) {
@@ -204,7 +213,7 @@ Component({
       const titleSize = Number(config.title_font_size) > 0 ? Number(config.title_font_size) : 13
       const metaSize = Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 11
       const raw = config.layout || config.style_type || 'list'
-      const layout = ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
+      const layout = ['card', 'list', 'compact', 'overlay', 'magazine', 'grid', 'editorial'].indexOf(raw) >= 0 ? raw : 'list'
       const gapRaw = Number(config.item_gap)
       const itemGap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 48)) : 8
       this._pageSize = calcPageSize(config)
@@ -342,7 +351,7 @@ Component({
       get('/api/v1/mp/contents', params, { auth: false, showError: false })
         .then((data) => {
           const records = extractRecords(data)
-          const mapped = records.map((item, index) => normalizeArticleItem(item, index))
+          const mapped = records.map((item, index) => normalizeArticleItem(item, index)).filter((item) => item.navigable)
           const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
           const hasMore = resolveHasMore(data, nextPage, pageSize, mapped.length)
           this.setData({
@@ -400,6 +409,10 @@ Component({
 
     onTapArticle(e) {
       const id = e.currentTarget.dataset.id
+      if (!isValidContentId(id)) {
+        wx.showToast({ title: '内容暂不可用', icon: 'none' })
+        return
+      }
       const article = (this.data.displayData || []).find((a) => String(a.id) === String(id))
       if (article && article.action) {
         executeAction(article.action)

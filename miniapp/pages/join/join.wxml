@@ -1,0 +1,120 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="jn-page">
+  <view class="jn-intro">
+    <view class="jn-intro__title warm-serif">{{heroTitle}}</view>
+    <view class="jn-intro__desc">{{desc}}</view>
+    <view class="jn-intro__rw">
+      <view class="jn-avs">
+        <image wx:for="{{avatars}}" wx:key="*this" src="{{item}}" mode="aspectFill" />
+      </view>
+      <text>{{memberCount}}</text>
+    </view>
+  </view>
+
+  <view class="jn-ways">
+    <view class="jn-way primary" bindtap="onService">
+      <view class="jn-way__hh">
+        <view class="jn-way__ic">💬</view>
+        <view class="jn-way__body">
+          <view class="jn-way__name">在线客服 <text class="warm-tag warm-tag--gold">推荐</text></view>
+          <view class="jn-way__sub">{{onlineServiceHint || '购买、发票、解锁问题，工作日 9:00-21:00 秒回'}}</view>
+        </view>
+        <view class="jn-way__go">去咨询</view>
+      </view>
+      <view class="jn-way__tip">小程序内直接开启会话，<text class="jn-em">无需添加好友</text>，可发图片与订单截图</view>
+    </view>
+
+    <view class="jn-way" bindtap="onOpenWecom">
+      <view class="jn-way__hh">
+        <view class="jn-way__ic">🧑‍💼</view>
+        <view class="jn-way__body">
+          <view class="jn-way__name">添加企微客服</view>
+          <view class="jn-way__sub">加为企业微信好友，长期跟进你的问题</view>
+        </view>
+        <view class="jn-way__go ghost">加好友</view>
+      </view>
+      <view class="jn-way__tip">
+        点击后跳转企业微信完成添加，<text class="jn-em">换设备也不会丢失聊天记录</text>
+        <text wx:if="{{wecomUrl}}">，也可 </text>
+        <text wx:if="{{wecomUrl}}" class="jn-link" catchtap="onCopyWecom">一键复制链接</text>
+      </view>
+    </view>
+
+    <view class="jn-way" wx:if="{{ownerWay}}" bindtap="onShowOwnerQr">
+      <view class="jn-way__hh">
+        <view class="jn-way__ic">{{ownerWay.icon || '✍️'}}</view>
+        <view class="jn-way__body">
+          <view class="jn-way__name">{{ownerWay.name}}</view>
+          <view class="jn-way__sub">{{ownerWay.desc}}</view>
+        </view>
+        <view class="jn-way__go ghost">看二维码</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="jn-grps" wx:if="{{groups.length}}">
+    <view class="jn-grps__t">
+      <text class="jn-grps__hd">按方向进群</text>
+      <text class="jn-grps__cnt">群满自动开新群</text>
+    </view>
+    <view wx:for="{{groups}}" wx:key="id" class="jn-grps__li">
+      <view class="jn-grps__lg">{{item.icon || '👥'}}</view>
+      <view class="jn-grps__meta">
+        <view class="jn-grps__name">{{item.name}}</view>
+        <view class="jn-grps__desc">{{item.desc}}</view>
+        <view class="jn-grps__bar" wx:if="{{item.fill != null}}">
+          <view class="jn-grps__fill" style="width: {{item.fill}}%"></view>
+        </view>
+      </view>
+      <view wx:if="{{item.full}}" class="jn-grps__btn full">已满</view>
+      <view
+        wx:else
+        class="jn-grps__btn"
+        data-id="{{item.id}}"
+        bindtap="onOpenGroup"
+      >进群</view>
+    </view>
+  </view>
+
+  <view class="jn-hd" wx:if="{{faqs.length}}">
+    <text class="jn-hd__t warm-serif">常见问题</text>
+  </view>
+  <view class="jn-faq" wx:if="{{faqs.length}}">
+    <view wx:for="{{faqs}}" wx:key="q" class="jn-faq__li">
+      <view class="jn-faq__q">{{item.q}}</view>
+      <view class="jn-faq__a">{{item.a}}</view>
+    </view>
+  </view>
+
+  <view class="jn-note">
+    ℹ️ 群内禁止发布广告与无关链接。客服<text class="jn-em">不会以任何理由索要你的微信支付密码或验证码</text>，谨防冒充。
+  </view>
+</view>
+
+<!-- 群二维码底栏 -->
+<view class="jn-mask" wx:if="{{sheetVisible}}" bindtap="onCloseSheet"></view>
+<view class="jn-sheet {{sheetVisible ? 'on' : ''}}" wx:if="{{sheetVisible}}">
+  <view class="jn-sheet__hd">
+    <text class="jn-sheet__cl"></text>
+    <text class="jn-sheet__tt">{{sheetGroup.name}}</text>
+    <text class="jn-sheet__cl" bindtap="onCloseSheet">×</text>
+  </view>
+  <view class="jn-sheet__qrbox">
+    <image
+      class="jn-sheet__qr"
+      src="{{sheetGroup.qrcode || placeholderQr}}"
+      mode="aspectFit"
+      show-menu-by-longpress
+      bindlongpress="onSaveQr"
+    />
+  </view>
+  <view class="jn-sheet__nm">{{sheetGroup.desc}}</view>
+  <view class="jn-sheet__sb" wx:if="{{sheetGroup.tip}}">{{sheetGroup.tip}}</view>
+  <view class="jn-sheet__press">📌 长按上方二维码识别进群
+或点「保存到相册」后用微信扫一扫</view>
+  <view class="jn-sheet__btns">
+    <view class="jn-sheet__btn ghost" bindtap="onSaveQr">保存到相册</view>
+    <view class="jn-sheet__btn" bindtap="onService">扫不出？找客服</view>
+  </view>
+  <view class="jn-sheet__exp">二维码 7 天后失效 · 过期请回本页重新获取</view>
+</view>

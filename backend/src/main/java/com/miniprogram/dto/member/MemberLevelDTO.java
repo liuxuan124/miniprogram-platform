@@ -39,4 +39,10 @@ public class MemberLevelDTO {
 
     @Schema(description = "状态: 1=启用, 0=禁用")
     private Integer status;
+
+    @Schema(description = "开通本档额外赠送星球天数")
+    private Integer giftPlanetDays;
+
+    @Schema(description = "到期前提醒天数")
+    private Integer expireRemindDays;
 }

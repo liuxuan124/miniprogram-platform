@@ -92,6 +92,9 @@ export interface ContentArticle {
   tags: ContentTag[]
   status: ContentStatus
   author?: string
+  authorRole?: string
+  visibility?: string
+  auditStatus?: string
   sort: number
   is_top: boolean
   published_at?: string
@@ -102,13 +105,18 @@ export interface ContentArticle {
 /** 创建内容参数 */
 export interface CreateContentParams {
   title: string
-  category_id: number
+  category_id?: number
+  categoryId?: number
   summary?: string
   content: string
   cover_image?: string
+  coverImage?: string
   tag_ids?: number[]
   status?: ContentStatus
   author?: string
+  authorRole?: string
+  visibility?: string
+  auditStatus?: string
   sort?: number
   is_top?: boolean
 }
@@ -117,12 +125,17 @@ export interface CreateContentParams {
 export interface UpdateContentParams {
   title?: string
   category_id?: number
+  categoryId?: number
   summary?: string
   content?: string
   cover_image?: string
+  coverImage?: string
   tag_ids?: number[]
   status?: ContentStatus
   author?: string
+  authorRole?: string
+  visibility?: string
+  auditStatus?: string
   sort?: number
   is_top?: boolean
 }
@@ -154,10 +167,15 @@ export const CONTENT_FORMAT_FILTER_OPTIONS: Array<{ value: ContentFormatType; la
 export interface ContentListParams {
   page?: number
   page_size?: number
+  current?: number
+  size?: number
   keyword?: string
   category_id?: number
   status?: string
   tag_id?: number
+  auditStatus?: string
+  authorRole?: string
+  contentType?: string
 }
 
 /** 内容标签 */

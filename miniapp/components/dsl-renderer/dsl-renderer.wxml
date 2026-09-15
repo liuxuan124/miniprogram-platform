@@ -257,7 +257,7 @@
     style="{{comp.props._shellStyle}}"
   >
     <view
-      class="dsl-ai-entry dsl-ai-entry--{{comp.props._theme || 'blue'}}"
+      class="dsl-ai-entry dsl-ai-entry--{{comp.props._theme || 'gold'}}"
       style="{{comp.props._cardStyle}}"
       bindtap="onAiEntryTap"
     >
@@ -465,6 +465,20 @@
     styleString="{{comp.styleString}}"
   />
 
+  <dsl-image-cube
+    wx:elif="{{comp.type === 'image_cube'}}"
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+    bind:tapitem="onCubeTap"
+  />
+
+  <dsl-content-tabs
+    wx:elif="{{comp.type === 'content_tabs'}}"
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+    bind:tapitem="onCubeTap"
+  />
+
   <!-- 容器/通栏/热区/卖点（DSL v2 轻量渲染） -->
   <view wx:elif="{{comp.type === 'container'}}" class="dsl-container" style="{{comp.styleString}}">
     <view wx:if="{{comp.props.title}}" class="dsl-container__title">{{comp.props.title}}</view>
@@ -514,6 +528,22 @@
       <text class="dsl-feature-card__desc">{{item.desc}}</text>
     </view>
   </view>
+
+  <dsl-planet-hero
+    wx:elif="{{comp.type === 'planet_hero'}}"
+    config="{{comp.props}}"
+  />
+
+  <dsl-planet-topics
+    wx:elif="{{comp.type === 'planet_topics'}}"
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+  />
+
+  <dsl-planet-feed
+    wx:elif="{{comp.type === 'planet_feed'}}"
+    config="{{comp.props}}"
+  />
 
   <!-- 未知组件类型 -->
   <view

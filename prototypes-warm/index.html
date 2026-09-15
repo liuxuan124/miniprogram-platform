@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 小程序原型总览</title>
+<style>
+  :root { --brand: #c2410c; --ink: #2a1c12; --mute: #7c6455; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(900px 520px at 12% -8%, #f7e6cc, transparent 60%),
+                radial-gradient(700px 480px at 92% 4%, #f4dcc6, transparent 55%), #e9d8c3;
+    color: var(--ink);
+    font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 52px 28px 90px; }
+  .kicker { font-size: 11px; letter-spacing: .26em; color: #b45309; font-weight: 800; }
+  h1 { margin-top: 10px; font-size: 42px; letter-spacing: -.035em; font-weight: 640;
+       font-family: "Iowan Old Style", "Songti SC", "Noto Serif SC", serif; }
+  .sub { margin-top: 12px; max-width: 620px; font-size: 14px; line-height: 1.75; color: #6b5443; }
+  .legend { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .legend span { font-size: 11.5px; padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,.6); color: #7c4a1d; font-weight: 600; }
+  .stage-note { margin-top: 26px; max-width: 760px; padding: 16px 18px; border-radius: 16px;
+    background: rgba(255,252,247,.72); border: 1px dashed rgba(180,83,9,.32); }
+  .stage-note b { font-size: 12.5px; color: #9a3412; letter-spacing: .02em; }
+  .stage-note p { margin-top: 8px; font-size: 12.5px; line-height: 1.8; color: #6b5443; }
+  .stage-note em { font-style: normal; font-weight: 700; color: #9a3412; }
+  .sect { margin-top: 46px; }
+  .sect h2 { font-size: 15px; font-weight: 800; letter-spacing: .02em; display: flex; align-items: center; gap: 9px; }
+  .sect h2::after { content: ""; flex: 1; height: 1px; background: rgba(120,72,40,.16); }
+  .sect p { margin-top: 6px; font-size: 12.5px; color: var(--mute); }
+  .grid { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(410px, 1fr)); gap: 30px; }
+  .cell { display: flex; flex-direction: column; align-items: center; }
+  .cell .lb { margin-bottom: 11px; text-align: center; }
+  .cell .lb b { display: block; font-size: 14px; font-weight: 750; }
+  .cell .lb a { font-size: 11.5px; color: var(--brand); text-decoration: none; }
+  .cell .lb em { display: block; font-style: normal; font-size: 11px; color: var(--mute); margin-top: 3px; }
+  iframe { width: 410px; height: 886px; border: 0; background: transparent; }
+  .grid.wide { grid-template-columns: 1fr; }
+  .cell.full { width: 100%; }
+  iframe.two { width: 880px; max-width: 100%; }
+  iframe.four { width: 100%; height: 960px; }
+  iframe.six { width: 100%; height: 2040px; }
+  iframe.admin { width: 100%; height: 2560px; }
+  .doc { margin-top: 20px; padding: 20px 22px; border-radius: 16px; background: rgba(255,252,247,.78); border: 1px dashed rgba(180,83,9,.34); max-width: 860px; }
+  .doc b { font-size: 14px; color: #9a3412; }
+  .doc p { margin-top: 9px; font-size: 12.5px; line-height: 1.85; color: #6b5443; }
+  .doc a { display: inline-block; margin-top: 13px; font-size: 12.5px; color: #fff; background: linear-gradient(135deg,#ea580c,#c2410c); padding: 8px 16px; border-radius: 99px; text-decoration: none; font-weight: 650; }
+  code { font-size: 11.5px; background: rgba(255,255,255,.6); padding: 1px 5px; border-radius: 4px; color: #9a3412; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">WARM CONTENT PLATFORM · PROTOTYPE V1</div>
+  <h1>暖阁 · 内容平台小程序原型</h1>
+  <p class="sub">暖色系内容平台：图文长文、小红书式笔记瀑布流、星球社群与话题预测、付费专栏。共 9 个页面，卡片可点击互相跳转。</p>
+  <div class="legend">
+    <span>🎨 主色 #C2410C 砖橘 / #B45309 陶土金</span>
+    <span>📄 纸感底 #FDF6EC</span>
+    <span>✍️ 衬线标题 + 无衬线正文</span>
+    <span>📱 390×844</span>
+  </div>
+  <div class="stage-note">
+    <b>内容生产阶段 · 阶段一（当前）</b>
+    <p>内容全部由运营团队产出，署名收敛为三类官方身份：<em>墨白 · 主理人</em> / <em>暖阁编辑部 · 官方</em> / <em>小满、老陈 · 特约作者</em>。
+    普通用户在这一阶段可以读、评论、收藏、在星球提问与打卡，但没有开放发布权限——「投稿 / 成为创作者」入口以招募形态保留在发现页与个人中心。
+    UGC 的数据结构与页面形态（笔记瀑布流、动态流、九宫格、评论盖楼）已经全部预留，阶段二放开权限时无需改版，只需开权限与增加发布器。</p>
+  </div>
+
+  <section class="sect">
+    <h2>一、主框架（底部 Tab 五页）</h2>
+    <p>首页聚合 · 发现瀑布流 · 星球社群 · 商城 · 个人中心</p>
+    <div class="grid">
+      <div class="cell"><div class="lb"><b>首页</b><a href="./home.html">home.html ↗</a><em>问候栏 / 金刚区 / 官方作者矩阵（含投稿招募位）/ 今日精选 / 专栏横滑 / 星球卡 / 混合内容流</em></div><iframe src="./home.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>笔记（发现）</b><a href="./discover.html">discover.html ↗</a><em>小红书式双列瀑布流，作者均为官方矩阵；顶部创作者招募条 + 右下角「投稿」次级入口</em></div><iframe src="./discover.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>星球</b><a href="./planet.html">planet.html ↗</a><em>官方更新 / 精华 / 读者提问 / 读者打卡；话题热度预测；悬浮按钮是「提问·打卡」而非「发布」</em></div><iframe src="./planet.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>商城</b><a href="./shop.html">shop.html ↗</a><em>虚拟商品为主：电子书 / 资料包 / 专栏课 / 星球年卡 / 实物周边</em></div><iframe src="./shop.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>我的</b><a href="./mine.html">mine.html ↗</a><em>会员卡 / 快捷入口（消息→notice.html）/ 继续学习 / 我的星球 / 提问与打卡</em></div><iframe src="./mine.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>消息</b><a href="./notice.html">notice.html ↗</a><em>站内通知列表：支付开通 / 星球回复 / 发货 / 会员到期</em></div><iframe src="./notice.html"></iframe></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>二、内容详情（三种内容形态）</h2>
+    <p>同一平台承载三类内容：深度长文、小红书笔记、星球讨论</p>
+    <div class="grid">
+      <div class="cell"><div class="lb"><b>图文长文详情</b><a href="./article.html">article.html ↗</a><em>沉浸封面 / 引言 / 小标题 / 引用 / 配图 / 会员付费墙 / 相关阅读</em></div><iframe src="./article.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>小红书式笔记详情</b><a href="./note.html">note.html ↗</a><em>顶部作者栏 / 图片轮播 / 话题标签 / 带货卡 / 评论盖楼</em></div><iframe src="./note.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>星球动态详情</b><a href="./planet-post.html">planet-post.html ↗</a><em>提问正文 / 星主精华回答 / 点赞头像墙 / 球友讨论</em></div><iframe src="./planet-post.html"></iframe></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>三、列表与商业化</h2>
+    <p>多种内容排版样式集合，以及付费专栏转化页</p>
+    <div class="grid">
+      <div class="cell"><div class="lb"><b>内容列表</b><a href="./list.html">list.html ↗</a><em>热读榜 / 大图卡 / 左文右图 / 音频波形卡 / 九宫格 / 星球内容卡</em></div><iframe src="./list.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>专栏详情</b><a href="./column.html">column.html ↗</a><em>课程封面 / 早鸟倒计时 / 讲师 / 卖点 / 目录试听 / 学员评价 / 购买栏</em></div><iframe src="./column.html"></iframe></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>四、下单与支付（虚拟商品四态）</h2>
+    <p>确认订单 → 微信收银台 → 支付成功 → 订单详情。虚拟商品无收货地址，支付成功即开通权限</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>下单支付全流程</b><a href="./order.html">order.html ↗</a><em>会员省钱提示 / 券与暖豆抵扣 / 不退款协议勾选 ‖ 微信收银台 ‖ 成功页解锁清单 + 邀请有礼 + 进群 ‖ 订单详情含交易单号与退款说明</em></div><iframe class="four" src="./order.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>五、商城与虚拟商品</h2>
+    <p>已提升为底部 Tab 一级入口。电子书、资料包、专栏课、星球年卡、实物周边同台售卖，虚拟商品走「支付即开通阅读权限」而非发货</p>
+    <div class="grid">
+      <div class="cell"><div class="lb"><b>商城首页</b><a href="./shop.html">shop.html ↗</a><em>会员条 / 五类目 / 限时特惠倒计时 / 新书首发位 / 商品双列（每件标注格式与会员价）</em></div><iframe src="./shop.html"></iframe></div>
+      <div class="cell"><div class="lb"><b>电子书详情</b><a href="./goods.html">goods.html ↗</a><em>立体书封 / 会员价 / 虚拟商品交付说明 / 免费试读（范围后台可配）/ 目录锁态 / 不退款提示</em></div><iframe src="./goods.html"></iframe></div>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>六、资料库会员墙（左＝非会员，右＝会员）</h2>
+    <p>非会员默认可看每份资料的前 2 页 / 20%；后台可对单份资料改成「前 N 页」「前 N%」「仅首页」「完全不可见」，也可整类设为免费</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>资料库列表</b><a href="./resources.html">resources.html ↗</a><em>会员状态条 / 试读策略说明 / 每份资料标注可看范围 ‖ 会员态：全部解锁、可转发保存</em></div><iframe class="two" src="./resources.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>七、资料文件预览（含权限两态）</h2>
+    <p>微信小程序内没有「下载到本地」的落点：附件只能 <code>wx.downloadFile</code> 后用 <code>wx.openDocument</code> 在线预览，留存靠「转发给朋友」。星球动态里的附件卡已改为「预览 ›」。左＝已解锁，右＝非会员</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>文件预览</b><a href="./file-preview.html">file-preview.html ↗</a><em>文件头 / 来源溯源 / 打开进度 / 分页纸张 / 转发保存提示 ‖ 未解锁态：首页模糊 + 入会引导</em></div><iframe class="two" src="./file-preview.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>八、加入社群与客服</h2>
+    <p>三条触达路径并存：小程序内在线客服（无需加好友）、企微客服好友、微信读者群（按方向分群、满员开新群、群码 7 天轮换）</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>加入社群</b><a href="./join.html">join.html ↗</a><em>三种加入方式 / 按方向分群含满员态 / 常见问题 / 防诈提示 ‖ 右：群二维码弹层，长按识别或存相册</em></div><iframe class="two" src="./join.html"></iframe></div></div>
+    <div class="grid" style="margin-top:26px"><div class="cell"><div class="lb"><b>在线客服会话</b><a href="./service-chat.html">service-chat.html ↗</a><em>快捷问题 / 发送订单卡片 / 图片凭证 / 解决后引导进群</em></div><iframe src="./service-chat.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>九、分享与邀请</h2>
+    <p>小程序没有可复制的网页链接，所以分享只有两条路：转发卡片给好友/群，或生成带小程序码的海报去朋友圈。分享链路里挂了邀请奖励</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>分享面板 + 海报</b><a href="./share.html">share.html ↗</a><em>左：半屏面板（微信好友带邀请码 / 朋友圈需生成图 / 生成海报 / 发到读者群 + 邀请战绩条）‖ 右：海报（封面款·金句款·纯文字三种模板、专属小程序码、保存相册或直接发送）</em></div><iframe class="two" src="./share.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>十、投稿与发布（UGC 两个阶段）</h2>
+    <p>左＝阶段一「申请成为创作者」，右＝阶段二放开权限后的发布编辑器，形态已备好，到时开权限即可上线</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>投稿 / 发布</b><a href="./contribute.html">contribute.html ↗</a><em>招募说明 / 方向与形态多选 / 代表作上传 ‖ 编辑器：三种内容类型 / 图片九宫格 / 话题定位关联 / 同步星球 / 仅会员可见</em></div><iframe class="two" src="./contribute.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>十一、异常与空状态（六态）</h2>
+    <p>建议做成公共组件而非逐页实现。其中「支付失败」必须区分未支付、已扣款未开通、重复支付三种情形，否则客服会被淹没</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>状态集合</b><a href="./states.html">states.html ↗</a><em>合规登录弹层 / 骨架屏 / 无网络 / 空列表 / 支付失败 / 内容下架，每态下方附设计说明</em></div><iframe class="six" src="./states.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>十二、运营后台配置</h2>
+    <p>把「非会员能看多少」「商品怎么交付」「会员有什么权益」全部做成后台可配，避免每次调整都要改代码发版</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>后台原型（三屏）</b><a href="./admin.html">admin.html ↗</a><em>① 资料试读配置（preview_mode 字段与端上效果预览）② 商品管理与虚拟商品交付设置 ③ 会员权益开关、内容审核队列、创作者申请</em></div><iframe class="admin" src="./admin.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>十三、Agent 与知识库（阶段一：仅后台）</h2>
+    <p>Agent 不向用户开放，只作为运营团队的生产工具。四个概念组合出可控的智能体：<b>身份</b>决定它像谁、<b>知识库</b>决定它知道什么、<b>触发场景</b>决定它在哪被调用、<b>发布卡点</b>决定它能不能直接对外</p>
+    <div class="grid wide"><div class="cell full"><div class="lb"><b>Agent 与知识库后台（四屏）</b><a href="./admin-agent.html">admin-agent.html ↗</a><em>① Agent 列表与前端开放开关 ② 单个 Agent 配置（身份 / 可读知识库与引用策略 / 触发场景 / 发布链路与限额）③ 知识库管理（自动同步规则、引用策略、切片设置）④ 草稿箱人工确认卡点</em></div><iframe class="admin" style="height:3400px" src="./admin-agent.html"></iframe></div></div>
+  </section>
+
+  <section class="sect">
+    <h2>十四、开发交付文档</h2>
+    <p>页面清单、跳转关系图、关键字段定义、微信侧技术约束、建议开发顺序</p>
+    <div class="doc">
+      <b>📄 SPEC.md</b>
+      <p>与原型同目录，Markdown 格式，可直接发给开发。包含：资料试读的 <code>preview_mode</code> / <code>preview_value</code> 字段设计与服务端裁切要求、商品表 <code>goods_type</code> 对虚拟与实物的分流、会员权益开关表、内容下架不收回已购权限的合规底线、邀请关系 scene 参数的 32 字符限制，以及支付回调幂等等六条微信侧约束。</p>
+      <a href="./SPEC.md">打开文档 ↗</a>
+    </div>
+  </section>
+</div>
+</body>
+</html>

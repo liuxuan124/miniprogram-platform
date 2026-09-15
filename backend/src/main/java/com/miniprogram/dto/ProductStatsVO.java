@@ -24,4 +24,16 @@ public class ProductStatsVO {
 
     @Schema(description = "低库存（非数字商品且库存<10）")
     private Long lowStock;
+
+    @Schema(description = "近30天销售额（已支付订单实付合计）")
+    private java.math.BigDecimal salesLast30Days;
+
+    @Schema(description = "本月订单数（已支付）")
+    private Long ordersThisMonth;
+
+    @Schema(description = "在售商品数（冗余，同 onSale）")
+    private Long onSaleCount;
+
+    @Schema(description = "详情页转化率估算（本月支付订单 / 在售商品曝光基数）")
+    private java.math.BigDecimal detailConversionRate;
 }

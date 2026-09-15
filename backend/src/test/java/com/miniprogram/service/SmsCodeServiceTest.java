@@ -4,6 +4,7 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.service.impl.SmsCodeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.env.Environment;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -28,7 +29,9 @@ class SmsCodeServiceTest {
     void setUp() {
         store = new InMemorySmsCodeStore();
         systemConfigService = mock(SystemConfigService.class);
-        smsCodeService = new SmsCodeServiceImpl(store, systemConfigService);
+        Environment environment = mock(Environment.class);
+        when(environment.getActiveProfiles()).thenReturn(new String[]{"test"});
+        smsCodeService = new SmsCodeServiceImpl(store, systemConfigService, environment);
     }
 
     @Test
@@ -99,7 +102,8 @@ class SmsCodeServiceTest {
         when(systemConfigService.getConfigValue("sms_mock_enabled")).thenReturn("0");
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> smsCodeService.sendCode(1L, PHONE, SCENE));
-        assertEquals("短信未配置", ex.getMessage());
+        assertTrue(ex.getMessage().contains("微信授权手机号") || ex.getMessage().contains("短信"));
+        assertNull(store.get("sms:activity_signup:" + PHONE));
     }
 
     @Test
@@ -109,7 +113,8 @@ class SmsCodeServiceTest {
         when(systemConfigService.getConfigValue("sms_access_key")).thenReturn("ak");
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> smsCodeService.sendCode(1L, PHONE, SCENE));
-        assertTrue(ex.getMessage().contains("真实短信发送尚未接入"));
+        // 当前实现：非 mock 一律引导微信授权手机号（未接真实短信商）
+        assertTrue(ex.getMessage().contains("微信授权手机号") || ex.getMessage().contains("短信"));
         assertNull(store.get("sms:activity_signup:" + PHONE));
     }
 

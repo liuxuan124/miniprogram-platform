@@ -317,6 +317,16 @@
       <div class="notification-tip">
         配置微信订阅消息模板 ID，用户授权后可接收关键节点通知。
       </div>
+      <el-form label-width="140px" style="margin-bottom: 12px">
+        <el-form-item label="通知跳转版本">
+          <el-select v-model="subscribeMiniState" style="width: 240px">
+            <el-option label="体验版 trial（当前）" value="trial" />
+            <el-option label="正式版 formal" value="formal" />
+            <el-option label="开发版 developer" value="developer" />
+          </el-select>
+          <div class="field-hint">正式发布后改为 formal，否则服务通知会打到体验版。</div>
+        </el-form-item>
+      </el-form>
 
       <el-table
         :data="notificationList"
@@ -383,6 +393,7 @@ import {
   uploadFile,
   uploadWxPayPrivateKey,
 } from '@/api/system'
+import { get, put } from '@/api/request'
 import {
   applyConfigListToForm,
   extractConfigList,
@@ -506,6 +517,7 @@ const logisticsForm = reactive<LogisticsForm>({
 // ==================== 订阅消息 ====================
 
 interface NotificationItem {
+  key: string
   scene: string
   templateId: string
   trigger: string
@@ -513,12 +525,14 @@ interface NotificationItem {
 }
 
 const notificationList = reactive<NotificationItem[]>([
-  { scene: '📦 订单发货通知', templateId: '', trigger: '填写运单后自动触发', enabled: false },
-  { scene: '✅ 活动报名成功', templateId: '', trigger: '报名审核通过后', enabled: false },
-  { scene: '📅 预约提醒', templateId: '', trigger: '预约前2小时触发', enabled: false },
-  { scene: '💰 支付成功确认', templateId: '', trigger: '微信支付回调后', enabled: false },
-  { scene: '🎟️ 优惠券到期提醒', templateId: '', trigger: '到期前3天自动触发', enabled: false },
+  { key: 'order_status', scene: '支付成功通知', templateId: '', trigger: '用户支付成功后', enabled: true },
+  { key: 'order_shipped', scene: '发货通知', templateId: '', trigger: '自动发货或后台发货后', enabled: true },
+  { key: 'coupon_expire', scene: '优惠券到期提醒', templateId: '', trigger: '到期前定时推送', enabled: true },
+  { key: 'appointment_remind', scene: '预约成功通知', templateId: '', trigger: '预约提交后', enabled: true },
+  { key: 'activity_remind', scene: '活动即将开始', templateId: '', trigger: '活动开始前提醒', enabled: true },
 ])
+
+const subscribeMiniState = ref('trial')
 
 // ==================== 方法 ====================
 
@@ -553,15 +567,35 @@ async function fetchConfig() {
       if (oaKey) {
         oaFormData[oaKey] = cfg.configValue || ''
       }
+      if (cfg.configKey === 'subscribe_miniprogram_state' && cfg.configValue) {
+        subscribeMiniState.value = cfg.configValue
+      }
     }
     if (payFormData.mchId || payFormData.apiV3Key) {
       paySaved.value = true
     }
     await nextTick()
     dataLoaded = true
+    await loadSubscribeTemplates()
   } catch {
   } finally {
     loading.value = false
+  }
+}
+
+async function loadSubscribeTemplates() {
+  try {
+    const res: any = await get('/api/v1/admin/growth/subscribe/templates')
+    const rows = res?.data || res || []
+    notificationList.forEach((item) => {
+      const hit = rows.find((r: any) => r.scene === item.key)
+      if (hit) {
+        item.templateId = hit.templateId || ''
+        item.enabled = hit.enabled !== 0
+      }
+    })
+  } catch {
+    // ignore
   }
 }
 
@@ -742,21 +776,31 @@ function handleManageAddress() {
 
 /** 获取模板 ID */
 function handleGetTemplateId() {
-  ElMessage.info('请前往微信公众平台获取模板 ID')
+  window.open('https://mp.weixin.qq.com/', '_blank')
 }
 
-/** 保存通知配置 */
-function handleSaveNotifications() {
-  ElMessage.success('通知配置已保存')
+async function handleSaveNotifications() {
+  await Promise.all(notificationList.map((row) => put('/api/v1/admin/growth/subscribe/templates', {
+    scene: row.key,
+    templateId: row.templateId,
+    title: row.scene,
+    enabled: row.enabled && row.templateId ? 1 : 0,
+  })))
+  await updateConfigs([{
+    configKey: 'subscribe_miniprogram_state',
+    configValue: subscribeMiniState.value,
+    configGroup: 'wechat',
+    description: '订阅消息跳转小程序版本 trial/formal/developer',
+  }])
+  ElMessage.success('订阅消息模板已保存')
 }
 
-/** 测试通知 */
-function handleTestNotification(row: NotificationItem) {
+async function handleTestNotification(row: NotificationItem) {
   if (!row.templateId) {
     ElMessage.warning('请先填写模板 ID')
     return
   }
-  ElMessage.success(`已发送测试通知「${row.scene}」`)
+  ElMessage.info('请用体验版完成一笔支付验证；支付成功后会自动发送该模板')
 }
 
 watch(payFormData, () => {

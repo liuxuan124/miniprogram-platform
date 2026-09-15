@@ -166,8 +166,8 @@ Component({
       }
 
       if (type === 'ai_entry') {
-        const themeRaw = String(props.theme || 'blue')
-        props._theme = ['blue', 'green', 'purple', 'dark', 'gold'].includes(themeRaw) ? themeRaw : 'blue'
+        const themeRaw = String(props.theme || 'gold')
+        props._theme = ['blue', 'green', 'purple', 'dark', 'gold'].includes(themeRaw) ? themeRaw : 'gold'
         props._titleStyle = buildTextStyle(props.title_font_size || 15)
         props._descStyle = buildTextStyle(props.desc_font_size || 12)
 
@@ -414,12 +414,21 @@ Component({
 
     onHotspotTap(e) {
       const link = (e.currentTarget.dataset.url || '').trim()
+      this._goLink(link, 'hotspot')
+    },
+
+    onCubeTap(e) {
+      const link = String((e.detail && e.detail.url) || '').trim()
+      this._goLink(link, 'cube')
+    },
+
+    _goLink(link, type) {
       try {
         const { track } = require('../../utils/track')
         track('component_click', {
-          componentId: (this.data.comp && this.data.comp.id) || 'hotspot',
+          componentId: (this.data.comp && this.data.comp.id) || type,
           itemId: link,
-          props: { type: 'hotspot' },
+          props: { type },
         })
       } catch (err) {}
       if (!link) return

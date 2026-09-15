@@ -15,6 +15,9 @@ public class ContentCategory extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
+    /** 租户ID */
+    private Long tenantId;
+
     /** 分类名称 */
     private String name;
 

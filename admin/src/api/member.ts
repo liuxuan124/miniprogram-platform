@@ -35,6 +35,8 @@ function normalizeLevel(row: any): MemberLevel {
     birthday_coupon_id: row.birthdayCouponId ?? row.birthday_coupon_id ?? null,
     legacy_rights: legacy.length ? legacy : undefined,
     status: Number(row.status ?? 1),
+    gift_planet_days: Number(row.giftPlanetDays ?? row.gift_planet_days ?? 0),
+    expire_remind_days: Number(row.expireRemindDays ?? row.expire_remind_days ?? 7),
     member_count: Number(row.memberCount ?? row.member_count ?? 0),
     created_at: row.createdAt ?? row.created_at ?? '',
     updated_at: row.updatedAt ?? row.updated_at ?? '',
@@ -52,6 +54,8 @@ function toLevelPayload(data: CreateMemberLevelParams | UpdateMemberLevelParams)
     birthdayCouponId: data.birthday_coupon_id,
     sortOrder: data.level,
     status: data.status,
+    giftPlanetDays: (data as any).gift_planet_days,
+    expireRemindDays: (data as any).expire_remind_days,
   }
 }
 

@@ -15,6 +15,9 @@ import lombok.EqualsAndHashCode;
 @Schema(description = "页面")
 public class Page extends BaseEntity {
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     @Schema(description = "页面名称")
     private String name;
 

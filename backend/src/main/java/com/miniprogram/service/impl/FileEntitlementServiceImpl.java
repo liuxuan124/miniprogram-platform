@@ -1,6 +1,5 @@
 package com.miniprogram.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.dto.ContentAttachmentDTO;
 import com.miniprogram.dto.file.FileAccessVO;
@@ -10,7 +9,10 @@ import com.miniprogram.entity.User;
 import com.miniprogram.mapper.FileItemMapper;
 import com.miniprogram.mapper.MemberLevelMapper;
 import com.miniprogram.mapper.UserMapper;
+import com.miniprogram.member.MemberBenefitCodes;
 import com.miniprogram.service.FileEntitlementService;
+import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.service.PurchaseEntitlementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,8 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 @Slf4j
@@ -32,11 +34,13 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class FileEntitlementServiceImpl implements FileEntitlementService {
 
-    private static final Set<String> TEXT_TYPES = Set.of("txt", "md", "csv");
+    private static final Set<String> TEXT_TYPES = Set.of("txt", "md", "markdown", "csv");
 
     private final FileItemMapper fileItemMapper;
     private final UserMapper userMapper;
     private final MemberLevelMapper memberLevelMapper;
+    private final MembershipAccessService membershipAccessService;
+    private final PurchaseEntitlementService purchaseEntitlementService;
 
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
@@ -62,16 +66,30 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         vo.setQualityTier(item.getQualityTier());
         vo.setReadMode(item.getReadMode());
         vo.setPreviewPercent(item.getPreviewPercent());
+        vo.setPreviewMode(resolvePreviewMode(item));
+        vo.setPreviewValue(resolvePreviewValue(item));
+        vo.setPageCount(item.getPageCount());
+        vo.setAllowForward(item.getAllowForward() == null || item.getAllowForward() == 1);
+        vo.setWatermark(item.getWatermark() != null && item.getWatermark() == 1);
+        if (Boolean.TRUE.equals(vo.getWatermark())) {
+            vo.setWatermarkText(buildWatermarkText(item, userId));
+        }
+        vo.setBoundProductId(item.getBoundProductId());
+        vo.setPreviewPages(resolveKeepPages(item));
 
-        boolean canRead = canRead(item, userId);
+        boolean unlockAll = membershipAccessService.hasBenefit(userId, MemberBenefitCodes.FILE_UNLOCK_ALL);
+        boolean canRead = unlockAll || canRead(item, userId);
         boolean canDownload = canDownload(item, userId);
         vo.setCanRead(canRead);
         vo.setCanDownload(canDownload);
-        vo.setCanPreview(!canRead && canPreview(item));
+        vo.setCanPreview(!canRead && canPreview(item, userId));
 
         if (vo.getCanPreview()) {
-            int percent = item.getPreviewPercent() != null ? item.getPreviewPercent() : 30;
+            int percent = resolvePreviewPercent(item);
             vo.setPreviewText(extractPreviewText(item, percent));
+            if (isBinaryPreviewable(item)) {
+                vo.setPreviewUrl("/api/v1/mp/files/" + item.getId() + "/preview-file");
+            }
         }
 
         if (!canRead && !canDownload) {
@@ -116,12 +134,17 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         if (item == null) {
             return false;
         }
+        if (membershipAccessService.hasBenefit(userId, MemberBenefitCodes.FILE_UNLOCK_ALL)) {
+            return true;
+        }
         String mode = StringUtils.hasText(item.getReadMode()) ? item.getReadMode() : "free";
         return switch (mode) {
             case "free" -> true;
             case "login" -> userId != null;
             case "member" -> isMember(userId);
+            case "planet_member" -> isPlanetMember(userId);
             case "level" -> meetsMinLevel(userId, item.getMinReadLevelId());
+            case "column_buyer" -> isColumnBuyer(userId, item);
             default -> false;
         };
     }
@@ -149,8 +172,11 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
 
     @Override
     public String extractPreviewText(FileItem item, int previewPercent) {
-        if (!canPreview(item)) {
+        if (!canPreviewByMode(item)) {
             return null;
+        }
+        if (!isTextPreviewable(item)) {
+            return "该资料支持试读权限，但当前格式无法内嵌文本预览，开通后可下载完整文件。";
         }
         try {
             Path path = resolveFilePath(item);
@@ -224,26 +250,148 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         return copy;
     }
 
-    private boolean canPreview(FileItem item) {
+    @Override
+    public boolean canPreview(FileItem item, Long userId) {
         if (item == null) {
+            return false;
+        }
+        if (membershipAccessService.hasBenefit(userId, MemberBenefitCodes.FILE_UNLOCK_ALL)) {
+            return false;
+        }
+        if (canRead(item, userId)) {
+            return false;
+        }
+        return canPreviewByMode(item);
+    }
+
+    private boolean canPreviewByMode(FileItem item) {
+        String mode = resolvePreviewMode(item);
+        if ("none".equals(mode)) {
             return false;
         }
         if ("free".equals(item.getReadMode())) {
             return false;
         }
-        return TEXT_TYPES.contains(StringUtils.hasText(item.getFileType()) ? item.getFileType() : "");
+        return true;
     }
 
-    private boolean isMember(Long userId) {
+    private String resolvePreviewMode(FileItem item) {
+        if (item != null && org.springframework.util.StringUtils.hasText(item.getPreviewMode())) {
+            return item.getPreviewMode();
+        }
+        Integer percent = item != null ? item.getPreviewPercent() : null;
+        if (percent == null || percent <= 0) return "none";
+        if (percent >= 100) return "full";
+        return "percent";
+    }
+
+    private int resolvePreviewValue(FileItem item) {
+        if (item != null && item.getPreviewValue() != null) {
+            return item.getPreviewValue();
+        }
+        if (item != null && item.getPreviewPercent() != null) {
+            return item.getPreviewPercent();
+        }
+        return 20;
+    }
+
+    private int resolvePreviewPercent(FileItem item) {
+        String mode = resolvePreviewMode(item);
+        int value = resolvePreviewValue(item);
+        return switch (mode) {
+            case "full" -> 100;
+            case "first_page" -> {
+                int pages = item.getPageCount() != null && item.getPageCount() > 0 ? item.getPageCount() : 10;
+                yield Math.max(1, 100 / pages);
+            }
+            case "pages" -> {
+                int pages = item.getPageCount() != null && item.getPageCount() > 0 ? item.getPageCount() : 10;
+                yield Math.min(100, Math.max(1, value * 100 / pages));
+            }
+            case "percent" -> Math.max(0, Math.min(100, value));
+            default -> 0;
+        };
+    }
+
+    @Override
+    public int resolveKeepPages(FileItem item) {
+        String mode = resolvePreviewMode(item);
+        int value = resolvePreviewValue(item);
+        int total = item != null && item.getPageCount() != null && item.getPageCount() > 0 ? item.getPageCount() : 10;
+        return switch (mode) {
+            case "none" -> 0;
+            case "first_page" -> 1;
+            case "pages" -> Math.max(1, value);
+            case "full" -> total;
+            case "percent" -> Math.max(1, (int) Math.ceil(total * (Math.min(100, Math.max(0, value)) / 100.0)));
+            default -> 1;
+        };
+    }
+
+    private boolean isColumnBuyer(Long userId, FileItem item) {
         if (userId == null) {
             return false;
         }
-        User user = userMapper.selectById(userId);
-        if (user == null) {
+        if (item.getBoundProductId() != null) {
+            return purchaseEntitlementService.hasProduct(userId, item.getBoundProductId());
+        }
+        return purchaseEntitlementService.hasAnyColumnLikeProduct(userId);
+    }
+
+    private boolean isMember(Long userId) {
+        return membershipAccessService.hasActivePaidMembership(userId);
+    }
+
+    private boolean isPlanetMember(Long userId) {
+        if (userId == null) {
             return false;
         }
-        MemberLevel level = resolveLevel(user.getPoints());
-        return level != null && level.getMinPoints() != null && level.getMinPoints() > 0;
+        return membershipAccessService.hasBenefit(userId, MemberBenefitCodes.PLANET_EXCLUSIVE)
+                || membershipAccessService.hasActivePaidMembership(userId);
+    }
+
+    private String buildWatermarkText(FileItem item, Long userId) {
+        if (item.getWatermark() == null || item.getWatermark() != 1) {
+            return "";
+        }
+        String nick = "读者";
+        String last4 = "****";
+        if (userId != null) {
+            User user = userMapper.selectById(userId);
+            if (user != null) {
+                if (StringUtils.hasText(user.getNickname())) {
+                    nick = user.getNickname().trim();
+                }
+                String phone = user.getPhone();
+                if (StringUtils.hasText(phone) && phone.length() >= 4) {
+                    last4 = phone.substring(phone.length() - 4);
+                }
+            }
+        }
+        if (nick.length() > 12) {
+            nick = nick.substring(0, 12);
+        }
+        return nick + " " + last4;
+    }
+
+    private boolean isBinaryPreviewable(FileItem item) {
+        if (item == null || !StringUtils.hasText(item.getFileType())) {
+            return false;
+        }
+        String type = item.getFileType().toLowerCase(Locale.ROOT);
+        return "pdf".equals(type) || "doc".equals(type) || "docx".equals(type);
+    }
+
+    private boolean isTextPreviewable(FileItem item) {
+        if (item == null) {
+            return false;
+        }
+        String type = item.getFileType() != null ? item.getFileType().toLowerCase(Locale.ROOT) : "";
+        if (TEXT_TYPES.contains(type)) {
+            return true;
+        }
+        String mime = item.getMimeType() != null ? item.getMimeType().toLowerCase(Locale.ROOT) : "";
+        return mime.startsWith("text/") || mime.contains("markdown") || mime.contains("csv");
     }
 
     private boolean meetsMinLevel(Long userId, Long minLevelId) {
@@ -265,22 +413,13 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         return points >= required.getMinPoints();
     }
 
-    private MemberLevel resolveLevel(Integer points) {
-        int p = points != null ? points : 0;
-        List<MemberLevel> levels = memberLevelMapper.selectList(new LambdaQueryWrapper<MemberLevel>()
-                .eq(MemberLevel::getStatus, 1)
-                .orderByDesc(MemberLevel::getMinPoints));
-        return levels.stream()
-                .filter(level -> level.getMinPoints() != null && p >= level.getMinPoints())
-                .max(Comparator.comparingInt(MemberLevel::getMinPoints))
-                .orElse(null);
-    }
-
     private String resolveLockedReason(FileItem item, Long userId) {
         String mode = StringUtils.hasText(item.getReadMode()) ? item.getReadMode() : "free";
         return switch (mode) {
             case "login" -> userId == null ? "登录后可查看完整内容" : "暂无阅读权限";
             case "member" -> userId == null ? "登录并升级会员后可查看" : "升级会员后可查看完整内容";
+            case "planet_member" -> userId == null ? "登录并加入星球后可查看" : "加入星球后可查看完整内容";
+            case "column_buyer" -> userId == null ? "登录并购买专栏后可查看" : "购买对应专栏后可查看完整内容";
             case "level" -> {
                 MemberLevel level = item.getMinReadLevelId() != null
                         ? memberLevelMapper.selectById(item.getMinReadLevelId()) : null;

@@ -15,6 +15,7 @@ import com.miniprogram.mapper.ContentCommentMapper;
 import com.miniprogram.mapper.ContentFavoriteMapper;
 import com.miniprogram.mapper.ContentLikeMapper;
 import com.miniprogram.mapper.ContentMapper;
+import com.miniprogram.service.ContentAuditRulesService;
 import com.miniprogram.service.ContentInteractService;
 import com.miniprogram.service.WxMiniappTokenService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class ContentInteractServiceImpl implements ContentInteractService {
     private final ContentCommentMapper commentMapper;
     private final WxMiniappTokenService wxMiniappTokenService;
     private final RestTemplate restTemplate;
+    private final ContentAuditRulesService contentAuditRulesService;
 
     @Override
     public ContentInteractStateDTO getState(Long contentId, Long userId) {
@@ -127,6 +129,9 @@ public class ContentInteractServiceImpl implements ContentInteractService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "评论内容不能为空且不超过500字");
         }
         String text = contentText.trim();
+        contentAuditRulesService.matchSensitive(text).ifPresent(word -> {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "评论含敏感词，请修改后重试");
+        });
         assertMsgSecOk(text);
 
         ContentComment row = new ContentComment();

@@ -17,6 +17,9 @@
         src="{{selected === index ? item.selectedIcon : item.icon}}"
         mode="aspectFit"
       />
+      <view class="tab-badge" wx:if="{{item.pagePath === '/pages/mine/mine' && noticeUnread}}">
+        {{noticeUnread > 99 ? '99+' : noticeUnread}}
+      </view>
     </view>
     <view
       class="tab-text"

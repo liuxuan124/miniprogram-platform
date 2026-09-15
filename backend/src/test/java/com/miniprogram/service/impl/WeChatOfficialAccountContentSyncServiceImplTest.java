@@ -61,4 +61,14 @@ class WeChatOfficialAccountContentSyncServiceImplTest {
         assertTrue(matcher.find());
         assertTrue(matcher.group(3).contains("example.com/a.png"));
     }
+
+    @Test
+    void connectivityProbeTitlesAreSkipped() throws Exception {
+        WeChatOfficialAccountContentSyncServiceImpl service = newService();
+        Method method = WeChatOfficialAccountContentSyncServiceImpl.class
+                .getDeclaredMethod("isConnectivityProbeTitle", String.class);
+        method.setAccessible(true);
+        assertTrue((Boolean) method.invoke(service, "连通性测试：WorkBuddy × 公众号 API（可删除）"));
+        assertFalse((Boolean) method.invoke(service, "40家跨境电商中报出炉：分化的不是规模，是能力结构"));
+    }
 }

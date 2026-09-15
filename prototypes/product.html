@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>出海笔记 · 知识库</title>
+  <link rel="stylesheet" href="./proto.css" />
+  <style>
+    .top { background: var(--sheet); padding: 0 16px 12px; }
+    .top h1 { font-size: 22px; letter-spacing: -.02em; }
+    .banner {
+      margin: 10px 16px 12px; height: 132px; border-radius: 22px; overflow: hidden; position: relative; color: #fff;
+      box-shadow: var(--shadow);
+    }
+    .banner .cap { position: absolute; inset: 0; padding: 18px 16px; background: linear-gradient(90deg, rgba(8,14,32,.78), rgba(8,14,32,.2)); display: flex; flex-direction: column; justify-content: flex-end; }
+    .banner h2 { font-size: 18px; margin-top: 4px; }
+    .chips { display: flex; gap: 8px; padding: 0 16px 12px; overflow: auto; }
+    .chips span { flex: none; height: 32px; padding: 0 14px; border-radius: 99px; background: #fff; font-size: 12px; display: grid; place-items: center; color: #667085; }
+    .chips .on { background: #141820; color: #fff; }
+    .list { padding: 0 16px 16px; display: grid; gap: 12px; }
+    .card { background: var(--sheet); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 28px rgba(20,24,32,.05); }
+    .cover { height: 148px; position: relative; }
+    .tag { position: absolute; left: 12px; top: 12px; font-size: 10px; letter-spacing: .12em; background: rgba(255,255,255,.9); padding: 4px 8px; border-radius: 99px; font-weight: 750; }
+    .body { padding: 14px 14px 16px; }
+    .body h3 { font-size: 16px; line-height: 1.35; }
+    .body p { margin-top: 6px; font-size: 12px; color: var(--mute); }
+    .row { display: flex; justify-content: space-between; align-items: end; margin-top: 12px; }
+    .price { font-size: 22px; font-weight: 800; color: #b42318; letter-spacing: -.04em; }
+    .rate { font-size: 11px; color: var(--mute); }
+
+    .screen { display: none; height: 100%; }
+    .screen.on { display: block; }
+    .detail { height: 100%; overflow: auto; background: var(--bg); padding-bottom: 84px; }
+    .detail::-webkit-scrollbar { display: none; }
+    .sw { height: 300px; position: relative; color: #fff; }
+    .back {
+      position: absolute; left: 16px; top: 54px; z-index: 5;
+      width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,.35); color: #fff;
+      display: grid; place-items: center; font-size: 18px;
+    }
+    .ph { background: var(--sheet); margin: -22px 0 0; border-radius: 24px 24px 0 0; padding: 20px 18px 10px; position: relative; }
+    .yen { font-size: 16px; color: #b42318; font-weight: 800; }
+    .num { font-size: 34px; color: #b42318; font-weight: 800; letter-spacing: -.04em; }
+    .ph h2 { font-size: 20px; margin: 8px 0 6px; }
+    .pick { margin: 12px 16px; background: var(--sheet); border-radius: 16px; }
+    .pick div { display: flex; justify-content: space-between; padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--line); }
+    .pick div:last-child { border: 0; }
+    .k { color: var(--mute); }
+    .author { margin: 8px 16px 4px; display: flex; gap: 10px; align-items: center; }
+    .av { width: 42px; height: 42px; border-radius: 14px; background: linear-gradient(145deg,#f4efe4,#d7c39a); display: grid; place-items: center; font-weight: 800; }
+    .blk { padding: 8px 20px 4px; }
+    .blk h3 { font-size: 14px; margin-bottom: 8px; }
+    .blk li { margin-left: 18px; font-size: 13px; line-height: 1.8; color: var(--ink-2); }
+    .buy {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 78px;
+      background: rgba(255,252,247,.94); backdrop-filter: blur(16px);
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px 18px;
+      border-top: 1px solid var(--line);
+    }
+    .ico { width: 40px; text-align: center; font-size: 10px; color: #667085; }
+    .buy button { height: 42px; border: 0; border-radius: 21px; font-weight: 750; }
+    .ghost { flex: 1; background: #e8eefe; color: var(--brand); }
+    .solid { flex: 1.2; background: var(--brand); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="device">
+      <div class="device-screen">
+        <div class="notch"></div>
+        <section id="list" class="screen on">
+          <div class="status"><span>9:41</span><span>知识库</span><span>􀙇</span></div>
+          <div class="scroll">
+            <div class="top"><h1 class="serif">知识库</h1></div>
+            <div class="banner">
+              <img src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=1000&q=80" alt="" />
+              <div class="cap">
+                <div class="kicker" style="color:rgba(255,255,255,.7)">Digital goods</div>
+                <h2 class="serif">资料包自动开通 · 咨询可改期</h2>
+              </div>
+            </div>
+            <div class="chips"><span class="on">全部</span><span>资料包</span><span>1v1 咨询</span><span>组合</span></div>
+            <div class="list">
+              <article class="card" onclick="openDetail(0)">
+                <div class="cover"><span class="tag">资料包</span><img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&q=80" alt="" /></div>
+                <div class="body">
+                  <h3>跨境电商通用知识库 2.0</h3>
+                  <p>选品框架、询盘话术、验厂清单与内容复用模板。</p>
+                  <div class="row"><span class="price">¥199</span><span class="rate">4.9 · 已售 128</span></div>
+                </div>
+              </article>
+              <article class="card" onclick="openDetail(1)">
+                <div class="cover"><span class="tag">资料包</span><img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=900&q=80" alt="" /></div>
+                <div class="body">
+                  <h3>跨境电商财税知识库 V3.0</h3>
+                  <p>VAT、主体与申报节奏，减少罚款来自流程错配。</p>
+                  <div class="row"><span class="price">¥299</span><span class="rate">4.8 · 已售 86</span></div>
+                </div>
+              </article>
+              <article class="card" onclick="openDetail(2)">
+                <div class="cover"><span class="tag">1v1</span><img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=900&q=80" alt="" /></div>
+                <div class="body">
+                  <h3>1v1 选品诊断 · 60 分钟</h3>
+                  <p>围绕你的品类做一次可执行的测款与供应链判断。</p>
+                  <div class="row"><span class="price">¥599</span><span class="rate">5.0 · 可改期</span></div>
+                </div>
+              </article>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <a href="./home.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg>首页</a>
+            <a href="./content.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v16H5z"/></svg>资讯</a>
+            <a class="on" href="./product.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 7h16l-1 13H5L4 7z"/></svg>知识库</a>
+            <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/></svg>我的</a>
+          </nav>
+        </section>
+
+        <section id="detail" class="screen">
+          <div class="detail">
+            <div class="sw">
+              <a class="back" href="#" onclick="closeDetail();return false;">‹</a>
+              <img id="dimg" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1100&q=80" alt="" />
+            </div>
+            <div class="ph">
+              <div><span class="yen">¥</span><span class="num" id="dprice">199</span></div>
+              <h2 class="serif" id="dtitle">跨境电商通用知识库 2.0</h2>
+              <p id="dsub" style="font-size:12px;color:var(--mute)">已售 128 · 电子资料自动开通</p>
+            </div>
+            <div class="pick">
+              <div><span class="k">规格</span><span>标准版 ›</span></div>
+              <div><span class="k">优惠</span><span>暂无可用券 ›</span></div>
+              <div><span class="k">服务</span><span>自动发货 · 售后保障 ›</span></div>
+            </div>
+            <div class="author">
+              <div class="av">哲</div>
+              <div><b>出海笔记 · 阿哲</b><div style="font-size:12px;color:var(--mute);margin-top:2px">跨境实战 · 已认证</div></div>
+            </div>
+            <div class="blk">
+              <h3>你将获得</h3>
+              <ul>
+                <li>选品过滤器：需求、供应链、合规</li>
+                <li>询盘与验厂当天检查表</li>
+                <li>开通后可在客服中查看使用说明</li>
+              </ul>
+            </div>
+          </div>
+          <div class="buy">
+            <div class="ico">💬<br>客服</div>
+            <div class="ico">🛒<br>购物车</div>
+            <button class="ghost">加入购物车</button>
+            <button class="solid">立即购买</button>
+          </div>
+        </section>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const items = [
+      ['跨境电商通用知识库 2.0','199','已售 128 · 电子资料自动开通','https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1100&q=80'],
+      ['跨境电商财税知识库 V3.0','299','已售 86 · 电子资料自动开通','https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1100&q=80'],
+      ['1v1 选品诊断 · 60 分钟','599','预约咨询 · 支持改期','https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1100&q=80']
+    ];
+    function openDetail(i){
+      const [t,p,s,img] = items[i];
+      dtitle.textContent = t; dprice.textContent = p; dsub.textContent = s; dimg.src = img;
+      list.classList.remove('on'); detail.classList.add('on');
+    }
+    function closeDetail(){ detail.classList.remove('on'); list.classList.add('on'); }
+  </script>
+</body>
+</html>

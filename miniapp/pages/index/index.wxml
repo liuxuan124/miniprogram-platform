@@ -1,23 +1,12 @@
-<!--pages/index/index.wxml — Tab 首页：装修 DSL 或原型兜底-->
-<!-- 勿用 <template> 包 dsl-renderer：lazyCodeLoading 下会白屏 -->
+<!-- pages/index/index.wxml — 默认暖阁原生；底栏绑了装修页则走 DSL -->
 <page-meta page-style="{{themePageStyle}}" />
-<block wx:if="{{dslPending}}">
-  <view class="dsl-tab-page__state">加载中...</view>
-</block>
-<block wx:elif="{{dslMode}}">
-  <view wx:if="{{loading}}" class="dsl-tab-page__state">加载中...</view>
+<!-- dslPending 期间先画 DEMO 原生壳，避免空白「加载中」二次落地；DSL 就绪后再切 -->
+<block wx:if="{{dslMode && !dslPending}}">
+  <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
   <block wx:else>
-    <view
-      class="dsl-tab-page__body"
-      style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}"
-    >
-      <view
-        wx:for="{{flowComponents}}"
-        wx:key="id"
-        class="dsl-flow {{item._stackClass}}"
-        style="{{item.hostStyle}}"
-      >
+    <view class="dsl-tab-page__body" style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+      <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
         <dsl-renderer component="{{item}}" />
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
@@ -31,231 +20,149 @@
     />
   </block>
 </block>
-<block wx:else>
-<view class="home">
-  <!-- Hero -->
-  <view class="hero">
-    <view class="hero-orb hero-orb--one"></view>
-    <view class="hero-orb hero-orb--two"></view>
-    <view class="hero-eyebrow">CROSS-BORDER GROWTH LAB</view>
-    <view class="hero-who">
-      <view class="hero-av">海</view>
-      <view class="hero-meta">
-        <view class="hero-nm">出海笔记 · 阿哲 <text class="hero-vf">已认证</text></view>
-        <view class="hero-bio">跨境电商实战 · 选品 / 供应链 / 独立站</view>
+<view wx:else class="wh">
+  <view class="wh-top" style="padding-top: {{statusBarHeight + 8}}px;">
+    <view class="wh-greet">
+      <image class="wh-av" src="{{userAvatar}}" mode="aspectFill" />
+      <view class="wh-greet__tx">
+        <text class="wh-greet__h serif">{{greetTitle}}</text>
+        <text class="wh-greet__p">已连续阅读 <text class="wh-b">{{streakDays}}</text> 天 · 今日更新 {{todayCount}} 篇</text>
       </view>
+      <view class="wh-bell" bindtap="onNotice">🔔<view class="wh-bell__dot" wx:if="{{noticeDot}}"></view></view>
     </view>
-    <view class="hero-kpi">
-      <view><text class="hero-kpi-b">238</text>篇内容</view>
-      <view><text class="hero-kpi-b">1.2w</text>关注者</view>
-      <view><text class="hero-kpi-b">4.9</text>咨询评分</view>
-    </view>
-  </view>
 
-  <!-- Search -->
-  <view class="searchbar" catchtap="goSearch" hover-class="searchbar--pressed">
-    <text class="searchbar__icon">⌕</text>
-    <text class="searchbar__text">搜索：选品清单 / 验厂 / VAT / TikTok</text>
-    <view class="searchbar__action" catchtap="goSearch">搜索</view>
-  </view>
+    <view class="wh-search" bindtap="goSearch">
+      <text>🔍</text>
+      <text class="wh-search__ph">搜索文章、笔记、专栏……</text>
+      <text class="wh-search__btn">搜索</text>
+    </view>
 
-  <!-- Quick nav（对齐原型：无「快速开始」标题） -->
-  <view class="quicknav">
-    <view class="q" data-action="content" bindtap="onQuickNav">
-      <view class="ic ic-1">📚</view>
-      <text>内容中心</text>
-    </view>
-    <view class="q" data-action="ebook" bindtap="onQuickNav">
-      <view class="ic ic-2">📘</view>
-      <text>资料包</text>
-    </view>
-    <view class="q" data-action="consult" bindtap="onQuickNav">
-      <view class="ic ic-3">🗓️</view>
-      <text>1v1咨询</text>
-    </view>
-    <view class="q" data-action="member" bindtap="onQuickNav">
-      <view class="ic ic-4">👑</view>
-      <text>会员权益</text>
-    </view>
-  </view>
-
-  <!-- Feature banner -->
-  <view class="feature" bindtap="openFeature">
-    <view class="feature-art" style="{{featureArtStyle}}">
-      <view class="feature-art__ring"></view>
-      <view class="feature-art__mark">↗</view>
-    </view>
-    <view class="feature-ov">
-      <text class="feature-tg">EDITOR'S PICK · 本周精选</text>
-      <view class="feature-h4">2026 下半年跨境选品趋势清单</view>
-      <view class="feature-m">12 分钟读懂趋势 <text class="feature-m__go">立即阅读 →</text></view>
-    </view>
-  </view>
-
-  <!-- Topics -->
-  <view class="sec sec-tight">
-    <view class="sec-h">
-      <view>
-        <view class="sec-title">按主题逛</view>
-        <view class="sec-sub">内容都按业务环节归好类了</view>
+    <view class="wh-nav">
+      <view
+        wx:for="{{navs}}"
+        wx:key="key"
+        class="wh-nav__item"
+        data-url="{{item.url}}"
+        data-tab="{{item.tab}}"
+        bindtap="onNav"
+      >
+        <view class="wh-nav__ic">{{item.icon}}</view>
+        <text>{{item.label}}</text>
       </view>
     </view>
   </view>
-  <scroll-view class="topicscroll" scroll-x enable-flex>
+
+  <view class="wh-hd">
+    <text class="wh-hd__t serif">暖阁出品</text>
+    <text class="wh-hd__a" data-url="/pages/content-list/content-list" bindtap="onNav">全部作者 ›</text>
+  </view>
+  <scroll-view class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
     <view
-      class="tc"
-      wx:for="{{topics}}"
+      wx:for="{{authors}}"
       wx:key="id"
-      data-topic="{{item.id}}"
-      bindtap="goTopic"
+      class="wh-author"
+      data-apply="{{item.apply}}"
+      bindtap="onAuthor"
     >
-      <view class="tc-e" style="background:{{item.chipBg}}">{{item.emoji}}</view>
-      <view class="tc-n">{{item.name}}</view>
-      <view class="tc-c">{{item.count}} 篇</view>
+      <view wx:if="{{item.apply}}" class="wh-author__av wh-author__av--apply">＋</view>
+      <image wx:else class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
+      <text class="wh-author__n">{{item.name}}</text>
+      <text class="wh-author__r">{{item.role}}</text>
     </view>
   </scroll-view>
 
-  <!-- Feed -->
-  <view class="sec">
-    <view class="sec-h">
-      <view>
-        <view class="sec-title">最新更新</view>
-        <view class="sec-sub">笔记 · 长文 · 视频 · 数据混合流</view>
-      </view>
-      <view class="sec-more" bindtap="goContent">全部 ›</view>
-    </view>
-
-    <block wx:for="{{feedCards}}" wx:key="id">
-      <!-- video -->
-      <view
-        wx:if="{{item.format === 'video'}}"
-        class="c-video"
-        data-id="{{item.id}}"
-        bindtap="openItem"
-      >
-        <view class="c-video-cv" style="{{item.artStyle}}">
-          <view class="glyph">{{item.glyph}}</view>
-          <view class="play">▶</view>
-          <view class="dur">{{item.dur}}</view>
-        </view>
-        <view class="c-video-txt">
-          <view>
-            <text class="fmt video">视频</text>
-            <text class="topic">{{item.topicName}}</text>
-          </view>
-          <view class="c-h4">{{item.title}}</view>
-          <view class="c-m">{{item.date}} · {{item.stat}}</view>
-        </view>
-      </view>
-
-      <!-- data -->
-      <view
-        wx:elif="{{item.format === 'data'}}"
-        class="c-data"
-        data-id="{{item.id}}"
-        bindtap="openItem"
-      >
-        <view>
-          <text class="fmt data">数据</text>
-          <text class="topic">{{item.topicName}}</text>
-        </view>
-        <view class="c-h4">{{item.title}}</view>
-        <view class="nums">
-          <view wx:for="{{item.nums}}" wx:for-item="n" wx:key="k">
-            <text class="nums-b {{n.d}}">{{n.v}}</text>
-            <text>{{n.k}}</text>
-          </view>
-        </view>
-        <view class="c-m">{{item.stat}}</view>
-      </view>
-
-      <!-- longform -->
-      <view
-        wx:elif="{{item.format === 'longform'}}"
-        class="c-long"
-        data-id="{{item.id}}"
-        bindtap="openItem"
-      >
-        <view class="c-long-thumb" style="{{item.artStyle}}">
-          <view class="glyph sm">{{item.glyph}}</view>
-        </view>
-        <view class="c-long-in">
-          <view>
-            <text class="fmt longform">长文</text>
-            <text class="topic">{{item.topicName}}</text>
-          </view>
-          <view class="c-h4">{{item.title}}</view>
-          <view class="c-m">
-            <text>{{item.date}}</text>
-            <text>·</text>
-            <text>{{item.read}}</text>
-            <text>·</text>
-            <text>{{item.stat}}</text>
-          </view>
-        </view>
-      </view>
-    </block>
-
-    <!-- masonry notes -->
-    <view class="masonry">
-      <view
-        class="c-note"
-        wx:for="{{masonry}}"
-        wx:key="id"
-        data-id="{{item.id}}"
-        bindtap="openItem"
-      >
-        <view class="c-note-art" style="{{item.artStyle}}">
-          <view class="glyph">{{item.glyph}}</view>
-        </view>
-        <view class="c-note-txt">
-          <view class="c-note-h4">{{item.title}}</view>
-          <view class="c-note-foot">
-            <text class="av">哲</text>
-            <text>出海笔记</text>
-            <text class="lk">♡ {{item.stat}}</text>
-          </view>
-        </view>
+  <view wx:if="{{loadError}}" class="wh-feed-empty" bindtap="onRetry">加载失败，点此重试</view>
+  <view wx:elif="{{feature}}" class="wh-feature" bindtap="onFeature">
+    <image class="wh-feature__img" src="{{feature.cover}}" mode="aspectFill" />
+    <view class="wh-feature__sc"></view>
+    <view class="wh-feature__bd">
+      <text class="wh-tag soft">{{feature.tag}}</text>
+      <text class="wh-feature__h serif">{{feature.title}}</text>
+      <view class="wh-feature__mt">
+        <text wx:for="{{feature.meta}}" wx:key="*this">{{item}}<text wx:if="{{index < feature.meta.length - 1}}"> · </text></text>
       </view>
     </view>
   </view>
+  <view wx:elif="{{!loading}}" class="wh-feed-empty">暂无精选内容</view>
 
-  <!-- Products：知识产品（对齐原型，商品卡独立、无外层大白框） -->
-  <view class="sec">
-    <view class="sec-h">
-      <view>
-        <view class="sec-title">知识产品</view>
-        <view class="sec-sub">虚拟商品正常发货 · 咨询按时段预约</view>
-      </view>
-      <view class="sec-more" bindtap="goShop">商城 ›</view>
-    </view>
+  <view class="wh-hd">
+    <text class="wh-hd__t serif">精品专栏</text>
+    <text class="wh-hd__a" data-url="/pages/shop/shop" data-tab="{{true}}" bindtap="onNav">全部 ›</text>
+  </view>
+  <scroll-view class="wh-rail" scroll-x enhanced show-scrollbar="{{false}}">
     <view
-      class="p-card"
-      wx:for="{{products}}"
+      wx:for="{{columns}}"
       wx:key="id"
+      class="wh-col"
       data-id="{{item.id}}"
-      bindtap="onProductTap"
+      data-url="{{item.url}}"
+      bindtap="onColumn"
     >
-      <view class="p-ic" style="{{item.artStyle}}">
-        <text class="glyph sm">{{item.glyph}}</text>
+      <view class="wh-col__cv">
+        <image src="{{item.cover}}" mode="aspectFill" />
+        <text wx:if="{{item.badge}}" class="wh-tag {{item.badgeGold ? 'gold' : ''}} wh-col__bdg">{{item.badge}}</text>
       </view>
-      <view class="p-in">
-        <view class="p-h4">{{item.title}}</view>
-        <view class="p-sub">{{item.sub}}</view>
-        <view class="p-foot">
-          <text class="p-pr">¥{{item.price}}</text>
-          <text class="p-rate">{{item.ratingLine}}</text>
-        </view>
+      <text class="wh-col__h">{{item.title}}</text>
+      <text class="wh-col__p">{{item.desc}}</text>
+      <view class="wh-col__pr">{{item.price}} <text wx:if="{{item.origin}}" class="wh-col__s">{{item.origin}}</text></view>
+    </view>
+  </scroll-view>
+
+  <view class="wh-hd">
+    <text class="wh-hd__t serif">我的星球</text>
+    <text class="wh-hd__a" data-url="/pages/planet/planet" data-tab="{{true}}" bindtap="onNav">进入 ›</text>
+  </view>
+  <view class="wh-planet" bindtap="goPlanet">
+    <view class="wh-planet__rw">
+      <text class="wh-planet__ic">🪐</text>
+      <text class="wh-planet__h">{{planet.title}}</text>
+      <text class="wh-planet__num">{{planet.members}}</text>
+    </view>
+    <view class="wh-planet__ls">
+      <view wx:for="{{planet.items}}" wx:key="tag" class="wh-planet__li">
+        <text class="wh-planet__tag">{{item.tag}}</text>
+        <text class="wh-planet__tx">{{item.text}}</text>
       </view>
     </view>
+    <view class="wh-planet__go">{{planet.cta}}</view>
   </view>
 
-  <view class="pad"></view>
-
-  <!-- 客服/AI：原型为 AI 助手 -->
-  <view class="fab" bindtap="goAi" aria-label="AI 助手">
-    <text class="fab__spark">🤖</text>
+  <view class="wh-segs">
+    <text
+      wx:for="{{segs}}"
+      wx:key="key"
+      class="wh-seg {{item.on ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSeg"
+    >{{item.label}}</text>
   </view>
+
+  <view wx:if="{{!feed.length}}" class="wh-feed-empty">该分类暂无内容</view>
+
+  <block wx:for="{{feed}}" wx:key="id">
+    <view wx:if="{{item.type === 'grid'}}" class="wh-three" data-url="{{item.url}}" bindtap="onNav">
+      <text class="wh-post__h">{{item.title}}</text>
+      <view class="wh-three__gg">
+        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" src="{{img}}" mode="aspectFill" />
+      </view>
+      <view class="wh-post__mt">
+        <text class="wh-tag">{{item.tag}}</text>
+        <text>{{item.meta}}</text>
+      </view>
+    </view>
+    <view wx:else class="wh-post" data-url="{{item.url}}" bindtap="onNav">
+      <view class="wh-post__tx">
+        <text class="wh-post__h">{{item.title}}</text>
+        <text class="wh-post__p">{{item.summary}}</text>
+        <view class="wh-post__mt">
+          <text class="wh-tag {{item.tagGold ? 'gold' : ''}}">{{item.tag}}</text>
+          <text>{{item.meta}}</text>
+        </view>
+      </view>
+      <image class="wh-post__im" src="{{item.cover}}" mode="aspectFill" />
+    </view>
+  </block>
+
+  <view class="wh-end">—— 暖阁 · 慢一点，也很好 ——</view>
+  <view class="wh-safe"></view>
 </view>
-</block>
-<login-sheet id="global-login-sheet" />

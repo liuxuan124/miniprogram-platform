@@ -55,4 +55,14 @@ public interface ContentService extends BaseService<Content> {
      * 小程序端内容详情（含浏览量+1）
      */
     ContentDetailDTO getPublishedContentDetail(Long id);
+
+    /**
+     * 星球动态流（含未付费可见策略）
+     */
+    PageResult<ContentDetailDTO> listPublishedContentsForPlanet(ContentQueryDTO queryDTO, Long userId);
+
+    /**
+     * 星球动态详情（含门禁）
+     */
+    ContentDetailDTO getPublishedPlanetContentDetail(Long id, Long userId);
 }

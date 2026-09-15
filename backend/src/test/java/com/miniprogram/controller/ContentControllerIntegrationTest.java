@@ -3,6 +3,7 @@ package com.miniprogram.controller;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.ContentDetailDTO;
 import com.miniprogram.dto.ContentQueryDTO;
+import com.miniprogram.service.ContentInteractService;
 import com.miniprogram.service.ContentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +31,9 @@ class ContentControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         contentService = mock(ContentService.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new ContentController(contentService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                new ContentController(contentService, mock(ContentInteractService.class))
+        ).build();
     }
 
     @Test

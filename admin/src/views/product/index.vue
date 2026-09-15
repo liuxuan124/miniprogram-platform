@@ -1,85 +1,100 @@
 <template>
   <div class="product-page">
-    <PageHeader
-      kicker="商城管理 / 商品管理"
-      title="商品管理"
-      description="统一管理实物、数字权益和服务类商品，完成创建、上架、下架和库存巡检。"
-    >
-      <template #actions>
-        <el-button @click="handleRefresh">刷新</el-button>
-        <el-button @click="openCategoryPage">分类管理</el-button>
+    <header class="page-head">
+      <div>
+        <h1>商品</h1>
+        <p>资料包、咨询与实物，统一上架和下架</p>
+      </div>
+      <div class="page-head__actions">
+        <el-button @click="openCategoryPage">分类</el-button>
+        <el-button @click="exportCsv">导出</el-button>
         <el-button type="primary" @click="handleCreate">新建商品</el-button>
-      </template>
-    </PageHeader>
+      </div>
+    </header>
 
-    <section class="stat-grid">
-      <div class="stat-card">
-        <span>商品总数</span>
-        <strong>{{ overviewStats.total }}</strong>
-        <p>全量商品</p>
-      </div>
-      <div class="stat-card">
-        <span>已上架</span>
-        <strong>{{ overviewStats.onSale }}</strong>
-        <p>小程序可见</p>
-      </div>
-      <div class="stat-card">
-        <span>草稿 / 下架</span>
-        <strong>{{ overviewStats.draft + overviewStats.offSale }}</strong>
-        <p>草稿 {{ overviewStats.draft }} · 下架 {{ overviewStats.offSale }}</p>
-      </div>
-      <div class="stat-card warning">
-        <span>低库存</span>
-        <strong>{{ overviewStats.lowStock }}</strong>
-        <p>非数字商品且库存 &lt; 10</p>
-      </div>
-    </section>
+    <el-row :gutter="12" class="stat-cards">
+      <el-col :span="6">
+        <div class="stat-card">
+          <span class="stat-label">近30天销售额</span>
+          <strong>¥{{ Number(overviewStats.salesLast30Days || 0).toFixed(2) }}</strong>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <span class="stat-label">本月订单</span>
+          <strong>{{ overviewStats.ordersThisMonth || 0 }}</strong>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <span class="stat-label">在售商品</span>
+          <strong>{{ overviewStats.onSale }}</strong>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <span class="stat-label">详情转化率</span>
+          <strong>{{ Number(overviewStats.detailConversionRate || 0).toFixed(1) }}%</strong>
+        </div>
+      </el-col>
+    </el-row>
 
-    <section class="filter-panel">
-      <div class="filter-grid">
-        <el-input
-          v-model="searchForm.keyword"
-          placeholder="搜索商品名称"
-          clearable
-          @keyup.enter="handleSearch"
+    <div class="type-tabs">
+      <button type="button" :class="{ on: !typeTab }" @click="applyTypeTab('')">全部类型</button>
+      <button type="button" :class="{ on: typeTab === 'virtual' }" @click="applyTypeTab('virtual')">虚拟</button>
+      <button type="button" :class="{ on: typeTab === 'physical' }" @click="applyTypeTab('physical')">实物</button>
+      <button type="button" :class="{ on: typeTab === 'membership' }" @click="applyTypeTab('membership')">会员社群</button>
+      <button type="button" :class="{ on: typeTab === 'off_sale' }" @click="applyTypeTab('off_sale')">已下架</button>
+    </div>
+
+    <div class="status-tabs">
+      <button type="button" :class="{ on: !searchForm.status }" @click="applyStatusFilter('')">
+        全部 <b>{{ overviewStats.total }}</b>
+      </button>
+      <button type="button" :class="{ on: searchForm.status === 'on_sale' }" @click="applyStatusFilter('on_sale')">
+        在售 <b>{{ overviewStats.onSale }}</b>
+      </button>
+      <button type="button" :class="{ on: searchForm.status === 'off_sale' }" @click="applyStatusFilter('off_sale')">
+        下架 <b>{{ overviewStats.offSale }}</b>
+      </button>
+      <button type="button" :class="{ on: searchForm.status === 'draft' }" @click="applyStatusFilter('draft')">
+        草稿 <b>{{ overviewStats.draft }}</b>
+      </button>
+      <span class="low-stock" v-if="overviewStats.lowStock">低库存 {{ overviewStats.lowStock }}</span>
+    </div>
+
+    <div class="toolbar">
+      <el-input
+        v-model="searchForm.keyword"
+        class="toolbar-search"
+        placeholder="搜索商品名称"
+        clearable
+        @keyup.enter="handleSearch"
+      />
+      <el-select v-model="searchForm.categoryId" class="toolbar-select" placeholder="分类" clearable>
+        <el-option
+          v-for="item in flatCategoryOptions"
+          :key="item.id"
+          :label="item.label"
+          :value="item.id"
         />
-        <el-select v-model="searchForm.categoryId" placeholder="商品分类" clearable>
-          <el-option
-            v-for="item in flatCategoryOptions"
-            :key="item.id"
-            :label="item.label"
-            :value="item.id"
-          />
-        </el-select>
-        <el-select v-model="searchForm.productType" placeholder="商品类型" clearable>
-          <el-option label="实物商品" value="physical" />
-          <el-option label="数字商品" value="digital" />
-          <el-option label="服务商品" value="service" />
-        </el-select>
-        <el-select v-model="searchForm.status" placeholder="商品状态" clearable>
-          <el-option label="已上架" value="on_sale" />
-          <el-option label="已下架" value="off_sale" />
-          <el-option label="草稿" value="draft" />
-        </el-select>
-      </div>
-      <div class="filter-actions">
-        <el-button @click="resetSearch">重置</el-button>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-      </div>
-    </section>
+      </el-select>
+      <el-select v-model="searchForm.productType" class="toolbar-select" placeholder="类型" clearable>
+        <el-option label="实物" value="physical" />
+        <el-option label="数字" value="digital" />
+        <el-option label="服务" value="service" />
+      </el-select>
+      <el-button @click="handleSearch">查询</el-button>
+      <el-button text @click="resetSearch">重置</el-button>
+      <div class="toolbar-spacer" />
+      <el-button :disabled="!selectedRows.length" @click="batchToggleSale('on_sale')">
+        上架{{ selectedRows.length ? ` ${selectedRows.length}` : '' }}
+      </el-button>
+      <el-button :disabled="!selectedRows.length" @click="batchToggleSale('off_sale')">下架</el-button>
+      <el-button :disabled="!selectedRows.length" type="danger" plain @click="batchDelete">删除</el-button>
+    </div>
 
     <section class="table-panel">
-      <div class="table-toolbar">
-        <div>
-          <strong>商品列表</strong>
-          <span v-if="selectedRows.length">已选择 {{ selectedRows.length }} 项</span>
-        </div>
-        <div class="batch-actions">
-          <el-button :disabled="!selectedRows.length" @click="batchToggleSale('on_sale')">批量上架</el-button>
-          <el-button :disabled="!selectedRows.length" @click="batchToggleSale('off_sale')">批量下架</el-button>
-          <el-button :disabled="!selectedRows.length" type="danger" plain @click="batchDelete">批量删除</el-button>
-        </div>
-      </div>
 
       <ListStateWrap
         :loading="loading"
@@ -95,77 +110,70 @@
 
         <el-table
           :data="tableData"
-          stripe
           row-key="id"
           class="product-table"
           table-layout="auto"
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="44" />
-          <el-table-column label="商品" min-width="200">
+          <el-table-column label="商品" min-width="280">
             <template #default="{ row }">
               <div class="product-cell">
                 <div class="product-cover" :class="{ empty: !row.mainImage }">
                   <el-image v-if="row.mainImage" :src="row.mainImage" fit="cover" />
-                  <span v-else>{{ row.icon }}</span>
+                  <span v-else>{{ row.icon || '▣' }}</span>
                 </div>
                 <div class="product-info">
                   <div class="product-name-line">
                     <span class="name" :title="row.name">{{ row.name }}</span>
-                    <el-tag
+                    <span
                       v-for="t in (row.productTypes || [row.productType])"
                       :key="t"
-                      size="small"
-                      effect="plain"
-                      :type="productTypeTagType(t)"
-                    >
-                      {{ productTypeLabel(t) }}
-                    </el-tag>
+                      class="type-chip"
+                    >{{ productTypeLabel(t) }}</span>
                   </div>
                   <div class="meta-line">
-                    <span>ID {{ row.id }}</span>
                     <span>{{ row.categoryName || '未分类' }}</span>
+                    <span>ID {{ row.id }}</span>
                     <span>销量 {{ row.sales }}</span>
                   </div>
                 </div>
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="价格" width="100" align="right">
+          <el-table-column label="价格" width="140" align="right">
             <template #default="{ row }">
-              <span class="price">¥{{ row.price.toFixed(2) }}</span>
+              <span class="price">¥{{ Number(row.price || 0).toFixed(2) }}</span>
+              <div v-if="row.memberPrice != null || row.member_price != null" class="meta-line">
+                会员 ¥{{ Number(row.memberPrice ?? row.member_price).toFixed(2) }}
+              </div>
             </template>
           </el-table-column>
-          <el-table-column label="库存" width="72" align="center">
+          <el-table-column label="库存" width="88" align="center">
             <template #default="{ row }">
               <span :class="{ 'stock-warning': isLowStock(row) }">
                 {{ formatStockLabel(row) }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="88" align="center">
+          <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+              <span class="status-dot" :data-status="row.status">{{ statusLabel(row.status) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="更新时间" width="148" align="center">
+          <el-table-column label="更新" width="148">
             <template #default="{ row }">
-              {{ row.updatedAt || '-' }}
+              <span class="time">{{ row.updatedAt || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="168" align="right">
+          <el-table-column label="" width="168" align="right">
             <template #default="{ row }">
               <div class="row-actions">
-                <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button
-                  link
-                  size="small"
-                  :type="row.status === 'on_sale' ? 'warning' : 'success'"
-                  @click="toggleOnSale(row)"
-                >
+                <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+                <el-button link @click="toggleOnSale(row)">
                   {{ row.status === 'on_sale' ? '下架' : '上架' }}
                 </el-button>
-                <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -192,7 +200,6 @@
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '@/components/PageHeader.vue'
 import ListStateWrap from '@/components/ListStateWrap.vue'
 import {
   deleteProduct,
@@ -244,13 +251,59 @@ const pagination = reactive({
   total: 0,
 })
 
+const typeTab = ref('' as '' | 'virtual' | 'physical' | 'membership' | 'off_sale')
+
 const overviewStats = reactive({
   total: 0,
   onSale: 0,
   draft: 0,
   offSale: 0,
   lowStock: 0,
+  salesLast30Days: 0,
+  ordersThisMonth: 0,
+  detailConversionRate: 0,
 })
+
+function exportCsv() {
+  const header = ['ID', '名称', '类型', '价格', '会员价', '库存', '销量', '状态']
+  const lines = tableData.value.map((row: any) => [
+    row.id,
+    row.name,
+    row.productType || row.product_type,
+    row.price,
+    row.memberPrice ?? row.member_price ?? '',
+    row.stock,
+    row.sales,
+    row.status,
+  ].map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
+  const blob = new Blob([`\uFEFF${header.join(',')}\n${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `products-${Date.now()}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function applyTypeTab(tab: '' | 'virtual' | 'physical' | 'membership' | 'off_sale') {
+  typeTab.value = tab
+  if (tab === 'off_sale') {
+    searchForm.status = 'off_sale'
+    searchForm.productType = ''
+  } else if (tab === 'membership') {
+    searchForm.status = ''
+    searchForm.productType = 'membership' as any
+  } else if (tab === 'physical') {
+    searchForm.status = ''
+    searchForm.productType = 'physical'
+  } else if (tab === 'virtual') {
+    searchForm.status = ''
+    searchForm.productType = 'digital'
+  } else {
+    searchForm.productType = ''
+  }
+  pagination.page = 1
+  fetchList()
+}
 
 async function handleRefresh() {
   await Promise.all([fetchList(), fetchStats()])
@@ -265,6 +318,9 @@ async function fetchStats() {
     overviewStats.draft = Number(data.draft || 0)
     overviewStats.offSale = Number(data.offSale || 0)
     overviewStats.lowStock = Number(data.lowStock || 0)
+    overviewStats.salesLast30Days = Number(data.salesLast30Days || 0)
+    overviewStats.ordersThisMonth = Number(data.ordersThisMonth || 0)
+    overviewStats.detailConversionRate = Number(data.detailConversionRate || 0)
   } catch {
     /* ignore */
   }
@@ -405,6 +461,11 @@ async function fetchList() {
 function handleSearch() {
   pagination.page = 1
   fetchList()
+}
+
+function applyStatusFilter(status: typeof searchForm.status) {
+  searchForm.status = status
+  handleSearch()
 }
 
 function resetSearch() {
@@ -564,237 +625,285 @@ onActivated(async () => {
 
 <style scoped lang="scss">
 .product-page {
-  padding: 4px 4px 24px;
-  background: transparent;
+  padding: 8px 4px 32px;
+}
 
-  .filter-panel,
-  .table-panel,
-  .stat-card {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-elevated);
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 760;
+    letter-spacing: -0.03em;
+    color: #12151c;
   }
 
-  .hero-actions,
-  .filter-actions,
-  .batch-actions {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
+  p {
+    margin: 6px 0 0;
+    color: #7a8494;
+    font-size: 13px;
   }
+}
 
-  .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-    margin: 14px 0;
-  }
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+}
 
-  .stat-card {
-    padding: var(--space-4) 18px;
-    box-shadow: var(--shadow-sm);
+.stat-cards { margin-bottom: 14px; }
+.stat-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-label { font-size: 12px; color: #909399; }
+.type-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.type-tabs button {
+  border: 1px solid #e4e7ed;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.type-tabs button.on {
+  border-color: #002fa7;
+  color: #002fa7;
+  background: #eef3ff;
+}
+.status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 4px;
+  width: fit-content;
+  background: #eef1f6;
+  border-radius: 12px;
 
-    span {
-      color: var(--text-muted);
-      font-size: var(--font-caption);
+  button {
+    border: 0;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 9px;
+    background: transparent;
+    color: #5c6675;
+    font-size: 13px;
+    cursor: pointer;
+
+    b {
+      margin-left: 4px;
+      font-weight: 750;
     }
 
-    strong {
-      display: block;
-      margin-top: var(--space-2);
-      color: var(--text);
-      font-size: 26px;
-      line-height: 1;
-    }
-
-    p {
-      margin: var(--space-2) 0 0;
-      color: var(--text-muted);
-      font-size: var(--font-caption);
-    }
-
-    &.warning strong {
-      color: var(--danger);
+    &.on {
+      background: #fff;
+      color: #12151c;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
     }
   }
+}
 
-  .filter-panel {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 14px;
-    padding: 14px;
+.low-stock {
+  margin-left: 10px;
+  color: #b45309;
+  font-size: 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.toolbar-search {
+  width: 220px;
+}
+
+.toolbar-select {
+  width: 150px;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.table-panel {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #eceff4;
+  border-radius: 16px;
+}
+
+.product-table {
+  width: 100%;
+
+  :deep(.el-table__inner-wrapper::before) {
+    display: none;
   }
 
-  .filter-grid {
-    display: grid;
-    grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr));
-    gap: 10px;
-    flex: 1;
+  :deep(th.el-table__cell) {
+    background: #fafbfc;
+    color: #8a93a0;
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 1px solid #eceff4;
   }
 
-  .table-panel {
-    padding: 14px;
-    overflow-x: auto;
+  :deep(td.el-table__cell) {
+    border-bottom: 1px solid #f3f5f8;
+    padding: 14px 0;
   }
 
-  .product-table {
+  :deep(.el-table__row:hover > td.el-table__cell) {
+    background: #f8fafc;
+  }
+}
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.product-cover {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #f3f4f7;
+  display: grid;
+  place-items: center;
+  color: #9aa3b2;
+  font-size: 18px;
+
+  :deep(.el-image) {
     width: 100%;
-
-    :deep(.el-table__inner-wrapper::before) {
-      display: none;
-    }
-
-    :deep(.el-table__body),
-    :deep(.el-table__header) {
-      width: 100% !important;
-    }
-  }
-
-  .table-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 12px;
-
-    strong {
-      color: var(--text);
-      font-size: var(--font-h3);
-    }
-
-    span {
-      margin-left: var(--space-2);
-      color: var(--text-muted);
-      font-size: var(--font-caption);
-    }
-  }
-
-  .product-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-  }
-
-  .product-cover {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 48px;
-    height: 48px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-page);
-    font-size: 20px;
-
-    :deep(.el-image) {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  .product-info {
-    min-width: 0;
-  }
-
-  .product-name-line {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    min-width: 0;
-  }
-
-  .name {
-    overflow: hidden;
-    color: var(--text);
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .meta-line {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: var(--space-1);
-    color: var(--text-muted);
-    font-size: var(--font-caption);
-  }
-
-  .price {
-    color: var(--danger);
-    font-weight: 800;
-  }
-
-  .stock-warning {
-    color: var(--danger);
-    font-weight: 700;
-  }
-
-  .row-actions {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-    gap: 2px;
-    white-space: nowrap;
-  }
-
-  .pagination-wrap {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--space-4);
-  }
-
-  :deep(.el-button) {
-    border-radius: var(--radius-sm);
-    font-weight: 700;
-  }
-
-  :deep(.el-table th.el-table__cell) {
-    color: var(--text-secondary);
-    background: var(--bg-page);
-    font-weight: 700;
-  }
-
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper) {
-    border-radius: var(--radius-sm);
+    height: 100%;
   }
 }
 
-@media (max-width: 1180px) {
-  .product-page {
-    .stat-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+.product-info {
+  min-width: 0;
+}
 
-    .filter-panel,
-    .table-toolbar {
-      align-items: stretch;
-      flex-direction: column;
-    }
+.product-name-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 
-    .filter-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+.name {
+  overflow: hidden;
+  color: #12151c;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.type-chip {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f1f4f8;
+  color: #647187;
+  font-size: 11px;
+}
+
+.meta-line {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  color: #8a93a0;
+  font-size: 12px;
+}
+
+.price {
+  color: #12151c;
+  font-variant-numeric: tabular-nums;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.stock-warning {
+  color: #b45309;
+  font-weight: 650;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5c6675;
+  font-size: 13px;
+
+  &::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #cbd5e1;
+  }
+
+  &[data-status='on_sale']::before {
+    background: #12b76a;
+  }
+
+  &[data-status='off_sale']::before {
+    background: #f79009;
+  }
+
+  &[data-status='draft']::before {
+    background: #98a2b3;
   }
 }
 
-@media (max-width: 720px) {
-  .product-page {
-    padding: 16px;
+.time {
+  color: #8a93a0;
+  font-size: 12px;
+}
 
-    .stat-grid,
-    .filter-grid {
-      grid-template-columns: 1fr;
-    }
+.row-actions {
+  display: inline-flex;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px 16px;
+}
+
+@media (max-width: 860px) {
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar-search,
+  .toolbar-select {
+    width: 100%;
   }
 }
 </style>

@@ -24,6 +24,11 @@ export interface FileItemRecord {
   qualityTier?: string
   readMode?: string
   previewPercent?: number
+  previewMode?: string
+  previewValue?: number
+  pageCount?: number
+  allowForward?: number
+  watermark?: number
   minReadLevelId?: number
   minReadLevelName?: string
   allowDownload?: number
@@ -46,10 +51,16 @@ export interface FileItemPayload {
   qualityTier?: string
   readMode?: string
   previewPercent?: number
+  previewMode?: string
+  previewValue?: number
+  pageCount?: number
+  allowForward?: number
+  watermark?: number
   minReadLevelId?: number
   allowDownload?: number
   downloadAudience?: string
   minDownloadLevelId?: number
+  boundProductId?: number | null
 }
 
 export function getFileList(params?: Record<string, unknown>) {

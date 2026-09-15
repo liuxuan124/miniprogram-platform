@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "消息",
+  "usingComponents": {
+    "empty-state": "../../components/empty-state/empty-state"
+  }
+}

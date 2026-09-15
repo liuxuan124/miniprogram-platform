@@ -6,7 +6,7 @@ Component({
       type: Boolean,
       value: true,
     },
-    /** 骨架类型：home（首页：轮播+宫格+卡片）/ grid（商品宫格）/ list（通用列表，默认） */
+    /** 骨架类型：home / grid / feed（长文列表）/ list（通用，默认） */
     type: {
       type: String,
       value: 'list',

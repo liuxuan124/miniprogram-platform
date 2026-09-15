@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>出海笔记 · 首页</title>
+  <link rel="stylesheet" href="./proto.css" />
+  <style>
+    .hero {
+      margin: 4px 16px 0;
+      padding: 22px 18px 18px;
+      border-radius: 26px;
+      color: #fff;
+      overflow: hidden;
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(7,16,42,.15), rgba(7,16,42,.72)),
+        url("https://images.unsplash.com/photo-1494412574643-ff11af0c31dd?w=900&q=80") center/cover;
+      min-height: 198px;
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(11,42,138,.55), transparent 55%);
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .hero .kicker { color: rgba(255,255,255,.72); }
+    .who { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+    .av {
+      width: 46px; height: 46px; border-radius: 16px;
+      background: linear-gradient(145deg, #f4efe4, #d7c39a);
+      color: #3b2a16; display: grid; place-items: center; font-weight: 800;
+      border: 1px solid rgba(255,255,255,.4);
+    }
+    .nm { font-size: 16px; font-weight: 720; }
+    .vf { margin-left: 6px; font-size: 10px; padding: 2px 7px; border-radius: 99px; background: rgba(255,255,255,.2); }
+    .bio { margin-top: 3px; font-size: 12px; color: rgba(255,255,255,.78); }
+    .kpi { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 18px; }
+    .kpi div { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 8px 10px; }
+    .kpi b { display: block; font-size: 16px; }
+    .kpi span { font-size: 10px; opacity: .75; }
+
+    .search {
+      margin: 14px 16px 0;
+      height: 46px; border-radius: 16px;
+      background: var(--sheet);
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 8px 0 14px;
+      box-shadow: 0 10px 30px rgba(20,24,32,.06);
+    }
+    .search em { flex: 1; font-style: normal; color: #9aa3b2; font-size: 13px; }
+    .search b { height: 30px; padding: 0 13px; border-radius: 10px; background: var(--brand); color: #fff; font-size: 12px; display: grid; place-items: center; }
+
+    .nav { display: grid; grid-template-columns: repeat(4, 1fr); margin: 18px 8px 4px; }
+    .nav a { text-align: center; font-size: 11px; color: var(--ink-2); font-weight: 650; }
+    .ic {
+      width: 48px; height: 48px; margin: 0 auto 8px; border-radius: 18px;
+      display: grid; place-items: center; background: var(--sheet);
+      box-shadow: 0 8px 18px rgba(20,24,32,.05);
+      font-size: 20px;
+    }
+
+    .cube { margin: 14px 16px; display: grid; grid-template-columns: 1.2fr .8fr; grid-template-rows: 92px 92px; gap: 8px; }
+    .tile { border-radius: 18px; overflow: hidden; position: relative; color: #fff; }
+    .tile span { position: absolute; left: 12px; bottom: 10px; right: 10px; font-size: 13px; font-weight: 750; text-shadow: 0 8px 18px rgba(0,0,0,.4); }
+    .tile small { position: absolute; left: 12px; top: 10px; font-size: 9px; letter-spacing: .16em; opacity: .8; }
+    .a { grid-row: 1 / 3; }
+
+    .hd { padding: 10px 18px 6px; display: flex; justify-content: space-between; align-items: end; }
+    .hd h3 { font-size: 18px; }
+    .hd a { font-size: 12px; color: var(--mute); }
+
+    .pick { margin: 8px 16px 12px; height: 232px; border-radius: 22px; overflow: hidden; position: relative; color: #fff; box-shadow: var(--shadow); }
+    .pick .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 48px 16px 16px; background: linear-gradient(180deg, transparent, rgba(8,12,24,.88)); }
+    .pick h4 { font-size: 20px; line-height: 1.3; margin-top: 6px; }
+
+    .row { display: flex; gap: 12px; margin: 0 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .row .t { width: 92px; height: 70px; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+    .row h5 { font-size: 14px; font-weight: 700; line-height: 1.4; }
+    .row p { margin-top: 8px; font-size: 11px; color: var(--mute); }
+
+    .join {
+      margin: 14px 16px;
+      padding: 12px;
+      border-radius: 20px;
+      background: var(--sheet);
+      display: flex; gap: 12px; align-items: center;
+      box-shadow: 0 12px 28px rgba(20,24,32,.05);
+    }
+    .qr { width: 68px; height: 68px; border-radius: 12px; background: #111; padding: 6px; }
+    .qr i { display: block; height: 100%; border-radius: 6px; background:
+      repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / 12px 12px; }
+    .join h4 { font-size: 14px; }
+    .join p { font-size: 11px; color: var(--mute); margin: 4px 0 8px; }
+    .pill { display: inline-block; font-size: 11px; color: var(--brand); font-weight: 750; }
+
+    .goods { padding: 0 16px 8px; display: grid; gap: 10px; }
+    .g { display: grid; grid-template-columns: 86px 1fr; gap: 12px; background: var(--sheet); border-radius: 18px; padding: 10px; }
+    .g .pic { height: 86px; border-radius: 14px; overflow: hidden; }
+    .g h5 { font-size: 14px; }
+    .price { margin-top: 10px; color: #b42318; font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="device">
+      <div class="device-screen">
+        <div class="notch"></div>
+        <div class="status"><span>9:41</span><span>出海笔记</span><span>􀙇</span></div>
+        <div class="scroll">
+          <section class="hero">
+            <div class="kicker">Cross-border Growth Lab</div>
+            <div class="who">
+              <div class="av">哲</div>
+              <div>
+                <div class="nm">出海笔记 · 阿哲 <span class="vf">已认证</span></div>
+                <div class="bio">选品 / 供应链 / 独立站 · 实战记录</div>
+              </div>
+            </div>
+            <div class="kpi">
+              <div><b>238</b><span>篇内容</span></div>
+              <div><b>1.2w</b><span>关注者</span></div>
+              <div><b>4.9</b><span>咨询评分</span></div>
+            </div>
+          </section>
+
+          <div class="search">⌕ <em>选品清单 / 验厂 / VAT / TikTok</em><b>搜索</b></div>
+
+          <nav class="nav">
+            <a href="./content.html"><div class="ic">📚</div>内容</a>
+            <a href="./product.html"><div class="ic">📘</div>资料包</a>
+            <a href="./product.html"><div class="ic">🗓️</div>咨询</a>
+            <a href="#join"><div class="ic">✉️</div>入群</a>
+          </nav>
+
+          <div class="cube">
+            <a class="tile a" href="./content.html">
+              <img src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=800&q=80" alt="" />
+              <small>FEATURED</small><span>2026 下半年选品趋势</span>
+            </a>
+            <a class="tile" href="./product.html">
+              <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&q=80" alt="" />
+              <span>VAT 合规包</span>
+            </a>
+            <a class="tile" href="./content.html">
+              <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80" alt="" />
+              <span>独立站 SOP</span>
+            </a>
+          </div>
+
+          <div class="hd"><h3 class="serif">本周精选</h3><a href="./content.html">全部 ›</a></div>
+          <a class="pick" href="./content.html">
+            <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1000&q=80" alt="" />
+            <div class="cap">
+              <div class="kicker" style="color:rgba(255,255,255,.7)">Editor’s pick · 12 min</div>
+              <h4 class="serif">把趋势写成能执行的选品清单，而不是一串热词</h4>
+            </div>
+          </a>
+
+          <a class="row" href="./content.html">
+            <div>
+              <h5>亚马逊广告结构：从自动广告到精准投放</h5>
+              <p>平台运营 · 09-08</p>
+            </div>
+            <div class="t"><img src="https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=400&q=80" alt="" /></div>
+          </a>
+          <a class="row" href="./content.html">
+            <div>
+              <h5>欧洲站 VAT：德法申报节奏对照</h5>
+              <p>合规税务 · 09-06</p>
+            </div>
+            <div class="t"><img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=400&q=80" alt="" /></div>
+          </a>
+
+          <div class="join" id="join">
+            <div class="qr"><i></i></div>
+            <div>
+              <h4>跨境实战交流群</h4>
+              <p>每周选品纪要、验厂案例与答疑。</p>
+              <span class="pill">复制企微入群链接</span>
+            </div>
+          </div>
+
+          <div class="hd"><h3 class="serif">知识产品</h3><a href="./product.html">知识库 ›</a></div>
+          <div class="goods">
+            <a class="g" href="./product.html">
+              <div class="pic"><img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&q=80" alt="" /></div>
+              <div>
+                <h5>跨境电商通用知识库 2.0</h5>
+                <p style="font-size:11px;color:var(--mute);margin-top:4px">电子资料 · 支付后自动开通</p>
+                <div class="price">¥199</div>
+              </div>
+            </a>
+            <a class="g" href="./product.html">
+              <div class="pic"><img src="https://images.unsplash.com/photo-1554224311-beee4ece2c0d?w=500&q=80" alt="" /></div>
+              <div>
+                <h5>跨境电商财税知识库 V3.0</h5>
+                <p style="font-size:11px;color:var(--mute);margin-top:4px">电子资料 · 支付后自动开通</p>
+                <div class="price">¥299</div>
+              </div>
+            </a>
+          </div>
+        </div>
+        <nav class="tabbar">
+          <a class="on" href="./home.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg>首页</a>
+          <a href="./content.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>资讯</a>
+          <a href="./product.html"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 7h16l-1 13H5L4 7zm4-3h8l1 3H7z"/></svg>知识库</a>
+          <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>我的</a>
+        </nav>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

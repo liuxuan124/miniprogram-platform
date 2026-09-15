@@ -49,6 +49,13 @@ service.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // 超管切换租户：本地缓存的 active tenant → X-Tenant-Id
+    try {
+      const tid = localStorage.getItem('mp_active_tenant_id')
+      if (tid && config.headers) {
+        config.headers['X-Tenant-Id'] = tid
+      }
+    } catch { /* ignore */ }
     return config
   },
   (error) => {

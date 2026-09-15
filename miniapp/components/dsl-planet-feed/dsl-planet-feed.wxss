@@ -1,0 +1,6 @@
+@import "../../styles/planet-blocks.wxss";
+.dsl-planet-feed {
+  width: 100%;
+  padding-bottom: 40rpx;
+  min-height: 960rpx;
+}

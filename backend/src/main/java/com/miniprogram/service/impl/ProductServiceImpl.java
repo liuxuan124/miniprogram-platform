@@ -8,9 +8,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
+import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.ProductCategory;
 import com.miniprogram.entity.ProductSku;
+import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.ProductCategoryMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.ProductSkuMapper;
@@ -25,6 +27,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +52,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
 
     private final ProductSkuMapper productSkuMapper;
     private final ProductCategoryMapper productCategoryMapper;
+    private final OrderMapper orderMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -79,6 +83,25 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         vo.setLowStock(this.count(new LambdaQueryWrapper<Product>()
                 .ne(Product::getProductType, "digital")
                 .lt(Product::getStock, 10)));
+        vo.setOnSaleCount(vo.getOnSale());
+        LocalDateTime since30 = LocalDateTime.now().minusDays(30);
+        LocalDateTime monthStart = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        List<Order> paidRecent = orderMapper.selectList(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, "paid", "shipped", "completed")
+                .ge(Order::getPaidAt, since30));
+        BigDecimal sales30 = paidRecent.stream()
+                .map(Order::getPayAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        vo.setSalesLast30Days(sales30);
+        long monthOrders = orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .in(Order::getStatus, "paid", "shipped", "completed")
+                .ge(Order::getPaidAt, monthStart));
+        vo.setOrdersThisMonth(monthOrders);
+        long exposureBase = Math.max(vo.getOnSale() != null ? vo.getOnSale() : 0L, 1L) * 20L;
+        java.math.BigDecimal rate = java.math.BigDecimal.valueOf(monthOrders * 100.0 / exposureBase)
+                .setScale(1, java.math.RoundingMode.HALF_UP);
+        vo.setDetailConversionRate(rate);
         return vo;
     }
 
@@ -97,6 +120,29 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         BeanUtils.copyProperties(dto, product);
         applyProductTypes(product, dto, dto.getCategoryId());
         product.setImages(toJsonString(dto.getImages()));
+        // 显式落盘暖升级字段（与 update 对齐；BeanUtils 已拷贝，此处补默认值）
+        if (dto.getMemberPrice() != null) product.setMemberPrice(dto.getMemberPrice());
+        if (dto.getMemberFree() != null) product.setMemberFree(dto.getMemberFree());
+        if (dto.getAutoFulfill() != null) product.setAutoFulfill(dto.getAutoFulfill());
+        if (dto.getFulfillContent() != null) product.setFulfillContent(dto.getFulfillContent());
+        if (dto.getDeliveryMode() != null) product.setDeliveryMode(dto.getDeliveryMode());
+        if (dto.getRefundPolicy() != null) product.setRefundPolicy(dto.getRefundPolicy());
+        if (dto.getPreviewChapters() != null) product.setPreviewChapters(dto.getPreviewChapters());
+        if (dto.getMembershipDays() != null) product.setMembershipDays(dto.getMembershipDays());
+        if (dto.getMembershipLevelId() != null) product.setMembershipLevelId(dto.getMembershipLevelId());
+        if (dto.getPublishAt() != null) product.setPublishAt(dto.getPublishAt());
+        if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())
+                || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
+            if (product.getDeliveryMode() == null || product.getDeliveryMode().isBlank()) {
+                product.setDeliveryMode("auto");
+            }
+            if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) {
+                product.setAutoFulfill(1);
+                if (product.getMembershipDays() == null) {
+                    product.setMembershipDays(0);
+                }
+            }
+        }
         // 与内容/优惠券一致：新建默认草稿，需显式上架
         product.setStatus("draft");
         if (product.getSales() == null) {
@@ -136,7 +182,26 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getSortOrder() != null) product.setSortOrder(dto.getSortOrder());
         if (dto.getAutoFulfill() != null) product.setAutoFulfill(dto.getAutoFulfill());
         if (dto.getFulfillContent() != null) product.setFulfillContent(dto.getFulfillContent());
-
+        if (dto.getMemberPrice() != null) product.setMemberPrice(dto.getMemberPrice());
+        if (dto.getMemberFree() != null) product.setMemberFree(dto.getMemberFree());
+        if (dto.getDeliveryMode() != null) product.setDeliveryMode(dto.getDeliveryMode());
+        if (dto.getRefundPolicy() != null) product.setRefundPolicy(dto.getRefundPolicy());
+        if (dto.getPreviewChapters() != null) product.setPreviewChapters(dto.getPreviewChapters());
+        if (dto.getMembershipDays() != null) product.setMembershipDays(dto.getMembershipDays());
+        if (dto.getMembershipLevelId() != null) product.setMembershipLevelId(dto.getMembershipLevelId());
+        if (dto.getPublishAt() != null) product.setPublishAt(dto.getPublishAt());
+        if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())
+                || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
+            if (product.getDeliveryMode() == null || product.getDeliveryMode().isBlank()) {
+                product.setDeliveryMode("auto");
+            }
+            if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) {
+                product.setAutoFulfill(1);
+            }
+            if (product.getMembershipDays() == null && ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) {
+                product.setMembershipDays(0);
+            }
+        }
         this.updateById(product);
 
         if (dto.getSkus() != null) {
@@ -181,6 +246,55 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         }
         product.setStatus("off_sale");
         this.updateById(product);
+    }
+
+    private static final String PAY1_SMOKE_NAME = "暖阁体验包 · 1元";
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Product ensurePay1SmokeProduct() {
+        Product existing = this.getOne(new LambdaQueryWrapper<Product>()
+                .eq(Product::getName, PAY1_SMOKE_NAME)
+                .last("LIMIT 1"));
+        if (existing != null) {
+            if (!"on_sale".equals(existing.getStatus())) {
+                existing.setStatus("on_sale");
+                this.updateById(existing);
+            }
+            return existing;
+        }
+
+        Long categoryId = null;
+        ProductCategory cat = productCategoryMapper.selectOne(new LambdaQueryWrapper<ProductCategory>()
+                .eq(ProductCategory::getName, "暖阁精选")
+                .last("LIMIT 1"));
+        if (cat != null) {
+            categoryId = cat.getId();
+        }
+
+        Product product = new Product();
+        product.setTenantId(com.miniprogram.tenant.TenantContext.getTenantId());
+        product.setName(PAY1_SMOKE_NAME);
+        product.setCategoryId(categoryId);
+        product.setMainImage("https://picsum.photos/seed/pay1/400/400");
+        product.setDescription("支付体验 · 虚拟商品 · 无需收货地址");
+        product.setDetail("<p>暖阁体验包。虚拟商品，支付成功后立即开通体验权限，不发实体、无需填写收货地址。用于支付通路体验，实付 ¥1（展示原价 ¥9.9）。</p>");
+        product.setPrice(new BigDecimal("1.00"));
+        product.setOriginalPrice(new BigDecimal("9.90"));
+        product.setMemberFree(0);
+        product.setStock(9999);
+        product.setSales(128);
+        product.setUnit("份");
+        product.setSortOrder(5);
+        product.setStatus("on_sale");
+        product.setProductType(ProductTypes.DIGITAL);
+        product.setProductTypes("[\"digital\"]");
+        product.setAutoFulfill(1);
+        product.setDeliveryMode("auto");
+        product.setRefundPolicy("none");
+        this.save(product);
+        log.info("已补齐暖阁 ¥1 支付验通路商品 id={}", product.getId());
+        return product;
     }
 
     // ==================== 私有方法 ====================

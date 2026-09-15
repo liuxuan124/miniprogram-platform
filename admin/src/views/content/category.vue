@@ -11,7 +11,7 @@
             </el-button>
           </div>
         </div>
-        <div class="card-sub">点「发布到顶栏」后，会出现在「跨境资讯」分类栏，并同步到发文下拉；未发布仅在本处管理。</div>
+        <div class="card-sub">点「发布到顶栏」后，会出现在「内容分类」分类栏，并同步到发文下拉；未发布仅在本处管理。</div>
       </template>
 
       <!-- 树形表格 -->
@@ -227,7 +227,7 @@ function handleEdit(row: ContentCategory) {
   dialogVisible.value = true
 }
 
-/** 发布/取消发布到跨境资讯顶栏（及发文分类下拉） */
+/** 发布/取消发布到内容分类顶栏（及发文分类下拉） */
 async function handleTogglePublish(row: ContentCategory) {
   const next = Number(row.status) === 1 ? 0 : 1
   await updateCategory(row.id, {

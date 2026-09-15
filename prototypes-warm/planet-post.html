@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 星球动态</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .scroll { padding-top: 98px; }
+  .post { padding: 16px 18px 4px; }
+  .post .hh { display: flex; align-items: center; gap: 10px; }
+  .post .hh .av { width: 40px; height: 40px; }
+  .post .hh .nm { font-size: 14px; font-weight: 740; display: flex; align-items: center; gap: 5px; }
+  .post .hh .tm { font-size: 10.5px; color: var(--mute); margin-top: 3px; }
+  .post .hh .fo { margin-left: auto; height: 28px; padding: 0 13px; border-radius: 99px; font-size: 11.5px; font-weight: 700; background: #fbe6d4; color: var(--brand); display: grid; place-items: center; }
+  .post h1 { margin-top: 15px; font-size: 19px; line-height: 1.45; font-weight: 780; letter-spacing: -.01em; }
+  .post .ct { margin-top: 12px; font-size: 15.5px; line-height: 1.85; color: #3a2a1c; }
+  .post .ct b { color: var(--brand); }
+  .post .gg { margin-top: 13px; display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+  .post .gg div { height: 108px; border-radius: 11px; overflow: hidden; }
+  .post .tp { margin-top: 13px; font-size: 12.5px; color: var(--brand); font-weight: 620; }
+  .post .st { margin-top: 13px; font-size: 11px; color: var(--mute); display: flex; gap: 12px; }
+
+  .answer { margin: 16px 18px 0; border-radius: 18px; overflow: hidden; border: 1px solid #f0d3ad; }
+  .answer .bar { padding: 9px 14px; background: linear-gradient(135deg,#fdeedb,#f8e2c8); font-size: 11.5px; font-weight: 750; color: var(--gold); letter-spacing: .04em; display: flex; align-items: center; gap: 6px; }
+  .answer .bd { padding: 14px; background: #fffdf9; font-size: 14.5px; line-height: 1.82; color: #3a2a1c; }
+  .answer .bd p + p { margin-top: 12px; }
+  .answer .ft { padding: 10px 14px; border-top: 1px solid var(--line); font-size: 11px; color: var(--mute); display: flex; gap: 14px; background: #fffdf9; }
+
+  .likes { margin: 16px 18px 0; display: flex; align-items: center; gap: 6px; padding: 11px 13px; border-radius: 14px; background: #f8ecdd; }
+  .likes .av { width: 24px; height: 24px; border: 1.5px solid #f8ecdd; margin-left: -9px; }
+  .likes .av:first-of-type { margin-left: 0; }
+  .likes span { font-size: 11.5px; color: var(--ink-2); margin-left: 7px; }
+
+  .sep { height: 8px; background: #f5e8d8; margin-top: 20px; }
+  .cmts { padding: 6px 18px 10px; }
+  .cmts .bar2 { display: flex; align-items: center; gap: 14px; padding: 13px 0 4px; font-size: 13px; }
+  .cmts .bar2 a { color: var(--mute); font-weight: 650; }
+  .cmts .bar2 a.on { color: var(--ink); font-weight: 800; }
+  .cmts .bar2 .sortr { margin-left: auto; font-size: 11px; color: var(--mute); }
+  .cm { display: flex; gap: 10px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .cm .av { width: 32px; height: 32px; }
+  .cm .nm { font-size: 11.5px; color: var(--mute); display: flex; align-items: center; gap: 5px; }
+  .cm .tx { font-size: 14px; line-height: 1.68; margin-top: 5px; }
+  .cm .ft { margin-top: 7px; font-size: 10.5px; color: var(--mute); display: flex; gap: 13px; }
+  .cm .rp { margin-top: 9px; background: #f8ecdd; border-radius: 12px; padding: 10px 12px; font-size: 12.5px; line-height: 1.62; }
+  .cm .rp b { color: var(--brand); }
+  .cm .hb { margin-left: auto; font-size: 10.5px; color: var(--mute); text-align: center; }
+  .badge { font-size: 9px; padding: 2px 6px; border-radius: 5px; background: #fdf0d6; color: var(--gold); font-weight: 700; }
+
+  .actionbar .ipt { flex: 1; height: 38px; border-radius: 99px; background: #f5e8d8; display: flex; align-items: center; padding: 0 15px; font-size: 12.5px; color: var(--mute); }
+  .actionbar .ac { display: flex; flex-direction: column; align-items: center; font-size: 9.5px; color: var(--ink-2); }
+  .actionbar .ac span { font-size: 17px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="topbar glass">
+    <a class="bk" href="./planet.html">‹</a>
+    <h4>星球动态</h4>
+    <span class="tag gold">暖阁星球</span>
+  </div>
+
+  <div class="scroll full">
+    <div class="post">
+      <div class="hh">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=90&h=90&fit=crop&q=80" alt="" /></span>
+        <div><div class="nm">十一 <span class="tag">读者提问</span></div><div class="tm">今天 05:26 · 杭州</div></div>
+        <span class="fo">＋ 关注</span>
+      </div>
+      <h1 class="serif">知识付费定价 99 和 199，差别到底有多大？</h1>
+      <div class="ct">我的专栏大概 20 讲，录了一半。身边朋友劝我定 99 先跑量，但我自己算下来 199 才刚够覆盖成本。<br /><br />纠结了整整一周，想听听球友们真实的数据：<b>你们的第一款产品定了多少？转化率如何？</b></div>
+      <div class="gg">
+        <div><img class="ph" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=320&h=320&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=320&h=320&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=320&h=320&fit=crop&q=80" alt="" /></div>
+      </div>
+      <div class="tp">#定价策略 #知识付费 #新手提问</div>
+      <div class="st"><span>3,124 浏览</span><span>86 条讨论</span><span>收录于「资料库 · 定价」</span></div>
+    </div>
+
+    <div class="answer">
+      <div class="bar">⭐️ 星主回答 · 已设为精华</div>
+      <div class="bd">
+        <p>差别不在转化率，在你后面还想不想卖第二个产品。</p>
+        <p><b>99 是引流位，199 才是利润位。</b>先想清楚它在你产品矩阵里站哪个位置，再倒推价格——而不是反过来用价格去凑成本。</p>
+        <p>如果这是你唯一的产品，且短期不打算做第二款，定 199；如果你后面还有社群、陪跑、线下课，那第一款就该定 99 甚至 69，把人筛进来。</p>
+      </div>
+      <div class="ft"><span>❤️ 231</span><span>💬 24 条追问</span><span>⭐️ 收藏</span></div>
+    </div>
+
+    <div class="likes">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&q=80" alt="" /></span>
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&h=60&fit=crop&q=80" alt="" /></span>
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&h=60&fit=crop&q=80" alt="" /></span>
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&q=80" alt="" /></span>
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&q=80" alt="" /></span>
+      <span>小满、阿桃 等 231 位球友觉得有用</span>
+    </div>
+
+    <div class="sep"></div>
+    <div class="cmts">
+      <div class="bar2"><a class="on">讨论 86</a><a>只看星主</a><span class="sortr">按热度 ⌄</span></div>
+
+      <div class="cm">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div style="flex:1">
+          <div class="nm">小满 <i class="badge">特约作者</i></div>
+          <div class="tx">我第一款 99，转化 3.2%；第二款同样内容换个封面卖 199，转化 2.8%。说明什么？价格不是主要变量，<b style="color:var(--brand)">信任才是</b>。</div>
+          <div class="ft"><span>今天 07:11</span><span>回复</span></div>
+          <div class="rp"><b>十一</b>：这个数据太有说服力了，谢谢！那我先做信任资产</div>
+        </div>
+        <div class="hb">❤<br />189</div>
+      </div>
+
+      <div class="cm">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div style="flex:1">
+          <div class="nm">Ray</div>
+          <div class="tx">补充一个坑：别一上来就打折。首发价就是你的锚点，后面再想涨回去基本不可能。</div>
+          <div class="ft"><span>今天 08:40</span><span>回复</span><span>5 条回复 ›</span></div>
+        </div>
+        <div class="hb">❤<br />112</div>
+      </div>
+
+      <div class="cm" style="border:0">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div style="flex:1">
+          <div class="nm">野格</div>
+          <div class="tx">我是 20 讲定 149，算是折中。真实反馈是：买的人根本没提价格，提的都是更新太慢 😅</div>
+          <div class="ft"><span>今天 09:02</span><span>回复</span></div>
+        </div>
+        <div class="hb">❤<br />64</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actionbar">
+    <div class="ipt">参与讨论…</div>
+    <div class="ac"><span>❤️</span>231</div>
+    <div class="ac"><span>⭐️</span>收藏</div>
+    <a class="ac" href="./share.html"><span>↗️</span>分享</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

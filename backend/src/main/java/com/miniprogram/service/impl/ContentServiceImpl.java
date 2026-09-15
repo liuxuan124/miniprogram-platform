@@ -14,12 +14,15 @@ import com.miniprogram.dto.ContentDetailDTO;
 import com.miniprogram.dto.ContentQueryDTO;
 import com.miniprogram.entity.Content;
 import com.miniprogram.entity.ContentTag;
+import com.miniprogram.member.MemberBenefitCodes;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ContentTagMapper;
 import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.service.ContentAuditRulesService;
 import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.ContentService;
 import com.miniprogram.service.FileEntitlementService;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.util.ContentSourceResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +51,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final ContentTagMapper tagMapper;
     private final ObjectMapper objectMapper;
     private final FileEntitlementService fileEntitlementService;
+    private final MembershipAccessService membershipAccessService;
+    private final ContentAuditRulesService contentAuditRulesService;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -98,6 +103,18 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (entity.getIsRecommended() == null) {
             entity.setIsRecommended(0);
         }
+        if (!StringUtils.hasText(entity.getAuthorRole())) {
+            entity.setAuthorRole("editor");
+        }
+        if (!StringUtils.hasText(entity.getVisibility())) {
+            entity.setVisibility("public");
+        }
+        if (!StringUtils.hasText(entity.getAuditStatus())) {
+            entity.setAuditStatus("approved");
+        }
+        entity.setAuditStatus(contentAuditRulesService.applyContentAuditStatus(
+                entity.getAuditStatus(), entity.getTitle(), entity.getContent()));
+        entity.setPlanetExclusive(Integer.valueOf(1).equals(dto.getPlanetExclusive()) ? 1 : 0);
         if (!StringUtils.hasText(entity.getLayoutTheme())) {
             entity.setLayoutTheme("standard");
         }
@@ -180,6 +197,15 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getAuthor() != null) {
             entity.setAuthor(dto.getAuthor());
         }
+        if (dto.getAuthorRole() != null) {
+            entity.setAuthorRole(dto.getAuthorRole());
+        }
+        if (dto.getVisibility() != null) {
+            entity.setVisibility(dto.getVisibility());
+        }
+        if (dto.getAuditStatus() != null) {
+            entity.setAuditStatus(dto.getAuditStatus());
+        }
         if (dto.getAuthorAvatar() != null) {
             entity.setAuthorAvatar(dto.getAuthorAvatar());
         }
@@ -204,6 +230,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getIsRecommended() != null) {
             entity.setIsRecommended(dto.getIsRecommended());
         }
+        if (dto.getPlanetExclusive() != null) {
+            entity.setPlanetExclusive(dto.getPlanetExclusive() == 1 ? 1 : 0);
+        }
         if ("note".equals(entity.getContentType()) && !StringUtils.hasText(entity.getCoverImage())) {
             List<String> imgs = parseStringList(entity.getImages());
             if (!imgs.isEmpty()) {
@@ -212,6 +241,10 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         applyMomentCover(entity);
         applyScheduleFields(entity, dto);
+        if (dto.getContent() != null || dto.getTitle() != null) {
+            entity.setAuditStatus(contentAuditRulesService.applyContentAuditStatus(
+                    entity.getAuditStatus(), entity.getTitle(), entity.getContent()));
+        }
         this.updateById(entity);
 
         // 更新标签使用次数：旧标签-1，新标签+1
@@ -283,6 +316,26 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         // 列表接口不查正文/附件大字段，避免小程序与预览拉取过慢
         wrapper.select(Content.class, info ->
                 !"content".equals(info.getColumn()) && !"attachments".equals(info.getColumn()));
+        // 下架可见性内容不进公开列表（详情门禁已挡）
+        wrapper.and(w -> w.isNull(Content::getVisibility)
+                .or()
+                .ne(Content::getVisibility, "removed"));
+        // member_only：与详情门禁一致，非会员不进公开列表（会员可见）
+        Long listUserId = SecurityUtils.getCurrentUserId();
+        boolean listMember = membershipAccessService.hasActivePaidMembership(listUserId);
+        if (!listMember) {
+            wrapper.and(w -> w.isNull(Content::getVisibility)
+                    .or()
+                    .ne(Content::getVisibility, "member_only"));
+        }
+        // 星球专属走星球 feed，不进公开内容列表
+        wrapper.and(w -> w.isNull(Content::getPlanetExclusive)
+                .or()
+                .ne(Content::getPlanetExclusive, 1));
+        // 未过审内容不进公开列表（历史空值视为已通过）
+        wrapper.and(w -> w.isNull(Content::getAuditStatus)
+                .or()
+                .notIn(Content::getAuditStatus, java.util.Arrays.asList("pending", "rejected")));
         wrapper.orderByAsc(Content::getSortOrder);
         wrapper.orderByDesc(Content::getPublishedAt);
 
@@ -304,15 +357,175 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (entity == null || !"published".equals(entity.getStatus())) {
             throw new BusinessException(ErrorCode.CONTENT_NOT_FOUND);
         }
+        if ("removed".equalsIgnoreCase(entity.getVisibility())) {
+            throw new BusinessException(ErrorCode.CONTENT_NOT_FOUND);
+        }
+
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        // 星球专属走星球详情门禁（浏览量由 getPublishedPlanetContentDetail 统一 +1，避免双计）
+        if (Integer.valueOf(1).equals(entity.getPlanetExclusive())) {
+            return getPublishedPlanetContentDetail(id, userId);
+        }
 
         // 浏览量 +1
-        entity.setViewCount(entity.getViewCount() + 1);
+        entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
         this.updateById(entity);
 
         ContentDetailDTO dto = toDetailDTO(entity);
+
+        boolean memberOnly = "member_only".equalsIgnoreCase(entity.getVisibility());
+        if (memberOnly) {
+            boolean unlocked = membershipAccessService.hasActivePaidMembership(userId)
+                    || membershipAccessService.hasBenefit(userId, MemberBenefitCodes.ARTICLE_FREE);
+            applyPlanetGate(dto, unlocked, membershipAccessService.unpaidViewMode(), true);
+            if (unlocked) {
+                dto.setAttachments(fileEntitlementService.enrichAttachments(
+                        dto.getAttachments(), userId));
+            } else {
+                dto.setAttachments(Collections.emptyList());
+            }
+            return dto;
+        }
+
+        dto.setAccessGranted(true);
+        dto.setLocked(false);
         dto.setAttachments(fileEntitlementService.enrichAttachments(
-                dto.getAttachments(), SecurityUtils.getCurrentUserId()));
+                dto.getAttachments(), userId));
         return dto;
+    }
+
+    @Override
+    public PageResult<ContentDetailDTO> listPublishedContentsForPlanet(ContentQueryDTO queryDTO, Long userId) {
+        ContentQueryDTO q = queryDTO != null ? queryDTO : new ContentQueryDTO();
+        q.setStatus("published");
+        q.setContentType(StringUtils.hasText(q.getContentType()) ? q.getContentType() : "moment");
+        q.setPlanetExclusive(1);
+
+        boolean member = membershipAccessService.hasActivePaidMembership(userId);
+        String mode = membershipAccessService.unpaidViewMode();
+        int previewN = membershipAccessService.previewCount();
+
+        if (!member && "hidden".equals(mode)) {
+            long cur = q.getCurrent() == null ? 1L : q.getCurrent().longValue();
+            long sz = q.getSize() == null ? 10L : q.getSize().longValue();
+            return new PageResult<ContentDetailDTO>(Collections.emptyList(), 0L, cur, sz);
+        }
+
+        LambdaQueryWrapper<Content> wrapper = buildQueryWrapper(q);
+        // 列表仍不取正文，但保留 attachments 以便展示 PDF 卡片（URL 由门禁脱敏）
+        wrapper.select(Content.class, info -> !"content".equals(info.getColumn()));
+        wrapper.and(w -> w.isNull(Content::getVisibility)
+                .or()
+                .ne(Content::getVisibility, "removed"));
+        wrapper.and(w -> w.isNull(Content::getAuditStatus)
+                .or()
+                .notIn(Content::getAuditStatus, java.util.Arrays.asList("pending", "rejected")));
+        wrapper.orderByDesc(Content::getIsPinned);
+        wrapper.orderByAsc(Content::getSortOrder);
+        wrapper.orderByDesc(Content::getPublishedAt);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Content> page =
+                this.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
+                        q.getCurrent(), q.getSize()), wrapper);
+
+        long offset = (page.getCurrent() - 1) * page.getSize();
+        List<ContentDetailDTO> records = new ArrayList<>();
+        for (int i = 0; i < page.getRecords().size(); i++) {
+            Content entity = page.getRecords().get(i);
+            ContentDetailDTO dto = toPlanetListDTO(entity);
+            boolean unlocked = member || ("preview_n".equals(mode) && (offset + i) < previewN);
+            applyPlanetGate(dto, unlocked, mode, false);
+            if (unlocked && dto.getAttachments() != null && !dto.getAttachments().isEmpty()) {
+                dto.setAttachments(fileEntitlementService.enrichAttachments(dto.getAttachments(), userId));
+            }
+            records.add(dto);
+        }
+        return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ContentDetailDTO getPublishedPlanetContentDetail(Long id, Long userId) {
+        Content entity = this.getById(id);
+        if (entity == null || !"published".equals(entity.getStatus())
+                || !Integer.valueOf(1).equals(entity.getPlanetExclusive())) {
+            throw new BusinessException(ErrorCode.CONTENT_NOT_FOUND);
+        }
+        boolean member = membershipAccessService.hasActivePaidMembership(userId);
+        String mode = membershipAccessService.unpaidViewMode();
+        if (!member && "hidden".equals(mode)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED.getCode(), "开通会员后可查看星球内容");
+        }
+
+        entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
+        this.updateById(entity);
+
+        ContentDetailDTO dto = toDetailDTO(entity);
+        boolean unlocked = member;
+        if (!unlocked && "preview_n".equals(mode)) {
+            // 详情页不按序号解锁，仅会员可看全文；列表 preview 仅作引流
+            unlocked = false;
+        }
+        applyPlanetGate(dto, unlocked, mode, true);
+        if (unlocked) {
+            dto.setAttachments(fileEntitlementService.enrichAttachments(dto.getAttachments(), userId));
+        } else {
+            // 详情未解锁：仍返回附件元信息（无 URL），便于展示 PDF 卡片
+            if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
+                dto.setAttachments(parseAttachments(entity.getAttachments()));
+            }
+            dto.setAttachmentCount(entity.getAttachmentCount() == null
+                    ? (dto.getAttachments() == null ? 0 : dto.getAttachments().size())
+                    : entity.getAttachmentCount());
+            redactAttachmentUrls(dto);
+        }
+        return dto;
+    }
+
+    private void applyPlanetGate(ContentDetailDTO dto, boolean unlocked, String mode, boolean detail) {
+        dto.setAccessGranted(unlocked);
+        dto.setLocked(!unlocked);
+        if (unlocked) {
+            dto.setLockedReason(null);
+            return;
+        }
+        dto.setLockedReason("开通会员后可查看全文并下载资料");
+        if ("title".equals(mode)) {
+            dto.setSummary(null);
+            dto.setContent(null);
+            dto.setImages(Collections.emptyList());
+        } else if ("summary".equals(mode) || "preview_n".equals(mode)) {
+            dto.setContent(null);
+            if (detail) {
+                // 保留摘要与封面图，隐藏正文与多图细节可酌情保留首图
+            }
+        } else {
+            dto.setSummary(null);
+            dto.setContent(null);
+            dto.setImages(Collections.emptyList());
+        }
+        // 保留附件卡片元信息，仅脱敏可下载 URL
+        redactAttachmentUrls(dto);
+    }
+
+    private void redactAttachmentUrls(ContentDetailDTO dto) {
+        if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
+            return;
+        }
+        for (ContentAttachmentDTO a : dto.getAttachments()) {
+            if (a == null) continue;
+            a.setUrl(null);
+            a.setCanDownload(false);
+            a.setCanRead(false);
+            if (a.getCanPreview() == null) {
+                a.setCanPreview(true);
+            }
+            if (!StringUtils.hasText(a.getPreviewText())) {
+                a.setPreviewText("星球会员可看");
+            }
+            a.setLockedReason("开通会员后可下载资料");
+        }
     }
 
     // ==================== 私有方法 ====================
@@ -341,6 +554,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.eq(StringUtils.hasText(queryDTO.getStatus()), Content::getStatus, queryDTO.getStatus());
         wrapper.eq(StringUtils.hasText(queryDTO.getContentType()), Content::getContentType, queryDTO.getContentType());
         wrapper.eq(StringUtils.hasText(queryDTO.getSource()), Content::getSource, queryDTO.getSource());
+        wrapper.eq(queryDTO.getPlanetExclusive() != null, Content::getPlanetExclusive, queryDTO.getPlanetExclusive());
+        wrapper.eq(StringUtils.hasText(queryDTO.getAuditStatus()), Content::getAuditStatus, queryDTO.getAuditStatus());
+        wrapper.eq(StringUtils.hasText(queryDTO.getAuthorRole()), Content::getAuthorRole, queryDTO.getAuthorRole());
 
         // 标签筛选（JSON字段模糊匹配）
         if (StringUtils.hasText(queryDTO.getTag())) {
@@ -363,11 +579,18 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         return dto;
     }
 
-    /** 列表场景：不含正文与附件详情，减小响应体积 */
+    /** 列表场景：不含正文；星球列表保留附件摘要 */
     private ContentDetailDTO toListDTO(Content entity) {
         ContentDetailDTO dto = toDetailDTO(entity);
         dto.setContent(null);
         dto.setAttachments(null);
+        return dto;
+    }
+
+    private ContentDetailDTO toPlanetListDTO(Content entity) {
+        ContentDetailDTO dto = toDetailDTO(entity);
+        dto.setContent(null);
+        // 保留 attachments 元信息
         return dto;
     }
 

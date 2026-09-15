@@ -1,0 +1,15 @@
+<view class="dsl-planet-topics pl-fc" style="{{styleString}}">
+  <view class="pl-fc__t">
+    <text class="pl-fc__ic">{{icon || '📈'}}</text>
+    <text class="pl-fc__h">{{title}}</text>
+    <text class="warm-tag warm-tag--gold" wx:if="{{badge}}">{{badge}}</text>
+  </view>
+  <view class="pl-fc__bar">
+    <view class="pl-fc__row" wx:for="{{topics}}" wx:key="name">
+      <text class="pl-fc__nm">{{item.name}}</text>
+      <view class="pl-fc__tr"><view class="pl-fc__fill" style="width:{{item.width}}%"></view></view>
+      <text class="pl-fc__pct {{item.down ? 'pl-fc__pct--dn' : ''}}">{{item.pct}}</text>
+    </view>
+  </view>
+  <view class="pl-fc__note" wx:if="{{note}}">{{note}}</view>
+</view>

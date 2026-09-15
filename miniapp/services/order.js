@@ -8,7 +8,7 @@ const request = require('../utils/request')
  * @param {Object} data - { address_id, items: [{ cart_id / sku_id, quantity }], remark }
  */
 function createOrder(data) {
-  return request.post('/api/v1/mp/orders', data)
+  return request.post('/api/v1/mp/orders', data, { showError: false })
 }
 
 /**
@@ -38,6 +38,10 @@ function getOrderDetail(id) {
  */
 function payOrder(id) {
   return request.post(`/api/v1/mp/orders/${id}/pay`)
+}
+
+function syncPay(id) {
+  return request.post(`/api/v1/mp/orders/${id}/sync-pay`, {}, { showError: false })
 }
 
 /**
@@ -70,6 +74,7 @@ module.exports = {
   getOrderList,
   getOrderDetail,
   payOrder,
+  syncPay,
   cancelOrder,
   confirmOrder,
   refundOrder

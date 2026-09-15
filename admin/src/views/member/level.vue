@@ -59,10 +59,21 @@
                 type="success"
                 style="margin: 2px"
               >
+                {{ benefitDisplay(b) }}
+              </el-tag>
+            </template>
+            <template v-if="row.legacy_rights && row.legacy_rights.length">
+              <el-tag
+                v-for="(b, idx) in row.legacy_rights"
+                :key="'legacy-' + idx"
+                size="small"
+                type="info"
+                style="margin: 2px"
+              >
                 {{ b }}
               </el-tag>
             </template>
-            <span v-else>-</span>
+            <span v-if="!(row.benefits?.length) && !(row.legacy_rights?.length)">-</span>
           </template>
         </el-table-column>
         <el-table-column prop="member_count" label="会员数" width="90" align="center">
@@ -155,10 +166,38 @@
           <el-input v-model="formData.icon" placeholder="Element Plus 图标名称，如：Star" />
         </el-form-item>
 
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="赠送星球天数">
+              <el-input-number v-model="formData.gift_planet_days" :min="0" :max="3650" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="到期前提醒">
+              <el-input-number v-model="formData.expire_remind_days" :min="1" :max="30" controls-position="right" style="width: 100%" />
+              <div class="form-tip">天（订阅消息 member_expire 场景）</div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-form-item label="权益配置" prop="benefits">
           <div class="benefits-editor">
+            <div class="benefit-presets">
+              <div class="form-tip" style="margin-bottom: 8px">权益开关（勾选写入权益码，可与下方自由文本并存）</div>
+              <el-checkbox-group v-model="presetBenefitCodes" @change="onPresetBenefitsChange">
+                <el-checkbox
+                  v-for="opt in benefitPresetOptions"
+                  :key="opt.code"
+                  :value="opt.code"
+                  border
+                  :title="opt.hint"
+                >
+                  {{ opt.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </div>
             <div v-for="(_, idx) in formData.benefits" :key="idx" class="benefit-item">
-              <el-input v-model="formData.benefits![idx]" placeholder="权益描述" style="flex: 1" />
+              <el-input v-model="formData.benefits![idx]" placeholder="权益描述或权益码" style="flex: 1" />
               <el-button link type="danger" @click="removeBenefit(idx)">
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -195,6 +234,11 @@ import {
   deleteMemberLevel,
 } from '@/api/member'
 import type { MemberLevel, CreateMemberLevelParams } from '@/types/member'
+import {
+  MemberBenefitCode,
+  MemberBenefitLabels,
+  MemberBenefitHints,
+} from '@/types/member'
 
 /** 列表数据 */
 const levelList = ref<MemberLevel[]>([])
@@ -207,6 +251,20 @@ const editId = ref<number>(0)
 const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
 
+const benefitPresetOptions = [
+  { code: MemberBenefitCode.FileUnlockAll, label: MemberBenefitLabels[MemberBenefitCode.FileUnlockAll], hint: MemberBenefitHints[MemberBenefitCode.FileUnlockAll] },
+  { code: MemberBenefitCode.PlanetExclusive, label: MemberBenefitLabels[MemberBenefitCode.PlanetExclusive], hint: MemberBenefitHints[MemberBenefitCode.PlanetExclusive] },
+  { code: MemberBenefitCode.MemberPrice, label: MemberBenefitLabels[MemberBenefitCode.MemberPrice], hint: MemberBenefitHints[MemberBenefitCode.MemberPrice] },
+  { code: MemberBenefitCode.ColumnFree, label: MemberBenefitLabels[MemberBenefitCode.ColumnFree], hint: MemberBenefitHints[MemberBenefitCode.ColumnFree] },
+  { code: MemberBenefitCode.CommunityEntry, label: MemberBenefitLabels[MemberBenefitCode.CommunityEntry], hint: MemberBenefitHints[MemberBenefitCode.CommunityEntry] },
+  { code: MemberBenefitCode.MemberDiscount, label: MemberBenefitLabels[MemberBenefitCode.MemberDiscount], hint: MemberBenefitHints[MemberBenefitCode.MemberDiscount] },
+  { code: MemberBenefitCode.PointsBoost, label: MemberBenefitLabels[MemberBenefitCode.PointsBoost], hint: MemberBenefitHints[MemberBenefitCode.PointsBoost] },
+  { code: MemberBenefitCode.ExclusiveCoupon, label: MemberBenefitLabels[MemberBenefitCode.ExclusiveCoupon], hint: MemberBenefitHints[MemberBenefitCode.ExclusiveCoupon] },
+  { code: MemberBenefitCode.BirthdayGift, label: MemberBenefitLabels[MemberBenefitCode.BirthdayGift], hint: MemberBenefitHints[MemberBenefitCode.BirthdayGift] },
+]
+const knownBenefitSet = new Set(benefitPresetOptions.map((o) => o.code as string))
+const presetBenefitCodes = ref<string[]>([])
+
 /** 表单数据 */
 const formData = reactive<CreateMemberLevelParams & { status: number }>({
   name: '',
@@ -218,6 +276,8 @@ const formData = reactive<CreateMemberLevelParams & { status: number }>({
   discount_rate: 1,
   benefits: [],
   status: 1,
+  gift_planet_days: 0,
+  expire_remind_days: 7,
 })
 
 /** 表单校验规则 */
@@ -234,6 +294,21 @@ function getLevelTagType(level: number): string {
   if (level >= 5) return 'danger'
   if (level >= 3) return 'warning'
   return ''
+}
+
+function benefitDisplay(code: string) {
+  return (MemberBenefitLabels as Record<string, string>)[code] || code
+}
+
+function syncPresetFromBenefits() {
+  const list = formData.benefits || []
+  presetBenefitCodes.value = list.filter((b) => knownBenefitSet.has(b))
+}
+
+function onPresetBenefitsChange() {
+  const codes = presetBenefitCodes.value || []
+  const freeText = (formData.benefits || []).filter((b) => !knownBenefitSet.has(b))
+  formData.benefits = [...codes, ...freeText]
 }
 
 /** 获取列表 */
@@ -253,6 +328,7 @@ async function fetchList() {
 function handleCreate() {
   isEdit.value = false
   editId.value = 0
+  presetBenefitCodes.value = []
   dialogVisible.value = true
 }
 
@@ -267,8 +343,15 @@ function handleEdit(row: MemberLevel) {
   formData.max_points = row.max_points
   formData.points_rate = row.points_rate
   formData.discount_rate = row.discount_rate
-  formData.benefits = row.benefits ? [...row.benefits] : []
+  // 保留已知权益码 + 历史自由文本，不丢数据
+  formData.benefits = [
+    ...(row.benefits || []),
+    ...(row.legacy_rights || []),
+  ]
   formData.status = row.status
+  formData.gift_planet_days = Number((row as any).gift_planet_days ?? 0)
+  formData.expire_remind_days = Number((row as any).expire_remind_days ?? 7)
+  syncPresetFromBenefits()
   dialogVisible.value = true
 }
 
@@ -312,6 +395,7 @@ function resetForm() {
   formData.discount_rate = 1
   formData.benefits = []
   formData.status = 1
+  presetBenefitCodes.value = []
   formRef.value?.resetFields()
 }
 
@@ -362,6 +446,14 @@ onMounted(() => {
 
   .benefits-editor {
     width: 100%;
+
+    .benefit-presets {
+      margin-bottom: 12px;
+
+      :deep(.el-checkbox) {
+        margin: 0 8px 8px 0;
+      }
+    }
 
     .benefit-item {
       display: flex;

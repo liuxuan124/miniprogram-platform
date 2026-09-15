@@ -1,4 +1,5 @@
 const { StorageUtil } = require('../../utils/storage')
+const { openContentDetail } = require('../../utils/content-id')
 const { get } = require('../../utils/request')
 
 const FAVORITES_KEY = 'content_favorites'
@@ -44,8 +45,7 @@ Page({
   },
 
   openItem(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: `/pages/content-detail/content-detail?id=${id}` })
+    openContentDetail(e.currentTarget.dataset.id)
   },
 
   removeItem(e) {
@@ -56,6 +56,13 @@ Page({
   },
 
   goContent() {
-    wx.switchTab({ url: '/pages/content-list/content-list' })
+    wx.navigateTo({
+      url: '/pages/content-list/content-list',
+      fail: () => wx.switchTab({ url: '/pages/discover/discover' }),
+    })
+  },
+
+  goDiscover() {
+    wx.switchTab({ url: '/pages/discover/discover' })
   },
 })

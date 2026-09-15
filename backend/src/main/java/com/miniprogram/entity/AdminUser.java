@@ -18,6 +18,9 @@ import java.time.LocalDateTime;
 @Schema(description = "后台管理员")
 public class AdminUser extends BaseEntity {
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     @Schema(description = "登录账号")
     private String username;
 

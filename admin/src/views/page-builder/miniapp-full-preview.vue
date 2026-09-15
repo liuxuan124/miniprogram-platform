@@ -163,7 +163,7 @@
             </template>
 
             <template v-else-if="activeScreen === 'shop'">
-              <div class="fp-banner">知识商城 · 虚拟商品正常发货 · 咨询按时段预约</div>
+              <div class="fp-banner">知识库 · 内容与服务 · 咨询按时段预约</div>
               <div class="fp-chips">
                 <span
                   v-for="f in shopFilters"
@@ -509,7 +509,7 @@ const screenGroups = [
     items: [
       { no: '01', key: 'home', label: '首页' },
       { no: '02', key: 'content', label: '内容中心' },
-      { no: '03', key: 'shop', label: '知识商城' },
+      { no: '03', key: 'shop', label: '知识库' },
       { no: '04', key: 'mine', label: '我的' },
     ],
   },

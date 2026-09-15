@@ -9,8 +9,11 @@ import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.UserMapper;
+import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.service.PurchaseEntitlementService;
 import com.miniprogram.service.WxPayConfigService;
 import com.miniprogram.service.SubscribeMessageService;
+import com.miniprogram.service.UserNoticeService;
 import com.miniprogram.support.WxPayNotifyCrypto;
 import com.miniprogram.support.WxPayNotifyVerifier;
 import org.junit.jupiter.api.Test;
@@ -59,7 +62,10 @@ class PaymentServiceImplTest {
                 redis,
                 mock(RestTemplate.class),
                 new ObjectMapper(),
-                mock(SubscribeMessageService.class)
+                mock(SubscribeMessageService.class),
+                mock(UserNoticeService.class),
+                mock(MembershipAccessService.class),
+                mock(PurchaseEntitlementService.class)
         );
         ReflectionTestUtils.setField(service, "baseMapper", paymentMapper);
         return service;

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>后台配色方案对照</title>
+<style>
+/* ============================================================
+ * 共用：尺度令牌（两套方案共享，只有颜色不同）
+ * ============================================================ */
+:root {
+  --font-h1: 22px;
+  --font-h2: 16px;
+  --font-body: 14px;
+  --font-sm: 13px;
+  --font-caption: 12px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+/* ============================================================
+ * 方案 A —— 克莱因蓝·专业型
+ * 单一色相 (222°) 派生 9 阶，冷中性灰，主色只用于强调
+ * ============================================================ */
+.theme-a {
+  --brand-50:  #F1F4FD;
+  --brand-100: #DEE6FB;
+  --brand-200: #BDCBF7;
+  --brand-300: #92A9F0;
+  --brand-400: #5F80E4;
+  --brand-500: #2F58D2;
+  --brand-600: #143FBC;
+  --brand-700: #002FA7;
+  --brand-800: #002684;
+  --brand-900: #001B5E;
+
+  --brand:        var(--brand-700);
+  --brand-hover:  var(--brand-800);
+  --brand-soft:   var(--brand-50);
+  --brand-border: var(--brand-200);
+
+  --n-0:   #FFFFFF;
+  --n-25:  #FBFCFE;
+  --n-50:  #F5F7FA;
+  --n-100: #EDF0F5;
+  --n-200: #DFE4EC;
+  --n-300: #C6CDD9;
+  --n-500: #6B7688;
+  --n-700: #3D4656;
+  --n-900: #1A2030;
+
+  --success: #0E9F6E; --success-soft: #E7F8F1;
+  --warning: #B45309; --warning-soft: #FDF4E7;
+  --danger:  #D92D20; --danger-soft:  #FDF0EF;
+}
+
+/* ============================================================
+ * 方案 B —— 石墨·编辑型
+ * 主操作用墨黑，琥珀作唯一强调色，整体更克制偏内容型产品
+ * ============================================================ */
+.theme-b {
+  --brand-50:  #F6F6F5;
+  --brand-100: #EAEAE8;
+  --brand-200: #D6D6D2;
+  --brand-300: #B0B0AA;
+  --brand-400: #7A7A73;
+  --brand-500: #4E4E48;
+  --brand-600: #35352F;
+  --brand-700: #22221E;
+  --brand-800: #171714;
+  --brand-900: #0D0D0B;
+
+  --brand:        var(--brand-700);
+  --brand-hover:  var(--brand-900);
+  --brand-soft:   #FDF6EC;
+  --brand-border: #F0DCBE;
+
+  --accent: #B7791F;
+
+  --n-0:   #FFFFFF;
+  --n-25:  #FCFCFB;
+  --n-50:  #F7F7F5;
+  --n-100: #F0F0ED;
+  --n-200: #E3E3DE;
+  --n-300: #CBCBC4;
+  --n-500: #71716A;
+  --n-700: #43433D;
+  --n-900: #1C1C18;
+
+  --success: #3F7A3F; --success-soft: #EFF5EF;
+  --warning: #B7791F; --warning-soft: #FDF6EC;
+  --danger:  #B4443A; --danger-soft:  #FAF0EF;
+}
+.theme-b .side-item.active { color: var(--n-900); }
+.theme-b .side-item.active .dot { background: var(--accent); }
+.theme-b .metric-value { color: var(--n-900); }
+.theme-b .tag-cat { color: var(--accent); background: var(--brand-soft); border-color: var(--brand-border); }
+
+/* ============================================================
+ * 结构（两套完全一致，证明差异只来自颜色）
+ * ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: var(--font-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+ul { list-style: none; }
+
+.scheme-label {
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-caption);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--n-500);
+  background: var(--n-100);
+  border-bottom: 1px solid var(--n-200);
+}
+
+.app { display: flex; min-height: 780px; background: var(--n-50); color: var(--n-900); }
+
+/* ---- 侧栏：浅色 ---- */
+.sidebar {
+  flex: 0 0 220px;
+  background: var(--n-0);
+  border-right: 1px solid var(--n-200);
+  padding-bottom: var(--space-5);
+}
+.brand {
+  display: flex; align-items: center; gap: var(--space-3);
+  height: 56px; padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--n-100);
+}
+.brand-mark {
+  width: 28px; height: 28px; flex: 0 0 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--font-sm); font-weight: 700; color: var(--n-0);
+  background: var(--brand); border-radius: var(--radius-sm);
+}
+.brand-name { font-size: var(--font-body); font-weight: 700; }
+.brand-sub { font-size: 11px; color: var(--n-500); }
+
+.side-group { padding: var(--space-4) var(--space-2) 0; }
+.side-group-title {
+  padding: 0 var(--space-3) var(--space-2);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--n-500);
+}
+.side-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: 2px;
+  font-size: var(--font-body); color: var(--n-700);
+  border-radius: var(--radius-sm); cursor: pointer;
+}
+.side-item:hover { background: var(--n-50); }
+.side-item.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+.side-item .dot {
+  width: 14px; height: 14px; flex: 0 0 14px;
+  border: 1.5px solid currentColor; border-radius: 4px; opacity: 0.55;
+}
+.side-item.active .dot { background: var(--brand); border-color: var(--brand); opacity: 1; }
+
+/* ---- 顶栏 ---- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px; padding: 0 var(--space-5);
+  background: var(--n-0); border-bottom: 1px solid var(--n-200);
+}
+.crumb { font-size: var(--font-sm); color: var(--n-500); }
+.crumb b { color: var(--n-900); font-weight: 600; }
+.user-chip {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  font-size: var(--font-sm); border: 1px solid var(--n-200); border-radius: 999px;
+}
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--brand);
+  background: var(--brand-100);
+}
+
+/* ---- 内容区 ---- */
+.content { padding: var(--space-5); }
+.page-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--space-4); margin-bottom: var(--space-5);
+}
+.page-title { font-size: var(--font-h1); font-weight: 700; letter-spacing: -0.01em; }
+.page-desc { margin-top: var(--space-1); font-size: var(--font-sm); color: var(--n-500); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 var(--space-4);
+  font-size: var(--font-body); font-family: inherit;
+  border: 1px solid var(--n-200); border-radius: var(--radius-sm);
+  background: var(--n-0); color: var(--n-700); cursor: pointer;
+}
+.btn:hover { border-color: var(--n-300); }
+.btn-primary {
+  background: var(--brand); border-color: var(--brand); color: var(--n-0); font-weight: 500;
+}
+.btn-primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+.btn-text {
+  height: auto; padding: 0; border: 0; background: none;
+  color: var(--brand); font-size: var(--font-sm);
+}
+.theme-b .btn-text { color: var(--n-700); text-decoration: underline; text-underline-offset: 3px; }
+.btn-text.danger { color: var(--danger); }
+
+/* 指标条：开放式排版，不再人人一张卡 */
+.metrics {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5); padding: 0 0 var(--space-5);
+  margin-bottom: var(--space-5); border-bottom: 1px solid var(--n-200);
+}
+.metric-label { font-size: var(--font-caption); color: var(--n-500); }
+.metric-value {
+  margin-top: 2px; font-size: 24px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--brand);
+}
+.metric-delta { font-size: var(--font-caption); color: var(--success); }
+.metric-delta.down { color: var(--danger); }
+.metrics > div + div { padding-left: var(--space-5); border-left: 1px solid var(--n-200); }
+
+.card {
+  background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--radius-lg);
+}
+.filter-bar {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.field {
+  display: flex; align-items: center;
+  height: 32px; padding: 0 var(--space-3);
+  font-size: var(--font-sm); color: var(--n-500);
+  background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--radius-sm);
+}
+.field.w-lg { width: 240px; }
+.field.w-md { width: 148px; justify-content: space-between; }
+.field.focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); color: var(--n-900); }
+.spacer { flex: 1; }
+
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-caption); font-weight: 600; color: var(--n-500); text-align: left;
+  background: var(--n-25); border-bottom: 1px solid var(--n-200);
+}
+td {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-body); border-bottom: 1px solid var(--n-100); vertical-align: middle;
+}
+tr:last-child td { border-bottom: 0; }
+tr:hover td { background: var(--n-25); }
+.cell-title { font-weight: 500; }
+.cell-meta { margin-top: 2px; font-size: var(--font-caption); color: var(--n-500); }
+
+.tag {
+  display: inline-flex; align-items: center;
+  height: 22px; padding: 0 var(--space-2);
+  font-size: var(--font-caption); border: 1px solid transparent; border-radius: var(--radius-sm);
+}
+.tag-cat { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-border); }
+.tag-on  { color: var(--success); background: var(--success-soft); }
+.tag-draft { color: var(--n-500); background: var(--n-100); }
+.tag-warn { color: var(--warning); background: var(--warning-soft); }
+
+.table-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3) var(--space-4); border-top: 1px solid var(--n-200);
+  font-size: var(--font-sm); color: var(--n-500);
+}
+.pager { display: flex; gap: var(--space-1); }
+.pager span {
+  min-width: 28px; height: 28px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--n-200); border-radius: var(--radius-sm); color: var(--n-700);
+}
+.pager span.on { background: var(--brand); border-color: var(--brand); color: var(--n-0); }
+
+/* ---- 色板 ---- */
+.palette { padding: var(--space-5); background: var(--n-0); border-top: 1px solid var(--n-200); }
+.palette h4 { font-size: var(--font-caption); color: var(--n-500); font-weight: 600; margin-bottom: var(--space-3); }
+.ramp { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
+.swatch { flex: 1; }
+.swatch i { display: block; height: 40px; border-radius: var(--radius-sm); border: 1px solid rgba(0,0,0,0.06); }
+.swatch b { display: block; margin-top: 4px; font-size: 10px; font-weight: 500; color: var(--n-500); }
+</style>
+</head>
+<body>
+
+<!-- 用 JS 渲染两遍同一结构，只换 theme class -->
+<div id="root"></div>
+
+<script>
+const RAMP_KEYS = ['50','100','200','300','400','500','600','700','800','900'];
+
+function mock(theme, label) {
+  return `
+  <div class="${theme}">
+    <div class="scheme-label">${label}</div>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">墨</div>
+          <div>
+            <div class="brand-name">墨太白运营台</div>
+            <div class="brand-sub">出海笔记 · v0.9</div>
+          </div>
+        </div>
+        <div class="side-group">
+          <div class="side-group-title">总览</div>
+          <div class="side-item"><i class="dot"></i>工作台</div>
+        </div>
+        <div class="side-group">
+          <div class="side-group-title">小程序</div>
+          <div class="side-item"><i class="dot"></i>页面装修</div>
+          <div class="side-item"><i class="dot"></i>外观与导航</div>
+          <div class="side-item"><i class="dot"></i>发布与版本</div>
+        </div>
+        <div class="side-group">
+          <div class="side-group-title">内容</div>
+          <div class="side-item active"><i class="dot"></i>内容管理</div>
+          <div class="side-item"><i class="dot"></i>问答</div>
+          <div class="side-item"><i class="dot"></i>表单</div>
+        </div>
+        <div class="side-group">
+          <div class="side-group-title">用户与交易</div>
+          <div class="side-item"><i class="dot"></i>会员与星球</div>
+          <div class="side-item"><i class="dot"></i>商品</div>
+          <div class="side-item"><i class="dot"></i>订单</div>
+        </div>
+        <div class="side-group">
+          <div class="side-group-title">系统</div>
+          <div class="side-item"><i class="dot"></i>素材库</div>
+          <div class="side-item"><i class="dot"></i>系统设置</div>
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <div class="crumb">内容 / <b>内容管理</b></div>
+          <div class="user-chip"><span class="avatar">刘</span>刘轩</div>
+        </div>
+
+        <div class="content">
+          <div class="page-head">
+            <div>
+              <h1 class="page-title">内容管理</h1>
+              <div class="page-desc">管理文章、动态与星球专属内容，共 3 类发布渠道</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn">导入公众号</button>
+              <button class="btn btn-primary">新建文章</button>
+            </div>
+          </div>
+
+          <div class="metrics">
+            <div>
+              <div class="metric-label">已发布</div>
+              <div class="metric-value">148</div>
+              <div class="metric-delta">本周 +6</div>
+            </div>
+            <div>
+              <div class="metric-label">草稿箱</div>
+              <div class="metric-value">23</div>
+              <div class="metric-delta down">超 7 天未动 9 篇</div>
+            </div>
+            <div>
+              <div class="metric-label">星球专属</div>
+              <div class="metric-value">31</div>
+              <div class="metric-delta">本周 +3</div>
+            </div>
+            <div>
+              <div class="metric-label">待审评论</div>
+              <div class="metric-value">12</div>
+              <div class="metric-delta down">最早 2 天前</div>
+            </div>
+          </div>
+
+          <div class="card filter-bar">
+            <div class="field w-lg focus">搜索标题 / 作者</div>
+            <div class="field w-md">全部分类 <span style="opacity:.5">▾</span></div>
+            <div class="field w-md">全部状态 <span style="opacity:.5">▾</span></div>
+            <div class="spacer"></div>
+            <button class="btn">重置</button>
+            <button class="btn">查询</button>
+          </div>
+
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:42%">标题</th>
+                  <th>分类</th>
+                  <th>状态</th>
+                  <th>浏览</th>
+                  <th>更新时间</th>
+                  <th style="text-align:right">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="cell-title">跨境卖家本周必看：欧洲规则收紧清单</div>
+                    <div class="cell-meta">星球专属 · 星主发布</div>
+                  </td>
+                  <td><span class="tag tag-cat">合规</span></td>
+                  <td><span class="tag tag-on">已发布</span></td>
+                  <td>2,418</td>
+                  <td>09-13 21:40</td>
+                  <td style="text-align:right"><button class="btn-text">编辑</button> &nbsp;<button class="btn-text danger">下架</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="cell-title">独立站 AI 推荐位：新指标怎么算</div>
+                    <div class="cell-meta">星球专属 · 星主发布</div>
+                  </td>
+                  <td><span class="tag tag-cat">增长</span></td>
+                  <td><span class="tag tag-on">已发布</span></td>
+                  <td>1,905</td>
+                  <td>09-12 10:02</td>
+                  <td style="text-align:right"><button class="btn-text">编辑</button> &nbsp;<button class="btn-text danger">下架</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="cell-title">出口退税 0110 失败案例对照表</div>
+                    <div class="cell-meta">含附件 2 个</div>
+                  </td>
+                  <td><span class="tag tag-cat">资料</span></td>
+                  <td><span class="tag tag-warn">待审核</span></td>
+                  <td>—</td>
+                  <td>09-11 16:35</td>
+                  <td style="text-align:right"><button class="btn-text">编辑</button> &nbsp;<button class="btn-text">通过</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="cell-title">2026 年东南亚清关时效实测（未完成）</div>
+                    <div class="cell-meta">公众号同步草稿</div>
+                  </td>
+                  <td><span class="tag tag-cat">物流</span></td>
+                  <td><span class="tag tag-draft">草稿</span></td>
+                  <td>—</td>
+                  <td>09-10 09:18</td>
+                  <td style="text-align:right"><button class="btn-text">编辑</button> &nbsp;<button class="btn-text danger">删除</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="cell-title">会员专享：TikTok Shop 选品打分表</div>
+                    <div class="cell-meta">星球专属 · 金卡可见</div>
+                  </td>
+                  <td><span class="tag tag-cat">选品</span></td>
+                  <td><span class="tag tag-on">已发布</span></td>
+                  <td>3,260</td>
+                  <td>09-09 20:11</td>
+                  <td style="text-align:right"><button class="btn-text">编辑</button> &nbsp;<button class="btn-text danger">下架</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-foot">
+              <div>共 171 条</div>
+              <div class="pager">
+                <span>‹</span><span class="on">1</span><span>2</span><span>3</span><span>…</span><span>35</span><span>›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="palette">
+          <h4>主色 9 阶（同一色相派生）</h4>
+          <div class="ramp">
+            ${RAMP_KEYS.map(k => `<div class="swatch"><i style="background:var(--brand-${k})"></i><b>${k}</b></div>`).join('')}
+          </div>
+          <h4>中性色与语义色</h4>
+          <div class="ramp">
+            ${['n-0','n-50','n-100','n-200','n-300','n-500','n-700','n-900'].map(k => `<div class="swatch"><i style="background:var(--${k})"></i><b>${k}</b></div>`).join('')}
+            <div class="swatch"><i style="background:var(--success)"></i><b>success</b></div>
+            <div class="swatch"><i style="background:var(--warning)"></i><b>warning</b></div>
+            <div class="swatch"><i style="background:var(--danger)"></i><b>danger</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('root').innerHTML =
+  mock('theme-a', '方案 A · 克莱因蓝专业型 —— 主色 #002FA7，冷中性灰，强调集中在主操作与数据') +
+  mock('theme-b', '方案 B · 石墨编辑型 —— 主操作墨黑 #22221E，琥珀 #B7791F 作唯一强调，暖中性灰');
+</script>
+</body>
+</html>

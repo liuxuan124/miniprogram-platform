@@ -1,9 +1,11 @@
 package com.miniprogram.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -49,6 +51,24 @@ public class ProductDetailVO {
     @Schema(description = "原价")
     private BigDecimal originalPrice;
 
+    @Schema(description = "会员价")
+    private BigDecimal memberPrice;
+
+    @Schema(description = "会员免费")
+    private Integer memberFree;
+
+    @Schema(description = "交付方式")
+    private String deliveryMode;
+
+    @Schema(description = "退款政策")
+    private String refundPolicy;
+
+    @Schema(description = "试读章数")
+    private Integer previewChapters;
+
+    @Schema(description = "当前用户是否已购（虚拟商品权益）")
+    private Boolean purchased;
+
     @Schema(description = "总库存")
     private Integer stock;
 
@@ -64,11 +84,21 @@ public class ProductDetailVO {
     @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 
+    @Schema(description = "定时上架时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime publishAt;
+
     @Schema(description = "支付后自动履约")
     private Integer autoFulfill;
 
     @Schema(description = "自动发货内容")
     private String fulfillContent;
+
+    @Schema(description = "会员天数，0=终身")
+    private Integer membershipDays;
+
+    @Schema(description = "开通后的会员等级ID")
+    private Long membershipLevelId;
 
     @Schema(description = "SKU列表")
     private List<ProductSkuVO> skus;

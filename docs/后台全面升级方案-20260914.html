@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>后台全面升级方案 · 2026-09-14</title>
+<style>
+:root{
+  --brand-50:#F1F4FD; --brand-100:#DEE6FB; --brand-200:#BDCBF7; --brand-300:#92A9F0;
+  --brand-400:#5F80E4; --brand-500:#2F58D2; --brand-600:#143FBC; --brand-700:#002FA7;
+  --brand-800:#002684; --brand-900:#001B5E;
+  --brand:var(--brand-700); --brand-soft:var(--brand-50);
+  --n-0:#FFFFFF; --n-25:#FBFCFE; --n-50:#F5F7FA; --n-100:#EDF0F5; --n-200:#DFE4EC;
+  --n-300:#C6CDD9; --n-500:#6B7688; --n-700:#3D4656; --n-900:#1A2030;
+  --success:#0E9F6E; --success-soft:#E7F8F1;
+  --warning:#B45309; --warning-soft:#FDF4E7;
+  --danger:#D92D20;  --danger-soft:#FDF0EF;
+  --radius-sm:6px; --radius:8px; --radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:15px;line-height:1.75;color:var(--n-900);background:var(--n-50);
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 80px}
+
+/* 封面 */
+header.cover{
+  background:var(--n-0);border-bottom:1px solid var(--n-200);
+  padding:48px 24px 36px;margin-bottom:32px;
+}
+.cover-inner{max-width:1080px;margin:0 auto}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--brand);margin-bottom:10px}
+h1{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.3}
+.cover-desc{margin-top:10px;color:var(--n-500);font-size:14px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.meta span{
+  font-size:12px;color:var(--n-700);background:var(--n-50);
+  border:1px solid var(--n-200);border-radius:999px;padding:4px 12px;
+}
+
+/* 决策条 */
+.decisions{
+  background:var(--brand-soft);border:1px solid var(--brand-200);
+  border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:40px;
+}
+.decisions h3{font-size:13px;color:var(--brand);letter-spacing:.04em;margin-bottom:12px}
+.decisions ol{margin-left:20px;font-size:14px}
+.decisions li{margin-bottom:6px}
+.decisions li:last-child{margin-bottom:0}
+
+/* 章节 */
+section{margin-bottom:52px}
+h2{
+  font-size:20px;font-weight:700;letter-spacing:-.01em;
+  padding-bottom:12px;border-bottom:2px solid var(--n-900);margin-bottom:8px;
+  display:flex;align-items:baseline;gap:12px;
+}
+h2 .no{font-size:13px;font-weight:700;color:var(--brand);letter-spacing:.08em}
+.sec-lead{color:var(--n-500);font-size:14px;margin:12px 0 24px}
+h3{font-size:16px;font-weight:600;margin:32px 0 12px}
+h4{font-size:14px;font-weight:600;margin:22px 0 8px;color:var(--n-700)}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
+  background:var(--n-100);padding:2px 6px;border-radius:4px;color:var(--n-900);
+}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;background:var(--n-0);
+  border:1px solid var(--n-200);border-radius:var(--radius);overflow:hidden;font-size:14px}
+th{background:var(--n-25);text-align:left;font-size:12px;font-weight:600;color:var(--n-500);
+  padding:10px 14px;border-bottom:1px solid var(--n-200);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--n-100);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--n-25)}
+td.nowrap{white-space:nowrap}
+
+/* 标记 */
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--radius-sm);white-space:nowrap}
+.t-p0{color:var(--danger);background:var(--danger-soft)}
+.t-p1{color:var(--warning);background:var(--warning-soft)}
+.t-p2{color:var(--n-500);background:var(--n-100)}
+.t-ok{color:var(--success);background:var(--success-soft)}
+.t-brand{color:var(--brand);background:var(--brand-soft)}
+
+/* 问题卡 */
+.issue{border-left:3px solid var(--n-200);padding:2px 0 2px 18px;margin-bottom:24px}
+.issue.p0{border-left-color:var(--danger)}
+.issue.p1{border-left-color:var(--warning)}
+.issue.p2{border-left-color:var(--n-300)}
+.issue-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.issue-head h4{margin:0}
+.issue p{margin-bottom:8px;font-size:14px}
+.issue p:last-child{margin-bottom:0}
+
+/* 指标条 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin:8px 0 28px;
+  padding-bottom:24px;border-bottom:1px solid var(--n-200)}
+.stats>div+div{padding-left:24px;border-left:1px solid var(--n-200)}
+.stat-label{font-size:12px;color:var(--n-500)}
+.stat-value{font-size:26px;font-weight:700;letter-spacing:-.02em;color:var(--brand);margin-top:2px}
+.stat-note{font-size:12px;color:var(--n-500)}
+
+/* IA 树 */
+pre.tree{background:var(--n-0);border:1px solid var(--n-200);border-radius:var(--radius);
+  padding:18px 20px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px;line-height:2;overflow-x:auto;margin:16px 0 24px}
+pre.tree b{color:var(--brand);font-weight:700;display:inline-block;min-width:108px}
+
+/* 阶段 */
+.phase{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--n-200)}
+.phase:last-child{border-bottom:0}
+.phase-no{flex:0 0 68px;font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.04em;padding-top:2px}
+.phase-body{flex:1;min-width:0}
+.phase-body h4{margin:0 0 6px}
+.phase-body p{margin:0 0 6px;font-size:14px}
+.phase-accept{font-size:13px;color:var(--n-500)}
+.phase-accept b{color:var(--success);font-weight:600}
+
+/* 色板 */
+.ramp{display:flex;gap:8px;margin:12px 0 8px}
+.sw{flex:1}
+.sw i{display:block;height:38px;border-radius:var(--radius-sm);border:1px solid rgba(0,0,0,.06)}
+.sw b{display:block;margin-top:4px;font-size:10px;font-weight:500;color:var(--n-500)}
+
+.callout{background:var(--warning-soft);border:1px solid #F3DFC0;border-radius:var(--radius);
+  padding:14px 18px;margin:16px 0 24px;font-size:14px}
+.callout b{color:var(--warning)}
+
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--n-200);
+  font-size:13px;color:var(--n-500)}
+@media print{body{background:#fff}.wrap{padding:0}header.cover{padding:0 0 24px}section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="cover-inner">
+    <div class="eyebrow">后台重构 · 定稿方案</div>
+    <h1>小程序搭建运营系统 — 后台全面升级方案</h1>
+    <p class="cover-desc">覆盖视觉体系、命名与信息架构、运营流程、分享与增长四个维度，分五期执行。</p>
+    <div class="meta">
+      <span>2026-09-14</span>
+      <span>admin 72 页 / 82 路由</span>
+      <span>配色：方案 A 克莱因蓝专业型</span>
+      <span>原型：prototypes/admin-theme.html</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="decisions">
+    <h3>已确认决策</h3>
+    <ol>
+      <li>小程序端「知识库」<strong>保留原名</strong>（指商品列表）；撞名从后台一侧解决，AI 侧改称「AI 语料库」</li>
+      <li>期次按本方案顺序执行：视觉 → 命名/IA → 流程 → 分享 → 收尾</li>
+      <li>路由迁移<strong>不保留兼容 redirect</strong>，直接改干净（系统仅内部使用）</li>
+    </ol>
+  </div>
+
+  <!-- 0 -->
+  <section>
+    <h2><span class="no">00</span>体检结论</h2>
+    <p class="sec-lead">问题不在「某几个页面丑」，而在设计系统、命名规范、流程编排三层约束都缺失，导致功能越加越乱。</p>
+
+    <div class="stats">
+      <div>
+        <div class="stat-label">硬编码颜色</div>
+        <div class="stat-value">2,433</div>
+        <div class="stat-note">484 个不同色值</div>
+      </div>
+      <div>
+        <div class="stat-label">硬编码字号</div>
+        <div class="stat-value">586</div>
+        <div class="stat-note">token 定义了但未采用</div>
+      </div>
+      <div>
+        <div class="stat-label">primary 按钮占比</div>
+        <div class="stat-value">21%</div>
+        <div class="stat-note">1208 个按钮中 253 个</div>
+      </div>
+      <div>
+        <div class="stat-label">有路由无菜单页</div>
+        <div class="stat-value">20+</div>
+        <div class="stat-note">信息架构断裂</div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th style="width:88px">维度</th><th>现状</th><th style="width:30%">根因</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="nowrap"><span class="tag t-p0">命名</span></td>
+          <td>同一概念最多 5 种叫法；小程序端「知识库」= 后台「商品」，后台 AI 又有另一个「知识库」；<code>User</code> 与 <code>MiniProgramUser</code> 双实体映射同一张 <code>mp_user</code>；菜单/面包屑/页面标题三处不一致 11 处；父子路由同名 4 组</td>
+          <td>无术语表，各期功能各自命名</td>
+        </tr>
+        <tr>
+          <td class="nowrap"><span class="tag t-p0">流程</span></td>
+          <td>配完整会员体系跨 ≥5 页；小程序发布有「上线/草稿/版本/还原点/DSL」5 套概念并存；会员权益自由文本与后端权益码脱节，填「95折」不生效</td>
+          <td>功能按模块堆叠，无任务导向串联</td>
+        </tr>
+        <tr>
+          <td class="nowrap"><span class="tag t-p1">视觉</span></td>
+          <td>两套 token 互相冲突（主色 <code>#002FA7</code> 而 hover <code>#1458d9</code> 非同色族）；10 种圆角并存；<code>.surface-card</code> 定义了但 0 页使用</td>
+          <td>设计 token 有定义、无强制约束</td>
+        </tr>
+        <tr>
+          <td class="nowrap"><span class="tag t-p0">分享</span></td>
+          <td>后台可配分享标题/图但小程序运行时不读；6 个主力详情页分享不带 <code>inviterId</code>；无小程序码/海报；邀请奖励 <code>reward_status</code> 永远停在 pending</td>
+          <td>配置层与运行层未接线，增长闭环未产品化</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>数据表另有遗留污染：<code>sys_user</code>、<code>`user`</code>、<code>mp_booking_*</code> 三套废表，其中 <code>mp_booking_*</code> 有表无实体。</p>
+  </section>
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="no">01</span>统一术语表</h2>
+    <p class="sec-lead">所有后续改动的命名依据，落库为 <code>admin/src/constants/glossary.ts</code>，新功能命名以此评审。</p>
+
+    <table>
+      <thead><tr><th>概念</th><th>后台规范名</th><th>小程序规范名</th><th>代码 / 表 / API</th><th>废弃叫法</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">内容</td><td>内容</td><td>内容</td><td><code>content</code> / <code>mp_content</code> / <code>/contents</code></td><td>文章管理、图文</td></tr>
+        <tr><td class="nowrap">内容形态</td><td>长文 / 笔记 / 动态 / 视频</td><td>同</td><td><code>article</code> <code>note</code> <code>moment</code> <code>video</code></td><td>笔记与 note 混用</td></tr>
+        <tr><td class="nowrap">C 端用户</td><td>用户</td><td>我的</td><td><code>user</code> / <code>mp_user</code> / <code>/users</code></td><td>会员列表（指全量时）</td></tr>
+        <tr><td class="nowrap">付费身份</td><td>会员</td><td>会员</td><td><code>member</code> / <code>mp_member_level</code> / <code>/members</code></td><td>用户等级</td></tr>
+        <tr><td class="nowrap">售卖商品</td><td>商品</td><td>知识库<span class="tag t-ok" style="margin-left:6px">保留</span></td><td><code>product</code> / <code>mp_product</code> / <code>/products</code></td><td>产品、goods</td></tr>
+        <tr><td class="nowrap">会员套餐</td><td>会员套餐</td><td>开通会员</td><td><code>product_type=membership</code></td><td>会员商品</td></tr>
+        <tr><td class="nowrap">星球</td><td>星球</td><td>星球</td><td><code>planet</code> / <code>/planet</code></td><td>知识星球（代码不用）</td></tr>
+        <tr><td class="nowrap">装修图片</td><td>素材</td><td>—</td><td><code>asset</code> / <code>mp_asset</code> / <code>/assets</code></td><td>资源、material</td></tr>
+        <tr><td class="nowrap">可下载资料</td><td>资料文件</td><td>资料</td><td><code>file</code> / <code>mp_file_item</code> / <code>/files</code></td><td>文件库、附件</td></tr>
+        <tr><td class="nowrap">AI 语料</td><td><strong>AI 语料库</strong><span class="tag t-brand" style="margin-left:6px">改名</span></td><td>—</td><td><code>knowledge</code> / <code>mp_agent_knowledge</code></td><td>知识库</td></tr>
+        <tr><td class="nowrap">报名活动</td><td>活动</td><td>活动</td><td><code>activity</code> / <code>mp_activity</code></td><td>表单活动</td></tr>
+        <tr><td class="nowrap">预约</td><td>预约</td><td>预约</td><td><code>appointment</code> / <code>mp_appointment*</code></td><td>booking</td></tr>
+      </tbody>
+    </table>
+
+    <h3>1.1　撞名处理（已定）</h3>
+    <p>小程序端 Tab「知识库」（实为商品列表）<strong>保留原名不动</strong>，避免影响 C 端已形成的认知与已上线版本。撞名从后台一侧解决：AI 相关的「知识库管理」全部改称「AI 语料库」，涉及菜单名、路由 meta、页面标题与 <code>ai/knowledge/index.vue</code> 内文案。代码层 <code>knowledge</code> 标识符不变，仅改展示文案。</p>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="no">02</span>视觉层重构<span class="tag t-brand" style="margin-left:auto">第 1 期</span></h2>
+    <p class="sec-lead">配色采用方案 A：主色 <code>#002FA7</code> 按同色相 222° 派生完整 9 阶，冷中性打底，强调只出现在主操作、侧栏选中态、核心数据三处。</p>
+
+    <div class="ramp">
+      <div class="sw"><i style="background:var(--brand-50)"></i><b>50</b></div>
+      <div class="sw"><i style="background:var(--brand-100)"></i><b>100</b></div>
+      <div class="sw"><i style="background:var(--brand-200)"></i><b>200</b></div>
+      <div class="sw"><i style="background:var(--brand-300)"></i><b>300</b></div>
+      <div class="sw"><i style="background:var(--brand-400)"></i><b>400</b></div>
+      <div class="sw"><i style="background:var(--brand-500)"></i><b>500</b></div>
+      <div class="sw"><i style="background:var(--brand-600)"></i><b>600</b></div>
+      <div class="sw"><i style="background:var(--brand-700)"></i><b>700 主</b></div>
+      <div class="sw"><i style="background:var(--brand-800)"></i><b>800</b></div>
+      <div class="sw"><i style="background:var(--brand-900)"></i><b>900</b></div>
+    </div>
+    <div class="ramp">
+      <div class="sw"><i style="background:var(--n-0);"></i><b>n-0</b></div>
+      <div class="sw"><i style="background:var(--n-50)"></i><b>n-50</b></div>
+      <div class="sw"><i style="background:var(--n-100)"></i><b>n-100</b></div>
+      <div class="sw"><i style="background:var(--n-200)"></i><b>n-200</b></div>
+      <div class="sw"><i style="background:var(--n-300)"></i><b>n-300</b></div>
+      <div class="sw"><i style="background:var(--n-500)"></i><b>n-500</b></div>
+      <div class="sw"><i style="background:var(--n-700)"></i><b>n-700</b></div>
+      <div class="sw"><i style="background:var(--n-900)"></i><b>n-900</b></div>
+      <div class="sw"><i style="background:var(--success)"></i><b>success</b></div>
+      <div class="sw"><i style="background:var(--warning)"></i><b>warning</b></div>
+      <div class="sw"><i style="background:var(--danger)"></i><b>danger</b></div>
+    </div>
+
+    <h3>2.1　主题收口</h3>
+    <p>删除 <code>admin/src/styles/tokens.css</code>，只保留 <code>admin/src/assets/styles/theme.css</code>：主色 9 阶、冷中性 8 阶、语义色三组带 soft 底、字号 4 档、间距 6 档、圆角只留 6/8/12 三档（删掉现有 10 种），Element Plus 变量全部桥接到上述令牌。</p>
+
+    <h3>2.2　禁止再写死样式</h3>
+    <div class="callout">
+      <b>这条是关键。</b> 不加约束，半年后必然回到现在的状态——现有 484 个色值就是这么积累的。
+    </div>
+    <p>新增 stylelint 规则对 <code>admin/src/views/**</code> 生效：禁止 hex / rgb 字面量（只允许 <code>var(--*)</code>）、禁止裸 <code>font-size: Npx</code>、<code>border-radius</code> 仅允许三档令牌。规则先只对新增或改动的文件生效（lint-staged），不做全量强制，避免阻塞开发。</p>
+
+    <h3>2.3　五个布局组件</h3>
+    <table>
+      <thead><tr><th style="width:130px">组件</th><th>职责</th><th style="width:38%">硬约束</th></tr></thead>
+      <tbody>
+        <tr><td><code>PageHeader</code></td><td>标题 / 描述 / 右侧操作区</td><td>全页唯一 primary 按钮位</td></tr>
+        <tr><td><code>FilterBar</code></td><td>筛选项 + 重置/查询，超过 4 项自动折叠</td><td>查询按钮不得为 primary</td></tr>
+        <tr><td><code>PageCard</code></td><td>卡片容器</td><td>只有 1 档边框、1 档圆角</td></tr>
+        <tr><td><code>DataTable</code></td><td>分页 / 加载 / 空态 / 批量栏 / 导出</td><td>行内操作统一 text 按钮</td></tr>
+        <tr><td><code>FormSection</code></td><td>表单分节 + 完成度</td><td>节标题序号自动生成</td></tr>
+      </tbody>
+    </table>
+    <p>配套：指标区改开放式横排（如原型中的 148 / 23 / 31 / 12），不再人人一张卡。</p>
+
+    <h3>2.4　试点顺序</h3>
+    <p>工作台 → 内容列表 → 星球配置。三页验收通过后，按「列表页批量替换 → 表单页逐个替换」铺开。</p>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="no">03</span>命名与信息架构<span class="tag t-brand" style="margin-left:auto">第 2 期</span></h2>
+
+    <h3>3.1　目标信息架构（6 组，按运营任务划分）</h3>
+    <pre class="tree">工作台
+<b>小程序</b>      总览 · 页面 · 外观与导航 · 发布
+<b>内容运营</b>    内容 · 分类 · 评论 · 资料文件 · 素材 · 问答 · 表单
+<b>会员与用户</b>  用户 · 会员等级 · 积分 · 星球
+<b>交易</b>        商品 · 订单 · 退款 · 优惠券
+<b>数据与智能</b>  经营分析（growth + statistics 合并）· AI 助手 · AI 语料库
+<b>系统</b>        基础设置 · 微信配置 · 存储 · 权限与账号 · 操作日志</pre>
+    <p>变动要点：素材与资料文件从「系统」移入「内容运营」；增长与统计两页合并为「经营分析」；AI 从「经营」独立；当前 20+ 条有路由无菜单的页面（统计概览、AI 对话、内容分类、评论、会员等级、积分、微信/存储/日志/账号）全部接入菜单或明确收进上级页 Tab。</p>
+
+    <h3>3.2　路由迁移对照表</h3>
+    <p><strong>不保留兼容 redirect，直接改干净。</strong></p>
+    <table>
+      <thead><tr><th style="width:46%">旧路径</th><th>新路径</th></tr></thead>
+      <tbody>
+        <tr><td><code>/commerce/product</code>、<code>/commerce/product/edit</code></td><td><code>/commerce/products</code>、<code>/commerce/products/edit</code></td></tr>
+        <tr><td><code>/order/list</code>、<code>/order/refund</code>、<code>/order/detail</code></td><td><code>/commerce/orders</code>、<code>/commerce/orders/refunds</code>、<code>/commerce/orders/:id</code></td></tr>
+        <tr><td><code>/marketing/coupon</code></td><td><code>/commerce/coupons</code></td></tr>
+        <tr><td><code>/content/article</code>、<code>/content/list</code></td><td><code>/content/list</code>（单一入口，删别名）</td></tr>
+        <tr><td><code>/growth/overview</code> + <code>/statistics/dashboard</code></td><td><code>/analytics/overview</code>（合并）</td></tr>
+        <tr><td><code>/settings/*</code></td><td><code>/system/*</code>（与 <code>views/system/</code> 目录同名）</td></tr>
+        <tr><td><code>/form-activity/*</code></td><td><span class="tag t-p2">直接删除</span></td></tr>
+        <tr><td><code>/page-builder/miniapp</code>、<code>/page-builder/version-management</code></td><td><span class="tag t-p2">直接删除</span>（现为别名）</td></tr>
+        <tr><td><code>/member/planet</code>、<code>/member/level</code>、<code>/member/points</code></td><td>保留</td></tr>
+      </tbody>
+    </table>
+    <p>因不留兼容，迁移需同步改：<code>router/index.ts</code>、<code>Sidebar.vue</code> 的 path/activePrefix、各页面内硬编码的 <code>router.push</code>、<code>CommandPalette</code> 搜索项、<code>stores/feature-modules.ts</code> 里的跳转。改完全量 grep 旧路径字面量确认无残留。</p>
+    <p>同期清理：删除 4 个无路由的 orphan 页面（<code>views/commerce/index.vue</code>、<code>views/marketing/index.vue</code>、<code>views/form-activity/index.vue</code>、<code>views/settings/index.vue</code>）；修复 <code>page-builder/overview.vue:227</code> 跳向不存在路由 <code>/page-builder/pages</code> 的死链。</p>
+
+    <h3>3.3　三处标题强制对齐</h3>
+    <p>Sidebar 菜单名 = 叶子路由 <code>meta.title</code> = 页面 <code>PageHeader</code> 标题。父级路由 meta 只用于分组且不得与子项同名——现有「内容管理/内容管理」「活动管理/活动管理」「优惠券/优惠券」「系统设置/系统设置」四组重名会直接产生重复面包屑。</p>
+
+    <h3>3.4　后端命名（低风险部分同期做）</h3>
+    <ul>
+      <li><code>/api/v1/mp/member</code> 改为复数 <code>/mp/members</code></li>
+      <li>裸挂在 <code>/api/v1/mp</code> 下的 4 个 Controller（growth / upload / form-appointment / product-review）收进各自资源前缀</li>
+      <li>合并 <code>User</code> / <code>MiniProgramUser</code> 双实体为一个</li>
+      <li>清理 <code>sys_user</code>、<code>`user`</code>、<code>mp_booking_*</code>：先改名加 <code>_deprecated_</code> 前缀观察一个版本再删</li>
+    </ul>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="no">04</span>流程重构<span class="tag t-brand" style="margin-left:auto">第 3 期</span></h2>
+    <p class="sec-lead">按影响排序的 8 项，前四项为 P0。</p>
+
+    <div class="issue p0">
+      <div class="issue-head"><span class="tag t-p0">P0-1</span><h4>小程序发布：5 套概念砍到 3 个</h4></div>
+      <p>现状「上线 / 保存草稿 / 保存版本 / 还原点 / 上传代码」并存，运营经常误进「版本」页。统一为三态：<strong>草稿 → 已上线 → 历史版本</strong>。</p>
+      <p>外观页的「草稿记录/还原点」与页面的「历史版本」合并为同一概念；「保存版本」改叫「存档当前状态」并与「上线」同区呈现、文案写明区别；「上传代码」独立为「小程序发版」明确是微信侧动作；「导入/查看 DSL」收进高级抽屉默认不可见。</p>
+    </div>
+
+    <div class="issue p0">
+      <div class="issue-head"><span class="tag t-p0">P0-2</span><h4>会员权益：文本框改勾选器</h4></div>
+      <p><code>member/level.vue</code> 的「权益描述」是自由文本，后端只认 <code>MemberBenefitCodes</code> 里的固定码——运营填「95折」完全不生效。</p>
+      <p>改为权益码多选 + 参数输入（折扣率、积分倍率），描述文案由所选权益自动生成，等级列表显示「已生效 / 仅展示」标记。原有自由文本迁移进 <code>benefits_legacy_note</code> 保留展示，不丢数据。</p>
+    </div>
+
+    <div class="issue p0">
+      <div class="issue-head"><span class="tag t-p0">P0-3</span><h4>会员体系配置向导（跨 5 页 → 1 页）</h4></div>
+      <p>在 <code>/member/planet</code> 增加五步向导：等级 → 套餐 → 星球可见范围 → 内容标记 → 模块开关，同页完成，每步显示当前状态与跳转。</p>
+      <p>同时修掉三个断点：商品分类允许勾选 <code>membership</code>（<code>product/category.vue:116</code>）；商品列表筛选加「会员套餐」（<code>product/index.vue:46</code>）；删掉从星球跳转时硬编码 <code>category_id = 2</code>（<code>product/edit.vue:1467</code>），改为按 <code>allowed_product_types</code> 自动匹配。</p>
+    </div>
+
+    <div class="issue p0">
+      <div class="issue-head"><span class="tag t-p0">P0-4</span><h4>内容编辑加防丢失</h4></div>
+      <p>商品编辑和装修器都有自动保存 + 离开提醒，内容编辑（15+ 字段）两者都没有，且保存后强制跳回列表。补齐 5s debounce 自动保存 + <code>beforeunload</code> + 路由守卫；保存后留在原页并提示，「返回列表」作为显式操作。</p>
+    </div>
+
+    <div class="issue p1">
+      <div class="issue-head"><span class="tag t-p1">P1-5</span><h4>内容分类的隐藏依赖</h4></div>
+      <p>分类不「发布到顶栏」就不出现在发文下拉里，新手会卡住。改为发文下拉显示全部分类，未发布的标注「未上架，发布后 C 端不可见」并提供一键上架。分类双入口保留列表内弹窗为主，独立页改为跳转。</p>
+    </div>
+
+    <div class="issue p1">
+      <div class="issue-head"><span class="tag t-p1">P1-6</span><h4>功能开关一致性</h4></div>
+      <p><code>order</code> 开关目前完全无效（订单菜单跟 <code>product</code> 走），<code>comment</code> 有开关有路由但无菜单。逐个校准 12 个开关的「菜单可见性 + 小程序表现 + 后端 Guard」三方一致，并统一前端 store 与 <code>basic.vue</code> UI 的默认值（现在商品一个默认开、一个默认关）。</p>
+    </div>
+
+    <div class="issue p1">
+      <div class="issue-head"><span class="tag t-p1">P1-7</span><h4>评论审核接入内容流</h4></div>
+      <p>内容列表每行增加评论数与「审核」直达链接，评论审核页加入「内容运营」菜单。</p>
+    </div>
+
+    <div class="issue p2">
+      <div class="issue-head"><span class="tag t-p2">P2-8</span><h4>系统设置拆分</h4></div>
+      <p><code>basic.vue</code> 2342 行承担 5 个 Tab（基础 / 模块 / 物流 / 权限 / 订阅），拆为 <code>/system/basic</code>、<code>/system/modules</code>、<code>/system/logistics</code>、<code>/system/roles</code>、<code>/system/subscribe</code> 五页。模块开关切换增加二次确认（当前切换即保存，误点直接影响 C 端）。</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="no">05</span>分享功能升级<span class="tag t-brand" style="margin-left:auto">第 4 期</span></h2>
+    <p class="sec-lead">全系统最弱环节。地基已有：全站分享兜底（好友 + 朋友圈）、16 页增强分享、<code>inviterId</code> 归因链、后端邀请绑定接口与积分任务。</p>
+
+    <h3>5.1　三处断裂</h3>
+    <table>
+      <thead><tr><th style="width:150px">断裂点</th><th>具体表现</th><th style="width:24%">证据</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag t-p0">配置不生效</span></td>
+          <td><code>miniappShareTitle</code> / <code>miniappShareImage</code> 与页面 DSL 的 <code>share_title</code> / <code>share_image</code> 后台都能配，小程序运行时不读，仍用硬编码标题表</td>
+          <td><code>miniapp/utils/share.js:37-49</code></td>
+        </tr>
+        <tr>
+          <td><span class="tag t-p0">归因漏在主力页</span></td>
+          <td>内容 / 商品 / 动态 / 问答等 6 个详情页自定义了 <code>onShareAppMessage</code> 但绕过 <code>buildSharePath</code>，分享出去<strong>不带 inviterId</strong>——而这几页正是分享量最大的</td>
+          <td><code>content-detail.js:325</code> 等 6 处</td>
+        </tr>
+        <tr>
+          <td><span class="tag t-p0">无增长产品化</span></td>
+          <td>无小程序码、无分享海报、无邀请页；营销「邀请好友」是占位按钮；<code>reward_status</code> 建表后永远 pending；埋点无 <code>share</code> 事件，看板无分享数据</td>
+          <td><code>marketing/index.vue:50</code>、<code>V46:87</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>5.2　P0 接线（工作量小，收益立刻可见）</h3>
+    <table>
+      <thead><tr><th>改动</th><th style="width:40%">位置</th></tr></thead>
+      <tbody>
+        <tr><td><code>share.js</code> 优先读后台配置，硬编码表降为最后兜底</td><td><code>miniapp/utils/share.js:19-49</code></td></tr>
+        <tr><td>DSL 页把 <code>share_title</code> / <code>share_image</code> 写入页面分享配置</td><td><code>miniapp/utils/render.js:328</code>（已解析，补 setData）</td></tr>
+        <tr><td>6 个详情页自定义分享改为走 <code>buildSharePath</code></td><td>见 5.1 第 2 行各页</td></tr>
+        <tr><td>补 <code>share</code> 埋点事件（分享发起 + 分享落地）</td><td>复用 <code>/api/v1/mp/events</code></td></tr>
+        <tr><td>后台分享配置从 <code>basic.vue</code> 抽成独立「分享设置」</td><td>新页 <code>/system/share</code></td></tr>
+      </tbody>
+    </table>
+    <p>兜底链设计：后台配置 → 实体字段 → 硬编码，任一层缺失不报错，确保不影响已上线版本。</p>
+
+    <h3>5.3　P1 产品化</h3>
+    <ul>
+      <li><strong>小程序码生成</strong>：后端接 <code>getwxacodeunlimit</code>，支持带 scene 的渠道码 / 邀请码；后台可为页面、商品、星球一键生成并下载</li>
+      <li><strong>分享海报</strong>：小程序侧 canvas 合成（封面 + 标题 + 小程序码 + 邀请人昵称），详情页加「生成海报」</li>
+      <li><strong>邀请页</strong>：新增 <code>pkg-user/invite</code>，展示邀请码、已邀人数、奖励进度；后台占位页替换为真实配置（奖励类型、额度、上限）</li>
+      <li><strong>统一 scene 路由器</strong>：现在 <code>inviterId</code>、<code>sourceChannel</code>、内容 ID 三处各自解析 scene，合并为一个入口</li>
+    </ul>
+
+    <h3>5.4　P2 闭环与看板</h3>
+    <ul>
+      <li>邀请奖励真正发放：<code>reward_status</code> 状态机（pending → granted → 失败原因），支持积分 / 优惠券 / 会员天数三种奖励</li>
+      <li>被邀请人也给奖励（现在只有邀请人拿 10 积分）</li>
+      <li>分享看板：分享次数、分享带来访问 / 注册 / 付费，按页面与渠道拆分；接入「经营分析」漏斗补 share 步骤</li>
+    </ul>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="no">06</span>分期执行计划</h2>
+
+    <div class="phase">
+      <div class="phase-no">第 1 期</div>
+      <div class="phase-body">
+        <h4>视觉地基</h4>
+        <p>主题收口 + stylelint 约束 + 5 个布局组件 + 3 页试点（工作台 / 内容列表 / 星球配置）</p>
+        <div class="phase-accept"><b>验收</b>　三页无硬编码色值；视觉与原型一致；lint 规则生效</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-no">第 2 期</div>
+      <div class="phase-body">
+        <h4>命名与信息架构</h4>
+        <p>术语表落地 + 路由迁移（不留 redirect）+ 三处标题对齐 + 删 orphan 与死链 + 菜单补全 + AI 语料库改名</p>
+        <div class="phase-accept"><b>验收</b>　全量 grep 无旧路径残留；逐路由走查可达；菜单 / 面包屑 / 页面标题一致</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-no">第 3 期</div>
+      <div class="phase-body">
+        <h4>流程</h4>
+        <p>P0-1 ~ P0-4 四项 + P1-5 ~ P1-7 三项</p>
+        <div class="phase-accept"><b>验收</b>　会员体系单页配完；内容编辑不丢稿；发布概念收敛为 3 态；12 个开关三方一致</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-no">第 4 期</div>
+      <div class="phase-body">
+        <h4>分享</h4>
+        <p>5.2 全部 + 5.3 小程序码与邀请页</p>
+        <div class="phase-accept"><b>验收</b>　后台改分享文案 C 端立即生效；6 个详情页带 <code>inviterId</code>；邀请链路端到端跑通</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-no">第 5 期</div>
+      <div class="phase-body">
+        <h4>收尾</h4>
+        <p>剩余页面套组件 + 系统设置拆分 + 分享看板 + 数据表遗留清理</p>
+        <div class="phase-accept"><b>验收</b>　全量页面零硬编码；废表下线</div>
+      </div>
+    </div>
+
+    <p style="margin-top:20px">节奏建议：第 1、2 期不冲突可并行；第 3 期依赖第 2 期路由稳定；第 4 期独立，可随时插入。</p>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="no">07</span>风险与规避</h2>
+    <table>
+      <thead><tr><th style="width:30%">风险</th><th style="width:70px">影响</th><th>规避</th></tr></thead>
+      <tbody>
+        <tr><td>路由不留兼容，改漏一处即白屏</td><td><span class="tag t-p0">高</span></td><td>迁移后全量 grep 旧路径字面量；逐路由点击走查；router 加 404 兜底日志</td></tr>
+        <tr><td>数据表清理误删线上数据</td><td><span class="tag t-p0">高</span></td><td>只改名加 <code>_deprecated_</code> 前缀，观察一个版本再删；操作前 dump 备份</td></tr>
+        <tr><td>主题令牌替换导致页面样式错乱</td><td><span class="tag t-p1">中</span></td><td>先只新增 <code>theme.css</code> 并保留旧变量别名，试点三页验证后再删旧文件</td></tr>
+        <tr><td>stylelint 规则阻塞开发</td><td><span class="tag t-p1">中</span></td><td>规则先只对新增 / 改动文件生效（lint-staged），不做全量强制</td></tr>
+        <tr><td>分享改造影响已上线小程序</td><td><span class="tag t-p1">中</span></td><td>分享配置读取做兜底链，任一层缺失不报错</td></tr>
+        <tr><td>会员权益改勾选器，已有自由文本丢失</td><td><span class="tag t-p1">中</span></td><td>迁移脚本把原文本存入 <code>benefits_legacy_note</code> 保留展示</td></tr>
+        <tr><td>删 4 个 orphan 页面误删仍被引用的</td><td><span class="tag t-p2">低</span></td><td>删前 grep 组件名与路径确认零引用</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span class="no">08</span>执行约定</h2>
+    <ul>
+      <li>每期完成后给出改动清单 + 本地构建验证结果，确认后再部署</li>
+      <li>每期内部按「地基 → 试点 → 铺开」推进，试点不通过不铺开</li>
+      <li>不主动 commit，改动留在工作区供 review</li>
+      <li>涉及线上数据库变更（第 5 期表清理）单独提方案确认，不随期执行</li>
+    </ul>
+  </section>
+
+  <footer>
+    小程序搭建运营系统 · 后台全面升级方案 · 2026-09-14 定稿　|　配套原型：<code>prototypes/admin-theme.html</code>　|　Markdown 版：<code>docs/后台全面升级方案-20260914.md</code>
+  </footer>
+
+</div>
+</body>
+</html>

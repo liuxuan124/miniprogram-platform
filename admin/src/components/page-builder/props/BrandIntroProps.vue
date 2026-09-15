@@ -1,7 +1,7 @@
 <template>
   <el-form label-width="80px" size="small">
     <el-form-item label="标题">
-      <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="出海笔记 · 阿哲" />
+      <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="品牌介绍标题" />
     </el-form-item>
     <el-form-item label="眉标">
       <el-input :model-value="data.eyebrow" @input="emit('update', { eyebrow: $event })" placeholder="CROSS-BORDER GROWTH LAB" />

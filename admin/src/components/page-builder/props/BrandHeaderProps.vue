@@ -65,7 +65,7 @@
           :model-value="cfg.title || ''"
           maxlength="40"
           show-word-limit
-          placeholder="墨太白 · 跨境工具与知识平台"
+          placeholder="品牌名 · 一句话定位"
           @input="(v: string) => emitUpdate({ title: v })"
         />
       </el-form-item>

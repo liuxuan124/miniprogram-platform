@@ -23,6 +23,11 @@
     "dsl-float-button": "../dsl-float-button/dsl-float-button",
     "dsl-rich-text": "../dsl-rich-text/dsl-rich-text",
     "dsl-divider": "../dsl-divider/dsl-divider",
-    "dsl-spacer": "../dsl-spacer/dsl-spacer"
+    "dsl-spacer": "../dsl-spacer/dsl-spacer",
+    "dsl-image-cube": "../dsl-image-cube/dsl-image-cube",
+    "dsl-content-tabs": "../dsl-content-tabs/dsl-content-tabs",
+    "dsl-planet-hero": "../dsl-planet-hero/dsl-planet-hero",
+    "dsl-planet-topics": "../dsl-planet-topics/dsl-planet-topics",
+    "dsl-planet-feed": "../dsl-planet-feed/dsl-planet-feed"
   }
 }

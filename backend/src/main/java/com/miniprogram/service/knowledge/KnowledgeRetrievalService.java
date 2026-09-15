@@ -39,6 +39,18 @@ public class KnowledgeRetrievalService {
             int used = 0;
             for (Map<String, Object> row : rows) {
                 String body = String.valueOf(row.getOrDefault("body", ""));
+                String summary = String.valueOf(row.getOrDefault("summary", ""));
+                String citePolicy = String.valueOf(row.getOrDefault("citePolicy", "full"));
+                if ("none".equalsIgnoreCase(citePolicy)) {
+                    continue;
+                }
+                if ("summary".equalsIgnoreCase(citePolicy)) {
+                    if (StringUtils.hasText(summary)) {
+                        body = summary.trim();
+                    } else if (body.length() > 180) {
+                        body = body.substring(0, 180) + "…（付费原文摘要，完整内容请开通后查看）";
+                    }
+                }
                 if (used + body.length() > MAX_CHARS && !clipped.isEmpty()) {
                     break;
                 }
@@ -47,6 +59,7 @@ public class KnowledgeRetrievalService {
                 item.put("title", row.get("title"));
                 item.put("body", body);
                 item.put("sourceRef", row.get("sourceRef"));
+                item.put("citePolicy", citePolicy);
                 item.put("score", row.get("score"));
                 clipped.add(item);
                 used += body.length();

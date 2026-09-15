@@ -68,6 +68,7 @@ export const useUserStore = defineStore('user', () => {
       mustChangePassword.value = false
       sessionStorage.removeItem('mustChangePassword')
       removeToken()
+      try { localStorage.removeItem('mp_active_tenant_id') } catch { /* ignore */ }
     }
   }
 

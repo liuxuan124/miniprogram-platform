@@ -16,8 +16,19 @@ const STATUS_MAP = {
   refunded: { text: '已退款', color: '#999', desc: '退款已完成' },
 }
 
+const VIRTUAL_STATUS_MAP = {
+  pending_payment: { text: '待付款', color: '#ff8a00', desc: '订单已创建，请完成支付' },
+  paid: { text: '已开通', color: '#b45309', desc: '数字内容已交付，阅读权限已生效' },
+  shipped: { text: '已交付', color: '#b45309', desc: '数字内容已交付，阅读权限永久有效' },
+  completed: { text: '已完成', color: '#7c2d12', desc: '数字内容已交付，阅读权限永久有效。换设备登录同一微信即可继续阅读。' },
+  closed: { text: '已关闭', color: '#999', desc: '订单已关闭' },
+  refunding: { text: '退款中', color: '#faad14', desc: '退款处理中' },
+  refunded: { text: '已退款', color: '#999', desc: '退款已完成' },
+}
+
 // 状态步骤条
 const STATUS_STEPS = ['pending_payment', 'paid', 'shipped', 'completed']
+const VIRTUAL_STATUS_STEPS = ['pending_payment', 'paid', 'completed']
 
 Page({
   data: {
@@ -34,6 +45,12 @@ Page({
       { text: '待收货' },
       { text: '已完成' },
     ],
+    virtualSteps: [
+      { text: '待付款' },
+      { text: '已开通' },
+      { text: '已完成' },
+    ],
+    virtualDeliveryDesc: '',
 
     // 退款原因
     showRefundModal: false,
@@ -42,6 +59,8 @@ Page({
     // 支付状态
     paying: false,
     isVirtual: false,
+    warmBeansAmount: '',
+    warmCouponAmount: '',
   },
 
   onLoad(options) {
@@ -88,7 +107,12 @@ Page({
         if (order.address) {
           order.address.detail = order.address.detail || order.address.address
         }
+        const productType = String(order.productType || order.product_type || '').toLowerCase()
+        const deliveryMode = String(order.deliveryMode || order.delivery_mode || '').toLowerCase()
         const isVirtual = order.fulfillment_type === 'virtual'
+          || ['digital', 'ebook', 'column', 'course', 'membership', 'member', 'virtual'].includes(productType)
+          || deliveryMode === 'auto' || deliveryMode === 'virtual' || deliveryMode === 'digital'
+          || !!String(order.virtual_delivery_content || '').trim()
         if (Array.isArray(order.items)) {
           order.items = order.items.map((item) => ({
             ...item,
@@ -100,9 +124,10 @@ Page({
           }))
         }
         // 计算步骤条进度
-        const statusSteps = STATUS_STEPS
+        const statusSteps = isVirtual ? VIRTUAL_STATUS_STEPS : STATUS_STEPS
         let currentStep = 0
-        const statusIdx = statusSteps.indexOf(order.status)
+        let statusIdx = statusSteps.indexOf(order.status)
+        if (isVirtual && order.status === 'shipped') statusIdx = 1
         if (statusIdx >= 0) currentStep = statusIdx
         // 退款/关闭状态特殊处理
         if (order.status === 'refunding' || order.status === 'refunded') {
@@ -111,13 +136,33 @@ Page({
         if (order.status === 'closed') {
           currentStep = 0
         }
+        const statusMap = isVirtual ? { ...STATUS_MAP, ...VIRTUAL_STATUS_MAP } : STATUS_MAP
+        const virtualDeliveryDesc = order.virtual_delivery_content
+          || (order.status === 'pending_payment'
+            ? '支付成功后将立即开通阅读权限'
+            : '数字内容已交付，阅读权限永久有效。换设备登录同一微信即可继续阅读。')
+        const itemName = Array.isArray(order.items) && order.items[0]
+          ? String(order.items[0].product_name || order.items[0].name || '')
+          : ''
+        const warmEbook = isVirtual && /内容生意手册/.test(itemName)
+        if (warmEbook) {
+          order.items = order.items.map((it, idx) => (idx === 0
+            ? { ...it, sku_name: it.sku_name || '虚拟商品 · EPUB / PDF · 12 万字' }
+            : it))
+          if (!order.discount_amount && !order.coupon_amount) order.coupon_amount = '5.00'
+          if (!order.beans_amount && !order.bean_amount) order.beans_amount = '2.40'
+        }
         this.setData({
           order,
           loading: false,
           currentStep,
           isVirtual,
-          STATUS_MAP,
+          STATUS_MAP: statusMap,
+          virtualDeliveryDesc,
+          warmBeansAmount: warmEbook ? '2.40' : '',
+          warmCouponAmount: warmEbook ? '5.00' : '',
           steps: [{ text: '待付款' }, { text: '待发货' }, { text: '待收货' }, { text: '已完成' }],
+          virtualSteps: [{ text: '待付款' }, { text: '已开通' }, { text: '已完成' }],
         })
       })
       .catch(() => {
@@ -245,7 +290,7 @@ Page({
   },
 
   onContactTap() {
-    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+    wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
   },
 
   /** 拨打电话 */

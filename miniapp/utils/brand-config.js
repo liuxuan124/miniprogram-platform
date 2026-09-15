@@ -1,9 +1,31 @@
 const DEFAULT_MINIAPP_BRAND_CONFIG = {
-  appName: '出海笔记',
+  appName: '暖阁',
   logoUrl: '',
-  logoMark: '海',
-  loginTagline: '想认识一下你，可以吗？',
-  brandEyebrow: 'CROSS-BORDER NOTES',
+  logoMark: '暖',
+  loginTagline: '登录后继续 · 收藏 / 星球 / 已购',
+  brandEyebrow: 'WARM NOTES',
+  loginStyleKey: 'classic',
+}
+
+const LOGIN_STYLE_PRESETS = {
+  classic: {
+    brand: '#315efb',
+    brandDeep: '#2446c7',
+    panelBg: '#f6f3ee',
+    brandShadow: 'rgba(49, 94, 251, 0.28)',
+  },
+  warm: {
+    brand: '#C2410C',
+    brandDeep: '#9A3412',
+    panelBg: '#f8f1e7',
+    brandShadow: 'rgba(194, 65, 12, 0.24)',
+  },
+  ink: {
+    brand: '#1f2937',
+    brandDeep: '#111827',
+    panelBg: '#f3f4f6',
+    brandShadow: 'rgba(17, 24, 39, 0.22)',
+  },
 }
 
 let resolveMediaUrlFn = null
@@ -24,6 +46,24 @@ function pickText(value, fallback) {
   return text || fallback
 }
 
+function normalizeLoginStyleKey(key) {
+  const raw = String(key || '').trim().toLowerCase()
+  if (raw === 'warm' || raw === 'nuange' || raw === 'content') return 'warm'
+  if (raw === 'ink' || raw === 'minimal' || raw === 'dark' || raw === 'mono') return 'ink'
+  return 'classic'
+}
+
+function buildLoginThemeStyle(key) {
+  const preset = LOGIN_STYLE_PRESETS[normalizeLoginStyleKey(key)] || LOGIN_STYLE_PRESETS.classic
+  return [
+    `--brand:${preset.brand}`,
+    `--brand-deep:${preset.brandDeep}`,
+    `--brand-dark:${preset.brandDeep}`,
+    `--panel-bg:${preset.panelBg}`,
+    `--brand-shadow:${preset.brandShadow}`,
+  ].join(';')
+}
+
 function normalizeBrandConfig(raw, legacy) {
   const src = raw && typeof raw === 'object' ? raw : {}
   const legacyMap = legacy && typeof legacy === 'object' ? legacy : {}
@@ -33,12 +73,15 @@ function normalizeBrandConfig(raw, legacy) {
   )
   const logoUrl = resolveLogoUrl(pickText(src.logoUrl || legacyMap.site_logo, ''))
   const logoMark = pickText(src.logoMark || appName.charAt(0), DEFAULT_MINIAPP_BRAND_CONFIG.logoMark)
+  const loginStyleKey = normalizeLoginStyleKey(src.loginStyleKey)
   return {
     appName,
     logoUrl,
     logoMark,
     loginTagline: pickText(src.loginTagline, DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline),
     brandEyebrow: pickText(src.brandEyebrow, DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow),
+    loginStyleKey,
+    loginThemeStyle: buildLoginThemeStyle(loginStyleKey),
   }
 }
 
@@ -50,7 +93,10 @@ function resolveLoginTagline(brand, interceptAction) {
 
 module.exports = {
   DEFAULT_MINIAPP_BRAND_CONFIG,
+  LOGIN_STYLE_PRESETS,
   normalizeBrandConfig,
+  normalizeLoginStyleKey,
+  buildLoginThemeStyle,
   resolveLoginTagline,
   setMediaUrlResolver,
 }

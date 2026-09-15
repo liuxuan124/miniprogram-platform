@@ -129,7 +129,7 @@ async function main() {
   const itemList = [
     {
       address: 'pages/index/index',
-      tag: '跨境 资讯 内容',
+      tag: '跨境 资讯 干货',
       title: '首页',
       first_class: cat.first_class,
       second_class: cat.second_class,
@@ -138,8 +138,17 @@ async function main() {
     },
     {
       address: 'pages/content-list/content-list',
-      tag: '文章 资讯',
-      title: '内容',
+      tag: '文章 资讯 阅读',
+      title: '资讯',
+      first_class: cat.first_class,
+      second_class: cat.second_class,
+      first_id: cat.first_id,
+      second_id: cat.second_id,
+    },
+    {
+      address: 'pages/tab-hub/tab-hub',
+      tag: '清单 工具 阅读',
+      title: '清单',
       first_class: cat.first_class,
       second_class: cat.second_class,
       first_id: cat.first_id,
@@ -147,7 +156,7 @@ async function main() {
     },
     {
       address: 'pages/mine/mine',
-      tag: '个人中心',
+      tag: '个人中心 收藏',
       title: '我的',
       first_class: cat.first_class,
       second_class: cat.second_class,
@@ -159,7 +168,7 @@ async function main() {
   const auditBody = JSON.stringify({
     item_list: itemList,
     version_desc: versionDesc,
-    feedback_info: '本小程序为跨境资讯内容阅读平台，提供文章浏览、收藏与客服咨询，不含商品销售、在线支付与配送功能。',
+    feedback_info: '本小程序为「墨太白·出海笔记」跨境行业资讯与干货阅读平台，提供文章浏览、分类阅读、收藏与客服咨询。不含商品交易、会员充值、在线支付与配送功能。',
   })
 
   const auditRes = await requestJson(
