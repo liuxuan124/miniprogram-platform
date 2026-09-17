@@ -495,6 +495,10 @@ export interface ReleaseRecord {
   updateTime: string
   /** 操作模式: template=保存为模板, publish=发布上线 */
   mode?: 'template' | 'publish'
+  /** 整店模板名称 */
+  templateName?: string
+  /** 正在搭建使用中 */
+  isCurrent?: number | boolean
   /** 基于哪个模板编辑的（追踪来源） */
   baseReleaseId?: number
   /** 是否当前线上版本（前端计算） */

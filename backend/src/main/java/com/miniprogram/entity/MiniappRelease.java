@@ -38,6 +38,10 @@ public class MiniappRelease extends BaseEntity {
     @Schema(description = "发布说明")
     private String releaseNotes;
 
+    @Schema(description = "整店模板名称（内容/版式，不是微信代码包版本）")
+    @TableField("template_name")
+    private String templateName;
+
     @Schema(description = "发布快照(所有已发布页面DSL+系统配置的JSON)")
     @TableField("snapshot")
     private String snapshot;
@@ -54,6 +58,10 @@ public class MiniappRelease extends BaseEntity {
 
     @Schema(description = "发布模式: template=模板, publish=直接发布")
     private String mode;
+
+    @Schema(description = "正在搭建使用中 1=是 0=否")
+    @TableField("is_current")
+    private Integer isCurrent;
 
     @Schema(description = "发布时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

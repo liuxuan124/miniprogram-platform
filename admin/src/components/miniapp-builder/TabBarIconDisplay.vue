@@ -1,19 +1,20 @@
 <template>
   <img v-if="isImage" :src="displaySrc" alt="" class="tab-bar-icon-img" />
-  <span v-else class="tab-bar-icon-emoji">{{ icon || fallback }}</span>
+  <span v-else class="tab-bar-icon-emoji">{{ resolvedIcon || fallback }}</span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { isNavImageIcon, navIconDisplaySrc } from '@/components/page-builder/navIconSet'
+import { isNavImageIcon, navIconDisplaySrc, migrateTabBarIcon } from '@/components/page-builder/navIconSet'
 
 const props = defineProps<{
   icon?: string
   fallback?: string
 }>()
 
-const isImage = computed(() => isNavImageIcon(props.icon))
-const displaySrc = computed(() => navIconDisplaySrc(props.icon))
+const resolvedIcon = computed(() => migrateTabBarIcon(props.icon))
+const isImage = computed(() => isNavImageIcon(resolvedIcon.value))
+const displaySrc = computed(() => navIconDisplaySrc(resolvedIcon.value))
 </script>
 
 <style scoped>

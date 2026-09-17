@@ -24,6 +24,9 @@ public class CreateReleaseDTO {
     @Schema(description = "发布说明")
     private String releaseNotes;
 
+    @Schema(description = "整店模板名称（mode=template 时使用）")
+    private String templateName;
+
     @Schema(description = "自定义版本号（如提供则覆盖自动生成的版本号）")
     @Pattern(regexp = "^\\d+\\.\\d+\\.\\d+$", message = "版本号格式必须为 x.y.z")
     private String customSemver;

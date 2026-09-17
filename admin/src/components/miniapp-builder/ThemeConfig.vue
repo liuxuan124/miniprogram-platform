@@ -1,7 +1,5 @@
 <template>
   <div class="theme-config">
-    <div class="config-label">主题配色</div>
-
     <div class="preset-row">
       <span class="preset-label">行业色系</span>
       <div class="preset-colors">
@@ -9,14 +7,17 @@
           v-for="(colors, key) in industryPresets"
           :key="key"
           class="preset-btn"
+          :class="{ selected: presetSelected(key) }"
           :style="{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }"
           :title="industryLabels[key] || key"
           @click="applyPreset(key)"
-        ></button>
+        >
+          <el-icon v-if="presetSelected(key)" class="preset-check"><Check /></el-icon>
+        </button>
       </div>
     </div>
 
-    <el-form label-width="80px" size="small">
+    <el-form label-width="180px" size="small" class="theme-color-form">
       <el-form-item label="主色调">
         <el-color-picker :model-value="modelValue.primaryColor" @change="(v: string) => updateField('primaryColor', v)" />
       </el-form-item>
@@ -40,6 +41,7 @@
 </template>
 
 <script setup lang="ts">
+import { Check } from '@element-plus/icons-vue'
 import { IndustryLabels, IndustryColors } from '@/types/page'
 import type { ThemeConfig } from '@/types/miniapp'
 
@@ -48,6 +50,11 @@ const emit = defineEmits<{ 'update:modelValue': [value: ThemeConfig] }>()
 
 const industryPresets = IndustryColors
 const industryLabels = IndustryLabels
+
+function presetSelected(key: string) {
+  const colors = IndustryColors[key]
+  return Boolean(colors && colors[0] === props.modelValue.primaryColor && colors[1] === props.modelValue.secondaryColor)
+}
 
 function updateField(key: string, value: string) {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
@@ -67,11 +74,13 @@ function applyPreset(industryKey: string) {
 </script>
 
 <style scoped>
-.theme-config { margin-bottom: 20px; }
-.config-label { font-size: 14px; font-weight: 700; color: #172033; margin-bottom: 10px; }
+.theme-config { margin-bottom: 8px; }
 .preset-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.preset-label { font-size: 12px; color: #7b8798; white-space: nowrap; }
+.preset-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .preset-colors { display: flex; flex-wrap: wrap; gap: 6px; }
-.preset-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15); cursor: pointer; transition: 0.14s; }
+.preset-btn { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg-elevated); box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 15%, transparent); cursor: pointer; transition: 0.14s; }
 .preset-btn:hover { transform: scale(1.2); }
+.preset-btn.selected { box-shadow: 0 0 0 2px var(--brand); }
+.preset-check { position: absolute; top: -6px; right: -6px; color: var(--brand); font-size: 12px; background: var(--bg-elevated); border-radius: 50%; }
+.theme-color-form :deep(.el-form-item__label) { width: 180px !important; }
 </style>

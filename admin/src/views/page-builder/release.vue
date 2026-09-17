@@ -1,46 +1,15 @@
 <template>
   <div class="release-page">
     <PageHeader
-      kicker="小程序 / 发布"
-      title="发布与版本"
-      description="这里管理小程序的版本存档与代码上传。日常改页面内容不用来这里。"
+      title="发布中心"
+      description="只管内容版本：存档、上线、回退。微信体验版/正式版在本页最下方单独处理，和整店模板不是一回事。"
     >
       <template #actions>
-        <el-button @click="router.push('/page-builder/overview')">返回总览</el-button>
-        <el-button @click="loadAll">刷新</el-button>
+        <el-button :loading="loading" aria-label="刷新发布检查" @click="loadAll">刷新</el-button>
       </template>
     </PageHeader>
 
-    <!-- 三步导航：先回答「我该点哪个」 -->
-    <section class="guide">
-      <div class="guide-title">你想做什么？</div>
-      <div class="guide-grid">
-        <div class="guide-card">
-          <div class="guide-num">1</div>
-          <div class="guide-body">
-            <div class="guide-head">改了页面内容</div>
-            <p>换图、加商品、改文案。在装修器点「上线」即可，<b>用户刷新小程序立刻看到</b>，不用来这一页。</p>
-            <el-button size="small" @click="router.push('/page-builder/list')">去页面列表</el-button>
-          </div>
-        </div>
-        <div class="guide-card guide-card--active">
-          <div class="guide-num">2</div>
-          <div class="guide-body">
-            <div class="guide-head">存一个可回退的版本</div>
-            <p>大改版之前存个档。万一改坏了，可以一键退回到这个版本。<b>就是本页下方的操作。</b></p>
-            <el-button size="small" type="primary" plain @click="scrollToSave">去保存版本</el-button>
-          </div>
-        </div>
-        <div class="guide-card">
-          <div class="guide-num">3</div>
-          <div class="guide-body">
-            <div class="guide-head">小程序代码变了</div>
-            <p>技术同事更新了小程序端功能时才需要。上传后<b>还要去微信公众平台提交审核</b>，审核通过才对用户生效。</p>
-            <el-button size="small" @click="scrollToHistory">去版本记录</el-button>
-          </div>
-        </div>
-      </div>
-    </section>
+    <PublishGuideCards :cards="guideCards" @action="onGuideAction" />
 
     <!-- 主操作区：备注与按钮放在一起 -->
     <section id="save-block" class="save-block" v-loading="loading">
@@ -122,11 +91,11 @@
       <div class="card-head">
         <h2>版本记录</h2>
         <span class="muted">
-          「预览」看当时的样子；「回退到这个版本」会把线上页面和导航恢复成当时的状态；
-          「上传代码到微信」只在小程序代码有更新时才用。
+          「预览」看当时的样子；「回退到这个版本」会把线上页面和导航恢复成当时的状态。
+          上传微信代码请用下方独立区域。
         </span>
       </div>
-      <el-table v-loading="historyLoading" :data="history" size="small">
+      <el-table v-loading="historyLoading" :data="history" size="small" table-layout="auto">
         <el-table-column label="版本" width="140">
           <template #default="{ row }">v{{ row.semver }}</template>
         </el-table-column>
@@ -134,15 +103,15 @@
           <template #default="{ row }">
             <el-tag v-if="row.status === 1" type="success" size="small">线上使用中</el-tag>
             <el-tag v-else-if="row.status === 2" type="info" size="small">历史版本</el-tag>
-            <el-tag v-else size="small">草稿</el-tag>
+            <el-tag v-else size="small">未发布</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="pageCount" label="页面数" width="90" />
         <el-table-column label="保存时间" min-width="160">
           <template #default="{ row }">{{ formatTime(row.publishedAt || row.createTime) }}</template>
         </el-table-column>
-        <el-table-column prop="releaseNotes" label="这次改了什么" min-width="180" show-overflow-tooltip />
-        <el-table-column label="操作" width="320" fixed="right">
+        <el-table-column prop="releaseNotes" label="这次改了什么" min-width="280" show-overflow-tooltip />
+        <el-table-column label="操作" width="240">
           <template #default="{ row }">
             <el-button link type="primary" @click="openPreview(row)">预览</el-button>
             <el-button
@@ -153,24 +122,6 @@
             >
               回退到这个版本
             </el-button>
-            <el-tooltip
-              v-if="row.status === 1"
-              :disabled="pushStatus?.uploadAvailable !== false"
-              content="当前服务器未配置上传密钥，请联系技术同事处理"
-              placement="top"
-            >
-              <span>
-                <el-button
-                  link
-                  type="primary"
-                  :loading="pushing"
-                  :disabled="pushStatus?.uploadAvailable === false"
-                  @click="handlePushPreview(row)"
-                >
-                  上传代码到微信
-                </el-button>
-              </span>
-            </el-tooltip>
           </template>
         </el-table-column>
       </el-table>
@@ -216,6 +167,38 @@
       </el-table>
       <el-empty v-if="!pagesLoading && !pageVersionRows.length" description="还没有装修页面" :image-size="60" />
     </section>
+
+    <section id="wechat-block" class="card wechat-block">
+      <div class="card-head">
+        <h2>微信代码包</h2>
+        <span class="muted">
+          这里才是体验版/正式版代码上传。日常改页面不用走这里，也和「整店模板」无关。
+        </span>
+      </div>
+      <div class="wechat-row">
+        <div>
+          <div class="wechat-label">上次上传</div>
+          <div class="wechat-value">{{ pushStatus?.message || '尚未上传过代码包' }}</div>
+        </div>
+        <el-tooltip
+          :disabled="pushStatus?.uploadAvailable !== false"
+          content="当前服务器未配置上传密钥，请联系技术同事处理"
+          placement="top"
+        >
+          <span>
+            <el-button
+              type="primary"
+              plain
+              :loading="pushing"
+              :disabled="!liveRelease || pushStatus?.uploadAvailable === false"
+              @click="liveRelease && handlePushPreview(liveRelease)"
+            >
+              上传当前版本到微信体验版
+            </el-button>
+          </span>
+        </el-tooltip>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -224,6 +207,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
+import PublishGuideCards, { type GuideAction } from '@/components/PublishGuideCards.vue'
 import {
   getPublishPreflight,
   createRelease,
@@ -238,6 +222,34 @@ import type { ReleaseRecord } from '@/types/page'
 import { getPageList } from '@/api/page'
 
 const router = useRouter()
+
+const guideCards = [
+  {
+    head: '改了页面内容',
+    body: '换图、加商品、改文案。在装修器点「<b>上线</b>」即可，<b>用户刷新小程序立刻看到</b>，不用来这一页。',
+    cta: '去页面管理',
+    action: 'pages' as const,
+  },
+  {
+    head: '存一个可回退的版本',
+    body: '大改版之前存个档。万一改坏了，可以一键退回到这个版本。<b>就是本页下方的操作。</b>',
+    cta: '去保存版本',
+    action: 'save' as const,
+    active: true,
+  },
+  {
+    head: '小程序代码变了',
+    body: '技术同事更新了小程序端功能时才需要。上传后<b>还要去微信公众平台提交审核</b>，审核通过才对用户生效。',
+    cta: '去微信代码包',
+    action: 'history' as const,
+  },
+]
+
+function onGuideAction(key: GuideAction) {
+  if (key === 'pages') router.push('/page-builder/list')
+  else if (key === 'save') scrollToSave()
+  else document.getElementById('wechat-block')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 const loading = ref(false)
 const publishing = ref(false)
 const historyLoading = ref(false)
@@ -254,6 +266,7 @@ const pushStatus = ref<{
 } | null>(null)
 
 const canPublish = computed(() => Boolean(preflight.value?.canPublish))
+const liveRelease = computed(() => history.value.find((row) => row.status === 1) || latestRelease.value)
 const currentSemver = computed(() => {
   const v = preflight.value?.latestSemver || latestRelease.value?.semver
   return v ? `v${String(v).replace(/^v/, '')}` : '尚未保存过版本'
@@ -265,10 +278,10 @@ const blockingItems = computed(() => {
   const list = preflight.value?.blocking || []
   return list.map((text) => {
     if (text.includes('首页') || text.includes('导航') || text.includes('外观')) {
-      return { text, to: '/page-builder/start', action: '去外观设置' }
+      return { text, to: '/page-builder/start', action: '去品牌导航' }
     }
     if (text.includes('装修') || text.includes('页面') || text.includes('内容')) {
-      return { text, to: '/page-builder/list', action: '去页面列表' }
+      return { text, to: '/page-builder/list', action: '去页面管理' }
     }
     return { text, to: '', action: '' }
   })
@@ -688,5 +701,30 @@ onMounted(loadAll)
   color: var(--text-muted);
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.wechat-block {
+  border-color: #dbeafe;
+  background: #f8fbff;
+}
+
+.wechat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.wechat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.wechat-value {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.45;
 }
 </style>

@@ -1,31 +1,36 @@
 <template>
   <div class="pages-list">
     <PageHeader
-      kicker="小程序 / 页面"
-      title="页面"
-      description="创建和装修页面。改完点「上线」，小程序里立刻生效。"
+      title="页面管理"
+      description="按模块管理独立页面。AI 生成也在这里。改完点「上线」，用户刷新立刻看到。"
     >
       <template #actions>
-        <el-button @click="router.push('/page-builder/overview')">总览</el-button>
-        <el-button @click="router.push('/page-builder/start')">外观</el-button>
+        <el-button @click="openAiDraft">AI 生成页面</el-button>
+        <el-button @click="handleSelectTemplate">页面模板</el-button>
         <el-button type="primary" @click="handleCreate">新建页面</el-button>
       </template>
     </PageHeader>
 
     <el-row :gutter="12" class="stats-row">
-      <el-col v-for="stat in statsCards" :key="stat.label" :span="6">
-        <div class="stat-card">
+      <el-col v-for="stat in statsCards" :key="stat.label" :span="12">
+        <button
+          type="button"
+          class="stat-card"
+          :aria-label="stat.ariaLabel"
+          @click="handleStatClick(stat.key)"
+        >
           <div class="stat-value">{{ stat.value }}</div>
           <div class="stat-label">{{ stat.label }}</div>
           <div class="stat-icon" :style="{ background: stat.bg }">
             <el-icon :size="18"><component :is="stat.icon" /></el-icon>
           </div>
-        </div>
+        </button>
       </el-col>
     </el-row>
 
-    <div class="toolbar">
+    <div ref="toolbarRef" class="toolbar">
       <el-input
+        ref="searchInputRef"
         v-model="searchForm.keyword"
         class="toolbar-search"
         placeholder="搜索页面名称"
@@ -36,11 +41,12 @@
       <el-select
         v-model="searchForm.type"
         class="toolbar-select"
-        placeholder="用途：全部"
+        placeholder="模块：全部"
         clearable
         @change="handleSearch"
       >
         <el-option label="首页" value="home" />
+        <el-option label="我的" value="mine" />
         <el-option label="专题页" :value="2" />
         <el-option label="自定义页" :value="3" />
       </el-select>
@@ -55,8 +61,8 @@
         <el-option label="有未上线的改动" value="dirty" />
         <el-option label="草稿" value="draft" />
       </el-select>
-      <el-button @click="handleSearch">查询</el-button>
-      <el-button text @click="handleReset">重置</el-button>
+      <el-button type="primary" @click="handleSearch">查询</el-button>
+      <el-button @click="handleReset">重置</el-button>
       <div class="toolbar-spacer" />
       <template v-if="selectedRows.length">
         <el-button :loading="batchRunning" @click="batchSetStatus('publish')">
@@ -65,101 +71,109 @@
         <el-button :disabled="batchRunning" @click="batchSetStatus('unpublish')">批量下架</el-button>
         <el-button :disabled="batchRunning" type="danger" plain @click="batchDelete">批量删除</el-button>
       </template>
-      <el-button @click="handleSelectTemplate">模板</el-button>
     </div>
 
     <section class="table-panel">
       <ListStateWrap
         :loading="loading"
         :error="error"
-        :empty="!loading && displayList.length === 0"
+        :empty="!loading && pageGroups.length === 0"
         empty-text="还没有装修页面"
-        empty-description="请先创建页面并完成装修，再到「外观」绑定底部导航"
+        empty-description="请先创建页面并完成装修，再到「品牌导航」绑定底部导航"
         @retry="fetchList"
       >
         <template #empty-action>
           <el-button type="primary" @click="handleCreate">新建页面</el-button>
+          <el-button @click="openAiDraft">AI 生成页面</el-button>
           <el-button @click="handleSelectTemplate">从模板创建</el-button>
         </template>
 
-        <el-table
-          :data="tableRows"
-          row-key="id"
-          table-layout="auto"
-          :row-class-name="rowClassName"
-          @selection-change="handleSelectionChange"
-        >
-          <el-table-column type="selection" width="44" :selectable="isSelectable" />
-          <el-table-column prop="name" label="页面名称" min-width="200" sortable>
-            <template #default="{ row }">
-              <div class="page-name-cell">
-                <b>{{ row.name }}</b>
-                <span class="sub">{{ row.__isMine ? '系统个人中心页，使用表单配置' : (row.shareTitle || row.share_title || '用于小程序页面展示') }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="用途" width="110" align="center">
-            <template #default="{ row }">
-              <el-tag v-if="row.__isMine" type="info" effect="plain">我的</el-tag>
-              <el-tag v-else effect="plain">{{ getPageTypeLabel(row) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="访问路径" min-width="220">
-            <template #default="{ row }">
-              <div class="path-cell">
-                <span class="mono">{{ row.path }}</span>
-                <div class="path-actions">
-                  <el-button link type="primary" size="small" @click="copyPath(row)">复制</el-button>
-                  <el-button v-if="!row.__isMine" link type="primary" size="small" @click="showQr(row)">二维码</el-button>
+        <div v-for="group in pageGroups" :key="group.key" class="module-block">
+          <h3 class="module-block__title">{{ group.label }} <span>{{ group.rows.length }}</span></h3>
+          <el-table
+            :data="group.rows"
+            row-key="id"
+            table-layout="auto"
+            @selection-change="(rows: PageRow[]) => handleGroupSelection(group.key, rows)"
+          >
+            <el-table-column type="selection" width="44" :selectable="isSelectable" />
+            <el-table-column prop="name" label="页面名称" min-width="200" sortable>
+              <template #default="{ row }">
+                <div class="page-name-cell">
+                  <b>{{ row.name }}</b>
+                  <span class="sub">{{ row.__isMine ? '系统个人中心页，使用表单配置' : (row.shareTitle || row.share_title || '用于小程序页面展示') }}</span>
                 </div>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="130" align="center">
-            <template #default="{ row }">
-              <el-tag v-if="row.__isMine" type="info" effect="light">系统页</el-tag>
-              <el-tag v-else :type="getLiveStatusTagType(row)" effect="light">
-                {{ getLiveStatusLabel(row) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="updated_at" label="更新时间" width="170" sortable>
-            <template #default="{ row }">{{ row.__isMine ? '—' : row.updated_at }}</template>
-          </el-table-column>
-          <el-table-column label="操作" width="220" fixed="right">
-            <template #default="{ row }">
-              <template v-if="row.__isMine">
-                <el-button link type="primary" size="small" @click="router.push('/page-builder/mine')">配置</el-button>
               </template>
-              <template v-else>
-                <el-button link type="primary" size="small" @click="handleEdit(row)">装修</el-button>
-                <el-button
-                  link
-                  :type="isPublished(row.status) ? 'warning' : 'success'"
-                  size="small"
-                  @click="handlePublish(row)"
-                >{{ isPublished(row.status) ? '下架' : '上线' }}</el-button>
-                <el-dropdown trigger="click" @command="(cmd: string) => handleRowCommand(cmd, row)">
-                  <el-button link size="small" class="more-btn">
-                    更多<el-icon><ArrowDown /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="duplicate">复制页面</el-dropdown-item>
-                      <el-dropdown-item command="editMeta">编辑信息</el-dropdown-item>
-                      <el-dropdown-item command="preview">预览</el-dropdown-item>
-                      <el-dropdown-item command="qrcode">扫码查看</el-dropdown-item>
-                      <el-dropdown-item command="version">历史版本</el-dropdown-item>
-                      <el-dropdown-item command="delete" divided>
-                        <span class="danger-text">删除</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
+            </el-table-column>
+            <el-table-column label="模块" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.__isMine" type="info" effect="plain">我的</el-tag>
+                <el-tag v-else effect="plain">{{ getPageTypeLabel(row) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="访问路径" min-width="220">
+              <template #default="{ row }">
+                <div class="path-cell">
+                  <span class="mono">{{ row.path }}</span>
+                  <el-button
+                    class="path-copy"
+                    link
+                    type="primary"
+                    size="small"
+                    aria-label="复制路径"
+                    @click="copyPath(row)"
+                  >复制</el-button>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="130" align="center">
+              <template #default="{ row }">
+                <el-tag v-if="row.__isMine" type="info" effect="light">系统页</el-tag>
+                <el-tag v-else :type="getLiveStatusTagType(row)" effect="light">
+                  {{ getLiveStatusLabel(row) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="updated_at" label="更新时间" width="170" sortable>
+              <template #default="{ row }">{{ row.__isMine ? '—' : row.updated_at }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="230" fixed="right">
+              <template #default="{ row }">
+                <div class="row-actions">
+                  <template v-if="row.__isMine">
+                    <el-button link type="primary" size="small" @click="router.push('/page-builder/mine')">配置</el-button>
                   </template>
-                </el-dropdown>
+                  <template v-else>
+                    <el-button link type="primary" size="small" @click="handleEdit(row)">装修</el-button>
+                    <el-button
+                      link
+                      :type="isPublished(row.status) ? 'warning' : 'success'"
+                      size="small"
+                      @click="handlePublish(row)"
+                    >{{ isPublished(row.status) ? '下架' : '上线' }}</el-button>
+                    <el-dropdown trigger="click" @command="(cmd: string) => handleRowCommand(cmd, row)">
+                      <el-button link size="small" class="more-btn" aria-label="更多操作">
+                        更多<el-icon><ArrowDown /></el-icon>
+                      </el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="duplicate">复制页面</el-dropdown-item>
+                          <el-dropdown-item command="editMeta">编辑信息</el-dropdown-item>
+                          <el-dropdown-item command="preview">预览</el-dropdown-item>
+                          <el-dropdown-item command="qrcode">扫码查看</el-dropdown-item>
+                          <el-dropdown-item command="version">历史版本</el-dropdown-item>
+                          <el-dropdown-item command="delete" divided>
+                            <span class="danger-text">删除</span>
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </template>
+                </div>
               </template>
-            </template>
-          </el-table-column>
-        </el-table>
+            </el-table-column>
+          </el-table>
+        </div>
       </ListStateWrap>
 
       <div class="table-footer">
@@ -243,6 +257,8 @@
         <el-button type="primary" @click="copyToClipboard(qrUrl, '预览链接已复制')">复制链接</el-button>
       </template>
     </el-dialog>
+
+    <AiPagePipelineDialog v-model="aiPipelineVisible" @opened="onAiDraftOpened" @created="fetchList" />
   </div>
 </template>
 
@@ -253,11 +269,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
 import ListStateWrap from '@/components/ListStateWrap.vue'
-import { Document, Brush, OfficeBuilding, Grid, ArrowDown } from '@element-plus/icons-vue'
+import { Document, Brush, ArrowDown } from '@element-plus/icons-vue'
 import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates, duplicatePage } from '@/api/page'
 import { normalizeUploadUrl, getConfigsSilent } from '@/api/system'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import PagePathField from '@/components/page-builder/PagePathField.vue'
+import AiPagePipelineDialog from '@/components/page-builder/AiPagePipelineDialog.vue'
 import type { PageRecord, CreatePageParams, PageListParams } from '@/types/page'
 import QRCode from 'qrcode'
 import {
@@ -283,13 +300,14 @@ const searchForm = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 10,
+  pageSize: 50,
   total: 0,
 })
 
 const pageList = ref<PageRecord[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const aiPipelineVisible = ref(false)
 const qrVisible = ref(false)
 const qrDataUrl = ref('')
 const qrUrl = ref('')
@@ -298,6 +316,8 @@ const displayList = computed(() => {
   let rows = pageList.value
   if (searchForm.type === 'home') {
     rows = rows.filter((row) => boundHomePageId.value && String(row.id) === boundHomePageId.value)
+  } else if (searchForm.type === 'mine') {
+    rows = []
   }
   if (searchForm.status === 'live') {
     rows = rows.filter((row) => getLiveStatusKey(row) === 'live')
@@ -318,22 +338,53 @@ const mineRow: PageRow = {
   __isMine: true,
 } as unknown as PageRow
 
-const tableRows = computed<PageRow[]>(() => [mineRow, ...displayList.value])
+const tableRows = computed<PageRow[]>(() => {
+  if (searchForm.type === 'mine') return [mineRow]
+  if (searchForm.type && searchForm.type !== '') return displayList.value as PageRow[]
+  return [mineRow, ...displayList.value]
+})
+
+function pageModuleKey(row: PageRow): string {
+  if (row.__isMine) return 'mine'
+  if (boundHomePageId.value && String(row.id) === boundHomePageId.value) return 'home'
+  const t = String(row.type ?? '')
+  if (t === '2' || t === 'topic') return 'topic'
+  if (t === 'activity') return 'activity'
+  return 'custom'
+}
+
+const MODULE_META: Array<{ key: string; label: string }> = [
+  { key: 'home', label: '首页' },
+  { key: 'mine', label: '我的' },
+  { key: 'topic', label: '专题页' },
+  { key: 'activity', label: '活动页' },
+  { key: 'custom', label: '自定义页' },
+]
+
+const pageGroups = computed(() => {
+  const buckets = new Map<string, PageRow[]>()
+  for (const row of tableRows.value) {
+    const key = pageModuleKey(row)
+    const list = buckets.get(key) || []
+    list.push(row)
+    buckets.set(key, list)
+  }
+  return MODULE_META
+    .map((m) => ({ ...m, rows: buckets.get(m.key) || [] }))
+    .filter((g) => g.rows.length > 0)
+})
 
 function isSelectable(row: PageRow) {
   return !row.__isMine
 }
 
-function rowClassName({ row }: { row: PageRow }) {
-  return row.__isMine ? 'mine-row' : ''
-}
-
 const statsCards = ref([
-  { label: '装修页面', value: '-', icon: Document, bg: 'var(--brand-soft)' },
-  { label: '可用模板', value: '-', icon: Brush, bg: 'var(--warning-soft)' },
-  { label: '行业方案', value: '12', icon: OfficeBuilding, bg: 'var(--success-soft)' },
-  { label: '组件类型', value: '26', icon: Grid, bg: 'var(--info-soft)' },
+  { key: 'pages', label: '装修页面', value: '-', icon: Document, bg: 'var(--bg-page)', ariaLabel: '查看装修页面列表' },
+  { key: 'templates', label: '可用模板', value: '-', icon: Brush, bg: 'var(--bg-page)', ariaLabel: '打开模板' },
 ])
+
+const toolbarRef = ref<HTMLElement | null>(null)
+const searchInputRef = ref<{ focus: () => void } | null>(null)
 
 const dialogVisible = ref(false)
 const dialogType = ref<'create' | 'edit'>('create')
@@ -556,7 +607,7 @@ async function fetchList() {
       size: pagination.pageSize,
       keyword: searchForm.keyword || undefined,
     }
-    if (searchForm.type && searchForm.type !== 'home') {
+    if (searchForm.type && searchForm.type !== 'home' && searchForm.type !== 'mine') {
       params.type = Number(searchForm.type)
     }
     if (searchForm.status === 'live' || searchForm.status === 'dirty') {
@@ -605,7 +656,9 @@ watch(
 function initSearchFromRoute() {
   const q = route.query
   if (typeof q.keyword === 'string') searchForm.keyword = q.keyword
-  if (typeof q.type === 'string') searchForm.type = q.type === 'home' ? 'home' : Number(q.type) || q.type
+  if (typeof q.type === 'string') {
+    searchForm.type = q.type === 'home' || q.type === 'mine' ? q.type : Number(q.type) || q.type
+  }
   if (typeof q.status === 'string') searchForm.status = q.status
 }
 
@@ -622,8 +675,27 @@ function handleCreate() {
   dialogVisible.value = true
 }
 
+function openAiDraft() {
+  aiPipelineVisible.value = true
+}
+
+function onAiDraftOpened(pageId: string | number) {
+  fetchList()
+  router.push({ name: 'PageBuilderEditor', params: { id: pageId } })
+}
+
 function handleSelectTemplate() {
   router.push({ name: 'TemplateCenter' })
+}
+
+function focusPageList() {
+  toolbarRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  nextTick(() => searchInputRef.value?.focus())
+}
+
+function handleStatClick(key: string) {
+  if (key === 'pages') focusPageList()
+  else if (key === 'templates') handleSelectTemplate()
 }
 
 function handleEdit(row: PageRecord) {
@@ -730,11 +802,15 @@ async function handleDelete(row: PageRecord) {
 
 /* ---------- 批量操作 ---------- */
 
-const selectedRows = ref<PageRow[]>([])
+const selectedByGroup = ref<Record<string, PageRow[]>>({})
+const selectedRows = computed(() => Object.values(selectedByGroup.value).flat())
 const batchRunning = ref(false)
 
-function handleSelectionChange(rows: PageRow[]) {
-  selectedRows.value = rows.filter((row) => !row.__isMine)
+function handleGroupSelection(key: string, rows: PageRow[]) {
+  selectedByGroup.value = {
+    ...selectedByGroup.value,
+    [key]: rows.filter((row) => !row.__isMine),
+  }
 }
 
 async function batchSetStatus(action: 'publish' | 'unpublish') {
@@ -903,11 +979,28 @@ watch(
 
 .stat-card {
   position: relative;
+  display: block;
+  width: 100%;
   padding: 16px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    border-color: var(--brand, var(--color-primary));
+    box-shadow: var(--shadow-md, 0 6px 18px rgba(23, 105, 255, 0.08));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand, var(--color-primary));
+    outline-offset: 2px;
+  }
 }
 
 .stat-value {
@@ -931,6 +1024,7 @@ watch(
   place-items: center;
   border-radius: 10px;
   font-size: 16px;
+  color: var(--text-secondary);
 }
 
 .toolbar {
@@ -960,6 +1054,23 @@ watch(
   padding: 8px 16px 16px;
 }
 
+.module-block + .module-block {
+  margin-top: 20px;
+}
+
+.module-block__title {
+  margin: 12px 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+
+  span {
+    margin-left: 6px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+}
+
 .page-name-cell {
   display: flex;
   flex-direction: column;
@@ -976,16 +1087,20 @@ watch(
 }
 
 .path-cell {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.path-actions {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.path-copy {
+  opacity: 0;
   flex-shrink: 0;
+}
+
+.path-cell:hover .path-copy,
+.path-copy:focus-visible {
+  opacity: 1;
 }
 
 .mono {
@@ -994,7 +1109,18 @@ watch(
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 28px;
+}
+
 .more-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  line-height: 24px;
   color: var(--text-secondary);
 
   .el-icon {
@@ -1004,10 +1130,6 @@ watch(
 
 .danger-text {
   color: var(--danger);
-}
-
-:deep(.mine-row) {
-  background: var(--bg-page);
 }
 
 .table-footer {

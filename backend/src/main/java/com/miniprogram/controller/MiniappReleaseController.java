@@ -9,6 +9,7 @@ import com.miniprogram.dto.miniapp.PushPreviewDTO;
 import com.miniprogram.dto.miniapp.PushPreviewResultVO;
 import com.miniprogram.dto.miniapp.ReleaseQueryDTO;
 import com.miniprogram.dto.miniapp.RollbackDTO;
+import com.miniprogram.dto.miniapp.StoreTemplateNameDTO;
 import com.miniprogram.entity.MiniappRelease;
 import com.miniprogram.entity.VersionOperationLog;
 import com.miniprogram.service.MiniappReleaseService;
@@ -94,6 +95,56 @@ public class MiniappReleaseController {
     @PreAuthorize("hasAuthority('page:list')")
     public R<PushPreviewResultVO> getPushPreviewStatus() {
         return R.ok(miniappWxUploadService.getLastPushStatus());
+    }
+
+    @Operation(summary = "整店模板列表", description = "内容/版式模板，不是微信代码包版本")
+    @GetMapping("/store-templates")
+    @PreAuthorize("hasAuthority('page:list')")
+    public R<List<MiniappRelease>> listStoreTemplates() {
+        return R.ok(miniappReleaseService.listStoreTemplates());
+    }
+
+    @Operation(summary = "从当前搭建新建整店模板")
+    @PostMapping("/store-templates")
+    @OperationLog("新建整店模板")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<MiniappRelease> createStoreTemplate(@RequestBody(required = false) StoreTemplateNameDTO dto) {
+        String name = dto == null ? null : dto.getTemplateName();
+        return R.ok(miniappReleaseService.createStoreTemplate(name));
+    }
+
+    @Operation(summary = "复制整店模板")
+    @PostMapping("/{id}/duplicate")
+    @OperationLog("复制整店模板")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<MiniappRelease> duplicateStoreTemplate(@PathVariable Long id,
+                                                   @RequestBody(required = false) StoreTemplateNameDTO dto) {
+        String name = dto == null ? null : dto.getTemplateName();
+        return R.ok(miniappReleaseService.duplicateStoreTemplate(id, name));
+    }
+
+    @Operation(summary = "重命名整店模板")
+    @PutMapping("/{id}/rename")
+    @OperationLog("重命名整店模板")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<MiniappRelease> renameStoreTemplate(@PathVariable Long id, @Valid @RequestBody StoreTemplateNameDTO dto) {
+        return R.ok(miniappReleaseService.renameStoreTemplate(id, dto.getTemplateName()));
+    }
+
+    @Operation(summary = "选用整店模板为正在搭建", description = "写入页面与外观配置，不上传微信代码包")
+    @PutMapping("/{id}/activate")
+    @OperationLog("选用整店模板")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<MiniappRelease> activateStoreTemplate(@PathVariable Long id) {
+        return R.ok(miniappReleaseService.activateStoreTemplate(id));
+    }
+
+    @Operation(summary = "用当前搭建覆盖模板快照")
+    @PostMapping("/{id}/capture")
+    @OperationLog("保存整店模板")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<MiniappRelease> captureStoreTemplate(@PathVariable Long id) {
+        return R.ok(miniappReleaseService.captureStoreTemplate(id));
     }
 
     @Operation(summary = "版本发布详情", description = "获取版本发布详情（含快照）")

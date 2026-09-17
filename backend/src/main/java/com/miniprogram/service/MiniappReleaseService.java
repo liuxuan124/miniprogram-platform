@@ -70,6 +70,36 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
     void deleteRelease(Long id);
 
     /**
+     * 整店模板列表（内容/版式快照，不含微信代码包）
+     */
+    List<MiniappRelease> listStoreTemplates();
+
+    /**
+     * 从当前正在搭建的内容新建一套命名模板
+     */
+    MiniappRelease createStoreTemplate(String templateName);
+
+    /**
+     * 复制一套模板
+     */
+    MiniappRelease duplicateStoreTemplate(Long id, String templateName);
+
+    /**
+     * 重命名模板
+     */
+    MiniappRelease renameStoreTemplate(Long id, String templateName);
+
+    /**
+     * 选用为正在搭建使用中（写入页面+外观，不上传微信代码）
+     */
+    MiniappRelease activateStoreTemplate(Long id);
+
+    /**
+     * 用当前正在搭建的内容覆盖该模板快照
+     */
+    MiniappRelease captureStoreTemplate(Long id);
+
+    /**
      * 单页发布后写入当前线上快照，导航预览和小程序无需再走整包发布
      */
     void syncPublishedPageToLatestSnapshot(String path, String name, String dslContent);

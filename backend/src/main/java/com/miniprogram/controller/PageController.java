@@ -3,7 +3,9 @@ package com.miniprogram.controller;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.*;
+import com.miniprogram.dto.pageai.AiPagePipelineDtos;
 import com.miniprogram.service.PageService;
+import com.miniprogram.service.pageai.AiPagePipelineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class PageController {
 
     private final PageService pageService;
+    private final AiPagePipelineService aiPagePipelineService;
 
     @Operation(summary = "页面列表", description = "分页查询页面列表")
     @GetMapping
@@ -33,6 +36,13 @@ public class PageController {
     @PreAuthorize("hasAuthority('page:create')")
     public R<PageDetailDTO> createPage(@Valid @RequestBody PageCreateDTO createDTO) {
         return R.ok(pageService.createPage(createDTO));
+    }
+
+    @Operation(summary = "AI 搭页流水线", description = "设计→组件检查→接口检查→通过项写入草稿")
+    @PostMapping("/ai-pipeline")
+    @PreAuthorize("hasAuthority('page:create')")
+    public R<AiPagePipelineDtos.Result> runAiPipeline(@RequestBody(required = false) AiPagePipelineDtos.Request body) {
+        return R.ok(aiPagePipelineService.run(body == null ? new AiPagePipelineDtos.Request() : body));
     }
 
     @Operation(summary = "页面详情", description = "获取页面详情信息")

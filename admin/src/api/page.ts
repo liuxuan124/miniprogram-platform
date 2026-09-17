@@ -78,6 +78,33 @@ export function rollbackVersion(pageId: number, version: number) {
   return post<PageRecord>(`${BASE_URL}/pages/${pageId}/versions/${version}/rollback`)
 }
 
+export type AiPagePipelineReportRow = {
+  blockId: string
+  title: string
+  intent: string
+  componentStatus: string
+  matchedType?: string
+  matchedLabel?: string
+  apiStatus: string
+  apiPath?: string
+  inDraft: boolean
+  reason: string
+}
+
+export type AiPagePipelineResult = {
+  llmUsed: boolean
+  pageName: string
+  stages: Array<{ key: string; title: string; status: string; note: string }>
+  design: Record<string, unknown>
+  report: AiPagePipelineReportRow[]
+  draft?: { pageId: string | number; name: string; path: string; componentCount: number }
+}
+
+/** AI 搭页四步流水线：设计 → 组件检查 → 接口检查 → 转草稿 */
+export function runAiPagePipeline(prompt: string) {
+  return post<AiPagePipelineResult>(`${BASE_URL}/pages/ai-pipeline`, { prompt }, { timeout: 120000 })
+}
+
 /** 获取页面模板列表 */
 export function getPageTemplates(params?: Record<string, unknown>) {
   return get<PageResult<PageTemplate>>(`${BASE_URL}/page-templates`, params)

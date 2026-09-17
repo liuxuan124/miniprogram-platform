@@ -5,6 +5,16 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { createTenant, getCurrentTenant, listTenants, type TenantCreatePayload, type TenantInfo } from '@/api/tenant'
 import { usePermissionStore } from '@/stores/permission'
+import { decodeMojibake } from '@/utils/text-encoding'
+
+function normalizeTenant(t: TenantInfo): TenantInfo {
+  return {
+    ...t,
+    tenantId: t.id ?? t.tenantId,
+    name: decodeMojibake(t.name),
+    code: decodeMojibake(t.code),
+  }
+}
 
 const STORAGE_KEY = 'mp_active_tenant_id'
 
@@ -48,13 +58,10 @@ export const useTenantStore = defineStore('tenant', () => {
         const stored = readStoredId()
         if (stored) persistActiveId(stored)
         const listRes = await listTenants()
-        tenants.value = (listRes.data || []).map((t) => ({
-          ...t,
-          tenantId: t.id ?? t.tenantId,
-        }))
+        tenants.value = (listRes.data || []).map(normalizeTenant)
       }
       const cur = await getCurrentTenant()
-      current.value = cur.data || null
+      current.value = cur.data ? normalizeTenant(cur.data) : null
       if (!activeTenantId.value && current.value?.tenantId) {
         persistActiveId(Number(current.value.tenantId))
       }
@@ -69,7 +76,7 @@ export const useTenantStore = defineStore('tenant', () => {
     if (!isSuperAdmin()) return
     persistActiveId(id)
     const cur = await getCurrentTenant()
-    current.value = cur.data || null
+    current.value = cur.data ? normalizeTenant(cur.data) : null
     // 刷新页面数据，避免串租户缓存
     window.location.reload()
   }
