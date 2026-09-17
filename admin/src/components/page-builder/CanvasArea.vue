@@ -1,8 +1,8 @@
 <template>
-  <div class="prototype-canvas">
+  <div ref="canvasRef" class="prototype-canvas">
     <div class="canvas-meta">
-      <span class="canvas-meta__title">编辑画布 · 结构示意</span>
-      <span class="canvas-meta__device">真机效果以扫码预览为准 · 375 × 812</span>
+      <span class="canvas-meta__title">编辑画布</span>
+      <span class="canvas-meta__device">点击组件编辑 · 实际效果请查看完整预览</span>
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap">
@@ -50,6 +50,7 @@
                 <div
                   v-else
                   class="canvas-item-wrap"
+                  :data-component-id="comp.id"
                   :class="{ dragging: draggingIndex === index, 'heat-on': heatMode }"
                   :style="heatStyle(comp.id)"
                   draggable="true"
@@ -83,7 +84,7 @@
             @click="pageStore.selectComponent(null)"
           >
             <div class="empty-title">空白页面</div>
-            <div class="empty-desc">从左侧组件库拖入组件开始装修</div>
+            <div class="empty-desc">点击或拖入左侧组件，开始设计页面</div>
           </div>
         </div>
         <!-- 悬浮按钮贴在手机屏内，不随内容滚动 -->
@@ -126,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
@@ -137,6 +138,14 @@ import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight
 import { get } from '@/api/request'
 
 const pageStore = usePageStore()
+const canvasRef = ref<HTMLElement | null>(null)
+watch(() => pageStore.selectedComponentId, async (id) => {
+  if (!id) return
+  await nextTick()
+  const item = Array.from(canvasRef.value?.querySelectorAll<HTMLElement>('[data-component-id]') || [])
+    .find(el => el.dataset.componentId === id)
+  item?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+})
 
 const {
   pinnedBrandHeader,

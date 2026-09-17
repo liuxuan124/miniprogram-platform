@@ -1,9 +1,11 @@
 <template>
   <div class="mine-page-config">
-    <div class="config-label">我的页面配置</div>
+    <div class="config-label">内容与功能</div>
+    <el-collapse v-model="openSections" class="mine-config-sections">
 
+    <el-collapse-item name="display" title="界面与会员卡">
     <div class="config-block">
-      <div class="block-title">装饰背景区</div>
+
       <el-form label-width="100px" size="small" class="compact-form">
         <el-form-item label="显示装饰背景">
           <el-switch
@@ -19,10 +21,12 @@
         </el-form-item>
       </el-form>
     </div>
+    </el-collapse-item>
 
     <!-- 登录区域 -->
+    <el-collapse-item name="login" title="登录提示">
     <div class="config-block">
-      <div class="block-title">登录提示区</div>
+
       <el-form label-width="80px" size="small">
         <el-form-item label="登录标题">
           <el-input :model-value="modelValue.loginTitle" @input="(v: string) => updateField('loginTitle', v)" placeholder="点击登录，解锁会员权益" />
@@ -38,10 +42,12 @@
         </el-form-item>
       </el-form>
     </div>
+    </el-collapse-item>
 
     <!-- 用户信息区 -->
+    <el-collapse-item name="profile" title="个人资料">
     <div class="config-block">
-      <div class="block-title">用户信息区</div>
+
       <el-form label-width="100px" size="small" class="compact-form">
         <el-row :gutter="12">
           <el-col :span="8">
@@ -84,8 +90,10 @@
         </el-form-item>
       </el-form>
     </div>
+    </el-collapse-item>
 
     <!-- 订单快捷入口 -->
+    <el-collapse-item name="orders" title="订单快捷入口">
     <div class="config-block">
       <div class="block-title">
         订单快捷入口
@@ -121,8 +129,10 @@
         </el-form>
       </template>
     </div>
+    </el-collapse-item>
 
     <!-- 菜单项 -->
+    <el-collapse-item name="menu" title="功能菜单">
     <div class="config-block">
       <div class="block-title">
         功能菜单
@@ -144,9 +154,9 @@
         <template #item="{ element: item, index }">
           <div class="menu-item" :class="{ hidden: !item.enabled }">
             <div class="drag-handle">⠿</div>
-            <span class="menu-icon" @click="editMenuIcon(index)">
+            <button type="button" class="menu-icon" :aria-label="'选择' + item.title + '的图标'" @click="editMenuIcon(index)">
               <MenuIconDisplay :icon="item.icon" :size="26" />
-            </span>
+            </button>
             <div class="menu-fields">
               <el-input v-model="item.title" placeholder="菜单名称" size="small" @input="emitUpdate" />
               <el-input v-model="item.url" placeholder="页面路径 / action标识" size="small" @input="emitUpdate" />
@@ -205,6 +215,8 @@
         </template>
       </el-dialog>
     </div>
+    </el-collapse-item>
+    </el-collapse>
   </div>
 </template>
 
@@ -221,6 +233,7 @@ import {
   isMenuLineIcon,
 } from './menuLineIcons'
 
+const openSections = ref(['display', 'login'])
 const NICKNAME_MAX_LEN = 10
 
 const props = defineProps<{ modelValue: MinePageConfig }>()
@@ -345,4 +358,12 @@ function confirmMenuIcon() {
 .icon-opt-svg { width: 26px; height: 26px; display: grid; place-items: center; }
 .icon-opt-svg :deep(svg) { width: 100%; height: 100%; display: block; }
 .field-error { margin-top: 4px; color: #f56c6c; font-size: 12px; line-height: 1.4; }
+
+.mine-config-sections { border-top: 0; }
+.mine-config-sections :deep(.el-collapse-item__header) { font-size: .875rem; font-weight: 600; min-height: 54px; color: #41516b; }
+.mine-config-sections :deep(.el-collapse-item__content) { padding-bottom: 8px; }
+.mine-config-sections .config-block { padding: 12px 0; border: 0; background: transparent; margin: 0; }
+.mine-config-sections .menu-icon { border: 1px solid #e2e6ed; background: #f6f8fc; border-radius: 6px; padding: 4px; cursor: pointer; flex: none; }
+.mine-config-sections .menu-item { flex-wrap: wrap; padding: 12px; }
+.mine-config-sections .block-title { font-size: .8125rem; }
 </style>

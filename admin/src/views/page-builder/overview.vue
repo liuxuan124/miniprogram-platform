@@ -1,208 +1,117 @@
 <template>
-  <div class="overview-page">
-    <PageHeader
-      kicker="小程序 / 总览"
-      title="总览"
-      description="小程序的当前状态都在这里。改页面内容后点「上线」，用户刷新就能看到，不需要发版。"
-    >
+  <div class="overview-page builder-studio">
+    <StudioHeader title="搭建工作台" description="从页面开始设计，随时查看小程序的实际效果。">
       <template #actions>
-        <el-button @click="openAiDraft">AI 生成页面</el-button>
-        <el-button type="primary" @click="openLivePreview">预览真机</el-button>
-        <el-button @click="loadAll" :loading="loading">刷新</el-button>
+        <el-button :loading="loading" aria-label="刷新工作台" @click="loadAll(true)"><el-icon><Refresh /></el-icon></el-button>
+        <el-button @click="openLivePreview"><el-icon><View /></el-icon>完整预览</el-button>
+        <el-button type="primary" @click="router.push({ path: '/page-builder/list', query: { create: '1' } })"><el-icon><Plus /></el-icon>新建页面</el-button>
       </template>
-    </PageHeader>
+    </StudioHeader>
 
-    <section class="status-bar" v-loading="loading">
-      <div class="status-item">
-        <div class="status-label">小程序</div>
-        <div class="status-value">{{ appName }}</div>
-      </div>
-      <div class="status-item">
-        <div class="status-label">已保存版本</div>
-        <div class="status-value">{{ latestSemver || '尚未保存过' }}</div>
-        <div v-if="latestReleaseTime" class="status-meta">{{ latestReleaseTime }}</div>
-      </div>
-      <div class="status-item">
-        <div class="status-label">最近上传代码到微信</div>
-        <div class="status-value">{{ pushVersion || '尚未上传' }}</div>
-        <div v-if="pushTime" class="status-meta">{{ pushTime }}</div>
-      </div>
-    </section>
+    <div v-if="loadErrors.length" class="studio-feedback is-error" role="alert">
+      <span>部分数据未能读取：{{ loadErrors.join('、') }}。下方只展示已读取的状态。</span>
+      <el-button size="small" @click="loadAll(true)">重新加载</el-button>
+    </div>
 
-    <section class="howto">
-      <div class="howto-title">怎么让用户看到我的改动？</div>
-      <div class="howto-grid">
-        <div class="howto-card">
-          <div class="howto-tag ok">最常用</div>
-          <div class="howto-head">改页面内容</div>
-          <p>换图、加商品、改文案 → 在装修器点「<b>上线</b>」→ 用户刷新小程序<b>立刻看到</b>，不用发版。</p>
-          <el-button size="small" @click="router.push('/page-builder/list')">去页面列表</el-button>
+    <div class="workbench-grid">
+      <main class="workbench-main">
+        <section class="studio-surface" v-loading="loading">
+          <div class="workspace-app">
+            <span class="workspace-app__icon"><el-icon><Cellphone /></el-icon></span>
+            <div><span class="studio-muted">正在搭建</span><h2>{{ appName }}</h2></div>
+            <el-button link type="primary" @click="router.push('/page-builder/start')">品牌与导航<el-icon><ArrowRight /></el-icon></el-button>
+          </div>
+          <div class="workspace-metadata">
+            <div><span>页面</span><strong>{{ preflight ? preflight.pages.length : '—' }}</strong></div>
+            <div><span>最新配置版本</span><strong>{{ latestSemver || '暂无' }}</strong></div>
+            <div><span>最近上传代码</span><strong>{{ pushVersion || '暂无记录' }}</strong></div>
+          </div>
+          <div class="studio-section-head">
+            <div><h2>导航与页面</h2><p>{{ tabCards.length ? `当前配置了 ${tabCards.length} 个底部入口，选择页面继续设计。` : '配置底部入口后，可在这里快速进入对应页面。' }}</p></div>
+            <el-button link type="primary" @click="router.push('/page-builder/list')">全部页面</el-button>
+          </div>
+          <div class="workspace-pages">
+            <div v-for="(tab, idx) in tabCards" :key="tab.key" class="workspace-page">
+              <button type="button" class="workspace-page__main" @click="openTab(tab)">
+                <span class="workspace-page__icon"><TabBarIconDisplay v-if="tab.icon" :icon="tab.icon" /><el-icon v-else><Document /></el-icon></span>
+                <span class="workspace-page__text"><strong>{{ tab.text }}</strong><span>{{ tab.pageName }}</span></span>
+                <span class="studio-state" :data-status="tab.statusKey">{{ tab.statusLabel }}</span>
+                <el-icon class="workspace-page__arrow"><ArrowRight /></el-icon>
+              </button>
+              <el-tooltip content="在右侧预览这个入口"><el-button text aria-label="预览导航页面" @click="previewRef?.showTab(idx)"><el-icon><View /></el-icon></el-button></el-tooltip>
+            </div>
+            <el-empty v-if="!loading && !tabCards.length" description="还没有配置底部导航" :image-size="64">
+              <el-button type="primary" @click="router.push('/page-builder/start')">配置导航</el-button>
+            </el-empty>
+          </div>
+          <div class="workspace-footer"><el-icon><InfoFilled /></el-icon><span>页面内容需在编辑器中更新；品牌与导航保存后生效。代码上传是独立操作。</span></div>
+        </section>
+
+        <section class="studio-surface workspace-todos">
+          <div class="studio-section-head"><h2>待处理</h2><span class="studio-muted">{{ preflight ? `${todos.length} 项` : '检查状态未读取' }}</span></div>
+          <button v-for="(item, idx) in todos" :key="idx" class="workspace-todo" type="button" @click="goTodo(item)">
+            <el-icon><Warning /></el-icon><span>{{ item.text }}</span><el-icon><ArrowRight /></el-icon>
+          </button>
+          <div v-if="!todos.length" class="workspace-no-todos">
+            <el-icon><component :is="preflight ? CircleCheck : InfoFilled" /></el-icon>
+            <div><strong>{{ preflight ? '暂未发现配置问题' : '尚未完成配置检查' }}</strong><p>{{ preflight ? '发布前仍需确认实际内容与小程序预览。' : '重新加载后查看检查结果。' }}</p></div>
+          </div>
+        </section>
+
+        <div class="workspace-shortcuts">
+          <button type="button" @click="router.push('/page-builder/template-center')"><el-icon><Collection /></el-icon><span><strong>从模板开始</strong><small>选择布局，替换成自己的内容</small></span><el-icon><ArrowRight /></el-icon></button>
+          <button type="button" @click="openAiDraft"><el-icon><MagicStick /></el-icon><span><strong>生成页面初稿</strong><small>描述需求，再在编辑器中完善</small></span><el-icon><ArrowRight /></el-icon></button>
         </div>
-        <div class="howto-card">
-          <div class="howto-tag">偶尔</div>
-          <div class="howto-head">存一个可回退的版本</div>
-          <p>大改版之前存个档，万一改坏了能一键退回。不影响用户当前看到的内容。</p>
-          <el-button size="small" @click="router.push('/page-builder/release')">去发布与版本</el-button>
-        </div>
-        <div class="howto-card">
-          <div class="howto-tag">很少</div>
-          <div class="howto-head">小程序代码更新了</div>
-          <p>技术同事改了小程序端功能时才需要。上传后还要<b>去微信公众平台提交审核</b>，通过后才生效。</p>
-          <el-button size="small" @click="router.push('/page-builder/release')">去上传代码</el-button>
-        </div>
-      </div>
-    </section>
+      </main>
 
-    <section v-if="todos.length" class="todo-bar">
-      <div class="todo-title">还需要处理（点击直达）</div>
-      <button
-        v-for="(item, idx) in todos"
-        :key="idx"
-        type="button"
-        class="todo-item"
-        @click="goTodo(item)"
-      >
-        {{ item.text }}
-      </button>
-    </section>
-
-    <section class="tab-section">
-      <h2>底部导航实况</h2>
-      <p class="muted">对应真机底部四个入口。点击卡片进入装修或配置。</p>
-      <div class="tab-grid">
-        <button
-          v-for="(tab, idx) in tabCards"
-          :key="tab.key"
-          type="button"
-          class="tab-card"
-          :class="{ warn: tab.statusKey === 'dirty' || tab.statusKey === 'empty' }"
-          @click="openTab(tab)"
-        >
-          <div class="tab-card__idx">导航 {{ idx + 1 }}</div>
-          <div class="tab-card__name">{{ tab.text }}</div>
-          <div class="tab-card__page">{{ tab.pageName }}</div>
-          <div class="tab-card__status" :data-status="tab.statusKey">{{ tab.statusLabel }}</div>
-        </button>
-      </div>
-      <el-empty v-if="!loading && !tabCards.length" description="尚未配置底部导航，请先去「外观」绑定" />
-    </section>
+      <aside class="workspace-preview studio-surface">
+        <div class="studio-section-head"><h2>小程序预览</h2><span class="preview-size">交互预览</span></div>
+        <div class="workspace-preview__canvas" v-loading="previewLoading">
+          <MiniappPreview v-if="previewReady && !loadErrors.includes('品牌与导航')" :key="previewReloadKey" ref="previewRef" :form="previewForm" :pages="previewPages" :mine-page-mode="previewMineMode" />
+          <el-empty v-else description="配置未读取，暂不展示预览" :image-size="64" />
+        </div>
+        <div class="workspace-preview__foot"><el-icon><InfoFilled /></el-icon>预览用于检查布局；实际授权、支付请在真机验证。</div>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onActivated, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '@/components/PageHeader.vue'
+import { Refresh, View, Plus, Cellphone, ArrowRight, Document, InfoFilled, Warning, CircleCheck, Collection, MagicStick } from '@element-plus/icons-vue'
+import StudioHeader from '@/components/builder-studio/StudioHeader.vue'
+import MiniappPreview from '@/components/miniapp-builder/MiniappPreview.vue'
+import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vue'
+import { useMiniappConfig } from '@/components/miniapp-builder/composables/useMiniappConfig'
 import { getConfigByGroupSilent } from '@/api/system'
 import { getPublishPreflight, getLatestRelease, getPushPreviewStatus } from '@/api/version'
 import { post } from '@/api/request'
 import { CONFIG_KEYS } from '@/types/miniapp'
+import { buildWorkspaceTabs, buildWorkspaceTodos } from '@/utils/builder-workspace'
+import type { WorkspaceTab } from '@/utils/builder-workspace'
 import type { PublishPreflight } from '@/api/version'
 import type { ReleaseRecord } from '@/types/page'
 
-type TabCard = {
-  key: string
-  text: string
-  pageId: string
-  pageName: string
-  path: string
-  isMine: boolean
-  statusKey: 'live' | 'dirty' | 'draft' | 'empty' | 'builtin'
-  statusLabel: string
-}
-
-type TodoItem = { text: string; path?: string }
-
 const router = useRouter()
+const { form: previewForm, pages: previewPages, loading: previewLoading, configReady: previewReady, loadPages: reloadPreviewPages, loadConfig: reloadPreviewConfig } = useMiniappConfig()
+const previewReloadKey = ref(0)
+let overviewLoaded = false
+onActivated(() => { if (overviewLoaded) loadAll(true) })
+const previewRef = ref<{ showTab: (index: number) => void } | null>(null)
+const previewMineMode = computed(() => (previewForm.mineConfig as Record<string, unknown>).mode === 'custom' ? 'custom' as const : 'config' as const)
 const loading = ref(false)
-const appName = ref('小程序')
+const loadErrors = ref<string[]>([])
+const appName = ref('我的小程序')
 const preflight = ref<PublishPreflight | null>(null)
 const latestRelease = ref<ReleaseRecord | null>(null)
 const pushStatus = ref<any>(null)
-const tabs = ref<Array<{ text?: string; pageId?: string | number; pageName?: string; pagePath?: string }>>([])
-
+const tabs = ref<Array<{ text?: string; icon?: string; pageId?: string | number; pageName?: string; pagePath?: string }>>([])
 const latestSemver = computed(() => preflight.value?.latestSemver || latestRelease.value?.semver || '')
-const latestReleaseTime = computed(() => {
-  const t = latestRelease.value?.publishedAt || latestRelease.value?.createTime
-  return t ? String(t).replace('T', ' ').slice(0, 19) : ''
-})
 const pushVersion = computed(() => pushStatus.value?.version || pushStatus.value?.releaseSemver || '')
-const pushTime = computed(() => {
-  const t = pushStatus.value?.uploadedAt
-  return t ? String(t).replace('T', ' ').slice(0, 19) : ''
-})
-
-const tabCards = computed<TabCard[]>(() => {
-  const pages = preflight.value?.pages || []
-  const byId = new Map(pages.map((p) => [String(p.id), p]))
-  const byPath = new Map(pages.map((p) => [normalizePath(p.path), p]))
-
-  return (tabs.value || []).slice(0, 4).map((tab, index) => {
-    const path = normalizePath(tab.pagePath || '')
-    const isMine = path.includes('/pages/mine/mine') || String(tab.pageId) === '__mine__'
-    const bound =
-      (tab.pageId ? byId.get(String(tab.pageId)) : undefined)
-      || (path ? byPath.get(path) : undefined)
-    let statusKey: TabCard['statusKey'] = 'empty'
-    let statusLabel = '空白'
-    if (isMine) {
-      statusKey = 'builtin'
-      statusLabel = '系统配置页'
-    } else if (bound) {
-      if (bound.action === 'empty') {
-        statusKey = 'empty'
-        statusLabel = '空白'
-      } else if (bound.action === 'publish') {
-        statusKey = 'dirty'
-        statusLabel = '有未上线的改动'
-      } else if (bound.action === 'already_live' || bound.status === 1) {
-        statusKey = 'live'
-        statusLabel = '已上线'
-      } else if (bound.status === 0) {
-        statusKey = 'draft'
-        statusLabel = '草稿'
-      } else {
-        statusKey = 'draft'
-        statusLabel = '未上线'
-      }
-    } else if (!tab.pageId && !path) {
-      statusKey = 'empty'
-      statusLabel = '未绑定'
-    }
-
-    return {
-      key: `tab-${index}`,
-      text: tab.text || `导航${index + 1}`,
-      pageId: String(tab.pageId || ''),
-      pageName: tab.pageName || bound?.name || (isMine ? '我的' : '未绑定页面'),
-      path,
-      isMine,
-      statusKey,
-      statusLabel,
-    }
-  })
-})
-
-const todos = computed<TodoItem[]>(() => {
-  const list: TodoItem[] = []
-  for (const item of preflight.value?.blocking || []) {
-    list.push({ text: item, path: '/page-builder/start' })
-  }
-  for (const item of preflight.value?.warnings || []) {
-    list.push({ text: item, path: '/page-builder/list' })
-  }
-  tabs.value.forEach((tab, index) => {
-    if (!tab.pageId && !(tab.pagePath || '').includes('index')) {
-      list.push({ text: `导航「${tab.text || index + 1}」未绑定页面`, path: '/page-builder/start' })
-    }
-  })
-  return list.slice(0, 8)
-})
-
-function normalizePath(path?: string) {
-  return String(path || '').replace(/\/+$/, '')
-}
+const tabCards = computed(() => buildWorkspaceTabs(tabs.value, preflight.value))
+const todos = computed(() => buildWorkspaceTodos(tabs.value, preflight.value))
 
 function openLivePreview() {
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config' } })
@@ -211,219 +120,110 @@ function openLivePreview() {
 
 async function openAiDraft() {
   try {
-    const { value } = await ElMessageBox.prompt('用一句话描述想要的页面（行业/卖点）', 'AI 生成页面初稿', {
-      confirmButtonText: '生成',
-      cancelButtonText: '取消',
-      inputPlaceholder: '例如：首页，突出核心卖点与内容',
+    const { value } = await ElMessageBox.prompt('描述页面的用途和重点内容', '生成页面初稿', {
+      confirmButtonText: '生成初稿', cancelButtonText: '取消',
+      inputPlaceholder: '例如：活动报名页，展示活动介绍、时间与报名入口',
+      inputValidator: (v: string) => Boolean(v?.trim()) || '请先描述页面需求',
     })
     const res = await post('/api/v1/admin/pages/ai-draft', { prompt: value, industry: 'general' })
     const dsl = (res as any)?.data?.dsl
-    if (!dsl) {
-      ElMessage.error('生成失败')
-      return
-    }
+    if (!dsl) { ElMessage.error('未能生成初稿，请重试'); return }
     sessionStorage.setItem('ai_page_draft_dsl', JSON.stringify(dsl))
-    ElMessage.success((res as any)?.data?.message || '已生成初稿，请新建页面后粘贴使用')
-    router.push('/page-builder/pages')
-  } catch {
-    /* cancel */
+    ElMessage.success('初稿已准备好，请创建页面并确认内容')
+    router.push({ path: '/page-builder/list', query: { create: '1' } })
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') ElMessage.error('生成初稿失败，请稍后重试')
   }
 }
 
-function openTab(tab: TabCard) {
-  if (tab.isMine) {
-    router.push('/page-builder/mine')
-    return
-  }
-  if (tab.pageId && /^\d+$/.test(tab.pageId)) {
-    router.push(`/page-builder/editor/${tab.pageId}`)
-    return
-  }
-  router.push('/page-builder/start')
+function openTab(tab: WorkspaceTab) {
+  if (tab.isMine && !/^\d+$/.test(tab.pageId)) { router.push('/page-builder/mine'); return }
+  if (tab.pageId && /^\d+$/.test(tab.pageId)) { router.push(`/page-builder/editor/${tab.pageId}`); return }
+  router.push({ path: '/page-builder/start', query: { group: 'tabbar' } })
 }
-
-function goTodo(item: TodoItem) {
-  if (item.path) router.push(item.path)
-}
+function goTodo(item: { text: string; path: string }) { router.push(item.path) }
 
 async function loadConfig() {
-  try {
-    const res = await getConfigByGroupSilent('basic')
-    const configs = (res as any)?.data?.configs || (res as any)?.data || []
-    const map: Record<string, any> = {}
-    for (const c of configs) {
-      if (c?.configKey) map[c.configKey] = c.configValue
-    }
-    appName.value = String(map[CONFIG_KEYS.SHARE_TITLE] || map.miniappName || '我的小程序')
-    const raw = map[CONFIG_KEYS.TABBAR_ITEMS]
-    if (raw) {
-      const items = typeof raw === 'string' ? JSON.parse(raw) : raw
-      tabs.value = Array.isArray(items) ? items : []
-    } else {
-      tabs.value = []
-    }
-  } catch {
-    tabs.value = []
-  }
+  const res = await getConfigByGroupSilent('basic')
+  const configs = (res as any)?.data?.configs || (res as any)?.data || []
+  const map: Record<string, any> = {}
+  for (const c of configs) if (c?.configKey) map[c.configKey] = c.configValue
+  appName.value = String(map[CONFIG_KEYS.SHARE_TITLE] || map.miniappName || '我的小程序')
+  const raw = map[CONFIG_KEYS.TABBAR_ITEMS]
+  const items = typeof raw === 'string' ? JSON.parse(raw) : raw
+  tabs.value = Array.isArray(items) ? items : []
 }
 
-async function loadAll() {
+async function loadAll(reloadPreview = false) {
   loading.value = true
+  loadErrors.value = []
+  const tasks = [
+    { label: '品牌与导航', run: loadConfig, reset: () => { tabs.value = [] } },
+    { label: '页面检查', run: async () => { preflight.value = (await getPublishPreflight()).data || null }, reset: () => { preflight.value = null } },
+    { label: '版本记录', run: async () => { latestRelease.value = (await getLatestRelease() as any).data || null }, reset: () => { latestRelease.value = null } },
+    { label: '上传记录', run: async () => { pushStatus.value = (await getPushPreviewStatus() as any).data || null }, reset: () => { pushStatus.value = null } },
+  ]
   try {
-    await Promise.all([
-      loadConfig(),
-      getPublishPreflight().then((res) => { preflight.value = res.data || null }).catch(() => { preflight.value = null }),
-      getLatestRelease().then((res) => { latestRelease.value = (res as any)?.data || null }).catch(() => { latestRelease.value = null }),
-      getPushPreviewStatus().then((res) => { pushStatus.value = (res as any)?.data || null }).catch(() => { pushStatus.value = null }),
-    ])
-  } finally {
-    loading.value = false
-  }
+    await Promise.all(tasks.map(async (task) => {
+      try { await task.run() } catch { task.reset(); loadErrors.value.push(task.label) }
+    }))
+    if (reloadPreview) {
+      await reloadPreviewPages()
+      await reloadPreviewConfig()
+      previewReloadKey.value++
+    }
+  } finally { loading.value = false; overviewLoaded = true }
 }
-
 onMounted(loadAll)
 </script>
 
-<style scoped lang="scss">
-.howto {
-  margin-bottom: 16px;
-  padding: 18px 20px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.howto-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.howto-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
-}
-
-.howto-card {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-}
-
-.howto-tag {
-  display: inline-block;
-  font-size: 11.5px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: #eef1f4;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.howto-tag.ok {
-  background: rgba(15, 118, 110, 0.12);
-  color: #0f766e;
-  font-weight: 600;
-}
-
-.howto-head {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.howto-card p {
-  margin: 0 0 10px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--text-muted);
-}
-
-.overview-page { padding-bottom: 24px; }
-
-.status-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.status-item {
-  padding: 16px 18px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.status-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.status-value { font-size: 18px; font-weight: 700; color: var(--text); }
-.status-meta { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
-
-.todo-bar {
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: var(--radius);
-}
-
-.todo-title { font-size: 13px; font-weight: 600; color: #92400e; margin-bottom: 8px; }
-.todo-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  padding: 6px 0;
-  color: #78350f;
-  font-size: 13.5px;
-  cursor: pointer;
-}
-.todo-item:hover { color: #1d4ed8; }
-
-.tab-section h2 { margin: 0 0 4px; font-size: 16px; }
-.muted { color: var(--text-muted); font-size: 13px; margin: 0 0 14px; }
-
-.tab-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.tab-card {
-  text-align: left;
-  padding: 16px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: 0.15s;
-}
-.tab-card:hover { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(23,105,255,.12); }
-.tab-card.warn { border-color: #fbbf24; background: #fffbeb; }
-.tab-card__idx { font-size: 12px; color: var(--text-muted); }
-.tab-card__name { margin-top: 6px; font-size: 16px; font-weight: 700; }
-.tab-card__page { margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
-.tab-card__status {
-  margin-top: 12px;
-  display: inline-block;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eef2ff;
-  color: #3730a3;
-}
-.tab-card__status[data-status='live'] { background: #ecfdf5; color: #047857; }
-.tab-card__status[data-status='dirty'] { background: #fff7ed; color: #c2410c; }
-.tab-card__status[data-status='empty'] { background: #fef2f2; color: #b91c1c; }
-.tab-card__status[data-status='draft'] { background: #f1f5f9; color: #475569; }
-
-@media (max-width: 960px) {
-  .status-bar, .tab-grid { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 640px) {
-  .status-bar, .tab-grid { grid-template-columns: 1fr; }
-}
+<style scoped>
+.workbench-grid { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; align-items: start; }
+.workbench-main { display: grid; gap: 20px; min-width: 0; }
+.workspace-app { display: flex; align-items: center; gap: 14px; padding: 24px; }
+.workspace-app h2 { margin: 2px 0 0; font-size: 1.375rem; font-weight: 650; }
+.workspace-app > .el-button { margin-left: auto; }
+.workspace-app__icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: #edf2ff; color: var(--studio-blue); font-size: 24px; }
+.workspace-metadata { display: grid; grid-template-columns: .65fr 1fr 1fr; padding: 0 24px 24px; gap: 16px; }
+.workspace-metadata > div { display: grid; gap: 5px; border-left: 1px solid var(--studio-line); padding-left: 16px; }
+.workspace-metadata > div:first-child { border: 0; padding: 0; }
+.workspace-metadata span { font-size: .8125rem; color: var(--studio-muted); }
+.workspace-metadata strong { font-size: 1.125rem; font-weight: 600; word-break: break-word; }
+.workspace-pages { padding: 8px 12px; }
+.workspace-page { display: flex; align-items: center; border-bottom: 1px solid #eef0f4; border-radius: 6px; }
+.workspace-page:last-child { border: 0; }
+.workspace-page:hover { background: #f7f9fd; }
+.workspace-page__main { display: flex; align-items: center; gap: 14px; padding: 16px 12px; background: none; border: 0; text-align: left; cursor: pointer; flex: 1; min-width: 0; font: inherit; color: inherit; }
+.workspace-page__icon { display: grid; place-items: center; width: 40px; height: 44px; color: var(--studio-blue); background: #f2f5fb; border-radius: 8px; flex: none; font-size: 22px; }
+.workspace-page__icon :deep(img) { width: 22px; height: 22px; object-fit: contain; }
+.workspace-page__text { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.workspace-page__text strong { font-size: .9375rem; font-weight: 600; }
+.workspace-page__text > span { font-size: .8125rem; color: var(--studio-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-page__arrow { color: #8792a4; }
+.workspace-footer { display: flex; align-items: flex-start; gap: 8px; background: #fafbfd; border-top: 1px solid var(--studio-line); padding: 14px 24px; color: var(--studio-muted); font-size: .8125rem; }
+.workspace-footer .el-icon { margin-top: 3px; flex: none; }
+.workspace-todo { display: flex; align-items: center; width: 100%; gap: 12px; border: 0; border-bottom: 1px solid #eef0f4; background: none; padding: 16px 24px; cursor: pointer; text-align: left; font: inherit; font-size: .875rem; color: inherit; }
+.workspace-todo:hover { background: #fffaf1; }
+.workspace-todo > span { flex: 1; }
+.workspace-todo > .el-icon:first-child { color: #ac650f; }
+.workspace-no-todos { display: flex; gap: 12px; padding: 24px; align-items: center; }
+.workspace-no-todos > .el-icon { font-size: 24px; color: #187251; }
+.workspace-no-todos strong { font-size: .875rem; font-weight: 600; }
+.workspace-no-todos p { margin: 4px 0 0; font-size: .8125rem; color: var(--studio-muted); }
+.workspace-shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.workspace-shortcuts button { display: flex; align-items: center; gap: 12px; padding: 20px; background: #fff; border: 1px solid var(--studio-line); border-radius: 10px; font: inherit; text-align: left; cursor: pointer; color: var(--studio-ink); }
+.workspace-shortcuts button:hover { border-color: #9dacd1; }
+.workspace-shortcuts button > .el-icon:first-child { font-size: 22px; color: var(--studio-blue); }
+.workspace-shortcuts span { flex: 1; }
+.workspace-shortcuts strong { display: block; font-size: .875rem; font-weight: 600; }
+.workspace-shortcuts small { display: block; font-size: .75rem; color: var(--studio-muted); margin-top: 4px; }
+.workspace-preview { position: sticky; top: 20px; }
+.workspace-preview .studio-section-head { padding: 16px 20px; }
+.preview-size { font-family: ui-monospace, monospace; font-size: .75rem; color: var(--studio-muted); }
+.workspace-preview__canvas { background: var(--studio-canvas); padding: 18px 10px 8px; }
+.workspace-preview__canvas :deep(.preview-source-hint) { display: none; }
+.workspace-preview__foot { padding: 12px 18px; font-size: .75rem; color: var(--studio-muted); display: flex; align-items: flex-start; gap: 6px; border-top: 1px solid var(--studio-line); }
+.workspace-preview__foot .el-icon { flex: none; margin-top: 3px; }
+@media (max-width: 1200px) { .workbench-grid { grid-template-columns: minmax(0, 1fr); } .workspace-preview { position: static; } .workspace-preview__canvas { display: flex; justify-content: center; } }
+@media (max-width: 600px) { .workspace-shortcuts { grid-template-columns: 1fr; } .workspace-app { flex-wrap: wrap; padding: 20px; } .workspace-metadata { padding: 0 20px 20px; } .workspace-page__main { gap: 8px; } .workspace-page__arrow { display: none; } }
 </style>

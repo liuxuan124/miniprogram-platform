@@ -1,16 +1,18 @@
 <template>
-  <div class="mine-config-page">
-    <PageHeader
-      kicker="小程序 / 页面"
-      title="我的"
-      description="先选一套「我的」页模板外观，再配置会员卡、订单入口、菜单。保存后真机立即读取。"
+  <div class="mine-config-page builder-studio">
+    <StudioHeader
+      section="个人中心"
+      title="个人中心设计"
+      description="选择个人中心样式，再配置资料、订单和功能入口。"
     >
       <template #actions>
         <el-button @click="router.push('/page-builder/list')">返回页面列表</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
+        <span class="studio-save-state" :class="{ 'is-dirty': isDirty && configReady }" role="status">{{ loading ? '正在读取配置' : (!configReady ? '配置未读取' : (isDirty ? '有未保存的修改' : '配置已保存')) }}</span>
+        <el-button type="primary" :loading="saving" :disabled="!configReady || loading || !isDirty" @click="onSave">保存并生效</el-button>
       </template>
-    </PageHeader>
+    </StudioHeader>
 
+    <div v-if="configError" class="studio-feedback is-error" role="alert"><span>{{ configError }}</span><el-button size="small" @click="loadConfig">重新加载</el-button></div>
     <div v-loading="loading" class="mine-layout">
       <div class="mine-form">
         <div class="section-label">模板风格</div>
@@ -35,23 +37,25 @@
         <MinePageConfig v-model="form.mineConfig" />
       </div>
       <div class="mine-preview-wrap">
-        <MinePagePreview :mine-config="form.mineConfig" :theme="form.theme" />
+        <div class="mine-preview-label">实时预览<span>保存后生效</span></div>
+        <MinePagePreview v-if="configReady" :mine-config="form.mineConfig" :theme="form.theme" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import PageHeader from '@/components/PageHeader.vue'
+import { computed } from 'vue'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
+import StudioHeader from '@/components/builder-studio/StudioHeader.vue'
 import MinePageConfig from '@/components/miniapp-builder/MinePageConfig.vue'
 import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
 import { useMiniappConfig } from '@/components/miniapp-builder/composables/useMiniappConfig'
 import { MINE_STYLE_TEMPLATES, applyMineStylePreset, resolveMineStyleKey } from '@/types/miniapp'
 
 const router = useRouter()
-const { form, loading, saving, loadConfig, handleSave } = useMiniappConfig()
+const { form, loading, saving, loadConfig, handleSave, isDirty, configReady, configError } = useMiniappConfig()
 const personalCenterTemplates = MINE_STYLE_TEMPLATES
 
 const selectedMineTemplate = computed(() => resolveMineStyleKey(form.mineConfig as Record<string, unknown>))
@@ -64,8 +68,12 @@ async function onSave() {
   await handleSave()
 }
 
-onMounted(async () => {
-  await loadConfig()
+onBeforeRouteLeave(async () => {
+  if (!configReady.value || !isDirty.value) return true
+  try {
+    await ElMessageBox.confirm('有未保存的个人中心修改，离开后将不会生效。', '保留你的修改', { confirmButtonText: '放弃修改并离开', cancelButtonText: '继续设计', type: 'warning' })
+    return true
+  } catch { return false }
 })
 </script>
 
@@ -135,4 +143,17 @@ onMounted(async () => {
   .mine-layout { grid-template-columns: 1fr; }
   .mine-preview-wrap { position: static; }
 }
+
+.mine-layout { grid-template-columns: minmax(0, 1fr) 386px; gap: 24px; }
+.mine-form { padding: 24px; border-color: var(--studio-line); border-radius: 12px; }
+.mine-preview-wrap { padding: 16px; border: 1px solid var(--studio-line); border-radius: 12px; background: var(--studio-canvas); overflow: hidden; }
+.mine-preview-label { display: flex; align-items: center; justify-content: space-between; font-size: .875rem; font-weight: 600; margin-bottom: 20px; }
+.mine-preview-label span { font-size: .75rem; color: var(--studio-muted); font-weight: 400; }
+.mine-form .section-label { font-size: 1rem; font-weight: 600; }
+.mine-form .section-hint { font-size: .8125rem; margin-top: 8px; }
+.mine-tpl-name { font-size: .875rem; }
+.mine-tpl-desc { font-size: .75rem; }
+.mine-form :deep(.el-form-item__label) { font-size: .8125rem; }
+.mine-form :deep(.el-col) { min-width: 145px; flex-grow: 1; }
+@media (max-width: 1100px) { .mine-layout { grid-template-columns: 1fr; } .mine-preview-wrap { position: static; display: flex; flex-direction: column; align-items: center; } .mine-preview-label { width: 100%; } }
 </style>

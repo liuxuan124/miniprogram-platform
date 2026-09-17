@@ -1,12 +1,12 @@
 <template>
   <div class="prototype-component-panel">
-    <section class="panel-section" :style="sectionStyle('components')">
+    <el-tabs v-model="panelMode" class="studio-component-tabs" stretch>
+      <el-tab-pane label="添加组件" name="components">
+    <section class="panel-section" >
       <div class="section-title">
         <span>组件库</span>
-        <button class="section-count" @click="toggleCollapse('components')">{{ totalComponentCount }}</button>
-        <button class="section-toggle" @click="toggleCollapse('components')">
-          {{ collapsed.components ? '展开' : '收起' }}
-        </button>
+        <span class="section-count">{{ totalComponentCount }}</span>
+
       </div>
       <div v-show="!collapsed.components" class="component-search">
         <el-input
@@ -68,22 +68,14 @@
       </div>
     </section>
 
-    <div
-      v-show="!collapsed.components"
-      class="resize-handle"
-      title="拖动调整组件库高度"
-      @mousedown="startResize('components', $event)"
-    >
-      <span></span>
-    </div>
 
+      </el-tab-pane>
+      <el-tab-pane label="页面结构" name="structure">
     <section class="panel-section structure-section" :class="{ collapsed: collapsed.structure }">
       <div class="section-title">
         <span>当前页面结构</span>
-        <button class="section-count" @click="toggleCollapse('structure')">{{ pageStore.components.length }}</button>
-        <button class="section-toggle" @click="toggleCollapse('structure')">
-          {{ collapsed.structure ? '展开' : '收起' }}
-        </button>
+        <span class="section-count">{{ pageStore.components.length }}</span>
+
       </div>
       <div v-show="!collapsed.structure" class="structure-list">
         <div
@@ -91,19 +83,27 @@
           :key="comp.id"
           class="structure-row"
           :class="{ active: comp.id === pageStore.selectedComponentId }"
-          @click="pageStore.selectComponent(comp.id)"
+          draggable="true"
+          @dragstart="structureDragIndex = index"
+          @dragover.prevent
+          @drop.prevent="moveStructure(index)"
+          @dragend="structureDragIndex = null"
         >
           <span class="drag-handle" aria-hidden="true">⠿</span>
-          <span>{{ index + 1 }}. {{ getComponentDef(comp.type)?.label ?? comp.type }}</span>
+          <button type="button" class="structure-select" :aria-pressed="comp.id === pageStore.selectedComponentId" @click="pageStore.selectComponent(comp.id)"><span class="structure-index">{{ index + 1 }}</span>{{ getComponentDef(comp.type)?.label ?? comp.type }}</button>
           <button
             class="remove-btn"
             aria-label="删除该组件"
             @click.stop="handleRemoveComponent(comp)"
           >×</button>
         </div>
-        <div v-if="!pageStore.components.length" class="empty-tip">当前页面暂无组件</div>
+        <div v-if="!pageStore.components.length" class="empty-tip">页面还是空白的，切换到「添加组件」开始设计。</div>
       </div>
     </section>
+
+        <div class="structure-help">拖拽调整顺序；点击组件，在画布和右侧编辑。</div>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -119,6 +119,13 @@ import { confirmRemoveComponent } from './confirmRemoveComponent'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
 const pageStore = usePageStore()
+const panelMode = ref('components')
+const structureDragIndex = ref<number | null>(null)
+function moveStructure(index: number) {
+  if (structureDragIndex.value == null) return
+  pageStore.moveComponent(structureDragIndex.value, index)
+  structureDragIndex.value = null
+}
 const featureModulesStore = useFeatureModulesStore()
 const industryProfileStore = useIndustryProfileStore()
 if (!industryProfileStore.loaded) {
@@ -304,236 +311,38 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-.prototype-component-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  background: #fff;
-  border-right: 1px solid #e3e8f0;
-}
-
-.panel-section {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.structure-section {
-  flex: 1;
-
-  &.collapsed {
-    flex: 0 0 42px;
-  }
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 10px 12px 8px;
-  color: #7b8798;
-  font-size: 12px;
-  font-weight: 700;
-  background: #fff;
-  border-bottom: 1px solid #e3e8f0;
-
-  span {
-    flex: 1;
-  }
-
-  .section-count {
-    min-width: 20px;
-    padding: 1px 6px;
-    color: var(--color-primary);
-    font-family: inherit;
-    font-size: 11px;
-    text-align: center;
-    background: #eaf2ff;
-    border: 0;
-    border-radius: 999px;
-    cursor: pointer;
-  }
-
-  .section-toggle {
-    padding: 0;
-    color: #9aa4b5;
-    font-family: inherit;
-    font-size: 11px;
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-
-    &:hover {
-      color: var(--color-primary);
-    }
-  }
-}
-
-.resize-handle {
-  position: relative;
-  flex-shrink: 0;
-  height: 10px;
-  background: #f4f7fb;
-  border-top: 1px solid #e3e8f0;
-  border-bottom: 1px solid #e3e8f0;
-  cursor: row-resize;
-
-  span {
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    width: 46px;
-    height: 2px;
-    background: #cbd5e1;
-    border-radius: 999px;
-    transform: translateX(-50%);
-  }
-
-  &:hover {
-    background: #eaf2ff;
-
-    span {
-      background: var(--color-primary);
-    }
-  }
-}
-
-.empty-tip {
-  padding: 10px;
-  color: #9aa4b5;
-  font-size: 12px;
-  text-align: center;
-}
-
-.component-search {
-  flex-shrink: 0;
-  padding: 8px 8px 0;
-}
-
-.component-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-content: start;
-  flex: 1;
-  min-height: 0;
-  gap: 6px;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.category-label {
-  grid-column: 1 / -1;
-  padding: 6px 2px 2px;
-  color: #9aa4b5;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.category-label--row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.category-all {
-  padding: 0;
-  color: var(--color-primary);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-
-  &:hover,
-  &.active {
-    color: #0b4fd6;
-    text-decoration: underline;
-  }
-}
-
-.component-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  min-height: 54px;
-  color: #7b8798;
-  font-size: 12px;
-  line-height: 1.2;
-  text-align: center;
-  background: #f8faff;
-  border: 1px solid #e3e8f0;
-  border-radius: 9px;
-  cursor: pointer;
-  transition: 0.15s;
-
-  &:hover,
-  &.active {
-    color: var(--color-primary);
-    font-weight: 700;
-    background: #eaf2ff;
-    border-color: var(--color-primary);
-  }
-
-  &:active {
-    transform: scale(0.97);
-  }
-}
-
-.component-icon {
-  font-size: 18px;
-  line-height: 1.1;
-}
-
-.structure-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.structure-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  padding: 8px 9px;
-  color: #7b8798;
-  font-size: 13px;
-  background: #fff;
-  border: 1px solid #e3e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.14s;
-
-  &:hover,
-  &.active {
-    color: var(--color-primary);
-    background: #eaf2ff;
-    border-color: var(--color-primary);
-  }
-}
-
-.drag-handle {
-  color: #d0d8e4;
-  font-size: 13px;
-}
-
-.remove-btn {
-  margin-left: auto;
-  color: #c0c9d8;
-  font-size: 13px;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
+<style scoped>
+.prototype-component-panel { height: 100%; min-height: 0; background: #fff; border-right: 1px solid #e2e6ed; }
+.studio-component-tabs { display: flex; flex-direction: column; height: 100%; }
+.studio-component-tabs :deep(.el-tabs__header) { flex: none; margin: 0; padding: 0 12px; }
+.studio-component-tabs :deep(.el-tabs__item) { height: 52px; font-size: .875rem; font-weight: 500; }
+.studio-component-tabs :deep(.el-tabs__nav-wrap::after) { height: 1px; background: #e2e6ed; }
+.studio-component-tabs :deep(.el-tabs__content) { flex: 1; min-height: 0; overflow: hidden; }
+.studio-component-tabs :deep(.el-tab-pane) { height: 100%; display: flex; flex-direction: column; }
+.panel-section { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.section-title { display: flex; align-items: center; gap: 8px; padding: 18px 16px 12px; font-size: .8125rem; font-weight: 500; color: #626e82; }
+.section-title > span:first-child { flex: 1; }
+.section-count { font-size: .75rem; border-radius: 5px; padding: 2px 7px; background: #f0f3f8; color: #56647b; }
+.component-search { padding: 0 16px 14px; }
+.component-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; overflow-y: auto; padding: 0 16px 20px; flex: 1; min-height: 0; }
+.category-label { grid-column: 1 / -1; font-size: .75rem; color: #626e82; padding: 16px 0 4px; }
+.category-label--row { display: flex; justify-content: space-between; align-items: center; }
+.category-all { border: 0; background: none; color: #002fa7; font-size: .75rem; cursor: pointer; }
+.component-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 78px; padding: 12px 6px; border: 1px solid #e5e9f0; border-radius: 8px; background: #fff; font: inherit; font-size: .8125rem; color: #41516b; cursor: grab; transition: background .15s, border-color .15s; }
+.component-card:hover { background: #f5f7ff; border-color: #a4b4d9; }
+.component-card.active { border-color: #002fa7; background: #edf2ff; color: #002fa7; }
+.component-icon { color: #657797; height: 22px; display: grid; place-items: center; }
+.component-card.active .component-icon { color: #002fa7; }
+.structure-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 16px; }
+.structure-row { display: flex; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: 6px; margin: 4px 0; background: #fff; }
+.structure-row:hover { background: #f6f8fb; }
+.structure-row.active { background: #edf2ff; border-color: #d0daf1; }
+.structure-select { display: flex; align-items: center; gap: 8px; text-align: left; flex: 1; min-width: 0; padding: 14px 4px; font: inherit; font-size: .8125rem; background: none; color: #41516b; border: 0; cursor: pointer; }
+.structure-row.active .structure-select { color: #002fa7; }
+.structure-index { color: #8793a6; font-size: .75rem; }
+.drag-handle { padding: 8px 4px; color: #8a96a8; cursor: grab; }
+.remove-btn { border: 0; background: none; color: #8491a6; font-size: 18px; width: 28px; height: 28px; cursor: pointer; border-radius: 4px; }
+.remove-btn:hover { color: #b33140; background: #fff0f2; }
+.empty-tip { grid-column: 1 / -1; color: #626e82; font-size: .8125rem; line-height: 1.7; padding: 24px 12px; text-align: center; }
+.structure-help { padding: 12px 16px; border-top: 1px solid #e2e6ed; font-size: .75rem; color: #626e82; line-height: 1.6; }
 </style>

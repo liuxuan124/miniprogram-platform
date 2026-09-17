@@ -2,28 +2,26 @@
   <div class="tabbar-editor">
     <div class="editor-header">
       <span class="editor-label">底部导航配置</span>
-      <span class="bind-progress">已绑定 {{ boundCount }}/{{ localTabs.length }}</span>
+      <span class="bind-progress">可用入口 {{ boundCount }}/{{ localTabs.length }}</span>
     </div>
-    <p class="tabbar-limit-tip">支持 {{ TABBAR_MIN }}~{{ TABBAR_MAX }} 个入口，保存后小程序底部导航即时生效。</p>
-    <p class="tabbar-limit-tip">首页默认用系统自带暖阁版式；星球默认用系统自带暖阁星球页。只有给该槽位选了「装修页」才会换成拖出来的布局；发现/商城同理，不选则继续走原有页面。模板中心可套用「暖阁星球页模板」再绑到星球槽。</p>
-    <div class="progress-bar">
-      <div class="progress-fill" :style="{ width: progressPercent + '%', background: progressColor }"></div>
-    </div>
+    <p class="tabbar-limit-tip">支持 {{ TABBAR_MIN }}–{{ TABBAR_MAX }} 个入口。拖拽调整顺序；未选择设计页面时，使用对应的系统页面。</p>
 
     <draggable v-model="localTabs" item-key="id" handle=".drag-handle" @update:modelValue="emitUpdate" class="tab-list">
       <template #item="{ element: tab, index }">
         <div class="tab-item" :class="{ unbound: !tab.pageId && !tab.pagePath.includes('index') && !isNativeShell(tab, index) }">
           <div class="drag-handle">⠿</div>
-          <div class="tab-icon-wrap" @click="openIconPicker(index)">
+          <button type="button" class="tab-icon-wrap" :aria-label="'选择' + tab.text + '的图标'" @click="openIconPicker(index)">
             <TabBarIconDisplay :icon="tab.icon" fallback="📦" />
-          </div>
+          </button>
           <div class="tab-fields">
-            <el-input v-model="tab.text" placeholder="导航名称" size="small" @input="emitUpdate" />
-            <el-select v-model="tab.pageId" placeholder="点了打开哪个页面（可空=系统自带页）" size="small" clearable @change="onPageChange(index)" style="width:100%">
-              <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
+            <label class="tab-field-label">入口名称</label>
+            <el-input v-model="tab.text" :aria-label="'第' + (index + 1) + '个入口名称'" placeholder="入口名称" maxlength="8" size="small" @input="emitUpdate" />
+            <label class="tab-field-label">打开页面</label>
+            <el-select v-model="tab.pageId" :aria-label="tab.text + '对应的页面'" placeholder="使用系统内置页面" size="small" filterable clearable @change="onPageChange(index)" style="width:100%">
+              <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id"><span>{{ p.name }}</span><span class="page-option-state">{{ p.type === 'system' ? '系统' : (p.status === 1 ? '已上线' : '草稿') }}</span></el-option>
             </el-select>
-            <div class="tab-shell-hint">Tab 槽位：{{ shellLabel(tab, index) }}</div>
-            <div v-if="isNativeShell(tab, index)" class="native-tip">未选装修页：用户看到系统自带页面（首页=暖阁原生，星球=暖阁星球原生）</div>
+            <div class="tab-shell-hint">对应 {{ shellLabel(tab, index) }}</div>
+            <div v-if="isNativeShell(tab, index)" class="native-tip">使用系统内置页面</div>
             <div v-else-if="!tab.pageId && !tab.pagePath.includes('index')" class="unbound-tip">还没选页面，用户点了会是空白页</div>
           </div>
           <el-button
@@ -105,7 +103,7 @@ watch(
   { deep: true },
 )
 
-const boundCount = computed(() => localTabs.value.filter(t => t.pageId || t.pagePath.includes('index')).length)
+const boundCount = computed(() => localTabs.value.filter((t, index) => isNativeShell(t, index) || props.pages.some(p => String(p.id) === String(t.pageId))).length)
 const progressPercent = computed(() => {
   const total = localTabs.value.length || 1
   return Math.round(boundCount.value / total * 100)
@@ -119,6 +117,7 @@ function shellLabel(tab: NavTab, index: number) {
 }
 
 function isNativeShell(tab: NavTab, index: number) {
+  if (tab.pageId && !String(tab.pageId).startsWith('__')) return false
   const shell = resolveTabShellRoute(tab, index)
   const path = String(tab.pagePath || '')
   const boundCustom = /\/pages\/custom\//.test(path)
@@ -160,6 +159,9 @@ function onPageChange(index: number) {
   if (page) {
     tab.pageName = page.name
     tab.pagePath = page.path || tab.pagePath
+  } else if (!tab.pageId) {
+    tab.pageName = ''
+    tab.pagePath = resolveTabShellRoute(tab, index)
   }
   emitUpdate()
 }
@@ -222,6 +224,20 @@ function confirmIcon() {
 .tab-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .tab-remove { flex-shrink: 0; }
 .tab-add { width: 100%; margin-top: 8px; }
+.tab-list { margin-top: 20px; gap: 12px; }
+.tab-item { align-items: flex-start; padding: 16px 12px; border-color: #e2e6ed; gap: 12px; }
+.tab-item > .drag-handle { padding-top: 12px; }
+.tab-icon-wrap { width: 44px; height: 44px; padding: 0; margin-top: 20px; background: #f3f6fc; border-color: #e2e6ed; }
+.tab-fields { gap: 6px; }
+.tab-field-label { color: #626e82; font-size: .75rem; margin-top: 2px; }
+.tab-field-label:not(:first-child) { margin-top: 8px; }
+.editor-label { font-size: .875rem; font-weight: 600; }
+.bind-progress { font-size: .75rem; }
+.tabbar-limit-tip { font-size: .8125rem; line-height: 1.7; margin-top: 8px; }
+.native-tip, .unbound-tip, .tab-shell-hint { font-size: .75rem; }
+.tab-shell-hint { color: #65748e; }
+.tab-remove { margin-top: 24px; }
+.page-option-state { float: right; color: #7b8798; font-size: .75rem; margin-left: 12px; }
 
 .icon-library {
   display: grid;

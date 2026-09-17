@@ -70,13 +70,13 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'overview',
         name: 'PageBuilderOverview',
         component: () => import('@/views/page-builder/overview.vue'),
-        meta: { title: '总览', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '搭建工作台', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'start',
         name: 'PageBuilderStart',
         component: () => import('@/views/page-builder/miniapp-builder.vue'),
-        meta: { title: '外观', icon: 'Cellphone', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '品牌与导航', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         // 兼容旧链接「小程序配置」
@@ -87,7 +87,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'list',
         name: 'PageBuilderList',
         component: () => import('@/views/page-builder/index.vue'),
-        meta: { title: '页面', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '页面设计', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'mine',
@@ -105,7 +105,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'release',
         name: 'PageBuilderRelease',
         component: () => import('@/views/page-builder/release.vue'),
-        meta: { title: '发布与版本', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+        meta: { title: '发布中心', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
         path: 'version-management',

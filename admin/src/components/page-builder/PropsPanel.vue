@@ -83,20 +83,23 @@
             </el-button>
           </div>
           <div v-if="dataSourceBinding" class="ds-binding-card">
-            <div class="ds-binding-card__title">数据源绑定（必填）</div>
+            <el-collapse v-model="bindingDetailsOpen" class="binding-details">
+            <el-collapse-item title="数据连接详情" name="binding">
             <el-form label-width="72px" size="small">
-              <el-form-item label="type" required>
+              <el-form-item label="数据类型">
                 <el-tag :type="dataSourceBinding.typeOk ? 'success' : 'danger'" size="small">
                   {{ dataSourceBinding.type || '未配置' }}
                 </el-tag>
                 <span v-if="!dataSourceBinding.typeOk" class="ds-binding-hint">期望：{{ dataSourceBinding.expectedType }}</span>
               </el-form-item>
-              <el-form-item label="query" required>
+              <el-form-item label="筛选条件">
                 <el-tag :type="dataSourceBinding.queryOk ? 'success' : 'danger'" size="small">
                   {{ dataSourceBinding.queryOk ? `已配置 ${dataSourceBinding.queryKeyCount} 项` : '未配置' }}
                 </el-tag>
               </el-form-item>
             </el-form>
+            </el-collapse-item>
+            </el-collapse>
             <el-alert
               v-for="issue in dataSourceBinding.issues"
               :key="issue"
@@ -363,6 +366,7 @@ function onPathInput(v: string) {
 }
 
 const activeTab = ref<'content' | 'style'>('content')
+const bindingDetailsOpen = ref<string[]>([])
 const marginLinked = ref(false)
 const paddingLinked = ref(false)
 const shareImageUrl = computed(() => normalizeUploadUrl(String(pageStore.pageConfig.share_image || '')))
@@ -376,6 +380,7 @@ const dataSourceBinding = computed(() => {
 // 切换选中组件时收起，避免上一个组件的展开状态带到下一个组件造成误解
 watch(() => pageStore.selectedComponentId, () => {
   activeTab.value = 'content'
+  bindingDetailsOpen.value = []
 })
 
 const dataStatus = computed(() => {

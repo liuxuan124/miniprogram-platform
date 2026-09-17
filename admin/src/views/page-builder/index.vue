@@ -1,56 +1,30 @@
 <template>
-  <div class="pages-list">
-    <PageHeader
-      kicker="小程序 / 页面"
-      title="页面"
-      description="创建和装修页面。改完点「上线」，小程序里立刻生效。"
-    >
+  <div class="pages-list builder-studio">
+    <StudioHeader title="页面设计" section="页面" description="组织页面、编辑内容，让每个入口都有清晰的目的。">
       <template #actions>
-        <el-button @click="router.push('/page-builder/overview')">总览</el-button>
-        <el-button @click="router.push('/page-builder/start')">外观</el-button>
-        <el-button type="primary" @click="handleCreate">新建页面</el-button>
+        <el-button @click="handleSelectTemplate"><el-icon><Collection /></el-icon>从模板创建</el-button>
+        <el-button type="primary" @click="handleCreate"><el-icon><Plus /></el-icon>新建页面</el-button>
       </template>
-    </PageHeader>
-
-    <section class="stats-row">
-      <div v-for="stat in statsCards" :key="stat.label" class="stat-card">
-        <div class="stat-value">{{ stat.value }}</div>
-        <div class="stat-label">{{ stat.label }}</div>
-        <div class="stat-icon" :style="{ background: stat.bg }">
-          <el-icon :size="18"><component :is="stat.icon" /></el-icon>
-        </div>
-      </div>
-    </section>
-
-    <div class="toolbar">
-      <input
-        v-model="searchForm.keyword"
-        class="inp"
-        placeholder="搜索页面名称"
-        @keyup.enter="handleSearch"
-      />
-      <select v-model="searchForm.type" class="sel">
-        <option value="">用途：全部</option>
-        <option value="home">首页</option>
-        <option :value="2">专题页</option>
-        <option :value="3">自定义页</option>
-      </select>
-      <select v-model="searchForm.status" class="sel">
-        <option value="">状态：全部</option>
-        <option value="live">已上线</option>
-        <option value="dirty">有未上线的改动</option>
-        <option value="draft">草稿</option>
-      </select>
-      <div class="mla actions">
-        <button class="btn" @click="handleSelectTemplate">模板</button>
-        <button class="btn" @click="handleReset">重置</button>
-        <button class="btn btn-p" @click="handleCreate">+ 新建页面</button>
+    </StudioHeader>
+    <div v-if="listError" class="studio-feedback is-error" role="alert"><span>{{ listError }}</span><el-button size="small" @click="fetchList">重新加载</el-button></div>
+    <div class="page-library-tools">
+      <el-radio-group v-model="searchForm.status" class="page-status-tabs" @change="handleSearch">
+        <el-radio-button value="">全部页面</el-radio-button>
+        <el-radio-button value="live">已上线</el-radio-button>
+        <el-radio-button value="dirty">待更新</el-radio-button>
+        <el-radio-button value="draft">草稿</el-radio-button>
+      </el-radio-group>
+      <div class="page-library-search">
+        <el-input v-model="searchForm.keyword" placeholder="搜索页面名称" clearable :prefix-icon="Search" aria-label="搜索页面名称" @input="onSearchInput" @keyup.enter="handleSearch" />
+        <el-select v-model="searchForm.type" aria-label="筛选页面用途" @change="handleSearch">
+          <el-option label="全部用途" value="" /><el-option label="首页" value="home" /><el-option label="专题页" :value="2" /><el-option label="自定义页" :value="3" />
+        </el-select>
+        <el-button v-if="searchForm.keyword || searchForm.type || searchForm.status" text @click="handleReset">清除筛选</el-button>
       </div>
     </div>
-
-    <div class="card">
+    <div class="card page-library-table">
       <div class="tw">
-        <table v-loading="loading">
+        <table v-loading="loading"><caption class="sr-only">小程序页面及其上线状态</caption>
           <thead>
             <tr>
               <th>页面名称</th>
@@ -58,13 +32,13 @@
               <th>访问路径</th>
               <th>状态</th>
               <th>更新时间</th>
-              <th>操作</th>
+              <th class="page-ops-heading">操作</th>
             </tr>
           </thead>
           <tbody>
             <tr class="mine-row">
               <td>
-                <b>我的</b>
+                <b class="page-row-name"><span class="page-row-icon"><el-icon><User /></el-icon></span>我的</b>
                 <br />
                 <span class="sub">系统个人中心页，使用表单配置</span>
               </td>
@@ -78,7 +52,7 @@
             </tr>
             <tr v-for="row in displayList" :key="row.id">
               <td>
-                <b>{{ row.name }}</b>
+                <b class="page-row-name"><span class="page-row-icon"><el-icon><Document /></el-icon></span>{{ row.name }}</b>
                 <br />
                 <span class="sub">{{ row.shareTitle || row.share_title || '用于小程序页面展示' }}</span>
               </td>
@@ -101,28 +75,30 @@
               </td>
               <td>{{ row.updated_at }}</td>
               <td class="ops">
-                <button class="btn xs btn-p" @click="handleEdit(row)">装修</button>
-                <button class="btn xs btn-s" @click="handlePublish(row)">{{ isPublished(row.status) ? '下架' : '上线' }}</button>
-                <details class="more-menu">
-                  <summary class="btn xs btn-more">更多</summary>
-                  <div class="more-pop">
-                    <button @click="handleDuplicate(row)">复制页面</button>
-                    <button @click="handleEditMeta(row)">编辑信息</button>
-                    <button @click="handlePreview(row)">预览</button>
-                    <button @click="showQr(row)">扫码查看</button>
-                    <button @click="handleVersion(row)">历史版本</button>
-                    <button class="danger" @click="handleDelete(row)">删除</button>
-                  </div>
-                </details>
+                <el-button size="small" type="primary" plain @click="handleEdit(row)">设计</el-button>
+                <el-button size="small" @click="handlePreview(row)">预览</el-button>
+                <el-dropdown trigger="click">
+                  <el-button size="small" aria-label="更多页面操作"><el-icon><MoreFilled /></el-icon></el-button>
+                  <template #dropdown><el-dropdown-menu>
+                    <el-dropdown-item @click="handleEditMeta(row)">页面信息</el-dropdown-item>
+                    <el-dropdown-item @click="handleDuplicate(row)">复制页面</el-dropdown-item>
+                    <el-dropdown-item @click="showQr(row)">预览二维码</el-dropdown-item>
+                    <el-dropdown-item @click="handleVersion(row)">历史版本</el-dropdown-item>
+                    <el-dropdown-item v-if="isPublished(row.status)" divided @click="handlePublish(row)">下架页面</el-dropdown-item>
+                    <el-dropdown-item v-else divided @click="handleEdit(row)">进入编辑器检查并上线</el-dropdown-item>
+                    <el-dropdown-item @click="handleDelete(row)">删除页面</el-dropdown-item>
+                  </el-dropdown-menu></template>
+                </el-dropdown>
               </td>
             </tr>
           </tbody>
           <tfoot>
             <tr v-if="!loading && displayList.length === 0">
-              <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">
-                <div style="margin-bottom:12px;">还没有装修页面。请先创建页面并完成装修，再到「外观」绑定底部导航。</div>
-                <el-button type="primary" @click="handleCreate">新建页面</el-button>
-                <el-button @click="handleSelectTemplate">从模板创建</el-button>
+              <td colspan="6" class="page-library-empty">
+                <el-empty :image-size="64" :description="listError ? '页面未能加载' : (searchForm.keyword || searchForm.type || searchForm.status ? '没有匹配的页面' : '从第一个页面开始搭建')">
+                  <el-button v-if="searchForm.keyword || searchForm.type || searchForm.status" @click="handleReset">清除筛选</el-button>
+                  <template v-else-if="!listError"><el-button type="primary" @click="handleCreate">新建页面</el-button><el-button @click="handleSelectTemplate">选择模板</el-button></template>
+                </el-empty>
               </td>
             </tr>
           </tfoot>
@@ -130,7 +106,7 @@
       </div>
     </div>
 
-    <div class="summary">共 {{ pagination.total || pageList.length }} 个页面</div>
+    <div class="summary">页面内容更新后生效；保存草稿不会自动上线。</div>
 
     <div class="pager">
       <el-pagination
@@ -139,8 +115,8 @@
         :total="pagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchList"
-        @current-change="fetchList"
+        @size-change="onPaginationChange"
+        @current-change="onPaginationChange"
       />
     </div>
 
@@ -215,13 +191,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import PageHeader from '@/components/PageHeader.vue'
-import { Document, Brush, OfficeBuilding, Grid } from '@element-plus/icons-vue'
-import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates, duplicatePage } from '@/api/page'
+import StudioHeader from '@/components/builder-studio/StudioHeader.vue'
+import { Document, Collection, Plus, Search, User, MoreFilled } from '@element-plus/icons-vue'
+import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, duplicatePage } from '@/api/page'
 import { normalizeUploadUrl, getConfigsSilent } from '@/api/system'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import PagePathField from '@/components/page-builder/PagePathField.vue'
@@ -237,6 +213,25 @@ import {
 } from '@/utils/page-path'
 
 const router = useRouter()
+const route = useRoute()
+const listError = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(handleSearch, 350)
+}
+let consumingCreate = false
+async function consumeCreateIntent() {
+  if (route.query.create !== '1' || dialogVisible.value || consumingCreate) return
+  consumingCreate = true
+  try {
+    const { create, ...query } = route.query
+    await router.replace({ query })
+    await handleCreate()
+  } finally { consumingCreate = false }
+}
+onActivated(consumeCreateIntent)
+onBeforeUnmount(() => { if (searchTimer) clearTimeout(searchTimer) })
 
 const searchForm = reactive({
   keyword: '',
@@ -252,6 +247,11 @@ const pagination = reactive({
 
 const pageList = ref<PageRecord[]>([])
 const loading = ref(false)
+const localPagination = ref(false)
+let listSequence = 0
+let listLoaded = false
+function onPaginationChange() { if (!localPagination.value) fetchList() }
+onActivated(() => { if (listLoaded) fetchList() })
 const qrVisible = ref(false)
 const qrDataUrl = ref('')
 const qrUrl = ref('')
@@ -268,15 +268,10 @@ const displayList = computed(() => {
   } else if (searchForm.status === 'draft') {
     rows = rows.filter((row) => getLiveStatusKey(row) === 'draft')
   }
-  return rows
+  return localPagination.value ? rows.slice((pagination.page - 1) * pagination.pageSize, pagination.page * pagination.pageSize) : rows
 })
 
-const statsCards = ref([
-  { label: '装修页面', value: '-', icon: Document, bg: 'var(--brand-soft)' },
-  { label: '可用模板', value: '-', icon: Brush, bg: 'var(--warning-soft)' },
-  { label: '行业方案', value: '12', icon: OfficeBuilding, bg: 'var(--success-soft)' },
-  { label: '组件类型', value: '26', icon: Grid, bg: '#f3e8ff' },
-])
+
 
 const dialogVisible = ref(false)
 const dialogType = ref<'create' | 'edit'>('create')
@@ -488,46 +483,53 @@ function copyPath(row: PageRecord) {
   copyToClipboard(normalizeCopyPath(row.path || ''), '页面路径已复制')
 }
 
-async function loadStats() {
-  try {
-    statsCards.value[0].value = String(pagination.total || pageList.value.length || 0)
-    const res = await getPageTemplates({ current: 1, size: 1 })
-    const data = res.data as any
-    statsCards.value[1].value = String(data?.total || data?.length || (Array.isArray(data) ? data.length : 0))
-  } catch {
-    statsCards.value[0].value = String(pageList.value.length || 0)
-  }
-}
-
 async function fetchList() {
+  const sequence = ++listSequence
   loading.value = true
+  listError.value = ''
+  const localFilter = Boolean(searchForm.status || searchForm.type === 'home')
+  const params: PageListParams = {
+    current: localFilter ? 1 : pagination.page,
+    size: localFilter ? 100 : pagination.pageSize,
+    keyword: searchForm.keyword || undefined,
+  }
+  if (searchForm.type && searchForm.type !== 'home') params.type = Number(searchForm.type)
   try {
-    const params: PageListParams = {
-      current: pagination.page,
-      size: pagination.pageSize,
-      keyword: searchForm.keyword || undefined,
+    await loadBoundHomePageId()
+    if (sequence !== listSequence) return
+    const first = await getPageList(params)
+    let records = (first.data?.records || []).map(normalizePageRecord)
+    const total = first.data?.total || 0
+    if (localFilter) {
+      let current = 2
+      while (records.length < total) {
+        if (sequence !== listSequence) return
+        const result = await getPageList({ ...params, current: current++ })
+        const batch = (result.data?.records || []).map(normalizePageRecord)
+        if (!batch.length) break
+        records = records.concat(batch)
+      }
     }
-    if (searchForm.type && searchForm.type !== 'home') {
-      params.type = Number(searchForm.type)
-    }
-    if (searchForm.status === 'live' || searchForm.status === 'dirty') {
-      params.status = 1
-    } else if (searchForm.status === 'draft') {
-      // 草稿含未上线：前端再筛；后端拉全部后本地过滤更准，这里不传 status
-    }
-    const res = await getPageList(params)
-    pageList.value = (res.data?.records || []).map(normalizePageRecord)
-    pagination.total = res.data?.total || 0
+    if (sequence !== listSequence) return
+    pageList.value = records
+    localPagination.value = localFilter
+    const filtered = records.filter(row =>
+      (searchForm.type !== 'home' || String(row.id) === boundHomePageId.value)
+      && (!searchForm.status || getLiveStatusKey(row) === searchForm.status))
+    pagination.total = localFilter ? filtered.length : total
+    listLoaded = true
   } catch {
+    if (sequence !== listSequence) return
+    listError.value = '页面数据未能读取，请重试。已有页面不会被删除。'
     pageList.value = []
+    pagination.total = 0
   } finally {
-    loading.value = false
-    loadStats()
-    loadBoundHomePageId()
+    if (sequence === listSequence) loading.value = false
   }
 }
 
 function handleSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
   pagination.page = 1
   fetchList()
 }
@@ -707,6 +709,7 @@ async function onUploadShareImage(event: Event) {
 onMounted(async () => {
   await loadBoundHomePageId()
   fetchList()
+  await consumeCreateIntent()
 })
 
 watch(
@@ -1152,4 +1155,32 @@ th {
   color: var(--text-muted);
   text-align: center;
 }
+
+/* Design studio: page library */
+.page-library-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.page-status-tabs :deep(.el-radio-button__inner) { background: none; border: 0 !important; box-shadow: none !important; border-radius: 6px; padding: 10px 14px; color: var(--studio-muted); font-size: .875rem; }
+.page-status-tabs :deep(.el-radio-button.is-active .el-radio-button__inner) { color: var(--studio-blue); background: #e8edf9; }
+.page-library-search { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.page-library-search > .el-input { width: 220px; }
+.page-library-search > .el-select { width: 140px; }
+.page-library-table { border-color: var(--studio-line); border-radius: 12px; box-shadow: none; }
+.page-library-table table { min-width: 860px; width: 100%; font-size: .875rem; }
+.page-library-table th { background: #fafbfd; font-size: .8125rem; font-weight: 500; color: var(--studio-muted); padding: 16px 20px; }
+.page-library-table td { padding: 20px; vertical-align: middle; }
+.page-row-name { display: flex; align-items: center; gap: 10px; font-size: .9375rem; font-weight: 600; }
+.page-row-icon { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 6px; background: #edf2ff; color: var(--studio-blue); flex: none; }
+.page-library-table .sub { display: block; margin-top: -8px; padding-left: 40px; font-size: .75rem; }
+.page-library-table .mine-row { background: #fafbfd; }
+.page-library-table .mine-row:hover { background: #f3f6fc; }
+.page-library-table .ops { white-space: nowrap; }
+.page-library-table .ops > .el-button, .page-library-table .ops > .el-dropdown { margin-right: 6px; }
+.page-library-table .path-actions { gap: 8px; }
+.page-library-table .btn-copy { border: none; background: none; padding: 0; color: #657491; font-size: .75rem; }
+.page-library-table .mono { font-size: .75rem; color: var(--studio-muted); overflow-wrap: anywhere; }
+.page-library-empty { padding: 20px !important; }
+.page-ops-heading { min-width: 206px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pages-list .pager { margin-top: 16px; }
+.pages-list .summary { color: var(--studio-muted); font-size: .8125rem; }
+@media (max-width: 700px) { .page-library-search { width: 100%; } .page-library-search > .el-input { flex: 1; min-width: 160px; } }
 </style>

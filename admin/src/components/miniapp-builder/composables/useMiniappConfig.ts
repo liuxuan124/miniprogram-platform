@@ -7,12 +7,14 @@ import type { MiniappForm } from '@/types/miniapp'
 import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE, normalizeOrderTabLabels, resolveMineStyleKey, applyMineStylePreset } from '@/types/miniapp'
 import { suggestMenuLineIcon } from '../menuLineIcons'
 import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
-import { normalizeTabBarItems, tabBarSnapshot } from '@/utils/tabbar'
+import { normalizeTabBarItems, tabBarSnapshot, TAB_SHELL_ROUTES } from '@/utils/tabbar'
 
 /** 系统内置页面（不在页面列表中，但可作为TabBar绑定目标） */
 const SYSTEM_PAGES: { id: string; name: string; path: string; type: 'system' }[] = [
   { id: '__mine__', name: '👤 我的页面（系统内置）', path: '/pages/mine/mine', type: 'system' },
-  { id: '__ai_chat__', name: '🤖 AI对话（系统内置）', path: '/pages/ai-chat/ai-chat', type: 'system' },
+  { id: '__discover__', name: '发现（系统内置）', path: '/pages/discover/discover', type: 'system' },
+  { id: '__planet__', name: '星球（系统内置）', path: '/pages/planet/planet', type: 'system' },
+  { id: '__shop__', name: '商城（系统内置）', path: '/pages/shop/shop', type: 'system' },
   { id: '__login__', name: '🔐 登录页（系统内置）', path: '/pages/login/login', type: 'system' },
   { id: '__index__', name: '🏠 首页（系统内置）', path: '/pages/index/index', type: 'system' },
   { id: '__content_list__', name: '📝 内容列表（系统内置）', path: '/pages/content-list/content-list', type: 'system' },
@@ -35,6 +37,8 @@ function isIndexPath(path?: string) {
 export function useMiniappConfig() {
   const loading = ref(false)
   const saving = ref(false)
+  const configReady = ref(false)
+  const configError = ref('')
   const pages = ref<PageRecord[]>([])
   let savedSnapshot = ''
 
@@ -148,6 +152,8 @@ export function useMiniappConfig() {
 
   async function loadConfig() {
     loading.value = true
+    configReady.value = false
+    configError.value = ''
     try {
       const res = await getConfigByGroup('basic')
       const configs = (res.data as any)?.configs || res.data || []
@@ -165,10 +171,10 @@ export function useMiniappConfig() {
 
       // Home/Mine page IDs
       if (configMap[CONFIG_KEYS.HOME_PAGE_ID]) {
-        form.homePageId = Number(configMap[CONFIG_KEYS.HOME_PAGE_ID]) || ''
+        form.homePageId = normalizeBindId(configMap[CONFIG_KEYS.HOME_PAGE_ID])
       }
       if (configMap[CONFIG_KEYS.MINE_PAGE_ID]) {
-        form.minePageId = Number(configMap[CONFIG_KEYS.MINE_PAGE_ID]) || ''
+        form.minePageId = normalizeBindId(configMap[CONFIG_KEYS.MINE_PAGE_ID])
       }
 
       // TabBar items - 兼容旧字段名 label/path 和新字段名 text/pagePath
@@ -285,10 +291,11 @@ export function useMiniappConfig() {
         form.tabs = normalizeTabBarItems(form.tabs)
       }
     } catch {
-      applyTemplate('standard')
+      configError.value = '配置未能读取。为避免覆盖已有设置，请重新加载后再保存。'
     } finally {
       loading.value = false
-      markSaved()
+      configReady.value = !configError.value
+      if (configReady.value) markSaved()
     }
   }
 
@@ -308,6 +315,10 @@ export function useMiniappConfig() {
   }
 
   async function handleSave(): Promise<boolean> {
+    if (!configReady.value || loading.value) {
+      ElMessage.error(configError.value || '配置正在加载，请稍后再保存')
+      return false
+    }
     const previewNick = String(form.mineConfig?.previewNickname ?? '')
     if (previewNick.length > 10) {
       ElMessage.error('预览昵称不能超过10个字')
@@ -360,7 +371,7 @@ export function useMiniappConfig() {
     for (const tab of form.tabs) {
       const text = tab.text || '未命名'
       const path = normalizePath(tab.pagePath || '')
-      if (!tab.pageId && !path.includes('index')) {
+      if (!tab.pageId && !isBuiltInPath(path)) {
         warnings.push(`导航「${text}」尚未绑定页面`)
       }
       if (!path) {
@@ -391,6 +402,7 @@ export function useMiniappConfig() {
 
   function isBuiltInPath(path: string) {
     return SYSTEM_PAGES.some(page => normalizePath(page.path) === path)
+      || TAB_SHELL_ROUTES.some(route => normalizePath(route) === path)
   }
 
   function handleReset() {
@@ -471,6 +483,8 @@ export function useMiniappConfig() {
     pages,
     loading,
     saving,
+    configReady,
+    configError,
     isDirty,
     applyTemplate,
     handleSave,

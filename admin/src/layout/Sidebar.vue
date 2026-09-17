@@ -183,10 +183,10 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '小程序',
     children: [
-      { title: '总览', path: '/page-builder/overview', icon: 'Odometer', activePrefix: '/page-builder/overview', permissions: ['page:list'] },
-      { title: '页面', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
-      { title: '外观', path: '/page-builder/start', icon: 'Cellphone', activePrefix: '/page-builder/start', permissions: ['page:list'] },
-      { title: '版本', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
+      { title: '搭建工作台', path: '/page-builder/overview', icon: 'Odometer', activePrefix: '/page-builder/overview', permissions: ['page:list'] },
+      { title: '页面设计', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
+      { title: '品牌与导航', path: '/page-builder/start', icon: 'Brush', activePrefix: '/page-builder/start', permissions: ['page:list'] },
+      { title: '发布中心', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {

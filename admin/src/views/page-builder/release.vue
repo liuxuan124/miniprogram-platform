@@ -1,51 +1,46 @@
 <template>
-  <div class="release-page">
-    <PageHeader
-      kicker="小程序 / 发布"
-      title="发布与版本"
-      description="这里管理小程序的版本存档与代码上传。日常改页面内容不用来这里。"
-    >
-      <template #actions>
-        <el-button @click="router.push('/page-builder/overview')">返回总览</el-button>
-        <el-button @click="loadAll">刷新</el-button>
-      </template>
-    </PageHeader>
-
-    <!-- 三步导航：先回答「我该点哪个」 -->
-    <section class="guide">
-      <div class="guide-title">你想做什么？</div>
-      <div class="guide-grid">
-        <div class="guide-card">
-          <div class="guide-num">1</div>
-          <div class="guide-body">
-            <div class="guide-head">改了页面内容</div>
-            <p>换图、加商品、改文案。在装修器点「上线」即可，<b>用户刷新小程序立刻看到</b>，不用来这一页。</p>
-            <el-button size="small" @click="router.push('/page-builder/list')">去页面列表</el-button>
-          </div>
+  <div class="release-page builder-studio">
+    <StudioHeader title="发布中心" section="发布" description="确认改动与生效范围，再选择单页更新、配置发布或代码上传。">
+      <template #actions><el-button :loading="loading" @click="loadAll"><el-icon><Refresh /></el-icon>重新检查</el-button><el-button @click="openLivePreview"><el-icon><View /></el-icon>完整预览</el-button></template>
+    </StudioHeader>
+    <div v-if="releaseError" class="studio-feedback is-error" role="alert"><span>{{ releaseError }}</span><el-button size="small" @click="loadPreflight">重试检查</el-button></div>
+    <section class="release-summary studio-surface">
+      <div><span>待更新的绑定页面</span><strong>{{ preflight ? pendingPages.length : '—' }}</strong><small>更新页面后，小程序刷新生效</small></div>
+      <div><span>最新配置版本</span><strong>{{ currentSemver }}</strong><small>版本号不代表微信审核状态</small></div>
+      <div><span>代码上传</span><strong>{{ pushStatus?.version || pushStatus?.releaseSemver || '暂无版本记录' }}</strong><small>上传之后仍需提交审核与发布</small></div>
+    </section>
+    <el-tabs v-model="activeReleaseTab" class="release-workflow-tabs">
+      <el-tab-pane label="页面更新" name="pages" /><el-tab-pane label="版本与回滚" name="versions" /><el-tab-pane label="代码上传" name="code" />
+    </el-tabs>
+    <section v-show="activeReleaseTab === 'pages'" class="studio-surface release-pages">
+      <div class="studio-section-head"><div><h2>绑定页面检查</h2><p>进入编辑器，预览并确认后更新。未绑定的页面在页面设计中管理。</p></div><el-button link type="primary" @click="router.push('/page-builder/list')">全部页面</el-button></div>
+      <el-table :data="preflight?.pages || []" v-loading="loading" empty-text="尚未读取到绑定页面" row-key="id">
+        <el-table-column prop="name" label="页面" min-width="160" />
+        <el-table-column label="状态" width="130"><template #default="{ row }"><span class="studio-state" :data-status="row.action === 'publish' ? 'dirty' : (row.action === 'empty' ? 'empty' : (row.action === 'builtin' ? 'builtin' : 'live'))">{{ row.action === 'publish' ? '待更新' : (row.action === 'empty' ? '暂无内容' : (row.action === 'builtin' ? '系统页面' : '已上线')) }}</span></template></el-table-column>
+        <el-table-column prop="path" label="访问路径" min-width="220" show-overflow-tooltip />
+        <el-table-column label="操作" width="145"><template #default="{ row }"><el-button v-if="Number(row.id) > 0" link type="primary" @click="router.push('/page-builder/editor/' + row.id)">{{ row.action === 'publish' ? '检查并更新' : '编辑页面' }}</el-button><el-button v-else link type="primary" @click="router.push('/page-builder/start')">查看配置</el-button></template></el-table-column>
+      </el-table>
+      <div class="release-context-note"><el-icon><InfoFilled /></el-icon>仅修改图片、文案或组件内容，无需上传代码或重新提交审核。</div>
+    </section>
+    <section v-show="activeReleaseTab === 'code'" class="studio-surface release-code">
+      <div class="studio-section-head"><div><h2>上传小程序代码</h2><p>用于小程序端功能更新，不是日常内容发布。</p></div><el-icon><Upload /></el-icon></div>
+      <div class="release-code-body">
+        <ol class="release-code-steps"><li><span>1</span><div><strong>上传体验版</strong><p>将当前小程序代码上传到微信。</p></div></li><li><span>2</span><div><strong>提交审核</strong><p>在微信公众平台确认版本并提交审核。</p></div></li><li><span>3</span><div><strong>审核通过后发布</strong><p>正式发布后，新功能才对用户生效。</p></div></li></ol>
+        <div v-if="pushStatus?.message" class="release-upload-status">{{ pushStatus.message }}</div>
+        <div v-if="pushStatus?.uploadAvailable === false" class="studio-feedback">当前服务没有可用的上传能力，请使用现有技术发布流程。</div>
+        <div class="release-code-actions">
+          <el-button type="primary" :loading="pushing" :disabled="!latestRelease || latestRelease.status !== 1 || pushStatus?.uploadAvailable === false" @click="latestRelease && handlePushPreview(latestRelease)">上传当前版本代码</el-button>
+          <el-button @click="activeReleaseTab = 'versions'">查看配置版本</el-button>
+          <el-link href="https://mp.weixin.qq.com" target="_blank" rel="noopener noreferrer">前往微信公众平台</el-link>
         </div>
-        <div class="guide-card guide-card--active">
-          <div class="guide-num">2</div>
-          <div class="guide-body">
-            <div class="guide-head">存一个可回退的版本</div>
-            <p>大改版之前存个档。万一改坏了，可以一键退回到这个版本。<b>就是本页下方的操作。</b></p>
-            <el-button size="small" type="primary" plain @click="scrollToSave">去保存版本</el-button>
-          </div>
-        </div>
-        <div class="guide-card">
-          <div class="guide-num">3</div>
-          <div class="guide-body">
-            <div class="guide-head">小程序代码变了</div>
-            <p>技术同事更新了小程序端功能时才需要。上传后<b>还要去微信公众平台提交审核</b>，审核通过才对用户生效。</p>
-            <el-button size="small" @click="scrollToHistory">去版本记录</el-button>
-          </div>
-        </div>
+        <p class="studio-muted">请核对上传版本与代码内容；后台无法替你确认审核是否通过。</p>
       </div>
     </section>
 
     <!-- 主操作区：备注与按钮放在一起 -->
-    <section id="save-block" class="save-block" v-loading="loading">
+    <section v-show="activeReleaseTab === 'versions'" id="save-block" class="save-block" v-loading="loading">
       <div class="save-current">
-        <div class="save-label">当前版本</div>
+        <div class="save-label">当前配置版本</div>
         <div class="save-value">{{ currentSemver }}</div>
         <div v-if="latestRelease" class="save-meta">
           包含 {{ latestRelease.pageCount || 0 }} 个页面 · 保存于 {{ formatTime(latestRelease.publishedAt || latestRelease.createTime) }}
@@ -54,7 +49,7 @@
       </div>
 
       <div class="save-form">
-        <label class="save-form-label" for="release-notes">这次改了什么？（选填，方便以后回看）</label>
+        <label class="save-form-label" for="release-notes">版本说明（选填）</label>
         <el-input
           id="release-notes"
           v-model="releaseNotes"
@@ -70,19 +65,19 @@
             :disabled="!canPublish"
             @click="handlePublish"
           >
-            保存当前版本
+            发布绑定页面并创建版本
           </el-button>
           <el-button @click="openLivePreview">先预览一下</el-button>
-          <span class="save-hint">版本号由系统自动生成（如 v1.2.0），不需要填写</span>
+          <span class="save-hint">此操作会更新绑定页面，不只是保存快照；不会上传代码。</span>
         </div>
       </div>
     </section>
 
     <!-- 按钮被禁用时，把原因说清楚并给出直达入口 -->
-    <section v-if="!canPublish && blockingItems.length" class="issue-card blocking">
+    <section v-if="activeReleaseTab !== 'code' && !canPublish && blockingItems.length" class="issue-card blocking">
       <div class="issue-head">
         <span class="issue-badge">按钮为什么点不了</span>
-        还有 {{ blockingItems.length }} 项需要先处理，处理完这里会自动变绿
+        还有 {{ blockingItems.length }} 项需要先处理。修改后点击「重新检查」。
       </div>
       <div v-for="item in blockingItems" :key="item.text" class="issue-row">
         <span class="issue-text">{{ item.text }}</span>
@@ -90,7 +85,7 @@
       </div>
     </section>
 
-    <section v-if="warningItems.length" class="issue-card warning">
+    <section v-if="activeReleaseTab !== 'code' && warningItems.length" class="issue-card warning">
       <div class="issue-head">
         <span class="issue-badge warn">提醒</span>
         不影响保存，但建议看一眼
@@ -100,32 +95,22 @@
       </div>
     </section>
 
-    <section v-if="canPublish" class="issue-card ready">
+    <section v-if="activeReleaseTab === 'versions' && canPublish" class="issue-card ready">
       <div class="issue-head">
         <span class="issue-badge ok">检查通过</span>
-        当前配置可以保存为新版本
+        当前配置已通过检查，可以发布绑定页面并创建版本
       </div>
     </section>
 
-    <section v-if="pushStatus?.message" class="issue-card" :class="pushStatus.uploadAvailable === false ? 'warning' : 'info'">
-      <div class="issue-row">
-        <span class="issue-text">
-          上次上传代码到微信：{{ pushStatus.message }}
-          <template v-if="pushStatus.uploadAvailable === false">
-            　（当前服务器不能直接上传，需要技术同事用 GitHub Actions 推送）
-          </template>
-        </span>
-      </div>
-    </section>
-
-    <section id="history-block" class="card">
+    <section v-show="activeReleaseTab !== 'pages'" id="history-block" class="card">
       <div class="card-head">
-        <h2>版本记录</h2>
+        <h2>配置版本记录</h2>
         <span class="muted">
           「预览」看当时的样子；「回退到这个版本」会把线上页面和导航恢复成当时的状态；
           「上传代码到微信」只在小程序代码有更新时才用。
         </span>
       </div>
+      <div v-if="historyError" class="studio-feedback is-error" role="alert">{{ historyError }}<el-button size="small" @click="loadHistory">重试</el-button></div>
       <el-table v-loading="historyLoading" :data="history" size="small">
         <el-table-column label="版本" width="140">
           <template #default="{ row }">v{{ row.semver }}</template>
@@ -179,10 +164,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onActivated, ref } from 'vue'
+import { Refresh, View, InfoFilled, Upload } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '@/components/PageHeader.vue'
+import StudioHeader from '@/components/builder-studio/StudioHeader.vue'
 import {
   getPublishPreflight,
   createRelease,
@@ -196,6 +182,12 @@ import {
 import type { ReleaseRecord } from '@/types/page'
 
 const router = useRouter()
+const activeReleaseTab = ref('pages')
+const releaseError = ref('')
+const historyError = ref('')
+const pendingPages = computed(() => (preflight.value?.pages || []).filter(p => p.action === 'publish'))
+let loadedOnce = false
+onActivated(() => { if (loadedOnce) loadAll() })
 const loading = ref(false)
 const publishing = ref(false)
 const historyLoading = ref(false)
@@ -206,6 +198,8 @@ const history = ref<ReleaseRecord[]>([])
 const releaseNotes = ref('')
 const pushStatus = ref<{
   message?: string
+  version?: string
+  releaseSemver?: string
   uploadAvailable?: boolean
   preferCi?: boolean
   capabilityReason?: string
@@ -247,10 +241,12 @@ function formatTime(value?: string) {
 
 async function loadPreflight() {
   loading.value = true
+  releaseError.value = ''
   try {
     const res = await getPublishPreflight()
     preflight.value = res.data || null
   } catch {
+    releaseError.value = '发布检查未能完成。请重新检查后再发布配置版本。'
     preflight.value = null
   } finally {
     loading.value = false
@@ -259,10 +255,12 @@ async function loadPreflight() {
 
 async function loadHistory() {
   historyLoading.value = true
+  historyError.value = ''
   try {
     const res = await getAllReleases()
     history.value = ((res as any)?.data || []) as ReleaseRecord[]
   } catch {
+    historyError.value = '版本记录未能读取，请重试。'
     history.value = []
   } finally {
     historyLoading.value = false
@@ -289,6 +287,7 @@ async function loadPushStatus() {
 
 async function loadAll() {
   await Promise.all([loadPreflight(), loadHistory(), loadLatest(), loadPushStatus()])
+  loadedOnce = true
 }
 
 function openLivePreview() {
@@ -312,9 +311,9 @@ async function handlePublish() {
   if (!canPublish.value) return
   try {
     await ElMessageBox.confirm(
-      '会把当前的导航配置和所有已上线页面存成一个版本，方便以后回退。\n这一步不会上传代码到微信，也不影响用户现在看到的内容。',
-      '保存当前版本',
-      { type: 'info', confirmButtonText: '确认保存', cancelButtonText: '再想想' },
+      '此操作会发布当前绑定页面的最新草稿，并将页面和导航配置记录为一个版本。\n用户刷新小程序后会看到更新；未绑定页面不会自动发布。\n这一步不会上传小程序代码到微信。',
+      '发布绑定页面并创建版本',
+      { type: 'info', confirmButtonText: '确认发布并创建版本', cancelButtonText: '再想想' },
     )
   } catch {
     return
@@ -323,7 +322,7 @@ async function handlePublish() {
   try {
     const res = await createRelease({
       mode: 'publish',
-      releaseNotes: releaseNotes.value || '保存版本：导航配置 + 已上线页面',
+      releaseNotes: releaseNotes.value || '发布配置版本：导航配置 + 绑定页面',
     })
     const semver = (res as any)?.data?.semver || preflight.value?.latestSemver
     ElMessage.success(semver ? `已保存为版本 v${String(semver).replace(/^v/, '')}` : '已保存当前版本')
@@ -621,4 +620,42 @@ onMounted(loadAll)
   font-size: 13px;
   line-height: 1.7;
 }
+
+/* Design studio: explicit publish boundaries */
+.release-summary { display: grid; grid-template-columns: .8fr 1.1fr 1.1fr; margin-bottom: 24px; padding: 24px; gap: 24px; }
+.release-summary > div { display: grid; gap: 6px; padding-left: 24px; border-left: 1px solid var(--studio-line); }
+.release-summary > div:first-child { border: 0; padding: 0; }
+.release-summary span { font-size: .8125rem; color: var(--studio-muted); }
+.release-summary strong { font-size: 1.25rem; font-weight: 600; overflow-wrap: anywhere; }
+.release-summary small { font-size: .75rem; color: var(--studio-muted); }
+.release-workflow-tabs :deep(.el-tabs__item) { height: 44px; font-size: .9375rem; padding: 0 24px; }
+.release-workflow-tabs :deep(.el-tabs__header) { margin-bottom: 20px; }
+.release-workflow-tabs :deep(.el-tabs__content) { display: none; }
+.release-pages .el-table { padding: 0 12px; font-size: .875rem; }
+.release-pages :deep(th.el-table__cell) { background: #fafbfd; font-weight: 500; font-size: .8125rem; color: var(--studio-muted); }
+.release-pages :deep(.el-table__cell) { padding: 16px 8px; }
+.release-context-note { display: flex; align-items: center; gap: 8px; background: #fafbfd; border-top: 1px solid var(--studio-line); padding: 16px 24px; color: var(--studio-muted); font-size: .8125rem; }
+.release-code-body { padding: 24px; }
+.release-code-steps { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 0; margin: 0 0 24px; }
+.release-code-steps li { display: flex; gap: 12px; }
+.release-code-steps li > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; background: var(--studio-soft); color: var(--studio-blue); font-size: .875rem; flex: none; }
+.release-code-steps strong { font-size: .875rem; font-weight: 600; }
+.release-code-steps p { margin: 6px 0 0; font-size: .8125rem; color: var(--studio-muted); }
+.release-upload-status { padding: 12px 16px; background: #f5f7fb; border-radius: 8px; font-size: .875rem; color: #41516b; margin-bottom: 16px; }
+.release-code-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.release-page .save-block { border-color: var(--studio-line); border-radius: 12px; padding: 24px; gap: 24px; }
+.release-page .save-current { flex-basis: 220px; min-width: 0; }
+.release-page .save-label, .release-page .save-form-label { font-size: .875rem; }
+.release-page .save-value { font-size: 1.25rem; font-weight: 600; }
+.release-page .save-meta, .release-page .save-hint { font-size: .8125rem; line-height: 1.6; }
+.release-page .save-actions { flex-wrap: wrap; }
+.release-page .issue-card { padding: 16px 20px; border-radius: 8px; font-size: .875rem; }
+.release-page .card { border-color: var(--studio-line); border-radius: 12px; box-shadow: none; overflow: hidden; }
+.release-page .card-head { align-items: flex-start; gap: 12px; padding: 20px 24px; }
+.release-page .card-head h2 { font-size: 1rem; white-space: nowrap; }
+.release-page .card-head .muted { font-size: .8125rem; line-height: 1.6; max-width: 680px; }
+.release-page .card .el-table { font-size: .875rem; }
+.release-page .card :deep(.el-table__cell) { padding: 14px 12px; }
+@media (max-width: 900px) { .release-code-steps { grid-template-columns: 1fr; gap: 20px; } .release-page .save-block { flex-direction: column; align-items: stretch; } .release-page .save-current { flex-basis: auto; } }
+@media (max-width: 650px) { .release-summary { grid-template-columns: 1fr; gap: 16px; } .release-summary > div { border-left: 0; border-top: 1px solid var(--studio-line); padding: 16px 0 0; } }
 </style>

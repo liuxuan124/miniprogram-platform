@@ -1,27 +1,21 @@
 <template>
-  <div class="page-editor">
-    <div class="editor-body" :class="{ 'left-collapsed': leftCollapsed, 'right-collapsed': rightCollapsed }">
-      <div v-show="!leftCollapsed" class="editor-left">
-        <ComponentPanel />
-      </div>
-
-      <div class="editor-center">
-        <div class="builder-toolbar">
+  <div class="page-editor builder-studio">
+        <div class="builder-toolbar studio-editor-toolbar">
           <div class="toolbar-left">
             <el-tooltip :content="leftCollapsed ? '展开组件面板' : '收起组件面板'" placement="bottom">
-              <el-button text size="small" aria-label="切换组件面板" @click="leftCollapsed = !leftCollapsed">
+              <el-button text size="small" aria-label="切换组件面板" :aria-pressed="!leftCollapsed" @click="leftCollapsed = !leftCollapsed">
                 <el-icon><Menu /></el-icon>
               </el-button>
             </el-tooltip>
             <el-button size="small" @click="handleBack">
               <el-icon><ArrowLeft /></el-icon>
-              返回
+              页面列表
             </el-button>
-            <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
+            <span class="builder-page-identity"><small>页面设计</small><span class="builder-page-name">{{ pageStore.pageConfig.name || '未命名页面' }}</span></span>
             <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
-            <span v-if="pageStore.isDirty" class="dirty-dot">未保存</span>
+            <span v-if="pageStore.isDirty" class="dirty-dot" role="status">未保存</span>
             <span v-if="autoSaveError" class="autosave-error">{{ autoSaveError }}</span>
-            <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存 {{ lastAutoSavedAt }}</span>
+            <span v-else-if="lastAutoSavedAt" class="autosave-dot" role="status">已自动保存 {{ lastAutoSavedAt }}</span>
           </div>
           <div class="toolbar-actions">
             <el-button-group class="history-controls">
@@ -38,7 +32,7 @@
             </el-button-group>
             <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
               <el-icon><Document /></el-icon>
-              保存
+              保存草稿
             </el-button>
             <el-button size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
@@ -47,7 +41,7 @@
             <el-tooltip content="上线后，用户刷新小程序就能看到这一页的改动，不需要发版" placement="bottom">
               <el-button type="primary" size="small" @click="handlePublish">
                 <el-icon><Upload /></el-icon>
-                上线
+                更新页面
               </el-button>
             </el-tooltip>
             <el-dropdown trigger="click">
@@ -64,13 +58,19 @@
               </template>
             </el-dropdown>
             <el-tooltip :content="rightCollapsed ? '展开属性面板' : '收起属性面板'" placement="bottom">
-              <el-button text size="small" aria-label="切换属性面板" @click="rightCollapsed = !rightCollapsed">
+              <el-button text size="small" aria-label="切换属性面板" :aria-pressed="!rightCollapsed" @click="rightCollapsed = !rightCollapsed">
                 <el-icon><Setting /></el-icon>
               </el-button>
             </el-tooltip>
           </div>
         </div>
 
+    <div class="editor-body" :class="{ 'left-collapsed': leftCollapsed, 'right-collapsed': rightCollapsed }">
+      <div v-show="!leftCollapsed" class="editor-left">
+        <ComponentPanel />
+      </div>
+
+      <div class="editor-center">
         <!-- C5：保存冲突不再用弹窗打断编辑，改为顶部常驻提示条，保留操作现场 -->
         <div v-if="conflict.visible" class="conflict-banner">
           <el-icon><WarningFilled /></el-icon>
@@ -211,6 +211,7 @@ import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
+import '@/styles/builder-studio.css'
 import { usePageStore } from '@/stores/page'
 import { getPageDetail, saveDraft, publishPage, createPage, updatePage } from '@/api/page'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
@@ -237,8 +238,8 @@ const dslDialogVisible = ref(false)
 const dslEditorValue = ref('')
 const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
-const leftCollapsed = ref(false)
-const rightCollapsed = ref(false)
+const leftCollapsed = ref(window.innerWidth < 1100)
+const rightCollapsed = ref(window.innerWidth < 900)
 
 /** 页面加载失败态（FP-UI-028） */
 const pageLoadError = ref('')
@@ -1134,4 +1135,44 @@ onBeforeUnmount(() => {
     border-color: #fecaca;
   }
 }
+
+/* Design studio: uninterrupted, full-width editing toolbar */
+.page-editor { display: flex; flex-direction: column; height: 100dvh; background: var(--studio-canvas); }
+.page-editor .studio-editor-toolbar { position: relative; flex: none; min-height: 72px; width: 100%; padding: 12px 20px; border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; box-shadow: none; flex-wrap: wrap; gap: 12px; }
+.page-editor .toolbar-left, .page-editor .toolbar-actions { gap: 10px; flex-wrap: wrap; }
+.builder-page-identity { display: grid; gap: 2px; margin-left: 6px; }
+.builder-page-identity small { font-size: .75rem; color: var(--studio-muted); }
+.page-editor .builder-page-name { font-size: .9375rem; font-weight: 600; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-editor .builder-version { font-size: .75rem; border: 0; background: #f0f2f5; }
+.page-editor .dirty-dot, .page-editor .autosave-dot { font-size: .75rem; border: 0; background: transparent; padding: 0; }
+.page-editor .toolbar-actions .el-button { min-height: 34px; font-size: .8125rem; }
+.page-editor .editor-body { flex: 1; min-height: 0; height: auto; background: var(--studio-canvas); }
+.page-editor .editor-body .editor-left { width: 264px; min-width: 264px; background: #fff; }
+.page-editor .editor-body .editor-right { width: 328px; min-width: 328px; border-left: 1px solid var(--studio-line); background: #fff; }
+.page-editor .editor-body .editor-center { min-width: 0; padding: 0 20px 20px; background-color: var(--studio-canvas); background-image: radial-gradient(#c6cddb 0.65px, transparent 0.65px); background-size: 16px 16px; }
+.page-editor :deep(.canvas-meta) { background: var(--studio-canvas); width: calc(100% + 40px); margin: 0 -20px 20px; padding: 14px 20px; border-bottom: 1px solid var(--studio-line); }
+.page-editor :deep(.canvas-meta__title) { font-size: .8125rem; color: var(--studio-ink); }
+.page-editor :deep(.canvas-meta__device) { font-size: .75rem; color: var(--studio-muted); }
+.page-editor :deep(.prototype-canvas) { width: 100%; }
+.page-editor :deep(.props-panel) { background: #fff; font-size: .875rem; }
+.page-editor :deep(.panel-header) { padding: 20px; border-color: var(--studio-line); }
+.page-editor :deep(.panel-kicker) { font-size: .75rem; color: var(--studio-muted); }
+.page-editor :deep(.comp-type-label) { margin-top: 4px; font-size: 1rem; font-weight: 600; }
+.page-editor :deep(.props-panel .el-form-item__label) { font-size: .8125rem; color: #536078; }
+.page-editor :deep(.props-panel .panel-section) { padding: 20px 16px; }
+.page-editor :deep(.props-panel .section-title) { font-size: .875rem; font-weight: 600; color: var(--studio-ink); }
+.page-editor :deep(.props-tabs > .el-tabs__header) { padding: 0 12px; background: #fff; }
+.page-editor :deep(.props-tabs .el-tabs__item) { font-size: .8125rem; }
+.page-editor :deep(.style-section-body) { padding: 16px; }
+.page-editor .conflict-banner, .page-editor .load-error-banner { border-radius: 8px; margin: 12px 0 0; flex-wrap: wrap; font-size: .875rem; }
+@media (max-width: 1100px) { .page-editor .editor-body .editor-left { width: 236px; min-width: 236px; } .page-editor .autosave-dot, .page-editor .builder-version { display: none; } }
+@media (max-width: 900px) {
+  .page-editor .studio-editor-toolbar { padding: 10px 12px; }
+  .page-editor .toolbar-actions { gap: 6px; }
+  .page-editor .history-controls { display: none; }
+  .page-editor .editor-body { position: relative; }
+  .page-editor .editor-body .editor-left { position: absolute; left: 0; top: 0; bottom: 0; z-index: 30; width: 264px; box-shadow: 8px 0 24px #19223516; }
+  .page-editor .editor-body .editor-right { position: absolute; right: 0; top: 0; bottom: 0; z-index: 30; width: 300px; min-width: 300px; box-shadow: -8px 0 24px #19223516; }
+}
+@media (max-width: 600px) { .page-editor .builder-page-name { max-width: 160px; } .page-editor .toolbar-actions { width: 100%; justify-content: flex-end; } .page-editor .editor-body .editor-center { padding: 0 12px 16px; } }
 </style>

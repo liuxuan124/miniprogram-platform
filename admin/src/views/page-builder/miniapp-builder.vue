@@ -1,11 +1,11 @@
 <template>
-  <div class="miniapp-builder">
+  <div class="miniapp-builder builder-studio">
     <el-alert
       v-if="!hasDecoratedPages"
-      type="warning"
+      type="info"
       show-icon
       :closable="false"
-      title="还没有可绑定的页面。请先在「页面」里创建并装修首页，再回来配置导航。"
+      title="你可以直接使用系统内置页面，也可以创建自己的页面，再绑定到导航入口。"
       style="margin: 12px 20px 0"
     >
       <el-button type="primary" size="small" @click="$router.push('/page-builder/list')">去创建页面</el-button>
@@ -145,53 +145,44 @@
 
     <!-- ==================== VIEW B: Editor ==================== -->
     <div v-else class="editor-view">
-      <div class="ap-header">
-        <div class="ap-title">
-          <h1>外观</h1>
-          <p>小程序的底部导航、配色，以及首页和「我的」页。改完点右上角「保存」，小程序里就会更新。</p>
-        </div>
-        <div class="ap-actions">
-          <span v-if="isDirty" class="dirty-pill">有未保存的修改</span>
-          <el-button @click="openFullMiniappPreview()">
-            <el-icon><Cellphone /></el-icon> 在手机上看
-          </el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+      <StudioHeader title="品牌与导航" section="外观" description="配置小程序的整体配色、底部入口与个人中心。">
+        <template #actions>
+          <span class="studio-save-state" :class="{ 'is-dirty': isDirty && configReady }" role="status">{{ loading ? '正在读取配置' : (!configReady ? '配置未读取' : (isDirty ? '有未保存的修改' : '配置已保存')) }}</span>
+          <el-button @click="openFullMiniappPreview()"><el-icon><Cellphone /></el-icon>完整预览</el-button>
+          <el-button type="primary" :loading="saving" :disabled="!configReady || loading || !isDirty" @click="handleSave">保存并生效</el-button>
           <el-dropdown trigger="click">
-            <el-button class="ap-more" title="更多操作">
-              <el-icon><MoreFilled /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="goToGallery">草稿记录</el-dropdown-item>
-                <el-dropdown-item @click="goToRelease">去「发布与版本」</el-dropdown-item>
-                <el-dropdown-item divided @click="autoBindPages">按名称自动绑定页面</el-dropdown-item>
-                <el-dropdown-item @click="showModuleVersionDialog = true">配置快照与回滚</el-dropdown-item>
-                <el-dropdown-item divided @click="handleReset">恢复成默认配置</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
+            <el-button aria-label="更多外观操作"><el-icon><MoreFilled /></el-icon></el-button>
+            <template #dropdown><el-dropdown-menu>
+              <el-dropdown-item @click="goToGallery">查看配置记录</el-dropdown-item>
+              <el-dropdown-item @click="goToRelease">发布中心</el-dropdown-item>
+              <el-dropdown-item @click="showModuleVersionDialog = true">配置快照与回滚</el-dropdown-item>
+              <el-dropdown-item divided @click="autoBindPages">按名称补齐页面绑定</el-dropdown-item>
+              <el-dropdown-item divided @click="handleReset">恢复默认配置</el-dropdown-item>
+            </el-dropdown-menu></template>
           </el-dropdown>
-        </div>
-      </div>
-
+        </template>
+      </StudioHeader>
+      <div v-if="configError" class="studio-feedback is-error" role="alert"><span>{{ configError }}</span><el-button size="small" @click="loadConfig">重新加载</el-button></div>
+      <div class="appearance-save-note"><el-icon><InfoFilled /></el-icon>品牌与导航保存后直接生效；绑定页面的内容仍需在页面编辑器中更新。</div>
       <div class="ap-body">
         <nav class="ap-nav">
           <button
             v-for="g in groups"
             :key="g.key"
             class="ap-nav-item"
+            :aria-current="activeGroup === g.key ? 'page' : undefined"
             :class="{ active: activeGroup === g.key }"
             @click="activeGroup = g.key"
           >
+            <el-icon class="ap-nav-icon"><component :is="g.icon" /></el-icon>
             <span class="ap-nav-text">
               <span class="ap-nav-label">{{ g.label }}</span>
               <span class="ap-nav-desc">{{ g.desc }}</span>
             </span>
             <span v-if="g.issues > 0" class="ap-badge warn">{{ g.issues }}</span>
-            <span v-else class="ap-badge ok">✓</span>
+
           </button>
-          <div class="ap-nav-tip">
-            四组可以随便点，不用按顺序走完。
-          </div>
+
         </nav>
 
         <div class="ap-config" v-loading="loading">
@@ -208,7 +199,7 @@
           <div v-show="activeGroup === 'tabbar'" class="ap-card">
             <div class="ap-card-head">
               <h2>底部导航</h2>
-              <p>小程序最下面那一排按钮。每个按钮要写清「显示什么字、用什么图标、点了打开哪个页面」。</p>
+              <p>调整入口名称、图标和顺序，再选择对应页面。系统页面无需另外装修。</p>
             </div>
             <el-alert
               v-if="unboundTabs.length > 0"
@@ -216,7 +207,7 @@
               show-icon
               :closable="false"
               class="ap-inline-alert"
-              :title="`还有 ${unboundTabs.length} 个导航没有绑定页面：${unboundTabs.map(t => t.text).join('、')}。没绑定的按钮点了会是空白页，发布前要补上。`"
+              :title="`还有 ${unboundTabs.length} 个导航没有绑定页面：${unboundTabs.map(t => t.text).join('、')}。请选择有效的页面，或使用系统内置页面。`"
             />
             <TabBarEditor :tabs="form.tabs" :pages="pages" @update:tabs="onTabsUpdate" />
           </div>
@@ -296,7 +287,7 @@
           <!-- 高级设置 -->
           <div v-show="activeGroup === 'advanced'" class="ap-card">
             <div class="ap-card-head">
-              <h2>高级设置</h2>
+              <h2>分享与布局</h2>
               <p>分享出去的样子，以及一键套用整套导航布局。平时不用动。</p>
             </div>
 
@@ -332,7 +323,7 @@
             <span>实时预览</span>
             <el-button size="small" type="primary" link @click="openFullMiniappPreview()">完整预览 ›</el-button>
           </div>
-          <MiniappPreview ref="previewRef" :form="form" :pages="pages" :mine-page-mode="minePageMode" />
+          <MiniappPreview v-if="configReady" ref="previewRef" :form="form" :pages="pages" :mine-page-mode="minePageMode" />
         </aside>
       </div>
     </div>
@@ -496,8 +487,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { Plus, Refresh, Document, Cellphone, MoreFilled } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { Plus, Refresh, Document, Cellphone, MoreFilled, InfoFilled, Brush, Menu, User, Share } from '@element-plus/icons-vue'
+import { useRouter, useRoute } from 'vue-router'
+import StudioHeader from '@/components/builder-studio/StudioHeader.vue'
+import { TAB_SHELL_ROUTES } from '@/utils/tabbar'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
 import {
@@ -533,7 +526,7 @@ import ThemeConfig from '@/components/miniapp-builder/ThemeConfig.vue'
 import MiniappPreview from '@/components/miniapp-builder/MiniappPreview.vue'
 
 const {
-  form, pages, loading, saving, isDirty,
+  form, pages, loading, saving, isDirty, configReady, configError, loadConfig,
   applyTemplate, handleSave, handleReset, autoBindPages,
 } = useMiniappConfig()
 
@@ -542,6 +535,7 @@ const hasDecoratedPages = computed(() =>
 )
 
 const router = useRouter()
+const route = useRoute()
 const viewMode = ref<'gallery' | 'editor'>('editor')
 const editingTemplateId = ref<number | null>(null)
 const galleryLoading = ref(false)
@@ -551,7 +545,10 @@ const galleryFilter = ref<'all' | 'published' | 'template'>('all')
 
 type GroupKey = 'brand' | 'tabbar' | 'pages' | 'advanced'
 const activeGroup = ref<GroupKey>('brand')
-const previewRef = ref<{ showMineTab: () => void } | null>(null)
+watch(() => route.query.group, (group) => {
+  if (['brand', 'tabbar', 'pages', 'advanced'].includes(String(group))) activeGroup.value = group as GroupKey
+}, { immediate: true })
+const previewRef = ref<{ showMineTab: () => void; showTab: (index: number) => void } | null>(null)
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
 const selectedMineTemplate = ref('warm')
@@ -578,16 +575,16 @@ const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] =
 const personalCenterTemplates = MINE_STYLE_TEMPLATES
 
 /** 左侧四组导航：可随意点，不用按顺序走完；红色数字=这一组里还有几处要处理 */
-const groups = computed<{ key: GroupKey; label: string; desc: string; issues: number }[]>(() => [
-  { key: 'brand', label: '品牌与配色', desc: '主色、导航栏、页面背景', issues: 0 },
-  { key: 'tabbar', label: '底部导航', desc: '最下面那一排按钮', issues: unboundTabs.value.length },
+const groups = computed<{ key: GroupKey; label: string; desc: string; issues: number; icon: any }[]>(() => [
+  { key: 'brand', label: '品牌配色', desc: '主题与界面颜色', issues: 0, icon: Brush },
+  { key: 'tabbar', label: '底部导航', desc: '入口、图标与页面', issues: unboundTabs.value.length, icon: Menu },
   {
     key: 'pages',
-    label: '首页与我的页',
-    desc: '打开小程序看到的第一屏',
+    label: '首页与个人中心',
+    desc: '首页绑定与个人入口', icon: User,
     issues: form.homePageId ? 0 : 1,
   },
-  { key: 'advanced', label: '高级设置', desc: '分享卡片、导航布局', issues: 0 },
+  { key: 'advanced', label: '分享与布局', desc: '分享封面与导航模板', issues: 0, icon: Share },
 ])
 
 const templateName = computed(() => {
@@ -595,8 +592,12 @@ const templateName = computed(() => {
   return tpl?.name || '自定义'
 })
 
-const boundCount = computed(() => form.tabs.filter(t => t.pageId || t.pagePath.includes('index')).length)
-const unboundTabs = computed(() => form.tabs.filter(t => !t.pageId && !t.pagePath.includes('index')))
+const boundCount = computed(() => form.tabs.length - unboundTabs.value.length)
+const unboundTabs = computed(() => form.tabs.filter(t => {
+  const path = '/' + String(t.pagePath || '').replace(/^\/+|\/+$/g, '')
+  if (t.pageId) return !pages.value.some(p => String(p.id) === String(t.pageId))
+  return !(TAB_SHELL_ROUTES as readonly string[]).includes(path)
+}))
 const visibleMenuCount = computed(() => form.mineConfig.menuItems.filter(m => m.enabled).length)
 
 const templateCount = computed(() => releases.value.filter(r => r.status === 0 || r.mode === 'template').length)
@@ -660,6 +661,7 @@ watch(
 watch(activeGroup, (key) => {
   // 切到「首页与我的页」时预览自动跳到「我的」tab，改开关能立刻看到效果
   if (key === 'pages' && minePageMode.value === 'config') previewRef.value?.showMineTab()
+  else if (key === 'brand' || key === 'tabbar') previewRef.value?.showTab(0)
 })
 
 watch(() => (form.mineConfig as any).mode, (mode) => {
@@ -959,7 +961,8 @@ function isPushPreviewFailure(message?: string) {
 // ==================== Editor Functions ====================
 async function handleSaveAsTemplate() {
   try {
-    await handleSave()
+    const ok = await handleSave()
+    if (!ok) return
     newReleaseInfo.value = null
     try {
       const res = await createRelease({
@@ -1907,4 +1910,45 @@ onMounted(() => {
   font-weight: 600;
   color: #409eff;
 }
+
+/* Design studio: two-column configuration workspace */
+.miniapp-builder { height: auto; background: transparent; }
+.editor-view { height: auto; }
+.ap-body { display: grid; grid-template-columns: minmax(0, 1fr) 414px; gap: 20px; overflow: visible; align-items: start; }
+.ap-nav { grid-column: 1 / -1; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 8px; border: 1px solid var(--studio-line); border-radius: 10px; overflow: visible; }
+.ap-nav-item { margin: 0; padding: 12px 14px; min-width: 0; }
+.ap-nav-item.active { background: var(--studio-soft); border-color: transparent; }
+.ap-nav-icon { font-size: 20px; color: #748097; flex: none; }
+.ap-nav-item.active .ap-nav-icon { color: var(--studio-blue); }
+.ap-nav-label { font-size: .875rem; font-weight: 600; }
+.ap-nav-desc { font-size: .75rem; line-height: 1.5; }
+.ap-badge.warn { background: #fff0d9; color: #8d510c; font-size: .75rem; }
+.ap-config { padding: 0; overflow: visible; }
+.ap-card { max-width: none; padding: 24px; border-color: var(--studio-line); border-radius: 12px; box-shadow: none; }
+.ap-card-head { padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--studio-line); }
+.ap-card-head h2 { font-size: 1.125rem; font-weight: 650; }
+.ap-card-head p { font-size: .875rem; margin-top: 8px; }
+.ap-preview { width: auto; padding: 0 12px 14px; border: 1px solid var(--studio-line); border-radius: 12px; background: var(--studio-canvas); position: sticky; top: 20px; overflow: hidden; }
+.ap-preview-head { padding: 16px 8px; font-size: .875rem; }
+.ap-preview :deep(.preview-source-hint) { font-size: .75rem; line-height: 1.6; margin: 12px 8px 0; }
+.ap-row { flex-wrap: wrap; padding: 16px; border-radius: 8px; gap: 12px; }
+.ap-row-text { flex-basis: 180px; }
+.ap-row-text strong { font-size: .875rem; }
+.ap-row-text span, .ap-block-hint { font-size: .8125rem; line-height: 1.6; }
+.ap-row-field { flex: 1; min-width: 180px; }
+.ap-block { border-color: var(--studio-line); }
+.ap-block-body { padding: 20px 16px; }
+.ap-config :deep(.el-form-item__label) { font-size: .875rem; }
+.ap-config :deep(.el-form-item) { margin-bottom: 20px; }
+.ap-config :deep(.mine-tpl-name) { font-size: .875rem; }
+.ap-config :deep(.mine-tpl-desc) { font-size: .75rem; }
+.ap-config :deep(.config-block) { border-radius: 8px; }
+.ap-config :deep(.el-col) { min-width: 145px; flex-grow: 1; }
+.ap-config :deep(.block-title) { font-size: .875rem; }
+.ap-config :deep(.compact-form .el-form-item) { flex-wrap: wrap; }
+.ap-config :deep(.menu-item-row) { flex-wrap: wrap; }
+.ap-config :deep(.config-label) { font-size: .875rem; }
+.appearance-save-note { display: flex; align-items: center; gap: 8px; padding: 0 0 16px; font-size: .8125rem; color: var(--studio-muted); }
+@media (max-width: 1150px) { .ap-body { grid-template-columns: minmax(0, 1fr); } .ap-preview { position: static; display: flex; flex-direction: column; align-items: center; } .ap-preview-head { width: 100%; } }
+@media (max-width: 650px) { .ap-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ap-card { padding: 20px 16px; } .ap-nav-desc { display: none; } }
 </style>

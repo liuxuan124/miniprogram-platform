@@ -1,17 +1,17 @@
 <template>
-  <div class="template-center">
-    <div class="ph">
-      <div class="pt">模板</div>
-      <div class="ps">创建页面时选用。套用后就是普通页面，可继续在装修器里改。</div>
-    </div>
+  <div class="template-center builder-studio">
+    <StudioHeader title="选择页面模板" section="页面设计" description="选择适合用途的布局，再替换为自己的内容。">
+      <template #actions><el-button @click="router.push('/page-builder/list')">返回页面设计</el-button><el-button type="primary" @click="openCreateTemplateHint">创建空白页面</el-button></template>
+    </StudioHeader>
 
     <div class="toolbar">
       <input
+        aria-label="搜索模板名称"
         v-model="keyword"
         class="inp"
         placeholder="搜索模板名称"
       />
-      <select v-model="selectedCategory" class="sel">
+      <select v-model="selectedCategory" class="sel" aria-label="模板分类">
         <option value="">分类：全部</option>
         <option value="home">首页</option>
         <option value="activity">活动</option>
@@ -21,11 +21,11 @@
         <option value="planet">星球</option>
         <option value="booking">预约</option>
       </select>
-      <select v-model="selectedIndustry" class="sel">
+      <select v-model="selectedIndustry" class="sel" aria-label="适用行业">
         <option value="">行业：全部</option>
         <option v-for="ind in industryOptions" :key="ind.code" :value="ind.code">{{ ind.label }}</option>
       </select>
-      <select v-model="selectedScene" class="sel">
+      <select v-model="selectedScene" class="sel" aria-label="使用场景">
         <option value="">场景：全部</option>
         <option value="default">默认首页</option>
         <option value="campaign">营销活动</option>
@@ -34,7 +34,7 @@
         <option value="retention">会员运营</option>
         <option value="service">预约服务</option>
       </select>
-      <select v-model="selectedStyle" class="sel">
+      <select v-model="selectedStyle" class="sel" aria-label="设计风格">
         <option value="">风格：全部</option>
         <option value="minimal">简约</option>
         <option value="business">商务</option>
@@ -42,9 +42,7 @@
         <option value="premium">高端</option>
       </select>
       <button class="btn" @click="resetFilters">重置</button>
-      <div class="mla actions">
-        <button class="btn btn-p" @click="openCreateTemplateHint">+ 空白页</button>
-      </div>
+
     </div>
 
     <div class="tabs">
@@ -65,6 +63,8 @@
           v-for="tpl in filteredTemplates"
           :key="tpl.id"
           class="template-card"
+          tabindex="0"
+          @keydown.enter.self="handlePreviewTemplate(tpl)"
           @click="handlePreviewTemplate(tpl)"
         >
           <div class="cover" :style="coverStyle(tpl)">
@@ -196,6 +196,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import StudioHeader from '@/components/builder-studio/StudioHeader.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createPage, getPageTemplates } from '@/api/page'
 import type { ComponentInstance, PageDSL, PageTemplate } from '@/types/page'
@@ -635,31 +636,7 @@ function componentSummary(tpl: TemplateUI) {
 }
 
 function openCreateTemplateHint() {
-  ElMessageBox.confirm(
-    '将创建一个空白自定义页面并进入装修器，是否继续？',
-    '新建空白页面',
-    { confirmButtonText: '继续', cancelButtonText: '取消', type: 'info' },
-  ).then(async () => {
-    try {
-      const suffix = Date.now().toString(36)
-      const payload = {
-        name: `自定义页面-${suffix.slice(-6)}`,
-        type: 3,
-        path: `pages/custom/page-${suffix}`,
-        shareTitle: `自定义页面-${suffix.slice(-6)}`,
-      }
-      const res = await createPage(payload as any)
-      const newPageId = (res.data as any)?.id || (res.data as any)?.pageId
-      ElMessage.success('已创建空白页面，正在进入装修器')
-      if (newPageId) {
-        router.push({ name: 'PageBuilderEditor', params: { id: newPageId } })
-      } else {
-        router.push({ name: 'PageBuilderList' })
-      }
-    } catch (err: any) {
-      ElMessage.error(err?.message || '创建空白页面失败')
-    }
-  }).catch(() => {})
+  router.push({ path: '/page-builder/list', query: { create: '1' } })
 }
 
 function handlePreviewTemplate(tpl: TemplateUI) {
@@ -1133,4 +1110,20 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 }
+
+.template-center .toolbar { background: #fff; border-color: var(--studio-line); border-radius: 10px; padding: 14px 16px; gap: 10px; flex-wrap: wrap; }
+.template-center .toolbar .inp, .template-center .toolbar .sel { min-height: 38px; font-size: .875rem; border-radius: 8px; }
+.template-center .tabs { border: 0; gap: 6px; padding: 4px 0; margin: 20px 0; flex-wrap: wrap; }
+.template-center .tab-btn { border: 0; padding: 9px 14px; font-size: .875rem; border-radius: 6px; color: var(--studio-muted); background: transparent; }
+.template-center .tab-btn.active { background: #e8edf9; color: var(--studio-blue); }
+.template-center .template-grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 24px; }
+.template-center .template-card { border-color: var(--studio-line); border-radius: 12px; box-shadow: none; transition: border-color .18s, transform .18s; }
+.template-center .template-card:hover { border-color: #a0b0d5; box-shadow: 0 8px 24px #1922350a; transform: translateY(-3px); }
+.template-center .card-title-row h3 { font-size: 1rem; font-weight: 600; }
+.template-center .desc { font-size: .875rem; color: var(--studio-muted); }
+.template-center .meta, .template-center .tags .tag { font-size: .75rem; }
+.template-center .card-actions { padding: 16px 20px; border-top: 1px solid var(--studio-line); }
+.template-center .btn { min-height: 34px; border-radius: 7px; font-size: .8125rem; }
+.template-center .btn-p { background: var(--studio-blue); border-color: var(--studio-blue); }
+@media (max-width: 650px) { .template-center .template-grid { grid-template-columns: 1fr; } }
 </style>

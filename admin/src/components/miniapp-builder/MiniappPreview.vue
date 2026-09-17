@@ -408,7 +408,10 @@ function showMineTab() {
   if (idx >= 0) void switchTab(idx)
 }
 
-defineExpose({ showMineTab })
+function showTab(index: number) {
+  if (index >= 0 && index < props.form.tabs.length) switchTab(index)
+}
+defineExpose({ showMineTab, showTab })
 </script>
 
 <style scoped>
