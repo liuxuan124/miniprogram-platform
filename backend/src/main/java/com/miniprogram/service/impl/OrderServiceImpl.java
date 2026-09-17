@@ -294,7 +294,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     public PageResult<OrderDetailVO> listUserOrders(Long userId, OrderQueryDTO query) {
-        query.normalize();
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
                 .eq(Order::getUserId, userId)
@@ -306,33 +305,18 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     public PageResult<OrderDetailVO> listAdminOrders(OrderQueryDTO query) {
-        query.normalize();
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
-        String orderNoKeyword = StringUtils.hasText(query.getOrderNo()) ? query.getOrderNo() : query.getKeyword();
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
-                .like(StringUtils.hasText(orderNoKeyword), Order::getOrderNo, orderNoKeyword)
+                .like(StringUtils.hasText(query.getOrderNo()), Order::getOrderNo, query.getOrderNo())
                 .eq(query.getUserId() != null, Order::getUserId, query.getUserId())
+                .eq(StringUtils.hasText(query.getStatus()), Order::getStatus, query.getStatus())
                 .ge(query.getStartDate() != null, Order::getCreatedAt,
                         query.getStartDate() != null ? query.getStartDate().atStartOfDay() : null)
                 .le(query.getEndDate() != null, Order::getCreatedAt,
                         query.getEndDate() != null ? query.getEndDate().atTime(LocalTime.MAX) : null)
                 .orderByDesc(Order::getCreatedAt);
-        applyStatusFilter(wrapper, query.getStatus());
         this.page(page, wrapper);
         return convertPageToVO(page);
-    }
-
-    /** 未发货 = 已付款且尚无物流单号 */
-    private void applyStatusFilter(LambdaQueryWrapper<Order> wrapper, String status) {
-        if (!StringUtils.hasText(status)) {
-            return;
-        }
-        if ("unshipped".equals(status)) {
-            wrapper.eq(Order::getStatus, "paid")
-                    .and(w -> w.isNull(Order::getLogisticsNo).or().eq(Order::getLogisticsNo, ""));
-            return;
-        }
-        wrapper.eq(Order::getStatus, status);
     }
 
     @Override
@@ -419,13 +403,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         BeanUtils.copyProperties(refund, vo);
         vo.setStatusDesc(RefundVO.getStatusDesc(refund.getStatus()));
         return vo;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public RefundVO adminApplyRefund(Long orderId, RefundApplyDTO dto) {
-        Order order = getExistingOrder(orderId);
-        return applyRefund(order.getUserId(), orderId, dto);
     }
 
     @Override
@@ -549,8 +526,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         Long pendingPaymentCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
                 .eq(Order::getStatus, "pending_payment"));
         Long pendingShipCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
-                .eq(Order::getStatus, "paid")
-                .and(w -> w.isNull(Order::getLogisticsNo).or().eq(Order::getLogisticsNo, "")));
+                .eq(Order::getStatus, "paid"));
         Long shippedCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
                 .eq(Order::getStatus, "shipped"));
         Long refundingCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
@@ -717,8 +693,15 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         OrderDetailVO vo = new OrderDetailVO();
         BeanUtils.copyProperties(order, vo);
 
+        // 已有物流单号但状态仍为 paid 时，展示为已发货（兼容脏种子数据）
         String status = order.getStatus();
-        vo.setStatus(status);
+        if ("paid".equals(status) && StringUtils.hasText(order.getLogisticsNo())) {
+            status = "shipped";
+            vo.setStatus(status);
+            if (vo.getShippedAt() == null && order.getUpdatedAt() != null) {
+                vo.setShippedAt(order.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+        }
         vo.setStatusDesc(OrderDetailVO.getStatusDesc(status));
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         vo.setPaidAt(order.getPaidAt() == null ? null : order.getPaidAt().format(dateTimeFormatter));
