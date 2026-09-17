@@ -1,5 +1,5 @@
 <template>
-  <div class="miniapp-builder">
+  <div class="appearance-page">
     <el-alert
       v-if="!hasDecoratedPages"
       type="warning"
@@ -8,143 +8,10 @@
       title="还没有可绑定的页面。请先在「页面」里创建并装修首页，再回来配置导航。"
       style="margin: 12px 20px 0"
     >
-      <el-button type="primary" size="small" @click="$router.push('/page-builder/list')">去创建页面</el-button>
+      <el-button type="primary" size="small" @click="goToPageBuilder">去创建页面</el-button>
     </el-alert>
-    <!-- ==================== VIEW A: Template Gallery ==================== -->
-    <div v-if="viewMode === 'gallery'" class="template-gallery">
-      <div class="builder-toolbar">
-        <div class="toolbar-left">
-          <h1>外观</h1>
-          <p class="toolbar-sub">配置底部导航、首页绑定与主题。页面内容在「页面」里装修并上线；「我的」页在页面列表中配置。</p>
-        </div>
-        <div class="toolbar-right">
-          <el-button type="success" plain @click="openFullMiniappPreview()">
-            <el-icon><Cellphone /></el-icon> 小程序预览
-          </el-button>
-          <el-button type="primary" @click="handleNewBuild">
-            <el-icon><Plus /></el-icon> 新建草稿
-          </el-button>
-          <el-button :loading="galleryLoading" @click="loadGalleryData">
-            <el-icon><Refresh /></el-icon> 刷新
-          </el-button>
-        </div>
-      </div>
 
-      <div class="gallery-body">
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-info">
-              <span class="stat-value">{{ templateCount }}</span>
-              <span class="stat-label">草稿</span>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-info">
-              <span class="stat-value">{{ latestPublished ? latestPublished.semver : '无' }}</span>
-              <span class="stat-label">当前还原点</span>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-info">
-              <span class="stat-value">{{ releases.length }}</span>
-              <span class="stat-label">总版本数</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="filter-tabs">
-          <button
-            v-for="tab in filterTabs"
-            :key="tab.value"
-            class="filter-tab"
-            :class="{ active: galleryFilter === tab.value }"
-            @click="galleryFilter = tab.value"
-          >{{ tab.label }}</button>
-        </div>
-
-        <div v-if="filteredReleases.length > 0" class="template-grid">
-          <div
-            v-for="item in filteredReleases"
-            :key="item.id"
-            class="template-card"
-            :class="{
-              'card-published': item.status === 1,
-              'card-template': item.mode === 'template' || item.status === 0,
-            }"
-          >
-            <div class="card-header">
-              <div class="card-badges">
-                <el-tag v-if="item.status === 1" type="success" size="small" effect="dark">
-                  已发布
-                  <span v-if="item.isCurrentPublished" class="current-live-badge">★ 当前线上</span>
-                </el-tag>
-                <el-tag v-else-if="item.mode === 'template' || item.status === 0" type="primary" size="small" effect="dark">草稿</el-tag>
-                <el-tag v-else-if="item.status === 2" type="info" size="small" effect="dark">已替换</el-tag>
-              </div>
-              <span class="card-semver" :style="{ color: getChangeTypeColor(item.changeType) }">
-                {{ item.semver }}
-              </span>
-            </div>
-
-            <div class="card-notes">{{ item.releaseNotes || '暂无说明' }}</div>
-
-            <div class="card-meta">
-              <span><el-icon><Document /></el-icon> {{ item.pageCount }} 页面</span>
-              <span>{{ formatTime(item.createTime) }}</span>
-            </div>
-
-            <div class="card-actions">
-              <el-button size="small" type="primary" @click="handleEditTemplate(item)">编辑</el-button>
-              <el-button
-                v-if="item.status !== 1"
-                size="small"
-                type="danger"
-                plain
-                @click="handleDelete(item)"
-              >
-                删除
-              </el-button>
-              <el-button
-                v-if="item.mode === 'template' || item.status === 0"
-                size="small"
-                type="success"
-                plain
-                @click="$router.push('/page-builder/release')"
-              >
-                去版本
-              </el-button>
-              <el-dropdown trigger="click">
-                <el-button size="small">更多</el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="openFullMiniappPreview(item)">小程序预览（本版本配置）</el-dropdown-item>
-                    <el-dropdown-item @click="openH5Preview(item)">仅首页 H5</el-dropdown-item>
-                    <el-dropdown-item @click="openPrototypeDemo">设计原型演示（22屏）</el-dropdown-item>
-                    <el-dropdown-item :disabled="pushingReleaseId === item.id" @click="handlePushPreview(item)">
-                      上传代码到微信
-                    </el-dropdown-item>
-                    <el-dropdown-item @click="copyFullPreviewLink(item)">复制预览链接</el-dropdown-item>
-                    <el-dropdown-item v-if="item.status === 2" divided @click="handleRollback(item)">回滚到此版本</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="empty-gallery">
-          <el-empty description="暂无导航配置。请先完成首页装修，再新建草稿绑定导航。">
-            <el-button type="primary" @click="$router.push('/page-builder/list')">去创建页面</el-button>
-            <el-button @click="handleNewBuild">
-              <el-icon><Plus /></el-icon> 新建草稿
-            </el-button>
-          </el-empty>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== VIEW B: Editor ==================== -->
-    <div v-else class="editor-view">
+    <div class="editor-view">
       <div class="ap-header">
         <div class="ap-title">
           <h1>外观</h1>
@@ -157,12 +24,12 @@
           </el-button>
           <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
           <el-dropdown trigger="click">
-            <el-button class="ap-more" title="更多操作">
+            <el-button class="ap-more" aria-label="更多操作">
               <el-icon><MoreFilled /></el-icon>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="goToGallery">草稿记录</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/page-builder/drafts')">草稿记录</el-dropdown-item>
                 <el-dropdown-item @click="goToRelease">去「发布与版本」</el-dropdown-item>
                 <el-dropdown-item divided @click="autoBindPages">按名称自动绑定页面</el-dropdown-item>
                 <el-dropdown-item @click="showModuleVersionDialog = true">配置快照与回滚</el-dropdown-item>
@@ -337,39 +204,10 @@
       </div>
     </div>
 
-    <!-- ==================== Module Version Dialog ==================== -->
-    <el-dialog v-model="pushPreviewVisible" title="推送微信小程序体验版" width="560px" :close-on-click-modal="false">
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        title="页面/配置变更会自动同步到小程序，无需推送。仅在 miniapp 代码变更或平台要求重新上传代码时使用。"
-        style="margin-bottom: 16px"
-      />
-      <el-alert
-        v-if="pushPreviewResult && isPushPreviewFailure(pushPreviewResult.message)"
-        type="error"
-        :closable="false"
-        show-icon
-        :title="pushPreviewResult.message"
-        style="margin-bottom: 16px"
-      />
-      <el-descriptions v-if="pushPreviewResult" :column="1" border size="small">
-        <el-descriptions-item label="版本号">{{ pushPreviewResult.version }}</el-descriptions-item>
-        <el-descriptions-item label="描述">{{ pushPreviewResult.versionDesc }}</el-descriptions-item>
-        <el-descriptions-item label="结果">{{ pushPreviewResult.message }}</el-descriptions-item>
-      </el-descriptions>
-      <div v-if="pushPreviewResult?.manageUrl" class="push-preview-footer">
-        <el-link type="primary" :href="pushPreviewResult.manageUrl" target="_blank">前往微信公众平台查看体验版</el-link>
-      </div>
-      <template #footer>
-        <el-button @click="pushPreviewVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="showModuleVersionDialog" title="📦 模块版本管理" width="860px" :close-on-click-modal="false" @opened="loadModuleVersions">
+    <!-- 配置快照与回滚 -->
+    <el-dialog v-model="showModuleVersionDialog" title="配置快照与回滚" width="860px" :close-on-click-modal="false" @opened="loadModuleVersions">
       <el-tabs v-model="moduleVersionTab" type="border-card">
-        <el-tab-pane label="🎨 风格配色" name="theme">
+        <el-tab-pane label="风格配色" name="theme">
           <div class="module-version-content">
             <div class="module-version-header">
               <span class="module-desc">管理主题配色（主色、辅色、圆角、字体等）的版本快照</span>
@@ -409,7 +247,7 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="🧭 导航配置" name="navigation">
+        <el-tab-pane label="导航配置" name="navigation">
           <div class="module-version-content">
             <div class="module-version-header">
               <span class="module-desc">管理导航模板、TabBar 配置、页面绑定的版本快照</span>
@@ -449,7 +287,7 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="👤 我的页面" name="mine">
+        <el-tab-pane label="我的页面" name="mine">
           <div class="module-version-content">
             <div class="module-version-header">
               <span class="module-desc">管理个人中心页面模板、菜单项、功能入口的版本快照</span>
@@ -495,21 +333,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
-import { Plus, Refresh, Document, Cellphone, MoreFilled } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
+import { Plus, Cellphone, MoreFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
-import {
-  getAllReleases,
-  getLatestRelease,
-  createRelease,
-  promoteRelease,
-  deleteRelease as deleteReleaseApi,
-  rollbackRelease,
-  getReleaseDetail,
-  pushPreviewRelease,
-} from '@/api/version'
+import { getReleaseDetail } from '@/api/version'
 import {
   getTargetVersions,
   createModuleVersion,
@@ -518,7 +346,6 @@ import {
   deleteModuleVersion,
   type ModuleVersionRecord
 } from '@/api/module-version'
-import type { ReleaseRecord } from '@/types/page'
 import { useMiniappConfig } from '@/components/miniapp-builder/composables/useMiniappConfig'
 import {
   NAV_TEMPLATES,
@@ -542,12 +369,8 @@ const hasDecoratedPages = computed(() =>
 )
 
 const router = useRouter()
-const viewMode = ref<'gallery' | 'editor'>('editor')
+const route = useRoute()
 const editingTemplateId = ref<number | null>(null)
-const galleryLoading = ref(false)
-const releases = ref<ReleaseRecord[]>([])
-const latestPublished = ref<ReleaseRecord | null>(null)
-const galleryFilter = ref<'all' | 'published' | 'template'>('all')
 
 type GroupKey = 'brand' | 'tabbar' | 'pages' | 'advanced'
 const activeGroup = ref<GroupKey>('brand')
@@ -555,7 +378,6 @@ const previewRef = ref<{ showMineTab: () => void } | null>(null)
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
 const selectedMineTemplate = ref('warm')
-const newReleaseInfo = ref<any>(null)
 
 const showModuleVersionDialog = ref(false)
 const moduleVersionTab = ref<'theme' | 'navigation' | 'mine'>('theme')
@@ -565,15 +387,6 @@ const mineVersions = ref<ModuleVersionRecord[]>([])
 const moduleLoading = ref(false)
 const moduleSaving = ref(false)
 const publishingId = ref<number | null>(null)
-const pushingReleaseId = ref<number | null>(null)
-const pushPreviewVisible = ref(false)
-const pushPreviewResult = ref<any>(null)
-
-const filterTabs: { label: string; value: 'all' | 'published' | 'template' }[] = [
-  { label: '全部', value: 'all' },
-  { label: '已发布', value: 'published' },
-  { label: '草稿', value: 'template' },
-]
 
 const personalCenterTemplates = MINE_STYLE_TEMPLATES
 
@@ -595,17 +408,7 @@ const templateName = computed(() => {
   return tpl?.name || '自定义'
 })
 
-const boundCount = computed(() => form.tabs.filter(t => t.pageId || t.pagePath.includes('index')).length)
 const unboundTabs = computed(() => form.tabs.filter(t => !t.pageId && !t.pagePath.includes('index')))
-const visibleMenuCount = computed(() => form.mineConfig.menuItems.filter(m => m.enabled).length)
-
-const templateCount = computed(() => releases.value.filter(r => r.status === 0 || r.mode === 'template').length)
-
-const filteredReleases = computed(() => {
-  if (galleryFilter.value === 'published') return releases.value.filter(r => r.status === 1)
-  if (galleryFilter.value === 'template') return releases.value.filter(r => r.mode === 'template' || r.status === 0)
-  return releases.value
-})
 
 function selectMineTemplate(key: string) {
   const resolved = applyMineStylePreset(form.mineConfig as Record<string, unknown>, key)
@@ -729,55 +532,19 @@ async function handleShareImageChange(e: Event) {
   }
 }
 
-// ==================== Gallery Functions ====================
-async function loadGalleryData() {
-  galleryLoading.value = true
-  try {
-    const [allRes, latestRes] = await Promise.all([
-      getAllReleases(),
-      getLatestRelease().catch(() => null),
-    ])
-    const data = (allRes.data as any)?.data || allRes.data || []
-    releases.value = Array.isArray(data) ? data : []
-    if (latestRes) {
-      const ld = (latestRes as any).data || latestRes
-      latestPublished.value = ld ? { ...ld, isCurrentPublished: true } : null
-    }
-    releases.value.forEach((r: any) => {
-      if (latestPublished.value && r.id === latestPublished.value.id) {
-        r.isCurrentPublished = true
-      }
-    })
-  } catch (err) {
-    console.error('加载模板数据失败:', err)
-    ElMessage.error('加载导航配置失败')
-  } finally {
-    galleryLoading.value = false
-  }
-}
-
-function handleNewBuild() {
-  editingTemplateId.value = null
-  newReleaseInfo.value = null
-  applyTemplate('standard')
-  activeGroup.value = 'brand'
-  viewMode.value = 'editor'
-}
-
-async function handleEditTemplate(item: ReleaseRecord) {
-  editingTemplateId.value = item.id
-  newReleaseInfo.value = null
-  viewMode.value = 'editor'
+// ==================== 从草稿载入 ====================
+async function loadReleaseIntoEditor(releaseId: number) {
+  editingTemplateId.value = releaseId
   loading.value = true
   try {
-    const res = await getReleaseDetail(item.id)
+    const res = await getReleaseDetail(releaseId)
     const detail = (res as any).data || res
     if (detail?.snapshot) {
       parseSnapshotToForm(detail.snapshot)
     }
   } catch (err) {
-    console.error('加载模板详情失败:', err)
-    ElMessage.error('加载模板详情失败，将使用默认配置')
+    console.error('加载草稿详情失败:', err)
+    ElMessage.error('加载草稿详情失败，将使用默认配置')
     applyTemplate('standard')
   } finally {
     loading.value = false
@@ -785,195 +552,18 @@ async function handleEditTemplate(item: ReleaseRecord) {
   activeGroup.value = 'brand'
 }
 
-async function handlePromote(item: ReleaseRecord) {
-  try {
-    await promoteRelease(item.id)
-    ElMessage.success('外观已保存。绑定页面请在装修器点「上线」。')
-    await loadGalleryData()
-  } catch {
-    ElMessage.error('发布失败，请重试')
-  }
-}
-
-async function handleDelete(item: ReleaseRecord) {
-  try {
-    await ElMessageBox.confirm('确认删除此配置？删除后不可恢复。', '删除确认', {
-      type: 'warning',
-      confirmButtonText: '确认删除',
-      cancelButtonText: '取消',
-    })
-    await deleteReleaseApi(item.id)
-    ElMessage.success('已删除')
-    await loadGalleryData()
-  } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败，请重试')
-  }
-}
-
-async function handleRollback(item: ReleaseRecord) {
-  try {
-    await ElMessageBox.confirm(`确认回滚到 ${item.semver}？`, '回滚确认', {
-      type: 'warning',
-      confirmButtonText: '确认回滚',
-      cancelButtonText: '取消',
-    })
-    await rollbackRelease({ targetSemver: item.semver, reason: `回滚到 ${item.semver}` })
-    ElMessage.success(`已回滚到 ${item.semver}`)
-    await loadGalleryData()
-  } catch (e) {
-    if (e !== 'cancel') ElMessage.error('回滚失败，请重试')
-  }
-}
-
-function buildH5PreviewUrl(item: ReleaseRecord) {
-  const { href } = router.resolve({
-    path: '/h5/preview',
-    query: {
-      releaseId: String(item.id),
-      semver: item.semver,
-      path: 'pages/index/index',
-      mode: item.mode === 'template' || item.status === 0 ? 'template' : 'release',
-    },
-  })
-  return `${window.location.origin}${href}`
-}
-
-function buildFullPreviewUrl(item?: ReleaseRecord | null, view: 'prototype' | 'config' = 'config') {
-  const query: Record<string, string> = { view }
-  if (item?.id) {
-    query.releaseId = String(item.id)
-    if (item.semver) query.semver = item.semver
-  } else {
-    query.source = 'live'
-  }
+// ==================== 预览 ====================
+function buildFullPreviewUrl() {
+  const query: Record<string, string> = { view: 'config', source: 'live' }
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
   return `${window.location.origin}${href}`
 }
 
-function openH5Preview(item: ReleaseRecord) {
-  window.open(buildH5PreviewUrl(item), '_blank', 'noopener,noreferrer')
+function openFullMiniappPreview() {
+  window.open(buildFullPreviewUrl(), '_blank', 'noopener,noreferrer')
 }
 
-/** 无参=当前已保存配置；传入 release=该版本快照 */
-function openFullMiniappPreview(item?: ReleaseRecord) {
-  window.open(buildFullPreviewUrl(item || null, 'config'), '_blank', 'noopener,noreferrer')
-}
-
-function openPrototypeDemo() {
-  window.open('/prototype/chuhai-notes.html', '_blank', 'noopener,noreferrer')
-}
-
-async function copyH5PreviewLink(item: ReleaseRecord) {
-  const url = buildH5PreviewUrl(item)
-  try {
-    await navigator.clipboard.writeText(url)
-    ElMessage.success('H5 预览链接已复制')
-  } catch {
-    ElMessage.info(url)
-  }
-}
-
-async function copyFullPreviewLink(item: ReleaseRecord) {
-  const url = buildFullPreviewUrl(item, 'config')
-  try {
-    await navigator.clipboard.writeText(url)
-    ElMessage.success('小程序预览链接已复制')
-  } catch {
-    ElMessage.info(url)
-  }
-}
-
-async function handlePushPreview(item: ReleaseRecord) {
-  const releaseId = Number(item.id)
-  if (!Number.isFinite(releaseId) || releaseId <= 0) {
-    ElMessage.warning('请先保存还原点后再上传代码到微信')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确认将版本 v${item.semver} 对应的代码包上传到微信体验版吗？\n\n这只会上传代码包，不会替你上线页面内容。`,
-      '上传代码到微信',
-      {
-        confirmButtonText: '确认上传',
-        cancelButtonText: '取消',
-        type: 'warning',
-      },
-    )
-  } catch {
-    return
-  }
-
-  pushingReleaseId.value = item.id
-  pushPreviewResult.value = null
-  const loadingMsg = ElMessage({
-    message: '正在上传代码到微信，请稍候（约 10–60 秒）…',
-    type: 'info',
-    duration: 0,
-    showClose: false,
-  })
-  try {
-    const res = await pushPreviewRelease(releaseId, {
-      versionDesc: item.releaseNotes || `后台上传体验版 v${item.semver}`,
-      confirmCodeChange: true,
-    })
-    pushPreviewResult.value = (res as any).data || res
-    pushPreviewVisible.value = true
-    ElMessage.success('体验版推送成功，请到微信公众平台「版本管理 → 开发版本」查看')
-  } catch (error: any) {
-    const message = formatPushPreviewError(error)
-    pushPreviewResult.value = { message, version: item.semver, manageUrl: 'https://mp.weixin.qq.com/' }
-    pushPreviewVisible.value = true
-    ElMessage.error(message)
-  } finally {
-    loadingMsg.close()
-    pushingReleaseId.value = null
-  }
-}
-
-function formatPushPreviewError(error: any): string {
-  const apiMessage = String(error?.response?.data?.message || error?.message || '')
-  const code = error?.response?.data?.code
-  if (code === 5005 || apiMessage.includes('上传密钥')) {
-    return '请先在「系统设置 → 基础配置」保存代码上传密钥，并确认提示「上传密钥已入库」'
-  }
-  if (apiMessage.includes('invalid ip') || apiMessage.includes('-10008')) {
-    const ipMatch = apiMessage.match(/invalid ip:\s*([0-9.]+)/i)
-    const ip = ipMatch?.[1] || '124.220.11.79'
-    return `微信拒绝上传：服务器 IP ${ip} 未加入代码上传白名单。请到 mp.weixin.qq.com → 开发 → 开发设置 → IP白名单 添加后重试`
-  }
-  if (code === 400 || apiMessage.includes('参数格式错误')) {
-    return '版本记录无效，请刷新页面后重试'
-  }
-  if (apiMessage.includes('signature fail') || apiMessage.includes('DECODER')) {
-    return '代码上传密钥格式有误，请从微信公众平台重新下载并完整粘贴后保存'
-  }
-  return apiMessage || '体验版推送失败，请稍后重试'
-}
-
-function isPushPreviewFailure(message?: string) {
-  if (!message) return false
-  return !message.includes('成功') && !message.includes('最近一次体验版推送版本')
-}
-
-// ==================== Editor Functions ====================
-async function handleSaveAsTemplate() {
-  try {
-    await handleSave()
-    newReleaseInfo.value = null
-    try {
-      const res = await createRelease({
-        mode: 'template',
-        baseReleaseId: editingTemplateId.value || undefined,
-        releaseNotes: `模板：${form.templateKey}模板，${form.tabs.length}个导航项`,
-      })
-      newReleaseInfo.value = (res as any).data || res
-    } catch { /* ignore */ }
-  } catch {
-    ElMessage.error('保存导航草稿失败，请检查配置后重试')
-  }
-}
-
+// ==================== 页面跳转 ====================
 async function goToRelease() {
   try {
     if (isDirty.value) {
@@ -986,57 +576,11 @@ async function goToRelease() {
   }
 }
 
-async function handlePublishOnline() {
-  await goToRelease()
-}
-
-function goToGallery() {
-  viewMode.value = 'gallery'
-  editingTemplateId.value = null
-  newReleaseInfo.value = null
-  loadGalleryData()
-}
-
 function goToPageBuilder() {
   router.push('/page-builder/list')
 }
 
-function goToTemplateMarket() {
-  router.push('/page-builder/template-center')
-}
-
-function goToSystemSettings() {
-  router.push('/settings/basic')
-}
-
-function goToVersionManagement() {
-  router.push('/page-builder/release')
-}
-
-// ==================== Common Helper Functions ====================
-function formatTime(t: string | Date | null | undefined): string {
-  if (!t) return '-'
-  const d = typeof t === 'string' ? new Date(t) : t
-  if (isNaN(d.getTime())) return '-'
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function getChangeTypeColor(type: string): string {
-  const map: Record<string, string> = { major: '#ef4444', minor: '#f59e0b', patch: '#10b981' }
-  return map[type] || '#607187'
-}
-
-function changeTypeLabel(type: string): string {
-  const map: Record<string, string> = { major: '主版本', minor: '次版本', patch: '修订版' }
-  return map[type] || type
-}
-
-function getStatusLabel(s: number): string {
-  const map: Record<number, string> = { 0: '草稿', 1: '已发布', 2: '已替换' }
-  return map[s] || '未知'
-}
-
+// ==================== 快照解析 ====================
 function parseSnapshotToForm(snapshotJson: string) {
   try {
     const snap = typeof snapshotJson === 'string' ? JSON.parse(snapshotJson) : snapshotJson
@@ -1069,6 +613,7 @@ function parseSnapshotToForm(snapshotJson: string) {
   }
 }
 
+// ==================== 模块版本（配置快照与回滚） ====================
 async function loadModuleVersions() {
   moduleLoading.value = true
   try {
@@ -1213,31 +758,48 @@ async function handleModuleDelete(row: ModuleVersionRecord) {
 }
 
 onBeforeRouteLeave(() => {
-  if (viewMode.value === 'editor' && isDirty.value) {
+  if (isDirty.value) {
     if (!window.confirm('有未保存的更改，确认离开？')) return false
   }
 })
 
-onMounted(() => {
-  loadGalleryData()
+onMounted(async () => {
+  const q = route.query
+  if (typeof q.releaseId === 'string' && q.releaseId) {
+    await loadReleaseIntoEditor(Number(q.releaseId))
+  } else if (q.new === '1') {
+    editingTemplateId.value = null
+    applyTemplate('standard')
+    activeGroup.value = 'brand'
+  }
 })
+
+// 已在本页时再次带参进入（如从草稿页点「编辑」），重新载入
+watch(
+  () => route.query.releaseId,
+  async (releaseId) => {
+    if (typeof releaseId === 'string' && releaseId) {
+      await loadReleaseIntoEditor(Number(releaseId))
+    }
+  },
+)
 </script>
 
 <style lang="scss" scoped>
-.miniapp-builder {
+.appearance-page {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #f6f8fb;
+  background: var(--bg-page);
 }
 
 .dirty-pill {
   padding: 3px 12px;
-  color: #b45309;
+  color: var(--warning);
   font-size: 12px;
   font-weight: 600;
-  background: #fffbeb;
-  border: 1px solid #fbbf24;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
   border-radius: 99px;
   white-space: nowrap;
 }
@@ -1256,7 +818,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 24px;
-  background: #fff;
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -1271,7 +833,7 @@ onMounted(() => {
 .ap-title p {
   margin: 5px 0 0;
   font-size: 13px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary);
   line-height: 1.5;
   max-width: 640px;
 }
@@ -1300,7 +862,7 @@ onMounted(() => {
   width: 216px;
   flex-shrink: 0;
   padding: 16px 12px;
-  background: #fff;
+  background: var(--bg-elevated);
   border-right: 1px solid var(--border);
   overflow-y: auto;
 }
@@ -1313,7 +875,7 @@ onMounted(() => {
   padding: 11px 12px;
   margin-bottom: 4px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -1321,12 +883,12 @@ onMounted(() => {
 }
 
 .ap-nav-item:hover {
-  background: var(--bg-page, #f5f7fb);
+  background: var(--bg-page);
 }
 
 .ap-nav-item.active {
-  background: #eef3ff;
-  border-color: #c7d6ed;
+  background: var(--brand-soft);
+  border-color: var(--brand);
 }
 
 .ap-nav-text {
@@ -1349,7 +911,7 @@ onMounted(() => {
 
 .ap-nav-desc {
   font-size: 11.5px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
   line-height: 1.35;
 }
 
@@ -1367,21 +929,21 @@ onMounted(() => {
 }
 
 .ap-badge.ok {
-  color: #0faa6e;
-  background: #e7f7f0;
+  color: var(--success);
+  background: var(--success-soft);
 }
 
 .ap-badge.warn {
   color: #fff;
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .ap-nav-tip {
   margin-top: 12px;
   padding: 9px 11px;
-  border-radius: 8px;
-  background: var(--bg-page, #f5f7fb);
-  color: var(--text-muted, #94a3b8);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  color: var(--text-muted);
   font-size: 11.5px;
   line-height: 1.5;
 }
@@ -1397,9 +959,9 @@ onMounted(() => {
 .ap-card {
   max-width: 720px;
   padding: 22px 24px;
-  background: #fff;
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .ap-card-head {
@@ -1416,7 +978,7 @@ onMounted(() => {
 .ap-card-head p {
   margin: 5px 0 0;
   font-size: 12.5px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary);
   line-height: 1.55;
 }
 
@@ -1430,7 +992,7 @@ onMounted(() => {
   gap: 14px;
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 .ap-row + .ap-row,
@@ -1461,7 +1023,7 @@ onMounted(() => {
 
 .ap-row-text span {
   font-size: 12.5px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary);
 }
 
 .ap-row-field {
@@ -1471,18 +1033,18 @@ onMounted(() => {
 
 .ap-block {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
 .ap-block-body {
   padding: 16px;
-  background: var(--bg-page, #f5f7fb);
+  background: var(--bg-page);
 }
 
 .ap-block-hint {
   font-size: 12.5px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary);
   margin-bottom: 12px;
   line-height: 1.55;
 }
@@ -1498,14 +1060,14 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px;
-  background: #fff;
+  background: var(--bg-elevated);
   cursor: pointer;
   text-align: center;
 }
 
 .mine-template-picker--inline .mine-tpl-card.selected {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(23, 105, 255, 0.15);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-soft);
 }
 
 .mine-template-picker--inline .mine-tpl-preview {
@@ -1526,7 +1088,7 @@ onMounted(() => {
 .mine-template-picker--inline .mine-tpl-desc {
   margin-top: 2px;
   font-size: 11px;
-  color: #8b93a7;
+  color: var(--text-muted);
   line-height: 1.35;
 }
 
@@ -1535,7 +1097,7 @@ onMounted(() => {
   width: 400px;
   flex-shrink: 0;
   padding: 16px;
-  background: #fff;
+  background: var(--bg-elevated);
   border-left: 1px solid var(--border);
   overflow-y: auto;
 }
@@ -1549,43 +1111,6 @@ onMounted(() => {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--text);
-}
-
-/* ====== Gallery 顶部工具栏（保留） ====== */
-.builder-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-
-  h1 {
-    font-size: 18px;
-    font-weight: 800;
-    margin: 0;
-  }
-}
-
-.toolbar-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.toolbar-sub {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 8px;
 }
 
 .section-divider {
@@ -1603,15 +1128,11 @@ onMounted(() => {
   border-left: 3px solid var(--brand);
 }
 
-.share-config {
-  margin-top: 4px;
-}
-
 .share-image-upload {
   width: 120px;
   height: 120px;
-  border: 1px dashed #d9e2ef;
-  border-radius: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1675,220 +1196,7 @@ onMounted(() => {
   }
 }
 
-/* ====== Gallery View Styles ====== */
-.template-gallery {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  animation: fadeIn 0.25s ease;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.gallery-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 22px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  transition: 0.16s;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(23,105,255,0.08);
-    border-color: #c7d6ed;
-  }
-
-  .stat-icon {
-    font-size: 32px;
-    line-height: 1;
-  }
-
-  .stat-info {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .stat-value {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--text);
-    line-height: 1.2;
-  }
-
-  .stat-label {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.filter-tab {
-  padding: 7px 20px;
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  background: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  color: #607187;
-  cursor: pointer;
-  transition: 0.15s;
-
-  &:hover {
-    border-color: var(--brand);
-    color: var(--brand);
-  }
-
-  &.active {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-  }
-}
-
-.template-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 1200px) {
-  .template-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-
-  .template-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.template-card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: 0.18s;
-  position: relative;
-  overflow: hidden;
-
-  &:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.07);
-    transform: translateY(-2px);
-    border-color: #c7d6ed;
-  }
-
-  &.card-published {
-    border-left: 3px solid #10b981;
-  }
-
-  &.card-template {
-    border-left: 3px solid var(--brand);
-  }
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.card-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.current-live-badge {
-  margin-left: 4px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.card-semver {
-  font-size: 18px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.card-notes {
-  font-size: 13px;
-  color: #607187;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 38px;
-}
-
-.card-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  color: #a0b4d0;
-  gap: 8px;
-
-  span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-}
-
-.card-actions {
-  display: flex;
-  gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid #f0f2f5;
-  flex-wrap: wrap;
-}
-
-.push-preview-footer {
-  margin-top: 12px;
-}
-
-.empty-gallery {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 360px;
-  animation: fadeIn 0.35s ease;
-}
-
-/* ====== Success Pages ====== */
+/* ====== 模块版本弹窗 ====== */
 .module-version-content {
   padding: 8px 0;
 }
@@ -1905,6 +1213,6 @@ onMounted(() => {
 .semver {
   font-family: 'SF Mono', Monaco, Consolas, monospace;
   font-weight: 600;
-  color: #409eff;
+  color: var(--brand);
 }
 </style>
