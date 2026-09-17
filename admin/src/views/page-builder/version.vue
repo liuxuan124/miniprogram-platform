@@ -39,8 +39,8 @@
       </el-table>
     </el-card>
 
-    <!-- C4：与当前版本对比，按组件粒度展示新增/删除/修改 -->
-    <el-dialog v-model="compareDialogVisible" :title="`版本 v${comparingVersion?.version} 与当前页面对比`" width="560px" destroy-on-close>
+    <!-- C4：与当前版本对比，并排双机预览 + 组件粒度差异列表 -->
+    <el-dialog v-model="compareDialogVisible" :title="`版本 v${comparingVersion?.version} 与当前页面对比`" width="960px" destroy-on-close>
       <template v-if="!currentPageDSL">
         <el-empty description="未能加载当前页面数据，无法对比" />
       </template>
@@ -53,7 +53,45 @@
             与当前页面一致
           </span>
         </div>
-        <div class="compare-list">
+
+        <div class="compare-phones">
+          <div class="compare-phone">
+            <div class="compare-phone__title">v{{ comparingVersion?.version }}（历史版本）</div>
+            <PreviewPhone
+              :page-title="comparingVersion?.dsl?.page?.name || '历史版本'"
+              :page-bg-color="comparingVersion?.dsl?.page?.background_color || '#f5f5f5'"
+            >
+              <ComponentItem
+                v-for="(comp, index) in (comparingVersion?.dsl?.components || [])"
+                :key="comp.id"
+                :component="comp"
+                :index="index"
+                :selected="false"
+                :class="diffHighlightClass(comp.id)"
+                @select="() => {}"
+              />
+            </PreviewPhone>
+          </div>
+          <div class="compare-phone">
+            <div class="compare-phone__title">当前页面</div>
+            <PreviewPhone
+              :page-title="currentPageDSL?.page?.name || '当前页面'"
+              :page-bg-color="currentPageDSL?.page?.background_color || '#f5f5f5'"
+            >
+              <ComponentItem
+                v-for="(comp, index) in (currentPageDSL?.components || [])"
+                :key="comp.id"
+                :component="comp"
+                :index="index"
+                :selected="false"
+                :class="diffHighlightClass(comp.id)"
+                @select="() => {}"
+              />
+            </PreviewPhone>
+          </div>
+        </div>
+
+        <div v-if="compareResult.added.length || compareResult.removed.length || compareResult.modified.length" class="compare-list">
           <div v-for="comp in compareResult.added" :key="`add-${comp.id}`" class="compare-row compare-row--add">
             <el-tag type="success" size="small" effect="plain">新增</el-tag>
             <span>{{ ComponentTypeLabels[comp.type] || comp.type }}</span>
@@ -241,6 +279,20 @@ async function handleCompareVersion(row: VersionRecord) {
   }
 }
 
+/** 双机预览里高亮有差异的组件 */
+const diffIdSets = computed(() => ({
+  added: new Set(compareResult.value.added.map((c) => c.id)),
+  removed: new Set(compareResult.value.removed.map((c) => c.id)),
+  modified: new Set(compareResult.value.modified.map((c) => c.id)),
+}))
+
+function diffHighlightClass(id: string) {
+  if (diffIdSets.value.added.has(id)) return 'diff-added'
+  if (diffIdSets.value.removed.has(id)) return 'diff-removed'
+  if (diffIdSets.value.modified.has(id)) return 'diff-modified'
+  return ''
+}
+
 /** 返回 */
 function handleBack() {
   router.push({ name: 'PageBuilderList' })
@@ -392,5 +444,42 @@ watch(
   line-height: 1.6;
   background: var(--bg-page);
   border-radius: var(--radius);
+}
+
+/* 并排双机对比 */
+.compare-phones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.compare-phone__title {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.compare-phone :deep(.diff-added) {
+  outline: 2px solid var(--success);
+  outline-offset: 2px;
+}
+
+.compare-phone :deep(.diff-removed) {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
+.compare-phone :deep(.diff-modified) {
+  outline: 2px solid var(--warning);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .compare-phones {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

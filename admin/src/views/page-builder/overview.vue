@@ -54,7 +54,7 @@
     </section>
 
     <section v-if="todos.length" class="todo-bar">
-      <div class="todo-title">还需要处理（点击直达）</div>
+      <div class="todo-title">还需要处理（{{ todos.length }} 项，点击直达）</div>
       <button
         v-for="(item, idx) in todos"
         :key="idx"
@@ -66,26 +66,49 @@
       </button>
     </section>
 
-    <section class="tab-section">
-      <h2>底部导航实况</h2>
-      <p class="muted">对应真机底部四个入口。点击卡片进入装修或配置。</p>
-      <div class="tab-grid">
-        <button
-          v-for="(tab, idx) in tabCards"
-          :key="tab.key"
-          type="button"
-          class="tab-card"
-          :class="{ warn: tab.statusKey === 'dirty' || tab.statusKey === 'empty' }"
-          @click="openTab(tab)"
-        >
-          <div class="tab-card__idx">导航 {{ idx + 1 }}</div>
-          <div class="tab-card__name">{{ tab.text }}</div>
-          <div class="tab-card__page">{{ tab.pageName }}</div>
-          <div class="tab-card__status" :data-status="tab.statusKey">{{ tab.statusLabel }}</div>
-        </button>
+    <!-- 设置进度清单：完成项打勾，给操作者明确的全局进度感 -->
+    <section class="checklist">
+      <div class="checklist-title">上线准备进度</div>
+      <div class="checklist-grid">
+        <div v-for="check in setupChecks" :key="check.label" class="check-item" :class="{ done: check.done }">
+          <span class="check-icon">{{ check.done ? '✓' : '○' }}</span>
+          <span class="check-label">{{ check.label }}</span>
+        </div>
       </div>
-      <el-empty v-if="!loading && !tabCards.length" description="尚未配置底部导航，请先去「外观」绑定" />
     </section>
+
+    <div class="overview-grid">
+      <section class="tab-section">
+        <h2>底部导航实况</h2>
+        <p class="muted">对应真机底部四个入口。点击卡片进入装修或配置。</p>
+        <div class="tab-grid">
+          <button
+            v-for="(tab, idx) in tabCards"
+            :key="tab.key"
+            type="button"
+            class="tab-card"
+            :class="{ warn: tab.statusKey === 'dirty' || tab.statusKey === 'empty' }"
+            @click="openTab(tab)"
+          >
+            <div class="tab-card__idx">导航 {{ idx + 1 }}</div>
+            <div class="tab-card__name">{{ tab.text }}</div>
+            <div class="tab-card__page">{{ tab.pageName }}</div>
+            <div class="tab-card__status" :data-status="tab.statusKey">{{ tab.statusLabel }}</div>
+          </button>
+        </div>
+        <el-empty v-if="!loading && !tabCards.length" description="尚未配置底部导航，请先去「外观」绑定" />
+      </section>
+
+      <aside class="live-preview">
+        <div class="live-preview__head">
+          <span>真机实况</span>
+          <el-button size="small" link type="primary" @click="openLivePreview">新窗口打开 ›</el-button>
+        </div>
+        <div class="phone-frame">
+          <iframe :src="livePreviewUrl" title="小程序实况预览" loading="lazy" />
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
@@ -198,6 +221,27 @@ const todos = computed<TodoItem[]>(() => {
     }
   })
   return list.slice(0, 8)
+})
+
+/** 上线准备清单：完成打勾，未完成空心圈 */
+const setupChecks = computed(() => {
+  const blocking = preflight.value?.blocking || []
+  const warnings = preflight.value?.warnings || []
+  const allTabsBound = tabs.value.length > 0 && tabs.value.every(
+    (tab) => tab.pageId || (tab.pagePath || '').includes('index'),
+  )
+  return [
+    { label: '首页已装修并绑定', done: !blocking.some((t) => t.includes('首页')) && Boolean(preflight.value) },
+    { label: '底部导航全部绑定页面', done: allTabsBound },
+    { label: '已保存过可回退的版本', done: Boolean(latestSemver.value) },
+    { label: '没有未处理的警告', done: warnings.length === 0 && Boolean(preflight.value) },
+  ]
+})
+
+/** 真机实况 iframe（与「预览真机」同一页面，内嵌展示） */
+const livePreviewUrl = computed(() => {
+  const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config', source: 'live' } })
+  return href
 })
 
 function normalizePath(path?: string) {
@@ -364,12 +408,12 @@ onMounted(loadAll)
 .todo-bar {
   margin-bottom: 16px;
   padding: 14px 16px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
   border-radius: var(--radius);
 }
 
-.todo-title { font-size: 13px; font-weight: 600; color: #92400e; margin-bottom: 8px; }
+.todo-title { font-size: 13px; font-weight: 600; color: var(--warning); margin-bottom: 8px; }
 .todo-item {
   display: block;
   width: 100%;
@@ -377,18 +421,108 @@ onMounted(loadAll)
   border: none;
   background: transparent;
   padding: 6px 0;
-  color: #78350f;
+  color: var(--warning);
   font-size: 13.5px;
   cursor: pointer;
 }
-.todo-item:hover { color: #1d4ed8; }
+.todo-item:hover { color: var(--brand); }
 
 .tab-section h2 { margin: 0 0 4px; font-size: 16px; }
 .muted { color: var(--text-muted); font-size: 13px; margin: 0 0 14px; }
 
+/* 上线准备清单 */
+.checklist {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.checklist-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+
+.checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.check-item .check-icon {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.check-item.done {
+  color: var(--text);
+}
+
+.check-item.done .check-icon {
+  color: #fff;
+  background: var(--success);
+  border-color: var(--success);
+}
+
+/* 底部导航 + 真机实况 双栏 */
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.live-preview {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.live-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.phone-frame {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-page);
+  aspect-ratio: 9 / 16;
+}
+
+.phone-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+@media (max-width: 1100px) {
+  .overview-grid { grid-template-columns: 1fr; }
+  .phone-frame { max-width: 320px; margin: 0 auto; }
+}
+
 .tab-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -412,13 +546,13 @@ onMounted(loadAll)
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #eef2ff;
-  color: #3730a3;
+  background: var(--brand-soft);
+  color: var(--brand);
 }
-.tab-card__status[data-status='live'] { background: #ecfdf5; color: #047857; }
-.tab-card__status[data-status='dirty'] { background: #fff7ed; color: #c2410c; }
-.tab-card__status[data-status='empty'] { background: #fef2f2; color: #b91c1c; }
-.tab-card__status[data-status='draft'] { background: #f1f5f9; color: #475569; }
+.tab-card__status[data-status='live'] { background: var(--success-soft); color: var(--success); }
+.tab-card__status[data-status='dirty'] { background: var(--warning-soft); color: var(--warning); }
+.tab-card__status[data-status='empty'] { background: var(--danger-soft); color: var(--danger); }
+.tab-card__status[data-status='draft'] { background: var(--info-soft); color: var(--info); }
 
 @media (max-width: 960px) {
   .status-bar, .tab-grid { grid-template-columns: 1fr 1fr; }

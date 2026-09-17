@@ -75,8 +75,14 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'start',
         name: 'PageBuilderStart',
-        component: () => import('@/views/page-builder/miniapp-builder.vue'),
+        component: () => import('@/views/page-builder/appearance.vue'),
         meta: { title: '外观', icon: 'Cellphone', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'drafts',
+        name: 'PageBuilderDrafts',
+        component: () => import('@/views/page-builder/drafts.vue'),
+        meta: { title: '草稿', icon: 'Files', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         // 兼容旧链接「小程序配置」

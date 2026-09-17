@@ -175,6 +175,47 @@
         </el-table-column>
       </el-table>
     </section>
+
+    <!-- 页面级版本入口：原先藏在「页面 → 更多 → 历史版本」，这里聚合直达 -->
+    <section class="card">
+      <div class="card-head">
+        <h2>页面级历史版本</h2>
+        <span class="muted">
+          上面是整个小程序的版本存档；这里是<b>每个页面各自</b>的历史版本。
+          只想回退某一个页面（不影响其它页面和导航）时，从这里进。
+        </span>
+      </div>
+      <el-table v-loading="pagesLoading" :data="pageVersionRows" size="small">
+        <el-table-column prop="name" label="页面" min-width="160">
+          <template #default="{ row }">
+            <b>{{ row.name }}</b>
+          </template>
+        </el-table-column>
+        <el-table-column label="路径" min-width="200">
+          <template #default="{ row }">
+            <span class="mono">{{ row.path }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="Number(row.status) === 1" type="success" size="small">已上线</el-tag>
+            <el-tag v-else type="info" size="small">草稿</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="当前版本" width="100" align="center">
+          <template #default="{ row }">v{{ row.currentVersion ?? row.version ?? 0 }}</template>
+        </el-table-column>
+        <el-table-column label="更新时间" width="160">
+          <template #default="{ row }">{{ formatTime(row.updated_at || row.updateTime) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="goPageVersions(row)">历史版本</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!pagesLoading && !pageVersionRows.length" description="还没有装修页面" :image-size="60" />
+    </section>
   </div>
 </template>
 
@@ -194,6 +235,7 @@ import {
   type PublishPreflight,
 } from '@/api/version'
 import type { ReleaseRecord } from '@/types/page'
+import { getPageList } from '@/api/page'
 
 const router = useRouter()
 const loading = ref(false)
@@ -288,7 +330,27 @@ async function loadPushStatus() {
 }
 
 async function loadAll() {
-  await Promise.all([loadPreflight(), loadHistory(), loadLatest(), loadPushStatus()])
+  await Promise.all([loadPreflight(), loadHistory(), loadLatest(), loadPushStatus(), loadPageVersions()])
+}
+
+/* ---------- 页面级版本入口 ---------- */
+const pagesLoading = ref(false)
+const pageVersionRows = ref<any[]>([])
+
+async function loadPageVersions() {
+  pagesLoading.value = true
+  try {
+    const res = await getPageList({ current: 1, size: 50 })
+    pageVersionRows.value = (res.data?.records || []) as any[]
+  } catch {
+    pageVersionRows.value = []
+  } finally {
+    pagesLoading.value = false
+  }
+}
+
+function goPageVersions(row: any) {
+  router.push({ name: 'PageBuilderVersion', params: { id: row.id } })
 }
 
 function openLivePreview() {
@@ -438,8 +500,8 @@ onMounted(loadAll)
 }
 
 .guide-card--active {
-  border-color: var(--brand, #1d4ed8);
-  background: rgba(29, 78, 216, 0.04);
+  border-color: var(--brand);
+  background: var(--brand-soft);
 }
 
 .guide-num {
@@ -447,7 +509,7 @@ onMounted(loadAll)
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--brand, #1d4ed8);
+  background: var(--brand);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -534,27 +596,27 @@ onMounted(loadAll)
 }
 
 .issue-card.blocking {
-  background: #fef2f2;
-  border-color: #fbcaca;
-  color: #b91c1c;
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .issue-card.warning {
-  background: #fffbeb;
-  border-color: #fde3a7;
-  color: #92400e;
+  background: var(--warning-soft);
+  border-color: var(--warning);
+  color: var(--warning);
 }
 
 .issue-card.info {
-  background: #f5f7fa;
+  background: var(--info-soft);
   border-color: var(--border);
   color: var(--text-muted);
 }
 
 .issue-card.ready {
-  background: #f0fdf9;
-  border-color: #b7e4d5;
-  color: #0f766e;
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
 }
 
 .issue-head {
@@ -570,17 +632,17 @@ onMounted(loadAll)
 .issue-badge {
   padding: 2px 9px;
   border-radius: 999px;
-  background: #b91c1c;
+  background: var(--danger);
   color: #fff;
   font-size: 12px;
 }
 
 .issue-badge.warn {
-  background: #b45309;
+  background: var(--warning);
 }
 
 .issue-badge.ok {
-  background: #0f766e;
+  background: var(--success);
 }
 
 .issue-row {
@@ -620,5 +682,11 @@ onMounted(loadAll)
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.7;
+}
+
+.mono {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 </style>
