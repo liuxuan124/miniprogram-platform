@@ -12,12 +12,14 @@ import java.util.Map;
 public interface AgentKnowledgeChunkMapper extends BaseMapper<AgentKnowledgeChunk> {
 
     @Select("""
-            SELECT c.id, c.knowledge_id AS knowledgeId, c.title, c.body, c.source_ref AS sourceRef,
+            SELECT c.id, c.knowledge_id AS knowledgeId, c.title, c.body, c.summary, c.source_ref AS sourceRef,
+                   IFNULL(k.cite_policy, 'full') AS citePolicy,
                    MATCH(c.title, c.body) AGAINST(#{q} IN NATURAL LANGUAGE MODE) AS score
             FROM mp_agent_knowledge_chunk c
             JOIN mp_agent_knowledge k ON k.id = c.knowledge_id
             WHERE c.status = 1
               AND (c.config_id IS NULL OR c.config_id = #{configId} OR #{configId} IS NULL)
+              AND IFNULL(k.cite_policy, 'full') <> 'none'
               AND MATCH(c.title, c.body) AGAINST(#{q} IN NATURAL LANGUAGE MODE)
             ORDER BY score * IFNULL(k.recall_weight, 1) DESC
             LIMIT #{limit}

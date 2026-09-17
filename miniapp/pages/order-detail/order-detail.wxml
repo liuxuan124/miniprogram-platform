@@ -7,8 +7,8 @@
     <text class="status-desc">{{STATUS_MAP[order.status].desc || ''}}</text>
   </view>
 
-  <!-- 步骤条（正常流程才显示） -->
-  <view class="steps-section" wx:if="{{order.status !== 'closed' && order.status !== 'refunding' && order.status !== 'refunded'}}">
+  <!-- 步骤条：实物走物流，虚拟走交付 -->
+  <view class="steps-section" wx:if="{{!isVirtual && order.status !== 'closed' && order.status !== 'refunding' && order.status !== 'refunded'}}">
     <view class="steps">
       <view
         wx:for="{{steps}}"
@@ -19,6 +19,24 @@
         <text class="step-text">{{item.text}}</text>
       </view>
     </view>
+  </view>
+
+  <view class="steps-section" wx:if="{{isVirtual && order.status !== 'closed' && order.status !== 'refunding' && order.status !== 'refunded'}}">
+    <view class="steps">
+      <view
+        wx:for="{{virtualSteps}}"
+        wx:key="index"
+        class="step {{currentStep >= index ? 'active' : ''}} {{currentStep === index ? 'current' : ''}}"
+      >
+        <view class="step-dot"></view>
+        <text class="step-text">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="delivery-card" wx:if="{{isVirtual && (order.status === 'paid' || order.status === 'completed' || order.status === 'shipped')}}">
+    <view class="delivery-card__h">✓ 交付状态</view>
+    <view class="delivery-card__p">{{virtualDeliveryDesc}}</view>
   </view>
 
   <!-- 收货地址 -->
@@ -113,18 +131,30 @@
       <text class="price-label">商品金额</text>
       <text class="price-value">&#165;{{order.goods_amount || order.total_amount}}</text>
     </view>
-    <view class="price-row">
+    <view class="price-row" wx:if="{{!isVirtual}}">
       <text class="price-label">运费</text>
       <text class="price-value">&#165;{{order.shipping_fee || '0.00'}}</text>
     </view>
-    <view class="price-row" wx:if="{{order.discount_amount}}">
-      <text class="price-label">优惠</text>
-      <text class="price-value discount">-&#165;{{order.discount_amount}}</text>
+    <view class="price-row" wx:if="{{order.discount_amount || order.coupon_amount}}">
+      <text class="price-label">优惠券</text>
+      <text class="price-value discount">-&#165;{{order.coupon_amount || order.discount_amount}}</text>
+    </view>
+    <view class="price-row" wx:if="{{order.beans_amount || order.bean_amount}}">
+      <text class="price-label">暖豆抵扣</text>
+      <text class="price-value discount">-&#165;{{order.beans_amount || order.bean_amount}}</text>
+    </view>
+    <view class="price-row" wx:if="{{!(order.beans_amount || order.bean_amount) && isVirtual && warmBeansAmount}}">
+      <text class="price-label">暖豆抵扣</text>
+      <text class="price-value discount">-&#165;{{warmBeansAmount}}</text>
     </view>
     <view class="price-row total">
-      <text class="price-label">实付金额</text>
-      <text class="price-value total-price">&#165;{{order.total_amount || order.total_price}}</text>
+      <text class="price-label">实付款</text>
+      <text class="price-value total-price">&#165;{{order.total_amount || order.total_price || order.pay_amount}}</text>
     </view>
+  </view>
+
+  <view class="refund-note" wx:if="{{isVirtual}}">
+    ⚠️ <text class="refund-note__b">退款说明</text>：数字内容在权限开通后不支持退款。若出现重复支付、权限未开通等异常，请在 7 日内联系客服核实，核实后原路退回，预计 1-3 个工作日到账。
   </view>
 
   <!-- 底部操作栏 -->
@@ -134,8 +164,10 @@
       <view class="action-btn action-btn--default" bindtap="onCancelTap">取消订单</view>
       <view class="action-btn action-btn--primary" bindtap="onPayTap">立即支付</view>
     </block>
-    <!-- 待发货 -->
-    <block wx:if="{{order.status === 'paid'}}">
+    <block wx:if="{{order.status === 'paid' && isVirtual}}">
+      <view class="action-btn action-btn--primary" bindtap="onContactTap">联系客服</view>
+    </block>
+    <block wx:if="{{order.status === 'paid' && !isVirtual}}">
       <view class="action-btn action-btn--default" bindtap="onRefundTap">申请退款</view>
       <view class="action-btn action-btn--primary" bindtap="onContactTap">联系商家</view>
     </block>
@@ -145,7 +177,7 @@
     </block>
     <!-- 已完成 -->
     <block wx:if="{{order.status === 'completed'}}">
-      <view class="action-btn action-btn--default" bindtap="onContactTap">联系客服</view>
+      <view class="action-btn action-btn--default" bindtap="onCallTap">联系客服</view>
     </block>
   </view>
 

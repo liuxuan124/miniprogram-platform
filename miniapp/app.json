@@ -1,10 +1,19 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/discover/discover",
+    "pages/shop/shop",
     "pages/content-list/content-list",
     "pages/knowledge-mall/knowledge-mall",
     "pages/product-list/product-list",
     "pages/mine/mine",
+    "pages/planet/planet",
+    "pages/resources/resources",
+    "pages/file-preview/file-preview",
+    "pages/join/join",
+    "pages/share/share",
+    "pages/contribute/contribute",
+    "pages/states/states",
     "pages/tab-hub/tab-hub",
     "pages/login/login",
     "pages/search/search",
@@ -20,10 +29,10 @@
   ],
   "window": {
     "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "出海笔记",
+    "navigationBarBackgroundColor": "#FDF6EC",
+    "navigationBarTitleText": "暖阁",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f5f7fb"
+    "backgroundColor": "#FDF6EC"
   },
   "permission": {
     "scope.writePhotosAlbum": {
@@ -37,9 +46,9 @@
   },
   "tabBar": {
     "custom": true,
-    "color": "#999999",
-    "selectedColor": "#002FA7",
-    "backgroundColor": "#ffffff",
+    "color": "#B3A091",
+    "selectedColor": "#C2410C",
+    "backgroundColor": "#FFFAF3",
     "borderStyle": "white",
     "list": [
       {
@@ -49,13 +58,19 @@
         "selectedIconPath": "images/tab/home-active.png"
       },
       {
-        "pagePath": "pages/content-list/content-list",
-        "text": "内容",
+        "pagePath": "pages/discover/discover",
+        "text": "发现",
         "iconPath": "images/tab/content.png",
         "selectedIconPath": "images/tab/content-active.png"
       },
       {
-        "pagePath": "pages/knowledge-mall/knowledge-mall",
+        "pagePath": "pages/planet/planet",
+        "text": "星球",
+        "iconPath": "images/tab/member.png",
+        "selectedIconPath": "images/tab/member-active.png"
+      },
+      {
+        "pagePath": "pages/shop/shop",
         "text": "商城",
         "iconPath": "images/tab/shop.png",
         "selectedIconPath": "images/tab/shop-active.png"
@@ -65,12 +80,6 @@
         "text": "我的",
         "iconPath": "images/tab/mine.png",
         "selectedIconPath": "images/tab/mine-active.png"
-      },
-      {
-        "pagePath": "pages/tab-hub/tab-hub",
-        "text": "更多",
-        "iconPath": "images/tab/content.png",
-        "selectedIconPath": "images/tab/content-active.png"
       }
     ]
   },
@@ -105,6 +114,8 @@
         "my-appointments/my-appointments",
         "points-log/points-log",
         "service-chat/service-chat",
+        "notices/notices",
+        "wecom-join/wecom-join",
         "settings/settings",
         "sign-in/sign-in",
         "webview/webview"
@@ -135,7 +146,7 @@
         "pkg-trade"
       ]
     },
-    "pages/content-list/content-list": {
+    "pages/discover/discover": {
       "network": "wifi",
       "packages": [
         "pkg-extra"

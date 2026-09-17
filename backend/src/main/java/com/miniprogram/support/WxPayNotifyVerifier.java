@@ -165,11 +165,6 @@ public class WxPayNotifyVerifier {
                 return;
             }
             log.error("拉取微信支付平台证书失败", e);
-            String detail = e.getMessage() == null ? "" : e.getMessage();
-            if (detail.contains("RESOURCE_NOT_EXISTS") || detail.contains("无可用的平台证书")) {
-                throw new BusinessException(700402,
-                        "商户已切换微信支付公钥模式，请在后台配置「微信支付公钥」与「公钥ID」后再接收回调");
-            }
             throw new BusinessException(700402, "无法拉取平台证书以验签");
         }
     }

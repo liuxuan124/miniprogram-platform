@@ -1,6 +1,8 @@
-import { get, post, del } from './request'
+import { get, post, put, del } from './request'
 
 const BASE_URL = '/api/v1/admin/knowledge'
+
+export type CitePolicy = 'full' | 'summary' | 'none'
 
 export interface KnowledgeSourceItem {
   id: number
@@ -13,6 +15,7 @@ export interface KnowledgeSourceItem {
   hitCount?: number
   fileSize?: number
   fileUrl?: string
+  citePolicy?: CitePolicy | string
   createdAt?: string
   updatedAt?: string
 }
@@ -56,8 +59,17 @@ export function syncFromContent(body: {
   return post<{ synced?: number; chunks?: number; message?: string }>(`${BASE_URL}/sync-content`, body)
 }
 
-export function createManualQa(body: { question: string; answer: string; recallWeight?: number }) {
+export function createManualQa(body: {
+  question: string
+  answer: string
+  recallWeight?: number
+  citePolicy?: CitePolicy | string
+}) {
   return post<KnowledgeSourceItem>(`${BASE_URL}/manual-qa`, body)
+}
+
+export function patchKnowledgeCitePolicy(id: number, citePolicy: CitePolicy | string) {
+  return put<KnowledgeSourceItem>(`${BASE_URL}/${id}`, { citePolicy })
 }
 
 export function deleteChunk(chunkId: number) {
@@ -68,11 +80,14 @@ export function downloadKnowledge(id: number) {
   return get<{ url?: string }>(`${BASE_URL}/${id}/download`, undefined, { showError: false })
 }
 
-export function uploadKnowledgeFile(file: File, configId?: number) {
+export function uploadKnowledgeFile(file: File, configId?: number, citePolicy?: CitePolicy | string) {
   const formData = new FormData()
   formData.append('file', file)
   if (configId != null && configId > 0) {
     formData.append('configId', String(configId))
+  }
+  if (citePolicy) {
+    formData.append('citePolicy', citePolicy)
   }
   return post<KnowledgeSourceItem>(`${BASE_URL}/upload`, formData)
 }

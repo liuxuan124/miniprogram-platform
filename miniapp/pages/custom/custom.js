@@ -16,6 +16,7 @@ Page({
 
   onLoad(options) {
     const path = decodeURIComponent(options.path || options.p || '')
+    // 深链兼容：装修 path 若已绑 Tab，一次落到 Tab 壳（正常点击已在 render/tab-route 改写，不进本页）
     const tabRoute = resolveTabRouteForBoundCustomPath(path)
     if (tabRoute) {
       wx.switchTab({ url: tabRoute })

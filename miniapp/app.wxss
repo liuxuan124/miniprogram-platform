@@ -1,30 +1,30 @@
 /* app.wxss — 出海笔记 Design System 2.0 */
 
 page {
-  --brand: #002FA7;
-  --brand-dark: #00227a;
-  --brand-soft: #e8eefc;
-  --brand-muted: #6f85c9;
-  --brand-50: #e8eefc;
-  --brand-100: #d4dff8;
-  --accent: #315efb;
-  --ink: #172033;
-  --ink-2: #44506a;
-  --ink-3: #7c879d;
-  --ink-4: #aeb6c7;
-  --line: #e7ebf3;
-  --line-2: #f1f3f8;
-  --bg: #f5f7fb;
-  --card: #ffffff;
+  --brand: #C2410C;
+  --brand-dark: #9A3412;
+  --brand-soft: #FDE8D8;
+  --brand-muted: #C47A52;
+  --brand-50: #FDE8D8;
+  --brand-100: #FBD5B8;
+  --accent: #EA580C;
+  --ink: #292524;
+  --ink-2: #57534E;
+  --ink-3: #78716C;
+  --ink-4: #A8A29E;
+  --line: #ECD9C4;
+  --line-2: #F5E6D4;
+  --bg: #FDF6EC;
+  --card: #FFFAF3;
   --ok: #0aaa75;
   --warn: #f05b5b;
-  --gold: #f5a623;
+  --gold: #D97706;
   --wx: #07c160;
   --r: 24rpx;
   --r-s: 16rpx;
   --r-l: 32rpx;
-  --sh1: 0 8rpx 28rpx rgba(30, 49, 91, 0.07);
-  --sh2: 0 18rpx 48rpx rgba(30, 49, 91, 0.11);
+  --sh1: 0 8rpx 28rpx rgba(140, 80, 30, 0.07);
+  --sh2: 0 18rpx 48rpx rgba(140, 80, 30, 0.11);
 
   width: 100%;
   max-width: 100%;
@@ -56,9 +56,9 @@ view, text, image, button, input, textarea, scroll-view {
 
 /* 通用按钮 */
 .btn-p {
-  background: linear-gradient(135deg, var(--brand), #5980ff);
+  background: linear-gradient(135deg, var(--brand), #EA580C);
   color: #fff;
-  box-shadow: 0 12rpx 28rpx rgba(49, 94, 251, 0.22);
+  box-shadow: 0 12rpx 28rpx rgba(194, 65, 12, 0.22);
 }
 .btn-g {
   background: var(--brand-soft);
@@ -157,7 +157,7 @@ view, text, image, button, input, textarea, scroll-view {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand), #5980ff);
+  background: linear-gradient(135deg, var(--brand), #EA580C);
   color: #ffffff;
   border: none;
   border-radius: 999rpx;

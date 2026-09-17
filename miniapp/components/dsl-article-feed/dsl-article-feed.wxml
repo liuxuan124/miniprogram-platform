@@ -41,6 +41,129 @@
     </view>
   </view>
 
+  <view wx:elif="{{layout === 'overlay'}}" class="dsl-article-feed__overlay" style="{{listStyle}}">
+    <view
+      class="dsl-article-feed__item dsl-article-feed__item--overlay"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        class="dsl-article-feed__overlay-cover"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__overlay-cover"></view>
+      <view class="dsl-article-feed__overlay-mask">
+        <text class="dsl-article-feed__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
+        <text class="dsl-article-feed__overlay-title">{{item.title || item.name}}</text>
+        <text class="dsl-article-feed__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{layout === 'magazine'}}" class="dsl-article-feed__magazine">
+    <block wx:for="{{displayData}}" wx:key="id">
+      <view
+        wx:if="{{index === 0}}"
+        class="dsl-article-feed__item dsl-article-feed__item--overlay"
+        style="{{itemCardStyle}}"
+        data-id="{{item.id}}"
+        bindtap="onTapArticle"
+      >
+        <image
+          wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+          class="dsl-article-feed__overlay-cover dsl-article-feed__overlay-cover--hero"
+          src="{{item.cover_url || item.image}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__overlay-cover dsl-article-feed__overlay-cover--hero"></view>
+        <view class="dsl-article-feed__overlay-mask">
+          <text class="dsl-article-feed__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
+          <text class="dsl-article-feed__overlay-title">{{item.title || item.name}}</text>
+          <text class="dsl-article-feed__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+        </view>
+      </view>
+      <view
+        wx:else
+        class="dsl-article-feed__item dsl-article-feed__item--editorial"
+        data-id="{{item.id}}"
+        bindtap="onTapArticle"
+      >
+        <image
+          wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+          class="dsl-article-feed__editorial-cover"
+          src="{{item.cover_url || item.image}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view class="dsl-article-feed__editorial-body">
+          <text class="dsl-article-feed__editorial-title">{{item.title || item.name}}</text>
+          <text class="dsl-article-feed__editorial-excerpt" wx:if="{{item.summary}}">{{item.summary}}</text>
+          <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
+            <text class="dsl-article-feed__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
+            <text class="dsl-article-feed__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view wx:elif="{{layout === 'grid'}}" class="dsl-article-feed__grid">
+    <view
+      class="dsl-article-feed__item dsl-article-feed__item--grid"
+      style="{{itemCardStyle}}"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        class="dsl-article-feed__grid-cover"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__grid-cover"></view>
+      <view class="dsl-article-feed__grid-body">
+        <text class="dsl-article-feed__grid-title">{{item.title || item.name}}</text>
+        <text class="dsl-article-feed__grid-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{layout === 'editorial'}}" class="dsl-article-feed__editorial">
+    <view
+      class="dsl-article-feed__item dsl-article-feed__item--editorial"
+      wx:for="{{displayData}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onTapArticle"
+    >
+      <image
+        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        class="dsl-article-feed__editorial-cover"
+        src="{{item.cover_url || item.image}}"
+        mode="aspectFill"
+        lazy-load
+      />
+      <view class="dsl-article-feed__editorial-body">
+        <text class="dsl-article-feed__editorial-title">{{item.title || item.name}}</text>
+        <text class="dsl-article-feed__editorial-excerpt" wx:if="{{item.summary}}">{{item.summary}}</text>
+        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
+          <text class="dsl-article-feed__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <view wx:elif="{{layout === 'card'}}" class="dsl-article-feed__cards" style="{{listStyle}}">
     <view
       class="dsl-article-feed__item dsl-article-feed__item--card"

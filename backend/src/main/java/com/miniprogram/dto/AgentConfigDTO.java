@@ -63,4 +63,13 @@ public class AgentConfigDTO {
 
     @Schema(description = "评测用例 JSON")
     private String evalCases;
+
+    @Schema(description = "人格 ID（作者矩阵）")
+    private String personaId;
+
+    @Schema(description = "人格展示名")
+    private String personaName;
+
+    @Schema(description = "语气标签")
+    private String personaTone;
 }

@@ -1,21 +1,17 @@
 package com.miniprogram.security;
 
+import com.miniprogram.tenant.TenantContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * 安全工具类
- * 获取当前登录用户信息
+ * 安全工具类：当前用户 / 租户
  */
 public class SecurityUtils {
 
     private SecurityUtils() {
-        // 工具类不允许实例化
     }
 
-    /**
-     * 获取当前登录用户ID
-     */
     public static Long getCurrentUserId() {
         Authentication authentication = getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof Long userId) {
@@ -24,9 +20,6 @@ public class SecurityUtils {
         return null;
     }
 
-    /**
-     * 获取当前登录用户ID，未登录则抛出异常
-     */
     public static Long getRequiredCurrentUserId() {
         Long userId = getCurrentUserId();
         if (userId == null) {
@@ -36,16 +29,14 @@ public class SecurityUtils {
         return userId;
     }
 
-    /**
-     * 获取当前认证对象
-     */
+    public static Long getCurrentTenantId() {
+        return TenantContext.getTenantId();
+    }
+
     public static Authentication getAuthentication() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
-    /**
-     * 判断当前用户是否已登录
-     */
     public static boolean isAuthenticated() {
         Authentication authentication = getAuthentication();
         return authentication != null

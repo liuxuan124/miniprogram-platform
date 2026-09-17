@@ -32,17 +32,19 @@
         v-for="(item, index) in filteredArticleItems"
         :key="`${item.title || 'article'}-${index}`"
         class="article-card"
-        :class="`article-card--${articleLayout}`"
+        :class="`article-card--${cardModifier(index)}`"
       >
         <div v-if="component.props.show_cover !== false" class="article-img">
           <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
           <span v-else>📖</span>
         </div>
         <div class="article-info">
-          <div class="article-title" :style="itemTitleStyle">{{ item.title || '文章标题' }}</div>
+          <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
+          <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">{{ item.title || '文章标题' }}</div>
+          <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
           <div v-if="component.props.show_date !== false && (item.meta || item.source)" class="article-meta-row" :style="itemMetaStyle">
-            <span v-if="item.meta">时间 {{ item.meta }}</span>
-            <span v-if="item.source">来源 {{ item.source }}</span>
+            <span v-if="item.meta">{{ item.meta }}</span>
+            <span v-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
           </div>
         </div>
       </div>
@@ -57,12 +59,14 @@ import type { ComponentInstance } from '@/types/page'
 import { getCategoryList } from '@/api/content'
 import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import { articleCardModifier, resolveArticleLayout } from '../articleLayouts'
 
 type ArticleItem = {
   id?: number | string
   title?: string
   meta?: string
   cover?: string
+  excerpt?: string
   link_url?: string
   source?: string
   categoryId?: string | number
@@ -120,10 +124,20 @@ onMounted(async () => {
   }
 })
 
-const articleLayout = computed(() => {
-  const raw = props.component.props?.layout || props.component.props?.style_type || 'list'
-  return ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
-})
+const articleLayout = computed(() => resolveArticleLayout(
+  props.component.props?.layout || props.component.props?.style_type,
+  'list',
+))
+
+const showExcerpt = computed(() => articleLayout.value === 'editorial' || articleLayout.value === 'magazine')
+
+function cardModifier(index: number) {
+  return articleCardModifier(articleLayout.value, index)
+}
+
+function isOverlayCard(index: number) {
+  return cardModifier(index) === 'overlay'
+}
 
 const itemGap = computed(() => {
   const n = Number(props.component.props?.item_gap)
@@ -250,6 +264,7 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
       title: item.title || item.name || '文章标题',
       meta,
       cover: item.cover || item.coverUrl || item.image || '',
+      excerpt: String(item.summary || item.excerpt || item.subtitle || '').trim(),
       link_url: item.link_url,
       source: item.source || item.categoryName || item.category_name || '',
       categoryId: item.categoryId ?? item.category_id,
@@ -567,10 +582,24 @@ function formatDisplayDate(value: unknown): string {
 
     &.layout-list,
     &.layout-card,
-    &.layout-compact {
+    &.layout-compact,
+    &.layout-overlay,
+    &.layout-magazine,
+    &.layout-editorial {
       display: flex;
       flex-direction: column;
       gap: 8px;
+    }
+
+    &.layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    &.layout-editorial,
+    &.layout-magazine {
+      gap: 0;
     }
   }
 
@@ -671,6 +700,124 @@ function formatDisplayDate(value: unknown): string {
         margin-top: 2px;
       }
     }
+
+    &--overlay {
+      position: relative;
+      display: block;
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+
+      .article-img {
+        width: 100%;
+        height: 188px;
+        border-radius: 0;
+      }
+
+      .article-info {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        padding: 36px 14px 14px;
+        background: linear-gradient(180deg, transparent 0%, rgba(12, 18, 32, 0.82) 72%);
+      }
+
+      .article-kicker {
+        margin-bottom: 6px;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .article-title {
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.35;
+        letter-spacing: 0.01em;
+      }
+
+      .article-meta-row {
+        color: rgba(255, 255, 255, 0.68);
+      }
+    }
+
+    &--grid {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+
+      .article-img {
+        width: 100%;
+        height: 96px;
+        border-radius: 0;
+      }
+
+      .article-info {
+        padding: 8px 10px 10px;
+      }
+
+      .article-title {
+        font-size: 12px;
+        font-weight: 650;
+      }
+    }
+
+    &--editorial {
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 14px;
+      padding: 16px 2px;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid #ece7de;
+      border-radius: 0;
+      box-shadow: none;
+
+      .article-img {
+        width: 86px;
+        height: 64px;
+        border-radius: 2px;
+      }
+
+      .article-title {
+        font-size: 14px;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+      }
+
+      .article-excerpt {
+        display: -webkit-box;
+        margin-top: 6px;
+        overflow: hidden;
+        color: #7a7468;
+        font-size: 11px;
+        line-height: 1.5;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .article-meta-row {
+        color: #a39b8d;
+      }
+    }
+  }
+
+  .layout-magazine .article-card--overlay {
+    margin-bottom: 4px;
+    border-radius: 18px;
+  }
+
+  .layout-magazine .article-card--overlay .article-img {
+    height: 210px;
   }
 }
 </style>

@@ -19,7 +19,11 @@ public interface FileEntitlementService {
 
     boolean canDownload(FileItem item, Long userId);
 
+    boolean canPreview(FileItem item, Long userId);
+
     String extractPreviewText(FileItem item, int previewPercent);
 
     List<ContentAttachmentDTO> enrichAttachments(List<ContentAttachmentDTO> attachments, Long userId);
+
+    int resolveKeepPages(FileItem item);
 }

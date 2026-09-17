@@ -35,7 +35,7 @@
               <el-form ref="brandFormRef" :model="miniProgramForm" :rules="brandRules" label-width="120px" label-position="left" class="compact-form">
                 <div class="form-grid-2col">
                   <el-form-item label="小程序名称" prop="appName">
-                    <el-input v-model="miniProgramForm.appName" placeholder="如：出海笔记" clearable />
+                    <el-input v-model="miniProgramForm.appName" placeholder="如：品牌名" clearable />
                   </el-form-item>
 
                   <el-form-item label="文字 Logo">
@@ -235,27 +235,6 @@
                   </el-form-item>
                 </div>
 
-                <el-alert
-                  type="warning"
-                  :closable="false"
-                  show-icon
-                  title="商户若已切换微信支付公钥模式，须配置公钥ID与公钥，否则支付回调无法更新订单。"
-                  style="margin-bottom: 12px"
-                />
-                <div class="form-grid-2col">
-                  <el-form-item label="微信支付公钥ID">
-                    <el-input v-model="paymentForm.wxPayPublicKeyId" placeholder="PUB_KEY_ID_xxxxxxxx" clearable />
-                  </el-form-item>
-                </div>
-                <el-form-item label="微信支付公钥">
-                  <el-input
-                    v-model="paymentForm.wxPayPublicKey"
-                    type="textarea"
-                    :rows="5"
-                    placeholder="-----BEGIN PUBLIC KEY-----"
-                  />
-                </el-form-item>
-
                 <el-form-item label="商户API私钥">
                   <div class="cert-upload-row">
                     <el-upload :show-file-list="false" :before-upload="beforeCertUpload" :http-request="handleCertUpload" accept=".p12,.pem,.key">
@@ -285,6 +264,66 @@
         <!-- ==================== Tab 2: 功能模块 ==================== -->
         <el-tab-pane label="功能模块" name="modules">
           <div class="tab-content">
+
+            <div class="module-group" style="margin-bottom: 24px;">
+              <div class="group-header">
+                <h4 class="group-title">业态包</h4>
+                <span class="group-desc">一键应用 plugins / 术语 / Tab / 主题 / 组件与 Agent 裁剪（不改租户）</span>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                <el-select v-model="industryCodeDraft" placeholder="选择业态" style="width:220px">
+                  <el-option
+                    v-for="opt in industryOptions"
+                    :key="opt.code"
+                    :label="opt.name"
+                    :value="opt.code"
+                  />
+                </el-select>
+                <el-button type="primary" :loading="industryApplying" @click="onApplyIndustry">应用业态包</el-button>
+                <span class="group-desc">当前：{{ industryProfileStore.profile.name }}（{{ industryProfileStore.code }}）</span>
+              </div>
+            </div>
+
+            <div v-if="isSuperAdmin" class="module-group" style="margin-bottom: 24px;">
+              <div class="group-header">
+                <h4 class="group-title">租户（超管）</h4>
+                <span class="group-desc">新建租户将自动拷贝默认 plugins / 业态 / 术语 / Tab 等配置</span>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                <el-form :inline="true" @submit.prevent>
+                  <el-form-item label="编码">
+                    <el-input v-model="tenantForm.code" placeholder="如 brand_a" style="width:140px" />
+                  </el-form-item>
+                  <el-form-item label="名称">
+                    <el-input v-model="tenantForm.name" placeholder="租户显示名" style="width:160px" />
+                  </el-form-item>
+                  <el-form-item label="业态">
+                    <el-select v-model="tenantForm.industryCode" style="width:160px">
+                      <el-option
+                        v-for="opt in industryOptions"
+                        :key="opt.code"
+                        :label="opt.name"
+                        :value="opt.code"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" :loading="tenantCreating" @click="onCreateTenant">新建租户</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <el-table v-if="tenantStore.tenants.length" :data="tenantStore.tenants" size="small" style="margin-top:12px;max-width:720px">
+                <el-table-column prop="id" label="ID" width="70" />
+                <el-table-column prop="code" label="编码" width="140" />
+                <el-table-column prop="name" label="名称" />
+                <el-table-column prop="industryCode" label="业态" width="140" />
+                <el-table-column label="操作" width="100">
+                  <template #default="{ row }">
+                    <el-button link type="primary" @click="tenantStore.switchTenant(Number(row.id || row.tenantId))">切换</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
 
             <!-- 模块分组：按业务场景分类 -->
             <div class="module-groups">
@@ -677,6 +716,10 @@ import {
 } from '@/utils/brand-config'
 import { DEFAULT_MINIAPP_BRAND_CONFIG } from '@/types/miniapp'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
+import { useIndustryProfileStore } from '@/stores/industry-profile'
+import { listIndustryProfileOptions } from '@/constants/industry-profiles'
+import { useTenantStore } from '@/stores/tenant'
+import { usePermissionStore } from '@/stores/permission'
 import {
   billingMethodLabel,
   freeRuleSummary,
@@ -702,6 +745,55 @@ const paySaved = ref(false)
 const pluginSaving = ref(false)
 const pluginSaved = ref(false)
 const featureModulesStore = useFeatureModulesStore()
+const industryProfileStore = useIndustryProfileStore()
+const tenantStore = useTenantStore()
+const permissionStore = usePermissionStore()
+const isSuperAdmin = computed(() => permissionStore.hasRole('super_admin'))
+const industryOptions = listIndustryProfileOptions()
+const industryCodeDraft = ref(industryProfileStore.code || 'content_ip')
+const industryApplying = ref(false)
+const tenantCreating = ref(false)
+const tenantForm = reactive({
+  code: '',
+  name: '',
+  industryCode: 'content_ip',
+})
+
+async function onApplyIndustry() {
+  if (!industryCodeDraft.value) return
+  industryApplying.value = true
+  try {
+    await industryProfileStore.applyIndustryCode(industryCodeDraft.value)
+    ElMessage.success(`已应用业态包：${industryProfileStore.profile.name}`)
+    await fetchConfig()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '应用业态包失败')
+  } finally {
+    industryApplying.value = false
+  }
+}
+
+async function onCreateTenant() {
+  if (!tenantForm.code.trim() || !tenantForm.name.trim()) {
+    ElMessage.warning('请填写租户编码与名称')
+    return
+  }
+  tenantCreating.value = true
+  try {
+    const created = await tenantStore.create({
+      code: tenantForm.code.trim(),
+      name: tenantForm.name.trim(),
+      industryCode: tenantForm.industryCode,
+    })
+    ElMessage.success(`已创建租户 #${created?.id || ''}，配置已自动拷贝`)
+    tenantForm.code = ''
+    tenantForm.name = ''
+  } catch (e: any) {
+    ElMessage.error(e?.message || '创建租户失败')
+  } finally {
+    tenantCreating.value = false
+  }
+}
 const logisticsSaving = ref(false)
 const logisticsSaved = ref(false)
 const notificationSaving = ref(false)
@@ -743,8 +835,6 @@ interface PaymentForm {
   certUploaded: boolean
   paymentNotifyUrl: string
   refundNotifyUrl: string
-  wxPayPublicKeyId: string
-  wxPayPublicKey: string
 }
 
 interface LogisticsForm {
@@ -858,8 +948,6 @@ const paymentForm = reactive<PaymentForm>({
   certUploaded: false,
   paymentNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-notify',
   refundNotifyUrl: 'https://api.zfculture.site/api/v1/mp/payments/wx-refund-notify',
-  wxPayPublicKeyId: '',
-  wxPayPublicKey: '',
 })
 
 const logisticsForm = reactive<LogisticsForm>({
@@ -878,11 +966,14 @@ const legalForm = reactive<LegalForm>({
 const allPlugins = reactive<PluginModule[]>([
   { key: 'product', name: '商品模块', desc: '商品管理、订单处理、在线支付', icon: '🛍️', enabled: true },
   { key: 'member', name: '会员模块', desc: '等级体系、积分权益、会员卡', icon: '👥', enabled: false },
+  { key: 'planet', name: '知识星球', desc: '星主发动态、付费会员看全文与下载', icon: '🪐', enabled: false },
   { key: 'order', name: '订单模块', desc: '订单全流程管理与售后', icon: '📦', enabled: true },
 ])
 
 const contentModules = reactive<PluginModule[]>([
   { key: 'content', name: '内容模块', desc: '文章发布、图文编辑、视频管理', icon: '📝', enabled: true },
+  { key: 'comment', name: '评论模块', desc: '文章评论展示与发表', icon: '💭', enabled: true },
+  { key: 'qa', name: '问答模块', desc: '用户向博主提问、公开问答展示', icon: '💬', enabled: false },
   { key: 'activity', name: '活动模块', desc: '沙龙课程、展会报名、签到核销', icon: '🎉', enabled: true },
   { key: 'form', name: '表单模块', desc: '报名登记、咨询问卷、数据收集', icon: '📋', enabled: true },
   { key: 'appointment', name: '预约模块', desc: '服务预约、时间管理、到店核销', icon: '📅', enabled: true },
@@ -1588,6 +1679,8 @@ watch(notificationList, () => { if (notificationSaved.value) { notificationSaved
 
 onMounted(() => {
   fetchConfig()
+  if (!industryProfileStore.loaded) industryProfileStore.load()
+  if (isSuperAdmin.value && !tenantStore.loaded) tenantStore.load()
 })
 </script>
 

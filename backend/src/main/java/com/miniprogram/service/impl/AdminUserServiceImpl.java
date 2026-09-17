@@ -13,6 +13,7 @@ import com.miniprogram.entity.Role;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.RoleMapper;
 import com.miniprogram.security.JwtBlacklistService;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.AdminUserService;
 import com.miniprogram.service.PermissionService;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public PageResult<AdminUserVO> pageList(AdminUserQueryDTO queryDTO) {
         LambdaQueryWrapper<AdminUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StringUtils.hasText(queryDTO.getUsername()), AdminUser::getUsername, queryDTO.getUsername())
+        wrapper.eq(AdminUser::getTenantId, SecurityUtils.getCurrentTenantId())
+                .like(StringUtils.hasText(queryDTO.getUsername()), AdminUser::getUsername, queryDTO.getUsername())
                 .like(StringUtils.hasText(queryDTO.getRealName()), AdminUser::getRealName, queryDTO.getRealName())
                 .eq(StringUtils.hasText(queryDTO.getPhone()), AdminUser::getPhone, queryDTO.getPhone())
                 .eq(queryDTO.getRoleId() != null, AdminUser::getRoleId, queryDTO.getRoleId())
@@ -71,6 +73,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         AdminUser adminUser = new AdminUser();
+        adminUser.setTenantId(SecurityUtils.getCurrentTenantId());
         adminUser.setUsername(dto.getUsername());
         adminUser.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         adminUser.setRealName(dto.getRealName());

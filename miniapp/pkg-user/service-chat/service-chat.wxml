@@ -1,57 +1,136 @@
 <page-meta page-style="{{themePageStyle}}" />
 <view class="svc-page">
   <view class="svc-header">
-    <view class="svc-header__icon">客</view>
     <view class="svc-header__main">
-      <text class="svc-header__title">出海笔记客服</text>
-      <view class="svc-header__status">
-        <view class="svc-header__dot"></view>
-        <text>智能客服 + 人工 10:00–19:00</text>
-      </view>
+      <text class="svc-header__title">暖阁客服 · 小助手</text>
+      <view class="svc-header__status">● 在线 · 平均 1 分钟回复</view>
     </view>
+    <text class="svc-join" bindtap="onJoin">加入读者群</text>
   </view>
 
-  <scroll-view scroll-y class="chat" scroll-into-view="{{scrollInto}}">
-    <view wx:for="{{messages}}" wx:key="id" id="m{{item.id}}" class="msg {{item.role}}">
-      <view class="av">{{item.role === 'service' ? '客' : '我'}}</view>
-      <view class="bubble">{{item.text}}</view>
+  <scroll-view scroll-y class="chat" scroll-into-view="{{scrollInto}}" scroll-with-animation>
+    <view class="day">今天</view>
+
+    <view class="sysbar">
+      <text>工作日 9:00-21:00 真人值守 · 非工作时间留言次日回复</text>
+      <text>\n客服</text><text class="sysbar__b">不会索要支付密码或验证码</text><text>，谨防冒充</text>
     </view>
+
+    <view class="delivery-card" wx:if="{{deliveryCard}}">
+      <view class="delivery-card__head">
+        <text class="delivery-card__title">自动发货</text>
+        <text class="delivery-card__copy" wx:if="{{deliveryCard.content}}" bindtap="onCopyDelivery">复制内容</text>
+      </view>
+      <view class="delivery-card__name">{{deliveryCard.name}}</view>
+      <view class="delivery-card__body" wx:if="{{deliveryCard.content}}">{{deliveryCard.content}}</view>
+      <view class="delivery-card__body" wx:else>支付已完成，可在下方直接咨询发货问题。</view>
+    </view>
+
+    <block wx:for="{{messages}}" wx:key="id">
+      <!-- text -->
+      <view wx:if="{{item.type === 'text' || !item.type}}" id="m{{item.id}}" class="msg {{item.role === 'me' || item.role === 'user' ? 'me' : ''}}">
+        <image
+          wx:if="{{!item.hideAvatar}}"
+          class="av"
+          src="{{item.role === 'me' || item.role === 'user' ? meAvatar : botAvatar}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="av av--ghost"></view>
+        <view class="bb-wrap">
+          <view class="nm" wx:if="{{item.role !== 'me' && item.role !== 'user' && !item.hideAvatar}}">暖阁小助手</view>
+          <view class="bb">{{item.text}}</view>
+        </view>
+      </view>
+
+      <!-- order card -->
+      <view wx:elif="{{item.type === 'ordcard'}}" id="m{{item.id}}" class="msg {{item.role === 'me' || item.role === 'user' ? 'me' : ''}}">
+        <image
+          wx:if="{{!item.hideAvatar}}"
+          class="av"
+          src="{{item.role === 'me' || item.role === 'user' ? meAvatar : botAvatar}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="av av--ghost"></view>
+        <view class="ordcard">
+          <view class="ordcard__rw">
+            <image class="ordcard__im" src="{{item.order.cover}}" mode="aspectFill" />
+            <view>
+              <view class="ordcard__h">{{item.order.title}}</view>
+              <view class="ordcard__p">订单号 {{item.order.orderNo}}</view>
+            </view>
+          </view>
+          <view class="ordcard__ft">
+            <text class="ordcard__price">{{item.order.priceLabel}}</text>
+            <text class="ordcard__link" bindtap="onViewOrder" data-id="{{item.order.orderId}}">查看订单 ›</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- image -->
+      <view wx:elif="{{item.type === 'imgmsg'}}" id="m{{item.id}}" class="msg {{item.role === 'me' || item.role === 'user' ? 'me' : ''}}">
+        <image
+          wx:if="{{!item.hideAvatar}}"
+          class="av"
+          src="{{item.role === 'me' || item.role === 'user' ? meAvatar : botAvatar}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="av av--ghost"></view>
+        <image class="imgmsg" src="{{item.imageUrl}}" mode="aspectFill" data-url="{{item.imageUrl}}" bindtap="onPreviewImg" />
+      </view>
+
+      <!-- act card -->
+      <view wx:elif="{{item.type === 'actcard'}}" id="m{{item.id}}" class="actcard">
+        <view class="actcard__h">{{item.act.title}}</view>
+        <view class="actcard__p">{{item.act.desc}}</view>
+        <view class="actcard__btns">
+          <view class="actcard__bt" bindtap="onJoin">{{item.act.primary || '立即进群'}}</view>
+          <button class="actcard__bt ghost" open-type="contact" bindtap="onTransferHuman" style="margin:0;padding:0;border:0;line-height:68rpx">
+            {{item.act.secondary || '转人工'}}
+          </button>
+        </view>
+      </view>
+
+      <view class="quick" wx:if="{{showQuick && index === 0}}">
+        <view wx:for="{{quick}}" wx:for-item="q" wx:key="*this" class="q" data-q="{{q}}" bindtap="onQuick">{{q}}</view>
+      </view>
+    </block>
+
+    <view class="typing" wx:if="{{typing}}">对方正在输入…</view>
+    <view id="mbot" style="height:24rpx"></view>
   </scroll-view>
 
-  <view class="quick-head">
-    <text class="quick-title">常见问题</text>
-    <text class="quick-clear" bindtap="onClearHistory" wx:if="{{messages.length > 1}}">清空记录</text>
-  </view>
-  <view class="quick">
-    <view wx:for="{{quick}}" wx:key="*this" class="q" data-q="{{item}}" bindtap="onQuick">{{item}}</view>
-  </view>
-
-  <view class="composer">
-    <input
-      class="composer__input"
-      value="{{inputText}}"
-      placeholder="描述你的问题…"
-      confirm-type="send"
-      bindinput="onInput"
-      bindconfirm="onSend"
-      disabled="{{sending}}"
-    />
-    <button class="composer__send" size="mini" bindtap="onSend" disabled="{{sending || !inputText}}">
-      {{sending ? '…' : '发送'}}
-    </button>
-  </view>
-
-  <view class="contact-bar">
-    <button
-      class="contact-btn"
-      open-type="contact"
-      show-message-card="{{true}}"
-      aria-label="联系人工客服"
-    >
-      <text class="contact-btn__label">联系人工客服</text>
-      <text class="contact-btn__arrow">›</text>
-    </button>
-    <text class="contact-tip">点击后进入微信官方客服会话</text>
+  <view class="inputbar">
+    <view class="inputbar__rw">
+      <text class="inputbar__emoji" bindtap="onToggleEmoji">😊</text>
+      <input
+        class="inputbar__ipt"
+        value="{{inputText}}"
+        placeholder="输入你的问题…"
+        confirm-type="send"
+        bindinput="onInput"
+        bindconfirm="onSend"
+        disabled="{{sending}}"
+      />
+      <view class="inputbar__send" wx:if="{{inputText}}" bindtap="onSend">发送</view>
+      <text class="inputbar__plus" wx:else>＋</text>
+    </view>
+    <view class="inputbar__emoji-panel" wx:if="{{showEmoji}}">
+      <text
+        wx:for="{{emojis}}"
+        wx:key="*this"
+        class="emoji-item"
+        data-e="{{item}}"
+        bindtap="onPickEmoji"
+      >{{item}}</text>
+    </view>
+    <view class="inputbar__tools">
+      <view class="tool" bindtap="onPickImage"><text class="tool__ic">🖼️</text>图片</view>
+      <view class="tool" bindtap="onPickOrder"><text class="tool__ic">🧾</text>发订单</view>
+      <button class="tool tool--btn" open-type="contact" bindtap="onTransferHuman" style="margin:0;padding:0;border:0;background:transparent;line-height:1.2">
+        <text class="tool__ic">👤</text>转人工
+      </button>
+      <view class="tool" bindtap="onJoin"><text class="tool__ic">👥</text>进群</view>
+    </view>
   </view>
 </view>
 <login-sheet id="global-login-sheet" />

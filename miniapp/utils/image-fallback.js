@@ -1,9 +1,12 @@
-/** 过滤不可用远程图（占位小图 / picsum），回退到小程序包内资源 */
+/** 过滤不可用远程图（占位小图 / 会 302 的 picsum），回退到小程序包内资源 */
 
 const BAD_URL_MARKERS = [
   'd18dcd5f5c654fea8b5a40f3580d10cd',
   'picsum.photos',
 ]
+
+const DEFAULT_AVATAR = '/images/default-avatar.svg'
+const DEFAULT_PRODUCT = '/images/default-product.svg'
 
 const LOCAL_COVERS = [
   '/images/section-bar-tech-bg.jpg',
@@ -35,10 +38,26 @@ function resolveDisplayImageUrl(url, seed) {
   return value
 }
 
+function resolveDisplayAvatarUrl(url) {
+  const value = String(url || '').trim()
+  if (!value || isUnusableImageUrl(value)) return DEFAULT_AVATAR
+  return value
+}
+
+function resolveDisplayProductUrl(url) {
+  const value = String(url || '').trim()
+  if (!value || isUnusableImageUrl(value)) return DEFAULT_PRODUCT
+  return value
+}
+
 module.exports = {
   DEFAULT_HERO,
+  DEFAULT_AVATAR,
+  DEFAULT_PRODUCT,
   LOCAL_COVERS,
   isUnusableImageUrl,
   pickLocalCoverFallback,
   resolveDisplayImageUrl,
+  resolveDisplayAvatarUrl,
+  resolveDisplayProductUrl,
 }

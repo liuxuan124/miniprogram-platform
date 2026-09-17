@@ -88,7 +88,7 @@ Component({
         logoText: resolveLogoText(cfg.logo_text),
         logoHeight: Math.max(logoH, 20) * 2,
         logoMaxWidth: Math.max(logoMaxW, 48) * 2,
-        titleText: String(cfg.title || '墨太白 · 跨境工具与知识平台').trim() || '墨太白 · 跨境工具与知识平台',
+        titleText: String(cfg.title || '品牌名称 · 一句话定位').trim() || '品牌名称 · 一句话定位',
         subtitleText: String(cfg.subtitle || '').trim(),
         showDivider: cfg.show_divider !== false,
         barStyle: 'height:' + navBarHeight + 'px;padding-left:' + (padL * 2) + 'rpx;padding-right:' + Math.max(capsuleRight, padR) + 'px;',

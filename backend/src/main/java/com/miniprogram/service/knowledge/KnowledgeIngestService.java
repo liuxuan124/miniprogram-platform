@@ -104,6 +104,7 @@ public class KnowledgeIngestService {
             c.setSeq(0);
             c.setTitle(title);
             c.setBody(body.trim());
+            c.setSummary(buildChunkSummary(body.trim()));
             c.setCharLen(body.trim().length());
             c.setSourceRef(sourceRef);
             c.setHitCount(0);
@@ -141,6 +142,7 @@ public class KnowledgeIngestService {
         c.setSeq(0);
         c.setTitle(question.length() > 80 ? question.substring(0, 80) : question);
         c.setBody(body);
+        c.setSummary(buildChunkSummary(body));
         c.setCharLen(body.length());
         c.setSourceRef(sourceRef);
         c.setHitCount(0);
@@ -240,6 +242,7 @@ public class KnowledgeIngestService {
                 c.setSeq(seq++);
                 c.setTitle(section.title);
                 c.setBody(piece);
+                c.setSummary(buildChunkSummary(piece));
                 c.setCharLen(piece.length());
                 c.setSourceRef(k.getFileName() + "#" + c.getSeq());
                 c.setHitCount(0);
@@ -311,6 +314,19 @@ public class KnowledgeIngestService {
             }
         }
         return finalOut;
+    }
+
+    /** 入模摘要：首段截断，cite_policy=summary 时使用 */
+    private static String buildChunkSummary(String body) {
+        if (!StringUtils.hasText(body)) {
+            return null;
+        }
+        String plain = body.replaceAll("\\s+", " ").trim();
+        int max = 220;
+        if (plain.length() <= max) {
+            return plain;
+        }
+        return plain.substring(0, max) + "…";
     }
 
     private record Section(String title, String body) {}

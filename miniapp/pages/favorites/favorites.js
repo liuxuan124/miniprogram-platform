@@ -39,6 +39,13 @@ Page({
   },
 
   goContent() {
-    wx.switchTab({ url: '/pages/content-list/content-list' })
+    wx.navigateTo({
+      url: '/pages/content-list/content-list',
+      fail: () => wx.switchTab({ url: '/pages/discover/discover' }),
+    })
+  },
+
+  goDiscover() {
+    wx.switchTab({ url: '/pages/discover/discover' })
   },
 })

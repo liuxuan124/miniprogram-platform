@@ -1,0 +1,7 @@
+.tabs { background: #fff; border-radius: 16rpx; overflow: hidden; }
+.tabs__nav { display: flex; border-bottom: 1rpx solid #eef2f7; }
+.tabs__tab { flex: 1; text-align: center; padding: 20rpx 0; font-size: 28rpx; color: #64748b; }
+.tabs__tab.is-on { color: #002FA7; font-weight: 700; border-bottom: 4rpx solid #002FA7; }
+.tabs__item { padding: 24rpx 24rpx; border-bottom: 1rpx solid #f4f6fb; }
+.tabs__title { display: block; font-size: 28rpx; color: #172033; }
+.tabs__desc { display: block; margin-top: 8rpx; font-size: 24rpx; color: #94a3b8; }

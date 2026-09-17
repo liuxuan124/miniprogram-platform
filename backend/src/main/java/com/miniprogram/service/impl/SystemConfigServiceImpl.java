@@ -42,14 +42,20 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "site_name", "site_logo", "site_description",
             "wx_appid", "wx_version", "wx_version_desc",
             "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappBrandConfig", "miniappShareTitle", "miniappShareImage", "plugins",
-            "privacy_policy_url", "user_agreement_url", "service_phone"
+            "privacy_policy_url", "user_agreement_url", "service_phone", "planet_config",
+            "industry_profile", "glossary", "warm_home_config", "joinGroupConfig", "contributeConfig",
+            "creator_recruit_banner", "search_hot",
+            "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config"
     );
 
     /**
      * 需要解析为 JSON 对象的配置键
      */
     private static final Set<String> JSON_CONFIG_KEYS = Set.of(
-            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappBrandConfig", "plugins", "roles", "notifications"
+            "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappBrandConfig", "plugins", "roles", "notifications", "planet_config",
+            "industry_profile", "glossary", "warm_home_config", "joinGroupConfig", "contributeConfig",
+            "creator_recruit_banner", "search_hot",
+            "community_config", "content_audit_rules", "agent_trigger_config"
     );
 
     /**
@@ -66,7 +72,12 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      */
     private static final Set<String> RUNTIME_PUBLIC_CONFIG_KEYS = Set.of(
             "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "minePageConfig", "plugins",
-            "miniappBrandConfig", "miniappThemeConfig", "site_name", "site_logo"
+            "miniappBrandConfig", "site_name", "site_logo",
+            "miniappThemeConfig", "miniappShareTitle", "miniappShareImage",
+            "industry_profile", "glossary", "planet_config",
+            "warm_home_config", "joinGroupConfig", "contributeConfig",
+            "creator_recruit_banner", "search_hot",
+            "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config"
     );
 
     @Override
@@ -100,6 +111,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
                 config.setConfigValue(item.getConfigValue());
                 config.setConfigGroup(StringUtils.hasText(item.getConfigGroup()) ? item.getConfigGroup() : "basic");
                 config.setDescription(item.getDescription());
+                config.setTenantId(com.miniprogram.tenant.TenantContext.getTenantId());
                 save(config);
             } else {
                 // 配置存在，更新值
@@ -165,6 +177,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             result.putIfAbsent(key, "tabbarItems".equals(key) ? "[]" : "");
         }
 
+        enrichWarmPublicAliases(result);
         return result;
     }
 
@@ -194,11 +207,39 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
                 result.putIfAbsent(key, "tabbarItems".equals(key) ? List.of() : "");
             }
             overlayRuntimePublicConfigs(result);
+            enrichWarmPublicAliases(result);
         } catch (Exception e) {
             log.warn("读取发布快照公开配置失败，回退到系统配置表", e);
             result.clear();
         }
         return result;
+    }
+
+    /** 暖阁联调：community_config → communityConfig；必要时回落 joinGroupConfig */
+    @SuppressWarnings("unchecked")
+    private void enrichWarmPublicAliases(Map<String, Object> result) {
+        Object community = result.get("community_config");
+        if (community instanceof Map<?, ?> map && !map.isEmpty()) {
+            result.put("communityConfig", community);
+            Object join = result.get("joinGroupConfig");
+            if (join == null || (join instanceof Map<?, ?> jm && jm.isEmpty())
+                    || (join instanceof String js && (!StringUtils.hasText(js) || "{}".equals(js.trim())))) {
+                result.put("joinGroupConfig", map);
+            }
+        } else {
+            Object join = result.get("joinGroupConfig");
+            if (join != null) {
+                result.put("communityConfig", join);
+            }
+        }
+        Object agentFlag = result.get("agent_public_enabled");
+        if (agentFlag != null) {
+            result.put("agentPublicEnabled", agentFlag);
+        }
+        Object trigger = result.get("agent_trigger_config");
+        if (trigger != null) {
+            result.put("agentTriggerConfig", trigger);
+        }
     }
 
     private void overlayRuntimePublicConfigs(Map<String, Object> result) {

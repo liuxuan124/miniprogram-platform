@@ -32,7 +32,19 @@ public class FileItemVO {
 
     private String readMode;
 
+    private Long boundProductId;
+
     private Integer previewPercent;
+
+    private String previewMode;
+
+    private Integer previewValue;
+
+    private Integer pageCount;
+
+    private Integer allowForward;
+
+    private Integer watermark;
 
     private Long minReadLevelId;
 

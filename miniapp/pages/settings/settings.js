@@ -13,22 +13,22 @@ Page({
 
   goTerms() {
     wx.navigateTo({
-      url: '/pages/agreement/agreement?type=terms',
+      url: '/pkg-user/agreement/agreement?type=terms',
       fail: () => wx.showToast({ title: '协议页打开失败', icon: 'none' }),
     })
   },
 
   goPrivacy() {
     wx.navigateTo({
-      url: '/pages/agreement/agreement?type=privacy',
+      url: '/pkg-user/agreement/agreement?type=privacy',
       fail: () => wx.showToast({ title: '隐私页打开失败', icon: 'none' }),
     })
   },
 
   goFeedback() {
     wx.navigateTo({
-      url: '/pages/feedback/feedback',
-      fail: () => wx.navigateTo({ url: '/pages/service-chat/service-chat' }),
+      url: '/pkg-user/feedback/feedback',
+      fail: () => wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' }),
     })
   },
 

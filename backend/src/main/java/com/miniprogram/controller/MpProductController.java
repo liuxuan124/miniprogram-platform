@@ -5,7 +5,9 @@ import com.miniprogram.common.R;
 import com.miniprogram.dto.ProductDetailVO;
 import com.miniprogram.dto.ProductQueryDTO;
 import com.miniprogram.entity.Product;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ProductService;
+import com.miniprogram.service.PurchaseEntitlementService;
 import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,12 +25,20 @@ public class MpProductController {
 
     private final ProductService productService;
     private final FeatureModuleGuard featureModuleGuard;
+    private final PurchaseEntitlementService purchaseEntitlementService;
 
     @GetMapping
     @Operation(summary = "商品列表（公开）")
     public R<PageResult<Product>> listProducts(ProductQueryDTO query) {
         featureModuleGuard.requireProductModule();
         return R.ok(productService.listMpProducts(query));
+    }
+
+    @GetMapping("/smoke/pay1")
+    @Operation(summary = "暖阁 ¥1 支付验通路商品（不存在则自动补种）")
+    public R<Product> getPay1SmokeProduct() {
+        featureModuleGuard.requireProductModule();
+        return R.ok(productService.ensurePay1SmokeProduct());
     }
 
     @GetMapping("/{id}")
@@ -39,6 +49,8 @@ public class MpProductController {
         if (!"on_sale".equals(detail.getStatus())) {
             throw new com.miniprogram.common.BusinessException(404401, "商品不存在或未上架");
         }
+        Long userId = SecurityUtils.getCurrentUserId();
+        detail.setPurchased(userId != null && purchaseEntitlementService.hasProduct(userId, id));
         return R.ok(detail);
     }
 }

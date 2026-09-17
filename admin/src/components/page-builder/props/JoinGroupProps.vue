@@ -94,7 +94,26 @@
             </label>
           </div>
         </el-form-item>
-        <el-form-item label="二维码">
+        <el-form-item label="入群方式">
+          <el-radio-group
+            :model-value="group.join_type || 'qrcode'"
+            @change="(v: string) => updateGroup(i, { join_type: v })"
+          >
+            <el-radio label="qrcode">个人微信群（二维码）</el-radio>
+            <el-radio label="wecom">企业微信群（点按入群）</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="(group.join_type || 'qrcode') === 'wecom'" label="企微链接">
+          <el-input
+            :model-value="group.wecom_url || ''"
+            type="textarea"
+            :rows="2"
+            placeholder="企业微信「加入群聊」生成的 work.weixin.qq.com/gm/ 链接"
+            @input="(v: string) => updateGroup(i, { wecom_url: v, join_type: 'wecom' })"
+          />
+          <p class="hint">企微后台：客户联系 → 加入群聊 → 在小程序中加入群聊。小程序需添加插件 wx4d2deeab3aed6e5a。</p>
+        </el-form-item>
+        <el-form-item v-else label="二维码">
           <div class="img-field">
             <div v-if="normalizeUrl(group.qrcode)" class="img-preview">
               <img :src="normalizeUrl(group.qrcode)" alt="" />
@@ -122,7 +141,7 @@ import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
 
-type GroupItem = { id: string; name: string; icon?: string; qrcode?: string }
+type GroupItem = { id: string; name: string; icon?: string; qrcode?: string; join_type?: string; wecom_url?: string }
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -137,6 +156,8 @@ const groups = computed<GroupItem[]>(() => {
     name: String(g.name || ''),
     icon: String(g.icon || ''),
     qrcode: String(g.qrcode || ''),
+    join_type: String(g.join_type || 'qrcode') === 'wecom' ? 'wecom' : 'qrcode',
+    wecom_url: String(g.wecom_url || ''),
   }))
 })
 
@@ -169,7 +190,7 @@ function updateGroup(index: number, patch: Partial<GroupItem>) {
 
 function addGroup() {
   emit('update', {
-    groups: [...groups.value, { id: uid(), name: '新群聊', icon: '', qrcode: '' }],
+    groups: [...groups.value, { id: uid(), name: '新群聊', icon: '', qrcode: '', join_type: 'qrcode', wecom_url: '' }],
   })
 }
 

@@ -161,7 +161,7 @@
   overflow: hidden;
   color: var(--card);
   font-size: 36rpx;
-  background: #3b82f6;
+  background: #c2410c;
   border-radius: 20rpx;
 }
 

@@ -35,8 +35,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,6 +67,9 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Pattern.CASE_INSENSITIVE);
 
     private static final int MAX_URL_IMPORT = 10;
+    private static final Pattern WECHAT_MID = Pattern.compile("[?&]mid=(\\d+)");
+    private static final Pattern WECHAT_IDX = Pattern.compile("[?&]idx=(\\d+)");
+    private static final Pattern WECHAT_SN = Pattern.compile("[?&]sn=([a-zA-Z0-9]+)");
 
     private final WeChatOfficialAccountClient weChatOfficialAccountClient;
     private final WeChatArticlePageParser weChatArticlePageParser;
@@ -107,61 +112,32 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         WeChatContentSyncResultVO result = new WeChatContentSyncResultVO();
         List<JSONObject> records = weChatOfficialAccountClient.listAllPublishedRecords();
         result.setTotalPublishRecords(records.size());
-        reportProgress(taskId, 0, records.size(), null);
+        List<JSONObject> draftRecords = listDraftRecordsSafely();
+        int progressTotal = Math.max(records.size() + draftRecords.size(), 1);
+        reportProgress(taskId, 0, progressTotal, null);
         Map<String, JSONObject> newspicIndex = buildNewspicIndex(records);
 
         Map<String, String> imageCache = new LinkedHashMap<>();
         Map<String, byte[]> mediaCache = new LinkedHashMap<>();
-        int articlesProcessed = 0;
         LocalDateTime syncBase = LocalDateTime.now();
-        int importSeq = 0;
+        int[] importSeq = {0};
+        int[] articlesProcessed = {0};
 
-        for (JSONObject record : records) {
-            String articleId = record.getStr("article_id");
-            JSONArray newsItems = resolveNewsItems(record, articleId, result);
+        processWxRecords(
+                records, false, publish, categoryId, syncScope, newspicIndex,
+                imageCache, mediaCache, result, syncBase, importSeq, articlesProcessed,
+                taskId, progressTotal);
+        processWxRecords(
+                draftRecords, true, false, categoryId, syncScope, newspicIndex,
+                imageCache, mediaCache, result, syncBase, importSeq, articlesProcessed,
+                taskId, progressTotal);
 
-            if (newsItems == null || newsItems.isEmpty()) {
-                result.setSkipped(result.getSkipped() + 1);
-                continue;
-            }
-
-            long updateTime = record.getLong("update_time", 0L);
-            LocalDateTime publishedAt = toLocalDateTime(updateTime);
-
-            for (int i = 0; i < newsItems.size(); i++) {
-                JSONObject item = newsItems.getJSONObject(i);
-                if (item == null) {
-                    continue;
-                }
-                enrichNewsItemFromIndex(item, newspicIndex);
-                articlesProcessed++;
-                LocalDateTime importTime = syncBase.plusNanos((long) importSeq++ * 1_000_000L);
-                try {
-                    SyncAction action = upsertPublishedItem(
-                            item, articleId, i, categoryId, publish, publishedAt, syncScope,
-                            imageCache, mediaCache, result, importTime);
-                    switch (action) {
-                        case CREATE -> result.setCreated(result.getCreated() + 1);
-                        case UPDATE -> result.setUpdated(result.getUpdated() + 1);
-                        case SKIP -> result.setSkipped(result.getSkipped() + 1);
-                        case TYPE_FILTERED -> { /* counted in upsertPublishedItem */ }
-                    }
-                } catch (Exception e) {
-                    log.warn("同步图文失败 articleId={} idx={}: {}", articleId, i, e.getMessage());
-                    result.setFailed(result.getFailed() + 1);
-                    result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
-                            item.getStr("title", articleId + "#" + i), e.getMessage()));
-                }
-                // total 用发布记录数；processed 可能超过 total，前端 Math.min
-                reportProgress(taskId, articlesProcessed, records.size(),
-                        item.getStr("title", articleId));
-            }
-        }
-
-        result.setTotalArticles(articlesProcessed);
+        result.setTotalArticles(articlesProcessed[0]);
         result.setMessage(String.format(
-                "范围「%s」：扫描 %d 条，长文 %d，贴图 %d；新建 %d，更新 %d，类型筛选跳过 %d，其他跳过 %d，失败 %d",
+                "范围「%s」：已发布 %d + 草稿箱 %d；扫描 %d 条，长文 %d，贴图 %d；新建 %d，更新 %d，类型筛选跳过 %d，其他跳过 %d，失败 %d",
                 syncScope.label(),
+                records.size(),
+                draftRecords.size(),
                 result.getTotalArticles(),
                 result.getArticleCount(),
                 result.getNoteCount(),
@@ -347,6 +323,94 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         return url.substring(0, 45) + "...";
     }
 
+    private List<JSONObject> listDraftRecordsSafely() {
+        try {
+            List<JSONObject> drafts = weChatOfficialAccountClient.listAllDraftRecords();
+            return drafts != null ? drafts : List.of();
+        } catch (Exception e) {
+            log.warn("拉取公众号草稿箱失败: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private void processWxRecords(
+            List<JSONObject> records,
+            boolean draftBox,
+            boolean publish,
+            Long categoryId,
+            SyncScope syncScope,
+            Map<String, JSONObject> newspicIndex,
+            Map<String, String> imageCache,
+            Map<String, byte[]> mediaCache,
+            WeChatContentSyncResultVO result,
+            LocalDateTime syncBase,
+            int[] importSeq,
+            int[] articlesProcessed,
+            String taskId,
+            int progressTotal) {
+        for (JSONObject record : records) {
+            String articleId = draftBox ? draftRecordId(record) : record.getStr("article_id");
+            JSONArray newsItems = draftBox
+                    ? resolveDraftNewsItems(record)
+                    : resolveNewsItems(record, articleId, result);
+
+            if (newsItems == null || newsItems.isEmpty()) {
+                result.setSkipped(result.getSkipped() + 1);
+                continue;
+            }
+
+            long updateTime = record.getLong("update_time", 0L);
+            if (updateTime <= 0L) {
+                JSONObject content = record.getJSONObject("content");
+                if (content != null) {
+                    updateTime = content.getLong("update_time", 0L);
+                }
+            }
+            LocalDateTime publishedAt = draftBox ? null : toLocalDateTime(updateTime);
+
+            for (int i = 0; i < newsItems.size(); i++) {
+                JSONObject item = newsItems.getJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                enrichNewsItemFromIndex(item, newspicIndex);
+                articlesProcessed[0]++;
+                LocalDateTime importTime = syncBase.plusNanos((long) importSeq[0]++ * 1_000_000L);
+                try {
+                    SyncAction action = upsertPublishedItem(
+                            item, articleId, i, categoryId, publish, publishedAt, syncScope,
+                            imageCache, mediaCache, result, importTime, draftBox);
+                    switch (action) {
+                        case CREATE -> result.setCreated(result.getCreated() + 1);
+                        case UPDATE -> result.setUpdated(result.getUpdated() + 1);
+                        case SKIP -> result.setSkipped(result.getSkipped() + 1);
+                        case TYPE_FILTERED -> { /* counted in upsertPublishedItem */ }
+                    }
+                } catch (Exception e) {
+                    log.warn("同步图文失败 articleId={} idx={}: {}", articleId, i, e.getMessage());
+                    result.setFailed(result.getFailed() + 1);
+                    result.getFailures().add(new WeChatContentSyncResultVO.FailureItem(
+                            item.getStr("title", articleId + "#" + i), e.getMessage()));
+                }
+                reportProgress(taskId, articlesProcessed[0], progressTotal,
+                        item.getStr("title", articleId));
+            }
+        }
+    }
+
+    private String draftRecordId(JSONObject record) {
+        String mediaId = record != null ? trim(record.getStr("media_id")) : "";
+        return StringUtils.hasText(mediaId) ? "draft:" + mediaId : "draft:unknown";
+    }
+
+    private JSONArray resolveDraftNewsItems(JSONObject record) {
+        if (record == null) {
+            return null;
+        }
+        JSONObject contentWrapper = record.getJSONObject("content");
+        return contentWrapper != null ? contentWrapper.getJSONArray("news_item") : null;
+    }
+
     private JSONArray resolveNewsItems(
             JSONObject record,
             String articleId,
@@ -358,7 +422,7 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
 
         JSONArray fromDetail = null;
-        if (StringUtils.hasText(articleId)) {
+        if (StringUtils.hasText(articleId) && !articleId.startsWith("draft:")) {
             try {
                 JSONObject detail = weChatOfficialAccountClient.getPublishedArticle(articleId);
                 fromDetail = detail.getJSONArray("news_item");
@@ -568,7 +632,11 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             Map<String, String> imageCache,
             Map<String, byte[]> mediaCache,
             WeChatContentSyncResultVO result,
-            LocalDateTime importTime) {
+            LocalDateTime importTime,
+            boolean draftBox) {
+        if (draftBox && isConnectivityProbeTitle(item.getStr("title"))) {
+            return SyncAction.SKIP;
+        }
         boolean newspic = isNewspic(item);
         if (syncScope == SyncScope.NEWSPIC && !newspic) {
             result.setTypeFiltered(result.getTypeFiltered() + 1);
@@ -580,14 +648,14 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         }
         if (newspic) {
             SyncAction action = upsertNewspicNote(
-                    item, articleId, index, categoryId, publish, publishedAt, imageCache, mediaCache, importTime);
+                    item, articleId, index, categoryId, publish, publishedAt, imageCache, mediaCache, importTime, draftBox);
             if (action != SyncAction.SKIP) {
                 result.setNoteCount(result.getNoteCount() + 1);
             }
             return action;
         }
         SyncAction action = upsertNewsArticle(
-                item, articleId, index, categoryId, publish, publishedAt, imageCache, importTime, result);
+                item, articleId, index, categoryId, publish, publishedAt, imageCache, importTime, result, draftBox);
         if (action != SyncAction.SKIP) {
             result.setArticleCount(result.getArticleCount() + 1);
         }
@@ -630,7 +698,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             LocalDateTime publishedAt,
             Map<String, String> imageCache,
             LocalDateTime importTime,
-            WeChatContentSyncResultVO result) {
+            WeChatContentSyncResultVO result,
+            boolean draftBox) {
 
         if (Boolean.TRUE.equals(item.getBool("is_deleted"))) {
             return SyncAction.SKIP;
@@ -641,15 +710,19 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             return SyncAction.SKIP;
         }
 
-        Content entity = loadOrCreate(articleId, index, title);
+        String url = firstNonBlank(item.getStr("url"), item.getStr("content_source_url"));
+        Content entity = loadOrCreate(articleId, index, title, url);
         boolean isCreate = entity.getId() == null;
+        if (draftBox && shouldSkipDraftOverwrite(entity, isCreate)) {
+            return SyncAction.SKIP;
+        }
 
         entity.setTitle(title.length() > 128 ? title.substring(0, 128) : title);
         entity.setContentType("article");
         entity.setAuthor(trim(item.getStr("author")));
         entity.setSource(SOURCE_LABEL);
         entity.setExternalSource(EXTERNAL_SOURCE);
-        entity.setExternalId(buildExternalId(articleId, index, title));
+        entity.setExternalId(buildExternalId(articleId, index, title, url));
 
         String digest = trim(item.getStr("digest"));
         entity.setSummary(StringUtils.hasText(digest)
@@ -685,7 +758,8 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             LocalDateTime publishedAt,
             Map<String, String> imageCache,
             Map<String, byte[]> mediaCache,
-            LocalDateTime importTime) {
+            LocalDateTime importTime,
+            boolean draftBox) {
 
         if (Boolean.TRUE.equals(item.getBool("is_deleted"))) {
             return SyncAction.SKIP;
@@ -698,15 +772,19 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
             return SyncAction.SKIP;
         }
 
-        Content entity = loadOrCreate(articleId, index, title);
+        String url = firstNonBlank(item.getStr("url"), item.getStr("content_source_url"));
+        Content entity = loadOrCreate(articleId, index, title, url);
         boolean isCreate = entity.getId() == null;
+        if (draftBox && shouldSkipDraftOverwrite(entity, isCreate)) {
+            return SyncAction.SKIP;
+        }
 
         entity.setTitle(title.length() > 128 ? title.substring(0, 128) : title);
         entity.setContentType("note");
         entity.setAuthor(trim(item.getStr("author")));
         entity.setSource(SOURCE_LABEL);
         entity.setExternalSource(EXTERNAL_SOURCE);
-        entity.setExternalId(buildExternalId(articleId, index, title));
+        entity.setExternalId(buildExternalId(articleId, index, title, url));
         entity.setImages(toJson(imageUrls));
         entity.setCoverImage(imageUrls.get(0));
 
@@ -732,13 +810,52 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         return persist(entity, isCreate, importTime);
     }
 
-    private Content loadOrCreate(String articleId, int index, String title) {
-        String externalId = buildExternalId(articleId, index, title);
-        Content existing = contentMapper.selectOne(new LambdaQueryWrapper<Content>()
-                .eq(Content::getExternalSource, EXTERNAL_SOURCE)
+    private boolean shouldSkipDraftOverwrite(Content entity, boolean isCreate) {
+        return !isCreate && entity != null && "published".equals(entity.getStatus());
+    }
+
+    private boolean isConnectivityProbeTitle(String title) {
+        String t = trim(title);
+        if (!StringUtils.hasText(t)) {
+            return false;
+        }
+        return t.contains("连通性测试") || (t.contains("WorkBuddy") && t.contains("公众号"));
+    }
+
+    private Content loadOrCreate(String articleId, int index, String title, String url) {
+        for (String candidate : externalIdCandidates(articleId, index, title, url)) {
+            Content existing = findByExternalId(EXTERNAL_SOURCE, candidate);
+            if (existing != null) {
+                return existing;
+            }
+            existing = findByExternalId(EXTERNAL_SOURCE_URL, candidate);
+            if (existing != null) {
+                return existing;
+            }
+        }
+        String storedTitle = title.length() > 128 ? title.substring(0, 128) : title;
+        if (StringUtils.hasText(storedTitle)) {
+            Content existing = contentMapper.selectOne(new LambdaQueryWrapper<Content>()
+                    .eq(Content::getSource, SOURCE_LABEL)
+                    .eq(Content::getTitle, storedTitle)
+                    .orderByAsc(Content::getId)
+                    .last("LIMIT 1"));
+            if (existing != null) {
+                return existing;
+            }
+        }
+        return new Content();
+    }
+
+    private Content findByExternalId(String source, String externalId) {
+        if (!StringUtils.hasText(source) || !StringUtils.hasText(externalId)) {
+            return null;
+        }
+        return contentMapper.selectOne(new LambdaQueryWrapper<Content>()
+                .eq(Content::getExternalSource, source)
                 .eq(Content::getExternalId, externalId)
+                .orderByAsc(Content::getId)
                 .last("LIMIT 1"));
-        return existing != null ? existing : new Content();
     }
 
     private void applyCommonFields(
@@ -1058,11 +1175,53 @@ public class WeChatOfficialAccountContentSyncServiceImpl implements WeChatOffici
         return "";
     }
 
-    private String buildExternalId(String articleId, int index, String title) {
-        if (StringUtils.hasText(articleId)) {
-            return articleId + "_" + index;
+    private String buildExternalId(String articleId, int index, String title, String url) {
+        List<String> ids = externalIdCandidates(articleId, index, title, url);
+        return ids.isEmpty() ? "title_" + Math.abs(String.valueOf(title).hashCode()) + "_" + index : ids.get(0);
+    }
+
+    private List<String> externalIdCandidates(String articleId, int index, String title, String url) {
+        Set<String> ids = new LinkedHashSet<>();
+        String fromUrl = idFromWechatUrl(url, index);
+        if (StringUtils.hasText(fromUrl)) {
+            ids.add(fromUrl);
         }
-        return "title_" + Math.abs(title.hashCode()) + "_" + index;
+        if (StringUtils.hasText(articleId)) {
+            ids.add(articleId + "_" + index);
+        }
+        if (StringUtils.hasText(title)) {
+            ids.add("title_" + Math.abs(title.hashCode()) + "_" + index);
+        }
+        return new ArrayList<>(ids);
+    }
+
+    private String idFromWechatUrl(String url, int index) {
+        if (!StringUtils.hasText(url)) {
+            return "";
+        }
+        String raw = url.trim();
+        Matcher mid = WECHAT_MID.matcher(raw);
+        Matcher idx = WECHAT_IDX.matcher(raw);
+        if (mid.find()) {
+            String idxVal = idx.find() ? idx.group(1) : String.valueOf(index + 1);
+            Matcher sn = WECHAT_SN.matcher(raw);
+            if (sn.find()) {
+                return "wxurl_" + mid.group(1) + "_" + idxVal + "_" + sn.group(1);
+            }
+            return "wxurl_" + mid.group(1) + "_" + idxVal;
+        }
+        int slash = raw.lastIndexOf('/');
+        if (slash >= 0 && slash < raw.length() - 1) {
+            String slug = raw.substring(slash + 1);
+            int q = slug.indexOf('?');
+            if (q >= 0) {
+                slug = slug.substring(0, q);
+            }
+            if (slug.length() >= 8 && slug.length() <= 64 && slug.matches("[A-Za-z0-9_-]+")) {
+                return "wxslug_" + slug;
+            }
+        }
+        return "";
     }
 
     private void appendOriginalLink(Content entity, String url, String sourceUrl) {

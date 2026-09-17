@@ -8,6 +8,16 @@ export enum MemberBenefitCode {
   PointsBoost = 'points_boost',
   ExclusiveCoupon = 'exclusive_coupon',
   BirthdayGift = 'birthday_gift',
+  /** 资料库全解锁（不受 preview_mode 限制） */
+  FileUnlockAll = 'file_unlock_all',
+  /** 星球专属 */
+  PlanetExclusive = 'planet_exclusive',
+  /** 会员价 */
+  MemberPrice = 'member_price',
+  /** 专栏免费 */
+  ColumnFree = 'column_free',
+  /** 社群入口 */
+  CommunityEntry = 'community_entry',
 }
 
 export const MemberBenefitLabels: Record<MemberBenefitCode, string> = {
@@ -15,6 +25,11 @@ export const MemberBenefitLabels: Record<MemberBenefitCode, string> = {
   [MemberBenefitCode.PointsBoost]: '积分加速',
   [MemberBenefitCode.ExclusiveCoupon]: '专属优惠券',
   [MemberBenefitCode.BirthdayGift]: '生日礼包',
+  [MemberBenefitCode.FileUnlockAll]: '资料库全解锁',
+  [MemberBenefitCode.PlanetExclusive]: '星球专属',
+  [MemberBenefitCode.MemberPrice]: '会员价',
+  [MemberBenefitCode.ColumnFree]: '专栏免费',
+  [MemberBenefitCode.CommunityEntry]: '社群入口',
 }
 
 export const MemberBenefitHints: Record<MemberBenefitCode, string> = {
@@ -22,6 +37,11 @@ export const MemberBenefitHints: Record<MemberBenefitCode, string> = {
   [MemberBenefitCode.PointsBoost]: '获得积分时按倍率计算（倍率字段）',
   [MemberBenefitCode.ExclusiveCoupon]: '可被优惠券「指定等级领取」选中',
   [MemberBenefitCode.BirthdayGift]: '生日当天可领取绑定的优惠券',
+  [MemberBenefitCode.FileUnlockAll]: '资料不再受 preview_mode 试读限制',
+  [MemberBenefitCode.PlanetExclusive]: '可进入星球专属内容区',
+  [MemberBenefitCode.MemberPrice]: '商城商品享受会员价',
+  [MemberBenefitCode.ColumnFree]: '标记为会员专享的专栏免费阅读',
+  [MemberBenefitCode.CommunityEntry]: '展示社群/加群入口',
 }
 
 /** 会员等级 */
@@ -36,6 +56,8 @@ export interface MemberLevel {
   discount_rate: number
   benefits: string[]
   birthday_coupon_id?: number | null
+  gift_planet_days?: number
+  expire_remind_days?: number
   legacy_rights?: string[]
   status: number
   member_count?: number
@@ -54,6 +76,8 @@ export interface CreateMemberLevelParams {
   discount_rate?: number
   benefits?: string[]
   birthday_coupon_id?: number | null
+  gift_planet_days?: number
+  expire_remind_days?: number
   status?: number
 }
 

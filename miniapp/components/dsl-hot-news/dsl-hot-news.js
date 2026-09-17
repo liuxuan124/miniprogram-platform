@@ -1,5 +1,6 @@
 // components/dsl-hot-news/dsl-hot-news.js
 const { executeAction, navigatePage } = require('../../utils/render')
+const { isValidContentId } = require('../../utils/content-id')
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
@@ -17,14 +18,16 @@ function formatMeta(item) {
 }
 
 function normalizeItem(item, index) {
-  const id = item.id || item.contentId || item.content_id || `hot_${index + 1}`
+  const rawId = item.id != null ? item.id : (item.contentId != null ? item.contentId : item.content_id)
+  const id = isValidContentId(rawId) ? String(rawId) : ''
   const link = item.link_url || item.linkUrl || ''
   return {
-    id,
+    id: id || `hot_${index + 1}`,
+    navigable: !!id,
     title: item.title || item.name || '文章标题',
     cover: item.cover || item.coverUrl || item.coverImage || item.cover_url || item.image || '',
     meta: item.meta || formatMeta(item),
-    link_url: link || (!String(id).startsWith('hot_') ? `/pages/content-detail/content-detail?id=${id}` : ''),
+    link_url: link || (id ? `/pages/content-detail/content-detail?id=${id}` : ''),
     viewCount: Number(item.viewCount || item.view_count || 0) || 0,
     publishedAt: item.publishedAt || item.publishTime || item.publish_time || item.createTime || '',
   }
@@ -71,7 +74,7 @@ function prepareList(runtimeData, config) {
     })
   }
 
-  return rows.slice(0, limit)
+  return rows.filter((item) => item.navigable).slice(0, limit)
 }
 
 Component({
@@ -83,7 +86,7 @@ Component({
   },
 
   data: {
-    titleText: '今日跨境头条',
+    titleText: '今日精选',
     showMore: true,
     moreText: '查看更多 >',
     moreLink: '/pages/content-list/content-list',
@@ -133,7 +136,7 @@ Component({
       const gap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 32)) : 10
       const dateParts = resolveDateParts(cfg)
       this.setData({
-        titleText: String(cfg.title || '今日跨境头条').trim() || '今日跨境头条',
+        titleText: String(cfg.title || '今日精选').trim() || '今日精选',
         showMore: cfg.show_more !== false,
         moreText: String(cfg.more_text || '查看更多 >').trim() || '查看更多 >',
         moreLink: String(cfg.more_link || '/pages/content-list/content-list').trim() || '/pages/content-list/content-list',
@@ -171,9 +174,11 @@ Component({
         }
         return
       }
-      if (item.id && !String(item.id).startsWith('hot_')) {
+      if (item.id && isValidContentId(item.id)) {
         navigatePage(`/pages/content-detail/content-detail?id=${item.id}`)
+        return
       }
+      wx.showToast({ title: '内容暂不可用', icon: 'none' })
     },
   },
 })

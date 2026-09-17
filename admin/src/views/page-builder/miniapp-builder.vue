@@ -270,7 +270,23 @@
                   <el-option v-for="p in pages" :key="p.id" :label="p.name" :value="p.id" />
                 </el-select>
                 <template v-else>
-                  <div class="ap-block-hint">模板里显示哪些内容 —— 改动会实时反映到右侧预览。</div>
+                  <div class="ap-block-hint">先选外观模板，再改里面显示哪些入口；改动会实时反映到右侧预览。</div>
+                  <div class="mine-template-picker mine-template-picker--inline">
+                    <button
+                      v-for="tpl in personalCenterTemplates"
+                      :key="tpl.key"
+                      type="button"
+                      class="mine-tpl-card"
+                      :class="{ selected: selectedMineTemplate === tpl.key }"
+                      @click="selectMineTemplate(tpl.key)"
+                    >
+                      <div class="mine-tpl-preview" :style="{ background: tpl.gradient }">
+                        <span>{{ tpl.icon }}</span>
+                      </div>
+                      <div class="mine-tpl-name">{{ tpl.name }}</div>
+                      <div class="mine-tpl-desc">{{ tpl.desc }}</div>
+                    </button>
+                  </div>
                   <MinePageConfig v-model="form.mineConfig" />
                 </template>
               </div>
@@ -538,7 +554,7 @@ const activeGroup = ref<GroupKey>('brand')
 const previewRef = ref<{ showMineTab: () => void } | null>(null)
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
-const selectedMineTemplate = ref('basic')
+const selectedMineTemplate = ref('warm')
 const newReleaseInfo = ref<any>(null)
 
 const showModuleVersionDialog = ref(false)
@@ -1469,6 +1485,49 @@ onMounted(() => {
   color: var(--text-secondary, #64748b);
   margin-bottom: 12px;
   line-height: 1.55;
+}
+
+.mine-template-picker--inline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mine-template-picker--inline .mine-tpl-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+}
+
+.mine-template-picker--inline .mine-tpl-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(23, 105, 255, 0.15);
+}
+
+.mine-template-picker--inline .mine-tpl-preview {
+  height: 56px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  color: #fff;
+}
+
+.mine-template-picker--inline .mine-tpl-name {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mine-template-picker--inline .mine-tpl-desc {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #8b93a7;
+  line-height: 1.35;
 }
 
 /* 右侧常驻预览 */

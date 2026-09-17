@@ -265,10 +265,42 @@
               </el-form-item>
             </template>
 
+            <el-form-item label="作者身份">
+              <el-select v-model="formData.author_role" style="width: 100%">
+                <el-option label="主理人" value="owner" />
+                <el-option label="编辑" value="editor" />
+                <el-option label="投稿人" value="contributor" />
+                <el-option label="用户" value="user" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="可见范围">
+              <el-select v-model="formData.visibility" style="width: 100%">
+                <el-option label="公开" value="public" />
+                <el-option label="仅会员" value="member_only" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="审核状态">
+              <el-select v-model="formData.audit_status" style="width: 100%">
+                <el-option label="已通过" value="approved" />
+                <el-option label="待审核" value="pending" />
+                <el-option label="已拒绝" value="rejected" />
+              </el-select>
+            </el-form-item>
+
             <el-form-item label="运营位">
               <el-checkbox v-model="formData.is_pinned">频道置顶</el-checkbox>
               <el-checkbox v-model="formData.is_recommended" style="margin-left: 16px">首页推荐</el-checkbox>
+              <el-checkbox
+                v-if="contentType === 'moment'"
+                v-model="formData.planet_exclusive"
+                style="margin-left: 16px"
+              >星球专属</el-checkbox>
             </el-form-item>
+            <div v-if="contentType === 'moment'" class="field-hint" style="margin: -8px 0 12px 90px">
+              勾选后出现在小程序「星球」时间线；未付费用户按星球配置可见范围展示。
+            </div>
           </el-form>
         </el-tab-pane>
 
@@ -425,11 +457,15 @@ const formData = reactive({
   status: ContentStatus.Draft,
   author: '',
   author_avatar: '',
+  author_role: 'editor',
+  visibility: 'public',
+  audit_status: 'approved',
   like_count: 0,
   favorite_count: 0,
   sort: 0,
   is_pinned: false,
   is_recommended: false,
+  planet_exclusive: false,
 })
 
 const seoForm = reactive({
@@ -514,6 +550,9 @@ async function loadDetail(id: number) {
     formData.cover_image = data.coverImage || data.cover_image || data.shareCover || ''
     formData.author = data.author || ''
     formData.author_avatar = data.authorAvatar || data.author_avatar || ''
+    formData.author_role = data.authorRole || data.author_role || 'editor'
+    formData.visibility = data.visibility || 'public'
+    formData.audit_status = data.auditStatus || data.audit_status || 'approved'
     formData.like_count = Number(data.likeCount ?? data.like_count ?? 0)
     formData.favorite_count = Number(data.favoriteCount ?? data.favorite_count ?? 0)
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
@@ -527,6 +566,7 @@ async function loadDetail(id: number) {
     formData.layout_theme = data.layoutTheme || data.layout_theme || 'standard'
     formData.is_pinned = !!(data.isPinned ?? data.is_pinned)
     formData.is_recommended = !!(data.isRecommended ?? data.is_recommended)
+    formData.planet_exclusive = !!(data.planetExclusive ?? data.planet_exclusive)
     momentAttachments.value = Array.isArray(data.attachments)
       ? data.attachments.map((item: Record<string, unknown>, idx: number) => normalizeAttachment(item, idx))
       : []
@@ -804,6 +844,9 @@ async function handleSubmit() {
       tags,
       author: formData.author?.trim() || undefined,
       authorAvatar: formData.author_avatar?.trim() || undefined,
+      authorRole: formData.author_role || 'editor',
+      visibility: formData.visibility || 'public',
+      auditStatus: formData.audit_status || 'approved',
       likeCount: formData.like_count,
       favoriteCount: formData.favorite_count,
       source: contentType.value === 'note' ? '笔记' : contentType.value === 'moment' ? '动态' : contentType.value === 'video' ? '视频' : undefined,
@@ -816,6 +859,7 @@ async function handleSubmit() {
       layoutTheme: formData.layout_theme || 'standard',
       isPinned: formData.is_pinned ? 1 : 0,
       isRecommended: formData.is_recommended ? 1 : 0,
+      planetExclusive: contentType.value === 'moment' && formData.planet_exclusive ? 1 : 0,
     } as any
 
     if (isEdit.value) {

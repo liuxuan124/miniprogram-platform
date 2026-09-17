@@ -7,6 +7,7 @@ import com.miniprogram.dto.QuestionDetailDTO;
 import com.miniprogram.dto.QuestionQueryDTO;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.QuestionService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,10 +21,12 @@ import org.springframework.web.bind.annotation.*;
 public class MpQuestionController {
 
     private final QuestionService questionService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     @Operation(summary = "公开问答列表")
     @GetMapping
     public R<PageResult<QuestionDetailDTO>> listAnswered(QuestionQueryDTO queryDTO) {
+        featureModuleGuard.requireQaModule();
         queryDTO.setStatus("answered");
         return R.ok(questionService.listQuestions(queryDTO));
     }
@@ -31,6 +34,7 @@ public class MpQuestionController {
     @Operation(summary = "问答详情")
     @GetMapping("/{id}")
     public R<QuestionDetailDTO> detail(@PathVariable Long id) {
+        featureModuleGuard.requireQaModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(questionService.getQuestionDetail(id, userId));
     }
@@ -38,6 +42,7 @@ public class MpQuestionController {
     @Operation(summary = "我的提问")
     @GetMapping("/my")
     public R<PageResult<QuestionDetailDTO>> myQuestions(QuestionQueryDTO queryDTO) {
+        featureModuleGuard.requireQaModule();
         Long userId = SecurityUtils.getRequiredCurrentUserId();
         queryDTO.setUserId(userId);
         return R.ok(questionService.listQuestions(queryDTO));
@@ -46,6 +51,7 @@ public class MpQuestionController {
     @Operation(summary = "提交问题")
     @PostMapping
     public R<QuestionDetailDTO> create(@Valid @RequestBody QuestionCreateDTO dto) {
+        featureModuleGuard.requireQaModule();
         Long userId = SecurityUtils.getRequiredCurrentUserId();
         return R.ok(questionService.createQuestion(userId, dto));
     }

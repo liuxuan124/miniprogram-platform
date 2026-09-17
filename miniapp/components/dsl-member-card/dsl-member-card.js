@@ -43,7 +43,7 @@ Component({
     },
     displayTitle: '会员权益',
     displaySubtitle: '点击查看权益',
-    themeClass: 'blue',
+    themeClass: 'gold',
     cardStyle: '',
     benefitTags: [],
     showLevel: true,
@@ -81,7 +81,7 @@ Component({
         ? config.bg_mode
         : (config.background_image ? 'image' : 'gradient')
       const bgImage = normalizeBgUrl(config.background_image)
-      const theme = config.theme || 'blue'
+      const theme = config.theme || 'gold'
 
       const cardParts = []
       if (bgMode === 'image' && bgImage) {

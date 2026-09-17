@@ -1,0 +1,111 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="dc-page">
+  <view class="dc-head" style="padding-top: {{statusBarHeight}}px;">
+    <view class="dc-tabs">
+      <text
+        wx:for="{{tabs}}"
+        wx:key="key"
+        class="dc-tab {{activeTab === item.key ? 'dc-tab--on' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onTabTap"
+      >{{item.label}}</text>
+      <view class="dc-sr" bindtap="onTapSearch">🔍</view>
+    </view>
+    <scroll-view class="dc-chips" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="dc-chips__inner">
+        <text
+          wx:for="{{chips}}"
+          wx:key="*this"
+          class="dc-chip {{activeChip === item ? 'dc-chip--on' : ''}}"
+          data-chip="{{item}}"
+          bindtap="onChipTap"
+        >{{item}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="dc-banner" wx:if="{{showBanner}}" bindtap="onTapContribute">
+    <text class="dc-banner__ic">✍️</text>
+    <view class="dc-banner__tx">
+      <text class="dc-banner__title">{{recruitBanner.title}}</text>
+      <text class="dc-banner__desc">{{recruitBanner.desc}}</text>
+    </view>
+    <text class="dc-banner__go">{{recruitBanner.cta || '去投稿'}}</text>
+  </view>
+
+  <scroll-view
+    class="dc-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onReachBottom"
+    lower-threshold="120"
+  >
+    <view wx:if="{{loading && isEmpty}}" class="dc-state">加载中...</view>
+
+    <view class="dc-wf" wx:else>
+      <view class="dc-col">
+        <view
+          wx:for="{{leftList}}"
+          wx:key="uid"
+          class="dc-card {{item.isText ? 'dc-card--txt' : ''}}"
+          data-id="{{item.id}}"
+          data-demo="{{item.isDemo}}"
+          data-kind="{{item.kind || activeTab}}"
+          bindtap="onTapNote"
+        >
+          <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
+            <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+            <text class="dc-card__pill" wx:if="{{item.pill}}">{{item.pill}}</text>
+            <text class="dc-card__cnt" wx:if="{{item.cnt}}">{{item.cnt}}</text>
+          </view>
+          <view class="dc-card__bd">
+            <text class="dc-card__quote" wx:if="{{item.isText}}">{{item.quote}}</text>
+            <text class="dc-card__title" wx:else>{{item.title}}</text>
+            <view class="dc-card__ft">
+              <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+              <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
+              <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
+              <text class="dc-card__lk">❤ {{item.likeText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="dc-col">
+        <view
+          wx:for="{{rightList}}"
+          wx:key="uid"
+          class="dc-card {{item.isText ? 'dc-card--txt' : ''}}"
+          data-id="{{item.id}}"
+          data-demo="{{item.isDemo}}"
+          data-kind="{{item.kind || activeTab}}"
+          bindtap="onTapNote"
+        >
+          <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
+            <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+            <text class="dc-card__pill" wx:if="{{item.pill}}">{{item.pill}}</text>
+            <text class="dc-card__cnt" wx:if="{{item.cnt}}">{{item.cnt}}</text>
+          </view>
+          <view class="dc-card__bd">
+            <text class="dc-card__quote" wx:if="{{item.isText}}">{{item.quote}}</text>
+            <text class="dc-card__title" wx:else>{{item.title}}</text>
+            <view class="dc-card__ft">
+              <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+              <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
+              <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
+              <text class="dc-card__lk">❤ {{item.likeText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="warm-end" wx:if="{{footerText}}">{{footerText}}</view>
+    <view class="warm-safe"></view>
+  </scroll-view>
+
+  <view class="dc-fab" bindtap="onTapContribute">✎ 投稿</view>
+</view>

@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "知识商城",
+  "navigationBarTitleText": "知识库",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {

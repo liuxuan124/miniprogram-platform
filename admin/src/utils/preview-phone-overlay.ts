@@ -10,7 +10,7 @@ export type PreviewLoginSheetApi = {
 export const PREVIEW_LOGIN_SHEET_API: InjectionKey<PreviewLoginSheetApi> = Symbol('previewLoginSheetApi')
 
 export const DEFAULT_PREVIEW_LOGIN_BRAND = {
-  appName: '出海笔记',
+  appName: '我的小程序',
   logoMark: '海',
   loginTagline: '想认识一下你，可以吗？',
 } as const

@@ -88,21 +88,58 @@
                         {{ t.icon }} {{ t.label }}
                       </el-checkbox>
                     </el-checkbox-group>
-                    <div class="form-tip">类型由分类决定，可多选；所有类型均可配置可售库存。</div>
+                    <div class="form-tip">类型由分类决定，可多选；纯数字商品不校验实体库存。</div>
                   </div>
                 </el-form-item>
 
-                <el-form-item v-if="isDigitalOnly" label="自动发货" class="span-all">
+                <el-form-item v-if="canAutoFulfill" label="自动发货" class="span-all">
                   <el-switch v-model="formData.autoFulfill" :active-value="1" :inactive-value="0" />
-                  <div class="form-tip">开启后，支付成功将自动履约并写入发货内容，无需人工点「虚拟发货」。</div>
+                  <div class="form-tip">开启后，支付成功将自动履约并写入发货内容，用户会收到通知并可在客服对话中查看。</div>
                 </el-form-item>
-                <el-form-item v-if="isDigitalOnly && formData.autoFulfill === 1" label="发货内容" class="span-all">
+                <el-form-item v-if="canAutoFulfill && formData.autoFulfill === 1" label="发货内容" class="span-all">
                   <el-input
                     v-model="formData.fulfillContent"
                     type="textarea"
                     :rows="4"
                     placeholder="兑换码 / 课程链接 / 卡密说明等，支付成功后展示给用户"
                   />
+                </el-form-item>
+                <template v-if="isMembershipProduct">
+                  <el-form-item label="会员天数" class="span-all">
+                    <el-input-number v-model="formData.membershipDays" :min="0" :max="3650" controls-position="right" />
+                    <div class="form-tip">0 = 终身；支付成功后写入用户会员等级与到期时间。</div>
+                  </el-form-item>
+                  <el-form-item label="开通等级" class="span-all">
+                    <el-select v-model="formData.membershipLevelId" placeholder="选择会员等级" clearable style="width: 280px">
+                      <el-option v-for="lv in memberLevels" :key="lv.id" :label="lv.name" :value="lv.id" />
+                    </el-select>
+                  </el-form-item>
+                </template>
+
+                <el-form-item label="会员价" class="span-all">
+                  <el-input-number v-model="formData.memberPrice" :min="0" :precision="2" :step="0.01" controls-position="right" />
+                  <div class="form-tip">留空则不单独设置会员价；可与下方「会员免费」配合。</div>
+                </el-form-item>
+                <el-form-item label="会员免费" class="span-all">
+                  <el-switch v-model="formData.memberFree" :active-value="1" :inactive-value="0" />
+                </el-form-item>
+                <el-form-item label="交付方式" class="span-all">
+                  <el-select v-model="formData.deliveryMode" style="width: 280px">
+                    <el-option label="自动交付" value="auto" />
+                    <el-option label="人工交付" value="manual" />
+                    <el-option label="兑换码" value="redeem_code" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="退款政策" class="span-all">
+                  <el-select v-model="formData.refundPolicy" style="width: 280px">
+                    <el-option label="不支持退款" value="none" />
+                    <el-option label="阅读前可退" value="before_read" />
+                    <el-option label="七天无理由" value="seven_days" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item v-if="showPreviewChapters" label="试读章数" class="span-all">
+                  <el-input-number v-model="formData.previewChapters" :min="0" :max="999" controls-position="right" />
+                  <div class="form-tip">电子书 / 专栏免费试读章节数，0 表示不开放试读。</div>
                 </el-form-item>
               </div>
             </section>
@@ -194,7 +231,8 @@
                     </el-table-column>
                     <el-table-column label="库存" min-width="118">
                       <template #default="{ row }">
-                        <el-input-number v-model="row.stock" :min="0" size="small" controls-position="right" />
+                        <span v-if="isDigitalOnly" class="unlimited-stock">无限</span>
+                        <el-input-number v-else v-model="row.stock" :min="0" size="small" controls-position="right" />
                       </template>
                     </el-table-column>
                     <el-table-column label="SKU 编码" min-width="160">
@@ -318,9 +356,18 @@
                 <span>自动保存</span>
                 <strong>{{ lastAutoSaveTime ? formatTime(lastAutoSaveTime) : '未保存' }}</strong>
               </div>
+              <el-form-item label="定时上架" style="margin-top: 12px">
+                <el-date-picker
+                  v-model="formData.publishAt"
+                  type="datetime"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  placeholder="留空则手动上架"
+                  style="width: 100%"
+                />
+              </el-form-item>
               <div class="status-hint">
                 {{ isDigitalOnly
-                  ? '上线前请确认主图、SKU 价格、库存和发货说明。保存后小程序端将按接口状态展示。'
+                  ? '上线前请确认主图、SKU 价格和发货说明。纯数字商品不校验实体库存。'
                   : '上线前请确认主图、SKU 价格和库存。保存后小程序端将按接口状态展示。' }}
               </div>
             </section>
@@ -485,6 +532,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Back, Delete, Picture, Plus, Upload } from '@element-plus/icons-vue'
 import { getProduct, createProduct, updateProduct, getCategoryList, onSaleProduct } from '@/api/product'
+import { getMemberLevelList } from '@/api/member'
 import { uploadFile } from '@/api/system'
 import { post } from '@/api/request'
 import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
@@ -531,6 +579,10 @@ const typeOptions = [
   { value: 'physical', label: '实物商品', icon: '📦' },
   { value: 'digital', label: '数字商品', icon: '📄' },
   { value: 'service', label: '服务商品', icon: '🎯' },
+  { value: 'membership', label: '会员套餐', icon: '🪐' },
+  { value: 'ebook', label: '电子书', icon: '📘' },
+  { value: 'column', label: '专栏', icon: '📚' },
+  { value: 'resource_pack', label: '资料包', icon: '🗂️' },
 ]
 
 const previewVisible = ref(false)
@@ -551,7 +603,17 @@ const formData = reactive({
   skus: [] as SkuItem[],
   autoFulfill: 0,
   fulfillContent: '',
+  membershipDays: 0,
+  membershipLevelId: undefined as number | undefined,
+  memberPrice: undefined as number | undefined,
+  memberFree: 0,
+  deliveryMode: 'auto',
+  refundPolicy: 'none',
+  previewChapters: 0,
+  publishAt: undefined as string | undefined,
 })
+
+const memberLevels = ref<Array<{ id: number; name: string }>>([])
 
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
@@ -562,7 +624,23 @@ const formRules: FormRules = {
 
 const isDigitalOnly = computed(() => {
   const types = formData.productTypes || []
-  return types.includes('digital') && !types.includes('physical') && !types.includes('service')
+  const digitalLike = ['digital', 'ebook', 'column', 'resource_pack']
+  const hasDigital = types.some((t) => digitalLike.includes(String(t)))
+  return hasDigital && !types.includes('physical') && !types.includes('service') && !types.includes('membership')
+})
+
+const isMembershipProduct = computed(() => (formData.productTypes || []).includes('membership'))
+
+const showPreviewChapters = computed(() => {
+  const types = formData.productTypes || []
+  return types.some((t) => ['ebook', 'column'].includes(String(t)))
+})
+
+const canAutoFulfill = computed(() => {
+  const types = formData.productTypes || []
+  if (!types.length || types.includes('physical')) return false
+  if (types.includes('membership')) return true
+  return types.some((t) => ['digital', 'ebook', 'column', 'resource_pack', 'virtual'].includes(String(t)))
 })
 
 const availableTypeOptions = computed(() => {
@@ -570,7 +648,7 @@ const availableTypeOptions = computed(() => {
   const node = categoryNodeMap.value.get(Number(formData.category_id))
   const allowed: string[] = Array.isArray(node?.allowedProductTypes) && node.allowedProductTypes.length
     ? node.allowedProductTypes
-    : ['physical', 'digital', 'service']
+    : ['physical', 'digital', 'service', 'ebook', 'column', 'resource_pack', 'membership']
   return typeOptions.filter((t) => allowed.includes(t.value))
 })
 
@@ -595,6 +673,7 @@ const previewOriginalPrice = computed(() => {
 })
 
 const previewStockLabel = computed(() => {
+  if (isDigitalOnly.value) return '无限'
   const total = formData.skus.reduce((sum, s) => sum + toNumber(s.stock, 0), 0)
   return total > 0 ? String(total) : '无'
 })
@@ -639,9 +718,10 @@ const completionItems = computed(() => [
   { label: '上传商品主图', done: !!formData.main_image },
   { label: '添加至少 1 个 SKU', done: formData.skus.length > 0 },
   {
-    label: '配置价格和库存',
+    label: isDigitalOnly.value ? '配置商品价格' : '配置价格和库存',
     done: formData.skus.some((sku) =>
-      isSkuPriceFilled(sku.price) && toNumber(sku.stock, 0) > 0
+      isSkuPriceFilled(sku.price)
+      && (isDigitalOnly.value || toNumber(sku.stock, 0) > 0)
     ),
   },
 ])
@@ -671,7 +751,7 @@ function filterEnabledCategories(nodes: any[]): any[] {
           : [])
       return {
         ...n,
-        allowedProductTypes: allowed.length ? allowed : ['physical', 'digital', 'service'],
+        allowedProductTypes: allowed.length ? allowed : ['physical', 'digital', 'service', 'ebook', 'column', 'resource_pack', 'membership'],
         children: filterEnabledCategories(n.children || []),
       }
     })
@@ -826,8 +906,16 @@ function buildApiPayload() {
     unit: '件',
     sortOrder: toNumber(formData.sort, 0),
     skus: mappedSkus,
-    autoFulfill: isDigitalOnly.value ? formData.autoFulfill : 0,
-    fulfillContent: isDigitalOnly.value && formData.autoFulfill === 1 ? formData.fulfillContent : '',
+    autoFulfill: canAutoFulfill.value ? (isMembershipProduct.value ? 1 : formData.autoFulfill) : 0,
+    fulfillContent: canAutoFulfill.value && formData.autoFulfill === 1 ? formData.fulfillContent : '',
+    membershipDays: isMembershipProduct.value ? formData.membershipDays : undefined,
+    membershipLevelId: isMembershipProduct.value ? formData.membershipLevelId : undefined,
+    memberPrice: formData.memberPrice != null ? formData.memberPrice : undefined,
+    memberFree: formData.memberFree ? 1 : 0,
+    deliveryMode: formData.deliveryMode || 'auto',
+    refundPolicy: formData.refundPolicy || 'none',
+    previewChapters: showPreviewChapters.value ? formData.previewChapters : undefined,
+    publishAt: formData.publishAt || undefined,
   }
 }
 
@@ -841,8 +929,11 @@ function getPublishErrors() {
   if (formData.skus.some((sku) => !isSkuPriceFilled(sku.price))) {
     errors.push('填写 SKU 销售价')
   }
-  if (formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
+  if (!isDigitalOnly.value && !isMembershipProduct.value && formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
     errors.push('配置可售库存')
+  }
+  if (isMembershipProduct.value && !formData.membershipLevelId) {
+    errors.push('选择开通会员等级')
   }
   return errors
 }
@@ -850,6 +941,10 @@ function getPublishErrors() {
 function typeLabel(t: string) {
   if (t === 'digital') return '数字'
   if (t === 'service') return '服务'
+  if (t === 'membership') return '会员'
+  if (t === 'ebook') return '电子书'
+  if (t === 'column') return '专栏'
+  if (t === 'resource_pack') return '资料包'
   return '实物'
 }
 
@@ -927,6 +1022,14 @@ async function fetchProduct() {
     formData.main_image = product.mainImage ?? product.main_image ?? ''
     formData.autoFulfill = Number(product.autoFulfill ?? product.auto_fulfill ?? 0) ? 1 : 0
     formData.fulfillContent = product.fulfillContent ?? product.fulfill_content ?? ''
+    formData.membershipDays = Number(product.membershipDays ?? product.membership_days ?? 0)
+    formData.membershipLevelId = product.membershipLevelId ?? product.membership_level_id ?? undefined
+    formData.memberPrice = product.memberPrice ?? product.member_price ?? undefined
+    formData.memberFree = Number(product.memberFree ?? product.member_free ?? 0) ? 1 : 0
+    formData.deliveryMode = product.deliveryMode ?? product.delivery_mode ?? 'auto'
+    formData.refundPolicy = product.refundPolicy ?? product.refund_policy ?? 'none'
+    formData.previewChapters = Number(product.previewChapters ?? product.preview_chapters ?? 0)
+    formData.publishAt = product.publishAt || product.publish_at || undefined
     const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
     formData.images = buildSyncedImages(formData.main_image, rawImages)
     if (!formData.main_image && formData.images.length) {
@@ -1414,11 +1517,26 @@ onBeforeRouteLeave((_to, _from, next) => {
 
 onMounted(() => {
   fetchCategories()
+  getMemberLevelList().then((res: any) => {
+    const list = res?.data || res || []
+    memberLevels.value = (Array.isArray(list) ? list : []).map((lv: any) => ({
+      id: Number(lv.id),
+      name: lv.name || `等级${lv.id}`,
+    }))
+  }).catch(() => {})
   if (isEdit.value) {
     fetchProduct()
   } else {
     // 新增模式默认一个 SKU
     addSku()
+    // 从星球页跳转：预填会员套餐
+    if (String(route.query.type || '') === 'membership') {
+      formData.category_id = 2
+      formData.productTypes = ['membership']
+      formData.autoFulfill = 1
+      formData.membershipDays = 30
+      formData.name = formData.name || '星球·会员套餐'
+    }
     // 尝试恢复草稿
     const restored = restoreDraft()
     if (restored) {
@@ -1901,6 +2019,18 @@ onUnmounted(() => {
 
 .sku-table {
   width: 100%;
+}
+
+.unlimited-stock {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #0f8a5f;
+  background: #edf9f4;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .money-input :deep(.el-input__prefix) {

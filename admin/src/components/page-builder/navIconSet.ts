@@ -38,14 +38,14 @@ const NAV_SVG_ICONS: NavFlatIcon[] = [
 
 /** 软质感 PNG（透明底、无外层色块） */
 const NAV_SOFT_PNG_ICONS: NavFlatIcon[] = [
-  { id: 'g-activity', label: '跨境活动', src: '/images/nav-icons/g-activity.png', bg: '#EEF3FF', color: '#5B8CFF' },
+  { id: 'g-activity', label: '活动', src: '/images/nav-icons/g-activity.png', bg: '#EEF3FF', color: '#5B8CFF' },
   { id: 'g-exhibit', label: '展会', src: '/images/nav-icons/g-exhibit.png', bg: '#F3EEFF', color: '#8B6CFF' },
   { id: 'g-member', label: '会员服务', src: '/images/nav-icons/g-member.png', bg: '#FFF6E8', color: '#F0A020' },
   { id: 'g-industry', label: '产业带', src: '/images/nav-icons/g-industry.png', bg: '#EAF7F2', color: '#2F9E6E' },
-  { id: 'g-platform', label: '跨境平台', src: '/images/nav-icons/g-platform.png', bg: '#EEF3FF', color: '#5B8CFF' },
-  { id: 'g-news', label: '跨境资讯', src: '/images/nav-icons/g-news.png', bg: '#FFF0E8', color: '#F2762A' },
-  { id: 'g-report', label: '跨境报告', src: '/images/nav-icons/g-report.png', bg: '#EAF7F2', color: '#2F9E6E' },
-  { id: 'g-video', label: '跨境视频', src: '/images/nav-icons/g-video.png', bg: '#FFECEE', color: '#E85D6C' },
+  { id: 'g-platform', label: '平台', src: '/images/nav-icons/g-platform.png', bg: '#EEF3FF', color: '#5B8CFF' },
+  { id: 'g-news', label: '资讯', src: '/images/nav-icons/g-news.png', bg: '#FFF0E8', color: '#F2762A' },
+  { id: 'g-report', label: '报告', src: '/images/nav-icons/g-report.png', bg: '#EAF7F2', color: '#2F9E6E' },
+  { id: 'g-video', label: '视频', src: '/images/nav-icons/g-video.png', bg: '#FFECEE', color: '#E85D6C' },
   { id: 'g-park', label: '产业园', src: '/images/nav-icons/g-park.png', bg: '#EAF7F2', color: '#2F9E6E' },
   { id: 'g-recruit', label: '人才招聘', src: '/images/nav-icons/g-recruit.png', bg: '#FFF6E8', color: '#F0A020' },
   { id: 'g-logistics', label: '物流履约', src: '/images/nav-icons/g-logistics.png', bg: '#E6F4FB', color: '#2B8CC4' },
@@ -127,9 +127,24 @@ const TAB_EMOJI_ICON_MAP: Record<string, string> = {
   '💡': '/images/nav-icons/g-insight.png',
 }
 
+const TAB_PATH_ICON_MAP: Record<string, string> = {
+  '/images/tab/home.png': '/images/nav-icons/g-platform.png',
+  '/images/tab/home-active.png': '/images/nav-icons/g-platform.png',
+  '/images/tab/content.png': '/images/nav-icons/g-news.png',
+  '/images/tab/content-active.png': '/images/nav-icons/g-news.png',
+  '/images/tab/category.png': '/images/nav-icons/g-folder.png',
+  '/images/tab/category-active.png': '/images/nav-icons/g-folder.png',
+  '/images/tab/mine.png': '/images/nav-icons/g-user.png',
+  '/images/tab/mine-active.png': '/images/nav-icons/g-user.png',
+  '/images/tab/shop.png': '/images/nav-icons/g-bag.png',
+  '/images/tab/shop-active.png': '/images/nav-icons/g-bag.png',
+}
+
 export function migrateTabBarIcon(icon?: string): string {
   const raw = String(icon || '').trim()
   if (!raw) return '/images/nav-icons/g-bag.png'
-  if (isNavImageIcon(raw)) return raw.split('?')[0]
+  const pathOnly = raw.split('?')[0]
+  if (TAB_PATH_ICON_MAP[pathOnly]) return TAB_PATH_ICON_MAP[pathOnly]
+  if (isNavImageIcon(raw)) return pathOnly
   return TAB_EMOJI_ICON_MAP[raw] || raw
 }

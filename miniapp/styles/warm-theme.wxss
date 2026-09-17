@@ -1,0 +1,148 @@
+/* warm-theme — aligned with prototypes-warm/warm.css */
+page {
+  --brand: #c2410c;
+  --brand-2: #ea580c;
+  --gold: #b45309;
+  --ink: #2a1c12;
+  --ink-2: #6b5443;
+  --mute: #a1897a;
+  --line: rgba(120, 72, 40, 0.12);
+  --bg: #fdf6ec;
+  --sheet: #fffaf3;
+  --sheet-2: #f8ecdd;
+  --shadow: 0 18rpx 44rpx rgba(120, 64, 24, 0.14);
+  --shadow-s: 0 8rpx 20rpx rgba(120, 64, 24, 0.08);
+  --r: 40rpx;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.warm-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.warm-serif {
+  font-family: "Songti SC", "Noto Serif SC", "Palatino Linotype", serif;
+}
+
+.warm-tag {
+  display: inline-block;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  background: #fbe6d4;
+  color: var(--brand);
+}
+
+.warm-tag--gold {
+  background: #fdf0d6;
+  color: var(--gold);
+}
+
+.warm-tag--soft {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.warm-btn {
+  height: 88rpx;
+  padding: 0 44rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, var(--brand-2), var(--brand));
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20rpx 44rpx rgba(194, 65, 12, 0.3);
+}
+
+.warm-btn--ghost {
+  background: #fbe6d4;
+  color: var(--brand);
+  box-shadow: none;
+}
+
+.warm-sheet {
+  background: var(--sheet);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-s);
+}
+
+.warm-sep {
+  height: 16rpx;
+  background: #f5e8d8;
+  margin-top: 36rpx;
+}
+
+.warm-av {
+  border-radius: 999rpx;
+  overflow: hidden;
+  background: var(--sheet-2);
+  flex: none;
+}
+
+.warm-ph {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.warm-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 16;
+  padding: 20rpx 32rpx calc(44rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: rgba(255, 250, 243, 0.95);
+  border-top: 1rpx solid var(--line);
+}
+
+/* 配 fixed .warm-actionbar：20+88btn+44 + ~32 余量（≈原型 76px 底栏 + scroll pb 16px） */
+.warm-page-with-actionbar {
+  padding-bottom: calc(184rpx + env(safe-area-inset-bottom));
+}
+
+.warm-ipt {
+  flex: 1;
+  height: 76rpx;
+  border-radius: 999rpx;
+  background: #f5e8d8;
+  display: flex;
+  align-items: center;
+  padding: 0 30rpx;
+  font-size: 25rpx;
+  color: var(--mute);
+}
+
+.warm-kicker {
+  font-size: 20rpx;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* 列表页底文案：对齐 prototypes-warm *.end */
+.warm-end {
+  text-align: center;
+  font-size: 21rpx;
+  color: var(--mute);
+  padding: 28rpx 0 12rpx;
+  letter-spacing: 0.1em;
+}
+
+/* Tab 页底部留白：自定义 tabBar(~118rpx) + 安全区，对齐原型 74px 底栏 */
+.warm-safe {
+  height: calc(160rpx + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}

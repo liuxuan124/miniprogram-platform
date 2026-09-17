@@ -107,6 +107,11 @@ export const usePermissionStore = defineStore('permission', () => {
     return permOk
   }
 
+  /** 判断是否有指定角色 */
+  function hasRole(role: string): boolean {
+    return roles.value.includes(role)
+  }
+
   return {
     roles,
     permissions,
@@ -116,6 +121,7 @@ export const usePermissionStore = defineStore('permission', () => {
     resetPermission,
     hasPerm,
     hasAnyPerm,
+    hasRole,
     canAccessMeta,
   }
 })

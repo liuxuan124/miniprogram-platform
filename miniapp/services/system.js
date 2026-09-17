@@ -18,8 +18,10 @@ const CONFIG_CACHE_EXPIRE = 10 * 60 * 1000
 
 const DEFAULT_TABBAR_LIST = [
   { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
-  { pagePath: '/pages/content-list/content-list', text: '内容', icon: '📚' },
-  { pagePath: '/pages/mine/mine', text: '我的', icon: '👤' }
+  { pagePath: '/pages/discover/discover', text: '发现', icon: '🔍' },
+  { pagePath: '/pages/planet/planet', text: '星球', icon: '🪐' },
+  { pagePath: '/pages/shop/shop', text: '商城', icon: '🛍️' },
+  { pagePath: '/pages/mine/mine', text: '我的', icon: '👤' },
 ]
 
 const DEFAULT_ORDER_QUICK_ACCESS = {
@@ -42,22 +44,26 @@ const DEFAULT_USER_PROFILE = {
 }
 
 const DEFAULT_MINE_PAGE_CONFIG = {
-  loginTitle: '点击登录，解锁会员权益',
-  loginSubtitle: '查看订单、已购资料、预约与会员权益',
+  loginTitle: '点击登录，同步阅读偏好',
+  loginSubtitle: '收藏文章、接收内容更新提醒',
   loginButtonText: '登录',
   memberCardTitle: '会员中心',
   showMenuIcons: true,
   showDecorBackground: true,
   showMemberCard: false,
-  templateStyle: 'basic',
+  templateStyle: 'warm',
   style: 'gradient',
-  themeColor: '#5B7FEA',
-  themeColorSecondary: '#7BA3F7',
+  themeColor: '#C2410C',
+  themeColorSecondary: '#EA580C',
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
     { id: 'orders', icon: 'line:document', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
+    { id: 'resources', icon: 'line:books', title: '资料库', url: '/pages/resources/resources', enabled: true },
     { id: 'library', icon: 'line:books', title: '已购资料', url: '/pkg-trade/order-list/order-list', enabled: true },
+    { id: 'join', icon: 'line:users', title: '加入社群', url: '/pages/join/join', enabled: true },
+    { id: 'share', icon: 'line:share', title: '分享邀请', url: '/pages/share/share', enabled: true },
+    { id: 'notices', icon: 'line:bell', title: '消息通知', url: '/pkg-user/notices/notices', enabled: true },
     { id: 'reservation', icon: 'line:calendar', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
     { id: 'member-center', icon: 'line:crown', title: '会员中心', url: '/pkg-user/member-center/member-center', enabled: false },
     { id: 'coupons', icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true },
@@ -104,17 +110,23 @@ function normalizeOrderTabLabels(raw) {
 }
 
 function resolveMineStyleKey(mine) {
-  if (!mine) return 'basic'
-  const raw = String(mine.templateStyle || '')
+  if (!mine) return 'warm'
+  const raw = String(mine.templateStyle || '').trim().toLowerCase()
+  if (raw === 'warm' || raw === 'nuange' || raw === 'content') return 'warm'
   if (raw === 'member' || raw === 'premium') return 'member'
-  if (raw === 'minimal' || raw === 'dark' || raw === 'simple') return 'basic'
   if (raw === 'basic' || raw === 'standard') return 'basic'
+  if (raw === 'minimal' || raw === 'dark' || raw === 'simple') return 'basic'
   const tc = String(mine.themeColor || '').toLowerCase()
+  if (
+    tc === '#c2410c' || tc === '#ea580c' || tc === '#7c2d12' || tc === '#d97706'
+    || tc === '#b45309' || tc === '#9a3412'
+  ) return 'warm'
   if (
     tc === '#b8860b' || tc === '#9a7b1c' || tc === '#d4af37' || tc === '#f0d060'
     || tc === '#6b9fd9' || tc === '#9bbfe8' || tc === '#e8eef8'
   ) return 'member'
-  return 'basic'
+  if (tc === '#5b7fea' || tc === '#7ba3f7' || tc === '#002fa7' || tc === '#315efb') return 'basic'
+  return 'warm'
 }
 
 function normalizeMinePageConfig(raw) {
@@ -251,24 +263,42 @@ function isMemberModuleEnabled(plugins) {
   return hit.enabled !== false
 }
 
-const PRODUCT_TAB_SLOT_INDEX = 2
-
 function isProductModuleEnabled(plugins) {
   const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
+  // 无插件列表 / 无 product 项时默认开启，避免刷新后误关商城并二次 switchTab 回首页
   if (!Array.isArray(list) || !list.length) return true
   const hit = list.find((p) => p && p.key === 'product')
   if (!hit) return true
   return hit.enabled !== false
 }
 
-function isProductTabItem(item, index) {
+function isPluginEnabled(plugins, key, defaultEnabled) {
+  const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
+  if (!Array.isArray(list) || !list.length) return defaultEnabled !== false
+  const hit = list.find((p) => p && p.key === key)
+  if (!hit) return defaultEnabled !== false
+  return hit.enabled !== false
+}
+
+function isQaModuleEnabled(plugins) {
+  return isPluginEnabled(plugins, 'qa', false)
+}
+
+function isFormModuleEnabled(plugins) {
+  return isPluginEnabled(plugins, 'form', false)
+}
+
+function isCommentModuleEnabled(plugins) {
+  return isPluginEnabled(plugins, 'comment', true)
+}
+
+function isProductTabItem(item) {
   const shell = String((item && (item.tabRoute || item.slotRoute)) || '')
-  if (shell.includes('knowledge-mall')) return true
-  if (!shell && index === 2) return true
+  if (/shop|knowledge-mall|product-list/.test(shell)) return true
   const path = String((item && (item.pagePath || item.path)) || '')
   const text = String((item && (item.text || item.name)) || '')
   const pageName = String((item && item.pageName) || '')
-  if (/knowledge-mall|product-list|product-detail|\/cart/.test(path)) return true
+  if (/knowledge-mall|product-list|\/pages\/shop|product-detail|\/cart/.test(path)) return true
   return /商品|商城/.test(text) || /商城|商品/.test(pageName)
 }
 
@@ -285,8 +315,8 @@ function isOrderMenuItem(item) {
 
 function applyProductModuleGate(tabbarItems, plugins) {
   if (isProductModuleEnabled(plugins)) return tabbarItems || []
-  return (tabbarItems || []).map((item, index) => {
-    if (!isProductTabItem(item, index)) return item
+  return (tabbarItems || []).map((item) => {
+    if (!isProductTabItem(item)) return item
     return { ...item, enabled: false }
   })
 }
@@ -311,9 +341,15 @@ function applyMemberModuleGate(mineConfig, plugins) {
   if (enabled) return mineConfig
   const menuItems = (mineConfig.menuItems || [])
     .filter((item) => item.enabled !== false && !isMemberMenuItem(item))
+  const userProfile = {
+    ...(mineConfig.userProfile || DEFAULT_USER_PROFILE),
+    showMemberLevel: false,
+    memberLevelLabel: '',
+  }
   return {
     ...mineConfig,
     showMemberCard: false,
+    userProfile,
     menuItems,
   }
 }
@@ -363,6 +399,10 @@ module.exports = {
   normalizeMinePageConfig,
   isMemberModuleEnabled,
   isProductModuleEnabled,
+  isPluginEnabled,
+  isQaModuleEnabled,
+  isFormModuleEnabled,
+  isCommentModuleEnabled,
   applyMemberModuleGate,
   applyProductModuleGate,
   applyProductMineGate,

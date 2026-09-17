@@ -214,7 +214,7 @@ async function openAiDraft() {
     const { value } = await ElMessageBox.prompt('用一句话描述想要的页面（行业/卖点）', 'AI 生成页面初稿', {
       confirmButtonText: '生成',
       cancelButtonText: '取消',
-      inputPlaceholder: '例如：跨境电商首页，突出选品与课程',
+      inputPlaceholder: '例如：首页，突出核心卖点与内容',
     })
     const res = await post('/api/v1/admin/pages/ai-draft', { prompt: value, industry: 'general' })
     const dsl = (res as any)?.data?.dsl
@@ -254,7 +254,7 @@ async function loadConfig() {
     for (const c of configs) {
       if (c?.configKey) map[c.configKey] = c.configValue
     }
-    appName.value = String(map[CONFIG_KEYS.SHARE_TITLE] || map.miniappName || '跨境墨太白')
+    appName.value = String(map[CONFIG_KEYS.SHARE_TITLE] || map.miniappName || '我的小程序')
     const raw = map[CONFIG_KEYS.TABBAR_ITEMS]
     if (raw) {
       const items = typeof raw === 'string' ? JSON.parse(raw) : raw

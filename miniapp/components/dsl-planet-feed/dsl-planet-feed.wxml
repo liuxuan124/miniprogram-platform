@@ -1,0 +1,95 @@
+<view class="dsl-planet-feed">
+  <scroll-view class="pl-segs" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="pl-segs__inner">
+      <text
+        wx:for="{{segs}}"
+        wx:key="key"
+        class="pl-seg {{activeSeg === item.key ? 'pl-seg--on' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onSegTap"
+      >{{item.label}}</text>
+    </view>
+  </scroll-view>
+
+  <view class="pl-feed-wrap">
+  <block wx:for="{{list}}" wx:key="uid">
+    <view
+      class="pl-fd {{item.top ? 'pl-fd--top' : ''}}"
+      data-id="{{item.id}}"
+      data-uid="{{item.uid}}"
+      data-demo="{{item.isDemo}}"
+      data-index="{{index}}"
+      bindtap="onOpen"
+    >
+      <view class="pl-fd__hh">
+        <image class="pl-fd__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+        <view class="pl-fd__av pl-fd__av--fb" wx:else>{{item.authorInitial}}</view>
+        <view class="pl-fd__who">
+          <view class="pl-fd__nm">
+            <text>{{item.author}}</text>
+            <text class="warm-tag warm-tag--gold" wx:if="{{item.tagGold}}">{{item.tagGold}}</text>
+            <text class="warm-tag" wx:if="{{item.tag}}">{{item.tag}}</text>
+          </view>
+          <text class="pl-fd__tm">{{item.time}}</text>
+        </view>
+        <text
+          class="pl-fd__mo"
+          data-id="{{item.id}}"
+          data-uid="{{item.uid}}"
+          data-index="{{index}}"
+          data-demo="{{item.isDemo}}"
+          catchtap="onMoreTap"
+        >···</text>
+      </view>
+      <text class="pl-fd__ct">{{item.content}}</text>
+      <view class="pl-fd__q" wx:if="{{item.answer}}">
+        <view class="pl-fd__qlb">星主已回答</view>
+        <text>{{item.answer}}</text>
+      </view>
+      <view class="pl-fd__file" wx:if="{{item.file}}" catchtap="onOpenFile" data-file="{{item.file}}">
+        <text class="pl-fd__fic">📄</text>
+        <view class="pl-fd__fmeta">
+          <text class="pl-fd__fh">{{item.file.name}}</text>
+          <text class="pl-fd__fp">{{item.file.meta}}</text>
+        </view>
+        <text class="pl-fd__fgo">预览 ›</text>
+      </view>
+      <view class="pl-fd__gg {{item.images.length === 2 ? 'pl-fd__gg--two' : ''}}" wx:if="{{item.images.length}}">
+        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" class="pl-fd__img warm-ph" src="{{img}}" mode="aspectFill" />
+      </view>
+      <text class="pl-fd__tp" wx:if="{{item.topics}}">{{item.topics}}</text>
+      <view class="pl-fd__ft">
+        <text
+          class="{{item.liked || item.hot ? 'pl-fd__hot' : ''}}"
+          data-id="{{item.id}}"
+          data-uid="{{item.uid}}"
+          data-index="{{index}}"
+          data-demo="{{item.isDemo}}"
+          catchtap="onLikeTap"
+        >❤️ {{item.likes}}</text>
+        <text
+          data-id="{{item.id}}"
+          data-uid="{{item.uid}}"
+          data-demo="{{item.isDemo}}"
+          catchtap="onCommentTap"
+        >💬 {{item.comments}}</text>
+        <text
+          data-id="{{item.id}}"
+          data-uid="{{item.uid}}"
+          data-index="{{index}}"
+          data-demo="{{item.isDemo}}"
+          catchtap="onFavoriteTap"
+        >{{item.favorited ? '⭐️ 已收藏' : '⭐️ 收藏'}}</text>
+        <text
+          data-id="{{item.id}}"
+          data-uid="{{item.uid}}"
+          data-index="{{index}}"
+          data-demo="{{item.isDemo}}"
+          catchtap="onShareTap"
+        >↗️ 分享</text>
+      </view>
+    </view>
+  </block>
+  </view>
+  <view class="warm-end">{{footerText}}</view>
+</view>

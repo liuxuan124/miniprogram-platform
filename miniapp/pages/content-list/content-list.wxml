@@ -1,23 +1,12 @@
-<!-- pages/content-list/content-list.wxml — Tab 内容页：装修 DSL 或原型兜底 -->
-<!-- 勿用 <template> 包 dsl-renderer：lazyCodeLoading 下会白屏 -->
+<!-- pages/content-list/content-list.wxml — list.html layouts + DSL -->
 <page-meta page-style="{{themePageStyle}}" />
-<block wx:if="{{dslPending}}">
-  <view class="dsl-tab-page__state">加载中...</view>
-</block>
-<block wx:elif="{{dslMode}}">
-  <view wx:if="{{loading}}" class="dsl-tab-page__state">加载中...</view>
+<!-- dslPending 期间先画 DEMO 原生壳，避免空白「加载中」 -->
+<block wx:if="{{dslMode && !dslPending}}">
+  <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
   <block wx:else>
-    <view
-      class="dsl-tab-page__body"
-      style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}"
-    >
-      <view
-        wx:for="{{flowComponents}}"
-        wx:key="id"
-        class="dsl-flow {{item._stackClass}}"
-        style="{{item.hostStyle}}"
-      >
+    <view class="dsl-tab-page__body" style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+      <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
         <dsl-renderer component="{{item}}" />
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
@@ -32,145 +21,167 @@
   </block>
 </block>
 <block wx:else>
-<view class="cc-page">
-  <view class="cc-nav cc-nav--under-sys">
-    <view class="cc-nav__search" bindtap="onSearchTap" hover-class="cc-nav__search--on">⌕</view>
+<view class="cl-page">
+  <view class="cl-head">
+    <view class="cl-tt">
+      <text class="cl-bk" bindtap="onBack">‹</text>
+      <text class="cl-title warm-serif">长文</text>
+      <view class="cl-sr" bindtap="onSearchTap">🔍</view>
+    </view>
+    <scroll-view class="cl-cats" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{cats}}"
+        wx:key="*this"
+        class="cl-cat {{activeCat === item ? 'on' : ''}}"
+        data-cat="{{item}}"
+        bindtap="onCatTap"
+      >{{item}}</view>
+    </scroll-view>
+    <view class="cl-sort">
+      <text class="{{sortKey === 'new' ? 'on' : ''}}" data-key="new" bindtap="onSortTap">最新</text>
+      <text class="{{sortKey === 'hot' ? 'on' : ''}}" data-key="hot" bindtap="onSortTap">最热</text>
+      <text class="{{sortKey === 'vip' ? 'on' : ''}}" data-key="vip" bindtap="onSortTap">会员专享</text>
+      <text class="cl-sort__rt">共 {{totalCount}} 篇 ⌄</text>
+    </view>
   </view>
 
-  <view class="cc-sticky">
-    <scroll-view class="catbar" scroll-x enhanced show-scrollbar="{{false}}">
+  <scroll-view class="cl-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <!-- 加载中：对齐 states.html 骨架（大图 + 左文右图） -->
+    <block wx:if="{{loading}}">
+      <skeleton type="feed" rows="{{3}}" />
+    </block>
+
+    <!-- 无网络 / 加载失败 -->
+    <view wx:elif="{{loadFailed}}" class="cl-offline">
+      <view class="cl-offline__art">📡</view>
+      <view class="cl-offline__h">网络好像开小差了</view>
+      <view class="cl-offline__p">检查一下 Wi-Fi 或移动网络
+连上后点下面的按钮重试</view>
+      <view class="cl-offline__btn" bindtap="onRetry">重新加载</view>
+      <view class="cl-offline__sub">一直失败？<text class="link" bindtap="onService">联系客服</text></view>
+    </view>
+
+    <block wx:else>
+    <!-- 热读榜 -->
+    <view class="cl-rank" wx:if="{{ranks.length}}">
+      <view class="cl-rank__t">
+        <text style="font-size:32rpx">🔥</text>
+        <text class="cl-rank__h">本周热读榜</text>
+        <text class="cl-rank__more">完整榜单 ›</text>
+      </view>
       <view
-        wx:for="{{topicTabs}}"
+        wx:for="{{ranks}}"
         wx:key="id"
-        class="cat {{activeTopic === item.id ? 'on' : ''}}"
+        class="cl-rank__li"
         data-id="{{item.id}}"
-        bindtap="onTopicTap"
-      >{{item.name}}</view>
-    </scroll-view>
-    <scroll-view class="fmtbar" scroll-x enhanced show-scrollbar="{{false}}">
-      <view
-        wx:for="{{formatTabs}}"
-        wx:key="key"
-        class="fmt-chip {{activeFormat === item.key ? 'on' : ''}}"
-        data-key="{{item.key}}"
-        bindtap="onFormatTap"
-      >{{item.label}}</view>
-    </scroll-view>
-  </view>
+        bindtap="onContentTap"
+      >
+        <text class="cl-rank__no {{index < 3 ? 't1' : ''}}">{{index + 1}}</text>
+        <text class="cl-rank__title">{{item.title}}</text>
+        <text class="cl-rank__hv">{{item.views}}</text>
+      </view>
+    </view>
 
-  <skeleton wx:if="{{loading && allArticles.length === 0}}" type="list" rows="{{4}}" />
-
-  <scroll-view
-    wx:elif="{{!isEmpty}}"
-    class="cc-scroll"
-    scroll-y
-    enhanced
-    show-scrollbar="{{false}}"
-  >
-    <view class="cc-body">
-      <block wx:for="{{feed}}" wx:key="id">
-        <!-- 长文：左缩略图 + 右文案 -->
-        <view
-          wx:if="{{item.formatKey === 'longform' || item.formatKey === 'article'}}"
-          class="c-long"
-          data-id="{{item.id}}"
-          bindtap="onContentTap"
-        >
-          <view class="c-long__thumb" style="{{item.artStyle}}">
-            <image wx:if="{{item.cover_url}}" class="c-long__cover" src="{{item.cover_url}}" mode="aspectFill" />
-            <text wx:else class="c-long__glyph">{{item.glyph}}</text>
-          </view>
-          <view class="c-long__in">
-            <view class="c-long__tags">
-              <text class="pill pill--longform">长文</text>
-              <text class="pill pill--topic">{{item.topicName}}</text>
-            </view>
-            <text class="c-long__title">{{item.title}}</text>
-            <text class="c-long__meta">{{item.meta}}</text>
-          </view>
-        </view>
-
-        <!-- 视频 -->
-        <view
-          wx:elif="{{item.formatKey === 'video'}}"
-          class="c-video"
-          data-id="{{item.id}}"
-          bindtap="onContentTap"
-        >
-          <view class="c-video__cv" style="{{item.artStyle}}">
-            <image wx:if="{{item.cover_url}}" class="c-video__cover" src="{{item.cover_url}}" mode="aspectFill" />
-            <text wx:else class="c-video__glyph">{{item.glyph}}</text>
-            <view class="c-video__play">▶</view>
-            <view wx:if="{{item.dur}}" class="c-video__dur">{{item.dur}}</view>
-          </view>
-          <view class="c-video__txt">
-            <view class="c-video__tags">
-              <text class="pill pill--video">视频</text>
-              <text class="pill pill--topic">{{item.topicName}}</text>
-            </view>
-            <text class="c-video__title">{{item.title}}</text>
-            <text class="c-video__meta">{{item.meta}}</text>
-          </view>
-        </view>
-
-        <!-- 数据速报 -->
-        <view
-          wx:elif="{{item.formatKey === 'data'}}"
-          class="c-data"
-          data-id="{{item.id}}"
-          bindtap="onContentTap"
-        >
-          <view class="c-data__tags">
-            <text class="pill pill--data">数据</text>
-            <text class="pill pill--topic">{{item.topicName}}</text>
-          </view>
-          <text class="c-data__title">{{item.title}}</text>
-          <view class="c-data__nums" wx:if="{{item.nums && item.nums.length}}">
-            <view wx:for="{{item.nums}}" wx:for-item="n" wx:key="k" class="c-data__num">
-              <text class="c-data__val {{n.up ? 'up' : 'dn'}}">{{n.v}}</text>
-              <text class="c-data__key">{{n.k}}</text>
-            </view>
-          </view>
-          <text class="c-data__meta">{{item.meta}}</text>
-        </view>
-      </block>
-
-      <!-- 笔记双列 -->
-      <view class="masonry" wx:if="{{notes.length}}">
-        <view
-          wx:for="{{notes}}"
-          wx:key="id"
-          class="c-note"
-          data-id="{{item.id}}"
-          bindtap="onContentTap"
-        >
-          <view class="c-note__art" style="{{item.artStyle}}">
-            <image wx:if="{{item.cover_url}}" class="c-note__cover" src="{{item.cover_url}}" mode="aspectFill" />
-            <text wx:else class="c-note__glyph">{{item.glyph}}</text>
-            <view wx:if="{{item.image_count > 1}}" class="c-note__count">{{item.image_count}} 图</view>
-          </view>
-          <view class="c-note__txt">
-            <text class="c-note__title">{{item.title}}</text>
-            <view class="c-note__foot">
-              <image wx:if="{{item.author_avatar}}" class="c-note__av-img" src="{{item.author_avatar}}" mode="aspectFill" />
-              <text wx:else class="c-note__av">{{item.author_initial}}</text>
-              <text>{{item.author}}</text>
-              <text class="c-note__meta">♡ {{item.likeText}}</text>
-            </view>
-          </view>
+    <!-- 大图卡 -->
+    <view class="cl-big" wx:if="{{bigCard}}" data-id="{{bigCard.id}}" bindtap="onContentTap">
+      <view class="cl-big__cv">
+        <image src="{{bigCard.cover}}" mode="aspectFill" class="cl-big__img" />
+        <text class="warm-tag warm-tag--gold cl-big__tag">{{bigCard.tag}}</text>
+      </view>
+      <view class="cl-big__bd">
+        <view class="cl-big__title warm-serif">{{bigCard.title}}</view>
+        <view class="cl-big__sum">{{bigCard.summary}}</view>
+        <view class="cl-big__mt">
+          <image class="cl-big__av" src="{{bigCard.avatar}}" mode="aspectFill" />
+          <text>{{bigCard.author}}</text>
+          <text class="cl-dot"></text>
+          <text>{{bigCard.meta}}</text>
         </view>
       </view>
     </view>
-    <view class="cc-safe"></view>
-  </scroll-view>
 
-  <empty-state
-    wx:if="{{isEmpty && !loading}}"
-    title="该主题下暂无此形态的内容"
-    desc="试试切换主题，或清除筛选条件"
-    actionText="清除筛选"
-    bind:action="clearFilters"
-  />
+    <!-- 混合布局 -->
+    <block wx:for="{{layoutItems}}" wx:key="id">
+      <!-- 左文右图 -->
+      <view
+        wx:if="{{item.layout === 'row'}}"
+        class="cl-row"
+        data-id="{{item.id}}"
+        data-moment="{{item.toMoment}}"
+        bindtap="onLayoutTap"
+      >
+        <view class="cl-row__tx">
+          <view class="cl-row__title">{{item.title}}</view>
+          <view class="cl-row__sum" wx:if="{{item.summary}}">{{item.summary}}</view>
+          <view class="cl-row__mt">
+            <text class="warm-tag" wx:if="{{item.tag}}">{{item.tag}}</text>
+            <text>{{item.meta}}</text>
+          </view>
+        </view>
+        <view class="cl-row__im">
+          <image src="{{item.cover}}" mode="aspectFill" />
+          <text class="cl-row__dur" wx:if="{{item.duration}}">{{item.duration}}</text>
+        </view>
+      </view>
+
+      <!-- 音频卡 -->
+      <view wx:elif="{{item.layout === 'audio'}}" class="cl-audio" data-id="{{item.id}}" bindtap="onContentTap">
+        <view class="cl-audio__pl">▶︎</view>
+        <view class="cl-audio__main">
+          <view class="cl-audio__title">{{item.title}}</view>
+          <view class="cl-audio__wave">
+            <view style="height:40%"></view><view style="height:70%"></view><view style="height:100%"></view>
+            <view style="height:55%"></view><view style="height:82%"></view><view style="height:36%"></view>
+            <view style="height:64%"></view><view style="height:92%"></view><view style="height:48%"></view>
+            <view style="height:74%"></view><view style="height:30%"></view><view style="height:58%"></view>
+          </view>
+        </view>
+        <text class="cl-audio__dur">{{item.duration}}</text>
+      </view>
+
+      <!-- 九宫格 -->
+      <view
+        wx:elif="{{item.layout === 'grid3'}}"
+        class="cl-grid3"
+        data-id="{{item.id}}"
+        data-note="1"
+        bindtap="onLayoutTap"
+      >
+        <view class="cl-grid3__title">{{item.title}}</view>
+        <view class="cl-grid3__gg">
+          <view wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" class="cl-grid3__cell">
+            <image src="{{img}}" mode="aspectFill" />
+            <view wx:if="{{index === 2}}" class="cl-grid3__more">+6</view>
+          </view>
+        </view>
+        <view class="cl-grid3__mt">
+          <text class="warm-tag warm-tag--gold" wx:if="{{item.tag}}">{{item.tag}}</text>
+          <text>{{item.meta}}</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- API 列表补充（左文右图） -->
+    <block wx:for="{{apiRows}}" wx:key="id">
+      <view class="cl-row" data-id="{{item.id}}" bindtap="onContentTap">
+        <view class="cl-row__tx">
+          <view class="cl-row__title">{{item.title}}</view>
+          <view class="cl-row__sum" wx:if="{{item.summary}}">{{item.summary}}</view>
+          <view class="cl-row__mt">
+            <text class="warm-tag">{{item.formatLabel}}</text>
+            <text>{{item.meta}}</text>
+          </view>
+        </view>
+        <view class="cl-row__im" wx:if="{{item.cover_url}}">
+          <image src="{{item.cover_url}}" mode="aspectFill" />
+        </view>
+      </view>
+    </block>
+
+    <view class="cl-end">—— {{footerText}} ——</view>
+    <view style="height:40rpx"></view>
+    </block>
+  </scroll-view>
 </view>
 </block>
 <login-sheet id="global-login-sheet" />

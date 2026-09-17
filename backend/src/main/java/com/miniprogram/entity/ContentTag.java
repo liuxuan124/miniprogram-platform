@@ -15,6 +15,9 @@ public class ContentTag extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
+    /** 租户ID */
+    private Long tenantId;
+
     /** 标签名称 */
     private String name;
 

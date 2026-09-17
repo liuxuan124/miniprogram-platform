@@ -63,6 +63,15 @@ public class ContentDTO {
     @Size(max = 64, message = "作者最长64个字符")
     private String author;
 
+    /** 作者角色 owner/editor/contributor/user */
+    private String authorRole;
+
+    /** 可见性 public/member_only/removed */
+    private String visibility;
+
+    /** 审核状态 pending/machine_passed/approved/rejected/auto_blocked */
+    private String auditStatus;
+
     /** 作者头像 URL */
     private String authorAvatar;
 
@@ -87,4 +96,7 @@ public class ContentDTO {
 
     /** 首页推荐 0/1 */
     private Integer isRecommended;
+
+    /** 星球专属 0/1 */
+    private Integer planetExclusive;
 }

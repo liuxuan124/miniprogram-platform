@@ -17,7 +17,11 @@ import com.miniprogram.mapper.RefundMapper;
 import com.miniprogram.mapper.UserCouponMapper;
 import com.miniprogram.mapper.CouponMapper;
 import com.miniprogram.mapper.CouponEffectMapper;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.RefundService;
+import com.miniprogram.service.SubscribeMessageService;
+import com.miniprogram.service.UserNoticeService;
+import com.miniprogram.support.FeatureModuleGuard;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -117,6 +121,10 @@ class OrderServiceImplTest {
         OrderMapper orderMapper = mock(OrderMapper.class);
         OrderItemMapper orderItemMapper = mock(OrderItemMapper.class);
         ProductMapper productMapper = mock(ProductMapper.class);
+        FeatureModuleGuard featureModuleGuard = mock(FeatureModuleGuard.class);
+        when(featureModuleGuard.isEnabled("product")).thenReturn(true);
+        MembershipAccessService membershipAccessService = mock(MembershipAccessService.class);
+        when(membershipAccessService.hasActivePaidMembership(org.mockito.ArgumentMatchers.anyLong())).thenReturn(false);
         OrderServiceImpl service = new OrderServiceImpl(
                 orderItemMapper,
                 productMapper,
@@ -124,11 +132,15 @@ class OrderServiceImplTest {
                 mock(PaymentMapper.class),
                 mock(RefundMapper.class),
                 mock(RefundService.class),
+                mock(UserNoticeService.class),
+                mock(SubscribeMessageService.class),
                 mock(MiniProgramUserMapper.class),
                 mock(UserCouponMapper.class),
                 mock(CouponMapper.class),
                 mock(CouponEffectMapper.class),
-                new ObjectMapper()
+                new ObjectMapper(),
+                featureModuleGuard,
+                membershipAccessService
         );
         ReflectionTestUtils.setField(service, "baseMapper", orderMapper);
         return new Fixture(service, orderMapper, orderItemMapper, productMapper);

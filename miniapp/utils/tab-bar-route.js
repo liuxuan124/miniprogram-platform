@@ -32,9 +32,8 @@ function resolveTabRouteForBoundCustomPath(customPath) {
 }
 
 function getTabSelectedIndex(tabRoute) {
-  const config = SystemService.getCachedConfig() || {}
-  const routes = resolveVisibleTabRoutes(config.plugins, config.tabbarItems)
-  const idx = routes.indexOf(normalizePath(tabRoute))
+  // 本地强制暖阁五 Tab 槽位，不依赖线上 tabbarItems 数量/顺序
+  const idx = TAB_SLOT_ROUTES.indexOf(normalizePath(tabRoute))
   return idx >= 0 ? idx : 0
 }
 

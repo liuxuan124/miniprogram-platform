@@ -22,6 +22,9 @@ public class Order implements Serializable {
     @Schema(description = "主键ID")
     private Long id;
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     @Schema(description = "订单号")
     private String orderNo;
 

@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 class ActivityCheckInServiceTest {
@@ -75,7 +76,7 @@ class ActivityCheckInServiceTest {
     void scanVerifyAlreadyVerifiedThrows() {
         ActivityCheckIn checkIn = pendingCheckIn();
         checkIn.setStatus("VERIFIED");
-        when(checkInMapper.selectList(any())).thenReturn(List.of(checkIn));
+        when(checkInMapper.selectOne(any(), anyBoolean())).thenReturn(checkIn);
         stubApprovedSignup();
         stubActivity();
 
@@ -103,7 +104,7 @@ class ActivityCheckInServiceTest {
     void scanVerifyInvalidStatusThrows() {
         ActivityCheckIn checkIn = pendingCheckIn();
         checkIn.setStatus("INVALID");
-        when(checkInMapper.selectList(any())).thenReturn(List.of(checkIn));
+        when(checkInMapper.selectOne(any(), anyBoolean())).thenReturn(checkIn);
         stubApprovedSignup();
         stubActivity();
 
@@ -115,12 +116,12 @@ class ActivityCheckInServiceTest {
     }
 
     private void stubPendingCheckIn() {
-        when(checkInMapper.selectList(any())).thenReturn(List.of(pendingCheckIn()));
+        when(checkInMapper.selectOne(any(), anyBoolean())).thenReturn(pendingCheckIn());
     }
 
     private void stubApprovedSignup() {
-        when(signupMapper.selectList(any())).thenReturn(List.of(approvedSignup()));
         when(signupMapper.selectOne(any())).thenReturn(approvedSignup());
+        when(signupMapper.selectOne(any(), anyBoolean())).thenReturn(approvedSignup());
     }
 
     private void stubActivity() {

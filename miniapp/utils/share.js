@@ -17,11 +17,13 @@ function buildSharePath(path, query) {
 }
 
 function defaultShare(options = {}) {
-  const brand = (getApp() && getApp().globalData && getApp().globalData.miniappBrandConfig) || {}
+  const app = getApp()
+  const brand = (app && app.globalData && app.globalData.miniappBrandConfig) || {}
+  const cachedShare = readCachedShareConfig()
   return {
-    title: options.title || brand.appName || brand.name || '欢迎访问',
+    title: options.title || cachedShare.title || brand.appName || brand.name || '欢迎访问',
     path: buildSharePath(options.path, options.query),
-    imageUrl: options.imageUrl || '',
+    imageUrl: options.imageUrl || cachedShare.imageUrl || brand.shareImage || '',
   }
 }
 
@@ -34,18 +36,31 @@ function enableShareMenu() {
   })
 }
 
-const DEFAULT_SHARE_TITLE = '出海笔记｜跨境干货、选品与增长实战'
+const DEFAULT_SHARE_TITLE = '欢迎访问'
+
+function readCachedShareConfig() {
+  try {
+    const app = typeof getApp === 'function' ? getApp() : null
+    const fromApp = (app && app.globalData && app.globalData.shareConfig) || {}
+    const { StorageUtil } = require('./storage')
+    const cached = (StorageUtil.get && StorageUtil.get('system_config')) || {}
+    const brand = (app && app.globalData && app.globalData.miniappBrandConfig) || {}
+    return {
+      title: String(fromApp.title || cached.miniappShareTitle || brand.appName || '').trim(),
+      imageUrl: String(fromApp.imageUrl || cached.miniappShareImage || brand.shareImage || '').trim(),
+    }
+  } catch (e) {
+    return { title: '', imageUrl: '' }
+  }
+}
 
 const PAGE_SHARE_TITLES = {
-  'pages/index/index': DEFAULT_SHARE_TITLE,
-  'pages/content-list/content-list': '出海笔记｜跨境实战内容中心',
-  'pages/tab-hub/tab-hub': '出海笔记',
-  'pages/product-list/product-list': '出海笔记｜跨境知识商品与咨询服务',
-  'pages/knowledge-mall/knowledge-mall': '出海笔记｜知识商城',
-  'pages/search/search': '出海笔记｜搜索跨境选品与运营干货',
-  'pkg-extra/activity-list/activity-list': '出海笔记｜跨境活动与实战服务',
-  'pkg-trade/category/category': '出海笔记｜按主题发现跨境干货',
-  'pkg-trade/reviews/reviews': '出海笔记｜用户真实评价',
+  'pages/index/index': '',
+  'pages/discover/discover': '',
+  'pages/content-list/content-list': '',
+  'pages/shop/shop': '',
+  'pages/planet/planet': '',
+  'pages/mine/mine': '',
 }
 
 const SAFE_QUERY_KEYS = new Set([
@@ -70,12 +85,14 @@ function resolveEntity(page) {
 function resolveTitle(page, fallbackTitle) {
   const data = (page && page.data) || {}
   const entity = resolveEntity(page)
+  const cachedShare = readCachedShareConfig()
   return entity.name
     || entity.title
     || data.shareTitle
     || data.title
     || fallbackTitle
     || PAGE_SHARE_TITLES[resolveRoute(page)]
+    || cachedShare.title
     || DEFAULT_SHARE_TITLE
 }
 
@@ -83,6 +100,7 @@ function resolveImageUrl(page, fallbackImageUrl) {
   const data = (page && page.data) || {}
   const entity = resolveEntity(page)
   const images = Array.isArray(entity.images) ? entity.images : []
+  const cachedShare = readCachedShareConfig()
   return entity.shareImage
     || entity.share_image
     || entity.coverUrl
@@ -95,6 +113,7 @@ function resolveImageUrl(page, fallbackImageUrl) {
     || images[0]
     || data.shareImage
     || fallbackImageUrl
+    || cachedShare.imageUrl
     || ''
 }
 
@@ -177,10 +196,32 @@ function installPageShareHook() {
   Page.__shareHookInstalled = true
 }
 
+/** 打开暖阁自定义分享面板（勿直接 open-type=share，否则会跳过面板直达原生选聊天） */
+function openWarmShareSheet(opts) {
+  const o = opts || {}
+  const q = []
+  const push = (k, v) => {
+    if (v == null || v === '') return
+    q.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)))
+  }
+  push('title', o.title)
+  push('path', o.path)
+  push('cover', o.cover)
+  push('quote', o.quote)
+  push('code', o.code)
+  push('contentId', o.contentId)
+  const url = '/pages/share/share' + (q.length ? '?' + q.join('&') : '')
+  wx.navigateTo({
+    url,
+    fail: () => wx.showToast({ title: '无法打开分享', icon: 'none' }),
+  })
+}
+
 module.exports = {
   defaultShare,
   buildSharePath,
   enableShareMenu,
   createSharePageConfig,
   installPageShareHook,
+  openWarmShareSheet,
 }

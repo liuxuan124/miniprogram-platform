@@ -26,8 +26,6 @@ function normalizeCartList(res) {
       price: item.price,
       quantity: item.quantity || 1,
       stock: item.stock,
-      productType: item.productType || item.product_type || '',
-      productTypes: item.productTypes || item.product_types || '',
       selected,
     }
   })

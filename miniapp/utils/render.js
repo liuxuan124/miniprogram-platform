@@ -6,6 +6,9 @@ const { DatasourceService } = require('../services/datasource')
 const { filterProductsByPrice, resolvePriceFilterConfig } = require('./product-price-filter')
 const SystemService = require('../services/system')
 const { filterTradeComponents, blockTradeNavigation, getProductEnabledSync } = require('./product-module-gate')
+const { blockQaNavigation } = require('./qa-module-gate')
+const { filterFormComponents, blockFormNavigation } = require('./form-module-gate')
+const { isValidContentId, extractContentIdFromPath } = require('./content-id')
 const { resolveTabRouteForBoundCustomPath } = require('./tab-bar-route')
 
 // ========== 工具函数 ==========
@@ -64,6 +67,11 @@ const COMPONENT_TYPES = {
   IMAGE_HOTSPOT: 'image_hotspot',
   SECTION_BG: 'section_bg',
   FEATURE_CARDS: 'feature_cards',
+  IMAGE_CUBE: 'image_cube',
+  CONTENT_TABS: 'content_tabs',
+  PLANET_HERO: 'planet_hero',
+  PLANET_TOPICS: 'planet_topics',
+  PLANET_FEED: 'planet_feed',
 }
 
 // 需要数据源的组件类型
@@ -338,6 +346,7 @@ function parseDSL(dsl) {
   try {
     const cached = SystemService.getCachedConfig()
     components = filterTradeComponents(components, cached && cached.plugins)
+    components = filterFormComponents(components, cached && cached.plugins)
   } catch (e) {
     // ignore
   }
@@ -491,6 +500,7 @@ async function loadAllComponentData(components, forceRefresh = false) {
   try {
     const cached = SystemService.getCachedConfig()
     list = filterTradeComponents(list, cached && cached.plugins)
+    list = filterFormComponents(list, cached && cached.plugins)
   } catch (e) {
     // ignore
   }
@@ -513,11 +523,10 @@ async function loadAllComponentData(components, forceRefresh = false) {
 
 const TAB_PAGE_PATHS = [
   '/pages/index/index',
-  '/pages/content-list/content-list',
-  '/pages/knowledge-mall/knowledge-mall',
-  '/pages/product-list/product-list',
+  '/pages/discover/discover',
+  '/pages/planet/planet',
+  '/pages/shop/shop',
   '/pages/mine/mine',
-  '/pages/tab-hub/tab-hub',
 ]
 
 function normalizeRoutePath(path) {
@@ -552,15 +561,54 @@ function rewriteUnregisteredPage(path) {
   const url = normalizeRoutePath(path)
   const base = stripQuery(url)
   if (!base || base === '/pages/custom/custom') return url
+  const query = url.includes('?') ? url.slice(url.indexOf('?')) : ''
+
+  // 常见错误主包路径 → 分包真实路径（避免点击无反应 / navigateTo fail）
+  const PAGE_ALIASES = {
+    '/pages/service-chat/service-chat': '/pkg-user/service-chat/service-chat',
+    '/pages/favorites/favorites': '/pkg-user/favorites/favorites',
+    '/pages/feedback/feedback': '/pkg-user/feedback/feedback',
+    '/pages/settings/settings': '/pkg-user/settings/settings',
+    '/pages/member-center/member-center': '/pkg-user/member-center/member-center',
+    '/pages/agreement/agreement': '/pkg-user/agreement/agreement',
+    '/pages/order-detail/order-detail': '/pkg-trade/order-detail/order-detail',
+    '/pages/order-list/order-list': '/pkg-trade/order-list/order-list',
+    '/pages/order-paid/order-paid': '/pkg-trade/order-paid/order-paid',
+    '/pages/reviews/reviews': '/pkg-trade/reviews/reviews',
+    '/pages/write-review/write-review': '/pkg-trade/write-review/write-review',
+    '/pages/appointment-calendar/appointment-calendar': '/pkg-trade/appointment-calendar/appointment-calendar',
+    '/pages/appointment-book/appointment-book': '/pkg-trade/appointment-book/appointment-book',
+    '/pages/notices/notices': '/pkg-user/notices/notices',
+    '/pages/coupon-list/coupon-list': '/pkg-user/coupon-list/coupon-list',
+    '/pages/points-log/points-log': '/pkg-user/points-log/points-log',
+    '/pages/address-list/address-list': '/pkg-user/address-list/address-list',
+    '/pages/my-appointments/my-appointments': '/pkg-user/my-appointments/my-appointments',
+    '/pages/appointment-list/appointment-list': '/pkg-user/appointment-list/appointment-list',
+    '/pages/sign-in/sign-in': '/pkg-user/sign-in/sign-in',
+    '/pages/activity-list/activity-list': '/pkg-extra/activity-list/activity-list',
+    '/pages/activity-detail/activity-detail': '/pkg-extra/activity-detail/activity-detail',
+  }
+  if (PAGE_ALIASES[base]) {
+    return PAGE_ALIASES[base] + query
+  }
+
   if (base.startsWith('/pages/custom/') || base.startsWith('/pages/activity/')) {
     const logical = base.replace(/^\//, '')
-    return '/pages/custom/custom?path=' + encodeURIComponent(logical)
+    return '/pages/custom/custom?path=' + encodeURIComponent(logical) + (query ? '&' + query.slice(1) : '')
   }
   return url
 }
 
 function navigatePage(path) {
   if (blockTradeNavigation(path)) return
+  if (blockQaNavigation(path)) return
+  if (blockFormNavigation(path)) return
+
+  const rawPath = String(path || '')
+  if (rawPath.indexOf('content-detail') >= 0 && !isValidContentId(extractContentIdFromPath(rawPath))) {
+    wx.showToast({ title: '内容暂不可用', icon: 'none' })
+    return
+  }
 
   const customBase = stripQuery(normalizeRoutePath(path))
   if (customBase.startsWith('/pages/custom/')) {
@@ -574,25 +622,30 @@ function navigatePage(path) {
   let url = rewriteUnregisteredPage(path)
   if (!url) return
 
-  // 旧商城页统一切到知识商城 Tab（商品模块关闭时改去内容 Tab，避免「功能暂未开放」）
-  if (stripQuery(url) === '/pages/product-list/product-list') {
-    if (!getProductEnabledSync()) {
-      wx.switchTab({ url: '/pages/content-list/content-list' })
-      return
-    }
+  // 旧商城/内容 Tab 路径统一改写到现网五 Tab
+  {
     const q = parseQuery(url)
     const qs = Object.keys(q).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(q[k])}`).join('&')
-    url = '/pages/knowledge-mall/knowledge-mall' + (qs ? '?' + qs : '')
+    const base0 = stripQuery(url)
+    if (base0 === '/pages/product-list/product-list' || base0 === '/pages/knowledge-mall/knowledge-mall') {
+      if (!getProductEnabledSync()) {
+        wx.switchTab({ url: '/pages/discover/discover' })
+        return
+      }
+      url = '/pages/shop/shop' + (qs ? '?' + qs : '')
+    } else if (base0 === '/pages/content-list/content-list') {
+      url = '/pages/discover/discover' + (qs ? '?' + qs : '')
+    }
   }
 
   if (isTabPage(url)) {
     const query = parseQuery(url)
-    const base = stripQuery(url)
+    let base = stripQuery(url)
     if (
       !getProductEnabledSync()
-      && (base === '/pages/knowledge-mall/knowledge-mall' || base === '/pages/product-list/product-list')
+      && base === '/pages/shop/shop'
     ) {
-      wx.switchTab({ url: '/pages/content-list/content-list' })
+      wx.switchTab({ url: '/pages/discover/discover' })
       return
     }
     // switchTab 不支持 query，暂存给目标 Tab 页 onShow 读取

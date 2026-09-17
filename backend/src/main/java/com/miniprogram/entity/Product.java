@@ -22,6 +22,9 @@ public class Product implements Serializable {
     @Schema(description = "主键ID")
     private Long id;
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     @Schema(description = "商品名称")
     private String name;
 
@@ -46,6 +49,12 @@ public class Product implements Serializable {
     @Schema(description = "原价")
     private BigDecimal originalPrice;
 
+    @Schema(description = "会员价")
+    private BigDecimal memberPrice;
+
+    @Schema(description = "会员免费：0否 1是")
+    private Integer memberFree;
+
     @Schema(description = "总库存")
     private Integer stock;
 
@@ -61,7 +70,7 @@ public class Product implements Serializable {
     @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 
-    @Schema(description = "商品类型: physical/digital/service（主类型，兼容旧逻辑）")
+    @Schema(description = "商品类型: physical/digital/service/membership/ebook/column/resource_pack")
     private String productType = "physical";
 
     @Schema(description = "商品类型 JSON 数组，可多选")
@@ -70,8 +79,27 @@ public class Product implements Serializable {
     @Schema(description = "支付成功后自动履约（数字商品）")
     private Integer autoFulfill;
 
+    @Schema(description = "交付方式: auto/manual/redeem_code")
+    private String deliveryMode = "auto";
+
+    @Schema(description = "退款政策: none/before_read/seven_days")
+    private String refundPolicy = "none";
+
+    @Schema(description = "免费试读章数")
+    private Integer previewChapters;
+
+    @Schema(description = "定时上架时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime publishAt;
+
     @Schema(description = "自动发货内容")
     private String fulfillContent;
+
+    @Schema(description = "会员商品有效天数，0=终身")
+    private Integer membershipDays;
+
+    @Schema(description = "开通后写入的会员等级 ID")
+    private Long membershipLevelId;
 
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

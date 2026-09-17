@@ -37,6 +37,9 @@ public class AgentKnowledge implements Serializable {
     private LocalDateTime lastSyncedAt;
     private BigDecimal recallWeight;
 
+    /** full|summary|none */
+    private String citePolicy;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 }

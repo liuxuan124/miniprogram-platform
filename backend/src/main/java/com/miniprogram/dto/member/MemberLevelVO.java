@@ -43,6 +43,12 @@ public class MemberLevelVO {
     @Schema(description = "状态")
     private Integer status;
 
+    @Schema(description = "开通本档额外赠送星球天数")
+    private Integer giftPlanetDays;
+
+    @Schema(description = "到期前提醒天数")
+    private Integer expireRemindDays;
+
     @Schema(description = "当前属于该等级的会员数")
     private Integer memberCount;
 

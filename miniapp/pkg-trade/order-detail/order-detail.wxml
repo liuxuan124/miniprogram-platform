@@ -1,175 +1,175 @@
-<!-- pkg-trade/order-detail/order-detail.wxml — 订单详情页 -->
+<!-- pkg-trade/order-detail — 对齐 prototypes-warm/order.html ④ 订单详情 -->
 <page-meta page-style="{{themePageStyle}}" />
-<view class="order-detail-page" wx:if="{{!loading && order}}">
-  <!-- 订单状态头部 -->
-  <view class="status-header" style="background-color: {{STATUS_MAP[order.status].color || '#999'}}">
-    <text class="status-text">{{STATUS_MAP[order.status].text || order.status}}</text>
-    <text class="status-desc">{{STATUS_MAP[order.status].desc || ''}}</text>
+<view class="od warm-page {{showBottomBar ? 'warm-page-with-actionbar' : ''}}" wx:if="{{!loading && order}}">
+  <!-- 状态卡：无冷色进度条 -->
+  <view class="od-stbar">
+    <view class="od-stbar__title">
+      <text class="od-stbar__ico" wx:if="{{statusIcon}}">{{statusIcon}}</text>
+      <text>{{STATUS_MAP[order.status].text || order.status}}</text>
+    </view>
+    <text class="od-stbar__desc">{{STATUS_MAP[order.status].desc || ''}}</text>
   </view>
 
-  <!-- 步骤条（正常流程才显示） -->
-  <view class="steps-section" wx:if="{{order.status !== 'closed' && order.status !== 'refunding' && order.status !== 'refunded'}}">
-    <view class="steps">
-      <view
-        wx:for="{{steps}}"
-        wx:key="index"
-        class="step {{currentStep >= index ? 'active' : ''}} {{currentStep === index ? 'current' : ''}}"
-      >
-        <view class="step-dot"></view>
-        <text class="step-text">{{item.text}}</text>
+  <!-- 收货地址（实物） -->
+  <view class="od-card od-addr" wx:if="{{order.address}}">
+    <image class="od-addr__ico" src="/images/icon-location.svg" mode="aspectFit" />
+    <view class="od-addr__body">
+      <view class="od-addr__row">
+        <text class="od-addr__name">{{order.address.name}}</text>
+        <text class="od-addr__phone">{{order.address.phone}}</text>
       </view>
+      <text class="od-addr__detail">{{order.address.province}}{{order.address.city}}{{order.address.district}}{{order.address.detail}}</text>
     </view>
   </view>
 
-  <!-- 收货地址 -->
-  <view class="address-section" wx:if="{{order.address}}">
-    <view class="address-icon">
-      <image class="address-icon-img" src="/images/icon-location.svg" mode="aspectFit" />
-    </view>
-    <view class="address-info">
-      <view class="address-name-phone">
-        <text class="address-name">{{order.address.name}}</text>
-        <text class="address-phone">{{order.address.phone}}</text>
-      </view>
-      <text class="address-detail">{{order.address.province}}{{order.address.city}}{{order.address.district}}{{order.address.detail}}</text>
-    </view>
-  </view>
-
-  <!-- 商品列表 -->
-  <view class="goods-section">
-    <view class="section-title">商品信息</view>
-    <view
-      wx:for="{{order.items}}"
-      wx:key="product_id"
-      class="goods-item"
-    >
-      <image class="goods-image" src="{{item.product_image || item.image}}" mode="aspectFill" />
-      <view class="goods-info">
-        <text class="goods-name">{{item.product_name || item.name}}</text>
-        <text class="goods-sku" wx:if="{{item.sku_name}}">规格: {{item.sku_name}}</text>
-        <view class="goods-bottom">
-          <text class="goods-price">¥{{item.price}}</text>
-          <text class="goods-qty">x{{item.quantity}}</text>
+  <!-- 商品卡（无「商品信息」标题） -->
+  <view class="od-card od-goods">
+    <view class="od-goods__row" wx:for="{{order.items}}" wx:key="product_id">
+      <image class="od-goods__im" src="{{item.product_image || item.image}}" mode="aspectFill" />
+      <view class="od-goods__info">
+        <text class="od-goods__name">{{item.product_name || item.name}}</text>
+        <text class="od-goods__sub" wx:if="{{item.sku_name}}">{{item.sku_name}}</text>
+        <view class="od-goods__btm">
+          <text class="od-goods__pr">¥{{item.price}}</text>
+          <text class="od-goods__qty">x{{item.quantity}}</text>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 订单信息 -->
-  <view class="info-section">
-    <view class="section-title">订单信息</view>
-    <view class="info-row">
-      <text class="info-label">订单编号</text>
-      <view class="info-value-wrap">
-        <text class="info-value">{{order.order_no || order.id}}</text>
-        <text class="info-copy" bindtap="onCopyOrderNo">复制</text>
+  <!-- 价格卡（无「价格明细」标题） -->
+  <view class="od-card od-total">
+    <view class="od-total__li">
+      <text>商品金额</text>
+      <text class="od-total__v">¥{{order.goods_amount || order.total_amount}}</text>
+    </view>
+    <view class="od-total__li" wx:if="{{!isVirtual && (order.shipping_fee || order.freight_amount)}}">
+      <text>运费</text>
+      <text class="od-total__v">¥{{order.shipping_fee || order.freight_amount || '0.00'}}</text>
+    </view>
+    <view class="od-total__li" wx:if="{{order.discount_amount || order.coupon_amount || warmCouponAmount}}">
+      <text>优惠券</text>
+      <text class="od-total__v cut">-¥{{order.coupon_amount || order.discount_amount || warmCouponAmount}}</text>
+    </view>
+    <view class="od-total__li" wx:if="{{order.beans_amount || order.bean_amount || warmBeansAmount}}">
+      <text>暖豆抵扣</text>
+      <text class="od-total__v cut">-¥{{order.beans_amount || order.bean_amount || warmBeansAmount}}</text>
+    </view>
+    <view class="od-total__sum">
+      <text>实付款</text>
+      <text class="od-total__pay"><text class="od-total__yen">¥</text>{{order.pay_amount || order.total_amount || order.total_price}}</text>
+    </view>
+  </view>
+
+  <!-- 订单元数据 -->
+  <view class="od-card od-kv">
+    <view class="od-kv__li">
+      <text class="od-kv__k">订单号</text>
+      <view class="od-kv__v">
+        <text>{{order.order_no || order.id}}</text>
+        <text class="od-kv__cp" bindtap="onCopyOrderNo">复制</text>
       </view>
     </view>
-    <view class="info-row">
-      <text class="info-label">下单时间</text>
-      <text class="info-value">{{order.created_at}}</text>
-    </view>
-    <view class="info-row" wx:if="{{order.paid_at}}">
-      <text class="info-label">支付时间</text>
-      <text class="info-value">{{order.paid_at}}</text>
-    </view>
-    <view class="info-row" wx:if="{{order.shipped_at}}">
-      <text class="info-label">发货时间</text>
-      <text class="info-value">{{order.shipped_at}}</text>
-    </view>
-    <view class="info-row" wx:if="{{order.remark}}">
-      <text class="info-label">备注</text>
-      <text class="info-value">{{order.remark}}</text>
-    </view>
-  </view>
-
-  <view class="info-section" wx:if="{{order.fulfillment_type === 'physical' && (order.shipping_company || order.shipping_no)}}">
-    <view class="section-title">物流信息</view>
-    <view class="info-row">
-      <text class="info-label">物流公司</text>
-      <text class="info-value">{{order.shipping_company || '-'}}</text>
-    </view>
-    <view class="info-row">
-      <text class="info-label">物流单号</text>
-      <text class="info-value">{{order.shipping_no || '-'}}</text>
-    </view>
-  </view>
-
-  <view class="info-section" wx:if="{{order.fulfillment_type === 'virtual' && order.virtual_delivery_content}}">
-    <view class="section-title">发货通知</view>
-    <view class="info-row">
-      <text class="info-label">发货说明</text>
-      <view class="info-value-wrap">
-        <text class="info-value">{{order.virtual_delivery_content}}</text>
-        <text class="info-copy" bindtap="onCopyShippingNotice">复制</text>
+    <view class="od-kv__li" wx:if="{{order.transaction_id}}">
+      <text class="od-kv__k">交易单号</text>
+      <view class="od-kv__v">
+        <text>{{order.transaction_id}}</text>
+        <text class="od-kv__cp" data-text="{{order.transaction_id}}" bindtap="onCopyText">复制</text>
       </view>
     </view>
-  </view>
-
-  <!-- 价格明细 -->
-  <view class="price-section">
-    <view class="section-title">价格明细</view>
-    <view class="price-row">
-      <text class="price-label">商品金额</text>
-      <text class="price-value">¥{{order.goods_amount || order.total_amount}}</text>
+    <view class="od-kv__li" wx:if="{{payMethodLabel}}">
+      <text class="od-kv__k">支付方式</text>
+      <text class="od-kv__v">{{payMethodLabel}}</text>
     </view>
-    <view class="price-row">
-      <text class="price-label">运费</text>
-      <text class="price-value">¥{{order.shipping_fee || '0.00'}}</text>
+    <view class="od-kv__li">
+      <text class="od-kv__k">下单时间</text>
+      <text class="od-kv__v">{{order.created_at}}</text>
     </view>
-    <view class="price-row" wx:if="{{order.discount_amount}}">
-      <text class="price-label">优惠</text>
-      <text class="price-value discount">-¥{{order.discount_amount}}</text>
+    <view class="od-kv__li" wx:if="{{order.paid_at}}">
+      <text class="od-kv__k">支付时间</text>
+      <text class="od-kv__v">{{order.paid_at}}</text>
     </view>
-    <view class="price-row total">
-      <text class="price-label">实付金额</text>
-      <text class="price-value total-price">¥{{order.total_amount || order.total_price}}</text>
+    <view class="od-kv__li" wx:if="{{isVirtual && activatedAt}}">
+      <text class="od-kv__k">开通时间</text>
+      <text class="od-kv__v">{{activatedAt}}</text>
     </view>
-  </view>
-
-  <!-- 底部操作栏 -->
-  <view class="bottom-bar" wx:if="{{order.status === 'pending_payment' || order.status === 'paid' || order.status === 'shipped' || order.status === 'completed'}}">
-    <!-- 待付款 -->
-    <block wx:if="{{order.status === 'pending_payment'}}">
-      <view class="action-btn action-btn--default" bindtap="onCancelTap">取消订单</view>
-      <view class="action-btn action-btn--primary" bindtap="onPayTap">立即支付</view>
-    </block>
-    <!-- 待发货 -->
-    <block wx:if="{{order.status === 'paid'}}">
-      <view class="action-btn action-btn--default" bindtap="onRefundTap">申请退款</view>
-      <view class="action-btn action-btn--primary" bindtap="onContactTap">联系商家</view>
-    </block>
-    <!-- 待收货 -->
-    <block wx:if="{{order.status === 'shipped'}}">
-      <view class="action-btn action-btn--primary" bindtap="onConfirmTap">确认完成</view>
-    </block>
-    <!-- 已完成 -->
-    <block wx:if="{{order.status === 'completed'}}">
-      <view class="action-btn action-btn--default" bindtap="onContactTap">联系客服</view>
-    </block>
-  </view>
-
-  <!-- 退款弹窗 -->
-  <view class="refund-mask" wx:if="{{showRefundModal}}" bindtap="onRefundCancel">
-    <view class="refund-panel" catchtap="">
-      <text class="refund-title">申请退款</text>
-      <textarea
-        class="refund-input"
-        placeholder="请输入退款原因"
-        value="{{refundReason}}"
-        maxlength="200"
-        bindinput="onRefundReasonInput"
-      />
-      <view class="refund-btns">
-        <view class="refund-btn refund-btn--cancel" bindtap="onRefundCancel">取消</view>
-        <view class="refund-btn refund-btn--confirm" bindtap="onRefundConfirm">提交</view>
+    <view class="od-kv__li" wx:if="{{!isVirtual && order.shipped_at}}">
+      <text class="od-kv__k">发货时间</text>
+      <text class="od-kv__v">{{order.shipped_at}}</text>
+    </view>
+    <view class="od-kv__li" wx:if="{{order.fulfillment_type === 'physical' && (order.shipping_company || order.shipping_no)}}">
+      <text class="od-kv__k">物流</text>
+      <text class="od-kv__v">{{order.shipping_company || ''}} {{order.shipping_no || ''}}</text>
+    </view>
+    <view class="od-kv__li" wx:if="{{order.fulfillment_type === 'virtual' && order.virtual_delivery_content}}">
+      <text class="od-kv__k">发货说明</text>
+      <view class="od-kv__v">
+        <text>{{order.virtual_delivery_content}}</text>
+        <text class="od-kv__cp" bindtap="onCopyShippingNotice">复制</text>
       </view>
+    </view>
+    <view class="od-kv__li" wx:if="{{order.remark}}">
+      <text class="od-kv__k">备注</text>
+      <text class="od-kv__v">{{order.remark}}</text>
+    </view>
+  </view>
+
+  <!-- 完成后快捷入口（对齐原型） -->
+  <view class="od-card od-links" wx:if="{{order.status === 'completed' || (isVirtual && (order.status === 'paid' || order.status === 'shipped'))}}">
+    <view class="od-links__li" bindtap="onInvoiceTap">
+      <text class="od-links__k">🧾 申请发票</text>
+      <text class="od-links__v">支付后 90 天内可申请</text>
+      <text class="od-links__ar">›</text>
+    </view>
+    <view class="od-links__li" bindtap="onContactTap">
+      <text class="od-links__k">💬 联系客服</text>
+      <text class="od-links__v">订单问题</text>
+      <text class="od-links__ar">›</text>
+    </view>
+  </view>
+
+  <view class="od-refund" wx:if="{{isVirtual}}">
+    ⚠️ <text class="od-refund__b">退款说明</text>：数字内容在权限开通后不支持退款。若出现重复支付、权限未开通等异常，请在 7 日内联系客服核实，核实后原路退回，预计 1-3 个工作日到账。
+  </view>
+
+  <view class="warm-end">— 暖阁 · 订单详情 —</view>
+</view>
+
+<!-- 底栏：待付款 / 实物待发货·待收货 -->
+<view class="warm-actionbar" wx:if="{{!loading && order && showBottomBar}}">
+  <block wx:if="{{order.status === 'pending_payment'}}">
+    <view class="warm-btn warm-btn--ghost od-btn" bindtap="onCancelTap">取消订单</view>
+    <view class="warm-btn od-btn od-btn--grow" bindtap="onPayTap">立即支付</view>
+  </block>
+  <block wx:elif="{{order.status === 'paid' && !isVirtual}}">
+    <view class="warm-btn warm-btn--ghost od-btn" bindtap="onRefundTap">申请退款</view>
+    <view class="warm-btn od-btn od-btn--grow" bindtap="onContactTap">联系商家</view>
+  </block>
+  <block wx:elif="{{order.status === 'shipped' && !isVirtual}}">
+    <view class="warm-btn od-btn od-btn--grow" bindtap="onConfirmTap">确认完成</view>
+  </block>
+</view>
+
+<!-- 退款弹窗 -->
+<view class="od-mask" wx:if="{{showRefundModal}}" bindtap="onRefundCancel">
+  <view class="od-panel" catchtap="">
+    <text class="od-panel__title">申请退款</text>
+    <textarea
+      class="od-panel__input"
+      placeholder="请输入退款原因"
+      value="{{refundReason}}"
+      maxlength="200"
+      bindinput="onRefundReasonInput"
+    />
+    <view class="od-panel__btns">
+      <view class="warm-btn warm-btn--ghost od-btn" bindtap="onRefundCancel">取消</view>
+      <view class="warm-btn od-btn od-btn--grow" bindtap="onRefundConfirm">提交</view>
     </view>
   </view>
 </view>
+
 <login-sheet id="global-login-sheet" />
 
-<!-- 加载状态 -->
-<view class="loading-page" wx:if="{{loading}}">
+<view class="od-loading" wx:if="{{loading}}">
   <text>加载中...</text>
 </view>

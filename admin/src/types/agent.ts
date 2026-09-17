@@ -45,6 +45,9 @@ export interface AgentConfigPayload {
   dailyTokenBudget?: number
   overBudgetAction?: string
   evalCases?: string
+  personaId?: string
+  personaName?: string
+  personaTone?: string
 }
 
 export interface AgentRoleCard {

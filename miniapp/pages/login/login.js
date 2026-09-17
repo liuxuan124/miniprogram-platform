@@ -153,7 +153,8 @@ Page({
 
     if (!code) {
       console.warn('[LoginPage] 用户未授权手机号:', errMsg)
-      wx.showToast({ title: '需要授权手机号才能登录', icon: 'none' })
+      wx.showToast({ title: '已取消登录，可继续浏览', icon: 'none' })
+      setTimeout(() => this.onBack(), 400)
       return
     }
 

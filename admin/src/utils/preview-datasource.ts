@@ -264,8 +264,8 @@ function mapProductItems(list: any[], limit: number, sortKey?: string, priceFilt
 
 function demoProductItems(limit = 2) {
   return [
-    { id: 'demo-1', name: '跨境通用知识库', title: '跨境通用知识库', price: '199.00', sales: 128, image: '' },
-    { id: 'demo-2', name: '跨境财税知识库', title: '跨境财税知识库', price: '299.00', sales: 86, image: '' },
+    { id: 'demo-1', name: '示例商品 A', title: '示例商品 A', price: '99.00', sales: 128, image: '' },
+    { id: 'demo-2', name: '示例商品 B', title: '示例商品 B', price: '199.00', sales: 86, image: '' },
   ].slice(0, Math.max(limit, 1))
 }
 

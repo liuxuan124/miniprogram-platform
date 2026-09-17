@@ -57,4 +57,9 @@ public interface ProductService extends IService<Product> {
      * 下架（幂等；草稿保持草稿）
      */
     void offSale(Long id);
+
+    /**
+     * 暖阁 ¥1 支付验通路种子（不存在则创建并上架）
+     */
+    Product ensurePay1SmokeProduct();
 }

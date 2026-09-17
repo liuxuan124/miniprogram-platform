@@ -1,0 +1,21 @@
+<view class="tabs" style="{{styleString}}">
+  <view class="tabs__nav">
+    <view
+      wx:for="{{panes}}"
+      wx:key="title"
+      class="tabs__tab {{active === index ? 'is-on' : ''}}"
+      data-index="{{index}}"
+      bindtap="onSwitch"
+    >{{item.title}}</view>
+  </view>
+  <view
+    wx:for="{{items}}"
+    wx:key="title"
+    class="tabs__item"
+    data-url="{{item.link_url}}"
+    bindtap="onTap"
+  >
+    <text class="tabs__title">{{item.title}}</text>
+    <text wx:if="{{item.desc}}" class="tabs__desc">{{item.desc}}</text>
+  </view>
+</view>

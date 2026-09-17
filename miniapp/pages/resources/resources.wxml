@@ -1,0 +1,57 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="rs-page">
+  <view class="rs-head">
+    <view class="rs-tt">
+      <text class="rs-title warm-serif">资料库</text>
+      <view class="rs-sr">🔍</view>
+    </view>
+    <scroll-view class="rs-cats" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{cats}}"
+        wx:key="*this"
+        class="rs-cat {{activeCat === item ? 'on' : ''}}"
+        data-cat="{{item}}"
+        bindtap="onCatTap"
+      >{{item}}</view>
+    </scroll-view>
+  </view>
+
+  <view class="rs-gate {{memberOk ? 'ok' : ''}}" catchtap="onGoMember">
+    <text class="rs-gate__ic">{{memberOk ? '🎫' : '🔒'}}</text>
+    <view style="flex:1">
+      <view class="rs-gate__title">{{gateTitle}}</view>
+      <view class="rs-gate__desc">{{gateDesc}}</view>
+    </view>
+    <text class="rs-gate__go">{{gateCta}}</text>
+  </view>
+
+  <view class="rs-cfgnote">💡 试读范围由后台按资料单独配置。本页默认策略：前 2 页。</view>
+
+  <view wx:if="{{loading && isEmpty}}" class="rs-state">加载中...</view>
+
+  <block wx:elif="{{groups.length}}">
+    <block wx:for="{{groups}}" wx:for-item="grp" wx:key="title">
+      <view class="rs-grp">{{grp.title}}</view>
+      <view
+        wx:for="{{grp.items}}"
+        wx:key="id"
+        class="rs-fl {{item.locked ? 'locked' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onOpenFile"
+      >
+        <view class="rs-fl__ic {{item.ext === 'XLSX' ? 'xls' : ''}} {{item.ext === 'ZIP' ? 'zip' : ''}}">{{item.ext}}</view>
+        <view class="rs-fl__tx">
+          <view class="rs-fl__name">{{item.name}}</view>
+          <view class="rs-fl__meta" wx:if="{{item.meta}}">{{item.meta}}</view>
+        </view>
+        <view style="flex:none;text-align:center">
+          <text class="rs-fl__btn {{item.locked ? 'lock' : ''}}">{{item.actionText}}</text>
+          <text class="rs-fl__try" wx:if="{{item.tryHint}}">{{item.tryHint}}</text>
+        </view>
+      </view>
+    </block>
+    <view class="rs-end">—— {{footerText || '共 128 份'}} ——</view>
+  </block>
+
+  <view wx:else class="rs-state">{{footerText || '暂无资料'}}</view>
+</view>
