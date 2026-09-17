@@ -41,4 +41,10 @@ mysql_root "${DB_NAME}" -e "INSERT INTO mp_admin_user (tenant_id, username, pass
   VALUES (1, '${ADMIN_USER}', '${HASH}', '平台管理员', 1, 1) \
   ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role_id=VALUES(role_id), status=1;"
 
+echo "[db-init] enabling all feature modules (dev convenience)"
+PLUGINS='[{"key":"product","enabled":true},{"key":"member","enabled":true},{"key":"order","enabled":true},{"key":"content","enabled":true},{"key":"comment","enabled":true},{"key":"activity","enabled":true},{"key":"form","enabled":true},{"key":"qa","enabled":true},{"key":"appointment","enabled":true},{"key":"coupon","enabled":true},{"key":"agent","enabled":true},{"key":"planet","enabled":true}]'
+mysql_root "${DB_NAME}" -e "INSERT INTO mp_system_config (tenant_id, config_key, config_value, config_group, description) \
+  VALUES (1, 'plugins', '${PLUGINS}', 'basic', '功能模块开关（开发环境默认全开）') \
+  ON DUPLICATE KEY UPDATE config_value=VALUES(config_value);"
+
 echo "[db-init] done. Admin login: ${ADMIN_USER} / ${ADMIN_PASS}"
