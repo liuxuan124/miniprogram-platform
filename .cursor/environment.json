@@ -1,0 +1,16 @@
+{
+  "name": "mini-program platform",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "backend",
+      "command": "cd backend && SPRING_PROFILES_ACTIVE=dev DB_PASSWORD=changeme JWT_SECRET=dev-local-jwt-secret-please-change-1234567890 java -jar target/mini-program-platform-1.0.0-SNAPSHOT.jar"
+    },
+    {
+      "name": "admin",
+      "command": "cd admin && npm run dev -- --host 0.0.0.0"
+    }
+  ],
+  "ports": [8080, 3000]
+}
