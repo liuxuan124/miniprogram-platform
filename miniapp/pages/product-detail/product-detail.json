@@ -1,8 +1,12 @@
 {
-  "navigationBarTitleText": "商品详情",
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "",
   "usingComponents": {
     "sku-sheet": "../../components/sku-sheet/sku-sheet",
     "coupon-sheet": "../../components/coupon-sheet/coupon-sheet",
     "login-sheet": "/components/login-sheet/login-sheet"
-  }
+  },
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FDF6EC"
 }

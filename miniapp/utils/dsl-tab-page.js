@@ -118,8 +118,11 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
     // 首页 / 内容 / 商城 均用自定义顶栏（与 brand_header 对齐，避免系统栏+空隙）
     const useCustomNav = [
       '/pages/index/index',
+      '/pages/discover/discover',
       '/pages/content-list/content-list',
+      '/pages/shop/shop',
       '/pages/knowledge-mall/knowledge-mall',
+      '/pages/planet/planet',
       '/pages/tab-hub/tab-hub',
     ].indexOf(route) >= 0
     const { skeleton, enrich } = await loadDslPageState(path, forceRefresh, { useCustomNav })

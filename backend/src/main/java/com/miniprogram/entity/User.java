@@ -18,6 +18,9 @@ import java.time.LocalDateTime;
 @Schema(description = "小程序用户")
 public class User extends BaseEntity {
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     @Schema(description = "微信OpenID")
     private String openid;
 
@@ -42,6 +45,10 @@ public class User extends BaseEntity {
     @Schema(description = "会员等级ID")
     private Long levelId;
 
+    @Schema(description = "付费会员到期时间；NULL 表示终身或未开通付费")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime memberExpireAt;
+
     @Schema(description = "连续签到天数")
     private Integer continuousSignDays;
 
@@ -60,4 +67,7 @@ public class User extends BaseEntity {
 
     @Schema(description = "关联会员ID")
     private Long memberId;
+
+    @Schema(description = "创作者身份 contributor，审核通过写入")
+    private String creatorRole;
 }

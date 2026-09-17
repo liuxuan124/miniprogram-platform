@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "动态详情",
-  "enableShareAppMessage": true,
-  "enableShareTimeline": true
+  "navigationBarTitleText": "星球动态",
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "navigationBarTextStyle": "black"
 }

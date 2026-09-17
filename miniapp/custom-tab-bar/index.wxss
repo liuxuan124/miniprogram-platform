@@ -1,4 +1,4 @@
-/* 原生式底部导航：完整承接安全区，当前项以轻量胶囊突出 */
+/* 暖阁底部导航 — 有辨识度的图标壳 + 奶油玻璃底栏 */
 
 .tab-bar {
   position: fixed;
@@ -7,11 +7,12 @@
   left: 0;
   z-index: 999;
   display: flex;
-  height: calc(108rpx + env(safe-area-inset-bottom));
-  padding: 10rpx 22rpx env(safe-area-inset-bottom);
-  background: rgba(255, 255, 255, 0.98);
-  border-top: 1rpx solid rgba(224, 229, 239, 0.92);
-  box-shadow: 0 -10rpx 30rpx rgba(28, 43, 76, 0.07);
+  height: calc(118rpx + env(safe-area-inset-bottom));
+  padding: 10rpx 8rpx env(safe-area-inset-bottom);
+  background: rgba(255, 250, 243, 0.92);
+  border-top: 1rpx solid rgba(194, 65, 12, 0.10);
+  box-shadow: 0 -8rpx 28rpx rgba(140, 80, 30, 0.06);
+  backdrop-filter: blur(22px);
 }
 
 .tab-item {
@@ -21,48 +22,68 @@
   flex: 1;
   flex-direction: column;
   justify-content: center;
+  gap: 4rpx;
   min-width: 0;
-  height: 98rpx;
+  height: 104rpx;
 }
 
 .tab-icon-shell {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 78rpx;
-  height: 50rpx;
-  border-radius: 999rpx;
-  transition: background 0.18s ease;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 18rpx;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .tab-item.active .tab-icon-shell {
-  background: rgba(0, 47, 167, 0.1);
+  background: linear-gradient(145deg, rgba(253, 230, 200, 0.95), rgba(255, 245, 230, 0.9));
+  box-shadow: 0 4rpx 12rpx rgba(194, 65, 12, 0.12);
+  transform: translateY(-2rpx);
+}
+
+.tab-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -12rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 6rpx;
+  border-radius: 999rpx;
+  background: #c2410c;
+  color: #fff;
+  font-size: 16rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(194, 65, 12, 0.35);
 }
 
 .tab-icon {
-  width: 40rpx;
-  height: 40rpx;
-  opacity: 0.86;
+  width: 48rpx;
+  height: 48rpx;
+  opacity: 0.88;
 }
 
 .tab-item.active .tab-icon {
   opacity: 1;
-  transform: scale(1.04);
 }
 
 .tab-text {
-  max-width: 100rpx;
-  margin-top: 2rpx;
+  max-width: 112rpx;
   overflow: hidden;
-  color: var(--ink-3);
-  font-size: 19rpx;
-  font-weight: 500;
-  line-height: 25rpx;
+  color: #a3897a;
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 26rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .tab-item.active .tab-text {
-  color: var(--brand);
-  font-weight: 700;
+  color: #c2410c;
+  font-weight: 780;
 }

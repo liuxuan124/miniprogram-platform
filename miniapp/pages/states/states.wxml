@@ -1,0 +1,140 @@
+<page-meta page-style="background:#FDF6EC" />
+<view class="st-page">
+  <scroll-view class="st-tabs" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="st-tab {{active === item.key ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTab"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <view class="st-panel">
+    <view class="st-cap">{{activeLabel}}</view>
+
+    <!-- ① 未登录：合规登录弹层（对齐 states.html；拼贴旧稿「微信绿一键」已过时） -->
+    <view wx:if="{{active === 'login'}}" class="st-login-demo">
+      <view class="st-blurbg">
+        <view class="st-blurbg__img"></view>
+        <view class="st-blurbg__t">当内容不再免费：一个创作者的第 1000 天</view>
+        <view class="st-blurbg__p">第 1000 天的早上，我把后台数据导出来算了一笔账……</view>
+      </view>
+      <view class="st-login">
+        <view class="st-login__handle"></view>
+        <view class="st-login__brand">
+          <view class="st-login__lg">阁</view>
+          <view class="st-login__brand-copy">
+            <view class="st-login__h">暖阁</view>
+            <view class="st-login__p">登录后继续 · 收藏 / 星球 / 已购</view>
+          </view>
+        </view>
+        <view class="st-login__panel">
+          <view class="st-login__row">
+            <text class="st-login__label">头像</text>
+            <view class="st-login__avatar">+</view>
+          </view>
+          <view class="st-login__row">
+            <text class="st-login__label">昵称</text>
+            <text class="st-login__hint">点击填写昵称</text>
+          </view>
+          <view class="st-login__row">
+            <text class="st-login__label">手机号</text>
+            <text class="st-login__hint">点击授权手机号</text>
+          </view>
+        </view>
+        <view class="st-login__agree">
+          <view class="st-login__check">✓</view>
+          <view class="st-login__agree-copy">已阅读并同意《用户协议》与《隐私政策》</view>
+        </view>
+        <view class="st-wxbtn" bindtap="onLogin">手机号快捷登录</view>
+        <view class="st-later" bindtap="onLater">暂不登录</view>
+        <view class="st-login__skip">未登录也可浏览公开内容</view>
+        <view class="st-login__live" bindtap="onOpenLoginSheet">打开真实登录弹层 ›</view>
+      </view>
+    </view>
+
+    <!-- ② 骨架：标题「长文」 -->
+    <view wx:elif="{{active === 'skeleton'}}" class="st-sk-wrap">
+      <view class="st-sk-nav"><text class="bk">‹</text><text class="tt">长文</text></view>
+      <view class="st-sk">
+        <view class="st-sk__bar st-sk__big"></view>
+        <view class="st-sk__card" wx:for="{{3}}" wx:key="*this">
+          <view class="st-sk__tx">
+            <view class="st-sk__bar" style="height:30rpx;width:92%"></view>
+            <view class="st-sk__bar" style="height:30rpx;width:66%;margin-top:18rpx"></view>
+            <view class="st-sk__bar" style="height:22rpx;width:44%;margin-top:28rpx"></view>
+          </view>
+          <view class="st-sk__bar st-sk__im"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ③ 无网络 -->
+    <view wx:elif="{{active === 'offline'}}" class="st-offline-wrap">
+      <view class="st-sk-nav"><text class="bk">‹</text><text class="tt">长文</text></view>
+      <view class="ph-wrap">
+        <view class="ph-art">📡</view>
+        <view class="h3">网络好像开小差了</view>
+        <view class="p">检查一下 Wi-Fi 或移动网络
+连上后点下面的按钮重试</view>
+        <view class="st-btn" bindtap="onRetry">重新加载</view>
+        <view class="sub">一直失败？<text class="link" bindtap="onService">联系客服</text></view>
+      </view>
+    </view>
+
+    <!-- ④ 空列表 -->
+    <view wx:elif="{{active === 'empty'}}" class="ph-wrap">
+      <view class="ph-art">⭐️</view>
+      <view class="h3">还没有收藏任何内容</view>
+      <view class="p">读到好文章时点一下右下角的星星
+之后在这里随时找得到</view>
+      <view class="st-btn" bindtap="onGoList">去逛逛长文</view>
+      <view class="sub">也可以看看<text class="link" bindtap="onDiscover">大家在读什么</text></view>
+    </view>
+
+    <!-- ⑤ 支付失败 -->
+    <view wx:elif="{{active === 'payfail'}}">
+      <view class="failbox">
+        <view class="failbox__ring">!</view>
+        <view class="failbox__h">支付未完成</view>
+        <view class="failbox__p">订单已保留，<text class="brand">15 分钟内</text>可继续支付
+超时后将自动关闭，需重新下单</view>
+        <view class="failbox__code">订单号 {{orderNo || 'NG202609140941'}}
+错误码 {{failCode}} · {{failReason}}</view>
+        <view class="failbox__btns">
+          <view class="st-btn ghost" bindtap="onLater">稍后再说</view>
+          <view class="st-btn" bindtap="onPayAgain">继续支付</view>
+        </view>
+      </view>
+      <view class="reasons">
+        <view class="reasons__li"><text class="b">余额不足</text>：换一张银行卡或先充值零钱</view>
+        <view class="reasons__li"><text class="b">已扣款但未开通</text>：通常 1 分钟内自动同步，可下拉刷新；仍未到账请联系客服并提供订单号</view>
+        <view class="reasons__li"><text class="b">重复支付</text>：系统会自动识别并原路退回多付部分</view>
+      </view>
+      <view class="svc-link" bindtap="onService">💬 找客服核实订单 ›</view>
+    </view>
+
+    <!-- ⑥ 下架 -->
+    <view wx:elif="{{active === 'offline_content'}}">
+      <view class="offbar">😔 这篇内容<text class="offbar__b">已被作者下架</text>，暂时无法查看。
+如果你此前已购买，权限不受影响，可在「我的 - 已购内容」中继续阅读。</view>
+      <view class="ph-wrap" style="padding-top:52rpx;padding-bottom:12rpx">
+        <view class="ph-art" style="width:160rpx;height:160rpx;border-radius:48rpx;font-size:64rpx">📭</view>
+        <view class="h3" style="font-size:32rpx">内容不可用</view>
+        <view class="p" style="font-size:24rpx">可能已下架、被删除，或仅对特定人群可见</view>
+      </view>
+      <view class="recs-hd warm-serif">你可能还想读</view>
+      <view class="recs">
+        <view class="recs__it" wx:for="{{recs}}" wx:key="title" bindtap="onGoList">
+          <view style="flex:1">
+            <view class="recs__title">{{item.title}}</view>
+            <view class="recs__mt">{{item.meta}}</view>
+          </view>
+          <view class="recs__im"><image src="{{item.cover}}" mode="aspectFill" /></view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+<login-sheet id="global-login-sheet" />

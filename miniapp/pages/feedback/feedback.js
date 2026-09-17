@@ -39,6 +39,6 @@ Page({
   },
 
   goService() {
-    wx.navigateTo({ url: '/pages/service-chat/service-chat' })
+    wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
   },
 })

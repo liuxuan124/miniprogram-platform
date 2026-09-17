@@ -21,6 +21,8 @@ public class AgentKnowledgeChunk implements Serializable {
     private Integer seq;
     private String title;
     private String body;
+    /** cite_policy=summary 时入模，不装载原文 */
+    private String summary;
     private Integer charLen;
     private String sourceRef;
     private Integer hitCount;

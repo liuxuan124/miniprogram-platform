@@ -13,12 +13,17 @@
         />
         <div class="ds-hint">开启后顶部显示「全部/分类」，点击切换下方文章</div>
       </el-form-item>
-      <el-form-item label="样式">
+      <el-form-item label="样式" class="layout-field">
         <el-radio-group :model-value="layoutValue" @change="onLayoutChange">
           <el-radio-button value="card">卡片</el-radio-button>
           <el-radio-button value="list">列表</el-radio-button>
           <el-radio-button value="compact">紧凑</el-radio-button>
+          <el-radio-button value="overlay">封面沉浸</el-radio-button>
+          <el-radio-button value="magazine">杂志首篇</el-radio-button>
+          <el-radio-button value="grid">双列网格</el-radio-button>
+          <el-radio-button value="editorial">报刊细排</el-radio-button>
         </el-radio-group>
+        <div class="ds-hint">后四种为杂志风；未选时旧页面仍用卡片/列表/紧凑</div>
       </el-form-item>
       <el-form-item label="显示封面">
         <el-switch :model-value="data.show_cover" @change="emit('update', { show_cover: $event as boolean })" />
@@ -115,6 +120,7 @@ import { getCategoryList } from '@/api/content'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import { resolveArticleLayout } from '../articleLayouts'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -132,10 +138,7 @@ const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
   () => false,
 )
 
-const layoutValue = computed(() => {
-  const raw = data.layout || data.style_type || 'list'
-  return ['card', 'list', 'compact'].includes(raw) ? raw : 'list'
-})
+const layoutValue = computed(() => resolveArticleLayout(data.layout || data.style_type, 'list'))
 
 const queryParams = computed(() => {
   const ds = data.data_source || {}
@@ -197,6 +200,12 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+.layout-field :deep(.el-radio-group) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .ds-card {
   margin-top: 8px;
   padding: 10px 10px 8px;

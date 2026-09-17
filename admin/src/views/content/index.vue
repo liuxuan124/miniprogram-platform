@@ -261,7 +261,7 @@
             :closable="false"
             show-icon
             style="margin-bottom: 12px"
-            title="从企业服务号拉取全部「已发布」内容：长文导入为文章，贴图（小红书风格多图+短文）导入为笔记。需在「系统设置 → 基础配置 → 微信公众号配置」填写公众号 AppID/AppSecret。"
+            title="从企业服务号拉取全部「已发布」图文，并同步草稿箱（草稿箱只入库为草稿，不覆盖已上架同名文章；连通性测试文会跳过）。长文导入为文章，贴图导入为笔记。需填写公众号 AppID/AppSecret。"
           />
           <el-form label-width="96px">
             <el-form-item label="默认分类">
@@ -895,7 +895,7 @@ async function handleWeChatSyncImport() {
     const scopeLabel = WECHAT_SYNC_SCOPE_LABEL[wechatSyncForm.syncScope]
     const statusLabel = wechatSyncForm.publish ? '已发布' : '草稿'
     await ElMessageBox.confirm(
-      `将从公众号拉取全部已发布图文，同步范围：${scopeLabel}；入库状态：${statusLabel}。已存在的条目会按本次选项更新，是否继续？`,
+      `将从公众号拉取已发布图文和草稿箱，同步范围：${scopeLabel}；已发布内容入库状态：${statusLabel}（草稿箱始终存为草稿）。已存在的已上架条目不会被草稿覆盖，是否继续？`,
       '公众号全量导入',
       { type: 'warning', confirmButtonText: '开始导入', cancelButtonText: '取消' },
     )

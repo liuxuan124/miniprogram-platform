@@ -6,13 +6,19 @@ import com.miniprogram.dto.AgentConfigDTO;
 import com.miniprogram.dto.AgentConfigVO;
 import com.miniprogram.entity.AgentKnowledge;
 import com.miniprogram.entity.AgentVersion;
+import com.miniprogram.dto.system.ConfigBatchUpdateDTO;
+import com.miniprogram.dto.system.ConfigItemDTO;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.service.AgentConfigService;
+import com.miniprogram.service.SystemConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +32,8 @@ import java.util.Map;
 public class AdminAgentController {
 
     private final AgentConfigService agentConfigService;
+    private final SystemConfigService systemConfigService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping
     @Operation(summary = "配置列表")
@@ -166,5 +174,71 @@ public class AdminAgentController {
     @Operation(summary = "沙盒对话")
     public R<Map<String, Object>> sandboxChat(@RequestBody Map<String, Object> body) {
         return R.ok(agentConfigService.sandboxChat(body));
+    }
+
+    @GetMapping("/public-enabled")
+    @Operation(summary = "小程序 Agent 入口总开关")
+    public R<Map<String, Object>> getPublicEnabled() {
+        String raw = systemConfigService.getConfigValue("agent_public_enabled", "0");
+        return R.ok(Map.of("enabled", "1".equals(raw) || "true".equalsIgnoreCase(raw)));
+    }
+
+    @PutMapping("/public-enabled")
+    @Operation(summary = "保存小程序 Agent 入口总开关")
+    public R<Void> setPublicEnabled(@RequestBody Map<String, Object> body) {
+        boolean on = Boolean.TRUE.equals(body.get("enabled")) || "1".equals(String.valueOf(body.get("enabled")));
+        ConfigItemDTO item = new ConfigItemDTO();
+        item.setConfigKey("agent_public_enabled");
+        item.setConfigValue(on ? "1" : "0");
+        item.setConfigGroup("basic");
+        item.setDescription("小程序 AI 入口总开关");
+        ConfigBatchUpdateDTO batch = new ConfigBatchUpdateDTO();
+        batch.setConfigs(List.of(item));
+        systemConfigService.batchUpdateConfigs(batch);
+        return R.ok();
+    }
+
+    @GetMapping("/trigger-config")
+    @Operation(summary = "小程序 Agent 触发位配置")
+    public R<Map<String, Object>> getTriggerConfig() {
+        return R.ok(readTriggerMap());
+    }
+
+    @PutMapping("/trigger-config")
+    @Operation(summary = "保存 Agent 触发位")
+    public R<Void> saveTriggerConfig(@RequestBody Map<String, Object> body) {
+        try {
+            Map<String, Object> merged = new HashMap<>(readTriggerMap());
+            if (body != null) {
+                merged.putAll(body);
+            }
+            ConfigItemDTO item = new ConfigItemDTO();
+            item.setConfigKey("agent_trigger_config");
+            item.setConfigValue(objectMapper.writeValueAsString(merged));
+            item.setConfigGroup("basic");
+            item.setDescription("小程序 Agent 触发位");
+            ConfigBatchUpdateDTO batch = new ConfigBatchUpdateDTO();
+            batch.setConfigs(List.of(item));
+            systemConfigService.batchUpdateConfigs(batch);
+            return R.ok();
+        } catch (Exception e) {
+            throw new RuntimeException("保存失败: " + e.getMessage(), e);
+        }
+    }
+
+    private Map<String, Object> readTriggerMap() {
+        try {
+            String raw = systemConfigService.getConfigValue("agent_trigger_config");
+            if (raw == null || raw.isBlank()) {
+                Map<String, Object> defaults = new HashMap<>();
+                defaults.put("searchEntry", true);
+                defaults.put("homeFab", false);
+                defaults.put("planetFab", true);
+                return defaults;
+            }
+            return objectMapper.readValue(raw, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
     }
 }

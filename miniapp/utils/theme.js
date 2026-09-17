@@ -1,5 +1,11 @@
 // utils/theme.js — 将后台主题写入 page CSS 变量，让 var(--brand) 等全局生效
-const DEFAULT_PRIMARY = '#002FA7'
+const { USE_LOCAL_SOURCE, WARM_THEME_CONFIG } = require('../data/warm-source')
+const DEFAULT_PRIMARY = '#C2410C'
+
+function resolveTheme(theme) {
+  if (USE_LOCAL_SOURCE) return WARM_THEME_CONFIG
+  return theme || WARM_THEME_CONFIG
+}
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n))
@@ -13,7 +19,7 @@ function hexToRgb(hex) {
     const b = parseInt(raw[2] + raw[2], 16)
     return { r, g, b }
   }
-  if (raw.length !== 6) return { r: 0, g: 47, b: 167 }
+  if (raw.length !== 6) return { r: 194, g: 65, b: 12 }
   return {
     r: parseInt(raw.slice(0, 2), 16),
     g: parseInt(raw.slice(2, 4), 16),
@@ -41,7 +47,7 @@ function buildThemeCssVars(theme) {
   const t = theme || {}
   const primary = t.primaryColor || t.tabBarActiveColor || DEFAULT_PRIMARY
   const secondary = t.secondaryColor || primary
-  const pageBg = t.pageBackgroundColor || '#f5f7fb'
+  const pageBg = t.pageBackgroundColor || t.pageBgColor || '#FDF6EC'
   const brandDark = mix(primary, '#000000', 0.22)
   const brandSoft = mix(primary, '#ffffff', 0.88)
   const brandMuted = mix(primary, '#7c879d', 0.45)
@@ -59,12 +65,15 @@ function buildThemeCssVars(theme) {
 }
 
 function applyThemeCssVars(theme, pageInstance) {
-  const style = buildThemeCssVars(theme)
+  const resolved = resolveTheme(theme)
+  const style = buildThemeCssVars(resolved)
   try {
     const app = getApp()
     if (app && app.globalData) {
       app.globalData.themePageStyle = style
-      app.globalData.miniappThemeConfig = theme || app.globalData.miniappThemeConfig
+      app.globalData.miniappThemeConfig = USE_LOCAL_SOURCE
+        ? WARM_THEME_CONFIG
+        : (theme || app.globalData.miniappThemeConfig)
     }
   } catch (e) {
     // ignore

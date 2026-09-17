@@ -1,0 +1,183 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="ct-page {{stage === 1 ? 'has-bar' : ''}}">
+  <block wx:if="{{stage === 1}}">
+    <view class="ct-topbar" style="padding-top: {{statusBarHeight}}px;">
+      <view class="ct-topbar__row" style="height: {{navBarHeight}}px; padding-right: {{navPadRight}}px;">
+        <view class="ct-topbar__bk" bindtap="onNavBack">‹</view>
+        <view class="ct-topbar__tt">成为创作者</view>
+        <view class="ct-stage-tag">阶段一</view>
+      </view>
+    </view>
+    <view style="height: {{statusBarHeight + navBarHeight}}px;"></view>
+
+    <view class="ct-hero">
+      <view class="ct-hero__title warm-serif">{{heroTitle}}</view>
+      <view class="ct-hero__desc">{{heroDesc}}</view>
+      <view class="ct-st">
+        <view class="ct-st__item" wx:for="{{stats}}" wx:key="s">
+          <text class="ct-st__b">{{item.b}}</text>
+          <text class="ct-st__s">{{item.s}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="ct-why">
+      <view class="ct-why__item" wx:for="{{why}}" wx:key="b">
+        <text class="ct-why__ic">{{item.ic}}</text>
+        <view>
+          <view class="ct-why__b">{{item.b}}</view>
+          <view class="ct-why__p">{{item.p}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="ct-sec-hd warm-serif">投稿申请</view>
+    <view class="ct-form">
+      <view class="ct-field">
+        <view class="ct-label">笔名 / 昵称<em>*</em></view>
+        <input class="ct-input" placeholder="怎么称呼你" value="{{name}}" bindinput="onNameInput" />
+      </view>
+      <view class="ct-field">
+        <view class="ct-label">你想长期写的方向<em>*</em>（最多选 2 个）</view>
+        <view class="ct-picks">
+          <view
+            wx:for="{{topics}}"
+            wx:key="*this"
+            class="ct-pick {{selectedTopicMap[item] ? 'on' : ''}}"
+            data-topic="{{item}}"
+            bindtap="onTopicTap"
+          >{{item}}</view>
+        </view>
+      </view>
+      <view class="ct-field">
+        <view class="ct-label">擅长的内容形态<em>*</em></view>
+        <view class="ct-picks">
+          <view
+            wx:for="{{forms}}"
+            wx:key="*this"
+            class="ct-pick {{selectedFormMap[item] ? 'on' : ''}}"
+            data-form="{{item}}"
+            bindtap="onFormTap"
+          >{{item}}</view>
+        </view>
+      </view>
+      <view class="ct-field">
+        <view class="ct-label">一句话自我介绍<em>*</em></view>
+        <textarea
+          class="ct-textarea"
+          placeholder="简单介绍你的选题方向、过往作品或案例"
+          value="{{intro}}"
+          maxlength="300"
+          bindinput="onIntroInput"
+        />
+      </view>
+      <view class="ct-field">
+        <view class="ct-label">代表作（链接或截图，1-3 份）</view>
+        <input class="ct-input" placeholder="粘贴公众号 / 小红书 / 博客链接" value="{{portfolio}}" bindinput="onPortfolioInput" />
+        <view class="ct-up">
+          <view class="ct-up__sl" wx:for="{{portfolioImages}}" wx:key="*this">
+            <image src="{{item}}" mode="aspectFill" />
+            <view class="ct-up__x" data-index="{{index}}" catchtap="onRemovePortfolioImage">×</view>
+          </view>
+          <view class="ct-up__add" wx:if="{{portfolioImages.length < 3}}" bindtap="onAddPortfolioImages">＋</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="ct-note">
+      提交后由编辑部人工审核，结果通过<text class="ct-em">服务通知</text>告知。未通过不影响你继续在星球提问、评论与打卡。
+    </view>
+    <view class="ct-spacer"></view>
+  </block>
+
+  <!-- 阶段二：发布编辑器（独立状态，非双 Tab） -->
+  <block wx:else>
+    <view class="ct-etop-bar" style="padding-top: {{statusBarHeight}}px;">
+      <view class="ct-etop" style="height: {{navBarHeight}}px; padding-right: {{navPadRight}}px;">
+        <text class="ct-etop__cc" bindtap="onEditorCancel">取消</text>
+        <text class="ct-etop__tt">{{editorTitle}}</text>
+        <view class="ct-etop__pb {{editorUnlocked ? '' : 'off'}}" bindtap="onPublishDemo">发布</view>
+      </view>
+    </view>
+    <view style="height: {{statusBarHeight + navBarHeight}}px;"></view>
+
+    <view class="ct-stage2 {{editorUnlocked ? '' : 'is-locked'}}">
+
+      <view class="ct-types">
+        <view
+          wx:for="{{publishTypes}}"
+          wx:key="key"
+          class="ct-type {{publishType === item.key ? 'on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onPublishTypeTap"
+        >{{item.label}}</view>
+      </view>
+
+      <view class="ct-editor">
+        <input
+          class="ct-editor__ti"
+          placeholder="写个标题吧"
+          placeholder-class="ct-editor__ph"
+          value="{{draftTitle}}"
+          maxlength="80"
+          disabled="{{!editorUnlocked}}"
+          bindinput="onDraftTitleInput"
+        />
+        <view class="ct-imgs">
+          <view class="ct-img" wx:for="{{draftImages}}" wx:key="*this">
+            <image src="{{item}}" mode="aspectFill" />
+            <view class="ct-img__x" data-index="{{index}}" catchtap="onRemoveImage">×</view>
+          </view>
+          <view class="ct-img add" wx:if="{{draftImages.length < 9 && editorUnlocked}}" bindtap="onAddImages">＋</view>
+        </view>
+        <textarea
+          class="ct-editor__bdy"
+          placeholder="开始写下正文…"
+          placeholder-class="ct-editor__ph"
+          value="{{draftBody}}"
+          maxlength="5000"
+          auto-height
+          disabled="{{!editorUnlocked}}"
+          bindinput="onDraftBodyInput"
+        />
+      </view>
+
+      <view class="ct-opts">
+        <view class="ct-opts__li" bindtap="onPickTopic">
+          <text class="ct-opts__ic">#️⃣</text>
+          <text>添加话题</text>
+          <text class="ct-opts__vv">{{draftTopics || '选填'}}</text>
+        </view>
+        <view class="ct-opts__li" bindtap="onToggleSyncPlanet">
+          <text class="ct-opts__ic">🪐</text>
+          <text>同步到星球</text>
+          <view class="ct-sw {{syncPlanet ? 'on' : ''}}"><view class="ct-sw__dot"></view></view>
+        </view>
+        <view class="ct-opts__li" bindtap="onToggleMemberOnly">
+          <text class="ct-opts__ic">👀</text>
+          <text>仅会员可见</text>
+          <view class="ct-sw {{memberOnly ? 'on' : ''}}"><view class="ct-sw__dot"></view></view>
+        </view>
+      </view>
+
+      <view class="ct-note">
+        内容将经编辑部审核后展示（一般 2 小时内）。草稿会自动保存。
+      </view>
+
+      <view class="ct-lockmask" wx:if="{{!editorUnlocked}}">
+        <view class="ct-lockmask__card">
+          <text class="ct-lockmask__ic">🔒</text>
+          <view class="ct-lockmask__h">发布器尚未开放</view>
+          <view class="ct-lockmask__p">通过阶段一申请并审核通过后，即可在此直接发布长文与图文笔记</view>
+          <view class="ct-lockmask__btn" bindtap="onBackToApply">去提交申请</view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>
+
+<view class="ct-bar" wx:if="{{stage === 1}}">
+  <view class="ct-submit {{submitting ? 'ct-submit--off' : ''}}" bindtap="onSubmit">
+    {{submitting ? '提交中…' : '提交申请'}}
+  </view>
+</view>

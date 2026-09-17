@@ -1,54 +1,86 @@
 const SystemService = require('../services/system')
-const { migrateTabBarIcon, isImageIcon } = require('../utils/tabbar-icon')
 const { TAB_SLOT_ROUTES, resolveActiveTabItems } = require('../utils/tabbar-config')
+const { USE_LOCAL_SOURCE, WARM_THEME_CONFIG } = require('../data/warm-source')
 
+/**
+ * Tab 壳默认图标/文案；联调时文案与主题以后台为准，图标仍用壳映射兜底
+ */
 const PATH_META_MAP = {
   '/pages/index/index': {
     text: '首页',
-    icon: '/images/tab-v2/home.svg',
-    selectedIcon: '/images/tab-v2/home-active.svg',
+    icon: '/images/tab/home.png',
+    selectedIcon: '/images/tab/home-active.png',
   },
-  '/pages/content-list/content-list': {
-    text: '内容',
-    icon: '/images/tab-v2/content.svg',
-    selectedIcon: '/images/tab-v2/content-active.svg',
+  '/pages/discover/discover': {
+    text: '发现',
+    icon: '/images/tab/content.png',
+    selectedIcon: '/images/tab/content-active.png',
   },
-  '/pages/knowledge-mall/knowledge-mall': {
+  '/pages/planet/planet': {
+    text: '星球',
+    icon: '/images/tab/member.png',
+    selectedIcon: '/images/tab/member-active.png',
+  },
+  '/pages/shop/shop': {
     text: '商城',
-    icon: '/images/tab-v2/shop.svg',
-    selectedIcon: '/images/tab-v2/shop-active.svg',
+    icon: '/images/tab/shop.png',
+    selectedIcon: '/images/tab/shop-active.png',
   },
   '/pages/mine/mine': {
     text: '我的',
-    icon: '/images/tab-v2/mine.svg',
-    selectedIcon: '/images/tab-v2/mine-active.svg',
-  },
-  '/pages/tab-hub/tab-hub': {
-    text: '更多',
-    icon: '/images/tab-v2/hub.svg',
-    selectedIcon: '/images/tab-v2/hub-active.svg',
+    icon: '/images/tab/mine.png',
+    selectedIcon: '/images/tab/mine-active.png',
   },
 }
 
-const DEFAULT_LIST = buildTabList(TAB_SLOT_ROUTES)
+const WARM_THEME = {
+  activeColor: '#C2410C',
+  inactiveColor: '#B3A091',
+  backgroundColor: 'rgba(255,250,243,0.96)',
+}
 
-function buildTabList(slotRoutes) {
-  return slotRoutes.map((pagePath) => {
+function buildDefaultList() {
+  return TAB_SLOT_ROUTES.map((pagePath) => {
     const meta = PATH_META_MAP[pagePath] || {}
     return {
       pagePath,
       text: meta.text || '页面',
-      icon: meta.icon || '/images/tab-v2/home.svg',
-      selectedIcon: meta.selectedIcon || meta.icon || '/images/tab-v2/home-active.svg',
+      icon: meta.icon || '/images/tab/home.png',
+      selectedIcon: meta.selectedIcon || meta.icon || '/images/tab/home-active.png',
     }
   })
 }
 
-/** 仅过滤明显无效/占位入口；已注册页面可展示 */
-function isBlockedShopTab(path) {
-  const p = '/' + String(path || '').replace(/^\/+/, '')
-  if (TAB_SLOT_ROUTES.includes(p)) return false
-  return /分类|购物车|商城/.test(String(path || '')) && !p.startsWith('/pages/')
+const DEFAULT_LIST = buildDefaultList()
+
+function buildListFromConfig(config) {
+  if (USE_LOCAL_SOURCE) return DEFAULT_LIST
+  const plugins = config && config.plugins
+  const tabbarItems = (config && config.tabbarItems) || []
+  const rows = resolveActiveTabItems(plugins, tabbarItems)
+  if (!rows.length) return DEFAULT_LIST
+
+  return rows.map((row, index) => {
+    const pagePath = row.slotRoute || TAB_SLOT_ROUTES[index] || TAB_SLOT_ROUTES[0]
+    const meta = PATH_META_MAP[pagePath] || {}
+    // 底栏图标统一用暖阁品牌套件，避免后台旧线框/无特色图标
+    return {
+      pagePath,
+      text: (row.item && (row.item.text || row.item.name)) || meta.text || '页面',
+      icon: meta.icon || '/images/tab/home.png',
+      selectedIcon: meta.selectedIcon || meta.icon || '/images/tab/home-active.png',
+    }
+  })
+}
+
+function resolveThemeColors(config) {
+  if (USE_LOCAL_SOURCE) return WARM_THEME
+  const theme = (config && config.miniappThemeConfig) || WARM_THEME_CONFIG || {}
+  return {
+    activeColor: theme.tabBarActiveColor || theme.primaryColor || WARM_THEME.activeColor,
+    inactiveColor: theme.tabBarColor || WARM_THEME.inactiveColor,
+    backgroundColor: theme.tabBarBgColor || WARM_THEME.backgroundColor,
+  }
 }
 
 Component({
@@ -56,20 +88,25 @@ Component({
     selected: 0,
     hidden: false,
     list: DEFAULT_LIST,
-    activeColor: '#002FA7',
-    inactiveColor: '#98a2b5',
-    backgroundColor: '#ffffff',
+    activeColor: WARM_THEME.activeColor,
+    inactiveColor: WARM_THEME.inactiveColor,
+    backgroundColor: WARM_THEME.backgroundColor,
+    noticeUnread: 0,
   },
 
   lifetimes: {
     attached() {
-      this._loadTabbarConfig()
+      this._loadTabBar()
     },
   },
 
   pageLifetimes: {
     show() {
-      this.setData({ selected: this._getCurrentIndex() })
+      const list = this.data.list && this.data.list.length ? this.data.list : DEFAULT_LIST
+      this.setData({
+        selected: this._getCurrentIndex(list),
+      })
+      this._loadNoticeUnread()
     },
   },
 
@@ -78,59 +115,37 @@ Component({
       return '/' + String(path || '').replace(/^\/+/, '')
     },
 
-    _resolveTabIcon(rawIcon, fallback) {
-      const migrated = migrateTabBarIcon(rawIcon)
-      if (migrated && isImageIcon(migrated)) return migrated
-      return fallback
-    },
-
-    async _loadTabbarConfig() {
+    async _loadTabBar() {
       try {
         const config = await SystemService.fetchSystemConfig(true)
-        const tabbarItems = config.tabbarItems || []
-        const visibleRows = resolveActiveTabItems(config.plugins, tabbarItems)
-        const theme = config.miniappThemeConfig || {}
         try {
           const { applyThemeCssVars } = require('../utils/theme')
-          applyThemeCssVars(theme)
-        } catch (e) {}
-
-        const mappedList = visibleRows.map((row) => {
-          const { item, slotRoute: pagePath } = row
-          const pathMeta = PATH_META_MAP[pagePath] || {}
-          const fallbackIcon = pathMeta.icon || '/images/tab-v2/home.svg'
-          const fallbackSelected = pathMeta.selectedIcon || fallbackIcon
-          const icon = this._resolveTabIcon(item.icon || item.iconPath, fallbackIcon)
-          const selectedIcon = this._resolveTabIcon(
-            item.selectedIconPath || item.selectedIcon || item.icon || item.iconPath,
-            fallbackSelected,
+          applyThemeCssVars(
+            USE_LOCAL_SOURCE
+              ? WARM_THEME_CONFIG
+              : ((config && config.miniappThemeConfig) || WARM_THEME_CONFIG),
           )
-          return {
-            pagePath,
-            text: item.text || item.name || pathMeta.text || '页面',
-            icon,
-            selectedIcon: selectedIcon || icon,
-          }
-        })
+        } catch (e) { /* ignore */ }
 
+        const list = buildListFromConfig(config)
+        const colors = resolveThemeColors(config)
         this.setData({
-          list: mappedList,
-          selected: this._getCurrentIndex(mappedList),
-          activeColor: theme.tabBarActiveColor || '#002FA7',
-          inactiveColor: theme.tabBarInactiveColor || '#98a2b5',
-          backgroundColor: theme.tabBarBackgroundColor || '#ffffff',
+          list,
+          selected: this._getCurrentIndex(list),
+          ...colors,
         })
       } catch (e) {
-        console.warn('[TabBar] 加载配置失败，使用默认列表:', e)
+        console.warn('[TabBar] 配置加载失败，使用默认五 Tab:', e)
         this.setData({
           list: DEFAULT_LIST,
           selected: this._getCurrentIndex(DEFAULT_LIST),
+          ...WARM_THEME,
         })
       }
     },
 
     _getCurrentIndex(list) {
-      const tabs = list || this.data.list || []
+      const tabs = list || this.data.list || DEFAULT_LIST
       const pages = getCurrentPages()
       if (!pages.length) return 0
       const currentPath = '/' + pages[pages.length - 1].route
@@ -140,23 +155,50 @@ Component({
 
     switchTab(e) {
       const { index, path } = e.currentTarget.dataset
-      const url = this._normalizePath(path)
-      if (isBlockedShopTab(url)) {
-        wx.showToast({ title: '入口未配置', icon: 'none' })
-        return
+      let url = this._normalizePath(path)
+      // 旧壳一次性落到现行 Tab，避免 knowledge-mall「正在前往商城」再二次跳
+      if (url === '/pages/knowledge-mall/knowledge-mall' || url === '/pages/product-list/product-list') {
+        url = '/pages/shop/shop'
+      } else if (url === '/pages/content-list/content-list') {
+        url = '/pages/discover/discover'
+      } else if (url === '/pages/tab-hub/tab-hub') {
+        url = '/pages/mine/mine'
       }
       this.setData({ selected: Number(index) || 0 })
       wx.switchTab({
         url,
         fail: (err) => {
-          console.warn('[TabBar] switchTab 失败，尝试 navigateTo:', url, err)
-          wx.navigateTo({ url })
+          console.warn('[TabBar] switchTab 失败:', url, err)
         },
       })
     },
 
     refresh() {
-      this._loadTabbarConfig()
+      this._loadTabBar()
+      this._loadNoticeUnread()
+    },
+
+    setNoticeUnread(count) {
+      this.setData({ noticeUnread: Number(count) || 0 })
+    },
+
+    _loadNoticeUnread() {
+      try {
+        const { AuthUtil } = require('../utils/auth')
+        if (!AuthUtil.isLoggedIn()) {
+          this.setData({ noticeUnread: 0 })
+          return
+        }
+        const noticeService = require('../services/notice')
+        noticeService.unreadCount()
+          .then((data) => {
+            const count = Number((data && (data.count || data.unread)) || 0)
+            this.setData({ noticeUnread: Number.isFinite(count) ? count : 0 })
+          })
+          .catch(() => this.setData({ noticeUnread: 0 }))
+      } catch (_) {
+        this.setData({ noticeUnread: 0 })
+      }
     },
   },
 })

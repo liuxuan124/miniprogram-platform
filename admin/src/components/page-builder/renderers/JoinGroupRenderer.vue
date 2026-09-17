@@ -33,7 +33,7 @@
                 <img v-if="group.iconUrl" :src="group.iconUrl" alt="" />
                 <span v-else>👥</span>
               </div>
-              <span class="jg-group__name">{{ group.name }}</span>
+              <span class="jg-group__name">{{ group.name }}{{ group.joinType === 'wecom' ? ' · 企微' : '' }}</span>
               <span class="jg-group__arrow">›</span>
             </button>
             <div v-if="!groupList.length" class="jg-empty">暂未配置群</div>
@@ -58,7 +58,9 @@
               class="jg-qr__img"
               crossorigin="anonymous"
             />
-            <div v-else class="jg-empty">尚未上传二维码</div>
+            <div v-else-if="activeGroup.joinType === 'wecom'" class="jg-empty">
+              预览：真机将拉起企微「加入群聊」{{ activeGroup.wecomUrl ? '' : '（未填链接）' }}
+            </div>
             <p class="jg-qr__tip">{{ tipText }}</p>
             <button
               v-if="activeGroup.qrcodeUrl"
@@ -86,6 +88,8 @@ type GroupView = {
   name: string
   iconUrl: string
   qrcodeUrl: string
+  joinType: string
+  wecomUrl: string
 }
 
 const props = defineProps<{
@@ -102,7 +106,7 @@ const qrVisible = ref(false)
 const activeGroup = ref<GroupView | null>(null)
 const qrImgRef = ref<HTMLImageElement | null>(null)
 
-const titleText = computed(() => String(props.component.props?.title || '跨境电商交流群').trim() || '跨境电商交流群')
+const titleText = computed(() => String(props.component.props?.title || '读者交流群').trim() || '读者交流群')
 const buttonText = computed(() => String(props.component.props?.button_text || '加入群聊').trim() || '加入群聊')
 const sheetTitle = computed(() => String(props.component.props?.sheet_title || '加入群聊').trim() || '加入群聊')
 const tipText = computed(() => String(props.component.props?.tip_text || '长按二维码可识别加群').trim() || '长按二维码可识别加群')
@@ -119,6 +123,8 @@ const groupList = computed<GroupView[]>(() => {
     name: String(g.name || `群 ${i + 1}`).trim() || `群 ${i + 1}`,
     iconUrl: normalizeUploadUrl(String(g.icon || '')),
     qrcodeUrl: normalizeUploadUrl(String(g.qrcode || '')),
+    joinType: String(g.join_type || 'qrcode') === 'wecom' ? 'wecom' : 'qrcode',
+    wecomUrl: String(g.wecom_url || '').trim(),
   }))
 })
 

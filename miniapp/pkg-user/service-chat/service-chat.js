@@ -1,20 +1,109 @@
+const orderService = require('../../services/order')
 const { StorageUtil } = require('../../utils/storage')
 const { post } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
+const { picsum } = require('../../data/warm-demo')
 
-const HISTORY_KEY = 'service_chat_history'
+const HISTORY_KEY = 'service_chat_history_v2'
 const MAX_MESSAGES = 80
+const BOT_AVATAR = picsum('kf1', 80, 80)
+const ME_AVATAR = picsum('warmav', 80, 80)
+const ORDER_COVER = picsum('eb1', 120, 120)
+
+const DEMO_ORDER = {
+  title: '内容生意手册（EPUB / PDF）',
+  orderNo: 'NG202609130847',
+  cover: ORDER_COVER,
+  priceLabel: '¥39 已支付',
+  orderId: '',
+}
+
 const WELCOME = {
   id: 1,
   role: 'service',
-  text: '你好，这里是出海笔记客服中心。你可以先查看常见问题，也可以直接输入问题或联系人工客服。',
+  type: 'text',
+  text: '你好呀 👋 我是暖阁小助手。购买、发票、资料解锁的问题都可以直接问我。',
 }
 
-const QUICK_REPLY = {
-  '内容咨询': '你可以在首页和内容页浏览跨境资讯与干货文章，点击文章卡片即可查看详情。',
-  '功能使用': '底部 Tab 可切换首页、内容与我的；收藏和客服功能登录后在我的页面使用。',
-  '合作联系': '如需商务合作或定制服务，请点击下方「联系人工客服」留下联系方式。',
-  '意见反馈': '欢迎通过「我的－意见反馈」提交建议，我们会尽快处理。',
+const QUICK = ['电子书打不开', '申请发票', '资料库没解锁', '怎么进读者群', '会员有效期']
+
+const QUICK_FLOWS = {
+  '电子书打不开': [
+    { delay: 400, role: 'service', type: 'text', text: '收到，我查一下这笔订单 🔍' },
+    {
+      delay: 900,
+      role: 'service',
+      type: 'ordcard',
+      hideAvatar: true,
+      order: DEMO_ORDER,
+    },
+    {
+      delay: 1400,
+      role: 'service',
+      type: 'text',
+      hideAvatar: true,
+      text: '看到了，支付成功但权限同步延迟了。已经手动为你补发，退出重进小程序就能在「我的 - 已购内容」看到，麻烦你试试～',
+    },
+    {
+      delay: 2000,
+      role: 'service',
+      type: 'actcard',
+      act: {
+        title: '顺便邀请你进读者群 🎉',
+        desc: '新书首发、资料更新、线下活动都会先在群里通知。目前「内容创业交流群 · 7 群」还有 14 个名额。',
+        primary: '立即进群',
+        secondary: '加企微客服',
+      },
+    },
+  ],
+  '申请发票': [
+    {
+      delay: 500,
+      role: 'service',
+      type: 'text',
+      text: '可以的。请把订单号、发票抬头、税号发我，或点「＋」发送订单卡片，我帮你登记开票（电子普票，约 1-3 个工作日）。',
+    },
+  ],
+  '资料库没解锁': [
+    {
+      delay: 500,
+      role: 'service',
+      type: 'text',
+      text: '资料库需星球会员或对应商品权益。可先到「我的 - 已购内容 / 会员中心」确认有效期；仍看不到的话，把截图发我，我帮你核对权限。',
+    },
+    {
+      delay: 1100,
+      role: 'service',
+      type: 'actcard',
+      act: {
+        title: '需要真人协助？',
+        desc: '解锁异常可转人工，或先加入读者群由客服协助处理。',
+        primary: '立即进群',
+        secondary: '转人工',
+      },
+    },
+  ],
+  '怎么进读者群': [
+    {
+      delay: 400,
+      role: 'service',
+      type: 'actcard',
+      act: {
+        title: '邀请你进读者群 🎉',
+        desc: '新书首发、资料更新、线下活动都会先在群里通知。点下方即可进群或加企微客服。',
+        primary: '立即进群',
+        secondary: '加企微客服',
+      },
+    },
+  ],
+  '会员有效期': [
+    {
+      delay: 500,
+      role: 'service',
+      type: 'text',
+      text: '会员有效期可在「会员中心」查看。到期前会提醒续费；邀请好友还可各得体验天数。如对账期有疑问，把订单号发我。',
+    },
+  ],
 }
 
 function loadHistory() {
@@ -26,14 +115,16 @@ function loadHistory() {
     messages: messages.slice(-MAX_MESSAGES),
     nextId: Math.max(2, Number(raw.nextId) || messages.length + 1),
     sessionId: raw.sessionId || '',
+    showQuick: raw.showQuick !== false,
   }
 }
 
-function saveHistory(messages, nextId, sessionId) {
+function saveHistory(messages, nextId, sessionId, showQuick) {
   StorageUtil.set(HISTORY_KEY, {
     messages: (messages || []).slice(-MAX_MESSAGES),
     nextId: nextId || 2,
     sessionId: sessionId || '',
+    showQuick: showQuick !== false,
     updatedAt: Date.now(),
   })
 }
@@ -41,16 +132,54 @@ function saveHistory(messages, nextId, sessionId) {
 Page({
   data: {
     messages: [WELCOME],
-    quick: ['内容咨询', '功能使用', '合作联系', '意见反馈'],
+    quick: QUICK,
+    showQuick: true,
     scrollInto: 'm1',
     nextId: 2,
     inputText: '',
     sending: false,
+    typing: false,
+    showEmoji: false,
+    emojis: ['😊', '👍', '🙏', '🎉', '😅', '❤️', '👌', '😭'],
     sessionId: '',
+    orderId: '',
+    deliveryCard: null,
+    botAvatar: BOT_AVATAR,
+    meAvatar: ME_AVATAR,
   },
 
-  onLoad() {
+  onLoad(q) {
+    this._orderId = (q && q.orderId) || ''
+    this.setData({ orderId: this._orderId })
     this._restore()
+    if (this._orderId) this._injectOrderDelivery(this._orderId)
+    this._prefetchRecentOrder()
+  },
+
+  _prefetchRecentOrder() {
+    if (!AuthUtil.isLoggedIn || !AuthUtil.isLoggedIn()) return
+    orderService.getOrderList({ current: 1, size: 1 })
+      .then((page) => {
+        const o = ((page && (page.records || page.list || page.items)) || [])[0]
+        if (!o) return
+        const goods = (o.items && o.items[0]) || {}
+        this._recentOrderCard = {
+          title: goods.productName || goods.name || o.productName || '订单商品',
+          orderNo: o.orderNo || o.order_no || String(o.id || ''),
+          cover: goods.productImage || goods.image || ORDER_COVER,
+          priceLabel: `¥${o.payAmount != null ? o.payAmount : (o.amount || o.totalAmount || '--')} ${o.statusText || o.status || ''}`.trim(),
+          orderId: o.id || '',
+        }
+      })
+      .catch(() => {})
+  },
+
+  _orderCardForQuick() {
+    return this._recentOrderCard || Object.assign({}, DEMO_ORDER, { orderId: this.data.orderId || '' })
+  },
+
+  onJoin() {
+    wx.navigateTo({ url: '/pages/join/join' })
   },
 
   onShow() {
@@ -61,8 +190,8 @@ Page({
     const saved = loadHistory()
     this._restoredOnce = true
     if (!saved) {
-      this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1', sessionId: '' })
-      saveHistory([WELCOME], 2, '')
+      this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1', sessionId: '', showQuick: true })
+      saveHistory([WELCOME], 2, '', true)
       return
     }
     const last = saved.messages[saved.messages.length - 1]
@@ -70,7 +199,35 @@ Page({
       messages: saved.messages,
       nextId: saved.nextId,
       sessionId: saved.sessionId || '',
+      showQuick: saved.showQuick !== false && saved.messages.length <= 2,
       scrollInto: last ? ('m' + last.id) : 'm1',
+    })
+  },
+
+  async _injectOrderDelivery(orderId) {
+    try {
+      const order = await orderService.getOrderDetail(orderId)
+      const items = order.items || order.orderItems || []
+      const name = (items[0] && (items[0].productName || items[0].name))
+        || order.productName
+        || '你购买的商品'
+      const content = String(order.virtualDeliveryContent || order.virtual_delivery_content || '').trim()
+      this.setData({ deliveryCard: { name, content, orderId } })
+      const marker = 'orderDelivered:' + orderId
+      if ((this.data.messages || []).some((m) => m.marker === marker)) return
+      const text = content
+        ? ('已为你自动发货「' + name + '」。发货内容已固定在上方，可直接复制。有问题在下方继续问我。')
+        : ('「' + name + '」已支付成功。如需查询发货或使用说明，直接在下方回复即可。')
+      this._push({ role: 'service', type: 'text', text, marker })
+    } catch (_) { /* ignore */ }
+  },
+
+  onCopyDelivery() {
+    const content = this.data.deliveryCard && this.data.deliveryCard.content
+    if (!content) return
+    wx.setClipboardData({
+      data: content,
+      success: () => wx.showToast({ title: '已复制发货内容', icon: 'none' }),
     })
   },
 
@@ -78,22 +235,62 @@ Page({
     this.setData({ inputText: (e.detail && e.detail.value) || '' })
   },
 
+  onToggleEmoji() {
+    this.setData({ showEmoji: !this.data.showEmoji })
+  },
+
+  onPickEmoji(e) {
+    const emoji = e.currentTarget.dataset.e
+    if (!emoji) return
+    this.setData({
+      inputText: (this.data.inputText || '') + emoji,
+      showEmoji: false,
+    })
+  },
+
+  onTransferHuman() {
+    wx.showToast({ title: '正在转接人工客服…', icon: 'none' })
+  },
+
   onQuick(e) {
     const q = e.currentTarget.dataset.q
     if (!q) return
+    this.setData({ showQuick: false })
+    this._push({ role: 'me', type: 'text', text: q })
+    const flow = QUICK_FLOWS[q]
+    if (flow) {
+      this._runFlow(flow)
+      return
+    }
     this._ask(q)
   },
 
   onSend() {
     const q = (this.data.inputText || '').trim()
     if (!q || this.data.sending) return
-    this.setData({ inputText: '' })
+    this.setData({ inputText: '', showQuick: false, showEmoji: false })
     this._ask(q)
   },
 
+  _runFlow(steps) {
+    this.setData({ typing: true })
+    steps.forEach((step) => {
+      setTimeout(() => {
+        const { delay, ...msg } = step
+        if (msg.type === 'ordcard') {
+          msg.order = this._orderCardForQuick()
+        }
+        this._push(msg)
+        if (step === steps[steps.length - 1]) {
+          this.setData({ typing: false })
+        }
+      }, step.delay || 400)
+    })
+  },
+
   async _ask(question) {
-    this._push('me', question)
-    this.setData({ sending: true })
+    this._push({ role: 'me', type: 'text', text: question })
+    this.setData({ sending: true, typing: true })
     try {
       if (!AuthUtil.isLoggedIn()) {
         throw new Error('need_login')
@@ -101,45 +298,149 @@ Page({
       const res = await post('/api/v1/mp/ai/chat', {
         question,
         sessionId: this.data.sessionId || undefined,
+        orderId: this.data.orderId || undefined,
       }, { showError: false })
       const answer = (res && res.answer) || ''
       const sessionId = (res && res.sessionId) || this.data.sessionId
       if (sessionId) this.setData({ sessionId })
-      let text = answer || QUICK_REPLY[question] || '已收到，如需进一步帮助可联系人工客服。'
+      let text = answer || '已收到，如需进一步帮助可联系人工客服。'
       if (res && res.action && res.action.type) {
-        const tip = res.action.confirmRequired
+        text += res.action.confirmRequired
           ? '\n\n（该操作需你自行确认，系统不会自动执行）'
           : ''
-        text += tip
       }
-      this._push('service', text, sessionId)
+      this._push({ role: 'service', type: 'text', text }, sessionId)
+      this.setData({ sending: false, typing: false })
     } catch (e) {
-      const fallback = QUICK_REPLY[question] || '暂时无法连接智能客服，请稍后再试或联系人工客服。'
-      this._push('service', fallback)
-    } finally {
-      this.setData({ sending: false })
+      const flow = QUICK_FLOWS[question]
+      if (flow) {
+        this.setData({ sending: false })
+        this._runFlow(flow)
+        return
+      }
+      this._push({
+        role: 'service',
+        type: 'text',
+        text: '暂时无法连接智能客服。你可以点下方「转人工」，或先试试上方常见问题。',
+      })
+      this.setData({ sending: false, typing: false })
     }
   },
 
-  onClearHistory() {
-    wx.showModal({
-      title: '清空记录',
-      content: '确定清空本页咨询记录吗？微信官方客服会话不受影响。',
-      success: (res) => {
-        if (!res.confirm) return
-        StorageUtil.remove(HISTORY_KEY)
-        this.setData({ messages: [WELCOME], nextId: 2, scrollInto: 'm1', sessionId: '' })
-        saveHistory([WELCOME], 2, '')
-      },
-    })
+  onPickOrder() {
+    this.setData({ showQuick: false, showEmoji: false })
+    if (!AuthUtil.requireLoginForAction('发送订单')) return
+    orderService.getOrderList({ current: 1, size: 5 })
+      .then((page) => {
+        const records = (page && (page.records || page.list || page.items)) || []
+        if (!records.length) {
+          wx.showToast({ title: '暂无订单可发送', icon: 'none' })
+          return
+        }
+        const labels = records.map((o) => {
+          const name = (o.items && o.items[0] && (o.items[0].productName || o.items[0].name))
+            || o.productName || o.name || '订单'
+          const no = o.orderNo || o.order_no || o.id || ''
+          return `${name} · ${no}`.slice(0, 36)
+        })
+        wx.showActionSheet({
+          itemList: labels,
+          success: (res) => {
+            const o = records[res.tapIndex]
+            if (!o) return
+            const goods = (o.items && o.items[0]) || {}
+            const card = {
+              title: goods.productName || goods.name || o.productName || '订单商品',
+              orderNo: o.orderNo || o.order_no || String(o.id || ''),
+              cover: goods.productImage || goods.image || ORDER_COVER,
+              priceLabel: `¥${o.payAmount != null ? o.payAmount : (o.amount || o.totalAmount || '--')} ${o.statusText || o.status || ''}`.trim(),
+              orderId: o.id || '',
+            }
+            this.setData({ orderId: o.id || this.data.orderId })
+            this._push({ role: 'me', type: 'ordcard', order: card })
+            setTimeout(() => {
+              this._push({
+                role: 'service',
+                type: 'text',
+                text: '收到订单卡片了。请问是要查询发货、申请发票，还是其他问题？',
+              })
+            }, 500)
+          },
+        })
+      })
+      .catch(() => {
+        this._push({
+          role: 'me',
+          type: 'ordcard',
+          order: Object.assign({}, DEMO_ORDER, { orderId: this.data.orderId || '' }),
+        })
+      })
   },
 
-  _push(role, text, sessionId) {
+  onPickImage() {
+    this.setData({ showEmoji: false })
+    const choose = wx.chooseMedia
+      ? () => new Promise((resolve, reject) => {
+        wx.chooseMedia({
+          count: 1,
+          mediaType: ['image'],
+          sourceType: ['album', 'camera'],
+          success: resolve,
+          fail: reject,
+        })
+      })
+      : () => new Promise((resolve, reject) => {
+        wx.chooseImage({
+          count: 1,
+          success: (res) => resolve({ tempFiles: [{ tempFilePath: res.tempFilePaths[0] }] }),
+          fail: reject,
+        })
+      })
+    choose()
+      .then((res) => {
+        const path = res.tempFiles && res.tempFiles[0] && res.tempFiles[0].tempFilePath
+        if (!path) return
+        this.setData({ showQuick: false })
+        this._push({ role: 'me', type: 'imgmsg', imageUrl: path })
+        setTimeout(() => {
+          this._push({
+            role: 'service',
+            type: 'text',
+            text: '图片已收到，我这边看一下。如需更快处理，也可点下方「转人工」。',
+          })
+        }, 500)
+      })
+      .catch(() => {})
+  },
+
+  onPreviewImg(e) {
+    const url = e.currentTarget.dataset.url
+    if (!url) return
+    wx.previewImage({ current: url, urls: [url] })
+  },
+
+  onViewOrder(e) {
+    const id = e.currentTarget.dataset.id || this.data.orderId
+    if (id) {
+      wx.navigateTo({ url: '/pkg-trade/order-detail/order-detail?id=' + id })
+      return
+    }
+    wx.showToast({ title: '可在「我的-订单」查看', icon: 'none' })
+  },
+
+  _push(msg, sessionId) {
     const id = this.data.nextId
-    const messages = this.data.messages.concat([{ id, role, text, ts: Date.now() }])
+    const row = Object.assign({ id, ts: Date.now(), type: 'text' }, msg)
+    const messages = this.data.messages.concat([row])
     const nextId = id + 1
     const sid = sessionId != null ? sessionId : this.data.sessionId
-    this.setData({ messages, nextId, scrollInto: 'm' + id, sessionId: sid })
-    saveHistory(messages, nextId, sid)
+    this.setData({
+      messages,
+      nextId,
+      scrollInto: 'm' + id,
+      sessionId: sid,
+      showQuick: false,
+    })
+    saveHistory(messages, nextId, sid, false)
   },
 })

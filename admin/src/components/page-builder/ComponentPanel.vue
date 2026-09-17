@@ -112,6 +112,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
+import { useIndustryProfileStore } from '@/stores/industry-profile'
 import { ComponentType } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
 import { confirmRemoveComponent } from './confirmRemoveComponent'
@@ -119,6 +120,10 @@ import * as ElementPlusIcons from '@element-plus/icons-vue'
 
 const pageStore = usePageStore()
 const featureModulesStore = useFeatureModulesStore()
+const industryProfileStore = useIndustryProfileStore()
+if (!industryProfileStore.loaded) {
+  industryProfileStore.load()
+}
 const componentSectionHeight = ref(520)
 const collapsed = ref({
   components: false,
@@ -169,6 +174,8 @@ const recentComponents = computed<ComponentDefinition[]>(() => {
     .filter((def): def is ComponentDefinition => {
       if (!def) return false
       if (!featureModulesStore.productEnabled && commerceTypes.has(def.type)) return false
+      if (!featureModulesStore.isEnabled('planet') && String(def.type).startsWith('planet_')) return false
+      if (!industryProfileStore.isComponentAllowed(def.type)) return false
       return true
     })
 })
@@ -180,8 +187,11 @@ const resizing = ref<{
 
 const categories = computed(() => {
   const all = getAllCategories()
-  if (featureModulesStore.productEnabled) return all
-  return all.filter((cat) => cat.value !== 'commerce')
+  return all.filter((cat) => {
+    if (cat.value === 'commerce' && !featureModulesStore.productEnabled) return false
+    if (cat.value === 'planet' && !featureModulesStore.isEnabled('planet')) return false
+    return true
+  })
 })
 
 const visibleCategories = computed(() => {
@@ -200,7 +210,13 @@ const totalComponentCount = computed(() => {
 /** B4：按搜索关键字过滤分类下的组件（匹配组件名称） */
 function filteredComponentsByCategory(category: string): ComponentDefinition[] {
   if (!featureModulesStore.productEnabled && category === 'commerce') return []
-  const list = getComponentsByCategory(category)
+  if (!featureModulesStore.isEnabled('planet') && category === 'planet') return []
+  const list = getComponentsByCategory(category).filter((item) =>
+    industryProfileStore.isComponentAllowed(item.type),
+  ).filter((item) => {
+    if (!featureModulesStore.isEnabled('planet') && String(item.type).startsWith('planet_')) return false
+    return true
+  })
   const kw = searchKeyword.value.trim().toLowerCase()
   if (!kw) return list
   return list.filter((item) => item.label.toLowerCase().includes(kw))

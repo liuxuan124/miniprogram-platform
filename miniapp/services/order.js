@@ -8,7 +8,7 @@ const request = require('../utils/request')
  * @param {Object} data - { address_id, items: [{ cart_id / sku_id, quantity }], remark }
  */
 function createOrder(data) {
-  return request.post('/api/v1/mp/orders', data)
+  return request.post('/api/v1/mp/orders', data, { showError: false })
 }
 
 /**
@@ -40,9 +40,6 @@ function payOrder(id) {
   return request.post(`/api/v1/mp/orders/${id}/pay`)
 }
 
-/**
- * 支付成功后同步微信查单（回调失败兜底）
- */
 function syncPay(id) {
   return request.post(`/api/v1/mp/orders/${id}/sync-pay`, {}, { showError: false })
 }

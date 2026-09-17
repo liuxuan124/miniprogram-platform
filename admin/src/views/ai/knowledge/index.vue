@@ -2,35 +2,49 @@
   <div class="knowledge-page">
     <PageHeader
       kicker="系统 / 智能 AI"
-      title="知识库管理"
-      description="跨 Agent 共享的知识源：上传文档、同步内容库、手动问答与检索测试。"
+      title="AI 语料库"
+      description="跨 Agent 共享的语料源：上传文档、同步内容库、手动问答与检索测试。"
     >
       <template #actions>
         <el-button @click="$router.push('/ai/agent')">← Agent 列表</el-button>
       </template>
     </PageHeader>
 
+    <el-row :gutter="12" class="kb-stats">
+      <el-col :span="6"><el-statistic title="语料源" :value="kbStats.sourceCount" /></el-col>
+      <el-col :span="6"><el-statistic title="切片条目" :value="kbStats.chunkCount" /></el-col>
+      <el-col :span="6"><el-statistic title="已索引" :value="kbStats.indexedCount" /></el-col>
+      <el-col :span="6"><el-statistic title="完成度" :value="kbStats.indexPercent" suffix="%" /></el-col>
+    </el-row>
+
     <el-row :gutter="16">
       <el-col :span="16">
         <el-card shadow="never">
           <template #header>
             <div class="card-head">
-              <span>知识源列表</span>
-              <el-upload
-                :show-file-list="false"
-                accept=".docx,.txt,.md,.markdown,.html,.xlsx,.csv"
-                :disabled="uploading"
-                :http-request="handleUpload"
-              >
-                <el-button size="small" type="primary" :loading="uploading">上传文档</el-button>
-              </el-upload>
+              <span>语料源列表</span>
+              <div class="card-head__actions">
+                <el-select v-model="uploadCitePolicy" size="small" style="width: 140px" placeholder="引用策略">
+                  <el-option label="完整引用" value="full" />
+                  <el-option label="仅摘要" value="summary" />
+                  <el-option label="不可引用" value="none" />
+                </el-select>
+                <el-upload
+                  :show-file-list="false"
+                  accept=".docx,.txt,.md,.markdown,.html,.xlsx,.csv"
+                  :disabled="uploading"
+                  :http-request="handleUpload"
+                >
+                  <el-button size="small" type="primary" :loading="uploading">上传文档</el-button>
+                </el-upload>
+              </div>
             </div>
           </template>
           <el-table :data="sources" stripe v-loading="loadingSources" @row-click="openChunks">
             <el-table-column label="名称" min-width="160">
               <template #default="{ row }">
                 <el-button link type="primary" @click.stop="openChunks(row)">
-                  {{ row.fileName || `知识源 #${row.id}` }}
+                  {{ row.fileName || `语料源 #${row.id}` }}
                 </el-button>
               </template>
             </el-table-column>
@@ -41,6 +55,21 @@
             </el-table-column>
             <el-table-column label="切片" prop="chunkCount" width="72" align="center" />
             <el-table-column label="命中" prop="hitCount" width="72" align="center" />
+            <el-table-column label="引用策略" width="140">
+              <template #default="{ row }">
+                <el-select
+                  :model-value="row.citePolicy || 'full'"
+                  size="small"
+                  style="width: 120px"
+                  @click.stop
+                  @change="(v) => updateCitePolicy(row, String(v))"
+                >
+                  <el-option label="完整引用" value="full" />
+                  <el-option label="仅摘要" value="summary" />
+                  <el-option label="不可引用" value="none" />
+                </el-select>
+              </template>
+            </el-table-column>
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="row.vectorStatus === 'done' ? 'success' : 'warning'" size="small">
@@ -76,6 +105,13 @@
             </el-form-item>
             <el-form-item label="答案">
               <el-input v-model="qaForm.answer" type="textarea" :rows="4" placeholder="标准答案" />
+            </el-form-item>
+            <el-form-item label="引用策略">
+              <el-select v-model="qaForm.citePolicy" style="width: 100%">
+                <el-option label="完整引用" value="full" />
+                <el-option label="仅摘要" value="summary" />
+                <el-option label="不可引用" value="none" />
+              </el-select>
             </el-form-item>
             <el-button type="primary" :loading="savingQa" @click="submitManualQa">保存问答</el-button>
           </el-form>
@@ -140,18 +176,22 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
+import { get } from '@/api/request'
 import {
   createManualQa,
   deleteChunk,
   downloadKnowledge,
   getChunks,
   listKnowledgeSources,
+  patchKnowledgeCitePolicy,
   searchTest,
   syncFromContent,
   uploadKnowledgeFile,
   type KnowledgeChunkItem,
   type KnowledgeSourceItem,
 } from '@/api/knowledge'
+
+const kbStats = ref({ sourceCount: 0, chunkCount: 0, indexedCount: 0, indexPercent: 0 })
 
 const loadingSources = ref(false)
 const loadingChunks = ref(false)
@@ -165,8 +205,9 @@ const sources = ref<KnowledgeSourceItem[]>([])
 const chunks = ref<KnowledgeChunkItem[]>([])
 const searchHits = ref<Array<{ title?: string; body?: string; sourceRef?: string; score?: number }>>([])
 const syncResult = ref('')
+const uploadCitePolicy = ref('full')
 
-const qaForm = ref({ question: '', answer: '' })
+const qaForm = ref({ question: '', answer: '', citePolicy: 'full' })
 const syncForm = ref({ includePublishedContent: true, includeAnsweredQa: true })
 const searchQ = ref('')
 
@@ -208,6 +249,21 @@ function truncate(text?: string, len = 100) {
   return text.length > len ? `${text.slice(0, len)}…` : text
 }
 
+async function loadKbStats() {
+  try {
+    const res = await get<any>('/api/v1/admin/knowledge/stats')
+    const d = (res as any)?.data || {}
+    kbStats.value = {
+      sourceCount: Number(d.sourceCount || 0),
+      chunkCount: Number(d.chunkCount || 0),
+      indexedCount: Number(d.indexedCount || 0),
+      indexPercent: Number(d.indexPercent || 0),
+    }
+  } catch {
+    kbStats.value = { sourceCount: 0, chunkCount: 0, indexedCount: 0, indexPercent: 0 }
+  }
+}
+
 async function loadSources() {
   loadingSources.value = true
   try {
@@ -233,7 +289,7 @@ async function handleUpload(options: { file: File }) {
   }
   uploading.value = true
   try {
-    await uploadKnowledgeFile(file)
+    await uploadKnowledgeFile(file, undefined, uploadCitePolicy.value)
     ElMessage.success(`已上传「${file.name}」`)
     await loadSources()
   } catch {
@@ -253,15 +309,30 @@ async function submitManualQa() {
     await createManualQa({
       question: qaForm.value.question.trim(),
       answer: qaForm.value.answer.trim(),
+      citePolicy: qaForm.value.citePolicy || 'full',
     })
     ElMessage.success('问答已入库')
-    qaForm.value = { question: '', answer: '' }
+    qaForm.value = { question: '', answer: '', citePolicy: 'full' }
     await loadSources()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '保存失败'
     ElMessage.error(msg)
   } finally {
     savingQa.value = false
+  }
+}
+
+async function updateCitePolicy(row: KnowledgeSourceItem, citePolicy: string) {
+  const prev = row.citePolicy || 'full'
+  if (prev === citePolicy) return
+  row.citePolicy = citePolicy
+  try {
+    await patchKnowledgeCitePolicy(row.id, citePolicy)
+    ElMessage.success('引用策略已更新')
+  } catch (e: unknown) {
+    row.citePolicy = prev
+    const msg = e instanceof Error ? e.message : '更新失败'
+    ElMessage.error(msg)
   }
 }
 
@@ -346,6 +417,7 @@ async function downloadSource(row: KnowledgeSourceItem) {
 }
 
 onMounted(() => {
+  void loadKbStats()
   void loadSources()
 })
 </script>
@@ -358,6 +430,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+}
+.card-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .sync-result {
   margin-top: 10px;

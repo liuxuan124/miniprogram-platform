@@ -45,7 +45,7 @@ const logoUrl = computed(() => {
 })
 const logoText = computed(() => resolveLogoText(p.value.logo_text))
 const showBrandSlot = computed(() => !!logoUrl.value || !!logoText.value)
-const titleText = computed(() => String(p.value.title || '墨太白 · 跨境工具与知识平台').trim())
+const titleText = computed(() => String(p.value.title || '品牌名称 · 一句话定位').trim())
 const subtitleText = computed(() => String(p.value.subtitle || '').trim())
 
 const logoHeight = computed(() => Math.max(Number(p.value.logo_height ?? 28), 20))

@@ -1,0 +1,178 @@
+<!-- pages/planet/planet.wxml — 默认暖阁原生星球；底栏绑了装修页则走 DSL -->
+<page-meta page-style="{{themePageStyle}}" />
+<!-- dslPending 期间先画 DEMO 原生壳，避免空白「加载中」；DSL 就绪后再切 -->
+<block wx:if="{{dslMode && !dslPending}}">
+  <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
+  <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
+  <block wx:else>
+    <view class="dsl-tab-page__body" style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+      <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
+        <dsl-renderer component="{{item}}" />
+      </view>
+      <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
+    </view>
+    <dsl-float-button
+      wx:for="{{floatComponents}}"
+      wx:key="id"
+      config="{{item.props}}"
+      actions="{{item.actions}}"
+      styleString="{{item.styleString}}"
+    />
+  </block>
+</block>
+<view wx:else class="pl-page">
+  <scroll-view
+    class="pl-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onReachBottom"
+    lower-threshold="120"
+  >
+    <view class="pl-hero" style="padding-top: {{statusBarHeight + 12}}px;">
+      <view class="pl-hero__rw">
+        <view class="pl-hero__lg">🪐</view>
+        <view class="pl-hero__meta">
+          <text class="pl-hero__title warm-serif">{{home.title || '暖阁星球'}}</text>
+          <text class="pl-hero__sb">{{home.subtitle || '内容创作者的自留地 · 由 墨白 主理'}}</text>
+        </view>
+        <view class="pl-hero__jn" catchtap="onHeroJoin">{{home.memberActive ? '已加入' : '加入'}}</view>
+      </view>
+      <view class="pl-kpi">
+        <view wx:for="{{kpis}}" wx:key="label" class="pl-kpi__item">
+          <text class="pl-kpi__b">{{item.value}}</text>
+          <text class="pl-kpi__s">{{item.label}}</text>
+        </view>
+      </view>
+      <view class="pl-exp" wx:if="{{expireText}}" catchtap="onRenewTap">🎫 {{expireText}}</view>
+      <view class="pl-joinrow" catchtap="onGoJoin">
+        <text>👥 加入球友微信群，第一时间收到更新通知</text>
+        <text class="pl-joinrow__go">去加入 ›</text>
+      </view>
+    </view>
+
+    <view class="pl-fc">
+      <view class="pl-fc__t">
+        <text class="pl-fc__ic">📈</text>
+        <text class="pl-fc__h">本周星球话题预测</text>
+        <text class="warm-tag warm-tag--gold">AI 推演</text>
+      </view>
+      <view class="pl-fc__bar">
+        <view class="pl-fc__row" wx:for="{{topics}}" wx:key="name">
+          <text class="pl-fc__nm">{{item.name}}</text>
+          <view class="pl-fc__tr"><view class="pl-fc__fill" style="width:{{item.width}}%"></view></view>
+          <text class="pl-fc__pct {{item.down ? 'pl-fc__pct--dn' : ''}}">{{item.pct}}</text>
+        </view>
+      </view>
+      <view class="pl-fc__note">基于近 30 天星球发帖、提问与互动数据推演。预计下周「AI 写作工具」将持续升温，建议提前储备相关选题。</view>
+    </view>
+
+    <scroll-view class="pl-segs" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="pl-segs__inner">
+        <text
+          wx:for="{{segs}}"
+          wx:key="key"
+          class="pl-seg {{activeSeg === item.key ? 'pl-seg--on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onSegTap"
+        >{{item.label}}</text>
+      </view>
+    </scroll-view>
+
+    <view class="pl-feed-wrap">
+      <block wx:for="{{list}}" wx:key="uid">
+        <view
+          class="pl-fd {{item.top ? 'pl-fd--top' : ''}}"
+          data-id="{{item.id}}"
+          data-uid="{{item.uid}}"
+          data-demo="{{item.isDemo}}"
+          data-index="{{index}}"
+          bindtap="onOpenMoment"
+        >
+          <view class="pl-fd__hh">
+            <image class="pl-fd__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+            <view class="pl-fd__av pl-fd__av--fb" wx:else>{{item.authorInitial}}</view>
+            <view class="pl-fd__who">
+              <view class="pl-fd__nm">
+                <text>{{item.author}}</text>
+                <text class="warm-tag warm-tag--gold" wx:if="{{item.tagGold}}">{{item.tagGold}}</text>
+                <text class="warm-tag" wx:if="{{item.tag}}">{{item.tag}}</text>
+              </view>
+              <text class="pl-fd__tm">{{item.time}}</text>
+            </view>
+            <text
+              class="pl-fd__mo"
+              data-id="{{item.id}}"
+              data-uid="{{item.uid}}"
+              data-index="{{index}}"
+              data-demo="{{item.isDemo}}"
+              catchtap="onMoreTap"
+            >···</text>
+          </view>
+          <text class="pl-fd__ct">{{item.content}}</text>
+          <view class="pl-fd__q" wx:if="{{item.answer}}">
+            <view class="pl-fd__qlb">星主已回答</view>
+            <text>{{item.answer}}</text>
+          </view>
+          <view class="pl-fd__file" wx:if="{{item.file}}" catchtap="onOpenFile" data-file="{{item.file}}">
+            <text class="pl-fd__fic">📄</text>
+            <view class="pl-fd__fmeta">
+              <text class="pl-fd__fh">{{item.file.name}}</text>
+              <text class="pl-fd__fp">{{item.file.meta}}</text>
+            </view>
+            <text class="pl-fd__fgo">预览 ›</text>
+          </view>
+          <view class="pl-fd__gg {{item.images.length === 2 ? 'pl-fd__gg--two' : ''}}" wx:if="{{item.images.length}}">
+            <image
+              wx:for="{{item.images}}"
+              wx:for-item="img"
+              wx:key="*this"
+              class="pl-fd__img warm-ph"
+              src="{{img}}"
+              mode="aspectFill"
+            />
+          </view>
+          <text class="pl-fd__tp" wx:if="{{item.topics}}">{{item.topics}}</text>
+          <view class="pl-fd__ft">
+            <text
+              class="{{item.liked || item.hot ? 'pl-fd__hot' : ''}}"
+              data-id="{{item.id}}"
+              data-uid="{{item.uid}}"
+              data-index="{{index}}"
+              data-demo="{{item.isDemo}}"
+              catchtap="onLikeTap"
+            >❤️ {{item.likes}}</text>
+            <text
+              data-id="{{item.id}}"
+              data-uid="{{item.uid}}"
+              data-demo="{{item.isDemo}}"
+              catchtap="onCommentTap"
+            >💬 {{item.comments}}</text>
+            <text
+              data-id="{{item.id}}"
+              data-uid="{{item.uid}}"
+              data-index="{{index}}"
+              data-demo="{{item.isDemo}}"
+              catchtap="onFavoriteTap"
+            >{{item.favorited ? '⭐️ 已收藏' : '⭐️ 收藏'}}</text>
+            <text
+              data-id="{{item.id}}"
+              data-uid="{{item.uid}}"
+              data-index="{{index}}"
+              data-demo="{{item.isDemo}}"
+              catchtap="onShareTap"
+            >↗️ 分享</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view class="warm-end">{{footerText}}</view>
+    <view class="warm-safe"></view>
+  </scroll-view>
+
+  <view class="pl-fab" catchtap="onFab">🙋 提问·打卡</view>
+</view>

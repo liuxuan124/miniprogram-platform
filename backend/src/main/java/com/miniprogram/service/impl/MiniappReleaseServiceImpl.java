@@ -45,7 +45,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             "appointment_service", "member_card", "coupon", "ai_entry", "video",
             "brand_intro", "brand_header", "image_text", "contact_info", "certificate", "countdown",
             "float_button", "rich_text", "section_title", "divider", "spacer", "form_entry", "join_group",
-            "container", "image_hotspot", "section_bg", "feature_cards"
+            "container", "image_hotspot", "section_bg", "feature_cards", "image_cube", "content_tabs"
     );
 
     private final PageMapper pageMapper;

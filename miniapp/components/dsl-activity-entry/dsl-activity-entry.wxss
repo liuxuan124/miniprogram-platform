@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--brand), #1A4BBF);
+  background: linear-gradient(135deg, #c2410c, #d97706);
   overflow: hidden;
 }
 

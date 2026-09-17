@@ -12,6 +12,9 @@ import lombok.EqualsAndHashCode;
 @Schema(description = "文件库文件项")
 public class FileItem extends BaseEntity {
 
+    @Schema(description = "租户ID")
+    private Long tenantId;
+
     private String name;
 
     private String summary;
@@ -33,10 +36,24 @@ public class FileItem extends BaseEntity {
     /** normal / premium */
     private String qualityTier;
 
-    /** free / login / member / level */
+    /** free / login / member / level / column_buyer / planet_member */
     private String readMode;
 
+    /** column_buyer 绑定商品；空则任一专栏/电子书/资料包已购可开 */
+    private Long boundProductId;
+
     private Integer previewPercent;
+
+    /** none / first_page / pages / percent / full */
+    private String previewMode;
+
+    private Integer previewValue;
+
+    private Integer pageCount;
+
+    private Integer allowForward;
+
+    private Integer watermark;
 
     private Long minReadLevelId;
 

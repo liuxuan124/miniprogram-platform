@@ -11,6 +11,8 @@ import com.miniprogram.mapper.PageTemplateMapper;
 import com.miniprogram.mapper.PermissionMapper;
 import com.miniprogram.mapper.RoleMapper;
 import com.miniprogram.mapper.RolePermissionMapper;
+import com.miniprogram.service.ProductService;
+import com.miniprogram.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -37,12 +39,26 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final PermissionMapper permissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
+    private final ProductService productService;
 
     @Override
     public void run(String... args) {
         initDefaultAdmin();
         ensureSuperAdminPermissions();
         initDefaultTemplates();
+        ensurePay1SmokeProduct();
+    }
+
+    /** 启动时补齐暖阁 ¥1 支付验通路商品（V60 未落库时也能冒烟） */
+    private void ensurePay1SmokeProduct() {
+        try {
+            TenantContext.setTenantId(TenantContext.DEFAULT_TENANT_ID);
+            productService.ensurePay1SmokeProduct();
+        } catch (Exception e) {
+            log.warn("补齐 ¥1 支付验通路商品失败（可稍后调 GET /api/v1/mp/products/smoke/pay1）: {}", e.getMessage());
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     /**
@@ -118,6 +134,22 @@ public class DataInitializer implements CommandLineRunner {
      * 初始化默认页面模板（按名称检查，支持增量添加）
      */
     private void initDefaultTemplates() {
+        safeInsert(buildIndustryTemplate(
+                "暖阁内容首页模板", "home", 5, "content_ip", "publish",
+                "暖阁,内容,专栏,星球,首页", "#C2410C,#EA580C",
+                "对齐系统自带暖阁首页：品牌顶栏、搜索、快捷入口、精选文章、专栏课、内容流。套用后绑定到底栏首页槽即可替换原生版式。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_nuange_home","name":"暖阁内容首页","type":"home","path":"pages/index/index","background_color":"#FDF6EC","share_title":"暖阁 · 慢一点，也很好"},"components":[{"id":"bh1","type":"brand_header","props":{"logo_text":"暖阁","title":"暖阁 · 慢一点，也很好","subtitle":"内容、专栏与星球","style_type":"plain","background_color":"#FDF6EC","title_color":"#9A3412","subtitle_color":"#C2410C"}},{"id":"s1","type":"search","props":{"placeholder":"搜索文章、笔记、专栏","scope":"all"}},{"id":"n1","type":"nav","props":{"columns":5,"style_type":"icon_text","items":[{"icon":"📚","title":"长文","link_type":"page","link_url":"/pages/content-list/content-list"},{"icon":"🎧","title":"专栏课","link_type":"page","link_url":"/pages/shop/shop"},{"icon":"🪐","title":"星球","link_type":"page","link_url":"/pages/planet/planet"},{"icon":"🛍","title":"商城","link_type":"page","link_url":"/pages/shop/shop"},{"icon":"🗂","title":"资料库","link_type":"page","link_url":"/pages/resources/resources"}]}},{"id":"st1","type":"section_title","props":{"title":"今日精选","subtitle":"深度内容"}},{"id":"al1","type":"article_list","props":{"limit":1,"columns":1,"layout":"list","data_source":{"type":"content","params":{"status":"published"},"query":{"status":"published"}}}},{"id":"st2","type":"section_title","props":{"title":"精品专栏","subtitle":"连载课"}},{"id":"pl1","type":"product_list","props":{"layout":"list","columns":1,"limit":4,"source_mode":"auto","data_source":{"type":"product","params":{"status":"on_sale","product_type":"column"},"query":{"status":"on_sale","product_type":"column"}}}},{"id":"bi1","type":"brand_intro","props":{"title":"我的星球","subtitle":"共读与连载陪伴","desc":"点底栏「星球」进入；也可在装修里把这块换成入群组件。"}},{"id":"af1","type":"article_feed","props":{"layout":"list","page_size":10,"show_cover":true,"show_date":true,"data_source":{"type":"content","params":{"status":"published"},"query":{"status":"published"}}}},{"id":"nf1","type":"note_feed","props":{"page_size":8,"show_category_tabs":false,"data_source":{"type":"content","params":{"status":"published","contentType":"note"},"query":{"status":"published","contentType":"note"}}}}],"global_config":{"pull_refresh":true,"reach_bottom_load":true}}
+                """));
+
+        safeInsert(buildIndustryTemplate(
+                "暖阁星球页模板", "planet", 6, "content_ip", "retention",
+                "暖阁,星球,动态,会员", "#C2410C,#EA580C",
+                "对齐系统自带暖阁星球页：顶栏、数据看板、会员入口、加群、话题洞察、动态时间线、提问悬浮钮。套用后绑定到底栏星球槽即可替换原生版式。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_nuange_planet","name":"暖阁星球","type":"custom","path":"pages/planet/planet","background_color":"#FDF6EC","share_title":"暖阁星球"},"components":[{"id":"ph1","type":"planet_hero","props":{"source_mode":"auto","logo_emoji":"🪐","title":"暖阁星球","subtitle":"内容创作者的自留地 · 由 墨白 主理","join_text":"加入","join_link":"/pages/member-center/member-center","expire_text":"会员有效期至 2027-03-18 · 剩余 185 天 · 续费享 8 折","join_row_text":"👥 加入球友微信群，第一时间收到更新通知","join_row_go":"去加入 ›","kpis":[{"value":"3,241","label":"球友"},{"value":"1.2万","label":"沉淀内容"},{"value":"27","label":"今日新增"},{"value":"98%","label":"问必答"}]}},{"id":"pt1","type":"planet_topics","props":{"source_mode":"auto","icon":"📈","title":"本周星球话题预测","badge":"AI 推演","note":"基于近 30 天星球发帖、提问与互动数据推演。预计下周「AI 写作工具」将持续升温，建议提前储备相关选题。","items":[{"name":"AI 写作工具","width":88,"pct":"↑ 62%"},{"name":"小红书新规","width":71,"pct":"↑ 34%"},{"name":"付费社群定价","width":54,"pct":"↑ 12%"},{"name":"公众号流量主","width":31,"pct":"↓ 8%","down":true}]}},{"id":"pf1","type":"planet_feed","props":{"source_mode":"auto","page_size":20,"resources_url":"/pages/resources/resources"}},{"id":"fb1","type":"float_button","props":{"title":"提问 / 打卡","icon_emoji":"🙋","color":"#EA580C","action_type":"link","link_url":"/pages/moment-detail/moment-detail","position":"right_bottom","offset_x":16,"offset_y":120,"size":56,"show_text":true}}],"global_config":{"pull_refresh":true,"reach_bottom_load":true}}
+                """));
+
         safeInsert(buildTemplate(
                 "电商增长首页模板", "home", 10,
                 """

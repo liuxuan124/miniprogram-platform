@@ -152,7 +152,7 @@ public class CartServiceImpl extends BaseServiceImpl<CartMapper, Cart>
         vo.setProductImage(product.getMainImage());
         vo.setProductStatus(product.getStatus());
         vo.setProductType(product.getProductType());
-        vo.setProductTypes(product.getProductTypes());
+        vo.setDeliveryMode(product.getDeliveryMode());
         vo.setPrice(product.getPrice());
         vo.setOriginalPrice(product.getOriginalPrice());
         vo.setStock(product.getStock());

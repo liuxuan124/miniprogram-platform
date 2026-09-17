@@ -456,8 +456,8 @@ const realDataWarnings = computed(() => {
 
 function demoProductItems(limit = 2) {
   return [
-    { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128, image: '' },
-    { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86, image: '' },
+    { id: 'demo-1', name: '示例商品 A', price: '199.00', sales: 128, image: '' },
+    { id: 'demo-2', name: '示例商品 B', price: '299.00', sales: 86, image: '' },
   ].slice(0, limit)
 }
 
@@ -591,8 +591,8 @@ const previewBgColor = computed(() => {
 async function loadShopPreviewList() {
   if (previewDataMode.value === 'demo') {
     shopPreviewList.value = [
-      { name: '跨境通用知识库', price: '199.00', sales: 128 },
-      { name: '跨境财税知识库', price: '299.00', sales: 86 },
+      { name: '示例商品 A', price: '199.00', sales: 128 },
+      { name: '示例商品 B', price: '299.00', sales: 86 },
     ]
     return
   }

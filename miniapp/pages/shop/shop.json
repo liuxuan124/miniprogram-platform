@@ -1,0 +1,13 @@
+{
+  "navigationBarTitleText": "商城",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 80,
+  "backgroundTextStyle": "dark",
+  "backgroundColor": "#FDF6EC",
+  "usingComponents": {
+    "login-sheet": "/components/login-sheet/login-sheet",
+    "dsl-renderer": "/components/dsl-renderer/dsl-renderer",
+    "dsl-float-button": "/components/dsl-float-button/dsl-float-button"
+  }
+}

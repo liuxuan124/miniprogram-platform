@@ -60,7 +60,7 @@
           v-model="releaseNotes"
           maxlength="200"
           show-word-limit
-          placeholder="例如：新增 6 篇跨境内容，首页换了轮播图"
+          placeholder="例如：更新内容与首页轮播"
         />
         <div class="save-actions">
           <el-button

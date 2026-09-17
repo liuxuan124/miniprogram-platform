@@ -3,7 +3,6 @@ package com.miniprogram.common;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -13,7 +12,8 @@ import java.time.LocalDateTime;
 
 /**
  * 基础实体类
- * 包含公共字段：id、创建时间、更新时间、创建人、更新人、逻辑删除标记
+ * 公共字段：id、创建/更新时间、创建/更新人、逻辑删除
+ * 租户字段仅挂在需要隔离的实体上（见 TenantContext / MpTenantLineHandler）
  */
 @Data
 public class BaseEntity implements Serializable {

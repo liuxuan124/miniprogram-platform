@@ -241,8 +241,36 @@ function buildMpHtmlBodyStyles(theme = 'standard') {
       },
     },
     dark: base,
+    warm: {
+      // Match prototypes-warm/article.html; mp-html does not collapse margins, so h2 top is reduced
+      container: 'font-size:32rpx;line-height:1.92;color:#3a2a1c;',
+      tag: {
+        ...base.tag,
+        p: 'margin:0 0 34rpx;font-size:32rpx;line-height:1.92;color:#3a2a1c;',
+        // prototype h2 margin 26/13 + ::before bar; without margin-collapse use ~18+34≈52rpx above
+        h2: 'font-size:38rpx;font-weight:700;margin:18rpx 0 26rpx;letter-spacing:-.02em;padding-left:28rpx;color:#2a1c12;background-image:linear-gradient(180deg,#ea580c,#b45309);background-repeat:no-repeat;background-size:8rpx calc(100% - 24rpx);background-position:0 12rpx;',
+        h3: 'font-size:34rpx;font-weight:700;margin:16rpx 0 20rpx;letter-spacing:-.02em;color:#2a1c12;',
+        b: 'color:#c2410c;font-weight:700;',
+        strong: 'color:#c2410c;font-weight:700;',
+        img: 'max-width:100%;border-radius:32rpx;margin:8rpx 0 40rpx;display:block;',
+        blockquote: 'margin:8rpx 0 40rpx;padding:32rpx 36rpx;border-radius:32rpx;background:linear-gradient(135deg,#fdeedb,#fbf3e7);border-left:0;font-size:31rpx;line-height:1.8;color:#5c3a1c;font-family:Songti SC,Noto Serif SC,serif;',
+        figcaption: 'margin-top:16rpx;font-size:22rpx;color:#a1897a;text-align:center;',
+        li: 'font-size:31rpx;line-height:1.85;color:#3a2a1c;margin:0 0 8rpx;padding-left:36rpx;list-style:none;',
+        ul: 'margin:-8rpx 0 36rpx 4rpx;padding:0;',
+      },
+    },
   }
   return themes[theme] || base
+}
+
+function extractLeadParagraph(html) {
+  const m = String(html || '').match(/<p[^>]*class=["'][^"']*\blead\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)
+  if (!m) return ''
+  return plainTextFromHtml(m[1]).replace(/\s+/g, ' ').trim()
+}
+
+function stripLeadParagraph(html) {
+  return String(html || '').replace(/<p[^>]*class=["'][^"']*\blead\b[^"']*["'][^>]*>[\s\S]*?<\/p>/i, '')
 }
 
 function extractArticleSummary(html, maxLen = 96) {
@@ -262,6 +290,8 @@ module.exports = {
   stripWechatEditorPreamble,
   prepareArticleContentHtml,
   buildMpHtmlBodyStyles,
+  extractLeadParagraph,
+  stripLeadParagraph,
   extractArticleSummary,
   plainTextFromHtml,
 }

@@ -7,6 +7,7 @@ import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.AppointmentService2;
 import com.miniprogram.service.AppointmentServiceService;
 import com.miniprogram.service.FormTemplateService;
+import com.miniprogram.support.FeatureModuleGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,18 +26,21 @@ public class MpFormAppointmentController {
     private final FormTemplateService formTemplateService;
     private final AppointmentServiceService appointmentServiceService;
     private final AppointmentService2 appointmentService;
+    private final FeatureModuleGuard featureModuleGuard;
 
     // ==================== 表单相关 ====================
 
     @Operation(summary = "获取表单模板", description = "小程序端获取表单模板详情（公开）")
     @GetMapping("/form-templates/{id}")
     public R<FormTemplateVO> getFormTemplate(@PathVariable Long id) {
+        featureModuleGuard.requireFormModule();
         return R.ok(formTemplateService.getFormTemplateDetail(id));
     }
 
     @Operation(summary = "提交表单", description = "小程序端提交表单数据")
     @PostMapping("/form-templates/{id}/submit")
     public R<FormDataVO> submitForm(@PathVariable Long id, @Valid @RequestBody FormSubmitDTO submitDTO) {
+        featureModuleGuard.requireFormModule();
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(formTemplateService.submitForm(id, userId, submitDTO));
     }

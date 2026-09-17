@@ -290,8 +290,8 @@ type ProductOption = {
 }
 
 const DEMO_OPTIONS: ProductOption[] = [
-  { id: 'demo-1', name: '跨境通用知识库', price: '199.00', sales: 128, status: 'on_sale' },
-  { id: 'demo-2', name: '跨境财税知识库', price: '299.00', sales: 86, status: 'on_sale' },
+  { id: 'demo-1', name: '示例商品 A', price: '199.00', sales: 128, status: 'on_sale' },
+  { id: 'demo-2', name: '示例商品 B', price: '299.00', sales: 86, status: 'on_sale' },
 ]
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()

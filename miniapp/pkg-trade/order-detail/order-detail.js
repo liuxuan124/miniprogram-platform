@@ -1,23 +1,37 @@
-// pkg-trade/order-detail/order-detail.js — 订单详情页
-// 状态追踪、操作按钮、微信支付
+// pkg-trade/order-detail — 对齐 prototypes-warm/order.html ④
 
 const orderService = require('../../services/order')
 const { AuthUtil } = require('../../utils/auth')
 const { requestPayment } = require('../../utils/payment')
 
-// 状态显示映射
 const STATUS_MAP = {
-  pending_payment: { text: '待付款', color: '#ff8a00', desc: '订单已创建，请完成支付' },
-  paid: { text: '待发货', color: '#1890ff', desc: '商家正在准备发货' },
-  shipped: { text: '待收货', color: '#faad14', desc: '订单已发货，请查看发货信息' },
-  completed: { text: '已完成', color: '#52c41a', desc: '交易已完成' },
-  closed: { text: '已关闭', color: '#999', desc: '订单已关闭' },
-  refunding: { text: '退款中', color: '#faad14', desc: '退款处理中' },
-  refunded: { text: '已退款', color: '#999', desc: '退款已完成' },
+  pending_payment: { text: '待付款', desc: '订单已创建，请完成支付' },
+  paid: { text: '待发货', desc: '商家正在准备发货' },
+  shipped: { text: '待收货', desc: '订单已发货，请查看发货信息' },
+  completed: { text: '已完成', desc: '交易已完成' },
+  closed: { text: '已关闭', desc: '订单已关闭' },
+  refunding: { text: '退款中', desc: '退款处理中' },
+  refunded: { text: '已退款', desc: '退款已完成' },
 }
 
-// 状态步骤条
-const STATUS_STEPS = ['pending_payment', 'paid', 'shipped', 'completed']
+const VIRTUAL_STATUS_MAP = {
+  pending_payment: { text: '待付款', desc: '订单已创建，请完成支付' },
+  paid: { text: '已开通', desc: '数字内容已交付，阅读权限已生效。换设备登录同一微信即可继续阅读。' },
+  shipped: { text: '已交付', desc: '数字内容已交付，阅读权限永久有效。换设备登录同一微信即可继续阅读。' },
+  completed: { text: '已完成', desc: '数字内容已交付，阅读权限永久有效。换设备登录同一微信即可继续阅读。' },
+  closed: { text: '已关闭', desc: '订单已关闭' },
+  refunding: { text: '退款中', desc: '退款处理中' },
+  refunded: { text: '已退款', desc: '退款已完成' },
+}
+
+function formatPayMethod(raw) {
+  if (!raw) return ''
+  const s = String(raw).toLowerCase()
+  if (s === 'wechat' || s === 'wx' || s === 'wechat_pay' || /微信/.test(raw)) {
+    return '微信支付 · 零钱'
+  }
+  return raw
+}
 
 Page({
   data: {
@@ -25,23 +39,16 @@ Page({
     order: null,
     loading: true,
     STATUS_MAP,
-
-    // 步骤条
-    currentStep: 0,
-    steps: [
-      { text: '待付款' },
-      { text: '待发货' },
-      { text: '待收货' },
-      { text: '已完成' },
-    ],
-
-    // 退款原因
-    showRefundModal: false,
-    refundReason: '',
-
-    // 支付状态
+    statusIcon: '',
+    showBottomBar: false,
     paying: false,
     isVirtual: false,
+    payMethodLabel: '',
+    activatedAt: '',
+    warmBeansAmount: '',
+    warmCouponAmount: '',
+    showRefundModal: false,
+    refundReason: '',
   },
 
   onLoad(options) {
@@ -60,13 +67,11 @@ Page({
     }
     this.setData({ id })
     this._loadDetail(id)
-
     if (options.action === 'pay') {
       setTimeout(() => this._doPay(), 1000)
     }
   },
 
-  /** 加载订单详情 */
   _loadDetail(id) {
     this.setData({ loading: true })
     orderService.getOrderDetail(id)
@@ -84,11 +89,18 @@ Page({
         order.shipping_company = order.shipping_company || order.logisticsCompany
         order.shipping_no = order.shipping_no || order.logisticsNo
         order.virtual_delivery_content = order.virtual_delivery_content || order.virtualDeliveryContent
+        order.payment_method = order.payment_method || order.paymentMethod
+        order.transaction_id = order.transaction_id || order.transactionId
         order.address = order.address || order.addressSnapshot
         if (order.address) {
           order.address.detail = order.address.detail || order.address.address
         }
+        const productType = String(order.productType || order.product_type || '').toLowerCase()
+        const deliveryMode = String(order.deliveryMode || order.delivery_mode || '').toLowerCase()
         const isVirtual = order.fulfillment_type === 'virtual'
+          || ['digital', 'ebook', 'column', 'course', 'membership', 'member', 'virtual'].includes(productType)
+          || deliveryMode === 'auto' || deliveryMode === 'virtual' || deliveryMode === 'digital'
+          || !!String(order.virtual_delivery_content || '').trim()
         if (Array.isArray(order.items)) {
           order.items = order.items.map((item) => ({
             ...item,
@@ -99,25 +111,40 @@ Page({
             product_image: item.product_image || item.productImage,
           }))
         }
-        // 计算步骤条进度
-        const statusSteps = STATUS_STEPS
-        let currentStep = 0
-        const statusIdx = statusSteps.indexOf(order.status)
-        if (statusIdx >= 0) currentStep = statusIdx
-        // 退款/关闭状态特殊处理
-        if (order.status === 'refunding' || order.status === 'refunded') {
-          currentStep = 1 // 退款发生在已付款后
+        const statusMap = isVirtual ? { ...STATUS_MAP, ...VIRTUAL_STATUS_MAP } : STATUS_MAP
+        const itemName = Array.isArray(order.items) && order.items[0]
+          ? String(order.items[0].product_name || order.items[0].name || '')
+          : ''
+        const warmEbook = isVirtual && /内容生意手册/.test(itemName)
+        if (warmEbook) {
+          order.items = order.items.map((it, idx) => (idx === 0
+            ? { ...it, sku_name: it.sku_name || '虚拟商品 · EPUB / PDF · 12 万字' }
+            : it))
+          if (!order.discount_amount && !order.coupon_amount) order.coupon_amount = '5.00'
+          if (!order.beans_amount && !order.bean_amount) order.beans_amount = '2.40'
         }
-        if (order.status === 'closed') {
-          currentStep = 0
-        }
+
+        const st = order.status
+        const statusIcon = (st === 'completed' || (isVirtual && (st === 'paid' || st === 'shipped'))) ? '✓' : ''
+        const payMethodLabel = formatPayMethod(order.payment_method)
+          || (order.paid_at ? '微信支付 · 零钱' : '')
+        const activatedAt = isVirtual && (st === 'paid' || st === 'shipped' || st === 'completed')
+          ? (order.shipped_at || order.paid_at || '')
+          : ''
+        const showBottomBar = st === 'pending_payment'
+          || (!isVirtual && (st === 'paid' || st === 'shipped'))
+
         this.setData({
           order,
           loading: false,
-          currentStep,
           isVirtual,
-          STATUS_MAP,
-          steps: [{ text: '待付款' }, { text: '待发货' }, { text: '待收货' }, { text: '已完成' }],
+          STATUS_MAP: statusMap,
+          statusIcon,
+          payMethodLabel,
+          activatedAt,
+          showBottomBar,
+          warmBeansAmount: warmEbook ? '2.40' : '',
+          warmCouponAmount: warmEbook ? '5.00' : '',
         })
       })
       .catch(() => {
@@ -126,21 +153,15 @@ Page({
       })
   },
 
-  /** 支付订单 */
   onPayTap() {
     this._doPay()
   },
 
-  /** 执行微信支付 */
   _doPay() {
     if (this.data.paying) return
     this.setData({ paying: true })
-
     orderService.payOrder(this.data.id)
-      .then((res) => {
-        return requestPayment(res).then(() => res)
-      })
-      .then((res) => orderService.syncPay(this.data.id).catch(() => null).then(() => res))
+      .then((res) => requestPayment(res).then(() => res))
       .then((res) => {
         this.setData({ paying: false })
         const free = res && (res.free === true || res.free === 'true')
@@ -154,7 +175,6 @@ Page({
       })
   },
 
-  /** 取消订单 */
   onCancelTap() {
     wx.showModal({
       title: '提示',
@@ -166,15 +186,12 @@ Page({
               wx.showToast({ title: '已取消', icon: 'success' })
               this._loadDetail(this.data.id)
             })
-            .catch(() => {
-              wx.showToast({ title: '取消失败', icon: 'none' })
-            })
+            .catch(() => wx.showToast({ title: '取消失败', icon: 'none' }))
         }
       },
     })
   },
 
-  /** 确认订单完成 */
   onConfirmTap() {
     wx.showModal({
       title: '提示',
@@ -186,25 +203,20 @@ Page({
               wx.showToast({ title: '已确认完成', icon: 'success' })
               this._loadDetail(this.data.id)
             })
-            .catch(() => {
-              wx.showToast({ title: '操作失败', icon: 'none' })
-            })
+            .catch(() => wx.showToast({ title: '操作失败', icon: 'none' }))
         }
       },
     })
   },
 
-  /** 打开退款弹窗 */
   onRefundTap() {
     this.setData({ showRefundModal: true, refundReason: '' })
   },
 
-  /** 退款原因输入 */
   onRefundReasonInput(e) {
     this.setData({ refundReason: e.detail.value })
   },
 
-  /** 确认退款 */
   onRefundConfirm() {
     if (!this.data.refundReason.trim()) {
       wx.showToast({ title: '请填写退款原因', icon: 'none' })
@@ -216,23 +228,26 @@ Page({
         wx.showToast({ title: '已提交退款申请', icon: 'success' })
         this._loadDetail(this.data.id)
       })
-      .catch(() => {
-        wx.showToast({ title: '申请失败', icon: 'none' })
-      })
+      .catch(() => wx.showToast({ title: '申请失败', icon: 'none' }))
   },
 
-  /** 关闭退款弹窗 */
   onRefundCancel() {
     this.setData({ showRefundModal: false })
   },
 
-  /** 复制订单号 */
   onCopyOrderNo() {
     wx.setClipboardData({
-      data: this.data.order.order_no || this.data.order.id,
-      success: () => {
-        wx.showToast({ title: '已复制', icon: 'success' })
-      },
+      data: String(this.data.order.order_no || this.data.order.id || ''),
+      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
+    })
+  },
+
+  onCopyText(e) {
+    const text = e.currentTarget.dataset.text
+    if (!text) return
+    wx.setClipboardData({
+      data: String(text),
+      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
     })
   },
 
@@ -247,5 +262,12 @@ Page({
 
   onContactTap() {
     wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
+  },
+
+  onInvoiceTap() {
+    const id = this.data.id || ''
+    wx.navigateTo({
+      url: '/pkg-user/service-chat/service-chat' + (id ? `?orderId=${id}` : ''),
+    })
   },
 })

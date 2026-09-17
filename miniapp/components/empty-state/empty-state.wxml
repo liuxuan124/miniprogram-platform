@@ -1,5 +1,10 @@
 <view class="empty">
+  <view wx:if="{{icon}}" class="empty__art">{{icon}}</view>
   <view class="empty__title">{{title}}</view>
   <view wx:if="{{desc}}" class="empty__desc">{{desc}}</view>
-  <view wx:if="{{buttonText}}" class="empty__btn" bindtap="onAction">{{buttonText}}</view>
+  <view wx:if="{{_btn}}" class="empty__btn" bindtap="onAction">{{_btn}}</view>
+  <view wx:if="{{subText || subLink}}" class="empty__sub">
+    <text wx:if="{{subText}}">{{subText}}</text>
+    <text wx:if="{{subLink}}" class="empty__link" bindtap="onSubAction">{{subLink}}</text>
+  </view>
 </view>

@@ -1,5 +1,6 @@
 import {
   DEFAULT_MINIAPP_BRAND_CONFIG,
+  normalizeLoginStyleKey,
   type MiniappBrandConfig,
 } from '@/types/miniapp'
 import { readConfigEntry, type RawConfigItem } from '@/utils/system-config'
@@ -27,6 +28,7 @@ export function normalizeBrandConfig(
     logoMark,
     loginTagline: pickText(src.loginTagline, DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline),
     brandEyebrow: pickText(src.brandEyebrow, DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow),
+    loginStyleKey: normalizeLoginStyleKey(src.loginStyleKey),
   }
 }
 

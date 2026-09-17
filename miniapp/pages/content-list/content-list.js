@@ -1,4 +1,4 @@
-// pages/content-list/content-list.js — Tab 内容页：优先加载导航绑定的装修页 DSL
+// pages/content-list/content-list.js — list.html warm layouts（本地源优先）
 
 const request = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
@@ -6,225 +6,131 @@ const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('
 const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
-
-const TOPIC_TABS = [
-  { id: '', name: '推荐' },
-  { id: 'select', name: '选品洞察' },
-  { id: 'supply', name: '供应链' },
-  { id: 'platform', name: '平台运营' },
-  { id: 'dtc', name: '独立站' },
-  { id: 'logistics', name: '物流履约' },
-  { id: 'compliance', name: '合规税务' },
-]
-
-const FORMAT_TABS = [
-  { key: '', label: '全部形态' },
-  { key: 'note', label: '📷 笔记' },
-  { key: 'longform', label: '📄 长文' },
-  { key: 'video', label: '▶️ 视频' },
-  { key: 'data', label: '📊 数据' },
-]
-
-const DATA_NUM_POOL = [
-  [
-    { k: '宠物智能', v: '+38%', up: true },
-    { k: '户外露营', v: '+21%', up: true },
-    { k: '家居收纳', v: '-6%', up: false },
-  ],
-  [
-    { k: '美妆个护', v: '+15%', up: true },
-    { k: '3C配件', v: '+9%', up: true },
-    { k: '服饰鞋靴', v: '-3%', up: false },
-  ],
-]
-
-const TOPIC_NAME = {
-  select: '选品洞察',
-  supply: '供应链',
-  platform: '平台运营',
-  dtc: '独立站',
-  logistics: '物流履约',
-  compliance: '合规税务',
-}
-
-const TOPIC_EMOJI = {
-  select: '📈',
-  supply: '🏭',
-  platform: '🛒',
-  dtc: '🌐',
-  logistics: '🚢',
-  compliance: '⚖️',
-}
-
-const ART = {
-  select: ['#4f6dff', '#8ea3ff'],
-  supply: ['#2f9e6e', '#7fd3ab'],
-  platform: ['#f2762a', '#ffb37a'],
-  dtc: ['#6b4fe0', '#a99bff'],
-  logistics: ['#2b8cc4', '#7cc6e8'],
-  compliance: ['#d94f78', '#f2a0b5'],
-}
-
-function artStyle(topic) {
-  const c = ART[topic] || ART.select
-  return `background:linear-gradient(135deg,${c[0]} 0%,${c[1]} 100%);`
-}
-
-function blobOf(item) {
-  const tags = Array.isArray(item.tags) ? item.tags.join(',') : String(item.tags || '')
-  return `${item.categoryName || ''} ${tags} ${item.title || ''} ${item.summary || ''} ${item.source || ''}`
-}
-
-function resolveTopic(item) {
-  const blob = blobOf(item)
-  if (/验厂|工厂|打样|供应链/.test(blob)) return 'supply'
-  if (/VAT|税务合规|合规税务/.test(blob)) return 'compliance'
-  if (/独立站|DTC|落地页/.test(blob)) return 'dtc'
-  if (/海外仓|直发|物流履约/.test(blob)) return 'logistics'
-  if (/选品|类目动销|类目速报/.test(blob)) return 'select'
-  if (/TikTok|亚马逊|Listing|投流|会员|知识库|平台运营/.test(blob)) return 'platform'
-  if (/合规|政策解读/.test(blob)) return 'compliance'
-  return 'select'
-}
-
-function resolveFormat(item) {
-  const type = String(item.contentType || item.content_type || '').toLowerCase()
-  if (type === 'note') return { key: 'note', label: '笔记' }
-  if (type === 'video') return { key: 'video', label: '视频' }
-  if (type === 'data') return { key: 'data', label: '数据' }
-  if (type === 'article' || type === 'longform') return { key: 'longform', label: '长文' }
-
-  const tags = Array.isArray(item.tags) ? item.tags : []
-  if (tags.some((t) => t === 'wx-type:newspic')) return { key: 'note', label: '笔记' }
-  if (tags.some((t) => t === 'wx-type:news')) return { key: 'longform', label: '长文' }
-
-  const blob = blobOf(item)
-  if (/视频|video|reel/i.test(blob) || (/TikTok/.test(blob) && /起号|复盘/.test(blob))) {
-    return { key: 'video', label: '视频' }
-  }
-  if (/速报|动销|数据更新/.test(blob)) return { key: 'data', label: '数据' }
-  if (/笔记|小红书|对照自查|验厂清单|海外仓还是直发|这 5 个坑|5 个坑/.test(blob)) {
-    return { key: 'note', label: '笔记' }
-  }
-  if (/长文|公众号|专栏/.test(blob)) return { key: 'longform', label: '长文' }
-  if ((item.summary || '').length > 80 || String(item.content || '').length > 800) {
-    return { key: 'longform', label: '长文' }
-  }
-  return { key: 'longform', label: '长文' }
-}
-
-function pickGlyph(item, topic) {
-  const title = item.title || ''
-  if (/验厂|工厂/.test(title)) return '🏭'
-  if (/打样/.test(title)) return '🔧'
-  if (/VAT|合规/.test(title)) return '⚖️'
-  if (/独立站|落地页/.test(title)) return '🌐'
-  if (/TikTok/.test(title)) return '🎬'
-  if (/亚马逊|Listing/.test(title)) return '🛒'
-  if (/海外仓|直发/.test(title)) return '🚢'
-  if (/选品|类目/.test(title)) return '📈'
-  if (/会员/.test(title)) return '🪪'
-  if (/知识库/.test(title)) return '📚'
-  return TOPIC_EMOJI[topic] || '📄'
-}
+const { openContentDetail } = require('../../utils/content-id')
+const { DEMO_LIST } = require('../../data/warm-demo')
+const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
 
 function formatPublishTime(value) {
   const raw = String(value || '')
   const match = raw.match(/^\d{4}-(\d{2})-(\d{2})/)
   if (match) return `${match[1]}-${match[2]}`
-  const d = new Date(raw)
-  if (!Number.isNaN(d.getTime())) {
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${m}-${day}`
-  }
-  return raw
+  return raw.slice(0, 10)
 }
 
 function formatViews(n) {
   const v = Number(n) || 0
-  if (v >= 10000) {
-    const w = (v / 10000).toFixed(1).replace(/\.0$/, '')
-    return `${w}w 阅读`
-  }
-  if (v >= 1000) {
-    const k = (v / 1000).toFixed(1).replace(/\.0$/, '')
-    return `${k}k 阅读`
-  }
-  if (v > 0) return `${v} 阅读`
-  return ''
+  if (v >= 10000) return `${(v / 10000).toFixed(1).replace(/\.0$/, '')}万`
+  if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return v > 0 ? String(v) : ''
 }
 
-function estimateRead(item) {
-  const len = String(item.content || item.summary || '').replace(/<[^>]+>/g, '').length
-  const minutes = Math.max(3, Math.round(len / 400) || 7)
-  return `${minutes}分钟`
-}
-
-function mapRecord(item) {
-  const topic = resolveTopic(item)
-  const fmt = resolveFormat(item)
+function mapApiRow(item) {
+  const type = String(item.contentType || item.content_type || 'article').toLowerCase()
+  const formatLabel = type === 'note' ? '笔记' : (type === 'video' ? '视频' : (type === 'moment' ? '星球' : '长文'))
+  const cover = resolveMediaUrl(item.coverUrl || item.coverImage || item.cover_url || item.cover || '')
+  const views = formatViews(item.viewCount || item.view_count)
   const date = formatPublishTime(item.publishedAt || item.createTime)
-  const views = formatViews(item.viewCount)
-  const read = estimateRead(item)
-  const imageList = Array.isArray(item.images) ? item.images : (Array.isArray(item.gallery) ? item.gallery : [])
-  const coverFromImages = imageList.map((url) => resolveMediaUrl(url)).find(Boolean) || ''
-  const coverFallback = resolveMediaUrl(item.coverUrl || item.coverImage || item.cover_url || item.cover || item.image || '')
-  const cover_url = fmt.key === 'note' ? (coverFromImages || coverFallback) : coverFallback
-  const image_count = fmt.key === 'note' ? Math.max(imageList.length, cover_url ? 1 : 0) : 0
-  const metaParts = [date]
-  if (fmt.key === 'longform') metaParts.push(read)
-  if (fmt.key === 'video') metaParts.push(item.duration || '08:24')
-  if (fmt.key === 'data') metaParts.push(item.summary ? String(item.summary).slice(0, 24) : '采样 3 个平台')
-  if (views && fmt.key !== 'data') metaParts.push(views)
-  const likeCount = Number(item.likeCount || item.like_count || 0)
-  const likeText = likeCount >= 1000
-    ? `${(likeCount / 1000).toFixed(1).replace(/\.0$/, '')}k`
-    : String(likeCount || 0)
-  const author = String(item.author || '作者').trim() || '作者'
-  const authorAvatar = resolveMediaUrl(item.authorAvatar || item.author_avatar || '')
-  const nums = fmt.key === 'data'
-    ? DATA_NUM_POOL[Number(item.id || 0) % DATA_NUM_POOL.length]
-    : []
+  const images = Array.isArray(item.images)
+    ? item.images.map((u) => resolveMediaUrl(u)).filter(Boolean)
+    : (cover ? [cover] : [])
+  let layout = 'row'
+  if (type === 'note' && images.length >= 3) layout = 'grid3'
+  else if (type === 'video' || /访谈|音频|播客/.test(String(item.title || ''))) layout = 'audio'
+  else if (type === 'moment' || item.planetExclusive === 1 || item.planet_exclusive === 1) layout = 'row'
   return {
     id: item.id,
     title: item.title,
     summary: item.summary || '',
-    topicKey: topic,
-    topicName: TOPIC_NAME[topic] || '跨境实战',
-    formatKey: fmt.key,
-    formatLabel: fmt.label,
-    glyph: pickGlyph(item, topic),
-    artStyle: artStyle(topic),
-    meta: metaParts.filter(Boolean).join(' · '),
-    dur: fmt.key === 'video' ? (item.duration || '08:24') : '',
-    nums,
-    likeText,
-    author,
-    author_initial: author.slice(0, 1),
-    author_avatar: authorAvatar,
-    cover_url,
-    image_count,
+    formatLabel,
+    formatKey: type === 'note' ? 'note' : (type === 'video' ? 'video' : (type === 'moment' ? 'moment' : 'longform')),
+    layout,
+    cover_url: cover,
+    cover,
+    images: images.slice(0, 3),
+    duration: type === 'video' ? '30:12' : '',
+    meta: [date, views ? `${views} 阅读` : ''].filter(Boolean).join(' · '),
+    tag: type === 'moment' ? '星球内容' : (item.visibility === 'member_only' ? '会员专享' : formatLabel),
+    toMoment: type === 'moment' || item.planetExclusive === 1 || item.planet_exclusive === 1,
+    viewNum: Number(item.viewCount || item.view_count || 0),
   }
+}
+
+function buildMixedLayouts(apiRows) {
+  const demoRows = (DEMO_LIST.rows || []).slice()
+  if (!apiRows.length) return demoRows
+  // 用真实内容填充混排槽位，保证大图/音频/九宫格/星球卡仍可见
+  const byType = {
+    note: apiRows.filter((r) => r.formatKey === 'note'),
+    video: apiRows.filter((r) => r.formatKey === 'video'),
+    moment: apiRows.filter((r) => r.formatKey === 'moment' || r.toMoment),
+    longform: apiRows.filter((r) => r.formatKey === 'longform'),
+  }
+  return demoRows.map((slot, i) => {
+    let pick = null
+    if (slot.layout === 'grid3' || slot.contentType === 'note') pick = byType.note[0] || byType.longform[i]
+    else if (slot.layout === 'audio') pick = byType.video[0] || byType.longform[1] || apiRows[i]
+    else if (slot.toMoment) pick = byType.moment[0] || apiRows.find((r) => /定价|星球/.test(r.title || '')) || apiRows[i]
+    else pick = byType.longform[i] || apiRows[i % apiRows.length]
+    if (!pick) return slot
+    return {
+      ...slot,
+      id: pick.id,
+      title: pick.title || slot.title,
+      summary: pick.summary || slot.summary,
+      cover: pick.cover || pick.cover_url || slot.cover,
+      images: (pick.images && pick.images.length ? pick.images : slot.images) || [],
+      meta: pick.meta || slot.meta,
+      tag: pick.tag || slot.tag,
+      toMoment: !!slot.toMoment || !!pick.toMoment,
+    }
+  })
+}
+
+function applyLocalList(page) {
+  page.setData({
+    themePageStyle: WARM_PAGE_STYLE,
+    dslPending: false,
+    dslMode: false,
+    loading: false,
+    loadFailed: false,
+    cats: DEMO_LIST.cats,
+    ranks: DEMO_LIST.ranks,
+    bigCard: DEMO_LIST.big,
+    layoutItems: DEMO_LIST.rows,
+    apiRows: [],
+    totalCount: 412,
+    footerText: '共 412 篇 · 本地源数据',
+  })
 }
 
 Page({
   ...createSharePageConfig(),
   data: {
     ...TAB_DSL_INITIAL,
+    themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
-    formatTabs: FORMAT_TABS,
-    topicTabs: TOPIC_TABS,
-    activeFormat: '',
-    activeTopic: '',
-    allArticles: [],
-    feed: [],
-    notes: [],
-    loading: false,
-    isEmpty: false,
+    cats: USE_LOCAL_SOURCE ? DEMO_LIST.cats : DEMO_LIST.cats,
+    activeCat: '全部',
+    sortKey: 'new',
+    ranks: USE_LOCAL_SOURCE ? DEMO_LIST.ranks : [],
+    bigCard: USE_LOCAL_SOURCE ? DEMO_LIST.big : null,
+    layoutItems: USE_LOCAL_SOURCE ? DEMO_LIST.rows : DEMO_LIST.rows,
+    apiRows: [],
+    totalCount: USE_LOCAL_SOURCE ? 412 : 0,
+    footerText: '',
+    loading: !USE_LOCAL_SOURCE,
+    loadFailed: false,
   },
 
   onLoad() {
+    if (USE_LOCAL_SOURCE) {
+      try {
+        const sys = wx.getSystemInfoSync()
+        this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
+      } catch (_) {}
+      applyLocalList(this)
+      return
+    }
     loadTabBoundDslPage(this, '/pages/content-list/content-list').then((ok) => {
       if (ok) return
       try {
@@ -236,23 +142,16 @@ Page({
   },
 
   onShow() {
+    this.setData({ themePageStyle: WARM_PAGE_STYLE })
     showTabBarForRoute(this, '/pages/content-list/content-list')
-    this._consumeTabQuery()
-  },
-
-  _consumeTabQuery() {
-    try {
-      const q = wx.getStorageSync('__tab_query__/pages/content-list/content-list')
-      if (!q) return
-      wx.removeStorageSync('__tab_query__/pages/content-list/content-list')
-      const topic = q.topic || ''
-      const matched = (this.data.topicTabs || []).some((t) => t.id === topic)
-      this.setData({ activeTopic: matched ? topic : '' })
-      this._applyFilter()
-    } catch (_) {}
   },
 
   onPullDownRefresh() {
+    if (USE_LOCAL_SOURCE) {
+      applyLocalList(this)
+      wx.stopPullDownRefresh()
+      return
+    }
     if (this.data.dslMode) {
       loadTabBoundDslPage(this, '/pages/content-list/content-list', true).finally(() => wx.stopPullDownRefresh())
       return
@@ -261,7 +160,12 @@ Page({
   },
 
   onReachBottom() {
+    if (USE_LOCAL_SOURCE) return
     if (this.data.dslMode) handleDslReachBottom(this)
+  },
+
+  onBack() {
+    wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/index/index' }) })
   },
 
   onSearchTap() {
@@ -271,51 +175,126 @@ Page({
     })
   },
 
-  onFormatTap(e) {
-    this.setData({ activeFormat: e.currentTarget.dataset.key || '' })
-    this._applyFilter()
+  onCatTap(e) {
+    this.setData({ activeCat: e.currentTarget.dataset.cat || '全部' })
   },
 
-  onTopicTap(e) {
-    this.setData({ activeTopic: e.currentTarget.dataset.id || '' })
-    this._applyFilter()
+  onSortTap(e) {
+    this.setData({ sortKey: e.currentTarget.dataset.key || 'new' })
   },
 
   _loadArticles() {
-    if (this.data.loading) return Promise.resolve()
-    this.setData({ loading: true })
+    if (USE_LOCAL_SOURCE) {
+      applyLocalList(this)
+      return Promise.resolve()
+    }
+    if (this.data.loading && this._loadingLock) return Promise.resolve()
+    this._loadingLock = true
+    this.setData({ loading: true, loadFailed: false, footerText: '加载中' })
+    clearTimeout(this._skTimer)
+    this._skTimer = setTimeout(() => {
+      if (this.data.loading) {
+        this._loadingLock = false
+        this.setData({ loading: false, loadFailed: true, footerText: '加载失败' })
+      }
+    }, 8000)
     return request
-      .get('/api/v1/mp/contents', { current: 1, size: 50 }, { auth: false })
+      .get('/api/v1/mp/contents', { current: 1, size: 30 }, { auth: false })
       .then((data) => {
-        const allArticles = (data.records || []).map(mapRecord)
-        this.setData({ allArticles, loading: false })
-        this._applyFilter()
+        clearTimeout(this._skTimer)
+        this._loadingLock = false
+        const records = (data && data.records) || []
+        const apiRows = records.map(mapApiRow)
+        const ranks = apiRows
+          .slice()
+          .sort((a, b) => b.viewNum - a.viewNum)
+          .slice(0, 4)
+          .map((r, i) => ({
+            id: r.id,
+            title: r.title,
+            views: formatViews(r.viewNum) || '—',
+            top: i < 3,
+          }))
+        const firstLong = apiRows.find((r) => r.formatKey === 'longform' && r.cover_url) || apiRows[0]
+        const bigCard = firstLong
+          ? {
+              id: firstLong.id,
+              title: firstLong.title,
+              summary: firstLong.summary || '',
+              cover: firstLong.cover_url || '',
+              author: firstLong.author || '暖阁',
+              avatar: '',
+              meta: firstLong.meta || '',
+              tag: '精选',
+            }
+          : DEMO_LIST.big
+        const layoutItems = buildMixedLayouts(apiRows)
+        this.setData({
+          loading: false,
+          loadFailed: false,
+          apiRows: [],
+          ranks: ranks.length ? ranks : DEMO_LIST.ranks,
+          bigCard,
+          layoutItems,
+          cats: DEMO_LIST.cats,
+          totalCount: Number(data.total) || apiRows.length || 412,
+          footerText: apiRows.length ? `共 ${Number(data.total) || apiRows.length} 篇` : '暂无内容',
+        })
       })
       .catch(() => {
-        this.setData({ loading: false, isEmpty: this.data.allArticles.length === 0 })
+        clearTimeout(this._skTimer)
+        this._loadingLock = false
+        this.setData({
+          loading: false,
+          loadFailed: true,
+          apiRows: [],
+          ranks: [],
+          bigCard: null,
+          layoutItems: [],
+          footerText: '加载失败',
+        })
       })
   },
 
-  _applyFilter() {
-    const { allArticles, activeFormat, activeTopic } = this.data
-    let list = allArticles
-    if (activeTopic) list = list.filter((item) => item.topicKey === activeTopic)
-    if (activeFormat) list = list.filter((item) => item.formatKey === activeFormat)
-    const notes = list.filter((item) => item.formatKey === 'note')
-    const feed = list.filter((item) => item.formatKey !== 'note')
-    this.setData({
-      feed,
-      notes,
-      isEmpty: list.length === 0,
-    })
+  onRetry() {
+    this._loadArticles()
+  },
+
+  onService() {
+    wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
   },
 
   onContentTap(e) {
-    wx.navigateTo({ url: '/pages/content-detail/content-detail?id=' + e.currentTarget.dataset.id })
+    const id = e.currentTarget.dataset.id
+    if (USE_LOCAL_SOURCE) {
+      wx.navigateTo({ url: '/pages/content-detail/content-detail?demo=1' })
+      return
+    }
+    if (!id) {
+      wx.showToast({ title: '内容暂不可用', icon: 'none' })
+      return
+    }
+    openContentDetail(id)
   },
 
-  clearFilters() {
-    this.setData({ activeFormat: '', activeTopic: '' })
-    this._applyFilter()
+  onLayoutTap(e) {
+    const { id, moment, note } = e.currentTarget.dataset
+    if (USE_LOCAL_SOURCE) {
+      if (moment) {
+        wx.navigateTo({ url: '/pages/moment-detail/moment-detail?demo=1&from=planet' })
+        return
+      }
+      if (note) {
+        wx.navigateTo({ url: '/pages/content-detail/content-detail?demo=note' })
+        return
+      }
+      this.onContentTap(e)
+      return
+    }
+    if (moment && id) {
+      wx.navigateTo({ url: `/pages/moment-detail/moment-detail?id=${id}&from=planet` })
+      return
+    }
+    this.onContentTap(e)
   },
 })

@@ -141,6 +141,8 @@ public class MemberLevelServiceImpl extends BaseServiceImpl<MemberLevelMapper, M
         if (dto.getPointsRate() != null) level.setPointsRate(dto.getPointsRate());
         if (dto.getSortOrder() != null) level.setSortOrder(dto.getSortOrder());
         if (dto.getStatus() != null) level.setStatus(dto.getStatus());
+        if (dto.getGiftPlanetDays() != null) level.setGiftPlanetDays(dto.getGiftPlanetDays());
+        if (dto.getExpireRemindDays() != null) level.setExpireRemindDays(dto.getExpireRemindDays());
 
         List<String> benefits = dto.getBenefits() != null ? dto.getBenefits() : dto.getRights();
         if (benefits != null || creating) {
@@ -193,6 +195,8 @@ public class MemberLevelServiceImpl extends BaseServiceImpl<MemberLevelMapper, M
         vo.setBirthdayCouponId(level.getBirthdayCouponId());
         vo.setSortOrder(level.getSortOrder());
         vo.setStatus(level.getStatus());
+        vo.setGiftPlanetDays(level.getGiftPlanetDays());
+        vo.setExpireRemindDays(level.getExpireRemindDays());
         List<String> benefits = MemberBenefitCodes.normalize(level.getRights());
         // 旧数据：非权益码文案保留在 rights，benefits 仅输出已知码
         if (benefits.isEmpty() && level.getRights() != null && !level.getRights().isEmpty()) {

@@ -2,22 +2,28 @@
 
 const SWITCH_TAB_PATHS = new Set([
   '/pages/index/index',
-  '/pages/content-list/content-list',
-  '/pages/product-list/product-list',
+  '/pages/discover/discover',
+  '/pages/planet/planet',
+  '/pages/shop/shop',
   '/pages/mine/mine',
-  '/pages/tab-hub/tab-hub',
 ])
 
 const LEGACY_SHELL_BY_HINT = {
   home: '/pages/index/index',
-  content: '/pages/content-list/content-list',
-  shop: '/pages/product-list/product-list',
+  content: '/pages/discover/discover',
+  discover: '/pages/discover/discover',
+  shop: '/pages/shop/shop',
+  planet: '/pages/planet/planet',
   mine: '/pages/mine/mine',
 }
 
 const LEGACY_TAB_HINTS = {
   '/pages/index/index': 'home',
+  '/pages/discover/discover': 'discover',
   '/pages/content-list/content-list': 'content',
+  '/pages/planet/planet': 'planet',
+  '/pages/shop/shop': 'shop',
+  '/pages/knowledge-mall/knowledge-mall': 'shop',
   '/pages/product-list/product-list': 'shop',
   '/pages/mine/mine': 'mine',
 }
@@ -64,11 +70,14 @@ function findTabItem(tabs, options = {}) {
     if (direct) return direct
   }
   const slotHint = options.slotHint
-  if (slotHint === 'content') {
-    return list.find((item) => /内容|资讯|干货/.test(String(item.text || item.name || ''))) || list[1] || null
+  if (slotHint === 'content' || slotHint === 'discover') {
+    return list.find((item) => /发现|内容|资讯|干货/.test(String(item.text || item.name || ''))) || list[1] || null
   }
   if (slotHint === 'shop') {
     return list.find((item) => /商品|商城|店铺/.test(String(item.text || item.name || ''))) || null
+  }
+  if (slotHint === 'planet') {
+    return list.find((item) => /星球|planet/i.test(String(item.text || item.name || ''))) || null
   }
   if (slotHint === 'home') return list[0] || null
   if (slotHint === 'mine') {
@@ -87,19 +96,33 @@ function resolveConfiguredTabPath(legacyPath, tabs) {
 function inferShellHintFromTabItem(item, index, listLength) {
   const text = String(item.text || item.name || '')
   if (/首页|home/i.test(text)) return 'home'
+  if (/发现|资讯|干货|内容/.test(text)) return 'discover'
   if (/商品|商城|店铺/.test(text)) return 'shop'
-  if (/内容|资讯|干货/.test(text)) return 'content'
+  if (/星球|planet/i.test(text)) return 'planet'
   if (/我的|mine/i.test(text)) return 'mine'
   if (index === 0) return 'home'
   if (index === listLength - 1) return 'mine'
+  if (listLength === 5 && index === 2) return 'planet'
+  if (listLength === 5 && index === 3) return 'shop'
   if (listLength === 4 && index === 2) return 'shop'
-  return 'content'
+  return 'discover'
 }
 
 /** Tab 绑定页 → 已注册 tabBar 壳页（custom DSL 在内联壳页加载） */
 function resolveLegacyShellPath(logicalPath, tabs) {
   const normalized = normalizePath(logicalPath)
   if (SWITCH_TAB_PATHS.has(normalized)) return normalized
+
+  // 旧知识库 / 商品列表 → 商城 Tab
+  if (
+    normalized === '/pages/knowledge-mall/knowledge-mall'
+    || normalized === '/pages/product-list/product-list'
+  ) {
+    return '/pages/shop/shop'
+  }
+  if (normalized === '/pages/content-list/content-list') {
+    return '/pages/discover/discover'
+  }
 
   const list = Array.isArray(tabs) ? tabs.filter((item) => item.enabled !== false) : []
   const idx = list.findIndex((item) => normalizePath(item.pagePath) === normalized)
@@ -148,7 +171,15 @@ function rewriteLegacyTabTarget(path, tabs) {
   const base = stripQuery(raw)
   if (!LEGACY_TAB_HINTS[base]) return raw
   const configured = resolveConfiguredTabPath(base, tabs)
-  if (configured === base) return raw
+  if (configured === base) {
+    // 无后台覆盖时，旧路径仍落到新 Tab 壳
+    const shell = resolveLegacyShellPath(base, tabs)
+    if (shell !== base) {
+      const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : ''
+      return shell + query
+    }
+    return raw
+  }
   const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : ''
   return resolveTabSwitchPath(configured, tabs) + query
 }

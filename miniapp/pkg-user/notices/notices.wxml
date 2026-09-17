@@ -1,0 +1,30 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="page">
+  <view class="toolbar" wx:if="{{list.length}}">
+    <text class="toolbar__count">共 {{list.length}} 条</text>
+    <text class="toolbar__all" bindtap="onReadAll">全部已读</text>
+  </view>
+  <block wx:if="{{list.length}}">
+    <view
+      class="card {{item.isRead ? '' : 'card--unread'}}"
+      wx:for="{{list}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-link="{{item.link}}"
+      bindtap="onOpen"
+    >
+      <view class="card__dot" wx:if="{{!item.isRead}}"></view>
+      <view class="card__main">
+        <view class="card__top">
+          <text class="card__tag">{{item.sceneLabel}}</text>
+          <text class="card__time">{{item.timeText}}</text>
+        </view>
+        <view class="card__title">{{item.title}}</view>
+        <view class="card__content">{{item.content}}</view>
+      </view>
+      <text class="card__chevron">›</text>
+    </view>
+  </block>
+  <empty-state wx:elif="{{!loading}}" title="暂无消息" desc="支付开通、星球回复、会员提醒会出现在这里" />
+</view>
+<login-sheet id="global-login-sheet" />

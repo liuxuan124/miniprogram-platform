@@ -61,6 +61,15 @@ public class ContentDetailDTO {
     /** 作者 */
     private String author;
 
+    /** 作者角色 */
+    private String authorRole;
+
+    /** 可见性 */
+    private String visibility;
+
+    /** 审核状态 */
+    private String auditStatus;
+
     /** 作者头像 URL */
     private String authorAvatar;
 
@@ -90,6 +99,18 @@ public class ContentDetailDTO {
 
     /** 首页推荐 */
     private Integer isRecommended;
+
+    /** 星球专属 */
+    private Integer planetExclusive;
+
+    /** 当前用户是否可看全文/下载 */
+    private Boolean accessGranted;
+
+    /** 是否被门禁锁定（未付费） */
+    private Boolean locked;
+
+    /** 锁定原因 */
+    private String lockedReason;
 
     /** 状态 draft=草稿 published=已发布 archived=已归档 */
     private String status;

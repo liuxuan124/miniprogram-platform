@@ -121,7 +121,7 @@ function request(options) {
             reject({ code: 401, message: '登录已过期，请重新登录' })
           } else {
             const errMsg = responseData.message || '请求失败'
-            _showError(errMsg)
+            if (showError) _showError(errMsg)
             reject({ code: responseData.code, message: errMsg })
           }
         } else if (statusCode === 401 || statusCode === 403) {
@@ -132,10 +132,11 @@ function request(options) {
           }
           reject({ code: statusCode, message: statusCode === 403 ? '无权限访问' : '登录已过期' })
         } else if (statusCode === 404) {
-          _showError('请求资源不存在')
-          reject({ code: 404, message: '请求资源不存在' })
+          const errMsg = (responseData && responseData.message) || '请求资源不存在'
+          if (showError) _showError(errMsg)
+          reject({ code: (responseData && responseData.code) || 404, message: errMsg })
         } else if (statusCode >= 500) {
-          _showError('服务器异常，请稍后重试')
+          if (showError) _showError('服务器异常，请稍后重试')
           reject({ code: statusCode, message: '服务器异常' })
         } else {
           // 400/422 等参数错误

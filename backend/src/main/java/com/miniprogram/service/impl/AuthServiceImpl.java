@@ -39,26 +39,18 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtBlacklistService jwtBlacklistService;
 
-    private final java.util.concurrent.ConcurrentHashMap<String, long[]> loginFailWindow = new java.util.concurrent.ConcurrentHashMap<>();
-
     @Override
     public LoginVO login(LoginDTO dto) {
-        String lockKey = dto.getUsername() == null ? "" : dto.getUsername().trim().toLowerCase();
-        assertNotLocked(lockKey);
-
         // 1. 查找用户
         AdminUser adminUser = adminUserService.getByUsername(dto.getUsername());
         if (adminUser == null) {
-            recordLoginFail(lockKey);
             throw new BusinessException(110101, "用户名或密码错误");
         }
 
         // 2. 校验密码
         if (!passwordEncoder.matches(dto.getPassword(), adminUser.getPasswordHash())) {
-            recordLoginFail(lockKey);
             throw new BusinessException(110101, "用户名或密码错误");
         }
-        loginFailWindow.remove(lockKey);
 
         // 3. 校验状态
         if (adminUser.getStatus() == 0) {
@@ -94,34 +86,6 @@ public class AuthServiceImpl implements AuthService {
                 .roleName(roleName)
                 .mustChangePassword(mustChangePassword)
                 .build();
-    }
-
-    private void assertNotLocked(String key) {
-        long[] win = loginFailWindow.get(key);
-        if (win == null) return;
-        long until = win[1];
-        if (System.currentTimeMillis() < until) {
-            long mins = Math.max(1, (until - System.currentTimeMillis() + 59_999) / 60_000);
-            throw new BusinessException(110104, "登录失败过多，请 " + mins + " 分钟后再试");
-        }
-    }
-
-    private void recordLoginFail(String key) {
-        long now = System.currentTimeMillis();
-        loginFailWindow.compute(key, (k, win) -> {
-            if (win == null || now > win[1]) {
-                return new long[]{1, now + 15 * 60_000L};
-            }
-            win[0] = win[0] + 1;
-            if (win[0] >= 5) {
-                win[1] = now + 15 * 60_000L;
-            }
-            return win;
-        });
-        long[] win = loginFailWindow.get(key);
-        if (win != null && win[0] >= 5 && now < win[1]) {
-            throw new BusinessException(110104, "登录失败过多，请 15 分钟后再试");
-        }
     }
 
     /** 判断是否使用默认或弱密码（命中即要求改密） */

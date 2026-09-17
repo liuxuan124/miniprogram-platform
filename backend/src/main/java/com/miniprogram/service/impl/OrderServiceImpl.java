@@ -9,8 +9,13 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
 import com.miniprogram.entity.*;
 import com.miniprogram.mapper.*;
+import com.miniprogram.product.ProductTypes;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.OrderService;
 import com.miniprogram.service.RefundService;
+import com.miniprogram.service.SubscribeMessageService;
+import com.miniprogram.service.UserNoticeService;
+import com.miniprogram.support.FeatureModuleGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -46,17 +51,21 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final PaymentMapper paymentMapper;
     private final RefundMapper refundMapper;
     private final RefundService refundService;
+    private final UserNoticeService userNoticeService;
+    private final SubscribeMessageService subscribeMessageService;
     private final MiniProgramUserMapper miniProgramUserMapper;
     private final UserCouponMapper userCouponMapper;
     private final CouponMapper couponMapper;
     private final CouponEffectMapper couponEffectMapper;
     private final ObjectMapper objectMapper;
+    private final FeatureModuleGuard featureModuleGuard;
+    private final MembershipAccessService membershipAccessService;
 
     /**
      * 订单状态机合法流转
      */
     private static final java.util.Map<String, List<String>> STATE_TRANSITIONS = java.util.Map.of(
-            "pending_payment", List.of("paid", "closed"),
+            "pending_payment", List.of("paid", "completed", "closed"),
             "paid", List.of("shipped", "completed", "refunding"),
             "shipped", List.of("completed"),
             "completed", List.of("refunding"),
@@ -73,8 +82,12 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
         boolean hasPhysicalProduct = false;
+        boolean productModuleOn = featureModuleGuard.isEnabled("product");
 
         for (OrderItemDTO itemDTO : dto.getItems()) {
+            if (itemDTO.getProductId() == null || itemDTO.getProductId() <= 0) {
+                throw new BusinessException(500401, "商品ID无效，请从商城重新进入下单");
+            }
             Product product = productMapper.selectById(itemDTO.getProductId());
             if (product == null) {
                 throw new BusinessException(500401, "商品不存在: " + itemDTO.getProductId());
@@ -82,13 +95,13 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             if (!"on_sale".equals(product.getStatus())) {
                 throw new BusinessException(500201, "商品已下架: " + product.getName());
             }
-            boolean digitalProduct = "digital".equalsIgnoreCase(product.getProductType());
-            String typesRaw = product.getProductTypes();
-            boolean typesHasPhysical = StringUtils.hasText(typesRaw)
-                    && typesRaw.toLowerCase().contains("physical");
-            if ("physical".equalsIgnoreCase(product.getProductType()) || typesHasPhysical) {
-                hasPhysicalProduct = true;
-            } else if (!StringUtils.hasText(product.getProductType()) && !StringUtils.hasText(typesRaw)) {
+            boolean membership = ProductTypes.isMembership(product.getProductType(), product.getProductTypes());
+            if (!productModuleOn && !membership) {
+                throw new BusinessException(200301, "功能暂未开放");
+            }
+            boolean digitalProduct = membership
+                    || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes());
+            if ("physical".equalsIgnoreCase(product.getProductType()) && !membership) {
                 hasPhysicalProduct = true;
             }
             BigDecimal price = product.getPrice();
@@ -109,6 +122,8 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
                 price = sku.getPrice();
                 skuName = sku.getSkuName();
                 availableStock = sku.getStock();
+            } else {
+                price = membershipAccessService.applyShopPrice(userId, product, price);
             }
 
             // 库存校验
@@ -138,10 +153,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         // 3. 扣减库存（原子条件更新，防超卖）
         for (OrderItem item : orderItems) {
             Product product = productMapper.selectById(item.getProductId());
-            if ("digital".equalsIgnoreCase(product.getProductType())
-                    || (StringUtils.hasText(product.getProductTypes())
-                    && product.getProductTypes().toLowerCase().contains("digital")
-                    && !product.getProductTypes().toLowerCase().contains("physical"))) {
+            if (ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
                 productMapper.increaseSales(product.getId(), item.getQuantity());
                 continue;
             }
@@ -215,12 +227,11 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         order.setFulfillmentType(hasPhysicalProduct ? "physical" : "virtual");
         boolean anyAutoFulfill = orderItems.stream().anyMatch(item -> {
             Product p = productMapper.selectById(item.getProductId());
-            if (p == null || !Integer.valueOf(1).equals(p.getAutoFulfill())) return false;
-            if ("digital".equalsIgnoreCase(p.getProductType())) return true;
-            String types = p.getProductTypes();
-            return StringUtils.hasText(types) && types.toLowerCase().contains("digital");
+            if (p == null) return false;
+            if (ProductTypes.isMembership(p.getProductType(), p.getProductTypes())) return true;
+            return Integer.valueOf(1).equals(p.getAutoFulfill());
         });
-        // 纯虚拟且存在可自动履约数字商品时，支付后自动完成
+        // 纯虚拟且存在可自动履约数字商品/会员时，支付后自动完成
         order.setAutoFulfill(!hasPhysicalProduct && anyAutoFulfill);
         order.setRemark(dto.getRemark());
         order.setAddressSnapshot(toJsonString(dto.getAddressSnapshot()));
@@ -283,7 +294,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     public PageResult<OrderDetailVO> listUserOrders(Long userId, OrderQueryDTO query) {
-        query.normalize();
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
                 .eq(Order::getUserId, userId)
@@ -295,33 +305,18 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     public PageResult<OrderDetailVO> listAdminOrders(OrderQueryDTO query) {
-        query.normalize();
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
-        String orderNoKeyword = StringUtils.hasText(query.getOrderNo()) ? query.getOrderNo() : query.getKeyword();
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
-                .like(StringUtils.hasText(orderNoKeyword), Order::getOrderNo, orderNoKeyword)
+                .like(StringUtils.hasText(query.getOrderNo()), Order::getOrderNo, query.getOrderNo())
                 .eq(query.getUserId() != null, Order::getUserId, query.getUserId())
+                .eq(StringUtils.hasText(query.getStatus()), Order::getStatus, query.getStatus())
                 .ge(query.getStartDate() != null, Order::getCreatedAt,
                         query.getStartDate() != null ? query.getStartDate().atStartOfDay() : null)
                 .le(query.getEndDate() != null, Order::getCreatedAt,
                         query.getEndDate() != null ? query.getEndDate().atTime(LocalTime.MAX) : null)
                 .orderByDesc(Order::getCreatedAt);
-        applyStatusFilter(wrapper, query.getStatus());
         this.page(page, wrapper);
         return convertPageToVO(page);
-    }
-
-    /** 未发货 = 已付款且尚无物流单号 */
-    private void applyStatusFilter(LambdaQueryWrapper<Order> wrapper, String status) {
-        if (!StringUtils.hasText(status)) {
-            return;
-        }
-        if ("unshipped".equals(status)) {
-            wrapper.eq(Order::getStatus, "paid")
-                    .and(w -> w.isNull(Order::getLogisticsNo).or().eq(Order::getLogisticsNo, ""));
-            return;
-        }
-        wrapper.eq(Order::getStatus, status);
     }
 
     @Override
@@ -412,13 +407,6 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public RefundVO adminApplyRefund(Long orderId, RefundApplyDTO dto) {
-        Order order = getExistingOrder(orderId);
-        return applyRefund(order.getUserId(), orderId, dto);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
     public void shipOrder(Long id, OrderShipDTO dto) {
         Order order = getExistingOrder(id);
         String deliveryType = StringUtils.hasText(dto.getDeliveryType())
@@ -444,6 +432,38 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         }
         order.setShippedAt(LocalDateTime.now());
         this.updateById(order);
+        try {
+            userNoticeService.notifyOrderShipped(order);
+        } catch (Exception e) {
+            log.warn("发货站内通知失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("orderNo", order.getOrderNo());
+            payload.put("orderId", order.getId());
+            payload.put("productName", firstShippedProductName(order.getId()));
+            payload.put("time", java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .format(order.getShippedAt() == null ? LocalDateTime.now() : order.getShippedAt()));
+            payload.put("statusText", "已发货");
+            payload.put("remark", StringUtils.hasText(order.getVirtualDeliveryContent())
+                    ? "请在客服对话查看发货内容"
+                    : (StringUtils.hasText(order.getLogisticsNo()) ? "运单 " + order.getLogisticsNo() : "请查看订单详情"));
+            subscribeMessageService.enqueue(order.getUserId(), "order_shipped", order.getOrderNo(), payload);
+        } catch (Exception e) {
+            log.warn("发货订阅消息失败 orderNo={}", order.getOrderNo(), e);
+        }
+    }
+
+    private String firstShippedProductName(Long orderId) {
+        try {
+            java.util.List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
+                    .eq(OrderItem::getOrderId, orderId)
+                    .last("LIMIT 1"));
+            if (items != null && !items.isEmpty() && StringUtils.hasText(items.get(0).getProductName())) {
+                return items.get(0).getProductName();
+            }
+        } catch (Exception ignored) {}
+        return "订单商品";
     }
 
     @Override
@@ -506,8 +526,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         Long pendingPaymentCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
                 .eq(Order::getStatus, "pending_payment"));
         Long pendingShipCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
-                .eq(Order::getStatus, "paid")
-                .and(w -> w.isNull(Order::getLogisticsNo).or().eq(Order::getLogisticsNo, "")));
+                .eq(Order::getStatus, "paid"));
         Long shippedCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
                 .eq(Order::getStatus, "shipped"));
         Long refundingCount = baseMapper.selectCount(new LambdaQueryWrapper<Order>()
@@ -674,8 +693,15 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         OrderDetailVO vo = new OrderDetailVO();
         BeanUtils.copyProperties(order, vo);
 
+        // 已有物流单号但状态仍为 paid 时，展示为已发货（兼容脏种子数据）
         String status = order.getStatus();
-        vo.setStatus(status);
+        if ("paid".equals(status) && StringUtils.hasText(order.getLogisticsNo())) {
+            status = "shipped";
+            vo.setStatus(status);
+            if (vo.getShippedAt() == null && order.getUpdatedAt() != null) {
+                vo.setShippedAt(order.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+        }
         vo.setStatusDesc(OrderDetailVO.getStatusDesc(status));
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         vo.setPaidAt(order.getPaidAt() == null ? null : order.getPaidAt().format(dateTimeFormatter));
@@ -701,6 +727,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
                 .last("LIMIT 1"));
         if (payment != null) {
             vo.setPaymentMethod(payment.getPayMethod());
+            vo.setTransactionId(payment.getTransactionId());
             if (vo.getPaidAt() == null && payment.getPaidAt() != null) {
                 vo.setPaidAt(payment.getPaidAt().format(dateTimeFormatter));
             }

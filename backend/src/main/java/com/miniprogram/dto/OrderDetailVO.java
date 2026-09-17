@@ -28,6 +28,9 @@ public class OrderDetailVO {
     @Schema(description = "支付方式")
     private String paymentMethod;
 
+    @Schema(description = "微信支付交易单号")
+    private String transactionId;
+
     @Schema(description = "总金额")
     private BigDecimal totalAmount;
 
