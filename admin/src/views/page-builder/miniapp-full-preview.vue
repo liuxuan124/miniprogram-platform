@@ -1,6 +1,6 @@
 <template>
-  <div class="full-preview" :class="{ 'is-proto': previewMode === 'prototype' }">
-    <header class="fp-toolbar">
+  <div class="full-preview" :class="{ 'is-proto': previewMode === 'prototype', 'is-embed': isEmbed }">
+    <header v-if="!isEmbed" class="fp-toolbar">
       <div class="fp-toolbar__left">
         <el-button size="small" plain @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
@@ -37,7 +37,7 @@
 
     <!-- 线上配置：首页 DSL + 四 Tab + 业务页清单 -->
     <div v-else class="fp-config" v-loading="loading">
-      <aside class="fp-rail">
+      <aside v-if="!isEmbed" class="fp-rail">
         <h4>页面清单</h4>
         <div v-for="group in displayScreenGroups" :key="group.title" class="fp-rail__group">
           <div class="fp-rail__label">{{ group.title }}</div>
@@ -337,6 +337,7 @@ import { useMeasuredElementHeight } from '@/components/page-builder/composables/
 
 const route = useRoute()
 const router = useRouter()
+const isEmbed = computed(() => String(route.query.embed || '') === '1')
 
 const previewMode = ref<'prototype' | 'config'>((route.query.view as string) === 'prototype' ? 'prototype' : 'config')
 const modeOptions = [
@@ -1387,6 +1388,50 @@ onMounted(async () => {
     overflow: auto;
     height: auto;
     min-height: 100vh;
+  }
+
+  &.is-embed {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  &.is-embed .fp-config {
+    grid-template-columns: 1fr;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  &.is-embed .fp-stage {
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: block;
+    overflow: hidden;
+  }
+
+  &.is-embed .fp-notice {
+    display: none;
+  }
+
+  &.is-embed :deep(.preview-phone) {
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+  }
+
+  &.is-embed :deep(.phone-shell) {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 

@@ -10,7 +10,7 @@
             <el-icon><Brush /></el-icon>
             进入装修
           </el-button>
-          <el-button @click="router.push('/page-builder/start')">外观</el-button>
+          <el-button @click="router.push('/page-builder/start')">品牌导航</el-button>
           <el-button @click="router.push('/page-builder/release')">发布</el-button>
         </template>
       </template>

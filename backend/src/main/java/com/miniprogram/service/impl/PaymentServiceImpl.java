@@ -181,41 +181,6 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     private void markOrderPaid(Order order, String transactionId, Map<String, Object> paymentData) {
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
                 .eq(Payment::getOrderId, order.getId()));
-        markPaid(order, payment, transactionId);
-
-        log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void syncPaidFromWechat(Long userId, Long orderId) {
-        Order order = orderMapper.selectById(orderId);
-        if (order == null || !order.getUserId().equals(userId)) {
-            throw new BusinessException(600401, "订单不存在");
-        }
-        if (!"pending_payment".equals(order.getStatus())) {
-            return;
-        }
-        try {
-            Map<String, Object> paymentData = queryWxTransaction(order);
-            String tradeState = String.valueOf(paymentData.getOrDefault("trade_state", ""));
-            if (!"SUCCESS".equals(tradeState)) {
-                log.info("微信查单未支付 orderNo={} state={}", order.getOrderNo(), tradeState);
-                return;
-            }
-            String transactionId = (String) paymentData.get("transaction_id");
-            verifyNotifyAmount(paymentData, order, order.getOrderNo());
-            markOrderPaid(order, transactionId, paymentData);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("微信查单失败 orderNo={}", order.getOrderNo(), e);
-        }
-    }
-
-    private void markOrderPaid(Order order, String transactionId, Map<String, Object> paymentData) {
-        Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
-                .eq(Payment::getOrderId, order.getId()));
         if (payment != null && "pending".equals(payment.getStatus())) {
             payment.setStatus("success");
             payment.setTransactionId(transactionId);

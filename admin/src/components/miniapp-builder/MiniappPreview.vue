@@ -412,7 +412,7 @@ defineExpose({ showMineTab })
 </script>
 
 <style scoped>
-.miniapp-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.miniapp-preview { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; overflow: hidden; }
 .preview-login-toggle {
   display: inline-flex;
   padding: 2px;
@@ -436,11 +436,11 @@ defineExpose({ showMineTab })
   color: #1f2937;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
-.preview-source-hint { margin: 0; font-size: 12px; color: #64748b; text-align: center; max-width: 375px; }
-.phone { width: 375px; background: #111827; border-radius: 44px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-.phone-notch { height: 30px; display: flex; align-items: center; justify-content: center; }
+.preview-source-hint { margin: 12px 0 0; font-size: 12px; color: #64748b; text-align: left; max-width: 375px; }
+.phone { width: 100%; max-width: 375px; background: #111827; border-radius: 36px; padding: 10px; box-sizing: border-box; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.phone-notch { height: 24px; display: flex; align-items: center; justify-content: center; }
 .phone-speaker { width: 80px; height: 6px; background: #1f2937; border-radius: 3px; }
-.phone-screen { border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; height: 680px; position: relative; transform: translateZ(0); }
+.phone-screen { border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; aspect-ratio: 375 / 667; height: auto; min-height: 0; position: relative; transform: translateZ(0); }
 .phone-screen--brand-header .phone-content { flex: 1; min-height: 0; }
 .preview-pinned-brand-header { position: absolute; top: 0; left: 0; right: 0; z-index: 20; }
 .brand-header-flow-spacer { flex-shrink: 0; width: 100%; }

@@ -13,54 +13,68 @@
 
     <el-scrollbar class="menu-scroll">
       <div v-for="group in menuGroups" :key="group.title" class="menu-group">
-        <div v-show="!appStore.sidebarCollapsed" class="group-title">{{ group.title }}</div>
+        <button
+          v-show="!appStore.sidebarCollapsed"
+          type="button"
+          class="group-title"
+          :class="{ open: isGroupOpen(group.title) }"
+          @click="toggleGroup(group.title)"
+        >
+          <span>{{ group.title }}</span>
+          <el-icon class="group-arrow" :class="{ open: isGroupOpen(group.title) }" :size="12">
+            <ArrowRight />
+          </el-icon>
+        </button>
 
-        <template v-for="item in group.children" :key="item.path || item.title">
-          <!-- 可展开分组（财务） -->
-          <div v-if="item.children?.length" class="submenu">
+        <div v-show="appStore.sidebarCollapsed || isGroupOpen(group.title)" class="group-items">
+          <template v-for="item in group.children" :key="item.path || item.title">
+            <div v-if="item.children?.length" class="submenu">
+              <button
+                class="menu-item"
+                :class="{
+                  active: isParentActive(item) && !item.children.some((c) => isActive(c)),
+                  open: isSubOpen(item),
+                }"
+                :title="item.title"
+                @click="toggleSubmenu(item)"
+              >
+                <span class="menu-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
+                <span v-show="!appStore.sidebarCollapsed" class="menu-title">{{ item.title }}</span>
+                <el-icon
+                  v-show="!appStore.sidebarCollapsed"
+                  class="menu-arrow"
+                  :class="{ open: isSubOpen(item) }"
+                  :size="14"
+                >
+                  <ArrowRight />
+                </el-icon>
+              </button>
+              <div v-show="isSubOpen(item) && !appStore.sidebarCollapsed" class="submenu-list">
+                <button
+                  v-for="child in item.children"
+                  :key="child.path"
+                  class="menu-item sub"
+                  :class="{ active: isActive(child) }"
+                  :title="child.title"
+                  @click="go(child.path!)"
+                >
+                  <span class="menu-title">{{ child.title }}</span>
+                </button>
+              </div>
+            </div>
+
             <button
+              v-else
               class="menu-item"
-              :class="{ active: isParentActive(item), open: isOpen(item) }"
+              :class="{ active: isActive(item) }"
               :title="item.title"
-              @click="toggleSubmenu(item)"
+              @click="go(item.path!)"
             >
               <span class="menu-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
               <span v-show="!appStore.sidebarCollapsed" class="menu-title">{{ item.title }}</span>
-              <el-icon
-                v-show="!appStore.sidebarCollapsed"
-                class="menu-arrow"
-                :class="{ open: isOpen(item) }"
-                :size="14"
-              >
-                <ArrowRight />
-              </el-icon>
             </button>
-            <div v-show="isOpen(item) && !appStore.sidebarCollapsed" class="submenu-list">
-              <button
-                v-for="child in item.children"
-                :key="child.path"
-                class="menu-item sub"
-                :class="{ active: isActive(child) }"
-                :title="child.title"
-                @click="go(child.path!)"
-              >
-                <span class="menu-title">{{ child.title }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 普通菜单项 -->
-          <button
-            v-else
-            class="menu-item"
-            :class="{ active: isActive(item) }"
-            :title="item.title"
-            @click="go(item.path!)"
-          >
-            <span class="menu-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
-            <span v-show="!appStore.sidebarCollapsed" class="menu-title">{{ item.title }}</span>
-          </button>
-        </template>
+          </template>
+        </div>
       </div>
     </el-scrollbar>
   </el-aside>
@@ -73,7 +87,6 @@ import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
-import { getLabel } from '@/constants/glossary'
 import { PLATFORM_VERSION } from '@/constants/platform'
 import {
   Odometer,
@@ -121,8 +134,6 @@ interface MenuItem {
   permissions?: string[]
   /** 功能模块开关 key（对应系统配置 plugins） */
   featureModule?: string
-  /** 术语表 key，用于侧栏标题 */
-  glossaryKey?: string
 }
 
 const iconMap: Record<string, any> = {
@@ -164,6 +175,7 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const featureModulesStore = useFeatureModulesStore()
 const industryProfileStore = useIndustryProfileStore()
+const openGroups = ref<string[]>([])
 const openKeys = ref<string[]>([])
 
 if (!featureModulesStore.loaded) {
@@ -183,43 +195,43 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '小程序',
     children: [
-      { title: '总览', path: '/page-builder/overview', icon: 'Odometer', activePrefix: '/page-builder/overview', permissions: ['page:list'] },
-      { title: '页面', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
-      { title: '外观', path: '/page-builder/start', icon: 'Cellphone', activePrefix: '/page-builder/start', permissions: ['page:list'] },
-      { title: '版本', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
+      { title: '搭建工作台', path: '/page-builder/overview', icon: 'Odometer', activePrefix: '/page-builder/overview', permissions: ['page:list'] },
+      { title: '页面管理', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
+      { title: '品牌导航', path: '/page-builder/start', icon: 'Brush', activePrefix: '/page-builder/start', permissions: ['page:list'] },
+      { title: '发布中心', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {
     title: '内容运营',
     children: [
-      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content', excludePrefixes: ['/content/audit', '/content/creators', '/content/qa', '/content/files'], featureModule: 'content', glossaryKey: 'content' },
-      { title: '资料库', path: '/content/files', icon: 'DocumentCopy', activePrefix: '/content/files', featureModule: 'file', glossaryKey: 'file' },
-      { title: '内容审核', path: '/content/audit', icon: 'Checked', activePrefix: '/content/audit', glossaryKey: 'contentAudit' },
-      { title: '创作者申请', path: '/content/creators', icon: 'EditPen', activePrefix: '/content/creators', glossaryKey: 'creatorApply' },
+      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content', excludePrefixes: ['/content/audit', '/content/creators', '/content/qa', '/content/files'], featureModule: 'content' },
+      { title: '资料管理', path: '/content/files', icon: 'DocumentCopy', activePrefix: '/content/files', featureModule: 'file' },
+      { title: '内容审核', path: '/content/audit', icon: 'Checked', activePrefix: '/content/audit' },
+      { title: '作者申请', path: '/content/creators', icon: 'EditPen', activePrefix: '/content/creators' },
       { title: '问答管理', path: '/content/qa', icon: 'ChatDotRound', activePrefix: '/content/qa', featureModule: 'qa' },
       { title: '表单管理', path: '/form/template', icon: 'DocumentCopy', activePrefix: '/form', featureModule: 'form' },
     ],
   },
   {
-    title: '用户与会员',
+    title: '用户会员',
     children: [
-      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'], featureModule: 'member', glossaryKey: 'member' },
-      { title: '知识星球', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet', glossaryKey: 'planet' },
+      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'], featureModule: 'member' },
+      { title: '星球社区', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet' },
       { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', excludePrefixes: ['/user/service-community'], permissions: ['user:list'] },
-      { title: '客服与社群', path: '/user/service-community', icon: 'ChatDotRound', activePrefix: '/user/service-community', permissions: ['user:list'] },
+      { title: '客服社群', path: '/user/service-community', icon: 'ChatDotRound', activePrefix: '/user/service-community', permissions: ['user:list'] },
     ],
   },
   {
     title: '商业变现',
     children: [
-      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce', featureModule: 'product', glossaryKey: 'product' },
+      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce', featureModule: 'product' },
       { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'], featureModule: 'product' },
-      { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
+      { title: '优惠管理', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
       { title: '增长数据', path: '/growth/overview', icon: 'DataLine', activePrefix: '/growth' },
     ],
   },
   {
-    title: '活动与预约',
+    title: '活动预约',
     children: [
       { title: '活动管理', path: '/activity/list', icon: 'Flag', activePrefix: '/activity' },
       {
@@ -236,7 +248,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     ],
   },
   {
-    title: '经营',
+    title: '经营管理',
     children: [
       {
         title: '财务管理',
@@ -248,19 +260,19 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
           { title: '收支明细', path: '/finance/income-expense', icon: 'Tickets', activePrefix: '/finance/income-expense' },
           { title: '财务报表', path: '/finance/report', icon: 'TrendCharts', activePrefix: '/finance/report' },
           { title: '预算管理', path: '/finance/budget', icon: 'Aim', activePrefix: '/finance/budget' },
-          { title: '发票与税务', path: '/finance/invoice', icon: 'InvoiceIcon', activePrefix: '/finance/invoice' },
+          { title: '发票税务', path: '/finance/invoice', icon: 'InvoiceIcon', activePrefix: '/finance/invoice' },
           { title: '财务权限', path: '/finance/permission', icon: 'Lock', activePrefix: '/finance/permission' },
         ],
       },
-      { title: '智能 Agent', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai/agent', featureModule: 'agent' },
-      { title: '草稿箱', path: '/ai/drafts', icon: 'Document', activePrefix: '/ai/drafts', featureModule: 'agent', glossaryKey: 'agentDrafts' },
-      { title: 'AI 语料库', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent', glossaryKey: 'knowledge' },
+      { title: '智能助手', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai/agent', featureModule: 'agent' },
+      { title: '智能草稿', path: '/ai/drafts', icon: 'Document', activePrefix: '/ai/drafts', featureModule: 'agent' },
+      { title: '语料管理', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent' },
     ],
   },
   {
-    title: '系统',
+    title: '系统设置',
     children: [
-      { title: '素材库', path: '/asset/list', icon: 'Picture', activePrefix: '/asset' },
+      { title: '素材管理', path: '/asset/list', icon: 'Picture', activePrefix: '/asset' },
       { title: '系统设置', path: '/settings/basic', icon: 'Setting', activePrefix: '/settings' },
     ],
   },
@@ -272,11 +284,6 @@ function allowMenuItem(item: MenuItem): boolean {
   return permissionStore.hasAnyPerm(item.permissions)
 }
 
-function resolveTitle(item: MenuItem): string {
-  if (item.glossaryKey) return getLabel(item.glossaryKey)
-  return item.title
-}
-
 const menuGroups = computed(() => {
   void industryProfileStore.profile
   return rawMenuGroups
@@ -285,10 +292,10 @@ const menuGroups = computed(() => {
       children: group.children
         .map((item) => {
           if (item.children?.length) {
-            const children = item.children.filter(allowMenuItem).map((c) => ({ ...c, title: resolveTitle(c) }))
-            return { ...item, title: resolveTitle(item), children }
+            const children = item.children.filter(allowMenuItem)
+            return { ...item, children }
           }
-          return { ...item, title: resolveTitle(item) }
+          return item
         })
         .filter((item) => {
           if (item.children) return item.children.length > 0 || allowMenuItem(item)
@@ -310,7 +317,24 @@ function isParentActive(item: MenuItem) {
   return item.activePrefix ? route.path.startsWith(item.activePrefix) : false
 }
 
-function isOpen(item: MenuItem) {
+function itemMatchesRoute(item: MenuItem): boolean {
+  if (isActive(item) || isParentActive(item)) return true
+  return Boolean(item.children?.some((c) => isActive(c) || isParentActive(c)))
+}
+
+function isGroupOpen(title: string) {
+  return openGroups.value.includes(title)
+}
+
+function toggleGroup(title: string) {
+  if (isGroupOpen(title)) {
+    openGroups.value = openGroups.value.filter((k) => k !== title)
+  } else {
+    openGroups.value = [...openGroups.value, title]
+  }
+}
+
+function isSubOpen(item: MenuItem) {
   return openKeys.value.includes(item.title)
 }
 
@@ -319,7 +343,7 @@ function toggleSubmenu(item: MenuItem) {
     go(item.path || item.children?.[0]?.path || '/finance/dashboard')
     return
   }
-  if (isOpen(item)) {
+  if (isSubOpen(item)) {
     openKeys.value = openKeys.value.filter((k) => k !== item.title)
   } else {
     openKeys.value = [...openKeys.value, item.title]
@@ -331,10 +355,18 @@ function go(path: string) {
 }
 
 watch(
-  () => route.path,
-  (path) => {
-    if (path.startsWith('/finance') && !openKeys.value.includes('财务管理')) {
-      openKeys.value = [...openKeys.value, '财务管理']
+  () => [route.path, menuGroups.value] as const,
+  () => {
+    const current = menuGroups.value.find((g) => g.children.some(itemMatchesRoute))
+    if (current && !openGroups.value.includes(current.title)) {
+      openGroups.value = [...openGroups.value, current.title]
+    }
+    for (const group of menuGroups.value) {
+      for (const item of group.children) {
+        if (item.children?.length && itemMatchesRoute(item) && !openKeys.value.includes(item.title)) {
+          openKeys.value = [...openKeys.value, item.title]
+        }
+      }
     }
   },
   { immediate: true },
@@ -408,21 +440,51 @@ watch(
 }
 
 .menu-group {
-  padding: 12px 8px 0;
+  padding: 8px 8px 4px;
 }
 
 .group-title {
-  padding: 8px 10px;
-  color: var(--sidebar-muted);
-  font-size: 12px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px 8px 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover,
+  &.open {
+    color: rgba(255, 255, 255, 0.88);
+  }
+}
+
+.group-arrow {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  &.open {
+    transform: rotate(90deg);
+  }
+}
+
+.group-items {
+  padding: 0 0 6px 6px;
 }
 
 .menu-item {
   width: 100%;
-  min-height: 42px;
+  min-height: 40px;
   border: 0;
   border-radius: 8px;
-  padding: 0 12px;
+  padding: 0 10px 0 12px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -432,8 +494,8 @@ watch(
   text-align: left;
   transition: background 0.16s ease, color 0.16s ease;
 
-  &:hover {
-    background: rgba(23, 105, 255, 0.14);
+  &:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
   }
 
@@ -449,12 +511,12 @@ watch(
   }
 
   &.sub {
-    min-height: 36px;
+    min-height: 34px;
     padding-left: 42px;
     font-size: 13px;
 
     &.active {
-      background: rgba(23, 105, 255, 0.22);
+      background: var(--brand);
       color: #fff;
       font-weight: 600;
     }
@@ -472,7 +534,7 @@ watch(
 .menu-title {
   flex: 1;
   min-width: 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .menu-arrow {

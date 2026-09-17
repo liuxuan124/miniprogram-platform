@@ -1,7 +1,6 @@
 <template>
   <div class="mine-config-page">
     <PageHeader
-      kicker="小程序 / 页面"
       title="我的"
       description="先选一套「我的」页模板外观，再配置会员卡、订单入口、菜单。保存后真机立即读取。"
     >

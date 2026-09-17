@@ -22,6 +22,7 @@ import com.miniprogram.mapper.SystemConfigMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.VersionOperationLogService;
+import com.miniprogram.service.miniapp.StoreTemplateNames;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -148,6 +149,22 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             release.setReleaseNotes(dto.getReleaseNotes());
             release.setSnapshot(snapshot);
             release.setMode(mode);
+            if (!"publish".equals(mode)) {
+                String templateName = StoreTemplateNames.normalize(dto.getTemplateName());
+                if (templateName.isEmpty()) {
+                    templateName = uniqueTemplateName(
+                            StoreTemplateNames.display(null, semver, dto.getReleaseNotes()), null);
+                } else {
+                    assertTemplateNameUnique(templateName, null);
+                }
+                release.setTemplateName(templateName);
+                boolean hasCurrent = this.lambdaQuery()
+                        .eq(MiniappRelease::getIsCurrent, 1)
+                        .count() > 0;
+                release.setIsCurrent(hasCurrent ? 0 : 1);
+            } else {
+                release.setIsCurrent(0);
+            }
 
             long pageCount = pageMapper.selectCount(new LambdaQueryWrapper<Page>()
                     .eq(Page::getStatus, 1));
@@ -249,6 +266,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         BusinessException.throwIf(release == null, ErrorCode.RELEASE_NOT_FOUND);
         BusinessException.throwIf(release.getStatus() == 1, ErrorCode.RELEASE_DELETE_FORBIDDEN.getCode(),
                 "当前线上版本不可删除，请先发布其他版本再删除此版本");
+        BusinessException.throwIf(Integer.valueOf(1).equals(release.getIsCurrent()),
+                ErrorCode.STORE_TEMPLATE_IN_USE);
 
         this.lambdaUpdate()
                 .eq(MiniappRelease::getId, id)
@@ -324,6 +343,264 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                         "目标版本快照为空，无法回滚");
             }
 
+            String extraNote = restoreSnapshotContent(snapshotJson, Boolean.TRUE.equals(dto.getOfflineExtraPages()));
+
+            MiniappRelease currentPublished = getLatestRelease();
+            if (currentPublished != null) {
+                currentPublished.setStatus(2);
+                currentPublished.setRolledBackAt(LocalDateTime.now());
+                currentPublished.setRolledBackBy(SecurityUtils.getCurrentUserId());
+                currentPublished.setRolledBackFrom(dto.getTargetSemver());
+                this.updateById(currentPublished);
+            }
+
+            // semver 列仅 varchar(20)，不能拼长后缀；用下一个 patch 号作为回滚产物版本
+            String rollbackSemver = generateNextSemver("patch");
+            String[] parts = rollbackSemver.split("\\.");
+            MiniappRelease rollbackRelease = new MiniappRelease();
+            rollbackRelease.setSemver(rollbackSemver);
+            rollbackRelease.setMajor(Integer.parseInt(parts[0]));
+            rollbackRelease.setMinor(Integer.parseInt(parts[1]));
+            rollbackRelease.setPatch(Integer.parseInt(parts[2]));
+            rollbackRelease.setChangeType("patch");
+            rollbackRelease.setReleaseNotes("回滚至版本 " + dto.getTargetSemver()
+                    + (StringUtils.hasText(dto.getReason()) ? "，原因: " + dto.getReason() : "")
+                    + extraNote);
+            rollbackRelease.setSnapshot(targetRelease.getSnapshot());
+            rollbackRelease.setBackupSnapshot(backupSnapshot);
+            rollbackRelease.setPageCount(targetRelease.getPageCount());
+            rollbackRelease.setStatus(1);
+            rollbackRelease.setPublishedAt(LocalDateTime.now());
+            rollbackRelease.setPublisherId(SecurityUtils.getCurrentUserId());
+            rollbackRelease.setPublisherName(getCurrentUsername());
+            rollbackRelease.setRolledBackFrom(dto.getTargetSemver());
+            this.save(rollbackRelease);
+
+            long duration = System.currentTimeMillis() - startTime;
+            versionOperationLogService.logOperation(rollbackRelease.getId(), targetRelease.getSemver(), "rollback",
+                    "回滚至版本: " + dto.getTargetSemver(), true, null, duration);
+
+            return rollbackRelease;
+        } catch (BusinessException e) {
+            long duration = System.currentTimeMillis() - startTime;
+            versionOperationLogService.logOperation(targetRelease.getId(), dto.getTargetSemver(), "rollback",
+                    "回滚版本失败", false, e.getMessage(), duration);
+            throw e;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            versionOperationLogService.logOperation(targetRelease.getId(), dto.getTargetSemver(), "rollback",
+                    "回滚版本失败", false, e.getMessage(), duration);
+            throw new BusinessException(ErrorCode.RELEASE_ROLLBACK_FAILED, "回滚版本失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<MiniappRelease> getReleaseHistory() {
+        return this.lambdaQuery()
+                .eq(MiniappRelease::getStatus, 1)
+                .orderByDesc(MiniappRelease::getMajor)
+                .orderByDesc(MiniappRelease::getMinor)
+                .orderByDesc(MiniappRelease::getPatch)
+                .list();
+    }
+
+    @Override
+    public List<MiniappRelease> listStoreTemplates() {
+        List<MiniappRelease> list = this.lambdaQuery()
+                .and(w -> w.eq(MiniappRelease::getMode, "template")
+                        .or()
+                        .eq(MiniappRelease::getStatus, 0))
+                .orderByDesc(MiniappRelease::getIsCurrent)
+                .orderByDesc(MiniappRelease::getUpdateTime)
+                .list();
+        for (MiniappRelease item : list) {
+            item.setTemplateName(StoreTemplateNames.display(
+                    item.getTemplateName(), item.getSemver(), item.getReleaseNotes()));
+            item.setSnapshot(null);
+            item.setBackupSnapshot(null);
+        }
+        return list;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MiniappRelease createStoreTemplate(String templateName) {
+        CreateReleaseDTO dto = new CreateReleaseDTO();
+        dto.setMode("template");
+        dto.setChangeType("patch");
+        dto.setTemplateName(templateName);
+        dto.setReleaseNotes("整店模板");
+        return createRelease(dto);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MiniappRelease duplicateStoreTemplate(Long id, String templateName) {
+        MiniappRelease source = this.getById(id);
+        BusinessException.throwIf(source == null, ErrorCode.RELEASE_NOT_FOUND);
+        BusinessException.throwIf(!StringUtils.hasText(source.getSnapshot()), ErrorCode.DATA_NOT_FOUND.getCode(),
+                "该模板没有可复制的版式快照");
+
+        String name = StoreTemplateNames.normalize(templateName);
+        if (name.isEmpty()) {
+            name = StoreTemplateNames.duplicateOf(StoreTemplateNames.display(
+                    source.getTemplateName(), source.getSemver(), source.getReleaseNotes()));
+        }
+        name = uniqueTemplateName(name, null);
+
+        String semver = generateNextSemver("patch");
+        String[] parts = semver.split("\\.");
+        MiniappRelease copy = new MiniappRelease();
+        copy.setSemver(semver);
+        copy.setMajor(Integer.parseInt(parts[0]));
+        copy.setMinor(Integer.parseInt(parts[1]));
+        copy.setPatch(Integer.parseInt(parts[2]));
+        copy.setChangeType("patch");
+        copy.setReleaseNotes(source.getReleaseNotes());
+        copy.setTemplateName(name);
+        copy.setSnapshot(source.getSnapshot());
+        copy.setPageCount(source.getPageCount());
+        copy.setStatus(0);
+        copy.setMode("template");
+        copy.setIsCurrent(0);
+        this.save(copy);
+        copy.setSnapshot(null);
+        return copy;
+    }
+
+    @Override
+    public MiniappRelease renameStoreTemplate(Long id, String templateName) {
+        MiniappRelease target = this.getById(id);
+        BusinessException.throwIf(target == null, ErrorCode.RELEASE_NOT_FOUND);
+        String name = StoreTemplateNames.normalize(templateName);
+        BusinessException.throwIf(name.isEmpty(), ErrorCode.PARAM_MISSING.getCode(), "请填写模板名称");
+        assertTemplateNameUnique(name, id);
+        target.setTemplateName(name);
+        target.setMode("template");
+        this.updateById(target);
+        target.setSnapshot(null);
+        target.setBackupSnapshot(null);
+        return target;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MiniappRelease activateStoreTemplate(Long id) {
+        MiniappRelease target = this.getById(id);
+        BusinessException.throwIf(target == null, ErrorCode.RELEASE_NOT_FOUND);
+        BusinessException.throwIf(!StringUtils.hasText(target.getSnapshot()),
+                ErrorCode.DATA_NOT_FOUND.getCode(), "该模板快照为空，无法选用");
+
+        MiniappRelease current = this.lambdaQuery()
+                .eq(MiniappRelease::getIsCurrent, 1)
+                .last("LIMIT 1")
+                .one();
+        if (current != null && !Objects.equals(current.getId(), target.getId())) {
+            current.setSnapshot(buildSnapshot());
+            this.updateById(current);
+        }
+
+        restoreSnapshotContent(target.getSnapshot(), false);
+
+        this.lambdaUpdate()
+                .eq(MiniappRelease::getIsCurrent, 1)
+                .set(MiniappRelease::getIsCurrent, 0)
+                .update();
+        target.setIsCurrent(1);
+        target.setMode("template");
+        this.updateById(target);
+
+        versionOperationLogService.logOperation(target.getId(), target.getSemver(), "create",
+                "选用整店模板: " + StoreTemplateNames.display(
+                        target.getTemplateName(), target.getSemver(), target.getReleaseNotes()),
+                true, null, 0L);
+        return sanitizeTemplate(target);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MiniappRelease captureStoreTemplate(Long id) {
+        MiniappRelease target = this.getById(id);
+        BusinessException.throwIf(target == null, ErrorCode.RELEASE_NOT_FOUND);
+        String snapshot = buildSnapshot();
+        target.setSnapshot(snapshot);
+        target.setMode("template");
+        if (target.getStatus() == null) {
+            target.setStatus(0);
+        }
+        long pageCount = pageMapper.selectCount(new LambdaQueryWrapper<Page>()
+                .eq(Page::getStatus, 1));
+        target.setPageCount((int) pageCount);
+        this.updateById(target);
+        return sanitizeTemplate(target);
+    }
+
+    @Override
+    public String generateNextSemver(String changeType) {
+        MiniappRelease latest = this.lambdaQuery()
+                .orderByDesc(MiniappRelease::getMajor)
+                .orderByDesc(MiniappRelease::getMinor)
+                .orderByDesc(MiniappRelease::getPatch)
+                .last("LIMIT 1")
+                .one();
+
+        if (latest == null) {
+            return "1.0.0";
+        }
+
+        int major = latest.getMajor();
+        int minor = latest.getMinor();
+        int patch = latest.getPatch();
+
+        return switch (changeType) {
+            case "major" -> (major + 1) + ".0.0";
+            case "minor" -> major + "." + (minor + 1) + ".0";
+            default -> major + "." + minor + "." + (patch + 1);
+        };
+    }
+
+    // ==================== 私有方法 ====================
+
+    private MiniappRelease sanitizeTemplate(MiniappRelease item) {
+        item.setTemplateName(StoreTemplateNames.display(
+                item.getTemplateName(), item.getSemver(), item.getReleaseNotes()));
+        item.setSnapshot(null);
+        item.setBackupSnapshot(null);
+        return item;
+    }
+
+    private void assertTemplateNameUnique(String name, Long excludeId) {
+        long count = this.lambdaQuery()
+                .eq(MiniappRelease::getTemplateName, name)
+                .eq(MiniappRelease::getMode, "template")
+                .ne(excludeId != null, MiniappRelease::getId, excludeId)
+                .count();
+        BusinessException.throwIf(count > 0, ErrorCode.STORE_TEMPLATE_NAME_DUPLICATE);
+    }
+
+    private String uniqueTemplateName(String desired, Long excludeId) {
+        String base = StoreTemplateNames.normalize(desired);
+        if (base.isEmpty()) {
+            base = "模板";
+        }
+        String candidate = base;
+        int i = 2;
+        while (this.lambdaQuery()
+                .eq(MiniappRelease::getTemplateName, candidate)
+                .eq(MiniappRelease::getMode, "template")
+                .ne(excludeId != null, MiniappRelease::getId, excludeId)
+                .count() > 0) {
+            String suffix = " " + i;
+            candidate = base.length() + suffix.length() > StoreTemplateNames.MAX_LEN
+                    ? base.substring(0, StoreTemplateNames.MAX_LEN - suffix.length()) + suffix
+                    : base + suffix;
+            i++;
+        }
+        return candidate;
+    }
+
+    private String restoreSnapshotContent(String snapshotJson, boolean offlineExtraPages) {
+        try {
             Map<String, Object> snapshotMap = objectMapper.readValue(snapshotJson, new TypeReference<Map<String, Object>>() {});
 
             @SuppressWarnings("unchecked")
@@ -393,25 +670,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 }
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> systemConfig = (Map<String, Object>) snapshotMap.get("systemConfig");
-            if (systemConfig != null) {
-                for (Map.Entry<String, Object> entry : systemConfig.entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue() instanceof String
-                            ? (String) entry.getValue()
-                            : objectMapper.writeValueAsString(entry.getValue());
+            applySystemConfigFromSnapshot(snapshotJson);
 
-                    SystemConfig config = systemConfigMapper.selectOne(new LambdaQueryWrapper<SystemConfig>()
-                            .eq(SystemConfig::getConfigKey, key));
-                    if (config != null) {
-                        config.setConfigValue(value);
-                        systemConfigMapper.updateById(config);
-                    }
-                }
-            }
-
-            // P2: 快照外已发布页面 — 提示或按需下线
             Set<String> snapshotPaths = new LinkedHashSet<>();
             if (pages != null) {
                 for (Map<String, Object> pageData : pages) {
@@ -429,109 +689,30 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                     String livePath = normalizePagePath(live.getPath());
                     if (StringUtils.hasText(livePath) && !snapshotPaths.contains(livePath)) {
                         extraNames.add(live.getName() + "(" + livePath + ")");
-                        if (Boolean.TRUE.equals(dto.getOfflineExtraPages())) {
+                        if (offlineExtraPages) {
                             live.setStatus(0);
                             pageMapper.updateById(live);
                         }
                     }
                 }
             }
-            String extraNote = "";
-            if (!extraNames.isEmpty()) {
-                if (Boolean.TRUE.equals(dto.getOfflineExtraPages())) {
-                    extraNote = "；已下线快照外页面 " + extraNames.size() + " 个：" + String.join("、", extraNames);
-                } else {
-                    extraNote = "；快照外仍有已发布页面 " + extraNames.size() + " 个（未下线）："
-                            + String.join("、", extraNames)
-                            + "。如需一并下线请勾选 offlineExtraPages";
-                    log.warn("回滚差异：{}", extraNote);
-                }
+            if (extraNames.isEmpty()) {
+                return "";
             }
-
-            MiniappRelease currentPublished = getLatestRelease();
-            if (currentPublished != null) {
-                currentPublished.setStatus(2);
-                currentPublished.setRolledBackAt(LocalDateTime.now());
-                currentPublished.setRolledBackBy(SecurityUtils.getCurrentUserId());
-                currentPublished.setRolledBackFrom(dto.getTargetSemver());
-                this.updateById(currentPublished);
+            if (offlineExtraPages) {
+                return "；已下线快照外页面 " + extraNames.size() + " 个：" + String.join("、", extraNames);
             }
-
-            // semver 列仅 varchar(20)，不能拼长后缀；用下一个 patch 号作为回滚产物版本
-            String rollbackSemver = generateNextSemver("patch");
-            String[] parts = rollbackSemver.split("\\.");
-            MiniappRelease rollbackRelease = new MiniappRelease();
-            rollbackRelease.setSemver(rollbackSemver);
-            rollbackRelease.setMajor(Integer.parseInt(parts[0]));
-            rollbackRelease.setMinor(Integer.parseInt(parts[1]));
-            rollbackRelease.setPatch(Integer.parseInt(parts[2]));
-            rollbackRelease.setChangeType("patch");
-            rollbackRelease.setReleaseNotes("回滚至版本 " + dto.getTargetSemver()
-                    + (StringUtils.hasText(dto.getReason()) ? "，原因: " + dto.getReason() : "")
-                    + extraNote);
-            rollbackRelease.setSnapshot(targetRelease.getSnapshot());
-            rollbackRelease.setBackupSnapshot(backupSnapshot);
-            rollbackRelease.setPageCount(targetRelease.getPageCount());
-            rollbackRelease.setStatus(1);
-            rollbackRelease.setPublishedAt(LocalDateTime.now());
-            rollbackRelease.setPublisherId(SecurityUtils.getCurrentUserId());
-            rollbackRelease.setPublisherName(getCurrentUsername());
-            rollbackRelease.setRolledBackFrom(dto.getTargetSemver());
-            this.save(rollbackRelease);
-
-            long duration = System.currentTimeMillis() - startTime;
-            versionOperationLogService.logOperation(rollbackRelease.getId(), targetRelease.getSemver(), "rollback",
-                    "回滚至版本: " + dto.getTargetSemver(), true, null, duration);
-
-            return rollbackRelease;
+            String extraNote = "；快照外仍有已发布页面 " + extraNames.size() + " 个（未下线）："
+                    + String.join("、", extraNames)
+                    + "。如需一并下线请勾选 offlineExtraPages";
+            log.warn("快照差异：{}", extraNote);
+            return extraNote;
         } catch (BusinessException e) {
-            long duration = System.currentTimeMillis() - startTime;
-            versionOperationLogService.logOperation(targetRelease.getId(), dto.getTargetSemver(), "rollback",
-                    "回滚版本失败", false, e.getMessage(), duration);
             throw e;
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            versionOperationLogService.logOperation(targetRelease.getId(), dto.getTargetSemver(), "rollback",
-                    "回滚版本失败", false, e.getMessage(), duration);
-            throw new BusinessException(ErrorCode.RELEASE_ROLLBACK_FAILED, "回滚版本失败: " + e.getMessage());
+            throw new BusinessException(ErrorCode.DATA_UPDATE_FAILED, "写入模板内容失败: " + e.getMessage());
         }
     }
-
-    @Override
-    public List<MiniappRelease> getReleaseHistory() {
-        return this.lambdaQuery()
-                .eq(MiniappRelease::getStatus, 1)
-                .orderByDesc(MiniappRelease::getMajor)
-                .orderByDesc(MiniappRelease::getMinor)
-                .orderByDesc(MiniappRelease::getPatch)
-                .list();
-    }
-
-    @Override
-    public String generateNextSemver(String changeType) {
-        MiniappRelease latest = this.lambdaQuery()
-                .orderByDesc(MiniappRelease::getMajor)
-                .orderByDesc(MiniappRelease::getMinor)
-                .orderByDesc(MiniappRelease::getPatch)
-                .last("LIMIT 1")
-                .one();
-
-        if (latest == null) {
-            return "1.0.0";
-        }
-
-        int major = latest.getMajor();
-        int minor = latest.getMinor();
-        int patch = latest.getPatch();
-
-        return switch (changeType) {
-            case "major" -> (major + 1) + ".0.0";
-            case "minor" -> major + "." + (minor + 1) + ".0";
-            default -> major + "." + minor + "." + (patch + 1);
-        };
-    }
-
-    // ==================== 私有方法 ====================
 
     private String buildSnapshot() {
         try {
