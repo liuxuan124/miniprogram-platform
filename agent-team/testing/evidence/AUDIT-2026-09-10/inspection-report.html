@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>小程序代码与功能检查报告 · 2026-09-10</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #fff;
+      --ink: #1a2333;
+      --muted: #667085;
+      --line: #e6eaf2;
+      --ok: #067647;
+      --ok-bg: #ecfdf3;
+      --warn: #b54708;
+      --warn-bg: #fffaeb;
+      --bad: #b42318;
+      --bad-bg: #fef3f2;
+      --info: #175cd3;
+      --info-bg: #eff4ff;
+      --brand: #1f4fd1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.65;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+    header.hero {
+      background: linear-gradient(135deg, #1f4fd1 0%, #3d6df5 55%, #6b8ef7 100%);
+      color: #fff;
+      border-radius: 20px;
+      padding: 32px 36px;
+      margin-bottom: 24px;
+    }
+    header.hero h1 { margin: 0 0 8px; font-size: 28px; }
+    header.hero p { margin: 0; opacity: .92; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .chip {
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 13px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .stat b { display: block; font-size: 28px; line-height: 1.2; }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .stat.ok b { color: var(--ok); }
+    .stat.warn b { color: var(--warn); }
+    .stat.bad b { color: var(--bad); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    h3 { margin: 18px 0 8px; font-size: 15px; }
+    p, li { font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 10px 8px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; background: #fafbfe; }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .p0 { background: var(--bad-bg); color: var(--bad); }
+    .p1 { background: var(--warn-bg); color: var(--warn); }
+    .p2 { background: var(--info-bg); color: var(--info); }
+    .pass { background: var(--ok-bg); color: var(--ok); }
+    .fail { background: var(--bad-bg); color: var(--bad); }
+    .partial { background: var(--warn-bg); color: var(--warn); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #f2f4f8; padding: 1px 5px; border-radius: 4px; }
+    .note { color: var(--muted); font-size: 13px; }
+    footer { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>小程序代码与功能检查报告</h1>
+      <p>墨太白·出海笔记（AppID wxea3928e0978492fe）· 针对近期审核整改、支付同步、站内通知与订阅消息的代码/功能核对</p>
+      <div class="meta">
+        <span class="chip">检查日期 2026-09-10</span>
+        <span class="chip">体验版 1.20.0</span>
+        <span class="chip">API https://api.zfculture.site</span>
+        <span class="chip">范围：代码走查 + 生产库/接口取证</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="stat ok"><b>12</b><span>已通过项</span></div>
+      <div class="stat bad"><b>3</b><span>P0 阻断问题</span></div>
+      <div class="stat warn"><b>7</b><span>P1 应修问题</span></div>
+      <div class="stat"><b>5</b><span>P2 优化建议</span></div>
+    </div>
+
+    <section class="card">
+      <h2>1. 结论</h2>
+      <p>近期整改（登录可取消、登录文案去「微信」、文章渲染崩溃修复、站内通知、虚拟发货进客服、订阅模板接入）代码已上到体验版 <b>1.20.0</b>，对应接口健康检查正常。</p>
+      <p>当前<strong>不能视为可再提审的资讯类小程序</strong>。原因不是通知功能没写，而是：</p>
+      <ol>
+        <li>微信支付 APIv3 密钥错误，回调无法解密，订单可能扣款成功但本地不更新。</li>
+        <li>商品/订单/优惠券模块已重新打开，<code>app.json</code> 仍注册「商城」Tab 和知识商城页面，审核可再次扫到交易能力。</li>
+        <li>订阅消息模板已配好，但上线后尚未产生成功发送记录；需用户在支付前点「允许」后才能验证微信服务通知。</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>2. 检查方法</h2>
+      <table>
+        <tr><th>方式</th><th>内容</th></tr>
+        <tr><td>代码走查</td><td>小程序登录/商城门禁/支付确认/站内通知/客服对话；后端支付回调、查单、订阅发送、模块开关</td></tr>
+        <tr><td>生产接口</td><td><code>/api/health</code>、<code>/api/v1/mp/config/public</code>、<code>/api/v1/mp/subscribe/templates</code></td></tr>
+        <tr><td>生产库</td><td>订单、商品自动发货、订阅模板/日志、站内通知表、plugins、wx_version</td></tr>
+        <tr><td>服务日志</td><td>backend journal：支付回调解密失败（11:42）、之后无新的解密失败</td></tr>
+        <tr><td>未覆盖</td><td>真机完整回归（需你在 1.20.0 上再下一单）；微信商户平台账单核对</td></tr>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>3. 功能矩阵</h2>
+      <table>
+        <tr>
+          <th>功能</th><th>代码</th><th>线上配置</th><th>实测/证据</th><th>结论</th>
+        </tr>
+        <tr>
+          <td>登录可取消 / 暂不登录</td>
+          <td>login-sheet 有关闭与「暂不登录」</td>
+          <td>已打入 1.19.7+</td>
+          <td>代码存在</td>
+          <td><span class="tag pass">通过</span></td>
+        </tr>
+        <tr>
+          <td>登录文案去「微信」字样</td>
+          <td>「点击授权手机号」</td>
+          <td>1.19.7+</td>
+          <td>login-sheet / login 页无「微信手机号」</td>
+          <td><span class="tag pass">通过</span></td>
+        </tr>
+        <tr>
+          <td>文章详情渲染</td>
+          <td><code>mediaUrlDedupeKey</code> 已导出</td>
+          <td>1.19.6+</td>
+          <td>导出项在 module.exports 中</td>
+          <td><span class="tag pass">通过</span></td>
+        </tr>
+        <tr>
+          <td>后台登录 15 分钟锁定</td>
+          <td>AuthServiceImpl 已删除锁定逻辑</td>
+          <td>后端已重启</td>
+          <td>源码无「登录失败过多」</td>
+          <td><span class="tag pass">通过</span></td>
+        </tr>
+        <tr>
+          <td>知识商城对用户隐藏</td>
+          <td>商品关闭时会踢回首页</td>
+          <td><b>当前 product=开启</b></td>
+          <td>运行时 Tab 为 首页/资讯/知识库/我的；app.json 仍有「商城」壳</td>
+          <td><span class="tag fail">不通过</span></td>
+        </tr>
+        <tr>
+          <td>微信支付结果同步</td>
+          <td>回调 + 查单 sync-pay</td>
+          <td>APIv3 密钥错误</td>
+          <td>ORD202609101142055102 扣款后仍 pending，后被关单；日志「APIv3 密钥验证失败」</td>
+          <td><span class="tag fail">不通过</span></td>
+        </tr>
+        <tr>
+          <td>虚拟商品自动发货</td>
+          <td>支付成功且 autoFulfill 时写发货内容</td>
+          <td>商品「测试链接」auto_fulfill=1</td>
+          <td>历史单 60–63 有履约内容；11:42 那单因回调失败未履约</td>
+          <td><span class="tag partial">有条件通过</span></td>
+        </tr>
+        <tr>
+          <td>站内通知</td>
+          <td>下单不刷、支付/发货写入 mp_user_notice</td>
+          <td>表已建</td>
+          <td>当前表内 0 条（功能上线后还没有新的成功支付）</td>
+          <td><span class="tag partial">待回归</span></td>
+        </tr>
+        <tr>
+          <td>通知红点 / 列表</td>
+          <td>我的铃铛、菜单角标、Tab 红点、时间/类型标签</td>
+          <td>1.19.9 / 1.20.0</td>
+          <td>代码完整；无数据时为空态</td>
+          <td><span class="tag pass">代码通过</span></td>
+        </tr>
+        <tr>
+          <td>客服对话看发货内容</td>
+          <td>顶部发货卡片 + 复制</td>
+          <td>1.19.9</td>
+          <td>从通知 <code>?orderId=</code> 进入会拉订单详情</td>
+          <td><span class="tag pass">代码通过</span></td>
+        </tr>
+        <tr>
+          <td>微信订阅消息</td>
+          <td>支付前请求 3 个模板；后端按字段映射发送</td>
+          <td>5 个模板已启用；state=trial</td>
+          <td>公开接口能拉到模板 ID；发送日志仍全是历史「模板未配置」</td>
+          <td><span class="tag partial">待真机允许订阅后验证</span></td>
+        </tr>
+        <tr>
+          <td>问答 / 表单模块</td>
+          <td>客户端+服务端开关，默认关</td>
+          <td>qa/form = false</td>
+          <td>公开配置 form=false</td>
+          <td><span class="tag pass">通过</span></td>
+        </tr>
+        <tr>
+          <td>接口健康</td>
+          <td>—</td>
+          <td>—</td>
+          <td>health HTTP 200，version 1.20.0</td>
+          <td><span class="tag pass">通过</span></td>
+        </tr>
+        <tr>
+          <td>个人微信群入群</td>
+          <td>「加入群聊」弹群二维码，长按识别或保存相册</td>
+          <td>join_group 组件</td>
+          <td>微信不提供点按自动进个人群</td>
+          <td><span class="tag pass">已有（扫码通道）</span></td>
+        </tr>
+        <tr>
+          <td>企业微信群点按入群</td>
+          <td>小程序「加入群聊」插件，用户确认后进企微群</td>
+          <td>需企微主体 + app.json 插件 + 群配置</td>
+          <td>代码无插件、无 corpId</td>
+          <td><span class="tag fail">未实现（产品要求必须有）</span></td>
+        </tr>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>4. 缺陷清单</h2>
+      <h3>P0</h3>
+      <table>
+        <tr><th>ID</th><th>问题</th><th>证据</th><th>影响</th><th>建议</th></tr>
+        <tr>
+          <td>P0-1</td>
+          <td>微信支付 APIv3 密钥不正确，支付回调无法解密</td>
+          <td>2026-09-10 11:42:13 日志「APIv3 密钥验证失败」；订单 ORD202609101142055102 本地未记已支付，后被关单</td>
+          <td>用户可能已扣款，小程序仍显示确认中；自动发货、站内通知、订阅消息都不会触发</td>
+          <td>到商户平台复制 32 位 APIv3 密钥写入后台支付配置并保存。密钥正确后，新订单可靠回调；旧单用查单接口补同步</td>
+        </tr>
+        <tr>
+          <td>P0-2</td>
+          <td>交易模块对审核仍可见</td>
+          <td>plugins：product/order/coupon = true；<code>app.json</code> tabBar 第三项文案「商城」，pages 含 knowledge-mall</td>
+          <td>资讯类再提审，审核可用 switchTab 扫到空/有商品的商城页</td>
+          <td>提审前关闭商品/订单/优惠券；原生 tabBar 文案不要用「商城」。测试交易请用体验版，不要带着开启状态提审</td>
+        </tr>
+        <tr>
+          <td>P0-3</td>
+          <td>知识商城页面标题与分享文案仍带交易语义</td>
+          <td><code>knowledge-mall.json</code> / <code>product-list.json</code> 标题「知识商城」；<code>share.js</code>「出海笔记｜知识商城」</td>
+          <td>即使用户 Tab 看不到，审核扫页面标题仍可能判定电商</td>
+          <td>提审包将标题改为内容向，或保证该页打开立即跳走且无交易文案闪现</td>
+        </tr>
+      </table>
+      <h3>P1</h3>
+      <table>
+        <tr><th>ID</th><th>问题</th><th>建议</th></tr>
+        <tr>
+          <td>P1-1</td>
+          <td>订阅消息 <code>miniprogram_state=trial</code>，正式发布后服务通知会打到体验版</td>
+          <td>上线前把 <code>subscribe_miniprogram_state</code> 改为 <code>formal</code></td>
+        </tr>
+        <tr>
+          <td>P1-2</td>
+          <td>优惠券到期模板已配置，但代码中无定时任务调用 <code>coupon_expire</code></td>
+          <td>补 cron，或先关掉该模板以免用户授权后永远收不到</td>
+        </tr>
+        <tr>
+          <td>P1-3</td>
+          <td>FeatureModuleGuard 在 plugins 解析失败时默认放行交易接口</td>
+          <td>与小程序端「默认关闭」不一致，后端应对 product 默认拒绝</td>
+        </tr>
+        <tr>
+          <td>P1-4</td>
+          <td>站内通知表为空，支付成功链路在密钥修好前无法闭环验证</td>
+          <td>修好 APIv3 后用 1.20.0 下一单，确认 notice + 客服卡片 + 微信通知</td>
+        </tr>
+        <tr>
+          <td>P1-5</td>
+          <td>订单确认页与 pkg-trade/order-paid 双份实现，容易漏改</td>
+          <td>主路径已走分包；主包 pages/order-paid 可标废弃或统一引用</td>
+        </tr>
+        <tr>
+          <td>P1-6</td>
+          <td>微信 phrase 字段对枚举敏感，「支付成功 / 发货中」若与模板词库不符会发送失败</td>
+          <td>下一单后看 mp_subscribe_log；失败则改成模板 example 原词</td>
+        </tr>
+        <tr>
+          <td>P1-7</td>
+          <td>入群须双通道：个人微信群二维码已有；企业微信「加入群聊」插件未做（点按入群）</td>
+          <td>app.json 声明插件；装修器按群选「个人群二维码 / 企微插件」；未绑企微时不展示插件入口</td>
+        </tr>
+      </table>
+      <h3>P2</h3>
+      <table>
+        <tr><th>ID</th><th>问题</th><th>建议</th></tr>
+        <tr><td>P2-1</td><td>客服历史存在本地 storage，换机看不到发货卡片以外的聊天</td><td>会话上云（可后期）</td></tr>
+        <tr><td>P2-2</td><td>退款/关单无站内通知</td><td>与支付/发货同一套 notice</td></tr>
+        <tr><td>P2-3</td><td>自定义 Tab 仍注册 5 个原生槽位（含商城/更多）</td><td>微信要求 tabBar.list 固定，只能靠运行时隐藏+页面门禁</td></tr>
+        <tr><td>P2-4</td><td>后端重启偶发 logback ClassNotFoundException（ShutdownHook）</td><td>不影响健康检查，可清理依赖</td></tr>
+        <tr><td>P2-5</td><td>问答页面仍在主包 pages 列表</td><td>开关关闭后仍可被扫到路径，需门禁跳转（已有 qa-module-gate，需确认所有入口）</td></tr>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>5. 生产快照（检查当时）</h2>
+      <table>
+        <tr><th>项</th><th>值</th></tr>
+        <tr><td>wx_version</td><td>1.20.0</td></tr>
+        <tr><td>运行时 Tab</td><td>首页 / 资讯 / 知识库 / 我的</td></tr>
+        <tr><td>plugins</td><td>product=true，order=true，coupon=true，form=false</td></tr>
+        <tr><td>订阅模板</td><td>5 条 enabled=1，公开接口可读取</td></tr>
+        <tr><td>订阅发送日志</td><td>8 条 skipped（均早于模板配置，error=模板未配置）</td></tr>
+        <tr><td>mp_user_notice</td><td>0 条</td></tr>
+        <tr><td>商品 18 测试链接</td><td>auto_fulfill=1</td></tr>
+        <tr><td>最近订单</td><td>67 shipped（11:55，auto_fulfill=0）；66 closed（11:42 回调失败）；63 completed 且有履约内容</td></tr>
+        <tr><td>subscribe_miniprogram_state</td><td>trial</td></tr>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>6. 建议执行顺序</h2>
+      <ol>
+        <li>在微信支付商户平台核对并保存正确的 APIv3 密钥。</li>
+        <li>用体验版 <b>1.20.0</b> 购买「测试链接」：支付弹窗点允许订阅 → 应看到支付成功、站内红点、客服发货卡片、微信服务通知。</li>
+        <li>查 <code>mp_subscribe_log</code> 最新一条 status 是否为 sent。</li>
+        <li>交易测完后，若要再提资讯审核：关闭 product/order/coupon，并处理商城页标题/原生 Tab 文案。</li>
+        <li>正式发布前将订阅跳转版本改为 formal。</li>
+        <li>入群双通道：保留个人群二维码；补企业微信「加入群聊」插件（企微主体 + 插件配置 + 点击入群）。</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>7. 门禁判断</h2>
+      <table>
+        <tr><th>目标</th><th>判断</th></tr>
+        <tr><td>体验版继续测交易/通知</td><td><span class="tag pass">可以</span> — 前提是先修好 APIv3 密钥</td></tr>
+        <tr><td>以资讯类再次提交微信审核</td><td><span class="tag fail">不可以</span> — 交易开关已打开，且商城页仍在包内</td></tr>
+        <tr><td>订阅消息能力</td><td><span class="tag partial">已配置未闭环</span> — 缺一次「允许订阅 + 支付成功」的真机证据</td></tr>
+        <tr><td>入群双通道</td><td><span class="tag partial">一半</span> — 个人群二维码已有；企微点按入群未做</td></tr>
+      </table>
+      <p class="note">本报告为代码走查与生产取证，不替代你在 1.20.0 上的真机回归。未对微信商户资金流水做核对。</p>
+    </section>
+
+    <footer>
+      生成时间：2026-09-10 13:40（UTC+8）· 产物路径：agent-team/testing/evidence/AUDIT-2026-09-10/inspection-report.html
+    </footer>
+  </div>
+</body>
+</html>
