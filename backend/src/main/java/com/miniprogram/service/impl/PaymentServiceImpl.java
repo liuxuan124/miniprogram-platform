@@ -33,7 +33,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -72,6 +71,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (!"pending_payment".equals(order.getStatus())) {
             throw new BusinessException(600201, "订单状态错误，无法支付");
         }
+        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         // 查找支付记录
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
@@ -80,18 +80,6 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (payment == null) {
             throw new BusinessException(700401, "支付记录不存在");
         }
-
-        // 实付 ≤ 0：本地直接完成，不调微信（微信要求金额 > 0）
-        BigDecimal payAmount = order.getPayAmount() == null ? BigDecimal.ZERO : order.getPayAmount();
-        if (payAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            markPaid(order, payment, "FREE-" + order.getOrderNo());
-            WxPayResponse free = new WxPayResponse();
-            free.setOrderNo(order.getOrderNo());
-            free.setFree(true);
-            return free;
-        }
-
-        WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         try {
             // 微信支付V3统一下单
@@ -105,7 +93,6 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             response.setTimeStamp(String.valueOf(System.currentTimeMillis() / 1000));
             response.setNonceStr(UUID.randomUUID().toString().replace("-", "").substring(0, 32));
             response.setSignType("RSA");
-            response.setFree(false);
 
             // 签名
             String signStr = response.getAppId() + "\n"
@@ -199,8 +186,36 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
     }
 
-    /** 将待支付订单标记为已支付（含零元免支付与微信回调） */
-    private void markPaid(Order order, Payment payment, String transactionId) {
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void syncPaidFromWechat(Long userId, Long orderId) {
+        Order order = orderMapper.selectById(orderId);
+        if (order == null || !order.getUserId().equals(userId)) {
+            throw new BusinessException(600401, "订单不存在");
+        }
+        if (!"pending_payment".equals(order.getStatus())) {
+            return;
+        }
+        try {
+            Map<String, Object> paymentData = queryWxTransaction(order);
+            String tradeState = String.valueOf(paymentData.getOrDefault("trade_state", ""));
+            if (!"SUCCESS".equals(tradeState)) {
+                log.info("微信查单未支付 orderNo={} state={}", order.getOrderNo(), tradeState);
+                return;
+            }
+            String transactionId = (String) paymentData.get("transaction_id");
+            verifyNotifyAmount(paymentData, order, order.getOrderNo());
+            markOrderPaid(order, transactionId, paymentData);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("微信查单失败 orderNo={}", order.getOrderNo(), e);
+        }
+    }
+
+    private void markOrderPaid(Order order, String transactionId, Map<String, Object> paymentData) {
+        Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
+                .eq(Payment::getOrderId, order.getId()));
         if (payment != null && "pending".equals(payment.getStatus())) {
             payment.setStatus("success");
             payment.setTransactionId(transactionId);

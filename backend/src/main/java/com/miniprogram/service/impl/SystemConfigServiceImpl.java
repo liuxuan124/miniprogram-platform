@@ -72,8 +72,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
      */
     private static final Set<String> RUNTIME_PUBLIC_CONFIG_KEYS = Set.of(
             "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "minePageConfig", "plugins",
-            "miniappBrandConfig", "miniappThemeConfig", "site_name", "site_logo",
-            "miniappShareTitle", "miniappShareImage",
+            "miniappBrandConfig", "site_name", "site_logo",
+            "miniappThemeConfig", "miniappShareTitle", "miniappShareImage",
             "industry_profile", "glossary", "planet_config",
             "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
