@@ -28,6 +28,7 @@
     "dsl-content-tabs": "../dsl-content-tabs/dsl-content-tabs",
     "dsl-planet-hero": "../dsl-planet-hero/dsl-planet-hero",
     "dsl-planet-topics": "../dsl-planet-topics/dsl-planet-topics",
-    "dsl-planet-feed": "../dsl-planet-feed/dsl-planet-feed"
+    "dsl-planet-feed": "../dsl-planet-feed/dsl-planet-feed",
+    "dsl-warm-block": "../dsl-warm-block/dsl-warm-block"
   }
 }

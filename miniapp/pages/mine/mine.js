@@ -1,36 +1,77 @@
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
-const memberService = require('../../services/member')
+const { get } = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
 const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { blockTradeNavigation } = require('../../utils/product-module-gate')
 const noticeService = require('../../services/notice')
-const { picsum } = require('../../data/warm-media')
+const { loadTabBoundDslPage, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
+const {
+  DEFAULT_AVATAR,
+  pickDisplayAvatarUrl,
+  isTempLocalAvatar,
+} = require('../../utils/image-fallback')
+
+const EMPTY_STATS = [
+  { value: '—', label: '收藏' },
+  { value: '—', label: '笔记' },
+  { value: '—', label: '关注' },
+  { value: '—', label: '暖豆' },
+]
+
+function fmtCount(n) {
+  const x = Number(n)
+  if (!Number.isFinite(x) || x <= 0) return '0'
+  return x.toLocaleString('en-US')
+}
+
+function withDisplayAvatar(userInfo) {
+  const info = userInfo && typeof userInfo === 'object' ? userInfo : null
+  const displayAvatarUrl = pickDisplayAvatarUrl(
+    info && info.avatarUrl,
+    info && info.avatar,
+  )
+  return {
+    userInfo: info,
+    displayAvatarUrl,
+    avatarBroken: false,
+  }
+}
+
+function guestState() {
+  return {
+    isLoggedIn: false,
+    userInfo: null,
+    displayAvatarUrl: DEFAULT_AVATAR,
+    avatarBroken: false,
+    memberInfo: null,
+    continuousDays: 0,
+    joinDays: 0,
+    noticeUnread: 0,
+    vipDesc: '登录后查看会员与学习记录',
+    vipCta: '去登录',
+    memberActive: false,
+    stats: EMPTY_STATS,
+    learnItem: null,
+    planetItem: null,
+    questionCount: 0,
+    inviteCount: 0,
+    pendingOrderCount: 0,
+    unusedCouponCount: 0,
+  }
+}
 
 Page({
   ...createSharePageConfig(),
   data: {
+    ...TAB_DSL_INITIAL,
     statusBarHeight: 20,
     styleKey: 'warm',
-    isLoggedIn: false,
-    userInfo: null,
-    memberInfo: null,
-    continuousDays: 18,
-    joinDays: 342,
-    noticeUnread: 0,
-    vipDesc: '有效期至 2027-03-18 · 全站长文免费读',
+    displayAvatarUrl: DEFAULT_AVATAR,
+    avatarBroken: false,
     vipTitle: '暖阁年度会员',
     planetTitle: '暖阁星球',
-    demoNickName: '林砚',
-    demoLevelName: 'LV.4 常读者',
-    demoAvatar: picsum('warmav', 140, 140),
-    learnCover: picsum('warmc1', 200, 150),
-    stats: [
-      { value: '126', label: '收藏' },
-      { value: '38', label: '笔记' },
-      { value: '12', label: '关注' },
-      { value: '2,480', label: '暖豆' },
-    ],
+    ...guestState(),
   },
 
   onLoad() {
@@ -38,6 +79,7 @@ Page({
       const sys = wx.getSystemInfoSync()
       this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
     } catch (e) { /* ignore */ }
+    loadTabBoundDslPage(this, '/pages/mine/mine').then(() => {})
     const SystemService = require('../../services/system')
     SystemService.fetchMinePageConfig(true).then((mine) => {
       if (!mine) return
@@ -78,10 +120,7 @@ Page({
     AuthService.silentLogin()
       .then((loggedIn) => {
         this._refreshUserInfo()
-        if (loggedIn) {
-          this._loadMemberInfo()
-          this._loadNoticeUnread()
-        }
+        if (loggedIn) this._loadMineOverview()
       })
       .catch(() => this._refreshUserInfo())
   },
@@ -90,51 +129,113 @@ Page({
     const app = getApp()
     const isLoggedIn = AuthUtil.isLoggedIn()
     const userInfo = isLoggedIn
-      ? (AuthUtil.getUserInfo() || app.globalData.userInfo)
+      ? (AuthUtil.getUserInfo() || (app && app.globalData.userInfo) || null)
       : null
-    if (app.globalData.isLoggedIn !== isLoggedIn) {
+    if (app) {
       app.globalData.isLoggedIn = isLoggedIn
       app.globalData.token = isLoggedIn ? AuthUtil.getToken() : null
       app.globalData.userInfo = userInfo
     }
     if (!isLoggedIn) {
-      this.setData({
-        isLoggedIn: false,
-        userInfo: { nickName: this.data.demoNickName || '林砚' },
-        memberInfo: { level_name: this.data.demoLevelName || 'LV.4 常读者' },
-        noticeUnread: 9,
-        vipDesc: '有效期至 2027-03-18 · 全站长文免费读',
-        continuousDays: 18,
-        joinDays: 342,
-        stats: [
-          { value: '126', label: '收藏' },
-          { value: '38', label: '笔记' },
-          { value: '12', label: '关注' },
-          { value: '2,480', label: '暖豆' },
-        ],
-      })
+      this.setData(guestState())
       return
     }
-    this.setData({ isLoggedIn: true, userInfo })
+    const patched = withDisplayAvatar(userInfo)
+    // 本地缓存若仍是 localhost/临时路径，写回已解析后的可展示 URL（或清空等 overview）
+    if (patched.userInfo && patched.displayAvatarUrl !== DEFAULT_AVATAR) {
+      const next = Object.assign({}, patched.userInfo, { avatarUrl: patched.displayAvatarUrl })
+      AuthUtil.setUserInfo(next)
+      if (app) app.globalData.userInfo = next
+      this.setData({ isLoggedIn: true, userInfo: next, displayAvatarUrl: patched.displayAvatarUrl, avatarBroken: false })
+      return
+    }
+    this.setData({
+      isLoggedIn: true,
+      userInfo: patched.userInfo,
+      displayAvatarUrl: patched.displayAvatarUrl,
+      avatarBroken: false,
+    })
   },
 
-  _loadMemberInfo() {
-    if (!AuthUtil.isLoggedIn()) return
-    memberService.getMemberInfo()
+  onAvatarError() {
+    // 临时头像偶发加载失败时不要立刻清空，留给上传完成后刷新
+    if (isTempLocalAvatar(this.data.displayAvatarUrl)) return
+    if (this.data.displayAvatarUrl === DEFAULT_AVATAR) return
+    this.setData({ displayAvatarUrl: DEFAULT_AVATAR, avatarBroken: true })
+  },
+
+  _loadMineOverview() {
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData(guestState())
+      return
+    }
+    get('/api/v1/mp/mine/overview', {}, { auth: true, showError: false })
       .then((data) => {
-        const days = data.continuous_days || data.continuousDays || 18
-        const expire = data.expireAt || data.expire_at || data.memberExpireAt || '2027-03-18'
+        if (!AuthUtil.isLoggedIn()) {
+          this.setData(guestState())
+          return
+        }
+        const local = AuthUtil.getUserInfo() || {}
+        const nickName = data.nickname || local.nickName || local.nickname || '微信用户'
+        // 优先本地（含刚选的微信临时头像），避免被 overview 旧坏链盖掉
+        const displayAvatarUrl = pickDisplayAvatarUrl(
+          local.avatarUrl,
+          local.avatar,
+          data.avatarUrl,
+        )
+        const userInfo = Object.assign({}, local, { nickName, nickname: nickName })
+        if (displayAvatarUrl && displayAvatarUrl !== DEFAULT_AVATAR) {
+          userInfo.avatarUrl = displayAvatarUrl
+        }
+        AuthUtil.setUserInfo(userInfo)
+        const expire = data.memberExpireAt || ''
+        const memberActive = !!data.memberActive
+        let vipDesc = '尚未开通会员'
+        let vipCta = '去开通'
+        if (memberActive && expire) {
+          vipDesc = `有效期至 ${expire}`
+          vipCta = '去续费'
+        } else if (memberActive) {
+          vipDesc = '会员有效'
+          vipCta = '去查看'
+        }
         this.setData({
-          memberInfo: data,
-          continuousDays: days,
-          vipDesc: `有效期至 ${expire} · 全站长文免费读`,
+          isLoggedIn: true,
+          userInfo,
+          displayAvatarUrl,
+          avatarBroken: false,
+          memberInfo: { level_name: data.levelName || '' },
+          continuousDays: Number(data.continuousSignDays) || 0,
+          joinDays: Number(data.joinDays) || 0,
+          memberActive,
+          vipDesc,
+          vipCta,
+          stats: [
+            { value: fmtCount(data.favoriteCount), label: '收藏' },
+            { value: fmtCount(data.noteCount), label: '笔记' },
+            { value: fmtCount(data.followCount), label: '关注' },
+            { value: fmtCount(data.points), label: '暖豆' },
+          ],
+          learnItem: data.learn || null,
+          planetItem: data.planet || null,
+          planetTitle: (data.planet && data.planet.title) || this.data.planetTitle,
+          questionCount: Number(data.questionCount) || 0,
+          inviteCount: Number(data.inviteCount) || 0,
+          pendingOrderCount: Number(data.pendingOrderCount) || 0,
+          unusedCouponCount: Number(data.unusedCouponCount) || 0,
         })
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!AuthUtil.isLoggedIn()) this.setData(guestState())
+      })
+    this._loadNoticeUnread()
   },
 
   _loadNoticeUnread() {
-    if (!AuthUtil.isLoggedIn()) return
+    if (!AuthUtil.isLoggedIn()) {
+      this.setData({ noticeUnread: 0 })
+      return
+    }
     noticeService.unreadCount()
       .then((data) => {
         const count = Number((data && (data.count || data.unread)) || 0)
@@ -158,8 +259,7 @@ Page({
       action: action || '',
       onSuccess: () => {
         this._refreshUserInfo()
-        this._loadMemberInfo()
-        this._loadNoticeUnread()
+        this._loadMineOverview()
       },
     }
     const tryShow = () => {
@@ -213,7 +313,13 @@ Page({
   },
 
   onSettingsTap() {
-    this._nav('/pkg-user/settings/settings')
+    wx.navigateTo({
+      url: '/pkg-user/settings/settings',
+      fail: (err) => {
+        console.warn('[mine] open settings failed', err)
+        wx.showToast({ title: '设置页打开失败', icon: 'none' })
+      },
+    })
   },
 
   onMemberCardTap() {
@@ -225,7 +331,6 @@ Page({
   },
 
   onNoticeTap() {
-    // 站内消息中心（未读通知列表），对齐 prototypes-warm/notice.html
     this._nav('/pkg-user/notices/notices', true, '查看消息')
   },
 
@@ -242,8 +347,13 @@ Page({
   },
 
   onGoLearnMore() {
-    // 对齐原型「继续学习」→ 专栏详情；demo 预览不受商品总开关拦截
-    this._nav('/pages/product-detail/product-detail?demo=column')
+    if (!this._ensureLogin('同步学习进度')) return
+    const item = this.data.learnItem
+    if (item && item.productId) {
+      this._nav(`/pages/product-detail/product-detail?id=${item.productId}`)
+      return
+    }
+    this._nav('/pages/shop/shop')
   },
 
   onGoPlanet() {
@@ -280,5 +390,19 @@ Page({
 
   onGoFeedback() {
     this._nav('/pkg-user/feedback/feedback')
+  },
+
+  onLogoutTap() {
+    if (!this.data.isLoggedIn) return
+    wx.showModal({
+      title: '退出登录',
+      content: '退出后将清除本机登录信息，不会删除账号',
+      success: (res) => {
+        if (!res.confirm) return
+        AuthService.logout({ manual: true, redirectToLogin: false })
+        this.setData(guestState())
+        wx.showToast({ title: '已退出登录', icon: 'success' })
+      },
+    })
   },
 })

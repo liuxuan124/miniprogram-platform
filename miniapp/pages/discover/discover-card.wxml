@@ -1,0 +1,130 @@
+<!-- 发现页卡片模板：瀑布流列 / 通栏行共用 -->
+<template name="dc-card">
+  <!-- 好物独特：方图 + 价格 -->
+  <view
+    wx:if="{{item.layout === 'goods'}}"
+    class="dc-card dc-card--goods"
+    data-id="{{item.id}}"
+    data-demo="{{item.isDemo}}"
+    data-kind="{{item.kind || 'goods'}}"
+    bindtap="onTapNote"
+  >
+    <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
+      <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+      <text class="dc-card__pill dc-card__pill--goods" wx:if="{{item.pill}}">{{item.pill}}</text>
+      <text class="dc-card__price-chip" wx:if="{{item.priceLabel}}">{{item.priceLabel}}</text>
+    </view>
+    <view class="dc-card__bd">
+      <text class="dc-card__title">{{item.title}}</text>
+      <view class="dc-card__price-row">
+        <text class="dc-card__price" wx:if="{{item.priceLabel}}">{{item.priceLabel}}</text>
+        <text class="dc-card__origin" wx:if="{{item.originLabel}}">{{item.originLabel}}</text>
+        <text class="dc-card__sales">{{item.statText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 好物编辑式：短横封面 + 价格 -->
+  <view
+    wx:elif="{{item.kind === 'goods' && item.layout === 'article'}}"
+    class="dc-card dc-card--goods-ed"
+    data-id="{{item.id}}"
+    data-demo="{{item.isDemo}}"
+    data-kind="goods"
+    bindtap="onTapNote"
+  >
+    <view class="dc-card__cv dc-card__cv--goods-wide" wx:if="{{item.hasCover}}">
+      <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+      <text class="dc-card__pill dc-card__pill--goods" wx:if="{{item.pill}}">{{item.pill}}</text>
+      <text class="dc-card__price-chip" wx:if="{{item.priceLabel}}">{{item.priceLabel}}</text>
+    </view>
+    <view class="dc-card__bd">
+      <text class="dc-card__title">{{item.title}}</text>
+      <text class="dc-card__sum dc-card__sum--goods" wx:if="{{item.summary}}">{{item.summary}}</text>
+      <view class="dc-card__price-row">
+        <text class="dc-card__price" wx:if="{{item.priceLabel}}">{{item.priceLabel}}</text>
+        <text class="dc-card__sales">{{item.statText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 长文（含通栏 hero / quote） -->
+  <view
+    wx:elif="{{item.layout === 'article'}}"
+    class="dc-card dc-card--article dc-card--{{item.variant || 'magazine'}} {{item.variant === 'quote' || item.isText ? 'dc-card--txt' : ''}}"
+    data-id="{{item.id}}"
+    data-demo="{{item.isDemo}}"
+    data-kind="{{item.kind || 'article'}}"
+    bindtap="onTapNote"
+  >
+    <view class="dc-card__row" wx:if="{{item.variant === 'row'}}">
+      <view class="dc-card__cv dc-card__cv--row" wx:if="{{item.hasCover}}">
+        <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+        <text class="dc-card__pill dc-card__pill--article" wx:if="{{item.pill}}">{{item.pill}}</text>
+      </view>
+      <view class="dc-card__bd dc-card__bd--row">
+        <text class="dc-card__title dc-card__title--serif">{{item.title}}</text>
+        <text class="dc-card__sum" wx:if="{{item.summary}}">{{item.summary}}</text>
+        <view class="dc-card__ft">
+          <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+          <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
+          <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
+          <text class="dc-card__lk">{{item.statText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="dc-card__bd" wx:elif="{{item.variant === 'quote' || item.isText}}">
+      <text class="dc-card__kicker" wx:if="{{item.pill}}">{{item.pill}}</text>
+      <text class="dc-card__quote">{{item.quote || item.summary || item.title}}</text>
+      <view class="dc-card__ft">
+        <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+        <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
+        <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
+        <text class="dc-card__lk">{{item.statText}}</text>
+      </view>
+    </view>
+    <block wx:else>
+      <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
+        <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+      </view>
+      <view class="dc-card__bd">
+        <text class="dc-card__kicker" wx:if="{{item.pill}}">{{item.pill}}</text>
+        <text class="dc-card__title dc-card__title--serif">{{item.title}}</text>
+        <text class="dc-card__sum" wx:if="{{item.summary && item.variant !== 'hero'}}">{{item.summary}}</text>
+        <view class="dc-card__ft">
+          <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+          <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
+          <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
+          <text class="dc-card__lk">{{item.statText}}</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 笔记（好物周边复用 note 版式） -->
+  <view
+    wx:else
+    class="dc-card {{item.isText ? 'dc-card--txt' : ''}} {{item.kind === 'goods' ? 'dc-card--goods-note' : ''}}"
+    data-id="{{item.id}}"
+    data-demo="{{item.isDemo}}"
+    data-kind="{{item.kind || 'note'}}"
+    bindtap="onTapNote"
+  >
+    <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
+      <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
+      <text class="dc-card__pill {{item.kind === 'goods' ? 'dc-card__pill--goods' : ''}}" wx:if="{{item.pill}}">{{item.pill}}</text>
+      <text class="dc-card__price-chip" wx:if="{{item.kind === 'goods' && item.priceLabel}}">{{item.priceLabel}}</text>
+      <text class="dc-card__cnt" wx:if="{{item.cnt}}">{{item.cnt}}</text>
+    </view>
+    <view class="dc-card__bd">
+      <text class="dc-card__quote" wx:if="{{item.isText}}">{{item.quote}}</text>
+      <text class="dc-card__title" wx:else>{{item.title}}</text>
+      <view class="dc-card__ft">
+        <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+        <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
+        <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
+        <text class="dc-card__lk">{{item.statText || ('❤ ' + item.likeText)}}</text>
+      </view>
+    </view>
+  </view>
+</template>

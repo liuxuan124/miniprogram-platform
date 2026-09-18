@@ -5,7 +5,10 @@
       <text class="pl-hero__title warm-serif">{{title}}</text>
       <text class="pl-hero__sb">{{subtitle}}</text>
     </view>
-    <view class="pl-hero__jn" catchtap="onJoin">{{joinText}}</view>
+    <view class="pl-hero__acts">
+      <view class="pl-hero__sw" catchtap="onSwitch">切换</view>
+      <view class="pl-hero__jn" catchtap="onJoin">{{joinText}}</view>
+    </view>
   </view>
   <view class="pl-kpi">
     <view wx:for="{{kpis}}" wx:key="label" class="pl-kpi__item">

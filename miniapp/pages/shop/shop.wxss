@@ -2,13 +2,24 @@
 @import "../../templates/dsl-tab-body.wxss";
 
 .sh-page {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   background: var(--bg);
   box-sizing: border-box;
 }
 
-.sh-scroll { height: 100vh; }
+.sh-scroll {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+}
 
+.sh-head {
+  flex: none;
+}
+
+/* 与 prototypes-warm/shop.html：.top padding 底 16px + .vipbar margin-top -6px 上贴搜索 */
 .sh-top {
   padding: 0 32rpx 32rpx;
   background: linear-gradient(180deg, #f7e0c3, #fbeeda 58%, var(--bg));
@@ -63,7 +74,8 @@
 .sh-vip {
   position: relative;
   z-index: 2;
-  margin: 20rpx 32rpx 0;
+  flex: none;
+  margin: -12rpx 32rpx 0;
   border-radius: 32rpx;
   padding: 26rpx 30rpx;
   display: flex;

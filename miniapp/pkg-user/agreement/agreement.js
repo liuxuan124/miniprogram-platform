@@ -31,6 +31,7 @@ Page({
     title: '',
     paragraphs: [],
     externalUrl: '',
+    useExternalOnly: false,
   },
 
   onLoad(options) {
@@ -47,7 +48,11 @@ Page({
         const urlKey = type === 'terms' ? 'user_agreement_url' : 'privacy_policy_url'
         const url = config[urlKey] || config[type === 'terms' ? 'userAgreementUrl' : 'privacyPolicyUrl'] || ''
         if (url && String(url).startsWith('http')) {
-          this.setData({ externalUrl: url })
+          this.setData({
+            externalUrl: url,
+            paragraphs: [],
+            useExternalOnly: true,
+          })
         }
       })
       .catch(() => {})

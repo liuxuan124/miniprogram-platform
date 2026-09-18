@@ -77,9 +77,25 @@ const AuthUtil = {
    * 清除所有认证信息
    */
   clearAuth() {
+    try {
+      const info = this.getUserInfo() || {}
+      const id = info.id || info.userId
+      if (id) StorageUtil.remove('content_favorites_' + id)
+    } catch (e) { /* ignore */ }
+    StorageUtil.remove('content_favorites')
+    StorageUtil.remove('content_favorites_guest')
+    StorageUtil.remove(LOGIN_PROFILE_CACHE_KEY)
+    StorageUtil.remove('moment_likes')
+    StorageUtil.remove('moment_favorites')
     StorageUtil.remove(TOKEN_KEY)
     StorageUtil.remove(USER_INFO_KEY)
     StorageUtil.remove(LOGIN_INTERCEPT_KEY)
+    try {
+      const { PageService } = require('../services/page')
+      if (PageService && typeof PageService.clearDSLCache === 'function') {
+        PageService.clearDSLCache()
+      }
+    } catch (e) { /* ignore */ }
   },
 
   /**

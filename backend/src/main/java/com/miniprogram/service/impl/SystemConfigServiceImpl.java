@@ -45,7 +45,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "privacy_policy_url", "user_agreement_url", "service_phone", "planet_config",
             "industry_profile", "glossary", "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
-            "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config"
+            "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config",
+            "content_list_config", "product_list_config", "content_member_wall"
     );
 
     /**
@@ -55,7 +56,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "tabbarItems", "minePageConfig", "miniappThemeConfig", "miniappBrandConfig", "plugins", "roles", "notifications", "planet_config",
             "industry_profile", "glossary", "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
-            "community_config", "content_audit_rules", "agent_trigger_config"
+            "community_config", "content_audit_rules", "agent_trigger_config",
+            "content_list_config", "product_list_config", "content_member_wall"
     );
 
     /**
@@ -77,7 +79,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "industry_profile", "glossary", "planet_config",
             "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
-            "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config"
+            "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config",
+            "content_list_config", "product_list_config", "content_member_wall"
     );
 
     @Override

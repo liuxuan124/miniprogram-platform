@@ -24,8 +24,8 @@ Page({
     recs: [],
     paymentConfirmed: false,
     confirming: true,
-    inviteCount: 3,
-    inviteDays: 21,
+    inviteCount: 0,
+    inviteDays: 0,
     payFailed: false,
     failCode: 'PAY_CANCELED',
     failReason: '用户取消支付',
@@ -59,6 +59,7 @@ Page({
     this._loadRecs()
     this._confirmPayment()
     this._requestSubscribe()
+    this._loadInviteStats()
   },
 
   async _requestSubscribe() {
@@ -126,6 +127,18 @@ Page({
         showCancel: false,
       })
     }
+  },
+
+  async _loadInviteStats() {
+    try {
+      const { AuthUtil } = require('../../utils/auth')
+      if (!AuthUtil.isLoggedIn()) return
+      const data = await get('/api/v1/mp/mine/overview', {}, { auth: true, showError: false })
+      this.setData({
+        inviteCount: Number(data && data.inviteCount) || 0,
+        inviteDays: 0,
+      })
+    } catch (_) { /* ignore */ }
   },
 
   async _loadRecs() {

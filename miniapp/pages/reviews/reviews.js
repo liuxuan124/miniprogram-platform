@@ -1,17 +1,6 @@
 const reviewService = require('../../services/review')
 const { createSharePageConfig } = require('../../utils/share')
 
-const DEMO = {
-  avgScore: 4.9,
-  total: 128,
-  scoreDist: { 5: 110, 4: 14, 3: 3, 2: 1, 1: 0 },
-  hotTags: ['实用', '模板全', '更新及时', '讲得清楚'],
-  records: [
-    { id: 1, nickname: '读者 Lisa', score: 5, tags: ['实用', '模板全'], content: '选题漏斗直接能套用，利润表帮我省了不少试错。', createTime: '2026-07-10' },
-    { id: 2, nickname: '匿名用户', score: 5, tags: ['更新及时'], content: '季度更新很良心，目录结构清楚。', createTime: '2026-07-08' },
-  ],
-}
-
 Page({
   ...createSharePageConfig(),
   data: {
@@ -23,6 +12,7 @@ Page({
     records: [],
     activeTag: '',
     loading: false,
+    loadError: false,
   },
 
   onLoad(q) {
@@ -63,22 +53,23 @@ Page({
       })
       const payload = data || {}
       this.setData({
-        avgScore: payload.avgScore || 0,
-        total: payload.total || 0,
+        avgScore: Number(payload.avgScore) || 0,
+        total: Number(payload.total) || 0,
         bars: this._bars(payload.scoreDist, payload.total),
         hotTags: payload.hotTags || [],
         records: this._mapRecords(payload.records),
         loading: false,
+        loadError: false,
       })
     } catch (e) {
-      const d = DEMO
       this.setData({
-        avgScore: d.avgScore,
-        total: d.total,
-        bars: this._bars(d.scoreDist, d.total),
-        hotTags: d.hotTags,
-        records: this._mapRecords(d.records),
+        avgScore: 0,
+        total: 0,
+        bars: this._bars({}, 0),
+        hotTags: [],
+        records: [],
         loading: false,
+        loadError: true,
       })
     }
   },

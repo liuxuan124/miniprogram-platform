@@ -83,6 +83,13 @@ public class MpFormAppointmentController {
         return R.ok(appointmentService.listMyAppointments(userId, queryDTO));
     }
 
+    @GetMapping("/appointments/{id}")
+    @Operation(summary = "预约详情（必须是当前用户）")
+    public R<AppointmentVO> getMyAppointment(@PathVariable Long id) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        return R.ok(appointmentService.getMyAppointment(id, userId));
+    }
+
     @Operation(summary = "取消预约", description = "小程序端取消我的预约")
     @PutMapping("/appointments/{id}/cancel")
     public R<AppointmentVO> cancelMyAppointment(@PathVariable Long id, @RequestBody(required = false) AppointmentCancelDTO dto) {

@@ -2,39 +2,37 @@
 <view class="mn-page mn-page--{{styleKey}}">
   <scroll-view class="mn-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="mn-hero" style="padding-top: {{statusBarHeight + 10}}px;">
-      <view class="mn-hero__rw" bindtap="onUserAreaTap">
-        <view class="mn-hero__av">
-          <image
-            wx:if="{{isLoggedIn && userInfo.avatarUrl}}"
-            class="warm-ph"
-            src="{{userInfo.avatarUrl}}"
-            mode="aspectFill"
-          />
-          <image
-            wx:elif="{{!isLoggedIn}}"
-            class="warm-ph"
-            src="{{demoAvatar || '/images/default-avatar.svg'}}"
-            mode="aspectFill"
-          />
-          <text wx:else class="mn-hero__fb">👤</text>
-        </view>
-        <view class="mn-hero__meta">
-          <view class="mn-hero__name warm-serif" wx:if="{{isLoggedIn}}">
-            {{userInfo.nickName || '微信用户'}}
-            <text class="warm-tag warm-tag--soft">{{memberInfo.level_name || 'LV.4 常读者'}}</text>
+      <view class="mn-hero__rw">
+        <view class="mn-hero__main" bindtap="onUserAreaTap">
+          <view class="mn-hero__av">
+            <image
+              class="warm-ph mn-hero__av-img"
+              src="{{displayAvatarUrl}}"
+              mode="aspectFill"
+              binderror="onAvatarError"
+            />
           </view>
-          <view class="mn-hero__name warm-serif" wx:elif="{{styleKey === 'warm'}}">
-            {{demoNickName || '林砚'}}
-            <text class="warm-tag warm-tag--soft">{{demoLevelName || 'LV.4 常读者'}}</text>
+          <view class="mn-hero__meta">
+            <view class="mn-hero__name warm-serif" wx:if="{{isLoggedIn}}">
+              {{userInfo.nickName || '微信用户'}}
+              <text class="warm-tag warm-tag--soft" wx:if="{{memberInfo.level_name}}">{{memberInfo.level_name}}</text>
+            </view>
+            <view class="mn-hero__name warm-serif" wx:else>点击登录</view>
+            <text class="mn-hero__sb" wx:if="{{isLoggedIn}}">连续阅读 {{continuousDays}} 天 · 加入暖阁 {{joinDays}} 天</text>
+            <text class="mn-hero__sb" wx:else>登录后同步收藏、会员与学习记录</text>
           </view>
-          <view class="mn-hero__name warm-serif" wx:else>点击登录</view>
-          <text class="mn-hero__sb" wx:if="{{isLoggedIn || styleKey === 'warm'}}">连续阅读 {{continuousDays || 18}} 天 · 加入暖阁 {{joinDays || 342}} 天</text>
-          <text class="mn-hero__sb" wx:else>登录后同步收藏与阅读偏好</text>
         </view>
-        <text class="mn-hero__set" catchtap="onSettingsTap">⚙︎</text>
+        <view
+          class="mn-hero__set"
+          catchtap="onSettingsTap"
+          hover-class="mn-hero__set--pressed"
+          hover-stay-time="80"
+          aria-role="button"
+          aria-label="设置"
+        >⚙︎</view>
       </view>
       <view class="mn-st">
-        <view wx:for="{{stats}}" wx:key="label">
+        <view wx:for="{{stats}}" wx:key="label" bindtap="{{item.label === '收藏' ? 'onGoFavorites' : ''}}">
           <text class="mn-st__b">{{item.value}}</text>
           <text class="mn-st__s">{{item.label}}</text>
         </view>
@@ -47,7 +45,7 @@
         <text class="mn-vip__h">{{vipTitle || '暖阁年度会员'}}</text>
         <text class="mn-vip__p">{{vipDesc}}</text>
       </view>
-      <text class="mn-vip__b">{{isLoggedIn || styleKey === 'warm' ? '去续费' : '去开通'}}</text>
+      <text class="mn-vip__b">{{vipCta}}</text>
     </view>
 
     <view class="mn-quick">
@@ -69,52 +67,46 @@
     <view class="mn-cont">
       <view class="mn-cont__t">
         <text class="mn-cont__h">继续学习</text>
-        <text class="mn-cont__a" bindtap="onGoLearnMore">全部 3 门 ›</text>
+        <text class="mn-cont__a" wx:if="{{isLoggedIn && learnItem}}" bindtap="onGoLearnMore">查看 ›</text>
       </view>
-      <view class="mn-cont__it" bindtap="onGoLearnMore">
-        <image class="mn-cont__im warm-ph" src="{{learnCover || '/images/default-product.svg'}}" mode="aspectFill" />
+      <view class="mn-cont__it" wx:if="{{isLoggedIn && learnItem}}" bindtap="onGoLearnMore">
+        <image class="mn-cont__im warm-ph" src="{{learnItem.cover || '/images/default-product.svg'}}" mode="aspectFill" />
         <view class="mn-cont__main">
-          <text class="mn-cont__name">一个人的内容生意</text>
-          <view class="mn-cont__pg"><view class="mn-cont__fill"></view></view>
-          <text class="mn-cont__pt">第 15 / 32 讲 · 上次看到 12:40</text>
+          <text class="mn-cont__name">{{learnItem.title}}</text>
+          <text class="mn-cont__pt">已购买 · 点此继续</text>
         </view>
         <text class="mn-cont__go">继续</text>
+      </view>
+      <view class="mn-empty" wx:else bindtap="onGoLearnMore">
+        {{isLoggedIn ? '还没有在学的课程' : '登录后同步学习进度'}}
       </view>
     </view>
 
     <view class="mn-pl">
       <view class="mn-pl__t">
         <text class="mn-pl__h">我的星球</text>
-        <text class="mn-pl__a" bindtap="onGoPlanet">管理 ›</text>
+        <text class="mn-pl__a" bindtap="onGoPlanet">进入 ›</text>
       </view>
-      <view class="mn-pl__it" bindtap="onGoPlanet">
+      <view class="mn-pl__it" wx:if="{{isLoggedIn && planetItem && planetItem.active}}" bindtap="onGoPlanet">
         <view class="mn-pl__lg">🪐</view>
         <view class="mn-pl__meta">
-          <text class="mn-pl__name">{{planetTitle || '暖阁星球'}}</text>
-          <text class="mn-pl__p">3,241 位球友 · 今日 27 条新动态</text>
+          <text class="mn-pl__name">{{planetItem.title || planetTitle || '暖阁星球'}}</text>
+          <text class="mn-pl__p">会员有效</text>
         </view>
-        <view class="mn-pl__rt">
-          <text class="mn-pl__rb">剩余 185 天</text>
-          <text class="mn-pl__rs">续费 8 折</text>
+        <view class="mn-pl__rt" wx:if="{{planetItem.remainDays != null}}">
+          <text class="mn-pl__rb">剩余 {{planetItem.remainDays}} 天</text>
         </view>
       </view>
-      <view class="mn-pl__it" bindtap="onGoPlanet">
-        <view class="mn-pl__lg">✍️</view>
-        <view class="mn-pl__meta">
-          <text class="mn-pl__name">晨写打卡营</text>
-          <text class="mn-pl__p">已打卡 42 / 90 天</text>
-        </view>
-        <view class="mn-pl__rt">
-          <text class="mn-pl__rb">进行中</text>
-          <text class="mn-pl__rs">今日未打卡</text>
-        </view>
+      <view class="mn-empty" wx:else bindtap="onGoPlanet">
+        {{isLoggedIn ? '尚未加入星球' : '登录后查看已加入的星球'}}
       </view>
     </view>
 
     <view class="mn-menu">
       <view class="mn-menu__row" bindtap="onGoAsk">
         <text class="mn-menu__ic">🙋</text>我的提问与打卡
-        <text class="mn-menu__vv">4 个提问 · 已打卡 42 天</text>
+        <text class="mn-menu__vv" wx:if="{{isLoggedIn && questionCount}}">{{questionCount}} 个提问</text>
+        <text class="mn-menu__ar" wx:else>›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoContribute">
         <text class="mn-menu__ic">✍️</text>成为创作者
@@ -122,11 +114,12 @@
       </view>
       <view class="mn-menu__row" bindtap="onGoOrders">
         <text class="mn-menu__ic">🛍</text>我的订单
-        <text class="mn-menu__vv">2 笔待评价</text>
+        <text class="mn-menu__vv" wx:if="{{isLoggedIn && pendingOrderCount}}">{{pendingOrderCount}} 笔待支付</text>
+        <text class="mn-menu__ar" wx:else>›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoResources">
         <text class="mn-menu__ic">🗂</text>我的资料库
-        <text class="mn-menu__vv">128 份已解锁</text>
+        <text class="mn-menu__ar">›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoOrders">
         <text class="mn-menu__ic">🧾</text>发票管理
@@ -134,18 +127,20 @@
       </view>
       <view class="mn-menu__row" bindtap="onGoCoupons">
         <text class="mn-menu__ic">🎁</text>优惠券
-        <text class="mn-menu__vv">2 张可用</text>
+        <text class="mn-menu__vv" wx:if="{{isLoggedIn && unusedCouponCount}}">{{unusedCouponCount}} 张可用</text>
+        <text class="mn-menu__ar" wx:else>›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoShare">
         <text class="mn-menu__ic">🤝</text>邀请好友
-        <text class="mn-menu__vv">已邀 3 人 · 得 21 天会员</text>
+        <text class="mn-menu__vv" wx:if="{{isLoggedIn && inviteCount}}">已邀 {{inviteCount}} 人</text>
+        <text class="mn-menu__ar" wx:else>›</text>
       </view>
     </view>
 
     <view class="mn-menu">
       <view class="mn-menu__row" bindtap="onGoJoin">
         <text class="mn-menu__ic">👥</text>加入读者群
-        <text class="mn-menu__vv">2,860 人已加入</text>
+        <text class="mn-menu__ar">›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoService">
         <text class="mn-menu__ic">💬</text>联系客服
@@ -161,7 +156,9 @@
       </view>
     </view>
 
-    <view class="mn-foot">暖阁 · 慢一点，也很好<br />v1.0.0</view>
+    <button class="mn-logout" wx:if="{{isLoggedIn}}" bindtap="onLogoutTap">退出登录</button>
+
+    <view class="mn-foot">暖阁 · 慢一点，也很好<br />v1.25.1</view>
     <view class="warm-safe"></view>
   </scroll-view>
 

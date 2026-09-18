@@ -8,7 +8,20 @@ const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('
 const warmShop = require('../../data/warm-shop')
 const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
 
+const { blockTradeNavigation } = require('../../utils/product-module-gate')
+
 const CATS = warmShop.CATS
+
+function normalizeMemberProductId(raw) {
+  if (raw == null || raw === '') return ''
+  const s = String(raw).trim()
+  if (!s || s === '0' || s === 'null' || s === 'undefined') return ''
+  return s
+}
+
+function memberDetailUrl(productId) {
+  return `/pages/product-detail/product-detail?id=${encodeURIComponent(productId)}`
+}
 
 /** 首屏同步种子，避免等配置/API 时空壳再跳完整页 */
 const DEMO_SHOP = {
@@ -30,17 +43,13 @@ function isPay1Product(p) {
   return /暖阁体验包|体验包.*1元/.test(String(p.name || ''))
 }
 
-/** API 有货但缺 ¥1 时仍置顶 DEMO pay1；有真货则挪到格首 */
+/** API 列表中若含体验包，置顶展示（不注入本地 DEMO 商品） */
 function ensurePay1AtTop(list) {
   const rows = (list || []).slice()
   const idx = rows.findIndex(isPay1Product)
-  if (idx === 0) return rows
-  if (idx > 0) {
-    const [hit] = rows.splice(idx, 1)
-    return [hit].concat(rows)
-  }
-  if (!DEMO_PAY1_CARD) return rows
-  return [Object.assign({}, DEMO_PAY1_CARD)].concat(rows)
+  if (idx <= 0) return rows
+  const [hit] = rows.splice(idx, 1)
+  return [hit].concat(rows)
 }
 
 function formatPrice(v) {
@@ -153,22 +162,22 @@ Page({
   ...createSharePageConfig(),
   data: {
     ...TAB_DSL_INITIAL,
-    // 等远程装修时仍先画 DEMO 商城壳，不挡成空白/二次跳转
     dslPending: true,
-    loading: false,
+    loading: !USE_LOCAL_SOURCE,
     themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
-    vip: DEMO_SHOP.vip,
+    vip: USE_LOCAL_SOURCE ? DEMO_SHOP.vip : Object.assign({}, warmShop.VIP_BAR),
     cats: CATS,
-    flashList: DEMO_SHOP.flashList,
-    feat: DEMO_SHOP.feat,
-    products: DEMO_SHOP.products,
+    flashList: USE_LOCAL_SOURCE ? DEMO_SHOP.flashList : [],
+    feat: USE_LOCAL_SOURCE ? DEMO_SHOP.feat : null,
+    products: USE_LOCAL_SOURCE ? DEMO_SHOP.products : [],
     cd: { h: '00', m: '00', s: '00' },
+    showFlashCd: false,
     page: 1,
     pageSize: 20,
     hasMore: false,
     refreshing: false,
-    usingDemo: true,
+    usingDemo: !!USE_LOCAL_SOURCE,
     loadError: false,
     empty: false,
   },
@@ -182,13 +191,14 @@ Page({
     }
     this._startCountdown()
     if (USE_LOCAL_SOURCE) {
-      this.setData(Object.assign({ dslPending: false, dslMode: false }, DEMO_SHOP))
+      this.setData(Object.assign({ dslPending: false, dslMode: false, showFlashCd: true }, DEMO_SHOP))
       return
     }
+    // 先拉会员条 productId，不堵在 DSL 解析后面，避免点横幅时还是空 id
+    this._loadVip()
     // 不先等配置再 redirect：Tab 已落到 shop，留在本页；DSL 无绑定时再拉商品
     loadTabBoundDslPage(this, '/pages/shop/shop').then((ok) => {
       if (ok) return
-      this._loadVip()
       this._loadProducts(true)
     })
   },
@@ -238,6 +248,12 @@ Page({
   },
 
   _startCountdown() {
+    // 生产不展示本地伪造倒计时；仅本地演示源启用
+    if (!USE_LOCAL_SOURCE) {
+      this.setData({ showFlashCd: false })
+      return
+    }
+    this.setData({ showFlashCd: true })
     if (!this._cdEnd) this._cdEnd = Date.now() + ((2 * 3600) + (14 * 60) + 26) * 1000
     const tick = () => {
       let left = Math.max(0, this._cdEnd - Date.now())
@@ -263,7 +279,7 @@ Page({
           return
         }
         const price = bar.price || ''
-        const productId = bar.productId || ''
+        const productId = normalizeMemberProductId(bar.productId)
         this.setData({
           vip: {
             icon: bar.icon || '🎫',
@@ -275,26 +291,27 @@ Page({
             productName: bar.productName || warmShop.VIP_BAR.productName,
             productId,
             url: productId
-              ? `/pages/product-detail/product-detail?id=${productId}`
-              : '/pkg-user/member-center/member-center',
+              ? memberDetailUrl(productId)
+              : '/pages/join/join',
           },
         })
         this._syncVipProductId()
       })
       .catch(() => {
         this.setData({ vip: Object.assign({}, warmShop.VIP_BAR) })
+        this._syncVipProductId()
       })
   },
 
   /** 会员条无 productId 时，用已加载的年度会员商品回填 */
   _syncVipProductId() {
     const vip = this.data.vip || {}
-    if (vip.productId) return
+    if (normalizeMemberProductId(vip.productId)) return
     const pid = findMemberProductId(this.data.products)
     if (!pid) return
     this.setData({
       'vip.productId': pid,
-      'vip.url': `/pages/product-detail/product-detail?id=${pid}`,
+      'vip.url': memberDetailUrl(pid),
     })
   },
 
@@ -306,21 +323,20 @@ Page({
       .then((res) => {
         const list = (res.records || res.list || res.items || []).map(normalizeProduct)
         if (reset && list.length === 0) {
-          // API 空：保留 DEMO 首屏（含 pay1），避免空壳闪一下再变完整页
           this.setData({
             loading: false,
             hasMore: false,
             page: 1,
             loadError: false,
-            empty: false,
-            usingDemo: true,
-            products: ensurePay1AtTop(this.data.products && this.data.products.length
-              ? this.data.products
-              : DEMO_SHOP.products),
+            empty: true,
+            usingDemo: false,
+            products: [],
+            flashList: [],
+            feat: null,
           })
           return
         }
-        // API 有货但缺 ¥1：注入 DEMO pay1 置顶（不依赖 V60）；有真货则挪到格首
+        // 真实商品列表；若含体验包则置顶
         const products = reset
           ? ensurePay1AtTop(list)
           : this.data.products.concat(list)
@@ -370,18 +386,14 @@ Page({
       })
       .catch(() => {
         if (reset) {
-          // 失败仍留 DEMO 壳，不清空、不跳走
           this.setData({
             loading: false,
             loadError: true,
-            empty: false,
-            usingDemo: true,
-            vip: this.data.vip && this.data.vip.title ? this.data.vip : DEMO_SHOP.vip,
-            flashList: (this.data.flashList && this.data.flashList.length) ? this.data.flashList : DEMO_SHOP.flashList,
-            feat: this.data.feat || DEMO_SHOP.feat,
-            products: ensurePay1AtTop(
-              (this.data.products && this.data.products.length) ? this.data.products : DEMO_SHOP.products
-            ),
+            empty: true,
+            usingDemo: false,
+            products: [],
+            flashList: [],
+            feat: null,
           })
         } else {
           this.setData({ loading: false })
@@ -448,36 +460,78 @@ Page({
   },
 
   onGoMember() {
+    if (this._memberNavLock) return
     const vip = this.data.vip || {}
-    let productId = vip.productId || findMemberProductId(this.data.products)
+    let productId = normalizeMemberProductId(vip.productId)
+      || normalizeMemberProductId(findMemberProductId(this.data.products))
+
     if (productId) {
-      if (!vip.productId) {
-        this.setData({
-          'vip.productId': productId,
-          'vip.url': `/pages/product-detail/product-detail?id=${productId}`,
-        })
-      }
-      wx.navigateTo({
-        url: `/pages/product-detail/product-detail?id=${productId}`,
-        fail: () => {
-          wx.navigateTo({
-            url: `/pages/order-create/order-create?productId=${productId}`,
-            fail: () => this._goMemberFallback(),
-          })
-        },
-      })
+      this._openMemberProduct(productId)
       return
     }
-    this._goMemberFallback()
+
+    // 配置尚未回填时，现拉一次 warm home，避免空点无跳转
+    this._memberNavLock = true
+    HomeService.getWarmHome()
+      .then((data) => {
+        const bar = data && data.vipBar
+        const pid = normalizeMemberProductId(bar && bar.productId)
+          || normalizeMemberProductId(findMemberProductId(this.data.products))
+        if (pid) {
+          this.setData({
+            'vip.productId': pid,
+            'vip.url': memberDetailUrl(pid),
+            'vip.title': (bar && bar.title) || vip.title || warmShop.VIP_BAR.title,
+            'vip.desc': (bar && bar.desc) || vip.desc || warmShop.VIP_BAR.desc,
+            'vip.priceLabel': (bar && bar.priceLabel) || vip.priceLabel || warmShop.VIP_BAR.priceLabel,
+          })
+          this._openMemberProduct(pid)
+          return
+        }
+        this._goMemberFallback()
+      })
+      .catch(() => this._goMemberFallback())
+      .finally(() => {
+        this._memberNavLock = false
+      })
+  },
+
+  _openMemberProduct(productId) {
+    const pid = normalizeMemberProductId(productId)
+    if (!pid) {
+      this._goMemberFallback()
+      return
+    }
+    const url = memberDetailUrl(pid)
+    if (blockTradeNavigation(url)) return
+    this.setData({
+      'vip.productId': pid,
+      'vip.url': url,
+    })
+    wx.navigateTo({
+      url,
+      fail: () => {
+        wx.navigateTo({
+          url: `/pages/order-create/order-create?productId=${encodeURIComponent(pid)}`,
+          fail: () => this._goMemberFallback(),
+        })
+      },
+    })
   },
 
   _goMemberFallback() {
+    // 无年费 SKU 时：加入社群 → 会员中心（与其它「开通会员」入口对齐）
     wx.navigateTo({
-      url: '/pkg-user/member-center/member-center',
+      url: '/pages/join/join',
       fail: () => {
         wx.navigateTo({
-          url: '/pages/member-center/member-center',
-          fail: () => wx.showToast({ title: '暂时打不开会员中心', icon: 'none' }),
+          url: '/pkg-user/member-center/member-center',
+          fail: () => {
+            wx.navigateTo({
+              url: '/pages/member-center/member-center',
+              fail: () => wx.showToast({ title: '暂时无法开通会员', icon: 'none' }),
+            })
+          },
         })
       },
     })

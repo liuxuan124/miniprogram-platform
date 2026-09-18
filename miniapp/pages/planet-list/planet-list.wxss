@@ -1,0 +1,114 @@
+.pcl-page {
+  min-height: 100vh;
+  padding: 28rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: #fdf6ec;
+}
+
+.pcl-hd { margin-bottom: 28rpx; }
+.pcl-hd__t {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #2a1c12;
+}
+.pcl-hd__s {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #a1897a;
+}
+
+.pcl-state {
+  padding: 80rpx 0;
+  text-align: center;
+  color: #a1897a;
+  font-size: 26rpx;
+}
+
+.pcl-card {
+  margin-bottom: 22rpx;
+  padding: 28rpx 26rpx;
+  border-radius: 28rpx;
+  background: #fffaf3;
+  border: 1rpx solid rgba(120, 72, 40, 0.12);
+  box-shadow: 0 10rpx 28rpx rgba(140, 80, 30, 0.06);
+}
+
+.pcl-card--primary {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  border: none;
+  color: #fff;
+  box-shadow: 0 14rpx 32rpx rgba(194, 65, 12, 0.28);
+}
+
+.pcl-card__rw {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.pcl-card__ic { font-size: 40rpx; line-height: 1.2; }
+.pcl-card__meta { flex: 1; min-width: 0; }
+.pcl-card__title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.pcl-card--primary .pcl-card__title { color: #fff; }
+.pcl-card__sb {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #6b5443;
+  line-height: 1.45;
+}
+.pcl-card--primary .pcl-card__sb { color: rgba(255, 255, 255, 0.86); }
+
+.pcl-card__badge {
+  flex-shrink: 0;
+  font-size: 20rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f5e8d8;
+  color: #c2410c;
+}
+.pcl-card--primary .pcl-card__badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.pcl-card__ft {
+  margin-top: 22rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16rpx;
+}
+.pcl-card__num { font-size: 22rpx; color: #6b5443; }
+.pcl-card--primary .pcl-card__num { color: rgba(255, 255, 255, 0.88); }
+.pcl-card__acts {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  flex-shrink: 0;
+}
+.pcl-card__set {
+  font-size: 22rpx;
+  font-weight: 650;
+  color: #c2410c;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #f5e8d8;
+}
+.pcl-card--primary .pcl-card__set {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.pcl-card__today {
+  font-size: 22rpx;
+  font-weight: 650;
+  color: #c2410c;
+}
+.pcl-card--primary .pcl-card__today { color: #fff; }

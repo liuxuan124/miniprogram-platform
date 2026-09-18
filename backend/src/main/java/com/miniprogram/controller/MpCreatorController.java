@@ -1,17 +1,21 @@
 package com.miniprogram.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.ContentDTO;
 import com.miniprogram.dto.ContentDetailDTO;
 import com.miniprogram.entity.CreatorApplication;
+import com.miniprogram.entity.User;
 import com.miniprogram.mapper.CreatorApplicationMapper;
+import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ContentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +35,50 @@ public class MpCreatorController {
 
     private final CreatorApplicationMapper creatorApplicationMapper;
     private final ContentService contentService;
+    private final UserMapper userMapper;
+
+    @GetMapping("/me")
+    @Operation(summary = "我的创作者申请状态")
+    public R<Map<String, Object>> me() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        Map<String, Object> vo = new HashMap<>();
+        if (userId == null) {
+            vo.put("status", "none");
+            vo.put("approved", false);
+            vo.put("canPublish", false);
+            return R.ok(vo);
+        }
+
+        User user = userMapper.selectById(userId);
+        boolean roleOk = user != null && StringUtils.hasText(user.getCreatorRole())
+                && !"none".equalsIgnoreCase(user.getCreatorRole())
+                && !"user".equalsIgnoreCase(user.getCreatorRole());
+
+        CreatorApplication latest = creatorApplicationMapper.selectOne(
+                new LambdaQueryWrapper<CreatorApplication>()
+                        .eq(CreatorApplication::getUserId, userId)
+                        .orderByDesc(CreatorApplication::getCreatedAt)
+                        .last("LIMIT 1")
+        );
+
+        String status = "none";
+        if (roleOk) {
+            status = "approved";
+        } else if (latest != null && StringUtils.hasText(latest.getStatus())) {
+            status = latest.getStatus().toLowerCase();
+        }
+
+        boolean approved = roleOk || "approved".equals(status) || "passed".equals(status);
+        vo.put("status", status);
+        vo.put("approved", approved);
+        vo.put("canPublish", approved);
+        if (latest != null) {
+            vo.put("rejectReason", latest.getRejectReason());
+            vo.put("name", latest.getName());
+            vo.put("intro", latest.getIntro());
+        }
+        return R.ok(vo);
+    }
 
     @PostMapping("/apply")
     @Operation(summary = "提交创作者申请")

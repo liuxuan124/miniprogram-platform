@@ -36,6 +36,10 @@ function getMyAppointments(params = {}) {
   return request.get('/api/v1/mp/appointments', params)
 }
 
+function getMyAppointment(id) {
+  return request.get(`/api/v1/mp/appointments/${id}`)
+}
+
 /**
  * 取消预约
  * @param {string|number} id - 预约ID
@@ -49,5 +53,6 @@ module.exports = {
   getAvailableSlots,
   createAppointment,
   getMyAppointments,
+  getMyAppointment,
   cancelAppointment
 }

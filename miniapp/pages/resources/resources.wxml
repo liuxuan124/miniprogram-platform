@@ -50,8 +50,10 @@
         </view>
       </view>
     </block>
-    <view class="rs-end">—— {{footerText || '共 128 份'}} ——</view>
+    <view class="rs-end">—— {{footerText}} ——</view>
   </block>
 
+  <view wx:elif="{{loadError}}" class="rs-state" bindtap="onRetry">{{footerText || '加载失败'}}，点此重试</view>
   <view wx:else class="rs-state">{{footerText || '暂无资料'}}</view>
+  <login-sheet id="global-login-sheet" />
 </view>

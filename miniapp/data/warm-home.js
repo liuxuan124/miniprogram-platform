@@ -111,7 +111,7 @@ const FEED = [
     ],
     tag: '九宫格',
     meta: '暖阁编辑部 · ❤ 1.9k',
-    url: '/pages/content-detail/content-detail?demo=note',
+    url: '/pages/content-detail/content-detail?demo=meal',
   },
   {
     id: 'f4',

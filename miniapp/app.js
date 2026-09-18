@@ -179,6 +179,14 @@ App({
 
   /** 设置登录态（供 login 页面调用） */
   setAuthState({ token, userInfo }) {
+    const prev = this.globalData.userInfo || AuthUtil.getUserInfo() || {}
+    const prevId = prev.id || prev.userId
+    const nextId = userInfo && (userInfo.id || userInfo.userId)
+    if (prevId && nextId && String(prevId) !== String(nextId)) {
+      try { StorageUtil.remove('content_favorites_' + prevId) } catch (e) { /* ignore */ }
+      StorageUtil.remove('moment_likes')
+      StorageUtil.remove('moment_favorites')
+    }
     const phoneBound = !!(userInfo && userInfo.phoneBound)
     this.globalData.token = token
     this.globalData.userInfo = userInfo
@@ -197,9 +205,7 @@ App({
     this.globalData.token = null
     this.globalData.userInfo = null
     this.globalData.isLoggedIn = false
-
-    StorageUtil.remove('token')
-    StorageUtil.remove('userInfo')
+    AuthUtil.clearAuth()
   },
 
   /** 更新用户信息 */

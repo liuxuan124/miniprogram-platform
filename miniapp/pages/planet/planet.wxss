@@ -12,3 +12,10 @@
 .pl-scroll {
   height: 100vh;
 }
+
+.pl-state {
+  padding: 80rpx 32rpx;
+  text-align: center;
+  color: #a1897a;
+  font-size: 28rpx;
+}

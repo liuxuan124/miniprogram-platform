@@ -1,3 +1,5 @@
+const { resolveDisplayLogoUrl, DEFAULT_BRAND_LOGO, isNonDisplayableImageUrl } = require('./image-fallback')
+
 const DEFAULT_MINIAPP_BRAND_CONFIG = {
   appName: '暖阁',
   logoUrl: '',
@@ -37,8 +39,12 @@ function setMediaUrlResolver(fn) {
 function resolveLogoUrl(url) {
   const text = String(url || '').trim()
   if (!text) return ''
-  if (resolveMediaUrlFn) return resolveMediaUrlFn(text) || text
-  return text
+  const resolved = resolveMediaUrlFn ? (resolveMediaUrlFn(text) || text) : text
+  // 微信 <image> 不渲染 SVG；localhost 在真机/体验版不可达 → 视为无图，交给展示层兜底
+  if (!resolved) return ''
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\b/i.test(resolved)) return ''
+  if (/\.svg(\?|#|$)/i.test(resolved) || /^data:image\/svg\+xml/i.test(resolved)) return ''
+  return resolved
 }
 
 function pickText(value, fallback) {

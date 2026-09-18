@@ -9,7 +9,7 @@ export interface ComponentDefinition {
   /** Element Plus 图标名称 */
   icon: string
   /** 组件分类 */
-  category: 'commerce' | 'content' | 'marketing' | 'layout' | 'planet'
+  category: 'commerce' | 'content' | 'marketing' | 'layout' | 'planet' | 'warm'
   /** 中文分类名称 */
   categoryLabel: string
   /** 默认属性工厂函数 */
@@ -1094,7 +1094,6 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
           { value: '3,241', label: '球友' },
           { value: '1.2万', label: '沉淀内容' },
           { value: '27', label: '今日新增' },
-          { value: '98%', label: '问必答' },
         ],
       }),
       defaultStyle: () => ({}),
@@ -1148,6 +1147,237 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultStyle: () => ({}),
     },
   ],
+  [
+    ComponentType.WarmGreet,
+    {
+      type: ComponentType.WarmGreet,
+      label: '暖阁问候条',
+      icon: 'User',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({
+        greet_template: '你好',
+        show_notice: true,
+        show_search: true,
+        search_placeholder: '搜索文章、笔记、专栏……',
+        show_nav: true,
+        navs: [
+          { key: 'list', icon: '📚', label: '长文', url: '/pages/content-list/content-list' },
+          { key: 'column', icon: '🎧', label: '专栏课', url: '/pages/product-list/product-list?type=column' },
+          { key: 'planet', icon: '🪐', label: '星球', url: '/pages/planet/planet', tab: true },
+          { key: 'shop', icon: '🛍', label: '商城', url: '/pages/shop/shop', tab: true },
+          { key: 'resources', icon: '🗂', label: '资料库', url: '/pages/resources/resources' },
+        ],
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmAuthors,
+    {
+      type: ComponentType.WarmAuthors,
+      label: '暖阁作者列表',
+      icon: 'UserFilled',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({
+        title: '暖阁出品',
+        more_text: '全部作者 ›',
+        more_url: '/pages/content-list/content-list',
+        more_tab: false,
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmFeature,
+    {
+      type: ComponentType.WarmFeature,
+      label: '暖阁精选',
+      icon: 'PictureFilled',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({ empty_text: '暂无精选内容' }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmColumns,
+    {
+      type: ComponentType.WarmColumns,
+      label: '暖阁专栏',
+      icon: 'Notebook',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({
+        title: '精品专栏',
+        more_text: '全部 ›',
+        more_url: '/pages/shop/shop',
+        more_tab: true,
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmPlanetRec,
+    {
+      type: ComponentType.WarmPlanetRec,
+      label: '暖阁星球推荐',
+      icon: 'Sunrise',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({
+        title: '我的星球',
+        more_text: '进入 ›',
+        more_url: '/pages/planet-list/planet-list',
+        more_tab: false,
+        feed_url: '/pages/planet-feed/planet-feed?planetId=warm-main',
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmFeed,
+    {
+      type: ComponentType.WarmFeed,
+      label: '暖阁信息流',
+      icon: 'Reading',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({ footer: '暖阁 · 慢一点，也很好' }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmHome,
+    {
+      type: ComponentType.WarmHome,
+      label: '暖阁首页模板',
+      icon: 'House',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({
+        authors_title: '暖阁出品',
+        columns_title: '精品专栏',
+        planet_title: '我的星球',
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmDiscover,
+    {
+      type: ComponentType.WarmDiscover,
+      label: '暖阁发现模板',
+      icon: 'Compass',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({
+        title: '发现',
+        tabs: [
+          {
+            key: 'all',
+            label: '全部',
+            source: 'all',
+            visible: true,
+            showBanner: true,
+            chips: [
+              { label: '全部', filter: 'all' },
+              { label: '创作日常', filter: 'tag', tag: '创作日常' },
+              { label: '工位美学', filter: 'tag', tag: '工位美学' },
+              { label: '读书', filter: 'tag', tag: '读书' },
+              { label: '副业', filter: 'tag', tag: '副业' },
+            ],
+          },
+          {
+            key: 'note',
+            label: '笔记',
+            source: 'note',
+            visible: true,
+            showBanner: true,
+            chips: [
+              { label: '全部', filter: 'all' },
+              { label: '创作日常', filter: 'tag', tag: '创作日常' },
+              { label: '工位美学', filter: 'tag', tag: '工位美学' },
+              { label: '读书', filter: 'tag', tag: '读书' },
+              { label: '副业', filter: 'tag', tag: '副业' },
+              { label: '咖啡', filter: 'tag', tag: '咖啡' },
+              { label: '数字游民', filter: 'tag', tag: '数字游民' },
+            ],
+          },
+          {
+            key: 'article',
+            label: '长文',
+            source: 'article',
+            visible: true,
+            chips: [
+              { label: '全部', filter: 'all' },
+              { label: '内容创业', filter: 'tag', tag: '内容创业' },
+              { label: '写作方法', filter: 'tag', tag: '写作方法' },
+              { label: '私域运营', filter: 'tag', tag: '私域运营' },
+              { label: '年度精选', filter: 'tag', tag: '年度精选' },
+            ],
+          },
+          {
+            key: 'goods',
+            label: '好物',
+            source: 'goods',
+            visible: true,
+            chips: [
+              { label: '全部', filter: 'all' },
+              { label: '电子书', filter: 'tag', tag: '电子书' },
+              { label: '资料包', filter: 'tag', tag: '资料包' },
+              { label: '专栏', filter: 'tag', tag: '专栏' },
+              { label: '周边', filter: 'tag', tag: '周边' },
+            ],
+          },
+        ],
+        article_layout: {
+          mode: 'all_duo',
+          fullEvery: 3,
+          fullOnNoCover: true,
+          duoStyles: ['magazine', 'row'],
+        },
+      }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmPlanet,
+    {
+      type: ComponentType.WarmPlanet,
+      label: '暖阁星球模板',
+      icon: 'Sunrise',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({ title: '暖阁星球' }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmShop,
+    {
+      type: ComponentType.WarmShop,
+      label: '暖阁商城模板',
+      icon: 'Goods',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({ title: '暖阁商城' }),
+      defaultStyle: () => ({}),
+    },
+  ],
+  [
+    ComponentType.WarmMine,
+    {
+      type: ComponentType.WarmMine,
+      label: '暖阁我的模板',
+      icon: 'User',
+      category: 'warm',
+      categoryLabel: '暖阁',
+      defaultProps: () => ({ title: '我的' }),
+      defaultStyle: () => ({}),
+    },
+  ],
 ])
 
 // ==================== 辅助函数 ====================
@@ -1186,6 +1416,7 @@ export function getAllCategories(): Array<{ value: string; label: string }> {
     { value: 'commerce', label: '商品' },
     { value: 'marketing', label: '营销' },
     { value: 'layout', label: '布局' },
+    { value: 'warm', label: '暖阁' },
   ]
   const present = new Set<string>()
   for (const def of componentRegistry.values()) {
@@ -1251,6 +1482,17 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.PlanetHero,
   ComponentType.PlanetTopics,
   ComponentType.PlanetFeed,
+  ComponentType.WarmGreet,
+  ComponentType.WarmAuthors,
+  ComponentType.WarmFeature,
+  ComponentType.WarmColumns,
+  ComponentType.WarmPlanetRec,
+  ComponentType.WarmFeed,
+  ComponentType.WarmHome,
+  ComponentType.WarmDiscover,
+  ComponentType.WarmPlanet,
+  ComponentType.WarmShop,
+  ComponentType.WarmMine,
 ])
 
 /** 判断组件类型是否已在小程序端实现渲染 */

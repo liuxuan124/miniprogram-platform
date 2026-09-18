@@ -1,19 +1,19 @@
 <page-meta page-style="{{themePageStyle}}" />
 <view class="fp-page">
   <view class="fp-fhead">
-    <view class="fp-ic">{{fileType || 'PDF'}}</view>
+    <view class="fp-ic">{{fileType || 'FILE'}}</view>
     <view class="fp-fhead__body">
       <view class="fp-name">{{name || '文件预览'}}</view>
-      <view class="fp-meta">{{summary || '2.4 MB · 12 页 · 更新于 09-13'}}</view>
-      <view class="fp-meta fp-meta--status">
-        星球会员可看 · <text class="{{locked ? 'fp-status--locked' : 'fp-status--ok'}}">{{statusText || (locked ? '未解锁' : '你已解锁')}}</text>
+      <view class="fp-meta" wx:if="{{summary}}">{{summary}}</view>
+      <view class="fp-meta fp-meta--status" wx:if="{{statusText}}">
+        <text class="{{locked ? 'fp-status--locked' : 'fp-status--ok'}}">{{statusText}}</text>
       </view>
     </view>
   </view>
 
-  <view class="fp-src">
-    <image class="fp-src__av" src="{{sourceAvatar}}" mode="aspectFill" />
-    <text class="fp-src__tx">{{sourceText}}</text>
+  <view class="fp-src" wx:if="{{sourceText || sourceContentId}}">
+    <image class="fp-src__av" src="{{sourceAvatar}}" mode="aspectFill" wx:if="{{sourceAvatar}}" />
+    <text class="fp-src__tx">{{sourceText || '来源动态'}}</text>
     <text class="fp-src__go" bindtap="onGoSource">查看原帖 ›</text>
   </view>
 
@@ -25,34 +25,21 @@
     <view class="fp-loading__tx">首次打开需缓存到本地，之后再看无需等待</view>
   </view>
 
-  <block wx:elif="{{locked}}">
-    <view class="fp-paper fp-paper--blur">
-      <text class="fp-paper__pg" wx:if="{{pageLabel}}">{{pageLabel}}</text>
-      <view class="fp-paper__h">{{paperTitle || name || '文件预览'}}</view>
-      <view class="fp-paper__sub">暖阁星球 · 墨白 · 2026.09</view>
-      <view class="fp-paper__h2">一、为什么今年要读这本书</view>
-      <view class="fp-paper__ln">
-        <view style="width:100%"></view>
-        <view style="width:96%"></view>
-        <view style="width:88%"></view>
-        <view style="width:99%"></view>
-        <view style="width:72%"></view>
-      </view>
-    </view>
+  <block wx:elif="{{loadError}}">
+    <view class="fp-empty" bindtap="onRetry">加载失败，点此重试</view>
+  </block>
 
+  <block wx:elif="{{locked}}">
     <view class="fp-lockbox">
       <view class="fp-lockbox__ic">🔒</view>
-      <view class="fp-lockbox__h">该资料仅限星球会员查看</view>
-      <view class="fp-lockbox__p">{{lockedReason || '加入暖阁星球即可解锁全部 128 份资料\n含模板、提纲、数据表，持续更新'}}</view>
-      <view class="warm-btn fp-lockbox__btn" catchtap="onUnlockCta">加入星球 ¥168/年</view>
+      <view class="fp-lockbox__h">暂无阅读权限</view>
+      <view class="fp-lockbox__p">{{lockedReason || '当前账号暂无阅读权限'}}</view>
+      <view class="warm-btn fp-lockbox__btn" catchtap="onUnlockCta">去开通会员</view>
     </view>
-
-    <view class="fp-hint">预览页仅展示前 1 页。解锁后可在小程序内在线阅读全部 12 页，并转发保存到微信。</view>
     <view class="fp-end">—— 未解锁状态 ——</view>
   </block>
 
   <block wx:else>
-    <!-- 原型：多页纸张预览 mock -->
     <block wx:if="{{papers && papers.length}}">
       <view class="fp-paper" wx:for="{{papers}}" wx:key="pageLabel">
         <text class="fp-paper__pg">{{item.pageLabel}}</text>
@@ -68,11 +55,10 @@
       </view>
     </block>
 
-    <!-- 真有可展示的试读正文时 -->
     <view class="fp-paper" wx:elif="{{previewText}}">
       <text class="fp-paper__pg" wx:if="{{pageLabel}}">{{pageLabel}}</text>
       <view class="fp-paper__h">{{paperTitle || name}}</view>
-      <view class="fp-paper__sub">暖阁星球 · 墨白 · 2026.09</view>
+      <view class="fp-paper__sub" wx:if="{{paperSub}}">{{paperSub}}</view>
       <view class="fp-paper__li">{{previewText}}</view>
     </view>
 
@@ -81,25 +67,23 @@
     <view class="fp-hint">
       💡 小程序内为<text class="fp-hint__em">在线预览</text>，文件不会保存到手机相册或文件夹。需要留存请点下方<text class="fp-hint__em">「转发给朋友」</text>发到自己的微信，或用「···」在其他应用中打开。
     </view>
-    <view class="fp-end">—— {{endText || '共 12 页 · 上滑继续'}} ——</view>
+    <view class="fp-end" wx:if="{{endText}}">—— {{endText}} ——</view>
   </block>
 </view>
 
 <view class="warm-actionbar" wx:if="{{!loading}}">
   <button
     class="fp-ac share-button-reset"
-    open-type="{{locked ? '' : 'share'}}"
-    disabled="{{locked}}"
-    style="opacity:{{locked ? 0.4 : 1}}"
+    open-type="{{locked || loadError ? '' : 'share'}}"
+    disabled="{{locked || loadError}}"
+    style="opacity:{{locked || loadError ? 0.4 : 1}}"
   >
     <text class="fp-ac__ic">↗️</text>
     <text class="fp-ac__lb">转发保存</text>
   </button>
-  <view class="fp-ac" style="opacity:{{locked ? 0.4 : 1}}" bindtap="onFavorite">
+  <view class="fp-ac" style="opacity:{{locked || loadError ? 0.4 : 1}}" bindtap="onFavorite">
     <text class="fp-ac__ic">⭐️</text>
     <text class="fp-ac__lb">收藏</text>
   </view>
-  <view class="warm-btn fp-cta" bindtap="{{locked ? 'onUnlockCta' : 'onPrimaryCta'}}">
-    {{locked ? '解锁后查看' : primaryCta}}
-  </view>
+  <view class="warm-btn fp-primary" bindtap="onPrimaryCta">{{primaryCta || '打开文件'}}</view>
 </view>

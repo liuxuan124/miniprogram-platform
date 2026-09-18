@@ -1,7 +1,8 @@
 const request = require('../../utils/request')
+const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { DEMO_RESOURCES, DEMO_RESOURCES_MEMBER } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO, WARM_PAGE_STYLE } = require('../../data/warm-source')
 
 function formatSize(bytes) {
   const n = Number(bytes) || 0
@@ -20,10 +21,7 @@ function extLabel(name, fileType) {
 
 function pageCountOf(item) {
   const n = Number(item && (item.pageCount != null ? item.pageCount : item.pages))
-  if (n > 0) return n
-  const name = String((item && (item.name || item.title)) || '')
-  if (/领读提纲|共读/.test(name)) return 12
-  return 0
+  return n > 0 ? n : 0
 }
 
 function normalizeFile(item) {
@@ -34,7 +32,6 @@ function normalizeFile(item) {
   const canDownload = item.canDownload === true
   const canPreview = item.canPreview === true
   const fullyOpen = canRead || canDownload
-  // 仅试读不算「解锁」；锁标留给完全不可见
   const locked = !(canRead || canDownload || canPreview) || !!item.locked
   const ext = extLabel(rawName, item.fileType || item.mimeType)
   const size = formatSize(item.size)
@@ -75,41 +72,25 @@ function cloneGroups(src) {
 }
 
 function applyDemoResources(page, memberOk) {
-  const pack = memberOk ? DEMO_RESOURCES_MEMBER : DEMO_RESOURCES
+  const loggedIn = AuthUtil.isLoggedIn()
+  const ok = !!(memberOk && loggedIn)
+  const pack = ok ? DEMO_RESOURCES_MEMBER : DEMO_RESOURCES
   page.setData({
     themePageStyle: WARM_PAGE_STYLE,
     cats: pack.cats,
     activeCat: pack.cats[0],
     groups: cloneGroups(pack),
-    memberOk: !!memberOk,
+    memberOk: ok,
     loading: false,
+    loadError: false,
     isEmpty: false,
-    footerText: pack.footerText || (memberOk ? '共 128 份 · 全部已解锁' : '共 128 份 · 已解锁 2 份'),
-    gateTitle: memberOk ? '年度会员已生效' : '你当前是普通用户',
-    gateDesc: memberOk
-      ? '128 份资料全部解锁 · 有效期至 2027-03-18 · 剩余 185 天'
-      : '可免费查看每份资料的前 2 页 / 20%，加入会员后全部解锁并可转发保存',
-    gateCta: memberOk ? '续费 8 折' : '¥168/年',
+    footerText: pack.footerText || (ok ? '会员资料已解锁' : '登录后查看已解锁资料'),
+    gateTitle: ok ? '年度会员已生效' : (loggedIn ? '你当前是普通用户' : '登录后查看解锁进度'),
+    gateDesc: ok
+      ? '会员资料已解锁 · 可转发保存'
+      : '可免费查看部分资料，加入会员后全部解锁并可转发保存',
+    gateCta: ok ? '去续费' : '去开通',
   })
-}
-
-function patchDemoWithApi(groups, apiFiles) {
-  const hit = (apiFiles || []).find((f) => /领读提纲|共读/.test(String(f.name || '')))
-  if (!hit || hit.id == null) return groups
-  return (groups || []).map((g) => ({
-    title: g.title,
-    items: (g.items || []).map((it) => {
-      if (!/领读提纲/.test(String(it.name || ''))) return it
-      return Object.assign({}, it, {
-        id: hit.id,
-        name: String(hit.name || it.name).replace(/\.pdf$/i, ''),
-        meta: hit.meta || it.meta,
-        locked: hit.locked,
-        actionText: hit.actionText || it.actionText,
-        tryHint: hit.tryHint || it.tryHint,
-      })
-    }),
-  }))
 }
 
 Page({
@@ -121,20 +102,21 @@ Page({
     groups: [],
     memberOk: false,
     loading: false,
+    loadError: false,
     isEmpty: false,
     footerText: '',
     gateTitle: '你当前是普通用户',
-    gateDesc: '可免费查看每份资料的前 2 页 / 20%，加入会员后全部解锁并可转发保存',
-    gateCta: '¥168/年',
+    gateDesc: '部分资料可试读，会员可解锁全部并转发保存',
+    gateCta: '去开通',
   },
 
   onLoad(options) {
     this._forceMember = !!(options && (options.member === '1' || options.member === 'true'))
-    if (USE_LOCAL_SOURCE || (options && options.demo === '1')) {
+    if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
       applyDemoResources(this, this._forceMember)
       return
     }
-    this._load(true)
+    this._load()
   },
 
   onShow() {
@@ -142,12 +124,12 @@ Page({
   },
 
   onPullDownRefresh() {
-    if (USE_LOCAL_SOURCE) {
+    if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
       applyDemoResources(this, this._forceMember)
       wx.stopPullDownRefresh()
       return
     }
-    this._load(true).finally(() => wx.stopPullDownRefresh())
+    this._load().finally(() => wx.stopPullDownRefresh())
   },
 
   onCatTap(e) {
@@ -155,6 +137,10 @@ Page({
   },
 
   onGoMember() {
+    if (!AuthUtil.isLoggedIn()) {
+      AuthUtil.requireLoginForAction('开通会员', { silent: true })
+      return
+    }
     wx.navigateTo({
       url: '/pkg-user/member-center/member-center',
       fail: () => {
@@ -166,67 +152,80 @@ Page({
     })
   },
 
+  onRetry() {
+    this._load()
+  },
+
   _load() {
-    if (USE_LOCAL_SOURCE) {
-      applyDemoResources(this, this._forceMember)
+    if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
+      applyDemoResources(this, false)
       return Promise.resolve()
     }
     if (this.data.loading) return Promise.resolve()
-    this.setData({ loading: true })
-    return request.get('/api/v1/mp/files', {
+    this.setData({ loading: true, loadError: false })
+    const filesP = request.get('/api/v1/mp/files', {
       current: 1,
       size: 30,
       status: 'published',
     }, { auth: true, showError: false })
-      .then((res) => {
+    const memberP = AuthUtil.isLoggedIn()
+      ? request.get('/api/v1/mp/mine/overview', {}, { auth: true, showError: false }).catch(() => null)
+      : Promise.resolve(null)
+    return Promise.all([filesP, memberP])
+      .then(([res, overview]) => {
+        const loggedIn = AuthUtil.isLoggedIn()
+        const memberOk = !!(loggedIn && overview && overview.memberActive)
         const records = (res && (res.records || res.list || res.items)) || (Array.isArray(res) ? res : [])
         const mapped = records.map(normalizeFile).filter((f) => f.id != null)
+        const gateTitle = memberOk ? '年度会员已生效' : (loggedIn ? '你当前是普通用户' : '登录后查看解锁进度')
+        const gateDesc = memberOk
+          ? '会员资料已解锁 · 可转发保存'
+          : '可免费查看部分资料，加入会员后全部解锁并可转发保存'
+        const gateCta = memberOk ? '去续费' : '去开通'
         if (!mapped.length) {
-          applyDemoResources(this, this._forceMember)
-          this.setData({ footerText: (this._forceMember ? DEMO_RESOURCES_MEMBER : DEMO_RESOURCES).footerText + ' · 演示' })
-          return
-        }
-        const fullyOpen = mapped.filter((f) => f.canDownload || f.canRead).length
-        const memberOk = this._forceMember || (mapped.length > 0 && fullyOpen === mapped.length)
-        // 线上条目偏少时补齐暖阁双态列表，并把真实 PDF id 灌进「领读提纲」
-        if (mapped.length < 3) {
-          const pack = memberOk ? DEMO_RESOURCES_MEMBER : DEMO_RESOURCES
           this.setData({
             loading: false,
-            cats: pack.cats,
-            activeCat: pack.cats[0],
-            groups: patchDemoWithApi(cloneGroups(pack), mapped),
-            isEmpty: false,
+            loadError: false,
+            cats: [],
+            groups: [],
+            isEmpty: true,
             memberOk,
-            footerText: pack.footerText,
-            gateTitle: memberOk ? '年度会员已生效' : '你当前是普通用户',
-            gateDesc: memberOk
-              ? '128 份资料全部解锁 · 可转发保存'
-              : '可免费查看每份资料的前 2 页 / 20%，加入会员后全部解锁并可转发保存',
-            gateCta: memberOk ? '续费 8 折' : '¥168/年',
+            footerText: loggedIn ? '暂无资料' : '登录后查看已解锁资料',
+            gateTitle,
+            gateDesc,
+            gateCta,
           })
           return
         }
+        const fullyOpen = mapped.filter((f) => f.canDownload || f.canRead).length
         this.setData({
           loading: false,
-          cats: DEMO_RESOURCES.cats,
-          activeCat: DEMO_RESOURCES.cats[0],
+          loadError: false,
+          cats: ['全部'],
+          activeCat: '全部',
           groups: [{ title: '全部资料', items: mapped }],
           isEmpty: false,
           memberOk,
           footerText: memberOk
-            ? `共 ${mapped.length} 份 · 全部已解锁`
-            : `共 ${mapped.length} 份 · 已解锁 ${fullyOpen} 份`,
-          gateTitle: memberOk ? '年度会员已生效' : '你当前是普通用户',
-          gateDesc: memberOk
-            ? `${mapped.length} 份资料全部解锁 · 可转发保存`
-            : '可免费查看每份资料的前 2 页 / 20%，加入会员后全部解锁并可转发保存',
-          gateCta: memberOk ? '续费 8 折' : '¥168/年',
+            ? `共 ${mapped.length} 份 · 已解锁 ${fullyOpen} 份`
+            : `共 ${mapped.length} 份`,
+          gateTitle,
+          gateDesc,
+          gateCta,
         })
       })
       .catch(() => {
-        applyDemoResources(this, this._forceMember)
-        this.setData({ footerText: '共 128 份 · 演示数据' })
+        this.setData({
+          loading: false,
+          loadError: true,
+          groups: [],
+          isEmpty: true,
+          memberOk: false,
+          footerText: '资料暂时加载失败',
+          gateTitle: AuthUtil.isLoggedIn() ? '你当前是普通用户' : '登录后查看解锁进度',
+          gateDesc: '可免费查看部分资料，加入会员后全部解锁并可转发保存',
+          gateCta: '去开通',
+        })
       })
   },
 
@@ -237,8 +236,7 @@ Page({
     ;(this.data.groups || []).forEach((g) => (g.items || []).forEach((it) => {
       if (String(it.id) === String(id)) itemLocked = !!it.locked
     }))
-    // 演示 id（f1…）或本地源 → 暖阁纸张 mock
-    if (USE_LOCAL_SOURCE || /^f\d/i.test(String(id))) {
+    if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
       wx.navigateTo({
         url: itemLocked
           ? '/pages/file-preview/file-preview?demo=lock'

@@ -1,7 +1,5 @@
-const { StorageUtil } = require('../../utils/storage')
 const { get } = require('../../utils/request')
-
-const FAVORITES_KEY = 'content_favorites'
+const { readFavoriteIds, writeFavoriteIds } = require('../../utils/favorite-ids')
 
 Page({
   data: { list: [] },
@@ -11,7 +9,7 @@ Page({
   },
 
   async _load() {
-    const ids = StorageUtil.get(FAVORITES_KEY) || []
+    const ids = readFavoriteIds()
     if (!Array.isArray(ids) || !ids.length) {
       this.setData({ list: [] })
       return
@@ -32,10 +30,10 @@ Page({
   },
 
   removeItem(e) {
-    const id = Number(e.currentTarget.dataset.id)
-    const ids = (StorageUtil.get(FAVORITES_KEY) || []).filter((x) => Number(x) !== id)
-    StorageUtil.set(FAVORITES_KEY, ids)
-    this.setData({ list: this.data.list.filter((x) => Number(x.id) !== id) })
+    const id = e.currentTarget.dataset.id
+    const ids = readFavoriteIds().filter((x) => String(x) !== String(id))
+    writeFavoriteIds(ids)
+    this.setData({ list: this.data.list.filter((x) => String(x.id) !== String(id)) })
   },
 
   goContent() {

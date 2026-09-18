@@ -220,8 +220,8 @@ Component({
         const scoreRaw = item.avg_score || item.avgScore || item.rating || item.score
         const score = Number(scoreRaw)
         const reviews = Number(item.review_count || item.reviewCount || item.comment_count || item.comments || 0)
-        const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : '4.9'
-        const safeReviews = reviews > 0 ? reviews : (86 + (globalIndex % 40))
+        const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : ''
+        const safeReviews = reviews > 0 ? reviews : 0
         const art = artPalette[globalIndex % artPalette.length]
         return {
           ...item,
@@ -233,7 +233,9 @@ Component({
           _sales: sales,
           _salesLabel: salesLabel,
           _meta: pickTypeLabel(item) + ' · ' + salesLabel,
-          _ratingLine: '⭐ ' + safeScore + ' · ' + safeReviews + ' 评价',
+          _ratingLine: safeScore
+            ? ('⭐ ' + safeScore + (safeReviews ? (' · ' + safeReviews + ' 评价') : ''))
+            : (safeReviews ? (safeReviews + ' 评价') : ''),
           _glyph: art.glyph,
           _artStyle: 'background:' + art.bg + ';',
         }

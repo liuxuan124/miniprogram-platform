@@ -23,6 +23,7 @@ import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.ContentService;
 import com.miniprogram.service.FileEntitlementService;
 import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.util.ContentSourceResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 内容文章 Service 实现
@@ -53,6 +55,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final FileEntitlementService fileEntitlementService;
     private final MembershipAccessService membershipAccessService;
     private final ContentAuditRulesService contentAuditRulesService;
+    private final SystemConfigService systemConfigService;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -115,6 +118,13 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         entity.setAuditStatus(contentAuditRulesService.applyContentAuditStatus(
                 entity.getAuditStatus(), entity.getTitle(), entity.getContent()));
         entity.setPlanetExclusive(Integer.valueOf(1).equals(dto.getPlanetExclusive()) ? 1 : 0);
+        if (StringUtils.hasText(dto.getPlanetId())) {
+            entity.setPlanetId(dto.getPlanetId().trim());
+        } else if (Integer.valueOf(1).equals(entity.getPlanetExclusive())) {
+            entity.setPlanetId(membershipAccessService.resolveDefaultPlanetId());
+        } else {
+            entity.setPlanetId(null);
+        }
         if (!StringUtils.hasText(entity.getLayoutTheme())) {
             entity.setLayoutTheme("standard");
         }
@@ -188,6 +198,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getLayoutTheme() != null) {
             entity.setLayoutTheme(dto.getLayoutTheme());
         }
+        if (dto.getDiscoverLayout() != null) {
+            entity.setDiscoverLayout(dto.getDiscoverLayout());
+        }
         if (dto.getScheduledAt() != null) {
             entity.setScheduledAt(parseScheduledAt(dto.getScheduledAt()));
         }
@@ -232,6 +245,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         if (dto.getPlanetExclusive() != null) {
             entity.setPlanetExclusive(dto.getPlanetExclusive() == 1 ? 1 : 0);
+        }
+        if (dto.getPlanetId() != null) {
+            entity.setPlanetId(StringUtils.hasText(dto.getPlanetId()) ? dto.getPlanetId().trim() : null);
+        } else if (Integer.valueOf(1).equals(entity.getPlanetExclusive())
+                && !StringUtils.hasText(entity.getPlanetId())) {
+            entity.setPlanetId(membershipAccessService.resolveDefaultPlanetId());
         }
         if ("note".equals(entity.getContentType()) && !StringUtils.hasText(entity.getCoverImage())) {
             List<String> imgs = parseStringList(entity.getImages());
@@ -310,7 +329,21 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         mpQuery.setCategoryId(queryDTO.getCategoryId());
         mpQuery.setTag(queryDTO.getTag());
         mpQuery.setContentType(queryDTO.getContentType());
+        mpQuery.setAuthor(queryDTO.getAuthor());
+        mpQuery.setAuthorRole(queryDTO.getAuthorRole());
+        mpQuery.setSortBy(queryDTO.getSortBy());
+        mpQuery.setId(queryDTO.getId());
+        mpQuery.setRecommended(queryDTO.getRecommended());
         mpQuery.setStatus("published");
+
+        String sortBy = mpQuery.getSortBy() == null ? "new" : mpQuery.getSortBy().trim().toLowerCase();
+        Long listUserId = SecurityUtils.getCurrentUserId();
+        boolean listMember = membershipAccessService.hasActivePaidMembership(listUserId);
+        if ("vip".equals(sortBy) && !listMember) {
+            long cur = mpQuery.getCurrent() == null ? 1L : mpQuery.getCurrent().longValue();
+            long sz = mpQuery.getSize() == null ? 10L : mpQuery.getSize().longValue();
+            return new PageResult<>(Collections.emptyList(), 0L, cur, sz);
+        }
 
         LambdaQueryWrapper<Content> wrapper = buildQueryWrapper(mpQuery);
         // 列表接口不查正文/附件大字段，避免小程序与预览拉取过慢
@@ -320,10 +353,10 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.and(w -> w.isNull(Content::getVisibility)
                 .or()
                 .ne(Content::getVisibility, "removed"));
-        // member_only：与详情门禁一致，非会员不进公开列表（会员可见）
-        Long listUserId = SecurityUtils.getCurrentUserId();
-        boolean listMember = membershipAccessService.hasActivePaidMembership(listUserId);
-        if (!listMember) {
+        if ("vip".equals(sortBy)) {
+            wrapper.eq(Content::getVisibility, "member_only");
+        } else if (!listMember) {
+            // member_only：与详情门禁一致，非会员不进公开列表（会员可见）
             wrapper.and(w -> w.isNull(Content::getVisibility)
                     .or()
                     .ne(Content::getVisibility, "member_only"));
@@ -336,8 +369,13 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.and(w -> w.isNull(Content::getAuditStatus)
                 .or()
                 .notIn(Content::getAuditStatus, java.util.Arrays.asList("pending", "rejected")));
-        wrapper.orderByAsc(Content::getSortOrder);
-        wrapper.orderByDesc(Content::getPublishedAt);
+        if ("hot".equals(sortBy)) {
+            wrapper.orderByDesc(Content::getViewCount);
+            wrapper.orderByDesc(Content::getPublishedAt);
+        } else {
+            wrapper.orderByAsc(Content::getSortOrder);
+            wrapper.orderByDesc(Content::getPublishedAt);
+        }
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Content> page =
                 this.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
@@ -490,23 +528,80 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             dto.setLockedReason(null);
             return;
         }
-        dto.setLockedReason("开通会员后可查看全文并下载资料");
+        String wallDesc = readMemberWallDesc();
+        dto.setLockedReason(StringUtils.hasText(wallDesc) ? wallDesc : "开通会员后可查看全文并下载资料");
         if ("title".equals(mode)) {
             dto.setSummary(null);
             dto.setContent(null);
             dto.setImages(Collections.emptyList());
         } else if ("summary".equals(mode) || "preview_n".equals(mode)) {
-            dto.setContent(null);
             if (detail) {
-                // 保留摘要与封面图，隐藏正文与多图细节可酌情保留首图
+                // 详情锁定：保留试读正文（约前 1-remainPercent），供门禁卡上方展示
+                dto.setContent(truncateHtmlForPreview(dto.getContent(), readMemberWallKeepRatio()));
+            } else {
+                dto.setContent(null);
             }
         } else {
-            dto.setSummary(null);
-            dto.setContent(null);
-            dto.setImages(Collections.emptyList());
+            if (detail) {
+                dto.setContent(truncateHtmlForPreview(dto.getContent(), readMemberWallKeepRatio()));
+            } else {
+                dto.setSummary(null);
+                dto.setContent(null);
+                dto.setImages(Collections.emptyList());
+            }
         }
         // 保留附件卡片元信息，仅脱敏可下载 URL
         redactAttachmentUrls(dto);
+    }
+
+    private String readMemberWallDesc() {
+        try {
+            String raw = systemConfigService.getConfigValue("content_member_wall", "");
+            if (!StringUtils.hasText(raw)) return "";
+            Map<?, ?> map = objectMapper.readValue(raw, Map.class);
+            Object desc = map.get("desc");
+            return desc != null ? String.valueOf(desc).trim() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** 剩余 68% → 保留约前 32% */
+    private double readMemberWallKeepRatio() {
+        try {
+            String raw = systemConfigService.getConfigValue("content_member_wall", "");
+            if (!StringUtils.hasText(raw)) return 0.32;
+            Map<?, ?> map = objectMapper.readValue(raw, Map.class);
+            Object remain = map.get("remainPercent");
+            int percent = remain == null ? 68 : Integer.parseInt(String.valueOf(remain).replaceAll("[^0-9]", ""));
+            percent = Math.min(95, Math.max(5, percent));
+            return Math.max(0.05, Math.min(0.9, (100.0 - percent) / 100.0));
+        } catch (Exception e) {
+            return 0.32;
+        }
+    }
+
+    private String truncateHtmlForPreview(String html, double keepRatio) {
+        if (!StringUtils.hasText(html)) return html;
+        String value = html.trim();
+        int target = Math.max(80, (int) Math.floor(value.length() * keepRatio));
+        if (value.length() <= target) return value;
+        // 优先按段落切：保留完整闭合标签块，避免截在标签中间
+        String[] parts = value.split("(?i)(?=</p>|</div>|</h[1-6]>)");
+        if (parts.length > 1) {
+            StringBuilder sb = new StringBuilder();
+            for (String part : parts) {
+                if (sb.length() + part.length() > target && sb.length() > 0) break;
+                sb.append(part);
+            }
+            String cut = sb.toString().trim();
+            if (StringUtils.hasText(cut)) return cut;
+        }
+        int cutAt = value.lastIndexOf('<', target);
+        if (cutAt > target / 2) {
+            return value.substring(0, cutAt).trim();
+        }
+        return value.substring(0, target).trim();
     }
 
     private void redactAttachmentUrls(ContentDetailDTO dto) {
@@ -555,8 +650,25 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.eq(StringUtils.hasText(queryDTO.getContentType()), Content::getContentType, queryDTO.getContentType());
         wrapper.eq(StringUtils.hasText(queryDTO.getSource()), Content::getSource, queryDTO.getSource());
         wrapper.eq(queryDTO.getPlanetExclusive() != null, Content::getPlanetExclusive, queryDTO.getPlanetExclusive());
+        if (StringUtils.hasText(queryDTO.getPlanetId())) {
+            String planetId = queryDTO.getPlanetId().trim();
+            String defaultId = membershipAccessService.resolveDefaultPlanetId();
+            if (planetId.equals(defaultId)) {
+                // 历史无 planet_id 的专属动态归入默认主星球池
+                wrapper.and(w -> w.eq(Content::getPlanetId, planetId)
+                        .or().isNull(Content::getPlanetId)
+                        .or().eq(Content::getPlanetId, ""));
+            } else {
+                wrapper.eq(Content::getPlanetId, planetId);
+            }
+        }
         wrapper.eq(StringUtils.hasText(queryDTO.getAuditStatus()), Content::getAuditStatus, queryDTO.getAuditStatus());
         wrapper.eq(StringUtils.hasText(queryDTO.getAuthorRole()), Content::getAuthorRole, queryDTO.getAuthorRole());
+        wrapper.eq(StringUtils.hasText(queryDTO.getAuthor()), Content::getAuthor, queryDTO.getAuthor());
+        wrapper.eq(queryDTO.getId() != null, Content::getId, queryDTO.getId());
+        if (queryDTO.getRecommended() != null && queryDTO.getRecommended() != 0) {
+            wrapper.eq(Content::getIsRecommended, 1);
+        }
 
         // 标签筛选（JSON字段模糊匹配）
         if (StringUtils.hasText(queryDTO.getTag())) {

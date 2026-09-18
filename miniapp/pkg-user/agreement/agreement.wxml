@@ -1,11 +1,12 @@
 <page-meta page-style="{{themePageStyle}}" />
 <view class="page">
   <view class="header">{{title}}</view>
-  <view class="content">
+  <view class="content" wx:if="{{!useExternalOnly}}">
     <view class="para" wx:for="{{paragraphs}}" wx:key="index">{{item}}</view>
   </view>
   <view wx:if="{{externalUrl}}" class="footer">
-    <button class="link-btn" bindtap="onOpenExternal">查看完整版（外链）</button>
+    <view class="para" wx:if="{{useExternalOnly}}" style="margin-bottom:24rpx;color:#6B5443">完整条款以外链为准，请点击下方查看。</view>
+    <button class="link-btn" bindtap="onOpenExternal">{{useExternalOnly ? '查看完整版' : '查看完整版（外链）'}}</button>
   </view>
 </view>
 <login-sheet id="global-login-sheet" />

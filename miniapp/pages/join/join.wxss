@@ -244,6 +244,13 @@
   color: var(--ink-2);
 }
 
+.jn-state {
+  padding: 80rpx 24rpx;
+  text-align: center;
+  color: var(--mute);
+  font-size: 28rpx;
+}
+
 /* sheet */
 .jn-mask {
   position: fixed;

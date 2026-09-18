@@ -31,11 +31,11 @@
     <scroll-view class="cl-cats" scroll-x enhanced show-scrollbar="{{false}}">
       <view
         wx:for="{{cats}}"
-        wx:key="*this"
-        class="cl-cat {{activeCat === item ? 'on' : ''}}"
-        data-cat="{{item}}"
+        wx:key="id"
+        class="cl-cat {{activeCat === item.id ? 'on' : ''}}"
+        data-id="{{item.id}}"
         bindtap="onCatTap"
-      >{{item}}</view>
+      >{{item.name}}</view>
     </scroll-view>
     <view class="cl-sort">
       <text class="{{sortKey === 'new' ? 'on' : ''}}" data-key="new" bindtap="onSortTap">最新</text>
@@ -151,7 +151,7 @@
         <view class="cl-grid3__gg">
           <view wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" class="cl-grid3__cell">
             <image src="{{img}}" mode="aspectFill" />
-            <view wx:if="{{index === 2}}" class="cl-grid3__more">+6</view>
+            <view wx:if="{{index === 2 && item.imageMore}}" class="cl-grid3__more">+{{item.imageMore}}</view>
           </view>
         </view>
         <view class="cl-grid3__mt">
@@ -161,22 +161,14 @@
       </view>
     </block>
 
-    <!-- API 列表补充（左文右图） -->
-    <block wx:for="{{apiRows}}" wx:key="id">
-      <view class="cl-row" data-id="{{item.id}}" bindtap="onContentTap">
-        <view class="cl-row__tx">
-          <view class="cl-row__title">{{item.title}}</view>
-          <view class="cl-row__sum" wx:if="{{item.summary}}">{{item.summary}}</view>
-          <view class="cl-row__mt">
-            <text class="warm-tag">{{item.formatLabel}}</text>
-            <text>{{item.meta}}</text>
-          </view>
-        </view>
-        <view class="cl-row__im" wx:if="{{item.cover_url}}">
-          <image src="{{item.cover_url}}" mode="aspectFill" />
-        </view>
-      </view>
-    </block>
+    <view
+      wx:if="{{!ranks.length && !bigCard && !layoutItems.length}}"
+      class="cl-offline"
+    >
+      <view class="cl-offline__art">📭</view>
+      <view class="cl-offline__h">暂无内容</view>
+      <view class="cl-offline__p">换个分类或排序再试试</view>
+    </view>
 
     <view class="cl-end">—— {{footerText}} ——</view>
     <view style="height:40rpx"></view>

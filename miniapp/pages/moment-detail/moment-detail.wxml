@@ -1,5 +1,10 @@
 <page-meta page-style="{{themePageStyle}}" />
-<view class="moment-page" wx:if="{{!loading && moment}}">
+<view class="moment-page" wx:if="{{loading}}" style="padding:80rpx 40rpx;color:#A1897A">加载中…</view>
+<view class="moment-page" wx:elif="{{loadFailed}}" style="padding:80rpx 40rpx;text-align:center">
+  <view style="color:#6B5443;margin-bottom:24rpx">{{loadErrorText || '动态加载失败'}}</view>
+  <view class="warm-btn" bindtap="onRetryLoad" style="display:inline-block;padding:16rpx 40rpx;background:#C2410C;color:#fff;border-radius:12rpx">重新加载</view>
+</view>
+<view class="moment-page" wx:elif="{{!loading && moment}}">
   <view class="md-post">
     <view class="md-hh">
       <image wx:if="{{moment.author_avatar}}" class="md-av" src="{{moment.author_avatar}}" mode="aspectFill" />
@@ -101,6 +106,7 @@
 </view>
 
 <view wx:elif="{{loading}}" class="md-loading">加载中...</view>
+<view wx:elif="{{loadFailed}}" class="md-empty" bindtap="onRetryLoad">{{loadErrorText || '加载失败'}}，点此重试</view>
 <view wx:else class="md-empty">内容不存在或已下架</view>
 
 <view class="warm-actionbar md-composer" wx:if="{{!loading && moment}}">

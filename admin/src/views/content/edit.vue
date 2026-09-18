@@ -95,12 +95,14 @@
 
               <el-form-item label="展示数据">
                 <div class="stats-row">
+                  <el-input-number v-model="formData.view_count" :min="0" controls-position="right" />
+                  <span class="stats-label">阅读</span>
                   <el-input-number v-model="formData.like_count" :min="0" controls-position="right" />
                   <span class="stats-label">点赞</span>
                   <el-input-number v-model="formData.favorite_count" :min="0" controls-position="right" />
                   <span class="stats-label">收藏</span>
                 </div>
-                <div class="field-hint">仅用于卡片/详情页展示，非真实互动数据。</div>
+                <div class="field-hint">首页信息流自动模式下：长文用阅读、笔记用点赞。可作展示基数。</div>
               </el-form-item>
             </template>
 
@@ -235,6 +237,17 @@
                 <el-option label="大字号" value="large" />
                 <el-option label="深色" value="dark" />
               </el-select>
+              <el-select
+                v-if="contentType === 'article'"
+                v-model="formData.discover_layout"
+                size="small"
+                style="width: 150px; margin-left: 8px"
+                placeholder="发现页展示"
+              >
+                <el-option label="发现页：自动" value="auto" />
+                <el-option label="发现页：通栏" value="full" />
+                <el-option label="发现页：双列" value="duo" />
+              </el-select>
             </div>
             <PageRichTextEditor v-model="formData.content" class="rich-editor" />
             <div class="editor-tip">编辑区显示效果即为发布后小程序/页面展示效果。商品卡写法：&lt;product id="商品ID"/&gt;</div>
@@ -301,6 +314,22 @@
             <div v-if="contentType === 'moment'" class="field-hint" style="margin: -8px 0 12px 90px">
               勾选后出现在小程序「星球」时间线；未付费用户按星球配置可见范围展示。
             </div>
+            <el-form-item v-if="contentType === 'moment' && formData.planet_exclusive" label="所属星球">
+              <el-select
+                v-model="formData.planet_id"
+                filterable
+                clearable
+                placeholder="选择所属星球（默认主星球）"
+                style="width: 320px"
+              >
+                <el-option
+                  v-for="c in planetCommunities"
+                  :key="c.id"
+                  :label="c.title || c.id"
+                  :value="c.id"
+                />
+              </el-select>
+            </el-form-item>
           </el-form>
         </el-tab-pane>
 
@@ -453,6 +482,7 @@ const formData = reactive({
   video_url: '',
   video_duration: 0,
   layout_theme: 'standard',
+  discover_layout: 'auto',
   tag_ids: [] as number[],
   status: ContentStatus.Draft,
   author: '',
@@ -461,12 +491,16 @@ const formData = reactive({
   visibility: 'public',
   audit_status: 'approved',
   like_count: 0,
+  view_count: 0,
   favorite_count: 0,
   sort: 0,
   is_pinned: false,
   is_recommended: false,
   planet_exclusive: false,
+  planet_id: '',
 })
+
+const planetCommunities = ref<{ id: string; title: string }[]>([])
 
 const seoForm = reactive({
   title: '',
@@ -554,6 +588,7 @@ async function loadDetail(id: number) {
     formData.visibility = data.visibility || 'public'
     formData.audit_status = data.auditStatus || data.audit_status || 'approved'
     formData.like_count = Number(data.likeCount ?? data.like_count ?? 0)
+    formData.view_count = Number(data.viewCount ?? data.view_count ?? 0)
     formData.favorite_count = Number(data.favoriteCount ?? data.favorite_count ?? 0)
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
     formData.status = normalizeContentStatus(data.status)
@@ -564,9 +599,11 @@ async function loadDetail(id: number) {
     formData.video_url = data.videoUrl || data.video_url || ''
     formData.video_duration = Number(data.videoDuration ?? data.video_duration ?? 0)
     formData.layout_theme = data.layoutTheme || data.layout_theme || 'standard'
+    formData.discover_layout = data.discoverLayout || data.discover_layout || 'auto'
     formData.is_pinned = !!(data.isPinned ?? data.is_pinned)
     formData.is_recommended = !!(data.isRecommended ?? data.is_recommended)
     formData.planet_exclusive = !!(data.planetExclusive ?? data.planet_exclusive)
+    formData.planet_id = String(data.planetId ?? data.planet_id ?? '')
     momentAttachments.value = Array.isArray(data.attachments)
       ? data.attachments.map((item: Record<string, unknown>, idx: number) => normalizeAttachment(item, idx))
       : []
@@ -848,6 +885,7 @@ async function handleSubmit() {
       visibility: formData.visibility || 'public',
       auditStatus: formData.audit_status || 'approved',
       likeCount: formData.like_count,
+      viewCount: formData.view_count,
       favoriteCount: formData.favorite_count,
       source: contentType.value === 'note' ? '笔记' : contentType.value === 'moment' ? '动态' : contentType.value === 'video' ? '视频' : undefined,
       sortOrder: formData.sort,
@@ -857,9 +895,13 @@ async function handleSubmit() {
       videoUrl: contentType.value === 'video' ? formData.video_url.trim() : undefined,
       videoDuration: contentType.value === 'video' ? formData.video_duration : undefined,
       layoutTheme: formData.layout_theme || 'standard',
+      discoverLayout: formData.discover_layout || 'auto',
       isPinned: formData.is_pinned ? 1 : 0,
       isRecommended: formData.is_recommended ? 1 : 0,
       planetExclusive: contentType.value === 'moment' && formData.planet_exclusive ? 1 : 0,
+      planetId: contentType.value === 'moment' && formData.planet_exclusive
+        ? (formData.planet_id || undefined)
+        : undefined,
     } as any
 
     if (isEdit.value) {
@@ -902,11 +944,24 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
-  await fetchCategories()
+  await Promise.all([fetchCategories(), fetchPlanetCommunities()])
   if (isEdit.value) {
     await loadDetail(Number(route.query.id))
   }
 })
+
+async function fetchPlanetCommunities() {
+  try {
+    const res = await get<any>('/api/v1/admin/planet/config')
+    const data = (res as any)?.data ?? res
+    const rows = data?.communities || []
+    planetCommunities.value = (Array.isArray(rows) ? rows : [])
+      .filter((c: any) => c && c.id)
+      .map((c: any) => ({ id: String(c.id), title: String(c.title || c.id) }))
+  } catch {
+    planetCommunities.value = []
+  }
+}
 </script>
 
 <style lang="scss" scoped>

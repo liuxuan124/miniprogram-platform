@@ -1,3 +1,6 @@
+const { post } = require('../../utils/request')
+const { AuthUtil } = require('../../utils/auth')
+
 Page({
   data: {
     types: ['功能建议', '内容问题', '支付订单', '咨询预约', '其他'],
@@ -20,22 +23,23 @@ Page({
       wx.showToast({ title: '请填写反馈内容', icon: 'none' })
       return
     }
+    if (!AuthUtil.isLoggedIn()) {
+      AuthUtil.requireLoginForAction('提交反馈', { silent: true })
+      return
+    }
     this.setData({ loading: true })
-    // 先本地记录，后续可接后台反馈接口
-    try {
-      const key = 'feedback_drafts'
-      const list = wx.getStorageSync(key) || []
-      list.unshift({
-        type: this.data.type,
-        content,
-        createdAt: Date.now(),
+    post('/api/v1/mp/feedback', {
+      category: this.data.type,
+      content,
+    }, { auth: true, showError: true })
+      .then(() => {
+        this.setData({ loading: false, content: '' })
+        wx.showToast({ title: '已提交，感谢反馈', icon: 'success' })
       })
-      wx.setStorageSync(key, list.slice(0, 20))
-    } catch (_) {}
-    setTimeout(() => {
-      this.setData({ loading: false, content: '' })
-      wx.showToast({ title: '已提交，感谢反馈', icon: 'success' })
-    }, 400)
+      .catch((err) => {
+        this.setData({ loading: false })
+        wx.showToast({ title: (err && err.message) || '提交失败', icon: 'none' })
+      })
   },
 
   goService() {

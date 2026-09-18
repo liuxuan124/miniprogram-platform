@@ -1,0 +1,125 @@
+.pfd-page {
+  min-height: 100vh;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  background: #fdf6ec;
+  box-sizing: border-box;
+}
+
+.pfd-hero {
+  padding: 24rpx 32rpx 20rpx;
+  background: linear-gradient(180deg, #fbe6d4, #fdf6ec);
+  border-bottom: 1rpx solid rgba(120, 72, 40, 0.1);
+}
+
+.pfd-hero__rw {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.pfd-hero__ic { font-size: 40rpx; }
+.pfd-hero__meta { flex: 1; min-width: 0; }
+.pfd-hero__mode {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 650;
+  color: #c2410c;
+  margin-bottom: 4rpx;
+}
+.pfd-hero__mode--wander {
+  color: #78716c;
+}
+.pfd-hero__title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 780;
+  color: #2a1c12;
+}
+.pfd-hero__sb {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #a1897a;
+}
+
+.pfd-hero__acts {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+.pfd-hero__sw {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  border: 1rpx solid rgba(194, 65, 12, 0.25);
+  color: #c2410c;
+  font-size: 22rpx;
+  font-weight: 650;
+}
+.pfd-hero__home {
+  flex-shrink: 0;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+  background: #f5e8d8;
+  color: #c2410c;
+  font-size: 22rpx;
+  font-weight: 650;
+}
+
+.pfd-state, .pfd-end {
+  padding: 60rpx 0;
+  text-align: center;
+  color: #a1897a;
+  font-size: 24rpx;
+}
+
+.pfd-item {
+  margin: 18rpx 28rpx 0;
+  padding: 26rpx 24rpx;
+  border-radius: 24rpx;
+  background: #fffaf3;
+  border: 1rpx solid rgba(120, 72, 40, 0.1);
+}
+
+.pfd-item__top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.pfd-item__author {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #2a1c12;
+}
+
+.pfd-item__tag {
+  font-size: 18rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+  background: #f5e8d8;
+  color: #c2410c;
+}
+
+.pfd-item__time {
+  margin-left: auto;
+  font-size: 20rpx;
+  color: #a1897a;
+}
+
+.pfd-item__ct {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.55;
+  color: #3a2a1c;
+}
+
+.pfd-item__ft {
+  margin-top: 18rpx;
+  display: flex;
+  gap: 28rpx;
+  font-size: 22rpx;
+  color: #6b5443;
+}

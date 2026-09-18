@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "checks": [],
+  "error": "Failed to launch wechat web devTools, please make sure http port is open"
+}

@@ -13,15 +13,16 @@
     <view class="ct-hero">
       <view class="ct-hero__title warm-serif">{{heroTitle}}</view>
       <view class="ct-hero__desc">{{heroDesc}}</view>
-      <view class="ct-st">
+      <view class="ct-st" wx:if="{{stats.length}}">
         <view class="ct-st__item" wx:for="{{stats}}" wx:key="s">
           <text class="ct-st__b">{{item.b}}</text>
           <text class="ct-st__s">{{item.s}}</text>
         </view>
       </view>
+      <view class="ct-note" wx:if="{{applyStatusText}}" style="margin-top:24rpx;color:{{applyStatus === 'pending' ? '#C2410C' : (applyStatus === 'rejected' || applyStatus === 'denied' ? '#B45309' : 'inherit')}}">{{applyStatusText}}</view>
     </view>
 
-    <view class="ct-why">
+    <view class="ct-why" wx:if="{{why.length}}">
       <view class="ct-why__item" wx:for="{{why}}" wx:key="b">
         <text class="ct-why__ic">{{item.ic}}</text>
         <view>
@@ -161,7 +162,7 @@
       </view>
 
       <view class="ct-note">
-        内容将经编辑部审核后展示（一般 2 小时内）。草稿会自动保存。
+        内容将经编辑部审核后展示。草稿会保存在本机，可稍后继续编辑。
       </view>
 
       <view class="ct-lockmask" wx:if="{{!editorUnlocked}}">
@@ -177,7 +178,8 @@
 </view>
 
 <view class="ct-bar" wx:if="{{stage === 1}}">
+  <view class="ct-submit ghost" bindtap="onGoEditor" wx:if="{{editorUnlocked}}" style="margin-bottom:16rpx">去发布内容</view>
   <view class="ct-submit {{submitting ? 'ct-submit--off' : ''}}" bindtap="onSubmit">
-    {{submitting ? '提交中…' : '提交申请'}}
+    {{submitting ? '提交中…' : ((applyStatus === 'pending' || applyStatus === 'rejected' || applyStatus === 'denied') ? '重新提交申请' : '提交申请')}}
   </view>
 </view>

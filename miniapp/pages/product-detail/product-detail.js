@@ -187,12 +187,15 @@ Page({
     couponEntryText: '满减可用',
     // 展示价（选券后为券后单价）
     displayPrice: '',
+    priceReady: false,
     displayOriginalPrice: '',
     memberFree: false,
     memberPrice: null,
     hasCouponDiscount: false,
     skuCouponHint: '',
     discountAmountText: '',
+    coverUrl: '',
+    buyCtaText: '立即购买',
 
     showServiceSheet: false,
     serviceItems: [
@@ -204,17 +207,16 @@ Page({
     richContent: '',
     isDigital: false,
     isService: false,
-    reviewScore: '4.9',
+    reviewScore: '',
     reviewCount: 0,
-    gains: ['可复用方法论与清单模板', '真实案例拆解', '订单发货通知'],
-    whoFor: '想把内容做成生意的独立创作者与社群主理人。',
-    faqs: [
-      { q: '付款后如何交付？', a: '支付成功后商家会正常发货，具体说明可在订单详情的发货通知中查看。' },
-      { q: '和 1v1 咨询有什么区别？', a: '资料包适合自学沉淀；1v1 针对你的具体业务诊断，两者互补。' },
-    ],
+    // 勿预置演示文案：真实商品未返回 gains 时会残留旧模板观感
+    gains: [],
+    whoFor: '',
+    faqs: [],
     isColumn: false,
     isEbook: false,
     isWarmDigital: false,
+    isWarmPhysical: false,
     columnChapters: [],
     columnGroups: [],
     columnPts: [],
@@ -246,11 +248,11 @@ Page({
     tryReadCfg: '试读范围由后台配置',
     tryReadTitle: '',
     tryReadParagraphs: [],
-    tryReadDone: 2,
-    tryReadTotal: 12,
-    tryReadPercent: 16,
+    tryReadDone: 0,
+    tryReadTotal: 0,
+    tryReadPercent: 0,
     statusBarHeight: getStatusBarHeight(),
-    launchCountdown: '首发价剩余 02:14:26',
+    launchCountdown: '',
   },
 
   onLoad(options) {
@@ -299,7 +301,11 @@ Page({
 
   _startLaunchCountdown(endMs) {
     this._stopLaunchCountdown()
-    const end = Number(endMs) || (Date.now() + (2 * 3600 + 14 * 60 + 26) * 1000)
+    const end = Number(endMs)
+    if (!Number.isFinite(end) || end <= Date.now()) {
+      this.setData({ launchCountdown: '' })
+      return
+    }
     const tick = () => {
       this.setData({ launchCountdown: formatCountdown(end - Date.now()) })
     }
@@ -312,14 +318,16 @@ Page({
     const previewRaw = product
       ? (product.previewChapters != null ? product.previewChapters : product.preview_chapters)
       : null
-    const done = previewRaw > 0 ? Number(previewRaw) : (tr.readChapters || 2)
-    const total = tr.totalChapters || 12
-    const percent = tr.percent != null
-      ? tr.percent
-      : Math.max(1, Math.round((done / total) * 100))
+    const done = previewRaw > 0 ? Number(previewRaw) : Number(tr.readChapters) || 0
+    const total = Number(product && (product.chapterCount || product.chapter_count))
+      || Number(tr.totalChapters)
+      || 0
+    const percent = total > 0
+      ? Math.max(1, Math.round((done / total) * 100))
+      : 0
     return {
-      tryReadCfg: tr.cfg || '试读范围由后台配置',
-      tryReadTitle: tr.title || '第 1 章　先想清楚你在卖什么',
+      tryReadCfg: tr.cfg || '',
+      tryReadTitle: tr.title || '',
       tryReadParagraphs: Array.isArray(tr.paragraphs) && tr.paragraphs.length
         ? tr.paragraphs
         : (tr.body ? String(tr.body).split('\n').filter(Boolean) : []),
@@ -339,6 +347,7 @@ Page({
         isColumn: false,
         isDigital: true,
         isWarmDigital: true,
+        isWarmPhysical: false,
         id: '',
         product: {
           name: g.title,
@@ -355,7 +364,9 @@ Page({
           delivery_mode: g.deliveryMode || 'auto',
           skuList: [],
         },
+        coverUrl: g.cover,
         displayPrice: String(g.price),
+        priceReady: true,
         goodsSpecs: g.specs || [],
         gains: g.gains || [],
         ebookTitle: g.title,
@@ -375,6 +386,7 @@ Page({
         isColumn: false,
         isDigital: true,
         isWarmDigital: false,
+        isWarmPhysical: false,
         product: {
           name: g.title,
           price: g.price,
@@ -384,7 +396,9 @@ Page({
           mainImage: g.cover,
           description: '数字内容，支付成功后立即开通阅读权限。',
         },
+        coverUrl: g.cover,
         displayPrice: String(g.price),
+        priceReady: true,
         memberPrice: g.memberPrice,
         memberPerk: g.memberPerk || '另享资料库全解锁',
         goodsSpecs: g.specs,
@@ -410,6 +424,7 @@ Page({
       isEbook: false,
       isDigital: true,
       isWarmDigital: false,
+      isWarmPhysical: false,
       product: {
         name: c.title,
         price: c.price,
@@ -419,7 +434,10 @@ Page({
         description: '连载专栏，每周三更新。',
         tag: c.tag,
       },
+      coverUrl: c.cover,
       displayPrice: String(c.price),
+      priceReady: true,
+      buyCtaText: `¥${c.price} 立即加入`,
       teacher: c.teacher,
       earlyBirdLabel: '早鸟价剩余 02 天 14:26',
       purchased: false,
@@ -530,100 +548,157 @@ Page({
           ? product.productTypes
           : [product.productType || product.product_type || 'physical']
         const typeStr = typeList.map((t) => String(t || '').toLowerCase()).join(',')
-        const { DEMO_COLUMN, DEMO_GOODS, DEMO_PAY1 } = require('../../data/warm-demo')
+        const { DEMO_COLUMN, DEMO_GOODS } = require('../../data/warm-demo')
         const isColumn = /column|专栏/.test(typeStr)
         const isEbook = (/ebook|电子书/.test(typeStr) || (/内容生意手册/.test(String(product.name || '')) && !isColumn))
           && !/resource_pack|资料|membership|会员|physical|周边|column|专栏/.test(typeStr)
         const pname = String(product.name || '')
         const isPay1Name = /暖阁体验包|体验包.*1元/.test(pname)
-        if (isColumn && /一个人的内容生意/.test(pname)) {
-          product.name = DEMO_COLUMN.title || '一个人的内容生意'
-          if (product.originalPrice != null && product.original_price == null) {
-            product.original_price = product.originalPrice
-          }
-          if (!product.tag) product.tag = DEMO_COLUMN.tag
+        if (product.originalPrice != null && product.original_price == null) {
+          product.original_price = product.originalPrice
         }
-        const hasDigital = typeList.indexOf('digital') !== -1 || isColumn || isEbook || isPay1Name
+        const hasDigital = typeList.indexOf('digital') !== -1
+          || typeList.indexOf('resource_pack') !== -1
+          || isColumn || isEbook || isPay1Name
         const hasService = typeList.indexOf('service') !== -1
         const hasPhysical = typeList.indexOf('physical') !== -1
-        // 纯虚拟（含 ¥1 体验包）：走暖色 digital 详情，不进实物商城壳
+        const isMembershipType = /membership|会员/.test(typeStr)
+        const isResourcePack = /resource_pack|资料/.test(typeStr)
+        const deliveryMode = String(product.deliveryMode || product.delivery_mode || '').toLowerCase()
+        const autoDeliver = deliveryMode === 'auto' || deliveryMode === 'virtual' || deliveryMode === 'online'
+        // 暖阁虚拟壳：电子资料/会员/体验包；auto 交付或无实物标记时优先虚拟，避免落到旧电商模板
         const isWarmDigital = !isColumn && !isEbook
-          && !/membership|会员/.test(typeStr)
-          && ((hasDigital && !hasPhysical) || isPay1Name)
+          && (
+            isPay1Name
+            || isResourcePack
+            || isMembershipType
+            || autoDeliver
+            || (hasDigital && !hasPhysical)
+            || (/digital|虚拟/.test(typeStr) && !hasPhysical)
+          )
+        const isWarmPhysical = !isColumn && !isEbook && !isWarmDigital
         const memberFreeRaw = product.memberFree != null ? product.memberFree : product.member_free
         const memberFree = memberFreeRaw === true || memberFreeRaw === 1 || memberFreeRaw === '1'
         const memberPriceRaw = product.memberPrice != null ? product.memberPrice : product.member_price
-        let memberPrice = memberFree
+        const memberPrice = memberFree
           ? null
           : (memberPriceRaw != null && memberPriceRaw !== '' && Number(memberPriceRaw) > 0
             ? memberPriceRaw
             : null)
-        // 暖阁电子书：API 未回会员价时回退原型 ¥31，避免会员条被藏掉
-        if (isEbook && memberPrice == null && !memberFree) {
-          memberPrice = DEMO_GOODS.memberPrice
-        }
-        const chapters = Array.isArray(product.chapters) && product.chapters.length
+        let chapters = Array.isArray(product.chapters) && product.chapters.length
           ? product.chapters
-          : (isColumn ? DEMO_COLUMN.chapters : [])
+          : []
+        let chapterGroups = Array.isArray(product.chapterGroups) && product.chapterGroups.length
+          ? product.chapterGroups
+          : (Array.isArray(product.chapter_groups) && product.chapter_groups.length
+            ? product.chapter_groups
+            : [])
+        // 后端暂无章节表：专栏真实 id 进详情时目录为空 → 暖阁 DEMO 兜底（与 demo=column 一致）
+        const useWarmColumnShell = isColumn
+          && !chapters.length
+          && !chapterGroups.length
+          && /一个人的内容生意/.test(pname)
+        if (useWarmColumnShell) {
+          chapters = DEMO_COLUMN.chapters || []
+          chapterGroups = DEMO_COLUMN.chapterGroups || [{ title: '目录', items: chapters }]
+        } else if (isColumn && !chapterGroups.length && chapters.length) {
+          chapterGroups = [{ title: '目录', items: chapters }]
+        }
         const purchased = product.purchased === true || product.purchased === 1
-        const priceNum = product.price != null ? product.price : DEMO_GOODS.price
-        const priceLabel = Number.isInteger(Number(priceNum))
-          ? String(Number(priceNum))
-          : String(priceNum)
-        const ebookTitle = isEbook
-          ? (/内容生意手册/.test(String(product.name || '')) ? DEMO_GOODS.title : (product.name || DEMO_GOODS.title))
+        const priceReady = product.price != null && product.price !== '' && Number.isFinite(Number(product.price))
+        const priceLabel = priceReady
+          ? (Number.isInteger(Number(product.price))
+            ? String(Number(product.price))
+            : String(product.price))
           : ''
+        const coverUrl = (product.images && product.images[0]) || product.mainImage || ''
+        const productGains = Array.isArray(product.gains) ? product.gains : []
+        const chapterCount = Number(
+          product.chapterCount
+          || product.chapter_count
+          || (useWarmColumnShell ? DEMO_COLUMN.chapterCount : 0)
+          || chapters.length
+        ) || 0
+        const ebookTitle = isEbook ? (product.name || '') : ''
+        // 电子书 toc 空时同样用暖阁 DEMO 补齐试读目录（仅「内容生意手册」）
+        let ebookToc = Array.isArray(product.toc) ? product.toc : []
+        const useWarmEbookShell = isEbook && !ebookToc.length && /内容生意手册/.test(pname)
+        if (useWarmEbookShell) ebookToc = DEMO_GOODS.toc || []
+        const defaultDigiSpecs = isWarmDigital
+          ? [
+              {
+                k: '商品类型',
+                v: isMembershipType ? '虚拟商品 · 会员' : (isResourcePack ? '虚拟商品 · 资料包' : '虚拟商品 · 数字内容'),
+              },
+              {
+                k: '交付方式',
+                vBefore: '支付后立即到账，',
+                em: '在小程序内开通',
+                vAfter: '，不发实体',
+                v: '支付后立即到账，在小程序内开通，不发实体',
+              },
+              { k: '有效期', v: '永久有效 · 换手机登录同一微信可继续用' },
+            ]
+          : []
         const ebookPatch = isEbook
           ? {
-              goodsSpecs: DEMO_GOODS.specs,
-              ebookAbout: DEMO_GOODS.about || [],
-              ebookIntroImage: DEMO_GOODS.introImage || '',
-              ebookToc: DEMO_GOODS.toc || [],
-              ebookReviews: DEMO_GOODS.reviews || [],
+              goodsSpecs: Array.isArray(product.specs) && product.specs.length
+                ? product.specs
+                : (useWarmEbookShell ? (DEMO_GOODS.specs || []) : []),
+              gains: productGains,
+              ebookAbout: product.description
+                ? [String(product.description)]
+                : (useWarmEbookShell ? (DEMO_GOODS.about || []) : []),
+              ebookIntroImage: useWarmEbookShell ? (DEMO_GOODS.introImage || '') : '',
+              ebookToc,
+              ebookReviews: useWarmEbookShell ? (DEMO_GOODS.reviews || []) : [],
               ebookTitle,
-              ebookMetaLine: DEMO_GOODS.metaLine || '墨白 著 · 12 万字 · EPUB / PDF · ⭐️ 4.9',
-              ebookCtaText: purchased ? '开始阅读' : `¥${priceLabel} 立即购买`,
-              memberPerk: DEMO_GOODS.memberPerk || '另享资料库全解锁',
-              reviewCountLabel: DEMO_GOODS.reviewCountLabel || '826',
+              ebookMetaLine: product.subtitle || product.sub
+                || (useWarmEbookShell ? DEMO_GOODS.metaLine : ''),
+              ebookCtaText: purchased ? '开始阅读' : (priceReady ? `¥${priceLabel} 立即购买` : '立即购买'),
+              memberPerk: useWarmEbookShell ? (DEMO_GOODS.memberPerk || '') : '',
+              reviewCountLabel: useWarmEbookShell ? (DEMO_GOODS.reviewCountLabel || '') : '',
               displayPrice: priceLabel,
+              priceReady,
               digiNotice: '',
-              ...this._ebookTryFields(DEMO_GOODS, product),
+              ...this._ebookTryFields(useWarmEbookShell ? DEMO_GOODS : null, product),
             }
           : isWarmDigital
             ? {
-                goodsSpecs: (isPay1Name ? DEMO_PAY1.specs : null)
-                  || (Array.isArray(product.specs) && product.specs.length ? product.specs : DEMO_PAY1.specs),
-                gains: (isPay1Name ? DEMO_PAY1.gains : null)
-                  || (Array.isArray(product.gains) && product.gains.length ? product.gains : DEMO_PAY1.gains),
-                ebookAbout: (isPay1Name ? DEMO_PAY1.about : null)
-                  || (product.description ? [String(product.description)] : DEMO_PAY1.about),
+                goodsSpecs: Array.isArray(product.specs) && product.specs.length
+                  ? product.specs
+                  : defaultDigiSpecs,
+                gains: productGains,
+                ebookAbout: product.description ? [String(product.description)] : [],
                 ebookIntroImage: '',
                 ebookToc: [],
                 ebookReviews: [],
-                ebookTitle: pname || DEMO_PAY1.title,
-                ebookMetaLine: isPay1Name
-                  ? (DEMO_PAY1.metaLine || '')
-                  : (product.subtitle || product.sub || '虚拟商品 · 支付后立即开通'),
-                ebookCtaText: purchased ? '立即使用' : `¥${priceLabel} 立即购买`,
+                ebookTitle: pname,
+                ebookMetaLine: product.subtitle || product.sub
+                  || (isMembershipType ? '会员权益 · 支付后立即开通' : '虚拟商品 · 支付后立即开通'),
+                ebookCtaText: purchased ? '立即使用' : (priceReady ? `¥${priceLabel} 立即购买` : '立即购买'),
                 memberPerk: '',
                 reviewCountLabel: '',
                 displayPrice: priceLabel,
-                digiNotice: isPay1Name
-                  ? DEMO_PAY1.notice
-                  : '⚠️ 虚拟商品说明：数字内容支付成功后立即开通权限，不支持退款。发票可在「我的 - 订单与发票」申请。',
+                priceReady,
+                digiNotice: '⚠️ 虚拟商品说明：数字内容支付成功后立即开通权限，不支持退款。发票可在「我的 - 订单与发票」申请。',
               }
           : {
               goodsSpecs: [],
+              gains: productGains,
               ebookAbout: [],
               ebookIntroImage: '',
               ebookToc: [],
               ebookReviews: [],
               ebookTitle: '',
               ebookMetaLine: '',
-              ebookCtaText: '立即购买',
+              ebookCtaText: purchased ? '再次购买' : (priceReady ? `¥${priceLabel} 立即购买` : '立即购买'),
               memberPerk: '',
-              reviewCountLabel: isColumn ? (DEMO_COLUMN.reviewCountLabel || '1.6k') : '',
+              reviewCountLabel: '',
+              displayPrice: priceLabel,
+              priceReady,
               digiNotice: '',
+              buyCtaText: purchased ? '再次购买' : (priceReady ? `¥${priceLabel} 立即购买` : '立即购买'),
             }
         if (isEbook && product.originalPrice != null && product.original_price == null) {
           product.original_price = product.originalPrice
@@ -635,15 +710,20 @@ Page({
         } else {
           this._stopLaunchCountdown()
         }
+        if (isColumn && product.originalPrice != null && product.original_price == null) {
+          product.original_price = product.originalPrice
+        }
+        if (isColumn && !product.tag && useWarmColumnShell) {
+          product.tag = DEMO_COLUMN.tag
+        }
+        const warmCol = useWarmColumnShell ? DEMO_COLUMN : null
         if (isColumn) {
-          // 封面标题对齐原型短名「一个人的内容生意」
-          if (/一个人的内容生意/.test(String(product.name || ''))) {
-            product.name = DEMO_COLUMN.title || '一个人的内容生意'
-          }
-          product.tag = product.tag || DEMO_COLUMN.tag || '连载中 · 每周三更新'
-          if (product.originalPrice != null && product.original_price == null) {
-            product.original_price = product.originalPrice
-          }
+          ebookPatch.buyCtaText = purchased
+            ? '立即学习'
+            : (priceReady ? `¥${priceLabel} 立即加入` : '立即加入')
+          ebookPatch.gains = productGains
+          ebookPatch.displayPrice = priceLabel
+          ebookPatch.priceReady = priceReady
         }
         this.setData({
           product,
@@ -657,39 +737,50 @@ Page({
           isColumn,
           isEbook,
           isWarmDigital,
+          isWarmPhysical,
+          coverUrl,
+          gains: productGains,
           productTypes: typeList,
           memberFree,
           memberPrice,
-          teacher: product.teacher || (isColumn ? DEMO_COLUMN.teacher : null),
-          earlyBirdLabel: isColumn ? '早鸟价剩余 02 天 14:26' : '',
+          teacher: product.teacher || (warmCol && warmCol.teacher) || null,
+          earlyBirdLabel: warmCol ? '早鸟价剩余 02 天 14:26' : '',
           purchased,
           columnChapters: chapters,
-          columnGroups: isColumn
-            ? (DEMO_COLUMN.chapterGroups || [{ title: '目录', items: chapters }])
-            : [],
-          columnPts: isColumn ? (DEMO_COLUMN.pts || []) : [],
-          columnIntro: isColumn ? (DEMO_COLUMN.intro || []) : [],
-          columnIntroImage: isColumn ? (DEMO_COLUMN.introImage || '') : '',
+          columnGroups: isColumn ? chapterGroups : [],
+          columnPts: (warmCol && warmCol.pts) || [],
+          columnIntro: (warmCol && warmCol.intro)
+            || (product.description ? [String(product.description)] : []),
+          columnIntroImage: (warmCol && warmCol.introImage) || '',
           columnMetaLine: isColumn
-            ? `${DEMO_COLUMN.chapterCount || 32} 讲 · ${DEMO_COLUMN.learners || '1.2 万人在学'} · ⭐️ 4.9`
+            ? (warmCol
+              ? `${warmCol.chapterCount || chapterCount || 32} 讲 · ${warmCol.learners || '1.2 万人在学'} · ⭐️ 4.9`
+              : (chapterCount ? `${chapterCount} 讲` : ''))
             : '',
           columnSeg: 'toc',
           columnSegs: isColumn
             ? [
-                { key: 'toc', label: `目录 ${DEMO_COLUMN.chapterCount || 32}` },
-                { key: 'reviews', label: `评价 ${DEMO_COLUMN.reviewCountLabel || '1.6k'}` },
+                { key: 'toc', label: chapterCount ? `目录 ${chapterCount}` : '目录' },
+                {
+                  key: 'reviews',
+                  label: warmCol
+                    ? `评价 ${warmCol.reviewCountLabel || '1.6k'}`
+                    : '评价',
+                },
                 { key: 'faq', label: '常见问题' },
               ]
             : [],
-          columnReviews: isColumn ? (DEMO_COLUMN.reviews || []) : [],
-          columnFaqs: isColumn ? (DEMO_COLUMN.faqs || []) : [],
-          reviewScore: '4.9',
+          columnReviews: (warmCol && warmCol.reviews) || [],
+          columnFaqs: (warmCol && warmCol.faqs) || [],
+          reviewScore: warmCol ? '4.9' : '',
+          reviewCountLabel: (warmCol && warmCol.reviewCountLabel) || '',
           ...ebookPatch,
         }, () => this._syncCouponAndPrice())
-        this._loadReviews(id)
+        if (!useWarmColumnShell) this._loadReviews(id)
       })
       .catch(() => {
-        this._applyDemo('column')
+        this.setData({ loading: false })
+        wx.showToast({ title: '商品加载失败', icon: 'none' })
       })
   },
 
@@ -854,17 +945,44 @@ Page({
 
   noop() {},
 
-  _currentUnitPrice() {
+  _rawUnitPrice() {
     const { selectedSku, product } = this.data
-    return Number(selectedSku ? selectedSku.price : (product && product.price)) || 0
+    if (selectedSku && selectedSku.price != null && selectedSku.price !== '') return selectedSku.price
+    if (product && product.price != null && product.price !== '') return product.price
+    return null
+  },
+
+  _hasValidPrice() {
+    const raw = this._rawUnitPrice()
+    if (raw == null || raw === '') return false
+    return Number.isFinite(Number(raw))
+  },
+
+  _formatPriceLabel(raw) {
+    if (raw == null || raw === '') return ''
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return ''
+    return Number.isInteger(n) ? String(n) : String(n)
+  },
+
+  _currentUnitPrice() {
+    const raw = this._rawUnitPrice()
+    return raw == null || raw === '' ? 0 : (Number(raw) || 0)
   },
 
   _currentOrderAmount() {
     return this._currentUnitPrice() * (this.data.quantity || 1)
   },
 
+  _buyCtaText(purchased, isDigitalLike) {
+    if (purchased) return isDigitalLike ? '立即使用' : '再次购买'
+    if (!this._hasValidPrice()) return '立即购买'
+    return `¥${this._formatPriceLabel(this._rawUnitPrice())} 立即购买`
+  },
+
   /** 同步优惠券文案 + 券后价展示 */
   _syncCouponAndPrice() {
+    const priceReady = this._hasValidPrice()
     const unit = this._currentUnitPrice()
     const qty = this.data.quantity || 1
     const amount = unit * qty
@@ -882,9 +1000,25 @@ Page({
     const discount = coupon ? calcCouponDiscount(coupon, amount) : 0
     const payTotal = Math.max(0, amount - discount)
     const payUnit = qty > 0 ? payTotal / qty : payTotal
-    const hasDiscount = !!(coupon && discount > 0)
-    const unitStr = Number(unit).toFixed(2).replace(/\.00$/, '')
-    const payUnitStr = Number(payUnit).toFixed(2).replace(/\.00$/, '')
+    const hasDiscount = !!(coupon && discount > 0 && priceReady)
+    const unitStr = priceReady ? Number(unit).toFixed(2).replace(/\.00$/, '') : ''
+    const payUnitStr = priceReady ? Number(payUnit).toFixed(2).replace(/\.00$/, '') : ''
+    const displayPrice = hasDiscount ? payUnitStr : unitStr
+    const purchased = !!this.data.purchased
+    let buyCtaText = this.data.buyCtaText || '立即购买'
+    let ebookCtaText = this.data.ebookCtaText || '立即购买'
+    if (this.data.isWarmPhysical) {
+      buyCtaText = this._buyCtaText(purchased, false)
+    } else if (this.data.isColumn) {
+      buyCtaText = purchased ? '立即学习' : (priceReady ? `¥${displayPrice} 立即加入` : '立即加入')
+      ebookCtaText = buyCtaText
+    } else if (this.data.isEbook) {
+      ebookCtaText = purchased ? '开始阅读' : (priceReady ? `¥${displayPrice} 立即购买` : '立即购买')
+      buyCtaText = ebookCtaText
+    } else if (this.data.isWarmDigital) {
+      ebookCtaText = purchased ? '立即使用' : (priceReady ? `¥${displayPrice} 立即购买` : '立即购买')
+      buyCtaText = ebookCtaText
+    }
 
     let couponEntryText = '满减可用'
     let skuCouponHint = ''
@@ -900,11 +1034,14 @@ Page({
       selectedCoupon: coupon,
       selectedCouponId: couponId,
       couponEntryText,
-      displayPrice: hasDiscount ? payUnitStr : unitStr,
+      displayPrice,
+      priceReady,
       displayOriginalPrice: hasDiscount ? unitStr : '',
       hasCouponDiscount: hasDiscount,
       discountAmountText: hasDiscount ? discount.toFixed(2) : '',
       skuCouponHint,
+      buyCtaText,
+      ebookCtaText,
     })
   },
 
@@ -968,8 +1105,8 @@ Page({
       const reviewService = require('../../services/review')
       reviewService.getProductReviews(id, { current: 1, size: 1 }).then((data) => {
         this.setData({
-          reviewScore: (data && data.avgScore) || '4.9',
-          reviewCount: (data && data.total) || 0,
+          reviewScore: (data && data.avgScore) ? String(data.avgScore) : '',
+          reviewCount: Number(data && data.total) || 0,
         })
       }).catch(() => {})
     } catch (e) { /* ignore */ }

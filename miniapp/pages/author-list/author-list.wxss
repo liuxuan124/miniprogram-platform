@@ -1,0 +1,74 @@
+.al-page {
+  min-height: 100vh;
+  padding: 28rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: #fdf6ec;
+}
+
+.al-hd { margin-bottom: 28rpx; }
+.al-hd__t {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #2a1c12;
+}
+.al-hd__s {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #a1897a;
+}
+
+.al-state {
+  padding: 80rpx 0;
+  text-align: center;
+  color: #a1897a;
+  font-size: 26rpx;
+}
+
+.al-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 18rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 28rpx;
+  background: #fffaf3;
+  border: 1rpx solid rgba(120, 72, 40, 0.12);
+}
+
+.al-card__av {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  flex: none;
+  background: #f5e6d4;
+}
+
+.al-card__av--fb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c2410c;
+  font-weight: 700;
+  font-size: 32rpx;
+}
+
+.al-card__meta { flex: 1; min-width: 0; }
+.al-card__name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #2a1c12;
+}
+.al-card__role {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #c2410c;
+}
+.al-card__go {
+  flex: none;
+  font-size: 24rpx;
+  color: #a1897a;
+}

@@ -2,14 +2,14 @@ const { get, BASE_URL } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { picsum } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO, WARM_PAGE_STYLE } = require('../../data/warm-source')
 
-/** 与 prototypes-warm/file-preview.html 解锁态纸张 1:1 */
+/** 仅 FORCE_LOCAL_DEMO 可用的本地纸张 mock */
 const WARM_PAPERS = [
   {
     pageLabel: '1 / 12',
     title: '《认知盈余》9 月共读 · 领读提纲',
-    sub: '暖阁星球 · 墨白 · 2026.09',
+    sub: '暖阁星球 · 演示 · 本地预览',
     sections: [
       {
         h2: '一、为什么今年要读这本书',
@@ -69,23 +69,16 @@ function formatSize(bytes) {
 
 function resolvePageCount(data) {
   const n = Number(data && (data.pageCount != null ? data.pageCount : data.pages))
-  if (n > 0) return n
-  const name = String((data && data.name) || '')
-  if (/领读提纲|共读/.test(name)) return 12
-  return 0
+  return n > 0 ? n : 0
 }
 
 function buildSummary(data) {
-  // 文件头优先体积 / 页数（原型：2.4 MB · 12 页），不用营销摘要顶替
   const parts = []
   const size = formatSize(data && data.size)
   if (size) parts.push(size)
-  else if (/领读提纲|共读/.test(String((data && data.name) || ''))) parts.push('2.4 MB')
   const pages = resolvePageCount(data)
   if (pages) parts.push(`${pages} 页`)
   if (!parts.length && data && data.summary) return String(data.summary)
-  if (!parts.length) return '2.4 MB · 12 页 · 更新于 09-13'
-  parts.push('更新于 09-13')
   return parts.join(' · ')
 }
 
@@ -93,13 +86,14 @@ function applyDemo(page, locked) {
   page.setData({
     themePageStyle: WARM_PAGE_STYLE,
     loading: false,
+    loadError: false,
     loadProgress: 100,
     name: '9月共读·领读提纲.pdf',
-    summary: '2.4 MB · 12 页 · 更新于 09-13',
+    summary: '2.4 MB · 12 页 · 本地演示',
     fileType: 'PDF',
     locked: !!locked,
     lockedReason: locked
-      ? '加入暖阁星球即可解锁全部 128 份资料\n含模板、提纲、数据表，持续更新'
+      ? '加入会员后可解锁该资料（本地演示）'
       : '',
     canDownload: !locked,
     canPreview: true,
@@ -107,11 +101,12 @@ function applyDemo(page, locked) {
     previewText: '',
     papers: locked ? [] : WARM_PAPERS,
     paperTitle: '《认知盈余》9 月共读 · 领读提纲',
+    paperSub: '暖阁星球 · 演示 · 本地预览',
     pageLabel: '1 / 12',
     endText: locked ? '未解锁状态' : '共 12 页 · 上滑继续',
     sourceAvatar: picsum('u3', 40, 40),
-    sourceText: '来自 墨白 的星球动态《9 月共读》',
-    primaryCta: locked ? '解锁后查看' : '回到原帖讨论',
+    sourceText: '来自演示动态《9 月共读》',
+    primaryCta: locked ? '解锁后查看' : '返回',
     statusText: locked ? '已锁定' : '你已解锁',
   })
 }
@@ -122,6 +117,7 @@ Page({
     themePageStyle: WARM_PAGE_STYLE,
     id: '',
     loading: true,
+    loadError: false,
     loadProgress: 0,
     name: '',
     summary: '',
@@ -135,37 +131,47 @@ Page({
     papers: [],
     statusText: '',
     paperTitle: '',
+    paperSub: '',
     pageLabel: '',
-    endText: '共 12 页 · 上滑继续',
-    sourceAvatar: picsum('u3', 40, 40),
-    sourceText: '来自 墨白 的星球动态《9 月共读》',
+    endText: '',
+    sourceAvatar: '',
+    sourceText: '',
     sourceContentId: '',
-    primaryCta: '回到原帖讨论',
+    primaryCta: '返回',
     previewUrl: '',
   },
 
   onLoad(options) {
     this.setData({ themePageStyle: WARM_PAGE_STYLE })
-    const demo = options && (options.demo === '1' || options.demo === true || options.demo === 'lock')
-    // demo 路径：本地暖阁共读 PDF（不依赖 FORCE_LOCAL_DEMO，便于冒烟 / 原型对照）
-    if (demo || (USE_LOCAL_SOURCE && options && options.demo)) {
+    const wantDemo = !!(options && (options.demo === '1' || options.demo === true || options.demo === 'lock'))
+    if ((USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) && wantDemo) {
       applyDemo(this, options && options.demo === 'lock')
       return
     }
-    const id = options && options.id
-    const forceLock = !!(options && (options.lock === '1' || options.demo === 'lock'))
-    if (!id) {
-      // 无 id 但有共读附件名 → 仍走暖阁纸张 mock
-      const name = options && options.name ? decodeURIComponent(options.name) : ''
-      if (name && /领读提纲|共读/.test(name)) {
-        applyDemo(this, forceLock)
-        if (name) this.setData({ name })
-        return
-      }
+    if (wantDemo && !(USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO)) {
+      // 生产禁止 demo 伪文件
       this.setData({
         loading: false,
-        name: name || '',
+        loadError: true,
+        name: '文件不存在',
         statusText: '文件不存在',
+        locked: true,
+        lockedReason: '请从资料库打开真实文件',
+        primaryCta: '返回',
+      })
+      wx.showToast({ title: '文件不存在', icon: 'none' })
+      return
+    }
+    const id = options && options.id
+    const forceLock = !!(options && (options.lock === '1'))
+    if (!id) {
+      this.setData({
+        loading: false,
+        loadError: true,
+        name: (options && options.name) ? decodeURIComponent(options.name) : '',
+        statusText: '文件不存在',
+        locked: true,
+        lockedReason: '缺少文件编号',
       })
       wx.showToast({ title: '文件不存在', icon: 'none' })
       return
@@ -180,13 +186,18 @@ Page({
       title: this.data.name || '文件预览',
       path: this.data.id
         ? `/pages/file-preview/file-preview?id=${this.data.id}`
-        : '/pages/file-preview/file-preview?demo=1',
+        : '/pages/resources/resources',
     }
+  },
+
+  onRetry() {
+    if (this.data.id) this._load(this.data.id)
   },
 
   _load(id) {
     this.setData({
       loading: true,
+      loadError: false,
       loadProgress: 12,
       statusText: '读取文件信息…',
       previewText: '',
@@ -200,49 +211,61 @@ Page({
     get(`/api/v1/mp/files/${id}`, {}, { auth: true, showError: false })
       .then((data) => {
         clearInterval(tick)
+        if (!data) {
+          this.setData({
+            loading: false,
+            loadError: true,
+            loadProgress: 0,
+            name: '资料暂不可用',
+            summary: '',
+            locked: true,
+            lockedReason: '暂时无法打开该资料',
+            statusText: '加载失败',
+            papers: [],
+            previewText: '',
+            primaryCta: '重试',
+            endText: '',
+          })
+          return
+        }
         const canDownload = !!(data && data.canDownload)
         const canPreview = !!(data && data.canPreview)
         const canRead = !!(data && data.canRead)
         const name = (data && data.name) || '文件预览'
-        const isWarmPdf = /领读提纲|共读/.test(name)
-        // forceLock / 完全无权限 → 模糊锁；仅试读（canPreview）走纸张 mock
         const locked = !!this._forceLock || !(canDownload || canRead || canPreview)
         const rawPreview = (data && data.previewText) || ''
         const stub = isStubPreview(rawPreview)
-        const pageCount = resolvePageCount(data) || (isWarmPdf ? 12 : 0)
+        const pageCount = resolvePageCount(data)
         const fullyOpen = canDownload || canRead
-        const useWarmPapers = !locked && (stub || isWarmPdf || (!fullyOpen && canPreview))
-        const previewText = (!locked && !stub && !useWarmPapers) ? rawPreview : ''
+        const previewText = (!locked && !stub) ? rawPreview : ''
         this.setData({
           loading: false,
+          loadError: false,
           loadProgress: 100,
           name,
-          summary: buildSummary(Object.assign({}, data, { pageCount, size: (data && data.size) || (isWarmPdf ? 2516582 : 0) })),
+          summary: buildSummary(data),
           fileType: String((data && data.fileType) || 'PDF').toUpperCase().slice(0, 5),
           locked,
-          lockedReason: (data && data.lockedReason) || (locked
-            ? '加入暖阁星球即可解锁全部 128 份资料\n含模板、提纲、数据表，持续更新'
-            : ''),
+          lockedReason: (data && data.lockedReason) || (locked ? '当前账号暂无阅读权限' : ''),
           canDownload,
           canPreview,
           canRead,
           previewText,
-          papers: useWarmPapers ? WARM_PAPERS : [],
-          paperTitle: (useWarmPapers || isWarmPdf)
-            ? '《认知盈余》9 月共读 · 领读提纲'
-            : name,
-          pageLabel: pageCount ? `1 / ${pageCount}` : (useWarmPapers ? '1 / 12' : ''),
+          papers: [],
+          paperTitle: name,
+          paperSub: '',
+          pageLabel: pageCount ? `1 / ${pageCount}` : '',
           endText: locked
             ? '未解锁状态'
-            : (pageCount ? `共 ${pageCount} 页 · 上滑继续` : '共 12 页 · 上滑继续'),
+            : (pageCount ? `共 ${pageCount} 页` : (previewText ? '' : '暂无页数信息')),
           sourceContentId: (data && (data.sourceContentId || data.contentId)) || '',
-          sourceText: '来自 墨白 的星球动态《9 月共读》',
-          primaryCta: locked ? '解锁后查看' : '回到原帖讨论',
-          statusText: locked ? '未解锁' : (fullyOpen ? '你已解锁' : '可试读前 2 页'),
+          sourceText: (data && data.sourceText) || '',
+          sourceAvatar: (data && data.sourceAvatar) || '',
+          primaryCta: locked ? '解锁后查看' : (fullyOpen || canPreview ? '打开文件' : '返回'),
+          statusText: locked ? '未解锁' : (fullyOpen ? '你已解锁' : (canPreview ? '可试读' : '')),
           previewUrl: (data && data.previewUrl) || '',
         })
         if (locked) return
-        if (useWarmPapers) return
         if (!stub) return
         if (canPreview && !previewText) {
           this._loadPreviewText(id)
@@ -252,16 +275,17 @@ Page({
         clearInterval(tick)
         this.setData({
           loading: false,
+          loadError: true,
           loadProgress: 0,
           name: '资料暂不可用',
-          summary: '请稍后重试或联系客服',
+          summary: '请稍后重试',
           locked: true,
           lockedReason: '暂时无法打开该资料',
           statusText: '加载失败',
           papers: [],
           previewText: '',
-          primaryCta: '解锁后查看',
-          endText: '未解锁状态',
+          primaryCta: '重试',
+          endText: '',
         })
       })
   },
@@ -271,10 +295,7 @@ Page({
       .then((vo) => {
         const text = (vo && vo.previewText) || ''
         if (isStubPreview(text)) {
-          // 仍不可内嵌 → 保持暖阁纸张 mock
-          if (!this.data.papers || !this.data.papers.length) {
-            this.setData({ papers: WARM_PAPERS, previewText: '', statusText: '你已解锁' })
-          }
+          this.setData({ previewText: '', papers: [], statusText: this.data.statusText || '暂无预览' })
           return
         }
         this.setData({
@@ -309,6 +330,7 @@ Page({
         }
         if (res.statusCode !== 200 || !res.tempFilePath) {
           wx.showToast({ title: '下载失败', icon: 'none' })
+          this.setData({ statusText: this.data.locked ? '未解锁' : '下载失败' })
           return
         }
         if (canOpenDocument(meta && meta.fileType, meta && meta.name)) {
@@ -320,14 +342,26 @@ Page({
         } else {
           wx.showToast({ title: '已下载', icon: 'none' })
         }
+        this.setData({ statusText: this.data.locked ? '未解锁' : (this.data.canDownload || this.data.canRead ? '你已解锁' : '可试读') })
       },
-      fail: () => wx.showToast({ title: '下载失败', icon: 'none' }),
+      fail: () => {
+        wx.showToast({ title: '下载失败', icon: 'none' })
+        this.setData({ statusText: '下载失败' })
+      },
     })
   },
 
   onFavorite() {
-    if (this.data.locked) return
-    wx.showToast({ title: '已收藏', icon: 'success' })
+    if (this.data.locked) {
+      wx.showToast({ title: '解锁后可收藏', icon: 'none' })
+      return
+    }
+    if (!this.data.id) {
+      wx.showToast({ title: '无法收藏', icon: 'none' })
+      return
+    }
+    if (!AuthUtil.requireLoginForAction('收藏资料')) return
+    wx.showToast({ title: '收藏功能即将开放', icon: 'none' })
   },
 
   onGoSource() {
@@ -336,13 +370,16 @@ Page({
       wx.navigateTo({ url: `/pages/moment-detail/moment-detail?id=${sid}` })
       return
     }
-    wx.navigateTo({
-      url: '/pages/moment-detail/moment-detail?demo=1&from=file-preview',
+    wx.navigateBack({
       fail: () => wx.switchTab({ url: '/pages/planet/planet' }),
     })
   },
 
   onUnlockCta() {
+    if (!AuthUtil.isLoggedIn()) {
+      AuthUtil.requireLoginForAction('开通会员', { silent: true })
+      return
+    }
     wx.navigateTo({
       url: '/pkg-user/member-center/member-center',
       fail: () => {
@@ -355,8 +392,15 @@ Page({
   },
 
   onPrimaryCta() {
-    // 原型主按钮：回到原帖讨论；若带真实 id 且可下载，长按/二次入口仍可开文档——此处优先回帖
-    this.onGoSource()
+    if (this.data.loadError && this.data.id) {
+      this.onRetry()
+      return
+    }
+    if (this.data.locked) {
+      this.onUnlockCta()
+      return
+    }
+    this.onOpenAnyway()
   },
 
   onOpenAnyway() {
@@ -367,7 +411,11 @@ Page({
     const canFull = this.data.canDownload || this.data.canRead
     const canTrial = this.data.canPreview && this.data.previewUrl
     if (!canFull && !canTrial) {
-      this.onGoSource()
+      if (this.data.canPreview && this.data.previewText) {
+        wx.showToast({ title: '当前为试读文本', icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '暂无可用文件', icon: 'none' })
       return
     }
     this._openDocument(this.data.id, {

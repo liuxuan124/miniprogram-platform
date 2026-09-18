@@ -7,6 +7,71 @@
       </div>
     </div>
 
+    <div class="list-tpl-card">
+      <div class="list-tpl-card__title">长文列表页模板</div>
+      <p class="list-tpl-card__desc">控制小程序长文列表的热读榜、推荐大卡显隐；大卡内容从已发布列表选择，不会因此增加浏览量。</p>
+      <div class="list-tpl-card__row">
+        <el-switch v-model="listTpl.showRank" active-text="显示热读榜" />
+        <el-switch v-model="listTpl.showFeatured" active-text="显示推荐大卡" />
+        <el-select
+          v-model="listTpl.featuredContentId"
+          filterable
+          remote
+          clearable
+          placeholder="选择推荐大卡（可搜索）"
+          :remote-method="searchFeaturedContents"
+          :loading="featuredLoading"
+          style="min-width: 280px"
+        >
+          <el-option
+            v-for="opt in featuredOptions"
+            :key="opt.id"
+            :label="opt.title"
+            :value="opt.id"
+          />
+        </el-select>
+        <el-button type="primary" :loading="listTplSaving" @click="saveListTpl">保存模板配置</el-button>
+      </div>
+    </div>
+
+    <div class="list-tpl-card">
+      <div class="list-tpl-card__title">长文会员门禁卡</div>
+      <p class="list-tpl-card__desc">未解锁会员文时展示的卡片文案与解锁商品，存数据库，小程序实时读取。</p>
+      <div class="list-tpl-card__row list-tpl-card__row--wrap">
+        <el-input-number v-model="wallTpl.remainPercent" :min="5" :max="95" controls-position="right" />
+        <span class="list-tpl-card__hint">剩余 % 为会员内容</span>
+        <el-input v-model="wallTpl.memberYearPrice" placeholder="年费价格，如 168" style="width: 140px" />
+        <el-input v-model="wallTpl.unlockProductName" placeholder="解锁商品名" style="min-width: 180px" />
+        <el-select
+          v-model="wallTpl.unlockProductId"
+          filterable
+          remote
+          clearable
+          placeholder="选择解锁商品"
+          :remote-method="searchUnlockProducts"
+          :loading="unlockProductLoading"
+          style="min-width: 260px"
+        >
+          <el-option
+            v-for="opt in unlockProductOptions"
+            :key="opt.id"
+            :label="opt.name"
+            :value="opt.id"
+          />
+        </el-select>
+      </div>
+      <div class="list-tpl-card__row" style="margin-top: 10px">
+        <el-input
+          v-model="wallTpl.desc"
+          type="textarea"
+          :rows="2"
+          placeholder="门禁说明文案"
+          style="flex: 1; min-width: 280px"
+        />
+        <el-button type="primary" :loading="wallTplSaving" @click="saveWallTpl">保存门禁卡配置</el-button>
+      </div>
+    </div>
+
     <div class="toolbar">
       <el-input
         v-model="searchForm.keyword"
@@ -533,6 +598,7 @@ import {
   type WeChatSyncScope,
   type ImportTask,
 } from '@/api/wechat'
+import { getProductList } from '@/api/product'
 import { buildPreviewFromDetail, type ContentPreviewModel } from '@/utils/content-preview'
 import { inferContentFormat, parseContentTags } from '@/utils/content-format'
 import { platformSourceTagType, resolvePlatformSource } from '@/utils/content-source'
@@ -541,6 +607,8 @@ import {
   CONTENT_FORMAT_META,
   type ContentFormatType,
 } from '@/types/content'
+import { getConfigsSilent, updateConfigs } from '@/api/system'
+import { extractConfigList, readConfigEntry, toConfigUpdateItems } from '@/utils/system-config'
 
 const contentFormatFilterOptions = CONTENT_FORMAT_FILTER_OPTIONS
 
@@ -1458,7 +1526,7 @@ async function removeCategory(item: CategoryNode) {
 
 onMounted(async () => {
   await fetchCategories()
-  await fetchList()
+  await Promise.all([fetchList(), loadListTpl(), loadWallTpl()])
 })
 
 onActivated(async () => {
@@ -1481,6 +1549,154 @@ watch(
     await fetchList()
   }
 )
+
+const listTpl = reactive({
+  showRank: true,
+  showFeatured: true,
+  featuredContentId: '' as string | number | '',
+})
+const listTplSaving = ref(false)
+const featuredLoading = ref(false)
+const featuredOptions = ref<Array<{ id: number; title: string }>>([])
+
+function parseJsonConfig(raw: string) {
+  if (!raw) return {}
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return {}
+  }
+}
+
+async function loadListTpl() {
+  try {
+    const payload = await getConfigsSilent()
+    const items = extractConfigList(payload)
+    const hit = items.find((item) => readConfigEntry(item).key === 'content_list_config')
+    const cfg = parseJsonConfig(hit ? readConfigEntry(hit).value : '') as Record<string, unknown>
+    listTpl.showRank = cfg.showRank !== false
+    listTpl.showFeatured = cfg.showFeatured !== false
+    listTpl.featuredContentId = (cfg.featuredContentId as string | number) || ''
+    if (listTpl.featuredContentId) {
+      featuredOptions.value = [{ id: Number(listTpl.featuredContentId), title: `内容 #${listTpl.featuredContentId}` }]
+      try {
+        const detail = await getContentList({ current: 1, size: 20, status: 'published' })
+        const records = (detail as { records?: Array<{ id: number; title: string }> }).records || []
+        const exact = records.find((r) => String(r.id) === String(listTpl.featuredContentId))
+        if (exact) featuredOptions.value = [{ id: exact.id, title: exact.title }]
+      } catch {
+        /* keep placeholder */
+      }
+    }
+  } catch {
+    /* 配置接口失败时沿用默认开关 */
+  }
+}
+
+async function searchFeaturedContents(query: string) {
+  featuredLoading.value = true
+  try {
+    const res = await getContentList({
+      current: 1,
+      size: 20,
+      status: 'published',
+      keyword: query || undefined,
+    })
+    const records = (res as { records?: Array<{ id: number; title: string }> }).records || []
+    featuredOptions.value = records.map((r) => ({ id: r.id, title: r.title }))
+  } finally {
+    featuredLoading.value = false
+  }
+}
+
+async function saveListTpl() {
+  listTplSaving.value = true
+  try {
+    await updateConfigs(toConfigUpdateItems({
+      content_list_config: {
+        showRank: listTpl.showRank,
+        showFeatured: listTpl.showFeatured,
+        featuredContentId: listTpl.featuredContentId || '',
+      },
+    }, 'basic'))
+    ElMessage.success('长文列表模板已保存')
+  } finally {
+    listTplSaving.value = false
+  }
+}
+
+const wallTpl = reactive({
+  remainPercent: 68,
+  desc: '',
+  memberYearPrice: '',
+  unlockProductId: '' as string | number | '',
+  unlockProductName: '',
+})
+const wallTplSaving = ref(false)
+const unlockProductLoading = ref(false)
+const unlockProductOptions = ref<Array<{ id: number; name: string }>>([])
+
+async function loadWallTpl() {
+  try {
+    const payload = await getConfigsSilent()
+    const items = extractConfigList(payload)
+    const hit = items.find((item) => readConfigEntry(item).key === 'content_member_wall')
+    const cfg = parseJsonConfig(hit ? readConfigEntry(hit).value : '') as Record<string, unknown>
+    wallTpl.remainPercent = Number(cfg.remainPercent) || 68
+    wallTpl.desc = String(cfg.desc || '')
+    wallTpl.memberYearPrice = String(cfg.memberYearPrice || '')
+    wallTpl.unlockProductId = (cfg.unlockProductId as string | number) || ''
+    wallTpl.unlockProductName = String(cfg.unlockProductName || '')
+    if (wallTpl.unlockProductId) {
+      unlockProductOptions.value = [{
+        id: Number(wallTpl.unlockProductId),
+        name: wallTpl.unlockProductName || `商品 #${wallTpl.unlockProductId}`,
+      }]
+    }
+  } catch {
+    /* keep defaults */
+  }
+}
+
+async function searchUnlockProducts(query: string) {
+  unlockProductLoading.value = true
+  try {
+    const res = await getProductList({
+      current: 1,
+      size: 20,
+      keyword: query || undefined,
+      status: 'on_sale',
+    } as any)
+    const data = (res as any)?.data || res || {}
+    const records = Array.isArray(data) ? data : (data.records || data.list || [])
+    unlockProductOptions.value = (records as Array<{ id: number; name: string }>).map((r) => ({
+      id: r.id,
+      name: r.name,
+    }))
+  } finally {
+    unlockProductLoading.value = false
+  }
+}
+
+async function saveWallTpl() {
+  wallTplSaving.value = true
+  try {
+    const selected = unlockProductOptions.value.find((o) => String(o.id) === String(wallTpl.unlockProductId))
+    await updateConfigs(toConfigUpdateItems({
+      content_member_wall: {
+        remainPercent: wallTpl.remainPercent,
+        desc: wallTpl.desc || '',
+        memberYearPrice: wallTpl.memberYearPrice || '',
+        unlockProductId: wallTpl.unlockProductId || '',
+        unlockProductName: selected?.name || wallTpl.unlockProductName || '',
+      },
+    }, 'basic'))
+    if (selected) wallTpl.unlockProductName = selected.name
+    ElMessage.success('门禁卡配置已保存')
+  } finally {
+    wallTplSaving.value = false
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1508,6 +1724,44 @@ watch(
     margin-top: 6px;
     color: #6b7b93;
     font-size: 13px;
+  }
+
+  .list-tpl-card {
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    background: #f8faff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+  }
+
+  .list-tpl-card__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2d3d;
+  }
+
+  .list-tpl-card__desc {
+    margin: 6px 0 10px;
+    color: #6b7b93;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .list-tpl-card__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .list-tpl-card__row--wrap {
+    align-items: flex-start;
+  }
+
+  .list-tpl-card__hint {
+    color: #6b7b93;
+    font-size: 13px;
+    margin-right: 8px;
   }
 
   .toolbar {

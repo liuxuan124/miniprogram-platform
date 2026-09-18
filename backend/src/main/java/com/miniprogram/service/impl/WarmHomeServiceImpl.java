@@ -8,6 +8,7 @@ import com.miniprogram.entity.Content;
 import com.miniprogram.entity.Product;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ProductMapper;
+import com.miniprogram.service.PlanetStatsService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.WarmHomeService;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +28,12 @@ import java.util.Map;
 public class WarmHomeServiceImpl implements WarmHomeService {
 
     public static final String CONFIG_KEY = "warm_home_config";
+    private static final String PLANET_CONFIG_KEY = "planet_config";
 
     private final SystemConfigService systemConfigService;
     private final ContentMapper contentMapper;
     private final ProductMapper productMapper;
+    private final PlanetStatsService planetStatsService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -105,7 +108,15 @@ public class WarmHomeServiceImpl implements WarmHomeService {
             card.setSummary(c.getSummary());
             card.setTag(str(ref.get("tag"), ""));
             card.setTagGold(Boolean.TRUE.equals(ref.get("tagGold")));
-            card.setMeta(str(ref.get("meta"), buildMeta(c)));
+            String globalMode = str(cfg.get("feedStatsMode"), "auto");
+            String itemMode = str(ref.get("metaMode"), globalMode);
+            boolean useManual = "manual".equalsIgnoreCase(itemMode)
+                    && StringUtils.hasText(str(ref.get("meta"), ""));
+            if (useManual) {
+                card.setMeta(str(ref.get("meta"), ""));
+            } else {
+                card.setMeta(buildMeta(c, str(ref.get("seg"), "article")));
+            }
             card.setCover(c.getCoverImage());
             card.setContentType(c.getContentType());
             card.setImages(parseImages(c.getImages()));
@@ -125,19 +136,49 @@ public class WarmHomeServiceImpl implements WarmHomeService {
     }
 
     private WarmHomeVO.PlanetBrief buildPlanet(Object raw) {
+        Map<String, Object> warmPlanet = raw instanceof Map<?, ?>
+                ? castMap(raw)
+                : new LinkedHashMap<>();
+        Map<String, Object> planetCfg = readPlanetConfig();
+        Map<String, Object> ops = castMap(planetCfg.get("ops"));
+
         WarmHomeVO.PlanetBrief brief = new WarmHomeVO.PlanetBrief();
-        if (!(raw instanceof Map<?, ?> map)) {
-            brief.setTitle("暖阁星球");
-            brief.setMembers("");
-            brief.setCta("去看看");
-            return brief;
+        String title = firstNonBlank(
+                str(ops.get("homeCardTitle"), ""),
+                str(warmPlanet.get("title"), ""),
+                str(planetCfg.get("title"), ""),
+                "暖阁星球");
+        brief.setTitle(title);
+
+        boolean membersAuto = isAuto(ops.get("membersMode"));
+        long membersN = membersAuto
+                ? planetStatsService.countActiveMembers()
+                : parseCount(ops.get("kpiMembers"), warmPlanet.get("members"));
+        brief.setMembers(planetStatsService.applyTemplate(
+                str(ops.get("membersTemplate"), ""),
+                membersN,
+                "{n} 位球友"));
+
+        boolean todayAuto = isAuto(ops.get("todayMode"));
+        long todayN = todayAuto
+                ? planetStatsService.countTodayPlanetPosts()
+                : parseCount(firstNonBlank(str(ops.get("kpiTodayFeed"), ""), str(ops.get("kpiQuestions"), "")),
+                warmPlanet.get("cta"));
+        brief.setCta(planetStatsService.applyTemplate(
+                str(ops.get("ctaTemplate"), ""),
+                todayN,
+                "今日 {n} 条新动态 · 去看看"));
+
+        boolean itemsAuto = isAuto(ops.get("itemsMode"));
+        if (itemsAuto) {
+            brief.setItems(planetStatsService.pickHomeTopicItems());
+        } else {
+            List<Map<String, Object>> fixed = asMapList(ops.get("homeItems"));
+            if (fixed.isEmpty()) {
+                fixed = asMapList(warmPlanet.get("items"));
+            }
+            brief.setItems(fixed);
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> m = (Map<String, Object>) map;
-        brief.setTitle(str(m.get("title"), "暖阁星球"));
-        brief.setMembers(str(m.get("members"), ""));
-        brief.setCta(str(m.get("cta"), "去看看"));
-        brief.setItems(asMapList(m.get("items")));
         return brief;
     }
 
@@ -165,6 +206,66 @@ public class WarmHomeServiceImpl implements WarmHomeService {
         bar.setPrice(str(m.get("price"), ""));
         bar.setPriceLabel(str(m.get("priceLabel"), ""));
         return bar;
+    }
+
+    private Map<String, Object> readPlanetConfig() {
+        String raw = systemConfigService.getConfigValue(PLANET_CONFIG_KEY, "");
+        if (!StringUtils.hasText(raw)) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            return objectMapper.readValue(raw, new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("planet_config 解析失败: {}", e.getMessage());
+            return new LinkedHashMap<>();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castMap(Object raw) {
+        if (raw instanceof Map<?, ?> m) {
+            return (Map<String, Object>) m;
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private boolean isAuto(Object mode) {
+        if (mode == null) return true;
+        String s = String.valueOf(mode).trim().toLowerCase();
+        return s.isEmpty() || "auto".equals(s);
+    }
+
+    private long parseCount(Object primary, Object fallbackText) {
+        Long fromPrimary = tryParseLong(primary);
+        if (fromPrimary != null) return Math.max(0, fromPrimary);
+        if (fallbackText == null) return 0L;
+        String digits = String.valueOf(fallbackText).replaceAll("[^0-9]", "");
+        if (!StringUtils.hasText(digits)) return 0L;
+        try {
+            return Long.parseLong(digits);
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
+    private Long tryParseLong(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number n) return n.longValue();
+        String s = String.valueOf(v).trim().replace(",", "");
+        if (!StringUtils.hasText(s)) return null;
+        try {
+            return Long.parseLong(s.replaceAll("[^0-9]", ""));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String firstNonBlank(String... vals) {
+        if (vals == null) return "";
+        for (String v : vals) {
+            if (StringUtils.hasText(v)) return v.trim();
+        }
+        return "";
     }
 
     private Map<String, Object> findColumnMeta(Map<String, Object> cfg, Long productId) {
@@ -196,10 +297,52 @@ public class WarmHomeServiceImpl implements WarmHomeService {
         return name.trim();
     }
 
+    private String formatCompact(long n) {
+        if (n >= 10000) {
+            double v = n / 10000.0;
+            String s = String.format(java.util.Locale.ROOT, "%.1f", v).replace(".0", "");
+            return s + "万";
+        }
+        if (n >= 1000) {
+            double v = n / 1000.0;
+            String s = String.format(java.util.Locale.ROOT, "%.1f", v).replace(".0", "");
+            return s + "k";
+        }
+        return String.valueOf(Math.max(0, n));
+    }
+
+    private String roleLabel(String role) {
+        if (!StringUtils.hasText(role)) return "";
+        return switch (role) {
+            case "owner" -> "主理人";
+            case "contributor" -> "特约";
+            case "editor" -> "官方";
+            default -> role;
+        };
+    }
+
     private String buildMeta(Content c) {
+        return buildMeta(c, c != null ? c.getContentType() : "article");
+    }
+
+    private String buildMeta(Content c, String seg) {
+        if (c == null) return "暖阁";
         String author = StringUtils.hasText(c.getAuthor()) ? c.getAuthor() : "暖阁";
-        String views = c.getViewCount() != null ? c.getViewCount() + " 阅读" : "";
-        return StringUtils.hasText(views) ? author + " · " + views : author;
+        String role = roleLabel(c.getAuthorRole());
+        String head = StringUtils.hasText(role) ? author + " · " + role : author;
+        boolean noteLike = "note".equalsIgnoreCase(seg)
+                || "note".equalsIgnoreCase(c.getContentType());
+        if (noteLike) {
+            long likes = c.getLikeCount() != null ? c.getLikeCount() : 0L;
+            if (likes <= 0 && c.getViewCount() != null) likes = c.getViewCount();
+            return likes > 0 ? head + " · ❤ " + formatCompact(likes) : head;
+        }
+        long views = c.getViewCount() != null ? c.getViewCount() : 0L;
+        if (views <= 0 && c.getLikeCount() != null) views = c.getLikeCount();
+        if (views >= 10000) {
+            return head + " · " + formatCompact(views) + " 阅读";
+        }
+        return views > 0 ? head + " · " + formatCompact(views) + " 阅读" : head;
     }
 
     private Map<String, Object> readConfig() {

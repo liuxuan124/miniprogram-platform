@@ -44,6 +44,8 @@ public interface AppointmentService2 extends BaseService<Appointment> {
      */
     PageResult<AppointmentVO> listMyAppointments(Long userId, AppointmentQueryDTO queryDTO);
 
+    AppointmentVO getMyAppointment(Long id, Long userId);
+
     /**
      * 取消预约（小程序端）
      */

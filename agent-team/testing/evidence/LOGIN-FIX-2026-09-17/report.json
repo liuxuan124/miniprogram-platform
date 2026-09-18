@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-17T23:27:17Z",
+  "wx_version": "1.25.1",
+  "wx_version_desc": "登录与个人数据隔离（体验版，不提审）",
+  "root_cause": "guest-demo-hardcode",
+  "not": ["other-user-token-leak", "seed-account-named-linyan", "devtools-only"],
+  "overview_unauth": 401,
+  "planet_guest_memberActive": false,
+  "planet_guest_expireText": "",
+  "user_count_unchanged": 46,
+  "backup": "/opt/miniprogram-platform/deploy-backups/login-fix-20260917",
+  "audit_submitted": false
+}

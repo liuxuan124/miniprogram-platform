@@ -12,7 +12,7 @@
     <view class="day">今天</view>
 
     <view class="sysbar">
-      <text>工作日 9:00-21:00 真人值守 · 非工作时间留言次日回复</text>
+      <text>工作日 9:00-21:00 客服在线 · 非工作时间留言，我们会尽快回复</text>
       <text>\n客服</text><text class="sysbar__b">不会索要支付密码或验证码</text><text>，谨防冒充</text>
     </view>
 

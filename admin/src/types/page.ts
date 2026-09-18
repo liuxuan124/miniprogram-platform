@@ -47,6 +47,17 @@ export enum ComponentType {
   PlanetHero = 'planet_hero',
   PlanetTopics = 'planet_topics',
   PlanetFeed = 'planet_feed',
+  WarmGreet = 'warm_greet',
+  WarmAuthors = 'warm_authors',
+  WarmFeature = 'warm_feature',
+  WarmColumns = 'warm_columns',
+  WarmPlanetRec = 'warm_planet_rec',
+  WarmFeed = 'warm_feed',
+  WarmHome = 'warm_home',
+  WarmDiscover = 'warm_discover',
+  WarmPlanet = 'warm_planet',
+  WarmShop = 'warm_shop',
+  WarmMine = 'warm_mine',
 }
 
 /** 组件类型标签映射 */
@@ -93,6 +104,17 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.PlanetHero]: '星球顶栏',
   [ComponentType.PlanetTopics]: '星球话题预测',
   [ComponentType.PlanetFeed]: '星球动态流',
+  [ComponentType.WarmGreet]: '暖阁问候条',
+  [ComponentType.WarmAuthors]: '暖阁作者列表',
+  [ComponentType.WarmFeature]: '暖阁精选',
+  [ComponentType.WarmColumns]: '暖阁专栏',
+  [ComponentType.WarmPlanetRec]: '暖阁星球推荐',
+  [ComponentType.WarmFeed]: '暖阁信息流',
+  [ComponentType.WarmHome]: '暖阁首页模板',
+  [ComponentType.WarmDiscover]: '暖阁发现模板',
+  [ComponentType.WarmPlanet]: '暖阁星球模板',
+  [ComponentType.WarmShop]: '暖阁商城模板',
+  [ComponentType.WarmMine]: '暖阁我的模板',
 }
 
 /** 组件类型图标映射 */
@@ -139,6 +161,17 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.PlanetHero]: 'Sunrise',
   [ComponentType.PlanetTopics]: 'DataLine',
   [ComponentType.PlanetFeed]: 'ChatLineSquare',
+  [ComponentType.WarmGreet]: 'User',
+  [ComponentType.WarmAuthors]: 'UserFilled',
+  [ComponentType.WarmFeature]: 'PictureFilled',
+  [ComponentType.WarmColumns]: 'Notebook',
+  [ComponentType.WarmPlanetRec]: 'Sunrise',
+  [ComponentType.WarmFeed]: 'Reading',
+  [ComponentType.WarmHome]: 'House',
+  [ComponentType.WarmDiscover]: 'Compass',
+  [ComponentType.WarmPlanet]: 'Sunrise',
+  [ComponentType.WarmShop]: 'Goods',
+  [ComponentType.WarmMine]: 'User',
 }
 
 /** 组件分类 */
@@ -148,6 +181,7 @@ export enum ComponentCategory {
   Marketing = 'marketing',
   Layout = 'layout',
   Planet = 'planet',
+  Warm = 'warm',
 }
 
 /** 组件分类标签 */
@@ -157,6 +191,7 @@ export const ComponentCategoryLabels: Record<ComponentCategory, string> = {
   [ComponentCategory.Marketing]: '营销',
   [ComponentCategory.Layout]: '布局',
   [ComponentCategory.Planet]: '星球',
+  [ComponentCategory.Warm]: '暖阁',
 }
 
 /** 组件分类与类型映射 */
@@ -180,6 +215,19 @@ export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = 
   [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
   [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer, ComponentType.Container, ComponentType.SectionBg],
   [ComponentCategory.Planet]: [ComponentType.PlanetHero, ComponentType.PlanetTopics, ComponentType.PlanetFeed],
+  [ComponentCategory.Warm]: [
+    ComponentType.WarmGreet,
+    ComponentType.WarmAuthors,
+    ComponentType.WarmFeature,
+    ComponentType.WarmColumns,
+    ComponentType.WarmPlanetRec,
+    ComponentType.WarmFeed,
+    ComponentType.WarmHome,
+    ComponentType.WarmDiscover,
+    ComponentType.WarmPlanet,
+    ComponentType.WarmShop,
+    ComponentType.WarmMine,
+  ],
 }
 
 /** 页面类型 */

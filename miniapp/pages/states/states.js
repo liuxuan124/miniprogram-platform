@@ -9,6 +9,17 @@ const TABS = [
   { key: 'offline_content', label: '⑥ 已下架', cap: '⑥ 内容已下架 / 无权限' },
 ]
 
+function isDevPreviewAllowed() {
+  try {
+    const info = (wx.getAccountInfoSync && wx.getAccountInfoSync()) || {}
+    const env = (info.miniProgram && info.miniProgram.envVersion) || ''
+    // develop / trial 可预览；正式版 production 禁止当业务页
+    return env === 'develop' || env === 'trial'
+  } catch (e) {
+    return false
+  }
+}
+
 Page({
   data: {
     tabs: TABS,
@@ -17,13 +28,26 @@ Page({
     orderNo: '',
     failCode: 'PAY_CANCELED',
     failReason: '用户取消支付',
+    blocked: false,
     recs: [
-      { title: '做内容的第三年，我承认日更是伪命题', meta: '墨白 · 主理人 · 1.8 万阅读', cover: picsum('warmp1', 300, 240) },
-      { title: '付费社群运营 SOP：冷启动到第一个 100 人', meta: '老陈 · 特约 · 9.4k 阅读', cover: picsum('warmp4', 300, 240) },
+      { title: '做内容的第三年，我承认日更是伪命题', meta: '示例作者 · 1.8 万阅读', cover: picsum('warmp1', 300, 240) },
+      { title: '付费社群运营 SOP：冷启动到第一个 100 人', meta: '示例作者 · 9.4k 阅读', cover: picsum('warmp4', 300, 240) },
     ],
   },
 
   onLoad(options) {
+    const forceDev = !!(options && (options.dev === '1' || options.preview === '1'))
+    if (!isDevPreviewAllowed() && !forceDev) {
+      this.setData({ blocked: true })
+      wx.showToast({ title: '仅开发预览页', icon: 'none' })
+      setTimeout(() => {
+        wx.switchTab({
+          url: '/pages/index/index',
+          fail: () => wx.reLaunch({ url: '/pages/index/index' }),
+        })
+      }, 400)
+      return
+    }
     this._orderId = (options && options.orderId) || ''
     const orderNo = (options && options.orderNo) ? decodeURIComponent(options.orderNo) : ''
     if (orderNo) this.setData({ orderNo })
@@ -34,9 +58,10 @@ Page({
   },
 
   onTab(e) {
+    if (this.data.blocked) return
     const key = e.currentTarget.dataset.key
     const hit = TABS.find((t) => t.key === key)
-    this.setData({ active: key, activeLabel: hit ? hit.cap : '' })
+    this.setData({ active: hit.key, activeLabel: hit ? hit.cap : '' })
   },
 
   onLogin() {

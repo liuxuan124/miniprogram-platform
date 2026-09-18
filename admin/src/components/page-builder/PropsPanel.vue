@@ -111,6 +111,7 @@
             <component
               :is="propsPanelMap[pageStore.selectedComponent.type]"
               :props="pageStore.selectedComponent.props"
+              :type="pageStore.selectedComponent.type"
               @update="handlePropsUpdate"
             />
           </div>
@@ -465,6 +466,17 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.PlanetHero]: defineAsyncComponent(() => import('./props/PlanetHeroProps.vue')),
   [ComponentType.PlanetTopics]: defineAsyncComponent(() => import('./props/PlanetTopicsProps.vue')),
   [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./props/PlanetFeedProps.vue')),
+  [ComponentType.WarmGreet]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmHome]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
+  [ComponentType.WarmDiscover]: defineAsyncComponent(() => import('./props/WarmDiscoverProps.vue')),
+  [ComponentType.WarmPlanet]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
+  [ComponentType.WarmShop]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
+  [ComponentType.WarmMine]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
 }
 
 const currentStyle = computed(() => {

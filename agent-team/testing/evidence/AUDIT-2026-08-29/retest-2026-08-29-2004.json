@@ -1,0 +1,33 @@
+{
+  "at": "2026-08-29T20:04:00+08:00",
+  "api_verify": {
+    "script": "scripts/verify-audit-readiness.js",
+    "base": "https://api.zfculture.site",
+    "ok": true,
+    "passed": 16,
+    "failed": 0
+  },
+  "supplemental": {
+    "product_api_blocked_message": true,
+    "content_products_api": "still_open_returns_0_items_backend_guard_not_deployed",
+    "published_list_covers": "10/10 have coverImage",
+    "picsum_covers": "none in sample",
+    "home_hero_url": "https://api.zfculture.site/uploads/2026-08-19/d18dcd5f5c654fea8b5a40f3580d10cd.jpg",
+    "hero_image_http": 200
+  },
+  "miniapp_automator": {
+    "ok": false,
+    "error": "Failed to launch wechat web devTools, http port not open"
+  },
+  "local_code": {
+    "content_detail_loadRelated_gated": true,
+    "dsl_image_resolveMediaUrl": true,
+    "pending_upload": "体验版需重新上传含本次修复的小程序包"
+  },
+  "manual_smoke": [
+    "首页顶图与精选阅读缩略图正常显示",
+    "点任意文章进入详情，无「功能暂未开放」Toast",
+    "详情正文可阅读，底部 TabBar 在 Tab 页可见",
+    "我的页无订单/商城入口"
+  ]
+}

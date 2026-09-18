@@ -316,8 +316,18 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (StringUtils.hasText(query.getStatus())) {
             wrapper.eq(Product::getStatus, normalizeStatus(query.getStatus()));
         }
-        wrapper.orderByAsc(Product::getSortOrder)
-               .orderByDesc(Product::getId);
+        String sort = query.getSort() == null ? "" : query.getSort().trim().toLowerCase();
+        if ("sales_desc".equals(sort)) {
+            wrapper.orderByDesc(Product::getSales).orderByDesc(Product::getId);
+        } else if ("price_asc".equals(sort)) {
+            wrapper.orderByAsc(Product::getPrice).orderByDesc(Product::getId);
+        } else if ("price_desc".equals(sort)) {
+            wrapper.orderByDesc(Product::getPrice).orderByDesc(Product::getId);
+        } else if ("created_desc".equals(sort)) {
+            wrapper.orderByDesc(Product::getCreatedAt).orderByDesc(Product::getId);
+        } else {
+            wrapper.orderByAsc(Product::getSortOrder).orderByDesc(Product::getId);
+        }
         return wrapper;
     }
 

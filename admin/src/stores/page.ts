@@ -14,6 +14,7 @@ import type {
 } from '@/types/page'
 import { ComponentType as CT } from '@/types/page'
 import { getDefaultProps, getDefaultStyle } from '@/components/page-builder/componentRegistry'
+import { createWarmHomeTemplateComponents } from '@/components/page-builder/warmHomeTemplate'
 
 /** 生成唯一 ID */
 function generateId(): string {
@@ -294,6 +295,18 @@ export const usePageStore = defineStore('page', () => {
 
   /** 添加组件 */
   function addComponent(type: ComponentType, index?: number) {
+    if (type === CT.WarmHome) {
+      commitHistory()
+      const blocks = createWarmHomeTemplateComponents()
+      if (index !== undefined && index >= 0) {
+        dsl.value.components.splice(index, 0, ...blocks)
+      } else {
+        dsl.value.components.push(...blocks)
+      }
+      selectedComponentId.value = blocks[0]?.id || null
+      isDirty.value = true
+      return blocks[0]
+    }
     commitHistory()
     const comp: ComponentInstance = {
       id: generateId(),

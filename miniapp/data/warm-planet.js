@@ -20,14 +20,13 @@ const TOPICS = [
 const HOME = {
   title: '暖阁星球',
   subtitle: '内容创作者的自留地 · 由 墨白 主理',
-  memberActive: true,
+  memberActive: false,
 }
 
 const KPIS = [
   { value: '3,241', label: '球友' },
   { value: '1.2万', label: '沉淀内容' },
   { value: '27', label: '今日新增' },
-  { value: '98%', label: '问必答' },
 ]
 
 const FEED = [
@@ -77,5 +76,5 @@ module.exports = {
   HOME,
   KPIS,
   FEED,
-  EXPIRE_TEXT: '会员有效期至 2027-03-18 · 剩余 185 天 · 续费享 8 折',
+  EXPIRE_TEXT: '',
 }

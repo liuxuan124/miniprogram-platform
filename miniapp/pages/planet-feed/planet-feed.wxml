@@ -1,0 +1,42 @@
+<!-- 单星球动态列表：去看看 -->
+<view class="pfd-page">
+  <view class="pfd-hero">
+    <view class="pfd-hero__rw">
+      <text class="pfd-hero__ic">{{community.emoji || '🪐'}}</text>
+      <view class="pfd-hero__meta">
+        <text class="pfd-hero__mode {{isWandering ? 'pfd-hero__mode--wander' : ''}}">{{modeLabel || '星球动态'}}</text>
+        <text class="pfd-hero__title">{{community.title || '星球动态'}}</text>
+        <text class="pfd-hero__sb">{{community.todayLabel || community.membersLabel || community.subtitle || ''}}</text>
+      </view>
+      <view class="pfd-hero__acts">
+        <view class="pfd-hero__sw" bindtap="onSwitchPlanet">切换</view>
+        <view class="pfd-hero__home" bindtap="onGoPlanetHome">主页</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && !list.length}}" class="pfd-state">加载中…</view>
+  <view wx:elif="{{loadError && !list.length}}" class="pfd-state" bindtap="onRetry">加载失败，点此重试</view>
+  <view wx:elif="{{!list.length}}" class="pfd-state">暂无动态</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="pfd-item"
+    data-id="{{item.id}}"
+    bindtap="onOpen"
+  >
+    <view class="pfd-item__top">
+      <text class="pfd-item__author">{{item.author}}</text>
+      <text class="pfd-item__tag" wx:if="{{item.tag}}">{{item.tag}}</text>
+      <text class="pfd-item__time">{{item.time}}</text>
+    </view>
+    <text class="pfd-item__ct">{{item.content}}</text>
+    <view class="pfd-item__ft">
+      <text>❤ {{item.likes || 0}}</text>
+      <text>💬 {{item.comments || 0}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{list.length && !hasMore}}" class="pfd-end">— 没有更多了 —</view>
+</view>

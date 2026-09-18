@@ -3,8 +3,8 @@ const { resolveMediaUrl } = require('../../utils/media-url')
 const { createSharePageConfig, openWarmShareSheet } = require('../../utils/share')
 const { AuthUtil } = require('../../utils/auth')
 const { BASE_URL } = require('../../utils/request')
-const { DEMO_PLANET_POST, picsum } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
+const { DEMO_PLANET_POST } = require('../../data/warm-demo')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
 const { StorageUtil } = require('../../utils/storage')
 
 const MOMENT_LIKES_KEY = 'moment_likes'
@@ -98,7 +98,7 @@ function normalizeComments(list) {
       nick: c.nick || c.author || c.nickname || '球友',
       badge,
       isHost,
-      avatar: resolveMediaUrl(c.avatar || c.authorAvatar || '') || picsum('u' + ((i % 8) + 1), 80, 80),
+      avatar: resolveMediaUrl(c.avatar || c.authorAvatar || ''),
       text: c.text || c.content || '',
       likes: Number(c.likes || c.likeCount || 0),
       reply: c.reply || '',
@@ -113,6 +113,7 @@ function applyDemoFallback(page) {
   page.setData({
     loading: false,
     usingDemo: true,
+    loadFailed: false,
     moment: {
       id: mid,
       title: d.title,
@@ -143,11 +144,35 @@ function applyDemoFallback(page) {
   wx.setNavigationBarTitle({ title: '星球动态' })
 }
 
+function applyLoadFailed(page, reason) {
+  page.setData({
+    loading: false,
+    usingDemo: false,
+    loadFailed: true,
+    loadErrorText: reason || '动态加载失败或不存在',
+    moment: null,
+    bodyText: '',
+    images: [],
+    topics: '',
+    statsLine: '',
+    answer: null,
+    likeWall: null,
+    discussions: [],
+    displayDiscussions: [],
+    commentCount: 0,
+    likeCount: 0,
+    attachments: [],
+  })
+  wx.setNavigationBarTitle({ title: '星球动态' })
+}
+
 Page({
   ...createSharePageConfig(),
   data: {
     loading: true,
     usingDemo: false,
+    loadFailed: false,
+    loadErrorText: '',
     moment: null,
     bodyText: '',
     images: [],
@@ -174,13 +199,17 @@ Page({
     this._fromPlanet = options && options.from === 'planet'
     const wantDemo = !!(options && (options.demo === '1' || options.demo === true))
     const idStr = String(this._momentId || '')
-    if (wantDemo || (USE_LOCAL_SOURCE && !this._momentId) || idStr.indexOf('demo') === 0) {
+    const allowDemo = USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO
+    if (allowDemo && (wantDemo || !this._momentId || idStr.indexOf('demo') === 0)) {
       applyDemoFallback(this)
       return
     }
+    if (wantDemo || idStr.indexOf('demo') === 0) {
+      applyLoadFailed(this, '动态不存在')
+      return
+    }
     if (!this._momentId) {
-      this.setData({ loading: false })
-      wx.showToast({ title: '动态不存在', icon: 'none' })
+      applyLoadFailed(this, '动态不存在')
       return
     }
     this._loadDetail(this._momentId)
@@ -190,14 +219,26 @@ Page({
     const moment = this.data.moment || {}
     return {
       title: moment.title || '星球动态',
-      path: `/pages/moment-detail/moment-detail?id=${this._momentId || 'demo'}`,
+      path: this._momentId
+        ? `/pages/moment-detail/moment-detail?id=${this._momentId}`
+        : '/pages/planet/planet',
       imageUrl: this.data.images[0] || moment.cover_url || '',
     }
   },
 
+  onRetryLoad() {
+    if (!this._momentId) return
+    this.setData({ loading: true, loadFailed: false })
+    this._loadDetail(this._momentId)
+  },
+
   onShareTap() {
     const moment = this.data.moment || {}
-    const id = this._momentId || 'demo'
+    const id = this._momentId
+    if (!id || this.data.usingDemo) {
+      wx.showToast({ title: '暂不可分享', icon: 'none' })
+      return
+    }
     openWarmShareSheet({
       title: moment.title || '星球动态',
       path: `/pages/moment-detail/moment-detail?id=${id}`,
@@ -299,7 +340,7 @@ Page({
       return
     }
     let nick = '我'
-    let avatar = picsum('warmav', 80, 80)
+    let avatar = ''
     try {
       const u = AuthUtil.getUserInfo && AuthUtil.getUserInfo()
       if (u) {
@@ -460,45 +501,38 @@ Page({
       : `/api/v1/mp/contents/${id}`
     request.get(url, {}, { auth: false })
       .then((data) => {
-        if (!data || (!data.title && !data.content)) {
-          applyDemoFallback(this)
+        if (!data || (!data.title && !data.content && !data.summary)) {
+          applyLoadFailed(this, '动态不存在或已下架')
           return
         }
         if (data && data.locked && this._fromPlanet) {
-          const discussions = normalizeComments(DEMO_PLANET_POST.comments)
-          const warmAsk = /定价|99|199|差别/.test(String(data.title || ''))
-          const demo = DEMO_PLANET_POST
           this.setData({
             loading: false,
+            usingDemo: false,
+            loadFailed: false,
             moment: {
               id: data.id,
-              title: data.title || demo.title,
-              author: data.author || (warmAsk ? demo.author : '星主'),
-              authorTag: data.authorRole || data.author_role || (warmAsk ? demo.authorTag : '会员可见'),
-              author_avatar: resolveMediaUrl(data.authorAvatar || data.author_avatar || '') || demo.avatar,
-              author_initial: String(data.author || demo.author || '星').slice(0, 1),
-              time_text: String(data.publishedAt || data.updateTime || '').slice(0, 16).replace('T', ' ') || demo.time,
+              title: data.title || '',
+              author: data.author || '星主',
+              authorTag: data.authorRole || data.author_role || '会员可见',
+              author_avatar: resolveMediaUrl(data.authorAvatar || data.author_avatar || ''),
+              author_initial: String(data.author || '星').slice(0, 1),
+              time_text: String(data.publishedAt || data.updateTime || '').slice(0, 16).replace('T', ' ') || '',
               cover_url: resolveMediaUrl(data.coverImage || ''),
             },
-            // summary 门禁下正文被清空：暖阁定价帖回填原型提问，避免只剩标题
-            bodyText: warmAsk
-              ? demo.content
-              : String(data.summary || data.lockedReason || '开通会员后可查看全文'),
-            images: warmAsk ? (demo.images || []) : [],
+            bodyText: String(data.summary || data.lockedReason || '开通会员后可查看全文'),
+            images: [],
             attachments: [],
-            answer: warmAsk ? demo.answer : (data.essenceAnswer || demo.answer),
-            likeWall: warmAsk ? demo.likeWall : (data.likeWall || demo.likeWall),
-            discussions,
-            displayDiscussions: this._sortedDiscussions(
-              this._filterDiscussions(discussions, this.data.hostOnly),
-              this.data.sortBy
-            ),
-            commentCount: discussions.length,
-            likeCount: demo.answer.likes,
+            answer: data.essenceAnswer || null,
+            likeWall: data.likeWall || null,
+            discussions: [],
+            displayDiscussions: [],
+            commentCount: Number(data.commentCount || data.comment_count || 0),
+            likeCount: Number(data.likeCount || data.like_count || 0),
             liked: hasMomentId(MOMENT_LIKES_KEY, id),
             favorited: hasMomentId(MOMENT_FAVS_KEY, id),
-            topics: warmAsk ? demo.topics : '',
-            statsLine: warmAsk ? demo.stats : (data.lockedReason || '会员可见'),
+            topics: '',
+            statsLine: data.lockedReason || '会员可见',
             hostOnly: false,
           })
           return
@@ -533,47 +567,45 @@ Page({
           ? {
               bar: '⭐️ 星主回答 · 已设为精华',
               paras: split.answerParas,
-              likes: Number(data.likeCount || data.like_count || DEMO_PLANET_POST.answer.likes),
-              asks: DEMO_PLANET_POST.answer.asks,
+              likes: Number(data.likeCount || data.like_count || 0),
+              asks: '',
             }
           : null
         const viewCount = Number(data.viewCount || data.view_count || 0)
         const hasApiComments = Array.isArray(data.comments) && data.comments.length > 0
-        const rawComments = hasApiComments ? data.comments : DEMO_PLANET_POST.comments
-        const discussions = normalizeComments(rawComments)
-        const commentCount = hasApiComments
-          ? Number(data.commentCount || data.comment_count || discussions.length)
-          : Math.max(discussions.length, DEMO_PLANET_POST.comments.length)
-        const likeCount = Number(data.likeCount || data.like_count || DEMO_PLANET_POST.answer.likes)
+        const discussions = hasApiComments ? normalizeComments(data.comments) : []
+        const commentCount = Number(data.commentCount || data.comment_count || discussions.length) || 0
+        const likeCount = Number(data.likeCount || data.like_count || 0) || 0
         const tagList = Array.isArray(data.tags) ? data.tags.map((t) => String(t || '')).filter(Boolean) : []
         const askTag = tagList.find((t) => /读者提问|提问|精华|星主/.test(t))
         const topicTags = tagList.filter((t) => !/读者提问|提问|精华|星主|置顶|会员可见/.test(t))
         const topicsText = topicTags.length
           ? topicTags.map((t) => (String(t).indexOf('#') === 0 ? t : `#${t}`)).join(' ')
-          : (/定价/.test(String(data.title || data.content || ''))
-            ? DEMO_PLANET_POST.topics
-            : (tagList.length ? tagList.map((t) => (String(t).indexOf('#') === 0 ? t : `#${t}`)).join(' ') : DEMO_PLANET_POST.topics))
+          : (tagList.length ? tagList.map((t) => (String(t).indexOf('#') === 0 ? t : `#${t}`)).join(' ') : '')
+        const statsParts = []
+        if (viewCount > 0) statsParts.push(`${viewCount} 浏览`)
+        if (commentCount > 0) statsParts.push(`${commentCount} 条讨论`)
         this.setData({
           loading: false,
           usingDemo: false,
+          loadFailed: false,
           moment: {
             id: data.id,
             title: data.title || '',
             author: data.author || '球友',
             authorTag: askTag || data.authorRole || data.author_role || '星球动态',
-            author_avatar: resolveMediaUrl(data.authorAvatar || data.author_avatar || '') || DEMO_PLANET_POST.avatar,
+            author_avatar: resolveMediaUrl(data.authorAvatar || data.author_avatar || ''),
             author_initial: String(data.author || '球').slice(0, 1),
-            time_text: String(data.publishedAt || data.updateTime || data.createTime || '').slice(0, 16).replace('T', ' ')
-              || DEMO_PLANET_POST.time,
+            time_text: String(data.publishedAt || data.updateTime || data.createTime || '').slice(0, 16).replace('T', ' ') || '',
             cover_url: cover,
           },
-          bodyText: body || DEMO_PLANET_POST.content,
-          images: images.length ? images : DEMO_PLANET_POST.images,
+          bodyText: body || '',
+          images,
           attachments,
           topics: topicsText,
-          statsLine: `${viewCount || '3,124'} 浏览 · ${commentCount} 条讨论 · 收录于「资料库 · 定价」`,
-          answer: data.essenceAnswer || data.essence_answer || parsedAnswer || DEMO_PLANET_POST.answer,
-          likeWall: data.likeWall || DEMO_PLANET_POST.likeWall,
+          statsLine: statsParts.join(' · '),
+          answer: data.essenceAnswer || data.essence_answer || parsedAnswer || null,
+          likeWall: data.likeWall || null,
           discussions,
           displayDiscussions: this._sortedDiscussions(
             this._filterDiscussions(discussions, this.data.hostOnly),
@@ -588,7 +620,7 @@ Page({
         wx.setNavigationBarTitle({ title: '星球动态' })
       })
       .catch(() => {
-        applyDemoFallback(this)
+        applyLoadFailed(this, '网络异常，请稍后重试')
       })
   },
 })

@@ -36,10 +36,14 @@
       <view class="pl-hero__rw">
         <view class="pl-hero__lg">🪐</view>
         <view class="pl-hero__meta">
+          <text class="pl-hero__mode">{{planetModeLabel || '我的常驻星球'}}</text>
           <text class="pl-hero__title warm-serif">{{home.title || '暖阁星球'}}</text>
-          <text class="pl-hero__sb">{{home.subtitle || '内容创作者的自留地 · 由 墨白 主理'}}</text>
+          <text class="pl-hero__sb">{{home.subtitle || '内容创作者的自留地'}}</text>
         </view>
-        <view class="pl-hero__jn" catchtap="onHeroJoin">{{home.memberActive ? '已加入' : '加入'}}</view>
+        <view class="pl-hero__acts">
+          <view class="pl-hero__sw" catchtap="onSwitchPlanet">切换</view>
+          <view class="pl-hero__jn" catchtap="onHeroJoin">{{home.memberActive ? '已加入' : '加入'}}</view>
+        </view>
       </view>
       <view class="pl-kpi">
         <view wx:for="{{kpis}}" wx:key="label" class="pl-kpi__item">
@@ -54,11 +58,10 @@
       </view>
     </view>
 
-    <view class="pl-fc">
+    <view class="pl-fc" wx:if="{{topics.length}}">
       <view class="pl-fc__t">
         <text class="pl-fc__ic">📈</text>
-        <text class="pl-fc__h">本周星球话题预测</text>
-        <text class="warm-tag warm-tag--gold">AI 推演</text>
+        <text class="pl-fc__h">本周热门话题</text>
       </view>
       <view class="pl-fc__bar">
         <view class="pl-fc__row" wx:for="{{topics}}" wx:key="name">
@@ -67,7 +70,7 @@
           <text class="pl-fc__pct {{item.down ? 'pl-fc__pct--dn' : ''}}">{{item.pct}}</text>
         </view>
       </view>
-      <view class="pl-fc__note">基于近 30 天星球发帖、提问与互动数据推演。预计下周「AI 写作工具」将持续升温，建议提前储备相关选题。</view>
+      <view class="pl-fc__note" wx:if="{{topicsNote}}">{{topicsNote}}</view>
     </view>
 
     <scroll-view class="pl-segs" scroll-x enhanced show-scrollbar="{{false}}">
@@ -83,6 +86,10 @@
     </scroll-view>
 
     <view class="pl-feed-wrap">
+      <view wx:if="{{loading && !list.length}}" class="pl-state">加载中…</view>
+      <view wx:elif="{{loadError && !list.length}}" class="pl-state" bindtap="onRetryLoad">加载失败，点此重试</view>
+      <view wx:elif="{{!list.length}}" class="pl-state">暂无动态</view>
+      <block wx:else>
       <block wx:for="{{list}}" wx:key="uid">
         <view
           class="pl-fd {{item.top ? 'pl-fd--top' : ''}}"
@@ -168,6 +175,7 @@
           </view>
         </view>
       </block>
+      </block>
     </view>
 
     <view class="warm-end">{{footerText}}</view>
@@ -175,4 +183,5 @@
   </scroll-view>
 
   <view class="pl-fab" catchtap="onFab">🙋 提问·打卡</view>
+  <login-sheet id="global-login-sheet" />
 </view>

@@ -1,0 +1,28 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="al-page">
+  <view class="al-hd">
+    <text class="al-hd__t">暖阁出品</text>
+    <text class="al-hd__s">主理人、编辑部与特约作者</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="al-state">加载中…</view>
+  <view wx:elif="{{loadError}}" class="al-state" bindtap="onRetry">加载失败，点此重试</view>
+  <view wx:elif="{{!list.length}}" class="al-state">暂无作者</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="al-card"
+    data-id="{{item.id}}"
+    data-name="{{item.name}}"
+    bindtap="onOpen"
+  >
+    <image wx:if="{{item.avatar}}" class="al-card__av" src="{{item.avatar}}" mode="aspectFill" />
+    <view wx:else class="al-card__av al-card__av--fb">{{item.name[0]}}</view>
+    <view class="al-card__meta">
+      <text class="al-card__name">{{item.name}}</text>
+      <text class="al-card__role" wx:if="{{item.role}}">{{item.role}}</text>
+    </view>
+    <text class="al-card__go">作品 ›</text>
+  </view>
+</view>

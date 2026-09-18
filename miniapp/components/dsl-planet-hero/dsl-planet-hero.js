@@ -22,7 +22,13 @@ Component({
     kpis: warmPlanet.KPIS,
   },
   lifetimes: {
-    attached() { this._apply() },
+    attached() {
+      const layout = getNavLayout()
+      this.setData({
+        padTop: (layout.statusBarHeight || 20) + 12,
+      })
+      this._apply()
+    },
   },
   observers: {
     config() { this._apply() },
@@ -62,6 +68,9 @@ Component({
         if (Array.isArray(home.kpis) && home.kpis.length) patch.kpis = home.kpis
         this.setData(patch)
       }).catch(() => {})
+    },
+    onSwitch() {
+      wx.navigateTo({ url: '/pages/planet-list/planet-list' })
     },
     onJoin() {
       if (this.data.joinText === '已加入') {

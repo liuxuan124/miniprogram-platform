@@ -100,7 +100,7 @@ Page({
     return /内容生意手册/.test(name) || type === 'ebook'
   },
 
-  /** 暖阁虚拟确认页：对齐 prototypes-warm/order.html；pay1 保 ¥1，电子书走 DEMO_ORDER */
+  /** 暖阁虚拟确认页：只保留版式，金额与券以真实商品/已选券为准 */
   _applyWarmVirtualDefaults(items) {
     if (!items || !items.length) {
       this.setData({ showWarmVirtual: false, isPay1: false, isWarmEbook: false })
@@ -108,72 +108,34 @@ Page({
     }
     const isPay1 = this._isPay1(items)
     const isWarmEbook = this._isWarmEbook(items)
-    const { DEMO_ORDER, DEMO_PAY1 } = require('../../data/warm-demo')
     const first = items[0] || {}
-
-    // 所有暖阁数字商品：会员条 + 暖豆行（视觉对齐原型）
+    const type = String(first.productType || first.product_type || first.type || '').toLowerCase()
+    const origin = first.originalPrice || first.original_price || ''
+    const hasRealCoupon = !!(this.data.userCouponId && (this.data.couponValue || this.data.couponLabel))
     const patch = {
       showWarmVirtual: true,
       isPay1,
       isWarmEbook,
-      memberSaveText: '开通会员再买省 ¥8',
-      memberSubText: isPay1
-        ? '会员价更低 · 另解锁资料库'
-        : '会员价 ¥31 · 另解锁 128 份资料',
-      beansLabel: '2,480 豆可抵 ¥2.4',
-      beansAmount: isPay1 ? '0.00' : (DEMO_ORDER.beans || '2.40'),
-      beansOn: true,
+      memberSaveText: '',
+      memberSubText: '',
+      beansLabel: '按当前积分抵扣',
+      beansAmount: '0.00',
+      beansOn: false,
+      originalPrice: origin ? String(origin).replace(/\.0+$/, '') : '',
+      virtualSubtitle: isPay1
+        ? '虚拟商品 · 支付后立即开通 · 实付以商品价为准'
+        : (type === 'ebook' ? '虚拟商品 · 电子书' : (type === 'column' ? '虚拟商品 · 专栏' : '虚拟商品 · 数字内容')),
     }
-
-    if (isWarmEbook && !isPay1) {
-      const demoPriceNum = parseFloat(DEMO_ORDER.price) || 39
-      const demoPriceLabel = Number.isInteger(demoPriceNum) ? String(demoPriceNum) : demoPriceNum.toFixed(2)
-      const origin = first.originalPrice || first.original_price || DEMO_ORDER.original || '79'
-      Object.assign(patch, {
-        virtualSubtitle: DEMO_ORDER.subtitle || '虚拟商品 · EPUB / PDF · 12 万字',
-        originalPrice: String(origin).replace(/\.0+$/, ''),
-        couponName: this.data.couponName || '新人券',
-        couponLabel: this.data.couponLabel || '-¥5 新人券',
-        couponValue: this.data.couponValue || DEMO_ORDER.coupon || '5.00',
-        couponType: this.data.couponType || 'fixed',
-        couponAmount: DEMO_ORDER.coupon || '5.00',
-      })
-      if (items[0]) {
-        items[0].price = demoPriceLabel
-        if (!items[0].product_name && !items[0].productName && !items[0].name) {
-          items[0].name = DEMO_ORDER.productName
-        }
-        if (!items[0].quantity) items[0].quantity = 1
-      }
-    } else if (isPay1) {
-      // pay1：展示暖阁壳，金额锁定 ¥1（券/豆仅示意，不改实付）
-      const origin = first.originalPrice || first.original_price || (DEMO_PAY1 && DEMO_PAY1.original) || '9.9'
-      Object.assign(patch, {
-        virtualSubtitle: (DEMO_PAY1 && DEMO_PAY1.metaLine) || '虚拟商品 · 支付后立即开通 · 实付 ¥1',
-        originalPrice: String(origin).replace(/\.0+$/, ''),
-        couponName: this.data.couponName || '',
-        couponLabel: this.data.couponLabel || '-¥5 新人券',
-        couponValue: this.data.couponValue || '5.00',
-        couponType: this.data.couponType || 'fixed',
-        couponAmount: '0.00',
-      })
-      if (items[0]) {
-        items[0].price = '1'
-        if (!items[0].quantity) items[0].quantity = 1
-      }
-    } else {
-      // 其它虚拟：暖阁壳 + 暖豆行示意；不覆盖真实价、不伪造抵扣金额
-      const type = String(first.productType || first.product_type || first.type || '').toLowerCase()
-      Object.assign(patch, {
-        virtualSubtitle: type === 'column' ? '虚拟商品 · 专栏' : '虚拟商品 · 数字内容',
-        originalPrice: String(first.originalPrice || first.original_price || '').replace(/\.0+$/, ''),
-        beansOn: false,
-        beansAmount: '0.00',
-        beansLabel: '2,480 豆可抵 ¥2.4',
-        couponAmount: '0.00',
-      })
+    if (!hasRealCoupon) {
+      patch.couponName = this.data.couponName || ''
+      patch.couponLabel = this.data.couponLabel || ''
+      patch.couponValue = this.data.couponValue || ''
+      patch.couponAmount = '0.00'
     }
-
+    if (isPay1 && items[0]) {
+      items[0].price = '1'
+      if (!items[0].quantity) items[0].quantity = 1
+    }
     this.setData({ ...patch, items })
   },
 
@@ -248,13 +210,7 @@ Page({
     }
     const coupon = this._estimateDiscount(totalPrice)
     const beans = this.data.beansOn ? (parseFloat(this.data.beansAmount) || 0) : 0
-    let pay = Math.max(0, totalPrice - coupon - beans)
-    // 暖阁电子书演示：实付以 DEMO_ORDER.pay（¥31.60）为准
-    if (this.data.isWarmEbook && this.data.beansOn && !this.data.userCouponId) {
-      const { DEMO_ORDER } = require('../../data/warm-demo')
-      const demoPay = parseFloat(DEMO_ORDER && DEMO_ORDER.pay)
-      if (Number.isFinite(demoPay)) pay = demoPay
-    }
+    const pay = Math.max(0, totalPrice - coupon - beans)
     this.setData({
       totalPrice: totalPrice.toFixed(2),
       totalQuantity,
@@ -266,11 +222,6 @@ Page({
 
   _estimateDiscount(total) {
     if (this.data.isPay1) return 0
-    // 仅电子书演示壳：无真实券时按原型展示 -¥5
-    if (this.data.isWarmEbook && !this.data.userCouponId) {
-      const warm = parseFloat(this.data.couponValue || this.data.couponAmount || 5) || 5
-      return Math.min(warm, total)
-    }
     if (!this.data.userCouponId && !this.data.couponValue && !this.data.couponLabel) return 0
     const type = String(this.data.couponType || '').toLowerCase()
     const value = Number(this.data.couponValue)
@@ -349,9 +300,8 @@ Page({
   },
 
   onSelectCoupon() {
-    // 演示路径仅展示优惠券文案；真实券走商品详情带入的 userCouponId
-    if ((this.data.isWarmEbook || this.data.isPay1) && !this.data.userCouponId) {
-      wx.showToast({ title: this.data.isPay1 ? '体验包暂不支持用券' : '已选用新人券', icon: 'none' })
+    if (this.data.isPay1) {
+      wx.showToast({ title: '体验包暂不支持用券', icon: 'none' })
       return
     }
     wx.navigateTo({

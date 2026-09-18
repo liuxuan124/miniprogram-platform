@@ -442,7 +442,6 @@ function fallbackTemplates(): TemplateUI[] {
               { value: '3,241', label: '球友' },
               { value: '1.2万', label: '沉淀内容' },
               { value: '27', label: '今日新增' },
-              { value: '98%', label: '问必答' },
             ],
           }),
           makeComp('pt1', ComponentType.PlanetTopics, {

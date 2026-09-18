@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "我的星球",
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "usingComponents": {
+    "login-sheet": "/components/login-sheet/login-sheet"
+  }
+}

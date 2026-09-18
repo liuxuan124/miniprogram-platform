@@ -126,6 +126,17 @@ const rendererMap: Record<string, any> = {
   [ComponentType.PlanetHero]: defineAsyncComponent(() => import('./renderers/PlanetHeroRenderer.vue')),
   [ComponentType.PlanetTopics]: defineAsyncComponent(() => import('./renderers/PlanetTopicsRenderer.vue')),
   [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./renderers/PlanetFeedRenderer.vue')),
+  [ComponentType.WarmGreet]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmHome]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
+  [ComponentType.WarmDiscover]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
+  [ComponentType.WarmPlanet]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
+  [ComponentType.WarmShop]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
+  [ComponentType.WarmMine]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
 }
 
 const warnedUnknownTypes = new Set<string>()

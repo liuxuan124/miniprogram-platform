@@ -1,6 +1,7 @@
 const { StorageUtil } = require('../../utils/storage')
+const { AuthUtil } = require('../../utils/auth')
 
-const ADDRESS_LIST_KEY = 'addressList'
+const ADDRESS_LIST_BASE = 'addressList'
 const EMPTY_FORM = {
   name: '',
   phone: '',
@@ -8,6 +9,13 @@ const EMPTY_FORM = {
   city: '',
   district: '',
   detail: '',
+}
+
+function addressListKey() {
+  if (!AuthUtil.isLoggedIn()) return `${ADDRESS_LIST_BASE}_guest`
+  const info = AuthUtil.getUserInfo() || {}
+  const id = info.id || info.userId
+  return id ? `${ADDRESS_LIST_BASE}_${id}` : `${ADDRESS_LIST_BASE}_guest`
 }
 
 Page({
@@ -31,7 +39,16 @@ Page({
   },
 
   _loadList() {
-    const list = StorageUtil.get(ADDRESS_LIST_KEY) || []
+    const key = addressListKey()
+    let list = StorageUtil.get(key)
+    if ((!list || !list.length) && AuthUtil.isLoggedIn()) {
+      const legacy = StorageUtil.get(ADDRESS_LIST_BASE)
+      if (Array.isArray(legacy) && legacy.length) {
+        list = legacy
+        StorageUtil.set(key, legacy)
+        StorageUtil.remove(ADDRESS_LIST_BASE)
+      }
+    }
     this.setData({
       list: Array.isArray(list) ? list : [],
       editing: false,
@@ -40,7 +57,7 @@ Page({
   },
 
   _persist(list) {
-    StorageUtil.set(ADDRESS_LIST_KEY, list)
+    StorageUtil.set(addressListKey(), list)
     this.setData({ list })
   },
 

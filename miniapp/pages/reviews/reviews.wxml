@@ -34,6 +34,6 @@
     </view>
   </view>
 
-  <empty-state wx:if="{{!loading && records.length===0}}" title="暂无评价" desc="购买后可以来分享体验" />
+  <empty-state wx:if="{{!loading && records.length===0}}" title="{{loadError ? '评价暂时加载失败' : '暂无评价'}}" desc="{{loadError ? '请稍后重试，不展示示例评价' : '购买后可以来分享体验'}}" />
 </view>
 <login-sheet id="global-login-sheet" />

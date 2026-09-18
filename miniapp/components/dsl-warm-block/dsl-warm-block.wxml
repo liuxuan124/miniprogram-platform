@@ -1,0 +1,173 @@
+<block wx:if="{{type === 'warm_greet'}}">
+  <view class="wh-top" style="padding-top: {{warm.statusBarHeight || 20}}px;">
+    <view class="wh-greet">
+      <view class="wh-greet__person" bindtap="onGreetTap">
+        <image
+          class="wh-av"
+          src="{{avatarBroken ? '/images/default-avatar.png' : (warm.userAvatar || '/images/default-avatar.png')}}"
+          mode="aspectFill"
+          binderror="onAvatarError"
+        />
+        <view class="wh-greet__tx">
+          <text class="wh-greet__h serif">{{warm.greetTitle}}</text>
+          <text class="wh-greet__p" wx:if="{{warm.isLoggedIn}}">已连续阅读 <text class="wh-b">{{warm.streakDays}}</text> 天 · 今日更新 {{warm.todayCount}} 篇</text>
+          <text class="wh-greet__p" wx:else>今日更新 {{warm.todayCount}} 篇 · 点击登录同步记录</text>
+        </view>
+      </view>
+      <view
+        class="wh-bell"
+        wx:if="{{config.show_notice !== false}}"
+        catchtap="onNotice"
+        hover-class="wh-bell--pressed"
+        hover-stay-time="80"
+      >
+        <text class="wh-bell__ico">🔔</text>
+        <view class="wh-bell__dot" wx:if="{{warm.noticeDot}}"></view>
+      </view>
+    </view>
+    <view class="wh-search" wx:if="{{config.show_search !== false}}" bindtap="goSearch">
+      <text>🔍</text>
+      <text class="wh-search__ph">{{config.search_placeholder || '搜索文章、笔记、专栏……'}}</text>
+      <text class="wh-search__btn">搜索</text>
+    </view>
+    <view class="wh-nav" wx:if="{{config.show_nav !== false}}">
+      <view
+        wx:for="{{warm.navs}}"
+        wx:key="key"
+        class="wh-nav__item"
+        data-url="{{item.url}}"
+        data-tab="{{item.tab}}"
+        bindtap="onNav"
+      >
+        <view class="wh-nav__ic">{{item.icon}}</view>
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<block wx:elif="{{type === 'warm_authors'}}">
+  <view class="wh-hd">
+    <text class="wh-hd__t serif">{{config.title || '暖阁出品'}}</text>
+    <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '全部作者 ›'}}</text>
+  </view>
+  <scroll-view wx:if="{{warm.authors && warm.authors.length}}" class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{warm.authors}}"
+      wx:key="id"
+      class="wh-author"
+      data-apply="{{item.apply}}"
+      data-id="{{item.id}}"
+      data-name="{{item.name}}"
+      data-role="{{item.role}}"
+      bindtap="onAuthor"
+    >
+      <view wx:if="{{item.apply}}" class="wh-author__av wh-author__av--apply">＋</view>
+      <image wx:else class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
+      <text class="wh-author__n">{{item.name}}</text>
+      <text class="wh-author__r">{{item.role}}</text>
+    </view>
+  </scroll-view>
+  <view wx:else class="wh-feed-empty">暂无作者</view>
+</block>
+
+<block wx:elif="{{type === 'warm_feature'}}">
+  <view wx:if="{{warm.loadError}}" class="wh-feed-empty" bindtap="onRetry">加载失败，点此重试</view>
+  <view wx:elif="{{warm.feature}}" class="wh-feature" bindtap="onFeature">
+    <image class="wh-feature__img" src="{{warm.feature.cover}}" mode="aspectFill" />
+    <view class="wh-feature__sc"></view>
+    <view class="wh-feature__bd">
+      <text class="wh-tag soft">{{warm.feature.tag}}</text>
+      <text class="wh-feature__h serif">{{warm.feature.title}}</text>
+      <view class="wh-feature__mt">
+        <text wx:for="{{warm.feature.meta}}" wx:key="*this">{{item}}<text wx:if="{{index < warm.feature.meta.length - 1}}"> · </text></text>
+      </view>
+    </view>
+  </view>
+  <view wx:elif="{{!warm.loading}}" class="wh-feed-empty">{{config.empty_text || '暂无精选内容'}}</view>
+</block>
+
+<block wx:elif="{{type === 'warm_columns'}}">
+  <view class="wh-hd">
+    <text class="wh-hd__t serif">{{config.title || '精品专栏'}}</text>
+    <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '全部 ›'}}</text>
+  </view>
+  <scroll-view wx:if="{{warm.columns && warm.columns.length}}" class="wh-rail" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{warm.columns}}"
+      wx:key="id"
+      class="wh-col"
+      data-id="{{item.id}}"
+      data-url="{{item.url}}"
+      bindtap="onColumn"
+    >
+      <view class="wh-col__cv">
+        <image src="{{item.cover}}" mode="aspectFill" />
+        <text wx:if="{{item.badge}}" class="wh-tag {{item.badgeGold ? 'gold' : ''}} wh-col__bdg">{{item.badge}}</text>
+      </view>
+      <text class="wh-col__h">{{item.title}}</text>
+      <text class="wh-col__p">{{item.desc}}</text>
+      <view class="wh-col__pr">{{item.price}} <text wx:if="{{item.origin}}" class="wh-col__s">{{item.origin}}</text></view>
+    </view>
+  </scroll-view>
+  <view wx:else class="wh-feed-empty">暂无专栏</view>
+</block>
+
+<block wx:elif="{{type === 'warm_planet_rec'}}">
+  <view class="wh-hd">
+    <text class="wh-hd__t serif">{{config.title || '我的星球'}}</text>
+    <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '进入 ›'}}</text>
+  </view>
+  <view class="wh-planet" bindtap="goPlanet">
+    <view class="wh-planet__rw">
+      <text class="wh-planet__ic">🪐</text>
+      <text class="wh-planet__h">{{warm.planet.title}}</text>
+      <text class="wh-planet__num">{{warm.planet.members}}</text>
+    </view>
+    <view class="wh-planet__ls">
+      <view wx:for="{{warm.planet.items}}" wx:key="tag" class="wh-planet__li">
+        <text class="wh-planet__tag">{{item.tag}}</text>
+        <text class="wh-planet__tx">{{item.text}}</text>
+      </view>
+    </view>
+    <view class="wh-planet__go">{{warm.planet.cta}}</view>
+  </view>
+</block>
+
+<block wx:elif="{{type === 'warm_feed'}}">
+  <view class="wh-segs">
+    <text
+      wx:for="{{warm.segs}}"
+      wx:key="key"
+      class="wh-seg {{item.on ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSeg"
+    >{{item.label}}</text>
+  </view>
+  <view wx:if="{{!warm.feed || !warm.feed.length}}" class="wh-feed-empty">{{warm.loadError ? '内容加载失败，点上方精选可重试' : '该分类暂无内容'}}</view>
+  <block wx:for="{{warm.feed}}" wx:key="id">
+    <view wx:if="{{item.type === 'grid'}}" class="wh-three" data-url="{{item.url}}" bindtap="onNav">
+      <text class="wh-post__h">{{item.title}}</text>
+      <view class="wh-three__gg">
+        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" src="{{img}}" mode="aspectFill" />
+      </view>
+      <view class="wh-post__mt">
+        <text class="wh-tag">{{item.tag}}</text>
+        <text>{{item.meta}}</text>
+      </view>
+    </view>
+    <view wx:else class="wh-post" data-url="{{item.url}}" bindtap="onNav">
+      <view class="wh-post__tx">
+        <text class="wh-post__h">{{item.title}}</text>
+        <text class="wh-post__p">{{item.summary}}</text>
+        <view class="wh-post__mt">
+          <text class="wh-tag {{item.tagGold ? 'gold' : ''}}">{{item.tag}}</text>
+          <text>{{item.meta}}</text>
+        </view>
+      </view>
+      <image class="wh-post__im" src="{{item.cover}}" mode="aspectFill" />
+    </view>
+  </block>
+  <view class="wh-end">—— {{config.footer || '暖阁 · 慢一点，也很好'}} ——</view>
+  <view class="wh-safe"></view>
+</block>

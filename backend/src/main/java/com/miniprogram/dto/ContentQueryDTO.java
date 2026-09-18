@@ -35,9 +35,24 @@ public class ContentQueryDTO {
     /** 星球专属 0/1 */
     private Integer planetExclusive;
 
+    /** 所属星球 ID（communities.id） */
+    private String planetId;
+
     /** 审核状态 pending/machine_passed/approved/rejected/auto_blocked */
     private String auditStatus;
 
     /** 作者身份 owner/editor/contributor/user 等 */
     private String authorRole;
+
+    /** 作者名精确筛选（首页暖阁出品） */
+    private String author;
+
+    /** 排序：hot / new / vip */
+    private String sortBy;
+
+    /** 按内容 ID 精确筛选（列表接口，不走详情以免浏览量 +1） */
+    private Long id;
+
+    /** 推荐筛选：1=仅推荐 */
+    private Integer recommended;
 }

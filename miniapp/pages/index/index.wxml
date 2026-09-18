@@ -1,6 +1,5 @@
-<!-- pages/index/index.wxml — 默认暖阁原生；底栏绑了装修页则走 DSL -->
+<!-- pages/index/index.wxml — 默认暖阁原生区块；可插入通用装修组件 -->
 <page-meta page-style="{{themePageStyle}}" />
-<!-- dslPending 期间先画 DEMO 原生壳，避免空白「加载中」二次落地；DSL 就绪后再切 -->
 <block wx:if="{{dslMode && !dslPending}}">
   <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
@@ -21,148 +20,34 @@
   </block>
 </block>
 <view wx:else class="wh">
-  <view class="wh-top" style="padding-top: {{statusBarHeight + 8}}px;">
-    <view class="wh-greet">
-      <image class="wh-av" src="{{userAvatar}}" mode="aspectFill" />
-      <view class="wh-greet__tx">
-        <text class="wh-greet__h serif">{{greetTitle}}</text>
-        <text class="wh-greet__p">已连续阅读 <text class="wh-b">{{streakDays}}</text> 天 · 今日更新 {{todayCount}} 篇</text>
-      </view>
-      <view class="wh-bell" bindtap="onNotice">🔔<view class="wh-bell__dot" wx:if="{{noticeDot}}"></view></view>
-    </view>
-
-    <view class="wh-search" bindtap="goSearch">
-      <text>🔍</text>
-      <text class="wh-search__ph">搜索文章、笔记、专栏……</text>
-      <text class="wh-search__btn">搜索</text>
-    </view>
-
-    <view class="wh-nav">
-      <view
-        wx:for="{{navs}}"
-        wx:key="key"
-        class="wh-nav__item"
-        data-url="{{item.url}}"
-        data-tab="{{item.tab}}"
-        bindtap="onNav"
-      >
-        <view class="wh-nav__ic">{{item.icon}}</view>
-        <text>{{item.label}}</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="wh-hd">
-    <text class="wh-hd__t serif">暖阁出品</text>
-    <text class="wh-hd__a" data-url="/pages/content-list/content-list" bindtap="onNav">全部作者 ›</text>
-  </view>
-  <scroll-view class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{authors}}"
-      wx:key="id"
-      class="wh-author"
-      data-apply="{{item.apply}}"
-      bindtap="onAuthor"
-    >
-      <view wx:if="{{item.apply}}" class="wh-author__av wh-author__av--apply">＋</view>
-      <image wx:else class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
-      <text class="wh-author__n">{{item.name}}</text>
-      <text class="wh-author__r">{{item.role}}</text>
-    </view>
-  </scroll-view>
-
-  <view wx:if="{{loadError}}" class="wh-feed-empty" bindtap="onRetry">加载失败，点此重试</view>
-  <view wx:elif="{{feature}}" class="wh-feature" bindtap="onFeature">
-    <image class="wh-feature__img" src="{{feature.cover}}" mode="aspectFill" />
-    <view class="wh-feature__sc"></view>
-    <view class="wh-feature__bd">
-      <text class="wh-tag soft">{{feature.tag}}</text>
-      <text class="wh-feature__h serif">{{feature.title}}</text>
-      <view class="wh-feature__mt">
-        <text wx:for="{{feature.meta}}" wx:key="*this">{{item}}<text wx:if="{{index < feature.meta.length - 1}}"> · </text></text>
-      </view>
-    </view>
-  </view>
-  <view wx:elif="{{!loading}}" class="wh-feed-empty">暂无精选内容</view>
-
-  <view class="wh-hd">
-    <text class="wh-hd__t serif">精品专栏</text>
-    <text class="wh-hd__a" data-url="/pages/shop/shop" data-tab="{{true}}" bindtap="onNav">全部 ›</text>
-  </view>
-  <scroll-view class="wh-rail" scroll-x enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{columns}}"
-      wx:key="id"
-      class="wh-col"
-      data-id="{{item.id}}"
-      data-url="{{item.url}}"
-      bindtap="onColumn"
-    >
-      <view class="wh-col__cv">
-        <image src="{{item.cover}}" mode="aspectFill" />
-        <text wx:if="{{item.badge}}" class="wh-tag {{item.badgeGold ? 'gold' : ''}} wh-col__bdg">{{item.badge}}</text>
-      </view>
-      <text class="wh-col__h">{{item.title}}</text>
-      <text class="wh-col__p">{{item.desc}}</text>
-      <view class="wh-col__pr">{{item.price}} <text wx:if="{{item.origin}}" class="wh-col__s">{{item.origin}}</text></view>
-    </view>
-  </scroll-view>
-
-  <view class="wh-hd">
-    <text class="wh-hd__t serif">我的星球</text>
-    <text class="wh-hd__a" data-url="/pages/planet/planet" data-tab="{{true}}" bindtap="onNav">进入 ›</text>
-  </view>
-  <view class="wh-planet" bindtap="goPlanet">
-    <view class="wh-planet__rw">
-      <text class="wh-planet__ic">🪐</text>
-      <text class="wh-planet__h">{{planet.title}}</text>
-      <text class="wh-planet__num">{{planet.members}}</text>
-    </view>
-    <view class="wh-planet__ls">
-      <view wx:for="{{planet.items}}" wx:key="tag" class="wh-planet__li">
-        <text class="wh-planet__tag">{{item.tag}}</text>
-        <text class="wh-planet__tx">{{item.text}}</text>
-      </view>
-    </view>
-    <view class="wh-planet__go">{{planet.cta}}</view>
-  </view>
-
-  <view class="wh-segs">
-    <text
-      wx:for="{{segs}}"
-      wx:key="key"
-      class="wh-seg {{item.on ? 'on' : ''}}"
-      data-key="{{item.key}}"
-      bindtap="onSeg"
-    >{{item.label}}</text>
-  </view>
-
-  <view wx:if="{{!feed.length}}" class="wh-feed-empty">该分类暂无内容</view>
-
-  <block wx:for="{{feed}}" wx:key="id">
-    <view wx:if="{{item.type === 'grid'}}" class="wh-three" data-url="{{item.url}}" bindtap="onNav">
-      <text class="wh-post__h">{{item.title}}</text>
-      <view class="wh-three__gg">
-        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" src="{{img}}" mode="aspectFill" />
-      </view>
-      <view class="wh-post__mt">
-        <text class="wh-tag">{{item.tag}}</text>
-        <text>{{item.meta}}</text>
-      </view>
-    </view>
-    <view wx:else class="wh-post" data-url="{{item.url}}" bindtap="onNav">
-      <view class="wh-post__tx">
-        <text class="wh-post__h">{{item.title}}</text>
-        <text class="wh-post__p">{{item.summary}}</text>
-        <view class="wh-post__mt">
-          <text class="wh-tag {{item.tagGold ? 'gold' : ''}}">{{item.tag}}</text>
-          <text>{{item.meta}}</text>
-        </view>
-      </view>
-      <image class="wh-post__im" src="{{item.cover}}" mode="aspectFill" />
+  <block wx:for="{{homeBlocks}}" wx:key="id">
+    <dsl-warm-block
+      wx:if="{{item._native}}"
+      type="{{item.type}}"
+      config="{{item.props}}"
+      warm="{{warmView}}"
+      bind:greettap="onGreetTap"
+      bind:notice="onNotice"
+      bind:search="goSearch"
+      bind:nav="onNav"
+      bind:author="onAuthor"
+      bind:feature="onFeature"
+      bind:column="onColumn"
+      bind:planet="goPlanet"
+      bind:seg="onSeg"
+      bind:retry="onRetry"
+    />
+    <view wx:else class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
+      <dsl-renderer component="{{item}}" />
     </view>
   </block>
-
-  <view class="wh-end">—— 暖阁 · 慢一点，也很好 ——</view>
-  <view class="wh-safe"></view>
+  <view wx:if="{{!homeBlocks.length && loadError}}" class="wh-feed-empty" bindtap="onRetry">加载失败，点此重试</view>
+  <dsl-float-button
+    wx:for="{{floatComponents}}"
+    wx:key="id"
+    config="{{item.props}}"
+    actions="{{item.actions}}"
+    styleString="{{item.styleString}}"
+  />
+  <login-sheet id="global-login-sheet" />
 </view>

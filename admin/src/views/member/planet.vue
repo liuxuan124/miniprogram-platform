@@ -76,16 +76,85 @@
       </el-tab-pane>
 
       <el-tab-pane label="动态运营" name="ops">
-        <el-form label-width="120px">
-          <el-form-item label="成员数 KPI">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 14px"
+          title="球友=有效付费会员数；今日动态=当日发布的星球专属内容。选「自动」走真统计，选「手动」用下方填写值。"
+        />
+        <el-form label-width="140px">
+          <el-form-item label="首页卡片标题">
+            <el-input v-model="opsForm.homeCardTitle" placeholder="暖阁星球 · 内容创作者" style="max-width: 420px" />
+          </el-form-item>
+
+          <el-divider content-position="left">球友数</el-divider>
+          <el-form-item label="统计方式">
+            <el-radio-group v-model="opsForm.membersMode">
+              <el-radio-button value="auto">自动统计</el-radio-button>
+              <el-radio-button value="manual">手动填写</el-radio-button>
+            </el-radio-group>
+            <span class="hint">实时：{{ liveStats.activeMembers ?? '-' }}</span>
+          </el-form-item>
+          <el-form-item v-if="opsForm.membersMode === 'manual'" label="球友数">
             <el-input v-model="opsForm.kpiMembers" placeholder="3241" style="width: 200px" />
           </el-form-item>
-          <el-form-item label="沉淀内容 KPI">
+          <el-form-item label="文案模板">
+            <el-input v-model="opsForm.membersTemplate" placeholder="{n} 位球友" style="max-width: 420px" />
+          </el-form-item>
+
+          <el-divider content-position="left">今日新动态</el-divider>
+          <el-form-item label="统计方式">
+            <el-radio-group v-model="opsForm.todayMode">
+              <el-radio-button value="auto">自动统计</el-radio-button>
+              <el-radio-button value="manual">手动填写</el-radio-button>
+            </el-radio-group>
+            <span class="hint">实时：{{ liveStats.todayPosts ?? '-' }}</span>
+          </el-form-item>
+          <el-form-item v-if="opsForm.todayMode === 'manual'" label="今日条数">
+            <el-input v-model="opsForm.kpiTodayFeed" placeholder="27" style="width: 200px" />
+          </el-form-item>
+          <el-form-item label="CTA 模板">
+            <el-input v-model="opsForm.ctaTemplate" placeholder="今日 {n} 条新动态 · 去看看" style="max-width: 420px" />
+          </el-form-item>
+
+          <el-divider content-position="left">沉淀内容 KPI</el-divider>
+          <el-form-item label="统计方式">
+            <el-radio-group v-model="opsForm.postsMode">
+              <el-radio-button value="auto">自动统计</el-radio-button>
+              <el-radio-button value="manual">手动填写</el-radio-button>
+            </el-radio-group>
+            <span class="hint">实时：{{ liveStats.planetPosts ?? '-' }}</span>
+          </el-form-item>
+          <el-form-item v-if="opsForm.postsMode === 'manual'" label="沉淀内容">
             <el-input v-model="opsForm.kpiPosts" placeholder="128" style="width: 200px" />
           </el-form-item>
-          <el-form-item label="今日提问 KPI">
-            <el-input v-model="opsForm.kpiQuestions" placeholder="27" style="width: 200px" />
+
+          <el-divider content-position="left">首页三条话题</el-divider>
+          <el-form-item label="来源">
+            <el-radio-group v-model="opsForm.itemsMode">
+              <el-radio-button value="auto">自动选取</el-radio-button>
+              <el-radio-button value="manual">手动配置</el-radio-button>
+            </el-radio-group>
           </el-form-item>
+          <el-form-item v-if="opsForm.itemsMode === 'auto'" label="预览">
+            <div class="live-items">
+              <div v-for="(it, idx) in (liveStats.homeItems || [])" :key="idx" class="live-item">
+                <el-tag size="small">{{ it.tag }}</el-tag>
+                <span>{{ it.text }}</span>
+              </div>
+              <span v-if="!(liveStats.homeItems || []).length" class="hint">暂无星球专属内容，请在内容管理发布并勾选星球专属</span>
+            </div>
+          </el-form-item>
+          <template v-if="opsForm.itemsMode === 'manual'">
+            <el-form-item v-for="(it, idx) in opsForm.homeItems" :key="idx" :label="'条目 ' + (idx + 1)">
+              <div class="topic-row">
+                <el-input v-model="it.tag" placeholder="标签" style="width: 100px" />
+                <el-input v-model="it.text" placeholder="标题文案" style="width: 360px" />
+              </div>
+            </el-form-item>
+          </template>
+
           <el-form-item label="打卡入口">
             <el-switch v-model="opsForm.checkInEnabled" active-text="展示" inactive-text="隐藏" />
           </el-form-item>
@@ -98,7 +167,7 @@
       </el-tab-pane>
 
       <el-tab-pane label="话题预测" name="topics">
-        <p class="hint" style="margin-bottom: 12px">发布到小程序星球页「本周话题预测」模块（与装修组件 planet_topics 一致）。</p>
+        <p class="hint" style="margin-bottom: 12px">小程序优先展示真实「本周热门话题」（标签互动热度 Top4）。此处手工配置仅作无真实数据时的兜底；有真实数据时会被覆盖。</p>
         <el-form label-width="100px">
           <el-form-item label="模块标题">
             <el-input v-model="topicsForm.title" maxlength="40" />
@@ -175,11 +244,31 @@ const topicsForm = reactive({
 })
 
 const opsForm = reactive({
+  homeCardTitle: '暖阁星球 · 内容创作者',
+  membersMode: 'auto',
+  todayMode: 'auto',
+  postsMode: 'auto',
+  itemsMode: 'auto',
   kpiMembers: '3241',
   kpiPosts: '128',
+  kpiTodayFeed: '27',
   kpiQuestions: '27',
+  membersTemplate: '{n} 位球友',
+  ctaTemplate: '今日 {n} 条新动态 · 去看看',
+  homeItems: [
+    { tag: '热议', text: '' },
+    { tag: '精华', text: '' },
+    { tag: '提问', text: '' },
+  ] as Array<{ tag: string; text: string }>,
   checkInEnabled: true,
 })
+
+const liveStats = reactive<{
+  activeMembers?: number
+  todayPosts?: number
+  planetPosts?: number
+  homeItems?: Array<{ tag?: string; text?: string }>
+}>({})
 
 const featureModules = useFeatureModulesStore()
 
@@ -227,10 +316,32 @@ async function load() {
       if (typeof data.enabled === 'boolean') moduleEnabled.value = data.enabled
       const ops = data.ops as any
       if (ops && typeof ops === 'object') {
+        opsForm.homeCardTitle = ops.homeCardTitle || opsForm.homeCardTitle
+        opsForm.membersMode = ops.membersMode === 'manual' ? 'manual' : 'auto'
+        opsForm.todayMode = ops.todayMode === 'manual' ? 'manual' : 'auto'
+        opsForm.postsMode = ops.postsMode === 'manual' ? 'manual' : 'auto'
+        opsForm.itemsMode = ops.itemsMode === 'manual' ? 'manual' : 'auto'
         opsForm.kpiMembers = ops.kpiMembers || opsForm.kpiMembers
         opsForm.kpiPosts = ops.kpiPosts || opsForm.kpiPosts
+        opsForm.kpiTodayFeed = ops.kpiTodayFeed || ops.kpiQuestions || opsForm.kpiTodayFeed
         opsForm.kpiQuestions = ops.kpiQuestions || opsForm.kpiQuestions
+        opsForm.membersTemplate = ops.membersTemplate || opsForm.membersTemplate
+        opsForm.ctaTemplate = ops.ctaTemplate || opsForm.ctaTemplate
+        if (Array.isArray(ops.homeItems) && ops.homeItems.length) {
+          opsForm.homeItems = ops.homeItems.map((it: any) => ({
+            tag: it.tag || '',
+            text: it.text || '',
+          }))
+          while (opsForm.homeItems.length < 3) {
+            opsForm.homeItems.push({ tag: '', text: '' })
+          }
+        }
         opsForm.checkInEnabled = ops.checkInEnabled !== false
+        const live = ops.liveStats || {}
+        liveStats.activeMembers = live.activeMembers
+        liveStats.todayPosts = live.todayPosts
+        liveStats.planetPosts = live.planetPosts
+        liveStats.homeItems = Array.isArray(live.homeItems) ? live.homeItems : []
       }
     }
     await loadLevels()
@@ -244,8 +355,13 @@ async function load() {
 async function handleSave() {
   saving.value = true
   try {
-    await put('/api/v1/admin/planet/config', { ...form, topics: { ...topicsForm }, ops: { ...opsForm } })
+    const opsPayload = {
+      ...opsForm,
+      kpiQuestions: opsForm.kpiTodayFeed || opsForm.kpiQuestions,
+    }
+    await put('/api/v1/admin/planet/config', { ...form, topics: { ...topicsForm }, ops: opsPayload })
     ElMessage.success('已保存')
+    await load()
   } catch (e: any) {
     ElMessage.error(e?.message || '保存失败')
   } finally {
@@ -286,4 +402,6 @@ onMounted(load)
 }
 .toolbar-desc { color: #909399; font-size: 13px; }
 .topic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.live-items { display: flex; flex-direction: column; gap: 8px; }
+.live-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #606266; }
 </style>

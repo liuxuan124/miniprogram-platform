@@ -11,6 +11,10 @@ const {
   DEFAULT_MINIAPP_BRAND_CONFIG,
   normalizeBrandConfig,
 } = require('../../utils/brand-config')
+const {
+  DEFAULT_BRAND_LOGO,
+  resolveDisplayLogoUrl,
+} = require('../../utils/image-fallback')
 
 Page({
   data: {
@@ -25,7 +29,7 @@ Page({
     showPrivacyPopup: false,
     brandName: DEFAULT_MINIAPP_BRAND_CONFIG.appName,
     brandMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
-    brandLogoUrl: '',
+    brandLogoUrl: DEFAULT_BRAND_LOGO,
     brandEyebrow: DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow,
   },
 
@@ -68,7 +72,7 @@ Page({
       this.setData({
         brandName: brand.appName,
         brandMark: brand.logoMark,
-        brandLogoUrl: brand.logoUrl,
+        brandLogoUrl: resolveDisplayLogoUrl(brand.logoUrl) || DEFAULT_BRAND_LOGO,
         brandEyebrow: brand.brandEyebrow,
       })
     } catch (e) {
@@ -84,6 +88,15 @@ Page({
   },
 
   noop() {},
+
+  onBrandLogoError() {
+    const current = String(this.data.brandLogoUrl || '')
+    if (current && current !== DEFAULT_BRAND_LOGO) {
+      this.setData({ brandLogoUrl: DEFAULT_BRAND_LOGO })
+      return
+    }
+    this.setData({ brandLogoUrl: '' })
+  },
 
   _ensurePrivacyReady() {
     if (typeof wx.getPrivacySetting !== 'function') return

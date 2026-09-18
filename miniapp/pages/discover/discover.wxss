@@ -130,10 +130,22 @@
   height: 0;
 }
 
+.dc-feed {
+  padding: 4rpx 24rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.dc-row--full > .dc-card {
+  width: 100%;
+}
+
+/* 瀑布流左右列（相对高度填短列，奇数张不会空半边） */
 .dc-wf {
   display: flex;
   gap: 18rpx;
-  padding: 4rpx 24rpx 0;
+  align-items: flex-start;
 }
 
 .dc-col {
@@ -164,6 +176,18 @@
 .dc-card__cv--mid { padding-top: 116%; }
 .dc-card__cv--sq { padding-top: 100%; }
 .dc-card__cv--wide { padding-top: 76.667%; }
+/* 笔记固定 3:4（宽:高）；瀑布流半列宽度下高度可控 */
+.dc-card__cv--note { padding-top: 133.333%; }
+/* 落单紧凑通栏：矮封面，避免竖图占满屏 */
+.dc-row--compact > .dc-card .dc-card__cv,
+.dc-row--compact > .dc-card .dc-card__cv--note,
+.dc-row--compact > .dc-card .dc-card__cv--tall,
+.dc-row--compact > .dc-card .dc-card__cv--mid,
+.dc-row--compact > .dc-card .dc-card__cv--sq,
+.dc-row--compact > .dc-card .dc-card__cv--wide,
+.dc-row--compact > .dc-card .dc-card__cv--goods-wide {
+  padding-top: 56%;
+}
 
 .dc-card__cover {
   position: absolute;
@@ -173,6 +197,22 @@
   height: 100%;
   display: block;
   background: var(--sheet-2);
+}
+
+/* 笔记卡：标题最多两行，底栏高度固定，列宽一致下视觉更齐 */
+.dc-card:not(.dc-card--article):not(.dc-card--goods) .dc-card__title {
+  min-height: calc(1.45em * 2);
+  -webkit-line-clamp: 2;
+}
+.dc-card:not(.dc-card--article):not(.dc-card--goods) .dc-card__ft {
+  min-height: 34rpx;
+}
+.dc-card--txt .dc-card__quote {
+  min-height: calc(1.6em * 3);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .dc-card__pill,
@@ -257,6 +297,283 @@
 }
 
 .dc-card__lk {
+  color: var(--brand);
+  font-weight: 650;
+}
+
+/* 长文：杂志感宽封面 + 衬线标题 + 摘要 */
+.dc-card--article {
+  box-shadow: 0 10rpx 28rpx rgba(120, 70, 30, 0.06);
+}
+.dc-card--article .dc-card__cv--wide {
+  padding-top: 62%;
+}
+.dc-card__pill--article {
+  background: rgba(180, 90, 30, 0.88);
+  letter-spacing: 0.04em;
+}
+.dc-card__kicker {
+  display: block;
+  margin-bottom: 8rpx;
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+.dc-card__title--serif {
+  font-family: "Songti SC", "Noto Serif SC", "PingFang SC", serif;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  -webkit-line-clamp: 3;
+}
+.dc-card__sum {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--mute);
+}
+.dc-card--article .dc-card__ft {
+  margin-top: 16rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid rgba(220, 190, 150, 0.45);
+}
+
+/* 通栏 hero：真正占满一行（偏横，避免竖图接近整屏） */
+.dc-row--full .dc-card--hero .dc-card__cv--hero {
+  padding-top: 48%;
+}
+.dc-card--hero .dc-card__cv--hero {
+  padding-top: 56%;
+}
+.dc-row--full .dc-card--hero .dc-card__title--serif {
+  font-size: 38rpx;
+  -webkit-line-clamp: 3;
+}
+.dc-card--hero .dc-card__title--serif {
+  font-size: 32rpx;
+  line-height: 1.35;
+  -webkit-line-clamp: 3;
+  letter-spacing: 0.01em;
+}
+.dc-card--hero .dc-card__kicker {
+  font-size: 20rpx;
+  margin-bottom: 12rpx;
+}
+.dc-card--hero .dc-card__bd {
+  padding: 22rpx 24rpx 24rpx;
+}
+.dc-row--full .dc-card--quote .dc-card__quote {
+  font-size: 34rpx;
+}
+/* 好物长文式（若仍落通栏）：封面强制偏横 */
+.dc-row--full .dc-card--article .dc-card__cv--note,
+.dc-row--full .dc-card--article .dc-card__cv--tall,
+.dc-row--full .dc-card--article .dc-card__cv--mid {
+  padding-top: 56%;
+}
+
+/* 长文 row：通栏杂志横排（对齐原型 list 横条，约 4:3 封面内嵌） */
+.dc-card--row {
+  overflow: visible;
+  background: var(--sheet);
+  box-shadow: 0 10rpx 28rpx rgba(120, 70, 30, 0.06);
+}
+.dc-card__row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 22rpx;
+  padding: 22rpx 24rpx;
+  min-height: 0;
+  box-sizing: border-box;
+}
+.dc-card__cv--row {
+  position: relative;
+  width: 200rpx;
+  height: 152rpx;
+  flex: none;
+  padding-top: 0;
+  min-height: 0;
+  align-self: center;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: var(--sheet-2);
+}
+.dc-card__bd--row {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+.dc-card--row .dc-card__cv--row .dc-card__pill {
+  left: 10rpx;
+  top: 10rpx;
+  padding: 2rpx 10rpx;
+  font-size: 16rpx;
+  border-radius: 10rpx;
+}
+.dc-card--row .dc-card__title--serif {
+  font-size: 30rpx;
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+  -webkit-line-clamp: 2;
+}
+.dc-card--row .dc-card__sum {
+  -webkit-line-clamp: 2;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--ink-2, #8a6a4a);
+}
+.dc-card--row .dc-card__ft {
+  margin-top: 14rpx;
+  padding-top: 0;
+  border-top: none;
+  min-height: 0;
+}
+.dc-card--row .dc-card__av,
+.dc-card--row .dc-card__av--fb {
+  width: 28rpx;
+  height: 28rpx;
+}
+.dc-card--row .dc-card__nm {
+  font-size: 20rpx;
+}
+.dc-card--row .dc-card__lk {
+  font-size: 20rpx;
+}
+
+/* 长文 quote：无封面衬线摘录 */
+.dc-card--quote.dc-card--txt .dc-card__bd,
+.dc-card--article.dc-card--quote .dc-card__bd {
+  padding: 32rpx 26rpx 26rpx;
+  background: linear-gradient(155deg, #f8e8d4 0%, #fff8ef 48%, #fdeedb 100%);
+}
+.dc-card--quote .dc-card__quote {
+  font-size: 30rpx;
+  line-height: 1.68;
+  font-weight: 650;
+  min-height: calc(1.68em * 3);
+  -webkit-line-clamp: 5;
+}
+.dc-card--quote .dc-card__kicker {
+  margin-bottom: 14rpx;
+}
+
+/* 好物：方图 + 价格主导（双列商城感） */
+.dc-card__cv--goods-wide {
+  padding-top: 72%;
+}
+.dc-card--goods {
+  border: 1rpx solid rgba(232, 210, 180, 0.7);
+  box-shadow: none;
+}
+.dc-card--goods .dc-card__bd {
+  padding: 14rpx 14rpx 16rpx;
+}
+.dc-card--goods .dc-card__title {
+  font-size: 24rpx;
+  line-height: 1.4;
+  min-height: calc(1.4em * 2);
+  -webkit-line-clamp: 2;
+  font-weight: 700;
+}
+.dc-card__pill--goods {
+  background: rgba(40, 18, 6, 0.62);
+  font-weight: 650;
+}
+.dc-card__price-chip {
+  position: absolute;
+  left: 12rpx;
+  bottom: 12rpx;
+  z-index: 2;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 248, 239, 0.94);
+  color: var(--brand);
+  font-size: 22rpx;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+  box-shadow: 0 4rpx 12rpx rgba(140, 80, 30, 0.12);
+}
+.dc-card__price-row {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+.dc-card__price {
+  font-size: 28rpx;
+  font-weight: 780;
+  color: var(--brand);
+  letter-spacing: -0.02em;
+}
+.dc-card__origin {
+  font-size: 18rpx;
+  color: var(--mute);
+  text-decoration: line-through;
+}
+.dc-card__sales {
+  margin-left: auto;
+  font-size: 18rpx;
+  color: var(--mute);
+}
+
+/* 好物编辑式：短横封面双列 */
+.dc-card--goods-ed {
+  border: 1rpx solid rgba(232, 210, 180, 0.65);
+  box-shadow: none;
+  background: linear-gradient(180deg, var(--sheet) 0%, #fffaf4 100%);
+}
+.dc-card--goods-ed .dc-card__bd {
+  padding: 12rpx 14rpx 14rpx;
+}
+.dc-card--goods-ed .dc-card__title {
+  font-size: 24rpx;
+  line-height: 1.4;
+  font-weight: 720;
+  min-height: calc(1.4em * 2);
+  -webkit-line-clamp: 2;
+}
+.dc-card__sum--goods {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--mute);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+.dc-card--goods-ed .dc-card__price-row {
+  margin-top: 8rpx;
+  padding-top: 8rpx;
+  border-top: 1rpx solid rgba(232, 210, 180, 0.55);
+}
+
+/* 好物周边 note 版：压矮竖图 + 价格角标 */
+.dc-card--goods-note {
+  border: 1rpx solid rgba(232, 210, 180, 0.55);
+  box-shadow: none;
+}
+.dc-card--goods-note .dc-card__cv,
+.dc-card--goods-note .dc-card__cv--note,
+.dc-card--goods-note .dc-card__cv--tall {
+  padding-top: 110%;
+}
+.dc-card--goods-note .dc-card__title {
+  font-size: 24rpx;
+  min-height: calc(1.4em * 2);
+}
+.dc-card--goods-note .dc-card__lk {
   color: var(--brand);
   font-weight: 650;
 }
