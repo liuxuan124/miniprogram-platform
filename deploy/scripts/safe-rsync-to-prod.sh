@@ -9,6 +9,7 @@ DEST="${DEPLOY_PATH:-/opt/miniprogram-platform}"
 RSYNC_COMMON=(
   -az
   --exclude 'target/'
+  --exclude 'app.jar'
   --exclude 'uploads/'
   --exclude '**/uploads/'
   --exclude 'node_modules/'
