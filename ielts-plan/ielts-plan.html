@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>雅思 7.0+ 备考计划</title>
+<style>
+:root{
+  --bg:#E8EEF6; --card:#FFFFFF;
+  --line:rgba(15,76,129,.10); --line2:rgba(15,76,129,.18);
+  --t1:#0F1C2E; --t2:#4A5D73; --t3:#7A8BA0;
+  --accent:#0891B2; --accent2:#0284C7;
+  --b50:#E0F7FA; --b600:#0891B2; --b800:#0E7490; --b900:#164E63; --b400:#22D3EE;
+  --t50:#CCFBF1; --t600:#0D9488; --t800:#115E59;
+  --a50:#E0F2FE; --a800:#075985;
+  --glow:0 1px 2px rgba(15,76,129,.04), 0 8px 24px rgba(15,76,129,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-style:normal !important}
+html{color-scheme:light;-webkit-text-size-adjust:100%}
+body{
+  font-family:"Microsoft YaHei","微软雅黑",sans-serif;
+  background:var(--bg);color:var(--t1);font-size:14px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;min-height:100vh;position:relative;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(900px 480px at 10% -5%, rgba(8,145,178,.10), transparent 55%),
+    linear-gradient(180deg, #F2F6FB 0%, #E8EEF6 100%);
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;
+  background-image:
+    linear-gradient(rgba(2,132,199,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(2,132,199,.04) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 25%, #000 25%, transparent 78%);
+}
+.wrap,nav,main,header,footer{position:relative;z-index:1}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
+
+header{padding:28px 0 14px}
+h1{font-size:22px;font-weight:600;margin-bottom:6px}
+.sub{color:var(--t2);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 11px;font-size:12px;color:var(--t2);box-shadow:var(--glow)}
+.chip b{color:var(--accent);font-weight:600}
+
+nav{position:sticky;top:0;z-index:20;background:rgba(242,246,251,.94);border-bottom:1px solid var(--line);margin-bottom:20px;backdrop-filter:blur(12px)}
+nav .inner{max-width:900px;margin:0 auto;padding:0 8px;display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+nav .inner::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;background:none;border:none;padding:13px 11px;font-size:13px;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap}
+nav button:hover{color:var(--t1)}
+nav button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+.page{display:none;padding-bottom:40px}
+.page.on{display:block}
+
+h2{font-size:16px;font-weight:600;margin:24px 0 12px}
+h2:first-child{margin-top:0}
+h2 .n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;background:var(--b50);color:var(--b800);border:1px solid rgba(8,145,178,.2);border-radius:6px;font-size:12px;margin-right:8px;vertical-align:1px;font-weight:600}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+p{color:var(--t2);font-size:13px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--glow)}
+.grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.g4{grid-template-columns:repeat(2,1fr)}
+
+.alert{border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7}
+.alert.ok{background:var(--t50);color:var(--t800);border:1px solid rgba(13,148,136,.22)}
+.alert.info{background:var(--b50);color:var(--b900);border:1px solid rgba(8,145,178,.22)}
+
+.metric{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--glow)}
+.metric .lbl{font-size:12px;color:var(--t3);margin-bottom:4px}
+.metric .val{font-size:20px;font-weight:600;color:var(--accent2)}
+.metric .val small{font-size:12px;font-weight:400;color:var(--t3);margin-left:3px}
+
+/* 桌面表格 */
+.tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--glow)}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#F0F6FB;font-weight:600;font-size:12px;color:var(--t3)}
+tr:last-child td{border-bottom:none}
+td.n{color:var(--t2);white-space:nowrap}
+
+/* 节奏表：桌面给「内容」更多宽度 */
+table.rhythm{table-layout:fixed}
+table.rhythm th:nth-child(1),table.rhythm td:nth-child(1){width:18%}
+table.rhythm th:nth-child(2),table.rhythm td:nth-child(2){width:26%}
+table.rhythm th:nth-child(3),table.rhythm td:nth-child(3){width:20%}
+table.rhythm th:nth-child(4),table.rhythm td:nth-child(4){width:36%}
+table.rhythm td:nth-child(4){white-space:normal;word-break:break-word}
+
+.phase{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--glow)}
+.phase .dot{flex:0 0 10px;width:10px;height:10px;border-radius:50%;margin-top:7px}
+.phase .body{flex:1;min-width:0}
+.phase .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.phase .name{font-size:14px;font-weight:600}
+.phase .score{font-size:12px;font-weight:600;padding:2px 9px;border-radius:6px;background:var(--b50);color:var(--b800);border:1px solid rgba(8,145,178,.18)}
+.phase .desc{font-size:13px;color:var(--t2);margin-top:3px}
+.phase.key{border-color:rgba(13,148,136,.35)}
+.phase.key .score{background:var(--t50);color:var(--t800)}
+
+.bar{height:6px;background:rgba(2,132,199,.10);border-radius:999px;overflow:hidden;margin:10px 0 6px}
+.bar .fill{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#0284C7,#0891B2,#22D3EE);transition:width .3s}
+.bar.teal .fill{background:linear-gradient(90deg,#0F766E,#14B8A6,#2DD4BF)}
+.bartext{font-size:12px;color:var(--t3);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+.task{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.task:last-child{border-bottom:none}
+.task input{appearance:none;flex:0 0 16px;width:16px;height:16px;border:1.5px solid var(--line2);border-radius:4px;margin-top:3px;cursor:pointer;position:relative;background:#fff}
+.task input:checked{background:var(--b600);border-color:var(--b600)}
+.task input:checked::after{content:"";position:absolute;left:4.5px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.task span{font-size:13px;color:var(--t2);word-break:break-word}
+.task input:checked+span{color:var(--t3);text-decoration:line-through}
+
+.blockhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+.blockhead .bn{font-size:13px;font-weight:600}
+.blockhead .bt{font-size:12px;color:var(--t3);white-space:nowrap}
+
+.modes{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.modes button{font-family:inherit;font-size:13px;padding:8px 14px;border-radius:10px;border:1px solid var(--line2);background:#fff;color:var(--t2);cursor:pointer;box-shadow:var(--glow)}
+.modes button.on{background:linear-gradient(135deg,#0891B2,#0284C7);border-color:transparent;color:#fff}
+
+.slider{width:100%;margin:12px 0 6px;accent-color:var(--accent)}
+.calcrow{display:flex;justify-content:space-between;font-size:12px;color:var(--t3)}
+
+.cal{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--glow)}
+.calhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.calhead .m{font-size:14px;font-weight:600}
+.calhead button{font-family:inherit;background:#fff;border:1px solid var(--line2);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--t2);font-size:16px}
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.grid7 .dow{text-align:center;font-size:11px;color:var(--t3);padding:4px 0}
+.day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;border:1px solid transparent}
+.day:hover{background:rgba(8,145,178,.08)}
+.day.empty{cursor:default;opacity:.25}
+.day.done{background:linear-gradient(145deg,#0D9488,#14B8A6);color:#fff;font-weight:600}
+.day.today{border-color:var(--accent);border-width:1.5px}
+.day.future{opacity:.38}
+
+ul.tight{padding-left:18px}
+ul.tight li{margin:5px 0;font-size:13px;color:var(--t2)}
+ul.tight li b{color:var(--t1);font-weight:600}
+
+code{font-family:inherit;font-size:12px;background:var(--b50);padding:1px 6px;border-radius:4px;color:var(--b800);border:1px solid rgba(8,145,178,.18)}
+.btn{font-family:inherit;font-size:12px;padding:7px 12px;border-radius:8px;border:1px solid var(--line2);background:#fff;color:var(--t2);cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+footer{margin-top:36px;padding:16px 0 28px;border-top:1px solid var(--line);font-size:12px;color:var(--t3);text-align:center}
+input[type="date"]{font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;color:var(--t1);background:#fff}
+
+/* —— iPhone / 窄屏：表格改为卡片行，避免右栏挤扁 —— */
+@media(max-width:520px){
+  .wrap{padding:0 12px}
+  h1{font-size:20px}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .metric .val{font-size:18px}
+  th,td{padding:8px 10px}
+
+  /* 宽表：每行变成一张小卡片 */
+  table.stack,
+  table.rhythm{
+    border:none;background:transparent;box-shadow:none;border-radius:0;
+  }
+  table.stack thead,
+  table.rhythm thead{display:none}
+  table.stack tbody,
+  table.rhythm tbody{display:block}
+  table.stack tr,
+  table.rhythm tr{
+    display:block;background:#fff;border:1px solid var(--line);border-radius:12px;
+    margin-bottom:10px;padding:10px 12px;box-shadow:var(--glow);
+  }
+  table.stack td,
+  table.rhythm td{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+    border:none;padding:6px 0;width:auto !important;white-space:normal;
+  }
+  table.stack td+td,
+  table.rhythm td+td{border-top:1px solid var(--line)}
+  table.stack td::before,
+  table.rhythm td::before{
+    content:attr(data-label);
+    flex:0 0 auto;max-width:36%;
+    color:var(--t3);font-size:12px;font-weight:600;line-height:1.5;
+  }
+  table.stack td .cell,
+  table.rhythm td .cell{
+    flex:1;text-align:right;color:var(--t1);font-size:13px;line-height:1.5;word-break:break-word;
+  }
+  table.rhythm td:first-child .cell{font-weight:600;color:var(--accent2)}
+
+  /* 两列表保持正常，但允许换行 */
+  table.simple td.n{white-space:normal}
+}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1>雅思 7.0+ 备考计划</h1>
+  <p class="sub">每天 1–2 小时 · 机考 · 墨墨词汇真经</p>
+  <div class="chips">
+    <span class="chip">目标 <b>总分 7.0+</b></span>
+    <span class="chip">周期 <b>12–15 个月</b></span>
+    <span class="chip">词汇 <b>3693 词</b></span>
+    <span class="chip">每周 <b>4+2+1</b></span>
+  </div>
+</header>
+
+<nav>
+  <div class="inner">
+    <button class="on" data-p="overview">总览</button>
+    <button data-p="roadmap">路线</button>
+    <button data-p="vocab">词汇方案</button>
+    <button data-p="daily">每日任务</button>
+    <button data-p="weekly">每周任务</button>
+    <button data-p="monthly">每月任务</button>
+    <button data-p="checkin">打卡记录</button>
+    <button data-p="resources">资源与教材</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section class="page on" id="page-overview">
+  <h2><span class="n">1</span>进度总览</h2>
+  <div class="grid g3">
+    <div class="metric"><div class="lbl">当前水平</div><div class="val">未知<small>待摸底</small></div></div>
+    <div class="metric"><div class="lbl">目标分数</div><div class="val">7.0+</div></div>
+    <div class="metric"><div class="lbl">词汇进度</div><div class="val" id="ovVocab">0<small>/3693</small></div></div>
+    <div class="metric"><div class="lbl">连续打卡</div><div class="val" id="ovStreak">0<small>天</small></div></div>
+  </div>
+
+  <h2><span class="n">2</span>启动清单</h2>
+  <div class="card">
+    <div class="task"><input type="checkbox" id="s1"><span>墨墨：新学上限 15→20，每日学习量 50→70</span></div>
+    <div class="task"><input type="checkbox" id="s2"><span>完成 EF SET（efset.org）</span></div>
+    <div class="task"><input type="checkbox" id="s3"><span>剑 18/19 一套限时自测，记四科分</span></div>
+    <div class="task"><input type="checkbox" id="s4"><span>确认目标总分 7.0+</span></div>
+  </div>
+
+  <h2><span class="n">3</span>摸底后分轨</h2>
+  <div class="tbl-wrap">
+  <table class="stack">
+    <thead><tr><th>摸底总分</th><th>怎么走</th></tr></thead>
+    <tbody>
+      <tr><td data-label="摸底总分"><span class="cell">≤5.0</span></td><td data-label="怎么走"><span class="cell">地基 4–5 月，约 15 个月</span></td></tr>
+      <tr><td data-label="摸底总分"><span class="cell">约 5.5</span></td><td data-label="怎么走"><span class="cell">按默认节奏 12–14 个月</span></td></tr>
+      <tr><td data-label="摸底总分"><span class="cell">≥6.0</span></td><td data-label="怎么走"><span class="cell">地基压到 4–6 周</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="page" id="page-roadmap">
+  <h2><span class="n">1</span>阶段路线</h2>
+  <div class="phase"><span class="dot" style="background:var(--b400)"></span><div class="body"><div class="top"><span class="name">摸底 · 第 1 周</span><span class="score">定基线</span></div><div class="desc">EF SET + 剑 18/19 一套；改墨墨；选轨。</div></div></div>
+  <div class="phase"><span class="dot" style="background:var(--b400)"></span><div class="body"><div class="top"><span class="name">地基期 · 第 1–3 月</span><span class="score">5.5–6.0</span></div><div class="desc">墨墨 + 精听 + 语法；第 2 周起每周短写。</div></div></div>
+  <div class="phase"><span class="dot" style="background:var(--b600)"></span><div class="body"><div class="top"><span class="name">技巧期 · 第 4–7 月</span><span class="score">6.0–6.5</span></div><div class="desc">分题型阅读；听力到 S3–4；作文+口语。</div></div></div>
+  <div class="phase"><span class="dot" style="background:var(--b800)"></span><div class="body"><div class="top"><span class="name">强化期 · 第 8–11 月</span><span class="score">6.5–7.0</span></div><div class="desc">剑 18–21 每周一套模考；机考模拟每月 1 次。</div></div></div>
+  <div class="phase key"><span class="dot" style="background:var(--t600)"></span><div class="body"><div class="top"><span class="name">冲刺报考 · 第 12 月起</span><span class="score">7.0+</span></div><div class="desc">模考连续达标再报名；可单科重考。</div></div></div>
+
+  <h2><span class="n">2</span>每周节奏</h2>
+  <div class="tbl-wrap">
+  <table class="rhythm">
+    <thead><tr><th>类型</th><th>天数</th><th>时长</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-label="类型"><span class="cell">学习日</span></td>
+        <td data-label="天数"><span class="cell">一 / 二 / 四 / 五</span></td>
+        <td data-label="时长"><span class="cell">约 85 分钟</span></td>
+        <td data-label="内容"><span class="cell">词汇 + 精听 + 语法/阅读 + 口语</span></td>
+      </tr>
+      <tr>
+        <td data-label="类型"><span class="cell">轻量日</span></td>
+        <td data-label="天数"><span class="cell">三 / 六</span></td>
+        <td data-label="时长"><span class="cell">约 40 分钟</span></td>
+        <td data-label="内容"><span class="cell">词汇 + 泛听/泛读 + 口语碎片</span></td>
+      </tr>
+      <tr>
+        <td data-label="类型"><span class="cell">复盘日</span></td>
+        <td data-label="天数"><span class="cell">日</span></td>
+        <td data-label="时长"><span class="cell">约 45 分钟</span></td>
+        <td data-label="内容"><span class="cell">墨墨 + 复盘</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><span class="n">3</span>真题用法</h2>
+  <div class="tbl-wrap">
+  <table class="stack">
+    <thead><tr><th>材料</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td data-label="材料"><span class="cell">剑 10–17</span></td><td data-label="用途"><span class="cell">拆题型、精听精读，可二刷</span></td></tr>
+      <tr><td data-label="材料"><span class="cell">剑 18–21</span></td><td data-label="用途"><span class="cell">摸底用 18/19；其余留给模考</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="page" id="page-vocab">
+  <h2><span class="n">1</span>墨墨设置</h2>
+  <div class="card">
+    <h3>我的 → 设置 → 学习计划</h3>
+    <div class="tbl-wrap" style="margin:8px 0 0">
+    <table class="stack" style="box-shadow:none;border:1px solid var(--line)">
+      <thead><tr><th>设置项</th><th>前 2 周</th><th>第 3 周起</th></tr></thead>
+      <tbody>
+        <tr><td data-label="设置项"><span class="cell">每日新学上限</span></td><td data-label="前 2 周"><span class="cell"><b style="color:var(--b800)">15</b></span></td><td data-label="第 3 周起"><span class="cell"><b style="color:var(--b800)">20</b></span></td></tr>
+        <tr><td data-label="设置项"><span class="cell">每日学习量</span></td><td data-label="前 2 周"><span class="cell"><b style="color:var(--b800)">50</b></span></td><td data-label="第 3 周起"><span class="cell"><b style="color:var(--b800)">70</b></span></td></tr>
+        <tr><td data-label="设置项"><span class="cell">记忆模式</span></td><td data-label="说明" colspan="2"><span class="cell">看英文回忆中文</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h2><span class="n">2</span>每日新学上限</h2>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <h3 style="margin:0">勾选背词任务时按此累加</h3>
+      <span style="font-size:20px;font-weight:600;color:var(--b800)" id="calcN">20</span>
+    </div>
+    <input type="range" class="slider" id="calcRange" min="10" max="40" step="5" value="20">
+    <div class="calcrow"><span>10</span><span>20</span><span>40</span></div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="metric"><div class="lbl">过完 3693 词</div><div class="val" id="calcDays">185<small>天</small></div></div>
+      <div class="metric"><div class="lbl">每天总词量（估）</div><div class="val" id="calcTotal">64<small>词</small></div></div>
+      <div class="metric"><div class="lbl">每天用时（估）</div><div class="val" id="calcMin">13<small>分</small></div></div>
+    </div>
+    <p style="margin-top:10px;font-size:12px;color:var(--t3)">预计完成：<b style="color:var(--b800)" id="calcDate">—</b></p>
+  </div>
+
+  <h2><span class="n">3</span>词汇书进度</h2>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <h3 style="margin:0">雅思词汇真经 · 3693 词</h3>
+      <button class="btn" id="vocabEdit">校准为墨墨数</button>
+    </div>
+    <div class="bar teal"><span class="fill" id="vocabBar" style="width:0%"></span></div>
+    <div class="bartext"><span id="vocabText">已完成 0 / 3693 词</span><span id="vocabPct">0%</span></div>
+    <p style="margin-top:10px;font-size:12px;color:var(--t3)" id="vocabHint">勾选每日背词任务后按上限自动累加；取消勾选回退。</p>
+  </div>
+</section>
+
+<section class="page" id="page-daily">
+  <h2><span class="n">1</span>今日任务</h2>
+  <p style="margin-bottom:12px">默认：一/二/四/五学习日，三/六轻量日，日复盘日。</p>
+  <div class="modes" id="modeBtns">
+    <button data-m="study">学习日 · 85 分钟</button>
+    <button data-m="light">轻量日 · 40 分钟</button>
+    <button data-m="rest">复盘日 · 45 分钟</button>
+  </div>
+  <div class="alert ok" id="rollBanner" style="display:none;margin-bottom:12px"></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--t3)" id="todayDate"></span>
+      <span style="font-size:12px;color:var(--t3)">勾选自动保存</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <h3 style="margin:0" id="todayLabel">今日任务</h3>
+      <span style="font-size:12px;color:var(--t3)" id="todayHint"></span>
+    </div>
+    <div class="bar"><span class="fill" id="dayBar" style="width:0%"></span></div>
+    <div class="bartext"><span id="dayProgress">完成 0 / 0 项</span><span></span></div>
+  </div>
+  <div id="dailyBlocks"></div>
+  <div class="alert ok" id="dayDone" style="display:none">今日已全部完成，已记入打卡。</div>
+</section>
+
+<section class="page" id="page-weekly">
+  <h2><span class="n">1</span>本周任务</h2>
+  <p style="margin-bottom:12px" id="weekLabel"></p>
+  <div class="card">
+    <div class="bar"><span class="fill" id="weekBar" style="width:0%"></span></div>
+    <div class="bartext"><span id="weekProgress">完成 0 / 0 项</span><span>每周自动重置</span></div>
+  </div>
+  <div class="card"><h3>本周固定任务</h3><div id="weeklyFixed"></div></div>
+  <div class="card"><h3>本周验收</h3><div id="weeklyCycle"></div></div>
+
+  <h2><span class="n">2</span>一周安排</h2>
+  <div class="tbl-wrap">
+  <table class="stack">
+    <thead><tr><th>星期</th><th>模式</th><th>重点</th></tr></thead>
+    <tbody>
+      <tr><td data-label="星期"><span class="cell">周一</span></td><td data-label="模式"><span class="cell">学习日</span></td><td data-label="重点"><span class="cell">精听 + 语法</span></td></tr>
+      <tr><td data-label="星期"><span class="cell">周二</span></td><td data-label="模式"><span class="cell">学习日</span></td><td data-label="重点"><span class="cell">精听 + 阅读</span></td></tr>
+      <tr><td data-label="星期"><span class="cell">周三</span></td><td data-label="模式"><span class="cell">轻量日</span></td><td data-label="重点"><span class="cell">背词 + 泛听</span></td></tr>
+      <tr><td data-label="星期"><span class="cell">周四</span></td><td data-label="模式"><span class="cell">学习日</span></td><td data-label="重点"><span class="cell">精听 + 语法</span></td></tr>
+      <tr><td data-label="星期"><span class="cell">周五</span></td><td data-label="模式"><span class="cell">学习日</span></td><td data-label="重点"><span class="cell">精听 + 阅读 + 作文</span></td></tr>
+      <tr><td data-label="星期"><span class="cell">周六</span></td><td data-label="模式"><span class="cell">轻量日</span></td><td data-label="重点"><span class="cell">补课或背词</span></td></tr>
+      <tr><td data-label="星期"><span class="cell">周日</span></td><td data-label="模式"><span class="cell">复盘日</span></td><td data-label="重点"><span class="cell">墨墨 + 复盘</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><span class="n">3</span>周日复盘（30 分钟）</h2>
+  <div class="card">
+    <ul class="tight">
+      <li>更新词汇进度</li>
+      <li>统计本周错题类型</li>
+      <li>回听口语录音</li>
+      <li>定下周主攻 1 个弱项</li>
+    </ul>
+  </div>
+</section>
+
+<section class="page" id="page-monthly">
+  <h2><span class="n">1</span>12 个月里程碑</h2>
+  <p style="margin-bottom:12px">第 3 / 6 / 9 / 11 月做阶段自测。</p>
+  <div class="card" style="border-color:rgba(8,145,178,.25)">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <h3 style="margin:0" id="monthNow">计划尚未开始计时</h3>
+      <span style="font-size:12px;color:var(--t3)" id="monthNowHint"></span>
+    </div>
+    <div class="bar" style="margin-top:10px"><span class="fill" id="monthBar" style="width:0%"></span></div>
+  </div>
+  <div id="monthlyCards"></div>
+</section>
+
+<section class="page" id="page-checkin">
+  <h2><span class="n">1</span>总体数据</h2>
+  <div class="grid g4">
+    <div class="metric"><div class="lbl">连续打卡</div><div class="val" id="mStreak">0<small>天</small></div></div>
+    <div class="metric"><div class="lbl">累计打卡</div><div class="val" id="mTotal">0<small>天</small></div></div>
+    <div class="metric"><div class="lbl">本月打卡</div><div class="val" id="mMonth">0<small>天</small></div></div>
+    <div class="metric"><div class="lbl">已进行</div><div class="val" id="mElapsed">0<small>天</small></div></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <h3 style="margin:0">本周至少 5 天</h3>
+      <span style="font-size:12px;color:var(--t3)" id="weekCheckText">本周已打卡 0 天</span>
+    </div>
+    <div class="bar"><span class="fill" id="weekCheckBar" style="width:0%"></span></div>
+  </div>
+
+  <h2><span class="n">2</span>打卡日历</h2>
+  <p style="margin-bottom:12px">点击日期可打卡；任务全完成时自动点亮。</p>
+  <div class="cal">
+    <div class="calhead">
+      <button id="calPrev" type="button">‹</button>
+      <span class="m" id="calTitle"></span>
+      <button id="calNext" type="button">›</button>
+    </div>
+    <div class="grid7" id="calDow"></div>
+    <div class="grid7" id="calGrid"></div>
+  </div>
+
+  <h2><span class="n">3</span>起算日期</h2>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0">计划开始日期</h3>
+      <input type="date" id="startDate">
+    </div>
+  </div>
+
+  <h2><span class="n">4</span>数据管理</h2>
+  <div class="card">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="expBtn" type="button">导出</button>
+      <button class="btn" id="impBtn" type="button">导入</button>
+      <button class="btn" id="rstBtn" type="button">清空</button>
+    </div>
+    <p style="margin-top:10px;font-size:12px;color:var(--t3)">数据保存在本机浏览器。</p>
+  </div>
+</section>
+
+<section class="page" id="page-resources">
+  <h2><span class="n">1</span>教材与工具</h2>
+  <div class="tbl-wrap">
+  <table class="stack">
+    <thead><tr><th>项目</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td data-label="项目"><span class="cell">剑桥雅思真题</span></td><td data-label="说明"><span class="cell">先买剑 18/19，再补 20–21</span></td></tr>
+      <tr><td data-label="项目"><span class="cell">墨墨</span></td><td data-label="说明"><span class="cell">雅思词汇真经 3693 词</span></td></tr>
+      <tr><td data-label="项目"><span class="cell">考试费</span></td><td data-label="说明"><span class="cell">约 1990 元/次；可单科重考</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><span class="n">2</span>免费资源</h2>
+  <div class="tbl-wrap">
+  <table class="stack">
+    <thead><tr><th>科目</th><th>资源</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td data-label="科目"><span class="cell">自测</span></td><td data-label="资源"><span class="cell">efset.org</span></td><td data-label="用途"><span class="cell">CEFR 等级</span></td></tr>
+      <tr><td data-label="科目"><span class="cell">官方</span></td><td data-label="资源"><span class="cell">ielts.neea.edu.cn</span></td><td data-label="用途"><span class="cell">报名 / 机考模拟</span></td></tr>
+      <tr><td data-label="科目"><span class="cell">听力</span></td><td data-label="资源"><span class="cell">BBC 6 Minute English</span></td><td data-label="用途"><span class="cell">精听 / 泛听</span></td></tr>
+      <tr><td data-label="科目"><span class="cell">写作</span></td><td data-label="资源"><span class="cell">ielts-simon.com</span></td><td data-label="用途"><span class="cell">范文对照</span></td></tr>
+      <tr><td data-label="科目"><span class="cell">口语</span></td><td data-label="资源"><span class="cell">雅思哥 App</span></td><td data-label="用途"><span class="cell">当季题库</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><span class="n">3</span>机考要点</h2>
+  <div class="card">
+    <ul class="tight">
+      <li>写作全程键盘</li>
+      <li>听力边听边输入</li>
+      <li>阅读用屏幕高亮</li>
+      <li>每月至少 1 次官方机考模拟</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="wrap">打卡数据仅保存在本机浏览器</footer>
+</main>
+
+<script>
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+const K={daily:'ip.daily',mode:'ip.mode',weekly:'ip.weekly',monthly:'ip.monthly',checkin:'ip.checkin',vocab:'ip.vocab',vocabLog:'ip.vocabLog',newWords:'ip.newWords',start:'ip.start',quick:'ip.quick'};
+
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function parseYmd(s){const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function todayKey(){return ymd(new Date())}
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1));return t.getUTCFullYear()+'-W'+String(Math.ceil((((t-ys)/86400000)+1)/7)).padStart(2,'0')}
+function addDays(s,n){const d=parseYmd(s);d.setDate(d.getDate()+n);return ymd(d)}
+
+const DAILY={
+  study:{label:'学习日',hint:'约 85 分钟',blocks:[
+    {n:'墨墨词汇',t:'25 分钟',items:['完成墨墨今日学习量','签到']},
+    {n:'精听',t:'30 分钟',items:['听写：听一句→键盘打出（最多3遍）','对照原文标错','影子跟读 3 遍','记入错题表']},
+    {n:'语法/阅读/泛读',t:'20 分钟',items:['语法：1 点 + 造 5 句','或阅读：1 种题型约 10 题','或泛读：1 篇 + 3 个搭配']},
+    {n:'口语',t:'10 分钟',items:['录音说满 1 分钟','回听并记卡壳处']}
+  ]},
+  light:{label:'轻量日',hint:'约 40 分钟',blocks:[
+    {n:'墨墨词汇',t:'25 分钟',items:['完成墨墨今日学习量','签到']},
+    {n:'泛听或泛读',t:'10 分钟',items:['BBC 6 Minute English 1 集，或读 1 篇']},
+    {n:'口语碎片',t:'5 分钟',items:['英语自言自语 1 分钟']}
+  ]},
+  rest:{label:'复盘日',hint:'约 45 分钟',blocks:[
+    {n:'墨墨词汇',t:'15 分钟',items:['完成墨墨今日学习量','签到']},
+    {n:'周日复盘',t:'30 分钟',items:['更新词汇进度','统计错题类型','回听口语录音','定下周 1 个弱项']}
+  ]}
+};
+const WEEKLY_FIXED=[
+  {n:'墨墨词汇',t:'7 天全勤',items:['一天不断']},
+  {n:'精听',t:'4 次',items:['听写→对照→跟读']},
+  {n:'写作',t:'1 次',items:['键盘完成并拿反馈']},
+  {n:'口语模拟',t:'1 次',items:['Part1+Part2 录音']},
+  {n:'周日复盘',t:'30 分钟',items:['进度、错题、下周目标']},
+  {n:'机考手感',t:'穿插',items:['听力键盘输入；作文电脑写']}
+];
+const WEEKLY_CYCLE=['词汇 7 天全勤','写作已反馈','口语模拟已完成','周日复盘已做'];
+const MONTHLY=[
+  {m:1,goal:'习惯+摸底分轨',tasks:['完成摸底并选轨','墨墨设置改好','精听至少 12 期','第 2 周起每周短写','累计约 400 词']},
+  {m:2,goal:'词汇提速+语法',tasks:['新学上限 20 / 学习量 70','累计约 1000 词','时态+定语从句','旧剑 Section1-2','口语录音坚持 20 天']},
+  {m:3,goal:'验收 5.5-6.0',tasks:['累计约 1600 词','状语从句/被动/非谓语','月末完整自测','未达标则延长地基期']},
+  {m:4,goal:'进入技巧期',tasks:['累计约 2200 词','判断题+标题匹配','听力到 Section3','Task1 完整一篇','真题生词入库']},
+  {m:5,goal:'阅读提速+Task2',tasks:['累计约 2800 词','填空+选择限时','Task1 限时 20 分钟','第一篇 Task2','口语 4 个素材']},
+  {m:6,goal:'验收 6.0-6.5',tasks:['真经第一轮过完','听力 S3-4 正确率≥60%','Task2 四段 250 词','Part2 说满 1分30秒','月末自测']},
+  {m:7,goal:'四科均衡',tasks:['真题生词为主','每周作文交替','Part3 结构','阅读整套 60 分钟','弱项加练']},
+  {m:8,goal:'全真模考',tasks:['每周一套新剑','错题花 2 倍时间','写作限时达标','打字约 40 词/分']},
+  {m:9,goal:'模考验收',tasks:['稳定 6.0-6.5','Part2 说满 2 分钟','错题表≥200','突破 2 个弱项题型']},
+  {m:10,goal:'弱项突破',tasks:['两弱项各练 100 题','写作准确性优先','口语模拟 4 次','阅读 55 分钟做完']},
+  {m:11,goal:'验收 6.5-7.0',tasks:['模考稳定 6.5-7.0','连续达标 3 次','机考模拟 2 次','决定报考/单科重考']},
+  {m:12,goal:'冲刺报考',tasks:['巩固机考操作','最后 2 周只复习','达标后再报名','考前一天只看错题']}
+];
+
+let dailyState=LS.get(K.daily,{});
+let modeState=LS.get(K.mode,{});
+let weeklyState=LS.get(K.weekly,{});
+let monthlyState=LS.get(K.monthly,{});
+let checkin=LS.get(K.checkin,{});
+let vocabCount=LS.get(K.vocab,0);
+let vocabLog=LS.get(K.vocabLog,{});
+let newWordsPerDay=LS.get(K.newWords,20);
+let startDate=LS.get(K.start,todayKey());
+let quickState=LS.get(K.quick,{});
+let curMonth=new Date();
+let T=todayKey();
+let W=isoWeek(new Date());
+
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('page-'+b.dataset.p).classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+
+function renderBlocks(container,blocks,prefix,store,dateKey){
+  container.innerHTML='';
+  const st=store[dateKey]||{};
+  blocks.forEach((blk,bi)=>{
+    const sec=document.createElement('div');sec.className='card';
+    const head=document.createElement('div');head.className='blockhead';
+    head.innerHTML='<span class="bn">'+blk.n+'</span><span class="bt">'+blk.t+'</span>';
+    sec.appendChild(head);
+    blk.items.forEach((it,ii)=>{
+      const id=prefix+':'+bi+':'+ii;
+      const lb=document.createElement('label');lb.className='task';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!st[id];
+      cb.addEventListener('change',()=>{
+        if(!store[dateKey]) store[dateKey]={};
+        store[dateKey][id]=cb.checked;
+        LS.set(K.daily,dailyState);LS.set(K.weekly,weeklyState);LS.set(K.monthly,monthlyState);
+        if(store===dailyState && bi===0 && ii===0) syncVocabCreditForDate(dateKey.split('#')[0]);
+        refreshDaily();refreshWeekly();
+      });
+      const sp=document.createElement('span');sp.textContent=it;
+      lb.appendChild(cb);lb.appendChild(sp);sec.appendChild(lb);
+    });
+    container.appendChild(sec);
+  });
+}
+
+function curMode(){
+  if(modeState[T]) return modeState[T];
+  const d=new Date().getDay();
+  if(d===0) return 'rest';
+  if(d===3||d===6) return 'light';
+  return 'study';
+}
+function dailyNewWordTarget(){return newWordsPerDay}
+function isDayVocabChecked(date){
+  return ['study','light','rest'].some(m=>!!((dailyState[date+'#'+m]||{})[m+':0:0']));
+}
+function syncVocabCreditForDate(date){
+  if(!date) return;
+  const should=isDayVocabChecked(date);
+  const had=vocabLog[date]||0;
+  const n=dailyNewWordTarget();
+  let changed=false;
+  if(should){
+    if(had!==n){vocabCount=Math.max(0,Math.min(3693,vocabCount-had+n));vocabLog[date]=n;changed=true}
+  }else if(had){vocabCount=Math.max(0,vocabCount-had);delete vocabLog[date];changed=true}
+  if(changed){LS.set(K.vocab,vocabCount);LS.set(K.vocabLog,vocabLog)}
+  renderVocab();
+}
+function renderVocab(){
+  const pct=Math.min(100,Math.round(vocabCount/3693*100));
+  document.getElementById('vocabBar').style.width=pct+'%';
+  document.getElementById('vocabText').textContent='已完成 '+vocabCount+' / 3693 词';
+  document.getElementById('vocabPct').textContent=pct+'%';
+  document.getElementById('ovVocab').innerHTML=vocabCount+'<small>/3693</small>';
+  const hint=document.getElementById('vocabHint');
+  const t=dailyNewWordTarget();
+  hint.textContent=vocabLog[T] ? ('今日已计入 +'+vocabLog[T]+' 词') : ('勾选背词任务后按上限 +'+t+' 词');
+}
+document.getElementById('vocabEdit').addEventListener('click',()=>{
+  const v=prompt('墨墨已学单词数：',vocabCount);if(v===null)return;
+  const n=parseInt(v,10);if(!isNaN(n)&&n>=0){vocabCount=Math.min(n,3693);LS.set(K.vocab,vocabCount);renderVocab()}
+});
+
+function renderDaily(){
+  const m=curMode();
+  document.querySelectorAll('#modeBtns button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  const d=parseYmd(T);const wd=['日','一','二','三','四','五','六'][d.getDay()];
+  document.getElementById('todayDate').textContent=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 · 星期'+wd;
+  document.getElementById('todayLabel').textContent=DAILY[m].label+'任务';
+  document.getElementById('todayHint').textContent=DAILY[m].hint;
+  const n=dailyNewWordTarget();
+  const blocks=DAILY[m].blocks.map((blk,bi)=>{
+    if(bi!==0) return blk;
+    const items=blk.items.slice();
+    items[0]='完成墨墨今日学习量（新词 '+n+'）';
+    return Object.assign({},blk,{items});
+  });
+  renderBlocks(document.getElementById('dailyBlocks'),blocks,m,dailyState,T+'#'+m);
+}
+function refreshDaily(){
+  const m=curMode();const st=dailyState[T+'#'+m]||{};
+  const total=DAILY[m].blocks.reduce((a,b)=>a+b.items.length,0);
+  const done=Object.values(st).filter(Boolean).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('dayBar').style.width=pct+'%';
+  document.getElementById('dayProgress').textContent='完成 '+done+' / '+total+' 项（'+pct+'%）';
+  const allDone=total>0&&done===total;
+  document.getElementById('dayDone').style.display=allDone?'block':'none';
+  if(allDone&&!checkin[T]){checkin[T]=true;checkin['auto:'+T]=true;LS.set(K.checkin,checkin)}
+  if(!allDone&&checkin[T]&&checkin['auto:'+T]){delete checkin[T];delete checkin['auto:'+T];LS.set(K.checkin,checkin)}
+  renderCheckin();
+}
+document.querySelectorAll('#modeBtns button').forEach(b=>{
+  b.addEventListener('click',()=>{modeState[T]=b.dataset.m;LS.set(K.mode,modeState);renderDaily();refreshDaily()});
+});
+
+function renderWeekly(){
+  const box=document.getElementById('weeklyFixed');box.innerHTML='';
+  WEEKLY_FIXED.forEach((item,i)=>{
+    const id='f:'+i;const lb=document.createElement('label');lb.className='task';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!(weeklyState[W]&&weeklyState[W][id]);
+    cb.addEventListener('change',()=>{if(!weeklyState[W])weeklyState[W]={};weeklyState[W][id]=cb.checked;LS.set(K.weekly,weeklyState);refreshWeekly()});
+    const sp=document.createElement('span');sp.innerHTML='<b>'+item.n+'</b> · '+item.t+'<br>'+item.items.map(x=>'· '+x).join('<br>');
+    lb.appendChild(cb);lb.appendChild(sp);box.appendChild(lb);
+  });
+  const c=document.getElementById('weeklyCycle');c.innerHTML='';
+  WEEKLY_CYCLE.forEach((x,i)=>{
+    const id='c:'+i;const lb=document.createElement('label');lb.className='task';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!(weeklyState[W]&&weeklyState[W][id]);
+    cb.addEventListener('change',()=>{if(!weeklyState[W])weeklyState[W]={};weeklyState[W][id]=cb.checked;LS.set(K.weekly,weeklyState);refreshWeekly()});
+    const sp=document.createElement('span');sp.textContent=x;
+    lb.appendChild(cb);lb.appendChild(sp);c.appendChild(lb);
+  });
+  document.getElementById('weekLabel').textContent='本周（'+W+'）';
+}
+function refreshWeekly(){
+  const st=weeklyState[W]||{};
+  const total=WEEKLY_FIXED.length+WEEKLY_CYCLE.length;
+  const done=Object.values(st).filter(Boolean).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('weekBar').style.width=pct+'%';
+  document.getElementById('weekProgress').textContent='完成 '+done+' / '+total+' 项（'+pct+'%）';
+}
+
+function currentPlanMonth(){
+  const sd0=parseYmd(startDate),td0=parseYmd(T);
+  if(td0<sd0) return 0;
+  let months=(td0.getFullYear()-sd0.getFullYear())*12+(td0.getMonth()-sd0.getMonth());
+  if(td0.getDate()<sd0.getDate()) months-=1;
+  return Math.min(12,Math.max(1,months+1));
+}
+function renderMonthly(){
+  const box=document.getElementById('monthlyCards');box.innerHTML='';
+  MONTHLY.forEach(mo=>{
+    const card=document.createElement('div');card.className='card';card.id='mcard-'+mo.m;
+    const head=document.createElement('div');head.className='blockhead';
+    head.innerHTML='<span class="bn">第 '+mo.m+' 个月 · '+mo.goal+'</span><span class="bt" id="mpct-'+mo.m+'"></span>';
+    card.appendChild(head);
+    const st=monthlyState[mo.m]||{};
+    mo.tasks.forEach((t,i)=>{
+      const id='m:'+i;const lb=document.createElement('label');lb.className='task';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!st[id];
+      cb.addEventListener('change',()=>{if(!monthlyState[mo.m])monthlyState[mo.m]={};monthlyState[mo.m][id]=cb.checked;LS.set(K.monthly,monthlyState);refreshMonthly()});
+      const sp=document.createElement('span');sp.textContent=t;
+      lb.appendChild(cb);lb.appendChild(sp);card.appendChild(lb);
+    });
+    box.appendChild(card);
+  });
+  refreshMonthly();
+}
+function refreshMonthly(){
+  const curIdx=currentPlanMonth();let allDone=0,allTotal=0;
+  MONTHLY.forEach(mo=>{
+    const st=monthlyState[mo.m]||{};const done=Object.values(st).filter(Boolean).length;
+    allDone+=done;allTotal+=mo.tasks.length;
+    const el=document.getElementById('mpct-'+mo.m);if(el) el.textContent=done+' / '+mo.tasks.length;
+    const cd=document.getElementById('mcard-'+mo.m);if(cd) cd.style.borderColor=(mo.m===curIdx)?'rgba(8,145,178,.35)':'';
+  });
+  const nm=document.getElementById('monthNow'),hint=document.getElementById('monthNowHint'),bar=document.getElementById('monthBar');
+  if(curIdx===0){nm.textContent='计划尚未开始计时';hint.textContent='';bar.style.width='0%'}
+  else{nm.textContent='第 '+curIdx+' 个月 · '+MONTHLY[curIdx-1].goal;hint.textContent=allDone+' / '+allTotal;bar.style.width=Math.round(allDone/allTotal*100)+'%'}
+}
+
+const DOW=['一','二','三','四','五','六','日'];
+function renderCal(){
+  const y=curMonth.getFullYear(),m=curMonth.getMonth();
+  document.getElementById('calTitle').textContent=y+' 年 '+(m+1)+' 月';
+  document.getElementById('calDow').innerHTML=DOW.map(d=>'<div class="dow">'+d+'</div>').join('');
+  const g=document.getElementById('calGrid');g.innerHTML='';
+  const first=new Date(y,m,1);let lead=first.getDay()-1;if(lead<0) lead=6;
+  for(let i=0;i<lead;i++){const e=document.createElement('div');e.className='day empty';g.appendChild(e)}
+  const days=new Date(y,m+1,0).getDate();
+  for(let d=1;d<=days;d++){
+    const key=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const el=document.createElement('div');el.className='day';el.textContent=d;
+    if(checkin[key]) el.classList.add('done');
+    if(key===T) el.classList.add('today');
+    if(key>T) el.classList.add('future');
+    el.addEventListener('click',()=>{if(checkin[key]) delete checkin[key]; else checkin[key]=true;LS.set(K.checkin,checkin);renderCal();renderCheckin()});
+    g.appendChild(el);
+  }
+}
+document.getElementById('calPrev').addEventListener('click',()=>{curMonth=new Date(curMonth.getFullYear(),curMonth.getMonth()-1,1);renderCal()});
+document.getElementById('calNext').addEventListener('click',()=>{curMonth=new Date(curMonth.getFullYear(),curMonth.getMonth()+1,1);renderCal()});
+
+function renderCheckin(){
+  const keys=Object.keys(checkin).filter(k=>checkin[k]&&!k.startsWith('auto:')).sort();
+  let streak=0,cur=T;while(checkin[cur]){streak++;cur=addDays(cur,-1)}
+  if(streak===0){cur=addDays(T,-1);while(checkin[cur]){streak++;cur=addDays(cur,-1)}}
+  const ym=T.slice(0,7);const monthDays=keys.filter(k=>k.startsWith(ym)).length;
+  const elapsed=Math.max(1,Math.round((parseYmd(T)-parseYmd(startDate))/86400000)+1);
+  document.getElementById('mStreak').innerHTML=streak+'<small>天</small>';
+  document.getElementById('mTotal').innerHTML=keys.length+'<small>天</small>';
+  document.getElementById('mMonth').innerHTML=monthDays+'<small>天</small>';
+  document.getElementById('mElapsed').innerHTML=elapsed+'<small>天</small>';
+  document.getElementById('ovStreak').innerHTML=streak+'<small>天</small>';
+  const nowD=parseYmd(T);let dow=nowD.getDay();if(dow===0)dow=7;
+  const monday=new Date(nowD);monday.setDate(nowD.getDate()-(dow-1));
+  let wk=0;for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);if(d>nowD)break;if(checkin[ymd(d)])wk++}
+  document.getElementById('weekCheckText').textContent='本周已打卡 '+wk+' 天';
+  document.getElementById('weekCheckBar').style.width=Math.min(100,Math.round(wk/5*100))+'%';
+}
+
+function renderCalc(){
+  const el=document.getElementById('calcRange');
+  if(document.activeElement!==el) el.value=String(newWordsPerDay);
+  const n=parseInt(el.value,10)||20;newWordsPerDay=n;
+  document.getElementById('calcN').textContent=n;
+  document.getElementById('calcDays').innerHTML=Math.ceil(3693/n)+'<small>天</small>';
+  const total=n+Math.round(n*2.2);
+  document.getElementById('calcTotal').innerHTML=total+'<small>词</small>';
+  document.getElementById('calcMin').innerHTML=Math.round(total*12/60)+'<small>分</small>';
+  document.getElementById('calcDate').textContent=addDays(T,Math.ceil(3693/n));
+}
+document.getElementById('calcRange').addEventListener('input',()=>{
+  newWordsPerDay=parseInt(document.getElementById('calcRange').value,10)||20;
+  LS.set(K.newWords,newWordsPerDay);renderCalc();
+  if(isDayVocabChecked(T)) syncVocabCreditForDate(T); else renderVocab();
+  renderDaily();refreshDaily();
+});
+
+['s1','s2','s3','s4'].forEach(id=>{
+  const el=document.getElementById(id);if(!el)return;
+  el.checked=!!quickState[id];
+  el.addEventListener('change',()=>{quickState[id]=el.checked;LS.set(K.quick,quickState)});
+});
+const sd=document.getElementById('startDate');sd.value=startDate;
+sd.addEventListener('change',()=>{if(sd.value){startDate=sd.value;LS.set(K.start,startDate);renderCheckin();refreshMonthly()}});
+
+document.getElementById('expBtn').addEventListener('click',()=>{
+  const data={daily:dailyState,mode:modeState,weekly:weeklyState,monthly:monthlyState,checkin,vocab:vocabCount,vocabLog,newWords:newWordsPerDay,start:startDate,quick:quickState};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='雅思备考打卡_'+T+'.json';a.click();
+});
+document.getElementById('impBtn').addEventListener('click',()=>{
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{
+    const d=JSON.parse(r.result);
+    dailyState=d.daily||{};modeState=d.mode||{};weeklyState=d.weekly||{};monthlyState=d.monthly||{};checkin=d.checkin||{};
+    vocabCount=d.vocab||0;vocabLog=d.vocabLog||{};newWordsPerDay=d.newWords||20;startDate=d.start||todayKey();quickState=d.quick||{};
+    Object.entries({[K.daily]:dailyState,[K.mode]:modeState,[K.weekly]:weeklyState,[K.monthly]:monthlyState,[K.checkin]:checkin,[K.vocab]:vocabCount,[K.vocabLog]:vocabLog,[K.newWords]:newWordsPerDay,[K.start]:startDate,[K.quick]:quickState}).forEach(([k,v])=>LS.set(k,v));
+    sd.value=startDate;renderAll();alert('导入成功');
+  }catch(e){alert('导入失败')}};r.readAsText(f)};
+  inp.click();
+});
+document.getElementById('rstBtn').addEventListener('click',()=>{
+  if(!confirm('确定清空全部记录？'))return;
+  [K.daily,K.mode,K.weekly,K.monthly,K.checkin,K.vocab,K.vocabLog,K.newWords,K.start,K.quick].forEach(LS.del);
+  dailyState={};modeState={};weeklyState={};monthlyState={};checkin={};vocabCount=0;vocabLog={};newWordsPerDay=20;startDate=todayKey();quickState={};
+  sd.value=startDate;renderAll();
+});
+
+function checkRollover(){
+  const t=todayKey();if(t===T)return;T=t;W=isoWeek(new Date());curMonth=new Date();renderAll();
+  const banner=document.getElementById('rollBanner');banner.style.display='block';banner.textContent='已切换到新的一天';
+  setTimeout(()=>{banner.style.display='none'},6000);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRollover()});
+window.addEventListener('focus',checkRollover);setInterval(checkRollover,60000);
+
+function renderAll(){
+  renderDaily();refreshDaily();
+  renderWeekly();refreshWeekly();
+  renderMonthly();renderCal();renderCheckin();
+  renderCalc();syncVocabCreditForDate(T);
+  ['s1','s2','s3','s4'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=!!quickState[id]});
+}
+renderAll();
+</script>
+</body>
+</html>
