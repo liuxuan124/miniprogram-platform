@@ -140,14 +140,14 @@ import { computed, onMounted, ref } from 'vue'
 import { getCategoryList as getContentCategories } from '@/api/content'
 import { getCategoryList as getProductCategories } from '@/api/product'
 
-export type DiscoverChip = {
+type DiscoverChip = {
   label: string
   filter?: 'all' | 'tag' | 'category'
   tag?: string
   categoryId?: number | string
 }
 
-export type DiscoverTab = {
+type DiscoverTab = {
   key: string
   label: string
   source?: 'all' | 'note' | 'article' | 'goods'
@@ -156,21 +156,21 @@ export type DiscoverTab = {
   chips?: DiscoverChip[]
 }
 
-export type ArticleLayoutConfig = {
+type ArticleLayoutConfig = {
   mode?: 'mixed' | 'all_duo' | 'all_full'
   fullEvery?: number
   fullOnNoCover?: boolean
   duoStyles?: string[]
 }
 
-export const DEFAULT_ARTICLE_LAYOUT: ArticleLayoutConfig = {
+const DEFAULT_ARTICLE_LAYOUT: ArticleLayoutConfig = {
   mode: 'all_duo',
   fullEvery: 3,
   fullOnNoCover: true,
   duoStyles: ['magazine', 'row'],
 }
 
-export const DEFAULT_DISCOVER_TABS: DiscoverTab[] = [
+const DEFAULT_DISCOVER_TABS: DiscoverTab[] = [
   {
     key: 'all',
     label: '全部',
