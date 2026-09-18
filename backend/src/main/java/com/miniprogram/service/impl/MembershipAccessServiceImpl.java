@@ -365,6 +365,9 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
                 map.put("kpis", kpis);
             }
         }
+        if (dto.getCommunities() != null) {
+            map.put("communities", dto.getCommunities());
+        }
         try {
             ConfigItemDTO item = new ConfigItemDTO();
             item.setConfigKey(CONFIG_KEY);
@@ -470,17 +473,58 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
 
     private List<Map<String, Object>> defaultCommunityMaps() {
         List<Map<String, Object>> list = new ArrayList<>();
-        list.add(communityMap("warm-main", "暖阁星球 · 内容创作者",
-                "内容创作者的自留地 · 由 墨白 主理", "🪐", true, true, "", ""));
-        list.add(communityMap("warm-read", "共读小站",
-                "每月一本书，交 300 字笔记", "📖", true, false, "860 位球友", "今日 3 条新动态"));
-        list.add(communityMap("warm-write", "日更互助营",
-                "打卡与互评，养写作肌肉", "✍️", false, false, "1,280 位球友", "今日 12 条新动态"));
+        list.add(enrichIntroDefaults(communityMap("warm-main", "暖阁星球 · 内容创作者",
+                "内容创作者的自留地 · 由 墨白 主理", "🪐", true, true, "", ""),
+                "这里是内容创作者的自留地。提问有人答，日更有人陪，沉淀都能搜到。\n加入后，你将进入一个更专注、更有反馈的创作小世界。",
+                List.of(
+                        highlight("💬", "提问必达", "星主与编辑轮流答疑，不让问题沉底"),
+                        highlight("⭐", "精华沉淀", "每周精选方法论与实操清单"),
+                        highlight("📂", "资料库", "模板、提纲、案例包随手可下")
+                ),
+                "加入星球", "加入后可提问 · 看精华 · 下资料"));
+        list.add(enrichIntroDefaults(communityMap("warm-read", "共读小站",
+                "每月一本书，交 300 字笔记", "📖", true, false, "860 位球友", "今日 3 条新动态"),
+                "一起读一本好书，交 300 字笔记。不求快，求真有收获。\n适合想建立阅读节奏、和同频伙伴交流的你。",
+                List.of(
+                        highlight("📅", "月度共读", "固定书单与领读提纲"),
+                        highlight("✍️", "笔记打卡", "交 300 字，换一份反馈"),
+                        highlight("👥", "小圈互助", "同频读者互相看见")
+                ),
+                "加入共读", "先逛逛也可以，合适再留下"));
+        list.add(enrichIntroDefaults(communityMap("warm-write", "日更互助营",
+                "打卡与互评，养写作肌肉", "✍️", false, false, "1,280 位球友", "今日 12 条新动态"),
+                "用打卡养肌肉，用互评找手感。每天写一点，圈子里有人看、有人回。\n适合想坚持输出、又不想一个人硬撑的创作者。",
+                List.of(
+                        highlight("🔥", "日更打卡", "轻量节奏，容易坚持"),
+                        highlight("🤝", "互评反馈", "别人看见你的进步"),
+                        highlight("🎯", "选题互助", "卡住时有人一起拆")
+                ),
+                "加入日更营", "可先逛逛动态，再决定加入"));
         return list;
     }
 
     private List<PlanetCommunityVO> defaultCommunities() {
         return parseCommunities(defaultCommunityMaps());
+    }
+
+    private Map<String, Object> highlight(String icon, String title, String desc) {
+        Map<String, Object> h = new LinkedHashMap<>();
+        h.put("icon", icon);
+        h.put("title", title);
+        h.put("desc", desc);
+        return h;
+    }
+
+    private Map<String, Object> enrichIntroDefaults(Map<String, Object> m, String intro,
+                                                    List<Map<String, Object>> highlights,
+                                                    String ctaText, String joinHint) {
+        m.put("intro", intro);
+        m.put("highlights", highlights);
+        m.put("ctaText", ctaText);
+        m.put("joinHint", joinHint);
+        String id = String.valueOf(m.get("id"));
+        m.put("introUrl", "/pages/planet-intro/planet-intro?planetId=" + id);
+        return m;
     }
 
     private Map<String, Object> communityMap(String id, String title, String subtitle, String emoji,
@@ -497,6 +541,7 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         m.put("cover", "");
         m.put("feedUrl", "/pages/planet-feed/planet-feed?planetId=" + id);
         m.put("homeUrl", "/pages/planet/planet");
+        m.put("introUrl", "/pages/planet-intro/planet-intro?planetId=" + id);
         return m;
     }
 
@@ -520,6 +565,61 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
             vo.setPrimary(primary instanceof Boolean ? (Boolean) primary : "true".equalsIgnoreCase(String.valueOf(primary)));
             vo.setFeedUrl(str(m.get("feedUrl"), "/pages/planet-feed/planet-feed?planetId=" + vo.getId()));
             vo.setHomeUrl(str(m.get("homeUrl"), "/pages/planet/planet"));
+            vo.setIntroUrl(str(m.get("introUrl"), "/pages/planet-intro/planet-intro?planetId=" + vo.getId()));
+            vo.setIntro(str(m.get("intro"), ""));
+            vo.setCtaText(str(m.get("ctaText"), "加入星球"));
+            vo.setJoinHint(str(m.get("joinHint"), ""));
+            vo.setHighlights(parseHighlights(m.get("highlights")));
+            // 缺省介绍时补默认，避免旧配置空白页
+            if (!StringUtils.hasText(vo.getIntro()) || vo.getHighlights() == null || vo.getHighlights().isEmpty()) {
+                fillMissingIntroFromDefaults(vo);
+            }
+            out.add(vo);
+        }
+        return out;
+    }
+
+    private List<PlanetCommunityVO.Highlight> parseHighlights(Object raw) {
+        List<PlanetCommunityVO.Highlight> out = new ArrayList<>();
+        if (!(raw instanceof List<?> list)) return out;
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> m)) continue;
+            PlanetCommunityVO.Highlight h = new PlanetCommunityVO.Highlight();
+            h.setIcon(str(m.get("icon"), "✨"));
+            h.setTitle(str(m.get("title"), ""));
+            h.setDesc(str(m.get("desc"), ""));
+            if (!StringUtils.hasText(h.getTitle()) && !StringUtils.hasText(h.getDesc())) continue;
+            out.add(h);
+        }
+        return out;
+    }
+
+    private void fillMissingIntroFromDefaults(PlanetCommunityVO vo) {
+        for (PlanetCommunityVO d : parseCommunitiesRawDefaults()) {
+            if (vo.getId().equals(d.getId())) {
+                if (!StringUtils.hasText(vo.getIntro())) vo.setIntro(d.getIntro());
+                if (vo.getHighlights() == null || vo.getHighlights().isEmpty()) {
+                    vo.setHighlights(d.getHighlights());
+                }
+                if (!StringUtils.hasText(vo.getCtaText()) || "加入星球".equals(vo.getCtaText())) {
+                    if (StringUtils.hasText(d.getCtaText())) vo.setCtaText(d.getCtaText());
+                }
+                if (!StringUtils.hasText(vo.getJoinHint())) vo.setJoinHint(d.getJoinHint());
+                break;
+            }
+        }
+    }
+
+    /** 仅解析默认 maps，避免 fillMissing 递归 */
+    private List<PlanetCommunityVO> parseCommunitiesRawDefaults() {
+        List<PlanetCommunityVO> out = new ArrayList<>();
+        for (Map<String, Object> m : defaultCommunityMaps()) {
+            PlanetCommunityVO vo = new PlanetCommunityVO();
+            vo.setId(str(m.get("id"), ""));
+            vo.setIntro(str(m.get("intro"), ""));
+            vo.setCtaText(str(m.get("ctaText"), "加入星球"));
+            vo.setJoinHint(str(m.get("joinHint"), ""));
+            vo.setHighlights(parseHighlights(m.get("highlights")));
             out.add(vo);
         }
         return out;

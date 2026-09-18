@@ -17,8 +17,7 @@
     <view
       class="pcl-card__rw"
       data-id="{{item.id}}"
-      data-feed="{{item.feedUrl}}"
-      bindtap="onOpenFeed"
+      bindtap="onOpenIntro"
     >
       <text class="pcl-card__ic">{{item.emoji || '🪐'}}</text>
       <view class="pcl-card__meta">
@@ -40,8 +39,7 @@
         <text
           class="pcl-card__today"
           data-id="{{item.id}}"
-          data-feed="{{item.feedUrl}}"
-          catchtap="onOpenFeed"
+          catchtap="onOpenIntro"
         >去看看 ›</text>
       </view>
     </view>

@@ -9,6 +9,7 @@
     "pages/mine/mine",
     "pages/planet/planet",
     "pages/planet-list/planet-list",
+    "pages/planet-intro/planet-intro",
     "pages/planet-feed/planet-feed",
     "pages/author-list/author-list",
     "pages/author-feed/author-feed",

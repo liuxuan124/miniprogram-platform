@@ -55,6 +55,12 @@ Page({
     })
   },
 
+  onOpenIntro(e) {
+    const { id } = e.currentTarget.dataset || {}
+    const url = `/pages/planet-intro/planet-intro?planetId=${encodeURIComponent(id || 'warm-main')}`
+    wx.navigateTo({ url })
+  },
+
   onOpenFeed(e) {
     const { id, feed } = e.currentTarget.dataset || {}
     const url = feed || `/pages/planet-feed/planet-feed?planetId=${encodeURIComponent(id || 'warm-main')}`

@@ -1,0 +1,64 @@
+<!-- 星球介绍引导页：吸引加入 -->
+<view class="pi-page">
+  <view wx:if="{{loading}}" class="pi-state">加载中…</view>
+  <view wx:elif="{{loadError}}" class="pi-state" bindtap="onRetry">加载失败，点此重试</view>
+
+  <block wx:else>
+    <view class="pi-hero">
+      <image wx:if="{{community.cover}}" class="pi-hero__cover" src="{{community.cover}}" mode="aspectFill" />
+      <view class="pi-hero__mask"></view>
+      <view class="pi-hero__inner">
+        <text class="pi-hero__emoji">{{community.emoji || '🪐'}}</text>
+        <text class="pi-hero__title">{{community.title}}</text>
+        <text class="pi-hero__sub" wx:if="{{community.subtitle}}">{{community.subtitle}}</text>
+        <view class="pi-hero__meta" wx:if="{{community.membersLabel || community.todayLabel}}">
+          <text wx:if="{{community.membersLabel}}">{{community.membersLabel}}</text>
+          <text wx:if="{{community.membersLabel && community.todayLabel}}" class="pi-dot">·</text>
+          <text wx:if="{{community.todayLabel}}">{{community.todayLabel}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="pi-body">
+      <view class="pi-intro" wx:if="{{introParagraphs.length}}">
+        <text class="pi-intro__label">关于这里</text>
+        <text
+          wx:for="{{introParagraphs}}"
+          wx:key="*this"
+          class="pi-intro__p"
+        >{{item}}</text>
+      </view>
+
+      <view class="pi-hl" wx:if="{{community.highlights.length}}">
+        <text class="pi-hl__label">你会得到</text>
+        <view
+          wx:for="{{community.highlights}}"
+          wx:key="title"
+          class="pi-hl__card"
+        >
+          <text class="pi-hl__ic">{{item.icon || '✨'}}</text>
+          <view class="pi-hl__txt">
+            <text class="pi-hl__t">{{item.title}}</text>
+            <text class="pi-hl__d" wx:if="{{item.desc}}">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="pi-foot">
+      <text class="pi-foot__hint" wx:if="{{community.joinHint}}">{{community.joinHint}}</text>
+      <view class="pi-foot__btns">
+        <view class="pi-btn pi-btn--ghost" bindtap="onBrowse">先逛逛</view>
+        <view class="pi-btn pi-btn--primary" bindtap="onJoin">{{community.ctaText || '加入星球'}}</view>
+      </view>
+      <view
+        wx:if="{{!isMain}}"
+        class="pi-foot__set"
+        bindtap="onSetMain"
+      >设为常驻星球</view>
+      <view wx:else class="pi-foot__set pi-foot__set--muted">已是你的常驻星球</view>
+    </view>
+  </block>
+
+  <login-sheet id="global-login-sheet" />
+</view>

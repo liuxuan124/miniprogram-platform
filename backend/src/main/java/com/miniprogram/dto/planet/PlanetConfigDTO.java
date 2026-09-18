@@ -20,4 +20,6 @@ public class PlanetConfigDTO {
     private Object segs;
     /** 运营 KPI / 打卡开关 */
     private Object ops;
+    /** 多星球社区列表（含介绍页文案） */
+    private Object communities;
 }
