@@ -14,6 +14,7 @@ import com.miniprogram.security.JwtTokenProvider;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.WxAuthService;
 import com.miniprogram.user.UserSourceChannels;
+import com.miniprogram.util.PublicMediaUrl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,9 @@ public class WxAuthServiceImpl implements WxAuthService {
 
     @Value("${wx.miniapp.appid:}")
     private String appId;
+
+    @Value("${file.base-url:https://api.zfculture.site}")
+    private String fileBaseUrl;
 
     @Value("${wx.miniapp.secret:}")
     private String appSecret;
@@ -120,7 +124,7 @@ public class WxAuthServiceImpl implements WxAuthService {
                 .expiresIn(86400L)
                 .userId(user.getId())
                 .nickname(user.getNickname())
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(PublicMediaUrl.normalize(user.getAvatarUrl(), fileBaseUrl))
                 .isNewUser(isNewUser)
                 .phone(maskPhone(user.getPhone()))
                 .phoneBound(StringUtils.hasText(user.getPhone()))

@@ -55,6 +55,9 @@ public class ContentDetailDTO {
     /** 正文排版主题 */
     private String layoutTheme;
 
+    /** 发现页展示 auto/full/duo */
+    private String discoverLayout;
+
     /** 文章内容（富文本HTML） */
     private String content;
 
@@ -102,6 +105,9 @@ public class ContentDetailDTO {
 
     /** 星球专属 */
     private Integer planetExclusive;
+
+    /** 所属星球 ID（communities.id） */
+    private String planetId;
 
     /** 当前用户是否可看全文/下载 */
     private Boolean accessGranted;

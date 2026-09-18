@@ -72,6 +72,17 @@ const COMPONENT_TYPES = {
   PLANET_HERO: 'planet_hero',
   PLANET_TOPICS: 'planet_topics',
   PLANET_FEED: 'planet_feed',
+  WARM_GREET: 'warm_greet',
+  WARM_AUTHORS: 'warm_authors',
+  WARM_FEATURE: 'warm_feature',
+  WARM_COLUMNS: 'warm_columns',
+  WARM_PLANET_REC: 'warm_planet_rec',
+  WARM_FEED: 'warm_feed',
+  WARM_HOME: 'warm_home',
+  WARM_DISCOVER: 'warm_discover',
+  WARM_PLANET: 'warm_planet',
+  WARM_SHOP: 'warm_shop',
+  WARM_MINE: 'warm_mine',
 }
 
 // 需要数据源的组件类型

@@ -23,4 +23,7 @@ public class ProductQueryDTO extends PageDTO {
 
     @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
+
+    @Schema(description = "排序: created_desc/sales_desc/price_asc/price_desc")
+    private String sort;
 }

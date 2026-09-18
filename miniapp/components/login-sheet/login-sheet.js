@@ -8,6 +8,10 @@ const {
   resolveLoginTagline,
 } = require('../../utils/brand-config')
 const {
+  DEFAULT_BRAND_LOGO,
+  resolveDisplayLogoUrl,
+} = require('../../utils/image-fallback')
+const {
   runOneTapLogin,
   computeCanSubmit,
   applyRememberedProfile,
@@ -33,7 +37,7 @@ Component({
     pickingAvatar: false,
     brandName: DEFAULT_MINIAPP_BRAND_CONFIG.appName,
     brandMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
-    brandLogoUrl: '',
+    brandLogoUrl: DEFAULT_BRAND_LOGO,
     brandTagline: DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline,
   },
 
@@ -153,12 +157,23 @@ Component({
 
     _applyBrandPatch(brand, interceptAction) {
       const normalized = normalizeBrandConfig(brand)
+      const logoUrl = resolveDisplayLogoUrl(normalized.logoUrl) || DEFAULT_BRAND_LOGO
       this.setData({
         brandName: normalized.appName,
         brandMark: normalized.logoMark,
-        brandLogoUrl: normalized.logoUrl,
+        brandLogoUrl: logoUrl,
         brandTagline: resolveLoginTagline(normalized, interceptAction),
       })
+    },
+
+    onBrandLogoError() {
+      const current = String(this.data.brandLogoUrl || '')
+      if (current && current !== DEFAULT_BRAND_LOGO) {
+        this.setData({ brandLogoUrl: DEFAULT_BRAND_LOGO })
+        return
+      }
+      // 默认品牌图也失败时退回文字标，避免空白圆
+      this.setData({ brandLogoUrl: '' })
     },
 
     async _loadBrandConfig(interceptAction) {

@@ -1,0 +1,51 @@
+<!-- 社区列表：进入 › -->
+<view class="pcl-page">
+  <view class="pcl-hd">
+    <text class="pcl-hd__t">我加入的星球</text>
+    <text class="pcl-hd__s">先逛逛，再挑一个常驻的自留地</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="pcl-state">加载中…</view>
+  <view wx:elif="{{loadError}}" class="pcl-state" bindtap="onRetry">加载失败，点此重试</view>
+  <view wx:elif="{{!list.length}}" class="pcl-state">暂无星球</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="pcl-card {{item.isMain ? 'pcl-card--primary' : ''}}"
+  >
+    <view
+      class="pcl-card__rw"
+      data-id="{{item.id}}"
+      data-feed="{{item.feedUrl}}"
+      bindtap="onOpenFeed"
+    >
+      <text class="pcl-card__ic">{{item.emoji || '🪐'}}</text>
+      <view class="pcl-card__meta">
+        <text class="pcl-card__title">{{item.title}}</text>
+        <text class="pcl-card__sb">{{item.subtitle}}</text>
+      </view>
+      <text class="pcl-card__badge" wx:if="{{item.isMain}}">常驻</text>
+      <text class="pcl-card__badge" wx:else>{{item.joined ? '已加入' : '可加入'}}</text>
+    </view>
+    <view class="pcl-card__ft">
+      <text class="pcl-card__num">{{item.membersLabel || '—'}}</text>
+      <view class="pcl-card__acts">
+        <text
+          wx:if="{{!item.isMain}}"
+          class="pcl-card__set"
+          data-id="{{item.id}}"
+          catchtap="onSetMain"
+        >设为常驻</text>
+        <text
+          class="pcl-card__today"
+          data-id="{{item.id}}"
+          data-feed="{{item.feedUrl}}"
+          catchtap="onOpenFeed"
+        >去看看 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <login-sheet id="global-login-sheet" />
+</view>

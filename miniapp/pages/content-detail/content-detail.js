@@ -4,6 +4,7 @@ const productService = require('../../services/product')
 const { StorageUtil } = require('../../utils/storage')
 const { createSharePageConfig, openWarmShareSheet } = require('../../utils/share')
 const { AuthUtil } = require('../../utils/auth')
+const { hasFavoriteId, readFavoriteIds, writeFavoriteIds } = require('../../utils/favorite-ids')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const {
   isUnusableImageUrl,
@@ -30,6 +31,17 @@ const {
 const { ITEMS, TOPIC_NAME, artStyle } = require('../../data/prototype-home')
 const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
 const { DEMO_ARTICLE } = require('../../data/warm-demo')
+
+function currentUserId() {
+  const info = AuthUtil.getUserInfo() || {}
+  return String(info.id || info.userId || '').trim()
+}
+
+function isMyCommentRow(c) {
+  const uid = currentUserId()
+  if (!uid) return false
+  return String((c && (c.userId || c.user_id)) || '') === uid
+}
 
 function getStatusBarHeight() {
   try {
@@ -84,6 +96,34 @@ function isWarmDeskNote(article) {
   return false
 }
 
+function isWarmMealNote(article) {
+  if (!article) return false
+  const title = String(article.title || '').trim()
+  const ext = String(article.externalId || article.external_id || '').trim()
+  if (ext === 'warm-note-d2' || ext === 'warm-home-f3') return true
+  if (/一周三餐|在家做饭/.test(title)) return true
+  return false
+}
+
+function isWarmProtoNote(article) {
+  return isWarmDeskNote(article) || isWarmMealNote(article)
+}
+
+function pickWarmNoteDemo(article) {
+  const { DEMO_NOTE, DEMO_MEAL_NOTE } = require('../../data/warm-demo')
+  return isWarmMealNote(article) ? DEMO_MEAL_NOTE : DEMO_NOTE
+}
+
+/** 暖阁种子笔记：生产也允许原型字段兜底（作者角色 / 专栏卡 / 评论） */
+function allowWarmNoteOverlay(article) {
+  if (USE_LOCAL_SOURCE) return true
+  const id = String((article && article.id) || '')
+  if (id.indexOf('warm-demo') === 0) return true
+  const src = String((article && (article.externalSource || article.external_source)) || '')
+  if (src === 'warm_seed') return true
+  return isWarmProtoNote(article)
+}
+
 function mapWarmNoteComments(list) {
   return (list || []).map((c, i) => ({
     id: 'warm-c' + i,
@@ -117,10 +157,6 @@ function shouldPreferDemoBody(html) {
   return false
 }
 
-const WARM_ARTICLE_LOCK_REASON =
-  '包含完整的定价实验数据、三版落地页拆解以及我的 SOP 模板包（可下载）'
-
-const FAVORITES_KEY = 'content_favorites'
 const LIKES_KEY = 'content_likes'
 const FOLLOWS_KEY = 'author_follows'
 const COMMENTS_KEY = 'content_comments'
@@ -332,6 +368,7 @@ Page({
     loadErrorText: '',
     liked: false,
     favorited: false,
+    hasCommented: false,
     followed: false,
     isNote: false,
     isWechatNewspic: false,
@@ -356,6 +393,7 @@ Page({
     glyph: '📌',
     metaLine: '',
     likeDisplay: '0',
+    favoriteDisplay: '0',
     commentEnabled: true,
     commentCount: 0,
     commentCountDisplay: '0',
@@ -369,13 +407,19 @@ Page({
     authorRole: '',
     contentLocked: false,
     lockedReason: '',
+    memberWall: {
+      remainPercent: '',
+      desc: '',
+      memberYearPrice: '',
+      unlockProductId: '',
+      unlockProductName: '',
+    },
     relatedReads: [],
     articleCover: '',
     articleTag: '',
     noteGoods: null,
     isWarmArticle: false,
     isWarmNote: false,
-    favoriteDisplay: '收藏',
     statusBarHeight: getStatusBarHeight(),
   },
 
@@ -386,8 +430,15 @@ Page({
       this._applyEbookTrialDemo()
       return
     }
+    // demo=note / demo=meal：本地兜底链；生产 feed 应走真实 id
+    if (demo === 'note' || demo === 'meal') {
+      this._loadMemberWallConfig()
+      this._applyWarmDemo(demo === 'meal' ? 'meal' : 'note')
+      return
+    }
     if (USE_LOCAL_SOURCE) {
-      this._applyWarmDemo(demo === 'note' ? 'note' : 'article')
+      this._loadMemberWallConfig()
+      this._applyWarmDemo('article')
       return
     }
     const id = resolveContentIdFromOptions(options)
@@ -398,7 +449,25 @@ Page({
     }
     this._contentId = String(id).trim()
     this.setData({ commentEnabled: getCommentEnabledSync() })
+    this._loadMemberWallConfig()
     this._loadArticleDetail(this._contentId)
+  },
+
+  _loadMemberWallConfig() {
+    SystemService.fetchSystemConfig(false)
+      .then((cfg) => {
+        const wall = (cfg && cfg.contentMemberWall) || {}
+        this.setData({
+          memberWall: {
+            remainPercent: wall.remainPercent || '',
+            desc: wall.desc || '',
+            memberYearPrice: wall.memberYearPrice || '',
+            unlockProductId: wall.unlockProductId || '',
+            unlockProductName: wall.unlockProductName || '',
+          },
+        })
+      })
+      .catch(() => {})
   },
 
   onBack() {
@@ -455,8 +524,9 @@ Page({
       contentLocked: false,
       liked: false,
       favorited: false,
+      hasCommented: false,
       likeDisplay: '0',
-      favoriteDisplay: '收藏',
+      favoriteDisplay: '0',
       commentCountDisplay: '0',
       commentEnabled: false,
       bodyContainerStyle: bodyStyles.container || '',
@@ -465,10 +535,10 @@ Page({
   },
 
   _applyWarmDemo(mode) {
-    const { DEMO_NOTE } = require('../../data/warm-demo')
-    if (mode === 'note') {
-      const d = DEMO_NOTE
-      const demoId = 'warm-demo-note'
+    const { DEMO_NOTE, DEMO_MEAL_NOTE } = require('../../data/warm-demo')
+    if (mode === 'note' || mode === 'meal') {
+      const d = mode === 'meal' ? DEMO_MEAL_NOTE : DEMO_NOTE
+      const demoId = mode === 'meal' ? 'warm-demo-meal' : 'warm-demo-note'
       this._contentId = demoId
       this.setData({
         loading: false,
@@ -482,10 +552,10 @@ Page({
           id: demoId,
           title: d.title,
           publish_time: d.meta,
-          view_count: 4200,
+          view_count: mode === 'meal' ? 1900 : 4200,
           content: d.html,
-          like_count: 4200,
-          favorite_count: 1100,
+          like_count: mode === 'meal' ? 1900 : 4200,
+          favorite_count: mode === 'meal' ? 486 : 1100,
         },
         authorName: d.author,
         authorRole: d.authorRole || '',
@@ -495,17 +565,17 @@ Page({
         galleryCount: d.gallery.length,
         galleryIndex: 0,
         noteParagraphs: (d.paras && d.paras.length)
-          ? d.paras.map((text) => ({ text, isList: /^\d+\s/.test(text) }))
+          ? d.paras.map((text) => ({ text, isList: /^\d+\s/.test(text) || /[0-9]️⃣/.test(String(text).slice(0, 3)) }))
           : extractNoteParagraphs(d.html).map((text) => ({ text, isList: /^\d+\s/.test(text) })),
         hashTags: d.topics,
         comments: mapWarmNoteComments(d.comments),
         commentEnabled: true,
-        commentCount: d.commentCount || 286,
-        commentCountDisplay: d.commentDisplay || '286',
+        commentCount: d.commentCount || (mode === 'meal' ? 128 : 286),
+        commentCountDisplay: d.commentDisplay || (mode === 'meal' ? '128' : '286'),
         liked: hasStoredId(LIKES_KEY, demoId),
-        favorited: hasStoredId(FAVORITES_KEY, demoId),
-        likeDisplay: d.likeDisplay || '4.2k',
-        favoriteDisplay: hasStoredId(FAVORITES_KEY, demoId) ? '已收藏' : (d.favoriteDisplay || '1.1k'),
+        favorited: hasFavoriteId(demoId),
+        likeDisplay: d.likeDisplay || (mode === 'meal' ? '1.9k' : '4.2k'),
+        favoriteDisplay: hasFavoriteId(demoId) ? '已收藏' : (d.favoriteDisplay || (mode === 'meal' ? '486' : '1.1k')),
         noteGoods: d.goods
           ? {
               ...d.goods,
@@ -552,11 +622,12 @@ Page({
       relatedReads: a.related,
       relatedProducts: [],
       contentLocked: true,
-      lockedReason: WARM_ARTICLE_LOCK_REASON,
+      lockedReason: (this.data.memberWall && this.data.memberWall.desc) || '',
       liked: hasStoredId(LIKES_KEY, demoId),
-      favorited: hasStoredId(FAVORITES_KEY, demoId),
+      favorited: hasFavoriteId(demoId),
+      hasCommented: false,
       likeDisplay: '1.2k',
-      favoriteDisplay: hasStoredId(FAVORITES_KEY, demoId) ? '已收藏' : '860',
+      favoriteDisplay: '860',
       commentCountDisplay: '0',
       commentEnabled: true,
       bodyContainerStyle: bodyStyles.container || '',
@@ -688,20 +759,15 @@ Page({
         })
         this._loadRelated({ contentId: id })
           .catch(() => {})
-          .then(() => {
-            if (!(this.data.relatedReads && this.data.relatedReads.length)) {
-              const { DEMO_ARTICLE } = require('../../data/warm-demo')
-              this.setData({ relatedReads: (DEMO_ARTICLE.related || []).slice(0, 2) })
-            }
-          })
       })
   },
 
   _applyArticleDetail(article) {
         if (!article) return
-        const { DEMO_NOTE } = require('../../data/warm-demo')
-        const warmMatch = isWarmFeatureArticle(article)
-        const warmNoteMatch = isWarmDeskNote(article)
+        const overlayDemo = USE_LOCAL_SOURCE || String(article.id || '').indexOf('warm-demo') === 0
+        const noteDemo = pickWarmNoteDemo(article)
+        const warmMatch = overlayDemo && isWarmFeatureArticle(article)
+        const warmNoteMatch = allowWarmNoteOverlay(article) && isWarmProtoNote(article)
         const proto = PROTO_BY_TITLE[article.title] || null
         const topic =
           (proto && proto.topic) ||
@@ -709,7 +775,7 @@ Page({
           'select'
         const fmt = resolveFormat(article)
         const isNote = fmt.isNote || warmNoteMatch
-        // 暖阁书桌笔记走 prototypes-warm/note.html，禁止落入公众号贴图布局
+        // 暖阁原型笔记走 prototypes-warm/note.html，禁止落入公众号贴图布局
         const isWechatNewspic = isNote && !warmNoteMatch && inferWechatNewspic(article)
         const cover = resolveMediaUrl(article.coverUrl || article.coverImage || article.cover_url || '')
         let rawContent = String(article.content || article.body || '')
@@ -717,7 +783,7 @@ Page({
           rawContent = DEMO_ARTICLE.html
         }
         if (isNote && warmNoteMatch) {
-          rawContent = DEMO_NOTE.html || rawContent
+          rawContent = noteDemo.html || rawContent
         }
         const withProducts = embedProductCards(rawContent)
         let preparedContent = !isNote
@@ -727,7 +793,7 @@ Page({
           preparedContent = DEMO_ARTICLE.html
         }
         if (isNote && warmNoteMatch) {
-          preparedContent = DEMO_NOTE.html || preparedContent
+          preparedContent = noteDemo.html || preparedContent
         }
         const leadFromHtml = !isNote ? extractLeadParagraph(preparedContent || rawContent) : ''
         if (leadFromHtml) {
@@ -751,10 +817,12 @@ Page({
             ? []
             : extractImagesFromHtml(preparedContent || article.content).map((url) => resolveMediaUrl(url)).filter(Boolean)
           let uniq = buildNoteGalleryUrls(cover, extras.length ? extras : htmlImages)
-          if (warmNoteMatch && DEMO_NOTE.gallery && DEMO_NOTE.gallery.length) {
-            uniq = DEMO_NOTE.gallery.slice()
-          } else if (uniq.length < 1 && DEMO_NOTE.gallery) {
-            uniq = DEMO_NOTE.gallery.slice()
+          const usableUniq = uniq.filter((u) => u && !isUnusableImageUrl(u))
+          if (warmNoteMatch && noteDemo.gallery && noteDemo.gallery.length) {
+            // 库内仍可能是 picsum 占位，暖阁原型笔记统一用可展示图集
+            uniq = (usableUniq.length >= 3) ? usableUniq : noteDemo.gallery.slice()
+          } else {
+            uniq = usableUniq.length ? usableUniq : uniq
           }
           if (uniq.length >= 1) {
             gallerySlides = uniq.map((url, i) => ({ type: 'image', url, key: `img-${i}` }))
@@ -772,10 +840,10 @@ Page({
         const tags = Array.isArray(article.tags) ? article.tags : []
         const displayTags = warmMatch
           ? (DEMO_ARTICLE.tags || tags)
-          : (warmNoteMatch ? (DEMO_NOTE.topics || tags) : tags.filter((t) => !looksLikeFeatureTag(t)))
+          : (warmNoteMatch ? (noteDemo.topics || tags) : tags.filter((t) => !looksLikeFeatureTag(t)))
         let noteParagraphs = isNote ? extractNoteParagraphs(preparedContent || article.content) : []
-        if (isNote && warmNoteMatch && DEMO_NOTE.paras && DEMO_NOTE.paras.length) {
-          noteParagraphs = DEMO_NOTE.paras.slice()
+        if (isNote && warmNoteMatch && noteDemo.paras && noteDemo.paras.length) {
+          noteParagraphs = noteDemo.paras.slice()
         }
         // list lines → tighter style markers for wxml
         if (isNote && noteParagraphs.length) {
@@ -793,7 +861,7 @@ Page({
         const dateStr = warmMatch
           ? '09-13'
           : (warmNoteMatch
-            ? (DEMO_NOTE.meta || '编辑于 09-12 · 杭州')
+            ? (noteDemo.meta || '编辑于 09-12 · 杭州')
             : (proto && proto.date
               ? proto.date
               : fmtDate(article.publishedAt || article.createTime)))
@@ -819,7 +887,7 @@ Page({
         const topicName = isDisplayableCategory(rawTopicName) ? rawTopicName : ''
         const contentId = article.id
         const liked = !!article.liked || hasStoredId(LIKES_KEY, contentId)
-        const favorited = !!article.favorited || hasStoredId(FAVORITES_KEY, contentId)
+        const favorited = !!article.favorited || hasFavoriteId(contentId)
         const followIds = StorageUtil.get(FOLLOWS_KEY) || []
         const followed = Array.isArray(followIds)
           ? followIds.map(String).includes(AUTHOR_ID)
@@ -842,18 +910,19 @@ Page({
               content: c.content,
               timeText: String(c.createTime || '').replace('T', ' ').slice(0, 16) || '',
               likes: 0,
-              mine: false,
+              mine: isMyCommentRow(c),
             }))
           : []
-        if (warmNoteMatch && (!comments.length) && DEMO_NOTE.comments) {
-          comments = mapWarmNoteComments(DEMO_NOTE.comments)
+        if (warmNoteMatch && (!comments.length) && noteDemo.comments) {
+          comments = mapWarmNoteComments(noteDemo.comments)
         }
         const commentEnabled = warmNoteMatch ? true : getCommentEnabledSync()
+        const hasCommented = comments.some((c) => !!c.mine)
 
         const authorName = String(
           article.author
             || (warmMatch ? DEMO_ARTICLE.author : '')
-            || (warmNoteMatch ? DEMO_NOTE.author : '')
+            || (warmNoteMatch ? noteDemo.author : '')
             || AUTHOR_NAME
         ).trim() || AUTHOR_NAME
         const authorRoleRaw = String(
@@ -862,9 +931,9 @@ Page({
         const authorRoleMap = { owner: '主理人', editor: '官方', contributor: '特约作者', user: '' }
         const authorRole = authorRoleRaw
           ? (authorRoleMap[authorRoleRaw] || authorRoleRaw)
-          : (warmMatch ? DEMO_ARTICLE.authorRole : (warmNoteMatch ? DEMO_NOTE.authorRole : ''))
+          : (warmMatch ? DEMO_ARTICLE.authorRole : (warmNoteMatch ? noteDemo.authorRole : ''))
         const authorAvatar = warmNoteMatch
-          ? pickWarmAvatar(article.authorAvatar || article.author_avatar, DEMO_NOTE.avatar)
+          ? pickWarmAvatar(article.authorAvatar || article.author_avatar, noteDemo.avatar)
           : pickWarmAvatar(
             article.authorAvatar || article.author_avatar,
             warmMatch ? DEMO_ARTICLE.avatar : ''
@@ -876,7 +945,7 @@ Page({
             : Number(article.favoriteCount || article.favorite_count || 0))
         const viewCount = Number(article.viewCount || article.view_count || (warmMatch ? 23000 : (warmNoteMatch ? 4200 : 0)))
         const resolvedTitle = warmNoteMatch
-          ? DEMO_NOTE.title
+          ? noteDemo.title
           : (warmMatch ? DEMO_ARTICLE.title : (article.title || ''))
         let articleMetaLine = ''
         let articleLede = ''
@@ -898,11 +967,11 @@ Page({
           || article.accessGranted === false
           || article.access_granted === false
         let lockedReason = String(article.lockedReason || article.locked_reason || '').trim()
-          || (contentLocked ? '开通会员后可查看全文' : '')
-        // 暖阁首页精选长文：始终展示原型公开段 + MEMBER ONLY 墙
-        if (warmMatch && !isNote) {
+          || (contentLocked ? '' : '')
+        // 本地演示源仍可强制出原型门禁；生产只信接口 locked
+        if (USE_LOCAL_SOURCE && warmMatch && !isNote) {
           contentLocked = true
-          lockedReason = WARM_ARTICLE_LOCK_REASON
+          lockedReason = String((this.data.memberWall && this.data.memberWall.desc) || '').trim()
         }
         if (contentLocked && !articleLede) {
           const summaryText = String(article.summary || '').trim()
@@ -913,8 +982,8 @@ Page({
           ? DEMO_ARTICLE.tag
           : String(article.coverTag || article.cover_tag || topicName || fmt.label || '').trim()
         const articleCover = cover || (warmMatch ? DEMO_ARTICLE.cover : '')
-        // 锁定时仍展示公开段正文（暖阁精选用 DEMO；其它用接口剩余内容）
-        const bodyHtml = warmMatch
+        // 锁定时展示接口返回的试读正文；仅本地演示源可用 DEMO 正文
+        const bodyHtml = (USE_LOCAL_SOURCE && warmMatch)
           ? DEMO_ARTICLE.html
           : (preparedContent || '')
 
@@ -962,8 +1031,8 @@ Page({
               ? noteParagraphs.slice(0, 2)
               : (article.summary ? [{ text: article.summary, isList: false }] : []))
             : noteParagraphs,
-          hashTags: (warmNoteMatch && DEMO_NOTE.topics && DEMO_NOTE.topics.length)
-            ? DEMO_NOTE.topics
+          hashTags: (warmNoteMatch && noteDemo.topics && noteDemo.topics.length)
+            ? noteDemo.topics
             : hashTagList,
           artStyle: artStyle(topic),
           glyph: (proto && proto.glyph) || (isNote ? '📷' : '📄'),
@@ -976,29 +1045,30 @@ Page({
           lockedReason,
           liked,
           favorited,
+          hasCommented,
           followed,
-          likeDisplay: warmMatch ? '1.2k' : (warmNoteMatch ? (DEMO_NOTE.likeDisplay || '4.2k') : formatCount(likeCount)),
-          favoriteDisplay: warmMatch
-            ? formatCount(favoriteBase)
-            : (warmNoteMatch
-              ? (favorited ? '已收藏' : (DEMO_NOTE.favoriteDisplay || '1.1k'))
-              : (favorited ? '已收藏' : '收藏')),
+          likeDisplay: warmMatch ? '1.2k' : (warmNoteMatch ? (noteDemo.likeDisplay || '4.2k') : formatCount(likeCount)),
+          favoriteDisplay: isNote
+            ? (warmNoteMatch
+              ? (favorited ? '已收藏' : (noteDemo.favoriteDisplay || '1.1k'))
+              : (favorited ? '已收藏' : '收藏'))
+            : (warmMatch ? formatCount(Math.max(860, favoriteBase)) : formatCount(favoriteBase)),
           comments: commentEnabled ? comments : [],
           commentEnabled,
-          noteGoods: warmNoteMatch && DEMO_NOTE.goods
+          noteGoods: warmNoteMatch && noteDemo.goods
             ? {
-                ...DEMO_NOTE.goods,
-                cover: resolveDisplayProductUrl(DEMO_NOTE.goods.cover),
+                ...noteDemo.goods,
+                cover: resolveDisplayProductUrl(noteDemo.goods.cover),
               }
             : null,
           commentCount: commentEnabled
             ? (warmNoteMatch
-              ? Math.max(DEMO_NOTE.commentCount || 286, Number(article.commentCount) || comments.length)
+              ? Math.max(noteDemo.commentCount || 286, Number(article.commentCount) || comments.length)
               : (Number(article.commentCount) || comments.length))
             : 0,
           commentCountDisplay: commentEnabled
             ? (warmNoteMatch
-              ? (DEMO_NOTE.commentDisplay || '286')
+              ? (noteDemo.commentDisplay || '286')
               : formatCount(Number(article.commentCount) || comments.length))
             : '0',
           readProgress: 0,
@@ -1050,12 +1120,13 @@ Page({
               content: c.content,
               timeText: String(c.createTime || '').replace('T', ' ').slice(0, 16) || '',
               likes: 0,
-              mine: false,
+              mine: isMyCommentRow(c),
             }))
             this.setData({
               comments: mapped,
               commentCount: mapped.length,
               commentCountDisplay: formatCount(mapped.length),
+              hasCommented: mapped.some((c) => !!c.mine) || !!this.data.hasCommented,
             })
           })
           .catch(() => {})
@@ -1063,13 +1134,14 @@ Page({
 
   async _loadRelated(opts = {}) {
     const contentId = opts.contentId || this._contentId || (this.data.article && this.data.article.id)
-    const warmMatch = !!opts.warmMatch
+    const overlayDemo = USE_LOCAL_SOURCE || String(contentId || '').indexOf('warm-demo') === 0
+    const warmMatch = overlayDemo && (!!opts.warmMatch
       || isWarmFeatureArticle({
         title: opts.title || (this.data.article && this.data.article.title),
         externalId: this.data.article && (this.data.article.externalId || this.data.article.external_id),
         summary: this.data.article && this.data.article.summary,
         tags: this.data.article && this.data.article.tags,
-      })
+      }))
 
     let relatedReads = []
     if (warmMatch) {
@@ -1177,13 +1249,19 @@ Page({
     this._navMemberCenter()
   },
 
-  /** 暖阁长文付费墙：已购专栏免费解锁 → 专栏详情（权益核销入口） */
+  /** 长文付费墙：已购专栏免费解锁 → 配置的商品详情 */
   onGoColumnUnlock() {
-    const url = '/pages/product-detail/product-detail?demo=column'
+    const wall = this.data.memberWall || {}
+    const pid = wall.unlockProductId
+    if (!pid) {
+      wx.showToast({ title: '未配置解锁商品', icon: 'none' })
+      return
+    }
+    const url = `/pages/product-detail/product-detail?id=${encodeURIComponent(pid)}`
     if (blockTradeNavigation(url)) return
     wx.navigateTo({
       url,
-      fail: () => wx.showToast({ title: '暂时打不开专栏', icon: 'none' }),
+      fail: () => wx.showToast({ title: '暂时打不开商品', icon: 'none' }),
     })
   },
 
@@ -1320,22 +1398,22 @@ Page({
         ? Math.max(860, nextCount)
         : (this.data.isWarmNote ? Math.max(1100, nextCount) : nextCount),
     }
-    const ids = readIdList(FAVORITES_KEY)
+    const ids = readFavoriteIds()
     if (favorited) {
       if (!ids.includes(id)) ids.push(id)
     } else {
       const idx = ids.indexOf(id)
       if (idx >= 0) ids.splice(idx, 1)
     }
-    writeIdList(FAVORITES_KEY, ids)
+    writeFavoriteIds(ids)
     this.setData({
       favorited,
       article: patched,
-      favoriteDisplay: this.data.isWarmArticle
-        ? formatCount(patched.favorite_count)
-        : (this.data.isWarmNote
+      favoriteDisplay: this.data.isNote
+        ? (this.data.isWarmNote
           ? (favorited ? '已收藏' : '1.1k')
-          : (favorited ? '已收藏' : '收藏')),
+          : (favorited ? '已收藏' : '收藏'))
+        : formatCount(patched.favorite_count),
     })
     wx.showToast({ title: favorited ? '已收藏' : '已取消收藏', icon: 'none' })
 
@@ -1346,18 +1424,21 @@ Page({
         if (!state) return
         this.setData({
           favorited: !!state.favorited,
-          favoriteDisplay: this.data.isWarmArticle
-            ? formatCount(this.data.article.favorite_count)
-            : (this.data.isWarmNote
+          favoriteDisplay: this.data.isNote
+            ? (this.data.isWarmNote
               ? (state.favorited ? '已收藏' : '1.1k')
-              : (state.favorited ? '已收藏' : '收藏')),
+              : (state.favorited ? '已收藏' : '收藏'))
+            : formatCount(this.data.article.favorite_count),
         })
       })
       .catch(() => {})
   },
 
   onCommentTap() {
-    if (!this.data.commentEnabled) return
+    if (!this.data.commentEnabled) {
+      wx.showToast({ title: '评论暂未开放', icon: 'none' })
+      return
+    }
     this.setData({ showCommentSheet: true })
   },
 
@@ -1394,10 +1475,11 @@ Page({
       avatar: user.avatarUrl || '',
     })
       .then((row) => {
-        // 评论默认待审隐藏，不立即插入公开列表
+        // 评论默认待审隐藏，不立即插入公开列表；底栏仍标「已评论」
         this.setData({
           commentDraft: '',
           commentSubmitting: false,
+          hasCommented: true,
         })
         wx.showToast({ title: '已提交，审核后可见', icon: 'none' })
       })

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "星球动态",
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "enablePullDownRefresh": true,
+  "usingComponents": {}
+}

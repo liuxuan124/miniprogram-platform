@@ -1,12 +1,17 @@
 // pages/index/index.js — 暖阁首页（API 真源；FORCE_LOCAL_DEMO 时用本地演示）
 const { AuthService } = require('../../services/auth')
 const { AuthUtil } = require('../../utils/auth')
+const { get } = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
 const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
 const HomeService = require('../../services/home')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
+const { defaultHomeBlocks, annotateHomeBlocks } = require('../../utils/warm-home-template')
+const { DEFAULT_AVATAR, pickDisplayAvatarUrl } = require('../../utils/image-fallback')
+
+const _navLayout = getNavLayout()
 
 function filterFeedBySeg(feed, key) {
   const list = Array.isArray(feed) ? feed : []
@@ -18,9 +23,22 @@ function warmHomeData() {
   try { return require('../../data/warm-home') } catch (e) { return {} }
 }
 
-/** 首屏同步种子，避免 dslPending 空白「加载中」 */
-const _warmSeed = warmHomeData()
-const DEMO_HOME = {
+const _localDemo = USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO
+const _warmSeed = _localDemo ? warmHomeData() : {}
+const EMPTY_HOME = {
+  navs: [],
+  authors: [],
+  feature: null,
+  columns: [],
+  planet: { title: '', members: '', items: [], cta: '' },
+  segs: [],
+  feedAll: [],
+  feed: [],
+  streakDays: 0,
+  todayCount: 0,
+  empty: true,
+}
+const DEMO_HOME = _localDemo ? {
   navs: _warmSeed.NAVS || [],
   authors: _warmSeed.AUTHORS || [],
   feature: _warmSeed.FEATURE || null,
@@ -31,45 +49,35 @@ const DEMO_HOME = {
   feed: typeof _warmSeed.filterFeedBySeg === 'function'
     ? _warmSeed.filterFeedBySeg(_warmSeed.FEED || [], 'rec')
     : (_warmSeed.FEED || []),
-  streakDays: 18,
-  todayCount: 6,
+  streakDays: 0,
+  todayCount: Number(_warmSeed.todayCount) || 0,
   empty: false,
-}
+} : EMPTY_HOME
 
 function mapFeature(f) {
   if (!f || !f.contentId) return null
-  const demo = warmHomeData().FEATURE || {}
-  let title = f.title || ''
-  if (demo.title && /当内容不再免费/.test(title)) title = demo.title
   return {
     contentId: f.contentId,
-    tag: f.tag || demo.tag || '今日精选',
-    title,
-    cover: f.cover || demo.cover || '',
-    meta: Array.isArray(f.meta) && f.meta.length ? f.meta : (demo.meta || []),
+    tag: f.tag || '今日精选',
+    title: f.title || '',
+    cover: f.cover || '',
+    meta: Array.isArray(f.meta) ? f.meta : [],
     contentType: f.contentType || 'article',
     url: `/pages/content-detail/content-detail?id=${f.contentId}`,
   }
 }
 
 function mapColumn(c) {
-  const priceNum = String(c.price || '').replace(/[¥￥,\s]/g, '')
-  const demo = (warmHomeData().COLUMNS || []).find((x) => {
-    const dp = String(x.price || '').replace(/[¥￥,\s]/g, '')
-    return dp && dp === priceNum
-  })
   return {
     id: c.productId,
     productId: c.productId,
-    title: (demo && demo.title) || c.title || '',
-    cover: (demo && demo.cover) || c.cover || '',
-    badge: c.badge || (demo && demo.badge) || '',
-    badgeGold: c.badgeGold != null ? !!c.badgeGold : !!(demo && demo.badgeGold),
-    desc: (demo && demo.desc) || c.desc || '',
-    price: c.price ? `¥${String(c.price).replace(/^[¥￥]/, '')}` : ((demo && demo.price) || ''),
-    origin: c.origin
-      ? `¥${String(c.origin).replace(/^[¥￥]/, '')}`
-      : ((demo && demo.origin) || ''),
+    title: c.title || '',
+    cover: c.cover || '',
+    badge: c.badge || '',
+    badgeGold: !!c.badgeGold,
+    desc: c.desc || '',
+    price: c.price ? `¥${String(c.price).replace(/^[¥￥]/, '')}` : '',
+    origin: c.origin ? `¥${String(c.origin).replace(/^[¥￥]/, '')}` : '',
     url: c.productId ? `/pages/product-detail/product-detail?id=${c.productId}` : '',
   }
 }
@@ -77,28 +85,19 @@ function mapColumn(c) {
 function mapFeedItem(f) {
   const id = f.contentId
   const isMoment = f.seg === 'qa' || f.contentType === 'moment'
-  const demo = (warmHomeData().FEED || []).find((x) =>
-    (f.title && x.title && (f.title === x.title || f.title.indexOf(x.title.slice(0, 12)) === 0))
-    || (f.tag && x.tag === f.tag && f.seg === x.seg)
-  )
-  let images = Array.isArray(f.images) ? f.images.filter(Boolean) : []
-  if ((f.type === 'grid' || (demo && demo.type === 'grid')) && images.length < 3 && demo && demo.images) {
-    images = demo.images
-  }
-  const summary = (f.summary && f.summary !== f.title)
-    ? f.summary
-    : ((demo && demo.summary) || f.summary || '')
+  const images = Array.isArray(f.images) ? f.images.filter(Boolean) : []
+  const summary = (f.summary && f.summary !== f.title) ? f.summary : (f.summary || '')
   return {
     id,
     contentId: id,
-    seg: f.seg || (demo && demo.seg) || 'article',
-    type: f.type || (demo && demo.type) || 'post',
-    title: f.title || (demo && demo.title) || '',
+    seg: f.seg || 'article',
+    type: f.type || 'post',
+    title: f.title || '',
     summary,
-    tag: f.tag || (demo && demo.tag) || '',
-    tagGold: f.tagGold != null ? !!f.tagGold : !!(demo && demo.tagGold),
-    meta: f.meta || (demo && demo.meta) || '',
-    cover: f.cover || (demo && demo.cover) || '',
+    tag: f.tag || '',
+    tagGold: !!f.tagGold,
+    meta: f.meta || '',
+    cover: f.cover || '',
     images,
     contentType: f.contentType || 'article',
     url: id
@@ -106,6 +105,34 @@ function mapFeedItem(f) {
         ? `/pages/moment-detail/moment-detail?id=${id}`
         : `/pages/content-detail/content-detail?id=${id}`)
       : '',
+  }
+}
+
+function evData(e) {
+  if (e && e.detail && typeof e.detail === 'object' && (e.detail.url != null || e.detail.key != null || e.detail.id != null || e.detail.apply != null || e.detail.tab != null)) {
+    return e.detail
+  }
+  return (e && e.currentTarget && e.currentTarget.dataset) || {}
+}
+
+function pickWarmView(d) {
+  return {
+    statusBarHeight: d.statusBarHeight || _navLayout.statusBarHeight || 0,
+    userAvatar: d.userAvatar || DEFAULT_AVATAR,
+    greetTitle: d.greetTitle || '你好',
+    isLoggedIn: !!d.isLoggedIn,
+    streakDays: Number(d.streakDays) || 0,
+    todayCount: Number(d.todayCount) || 0,
+    noticeDot: !!d.noticeDot,
+    navs: d.navs || [],
+    authors: d.authors || [],
+    feature: d.feature || null,
+    columns: d.columns || [],
+    planet: d.planet || { title: '', members: '', items: [], cta: '' },
+    segs: d.segs || [],
+    feed: d.feed || [],
+    loadError: !!d.loadError,
+    loading: !!d.loading,
   }
 }
 
@@ -117,10 +144,14 @@ Page({
     dslPending: true,
     loading: false,
     themePageStyle: WARM_PAGE_STYLE,
-    statusBarHeight: getNavLayout().statusBarHeight,
+    statusBarHeight: _navLayout.statusBarHeight,
     greetTitle: '你好',
-    userAvatar: '',
-    streakDays: DEMO_HOME.streakDays,
+    userAvatar: DEFAULT_AVATAR,
+    isLoggedIn: false,
+    warmAuthorsTitle: '',
+    warmColumnsTitle: '',
+    warmPlanetTitle: '',
+    streakDays: 0,
     todayCount: DEMO_HOME.todayCount,
     noticeDot: false,
     navs: DEMO_HOME.navs,
@@ -134,16 +165,54 @@ Page({
     activeSeg: 'rec',
     empty: false,
     loadError: false,
+    homeBlocks: annotateHomeBlocks(defaultHomeBlocks()),
+    warmView: pickWarmView({
+      statusBarHeight: _navLayout.statusBarHeight,
+      greetTitle: '你好',
+      userAvatar: DEFAULT_AVATAR,
+      isLoggedIn: false,
+      streakDays: 0,
+      todayCount: DEMO_HOME.todayCount,
+      noticeDot: false,
+      navs: DEMO_HOME.navs,
+      authors: DEMO_HOME.authors,
+      feature: DEMO_HOME.feature,
+      columns: DEMO_HOME.columns,
+      planet: DEMO_HOME.planet,
+      segs: DEMO_HOME.segs,
+      feed: DEMO_HOME.feed,
+      loadError: false,
+      loading: false,
+    }),
+  },
+
+  _setWarm(patch) {
+    const next = Object.assign({}, this.data, patch)
+    patch.warmView = pickWarmView(next)
+    this.setData(patch)
+  },
+
+  _greetTemplate() {
+    const greetBlock = (this.data.homeBlocks || []).find((b) => b && b.type === 'warm_greet')
+    const fromBlock = greetBlock && greetBlock.props && greetBlock.props.greet_template
+    return fromBlock || '你好'
   },
 
   onLoad() {
     if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
-      this.setData({ dslPending: false, dslMode: false })
+      this._setWarm({
+        dslPending: false,
+        dslMode: false,
+        homeBlocks: annotateHomeBlocks(defaultHomeBlocks()),
+      })
       this._load()
       return
     }
     loadTabBoundDslPage(this, '/pages/index/index').then((ok) => {
       if (ok) return
+      if (!(this.data.homeBlocks || []).length) {
+        this._setWarm({ homeBlocks: annotateHomeBlocks(defaultHomeBlocks()) })
+      }
       this._load()
     })
   },
@@ -151,11 +220,11 @@ Page({
   onShow() {
     showTabBarForRoute(this, '/pages/index/index')
     this.setData({ themePageStyle: WARM_PAGE_STYLE })
-    const app = getApp()
-    if (app && !app.globalData.isLoggedIn) {
-      AuthService.silentLogin().catch(() => {})
-    }
-    if (!this.data.dslMode) this._applyGreet()
+    AuthService.silentLogin()
+      .catch(() => false)
+      .finally(() => {
+        if (!this.data.dslMode) this._applyGreet()
+      })
   },
 
   onPullDownRefresh() {
@@ -163,11 +232,12 @@ Page({
       this._load().finally(() => wx.stopPullDownRefresh())
       return
     }
-    if (this.data.dslMode) {
-      loadTabBoundDslPage(this, '/pages/index/index', true).finally(() => wx.stopPullDownRefresh())
-      return
-    }
-    this._load().finally(() => wx.stopPullDownRefresh())
+    loadTabBoundDslPage(this, '/pages/index/index', true)
+      .then((ok) => {
+        if (ok) return
+        return this._load()
+      })
+      .finally(() => wx.stopPullDownRefresh())
   },
 
   onReachBottom() {
@@ -177,7 +247,7 @@ Page({
   _load() {
     if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
       const warm = require('../../data/warm-home')
-      this.setData({
+      this._setWarm({
         navs: warm.NAVS,
         authors: warm.AUTHORS,
         feature: warm.FEATURE,
@@ -187,16 +257,16 @@ Page({
         feedAll: warm.FEED,
         feed: warm.filterFeedBySeg(warm.FEED, 'rec'),
         activeSeg: 'rec',
-        streakDays: 18,
-        todayCount: 6,
+        streakDays: 0,
+        todayCount: Number(warm.todayCount) || 0,
         empty: false,
         loadError: false,
         loading: false,
       })
-      this._applyGreet(warm.greetLine ? warm.greetLine() : '你好')
+      this._applyGreet(warm.greetLine ? warm.greetLine() : this._greetTemplate())
       return Promise.resolve()
     }
-    this.setData({ loading: true, loadError: false })
+    this._setWarm({ loading: true, loadError: false })
     return HomeService.getWarmHome()
       .then((data) => {
         const feedAll = (data.feed || []).map(mapFeedItem)
@@ -204,7 +274,7 @@ Page({
           on: s.on != null ? !!s.on : (s.key === 'rec' || (!data.segs.some((x) => x.on) && i === 0)),
         }))
         const activeSeg = (segs.find((s) => s.on) || segs[0] || { key: 'rec' }).key
-        this.setData({
+        this._setWarm({
           navs: (data.navs || []).map((n) => Object.assign({}, n, {
             label: (n.label === '内容列表' || n.label === '知识库') ? '长文' : (n.label || ''),
           })),
@@ -216,7 +286,7 @@ Page({
           feedAll,
           feed: filterFeedBySeg(feedAll, activeSeg),
           activeSeg,
-          streakDays: data.streakDays || 0,
+          streakDays: 0,
           todayCount: data.todayCount || 0,
           empty: !data.feature && !(data.columns || []).length && !feedAll.length,
           loadError: false,
@@ -225,7 +295,7 @@ Page({
         this._applyGreet()
       })
       .catch(() => {
-        this.setData({
+        this._setWarm({
           navs: [],
           authors: [],
           feature: null,
@@ -243,25 +313,72 @@ Page({
   },
 
   _applyGreet(greetTpl) {
-    const warm = warmHomeData()
-    const greet = (typeof warm.greetLine === 'function' ? warm.greetLine() : null)
-      || greetTpl
-      || '你好'
-    let name = ''
-    let avatar = this.data.userAvatar || ''
-    try {
-      const u = AuthUtil.getUserInfo && AuthUtil.getUserInfo()
-      if (u && (u.nickName || u.nickname)) name = u.nickName || u.nickname
-      if (u && (u.avatarUrl || u.avatar)) avatar = u.avatarUrl || u.avatar
-    } catch (e) { /* ignore */ }
-    this.setData({
+    const greet = greetTpl || this._greetTemplate()
+    if (!AuthUtil.isLoggedIn()) {
+      this._setWarm({
+        isLoggedIn: false,
+        greetTitle: greet,
+        userAvatar: DEFAULT_AVATAR,
+        streakDays: 0,
+      })
+      return
+    }
+    const u = AuthUtil.getUserInfo() || {}
+    const name = u.nickName || u.nickname || ''
+    const avatar = pickDisplayAvatarUrl(u.avatarUrl, u.avatar)
+    this._setWarm({
+      isLoggedIn: true,
       greetTitle: name ? `${greet}，${name}` : greet,
       userAvatar: avatar,
     })
+    get('/api/v1/mp/mine/overview', {}, { auth: true, showError: false })
+      .then((data) => {
+        if (!AuthUtil.isLoggedIn() || !data) return
+        const nick = data.nickname || name
+        this._setWarm({
+          streakDays: Number(data.continuousSignDays) || 0,
+          greetTitle: nick ? `${greet}，${nick}` : greet,
+          userAvatar: pickDisplayAvatarUrl(avatar, data.avatarUrl),
+        })
+      })
+      .catch(() => {})
+  },
+
+  onGreetTap() {
+    if (AuthUtil.isLoggedIn()) return
+    this._openLoginSheet('同步阅读记录')
+  },
+
+  _openLoginSheet(action) {
+    const options = {
+      action: action || '',
+      onSuccess: () => this._applyGreet(),
+    }
+    const tryShow = () => {
+      const sheet = this.selectComponent('#global-login-sheet')
+      if (sheet && typeof sheet.show === 'function') {
+        sheet.show(options)
+        return true
+      }
+      return false
+    }
+    if (tryShow()) return
+    AuthUtil.openLoginSheet(options)
   },
 
   _go(url, isTab) {
     if (!url) return
+    // 社区列表 / 动态列表不是 Tab，禁止被旧 more_tab 误判成 switchTab
+    if (/\/pages\/planet-list\//.test(url) || /\/pages\/planet-feed\//.test(url)) {
+      wx.navigateTo({
+        url,
+        fail: (err) => {
+          console.warn('[index] navigateTo failed', url, err)
+          wx.showToast({ title: '页面打开失败，请重新编译', icon: 'none' })
+        },
+      })
+      return
+    }
     if (isTab) {
       wx.switchTab({ url })
       return
@@ -273,16 +390,27 @@ Page({
   },
 
   onNav(e) {
-    const { url, tab } = e.currentTarget.dataset
-    this._go(url, !!tab || tab === 'true' || tab === true)
+    const { url, tab } = evData(e)
+    this._go(url, !!tab || tab === 'true' || tab === true || tab === '1' || tab === 1)
   },
 
   onAuthor(e) {
-    if (e.currentTarget.dataset.apply) {
+    const d = evData(e)
+    if (d.apply || d.apply === true || d.apply === 'true' || d.apply === '1') {
       this._go('/pages/contribute/contribute')
       return
     }
-    this._go('/pages/content-list/content-list')
+    const name = d.name || ''
+    const id = d.id || ''
+    if (!name) {
+      this._go('/pages/author-list/author-list')
+      return
+    }
+    const q = [
+      `author=${encodeURIComponent(name)}`,
+      id ? `id=${encodeURIComponent(id)}` : '',
+    ].filter(Boolean).join('&')
+    this._go(`/pages/author-feed/author-feed?${q}`)
   },
 
   onFeature() {
@@ -295,8 +423,9 @@ Page({
   },
 
   onColumn(e) {
-    const id = e.currentTarget.dataset.id
-    const url = e.currentTarget.dataset.url
+    const d = evData(e)
+    const id = d.id
+    const url = d.url
     if (id) {
       this._go(`/pages/product-detail/product-detail?id=${id}`)
       return
@@ -314,8 +443,10 @@ Page({
     if (id) this._go(`/pages/content-detail/content-detail?id=${id}`)
   },
 
-  goPlanet() {
-    wx.switchTab({ url: '/pages/planet/planet' })
+  goPlanet(e) {
+    const detail = (e && e.detail) || {}
+    const url = detail.url || '/pages/planet-feed/planet-feed?planetId=warm-main'
+    wx.navigateTo({ url, fail: () => wx.switchTab({ url: '/pages/planet/planet' }) })
   },
 
   goSearch() {
@@ -323,9 +454,16 @@ Page({
   },
 
   onNotice() {
+    if (!AuthUtil.isLoggedIn()) {
+      this._openLoginSheet('查看消息')
+      return
+    }
     wx.navigateTo({
       url: '/pkg-user/notices/notices',
-      fail: () => wx.showToast({ title: '暂无新通知', icon: 'none' }),
+      fail: (err) => {
+        console.warn('[index] open notices failed', err)
+        wx.showToast({ title: '通知页打开失败', icon: 'none' })
+      },
     })
   },
 
@@ -334,10 +472,10 @@ Page({
   },
 
   onSeg(e) {
-    const key = e.currentTarget.dataset.key || 'rec'
+    const key = evData(e).key || 'rec'
     if (key === this.data.activeSeg) return
     const segs = this.data.segs.map((s) => Object.assign({}, s, { on: s.key === key }))
-    this.setData({
+    this._setWarm({
       segs,
       activeSeg: key,
       feed: filterFeedBySeg(this.data.feedAll, key),

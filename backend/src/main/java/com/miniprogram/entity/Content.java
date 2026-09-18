@@ -29,6 +29,9 @@ public class Content extends BaseEntity {
     /** 是否星球专属（付费会员可见全文/下载） */
     private Integer planetExclusive;
 
+    /** 所属星球 ID（communities.id）；空则归入配置 primary */
+    private String planetId;
+
     /** 分类ID */
     private Long categoryId;
 
@@ -61,6 +64,9 @@ public class Content extends BaseEntity {
 
     /** 正文排版主题 standard/magazine/minimal/large/dark */
     private String layoutTheme;
+
+    /** 发现页展示：auto=跟装修规则 full=通栏 duo=双列 */
+    private String discoverLayout;
 
     /** 文章内容（富文本HTML） */
     private String content;

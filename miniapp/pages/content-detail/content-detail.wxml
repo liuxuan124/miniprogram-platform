@@ -276,10 +276,17 @@
         <view class="member-wall__fade"></view>
         <view class="member-wall__box">
           <text class="member-wall__kicker">MEMBER ONLY</text>
-          <text class="member-wall__title">剩余 68% 为会员内容</text>
-          <text class="member-wall__desc">{{lockedReason || '开通会员后可查看全文并下载资料'}}</text>
-          <view class="member-wall__btn" catchtap="onGoMembership">开通会员 ¥168/年</view>
-          <view class="member-wall__alt" catchtap="onGoColumnUnlock">已购专栏？免费解锁 ›</view>
+          <text class="member-wall__title" wx:if="{{memberWall.remainPercent}}">剩余 {{memberWall.remainPercent}}% 为会员内容</text>
+          <text class="member-wall__title" wx:else>剩余内容为会员专享</text>
+          <text class="member-wall__desc" wx:if="{{memberWall.desc || lockedReason}}">{{memberWall.desc || lockedReason}}</text>
+          <view class="member-wall__btn" catchtap="onGoMembership">
+            开通会员{{memberWall.memberYearPrice ? ' ¥' + memberWall.memberYearPrice + '/年' : ''}}
+          </view>
+          <view
+            class="member-wall__alt"
+            wx:if="{{memberWall.unlockProductId || memberWall.unlockProductName}}"
+            catchtap="onGoColumnUnlock"
+          >已购{{memberWall.unlockProductName ? '《' + memberWall.unlockProductName + '》' : '专栏'}}？免费解锁 ›</view>
         </view>
       </view>
 
@@ -360,35 +367,54 @@
     </view>
   </view>
 
-  <!-- 底部栏 -->
+  <!-- 暖阁底栏（长文 + 笔记统一：说点什么 + 心/星/分享 横排） -->
   <view
-    class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}} {{isWechatNewspic ? 'bottom-bar--wechat' : ''}} {{isWarmArticle || isWarmNote ? 'bottom-bar--warm' : ''}}"
-    wx:if="{{!loading && !loadFailed}}"
+    class="bottom-bar bottom-bar--warm"
+    wx:if="{{!loading && !loadFailed && !isWechatNewspic && (isWarmNote || !isNote)}}"
   >
     <view
-      wx:if="{{isWarmArticle || isWarmNote || (commentEnabled && isNote && !isWechatNewspic)}}"
-      class="note-bottom-input {{isWarmArticle || isWarmNote ? 'warm-bottom-input' : ''}}"
+      class="warm-bottom-input {{hasCommented ? 'warm-bottom-input--done' : ''}}"
       bindtap="onCommentTap"
-    >{{isWarmArticle ? '写下你的想法…' : '说点什么...'}}</view>
-    <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
-      <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{isWarmArticle || isWarmNote ? '❤️' : (liked ? '♥' : '♡')}}</text>
+    >{{hasCommented ? '已评论，再说一句…' : '说点什么…'}}</view>
+    <view class="action-item action-item--warm {{liked ? 'active action-item--liked' : ''}}" bindtap="onLikeTap">
+      <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">❤️</text>
       <text class="action-text">{{likeDisplay}}</text>
     </view>
-    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap" wx:if="{{isWarmArticle || isWarmNote}}">
-      <text class="action-icon {{favorited ? 'action-icon--star' : ''}}">{{isWarmArticle || isWarmNote ? '⭐️' : (favorited ? '★' : '☆')}}</text>
+    <view class="action-item action-item--warm {{favorited ? 'active action-item--star' : ''}}" bindtap="onFavoriteTap">
+      <text class="action-icon {{favorited ? 'action-icon--star' : ''}}">⭐️</text>
       <text class="action-text">{{favoriteDisplay}}</text>
     </view>
-    <view class="action-item" bindtap="onCommentTap" wx:if="{{commentEnabled && !isWarmArticle}}">
+    <view class="action-item action-item--warm" bindtap="onShareTap">
+      <text class="action-icon">↗️</text>
+      <text class="action-text">分享</text>
+    </view>
+  </view>
+
+  <!-- 非暖阁笔记 / 公众号图文底栏（保留原逻辑） -->
+  <view
+    class="bottom-bar {{isNote ? 'bottom-bar--note' : ''}} {{isWechatNewspic ? 'bottom-bar--wechat' : ''}}"
+    wx:elif="{{!loading && !loadFailed}}"
+  >
+    <view
+      wx:if="{{commentEnabled && isNote && !isWechatNewspic}}"
+      class="note-bottom-input"
+      bindtap="onCommentTap"
+    >说点什么...</view>
+    <view class="action-item {{liked ? 'active' : ''}}" bindtap="onLikeTap">
+      <text class="action-icon {{liked ? 'action-icon--liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
+      <text class="action-text">{{likeDisplay}}</text>
+    </view>
+    <view class="action-item" bindtap="onCommentTap" wx:if="{{commentEnabled}}">
       <text class="action-icon">💬</text>
       <text class="action-text">{{commentCountDisplay}}</text>
     </view>
-    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap" wx:if="{{!isWarmArticle && !isWarmNote}}">
+    <view class="action-item {{favorited ? 'active' : ''}}" bindtap="onFavoriteTap">
       <text class="action-icon {{favorited ? 'action-icon--star' : ''}}">{{favorited ? '★' : '☆'}}</text>
       <text class="action-text">{{favoriteDisplay}}</text>
     </view>
     <view class="action-item" bindtap="onShareTap">
-      <text class="action-icon">{{isWarmArticle || isWarmNote ? '↗️' : '↗'}}</text>
-      <text class="action-text">{{isWarmNote ? '分享' : '分享'}}</text>
+      <text class="action-icon">↗</text>
+      <text class="action-text">分享</text>
     </view>
   </view>
 

@@ -69,7 +69,12 @@ public class SecurityConfig {
                                 "/api/v1/mp/files/{id:\\d+}",
                                 "/api/v1/mp/files/{id:\\d+}/download",
                                 "/api/v1/mp/files/{id:\\d+}/preview",
-                                "/api/v1/mp/planet/**",
+                                "/api/v1/mp/planet/home",
+                                "/api/v1/mp/planet/communities",
+                                "/api/v1/mp/planet/communities/**",
+                                "/api/v1/mp/planet/feed",
+                                "/api/v1/mp/planet/contents/**",
+                                "/api/v1/mp/planet/main",
                                 "/api/v1/mp/home/**",
                                 // 邀请短码仅 GET 解析公开；POST /scene 创建须登录（勿用 invite/** 无方法限制）
                                 "/api/v1/mp/invite/scene/*"

@@ -1,18 +1,90 @@
-// pages/product-list/product-list.js — 商品列表页
-// 分类筛选、搜索、排序、下拉刷新、上拉加载
+// pages/product-list/product-list.js — 固定列表版式；生产走真实分类/商品
 
 const productService = require('../../services/product')
+const SystemService = require('../../services/system')
 const { createSharePageConfig } = require('../../utils/share')
+const { resolveMediaUrl } = require('../../utils/media-url')
+const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+
+const LOCAL_DEMO = FORCE_LOCAL_DEMO || USE_LOCAL_SOURCE
+
+const DEFAULT_HEADER = {
+  title: '精选好物',
+  intro: '精选在售商品',
+  guarantees: ['商家正常发货', '订单进度可查', '售后保障'],
+  showTitle: true,
+  showIntro: true,
+  showGuarantees: true,
+}
+
+function flattenCategories(list, acc) {
+  const rows = Array.isArray(list) ? list : []
+  rows.forEach((item) => {
+    if (!item) return
+    if (item.status !== 0 && item.status !== '0') {
+      acc.push({ id: item.id, name: item.name })
+    }
+    if (item.children && item.children.length) flattenCategories(item.children, acc)
+  })
+  return acc
+}
+
+function isVirtualProduct(item) {
+  const t = String(item.productType || item.product_type || item.type || '').toLowerCase()
+  const types = String(item.productTypes || item.product_types || '').toLowerCase()
+  const blob = `${t} ${types}`
+  return /digital|ebook|column|resource_pack|membership|virtual|course/.test(blob)
+}
+
+function isServiceProduct(item) {
+  const t = String(item.productType || item.product_type || item.type || '').toLowerCase()
+  const types = String(item.productTypes || item.product_types || '').toLowerCase()
+  return /service/.test(`${t} ${types}`) && !isVirtualProduct(item)
+}
+
+function deliveryMeta(item) {
+  if (isVirtualProduct(item)) {
+    return { badge: '自动发货', ship: '虚拟发货' }
+  }
+  if (isServiceProduct(item)) {
+    return { badge: '预约服务', ship: '到店/预约' }
+  }
+  return { badge: '实物发货', ship: '快递发货' }
+}
+
+function formatPrice(v) {
+  if (v == null || v === '') return ''
+  const n = Number(v)
+  if (Number.isNaN(n)) return String(v)
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
+}
+
+function mapProduct(item) {
+  const meta = deliveryMeta(item)
+  const cover = resolveMediaUrl(item.mainImage || item.main_image || item.cover_url || item.image || '')
+  return {
+    ...item,
+    image: cover,
+    cover_url: cover,
+    main_image: cover,
+    mainImage: cover,
+    price: formatPrice(item.price),
+    originalPrice: formatPrice(item.originalPrice || item.original_price),
+    original_price: formatPrice(item.originalPrice || item.original_price),
+    sales: item.sales,
+    stock: item.stock,
+    badge: meta.badge,
+    shipLabel: meta.ship,
+  }
+}
 
 Page({
   ...createSharePageConfig(),
   data: {
-    // 搜索
+    themePageStyle: WARM_PAGE_STYLE,
     keyword: '',
-    // 分类
     categories: [],
     activeCategoryId: '',
-    // 排序
     sortOptions: [
       { key: 'created_desc', label: '最新' },
       { key: 'sales_desc', label: '销量' },
@@ -21,7 +93,6 @@ Page({
     ],
     activeSort: 'created_desc',
     showSortPanel: false,
-    // 商品列表
     products: [],
     page: 1,
     pageSize: 10,
@@ -29,11 +100,12 @@ Page({
     hasMore: true,
     loading: false,
     refreshing: false,
-    // 空状态
     isEmpty: false,
+    loadFailed: false,
     typeTabs: [],
     activeType: '',
     productType: '',
+    header: DEFAULT_HEADER,
   },
 
   onLoad(options) {
@@ -48,6 +120,7 @@ Page({
     } else if (options && (options.type === 'service' || options.type === 'consult')) {
       this.setData({ productType: 'service', activeType: 'service' })
     }
+    this._loadHeader()
     this._loadCategories()
     this._loadProducts(true)
   },
@@ -71,6 +144,8 @@ Page({
   },
 
   onPullDownRefresh() {
+    this._loadHeader()
+    this._loadCategories()
     this._loadProducts(true).then(() => {
       wx.stopPullDownRefresh()
     })
@@ -82,11 +157,22 @@ Page({
     }
   },
 
-  /** 加载分类列表（仅启用中的实物分类） */
+  _loadHeader() {
+    return SystemService.fetchSystemConfig()
+      .then((config) => {
+        const header = Object.assign({}, DEFAULT_HEADER, config.productListConfig || {})
+        this.setData({ header })
+      })
+      .catch(() => {
+        this.setData({ header: DEFAULT_HEADER })
+      })
+  },
+
   _loadCategories() {
     productService.getCategoryList()
       .then((list) => {
-        const categories = (list || []).filter((item) => item && item.status !== 0 && item.status !== '0')
+        const rows = Array.isArray(list) ? list : (list && (list.records || list.list)) || []
+        const categories = flattenCategories(rows, [])
         this.setData({ categories })
       })
       .catch(() => {
@@ -94,14 +180,24 @@ Page({
       })
   },
 
-  /** 加载商品列表 */
   _loadProducts(reset = false) {
-    if (this.data.loading) return Promise.resolve()
+    if (LOCAL_DEMO) {
+      this.setData({
+        loading: false,
+        loadFailed: false,
+        products: [],
+        isEmpty: true,
+        hasMore: false,
+        total: 0,
+      })
+      return Promise.resolve()
+    }
+    if (this.data.loading && !reset) return Promise.resolve()
 
     const page = reset ? 1 : this.data.page + 1
-    this.setData({ loading: true })
+    this.setData({ loading: true, loadFailed: false })
 
-    const params = { current: page, size: this.data.pageSize }
+    const params = { current: page, size: this.data.pageSize, showError: false }
     if (this.data.activeCategoryId) params.categoryId = this.data.activeCategoryId
     if (this.data.keyword) params.keyword = this.data.keyword
     if (this.data.activeSort) params.sort = this.data.activeSort
@@ -109,7 +205,7 @@ Page({
 
     return productService.getProductList(params)
       .then((res) => {
-        const list = res.records || res.list || res.items || []
+        const list = (res.records || res.list || res.items || []).map(mapProduct)
         const total = res.total || 0
         const hasMore = page * this.data.pageSize < total
         const products = reset ? list : this.data.products.concat(list)
@@ -119,32 +215,34 @@ Page({
           total,
           hasMore,
           loading: false,
+          loadFailed: false,
           isEmpty: products.length === 0,
         })
       })
       .catch(() => {
-        this.setData({ loading: false })
-        wx.showToast({ title: '加载失败', icon: 'none' })
+        this.setData({
+          loading: false,
+          loadFailed: true,
+          products: reset ? [] : this.data.products,
+          isEmpty: false,
+          hasMore: reset ? false : this.data.hasMore,
+        })
       })
   },
 
-  /** 搜索输入 */
   onSearchInput(e) {
     this.setData({ keyword: e.detail.value })
   },
 
-  /** 确认搜索 */
   onSearchConfirm() {
     this._loadProducts(true)
   },
 
-  /** 清空搜索 */
   onSearchClear() {
     this.setData({ keyword: '' })
     this._loadProducts(true)
   },
 
-  /** 选择分类 */
   onCategoryTap(e) {
     const id = e.currentTarget.dataset.id
     this.setData({ activeCategoryId: id || '' })
@@ -155,31 +253,25 @@ Page({
     wx.navigateTo({ url: '/pages/cart/cart' })
   },
 
-  /** 切换排序面板 */
   onSortToggle() {
     this.setData({ showSortPanel: !this.data.showSortPanel })
   },
 
-  /** 选择排序方式 */
   onSortSelect(e) {
     const key = e.currentTarget.dataset.key
     this.setData({ activeSort: key, showSortPanel: false })
     this._loadProducts(true)
   },
 
-  /** 关闭排序面板 */
   onSortMaskTap() {
     this.setData({ showSortPanel: false })
   },
 
-  /** 点击商品跳转详情 */
   onProductTap(e) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/pages/product-detail/product-detail?id=' + id })
   },
 
-  /** D4：图片加载失败时换成统一占位图，避免裂图图标
-   * 模板 src 取 image/cover_url/main_image/mainImage 中第一个真值，四个字段都要清空改写才能确保生效 */
   onImageError(e) {
     const index = e.currentTarget.dataset.index
     const fallback = '/images/default-product.svg'
@@ -189,6 +281,12 @@ Page({
       [`products[${index}].main_image`]: fallback,
       [`products[${index}].mainImage`]: fallback,
     })
+  },
+
+  onRetry() {
+    this._loadHeader()
+    this._loadCategories()
+    this._loadProducts(true)
   },
 
   onClearFilters() {

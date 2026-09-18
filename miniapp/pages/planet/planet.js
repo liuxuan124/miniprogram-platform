@@ -9,7 +9,6 @@ const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
 const PlanetService = require('../../services/planet')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { isUnusableImageUrl } = require('../../utils/image-fallback')
-const { picsum } = require('../../data/warm-media')
 
 const MOMENT_LIKES_KEY = 'moment_likes'
 const MOMENT_FAVS_KEY = 'moment_favorites'
@@ -58,7 +57,7 @@ function enrichLocalFeedItem(item) {
   })
 }
 
-/** 首屏同步种子（与 join 页 DEMO_* 同模式），避免空壳跳动 */
+/** 仅 FORCE_LOCAL_DEMO 时使用的本地演示包 */
 const DEMO_FEED = warmPlanet.FEED.map(enrichLocalFeedItem)
 const DEMO_PLANET = {
   home: warmPlanet.HOME,
@@ -69,8 +68,19 @@ const DEMO_PLANET = {
   allList: DEMO_FEED,
   list: DEMO_FEED,
   usingDemo: true,
-  footerText: '—— 已加载全部 27 条今日动态 ——',
+  footerText: '—— 已加载全部演示动态 ——',
 }
+
+/** 生产固定模板壳：结构占位，不含假人数/假动态 */
+const EMPTY_SEGS = [
+  { key: 'all', label: '全部' },
+  { key: 'official', label: '官方更新' },
+  { key: 'essence', label: '精华' },
+  { key: 'ask', label: '读者提问' },
+  { key: 'checkin', label: '打卡' },
+  { key: 'resources', label: '资料库' },
+]
+const EMPTY_HOME = { title: '暖阁星球', subtitle: '内容创作者的自留地', memberActive: false }
 
 function relativeTime(value) {
   const raw = String(value || '').replace('T', ' ')
@@ -154,7 +164,7 @@ function mapFeedItem(item) {
     avatar: (() => {
       const raw = resolveMediaUrl(item.authorAvatar || item.author_avatar || '')
       if (raw && !isUnusableImageUrl(raw)) return raw
-      return picsum('u' + ((String(author).charCodeAt(0) % 8) + 1), 80, 80)
+      return ''
     })(),
     time: relativeTime(item.publishedAt || item.createTime || item.updateTime),
     content: contentText,
@@ -177,33 +187,35 @@ Page({
   ...createSharePageConfig(),
   data: {
     ...TAB_DSL_INITIAL,
-    // 等远程装修 JSON 时仍先画 DEMO，不挡成空白「加载中」
     dslPending: true,
-    loading: false,
+    loading: true,
+    loadError: false,
     themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
-    home: DEMO_PLANET.home,
+    home: EMPTY_HOME,
     packages: [],
-    list: DEMO_PLANET.list,
-    allList: DEMO_PLANET.allList,
-    segs: DEMO_PLANET.segs,
+    list: [],
+    allList: [],
+    segs: EMPTY_SEGS,
     activeSeg: 'all',
-    topics: DEMO_PLANET.topics,
-    kpis: DEMO_PLANET.kpis,
-    expireText: DEMO_PLANET.expireText,
+    topics: [],
+    kpis: [],
+    expireText: '',
     refreshing: false,
-    footerText: DEMO_PLANET.footerText,
+    footerText: '加载中…',
     page: 1,
     hasMore: false,
-    usingDemo: true,
+    usingDemo: false,
+    mainPlanetId: '',
+    planetModeLabel: '我的常驻星球',
   },
 
   onLoad() {
     try {
-      const sys = wx.getSystemInfoSync()
-      if (sys && sys.statusBarHeight) {
-        this.setData({ statusBarHeight: sys.statusBarHeight })
-      }
+      const layout = getNavLayout()
+      this.setData({
+        statusBarHeight: layout.statusBarHeight,
+      })
     } catch (e) { /* ignore */ }
     if (USE_LOCAL_SOURCE) {
       this.setData({ dslPending: false, dslMode: false })
@@ -222,6 +234,14 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       showTabBarForRoute(this, '/pages/planet/planet')
     }
+    // 从列表设常驻返回时刷新；跳过首次 onLoad 后的立刻 onShow
+    if (!USE_LOCAL_SOURCE && !this.data.dslMode && !this.data.dslPending && this._planetShownOnce) {
+      const cached = PlanetService.getCachedMainPlanetId()
+      if (cached && cached !== this.data.mainPlanetId) {
+        this._reload()
+      }
+    }
+    this._planetShownOnce = true
   },
 
   onPullDownRefresh() {
@@ -264,40 +284,95 @@ Page({
         allList: feed,
         list: this._filterSeg(feed, this.data.activeSeg),
         loading: false,
+        loadError: false,
       }))
       return Promise.resolve()
     }
-    // 保留 DEMO 首屏，不先清空；API 有有效数据再一次性覆盖
-    return Promise.all([
-      PlanetService.getPlanetHome().catch(() => null),
-      PlanetService.getPlanetFeed({ current: 1, size: 30 }).catch(() => null),
-    ]).then(([home, feed]) => {
-      const patch = { loading: false }
+    this.setData({ loading: true, loadError: false })
+    return PlanetService.getMainPlanet().catch(() => null).then((main) => {
+      const mainPlanetId = (main && main.planetId)
+        || PlanetService.getCachedMainPlanetId()
+        || 'warm-main'
+      return Promise.all([
+        Promise.resolve(main),
+        PlanetService.getPlanetHome(mainPlanetId).catch(() => null),
+        PlanetService.getPlanetFeed({ current: 1, size: 30, planetId: mainPlanetId }).catch(() => null),
+      ]).then(([mainRes, home, feed]) => ({
+        mainPlanetId,
+        community: (mainRes && mainRes.community) || null,
+        home,
+        feed,
+      }))
+    }).then(({ mainPlanetId, community, home, feed }) => {
+      const homeFailed = !home
+      const feedFailed = feed == null
+      const patch = {
+        loading: false,
+        loadError: homeFailed && feedFailed,
+        usingDemo: false,
+        mainPlanetId,
+        planetModeLabel: '我的常驻星球',
+      }
       if (home) {
         patch.home = {
-          title: home.title || this.data.home.title || warmPlanet.HOME.title,
-          subtitle: home.subtitle || this.data.home.subtitle || warmPlanet.HOME.subtitle,
+          title: (community && community.title) || home.title || EMPTY_HOME.title,
+          subtitle: (community && community.subtitle) || home.subtitle || EMPTY_HOME.subtitle,
           memberActive: !!(home.memberActive || home.isMember),
         }
         if (home.packages && home.packages.length) patch.packages = home.packages
-        if (home.expireText) patch.expireText = home.expireText
-        if (Array.isArray(home.kpis) && home.kpis.length) patch.kpis = home.kpis
-        if (Array.isArray(home.topics) && home.topics.length) patch.topics = home.topics
-        if (Array.isArray(home.segs) && home.segs.length) patch.segs = home.segs
+        patch.expireText = ''
+        if (patch.home.memberActive) {
+          if (home.memberExpireAt) {
+            patch.expireText = `会员有效期至 ${String(home.memberExpireAt).slice(0, 10)}`
+          } else if (home.expireText && /有效期|剩余/.test(String(home.expireText))) {
+            patch.expireText = home.expireText
+          }
+        }
+        patch.kpis = Array.isArray(home.kpis) ? home.kpis : []
+        // 本周热门话题：API 真实/配置兜底；空则隐藏，不回落本地 DEMO
+        patch.topics = Array.isArray(home.topics) ? home.topics.filter((t) => t && t.name) : []
+        if (Array.isArray(home.segs) && home.segs.length) {
+          patch.segs = home.segs.map((s) => {
+            if (s && s.key === 'resources') return Object.assign({}, s, { label: '资料库' })
+            return s
+          })
+        } else {
+          patch.segs = EMPTY_SEGS
+        }
+      } else {
+        patch.home = {
+          title: (community && community.title) || EMPTY_HOME.title,
+          subtitle: (community && community.subtitle) || EMPTY_HOME.subtitle,
+          memberActive: false,
+        }
+        patch.kpis = []
+        patch.topics = []
+        patch.segs = EMPTY_SEGS
+        patch.expireText = ''
       }
       const records = (feed && (feed.records || feed.list || feed.items)) || []
       const mapped = records.map(mapFeedItem)
-      if (mapped.length) {
-        const list = this._filterSeg(mapped, this.data.activeSeg)
-        patch.allList = mapped
-        patch.list = list
-        patch.usingDemo = false
-        patch.footerText = `—— 已加载 ${list.length} 条 ——`
+      const list = this._filterSeg(mapped, this.data.activeSeg)
+      patch.allList = mapped
+      patch.list = list
+      if (feedFailed && !mapped.length) {
+        patch.loadError = true
+        patch.footerText = '加载失败，下拉重试'
+      } else {
+        patch.footerText = list.length ? `—— 已加载 ${list.length} 条 ——` : '暂无动态'
       }
-      // API 空结果：保留已有 DEMO，不 wipe
       this.setData(patch)
     }).catch(() => {
-      this.setData({ loading: false })
+      this.setData({
+        loading: false,
+        loadError: true,
+        usingDemo: false,
+        allList: [],
+        list: [],
+        kpis: [],
+        topics: [],
+        footerText: '加载失败，下拉重试',
+      })
     })
   },
 
@@ -308,10 +383,14 @@ Page({
       list,
       usingDemo: !!usingDemo,
       footerText: list.length
-        ? (usingDemo ? '—— 已加载全部 27 条今日动态 ——' : `—— 已加载 ${list.length} 条 ——`)
+        ? (usingDemo ? '—— 已加载演示动态 ——' : `—— 已加载 ${list.length} 条 ——`)
         : '暂无动态',
       loading: false,
     })
+  },
+
+  onRetryLoad() {
+    this._reload()
   },
 
   onSegTap(e) {
@@ -325,19 +404,26 @@ Page({
     this._applySeg(this.data.allList, this.data.usingDemo)
   },
 
-  onOpenMoment(e) {
-    const ds = (e.currentTarget && e.currentTarget.dataset) || {}
-    const demo = isTruthyDemo(ds.demo) || !!this.data.usingDemo
-    wx.navigateTo({ url: this._momentNavUrl(ds.id || ds.uid, demo) })
-  },
-
   _momentNavUrl(id, demo) {
     const mid = String(id || '').trim()
-    const asDemo = isTruthyDemo(demo) || !mid || mid.indexOf('demo') === 0 || !!this.data.usingDemo
+    const allowDemo = USE_LOCAL_SOURCE
+    const asDemo = allowDemo && (isTruthyDemo(demo) || !mid || mid.indexOf('demo') === 0 || !!this.data.usingDemo)
     if (asDemo) {
       return '/pages/moment-detail/moment-detail?demo=1&from=planet' + (mid ? `&id=${encodeURIComponent(mid)}` : '')
     }
+    if (!mid || mid.indexOf('demo') === 0) return ''
     return `/pages/moment-detail/moment-detail?id=${encodeURIComponent(mid)}&from=planet`
+  },
+
+  onOpenMoment(e) {
+    const ds = (e.currentTarget && e.currentTarget.dataset) || {}
+    const demo = isTruthyDemo(ds.demo) || !!this.data.usingDemo
+    const url = this._momentNavUrl(ds.id || ds.uid, demo)
+    if (!url) {
+      wx.showToast({ title: '内容暂不可用', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url })
   },
 
   _resolveMomentKey(ds, item) {
@@ -380,7 +466,12 @@ Page({
   onCommentTap(e) {
     const ds = e.currentTarget.dataset || {}
     const demo = isTruthyDemo(ds.demo) || !!this.data.usingDemo
-    wx.navigateTo({ url: this._momentNavUrl(ds.id || ds.uid, demo) })
+    const url = this._momentNavUrl(ds.id || ds.uid, demo)
+    if (!url) {
+      wx.showToast({ title: '内容暂不可用', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url })
   },
 
   onFavoriteTap(e) {
@@ -416,10 +507,15 @@ Page({
     const list = this.data.list || []
     const item = list[Number(ds.index)] || {}
     const demo = isTruthyDemo(ds.demo) || !!item.isDemo || !!this.data.usingDemo
-    const mid = this._resolveMomentKey(ds, item) || 'demo'
+    const mid = this._resolveMomentKey(ds, item)
+    const path = this._momentNavUrl(ds.id || ds.uid || item.id || item.uid, demo)
+    if (!path || !mid || mid === 'demo') {
+      wx.showToast({ title: '暂不可分享', icon: 'none' })
+      return
+    }
     openWarmShareSheet({
       title: (item.content || '').slice(0, 40) || '星球动态',
-      path: this._momentNavUrl(ds.id || ds.uid || item.id || item.uid, demo),
+      path,
       cover: (item.images && item.images[0]) || item.cover || '',
       quote: (item.content || '').slice(0, 80),
       contentId: mid,
@@ -442,7 +538,7 @@ Page({
       wx.navigateTo({ url: `/pages/file-preview/file-preview?id=${file.fileId}` })
       return
     }
-    if (USE_LOCAL_SOURCE || this.data.usingDemo || !file.fileId) {
+    if (USE_LOCAL_SOURCE && file.name) {
       wx.navigateTo({
         url: `/pages/file-preview/file-preview?demo=1&name=${encodeURIComponent(file.name || '附件.pdf')}`,
       })
@@ -460,6 +556,10 @@ Page({
   },
 
   onRenewTap() {
+    if (!AuthUtil.isLoggedIn()) {
+      AuthUtil.requireLoginForAction('加入星球', { silent: true })
+      return
+    }
     wx.navigateTo({
       url: '/pkg-user/member-center/member-center',
       fail: () => wx.navigateTo({ url: '/pages/member-center/member-center' }),
@@ -470,10 +570,14 @@ Page({
     wx.navigateTo({ url: '/pages/join/join' })
   },
 
+  onSwitchPlanet() {
+    wx.navigateTo({ url: '/pages/planet-list/planet-list' })
+  },
+
   onFab() {
     const goContribute = () => {
       wx.navigateTo({
-        url: '/pages/contribute/contribute?stage=2&unlocked=1',
+        url: '/pages/contribute/contribute?stage=2',
         fail: () => wx.showToast({ title: '暂无法打开发布页', icon: 'none' }),
       })
     }

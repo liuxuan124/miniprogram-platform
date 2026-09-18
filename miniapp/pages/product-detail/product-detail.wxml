@@ -16,8 +16,9 @@
 
   <view class="col-price">
     <view>
-      <text class="col-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
-      <text class="col-price__old" wx:if="{{product.original_price}}">¥{{product.original_price}}</text>
+      <text class="col-price__now" wx:if="{{priceReady}}"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+      <text class="col-price__now eb-price__pending" wx:else>价格待定</text>
+      <text class="col-price__old" wx:if="{{priceReady && product.original_price}}">¥{{product.original_price}}</text>
     </view>
     <view class="col-price__cd">
       <text class="col-price__cd-b">{{earlyBirdLabel || '早鸟价剩余 02 天 14:26'}}</text>
@@ -95,18 +96,21 @@
     <view class="pd-ic2" bindtap="onServiceTap"><text>💬</text>咨询</view>
     <view class="pd-ic2" bindtap="onFavoriteTap"><text>⭐️</text>收藏</view>
     <view class="warm-btn warm-btn--ghost" bindtap="onTryListenTap" wx:if="{{!purchased}}">试听</view>
-    <view class="warm-btn" style="flex:1" bindtap="onBuyNowTap">¥{{displayPrice || product.price}} 立即加入</view>
+    <view class="warm-btn" style="flex:1" bindtap="onBuyNowTap">{{buyCtaText || '立即加入'}}</view>
   </view>
 </view>
 
 <!-- ========== 电子书 goods ========== -->
 <view class="pd-warm pd-ebook" wx:elif="{{!loading && isEbook}}">
   <view class="eb-cover">
-    <image class="eb-cover__bg" src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <image wx:if="{{coverUrl || product.images[0] || product.mainImage}}" class="eb-cover__bg" src="{{coverUrl || product.images[0] || product.mainImage}}" mode="aspectFill" />
     <view class="eb-cover__sc"></view>
     <view class="pd-back" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
-    <view class="eb-book">
-      <image src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <view class="eb-book" wx:if="{{coverUrl || product.images[0] || product.mainImage}}">
+      <image src="{{coverUrl || product.images[0] || product.mainImage}}" mode="aspectFill" />
+    </view>
+    <view class="eb-book digi-pack--empty" wx:else>
+      <text class="digi-pack__mark">暖</text>
     </view>
   </view>
 
@@ -117,8 +121,9 @@
 
   <view class="eb-price">
     <view class="eb-price__rw">
-      <text class="eb-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
-      <text class="eb-price__old" wx:if="{{product.original_price || product.originalPrice}}">¥{{product.original_price || product.originalPrice}}</text>
+      <text class="eb-price__now" wx:if="{{priceReady}}"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+      <text class="eb-price__now eb-price__pending" wx:else>价格待定</text>
+      <text class="eb-price__old" wx:if="{{priceReady && (product.original_price || product.originalPrice)}}">¥{{product.original_price || product.originalPrice}}</text>
       <text class="eb-price__cd">{{launchCountdown || '首发价剩余 02:14:26'}}</text>
     </view>
     <view class="eb-vip" wx:if="{{memberPrice != null && memberPrice !== ''}}">
@@ -203,11 +208,14 @@
 <!-- ========== 虚拟资料包 / ¥1 体验包（暖色，对齐 goods 虚拟模板） ========== -->
 <view class="pd-warm pd-digital" wx:elif="{{!loading && isWarmDigital}}">
   <view class="eb-cover digi-cover">
-    <image class="eb-cover__bg" src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <image wx:if="{{coverUrl || product.images[0] || product.mainImage}}" class="eb-cover__bg" src="{{coverUrl || product.images[0] || product.mainImage}}" mode="aspectFill" />
     <view class="eb-cover__sc"></view>
     <view class="pd-back" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
-    <view class="digi-pack">
-      <image src="{{product.images[0] || product.mainImage}}" mode="aspectFill" />
+    <view class="digi-pack" wx:if="{{coverUrl || product.images[0] || product.mainImage}}">
+      <image src="{{coverUrl || product.images[0] || product.mainImage}}" mode="aspectFill" />
+    </view>
+    <view class="digi-pack digi-pack--empty" wx:else>
+      <text class="digi-pack__mark">暖</text>
     </view>
   </view>
 
@@ -218,8 +226,9 @@
 
   <view class="eb-price">
     <view class="eb-price__rw">
-      <text class="eb-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
-      <text class="eb-price__old" wx:if="{{product.original_price || product.originalPrice}}">¥{{product.original_price || product.originalPrice}}</text>
+      <text class="eb-price__now" wx:if="{{priceReady}}"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+      <text class="eb-price__now eb-price__pending" wx:else>价格待定</text>
+      <text class="eb-price__old" wx:if="{{priceReady && (product.original_price || product.originalPrice)}}">¥{{product.original_price || product.originalPrice}}</text>
     </view>
   </view>
 
@@ -259,115 +268,125 @@
   </view>
 </view>
 
-<!-- ========== 默认实物/通用 ========== -->
-<view class="product-detail-page" wx:elif="{{!loading}}">
-  <view class="pd-back pd-back--dark" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
-  <view class="detail-swiper-wrap">
-    <swiper
-      class="detail-swiper"
-      indicator-dots="{{product.images.length > 1}}"
-      indicator-active-color="#fff"
-      autoplay="{{product.images.length > 1}}"
-      circular="{{product.images.length > 1}}"
-      current="{{swiperCurrent}}"
-      bindchange="onSwiperChange"
-    >
-      <swiper-item wx:if="{{!product.images.length}}">
-        <view class="swiper-placeholder">
-          <text class="swiper-placeholder__icon">🛍️</text>
-          <text class="swiper-placeholder__text">暂无图片</text>
-        </view>
-      </swiper-item>
-      <swiper-item wx:for="{{product.images}}" wx:key="*this">
-        <image
-          class="swiper-image"
-          src="{{item}}"
-          mode="aspectFill"
-          lazy-load="{{false}}"
-          data-src="{{item}}"
-          bindtap="onImagePreview"
-          binderror="onSwiperImageError"
-          data-index="{{index}}"
-        />
-      </swiper-item>
-    </swiper>
+<!-- ========== 暖阁实物/通用（对齐暖色；停用旧蓝灰电商模板） ========== -->
+<view class="pd-warm pd-physical" wx:elif="{{!loading && isWarmPhysical}}">
+  <view class="ph-cover">
+    <block wx:if="{{coverUrl || (product.images && product.images.length)}}">
+      <swiper
+        class="ph-cover__swiper"
+        indicator-dots="{{product.images.length > 1}}"
+        indicator-active-color="#fff"
+        autoplay="{{product.images.length > 1}}"
+        circular="{{product.images.length > 1}}"
+        current="{{swiperCurrent}}"
+        bindchange="onSwiperChange"
+      >
+        <swiper-item wx:for="{{product.images}}" wx:key="*this">
+          <image
+            class="ph-cover__img"
+            src="{{item}}"
+            mode="aspectFill"
+            data-src="{{item}}"
+            bindtap="onImagePreview"
+            binderror="onSwiperImageError"
+            data-index="{{index}}"
+          />
+        </swiper-item>
+      </swiper>
+      <view class="ph-cover__sc"></view>
+    </block>
+    <view wx:else class="ph-cover__empty">
+      <view class="ph-cover__empty-mark">暖</view>
+      <text class="ph-cover__empty-t">封面待完善</text>
+    </view>
+    <view class="pd-back" style="top: {{statusBarHeight + 8}}px;" bindtap="onBack">‹</view>
   </view>
 
-  <view class="detail-header">
-    <view class="price-row">
-      <text class="price-symbol">¥</text>
-      <text class="price-value">{{displayPrice || (selectedSku ? selectedSku.price : product.price)}}</text>
-      <text class="original-price" wx:if="{{hasCouponDiscount && displayOriginalPrice}}">¥{{displayOriginalPrice}}</text>
-      <text class="original-price" wx:elif="{{!hasCouponDiscount && product.original_price}}">¥{{product.original_price}}</text>
-      <text class="coupon-price-tag" wx:if="{{hasCouponDiscount}}">券后价</text>
-      <text class="member-free-tag" wx:if="{{memberFree}}">会员免费</text>
-      <text class="member-price-tag" wx:elif="{{memberPrice != null && memberPrice !== ''}}">会员价 ¥{{memberPrice}}</text>
-    </view>
-    <text class="product-title">{{product.name}}</text>
-    <view class="product-meta">
-      <text class="meta-item" wx:if="{{product.sales}}">已售 {{product.sales}}</text>
-      <text class="meta-item" wx:if="{{product.stock !== undefined}}">库存 {{stock}}</text>
+  <view class="eb-tt">
+    <view class="eb-tt__h warm-serif">{{product.name || '商品详情'}}</view>
+    <view class="eb-tt__sb" wx:if="{{product.sales || product.stock !== undefined}}">
+      <text wx:if="{{product.sales}}">已售 {{product.sales}}</text>
+      <text wx:if="{{product.sales && product.stock !== undefined}}"> · </text>
+      <text wx:if="{{product.stock !== undefined}}">库存 {{stock}}</text>
     </view>
   </view>
 
-  <view class="pick-rows">
-    <view class="pick" bindtap="onSelectSpecTap">
+  <view class="eb-price">
+    <view class="eb-price__rw">
+      <block wx:if="{{priceReady}}">
+        <text class="eb-price__now"><text class="yen">¥</text>{{displayPrice || product.price}}</text>
+        <text class="eb-price__old" wx:if="{{hasCouponDiscount && displayOriginalPrice}}">¥{{displayOriginalPrice}}</text>
+        <text class="eb-price__old" wx:elif="{{!hasCouponDiscount && (product.original_price || product.originalPrice)}}">¥{{product.original_price || product.originalPrice}}</text>
+        <text class="ph-price-tag" wx:if="{{hasCouponDiscount}}">券后价</text>
+        <text class="ph-price-tag" wx:if="{{memberFree}}">会员免费</text>
+        <text class="ph-price-tag" wx:elif="{{memberPrice != null && memberPrice !== ''}}">会员价 ¥{{memberPrice}}</text>
+      </block>
+      <text class="eb-price__now eb-price__pending" wx:else>价格待定</text>
+    </view>
+  </view>
+
+  <view class="eb-spec">
+    <view class="pick ph-pick" bindtap="onSelectSpecTap">
       <text class="k">规格</text>
       <text class="v">{{selectedSku ? (selectedSku.skuName || selectedSku.name || '已选') : '请选择规格'}}</text>
       <text class="ar">›</text>
     </view>
-    <view class="pick" bindtap="onCouponEntry">
+    <view class="pick ph-pick" bindtap="onCouponEntry">
       <text class="k">优惠券</text>
       <text class="v {{hasCouponDiscount ? 'v--coupon' : ''}}">{{couponEntryText}}</text>
       <text class="ar">›</text>
     </view>
-    <view class="pick" bindtap="onServiceEntry" hover-class="pick--pressed">
+    <view class="pick ph-pick" bindtap="onServiceEntry" hover-class="pick--pressed">
       <text class="k">服务</text>
       <text class="v">{{isDigital ? '自动发货 · 售后保障' : '快递发货 · 售后保障'}}</text>
       <text class="ar">›</text>
     </view>
   </view>
 
-  <view class="author-card">
-    <view class="av">🧭</view>
-    <view class="info">
-      <view class="nm">暖阁 · 墨白 <text class="vf">已认证</text></view>
-      <view class="bio">内容创业实战 · 专栏 / 电子书 / 星球</view>
+  <view class="digi-gains" wx:if="{{gains.length}}">
+    <view class="col-hd">
+      <text class="col-hd__t warm-serif">你将获得</text>
+    </view>
+    <view class="digi-gains__card">
+      <view wx:for="{{gains}}" wx:key="*this" class="digi-gains__li">· {{item}}</view>
     </view>
   </view>
 
-  <view class="detail-section" wx:if="{{gains.length}}">
-    <view class="section-title">你将获得</view>
-    <view wx:for="{{gains}}" wx:key="*this" class="bullet">· {{item}}</view>
+  <view class="col-hd">
+    <text class="col-hd__t warm-serif">商品详情</text>
   </view>
-
-  <view class="detail-section">
-    <view class="section-title">商品详情</view>
+  <view class="ph-detail">
     <rich-text wx:if="{{richContent}}" nodes="{{richContent}}" class="rich-content" bindtap="onRichContentTap"></rich-text>
     <view wx:else class="text-content">
-      <text>{{product.description || '暂无详情'}}</text>
+      <text>{{product.description || '商家暂未填写详情，可先咨询客服了解。'}}</text>
     </view>
   </view>
 
-  <view class="review-entry" bindtap="onReviewsTap">
+  <view class="review-entry ph-review" bindtap="onReviewsTap">
     <view class="review-entry__l">
       <text class="review-entry__t">用户评价</text>
-      <text class="review-entry__s">{{reviewScore || '4.9'}} 分 · {{reviewCount || 0}} 条</text>
+      <text class="review-entry__s" wx:if="{{reviewScore}}">{{reviewScore}} 分 · {{reviewCount || 0}} 条</text>
+      <text class="review-entry__s" wx:else>{{reviewCount || 0}} 条评价</text>
     </view>
     <text class="review-entry__ar">全部 ›</text>
   </view>
 
-  <view class="bottom-bar">
-    <view class="bottom-bar__icon" bindtap="onServiceTap">
-      <text class="bottom-bar__icon-emoji">💬</text>
-      <text class="bottom-bar__icon-text">客服</text>
-    </view>
-    <view class="bottom-bar__icon" bindtap="onGoCartTap">
-      <image class="bottom-bar__icon-img" src="/images/icon-cart.svg" mode="aspectFit" />
-      <text class="bottom-bar__icon-text">购物车</text>
-    </view>
-    <view class="bottom-bar__btn bottom-bar__btn--cart" bindtap="onAddCartTap">加入购物车</view>
-    <view class="bottom-bar__btn bottom-bar__btn--buy" bindtap="onBuyNowTap">立即购买</view>
+  <view class="warm-actionbar">
+    <view class="pd-ic2" bindtap="onServiceTap"><text>💬</text>客服</view>
+    <view class="pd-ic2" bindtap="onGoCartTap"><text>🛒</text>购物车</view>
+    <view class="warm-btn warm-btn--ghost" bindtap="onAddCartTap">加入购物车</view>
+    <view class="warm-btn" style="flex:1" bindtap="onBuyNowTap">{{buyCtaText || '立即购买'}}</view>
+  </view>
+</view>
+
+<!-- 兜底：理论上 isWarmPhysical 已覆盖，防止空页 -->
+<view class="pd-warm pd-physical" wx:elif="{{!loading}}">
+  <view class="ph-cover__empty" style="height: 420rpx;">
+    <view class="ph-cover__empty-mark">暖</view>
+    <text class="ph-cover__empty-t">加载中或暂无商品信息</text>
+  </view>
+  <view class="warm-actionbar">
+    <view class="warm-btn" style="flex:1" bindtap="onBack">返回</view>
   </view>
 </view>
 

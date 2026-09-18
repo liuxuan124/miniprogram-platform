@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "checks": [],
+  "steps": [],
+  "shots": {},
+  "startedAt": "2026-08-29T12:04:34.619Z",
+  "error": "Error: Failed to launch wechat web devTools, please make sure http port is open\n    at Launcher.launch (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/miniprogram-automator/out/Launcher.js:1:2457)\n    at async Automator.launch (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/node_modules/miniprogram-automator/out/Automator.js:1:1406)\n    at async main (/Users/lx/项目文件/liuxuan/小程序搭建运营系统/scripts/verify-audit-miniapp-automator.js:81:12)",
+  "finishedAt": "2026-08-29T12:04:53.707Z"
+}

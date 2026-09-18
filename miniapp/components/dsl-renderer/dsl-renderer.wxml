@@ -540,6 +540,19 @@
     styleString="{{comp.styleString}}"
   />
 
+  <dsl-warm-block
+    wx:elif="{{comp.type === 'warm_greet' || comp.type === 'warm_authors' || comp.type === 'warm_feature' || comp.type === 'warm_columns' || comp.type === 'warm_planet_rec' || comp.type === 'warm_feed'}}"
+    type="{{comp.type}}"
+    config="{{comp.props}}"
+    warm="{{comp.runtimeData}}"
+  />
+
+  <view
+    wx:elif="{{comp.type === 'warm_home' || comp.type === 'warm_discover' || comp.type === 'warm_planet' || comp.type === 'warm_shop' || comp.type === 'warm_mine'}}"
+    class="dsl-tab-page__state"
+    style="padding:48rpx 32rpx;color:#6b5443;text-align:center;"
+  >固定模板入口：发现/商城/星球/我的走原生业务页；首页请拆成可编辑区块</view>
+
   <dsl-planet-feed
     wx:elif="{{comp.type === 'planet_feed'}}"
     config="{{comp.props}}"

@@ -1,5 +1,8 @@
 <page-meta page-style="background:#FDF6EC" />
-<view class="st-page">
+<view class="st-page" wx:if="{{!blocked}}">
+  <view style="margin:16rpx 24rpx;padding:16rpx 20rpx;background:#FFF7EF;color:#8e4c27;border-radius:12rpx;font-size:24rpx">
+    本页为开发预览用状态样例，不代表真实业务订单/账号状态。正式版请勿当作真实态。
+  </view>
   <scroll-view class="st-tabs" scroll-x enhanced show-scrollbar="{{false}}">
     <view
       wx:for="{{tabs}}"
@@ -137,4 +140,5 @@
     </view>
   </view>
 </view>
+<view wx:else class="st-page" style="padding:80rpx 40rpx;text-align:center;color:#a1897a">仅开发预览可用</view>
 <login-sheet id="global-login-sheet" />

@@ -5,5 +5,5 @@
     <view class="btn" bindtap="onCopy">复制入群链接</view>
   </view>
   <view wx:else class="empty">未配置企微入群链接。</view>
-  <view class="tip">微信要求先在公众平台添加插件 wx4d2deeab3aed6e5a 后，才能点按自动入群。当前先复制链接，用企业微信打开或扫码入群。插件开通后告诉我，再改回点按入群。</view>
+  <view class="tip">请复制上方链接，用企业微信打开或扫码入群。若无法打开，请联系客服获取最新入群方式。</view>
 </view>

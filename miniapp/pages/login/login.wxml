@@ -18,6 +18,7 @@
           class="brand-mark brand-mark--img"
           src="{{brandLogoUrl}}"
           mode="aspectFill"
+          binderror="onBrandLogoError"
         />
         <view wx:else class="brand-mark">{{brandMark}}</view>
         <view class="brand-copy">

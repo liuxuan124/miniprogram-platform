@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-18T13:15:40+08:00",
+  "wx_version": "1.27.1",
+  "wx_version_desc": "我的页头像展示修复（体验版，不提审）",
+  "root_cause": "avatar_url stored as http://localhost:8080/uploads/...; mine page bound raw URL; SVG default not rendered by WeChat image → brown empty circle. File also missing on prod (404).",
+  "fixes": [
+    "mine page resolveMediaUrl + PNG default + binderror",
+    "backend PublicMediaUrl normalize on MineOverview/login",
+    "DB rewrite localhost→api.zfculture.site for user 2"
+  ],
+  "backup": "/opt/miniprogram-platform/deploy-backups/avatar-fix-20260918",
+  "audit_submitted": false,
+  "note": "user 跨境墨太白 file still 404; shows PNG placeholder until re-upload avatar in settings"
+}

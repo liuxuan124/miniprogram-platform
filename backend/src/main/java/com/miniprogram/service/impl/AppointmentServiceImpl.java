@@ -207,6 +207,15 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
     }
 
     @Override
+    public AppointmentVO getMyAppointment(Long id, Long userId) {
+        Appointment appointment = getExistingAppointment(id);
+        if (!appointment.getUserId().equals(userId)) {
+            throw new BusinessException(900402, "预约不存在");
+        }
+        return toVO(appointment);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public AppointmentVO cancelMyAppointment(Long id, Long userId, AppointmentCancelDTO dto) {
         Appointment appointment = getExistingAppointment(id);

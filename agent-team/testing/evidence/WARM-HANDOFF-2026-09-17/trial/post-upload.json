@@ -1,0 +1,85 @@
+{
+  "at": "2026-09-17T22:55:45.070638",
+  "wx_version": "1.24.0",
+  "tabbar": [
+    {
+      "id": "tab-0",
+      "text": "首页",
+      "tabRoute": "/pages/index/index",
+      "pagePath": "/pages/custom/warm-home",
+      "enabled": true,
+      "icon": "/images/tab/home.png",
+      "selectedIcon": "/images/tab/home-active.png",
+      "path": "/pages/custom/warm-home",
+      "pageId": 18
+    },
+    {
+      "id": "tab-1",
+      "text": "发现",
+      "tabRoute": "/pages/discover/discover",
+      "pagePath": "/pages/custom/warm-discover",
+      "enabled": true,
+      "icon": "/images/tab/content.png",
+      "selectedIcon": "/images/tab/content-active.png",
+      "path": "/pages/custom/warm-discover",
+      "pageId": 19
+    },
+    {
+      "id": "tab-2",
+      "text": "星球",
+      "tabRoute": "/pages/planet/planet",
+      "pagePath": "/pages/custom/warm-planet",
+      "enabled": true,
+      "icon": "/images/tab/member.png",
+      "selectedIcon": "/images/tab/member-active.png",
+      "path": "/pages/custom/warm-planet",
+      "pageId": 20
+    },
+    {
+      "id": "tab-3",
+      "text": "商城",
+      "tabRoute": "/pages/shop/shop",
+      "pagePath": "/pages/custom/warm-shop",
+      "enabled": true,
+      "icon": "/images/tab/shop.png",
+      "selectedIcon": "/images/tab/shop-active.png",
+      "path": "/pages/custom/warm-shop",
+      "pageId": 21
+    },
+    {
+      "id": "tab-4",
+      "text": "我的",
+      "tabRoute": "/pages/mine/mine",
+      "pagePath": "/pages/custom/warm-mine",
+      "enabled": true,
+      "icon": "/images/tab/mine.png",
+      "selectedIcon": "/images/tab/mine-active.png",
+      "path": "/pages/custom/warm-mine",
+      "pageId": 22
+    }
+  ],
+  "index_page": {
+    "id": "11",
+    "name": "首页",
+    "path": "/pages/index/index",
+    "type": "home",
+    "share_image": "",
+    "share_title": "跨境通｜飞书知识库 · 干货 · 工具",
+    "background_color": "#F2F4FA"
+  },
+  "warm_home": {
+    "page": {
+      "id": "warm-warm_home",
+      "name": "暖阁首页",
+      "path": "/pages/custom/warm-home",
+      "type": "custom",
+      "share_title": "暖阁 · 慢一点，也很好",
+      "background_color": "#FDF6EC"
+    },
+    "types": [
+      "warm_home"
+    ]
+  },
+  "wx_version_desc": "暖阁五槽后台承接（体验版，不提审）",
+  "site_name": "暖阁"
+}

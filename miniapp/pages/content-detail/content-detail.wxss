@@ -123,7 +123,8 @@
 .content-detail-page.is-article,
 .content-detail-page.is-note:not(.is-wechat-note) {
   background: #fdf6ec;
-  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
+  /* 底部让位只靠 footer-spacer--bar，避免与页面 padding 叠成大片空白 */
+  padding-bottom: 24rpx;
 }
 
 .content-detail-page.is-wechat-note {
@@ -678,46 +679,6 @@
   padding-right: 24rpx;
 }
 
-.bottom-bar--warm {
-  justify-content: flex-start;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 14rpx;
-  padding: 16rpx 22rpx calc(16rpx + env(safe-area-inset-bottom));
-  background: rgba(255, 250, 243, 0.95);
-  border-top: 1rpx solid var(--line, rgba(120, 72, 40, 0.12));
-  box-shadow: none;
-  border-radius: 0;
-}
-
-.warm-bottom-input {
-  max-width: none;
-  flex: 1;
-  min-width: 0;
-  height: 68rpx;
-  background: #f5e8d8;
-  color: #a1897a;
-}
-
-.bottom-bar--warm .action-item {
-  flex-direction: row;
-  align-items: center;
-  gap: 4rpx;
-  min-width: 0;
-  flex-shrink: 0;
-}
-
-.bottom-bar--warm .action-icon {
-  font-size: 32rpx;
-  line-height: 1;
-}
-
-.bottom-bar--warm .action-text {
-  font-size: 22rpx;
-  color: var(--ink-2, #6b5443);
-  white-space: nowrap;
-}
-
 .note-bottom-input {
   flex: 1;
   height: 68rpx;
@@ -1003,6 +964,89 @@
   z-index: 40;
 }
 
+/* 必须放在 base .bottom-bar 之后，否则 space-around / 白底 / 阴影会盖住暖阁样式 */
+.bottom-bar.bottom-bar--warm {
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 20rpx;
+  padding: 20rpx 32rpx calc(22rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 250, 243, 0.95);
+  border-top: 1rpx solid var(--line, rgba(120, 72, 40, 0.12));
+  box-shadow: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+.warm-bottom-input {
+  max-width: none;
+  flex: 1;
+  min-width: 0;
+  height: 76rpx;
+  padding: 0 30rpx;
+  border-radius: 999rpx;
+  background: #f5e8d8;
+  color: #a1897a;
+  font-size: 25rpx;
+  line-height: 76rpx;
+  box-sizing: border-box;
+  border: 2rpx solid transparent;
+}
+
+.warm-bottom-input--done {
+  background: #fbe6d4;
+  color: var(--brand, #c2410c);
+  border-color: rgba(194, 65, 12, 0.35);
+  font-weight: 600;
+}
+
+.bottom-bar.bottom-bar--warm .action-item,
+.bottom-bar.bottom-bar--warm .action-item--warm {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  min-width: 0;
+  flex: none;
+  flex-shrink: 0;
+}
+
+.bottom-bar.bottom-bar--warm .action-icon {
+  font-size: 34rpx;
+  line-height: 1;
+  color: var(--ink-2, #6b5443);
+}
+
+.bottom-bar.bottom-bar--warm .action-text {
+  font-size: 22rpx;
+  color: var(--ink-2, #6b5443);
+  white-space: nowrap;
+}
+
+.bottom-bar.bottom-bar--warm .action-item.active .action-text,
+.bottom-bar.bottom-bar--warm .action-item--liked .action-text {
+  color: var(--brand, #c2410c);
+  font-weight: 700;
+}
+
+.bottom-bar.bottom-bar--warm .action-item--star.active .action-text,
+.bottom-bar.bottom-bar--warm .action-item--star .action-text {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.bottom-bar.bottom-bar--warm .action-icon--liked {
+  color: var(--brand, #c2410c);
+}
+
+.bottom-bar.bottom-bar--warm .action-icon--star {
+  color: #d97706;
+}
+
 .action-item {
   display: flex;
   flex-direction: column;
@@ -1035,7 +1079,8 @@
 }
 
 .footer-spacer--bar {
-  height: calc(140rpx + env(safe-area-inset-bottom));
+  /* 对齐暖阁底栏：76 输入 + 42 上下 padding + ~8 呼吸 */
+  height: calc(126rpx + env(safe-area-inset-bottom));
 }
 
 /* —— 评论半屏 —— */
@@ -1396,17 +1441,11 @@
   color: var(--ink-2,#6b5443); background: #f5e8d8; border-radius: 999rpx;
   padding: 10rpx 22rpx; font-size: 23rpx; margin: 0;
 }
-.theme-warm .bottom-bar,
-.bottom-bar--warm {
+.theme-warm .bottom-bar {
   background: rgba(255, 250, 243, 0.95);
   border-top: 1rpx solid var(--line, rgba(120, 72, 40, 0.12));
   box-shadow: none;
-}
-.theme-warm .action-text {
-  color: var(--ink-2, #6b5443);
-}
-.theme-warm .action-icon {
-  color: var(--brand-2, #ea580c);
+  border-radius: 0;
 }
 .rel-hd { padding: 28rpx 40rpx 8rpx; display: flex; justify-content: space-between; align-items: flex-end; }
 .rel-hd__t { font-size: 36rpx; }

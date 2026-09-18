@@ -1,3 +1,4 @@
+<import src="./discover-card.wxml" />
 <page-meta page-style="{{themePageStyle}}" />
 <view class="dc-page">
   <view class="dc-head" style="padding-top: {{statusBarHeight}}px;">
@@ -15,11 +16,11 @@
       <view class="dc-chips__inner">
         <text
           wx:for="{{chips}}"
-          wx:key="*this"
-          class="dc-chip {{activeChip === item ? 'dc-chip--on' : ''}}"
-          data-chip="{{item}}"
+          wx:key="label"
+          class="dc-chip {{activeChip === item.label ? 'dc-chip--on' : ''}}"
+          data-index="{{index}}"
           bindtap="onChipTap"
-        >{{item}}</text>
+        >{{item.label}}</text>
       </view>
     </scroll-view>
   </view>
@@ -46,61 +47,28 @@
   >
     <view wx:if="{{loading && isEmpty}}" class="dc-state">加载中...</view>
 
-    <view class="dc-wf" wx:else>
-      <view class="dc-col">
-        <view
-          wx:for="{{leftList}}"
-          wx:key="uid"
-          class="dc-card {{item.isText ? 'dc-card--txt' : ''}}"
-          data-id="{{item.id}}"
-          data-demo="{{item.isDemo}}"
-          data-kind="{{item.kind || activeTab}}"
-          bindtap="onTapNote"
-        >
-          <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
-            <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
-            <text class="dc-card__pill" wx:if="{{item.pill}}">{{item.pill}}</text>
-            <text class="dc-card__cnt" wx:if="{{item.cnt}}">{{item.cnt}}</text>
+    <view class="dc-feed" wx:else>
+      <block wx:for="{{feedRows}}" wx:for-item="row" wx:key="key">
+        <!-- 瀑布流双列 -->
+        <view wx:if="{{row.type === 'wf'}}" class="dc-wf">
+          <view class="dc-col">
+            <block wx:for="{{row.leftList}}" wx:for-item="item" wx:key="uid">
+              <template is="dc-card" data="{{item}}" />
+            </block>
           </view>
-          <view class="dc-card__bd">
-            <text class="dc-card__quote" wx:if="{{item.isText}}">{{item.quote}}</text>
-            <text class="dc-card__title" wx:else>{{item.title}}</text>
-            <view class="dc-card__ft">
-              <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
-              <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
-              <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
-              <text class="dc-card__lk">❤ {{item.likeText}}</text>
-            </view>
+          <view class="dc-col">
+            <block wx:for="{{row.rightList}}" wx:for-item="item" wx:key="uid">
+              <template is="dc-card" data="{{item}}" />
+            </block>
           </view>
         </view>
-      </view>
-      <view class="dc-col">
-        <view
-          wx:for="{{rightList}}"
-          wx:key="uid"
-          class="dc-card {{item.isText ? 'dc-card--txt' : ''}}"
-          data-id="{{item.id}}"
-          data-demo="{{item.isDemo}}"
-          data-kind="{{item.kind || activeTab}}"
-          bindtap="onTapNote"
-        >
-          <view class="dc-card__cv {{item.coverRatioClass}}" wx:if="{{item.hasCover}}">
-            <image class="dc-card__cover warm-ph" src="{{item.cover}}" mode="aspectFill" lazy-load />
-            <text class="dc-card__pill" wx:if="{{item.pill}}">{{item.pill}}</text>
-            <text class="dc-card__cnt" wx:if="{{item.cnt}}">{{item.cnt}}</text>
-          </view>
-          <view class="dc-card__bd">
-            <text class="dc-card__quote" wx:if="{{item.isText}}">{{item.quote}}</text>
-            <text class="dc-card__title" wx:else>{{item.title}}</text>
-            <view class="dc-card__ft">
-              <image class="dc-card__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
-              <view class="dc-card__av dc-card__av--fb" wx:else>{{item.authorInitial}}</view>
-              <text class="dc-card__nm">{{item.author}}<text class="dc-card__role" wx:if="{{item.role}}">{{item.role}}</text></text>
-              <text class="dc-card__lk">❤ {{item.likeText}}</text>
-            </view>
-          </view>
+        <!-- 通栏：hero/quote，或段内落单的紧凑矮卡 -->
+        <view wx:else class="dc-row dc-row--full {{row.compact ? 'dc-row--compact' : ''}}">
+          <block wx:for="{{row.items}}" wx:for-item="item" wx:key="uid">
+            <template is="dc-card" data="{{item}}" />
+          </block>
         </view>
-      </view>
+      </block>
     </view>
 
     <view class="warm-end" wx:if="{{footerText}}">{{footerText}}</view>

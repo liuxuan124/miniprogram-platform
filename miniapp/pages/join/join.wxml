@@ -1,13 +1,16 @@
 <page-meta page-style="{{themePageStyle}}" />
 <view class="jn-page">
+  <view wx:if="{{loading}}" class="jn-state">加载中…</view>
+  <view wx:elif="{{loadError}}" class="jn-state" bindtap="onRetry">配置加载失败，点此重试</view>
+  <block wx:else>
   <view class="jn-intro">
     <view class="jn-intro__title warm-serif">{{heroTitle}}</view>
     <view class="jn-intro__desc">{{desc}}</view>
-    <view class="jn-intro__rw">
-      <view class="jn-avs">
+    <view class="jn-intro__rw" wx:if="{{memberCount || avatars.length}}">
+      <view class="jn-avs" wx:if="{{avatars.length}}">
         <image wx:for="{{avatars}}" wx:key="*this" src="{{item}}" mode="aspectFill" />
       </view>
-      <text>{{memberCount}}</text>
+      <text wx:if="{{memberCount}}">{{memberCount}}</text>
     </view>
   </view>
 
@@ -17,7 +20,7 @@
         <view class="jn-way__ic">💬</view>
         <view class="jn-way__body">
           <view class="jn-way__name">在线客服 <text class="warm-tag warm-tag--gold">推荐</text></view>
-          <view class="jn-way__sub">{{onlineServiceHint || '购买、发票、解锁问题，工作日 9:00-21:00 秒回'}}</view>
+          <view class="jn-way__sub">{{onlineServiceHint || '购买、发票、解锁问题可直接咨询'}}</view>
         </view>
         <view class="jn-way__go">去咨询</view>
       </view>
@@ -40,14 +43,14 @@
       </view>
     </view>
 
-    <view class="jn-way" wx:if="{{ownerWay}}" bindtap="onShowOwnerQr">
+    <view class="jn-way" wx:if="{{ownerWay && ownerWay.name}}" bindtap="onShowOwnerQr">
       <view class="jn-way__hh">
         <view class="jn-way__ic">{{ownerWay.icon || '✍️'}}</view>
         <view class="jn-way__body">
           <view class="jn-way__name">{{ownerWay.name}}</view>
           <view class="jn-way__sub">{{ownerWay.desc}}</view>
         </view>
-        <view class="jn-way__go ghost">看二维码</view>
+        <view class="jn-way__go ghost">{{ownerWay.expired ? '已失效' : '看二维码'}}</view>
       </view>
     </view>
   </view>
@@ -55,7 +58,7 @@
   <view class="jn-grps" wx:if="{{groups.length}}">
     <view class="jn-grps__t">
       <text class="jn-grps__hd">按方向进群</text>
-      <text class="jn-grps__cnt">群满自动开新群</text>
+      <text class="jn-grps__cnt">群满请联系客服</text>
     </view>
     <view wx:for="{{groups}}" wx:key="id" class="jn-grps__li">
       <view class="jn-grps__lg">{{item.icon || '👥'}}</view>
@@ -67,6 +70,7 @@
         </view>
       </view>
       <view wx:if="{{item.full}}" class="jn-grps__btn full">已满</view>
+      <view wx:elif="{{item.expired || !item.hasEntry}}" class="jn-grps__btn full" data-id="{{item.id}}" bindtap="onOpenGroup">不可用</view>
       <view
         wx:else
         class="jn-grps__btn"
@@ -75,6 +79,7 @@
       >进群</view>
     </view>
   </view>
+  <view class="jn-state" wx:elif="{{!loading}}">暂未配置读者群，请联系在线客服</view>
 
   <view class="jn-hd" wx:if="{{faqs.length}}">
     <text class="jn-hd__t warm-serif">常见问题</text>
@@ -89,6 +94,7 @@
   <view class="jn-note">
     ℹ️ 群内禁止发布广告与无关链接。客服<text class="jn-em">不会以任何理由索要你的微信支付密码或验证码</text>，谨防冒充。
   </view>
+  </block>
 </view>
 
 <!-- 群二维码底栏 -->
@@ -102,11 +108,13 @@
   <view class="jn-sheet__qrbox">
     <image
       class="jn-sheet__qr"
-      src="{{sheetGroup.qrcode || placeholderQr}}"
+      src="{{sheetGroup.qrcode}}"
       mode="aspectFit"
       show-menu-by-longpress
       bindlongpress="onSaveQr"
+      wx:if="{{sheetGroup.qrcode}}"
     />
+    <view class="jn-state" wx:else>暂无二维码</view>
   </view>
   <view class="jn-sheet__nm">{{sheetGroup.desc}}</view>
   <view class="jn-sheet__sb" wx:if="{{sheetGroup.tip}}">{{sheetGroup.tip}}</view>
@@ -116,5 +124,5 @@
     <view class="jn-sheet__btn ghost" bindtap="onSaveQr">保存到相册</view>
     <view class="jn-sheet__btn" bindtap="onService">扫不出？找客服</view>
   </view>
-  <view class="jn-sheet__exp">二维码 7 天后失效 · 过期请回本页重新获取</view>
+  <view class="jn-sheet__exp" wx:if="{{sheetExpireTip}}">{{sheetExpireTip}}</view>
 </view>

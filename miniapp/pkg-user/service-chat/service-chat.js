@@ -49,8 +49,8 @@ const QUICK_FLOWS = {
       role: 'service',
       type: 'actcard',
       act: {
-        title: '顺便邀请你进读者群 🎉',
-        desc: '新书首发、资料更新、线下活动都会先在群里通知。目前「内容创业交流群 · 7 群」还有 14 个名额。',
+        title: '顺便邀请你进读者群',
+        desc: '新书首发、资料更新、线下活动等通知可在读者群获取。',
         primary: '立即进群',
         secondary: '加企微客服',
       },
@@ -61,7 +61,7 @@ const QUICK_FLOWS = {
       delay: 500,
       role: 'service',
       type: 'text',
-      text: '可以的。请把订单号、发票抬头、税号发我，或点「＋」发送订单卡片，我帮你登记开票（电子普票，约 1-3 个工作日）。',
+      text: '可以的。请把订单号、发票抬头、税号发我，或点「＋」发送订单卡片，我帮你登记开票（电子普票，开票时效以财务处理为准）。',
     },
   ],
   '资料库没解锁': [
@@ -76,8 +76,8 @@ const QUICK_FLOWS = {
       role: 'service',
       type: 'actcard',
       act: {
-        title: '需要真人协助？',
-        desc: '解锁异常可转人工，或先加入读者群由客服协助处理。',
+        title: '需要进一步协助？',
+        desc: '解锁异常可转人工客服，或先加入读者群由客服协助处理。',
         primary: '立即进群',
         secondary: '转人工',
       },
@@ -89,8 +89,8 @@ const QUICK_FLOWS = {
       role: 'service',
       type: 'actcard',
       act: {
-        title: '邀请你进读者群 🎉',
-        desc: '新书首发、资料更新、线下活动都会先在群里通知。点下方即可进群或加企微客服。',
+        title: '邀请你进读者群',
+        desc: '新书首发、资料更新、线下活动等通知可在读者群获取。点下方进群或加企微客服。',
         primary: '立即进群',
         secondary: '加企微客服',
       },
@@ -101,7 +101,7 @@ const QUICK_FLOWS = {
       delay: 500,
       role: 'service',
       type: 'text',
-      text: '会员有效期可在「会员中心」查看。到期前会提醒续费；邀请好友还可各得体验天数。如对账期有疑问，把订单号发我。',
+      text: '会员有效期可在「会员中心」查看。到期前会提醒续费。邀请奖励以活动页实际规则为准。如对账期有疑问，把订单号发我。',
     },
   ],
 }
@@ -175,7 +175,17 @@ Page({
   },
 
   _orderCardForQuick() {
-    return this._recentOrderCard || Object.assign({}, DEMO_ORDER, { orderId: this.data.orderId || '' })
+    if (this._recentOrderCard && this._recentOrderCard.orderNo) return this._recentOrderCard
+    if (this.data.orderId) {
+      return {
+        title: '当前订单',
+        orderNo: String(this.data.orderId),
+        cover: ORDER_COVER,
+        priceLabel: '请核对订单详情',
+        orderId: this.data.orderId,
+      }
+    }
+    return null
   },
 
   onJoin() {
@@ -279,6 +289,16 @@ Page({
         const { delay, ...msg } = step
         if (msg.type === 'ordcard') {
           msg.order = this._orderCardForQuick()
+          if (!msg.order) {
+            this._push({
+              role: 'service',
+              type: 'text',
+              hideAvatar: !!msg.hideAvatar,
+              text: '未找到你的近期订单。可点「＋」发送订单卡片，或把订单号发我核对。',
+            })
+            if (step === steps[steps.length - 1]) this.setData({ typing: false })
+            return
+          }
         }
         this._push(msg)
         if (step === steps[steps.length - 1]) {
@@ -369,11 +389,7 @@ Page({
         })
       })
       .catch(() => {
-        this._push({
-          role: 'me',
-          type: 'ordcard',
-          order: Object.assign({}, DEMO_ORDER, { orderId: this.data.orderId || '' }),
-        })
+        wx.showToast({ title: '暂无订单可发送', icon: 'none' })
       })
   },
 

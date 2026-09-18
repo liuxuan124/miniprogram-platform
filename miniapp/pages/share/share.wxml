@@ -6,7 +6,7 @@
         <image src="{{cover}}" mode="aspectFill" />
         <view class="sh-sc"></view>
         <view class="sh-bd">
-          <text class="warm-tag warm-tag--soft">深度 · 创作者手记</text>
+          <text class="warm-tag warm-tag--soft">暖阁分享</text>
           <view class="sh-bd__title warm-serif">{{title}}</view>
         </view>
       </view>
@@ -17,13 +17,19 @@
         <view class="sh-pt__h">分享这篇文章</view>
         <view class="sh-pt__p">{{tip}}</view>
       </view>
-      <view class="sh-reward">
+      <view class="sh-reward" wx:if="{{inviteLoggedIn}}">
         <text style="font-size:34rpx">🎁</text>
         <view style="flex:1">
-          <view class="sh-reward__b">邀请有礼进行中</view>
-          <view class="sh-reward__p">已成功邀请 {{inviteCount}} 人 · 累计获得 {{inviteDays}} 天会员</view>
+          <view class="sh-reward__b">我的邀请</view>
+          <view class="sh-reward__p">已成功邀请 {{inviteCount}} 人。{{rewardTip || '奖励以实际到账为准。'}}</view>
         </view>
-        <view class="sh-reward__ct">查看战绩 ›</view>
+      </view>
+      <view class="sh-reward" wx:else>
+        <text style="font-size:34rpx">🎁</text>
+        <view style="flex:1">
+          <view class="sh-reward__b">邀请有礼</view>
+          <view class="sh-reward__p">登录后可查看真实邀请人数与奖励到账情况</view>
+        </view>
       </view>
       <view class="sh-row">
         <button class="sh-act share-button-reset" open-type="share" style="background:transparent;padding:0;margin:0;line-height:1.2;border:0">
@@ -77,7 +83,7 @@
             <view class="sh-poster__sc"></view>
             <view class="sh-poster__fade"></view>
             <view class="sh-poster__kk">
-              <text>暖阁 · 创作者手记</text>
+              <text>暖阁</text>
               <view class="sh-poster__title warm-serif">{{title}}</view>
             </view>
           </view>
@@ -86,7 +92,7 @@
             <view class="sh-poster__ft">
               <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
               <view class="sh-poster__meta">
-                <view class="sh-poster__nm">{{author}} · 主理人</view>
+                <view class="sh-poster__nm">{{author || '暖阁'}}</view>
                 <view class="sh-poster__sb">{{shareFrom}}</view>
               </view>
               <view class="sh-poster__qr">
@@ -107,7 +113,7 @@
             <view class="sh-poster__ft">
               <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
               <view class="sh-poster__meta">
-                <view class="sh-poster__nm">{{author}} · 主理人</view>
+                <view class="sh-poster__nm">{{author || '暖阁'}}</view>
                 <view class="sh-poster__sb">{{shareFrom}}</view>
               </view>
               <view class="sh-poster__qr">
@@ -127,7 +133,7 @@
             <view class="sh-poster__ft">
               <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
               <view class="sh-poster__meta">
-                <view class="sh-poster__nm">{{author}} · 主理人</view>
+                <view class="sh-poster__nm">{{author || '暖阁'}}</view>
                 <view class="sh-poster__sb">邀请码 {{shortCode || '登录后生成'}}</view>
               </view>
               <view class="sh-poster__qr">
@@ -146,7 +152,7 @@
 
         <view class="sh-poster-spacer"></view>
 
-        <view class="sh-savehint">海报含你的专属邀请码，好友扫码进入即算邀请成功</view>
+        <view class="sh-savehint">海报含你的专属邀请码；好友是否算邀请成功，以系统实际绑定结果为准</view>
 
         <view class="sh-pbtns">
           <view class="sh-pbtns__save" bindtap="onSavePoster">保存到相册</view>

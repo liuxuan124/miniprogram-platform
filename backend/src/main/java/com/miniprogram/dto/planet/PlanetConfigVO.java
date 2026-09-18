@@ -44,6 +44,9 @@ public class PlanetConfigVO {
 
     private List<PlanetPackageVO> packages = new ArrayList<>();
 
+    /** 社区列表（配置 communities） */
+    private List<PlanetCommunityVO> communities = new ArrayList<>();
+
     @Data
     public static class PlanetPackageVO {
         private Long productId;
@@ -66,9 +69,13 @@ public class PlanetConfigVO {
     @Data
     public static class TopicItem {
         private String name;
+        /** 进度条宽度 0–100，相对本周最高热度归一化 */
         private Integer width;
+        /** 相对上周涨跌文案，如 ↑ 62% / ↓ 8% */
         private String pct;
         private Boolean down;
+        /** 本周加权热度（赞×3+评×5+浏览×1），可选 */
+        private Long heat;
     }
 
     @Data

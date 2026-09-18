@@ -7,6 +7,7 @@
   "backgroundColor": "#FDF6EC",
   "usingComponents": {
     "dsl-renderer": "/components/dsl-renderer/dsl-renderer",
-    "dsl-float-button": "/components/dsl-float-button/dsl-float-button"
+    "dsl-float-button": "/components/dsl-float-button/dsl-float-button",
+    "dsl-warm-block": "/components/dsl-warm-block/dsl-warm-block"
   }
 }

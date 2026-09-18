@@ -1,14 +1,11 @@
 const request = require('../../utils/request')
 const { createSharePageConfig, buildSharePath } = require('../../utils/share')
 const { AuthUtil } = require('../../utils/auth')
-const { DEMO_SHARE } = require('../../data/warm-demo')
 const { StorageUtil } = require('../../utils/storage')
 const { getNavLayout } = require('../../utils/nav-layout')
 const qrcode = require('../../utils/qrcode')
-
-const SHARE_FAV_KEY = 'content_favorites'
+const { hasFavoriteId, readFavoriteIds, writeFavoriteIds } = require('../../utils/favorite-ids')
 const QR_CANVAS_SIZE = 174
-const DEMO_QUOTE = DEMO_SHARE.quote || '不要用产量换存在感。读者记住的永远是那三五篇，让他愿意转发给同事的东西。'
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
   const chars = String(text || '').split('')
@@ -51,17 +48,19 @@ function loadImage(canvas, src) {
 Page({
   ...createSharePageConfig({ title: '暖阁｜分享邀请' }),
   data: {
-    title: DEMO_SHARE.title,
-    cover: DEMO_SHARE.cover,
-    quote: DEMO_QUOTE,
-    author: DEMO_SHARE.author,
-    avatar: DEMO_SHARE.avatar,
-    inviteCount: DEMO_SHARE.inviteCount,
-    inviteDays: DEMO_SHARE.inviteDays,
-    shareFrom: '来自 林砚 的分享',
+    title: '',
+    cover: '',
+    quote: '',
+    author: '',
+    avatar: '/images/default-avatar.svg',
+    inviteCount: 0,
+    inviteDays: 0,
+    inviteLoggedIn: false,
+    shareFrom: '来自暖阁读者的分享',
+    tip: '邀请好友进入暖阁。奖励以实际到账为准。',
+    rewardTip: '',
     path: '/pages/index/index',
     shortCode: '',
-    tip: '好友通过你的分享首次进入，双方各得 7 天会员',
     showPoster: false,
     posterStyle: 'cover',
     canvasW: 375,
@@ -79,35 +78,31 @@ Page({
 
   onLoad(options) {
     const layout = getNavLayout()
-    const title = options && options.title ? decodeURIComponent(options.title) : DEMO_SHARE.title
+    const title = options && options.title ? decodeURIComponent(options.title) : ''
     const path = options && options.path ? decodeURIComponent(options.path) : '/pages/index/index'
     const code = options && options.code ? String(options.code).trim().toUpperCase() : ''
-    const cover = options && options.cover ? decodeURIComponent(options.cover) : DEMO_SHARE.cover
+    const cover = options && options.cover ? decodeURIComponent(options.cover) : ''
     const incomingQuote = options && options.quote ? decodeURIComponent(options.quote) : ''
     const contentId = options && options.contentId ? String(options.contentId) : ''
-    const useDemoQuote = !incomingQuote
-      || title === DEMO_SHARE.title
-      || contentId.indexOf('warm') === 0
-      || contentId === 'demo'
-    const quote = useDemoQuote ? DEMO_QUOTE : incomingQuote
+    const quote = incomingQuote
     let favorited = false
     if (contentId) {
       try {
-        const raw = StorageUtil.get(SHARE_FAV_KEY)
-        if (Array.isArray(raw)) favorited = raw.map(String).includes(contentId)
-        else if (raw && typeof raw === 'object') favorited = !!raw[contentId]
+        favorited = hasFavoriteId(contentId)
       } catch (e) { /* ignore */ }
     }
     this.setData({
-      title: title || DEMO_SHARE.title,
+      title: title || '暖阁',
       path,
       shortCode: code,
-      cover: cover || DEMO_SHARE.cover,
-      quote: quote || DEMO_QUOTE,
-      author: DEMO_SHARE.author,
-      avatar: DEMO_SHARE.avatar,
-      inviteCount: DEMO_SHARE.inviteCount,
-      inviteDays: DEMO_SHARE.inviteDays,
+      cover: cover || '',
+      quote: quote || '',
+      author: '',
+      avatar: '/images/default-avatar.svg',
+      inviteCount: 0,
+      inviteDays: 0,
+      inviteLoggedIn: AuthUtil.isLoggedIn(),
+      rewardTip: '',
       contentId,
       favorited,
       statusBarHeight: layout.statusBarHeight,
@@ -116,9 +111,24 @@ Page({
       capsuleRight: layout.capsuleRight,
     })
     try {
-      const u = AuthUtil.getUserInfo && AuthUtil.getUserInfo()
-      if (u && (u.nickName || u.nickname)) {
-        this.setData({ shareFrom: '来自 ' + (u.nickName || u.nickname) + ' 的分享' })
+      if (AuthUtil.isLoggedIn()) {
+        const u = AuthUtil.getUserInfo && AuthUtil.getUserInfo()
+        if (u && (u.nickName || u.nickname)) {
+          this.setData({ shareFrom: '来自 ' + (u.nickName || u.nickname) + ' 的分享' })
+        }
+        request.get('/api/v1/mp/mine/overview', {}, { auth: true, showError: false }).then((data) => {
+          const count = Number(data && data.inviteCount)
+          this.setData({
+            inviteCount: Number.isFinite(count) ? count : 0,
+            inviteDays: 0,
+            inviteLoggedIn: true,
+            rewardTip: '奖励以实际到账为准，不以本页展示为准。',
+          })
+        }).catch(() => {
+          this.setData({ inviteLoggedIn: true, rewardTip: '邀请战绩暂时无法获取' })
+        })
+      } else {
+        this.setData({ inviteLoggedIn: false, tip: '登录后可生成带邀请码的分享，并查看真实邀请人数。' })
       }
     } catch (e) { /* ignore */ }
     if (code) {
@@ -270,13 +280,13 @@ Page({
     const favorited = !this.data.favorited
     if (id) {
       try {
-        const raw = StorageUtil.get(SHARE_FAV_KEY)
-        let map = {}
-        if (Array.isArray(raw)) raw.forEach((x) => { map[String(x)] = true })
-        else if (raw && typeof raw === 'object') map = { ...raw }
-        if (favorited) map[id] = true
-        else delete map[id]
-        StorageUtil.set(SHARE_FAV_KEY, map)
+        const ids = readFavoriteIds()
+        if (favorited && !ids.includes(id)) ids.push(id)
+        else if (!favorited) {
+          const idx = ids.indexOf(id)
+          if (idx >= 0) ids.splice(idx, 1)
+        }
+        writeFavoriteIds(ids)
       } catch (e) { /* ignore */ }
       if (AuthUtil.isLoggedIn() && id.indexOf('warm-demo') !== 0 && id !== 'demo') {
         request.post(`/api/v1/mp/contents/${id}/favorite`, {}, { showError: false }).catch(() => {})
@@ -400,11 +410,12 @@ Page({
 
           const style = this.data.posterStyle
           const title = this.data.title
-          const quote = this.data.quote
-          const author = this.data.author
+          const quote = this.data.quote || this.data.title || '欢迎来到暖阁'
+          const author = this.data.author || ''
           const code = this.data.shortCode || '暖阁'
           const qrUrl = this.data.qrImageUrl
           const avatarUrl = this.data.avatar
+          const authorLine = author ? (author + ' · 暖阁') : '暖阁'
 
           const drawQrBox = async (x, y, size) => {
             ctx.fillStyle = '#fff'
@@ -439,7 +450,7 @@ Page({
 
             ctx.fillStyle = 'rgba(255,255,255,0.85)'
             ctx.font = '11px sans-serif'
-            ctx.fillText('暖阁 · 创作者手记', 18, 168)
+            ctx.fillText('暖阁', 18, 168)
             ctx.fillStyle = '#fff'
             ctx.font = 'bold 18px sans-serif'
             wrapText(ctx, title, 18, 192, W - 36, 24, 2)
@@ -471,7 +482,7 @@ Page({
 
             ctx.fillStyle = '#3a2a1c'
             ctx.font = 'bold 13px sans-serif'
-            ctx.fillText(author + ' · 主理人', 58, H - 70)
+            ctx.fillText(authorLine, 58, H - 70)
             ctx.fillStyle = '#a79383'
             ctx.font = '11px sans-serif'
             ctx.fillText(this.data.shareFrom, 58, H - 50)
@@ -493,7 +504,7 @@ Page({
             wrapText(ctx, '—— ' + title, 24, H - 140, W - 48, 18, 2)
             ctx.fillStyle = '#3a2a1c'
             ctx.font = 'bold 13px sans-serif'
-            ctx.fillText(author + ' · 主理人', 24, H - 60)
+            ctx.fillText(authorLine, 24, H - 60)
             ctx.fillStyle = '#a79383'
             ctx.font = '11px sans-serif'
             ctx.fillText(this.data.shareFrom, 24, H - 40)
@@ -510,7 +521,7 @@ Page({
             wrapText(ctx, quote, 24, 200, W - 48, 22, 4)
             ctx.fillStyle = '#3a2a1c'
             ctx.font = 'bold 13px sans-serif'
-            ctx.fillText(author + ' · 主理人', 24, H - 60)
+            ctx.fillText(authorLine, 24, H - 60)
             ctx.fillStyle = '#a79383'
             ctx.font = '11px sans-serif'
             ctx.fillText('邀请码 ' + code, 24, H - 40)

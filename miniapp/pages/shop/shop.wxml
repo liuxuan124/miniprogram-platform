@@ -22,17 +22,8 @@
   </block>
 </block>
 <view wx:else class="sh-page">
-  <scroll-view
-    class="sh-scroll"
-    scroll-y
-    enhanced
-    show-scrollbar="{{false}}"
-    refresher-enabled
-    refresher-triggered="{{refreshing}}"
-    bindrefresherrefresh="onRefresh"
-    bindscrolltolower="onReachBottomLoad"
-    lower-threshold="120"
-  >
+  <!-- 顶栏 + 会员条在 scroll-view 外（点得着）；间距对齐 prototypes-warm/shop.html -->
+  <view class="sh-head">
     <view class="sh-top" style="padding-top: {{statusBarHeight}}px;">
       <view class="sh-tt">
         <text class="sh-tt__h warm-serif">暖阁商城</text>
@@ -46,15 +37,32 @@
       </view>
     </view>
 
-    <view class="sh-vip" hover-class="sh-vip--hover" catchtap="onGoMember">
+    <view
+      class="sh-vip"
+      hover-class="sh-vip--hover"
+      hover-stay-time="80"
+      bindtap="onGoMember"
+    >
       <text class="sh-vip__ic">{{vip.icon || '🎫'}}</text>
       <view class="sh-vip__tx">
-        <text class="sh-vip__h">{{vip.title}}</text>
-        <text class="sh-vip__p">{{vip.desc}}</text>
+        <text class="sh-vip__h">{{vip.title || '开通年度会员'}}</text>
+        <text class="sh-vip__p">{{vip.desc || '全站长文免费读 · 资料库全解锁 · 商品 8 折'}}</text>
       </view>
-      <view class="sh-vip__b" catchtap="onGoMember">{{vip.priceLabel || '¥168/年'}}</view>
+      <view class="sh-vip__b">{{vip.priceLabel || '¥168/年'}}</view>
     </view>
+  </view>
 
+  <scroll-view
+    class="sh-scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onReachBottomLoad"
+    lower-threshold="120"
+  >
     <view class="sh-cats">
       <view class="sh-cat" wx:for="{{cats}}" wx:key="label" data-url="{{item.url}}" data-tab="{{item.tab}}" bindtap="onCatTap">
         <view class="sh-cat__ic">{{item.icon}}</view>
@@ -62,11 +70,11 @@
       </view>
     </view>
 
-    <view class="sh-flash">
+    <view class="sh-flash" wx:if="{{flashList.length}}">
       <view class="sh-flash__hh">
         <text>⚡️</text>
         <text class="sh-flash__h">限时特惠</text>
-        <view class="sh-flash__cd">
+        <view class="sh-flash__cd" wx:if="{{showFlashCd}}">
           <text>距结束 </text>
           <text class="sh-flash__i">{{cd.h}}</text>
           <text>:</text>
@@ -148,4 +156,5 @@
     <view wx:elif="{{!empty || usingDemo}}" class="warm-end">—— 虚拟商品一经购买不支持退款 ——</view>
     <view class="warm-safe"></view>
   </scroll-view>
+  <login-sheet id="global-login-sheet" />
 </view>

@@ -53,6 +53,9 @@ public class ContentDTO {
     /** 正文排版主题 */
     private String layoutTheme;
 
+    /** 发现页展示 auto/full/duo */
+    private String discoverLayout;
+
     /** 定时发布时间（ISO 字符串或 yyyy-MM-dd HH:mm:ss） */
     private String scheduledAt;
 
@@ -99,4 +102,7 @@ public class ContentDTO {
 
     /** 星球专属 0/1 */
     private Integer planetExclusive;
+
+    /** 所属星球 ID（communities.id） */
+    private String planetId;
 }

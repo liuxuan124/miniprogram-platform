@@ -1,4 +1,4 @@
-<view class="dsl-planet-topics pl-fc" style="{{styleString}}">
+<view class="dsl-planet-topics pl-fc" style="{{styleString}}" wx:if="{{visible}}">
   <view class="pl-fc__t">
     <text class="pl-fc__ic">{{icon || '📈'}}</text>
     <text class="pl-fc__h">{{title}}</text>

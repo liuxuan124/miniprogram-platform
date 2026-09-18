@@ -56,7 +56,7 @@
       </view>
       <view class="sign-rules__item">
         <text class="sign-rules__dot">•</text>
-        <text>连续签到7天可额外获得50积分奖励</text>
+        <text>连续签到天数会累计展示；额外奖励以系统实际发放为准</text>
       </view>
       <view class="sign-rules__item">
         <text class="sign-rules__dot">•</text>

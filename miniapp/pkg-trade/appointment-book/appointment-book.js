@@ -238,18 +238,18 @@ Page({
       .then((res) => {
         this.setData({ submitting: false })
         const appointmentId = res.appointment_id || res.id
-        const slotLabel = `${this.data.selectedDate} ${this.data.selectedSlotLabel || ''}`
+        if (!appointmentId) {
+          wx.showToast({ title: '预约已提交，请到我的预约查看', icon: 'none' })
+          wx.redirectTo({ url: '/pkg-user/my-appointments/my-appointments' })
+          return
+        }
         wx.redirectTo({
-          url: `/pkg-trade/appointment-success/appointment-success?name=${encodeURIComponent((this.data.serviceInfo && this.data.serviceInfo.name) || '1v1 咨询')}&slot=${encodeURIComponent(slotLabel)}&price=${this.data.payAmount || (this.data.serviceInfo && this.data.serviceInfo.price) || ''}&no=${appointmentId || ''}`,
+          url: `/pkg-trade/appointment-success/appointment-success?id=${appointmentId}`,
         })
       })
-      .catch(() => {
-        // 演示闭环：接口失败仍进成功页
+      .catch((err) => {
         this.setData({ submitting: false })
-        const slotLabel = `${this.data.selectedDate} ${this.data.selectedSlotLabel || ''}`
-        wx.redirectTo({
-          url: `/pkg-trade/appointment-success/appointment-success?name=${encodeURIComponent((this.data.serviceInfo && this.data.serviceInfo.name) || '1v1 咨询')}&slot=${encodeURIComponent(slotLabel)}&price=${this.data.payAmount || ''}&no=DEMO`,
-        })
+        wx.showToast({ title: (err && err.message) || '预约失败', icon: 'none' })
       })
   },
 

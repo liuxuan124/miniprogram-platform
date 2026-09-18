@@ -32,6 +32,9 @@
         <el-form-item label="群二维码 URL">
           <el-input v-model="g.qrcode" />
         </el-form-item>
+        <el-form-item label="二维码有效期">
+          <el-input v-model="g.qrExpireAt" placeholder="可选，如 2026-09-25 23:59；过期后小程序展示失效态" />
+        </el-form-item>
         <el-form-item label="满员">
           <el-switch v-model="g.full" />
         </el-form-item>
@@ -54,11 +57,11 @@ const form = reactive({
   wecomUrl: '',
   onlineServiceHint: '',
   joinNotice: '',
-  groups: [] as Array<{ name: string; direction: string; qrcode: string; full: boolean }>,
+  groups: [] as Array<{ name: string; direction: string; qrcode: string; qrExpireAt: string; full: boolean }>,
 })
 
 function addGroup() {
-  form.groups.push({ name: '', direction: '', qrcode: '', full: false })
+  form.groups.push({ name: '', direction: '', qrcode: '', qrExpireAt: '', full: false })
 }
 
 async function load() {
@@ -74,6 +77,7 @@ async function load() {
       name: g.name || '',
       direction: g.direction || '',
       qrcode: g.qrcode || g.qrCode || '',
+      qrExpireAt: g.qrExpireAt || g.qr_expire_at || g.expireAt || '',
       full: Boolean(g.full),
     })) : []
   } finally {

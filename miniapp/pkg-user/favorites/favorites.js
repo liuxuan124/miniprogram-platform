@@ -1,25 +1,7 @@
 const { StorageUtil } = require('../../utils/storage')
 const { openContentDetail } = require('../../utils/content-id')
 const { get } = require('../../utils/request')
-
-const FAVORITES_KEY = 'content_favorites'
-
-function readFavoriteIds() {
-  const raw = StorageUtil.get(FAVORITES_KEY)
-  if (!raw) return []
-  if (Array.isArray(raw)) return raw.map(String).filter(Boolean)
-  if (typeof raw === 'object') return Object.keys(raw).filter((k) => !!raw[k])
-  return []
-}
-
-function writeFavoriteIds(ids) {
-  const map = {}
-  ;(ids || []).forEach((id) => {
-    const k = String(id)
-    if (k && k !== 'NaN') map[k] = true
-  })
-  StorageUtil.set(FAVORITES_KEY, map)
-}
+const { readFavoriteIds, writeFavoriteIds } = require('../../utils/favorite-ids')
 
 Page({
   data: { list: [] },

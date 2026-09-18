@@ -6,16 +6,14 @@
     <view class="shop-banner__orb"></view>
     <view class="shop-banner__row">
       <view>
-        <view class="shop-banner__eyebrow">PHYSICAL GOODS</view>
-        <view class="shop-banner__t">精选实物好物</view>
-        <view class="shop-banner__d">纸质手册与文创周边，快递发货</view>
+        <view class="shop-banner__eyebrow">SHOP</view>
+        <view class="shop-banner__t" wx:if="{{header.showTitle}}">{{header.title}}</view>
+        <view class="shop-banner__d" wx:if="{{header.showIntro}}">{{header.intro}}</view>
       </view>
       <view class="shop-cart" bindtap="onGoCart">▣</view>
     </view>
-    <view class="shop-benefits">
-      <text>✓ 商家正常发货</text>
-      <text>✓ 订单进度可查</text>
-      <text>✓ 售后保障</text>
+    <view class="shop-benefits" wx:if="{{header.showGuarantees && header.guarantees.length}}">
+      <text wx:for="{{header.guarantees}}" wx:key="*this">✓ {{item}}</text>
     </view>
   </view>
 
@@ -85,10 +83,15 @@
   </view>
 
   <!-- 首次加载：D1 骨架屏，替代空白页面 -->
-  <skeleton wx:if="{{loading && products.length === 0}}" type="grid" rows="{{6}}" />
+  <skeleton wx:if="{{loading && products.length === 0 && !loadFailed}}" type="grid" rows="{{6}}" />
+
+  <view class="loading-area" wx:elif="{{loadFailed && products.length === 0}}">
+    <text class="loading-text">加载失败</text>
+    <view class="retry-btn" bindtap="onRetry">重新加载</view>
+  </view>
 
   <!-- 商品列表 -->
-  <view class="product-grid" wx:else>
+  <view class="product-grid" wx:elif="{{!isEmpty}}">
     <view
       wx:for="{{products}}"
       wx:key="id"
@@ -105,13 +108,15 @@
         binderror="onImageError"
       />
       <view class="product-info">
-        <view class="product-badge">实物发货</view>
+        <view class="product-badge">{{item.badge}}</view>
         <text class="product-name">{{item.name}}</text>
         <view class="product-price-row">
           <text class="product-price">¥{{item.price}}</text>
           <text class="product-original-price" wx:if="{{item.original_price || item.originalPrice}}">¥{{item.original_price || item.originalPrice}}</text>
         </view>
+        <text class="product-sales" wx:if="{{item.shipLabel}}">{{item.shipLabel}}</text>
         <text class="product-sales" wx:if="{{item.sales}}">已售 {{item.sales}}</text>
+        <text class="product-sales" wx:if="{{item.stock != null && item.stock !== ''}}">库存 {{item.stock}}</text>
       </view>
     </view>
   </view>
@@ -126,7 +131,7 @@
 
   <!-- 空状态：D2 统一空态组件 -->
   <empty-state
-    wx:if="{{isEmpty && !loading}}"
+    wx:if="{{isEmpty && !loading && !loadFailed}}"
     icon="/images/empty-product.png"
     title="暂无商品"
     desc="换个分类或关键词试试"

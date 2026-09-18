@@ -165,12 +165,45 @@ public final class PageBuilderComponentCatalog {
         add("planet_hero", "星球顶栏", "planet", "planet", "/api/v1/mp/planet/home",
                 "星球顶栏,星球头图",
                 "title,subtitle", "", "tap", "");
-        add("planet_topics", "星球话题预测", "planet", "planet", "/api/v1/mp/planet/home",
-                "星球话题,话题预测",
+        add("planet_topics", "本周热门话题", "planet", "planet", "/api/v1/mp/planet/home",
+                "星球话题,热门话题,本周话题",
                 "title,limit", "", "tap", "");
         add("planet_feed", "星球动态流", "planet", "planet", "/api/v1/mp/planet/feed",
                 "星球动态,星球feed",
                 "page_size", "", "tap,scroll", "");
+        add("warm_greet", "暖阁问候条", "content", "none", null,
+                "问候,搜索,快捷导航",
+                "greet_template,show_search,show_nav,show_notice,search_placeholder", "", "tap", "");
+        add("warm_authors", "暖阁作者列表", "content", "content", "/api/v1/mp/home/warm",
+                "作者列表,出品",
+                "title,more_url,more_text", "", "tap", "");
+        add("warm_feature", "暖阁精选", "content", "content", "/api/v1/mp/home/warm",
+                "精选,今日精选",
+                "empty_text", "", "tap", "");
+        add("warm_columns", "暖阁专栏", "commerce", "product", "/api/v1/mp/home/warm",
+                "专栏,精品专栏",
+                "title,more_url,more_text", "", "tap", "");
+        add("warm_planet_rec", "暖阁星球推荐", "planet", "planet", "/api/v1/mp/home/warm",
+                "星球推荐",
+                "title,more_url,more_text", "", "tap", "");
+        add("warm_feed", "暖阁信息流", "content", "content", "/api/v1/mp/home/warm",
+                "首页信息流",
+                "footer", "", "tap,scroll", "");
+        add("warm_home", "暖阁首页模板", "content", "content", "/api/v1/mp/home/warm",
+                "暖阁首页,原生首页,首页模板",
+                "authors_title,columns_title,planet_title", "", "tap", "");
+        add("warm_discover", "暖阁发现模板", "content", "content", "/api/v1/mp/contents",
+                "暖阁发现,笔记瀑布",
+                "title", "", "tap,scroll", "");
+        add("warm_planet", "暖阁星球模板", "planet", "planet", "/api/v1/mp/planet/home",
+                "暖阁星球壳",
+                "title", "", "tap,scroll", "");
+        add("warm_shop", "暖阁商城模板", "commerce", "product", "/api/v1/mp/products",
+                "暖阁商城壳",
+                "title", "", "tap", "");
+        add("warm_mine", "暖阁我的模板", "content", "none", null,
+                "暖阁我的壳,个人中心壳",
+                "title", "", "tap", "");
     }
 
     private PageBuilderComponentCatalog() {

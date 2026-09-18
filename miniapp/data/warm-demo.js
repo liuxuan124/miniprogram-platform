@@ -140,6 +140,50 @@ const DEMO_NOTE = {
   ],
 }
 
+/** 首页推荐流九宫格笔记（warm-home f3 / warm-note-d2） */
+const DEMO_MEAL_NOTE = {
+  title: '一周三餐记录｜在家做饭其实很省时间',
+  author: '暖阁编辑部',
+  authorRole: '官方',
+  avatar: picsum('ed1', 80, 80),
+  gallery: [
+    picsum('warmg1', 780, 780), picsum('warmg2', 780, 780), picsum('warmg3', 780, 780),
+    picsum('nt2', 780, 780), picsum('nt3', 780, 780), picsum('nt5', 780, 780),
+    picsum('nt4', 780, 780), picsum('nt6', 780, 780), picsum('nt7', 780, 780),
+  ],
+  topics: ['#一周三餐', '#在家做饭', '#备菜', '#内容创作者日常'],
+  meta: '编辑于 09-14 · 杭州',
+  likeDisplay: '1.9k',
+  favoriteDisplay: '486',
+  commentDisplay: '128',
+  commentCount: 128,
+  paras: [
+    '这周试着把三餐都在家里解决。不是为了省钱，是为了把「决策」从外卖软件里拿回来。',
+    '周一到周五固定：早燕麦、午剩菜翻新、晚一锅两吃。周末才允许点一次外卖当奖励。',
+    '1️⃣ 备菜｜周日花 40 分钟切好葱姜蒜和叶菜，分装进保鲜盒',
+    '2️⃣ 工具｜一个厚底锅 + 空气炸锅，覆盖 80% 场景',
+    '3️⃣ 清单｜冰箱门贴「本周必吃」三行，吃完再补',
+    '省下来的不只是钱，还有每天晚饭前那 20 分钟的犹豫。想要完整周菜单的，评论区扣「菜单」。',
+  ],
+  html: [
+    '<p>这周试着把三餐都在家里解决。不是为了省钱，是为了把「决策」从外卖软件里拿回来。</p>',
+    '<p>周一到周五固定：早燕麦、午剩菜翻新、晚一锅两吃。周末才允许点一次外卖当奖励。</p>',
+    '<p>1️⃣ 备菜｜周日花 40 分钟切好葱姜蒜和叶菜，分装进保鲜盒<br/>2️⃣ 工具｜一个厚底锅 + 空气炸锅，覆盖 80% 场景<br/>3️⃣ 清单｜冰箱门贴「本周必吃」三行，吃完再补</p>',
+    '<p>省下来的不只是钱，还有每天晚饭前那 20 分钟的犹豫。想要完整周菜单的，评论区扣「菜单」。</p>',
+  ].join(''),
+  goods: {
+    title: '一个人的内容生意 · 专栏',
+    desc: '把「决策系统」从外卖 App 搬回生活，同款节奏在第 4 讲',
+    cover: picsum('warmc1', 200, 200),
+    url: '/pages/product-detail/product-detail?demo=column',
+  },
+  comments: [
+    { nick: '阿柚', avatar: picsum('u8', 80, 80), text: '菜单！求一份可直接抄的周菜单 🙏', likes: 86, reply: '编辑部：下周发「一人食备菜清单」，先关注不迷路' },
+    { nick: '十一', avatar: picsum('u5', 80, 80), text: '空气炸锅真能覆盖 80%？我感觉只适合复热…', likes: 42 },
+    { nick: '豆先生', avatar: picsum('u6', 80, 80), text: '「决策从外卖软件拿回来」这句话太准了，每天纠结比做饭还累', likes: 37 },
+  ],
+}
+
 const DEMO_PLANET_POST = {
   author: '十一',
   authorTag: '读者提问',
@@ -367,7 +411,7 @@ const DEMO_SHARE = {
 }
 
 const DEMO_CONTRIBUTE = {
-  heroTitle: '暖阁正在招募\n长期供稿的创作者',
+  heroTitle: '平台正在招募\n长期供稿的创作者',
   heroDesc: '目前站内内容由编辑部与特约作者产出。我们每月放开少量名额，通过后即可在小程序内直接发布长文与图文笔记。',
   stats: [
     { b: '12', s: '本月名额' },
@@ -440,6 +484,7 @@ module.exports = {
   DEMO_LIST,
   DEMO_ARTICLE,
   DEMO_NOTE,
+  DEMO_MEAL_NOTE,
   DEMO_PLANET_POST,
   DEMO_COLUMN,
   DEMO_GOODS,

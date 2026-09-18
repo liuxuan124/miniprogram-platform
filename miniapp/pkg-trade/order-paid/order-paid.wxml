@@ -22,14 +22,14 @@
 
   <view class="unlock card" wx:if="{{isVirtualDelivery && paymentConfirmed}}">
     <view class="unlock__h">本次解锁</view>
-    <view class="unlock__li"><text class="ck">✓</text>《{{productName || '已购内容'}}》全 12 章在线阅读</view>
-    <view class="unlock__li"><text class="ck">✓</text>EPUB / PDF 可转发保存到微信</view>
-    <view class="unlock__li"><text class="ck">✓</text>随书资料包 3 份已存入资料库</view>
+    <view class="unlock__li"><text class="ck">✓</text>《{{productName || '已购内容'}}》已开通</view>
+    <view class="unlock__li"><text class="ck">✓</text>可在订单详情与资料库查看</view>
   </view>
 
   <view class="invite" wx:if="{{paymentConfirmed}}" bindtap="goShare">
     <view class="invite__h">把它分享给朋友 🎁</view>
-    <view class="invite__p">好友通过你的分享首次进入，双方各得 7 天会员。你已邀请 {{inviteCount || 3}} 人，累计 {{inviteDays || 21}} 天。</view>
+    <view class="invite__p" wx:if="{{inviteCount}}">你已成功邀请 {{inviteCount}} 人。奖励天数以实际到账为准。</view>
+    <view class="invite__p" wx:else>邀请好友进入暖阁。奖励以实际到账为准，这里不展示示例天数。</view>
     <view class="invite__b2">生成分享海报</view>
   </view>
 

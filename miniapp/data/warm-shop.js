@@ -11,8 +11,8 @@ const VIP_BAR = {
   unit: '年',
   productName: '暖阁星球 · 年度会员',
   productId: '',
-  // 无商品 id 时回落会员中心；有 id 时商城页优先进商品详情
-  url: '/pkg-user/member-center/member-center',
+  // 无商品 id 时回落加入社群；有 id 时商城页优先进商品详情
+  url: '/pages/join/join',
 }
 
 const CATS = [

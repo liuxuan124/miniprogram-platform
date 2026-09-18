@@ -93,6 +93,13 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
     ).then(() => {
       AuthService.completeLogin({ phone, nickName, avatarUrl: remoteUrl })
       AuthUtil.rememberLoginProfile({ nickName, avatarUrl: remoteUrl })
+      try {
+        const pages = getCurrentPages()
+        const cur = pages && pages[pages.length - 1]
+        if (cur && typeof cur._refreshUserInfo === 'function') cur._refreshUserInfo()
+        if (cur && typeof cur._applyGreet === 'function') cur._applyGreet()
+        if (cur && typeof cur._loadMineOverview === 'function') cur._loadMineOverview()
+      } catch (e) { /* ignore */ }
     }).catch((err) => {
       console.warn('[login-flow] 头像资料回写失败:', err)
     })
@@ -111,7 +118,7 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
     formData: { subDir: 'avatar' },
     showError: false,
   }).then((uploaded) => {
-    const remoteUrl = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
+    const remoteUrl = (uploaded && (uploaded.url || uploaded.fileUrl || uploaded.path)) || ''
     finish(remoteUrl)
   }).catch((uploadErr) => {
     console.warn('[login-flow] 头像后台上传失败（不影响登录）:', uploadErr)

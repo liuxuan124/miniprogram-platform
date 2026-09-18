@@ -307,3 +307,13 @@
   color: var(--ink-3);
   font-size: 22rpx;
 }
+
+.retry-btn {
+  display: inline-block;
+  margin-top: 16rpx;
+  padding: 10rpx 28rpx;
+  color: #fff;
+  font-size: 24rpx;
+  background: var(--brand);
+  border-radius: 999rpx;
+}

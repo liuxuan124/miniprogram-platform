@@ -1,10 +1,21 @@
 const { createSharePageConfig } = require('../../utils/share')
 const { DEMO_CONTRIBUTE } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
-const { post, upload } = require('../../utils/request')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
+const { post, upload, get } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
+const { StorageUtil } = require('../../utils/storage')
 
 const TOPIC_OPTIONS = ['书桌改造', '工位美学', '内容创业', '写作方法', '读书']
+const DRAFT_KEY = 'contribute_draft_v1'
+const APPLY_DRAFT_KEY = 'contribute_apply_draft_v1'
+
+const FALLBACK_TOPICS = ['内容创业', '写作方法', '工位美学', '读书', '副业']
+const FALLBACK_FORMS = ['深度长文', '图文笔记']
+const FALLBACK_PUBLISH_TYPES = [
+  { key: 'note', label: '图文笔记' },
+  { key: 'article', label: '长文' },
+  { key: 'moment', label: '星球动态' },
+]
 
 function getNavMetrics() {
   const sys = wx.getSystemInfoSync() || {}
@@ -30,21 +41,23 @@ Page({
     navPadRight: 24,
     stage: 1,
     editorUnlocked: false,
+    applyStatus: '',
+    applyStatusText: '',
     name: '',
     contact: '',
     intro: '',
     portfolio: '',
     portfolioImages: [],
     submitting: false,
-    heroTitle: '',
-    heroDesc: '',
+    heroTitle: '成为创作者',
+    heroDesc: '提交申请后由编辑部审核。通过后可在本页发布内容。',
     stats: [],
     why: [],
-    topics: [],
-    forms: [],
+    topics: FALLBACK_TOPICS,
+    forms: FALLBACK_FORMS,
     selectedTopicMap: {},
     selectedFormMap: {},
-    publishTypes: [],
+    publishTypes: FALLBACK_PUBLISH_TYPES,
     publishType: 'note',
     editorTitle: '写笔记',
     draftTitle: '',
@@ -53,19 +66,24 @@ Page({
     draftTopics: '',
     syncPlanet: true,
     memberOnly: false,
+    draftSavedAt: '',
   },
 
   onLoad(options) {
     const metrics = getNavMetrics()
-    const unlocked = !!(options && (options.unlocked === '1' || options.stage2 === '1'))
     const stage = options && Number(options.stage) === 2 ? 2 : 1
+    // 生产禁止 URL 强开发布器；仅本地演示可 unlocked=1
+    const unlocked = (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO)
+      && !!(options && (options.unlocked === '1' || options.stage2 === '1'))
     this.setData({
       ...metrics,
       editorUnlocked: unlocked,
       stage,
       editorTitle: stage === 2 ? (unlocked ? '写笔记' : '发布器预览') : '写笔记',
     })
-    if (USE_LOCAL_SOURCE) {
+    this._restoreApplyDraft()
+    this._restorePublishDraft()
+    if (USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) {
       this.setData({
         heroTitle: DEMO_CONTRIBUTE.heroTitle,
         heroDesc: DEMO_CONTRIBUTE.heroDesc,
@@ -81,36 +99,113 @@ Page({
     SystemService.fetchSystemConfig(true).then((config) => {
       const cfg = (config && (config.contributeConfig || config.contribute_config)) || {}
       this.setData({
-        heroTitle: cfg.heroTitle || DEMO_CONTRIBUTE.heroTitle,
-        heroDesc: cfg.heroDesc || DEMO_CONTRIBUTE.heroDesc,
-        stats: Array.isArray(cfg.stats) && cfg.stats.length ? cfg.stats : DEMO_CONTRIBUTE.stats,
-        why: Array.isArray(cfg.why) && cfg.why.length ? cfg.why : DEMO_CONTRIBUTE.why,
-        topics: Array.isArray(cfg.topics) && cfg.topics.length ? cfg.topics : DEMO_CONTRIBUTE.topics,
-        forms: Array.isArray(cfg.forms) && cfg.forms.length ? cfg.forms : DEMO_CONTRIBUTE.forms,
-        publishTypes: Array.isArray(cfg.publishTypes) && cfg.publishTypes.length ? cfg.publishTypes : DEMO_CONTRIBUTE.publishTypes,
+        heroTitle: cfg.heroTitle || '成为创作者',
+        heroDesc: cfg.heroDesc || '提交申请后由编辑部审核。通过后可在本页发布内容。',
+        stats: Array.isArray(cfg.stats) ? cfg.stats : [],
+        why: Array.isArray(cfg.why) ? cfg.why : [],
+        topics: Array.isArray(cfg.topics) && cfg.topics.length ? cfg.topics : FALLBACK_TOPICS,
+        forms: Array.isArray(cfg.forms) && cfg.forms.length ? cfg.forms : FALLBACK_FORMS,
+        publishTypes: Array.isArray(cfg.publishTypes) && cfg.publishTypes.length
+          ? cfg.publishTypes
+          : FALLBACK_PUBLISH_TYPES,
       })
       this._checkCreatorStatus()
     }).catch(() => {
       this.setData({
-        heroTitle: DEMO_CONTRIBUTE.heroTitle,
-        heroDesc: DEMO_CONTRIBUTE.heroDesc,
-        stats: DEMO_CONTRIBUTE.stats,
-        why: DEMO_CONTRIBUTE.why,
-        topics: DEMO_CONTRIBUTE.topics,
-        forms: DEMO_CONTRIBUTE.forms,
-        publishTypes: DEMO_CONTRIBUTE.publishTypes,
+        heroTitle: '成为创作者',
+        heroDesc: '提交申请后由编辑部审核。通过后可在本页发布内容。',
+        stats: [],
+        why: [],
+        topics: FALLBACK_TOPICS,
+        forms: FALLBACK_FORMS,
+        publishTypes: FALLBACK_PUBLISH_TYPES,
       })
+      this._checkCreatorStatus()
     })
+  },
+
+  _restoreApplyDraft() {
+    try {
+      const d = StorageUtil.get(APPLY_DRAFT_KEY)
+      if (!d || typeof d !== 'object') return
+      this.setData({
+        name: d.name || '',
+        intro: d.intro || '',
+        portfolio: d.portfolio || '',
+        portfolioImages: Array.isArray(d.portfolioImages) ? d.portfolioImages : [],
+        selectedTopicMap: d.selectedTopicMap || {},
+        selectedFormMap: d.selectedFormMap || {},
+      })
+    } catch (e) { /* ignore */ }
+  },
+
+  _saveApplyDraft() {
+    try {
+      StorageUtil.set(APPLY_DRAFT_KEY, {
+        name: this.data.name,
+        intro: this.data.intro,
+        portfolio: this.data.portfolio,
+        portfolioImages: this.data.portfolioImages,
+        selectedTopicMap: this.data.selectedTopicMap,
+        selectedFormMap: this.data.selectedFormMap,
+        savedAt: Date.now(),
+      })
+    } catch (e) { /* ignore */ }
+  },
+
+  _restorePublishDraft() {
+    try {
+      const d = StorageUtil.get(DRAFT_KEY)
+      if (!d || typeof d !== 'object') return
+      this.setData({
+        draftTitle: d.draftTitle || '',
+        draftBody: d.draftBody || '',
+        draftImages: Array.isArray(d.draftImages) ? d.draftImages : [],
+        draftTopics: d.draftTopics || '',
+        publishType: d.publishType || 'note',
+        syncPlanet: d.syncPlanet !== false,
+        memberOnly: !!d.memberOnly,
+        draftSavedAt: d.savedAt ? String(d.savedAt) : '',
+      })
+    } catch (e) { /* ignore */ }
+  },
+
+  _savePublishDraft() {
+    try {
+      const savedAt = Date.now()
+      StorageUtil.set(DRAFT_KEY, {
+        draftTitle: this.data.draftTitle,
+        draftBody: this.data.draftBody,
+        draftImages: this.data.draftImages,
+        draftTopics: this.data.draftTopics,
+        publishType: this.data.publishType,
+        syncPlanet: this.data.syncPlanet,
+        memberOnly: this.data.memberOnly,
+        savedAt,
+      })
+      this.setData({ draftSavedAt: String(savedAt) })
+    } catch (e) { /* ignore */ }
   },
 
   _checkCreatorStatus() {
     if (this.data.editorUnlocked) return
-    const { get } = require('../../utils/request')
+    if (!AuthUtil.isLoggedIn()) return
     get('/api/v1/mp/creator/me', {}, { auth: true, showError: false })
       .then((res) => {
         const status = String((res && (res.status || res.applyStatus || res.state)) || '').toLowerCase()
         const ok = !!(res && (res.approved || res.canPublish || status === 'approved' || status === 'passed'))
-        if (ok) this.setData({ editorUnlocked: true })
+        let applyStatusText = ''
+        if (ok) applyStatusText = '已通过审核，可发布内容'
+        else if (status === 'pending' || status === 'reviewing' || status === 'submitted') {
+          applyStatusText = '申请审核中，请耐心等待通知'
+        } else if (status === 'rejected' || status === 'denied') {
+          applyStatusText = '上次申请未通过，可修改后重新提交'
+        }
+        this.setData({
+          editorUnlocked: ok,
+          applyStatus: status,
+          applyStatusText,
+        })
       })
       .catch(() => {})
   },
@@ -127,9 +222,18 @@ Page({
     this.setData({ stage: 1, editorTitle: '写笔记' })
   },
 
-  onNameInput(e) { this.setData({ name: e.detail.value }) },
-  onIntroInput(e) { this.setData({ intro: e.detail.value }) },
-  onPortfolioInput(e) { this.setData({ portfolio: e.detail.value }) },
+  onNameInput(e) {
+    this.setData({ name: e.detail.value })
+    this._saveApplyDraft()
+  },
+  onIntroInput(e) {
+    this.setData({ intro: e.detail.value })
+    this._saveApplyDraft()
+  },
+  onPortfolioInput(e) {
+    this.setData({ portfolio: e.detail.value })
+    this._saveApplyDraft()
+  },
 
   onTopicTap(e) {
     const topic = e.currentTarget.dataset.topic
@@ -142,12 +246,14 @@ Page({
     }
     map[topic] = on
     this.setData({ selectedTopicMap: map })
+    this._saveApplyDraft()
   },
 
   onFormTap(e) {
     const form = e.currentTarget.dataset.form
     const key = `selectedFormMap.${form}`
     this.setData({ [key]: !this.data.selectedFormMap[form] })
+    this._saveApplyDraft()
   },
 
   onAddPortfolioImages() {
@@ -162,6 +268,7 @@ Page({
         this.setData({
           portfolioImages: (this.data.portfolioImages || []).concat(files).slice(0, 3),
         })
+        this._saveApplyDraft()
       },
     })
   },
@@ -171,6 +278,7 @@ Page({
     const list = (this.data.portfolioImages || []).slice()
     list.splice(index, 1)
     this.setData({ portfolioImages: list })
+    this._saveApplyDraft()
   },
 
   _resolveContact() {
@@ -194,57 +302,74 @@ Page({
     })).then((urls) => urls.filter(Boolean))
   },
 
+  /** 键盘收起后再 toast，避免校验/成功提示被键盘动画吞掉；不用 success 图标（文案易超 7 字不显示） */
+  _toast(title) {
+    const msg = String(title || '').trim() || '操作失败'
+    try { wx.hideKeyboard({ complete() {} }) } catch (e) { /* ignore */ }
+    setTimeout(() => {
+      wx.showToast({ title: msg.slice(0, 20), icon: 'none', duration: 2500 })
+    }, 80)
+  },
+
   onSubmit() {
     if (this.data.submitting) return
     if (!AuthUtil.requireLoginForAction('创作者申请')) return
-    if (!this.data.name) {
-      wx.showToast({ title: '请填写笔名 / 昵称', icon: 'none' })
-      return
-    }
-    if (!this.data.intro) {
-      wx.showToast({ title: '请填写自我介绍', icon: 'none' })
-      return
-    }
+
+    const name = String(this.data.name || '').trim()
+    const intro = String(this.data.intro || '').trim()
     const topics = Object.keys(this.data.selectedTopicMap || {}).filter((k) => this.data.selectedTopicMap[k])
     const forms = Object.keys(this.data.selectedFormMap || {}).filter((k) => this.data.selectedFormMap[k])
+
+    if (!name) {
+      this._toast('请填写笔名或昵称')
+      try { wx.pageScrollTo({ scrollTop: 0, duration: 200 }) } catch (e) { /* ignore */ }
+      return
+    }
     if (!topics.length) {
-      wx.showToast({ title: '请选择写作方向', icon: 'none' })
+      this._toast('请选择写作方向')
       return
     }
     if (!forms.length) {
-      wx.showToast({ title: '请选择内容形态', icon: 'none' })
+      this._toast('请选择内容形态')
+      return
+    }
+    if (!intro) {
+      this._toast('请填写自我介绍')
       return
     }
 
-    this.setData({ submitting: true })
+    this.setData({ submitting: true, name, intro })
     this._uploadPortfolioImages()
       .then((images) => {
-        let intro = this.data.intro || ''
-        intro += `\n方向：${topics.join('、')}`
-        intro += `\n形态：${forms.join('、')}`
-        if (this.data.portfolio) intro += `\n代表作：${this.data.portfolio}`
-        if (images.length) intro += `\n代表作截图：${images.join(' ')}`
+        let bodyIntro = intro
+        bodyIntro += `\n方向：${topics.join('、')}`
+        bodyIntro += `\n形态：${forms.join('、')}`
+        if (this.data.portfolio) bodyIntro += `\n代表作：${this.data.portfolio}`
+        if (images.length) bodyIntro += `\n代表作截图：${images.join(' ')}`
         return post('/api/v1/mp/creator/apply', {
-          name: this.data.name,
+          name,
           contact: this._resolveContact(),
-          intro,
-        }, { auth: true, showError: true })
+          intro: bodyIntro,
+        }, { auth: true, showError: false })
       })
       .then(() => {
-        wx.showToast({ title: '已提交，等待审核', icon: 'success' })
+        try { StorageUtil.remove(APPLY_DRAFT_KEY) } catch (e) { /* ignore */ }
+        const isResubmit = this.data.applyStatus === 'pending'
+          || this.data.applyStatus === 'rejected'
+          || this.data.applyStatus === 'denied'
         this.setData({
-          name: '',
-          contact: '',
-          intro: '',
-          portfolio: '',
-          portfolioImages: [],
-          selectedTopicMap: {},
-          selectedFormMap: {},
+          applyStatus: 'pending',
+          applyStatusText: isResubmit
+            ? '已重新提交，编辑部审核中，请耐心等待通知'
+            : '已提交，编辑部审核中，请耐心等待通知',
+          submitting: false,
         })
+        this._toast(isResubmit ? '已重新提交' : '已提交，等待审核')
+        try { wx.pageScrollTo({ scrollTop: 0, duration: 240 }) } catch (e) { /* ignore */ }
       })
-      .catch(() => {})
-      .finally(() => {
+      .catch((err) => {
         this.setData({ submitting: false })
+        this._toast((err && err.message) || '提交失败，请重试')
       })
   },
 
@@ -259,10 +384,17 @@ Page({
       publishType: key,
       editorTitle: map[key] || '写内容',
     })
+    this._savePublishDraft()
   },
 
-  onDraftTitleInput(e) { this.setData({ draftTitle: e.detail.value }) },
-  onDraftBodyInput(e) { this.setData({ draftBody: e.detail.value }) },
+  onDraftTitleInput(e) {
+    this.setData({ draftTitle: e.detail.value })
+    this._savePublishDraft()
+  },
+  onDraftBodyInput(e) {
+    this.setData({ draftBody: e.detail.value })
+    this._savePublishDraft()
+  },
 
   onAddImages() {
     if (!this.data.editorUnlocked) return
@@ -277,6 +409,7 @@ Page({
         this.setData({
           draftImages: (this.data.draftImages || []).concat(files).slice(0, 9),
         })
+        this._savePublishDraft()
       },
     })
   },
@@ -287,6 +420,7 @@ Page({
     const list = (this.data.draftImages || []).slice()
     list.splice(index, 1)
     this.setData({ draftImages: list })
+    this._savePublishDraft()
   },
 
   onPickTopic() {
@@ -305,6 +439,7 @@ Page({
         this.setData({
           draftTopics: cur ? `${cur} ${tag}` : tag,
         })
+        this._savePublishDraft()
       },
     })
   },
@@ -312,15 +447,22 @@ Page({
   onToggleSyncPlanet() {
     if (!this.data.editorUnlocked) return
     this.setData({ syncPlanet: !this.data.syncPlanet })
+    this._savePublishDraft()
   },
 
   onToggleMemberOnly() {
     if (!this.data.editorUnlocked) return
     this.setData({ memberOnly: !this.data.memberOnly })
+    this._savePublishDraft()
   },
 
   onEditorCancel() {
+    this._savePublishDraft()
     this.onBackToApply()
+  },
+
+  onGoEditor() {
+    this.setData({ stage: 2, editorTitle: this.data.editorUnlocked ? '写笔记' : '发布器预览' })
   },
 
   _uploadDraftImages() {
@@ -366,11 +508,13 @@ Page({
       }, { auth: true, showError: true }))
       .then(() => {
         wx.showToast({ title: '已提交，等待审核', icon: 'success' })
+        try { StorageUtil.remove(DRAFT_KEY) } catch (e) { /* ignore */ }
         this.setData({
           draftTitle: '',
           draftBody: '',
           draftImages: [],
           draftTopics: '',
+          draftSavedAt: '',
           stage: 1,
           editorTitle: '写笔记',
         })

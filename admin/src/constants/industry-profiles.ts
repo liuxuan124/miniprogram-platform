@@ -31,6 +31,8 @@ export interface IndustryProfile {
 const BASE_LAYOUT = [
   'banner', 'nav', 'image', 'search', 'rich_text', 'section_title', 'divider', 'spacer',
   'float_button', 'brand_header', 'brand_intro', 'container',
+  'warm_greet', 'warm_authors', 'warm_feature', 'warm_columns', 'warm_planet_rec', 'warm_feed',
+  'warm_home', 'warm_discover', 'warm_planet', 'warm_shop', 'warm_mine',
 ]
 
 export const INDUSTRY_PROFILES: Record<string, IndustryProfile> = {

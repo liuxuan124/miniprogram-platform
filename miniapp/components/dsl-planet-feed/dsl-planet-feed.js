@@ -134,7 +134,10 @@ Component({
         this._applySeg(c.items.map(mapFeedItem), true)
         return
       }
-      PlanetService.getPlanetFeed({ current: 1, size: pageSize }).then((feed) => {
+      PlanetService.getMainPlanet().catch(() => null).then((main) => {
+        const planetId = (main && main.planetId) || PlanetService.getCachedMainPlanetId() || ''
+        return PlanetService.getPlanetFeed({ current: 1, size: pageSize, planetId })
+      }).then((feed) => {
         const records = (feed && (feed.records || feed.list || feed.items)) || []
         if (!records.length) return // 空结果保留 DEMO，避免列表塌陷再跳回
         this._applySeg(records.map(mapFeedItem), false)

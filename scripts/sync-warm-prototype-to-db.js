@@ -173,7 +173,7 @@ notes.forEach((n, i) => {
     summary: String(summary).replace(/\n/g, ' ').slice(0, 120),
     html: buildNoteHtml(n),
     author: n.author, role: n.role, avatar: n.avatar,
-    tags: ['笔记', ...(warmDiscover.CHIPS?.note || []).slice(1, 3)],
+    tags: ['笔记', ...(warmDiscover.CHIPS?.note || []).slice(1, 3).map((c) => (typeof c === 'string' ? c : c.label)).filter(Boolean)],
     views: parseLike(n.likeText), likes: parseLike(n.likeText),
     sort: 100 + i, images: n.cover ? [n.cover] : [],
   })

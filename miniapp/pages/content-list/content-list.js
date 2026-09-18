@@ -1,6 +1,7 @@
-// pages/content-list/content-list.js — list.html warm layouts（本地源优先）
+// pages/content-list/content-list.js — 固定 cl-* 版式；生产走真实分类/热读/推荐
 
 const request = require('../../utils/request')
+const SystemService = require('../../services/system')
 const { createSharePageConfig } = require('../../utils/share')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { showTabBarForRoute } = require('../../utils/tab-bar-route')
@@ -8,7 +9,10 @@ const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { openContentDetail } = require('../../utils/content-id')
 const { DEMO_LIST } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+
+const LOCAL_DEMO = FORCE_LOCAL_DEMO || USE_LOCAL_SOURCE
+const ALL_CAT = { id: 'all', name: '全部' }
 
 function formatPublishTime(value) {
   const raw = String(value || '')
@@ -24,6 +28,18 @@ function formatViews(n) {
   return v > 0 ? String(v) : ''
 }
 
+function formatDuration(raw) {
+  if (raw == null || raw === '') return ''
+  const text = String(raw).trim()
+  if (/^\d+:\d{2}(:\d{2})?$/.test(text)) return text
+  const n = Number(text)
+  if (!Number.isFinite(n) || n <= 0) return ''
+  const total = Math.floor(n)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${s < 10 ? '0' : ''}${s}`
+}
+
 function mapApiRow(item) {
   const type = String(item.contentType || item.content_type || 'article').toLowerCase()
   const formatLabel = type === 'note' ? '笔记' : (type === 'video' ? '视频' : (type === 'moment' ? '星球' : '长文'))
@@ -35,8 +51,8 @@ function mapApiRow(item) {
     : (cover ? [cover] : [])
   let layout = 'row'
   if (type === 'note' && images.length >= 3) layout = 'grid3'
-  else if (type === 'video' || /访谈|音频|播客/.test(String(item.title || ''))) layout = 'audio'
-  else if (type === 'moment' || item.planetExclusive === 1 || item.planet_exclusive === 1) layout = 'row'
+  else if (type === 'video') layout = 'audio'
+  const extra = Number(item.imageCount || item.image_count || images.length) || images.length
   return {
     id: item.id,
     title: item.title,
@@ -47,53 +63,52 @@ function mapApiRow(item) {
     cover_url: cover,
     cover,
     images: images.slice(0, 3),
-    duration: type === 'video' ? '30:12' : '',
+    imageMore: extra > 3 ? extra - 3 : 0,
+    duration: type === 'video' ? formatDuration(item.videoDuration || item.video_duration || item.duration) : '',
     meta: [date, views ? `${views} 阅读` : ''].filter(Boolean).join(' · '),
     tag: type === 'moment' ? '星球内容' : (item.visibility === 'member_only' ? '会员专享' : formatLabel),
     toMoment: type === 'moment' || item.planetExclusive === 1 || item.planet_exclusive === 1,
     viewNum: Number(item.viewCount || item.view_count || 0),
+    author: item.authorName || item.author || item.nickname || '暖阁',
+    avatar: resolveMediaUrl(item.authorAvatar || item.avatar || ''),
   }
 }
 
-function buildMixedLayouts(apiRows) {
-  const demoRows = (DEMO_LIST.rows || []).slice()
-  if (!apiRows.length) return demoRows
-  // 用真实内容填充混排槽位，保证大图/音频/九宫格/星球卡仍可见
-  const byType = {
-    note: apiRows.filter((r) => r.formatKey === 'note'),
-    video: apiRows.filter((r) => r.formatKey === 'video'),
-    moment: apiRows.filter((r) => r.formatKey === 'moment' || r.toMoment),
-    longform: apiRows.filter((r) => r.formatKey === 'longform'),
+function mapBigCard(item) {
+  if (!item || !item.id) return null
+  const row = item.layout ? item : mapApiRow(item)
+  return {
+    id: row.id,
+    title: row.title,
+    summary: row.summary || '',
+    cover: row.cover || row.cover_url || '',
+    author: row.author || '暖阁',
+    avatar: row.avatar || '',
+    meta: row.meta || '',
+    tag: '精选',
   }
-  return demoRows.map((slot, i) => {
-    let pick = null
-    if (slot.layout === 'grid3' || slot.contentType === 'note') pick = byType.note[0] || byType.longform[i]
-    else if (slot.layout === 'audio') pick = byType.video[0] || byType.longform[1] || apiRows[i]
-    else if (slot.toMoment) pick = byType.moment[0] || apiRows.find((r) => /定价|星球/.test(r.title || '')) || apiRows[i]
-    else pick = byType.longform[i] || apiRows[i % apiRows.length]
-    if (!pick) return slot
-    return {
-      ...slot,
-      id: pick.id,
-      title: pick.title || slot.title,
-      summary: pick.summary || slot.summary,
-      cover: pick.cover || pick.cover_url || slot.cover,
-      images: (pick.images && pick.images.length ? pick.images : slot.images) || [],
-      meta: pick.meta || slot.meta,
-      tag: pick.tag || slot.tag,
-      toMoment: !!slot.toMoment || !!pick.toMoment,
-    }
-  })
+}
+
+function mapCats(list) {
+  const rows = Array.isArray(list) ? list : []
+  return [ALL_CAT].concat(rows.map((c) => ({
+    id: String(c.id),
+    name: String(c.name || '').trim() || '未命名',
+  })).filter((c) => c.id))
 }
 
 function applyLocalList(page) {
+  const demoCats = (DEMO_LIST.cats || []).map((name, i) => (
+    typeof name === 'object' ? { id: String(name.id || i), name: name.name } : { id: i === 0 ? 'all' : String(i), name: String(name) }
+  ))
+  if (!demoCats.length || demoCats[0].id !== 'all') demoCats.unshift(ALL_CAT)
   page.setData({
     themePageStyle: WARM_PAGE_STYLE,
     dslPending: false,
     dslMode: false,
     loading: false,
     loadFailed: false,
-    cats: DEMO_LIST.cats,
+    cats: demoCats,
     ranks: DEMO_LIST.ranks,
     bigCard: DEMO_LIST.big,
     layoutItems: DEMO_LIST.rows,
@@ -103,27 +118,33 @@ function applyLocalList(page) {
   })
 }
 
+function unwrapRecords(data) {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  return data.records || data.list || data.items || []
+}
+
 Page({
   ...createSharePageConfig(),
   data: {
     ...TAB_DSL_INITIAL,
     themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
-    cats: USE_LOCAL_SOURCE ? DEMO_LIST.cats : DEMO_LIST.cats,
-    activeCat: '全部',
+    cats: [ALL_CAT],
+    activeCat: 'all',
     sortKey: 'new',
-    ranks: USE_LOCAL_SOURCE ? DEMO_LIST.ranks : [],
-    bigCard: USE_LOCAL_SOURCE ? DEMO_LIST.big : null,
-    layoutItems: USE_LOCAL_SOURCE ? DEMO_LIST.rows : DEMO_LIST.rows,
+    ranks: [],
+    bigCard: null,
+    layoutItems: [],
     apiRows: [],
-    totalCount: USE_LOCAL_SOURCE ? 412 : 0,
+    totalCount: 0,
     footerText: '',
-    loading: !USE_LOCAL_SOURCE,
+    loading: !LOCAL_DEMO,
     loadFailed: false,
   },
 
   onLoad() {
-    if (USE_LOCAL_SOURCE) {
+    if (LOCAL_DEMO) {
       try {
         const sys = wx.getSystemInfoSync()
         this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
@@ -147,7 +168,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    if (USE_LOCAL_SOURCE) {
+    if (LOCAL_DEMO) {
       applyLocalList(this)
       wx.stopPullDownRefresh()
       return
@@ -160,7 +181,7 @@ Page({
   },
 
   onReachBottom() {
-    if (USE_LOCAL_SOURCE) return
+    if (LOCAL_DEMO) return
     if (this.data.dslMode) handleDslReachBottom(this)
   },
 
@@ -176,19 +197,24 @@ Page({
   },
 
   onCatTap(e) {
-    this.setData({ activeCat: e.currentTarget.dataset.cat || '全部' })
+    const id = e.currentTarget.dataset.id != null ? String(e.currentTarget.dataset.id) : 'all'
+    if (id === this.data.activeCat) return
+    this.setData({ activeCat: id })
+    if (!LOCAL_DEMO) this._loadArticles()
   },
 
   onSortTap(e) {
-    this.setData({ sortKey: e.currentTarget.dataset.key || 'new' })
+    const key = e.currentTarget.dataset.key || 'new'
+    if (key === this.data.sortKey) return
+    this.setData({ sortKey: key })
+    if (!LOCAL_DEMO) this._loadArticles()
   },
 
   _loadArticles() {
-    if (USE_LOCAL_SOURCE) {
+    if (LOCAL_DEMO) {
       applyLocalList(this)
       return Promise.resolve()
     }
-    if (this.data.loading && this._loadingLock) return Promise.resolve()
     this._loadingLock = true
     this.setData({ loading: true, loadFailed: false, footerText: '加载中' })
     clearTimeout(this._skTimer)
@@ -198,47 +224,71 @@ Page({
         this.setData({ loading: false, loadFailed: true, footerText: '加载失败' })
       }
     }, 8000)
-    return request
-      .get('/api/v1/mp/contents', { current: 1, size: 30 }, { auth: false })
-      .then((data) => {
-        clearTimeout(this._skTimer)
-        this._loadingLock = false
-        const records = (data && data.records) || []
-        const apiRows = records.map(mapApiRow)
-        const ranks = apiRows
-          .slice()
-          .sort((a, b) => b.viewNum - a.viewNum)
-          .slice(0, 4)
-          .map((r, i) => ({
-            id: r.id,
-            title: r.title,
-            views: formatViews(r.viewNum) || '—',
-            top: i < 3,
-          }))
-        const firstLong = apiRows.find((r) => r.formatKey === 'longform' && r.cover_url) || apiRows[0]
-        const bigCard = firstLong
-          ? {
-              id: firstLong.id,
-              title: firstLong.title,
-              summary: firstLong.summary || '',
-              cover: firstLong.cover_url || '',
-              author: firstLong.author || '暖阁',
-              avatar: '',
-              meta: firstLong.meta || '',
-              tag: '精选',
-            }
-          : DEMO_LIST.big
-        const layoutItems = buildMixedLayouts(apiRows)
-        this.setData({
-          loading: false,
-          loadFailed: false,
-          apiRows: [],
-          ranks: ranks.length ? ranks : DEMO_LIST.ranks,
-          bigCard,
-          layoutItems,
-          cats: DEMO_LIST.cats,
-          totalCount: Number(data.total) || apiRows.length || 412,
-          footerText: apiRows.length ? `共 ${Number(data.total) || apiRows.length} 篇` : '暂无内容',
+
+    const sortKey = this.data.sortKey || 'new'
+    const catId = this.data.activeCat && this.data.activeCat !== 'all' ? this.data.activeCat : ''
+    const listQuery = { current: 1, size: 30, sortBy: sortKey }
+    if (catId) listQuery.categoryId = catId
+
+    const catReq = request.get('/api/v1/mp/content-categories', {}, { auth: false, showError: false })
+      .catch(() => [])
+    const cfgReq = SystemService.fetchSystemConfig().catch(() => ({}))
+    const listReq = request.get('/api/v1/mp/contents', listQuery, { auth: false, showError: false })
+
+    return Promise.all([catReq, cfgReq, listReq])
+      .then(([catData, config, listData]) => {
+        const listCfg = (config && config.contentListConfig) || {}
+        const extras = []
+        if (listCfg.showRank !== false) {
+          extras.push(request.get('/api/v1/mp/contents', { current: 1, size: 4, sortBy: 'hot' }, { auth: false, showError: false }).catch(() => null))
+        } else {
+          extras.push(Promise.resolve(null))
+        }
+        if (listCfg.showFeatured !== false) {
+          const featuredId = listCfg.featuredContentId
+          if (featuredId) {
+            extras.push(request.get('/api/v1/mp/contents', { current: 1, size: 1, id: featuredId }, { auth: false, showError: false }).catch(() => null))
+          } else {
+            extras.push(request.get('/api/v1/mp/contents', { current: 1, size: 1, recommended: 1 }, { auth: false, showError: false }).catch(() => null))
+          }
+        } else {
+          extras.push(Promise.resolve(false))
+        }
+        return Promise.all(extras).then(([rankData, featData]) => {
+          clearTimeout(this._skTimer)
+          this._loadingLock = false
+          const records = unwrapRecords(listData)
+          const layoutItems = records.map(mapApiRow)
+          const rankRows = unwrapRecords(rankData).map(mapApiRow)
+          const ranks = listCfg.showRank === false
+            ? []
+            : rankRows.slice(0, 4).map((r, i) => ({
+              id: r.id,
+              title: r.title,
+              views: formatViews(r.viewNum) || '—',
+              top: i < 3,
+            }))
+          let bigCard = null
+          if (listCfg.showFeatured !== false) {
+            const featRows = unwrapRecords(featData)
+            bigCard = mapBigCard(featRows[0])
+          }
+          const featuredId = bigCard && bigCard.id != null ? String(bigCard.id) : ''
+          const filteredLayout = featuredId
+            ? layoutItems.filter((row) => String(row.id) !== featuredId)
+            : layoutItems
+          const total = Number((listData && listData.total) || records.length) || 0
+          this.setData({
+            loading: false,
+            loadFailed: false,
+            apiRows: [],
+            ranks,
+            bigCard,
+            layoutItems: filteredLayout,
+            cats: mapCats(Array.isArray(catData) ? catData : unwrapRecords(catData)),
+            totalCount: total,
+            footerText: total ? `共 ${total} 篇` : '暂无内容',
+          })
         })
       })
       .catch(() => {
@@ -266,7 +316,7 @@ Page({
 
   onContentTap(e) {
     const id = e.currentTarget.dataset.id
-    if (USE_LOCAL_SOURCE) {
+    if (LOCAL_DEMO) {
       wx.navigateTo({ url: '/pages/content-detail/content-detail?demo=1' })
       return
     }
@@ -279,7 +329,7 @@ Page({
 
   onLayoutTap(e) {
     const { id, moment, note } = e.currentTarget.dataset
-    if (USE_LOCAL_SOURCE) {
+    if (LOCAL_DEMO) {
       if (moment) {
         wx.navigateTo({ url: '/pages/moment-detail/moment-detail?demo=1&from=planet' })
         return

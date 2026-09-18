@@ -1,0 +1,27 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="af-page">
+  <view class="af-hd">
+    <text class="af-hd__t">{{author || '作者'}}</text>
+    <text class="af-hd__s">TA 在暖阁发布的内容</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="af-state">加载中…</view>
+  <view wx:elif="{{loadError}}" class="af-state" bindtap="onRetry">加载失败，点此重试</view>
+  <view wx:elif="{{!list.length}}" class="af-state">暂无作品</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="af-card"
+    data-id="{{item.id}}"
+    bindtap="onOpen"
+  >
+    <image wx:if="{{item.cover}}" class="af-card__cover" src="{{item.cover}}" mode="aspectFill" />
+    <view class="af-card__bd">
+      <text class="af-card__tag" wx:if="{{item.tag}}">{{item.tag}}</text>
+      <text class="af-card__title">{{item.title}}</text>
+      <text class="af-card__sum" wx:if="{{item.summary}}">{{item.summary}}</text>
+      <text class="af-card__meta" wx:if="{{item.meta}}">{{item.meta}}</text>
+    </view>
+  </view>
+</view>

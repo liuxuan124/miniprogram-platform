@@ -70,4 +70,7 @@ public class User extends BaseEntity {
 
     @Schema(description = "创作者身份 contributor，审核通过写入")
     private String creatorRole;
+
+    @Schema(description = "用户主星球ID（communities.id）")
+    private String mainPlanetId;
 }

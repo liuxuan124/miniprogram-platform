@@ -82,6 +82,78 @@ function parseConfigField(value, fallback) {
   }
 }
 
+const DEFAULT_CONTENT_LIST_CONFIG = {
+  showRank: true,
+  showFeatured: true,
+  featuredContentId: '',
+}
+
+const DEFAULT_PRODUCT_LIST_CONFIG = {
+  title: '精选好物',
+  intro: '精选在售商品',
+  guarantees: ['商家正常发货', '订单进度可查', '售后保障'],
+  showTitle: true,
+  showIntro: true,
+  showGuarantees: true,
+}
+
+function normalizeContentListConfig(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const featured = src.featuredContentId != null && src.featuredContentId !== ''
+    ? src.featuredContentId
+    : (src.featured_content_id || '')
+  return {
+    showRank: src.showRank !== false && src.show_rank !== false,
+    showFeatured: src.showFeatured !== false && src.show_featured !== false,
+    featuredContentId: featured,
+  }
+}
+
+function normalizeProductListConfig(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const guarantees = Array.isArray(src.guarantees)
+    ? src.guarantees.map((g) => String(g || '').trim()).filter(Boolean)
+    : DEFAULT_PRODUCT_LIST_CONFIG.guarantees
+  return {
+    title: String(src.title || DEFAULT_PRODUCT_LIST_CONFIG.title),
+    intro: String(src.intro || DEFAULT_PRODUCT_LIST_CONFIG.intro),
+    guarantees: guarantees.length ? guarantees : DEFAULT_PRODUCT_LIST_CONFIG.guarantees,
+    showTitle: src.showTitle !== false && src.show_title !== false,
+    showIntro: src.showIntro !== false && src.show_intro !== false,
+    showGuarantees: src.showGuarantees !== false && src.show_guarantees !== false,
+  }
+}
+
+function attachListConfigs(config) {
+  if (!config || typeof config !== 'object') return config
+  config.contentListConfig = normalizeContentListConfig(
+    parseConfigField(config.content_list_config || config.contentListConfig, DEFAULT_CONTENT_LIST_CONFIG),
+  )
+  config.productListConfig = normalizeProductListConfig(
+    parseConfigField(config.product_list_config || config.productListConfig, DEFAULT_PRODUCT_LIST_CONFIG),
+  )
+  config.contentMemberWall = normalizeContentMemberWall(
+    parseConfigField(config.content_member_wall || config.contentMemberWall, null),
+  )
+  return config
+}
+
+/** 门禁卡：只透传库里的字段，不在代码里写死原型文案 */
+function normalizeContentMemberWall(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const remainRaw = src.remainPercent != null ? src.remainPercent : src.remain_percent
+  const remainPercent = Number(remainRaw)
+  return {
+    remainPercent: Number.isFinite(remainPercent) && remainPercent > 0 ? Math.min(95, Math.floor(remainPercent)) : '',
+    desc: String(src.desc || '').trim(),
+    memberYearPrice: String(src.memberYearPrice || src.member_year_price || '').trim(),
+    unlockProductId: src.unlockProductId != null && src.unlockProductId !== ''
+      ? src.unlockProductId
+      : (src.unlock_product_id || ''),
+    unlockProductName: String(src.unlockProductName || src.unlock_product_name || '').trim(),
+  }
+}
+
 function normalizeTabbarItems(items) {
   if (!Array.isArray(items) || items.length === 0) return DEFAULT_TABBAR_LIST
   return items.map((item) => {
@@ -203,6 +275,7 @@ async function fetchSystemConfig(forceRefresh) {
             cached.plugins,
           )
         }
+        attachListConfigs(cached)
         return cached
       }
     }
@@ -228,6 +301,7 @@ async function fetchSystemConfig(forceRefresh) {
       )
       config.tabbarItems = normalizeTabbarItems(config.tabbarItems)
       config.tabbarItems = applyProductModuleGate(config.tabbarItems, config.plugins)
+      attachListConfigs(config)
       StorageUtil.set(CONFIG_CACHE_KEY, config, CONFIG_CACHE_EXPIRE)
       return config
     }
@@ -240,6 +314,9 @@ async function fetchSystemConfig(forceRefresh) {
     minePageConfig: DEFAULT_MINE_PAGE_CONFIG,
     miniappThemeConfig: null,
     miniappBrandConfig: DEFAULT_MINIAPP_BRAND_CONFIG,
+    contentListConfig: DEFAULT_CONTENT_LIST_CONFIG,
+    productListConfig: DEFAULT_PRODUCT_LIST_CONFIG,
+    contentMemberWall: normalizeContentMemberWall(null),
   }
 }
 
@@ -388,6 +465,8 @@ module.exports = {
   DEFAULT_ORDER_QUICK_ACCESS,
   DEFAULT_USER_PROFILE,
   DEFAULT_MINIAPP_BRAND_CONFIG,
+  DEFAULT_CONTENT_LIST_CONFIG,
+  DEFAULT_PRODUCT_LIST_CONFIG,
   getCachedConfig,
   getTabbarList,
   getTabbarListSync,

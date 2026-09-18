@@ -233,11 +233,13 @@ Page({
       .then((res) => {
         this.setData({ submitting: false })
         const appointmentId = (res && (res.id || res.appointment_id)) || ''
-        const slotLabel = `${this.data.selectedDate} ${this.data.selectedSlotLabel || ''}`
+        if (!appointmentId) {
+          wx.showToast({ title: '预约已提交，请到我的预约查看', icon: 'none' })
+          wx.redirectTo({ url: '/pages/my-appointments/my-appointments' })
+          return
+        }
         wx.redirectTo({
-          url: `/pages/appointment-success/appointment-success?name=${encodeURIComponent(
-            (this.data.serviceInfo && this.data.serviceInfo.name) || '预约服务'
-          )}&slot=${encodeURIComponent(slotLabel)}&price=${encodeURIComponent(this.data.priceLabel)}&no=${appointmentId}`,
+          url: `/pages/appointment-success/appointment-success?id=${appointmentId}`,
         })
       })
       .catch((err) => {

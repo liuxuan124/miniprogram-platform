@@ -12,6 +12,34 @@
       </div>
     </header>
 
+    <div class="list-tpl-card">
+      <div class="list-tpl-card__title">商品列表页模板</div>
+      <p class="list-tpl-card__desc">控制小程序商品列表顶部标题、介绍、服务保障文案及显隐。</p>
+      <el-form label-width="88px" class="list-tpl-form">
+        <el-form-item label="标题">
+          <div class="list-tpl-inline">
+            <el-switch v-model="listTpl.showTitle" />
+            <el-input v-model="listTpl.title" maxlength="32" placeholder="精选好物" />
+          </div>
+        </el-form-item>
+        <el-form-item label="介绍">
+          <div class="list-tpl-inline">
+            <el-switch v-model="listTpl.showIntro" />
+            <el-input v-model="listTpl.intro" maxlength="80" placeholder="精选在售商品" />
+          </div>
+        </el-form-item>
+        <el-form-item label="保障">
+          <div class="list-tpl-inline">
+            <el-switch v-model="listTpl.showGuarantees" />
+            <el-input v-model="listTpl.guaranteesText" placeholder="一行一条，或用顿号/逗号分隔" />
+          </div>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="listTplSaving" @click="saveListTpl">保存模板配置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
     <el-row :gutter="12" class="stat-cards">
       <el-col :span="6">
         <div class="stat-card">
@@ -209,6 +237,8 @@ import {
   offSaleProduct,
   onSaleProduct,
 } from '@/api/product'
+import { getConfigsSilent, updateConfigs } from '@/api/system'
+import { extractConfigList, readConfigEntry, toConfigUpdateItems } from '@/utils/system-config'
 
 interface ProductRow {
   id: number
@@ -623,10 +653,69 @@ function statusTagType(status: ProductRow['status']) {
   return 'info'
 }
 
+const listTpl = reactive({
+  title: '精选好物',
+  intro: '精选在售商品',
+  guaranteesText: '商家正常发货、订单进度可查、售后保障',
+  showTitle: true,
+  showIntro: true,
+  showGuarantees: true,
+})
+const listTplSaving = ref(false)
+
+function parseGuarantees(text: string) {
+  return String(text || '')
+    .split(/[\n,，、]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+async function loadListTpl() {
+  try {
+    const payload = await getConfigsSilent()
+    const items = extractConfigList(payload)
+    const hit = items.find((item) => readConfigEntry(item).key === 'product_list_config')
+    let cfg: Record<string, unknown> = {}
+    try {
+      cfg = hit ? JSON.parse(readConfigEntry(hit).value || '{}') : {}
+    } catch {
+      cfg = {}
+    }
+    listTpl.title = String(cfg.title || '精选好物')
+    listTpl.intro = String(cfg.intro || '精选在售商品')
+    listTpl.showTitle = cfg.showTitle !== false
+    listTpl.showIntro = cfg.showIntro !== false
+    listTpl.showGuarantees = cfg.showGuarantees !== false
+    const gs = Array.isArray(cfg.guarantees) ? (cfg.guarantees as string[]) : []
+    listTpl.guaranteesText = gs.length ? gs.join('、') : '商家正常发货、订单进度可查、售后保障'
+  } catch {
+    /* 配置接口失败时沿用默认文案 */
+  }
+}
+
+async function saveListTpl() {
+  listTplSaving.value = true
+  try {
+    await updateConfigs(toConfigUpdateItems({
+      product_list_config: {
+        title: listTpl.title,
+        intro: listTpl.intro,
+        guarantees: parseGuarantees(listTpl.guaranteesText),
+        showTitle: listTpl.showTitle,
+        showIntro: listTpl.showIntro,
+        showGuarantees: listTpl.showGuarantees,
+      },
+    }, 'basic'))
+    ElMessage.success('商品列表模板已保存')
+  } finally {
+    listTplSaving.value = false
+  }
+}
+
 onMounted(async () => {
   restoreListState()
   await fetchCategories()
-  await Promise.all([fetchList(), fetchStats()])
+  await Promise.all([fetchList(), fetchStats(), loadListTpl()])
 })
 
 onActivated(async () => {
@@ -664,6 +753,37 @@ onActivated(async () => {
 .page-head__actions {
   display: flex;
   gap: 8px;
+}
+
+.list-tpl-card {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e8edf5;
+  border-radius: 12px;
+}
+
+.list-tpl-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #12151c;
+}
+
+.list-tpl-card__desc {
+  margin: 6px 0 10px;
+  color: #7a8494;
+  font-size: 12px;
+}
+
+.list-tpl-form :deep(.el-form-item) {
+  margin-bottom: 10px;
+}
+
+.list-tpl-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
 .stat-cards { margin-bottom: 14px; }

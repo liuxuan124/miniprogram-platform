@@ -1,0 +1,82 @@
+{
+  "prod_brand": {
+    "appName": "暖阁",
+    "name": "暖阁",
+    "logoUrl": "",
+    "logoMark": "暖",
+    "loginTagline": "慢一点，也很好",
+    "brandEyebrow": "NUANGE",
+    "slogan": "慢一点，也很好"
+  },
+  "prod_site_name": "暖阁",
+  "wx_version": "1.23.0",
+  "wx_version_desc": "知识星球独立入口与付费会员",
+  "tabbarItems": [
+    {
+      "id": "tab-0",
+      "text": "首页",
+      "tabRoute": "/pages/index/index",
+      "pagePath": "/pages/index/index",
+      "enabled": true,
+      "icon": "/images/tab/home.png",
+      "selectedIcon": "/images/tab/home-active.png"
+    },
+    {
+      "id": "tab-1",
+      "text": "发现",
+      "tabRoute": "/pages/discover/discover",
+      "pagePath": "/pages/discover/discover",
+      "enabled": true,
+      "icon": "/images/tab/content.png",
+      "selectedIcon": "/images/tab/content-active.png"
+    },
+    {
+      "id": "tab-2",
+      "text": "星球",
+      "tabRoute": "/pages/planet/planet",
+      "pagePath": "/pages/planet/planet",
+      "enabled": true,
+      "icon": "/images/tab/member.png",
+      "selectedIcon": "/images/tab/member-active.png"
+    },
+    {
+      "id": "tab-3",
+      "text": "商城",
+      "tabRoute": "/pages/shop/shop",
+      "pagePath": "/pages/shop/shop",
+      "enabled": true,
+      "icon": "/images/tab/shop.png",
+      "selectedIcon": "/images/tab/shop-active.png"
+    },
+    {
+      "id": "tab-4",
+      "text": "我的",
+      "tabRoute": "/pages/mine/mine",
+      "pagePath": "/pages/mine/mine",
+      "enabled": true,
+      "icon": "/images/tab/mine.png",
+      "selectedIcon": "/images/tab/mine-active.png"
+    }
+  ],
+  "home_page": {
+    "id": "11",
+    "name": "首页",
+    "path": "/pages/index/index",
+    "type": "home",
+    "share_image": "",
+    "share_title": "跨境通｜飞书知识库 · 干货 · 工具",
+    "background_color": "#F2F4FA"
+  },
+  "home_component_types": [
+    "notice_bar",
+    "banner",
+    "nav",
+    "product_list",
+    "activity_entry",
+    "article_list",
+    "certificate",
+    "rich_text",
+    "float_button"
+  ],
+  "notes": "Do not overwrite pages/index/index (跨境通). Create pages/custom/warm-*. Latest miniapp only loads DSL when tab bound to pages/custom/*."
+}
