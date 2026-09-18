@@ -185,6 +185,56 @@
         </el-form>
       </el-tab-pane>
 
+      <el-tab-pane label="多星球介绍" name="communities">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 14px"
+          title="列表点「去看看」会先进介绍引导页。此处配置封面、简介、亮点与加入按钮文案，用来吸引用户加入。"
+        />
+        <div v-for="(c, ci) in communities" :key="c.id || ci" class="community-card">
+          <div class="community-card__head">
+            <el-input v-model="c.emoji" style="width: 64px" placeholder="🪐" />
+            <el-input v-model="c.title" placeholder="星球名称" style="flex: 1" />
+            <el-tag v-if="c.primary" type="warning" size="small">默认主星球</el-tag>
+            <el-button text type="danger" :disabled="communities.length <= 1" @click="communities.splice(ci, 1)">删除</el-button>
+          </div>
+          <el-form label-width="100px" size="small">
+            <el-form-item label="星球 ID">
+              <el-input v-model="c.id" placeholder="warm-main" style="max-width: 240px" />
+            </el-form-item>
+            <el-form-item label="副标题">
+              <el-input v-model="c.subtitle" placeholder="一句话吸引" />
+            </el-form-item>
+            <el-form-item label="封面图">
+              <el-input v-model="c.cover" placeholder="可选，HTTPS 图片 URL" />
+            </el-form-item>
+            <el-form-item label="介绍正文">
+              <el-input v-model="c.intro" type="textarea" :rows="4" placeholder="多段用换行分隔，用于介绍页「关于这里」" />
+            </el-form-item>
+            <el-form-item label="主按钮文案">
+              <el-input v-model="c.ctaText" placeholder="加入星球" style="max-width: 240px" />
+            </el-form-item>
+            <el-form-item label="底部提示">
+              <el-input v-model="c.joinHint" placeholder="加入后可提问 · 看精华 · 下资料" />
+            </el-form-item>
+            <el-form-item label="亮点卖点">
+              <div class="hl-list">
+                <div v-for="(h, hi) in (c.highlights || [])" :key="hi" class="hl-row">
+                  <el-input v-model="h.icon" placeholder="图标" style="width: 72px" />
+                  <el-input v-model="h.title" placeholder="标题" style="width: 140px" />
+                  <el-input v-model="h.desc" placeholder="说明" style="flex: 1" />
+                  <el-button text type="danger" @click="c.highlights.splice(hi, 1)">删</el-button>
+                </div>
+                <el-button type="primary" link @click="addHighlight(ci)">+ 亮点</el-button>
+              </div>
+            </el-form-item>
+          </el-form>
+        </div>
+        <el-button type="primary" plain @click="addCommunity">+ 新增星球</el-button>
+      </el-tab-pane>
+
       <el-tab-pane label="付费套餐" name="packages">
         <div class="toolbar">
           <span class="toolbar-desc">套餐=商品类型「会员」；可配价格、天数（0=终身）、开通等级。</span>
@@ -228,6 +278,18 @@ const activeTab = ref('planet')
 const moduleEnabled = ref(false)
 const packages = ref<any[]>([])
 const levels = ref<any[]>([])
+const communities = ref<Array<{
+  id: string
+  title: string
+  subtitle: string
+  emoji: string
+  cover: string
+  intro: string
+  ctaText: string
+  joinHint: string
+  primary?: boolean
+  highlights: Array<{ icon: string; title: string; desc: string }>
+}>>([])
 const form = reactive({
   title: '星球',
   subtitle: '星主精选动态与资料',
@@ -314,6 +376,43 @@ async function load() {
       }
       packages.value = data.packages || []
       if (typeof data.enabled === 'boolean') moduleEnabled.value = data.enabled
+      if (Array.isArray(data.communities) && data.communities.length) {
+        communities.value = data.communities.map((c: any) => ({
+          id: c.id || '',
+          title: c.title || '',
+          subtitle: c.subtitle || '',
+          emoji: c.emoji || '🪐',
+          cover: c.cover || '',
+          intro: c.intro || '',
+          ctaText: c.ctaText || '加入星球',
+          joinHint: c.joinHint || '',
+          primary: !!c.primary,
+          highlights: Array.isArray(c.highlights)
+            ? c.highlights.map((h: any) => ({
+                icon: h.icon || '✨',
+                title: h.title || '',
+                desc: h.desc || '',
+              }))
+            : [],
+        }))
+      } else if (!communities.value.length) {
+        communities.value = [{
+          id: 'warm-main',
+          title: data.title || '暖阁星球',
+          subtitle: data.subtitle || '',
+          emoji: '🪐',
+          cover: data.coverImage || '',
+          intro: '',
+          ctaText: '加入星球',
+          joinHint: '加入后可提问 · 看精华 · 下资料',
+          primary: true,
+          highlights: [
+            { icon: '💬', title: '提问必达', desc: '星主与编辑轮流答疑' },
+            { icon: '⭐', title: '精华沉淀', desc: '每周精选方法论' },
+            { icon: '📂', title: '资料库', desc: '模板与案例随手可下' },
+          ],
+        }]
+      }
       const ops = data.ops as any
       if (ops && typeof ops === 'object') {
         opsForm.homeCardTitle = ops.homeCardTitle || opsForm.homeCardTitle
@@ -359,7 +458,29 @@ async function handleSave() {
       ...opsForm,
       kpiQuestions: opsForm.kpiTodayFeed || opsForm.kpiQuestions,
     }
-    await put('/api/v1/admin/planet/config', { ...form, topics: { ...topicsForm }, ops: opsPayload })
+    await put('/api/v1/admin/planet/config', {
+      ...form,
+      topics: { ...topicsForm },
+      ops: opsPayload,
+      communities: communities.value.map((c, idx) => ({
+        id: c.id,
+        title: c.title,
+        subtitle: c.subtitle,
+        emoji: c.emoji,
+        cover: c.cover,
+        intro: c.intro,
+        ctaText: c.ctaText,
+        joinHint: c.joinHint,
+        primary: idx === 0 ? true : !!c.primary,
+        joined: true,
+        highlights: (c.highlights || []).filter((h) => h.title || h.desc),
+        feedUrl: `/pages/planet-feed/planet-feed?planetId=${encodeURIComponent(c.id || 'warm-main')}`,
+        homeUrl: '/pages/planet/planet',
+        introUrl: `/pages/planet-intro/planet-intro?planetId=${encodeURIComponent(c.id || 'warm-main')}`,
+        membersLabel: '',
+        todayLabel: '',
+      })),
+    })
     ElMessage.success('已保存')
     await load()
   } catch (e: any) {
@@ -383,6 +504,31 @@ function goCreatePackage() {
   router.push({ path: '/product/edit', query: { type: 'membership' } })
 }
 
+function addHighlight(ci: number) {
+  const c = communities.value[ci]
+  if (!c) return
+  if (!c.highlights) c.highlights = []
+  c.highlights.push({ icon: '✨', title: '', desc: '' })
+}
+
+function addCommunity() {
+  communities.value.push({
+    id: `planet_${Date.now().toString(36)}`,
+    title: '新星球',
+    subtitle: '',
+    emoji: '🪐',
+    cover: '',
+    intro: '',
+    ctaText: '加入星球',
+    joinHint: '加入后可提问 · 看精华 · 下资料',
+    primary: false,
+    highlights: [
+      { icon: '💬', title: '', desc: '' },
+      { icon: '⭐', title: '', desc: '' },
+    ],
+  })
+}
+
 onMounted(load)
 </script>
 
@@ -404,4 +550,19 @@ onMounted(load)
 .topic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 .live-items { display: flex; flex-direction: column; gap: 8px; }
 .live-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #606266; }
+.community-card {
+  margin-bottom: 16px;
+  padding: 16px 18px 8px;
+  border-radius: 12px;
+  border: 1px solid #f0e4d4;
+  background: #fffaf3;
+}
+.community-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.hl-list { width: 100%; }
+.hl-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 </style>

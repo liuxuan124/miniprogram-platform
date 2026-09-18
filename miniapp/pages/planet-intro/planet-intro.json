@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "星球介绍",
+  "navigationBarBackgroundColor": "#7C2D12",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "login-sheet": "/components/login-sheet/login-sheet"
+  }
+}
