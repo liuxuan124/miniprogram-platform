@@ -19,7 +19,7 @@
         <el-select
           :model-value="tab.source || 'note'"
           style="width: 110px"
-          @change="(v: string) => patchTab(ti, { source: v })"
+          @change="(v: string) => patchTab(ti, { source: v as DiscoverTab['source'] })"
         >
           <el-option label="全部混排" value="all" />
           <el-option label="笔记" value="note" />
@@ -55,7 +55,7 @@
         <el-select
           :model-value="chip.filter || 'all'"
           style="width: 100px"
-          @change="(v: string) => patchChip(ti, ci, { filter: v })"
+          @change="(v: string) => patchChip(ti, ci, { filter: v as DiscoverChip['filter'] })"
         >
           <el-option label="不筛选" value="all" />
           <el-option label="按标签" value="tag" />
@@ -95,7 +95,10 @@
       控制发现页长文：通栏 / 双列混排。单篇可在内容编辑里覆盖。
     </div>
     <el-form-item label="排布模式">
-      <el-radio-group :model-value="articleLayout.mode" @change="(v: string) => patchArticleLayout({ mode: v })">
+      <el-radio-group
+        :model-value="articleLayout.mode"
+        @change="(v: string | number | boolean | undefined) => patchArticleLayout({ mode: String(v) as ArticleLayoutConfig['mode'] })"
+      >
         <el-radio-button value="mixed">混排</el-radio-button>
         <el-radio-button value="all_duo">全部双列</el-radio-button>
         <el-radio-button value="all_full">全部通栏</el-radio-button>
@@ -347,7 +350,7 @@ function addChip(ti: number) {
     if (i !== ti) return { ...t, chips: (t.chips || []).map((c) => ({ ...c })) }
     return {
       ...t,
-      chips: [...(t.chips || []).map((c) => ({ ...c })), { label: '新标签', filter: 'tag', tag: '' }],
+      chips: [...(t.chips || []).map((c) => ({ ...c })), { label: '新标签', filter: 'tag' as const, tag: '' }],
     }
   })
   commitTabs(next)
