@@ -5,7 +5,12 @@
   <view class="section-label">编辑资料</view>
   <view class="edit-card" wx:if="{{isLoggedIn}}">
     <view class="avatar-wrap" bindtap="onChooseAvatar">
-      <image class="avatar-lg" src="{{editAvatarUrl || '/images/default-avatar.svg'}}" mode="aspectFill" />
+      <image
+        class="avatar-lg"
+        src="{{editAvatarUrl || '/images/default-avatar.png'}}"
+        mode="aspectFill"
+        binderror="onAvatarError"
+      />
       <view class="avatar-cam">📷</view>
     </view>
 

@@ -4,6 +4,7 @@
 const { AuthService } = require('../services/auth')
 const { AuthUtil } = require('./auth')
 const { upload } = require('./request')
+const { resolveMediaUrl } = require('./media-url')
 
 function isRemoteUrl(url) {
   return !!(url && /^https?:\/\//i.test(String(url)))
@@ -124,7 +125,8 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
     formData: { subDir: 'avatar' },
     showError: false,
   }).then((uploaded) => {
-    const remoteUrl = (uploaded && (uploaded.url || uploaded.fileUrl || uploaded.path)) || ''
+    const raw = (uploaded && (uploaded.url || uploaded.fileUrl || uploaded.path)) || ''
+    const remoteUrl = resolveMediaUrl(raw) || raw
     if (!remoteUrl) {
       try {
         wx.showToast({ title: '头像上传失败，请稍后在设置中重试', icon: 'none' })

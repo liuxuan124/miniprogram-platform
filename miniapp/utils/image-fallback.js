@@ -36,6 +36,16 @@ function isSvgUrl(url) {
   return /\.svg(\?|#|$)/i.test(value) || /^data:image\/svg\+xml/i.test(value)
 }
 
+/** 微信本地临时头像（选图后尚未上传） */
+function isTempLocalAvatar(url) {
+  const value = String(url || '').trim()
+  if (!value) return false
+  return /^wxfile:/i.test(value)
+    || /^http:\/\/tmp\//i.test(value)
+    || /^file:\/\//i.test(value)
+    || /^\/tmp\//i.test(value)
+}
+
 function isDisplayableImageUrl(url) {
   const value = String(url || '').trim()
   if (!value || isUnusableImageUrl(value) || isLocalhostUrl(value) || isSvgUrl(value)) {
@@ -100,6 +110,7 @@ module.exports = {
   isUnusableImageUrl,
   isLocalhostUrl,
   isSvgUrl,
+  isTempLocalAvatar,
   isDisplayableImageUrl,
   pickLocalCoverFallback,
   resolveDisplayImageUrl,

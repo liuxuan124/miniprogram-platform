@@ -1,6 +1,8 @@
 const { AuthUtil } = require('../../utils/auth')
 const { AuthService } = require('../../services/auth')
 const { upload } = require('../../utils/request')
+const { DEFAULT_AVATAR, pickDisplayAvatarUrl, isTempLocalAvatar } = require('../../utils/image-fallback')
+const { resolveMediaUrl } = require('../../utils/media-url')
 
 const NICKNAME_MAX_LEN = 10
 
@@ -46,10 +48,12 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.10.22',
+    version: '1.30.1',
   },
 
   onShow() {
+    // 选图过程中 Android 常触发 onShow；勿打断待上传本地头像
+    if (this._avatarPicking) return
     this._refresh()
   },
 
@@ -57,7 +61,11 @@ Page({
     const isLoggedIn = !!AuthUtil.isLoggedIn()
     const userInfo = isLoggedIn ? (AuthUtil.getUserInfo() || {}) : null
     const editNickName = (userInfo && (userInfo.nickName || userInfo.nickname)) || ''
-    const editAvatarUrl = (userInfo && userInfo.avatarUrl) || ''
+    // 关键 pending：chooseMedia 返回后 onShow 若清空则永远不会 upload
+    const pendingAvatarLocal = isLoggedIn ? (this.data.pendingAvatarLocal || '') : ''
+    const serverAvatar = (userInfo && userInfo.avatarUrl) || ''
+    const editAvatarUrl = pendingAvatarLocal
+      || pickDisplayAvatarUrl(serverAvatar)
     const editPhone = (userInfo && userInfo.phone) || ''
     const editEmail = (userInfo && userInfo.email) || ''
     this.setData({
@@ -67,12 +75,18 @@ Page({
       editAvatarUrl,
       editPhone,
       editEmail,
-      pendingAvatarLocal: '',
+      pendingAvatarLocal,
       nicknameError: String(editNickName).length > NICKNAME_MAX_LEN,
       phoneSoftTip: softPhoneTip(editPhone),
       emailSoftTip: softEmailTip(editEmail),
       canSave: calcCanSave(editNickName),
     })
+  },
+
+  onAvatarError() {
+    if (isTempLocalAvatar(this.data.editAvatarUrl)) return
+    if (this.data.editAvatarUrl === DEFAULT_AVATAR) return
+    this.setData({ editAvatarUrl: DEFAULT_AVATAR })
   },
 
   onLoginTap() {
@@ -94,6 +108,11 @@ Page({
       })
     }
 
+    this._avatarPicking = true
+    const donePicking = () => {
+      this._avatarPicking = false
+    }
+
     if (typeof wx.chooseMedia === 'function') {
       wx.chooseMedia({
         count: 1,
@@ -104,6 +123,7 @@ Page({
           applyLocal((file && file.tempFilePath) || '')
         },
         fail: () => wx.showToast({ title: '取消选择', icon: 'none' }),
+        complete: donePicking,
       })
       return
     }
@@ -116,6 +136,7 @@ Page({
         applyLocal((res.tempFilePaths && res.tempFilePaths[0]) || '')
       },
       fail: () => wx.showToast({ title: '取消选择', icon: 'none' }),
+      complete: donePicking,
     })
   },
 
@@ -165,7 +186,10 @@ Page({
       url: '/api/v1/mp/upload',
       formData: { subDir: 'avatar' },
       showError: false,
-    }).then((uploaded) => (uploaded && (uploaded.url || uploaded.fileUrl)) || '')
+    }).then((uploaded) => {
+      const raw = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
+      return resolveMediaUrl(raw) || raw
+    })
   },
 
   onSaveProfile() {
@@ -183,14 +207,17 @@ Page({
 
     const phone = String(this.data.editPhone || '').trim()
     const email = String(this.data.editEmail || '').trim()
+    const hadPendingAvatar = !!this.data.pendingAvatarLocal
     this.setData({ savingProfile: true, editNickName: nick, nicknameError: false })
 
     this._uploadAvatarIfNeeded()
       .then((avatarUrl) => {
-        if (!avatarUrl && this.data.pendingAvatarLocal) {
+        if (!avatarUrl && hadPendingAvatar) {
           throw new Error('avatar_upload_failed')
         }
-        const finalAvatar = avatarUrl || this.data.editAvatarUrl || ''
+        const finalAvatar = resolveMediaUrl(avatarUrl)
+          || (isRemoteUrl(avatarUrl) ? avatarUrl : '')
+          || ''
         return AuthService.updateProfile({
           nickname: nick,
           avatarUrl: finalAvatar || undefined,
@@ -201,7 +228,10 @@ Page({
       .then(({ finalAvatar }) => {
         const persistAvatar = isRemoteUrl(finalAvatar) ? finalAvatar : ''
         AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl: persistAvatar })
-        this.setData({ pendingAvatarLocal: '', editAvatarUrl: finalAvatar || this.data.editAvatarUrl })
+        this.setData({
+          pendingAvatarLocal: '',
+          editAvatarUrl: pickDisplayAvatarUrl(persistAvatar, finalAvatar),
+        })
         this._refresh()
         wx.showToast({ title: '已保存', icon: 'success' })
       })
