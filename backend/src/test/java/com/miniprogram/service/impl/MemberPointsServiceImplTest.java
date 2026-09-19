@@ -7,6 +7,7 @@ import com.miniprogram.mapper.MemberLevelMapper;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.CouponService;
 import com.miniprogram.service.MemberPointsLogService;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.UserCouponService;
 import org.junit.jupiter.api.Test;
