@@ -1,0 +1,72 @@
+task_id: BATCH-QA-WARM-LT-001
+agent: qa-release-agent
+status: 已完成
+completed_work:
+  - 契约读取并声明 mtime/版本（5 份）
+  - 续读 status-ledger（268/268 正式 PASS，本批不重跑）
+  - 新建 feature-inventory-warm-longtail.md（FP-WARM-001~012 + 八维度）
+  - 生产接口冒烟：health、planet/home 双态、upload 未登录 401、/uploads/ 拉图 200
+  - DB 抽检：avatar 无 wxfile；membership/subscription 表存在；产盘 settings.js=1.30.4
+  - 代码静态核查：settings/mine/service-chat/form/contribute/write-review/签到/占位图
+  - 真机项如实 NOT_RUN；无 P0/P1 缺陷单
+changed_files:
+  - agent-team/testing/feature-inventory-warm-longtail.md
+  - agent-team/testing/cases/BATCH-QA-WARM-LT-001.md
+  - agent-team/testing/cases/TC-WARM-LT-001-api-db-code.md
+  - agent-team/testing/status-ledger.md
+  - agent-team/testing/evidence/BATCH-QA-WARM-LT-001/
+  - agent-team/receipts/receipt-qa-BATCH-QA-WARM-LT-001.yaml
+added_apis: []
+added_tables: []
+dependencies: []
+blockers:
+  - 生产无可用 MP JWT / 管理端口令未对齐，authed upload+profile+mine overview 成功路径无法代测
+self_test:
+  result: 通过
+  details: "本批为范围扩展 QA；无 FAIL；真机与部分鉴权成功路径 NOT_RUN/PARTIAL 已如实标记"
+downstream_suggestions:
+  - 总控安排体验版 1.30.4 人工真机按汇总清单 10 项补测
+  - 提供生产 MP 测试 token 或可用管理口令后可补 TC-WARM-API-005/006
+risks:
+  - 代码证据 PARTIAL 不等于真机已验证；勿将本批等同 268/582 全量通过
+next_step: 人工真机补测 TC-WARM-MP-001~010；补 token 后复测 mine overview 与 upload+profile
+notes: "work_mode=QA；未部署、未推体验版、未改业务代码；正式台账历史 PASS 行未改写"
+qa:
+  work_mode: QA
+  batch_id: BATCH-QA-WARM-LT-001
+  feature_point_range:
+    - FP-WARM-001
+    - FP-WARM-002
+    - FP-WARM-003
+    - FP-WARM-004
+    - FP-WARM-005
+    - FP-WARM-006
+    - FP-WARM-007
+    - FP-WARM-008
+    - FP-WARM-009
+    - FP-WARM-010
+    - FP-WARM-011
+    - FP-WARM-012
+  executed_count: 9
+  pass_count: 0
+  fail_count: 0
+  partial_count: 9
+  blocked_count: 0
+  not_run_count: 3
+  cumulative_execution_rate: "本附录 9/12 已执行(含 PARTIAL)；正式台账仍 268/268（未重跑）"
+  cumulative_pass_rate: "本附录 FP 全 PASS=0/12（接口子用例有 PASS）；正式台账 268/268 不变"
+  new_defects:
+    P0: []
+    P1: []
+    P2: []
+    P3: []
+  next_batch_plan: "BATCH-QA-WARM-LT-002：真机补测 +（若有 token）authed upload/profile/mine overview"
+  contract_versions:
+    api-contract: "mtime=2026-07-22 12:16:28"
+    database-model: "mtime=2026-07-22 12:16:28"
+    page-dsl-schema: "mtime=2026-09-15 23:07:02"
+    order-state-machine: "mtime=2026-07-22 12:16:28"
+    ai-recommendation-contract: "v1.0 mtime=2026-07-22 12:16:28"
+  gate_recommendation: "CONDITIONAL — 无 P0/P1，不建议以本批宣称端到端全绿；接口/DB/静态资源子集可接受，真机必测项未完成"
+  wx_version_target: "1.30.4"
+  evidence_dir: "agent-team/testing/evidence/BATCH-QA-WARM-LT-001"

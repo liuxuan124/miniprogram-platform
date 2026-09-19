@@ -1,0 +1,2 @@
+uploads sample HTTP:200 size:75
+user1_avatar HTTP:200 size:67
