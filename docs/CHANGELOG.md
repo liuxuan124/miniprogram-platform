@@ -11,7 +11,7 @@
 
 ### 已在仓内（摘要，非全量）
 
-- Flyway 已到 **V70**（handover 库表文档仍停在 V10）。
+- Flyway 已到 **V71**（handover 库表文档仍停在 V10）。
 - 会员：平台/星球档位与订阅（`V68` `mp_membership_plan` / `mp_member_subscription`）。
 - 内容：会员墙、发现页布局、主星球 `planet_id`（V65–V67）等。
 - 租户 / 行业模板包、暖阁原型对齐与本地种子（V51–V64 一带）。

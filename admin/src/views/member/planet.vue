@@ -363,14 +363,9 @@ import {
   updateMembershipPlan,
   type MembershipPlan,
 } from '@/api/membershipPlan'
-import {
-  MemberBenefitCode,
-  MemberBenefitLabels,
-} from '@/types/member'
+import { MemberBenefitCode, MemberBenefitLabels } from '@/types/member'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 
-const benefitOptions = Object.values(MemberBenefitCode)
-import { MemberBenefitCode, MemberBenefitLabels } from '@/types/member'
 const planetBenefitOptions = Object.values(MemberBenefitCode)
 
 type CommunityRow = {
@@ -484,7 +479,7 @@ function openPlanetPlanDialog(planetId: string, row?: MembershipPlan) {
   planetPlanForm.name = row?.name || ''
   planetPlanForm.description = row?.description || ''
   planetPlanForm.rights = Array.isArray(row?.rights) ? [...row.rights] : []
-  planetPlanForm.showBadge = Boolean(row?.showBadge)
+  planetPlanForm.showBadge = Number(row?.showBadge ?? 0) === 1
   const remind = Number(row?.expireRemindDays ?? 0)
   planetPlanForm.expireRemindEnabled = remind > 0
   planetPlanForm.expireRemindDays = remind > 0 ? remind : 7
@@ -518,7 +513,7 @@ async function handlePlanetPlanSubmit() {
       name: planetPlanForm.name.trim(),
       description: planetPlanForm.description || undefined,
       rights: planetPlanForm.rights,
-      showBadge: planetPlanForm.showBadge,
+      showBadge: planetPlanForm.showBadge ? 1 : 0,
       expireRemindDays: planetPlanForm.expireRemindEnabled ? planetPlanForm.expireRemindDays : 0,
       giftPlanetDays: 0,
       sortOrder: planetPlanForm.sortOrder,
