@@ -13,5 +13,10 @@
     "保留 _pendingAvatarLocal 抗 onShow/_refresh 竞态；成功后 _refreshMineTab"
   ],
   "backend_status": "no jar redeploy needed; upload+profile already OK",
-  "audit_submitted": false
+  "audit_submitted": false,
+  "upload": {
+    "ok": true,
+    "version": "1.30.6",
+    "uploadTime": "2026-09-19T15:26:42.060Z"
+  }
 }
