@@ -234,7 +234,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     children: [
       { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce', featureModule: 'product' },
       { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'], featureModule: 'product' },
-      { title: '优惠管理', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
+      { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
       { title: '增长数据', path: '/growth/overview', icon: 'DataLine', activePrefix: '/growth' },
     ],
   },

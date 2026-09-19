@@ -103,6 +103,8 @@
               v-loading="planetPlansLoading[c.id]"
             >
               <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column label="角标" width="70" align="center"><template #default="{ row }">{{ row.showBadge ? '开' : '关' }}</template></el-table-column>
+              <el-table-column label="到期提醒" width="100"><template #default="{ row }">{{ (row.expireRemindDays || 0) > 0 ? `前 ${row.expireRemindDays} 天` : '关' }}</template></el-table-column>
               <el-table-column label="排序" width="70" prop="sortOrder" />
               <el-table-column label="状态" width="80">
                 <template #default="{ row }">
@@ -322,6 +324,18 @@
         <el-form-item label="描述">
           <el-input v-model="planetPlanForm.description" type="textarea" :rows="2" />
         </el-form-item>
+        <el-form-item label="权益开关">
+          <el-checkbox-group v-model="planetPlanForm.rights">
+            <el-checkbox v-for="code in planetBenefitOptions" :key="code" :value="code">{{ MemberBenefitLabels[code] || code }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="专属角标">
+          <el-switch v-model="planetPlanForm.showBadge" active-text="开" inactive-text="关" />
+        </el-form-item>
+        <el-form-item label="到期提醒">
+          <el-switch v-model="planetPlanForm.expireRemindEnabled" active-text="开" inactive-text="关" />
+          <el-input-number v-if="planetPlanForm.expireRemindEnabled" v-model="planetPlanForm.expireRemindDays" :min="1" :max="30" style="margin-left:12px" />
+        </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="planetPlanForm.sortOrder" :min="0" :max="999" />
         </el-form-item>
@@ -349,7 +363,15 @@ import {
   updateMembershipPlan,
   type MembershipPlan,
 } from '@/api/membershipPlan'
+import {
+  MemberBenefitCode,
+  MemberBenefitLabels,
+} from '@/types/member'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
+
+const benefitOptions = Object.values(MemberBenefitCode)
+import { MemberBenefitCode, MemberBenefitLabels } from '@/types/member'
+const planetBenefitOptions = Object.values(MemberBenefitCode)
 
 type CommunityRow = {
   id: string
@@ -426,6 +448,10 @@ const editingPlanetPlanId = ref<number | null>(null)
 const planetPlanForm = reactive({
   name: '',
   description: '',
+  rights: [] as string[],
+  showBadge: false,
+  expireRemindEnabled: false,
+  expireRemindDays: 7,
   sortOrder: 0,
   statusBool: true,
 })
@@ -457,6 +483,11 @@ function openPlanetPlanDialog(planetId: string, row?: MembershipPlan) {
   editingPlanetPlanId.value = row?.id ?? null
   planetPlanForm.name = row?.name || ''
   planetPlanForm.description = row?.description || ''
+  planetPlanForm.rights = Array.isArray(row?.rights) ? [...row.rights] : []
+  planetPlanForm.showBadge = Boolean(row?.showBadge)
+  const remind = Number(row?.expireRemindDays ?? 0)
+  planetPlanForm.expireRemindEnabled = remind > 0
+  planetPlanForm.expireRemindDays = remind > 0 ? remind : 7
   planetPlanForm.sortOrder = row?.sortOrder ?? 0
   planetPlanForm.statusBool = row ? row.status === 1 : true
   planetPlanDialogVisible.value = true
@@ -465,6 +496,10 @@ function openPlanetPlanDialog(planetId: string, row?: MembershipPlan) {
 function resetPlanetPlanForm() {
   planetPlanForm.name = ''
   planetPlanForm.description = ''
+  planetPlanForm.rights = []
+  planetPlanForm.showBadge = false
+  planetPlanForm.expireRemindEnabled = false
+  planetPlanForm.expireRemindDays = 7
   planetPlanForm.sortOrder = 0
   planetPlanForm.statusBool = true
   editingPlanetPlanId.value = null
@@ -482,6 +517,9 @@ async function handlePlanetPlanSubmit() {
       planetId: editingPlanetId.value,
       name: planetPlanForm.name.trim(),
       description: planetPlanForm.description || undefined,
+      rights: planetPlanForm.rights,
+      showBadge: planetPlanForm.showBadge,
+      expireRemindDays: planetPlanForm.expireRemindEnabled ? planetPlanForm.expireRemindDays : 0,
       giftPlanetDays: 0,
       sortOrder: planetPlanForm.sortOrder,
       status: planetPlanForm.statusBool ? 1 : 0,

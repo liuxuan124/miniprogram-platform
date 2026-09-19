@@ -26,12 +26,17 @@ public class KnowledgeRetrievalService {
     private final AgentKnowledgeChunkMapper chunkMapper;
 
     public List<Map<String, Object>> retrieve(Long configId, String question, int topK) {
+        return retrieve(configId, null, question, topK);
+    }
+
+    public List<Map<String, Object>> retrieve(Long configId, List<Long> libraryIds, String question, int topK) {
         if (!StringUtils.hasText(question)) {
             return List.of();
         }
         int limit = topK > 0 ? Math.min(topK, 10) : DEFAULT_TOP_K;
         try {
-            List<Map<String, Object>> rows = chunkMapper.searchFullText(question.trim(), configId, limit);
+            List<Map<String, Object>> rows = chunkMapper.searchFullText(
+                    question.trim(), configId, libraryIds, limit);
             if (rows == null) {
                 return List.of();
             }

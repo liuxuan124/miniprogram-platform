@@ -212,13 +212,30 @@
           </template>
           <el-alert type="warning" :closable="false" show-icon style="margin-bottom:14px">
             <template #title>
-              语料库已接入回答链路：沙盒与岗位对话会自动召回切片。请在「AI 语料库」查看切片、检索测试与内容库同步。文件存于受保护目录，不可通过 /uploads 直接下载。
+              语料库已接入回答链路。可勾选本 Agent 可检索的知识库；未勾选时默认检索全部。切片与外链抓取请到「知识库」页。
             </template>
           </el-alert>
-          <div style="margin-bottom:14px">
+          <div style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
             <el-button size="small" type="primary" plain @click="$router.push('/ai/knowledge')">
-              前往 AI 语料库
+              前往知识库
             </el-button>
+            <span style="font-size:13px;color:var(--text-muted)">关联知识库：</span>
+            <el-select
+              v-model="selectedLibraryIds"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="不选=全部库"
+              style="min-width:240px"
+              @change="saveLibraryIds"
+            >
+              <el-option
+                v-for="lib in knowledgeLibraries"
+                :key="lib.id"
+                :label="lib.name"
+                :value="lib.id"
+              />
+            </el-select>
           </div>
           <el-upload
             drag
@@ -311,19 +328,27 @@
           <el-col :span="10">
             <el-card shadow="never">
               <template #header><span>📊 沙盒测试评估</span></template>
-              <el-alert type="info" :closable="false" show-icon style="margin-bottom:12px" title="评估卡片为演示占位，正式评测流程尚未接入。" />
+              <el-alert
+                type="info"
+                :closable="false"
+                show-icon
+                style="margin-bottom:12px"
+                title="根据本轮沙盒对话与召回结果即时汇总，非演示数据。"
+              />
               <div class="eval-list">
-                <div class="eval-item eval-pass">
-                  <div class="eval-title">✅ 已通过测试</div>
-                  <div class="eval-desc">产品咨询 · 会员权益 · 活动引导</div>
+                <div class="eval-item" :class="sandboxEval.answered ? 'eval-pass' : 'eval-pending'">
+                  <div class="eval-title">{{ sandboxEval.answered ? '✅' : '📝' }} 对话轮次</div>
+                  <div class="eval-desc">已测 {{ sandboxEval.turns }} 轮 · 最近{{ sandboxEval.answered ? '有回复' : '尚未发送' }}</div>
                 </div>
-                <div class="eval-item eval-warn">
-                  <div class="eval-title">⚠️ 待优化</div>
-                  <div class="eval-desc">退换货政策问题回答不够精准，建议补充语料库</div>
+                <div class="eval-item" :class="sandboxEval.hasSources ? 'eval-pass' : 'eval-warn'">
+                  <div class="eval-title">{{ sandboxEval.hasSources ? '✅' : '⚠️' }} 知识召回</div>
+                  <div class="eval-desc">
+                    {{ sandboxEval.hasSources ? `最近一轮召回 ${sandboxEval.sourceCount} 条切片` : '最近一轮未召回切片，可补语料或检查关联知识库' }}
+                  </div>
                 </div>
-                <div class="eval-item eval-pending">
-                  <div class="eval-title">📝 未测试</div>
-                  <div class="eval-desc">价格异议处理 · 竞品对比场景</div>
+                <div class="eval-item" :class="apiConfig.id ? 'eval-pass' : 'eval-pending'">
+                  <div class="eval-title">{{ apiConfig.id ? '✅' : '📝' }} 配置落库</div>
+                  <div class="eval-desc">{{ apiConfig.id ? '已有配置，可发布上线' : '请先保存配置再发布' }}</div>
                 </div>
               </div>
               <el-button type="primary" style="width:100%;margin-top:14px" @click="activeTab = 'publish'">测试满意，去发布 →</el-button>
@@ -357,8 +382,6 @@
                 <el-form-item label="发布方式">
                   <el-select v-model="publishMode" style="width:100%">
                     <el-option label="全量发布（立即生效）" value="full" />
-                    <el-option label="灰度发布（10% 用户先行）" value="gray" disabled />
-                    <el-option label="定时发布" value="scheduled" disabled />
                   </el-select>
                 </el-form-item>
               </el-form>
@@ -369,7 +392,7 @@
               </div>
               <el-alert type="info" :closable="false" show-icon style="margin-top:12px">
                 <template #title>
-                  {{ apiConfig.id ? '灰度与定时发布暂未接入，当前仅支持全量发布。' : '当前还是草稿，点击将先保存再全量发布。' }}
+                  一期仅支持全量发布：保存后立即对该岗位生效，可在版本历史回滚。
                 </template>
               </el-alert>
             </el-card>
@@ -406,30 +429,30 @@
       </el-tab-pane>
 
       <el-tab-pane label="⑥ 运营监控" name="monitor">
-        <el-alert type="warning" :closable="false" show-icon style="margin-bottom:16px">
-          <template #title>对话列表来自真实记录；顶部指标与意图分布仍为演示</template>
+        <el-alert type="info" :closable="false" show-icon style="margin-bottom:16px">
+          <template #title>指标来自本岗位调用日志与对话记录，非演示数据。</template>
         </el-alert>
 
         <el-row :gutter="16" style="margin-bottom:16px">
           <el-col :span="8">
             <el-card shadow="never" style="text-align:center;padding:10px">
               <div style="font-size:28px;margin-bottom:4px">🤖</div>
-              <div style="font-size:22px;font-weight:700;color:#7c3aed">1,240</div>
-              <div style="font-size:12px;color:var(--text-muted)">昨日对话 <span style="color:var(--success)">↑ 15%</span></div>
+              <div style="font-size:22px;font-weight:700;color:#7c3aed">{{ costStats.todayCalls ?? 0 }}</div>
+              <div style="font-size:12px;color:var(--text-muted)">今日调用</div>
             </el-card>
           </el-col>
           <el-col :span="8">
             <el-card shadow="never" style="text-align:center;padding:10px">
-              <div style="font-size:28px;margin-bottom:4px">🛍️</div>
-              <div style="font-size:22px;font-weight:700;color:var(--brand)">¥3,580</div>
-              <div style="font-size:12px;color:var(--text-muted)">推荐成交额 <span style="color:var(--success)">转化率 4.2%</span></div>
+              <div style="font-size:28px;margin-bottom:4px">🔢</div>
+              <div style="font-size:22px;font-weight:700;color:var(--brand)">{{ costStats.todayTokens ?? 0 }}</div>
+              <div style="font-size:12px;color:var(--text-muted)">今日 tokens</div>
             </el-card>
           </el-col>
           <el-col :span="8">
             <el-card shadow="never" style="text-align:center;padding:10px">
-              <div style="font-size:28px;margin-bottom:4px">😊</div>
-              <div style="font-size:22px;font-weight:700;color:var(--success)">4.6/5</div>
-              <div style="font-size:12px;color:var(--text-muted)">用户满意度 <span style="color:var(--success)">差评率 2.1%</span></div>
+              <div style="font-size:28px;margin-bottom:4px">💰</div>
+              <div style="font-size:22px;font-weight:700;color:var(--success)">¥{{ costStats.todayCost ?? 0 }}</div>
+              <div style="font-size:12px;color:var(--text-muted)">今日成本估算</div>
             </el-card>
           </el-col>
         </el-row>
@@ -445,27 +468,9 @@
             <el-table-column label="用户" prop="user" width="100" show-overflow-tooltip />
             <el-table-column label="提问" prop="question" min-width="140" show-overflow-tooltip />
             <el-table-column label="AI 回复摘要" prop="answer" min-width="160" show-overflow-tooltip />
-            <el-table-column label="意图" prop="intent" width="100" />
-            <el-table-column label="转化" width="100">
-              <template #default="{ row }">
-                <el-tag v-if="row.action" size="small">{{ row.action }}</el-tag>
-                <span v-else style="color:var(--text-muted)">—</span>
-              </template>
-            </el-table-column>
             <el-table-column label="时间" prop="time" width="90" />
           </el-table>
           <el-empty v-if="!loadingConversations && conversationLog.length === 0" description="暂无对话记录" :image-size="64" />
-        </el-card>
-
-        <el-card shadow="never">
-          <template #header><span>🔥 高频意图分布（演示）</span></template>
-          <div class="intent-list">
-            <div v-for="item in intents" :key="item.name" class="intent-item">
-              <span style="width:60px;font-size:12px">{{ item.name }}</span>
-              <el-progress :percentage="item.pct" :stroke-width="10" style="flex:1" />
-              <span style="font-size:12px;color:var(--text-muted);width:36px">{{ item.pct }}%</span>
-            </div>
-          </div>
         </el-card>
       </el-tab-pane>
 
@@ -602,6 +607,7 @@ import {
   updateAgentConfig,
   updateAgentKnowledgeWeight,
 } from '@/api/agent'
+import { listKnowledgeLibraries, type KnowledgeLibrary } from '@/api/knowledge'
 import { uploadFile } from '@/api/system'
 import { ROLE_NAMES, ROLE_TEMPLATES } from '@/constants/agentRoles'
 import type { AgentConfigPayload, AgentKnowledgeItem, AgentVersionItem } from '@/types/agent'
@@ -906,6 +912,19 @@ const chatMessages = ref<{ role: 'ai' | 'user'; content: string }[]>([
 const chatInput = ref('')
 const sandboxMode = ref('')
 const sandboxHint = ref('')
+const lastSandboxSources = ref(0)
+const knowledgeLibraries = ref<KnowledgeLibrary[]>([])
+const selectedLibraryIds = ref<number[]>([])
+
+const sandboxEval = computed(() => {
+  const turns = chatMessages.value.filter((m) => m.role === 'user').length
+  return {
+    turns,
+    answered: chatMessages.value.some((m) => m.role === 'ai' && turns > 0),
+    hasSources: lastSandboxSources.value > 0,
+    sourceCount: lastSandboxSources.value,
+  }
+})
 
 const publishMode = ref('full')
 
@@ -943,13 +962,6 @@ const evalResults = ref<Array<{
   passed: boolean
 }>>([])
 const runningEval = ref(false)
-
-const intents = ref([
-  { name: '产品咨询', pct: 68 },
-  { name: '会员权益', pct: 52 },
-  { name: '营销活动', pct: 38 },
-  { name: '售后退款', pct: 18 },
-])
 
 function selectModel(model: ModelOption) {
   apiConfig.value.modelProvider = model.provider
@@ -1004,6 +1016,7 @@ function buildConfigPayload(): AgentConfigPayload {
     dailyTokenBudget: costForm.value.dailyTokenBudget,
     overBudgetAction: costForm.value.overBudgetAction,
     evalCases: evalCasesJson.value || '[]',
+    libraryIds: JSON.stringify(selectedLibraryIds.value || []),
     personaId: persona.value.id || undefined,
     personaName: persona.value.name || undefined,
     personaTone: persona.value.tone || undefined,
@@ -1075,6 +1088,7 @@ function applyConfigToForm(config: {
   dailyTokenBudget?: number
   overBudgetAction?: string
   evalCases?: unknown[] | string
+  libraryIds?: string
   personaId?: string
   personaName?: string
   personaTone?: string
@@ -1112,6 +1126,15 @@ function applyConfigToForm(config: {
     }
   } else if (Array.isArray(config.evalCases) && config.evalCases.length) {
     evalCasesJson.value = JSON.stringify(config.evalCases, null, 2)
+  }
+  try {
+    if (typeof config.libraryIds === 'string' && config.libraryIds.trim()) {
+      selectedLibraryIds.value = JSON.parse(config.libraryIds)
+    } else {
+      selectedLibraryIds.value = []
+    }
+  } catch {
+    selectedLibraryIds.value = []
   }
 }
 
@@ -1600,10 +1623,12 @@ async function sendChat() {
     const data = res.data
     sandboxMode.value = data?.mode || ''
     sandboxHint.value = data?.hint || ''
+    lastSandboxSources.value = Array.isArray(data?.sources) ? data.sources.length : 0
     chatMessages.value.push({ role: 'ai', content: data?.answer || '（无回复）' })
   } catch {
     sandboxMode.value = 'mock'
     sandboxHint.value = '服务端沙盒不可用，已按当前策略本地模拟回复'
+    lastSandboxSources.value = 0
     chatMessages.value.push({ role: 'ai', content: localSandboxReply(question) })
   } finally {
     sendingChat.value = false
@@ -1613,6 +1638,29 @@ async function sendChat() {
 function quickTest(q: string) {
   chatInput.value = q
   void sendChat()
+}
+
+
+async function loadKnowledgeLibraries() {
+  try {
+    const res = await listKnowledgeLibraries()
+    knowledgeLibraries.value = res.data || []
+  } catch {
+    knowledgeLibraries.value = []
+  }
+}
+
+async function saveLibraryIds() {
+  if (!apiConfig.value.id) {
+    ElMessage.info('请先保存 Agent 配置，关联知识库会随配置一并写入')
+    return
+  }
+  try {
+    await updateAgentConfig(apiConfig.value.id, buildConfigPayload())
+    ElMessage.success('知识库关联已保存')
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  }
 }
 
 async function doPublish() {
@@ -1726,6 +1774,7 @@ onMounted(() => {
   void Promise.allSettled([
     loadActiveConfig(),
     loadKnowledge(),
+    loadKnowledgeLibraries(),
     loadVersions(),
     loadConversations(),
     loadCostStats(),

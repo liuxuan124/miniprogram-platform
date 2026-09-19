@@ -3,6 +3,7 @@ package com.miniprogram.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
@@ -290,7 +291,8 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
             return result;
         }
         List<Map<String, Object>> sources = knowledgeRetrievalService.retrieve(
-                published.getId(), userPrompt, KnowledgeRetrievalService.DEFAULT_TOP_K);
+                published.getId(), parseLibraryIds(published.getLibraryIds()), userPrompt,
+                KnowledgeRetrievalService.DEFAULT_TOP_K);
         String ragBlock = knowledgeRetrievalService.buildContextBlock(sources);
         long start = System.currentTimeMillis();
         try {
@@ -349,9 +351,7 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         List<Map<String, Object>> roles = new ArrayList<>();
         roles.add(roleCard("service", "客服助手", false));
         roles.add(roleCard("content_ops", "内容运营", false));
-        Map<String, Object> page = roleCard("page_builder", "页面搭建", true);
-        page.put("comingSoon", true);
-        roles.add(page);
+        roles.add(roleCard("page_builder", "页面搭建", false));
         return roles;
     }
 
@@ -534,7 +534,9 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         String productCatalog = enableRecommend ? loadProductCatalog(3) : "";
         String policyPrompt = buildPolicyPrompt(enableRecommend, enableProactive, fallback, productCatalog);
         List<Map<String, Object>> sources = knowledgeRetrievalService.retrieve(
-                published != null ? published.getId() : null, question, KnowledgeRetrievalService.DEFAULT_TOP_K);
+                published != null ? published.getId() : null,
+                published != null ? parseLibraryIds(published.getLibraryIds()) : null,
+                question, KnowledgeRetrievalService.DEFAULT_TOP_K);
         String ragBlock = knowledgeRetrievalService.buildContextBlock(sources);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -800,6 +802,9 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
         if (dto.getEvalCases() != null) {
             config.setEvalCases(dto.getEvalCases());
         }
+        if (dto.getLibraryIds() != null) {
+            config.setLibraryIds(dto.getLibraryIds());
+        }
         if (dto.getPersonaId() != null) {
             config.setPersonaId(dto.getPersonaId());
         }
@@ -817,6 +822,18 @@ public class AgentConfigServiceImpl extends BaseServiceImpl<AgentConfigMapper, A
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "配置不存在");
         }
         return config;
+    }
+
+    private List<Long> parseLibraryIds(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        try {
+            List<Long> ids = objectMapper.readValue(raw, new TypeReference<List<Long>>() {});
+            return ids == null || ids.isEmpty() ? null : ids;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private AgentConfigVO toVO(AgentConfig config) {

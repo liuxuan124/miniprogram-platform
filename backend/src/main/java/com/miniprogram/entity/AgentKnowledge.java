@@ -23,7 +23,10 @@ public class AgentKnowledge implements Serializable {
 
     private Long configId;
 
-    /** file|content|qa|product|manual */
+    /** 所属知识库（分库） */
+    private Long libraryId;
+
+    /** file|content|qa|product|manual|url */
     private String sourceType;
 
     private Long sourceId;
