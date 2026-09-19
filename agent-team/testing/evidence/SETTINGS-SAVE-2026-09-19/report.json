@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-19T20:30:00+08:00",
+  "wx_version": "1.30.2",
+  "wx_version_desc": "设置页保存修复（体验版，不提审）",
+  "scope": "miniapp settings save (avatar + profile)",
+  "root_causes": [
+    "1.30.1 仅从 this.data 读 pending：chooseMedia success 的 setData 未落盘时 onShow→_refresh 仍读到空 pending，竞态再次丢掉待上传头像",
+    "保存按钮 disabled=!canSave：昵称被 nicknamereview 清空或校验失败时按钮不可点且无反馈，表现为「点击保存无法保存」",
+    "无 pending 时把展示用本地默认头像当作 avatarUrl；Promise.finally 在部分基础库上不够稳"
+  ],
+  "nginx_evidence": "After 1.30.1 (~20:06) WeChat clients still GET old 404 avatar; no POST /mp/upload from miniapp — save path still not uploading",
+  "backend_status": "no jar redeploy; upload+profile already OK"
+}
