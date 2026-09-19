@@ -92,6 +92,7 @@ class MemberPointsServiceImplTest {
         CouponService couponService = mock(CouponService.class);
         MemberBirthdayClaimMapper memberBirthdayClaimMapper = mock(MemberBirthdayClaimMapper.class);
         SystemConfigService systemConfigService = mock(SystemConfigService.class);
+        MembershipAccessService membershipAccessService = mock(MembershipAccessService.class);
 
         MemberPointsServiceImpl service = new MemberPointsServiceImpl(
                 userMapper,
@@ -100,7 +101,8 @@ class MemberPointsServiceImplTest {
                 userCouponService,
                 couponService,
                 memberBirthdayClaimMapper,
-                systemConfigService
+                systemConfigService,
+                membershipAccessService
         );
         return new Fixture(service, userMapper, memberLevelMapper, systemConfigService);
     }
