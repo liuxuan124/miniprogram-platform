@@ -2,7 +2,7 @@
   <div class="creators-page">
     <div class="page-header">
       <div>
-        <div class="page-title">创作者申请</div>
+        <div class="page-title">创作者审核</div>
         <div class="page-desc">对应小程序投稿页。通过后将自动授予 contributor（特约）身份。</div>
       </div>
       <el-button @click="load">刷新</el-button>

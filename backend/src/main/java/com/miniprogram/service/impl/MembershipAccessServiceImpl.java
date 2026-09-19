@@ -1222,7 +1222,8 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
     }
 
     /** 当前有效平台订购绑定的付费档；无订购/无 planId/档不存在 → null */
-    private MembershipPlan findActivePlatformPlan(Long userId) {
+    @Override
+    public MembershipPlan findActivePlatformPlan(Long userId) {
         MemberSubscription sub = findLatestActiveSubscription(userId, SCOPE_PLATFORM, null);
         if (sub == null || sub.getPlanId() == null) {
             return null;

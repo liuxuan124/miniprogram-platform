@@ -18,6 +18,10 @@ export interface MembershipPlan {
   discountRate?: number | null
   giftPlanetId?: string | null
   giftPlanetDays?: number
+  /** 1=显示会员角标 */
+  showBadge?: number
+  /** 到期前提醒天数；0=关闭 */
+  expireRemindDays?: number
   sortOrder?: number
   status: number
   createdAt?: string
@@ -34,6 +38,8 @@ export interface MembershipPlanPayload {
   discountRate?: number | null
   giftPlanetId?: string | null
   giftPlanetDays?: number
+  showBadge?: number
+  expireRemindDays?: number
   sortOrder?: number
   status?: number
 }
@@ -50,6 +56,8 @@ function normalizePlan(row: any): MembershipPlan {
     discountRate: row.discountRate ?? row.discount_rate ?? null,
     giftPlanetId: row.giftPlanetId ?? row.gift_planet_id ?? null,
     giftPlanetDays: Number(row.giftPlanetDays ?? row.gift_planet_days ?? 0),
+    showBadge: Number(row.showBadge ?? row.show_badge ?? 0),
+    expireRemindDays: Number(row.expireRemindDays ?? row.expire_remind_days ?? 0),
     sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
     status: Number(row.status ?? 1),
     createdAt: row.createdAt ?? row.created_at,

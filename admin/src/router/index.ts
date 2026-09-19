@@ -145,6 +145,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '文章管理', icon: 'Notebook' },
       },
       {
+        path: 'note',
+        name: 'ContentNoteList',
+        component: () => import('@/views/content/index.vue'),
+        meta: { title: '笔记管理', icon: 'EditPen', defaultType: 'note' },
+      },
+      {
         path: 'list',
         name: 'ContentListAlias',
         component: () => import('@/views/content/index.vue'),
@@ -166,7 +172,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'audit',
         name: 'ContentAudit',
         component: () => import('@/views/content/audit.vue'),
-        meta: { title: '内容审核', icon: 'Checked' },
+        meta: { title: '审核队列', icon: 'Checked' },
       },
       {
         path: 'audit-rules',
@@ -178,7 +184,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'creators',
         name: 'CreatorApplications',
         component: () => import('@/views/content/creators.vue'),
-        meta: { title: '创作者申请', icon: 'EditPen' },
+        meta: { title: '创作者审核', icon: 'EditPen' },
       },
       {
         path: 'edit',
@@ -307,7 +313,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'list',
         name: 'MemberList',
         component: () => import('@/views/member/index.vue'),
-        meta: { title: '会员列表', icon: 'Avatar', featureModule: 'member' },
+        meta: { title: '会员与权益', icon: 'Avatar', featureModule: 'member' },
       },
       {
         path: 'level',
@@ -499,7 +505,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'knowledge',
         name: 'AiKnowledge',
         component: () => import('@/views/ai/knowledge/index.vue'),
-        meta: { title: 'AI 语料库', icon: 'Collection', roles: ['super_admin'] },
+        meta: { title: '知识库', icon: 'Collection', roles: ['super_admin'] },
       },
     ],
   },

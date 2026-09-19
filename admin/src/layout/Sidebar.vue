@@ -5,8 +5,8 @@
         <img src="/logo.svg" alt="" width="40" height="40" />
       </div>
       <div v-show="!appStore.sidebarCollapsed" class="brand-text">
-        <strong>小程序运营系统</strong>
-        <span>多场景搭建与运营平台</span>
+        <strong>{{ brandTitle }}</strong>
+        <span>{{ brandSubtitle }}</span>
         <span class="brand-version">平台 v{{ PLATFORM_VERSION }}</span>
       </div>
     </div>
@@ -178,6 +178,13 @@ const industryProfileStore = useIndustryProfileStore()
 const openGroups = ref<string[]>([])
 const openKeys = ref<string[]>([])
 
+const brandTitle = computed(() =>
+  appStore.uiTheme === 'warm' ? '暖阁运营后台' : '小程序运营系统',
+)
+const brandSubtitle = computed(() =>
+  appStore.uiTheme === 'warm' ? '内容 · 会员 · Agent' : '多场景搭建与运营平台',
+)
+
 if (!featureModulesStore.loaded) {
   featureModulesStore.load()
 }
@@ -204,10 +211,11 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '内容运营',
     children: [
-      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content', excludePrefixes: ['/content/audit', '/content/creators', '/content/qa', '/content/files'], featureModule: 'content' },
+      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content', excludePrefixes: ['/content/note', '/content/audit', '/content/creators', '/content/qa', '/content/files'], featureModule: 'content' },
+      { title: '笔记管理', path: '/content/note', icon: 'EditPen', activePrefix: '/content/note', featureModule: 'content' },
       { title: '资料管理', path: '/content/files', icon: 'DocumentCopy', activePrefix: '/content/files', featureModule: 'file' },
-      { title: '内容审核', path: '/content/audit', icon: 'Checked', activePrefix: '/content/audit' },
-      { title: '作者申请', path: '/content/creators', icon: 'EditPen', activePrefix: '/content/creators' },
+      { title: '审核队列', path: '/content/audit', icon: 'Checked', activePrefix: '/content/audit' },
+      { title: '创作者审核', path: '/content/creators', icon: 'EditPen', activePrefix: '/content/creators' },
       { title: '问答管理', path: '/content/qa', icon: 'ChatDotRound', activePrefix: '/content/qa', featureModule: 'qa' },
       { title: '表单管理', path: '/form/template', icon: 'DocumentCopy', activePrefix: '/form', featureModule: 'form' },
     ],
@@ -215,7 +223,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '用户会员',
     children: [
-      { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'], featureModule: 'member' },
+      { title: '会员与权益', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', excludePrefixes: ['/member/planet'], permissions: ['member:list'], featureModule: 'member' },
       { title: '社区管理', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet' },
       { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', excludePrefixes: ['/user/service-community'], permissions: ['user:list'] },
       { title: '客服社群', path: '/user/service-community', icon: 'ChatDotRound', activePrefix: '/user/service-community', permissions: ['user:list'] },
@@ -266,7 +274,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       },
       { title: '智能助手', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai/agent', featureModule: 'agent' },
       { title: '智能草稿', path: '/ai/drafts', icon: 'Document', activePrefix: '/ai/drafts', featureModule: 'agent' },
-      { title: '语料管理', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent' },
+      { title: '知识库', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent' },
     ],
   },
   {

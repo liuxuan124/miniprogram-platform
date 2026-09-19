@@ -2,8 +2,8 @@
   <div class="member-center">
     <div class="page-header">
       <div>
-        <div class="page-title">会员运营中心</div>
-        <div class="page-desc">会员列表、平台付费档、成长展示等级与积分规则分栏管理。</div>
+        <div class="page-title">会员与权益</div>
+        <div class="page-desc">平台付费档决定门禁与权益；成长等级仅积分展示。审核队列与创作者见内容运营。</div>
       </div>
       <div class="header-actions">
         <el-button icon="Refresh" @click="refreshCurrent">刷新</el-button>
@@ -110,9 +110,11 @@
           :closable="false"
           show-icon
           style="margin-bottom: 12px"
-          title="平台付费档用于文章门禁、商城会员价等；购买后写入订购记录。赠送星球天数仅开通指定星球，不会通开全部星球。"
+          title="平台付费档用于文章门禁、商城会员价等；购买后写入订购记录。角标与到期提醒在此配置后落库，小程序有字段则展示。赠送星球天数仅开通指定星球。"
         />
         <div class="toolbar">
+          <el-button @click="$router.push('/content/audit')">审核队列</el-button>
+          <el-button @click="$router.push('/content/creators')">创作者审核</el-button>
           <div class="toolbar-spacer" />
           <el-button type="primary" @click="openPlanDialog()">新增平台付费档</el-button>
         </div>
@@ -143,6 +145,8 @@
               <div class="benefit-line">
                 折扣：{{ formatPlanDiscount(plan.discountRate) }}
                 · 权益：{{ (plan.rights || []).length ? (plan.rights || []).join('、') : '—' }}
+                <template v-if="plan.showBadge"> · 角标开</template>
+                <template v-if="(plan.expireRemindDays || 0) > 0"> · 到期前 {{ plan.expireRemindDays }} 天提醒</template>
               </div>
               <div class="level-actions">
                 <el-button link type="primary" @click="openPlanDialog(plan)">配置</el-button>
@@ -396,23 +400,31 @@
           />
           <div class="field-hint">1 = 无折扣，0.9 = 九折；仅平台档用于商城</div>
         </el-form-item>
-        <el-form-item label="权益码">
-          <el-select
-            v-model="planForm.rights"
-            multiple
-            filterable
-            allow-create
-            default-first-option
-            placeholder="可选，如 member_discount"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="code in benefitOptions"
-              :key="code"
-              :label="MemberBenefitLabels[code]"
-              :value="code"
-            />
-          </el-select>
+        <el-form-item label="权益开关">
+          <div class="benefit-checks">
+            <el-checkbox-group v-model="planForm.rights">
+              <div v-for="code in benefitOptions" :key="code" class="benefit-check-row">
+                <el-checkbox :value="code">{{ MemberBenefitLabels[code] }}</el-checkbox>
+                <span class="field-hint">{{ MemberBenefitHints[code] }}</span>
+              </div>
+            </el-checkbox-group>
+          </div>
+        </el-form-item>
+        <el-form-item label="专属身份角标">
+          <el-switch v-model="planForm.showBadge" active-text="开" inactive-text="关" />
+          <div class="field-hint">评论区与星球显示会员角标（小程序有字段则展示）</div>
+        </el-form-item>
+        <el-form-item label="到期提醒">
+          <el-switch v-model="planForm.expireRemindEnabled" active-text="开" inactive-text="关" />
+          <el-input-number
+            v-if="planForm.expireRemindEnabled"
+            v-model="planForm.expireRemindDays"
+            :min="1"
+            :max="30"
+            style="margin-left: 12px"
+          />
+          <span v-if="planForm.expireRemindEnabled" class="field-hint" style="margin-left: 8px">天前提醒续费</span>
+          <div class="field-hint">需用户授权订阅消息；推送链路一期先落库配置</div>
         </el-form-item>
         <el-form-item label="赠送星球天数">
           <el-input-number v-model="planForm.giftPlanetDays" :min="0" :max="3650" />
@@ -926,6 +938,9 @@ const planForm = reactive({
   description: '',
   discountRate: 1,
   rights: [] as string[],
+  showBadge: false,
+  expireRemindEnabled: false,
+  expireRemindDays: 7,
   giftPlanetDays: 0,
   giftPlanetId: '',
   sortOrder: 0,
@@ -955,6 +970,10 @@ function openPlanDialog(row?: MembershipPlan) {
   planForm.description = row?.description || ''
   planForm.discountRate = row?.discountRate != null ? Number(row.discountRate) : 1
   planForm.rights = row?.rights ? [...row.rights] : []
+  planForm.showBadge = Number(row?.showBadge ?? 0) === 1
+  const remind = Number(row?.expireRemindDays ?? 0)
+  planForm.expireRemindEnabled = remind > 0
+  planForm.expireRemindDays = remind > 0 ? remind : 7
   planForm.giftPlanetDays = row?.giftPlanetDays ?? 0
   planForm.giftPlanetId = row?.giftPlanetId || ''
   planForm.sortOrder = row?.sortOrder ?? 0
@@ -965,6 +984,9 @@ function openPlanDialog(row?: MembershipPlan) {
 function resetPlanForm() {
   planFormRef.value?.resetFields?.()
   planForm.rights = []
+  planForm.showBadge = false
+  planForm.expireRemindEnabled = false
+  planForm.expireRemindDays = 7
   planForm.giftPlanetDays = 0
   planForm.giftPlanetId = ''
   planForm.discountRate = 1
@@ -982,6 +1004,8 @@ async function handlePlanSubmit() {
       description: planForm.description || undefined,
       discountRate: planForm.discountRate,
       rights: [...planForm.rights],
+      showBadge: planForm.showBadge ? 1 : 0,
+      expireRemindDays: planForm.expireRemindEnabled ? planForm.expireRemindDays : 0,
       giftPlanetDays: planForm.giftPlanetDays,
       giftPlanetId: planForm.giftPlanetDays > 0 ? planForm.giftPlanetId.trim() : null,
       sortOrder: planForm.sortOrder,
@@ -1013,6 +1037,8 @@ async function togglePlanStatus(row: MembershipPlan) {
       description: row.description,
       discountRate: row.discountRate,
       rights: row.rights || [],
+      showBadge: row.showBadge ?? 0,
+      expireRemindDays: row.expireRemindDays ?? 0,
       giftPlanetDays: row.giftPlanetDays ?? 0,
       giftPlanetId: row.giftPlanetId,
       sortOrder: row.sortOrder,

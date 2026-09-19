@@ -4,6 +4,7 @@ import com.miniprogram.dto.planet.MainPlanetVO;
 import com.miniprogram.dto.planet.PlanetCommunityVO;
 import com.miniprogram.dto.planet.PlanetConfigDTO;
 import com.miniprogram.dto.planet.PlanetConfigVO;
+import com.miniprogram.entity.MembershipPlan;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.User;
 
@@ -54,6 +55,9 @@ public interface MembershipAccessService {
      * 无 plan 或 rights 空时回退成长等级 {@code mp_member_level.rights}。
      */
     boolean hasBenefit(Long userId, String code);
+
+    /** 当前有效平台付费档；无订购返回 null */
+    MembershipPlan findActivePlatformPlan(Long userId);
 
     /**
      * 会员价 / 会员免费 / 折扣：折扣优先读订购对应 {@code MembershipPlan.discountRate}，
