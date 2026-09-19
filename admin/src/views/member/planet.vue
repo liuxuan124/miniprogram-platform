@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h2>知识星球</h2>
-        <p>配置星球展示、未付费可见范围；会员等级与付费套餐均可在后台维护。</p>
+        <p>配置星球展示、未付费可见范围；各星球付费档在「多星球介绍」卡片下维护。</p>
       </div>
       <el-button type="primary" :loading="saving" @click="handleSave">保存星球配置</el-button>
     </div>
@@ -13,7 +13,7 @@
       :closable="false"
       show-icon
       style="margin-bottom: 16px"
-      title="星主发帖：内容管理 → 新建「动态」并勾选「星球专属」。用户购买套餐后写入对应会员等级，可看全文并下载资料。"
+      title="星主发帖：内容管理 → 新建「动态」并勾选「星球专属」。用户购买绑定本星球付费档的商品后，写入本星球订购，可看全文并下载资料。"
     />
 
     <el-tabs v-model="activeTab">
@@ -49,30 +49,18 @@
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="会员等级" name="levels">
+      <el-tab-pane label="说明" name="levels">
+        <el-alert
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 14px"
+          title="成长等级 ≠ 星球权益。积分成长档仅展示用；本星球付费门禁请在「多星球介绍」各卡片下的「本星球会员档」维护。"
+        />
         <div class="toolbar">
-          <span class="toolbar-desc">付费套餐开通后写入的等级在此维护（名称、积分门槛、折扣、权益）。</span>
-          <el-button type="primary" @click="$router.push('/member/level')">管理会员等级</el-button>
+          <span class="toolbar-desc">如需调整积分成长展示文案，可前往成长等级页（与付费订购无关）。</span>
+          <el-button @click="$router.push('/member/level')">查看成长等级</el-button>
         </div>
-        <el-table :data="levels" empty-text="暂无等级，请先新增">
-          <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="name" label="名称" min-width="120" />
-          <el-table-column label="积分门槛" width="110">
-            <template #default="{ row }">{{ row.minPoints ?? row.min_points ?? 0 }}</template>
-          </el-table-column>
-          <el-table-column label="折扣" width="90">
-            <template #default="{ row }">
-              {{ formatDiscount(row.discountRate ?? row.discount_rate) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="90">
-            <template #default="{ row }">
-              <el-tag :type="Number(row.status) === 1 ? 'success' : 'info'" size="small">
-                {{ Number(row.status) === 1 ? '启用' : '禁用' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
       </el-tab-pane>
 
       <el-tab-pane label="动态运营" name="ops">
@@ -231,13 +219,43 @@
               </div>
             </el-form-item>
           </el-form>
+
+          <el-divider content-position="left">本星球会员档（scope=planet）</el-divider>
+          <div class="planet-plans">
+            <div class="planet-plans__toolbar">
+              <span class="hint" style="margin-left: 0">仅对本星球 ID 生效；商品编辑时请绑定对应档位。</span>
+              <el-button type="primary" size="small" :disabled="!c.id" @click="openPlanetPlanDialog(c.id)">新增档位</el-button>
+            </div>
+            <el-table
+              :data="planetPlansMap[c.id] || []"
+              size="small"
+              empty-text="暂无本星球付费档"
+              v-loading="planetPlansLoading[c.id]"
+            >
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column label="排序" width="70" prop="sortOrder" />
+              <el-table-column label="状态" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+                    {{ row.status === 1 ? '启用' : '禁用' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="openPlanetPlanDialog(c.id, row)">编辑</el-button>
+                  <el-button link type="danger" size="small" @click="handleDeletePlanetPlan(c.id, row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </div>
         <el-button type="primary" plain @click="addCommunity">+ 新增星球</el-button>
       </el-tab-pane>
 
       <el-tab-pane label="付费套餐" name="packages">
         <div class="toolbar">
-          <span class="toolbar-desc">套餐=商品类型「会员」；可配价格、天数（0=终身）、开通等级。</span>
+          <span class="toolbar-desc">套餐=商品类型「会员」；请绑定 membershipPlanId（平台或星球档），天数 0=终身。</span>
           <div>
             <el-button @click="load">刷新</el-button>
             <el-button type="primary" @click="goCreatePackage">新建会员套餐</el-button>
@@ -251,7 +269,7 @@
               {{ row.membershipDays === 0 || row.membershipDays == null ? '终身' : row.membershipDays + ' 天' }}
             </template>
           </el-table-column>
-          <el-table-column prop="membershipLevelName" label="开通等级" width="120" />
+          <el-table-column prop="membershipLevelName" label="开通等级(旧)" width="120" />
           <el-table-column label="操作" width="120">
             <template #default="{ row }">
               <el-button link type="primary" @click="$router.push(`/product/edit/${row.productId}`)">编辑</el-button>
@@ -260,15 +278,50 @@
         </el-table>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog
+      v-model="planetPlanDialogVisible"
+      :title="editingPlanetPlanId ? '编辑本星球付费档' : '新增本星球付费档'"
+      width="480px"
+      @closed="resetPlanetPlanForm"
+    >
+      <el-form label-width="100px">
+        <el-form-item label="星球 ID">
+          <el-input :model-value="editingPlanetId" disabled />
+        </el-form-item>
+        <el-form-item label="档位名称" required>
+          <el-input v-model="planetPlanForm.name" placeholder="如：月卡" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="planetPlanForm.description" type="textarea" :rows="2" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="planetPlanForm.sortOrder" :min="0" :max="999" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="planetPlanForm.statusBool" active-text="启用" inactive-text="禁用" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="planetPlanDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="planetPlanSubmitting" @click="handlePlanetPlanSubmit">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { get, put } from '@/api/request'
-import { getMemberLevelList } from '@/api/member'
+import {
+  createMembershipPlan,
+  deleteMembershipPlan,
+  getMembershipPlanList,
+  updateMembershipPlan,
+  type MembershipPlan,
+} from '@/api/membershipPlan'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 
 const router = useRouter()
@@ -277,7 +330,8 @@ const saving = ref(false)
 const activeTab = ref('planet')
 const moduleEnabled = ref(false)
 const packages = ref<any[]>([])
-const levels = ref<any[]>([])
+const planetPlansMap = reactive<Record<string, MembershipPlan[]>>({})
+const planetPlansLoading = reactive<Record<string, boolean>>({})
 const communities = ref<Array<{
   id: string
   title: string
@@ -334,19 +388,98 @@ const liveStats = reactive<{
 
 const featureModules = useFeatureModulesStore()
 
-function formatDiscount(rate: unknown) {
-  const n = Number(rate)
-  if (!Number.isFinite(n) || n <= 0) return '-'
-  return `${(n * 10).toFixed(1)}折`
+const planetPlanDialogVisible = ref(false)
+const planetPlanSubmitting = ref(false)
+const editingPlanetId = ref('')
+const editingPlanetPlanId = ref<number | null>(null)
+const planetPlanForm = reactive({
+  name: '',
+  description: '',
+  sortOrder: 0,
+  statusBool: true,
+})
+
+async function loadPlanetPlans(planetId: string) {
+  if (!planetId) return
+  planetPlansLoading[planetId] = true
+  try {
+    const res = await getMembershipPlanList({ scope: 'planet', planetId })
+    planetPlansMap[planetId] = res.data || []
+  } catch {
+    planetPlansMap[planetId] = []
+  } finally {
+    planetPlansLoading[planetId] = false
+  }
 }
 
-async function loadLevels() {
+async function loadAllPlanetPlans() {
+  const ids = [...new Set(communities.value.map((c) => c.id).filter(Boolean))]
+  await Promise.all(ids.map((id) => loadPlanetPlans(id)))
+}
+
+function openPlanetPlanDialog(planetId: string, row?: MembershipPlan) {
+  if (!planetId) {
+    ElMessage.warning('请先填写星球 ID')
+    return
+  }
+  editingPlanetId.value = planetId
+  editingPlanetPlanId.value = row?.id ?? null
+  planetPlanForm.name = row?.name || ''
+  planetPlanForm.description = row?.description || ''
+  planetPlanForm.sortOrder = row?.sortOrder ?? 0
+  planetPlanForm.statusBool = row ? row.status === 1 : true
+  planetPlanDialogVisible.value = true
+}
+
+function resetPlanetPlanForm() {
+  planetPlanForm.name = ''
+  planetPlanForm.description = ''
+  planetPlanForm.sortOrder = 0
+  planetPlanForm.statusBool = true
+  editingPlanetPlanId.value = null
+}
+
+async function handlePlanetPlanSubmit() {
+  if (!planetPlanForm.name.trim()) {
+    ElMessage.warning('请填写档位名称')
+    return
+  }
+  planetPlanSubmitting.value = true
   try {
-    const res = await getMemberLevelList()
-    const data = (res as any)?.data ?? res
-    levels.value = Array.isArray(data) ? data : []
-  } catch {
-    levels.value = []
+    const payload = {
+      scope: 'planet' as const,
+      planetId: editingPlanetId.value,
+      name: planetPlanForm.name.trim(),
+      description: planetPlanForm.description || undefined,
+      giftPlanetDays: 0,
+      sortOrder: planetPlanForm.sortOrder,
+      status: planetPlanForm.statusBool ? 1 : 0,
+    }
+    if (editingPlanetPlanId.value != null) {
+      await updateMembershipPlan(editingPlanetPlanId.value, payload)
+      ElMessage.success('更新成功')
+    } else {
+      await createMembershipPlan(payload)
+      ElMessage.success('创建成功')
+    }
+    planetPlanDialogVisible.value = false
+    await loadPlanetPlans(editingPlanetId.value)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    planetPlanSubmitting.value = false
+  }
+}
+
+async function handleDeletePlanetPlan(planetId: string, row: MembershipPlan) {
+  try {
+    await ElMessageBox.confirm(`确定删除「${row.name}」？`, '删除确认', { type: 'warning' })
+    await deleteMembershipPlan(row.id)
+    ElMessage.success('已删除')
+    await loadPlanetPlans(planetId)
+  } catch (e: any) {
+    if (e === 'cancel' || e === 'close') return
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 
@@ -443,7 +576,7 @@ async function load() {
         liveStats.homeItems = Array.isArray(live.homeItems) ? live.homeItems : []
       }
     }
-    await loadLevels()
+    await loadAllPlanetPlans()
   } catch (e: any) {
     ElMessage.error(e?.message || '加载失败')
   } finally {
@@ -565,4 +698,12 @@ onMounted(load)
 }
 .hl-list { width: 100%; }
 .hl-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.planet-plans { margin: 8px 0 16px; }
+.planet-plans__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 </style>

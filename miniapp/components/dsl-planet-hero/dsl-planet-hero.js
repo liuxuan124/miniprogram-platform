@@ -54,17 +54,31 @@ Component({
       if (manual) return
       PlanetService.getPlanetHome().then((home) => {
         if (!home) return
+        const planetActive = !!(home.planetMemberActive != null
+          ? home.planetMemberActive
+          : (home.memberActive || home.isMember))
+        const packages = Array.isArray(home.packages) ? home.packages : []
+        const firstPkg = packages[0]
+        const pkgId = firstPkg && (firstPkg.productId || firstPkg.id)
         const patch = {
           title: home.title || seed.title,
           subtitle: home.subtitle || seed.subtitle,
-          joinText: (home.memberActive || home.isMember) ? '已加入' : seed.joinText,
+          joinText: planetActive ? '已加入' : seed.joinText,
           logoEmoji: seed.logoEmoji,
-          joinLink: seed.joinLink,
+          joinLink: pkgId
+            ? `/pages/product-detail/product-detail?id=${encodeURIComponent(pkgId)}`
+            : seed.joinLink,
           joinRowLink: seed.joinRowLink,
           joinRowGo: seed.joinRowGo,
           joinRowText: seed.joinRowText,
         }
-        if (home.expireText) patch.expireText = home.expireText
+        if (planetActive && home.planetExpireText) {
+          patch.expireText = home.planetExpireText
+        } else if (planetActive && home.expireText) {
+          patch.expireText = home.expireText
+        } else if (!planetActive) {
+          patch.expireText = ''
+        }
         if (Array.isArray(home.kpis) && home.kpis.length) patch.kpis = home.kpis
         this.setData(patch)
       }).catch(() => {})
@@ -83,10 +97,22 @@ Component({
       const url = this.data.joinLink || '/pkg-user/member-center/member-center'
       wx.navigateTo({
         url,
-        fail: () => wx.navigateTo({
-          url: '/pages/member-center/member-center',
-          fail: () => wx.showToast({ title: '暂时打不开会员中心', icon: 'none' }),
-        }),
+        fail: () => {
+          if (url.indexOf('product-detail') >= 0) {
+            wx.navigateTo({
+              url: '/pkg-user/member-center/member-center',
+              fail: () => wx.navigateTo({
+                url: '/pages/member-center/member-center',
+                fail: () => wx.showToast({ title: '暂时打不开', icon: 'none' }),
+              }),
+            })
+            return
+          }
+          wx.navigateTo({
+            url: '/pages/member-center/member-center',
+            fail: () => wx.showToast({ title: '暂时打不开会员中心', icon: 'none' }),
+          })
+        },
       })
     },
     onJoinRow() {

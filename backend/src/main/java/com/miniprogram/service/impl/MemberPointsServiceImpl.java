@@ -22,7 +22,9 @@ import com.miniprogram.service.MemberPointsLogService;
 import com.miniprogram.service.MemberPointsService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.UserCouponService;
+import com.miniprogram.util.PublicMediaUrl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,9 @@ import java.util.List;
 public class MemberPointsServiceImpl implements MemberPointsService {
 
     private static final int DEFAULT_SIGN_IN_POINTS = 10;
+
+    @Value("${file.base-url:https://api.zfculture.site}")
+    private String fileBaseUrl;
 
     private final UserMapper userMapper;
     private final MemberLevelMapper memberLevelMapper;
@@ -59,7 +64,7 @@ public class MemberPointsServiceImpl implements MemberPointsService {
         MemberInfoVO vo = new MemberInfoVO();
         vo.setUserId(user.getId());
         vo.setNickname(user.getNickname());
-        vo.setAvatarUrl(user.getAvatarUrl());
+        vo.setAvatarUrl(PublicMediaUrl.normalize(user.getAvatarUrl(), fileBaseUrl));
         vo.setPoints(nullToZero(user.getPoints()));
         vo.setLevelId(level != null ? level.getId() : null);
         vo.setLevelName(level != null ? level.getName() : "普通会员");
@@ -100,9 +105,10 @@ public class MemberPointsServiceImpl implements MemberPointsService {
         user.setPoints(totalPoints);
         user.setContinuousSignDays(continuousDays);
         user.setLastSignDate(today);
-        MemberLevel level = resolveLevel(totalPoints);
-        if (level != null) {
-            user.setLevelId(level.getId());
+        // 成长展示档：仅 min_points 展示，付费权益以 mp_member_subscription 为准（禁止改 memberExpireAt）
+        MemberLevel growth = resolveLevel(totalPoints);
+        if (growth != null) {
+            user.setLevelId(growth.getId());
         }
         userMapper.updateById(user);
 
@@ -213,9 +219,10 @@ public class MemberPointsServiceImpl implements MemberPointsService {
             throw new BusinessException(400201, "积分不足");
         }
         user.setPoints(totalPoints);
-        MemberLevel level = resolveLevel(totalPoints);
-        if (level != null) {
-            user.setLevelId(level.getId());
+        // 成长展示档：仅 min_points 展示，付费权益以 mp_member_subscription 为准（禁止改 memberExpireAt）
+        MemberLevel growth = resolveLevel(totalPoints);
+        if (growth != null) {
+            user.setLevelId(growth.getId());
         }
         userMapper.updateById(user);
 

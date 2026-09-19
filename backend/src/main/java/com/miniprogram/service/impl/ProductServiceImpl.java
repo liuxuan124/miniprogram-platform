@@ -6,12 +6,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
+import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
+import com.miniprogram.entity.MembershipPlan;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.ProductCategory;
 import com.miniprogram.entity.ProductSku;
+import com.miniprogram.mapper.MembershipPlanMapper;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.ProductCategoryMapper;
 import com.miniprogram.mapper.ProductMapper;
@@ -53,6 +56,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
     private final ProductSkuMapper productSkuMapper;
     private final ProductCategoryMapper productCategoryMapper;
     private final OrderMapper orderMapper;
+    private final MembershipPlanMapper membershipPlanMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -130,6 +134,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getPreviewChapters() != null) product.setPreviewChapters(dto.getPreviewChapters());
         if (dto.getMembershipDays() != null) product.setMembershipDays(dto.getMembershipDays());
         if (dto.getMembershipLevelId() != null) product.setMembershipLevelId(dto.getMembershipLevelId());
+        if (dto.getMembershipPlanId() != null) product.setMembershipPlanId(dto.getMembershipPlanId());
         if (dto.getPublishAt() != null) product.setPublishAt(dto.getPublishAt());
         if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())
                 || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
@@ -143,6 +148,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
                 }
             }
         }
+        validateMembershipPlanBinding(product);
         // 与内容/优惠券一致：新建默认草稿，需显式上架
         product.setStatus("draft");
         if (product.getSales() == null) {
@@ -189,6 +195,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getPreviewChapters() != null) product.setPreviewChapters(dto.getPreviewChapters());
         if (dto.getMembershipDays() != null) product.setMembershipDays(dto.getMembershipDays());
         if (dto.getMembershipLevelId() != null) product.setMembershipLevelId(dto.getMembershipLevelId());
+        if (dto.getMembershipPlanId() != null) product.setMembershipPlanId(dto.getMembershipPlanId());
         if (dto.getPublishAt() != null) product.setPublishAt(dto.getPublishAt());
         if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())
                 || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
@@ -202,6 +209,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
                 product.setMembershipDays(0);
             }
         }
+        validateMembershipPlanBinding(product);
         this.updateById(product);
 
         if (dto.getSkus() != null) {
@@ -540,6 +548,30 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
 
         if (!missing.isEmpty()) {
             throw new BusinessException(500202, "商品资料不完整，无法上架：" + String.join("、", missing));
+        }
+        validateMembershipPlanBinding(product);
+    }
+
+    /**
+     * 会员商品必须绑定启用中的付费档。
+     * 一期 Product 无独立「星球意图」字段：平台/星球由 plan.scope（及 plan.planetId）表达。
+     */
+    private void validateMembershipPlanBinding(Product product) {
+        if (product == null || !ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) {
+            return;
+        }
+        if (product.getMembershipPlanId() == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(),
+                    "会员商品必须绑定付费档位 membershipPlanId");
+        }
+        MembershipPlan plan = membershipPlanMapper.selectById(product.getMembershipPlanId());
+        if (plan == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND.getCode(),
+                    "付费档位不存在: planId=" + product.getMembershipPlanId());
+        }
+        if (plan.getStatus() != null && plan.getStatus() == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(),
+                    "付费档位已禁用，请选择启用中的档位");
         }
     }
 

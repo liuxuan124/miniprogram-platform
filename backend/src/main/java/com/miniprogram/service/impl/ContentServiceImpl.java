@@ -338,7 +338,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
 
         String sortBy = mpQuery.getSortBy() == null ? "new" : mpQuery.getSortBy().trim().toLowerCase();
         Long listUserId = SecurityUtils.getCurrentUserId();
-        boolean listMember = membershipAccessService.hasActivePaidMembership(listUserId);
+        boolean listMember = membershipAccessService.hasPlatformMembership(listUserId);
         if ("vip".equals(sortBy) && !listMember) {
             long cur = mpQuery.getCurrent() == null ? 1L : mpQuery.getCurrent().longValue();
             long sz = mpQuery.getSize() == null ? 10L : mpQuery.getSize().longValue();
@@ -414,7 +414,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
 
         boolean memberOnly = "member_only".equalsIgnoreCase(entity.getVisibility());
         if (memberOnly) {
-            boolean unlocked = membershipAccessService.hasActivePaidMembership(userId)
+            boolean unlocked = membershipAccessService.hasPlatformMembership(userId)
                     || membershipAccessService.hasBenefit(userId, MemberBenefitCodes.ARTICLE_FREE);
             applyPlanetGate(dto, unlocked, membershipAccessService.unpaidViewMode(), true);
             if (unlocked) {
@@ -440,7 +440,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         q.setContentType(StringUtils.hasText(q.getContentType()) ? q.getContentType() : "moment");
         q.setPlanetExclusive(1);
 
-        boolean member = membershipAccessService.hasActivePaidMembership(userId);
+        String gatePlanetId = resolvePlanetIdForGate(q.getPlanetId());
+        boolean member = membershipAccessService.hasPlanetMembership(userId, gatePlanetId);
         String mode = membershipAccessService.unpaidViewMode();
         int previewN = membershipAccessService.previewCount();
 
@@ -475,7 +476,10 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             boolean unlocked = member || ("preview_n".equals(mode) && (offset + i) < previewN);
             applyPlanetGate(dto, unlocked, mode, false);
             if (unlocked && dto.getAttachments() != null && !dto.getAttachments().isEmpty()) {
-                dto.setAttachments(fileEntitlementService.enrichAttachments(dto.getAttachments(), userId));
+                String filePlanetId = StringUtils.hasText(entity.getPlanetId())
+                        ? entity.getPlanetId().trim() : gatePlanetId;
+                dto.setAttachments(fileEntitlementService.enrichAttachments(
+                        dto.getAttachments(), userId, filePlanetId));
             }
             records.add(dto);
         }
@@ -490,7 +494,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                 || !Integer.valueOf(1).equals(entity.getPlanetExclusive())) {
             throw new BusinessException(ErrorCode.CONTENT_NOT_FOUND);
         }
-        boolean member = membershipAccessService.hasActivePaidMembership(userId);
+        String gatePlanetId = resolvePlanetIdForGate(entity.getPlanetId());
+        boolean member = membershipAccessService.hasPlanetMembership(userId, gatePlanetId);
         String mode = membershipAccessService.unpaidViewMode();
         if (!member && "hidden".equals(mode)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED.getCode(), "开通会员后可查看星球内容");
@@ -507,7 +512,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         applyPlanetGate(dto, unlocked, mode, true);
         if (unlocked) {
-            dto.setAttachments(fileEntitlementService.enrichAttachments(dto.getAttachments(), userId));
+            dto.setAttachments(fileEntitlementService.enrichAttachments(
+                    dto.getAttachments(), userId, gatePlanetId));
         } else {
             // 详情未解锁：仍返回附件元信息（无 URL），便于展示 PDF 卡片
             if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
@@ -849,5 +855,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             log.info("定时发布内容 id={} title={}", item.getId(), item.getTitle());
         }
         return count;
+    }
+
+    private String resolvePlanetIdForGate(String planetId) {
+        if (StringUtils.hasText(planetId)) {
+            return planetId.trim();
+        }
+        return membershipAccessService.resolveDefaultPlanetId();
     }
 }

@@ -7,6 +7,7 @@ import com.miniprogram.service.FileUploadService;
 import com.miniprogram.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -36,6 +37,21 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     @Value("${file.base-url:http://localhost:8080}")
     private String baseUrl;
+
+    @PostConstruct
+    public void ensureUploadDir() {
+        try {
+            Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(dir);
+            if (!Files.isWritable(dir)) {
+                log.error("上传目录不可写: {}（请检查 FILE_UPLOAD_DIR 权限）", dir);
+            } else {
+                log.info("上传目录就绪: {}", dir);
+            }
+        } catch (IOException e) {
+            log.error("无法创建上传目录: {} — {}", uploadDir, e.getMessage(), e);
+        }
+    }
 
     /**
      * 允许的文件扩展名
@@ -99,7 +115,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             Files.copy(file.getInputStream(), filePath);
             log.info("文件上传成功: {}", filePath);
         } catch (IOException e) {
-            log.error("文件上传失败: {}", e.getMessage(), e);
+            log.error("文件上传失败 uploadDir={} relativePath={}: {}", uploadDir, relativePath, e.getMessage(), e);
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
         return buildUploadResult(originalFileName, relativePath, file.getSize(), file.getContentType());
@@ -113,7 +129,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             Files.write(filePath, data);
             log.info("字节文件上传成功: {}", filePath);
         } catch (IOException e) {
-            log.error("字节文件上传失败: {}", e.getMessage(), e);
+            log.error("字节文件上传失败 uploadDir={} relativePath={}: {}", uploadDir, relativePath, e.getMessage(), e);
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
         return buildUploadResult(originalFileName, relativePath, data.length, "application/octet-stream");

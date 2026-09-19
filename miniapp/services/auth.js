@@ -1,7 +1,7 @@
 // services/auth.js — 登录服务
 // 封装微信登录完整流程：wx.login → 后端换 token → 绑定手机号 → 本地存储
 
-const { post } = require('../utils/request')
+const { post, put } = require('../utils/request')
 const { AuthUtil } = require('../utils/auth')
 
 /**
@@ -109,19 +109,23 @@ const AuthService = {
   },
 
   /**
-   * 更新资料（后端暂无专用资料接口时，本地持久化）
+   * 更新资料：同步后端并本地持久化（拒绝把 wxfile 当作最终头像）
    * @param {{ nickname?: string, avatarUrl?: string, phone?: string, email?: string }} profile
+   * @param {{ showError?: boolean }} [options]
    */
-  updateProfile(profile = {}) {
+  updateProfile(profile = {}, options = {}) {
     const current = AuthUtil.getUserInfo() || {}
     const nickName =
       profile.nickname != null
         ? String(profile.nickname)
         : (current.nickName || current.nickname || '')
-    const avatarUrl =
+    let avatarUrl =
       profile.avatarUrl != null
         ? String(profile.avatarUrl)
         : (current.avatarUrl || '')
+    if (/^wxfile:/i.test(avatarUrl) || /^http:\/\/tmp\//i.test(avatarUrl)) {
+      avatarUrl = ''
+    }
     const phone =
       profile.phone != null
         ? String(profile.phone)
@@ -135,27 +139,45 @@ const AuthService = {
       return Promise.reject({ code: -1, message: '昵称不能超过10个字' })
     }
 
-    const nextUserInfo = {
-      ...current,
-      nickName,
-      nickname: nickName,
-      avatarUrl,
-      phone,
-      phoneBound: !!String(phone).trim(),
-      email,
+    const payload = {}
+    if (profile.nickname != null) payload.nickname = nickName
+    if (profile.avatarUrl != null && avatarUrl) payload.avatarUrl = avatarUrl
+
+    const persistLocal = () => {
+      const nextUserInfo = {
+        ...current,
+        nickName,
+        nickname: nickName,
+        avatarUrl: avatarUrl || current.avatarUrl || '',
+        phone,
+        phoneBound: !!String(phone).trim(),
+        email,
+      }
+      // 若本次显式清空临时路径，不把 wxfile 留在本地
+      if (profile.avatarUrl != null) {
+        nextUserInfo.avatarUrl = avatarUrl
+      }
+
+      const app = getApp()
+      if (app && typeof app.setAuthState === 'function') {
+        const token = (app.globalData && app.globalData.token) || AuthUtil.getToken()
+        app.setAuthState({ token, userInfo: nextUserInfo })
+      } else if (app && typeof app.updateUserInfo === 'function') {
+        app.updateUserInfo(nextUserInfo)
+      } else {
+        AuthUtil.setUserInfo(nextUserInfo)
+      }
+      AuthUtil.rememberLoginProfile({ nickName, avatarUrl: nextUserInfo.avatarUrl })
+      return nextUserInfo
     }
 
-    const app = getApp()
-    if (app && typeof app.setAuthState === 'function') {
-      const token = (app.globalData && app.globalData.token) || AuthUtil.getToken()
-      app.setAuthState({ token, userInfo: nextUserInfo })
-    } else if (app && typeof app.updateUserInfo === 'function') {
-      app.updateUserInfo(nextUserInfo)
-    } else {
-      AuthUtil.setUserInfo(nextUserInfo)
+    if (!payload.nickname && !payload.avatarUrl) {
+      return Promise.resolve(persistLocal())
     }
-    AuthUtil.rememberLoginProfile({ nickName, avatarUrl })
-    return Promise.resolve(nextUserInfo)
+
+    return put('/api/v1/mp/auth/profile', payload, {
+      showError: options.showError !== false,
+    }).then(() => persistLocal())
   },
 
   /**
@@ -165,12 +187,16 @@ const AuthService = {
     const app = getApp()
     const current = (app && app.globalData && app.globalData.userInfo) || AuthUtil.getUserInfo() || {}
     const token = (app && app.globalData && app.globalData.token) || AuthUtil.getToken()
+    let nextAvatar = avatarUrl || current.avatarUrl || ''
+    if (/^wxfile:/i.test(nextAvatar) || /^http:\/\/tmp\//i.test(nextAvatar)) {
+      nextAvatar = ''
+    }
     const nextUserInfo = {
       ...current,
       phone,
       phoneBound: true,
       nickName: nickName || current.nickName || '',
-      avatarUrl: avatarUrl || current.avatarUrl || '',
+      avatarUrl: nextAvatar,
     }
 
     if (app) {

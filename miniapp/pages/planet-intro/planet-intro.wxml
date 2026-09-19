@@ -29,6 +29,9 @@
         >{{item}}</text>
       </view>
 
+      <view class="pi-exp" wx:if="{{planetExpireText}}">🎫 {{planetExpireText}}</view>
+      <view class="pi-exp pi-exp--muted" wx:elif="{{!planetMemberActive}}">尚未开通本星球会员</view>
+
       <view class="pi-hl" wx:if="{{community.highlights.length}}">
         <text class="pi-hl__label">你会得到</text>
         <view

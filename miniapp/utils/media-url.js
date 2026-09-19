@@ -39,6 +39,8 @@ function resolveMediaUrl(url) {
 
   const path = value.startsWith('/') ? value : `/${value}`
   if (path.startsWith('/uploads/')) return apiOrigin + path
+  // 历史脏数据：avatar/yyyy-MM-dd/xxx.jpeg（缺 /uploads/）
+  if (path.startsWith('/avatar/')) return `${apiOrigin}/uploads${path}`
 
   return value
 }

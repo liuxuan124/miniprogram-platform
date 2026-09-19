@@ -96,6 +96,7 @@ public class SecurityConfig {
                                 "/api/v1/mp/creator/apply",
                                 // 上传文件静态资源访问
                                 "/uploads/**",
+                                "/avatar/**",
                                 // 健康检查
                                 "/api/health",
                                 "/actuator/health",

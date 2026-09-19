@@ -97,8 +97,11 @@ public class ProductDetailVO {
     @Schema(description = "会员天数，0=终身")
     private Integer membershipDays;
 
-    @Schema(description = "开通后的会员等级ID")
+    @Schema(description = "开通后的会员等级ID（旧字段，兼容）")
     private Long membershipLevelId;
+
+    @Schema(description = "绑定的付费会员档ID（会员商品必填；一期无独立星球意图字段，平台/星球由 plan.scope 表达）")
+    private Long membershipPlanId;
 
     @Schema(description = "SKU列表")
     private List<ProductSkuVO> skus;

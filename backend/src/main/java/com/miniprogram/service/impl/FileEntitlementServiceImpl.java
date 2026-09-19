@@ -47,15 +47,25 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
 
     @Override
     public FileAccessVO getAccess(Long fileId, Long userId) {
+        return getAccess(fileId, userId, null);
+    }
+
+    @Override
+    public FileAccessVO getAccess(Long fileId, Long userId, String planetId) {
         FileItem item = fileItemMapper.selectById(fileId);
         if (item == null || !"published".equals(item.getStatus())) {
             throw new BusinessException(404001, "文件不存在或未发布");
         }
-        return buildAccessVO(item, userId);
+        return buildAccessVO(item, userId, planetId);
     }
 
     @Override
     public FileAccessVO buildAccessVO(FileItem item, Long userId) {
+        return buildAccessVO(item, userId, null);
+    }
+
+    @Override
+    public FileAccessVO buildAccessVO(FileItem item, Long userId, String planetId) {
         FileAccessVO vo = new FileAccessVO();
         vo.setId(item.getId());
         vo.setName(item.getName());
@@ -78,11 +88,11 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         vo.setPreviewPages(resolveKeepPages(item));
 
         boolean unlockAll = membershipAccessService.hasBenefit(userId, MemberBenefitCodes.FILE_UNLOCK_ALL);
-        boolean canRead = unlockAll || canRead(item, userId);
-        boolean canDownload = canDownload(item, userId);
+        boolean canRead = unlockAll || canRead(item, userId, planetId);
+        boolean canDownload = canDownload(item, userId, planetId);
         vo.setCanRead(canRead);
         vo.setCanDownload(canDownload);
-        vo.setCanPreview(!canRead && canPreview(item, userId));
+        vo.setCanPreview(!canRead && canPreview(item, userId, planetId));
 
         if (vo.getCanPreview()) {
             int percent = resolvePreviewPercent(item);
@@ -131,6 +141,11 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
 
     @Override
     public boolean canRead(FileItem item, Long userId) {
+        return canRead(item, userId, null);
+    }
+
+    @Override
+    public boolean canRead(FileItem item, Long userId, String planetId) {
         if (item == null) {
             return false;
         }
@@ -142,7 +157,7 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
             case "free" -> true;
             case "login" -> userId != null;
             case "member" -> isMember(userId);
-            case "planet_member" -> isPlanetMember(userId);
+            case "planet_member" -> isPlanetMember(userId, planetId);
             case "level" -> meetsMinLevel(userId, item.getMinReadLevelId());
             case "column_buyer" -> isColumnBuyer(userId, item);
             default -> false;
@@ -151,13 +166,18 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
 
     @Override
     public boolean canDownload(FileItem item, Long userId) {
+        return canDownload(item, userId, null);
+    }
+
+    @Override
+    public boolean canDownload(FileItem item, Long userId, String planetId) {
         if (item == null) {
             return false;
         }
         if (item.getAllowDownload() == null || item.getAllowDownload() == 0) {
             return false;
         }
-        if (!canRead(item, userId)) {
+        if (!canRead(item, userId, planetId)) {
             return false;
         }
         String audience = StringUtils.hasText(item.getDownloadAudience()) ? item.getDownloadAudience() : "all";
@@ -200,6 +220,11 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
 
     @Override
     public List<ContentAttachmentDTO> enrichAttachments(List<ContentAttachmentDTO> attachments, Long userId) {
+        return enrichAttachments(attachments, userId, null);
+    }
+
+    @Override
+    public List<ContentAttachmentDTO> enrichAttachments(List<ContentAttachmentDTO> attachments, Long userId, String planetId) {
         if (attachments == null || attachments.isEmpty()) {
             return attachments;
         }
@@ -209,7 +234,7 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
             if (copy.getFileId() != null) {
                 FileItem item = fileItemMapper.selectById(copy.getFileId());
                 if (item != null) {
-                    FileAccessVO access = buildAccessVO(item, userId);
+                    FileAccessVO access = buildAccessVO(item, userId, planetId);
                     copy.setName(StringUtils.hasText(copy.getName()) ? copy.getName() : item.getName());
                     copy.setSize(item.getSize());
                     copy.setMimeType(item.getMimeType());
@@ -252,13 +277,18 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
 
     @Override
     public boolean canPreview(FileItem item, Long userId) {
+        return canPreview(item, userId, null);
+    }
+
+    @Override
+    public boolean canPreview(FileItem item, Long userId, String planetId) {
         if (item == null) {
             return false;
         }
         if (membershipAccessService.hasBenefit(userId, MemberBenefitCodes.FILE_UNLOCK_ALL)) {
             return false;
         }
-        if (canRead(item, userId)) {
+        if (canRead(item, userId, planetId)) {
             return false;
         }
         return canPreviewByMode(item);
@@ -339,15 +369,22 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
     }
 
     private boolean isMember(Long userId) {
-        return membershipAccessService.hasActivePaidMembership(userId);
+        return membershipAccessService.hasPlatformMembership(userId);
     }
 
-    private boolean isPlanetMember(Long userId) {
-        if (userId == null) {
+    /**
+     * {@code planet_member} 资料门禁策略 B（更安全）：
+     * <ul>
+     *   <li>上下文有明确 {@code planetId} → {@code hasPlanetMembership(userId, planetId)}</li>
+     *   <li>无明确星球 → false（不回退「默认星球」、不接受「任一星球有效」）</li>
+     * </ul>
+     * 成长权益码 {@code planet_exclusive} 仅作展示兼容，不单独放行付费资料。
+     */
+    private boolean isPlanetMember(Long userId, String planetId) {
+        if (userId == null || !StringUtils.hasText(planetId)) {
             return false;
         }
-        return membershipAccessService.hasBenefit(userId, MemberBenefitCodes.PLANET_EXCLUSIVE)
-                || membershipAccessService.hasActivePaidMembership(userId);
+        return membershipAccessService.hasPlanetMembership(userId, planetId.trim());
     }
 
     private String buildWatermarkText(FileItem item, Long userId) {

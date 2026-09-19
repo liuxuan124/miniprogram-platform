@@ -1,10 +1,17 @@
 <template>
   <div class="member-level-container">
+    <el-alert
+      type="info"
+      :closable="false"
+      show-icon
+      style="margin-bottom: 12px"
+      title="此处为积分成长展示档，仅影响「我的」等处的等级文案；付费门禁（能不能看会员内容）以「平台付费档 / 星球付费档」订购为准。"
+    />
     <!-- 操作区 -->
     <el-card shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>会员等级管理</span>
+          <span>成长等级（展示）</span>
           <div style="display: flex; gap: 8px">
             <el-button type="primary" icon="Plus" @click="handleCreate">新增等级</el-button>
           </div>

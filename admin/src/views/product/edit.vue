@@ -107,12 +107,36 @@
                 <template v-if="isMembershipProduct">
                   <el-form-item label="会员天数" class="span-all">
                     <el-input-number v-model="formData.membershipDays" :min="0" :max="3650" controls-position="right" />
-                    <div class="form-tip">0 = 终身；支付成功后写入用户会员等级与到期时间。</div>
+                    <div class="form-tip">0 = 终身；支付成功后按绑定的付费档写入订购记录。</div>
                   </el-form-item>
-                  <el-form-item label="开通等级" class="span-all">
-                    <el-select v-model="formData.membershipLevelId" placeholder="选择会员等级" clearable style="width: 280px">
+                  <el-form-item label="付费档位" class="span-all" required>
+                    <el-select
+                      v-model="formData.membershipPlanId"
+                      placeholder="选择付费档（按平台/星球分组）"
+                      filterable
+                      clearable
+                      style="width: 360px"
+                    >
+                      <el-option-group
+                        v-for="group in membershipPlanGroups"
+                        :key="group.label"
+                        :label="group.label"
+                      >
+                        <el-option
+                          v-for="p in group.options"
+                          :key="p.id"
+                          :label="p.label"
+                          :value="p.id"
+                        />
+                      </el-option-group>
+                    </el-select>
+                    <div class="form-tip">必选。平台档开平台权益；星球档仅开通对应星球。</div>
+                  </el-form-item>
+                  <el-form-item label="成长等级(旧)" class="span-all">
+                    <el-select v-model="formData.membershipLevelId" placeholder="可选，兼容旧数据" clearable style="width: 280px">
                       <el-option v-for="lv in memberLevels" :key="lv.id" :label="lv.name" :value="lv.id" />
                     </el-select>
+                    <div class="form-tip">不再作为付费门禁；建议逐步改绑上方付费档。</div>
                   </el-form-item>
                 </template>
 
@@ -533,6 +557,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { Back, Delete, Picture, Plus, Upload } from '@element-plus/icons-vue'
 import { getProduct, createProduct, updateProduct, getCategoryList, onSaleProduct } from '@/api/product'
 import { getMemberLevelList } from '@/api/member'
+import { getMembershipPlanList, type MembershipPlan } from '@/api/membershipPlan'
 import { uploadFile } from '@/api/system'
 import { post } from '@/api/request'
 import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
@@ -605,6 +630,7 @@ const formData = reactive({
   fulfillContent: '',
   membershipDays: 0,
   membershipLevelId: undefined as number | undefined,
+  membershipPlanId: undefined as number | undefined,
   memberPrice: undefined as number | undefined,
   memberFree: 0,
   deliveryMode: 'auto',
@@ -614,6 +640,30 @@ const formData = reactive({
 })
 
 const memberLevels = ref<Array<{ id: number; name: string }>>([])
+const membershipPlans = ref<MembershipPlan[]>([])
+const membershipPlanGroups = computed(() => {
+  const platform = membershipPlans.value.filter((p) => p.scope === 'platform')
+  const byPlanet = new Map<string, MembershipPlan[]>()
+  for (const p of membershipPlans.value.filter((x) => x.scope === 'planet')) {
+    const key = p.planetId || '未指定星球'
+    if (!byPlanet.has(key)) byPlanet.set(key, [])
+    byPlanet.get(key)!.push(p)
+  }
+  const groups: Array<{ label: string; options: Array<{ id: number; label: string }> }> = []
+  if (platform.length) {
+    groups.push({
+      label: '平台付费档',
+      options: platform.map((p) => ({ id: p.id, label: p.name })),
+    })
+  }
+  for (const [planetId, list] of byPlanet) {
+    groups.push({
+      label: `星球 · ${planetId}`,
+      options: list.map((p) => ({ id: p.id, label: p.name })),
+    })
+  }
+  return groups
+})
 
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
@@ -910,6 +960,7 @@ function buildApiPayload() {
     fulfillContent: canAutoFulfill.value && formData.autoFulfill === 1 ? formData.fulfillContent : '',
     membershipDays: isMembershipProduct.value ? formData.membershipDays : undefined,
     membershipLevelId: isMembershipProduct.value ? formData.membershipLevelId : undefined,
+    membershipPlanId: isMembershipProduct.value ? formData.membershipPlanId : undefined,
     memberPrice: formData.memberPrice != null ? formData.memberPrice : undefined,
     memberFree: formData.memberFree ? 1 : 0,
     deliveryMode: formData.deliveryMode || 'auto',
@@ -932,8 +983,8 @@ function getPublishErrors() {
   if (!isDigitalOnly.value && !isMembershipProduct.value && formData.skus.every((sku) => toNumber(sku.stock, 0) <= 0)) {
     errors.push('配置可售库存')
   }
-  if (isMembershipProduct.value && !formData.membershipLevelId) {
-    errors.push('选择开通会员等级')
+  if (isMembershipProduct.value && !formData.membershipPlanId) {
+    errors.push('选择付费档位')
   }
   return errors
 }
@@ -1024,6 +1075,7 @@ async function fetchProduct() {
     formData.fulfillContent = product.fulfillContent ?? product.fulfill_content ?? ''
     formData.membershipDays = Number(product.membershipDays ?? product.membership_days ?? 0)
     formData.membershipLevelId = product.membershipLevelId ?? product.membership_level_id ?? undefined
+    formData.membershipPlanId = product.membershipPlanId ?? product.membership_plan_id ?? undefined
     formData.memberPrice = product.memberPrice ?? product.member_price ?? undefined
     formData.memberFree = Number(product.memberFree ?? product.member_free ?? 0) ? 1 : 0
     formData.deliveryMode = product.deliveryMode ?? product.delivery_mode ?? 'auto'
@@ -1523,6 +1575,9 @@ onMounted(() => {
       id: Number(lv.id),
       name: lv.name || `等级${lv.id}`,
     }))
+  }).catch(() => {})
+  getMembershipPlanList().then((res: any) => {
+    membershipPlans.value = (res?.data || []).filter((p: MembershipPlan) => p.status === 1)
   }).catch(() => {})
   if (isEdit.value) {
     fetchProduct()

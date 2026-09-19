@@ -80,7 +80,7 @@ const EMPTY_SEGS = [
   { key: 'checkin', label: '打卡' },
   { key: 'resources', label: '资料库' },
 ]
-const EMPTY_HOME = { title: '暖阁星球', subtitle: '内容创作者的自留地', memberActive: false }
+const EMPTY_HOME = { title: '暖阁星球', subtitle: '内容创作者的自留地', memberActive: false, planetMemberActive: false }
 
 function relativeTime(value) {
   const raw = String(value || '').replace('T', ' ')
@@ -314,17 +314,24 @@ Page({
         planetModeLabel: '我的常驻星球',
       }
       if (home) {
+        const planetActive = !!(home.planetMemberActive != null
+          ? home.planetMemberActive
+          : (home.memberActive || home.isMember))
         patch.home = {
           title: (community && community.title) || home.title || EMPTY_HOME.title,
           subtitle: (community && community.subtitle) || home.subtitle || EMPTY_HOME.subtitle,
-          memberActive: !!(home.memberActive || home.isMember),
+          memberActive: planetActive,
+          planetMemberActive: planetActive,
+          platformMemberActive: !!home.platformMemberActive,
         }
         if (home.packages && home.packages.length) patch.packages = home.packages
         patch.expireText = ''
-        if (patch.home.memberActive) {
-          if (home.memberExpireAt) {
-            patch.expireText = `会员有效期至 ${String(home.memberExpireAt).slice(0, 10)}`
-          } else if (home.expireText && /有效期|剩余/.test(String(home.expireText))) {
+        if (planetActive) {
+          if (home.planetExpireText) {
+            patch.expireText = home.planetExpireText
+          } else if (home.memberExpireAt) {
+            patch.expireText = `本星球会员至 ${String(home.memberExpireAt).slice(0, 10)}`
+          } else if (home.expireText && /有效|剩余|至/.test(String(home.expireText))) {
             patch.expireText = home.expireText
           }
         }
@@ -344,6 +351,7 @@ Page({
           title: (community && community.title) || EMPTY_HOME.title,
           subtitle: (community && community.subtitle) || EMPTY_HOME.subtitle,
           memberActive: false,
+          planetMemberActive: false,
         }
         patch.kpis = []
         patch.topics = []
@@ -548,7 +556,7 @@ Page({
   },
 
   onHeroJoin() {
-    if (this.data.home && this.data.home.memberActive) {
+    if (this.data.home && (this.data.home.planetMemberActive || this.data.home.memberActive)) {
       wx.showToast({ title: '你已是球友', icon: 'none' })
       return
     }
@@ -558,6 +566,14 @@ Page({
   onRenewTap() {
     if (!AuthUtil.isLoggedIn()) {
       AuthUtil.requireLoginForAction('加入星球', { silent: true })
+      return
+    }
+    // 未开通本星球 → 优先跳本星球包商品；无包则回落会员中心
+    const pkgs = this.data.packages || []
+    const first = pkgs[0]
+    const pid = first && (first.productId || first.id)
+    if (pid) {
+      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${encodeURIComponent(pid)}` })
       return
     }
     wx.navigateTo({

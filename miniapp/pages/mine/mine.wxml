@@ -91,14 +91,14 @@
         <view class="mn-pl__lg">🪐</view>
         <view class="mn-pl__meta">
           <text class="mn-pl__name">{{planetItem.title || planetTitle || '暖阁星球'}}</text>
-          <text class="mn-pl__p">会员有效</text>
+          <text class="mn-pl__p">本星球会员有效</text>
         </view>
         <view class="mn-pl__rt" wx:if="{{planetItem.remainDays != null}}">
           <text class="mn-pl__rb">剩余 {{planetItem.remainDays}} 天</text>
         </view>
       </view>
       <view class="mn-empty" wx:else bindtap="onGoPlanet">
-        {{isLoggedIn ? '尚未加入星球' : '登录后查看已加入的星球'}}
+        {{isLoggedIn ? '尚未开通本星球会员' : '登录后查看已加入的星球'}}
       </view>
     </view>
 
