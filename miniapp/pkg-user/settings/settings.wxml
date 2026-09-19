@@ -55,11 +55,12 @@
       <text class="field-soft" wx:if="{{emailSoftTip}}">{{emailSoftTip}}</text>
     </view>
 
+    <!-- 不用 disabled：灰态仍可点，由 onSaveProfile 校验并 toast，避免「点了没反应」 -->
     <button
-      class="save-btn {{canSave ? '' : 'save-btn--disabled'}}"
+      class="save-btn {{canSave && !savingProfile ? '' : 'save-btn--disabled'}}"
       bindtap="onSaveProfile"
       loading="{{savingProfile}}"
-      disabled="{{!canSave || savingProfile}}"
+      hover-class="none"
     >保存</button>
   </view>
   <view class="group login-tip" wx:else bindtap="onLoginTap">

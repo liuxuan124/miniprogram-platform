@@ -48,7 +48,7 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.30.1',
+    version: '1.30.2',
   },
 
   onShow() {
@@ -57,12 +57,31 @@ Page({
     this._refresh()
   },
 
+  _getPendingAvatar() {
+    return this._pendingAvatarLocal || this.data.pendingAvatarLocal || ''
+  },
+
+  _setPendingAvatar(localPath) {
+    const pending = localPath && !isRemoteUrl(localPath) ? localPath : ''
+    // 同步实例字段：避免 setData 未落盘时 onShow/_refresh 读到空 pending
+    this._pendingAvatarLocal = pending
+    this.setData({
+      editAvatarUrl: localPath || this.data.editAvatarUrl,
+      pendingAvatarLocal: pending,
+    })
+  },
+
+  _clearPendingAvatar() {
+    this._pendingAvatarLocal = ''
+  },
+
   _refresh() {
     const isLoggedIn = !!AuthUtil.isLoggedIn()
     const userInfo = isLoggedIn ? (AuthUtil.getUserInfo() || {}) : null
     const editNickName = (userInfo && (userInfo.nickName || userInfo.nickname)) || ''
-    // 关键 pending：chooseMedia 返回后 onShow 若清空则永远不会 upload
-    const pendingAvatarLocal = isLoggedIn ? (this.data.pendingAvatarLocal || '') : ''
+    // 同步源优先，挡住 setData 竞态把 pending 冲掉
+    const pendingAvatarLocal = isLoggedIn ? this._getPendingAvatar() : ''
+    if (!isLoggedIn) this._clearPendingAvatar()
     const serverAvatar = (userInfo && userInfo.avatarUrl) || ''
     const editAvatarUrl = pendingAvatarLocal
       || pickDisplayAvatarUrl(serverAvatar)
@@ -85,6 +104,7 @@ Page({
 
   onAvatarError() {
     if (isTempLocalAvatar(this.data.editAvatarUrl)) return
+    if (this._getPendingAvatar()) return
     if (this.data.editAvatarUrl === DEFAULT_AVATAR) return
     this.setData({ editAvatarUrl: DEFAULT_AVATAR })
   },
@@ -102,15 +122,22 @@ Page({
         wx.showToast({ title: '未获取到头像', icon: 'none' })
         return
       }
-      this.setData({
-        editAvatarUrl: localPath,
-        pendingAvatarLocal: isRemoteUrl(localPath) ? '' : localPath,
-      })
+      this._setPendingAvatar(localPath)
     }
 
     this._avatarPicking = true
+    if (this._avatarPickTimer) clearTimeout(this._avatarPickTimer)
+    // 兜底：部分机型 complete 丢失时避免永久跳过 onShow
+    this._avatarPickTimer = setTimeout(() => {
+      this._avatarPicking = false
+    }, 60000)
+
     const donePicking = () => {
       this._avatarPicking = false
+      if (this._avatarPickTimer) {
+        clearTimeout(this._avatarPickTimer)
+        this._avatarPickTimer = null
+      }
     }
 
     if (typeof wx.chooseMedia === 'function') {
@@ -152,7 +179,15 @@ Page({
   onNicknameReview(e) {
     const pass = !e.detail || e.detail.pass !== false
     if (!pass) {
-      this.setData({ editNickName: '', nicknameError: false, canSave: false })
+      const fallback = (
+        (this.data.userInfo && (this.data.userInfo.nickName || this.data.userInfo.nickname))
+        || ''
+      ).trim()
+      this.setData({
+        editNickName: fallback,
+        nicknameError: false,
+        canSave: calcCanSave(fallback),
+      })
       wx.showToast({ title: '昵称未通过安全检测', icon: 'none' })
     }
   },
@@ -174,9 +209,10 @@ Page({
   },
 
   _uploadAvatarIfNeeded() {
-    const local = this.data.pendingAvatarLocal
+    const local = this._getPendingAvatar()
     if (!local) {
-      return Promise.resolve(this.data.editAvatarUrl || '')
+      // 无新头像：不回传展示用本地默认图，避免污染 profile
+      return Promise.resolve('')
     }
     if (isRemoteUrl(local)) {
       return Promise.resolve(local)
@@ -193,9 +229,15 @@ Page({
   },
 
   onSaveProfile() {
-    if (!this.data.isLoggedIn || this.data.savingProfile) return
+    if (!this.data.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    if (this.data.savingProfile || this._savingLock) return
+
     const nick = String(this.data.editNickName || '').trim()
     if (!nick) {
+      this.setData({ canSave: false })
       wx.showToast({ title: '请输入昵称', icon: 'none' })
       return
     }
@@ -207,30 +249,44 @@ Page({
 
     const phone = String(this.data.editPhone || '').trim()
     const email = String(this.data.editEmail || '').trim()
-    const hadPendingAvatar = !!this.data.pendingAvatarLocal
-    this.setData({ savingProfile: true, editNickName: nick, nicknameError: false })
+    const hadPendingAvatar = !!this._getPendingAvatar()
+    this._savingLock = true
+    this.setData({ savingProfile: true, editNickName: nick, nicknameError: false, canSave: true })
+
+    const finish = () => {
+      this._savingLock = false
+      this.setData({ savingProfile: false })
+    }
 
     this._uploadAvatarIfNeeded()
       .then((avatarUrl) => {
-        if (!avatarUrl && hadPendingAvatar) {
-          throw new Error('avatar_upload_failed')
-        }
         const finalAvatar = resolveMediaUrl(avatarUrl)
           || (isRemoteUrl(avatarUrl) ? avatarUrl : '')
           || ''
-        return AuthService.updateProfile({
+        if (hadPendingAvatar && !finalAvatar) {
+          throw new Error('avatar_upload_failed')
+        }
+        const payload = {
           nickname: nick,
-          avatarUrl: finalAvatar || undefined,
           phone,
           email,
-        }).then((userInfo) => ({ userInfo, finalAvatar }))
+        }
+        if (finalAvatar) payload.avatarUrl = finalAvatar
+        return AuthService.updateProfile(payload).then((userInfo) => ({ userInfo, finalAvatar }))
       })
-      .then(({ finalAvatar }) => {
-        const persistAvatar = isRemoteUrl(finalAvatar) ? finalAvatar : ''
-        AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl: persistAvatar })
+      .then(({ userInfo, finalAvatar }) => {
+        const persistAvatar = isRemoteUrl(finalAvatar)
+          ? finalAvatar
+          : ((userInfo && userInfo.avatarUrl) || '')
+        this._clearPendingAvatar()
+        AuthUtil.rememberLoginProfile({
+          nickName: nick,
+          avatarUrl: isRemoteUrl(persistAvatar) ? persistAvatar : '',
+        })
         this.setData({
           pendingAvatarLocal: '',
           editAvatarUrl: pickDisplayAvatarUrl(persistAvatar, finalAvatar),
+          canSave: calcCanSave(nick),
         })
         this._refresh()
         wx.showToast({ title: '已保存', icon: 'success' })
@@ -238,11 +294,11 @@ Page({
       .catch((err) => {
         const msg =
           (err && err.message === 'avatar_upload_failed')
-            ? '头像上传失败'
-            : ((err && err.message) || '保存失败')
-        wx.showToast({ title: msg, icon: 'none' })
+            ? '头像上传失败，请重试'
+            : ((err && (err.message || err.msg)) || '保存失败，请重试')
+        wx.showToast({ title: String(msg).slice(0, 40), icon: 'none' })
       })
-      .finally(() => this.setData({ savingProfile: false }))
+      .then(finish, finish)
   },
 
   goAddress() {
@@ -272,6 +328,7 @@ Page({
       success: (res) => {
         if (!res.confirm) return
         AuthService.logout({ manual: true, redirectToLogin: false })
+        this._clearPendingAvatar()
         this._refresh()
         wx.showToast({ title: '已退出登录', icon: 'success' })
         setTimeout(() => wx.switchTab({ url: '/pages/mine/mine' }), 400)

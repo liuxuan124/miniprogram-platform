@@ -153,7 +153,7 @@ const AuthService = {
         phoneBound: !!String(phone).trim(),
         email,
       }
-      // 若本次显式清空临时路径，不把 wxfile 留在本地
+      // 若本次显式传入头像字段，以规范化后的值为准（可为空：清掉临时路径）
       if (profile.avatarUrl != null) {
         nextUserInfo.avatarUrl = avatarUrl
       }
@@ -171,7 +171,11 @@ const AuthService = {
       return nextUserInfo
     }
 
+    // 昵称/头像需同步后端；仅改手机号/邮箱时本地持久化（后端 profile 暂无此二字段）
     if (!payload.nickname && !payload.avatarUrl) {
+      if (!String(nickName).trim()) {
+        return Promise.reject({ code: -1, message: '请输入昵称' })
+      }
       return Promise.resolve(persistLocal())
     }
 
@@ -179,6 +183,7 @@ const AuthService = {
       showError: options.showError !== false,
     }).then(() => persistLocal())
   },
+
 
   /**
    * 完成正式登录（绑定手机号后）
