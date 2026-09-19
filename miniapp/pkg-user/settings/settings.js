@@ -6,6 +6,7 @@ const {
   pickDisplayAvatarUrl,
   isTempLocalAvatar,
   isPersistedMediaUrl,
+  persistLocalFileForUpload,
 } = require('../../utils/image-fallback')
 const { resolveMediaUrl } = require('../../utils/media-url')
 
@@ -51,7 +52,7 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.30.5',
+    version: '1.30.6',
   },
 
   onShow() {
@@ -125,7 +126,16 @@ Page({
         wx.showToast({ title: '未获取到头像', icon: 'none' })
         return
       }
+      // 先挂 pending 预览；再拷到 USER_DATA_PATH，避免 wxfile/tmp 在保存前失效
       this._setPendingAvatar(localPath)
+      persistLocalFileForUpload(localPath).then((stable) => {
+        if (!stable || stable === localPath) return
+        const current = this._getPendingAvatar()
+        // 仅替换同一次选图的 tmp；用户若又选了新图则不覆盖
+        if (!current || current === localPath) {
+          this._setPendingAvatar(stable)
+        }
+      }).catch(() => {})
     }
 
     this._avatarPicking = true
@@ -220,15 +230,54 @@ Page({
     if (isRemoteUrl(local)) {
       return Promise.resolve(local)
     }
-    return upload(local, {
-      name: 'file',
-      url: '/api/v1/mp/upload',
-      formData: { subDir: 'avatar' },
-      showError: false,
-    }).then((uploaded) => {
-      const raw = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
-      return resolveMediaUrl(raw) || raw
-    })
+    // 保存前再落盘一次：选图后若用户停留较久，原始 wxfile 可能已失效
+    return persistLocalFileForUpload(local)
+      .then((stablePath) => {
+        const filePath = stablePath || local
+        if (stablePath && stablePath !== local) {
+          this._pendingAvatarLocal = stablePath
+          this.setData({ pendingAvatarLocal: stablePath, editAvatarUrl: stablePath })
+        }
+        return upload(filePath, {
+          name: 'file',
+          url: '/api/v1/mp/upload',
+          formData: { subDir: 'avatar' },
+          showError: false,
+          auth: true,
+        })
+      })
+      .then((uploaded) => {
+        const raw = (uploaded && (uploaded.url || uploaded.fileUrl || uploaded.path)) || ''
+        const remoteUrl = resolveMediaUrl(raw) || raw
+        if (!remoteUrl || !isRemoteUrl(remoteUrl)) {
+          const err = new Error('avatar_upload_failed')
+          err.stage = 'upload'
+          throw err
+        }
+        return remoteUrl
+      })
+      .catch((err) => {
+        if (err && err.stage === 'upload') throw err
+        const wrapped = new Error(
+          (err && (err.message || err.msg)) || 'avatar_upload_failed'
+        )
+        wrapped.stage = 'upload'
+        wrapped.cause = err
+        throw wrapped
+      })
+  },
+
+  _refreshMineTab() {
+    try {
+      const pages = getCurrentPages()
+      for (let i = (pages && pages.length) || 0; i--;) {
+        const p = pages[i]
+        if (!p) continue
+        if (typeof p._refreshUserInfo === 'function') p._refreshUserInfo()
+        if (typeof p._applyGreet === 'function') p._applyGreet()
+        if (typeof p._loadMineOverview === 'function') p._loadMineOverview()
+      }
+    } catch (e) { /* ignore */ }
   },
 
   onSaveProfile() {
@@ -261,13 +310,16 @@ Page({
       this.setData({ savingProfile: false })
     }
 
+    // 必须先 await 上传拿到远程 URL，再写 profile（与 login-flow 1.30.5 同路径）
     this._uploadAvatarIfNeeded()
       .then((avatarUrl) => {
         const finalAvatar = resolveMediaUrl(avatarUrl)
           || (isRemoteUrl(avatarUrl) ? avatarUrl : '')
           || ''
         if (hadPendingAvatar && !finalAvatar) {
-          throw new Error('avatar_upload_failed')
+          const err = new Error('avatar_upload_failed')
+          err.stage = 'upload'
+          throw err
         }
         const payload = {
           nickname: nick,
@@ -275,7 +327,16 @@ Page({
           email,
         }
         if (finalAvatar) payload.avatarUrl = finalAvatar
-        return AuthService.updateProfile(payload).then((userInfo) => ({ userInfo, finalAvatar }))
+        return AuthService.updateProfile(payload)
+          .then((userInfo) => ({ userInfo, finalAvatar }))
+          .catch((profileErr) => {
+            const err = new Error(
+              (profileErr && (profileErr.message || profileErr.msg)) || '资料保存失败'
+            )
+            err.stage = 'profile'
+            err.cause = profileErr
+            throw err
+          })
       })
       .then(({ userInfo, finalAvatar }) => {
         const persistAvatar = isRemoteUrl(finalAvatar)
@@ -292,14 +353,22 @@ Page({
           canSave: calcCanSave(nick),
         })
         this._refresh()
+        this._refreshMineTab()
         wx.showToast({ title: '已保存', icon: 'success' })
       })
       .catch((err) => {
-        const msg =
-          (err && err.message === 'avatar_upload_failed')
-            ? '头像上传失败，请重试'
-            : ((err && (err.message || err.msg)) || '保存失败，请重试')
-        wx.showToast({ title: String(msg).slice(0, 40), icon: 'none' })
+        let msg = '保存失败，请重试'
+        if (err && err.stage === 'upload') {
+          const raw = String((err && err.message) || '')
+          if (/未登录|401/.test(raw)) msg = '登录已失效，请重新登录'
+          else if (/网络|fail|NETWORK/i.test(raw)) msg = '网络异常，头像上传失败'
+          else msg = '头像上传失败，请重试'
+        } else if (err && err.stage === 'profile') {
+          msg = String((err && err.message) || '资料保存失败，请重试').slice(0, 40)
+        } else if (err && (err.message || err.msg)) {
+          msg = String(err.message || err.msg).slice(0, 40)
+        }
+        wx.showToast({ title: msg, icon: 'none' })
       })
       .then(finish, finish)
   },

@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-19T23:30:00+08:00",
+  "wx_version": "1.30.6",
+  "wx_version_desc": "设置页头像保存修复",
+  "scope": "pkg-user/settings chooseMedia → persistLocalFileForUpload → POST /api/v1/mp/upload → PUT /api/v1/mp/auth/profile",
+  "root_causes": [
+    "设置页选图后直接用 wxfile/tmp 调 upload；1.30.5 只修了 login-flow，设置页未落盘到 USER_DATA_PATH",
+    "生产 nginx（access.log + access.log.1）：MiniProgramEnv/WeChat 对 POST /api/v1/mp/upload 命中数为 0，同窗口 PUT /api/v1/mp/auth/profile 有命中 → 用户侧常为「已保存/点保存」但头像未变或上传客户端失败未打到服务端"
+  ],
+  "fixes": [
+    "onChooseAvatar 后 persistLocalFileForUpload；保存前再落盘一次",
+    "_uploadAvatarIfNeeded await 上传且校验远程 URL；auth:true；区分 upload/profile toast",
+    "保留 _pendingAvatarLocal 抗 onShow/_refresh 竞态；成功后 _refreshMineTab"
+  ],
+  "backend_status": "no jar redeploy needed; upload+profile already OK",
+  "audit_submitted": false
+}
