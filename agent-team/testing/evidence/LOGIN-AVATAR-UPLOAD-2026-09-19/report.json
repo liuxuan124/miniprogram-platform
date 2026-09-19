@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-19T23:20:00+08:00",
+  "wx_version": "1.30.5",
+  "wx_version_desc": "登录微信头像上传修复",
+  "scope": "login-sheet chooseAvatar → login-flow syncAvatar → POST /api/v1/mp/upload",
+  "root_causes": [
+    "syncAvatarInBackground was fire-and-forget; login sheet hid/navigated before wx.uploadFile completed; WeChat http://tmp/wxfile temp paths expired → client fail with zero MiniProgramEnv hits to /api/v1/mp/upload in nginx (14d)",
+    "toast conflated profile writeback failure with upload failure",
+    "upload() only read AuthUtil storage token; no early 401 when token missing",
+    "backend rejected MultipartFile without filename extension (chooseAvatar edge case)"
+  ],
+  "fixes": [
+    "persistLocalFileForUpload to USER_DATA_PATH on chooseAvatar + before upload",
+    "await token + await avatar sync (12s timeout) inside runOneTapLogin before UI success",
+    "accurate toasts: 网络/鉴权/资料同步",
+    "upload() prefer app.globalData.token; auth=true rejects without token",
+    "FileUploadServiceImpl content-type extension fallback"
+  ],
+  "backend_status": "source + jar rebuild required for extension fallback",
+  "audit_submitted": false
+}

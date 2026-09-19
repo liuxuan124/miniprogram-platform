@@ -51,7 +51,7 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.30.4',
+    version: '1.30.5',
   },
 
   onShow() {

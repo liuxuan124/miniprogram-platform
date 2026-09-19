@@ -219,6 +219,7 @@ Component({
         this.setData({ pickingAvatar: false, nicknameFocused: false })
         return
       }
+      // 先展示临时路径；后台拷到 USER_DATA_PATH，避免登录完成关闭弹层后 wxfile/http://tmp 失效
       this.setData({
         avatarLocalPath: avatarUrl,
         avatarUrl,
@@ -229,6 +230,16 @@ Component({
         nicknameFocused: true,
       }, () => this._refreshCanSubmit())
       AuthService.prefetchLoginCode()
+      try {
+        const { persistLocalFileForUpload } = require('../../utils/image-fallback')
+        persistLocalFileForUpload(avatarUrl).then((stable) => {
+          if (!stable || stable === this.data.avatarLocalPath) return
+          this.setData({
+            avatarLocalPath: stable,
+            avatarUrl: stable,
+          })
+        }).catch(() => {})
+      } catch (e) { /* ignore */ }
     },
 
     onAvatarTap() {
