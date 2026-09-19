@@ -966,7 +966,7 @@ const legalForm = reactive<LegalForm>({
 const allPlugins = reactive<PluginModule[]>([
   { key: 'product', name: '商品模块', desc: '商品管理、订单处理、在线支付', icon: '🛍️', enabled: true },
   { key: 'member', name: '会员模块', desc: '等级体系、积分权益、会员卡', icon: '👥', enabled: false },
-  { key: 'planet', name: '知识星球', desc: '星主发动态、付费会员看全文与下载', icon: '🪐', enabled: false },
+  { key: 'planet', name: '社区管理', desc: '多社区动态、付费会员看全文与下载（C 端仍称星球）', icon: '🪐', enabled: false },
   { key: 'order', name: '订单模块', desc: '订单全流程管理与售后', icon: '📦', enabled: true },
 ])
 

@@ -2,10 +2,12 @@
   <div class="planet-page" v-loading="loading">
     <div class="page-head">
       <div>
-        <h2>知识星球</h2>
-        <p>配置星球展示、未付费可见范围；各星球付费档在「多星球介绍」卡片下维护。</p>
+        <h2>社区管理</h2>
+        <p>
+          一个小程序可配置多个社区（增删改、排序、启停、默认展示）。用户端仍称「星球」；付费档在各社区卡片下维护。
+        </p>
       </div>
-      <el-button type="primary" :loading="saving" @click="handleSave">保存星球配置</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave">保存社区配置</el-button>
     </div>
 
     <el-alert
@@ -13,24 +15,129 @@
       :closable="false"
       show-icon
       style="margin-bottom: 16px"
-      title="星主发帖：内容管理 → 新建「动态」并勾选「星球专属」。用户购买绑定本星球付费档的商品后，写入本星球订购，可看全文并下载资料。"
+      title="发帖：内容管理 → 新建「动态」并勾选「星球专属」+ 所属社区。用户购买绑定该社区付费档的商品后，可看全文并下载资料。"
     />
 
     <el-tabs v-model="activeTab">
-      <el-tab-pane label="星球展示" name="planet">
+      <el-tab-pane label="社区列表" name="communities">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 14px"
+          title="列表顺序即小程序展示顺序。可设一个「默认展示/主社区」（用户未自选常驻时回落此项）。停用后用户端不再展示该社区。"
+        />
+        <div class="communities-toolbar">
+          <span class="hint" style="margin-left: 0">当前 {{ communities.length }} 个社区</span>
+          <el-button type="primary" @click="addCommunity">+ 新增社区</el-button>
+        </div>
+        <div v-for="(c, ci) in communities" :key="c.id || ci" class="community-card">
+          <div class="community-card__head">
+            <el-input v-model="c.emoji" style="width: 64px" placeholder="🪐" />
+            <el-input v-model="c.title" placeholder="社区名称" style="flex: 1" />
+            <el-tag v-if="c.primary" type="warning" size="small">默认展示/主社区</el-tag>
+            <el-tag v-if="c.enabled === false" type="info" size="small">已停用</el-tag>
+            <el-button text :disabled="ci === 0" @click="moveCommunity(ci, -1)">上移</el-button>
+            <el-button text :disabled="ci >= communities.length - 1" @click="moveCommunity(ci, 1)">下移</el-button>
+            <el-button text type="danger" :disabled="communities.length <= 1" @click="removeCommunity(ci)">删除</el-button>
+          </div>
+          <el-form label-width="120px" size="small">
+            <el-form-item label="社区 ID">
+              <el-input v-model="c.id" placeholder="如 warm-main" style="max-width: 240px" />
+              <span class="hint">保存后勿随意改 ID（动态/付费档会关联）</span>
+            </el-form-item>
+            <el-form-item label="排序">
+              <el-input-number v-model="c.sortOrder" :min="0" :max="999" />
+              <span class="hint">越小越靠前；也可用上移/下移</span>
+            </el-form-item>
+            <el-form-item label="启用">
+              <el-switch v-model="c.enabled" active-text="展示" inactive-text="停用" />
+            </el-form-item>
+            <el-form-item label="默认展示">
+              <el-switch
+                :model-value="!!c.primary"
+                @change="(val) => setPrimary(ci, !!val)"
+                active-text="主社区"
+                inactive-text="否"
+              />
+              <span class="hint">用户未自选常驻时，小程序回落至此社区</span>
+            </el-form-item>
+            <el-form-item label="副标题">
+              <el-input v-model="c.subtitle" placeholder="一句话吸引" />
+            </el-form-item>
+            <el-form-item label="封面图">
+              <el-input v-model="c.cover" placeholder="可选，HTTPS 图片 URL" />
+            </el-form-item>
+            <el-form-item label="介绍正文">
+              <el-input v-model="c.intro" type="textarea" :rows="4" placeholder="多段用换行分隔，用于介绍页「关于这里」" />
+            </el-form-item>
+            <el-form-item label="主按钮文案">
+              <el-input v-model="c.ctaText" placeholder="加入星球" style="max-width: 240px" />
+            </el-form-item>
+            <el-form-item label="底部提示">
+              <el-input v-model="c.joinHint" placeholder="加入后可提问 · 看精华 · 下资料" />
+            </el-form-item>
+            <el-form-item label="亮点卖点">
+              <div class="hl-list">
+                <div v-for="(h, hi) in (c.highlights || [])" :key="hi" class="hl-row">
+                  <el-input v-model="h.icon" placeholder="图标" style="width: 72px" />
+                  <el-input v-model="h.title" placeholder="标题" style="width: 140px" />
+                  <el-input v-model="h.desc" placeholder="说明" style="flex: 1" />
+                  <el-button text type="danger" @click="c.highlights.splice(hi, 1)">删</el-button>
+                </div>
+                <el-button type="primary" link @click="addHighlight(ci)">+ 亮点</el-button>
+              </div>
+            </el-form-item>
+          </el-form>
+
+          <el-divider content-position="left">本社区会员档（scope=planet）</el-divider>
+          <div class="planet-plans">
+            <div class="planet-plans__toolbar">
+              <span class="hint" style="margin-left: 0">仅对本社区 ID 生效；商品编辑时请绑定对应档位。</span>
+              <el-button type="primary" size="small" :disabled="!c.id" @click="openPlanetPlanDialog(c.id)">新增档位</el-button>
+            </div>
+            <el-table
+              :data="planetPlansMap[c.id] || []"
+              size="small"
+              empty-text="暂无本社区付费档"
+              v-loading="planetPlansLoading[c.id]"
+            >
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column label="排序" width="70" prop="sortOrder" />
+              <el-table-column label="状态" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+                    {{ row.status === 1 ? '启用' : '禁用' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="openPlanetPlanDialog(c.id, row)">编辑</el-button>
+                  <el-button link type="danger" size="small" @click="handleDeletePlanetPlan(c.id, row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+        <el-button type="primary" plain @click="addCommunity">+ 新增社区</el-button>
+      </el-tab-pane>
+
+      <el-tab-pane label="全局展示" name="planet">
         <el-form label-width="120px" class="planet-form">
           <el-form-item label="模块开关">
             <el-switch v-model="moduleEnabled" active-text="已开启" inactive-text="已关闭" @change="onToggleModule" />
             <span class="hint">关闭后小程序星球入口不可用</span>
           </el-form-item>
-          <el-form-item label="星球名称">
-            <el-input v-model="form.title" maxlength="40" show-word-limit placeholder="星球名称，如：创作者星球" />
+          <el-form-item label="全局名称">
+            <el-input v-model="form.title" maxlength="40" show-word-limit placeholder="模块总称，如：创作者星球" />
           </el-form-item>
           <el-form-item label="副标题">
             <el-input v-model="form.subtitle" maxlength="80" show-word-limit placeholder="星主精选动态与资料" />
           </el-form-item>
           <el-form-item label="入口文案">
             <el-input v-model="form.entryLabel" maxlength="12" placeholder="星球" style="width: 200px" />
+            <span class="hint">C 端 Tab/入口常用「星球」</span>
           </el-form-item>
           <el-form-item label="封面图 URL">
             <el-input v-model="form.coverImage" placeholder="可选" />
@@ -55,7 +162,7 @@
           :closable="false"
           show-icon
           style="margin-bottom: 14px"
-          title="成长等级 ≠ 星球权益。积分成长档仅展示用；本星球付费门禁请在「多星球介绍」各卡片下的「本星球会员档」维护。"
+          title="成长等级 ≠ 社区付费权益。积分成长档仅展示用；各社区付费门禁请在「社区列表」卡片下的「本社区会员档」维护。"
         />
         <div class="toolbar">
           <span class="toolbar-desc">如需调整积分成长展示文案，可前往成长等级页（与付费订购无关）。</span>
@@ -173,89 +280,9 @@
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="多星球介绍" name="communities">
-        <el-alert
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 14px"
-          title="列表点「去看看」会先进介绍引导页。此处配置封面、简介、亮点与加入按钮文案，用来吸引用户加入。"
-        />
-        <div v-for="(c, ci) in communities" :key="c.id || ci" class="community-card">
-          <div class="community-card__head">
-            <el-input v-model="c.emoji" style="width: 64px" placeholder="🪐" />
-            <el-input v-model="c.title" placeholder="星球名称" style="flex: 1" />
-            <el-tag v-if="c.primary" type="warning" size="small">默认主星球</el-tag>
-            <el-button text type="danger" :disabled="communities.length <= 1" @click="communities.splice(ci, 1)">删除</el-button>
-          </div>
-          <el-form label-width="100px" size="small">
-            <el-form-item label="星球 ID">
-              <el-input v-model="c.id" placeholder="warm-main" style="max-width: 240px" />
-            </el-form-item>
-            <el-form-item label="副标题">
-              <el-input v-model="c.subtitle" placeholder="一句话吸引" />
-            </el-form-item>
-            <el-form-item label="封面图">
-              <el-input v-model="c.cover" placeholder="可选，HTTPS 图片 URL" />
-            </el-form-item>
-            <el-form-item label="介绍正文">
-              <el-input v-model="c.intro" type="textarea" :rows="4" placeholder="多段用换行分隔，用于介绍页「关于这里」" />
-            </el-form-item>
-            <el-form-item label="主按钮文案">
-              <el-input v-model="c.ctaText" placeholder="加入星球" style="max-width: 240px" />
-            </el-form-item>
-            <el-form-item label="底部提示">
-              <el-input v-model="c.joinHint" placeholder="加入后可提问 · 看精华 · 下资料" />
-            </el-form-item>
-            <el-form-item label="亮点卖点">
-              <div class="hl-list">
-                <div v-for="(h, hi) in (c.highlights || [])" :key="hi" class="hl-row">
-                  <el-input v-model="h.icon" placeholder="图标" style="width: 72px" />
-                  <el-input v-model="h.title" placeholder="标题" style="width: 140px" />
-                  <el-input v-model="h.desc" placeholder="说明" style="flex: 1" />
-                  <el-button text type="danger" @click="c.highlights.splice(hi, 1)">删</el-button>
-                </div>
-                <el-button type="primary" link @click="addHighlight(ci)">+ 亮点</el-button>
-              </div>
-            </el-form-item>
-          </el-form>
-
-          <el-divider content-position="left">本星球会员档（scope=planet）</el-divider>
-          <div class="planet-plans">
-            <div class="planet-plans__toolbar">
-              <span class="hint" style="margin-left: 0">仅对本星球 ID 生效；商品编辑时请绑定对应档位。</span>
-              <el-button type="primary" size="small" :disabled="!c.id" @click="openPlanetPlanDialog(c.id)">新增档位</el-button>
-            </div>
-            <el-table
-              :data="planetPlansMap[c.id] || []"
-              size="small"
-              empty-text="暂无本星球付费档"
-              v-loading="planetPlansLoading[c.id]"
-            >
-              <el-table-column prop="name" label="名称" min-width="120" />
-              <el-table-column label="排序" width="70" prop="sortOrder" />
-              <el-table-column label="状态" width="80">
-                <template #default="{ row }">
-                  <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-                    {{ row.status === 1 ? '启用' : '禁用' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="140" fixed="right">
-                <template #default="{ row }">
-                  <el-button link type="primary" size="small" @click="openPlanetPlanDialog(c.id, row)">编辑</el-button>
-                  <el-button link type="danger" size="small" @click="handleDeletePlanetPlan(c.id, row)">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-        </div>
-        <el-button type="primary" plain @click="addCommunity">+ 新增星球</el-button>
-      </el-tab-pane>
-
       <el-tab-pane label="付费套餐" name="packages">
         <div class="toolbar">
-          <span class="toolbar-desc">套餐=商品类型「会员」；请绑定 membershipPlanId（平台或星球档），天数 0=终身。</span>
+          <span class="toolbar-desc">套餐=商品类型「会员」；请绑定 membershipPlanId（平台或社区档），天数 0=终身。</span>
           <div>
             <el-button @click="load">刷新</el-button>
             <el-button type="primary" @click="goCreatePackage">新建会员套餐</el-button>
@@ -281,12 +308,12 @@
 
     <el-dialog
       v-model="planetPlanDialogVisible"
-      :title="editingPlanetPlanId ? '编辑本星球付费档' : '新增本星球付费档'"
+      :title="editingPlanetPlanId ? '编辑本社区付费档' : '新增本社区付费档'"
       width="480px"
       @closed="resetPlanetPlanForm"
     >
       <el-form label-width="100px">
-        <el-form-item label="星球 ID">
+        <el-form-item label="社区 ID">
           <el-input :model-value="editingPlanetId" disabled />
         </el-form-item>
         <el-form-item label="档位名称" required>
@@ -324,15 +351,7 @@ import {
 } from '@/api/membershipPlan'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 
-const router = useRouter()
-const loading = ref(false)
-const saving = ref(false)
-const activeTab = ref('planet')
-const moduleEnabled = ref(false)
-const packages = ref<any[]>([])
-const planetPlansMap = reactive<Record<string, MembershipPlan[]>>({})
-const planetPlansLoading = reactive<Record<string, boolean>>({})
-const communities = ref<Array<{
+type CommunityRow = {
   id: string
   title: string
   subtitle: string
@@ -342,8 +361,20 @@ const communities = ref<Array<{
   ctaText: string
   joinHint: string
   primary?: boolean
+  enabled?: boolean
+  sortOrder?: number
   highlights: Array<{ icon: string; title: string; desc: string }>
-}>>([])
+}
+
+const router = useRouter()
+const loading = ref(false)
+const saving = ref(false)
+const activeTab = ref('communities')
+const moduleEnabled = ref(false)
+const packages = ref<any[]>([])
+const planetPlansMap = reactive<Record<string, MembershipPlan[]>>({})
+const planetPlansLoading = reactive<Record<string, boolean>>({})
+const communities = ref<CommunityRow[]>([])
 const form = reactive({
   title: '星球',
   subtitle: '星主精选动态与资料',
@@ -419,7 +450,7 @@ async function loadAllPlanetPlans() {
 
 function openPlanetPlanDialog(planetId: string, row?: MembershipPlan) {
   if (!planetId) {
-    ElMessage.warning('请先填写星球 ID')
+    ElMessage.warning('请先填写社区 ID')
     return
   }
   editingPlanetId.value = planetId
@@ -483,6 +514,54 @@ async function handleDeletePlanetPlan(planetId: string, row: MembershipPlan) {
   }
 }
 
+function normalizeCommunities(rows: any[], fallbackTitle?: string, fallbackSubtitle?: string, fallbackCover?: string): CommunityRow[] {
+  const mapped = rows.map((c: any, idx: number) => ({
+    id: c.id || '',
+    title: c.title || '',
+    subtitle: c.subtitle || '',
+    emoji: c.emoji || '🪐',
+    cover: c.cover || '',
+    intro: c.intro || '',
+    ctaText: c.ctaText || '加入星球',
+    joinHint: c.joinHint || '',
+    primary: !!c.primary,
+    enabled: c.enabled !== false,
+    sortOrder: Number(c.sortOrder ?? idx),
+    highlights: Array.isArray(c.highlights)
+      ? c.highlights.map((h: any) => ({
+          icon: h.icon || '✨',
+          title: h.title || '',
+          desc: h.desc || '',
+        }))
+      : [],
+  }))
+  mapped.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+  if (!mapped.some((c) => c.primary) && mapped.length) {
+    mapped[0].primary = true
+  }
+  if (!mapped.length) {
+    return [{
+      id: 'warm-main',
+      title: fallbackTitle || '主社区',
+      subtitle: fallbackSubtitle || '',
+      emoji: '🪐',
+      cover: fallbackCover || '',
+      intro: '',
+      ctaText: '加入星球',
+      joinHint: '加入后可提问 · 看精华 · 下资料',
+      primary: true,
+      enabled: true,
+      sortOrder: 0,
+      highlights: [
+        { icon: '💬', title: '提问必达', desc: '星主与编辑轮流答疑' },
+        { icon: '⭐', title: '精华沉淀', desc: '每周精选方法论' },
+        { icon: '📂', title: '资料库', desc: '模板与案例随手可下' },
+      ],
+    }]
+  }
+  return mapped
+}
+
 async function load() {
   loading.value = true
   try {
@@ -509,43 +588,12 @@ async function load() {
       }
       packages.value = data.packages || []
       if (typeof data.enabled === 'boolean') moduleEnabled.value = data.enabled
-      if (Array.isArray(data.communities) && data.communities.length) {
-        communities.value = data.communities.map((c: any) => ({
-          id: c.id || '',
-          title: c.title || '',
-          subtitle: c.subtitle || '',
-          emoji: c.emoji || '🪐',
-          cover: c.cover || '',
-          intro: c.intro || '',
-          ctaText: c.ctaText || '加入星球',
-          joinHint: c.joinHint || '',
-          primary: !!c.primary,
-          highlights: Array.isArray(c.highlights)
-            ? c.highlights.map((h: any) => ({
-                icon: h.icon || '✨',
-                title: h.title || '',
-                desc: h.desc || '',
-              }))
-            : [],
-        }))
-      } else if (!communities.value.length) {
-        communities.value = [{
-          id: 'warm-main',
-          title: data.title || '暖阁星球',
-          subtitle: data.subtitle || '',
-          emoji: '🪐',
-          cover: data.coverImage || '',
-          intro: '',
-          ctaText: '加入星球',
-          joinHint: '加入后可提问 · 看精华 · 下资料',
-          primary: true,
-          highlights: [
-            { icon: '💬', title: '提问必达', desc: '星主与编辑轮流答疑' },
-            { icon: '⭐', title: '精华沉淀', desc: '每周精选方法论' },
-            { icon: '📂', title: '资料库', desc: '模板与案例随手可下' },
-          ],
-        }]
-      }
+      communities.value = normalizeCommunities(
+        Array.isArray(data.communities) ? data.communities : [],
+        data.title,
+        data.subtitle,
+        data.coverImage,
+      )
       const ops = data.ops as any
       if (ops && typeof ops === 'object') {
         opsForm.homeCardTitle = ops.homeCardTitle || opsForm.homeCardTitle
@@ -584,7 +632,30 @@ async function load() {
   }
 }
 
+function syncSortOrdersFromIndex() {
+  communities.value.forEach((c, idx) => {
+    c.sortOrder = idx
+  })
+}
+
 async function handleSave() {
+  if (!communities.value.length) {
+    ElMessage.warning('请至少保留一个社区')
+    return
+  }
+  const ids = communities.value.map((c) => (c.id || '').trim()).filter(Boolean)
+  if (ids.length !== communities.value.length) {
+    ElMessage.warning('每个社区都需要填写社区 ID')
+    return
+  }
+  if (new Set(ids).size !== ids.length) {
+    ElMessage.warning('社区 ID 不能重复')
+    return
+  }
+  if (!communities.value.some((c) => c.primary)) {
+    communities.value[0].primary = true
+  }
+  syncSortOrdersFromIndex()
   saving.value = true
   try {
     const opsPayload = {
@@ -595,8 +666,8 @@ async function handleSave() {
       ...form,
       topics: { ...topicsForm },
       ops: opsPayload,
-      communities: communities.value.map((c, idx) => ({
-        id: c.id,
+      communities: communities.value.map((c) => ({
+        id: c.id.trim(),
         title: c.title,
         subtitle: c.subtitle,
         emoji: c.emoji,
@@ -604,7 +675,9 @@ async function handleSave() {
         intro: c.intro,
         ctaText: c.ctaText,
         joinHint: c.joinHint,
-        primary: idx === 0 ? true : !!c.primary,
+        primary: !!c.primary,
+        enabled: c.enabled !== false,
+        sortOrder: Number(c.sortOrder ?? 0),
         joined: true,
         highlights: (c.highlights || []).filter((h) => h.title || h.desc),
         feedUrl: `/pages/planet-feed/planet-feed?planetId=${encodeURIComponent(c.id || 'warm-main')}`,
@@ -626,7 +699,7 @@ async function handleSave() {
 async function onToggleModule(val: boolean) {
   try {
     await featureModules.setEnabled('planet', val)
-    ElMessage.success(val ? '星球模块已开启' : '星球模块已关闭')
+    ElMessage.success(val ? '社区模块已开启' : '社区模块已关闭')
   } catch (e: any) {
     moduleEnabled.value = !val
     ElMessage.error(e?.message || '切换失败')
@@ -644,10 +717,47 @@ function addHighlight(ci: number) {
   c.highlights.push({ icon: '✨', title: '', desc: '' })
 }
 
+function setPrimary(ci: number, val: boolean) {
+  if (!val) {
+    // 至少保留一个主社区
+    const others = communities.value.filter((_, i) => i !== ci)
+    if (!others.some((c) => c.primary)) {
+      ElMessage.warning('请至少保留一个默认展示/主社区')
+      return
+    }
+    communities.value[ci].primary = false
+    return
+  }
+  communities.value.forEach((c, i) => {
+    c.primary = i === ci
+  })
+}
+
+function moveCommunity(ci: number, delta: number) {
+  const next = ci + delta
+  if (next < 0 || next >= communities.value.length) return
+  const list = [...communities.value]
+  const [row] = list.splice(ci, 1)
+  list.splice(next, 0, row)
+  communities.value = list
+  syncSortOrdersFromIndex()
+}
+
+function removeCommunity(ci: number) {
+  if (communities.value.length <= 1) return
+  const wasPrimary = !!communities.value[ci]?.primary
+  communities.value.splice(ci, 1)
+  if (wasPrimary && communities.value.length) {
+    communities.value[0].primary = true
+  }
+  syncSortOrdersFromIndex()
+}
+
 function addCommunity() {
+  const idx = communities.value.length
   communities.value.push({
-    id: `planet_${Date.now().toString(36)}`,
-    title: '新星球',
+    id: `community_${Date.now().toString(36)}`,
+    title: '新社区',
     subtitle: '',
     emoji: '🪐',
     cover: '',
@@ -655,6 +765,8 @@ function addCommunity() {
     ctaText: '加入星球',
     joinHint: '加入后可提问 · 看精华 · 下资料',
     primary: false,
+    enabled: true,
+    sortOrder: idx,
     highlights: [
       { icon: '💬', title: '', desc: '' },
       { icon: '⭐', title: '', desc: '' },
@@ -669,7 +781,7 @@ onMounted(load)
 .planet-page { padding: 8px 4px 24px; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
 .page-head h2 { margin: 0 0 6px; font-size: 20px; }
-.page-head p { margin: 0; color: #909399; font-size: 13px; max-width: 560px; }
+.page-head p { margin: 0; color: #909399; font-size: 13px; max-width: 640px; }
 .hint { margin-left: 12px; color: #909399; font-size: 12px; }
 .planet-form { max-width: 720px; }
 .toolbar {
@@ -680,21 +792,28 @@ onMounted(load)
   margin-bottom: 12px;
 }
 .toolbar-desc { color: #909399; font-size: 13px; }
+.communities-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
 .topic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 .live-items { display: flex; flex-direction: column; gap: 8px; }
 .live-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #606266; }
 .community-card {
   margin-bottom: 16px;
   padding: 16px 18px 8px;
-  border-radius: 12px;
-  border: 1px solid #f0e4d4;
-  background: #fffaf3;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: var(--el-bg-color, #fff);
 }
 .community-card__head {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 .hl-list { width: 100%; }
 .hl-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }

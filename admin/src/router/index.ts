@@ -325,7 +325,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'planet',
         name: 'MemberPlanet',
         component: () => import('@/views/member/planet.vue'),
-        meta: { title: '知识星球', icon: 'Orange', featureModule: 'planet' },
+        meta: { title: '社区管理', icon: 'Orange', featureModule: 'planet' },
       },
     ],
   },

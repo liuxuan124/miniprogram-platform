@@ -216,7 +216,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     title: '用户会员',
     children: [
       { title: '会员管理', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', permissions: ['member:list'], featureModule: 'member' },
-      { title: '星球社区', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet' },
+      { title: '社区管理', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet' },
       { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', excludePrefixes: ['/user/service-community'], permissions: ['user:list'] },
       { title: '客服社群', path: '/user/service-community', icon: 'ChatDotRound', activePrefix: '/user/service-community', permissions: ['user:list'] },
     ],
