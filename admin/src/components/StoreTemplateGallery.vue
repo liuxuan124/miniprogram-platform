@@ -37,16 +37,17 @@
           <div class="stg-card__badges">
             <el-tag v-if="isInUse(item)" type="success" size="small" effect="dark">使用中</el-tag>
             <el-tag v-else type="info" size="small">备用</el-tag>
+            <el-tag v-if="isSystem(item)" type="warning" size="small">系统 · 暖阁</el-tag>
           </div>
           <span class="stg-card__name">{{ displayName(item) }}</span>
         </div>
-        <div class="stg-card__notes">{{ item.releaseNotes || '整店页面与外观快照' }}</div>
+        <div class="stg-card__notes">{{ item.releaseNotes || '整店页面与外观快照。选用=内容上线，不是上传微信代码。' }}</div>
         <div class="stg-card__meta">
           <span>{{ item.pageCount }} 页面</span>
           <span>{{ formatTime(item.updateTime || item.createTime) }}</span>
         </div>
         <div class="stg-card__actions">
-          <el-button v-if="!isInUse(item)" size="small" type="primary" @click="handleActivate(item)">选用</el-button>
+          <el-button v-if="!isInUse(item)" size="small" type="primary" @click="handleActivate(item)">套用</el-button>
           <el-button size="small" @click="handleEditTemplate(item)">编辑外观</el-button>
           <el-button size="small" @click="handleCapture(item)">覆盖保存</el-button>
           <el-dropdown trigger="click">
@@ -56,7 +57,7 @@
                 <el-dropdown-item @click="handleRename(item)">重命名</el-dropdown-item>
                 <el-dropdown-item @click="handleDuplicate(item)">复制</el-dropdown-item>
                 <el-dropdown-item @click="openFullMiniappPreview(item)">预览此模板</el-dropdown-item>
-                <el-dropdown-item :disabled="isInUse(item)" @click="handleDelete(item)">删除</el-dropdown-item>
+                <el-dropdown-item :disabled="isInUse(item) || isSystem(item)" @click="handleDelete(item)">删除</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -96,6 +97,10 @@ const releases = ref<ReleaseRecord[]>([])
 
 function isInUse(item: ReleaseRecord) {
   return item.isCurrent === 1 || item.isCurrent === true
+}
+
+function isSystem(item: ReleaseRecord) {
+  return item.isSystem === 1 || item.isSystem === true || item.templateCode === 'warm'
 }
 
 function displayName(item: ReleaseRecord) {
@@ -145,15 +150,15 @@ async function handleActivate(item: ReleaseRecord) {
   if (toReleaseId(item.id) == null) return
   try {
     await ElMessageBox.confirm(
-      `选用「${displayName(item)}」后，正在搭建的页面和导航会换成这套。不会上传微信代码包。当前未另存的改动会先写入原先的使用中模板。`,
-      '选用模板',
-      { type: 'warning', confirmButtonText: '选用', cancelButtonText: '取消' },
+      `选用「${displayName(item)}」后，当前站点的页面布局与底部导航会换成这套，并按内容通道上线（用户刷新即可看到）。\n\n这不是上传微信代码包。日常改页也不用推体验版。`,
+      '套用整店模板',
+      { type: 'warning', confirmButtonText: '套用到当前站点', cancelButtonText: '取消' },
     )
     await activateStoreTemplate(item.id)
-    ElMessage.success('已设为使用中')
+    ElMessage.success('已套用：内容已上线，未上传微信代码')
     await loadGalleryData()
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error((e as any)?.message || '选用失败')
+    if (e !== 'cancel') ElMessage.error((e as any)?.message || '套用失败')
   }
 }
 
@@ -213,6 +218,10 @@ async function handleDuplicate(item: ReleaseRecord) {
 }
 
 async function handleDelete(item: ReleaseRecord) {
+  if (isSystem(item)) {
+    ElMessage.warning('系统预置「暖阁」模板不能删，可复制后再改')
+    return
+  }
   if (isInUse(item)) {
     ElMessage.warning('使用中的模板不能删，请先选用另一套')
     return

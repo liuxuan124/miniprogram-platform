@@ -147,6 +147,8 @@ export function getVersionOperationLogs(params?: Record<string, any>) {
 export function pushPreviewRelease(id: number, data?: {
   versionDesc?: string
   confirmCodeChange?: boolean
+  targetId?: number
+  appId?: string
 }) {
   return post(`${BASE}/${id}/push-preview`, data || {}, { timeout: 120000, showError: false })
 }
@@ -154,4 +156,53 @@ export function pushPreviewRelease(id: number, data?: {
 /** 获取最近体验版推送状态 */
 export function getPushPreviewStatus() {
   return get(`${BASE}/push-preview/status`)
+}
+
+const PUSH_TARGET_BASE = '/api/v1/admin/wx-push-targets'
+
+export interface WxPushTarget {
+  id: number
+  name: string
+  appId: string
+  uploadKeyPath?: string
+  isDefault?: number | boolean
+  status?: number
+  remark?: string
+  hasUploadKey?: boolean
+}
+
+export function listWxPushTargets() {
+  return get(`${PUSH_TARGET_BASE}`)
+}
+
+export function listAllWxPushTargets() {
+  return get(`${PUSH_TARGET_BASE}/all`)
+}
+
+export function getWxPushKeyPathHint() {
+  return get(`${PUSH_TARGET_BASE}/key-path-hint`)
+}
+
+export function createWxPushTarget(data: {
+  name: string
+  appId: string
+  uploadKey?: string
+  uploadKeyPath?: string
+  isDefault?: boolean
+  status?: number
+  remark?: string
+}) {
+  return post(`${PUSH_TARGET_BASE}`, data)
+}
+
+export function updateWxPushTarget(id: number, data: Record<string, unknown>) {
+  return put(`${PUSH_TARGET_BASE}/${id}`, data)
+}
+
+export function setDefaultWxPushTarget(id: number) {
+  return put(`${PUSH_TARGET_BASE}/${id}/default`)
+}
+
+export function deleteWxPushTarget(id: number) {
+  return del(`${PUSH_TARGET_BASE}/${id}`)
 }

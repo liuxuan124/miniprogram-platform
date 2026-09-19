@@ -6,7 +6,7 @@
 
 | 主题 | 真相源 | 注意 |
 |------|--------|------|
-| 库表 / 迁移 | `backend/src/main/resources/db/migration/` | 当前最高 **V69**。`docs/handover/database-schema.md` 只写到 V10，已过期 |
+| 库表 / 迁移 | `backend/src/main/resources/db/migration/` | 当前最高 **V70**。`docs/handover/database-schema.md` 只写到 V10，已过期 |
 | 跨端契约 | `agent-team/contracts/` | 改接口/表结构/DSL/订单状态前先读冻结日志 |
 | 测试续跑 | `agent-team/testing/status-ledger.md` | 禁止凭记忆重头测 |
 | 上线人工项 | `docs/handover/pending-items.md` | 资质 / 备案 / 支付商户 |

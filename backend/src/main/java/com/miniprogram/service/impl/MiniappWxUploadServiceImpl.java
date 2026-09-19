@@ -1,5 +1,6 @@
 package com.miniprogram.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
@@ -12,7 +13,7 @@ import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.MiniappWxUploadService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.VersionOperationLogService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.miniprogram.service.WxPushTargetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +43,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
     private final MiniappReleaseService miniappReleaseService;
     private final SystemConfigService systemConfigService;
     private final VersionOperationLogService versionOperationLogService;
+    private final WxPushTargetService wxPushTargetService;
     private final ObjectMapper objectMapper;
 
     @Value("${miniapp.project-root:}")
@@ -50,12 +52,6 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
     @Value("${miniapp.node-command:node}")
     private String nodeCommand;
 
-    @Value("${wx.miniapp.appid:}")
-    private String defaultAppId;
-
-    @Value("${wx.miniapp.upload-key:}")
-    private String defaultUploadKey;
-
     @Override
     public PushPreviewResultVO pushPreview(Long releaseId, PushPreviewDTO dto) {
         long start = System.currentTimeMillis();
@@ -63,7 +59,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
         if (!capability.available) {
             throw new BusinessException(ErrorCode.MINIAPP_PUBLISH_FAILED,
                     "服务器不具备本地上传条件：" + capability.reason
-                            + "。请改用 CI 推送（仓库 Actions: push-miniprogram-preview），业务后端不应持有上传私钥。");
+                            + "。请改用 CI 推送（仓库 Actions: push-miniprogram-preview），或在服务器放置私钥文件后于发布中心选择推送目标。");
         }
 
         MiniappRelease release = miniappReleaseService.getReleaseDetail(releaseId);
@@ -71,11 +67,11 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请确认本次包含 miniapp 代码变更后再推送");
         }
 
-        String appId = resolveAppId();
-        String uploadKey = resolveUploadKey();
-        if (!StringUtils.hasText(uploadKey)) {
-            throw new BusinessException(ErrorCode.WX_UPLOAD_KEY_MISSING);
-        }
+        Long targetId = dto != null ? dto.getTargetId() : null;
+        String overrideAppId = dto != null ? dto.getAppId() : null;
+        WxPushTargetService.ResolvedTarget resolved = wxPushTargetService.resolveForPush(targetId, overrideAppId);
+        String appId = resolved.appId();
+        String uploadKey = resolved.uploadKey();
 
         Path projectRoot = resolveProjectRoot();
         Path miniappPath = projectRoot.resolve("miniapp");
@@ -132,10 +128,15 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
             upsertConfig("wx_version_desc", versionDesc, "wx", "小程序上传版本描述");
             upsertConfig("wx_last_pushed_version", version, "wx", "最近推送体验版版本号");
             upsertConfig("wx_last_pushed_at", uploadedAt.toString(), "wx", "最近推送体验版时间");
+            upsertConfig("wx_last_pushed_appid", appId, "wx", "最近推送体验版 AppID");
+            if (resolved.targetId() != null) {
+                upsertConfig("wx_last_pushed_target_id", String.valueOf(resolved.targetId()), "wx", "最近推送目标 ID");
+            }
 
             long duration = System.currentTimeMillis() - start;
             versionOperationLogService.logOperation(
-                    releaseId, version, "wx_push_preview", versionDesc, true, null, duration
+                    releaseId, version, "wx_push_preview",
+                    versionDesc + " -> " + appId + " (" + resolved.name() + ")", true, null, duration
             );
 
             return PushPreviewResultVO.builder()
@@ -145,7 +146,11 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
                     .releaseSemver(release.getSemver())
                     .uploadedAt(uploadedAt)
                     .manageUrl("https://mp.weixin.qq.com/")
-                    .message("体验版上传成功，请前往微信公众平台查看体验版二维码并提交审核。")
+                    .message("体验版已上传到「" + resolved.name() + "」(AppID " + appId
+                            + ")。请前往微信公众平台查看体验版二维码并提交审核。日常改页面内容不必再推代码。")
+                    .appId(appId)
+                    .targetName(resolved.name())
+                    .credentialSource(resolved.source())
                     .build();
         } catch (BusinessException ex) {
             throw ex;
@@ -165,6 +170,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
         String version = systemConfigService.getConfigValue("wx_last_pushed_version");
         String versionDesc = systemConfigService.getConfigValue("wx_version_desc");
         String pushedAt = systemConfigService.getConfigValue("wx_last_pushed_at");
+        String appId = systemConfigService.getConfigValue("wx_last_pushed_appid");
         if (!StringUtils.hasText(version)) {
             return PushPreviewResultVO.builder()
                     .message("尚未推送过体验版")
@@ -189,19 +195,24 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
                 .versionDesc(versionDesc)
                 .uploadedAt(uploadedAt)
                 .manageUrl("https://mp.weixin.qq.com/")
-                .message("最近一次体验版推送版本：" + version)
+                .message("最近一次体验版推送版本：" + version
+                        + (StringUtils.hasText(appId) ? " → " + appId : ""))
                 .uploadAvailable(capability.available)
                 .preferCi(true)
                 .capabilityReason(capability.reason)
+                .appId(appId)
                 .build();
     }
 
     private record Capability(boolean available, String reason) {}
 
     private Capability probeCapability() {
-        String uploadKey = resolveUploadKey();
-        if (!StringUtils.hasText(uploadKey)) {
-            return new Capability(false, "未配置微信上传私钥（建议放到 CI Secrets，而不是生产机）");
+        try {
+            wxPushTargetService.resolveForPush(null, null);
+        } catch (BusinessException e) {
+            return new Capability(false, e.getMessage() != null ? e.getMessage() : "未配置推送凭证");
+        } catch (Exception e) {
+            return new Capability(false, e.getMessage());
         }
         try {
             Path projectRoot = resolveProjectRootQuiet();
@@ -213,7 +224,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
             if (!Files.isDirectory(miniappPath) || !Files.isRegularFile(scriptPath)) {
                 return new Capability(false, "未找到 miniapp 目录或 scripts/push-miniprogram-preview.js");
             }
-            return new Capability(true, "本地上传可用（仍建议改走 CI）");
+            return new Capability(true, "本地上传可用（仍建议密钥放服务器文件或 CI）");
         } catch (Exception e) {
             return new Capability(false, e.getMessage());
         }
@@ -225,34 +236,6 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private String resolveAppId() {
-        String appId = systemConfigService.getConfigValue("wx_appid");
-        if (!StringUtils.hasText(appId)) {
-            appId = systemConfigService.getConfigValue("appId");
-        }
-        if (!StringUtils.hasText(appId)) {
-            appId = defaultAppId;
-        }
-        if (!StringUtils.hasText(appId) || "your-appid".equals(appId) || "your-appid-here".equals(appId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先在系统设置中配置微信小程序 AppID");
-        }
-        return appId;
-    }
-
-    private String resolveUploadKey() {
-        String uploadKey = systemConfigService.getConfigValue("wx_upload_key");
-        if (!StringUtils.hasText(uploadKey)) {
-            uploadKey = systemConfigService.getConfigValue("uploadKey");
-        }
-        if (!StringUtils.hasText(uploadKey)) {
-            uploadKey = defaultUploadKey;
-        }
-        if (!StringUtils.hasText(uploadKey) || !uploadKey.contains("PRIVATE KEY")) {
-            return null;
-        }
-        return uploadKey.replace("\\n", "\n").trim();
     }
 
     private Path resolveProjectRoot() {
@@ -281,33 +264,38 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
         return builder.toString();
     }
 
-    private Map<String, Object> parseScriptResult(String output) throws Exception {
-        if (!StringUtils.hasText(output)) {
-            return Map.of("ok", false, "message", "上传脚本无输出");
-        }
-
-        String[] lines = output.split("\\R");
-        for (int i = lines.length - 1; i >= 0; i--) {
-            String line = lines[i].trim();
-            Matcher matcher = JSON_LINE_PATTERN.matcher(line);
+    private Map<String, Object> parseScriptResult(String output) {
+        try {
+            Matcher matcher = JSON_LINE_PATTERN.matcher(output);
             if (matcher.find()) {
-                return objectMapper.readValue(line, new TypeReference<Map<String, Object>>() {});
+                int start = matcher.start();
+                String json = output.substring(start).trim();
+                int end = json.lastIndexOf('}');
+                if (end > 0) {
+                    json = json.substring(0, end + 1);
+                }
+                return objectMapper.readValue(json, new TypeReference<>() {});
             }
+        } catch (Exception e) {
+            log.warn("解析上传脚本输出失败: {}", e.getMessage());
         }
-
-        return Map.of("ok", false, "message", output.trim());
+        return Map.of("ok", false, "message", "上传脚本无有效输出", "detail", output);
     }
 
     private void upsertConfig(String key, String value, String group, String description) {
-        SystemConfig config = systemConfigService.getOne(new LambdaQueryWrapper<SystemConfig>()
-                .eq(SystemConfig::getConfigKey, key));
-        if (config == null) {
-            config = new SystemConfig();
+        SystemConfig existing = systemConfigService.getOne(new LambdaQueryWrapper<SystemConfig>()
+                .eq(SystemConfig::getConfigKey, key)
+                .last("LIMIT 1"));
+        if (existing != null) {
+            existing.setConfigValue(value);
+            systemConfigService.updateById(existing);
+        } else {
+            SystemConfig config = new SystemConfig();
             config.setConfigKey(key);
+            config.setConfigValue(value);
             config.setConfigGroup(group);
             config.setDescription(description);
+            systemConfigService.save(config);
         }
-        config.setConfigValue(value);
-        systemConfigService.saveOrUpdate(config);
     }
 }

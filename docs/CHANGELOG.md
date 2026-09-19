@@ -4,12 +4,13 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-20：整店模板闭环——固化「暖阁整店」系统种子（V70）；套用走内容通道上线；发布中心可配置/选择微信推送目标（AppID+密钥路径）再推体验版。
 - 2026-09-20：新增 `AGENTS.md` Agent 入口与本 CHANGELOG 作为近期产品变更真相源（文档，无运行时）。
 - 2026-09-20：会员档 `show_badge` / `expire_remind_days`（迁移 V69）；admin 会员/审核等与小程序 `member-center` 已合入主线。
 
 ### 已在仓内（摘要，非全量）
 
-- Flyway 已到 **V69**（handover 库表文档仍停在 V10）。
+- Flyway 已到 **V70**（handover 库表文档仍停在 V10）。
 - 会员：平台/星球档位与订阅（`V68` `mp_membership_plan` / `mp_member_subscription`）。
 - 内容：会员墙、发现页布局、主星球 `planet_id`（V65–V67）等。
 - 租户 / 行业模板包、暖阁原型对齐与本地种子（V51–V64 一带）。

@@ -166,3 +166,24 @@ app.json中注册的所有页面：
 2. 确保AppID正确(或使用测试号)
 3. 不校验合法域名(开发阶段)
 4. Console查看日志
+
+## 6. 整店模板套用 ≠ 上传微信代码
+
+| 动作 | 入口 | 效果 |
+|------|------|------|
+| 套用「暖阁整店」等模板 | 品牌导航 → 整店模板 → 套用 | 写入页面 DSL + 品牌导航，内容通道上线；**不**上传微信代码包 |
+| 上传体验版代码 | 发布中心 → 微信代码包 | 把仓库 `miniapp` 推到指定 AppID 的体验版；日常改页不必做 |
+
+### 6.1 按账号推送（推送目标）
+
+- 表：`mp_wx_push_target`（迁移 V70）
+- 后台：发布中心可选择/新增目标（名称 + AppID + 密钥）
+- 密钥推荐放服务器文件，不要进 git：
+
+```text
+/opt/miniprogram-platform/secrets/wx-upload-{appid}.key
+```
+
+目标里填「服务器密钥路径」，或配置 `system_config.wx_upload_key_path`。也可把 PEM 写入目标的 `upload_key` / 系统配置 `wx_upload_key`（生产更不推荐）。
+
+API：`/api/v1/admin/wx-push-targets`；推送时 `POST .../miniapp-releases/{id}/push-preview` 传 `targetId`。

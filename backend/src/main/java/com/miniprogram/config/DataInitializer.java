@@ -12,6 +12,8 @@ import com.miniprogram.mapper.PermissionMapper;
 import com.miniprogram.mapper.RoleMapper;
 import com.miniprogram.mapper.RolePermissionMapper;
 import com.miniprogram.service.ProductService;
+import com.miniprogram.service.WxPushTargetService;
+import com.miniprogram.service.miniapp.WarmStoreTemplateSeeder;
 import com.miniprogram.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,8 @@ public class DataInitializer implements CommandLineRunner {
     private final PermissionMapper permissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
     private final ProductService productService;
+    private final WarmStoreTemplateSeeder warmStoreTemplateSeeder;
+    private final WxPushTargetService wxPushTargetService;
 
     @Override
     public void run(String... args) {
@@ -47,6 +51,30 @@ public class DataInitializer implements CommandLineRunner {
         ensureSuperAdminPermissions();
         initDefaultTemplates();
         ensurePay1SmokeProduct();
+        ensureWarmStoreTemplate();
+        ensureWxPushTarget();
+    }
+
+    private void ensureWarmStoreTemplate() {
+        try {
+            TenantContext.setTenantId(TenantContext.DEFAULT_TENANT_ID);
+            warmStoreTemplateSeeder.ensureWarmStoreTemplate();
+        } catch (Exception e) {
+            log.warn("启动补齐暖阁整店模板失败（可忽略，列表接口会再试）: {}", e.getMessage());
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    private void ensureWxPushTarget() {
+        try {
+            TenantContext.setTenantId(TenantContext.DEFAULT_TENANT_ID);
+            wxPushTargetService.ensureDefaultFromSystemConfig();
+        } catch (Exception e) {
+            log.warn("启动补齐微信推送目标失败: {}", e.getMessage());
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     /** 启动时补齐暖阁 ¥1 支付验通路商品（V60 未落库时也能冒烟） */

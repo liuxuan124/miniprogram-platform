@@ -42,6 +42,14 @@ public class MiniappRelease extends BaseEntity {
     @TableField("template_name")
     private String templateName;
 
+    @Schema(description = "系统模板编码，如 warm=暖阁整店")
+    @TableField("template_code")
+    private String templateCode;
+
+    @Schema(description = "系统预置整店模板 1=是（不可删）")
+    @TableField("is_system")
+    private Integer isSystem;
+
     @Schema(description = "发布快照(所有已发布页面DSL+系统配置的JSON)")
     @TableField("snapshot")
     private String snapshot;
