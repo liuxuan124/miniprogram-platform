@@ -102,15 +102,16 @@ const AuthUtil = {
    * 记住上次登录头像/昵称，方便回访用户少填一轮
    */
   rememberLoginProfile(profile = {}) {
+    const { isPersistedMediaUrl } = require('./image-fallback')
     const nickName = (profile.nickName || profile.nickname || '').trim()
     const avatarUrl = profile.avatarUrl || ''
     if (!nickName && !avatarUrl) return
     const prev = this.getRememberedLoginProfile() || {}
+    const prevAvatar = isPersistedMediaUrl(prev.avatarUrl) ? prev.avatarUrl : ''
     StorageUtil.set(LOGIN_PROFILE_CACHE_KEY, {
       nickName: nickName || prev.nickName || '',
-      avatarUrl: (avatarUrl && /^https?:\/\//i.test(avatarUrl))
-        ? avatarUrl
-        : (prev.avatarUrl || ''),
+      // 拒绝 wxfile / http://tmp / file:// 等临时路径写入缓存
+      avatarUrl: isPersistedMediaUrl(avatarUrl) ? avatarUrl : prevAvatar,
     })
   },
 

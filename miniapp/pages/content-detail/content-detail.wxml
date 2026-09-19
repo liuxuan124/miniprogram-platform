@@ -170,7 +170,7 @@
     <view class="n-comments" wx:if="{{commentEnabled && comments.length}}">
       <view class="n-comments__head">共 {{commentCountDisplay || commentCount}} 条评论</view>
       <view wx:for="{{comments}}" wx:key="id" wx:if="{{index < 3}}" class="n-comment">
-        <image wx:if="{{item.avatar}}" class="n-comment__av" src="{{item.avatar}}" mode="aspectFill" />
+        <image wx:if="{{item.avatar}}" class="n-comment__av" src="{{item.avatar}}" mode="aspectFill" data-index="{{index}}" binderror="onCommentAvatarError" />
         <view wx:else class="n-comment__av">{{item.avatarText || '用'}}</view>
         <view class="n-comment__main">
           <view class="n-comment__nick">{{item.nickName}}</view>
@@ -433,7 +433,7 @@
         <text>还没有评论，来说两句吧</text>
       </view>
       <view wx:for="{{comments}}" wx:key="id" class="cmt-item">
-        <image wx:if="{{item.avatar}}" class="cmt-av cmt-av--img" src="{{item.avatar}}" mode="aspectFill" />
+        <image wx:if="{{item.avatar}}" class="cmt-av cmt-av--img" src="{{item.avatar}}" mode="aspectFill" data-index="{{index}}" binderror="onCommentAvatarError" />
         <view wx:else class="cmt-av">{{item.avatarText || '用'}}</view>
         <view class="cmt-main">
           <view class="cmt-top">

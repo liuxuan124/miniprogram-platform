@@ -101,7 +101,7 @@
     >
       <image
         class="product-image"
-        src="{{item.image || item.cover_url || item.main_image || item.mainImage || '/images/default-product.svg'}}"
+        src="{{item.image || item.cover_url || item.main_image || item.mainImage || '/images/default-product.png'}}"
         mode="aspectFill"
         lazy-load
         data-index="{{index}}"

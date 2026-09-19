@@ -8,7 +8,7 @@ const warmPlanet = require('../../data/warm-planet')
 const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
 const PlanetService = require('../../services/planet')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
-const { isUnusableImageUrl } = require('../../utils/image-fallback')
+const { isUnusableImageUrl, DEFAULT_AVATAR } = require('../../utils/image-fallback')
 
 const MOMENT_LIKES_KEY = 'moment_likes'
 const MOMENT_FAVS_KEY = 'moment_favorites'
@@ -432,6 +432,14 @@ Page({
       return
     }
     wx.navigateTo({ url })
+  },
+
+  onFeedAvatarError(e) {
+    const index = Number(e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.index)
+    if (!Number.isFinite(index) || index < 0) return
+    const list = this.data.list || []
+    if (list[index] && list[index].avatar === DEFAULT_AVATAR) return
+    this.setData({ [`list[${index}].avatar`]: DEFAULT_AVATAR })
   },
 
   _resolveMomentKey(ds, item) {

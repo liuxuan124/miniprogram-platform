@@ -70,7 +70,7 @@
         <text class="mn-cont__a" wx:if="{{isLoggedIn && learnItem}}" bindtap="onGoLearnMore">查看 ›</text>
       </view>
       <view class="mn-cont__it" wx:if="{{isLoggedIn && learnItem}}" bindtap="onGoLearnMore">
-        <image class="mn-cont__im warm-ph" src="{{learnItem.cover || '/images/default-product.svg'}}" mode="aspectFill" />
+        <image class="mn-cont__im warm-ph" src="{{learnItem.cover || '/images/default-product.png'}}" mode="aspectFill" />
         <view class="mn-cont__main">
           <text class="mn-cont__name">{{learnItem.title}}</text>
           <text class="mn-cont__pt">已购买 · 点此继续</text>

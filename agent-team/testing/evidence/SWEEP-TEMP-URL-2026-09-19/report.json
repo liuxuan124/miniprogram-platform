@@ -1,0 +1,7 @@
+{
+  "at": "2026-09-19T20:57:00+08:00",
+  "wx_version": "1.30.3",
+  "wx_version_desc": "同类型：临时路径误判/SVG占位/静默失败清扫",
+  "scope": "temp-path misclassify / SVG placeholders / silent upload failures sweep",
+  "backend_status": "no jar redeploy; wx_version synced"
+}

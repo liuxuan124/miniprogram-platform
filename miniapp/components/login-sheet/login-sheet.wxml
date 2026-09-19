@@ -46,6 +46,7 @@
             class="profile-panel__avatar"
             src="{{avatarUrl}}"
             mode="aspectFill"
+            binderror="onAvatarImageError"
           />
           <view wx:else class="profile-panel__avatar profile-panel__avatar--empty">+</view>
         </button>

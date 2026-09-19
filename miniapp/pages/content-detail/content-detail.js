@@ -10,6 +10,7 @@ const {
   isUnusableImageUrl,
   resolveDisplayAvatarUrl,
   resolveDisplayProductUrl,
+  DEFAULT_AVATAR,
 } = require('../../utils/image-fallback')
 const {
   buildNoteGalleryUrls,
@@ -421,6 +422,16 @@ Page({
     isWarmArticle: false,
     isWarmNote: false,
     statusBarHeight: getStatusBarHeight(),
+  },
+
+  onCommentAvatarError(e) {
+    const index = Number(e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.index)
+    if (!Number.isFinite(index) || index < 0) return
+    const key = `comments[${index}].avatar`
+    if (this.data.comments && this.data.comments[index] && this.data.comments[index].avatar === DEFAULT_AVATAR) {
+      return
+    }
+    this.setData({ [key]: DEFAULT_AVATAR })
   },
 
   onLoad(options) {
@@ -1178,7 +1189,7 @@ Page({
           id: p.id,
           name: p.name,
           price: p.price,
-          cover: p.mainImage || p.main_image || '/images/default-product.svg',
+          cover: p.mainImage || p.main_image || '/images/default-product.png',
         }))
       } catch (e) {
         relatedProducts = []

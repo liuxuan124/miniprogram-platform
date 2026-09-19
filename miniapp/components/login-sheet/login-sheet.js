@@ -9,7 +9,9 @@ const {
 } = require('../../utils/brand-config')
 const {
   DEFAULT_BRAND_LOGO,
+  DEFAULT_AVATAR,
   resolveDisplayLogoUrl,
+  isTempLocalAvatar,
 } = require('../../utils/image-fallback')
 const {
   runOneTapLogin,
@@ -174,6 +176,14 @@ Component({
       }
       // 默认品牌图也失败时退回文字标，避免空白圆
       this.setData({ brandLogoUrl: '' })
+    },
+
+    onAvatarImageError() {
+      const current = String(this.data.avatarUrl || '')
+      // 选图后的临时路径偶发加载失败时不要换成默认图，保留本地预览路径
+      if (isTempLocalAvatar(current) || isTempLocalAvatar(this.data.avatarLocalPath)) return
+      if (current === DEFAULT_AVATAR) return
+      this.setData({ avatarUrl: DEFAULT_AVATAR })
     },
 
     async _loadBrandConfig(interceptAction) {

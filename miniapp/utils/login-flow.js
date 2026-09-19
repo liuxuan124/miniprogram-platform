@@ -5,10 +5,9 @@ const { AuthService } = require('../services/auth')
 const { AuthUtil } = require('./auth')
 const { upload } = require('./request')
 const { resolveMediaUrl } = require('./media-url')
+const { isPersistedMediaUrl } = require('./image-fallback')
 
-function isRemoteUrl(url) {
-  return !!(url && /^https?:\/\//i.test(String(url)))
-}
+const isRemoteUrl = isPersistedMediaUrl
 
 function hasLocalProfile(nickName, localAvatar) {
   return !!(nickName && String(nickName).trim() && localAvatar)
@@ -63,14 +62,16 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
     phone,
     nickName: finalNick,
     // 会话展示可用本地预览；持久化只保留远程 URL，避免 wxfile 污染
-    avatarUrl: isRemoteUrl(displayAvatar)
+    avatarUrl: isPersistedMediaUrl(displayAvatar)
       ? displayAvatar
-      : (isRemoteUrl(serverUser.avatarUrl) ? serverUser.avatarUrl : ''),
+      : (isPersistedMediaUrl(serverUser.avatarUrl) ? serverUser.avatarUrl : ''),
   })
   AuthUtil.clearLoginInterceptInfo()
   AuthUtil.rememberLoginProfile({
     nickName: finalNick,
-    avatarUrl: isRemoteUrl(displayAvatar) ? displayAvatar : (serverUser.avatarUrl || ''),
+    avatarUrl: isPersistedMediaUrl(displayAvatar)
+      ? displayAvatar
+      : (isPersistedMediaUrl(serverUser.avatarUrl) ? serverUser.avatarUrl : ''),
   })
 
   syncAvatarInBackground({
@@ -90,7 +91,7 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
 
 function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) {
   const finish = (remoteUrl) => {
-    if (!remoteUrl) return
+    if (!remoteUrl || !isPersistedMediaUrl(remoteUrl)) return
     AuthService.updateProfile(
       { nickname: nickName || undefined, avatarUrl: remoteUrl },
       { showError: false }
@@ -112,7 +113,7 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
     })
   }
 
-  if (isRemoteUrl(localAvatar)) {
+  if (isPersistedMediaUrl(localAvatar)) {
     if (localAvatar !== serverAvatar) finish(localAvatar)
     return
   }
@@ -127,7 +128,7 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
   }).then((uploaded) => {
     const raw = (uploaded && (uploaded.url || uploaded.fileUrl || uploaded.path)) || ''
     const remoteUrl = resolveMediaUrl(raw) || raw
-    if (!remoteUrl) {
+    if (!remoteUrl || !isPersistedMediaUrl(remoteUrl)) {
       try {
         wx.showToast({ title: '头像上传失败，请稍后在设置中重试', icon: 'none' })
       } catch (e) { /* ignore */ }
@@ -155,7 +156,7 @@ function applyRememberedProfile(setDataFn) {
   if (!cached) return false
   const patch = {}
   if (cached.nickName) patch.nickName = cached.nickName
-  if (cached.avatarUrl && isRemoteUrl(cached.avatarUrl)) {
+  if (cached.avatarUrl && isPersistedMediaUrl(cached.avatarUrl)) {
     patch.avatarUrl = cached.avatarUrl
     patch.avatarLocalPath = cached.avatarUrl
   }
@@ -170,4 +171,5 @@ module.exports = {
   applyRememberedProfile,
   hasLocalProfile,
   isRemoteUrl,
+  isPersistedMediaUrl,
 }

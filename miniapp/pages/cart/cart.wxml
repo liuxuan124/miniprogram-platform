@@ -20,7 +20,7 @@
       <!-- 商品图片 -->
       <image
         class="item-image"
-        src="{{item.image || item.cover_url || item.product_image || '/images/default-product.svg'}}"
+        src="{{item.image || item.cover_url || item.product_image || '/images/default-product.png'}}"
         mode="aspectFill"
         data-id="{{item.product_id}}"
         data-index="{{index}}"

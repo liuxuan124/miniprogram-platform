@@ -4,7 +4,7 @@
   <view class="member-card">
     <view class="card-bg"></view>
     <view class="card-content">
-      <image class="avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.svg'}}" mode="aspectFill" />
+      <image class="avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" binderror="onAvatarError" />
       <view class="user-info">
         <text class="nickname">{{userInfo.nickname || '未登录'}}</text>
         <view class="level-badge">

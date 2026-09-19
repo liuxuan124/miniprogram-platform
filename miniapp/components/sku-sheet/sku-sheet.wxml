@@ -2,7 +2,7 @@
 <view class="mask" wx:if="{{show}}" catchtouchmove="noop" bindtap="onClose"></view>
 <view class="sheet {{show ? 'on' : ''}}" wx:if="{{show}}" catchtouchmove="noop">
   <view class="h">
-    <image class="img" src="{{image || '/images/default-avatar.svg'}}" mode="aspectFill" />
+    <image class="img" src="{{image || '/images/default-product.png'}}" mode="aspectFill" />
     <view class="info">
       <view class="price-row">
         <view class="price">¥{{price}}</view>

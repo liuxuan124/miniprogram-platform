@@ -150,7 +150,7 @@ Page({
           id: p.id,
           name: p.name,
           price: p.price,
-          cover: p.mainImage || p.main_image || '/images/default-product.svg',
+          cover: p.mainImage || p.main_image || '/images/default-product.png',
         })),
       })
     } catch (e) { /* ignore */ }
