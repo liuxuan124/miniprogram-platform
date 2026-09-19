@@ -23,6 +23,7 @@ import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.VersionOperationLogService;
 import com.miniprogram.service.miniapp.StoreTemplateNames;
+import com.miniprogram.service.miniapp.WarmStoreTemplateSeeder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     private final SystemConfigMapper systemConfigMapper;
     private final VersionOperationLogService versionOperationLogService;
     private final ObjectMapper objectMapper;
+    private final WarmStoreTemplateSeeder warmStoreTemplateSeeder;
 
     @Override
     public PageResult<MiniappRelease> listReleases(ReleaseQueryDTO query) {
@@ -267,6 +269,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     public void deleteRelease(Long id) {
         MiniappRelease release = this.getById(id);
         BusinessException.throwIf(release == null, ErrorCode.RELEASE_NOT_FOUND);
+        BusinessException.throwIf(Integer.valueOf(1).equals(release.getIsSystem()),
+                ErrorCode.STORE_TEMPLATE_SYSTEM_FORBIDDEN);
         BusinessException.throwIf(release.getStatus() == 1, ErrorCode.RELEASE_DELETE_FORBIDDEN.getCode(),
                 "当前线上版本不可删除，请先发布其他版本再删除此版本");
         BusinessException.throwIf(Integer.valueOf(1).equals(release.getIsCurrent()),
@@ -409,10 +413,14 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
     @Override
     public List<MiniappRelease> listStoreTemplates() {
+        warmStoreTemplateSeeder.ensureWarmStoreTemplate();
         List<MiniappRelease> list = this.lambdaQuery()
                 .and(w -> w.eq(MiniappRelease::getMode, "template")
                         .or()
-                        .eq(MiniappRelease::getStatus, 0))
+                        .eq(MiniappRelease::getStatus, 0)
+                        .or()
+                        .eq(MiniappRelease::getIsSystem, 1))
+                .orderByDesc(MiniappRelease::getIsSystem)
                 .orderByDesc(MiniappRelease::getIsCurrent)
                 .orderByDesc(MiniappRelease::getUpdateTime)
                 .list();
@@ -466,6 +474,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         copy.setStatus(0);
         copy.setMode("template");
         copy.setIsCurrent(0);
+        copy.setIsSystem(0);
+        copy.setTemplateCode(null);
         this.save(copy);
         copy.setSnapshot(null);
         return copy;
@@ -513,8 +523,8 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         target.setMode("template");
         this.updateById(target);
 
-        versionOperationLogService.logOperation(target.getId(), target.getSemver(), "create",
-                "选用整店模板: " + StoreTemplateNames.display(
+        versionOperationLogService.logOperation(target.getId(), target.getSemver(), "activate_store_template",
+                "套用整店模板(内容上线，非微信代码): " + StoreTemplateNames.display(
                         target.getTemplateName(), target.getSemver(), target.getReleaseNotes()),
                 true, null, 0L);
         return sanitizeTemplate(target);
@@ -909,6 +919,9 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     private boolean isBuiltInMiniappPage(String path) {
         return Set.of(
                 "pages/index/index",
+                "pages/discover/discover",
+                "pages/planet/planet",
+                "pages/shop/shop",
                 "pages/mine/mine",
                 "pages/ai-chat/ai-chat",
                 "pages/login/login",
@@ -917,6 +930,19 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 "pages/category/category",
                 "pages/cart/cart"
         ).contains(path);
+    }
+
+    /** 模板套用时跳过微信账号类配置，避免把种子里的 AppID 盖到目标站 */
+    private boolean shouldSkipConfigOnTemplateApply(String key) {
+        if (!StringUtils.hasText(key)) {
+            return true;
+        }
+        String k = key.toLowerCase();
+        return k.startsWith("wx_")
+                || k.equals("appid")
+                || k.equals("uploadkey")
+                || k.equals("originalid")
+                || k.contains("push_target");
     }
 
     private void applySystemConfigFromSnapshot(String snapshotJson) {
@@ -932,6 +958,10 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             }
             for (Map.Entry<String, Object> entry : systemConfig.entrySet()) {
                 String key = entry.getKey();
+                // 套用模板/回滚只改外观与业务配置，绝不覆盖微信密钥与支付密钥
+                if (isSensitiveConfigKey(key) || shouldSkipConfigOnTemplateApply(key)) {
+                    continue;
+                }
                 String value = entry.getValue() instanceof String
                         ? (String) entry.getValue()
                         : objectMapper.writeValueAsString(entry.getValue());

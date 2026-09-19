@@ -115,6 +115,7 @@ public enum ErrorCode {
     RELEASE_DELETE_FORBIDDEN(310007, "无法删除已发布的版本"),
     STORE_TEMPLATE_NAME_DUPLICATE(310008, "模板名称已存在"),
     STORE_TEMPLATE_IN_USE(310009, "使用中的模板不可删除"),
+    STORE_TEMPLATE_SYSTEM_FORBIDDEN(310010, "系统预置整店模板不可删除，可复制后改"),
 
     // ==================== 系统设置相关 1300-1399（契约对齐） ====================
     SYSTEM_CONFIG_NOT_FOUND(1300401, "配置不存在"),

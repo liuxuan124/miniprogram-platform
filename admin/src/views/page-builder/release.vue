@@ -172,8 +172,33 @@
       <div class="card-head">
         <h2>微信代码包</h2>
         <span class="muted">
-          这里才是体验版/正式版代码上传。日常改页面不用走这里，也和「整店模板」无关。
+          这里才是体验版/正式版代码上传。日常改页面、套用整店模板都不用走这里。
         </span>
+      </div>
+      <div class="wechat-target">
+        <div class="wechat-label">推送目标（微信账号）</div>
+        <div class="wechat-target-row">
+          <el-select
+            v-model="selectedTargetId"
+            placeholder="选择推送目标 AppID"
+            clearable
+            filterable
+            style="min-width: 280px"
+          >
+            <el-option
+              v-for="t in pushTargets"
+              :key="t.id"
+              :label="`${t.name} · ${t.appId}${t.hasUploadKey ? '' : '（缺密钥）'}`"
+              :value="t.id"
+            />
+          </el-select>
+          <el-button @click="openTargetDialog">管理目标</el-button>
+        </div>
+        <p class="wechat-hint">
+          密钥优先放服务器文件（推荐
+          <code>/opt/miniprogram-platform/secrets/wx-upload-&#123;appid&#125;.key</code>
+          ），在目标里填「密钥路径」；也可粘贴 PEM。套用模板不会用到这里。
+        </p>
       </div>
       <div class="wechat-row">
         <div>
@@ -182,7 +207,7 @@
         </div>
         <el-tooltip
           :disabled="pushStatus?.uploadAvailable !== false"
-          content="当前服务器未配置上传密钥，请联系技术同事处理"
+          :content="pushStatus?.capabilityReason || '当前服务器未配置上传密钥，请联系技术同事处理'"
           placement="top"
         >
           <span>
@@ -199,6 +224,52 @@
         </el-tooltip>
       </div>
     </section>
+
+    <el-dialog v-model="targetDialogVisible" title="管理微信推送目标" width="560px" destroy-on-close>
+      <p class="wechat-hint" style="margin-top:0">
+        每个目标对应一个微信小程序 AppID。与「整店模板套用」无关。
+      </p>
+      <el-table :data="pushTargetsAll" size="small" empty-text="还没有目标">
+        <el-table-column prop="name" label="名称" min-width="100" />
+        <el-table-column prop="appId" label="AppID" min-width="140" />
+        <el-table-column label="密钥" width="80">
+          <template #default="{ row }">{{ row.hasUploadKey ? '已配' : '未配' }}</template>
+        </el-table-column>
+        <el-table-column label="默认" width="70">
+          <template #default="{ row }">
+            <el-tag v-if="row.isDefault === 1 || row.isDefault === true" size="small" type="success">默认</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="setDefaultTarget(row.id)">设默认</el-button>
+            <el-button link type="danger" @click="removeTarget(row.id)">删</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-divider />
+      <el-form label-position="top" size="small">
+        <el-form-item label="名称" required>
+          <el-input v-model="targetForm.name" placeholder="例如：暖阁正式号" />
+        </el-form-item>
+        <el-form-item label="AppID" required>
+          <el-input v-model="targetForm.appId" placeholder="wx……" />
+        </el-form-item>
+        <el-form-item label="服务器密钥路径（推荐）">
+          <el-input v-model="targetForm.uploadKeyPath" placeholder="/opt/miniprogram-platform/secrets/wx-upload-xxx.key" />
+        </el-form-item>
+        <el-form-item label="或粘贴 PEM 密钥（可选）">
+          <el-input v-model="targetForm.uploadKey" type="textarea" :rows="3" placeholder="-----BEGIN PRIVATE KEY-----" />
+        </el-form-item>
+        <el-form-item>
+          <el-checkbox v-model="targetForm.isDefault">设为默认</el-checkbox>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="targetDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="targetSaving" @click="saveTarget">添加目标</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -216,7 +287,13 @@ import {
   rollbackRelease,
   pushPreviewRelease,
   getPushPreviewStatus,
+  listWxPushTargets,
+  listAllWxPushTargets,
+  createWxPushTarget,
+  setDefaultWxPushTarget,
+  deleteWxPushTarget,
   type PublishPreflight,
+  type WxPushTarget,
 } from '@/api/version'
 import type { ReleaseRecord } from '@/types/page'
 import { getPageList } from '@/api/page'
@@ -263,7 +340,20 @@ const pushStatus = ref<{
   uploadAvailable?: boolean
   preferCi?: boolean
   capabilityReason?: string
+  appId?: string
 } | null>(null)
+const pushTargets = ref<WxPushTarget[]>([])
+const pushTargetsAll = ref<WxPushTarget[]>([])
+const selectedTargetId = ref<number | undefined>(undefined)
+const targetDialogVisible = ref(false)
+const targetSaving = ref(false)
+const targetForm = ref({
+  name: '',
+  appId: '',
+  uploadKeyPath: '',
+  uploadKey: '',
+  isDefault: false,
+})
 
 const canPublish = computed(() => Boolean(preflight.value?.canPublish))
 const liveRelease = computed(() => history.value.find((row) => row.status === 1) || latestRelease.value)
@@ -342,8 +432,82 @@ async function loadPushStatus() {
   }
 }
 
+async function loadPushTargets() {
+  try {
+    const [enabled, all] = await Promise.all([listWxPushTargets(), listAllWxPushTargets()])
+    pushTargets.value = ((enabled as any)?.data || enabled || []) as WxPushTarget[]
+    pushTargetsAll.value = ((all as any)?.data || all || []) as WxPushTarget[]
+    if (selectedTargetId.value == null) {
+      const def = pushTargets.value.find((t) => t.isDefault === 1 || t.isDefault === true)
+      if (def) selectedTargetId.value = def.id
+    }
+  } catch {
+    pushTargets.value = []
+    pushTargetsAll.value = []
+  }
+}
+
 async function loadAll() {
-  await Promise.all([loadPreflight(), loadHistory(), loadLatest(), loadPushStatus(), loadPageVersions()])
+  await Promise.all([
+    loadPreflight(),
+    loadHistory(),
+    loadLatest(),
+    loadPushStatus(),
+    loadPushTargets(),
+    loadPageVersions(),
+  ])
+}
+
+async function openTargetDialog() {
+  targetDialogVisible.value = true
+  await loadPushTargets()
+}
+
+async function saveTarget() {
+  if (!targetForm.value.name.trim() || !targetForm.value.appId.trim()) {
+    ElMessage.warning('请填写名称和 AppID')
+    return
+  }
+  targetSaving.value = true
+  try {
+    await createWxPushTarget({
+      name: targetForm.value.name.trim(),
+      appId: targetForm.value.appId.trim(),
+      uploadKeyPath: targetForm.value.uploadKeyPath.trim() || undefined,
+      uploadKey: targetForm.value.uploadKey.trim() || undefined,
+      isDefault: targetForm.value.isDefault,
+    })
+    ElMessage.success('已添加推送目标')
+    targetForm.value = { name: '', appId: '', uploadKeyPath: '', uploadKey: '', isDefault: false }
+    await loadPushTargets()
+  } catch (err: any) {
+    ElMessage.error(err?.response?.data?.message || err?.message || '保存失败')
+  } finally {
+    targetSaving.value = false
+  }
+}
+
+async function setDefaultTarget(id: number) {
+  try {
+    await setDefaultWxPushTarget(id)
+    selectedTargetId.value = id
+    ElMessage.success('已设为默认')
+    await loadPushTargets()
+  } catch (err: any) {
+    ElMessage.error(err?.response?.data?.message || err?.message || '设置失败')
+  }
+}
+
+async function removeTarget(id: number) {
+  try {
+    await ElMessageBox.confirm('确认删除该推送目标？', '删除', { type: 'warning' })
+    await deleteWxPushTarget(id)
+    if (selectedTargetId.value === id) selectedTargetId.value = undefined
+    ElMessage.success('已删除')
+    await loadPushTargets()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error((e as any)?.message || '删除失败')
+  }
 }
 
 /* ---------- 页面级版本入口 ---------- */
@@ -449,7 +613,7 @@ async function handleRollback(row: ReleaseRecord) {
 async function handlePushPreview(row: ReleaseRecord) {
   try {
     await ElMessageBox.confirm(
-      '这一步是把「小程序代码」上传到微信的体验版，只有技术同事更新了小程序功能时才需要。\n日常改页面内容不用做这一步。',
+      '这一步是把「小程序代码」上传到微信的体验版，只有技术同事更新了小程序功能时才需要。\n日常改页面、套用整店模板都不用做这一步。',
       '上传代码到微信',
       { type: 'info', confirmButtonText: '继续上传', cancelButtonText: '取消' },
     )
@@ -460,6 +624,8 @@ async function handlePushPreview(row: ReleaseRecord) {
   try {
     const res = await pushPreviewRelease(row.id, {
       versionDesc: row.releaseNotes || `后台上传体验版 v${row.semver}`,
+      confirmCodeChange: true,
+      targetId: selectedTargetId.value,
     })
     const message = (res as any)?.data?.message || (res as any)?.message
     await ElMessageBox.alert(
@@ -714,6 +880,30 @@ onMounted(loadAll)
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.wechat-target {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed #dbeafe;
+}
+
+.wechat-target-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.wechat-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.wechat-hint code {
+  font-size: 11px;
 }
 
 .wechat-label {

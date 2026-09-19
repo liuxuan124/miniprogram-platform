@@ -545,6 +545,10 @@ export interface ReleaseRecord {
   mode?: 'template' | 'publish'
   /** 整店模板名称 */
   templateName?: string
+  /** 系统模板编码 warm=暖阁 */
+  templateCode?: string
+  /** 系统预置不可删 */
+  isSystem?: number | boolean
   /** 正在搭建使用中 */
   isCurrent?: number | boolean
   /** 基于哪个模板编辑的（追踪来源） */

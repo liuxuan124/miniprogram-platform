@@ -40,4 +40,13 @@ public class PushPreviewResultVO {
 
     @Schema(description = "不可用原因")
     private String capabilityReason;
+
+    @Schema(description = "实际推送到的 AppID")
+    private String appId;
+
+    @Schema(description = "推送目标名称")
+    private String targetName;
+
+    @Schema(description = "凭证来源：target / system_config / system_config_file")
+    private String credentialSource;
 }
