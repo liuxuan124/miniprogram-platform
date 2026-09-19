@@ -1,5 +1,6 @@
 const { getMemberInfo, signIn, getSignInStatus } = require('../../services/member')
 const { AuthUtil } = require('../../utils/auth')
+const { DEFAULT_AVATAR } = require('../../utils/image-fallback')
 
 Page({
   data: {
@@ -55,6 +56,11 @@ Page({
     if (AuthUtil.isLoggedIn()) {
       this.fetchMemberInfo()
     }
+  },
+
+  onAvatarError() {
+    const userInfo = Object.assign({}, this.data.userInfo || {}, { avatarUrl: DEFAULT_AVATAR })
+    this.setData({ userInfo })
   },
 
   async fetchMemberInfo() {

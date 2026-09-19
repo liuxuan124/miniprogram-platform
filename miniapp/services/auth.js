@@ -123,8 +123,11 @@ const AuthService = {
       profile.avatarUrl != null
         ? String(profile.avatarUrl)
         : (current.avatarUrl || '')
-    if (/^wxfile:/i.test(avatarUrl) || /^http:\/\/tmp\//i.test(avatarUrl)) {
-      avatarUrl = ''
+    {
+      const { isTempLocalAvatar, isPersistedMediaUrl } = require('../utils/image-fallback')
+      if (avatarUrl && (isTempLocalAvatar(avatarUrl) || !isPersistedMediaUrl(avatarUrl))) {
+        avatarUrl = ''
+      }
     }
     const phone =
       profile.phone != null
@@ -192,9 +195,11 @@ const AuthService = {
     const app = getApp()
     const current = (app && app.globalData && app.globalData.userInfo) || AuthUtil.getUserInfo() || {}
     const token = (app && app.globalData && app.globalData.token) || AuthUtil.getToken()
+    const { isTempLocalAvatar, isPersistedMediaUrl } = require('../utils/image-fallback')
     let nextAvatar = avatarUrl || current.avatarUrl || ''
-    if (/^wxfile:/i.test(nextAvatar) || /^http:\/\/tmp\//i.test(nextAvatar)) {
-      nextAvatar = ''
+    if (isTempLocalAvatar(nextAvatar) || !isPersistedMediaUrl(nextAvatar)) {
+      // 临时路径不进会话持久字段；空则保留已有远程头像
+      nextAvatar = isPersistedMediaUrl(current.avatarUrl) ? current.avatarUrl : ''
     }
     const nextUserInfo = {
       ...current,

@@ -4,6 +4,30 @@ const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
 const { post, upload, get } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
+const { isPersistedMediaUrl } = require('../../utils/image-fallback')
+const { resolveMediaUrl } = require('../../utils/media-url')
+
+function filterPersistedImages(list) {
+  return (Array.isArray(list) ? list : []).filter((p) => p && isPersistedMediaUrl(p))
+}
+
+function uploadLocalImage(filePath) {
+  if (isPersistedMediaUrl(filePath)) {
+    return Promise.resolve(filePath)
+  }
+  if (!filePath) {
+    return Promise.reject(new Error('无效图片'))
+  }
+  return upload(filePath, { name: 'file', url: '/api/v1/mp/upload' })
+    .then((uploaded) => {
+      const raw = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
+      const url = resolveMediaUrl(raw) || raw
+      if (!url || !isPersistedMediaUrl(url)) {
+        throw new Error('图片上传失败')
+      }
+      return url
+    })
+}
 
 const TOPIC_OPTIONS = ['书桌改造', '工位美学', '内容创业', '写作方法', '读书']
 const DRAFT_KEY = 'contribute_draft_v1'
@@ -132,7 +156,7 @@ Page({
         name: d.name || '',
         intro: d.intro || '',
         portfolio: d.portfolio || '',
-        portfolioImages: Array.isArray(d.portfolioImages) ? d.portfolioImages : [],
+        portfolioImages: filterPersistedImages(d.portfolioImages),
         selectedTopicMap: d.selectedTopicMap || {},
         selectedFormMap: d.selectedFormMap || {},
       })
@@ -145,7 +169,8 @@ Page({
         name: this.data.name,
         intro: this.data.intro,
         portfolio: this.data.portfolio,
-        portfolioImages: this.data.portfolioImages,
+        // 草稿不落临时路径（重启后 wxfile 失效）
+        portfolioImages: filterPersistedImages(this.data.portfolioImages),
         selectedTopicMap: this.data.selectedTopicMap,
         selectedFormMap: this.data.selectedFormMap,
         savedAt: Date.now(),
@@ -160,7 +185,7 @@ Page({
       this.setData({
         draftTitle: d.draftTitle || '',
         draftBody: d.draftBody || '',
-        draftImages: Array.isArray(d.draftImages) ? d.draftImages : [],
+        draftImages: filterPersistedImages(d.draftImages),
         draftTopics: d.draftTopics || '',
         publishType: d.publishType || 'note',
         syncPlanet: d.syncPlanet !== false,
@@ -176,7 +201,7 @@ Page({
       StorageUtil.set(DRAFT_KEY, {
         draftTitle: this.data.draftTitle,
         draftBody: this.data.draftBody,
-        draftImages: this.data.draftImages,
+        draftImages: filterPersistedImages(this.data.draftImages),
         draftTopics: this.data.draftTopics,
         publishType: this.data.publishType,
         syncPlanet: this.data.syncPlanet,
@@ -292,14 +317,7 @@ Page({
   _uploadPortfolioImages() {
     const locals = (this.data.portfolioImages || []).filter(Boolean)
     if (!locals.length) return Promise.resolve([])
-    return Promise.all(locals.map((filePath) => {
-      if (/^https?:\/\//.test(filePath) || filePath.indexOf('/uploads/') === 0) {
-        return Promise.resolve(filePath)
-      }
-      return upload(filePath, { name: 'file', url: '/api/v1/mp/upload' })
-        .then((uploaded) => (uploaded && (uploaded.url || uploaded.fileUrl)) || '')
-        .catch(() => '')
-    })).then((urls) => urls.filter(Boolean))
+    return Promise.all(locals.map((filePath) => uploadLocalImage(filePath)))
   },
 
   /** 键盘收起后再 toast，避免校验/成功提示被键盘动画吞掉；不用 success 图标（文案易超 7 字不显示） */
@@ -468,14 +486,7 @@ Page({
   _uploadDraftImages() {
     const locals = (this.data.draftImages || []).filter(Boolean)
     if (!locals.length) return Promise.resolve([])
-    return Promise.all(locals.map((filePath) => {
-      if (/^https?:\/\//.test(filePath) || filePath.indexOf('/uploads/') === 0) {
-        return Promise.resolve(filePath)
-      }
-      return upload(filePath, { name: 'file', url: '/api/v1/mp/upload' })
-        .then((uploaded) => (uploaded && (uploaded.url || uploaded.fileUrl)) || '')
-        .catch(() => '')
-    })).then((urls) => urls.filter(Boolean))
+    return Promise.all(locals.map((filePath) => uploadLocalImage(filePath)))
   },
 
   onPublishDemo() {
@@ -519,7 +530,10 @@ Page({
           editorTitle: '写笔记',
         })
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = (err && (err.message || err.msg || err.errMsg)) || '发布失败，请重试'
+        wx.showToast({ title: String(msg).slice(0, 40), icon: 'none' })
+      })
       .finally(() => {
         this.setData({ submitting: false })
       })

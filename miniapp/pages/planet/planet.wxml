@@ -100,7 +100,7 @@
           bindtap="onOpenMoment"
         >
           <view class="pl-fd__hh">
-            <image class="pl-fd__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" />
+            <image class="pl-fd__av warm-ph" src="{{item.avatar}}" mode="aspectFill" wx:if="{{item.avatar}}" data-index="{{index}}" binderror="onFeedAvatarError" />
             <view class="pl-fd__av pl-fd__av--fb" wx:else>{{item.authorInitial}}</view>
             <view class="pl-fd__who">
               <view class="pl-fd__nm">

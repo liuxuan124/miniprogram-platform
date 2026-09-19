@@ -9,13 +9,13 @@ const BAD_URL_MARKERS = [
 
 // 微信 <image> 不渲染 SVG，占位必须用位图
 const DEFAULT_AVATAR = '/images/default-avatar.png'
-const DEFAULT_PRODUCT = '/images/default-product.svg'
+const DEFAULT_PRODUCT = '/images/default-product.png'
 const DEFAULT_BRAND_LOGO = '/images/default-brand-logo.png'
 
 const LOCAL_COVERS = [
   '/images/section-bar-tech-bg.jpg',
-  '/images/motaibai-hero.svg',
-  '/images/default-article.svg',
+  '/images/default-product.png',
+  '/images/empty-product.png',
 ]
 
 const DEFAULT_HERO = '/images/section-bar-tech-bg.jpg'
@@ -36,7 +36,7 @@ function isSvgUrl(url) {
   return /\.svg(\?|#|$)/i.test(value) || /^data:image\/svg\+xml/i.test(value)
 }
 
-/** 微信本地临时头像（选图后尚未上传） */
+/** 微信本地临时图（选图后尚未上传，不可当远程持久 URL） */
 function isTempLocalAvatar(url) {
   const value = String(url || '').trim()
   if (!value) return false
@@ -45,6 +45,20 @@ function isTempLocalAvatar(url) {
     || /^file:\/\//i.test(value)
     || /^\/tmp\//i.test(value)
 }
+
+/**
+ * 可持久化的媒体 URL（远程 https(s) 或 /uploads/ 相对路径）。
+ * 显式排除 wxfile / http://tmp / file:// 等临时路径，避免裸 ^https? 误判。
+ */
+function isPersistedMediaUrl(url) {
+  const value = String(url || '').trim()
+  if (!value || isTempLocalAvatar(value)) return false
+  if (value.indexOf('/uploads/') === 0) return true
+  return /^https?:\/\//i.test(value)
+}
+
+/** @deprecated 请用 isPersistedMediaUrl；保留别名避免旧引用断裂 */
+const isRemoteUrl = isPersistedMediaUrl
 
 function isDisplayableImageUrl(url) {
   const value = String(url || '').trim()
@@ -74,7 +88,7 @@ function pickDisplayAvatarUrl(...candidates) {
   for (let i = 0; i < candidates.length; i += 1) {
     const raw = String(candidates[i] || '').trim()
     if (!raw) continue
-    if (/^wxfile:/i.test(raw) || /^http:\/\/tmp\//i.test(raw)) continue
+    if (isTempLocalAvatar(raw)) continue
     const resolved = resolveMediaUrl(raw)
     if (!isDisplayableImageUrl(resolved)) continue
     return resolved
@@ -111,6 +125,8 @@ module.exports = {
   isLocalhostUrl,
   isSvgUrl,
   isTempLocalAvatar,
+  isPersistedMediaUrl,
+  isRemoteUrl,
   isDisplayableImageUrl,
   pickLocalCoverFallback,
   resolveDisplayImageUrl,

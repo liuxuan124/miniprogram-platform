@@ -1,5 +1,33 @@
 const reviewService = require('../../services/review')
 const { AuthUtil } = require('../../utils/auth')
+const { upload } = require('../../utils/request')
+const { isPersistedMediaUrl } = require('../../utils/image-fallback')
+const { resolveMediaUrl } = require('../../utils/media-url')
+
+async function uploadReviewImages(locals) {
+  const list = (locals || []).filter(Boolean)
+  const out = []
+  for (let i = 0; i < list.length; i += 1) {
+    const filePath = list[i]
+    if (isPersistedMediaUrl(filePath)) {
+      out.push(filePath)
+      continue
+    }
+    const uploaded = await upload(filePath, {
+      name: 'file',
+      url: '/api/v1/mp/upload',
+      formData: { subDir: 'review' },
+      showError: false,
+    })
+    const raw = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
+    const url = resolveMediaUrl(raw) || raw
+    if (!url || !isPersistedMediaUrl(url)) {
+      throw new Error('图片上传失败，请重试')
+    }
+    out.push(url)
+  }
+  return out
+}
 
 Page({
   data: {
@@ -85,13 +113,14 @@ Page({
     }
     this.setData({ submitting: true })
     try {
+      const images = await uploadReviewImages(this.data.images)
       await reviewService.createReview({
         productId: Number(this.data.productId),
         orderId: this.data.orderId ? Number(this.data.orderId) : null,
         score: this.data.score,
         tags: this.data.selectedTags,
         content: this.data.content.trim(),
-        images: this.data.images,
+        images,
         anonymous: this.data.anonymous,
       })
       wx.showToast({ title: '评价成功 +10 积分', icon: 'success' })

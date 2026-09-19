@@ -2,7 +2,7 @@
 <page-meta page-style="{{themePageStyle}}" />
 <view class="wr-page">
   <view class="card prod">
-    <image class="cover" src="{{productImage || '/images/default-product.svg'}}" mode="aspectFill" />
+    <image class="cover" src="{{productImage || '/images/default-product.png'}}" mode="aspectFill" />
     <view class="info">
       <view class="name">{{productName || '商品'}}</view>
       <view class="meta">订单完成后的真实评价</view>

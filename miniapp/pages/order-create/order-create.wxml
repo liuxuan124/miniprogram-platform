@@ -41,7 +41,7 @@
     >
       <image
         class="goods__cover"
-        src="{{item.product_image || item.productImage || item.image || item.cover_url || '/images/default-avatar.svg'}}"
+        src="{{item.product_image || item.productImage || item.image || item.cover_url || '/images/default-product.png'}}"
         mode="aspectFill"
       />
       <view class="goods__main">

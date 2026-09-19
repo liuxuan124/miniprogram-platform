@@ -274,7 +274,7 @@ Page({
 
   onImageError(e) {
     const index = e.currentTarget.dataset.index
-    const fallback = '/images/default-product.svg'
+    const fallback = '/images/default-product.png'
     this.setData({
       [`products[${index}].image`]: fallback,
       [`products[${index}].cover_url`]: fallback,

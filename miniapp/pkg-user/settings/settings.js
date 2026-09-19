@@ -1,14 +1,17 @@
 const { AuthUtil } = require('../../utils/auth')
 const { AuthService } = require('../../services/auth')
 const { upload } = require('../../utils/request')
-const { DEFAULT_AVATAR, pickDisplayAvatarUrl, isTempLocalAvatar } = require('../../utils/image-fallback')
+const {
+  DEFAULT_AVATAR,
+  pickDisplayAvatarUrl,
+  isTempLocalAvatar,
+  isPersistedMediaUrl,
+} = require('../../utils/image-fallback')
 const { resolveMediaUrl } = require('../../utils/media-url')
 
 const NICKNAME_MAX_LEN = 10
 
-function isRemoteUrl(url) {
-  return !!(url && /^https?:\/\//i.test(String(url)))
-}
+const isRemoteUrl = isPersistedMediaUrl
 
 function softPhoneTip(phone) {
   const p = String(phone || '').trim()
@@ -48,7 +51,7 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.30.2',
+    version: '1.30.3',
   },
 
   onShow() {

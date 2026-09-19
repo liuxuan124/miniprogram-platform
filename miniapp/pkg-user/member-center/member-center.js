@@ -1,6 +1,7 @@
 const { getMemberInfo, signIn, getSignInStatus } = require('../../services/member')
 const { AuthUtil } = require('../../utils/auth')
 const { buildSignInDays } = require('../../utils/sign-in-days')
+const { DEFAULT_AVATAR } = require('../../utils/image-fallback')
 
 function pickLocalUser() {
   const app = getApp()
@@ -161,6 +162,11 @@ Page({
       this.fetchMemberInfo()
       this.fetchSignInStatus()
     }
+  },
+
+  onAvatarError() {
+    const userInfo = Object.assign({}, this.data.userInfo || {}, { avatarUrl: DEFAULT_AVATAR })
+    this.setData({ userInfo })
   },
 
   _syncLocalUser() {
