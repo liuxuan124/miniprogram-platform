@@ -1,0 +1,10 @@
+id	nickname	avatar_url
+1	冒烟	https://api.zfculture.site/uploads/avatar/2026-09-18/83a2d49c2e6047c6b1cb70a44c514406.png
+2	跨境墨太白	/images/default-avatar.png
+bad_wxfile
+0
+t	c
+mp_member_subscription	0
+mp_membership_plan	0
+54:    version: '1.30.4',
+wx_version_target_evidence=1.30.4 (settings.js on prod disk + local SWEEP-LONGTAIL upload.json)

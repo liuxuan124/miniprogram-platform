@@ -22,6 +22,7 @@
 - BATCH-QA-018：BUG-UI-002 / BUG-MKT-001 / BUG-UI-003 修复并回归
 - BATCH-QA-019：BUG-FORM-001 / BUG-PROD-001 / BUG-PROD-003 / BUG-MP-001 / BUG-FORM-004 修复并回归
 - BATCH-QA-020：BUG-MEMBER-001/002、ORDER-001、FIN-001、API-002、FORM-002/003、UI-004/005、MP-005、SET-001 修复并 API 回归
+- **BATCH-QA-WARM-LT-001（2026-09-19）**：暖阁冒烟+长尾附录 FP-WARM-001~012（**不计入 268/582 分母**；**禁止据此声称全量重跑**）。本批：FAIL=0；P0/P1=0；FP 计 PARTIAL=9 / NOT_RUN=3；接口·DB 子项有 PASS。详见下方「暖阁长尾附录」与 `feature-inventory-warm-longtail.md`
 ## 正式台账（页面装修器）
 
 | FP 编号 | 状态 | 最后执行时间 | 关联缺陷 | 批次号 | 备注 |
@@ -385,3 +386,22 @@ ERROR 3140 (22032) at line 1: Invalid JSON text: "Invalid value." at position 1 
 | EXP-MP-LOGIN | PASS | 2026-08-16 17:40 |  | BATCH-QA-028 | 协议勾选/login-flow 代码回归；手机号授权需真机手势 |
 | EXP-ACTIVITY-SIGNUP | PASS | 2026-08-16 17:05 | BUG-ACT-001 | BATCH-QA-026 | 未登录点报名弹登录半层（预期） |
 | EXP-MP-AGREEMENT | PASS | 2026-08-13 17:42 |  | BATCH-QA-009 | 登录页与设置均可打开用户协议，正文 6 段 |
+
+## 暖阁长尾附录（不计入 268 / 不改写上方正式 PASS）
+
+> 批次 `BATCH-QA-WARM-LT-001`；体验版目标 **1.30.4**；清单：`agent-team/testing/feature-inventory-warm-longtail.md`；用例：`agent-team/testing/cases/BATCH-QA-WARM-LT-001.md`
+
+| FP 编号 | 状态 | 最后执行时间 | 关联缺陷 | 批次号 | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| FP-WARM-001 | NOT_RUN | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | 真机登录后资料可见未测 |
+| FP-WARM-002 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | 代码证据 settings 保存；真机未测 |
+| FP-WARM-003 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | DB bad_wxfile=0 + 代码 upload 链路；authed API/真机 NOT_RUN |
+| FP-WARM-004 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | mine binderror→PNG；真机未测 |
+| FP-WARM-005 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | service-chat 发图代码；真机未测 |
+| FP-WARM-006 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | form/contribute isPersistedMediaUrl；真机未测 |
+| FP-WARM-007 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | write-review 提交前上传代码；真机未测 |
+| FP-WARM-008 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | 占位 PNG wxml+文件存在；真机未测 |
+| FP-WARM-009 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | 已签 toast 代码；真机未测 |
+| FP-WARM-010 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | planet/home 双态字段 PASS；mine overview 仅测未登录 401 |
+| FP-WARM-011 | PARTIAL | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | health UP；/uploads/ 200；未登录 upload 401；成功上传缺 token |
+| FP-WARM-012 | NOT_RUN | 2026-09-19 23:05 |  | BATCH-QA-WARM-LT-001 | 弱网/失败真机未测（代码有失败 toast，不算真机 PASS） |
