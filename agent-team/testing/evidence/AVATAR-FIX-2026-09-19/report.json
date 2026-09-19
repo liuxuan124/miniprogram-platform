@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-19T20:06:01+08:00",
+  "wx_version": "1.30.1",
+  "wx_version_desc": "头像上传保存与展示修复（体验版，不提审）",
+  "scope": "miniapp account avatar (settings/mine), not admin",
+  "root_causes": [
+    "settings._refresh() cleared pendingAvatarLocal on every onShow; Android chooseMedia often retriggers onShow → save never POSTs /api/v1/mp/upload (nginx: profile PUT 200 without upload)",
+    "mine.js imported isTempLocalAvatar but util never exported it → onAvatarError threw → no PNG fallback on 404",
+    "settings used default-avatar.svg (WeChat image does not render SVG)",
+    "DB avatar for user 跨境墨太白 pointed to deleted uploads/avatar/2026-07-31/... (dir recreated 2026-09-18) → continuous GET 404"
+  ],
+  "backend_status": "upload+profile+GET already OK; no jar redeploy",
+  "verification": {
+    "upload": "POST /api/v1/mp/upload → 200, file on disk uploads/avatar/2026-09-19/...",
+    "image": "HEAD public uploads URL → 200",
+    "profile": "PUT /api/v1/mp/auth/profile → 200; mp_user.id=2 avatar_url public URL"
+  },
+  "audit_submitted": false
+}
