@@ -1,9 +1,9 @@
 <template>
   <div class="knowledge-page">
     <PageHeader
-      kicker="系统 / 智能 AI"
-      title="AI 语料库"
-      description="跨 Agent 共享的语料源：上传文档、同步内容库、手动问答与检索测试。"
+      kicker="经营管理 / Agent"
+      title="知识库"
+      description="Agent 可读语料：上传文档、同步站内内容、配置引用策略。分库编排与外部抓取见下方「未接入」标注。"
     >
       <template #actions>
         <el-button @click="$router.push('/ai/agent')">← Agent 列表</el-button>
@@ -17,12 +17,20 @@
       <el-col :span="6"><el-statistic title="完成度" :value="kbStats.indexPercent" suffix="%" /></el-col>
     </el-row>
 
+    <el-alert
+      type="info"
+      :closable="false"
+      show-icon
+      class="kb-alert"
+      title="可用增强版：列表 / 上传 / 引用策略 / 站内同步已可用。多知识库分库、发布即自动入库、外部链接抓取尚未接入。"
+    />
+
     <el-row :gutter="16">
       <el-col :span="16">
         <el-card shadow="never">
           <template #header>
             <div class="card-head">
-              <span>语料源列表</span>
+              <span>知识库列表（语料源）</span>
               <div class="card-head__actions">
                 <el-select v-model="uploadCitePolicy" size="small" style="width: 140px" placeholder="引用策略">
                   <el-option label="完整引用" value="full" />
@@ -35,8 +43,11 @@
                   :disabled="uploading"
                   :http-request="handleUpload"
                 >
-                  <el-button size="small" type="primary" :loading="uploading">上传文档</el-button>
+                  <el-button size="small" type="primary" :loading="uploading">＋ 上传文档</el-button>
                 </el-upload>
+                <el-tooltip content="多知识库分库尚未接入，当前为扁平语料源列表" placement="top">
+                  <el-button size="small" disabled>＋ 新建知识库 · 未接入</el-button>
+                </el-tooltip>
               </div>
             </div>
           </template>
@@ -55,12 +66,12 @@
             </el-table-column>
             <el-table-column label="切片" prop="chunkCount" width="72" align="center" />
             <el-table-column label="命中" prop="hitCount" width="72" align="center" />
-            <el-table-column label="引用策略" width="140">
+            <el-table-column label="默认引用策略" width="150">
               <template #default="{ row }">
                 <el-select
                   :model-value="row.citePolicy || 'full'"
                   size="small"
-                  style="width: 120px"
+                  style="width: 128px"
                   @click.stop
                   @change="(v) => updateCitePolicy(row, String(v))"
                 >
@@ -70,9 +81,9 @@
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+            <el-table-column label="索引状态" width="110">
               <template #default="{ row }">
-                <el-tag :type="row.vectorStatus === 'done' ? 'success' : 'warning'" size="small">
+                <el-tag :type="vectorTagType(row.vectorStatus)" size="small">
                   {{ vectorLabel(row.vectorStatus) }}
                 </el-tag>
               </template>
@@ -117,7 +128,8 @@
           </el-form>
         </el-card>
 
-        <el-card shadow="never" header="从内容库同步" style="margin-top:16px">
+        <el-card shadow="never" header="站内内容同步" style="margin-top:16px">
+          <div class="sync-hint">命中条件的内容手动同步入库；「发布即自动入库」未接入。</div>
           <el-checkbox v-model="syncForm.includePublishedContent">已发布内容</el-checkbox>
           <el-checkbox v-model="syncForm.includeAnsweredQa" style="margin-top:8px">已采纳问答</el-checkbox>
           <el-button
@@ -129,6 +141,12 @@
             立即同步
           </el-button>
           <div v-if="syncResult" class="sync-result">{{ syncResult }}</div>
+          <div class="capability-list">
+            <div class="cap ok">✓ 手动同步站内内容 / 问答</div>
+            <div class="cap off">○ 发布即自动入库 · 未接入</div>
+            <div class="cap off">○ 外部链接抓取 · 未接入</div>
+            <div class="cap off">○ 多知识库分库编排 · 未接入</div>
+          </div>
         </el-card>
 
         <el-card shadow="never" header="检索测试（纯召回）" style="margin-top:16px">
@@ -223,8 +241,8 @@ const KNOWLEDGE_MAX_SIZE = 10 * 1024 * 1024
 
 function sourceTypeLabel(t?: string) {
   const map: Record<string, string> = {
-    file: '文件',
-    content: '内容',
+    file: '手动上传',
+    content: '站内内容',
     qa: '问答',
     product: '商品',
     manual: '手动',
@@ -233,10 +251,17 @@ function sourceTypeLabel(t?: string) {
 }
 
 function vectorLabel(s?: string) {
-  if (s === 'done') return '已完成'
+  if (s === 'done') return '已索引'
   if (s === 'processing') return '处理中'
   if (s === 'failed') return '失败'
-  return 'pending'
+  return '待索引'
+}
+
+function vectorTagType(s?: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (s === 'done') return 'success'
+  if (s === 'processing') return 'warning'
+  if (s === 'failed') return 'danger'
+  return 'info'
 }
 
 function formatDate(value?: string) {
@@ -292,6 +317,7 @@ async function handleUpload(options: { file: File }) {
     await uploadKnowledgeFile(file, undefined, uploadCitePolicy.value)
     ElMessage.success(`已上传「${file.name}」`)
     await loadSources()
+    await loadKbStats()
   } catch {
     // 拦截器已提示
   } finally {
@@ -314,6 +340,7 @@ async function submitManualQa() {
     ElMessage.success('问答已入库')
     qaForm.value = { question: '', answer: '', citePolicy: 'full' }
     await loadSources()
+    await loadKbStats()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '保存失败'
     ElMessage.error(msg)
@@ -349,6 +376,7 @@ async function runSync() {
       || `同步完成：${d?.synced ?? 0} 篇 · ${d?.chunks ?? 0} 切片`
     ElMessage.success('同步任务已提交')
     await loadSources()
+    await loadKbStats()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '同步失败'
     ElMessage.error(msg)
@@ -426,20 +454,46 @@ onMounted(() => {
 .knowledge-page {
   padding: 20px;
 }
+.kb-alert {
+  margin-bottom: 16px;
+}
+.kb-stats {
+  margin-bottom: 12px;
+}
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .card-head__actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+.sync-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
 }
 .sync-result {
   margin-top: 10px;
   font-size: 12px;
+  color: var(--text-muted);
+}
+.capability-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.cap.ok {
+  color: var(--success, #0faa6e);
+}
+.cap.off {
   color: var(--text-muted);
 }
 .search-hits {
