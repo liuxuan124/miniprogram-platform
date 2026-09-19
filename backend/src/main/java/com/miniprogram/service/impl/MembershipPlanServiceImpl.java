@@ -165,6 +165,16 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
         if (dto.getRights() != null || creating) {
             plan.setRights(dto.getRights());
         }
+        if (dto.getShowBadge() != null) {
+            plan.setShowBadge(dto.getShowBadge() != 0 ? 1 : 0);
+        } else if (creating && plan.getShowBadge() == null) {
+            plan.setShowBadge(0);
+        }
+        if (dto.getExpireRemindDays() != null) {
+            plan.setExpireRemindDays(Math.max(0, dto.getExpireRemindDays()));
+        } else if (creating && plan.getExpireRemindDays() == null) {
+            plan.setExpireRemindDays(0);
+        }
         if (dto.getSortOrder() != null) {
             plan.setSortOrder(dto.getSortOrder());
         } else if (creating && plan.getSortOrder() == null) {
@@ -193,6 +203,8 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
         vo.setDiscountRate(plan.getDiscountRate());
         vo.setGiftPlanetId(plan.getGiftPlanetId());
         vo.setGiftPlanetDays(plan.getGiftPlanetDays() == null ? 0 : plan.getGiftPlanetDays());
+        vo.setShowBadge(plan.getShowBadge() == null ? 0 : plan.getShowBadge());
+        vo.setExpireRemindDays(plan.getExpireRemindDays() == null ? 0 : plan.getExpireRemindDays());
         vo.setSortOrder(plan.getSortOrder());
         vo.setStatus(plan.getStatus());
         if (plan.getCreateTime() != null) {

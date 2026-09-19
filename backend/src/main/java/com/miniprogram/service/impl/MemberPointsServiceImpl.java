@@ -9,6 +9,7 @@ import com.miniprogram.dto.member.PointsLogQueryDTO;
 import com.miniprogram.dto.member.PointsLogVO;
 import com.miniprogram.dto.member.SignInVO;
 import com.miniprogram.dto.member.UserCouponVO;
+import com.miniprogram.entity.MembershipPlan;
 import com.miniprogram.entity.MemberBirthdayClaim;
 import com.miniprogram.entity.MemberLevel;
 import com.miniprogram.entity.User;
@@ -20,6 +21,7 @@ import com.miniprogram.member.MemberBenefitCodes;
 import com.miniprogram.service.CouponService;
 import com.miniprogram.service.MemberPointsLogService;
 import com.miniprogram.service.MemberPointsService;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.UserCouponService;
 import com.miniprogram.util.PublicMediaUrl;
@@ -30,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 
@@ -52,6 +56,9 @@ public class MemberPointsServiceImpl implements MemberPointsService {
     private final CouponService couponService;
     private final MemberBirthdayClaimMapper memberBirthdayClaimMapper;
     private final SystemConfigService systemConfigService;
+    private final MembershipAccessService membershipAccessService;
+
+    private static final DateTimeFormatter EXPIRE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public MemberInfoVO getMemberInfo(Long userId) {
@@ -76,6 +83,21 @@ public class MemberPointsServiceImpl implements MemberPointsService {
         vo.setContinuousSignDays(nullToZero(user.getContinuousSignDays()));
         vo.setTodaySigned(LocalDate.now().equals(user.getLastSignDate()));
         vo.setUnusedCouponCount(countUnusedCoupons(userId));
+
+        // 最小接线：付费档角标 / 到期提醒字段有则下发，无订购则不填
+        MembershipPlan plan = membershipAccessService.findActivePlatformPlan(userId);
+        if (plan != null) {
+            vo.setShowBadge(Integer.valueOf(1).equals(plan.getShowBadge()));
+            vo.setExpireRemindDays(plan.getExpireRemindDays() == null ? 0 : plan.getExpireRemindDays());
+            vo.setPlanName(plan.getName());
+            LocalDateTime expireAt = membershipAccessService.findActiveExpireAt(userId, "platform", null);
+            if (expireAt != null) {
+                vo.setMembershipExpireAt(expireAt.format(EXPIRE_FMT));
+            }
+        } else {
+            vo.setShowBadge(false);
+            vo.setExpireRemindDays(0);
+        }
         return vo;
     }
 

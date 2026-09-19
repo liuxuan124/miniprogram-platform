@@ -49,6 +49,12 @@ public class MembershipPlan implements Serializable {
     /** 仅平台档：赠送天数；0 = 不赠送 */
     private Integer giftPlanetDays;
 
+    /** 评论区/星球显示会员角标：1=开 0=关 */
+    private Integer showBadge;
+
+    /** 到期前提醒天数；0 = 关闭 */
+    private Integer expireRemindDays;
+
     private Integer sortOrder;
 
     /** 1 启用 / 0 禁用 */

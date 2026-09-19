@@ -10,7 +10,10 @@
         <view class="level-badge">
           <text class="level-icon">👑</text>
           <text class="level-name">{{memberInfo.levelName || '普通会员'}}</text>
+          <text wx:if="{{memberInfo.showBadge}}" class="paid-badge">会员</text>
         </view>
+        <text wx:if="{{memberInfo.planName}}" class="plan-hint">{{memberInfo.planName}}{{memberInfo.membershipExpireAt ? ' · 至 ' + memberInfo.membershipExpireAt : ''}}</text>
+        <text wx:if="{{memberInfo.expireRemindDays > 0 && memberInfo.membershipExpireAt}}" class="remind-hint">到期前 {{memberInfo.expireRemindDays}} 天将提醒续费</text>
       </view>
       <view class="points-box">
         <text class="points-num">{{memberInfo.points || 0}}</text>

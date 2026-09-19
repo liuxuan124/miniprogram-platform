@@ -40,6 +40,12 @@ public class MembershipPlanVO {
     @Schema(description = "赠送星球天数")
     private Integer giftPlanetDays;
 
+    @Schema(description = "专属身份角标：1=开 0=关")
+    private Integer showBadge;
+
+    @Schema(description = "到期前提醒天数；0=关闭")
+    private Integer expireRemindDays;
+
     @Schema(description = "排序")
     private Integer sortOrder;
 

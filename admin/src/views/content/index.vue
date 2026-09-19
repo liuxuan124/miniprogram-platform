@@ -2,12 +2,12 @@
   <div class="content-page">
     <div class="page-header">
       <div>
-        <div class="page-title">内容管理</div>
-        <div class="page-desc">长文、笔记、图文、视频，支持分类、推荐、上下架。</div>
+        <div class="page-title">{{ pageTitle }}</div>
+        <div class="page-desc">{{ pageDesc }}</div>
       </div>
     </div>
 
-    <div class="list-tpl-card">
+    <div v-if="!isNoteOnly" class="list-tpl-card">
       <div class="list-tpl-card__title">长文列表页模板</div>
       <p class="list-tpl-card__desc">控制小程序长文列表的热读榜、推荐大卡显隐；大卡内容从已发布列表选择，不会因此增加浏览量。</p>
       <div class="list-tpl-card__row">
@@ -34,7 +34,7 @@
       </div>
     </div>
 
-    <div class="list-tpl-card">
+    <div v-if="!isNoteOnly" class="list-tpl-card">
       <div class="list-tpl-card__title">长文会员门禁卡</div>
       <p class="list-tpl-card__desc">未解锁会员文时展示的卡片文案与解锁商品，存数据库，小程序实时读取。</p>
       <div class="list-tpl-card__row list-tpl-card__row--wrap">
@@ -80,7 +80,13 @@
         clearable
         @keyup.enter="handleSearch"
       />
-      <el-select v-model="searchForm.type" class="toolbar-select" placeholder="类型：全部" clearable>
+      <el-select
+        v-if="!isNoteOnly"
+        v-model="searchForm.type"
+        class="toolbar-select"
+        placeholder="类型：全部"
+        clearable
+      >
         <el-option
           v-for="item in contentFormatFilterOptions"
           :key="item.value"
@@ -652,9 +658,23 @@ const rows = ref<ContentRow[]>([])
 const categoryTree = ref<CategoryNode[]>([])
 const RECOMMEND_TAG = '推荐'
 
+/** 笔记独立菜单：路由 meta.defaultType 或 ?type=note */
+const lockedType = computed(() => {
+  const fromMeta = String(route.meta.defaultType || '')
+  const fromQuery = String(route.query.type || '')
+  return fromMeta || fromQuery || ''
+})
+const isNoteOnly = computed(() => lockedType.value === 'note')
+const pageTitle = computed(() => (isNoteOnly.value ? '笔记管理' : '内容管理'))
+const pageDesc = computed(() =>
+  isNoteOnly.value
+    ? '独立管理图文笔记：分类、推荐、上下架；新建默认笔记类型。'
+    : '长文、笔记、图文、视频，支持分类、推荐、上下架。',
+)
+
 const searchForm = reactive({
   keyword: '',
-  type: '',
+  type: lockedType.value || '',
   source: '',
   status: '' as '' | ContentStatus,
   categoryId: undefined as number | undefined,
@@ -1244,7 +1264,9 @@ async function handleSyncImport() {
 }
 
 function handleCreate() {
-  router.push({ name: 'ContentEdit', query: { mode: 'create' } })
+  const query: Record<string, string> = { mode: 'create' }
+  if (isNoteOnly.value) query.type = 'note'
+  router.push({ name: 'ContentEdit', query })
 }
 
 function handleEdit(row: ContentRow) {
@@ -1525,14 +1547,23 @@ async function removeCategory(item: CategoryNode) {
 }
 
 onMounted(async () => {
+  if (lockedType.value) searchForm.type = lockedType.value
   await fetchCategories()
   await Promise.all([fetchList(), loadListTpl(), loadWallTpl()])
 })
 
 onActivated(async () => {
+  if (lockedType.value) searchForm.type = lockedType.value
   await fetchCategories()
   await fetchList()
 })
+
+watch(
+  () => lockedType.value,
+  (t) => {
+    if (t) searchForm.type = t
+  },
+)
 
 watch(
   () => [searchForm.categoryId, searchForm.source, searchForm.type, searchForm.status] as const,

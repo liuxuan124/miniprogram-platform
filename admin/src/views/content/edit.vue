@@ -947,6 +947,11 @@ onMounted(async () => {
   await Promise.all([fetchCategories(), fetchPlanetCommunities()])
   if (isEdit.value) {
     await loadDetail(Number(route.query.id))
+  } else {
+    const qType = String(route.query.type || '')
+    if (['note', 'moment', 'video', 'article'].includes(qType)) {
+      contentType.value = qType as typeof contentType.value
+    }
   }
 })
 

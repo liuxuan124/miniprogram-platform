@@ -2,7 +2,7 @@
   <div class="audit-page">
     <div class="page-header">
       <div>
-        <div class="page-title">内容审核工作台</div>
+        <div class="page-title">审核队列</div>
         <div class="page-desc">投稿、评论、星球提问统一入口；规则见
           <router-link to="/content/audit-rules">审核规则</router-link>。
         </div>

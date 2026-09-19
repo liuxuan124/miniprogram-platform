@@ -50,4 +50,16 @@ public class MemberInfoVO {
 
     @Schema(description = "未使用优惠券数量")
     private Integer unusedCouponCount;
+
+    @Schema(description = "是否展示付费会员角标（有字段则展示，无则忽略）")
+    private Boolean showBadge;
+
+    @Schema(description = "到期前提醒天数；0/空表示未开启")
+    private Integer expireRemindDays;
+
+    @Schema(description = "当前平台付费档名称（有订购时）")
+    private String planName;
+
+    @Schema(description = "平台付费到期时间；空=无订购或终身")
+    private String membershipExpireAt;
 }
