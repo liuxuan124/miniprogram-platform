@@ -23,6 +23,7 @@ import java.util.List;
 public class AdminMembershipPlanController {
 
     private final MembershipPlanService membershipPlanService;
+    private final com.miniprogram.service.MemberExpireRemindService memberExpireRemindService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('member:list')")
@@ -31,6 +32,13 @@ public class AdminMembershipPlanController {
             @RequestParam(required = false) String scope,
             @RequestParam(required = false) String planetId) {
         return R.ok(membershipPlanService.listPlans(scope, planetId));
+    }
+
+    @PostMapping("/expire-remind/trial")
+    @PreAuthorize("hasAuthority('member:update')")
+    @Operation(summary = "手动试发会员到期提醒（入队订阅消息）")
+    public R<java.util.Map<String, Object>> trialExpireRemind() {
+        return R.ok(memberExpireRemindService.runManualTrial());
     }
 
     @PostMapping

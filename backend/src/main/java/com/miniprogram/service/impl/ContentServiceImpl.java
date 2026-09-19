@@ -24,6 +24,7 @@ import com.miniprogram.service.ContentService;
 import com.miniprogram.service.FileEntitlementService;
 import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.SystemConfigService;
+import com.miniprogram.service.knowledge.KnowledgeSyncService;
 import com.miniprogram.util.ContentSourceResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +57,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final MembershipAccessService membershipAccessService;
     private final ContentAuditRulesService contentAuditRulesService;
     private final SystemConfigService systemConfigService;
+    private final KnowledgeSyncService knowledgeSyncService;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -299,6 +301,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         entity.setPublishedAt(LocalDateTime.now());
         entity.setScheduledAt(null);
         this.updateById(entity);
+
+        try {
+            knowledgeSyncService.ingestPublishedContent(entity);
+        } catch (Exception e) {
+            log.warn("content publish auto-ingest skipped id={}: {}", id, e.getMessage());
+        }
 
         return toDetailDTO(entity);
     }
@@ -851,6 +859,11 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             item.setPublishedAt(LocalDateTime.now());
             item.setScheduledAt(null);
             this.updateById(item);
+            try {
+                knowledgeSyncService.ingestPublishedContent(item);
+            } catch (Exception e) {
+                log.warn("scheduled publish auto-ingest skipped id={}: {}", item.getId(), e.getMessage());
+            }
             count++;
             log.info("定时发布内容 id={} title={}", item.getId(), item.getTitle());
         }

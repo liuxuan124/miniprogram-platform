@@ -1,11 +1,23 @@
 import { get, post, put, del } from './request'
 
 const BASE_URL = '/api/v1/admin/knowledge'
+const LIB_URL = `${BASE_URL}/libraries`
 
 export type CitePolicy = 'full' | 'summary' | 'none'
 
+export interface KnowledgeLibrary {
+  id: number
+  name: string
+  description?: string
+  defaultCitePolicy?: CitePolicy | string
+  autoIngestOnPublish?: number
+  status?: number
+  sortOrder?: number
+}
+
 export interface KnowledgeSourceItem {
   id: number
+  libraryId?: number
   fileName?: string
   sourceType?: string
   sourceId?: number
@@ -39,6 +51,22 @@ export interface KnowledgeSearchHit {
   score?: number
 }
 
+export function listKnowledgeLibraries() {
+  return get<KnowledgeLibrary[]>(LIB_URL, undefined, { showError: false })
+}
+
+export function createKnowledgeLibrary(body: Partial<KnowledgeLibrary>) {
+  return post<KnowledgeLibrary>(LIB_URL, body)
+}
+
+export function updateKnowledgeLibrary(id: number, body: Partial<KnowledgeLibrary>) {
+  return put<KnowledgeLibrary>(`${LIB_URL}/${id}`, body)
+}
+
+export function deleteKnowledgeLibrary(id: number) {
+  return del(`${LIB_URL}/${id}`)
+}
+
 export function listKnowledgeSources(params?: Record<string, unknown>) {
   return get<KnowledgeSourceItem[]>(BASE_URL, params, { showError: false })
 }
@@ -55,6 +83,7 @@ export function syncFromContent(body: {
   includePublishedContent?: boolean
   includeAnsweredQa?: boolean
   categoryIds?: number[]
+  libraryId?: number
 }) {
   return post<{ synced?: number; chunks?: number; message?: string }>(`${BASE_URL}/sync-content`, body)
 }
@@ -64,8 +93,17 @@ export function createManualQa(body: {
   answer: string
   recallWeight?: number
   citePolicy?: CitePolicy | string
+  libraryId?: number
 }) {
   return post<KnowledgeSourceItem>(`${BASE_URL}/manual-qa`, body)
+}
+
+export function crawlKnowledgeUrl(body: {
+  url: string
+  libraryId?: number
+  citePolicy?: CitePolicy | string
+}) {
+  return post<KnowledgeSourceItem>(`${BASE_URL}/crawl-url`, body)
 }
 
 export function patchKnowledgeCitePolicy(id: number, citePolicy: CitePolicy | string) {
@@ -80,7 +118,12 @@ export function downloadKnowledge(id: number) {
   return get<{ url?: string }>(`${BASE_URL}/${id}/download`, undefined, { showError: false })
 }
 
-export function uploadKnowledgeFile(file: File, configId?: number, citePolicy?: CitePolicy | string) {
+export function uploadKnowledgeFile(
+  file: File,
+  configId?: number,
+  citePolicy?: CitePolicy | string,
+  libraryId?: number,
+) {
   const formData = new FormData()
   formData.append('file', file)
   if (configId != null && configId > 0) {
@@ -88,6 +131,9 @@ export function uploadKnowledgeFile(file: File, configId?: number, citePolicy?: 
   }
   if (citePolicy) {
     formData.append('citePolicy', citePolicy)
+  }
+  if (libraryId != null && libraryId > 0) {
+    formData.append('libraryId', String(libraryId))
   }
   return post<KnowledgeSourceItem>(`${BASE_URL}/upload`, formData)
 }

@@ -42,13 +42,12 @@
 
     <el-row :gutter="16" v-loading="loading">
       <el-col v-for="card in roleCards" :key="card.role" :xs="24" :sm="12" :lg="8">
-        <el-card shadow="never" class="role-card" :class="{ 'role-card--soon': card.comingSoon }">
+        <el-card shadow="never" class="role-card">
           <div class="role-card__head">
             <div class="role-card__icon">{{ roleIcon(card.role) }}</div>
             <div class="role-card__title">
               <span class="role-card__name">{{ card.name || ROLE_NAMES[card.role] || card.role }}</span>
-              <el-tag v-if="card.comingSoon" size="small" type="info">即将上线</el-tag>
-              <el-tag v-else-if="card.configured" size="small" type="success">已配置</el-tag>
+              <el-tag v-if="card.configured" size="small" type="success">已配置</el-tag>
               <el-tag v-else size="small" type="warning">未配置</el-tag>
             </div>
           </div>
@@ -64,7 +63,7 @@
           </div>
 
           <el-alert
-            v-else-if="!card.comingSoon"
+            v-else
             type="warning"
             :closable="false"
             show-icon
@@ -74,10 +73,6 @@
               未配置，正在借用{{ fallbackLabel(card.fallbackTo) }}配置
             </template>
           </el-alert>
-
-          <div v-else class="role-card__muted role-card__soon-text">
-            页面搭建 Agent 预留中，可先查看占位配置。
-          </div>
 
           <div class="role-card__actions">
             <el-button
@@ -177,7 +172,7 @@ async function saveTriggers() {
 const FALLBACK_ORDER: AgentRoleCard[] = [
   { role: 'service', name: '客服助手', configured: false },
   { role: 'content_ops', name: '内容运营', configured: false, fallbackTo: 'service' },
-  { role: 'page_builder', name: '页面搭建', configured: false, comingSoon: true },
+  { role: 'page_builder', name: '页面搭建', configured: false, fallbackTo: 'service' },
 ]
 
 function roleIcon(role: string) {
@@ -206,7 +201,7 @@ function goSandbox(role: string) {
 }
 
 function filterByIndustry(list: AgentRoleCard[]) {
-  return list.filter((card) => industryProfileStore.isAgentRoleAllowed(card.role) || card.comingSoon)
+  return list.filter((card) => industryProfileStore.isAgentRoleAllowed(card.role))
 }
 
 async function loadRoles() {

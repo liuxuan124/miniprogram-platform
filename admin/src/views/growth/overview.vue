@@ -1,18 +1,17 @@
 <template>
   <div class="growth-page" v-loading="loading">
-    <PageHeader title="增长与数据" subtitle="漏斗、券效果、搜索洞察、订阅与实验（MVP）">
+    <PageHeader title="增长数据" subtitle="近 7 天漏斗、券效果、搜索洞察与内容带货（真实统计）">
       <template #actions>
         <el-button @click="loadAll" :loading="loading">刷新</el-button>
       </template>
     </PageHeader>
-
     <el-alert v-if="narrative" :title="narrative" type="success" show-icon :closable="false" class="mb" />
-
+    <el-alert v-else title="以下卡片均来自后台统计接口；无数据时显示 0，不是演示占位。" type="info" show-icon :closable="false" class="mb" />
     <el-row :gutter="16">
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>转化漏斗（近 {{ days }} 天）</template>
-          <el-table :data="funnel" size="small">
+          <el-table :data="funnel" size="small" empty-text="暂无事件数据">
             <el-table-column prop="event" label="事件" />
             <el-table-column prop="count" label="次数" width="100" />
           </el-table>
@@ -29,12 +28,11 @@
         </el-card>
       </el-col>
     </el-row>
-
     <el-row :gutter="16" class="mt">
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>热搜词</template>
-          <el-table :data="hot" size="small" max-height="280">
+          <el-table :data="hot" size="small" max-height="280" empty-text="暂无热搜">
             <el-table-column prop="keyword" label="关键词" />
             <el-table-column prop="count" label="次数" width="80" />
           </el-table>
@@ -43,19 +41,18 @@
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>无结果词（选题清单）</template>
-          <el-table :data="noResult" size="small" max-height="280">
+          <el-table :data="noResult" size="small" max-height="280" empty-text="暂无无结果词">
             <el-table-column prop="keyword" label="关键词" />
             <el-table-column prop="count" label="次数" width="80" />
           </el-table>
         </el-card>
       </el-col>
     </el-row>
-
     <el-row :gutter="16" class="mt">
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>内容带货榜</template>
-          <el-table :data="contentGmv" size="small" max-height="280">
+          <el-table :data="contentGmv" size="small" max-height="280" empty-text="暂无带货数据">
             <el-table-column prop="contentId" label="内容 ID" width="100" />
             <el-table-column prop="orderCount" label="订单数" width="90" />
             <el-table-column prop="gmv" label="GMV" />
@@ -64,10 +61,10 @@
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header>订阅消息模板</template>
-          <el-form label-width="110px" size="small">
-            <el-form-item v-for="scene in scenes" :key="scene" :label="scene">
-              <el-input v-model="tplMap[scene]" placeholder="微信模板 ID" @change="saveTpl(scene)" />
+          <template #header>订阅消息模板（运营配置）</template>
+          <el-form label-width="130px" size="small">
+            <el-form-item v-for="scene in scenes" :key="scene.key" :label="scene.label">
+              <el-input v-model="tplMap[scene.key]" placeholder="微信模板 ID" @change="saveTpl(scene.key)" />
             </el-form-item>
           </el-form>
         </el-card>
@@ -75,12 +72,11 @@
     </el-row>
   </div>
 </template>
-
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { get, put } from '@/api/request'
-
+import { ElMessage } from 'element-plus'
 const loading = ref(false)
 const days = 7
 const narrative = ref('')
@@ -89,9 +85,14 @@ const coupon = reactive<any>({})
 const hot = ref<any[]>([])
 const noResult = ref<any[]>([])
 const contentGmv = ref<any[]>([])
-const scenes = ['order_status', 'appointment_remind', 'activity_remind', 'coupon_expire']
+const scenes = [
+  { key: 'order_status', label: '订单状态' },
+  { key: 'appointment_remind', label: '预约提醒' },
+  { key: 'activity_remind', label: '活动提醒' },
+  { key: 'coupon_expire', label: '券到期' },
+  { key: 'member_expire', label: '会员到期' },
+]
 const tplMap = reactive<Record<string, string>>({})
-
 async function loadAll() {
   loading.value = true
   try {
@@ -109,7 +110,7 @@ async function loadAll() {
     noResult.value = (s as any).data?.noResult || []
     contentGmv.value = (g as any).data || []
     narrative.value = (n as any).data?.narrative || ''
-    scenes.forEach((sc) => { tplMap[sc] = '' })
+    scenes.forEach((sc) => { tplMap[sc.key] = '' })
     ;((t as any).data || []).forEach((row: any) => {
       if (row.scene) tplMap[row.scene] = row.templateId || ''
     })
@@ -117,19 +118,14 @@ async function loadAll() {
     loading.value = false
   }
 }
-
 async function saveTpl(scene: string) {
   await put('/api/v1/admin/growth/subscribe/templates', {
-    scene,
-    templateId: tplMap[scene],
-    title: scene,
-    enabled: 1,
+    scene, templateId: tplMap[scene], title: scene, enabled: 1,
   })
+  ElMessage.success('模板已保存')
 }
-
 onMounted(loadAll)
 </script>
-
 <style scoped>
 .growth-page { padding: 0 4px 24px; }
 .mb { margin-bottom: 16px; }

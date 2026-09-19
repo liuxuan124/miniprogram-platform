@@ -12,6 +12,7 @@ import java.util.Map;
 public interface AgentKnowledgeChunkMapper extends BaseMapper<AgentKnowledgeChunk> {
 
     @Select("""
+            <script>
             SELECT c.id, c.knowledge_id AS knowledgeId, c.title, c.body, c.summary, c.source_ref AS sourceRef,
                    IFNULL(k.cite_policy, 'full') AS citePolicy,
                    MATCH(c.title, c.body) AGAINST(#{q} IN NATURAL LANGUAGE MODE) AS score
@@ -19,13 +20,21 @@ public interface AgentKnowledgeChunkMapper extends BaseMapper<AgentKnowledgeChun
             JOIN mp_agent_knowledge k ON k.id = c.knowledge_id
             WHERE c.status = 1
               AND (c.config_id IS NULL OR c.config_id = #{configId} OR #{configId} IS NULL)
-              AND IFNULL(k.cite_policy, 'full') <> 'none'
+              AND IFNULL(k.cite_policy, 'full') &lt;&gt; 'none'
+              <if test="libraryIds != null and libraryIds.size() &gt; 0">
+                AND k.library_id IN
+                <foreach collection="libraryIds" item="lid" open="(" separator="," close=")">
+                  #{lid}
+                </foreach>
+              </if>
               AND MATCH(c.title, c.body) AGAINST(#{q} IN NATURAL LANGUAGE MODE)
             ORDER BY score * IFNULL(k.recall_weight, 1) DESC
             LIMIT #{limit}
+            </script>
             """)
     List<Map<String, Object>> searchFullText(@Param("q") String question,
                                              @Param("configId") Long configId,
+                                             @Param("libraryIds") List<Long> libraryIds,
                                              @Param("limit") int limit);
 
     @Update("UPDATE mp_agent_knowledge_chunk SET hit_count = hit_count + 1 WHERE id = #{id}")

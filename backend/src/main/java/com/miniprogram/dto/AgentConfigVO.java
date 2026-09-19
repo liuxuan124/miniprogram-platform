@@ -30,6 +30,7 @@ public class AgentConfigVO {
     private Integer dailyTokenBudget;
     private String overBudgetAction;
     private String evalCases;
+    private String libraryIds;
     private String personaId;
     private String personaName;
     private String personaTone;

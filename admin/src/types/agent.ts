@@ -23,6 +23,7 @@ export interface AgentConfig {
   dailyTokenBudget?: number
   overBudgetAction?: string
   evalCases?: unknown[] | string
+  libraryIds?: string
 }
 
 export interface AgentConfigPayload {
@@ -45,6 +46,7 @@ export interface AgentConfigPayload {
   dailyTokenBudget?: number
   overBudgetAction?: string
   evalCases?: string
+  libraryIds?: string
   personaId?: string
   personaName?: string
   personaTone?: string

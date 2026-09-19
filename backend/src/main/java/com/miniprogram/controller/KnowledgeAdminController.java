@@ -6,8 +6,10 @@ import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.R;
 import com.miniprogram.entity.AgentKnowledge;
 import com.miniprogram.entity.AgentKnowledgeChunk;
+import com.miniprogram.entity.KnowledgeLibrary;
 import com.miniprogram.mapper.AgentKnowledgeChunkMapper;
 import com.miniprogram.mapper.AgentKnowledgeMapper;
+import com.miniprogram.mapper.KnowledgeLibraryMapper;
 import com.miniprogram.service.FileUploadService;
 import com.miniprogram.service.knowledge.KnowledgeIngestService;
 import com.miniprogram.service.knowledge.KnowledgeRetrievalService;
@@ -50,6 +52,7 @@ public class KnowledgeAdminController {
     private final KnowledgeIngestService knowledgeIngestService;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
     private final KnowledgeSyncService knowledgeSyncService;
+    private final KnowledgeLibraryMapper knowledgeLibraryMapper;
     private final FileUploadService fileUploadService;
 
     @Value("${file.upload.dir:./uploads}")
@@ -72,16 +75,21 @@ public class KnowledgeAdminController {
 
     @GetMapping
     @Operation(summary = "语料源列表")
-    public R<List<Map<String, Object>>> list(@RequestParam(required = false) String sourceType) {
+    public R<List<Map<String, Object>>> list(@RequestParam(required = false) String sourceType,
+                                             @RequestParam(required = false) Long libraryId) {
         LambdaQueryWrapper<AgentKnowledge> w = new LambdaQueryWrapper<AgentKnowledge>()
                 .orderByDesc(AgentKnowledge::getCreatedAt);
         if (StringUtils.hasText(sourceType)) {
             w.eq(AgentKnowledge::getSourceType, sourceType);
         }
+        if (libraryId != null) {
+            w.eq(AgentKnowledge::getLibraryId, libraryId);
+        }
         List<AgentKnowledge> list = agentKnowledgeMapper.selectList(w);
         List<Map<String, Object>> rows = list.stream().map(k -> {
             Map<String, Object> m = new HashMap<>();
             m.put("id", k.getId());
+            m.put("libraryId", k.getLibraryId());
             m.put("fileName", k.getFileName());
             m.put("sourceType", k.getSourceType());
             m.put("sourceId", k.getSourceId());
@@ -141,6 +149,7 @@ public class KnowledgeAdminController {
     @Operation(summary = "上传语料文件")
     public R<AgentKnowledge> upload(@RequestPart("file") MultipartFile file,
                                     @RequestParam(required = false) Long configId,
+                                    @RequestParam(required = false) Long libraryId,
                                     @RequestParam(required = false) String citePolicy) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择文件");
@@ -150,8 +159,10 @@ public class KnowledgeAdminController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "暂不支持 PDF，请转成 Word(.docx) 或 Markdown");
         }
         UploadResultVO uploaded = fileUploadService.upload(file, PROTECTED_DIR);
+        Long libId = resolveLibraryId(libraryId);
         AgentKnowledge k = new AgentKnowledge();
         k.setConfigId(configId);
+        k.setLibraryId(libId);
         k.setSourceType("file");
         k.setFileName(StringUtils.hasText(uploaded.getOriginalFileName())
                 ? uploaded.getOriginalFileName() : file.getOriginalFilename());
@@ -159,12 +170,59 @@ public class KnowledgeAdminController {
         k.setFileUrl(uploaded.getUrl());
         k.setVectorStatus("pending");
         k.setRecallWeight(BigDecimal.ONE);
-        k.setCitePolicy(normalizeCitePolicy(citePolicy));
+        k.setCitePolicy(normalizeCitePolicy(citePolicy != null ? citePolicy : defaultCite(libId)));
         k.setChunkCount(0);
         k.setCreatedAt(LocalDateTime.now());
         agentKnowledgeMapper.insert(k);
         knowledgeIngestService.ingestAsync(k.getId());
         return R.ok(k);
+    }
+
+    @PostMapping("/crawl-url")
+    @Operation(summary = "抓取外部链接入库（实用版：抓标题与正文文本）")
+    public R<AgentKnowledge> crawlUrl(@RequestBody Map<String, Object> body) {
+        String url = body == null ? null : String.valueOf(body.getOrDefault("url", "")).trim();
+        if (!StringUtils.hasText(url) || !(url.startsWith("http://") || url.startsWith("https://"))) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请填写 http(s) 链接");
+        }
+        Long libId = resolveLibraryId(body != null && body.get("libraryId") != null
+                ? Long.valueOf(String.valueOf(body.get("libraryId"))) : null);
+        String cite = body != null && body.get("citePolicy") != null
+                ? String.valueOf(body.get("citePolicy")) : defaultCite(libId);
+        try {
+            org.jsoup.nodes.Document doc = org.jsoup.Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0 (compatible; KnowledgeBot/1.0)")
+                    .timeout(15000)
+                    .followRedirects(true)
+                    .get();
+            String title = StringUtils.hasText(doc.title()) ? doc.title().trim() : url;
+            doc.select("script,style,nav,footer,iframe,noscript").remove();
+            String text = doc.body() != null ? doc.body().text() : doc.text();
+            if (!StringUtils.hasText(text) || text.length() < 20) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "未能从页面提取到有效正文");
+            }
+            if (text.length() > 80000) {
+                text = text.substring(0, 80000);
+            }
+            AgentKnowledge k = new AgentKnowledge();
+            k.setLibraryId(libId);
+            k.setSourceType("url");
+            k.setFileName(title.length() > 80 ? title.substring(0, 80) + "…" : title);
+            k.setFileSize((long) text.length());
+            k.setFileUrl(url);
+            k.setVectorStatus("pending");
+            k.setRecallWeight(BigDecimal.ONE);
+            k.setCitePolicy(normalizeCitePolicy(cite));
+            k.setCreatedAt(LocalDateTime.now());
+            agentKnowledgeMapper.insert(k);
+            knowledgeIngestService.ingestPlainText(k, title, text, url);
+            return R.ok(k);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("crawl url failed: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "抓取失败：" + e.getMessage());
+        }
     }
 
     @PostMapping("/manual-qa")
@@ -176,6 +234,9 @@ public class KnowledgeAdminController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "问题与答案不能为空");
         }
         AgentKnowledge k = new AgentKnowledge();
+        Object libObj = body.get("libraryId");
+        Long libId = resolveLibraryId(libObj == null ? null : Long.valueOf(String.valueOf(libObj)));
+        k.setLibraryId(libId);
         k.setSourceType("manual");
         k.setFileName(question.length() > 40 ? question.substring(0, 40) + "…" : question);
         k.setFileSize(0L);
@@ -184,7 +245,7 @@ public class KnowledgeAdminController {
         Object weight = body.get("recallWeight");
         k.setRecallWeight(weight == null ? BigDecimal.ONE : new BigDecimal(String.valueOf(weight)));
         Object cite = body.get("citePolicy");
-        k.setCitePolicy(normalizeCitePolicy(cite == null ? null : String.valueOf(cite)));
+        k.setCitePolicy(normalizeCitePolicy(cite == null ? defaultCite(libId) : String.valueOf(cite)));
         k.setCreatedAt(LocalDateTime.now());
         agentKnowledgeMapper.insert(k);
         knowledgeIngestService.ingestQaPair(k, question, answer, "manual:" + k.getId());
@@ -219,7 +280,11 @@ public class KnowledgeAdminController {
         if (body != null && body.get("categoryIds") instanceof List<?> list) {
             categoryIds = list.stream().map(o -> Long.valueOf(String.valueOf(o))).toList();
         }
-        return R.ok(knowledgeSyncService.sync(includeContent, includeQa, categoryIds));
+        Long libraryId = null;
+        if (body != null && body.get("libraryId") != null) {
+            libraryId = Long.valueOf(String.valueOf(body.get("libraryId")));
+        }
+        return R.ok(knowledgeSyncService.sync(includeContent, includeQa, categoryIds, libraryId));
     }
 
     @GetMapping("/{id}/download")
@@ -265,6 +330,21 @@ public class KnowledgeAdminController {
             return Paths.get(uploadDir).resolve(url.substring(idx + "/uploads/".length())).normalize();
         }
         return null;
+    }
+
+    private Long resolveLibraryId(Long libraryId) {
+        if (libraryId != null && libraryId > 0) {
+            return libraryId;
+        }
+        return 1L;
+    }
+
+    private String defaultCite(Long libraryId) {
+        KnowledgeLibrary lib = knowledgeLibraryMapper.selectById(libraryId);
+        if (lib != null && StringUtils.hasText(lib.getDefaultCitePolicy())) {
+            return lib.getDefaultCitePolicy();
+        }
+        return "full";
     }
 
     private String normalizeCitePolicy(String raw) {

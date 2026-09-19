@@ -9,6 +9,8 @@
         <el-button icon="Refresh" @click="refreshCurrent">刷新</el-button>
         <el-button v-if="activeTab === 'plans'" type="primary" @click="openPlanDialog()">新增平台付费档</el-button>
         <el-button v-else-if="activeTab === 'levels'" type="primary" @click="openLevelDialog()">新增成长等级</el-button>
+        <el-button v-else-if="activeTab === 'tags'" type="primary" @click="openTagDialog()">新建标签</el-button>
+        <el-button v-if="activeTab === 'plans'" :loading="trialRemindLoading" @click="trialExpireRemind">手动试发到期提醒</el-button>
       </div>
     </div>
 
@@ -266,10 +268,35 @@
       </el-tab-pane>
 
       <el-tab-pane label="标签管理" name="tags">
-        <div class="coming-soon">
-          <div class="coming-title">标签管理暂未开放</div>
-          <div class="muted">自动打标与规则配置后续接入，当前请以会员等级与积分管理为主。</div>
+        <div class="toolbar">
+          <el-input v-model="tagKeyword" placeholder="搜索标签" clearable style="width: 200px" @clear="loadTags" @keyup.enter="loadTags" />
+          <div>
+            <el-button @click="loadTags">刷新</el-button>
+            <el-button type="primary" @click="openTagDialog()">新建标签</el-button>
+          </div>
         </div>
+        <el-table :data="memberTags" v-loading="tagsLoading" empty-text="暂无标签">
+          <el-table-column prop="name" label="标签名" min-width="140" />
+          <el-table-column label="颜色" width="100">
+            <template #default="{ row }">
+              <span v-if="row.color" class="tag-color" :style="{ background: row.color }" />
+              <span v-else class="muted">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="description" label="说明" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="useCount" label="引用" width="80" align="center" />
+          <el-table-column label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="140" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openTagDialog(row)">编辑</el-button>
+              <el-button link type="danger" @click="removeTag(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </el-tab-pane>
     </el-tabs>
 
@@ -424,7 +451,7 @@
             style="margin-left: 12px"
           />
           <span v-if="planForm.expireRemindEnabled" class="field-hint" style="margin-left: 8px">天前提醒续费</span>
-          <div class="field-hint">需用户授权订阅消息；推送链路一期先落库配置</div>
+          <div class="field-hint">需用户授权订阅消息；每日 9:30 定时入队；也可点「手动试发到期提醒」验证</div>
         </el-form-item>
         <el-form-item label="赠送星球天数">
           <el-input-number v-model="planForm.giftPlanetDays" :min="0" :max="3650" />
@@ -443,6 +470,27 @@
       <template #footer>
         <el-button @click="planDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="planSubmitting" @click="handlePlanSubmit">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="tagDialogVisible" :title="editingTagId ? '编辑标签' : '新建标签'" width="440px">
+      <el-form label-width="80px">
+        <el-form-item label="名称" required>
+          <el-input v-model="tagForm.name" maxlength="32" />
+        </el-form-item>
+        <el-form-item label="颜色">
+          <el-color-picker v-model="tagForm.color" />
+        </el-form-item>
+        <el-form-item label="说明">
+          <el-input v-model="tagForm.description" type="textarea" :rows="2" />
+        </el-form-item>
+        <el-form-item label="启用">
+          <el-switch v-model="tagForm.statusOn" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="tagDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="tagSubmitting" @click="submitTag">保存</el-button>
       </template>
     </el-dialog>
 
@@ -498,6 +546,7 @@ import {
   updateMembershipPlan,
   type MembershipPlan,
 } from '@/api/membershipPlan'
+import { del, get, post, put } from '@/api/request'
 import type {
   CreateMemberLevelParams,
   MemberLevel,
@@ -525,6 +574,85 @@ interface MemberRow {
 
 const router = useRouter()
 const activeTab = ref('members')
+const trialRemindLoading = ref(false)
+const tagsLoading = ref(false)
+const memberTags = ref<any[]>([])
+const tagKeyword = ref('')
+const tagDialogVisible = ref(false)
+const tagSubmitting = ref(false)
+const editingTagId = ref<number | null>(null)
+const tagForm = reactive({
+  name: '',
+  color: '#409EFF',
+  description: '',
+  statusOn: true,
+})
+
+async function loadTags() {
+  tagsLoading.value = true
+  try {
+    const res = await get<any[]>('/api/v1/admin/member-tags', { keyword: tagKeyword.value || undefined })
+    memberTags.value = (res as any)?.data || []
+  } catch {
+    memberTags.value = []
+  } finally {
+    tagsLoading.value = false
+  }
+}
+
+function openTagDialog(row?: any) {
+  editingTagId.value = row?.id ?? null
+  tagForm.name = row?.name || ''
+  tagForm.color = row?.color || '#409EFF'
+  tagForm.description = row?.description || ''
+  tagForm.statusOn = row ? row.status !== 0 : true
+  tagDialogVisible.value = true
+}
+
+async function submitTag() {
+  if (!tagForm.name.trim()) {
+    ElMessage.warning('请填写标签名')
+    return
+  }
+  tagSubmitting.value = true
+  try {
+    const body = {
+      name: tagForm.name.trim(),
+      color: tagForm.color,
+      description: tagForm.description,
+      status: tagForm.statusOn ? 1 : 0,
+    }
+    if (editingTagId.value) await put(`/api/v1/admin/member-tags/${editingTagId.value}`, body)
+    else await post('/api/v1/admin/member-tags', body)
+    ElMessage.success('已保存')
+    tagDialogVisible.value = false
+    await loadTags()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    tagSubmitting.value = false
+  }
+}
+
+async function removeTag(row: any) {
+  await ElMessageBox.confirm(`删除标签「${row.name}」？`, '删除确认', { type: 'warning' })
+  await del(`/api/v1/admin/member-tags/${row.id}`)
+  ElMessage.success('已删除')
+  await loadTags()
+}
+
+async function trialExpireRemind() {
+  trialRemindLoading.value = true
+  try {
+    const res = await post<any>('/api/v1/admin/membership-plans/expire-remind/trial')
+    const d = (res as any)?.data || {}
+    ElMessage.success(d.message || `已入队 ${d.enqueued ?? 0} 条`)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '试发失败')
+  } finally {
+    trialRemindLoading.value = false
+  }
+}
 const memberLoading = ref(false)
 const memberError = ref<string | null>(null)
 const members = ref<MemberRow[]>([])
@@ -801,6 +929,7 @@ function handleTabChange(name: string | number) {
   if (name === 'plans') fetchPlanList()
   if (name === 'levels') fetchLevelList()
   if (name === 'points') fetchPointsRules()
+  if (name === 'tags') loadTags()
 }
 
 function refreshCurrent() {
@@ -1211,6 +1340,7 @@ onMounted(async () => {
   .user-name,
   .level-name,
   .rule-title,
+  .tag-color { display:inline-block;width:16px;height:16px;border-radius:4px;vertical-align:middle; }
   .coming-title {
     font-weight: 800;
     color: #0d1b2e;

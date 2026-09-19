@@ -82,6 +82,9 @@ public class AgentConfig implements Serializable {
     @Schema(description = "评测用例 JSON")
     private String evalCases;
 
+    @Schema(description = "可检索知识库 ID 列表 JSON，如 [1,2]；空则默认库")
+    private String libraryIds;
+
     @Schema(description = "人格 ID，绑定作者矩阵，不改 role")
     private String personaId;
 
