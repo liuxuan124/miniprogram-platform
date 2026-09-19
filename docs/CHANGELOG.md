@@ -4,10 +4,8 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
-### 未提交（工作区，2026-09-20）
-
-- **会员档**：`show_badge`（评论区/星球角标）、`expire_remind_days`（到期前提醒，0=关闭）。迁移 `V69__membership_plan_badge_remind.sql`。涉及 backend DTO/实体/会员服务、admin 会员相关页、小程序 `member-center`（主包与 `pkg-user` 各一份）。
-- admin 布局/路由/内容审核与会员页、知识库等有同批未提交改动，合入时请对照 `git diff`，勿只看本条。
+- 2026-09-20：新增 `AGENTS.md` Agent 入口与本 CHANGELOG 作为近期产品变更真相源（文档，无运行时）。
+- 2026-09-20：会员档 `show_badge` / `expire_remind_days`（迁移 V69）；admin 会员/审核等与小程序 `member-center` 已合入主线。
 
 ### 已在仓内（摘要，非全量）
 
