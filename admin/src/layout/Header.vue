@@ -25,6 +25,16 @@
     </div>
     <div class="header-right">
       <el-select
+        :model-value="appStore.uiTheme"
+        class="theme-switcher"
+        size="small"
+        style="width: 110px"
+        @change="onThemeChange"
+      >
+        <el-option label="经典蓝" value="classic" />
+        <el-option label="暖阁" value="warm" />
+      </el-select>
+      <el-select
         v-if="showTenantSwitcher"
         v-model="tenantSelectId"
         class="tenant-switcher"
@@ -64,7 +74,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAppStore } from '@/stores/app'
+import { useAppStore, type AdminUiTheme } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { useTenantStore } from '@/stores/tenant'
 import { usePermissionStore } from '@/stores/permission'
@@ -107,6 +117,10 @@ async function onTenantChange(id: number) {
   } catch {
     tenantSelectId.value = tenantStore.activeTenantId || undefined
   }
+}
+
+function onThemeChange(theme: AdminUiTheme) {
+  appStore.setUiTheme(theme)
 }
 
 const breadcrumbs = computed(() => {

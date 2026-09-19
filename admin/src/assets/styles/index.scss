@@ -78,6 +78,45 @@
   --el-color-info: var(--info);
 }
 
+/* 暖阁主题：米杏底、橙主色、深褐侧栏（对齐 prototypes-warm/admin.css） */
+html[data-admin-theme='warm'] {
+  --color-primary: #c2410c;
+  --color-primary-soft: #fef3ea;
+  --color-ink: #2a1c12;
+  --color-muted: #6b5443;
+  --color-line: rgba(120, 72, 40, 0.12);
+  --color-bg: #faf6f0;
+
+  --brand: #c2410c;
+  --brand-hover: #9a3412;
+  --brand-soft: #fef3ea;
+  --brand-ink: #2a1c12;
+
+  --bg-page: #faf6f0;
+  --bg-elevated: #ffffff;
+  --border: rgba(120, 72, 40, 0.14);
+  --border-strong: rgba(120, 72, 40, 0.22);
+  --sidebar-bg: #33200f;
+  --sidebar-text: #cdb79a;
+  --sidebar-muted: #8d7358;
+
+  --text: #2a1c12;
+  --text-secondary: #6b5443;
+  --text-muted: #a1897a;
+
+  --el-color-primary: #c2410c;
+  --el-color-primary-light-3: #ea580c;
+  --el-color-primary-light-5: #f0884a;
+  --el-color-primary-light-7: #f6b484;
+  --el-color-primary-light-8: #fad4b3;
+  --el-color-primary-light-9: #fef3ea;
+  --el-color-primary-dark-2: #9a3412;
+}
+
+html[data-admin-theme='warm'] body {
+  background-color: #e9ddcd;
+}
+
 /* CSS Reset */
 *,
 *::before,
