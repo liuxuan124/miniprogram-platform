@@ -5,6 +5,7 @@ const { StorageUtil } = require('../../utils/storage')
 const { getNavLayout } = require('../../utils/nav-layout')
 const qrcode = require('../../utils/qrcode')
 const { hasFavoriteId, readFavoriteIds, writeFavoriteIds } = require('../../utils/favorite-ids')
+const { DEFAULT_AVATAR, DEFAULT_PRODUCT } = require('../../utils/image-fallback')
 const QR_CANVAS_SIZE = 174
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
@@ -316,6 +317,14 @@ Page({
       return
     }
     wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/index/index' }) })
+  },
+
+  onCoverError() {
+    this.setData({ cover: DEFAULT_PRODUCT })
+  },
+
+  onAvatarError() {
+    this.setData({ avatar: DEFAULT_AVATAR })
   },
 
   onSavePoster() {

@@ -283,7 +283,10 @@ Page({
 
   onAddPortfolioImages() {
     const remain = 3 - (this.data.portfolioImages || []).length
-    if (remain <= 0) return
+    if (remain <= 0) {
+      wx.showToast({ title: '最多上传 3 张', icon: 'none' })
+      return
+    }
     wx.chooseMedia({
       count: remain,
       mediaType: ['image'],
@@ -294,6 +297,11 @@ Page({
           portfolioImages: (this.data.portfolioImages || []).concat(files).slice(0, 3),
         })
         this._saveApplyDraft()
+      },
+      fail: (err) => {
+        const msg = String((err && err.errMsg) || '')
+        if (/cancel/i.test(msg)) return
+        wx.showToast({ title: '选图失败', icon: 'none' })
       },
     })
   },
@@ -415,9 +423,15 @@ Page({
   },
 
   onAddImages() {
-    if (!this.data.editorUnlocked) return
+    if (!this.data.editorUnlocked) {
+      wx.showToast({ title: '审核通过后可编辑', icon: 'none' })
+      return
+    }
     const remain = 9 - (this.data.draftImages || []).length
-    if (remain <= 0) return
+    if (remain <= 0) {
+      wx.showToast({ title: '最多上传 9 张', icon: 'none' })
+      return
+    }
     wx.chooseMedia({
       count: remain,
       mediaType: ['image'],
@@ -428,6 +442,11 @@ Page({
           draftImages: (this.data.draftImages || []).concat(files).slice(0, 9),
         })
         this._savePublishDraft()
+      },
+      fail: (err) => {
+        const msg = String((err && err.errMsg) || '')
+        if (/cancel/i.test(msg)) return
+        wx.showToast({ title: '选图失败', icon: 'none' })
       },
     })
   },

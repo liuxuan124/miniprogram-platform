@@ -31,7 +31,7 @@
       <image
         wx:if="{{keyword}}"
         class="search-clear"
-        src="/images/icon-close.svg"
+        src="/images/icon-close.png"
         mode="aspectFit"
         bindtap="onSearchClear"
       />

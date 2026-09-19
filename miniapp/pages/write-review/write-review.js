@@ -77,13 +77,21 @@ Page({
 
   onAddImg() {
     const remain = 4 - this.data.images.length
-    if (remain <= 0) return
+    if (remain <= 0) {
+      wx.showToast({ title: '最多上传 4 张', icon: 'none' })
+      return
+    }
     wx.chooseMedia({
       count: remain,
       mediaType: ['image'],
       success: (res) => {
         const files = (res.tempFiles || []).map((f) => f.tempFilePath)
         this.setData({ images: this.data.images.concat(files).slice(0, 4) })
+      },
+      fail: (err) => {
+        const msg = String((err && err.errMsg) || '')
+        if (/cancel/i.test(msg)) return
+        wx.showToast({ title: '选图失败', icon: 'none' })
       },
     })
   },

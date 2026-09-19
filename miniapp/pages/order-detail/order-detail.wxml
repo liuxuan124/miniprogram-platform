@@ -42,7 +42,7 @@
   <!-- 收货地址 -->
   <view class="address-section" wx:if="{{order.address}}">
     <view class="address-icon">
-      <image class="address-icon-img" src="/images/icon-location.svg" mode="aspectFit" />
+      <image class="address-icon-img" src="/images/icon-location.png" mode="aspectFit" />
     </view>
     <view class="address-info">
       <view class="address-name-phone">

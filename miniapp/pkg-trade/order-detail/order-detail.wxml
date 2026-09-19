@@ -12,7 +12,7 @@
 
   <!-- 收货地址（实物） -->
   <view class="od-card od-addr" wx:if="{{order.address}}">
-    <image class="od-addr__ico" src="/images/icon-location.svg" mode="aspectFit" />
+    <image class="od-addr__ico" src="/images/icon-location.png" mode="aspectFit" />
     <view class="od-addr__body">
       <view class="od-addr__row">
         <text class="od-addr__name">{{order.address.name}}</text>

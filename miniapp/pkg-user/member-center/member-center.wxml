@@ -72,7 +72,7 @@
         <text class="day-points">第{{item.day}}天 +{{item.points}}</text>
       </view>
     </view>
-    <button class="sign-btn {{signInStatus.todaySigned ? 'signed' : ''}}" bindtap="handleSignIn" disabled="{{signInStatus.todaySigned}}">
+    <button class="sign-btn {{signInStatus.todaySigned ? 'signed' : ''}}" bindtap="handleSignIn">
       {{signInStatus.todaySigned ? '已签到' : '立即签到'}}
     </button>
   </view>
