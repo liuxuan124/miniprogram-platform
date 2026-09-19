@@ -12,6 +12,14 @@ import '@/assets/styles/index.scss'
 import '@/styles/tokens.css'
 import ColorPickerField from '@/components/ColorPickerField.vue'
 
+// 尽早应用皮肤，避免首屏闪蓝
+try {
+  const t = localStorage.getItem('admin-ui-theme')
+  document.documentElement.setAttribute('data-admin-theme', t === 'warm' ? 'warm' : 'classic')
+} catch {
+  document.documentElement.setAttribute('data-admin-theme', 'classic')
+}
+
 // 注册路由守卫
 setupRouterGuards(router)
 

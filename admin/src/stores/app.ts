@@ -4,6 +4,25 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+export type AdminUiTheme = 'classic' | 'warm'
+
+const THEME_KEY = 'admin-ui-theme'
+
+function readStoredTheme(): AdminUiTheme {
+  try {
+    const v = localStorage.getItem(THEME_KEY)
+    if (v === 'warm' || v === 'classic') return v
+  } catch {
+    /* ignore */
+  }
+  return 'classic'
+}
+
+function applyThemeToDom(theme: AdminUiTheme) {
+  if (typeof document === 'undefined') return
+  document.documentElement.setAttribute('data-admin-theme', theme)
+}
+
 export const useAppStore = defineStore('app', () => {
   /** 侧边栏是否折叠 */
   const sidebarCollapsed = ref(false)
@@ -13,10 +32,23 @@ export const useAppStore = defineStore('app', () => {
   const visitedViews = ref<Array<{ path: string; name: string; title: string; affix?: boolean }>>([])
   /** 页面强制刷新计数器：配合 layout/index.vue 的 router-view :key 实现"刷新当前标签" */
   const reloadKey = ref(0)
+  /** 后台皮肤：经典蓝 / 暖阁 */
+  const uiTheme = ref<AdminUiTheme>(readStoredTheme())
+  applyThemeToDom(uiTheme.value)
 
   /** 触发一次当前页面的强制刷新（重新挂载组件，绕过 keep-alive 缓存） */
   function triggerReload() {
     reloadKey.value += 1
+  }
+
+  function setUiTheme(theme: AdminUiTheme) {
+    uiTheme.value = theme
+    applyThemeToDom(theme)
+    try {
+      localStorage.setItem(THEME_KEY, theme)
+    } catch {
+      /* ignore */
+    }
   }
 
   /** 切换侧边栏折叠状态 */
@@ -83,6 +115,8 @@ export const useAppStore = defineStore('app', () => {
     device,
     visitedViews,
     reloadKey,
+    uiTheme,
+    setUiTheme,
     toggleSidebar,
     setDevice,
     addVisitedView,
