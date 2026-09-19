@@ -41,6 +41,7 @@ public class MpFileController {
     @Operation(summary = "已发布资料列表")
     public R<PageResult<FileAccessVO>> list(@RequestParam(required = false) Long groupId,
                                             @RequestParam(required = false) String keyword,
+                                            @RequestParam(required = false) String planetId,
                                             @RequestParam(defaultValue = "1") Long current,
                                             @RequestParam(defaultValue = "20") Long size) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -56,27 +57,30 @@ public class MpFileController {
         Page<FileItem> page = fileItemMapper.selectPage(new Page<>(current, size), qw);
         List<FileAccessVO> records = new ArrayList<>();
         for (FileItem item : page.getRecords()) {
-            records.add(fileEntitlementService.buildAccessVO(item, userId));
+            records.add(fileEntitlementService.buildAccessVO(item, userId, planetId));
         }
         return R.ok(new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "文件访问信息")
-    public R<FileAccessVO> access(@PathVariable Long id) {
+    public R<FileAccessVO> access(@PathVariable Long id,
+                                  @RequestParam(required = false) String planetId) {
         Long userId = SecurityUtils.getCurrentUserId();
-        return R.ok(fileEntitlementService.getAccess(id, userId));
+        return R.ok(fileEntitlementService.getAccess(id, userId, planetId));
     }
 
     @GetMapping("/{id}/download")
     @Operation(summary = "下载文件")
-    public void download(@PathVariable Long id, HttpServletResponse response) throws IOException {
+    public void download(@PathVariable Long id,
+                         @RequestParam(required = false) String planetId,
+                         HttpServletResponse response) throws IOException {
         Long userId = SecurityUtils.getCurrentUserId();
         FileItem item = fileItemMapper.selectById(id);
         if (item == null || !"published".equals(item.getStatus())) {
             throw new BusinessException(404001, "文件不存在或未发布");
         }
-        if (!fileEntitlementService.canDownload(item, userId)) {
+        if (!fileEntitlementService.canDownload(item, userId, planetId)) {
             throw new BusinessException(403001, "暂无下载权限");
         }
         FilePreviewCropService.CroppedFile cropped = filePreviewCropService.buildDownload(item, userId);
@@ -92,16 +96,18 @@ public class MpFileController {
 
     @GetMapping("/{id}/preview-file")
     @Operation(summary = "试读文件流（PDF/DOCX 服务端裁切）")
-    public void previewFile(@PathVariable Long id, HttpServletResponse response) throws IOException {
+    public void previewFile(@PathVariable Long id,
+                            @RequestParam(required = false) String planetId,
+                            HttpServletResponse response) throws IOException {
         Long userId = SecurityUtils.getCurrentUserId();
         FileItem item = fileItemMapper.selectById(id);
         if (item == null || !"published".equals(item.getStatus())) {
             throw new BusinessException(404001, "文件不存在或未发布");
         }
-        if (fileEntitlementService.canRead(item, userId)) {
+        if (fileEntitlementService.canRead(item, userId, planetId)) {
             throw new BusinessException(400001, "已开通全文，请使用下载接口");
         }
-        if (!fileEntitlementService.canPreview(item, userId)) {
+        if (!fileEntitlementService.canPreview(item, userId, planetId)) {
             throw new BusinessException(403001, "暂无试读权限");
         }
         FilePreviewCropService.CroppedFile cropped = filePreviewCropService.buildPreview(item, userId);
@@ -117,13 +123,14 @@ public class MpFileController {
 
     @GetMapping("/{id}/preview")
     @Operation(summary = "文本预览")
-    public R<FileAccessVO> preview(@PathVariable Long id) {
+    public R<FileAccessVO> preview(@PathVariable Long id,
+                                   @RequestParam(required = false) String planetId) {
         Long userId = SecurityUtils.getCurrentUserId();
         FileItem item = fileItemMapper.selectById(id);
         if (item == null || !"published".equals(item.getStatus())) {
             throw new BusinessException(404001, "文件不存在或未发布");
         }
-        FileAccessVO vo = fileEntitlementService.buildAccessVO(item, userId);
+        FileAccessVO vo = fileEntitlementService.buildAccessVO(item, userId, planetId);
         if (Boolean.TRUE.equals(vo.getCanRead())) {
             vo.setPreviewText(null);
             vo.setCanPreview(false);

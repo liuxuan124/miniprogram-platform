@@ -12,9 +12,17 @@ import com.miniprogram.dto.planet.PlanetConfigVO;
 import com.miniprogram.dto.system.ConfigBatchUpdateDTO;
 import com.miniprogram.dto.system.ConfigItemDTO;
 import com.miniprogram.entity.MemberLevel;
+import com.miniprogram.entity.MemberSubscription;
+import com.miniprogram.entity.MembershipPlan;
+import com.miniprogram.entity.Order;
+import com.miniprogram.entity.OrderItem;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.User;
 import com.miniprogram.mapper.MemberLevelMapper;
+import com.miniprogram.mapper.MemberSubscriptionMapper;
+import com.miniprogram.mapper.MembershipPlanMapper;
+import com.miniprogram.mapper.OrderItemMapper;
+import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.member.MemberBenefitCodes;
@@ -23,6 +31,7 @@ import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.PlanetStatsService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.support.FeatureModuleGuard;
+import com.miniprogram.tenant.MpTenantLineHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +45,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,57 +56,140 @@ import java.util.Map;
 public class MembershipAccessServiceImpl implements MembershipAccessService {
 
     private static final String CONFIG_KEY = "planet_config";
+    private static final String SCOPE_PLATFORM = "platform";
+    private static final String SCOPE_PLANET = "planet";
+    private static final String STATUS_ACTIVE = "active";
+    /** 与 MembershipSubscriptionMigrator 付费会员订单判定一致 */
+    private static final Set<String> PAID_ORDER_STATUSES = Set.of("paid", "shipped", "completed");
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final UserMapper userMapper;
     private final MemberLevelMapper memberLevelMapper;
+    private final MemberSubscriptionMapper memberSubscriptionMapper;
+    private final MembershipPlanMapper membershipPlanMapper;
     private final ProductMapper productMapper;
+    private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
     private final SystemConfigService systemConfigService;
     private final FeatureModuleGuard featureModuleGuard;
     private final PlanetStatsService planetStatsService;
     private final ObjectMapper objectMapper;
 
     @Override
-    public boolean hasActivePaidMembership(Long userId) {
+    public boolean hasPlatformMembership(Long userId) {
         if (userId == null) {
             return false;
         }
-        return hasActivePaidMembership(userMapper.selectById(userId));
+        if (hasActiveSubscription(userId, SCOPE_PLATFORM, null)) {
+            return true;
+        }
+        // 有平台订购行时只信订购表，不再用 level_id / legacy 放行
+        if (countPlatformSubscriptionRows(userId) > 0) {
+            return false;
+        }
+        return legacyPlatformActive(userMapper.selectById(userId));
     }
 
     @Override
-    public boolean hasActivePaidMembership(User user) {
-        if (user == null || user.getLevelId() == null) {
+    public boolean hasPlanetMembership(Long userId, String planetId) {
+        if (userId == null || !StringUtils.hasText(planetId)) {
             return false;
         }
-        LocalDateTime expireAt = user.getMemberExpireAt();
-        if (expireAt == null) {
-            return true;
+        return hasActiveSubscription(userId, SCOPE_PLANET, planetId.trim());
+    }
+
+    @Override
+    public LocalDateTime findActiveExpireAt(Long userId, String scope, String planetId) {
+        if (userId == null || !StringUtils.hasText(scope)) {
+            return null;
         }
-        return expireAt.isAfter(LocalDateTime.now());
+        String s = scope.trim().toLowerCase();
+        if (!SCOPE_PLATFORM.equals(s) && !SCOPE_PLANET.equals(s)) {
+            return null;
+        }
+        return findActiveExpireAtInternal(userId, s, planetId);
+    }
+
+    @Override
+    @Deprecated
+    public boolean hasActivePaidMembership(Long userId) {
+        return hasPlatformMembership(userId);
+    }
+
+    @Override
+    @Deprecated
+    public boolean hasActivePaidMembership(User user) {
+        if (user == null || user.getId() == null) {
+            return false;
+        }
+        return hasPlatformMembership(user.getId());
+    }
+
+    @Override
+    public void grantSubscription(Long userId, Long planId, Integer membershipDays, Long orderId) {
+        if (userId == null) {
+            return;
+        }
+        // 旧商品无 plan：仅写 platform 订购，plan_id 可空；不写成长 level_id
+        if (planId == null) {
+            LocalDateTime expireAt = upsertSubscription(
+                    userId, SCOPE_PLATFORM, null, null, orderId, "purchase", membershipDays);
+            mirrorPlatformExpire(userId, expireAt);
+            log.warn("grantSubscription: planId null, platform fallback userId={} days={} orderId={}",
+                    userId, membershipDays, orderId);
+            return;
+        }
+        MembershipPlan plan = membershipPlanMapper.selectById(planId);
+        if (plan == null) {
+            log.warn("grantSubscription: plan not found planId={} userId={} orderId={}",
+                    planId, userId, orderId);
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "会员档位不存在: planId=" + planId);
+        }
+        String scope = plan.getScope() == null ? "" : plan.getScope().trim().toLowerCase();
+        if (!SCOPE_PLATFORM.equals(scope) && !SCOPE_PLANET.equals(scope)) {
+            log.warn("grantSubscription: invalid scope={} planId={}", plan.getScope(), planId);
+            return;
+        }
+        String planetId = SCOPE_PLANET.equals(scope) ? trimToNull(plan.getPlanetId()) : null;
+        if (SCOPE_PLANET.equals(scope) && planetId == null) {
+            log.warn("grantSubscription: planet plan missing planetId planId={}", planId);
+            return;
+        }
+        LocalDateTime expireAt = upsertSubscription(
+                userId, scope, planetId, planId, orderId, "purchase", membershipDays);
+        if (SCOPE_PLATFORM.equals(scope)) {
+            mirrorPlatformExpire(userId, expireAt);
+            int giftDays = plan.getGiftPlanetDays() == null ? 0 : Math.max(0, plan.getGiftPlanetDays());
+            String giftPlanetId = trimToNull(plan.getGiftPlanetId());
+            if (giftDays > 0 && giftPlanetId != null) {
+                // 赠送天数单独写星球行，不叠加进平台 expireAt
+                upsertSubscription(userId, SCOPE_PLANET, giftPlanetId, planId, orderId, "gift", giftDays);
+            }
+        }
+        log.info("grantSubscription userId={} planId={} scope={} days={} orderId={}",
+                userId, planId, scope, membershipDays, orderId);
     }
 
     @Override
     public boolean hasBenefit(Long userId, String code) {
-        if (userId == null || !StringUtils.hasText(code) || !hasActivePaidMembership(userId)) {
+        if (userId == null || !StringUtils.hasText(code) || !hasPlatformMembership(userId)) {
             return false;
         }
-        User user = userMapper.selectById(userId);
-        if (user == null || user.getLevelId() == null) {
-            return false;
+        // 优先读有效平台订购对应付费档 rights；无 plan / rights 空再回退成长等级
+        MembershipPlan plan = findActivePlatformPlan(userId);
+        if (plan != null) {
+            List<String> planRights = MemberBenefitCodes.normalize(plan.getRights());
+            if (!planRights.isEmpty()) {
+                return MemberBenefitCodes.has(planRights, code);
+            }
         }
-        MemberLevel level = memberLevelMapper.selectById(user.getLevelId());
-        if (level == null) {
-            return false;
-        }
-        List<String> benefits = MemberBenefitCodes.normalize(level.getRights());
-        return MemberBenefitCodes.has(benefits, code);
+        return hasBenefitFromGrowthLevel(userId, code);
     }
 
     @Override
     public BigDecimal applyShopPrice(Long userId, Product product, BigDecimal listPrice) {
         BigDecimal base = listPrice != null ? listPrice : BigDecimal.ZERO;
-        if (product == null || !hasActivePaidMembership(userId)) {
+        if (product == null || !hasPlatformMembership(userId)) {
             return base;
         }
         if (Integer.valueOf(1).equals(product.getMemberFree())) {
@@ -102,6 +198,15 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         if (product.getMemberPrice() != null && product.getMemberPrice().compareTo(BigDecimal.ZERO) >= 0) {
             return product.getMemberPrice();
         }
+        // 折扣优先读付费档 discountRate
+        MembershipPlan plan = findActivePlatformPlan(userId);
+        if (plan != null && plan.getDiscountRate() != null) {
+            BigDecimal discounted = applyDiscountRate(base, plan.getDiscountRate());
+            if (discounted != null) {
+                return discounted;
+            }
+        }
+        // 无 plan 折扣时：须有 member_discount 权益，再读成长等级折扣
         if (!hasBenefit(userId, MemberBenefitCodes.MEMBER_DISCOUNT)) {
             return base;
         }
@@ -113,37 +218,18 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         if (level == null || level.getDiscountRate() == null) {
             return base;
         }
-        BigDecimal rate = level.getDiscountRate();
-        if (rate.compareTo(BigDecimal.ZERO) <= 0 || rate.compareTo(BigDecimal.ONE) >= 0) {
-            return base;
-        }
-        return base.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal discounted = applyDiscountRate(base, level.getDiscountRate());
+        return discounted != null ? discounted : base;
     }
 
+    /**
+     * @deprecated 支付已走 {@link #grantSubscription}。禁止再写成长 level_id、禁止把 gift 叠进 expire。
+     */
     @Override
+    @Deprecated
     public void grantMembership(Long userId, Long levelId, Integer membershipDays) {
-        if (userId == null || levelId == null) {
-            return;
-        }
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            return;
-        }
-        user.setLevelId(levelId);
-        int days = membershipDays == null ? 0 : Math.max(membershipDays, 0);
-        MemberLevel level = memberLevelMapper.selectById(levelId);
-        int gift = level != null && level.getGiftPlanetDays() != null ? Math.max(0, level.getGiftPlanetDays()) : 0;
-        if (days <= 0) {
-            user.setMemberExpireAt(null);
-        } else {
-            LocalDateTime base = user.getMemberExpireAt();
-            if (base == null || base.isBefore(LocalDateTime.now())) {
-                base = LocalDateTime.now();
-            }
-            user.setMemberExpireAt(base.plusDays(days + gift));
-        }
-        userMapper.updateById(user);
-        log.info("开通付费会员 userId={} levelId={} days={} gift={}", userId, levelId, days, gift);
+        log.error("grantMembership 已废弃且拒绝执行：禁止写 level_id / 叠 gift 进 expire；请改用 grantSubscription。userId={} levelId={} days={}",
+                userId, levelId, membershipDays);
     }
 
     @Override
@@ -156,18 +242,40 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         Map<String, Object> raw = readConfigMap();
         PlanetConfigVO vo = toVo(raw);
         vo.setEnabled(featureModuleGuard.isEnabled("planet"));
-        boolean active = hasActivePaidMembership(userId);
-        vo.setMemberActive(active);
+        String resolvedPlanetId = resolvePlanetIdForHome(userId, planetId);
+        boolean platformActive = hasPlatformMembership(userId);
+        boolean planetActive = hasPlanetMembership(userId, resolvedPlanetId);
+        vo.setPlatformMemberActive(platformActive);
+        vo.setPlanetMemberActive(planetActive);
+        // 兼容：星球首页语境镜像本星球开通态
+        vo.setMemberActive(planetActive);
+        vo.setPlatformExpireText("");
+        vo.setPlanetExpireText("");
         vo.setExpireText("");
         if (userId != null) {
             User user = userMapper.selectById(userId);
             if (user != null) {
                 vo.setMemberLevelId(user.getLevelId());
-                if (user.getMemberExpireAt() != null) {
-                    vo.setMemberExpireAt(user.getMemberExpireAt().format(FMT));
-                    if (active) {
-                        vo.setExpireText("会员有效期至 " + user.getMemberExpireAt().toLocalDate());
-                    }
+                LocalDateTime platformExpire = findActiveExpireAtInternal(userId, SCOPE_PLATFORM, null);
+                if (platformExpire == null && platformActive && user.getMemberExpireAt() != null) {
+                    platformExpire = user.getMemberExpireAt();
+                }
+                LocalDateTime planetExpire = findActiveExpireAtInternal(userId, SCOPE_PLANET, resolvedPlanetId);
+                if (platformActive) {
+                    vo.setPlatformExpireText(formatExpireText("平台会员", platformExpire));
+                }
+                if (planetActive) {
+                    vo.setPlanetExpireText(formatExpireText("本星球会员", planetExpire));
+                }
+                // 兼容旧字段：优先本星球到期
+                LocalDateTime displayExpire = planetActive ? planetExpire : (platformActive ? platformExpire : null);
+                if (displayExpire != null) {
+                    vo.setMemberExpireAt(displayExpire.format(FMT));
+                }
+                if (planetActive) {
+                    vo.setExpireText(vo.getPlanetExpireText());
+                } else if (platformActive) {
+                    vo.setExpireText(vo.getPlatformExpireText());
                 }
                 if (user.getLevelId() != null) {
                     MemberLevel level = memberLevelMapper.selectById(user.getLevelId());
@@ -177,9 +285,10 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
                 }
             }
         }
-        vo.setPackages(listPackages());
+        vo.setPackages(listPackages(resolvedPlanetId, SCOPE_PLANET));
+        vo.setPlatformPackages(listPackages(null, SCOPE_PLATFORM));
         applyLiveKpis(vo, raw);
-        applyLiveTopics(vo, userId, planetId);
+        applyLiveTopics(vo, userId, resolvedPlanetId);
         return vo;
     }
 
@@ -188,7 +297,8 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         Map<String, Object> raw = readConfigMap();
         PlanetConfigVO vo = toVo(raw);
         vo.setEnabled(featureModuleGuard.isEnabled("planet"));
-        vo.setPackages(listPackages());
+        vo.setPackages(listPackages(resolveDefaultPlanetId(), SCOPE_PLANET));
+        vo.setPlatformPackages(listPackages(null, SCOPE_PLATFORM));
         applyLiveKpis(vo, raw);
         Map<String, Object> live = new LinkedHashMap<>();
         live.put("activeMembers", planetStatsService.countActiveMembers());
@@ -400,7 +510,7 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         }
     }
 
-    private List<PlanetConfigVO.PlanetPackageVO> listPackages() {
+    private List<PlanetConfigVO.PlanetPackageVO> listPackages(String planetId, String scopeFilter) {
         List<Product> products = productMapper.selectList(new LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus, "on_sale")
                 .and(w -> w.eq(Product::getProductType, ProductTypes.MEMBERSHIP)
@@ -410,6 +520,9 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         List<PlanetConfigVO.PlanetPackageVO> list = new ArrayList<>();
         for (Product p : products) {
             if (!ProductTypes.isMembership(p.getProductType(), p.getProductTypes())) {
+                continue;
+            }
+            if (!matchPackageScope(p, scopeFilter, planetId)) {
                 continue;
             }
             PlanetConfigVO.PlanetPackageVO pkg = new PlanetConfigVO.PlanetPackageVO();
@@ -430,6 +543,36 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
             list.add(pkg);
         }
         return list;
+    }
+
+    /**
+     * 按 plan.scope 过滤：planet 仅当前 planetId；platform 仅平台档。
+     * 未绑 plan 的旧会员商品：平台列表保留、星球列表排除。
+     */
+    private boolean matchPackageScope(Product product, String scopeFilter, String planetId) {
+        if (product.getMembershipPlanId() == null) {
+            return SCOPE_PLATFORM.equals(scopeFilter);
+        }
+        MembershipPlan plan = membershipPlanMapper.selectById(product.getMembershipPlanId());
+        if (plan == null || plan.getStatus() != null && plan.getStatus() == 0) {
+            return false;
+        }
+        String scope = plan.getScope() == null ? "" : plan.getScope().trim().toLowerCase();
+        if (!scope.equals(scopeFilter)) {
+            return false;
+        }
+        if (SCOPE_PLANET.equals(scopeFilter)) {
+            return StringUtils.hasText(planetId)
+                    && planetId.equals(plan.getPlanetId() == null ? "" : plan.getPlanetId().trim());
+        }
+        return true;
+    }
+
+    private static String formatExpireText(String label, LocalDateTime expireAt) {
+        if (expireAt == null) {
+            return label + "有效（终身）";
+        }
+        return label + "至 " + expireAt.toLocalDate();
     }
 
     private Map<String, Object> readConfigMap() {
@@ -838,5 +981,252 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         if (v == null) return fallback;
         String s = String.valueOf(v).trim();
         return s.isEmpty() ? fallback : s;
+    }
+
+    private String resolvePlanetIdForHome(Long userId, String planetId) {
+        if (StringUtils.hasText(planetId)) {
+            return planetId.trim();
+        }
+        MainPlanetVO main = resolveMainPlanet(userId);
+        if (main != null && StringUtils.hasText(main.getPlanetId())) {
+            return main.getPlanetId().trim();
+        }
+        return resolveDefaultPlanetId();
+    }
+
+    private boolean hasActiveSubscription(Long userId, String scope, String planetId) {
+        List<MemberSubscription> list = memberSubscriptionMapper.selectList(new LambdaQueryWrapper<MemberSubscription>()
+                .eq(MemberSubscription::getUserId, userId)
+                .eq(MemberSubscription::getScope, scope)
+                .eq(MemberSubscription::getStatus, STATUS_ACTIVE));
+        if (list == null || list.isEmpty()) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (MemberSubscription row : list) {
+            if (row.getExpireAt() != null && !row.getExpireAt().isAfter(now)) {
+                continue;
+            }
+            if (SCOPE_PLATFORM.equals(scope)) {
+                if (row.getPlanetId() == null || row.getPlanetId().isBlank()) {
+                    return true;
+                }
+            } else if (planetId != null && planetId.equals(row.getPlanetId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private long countPlatformSubscriptionRows(Long userId) {
+        Long count = memberSubscriptionMapper.selectCount(new LambdaQueryWrapper<MemberSubscription>()
+                .eq(MemberSubscription::getUserId, userId)
+                .eq(MemberSubscription::getScope, SCOPE_PLATFORM));
+        return count == null ? 0L : count;
+    }
+
+    /**
+     * 迁移前兼容（无任何平台订购行时）：
+     * <ul>
+     *   <li>有 {@code member_expire_at} 且未过期 → 有效</li>
+     *   <li>{@code member_expire_at == null} 且存在付费会员订单（与 Migrator 同判定）→ 终身有效</li>
+     *   <li>仅有成长 {@code level_id}、无 expire、无会员订单 → 无效（禁止当终身）</li>
+     * </ul>
+     */
+    private boolean legacyPlatformActive(User user) {
+        if (user == null) {
+            return false;
+        }
+        LocalDateTime expireAt = user.getMemberExpireAt();
+        if (expireAt != null) {
+            return expireAt.isAfter(LocalDateTime.now());
+        }
+        // null expire：须有付费会员订单证据，禁止仅凭成长 level_id 当终身
+        return user.getId() != null && hasPaidMembershipOrder(user.getId());
+    }
+
+    /**
+     * 是否存在付费会员订单证据（product_type=membership 且订单 status∈paid/shipped/completed）。
+     * 判定与 {@link com.miniprogram.support.MembershipSubscriptionMigrator} 一致。
+     */
+    private boolean hasPaidMembershipOrder(Long userId) {
+        AtomicBoolean found = new AtomicBoolean(false);
+        MpTenantLineHandler.runWithoutTenant(() -> {
+            List<Product> membershipProducts = productMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Product>()
+                            .and(w -> w.eq("product_type", ProductTypes.MEMBERSHIP)
+                                    .or()
+                                    .like("product_types", ProductTypes.MEMBERSHIP)));
+            if (membershipProducts == null || membershipProducts.isEmpty()) {
+                return;
+            }
+            Set<Long> productIds = membershipProducts.stream()
+                    .filter(p -> p.getId() != null)
+                    .filter(p -> ProductTypes.isMembership(p.getProductType(), p.getProductTypes()))
+                    .map(Product::getId)
+                    .collect(Collectors.toSet());
+            if (productIds.isEmpty()) {
+                return;
+            }
+            List<Order> paidOrders = orderMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Order>()
+                            .eq("user_id", userId)
+                            .in("status", PAID_ORDER_STATUSES));
+            if (paidOrders == null || paidOrders.isEmpty()) {
+                return;
+            }
+            Set<Long> orderIds = paidOrders.stream()
+                    .map(Order::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (orderIds.isEmpty()) {
+                return;
+            }
+            Long count = orderItemMapper.selectCount(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<OrderItem>()
+                            .in("order_id", orderIds)
+                            .in("product_id", productIds));
+            found.set(count != null && count > 0);
+        });
+        return found.get();
+    }
+
+    private LocalDateTime findActiveExpireAtInternal(Long userId, String scope, String planetId) {
+        LambdaQueryWrapper<MemberSubscription> w = new LambdaQueryWrapper<>();
+        w.eq(MemberSubscription::getUserId, userId)
+                .eq(MemberSubscription::getScope, scope)
+                .eq(MemberSubscription::getStatus, STATUS_ACTIVE)
+                .and(x -> x.isNull(MemberSubscription::getExpireAt)
+                        .or()
+                        .gt(MemberSubscription::getExpireAt, LocalDateTime.now()))
+                .orderByDesc(MemberSubscription::getExpireAt)
+                .last("LIMIT 1");
+        if (SCOPE_PLATFORM.equals(scope)) {
+            w.and(x -> x.isNull(MemberSubscription::getPlanetId)
+                    .or()
+                    .eq(MemberSubscription::getPlanetId, ""));
+        } else if (StringUtils.hasText(planetId)) {
+            w.eq(MemberSubscription::getPlanetId, planetId);
+        }
+        MemberSubscription row = memberSubscriptionMapper.selectOne(w);
+        return row == null ? null : row.getExpireAt();
+    }
+
+    /**
+     * 写入/续期订购行；返回最终 expireAt（null=终身）。
+     * 续期：base = max(now, currentActive.expireAt)；days&lt;=0 → 终身。
+     */
+    private LocalDateTime upsertSubscription(Long userId, String scope, String planetId,
+                                             Long planId, Long orderId, String source, Integer membershipDays) {
+        int days = membershipDays == null ? 0 : membershipDays;
+        LocalDateTime now = LocalDateTime.now();
+        MemberSubscription existing = findLatestActiveSubscription(userId, scope, planetId);
+        LocalDateTime expireAt;
+        if (days <= 0) {
+            expireAt = null;
+        } else {
+            // base = max(now, currentActive.expireAt ?? now)
+            LocalDateTime base = now;
+            if (existing != null && existing.getExpireAt() != null && existing.getExpireAt().isAfter(now)) {
+                base = existing.getExpireAt();
+            }
+            expireAt = base.plusDays(days);
+        }
+        if (existing != null) {
+            existing.setPlanId(planId);
+            if (orderId != null) {
+                existing.setOrderId(orderId);
+            }
+            existing.setSource(source);
+            existing.setStatus(STATUS_ACTIVE);
+            if (existing.getStartAt() == null) {
+                existing.setStartAt(now);
+            }
+            existing.setExpireAt(expireAt);
+            memberSubscriptionMapper.updateById(existing);
+        } else {
+            MemberSubscription row = new MemberSubscription();
+            row.setUserId(userId);
+            row.setScope(scope);
+            row.setPlanetId(planetId);
+            row.setPlanId(planId);
+            row.setOrderId(orderId);
+            row.setSource(source);
+            row.setStartAt(now);
+            row.setExpireAt(expireAt);
+            row.setStatus(STATUS_ACTIVE);
+            memberSubscriptionMapper.insert(row);
+        }
+        return expireAt;
+    }
+
+    /** 续期用：最新 active 行；无则 insert 新行 */
+    private MemberSubscription findLatestActiveSubscription(Long userId, String scope, String planetId) {
+        LambdaQueryWrapper<MemberSubscription> w = new LambdaQueryWrapper<>();
+        w.eq(MemberSubscription::getUserId, userId)
+                .eq(MemberSubscription::getScope, scope)
+                .eq(MemberSubscription::getStatus, STATUS_ACTIVE)
+                .orderByDesc(MemberSubscription::getId)
+                .last("LIMIT 1");
+        if (SCOPE_PLATFORM.equals(scope)) {
+            w.and(x -> x.isNull(MemberSubscription::getPlanetId)
+                    .or()
+                    .eq(MemberSubscription::getPlanetId, ""));
+        } else {
+            w.eq(MemberSubscription::getPlanetId, planetId);
+        }
+        return memberSubscriptionMapper.selectOne(w);
+    }
+
+    private void mirrorPlatformExpire(Long userId, LocalDateTime expireAt) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return;
+        }
+        user.setMemberExpireAt(expireAt);
+        userMapper.updateById(user);
+    }
+
+    /** 当前有效平台订购绑定的付费档；无订购/无 planId/档不存在 → null */
+    private MembershipPlan findActivePlatformPlan(Long userId) {
+        MemberSubscription sub = findLatestActiveSubscription(userId, SCOPE_PLATFORM, null);
+        if (sub == null || sub.getPlanId() == null) {
+            return null;
+        }
+        if (sub.getExpireAt() != null && !sub.getExpireAt().isAfter(LocalDateTime.now())) {
+            return null;
+        }
+        return membershipPlanMapper.selectById(sub.getPlanId());
+    }
+
+    private boolean hasBenefitFromGrowthLevel(Long userId, String code) {
+        User user = userMapper.selectById(userId);
+        if (user == null || user.getLevelId() == null) {
+            return false;
+        }
+        MemberLevel level = memberLevelMapper.selectById(user.getLevelId());
+        if (level == null) {
+            return false;
+        }
+        List<String> benefits = MemberBenefitCodes.normalize(level.getRights());
+        return MemberBenefitCodes.has(benefits, code);
+    }
+
+    /** @return 折扣后价格；rate 无效时 null */
+    private static BigDecimal applyDiscountRate(BigDecimal base, BigDecimal rate) {
+        if (base == null || rate == null) {
+            return null;
+        }
+        if (rate.compareTo(BigDecimal.ZERO) <= 0 || rate.compareTo(BigDecimal.ONE) >= 0) {
+            return null;
+        }
+        return base.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static String trimToNull(String s) {
+        if (!StringUtils.hasText(s)) {
+            return null;
+        }
+        return s.trim();
     }
 }

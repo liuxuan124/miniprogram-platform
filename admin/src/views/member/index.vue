@@ -3,11 +3,12 @@
     <div class="page-header">
       <div>
         <div class="page-title">会员运营中心</div>
-        <div class="page-desc">管理会员列表、等级权益与积分调整。</div>
+        <div class="page-desc">会员列表、平台付费档、成长展示等级与积分规则分栏管理。</div>
       </div>
       <div class="header-actions">
         <el-button icon="Refresh" @click="refreshCurrent">刷新</el-button>
-        <el-button type="primary" @click="openLevelDialog()">新增等级</el-button>
+        <el-button v-if="activeTab === 'plans'" type="primary" @click="openPlanDialog()">新增平台付费档</el-button>
+        <el-button v-else-if="activeTab === 'levels'" type="primary" @click="openLevelDialog()">新增成长等级</el-button>
       </div>
     </div>
 
@@ -23,7 +24,7 @@
           />
           <el-select
             v-model="memberSearch.levelId"
-            placeholder="会员等级：全部"
+            placeholder="成长等级：全部"
             clearable
             class="toolbar-select"
           >
@@ -36,7 +37,7 @@
           </el-select>
           <el-button type="primary" @click="handleMemberSearch">搜索</el-button>
           <div class="toolbar-spacer" />
-          <el-button type="primary" @click="activeTab = 'levels'">等级体系配置</el-button>
+          <el-button type="primary" @click="activeTab = 'plans'">平台付费档</el-button>
         </div>
 
         <div class="table-panel">
@@ -62,7 +63,7 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="会员等级" width="140">
+              <el-table-column label="成长等级" width="140">
                 <template #default="{ row }">
                   <el-tag effect="plain" type="primary">{{ row.levelName }}</el-tag>
                 </template>
@@ -103,17 +104,80 @@
         </div>
       </el-tab-pane>
 
-      <el-tab-pane label="等级权益设置" name="levels">
+      <el-tab-pane label="平台付费档" name="plans">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 12px"
+          title="平台付费档用于文章门禁、商城会员价等；购买后写入订购记录。赠送星球天数仅开通指定星球，不会通开全部星球。"
+        />
         <div class="toolbar">
           <div class="toolbar-spacer" />
-          <el-button type="primary" @click="openLevelDialog()">新增等级</el-button>
+          <el-button type="primary" @click="openPlanDialog()">新增平台付费档</el-button>
+        </div>
+        <ListStateWrap
+          :loading="planLoading"
+          :error="planError"
+          :empty="!planLoading && !planError && planList.length === 0"
+          empty-text="暂无平台付费档"
+          empty-description="请先新增，例如「年卡」「终身」"
+          @retry="fetchPlanList"
+        >
+          <div class="level-grid">
+            <div v-for="plan in planList" :key="plan.id" class="level-card">
+              <div class="level-head">
+                <div>
+                  <div class="level-name">{{ plan.name }}</div>
+                  <div class="muted">
+                    排序 {{ plan.sortOrder ?? 0 }}
+                    <template v-if="plan.giftPlanetDays && plan.giftPlanetDays > 0">
+                      · 赠送 {{ plan.giftPlanetId }} {{ plan.giftPlanetDays }} 天
+                    </template>
+                  </div>
+                </div>
+                <el-tag :type="plan.status === 1 ? 'success' : 'info'" effect="plain">
+                  {{ plan.status === 1 ? '启用' : '禁用' }}
+                </el-tag>
+              </div>
+              <div class="benefit-line">
+                折扣：{{ formatPlanDiscount(plan.discountRate) }}
+                · 权益：{{ (plan.rights || []).length ? (plan.rights || []).join('、') : '—' }}
+              </div>
+              <div class="level-actions">
+                <el-button link type="primary" @click="openPlanDialog(plan)">配置</el-button>
+                <el-button
+                  link
+                  :type="plan.status === 1 ? 'warning' : 'success'"
+                  @click="togglePlanStatus(plan)"
+                >
+                  {{ plan.status === 1 ? '禁用' : '启用' }}
+                </el-button>
+                <el-button link type="danger" @click="handleDeletePlan(plan)">删除</el-button>
+              </div>
+            </div>
+          </div>
+        </ListStateWrap>
+      </el-tab-pane>
+
+      <el-tab-pane label="成长等级（展示）" name="levels">
+        <el-alert
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 12px"
+          title="成长等级仅按积分展示，不决定付费门禁。付费权益请到「平台付费档」或知识星球页配置。"
+        />
+        <div class="toolbar">
+          <div class="toolbar-spacer" />
+          <el-button type="primary" @click="openLevelDialog()">新增成长等级</el-button>
         </div>
         <ListStateWrap
           :loading="levelLoading"
           :error="levelError"
           :empty="!levelLoading && !levelError && levelList.length === 0"
-          empty-text="暂无会员等级"
-          empty-description="请先新增等级，例如普通会员、金卡会员"
+          empty-text="暂无成长等级"
+          empty-description="请先新增，例如普通会员、金卡会员（展示用）"
           @retry="fetchLevelList"
         >
           <div class="level-grid">
@@ -213,7 +277,7 @@
       <template v-if="currentMember">
         <div class="profile-stats">
           <div class="profile-stat">
-            <span>会员等级</span>
+            <span>成长等级</span>
             <strong>{{ currentMember.levelName }}</strong>
           </div>
           <div class="profile-stat">
@@ -241,7 +305,7 @@
 
     <el-dialog
       v-model="levelDialogVisible"
-      :title="isEditMode ? '编辑会员等级' : '新增会员等级'"
+      :title="isEditMode ? '编辑成长等级' : '新增成长等级'"
       width="560px"
       @closed="resetLevelForm"
     >
@@ -309,6 +373,67 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="planDialogVisible"
+      :title="isPlanEditMode ? '编辑平台付费档' : '新增平台付费档'"
+      width="560px"
+      @closed="resetPlanForm"
+    >
+      <el-form ref="planFormRef" :model="planForm" :rules="planRules" label-width="120px">
+        <el-form-item label="档位名称" prop="name">
+          <el-input v-model="planForm.name" placeholder="如：年卡、终身会员" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="planForm.description" type="textarea" :rows="2" placeholder="可选" />
+        </el-form-item>
+        <el-form-item label="折扣率">
+          <el-input-number
+            v-model="planForm.discountRate"
+            :min="0"
+            :max="1"
+            :step="0.01"
+            :precision="2"
+          />
+          <div class="field-hint">1 = 无折扣，0.9 = 九折；仅平台档用于商城</div>
+        </el-form-item>
+        <el-form-item label="权益码">
+          <el-select
+            v-model="planForm.rights"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="可选，如 member_discount"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="code in benefitOptions"
+              :key="code"
+              :label="MemberBenefitLabels[code]"
+              :value="code"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="赠送星球天数">
+          <el-input-number v-model="planForm.giftPlanetDays" :min="0" :max="3650" />
+          <div class="field-hint">0 = 不赠送；大于 0 须指定目标星球</div>
+        </el-form-item>
+        <el-form-item v-if="planForm.giftPlanetDays > 0" label="赠送星球 ID" prop="giftPlanetId">
+          <el-input v-model="planForm.giftPlanetId" placeholder="如 warm-main" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="planForm.sortOrder" :min="0" :max="999" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="planForm.statusBool" active-text="启用" inactive-text="禁用" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="planDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="planSubmitting" @click="handlePlanSubmit">确定</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="adjustDialogVisible" title="手动调整积分" width="480px" @closed="resetAdjustForm">
       <el-form ref="adjustFormRef" :model="adjustForm" :rules="adjustRules" label-width="100px">
         <el-form-item label="用户ID" prop="user_id">
@@ -354,6 +479,13 @@ import {
   getMemberLevelList,
   updateMemberLevel,
 } from '@/api/member'
+import {
+  createMembershipPlan,
+  deleteMembershipPlan,
+  getMembershipPlanList,
+  updateMembershipPlan,
+  type MembershipPlan,
+} from '@/api/membershipPlan'
 import type {
   CreateMemberLevelParams,
   MemberLevel,
@@ -387,6 +519,9 @@ const members = ref<MemberRow[]>([])
 const levelLoading = ref(false)
 const levelError = ref<string | null>(null)
 const levelList = ref<MemberLevel[]>([])
+const planLoading = ref(false)
+const planError = ref<string | null>(null)
+const planList = ref<MembershipPlan[]>([])
 const rulesLoading = ref(false)
 const rulesSaving = ref(false)
 const profileVisible = ref(false)
@@ -545,6 +680,27 @@ async function fetchLevelList() {
   }
 }
 
+async function fetchPlanList() {
+  planLoading.value = true
+  planError.value = null
+  try {
+    const res = await getMembershipPlanList({ scope: 'platform' })
+    planList.value = res.data || []
+  } catch (err: any) {
+    planList.value = []
+    planError.value = err?.message || '加载付费档失败'
+  } finally {
+    planLoading.value = false
+  }
+}
+
+function formatPlanDiscount(rate: unknown) {
+  const n = Number(rate)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  if (n >= 1) return '无折扣'
+  return `${(n * 10).toFixed(1)}折`
+}
+
 async function fetchPointsRules() {
   rulesLoading.value = true
   try {
@@ -630,6 +786,7 @@ function goPointsLog() {
 
 function handleTabChange(name: string | number) {
   if (name === 'members') fetchMembers()
+  if (name === 'plans') fetchPlanList()
   if (name === 'levels') fetchLevelList()
   if (name === 'points') fetchPointsRules()
 }
@@ -753,6 +910,127 @@ async function handleDeleteLevel(row: MemberLevel) {
     await deleteMemberLevel(row.id)
     ElMessage.success('删除成功')
     fetchLevelList()
+  } catch (err: any) {
+    if (err === 'cancel' || err === 'close') return
+    ElMessage.error(err?.message || '删除失败')
+  }
+}
+
+const planDialogVisible = ref(false)
+const isPlanEditMode = ref(false)
+const editingPlanId = ref<number | null>(null)
+const planSubmitting = ref(false)
+const planFormRef = ref()
+const planForm = reactive({
+  name: '',
+  description: '',
+  discountRate: 1,
+  rights: [] as string[],
+  giftPlanetDays: 0,
+  giftPlanetId: '',
+  sortOrder: 0,
+  statusBool: true,
+})
+
+const planRules = {
+  name: [{ required: true, message: '请输入档位名称', trigger: 'blur' }],
+  giftPlanetId: [
+    {
+      validator: (_: unknown, value: string, callback: (e?: Error) => void) => {
+        if (planForm.giftPlanetDays > 0 && !String(value || '').trim()) {
+          callback(new Error('赠送天数大于 0 时须填写星球 ID'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+
+function openPlanDialog(row?: MembershipPlan) {
+  isPlanEditMode.value = !!row
+  editingPlanId.value = row?.id || null
+  planForm.name = row?.name || ''
+  planForm.description = row?.description || ''
+  planForm.discountRate = row?.discountRate != null ? Number(row.discountRate) : 1
+  planForm.rights = row?.rights ? [...row.rights] : []
+  planForm.giftPlanetDays = row?.giftPlanetDays ?? 0
+  planForm.giftPlanetId = row?.giftPlanetId || ''
+  planForm.sortOrder = row?.sortOrder ?? 0
+  planForm.statusBool = row ? row.status === 1 : true
+  planDialogVisible.value = true
+}
+
+function resetPlanForm() {
+  planFormRef.value?.resetFields?.()
+  planForm.rights = []
+  planForm.giftPlanetDays = 0
+  planForm.giftPlanetId = ''
+  planForm.discountRate = 1
+}
+
+async function handlePlanSubmit() {
+  const valid = await planFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  planSubmitting.value = true
+  try {
+    const payload = {
+      scope: 'platform' as const,
+      planetId: null,
+      name: planForm.name.trim(),
+      description: planForm.description || undefined,
+      discountRate: planForm.discountRate,
+      rights: [...planForm.rights],
+      giftPlanetDays: planForm.giftPlanetDays,
+      giftPlanetId: planForm.giftPlanetDays > 0 ? planForm.giftPlanetId.trim() : null,
+      sortOrder: planForm.sortOrder,
+      status: planForm.statusBool ? 1 : 0,
+    }
+    if (isPlanEditMode.value && editingPlanId.value != null) {
+      await updateMembershipPlan(editingPlanId.value, payload)
+      ElMessage.success('更新成功')
+    } else {
+      await createMembershipPlan(payload)
+      ElMessage.success('创建成功')
+    }
+    planDialogVisible.value = false
+    await fetchPlanList()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '保存失败')
+  } finally {
+    planSubmitting.value = false
+  }
+}
+
+async function togglePlanStatus(row: MembershipPlan) {
+  const status = row.status === 1 ? 0 : 1
+  try {
+    await updateMembershipPlan(row.id, {
+      scope: 'platform',
+      planetId: null,
+      name: row.name,
+      description: row.description,
+      discountRate: row.discountRate,
+      rights: row.rights || [],
+      giftPlanetDays: row.giftPlanetDays ?? 0,
+      giftPlanetId: row.giftPlanetId,
+      sortOrder: row.sortOrder,
+      status,
+    })
+    ElMessage.success(status === 1 ? '启用成功' : '禁用成功')
+    fetchPlanList()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '状态更新失败')
+  }
+}
+
+async function handleDeletePlan(row: MembershipPlan) {
+  try {
+    await ElMessageBox.confirm(`确定删除付费档「${row.name}」？`, '删除确认', { type: 'warning' })
+    await deleteMembershipPlan(row.id)
+    ElMessage.success('删除成功')
+    fetchPlanList()
   } catch (err: any) {
     if (err === 'cancel' || err === 'close') return
     ElMessage.error(err?.message || '删除失败')

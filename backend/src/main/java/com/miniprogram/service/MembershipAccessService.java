@@ -15,15 +15,56 @@ import java.util.List;
  */
 public interface MembershipAccessService {
 
+    /** 平台付费订购是否有效（真源：mp_member_subscription scope=platform） */
+    boolean hasPlatformMembership(Long userId);
+
+    /** 指定星球付费订购是否有效（真源：mp_member_subscription scope=planet） */
+    boolean hasPlanetMembership(Long userId, String planetId);
+
+    /**
+     * 有效订购的到期时间。无有效订购或终身（expire_at null）均返回 null；
+     * 展示前请先 {@link #hasPlatformMembership} / {@link #hasPlanetMembership}。
+     *
+     * @param scope    platform | planet
+     * @param planetId scope=planet 时必填
+     */
+    java.time.LocalDateTime findActiveExpireAt(Long userId, String scope, String planetId);
+
+    /**
+     * @deprecated 委托 {@link #hasPlatformMembership}；星球内容门禁禁止使用，请改调 {@link #hasPlanetMembership}
+     */
+    @Deprecated
     boolean hasActivePaidMembership(Long userId);
 
+    /**
+     * @deprecated 委托 {@link #hasPlatformMembership}
+     */
+    @Deprecated
     boolean hasActivePaidMembership(User user);
 
+    /**
+     * 按付费档开通/续期订购；平台档可附带 gift 星球天数。
+     * planId 为空时回退写 platform 订购（plan_id 可空）。
+     * 不写成长 level_id。
+     */
+    void grantSubscription(Long userId, Long planId, Integer membershipDays, Long orderId);
+
+    /**
+     * 平台会员权益码判定：优先有效平台订购对应 {@code MembershipPlan.rights}，
+     * 无 plan 或 rights 空时回退成长等级 {@code mp_member_level.rights}。
+     */
     boolean hasBenefit(Long userId, String code);
 
-    /** 会员价 / 会员免费 / 等级折扣，下单与购物车共用 */
+    /**
+     * 会员价 / 会员免费 / 折扣：折扣优先读订购对应 {@code MembershipPlan.discountRate}，
+     * 否则回退成长等级折扣（须有 {@code member_discount} 权益）。
+     */
     BigDecimal applyShopPrice(Long userId, Product product, BigDecimal listPrice);
 
+    /**
+     * @deprecated 支付已走 {@link #grantSubscription}；实现拒绝写 level_id / 叠 gift。
+     */
+    @Deprecated
     void grantMembership(Long userId, Long levelId, Integer membershipDays);
 
     PlanetConfigVO getPublicPlanetHome(Long userId);

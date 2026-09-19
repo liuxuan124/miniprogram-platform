@@ -46,6 +46,11 @@ app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
 
+# 会员订购迁移（Task7）：默认关闭；本地/预发 dry-run 可开 migrate-subscriptions=true 且 dry-run=true
+membership:
+  migrate-subscriptions: ${MEMBERSHIP_MIGRATE_SUBSCRIPTIONS:false}
+  migrate-subscriptions-dry-run: ${MEMBERSHIP_MIGRATE_SUBSCRIPTIONS_DRY_RUN:false}
+
 # Swagger / OpenAPI
 springdoc:
   api-docs:

@@ -51,6 +51,7 @@ function guestState() {
     vipDesc: '登录后查看会员与学习记录',
     vipCta: '去登录',
     memberActive: false,
+    planetMemberActive: false,
     stats: EMPTY_STATS,
     learnItem: null,
     planetItem: null,
@@ -189,15 +190,25 @@ Page({
         }
         AuthUtil.setUserInfo(userInfo)
         const expire = data.memberExpireAt || ''
-        const memberActive = !!data.memberActive
-        let vipDesc = '尚未开通会员'
+        const memberActive = !!(data.platformMemberActive != null
+          ? data.platformMemberActive
+          : data.memberActive)
+        const planetActive = !!data.planetMemberActive
+        let vipDesc = '尚未开通平台会员'
         let vipCta = '去开通'
-        if (memberActive && expire) {
-          vipDesc = `有效期至 ${expire}`
+        if (data.platformExpireText) {
+          vipDesc = data.platformExpireText
+          vipCta = memberActive ? '去续费' : '去开通'
+        } else if (memberActive && expire) {
+          vipDesc = `平台会员至 ${expire}`
           vipCta = '去续费'
         } else if (memberActive) {
-          vipDesc = '会员有效'
+          vipDesc = '平台会员有效'
           vipCta = '去查看'
+        }
+        const planetItem = data.planet || null
+        if (planetItem && data.planetExpireText && !planetItem.remainDays && planetActive) {
+          planetItem._expireHint = data.planetExpireText
         }
         this.setData({
           isLoggedIn: true,
@@ -208,6 +219,7 @@ Page({
           continuousDays: Number(data.continuousSignDays) || 0,
           joinDays: Number(data.joinDays) || 0,
           memberActive,
+          planetMemberActive: planetActive,
           vipDesc,
           vipCta,
           stats: [
@@ -217,7 +229,7 @@ Page({
             { value: fmtCount(data.points), label: '暖豆' },
           ],
           learnItem: data.learn || null,
-          planetItem: data.planet || null,
+          planetItem,
           planetTitle: (data.planet && data.planet.title) || this.data.planetTitle,
           questionCount: Number(data.questionCount) || 0,
           inviteCount: Number(data.inviteCount) || 0,

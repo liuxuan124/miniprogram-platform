@@ -4,6 +4,7 @@ import com.miniprogram.common.R;
 import com.miniprogram.dto.WxLoginDTO;
 import com.miniprogram.dto.WxLoginVO;
 import com.miniprogram.dto.WxPhoneDTO;
+import com.miniprogram.dto.WxProfileUpdateDTO;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.WxAuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,5 +36,16 @@ public class MpAuthController {
         Long userId = SecurityUtils.getRequiredCurrentUserId();
         String phone = wxAuthService.bindPhone(userId, dto.getCode(), dto.getNickname(), dto.getAvatarUrl());
         return R.ok(phone);
+    }
+
+    @PutMapping("/profile")
+    @Operation(summary = "更新资料", description = "更新昵称/头像；头像须为公网 URL，禁止 wxfile://")
+    public R<Void> updateProfile(@RequestBody WxProfileUpdateDTO dto) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        wxAuthService.updateProfile(
+                userId,
+                dto == null ? null : dto.getNickname(),
+                dto == null ? null : dto.getAvatarUrl());
+        return R.ok();
     }
 }

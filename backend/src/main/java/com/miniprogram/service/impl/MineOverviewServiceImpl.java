@@ -3,6 +3,7 @@ package com.miniprogram.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.dto.member.MemberInfoVO;
 import com.miniprogram.dto.mine.MineOverviewVO;
+import com.miniprogram.dto.planet.MainPlanetVO;
 import com.miniprogram.entity.ContentComment;
 import com.miniprogram.entity.ContentFavorite;
 import com.miniprogram.entity.InviteRelation;
@@ -69,6 +70,10 @@ public class MineOverviewServiceImpl implements MineOverviewService {
             empty.setContinuousSignDays(0);
             empty.setJoinDays(0);
             empty.setMemberActive(false);
+            empty.setPlatformMemberActive(false);
+            empty.setPlanetMemberActive(false);
+            empty.setPlatformExpireText("");
+            empty.setPlanetExpireText("");
             empty.setFavoriteCount(0);
             empty.setNoteCount(0);
             empty.setFollowCount(0);
@@ -92,9 +97,27 @@ public class MineOverviewServiceImpl implements MineOverviewService {
         vo.setUnusedCouponCount(member.getUnusedCouponCount() == null ? 0 : member.getUnusedCouponCount());
         vo.setFollowCount(0);
 
-        boolean active = membershipAccessService.hasActivePaidMembership(user);
-        vo.setMemberActive(active);
-        if (user.getMemberExpireAt() != null) {
+        boolean platformActive = membershipAccessService.hasPlatformMembership(user.getId());
+        MainPlanetVO mainPlanet = membershipAccessService.resolveMainPlanet(user.getId());
+        String planetId = mainPlanet != null && StringUtils.hasText(mainPlanet.getPlanetId())
+                ? mainPlanet.getPlanetId().trim()
+                : membershipAccessService.resolveDefaultPlanetId();
+        boolean planetActive = membershipAccessService.hasPlanetMembership(user.getId(), planetId);
+
+        LocalDateTime platformExpire = membershipAccessService.findActiveExpireAt(user.getId(), "platform", null);
+        if (platformExpire == null && platformActive && user.getMemberExpireAt() != null) {
+            platformExpire = user.getMemberExpireAt();
+        }
+        LocalDateTime planetExpire = membershipAccessService.findActiveExpireAt(user.getId(), "planet", planetId);
+
+        vo.setMemberActive(platformActive);
+        vo.setPlatformMemberActive(platformActive);
+        vo.setPlanetMemberActive(planetActive);
+        vo.setPlatformExpireText(platformActive ? formatExpireLabel("平台会员", platformExpire) : "");
+        vo.setPlanetExpireText(planetActive ? formatExpireLabel("本星球会员", planetExpire) : "");
+        if (platformExpire != null) {
+            vo.setMemberExpireAt(platformExpire.toLocalDate().format(DAY));
+        } else if (platformActive && user.getMemberExpireAt() != null) {
             vo.setMemberExpireAt(user.getMemberExpireAt().toLocalDate().format(DAY));
         }
 
@@ -111,7 +134,12 @@ public class MineOverviewServiceImpl implements MineOverviewService {
                 .eq(Order::getStatus, "pending_payment"))));
 
         vo.setLearn(resolveLearn(userId));
-        vo.setPlanet(resolvePlanet(active, user.getMemberExpireAt()));
+        String planetTitle = planetTitle();
+        if (mainPlanet != null && mainPlanet.getCommunity() != null
+                && StringUtils.hasText(mainPlanet.getCommunity().getTitle())) {
+            planetTitle = mainPlanet.getCommunity().getTitle();
+        }
+        vo.setPlanet(resolvePlanet(planetActive, planetExpire, planetTitle));
         return vo;
     }
 
@@ -159,15 +187,22 @@ public class MineOverviewServiceImpl implements MineOverviewService {
         return null;
     }
 
-    private MineOverviewVO.PlanetItem resolvePlanet(boolean active, LocalDateTime expireAt) {
+    private MineOverviewVO.PlanetItem resolvePlanet(boolean active, LocalDateTime expireAt, String title) {
         MineOverviewVO.PlanetItem planet = new MineOverviewVO.PlanetItem();
         planet.setActive(active);
-        planet.setTitle(planetTitle());
+        planet.setTitle(StringUtils.hasText(title) ? title : "暖阁星球");
         if (active && expireAt != null) {
             long remain = ChronoUnit.DAYS.between(LocalDate.now(), expireAt.toLocalDate());
             planet.setRemainDays((int) Math.max(remain, 0));
         }
         return planet;
+    }
+
+    private static String formatExpireLabel(String label, LocalDateTime expireAt) {
+        if (expireAt == null) {
+            return label + "有效（终身）";
+        }
+        return label + "至 " + expireAt.toLocalDate().format(DAY);
     }
 
     private String planetTitle() {

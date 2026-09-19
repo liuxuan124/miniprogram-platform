@@ -77,7 +77,7 @@ public class WxAuthServiceImpl implements WxAuthService {
             user.setOpenid(openid);
             user.setUnionId(unionId);
             user.setNickname(dto.getNickname());
-            user.setAvatarUrl(dto.getAvatarUrl());
+            user.setAvatarUrl(PublicMediaUrl.sanitizeForPersist(dto.getAvatarUrl(), fileBaseUrl));
             user.setGender(dto.getGender() != null ? dto.getGender() : 0);
             user.setSourceChannel(normalizeSourceChannel(dto.getSourceChannel()));
             user.setLastVisitAt(LocalDateTime.now());
@@ -92,8 +92,15 @@ public class WxAuthServiceImpl implements WxAuthService {
                 needUpdate = true;
             }
             if (dto.getAvatarUrl() != null) {
-                user.setAvatarUrl(dto.getAvatarUrl());
-                needUpdate = true;
+                String sanitized = PublicMediaUrl.sanitizeForPersist(dto.getAvatarUrl(), fileBaseUrl);
+                // 显式传了临时路径则忽略，不覆盖已有合法头像
+                if (sanitized != null) {
+                    user.setAvatarUrl(sanitized);
+                    needUpdate = true;
+                } else if (!PublicMediaUrl.isEphemeralClientPath(dto.getAvatarUrl())) {
+                    user.setAvatarUrl(null);
+                    needUpdate = true;
+                }
             }
             if (unionId != null && !unionId.equals(user.getUnionId())) {
                 user.setUnionId(unionId);
@@ -171,12 +178,49 @@ public class WxAuthServiceImpl implements WxAuthService {
             user.setNickname(nickname);
         }
         if (StringUtils.hasText(avatarUrl)) {
-            user.setAvatarUrl(avatarUrl);
+            String sanitized = PublicMediaUrl.sanitizeForPersist(avatarUrl, fileBaseUrl);
+            if (sanitized != null) {
+                user.setAvatarUrl(sanitized);
+            }
         }
         userMapper.updateById(user);
 
         log.info("用户 {} 绑定手机号成功", userId);
         return phoneNumber;
+    }
+
+    @Override
+    public void updateProfile(Long userId, String nickname, String avatarUrl) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
+        }
+        boolean needUpdate = false;
+        if (StringUtils.hasText(nickname)) {
+            String nick = nickname.trim();
+            if (nick.length() > 10) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "昵称不能超过10个字");
+            }
+            user.setNickname(nick);
+            needUpdate = true;
+        }
+        if (avatarUrl != null) {
+            if (!StringUtils.hasText(avatarUrl)) {
+                // 空串：不改头像
+            } else if (PublicMediaUrl.isEphemeralClientPath(avatarUrl)) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "头像地址无效，请重新上传");
+            } else {
+                String sanitized = PublicMediaUrl.sanitizeForPersist(avatarUrl, fileBaseUrl);
+                if (sanitized == null) {
+                    throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "头像地址无效，请重新上传");
+                }
+                user.setAvatarUrl(sanitized);
+                needUpdate = true;
+            }
+        }
+        if (needUpdate) {
+            userMapper.updateById(user);
+        }
     }
 
     /**

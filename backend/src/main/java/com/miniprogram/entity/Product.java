@@ -101,6 +101,9 @@ public class Product implements Serializable {
     @Schema(description = "开通后写入的会员等级 ID")
     private Long membershipLevelId;
 
+    @Schema(description = "付费档位 ID（mp_membership_plan）；会员商品必填，scope 以档位为准")
+    private Long membershipPlanId;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

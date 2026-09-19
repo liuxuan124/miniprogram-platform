@@ -266,12 +266,14 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             if (product == null || !ProductTypes.isMembership(product.getProductType(), product.getProductTypes())) {
                 continue;
             }
-            Long levelId = product.getMembershipLevelId();
-            if (levelId == null) {
-                log.warn("会员商品未配置等级 productId={}", product.getId());
-                continue;
+            Long planId = product.getMembershipPlanId();
+            if (planId == null) {
+                // 旧商品未绑 plan：回退写 platform 订购（plan_id 可空），不写成长 level_id
+                log.warn("会员商品未配置 membershipPlanId，回退 platform 订购 productId={} legacyLevelId={}",
+                        product.getId(), product.getMembershipLevelId());
             }
-            membershipAccessService.grantMembership(order.getUserId(), levelId, product.getMembershipDays());
+            membershipAccessService.grantSubscription(
+                    order.getUserId(), planId, product.getMembershipDays(), order.getId());
         }
     }
 

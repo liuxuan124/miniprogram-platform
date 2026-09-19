@@ -199,7 +199,8 @@ Page({
         }).then((userInfo) => ({ userInfo, finalAvatar }))
       })
       .then(({ finalAvatar }) => {
-        AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl: finalAvatar })
+        const persistAvatar = isRemoteUrl(finalAvatar) ? finalAvatar : ''
+        AuthUtil.rememberLoginProfile({ nickName: nick, avatarUrl: persistAvatar })
         this.setData({ pendingAvatarLocal: '', editAvatarUrl: finalAvatar || this.data.editAvatarUrl })
         this._refresh()
         wx.showToast({ title: '已保存', icon: 'success' })

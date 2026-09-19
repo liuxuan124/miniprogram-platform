@@ -24,6 +24,9 @@ Page({
     introParagraphs: [],
     isMain: false,
     mainPlanetId: '',
+    planetMemberActive: false,
+    planetExpireText: '',
+    joinProductId: '',
   },
 
   onLoad(query) {
@@ -41,7 +44,8 @@ Page({
     return Promise.all([
       PlanetService.getPlanetCommunity(planetId).catch(() => null),
       PlanetService.getMainPlanet().catch(() => null),
-    ]).then(([community, main]) => {
+      PlanetService.getPlanetHome(planetId).catch(() => null),
+    ]).then(([community, main, home]) => {
       if (!community || !community.id) {
         this.setData({ loading: false, loadError: true })
         return
@@ -50,10 +54,20 @@ Page({
         || PlanetService.getCachedMainPlanetId()
         || ''
       const cover = resolveMediaUrl(community.cover || '')
+      const planetActive = !!(home && (home.planetMemberActive != null
+        ? home.planetMemberActive
+        : home.memberActive))
+      const packages = (home && Array.isArray(home.packages)) ? home.packages : []
+      const firstPkg = packages[0]
+      const joinProductId = firstPkg && (firstPkg.productId || firstPkg.id)
+        ? String(firstPkg.productId || firstPkg.id)
+        : ''
       const next = Object.assign({}, community, {
         cover,
         highlights: Array.isArray(community.highlights) ? community.highlights : [],
-        ctaText: community.ctaText || '加入星球',
+        ctaText: planetActive
+          ? '已加入本星球'
+          : (community.ctaText || '加入星球'),
       })
       wx.setNavigationBarTitle({ title: next.title || '星球介绍' })
       this.setData({
@@ -61,6 +75,11 @@ Page({
         introParagraphs: splitIntro(next.intro),
         mainPlanetId,
         isMain: String(next.id) === String(mainPlanetId),
+        planetMemberActive: planetActive,
+        planetExpireText: planetActive
+          ? ((home && home.planetExpireText) || (home && home.expireText) || '')
+          : '',
+        joinProductId,
         loading: false,
         loadError: false,
       })
@@ -77,6 +96,18 @@ Page({
   },
 
   onJoin() {
+    if (this.data.planetMemberActive) {
+      wx.showToast({ title: '你已开通本星球', icon: 'none' })
+      return
+    }
+    if (!AuthUtil.requireLoginForAction('加入星球', { silent: true })) {
+      return
+    }
+    const pid = this.data.joinProductId
+    if (pid) {
+      wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${encodeURIComponent(pid)}` })
+      return
+    }
     const id = (this.data.community && this.data.community.id) || this.data.planetId || ''
     const url = id
       ? `/pages/join/join?planetId=${encodeURIComponent(id)}`

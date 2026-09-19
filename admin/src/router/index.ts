@@ -313,7 +313,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'level',
         name: 'MemberLevel',
         component: () => import('@/views/member/level.vue'),
-        meta: { title: '会员等级', icon: 'Medal', featureModule: 'member' },
+        meta: { title: '成长等级', icon: 'Medal', featureModule: 'member' },
       },
       {
         path: 'points',

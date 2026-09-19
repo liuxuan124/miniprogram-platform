@@ -17,8 +17,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String location = "file:" + (uploadDir.endsWith("/") ? uploadDir : uploadDir + "/");
         // 映射上传文件目录为静态资源
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadDir + "/");
+                .addResourceLocations(location);
+        // 兼容历史相对路径 avatar/...（客户端误请求 /avatar/**）
+        registry.addResourceHandler("/avatar/**")
+                .addResourceLocations(location + "avatar/");
     }
 }

@@ -124,7 +124,11 @@ class OrderServiceImplTest {
         FeatureModuleGuard featureModuleGuard = mock(FeatureModuleGuard.class);
         when(featureModuleGuard.isEnabled("product")).thenReturn(true);
         MembershipAccessService membershipAccessService = mock(MembershipAccessService.class);
-        when(membershipAccessService.hasActivePaidMembership(org.mockito.ArgumentMatchers.anyLong())).thenReturn(false);
+        when(membershipAccessService.applyShopPrice(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(inv -> inv.getArgument(2));
         OrderServiceImpl service = new OrderServiceImpl(
                 orderItemMapper,
                 productMapper,

@@ -61,7 +61,10 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
   AuthService.completeLogin({
     phone,
     nickName: finalNick,
-    avatarUrl: displayAvatar,
+    // 会话展示可用本地预览；持久化只保留远程 URL，避免 wxfile 污染
+    avatarUrl: isRemoteUrl(displayAvatar)
+      ? displayAvatar
+      : (isRemoteUrl(serverUser.avatarUrl) ? serverUser.avatarUrl : ''),
   })
   AuthUtil.clearLoginInterceptInfo()
   AuthUtil.rememberLoginProfile({
@@ -102,6 +105,9 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
       } catch (e) { /* ignore */ }
     }).catch((err) => {
       console.warn('[login-flow] 头像资料回写失败:', err)
+      try {
+        wx.showToast({ title: '头像上传失败，请稍后在设置中重试', icon: 'none' })
+      } catch (e) { /* ignore */ }
     })
   }
 
@@ -119,9 +125,18 @@ function syncAvatarInBackground({ localAvatar, nickName, phone, serverAvatar }) 
     showError: false,
   }).then((uploaded) => {
     const remoteUrl = (uploaded && (uploaded.url || uploaded.fileUrl || uploaded.path)) || ''
+    if (!remoteUrl) {
+      try {
+        wx.showToast({ title: '头像上传失败，请稍后在设置中重试', icon: 'none' })
+      } catch (e) { /* ignore */ }
+      return
+    }
     finish(remoteUrl)
   }).catch((uploadErr) => {
     console.warn('[login-flow] 头像后台上传失败（不影响登录）:', uploadErr)
+    try {
+      wx.showToast({ title: '头像上传失败，请稍后在设置中重试', icon: 'none' })
+    } catch (e) { /* ignore */ }
   })
 }
 

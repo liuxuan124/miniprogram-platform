@@ -110,6 +110,20 @@
 }
 .pi-intro__p:last-child { margin-bottom: 0; }
 
+.pi-exp {
+  margin: 8rpx 0 28rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: rgba(194, 65, 12, 0.08);
+  color: #9a3412;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+.pi-exp--muted {
+  background: rgba(120, 72, 40, 0.06);
+  color: #a1897a;
+}
+
 .pi-hl__card {
   display: flex;
   gap: 18rpx;

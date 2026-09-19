@@ -23,7 +23,9 @@ public class PlanetConfigVO {
     private Integer previewCount;
     private String entryLabel;
 
-    /** 会员到期提示文案 */
+    /**
+     * 兼容旧到期文案：星球首页优先本星球，否则平台。
+     */
     private String expireText;
 
     /** KPI 条 */
@@ -37,12 +39,27 @@ public class PlanetConfigVO {
 
     private Map<String, Object> ops = new LinkedHashMap<>();
 
+    /**
+     * 兼容旧字段：星球首页镜像本星球是否开通（= planetMemberActive）。
+     */
     private boolean memberActive;
     private Long memberLevelId;
     private String memberLevelName;
     private String memberExpireAt;
 
+    /** 平台付费订购是否有效 */
+    private boolean platformMemberActive;
+    /** 如「平台会员至 2027-01-01」；未开通为空 */
+    private String platformExpireText;
+    /** 当前星球付费订购是否有效 */
+    private boolean planetMemberActive;
+    /** 如「本星球会员至 2027-01-01」；未开通为空 */
+    private String planetExpireText;
+
+    /** 当前星球档商品（scope=planet 且 planetId 匹配）；无 plan 的旧会员商品不列入 */
     private List<PlanetPackageVO> packages = new ArrayList<>();
+    /** 平台档商品（scope=platform）；一期可空列表 */
+    private List<PlanetPackageVO> platformPackages = new ArrayList<>();
 
     /** 社区列表（配置 communities） */
     private List<PlanetCommunityVO> communities = new ArrayList<>();
