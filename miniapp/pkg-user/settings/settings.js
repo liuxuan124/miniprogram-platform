@@ -52,7 +52,7 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.30.7',
+    version: '1.30.8',
   },
 
   onShow() {
