@@ -1,14 +1,15 @@
 const orderService = require('../../services/order')
 const { StorageUtil } = require('../../utils/storage')
-const { post } = require('../../utils/request')
+const { post, upload } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
-const { picsum } = require('../../data/warm-demo')
+const { isPersistedMediaUrl, DEFAULT_AVATAR, DEFAULT_PRODUCT } = require('../../utils/image-fallback')
+const { resolveMediaUrl } = require('../../utils/media-url')
 
 const HISTORY_KEY = 'service_chat_history_v2'
 const MAX_MESSAGES = 80
-const BOT_AVATAR = picsum('kf1', 80, 80)
-const ME_AVATAR = picsum('warmav', 80, 80)
-const ORDER_COVER = picsum('eb1', 120, 120)
+const BOT_AVATAR = DEFAULT_AVATAR
+const ME_AVATAR = DEFAULT_AVATAR
+const ORDER_COVER = DEFAULT_PRODUCT
 
 const DEMO_ORDER = {
   title: '内容生意手册（EPUB / PDF）',
@@ -111,18 +112,37 @@ function loadHistory() {
   if (!raw || typeof raw !== 'object') return null
   const messages = Array.isArray(raw.messages) ? raw.messages : null
   if (!messages || !messages.length) return null
+  // 历史里的临时本地图不可恢复，过滤掉以免裂图
+  const cleaned = messages
+    .map((m) => {
+      if (!m || m.type !== 'imgmsg') return m
+      const url = m.imageUrl || m.url || ''
+      if (isPersistedMediaUrl(url)) return m
+      return null
+    })
+    .filter(Boolean)
+  if (!cleaned.length) return null
   return {
-    messages: messages.slice(-MAX_MESSAGES),
-    nextId: Math.max(2, Number(raw.nextId) || messages.length + 1),
+    messages: cleaned.slice(-MAX_MESSAGES),
+    nextId: Math.max(2, Number(raw.nextId) || cleaned.length + 1),
     sessionId: raw.sessionId || '',
     showQuick: raw.showQuick !== false,
   }
 }
 
 function saveHistory(messages, nextId, sessionId, showQuick) {
+  const list = (Array.isArray(messages) ? messages : [])
+    .map((m) => {
+      if (!m || m.type !== 'imgmsg') return m
+      const url = m.imageUrl || m.url || ''
+      if (isPersistedMediaUrl(url)) return m
+      return null
+    })
+    .filter(Boolean)
+    .slice(-MAX_MESSAGES)
   StorageUtil.set(HISTORY_KEY, {
-    messages: (messages || []).slice(-MAX_MESSAGES),
-    nextId: nextId || 2,
+    messages: list,
+    nextId: nextId || list.length + 1,
     sessionId: sessionId || '',
     showQuick: showQuick !== false,
     updatedAt: Date.now(),
@@ -395,6 +415,7 @@ Page({
 
   onPickImage() {
     this.setData({ showEmoji: false })
+    if (!AuthUtil.requireLoginForAction('发送图片')) return
     const choose = wx.chooseMedia
       ? () => new Promise((resolve, reject) => {
         wx.chooseMedia({
@@ -417,16 +438,37 @@ Page({
         const path = res.tempFiles && res.tempFiles[0] && res.tempFiles[0].tempFilePath
         if (!path) return
         this.setData({ showQuick: false })
-        this._push({ role: 'me', type: 'imgmsg', imageUrl: path })
-        setTimeout(() => {
-          this._push({
-            role: 'service',
-            type: 'text',
-            text: '图片已收到，我这边看一下。如需更快处理，也可点下方「转人工」。',
+        wx.showLoading({ title: '发送中', mask: true })
+        return upload(path, { name: 'file', url: '/api/v1/mp/upload' })
+          .then((uploaded) => {
+            const raw = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
+            const url = resolveMediaUrl(raw) || raw
+            if (!url || !isPersistedMediaUrl(url)) {
+              throw new Error('图片上传失败')
+            }
+            wx.hideLoading()
+            this._push({ role: 'me', type: 'imgmsg', imageUrl: url })
+            setTimeout(() => {
+              this._push({
+                role: 'service',
+                type: 'text',
+                text: '图片已收到，我这边看一下。如需更快处理，也可点下方「转人工」。',
+              })
+            }, 500)
           })
-        }, 500)
+          .catch((err) => {
+            wx.hideLoading()
+            wx.showToast({
+              title: String((err && err.message) || '图片发送失败').slice(0, 20),
+              icon: 'none',
+            })
+          })
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = String((err && (err.errMsg || err.message)) || '')
+        if (/cancel/i.test(msg)) return
+        wx.showToast({ title: '选图失败', icon: 'none' })
+      })
   },
 
   onPreviewImg(e) {

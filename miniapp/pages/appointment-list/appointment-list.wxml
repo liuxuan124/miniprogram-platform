@@ -41,7 +41,7 @@
     >
       <image
         class="service-image"
-        src="{{item.cover_url || item.image || '/images/default-service.svg'}}"
+        src="{{item.cover_url || item.image || '/images/default-service.png'}}"
         mode="aspectFill"
       />
       <view class="service-info">

@@ -237,7 +237,7 @@
 
 <!-- 提交成功 -->
 <view class="form-success" wx:if="{{submitted}}">
-  <image class="success-icon" src="/images/icon-success.svg" mode="aspectFit" />
+  <image class="success-icon" src="/images/icon-success.png" mode="aspectFit" />
   <text class="success-title">提交成功</text>
   <text class="success-desc">感谢您的填写，我们会尽快处理</text>
   <view class="success-btn" bindtap="onGoBack">返回</view>

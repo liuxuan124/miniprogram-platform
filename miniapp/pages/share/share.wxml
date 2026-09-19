@@ -3,7 +3,7 @@
   <block wx:if="{{!showPoster}}">
     <view class="sh-bg">
       <view class="sh-cover">
-        <image src="{{cover}}" mode="aspectFill" />
+        <image src="{{cover}}" mode="aspectFill" binderror="onCoverError" />
         <view class="sh-sc"></view>
         <view class="sh-bd">
           <text class="warm-tag warm-tag--soft">暖阁分享</text>
@@ -79,7 +79,7 @@
         <!-- cover template -->
         <view class="sh-poster" wx:if="{{posterStyle === 'cover'}}">
           <view class="sh-poster__pc">
-            <image src="{{cover}}" mode="aspectFill" />
+            <image src="{{cover}}" mode="aspectFill" binderror="onCoverError" />
             <view class="sh-poster__sc"></view>
             <view class="sh-poster__fade"></view>
             <view class="sh-poster__kk">
@@ -90,7 +90,7 @@
           <view class="sh-poster__pb">
             <view class="sh-poster__quote">「{{quote}}」</view>
             <view class="sh-poster__ft">
-              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
+              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" binderror="onAvatarError" />
               <view class="sh-poster__meta">
                 <view class="sh-poster__nm">{{author || '暖阁'}}</view>
                 <view class="sh-poster__sb">{{shareFrom}}</view>
@@ -111,7 +111,7 @@
             <view class="sh-poster__bigq warm-serif">「{{quote}}」</view>
             <view class="sh-poster__from">—— {{title}}</view>
             <view class="sh-poster__ft">
-              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
+              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" binderror="onAvatarError" />
               <view class="sh-poster__meta">
                 <view class="sh-poster__nm">{{author || '暖阁'}}</view>
                 <view class="sh-poster__sb">{{shareFrom}}</view>
@@ -131,7 +131,7 @@
             <view class="sh-poster__title warm-serif sh-poster__title--ink">{{title}}</view>
             <view class="sh-poster__quote sh-poster__quote--gap">{{quote}}</view>
             <view class="sh-poster__ft">
-              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" />
+              <image class="sh-poster__av" src="{{avatar}}" mode="aspectFill" wx:if="{{avatar}}" binderror="onAvatarError" />
               <view class="sh-poster__meta">
                 <view class="sh-poster__nm">{{author || '暖阁'}}</view>
                 <view class="sh-poster__sb">邀请码 {{shortCode || '登录后生成'}}</view>

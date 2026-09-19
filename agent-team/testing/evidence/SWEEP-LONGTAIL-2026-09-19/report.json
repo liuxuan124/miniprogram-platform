@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-19T22:24:30+08:00",
+  "wx_version": "1.30.4",
+  "wx_version_desc": "长尾：选图状态/静默失败/裂图第二轮",
+  "found": 14,
+  "fixed": 12,
+  "skipped": [
+    "warm-demo picsum 演示图（演示数据源，非生产主路径）",
+    "pages/address-list onShow 冲编辑（已不在 app.json，现用 pkg-user 版）"
+  ],
+  "backend_status": "no jar redeploy; wx_version synced"
+}

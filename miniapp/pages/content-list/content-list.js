@@ -10,6 +10,7 @@ const { resolveMediaUrl } = require('../../utils/media-url')
 const { openContentDetail } = require('../../utils/content-id')
 const { DEMO_LIST } = require('../../data/warm-demo')
 const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { DEFAULT_AVATAR, DEFAULT_PRODUCT } = require('../../utils/image-fallback')
 
 const LOCAL_DEMO = FORCE_LOCAL_DEMO || USE_LOCAL_SOURCE
 const ALL_CAT = { id: 'all', name: '全部' }
@@ -312,6 +313,16 @@ Page({
 
   onService() {
     wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' })
+  },
+
+  onBigCoverError() {
+    if (!this.data.bigCard) return
+    this.setData({ 'bigCard.cover': DEFAULT_PRODUCT })
+  },
+
+  onBigAvatarError() {
+    if (!this.data.bigCard) return
+    this.setData({ 'bigCard.avatar': DEFAULT_AVATAR })
   },
 
   onContentTap(e) {

@@ -85,14 +85,14 @@
     <!-- 大图卡 -->
     <view class="cl-big" wx:if="{{bigCard}}" data-id="{{bigCard.id}}" bindtap="onContentTap">
       <view class="cl-big__cv">
-        <image src="{{bigCard.cover}}" mode="aspectFill" class="cl-big__img" />
+        <image src="{{bigCard.cover}}" mode="aspectFill" class="cl-big__img" binderror="onBigCoverError" />
         <text class="warm-tag warm-tag--gold cl-big__tag">{{bigCard.tag}}</text>
       </view>
       <view class="cl-big__bd">
         <view class="cl-big__title warm-serif">{{bigCard.title}}</view>
         <view class="cl-big__sum">{{bigCard.summary}}</view>
         <view class="cl-big__mt">
-          <image class="cl-big__av" src="{{bigCard.avatar}}" mode="aspectFill" />
+          <image class="cl-big__av" src="{{bigCard.avatar}}" mode="aspectFill" binderror="onBigAvatarError" />
           <text>{{bigCard.author}}</text>
           <text class="cl-dot"></text>
           <text>{{bigCard.meta}}</text>

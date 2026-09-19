@@ -2,7 +2,7 @@
 <view class="page">
   <block wx:if="{{list.length}}">
     <view class="card" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="openItem">
-      <image class="cover" src="{{item.cover || item.coverImage || '/images/logo.svg'}}" mode="aspectFill" />
+      <image class="cover" src="{{item.cover || item.coverImage || '/images/default-product.png'}}" mode="aspectFill" />
       <view class="meta">
         <view class="title">{{item.title}}</view>
         <view class="sub">{{item.summary || item.categoryName || '已收藏'}}</view>

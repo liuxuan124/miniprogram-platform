@@ -2,6 +2,8 @@
 // 根据表单模板动态渲染不同字段类型，支持提交
 
 const formService = require('../../services/form')
+const { isPersistedMediaUrl } = require('../../utils/image-fallback')
+const { resolveMediaUrl } = require('../../utils/media-url')
 
 // 字段类型常量
 const FIELD_TYPES = {
@@ -178,6 +180,11 @@ Page({
         const newPaths = (this.data.imageTempPaths[key] || []).concat(tempFilePaths)
         this.setData({ [`imageTempPaths.${key}`]: newPaths })
       },
+      fail: (err) => {
+        const msg = String((err && err.errMsg) || '')
+        if (/cancel/i.test(msg)) return
+        wx.showToast({ title: '选图失败', icon: 'none' })
+      },
     })
   },
 
@@ -241,30 +248,45 @@ Page({
     wx.navigateBack()
   },
 
-  /** 上传所有图片 */
+  /** 上传所有图片：已持久 URL 直接沿用，临时路径必须 upload 并校验回写 */
   _uploadImages() {
-    const uploadPromises = []
     const imageTempPaths = this.data.imageTempPaths
     const request = require('../../utils/request')
+    const nextUrls = {}
+    const uploadPromises = []
 
     Object.keys(imageTempPaths).forEach((key) => {
-      const paths = imageTempPaths[key]
-      paths.forEach((filePath) => {
-        // 只上传临时文件（以 http 或 wxfile 开头的）
-        if (filePath.indexOf('http') === 0 || filePath.indexOf('wxfile') === 0 || filePath.indexOf('tmp') >= 0) {
-          const p = request.upload(filePath, { name: 'file', url: '/api/v1/mp/upload' })
-            .then((res) => {
-              const url = res.url || res
-              const urls = this.data.imageUrls[key] || []
-              urls.push(url)
-              this.setData({ [`imageUrls.${key}`]: urls })
-            })
-          uploadPromises.push(p)
+      const paths = imageTempPaths[key] || []
+      nextUrls[key] = []
+      paths.forEach((filePath, idx) => {
+        if (!filePath) return
+        if (isPersistedMediaUrl(filePath)) {
+          nextUrls[key][idx] = resolveMediaUrl(filePath) || filePath
+          return
         }
+        const p = request.upload(filePath, { name: 'file', url: '/api/v1/mp/upload' })
+          .then((res) => {
+            const raw = (res && (res.url || res.fileUrl)) || res || ''
+            const url = resolveMediaUrl(raw) || raw
+            if (!url || !isPersistedMediaUrl(url)) {
+              throw new Error('图片上传失败')
+            }
+            nextUrls[key][idx] = url
+          })
+        uploadPromises.push(p)
       })
     })
 
+    const finish = () => {
+      const compact = {}
+      Object.keys(nextUrls).forEach((key) => {
+        compact[key] = (nextUrls[key] || []).filter(Boolean)
+      })
+      this.setData({ imageUrls: compact })
+    }
+
     if (uploadPromises.length === 0) {
+      finish()
       return Promise.resolve()
     }
 
@@ -272,6 +294,7 @@ Page({
     return Promise.all(uploadPromises)
       .then(() => {
         wx.hideLoading()
+        finish()
       })
       .catch(() => {
         wx.hideLoading()

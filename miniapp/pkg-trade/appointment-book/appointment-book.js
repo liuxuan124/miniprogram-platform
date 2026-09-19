@@ -119,7 +119,10 @@ Page({
   onDateTap(e) {
     const date = e.currentTarget.dataset.date
     const disabled = e.currentTarget.dataset.disabled
-    if (disabled) return
+    if (disabled) {
+      wx.showToast({ title: '该日期不可预约', icon: 'none' })
+      return
+    }
 
     this.setData({ selectedDate: date, selectedSlot: '' })
     this._loadSlots(date)

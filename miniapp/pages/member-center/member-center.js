@@ -141,7 +141,10 @@ Page({
   },
 
   async handleSignIn() {
-    if (this.data.signInStatus.todaySigned) return
+    if (this.data.signInStatus.todaySigned) {
+      wx.showToast({ title: '今日已签到', icon: 'none' })
+      return
+    }
     try {
       await signIn()
       wx.showToast({ title: '签到成功', icon: 'success' })

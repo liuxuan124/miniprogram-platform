@@ -13,7 +13,7 @@
   <view class="service-section" wx:if="{{serviceInfo}}">
     <image
       class="service-cover"
-      src="{{serviceInfo.cover_url || serviceInfo.image || '/images/default-service.svg'}}"
+      src="{{serviceInfo.cover_url || serviceInfo.image || '/images/default-service.png'}}"
       mode="aspectFill"
     />
     <view class="service-detail">
