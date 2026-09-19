@@ -224,6 +224,15 @@ function del(url, data, options = {}) {
   return request({ url, method: 'DELETE', data, ...options })
 }
 
+function resolveUploadToken() {
+  try {
+    const app = getApp()
+    const fromApp = app && app.globalData && app.globalData.token
+    if (fromApp) return fromApp
+  } catch (e) { /* ignore */ }
+  return AuthUtil.getToken()
+}
+
 /** 文件上传 */
 function upload(filePath, options = {}) {
   const {
@@ -231,13 +240,27 @@ function upload(filePath, options = {}) {
     url = '/api/upload',
     formData = {},
     showError = true,
+    auth = true,
   } = options
 
   return new Promise((resolve, reject) => {
-    const token = AuthUtil.getToken()
+    if (!filePath) {
+      const err = { code: -1, message: '上传文件路径为空', statusCode: 'NETWORK' }
+      if (showError) _showError('上传失败')
+      reject(err)
+      return
+    }
+
     const header = {}
-    if (token) {
-      header['Authorization'] = 'Bearer ' + token
+    if (auth) {
+      const token = resolveUploadToken()
+      if (!token) {
+        const err = { code: 401, message: '未登录', statusCode: 401 }
+        if (showError) _showError('请先登录')
+        reject(err)
+        return
+      }
+      header.Authorization = 'Bearer ' + token
     }
 
     wx.uploadFile({
@@ -247,22 +270,37 @@ function upload(filePath, options = {}) {
       formData,
       header,
       success(res) {
+        const statusCode = res.statusCode
+        if (statusCode === 401 || statusCode === 403) {
+          const err = {
+            code: statusCode,
+            message: statusCode === 403 ? '无权限访问' : '未登录',
+            statusCode,
+          }
+          if (showError) _showError(err.message)
+          reject(err)
+          return
+        }
         try {
           const data = JSON.parse(res.data)
           if (data.code === 0 || data.code === 200) {
             resolve(data.data)
           } else {
             if (showError) _showError(data.message || '上传失败')
-            reject(data)
+            reject({ ...data, statusCode })
           }
         } catch (e) {
           if (showError) _showError('上传失败')
-          reject(e)
+          reject({ message: '上传失败', statusCode, error: e })
         }
       },
       fail(err) {
         if (showError) _showError('网络异常，上传失败')
-        reject(err)
+        reject({
+          ...(err || {}),
+          message: (err && (err.errMsg || err.message)) || '网络异常，上传失败',
+          statusCode: 'NETWORK',
+        })
       },
     })
   })

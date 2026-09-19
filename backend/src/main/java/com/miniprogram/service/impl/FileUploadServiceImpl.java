@@ -81,6 +81,15 @@ public class FileUploadServiceImpl implements FileUploadService {
         // 生成存储路径: {subDir}/{yyyy-MM-dd}/{uuid}.{ext}
         String originalFileName = file.getOriginalFilename();
         String ext = getExtension(originalFileName);
+        if (!StringUtils.hasText(ext)) {
+            ext = guessExtensionFromContentType(file.getContentType());
+        }
+        if (!StringUtils.hasText(ext)) {
+            ext = "jpg";
+        }
+        if (!StringUtils.hasText(originalFileName) || !originalFileName.contains(".")) {
+            originalFileName = (StringUtils.hasText(originalFileName) ? originalFileName : "avatar") + "." + ext;
+        }
         return saveBytesToUploadDir(file, subDir, originalFileName, ext);
     }
 
@@ -181,11 +190,28 @@ public class FileUploadServiceImpl implements FileUploadService {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }
 
-        // 校验文件类型
+        // 校验文件类型（微信 chooseAvatar 偶发无扩展名，按 Content-Type 兜底）
         String ext = getExtension(file.getOriginalFilename());
+        if (!StringUtils.hasText(ext)) {
+            ext = guessExtensionFromContentType(file.getContentType());
+        }
         if (!StringUtils.hasText(ext) || !ALLOWED_EXTENSIONS.contains(ext.toLowerCase())) {
             throw new BusinessException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
         }
+    }
+
+    private String guessExtensionFromContentType(String contentType) {
+        if (!StringUtils.hasText(contentType)) {
+            return "";
+        }
+        String ct = contentType.toLowerCase();
+        if (ct.contains("jpeg") || ct.contains("jpg")) return "jpg";
+        if (ct.contains("png")) return "png";
+        if (ct.contains("gif")) return "gif";
+        if (ct.contains("webp")) return "webp";
+        if (ct.contains("bmp")) return "bmp";
+        if (ct.startsWith("image/")) return "jpg";
+        return "";
     }
 
     /**

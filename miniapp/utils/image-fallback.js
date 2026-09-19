@@ -57,6 +57,65 @@ function isPersistedMediaUrl(url) {
   return /^https?:\/\//i.test(value)
 }
 
+/**
+ * 将 chooseAvatar / chooseMedia 临时路径拷到 USER_DATA_PATH，避免登录弹层关闭后 tmp 失效导致 uploadFile 根本打不到服务端。
+ * @param {string} srcPath
+ * @returns {Promise<string>}
+ */
+function persistLocalFileForUpload(srcPath) {
+  const src = String(srcPath || '').trim()
+  if (!src) return Promise.resolve('')
+  if (isPersistedMediaUrl(src)) return Promise.resolve(src)
+
+  let userDataPath = ''
+  try {
+    userDataPath = (wx.env && wx.env.USER_DATA_PATH) || ''
+  } catch (e) {
+    userDataPath = ''
+  }
+  if (userDataPath && src.indexOf(userDataPath) === 0) {
+    return Promise.resolve(src)
+  }
+
+  const extMatch = src.match(/\.([a-zA-Z0-9]{1,8})(?:\?|#|$)/)
+  const ext = (extMatch && extMatch[1].toLowerCase()) || 'jpg'
+  if (!userDataPath) return Promise.resolve(src)
+
+  const dest = `${userDataPath}/avatar_upload_${Date.now()}.${ext}`
+  return new Promise((resolve) => {
+    try {
+      const fs = wx.getFileSystemManager()
+      fs.copyFile({
+        srcPath: src,
+        destPath: dest,
+        success() {
+          resolve(dest)
+        },
+        fail(copyErr) {
+          console.warn('[persistLocalFileForUpload] copyFile failed:', copyErr)
+          try {
+            fs.saveFile({
+              tempFilePath: src,
+              filePath: dest,
+              success() {
+                resolve(dest)
+              },
+              fail() {
+                resolve(src)
+              },
+            })
+          } catch (e2) {
+            resolve(src)
+          }
+        },
+      })
+    } catch (e) {
+      console.warn('[persistLocalFileForUpload] exception:', e)
+      resolve(src)
+    }
+  })
+}
+
 /** @deprecated 请用 isPersistedMediaUrl；保留别名避免旧引用断裂 */
 const isRemoteUrl = isPersistedMediaUrl
 
@@ -126,6 +185,7 @@ module.exports = {
   isSvgUrl,
   isTempLocalAvatar,
   isPersistedMediaUrl,
+  persistLocalFileForUpload,
   isRemoteUrl,
   isDisplayableImageUrl,
   pickLocalCoverFallback,
