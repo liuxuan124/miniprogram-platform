@@ -16,6 +16,10 @@
     "upload() prefer app.globalData.token; auth=true rejects without token",
     "FileUploadServiceImpl content-type extension fallback"
   ],
-  "backend_status": "source + jar rebuild required for extension fallback",
-  "audit_submitted": false
+  "backend_status": "jar rebuilt+restarted; extension fallback live; wx_version synced to 1.30.5",
+  "audit_submitted": false,
+  "upload": {
+    "ok": true,
+    "version": "1.30.5"
+  }
 }
