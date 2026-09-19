@@ -311,7 +311,13 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
             vo.setOps(new LinkedHashMap<>());
         }
         vo.getOps().put("liveStats", live);
-        vo.setCommunities(listCommunities(null));
+        // 管理端返回全部社区（含停用），便于运营维护
+        Map<String, Object> cfg = readConfigMap();
+        List<PlanetCommunityVO> allCommunities = parseCommunities(cfg.get("communities"));
+        if (allCommunities.isEmpty()) {
+            allCommunities = defaultCommunities();
+        }
+        vo.setCommunities(allCommunities);
         return vo;
     }
 
@@ -327,6 +333,10 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         if (list.isEmpty()) {
             list = defaultCommunities();
         }
+        // 管理端配置含停用项时，用户端只返回启用中的社区
+        list = list.stream()
+                .filter(c -> c.getEnabled() == null || Boolean.TRUE.equals(c.getEnabled()))
+                .collect(Collectors.toCollection(ArrayList::new));
         enrichCommunityStats(list);
         applyUserMainPlanet(list, userId);
         return list;
@@ -706,6 +716,24 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
             vo.setJoined(joined instanceof Boolean ? (Boolean) joined : !"false".equalsIgnoreCase(String.valueOf(joined)));
             Object primary = m.get("primary");
             vo.setPrimary(primary instanceof Boolean ? (Boolean) primary : "true".equalsIgnoreCase(String.valueOf(primary)));
+            Object enabled = m.get("enabled");
+            if (enabled == null) {
+                vo.setEnabled(true);
+            } else {
+                vo.setEnabled(enabled instanceof Boolean ? (Boolean) enabled : !"false".equalsIgnoreCase(String.valueOf(enabled)));
+            }
+            Object sortRaw = m.get("sortOrder");
+            if (sortRaw instanceof Number) {
+                vo.setSortOrder(((Number) sortRaw).intValue());
+            } else if (sortRaw != null && StringUtils.hasText(String.valueOf(sortRaw))) {
+                try {
+                    vo.setSortOrder(Integer.parseInt(String.valueOf(sortRaw).trim()));
+                } catch (NumberFormatException ignored) {
+                    vo.setSortOrder(out.size());
+                }
+            } else {
+                vo.setSortOrder(out.size());
+            }
             vo.setFeedUrl(str(m.get("feedUrl"), "/pages/planet-feed/planet-feed?planetId=" + vo.getId()));
             vo.setHomeUrl(str(m.get("homeUrl"), "/pages/planet/planet"));
             vo.setIntroUrl(str(m.get("introUrl"), "/pages/planet-intro/planet-intro?planetId=" + vo.getId()));
@@ -719,6 +747,12 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
             }
             out.add(vo);
         }
+        out.sort((a, b) -> {
+            int sa = a.getSortOrder() != null ? a.getSortOrder() : 0;
+            int sb = b.getSortOrder() != null ? b.getSortOrder() : 0;
+            if (sa != sb) return Integer.compare(sa, sb);
+            return String.valueOf(a.getId()).compareTo(String.valueOf(b.getId()));
+        });
         return out;
     }
 

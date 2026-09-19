@@ -166,7 +166,7 @@
           :closable="false"
           show-icon
           style="margin-bottom: 12px"
-          title="成长等级仅按积分展示，不决定付费门禁。付费权益请到「平台付费档」或知识星球页配置。"
+          title="成长等级仅按积分展示，不决定付费门禁。付费权益请到「平台付费档」或「社区管理」页配置。"
         />
         <div class="toolbar">
           <div class="toolbar-spacer" />

@@ -314,12 +314,12 @@
             <div v-if="contentType === 'moment'" class="field-hint" style="margin: -8px 0 12px 90px">
               勾选后出现在小程序「星球」时间线；未付费用户按星球配置可见范围展示。
             </div>
-            <el-form-item v-if="contentType === 'moment' && formData.planet_exclusive" label="所属星球">
+            <el-form-item v-if="contentType === 'moment' && formData.planet_exclusive" label="所属社区">
               <el-select
                 v-model="formData.planet_id"
                 filterable
                 clearable
-                placeholder="选择所属星球（默认主星球）"
+                placeholder="选择所属社区（默认主社区）"
                 style="width: 320px"
               >
                 <el-option

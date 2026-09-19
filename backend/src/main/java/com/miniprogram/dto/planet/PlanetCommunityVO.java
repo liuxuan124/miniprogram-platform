@@ -20,6 +20,10 @@ public class PlanetCommunityVO {
     private String todayLabel;
     private Boolean joined;
     private Boolean primary;
+    /** 列表排序，越小越靠前；缺省按配置数组顺序 */
+    private Integer sortOrder;
+    /** 是否对用户端展示；缺省 true */
+    private Boolean enabled;
     private String feedUrl;
     private String homeUrl;
     /** 介绍页入口 */
