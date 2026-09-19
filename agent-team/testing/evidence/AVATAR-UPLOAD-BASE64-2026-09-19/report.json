@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-19T23:40:30+08:00",
+  "wx_version": "1.30.7",
+  "wx_version_desc": "头像上传 Base64 回退与错误分类",
+  "root_cause": "nginx 全量 access 对 MiniProgramEnv/MicroMessenger 的 POST /api/v1/mp/upload 命中数为 0，而同窗口 wx.request API 正常；wx.uploadFile fail 被 settings 用 /fail|网络/ 一律标成「网络异常」。服务端 multipart 本身可用（curl 曾 200）。最可能：uploadFile 合法域名未配或客户端 fail 未打到网关。",
+  "fixes": [
+    "POST /api/v1/mp/upload-base64 + FileUploadService.uploadBytes；wx.uploadFile fail 后自动 Base64 走 request 合法域名",
+    "classifyUploadError / uploadErrorMessage：auth|domain|file|network|client|business 分开 toast",
+    "isTempLocalAvatar / isPersistedMediaUrl 排除 http://usr 误判为远程",
+    "backend clean package → 覆盖 app.jar 并 restart（非裸 target jar）"
+  ],
+  "verification": {
+    "multipart_unauth": "POST /api/v1/mp/upload → 401 110101",
+    "base64_unauth": "POST /api/v1/mp/upload-base64 → 401 110101（路由已上线）",
+    "backend_health": "UP after restart 23:39",
+    "upload_ci": "1.30.7 ok uploadTime 2026-09-19T15:40:19.202Z"
+  },
+  "ops_followup": "微信公众平台 → 开发管理 → 服务器域名 → uploadFile 合法域名务必含 https://api.zfculture.site（长期应配齐，避免依赖 Base64 回退）"
+}

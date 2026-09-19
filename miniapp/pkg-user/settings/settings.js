@@ -1,6 +1,6 @@
 const { AuthUtil } = require('../../utils/auth')
 const { AuthService } = require('../../services/auth')
-const { upload } = require('../../utils/request')
+const { upload, classifyUploadError, uploadErrorMessage } = require('../../utils/request')
 const {
   DEFAULT_AVATAR,
   pickDisplayAvatarUrl,
@@ -52,7 +52,7 @@ Page({
     emailSoftTip: '',
     canSave: false,
     savingProfile: false,
-    version: '1.30.6',
+    version: '1.30.7',
   },
 
   onShow() {
@@ -359,10 +359,9 @@ Page({
       .catch((err) => {
         let msg = '保存失败，请重试'
         if (err && err.stage === 'upload') {
-          const raw = String((err && err.message) || '')
-          if (/未登录|401/.test(raw)) msg = '登录已失效，请重新登录'
-          else if (/网络|fail|NETWORK/i.test(raw)) msg = '网络异常，头像上传失败'
-          else msg = '头像上传失败，请重试'
+          const cause = err.cause || err
+          const kind = cause.kind || classifyUploadError(cause)
+          msg = uploadErrorMessage(kind, cause)
         } else if (err && err.stage === 'profile') {
           msg = String((err && err.message) || '资料保存失败，请重试').slice(0, 40)
         } else if (err && (err.message || err.msg)) {

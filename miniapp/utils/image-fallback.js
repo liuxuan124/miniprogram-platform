@@ -36,25 +36,41 @@ function isSvgUrl(url) {
   return /\.svg(\?|#|$)/i.test(value) || /^data:image\/svg\+xml/i.test(value)
 }
 
-/** 微信本地临时图（选图后尚未上传，不可当远程持久 URL） */
+/** 是否落在 USER_DATA_PATH（含 http://usr / wxfile://usr） */
+function isUserDataLocalPath(url) {
+  const value = String(url || '').trim()
+  if (!value) return false
+  if (/^https?:\/\/usr\//i.test(value) || /^wxfile:\/\/usr/i.test(value)) return true
+  try {
+    const userDataPath = (wx.env && wx.env.USER_DATA_PATH) || ''
+    if (userDataPath && value.indexOf(userDataPath) === 0) return true
+  } catch (e) { /* ignore */ }
+  return false
+}
+
+/** 微信本地临时/用户目录图（选图后尚未上传，不可当远程持久 URL） */
 function isTempLocalAvatar(url) {
   const value = String(url || '').trim()
   if (!value) return false
   return /^wxfile:/i.test(value)
-    || /^http:\/\/tmp\//i.test(value)
+    || /^https?:\/\/tmp\//i.test(value)
+    || /^https?:\/\/usr\//i.test(value)
     || /^file:\/\//i.test(value)
     || /^\/tmp\//i.test(value)
+    || isUserDataLocalPath(value)
 }
 
 /**
  * 可持久化的媒体 URL（远程 https(s) 或 /uploads/ 相对路径）。
- * 显式排除 wxfile / http://tmp / file:// 等临时路径，避免裸 ^https? 误判。
+ * 显式排除 wxfile / http://tmp / http://usr / file:// 等本地路径，避免裸 ^https? 误判。
  */
 function isPersistedMediaUrl(url) {
   const value = String(url || '').trim()
-  if (!value || isTempLocalAvatar(value)) return false
+  if (!value || isTempLocalAvatar(value) || isUserDataLocalPath(value)) return false
   if (value.indexOf('/uploads/') === 0) return true
+  // 仅接受真实远程 host，排除微信本地伪 http
   return /^https?:\/\//i.test(value)
+    && !/^https?:\/\/(tmp|usr)\//i.test(value)
 }
 
 /**

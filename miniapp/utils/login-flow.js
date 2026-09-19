@@ -3,7 +3,7 @@
  */
 const { AuthService } = require('../services/auth')
 const { AuthUtil } = require('./auth')
-const { upload } = require('./request')
+const { upload, classifyUploadError, uploadErrorMessage } = require('./request')
 const { resolveMediaUrl } = require('./media-url')
 const {
   isPersistedMediaUrl,
@@ -46,15 +46,12 @@ function waitForAuthToken(maxMs = 1500) {
 }
 
 function toastAvatarIssue(kind, err) {
-  const status = err && (err.statusCode || err.code)
-  const raw = String((err && (err.message || err.errMsg || err.msg)) || '')
   let title = '头像上传失败，请稍后在设置中重试'
   if (kind === 'profile') {
     title = '头像已上传，资料同步失败，请稍后在设置中重试'
-  } else if (status === 401 || status === 110101 || /未登录|登录已过期|auth/i.test(raw)) {
-    title = '头像上传失败：登录态未就绪，请稍后在设置中重试'
-  } else if (/timeout|fail|network|网络|ERR_/i.test(raw) || status === 'NETWORK') {
-    title = '头像上传失败：网络异常，请稍后在设置中重试'
+  } else {
+    const errKind = (err && err.kind) || classifyUploadError(err)
+    title = '头像上传失败：' + uploadErrorMessage(errKind, err)
   }
   try {
     wx.showToast({ title, icon: 'none', duration: 2800 })

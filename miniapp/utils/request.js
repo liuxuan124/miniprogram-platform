@@ -148,13 +148,15 @@ function request(options) {
       fail(err) {
         if (loading) wx.hideLoading()
 
-        // 网络错误
-        if (err.errMsg && err.errMsg.indexOf('timeout') !== -1) {
-          _showError('请求超时，请检查网络')
-        } else {
-          _showError('网络异常，请检查网络连接')
+        // 网络错误（尊重 showError，避免上传 Base64 回退双 toast）
+        if (showError) {
+          if (err.errMsg && err.errMsg.indexOf('timeout') !== -1) {
+            _showError('请求超时，请检查网络')
+          } else {
+            _showError('网络异常，请检查网络连接')
+          }
         }
-        reject({ code: -1, message: '网络异常', error: err })
+        reject({ code: -1, message: '网络异常', statusCode: 'NETWORK', error: err })
       },
     })
   })
@@ -233,7 +235,96 @@ function resolveUploadToken() {
   return AuthUtil.getToken()
 }
 
-/** 文件上传 */
+function classifyUploadError(err) {
+  const status = err && (err.statusCode !== undefined ? err.statusCode : err.code)
+  const raw = String((err && (err.message || err.errMsg || err.msg)) || '')
+  if (status === 401 || status === 403 || status === 110101 || /未登录|登录已过期|无权限/i.test(raw)) {
+    return 'auth'
+  }
+  if (/domain list|合法域名|url not in domain|not in domain list/i.test(raw)) {
+    return 'domain'
+  }
+  if (
+    status === 'FILE'
+    || /本地文件不可读|file not exist|no such file|fail path|ENOENT|不存在|已失效|路径为空/i.test(raw)
+  ) {
+    return 'file'
+  }
+  if (status === 'NETWORK' || /timeout|NETWORK_ERROR|网络异常/i.test(raw)) {
+    return 'network'
+  }
+  if (/uploadFile:fail/i.test(raw)) {
+    if (/domain/i.test(raw)) return 'domain'
+    if (/file|path|exist|read|denied/i.test(raw)) return 'file'
+    return 'client'
+  }
+  return 'business'
+}
+
+function uploadErrorMessage(kind, err) {
+  if (kind === 'auth') return '登录已失效，请重新登录'
+  if (kind === 'domain') return '上传域名未配置，请联系管理员'
+  if (kind === 'file') return '头像文件已失效，请重新选择'
+  if (kind === 'network') return '网络异常，头像上传失败'
+  if (kind === 'client') return '头像上传未发出，请重试'
+  const raw = String((err && (err.message || err.msg)) || '').trim()
+  if (raw && !/uploadFile:fail|网络异常/i.test(raw)) return raw.slice(0, 40)
+  return '头像上传失败，请重试'
+}
+
+function readFileAsBase64(filePath) {
+  return new Promise((resolve, reject) => {
+    try {
+      const fs = wx.getFileSystemManager()
+      fs.readFile({
+        filePath,
+        encoding: 'base64',
+        success(res) {
+          resolve(res && res.data)
+        },
+        fail(err) {
+          reject({
+            code: -1,
+            message: '本地文件不可读',
+            statusCode: 'FILE',
+            errMsg: (err && err.errMsg) || '',
+            error: err,
+          })
+        },
+      })
+    } catch (e) {
+      reject({ code: -1, message: '本地文件不可读', statusCode: 'FILE', error: e })
+    }
+  })
+}
+
+/** 走 wx.request 的 Base64 上传（request 合法域名；规避 uploadFile 域名未配） */
+function uploadViaBase64(filePath, options = {}) {
+  const {
+    formData = {},
+    showError = true,
+    auth = true,
+  } = options
+  const extMatch = String(filePath || '').match(/\.([a-zA-Z0-9]{1,8})(?:\?|#|$)/)
+  const ext = (extMatch && extMatch[1].toLowerCase()) || 'jpg'
+  const fileName = `upload.${ext}`
+  const subDir = (formData && formData.subDir) || 'mp'
+
+  return readFileAsBase64(filePath).then((contentBase64) => {
+    if (!contentBase64) {
+      const err = { code: -1, message: '本地文件不可读', statusCode: 'FILE' }
+      if (showError) _showError(uploadErrorMessage('file', err))
+      return Promise.reject(err)
+    }
+    return post(
+      '/api/v1/mp/upload-base64',
+      { contentBase64, fileName, subDir },
+      { auth, showError }
+    )
+  })
+}
+
+/** 文件上传（multipart；失败时自动 Base64 回退） */
 function upload(filePath, options = {}) {
   const {
     name = 'file',
@@ -245,8 +336,8 @@ function upload(filePath, options = {}) {
 
   return new Promise((resolve, reject) => {
     if (!filePath) {
-      const err = { code: -1, message: '上传文件路径为空', statusCode: 'NETWORK' }
-      if (showError) _showError('上传失败')
+      const err = { code: -1, message: '上传文件路径为空', statusCode: 'FILE' }
+      if (showError) _showError(uploadErrorMessage('file', err))
       reject(err)
       return
     }
@@ -256,11 +347,23 @@ function upload(filePath, options = {}) {
       const token = resolveUploadToken()
       if (!token) {
         const err = { code: 401, message: '未登录', statusCode: 401 }
-        if (showError) _showError('请先登录')
+        if (showError) _showError(uploadErrorMessage('auth', err))
         reject(err)
         return
       }
       header.Authorization = 'Bearer ' + token
+    }
+
+    const finishFail = (err) => {
+      const kind = classifyUploadError(err)
+      const message = uploadErrorMessage(kind, err)
+      if (showError) _showError(message)
+      reject({
+        ...(err || {}),
+        message,
+        kind,
+        statusCode: (err && err.statusCode) || (kind === 'network' ? 'NETWORK' : err && err.code),
+      })
     }
 
     wx.uploadFile({
@@ -272,13 +375,11 @@ function upload(filePath, options = {}) {
       success(res) {
         const statusCode = res.statusCode
         if (statusCode === 401 || statusCode === 403) {
-          const err = {
+          finishFail({
             code: statusCode,
             message: statusCode === 403 ? '无权限访问' : '未登录',
             statusCode,
-          }
-          if (showError) _showError(err.message)
-          reject(err)
+          })
           return
         }
         try {
@@ -286,21 +387,30 @@ function upload(filePath, options = {}) {
           if (data.code === 0 || data.code === 200) {
             resolve(data.data)
           } else {
-            if (showError) _showError(data.message || '上传失败')
-            reject({ ...data, statusCode })
+            finishFail({ ...data, statusCode })
           }
         } catch (e) {
-          if (showError) _showError('上传失败')
-          reject({ message: '上传失败', statusCode, error: e })
+          finishFail({ message: '上传失败', statusCode, error: e })
         }
       },
       fail(err) {
-        if (showError) _showError('网络异常，上传失败')
-        reject({
-          ...(err || {}),
-          message: (err && (err.errMsg || err.message)) || '网络异常，上传失败',
-          statusCode: 'NETWORK',
-        })
+        // multipart 未发出（常见：uploadFile 合法域名未配 / 本地路径失效）→ Base64 走 request 域名
+        uploadViaBase64(filePath, { formData, showError: false, auth })
+          .then(resolve)
+          .catch((fallbackErr) => {
+            const primary = {
+              ...(err || {}),
+              message: (err && (err.errMsg || err.message)) || '网络异常，上传失败',
+              statusCode: 'NETWORK',
+            }
+            if (fallbackErr && fallbackErr.statusCode === 'FILE') {
+              finishFail(fallbackErr)
+            } else if (fallbackErr && fallbackErr.code && fallbackErr.code !== -1) {
+              finishFail(fallbackErr)
+            } else {
+              finishFail(primary)
+            }
+          })
       },
     })
   })
@@ -313,5 +423,7 @@ module.exports = {
   put,
   del,
   upload,
+  classifyUploadError,
+  uploadErrorMessage,
   BASE_URL,
 }
