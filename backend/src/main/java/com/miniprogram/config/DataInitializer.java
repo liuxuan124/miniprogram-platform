@@ -58,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
     private void ensureWarmStoreTemplate() {
         try {
             TenantContext.setTenantId(TenantContext.DEFAULT_TENANT_ID);
-            warmStoreTemplateSeeder.ensureWarmStoreTemplate();
+            warmStoreTemplateSeeder.ensureSystemStoreTemplates();
         } catch (Exception e) {
             log.warn("启动补齐暖阁整店模板失败（可忽略，列表接口会再试）: {}", e.getMessage());
         } finally {
@@ -258,6 +258,46 @@ public class DataInitializer implements CommandLineRunner {
                 "适用于婚庆服务行业的首页模板，包含品牌展示、视频、预约服务和资质证书",
                 """
                 {"schema_version":"1.0","page":{"id":"tpl_wedding_home","name":"婚庆服务首页","type":"home","path":"pages/index/index","background_color":"#fff1f2"},"components":[{"id":"b1","type":"banner","props":{"images":[{"title":"梦幻婚礼","link_url":"/pages/case-list/case-list"}]}},{"id":"bi1","type":"brand_intro","props":{"title":"品牌故事","subtitle":"见证每一份幸福"}},{"id":"it1","type":"image_text","props":{"title":"婚礼案例","layout":"left-image","content":"真实婚礼案例展示"}},{"id":"vd1","type":"video","props":{"title":"婚礼MV","url":"","poster":""}},{"id":"as1","type":"appointment_service","props":{"title":"预约咨询","button_text":"立即预约"}},{"id":"fm1","type":"form_entry","props":{"title":"婚礼策划","form_title":"填写需求获取定制方案"}},{"id":"ct1","type":"contact_info","props":{"title":"联系我们","phone":"400-520-1314"}},{"id":"ce1","type":"certificate","props":{"title":"资质证书","items":[{"name":"婚庆服务许可证"},{"name":"行业荣誉证书"}]}}],"global_config":{"pull_refresh":false,"reach_bottom_load":false}}
+                """));
+
+        safeInsert(buildIndustryTemplate(
+                "商城成交首页模板", "home", 120, "retail", "sales",
+                "商城,成交,秒杀,优惠券", "#1d4ed8,#06b6d4",
+                "面向成交转化的商城首页：搜索、轮播、分类导航、秒杀、优惠券、商品列表与会员卡。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_retail_sales_home","name":"商城成交首页","type":"home","path":"pages/index/index","background_color":"#f6f8fb"},"components":[{"id":"s1","type":"search","props":{"placeholder":"搜索商品 / 活动 / 优惠","scope":"all"}},{"id":"b1","type":"banner","props":{"images":[{"title":"爆款限时专场","link_url":"/pages/product-list/product-list"},{"title":"新客专享礼包","link_url":"/pages/activity-list/activity-list"}]}},{"id":"cn1","type":"category_nav","props":{"title":"分类导航","columns":4,"categories":[{"name":"热卖","icon":"hot"},{"name":"新品","icon":"new"},{"name":"礼盒","icon":"gift"},{"name":"会员","icon":"vip"}]}},{"id":"fs1","type":"flash_sale","props":{"title":"限时秒杀","limit":4}},{"id":"cp1","type":"coupon","props":{"title":"领券中心","coupons":[{"name":"满99减10","threshold":9900},{"name":"满199减30","threshold":19900}]}},{"id":"pl1","type":"product_list","props":{"title":"人气商品","columns":2,"limit":8}},{"id":"mc1","type":"member_card","props":{"title":"会员专享","benefits":["会员价","积分翻倍","包邮权益"]}}],"global_config":{"pull_refresh":true,"reach_bottom_load":false}}
+                """));
+
+        safeInsert(buildIndustryTemplate(
+                "内容发现流模板", "discover", 121, "content_ip", "publish",
+                "内容,发现,资讯,笔记", "#C2410C,#EA580C",
+                "内容发现页：品牌顶栏、分区标题、文章流、笔记流与热门资讯，适合内容发布场景。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_content_discover","name":"内容发现流","type":"discover","path":"pages/discover/discover","background_color":"#FFF8F1"},"components":[{"id":"bh1","type":"brand_header","props":{"logo_text":"发现","title":"内容发现","subtitle":"精选文章与热门资讯","style_type":"plain"}},{"id":"st1","type":"section_title","props":{"title":"精选文章","subtitle":"深度阅读"}},{"id":"af1","type":"article_feed","props":{"layout":"list","page_size":10,"show_cover":true,"show_date":true}},{"id":"st2","type":"section_title","props":{"title":"灵感笔记","subtitle":"轻内容"}},{"id":"nf1","type":"note_feed","props":{"page_size":8,"show_category_tabs":false}},{"id":"st3","type":"section_title","props":{"title":"今日热门","subtitle":"资讯速览"}},{"id":"hn1","type":"hot_news","props":{"title":"今日热门资讯","limit":6}}],"global_config":{"pull_refresh":true,"reach_bottom_load":true}}
+                """));
+
+        safeInsert(buildIndustryTemplate(
+                "会员权益页模板", "member", 122, "content_ip", "retention",
+                "会员,权益,优惠券,留存", "#0f172a,#1d4ed8",
+                "会员权益落地页：会员卡、优惠券、卖点卡片与品牌介绍，适合留存运营。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_member_benefits","name":"会员权益页","type":"member","path":"pages/member-center/member-center","background_color":"#f8fafc"},"components":[{"id":"mc1","type":"member_card","props":{"title":"会员中心","benefits":["专属折扣","积分加速","优先客服"]}},{"id":"cp1","type":"coupon","props":{"title":"会员专属券","coupons":[{"name":"会员满减券","threshold":9900},{"name":"生日礼券","threshold":0}]}},{"id":"fc1","type":"feature_cards","props":{"title":"会员特权","cards":[{"title":"专属价","desc":"全场会员折扣"},{"title":"积分翻倍","desc":"消费加速累积"},{"title":"优先服务","desc":"专属客服通道"}]}},{"id":"bi1","type":"brand_intro","props":{"title":"关于会员计划","subtitle":"持续成长的权益体系","desc":"加入会员即可解锁优惠券、积分与专属内容权益。"}}],"global_config":{"pull_refresh":false,"reach_bottom_load":false}}
+                """));
+
+        safeInsert(buildIndustryTemplate(
+                "知识资料库落地页模板", "custom", 123, "education", "service",
+                "知识,资料库,教育,表单", "#0d9488,#14b8a6",
+                "知识资料库落地页：品牌顶栏、分区标题、文章列表、表单入口与联系方式。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_knowledge_resources","name":"知识资料库","type":"custom","path":"pages/resources/resources","background_color":"#f0fdfa"},"components":[{"id":"bh1","type":"brand_header","props":{"logo_text":"资料库","title":"知识资料库","subtitle":"课程讲义与学习资料","style_type":"plain"}},{"id":"st1","type":"section_title","props":{"title":"精选资料","subtitle":"按主题浏览"}},{"id":"al1","type":"article_list","props":{"title":"资料列表","limit":8,"columns":1,"layout":"list"}},{"id":"fm1","type":"form_entry","props":{"title":"领取完整资料","form_title":"填写信息获取资料包","button_text":"立即领取"}},{"id":"ct1","type":"contact_info","props":{"title":"联系顾问","phone":"400-888-6666","service_time":"工作日 09:00-18:00"}}],"global_config":{"pull_refresh":false,"reach_bottom_load":false}}
+                """));
+
+        safeInsert(buildIndustryTemplate(
+                "轻量开店首页模板", "home", 124, "general", "sales",
+                "轻量,开店,三栏,简洁", "#334155,#64748b",
+                "组件精简的开店首页：轮播、商品列表、公告与 AI 入口，适合三栏轻量店。",
+                """
+                {"schema_version":"1.0","page":{"id":"tpl_lite_home","name":"轻量开店首页","type":"home","path":"pages/index/index","background_color":"#ffffff"},"components":[{"id":"b1","type":"banner","props":{"images":[{"title":"欢迎光临","link_url":"/pages/product-list/product-list"}]}},{"id":"pl1","type":"product_list","props":{"title":"在售商品","columns":2,"limit":6}},{"id":"n1","type":"notice_bar","props":{"title":"公告","items":["新店开业","满额包邮","欢迎咨询"]}},{"id":"ai1","type":"ai_entry","props":{"title":"AI导购","description":"快速推荐商品与活动"}}],"global_config":{"pull_refresh":false,"reach_bottom_load":false}}
                 """));
 
         log.info("初始化页面模板完成");

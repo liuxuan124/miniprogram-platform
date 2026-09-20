@@ -413,7 +413,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
     @Override
     public List<MiniappRelease> listStoreTemplates() {
-        warmStoreTemplateSeeder.ensureWarmStoreTemplate();
+        warmStoreTemplateSeeder.ensureSystemStoreTemplates();
         List<MiniappRelease> list = this.lambdaQuery()
                 .and(w -> w.eq(MiniappRelease::getMode, "template")
                         .or()
