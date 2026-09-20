@@ -70,7 +70,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
     );
 
     /**
-     * 运行期配置键：发布快照提供页面外观基线，但这些键需要跟随当前系统配置实时生效。
+     * 运行期配置键：发布快照提供页面外观基线，但这些键需要跟随「已上线」系统配置生效。
+     * 品牌导航编辑先写入 site_builder_draft，上线到小程序后再覆盖到这些键。
      */
     private static final Set<String> RUNTIME_PUBLIC_CONFIG_KEYS = Set.of(
             "wx_appid", "wx_version", "wx_version_desc", "tabbarItems", "minePageConfig", "plugins",
@@ -81,6 +82,15 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "creator_recruit_banner", "search_hot",
             "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config",
             "content_list_config", "product_list_config", "content_member_wall"
+    );
+
+    /** 品牌导航待上线草稿（JSON：configKey -> configValue） */
+    public static final String SITE_BUILDER_DRAFT_KEY = "site_builder_draft";
+
+    private static final Set<String> SITE_BUILDER_DRAFT_FIELDS = Set.of(
+            "miniappTemplateKey", "miniappHomePageId", "miniappMinePageId",
+            "tabbarItems", "minePageConfig", "miniappThemeConfig",
+            "miniappShareTitle", "miniappShareImage"
     );
 
     @Override
@@ -262,6 +272,67 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
                 result.put(key, value);
             }
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean promoteSiteBuilderDraft() {
+        String raw = getConfigValue(SITE_BUILDER_DRAFT_KEY);
+        if (!StringUtils.hasText(raw)) {
+            return false;
+        }
+        Map<String, Object> draft;
+        try {
+            draft = objectMapper.readValue(raw, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.warn("解析 site_builder_draft 失败", e);
+            return false;
+        }
+        if (draft == null || draft.isEmpty()) {
+            return false;
+        }
+        List<ConfigItemDTO> items = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : draft.entrySet()) {
+            String key = entry.getKey();
+            if (!SITE_BUILDER_DRAFT_FIELDS.contains(key) && !RUNTIME_PUBLIC_CONFIG_KEYS.contains(key)) {
+                continue;
+            }
+            Object val = entry.getValue();
+            String configValue;
+            if (val == null) {
+                configValue = "";
+            } else if (val instanceof String s) {
+                configValue = s;
+            } else {
+                try {
+                    configValue = objectMapper.writeValueAsString(val);
+                } catch (Exception e) {
+                    configValue = String.valueOf(val);
+                }
+            }
+            ConfigItemDTO item = new ConfigItemDTO();
+            item.setConfigKey(key);
+            item.setConfigValue(configValue);
+            item.setConfigGroup("basic");
+            item.setDescription("上线到小程序：" + key);
+            items.add(item);
+        }
+        if (items.isEmpty()) {
+            return false;
+        }
+        ConfigBatchUpdateDTO dto = new ConfigBatchUpdateDTO();
+        dto.setConfigs(items);
+        batchUpdateConfigs(dto);
+        // 提升后清空草稿，避免后台一直显示「有未上线改动」
+        ConfigItemDTO clear = new ConfigItemDTO();
+        clear.setConfigKey(SITE_BUILDER_DRAFT_KEY);
+        clear.setConfigValue("{}");
+        clear.setConfigGroup("basic");
+        clear.setDescription("已上线，清空草稿");
+        ConfigBatchUpdateDTO clearDto = new ConfigBatchUpdateDTO();
+        clearDto.setConfigs(List.of(clear));
+        batchUpdateConfigs(clearDto);
+        return true;
     }
 
     /**

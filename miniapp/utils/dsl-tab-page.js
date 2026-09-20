@@ -41,7 +41,7 @@ async function resolveBoundPathForTabRoute(tabRoute) {
 
   const boundPath = normalizePath(hit.item.path || hit.item.pagePath || '')
   if (!boundPath || boundPath === route) return null
-  if (!isCustomDecoratedPath(boundPath)) return null
+  // 绑定了任意装修页就加载其已发布 DSL（不再限制仅 /pages/custom/）
   return boundPath.replace(/^\//, '')
 }
 

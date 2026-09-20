@@ -42,4 +42,10 @@ public interface SystemConfigService extends BaseService<SystemConfig> {
      * 获取公开配置（小程序端）
      */
     Map<String, Object> getPublicConfigs();
+
+    /**
+     * 将品牌导航「待上线草稿」写入真机可见的运行期配置键
+     * @return 是否有草稿被提升
+     */
+    boolean promoteSiteBuilderDraft();
 }

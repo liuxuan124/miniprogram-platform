@@ -459,6 +459,14 @@ async function fetchBrandConfig(forceRefresh) {
   return config.miniappBrandConfig || DEFAULT_MINIAPP_BRAND_CONFIG
 }
 
+function clearSystemConfigCache() {
+  try {
+    StorageUtil.remove(CONFIG_CACHE_KEY)
+  } catch (e) {
+    try { wx.removeStorageSync(CONFIG_CACHE_KEY) } catch (e2) { /* ignore */ }
+  }
+}
+
 module.exports = {
   DEFAULT_TABBAR_LIST,
   DEFAULT_MINE_PAGE_CONFIG,
@@ -471,6 +479,7 @@ module.exports = {
   getTabbarList,
   getTabbarListSync,
   fetchSystemConfig,
+  clearSystemConfigCache,
   fetchTabbarList,
   fetchMinePageConfig,
   fetchBrandConfig,

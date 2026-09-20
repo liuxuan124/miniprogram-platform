@@ -167,7 +167,13 @@ import {
 } from '@/utils/preview-phone-overlay'
 import { usePreviewBrandConfig } from '@/components/miniapp-builder/composables/usePreviewBrandConfig'
 
-const props = defineProps<{ form: MiniappForm; pages: PageRecord[]; minePageMode?: 'config' | 'custom' }>()
+const props = withDefaults(defineProps<{
+  form: MiniappForm
+  pages: PageRecord[]
+  minePageMode?: 'config' | 'custom'
+  /** true=看编辑中草稿；默认 false=真机所见（已上线） */
+  preferDraft?: boolean
+}>(), { preferDraft: false })
 const activeTab = ref(0)
 const loading = ref(false)
 const previewLoginSheetOpen = ref(false)
@@ -270,7 +276,7 @@ async function loadPublishedDslForTab(tab: MiniappForm['tabs'][number]) {
     if (/^\d+$/.test(pageId)) {
       try {
         const res = await getPageDetail(pageId)
-        const dsl = parseDslFromResponse(res.data)
+        const dsl = parseDslFromResponse(res.data, props.preferDraft)
         if (dsl) {
           writeDslCache(key, dsl)
           loading.value = false
@@ -361,9 +367,12 @@ const previewPinnedBrandHeaderHeight = computed(() => {
   return measuredPreviewPinnedHeight.value || estimateBrandHeaderHeight(previewPinnedBrandHeader.value.props)
 })
 
-function parseDslFromResponse(data: any): PageDSL | null {
+function parseDslFromResponse(data: any, preferDraft = false): PageDSL | null {
   if (!data) return null
-  const raw = data.draftDslContent || data.dsl || data.dslContent
+  // 默认真机所见：已上线 DSL；显式看编辑中才用草稿
+  const raw = preferDraft
+    ? (data.draftDslContent || data.publishedDslContent || data.dsl || data.dslContent)
+    : (data.publishedDslContent || data.dslContent || data.dsl || data.draftDslContent)
   if (!raw) return null
   if (typeof raw === 'string') {
     try { return JSON.parse(raw) as PageDSL } catch { return null }
@@ -393,6 +402,12 @@ watch(() => props.form.homePageId, () => {
 })
 
 watch(() => props.pages.length, () => {
+  const tab = props.form.tabs[activeTab.value]
+  if (tab) loadPublishedDslForTab(tab)
+})
+
+watch(() => props.preferDraft, () => {
+  pageDslCache.value = new Map()
   const tab = props.form.tabs[activeTab.value]
   if (tab) loadPublishedDslForTab(tab)
 })

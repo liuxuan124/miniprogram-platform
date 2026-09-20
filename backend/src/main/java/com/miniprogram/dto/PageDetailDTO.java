@@ -58,6 +58,9 @@ public class PageDetailDTO {
     @Schema(description = "当前草稿DSL内容")
     private String draftDslContent;
 
+    @Schema(description = "当前已上线DSL内容（真机所见）")
+    private String publishedDslContent;
+
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

@@ -1,0 +1,21 @@
+<view class="tpl-page">
+  <view wx:if="{{loading}}" class="tpl-empty">加载中…</view>
+  <view wx:elif="{{error}}" class="tpl-empty">{{error}}</view>
+  <block wx:elif="{{item}}">
+    <view class="tpl-hero">
+      <view class="tpl-hero__badges">
+        <text wx:if="{{item.inUse}}" class="tpl-badge tpl-badge--live">使用中</text>
+        <text wx:if="{{item.isSystem}}" class="tpl-badge">系统预置</text>
+      </view>
+      <text class="tpl-hero__name">{{item.name}}</text>
+      <text class="tpl-hero__notes">{{item.notes || '整店页面与外观快照。套用=内容上线。'}}</text>
+      <text class="tpl-hero__meta">{{item.pageCount || 0}} 个页面 · {{item.code || item.semver || ''}}</text>
+    </view>
+    <button
+      wx:if="{{!item.inUse}}"
+      class="tpl-activate"
+      bindtap="onActivate"
+    >套用此模版</button>
+    <view wx:else class="tpl-using">当前正在使用此模版</view>
+  </block>
+</view>

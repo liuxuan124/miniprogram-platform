@@ -25,6 +25,11 @@ export function isValidReleaseId(id: unknown): id is number {
   return toReleaseId(id) != null
 }
 
+/** 上线到小程序（导航草稿 + 脏页），不是微信代码包 */
+export function publishContentToMiniapp() {
+  return post(`${BASE}/publish-content`)
+}
+
 /** 整店模板列表（内容/版式，不是微信代码包） */
 export async function getStoreTemplates() {
   try {

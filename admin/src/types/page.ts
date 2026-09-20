@@ -380,6 +380,7 @@ export interface PageRecord {
   background_color?: string
   dsl?: PageDSL
   draftDslContent?: string
+  publishedDslContent?: string
   version?: number
   currentVersion?: number
   latestVersion?: number

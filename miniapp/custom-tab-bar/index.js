@@ -63,12 +63,18 @@ function buildListFromConfig(config) {
   return rows.map((row, index) => {
     const pagePath = row.slotRoute || TAB_SLOT_ROUTES[index] || TAB_SLOT_ROUTES[0]
     const meta = PATH_META_MAP[pagePath] || {}
-    // 底栏图标统一用暖阁品牌套件，避免后台旧线框/无特色图标
+    const item = row.item || {}
+    // 配置了图标则用配置；否则回落暖阁默认套件
+    const icon = item.iconPath || item.icon || meta.icon || '/images/tab/home.png'
+    const selectedIcon = item.selectedIconPath || item.selectedIcon || item.selectedIconPath
+      || meta.selectedIcon || meta.icon || '/images/tab/home-active.png'
     return {
       pagePath,
-      text: (row.item && (row.item.text || row.item.name)) || meta.text || '页面',
-      icon: meta.icon || '/images/tab/home.png',
-      selectedIcon: meta.selectedIcon || meta.icon || '/images/tab/home-active.png',
+      text: (item.text || item.name) || meta.text || '页面',
+      icon: typeof icon === 'string' && icon.indexOf('/') === 0 ? icon : (meta.icon || '/images/tab/home.png'),
+      selectedIcon: typeof selectedIcon === 'string' && selectedIcon.indexOf('/') === 0
+        ? selectedIcon
+        : (meta.selectedIcon || meta.icon || '/images/tab/home-active.png'),
     }
   })
 }

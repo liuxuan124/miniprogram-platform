@@ -135,6 +135,14 @@
         "detail/detail",
         "form/form"
       ]
+    },
+    {
+      "root": "pkg-templates",
+      "name": "pkg-templates",
+      "pages": [
+        "list/list",
+        "detail/detail"
+      ]
     }
   ],
   "preloadRule": {

@@ -2,7 +2,7 @@
   <div class="release-page">
     <PageHeader
       title="发布中心"
-      description="只管内容版本：存档、上线、回退。微信体验版/正式版在本页最下方单独处理，和整店模板不是一回事。"
+      description="上方：上线内容到小程序（用户看到的页面与导航）。下方：上传微信体验版（代码包，高级操作）。"
     >
       <template #actions>
         <el-button :loading="loading" aria-label="刷新发布检查" @click="loadAll">刷新</el-button>

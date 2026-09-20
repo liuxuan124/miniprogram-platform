@@ -1,0 +1,39 @@
+<view class="tpl-page">
+  <view class="tpl-hd">
+    <text class="tpl-hd__t">整店模版馆</text>
+    <text class="tpl-hd__s">一套模版 = 页面布局 + 品牌导航。切换会立刻改真机内容，不是微信代码包。</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="tpl-empty">加载中…</view>
+  <view wx:elif="{{error}}" class="tpl-empty">{{error}}</view>
+  <view wx:elif="{{!list.length}}" class="tpl-empty">暂无模版</view>
+
+  <view wx:else class="tpl-list">
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="tpl-card {{item.inUse ? 'tpl-card--live' : ''}}"
+    >
+      <view class="tpl-card__main" bindtap="onTapItem" data-id="{{item.id}}">
+        <view class="tpl-card__badges">
+          <text wx:if="{{item.inUse}}" class="tpl-badge tpl-badge--live">使用中</text>
+          <text wx:if="{{item.isSystem}}" class="tpl-badge">系统</text>
+        </view>
+        <text class="tpl-card__name">{{item.name || '未命名模版'}}</text>
+        <text class="tpl-card__notes">{{item.notes || '整店页面与外观快照'}}</text>
+        <text class="tpl-card__meta">{{item.pageCount || 0}} 个页面</text>
+      </view>
+      <view class="tpl-card__actions">
+        <button
+          wx:if="{{!item.inUse}}"
+          class="tpl-btn"
+          size="mini"
+          catchtap="onQuickSwitch"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+        >套用</button>
+        <text wx:else class="tpl-card__using">当前使用</text>
+      </view>
+    </view>
+  </view>
+</view>

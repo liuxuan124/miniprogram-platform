@@ -780,10 +780,11 @@ async function fetchPageSnapshot(id: string) {
       name?: string
       path?: string
       draftDslContent?: string
+      publishedDslContent?: string
       dslContent?: string
     }
     const path = String(page.path || '').trim() || `pages/custom/page-${id}`
-    let raw = page.draftDslContent || page.dslContent
+    let raw = page.publishedDslContent || page.dslContent || page.draftDslContent
     if (!raw) {
       try {
         const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
@@ -794,6 +795,9 @@ async function fetchPageSnapshot(id: string) {
       } catch {
         // ignore published fallback errors
       }
+    }
+    if (!raw && page.draftDslContent) {
+      raw = page.draftDslContent
     }
     if (!raw) return null
     return {

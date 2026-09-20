@@ -35,8 +35,10 @@ function isIndexPath(path?: string) {
 export function useMiniappConfig() {
   const loading = ref(false)
   const saving = ref(false)
+  const publishing = ref(false)
   const pages = ref<PageRecord[]>([])
   let savedSnapshot = ''
+  const hasPendingSiteDraft = ref(false)
 
   const form = reactive<MiniappForm>({
     templateKey: 'standard',
@@ -156,6 +158,25 @@ export function useMiniappConfig() {
         if (c.configKey && c.configValue !== undefined) {
           configMap[c.configKey] = c.configValue
         }
+      }
+
+      // 编辑态优先读待上线草稿
+      if (configMap.site_builder_draft) {
+        try {
+          const draft = typeof configMap.site_builder_draft === 'string'
+            ? JSON.parse(configMap.site_builder_draft)
+            : configMap.site_builder_draft
+          if (draft && typeof draft === 'object' && Object.keys(draft).length > 0) {
+            Object.assign(configMap, draft)
+            hasPendingSiteDraft.value = true
+          } else {
+            hasPendingSiteDraft.value = false
+          }
+        } catch {
+          hasPendingSiteDraft.value = false
+        }
+      } else {
+        hasPendingSiteDraft.value = false
       }
 
       // Template key
@@ -319,7 +340,7 @@ export function useMiniappConfig() {
       try {
         await ElMessageBox.confirm(
           `当前底部导航存在以下风险：\n${warnings.map(item => `- ${item}`).join('\n')}\n\n是否继续保存？`,
-          '发布前校验提醒',
+          '保存提醒',
           { confirmButtonText: '继续保存', cancelButtonText: '去绑定', type: 'warning' },
         )
       } catch {
@@ -330,25 +351,53 @@ export function useMiniappConfig() {
     saving.value = true
     try {
       form.tabs = normalizeTabBarItems(form.tabs)
-      const configs = [
-        { configKey: CONFIG_KEYS.TEMPLATE_KEY, configValue: form.templateKey, configGroup: 'basic', description: '小程序导航模板' },
-        { configKey: CONFIG_KEYS.HOME_PAGE_ID, configValue: String(form.homePageId), configGroup: 'basic', description: '首页绑定' },
-        { configKey: CONFIG_KEYS.MINE_PAGE_ID, configValue: String(form.minePageId), configGroup: 'basic', description: '我的页面绑定' },
-        { configKey: CONFIG_KEYS.TABBAR_ITEMS, configValue: JSON.stringify(form.tabs), configGroup: 'basic', description: '底部导航配置' },
-        { configKey: CONFIG_KEYS.MINE_PAGE_CONFIG, configValue: JSON.stringify(form.mineConfig), configGroup: 'basic', description: '我的页面配置' },
-        { configKey: CONFIG_KEYS.THEME_CONFIG, configValue: JSON.stringify(form.theme), configGroup: 'basic', description: '主题配色' },
-        { configKey: CONFIG_KEYS.SHARE_TITLE, configValue: form.shareTitle, configGroup: 'basic', description: '小程序分享标题' },
-        { configKey: CONFIG_KEYS.SHARE_IMAGE, configValue: form.shareImage, configGroup: 'basic', description: '小程序分享图片' },
-      ]
-      await updateConfigs(configs as any)
+      // 只写入待上线草稿：真机仍读已上线配置，需点「上线到小程序」才生效
+      const draftPayload: Record<string, string> = {
+        [CONFIG_KEYS.TEMPLATE_KEY]: form.templateKey,
+        [CONFIG_KEYS.HOME_PAGE_ID]: String(form.homePageId ?? ''),
+        [CONFIG_KEYS.MINE_PAGE_ID]: String(form.minePageId ?? ''),
+        [CONFIG_KEYS.TABBAR_ITEMS]: JSON.stringify(form.tabs),
+        [CONFIG_KEYS.MINE_PAGE_CONFIG]: JSON.stringify(form.mineConfig),
+        [CONFIG_KEYS.THEME_CONFIG]: JSON.stringify(form.theme),
+        [CONFIG_KEYS.SHARE_TITLE]: form.shareTitle || '',
+        [CONFIG_KEYS.SHARE_IMAGE]: form.shareImage || '',
+      }
+      await updateConfigs([
+        {
+          configKey: 'site_builder_draft',
+          configValue: JSON.stringify(draftPayload),
+          configGroup: 'basic',
+          description: '品牌导航待上线草稿',
+        },
+      ] as any)
       markSaved()
-      ElMessage.success('配置已保存')
+      ElMessage.success('已保存（编辑中）。点「上线到小程序」后用户才能看到')
       return true
     } catch (e: any) {
       ElMessage.error('保存失败：' + (e?.message || '未知错误'))
       throw e
     } finally {
       saving.value = false
+    }
+  }
+
+  async function publishToMiniapp(): Promise<boolean> {
+    if (isDirty.value) {
+      const ok = await handleSave()
+      if (!ok) return false
+    }
+    publishing.value = true
+    try {
+      const { publishContentToMiniapp } = await import('@/api/version')
+      await publishContentToMiniapp()
+      hasPendingSiteDraft.value = false
+      ElMessage.success('已上线到小程序')
+      return true
+    } catch (e: any) {
+      ElMessage.error(e?.message || '上线失败')
+      return false
+    } finally {
+      publishing.value = false
     }
   }
 
@@ -471,9 +520,12 @@ export function useMiniappConfig() {
     pages,
     loading,
     saving,
+    publishing,
     isDirty,
+    hasPendingSiteDraft,
     applyTemplate,
     handleSave,
+    publishToMiniapp,
     handleReset,
     autoBindPages,
     loadPages,
