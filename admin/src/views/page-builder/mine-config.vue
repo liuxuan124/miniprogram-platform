@@ -1,8 +1,8 @@
 <template>
   <div class="mine-config-page">
     <PageHeader
-      title="我的"
-      description="先选一套「我的」页模板外观，再配置会员卡、订单入口、菜单。保存后真机立即读取。"
+      title="固定页 · 我的"
+      description="路径锁定为 /pages/mine/mine，属于固定页（非列表里的自定义装修页）。先选模板外观，再配置会员卡、订单入口、菜单；保存后真机立即读取。"
     >
       <template #actions>
         <el-button @click="router.push('/page-builder/list')">返回页面列表</el-button>
