@@ -8,6 +8,7 @@ import com.miniprogram.dto.miniapp.RollbackDTO;
 import com.miniprogram.entity.MiniappRelease;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 小程序版本发布 Service
