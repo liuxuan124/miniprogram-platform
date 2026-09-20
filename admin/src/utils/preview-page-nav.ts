@@ -45,7 +45,7 @@ async function loadPageRecordById(id: string | number): Promise<PageRecord | nul
 }
 
 function hasDslContent(record: PageRecord) {
-  return !!(record.draftDslContent || (record as any).dslContent)
+  return !!(record.publishedDslContent || (record as any).dslContent || record.draftDslContent)
 }
 
 export function clearPreviewPageCache() {
@@ -124,14 +124,20 @@ async function hydratePageComponents(
 export async function loadPagePreviewByPath(
   path: string,
   mode: 'real' | 'demo' = 'real',
+  options?: { preferDraft?: boolean },
 ): Promise<PreviewPageFrame | null> {
   const record = await findPageRecordByPath(path)
   if (!record) return null
 
-  let raw = record.draftDslContent || (record as any).dslContent
+  const preferDraft = !!options?.preferDraft
+  let raw = preferDraft
+    ? (record.draftDslContent || record.publishedDslContent || (record as any).dslContent)
+    : (record.publishedDslContent || (record as any).dslContent || record.draftDslContent)
   if (!raw && record.id != null) {
     const detail = await loadPageRecordById(record.id)
-    raw = detail?.draftDslContent || (detail as any)?.dslContent
+    raw = preferDraft
+      ? (detail?.draftDslContent || detail?.publishedDslContent || (detail as any)?.dslContent)
+      : (detail?.publishedDslContent || (detail as any)?.dslContent || detail?.draftDslContent)
   }
   if (!raw) return null
 

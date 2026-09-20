@@ -3,7 +3,7 @@
     <div class="stg-toolbar">
       <div class="stg-copy">
         <h2 class="stg-title">整店模板</h2>
-        <p>一套模板 = 页面布局 + 品牌导航。这里管内容版式，不是微信代码包。同时只能有一套「使用中」。</p>
+        <p>一套模板 = 页面布局 + 品牌导航。这里管内容版式，不是微信代码包。同时只能有一套「使用中」。也可在小程序「我的 → 整店模版」里切换。</p>
       </div>
       <div class="stg-actions">
         <el-button type="primary" @click="handleCreateFromCurrent">从当前新建</el-button>

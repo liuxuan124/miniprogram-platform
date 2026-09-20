@@ -91,6 +91,13 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
             String dsl = pageVersionService.getVersionDsl(id, latest);
             dto.setDraftDslContent(dsl);
         }
+        int current = page.getCurrentVersion() != null ? page.getCurrentVersion() : 0;
+        if (current > 0) {
+            String published = pageVersionService.getVersionDsl(id, current);
+            dto.setPublishedDslContent(published);
+        }
+        int latestVal = latest != null ? latest : 0;
+        dto.setHasUnpublishedChanges(page.getStatus() != null && page.getStatus() == 1 && latestVal > current);
 
         return dto;
     }

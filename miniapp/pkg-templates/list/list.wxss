@@ -1,0 +1,105 @@
+.tpl-page {
+  min-height: 100vh;
+  padding: 24rpx 28rpx 80rpx;
+  background: #fdf6ec;
+  box-sizing: border-box;
+}
+
+.tpl-hd {
+  margin-bottom: 28rpx;
+}
+
+.tpl-hd__t {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #9a3412;
+  margin-bottom: 12rpx;
+}
+
+.tpl-hd__s {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: #9a7b6a;
+}
+
+.tpl-empty {
+  padding: 80rpx 24rpx;
+  text-align: center;
+  color: #9a7b6a;
+  font-size: 28rpx;
+}
+
+.tpl-card {
+  background: #fffaf3;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid rgba(194, 65, 12, 0.12);
+}
+
+.tpl-card--live {
+  border-color: #c2410c;
+}
+
+.tpl-card__badges {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.tpl-badge {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  background: rgba(148, 163, 184, 0.2);
+  color: #64748b;
+}
+
+.tpl-badge--live {
+  background: rgba(194, 65, 12, 0.15);
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.tpl-card__name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #292524;
+  margin-bottom: 8rpx;
+}
+
+.tpl-card__notes {
+  display: block;
+  font-size: 24rpx;
+  color: #78716c;
+  line-height: 1.45;
+  margin-bottom: 12rpx;
+}
+
+.tpl-card__meta {
+  font-size: 22rpx;
+  color: #a8a29e;
+}
+
+.tpl-card__actions {
+  margin-top: 20rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tpl-btn {
+  background: #c2410c !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 999rpx !important;
+  padding: 0 28rpx !important;
+}
+
+.tpl-card__using {
+  font-size: 24rpx;
+  color: #c2410c;
+  font-weight: 600;
+}

@@ -103,4 +103,9 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
      * 单页发布后写入当前线上快照，导航预览和小程序无需再走整包发布
      */
     void syncPublishedPageToLatestSnapshot(String path, String name, String dslContent);
+
+    /**
+     * 上线到小程序：提升品牌导航草稿 + 发布绑定页未上线草稿
+     */
+    Map<String, Object> publishContentToMiniapp();
 }

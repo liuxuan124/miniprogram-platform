@@ -138,6 +138,10 @@
     </view>
 
     <view class="mn-menu">
+      <view class="mn-menu__row" bindtap="onGoTemplates">
+        <text class="mn-menu__ic">🧩</text>整店模版
+        <text class="mn-menu__vv">切换外观</text>
+      </view>
       <view class="mn-menu__row" bindtap="onGoJoin">
         <text class="mn-menu__ic">👥</text>加入读者群
         <text class="mn-menu__ar">›</text>

@@ -2,14 +2,21 @@
   <div class="appearance-page">
     <PageHeader
       title="品牌导航"
-      description="搭建整店模板：配色、底部导航、版式。切换模板在「整店模板」里完成。"
+      description="改完先「保存」（编辑中），再点「上线到小程序」用户才能看到。预览默认=真机所见。"
     >
       <template #actions>
-        <span v-if="isDirty" class="dirty-pill">有未保存的修改</span>
+        <span v-if="isDirty" class="dirty-pill">未保存</span>
+        <span v-else-if="hasPendingSiteDraft" class="dirty-pill dirty-pill--pending">有未上线改动</span>
         <el-button @click="openFullMiniappPreview()">
-          <el-icon><Cellphone /></el-icon> 在手机上看
+          <el-icon><Cellphone /></el-icon> 预览真机所见
         </el-button>
-        <el-button v-if="activeGroup !== 'templates'" type="primary" :loading="saving" @click="handleSave">保存</el-button>
+        <el-button v-if="activeGroup !== 'templates'" :loading="saving" @click="handleSave">保存</el-button>
+        <el-button
+          v-if="activeGroup !== 'templates'"
+          type="primary"
+          :loading="publishing"
+          @click="publishToMiniapp"
+        >上线到小程序</el-button>
         <el-dropdown trigger="click">
           <el-button class="ap-more" aria-label="更多操作">
             <el-icon><MoreFilled /></el-icon>
@@ -192,9 +199,19 @@
         <aside v-show="activeGroup !== 'templates'" class="panel ap-preview">
           <div class="ap-preview-head">
             <h2 class="pb-h2">真机预览</h2>
+            <el-radio-group v-model="previewMode" size="small">
+              <el-radio-button value="live">真机所见</el-radio-button>
+              <el-radio-button value="draft">编辑中</el-radio-button>
+            </el-radio-group>
             <el-button size="small" type="primary" link @click="openFullMiniappPreview()">完整预览 ›</el-button>
           </div>
-          <MiniappPreview ref="previewRef" :form="form" :pages="pages" :mine-page-mode="minePageMode" />
+          <MiniappPreview
+            ref="previewRef"
+            :form="form"
+            :pages="pages"
+            :mine-page-mode="minePageMode"
+            :prefer-draft="previewMode === 'draft'"
+          />
         </aside>
       </div>
 
@@ -357,8 +374,8 @@ import IssueActionList, { type IssueActionItem } from '@/components/IssueActionL
 import StoreTemplateGallery from '@/components/StoreTemplateGallery.vue'
 
 const {
-  form, pages, loading, saving, isDirty,
-  applyTemplate, handleSave, handleReset, autoBindPages,
+  form, pages, loading, saving, publishing, isDirty, hasPendingSiteDraft,
+  applyTemplate, handleSave, publishToMiniapp, handleReset, autoBindPages,
 } = useMiniappConfig()
 
 const hasDecoratedPages = computed(() =>
@@ -372,6 +389,7 @@ const editingTemplateId = ref<number | null>(null)
 type GroupKey = 'templates' | 'brand' | 'tabbar' | 'pages' | 'advanced'
 const activeGroup = ref<GroupKey>('brand')
 const previewRef = ref<{ showMineTab: () => void } | null>(null)
+const previewMode = ref<'live' | 'draft'>('live')
 const shareImageInput = ref<HTMLInputElement>()
 const minePageMode = ref<'config' | 'custom'>('config')
 const selectedMineTemplate = ref('warm')
@@ -855,6 +873,12 @@ watch(
   border: 1px solid var(--warning);
   border-radius: 99px;
   white-space: nowrap;
+}
+
+.dirty-pill--pending {
+  color: var(--color-primary, #c2410c);
+  background: color-mix(in srgb, var(--color-primary, #c2410c) 12%, white);
+  border-color: var(--color-primary, #c2410c);
 }
 
 .pb-h2 {

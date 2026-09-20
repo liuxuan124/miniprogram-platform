@@ -1007,6 +1007,20 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> publishContentToMiniapp() {
+        // 草稿提升由 Controller 先调 SystemConfigService；此处按合并后的配置发布脏页
+        PublishPreflightVO before = buildPreflight();
+        publishBoundPagesOrThrow();
+        Map<String, Object> result = new LinkedHashMap<>();
+        long published = before.getPages().stream().filter(p -> "publish".equals(p.getAction())).count();
+        result.put("publishedPages", published);
+        result.put("warnings", before.getWarnings());
+        result.put("message", "已上线到小程序（导航配置请确认已保存草稿）");
+        return result;
+    }
+
     private PublishPreflightVO buildPreflight() {
         PublishPreflightVO vo = new PublishPreflightVO();
         Map<String, String> configs = loadConfigMap();
@@ -1247,6 +1261,25 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         }
         for (SystemConfig config : configs) {
             map.put(config.getConfigKey(), config.getConfigValue());
+        }
+        // 预检/上线以品牌导航草稿为准（未上线前真机仍读 live 键）
+        String draftRaw = map.get("site_builder_draft");
+        if (StringUtils.hasText(draftRaw)) {
+            try {
+                Map<String, Object> draft = objectMapper.readValue(draftRaw, new TypeReference<Map<String, Object>>() {});
+                for (Map.Entry<String, Object> e : draft.entrySet()) {
+                    Object val = e.getValue();
+                    if (val == null) {
+                        map.put(e.getKey(), "");
+                    } else if (val instanceof String s) {
+                        map.put(e.getKey(), s);
+                    } else {
+                        map.put(e.getKey(), objectMapper.writeValueAsString(val));
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("合并 site_builder_draft 失败: {}", e.getMessage());
+            }
         }
         return map;
     }

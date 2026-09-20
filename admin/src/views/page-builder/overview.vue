@@ -2,10 +2,11 @@
   <div class="overview-page">
     <PageHeader
       title="搭建工作台"
-      description="看当前上线内容，直接改导航、绑定页和「我的」。换整店模板去品牌导航。"
+      description="改完点「上线到小程序」，手机才会变。换整店模板去品牌导航或小程序「整店模版」。"
     >
       <template #actions>
-        <el-button type="primary" @click="openLivePreview">预览真机</el-button>
+        <el-button type="primary" :loading="publishingContent" @click="handlePublishContent">上线到小程序</el-button>
+        <el-button @click="openLivePreview">预览真机</el-button>
         <el-button :loading="loading" aria-label="刷新工作台" @click="loadAll">刷新</el-button>
       </template>
     </PageHeader>
@@ -163,7 +164,8 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import IssueActionList, { type IssueActionItem } from '@/components/IssueActionList.vue'
 import { getConfigByGroupSilent } from '@/api/system'
-import { getPublishPreflight, getLatestRelease, getStoreTemplates } from '@/api/version'
+import { getPublishPreflight, getLatestRelease, getStoreTemplates, publishContentToMiniapp } from '@/api/version'
+import { ElMessage } from 'element-plus'
 import { CONFIG_KEYS } from '@/types/miniapp'
 import type { PublishPreflight } from '@/api/version'
 import type { ReleaseRecord } from '@/types/page'
@@ -186,6 +188,7 @@ const phoneBoxRef = ref<HTMLElement | null>(null)
 const phoneSize = reactive({ w: 375, h: 720 })
 let phoneRo: ResizeObserver | null = null
 const loading = ref(false)
+const publishingContent = ref(false)
 const appName = ref('小程序')
 const preflight = ref<PublishPreflight | null>(null)
 const latestRelease = ref<ReleaseRecord | null>(null)
@@ -313,6 +316,19 @@ function normalizePath(path?: string) {
 function openLivePreview() {
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config' } })
   window.open(href, '_blank', 'noopener,noreferrer')
+}
+
+async function handlePublishContent() {
+  publishingContent.value = true
+  try {
+    await publishContentToMiniapp()
+    ElMessage.success('已上线到小程序')
+    await loadAll()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '上线失败')
+  } finally {
+    publishingContent.value = false
+  }
 }
 
 function openTab(tab: TabCard) {

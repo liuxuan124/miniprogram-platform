@@ -14,6 +14,7 @@ import com.miniprogram.entity.MiniappRelease;
 import com.miniprogram.entity.VersionOperationLog;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.MiniappWxUploadService;
+import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.VersionOperationLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "小程序版本发布管理", description = "小程序级别版本发布、回滚、操作日志")
 @RestController
@@ -33,6 +35,7 @@ public class MiniappReleaseController {
     private final MiniappReleaseService miniappReleaseService;
     private final VersionOperationLogService versionOperationLogService;
     private final MiniappWxUploadService miniappWxUploadService;
+    private final SystemConfigService systemConfigService;
 
     @Operation(summary = "版本发布列表", description = "分页查询版本发布列表")
     @GetMapping
@@ -95,6 +98,17 @@ public class MiniappReleaseController {
     @PreAuthorize("hasAuthority('page:list')")
     public R<PushPreviewResultVO> getPushPreviewStatus() {
         return R.ok(miniappWxUploadService.getLastPushStatus());
+    }
+
+    @Operation(summary = "上线到小程序", description = "提升品牌导航草稿并发布绑定页未上线改动；不是上传微信代码包")
+    @PostMapping("/publish-content")
+    @OperationLog("上线内容到小程序")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<Map<String, Object>> publishContentToMiniapp() {
+        boolean promoted = systemConfigService.promoteSiteBuilderDraft();
+        Map<String, Object> result = miniappReleaseService.publishContentToMiniapp();
+        result.put("siteConfigPromoted", promoted);
+        return R.ok(result);
     }
 
     @Operation(summary = "整店模板列表", description = "内容/版式模板，不是微信代码包版本")

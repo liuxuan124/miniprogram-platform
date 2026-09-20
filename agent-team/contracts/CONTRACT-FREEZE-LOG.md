@@ -28,3 +28,7 @@ created: 2026-05-11
 - AI 契约中接口路径为 AI Agent 期望设计，需与 api-contract.md 对齐
 - AI 契约中数据模型字段名需与 database-model.md 对齐
 - 小程序方案中接口路径需与 api-contract.md 对齐
+
+## 变更请求记录（未改冻结正文）
+
+- 2026-09-20：新增 MP `GET/POST /api/v1/mp/store-templates`（列表/详情/套用）与 Admin `POST /api/v1/admin/miniapp-releases/publish-content`（上线内容）；待总控择期合入 api-contract.md。

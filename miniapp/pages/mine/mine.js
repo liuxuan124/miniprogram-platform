@@ -396,6 +396,10 @@ Page({
     this._nav('/pages/join/join')
   },
 
+  onGoTemplates() {
+    this._nav('/pkg-templates/list/list')
+  },
+
   onGoService() {
     this._nav('/pkg-user/service-chat/service-chat')
   },
