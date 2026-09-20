@@ -55,8 +55,8 @@
         <div class="ops-card__desc">装修已绑定的内容页</div>
       </button>
       <button type="button" class="ops-card" @click="router.push('/page-builder/mine')">
-        <div class="ops-card__name">我的页</div>
-        <div class="ops-card__desc">个人中心入口与展示</div>
+        <div class="ops-card__name">固定页 · 我的</div>
+        <div class="ops-card__desc">路径锁定的个人中心表单配置</div>
       </button>
       <button type="button" class="ops-card" @click="router.push('/page-builder/start?scene=templates')">
         <div class="ops-card__name">换整店模板</div>

@@ -1,6 +1,6 @@
 <template>
   <div class="warm-shell">
-    <div class="warm-shell__kicker">NUANGE · 系统页</div>
+    <div class="warm-shell__kicker">NUANGE · 固定版式</div>
     <div class="warm-shell__title">{{ title }}</div>
     <div class="warm-shell__desc">
       发布后底栏仍打开原生暖阁固定版式。首页请改用可组合区块；此处仅作发现/商城/星球/我的的模板入口。
@@ -23,7 +23,7 @@ const p = defineProps<{ component: ComponentInstance; previewMode?: boolean }>()
 const isHome = computed(() => p.component.type === ComponentType.WarmHome)
 const title = computed(() => {
   if (isHome.value) return '暖阁首页'
-  return String(p.component.props?.title || ComponentTypeLabels[p.component.type as ComponentType] || '暖阁系统页')
+  return String(p.component.props?.title || ComponentTypeLabels[p.component.type as ComponentType] || '暖阁固定页')
 })
 </script>
 

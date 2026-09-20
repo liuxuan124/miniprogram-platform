@@ -99,7 +99,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'mine',
         name: 'PageBuilderMine',
         component: () => import('@/views/page-builder/mine-config.vue'),
-        meta: { title: '我的页配置', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '固定页 · 我的', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'templates',

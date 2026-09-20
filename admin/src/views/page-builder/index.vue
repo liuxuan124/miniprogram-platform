@@ -2,7 +2,7 @@
   <div class="pages-list">
     <PageHeader
       title="页面管理"
-      description="按模块管理独立页面。AI 生成也在这里。改完点「上线」，用户刷新立刻看到。"
+      description="三类页面：固定页（路径锁定，如表单配置的「我的」）· 主站页（可装修的首页等）· 自定义页（运营自建装修页）。改完点「上线」，用户刷新即可看到。"
     >
       <template #actions>
         <el-button @click="openAiDraft">AI 生成页面</el-button>
@@ -10,6 +10,29 @@
         <el-button type="primary" @click="handleCreate">新建页面</el-button>
       </template>
     </PageHeader>
+
+    <el-alert
+      class="page-tier-hint"
+      type="info"
+      :closable="false"
+      show-icon
+      title="固定页不在下方列表里混排"
+      description="「我的」是固定路径壳页，用个人中心表单配置，不是可删除的装修页。首页属于主站页：在装修器编辑，在「品牌导航 / 外观」绑定。"
+    />
+
+    <div class="fixed-page-card">
+      <div class="fixed-page-card__main">
+        <el-tag type="warning" effect="plain" size="small">固定页</el-tag>
+        <div class="fixed-page-card__text">
+          <b>我的</b>
+          <span>路径锁定 /pages/mine/mine · 菜单与会员卡等走表单配置</span>
+        </div>
+      </div>
+      <div class="fixed-page-card__actions">
+        <el-button type="primary" @click="router.push('/page-builder/mine')">配置个人中心</el-button>
+        <el-button @click="router.push('/page-builder/appearance')">外观绑定</el-button>
+      </div>
+    </div>
 
     <el-row :gutter="12" class="stats-row">
       <el-col v-for="stat in statsCards" :key="stat.label" :span="12">
@@ -45,9 +68,9 @@
         clearable
         @change="handleSearch"
       >
-        <el-option label="首页" value="home" />
-        <el-option label="我的" value="mine" />
+        <el-option label="主站页（首页）" value="home" />
         <el-option label="专题页" :value="2" />
+        <el-option label="活动页" value="activity" />
         <el-option label="自定义页" :value="3" />
       </el-select>
       <el-select
@@ -101,14 +124,13 @@
               <template #default="{ row }">
                 <div class="page-name-cell">
                   <b>{{ row.name }}</b>
-                  <span class="sub">{{ row.__isMine ? '系统个人中心页，使用表单配置' : (row.shareTitle || row.share_title || '用于小程序页面展示') }}</span>
+                  <span class="sub">{{ pageRowSubtitle(row) }}</span>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="模块" width="110" align="center">
+            <el-table-column label="类型" width="120" align="center">
               <template #default="{ row }">
-                <el-tag v-if="row.__isMine" type="info" effect="plain">我的</el-tag>
-                <el-tag v-else effect="plain">{{ getPageTypeLabel(row) }}</el-tag>
+                <el-tag :type="pageTierTagType(row)" effect="plain">{{ getPageTypeLabel(row) }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column label="访问路径" min-width="220">
@@ -128,47 +150,45 @@
             </el-table-column>
             <el-table-column label="状态" width="130" align="center">
               <template #default="{ row }">
-                <el-tag v-if="row.__isMine" type="info" effect="light">系统页</el-tag>
-                <el-tag v-else :type="getLiveStatusTagType(row)" effect="light">
+                <el-tag :type="getLiveStatusTagType(row)" effect="light">
                   {{ getLiveStatusLabel(row) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="updated_at" label="更新时间" width="170" sortable>
-              <template #default="{ row }">{{ row.__isMine ? '—' : row.updated_at }}</template>
+              <template #default="{ row }">{{ row.updated_at }}</template>
             </el-table-column>
             <el-table-column label="操作" width="230" fixed="right">
               <template #default="{ row }">
                 <div class="row-actions">
-                  <template v-if="row.__isMine">
-                    <el-button link type="primary" size="small" @click="router.push('/page-builder/mine')">配置</el-button>
-                  </template>
-                  <template v-else>
-                    <el-button link type="primary" size="small" @click="handleEdit(row)">装修</el-button>
-                    <el-button
-                      link
-                      :type="isPublished(row.status) ? 'warning' : 'success'"
-                      size="small"
-                      @click="handlePublish(row)"
-                    >{{ isPublished(row.status) ? '下架' : '上线' }}</el-button>
-                    <el-dropdown trigger="click" @command="(cmd: string) => handleRowCommand(cmd, row)">
-                      <el-button link size="small" class="more-btn" aria-label="更多操作">
-                        更多<el-icon><ArrowDown /></el-icon>
-                      </el-button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="duplicate">复制页面</el-dropdown-item>
-                          <el-dropdown-item command="editMeta">编辑信息</el-dropdown-item>
-                          <el-dropdown-item command="preview">预览</el-dropdown-item>
-                          <el-dropdown-item command="qrcode">扫码查看</el-dropdown-item>
-                          <el-dropdown-item command="version">历史版本</el-dropdown-item>
-                          <el-dropdown-item command="delete" divided>
-                            <span class="danger-text">删除</span>
-                          </el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </template>
+                  <el-button link type="primary" size="small" @click="handleEdit(row)">装修</el-button>
+                  <el-button
+                    link
+                    :type="isPublished(row.status) ? 'warning' : 'success'"
+                    size="small"
+                    @click="handlePublish(row)"
+                  >{{ isPublished(row.status) ? '下架' : '上线' }}</el-button>
+                  <el-dropdown trigger="click" @command="(cmd: string) => handleRowCommand(cmd, row)">
+                    <el-button link size="small" class="more-btn" aria-label="更多操作">
+                      更多<el-icon><ArrowDown /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="duplicate">复制页面</el-dropdown-item>
+                        <el-dropdown-item command="editMeta">编辑信息</el-dropdown-item>
+                        <el-dropdown-item command="preview">预览</el-dropdown-item>
+                        <el-dropdown-item command="qrcode">扫码查看</el-dropdown-item>
+                        <el-dropdown-item command="version">历史版本</el-dropdown-item>
+                        <el-dropdown-item
+                          v-if="!isMainSiteHome(row)"
+                          command="delete"
+                          divided
+                        >
+                          <span class="danger-text">删除</span>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </div>
               </template>
             </el-table-column>
@@ -212,11 +232,13 @@
             <el-option label="专题页" :value="2" />
             <el-option label="自定义页" :value="3" />
           </el-select>
-          <div class="form-tip">首页由「外观 → 首页绑定」决定，不在此处设置。</div>
+          <div class="form-tip">
+            此处只能建专题/自定义等运营页。主站首页请在装修后到「外观 / 品牌导航」绑定；固定页「我的」请用上方「配置个人中心」。
+          </div>
         </el-form-item>
         <el-form-item label="访问路径" prop="path">
           <PagePathField v-model="formData.path" :page-type="formData.type" />
-          <div class="path-hint">前缀固定；仅后缀可改。首页整段锁定为 /pages/index/index。</div>
+          <div class="path-hint">自定义页前缀一般为 pages/custom/；勿占用固定页路径 /pages/mine/mine。</div>
           <div v-if="!isHomePathLocked(formData.type)" style="margin-top: 8px">
             <el-button size="small" @click="handleAutoGeneratePath()">重新生成后缀</el-button>
           </div>
@@ -286,8 +308,8 @@ import {
   validatePathSlug,
 } from '@/utils/page-path'
 
-/** 列表内置的「我的」系统行标记 */
-type PageRow = PageRecord & { __isMine?: boolean }
+/** 列表行（可装修的页面记录，不含固定页「我的」虚拟行） */
+type PageRow = PageRecord
 
 const router = useRouter()
 const route = useRoute()
@@ -316,8 +338,12 @@ const displayList = computed(() => {
   let rows = pageList.value
   if (searchForm.type === 'home') {
     rows = rows.filter((row) => boundHomePageId.value && String(row.id) === boundHomePageId.value)
-  } else if (searchForm.type === 'mine') {
-    rows = []
+  } else if (searchForm.type === 'activity') {
+    rows = rows.filter((row) => pageModuleKey(row as PageRow) === 'activity')
+  } else if (searchForm.type === 2 || searchForm.type === '2') {
+    rows = rows.filter((row) => pageModuleKey(row as PageRow) === 'topic')
+  } else if (searchForm.type === 3 || searchForm.type === '3') {
+    rows = rows.filter((row) => pageModuleKey(row as PageRow) === 'custom')
   }
   if (searchForm.status === 'live') {
     rows = rows.filter((row) => getLiveStatusKey(row) === 'live')
@@ -329,24 +355,14 @@ const displayList = computed(() => {
   return rows
 })
 
-const mineRow: PageRow = {
-  id: -1,
-  name: '我的',
-  path: '/pages/mine/mine',
-  type: 3,
-  status: 1,
-  __isMine: true,
-} as unknown as PageRow
+const tableRows = computed<PageRow[]>(() => displayList.value as PageRow[])
 
-const tableRows = computed<PageRow[]>(() => {
-  if (searchForm.type === 'mine') return [mineRow]
-  if (searchForm.type && searchForm.type !== '') return displayList.value as PageRow[]
-  return [mineRow, ...displayList.value]
-})
+function isMainSiteHome(row: PageRow): boolean {
+  return !!(boundHomePageId.value && String(row.id) === boundHomePageId.value)
+}
 
 function pageModuleKey(row: PageRow): string {
-  if (row.__isMine) return 'mine'
-  if (boundHomePageId.value && String(row.id) === boundHomePageId.value) return 'home'
+  if (isMainSiteHome(row)) return 'home'
   const t = String(row.type ?? '')
   if (t === '2' || t === 'topic') return 'topic'
   if (t === 'activity') return 'activity'
@@ -354,8 +370,7 @@ function pageModuleKey(row: PageRow): string {
 }
 
 const MODULE_META: Array<{ key: string; label: string }> = [
-  { key: 'home', label: '首页' },
-  { key: 'mine', label: '我的' },
+  { key: 'home', label: '主站页' },
   { key: 'topic', label: '专题页' },
   { key: 'activity', label: '活动页' },
   { key: 'custom', label: '自定义页' },
@@ -374,8 +389,21 @@ const pageGroups = computed(() => {
     .filter((g) => g.rows.length > 0)
 })
 
-function isSelectable(row: PageRow) {
-  return !row.__isMine
+function isSelectable(_row: PageRow) {
+  return true
+}
+
+function pageRowSubtitle(row: PageRow): string {
+  if (isMainSiteHome(row)) return '主站首页 · 可装修，绑定在外观/品牌导航'
+  return row.shareTitle || row.share_title || '运营自建装修页'
+}
+
+function pageTierTagType(row: PageRow): 'success' | 'warning' | 'info' | 'primary' {
+  const key = pageModuleKey(row)
+  if (key === 'home') return 'success'
+  if (key === 'topic') return 'warning'
+  if (key === 'activity') return 'primary'
+  return 'info'
 }
 
 const statsCards = ref([
@@ -536,13 +564,13 @@ function getLiveStatusTagType(row: PageRecord): 'success' | 'warning' | 'info' {
 
 function getPageTypeLabel(row: PageRecord): string {
   if (boundHomePageId.value && String(row.id) === boundHomePageId.value) {
-    return '首页'
+    return '主站页'
   }
   const map: Record<string, string> = {
     '1': '自定义页',
     '2': '专题页',
     '3': '自定义页',
-    home: '自定义页',
+    home: '主站页',
     topic: '专题页',
     custom: '自定义页',
     activity: '活动页',
@@ -607,7 +635,7 @@ async function fetchList() {
       size: pagination.pageSize,
       keyword: searchForm.keyword || undefined,
     }
-    if (searchForm.type && searchForm.type !== 'home' && searchForm.type !== 'mine') {
+    if (searchForm.type && searchForm.type !== 'home' && searchForm.type !== 'activity' && searchForm.type !== 'mine') {
       params.type = Number(searchForm.type)
     }
     if (searchForm.status === 'live' || searchForm.status === 'dirty') {
@@ -657,7 +685,9 @@ function initSearchFromRoute() {
   const q = route.query
   if (typeof q.keyword === 'string') searchForm.keyword = q.keyword
   if (typeof q.type === 'string') {
-    searchForm.type = q.type === 'home' || q.type === 'mine' ? q.type : Number(q.type) || q.type
+    searchForm.type = q.type === 'home' || q.type === 'activity'
+      ? q.type
+      : (q.type === 'mine' ? '' : Number(q.type) || q.type)
   }
   if (typeof q.status === 'string') searchForm.status = q.status
 }
@@ -794,6 +824,10 @@ async function handlePublish(row: PageRecord) {
 }
 
 async function handleDelete(row: PageRecord) {
+  if (isMainSiteHome(row as PageRow)) {
+    ElMessage.warning('当前绑定的主站首页请先在外观中改绑，再删除旧页')
+    return
+  }
   await ElMessageBox.confirm(`确定删除页面「${row.name}」？此操作不可恢复`, '删除确认', { type: 'warning' })
   await deletePage(row.id)
   ElMessage.success('删除成功')
@@ -809,7 +843,7 @@ const batchRunning = ref(false)
 function handleGroupSelection(key: string, rows: PageRow[]) {
   selectedByGroup.value = {
     ...selectedByGroup.value,
-    [key]: rows.filter((row) => !row.__isMine),
+    [key]: rows,
   }
 }
 
@@ -971,6 +1005,58 @@ watch(
 <style lang="scss" scoped>
 .pages-list {
   color: var(--text);
+}
+
+.page-tier-hint {
+  margin-bottom: 12px;
+}
+
+.fixed-page-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.fixed-page-card__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fixed-page-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fixed-page-card__text b {
+  font-size: 14px;
+}
+
+.fixed-page-card__text span {
+  font-size: 12px;
+  color: var(--text-secondary, #8b93a7);
+}
+
+.fixed-page-card__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .fixed-page-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .stats-row {
