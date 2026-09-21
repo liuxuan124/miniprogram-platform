@@ -1,60 +1,59 @@
 <template>
   <div class="mini-page" v-loading="loading">
-    <header class="site-head">
-      <div class="site-head__main">
-        <h1 class="site-head__title">{{ site.name || '小程序' }}</h1>
-        <div class="site-chips">
-          <span class="chip chip--ok">运营中</span>
-          <span class="chip">{{ templateLabel }}</span>
-          <span v-if="site.liveReleaseNo != null" class="chip">
-            最近上线 · 第 {{ site.liveReleaseNo }} 次
-            <template v-if="liveReleaseAtText"> · {{ liveReleaseAtText }}</template>
-          </span>
-          <span v-if="site.wechatCodeVersion" class="chip">微信代码 {{ site.wechatCodeVersion }}</span>
-        </div>
-      </div>
-      <div class="site-head__actions">
-        <el-button @click="load">刷新</el-button>
-        <el-button type="primary" class="btn-terracotta" @click="goPublish">
-          去发布{{ site.pendingCount ? `（${site.pendingCount}）` : '' }}
-        </el-button>
-      </div>
-    </header>
-
-    <section class="create-cards">
-      <button type="button" class="create-card create-card--ai" @click="router.push('/mini/pages/new-ai')">
-        <el-icon class="create-card__icon"><MagicStick /></el-icon>
-        <div>
-          <div class="create-card__title">AI 生成一页</div>
-          <div class="create-card__desc">一句话描述，生成 3 套方案草稿</div>
-        </div>
-      </button>
-      <button
-        type="button"
-        class="create-card"
-        @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
-      >
-        <el-icon class="create-card__icon"><Grid /></el-icon>
-        <div>
-          <div class="create-card__title">从模板新建</div>
-          <div class="create-card__desc">按行业挑一页模板再改</div>
-        </div>
-      </button>
-      <button type="button" class="create-card" @click="router.push('/mini/pages')">
-        <el-icon class="create-card__icon"><Plus /></el-icon>
-        <div>
-          <div class="create-card__title">空白新建</div>
-          <div class="create-card__desc">从组件库一块一块搭</div>
-        </div>
-      </button>
-    </section>
-
-    <div class="overview-grid">
+    <div class="overview-layout">
       <div class="overview-main">
+        <header class="site-head">
+          <h1 class="site-head__title">{{ site.name || '小程序' }}</h1>
+          <p class="site-head__meta">
+            <span class="meta-ok">运营中</span>
+            <span class="meta-dot">·</span>
+            <span>{{ templateLabel }}</span>
+            <template v-if="site.liveReleaseNo != null">
+              <span class="meta-dot">·</span>
+              <span>
+                最近上线 · 第 {{ site.liveReleaseNo }} 次
+                <template v-if="liveReleaseAtText"> · {{ liveReleaseAtText }}</template>
+              </span>
+            </template>
+            <template v-if="site.wechatCodeVersion">
+              <span class="meta-dot">·</span>
+              <span>微信代码 {{ site.wechatCodeVersion }}</span>
+            </template>
+          </p>
+        </header>
+
+        <section class="create-cards">
+          <button type="button" class="create-card create-card--ai" @click="router.push('/mini/pages/new-ai')">
+            <span class="create-card__icon" aria-hidden="true">✦</span>
+            <span class="create-card__body">
+              <span class="create-card__title">AI 生成页面</span>
+              <span class="create-card__desc">一句话描述，AI 出 3 套方案</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="create-card"
+            @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
+          >
+            <span class="create-card__icon" aria-hidden="true">▦</span>
+            <span class="create-card__body">
+              <span class="create-card__title">从模板新建</span>
+              <span class="create-card__desc">按行业挑一页模板再改</span>
+            </span>
+          </button>
+          <button type="button" class="create-card" @click="router.push('/mini/pages')">
+            <span class="create-card__icon" aria-hidden="true">＋</span>
+            <span class="create-card__body">
+              <span class="create-card__title">空白页面</span>
+              <span class="create-card__desc">从组件库一块一块搭</span>
+            </span>
+          </button>
+        </section>
+
         <section class="panel">
           <div class="panel__head">
             <h2>底部导航</h2>
-            <el-button link type="primary" @click="openTabDrawer()">编辑导航</el-button>
+            <button type="button" class="text-btn" @click="openTabDrawer()">编辑导航</button>
           </div>
           <div v-if="tabBar.length" class="tab-strip">
             <button
@@ -65,9 +64,9 @@
               :class="{ 'is-unbound': isTabUnbound(tab) }"
               @click="openTabDrawer(i)"
             >
-              <span class="tab-card__grip" aria-hidden="true">⋮⋮</span>
+              <span class="tab-card__grip" aria-hidden="true"></span>
               <span class="tab-card__name">
-                <el-icon v-if="isMineTab(tab)" class="tab-card__lock"><Lock /></el-icon>
+                <span v-if="isMineTab(tab)" class="tab-card__lock" title="固定页" aria-label="固定页" />
                 {{ tab.text || `导航 ${i + 1}` }}
               </span>
               <span class="tab-card__status" :data-status="tabStatus(tab).key">
@@ -80,13 +79,14 @@
               class="tab-card tab-card--add"
               @click="addTabSlot"
             >
-              <el-icon><Plus /></el-icon>
-              <span>最多 5 个</span>
+              <span class="tab-card__plus">＋</span>
+              <span class="tab-card__hint">最多 5 个</span>
             </button>
           </div>
-          <el-empty v-else description="尚未配置底部导航" :image-size="64">
-            <el-button type="primary" class="btn-terracotta" @click="addTabSlot">添加导航</el-button>
-          </el-empty>
+          <div v-else class="empty-block">
+            <p>尚未配置底部导航</p>
+            <button type="button" class="btn-primary" @click="addTabSlot">添加导航</button>
+          </div>
         </section>
 
         <div class="info-grid">
@@ -94,69 +94,82 @@
             <div class="panel__head">
               <div>
                 <h2>待发布的改动</h2>
-                <p class="panel__sub">
-                  {{ pendingCountText }}，发布后用户才能看到
-                </p>
+                <p class="panel__sub">{{ pendingCountText }}，发布后用户才能看到</p>
               </div>
-              <el-button link type="primary" @click="goPublish">去发布</el-button>
+              <button type="button" class="text-btn" @click="goPublish">去发布</button>
             </div>
-            <div v-if="pendingPreview.length" class="pending-list">
-              <div
+            <ul v-if="pendingPreview.length" class="pending-list">
+              <li
                 v-for="item in pendingPreview"
                 :key="String(item.id || item.pageId || item.name)"
                 class="pending-row"
               >
-                <div class="pending-row__main">
-                  <span class="pending-row__name">
-                    <em>{{ pendingVerb(item) }}</em>
-                    {{ item.name || '未命名' }}
-                    <template v-if="item.summary"> · {{ item.summary }}</template>
-                  </span>
-                  <span v-if="item.path" class="pending-row__sum">{{ item.path }}</span>
+                <span class="pending-tag" :data-verb="pendingVerb(item)">{{ pendingVerb(item) }}</span>
+                <div class="pending-row__text">
+                  <span class="pending-row__name">{{ item.name || '未命名' }}</span>
+                  <span v-if="item.summary" class="pending-row__sum">{{ item.summary }}</span>
                 </div>
-                <PageStatusTag :status="(item.status as any) || 'pending'" />
-              </div>
-            </div>
-            <el-empty
-              v-else
-              description="没有待发布的改动，线上就是你现在看到的样子"
-              :image-size="56"
-            />
+              </li>
+            </ul>
+            <p v-else class="empty-inline">没有待发布的改动，线上就是你现在看到的样子</p>
           </section>
 
           <section class="panel">
             <div class="panel__head">
               <h2>微信生态</h2>
             </div>
-            <div class="wx-list">
-              <button type="button" class="wx-row" @click="router.push('/mini/publish')">
-                <span class="wx-row__label">正式版</span>
-                <span class="wx-row__value">
-                  {{ site.wechatCodeVersion ? `代码 ${site.wechatCodeVersion}` : '去查看发布状态' }}
-                </span>
-              </button>
-              <button type="button" class="wx-row" @click="router.push('/settings/wechat')">
-                <span class="wx-row__label">公众号菜单</span>
-                <span class="wx-row__value">去配置</span>
-              </button>
-              <button type="button" class="wx-row" @click="router.push('/settings/wechat')">
-                <span class="wx-row__label">小程序码</span>
-                <span class="wx-row__value">去生成 / 查看</span>
-              </button>
-            </div>
+            <ul class="wx-list">
+              <li>
+                <button type="button" class="wx-row" @click="router.push('/mini/publish')">
+                  <span class="wx-row__label">正式版</span>
+                  <span class="wx-row__value">
+                    {{ site.wechatCodeVersion ? `代码 ${site.wechatCodeVersion}` : '尚未同步版本号' }}
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="wx-row" @click="router.push('/settings/wechat')">
+                  <span class="wx-row__label">公众号菜单</span>
+                  <span class="wx-row__value">去配置</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="wx-row" @click="router.push('/settings/wechat')">
+                  <span class="wx-row__label">小程序码</span>
+                  <span class="wx-row__value">去生成</span>
+                </button>
+              </li>
+            </ul>
           </section>
         </div>
       </div>
 
-      <aside class="panel preview-panel">
-        <div class="panel__head">
+      <aside class="preview-col">
+        <div class="preview-col__head">
           <h2>真机预览</h2>
-          <el-radio-group v-model="previewSource" size="small" class="preview-toggle">
-            <el-radio-button value="draft">改动后</el-radio-button>
-            <el-radio-button value="live">线上</el-radio-button>
-          </el-radio-group>
+          <div class="seg" role="tablist" aria-label="预览来源">
+            <button
+              type="button"
+              role="tab"
+              class="seg__btn"
+              :class="{ active: previewSource === 'draft' }"
+              @click="previewSource = 'draft'"
+            >
+              改动后
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="seg__btn"
+              :class="{ active: previewSource === 'live' }"
+              @click="previewSource = 'live'"
+            >
+              线上
+            </button>
+          </div>
         </div>
-        <div class="phone-frame">
+        <div class="phone-shell">
+          <div class="phone-shell__notch" aria-hidden="true" />
           <iframe :key="previewSource" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
         <button type="button" class="preview-scan" @click="openLivePreview">
@@ -228,8 +241,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Grid, Lock, MagicStick, Plus } from '@element-plus/icons-vue'
-import PageStatusTag from '@/components/mini/PageStatusTag.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -261,10 +272,9 @@ const templateLabel = computed(() => site.value.templateName || '自定义模板
 const tabBar = computed(() => site.value.tabBar || [])
 const pendingPreview = computed(() => pending.value.slice(0, 5))
 const pendingCountText = computed(() => {
-  const n = site.value.pendingCount ?? pending.value.length
-  return n ? `${n} 项` : '暂无改动'
+  const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
+  return n > 0 ? `${n} 项` : '暂无改动'
 })
-
 const liveReleaseAtText = computed(() => formatReleaseAt(site.value.liveReleaseAt))
 
 const bindablePages = computed(() =>
@@ -449,8 +459,10 @@ async function load() {
     site.value = s
     pending.value = p.items || []
     pageOptions.value = ((pageRes as any)?.data?.records || (pageRes as any)?.data?.list || []) as PageRow[]
+    const pendingTotal =
+      (p as any).pendingCount ?? (p as any).total ?? pending.value.length
     if (s.pendingCount == null) {
-      site.value = { ...s, pendingCount: p.pendingCount ?? pending.value.length }
+      site.value = { ...s, pendingCount: pendingTotal }
     }
   } catch (e: any) {
     ElMessage.error(e?.message || '加载概览失败')
@@ -464,294 +476,429 @@ onMounted(load)
 
 <style scoped lang="scss">
 .mini-page {
-  --mini-bg: #f7f4f0;
-  --mini-terracotta: #c45a30;
-  --mini-ink: #2c241c;
-  --mini-muted: #7a6e64;
-  --mini-card: #ffffff;
-  --mini-border: #e8e0d6;
+  --ink: #2c241c;
+  --muted: #8a7d72;
+  --bg: #f3efe9;
+  --card: #ffffff;
+  --line: #ebe3d9;
+  --accent: #c45a30;
+  --accent-deep: #a84c28;
+  --ok: #2f6b3a;
+  --ok-bg: #e7f1e8;
+  --warn: #9a6b12;
+  --warn-bg: #f8ecd2;
+  --new: #2f5f8f;
+  --new-bg: #e4eef7;
   min-height: 100%;
   margin: -16px;
-  padding: 20px 24px 40px;
-  background: var(--mini-bg);
-  color: var(--mini-ink);
+  padding: 20px 20px 32px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+.overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 292px;
+  gap: 20px;
+  align-items: start;
+  max-width: 1280px;
 }
 
 .site-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .site-head__title {
   margin: 0;
   font-size: 28px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: #2a211a;
 }
-.site-chips {
+.site-head__meta {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-.chip {
-  display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--mini-muted);
-  background: #efe8e0;
-  border: 1px solid transparent;
+  gap: 2px 0;
 }
-.chip--ok {
-  color: #2f6b3a;
-  background: #e8f2e9;
-  border-color: #b7d4bc;
+.meta-ok {
+  color: var(--ok);
+  font-weight: 600;
 }
-.site-head__actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-  align-items: flex-start;
-}
-.btn-terracotta {
-  --el-button-bg-color: var(--mini-terracotta);
-  --el-button-border-color: var(--mini-terracotta);
-  --el-button-hover-bg-color: #a84c28;
-  --el-button-hover-border-color: #a84c28;
-  --el-button-active-bg-color: #8f4122;
-  --el-button-active-border-color: #8f4122;
+.meta-dot {
+  margin: 0 6px;
+  color: #c5bbb0;
 }
 
 .create-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 .create-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  text-align: left;
-  padding: 16px 18px;
-  border: 1px solid var(--mini-border);
-  border-radius: 12px;
-  background: var(--mini-card);
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-}
-.create-card:hover {
-  border-color: #d4a88a;
-  box-shadow: 0 4px 14px rgba(196, 90, 48, 0.08);
-  transform: translateY(-1px);
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  &:hover {
+    transform: translateY(-1px);
+    border-color: #dfcfc0;
+    box-shadow: 0 8px 20px rgba(44, 36, 28, 0.06);
+  }
 }
 .create-card--ai {
-  background: linear-gradient(135deg, #c45a30 0%, #d9784a 100%);
-  border-color: transparent;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
-  .create-card__desc { color: rgba(255, 255, 255, 0.85); }
-  .create-card__icon { color: #fff; background: rgba(255, 255, 255, 0.18); }
+  .create-card__desc { color: rgba(255, 255, 255, 0.82); }
+  .create-card__icon {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
   &:hover {
-    border-color: transparent;
-    box-shadow: 0 6px 18px rgba(196, 90, 48, 0.28);
+    background: var(--accent-deep);
+    border-color: var(--accent-deep);
+    box-shadow: 0 10px 22px rgba(196, 90, 48, 0.28);
   }
 }
 .create-card__icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f3ebe3;
-  color: var(--mini-terracotta);
-  font-size: 18px;
   flex-shrink: 0;
-}
-.create-card__title {
-  font-size: 15px;
+  background: #f4ebe3;
+  color: var(--accent);
+  font-size: 16px;
   font-weight: 600;
 }
+.create-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.create-card__title {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+}
 .create-card__desc {
-  margin-top: 4px;
   font-size: 12px;
-  color: var(--mini-muted);
-  line-height: 1.4;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
-.overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 16px;
-  align-items: start;
-}
 .panel {
-  background: var(--mini-card);
-  border: 1px solid var(--mini-border);
-  border-radius: 14px;
-  padding: 16px 18px;
-  margin-bottom: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 .panel__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 12px;
   h2 {
     margin: 0;
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
   }
 }
 .panel__sub {
   margin: 4px 0 0;
   font-size: 12px;
-  color: var(--mini-muted);
+  color: var(--muted);
+}
+.text-btn {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  &:hover { color: var(--accent-deep); }
 }
 
 .tab-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
 }
 .tab-card {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  min-width: 104px;
-  padding: 12px 14px 12px 22px;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 78px;
+  padding: 12px 12px 12px 18px;
   border-radius: 12px;
-  border: 1px solid var(--mini-border);
-  background: #faf7f3;
+  border: 1px solid var(--line);
+  background: #fbf8f4;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
-  &:hover { border-color: #d4a88a; background: #fff; }
+  &:hover {
+    border-color: #dfc3ae;
+    background: #fff;
+  }
   &.is-unbound {
-    background: #fef3f2;
-    border-color: #fecdca;
+    background: #fff5f3;
+    border-color: #f0c7bf;
   }
 }
 .tab-card__grip {
   position: absolute;
-  left: 6px;
+  left: 7px;
   top: 50%;
+  width: 4px;
+  height: 16px;
   transform: translateY(-50%);
-  font-size: 10px;
-  letter-spacing: -2px;
-  color: #c4b8ac;
-  line-height: 1;
+  background:
+    radial-gradient(circle, #c9bdb2 1.2px, transparent 1.3px) 0 0 / 4px 5px repeat-y,
+    radial-gradient(circle, #c9bdb2 1.2px, transparent 1.3px) 2.5px 0 / 4px 5px repeat-y;
+  opacity: 0.9;
 }
 .tab-card__name {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-weight: 600;
   font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
 }
 .tab-card__lock {
-  font-size: 12px;
-  color: var(--mini-muted);
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--muted);
+  border-radius: 2px;
+  position: relative;
+  flex-shrink: 0;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 1.5px;
+    top: -4px;
+    width: 5px;
+    height: 4px;
+    border: 1.5px solid var(--muted);
+    border-bottom: 0;
+    border-radius: 5px 5px 0 0;
+  }
 }
 .tab-card__status {
   font-size: 11px;
-  font-weight: 600;
-  padding: 2px 6px;
+  font-weight: 650;
+  padding: 2px 7px;
   border-radius: 999px;
-  &[data-status='live'] { color: #2f6b3a; background: #e8f2e9; }
-  &[data-status='dirty'] { color: #9a6b12; background: #fdf0d8; }
-  &[data-status='empty'] { color: #b42318; background: #fef3f2; }
+  line-height: 1.4;
+  &[data-status='live'] { color: var(--ok); background: var(--ok-bg); }
+  &[data-status='dirty'] { color: var(--warn); background: var(--warn-bg); }
+  &[data-status='empty'] { color: #b42318; background: #fdeceb; }
 }
 .tab-card--add {
   align-items: center;
   justify-content: center;
-  color: var(--mini-muted);
+  padding-left: 12px;
   border-style: dashed;
-  min-height: 72px;
-  padding-left: 14px;
+  color: var(--muted);
+  background: transparent;
   gap: 4px;
-  .el-icon { font-size: 16px; }
-  span { font-size: 12px; }
 }
+.tab-card__plus { font-size: 18px; line-height: 1; }
+.tab-card__hint { font-size: 11px; }
 
 .info-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 12px;
   .panel { margin-bottom: 0; }
 }
 
-.pending-list { display: flex; flex-direction: column; gap: 8px; }
-.pending-row {
+.pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
+}
+.pending-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
+  align-items: start;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #f8f4ee;
+  background: #faf6f1;
 }
-.pending-row__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pending-row__name {
-  font-weight: 600;
-  font-size: 13px;
-  em {
-    font-style: normal;
-    color: var(--mini-terracotta);
-    margin-right: 2px;
-  }
-}
-.pending-row__sum { font-size: 12px; color: var(--mini-muted); }
-
-.wx-list { display: flex; flex-direction: column; gap: 8px; }
-.wx-row {
-  display: flex;
-  justify-content: space-between;
+.pending-tag {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  flex-shrink: 0;
+  &[data-verb='修改'] { color: var(--accent); background: #f8e8df; }
+  &[data-verb='新增'] { color: var(--new); background: var(--new-bg); }
+}
+.pending-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pending-row__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.pending-row__sum {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.empty-inline {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.empty-block {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  p { margin: 0 0 12px; }
+}
+.btn-primary {
+  border: 0;
   border-radius: 10px;
-  border: 1px solid var(--mini-border);
-  background: #faf7f3;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  &:hover { background: var(--accent-deep); }
+}
+
+.wx-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wx-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #faf6f1;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s;
-  &:hover { border-color: #d4a88a; }
+  &:hover { border-color: #dfc3ae; }
 }
-.wx-row__label { font-weight: 600; font-size: 13px; }
-.wx-row__value { font-size: 12px; color: var(--mini-muted); }
+.wx-row__label {
+  font-size: 13px;
+  font-weight: 650;
+}
+.wx-row__value {
+  font-size: 12px;
+  color: var(--muted);
+}
 
-.preview-panel {
+.preview-col {
   position: sticky;
   top: 12px;
-  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 16px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
 }
-.preview-toggle {
-  :deep(.el-radio-button__inner) {
-    padding: 5px 10px;
-  }
-  :deep(.el-radio-button.is-active .el-radio-button__inner) {
-    background: var(--mini-terracotta);
-    border-color: var(--mini-terracotta);
-    box-shadow: none;
+.preview-col__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
   }
 }
-.phone-frame {
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: #efe8e0;
+}
+.seg__btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  &.active {
+    background: var(--accent);
+    color: #fff;
+  }
+}
+.phone-shell {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 248px;
+  aspect-ratio: 375 / 760;
   border-radius: 28px;
   overflow: hidden;
-  border: 8px solid #1a1410;
-  background: #1a1410;
-  aspect-ratio: 375 / 720;
-  max-height: 520px;
-  box-shadow: 0 12px 32px rgba(44, 36, 28, 0.18);
+  background: #15100d;
+  border: 9px solid #1c1511;
+  box-shadow:
+    0 18px 40px rgba(44, 36, 28, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   iframe {
     width: 100%;
     height: 100%;
@@ -759,29 +906,45 @@ onMounted(load)
     background: #fff;
   }
 }
+.phone-shell__notch {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 50%;
+  width: 72px;
+  height: 8px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #0d0a08;
+  pointer-events: none;
+}
 .preview-scan {
-  display: block;
   width: 100%;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border: 1px dashed var(--mini-border);
+  border: 1px dashed #d9cec2;
   border-radius: 10px;
   background: transparent;
-  color: var(--mini-muted);
+  color: var(--muted);
   font-size: 13px;
+  font-weight: 550;
+  padding: 10px 12px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
   &:hover {
-    color: var(--mini-terracotta);
-    border-color: #d4a88a;
+    color: var(--accent);
+    border-color: #dfc3ae;
   }
 }
 
+.btn-terracotta {
+  --el-button-bg-color: var(--accent);
+  --el-button-border-color: var(--accent);
+  --el-button-hover-bg-color: var(--accent-deep);
+  --el-button-hover-border-color: var(--accent-deep);
+}
 .drawer-sort { display: flex; gap: 8px; }
 
 @media (max-width: 1100px) {
-  .overview-grid { grid-template-columns: 1fr; }
-  .preview-panel { position: static; }
+  .overview-layout { grid-template-columns: 1fr; }
+  .preview-col { position: static; max-width: 320px; margin: 0 auto; }
   .create-cards { grid-template-columns: 1fr; }
   .info-grid { grid-template-columns: 1fr; }
 }
