@@ -1,142 +1,143 @@
 <template>
-  <div class="mini-page" v-loading="loading">
-    <div class="overview-layout">
-      <div class="overview-main">
-        <header class="site-head">
-          <h1 class="site-head__title">{{ site.name || '小程序' }}</h1>
-          <p class="site-head__meta">
-            <span class="meta-ok">运营中</span>
-            <span class="meta-dot">·</span>
+  <div class="mini-wb mw-page overview" v-loading="loading">
+    <div class="ov">
+      <div class="ov__main">
+        <header class="ov-head">
+          <h1 class="mw-title">{{ site.name || '小程序' }}</h1>
+          <p class="ov-meta">
+            <span class="live-pill">运营中</span>
+            <span class="dot">·</span>
             <span>{{ templateLabel }}</span>
             <template v-if="site.liveReleaseNo != null">
-              <span class="meta-dot">·</span>
+              <span class="dot">·</span>
               <span>
                 最近上线 · 第 {{ site.liveReleaseNo }} 次
                 <template v-if="liveReleaseAtText"> · {{ liveReleaseAtText }}</template>
               </span>
             </template>
-            <template v-if="site.wechatCodeVersion">
-              <span class="meta-dot">·</span>
-              <span>微信代码 {{ site.wechatCodeVersion }}</span>
+            <template v-else>
+              <span class="dot">·</span>
+              <span>线上：尚未发布</span>
             </template>
+            <span class="dot">·</span>
+            <span>微信代码 {{ wechatCodeLabel }}</span>
           </p>
         </header>
 
-        <section class="create-cards">
-          <button type="button" class="create-card create-card--ai" @click="router.push('/mini/pages/new-ai')">
-            <span class="create-card__icon" aria-hidden="true">✦</span>
-            <span class="create-card__body">
-              <span class="create-card__title">AI 生成页面</span>
-              <span class="create-card__desc">一句话描述，AI 出 3 套方案</span>
+        <section class="create-row">
+          <button type="button" class="create create--ai" @click="router.push('/mini/pages/new-ai')">
+            <span class="create__ico" aria-hidden="true">✦</span>
+            <span class="create__txt">
+              <span class="create__title">AI 生成页面</span>
+              <span class="create__desc">一句话描述，AI 出 3 套方案</span>
             </span>
           </button>
           <button
             type="button"
-            class="create-card"
+            class="create"
             @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
           >
-            <span class="create-card__icon" aria-hidden="true">▦</span>
-            <span class="create-card__body">
-              <span class="create-card__title">从模板新建</span>
-              <span class="create-card__desc">按行业挑一页模板再改</span>
+            <span class="create__ico" aria-hidden="true">▦</span>
+            <span class="create__txt">
+              <span class="create__title">从模板新建</span>
+              <span class="create__desc">按行业挑一页模板再改</span>
             </span>
           </button>
-          <button type="button" class="create-card" @click="router.push('/mini/pages')">
-            <span class="create-card__icon" aria-hidden="true">＋</span>
-            <span class="create-card__body">
-              <span class="create-card__title">空白页面</span>
-              <span class="create-card__desc">从组件库一块一块搭</span>
+          <button type="button" class="create" :disabled="creatingBlank" @click="createBlank">
+            <span class="create__ico" aria-hidden="true">+</span>
+            <span class="create__txt">
+              <span class="create__title">空白页面</span>
+              <span class="create__desc">从组件库一块一块搭</span>
             </span>
           </button>
         </section>
 
-        <section class="panel">
-          <div class="panel__head">
+        <section class="mw-panel">
+          <div class="panel-head">
             <h2>底部导航</h2>
-            <button type="button" class="text-btn" @click="openTabDrawer()">编辑导航</button>
+            <button type="button" class="mw-link" @click="openTabDrawer()">编辑导航</button>
           </div>
-          <div v-if="tabBar.length" class="tab-strip">
+          <div v-if="tabBar.length" class="tab-row">
             <button
               v-for="(tab, i) in tabBar"
               :key="i"
               type="button"
-              class="tab-card"
+              class="tab"
               :class="{ 'is-unbound': isTabUnbound(tab) }"
               @click="openTabDrawer(i)"
             >
-              <span class="tab-card__grip" aria-hidden="true"></span>
-              <span class="tab-card__name">
-                <span v-if="isMineTab(tab)" class="tab-card__lock" title="固定页" aria-label="固定页" />
+              <span class="tab__grip" aria-hidden="true" />
+              <span class="tab__name">
+                <span v-if="isMineTab(tab)" class="tab__lock" title="固定页" />
                 {{ tab.text || `导航 ${i + 1}` }}
               </span>
-              <span class="tab-card__status" :data-status="tabStatus(tab).key">
-                {{ tabStatus(tab).label }}
-              </span>
+              <span class="tab__st" :data-st="tabStatus(tab).key">{{ tabStatus(tab).label }}</span>
             </button>
             <button
               v-if="tabBar.length < 5"
               type="button"
-              class="tab-card tab-card--add"
+              class="tab tab--add"
               @click="addTabSlot"
             >
-              <span class="tab-card__plus">＋</span>
-              <span class="tab-card__hint">最多 5 个</span>
+              <span class="tab__plus">+</span>
+              <span>最多 5 个</span>
             </button>
           </div>
-          <div v-else class="empty-block">
+          <div v-else class="empty">
             <p>尚未配置底部导航</p>
-            <button type="button" class="btn-primary" @click="addTabSlot">添加导航</button>
+            <button type="button" class="mw-btn-primary el-button el-button--primary" @click="addTabSlot">
+              添加导航
+            </button>
           </div>
         </section>
 
-        <div class="info-grid">
-          <section class="panel">
-            <div class="panel__head">
+        <div class="lower">
+          <section class="mw-panel">
+            <div class="panel-head">
               <div>
                 <h2>待发布的改动</h2>
-                <p class="panel__sub">{{ pendingCountText }}，发布后用户才能看到</p>
+                <p class="panel-sub">{{ pendingCountText }}，发布后用户才能看到</p>
               </div>
-              <button type="button" class="text-btn" @click="goPublish">去发布</button>
+              <button type="button" class="mw-link" @click="goPublish">去发布</button>
             </div>
-            <ul v-if="pendingPreview.length" class="pending-list">
-              <li
-                v-for="item in pendingPreview"
-                :key="String(item.id || item.pageId || item.name)"
-                class="pending-row"
-              >
-                <span class="pending-tag" :data-verb="pendingVerb(item)">{{ pendingVerb(item) }}</span>
-                <div class="pending-row__text">
-                  <span class="pending-row__name">{{ item.name || '未命名' }}</span>
-                  <span v-if="item.summary" class="pending-row__sum">{{ item.summary }}</span>
+            <ul v-if="pendingPreview.length" class="pend">
+              <li v-for="item in pendingPreview" :key="String(item.id || item.pageId || item.name)" class="pend__row">
+                <span :class="pendingVerb(item) === '新增' ? 'mw-tag-new' : 'mw-tag-mod'">
+                  {{ pendingVerb(item) }}
+                </span>
+                <div class="pend__body">
+                  <span class="pend__title">
+                    {{ item.name || '未命名' }}
+                    <template v-if="item.summary"> · {{ item.summary }}</template>
+                  </span>
                 </div>
+                <span v-if="pendingTime(item)" class="pend__time">{{ pendingTime(item) }}</span>
               </li>
             </ul>
-            <p v-else class="empty-inline">没有待发布的改动，线上就是你现在看到的样子</p>
+            <p v-else class="empty-hint">没有待发布的改动，线上就是你现在看到的样子</p>
           </section>
 
-          <section class="panel">
-            <div class="panel__head">
+          <section class="mw-panel">
+            <div class="panel-head">
               <h2>微信生态</h2>
             </div>
-            <ul class="wx-list">
+            <ul class="eco">
               <li>
-                <button type="button" class="wx-row" @click="router.push('/mini/publish')">
-                  <span class="wx-row__label">正式版</span>
-                  <span class="wx-row__value">
-                    {{ site.wechatCodeVersion ? `代码 ${site.wechatCodeVersion}` : '尚未同步版本号' }}
-                  </span>
+                <button type="button" class="eco__row" @click="router.push('/mini/publish')">
+                  <span>正式版</span>
+                  <span class="eco__val">代码 {{ wechatCodeLabel }}</span>
                 </button>
               </li>
               <li>
-                <button type="button" class="wx-row" @click="router.push('/settings/wechat')">
-                  <span class="wx-row__label">公众号菜单</span>
-                  <span class="wx-row__value">去配置</span>
+                <button type="button" class="eco__row" @click="router.push('/settings/wechat')">
+                  <span>公众号菜单</span>
+                  <span class="eco__val">{{ mpMenuLabel }}</span>
                 </button>
               </li>
               <li>
-                <button type="button" class="wx-row" @click="router.push('/settings/wechat')">
-                  <span class="wx-row__label">小程序码</span>
-                  <span class="wx-row__value">去生成</span>
+                <button type="button" class="eco__row" @click="router.push('/settings/wechat')">
+                  <span>小程序码</span>
+                  <span class="eco__val">{{ qrCodeLabel }}</span>
                 </button>
               </li>
             </ul>
@@ -144,13 +145,12 @@
         </div>
       </div>
 
-      <aside class="preview-col">
-        <div class="preview-col__head">
+      <aside class="ov__preview mw-panel">
+        <div class="panel-head">
           <h2>真机预览</h2>
-          <div class="seg" role="tablist" aria-label="预览来源">
+          <div class="seg" role="tablist">
             <button
               type="button"
-              role="tab"
               class="seg__btn"
               :class="{ active: previewSource === 'draft' }"
               @click="previewSource = 'draft'"
@@ -159,7 +159,6 @@
             </button>
             <button
               type="button"
-              role="tab"
               class="seg__btn"
               :class="{ active: previewSource === 'live' }"
               @click="previewSource = 'live'"
@@ -168,13 +167,11 @@
             </button>
           </div>
         </div>
-        <div class="phone-shell">
-          <div class="phone-shell__notch" aria-hidden="true" />
-          <iframe :key="previewSource" :src="previewUrl" title="小程序预览" loading="lazy" />
+        <div class="phone">
+          <div class="phone__notch" aria-hidden="true" />
+          <iframe :key="previewSource" class="phone__frame" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
-        <button type="button" class="preview-scan" @click="openLivePreview">
-          扫码在手机上看
-        </button>
+        <button type="button" class="scan" @click="openLivePreview">扫码在手机上看</button>
       </aside>
     </div>
 
@@ -210,11 +207,7 @@
         </el-form-item>
         <el-form-item v-if="drawerIndex != null && tabBar.length > 1" label="顺序">
           <div class="drawer-sort">
-            <el-button
-              size="small"
-              :disabled="drawerIndex === 0 || savingTabs"
-              @click="moveTab(drawerIndex, -1)"
-            >
+            <el-button size="small" :disabled="drawerIndex === 0 || savingTabs" @click="moveTab(drawerIndex, -1)">
               上移
             </el-button>
             <el-button
@@ -229,7 +222,7 @@
       </el-form>
       <template #footer>
         <el-button @click="drawerVisible = false">取消</el-button>
-        <el-button type="primary" class="btn-terracotta" :loading="savingTabs" @click="saveTabEdit">
+        <el-button type="primary" class="mw-btn-primary" :loading="savingTabs" @click="saveTabEdit">
           保存
         </el-button>
       </template>
@@ -241,6 +234,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import '@/styles/mini-workbench.scss'
 import {
   getMiniSite,
   getPendingChanges,
@@ -249,7 +243,9 @@ import {
   type MiniTabBarItem,
   type PendingChangeItem,
 } from '@/api/miniSite'
-import { getPageList } from '@/api/page'
+import { createPage, getPageList } from '@/api/page'
+import { getLatestRelease } from '@/api/version'
+import { getConfigByGroupSilent } from '@/api/system'
 import { resolvePageStatus } from '@/utils/pageStatus'
 import type { PageRecord as PageRow } from '@/types/page'
 
@@ -258,10 +254,13 @@ defineOptions({ name: 'MiniOverview' })
 const router = useRouter()
 const loading = ref(false)
 const savingTabs = ref(false)
+const creatingBlank = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
 const previewSource = ref<'draft' | 'live'>('draft')
 const pageOptions = ref<PageRow[]>([])
+const wechatVerFallback = ref('')
+const mpMenuConfigured = ref(false)
 
 const drawerVisible = ref(false)
 const drawerIndex = ref<number | null>(null)
@@ -276,6 +275,22 @@ const pendingCountText = computed(() => {
   return n > 0 ? `${n} 项` : '暂无改动'
 })
 const liveReleaseAtText = computed(() => formatReleaseAt(site.value.liveReleaseAt))
+const wechatCodeLabel = computed(
+  () => site.value.wechatCodeVersion || wechatVerFallback.value || '—',
+)
+const homeTabText = computed(() => {
+  const t = (site.value.tabBar || [])[0]
+  return t?.text || '首页'
+})
+const boundPageCount = computed(
+  () => (site.value.tabBar || []).filter((t) => t.pageId || t.pagePath).length,
+)
+const mpMenuLabel = computed(() =>
+  mpMenuConfigured.value ? `已绑${homeTabText.value}` : '去配置',
+)
+const qrCodeLabel = computed(() =>
+  boundPageCount.value > 0 ? `已生成 ${boundPageCount.value} 页` : '去生成',
+)
 
 const bindablePages = computed(() =>
   pageOptions.value.filter((p) => {
@@ -304,6 +319,21 @@ function formatReleaseAt(v?: string | null) {
   return `${mm}-${dd} ${hh}:${mi}`
 }
 
+/** 有时间字段才展示；无则隐藏（不对齐假数据） */
+function pendingTime(item: PendingChangeItem) {
+  const raw = (item as any).updatedAt || (item as any).updateTime || (item as any).createdAt
+  if (!raw) return ''
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ''
+  const diff = Date.now() - d.getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return '刚刚'
+  if (mins < 60) return `${mins} 分钟前`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} 小时前`
+  return formatReleaseAt(String(raw))
+}
+
 function isTabUnbound(tab: MiniTabBarItem) {
   return !(tab.pageId || tab.pagePath)
 }
@@ -330,7 +360,7 @@ function tabStatus(tab: MiniTabBarItem): { key: string; label: string } {
 
 function pendingVerb(item: PendingChangeItem) {
   if (item.type === 'site') return '修改'
-  if (item.status === 'draft') return '新增'
+  if (item.status === 'draft' || /尚未|新增|新建/.test(String(item.summary || ''))) return '新增'
   return '修改'
 }
 
@@ -448,21 +478,64 @@ async function moveTab(index: number, delta: number) {
     list[target].pageId != null && list[target].pageId !== '' ? Number(list[target].pageId) : null
 }
 
+async function createBlank() {
+  creatingBlank.value = true
+  const suffix = Date.now().toString(36).slice(-5)
+  try {
+    const res = await createPage({
+      name: `未命名页面-${suffix}`,
+      type: 3,
+      path: `pages/custom/p-${suffix}`,
+    })
+    const id = Number((res as { data?: { id?: number } })?.data?.id || 0)
+    if (!id) throw new Error('未返回页面 id')
+    ElMessage.success('已创建')
+    router.push(`/mini/pages/${id}/editor`)
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '创建失败')
+  } finally {
+    creatingBlank.value = false
+  }
+}
+
 async function load() {
   loading.value = true
   try {
-    const [s, p, pageRes] = await Promise.all([
+    const [s, p, pageRes, latestRes, cfgRes] = await Promise.all([
       getMiniSite('draft'),
       getPendingChanges(),
       getPageList({ current: 1, size: 100 }),
+      getLatestRelease().catch(() => null),
+      getConfigByGroupSilent('basic').catch(() => null),
     ])
     site.value = s
     pending.value = p.items || []
-    pageOptions.value = ((pageRes as any)?.data?.records || (pageRes as any)?.data?.list || []) as PageRow[]
+    const data = (pageRes as { data?: { records?: PageRow[]; list?: PageRow[] } })?.data
+    pageOptions.value = (data?.records || data?.list || []) as PageRow[]
     const pendingTotal =
-      (p as any).pendingCount ?? (p as any).total ?? pending.value.length
+      (p as { pendingCount?: number; total?: number }).pendingCount
+      ?? (p as { total?: number }).total
+      ?? pending.value.length
     if (s.pendingCount == null) {
       site.value = { ...s, pendingCount: pendingTotal }
+    }
+    const latest = (latestRes as { data?: { semver?: string; version?: string } })?.data
+    wechatVerFallback.value = String(latest?.semver || latest?.version || '')
+    try {
+      const configs = (cfgRes as any)?.data?.configs || (cfgRes as any)?.data || []
+      const map = Array.isArray(configs)
+        ? Object.fromEntries(configs.map((c: any) => [c.configKey || c.key, c.configValue ?? c.value]))
+        : {}
+      mpMenuConfigured.value = !!(
+        map.mp_app_id
+        || map.mpAppId
+        || map.wechat_mp_appid
+        || map.officialAccountAppId
+        || map.mp_menu
+        || map.mpMenu
+      )
+    } catch {
+      mpMenuConfigured.value = false
     }
   } catch (e: any) {
     ElMessage.error(e?.message || '加载概览失败')
@@ -475,195 +548,151 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.mini-page {
-  --ink: #2c241c;
-  --muted: #8a7d72;
-  --bg: #f3efe9;
-  --card: #ffffff;
-  --line: #ebe3d9;
-  --accent: #c45a30;
-  --accent-deep: #a84c28;
-  --ok: #2f6b3a;
-  --ok-bg: #e7f1e8;
-  --warn: #9a6b12;
-  --warn-bg: #f8ecd2;
-  --new: #2f5f8f;
-  --new-bg: #e4eef7;
-  min-height: 100%;
+.overview.mw-page {
   margin: -16px;
-  padding: 20px 20px 32px;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
-.overview-layout {
+.ov {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 292px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
   align-items: start;
-  max-width: 1280px;
+  max-width: 1240px;
 }
 
-.site-head {
-  margin-bottom: 16px;
-}
-.site-head__title {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+.ov-head { margin-bottom: 14px; }
+.mw-title {
+  margin: 0 !important;
+  font-size: 28px !important;
   line-height: 1.2;
-  color: #2a211a;
 }
-.site-head__meta {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.6;
+.ov-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 0;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--mw-muted);
+  line-height: 1.6;
 }
-.meta-ok {
-  color: var(--ok);
-  font-weight: 600;
-}
-.meta-dot {
+.dot {
   margin: 0 6px;
   color: #c5bbb0;
 }
+.live-pill {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mw-green);
+  background: var(--mw-green-bg);
+}
 
-.create-cards {
+.create-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
-.create-card {
+.create {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 72px;
+  min-height: 76px;
   padding: 14px 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--mw-border);
   border-radius: 14px;
-  background: var(--card);
-  cursor: pointer;
+  background: var(--mw-card);
   text-align: left;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  color: inherit;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   &:hover {
     transform: translateY(-1px);
-    border-color: #dfcfc0;
-    box-shadow: 0 8px 20px rgba(44, 36, 28, 0.06);
+    border-color: #d4a88a;
+    box-shadow: 0 6px 16px rgba(44, 36, 28, 0.06);
   }
+  &:disabled { opacity: 0.6; cursor: wait; }
 }
-.create-card--ai {
-  background: var(--accent);
-  border-color: var(--accent);
+.create--ai {
+  background: var(--mw-terracotta);
+  border-color: var(--mw-terracotta);
   color: #fff;
-  .create-card__desc { color: rgba(255, 255, 255, 0.82); }
-  .create-card__icon {
+  .create__desc { color: rgba(255, 255, 255, 0.85); }
+  .create__ico {
     background: rgba(255, 255, 255, 0.18);
     color: #fff;
   }
   &:hover {
-    background: var(--accent-deep);
-    border-color: var(--accent-deep);
-    box-shadow: 0 10px 22px rgba(196, 90, 48, 0.28);
+    background: var(--mw-terracotta-hover);
+    border-color: var(--mw-terracotta-hover);
+    box-shadow: 0 8px 20px rgba(180, 67, 15, 0.28);
   }
 }
-.create-card__icon {
-  width: 34px;
-  height: 34px;
+.create__ico {
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: #f4ebe3;
-  color: var(--accent);
+  background: #f3ebe3;
+  color: var(--mw-terracotta);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 650;
 }
-.create-card__body {
+.create__txt {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.create-card__title {
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.3;
-}
-.create-card__desc {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.35;
-}
+.create__title { font-size: 14px; font-weight: 650; }
+.create__desc { font-size: 12px; color: var(--mw-muted); line-height: 1.35; }
 
-.panel {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 14px 16px 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
-}
-.panel__head {
+.panel-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 12px;
   h2 {
     margin: 0;
     font-size: 14px;
     font-weight: 650;
-    letter-spacing: 0.01em;
   }
 }
-.panel__sub {
+.panel-sub {
   margin: 4px 0 0;
   font-size: 12px;
-  color: var(--muted);
-}
-.text-btn {
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  white-space: nowrap;
-  &:hover { color: var(--accent-deep); }
+  color: var(--mw-muted);
 }
 
-.tab-strip {
+.tab-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
 }
-.tab-card {
+.tab {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  min-height: 78px;
+  min-height: 82px;
   padding: 12px 12px 12px 18px;
   border-radius: 12px;
-  border: 1px solid var(--line);
-  background: #fbf8f4;
+  border: 1px solid var(--mw-border);
+  background: #faf6f1;
   cursor: pointer;
   text-align: left;
+  color: inherit;
   transition: border-color 0.15s, background 0.15s;
   &:hover {
-    border-color: #dfc3ae;
+    border-color: #d4a88a;
     background: #fff;
   }
   &.is-unbound {
@@ -671,30 +700,29 @@ onMounted(load)
     border-color: #f0c7bf;
   }
 }
-.tab-card__grip {
+.tab__grip {
   position: absolute;
   left: 7px;
   top: 50%;
   width: 4px;
-  height: 16px;
+  height: 18px;
   transform: translateY(-50%);
   background:
-    radial-gradient(circle, #c9bdb2 1.2px, transparent 1.3px) 0 0 / 4px 5px repeat-y,
-    radial-gradient(circle, #c9bdb2 1.2px, transparent 1.3px) 2.5px 0 / 4px 5px repeat-y;
-  opacity: 0.9;
+    radial-gradient(circle, #c9bdb2 1.15px, transparent 1.25px) 0 0 / 4px 6px repeat-y,
+    radial-gradient(circle, #c9bdb2 1.15px, transparent 1.25px) 2.5px 0 / 4px 6px repeat-y;
 }
-.tab-card__name {
+.tab__name {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 14px;
   font-weight: 650;
   line-height: 1.2;
 }
-.tab-card__lock {
+.tab__lock {
   width: 10px;
   height: 10px;
-  border: 1.5px solid var(--muted);
+  border: 1.5px solid var(--mw-muted);
   border-radius: 2px;
   position: relative;
   flex-shrink: 0;
@@ -705,166 +733,115 @@ onMounted(load)
     top: -4px;
     width: 5px;
     height: 4px;
-    border: 1.5px solid var(--muted);
+    border: 1.5px solid var(--mw-muted);
     border-bottom: 0;
     border-radius: 5px 5px 0 0;
   }
 }
-.tab-card__status {
+.tab__st {
   font-size: 11px;
   font-weight: 650;
   padding: 2px 7px;
   border-radius: 999px;
   line-height: 1.4;
-  &[data-status='live'] { color: var(--ok); background: var(--ok-bg); }
-  &[data-status='dirty'] { color: var(--warn); background: var(--warn-bg); }
-  &[data-status='empty'] { color: #b42318; background: #fdeceb; }
+  &[data-st='live'] { color: var(--mw-green); background: var(--mw-green-bg); }
+  &[data-st='dirty'] { color: var(--mw-amber); background: var(--mw-amber-bg); }
+  &[data-st='empty'] { color: #b42318; background: #fdeceb; }
 }
-.tab-card--add {
+.tab--add {
   align-items: center;
   justify-content: center;
   padding-left: 12px;
   border-style: dashed;
-  color: var(--muted);
+  color: var(--mw-muted);
   background: transparent;
   gap: 4px;
+  font-size: 12px;
 }
-.tab-card__plus { font-size: 18px; line-height: 1; }
-.tab-card__hint { font-size: 11px; }
+.tab__plus { font-size: 18px; line-height: 1; }
 
-.info-grid {
+.lower {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 12px;
-  .panel { margin-bottom: 0; }
+  margin-top: 12px;
 }
 
-.pending-list {
+.pend {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.pending-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #faf6f1;
-}
-.pending-tag {
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 650;
-  flex-shrink: 0;
-  &[data-verb='修改'] { color: var(--accent); background: #f8e8df; }
-  &[data-verb='新增'] { color: var(--new); background: var(--new-bg); }
-}
-.pending-row__text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
-.pending-row__name {
+.pend__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--mw-border);
+  &:last-child { border-bottom: 0; }
+}
+.pend__title {
   font-size: 13px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.4;
+  color: var(--mw-ink);
 }
-.pending-row__sum {
+.pend__time {
   font-size: 12px;
-  color: var(--muted);
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--mw-muted);
   white-space: nowrap;
 }
-.empty-inline {
-  margin: 4px 0 0;
+.empty-hint {
+  margin: 0;
   font-size: 13px;
-  color: var(--muted);
-  line-height: 1.5;
+  color: var(--mw-muted);
 }
-.empty-block {
+.empty {
   text-align: center;
-  padding: 24px 12px;
-  color: var(--muted);
+  padding: 20px 8px;
+  color: var(--mw-muted);
   font-size: 13px;
-  p { margin: 0 0 12px; }
-}
-.btn-primary {
-  border: 0;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 14px;
-  cursor: pointer;
-  &:hover { background: var(--accent-deep); }
 }
 
-.wx-list {
+.eco {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
-.wx-row {
+.eco__row {
   width: 100%;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  padding: 11px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: #faf6f1;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--mw-border);
+  background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s;
-  &:hover { border-color: #dfc3ae; }
-}
-.wx-row__label {
+  color: inherit;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
+  &:last-child { border-bottom: 0; }
+  &:hover .eco__val { color: var(--mw-terracotta); }
 }
-.wx-row__value {
+.eco__val {
+  font-weight: 500;
+  color: var(--mw-muted);
   font-size: 12px;
-  color: var(--muted);
 }
 
-.preview-col {
+.ov__preview {
   position: sticky;
   top: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px 14px 16px;
-  border-radius: 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-}
-.preview-col__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  h2 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 650;
-  }
 }
 .seg {
   display: inline-flex;
@@ -875,77 +852,70 @@ onMounted(load)
 .seg__btn {
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: var(--mw-muted);
   font-size: 12px;
   font-weight: 600;
-  padding: 5px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   cursor: pointer;
   &.active {
-    background: var(--accent);
+    background: var(--mw-terracotta);
     color: #fff;
   }
 }
-.phone-shell {
+.phone {
   position: relative;
   margin: 0 auto;
   width: 100%;
-  max-width: 248px;
+  max-width: 252px;
   aspect-ratio: 375 / 760;
-  border-radius: 28px;
+  border-radius: 30px;
   overflow: hidden;
   background: #15100d;
   border: 9px solid #1c1511;
   box-shadow:
     0 18px 40px rgba(44, 36, 28, 0.18),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: #fff;
-  }
 }
-.phone-shell__notch {
+.phone__notch {
   position: absolute;
   z-index: 2;
-  top: 8px;
+  top: 9px;
   left: 50%;
-  width: 72px;
+  width: 78px;
   height: 8px;
   transform: translateX(-50%);
   border-radius: 999px;
   background: #0d0a08;
   pointer-events: none;
 }
-.preview-scan {
+.phone__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+.scan {
   width: 100%;
   border: 1px dashed #d9cec2;
   border-radius: 10px;
   background: transparent;
-  color: var(--muted);
+  color: var(--mw-muted);
   font-size: 13px;
   font-weight: 550;
   padding: 10px 12px;
   cursor: pointer;
   &:hover {
-    color: var(--accent);
+    color: var(--mw-terracotta);
     border-color: #dfc3ae;
   }
-}
-
-.btn-terracotta {
-  --el-button-bg-color: var(--accent);
-  --el-button-border-color: var(--accent);
-  --el-button-hover-bg-color: var(--accent-deep);
-  --el-button-hover-border-color: var(--accent-deep);
 }
 .drawer-sort { display: flex; gap: 8px; }
 
 @media (max-width: 1100px) {
-  .overview-layout { grid-template-columns: 1fr; }
-  .preview-col { position: static; max-width: 320px; margin: 0 auto; }
-  .create-cards { grid-template-columns: 1fr; }
-  .info-grid { grid-template-columns: 1fr; }
+  .ov { grid-template-columns: 1fr; }
+  .ov__preview { position: static; max-width: 320px; margin: 0 auto; }
+  .create-row { grid-template-columns: 1fr; }
+  .lower { grid-template-columns: 1fr; }
 }
 </style>
