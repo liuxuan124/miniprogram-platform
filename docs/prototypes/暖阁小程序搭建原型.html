@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>暖阁小程序搭建原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#F6F2EC;--card:#FFFFFF;--soft:#FBF8F4;--line:#E8DFD3;--line2:#F1EBE3;
+  --ink:#2A1F17;--mute:#6B5B4E;--faint:#7A6A5C;
+  --side:#2B1D14;--sidetx:#E9DCCB;--sidemute:#BFAE9B;
+  --acc:#B4430F;--acc-h:#8C3208;--accsoft:#FBEADF;
+  --g:#1F7A4D;--gs:#E3F3EA;--a:#8F5400;--as:#FDF1D8;--b:#2458A6;--bs:#E6EEFA;--n:#5E5146;--ns:#EFEAE3;--r:#A52A1E;--rs:#FBE4E0;
+  --serif:"Noto Serif SC","Songti SC",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:100%}
+/* sidebar */
+.side{background:var(--side);color:var(--sidetx);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:var(--acc);display:grid;place-items:center;color:#fff}
+.brand b{display:block;color:#fff;font-size:15px}
+.brand small{color:var(--sidemute);font-size:11px}
+.side-group{padding:10px 12px 6px;color:#fff;font-weight:600;display:flex;justify-content:space-between}
+.side-muted{padding:9px 12px;color:var(--sidemute);display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.nav{display:flex;flex-direction:column;gap:2px;padding-left:4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--sidetx);text-decoration:none}
+.nav a:hover{background:rgba(255,255,255,.06)}
+.nav a.on{background:var(--acc);color:#fff}
+.nav .badge{margin-left:auto;font-size:11px;font-weight:600;padding:0 7px;border-radius:999px;background:var(--acc);color:#fff}
+.nav a.on .badge{background:#fff;color:var(--acc)}
+/* top */
+.main{display:flex;flex-direction:column;min-width:0}
+.top{height:60px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 28px;position:sticky;top:0;z-index:20}
+.crumb{color:var(--mute)}
+.crumb b{color:var(--ink);font-weight:500}
+.site-pill{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--ns);display:grid;place-items:center;font-weight:600;color:var(--n);flex-shrink:0}
+.view{padding:24px 28px 48px;display:flex;flex-direction:column;gap:18px}
+/* primitives */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:500;white-space:nowrap;text-decoration:none;color:var(--ink);line-height:1.2}
+.btn:hover{border-color:#D6C8B6}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.primary:hover{background:var(--acc-h)}
+.btn.soft{background:var(--accsoft);border-color:var(--accsoft);color:var(--acc)}
+.btn.danger{color:var(--r)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn .cnt{background:#fff;color:var(--acc);border-radius:999px;padding:0 7px;font-size:12px;font-weight:600}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--mute)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
+.t-live{color:var(--g);background:var(--gs)} .t-pending{color:var(--a);background:var(--as)} .t-new{color:var(--b);background:var(--bs)}
+.t-draft,.t-offline,.t-archived{color:var(--n);background:var(--ns)} .t-acc{color:var(--acc);background:var(--accsoft)} .t-err{color:var(--r);background:var(--rs)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.h1{font-family:var(--serif);font-size:26px;font-weight:700;margin:0;text-wrap:balance}
+.sub{color:var(--mute);font-size:13px;margin-top:4px}
+.h2{font-size:16px;font-weight:600;margin:0}
+.head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.head .actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.muted{color:var(--mute)} .faint{color:var(--faint);font-size:12px}
+.link{color:var(--acc);background:none;border:0;padding:0;font-weight:500;text-decoration:none}
+.link:hover{color:var(--acc-h)}
+/* overview */
+.ov{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.ways{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.way{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-align:left;color:var(--ink)}
+.way:hover{border-color:#D6C8B6}
+.way.hi{background:var(--acc);border-color:var(--acc);color:#fff}
+.way.hi .muted{color:#FBE3D4}
+.way b{display:block;font-size:15px}
+.tabs-edit{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.tabcard{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--card);text-align:left;cursor:grab;min-height:120px}
+.tabcard:hover{border-color:var(--acc)}
+.tabcard.dragging{opacity:.4}
+.tabcard.over{outline:2px dashed var(--acc)}
+.tabcard.err{border-color:var(--r);background:var(--rs)}
+.tabcard .t{font-size:16px;font-weight:600;display:flex;gap:6px;align-items:center}
+.tabadd{border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--faint);font-size:12px;background:transparent;min-height:120px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.sw.on{box-shadow:0 0 0 2px var(--ink)}
+.list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2)}
+.list-row:last-child{border-bottom:0}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0}
+.preview{position:sticky;top:84px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.seg{display:flex;gap:3px;background:var(--ns);border-radius:8px;padding:3px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;font-size:12px;color:var(--mute)}
+.seg button.on{background:#fff;color:var(--ink);font-weight:500}
+/* phone */
+.phone{width:250px;height:540px;border:9px solid #1E1611;border-radius:34px;background:#FFFBF6;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;max-width:100%}
+.phone.lg{width:320px;height:650px}
+.phone.sm{width:210px;height:430px}
+.ph-title{height:42px;display:grid;place-items:center;font-size:13px;font-weight:600;flex-shrink:0}
+.ph-body{flex:1;overflow-y:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.ph-body::-webkit-scrollbar{display:none}
+.blk{border-radius:10px;padding:10px 12px;border:1px solid #F0E6DA;text-align:left;width:100%;background:#fff;position:relative}
+.blk b{display:block;font-size:12px}
+.blk span{display:block;font-size:10.5px;opacity:.78;margin-top:3px;line-height:1.5}
+.blk.sel{outline:2px solid var(--acc);outline-offset:1px}
+.blk.ai::after{content:"AI 新增";position:absolute;top:-8px;right:8px;background:var(--acc);color:#fff;font-size:10px;padding:0 6px;border-radius:4px}
+.ph-tabs{height:48px;border-top:1px solid #EFE6DA;display:flex;background:#fff;flex-shrink:0}
+.ph-tabs div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:#8A7A6C}
+.ph-tabs i{width:16px;height:16px;border-radius:5px;background:#D9CFC3;display:block}
+.empty-ph{flex:1;display:grid;place-items:center;color:var(--faint);font-size:12px;text-align:center;padding:20px}
+/* pages */
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:8px;width:280px;max-width:100%;color:var(--faint)}
+.search input{border:0;outline:0;background:transparent;flex:1;min-width:0}
+.group{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.group.arch{background:var(--soft);border-style:dashed}
+.g-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--soft);border-bottom:1px solid var(--line);border-radius:14px 14px 0 0;width:100%;border-left:0;border-right:0;border-top:0;text-align:left}
+.group.closed .g-head{border-bottom:0;border-radius:14px}
+.prow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line2);position:relative}
+.prow:last-child{border-bottom:0}
+.thumb{width:36px;height:52px;border-radius:6px;border:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding:4px;background:#FFFBF6}
+.thumb i{display:block;height:8px;border-radius:2px}
+.pname{flex:1;min-width:0}
+.pname b{font-weight:500;display:flex;align-items:center;gap:6px}
+.pstat{width:96px}
+.menu{position:absolute;right:16px;top:52px;z-index:30;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(43,29,20,.14);padding:6px;min-width:190px;display:flex;flex-direction:column}
+.menu button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px;font-size:13px}
+.menu button:hover{background:var(--soft)}
+.menu button:disabled{color:var(--faint);cursor:not-allowed;background:none}
+.menu hr{border:0;border-top:1px solid var(--line2);margin:4px 0}
+/* editor */
+.ed{display:grid;grid-template-rows:60px minmax(0,1fr);height:100vh;background:var(--bg)}
+.ed-top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px;min-width:0}
+.ed-top .name{font-weight:600;font-size:15px;white-space:nowrap}
+.ed-body{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;min-height:0}
+.ed-left,.ed-right{background:#fff;min-height:0;overflow-y:auto}
+.ed-left{border-right:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:12px}
+.ed-right{border-left:1px solid var(--line);display:flex;flex-direction:column}
+.ed-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto}
+.comp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.comp{border:1px solid var(--line);border-radius:8px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);background:#fff}
+.comp:hover{border-color:var(--acc);color:var(--acc)}
+.comp i{width:22px;height:14px;border-radius:4px;background:#EFE6DA;display:block}
+.layer{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;font-size:12.5px}
+.layer.on{background:var(--accsoft);color:var(--acc);font-weight:500}
+.layer .nm{flex:1;border:0;background:none;text-align:left;padding:0;color:inherit;font-weight:inherit;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer .mini{border:0;background:none;color:var(--faint);padding:2px 4px;border-radius:4px;font-size:12px}
+.layer .mini:hover{background:var(--ns);color:var(--ink)}
+.rtabs{display:flex;border-bottom:1px solid var(--line)}
+.rtabs button{flex:1;border:0;background:none;padding:14px;color:var(--mute);border-bottom:2px solid transparent;display:flex;justify-content:center;gap:6px;align-items:center}
+.rtabs button.on{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:500}
+.input{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
+textarea.input{resize:vertical;line-height:1.6}
+.tone-row{display:flex;gap:6px;flex-wrap:wrap}
+.tone{width:28px;height:28px;border-radius:7px;border:1px solid var(--line)}
+.tone.on{box-shadow:0 0 0 2px var(--ink)}
+.chat{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:200px}
+.bub-u{align-self:flex-end;max-width:86%;background:var(--ink);color:#fff;padding:10px 12px;border-radius:12px 12px 4px 12px;font-size:13px;line-height:1.6}
+.bub-a{display:flex;flex-direction:column;gap:8px;background:var(--accsoft);padding:12px;border-radius:12px 12px 12px 4px;font-size:13px;line-height:1.6}
+.chg{display:flex;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.chg b{font-size:12.5px;font-weight:500;display:block}
+.composer{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.cbox{display:flex;gap:8px;align-items:flex-end;border:1px solid var(--line);border-radius:10px;padding:8px}
+.cbox textarea{border:0;outline:0;resize:none;flex:1;height:44px;font-size:13px}
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:bl 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{0%,100%{opacity:.25}50%{opacity:1}}
+/* ai create */
+.aic{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px;align-items:start}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.opt{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+.opt.on{border:2px solid var(--acc);padding:13px}
+.gen-empty{border:1px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mute);display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;min-height:420px;background:var(--soft)}
+.mat{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;gap:8px}
+/* templates */
+.tpl-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.tpl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.tpl{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.tpl.using{border:2px solid var(--acc)}
+.tpl.picked{box-shadow:0 0 0 3px var(--accsoft)}
+.tpl-art{height:150px;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding-top:16px}
+.tpl-art div{width:60px;border-radius:10px 10px 0 0;background:#fff;padding:6px;display:flex;flex-direction:column;gap:4px}
+.tpl-art i{display:block;height:7px;border-radius:3px;background:#EFE6DA}
+.tpl-body{padding:14px;display:flex;flex-direction:column;gap:8px}
+.tabs-line{display:flex;gap:18px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.tabs-line button{border:0;background:none;padding:10px 2px;color:var(--mute);border-bottom:2px solid transparent}
+.tabs-line button.on{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.impact{display:flex;flex-direction:column;gap:12px;font-size:13px}
+.impact>div{display:flex;gap:10px}
+.impact b{font-weight:500;display:block}
+.note{padding:10px 12px;border-radius:10px;background:var(--as);color:var(--a);font-size:12.5px;line-height:1.6}
+.note.ok{background:var(--gs);color:var(--g)}
+.note.err{background:var(--rs);color:var(--r)}
+/* publish */
+.pub{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;padding:14px;border-radius:10px;margin-top:14px}
+.chk{display:flex;gap:8px;font-size:13px;align-items:flex-start}
+.tl{display:flex;gap:12px}
+.tl-rail{display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:#D9CFC3;margin-top:5px}
+.tl-dot.on{background:var(--g)}
+.tl-line{width:2px;flex:1;background:#EFE6DA}
+.tl-body{flex:1;padding-bottom:14px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.steps div i{display:block;height:4px;border-radius:2px;background:var(--g);margin-bottom:6px}
+.dist-ic{width:32px;height:32px;border-radius:8px;background:var(--gs);color:var(--g);display:grid;place-items:center;flex-shrink:0}
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(30,22,17,.42);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:16px;padding:22px;width:440px;max-width:100%;max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.modal .foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:#F7C4A5;font-weight:600;padding:0}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}
+/* responsive */
+@media (max-width:1180px){
+  .ov,.pub,.tpl-layout,.aic{grid-template-columns:minmax(0,1fr)}
+  .preview{position:static}
+  .ed-body{grid-template-columns:220px minmax(0,1fr) 320px}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 16px;gap:8px}
+  .side .brand{padding:0;flex:1 1 100%}
+  .side .side-group,.side .side-muted{display:none}
+  .nav{flex-direction:row;padding:0;flex-wrap:wrap}
+  .nav a{padding:8px 10px}
+  .top{padding:0 16px;position:static}
+  .site-pill span.ver{display:none}
+  .view{padding:18px 16px 40px}
+  .ways,.opts,.tpl-grid,.checks,.steps{grid-template-columns:minmax(0,1fr)}
+  .tabs-edit{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ed{height:auto}
+  .ed-top{flex-wrap:wrap;height:auto;padding:10px 16px}
+  .ed-body{grid-template-columns:minmax(0,1fr)}
+  .ed-left,.ed-right{border:0;border-top:1px solid var(--line)}
+  .ed-center{order:-1}
+  .pstat{width:auto}
+  .prow{flex-wrap:wrap}
+}
+</style>
+</head><body>
+
+<div id="root"></div>
+
+<script>
+(function(){
+/* ---------- icons ---------- */
+const P={
+home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+page:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>',
+grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+send:'<path d="M4 12l16-8-6 16-3-7z"/>',
+spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',check:'<path d="M5 12l5 5 9-10"/>',
+lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+qr:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/>',
+undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+chev:'<path d="M9 6l6 6-6 6"/>',down:'<path d="M6 9l6 6 6-6"/>',back:'<path d="M15 6l-6 6 6 6"/>',
+search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+wechat:'<path d="M9 5c-4 0-7 2.6-7 5.8 0 1.8 1 3.4 2.5 4.5L4 18l3-1.5c.6.2 1.3.3 2 .3"/><path d="M15 9c3.9 0 7 2.5 7 5.5 0 1.5-.8 2.9-2 3.9l.5 2.1-2.6-1.3c-.9.3-1.9.4-2.9.4-3.9 0-7-2.5-7-5.5S11.1 9 15 9z"/>',
+drag:'<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
+more:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+tab:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16h18M9 16v4M15 16v4"/>',
+doc:'<path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+upload:'<path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/>',
+palette:'<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="16" cy="10" r="1.2"/>',
+x:'<path d="M6 6l12 12M18 6L6 18"/>',up:'<path d="M12 19V5M6 11l6-6 6 6"/>',dn:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+warn:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'
+};
+const ic=(n,s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const now=()=>{const d=new Date();return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+const hm=()=>{const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+let uid=100;const nid=p=>p+(++uid);
+
+/* ---------- data ---------- */
+const TONES={plain:['#FFFFFF','#2A1F17'],warm:['#FCEBDD','#5A3A00'],cream:['#FFF4EA','#2A1F17'],gold:['#F3D9A4','#5A3A00'],sky:['#E6EEFA','#1D3F73'],mint:['#E3F3EA','#185E3B'],accent:['__T','#FFFFFF']};
+const COMPS=[
+ {type:'banner',name:'轮播图',title:'轮播图',sub:'3 张图 · 自动播放',tone:'warm'},
+ {type:'image',name:'图片',title:'图片',sub:'单图 · 点击跳转',tone:'cream'},
+ {type:'video',name:'视频',title:'视频',sub:'封面 + 播放按钮',tone:'plain'},
+ {type:'section',name:'分区标题',title:'分区标题',sub:'标题 · 查看全部 ›',tone:'plain'},
+ {type:'articles',name:'文章列表',title:'文章列表',sub:'来自内容库 · 最新 5 篇',tone:'plain'},
+ {type:'goods',name:'商品列表',title:'商品列表',sub:'在售商品 · 两列',tone:'cream'},
+ {type:'member',name:'会员卡',title:'会员卡',sub:'开通会员享专栏折扣',tone:'accent'},
+ {type:'coupon',name:'优惠券',title:'优惠券',sub:'专栏 8 折券 · 立即领取',tone:'gold'},
+ {type:'countdown',name:'倒计时',title:'距活动结束',sub:'18 天 06:21:40',tone:'gold'},
+ {type:'float',name:'悬浮按钮',title:'悬浮按钮',sub:'右下角 · 联系客服',tone:'plain'},
+ {type:'cube',name:'图片魔方',title:'图片魔方',sub:'1 大 2 小',tone:'warm'},
+ {type:'tabs',name:'选项卡',title:'选项卡',sub:'推荐 / 最新 / 热门',tone:'plain'}
+];
+const B=(title,sub,tone='plain',type='custom')=>({id:nid('b'),type,title,sub,tone});
+const HOME_LIVE=[B('你好，欢迎回来','搜索 · 快捷导航 · 连续阅读天数','warm','greet'),B('暖阁出品','作者列表 · 全部 ›'),B('暖阁精选','精选文章（后台绑定内容）'),B('精品专栏','在售专栏商品','cream'),B('我的星球','星球推荐','accent'),B('暖阁信息流','已发布内容 · 分类切换')];
+const homeCur=clone(HOME_LIVE);homeCur[2].sub='精选文章 · 每周三更新';[homeCur[3],homeCur[4]]=[homeCur[4],homeCur[3]];
+function pg(id,name,group,blocks,opt={}){const live=opt.live===undefined?JSON.stringify(blocks):opt.live;return Object.assign({id,name,group,blocks:clone(blocks),live,offline:false,liveOffline:false,queued:false,system:false,src:'',updated:'09-18 11:28',path:'/pages/custom/'+id},opt,{live})}
+const simple=(a,b,t='warm')=>[B(a,b,t),B('分区标题','查看全部 ›'),B('文章列表','来自内容库')];
+const S={
+ route:'overview',
+ site:{name:'暖阁',slogan:'慢一点，也很好',template:'nuan',theme:'#A93D0C',tabs:[{title:'首页',pageId:'p1'},{title:'发现',pageId:'p2'},{title:'星球',pageId:'p3'},{title:'商城',pageId:'p4'},{title:'我的',pageId:'p5'}]},
+ siteLive:null,
+ pages:[
+  pg('p1','暖阁首页','tab',homeCur,{live:JSON.stringify(HOME_LIVE),src:'暖阁 · 知识社群',updated:'10 分钟前',path:'/pages/custom/warm-home'}),
+  pg('p2','暖阁发现','tab',[B('发现','热门话题 · 推荐作者','warm'),B('今日热门资讯','跨境资讯 Top 10'),B('笔记瀑布流','用户笔记')],{path:'/pages/custom/warm-discover'}),
+  pg('p3','暖阁星球','tab',[B('星球顶栏','我的星球 · 加入','accent'),B('星球动态流','最新动态'),B('话题预测','本周话题')],{path:'/pages/custom/warm-planet'}),
+  pg('p4','暖阁商城','tab',[B('搜索','搜索商品','plain'),B('精品专栏','在售专栏','cream'),B('资料包','跨境资料包','plain')],{path:'/pages/custom/warm-shop'}),
+  pg('p5','我的','tab',[B('个人信息','头像 · 昵称 · 会员等级','warm'),B('会员卡','开通会员','accent'),B('菜单','我的订单 · 我的星球 · 设置')],{system:true,path:'/pages/mine/mine'}),
+  pg('p6','中秋读书节','activity',[B('中秋读书节','9.20–10.8 · 共读 6 本','gold'),B('活动规则','打卡 7 天领专栏券'),B('推荐书单','6 本 · 来自内容库'),B('立即报名','按钮 → 报名表单','accent')],{live:null,queued:true,src:'AI 生成',updated:'32 分钟前',path:'/pages/custom/mid-autumn'}),
+  pg('p7','领取跨境工具包','activity',simple('领取跨境工具包','点击免费领取'),{updated:'09-07 16:59'}),
+  pg('p8','五一活动专题','activity',simple('五一活动专题','已结束','gold'),{offline:true,liveOffline:true,updated:'08-18 14:34',path:'/pages/activity/mayday'}),
+  pg('p9','知识商城','content',simple('知识商城','资料包与 1v1 咨询','cream'),{updated:'08-29 18:40'}),
+  pg('p10','阅读清单','content',simple('阅读清单','免费领取跨境工具'),{updated:'08-29 13:25'}),
+  pg('p11','跨境资讯','content',simple('跨境资讯','每日更新','sky'),{updated:'08-29 13:25'}),
+  pg('p12','飞书知识库','content',simple('飞书知识库','跨境通用 & 财税','mint'),{live:null,updated:'08-15 14:12'}),
+  pg('p13','出海笔记首页','archived',simple('出海笔记','品牌小程序首页','sky'),{prevGroup:'content',updated:'08-29 13:25'}),
+  pg('p14','出海笔记首页 2.0','archived',simple('出海笔记 2.0','主站首页副本','sky'),{prevGroup:'content',updated:'09-05 22:23'}),
+  pg('p15','首页（旧）','archived',simple('首页','运营自建装修页'),{prevGroup:'content',updated:'08-15 19:33',path:'/pages/index/index'}),
+  pg('p16','电商增长首页模板-3xtm','archived',simple('电商增长','首页模板副本','mint'),{live:null,prevGroup:'content',updated:'08-18 14:34'}),
+  pg('p17','我的（旧草稿）','archived',simple('我的','运营自建装修页'),{live:null,prevGroup:'content',updated:'08-20 12:51'})
+ ],
+ history:[],releaseNo:20,
+ filter:'all',q:'',closed:{content:true,archived:true},menu:null,
+ prev:'after',
+ ed:{id:null,sel:null,tab:'ai',ltab:'comp',msgs:[],busy:false,saved:null},
+ ai:{purpose:'活动页',desc:'中秋读书节活动页：介绍活动规则，展示 6 本推荐书，打卡 7 天领专栏优惠券，底部放报名入口',mats:{books:true,coupon:true},brand:true,loading:false,opts:null,pick:0},
+ tpl:{tab:'shop',scene:'全部',pick:null,keepColor:false},
+ pub:{sel:null,note:'',dev:false},
+ modal:null,toast:null
+};
+S.siteLive=clone(S.site);S.siteLive.theme='#B4430F';
+const snap=()=>({siteLive:clone(S.siteLive),pages:Object.fromEntries(S.pages.map(p=>[p.id,{live:p.live,liveOffline:p.liveOffline}]))});
+(function seedHistory(){
+ const s20=snap();
+ const s19=clone(s20);const h=JSON.parse(s19.pages.p1.live);h.splice(3,1);s19.pages.p1.live=JSON.stringify(h);
+ const s18=clone(s19);s18.siteLive.theme='#9C3A10';
+ const s17=clone(s18);delete s17.pages.p9;
+ S.history=[{no:20,at:'09-05 22:26',by:'Bruce',note:'导航配置 + 已上线页面',snap:s20},{no:19,at:'08-31 19:18',by:'Bruce',note:'修复客服入口、导航图标',snap:s19},{no:18,at:'08-31 19:13',by:'Bruce',note:'底部导航改用新图标',snap:s18},{no:17,at:'08-29 18:40',by:'Bruce',note:'新增知识商城',snap:s17}];
+})();
+
+const TEMPLATES=[
+ {id:'nuan',name:'暖阁 · 知识社群',scene:'知识付费',color:'#B4430F',bg:'#F4E3D3',tabs:['首页','发现','星球','商城','我的']},
+ {id:'chuhai',name:'出海笔记',scene:'知识付费',color:'#2458A6',bg:'#E1E9F5',tabs:['首页','专栏','社群','我的']},
+ {id:'ds',name:'电商增长',scene:'电商零售',color:'#1F7A4D',bg:'#DDEFE4',tabs:['首页','分类','购物车','我的']},
+ {id:'md',name:'门店预约',scene:'本地门店',color:'#8F5400',bg:'#F5E7CC',tabs:['首页','预约','我的']},
+ {id:'hc',name:'活动会场',scene:'活动营销',color:'#9B2C5A',bg:'#F3DDE6',tabs:['会场','日程','我的']},
+ {id:'jj',name:'极简商城',scene:'电商零售',color:'#3A2E26',bg:'#E9E4DD',tabs:['首页','商品','我的']}
+];
+const PAGE_TPLS=[['活动报名页','活动营销','gold'],['限时秒杀','电商零售','warm'],['新品发布','电商零售','cream'],['课程详情','知识付费','sky'],['专栏合集','知识付费','cream'],['会员权益','知识付费','accent'],['门店介绍','本地门店','mint'],['预约服务','本地门店','mint'],['节日会场','活动营销','gold'],['裂变领券','活动营销','gold'],['资料领取','知识付费','warm'],['社群招募','知识付费','sky'],['商品详情','电商零售','cream'],['品牌故事','内容品牌','warm'],['文章专题','内容品牌','plain'],['问卷调研','活动营销','plain'],['直播预告','活动营销','accent'],['招商加盟','本地门店','cream']];
+const MY_TPLS=[['暖阁首页（09-05 存档）','我的模板','warm'],['读书节活动页','我的模板','gold']];
+const THEMES=['#B4430F','#A93D0C','#2458A6','#1F7A4D','#8F5400','#9B2C5A','#3A2E26'];
+
+/* ---------- derived ---------- */
+const P_=id=>S.pages.find(p=>p.id===id);
+function status(p){
+ if(p.group==='archived')return'archived';
+ if(p.live==null)return p.queued?'pending':'draft';
+ if(p.offline!==p.liveOffline)return'pending';
+ if(p.offline)return'offline';
+ return JSON.stringify(p.blocks)!==p.live?'pending':'live';
+}
+function stTag(p){const s=status(p);const m={live:['已上线','t-live'],pending:[p.live==null?'待发布':(p.offline!==p.liveOffline?(p.offline?'待下线':'待恢复'):'有改动'),p.live==null?'t-new':'t-pending'],draft:['草稿','t-draft'],offline:['已下线','t-offline'],archived:['归档','t-archived']}[s];return `<span class="tag ${m[1]}">${m[0]}</span>`}
+function changes(){
+ const c=[];const s=S.site,l=S.siteLive;
+ if(s.template!==l.template)c.push({key:'template',kind:'修改',name:'整店模板',desc:`${tplName(l.template)} → ${tplName(s.template)}`});
+ if(JSON.stringify(s.tabs)!==JSON.stringify(l.tabs))c.push({key:'tabs',kind:'修改',name:'底部导航',desc:s.tabs.map(t=>t.title).join(' / ')});
+ if(s.theme!==l.theme)c.push({key:'theme',kind:'修改',name:'品牌配色',desc:`主色 ${l.theme} → ${s.theme}`});
+ S.pages.forEach(p=>{if(status(p)==='pending'){let kind=p.live==null?'新增':'修改',desc=p.live==null?`${p.src||'新页面'} · ${p.updated}`:diffDesc(p);if(p.offline!==p.liveOffline){kind=p.offline?'下线':'恢复';desc=p.offline?'用户将无法访问此页面':'重新对用户开放'}c.push({key:p.id,kind,name:p.name,desc})}});
+ return c;
+}
+function diffDesc(p){const old=JSON.parse(p.live),cur=p.blocks;const oi=new Set(old.map(b=>b.id)),ci=new Set(cur.map(b=>b.id));const add=cur.filter(b=>!oi.has(b.id)).map(b=>b.title),del=old.filter(b=>!ci.has(b.id)).map(b=>b.title);const parts=[];if(add.length)parts.push('新增 '+add.slice(0,2).join('、')+(add.length>2?' 等':''));if(del.length)parts.push('删除 '+del.slice(0,2).join('、'));if(!parts.length)parts.push('调整了组件文案和顺序');return parts.join('；')+' · '+p.updated}
+const tplName=id=>(TEMPLATES.find(t=>t.id===id)||{name:'自定义'}).name;
+function checks(){
+ const s=S.site;const out=[];
+ const unbound=s.tabs.filter(t=>!t.pageId||!P_(t.pageId));
+ out.push({ok:!unbound.length,block:true,text:unbound.length?`${unbound.length} 个导航入口未绑定页面`:`底部导航 ${s.tabs.length} 个入口都绑定了页面`});
+ const bad=s.tabs.filter(t=>{const p=P_(t.pageId);return p&&(p.group==='archived'||p.offline||(p.live==null&&!p.queued))});
+ out.push({ok:!bad.length,block:true,text:bad.length?`导航「${bad.map(t=>t.title).join('、')}」绑定的页面是草稿、已下线或已归档`:'导航页都会随本次发布对用户可见'});
+ const drafts=S.pages.filter(p=>status(p)==='draft');
+ out.push({ok:true,block:false,text:drafts.length?`${drafts.length} 个草稿页不会随本次发布上线`:'没有遗留的草稿页'});
+ out.push({ok:true,block:false,text:'图片均已压缩（< 500KB）'});
+ return out;
+}
+const pendingCount=()=>changes().length;
+
+/* ---------- common UI ---------- */
+function phone(blocks,theme,title,opts={}){
+ const tabs=opts.tabs||S.site.tabs;const active=opts.active??0;
+ const body=blocks&&blocks.length?blocks.map(b=>{const t=TONES[b.tone]||TONES.plain;const bg=t[0]==='__T'?theme:t[0];const cls=['blk'];if(opts.sel===b.id)cls.push('sel');if(opts.ai&&opts.ai.includes(b.id))cls.push('ai');const tagn=opts.click?'button':'div';return `<${tagn} ${opts.click?`type="button" data-a="selblk" data-id="${b.id}"`:''} class="${cls.join(' ')}" style="background:${bg};color:${t[1]}"><b>${esc(b.title)}</b><span>${esc(b.sub)}</span></${tagn}>`}).join(''):`<div class="empty-ph">${opts.empty||'这一页还没有内容<br>从左侧添加组件，或让 AI 帮你搭'}</div>`;
+ const tb=tabs.map((t,i)=>`<div style="${i===active?`color:${theme}`:''}"><i style="${i===active?`background:${theme}`:''}"></i>${esc(t.title)}</div>`).join('');
+ return `<div class="phone ${opts.size||''}"><div class="ph-title">${esc(title)}</div><div class="ph-body">${body}</div>${opts.noTabs?'':`<div class="ph-tabs">${tb}</div>`}</div>`;
+}
+function sidebar(){
+ const r=S.route.split('/')[0];const act={overview:'概览',pages:'页面',editor:'页面',ai:'页面',templates:'模板库',publish:'发布'}[r];
+ const n=pendingCount();
+ const items=[['overview','home','概览'],['pages','page','页面'],['templates','grid','模板库'],['publish','send','发布']].map(([k,i,l])=>`<a href="#${k}" class="${act===l?'on':''}" ${act===l?'aria-current="page"':''}>${ic(i,17)}<span>${l}</span>${k==='publish'&&n?`<span class="badge">${n}</span>`:''}</a>`).join('');
+ return `<aside class="side"><div class="brand"><div class="brand-mark">${ic('tab',18)}</div><div><b>暖阁运营后台</b><small>内容 · 会员 · Agent</small></div></div>
+ <div class="side-muted">总览${ic('chev',14)}</div><div class="side-group">小程序${ic('down',14)}</div><nav class="nav" aria-label="小程序">${items}</nav><div style="height:8px"></div>
+ ${['内容运营','用户会员','商业变现','活动预约','经营管理','系统设置'].map(x=>`<div class="side-muted">${x}${ic('chev',14)}</div>`).join('')}</aside>`;
+}
+function topbar(crumb){
+ const n=pendingCount();
+ return `<header class="top"><div class="crumb">小程序 / <b>${crumb}</b></div>
+ <div class="site-pill"><span class="dot"></span><b style="font-weight:500">${esc(S.site.name)} · ${esc(S.site.slogan)}</b><span class="faint ver">第 ${S.releaseNo} 次发布</span></div>
+ <a class="btn primary sm" href="#publish">${ic('send',15)}发布${n?` <span class="cnt">${n}</span>`:''}</a><div class="avatar" aria-label="Bruce">B</div></header>`;
+}
+
+/* ---------- overview ---------- */
+function vOverview(){
+ const s=S.site,ch=changes();const home=P_(s.tabs[0]?.pageId);
+ const tabsHtml=s.tabs.map((t,i)=>{const p=P_(t.pageId);const bad=!p||p.group==='archived';return `<button type="button" class="tabcard ${bad?'err':''}" draggable="true" data-drag="${i}" data-a="tabedit" data-i="${i}" aria-label="编辑导航 ${esc(t.title)}">
+ <span style="display:flex;justify-content:space-between;width:100%" class="faint"><span>导航 ${i+1}</span>${ic('drag',14)}</span>
+ <span class="t">${esc(t.title)}${p&&p.system?`<span class="faint">${ic('lock',13)}</span>`:''}</span>
+ <span class="faint" style="font-size:12px">→ ${p?esc(p.name):'未绑定页面'}</span><span>${p?stTag(p):'<span class="tag t-err">需绑定</span>'}</span></button>`}).join('')+(s.tabs.length<5?`<button type="button" class="tabadd" data-a="tabadd">${ic('plus',18)}<span>添加入口</span></button>`:'');
+ const pend=ch.slice(0,5).map(c=>`<div class="list-row">${kindTag(c.kind)}<b style="font-weight:500">${esc(c.name)}</b><span class="faint" style="margin-left:auto;text-align:right">${esc(c.desc)}</span></div>`).join('')||`<div class="muted" style="padding:14px 0">没有待发布的改动，线上就是你现在看到的样子。</div>`;
+ const showLive=S.prev==='live';
+ const pb=showLive?(home&&home.live?JSON.parse(home.live):[]):(home?home.blocks:[]);
+ return `<div class="view"><div class="ov"><div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+ <div><h1 class="h1">${esc(s.name)} · ${esc(s.slogan)}</h1><div class="sub" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span class="tag t-live">运营中</span><span>整店模板：${esc(tplName(s.template))}</span><span>线上：第 ${S.releaseNo} 次发布 · ${S.history[0].at}</span><span>微信代码 1.30.8</span></div></div>
+ <div class="ways">
+  <a class="way hi" href="#ai">${ic('spark',20)}<span><b>AI 生成页面</b><span class="muted" style="font-size:12.5px">说出需求，AI 出 3 套方案，再手动微调</span></span></a>
+  <button type="button" class="way" data-a="go" data-to="templates/page">${ic('grid',20)}<span><b>从模板新建</b><span class="muted" style="font-size:12.5px">按行业场景挑页面模板或整店模板</span></span></button>
+  <button type="button" class="way" data-a="newblank">${ic('plus',20)}<span><b>空白页面</b><span class="muted" style="font-size:12.5px">从组件开始自由搭建</span></span></button>
+ </div>
+ <section class="card"><div class="head" style="margin-bottom:14px"><div><h2 class="h2">底部导航</h2><div class="sub">拖动卡片排序；点卡片改名称、换绑定页面或进入装修</div></div></div><div class="tabs-edit">${tabsHtml}</div></section>
+ <section class="card"><div class="head" style="margin-bottom:12px"><div><h2 class="h2">品牌配色</h2><div class="sub">主色用于导航选中态、按钮和强调组件</div></div></div><div class="swatches">${THEMES.map(c=>`<button type="button" class="sw ${s.theme===c?'on':''}" style="background:${c}" data-a="theme" data-c="${c}" aria-label="主色 ${c}"></button>`).join('')}</div></section>
+ <div class="row"><section class="card" style="flex:1.3;min-width:280px"><div class="head"><div><h2 class="h2">待发布的改动</h2><div class="sub">${ch.length} 项，发布后用户刷新即可看到</div></div><div class="actions"><a class="link" href="#publish">去发布 ›</a></div></div><div style="margin-top:6px">${pend}</div></section>
+ <section class="card" style="flex:1;min-width:240px"><h2 class="h2">微信生态</h2><div class="sub">小程序正式版与分发渠道</div><div style="margin-top:10px"><div class="kv"><span class="muted">正式版</span><b style="font-weight:500">代码 1.30.8 · 无需操作</b></div><div class="kv"><span class="muted">公众号菜单</span><b style="font-weight:500">已绑定 → ${esc(s.tabs[0]?.title||'')}</b></div><div class="kv"><span class="muted">小程序码</span><b style="font-weight:500">4 个页面已生成</b></div></div><a class="link" href="#publish" style="font-size:13px">管理分发 ›</a></section></div>
+ </div>
+ <aside class="preview"><div style="display:flex;width:100%;justify-content:space-between;align-items:center"><b>真机预览</b><div class="seg" role="group" aria-label="预览版本"><button type="button" class="${!showLive?'on':''}" data-a="prev" data-v="after">改动后</button><button type="button" class="${showLive?'on':''}" data-a="prev" data-v="live">线上</button></div></div>
+ ${phone(pb,showLive?S.siteLive.theme:s.theme,home?home.name:'首页',{tabs:showLive?S.siteLive.tabs:s.tabs})}
+ <button type="button" class="btn sm" data-a="qr">${ic('qr',15)}扫码在手机上看</button></aside></div></div>`;
+}
+const kindTag=k=>`<span class="tag ${k==='新增'?'t-new':k==='下线'?'t-draft':'t-pending'}">${k}</span>`;
+
+/* ---------- pages ---------- */
+function vPages(){
+ const q=S.q.trim();const f=S.filter;
+ const match=p=>(!q||p.name.includes(q)||p.path.includes(q))&&(f==='all'||status(p)===f);
+ const cnt=k=>S.pages.filter(p=>k==='all'||status(p)===k).length;
+ const groups=[['tab','底部导航页','顺序与真机底部一致'],['activity','活动与专题',''],['content','内容页',''],['archived','归档','被替换或不再使用的页面，可随时恢复']];
+ const tabOrder=S.site.tabs.map(t=>t.pageId);
+ const html=groups.map(([g,title,note])=>{
+  let ps=S.pages.filter(p=>p.group===g&&match(p));
+  if(g==='tab')ps.sort((a,b)=>tabOrder.indexOf(a.id)-tabOrder.indexOf(b.id));
+  const total=S.pages.filter(p=>p.group===g).length;
+  if(q||f!=='all'){if(!ps.length)return''}
+  const closed=S.closed[g]&&!q&&f==='all';
+  return `<section class="group ${g==='archived'?'arch':''} ${closed?'closed':''}"><button type="button" class="g-head" data-a="gtoggle" data-g="${g}" aria-expanded="${!closed}"><b>${title}</b><span class="faint">${total} 个</span><span class="faint" style="margin-left:auto">${note}</span>${ic(closed?'chev':'down',16)}</button>${closed?'':ps.map(prow).join('')||`<div class="muted" style="padding:14px 16px">这一组还没有页面</div>`}</section>`;
+ }).join('')||`<div class="card muted">没有符合条件的页面</div>`;
+ const chips=[['all','全部'],['pending','待发布'],['live','已上线'],['draft','草稿'],['offline','已下线'],['archived','归档']].map(([k,l])=>`<button type="button" class="chip ${f===k?'on':''}" data-a="filter" data-f="${k}">${l} ${cnt(k)}</button>`).join('');
+ return `<div class="view"><div class="head"><div><h1 class="h1">页面</h1><div class="sub">共 ${S.pages.length} 个 · 按用途分组，旧页面收进归档</div></div><div class="actions"><button type="button" class="btn" data-a="go" data-to="templates/page">${ic('grid',15)}从模板新建</button><button type="button" class="btn" data-a="newblank">${ic('plus',15)}空白页面</button><a class="btn primary" href="#ai">${ic('spark',15)}AI 生成页面</a></div></div>
+ <div class="filters"><label class="search">${ic('search',15)}<input id="q" type="search" placeholder="搜索页面名称或路径" value="${esc(S.q)}" aria-label="搜索页面"></label>${chips}</div>
+ <div style="display:flex;flex-direction:column;gap:14px">${html}</div></div>`;
+}
+function prow(p){
+ const tabIdx=S.site.tabs.findIndex(t=>t.pageId===p.id);
+ const sub=[tabIdx>=0?`导航 ${tabIdx+1}`:'',p.system?'系统页 · 菜单与会员卡在装修里配置':'',p.src,p.updated].filter(Boolean).join(' · ');
+ const t=TONES[p.blocks[0]?.tone]||TONES.plain;
+ return `<div class="prow"><div class="thumb">${p.blocks.slice(0,4).map((b,i)=>{const c=(TONES[b.tone]||TONES.plain)[0];return `<i style="background:${c==='__T'?S.site.theme:(c==='#FFFFFF'?'#EFE6DA':c)}"></i>`}).join('')}</div>
+ <div class="pname"><b>${esc(p.name)}${p.system?`<span class="faint">${ic('lock',13)}</span>`:''}</b><div class="faint">${esc(sub)}</div></div>
+ <div class="pstat">${stTag(p)}</div>
+ <div style="display:flex;gap:6px"><button type="button" class="btn soft sm" data-a="edit" data-id="${p.id}">装修</button><button type="button" class="iconbtn" data-a="menu" data-id="${p.id}" aria-label="更多操作" aria-expanded="${S.menu===p.id}">${ic('more',16)}</button></div>
+ ${S.menu===p.id?pmenu(p,tabIdx):''}</div>`;
+}
+function pmenu(p,tabIdx){
+ const st=status(p);const isTab=tabIdx>=0;
+ const it=(a,l,dis,why)=>`<button type="button" data-a="${a}" data-id="${p.id}" ${dis?'disabled':''} title="${esc(why||'')}">${l}${dis&&why?`<span class="faint" style="display:block">${why}</span>`:''}</button>`;
+ if(p.group==='archived')return `<div class="menu" role="menu">${it('preview','预览')}${it('restore','恢复到「'+({tab:'底部导航页',activity:'活动与专题',content:'内容页'}[p.prevGroup]||'内容页')+'」')}<hr>${it('del','彻底删除',p.live!=null,'上线过的页面只能归档')}</div>`;
+ return `<div class="menu" role="menu">${it('preview','预览')}${it('copy','复制页面')}${it('settab','设为底部导航入口',isTab||S.site.tabs.length>=5,isTab?'已是导航入口':'导航已满 5 个')}${it('qrp','生成小程序码')}${it('path','复制路径')}<hr>
+ ${p.offline?it('online','恢复上线'):it('offline','下线',isTab||p.live==null||p.system,isTab?'导航页需先换绑':p.system?'系统页不可下线':p.live==null?'还没上线过':'')}
+ ${it('archive','归档',isTab||p.system||(p.live!=null&&!p.offline),isTab?'导航页需先换绑':p.system?'系统页不可归档':(p.live!=null&&!p.offline)?'先下线再归档':'')}
+ ${it('del','删除',p.live!=null||isTab,'只有从未上线的草稿可删除')}</div>`;
+}
+
+/* ---------- editor ---------- */
+function vEditor(){
+ const p=P_(S.ed.id);if(!p){location.hash='pages';return''}
+ const e=S.ed;const sel=p.blocks.find(b=>b.id===e.sel);
+ const aiIds=e.msgs.filter(m=>m.role==='ai'&&m.state==='open').flatMap(m=>m.added||[]);
+ const st=status(p);
+ const pubBtn=st==='draft'?`<button type="button" class="btn primary sm" data-a="queue">${ic('send',14)}加入待发布</button>`:`<a class="btn primary sm" href="#publish">${ic('send',14)}去发布${pendingCount()?` <span class="cnt">${pendingCount()}</span>`:''}</a>`;
+ const left=e.ltab==='comp'?`<label class="search" style="width:100%">${ic('search',14)}<input id="compq" type="search" placeholder="搜索组件" aria-label="搜索组件" value="${esc(e.cq||'')}"></label><div class="faint">点击添加到${sel?'选中组件下方':'页面底部'}</div><div class="comp-grid">${COMPS.filter(c=>!e.cq||c.name.includes(e.cq)).map(c=>`<button type="button" class="comp" data-a="addcomp" data-t="${c.type}"><i style="background:${(TONES[c.tone][0]==='__T'?S.site.theme:TONES[c.tone][0])}"></i>${c.name}</button>`).join('')}</div>`
+ :e.ltab==='blocks'?`<div class="faint">整块插入，常用于活动页</div>${[['活动头图组','头图 + 倒计时 + 报名'],['书单推荐组','分区标题 + 书单 + 查看全部'],['会员转化组','会员卡 + 优惠券'],['社群引流组','群二维码 + 说明']].map(([n,d],i)=>`<button type="button" class="chg" style="text-align:left" data-a="addgroup" data-i="${i}"><span class="muted">${ic('plus',14)}</span><span><b>${n}</b><span class="faint">${d}</span></span></button>`).join('')}`
+ :'';
+ const layers=p.blocks.map((b,i)=>`<div class="layer ${e.sel===b.id?'on':''}">${ic('drag',13)}<button type="button" class="nm" data-a="selblk" data-id="${b.id}">${i+1}. ${esc(b.title)}</button>${aiIds.includes(b.id)?'<span class="tag t-acc">AI</span>':''}<button type="button" class="mini" data-a="mv" data-d="-1" data-id="${b.id}" aria-label="上移">${ic('up',13)}</button><button type="button" class="mini" data-a="mv" data-d="1" data-id="${b.id}" aria-label="下移">${ic('dn',13)}</button><button type="button" class="mini" data-a="rmblk" data-id="${b.id}" aria-label="删除">${ic('x',13)}</button></div>`).join('')||'<div class="faint">空页面</div>';
+ let right;
+ if(e.tab==='props'){
+  right=sel?`<div style="padding:16px;display:flex;flex-direction:column;gap:14px"><div class="faint">组件属性 · ${esc(sel.title)}</div>
+  <div class="field"><label for="f-title">标题</label><input id="f-title" class="input" data-bind="title" value="${esc(sel.title)}"></div>
+  <div class="field"><label for="f-sub">副标题 / 说明</label><input id="f-sub" class="input" data-bind="sub" value="${esc(sel.sub)}"></div>
+  <div class="field"><label>底色</label><div class="tone-row">${Object.keys(TONES).map(k=>`<button type="button" class="tone ${sel.tone===k?'on':''}" style="background:${TONES[k][0]==='__T'?S.site.theme:TONES[k][0]}" data-a="tone" data-k="${k}" aria-label="${k}"></button>`).join('')}</div></div>
+  <div class="field"><label for="f-link">点击跳转</label><select id="f-link" class="input"><option>不跳转</option>${S.pages.filter(x=>x.group!=='archived').map(x=>`<option>${esc(x.name)}</option>`).join('')}</select></div>
+  <div style="display:flex;gap:8px"><button type="button" class="btn sm" data-a="dupblk">复制组件</button><button type="button" class="btn sm danger" data-a="rmblk" data-id="${sel.id}">删除组件</button></div></div>`
+  :`<div style="padding:16px;display:flex;flex-direction:column;gap:14px"><div class="faint">页面属性 · 点画布上的组件可编辑组件属性</div>
+  <div class="field"><label for="f-pname">页面名称</label><input id="f-pname" class="input" data-pbind="name" value="${esc(p.name)}"></div>
+  <div class="field"><label>访问路径</label><div class="input faint" style="background:var(--soft)">${esc(p.path)}</div><span class="faint">系统自动生成，保证唯一</span></div>
+  <div class="field"><label for="f-share">分享标题</label><input id="f-share" class="input" value="${esc(S.site.name)} · ${esc(p.name)}"></div>
+  <label class="kv" style="align-items:center"><span>下拉刷新</span><input type="checkbox" checked></label><label class="kv" style="align-items:center"><span>触底加载</span><input type="checkbox" checked></label></div>`;
+ }else{
+  const msgs=e.msgs.map(m=>m.role==='u'?`<div class="bub-u">${esc(m.text)}</div>`:`<div class="bub-a"><div>${esc(m.text)}</div>${(m.items||[]).map(x=>`<div class="chg"><span style="color:var(--g)">${ic('check',14)}</span><span><b>${esc(x[0])}</b><span class="faint">${esc(x[1])}</span></span></div>`).join('')}${m.state==='open'?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn primary sm" data-a="aikeep" data-m="${m.id}">保留</button><button type="button" class="btn sm" data-a="aiundo" data-m="${m.id}">${ic('undo',14)}撤销</button>${m.alt?`<button type="button" class="btn sm" data-a="aialt" data-m="${m.id}">换一版</button>`:''}</div>`:m.state?`<span class="faint">${m.state==='kept'?'已保留':'已撤销'}</span>`:''}</div>`).join('');
+  right=`<div class="chat" id="chat"><div class="faint">AI 了解本页结构、品牌配色和你的内容库；每次修改都可撤销。${sel?`当前选中：「${esc(sel.title)}」，可以说「这个…」`:''}</div>${msgs||`<div class="bub-a">试试：「在第一个组件下面加一个中秋读书节的活动入口，带倒计时」</div>`}${e.busy?'<div class="bub-a"><div class="typing"><i></i><i></i><i></i></div></div>':''}</div>
+  <div class="composer"><div style="display:flex;flex-wrap:wrap;gap:6px">${['加一个中秋活动入口，带倒计时','改成节日氛围','精简首屏','补全空状态文案'].map(t=>`<button type="button" class="chip" data-a="aichip" data-t="${esc(t)}" ${e.busy?'disabled':''}>${t}</button>`).join('')}</div>
+  <form class="cbox" data-f="ai"><textarea id="aiin" aria-label="告诉 AI 要怎么改" placeholder="告诉 AI 要怎么改，或选中组件后说「这个…」"></textarea><button type="submit" class="iconbtn" style="background:var(--acc);color:#fff;border-color:var(--acc)" aria-label="发送" ${e.busy?'disabled':''}>${ic('send',15)}</button></form></div>`;
+ }
+ return `<div class="ed"><div class="ed-top"><a class="link" href="#pages" style="display:flex;align-items:center;gap:2px;color:var(--mute)">${ic('back',14)}页面</a><span style="width:1px;height:22px;background:var(--line)"></span><span class="name">${esc(p.name)}</span>${stTag(p)}<span class="faint" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><span style="color:var(--g)">${ic('check',13)}</span>${e.saved?'已自动保存 '+e.saved:'所有改动自动保存'}</span>
+ <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" data-a="qr">${ic('qr',15)}扫码预览</button>${p.live?`<button type="button" class="btn sm" data-a="compare">${ic('eye',15)}对比线上</button>`:''}${pubBtn}</div></div>
+ <div class="ed-body"><div class="ed-left"><div class="seg" role="tablist">${[['comp','组件'],['blocks','区块模板'],['tree','结构']].map(([k,l])=>`<button type="button" style="flex:1" class="${e.ltab===k?'on':''}" data-a="ltab" data-k="${k}">${l}</button>`).join('')}</div>${left}<div class="faint" style="margin-top:4px">页面结构 · ${p.blocks.length}</div><div style="display:flex;flex-direction:column;gap:2px">${layers}</div></div>
+ <div class="ed-center"><div class="faint" style="display:flex;gap:8px;align-items:center"><span class="tag t-live">实时数据预览</span>与真机一致 · 375 × 812</div>${p.system?`<div class="note" style="max-width:320px">「我的」是系统页：路径固定，不能下线或删除；这里只配置菜单、会员卡等内容。</div>`:''}${phone(p.blocks,S.site.theme,p.name,{size:'lg',click:true,sel:e.sel,ai:aiIds,active:Math.max(0,S.site.tabs.findIndex(t=>t.pageId===p.id)),noTabs:p.group!=='tab'})}</div>
+ <div class="ed-right"><div class="rtabs" role="tablist"><button type="button" class="${e.tab==='props'?'on':''}" data-a="rtab" data-k="props">属性${sel?' · '+esc(sel.title).slice(0,6):''}</button><button type="button" class="${e.tab==='ai'?'on':''}" data-a="rtab" data-k="ai">${ic('spark',15)}AI 助手</button></div>${right}</div></div></div>`;
+}
+function touch(p){p.updated='刚刚';S.ed.saved=hm()}
+function aiRun(text){
+ const p=P_(S.ed.id);const e=S.ed;e.msgs.push({role:'u',text});e.busy=true;render();
+ setTimeout(()=>{
+  const before=clone(p.blocks);let items=[],added=[],reply,alt=false;
+  const selIdx=p.blocks.findIndex(b=>b.id===e.sel);
+  if(/中秋|活动|入口|倒计时/.test(text)){
+   const at=Math.min(1,p.blocks.length);const b1={id:nid('b'),type:'banner',title:'中秋读书节 · 9.20–10.8',sub:'共读 6 本书，打卡领专栏券 › 立即报名',tone:'gold'},b2={id:nid('b'),type:'countdown',title:'距活动结束',sub:'18 天 06:21:40',tone:'cream'};
+   p.blocks.splice(at,0,b1,b2);added=[b1.id,b2.id];items=[['新增「活动横幅」',`位置：第 ${at+1} 个 · 链接 → 中秋读书节`],['新增「倒计时」','截止 10-08 23:59 · 暖金配色']];reply=`已改好 ${items.length} 处，画布上用橙框标出，可以点组件继续调：`;alt=true;
+  }else if(/节日|氛围/.test(text)){
+   p.blocks.forEach((b,i)=>{if(i%2===0&&b.tone!=='accent')b.tone='gold'});items=[['调整配色',`${Math.ceil(p.blocks.length/2)} 个组件改为暖金底色`],['保留品牌主色','会员卡、按钮仍用主色']];reply='换成了节日暖金氛围：';alt=true;
+  }else if(/精简/.test(text)){
+   const rm=p.blocks.slice(4);p.blocks=p.blocks.slice(0,4);items=rm.length?rm.map(b=>['移出首屏：'+b.title,'移到页面底部之外，可在撤销中恢复']):[['首屏已经很精简','当前只有 '+p.blocks.length+' 个组件，没有改动']];reply=rm.length?`首屏只保留前 4 个组件，移除了 ${rm.length} 个：`:'看了一下：';
+  }else if(/空状态|文案/.test(text)){
+   let n=0;p.blocks.forEach(b=>{if(/列表|精选|文章|推荐|书单|动态/.test(b.title+b.sub)&&!b.sub.includes('无数据')){b.sub+=' · 无数据时显示「内容准备中」';n++}});items=n?[['补全空状态',`${n} 个列表类组件补上了无数据文案`]]:[['无需补充','没有依赖数据的列表组件']];reply='检查了依赖数据的组件：';
+  }else if(/这个|它/.test(text)&&selIdx>=0){
+   const b=p.blocks[selIdx];b.title=b.title.replace(/^(.*)$/,'$1').slice(0,20);b.tone=b.tone==='gold'?'warm':'gold';items=[['调整「'+b.title+'」','底色改为'+(b.tone==='gold'?'暖金':'暖橙')]];reply='改了选中的组件：';alt=true;
+  }else{
+   const b1={id:nid('b'),type:'section',title:text.slice(0,12),sub:'AI 根据你的描述新增 · 可在属性里改',tone:'cream'};p.blocks.push(b1);added=[b1.id];items=[['新增「分区标题」','位置：页面底部']];reply='按你的描述先加了一个区块，你可以继续告诉我细节：';
+  }
+  if(JSON.stringify(before)!==JSON.stringify(p.blocks))touch(p);
+  e.msgs.push({id:nid('m'),role:'ai',text:reply,items,added,before,state:JSON.stringify(before)!==JSON.stringify(p.blocks)?'open':null,alt,prompt:text});
+  e.busy=false;render();const c=document.getElementById('chat');if(c)c.scrollTop=c.scrollHeight;
+ },900);
+}
+
+/* ---------- AI create ---------- */
+function vAI(){
+ const a=S.ai;
+ const pur=['活动页','商品页','内容页','落地页','首页改版'].map(x=>`<button type="button" class="chip ${a.purpose===x?'on':''}" data-a="purpose" data-v="${x}">${x}</button>`).join('');
+ let out;
+ if(a.loading)out=`<div class="gen-empty"><div class="typing"><i></i><i></i><i></i></div><b>正在生成 3 套方案…</b><span class="faint">读取内容库书单与优惠券，套用品牌配色</span></div>`;
+ else if(!a.opts)out=`<div class="gen-empty">${ic('spark',28)}<b style="color:var(--ink)">描述好需求后点「生成方案」</b><span class="faint">会同时给出 3 套结构不同的方案，全部由可编辑的真实组件组成</span></div>`;
+ else out=`<div class="head"><div><h2 class="h2">已生成 3 套方案</h2><div class="sub">书单和优惠券已绑定真实数据；选中后进入装修器继续调整</div></div><div class="actions faint">生成结果保存为草稿，不会直接上线</div></div><div class="opts">${a.opts.map((o,i)=>`<button type="button" class="opt ${a.pick===i?'on':''}" data-a="pick" data-i="${i}" aria-pressed="${a.pick===i}"><span style="display:flex;justify-content:space-between;width:100%"><b>方案 ${i+1} · ${o.name}</b>${a.pick===i?'<span class="tag t-acc">已选</span>':''}</span>${phone(o.blocks,a.brand?S.site.theme:'#2458A6',o.title,{size:'sm',noTabs:true})}<span class="muted" style="font-size:12px">${o.desc}</span></button>`).join('')}</div>`;
+ return `<div class="view"><div class="aic"><form class="card" data-f="gen" style="display:flex;flex-direction:column;gap:16px">
+ <h1 class="h2" style="display:flex;gap:8px;align-items:center;font-size:18px"><span style="color:var(--acc)">${ic('spark',20)}</span>AI 生成页面</h1>
+ <div class="field"><label>页面用途</label><div style="display:flex;flex-wrap:wrap;gap:6px">${pur}</div></div>
+ <div class="field"><label for="aidesc">描述你想要的页面</label><textarea id="aidesc" class="input" rows="5" maxlength="300">${esc(a.desc)}</textarea><span class="faint">${a.desc.length} / 300</span></div>
+ <div class="field"><label>使用我的素材</label>
+  <label class="mat"><span>内容库 · 书单「秋夜共读」</span><input type="checkbox" data-mat="books" ${a.mats.books?'checked':''}></label>
+  <label class="mat"><span>优惠券 · 专栏 8 折券</span><input type="checkbox" data-mat="coupon" ${a.mats.coupon?'checked':''}></label>
+  <button type="button" class="mat" style="border-style:dashed;color:var(--faint);background:none" data-a="toast" data-t="原型中未接入上传">${ic('upload',14)}上传图片或参考截图</button></div>
+ <label class="kv" style="align-items:center"><span>跟随品牌配色（${esc(S.site.name)}）</span><input type="checkbox" id="brand" ${a.brand?'checked':''}></label>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="submit" class="btn ${a.opts?'':'primary'}" ${a.loading?'disabled':''}>${ic(a.opts?'undo':'spark',15)}${a.opts?'重新生成':'生成方案'}</button>${a.opts?`<button type="button" class="btn primary" data-a="usepick" style="flex:1;justify-content:center">用方案 ${a.pick+1} 继续装修</button>`:''}</div>
+ </form><div style="display:flex;flex-direction:column;gap:14px;min-width:0">${out}</div></div></div>`;
+}
+function genOpts(){
+ const a=S.ai;const name=(a.desc.split(/[：:，,]/)[0]||a.purpose).slice(0,10);
+ const books=a.mats.books?B('推荐书单','6 本 · 秋夜共读（内容库）'):B('推荐内容','请在属性中绑定内容');
+ const coupon=a.mats.coupon?B('领券','专栏 8 折券 · 立即领取','gold'):B('行动按钮','按钮 → 请设置跳转','accent');
+ return [
+  {name:'信息完整',title:name,desc:'规则、内容、行动一屏讲清，适合首次访问的用户',blocks:[B(name,a.purpose+' · 头图','gold'),B('规则说明','打卡 7 天领专栏券'),clone(books),clone(coupon),B('立即报名','按钮 → 报名表单','accent')]},
+  {name:'氛围大图',title:name,desc:'大图头 + 倒计时，适合从公众号推文引流进来',blocks:[B(name,'沉浸式大图头','accent'),B('距活动结束','18 天 06:21:40','cream'),clone(books),clone(coupon)]},
+  {name:'社群导向',title:name,desc:'弱化规则，突出入群与互动，适合老用户召回',blocks:[B(name,'简洁图文','warm'),clone(books),B('往期回顾','文章列表'),B('加入读书群','群二维码','mint')]}
+ ].map(o=>(o.blocks.forEach(b=>b.id=nid('b')),o));
+}
+
+/* ---------- templates ---------- */
+function vTemplates(){
+ const t=S.tpl;const scenes=['全部','知识付费','电商零售','本地门店','活动营销'];
+ let cards;
+ if(t.tab==='shop'){
+  cards=TEMPLATES.filter(x=>t.scene==='全部'||x.scene===t.scene).map(x=>{const using=S.site.template===x.id,live=S.siteLive.template===x.id;return `<article class="tpl ${using?'using':''} ${t.pick===x.id?'picked':''}"><div class="tpl-art" style="background:${x.bg}">${[0,1,2].map(i=>`<div style="height:${130-i*14}px;opacity:${1-i*.15}"><i style="height:16px;background:${x.color}"></i><i></i><i style="width:70%"></i></div>`).join('')}</div>
+  <div class="tpl-body"><div style="display:flex;justify-content:space-between;gap:8px"><b>${x.name}</b>${using?`<span class="tag t-acc">${live?'使用中':'待发布'}</span>`:''}</div><div class="faint">${x.scene} · ${x.tabs.length} 个导航页 · 含导航与配色</div><div style="display:flex;gap:8px"><button type="button" class="btn sm" data-a="tplprev" data-id="${x.id}">${ic('eye',14)}预览</button><button type="button" class="btn sm ${using?'':'soft'}" data-a="tplpick" data-id="${x.id}" ${using?'disabled':''}>${using?'已应用':'应用'}</button></div></div></article>`}).join('');
+ }else{
+  const list=(t.tab==='page'?PAGE_TPLS:MY_TPLS).filter(x=>t.scene==='全部'||x[1]===t.scene||t.tab==='mine');
+  cards=list.map(([n,sc,tone],i)=>{const bg=TONES[tone][0]==='__T'?S.site.theme:TONES[tone][0];return `<article class="tpl"><div class="tpl-art" style="background:${bg}"><div style="height:130px"><i style="height:30px;background:${TONES[tone][0]==='__T'?'#fff':S.site.theme};opacity:.8"></i><i></i><i style="width:70%"></i><i></i></div></div><div class="tpl-body"><b>${n}</b><div class="faint">${sc} · 单页</div><div style="display:flex;gap:8px"><button type="button" class="btn sm soft" data-a="usepagetpl" data-n="${esc(n)}" data-tone="${tone}">用这个新建</button></div></div></article>`}).join('')||'<div class="muted">这个场景下还没有模板</div>';
+ }
+ let panel='';
+ const pk=TEMPLATES.find(x=>x.id===t.pick);
+ if(pk&&t.tab==='shop'){
+  const keep=S.site.tabs.find(x=>P_(x.pageId)?.system);
+  const replace=S.site.tabs.filter(x=>!P_(x.pageId)?.system);
+  const newTabs=pk.tabs.filter(x=>x!=='我的');
+  panel=`<aside class="card" style="display:flex;flex-direction:column;gap:14px;position:sticky;top:84px"><h2 class="h2" style="font-size:17px">应用「${pk.name}」</h2><div class="muted" style="font-size:13px">应用前先看清会发生什么：</div>
+  <div class="impact"><div><span style="color:var(--acc)">${ic('tab',16)}</span><span><b>底部导航变成 ${pk.tabs.length} 个</b><span class="faint">${pk.tabs.join(' / ')}</span></span></div>
+  <div><span style="color:var(--acc)">${ic('page',16)}</span><span><b>新增 ${newTabs.length} 个页面，替换 ${replace.length} 个</b><span class="faint">被替换的 ${replace.map(x=>P_(x.pageId)?.name).filter(Boolean).join('、')} 进入「归档」，可一键恢复</span></span></div>
+  <div><span style="color:var(--acc)">${ic('palette',16)}</span><span><b>${t.keepColor?'保留当前配色':'品牌主色换成模板色'}</b><span class="faint" style="display:inline-flex;gap:6px;align-items:center"><i style="width:12px;height:12px;border-radius:50%;background:${S.site.theme};display:inline-block"></i>→<i style="width:12px;height:12px;border-radius:50%;background:${t.keepColor?S.site.theme:pk.color};display:inline-block"></i></span></span></div>
+  ${keep?`<div><span style="color:var(--g)">${ic('lock',16)}</span><span><b>「我的」个人中心不受影响</b></span></div>`:''}</div>
+  <div class="note">应用后只是「待发布」，用户看不到；在「发布」确认后才生效。</div>
+  <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="keepColor" ${t.keepColor?'checked':''}>保留我的配色</label>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" data-a="tplcancel">取消</button><button type="button" class="btn primary" data-a="tplapply">确认应用</button></div></aside>`;
+ }
+ return `<div class="view"><div class="head"><div><h1 class="h1">模板库</h1><div class="sub">整店模板换整套风格；页面模板只新建一页</div></div><div class="actions"><button type="button" class="btn" data-a="savetpl">${ic('upload',15)}把当前小程序存为模板</button></div></div>
+ <div class="tabs-line" role="tablist">${[['shop','整店模板',TEMPLATES.length],['page','页面模板',PAGE_TPLS.length],['mine','我的模板',MY_TPLS.length]].map(([k,l,n])=>`<button type="button" class="${t.tab===k?'on':''}" data-a="tpltab" data-k="${k}">${l} ${n}</button>`).join('')}
+ <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;padding-bottom:6px">${scenes.map(s=>`<button type="button" class="chip ${t.scene===s?'on':''}" data-a="scene" data-s="${s}">${s==='全部'?'全部场景':s}</button>`).join('')}</div></div>
+ <div class="${panel?'tpl-layout':''}"><div class="tpl-grid">${cards}</div>${panel}</div></div>`;
+}
+
+/* ---------- publish ---------- */
+function vPublish(){
+ const ch=changes();const cs=checks();
+ if(!S.pub.sel)S.pub.sel={};ch.forEach(c=>{if(S.pub.sel[c.key]===undefined)S.pub.sel[c.key]=true});
+ const selN=ch.filter(c=>S.pub.sel[c.key]).length;
+ const blocked=cs.some(c=>c.block&&!c.ok);
+ const rows=ch.map(c=>`<label class="list-row" style="cursor:pointer"><input type="checkbox" data-sel="${c.key}" ${S.pub.sel[c.key]?'checked':''} style="width:16px;height:16px;accent-color:var(--acc)">${kindTag(c.kind)}<span style="flex:1;min-width:0"><b style="font-weight:500;display:block">${esc(c.name)}</b><span class="faint">${esc(c.desc)}</span></span>${P_(c.key)?`<button type="button" class="link" data-a="edit" data-id="${c.key}">查看</button>`:''}</label>`).join('')||`<div class="muted" style="padding:18px 0">没有待发布的改动。线上是第 ${S.releaseNo} 次发布（${S.history[0].at}）。</div>`;
+ const chk=cs.map(c=>`<div class="chk"><span style="color:${c.ok?(c.block?'var(--g)':'var(--faint)'):'var(--r)'}">${ic(c.ok?(c.block?'check':'info'):'warn',15)}</span>${esc(c.text)}</div>`).join('');
+ const hist=S.history.slice(0,6).map((h,i)=>`<div class="tl"><div class="tl-rail"><div class="tl-dot ${i===0?'on':''}"></div><div class="tl-line"></div></div><div class="tl-body"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:13.5px">第 ${h.no} 次发布</b>${i===0?'<span class="tag t-live">线上</span>':`<button type="button" class="link" style="font-size:12px" data-a="rollback" data-no="${h.no}">回滚到此</button>`}</div><div class="faint">${h.at} · ${h.by}</div><div class="muted" style="font-size:12.5px;margin-top:2px">${esc(h.note)}</div></div></div>`).join('');
+ const home=P_(S.site.tabs[0]?.pageId);
+ const dist=[['wechat','公众号菜单',`「进入小程序」→ ${S.site.tabs[0]?.title||'首页'}`,'设置','menu'],['qr','小程序码','为任意页面生成带参数的码','生成','qrgen'],['doc','公众号文章卡片','复制页面路径，插入推文','复制路径','copypath'],['send','服务通知','报名成功后推送活动提醒','配置','notify']].map(([i,t,d,b,k])=>`<div class="list-row"><div class="dist-ic">${ic(i,16)}</div><div style="flex:1;min-width:0"><b style="font-weight:500;display:block">${t}</b><span class="faint">${esc(d)}</span></div><button type="button" class="btn sm" data-a="dist" data-k="${k}">${b}</button></div>`).join('');
+ return `<div class="view"><div class="pub"><div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+ <div><h1 class="h1">发布</h1><div class="sub">确认改动 → 发布，用户刷新即可看到；每次发布自动存为可回滚的版本</div></div>
+ <section class="card"><h2 class="h2">本次要发布的改动</h2><div class="sub">${ch.length} 项 · 取消勾选的改动保留为待发布，不会丢</div><div style="margin-top:6px">${rows}</div>
+ <div class="checks" style="background:${blocked?'var(--rs)':'var(--gs)'}">${chk}</div>
+ ${blocked?'<div class="note err" style="margin-top:12px">有阻断项未通过，处理后才能发布。去「概览 → 底部导航」检查绑定。</div>':''}
+ <div style="display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap"><input id="pubnote" class="input" style="flex:1;min-width:200px" placeholder="这次改了什么（选填，方便以后回看）" aria-label="发布说明" value="${esc(S.pub.note)}" maxlength="100"><button type="button" class="btn" data-a="qr">${ic('qr',15)}扫码预览</button><button type="button" class="btn primary" data-a="publish" ${(!selN||blocked)?'disabled':''}>${ic('send',15)}发布第 ${S.releaseNo+1} 次${selN&&selN<ch.length?`（${selN} 项）`:''}</button></div></section>
+ <section class="card"><h2 class="h2">推送到微信生态</h2><div class="sub">让用户从公众号、群、线下找到这个小程序</div><div style="margin-top:4px">${dist}</div></section>
+ </div><div style="display:flex;flex-direction:column;gap:16px">
+ <section class="card"><h2 class="h2">发布记录</h2><div class="sub">回滚会先变成待发布，确认后才生效</div><div style="margin-top:16px">${hist}</div></section>
+ <section class="card"><button type="button" data-a="dev" aria-expanded="${S.pub.dev}" style="display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:0;text-align:left"><span><b class="h2" style="display:block">微信代码版本</b><span class="sub" style="display:block">开发者选项 · 仅技术更新小程序功能时使用</span></span>${ic(S.pub.dev?'down':'chev',16)}</button>
+ ${S.pub.dev?`<div class="steps">${[['上传代码','1.30.8'],['体验版','已生成'],['提交审核','已通过'],['正式版','1.30.8 线上']].map(([a,b])=>`<div><i></i><b style="font-size:12.5px;font-weight:500">${a}</b><div class="faint">${b}</div></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button type="button" class="btn sm" data-a="toast" data-t="原型中未接入微信开放平台">上传新代码包</button></div>`:''}
+ <div class="note ok" style="margin-top:14px">正式版运行正常。内容发布不需要动这里。</div></section>
+ </div></div></div>`;
+}
+
+/* ---------- modal & toast ---------- */
+function vModal(){
+ const m=S.modal;if(!m)return'';
+ let inner='';
+ if(m.type==='tab'){const t=S.site.tabs[m.i];const p=P_(t.pageId);const sys=p&&p.system;
+  const opts=S.pages.filter(x=>x.group!=='archived').map(x=>`<option value="${x.id}" ${x.id===t.pageId?'selected':''}>${esc(x.name)}（${stTag(x).replace(/<[^>]+>/g,'')}）</option>`).join('');
+  inner=`<h2 class="h2">导航 ${m.i+1} · ${esc(t.title)}</h2><div class="field"><label for="m-title">入口名称</label><input id="m-title" class="input" value="${esc(t.title)}" maxlength="4"><span class="faint">最多 4 个字</span></div>
+  <div class="field"><label for="m-page">绑定页面</label><select id="m-page" class="input" ${sys?'disabled':''}>${opts}</select>${sys?'<span class="faint">「我的」是系统页，固定绑定</span>':''}</div>
+  <div class="foot">${!sys&&S.site.tabs.length>2?'<button type="button" class="btn danger" data-a="tabremove" style="margin-right:auto">移除入口</button>':''}<button type="button" class="btn" data-a="tabgoedit">进入装修</button><button type="button" class="btn primary" data-a="tabsave">保存</button></div>`}
+ if(m.type==='confirm')inner=`<h2 class="h2">${esc(m.title)}</h2><div class="muted">${m.body}</div><div class="foot"><button type="button" class="btn" data-a="close">取消</button><button type="button" class="btn ${m.danger?'danger':'primary'}" data-a="confirm">${esc(m.ok)}</button></div>`;
+ if(m.type==='preview')inner=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">${esc(m.title)}</h2><button type="button" class="iconbtn" data-a="close" aria-label="关闭">${ic('x',16)}</button></div><div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">${m.body}</div>`;
+ if(m.type==='qr')inner=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2">扫码预览</h2><button type="button" class="iconbtn" data-a="close" aria-label="关闭">${ic('x',16)}</button></div><div style="display:grid;place-items:center;gap:10px"><div style="width:180px;height:180px;display:grid;grid-template-columns:repeat(9,1fr);gap:2px;padding:10px;border:1px solid var(--line);border-radius:12px">${Array.from({length:81},(_,i)=>`<i style="background:${(i*7+i%5*3)%3?'var(--ink)':'transparent'};border-radius:1px"></i>`).join('')}</div><span class="faint">示例二维码 · 实际为体验版码，5 分钟有效，显示的是「改动后」的样子</span></div>`;
+ return `<div class="scrim" data-a="scrim"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`;
+}
+let toastT;
+function toast(text,undo){S.toast={text,undo};clearTimeout(toastT);toastT=setTimeout(()=>{S.toast=null;render()},undo?6000:2800);render()}
+
+/* ---------- render ---------- */
+const root=document.getElementById('root');
+function render(){
+ const r=S.route.split('/')[0];
+ const focus=document.activeElement&&document.activeElement.id;const sel=focus&&document.activeElement.selectionStart;
+ let html;
+ if(r==='editor')html=vEditor();
+ else{const crumb={overview:'概览',pages:'页面',ai:'页面 / AI 生成页面',templates:'模板库',publish:'发布'}[r]||'概览';
+  const v={overview:vOverview,pages:vPages,ai:vAI,templates:vTemplates,publish:vPublish}[r]||vOverview;
+  html=`<div class="app">${sidebar()}<main class="main">${topbar(crumb)}${v()}</main></div>`}
+ root.innerHTML=html+vModal()+(S.toast?`<div class="toast" role="status">${esc(S.toast.text)}${S.toast.undo?'<button type="button" data-a="undo">撤销</button>':''}</div>`:'');
+ if(focus){const el=document.getElementById(focus);if(el){el.focus();try{if(sel!=null&&el.setSelectionRange)el.setSelectionRange(sel,sel)}catch(e){}}}
+}
+function route(){const h=location.hash.slice(1)||'overview';const [r,arg]=h.split('/');
+ if(r==='editor'){if(S.ed.id!==arg){S.ed={id:arg,sel:null,tab:'ai',ltab:'comp',msgs:[],busy:false,saved:null,cq:''}}}
+ if(r==='templates'&&arg){S.tpl.tab=arg}
+ S.route=r;S.menu=null;render();window.scrollTo(0,0)}
+window.addEventListener('hashchange',route);
+
+/* ---------- actions ---------- */
+function newPage(name,blocks,group,src){const id=nid('p');const p=pg(id,name,group,blocks,{live:null,src,updated:'刚刚',path:'/pages/custom/page-'+id});S.pages.push(p);return p}
+function confirmBox(title,body,ok,fn,danger){S.modal={type:'confirm',title,body,ok,fn,danger};render()}
+let lastUndo=null;
+const A={
+ go:d=>location.hash=d.to,
+ prev:d=>{S.prev=d.v;render()},
+ qr:()=>{S.modal={type:'qr'};render()},
+ close:()=>{S.modal=null;render()},
+ scrim:(d,ev)=>{if(ev.target.classList.contains('scrim')){S.modal=null;render()}},
+ confirm:()=>{const f=S.modal.fn;S.modal=null;f();},
+ toast:d=>toast(d.t),
+ theme:d=>{const old=S.site.theme;S.site.theme=d.c;lastUndo=()=>S.site.theme=old;toast('主色已改，发布后生效',true)},
+ undo:()=>{if(lastUndo){lastUndo();lastUndo=null}S.toast=null;render()},
+ tabedit:d=>{S.modal={type:'tab',i:+d.i};render()},
+ tabadd:()=>{const cand=S.pages.find(p=>(p.group==='activity'||p.group==='content')&&status(p)==='live');S.site.tabs.splice(S.site.tabs.length-1,0,{title:'新入口',pageId:cand?cand.id:''});S.modal={type:'tab',i:S.site.tabs.length-2};render()},
+ tabsave:()=>{const t=S.site.tabs[S.modal.i];const title=document.getElementById('m-title').value.trim()||t.title;const sel=document.getElementById('m-page');const pid=sel&&!sel.disabled?sel.value:t.pageId;
+  const old=clone(S.site.tabs);t.title=title;if(pid!==t.pageId){const np=P_(pid);const op=P_(t.pageId);if(np&&np.group!=='tab'){np.prevGroup=np.group;np.group='tab'}if(op&&!S.site.tabs.some(x=>x!==t&&x.pageId===op.id)&&!op.system){op.group=op.prevGroup&&op.prevGroup!=='tab'?op.prevGroup:'content'}t.pageId=pid}
+  S.modal=null;lastUndo=()=>S.site.tabs=old;toast('导航已更新，发布后生效',true)},
+ tabremove:()=>{const i=S.modal.i;const t=S.site.tabs[i];S.modal=null;confirmBox('移除导航入口「'+t.title+'」？','页面本身不会删除，会移到「内容页」分组。','移除',()=>{const p=P_(t.pageId);S.site.tabs.splice(i,1);if(p&&!S.site.tabs.some(x=>x.pageId===p.id))p.group='content';toast('已移除，发布后生效')},true)},
+ tabgoedit:()=>{const t=S.site.tabs[S.modal.i];S.modal=null;location.hash='editor/'+t.pageId},
+ newblank:()=>{const p=newPage('未命名页面',[],'content','空白新建');location.hash='editor/'+p.id},
+ filter:d=>{S.filter=d.f;render()},
+ gtoggle:d=>{S.closed[d.g]=!S.closed[d.g];render()},
+ menu:(d,ev)=>{ev.stopPropagation();S.menu=S.menu===d.id?null:d.id;render()},
+ edit:d=>location.hash='editor/'+d.id,
+ preview:d=>{const p=P_(d.id);S.menu=null;S.modal={type:'preview',title:'预览 · '+p.name,body:`<div style="text-align:center"><div class="faint" style="margin-bottom:6px">当前编辑</div>${phone(p.blocks,S.site.theme,p.name,{size:'sm',noTabs:p.group!=='tab'})}</div>${p.live?`<div style="text-align:center"><div class="faint" style="margin-bottom:6px">线上</div>${phone(JSON.parse(p.live),S.siteLive.theme,p.name,{size:'sm',noTabs:p.group!=='tab'})}</div>`:''}`};render()},
+ copy:d=>{const p=P_(d.id);const n=newPage(p.name+' 副本',clone(p.blocks).map(b=>(b.id=nid('b'),b)),p.group==='tab'?'content':p.group,'复制自 '+p.name);S.menu=null;toast('已复制为草稿「'+n.name+'」')},
+ settab:d=>{const p=P_(d.id);S.menu=null;p.prevGroup=p.group;p.group='tab';S.site.tabs.splice(S.site.tabs.length-1,0,{title:p.name.slice(0,4),pageId:p.id});toast('已加入底部导航，发布后生效');},
+ qrp:d=>{S.menu=null;toast('小程序码已生成：'+P_(d.id).name)},
+ path:d=>{const p=P_(d.id);S.menu=null;try{navigator.clipboard.writeText(p.path)}catch(e){}toast('已复制路径 '+p.path)},
+ offline:d=>{const p=P_(d.id);S.menu=null;p.offline=true;lastUndo=()=>p.offline=false;toast('已标记下线，发布后用户将看不到',true)},
+ online:d=>{const p=P_(d.id);S.menu=null;p.offline=false;toast('已标记恢复上线，发布后生效')},
+ archive:d=>{const p=P_(d.id);S.menu=null;p.prevGroup=p.group;p.group='archived';lastUndo=()=>p.group=p.prevGroup;toast('已归档「'+p.name+'」',true)},
+ restore:d=>{const p=P_(d.id);S.menu=null;p.group=p.prevGroup&&p.prevGroup!=='tab'?p.prevGroup:'content';toast('已恢复到「'+({activity:'活动与专题',content:'内容页'}[p.group])+'」')},
+ del:d=>{const p=P_(d.id);S.menu=null;confirmBox('删除「'+p.name+'」？','这个草稿从未上线，删除后无法恢复。','删除',()=>{S.pages=S.pages.filter(x=>x!==p);toast('已删除')},true)},
+ // editor
+ ltab:d=>{S.ed.ltab=d.k;render()},
+ rtab:d=>{S.ed.tab=d.k;render()},
+ selblk:(d)=>{S.ed.sel=S.ed.sel===d.id?null:d.id;if(S.ed.sel&&S.ed.tab!=='props'&&!S.ed.msgs.length)S.ed.tab='props';render()},
+ addcomp:d=>{const p=P_(S.ed.id);const c=COMPS.find(x=>x.type===d.t);const b={id:nid('b'),type:c.type,title:c.title,sub:c.sub,tone:c.tone};const i=p.blocks.findIndex(x=>x.id===S.ed.sel);p.blocks.splice(i>=0?i+1:p.blocks.length,0,b);S.ed.sel=b.id;S.ed.tab='props';touch(p);render()},
+ addgroup:d=>{const p=P_(S.ed.id);const g=[[B('活动头图','主视觉 · 活动时间','gold'),B('距活动结束','18 天 06:21:40','cream'),B('立即报名','按钮 → 报名表单','accent')],[B('推荐书单','分区标题 · 查看全部 ›'),B('书单','6 本 · 内容库')],[B('会员卡','开通会员享折扣','accent'),B('优惠券','专栏 8 折券','gold')],[B('加入读书群','群二维码 · 说明','mint')]][+d.i];p.blocks.push(...clone(g).map(b=>(b.id=nid('b'),b)));touch(p);render()},
+ mv:d=>{const p=P_(S.ed.id);const i=p.blocks.findIndex(b=>b.id===d.id);const j=i+(+d.d);if(j<0||j>=p.blocks.length)return;[p.blocks[i],p.blocks[j]]=[p.blocks[j],p.blocks[i]];touch(p);render()},
+ rmblk:d=>{const p=P_(S.ed.id);const i=p.blocks.findIndex(b=>b.id===d.id);const b=p.blocks[i];p.blocks.splice(i,1);if(S.ed.sel===d.id)S.ed.sel=null;touch(p);lastUndo=()=>p.blocks.splice(i,0,b);toast('已删除「'+b.title+'」',true)},
+ dupblk:()=>{const p=P_(S.ed.id);const i=p.blocks.findIndex(b=>b.id===S.ed.sel);const b=clone(p.blocks[i]);b.id=nid('b');p.blocks.splice(i+1,0,b);S.ed.sel=b.id;touch(p);render()},
+ tone:d=>{const p=P_(S.ed.id);const b=p.blocks.find(x=>x.id===S.ed.sel);b.tone=d.k;touch(p);render()},
+ queue:()=>{const p=P_(S.ed.id);p.queued=true;toast('已加入待发布，去「发布」确认后上线')},
+ compare:()=>A.preview({id:S.ed.id}),
+ aichip:d=>aiRun(d.t),
+ aikeep:d=>{const m=S.ed.msgs.find(x=>x.id===d.m);m.state='kept';render()},
+ aiundo:d=>{const m=S.ed.msgs.find(x=>x.id===d.m);const p=P_(S.ed.id);p.blocks=clone(m.before);m.state='undone';touch(p);render()},
+ aialt:d=>{const m=S.ed.msgs.find(x=>x.id===d.m);const p=P_(S.ed.id);p.blocks=clone(m.before);m.state='undone';render();aiRun(m.prompt.includes('换一版')?m.prompt:m.prompt+'（换一版）')},
+ // ai create
+ purpose:d=>{S.ai.purpose=d.v;render()},
+ pick:d=>{S.ai.pick=+d.i;render()},
+ usepick:()=>{const o=S.ai.opts[S.ai.pick];const grp=S.ai.purpose==='内容页'?'content':'activity';const p=newPage(o.title,clone(o.blocks),grp,'AI 生成');S.ai.opts=null;S.ed={id:p.id,sel:null,tab:'ai',ltab:'comp',busy:false,saved:null,cq:'',msgs:[{id:nid('m'),role:'ai',text:`「${o.name}」方案已存为草稿。继续告诉我要改什么，或直接点组件调整；改好后点「加入待发布」。`,items:[]}]};location.hash='editor/'+p.id},
+ // templates
+ tpltab:d=>{S.tpl.tab=d.k;S.tpl.pick=null;render()},
+ scene:d=>{S.tpl.scene=d.s;render()},
+ tplpick:d=>{S.tpl.pick=d.id;render()},
+ tplcancel:()=>{S.tpl.pick=null;render()},
+ tplprev:d=>{const t=TEMPLATES.find(x=>x.id===d.id);S.modal={type:'preview',title:'预览 · '+t.name,body:t.tabs.slice(0,3).map((n,i)=>`<div style="text-align:center">${phone([B(n,'模板示例内容',i?'plain':'warm'),B('分区标题','查看全部 ›'),B('内容列表','示例'),B('行动按钮','示例','accent')],t.color,n,{size:'sm',tabs:t.tabs.map(x=>({title:x})),active:i})}</div>`).join('')};render()},
+ tplapply:()=>{const t=TEMPLATES.find(x=>x.id===S.tpl.pick);const before={site:clone(S.site),groups:S.pages.map(p=>[p.id,p.group,p.prevGroup])};const created=[];
+  const sysTab=S.site.tabs.find(x=>P_(x.pageId)?.system);
+  S.site.tabs.forEach(x=>{const p=P_(x.pageId);if(p&&!p.system){p.prevGroup='content';p.group='archived'}});
+  const tabs=t.tabs.filter(n=>n!=='我的').map(n=>{const p=newPage(t.name.split(' ')[0]+n,[B(n,t.name+' 模板','warm'),B('分区标题','查看全部 ›'),B('内容列表','绑定你的内容')],'tab',t.name);p.queued=true;created.push(p.id);return {title:n,pageId:p.id}});
+  if(sysTab)tabs.push(sysTab);S.site.tabs=tabs;S.site.template=t.id;if(!S.tpl.keepColor)S.site.theme=t.color;S.tpl.pick=null;
+  lastUndo=()=>{S.site=before.site;S.pages=S.pages.filter(p=>!created.includes(p.id));before.groups.forEach(([id,g,pg])=>{const p=P_(id);if(p){p.group=g;p.prevGroup=pg}})};
+  toast('已应用「'+t.name+'」，发布后用户才会看到',true)},
+ usepagetpl:d=>{const p=newPage(d.n,[B(d.n,'页面模板 · 可替换图文',d.tone),B('分区标题','查看全部 ›'),B('内容列表','绑定你的内容'),B('行动按钮','按钮 → 请设置跳转','accent')],'activity','页面模板');location.hash='editor/'+p.id},
+ savetpl:()=>toast('已存为「我的模板」：'+S.site.name+'（'+now()+'）'),
+ // publish
+ publish:()=>{const ch=changes().filter(c=>S.pub.sel[c.key]);if(!ch.length)return;
+  confirmBox(`发布第 ${S.releaseNo+1} 次？`,`${ch.map(c=>c.kind+'「'+esc(c.name)+'」').join('、')}。发布后用户刷新即可看到，可随时回滚。`,'确认发布',()=>{
+   ch.forEach(c=>{if(['theme','tabs','template'].includes(c.key))S.siteLive[c.key]=clone(S.site[c.key]);else{const p=P_(c.key);p.live=JSON.stringify(p.blocks);p.liveOffline=p.offline;p.queued=false}});
+   S.releaseNo++;S.history.unshift({no:S.releaseNo,at:now(),by:'Bruce',note:S.pub.note||ch.map(c=>c.name).join('、'),snap:snap()});S.pub={sel:null,note:'',dev:S.pub.dev};
+   toast(`已发布第 ${S.releaseNo} 次，用户刷新即可看到`)})},
+ rollback:d=>{const h=S.history.find(x=>x.no===+d.no);confirmBox(`回滚到第 ${h.no} 次发布？`,'会把页面和导航还原成当时的内容，变成「待发布」改动；你确认发布后才对用户生效。','还原为待发布',()=>{const s=h.snap;S.site.theme=s.siteLive.theme;S.site.tabs=clone(s.siteLive.tabs);S.site.template=s.siteLive.template;Object.entries(s.pages).forEach(([id,v])=>{const p=P_(id);if(!p)return;if(v.live){p.blocks=JSON.parse(v.live);p.offline=v.liveOffline}});S.pub.sel=null;toast(`已还原为第 ${h.no} 次的内容，确认后发布生效`)})},
+ dev:()=>{S.pub.dev=!S.pub.dev;render()},
+ dist:d=>toast({menu:'公众号菜单已绑定到「'+(S.site.tabs[0]?.title)+'」',qrgen:'已生成小程序码（示例）',copypath:'已复制首页路径',notify:'服务通知模板已配置（示例）'}[d.k])
+};
+document.addEventListener('click',ev=>{
+ const el=ev.target.closest('[data-a]');
+ if(!el){if(S.menu){S.menu=null;render()}return}
+ if(el.tagName==='A')return;
+ const a=el.dataset.a;if(a!=='scrim'&&a!=='menu'&&S.menu&&!el.closest('.menu')){S.menu=null}
+ if(A[a]){ev.preventDefault();A[a](el.dataset,ev)}
+});
+document.addEventListener('input',ev=>{
+ const t=ev.target;
+ if(t.id==='q'){S.q=t.value;render();return}
+ if(t.id==='compq'){S.ed.cq=t.value;render();return}
+ if(t.id==='aidesc'){S.ai.desc=t.value;return}
+ if(t.id==='pubnote'){S.pub.note=t.value;return}
+ if(t.dataset.bind){const p=P_(S.ed.id);const b=p.blocks.find(x=>x.id===S.ed.sel);b[t.dataset.bind]=t.value;touch(p);render();return}
+ if(t.dataset.pbind){const p=P_(S.ed.id);p[t.dataset.pbind]=t.value;touch(p);render();return}
+});
+document.addEventListener('change',ev=>{
+ const t=ev.target;
+ if(t.dataset.sel){S.pub.sel[t.dataset.sel]=t.checked;render()}
+ if(t.dataset.mat){S.ai.mats[t.dataset.mat]=t.checked}
+ if(t.id==='brand'){S.ai.brand=t.checked;render()}
+ if(t.id==='keepColor'){S.tpl.keepColor=t.checked;render()}
+});
+document.addEventListener('submit',ev=>{
+ const f=ev.target.dataset.f;ev.preventDefault();
+ if(f==='ai'){const v=document.getElementById('aiin').value.trim();if(v&&!S.ed.busy)aiRun(v)}
+ if(f==='gen'){S.ai.loading=true;S.ai.opts=null;render();setTimeout(()=>{S.ai.opts=genOpts();S.ai.pick=0;S.ai.loading=false;render()},1200)}
+});
+document.addEventListener('keydown',ev=>{
+ if(ev.key==='Escape'&&(S.modal||S.menu)){S.modal=null;S.menu=null;render()}
+ if(ev.key==='Enter'&&!ev.shiftKey&&ev.target.id==='aiin'){ev.preventDefault();ev.target.form.requestSubmit()}
+});
+/* drag tabs */
+let dragI=null;
+document.addEventListener('dragstart',ev=>{const c=ev.target.closest&&ev.target.closest('[data-drag]');if(!c)return;dragI=+c.dataset.drag;c.classList.add('dragging');try{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(dragI))}catch(e){}});
+document.addEventListener('dragover',ev=>{const c=ev.target.closest&&ev.target.closest('[data-drag]');if(c&&dragI!==null){ev.preventDefault();document.querySelectorAll('.tabcard.over').forEach(x=>x.classList.remove('over'));c.classList.add('over')}});
+document.addEventListener('drop',ev=>{const c=ev.target.closest&&ev.target.closest('[data-drag]');if(!c||dragI===null)return;ev.preventDefault();const to=+c.dataset.drag;if(to!==dragI){const old=clone(S.site.tabs);const [m]=S.site.tabs.splice(dragI,1);S.site.tabs.splice(to,0,m);lastUndo=()=>S.site.tabs=old;dragI=null;toast('导航顺序已调整，发布后生效',true)}dragI=null;render()});
+document.addEventListener('dragend',()=>{dragI=null;document.querySelectorAll('.dragging,.over').forEach(x=>x.classList.remove('dragging','over'))});
+
+route();
+})();
+</script>
+</body></html>

@@ -1,118 +1,138 @@
 <template>
-  <div class="mini-page" v-loading="loading">
-    <header class="page-head">
+  <div class="mini-wb mw-page tpl-view" v-loading="loading">
+    <div class="head">
       <div>
-        <div class="page-head__kicker">小程序 · 模板库</div>
-        <h1>模板库</h1>
-        <p>整店模板改导航与版式；页面模板只生成单页草稿。套用后请去发布。</p>
+        <h1 class="h1">模板库</h1>
+        <div class="sub">整店模板换整套风格；页面模板只新建一页</div>
       </div>
-      <el-button @click="load">刷新</el-button>
-    </header>
+      <div class="actions">
+        <button type="button" class="btn" :disabled="creating" @click="createFromCurrent">
+          把当前小程序存为模板
+        </button>
+      </div>
+    </div>
 
-    <el-tabs v-model="tab" class="mini-tabs">
-      <el-tab-pane label="整店" name="store" />
-      <el-tab-pane label="页面" name="page" />
-      <el-tab-pane label="我的" name="mine" />
-    </el-tabs>
+    <div class="tabs-line" role="tablist">
+      <button type="button" role="tab" :class="{ on: tab === 'store' }" @click="tab = 'store'">
+        整店模板 {{ storeTemplates.length }}
+      </button>
+      <button type="button" role="tab" :class="{ on: tab === 'page' }" @click="tab = 'page'">
+        页面模板 {{ pageTemplates.length }}
+      </button>
+      <button type="button" role="tab" :class="{ on: tab === 'mine' }" @click="tab = 'mine'">
+        我的模板 {{ myTemplates.length }}
+      </button>
+    </div>
 
-    <section v-show="tab === 'store'" class="panel">
-      <div v-if="storeTemplates.length" class="card-grid">
+    <div v-show="tab === 'store'" class="tpl-layout" :class="{ 'has-panel': impactVisible }">
+      <div v-if="storeTemplates.length" class="tpl-grid">
         <div
           v-for="item in storeTemplates"
           :key="item.id"
-          class="tpl-card"
-          :class="{ live: isInUse(item) }"
+          class="tpl"
+          :class="{ using: isInUse(item), picked: pendingActivate?.id === Number(item.id) }"
         >
-          <div class="tpl-card__badges">
-            <span v-if="isInUse(item)" class="badge live">使用中</span>
-            <span v-else class="badge">备用</span>
+          <div class="tpl-art" :style="{ background: artBg(item) }">
+            <div v-for="n in 3" :key="n"><i /><i /><i /></div>
           </div>
-          <div class="tpl-card__name">{{ displayName(item) }}</div>
-          <div class="tpl-card__meta">{{ item.pageCount || 0 }} 页 · {{ formatTime(item.updateTime || item.createTime) }}</div>
-          <div class="tpl-card__actions">
-            <el-button
+          <div class="tpl-body">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+              <b style="font-weight: 600">{{ displayName(item) }}</b>
+              <span v-if="isInUse(item)" class="tag t-acc">使用中</span>
+            </div>
+            <div class="faint">
+              {{ item.pageCount || 0 }} 个导航页 · 含导航与配色
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 4px">
+              <button
+                v-if="!isInUse(item)"
+                type="button"
+                class="btn sm primary"
+                :disabled="activatingId === item.id"
+                @click="confirmActivate(item)"
+              >
+                应用
+              </button>
+              <span v-else class="tag t-live">已应用</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="gen-empty" style="min-height: 200px">这个场景下还没有模板</div>
+
+      <aside v-if="impactVisible && pendingActivate" class="card impact-panel">
+        <h2 class="h2">应用「{{ pendingActivate.name }}」</h2>
+        <div class="sub" style="margin-bottom: 12px">应用前先看清会发生什么：</div>
+        <div class="impact">
+          <div>
+            <b>底部导航变成 {{ impactTabs.length || impactPageCount }} 个</b>
+            <span class="faint" v-if="impactTabs.length">
+              {{ impactTabs.map((t) => t.text || '导航').join(' · ') }}
+            </span>
+          </div>
+          <div>
+            <b>新增约 {{ impactPageCount }} 个页面</b>
+            <span class="faint">被替换的旧页进归档；「我的」个人中心不受影响</span>
+          </div>
+          <div>
+            <b>{{ keepTheme ? '保留当前配色' : '品牌主色换成模板色' }}</b>
+          </div>
+        </div>
+        <div class="note" style="margin: 12px 0">
+          应用后只是「待发布」，用户看不到；在「发布」确认后才生效。
+        </div>
+        <label class="kv" style="align-items: center; cursor: pointer">
+          <span>保留我的配色</span>
+          <input v-model="keepTheme" type="checkbox" />
+        </label>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px">
+          <button type="button" class="btn sm" @click="impactVisible = false">取消</button>
+          <button type="button" class="btn sm primary" :disabled="activatingId != null" @click="doActivate">
+            确认应用
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <div v-show="tab === 'page'">
+      <div v-if="pageTemplates.length" class="tpl-grid">
+        <div v-for="tpl in pageTemplates" :key="String(tpl.id || tpl.key)" class="tpl">
+          <div class="tpl-art"><div><i /><i /><i /></div></div>
+          <div class="tpl-body">
+            <b style="font-weight: 600">{{ tpl.name }}</b>
+            <div class="faint">{{ tpl.description || '单页' }}</div>
+            <button type="button" class="btn sm primary" @click="applyPageTpl(tpl)">用这个新建</button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="gen-empty" style="min-height: 200px">这个场景下还没有模板</div>
+    </div>
+
+    <div v-show="tab === 'mine'">
+      <div v-if="myTemplates.length" class="tpl-grid">
+        <div v-for="item in myTemplates" :key="item.id" class="tpl" :class="{ using: isInUse(item) }">
+          <div class="tpl-art"><div><i /><i /><i /></div></div>
+          <div class="tpl-body">
+            <b style="font-weight: 600">{{ displayName(item) }}</b>
+            <div class="faint">我的模板 · {{ formatTime(item.updateTime || item.createTime) }}</div>
+            <button
               v-if="!isInUse(item)"
-              type="primary"
-              size="small"
-              class="btn-terracotta"
-              :loading="activatingId === item.id"
+              type="button"
+              class="btn sm primary"
               @click="confirmActivate(item)"
             >
-              套用
-            </el-button>
-            <el-tag v-else size="small" type="success" effect="plain">当前模板</el-tag>
+              应用
+            </button>
           </div>
         </div>
       </div>
-      <el-empty v-else description="暂无整店模板" />
-    </section>
-
-    <section v-show="tab === 'page'" class="panel">
-      <div v-if="pageTemplates.length" class="card-grid">
-        <div v-for="tpl in pageTemplates" :key="String(tpl.id || tpl.key)" class="tpl-card">
-          <div class="tpl-card__name">{{ tpl.name }}</div>
-          <div class="tpl-card__meta">{{ tpl.description || '单页模板' }}</div>
-          <div class="tpl-card__actions">
-            <el-button size="small" type="primary" class="btn-terracotta" @click="applyPageTpl(tpl)">套用为草稿</el-button>
-          </div>
-        </div>
+      <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
+        <span>还没有我的模板</span>
+        <button type="button" class="btn primary" :disabled="creating" @click="createFromCurrent">
+          把当前小程序存为模板
+        </button>
       </div>
-      <el-empty v-else description="暂无页面模板" />
-    </section>
-
-    <section v-show="tab === 'mine'" class="panel">
-      <el-empty description="将当前站点另存为整店模板，可在下方操作">
-        <el-button type="primary" class="btn-terracotta" :loading="creating" @click="createFromCurrent">从当前新建</el-button>
-      </el-empty>
-      <div v-if="myTemplates.length" class="card-grid" style="margin-top: 16px">
-        <div v-for="item in myTemplates" :key="item.id" class="tpl-card">
-          <div class="tpl-card__name">{{ displayName(item) }}</div>
-          <div class="tpl-card__meta">我的模板 · {{ formatTime(item.updateTime || item.createTime) }}</div>
-          <div class="tpl-card__actions">
-            <el-button
-              v-if="!isInUse(item)"
-              size="small"
-              type="primary"
-              class="btn-terracotta"
-              @click="confirmActivate(item)"
-            >
-              套用
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <el-drawer v-model="impactVisible" title="套用整店模板 · 影响预览" size="440px">
-      <p class="impact-lead">
-        套用「{{ pendingActivate?.name }}」后为<strong>待发布</strong>，用户看不到，需在发布页确认。
-      </p>
-      <h3 class="impact-h">底部导航将变成</h3>
-      <ul v-if="impactTabs.length" class="impact-list">
-        <li v-for="(t, i) in impactTabs" :key="i">
-          {{ i + 1 }}. {{ t.text || `导航 ${i + 1}` }} → {{ t.pagePath || t.pageName || '未绑定' }}
-        </li>
-      </ul>
-      <el-empty v-else description="模板未带导航快照，套用后以模板侧配置为准" :image-size="48" />
-
-      <h3 class="impact-h">页面影响</h3>
-      <ul class="impact-list">
-        <li>模板约 {{ impactPageCount }} 页；当前站点约 {{ currentPageCount }} 页</li>
-        <li>被替换的旧页会进入「归档」，可一键恢复</li>
-        <li>系统页「我的」不受影响</li>
-      </ul>
-
-      <h3 class="impact-h">配色</h3>
-      <el-checkbox v-model="keepTheme">保留我的配色（不覆盖主题色）</el-checkbox>
-      <p class="impact-note">{{ keepTheme ? '将尽量保留当前主题配置' : '模板配色将覆盖当前主题（写入草稿）' }}</p>
-
-      <template #footer>
-        <el-button @click="impactVisible = false">取消</el-button>
-        <el-button type="primary" class="btn-terracotta" :loading="activatingId != null" @click="doActivate">
-          确认套用
-        </el-button>
-      </template>
-    </el-drawer>
+    </div>
   </div>
 </template>
 
@@ -169,6 +189,12 @@ function formatTime(t?: string) {
   return t ? String(t).replace('T', ' ').slice(0, 16) : '—'
 }
 
+function artBg(item: ReleaseRecord) {
+  const colors = ['#F4E3D3', '#E1E9F5', '#DDEFE4', '#F5E7CC', '#F3DDE6', '#E9E4DD']
+  const id = Number(item.id) || 0
+  return colors[id % colors.length]
+}
+
 async function confirmActivate(item: ReleaseRecord) {
   const id = toReleaseId(item.id)
   if (id == null) return
@@ -192,7 +218,6 @@ async function doActivate() {
   activatingId.value = pendingActivate.value.id
   try {
     await activateStoreTemplate(pendingActivate.value.id)
-    // keepTheme：一期文案提示；后端 activate 暂无独立配色开关，后续可接
     ElMessage.success(
       keepTheme.value
         ? '已套用整店模板（已尽量保留站点信息），请去发布让用户看到'
@@ -262,67 +287,35 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.mini-page {
-  --mini-bg: #f6f2ec;
-  --mini-terracotta: #b4430f;
-  --mini-ink: #2c241c;
-  --mini-muted: #7a6e64;
-  --mini-card: #fffcf8;
-  --mini-border: #e5ddd2;
-  min-height: 100%;
+.tpl-view.mw-page {
   margin: -16px;
-  padding: 20px 24px 40px;
-  background: var(--mini-bg);
-  color: var(--mini-ink);
 }
-.page-head {
+.impact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  b { font-weight: 500; display: block; }
+}
+.impact-panel {
+  position: sticky;
+  top: 84px;
+}
+.tpl-layout.has-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+.kv {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  h1 { margin: 4px 0; font-size: 24px; }
-  p { margin: 0; color: var(--mini-muted); font-size: 13px; max-width: 560px; }
-}
-.page-head__kicker { font-size: 12px; color: var(--mini-muted); }
-.btn-terracotta {
-  --el-button-bg-color: var(--mini-terracotta);
-  --el-button-border-color: var(--mini-terracotta);
-  --el-button-hover-bg-color: #9a390d;
-  --el-button-hover-border-color: #9a390d;
-}
-.mini-tabs :deep(.el-tabs__item.is-active) { color: var(--mini-terracotta); }
-.mini-tabs :deep(.el-tabs__active-bar) { background: var(--mini-terracotta); }
-.panel {
-  background: var(--mini-card);
-  border: 1px solid var(--mini-border);
-  border-radius: 12px;
-  padding: 16px;
-}
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
+  font-size: 13px;
 }
-.tpl-card {
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--mini-border);
-  background: #f8f4ee;
-  &.live { border-color: #d4a88a; background: #fdf6ef; }
-}
-.tpl-card__badges { margin-bottom: 8px; }
-.badge {
-  display: inline-block;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #ebe4da;
-  color: var(--mini-muted);
-  &.live { background: #f3ddd0; color: var(--mini-terracotta); }
-}
-.tpl-card__name { font-weight: 600; margin-bottom: 4px; }
-.tpl-card__meta { font-size: 12px; color: var(--mini-muted); margin-bottom: 12px; line-height: 1.4; }
-.impact-lead { color: var(--mini-muted); font-size: 13px; line-height: 1.5; }
-.impact-h { font-size: 14px; margin: 16px 0 8px; }
-.impact-list { margin: 0; padding-left: 18px; color: var(--mini-ink); line-height: 1.7; }
-.impact-note { margin: 8px 0 0; font-size: 12px; color: var(--mini-muted); }
 </style>

@@ -15,13 +15,14 @@
             </el-tooltip>
             <el-button size="small" @click="handleBack">
               <el-icon><ArrowLeft /></el-icon>
-              返回
+              页面
             </el-button>
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
             <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
             <span v-if="pageStore.isDirty" class="dirty-dot">未保存</span>
             <span v-if="autoSaveError" class="autosave-error">{{ autoSaveError }}</span>
-            <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存 {{ lastAutoSavedAt }}</span>
+            <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存</span>
+            <span v-else class="autosave-hint">所有改动自动保存</span>
           </div>
           <div class="toolbar-actions">
             <el-button-group class="history-controls">
@@ -38,12 +39,12 @@
             </el-button-group>
             <el-button size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
-              预览
+              扫码预览
             </el-button>
             <el-tooltip content="自动保存草稿后去发布页，一次推送导航与未上线页面" placement="bottom">
-              <el-button type="primary" size="small" :loading="pageStore.saving" @click="goMiniPublish">
+              <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving" @click="goMiniPublish">
                 <el-icon><Upload /></el-icon>
-                发布
+                去发布
               </el-button>
             </el-tooltip>
             <el-dropdown trigger="click">
@@ -936,19 +937,34 @@ onBeforeUnmount(() => {
   bottom: 0;
   z-index: 1000;
   overflow: hidden;
-  background: #f1f3f7;
+  background: #f6f2ec;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 
   .editor-body {
-    display: flex;
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr) 380px;
     height: 100vh;
     overflow: hidden;
-    background: #f1f3f7;
+    background: #f6f2ec;
+
+    &.left-collapsed {
+      grid-template-columns: 0 minmax(0, 1fr) 380px;
+    }
+    &.right-collapsed {
+      grid-template-columns: 250px minmax(0, 1fr) 0;
+    }
+    &.left-collapsed.right-collapsed {
+      grid-template-columns: 0 minmax(0, 1fr) 0;
+    }
 
     .editor-left {
-      width: 224px;
-      min-width: 224px;
+      width: auto;
+      min-width: 0;
       flex-shrink: 0;
-      overflow: hidden;
+      overflow-y: auto;
+      background: #fff;
+      border-right: 1px solid #e8dfd3;
+      padding: 14px;
     }
 
     .editor-center {
@@ -957,18 +973,19 @@ onBeforeUnmount(() => {
       align-items: center;
       flex: 1;
       overflow-y: auto;
-      padding: 0 14px 14px;
+      padding: 0 16px 16px;
+      min-width: 0;
     }
 
     .editor-right {
-      width: 360px;
-      min-width: 360px;
+      width: auto;
+      min-width: 0;
       flex-shrink: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      background: #fffcf8;
-      border-left: 1px solid #e5ddd2;
+      background: #fff;
+      border-left: 1px solid #e8dfd3;
     }
   }
 }
@@ -981,12 +998,19 @@ onBeforeUnmount(() => {
 
   :deep(.el-tabs__header) {
     margin: 0;
-    padding: 0 8px;
-    background: #fffcf8;
-    border-bottom: 1px solid #e5ddd2;
+    padding: 0;
+    background: #fff;
+    border-bottom: 1px solid #e8dfd3;
   }
   :deep(.el-tabs__nav-wrap::after) {
     background-color: transparent;
+  }
+  :deep(.el-tabs__item) {
+    flex: 1;
+    justify-content: center;
+    height: 48px;
+    color: #6b5b4e;
+    border-bottom: 2px solid transparent;
   }
   :deep(.el-tabs__content) {
     flex: 1;
@@ -1000,9 +1024,11 @@ onBeforeUnmount(() => {
   }
   :deep(.el-tabs__item.is-active) {
     color: #b4430f;
+    font-weight: 600;
   }
   :deep(.el-tabs__active-bar) {
     background-color: #b4430f;
+    height: 2px;
   }
 }
 
@@ -1068,21 +1094,22 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 58px;
-  padding: 9px 14px;
+  min-height: 60px;
+  height: 60px;
+  padding: 0 20px;
   background: #fff;
-  border: 1px solid #e3e8f0;
-  border-top: 0;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-  gap: 8px;
+  border: 0;
+  border-bottom: 1px solid #e8dfd3;
+  border-radius: 0;
+  box-shadow: none;
+  gap: 12px;
 }
 
 .toolbar-left,
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .history-controls {
@@ -1090,34 +1117,46 @@ onBeforeUnmount(() => {
 }
 
 .builder-page-name {
-  color: #172033;
-  font-size: 14px;
-  font-weight: 800;
+  color: #2a1f17;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .builder-version,
 .dirty-dot {
-  padding: 2px 7px;
-  color: #7b8798;
-  font-size: 11px;
-  background: #f8faff;
-  border: 1px solid #e3e8f0;
-  border-radius: 6px;
+  padding: 2px 8px;
+  color: #5e5146;
+  font-size: 12px;
+  font-weight: 500;
+  background: #efeae3;
+  border: 0;
+  border-radius: 999px;
 }
 
 .dirty-dot {
-  color: var(--warning);
-  background: var(--warning-soft);
-  border-color: #fed7aa;
+  color: #8f5400;
+  background: #fdf1d8;
 }
 
 .autosave-dot {
-  padding: 2px 7px;
-  color: var(--success);
-  font-size: 11px;
-  background: var(--success-soft);
-  border: 1px solid var(--success);
-  border-radius: 6px;
+  padding: 0;
+  color: #6b5b4e;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+}
+
+.autosave-hint {
+  color: #7a6a5c;
+  font-size: 12px;
+}
+
+.ed-pub-btn {
+  --el-button-bg-color: #b4430f;
+  --el-button-border-color: #b4430f;
+  --el-button-hover-bg-color: #8c3208;
+  --el-button-hover-border-color: #8c3208;
 }
 
 .autosave-error {
