@@ -1,11 +1,14 @@
 <template>
   <div class="mini-wb mw-page overview" v-loading="loading">
     <div class="ov">
-      <div class="ov__main">
-        <header class="ov-head">
-          <h1 class="mw-title">{{ site.name || '小程序' }}</h1>
-          <p class="ov-meta">
-            <span class="live-pill">运营中</span>
+      <div class="ov-main">
+        <div>
+          <h1 class="h1">
+            {{ site.name || '小程序' }}
+            <template v-if="site.slogan"> · {{ site.slogan }}</template>
+          </h1>
+          <div class="sub ov-meta">
+            <span class="tag t-live">运营中</span>
             <span>整店模板：{{ templateLabel }}</span>
             <span v-if="site.liveReleaseNo != null">
               线上：第 {{ site.liveReleaseNo }} 次发布
@@ -13,157 +16,188 @@
             </span>
             <span v-else>线上：尚未发布</span>
             <span>微信代码 {{ wechatCodeLabel }}</span>
-          </p>
-        </header>
+          </div>
+        </div>
 
-        <section class="create-cards">
-          <button type="button" class="create-card create-card--ai" @click="router.push('/mini/pages/new-ai')">
-            <div class="create-card__icon">✦</div>
-            <div class="create-card__title">AI 生成页面</div>
-            <div class="create-card__desc">说出需求，AI 出 3 套方案，再手动微调</div>
+        <div class="ways">
+          <button type="button" class="way hi" @click="router.push('/mini/pages/new-ai')">
+            <span class="way-ic" aria-hidden="true">✦</span>
+            <span>
+              <b>AI 生成页面</b>
+              <span class="muted" style="font-size: 12.5px">说出需求，AI 出 3 套方案，再手动微调</span>
+            </span>
           </button>
           <button
             type="button"
-            class="create-card"
+            class="way"
             @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
           >
-            <div class="create-card__icon">▦</div>
-            <div class="create-card__title">从模板新建</div>
-            <div class="create-card__desc">按行业场景挑选页面模板或整店模板</div>
+            <span class="way-ic" aria-hidden="true">▦</span>
+            <span>
+              <b>从模板新建</b>
+              <span class="muted" style="font-size: 12.5px">按行业场景挑页面模板或整店模板</span>
+            </span>
           </button>
-          <button type="button" class="create-card" :disabled="creatingBlank" @click="createBlank">
-            <div class="create-card__icon">+</div>
-            <div class="create-card__title">空白页面</div>
-            <div class="create-card__desc">从组件开始自由搭建</div>
+          <button type="button" class="way" :disabled="creatingBlank" @click="createBlank">
+            <span class="way-ic" aria-hidden="true">+</span>
+            <span>
+              <b>空白页面</b>
+              <span class="muted" style="font-size: 12.5px">从组件开始自由搭建</span>
+            </span>
           </button>
-        </section>
+        </div>
 
-        <section class="mw-panel nav-panel">
-          <div class="panel-head">
+        <section class="card">
+          <div class="head" style="margin-bottom: 14px">
             <div>
-              <h2>底部导航</h2>
-              <p class="panel-sub">拖动排序；点卡片绑定页面或进入装修</p>
+              <h2 class="h2">底部导航</h2>
+              <div class="sub">拖动卡片排序；点卡片改名称、换绑定页面或进入装修</div>
             </div>
-            <button type="button" class="mw-link" @click="openTabDrawer()">编辑导航</button>
           </div>
-          <div class="tab-cards-wrap">
+          <div class="tabs-edit">
             <draggable
               v-model="sortableTabBar"
               item-key="__key"
-              handle=".drag"
-              class="tab-cards"
+              handle=".tab-drag"
+              class="tabs-edit-inner"
               :animation="180"
               @end="onTabDragEnd"
             >
               <template #item="{ element: tab, index: i }">
                 <button
                   type="button"
-                  class="tab-card"
-                  :class="{ 'is-locked': isMineTab(tab), 'is-unbound': isTabUnbound(tab) }"
+                  class="tabcard"
+                  :class="{ err: isTabUnbound(tab) }"
                   @click="openTabDrawer(i)"
                 >
-                  <div class="tab-card__top">
-                    <span class="tab-card__grip drag" title="拖拽排序" @click.stop aria-hidden="true" />
-                    <span v-if="isMineTab(tab)" class="lock" title="我的为固定壳页">固定</span>
-                  </div>
-                  <div class="tab-card__name">{{ tab.text || `导航 ${i + 1}` }}</div>
-                  <div class="tab-card__bind" :title="tabBindFull(tab)">→ {{ tabBindLabel(tab) }}</div>
-                  <div class="tab-card__status">
-                    <span class="st" :data-st="tabStatus(tab).key">{{ tabStatus(tab).label }}</span>
-                  </div>
+                  <span class="faint tabcard-top">
+                    <span>导航 {{ i + 1 }}</span>
+                    <span class="tab-drag" title="拖拽排序" @click.stop aria-hidden="true">⋮⋮</span>
+                  </span>
+                  <span class="t">
+                    {{ tab.text || `导航 ${i + 1}` }}
+                    <span v-if="isMineTab(tab)" class="faint" title="固定">🔒</span>
+                  </span>
+                  <span class="faint" style="font-size: 12px">→ {{ tabBindLabel(tab) === '未绑定' ? '未绑定页面' : tabBindLabel(tab) }}</span>
+                  <span>
+                    <span
+                      class="tag"
+                      :class="tabStatusTagClass(tab)"
+                    >{{ tabStatus(tab).label === '未绑定' ? '需绑定' : tabStatus(tab).label }}</span>
+                  </span>
                 </button>
               </template>
             </draggable>
             <button
               v-if="tabBar.length < 5"
               type="button"
-              class="tab-card tab-card--add"
+              class="tabadd"
               @click="addTabSlot"
             >
-              <span class="add-plus">+</span>
-              <span>最多 5 个</span>
+              <span style="font-size: 18px; line-height: 1">+</span>
+              <span>添加入口</span>
             </button>
           </div>
         </section>
 
-        <div class="lower-grid">
-          <section class="mw-panel">
-            <div class="panel-head">
-              <div>
-                <h2>待发布的改动</h2>
-                <p class="panel-sub">{{ pendingCountText }}，发布后用户刷新即可看到</p>
-              </div>
-              <button type="button" class="mw-link" @click="goPublish">去发布 ›</button>
+        <section class="card">
+          <div class="head" style="margin-bottom: 12px">
+            <div>
+              <h2 class="h2">品牌配色</h2>
+              <div class="sub">主色用于导航选中态、按钮和强调组件</div>
             </div>
-            <div v-if="pendingPreview.length" class="pending-list">
-              <div
-                v-for="item in pendingPreview"
-                :key="String(item.id || item.pageId || item.name)"
-                class="pending-row"
-              >
-                <span :class="changeKindClass(item)">{{ changeKindLabel(item) }}</span>
-                <div class="pending-row__main">
-                  <span class="pending-row__name">
-                    {{ item.name || '未命名' }}
-                    <template v-if="item.summary"> · {{ item.summary }}</template>
+          </div>
+          <div class="swatches">
+            <button
+              v-for="c in THEMES"
+              :key="c"
+              type="button"
+              class="sw"
+              :class="{ on: currentTheme === c }"
+              :style="{ background: c }"
+              :aria-label="`主色 ${c}`"
+              :disabled="savingTheme"
+              @click="selectTheme(c)"
+            />
+          </div>
+        </section>
+
+        <div class="row lower-row">
+          <section class="card pending-card">
+            <div class="head">
+              <div>
+                <h2 class="h2">待发布的改动</h2>
+                <div class="sub">{{ pendingCountText }}，发布后用户刷新即可看到</div>
+              </div>
+              <div class="actions">
+                <button type="button" class="link" @click="goPublish">去发布 ›</button>
+              </div>
+            </div>
+            <div style="margin-top: 6px">
+              <div v-if="pendingPreview.length">
+                <div
+                  v-for="item in pendingPreview"
+                  :key="String(item.id || item.pageId || item.name)"
+                  class="list-row"
+                >
+                  <span :class="['tag', changeKindLabel(item) === '新增' ? 't-new' : 't-pending']">
+                    {{ changeKindLabel(item) }}
+                  </span>
+                  <b style="font-weight: 500">{{ item.name || '未命名' }}</b>
+                  <span class="faint" style="margin-left: auto; text-align: right">
+                    {{ item.summary || pendingTime(item) }}
                   </span>
                 </div>
-                <span v-if="pendingTime(item)" class="pending-row__time">{{ pendingTime(item) }}</span>
+              </div>
+              <div v-else class="muted" style="padding: 14px 0">
+                没有待发布的改动，线上就是你现在看到的样子。
               </div>
             </div>
-            <p v-else class="empty-hint">没有待发布的改动，线上就是你现在看到的样子</p>
           </section>
 
-          <section class="mw-panel">
-            <div class="panel-head">
-              <div>
-                <h2>微信生态</h2>
-                <p class="panel-sub">小程序正式版与分发渠道</p>
+          <section class="card eco-card">
+            <h2 class="h2">微信生态</h2>
+            <div class="sub">小程序正式版与分发渠道</div>
+            <div style="margin-top: 10px">
+              <div class="kv">
+                <span class="muted">正式版</span>
+                <b style="font-weight: 500">代码 {{ wechatCodeLabel }} · 无需操作</b>
+              </div>
+              <div class="kv">
+                <span class="muted">公众号菜单</span>
+                <b style="font-weight: 500">
+                  <template v-if="mpMenuConfigured">已绑定 → {{ homeTabText }}</template>
+                  <template v-else>去配置</template>
+                </b>
+              </div>
+              <div class="kv">
+                <span class="muted">小程序码</span>
+                <b style="font-weight: 500">{{ qrCodeLabel }}</b>
               </div>
             </div>
-            <div class="eco-list">
-              <div class="eco-row">
-                <span>正式版</span>
-                <span class="eco-val">代码 {{ wechatCodeLabel }} · 无需操作</span>
-              </div>
-              <button type="button" class="eco-row eco-row--btn" @click="router.push('/settings/wechat')">
-                <span>公众号菜单</span>
-                <span class="eco-val">{{ mpMenuLabel }}</span>
-              </button>
-              <button type="button" class="eco-row eco-row--btn" @click="router.push('/settings/wechat')">
-                <span>小程序码</span>
-                <span class="eco-val">{{ qrCodeLabel }}</span>
-              </button>
-            </div>
+            <button type="button" class="link" style="font-size: 13px; margin-top: 8px" @click="goPublish">
+              管理分发 ›
+            </button>
           </section>
         </div>
       </div>
 
-      <aside class="mw-panel preview-panel">
-        <div class="panel-head">
-          <h2>真机预览</h2>
-          <div class="preview-toggle">
-            <button
-              type="button"
-              :class="{ active: previewSource === 'draft' }"
-              @click="previewSource = 'draft'"
-            >
+      <aside class="preview">
+        <div class="preview-head">
+          <b>真机预览</b>
+          <div class="seg" role="group" aria-label="预览版本">
+            <button type="button" :class="{ on: previewSource === 'draft' }" @click="previewSource = 'draft'">
               改动后
             </button>
-            <button
-              type="button"
-              :class="{ active: previewSource === 'live' }"
-              @click="previewSource = 'live'"
-            >
+            <button type="button" :class="{ on: previewSource === 'live' }" @click="previewSource = 'live'">
               线上
             </button>
           </div>
         </div>
-        <div class="phone-frame">
-          <div class="phone-frame__notch" aria-hidden="true" />
+        <div class="phone">
           <iframe :key="previewSource" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
-        <button type="button" class="scan-btn" @click="openLivePreview">扫码在手机上看</button>
+        <button type="button" class="btn sm" @click="openLivePreview">扫码在手机上看</button>
       </aside>
     </div>
 
@@ -230,9 +264,12 @@ import type { PageRecord as PageRow } from '@/types/page'
 
 defineOptions({ name: 'MiniOverview' })
 
+const THEMES = ['#B4430F', '#A93D0C', '#2458A6', '#1F7A4D', '#8F5400', '#9B2C5A', '#3A2E26'] as const
+
 const router = useRouter()
 const loading = ref(false)
 const savingTabs = ref(false)
+const savingTheme = ref(false)
 const creatingBlank = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
@@ -254,7 +291,7 @@ const tabBar = computed(() => site.value.tabBar || [])
 const pendingPreview = computed(() => pending.value.slice(0, 5))
 const pendingCountText = computed(() => {
   const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
-  return n > 0 ? `${n} 项` : '暂无改动'
+  return n > 0 ? `${n} 项` : '0 项'
 })
 const wechatCodeLabel = computed(
   () => site.value.wechatCodeVersion || wechatVerFallback.value || '—',
@@ -263,12 +300,15 @@ const homeTabText = computed(() => (site.value.tabBar || [])[0]?.text || '首页
 const boundPageCount = computed(
   () => (site.value.tabBar || []).filter((t) => t.pageId || t.pagePath).length,
 )
-const mpMenuLabel = computed(() =>
-  mpMenuConfigured.value ? `已绑定 -> ${homeTabText.value}` : '去配置',
-)
 const qrCodeLabel = computed(() =>
   boundPageCount.value > 0 ? `${boundPageCount.value} 个页面已生成` : '去生成',
 )
+
+const currentTheme = computed(() => {
+  const t = site.value.theme || {}
+  const c = String((t as any).primaryColor || (t as any).theme || (t as any).color || '').toUpperCase()
+  return THEMES.find((x) => x.toUpperCase() === c) || ''
+})
 
 const bindablePages = computed(() =>
   pageOptions.value.filter((p) => {
@@ -312,12 +352,6 @@ function pendingTime(item: PendingChangeItem) {
   if (mins < 60) return `${mins} 分钟前`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours} 小时前`
-  const today = new Date()
-  if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) {
-    const hh = String(d.getHours()).padStart(2, '0')
-    const mi = String(d.getMinutes()).padStart(2, '0')
-    return `今天 ${hh}:${mi}`
-  }
   return formatShort(String(raw))
 }
 
@@ -347,12 +381,6 @@ function shortPath(path: string) {
   return `…/${parts.slice(-2).join('/')}`
 }
 
-function tabBindFull(tab: MiniTabBarItem) {
-  if (isMineTab(tab)) return '系统页 · 个人中心'
-  const hit = findBoundPage(tab)
-  return hit?.name || tab.pageName || tab.pagePath || '未绑定'
-}
-
 function tabBindLabel(tab: MiniTabBarItem) {
   if (isMineTab(tab)) return '系统页 · 个人中心'
   const hit = findBoundPage(tab)
@@ -373,15 +401,18 @@ function tabStatus(tab: MiniTabBarItem): { key: string; label: string } {
   return { key: 'live', label: '已上线' }
 }
 
+function tabStatusTagClass(tab: MiniTabBarItem) {
+  const st = tabStatus(tab)
+  if (st.key === 'empty') return 't-err'
+  if (st.key === 'dirty') return 't-pending'
+  return 't-live'
+}
+
 function changeKindLabel(item: PendingChangeItem) {
   if (item.type === 'site') return '修改'
   const st = String(item.status || '')
   if (st === 'draft' || /尚未|新增|新建/.test(String(item.summary || ''))) return '新增'
   return '修改'
-}
-
-function changeKindClass(item: PendingChangeItem) {
-  return changeKindLabel(item) === '新增' ? 'mw-tag-new' : 'mw-tag-mod'
 }
 
 function goPublish() {
@@ -392,6 +423,23 @@ function openLivePreview() {
   const source = previewSource.value === 'live' ? 'live' : 'draft'
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config', source } })
   window.open(href, '_blank', 'noopener,noreferrer')
+}
+
+async function selectTheme(color: string) {
+  if (currentTheme.value === color || savingTheme.value) return
+  savingTheme.value = true
+  try {
+    const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
+    const theme = { ...prev, primaryColor: color }
+    const updated = await updateMiniSite({ theme })
+    site.value = { ...site.value, ...updated, theme: updated.theme || theme }
+    ElMessage.success('品牌主色已保存为草稿')
+    void refreshMiniPending(true)
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存配色失败')
+  } finally {
+    savingTheme.value = false
+  }
 }
 
 async function onTabDragEnd() {
@@ -555,418 +603,131 @@ onMounted(load)
 <style scoped lang="scss">
 .overview.mw-page {
   margin: -16px;
-  padding: 22px 24px 36px;
 }
 
 .ov {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 288px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
   align-items: start;
-  max-width: 1220px;
 }
 
-.ov-head {
-  margin-bottom: 16px;
+.ov-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
 }
-.mw-title {
-  margin: 0 0 10px !important;
-  font-size: 26px !important;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-}
+
 .ov-meta {
   display: flex;
+  gap: 14px;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--mw-muted);
-  line-height: 1.55;
-}
-.live-pill {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 650;
-  color: var(--mw-green);
-  background: var(--mw-green-bg);
 }
 
-.create-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.create-card {
-  text-align: left;
-  padding: 16px 16px 14px;
-  border: 1px solid var(--mw-border);
-  border-radius: 14px;
-  background: var(--mw-card);
-  cursor: pointer;
-  color: inherit;
-  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-  &:hover {
-    border-color: #d4a88a;
-    box-shadow: 0 8px 20px rgba(180, 67, 15, 0.08);
-    transform: translateY(-1px);
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: wait;
-  }
-}
-.create-card--ai {
-  background: linear-gradient(145deg, #c24f1a 0%, #a83f12 100%);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(180, 67, 15, 0.22);
-  .create-card__desc {
-    color: rgba(255, 255, 255, 0.88);
-  }
-  &:hover {
-    background: linear-gradient(145deg, #b44716 0%, #93360f 100%);
-    border-color: transparent;
-    box-shadow: 0 10px 22px rgba(180, 67, 15, 0.3);
-  }
-}
-.create-card__icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  margin-bottom: 10px;
-  line-height: 1;
-  background: #f3ebe3;
-  color: var(--mw-terracotta);
-}
-.create-card--ai .create-card__icon {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-.create-card__title {
-  font-size: 14px;
-  font-weight: 650;
-}
-.create-card__desc {
-  margin-top: 5px;
-  font-size: 12px;
-  color: var(--mw-muted);
-  line-height: 1.45;
+.way-ic {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
-.nav-panel {
-  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
+.tabs-edit-inner {
+  display: contents;
 }
 
-.panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 14px;
-  h2 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 650;
-  }
-}
-.panel-sub {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--mw-muted);
-  line-height: 1.4;
-}
-
-.tab-cards-wrap {
+.tabs-edit {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
-  align-items: stretch;
 }
-.tab-cards {
-  display: contents;
-}
-.tab-card {
-  position: relative;
-  text-align: left;
-  padding: 12px 12px 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--mw-border);
-  background: #fbf8f4;
-  cursor: pointer;
-  color: inherit;
-  min-height: 108px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  &:hover {
-    border-color: #d4a88a;
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(44, 36, 28, 0.05);
-  }
-  &.is-unbound {
-    border-color: #fecdca;
-    background: #fef6f4;
-  }
-}
-.tab-card--add {
-  border-style: dashed;
-  align-items: center;
-  justify-content: center;
-  color: var(--mw-muted);
-  background: transparent;
-  gap: 4px;
-  min-height: 108px;
-  .add-plus {
-    font-size: 20px;
-    line-height: 1;
-  }
-  span:last-child {
-    font-size: 12px;
-  }
-}
-.tab-card__top {
+
+.tabcard-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  min-height: 16px;
+  width: 100%;
 }
-.tab-card__grip {
-  width: 10px;
-  height: 14px;
+
+.tab-drag {
   cursor: grab;
-  opacity: 0.45;
-  background:
-    radial-gradient(circle, #9a8d82 1.1px, transparent 1.2px) 0 0 / 5px 5px,
-    radial-gradient(circle, #9a8d82 1.1px, transparent 1.2px) 5px 0 / 5px 5px;
-  background-size: 5px 5px;
-  background-repeat: repeat-y;
-  &:active {
-    cursor: grabbing;
-  }
-}
-.tab-card__name {
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.25;
-}
-.tab-card__bind {
-  font-size: 11px;
-  color: var(--mw-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.35;
-}
-.tab-card__status {
-  margin-top: auto;
-  padding-top: 2px;
-}
-.st {
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 650;
-  padding: 2px 7px;
-  border-radius: 999px;
-  line-height: 1.4;
-  &[data-st='live'] {
-    color: var(--mw-green);
-    background: var(--mw-green-bg);
-  }
-  &[data-st='dirty'] {
-    color: var(--mw-amber);
-    background: var(--mw-amber-bg);
-  }
-  &[data-st='empty'] {
-    color: #b42318;
-    background: #fdeceb;
-  }
-}
-.lock {
-  font-size: 10px;
-  font-weight: 650;
-  color: var(--mw-muted);
-  border: 1px solid #ddd2c6;
-  border-radius: 999px;
-  padding: 0 6px;
-  line-height: 1.5;
-  background: #fff;
+  letter-spacing: -2px;
+  user-select: none;
 }
 
-.lower-grid {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 14px;
-  margin-top: 14px;
-}
-.pending-list {
+.list-row {
   display: flex;
-  flex-direction: column;
-}
-.pending-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--mw-border);
-  &:last-child {
-    border-bottom: 0;
-  }
-}
-.pending-row__name {
-  font-weight: 600;
-  font-size: 13px;
-  line-height: 1.4;
-}
-.pending-row__time {
-  font-size: 12px;
-  color: var(--mw-muted);
-  white-space: nowrap;
-}
-.empty-hint {
-  margin: 0;
-  font-size: 13px;
-  color: var(--mw-muted);
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line2);
+  &:last-child { border-bottom: 0; }
 }
 
-.eco-list {
-  display: flex;
-  flex-direction: column;
-}
-.eco-row {
+.kv {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--mw-border);
+  gap: 12px;
   font-size: 13px;
-  font-weight: 600;
-  &:last-child {
-    border-bottom: 0;
-  }
-}
-.eco-row--btn {
-  width: 100%;
-  background: none;
-  border-left: 0;
-  border-right: 0;
-  border-top: 0;
-  cursor: pointer;
-  color: inherit;
-  text-align: left;
-  &:hover .eco-val {
-    color: var(--mw-terracotta);
-  }
-}
-.eco-val {
-  color: var(--mw-muted);
-  font-size: 12px;
-  font-weight: 500;
+  padding: 6px 0;
 }
 
-.preview-panel {
+.lower-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pending-card {
+  flex: 1.3;
+  min-width: 280px;
+}
+
+.eco-card {
+  flex: 1;
+  min-width: 240px;
+}
+
+.preview {
   position: sticky;
-  top: 12px;
-  padding-bottom: 14px;
-  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
+  top: 84px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
-.preview-toggle {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 999px;
-  background: #efe8e0;
-  button {
-    border: 0;
-    background: transparent;
-    padding: 5px 11px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--mw-muted);
-    border-radius: 999px;
-    &.active {
-      background: var(--mw-terracotta);
-      color: #fff;
-    }
-  }
-}
-.phone-frame {
-  position: relative;
-  margin: 4px auto 0;
+
+.preview-head {
+  display: flex;
   width: 100%;
-  max-width: 240px;
-  border-radius: 28px;
-  overflow: hidden;
-  border: 8px solid #1a1410;
-  background: #1a1410;
-  aspect-ratio: 375 / 760;
-  box-shadow: 0 16px 36px rgba(44, 36, 28, 0.16);
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phone {
   iframe {
     width: 100%;
     height: 100%;
     border: 0;
-    background: #fff;
-  }
-}
-.phone-frame__notch {
-  position: absolute;
-  z-index: 2;
-  top: 8px;
-  left: 50%;
-  width: 68px;
-  height: 6px;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: #0d0a08;
-  pointer-events: none;
-}
-.scan-btn {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-  border: 1px dashed #d9cec2;
-  border-radius: 10px;
-  background: #fff;
-  color: var(--mw-muted);
-  font-size: 13px;
-  font-weight: 550;
-  padding: 10px 12px;
-  cursor: pointer;
-  &:hover {
-    color: var(--mw-terracotta);
-    border-color: #dfc3ae;
-    background: #fffcf8;
+    background: #fffbf6;
   }
 }
 
 @media (max-width: 1180px) {
-  .tab-cards-wrap {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  }
-}
-@media (max-width: 1100px) {
   .ov {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-  .preview-panel {
+  .preview {
     position: static;
-    max-width: 300px;
-    margin: 0 auto;
   }
-  .create-cards,
-  .lower-grid {
-    grid-template-columns: 1fr;
+  .tabs-edit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

@@ -1,90 +1,109 @@
 <template>
-  <div class="mini-page" v-loading="loading">
-    <header class="page-head">
+  <div class="mini-wb mw-page pages-view" v-loading="loading">
+    <div class="head">
       <div>
-        <div class="page-head__kicker">小程序 · 页面</div>
-        <h1>页面</h1>
-        <p>按导航 / 活动 / 内容 / 归档分组。主操作是装修；「我的」为固定路径壳页。</p>
+        <h1 class="h1">页面</h1>
+        <div class="sub">共 {{ totalCount }} 个 · 按用途分组，旧页面收进归档</div>
       </div>
-      <div class="page-head__actions">
-        <el-button @click="router.push('/mini/pages/new-ai')">AI 生成</el-button>
-        <el-button type="primary" class="btn-terracotta" @click="createBlank">空白新建</el-button>
-      </div>
-    </header>
-
-    <div class="filters">
-      <el-input
-        v-model="keyword"
-        clearable
-        placeholder="搜索页面名 / 路径"
-        style="max-width: 260px"
-      />
-      <div class="status-capsules">
-        <button
-          v-for="opt in statusFilters"
-          :key="opt.key"
-          type="button"
-          class="capsule"
-          :class="{ active: statusFilter === opt.key }"
-          @click="statusFilter = opt.key"
-        >
-          {{ opt.label }}
-          <span class="capsule__n">{{ opt.count }}</span>
+      <div class="actions">
+        <button type="button" class="btn" @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })">
+          从模板新建
         </button>
+        <button type="button" class="btn" @click="createBlank">空白页面</button>
+        <button type="button" class="btn primary" @click="router.push('/mini/pages/new-ai')">AI 生成页面</button>
       </div>
     </div>
 
-    <section v-for="group in groups" :key="group.key" class="group-panel">
-      <div class="group-panel__head">
-        <h2>{{ group.label }}</h2>
-        <span class="group-panel__count">{{ group.rows.length }}</span>
-      </div>
+    <div class="filters">
+      <label class="search">
+        <span aria-hidden="true">⌕</span>
+        <input v-model="keyword" type="search" placeholder="搜索页面名称或路径" />
+      </label>
+      <button
+        v-for="opt in statusFilters"
+        :key="opt.key"
+        type="button"
+        class="chip"
+        :class="{ on: statusFilter === opt.key }"
+        @click="statusFilter = opt.key"
+      >
+        {{ opt.label }}{{ opt.count != null ? ` ${opt.count}` : '' }}
+      </button>
+    </div>
 
-      <div v-if="group.key === 'tab'" class="mine-lock" @click="router.push('/page-builder/mine')">
-        <el-icon><Lock /></el-icon>
-        <div class="mine-lock__text">
-          <b>我的</b>
-          <span>固定路径 · 表单配置，非可删装修页</span>
-        </div>
-        <el-button size="small" @click.stop="router.push('/page-builder/mine')">配置</el-button>
-      </div>
+    <div class="groups-stack">
+      <section
+        v-for="group in groups"
+        :key="group.key"
+        class="group"
+        :class="{ arch: group.key === 'archived', closed: closedGroups[group.key] }"
+      >
+        <button type="button" class="g-head" @click="toggleGroup(group.key)">
+          <span style="font-weight: 600">{{ group.label }}</span>
+          <span class="faint">{{ group.rows.length }}</span>
+          <span v-if="groupSub(group.key)" class="faint" style="margin-left: 4px">{{ groupSub(group.key) }}</span>
+          <span style="margin-left: auto" class="faint">{{ closedGroups[group.key] ? '▸' : '▾' }}</span>
+        </button>
 
-      <div v-if="group.rows.length" class="page-rows">
-        <div v-for="row in group.rows" :key="String(row.id)" class="page-row">
-          <div class="page-row__main">
-            <div class="page-row__name">{{ row.name }}</div>
-            <div class="page-row__path">{{ row.path }}</div>
+        <template v-if="!closedGroups[group.key]">
+          <div
+            v-if="group.key === 'tab'"
+            class="prow mine-row"
+            @click="router.push('/page-builder/mine')"
+          >
+            <div class="thumb"><i /><i /><i /></div>
+            <div class="pname">
+              <b>我的 <span class="faint">🔒</span></b>
+              <div class="faint">固定路径 · 表单配置，非可删装修页</div>
+            </div>
+            <div class="pstat"><span class="tag t-live">系统页</span></div>
+            <button type="button" class="btn sm" @click.stop="router.push('/page-builder/mine')">配置</button>
           </div>
-          <PageStatusTag :row="row" />
-          <el-button type="primary" size="small" class="btn-terracotta" @click="openEditor(row)">装修</el-button>
-          <el-dropdown trigger="click" @command="(cmd: string) => onMore(cmd, row)">
-            <el-button size="small">更多</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="preview">预览</el-dropdown-item>
-                <el-dropdown-item command="copy-path">复制路径</el-dropdown-item>
-                <el-dropdown-item command="set-nav" :disabled="isArchived(row)">设为导航入口</el-dropdown-item>
-                <el-dropdown-item
-                  v-if="canOffline(row)"
-                  command="offline"
-                  divided
-                >
-                  下线
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="canDelete(row)"
-                  command="delete"
-                  divided
-                >
+
+          <template v-if="group.rows.length">
+            <div
+              v-for="row in group.rows"
+              :key="String(row.id)"
+              class="prow"
+            >
+              <div class="thumb"><i /><i /><i /></div>
+              <div class="pname">
+                <b>{{ row.name }}</b>
+                <div class="faint">{{ row.path }}</div>
+              </div>
+              <div class="pstat">
+                <PageStatusTag :row="row" />
+              </div>
+              <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
+              <button
+                type="button"
+                class="iconbtn"
+                aria-label="更多"
+                @click.stop="toggleMenu(row)"
+              >
+                ···
+              </button>
+              <div v-if="menuRowId === row.id" class="menu" @click.stop>
+                <button type="button" @click="onMore('preview', row)">预览</button>
+                <button type="button" @click="onMore('copy', row)">复制页面</button>
+                <button type="button" :disabled="isArchived(row)" @click="onMore('set-nav', row)">
+                  设为底部导航入口
+                </button>
+                <button type="button" @click="onMore('copy-path', row)">复制路径</button>
+                <hr />
+                <button v-if="canOffline(row)" type="button" @click="onMore('offline', row)">下线</button>
+                <button v-if="canDelete(row)" type="button" class="danger-item" @click="onMore('delete', row)">
                   删除
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </div>
-      <el-empty v-else-if="group.key !== 'tab'" :description="`暂无${group.label}页`" :image-size="48" />
-    </section>
+                </button>
+              </div>
+            </div>
+          </template>
+          <div v-else-if="group.key !== 'tab'" class="muted" style="padding: 16px">
+            {{ keyword || statusFilter !== 'all' ? '没有符合条件的页面' : '这一组还没有页面' }}
+          </div>
+        </template>
+      </section>
+    </div>
 
     <el-dialog v-model="navDialogVisible" title="设为导航入口" width="420px">
       <p class="nav-dialog-hint">将「{{ navTarget?.name }}」绑定到选中的底部导航位（写入待发布草稿）。</p>
@@ -96,7 +115,7 @@
       </el-radio-group>
       <template #footer>
         <el-button @click="navDialogVisible = false">取消</el-button>
-        <el-button type="primary" class="btn-terracotta" :loading="navSaving" @click="confirmSetNav">
+        <el-button type="primary" class="mw-btn-primary" :loading="navSaving" @click="confirmSetNav">
           确认
         </el-button>
       </template>
@@ -105,16 +124,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Lock } from '@element-plus/icons-vue'
 import PageStatusTag from '@/components/mini/PageStatusTag.vue'
-import { getPageList, createPage, deletePage, unpublishPage } from '@/api/page'
+import { getPageList, createPage, deletePage, unpublishPage, duplicatePage } from '@/api/page'
 import { getMiniSite, updateMiniSite, type MiniTabBarItem } from '@/api/miniSite'
 import {
   inferPageGroup,
   PAGE_GROUP_LABELS,
+  PAGE_GROUP_SUB,
   resolvePageStatus,
   type MiniPageStatus,
   type PageGroup,
@@ -129,11 +148,17 @@ const pages = ref<PageRecord[]>([])
 const keyword = ref('')
 const statusFilter = ref<'all' | MiniPageStatus>('all')
 const siteTabs = ref<MiniTabBarItem[]>([])
+const menuRowId = ref<string | number | null>(null)
+const closedGroups = reactive<Record<string, boolean>>({ archived: true })
 
 const navDialogVisible = ref(false)
 const navTarget = ref<PageRecord | null>(null)
 const navSlotIndex = ref(0)
 const navSaving = ref(false)
+
+const totalCount = computed(() =>
+  pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')).length,
+)
 
 const filteredPages = computed(() => {
   const q = keyword.value.trim().toLowerCase()
@@ -152,7 +177,9 @@ const filteredPages = computed(() => {
 })
 
 const statusFilters = computed(() => {
-  const counts: Record<string, number> = { all: 0, pending: 0, live: 0, draft: 0, archived: 0 }
+  const counts: Record<string, number> = {
+    all: 0, pending: 0, live: 0, draft: 0, offline: 0, archived: 0,
+  }
   for (const row of pages.value) {
     if (String(row.path || '').includes('/pages/mine/mine')) continue
     counts.all += 1
@@ -164,6 +191,7 @@ const statusFilters = computed(() => {
     { key: 'pending' as const, label: '待发布', count: counts.pending },
     { key: 'live' as const, label: '已上线', count: counts.live },
     { key: 'draft' as const, label: '草稿', count: counts.draft },
+    { key: 'offline' as const, label: '已下线', count: counts.offline },
     { key: 'archived' as const, label: '归档', count: counts.archived },
   ]
 })
@@ -171,10 +199,7 @@ const statusFilters = computed(() => {
 const groups = computed(() => {
   const order: PageGroup[] = ['tab', 'activity', 'content', 'archived']
   const buckets: Record<PageGroup, PageRecord[]> = {
-    tab: [],
-    activity: [],
-    content: [],
-    archived: [],
+    tab: [], activity: [], content: [], archived: [],
   }
   for (const row of filteredPages.value) {
     buckets[inferPageGroup(row)].push(row)
@@ -185,6 +210,22 @@ const groups = computed(() => {
     rows: buckets[key],
   }))
 })
+
+function groupSub(key: PageGroup) {
+  return PAGE_GROUP_SUB[key] || ''
+}
+
+function toggleGroup(key: string) {
+  closedGroups[key] = !closedGroups[key]
+}
+
+function toggleMenu(row: PageRecord) {
+  menuRowId.value = menuRowId.value === row.id ? null : row.id
+}
+
+function closeMenu() {
+  menuRowId.value = null
+}
 
 function isArchived(row: PageRecord) {
   return resolvePageStatus(row) === 'archived'
@@ -200,15 +241,27 @@ function canDelete(row: PageRecord) {
 }
 
 function openEditor(row: PageRecord) {
+  closeMenu()
   router.push(`/mini/pages/${row.id}/editor`)
 }
 
 async function onMore(cmd: string, row: PageRecord) {
+  closeMenu()
   if (cmd === 'preview') {
-    const { href } = router.resolve({
-      path: `/page-builder/preview/${row.id}`,
-    })
+    const { href } = router.resolve({ path: `/page-builder/preview/${row.id}` })
     window.open(href, '_blank', 'noopener,noreferrer')
+    return
+  }
+  if (cmd === 'copy') {
+    try {
+      const res = await duplicatePage(Number(row.id))
+      const id = Number((res as any)?.data?.id || (res as any)?.id || 0)
+      ElMessage.success('已复制')
+      if (id) router.push(`/mini/pages/${id}/editor`)
+      else await load()
+    } catch (e: any) {
+      ElMessage.error(e?.message || '复制失败')
+    }
     return
   }
   if (cmd === 'copy-path') {
@@ -316,127 +369,40 @@ async function load() {
   }
 }
 
-onMounted(load)
+function onDocClick() {
+  closeMenu()
+}
+
+onMounted(() => {
+  load()
+  document.addEventListener('click', onDocClick)
+})
+onUnmounted(() => document.removeEventListener('click', onDocClick))
 </script>
 
 <style scoped lang="scss">
-.mini-page {
-  --mini-bg: #f6f2ec;
-  --mini-terracotta: #b4430f;
-  --mini-ink: #2c241c;
-  --mini-muted: #7a6e64;
-  --mini-card: #fffcf8;
-  --mini-border: #e5ddd2;
-  min-height: 100%;
+.pages-view.mw-page {
   margin: -16px;
-  padding: 20px 24px 40px;
-  background: var(--mini-bg);
-  color: var(--mini-ink);
 }
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  h1 { margin: 4px 0; font-size: 24px; }
-  p { margin: 0; color: var(--mini-muted); font-size: 13px; max-width: 520px; }
-}
-.page-head__kicker { font-size: 12px; color: var(--mini-muted); }
-.page-head__actions { display: flex; gap: 8px; }
-.btn-terracotta {
-  --el-button-bg-color: var(--mini-terracotta);
-  --el-button-border-color: var(--mini-terracotta);
-  --el-button-hover-bg-color: #9a390d;
-  --el-button-hover-border-color: #9a390d;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.status-capsules { display: flex; flex-wrap: wrap; gap: 6px; }
-.capsule {
-  border: 1px solid var(--mini-border);
-  background: var(--mini-card);
-  color: var(--mini-ink);
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  &.active {
-    border-color: var(--mini-terracotta);
-    color: var(--mini-terracotta);
-    background: #fdf0e6;
-  }
-}
-.capsule__n {
-  margin-left: 4px;
-  opacity: 0.7;
-}
-
-.group-panel {
-  background: var(--mini-card);
-  border: 1px solid var(--mini-border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
-}
-.group-panel__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  h2 { margin: 0; font-size: 15px; }
-}
-.group-panel__count {
-  font-size: 12px;
-  color: var(--mini-muted);
-  background: #f0ebe3;
-  padding: 1px 8px;
-  border-radius: 999px;
-}
-
-.mine-lock {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  background: #f8f4ee;
-  border: 1px dashed #d4c4b4;
-  cursor: pointer;
-}
-.mine-lock__text {
-  flex: 1;
+.groups-stack {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  span { font-size: 12px; color: var(--mini-muted); }
+  gap: 14px;
 }
-
-.page-rows { display: flex; flex-direction: column; gap: 8px; }
-.page-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f8f4ee;
+.mine-row {
+  cursor: pointer;
+  background: var(--soft);
 }
-.page-row__main { flex: 1; min-width: 0; }
-.page-row__name { font-weight: 600; }
-.page-row__path { font-size: 12px; color: var(--mini-muted); }
-
-.nav-dialog-hint { font-size: 13px; color: var(--mini-muted); margin: 0 0 12px; }
+.danger-item { color: var(--r) !important; }
+.nav-dialog-hint {
+  font-size: 13px;
+  color: var(--mute);
+  margin: 0 0 12px;
+}
 .nav-slots {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
 }
-.muted { color: var(--mini-muted); font-size: 12px; }
 </style>

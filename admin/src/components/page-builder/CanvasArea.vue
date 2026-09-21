@@ -386,13 +386,12 @@ onBeforeUnmount(() => {
 }
 
 .phone {
-  width: 334px;
+  width: 320px;
   overflow: hidden;
-  background: #fff;
-  border-radius: 36px;
-  box-shadow:
-    0 0 0 9px #111827,
-    0 24px 54px rgba(15, 23, 42, 0.22);
+  background: #fffbf6;
+  border: 9px solid #1e1611;
+  border-radius: 34px;
+  box-shadow: none;
   transition: zoom 0.15s ease;
 }
 
@@ -452,7 +451,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   height: 26px;
-  background: #111827;
+  background: #1e1611;
 }
 
 .phone-speaker {
@@ -465,9 +464,9 @@ onBeforeUnmount(() => {
 
 .phone-screen {
   position: relative;
-  height: 610px;
+  height: 612px;
   overflow: hidden;
-  background: #f6f8fb;
+  background: #fffbf6;
 }
 
 .phone-screen--brand-header .mini-content {

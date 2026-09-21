@@ -76,10 +76,17 @@ function normalizeLegacyStatus(raw: string | number | null | undefined): string 
 export type PageGroup = 'tab' | 'activity' | 'content' | 'archived'
 
 export const PAGE_GROUP_LABELS: Record<PageGroup, string> = {
-  tab: '导航',
-  activity: '活动',
-  content: '内容',
+  tab: '底部导航页',
+  activity: '活动与专题',
+  content: '内容页',
   archived: '归档',
+}
+
+export const PAGE_GROUP_SUB: Record<PageGroup, string> = {
+  tab: '顺序与真机底部一致',
+  activity: '',
+  content: '',
+  archived: '被替换或不再使用的页面，可随时恢复',
 }
 
 /** 无后端 pageGroup 时按类型 / 路径推断分组 */

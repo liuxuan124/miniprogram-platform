@@ -1,5 +1,10 @@
 <template>
   <div class="prototype-component-panel">
+    <div class="left-seg" role="tablist">
+      <button type="button" class="on">组件</button>
+      <button type="button" disabled title="即将支持">区块模板</button>
+      <button type="button" @click="scrollToLayers">结构</button>
+    </div>
     <section class="panel-section" :style="sectionStyle('components')">
       <div class="section-title">
         <span>组件库</span>
@@ -252,6 +257,11 @@ function toggleCollapse(target: 'components' | 'structure') {
   collapsed.value[target] = !collapsed.value[target]
 }
 
+function scrollToLayers() {
+  collapsed.value.structure = false
+  document.querySelector('.panel-section:last-of-type')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function sectionStyle(target: 'components') {
   if (collapsed.value[target]) {
     return { height: '42px' }
@@ -311,7 +321,37 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow: hidden;
   background: #fff;
-  border-right: 1px solid #e3e8f0;
+  border-right: 0;
+  gap: 12px;
+}
+
+.left-seg {
+  display: flex;
+  gap: 3px;
+  background: #efeae3;
+  border-radius: 8px;
+  padding: 3px;
+  flex-shrink: 0;
+  button {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6b5b4e;
+    cursor: pointer;
+    font-family: inherit;
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    &.on {
+      background: #fff;
+      color: #2a1f17;
+      font-weight: 500;
+    }
+  }
 }
 
 .panel-section {

@@ -2,7 +2,7 @@
   <el-aside
     class="app-sidebar"
     :class="{ 'is-mini-shell': route.path.startsWith('/mini') }"
-    :width="appStore.sidebarCollapsed ? '72px' : '220px'"
+    :width="appStore.sidebarCollapsed ? '72px' : (route.path.startsWith('/mini') ? '216px' : '220px')"
   >
     <div class="brand">
       <div class="brand-icon">
@@ -421,33 +421,78 @@ watch(
 
   /* /mini 工作台：暖棕壳 + 陶土 active，离开 /mini 无此 class */
   &.is-mini-shell {
-    background: #2c241c;
+    background: #2b1d14;
+    padding: 0;
+    color: #e9dccb;
+
+    .brand {
+      padding: 18px 18px 18px;
+      border-bottom: 0;
+      min-height: auto;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #b4430f;
+      img { width: 22px; height: 22px; }
+    }
 
     .brand-text {
       strong {
-        color: #f6f2ec;
+        color: #fff;
+        font-size: 15px;
+        line-height: 1.3;
       }
       span {
-        color: rgba(246, 242, 236, 0.72);
+        color: #bfae9b;
+        font-size: 11px;
       }
+      .brand-version { display: none; }
     }
 
+    .menu-group { padding: 0 8px 4px; }
+
     .group-title {
-      color: rgba(246, 242, 236, 0.55);
+      color: #fff;
+      font-weight: 600;
+      padding: 10px 12px 6px;
+      font-size: 14px;
     }
 
     .menu-item {
-      color: rgba(246, 242, 236, 0.88);
+      color: #e9dccb;
+      padding: 10px 12px;
+      border-radius: 8px;
+      gap: 10px;
+      margin: 0 0 2px;
+
+      &:hover { background: rgba(255, 255, 255, 0.06); }
 
       &.active,
       &.sub.active {
         background: #b4430f;
         color: #fff;
+        .menu-badge {
+          background: #fff;
+          color: #b4430f;
+        }
       }
     }
 
     .menu-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 0 7px;
+      border-radius: 999px;
       background: #b4430f;
+      color: #fff;
+      min-width: auto;
+      height: auto;
+      line-height: 18px;
     }
   }
 }
