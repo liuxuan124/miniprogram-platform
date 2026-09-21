@@ -63,12 +63,11 @@
                   @click="openTabDrawer(i)"
                 >
                   <div class="tab-card__top">
-                    <span class="tab-card__idx">导航 {{ i + 1 }}</span>
-                    <span v-if="isMineTab(tab)" class="lock" title="我的为固定壳页">固</span>
-                    <span v-else class="drag" title="拖拽排序" @click.stop>::</span>
+                    <span class="tab-card__grip drag" title="拖拽排序" @click.stop aria-hidden="true" />
+                    <span v-if="isMineTab(tab)" class="lock" title="我的为固定壳页">固定</span>
                   </div>
                   <div class="tab-card__name">{{ tab.text || `导航 ${i + 1}` }}</div>
-                  <div class="tab-card__bind">→ {{ tabBindLabel(tab) }}</div>
+                  <div class="tab-card__bind" :title="tabBindFull(tab)">→ {{ tabBindLabel(tab) }}</div>
                   <div class="tab-card__status">
                     <span class="st" :data-st="tabStatus(tab).key">{{ tabStatus(tab).label }}</span>
                   </div>
@@ -332,18 +331,41 @@ function isTabUnbound(tab: MiniTabBarItem) {
   return !(tab.pageId || tab.pagePath)
 }
 
+function findBoundPage(tab: MiniTabBarItem) {
+  return pageOptions.value.find((p) => {
+    if (tab.pageId != null && tab.pageId !== '' && Number(p.id) === Number(tab.pageId)) return true
+    const path = String(p.path || '').replace(/^\//, '')
+    return path && path === String(tab.pagePath || '').replace(/^\//, '')
+  })
+}
+
+function shortPath(path: string) {
+  const clean = String(path || '').replace(/^\//, '')
+  if (!clean) return ''
+  const parts = clean.split('/').filter(Boolean)
+  if (parts.length <= 2) return clean
+  return `…/${parts.slice(-2).join('/')}`
+}
+
+function tabBindFull(tab: MiniTabBarItem) {
+  if (isMineTab(tab)) return '系统页 · 个人中心'
+  const hit = findBoundPage(tab)
+  return hit?.name || tab.pageName || tab.pagePath || '未绑定'
+}
+
 function tabBindLabel(tab: MiniTabBarItem) {
   if (isMineTab(tab)) return '系统页 · 个人中心'
-  return tab.pageName || tab.pagePath || '未绑定'
+  const hit = findBoundPage(tab)
+  const name = String(hit?.name || tab.pageName || '').trim()
+  if (name) return name.length > 10 ? `${name.slice(0, 10)}…` : name
+  const path = String(tab.pagePath || hit?.path || '').trim()
+  if (path) return shortPath(path)
+  return '未绑定'
 }
 
 function tabStatus(tab: MiniTabBarItem): { key: string; label: string } {
   if (isTabUnbound(tab)) return { key: 'empty', label: '未绑定' }
-  const hit = pageOptions.value.find((p) => {
-    if (tab.pageId != null && Number(p.id) === Number(tab.pageId)) return true
-    const path = String(p.path || '').replace(/^\//, '')
-    return path && path === String(tab.pagePath || '').replace(/^\//, '')
-  })
+  const hit = findBoundPage(tab)
   if (!hit) return { key: 'live', label: '已上线' }
   const st = resolvePageStatus(hit as any)
   if (st === 'pending' || st === 'draft') return { key: 'dirty', label: '有改动' }
@@ -533,40 +555,42 @@ onMounted(load)
 <style scoped lang="scss">
 .overview.mw-page {
   margin: -16px;
+  padding: 22px 24px 36px;
 }
 
 .ov {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 288px;
+  gap: 18px;
   align-items: start;
-  max-width: 1240px;
+  max-width: 1220px;
 }
 
 .ov-head {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .mw-title {
-  margin: 0 0 8px !important;
-  font-size: 28px !important;
-  line-height: 1.2;
+  margin: 0 0 10px !important;
+  font-size: 26px !important;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
 }
 .ov-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 14px;
+  gap: 6px 12px;
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--mw-muted);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 .live-pill {
   display: inline-flex;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 650;
   color: var(--mw-green);
   background: var(--mw-green-bg);
 }
@@ -575,20 +599,21 @@ onMounted(load)
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .create-card {
   text-align: left;
-  padding: 18px 18px 16px;
+  padding: 16px 16px 14px;
   border: 1px solid var(--mw-border);
   border-radius: 14px;
   background: var(--mw-card);
   cursor: pointer;
   color: inherit;
+  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   &:hover {
     border-color: #d4a88a;
-    box-shadow: 0 4px 14px rgba(180, 67, 15, 0.08);
+    box-shadow: 0 8px 20px rgba(180, 67, 15, 0.08);
     transform: translateY(-1px);
   }
   &:disabled {
@@ -597,33 +622,49 @@ onMounted(load)
   }
 }
 .create-card--ai {
-  background: var(--mw-terracotta);
-  border-color: var(--mw-terracotta);
+  background: linear-gradient(145deg, #c24f1a 0%, #a83f12 100%);
+  border-color: transparent;
   color: #fff;
+  box-shadow: 0 8px 18px rgba(180, 67, 15, 0.22);
   .create-card__desc {
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.88);
   }
   &:hover {
-    background: var(--mw-terracotta-hover);
-    border-color: var(--mw-terracotta-hover);
-    box-shadow: 0 6px 18px rgba(180, 67, 15, 0.28);
+    background: linear-gradient(145deg, #b44716 0%, #93360f 100%);
+    border-color: transparent;
+    box-shadow: 0 10px 22px rgba(180, 67, 15, 0.3);
   }
 }
 .create-card__icon {
-  font-size: 18px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
   margin-bottom: 10px;
-  opacity: 0.95;
   line-height: 1;
+  background: #f3ebe3;
+  color: var(--mw-terracotta);
+}
+.create-card--ai .create-card__icon {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 .create-card__title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 650;
 }
 .create-card__desc {
-  margin-top: 6px;
+  margin-top: 5px;
   font-size: 12px;
   color: var(--mw-muted);
   line-height: 1.45;
+}
+
+.nav-panel {
+  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
 }
 
 .panel-head {
@@ -631,10 +672,10 @@ onMounted(load)
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   h2 {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 650;
   }
 }
@@ -647,38 +688,31 @@ onMounted(load)
 
 .tab-cards-wrap {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   align-items: stretch;
 }
 .tab-cards {
   display: contents;
 }
-.drag {
-  font-size: 12px;
-  letter-spacing: -1px;
-  cursor: grab;
-  user-select: none;
-  color: var(--mw-muted);
-  &:active {
-    cursor: grabbing;
-  }
-}
 .tab-card {
+  position: relative;
   text-align: left;
-  padding: 12px;
+  padding: 12px 12px 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--mw-border);
-  background: #faf6f1;
+  background: #fbf8f4;
   cursor: pointer;
   color: inherit;
-  min-height: 118px;
+  min-height: 108px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   &:hover {
     border-color: #d4a88a;
     background: #fff;
+    box-shadow: 0 4px 12px rgba(44, 36, 28, 0.05);
   }
   &.is-unbound {
     border-color: #fecdca;
@@ -692,33 +726,51 @@ onMounted(load)
   color: var(--mw-muted);
   background: transparent;
   gap: 4px;
+  min-height: 108px;
   .add-plus {
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1;
+  }
+  span:last-child {
+    font-size: 12px;
   }
 }
 .tab-card__top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
-  color: var(--mw-muted);
+  min-height: 16px;
+}
+.tab-card__grip {
+  width: 10px;
+  height: 14px;
+  cursor: grab;
+  opacity: 0.45;
+  background:
+    radial-gradient(circle, #9a8d82 1.1px, transparent 1.2px) 0 0 / 5px 5px,
+    radial-gradient(circle, #9a8d82 1.1px, transparent 1.2px) 5px 0 / 5px 5px;
+  background-size: 5px 5px;
+  background-repeat: repeat-y;
+  &:active {
+    cursor: grabbing;
+  }
 }
 .tab-card__name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 650;
-  margin-top: 2px;
+  line-height: 1.25;
 }
 .tab-card__bind {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--mw-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.35;
 }
 .tab-card__status {
   margin-top: auto;
-  padding-top: 6px;
+  padding-top: 2px;
 }
 .st {
   display: inline-flex;
@@ -742,17 +794,18 @@ onMounted(load)
 }
 .lock {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 650;
   color: var(--mw-muted);
-  border: 1px solid #d5cbc0;
-  border-radius: 4px;
-  padding: 0 3px;
-  line-height: 1.4;
+  border: 1px solid #ddd2c6;
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 1.5;
+  background: #fff;
 }
 
 .lower-grid {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
   gap: 14px;
   margin-top: 14px;
 }
@@ -765,7 +818,7 @@ onMounted(load)
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
-  padding: 11px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--mw-border);
   &:last-child {
     border-bottom: 0;
@@ -795,7 +848,7 @@ onMounted(load)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 11px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--mw-border);
   font-size: 13px;
   font-weight: 600;
@@ -825,6 +878,8 @@ onMounted(load)
 .preview-panel {
   position: sticky;
   top: 12px;
+  padding-bottom: 14px;
+  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
 }
 .preview-toggle {
   display: inline-flex;
@@ -848,15 +903,15 @@ onMounted(load)
 }
 .phone-frame {
   position: relative;
-  margin: 0 auto;
+  margin: 4px auto 0;
   width: 100%;
-  max-width: 252px;
+  max-width: 240px;
   border-radius: 28px;
   overflow: hidden;
-  border: 9px solid #1a1410;
+  border: 8px solid #1a1410;
   background: #1a1410;
   aspect-ratio: 375 / 760;
-  box-shadow: 0 18px 40px rgba(44, 36, 28, 0.18);
+  box-shadow: 0 16px 36px rgba(44, 36, 28, 0.16);
   iframe {
     width: 100%;
     height: 100%;
@@ -869,8 +924,8 @@ onMounted(load)
   z-index: 2;
   top: 8px;
   left: 50%;
-  width: 72px;
-  height: 7px;
+  width: 68px;
+  height: 6px;
   transform: translateX(-50%);
   border-radius: 999px;
   background: #0d0a08;
@@ -891,16 +946,22 @@ onMounted(load)
   &:hover {
     color: var(--mw-terracotta);
     border-color: #dfc3ae;
+    background: #fffcf8;
   }
 }
 
+@media (max-width: 1180px) {
+  .tab-cards-wrap {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
 @media (max-width: 1100px) {
   .ov {
     grid-template-columns: 1fr;
   }
   .preview-panel {
     position: static;
-    max-width: 320px;
+    max-width: 300px;
     margin: 0 auto;
   }
   .create-cards,
