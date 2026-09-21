@@ -7,9 +7,9 @@ export type MiniPageStatus = 'draft' | 'pending' | 'live' | 'offline' | 'archive
 
 export const MINI_PAGE_STATUS_LABELS: Record<MiniPageStatus, string> = {
   draft: '草稿',
-  pending: '待发布',
+  pending: '有改动',
   live: '已上线',
-  offline: '已下架',
+  offline: '已下线',
   archived: '已归档',
 }
 
@@ -76,9 +76,9 @@ function normalizeLegacyStatus(raw: string | number | null | undefined): string 
 export type PageGroup = 'tab' | 'activity' | 'content' | 'archived'
 
 export const PAGE_GROUP_LABELS: Record<PageGroup, string> = {
-  tab: '导航',
-  activity: '活动',
-  content: '内容',
+  tab: '底部导航页',
+  activity: '活动与专题',
+  content: '内容页',
   archived: '归档',
 }
 

@@ -1,124 +1,159 @@
 <template>
-  <div class="mini-page" v-loading="loading">
-    <header class="site-head">
-      <div class="site-head__main">
-        <div class="site-head__kicker">小程序 · 概览</div>
-        <h1 class="site-head__title">{{ site.name || '小程序' }}</h1>
-        <p class="site-head__meta">
-          模板：{{ templateLabel }}
-          <span v-if="site.liveReleaseNo != null"> · 已发布第 {{ site.liveReleaseNo }} 次</span>
-          <span v-if="site.pendingCount"> · {{ site.pendingCount }} 项待发布</span>
+  <div class="mini-wb mw-page overview" v-loading="loading">
+    <header class="mw-head">
+      <div>
+        <h1 class="mw-title">{{ site.name || '小程序' }}</h1>
+        <p class="meta-row">
+          <span class="live-pill">运营中</span>
+          <span>整店模板：{{ templateLabel }}</span>
+          <span v-if="site.liveReleaseNo != null">
+            线上：第 {{ site.liveReleaseNo }} 次发布
+            <template v-if="site.liveReleaseAt"> · {{ formatShort(site.liveReleaseAt) }}</template>
+          </span>
+          <span v-else>线上：尚未发布</span>
+          <span>微信代码 {{ site.wechatCodeVersion || wechatVerFallback || '—' }}</span>
         </p>
-      </div>
-      <div class="site-head__actions">
-        <el-button @click="load">刷新</el-button>
-        <el-button type="primary" class="btn-terracotta" @click="goPublish">
-          去发布{{ site.pendingCount ? `（${site.pendingCount}）` : '' }}
-        </el-button>
       </div>
     </header>
 
     <section class="create-cards">
-      <button type="button" class="create-card" @click="router.push('/mini/pages/new-ai')">
-        <div class="create-card__title">AI 生成一页</div>
-        <div class="create-card__desc">一句话描述，生成草稿页</div>
+      <button type="button" class="create-card create-card--ai" @click="router.push('/mini/pages/new-ai')">
+        <div class="create-card__icon">✦</div>
+        <div class="create-card__title">AI 生成页面</div>
+        <div class="create-card__desc">说出需求，AI 出 3 套方案，再手动微调</div>
       </button>
-      <button type="button" class="create-card" @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })">
+      <button
+        type="button"
+        class="create-card"
+        @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
+      >
+        <div class="create-card__icon">▦</div>
         <div class="create-card__title">从模板新建</div>
-        <div class="create-card__desc">打开模板库 · 页面模板</div>
+        <div class="create-card__desc">按行业场景挑选页面模板或整店模板</div>
       </button>
-      <button type="button" class="create-card" @click="router.push('/mini/pages')">
-        <div class="create-card__title">空白新建</div>
-        <div class="create-card__desc">从页面列表创建空白页</div>
+      <button type="button" class="create-card" :disabled="creatingBlank" @click="createBlank">
+        <div class="create-card__icon">+</div>
+        <div class="create-card__title">空白页面</div>
+        <div class="create-card__desc">从组件开始自由搭建</div>
       </button>
     </section>
 
     <div class="overview-grid">
       <div class="overview-main">
-        <section class="panel">
-          <div class="panel__head">
+        <section class="mw-panel nav-panel">
+          <div class="panel-head">
             <h2>底部导航</h2>
-            <div class="panel__head-actions">
-              <el-button link type="primary" @click="openTabDrawer()">编辑导航</el-button>
-              <el-button link @click="router.push('/page-builder/appearance')">高级</el-button>
-            </div>
+            <button type="button" class="mw-link" @click="openTabDrawer()">编辑导航</button>
           </div>
-          <div v-if="tabBar.length" class="tab-list">
-            <div
-              v-for="(tab, i) in tabBar"
-              :key="i"
-              class="tab-row"
-              :class="{ 'is-unbound': isTabUnbound(tab) }"
-              role="button"
-              tabindex="0"
-              @click="openTabDrawer(i)"
-              @keydown.enter="openTabDrawer(i)"
+          <div class="tab-cards-wrap">
+            <draggable
+              v-model="sortableTabBar"
+              item-key="__key"
+              handle=".drag"
+              class="tab-cards"
+              :animation="180"
+              @end="onTabDragEnd"
             >
-              <span class="tab-row__idx">{{ i + 1 }}</span>
-              <span class="tab-row__name">{{ tab.text || `导航 ${i + 1}` }}</span>
-              <span class="tab-row__page">{{ tab.pageName || tab.pagePath || '未绑定' }}</span>
-              <span v-if="isTabUnbound(tab)" class="tab-row__warn">未绑定</span>
-              <div class="tab-row__sort" @click.stop>
-                <el-button
-                  link
-                  size="small"
-                  :disabled="i === 0 || savingTabs"
-                  @click="moveTab(i, -1)"
+              <template #item="{ element: tab, index: i }">
+                <button
+                  type="button"
+                  class="tab-card"
+                  :class="{ 'is-locked': isMineTab(tab), 'is-unbound': isTabUnbound(tab) }"
+                  @click="openTabDrawer(i)"
                 >
-                  上移
-                </el-button>
-                <el-button
-                  link
-                  size="small"
-                  :disabled="i === tabBar.length - 1 || savingTabs"
-                  @click="moveTab(i, 1)"
-                >
-                  下移
-                </el-button>
-              </div>
-            </div>
+                  <div class="tab-card__top">
+                    <span>导航 {{ i + 1 }}</span>
+                    <span v-if="isMineTab(tab)" class="lock" title="我的为固定壳页">🔒</span>
+                    <span v-else class="drag" title="拖拽排序" @click.stop>⠿</span>
+                  </div>
+                  <div class="tab-card__name">{{ tab.text || `导航 ${i + 1}` }}</div>
+                  <div class="tab-card__bind">
+                    → {{ tab.pageName || tab.pagePath || '未绑定' }}
+                  </div>
+                  <div class="tab-card__status">
+                    <PageStatusTag v-if="tabPageStatus(tab)" :status="tabPageStatus(tab)!" />
+                    <span v-else-if="isTabUnbound(tab)" class="unbound">未绑定</span>
+                  </div>
+                </button>
+              </template>
+            </draggable>
+            <button
+              v-if="tabBar.length < 5"
+              type="button"
+              class="tab-card tab-card--add"
+              @click="addTabSlot"
+            >
+              <span class="add-plus">+</span>
+              <span>最多 5 个</span>
+            </button>
           </div>
-          <el-empty v-else description="尚未配置底部导航" :image-size="64">
-            <el-button type="primary" class="btn-terracotta" @click="openTabDrawer()">添加导航</el-button>
-          </el-empty>
         </section>
 
-        <section class="panel">
-          <div class="panel__head">
-            <h2>待发布（前 5 条）</h2>
-            <el-button link type="primary" @click="goPublish">全部</el-button>
-          </div>
-          <div v-if="pendingPreview.length" class="pending-list">
-            <div v-for="item in pendingPreview" :key="String(item.id || item.name)" class="pending-row">
-              <div class="pending-row__main">
-                <span class="pending-row__name">{{ item.name || '未命名' }}</span>
-                <span class="pending-row__sum">{{ item.summary || item.path || '' }}</span>
-              </div>
-              <PageStatusTag :status="(item.status as any) || 'pending'" />
+        <div class="lower-grid">
+          <section class="mw-panel">
+            <div class="panel-head">
+              <h2>待发布的改动</h2>
+              <button type="button" class="mw-link" @click="goPublish">去发布 ›</button>
             </div>
-          </div>
-          <el-empty
-            v-else
-            description="没有待发布的改动，线上就是你现在看到的样子"
-            :image-size="64"
-          />
-        </section>
+            <div v-if="pendingPreview.length" class="pending-list">
+              <div v-for="item in pendingPreview" :key="String(item.id || item.name)" class="pending-row">
+                <span :class="changeKindClass(item)">{{ changeKindLabel(item) }}</span>
+                <div class="pending-row__main">
+                  <span class="pending-row__name">{{ item.name || '未命名' }}</span>
+                  <span class="pending-row__time">{{ item.summary || relativeHint(item) }}</span>
+                </div>
+              </div>
+            </div>
+            <p v-else class="empty-hint">没有待发布的改动，线上就是你现在看到的样子</p>
+          </section>
+
+          <section class="mw-panel">
+            <div class="panel-head">
+              <h2>微信生态</h2>
+            </div>
+            <p class="mw-kicker" style="margin: 0 0 10px">小程序正式版与分发渠道</p>
+            <div class="eco-list">
+              <div class="eco-row">
+                <span>正式版</span>
+                <span class="eco-val">代码 {{ site.wechatCodeVersion || wechatVerFallback || '—' }}</span>
+              </div>
+              <button type="button" class="eco-row eco-row--btn" @click="router.push('/settings/wechat')">
+                <span>公众号菜单</span>
+                <span class="eco-val">{{ mpMenuConfigured ? '已配置 ›' : '未配置 ›' }}</span>
+              </button>
+              <button type="button" class="eco-row eco-row--btn" @click="goPublish">
+                <span>小程序码</span>
+                <span class="eco-val">{{ boundPageCount }} 个页面已绑定 ›</span>
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
 
-      <aside class="panel preview-panel">
-        <div class="panel__head">
-          <h2>预览</h2>
-          <div class="panel__head-actions">
-            <el-radio-group v-model="previewSource" size="small" class="preview-toggle">
-              <el-radio-button value="draft">改动后</el-radio-button>
-              <el-radio-button value="live">线上</el-radio-button>
-            </el-radio-group>
-            <el-button link type="primary" @click="openLivePreview">新窗口</el-button>
+      <aside class="mw-panel preview-panel">
+        <div class="panel-head">
+          <h2>真机预览</h2>
+          <div class="preview-toggle">
+            <button
+              type="button"
+              :class="{ active: previewSource === 'draft' }"
+              @click="previewSource = 'draft'"
+            >
+              改动后
+            </button>
+            <button
+              type="button"
+              :class="{ active: previewSource === 'live' }"
+              @click="previewSource = 'live'"
+            >
+              线上
+            </button>
           </div>
         </div>
         <div class="phone-frame">
           <iframe :key="previewSource" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
+        <el-button class="scan-btn" @click="openLivePreview">扫码在手机上看</el-button>
       </aside>
     </div>
 
@@ -155,7 +190,7 @@
       </el-form>
       <template #footer>
         <el-button @click="drawerVisible = false">取消</el-button>
-        <el-button type="primary" class="btn-terracotta" :loading="savingTabs" @click="saveTabEdit">
+        <el-button type="primary" class="mw-btn-primary" :loading="savingTabs" @click="saveTabEdit">
           保存
         </el-button>
       </template>
@@ -167,6 +202,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import draggable from 'vuedraggable'
 import PageStatusTag from '@/components/mini/PageStatusTag.vue'
 import {
   getMiniSite,
@@ -176,8 +212,10 @@ import {
   type MiniTabBarItem,
   type PendingChangeItem,
 } from '@/api/miniSite'
-import { getPageList } from '@/api/page'
-import { resolvePageStatus } from '@/utils/pageStatus'
+import { createPage, getPageList } from '@/api/page'
+import { getLatestRelease } from '@/api/version'
+import { getConfigByGroupSilent } from '@/api/system'
+import { resolvePageStatus, type MiniPageStatus } from '@/utils/pageStatus'
 import type { PageRecord as PageRow } from '@/types/page'
 
 defineOptions({ name: 'MiniOverview' })
@@ -185,6 +223,7 @@ defineOptions({ name: 'MiniOverview' })
 const router = useRouter()
 const loading = ref(false)
 const savingTabs = ref(false)
+const creatingBlank = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
 const previewSource = ref<'draft' | 'live'>('draft')
@@ -199,9 +238,32 @@ const templateLabel = computed(() => site.value.templateName || '自定义（未
 const tabBar = computed(() => site.value.tabBar || [])
 const pendingPreview = computed(() => pending.value.slice(0, 5))
 
+/** vuedraggable 需要稳定 key */
+type SortableTab = MiniTabBarItem & { __key: string }
+const sortableTabBar = ref<SortableTab[]>([])
+
+function syncSortableFromSite() {
+  sortableTabBar.value = (site.value.tabBar || []).map((t, i) => ({
+    ...t,
+    __key: `${t.pageId || t.pagePath || t.text || 'tab'}-${i}`,
+  }))
+}
+
+const wechatVerFallback = ref('')
+const mpMenuConfigured = ref(false)
+const boundPageCount = computed(() =>
+  (site.value.tabBar || []).filter((t) => t.pageId || t.pagePath).length,
+)
+
+const pageById = computed(() => {
+  const map = new Map<number, PageRow>()
+  for (const p of pageOptions.value) map.set(Number(p.id), p)
+  return map
+})
+
 const bindablePages = computed(() =>
   pageOptions.value.filter((p) => {
-    const st = resolvePageStatus(p as any)
+    const st = resolvePageStatus(p)
     return st === 'live' || st === 'pending' || st === 'draft'
   }),
 )
@@ -215,8 +277,41 @@ const previewUrl = computed(() => {
   return href
 })
 
+function formatShort(t?: string | null) {
+  if (!t) return ''
+  const s = String(t).replace('T', ' ')
+  return s.length >= 16 ? s.slice(5, 16) : s.slice(0, 16)
+}
+
+function isMineTab(tab: MiniTabBarItem) {
+  const path = String(tab.pagePath || '')
+  const name = String(tab.text || '')
+  return path.includes('mine/mine') || name === '我的'
+}
+
 function isTabUnbound(tab: MiniTabBarItem) {
   return !(tab.pageId || tab.pagePath)
+}
+
+function tabPageStatus(tab: MiniTabBarItem): MiniPageStatus | null {
+  if (tab.pageId == null || tab.pageId === '') return null
+  const row = pageById.value.get(Number(tab.pageId))
+  return row ? resolvePageStatus(row) : null
+}
+
+function changeKindLabel(item: PendingChangeItem) {
+  if (item.type === 'site') return '修改'
+  const st = String(item.status || '')
+  if (st === 'draft' || /尚未|新增|新建/.test(String(item.summary || ''))) return '新增'
+  return '修改'
+}
+
+function changeKindClass(item: PendingChangeItem) {
+  return changeKindLabel(item) === '新增' ? 'mw-tag-new' : 'mw-tag-mod'
+}
+
+function relativeHint(_item: PendingChangeItem) {
+  return '待发布'
 }
 
 function goPublish() {
@@ -227,17 +322,19 @@ function openLivePreview() {
   const source = previewSource.value === 'live' ? 'live' : 'draft'
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config', source } })
   window.open(href, '_blank', 'noopener,noreferrer')
+  ElMessage.success('已打开预览页；可用微信扫码或手机浏览器查看（开发环境请确保可访问）')
+}
+
+async function onTabDragEnd() {
+  const next = sortableTabBar.value.map(({ __key: _k, ...rest }) => rest)
+  await persistTabBar(next, '导航顺序已保存')
 }
 
 function openTabDrawer(index?: number) {
   const list = [...(site.value.tabBar || [])]
   if (index == null) {
-    if (!list.length) {
-      list.push({ text: '首页', pagePath: '' })
-      drawerIndex.value = 0
-    } else {
-      drawerIndex.value = 0
-    }
+    drawerIndex.value = list.length ? 0 : 0
+    if (!list.length) list.push({ text: '首页', pagePath: '' })
   } else {
     drawerIndex.value = index
   }
@@ -246,6 +343,17 @@ function openTabDrawer(index?: number) {
   editTab.value = { ...current }
   editPageId.value = current.pageId != null && current.pageId !== '' ? Number(current.pageId) : null
   drawerVisible.value = true
+}
+
+async function addTabSlot() {
+  const list = [...(site.value.tabBar || [])]
+  if (list.length >= 5) {
+    ElMessage.warning('底部导航最多 5 个')
+    return
+  }
+  list.push({ text: `导航 ${list.length + 1}`, pagePath: '' })
+  site.value = { ...site.value, tabBar: list }
+  openTabDrawer(list.length - 1)
 }
 
 function onBindPage(id: number | null) {
@@ -271,8 +379,8 @@ async function persistTabBar(next: MiniTabBarItem[], successMsg = '导航已保�
     site.value = { ...site.value, ...updated, tabBar: updated.tabBar || next }
     ElMessage.success(successMsg)
     await load()
-  } catch (e: any) {
-    ElMessage.error(e?.message || '保存导航失败')
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存导航失败')
   } finally {
     savingTabs.value = false
   }
@@ -297,32 +405,61 @@ async function saveTabEdit() {
   drawerVisible.value = false
 }
 
-async function moveTab(index: number, delta: number) {
-  const target = index + delta
-  const list = [...(site.value.tabBar || [])]
-  if (target < 0 || target >= list.length) return
-  const tmp = list[index]
-  list[index] = list[target]
-  list[target] = tmp
-  await persistTabBar(list, '顺序已更新')
+async function createBlank() {
+  creatingBlank.value = true
+  const suffix = Date.now().toString(36).slice(-5)
+  try {
+    const res = await createPage({
+      name: `未命名页面-${suffix}`,
+      type: 3,
+      path: `pages/custom/p-${suffix}`,
+    })
+    const id = Number((res as { data?: { id?: number } })?.data?.id || 0)
+    if (!id) throw new Error('未返回页面 id')
+    ElMessage.success('已创建')
+    router.push(`/mini/pages/${id}/editor`)
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '创建失败')
+  } finally {
+    creatingBlank.value = false
+  }
 }
 
 async function load() {
   loading.value = true
   try {
-    const [s, p, pageRes] = await Promise.all([
+    const [s, p, pageRes, latestRes, cfgRes] = await Promise.all([
       getMiniSite('draft'),
       getPendingChanges(),
       getPageList({ current: 1, size: 200 }),
+      getLatestRelease().catch(() => null),
+      getConfigByGroupSilent('basic').catch(() => null),
     ])
     site.value = s
     pending.value = p.items || []
-    pageOptions.value = ((pageRes as any)?.data?.records || (pageRes as any)?.data?.list || []) as PageRow[]
+    syncSortableFromSite()
+    const data = (pageRes as { data?: { records?: PageRow[]; list?: PageRow[] } })?.data
+    pageOptions.value = (data?.records || data?.list || []) as PageRow[]
     if (s.pendingCount == null) {
       site.value = { ...s, pendingCount: p.pendingCount ?? pending.value.length }
     }
-  } catch (e: any) {
-    ElMessage.error(e?.message || '加载概览失败')
+    const latest = (latestRes as { data?: { semver?: string; version?: string } })?.data
+    wechatVerFallback.value = String(latest?.semver || latest?.version || '')
+    // 公众号菜单：有 AppID / 菜单相关配置则视为已配置
+    try {
+      const configs = (cfgRes as any)?.data?.configs || (cfgRes as any)?.data || []
+      const map = Array.isArray(configs)
+        ? Object.fromEntries(configs.map((c: any) => [c.configKey || c.key, c.configValue ?? c.value]))
+        : {}
+      mpMenuConfigured.value = !!(
+        map.mp_app_id || map.mpAppId || map.wechat_mp_appid || map.officialAccountAppId
+        || map.mp_menu || map.mpMenu
+      )
+    } catch {
+      mpMenuConfigured.value = false
+    }
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '加载概览失败')
   } finally {
     loading.value = false
   }
@@ -332,99 +469,80 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.mini-page {
-  --mini-bg: #f6f2ec;
-  --mini-terracotta: #b4430f;
-  --mini-ink: #2c241c;
-  --mini-muted: #7a6e64;
-  --mini-card: #fffcf8;
-  --mini-border: #e5ddd2;
-  min-height: 100%;
-  margin: -16px;
-  padding: 20px 24px 40px;
-  background: var(--mini-bg);
-  color: var(--mini-ink);
-}
-
-.site-head {
+.meta-row {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.site-head__kicker {
-  font-size: 12px;
-  color: var(--mini-muted);
-  margin-bottom: 4px;
-}
-.site-head__title {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.site-head__meta {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
   margin: 6px 0 0;
-  color: var(--mini-muted);
   font-size: 13px;
+  color: var(--mw-muted);
 }
-.site-head__actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.btn-terracotta {
-  --el-button-bg-color: var(--mini-terracotta);
-  --el-button-border-color: var(--mini-terracotta);
-  --el-button-hover-bg-color: #9a390d;
-  --el-button-hover-border-color: #9a390d;
-  --el-button-active-bg-color: #85310b;
-  --el-button-active-border-color: #85310b;
+.live-pill {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mw-green);
+  background: var(--mw-green-bg);
 }
 
 .create-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 .create-card {
   text-align: left;
-  padding: 16px 18px;
-  border: 1px solid var(--mini-border);
-  border-radius: 10px;
-  background: var(--mini-card);
+  padding: 18px 20px;
+  border: 1px solid var(--mw-border);
+  border-radius: 14px;
+  background: var(--mw-card);
   cursor: pointer;
+  color: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
+  &:hover {
+    border-color: #d4a88a;
+    box-shadow: 0 4px 14px rgba(180, 67, 15, 0.08);
+  }
+  &:disabled { opacity: 0.6; cursor: wait; }
 }
-.create-card:hover {
-  border-color: #d4a88a;
-  box-shadow: 0 4px 14px rgba(180, 67, 15, 0.08);
+.create-card--ai {
+  background: var(--mw-terracotta);
+  border-color: var(--mw-terracotta);
+  color: #fff;
+  .create-card__desc { color: rgba(255, 255, 255, 0.82); }
+  &:hover {
+    border-color: var(--mw-terracotta-hover);
+    background: var(--mw-terracotta-hover);
+    box-shadow: 0 6px 18px rgba(180, 67, 15, 0.28);
+  }
+}
+.create-card__icon {
+  font-size: 18px;
+  margin-bottom: 10px;
+  opacity: 0.9;
 }
 .create-card__title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 650;
 }
 .create-card__desc {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 12px;
-  color: var(--mini-muted);
+  color: var(--mw-muted);
+  line-height: 1.45;
 }
 
 .overview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px;
   align-items: start;
 }
-.panel {
-  background: var(--mini-card);
-  border: 1px solid var(--mini-border);
-  border-radius: 12px;
-  padding: 16px 18px;
-  margin-bottom: 14px;
-}
-.panel__head {
+.panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -436,73 +554,130 @@ onMounted(load)
     font-weight: 600;
   }
 }
-.panel__head-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
 
-.tab-list, .pending-list { display: flex; flex-direction: column; gap: 8px; }
-.tab-row, .pending-row {
-  display: flex;
-  align-items: center;
+.tab-cards-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f8f4ee;
+  align-items: stretch;
 }
-.tab-row {
+.tab-cards {
+  display: contents;
+}
+.drag {
+  font-size: 12px;
+  cursor: grab;
+  user-select: none;
+  &:active { cursor: grabbing; }
+}
+.tab-card {
+  text-align: left;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--mw-border);
+  background: #faf6f1;
   cursor: pointer;
-  transition: background 0.15s;
-  &:hover { background: #f0e6da; }
-  &.is-unbound {
-    background: #fef3f2;
-    border: 1px solid #fecdca;
-  }
+  color: inherit;
+  min-height: 118px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  &:hover { border-color: #d4a88a; }
+  &.is-unbound { border-color: #fecdca; background: #fef6f4; }
 }
-.tab-row__idx {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #e8ddd0;
-  display: inline-flex;
+.tab-card--add {
+  border-style: dashed;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--mw-muted);
+  .add-plus { font-size: 22px; line-height: 1; }
 }
-.tab-row__name { font-weight: 600; min-width: 64px; }
-.tab-row__page { color: var(--mini-muted); font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tab-row__warn {
+.tab-card__top {
+  display: flex;
+  justify-content: space-between;
   font-size: 11px;
-  color: #b42318;
-  flex-shrink: 0;
+  color: var(--mw-muted);
 }
-.tab-row__sort { display: flex; gap: 0; flex-shrink: 0; }
-.pending-row { justify-content: space-between; }
+.tab-card__name { font-size: 15px; font-weight: 650; margin-top: 2px; }
+.tab-card__bind {
+  font-size: 12px;
+  color: var(--mw-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tab-card__status { margin-top: auto; padding-top: 6px; }
+.unbound { font-size: 12px; color: #b42318; }
+.lock, .drag { font-size: 12px; }
+
+.lower-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+.pending-list { display: flex; flex-direction: column; gap: 8px; }
+.pending-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mw-border);
+  &:last-child { border-bottom: 0; }
+}
 .pending-row__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pending-row__name { font-weight: 600; }
-.pending-row__sum { font-size: 12px; color: var(--mini-muted); }
+.pending-row__name { font-weight: 600; font-size: 14px; }
+.pending-row__time { font-size: 12px; color: var(--mw-muted); }
+.empty-hint { margin: 0; font-size: 13px; color: var(--mw-muted); }
+
+.eco-list { display: flex; flex-direction: column; gap: 4px; }
+.eco-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mw-border);
+  font-size: 13px;
+  &:last-child { border-bottom: 0; }
+}
+.eco-row--btn {
+  width: 100%;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+.eco-val { color: var(--mw-muted); font-size: 12px; }
 
 .preview-panel { position: sticky; top: 12px; }
 .preview-toggle {
-  :deep(.el-radio-button__inner) {
-    padding: 5px 10px;
-  }
-  :deep(.el-radio-button.is-active .el-radio-button__inner) {
-    background: var(--mini-terracotta);
-    border-color: var(--mini-terracotta);
-    box-shadow: none;
+  display: inline-flex;
+  border: 1px solid var(--mw-border);
+  border-radius: 999px;
+  overflow: hidden;
+  button {
+    border: 0;
+    background: transparent;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--mw-muted);
+    &.active {
+      background: var(--mw-terracotta);
+      color: #fff;
+    }
   }
 }
 .phone-frame {
-  border-radius: 16px;
+  border-radius: 22px;
   overflow: hidden;
-  border: 1px solid var(--mini-border);
+  border: 8px solid #1a1410;
   background: #1a1410;
   aspect-ratio: 375 / 720;
-  max-height: 560px;
+  max-height: 520px;
   iframe {
     width: 100%;
     height: 100%;
@@ -510,10 +685,14 @@ onMounted(load)
     background: #fff;
   }
 }
+.scan-btn {
+  width: 100%;
+  margin-top: 12px;
+}
 
 @media (max-width: 1100px) {
   .overview-grid { grid-template-columns: 1fr; }
   .preview-panel { position: static; }
-  .create-cards { grid-template-columns: 1fr; }
+  .create-cards, .lower-grid { grid-template-columns: 1fr; }
 }
 </style>

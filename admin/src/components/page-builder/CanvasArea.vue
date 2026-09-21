@@ -1,8 +1,8 @@
 <template>
   <div class="prototype-canvas">
     <div class="canvas-meta">
-      <span class="canvas-meta__title">编辑画布 · 结构示意</span>
-      <span class="canvas-meta__device">真机效果以扫码预览为准 · 375 × 812</span>
+      <span class="canvas-meta__title">实时数据预览 · 与真机一致 · 375×812</span>
+      <span class="canvas-meta__device">扫码预览与真机一致</span>
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap">
@@ -50,7 +50,11 @@
                 <div
                   v-else
                   class="canvas-item-wrap"
-                  :class="{ dragging: draggingIndex === index, 'heat-on': heatMode }"
+                  :class="{
+                    dragging: draggingIndex === index,
+                    'heat-on': heatMode,
+                    'ai-highlight': isAiHighlighted(comp.id),
+                  }"
                   :style="heatStyle(comp.id)"
                   draggable="true"
                   @dragstart="handleItemDragStart($event, index)"
@@ -58,6 +62,7 @@
                   @dragover.prevent.stop="handleItemDragOver($event, index)"
                   @drop.stop="handleItemDrop($event, index)"
                 >
+                  <div v-if="isAiHighlighted(comp.id)" class="ai-new-badge">AI 新增</div>
                   <div v-if="heatMode && heatMap[comp.id]" class="heat-badge">
                     {{ heatMap[comp.id].clicks || 0 }} 次点击
                   </div>
@@ -126,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, inject, onMounted, onBeforeUnmount, type Ref } from 'vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
@@ -137,6 +142,10 @@ import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight
 import { get } from '@/api/request'
 
 const pageStore = usePageStore()
+const aiHighlightIds = inject<Ref<string[]>>('aiHighlightIds', ref([]))
+function isAiHighlighted(id: string) {
+  return aiHighlightIds.value.includes(id)
+}
 
 const {
   pinnedBrandHeader,
@@ -552,9 +561,29 @@ onBeforeUnmount(() => {
     cursor: default;
   }
 
+  &.ai-highlight {
+    outline: 2px dashed #b4430f;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
   &:active {
     cursor: grabbing;
   }
+}
+
+.ai-new-badge {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  z-index: 6;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #b4430f;
+  padding: 1px 7px;
+  border-radius: 999px;
+  pointer-events: none;
 }
 
 .heat-badge {

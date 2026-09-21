@@ -1,5 +1,5 @@
 <template>
-  <div class="header-container">
+  <div class="header-container" :class="{ 'is-mini': isMiniRoute }">
     <div class="header-left">
       <el-icon
         class="collapse-btn"
@@ -24,7 +24,22 @@
       </el-breadcrumb>
     </div>
     <div class="header-right">
+      <template v-if="isMiniRoute">
+        <button type="button" class="mini-site-pill" @click="router.push('/mini/overview')">
+          <span class="dot" />
+          <span class="pill-text">
+            {{ siteLabel }}
+            <template v-if="liveReleaseNo != null"> · 第 {{ liveReleaseNo }} 次发布</template>
+          </span>
+        </button>
+        <button type="button" class="mini-publish-btn" @click="router.push('/mini/publish')">
+          <el-icon><Promotion /></el-icon>
+          发布
+          <span v-if="pendingCount > 0" class="pub-badge">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
+        </button>
+      </template>
       <el-select
+        v-else
         :model-value="appStore.uiTheme"
         class="theme-switcher"
         size="small"
@@ -50,15 +65,17 @@
           :value="Number(t.id || t.tenantId)"
         />
       </el-select>
-      <span v-else-if="tenantStore.current?.name" class="tenant-label">{{ tenantStore.displayName }}</span>
+      <span v-else-if="tenantStore.current?.name && !isMiniRoute" class="tenant-label">{{ tenantStore.displayName }}</span>
 
       <el-dropdown trigger="click" @command="handleCommand">
-        <span class="user-info">
+        <span class="user-info" :class="{ warm: isMiniRoute }">
           <span class="avatar-wrap">
-            <el-avatar :size="30" :src="userStore.userInfo?.avatar" />
+            <el-avatar :size="30" :src="userStore.userInfo?.avatar">
+              {{ (userStore.userInfo?.nickname || 'B').slice(0, 1) }}
+            </el-avatar>
           </span>
-          <span class="username">{{ userStore.userInfo?.nickname || '管理员' }}</span>
-          <el-icon><ArrowDown /></el-icon>
+          <span v-if="!isMiniRoute" class="username">{{ userStore.userInfo?.nickname || '管理员' }}</span>
+          <el-icon v-if="!isMiniRoute"><ArrowDown /></el-icon>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
@@ -74,10 +91,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Promotion } from '@element-plus/icons-vue'
 import { useAppStore, type AdminUiTheme } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { useTenantStore } from '@/stores/tenant'
 import { usePermissionStore } from '@/stores/permission'
+import { useMiniPending } from '@/composables/useMiniPending'
 import { ElMessageBox } from 'element-plus'
 
 const route = useRoute()
@@ -86,10 +105,21 @@ const appStore = useAppStore()
 const userStore = useUserStore()
 const tenantStore = useTenantStore()
 const permissionStore = usePermissionStore()
+const { pendingCount, siteLabel, liveReleaseNo, refreshMiniPending } = useMiniPending(false)
+
+const isMiniRoute = computed(() => route.path.startsWith('/mini'))
+
+watch(
+  () => route.path,
+  (p) => {
+    if (p.startsWith('/mini')) void refreshMiniPending()
+  },
+  { immediate: true },
+)
 
 const tenantSelectId = ref<number | undefined>()
 const showTenantSwitcher = computed(
-  () => permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
+  () => !isMiniRoute.value && permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
 )
 
 watch(
@@ -158,6 +188,9 @@ async function handleCommand(command: string) {
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  &.is-mini {
+    background: #fffcf8;
+  }
 }
 
 .header-left {
@@ -192,6 +225,59 @@ async function handleCommand(command: string) {
   flex-shrink: 0;
 }
 
+.mini-site-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 280px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e8dfd3;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  color: #2c241c;
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex-shrink: 0;
+  }
+  .pill-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.mini-publish-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #b4430f;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { background: #9a390d; }
+  .pub-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #fff;
+    color: #b4430f;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+  }
+}
+
 .tenant-switcher {
   width: 220px;
 }
@@ -216,7 +302,17 @@ async function handleCommand(command: string) {
   border-radius: 12px;
   cursor: pointer;
   color: #172033;
-  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+
+  &.warm {
+    background: transparent;
+    border-color: transparent;
+    padding: 2px;
+    &:hover {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+  }
 
   &:hover {
     background: #eaf2ff;
@@ -238,7 +334,6 @@ async function handleCommand(command: string) {
       background: #22c55e;
       border: 2px solid #fff;
       border-radius: 50%;
-      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
     }
   }
 

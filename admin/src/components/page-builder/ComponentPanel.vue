@@ -1,6 +1,27 @@
 <template>
   <div class="prototype-component-panel">
-    <section class="panel-section" :style="sectionStyle('components')">
+    <div class="left-tabs">
+      <button
+        type="button"
+        class="left-tab"
+        :class="{ active: leftTab === 'components' }"
+        @click="leftTab = 'components'"
+      >组件</button>
+      <button
+        type="button"
+        class="left-tab"
+        :class="{ active: leftTab === 'blocks' }"
+        @click="leftTab = 'blocks'"
+      >区块模板</button>
+      <button
+        type="button"
+        class="left-tab"
+        :class="{ active: leftTab === 'structure' }"
+        @click="leftTab = 'structure'"
+      >结构</button>
+    </div>
+
+    <section v-show="leftTab === 'components'" class="panel-section" :style="sectionStyle('components')">
       <div class="section-title">
         <span>组件库</span>
         <button class="section-count" @click="toggleCollapse('components')">{{ totalComponentCount }}</button>
@@ -69,7 +90,7 @@
     </section>
 
     <div
-      v-show="!collapsed.components"
+      v-show="leftTab === 'components' && !collapsed.components"
       class="resize-handle"
       title="拖动调整组件库高度"
       @mousedown="startResize('components', $event)"
@@ -77,7 +98,31 @@
       <span></span>
     </div>
 
-    <section class="panel-section structure-section" :class="{ collapsed: collapsed.structure }">
+    <section v-show="leftTab === 'blocks'" class="panel-section blocks-section">
+      <div class="blocks-grid">
+        <button
+          v-for="block in blockTemplates"
+          :key="block.key"
+          type="button"
+          class="block-card"
+          @click="handleAddBlock(block)"
+        >
+          <span class="block-card__preview" :style="{ '--accent': block.accent }">
+            <span class="block-card__bar" />
+            <span class="block-card__line" />
+            <span class="block-card__line short" />
+          </span>
+          <span class="block-card__name">{{ block.label }}</span>
+          <span class="block-card__hint">{{ block.hint }}</span>
+        </button>
+      </div>
+    </section>
+
+    <section
+      v-show="leftTab === 'structure' || leftTab === 'components'"
+      class="panel-section structure-section"
+      :class="{ collapsed: collapsed.structure }"
+    >
       <div class="section-title">
         <span>当前页面结构</span>
         <button class="section-count" @click="toggleCollapse('structure')">{{ pageStore.components.length }}</button>
@@ -110,6 +155,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { usePageStore } from '@/stores/page'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
@@ -123,6 +169,36 @@ const featureModulesStore = useFeatureModulesStore()
 const industryProfileStore = useIndustryProfileStore()
 if (!industryProfileStore.loaded) {
   industryProfileStore.load()
+}
+const leftTab = ref<'components' | 'blocks' | 'structure'>('components')
+
+/** 区块模板：至少 6 张常用卡，点击插入对应组件 */
+const blockTemplates = [
+  { key: 'festival', label: '节日横幅', hint: '轮播 + 活动入口', accent: '#b4430f', types: [ComponentType.Banner, ComponentType.ActivityEntry] },
+  { key: 'booklist', label: '书单双列', hint: '标题 + 商品列表', accent: '#8f5400', types: [ComponentType.SectionTitle, ComponentType.ProductList] },
+  { key: 'signup', label: '报名底栏', hint: '表单 + 悬浮按钮', accent: '#1d6bb8', types: [ComponentType.FormEntry, ComponentType.FloatButton] },
+  { key: 'countdown', label: '倒计时', hint: '活动倒计时', accent: '#a33b5c', types: [ComponentType.Countdown] },
+  { key: 'coupon', label: '优惠券条', hint: '领券组件', accent: '#1f7a4d', types: [ComponentType.Coupon] },
+  { key: 'community', label: '社群入口', hint: '加入群聊', accent: '#6b4c9a', types: [ComponentType.JoinGroup] },
+] as const
+
+function handleAddBlock(block: (typeof blockTemplates)[number]) {
+  const types = block.types.filter((t) => getComponentDef(t) && industryProfileStore.isComponentAllowed(t))
+  if (!types.length) {
+    ElMessage.info(`「${block.label}」对应组件暂不可用，请从「组件」库手动添加`)
+    return
+  }
+  try {
+    for (const type of types) {
+      pageStore.addComponent(type)
+      recordRecentUsage(type)
+    }
+    collapsed.value.structure = false
+    leftTab.value = 'structure'
+    ElMessage.success(`已插入「${block.label}」`)
+  } catch {
+    ElMessage.info(`「${block.label}」暂无法直接加入，请从组件库拖入`)
+  }
 }
 const componentSectionHeight = ref(520)
 const collapsed = ref({
@@ -310,8 +386,96 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: #fff;
-  border-right: 1px solid #e3e8f0;
+  background: #fffcf8;
+  border-right: 1px solid #e8dfd3;
+}
+
+.left-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 10px 0;
+  border-bottom: 1px solid #e8dfd3;
+  flex-shrink: 0;
+}
+.left-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 4px 10px;
+  font-size: 13px;
+  color: #7a6e64;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  &.active {
+    color: #b4430f;
+    font-weight: 700;
+    border-bottom-color: #b4430f;
+  }
+}
+
+.blocks-section {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+.blocks-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.block-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 10px 12px;
+  border: 1px solid #e8dfd3;
+  border-radius: 10px;
+  background: #fffcf8;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: #b4430f;
+    background: #fbeadf;
+  }
+
+  &__preview {
+    --accent: #b4430f;
+    width: 100%;
+    height: 48px;
+    border-radius: 6px;
+    background: linear-gradient(160deg, #f3ebe2, #e8dfd3);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-sizing: border-box;
+    margin-bottom: 4px;
+  }
+  &__bar {
+    height: 12px;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+  &__line {
+    height: 6px;
+    border-radius: 2px;
+    background: #fff;
+    border: 1px solid #e5ddd2;
+    &.short { width: 55%; }
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2c241c;
+  }
+  &__hint {
+    font-size: 11px;
+    color: #7a6e64;
+  }
 }
 
 .panel-section {
