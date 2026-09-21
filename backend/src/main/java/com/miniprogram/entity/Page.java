@@ -41,4 +41,10 @@ public class Page extends BaseEntity {
 
     @Schema(description = "页面描述")
     private String description;
+
+    @Schema(description = "页面分组 tab/activity/content/archived，可空由绑定推导")
+    private String pageGroup;
+
+    @Schema(description = "是否归档 0否 1是")
+    private Integer archived;
 }

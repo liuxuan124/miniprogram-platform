@@ -36,18 +36,14 @@
                 </el-button>
               </el-tooltip>
             </el-button-group>
-            <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
-              <el-icon><Document /></el-icon>
-              保存
-            </el-button>
             <el-button size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
               预览
             </el-button>
-            <el-tooltip content="上线后，用户刷新小程序就能看到这一页的改动，不需要发版" placement="bottom">
-              <el-button type="primary" size="small" @click="handlePublish">
+            <el-tooltip content="自动保存草稿后去发布页，一次推送导航与未上线页面" placement="bottom">
+              <el-button type="primary" size="small" :loading="pageStore.saving" @click="goMiniPublish">
                 <el-icon><Upload /></el-icon>
-                上线
+                发布
               </el-button>
             </el-tooltip>
             <el-dropdown trigger="click">
@@ -57,6 +53,7 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
+                  <el-dropdown-item @click="handleSaveDraft">立即保存草稿</el-dropdown-item>
                   <el-dropdown-item @click="handleHistory">历史版本</el-dropdown-item>
                   <el-dropdown-item @click="handleImportDSL">导入 DSL</el-dropdown-item>
                   <el-dropdown-item divided @click="handleViewDSL">高级：查看 DSL</el-dropdown-item>
@@ -101,7 +98,50 @@
       </div>
 
       <div v-show="!rightCollapsed" class="editor-right">
-        <PropsPanel />
+        <el-tabs v-model="rightTab" class="right-tabs" stretch>
+          <el-tab-pane label="属性" name="props">
+            <PropsPanel />
+          </el-tab-pane>
+          <el-tab-pane label="AI 助手" name="ai">
+            <div class="ai-assistant">
+              <div class="ai-assistant__hint">描述想改的地方，一期先给提示与草稿建议。</div>
+              <div class="ai-assistant__pills">
+                <button
+                  v-for="pill in aiPills"
+                  :key="pill"
+                  type="button"
+                  class="ai-pill"
+                  @click="applyAiPill(pill)"
+                >
+                  {{ pill }}
+                </button>
+              </div>
+              <el-input
+                v-model="aiPrompt"
+                type="textarea"
+                :rows="3"
+                maxlength="300"
+                show-word-limit
+                placeholder="例如：把首屏轮播换成节日氛围…"
+              />
+              <el-button
+                type="primary"
+                class="ai-assistant__send"
+                :loading="aiRunning"
+                :disabled="!aiPrompt.trim()"
+                @click="runAiAssist"
+              >
+                生成建议
+              </el-button>
+              <div class="ai-assistant__reply" v-loading="aiRunning">
+                <template v-if="aiReply">{{ aiReply }}</template>
+                <template v-else>
+                  <span class="ai-assistant__placeholder">回复会出现在这里</span>
+                </template>
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
 
@@ -210,9 +250,9 @@
 import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Document, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
+import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
-import { getPageDetail, saveDraft, publishPage, createPage, updatePage } from '@/api/page'
+import { getPageDetail, saveDraft, publishPage, createPage, updatePage, runAiPagePipeline } from '@/api/page'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
 import { collectDataSourceIssues } from '@/components/page-builder/dataSourceValidation'
 import ComponentPanel from '@/components/page-builder/ComponentPanel.vue'
@@ -239,6 +279,44 @@ const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
 const leftCollapsed = ref(false)
 const rightCollapsed = ref(false)
+const rightTab = ref<'props' | 'ai'>('props')
+
+/** 右栏 AI 助手壳（一期：快捷胶囊 + 输入 + 占位回复） */
+const aiPills = ['改成节日氛围', '精简首屏', '补空状态'] as const
+const aiPrompt = ref('')
+const aiReply = ref('')
+const aiRunning = ref(false)
+
+function applyAiPill(pill: string) {
+  aiPrompt.value = pill
+  rightTab.value = 'ai'
+}
+
+async function runAiAssist() {
+  const text = aiPrompt.value.trim()
+  if (!text) return
+  aiRunning.value = true
+  aiReply.value = ''
+  try {
+    const pageName = pageStore.pageConfig.name || '当前页'
+    const prompt = `针对装修页「${pageName}」给出改造建议（不要直接改线上）：${text}`
+    const res = await runAiPagePipeline(prompt)
+    const data = (res as any)?.data ?? res
+    const draft = data?.draft
+    const summary =
+      data?.message ||
+      data?.summary ||
+      data?.designNotes ||
+      (draft?.pageId
+        ? `已生成相关草稿提示（pageId=${draft.pageId}）。请到「属性」继续微调，发布仍走统一发布页。`
+        : '')
+    aiReply.value = summary || '已收到建议，可按提示在属性面板手动调整。'
+  } catch {
+    aiReply.value = '暂未接通'
+  } finally {
+    aiRunning.value = false
+  }
+}
 
 /** 页面加载失败态（FP-UI-028） */
 const pageLoadError = ref('')
@@ -426,7 +504,7 @@ async function handleBack() {
     }
   }
   pageStore.resetEditor()
-  await router.push({ name: 'PageBuilderList' })
+  await router.push({ path: '/mini/pages' })
 }
 
 /** 保存草稿时同步名称/路径到页面表（列表展示依赖库表，不依赖 DSL） */
@@ -593,7 +671,38 @@ function validateBeforePublish(): string[] {
   return [...new Set(warnings)]
 }
 
-/** 发布 */
+/** 去统一发布页：有脏改动先自动保存，再跳转 */
+async function goMiniPublish() {
+  if (pageStore.isDirty && pageStore.currentPage) {
+    try {
+      pageStore.saving = true
+      await syncPageMetaToServer()
+      const expectedVersion = currentExpectedVersion()
+      const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
+      pageStore.isDirty = false
+      autoSaveError.value = ''
+      if (res.data) {
+        syncSavedDraftVersion(res.data)
+      }
+    } catch (err: any) {
+      if (isConflictError(err)) {
+        conflict.visible = true
+      } else {
+        ElMessage.error(`保存失败，暂时无法去发布：${err?.response?.data?.message || err?.message || '未知错误'}`)
+      }
+      return
+    } finally {
+      pageStore.saving = false
+    }
+  }
+  const id = pageStore.currentPage?.id
+  router.push({
+    path: '/mini/publish',
+    query: id != null ? { pageId: String(id) } : undefined,
+  })
+}
+
+/** 单页立即上线（已从顶栏移除；保留函数供结果面板等内部调用） */
 async function handlePublish() {
   if (!pageStore.currentPage) return
   const jumpIssues = collectJumpIssues(pageStore.components)
@@ -856,8 +965,99 @@ onBeforeUnmount(() => {
       min-width: 360px;
       flex-shrink: 0;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #fffcf8;
+      border-left: 1px solid #e5ddd2;
     }
   }
+}
+
+.right-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  --el-color-primary: #b4430f;
+
+  :deep(.el-tabs__header) {
+    margin: 0;
+    padding: 0 8px;
+    background: #fffcf8;
+    border-bottom: 1px solid #e5ddd2;
+  }
+  :deep(.el-tabs__nav-wrap::after) {
+    background-color: transparent;
+  }
+  :deep(.el-tabs__content) {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+  }
+  :deep(.el-tab-pane) {
+    height: 100%;
+    overflow: auto;
+  }
+  :deep(.el-tabs__item.is-active) {
+    color: #b4430f;
+  }
+  :deep(.el-tabs__active-bar) {
+    background-color: #b4430f;
+  }
+}
+
+.ai-assistant {
+  padding: 12px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+  background: #f6f2ec;
+}
+.ai-assistant__hint {
+  font-size: 12px;
+  color: #7a6e64;
+  line-height: 1.45;
+}
+.ai-assistant__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ai-pill {
+  border: 1px solid #e5ddd2;
+  background: #fffcf8;
+  color: #2c241c;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  &:hover {
+    border-color: #d4a88a;
+    color: #b4430f;
+  }
+}
+.ai-assistant__send {
+  align-self: flex-start;
+  --el-button-bg-color: #b4430f;
+  --el-button-border-color: #b4430f;
+  --el-button-hover-bg-color: #9a390d;
+  --el-button-hover-border-color: #9a390d;
+}
+.ai-assistant__reply {
+  flex: 1;
+  min-height: 120px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fffcf8;
+  border: 1px solid #e5ddd2;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #2c241c;
+  white-space: pre-wrap;
+}
+.ai-assistant__placeholder {
+  color: #7a6e64;
 }
 
 .builder-toolbar {

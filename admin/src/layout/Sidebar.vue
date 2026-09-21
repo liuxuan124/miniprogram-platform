@@ -120,6 +120,7 @@ import {
   Checked,
   EditPen,
   ChatDotRound,
+  Shop,
 } from '@element-plus/icons-vue'
 
 interface MenuItem {
@@ -167,6 +168,7 @@ const iconMap: Record<string, any> = {
   Checked,
   EditPen,
   ChatDotRound,
+  Shop,
 }
 
 const route = useRoute()
@@ -202,10 +204,10 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '小程序',
     children: [
-      { title: '搭建工作台', path: '/page-builder/overview', icon: 'Odometer', activePrefix: '/page-builder/overview', permissions: ['page:list'] },
-      { title: '页面管理', path: '/page-builder/list', icon: 'Document', activePrefix: '/page-builder/list', permissions: ['page:list'] },
-      { title: '品牌导航', path: '/page-builder/start', icon: 'Brush', activePrefix: '/page-builder/start', permissions: ['page:list'] },
-      { title: '发布中心', path: '/page-builder/release', icon: 'Upload', activePrefix: '/page-builder/release', permissions: ['page:publish', 'page:list'] },
+      { title: '概览', path: '/mini/overview', icon: 'Odometer', activePrefix: '/mini/overview', permissions: ['page:list'] },
+      { title: '页面', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
+      { title: '模板库', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
+      { title: '发布', path: '/mini/publish', icon: 'Upload', activePrefix: '/mini/publish', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {

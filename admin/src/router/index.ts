@@ -60,40 +60,90 @@ export const constantRoutes: RouteRecordRaw[] = [
 /** 动态路由（需登录 + 权限过滤） */
 export const asyncRoutes: RouteRecordRaw[] = [
   {
+    path: '/mini',
+    component: Layout,
+    name: 'Mini',
+    meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+    redirect: '/mini/overview',
+    children: [
+      {
+        path: 'overview',
+        name: 'MiniOverview',
+        component: () => import('@/views/mini/overview.vue'),
+        meta: { title: '概览', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'pages',
+        name: 'MiniPages',
+        component: () => import('@/views/mini/pages.vue'),
+        meta: { title: '页面', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'pages/new-ai',
+        name: 'MiniNewAi',
+        component: () => import('@/views/mini/new-ai.vue'),
+        meta: { title: 'AI 建页', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:create', 'page:list'] },
+      },
+      {
+        path: 'pages/:id/editor',
+        name: 'MiniPageEditor',
+        redirect: (to) => ({ path: `/page-builder/editor/${to.params.id}`, query: to.query }),
+        meta: { title: '装修', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:update', 'page:create'] },
+      },
+      {
+        path: 'templates',
+        name: 'MiniTemplates',
+        component: () => import('@/views/mini/templates.vue'),
+        meta: { title: '模板库', icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'publish',
+        name: 'MiniPublish',
+        component: () => import('@/views/mini/publish.vue'),
+        meta: { title: '发布', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+      },
+    ],
+  },
+  {
     path: '/page-builder',
     component: Layout,
     name: 'PageBuilder',
-    meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-    redirect: '/page-builder/overview',
+    meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'], hidden: true },
+    redirect: '/mini/overview',
     children: [
       {
         path: 'overview',
         name: 'PageBuilderOverview',
-        component: () => import('@/views/page-builder/overview.vue'),
-        meta: { title: '搭建工作台', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        redirect: '/mini/overview',
+        meta: { title: '搭建工作台', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'start',
         name: 'PageBuilderStart',
+        redirect: '/mini/overview',
+        meta: { title: '品牌导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'appearance',
+        name: 'PageBuilderAppearance',
         component: () => import('@/views/page-builder/appearance.vue'),
-        meta: { title: '品牌导航', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '品牌导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'drafts',
         name: 'PageBuilderDrafts',
-        redirect: (to) => ({ path: '/page-builder/start', query: { ...to.query, scene: 'templates' } }),
+        redirect: '/mini/templates',
         meta: { title: '品牌导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
-        // 兼容旧链接「小程序配置」
         path: 'miniapp',
-        redirect: '/page-builder/start',
+        redirect: '/mini/overview',
       },
       {
         path: 'list',
         name: 'PageBuilderList',
-        component: () => import('@/views/page-builder/index.vue'),
-        meta: { title: '页面管理', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        redirect: '/mini/pages',
+        meta: { title: '页面管理', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'mine',
@@ -103,7 +153,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'templates',
-        redirect: '/page-builder/start?scene=templates',
+        redirect: '/mini/templates',
       },
       {
         path: 'template-center',
@@ -114,13 +164,20 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'release',
         name: 'PageBuilderRelease',
+        redirect: '/mini/publish',
+        meta: { title: '发布中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+      },
+      {
+        // 开发者微信推送深链（侧栏不展示）
+        path: 'wx-push',
+        name: 'PageBuilderWxPush',
         component: () => import('@/views/page-builder/release.vue'),
-        meta: { title: '发布中心', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+        meta: { title: '微信推送', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
         path: 'version-management',
         name: 'VersionManagement',
-        redirect: '/page-builder/release',
+        redirect: '/mini/publish',
         meta: { title: '版本记录', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {

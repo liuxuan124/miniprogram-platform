@@ -109,4 +109,15 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
      * 上线到小程序：提升品牌导航草稿 + 发布绑定页未上线草稿
      */
     Map<String, Object> publishContentToMiniapp();
+
+    /**
+     * 捕获当前已发布内容+系统配置快照（内容发布记录用）
+     */
+    String captureContentSnapshot();
+
+    /**
+     * 将快照还原为「待发布」草稿：页面写入未发布版本，站点写入 site_builder_draft；不改线上。
+     * @return pagesRestored / siteDraftUpdated / message
+     */
+    Map<String, Object> restoreSnapshotAsPendingDraft(String snapshotJson);
 }

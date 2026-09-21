@@ -43,11 +43,11 @@ const inputRef = ref<{ focus?: () => void } | null>(null)
 
 const routes = [
   { title: '工作台', path: '/dashboard' },
-  { title: '搭建工作台', path: '/page-builder/overview' },
-  { title: '页面管理', path: '/page-builder/list' },
-  { title: '品牌导航', path: '/page-builder/start' },
-  { title: '整店模板', path: '/page-builder/start?scene=templates' },
-  { title: '发布中心', path: '/page-builder/release' },
+  { title: '小程序概览', path: '/mini/overview' },
+  { title: '页面', path: '/mini/pages' },
+  { title: '模板库', path: '/mini/templates' },
+  { title: '发布', path: '/mini/publish' },
+  { title: 'AI 建页', path: '/mini/pages/new-ai' },
   { title: '商品列表', path: '/product/list', featureModule: 'product' },
   { title: '新建商品', path: '/product/edit', featureModule: 'product' },
   { title: '内容列表', path: '/content/list' },

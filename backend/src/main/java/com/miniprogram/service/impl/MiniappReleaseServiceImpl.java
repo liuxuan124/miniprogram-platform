@@ -1050,8 +1050,18 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             String text = firstText(tab.get("text"), tab.get("label"), tab.get("name"));
             String path = normalizePagePath(firstText(tab.get("pagePath"), tab.get("path"), tab.get("url")));
             Long pageId = parseLongId(tab.get("pageId"));
-            if (pageId == null && !isBuiltInMiniappPage(path)) {
+            if (pageId == null && !StringUtils.hasText(path)) {
                 vo.getBlocking().add("导航「" + fallbackText(text) + "」尚未绑定页面");
+            } else if (pageId == null && !isBuiltInMiniappPage(path)) {
+                vo.getBlocking().add("导航「" + fallbackText(text) + "」尚未绑定页面");
+            } else if (pageId != null) {
+                Page bound = pageMapper.selectById(pageId);
+                if (bound == null) {
+                    vo.getBlocking().add("导航「" + fallbackText(text) + "」绑定的页面已删除");
+                } else if (Integer.valueOf(1).equals(bound.getArchived())
+                        || "archived".equalsIgnoreCase(bound.getPageGroup())) {
+                    vo.getBlocking().add("导航「" + fallbackText(text) + "」绑定了已归档页面，请先换绑");
+                }
             }
         }
 
@@ -1483,5 +1493,95 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             log.warn("获取当前用户名失败: {}", e.getMessage());
         }
         return "system";
+    }
+
+    @Override
+    public String captureContentSnapshot() {
+        return buildSnapshot();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> restoreSnapshotAsPendingDraft(String snapshotJson) {
+        if (!StringUtils.hasText(snapshotJson)) {
+            throw new BusinessException(ErrorCode.RELEASE_ROLLBACK_FAILED, "该发布记录没有快照，无法回滚");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        int pagesRestored = 0;
+        try {
+            Map<String, Object> snapshotMap = objectMapper.readValue(snapshotJson, new TypeReference<Map<String, Object>>() {});
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> pages = (List<Map<String, Object>>) snapshotMap.get("pages");
+            if (pages != null) {
+                for (Map<String, Object> pageData : pages) {
+                    String path = Objects.toString(pageData.get("path"), "");
+                    String dslContent = pageData.get("dslContent") instanceof String
+                            ? (String) pageData.get("dslContent") : null;
+                    if (!StringUtils.hasText(path) || !StringUtils.hasText(dslContent)) {
+                        continue;
+                    }
+                    Page existing = pageMapper.selectOne(new LambdaQueryWrapper<Page>()
+                            .eq(Page::getPath, path)
+                            .last("LIMIT 1"));
+                    if (existing == null) {
+                        continue;
+                    }
+                    Integer latestVersion = getLatestPageVersion(existing.getId());
+                    int newVersionNum = latestVersion + 1;
+                    PageVersion draft = new PageVersion();
+                    draft.setPageId(existing.getId());
+                    draft.setVersion(newVersionNum);
+                    draft.setDslContent(dslContent);
+                    draft.setStatus(0);
+                    pageVersionMapper.insert(draft);
+                    pagesRestored++;
+                }
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> systemConfig = (Map<String, Object>) snapshotMap.get("systemConfig");
+            boolean siteDraftUpdated = false;
+            if (systemConfig != null && !systemConfig.isEmpty()) {
+                Set<String> draftKeys = Set.of(
+                        "miniappTemplateKey", "miniappHomePageId", "miniappMinePageId",
+                        "tabbarItems", "minePageConfig", "miniappThemeConfig",
+                        "miniappShareTitle", "miniappShareImage",
+                        "miniappBrandConfig", "site_name", "site_logo"
+                );
+                Map<String, Object> draft = new LinkedHashMap<>();
+                for (String key : draftKeys) {
+                    if (systemConfig.containsKey(key)) {
+                        draft.put(key, systemConfig.get(key));
+                    }
+                }
+                if (!draft.isEmpty()) {
+                    SystemConfig draftRow = systemConfigMapper.selectOne(new LambdaQueryWrapper<SystemConfig>()
+                            .eq(SystemConfig::getConfigKey, "site_builder_draft")
+                            .last("LIMIT 1"));
+                    String json = objectMapper.writeValueAsString(draft);
+                    if (draftRow != null) {
+                        draftRow.setConfigValue(json);
+                        systemConfigMapper.updateById(draftRow);
+                    } else {
+                        SystemConfig neu = new SystemConfig();
+                        neu.setConfigKey("site_builder_draft");
+                        neu.setConfigValue(json);
+                        neu.setConfigGroup("basic");
+                        neu.setDescription("回滚生成的待发布站点草稿");
+                        systemConfigMapper.insert(neu);
+                    }
+                    siteDraftUpdated = true;
+                }
+            }
+
+            result.put("pagesRestored", pagesRestored);
+            result.put("siteDraftUpdated", siteDraftUpdated);
+            result.put("message", "已还原为待发布改动，请到发布页确认后再对用户生效");
+            return result;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.RELEASE_ROLLBACK_FAILED, "回滚到草稿失败: " + e.getMessage());
+        }
     }
 }
