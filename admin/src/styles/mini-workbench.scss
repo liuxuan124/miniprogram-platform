@@ -32,6 +32,7 @@
   border: 1px solid var(--mw-border);
   border-radius: 14px;
   padding: 16px 18px;
+  box-shadow: 0 1px 0 rgba(44, 36, 28, 0.03);
 }
 
 .mini-wb .mw-kicker {
@@ -51,24 +52,6 @@
   font-size: 13px;
   color: var(--mw-muted);
   line-height: 1.5;
-}
-
-.mini-wb .mw-capsule {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  border: 1px solid var(--mw-border);
-  background: var(--mw-card);
-  color: var(--mw-ink);
-  cursor: pointer;
-  &.active {
-    background: #2c241c;
-    border-color: #2c241c;
-    color: #fff;
-  }
 }
 
 .mini-wb .mw-tag-mod {
