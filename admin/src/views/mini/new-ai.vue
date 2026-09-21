@@ -3,7 +3,9 @@
     <div class="aic">
       <form class="card ai-form" @submit.prevent="generate">
         <h1 class="h2" style="display: flex; align-items: center; gap: 8px">
-          <span style="color: var(--acc)">✦</span>
+          <span style="color: var(--acc); display: inline-flex">
+            <MiniIcon name="spark" :size="20" />
+          </span>
           AI 生成页面
         </h1>
 
@@ -64,24 +66,30 @@
             :disabled="running"
             @click="useSelected"
           >
-            用方案 {{ selectedOpt + 1 }} 继续装修
+            {{ options.length > 1 ? `用方案 ${selectedOpt + 1} 继续装修` : '进入装修器继续调整' }}
           </button>
         </div>
       </form>
 
       <div class="ai-out">
         <div v-if="running" class="gen-empty">
-          <b>正在生成 3 套方案…</b>
+          <b>正在生成…</b>
           <span class="muted">读取内容库与优惠券，套用品牌配色</span>
         </div>
         <template v-else-if="options.length">
           <div class="head" style="margin-bottom: 12px">
             <div>
-              <h2 class="h2">已生成 3 套方案</h2>
-              <div class="sub">选中后进入装修器继续调整；生成结果保存为草稿，不会直接上线</div>
+              <h2 class="h2">
+                {{ options.length > 1 ? `已生成 ${options.length} 套方案` : '已生成 1 版草稿' }}
+              </h2>
+              <div class="sub">
+                {{ options.length > 1
+                  ? '选中后进入装修器继续调整；生成结果保存为草稿，不会直接上线'
+                  : '本次只生成了 1 版，进入装修器即可继续调整；草稿不会直接上线' }}
+              </div>
             </div>
           </div>
-          <div class="opts">
+          <div class="opts" :class="{ 'opts--single': options.length === 1 }">
             <button
               v-for="(opt, i) in options"
               :key="i"
@@ -96,16 +104,21 @@
                 </div>
               </div>
               <div>
-                <b>方案 {{ i + 1 }} · {{ opt.name }}</b>
+                <b>
+                  <template v-if="options.length > 1">方案 {{ i + 1 }} · </template>{{ opt.name }}
+                </b>
                 <div class="faint">{{ opt.desc }}</div>
-                <span v-if="selectedOpt === i" class="tag t-acc">已选</span>
+                <span v-if="selectedOpt === i && options.length > 1" class="tag t-acc">已选</span>
               </div>
             </button>
+          </div>
+          <div v-if="degraded" class="note" style="margin-top: 14px">
+            AI 多方案服务本次不可用，已按你的描述建好一版草稿。想看别的结构，可改一下描述再点「重新生成」。
           </div>
         </template>
         <div v-else class="gen-empty">
           <b>描述好需求后点「生成方案」</b>
-          <span class="muted">会同时给出 3 套结构不同的方案，全部由可编辑的真实组件组成</span>
+          <span class="muted">生成结果是可编辑的真实组件，先存为草稿，确认后再发布</span>
         </div>
       </div>
     </div>
@@ -118,6 +131,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { createPage, runAiPagePipeline } from '@/api/page'
 import { getMiniSite } from '@/api/miniSite'
+import MiniIcon from '@/components/mini/MiniIcon.vue'
 
 defineOptions({ name: 'MiniNewAi' })
 
@@ -129,6 +143,8 @@ const purpose = ref<(typeof purposes)[number]>('活动页')
 const followBrand = ref(true)
 const siteName = ref('暖阁')
 const selectedOpt = ref<number | null>(null)
+/** 本次结果是否为降级（AI 未真正参与），用于在界面上说清楚 */
+const degraded = ref(false)
 const options = ref<Array<{ name: string; desc: string; pageId?: number }>>([])
 const form = reactive({ prompt: '' })
 
@@ -153,6 +169,7 @@ async function generate() {
   running.value = true
   selectedOpt.value = null
   options.value = []
+  degraded.value = false
   try {
     const prompt = [
       `【用途】${purpose.value}`,
@@ -173,27 +190,29 @@ async function generate() {
         selectedOpt.value = 0
         return
       }
+      // 只回单份草稿时就诚实显示 1 版：不要用同一个 pageId 伪造 3 张不同的方案卡
       if (pageId) {
-        options.value = [
-          { name: '简洁转化', desc: '首屏 CTA 更突出', pageId },
-          { name: '内容沉淀', desc: '书单与图文更完整', pageId },
-          { name: '活动会场', desc: '倒计时与报名更强', pageId },
-        ]
+        options.value = [{
+          name: draft?.name || `${purpose.value}草稿`,
+          desc: draft?.summary || 'AI 已按描述生成，可在装修器继续调整',
+          pageId,
+        }]
         selectedOpt.value = 0
         return
       }
     } catch {
       /* fallback below */
     }
-    // API 无多方案时：生成 3 个空白草稿方案卡片（仅第一个真正建页）
-    const id = await createBlankPage(`${purpose.value}方案`)
-    options.value = [
-      { name: '简洁转化', desc: '首屏 CTA 更突出 · 已建草稿', pageId: id },
-      { name: '内容沉淀', desc: '书单与图文更完整 · 选中后基于同稿装修', pageId: id },
-      { name: '活动会场', desc: '倒计时与报名更强 · 选中后基于同稿装修', pageId: id },
-    ]
+    // AI 链路不可用：建一版空白草稿，并明确告知这是降级结果
+    const id = await createBlankPage(`${purpose.value}草稿`)
+    degraded.value = true
+    options.value = [{
+      name: `${purpose.value}草稿`,
+      desc: '空白草稿 · AI 未参与生成，需要自己搭或换描述重试',
+      pageId: id,
+    }]
     selectedOpt.value = 0
-    ElMessage.success('已生成方案（可进入装修）')
+    ElMessage.warning('AI 生成不可用，已创建空白草稿')
   } catch (e: any) {
     ElMessage.error(e?.message || '生成失败')
   } finally {
@@ -266,6 +285,9 @@ onMounted(async () => {
 }
 .ai-out {
   min-width: 0;
+}
+.opts--single {
+  grid-template-columns: minmax(0, 320px);
 }
 .opt-ph {
   padding: 16px 10px;

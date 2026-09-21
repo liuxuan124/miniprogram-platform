@@ -1,6 +1,7 @@
 <template>
-  <div class="mini-wb mw-page overview" v-loading="loading">
-    <div class="ov">
+  <div class="mini-wb mw-page overview" v-loading="loading && loaded">
+    <MiniSkeleton v-if="!loaded" kind="overview" />
+    <div v-else class="ov">
       <div class="ov-main">
         <div>
           <h1 class="h1">
@@ -21,10 +22,10 @@
 
         <div class="ways">
           <button type="button" class="way hi" @click="router.push('/mini/pages/new-ai')">
-            <span class="way-ic" aria-hidden="true">✦</span>
+            <MiniIcon name="spark" :size="20" />
             <span>
               <b>AI 生成页面</b>
-              <span class="muted" style="font-size: 12.5px">说出需求，AI 出 3 套方案，再手动微调</span>
+              <span class="muted" style="font-size: 12.5px">说出需求，AI 生成草稿，再手动微调</span>
             </span>
           </button>
           <button
@@ -32,14 +33,14 @@
             class="way"
             @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
           >
-            <span class="way-ic" aria-hidden="true">▦</span>
+            <MiniIcon name="grid" :size="20" />
             <span>
               <b>从模板新建</b>
               <span class="muted" style="font-size: 12.5px">按行业场景挑页面模板或整店模板</span>
             </span>
           </button>
           <button type="button" class="way" :disabled="creatingBlank" @click="createBlank">
-            <span class="way-ic" aria-hidden="true">+</span>
+            <MiniIcon name="plus" :size="20" />
             <span>
               <b>空白页面</b>
               <span class="muted" style="font-size: 12.5px">从组件开始自由搭建</span>
@@ -72,11 +73,15 @@
                 >
                   <span class="faint tabcard-top">
                     <span>导航 {{ i + 1 }}</span>
-                    <span class="tab-drag" title="拖拽排序" @click.stop aria-hidden="true">⋮⋮</span>
+                    <span class="tab-drag" title="拖拽排序" @click.stop>
+                      <MiniIcon name="drag" :size="14" />
+                    </span>
                   </span>
                   <span class="t">
                     {{ tab.text || `导航 ${i + 1}` }}
-                    <span v-if="isMineTab(tab)" class="faint" title="固定">🔒</span>
+                    <span v-if="isMineTab(tab)" class="faint" title="系统页，路径固定">
+                      <MiniIcon name="lock" :size="13" />
+                    </span>
                   </span>
                   <span class="faint" style="font-size: 12px">→ {{ tabBindLabel(tab) === '未绑定' ? '未绑定页面' : tabBindLabel(tab) }}</span>
                   <span>
@@ -94,7 +99,7 @@
               class="tabadd"
               @click="addTabSlot"
             >
-              <span style="font-size: 18px; line-height: 1">+</span>
+              <MiniIcon name="plus" :size="18" />
               <span>添加入口</span>
             </button>
           </div>
@@ -113,12 +118,28 @@
               :key="c"
               type="button"
               class="sw"
-              :class="{ on: currentTheme === c }"
+              :class="{ on: shownTheme === c }"
               :style="{ background: c }"
               :aria-label="`主色 ${c}`"
+              :aria-pressed="shownTheme === c"
               :disabled="savingTheme"
-              @click="selectTheme(c)"
+              @click="pickTheme(c)"
             />
+          </div>
+          <div v-if="themeDirty" class="theme-bar">
+            <span class="faint">未保存 · 右侧预览已按 {{ pendingTheme }} 显示</span>
+            <button type="button" class="btn sm" :disabled="savingTheme" @click="discardTheme">
+              放弃
+            </button>
+            <button type="button" class="btn sm primary" :disabled="savingTheme" @click="saveTheme">
+              {{ savingTheme ? '保存中…' : '保存为待发布' }}
+            </button>
+          </div>
+          <div v-else-if="undoTheme" class="theme-bar">
+            <span class="faint">已存为待发布，用户还看不到</span>
+            <button type="button" class="link" :disabled="savingTheme" @click="revertTheme">
+              撤销，改回 {{ undoTheme }}
+            </button>
           </div>
         </section>
 
@@ -149,8 +170,11 @@
                   </span>
                 </div>
               </div>
-              <div v-else class="muted" style="padding: 14px 0">
-                没有待发布的改动，线上就是你现在看到的样子。
+              <div v-else class="empty-mini">
+                <span class="muted">没有待发布的改动，线上就是你现在看到的样子。</span>
+                <button type="button" class="btn sm" @click="router.push('/mini/pages')">
+                  去改页面
+                </button>
               </div>
             </div>
           </section>
@@ -194,15 +218,32 @@
             </button>
           </div>
         </div>
-        <div class="phone">
-          <iframe :key="previewSource" :src="previewUrl" title="小程序预览" loading="lazy" />
+        <div class="phone" :class="{ lg: previewZoom === 'lg' }">
+          <!-- 按真机 375 宽渲染后整体缩放，避免窄 iframe 里文字被挤到读不清 -->
+          <div class="phone-scaler" :style="scalerStyle">
+            <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
+          </div>
         </div>
-        <button type="button" class="btn sm" @click="openLivePreview">扫码在手机上看</button>
+        <div class="preview-foot">
+          <div class="seg" role="group" aria-label="预览尺寸">
+            <button type="button" :class="{ on: previewZoom === 'fit' }" @click="previewZoom = 'fit'">
+              适中
+            </button>
+            <button type="button" :class="{ on: previewZoom === 'lg' }" @click="previewZoom = 'lg'">
+              放大
+            </button>
+          </div>
+          <button type="button" class="btn sm" @click="openLivePreview">
+            <MiniIcon name="qr" :size="15" />
+            扫码在手机上看
+          </button>
+        </div>
       </aside>
     </div>
 
     <el-drawer
       v-model="drawerVisible"
+      class="mini-wb-overlay"
       :title="drawerIndex == null ? '编辑底部导航' : `编辑导航 ${drawerIndex + 1}`"
       size="400px"
       destroy-on-close
@@ -247,6 +288,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import draggable from 'vuedraggable'
+import MiniIcon from '@/components/mini/MiniIcon.vue'
+import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -268,6 +311,8 @@ const THEMES = ['#B4430F', '#A93D0C', '#2458A6', '#1F7A4D', '#8F5400', '#9B2C5A'
 
 const router = useRouter()
 const loading = ref(false)
+/** 首屏用骨架屏，之后的刷新才用遮罩，避免每次操作都闪灰屏 */
+const loaded = ref(false)
 const savingTabs = ref(false)
 const savingTheme = ref(false)
 const creatingBlank = ref(false)
@@ -282,6 +327,12 @@ const drawerVisible = ref(false)
 const drawerIndex = ref<number | null>(null)
 const editTab = ref<MiniTabBarItem | null>(null)
 const editPageId = ref<number | null>(null)
+
+/** 已选但未保存的主色；空串表示与草稿一致 */
+const pendingTheme = ref('')
+/** 保存成功后可一键改回的上一个主色 */
+const undoTheme = ref('')
+const previewZoom = ref<'fit' | 'lg'>('fit')
 
 type SortableTab = MiniTabBarItem & { __key: string }
 const sortableTabBar = ref<SortableTab[]>([])
@@ -310,6 +361,10 @@ const currentTheme = computed(() => {
   return THEMES.find((x) => x.toUpperCase() === c) || ''
 })
 
+/** 色板选中环跟着"正在看的颜色"走，而不是已落库的颜色 */
+const shownTheme = computed(() => pendingTheme.value || currentTheme.value)
+const themeDirty = computed(() => !!pendingTheme.value && pendingTheme.value !== currentTheme.value)
+
 const bindablePages = computed(() =>
   pageOptions.value.filter((p) => {
     const st = resolvePageStatus(p as any)
@@ -319,11 +374,28 @@ const bindablePages = computed(() =>
 
 const previewUrl = computed(() => {
   const source = previewSource.value === 'live' ? 'live' : 'draft'
-  const { href } = router.resolve({
-    path: '/h5/miniapp-preview',
-    query: { view: 'config', source, embed: '1' },
-  })
+  const query: Record<string, string> = { view: 'config', source, embed: '1' }
+  // 未保存的主色也要能在真机预览里看到
+  if (themeDirty.value && previewSource.value === 'draft') query.primary = pendingTheme.value
+  const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
   return href
+})
+
+const previewKey = computed(
+  () => `${previewSource.value}|${themeDirty.value ? pendingTheme.value : ''}`,
+)
+
+const scalerStyle = computed(() => {
+  // .phone 有 9px 边框，可视宽高要减掉
+  const innerW = previewZoom.value === 'lg' ? 302 : 232
+  const innerH = previewZoom.value === 'lg' ? 632 : 522
+  const scale = innerW / 375
+  return {
+    width: '375px',
+    height: `${Math.round(innerH / scale)}px`,
+    transform: `scale(${scale})`,
+    transformOrigin: 'top left',
+  }
 })
 
 function syncSortableFromSite() {
@@ -425,18 +497,58 @@ function openLivePreview() {
   window.open(href, '_blank', 'noopener,noreferrer')
 }
 
-async function selectTheme(color: string) {
-  if (currentTheme.value === color || savingTheme.value) return
+/** 选色只改预览，不落库——主色影响面大，必须先看到再决定 */
+function pickTheme(color: string) {
+  if (savingTheme.value) return
+  pendingTheme.value = color === currentTheme.value ? '' : color
+}
+
+function discardTheme() {
+  pendingTheme.value = ''
+}
+
+async function writeTheme(color: string) {
+  const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
+  const theme = { ...prev, primaryColor: color }
+  const updated = await updateMiniSite({ theme })
+  site.value = { ...site.value, ...updated, theme: updated.theme || theme }
+  void refreshMiniPending(true)
+}
+
+async function saveTheme() {
+  const color = pendingTheme.value
+  if (!color || savingTheme.value) return
+  const before = currentTheme.value
   savingTheme.value = true
   try {
-    const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
-    const theme = { ...prev, primaryColor: color }
-    const updated = await updateMiniSite({ theme })
-    site.value = { ...site.value, ...updated, theme: updated.theme || theme }
-    ElMessage.success('品牌主色已保存为草稿')
-    void refreshMiniPending(true)
+    await writeTheme(color)
+    pendingTheme.value = ''
+    ElMessage({
+      type: 'success',
+      duration: 6000,
+      showClose: true,
+      dangerouslyUseHTMLString: false,
+      message: `品牌主色已存为待发布（${color}）`,
+    })
+    undoTheme.value = before || ''
+    window.setTimeout(() => { undoTheme.value = '' }, 15000)
   } catch (e: unknown) {
     ElMessage.error(e instanceof Error ? e.message : '保存配色失败')
+  } finally {
+    savingTheme.value = false
+  }
+}
+
+async function revertTheme() {
+  const color = undoTheme.value
+  if (!color) return
+  savingTheme.value = true
+  try {
+    await writeTheme(color)
+    undoTheme.value = ''
+    ElMessage.success('已撤销，主色恢复为 ' + color)
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '撤销失败')
   } finally {
     savingTheme.value = false
   }
@@ -594,6 +706,7 @@ async function load() {
     ElMessage.error(e instanceof Error ? e.message : '加载概览失败')
   } finally {
     loading.value = false
+    loaded.value = true
   }
 }
 
@@ -710,13 +823,47 @@ onMounted(load)
   align-items: center;
 }
 
+.preview-foot {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .phone {
+  position: relative;
+}
+
+.phone-scaler {
   iframe {
     width: 100%;
     height: 100%;
     border: 0;
     background: #fffbf6;
+    display: block;
   }
+}
+
+.theme-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line2);
+  flex-wrap: wrap;
+  .btn, .link { margin-left: auto; }
+  .btn + .btn, .btn + .link { margin-left: 0; }
+}
+
+.empty-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 1180px) {

@@ -1,5 +1,7 @@
 <template>
-  <div class="mini-wb mw-page pages-view" v-loading="loading">
+  <div class="mini-wb mw-page pages-view" v-loading="loading && loaded">
+    <MiniSkeleton v-if="!loaded" kind="list" />
+    <template v-else>
     <div class="head">
       <div>
         <h1 class="h1">页面</h1>
@@ -16,7 +18,7 @@
 
     <div class="filters">
       <label class="search">
-        <span aria-hidden="true">⌕</span>
+        <MiniIcon name="search" :size="16" />
         <input v-model="keyword" type="search" placeholder="搜索页面名称或路径" />
       </label>
       <button
@@ -25,24 +27,63 @@
         type="button"
         class="chip"
         :class="{ on: statusFilter === opt.key }"
+        :aria-pressed="statusFilter === opt.key"
         @click="statusFilter = opt.key"
       >
         {{ opt.label }}{{ opt.count != null ? ` ${opt.count}` : '' }}
       </button>
+      <button v-if="filtering" type="button" class="link" @click="clearFilters">清除筛选</button>
     </div>
 
-    <div class="groups-stack">
+    <!-- 筛选态：改成平铺一张列表，避免"筛完看到四个空分组" -->
+    <section v-if="filtering" class="group">
+      <div class="g-head as-static">
+        <span style="font-weight: 600">筛选结果</span>
+        <span class="faint">{{ filteredPages.length }}</span>
+      </div>
+      <template v-if="filteredPages.length">
+        <div v-for="row in filteredPages" :key="String(row.id)" class="prow">
+          <div class="thumb"><i /><i /><i /></div>
+          <div class="pname">
+            <b>{{ row.name }}</b>
+            <div class="faint">{{ groupLabelOf(row) }} · {{ row.path }}</div>
+          </div>
+          <div class="pstat"><PageStatusTag :row="row" /></div>
+          <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
+          <PageRowMenu
+            :row="row"
+            :archived="isArchived(row)"
+            :can-offline="canOffline(row)"
+            :can-delete="canDelete(row)"
+            @command="onMore"
+          />
+        </div>
+      </template>
+      <div v-else class="empty-mini">
+        <span class="muted">没有符合条件的页面</span>
+        <button type="button" class="btn sm" @click="clearFilters">清除筛选</button>
+      </div>
+    </section>
+
+    <div v-else class="groups-stack">
       <section
         v-for="group in groups"
         :key="group.key"
         class="group"
         :class="{ arch: group.key === 'archived', closed: closedGroups[group.key] }"
       >
-        <button type="button" class="g-head" @click="toggleGroup(group.key)">
+        <button
+          type="button"
+          class="g-head"
+          :aria-expanded="!closedGroups[group.key]"
+          @click="toggleGroup(group.key)"
+        >
           <span style="font-weight: 600">{{ group.label }}</span>
           <span class="faint">{{ group.rows.length }}</span>
           <span v-if="groupSub(group.key)" class="faint" style="margin-left: 4px">{{ groupSub(group.key) }}</span>
-          <span style="margin-left: auto" class="faint">{{ closedGroups[group.key] ? '▸' : '▾' }}</span>
+          <span class="g-head__arrow" :class="{ closed: closedGroups[group.key] }">
+            <MiniIcon name="down" :size="16" />
+          </span>
         </button>
 
         <template v-if="!closedGroups[group.key]">
@@ -53,7 +94,7 @@
           >
             <div class="thumb"><i /><i /><i /></div>
             <div class="pname">
-              <b>我的 <span class="faint">🔒</span></b>
+              <b>我的 <MiniIcon name="lock" :size="13" class="inline-ic" /></b>
               <div class="faint">固定路径 · 表单配置，非可删装修页</div>
             </div>
             <div class="pstat"><span class="tag t-live">系统页</span></div>
@@ -61,11 +102,7 @@
           </div>
 
           <template v-if="group.rows.length">
-            <div
-              v-for="row in group.rows"
-              :key="String(row.id)"
-              class="prow"
-            >
+            <div v-for="row in group.rows" :key="String(row.id)" class="prow">
               <div class="thumb"><i /><i /><i /></div>
               <div class="pname">
                 <b>{{ row.name }}</b>
@@ -75,37 +112,37 @@
                 <PageStatusTag :row="row" />
               </div>
               <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
-              <button
-                type="button"
-                class="iconbtn"
-                aria-label="更多"
-                @click.stop="toggleMenu(row)"
-              >
-                ···
-              </button>
-              <div v-if="menuRowId === row.id" class="menu" @click.stop>
-                <button type="button" @click="onMore('preview', row)">预览</button>
-                <button type="button" @click="onMore('copy', row)">复制页面</button>
-                <button type="button" :disabled="isArchived(row)" @click="onMore('set-nav', row)">
-                  设为底部导航入口
-                </button>
-                <button type="button" @click="onMore('copy-path', row)">复制路径</button>
-                <hr />
-                <button v-if="canOffline(row)" type="button" @click="onMore('offline', row)">下线</button>
-                <button v-if="canDelete(row)" type="button" class="danger-item" @click="onMore('delete', row)">
-                  删除
-                </button>
-              </div>
+              <PageRowMenu
+                :row="row"
+                :archived="isArchived(row)"
+                :can-offline="canOffline(row)"
+                :can-delete="canDelete(row)"
+                @command="onMore"
+              />
             </div>
           </template>
-          <div v-else-if="group.key !== 'tab'" class="muted" style="padding: 16px">
-            {{ keyword || statusFilter !== 'all' ? '没有符合条件的页面' : '这一组还没有页面' }}
+          <div v-else-if="group.key !== 'tab'" class="empty-mini">
+            <span class="muted">这一组还没有页面</span>
+            <button
+              v-if="group.key !== 'archived'"
+              type="button"
+              class="btn sm"
+              @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
+            >
+              从模板加一页
+            </button>
           </div>
         </template>
       </section>
     </div>
+    </template>
 
-    <el-dialog v-model="navDialogVisible" title="设为导航入口" width="420px">
+    <el-dialog
+      v-model="navDialogVisible"
+      class="mini-wb-overlay"
+      title="设为导航入口"
+      width="420px"
+    >
       <p class="nav-dialog-hint">将「{{ navTarget?.name }}」绑定到选中的底部导航位（写入待发布草稿）。</p>
       <el-radio-group v-model="navSlotIndex" class="nav-slots">
         <el-radio v-for="(tab, i) in siteTabs" :key="i" :value="i">
@@ -124,10 +161,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageStatusTag from '@/components/mini/PageStatusTag.vue'
+import PageRowMenu from '@/components/mini/PageRowMenu.vue'
+import MiniIcon from '@/components/mini/MiniIcon.vue'
+import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import { getPageList, createPage, deletePage, unpublishPage, duplicatePage } from '@/api/page'
 import { getMiniSite, updateMiniSite, type MiniTabBarItem } from '@/api/miniSite'
 import {
@@ -144,11 +184,11 @@ defineOptions({ name: 'MiniPages' })
 
 const router = useRouter()
 const loading = ref(false)
+const loaded = ref(false)
 const pages = ref<PageRecord[]>([])
 const keyword = ref('')
 const statusFilter = ref<'all' | MiniPageStatus>('all')
 const siteTabs = ref<MiniTabBarItem[]>([])
-const menuRowId = ref<string | number | null>(null)
 const closedGroups = reactive<Record<string, boolean>>({ archived: true })
 
 const navDialogVisible = ref(false)
@@ -159,6 +199,9 @@ const navSaving = ref(false)
 const totalCount = computed(() =>
   pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')).length,
 )
+
+/** 搜索或状态筛选生效时，分组壳会变成一堆空组，改平铺展示 */
+const filtering = computed(() => !!keyword.value.trim() || statusFilter.value !== 'all')
 
 const filteredPages = computed(() => {
   const q = keyword.value.trim().toLowerCase()
@@ -215,16 +258,17 @@ function groupSub(key: PageGroup) {
   return PAGE_GROUP_SUB[key] || ''
 }
 
+function groupLabelOf(row: PageRecord) {
+  return PAGE_GROUP_LABELS[inferPageGroup(row)]
+}
+
 function toggleGroup(key: string) {
   closedGroups[key] = !closedGroups[key]
 }
 
-function toggleMenu(row: PageRecord) {
-  menuRowId.value = menuRowId.value === row.id ? null : row.id
-}
-
-function closeMenu() {
-  menuRowId.value = null
+function clearFilters() {
+  keyword.value = ''
+  statusFilter.value = 'all'
 }
 
 function isArchived(row: PageRecord) {
@@ -241,12 +285,10 @@ function canDelete(row: PageRecord) {
 }
 
 function openEditor(row: PageRecord) {
-  closeMenu()
   router.push(`/mini/pages/${row.id}/editor`)
 }
 
 async function onMore(cmd: string, row: PageRecord) {
-  closeMenu()
   if (cmd === 'preview') {
     const { href } = router.resolve({ path: `/page-builder/preview/${row.id}` })
     window.open(href, '_blank', 'noopener,noreferrer')
@@ -366,18 +408,11 @@ async function load() {
     ElMessage.error(e?.message || '加载页面失败')
   } finally {
     loading.value = false
+    loaded.value = true
   }
 }
 
-function onDocClick() {
-  closeMenu()
-}
-
-onMounted(() => {
-  load()
-  document.addEventListener('click', onDocClick)
-})
-onUnmounted(() => document.removeEventListener('click', onDocClick))
+onMounted(load)
 </script>
 
 <style scoped lang="scss">
@@ -393,7 +428,31 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
   cursor: pointer;
   background: var(--soft);
 }
-.danger-item { color: var(--r) !important; }
+.g-head.as-static {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--soft);
+  border-bottom: 1px solid var(--line);
+  border-radius: 14px 14px 0 0;
+}
+.g-head__arrow {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--faint);
+  transition: transform 0.15s ease;
+  &.closed { transform: rotate(-90deg); }
+}
+.inline-ic { display: inline-block; vertical-align: -2px; color: var(--faint); }
+.empty-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  flex-wrap: wrap;
+}
 .nav-dialog-hint {
   font-size: 13px;
   color: var(--mute);
