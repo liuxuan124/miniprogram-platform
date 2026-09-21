@@ -304,7 +304,7 @@ async function load() {
   loading.value = true
   try {
     const [res, site] = await Promise.all([
-      getPageList({ current: 1, size: 200 }),
+      getPageList({ current: 1, size: 100 }),
       getMiniSite('draft').catch(() => null),
     ])
     pages.value = ((res as any)?.data?.records || (res as any)?.data?.list || []) as PageRecord[]
