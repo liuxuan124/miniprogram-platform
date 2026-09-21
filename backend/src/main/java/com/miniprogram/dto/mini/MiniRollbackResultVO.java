@@ -1,6 +1,6 @@
 package com.miniprogram.dto.mini;
 
-import io.swagger.v3.oas.annotations.Schema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
