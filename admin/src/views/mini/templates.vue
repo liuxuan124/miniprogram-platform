@@ -1,5 +1,7 @@
 <template>
-  <div class="mini-wb mw-page tpl-view" v-loading="loading">
+  <div class="mini-wb mw-page tpl-view" v-loading="loading && loaded">
+    <MiniSkeleton v-if="!loaded" kind="grid" />
+    <template v-else>
     <div class="head">
       <div>
         <h1 class="h1">模板库</h1>
@@ -58,7 +60,12 @@
           </div>
         </div>
       </div>
-      <div v-else class="gen-empty" style="min-height: 200px">这个场景下还没有模板</div>
+      <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
+        <span>还没有整店模板</span>
+        <button type="button" class="btn" :disabled="creating" @click="createFromCurrent">
+          把当前小程序存为模板
+        </button>
+      </div>
 
       <aside v-if="impactVisible && pendingActivate" class="card impact-panel">
         <h2 class="h2">应用「{{ pendingActivate.name }}」</h2>
@@ -105,7 +112,10 @@
           </div>
         </div>
       </div>
-      <div v-else class="gen-empty" style="min-height: 200px">这个场景下还没有模板</div>
+      <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
+        <span>还没有页面模板</span>
+        <button type="button" class="btn" @click="router.push('/mini/pages/new-ai')">用 AI 生成一页</button>
+      </div>
     </div>
 
     <div v-show="tab === 'mine'">
@@ -133,6 +143,7 @@
         </button>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -149,6 +160,7 @@ import {
 import { getPageTemplates } from '@/api/page'
 import { getMiniSite } from '@/api/miniSite'
 import { applyPageTemplate } from '@/components/page-templates/applyPageTemplate'
+import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import type { ReleaseRecord } from '@/types/page'
 
 defineOptions({ name: 'MiniTemplates' })
@@ -156,6 +168,7 @@ defineOptions({ name: 'MiniTemplates' })
 const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
+const loaded = ref(false)
 const tab = ref<'store' | 'page' | 'mine'>((route.query.tab as any) === 'page' || route.query.tab === 'mine'
   ? (route.query.tab as 'page' | 'mine')
   : 'store')
@@ -280,6 +293,7 @@ async function load() {
     ElMessage.error(e?.message || '加载模板失败')
   } finally {
     loading.value = false
+    loaded.value = true
   }
 }
 

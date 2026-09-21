@@ -46,12 +46,84 @@
   --mw-blue-bg: var(--bs);
   --mw-sidebar: var(--side);
 
+  /* Element Plus 主色桥接：避免同屏出现蓝色勾选框 / 蓝色确认按钮 */
+  --el-color-primary: #b4430f;
+  --el-color-primary-light-3: #c9601f;
+  --el-color-primary-light-5: #d98a55;
+  --el-color-primary-light-7: #eab99a;
+  --el-color-primary-light-8: #f4d5c2;
+  --el-color-primary-light-9: #fbeadf;
+  --el-color-primary-dark-2: #8c3208;
+
   color: var(--ink);
   font-family: var(--sans);
   font-size: 14px;
   line-height: 1.5;
   box-sizing: border-box;
   * { box-sizing: border-box; }
+}
+
+/* 抽屉 / 弹窗 / 下拉挂在 body 上，拿不到 .mini-wb 作用域，单独桥接 */
+.mini-wb-overlay {
+  --el-color-primary: #b4430f;
+  --el-color-primary-light-3: #c9601f;
+  --el-color-primary-light-5: #d98a55;
+  --el-color-primary-light-7: #eab99a;
+  --el-color-primary-light-8: #f4d5c2;
+  --el-color-primary-light-9: #fbeadf;
+  --el-color-primary-dark-2: #8c3208;
+}
+
+/* 页面行「更多」菜单：外观贴原型 .menu，行为交给 el-dropdown */
+.mini-row-menu.el-popper.is-light {
+  border: 1px solid #e8dfd3;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(43, 29, 20, 0.14);
+  padding: 6px;
+
+  .el-popper__arrow { display: none; }
+
+  .el-dropdown-menu {
+    padding: 0;
+    border: 0;
+  }
+
+  .el-dropdown-menu__item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #2a1f17;
+    line-height: 1.5;
+
+    &:not(.is-disabled):hover,
+    &:not(.is-disabled):focus {
+      background: #fbf8f4;
+      color: #2a1f17;
+    }
+
+    &.is-disabled {
+      color: #7a6a5c;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    &.is-danger:not(.is-disabled) {
+      color: #a52a1e;
+      &:hover, &:focus { background: #fbe4e0; color: #a52a1e; }
+    }
+
+    &.el-dropdown-menu__item--divided {
+      margin-top: 4px;
+      border-top: 1px solid #f1ebe3;
+      &::before { display: none; }
+    }
+  }
+}
+
+.mini-row-menu__why {
+  font-size: 11px;
+  color: #a1968b;
 }
 
 .mini-wb .mw-page {

@@ -1,6 +1,7 @@
 <template>
-  <div class="mini-wb mw-page pub-view" v-loading="loading">
-    <div class="pub">
+  <div class="mini-wb mw-page pub-view" v-loading="loading && loaded">
+    <MiniSkeleton v-if="!loaded" kind="list" />
+    <div v-else class="pub">
       <div class="pub-main">
         <div>
           <h1 class="h1">发布</h1>
@@ -62,15 +63,31 @@
             </div>
           </div>
 
-          <div class="checks" :class="hasBlocking ? 'checks-err' : 'checks-ok'">
-            <div v-if="preflightLoading && !preflight" class="chk muted">检查中…</div>
-            <div v-else-if="preflightError" class="chk">⚠ {{ preflightError }}</div>
+          <!-- 容器保持中性，按项着色：阻断 / 提醒 / 通过 三级要一眼分得开 -->
+          <div class="checks">
+            <div v-if="preflightLoading && !preflight" class="chk chk--muted">
+              <span class="chk__ic"><MiniIcon name="info" :size="15" /></span>
+              检查中…
+            </div>
+            <div v-else-if="preflightError" class="chk chk--warn">
+              <span class="chk__ic"><MiniIcon name="warn" :size="15" /></span>
+              {{ preflightError }}
+            </div>
             <template v-else-if="preflight">
-              <div v-if="!blocking.length && !warnings.length" class="chk">✓ 检查通过，可以发布</div>
-              <div v-for="(item, i) in blocking" :key="'b' + i" class="chk">✗ {{ item }}</div>
-              <div v-for="(item, i) in warnings" :key="'w' + i" class="chk">· {{ item }}</div>
+              <div v-if="!blocking.length && !warnings.length" class="chk chk--ok">
+                <span class="chk__ic"><MiniIcon name="check" :size="15" /></span>
+                检查通过，可以发布
+              </div>
+              <div v-for="(item, i) in blocking" :key="'b' + i" class="chk chk--err">
+                <span class="chk__ic"><MiniIcon name="x" :size="15" /></span>
+                {{ item }}
+              </div>
+              <div v-for="(item, i) in warnings" :key="'w' + i" class="chk chk--warn">
+                <span class="chk__ic"><MiniIcon name="warn" :size="15" /></span>
+                {{ item }}
+              </div>
             </template>
-            <div v-else class="chk muted">暂无检查结果</div>
+            <div v-else class="chk chk--muted">暂无检查结果</div>
           </div>
 
           <div v-if="hasBlocking" class="note err" style="margin-top: 12px">
@@ -100,7 +117,7 @@
           <div class="sub">让用户从公众号、群、线下找到这个小程序</div>
           <div class="eco-rows">
             <div class="eco-row">
-              <div class="dist-ic">微</div>
+              <div class="dist-ic"><MiniIcon name="wechat" :size="17" /></div>
               <div class="eco-main">
                 <b>公众号菜单</b>
                 <span class="faint">进入小程序 → 首页</span>
@@ -108,7 +125,7 @@
               <button type="button" class="btn sm" @click="router.push('/settings/wechat')">设置</button>
             </div>
             <div class="eco-row">
-              <div class="dist-ic">码</div>
+              <div class="dist-ic"><MiniIcon name="qr" :size="17" /></div>
               <div class="eco-main">
                 <b>小程序码</b>
                 <span class="faint">为任意页面生成带参数的码</span>
@@ -116,7 +133,7 @@
               <button type="button" class="btn sm" @click="router.push('/settings/wechat')">生成</button>
             </div>
             <div class="eco-row">
-              <div class="dist-ic">文</div>
+              <div class="dist-ic"><MiniIcon name="doc" :size="17" /></div>
               <div class="eco-main">
                 <b>公众号文章卡片</b>
                 <span class="faint">复制页面路径，插入推文</span>
@@ -124,7 +141,7 @@
               <button type="button" class="btn sm" @click="copyHomePath">复制路径</button>
             </div>
             <div class="eco-row">
-              <div class="dist-ic">通</div>
+              <div class="dist-ic"><MiniIcon name="bell" :size="17" /></div>
               <div class="eco-main">
                 <b>服务通知</b>
                 <span class="faint">报名成功后推送活动提醒</span>
@@ -171,7 +188,10 @@
               </div>
             </div>
           </div>
-          <div v-else class="muted" style="padding: 12px 0">暂无发布记录</div>
+          <div v-else class="empty-mini">
+            <span class="muted">还没有发布记录</span>
+            <button type="button" class="btn sm" @click="router.push('/mini/pages')">先去改页面</button>
+          </div>
         </section>
 
         <section class="card">
@@ -208,12 +228,15 @@ import {
   type PendingChangeItem,
 } from '@/api/miniSite'
 import { getPublishPreflight, type PublishPreflight } from '@/api/version'
+import MiniIcon from '@/components/mini/MiniIcon.vue'
+import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 
 defineOptions({ name: 'MiniPublish' })
 
 const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
+const loaded = ref(false)
 const publishing = ref(false)
 const rollingId = ref<number | null>(null)
 const site = ref<MiniSiteVO>({})
@@ -390,6 +413,7 @@ async function load() {
     ElMessage.error(e?.message || '加载失败')
   } finally {
     loading.value = false
+    loaded.value = true
   }
 }
 
@@ -432,14 +456,24 @@ onMounted(load)
   padding: 14px;
   border-radius: 10px;
   margin-top: 14px;
-  &.checks-ok { background: var(--gs); }
-  &.checks-err { background: var(--rs); }
+  background: var(--soft);
+  border: 1px solid var(--line2);
 }
 .chk {
   display: flex;
   gap: 8px;
   font-size: 13px;
   align-items: flex-start;
+  line-height: 1.5;
+  &--ok { color: var(--g); }
+  &--warn { color: var(--a); }
+  &--err { color: var(--r); font-weight: 500; }
+  &--muted { color: var(--mute); }
+}
+.chk__ic {
+  display: inline-flex;
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 .pub-bar {
   display: flex;
@@ -479,6 +513,13 @@ onMounted(load)
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 600;
+}
+.empty-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  flex-wrap: wrap;
 }
 .tl-stack { margin-top: 10px; }
 .tl {
