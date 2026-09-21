@@ -4,9 +4,10 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-21：冲 95% 高保真——`MiniPhoneThumb` 真机缩略/三叠；概览拖拽导航；模板预览 Dialog；AI 方案 iframe；发布对比；页面复制/归档入口；区块模板可插入。
+- 2026-09-21：装修器画布文案「实时数据预览」；对比线上双栏 iframe；/mini 侧栏暖棕壳；区块模板 6 卡可点加入。
+- 2026-09-21：高保真全量对齐——`/mini` 四屏+AI 三方案+装修器 AI；顶栏「发布 N」与侧栏角标；`mini-wb` 暖棕工作台壳。
 - 2026-09-21：规格 Top5 对齐——内容发布时间线+回滚为待发布；概览选页换绑；页面筛选/更多菜单；模板影响面板；装修器去掉保存/仅上线本页。
-- 2026-09-21：发布勾选真正生效——`MiniPublishRequestDTO` 的 `pageIds`/`includeSite` 后端按勾选过滤；前端始终传数组避免误全量发。
-- 2026-09-21：小程序高保真对齐——概览导航抽屉+改动后/线上预览；发布页勾选与发布前检查；装修器右栏「属性|AI 助手」壳。
 - 2026-09-21：小程序模块重设计一期收尾——启动幂等迁移遗留页（名称含「归档」或 path/name 以 `tpl-` → archived）；`DataInitializer` 调用 `migrateLegacyPages`。
 - 2026-09-21：小程序模块重设计一期 Backend Site 聚合 API（`/api/v1/admin/mini/site|pending-changes|publish`）+ `PageStatusCalculator` + Flyway V72（`page_group`/`archived`、`live_release_no`）。
 - 2026-09-21：小程序模块重设计一期 Admin——侧栏四入口 /mini（概览/页面/模板库/发布），旧 page-builder 重定向；装修器「发布」跳统一发布页。

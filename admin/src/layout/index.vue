@@ -5,8 +5,8 @@
       <el-header class="app-header" height="56px">
         <Header />
       </el-header>
-      <TagsView />
-      <el-main class="app-main">
+      <TagsView v-if="!isMiniRoute" />
+      <el-main class="app-main" :class="{ 'is-mini': isMiniRoute }">
         <div v-if="switching" class="route-skeleton" role="status" aria-live="polite" aria-label="页面加载中">
           <div class="sk-line" />
           <div class="sk-line" />
@@ -33,12 +33,14 @@ import TagsView from './TagsView.vue'
 import ChangePasswordDialog from './ChangePasswordDialog.vue'
 import CommandPalette from '@/components/CommandPalette.vue'
 import { useAppStore } from '@/stores/app'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const appStore = useAppStore()
 const switching = ref(false)
 const router = useRouter()
+const route = useRoute()
+const isMiniRoute = computed(() => route.path.startsWith('/mini'))
 let switchTimer = 0
 router.beforeEach((to, from) => {
   if (to.path === from.path) return
@@ -94,6 +96,11 @@ router.afterEach(() => {
   min-height: calc(100vh - 56px - 34px);
   box-sizing: border-box;
   position: relative;
+  &.is-mini {
+    padding: 0;
+    background: #f6f2ec;
+    min-height: calc(100vh - 56px);
+  }
 }
 
 .route-skeleton {

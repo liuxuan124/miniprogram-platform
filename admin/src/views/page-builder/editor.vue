@@ -18,8 +18,7 @@
               返回
             </el-button>
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
-            <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
-            <span v-if="pageStore.isDirty" class="dirty-dot">未保存</span>
+            <span class="publish-status-pill" :class="publishStatusClass">{{ publishStatusLabel }}</span>
             <span v-if="autoSaveError" class="autosave-error">{{ autoSaveError }}</span>
             <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存 {{ lastAutoSavedAt }}</span>
           </div>
@@ -38,10 +37,14 @@
             </el-button-group>
             <el-button size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
-              预览
+              扫码预览
+            </el-button>
+            <el-button size="small" @click="compareWithLive">
+              <el-icon><View /></el-icon>
+              对比线上
             </el-button>
             <el-tooltip content="自动保存草稿后去发布页，一次推送导航与未上线页面" placement="bottom">
-              <el-button type="primary" size="small" :loading="pageStore.saving" @click="goMiniPublish">
+              <el-button type="primary" size="small" class="mw-publish-btn" :loading="pageStore.saving" @click="goMiniPublish">
                 <el-icon><Upload /></el-icon>
                 发布
               </el-button>
@@ -104,7 +107,24 @@
           </el-tab-pane>
           <el-tab-pane label="AI 助手" name="ai">
             <div class="ai-assistant">
-              <div class="ai-assistant__hint">描述想改的地方，一期先给提示与草稿建议。</div>
+              <div class="ai-assistant__thread" v-loading="aiRunning">
+                <div v-if="aiUserMsg" class="ai-bubble ai-bubble--user">{{ aiUserMsg }}</div>
+                <div v-if="aiConclusion || aiChanges.length" class="ai-bubble ai-bubble--bot">
+                  <div class="ai-conclusion">{{ aiConclusion }}</div>
+                  <div v-if="aiChanges.length" class="ai-change-list">
+                    <div v-for="(c, i) in aiChanges" :key="i" class="ai-change-item">
+                      <b>{{ i + 1 }}. {{ c.title }}</b>
+                      <span>{{ c.detail }}</span>
+                    </div>
+                  </div>
+                  <div v-if="aiPending" class="ai-actions">
+                    <el-button type="primary" class="ai-assistant__send" size="small" @click="aiKeep">保留</el-button>
+                    <el-button size="small" @click="aiRevert">撤销</el-button>
+                    <el-button size="small" @click="aiRetry">换一版</el-button>
+                  </div>
+                </div>
+                <div v-else-if="!aiRunning" class="ai-assistant__placeholder">描述想改的地方，回复会以「结论 + 变更条目」出现在这里</div>
+              </div>
               <div class="ai-assistant__pills">
                 <button
                   v-for="pill in aiPills"
@@ -116,28 +136,24 @@
                   {{ pill }}
                 </button>
               </div>
-              <el-input
-                v-model="aiPrompt"
-                type="textarea"
-                :rows="3"
-                maxlength="300"
-                show-word-limit
-                placeholder="例如：把首屏轮播换成节日氛围…"
-              />
-              <el-button
-                type="primary"
-                class="ai-assistant__send"
-                :loading="aiRunning"
-                :disabled="!aiPrompt.trim()"
-                @click="runAiAssist"
-              >
-                生成建议
-              </el-button>
-              <div class="ai-assistant__reply" v-loading="aiRunning">
-                <template v-if="aiReply">{{ aiReply }}</template>
-                <template v-else>
-                  <span class="ai-assistant__placeholder">回复会出现在这里</span>
-                </template>
+              <div class="ai-composer">
+                <el-input
+                  v-model="aiPrompt"
+                  type="textarea"
+                  :rows="2"
+                  maxlength="300"
+                  show-word-limit
+                  placeholder="例如：问候条下加中秋读书节入口，暖金色，带倒计时…"
+                />
+                <el-button
+                  type="primary"
+                  class="ai-assistant__send"
+                  :loading="aiRunning"
+                  :disabled="!aiPrompt.trim()"
+                  @click="runAiAssist"
+                >
+                  发送
+                </el-button>
               </div>
             </div>
           </el-tab-pane>
@@ -163,6 +179,39 @@
 
     <!-- 原型一致：预览不跳新窗口，直接进入小程序端实时预览 -->
     <MiniPreviewDialog ref="previewDialogRef" v-model="previewVisible" />
+
+    <!-- 对比线上：左草稿预览 / 右已发布线上 -->
+    <el-dialog
+      v-model="compareLiveVisible"
+      title="对比线上"
+      width="90%"
+      top="4vh"
+      destroy-on-close
+      class="compare-live-dialog"
+    >
+      <div class="compare-live-panes">
+        <div class="compare-live-pane">
+          <div class="compare-live-pane__label">改动后</div>
+          <iframe
+            v-if="compareDraftUrl"
+            class="compare-live-pane__frame"
+            :src="compareDraftUrl"
+            title="改动后预览"
+          />
+          <div v-else class="compare-live-pane__empty">暂无草稿预览</div>
+        </div>
+        <div class="compare-live-pane">
+          <div class="compare-live-pane__label">线上</div>
+          <iframe
+            v-if="compareLiveUrl"
+            class="compare-live-pane__frame"
+            :src="compareLiveUrl"
+            title="线上预览"
+          />
+          <div v-else class="compare-live-pane__empty">暂无线上版本</div>
+        </div>
+      </div>
+    </el-dialog>
 
     <el-dialog
       v-model="publishCheck.visible"
@@ -247,7 +296,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, computed, provide, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
@@ -261,6 +310,7 @@ import PropsPanel from '@/components/page-builder/PropsPanel.vue'
 import MiniPreviewDialog from './MiniPreviewDialog.vue'
 import type { PageDSL, PageRecord } from '@/types/page'
 import { isHomePathLocked, normalizeBuilderPath, validatePathSlug, splitEditablePath } from '@/utils/page-path'
+import { resolvePageStatus, MINI_PAGE_STATUS_LABELS } from '@/utils/pageStatus'
 
 function isConflictError(err: unknown): boolean {
   const e = err as { response?: { status?: number; data?: { code?: number } }; code?: number }
@@ -277,42 +327,197 @@ const dslDialogVisible = ref(false)
 const dslEditorValue = ref('')
 const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
+const compareLiveVisible = ref(false)
+const compareDraftUrl = ref('')
+const compareLiveUrl = ref('')
 const leftCollapsed = ref(false)
 const rightCollapsed = ref(false)
 const rightTab = ref<'props' | 'ai'>('props')
 
-/** 右栏 AI 助手壳（一期：快捷胶囊 + 输入 + 占位回复） */
+/** 右栏 AI 助手：结论 + 变更条目 + 保留/撤销/换一版 */
 const aiPills = ['改成节日氛围', '精简首屏', '补空状态'] as const
 const aiPrompt = ref('')
-const aiReply = ref('')
+const aiUserMsg = ref('')
+const aiConclusion = ref('')
+const aiChanges = ref<Array<{ title: string; detail: string }>>([])
 const aiRunning = ref(false)
+const aiPending = ref(false)
+const aiSnapshot = ref<PageDSL | null>(null)
+const aiHighlightIds = ref<string[]>([])
+provide('aiHighlightIds', aiHighlightIds)
+
+const publishStatusKey = computed(() => {
+  const page = pageStore.currentPage
+  if (!page) return pageStore.isDirty ? 'pending' : 'draft'
+  const key = resolvePageStatus({
+    status: page.status,
+    currentVersion: page.currentVersion,
+    latestVersion: page.latestVersion,
+    version: page.version,
+    hasUnpublishedChanges: page.hasUnpublishedChanges || pageStore.isDirty,
+  })
+  if (pageStore.isDirty && (key === 'live' || key === 'draft')) return 'pending'
+  return key
+})
+const publishStatusLabel = computed(() => {
+  const key = publishStatusKey.value
+  if (key === 'pending') return '有改动 · 待发布'
+  if (key === 'live') return '已上线'
+  return MINI_PAGE_STATUS_LABELS[key] || '草稿'
+})
+const publishStatusClass = computed(() => `is-${publishStatusKey.value}`)
 
 function applyAiPill(pill: string) {
   aiPrompt.value = pill
   rightTab.value = 'ai'
 }
 
+function compareWithLive() {
+  const page = pageStore.currentPage
+  if (!page?.id) {
+    ElMessage.warning('请先保存页面后再对比')
+    return
+  }
+  if (!page.publishedDslContent) {
+    ElMessage.info('暂无线上已发布版本可对比，可先「扫码预览」看当前草稿')
+    return
+  }
+  // 左：当前草稿预览路由；右：已有 source=live 的小程序全站预览
+  const draft = router.resolve({ path: `/page-builder/preview/${page.id}` })
+  const live = router.resolve({ path: '/h5/miniapp-preview', query: { source: 'live', view: 'config' } })
+  compareDraftUrl.value = draft.href
+  compareLiveUrl.value = live.href
+  compareLiveVisible.value = true
+}
+
+function clearAiMarks() {
+  aiPending.value = false
+  aiHighlightIds.value = []
+}
+
+function aiKeep() {
+  clearAiMarks()
+  aiSnapshot.value = null
+  ElMessage.success('已保留本次 AI 改动')
+}
+
+function aiRevert() {
+  if (aiSnapshot.value) {
+    const snap = JSON.parse(JSON.stringify(aiSnapshot.value)) as PageDSL
+    if (pageStore.currentPage) {
+      snap.page.id = String(pageStore.currentPage.id)
+      snap.page.path = pageStore.currentPage.path || snap.page.path
+    }
+    pageStore.applyTemplate(snap)
+  } else if (pageStore.canUndo) {
+    pageStore.undo()
+  }
+  clearAiMarks()
+  aiConclusion.value = '已撤销本次 AI 改动'
+  aiChanges.value = []
+  ElMessage.success('已撤销')
+}
+
+async function aiRetry() {
+  if (aiSnapshot.value) {
+    const snap = JSON.parse(JSON.stringify(aiSnapshot.value)) as PageDSL
+    if (pageStore.currentPage) {
+      snap.page.id = String(pageStore.currentPage.id)
+      snap.page.path = pageStore.currentPage.path || snap.page.path
+    }
+    pageStore.applyTemplate(snap)
+  }
+  clearAiMarks()
+  if (!aiPrompt.value.trim() && aiUserMsg.value) {
+    aiPrompt.value = aiUserMsg.value
+  }
+  await runAiAssist()
+}
+
+function parseDraftDsl(detail: PageRecord): PageDSL | null {
+  if (detail.dsl && typeof detail.dsl === 'object') {
+    return JSON.parse(JSON.stringify(detail.dsl))
+  }
+  const raw = detail.draftDslContent
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 async function runAiAssist() {
   const text = aiPrompt.value.trim()
   if (!text) return
   aiRunning.value = true
-  aiReply.value = ''
+  aiUserMsg.value = text
+  aiConclusion.value = ''
+  aiChanges.value = []
+  clearAiMarks()
+  aiSnapshot.value = JSON.parse(JSON.stringify(pageStore.dsl)) as PageDSL
   try {
     const pageName = pageStore.pageConfig.name || '当前页'
-    const prompt = `针对装修页「${pageName}」给出改造建议（不要直接改线上）：${text}`
+    const prompt = `针对装修页「${pageName}」做改造（写入草稿供装修器采纳，不要直接上线）：${text}`
     const res = await runAiPagePipeline(prompt)
     const data = (res as any)?.data ?? res
     const draft = data?.draft
-    const summary =
-      data?.message ||
-      data?.summary ||
-      data?.designNotes ||
-      (draft?.pageId
-        ? `已生成相关草稿提示（pageId=${draft.pageId}）。请到「属性」继续微调，发布仍走统一发布页。`
-        : '')
-    aiReply.value = summary || '已收到建议，可按提示在属性面板手动调整。'
+    const report = Array.isArray(data?.report) ? data.report : []
+    const drafted = report.filter((r: any) => r.inDraft)
+    const changes = (drafted.length ? drafted : report).slice(0, 6).map((r: any) => ({
+      title: r.title || r.matchedLabel || '区块调整',
+      detail: r.reason || (r.inDraft ? '已写入草稿建议' : '建议人工确认'),
+    }))
+
+    let applied = false
+    const draftPageId = Number(draft?.pageId || 0)
+    if (draftPageId) {
+      try {
+        const detailRes = await getPageDetail(draftPageId)
+        const detail = ((detailRes as any)?.data ?? detailRes) as PageRecord
+        const draftDsl = parseDraftDsl(detail)
+        if (draftDsl?.components?.length) {
+          if (pageStore.currentPage) {
+            draftDsl.page = {
+              ...draftDsl.page,
+              id: String(pageStore.currentPage.id),
+              path: pageStore.currentPage.path || draftDsl.page?.path,
+              name: pageStore.pageConfig.name || draftDsl.page?.name,
+            }
+          }
+          pageStore.applyTemplate(draftDsl)
+          // 标记本次画布上的组件为 AI 新增（apply 后 id 已刷新）
+          aiHighlightIds.value = pageStore.components.map((c) => c.id).slice(0, Math.max(2, Math.min(4, drafted.length || 2)))
+          applied = true
+        }
+      } catch {
+        /* 仅展示报告 */
+      }
+    }
+
+    if (!changes.length) {
+      aiChanges.value = [
+        {
+          title: applied ? '已套用 AI 草稿到画布' : '已生成改造建议',
+          detail: draft?.pageId
+            ? `相关草稿 pageId=${draft.pageId}；请在画布核对后点「保留」或「撤销」。`
+            : '未返回可套用草稿，请换一版或手动在属性面板调整。',
+        },
+      ]
+    } else {
+      aiChanges.value = changes
+    }
+
+    const n = aiChanges.value.length
+    aiConclusion.value = applied
+      ? `已改 ${n} 处，画布上橙色虚线框为 AI 相关组件，确认后点「保留」。`
+      : `结论：给出 ${n} 条变更建议${draft?.pageId ? `（草稿 ${draft.pageId}）` : ''}，可「换一版」或按条目手改。`
+    aiPending.value = true
+    aiPrompt.value = ''
   } catch {
-    aiReply.value = '暂未接通'
+    aiConclusion.value = '暂未接通 AI 流水线'
+    aiChanges.value = []
+    aiPending.value = false
   } finally {
     aiRunning.value = false
   }
@@ -1014,10 +1219,60 @@ onBeforeUnmount(() => {
   min-height: 100%;
   background: #f6f2ec;
 }
-.ai-assistant__hint {
-  font-size: 12px;
-  color: #7a6e64;
-  line-height: 1.45;
+.ai-assistant__thread {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-bubble {
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.ai-bubble--user {
+  align-self: flex-end;
+  max-width: 92%;
+  background: #2c241c;
+  color: #fff;
+}
+.ai-bubble--bot {
+  background: #fbeadf;
+  border: 1px solid #f0c9a8;
+  color: #2c241c;
+}
+.ai-conclusion {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ai-change-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-change-item {
+  background: #fffcf8;
+  border: 1px solid #e8dfd3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  b { font-size: 12px; }
+  span { font-size: 12px; color: #7a6e64; }
+}
+.ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.ai-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .ai-assistant__pills {
   display: flex;
@@ -1044,20 +1299,39 @@ onBeforeUnmount(() => {
   --el-button-hover-bg-color: #9a390d;
   --el-button-hover-border-color: #9a390d;
 }
-.ai-assistant__reply {
-  flex: 1;
-  min-height: 120px;
-  padding: 12px;
-  border-radius: 10px;
-  background: #fffcf8;
-  border: 1px solid #e5ddd2;
-  font-size: 13px;
-  line-height: 1.55;
-  color: #2c241c;
-  white-space: pre-wrap;
-}
 .ai-assistant__placeholder {
   color: #7a6e64;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.publish-status-pill {
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid #e8c4a8;
+  background: #fdf0e6;
+  color: #b4430f;
+  &.is-live {
+    background: #e8f2e9;
+    color: #2f6b3a;
+    border-color: #b7d4bc;
+  }
+  &.is-draft,
+  &.is-offline,
+  &.is-archived {
+    background: #f0ebe3;
+    color: #6b5e52;
+    border-color: #d9cfc3;
+  }
+}
+
+.mw-publish-btn {
+  --el-button-bg-color: #b4430f;
+  --el-button-border-color: #b4430f;
+  --el-button-hover-bg-color: #9a390d;
+  --el-button-hover-border-color: #9a390d;
 }
 
 .builder-toolbar {
@@ -1070,11 +1344,11 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 58px;
   padding: 9px 14px;
-  background: #fff;
-  border: 1px solid #e3e8f0;
+  background: #fffcf8;
+  border: 1px solid #e8dfd3;
   border-top: 0;
   border-radius: 0 0 12px 12px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4px 16px rgba(44, 36, 28, 0.05);
   gap: 8px;
 }
 
@@ -1332,6 +1606,50 @@ onBeforeUnmount(() => {
     color: #dc2626;
     background: #fef2f2;
     border-color: #fecaca;
+  }
+}
+
+.compare-live-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  min-height: 72vh;
+}
+
+.compare-live-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #e8dfd3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f6f2ec;
+
+  &__label {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2c241c;
+    background: #fffcf8;
+    border-bottom: 1px solid #e8dfd3;
+  }
+
+  &__frame {
+    flex: 1;
+    width: 100%;
+    min-height: 66vh;
+    border: 0;
+    background: #fff;
+  }
+
+  &__empty {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    color: #7a6e64;
+    font-size: 13px;
+    min-height: 66vh;
   }
 }
 </style>

@@ -1,14 +1,18 @@
 <template>
-  <div class="mini-page" v-loading="loading">
-    <header class="page-head">
+  <div class="mini-wb mw-page pages" v-loading="loading">
+    <header class="mw-head">
       <div>
-        <div class="page-head__kicker">小程序 · 页面</div>
-        <h1>页面</h1>
-        <p>按导航 / 活动 / 内容 / 归档分组。主操作是装修；「我的」为固定路径壳页。</p>
+        <h1 class="mw-title">页面</h1>
+        <p class="mw-sub">共 {{ totalCount }} 个，按用途分组，旧页面自动进入归档</p>
       </div>
-      <div class="page-head__actions">
-        <el-button @click="router.push('/mini/pages/new-ai')">AI 生成</el-button>
-        <el-button type="primary" class="btn-terracotta" @click="createBlank">空白新建</el-button>
+      <div class="mw-actions">
+        <el-button @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })">
+          从模板新建
+        </el-button>
+        <el-button :loading="creatingBlank" @click="createBlank">+ 空白页面</el-button>
+        <el-button type="primary" class="mw-btn-primary" @click="router.push('/mini/pages/new-ai')">
+          AI 生成页面
+        </el-button>
       </div>
     </header>
 
@@ -16,74 +20,81 @@
       <el-input
         v-model="keyword"
         clearable
-        placeholder="搜索页面名 / 路径"
-        style="max-width: 260px"
+        placeholder="搜索页面名称"
+        style="max-width: 280px"
       />
-      <div class="status-capsules">
+      <div class="capsules">
         <button
           v-for="opt in statusFilters"
           :key="opt.key"
           type="button"
-          class="capsule"
+          class="mw-capsule"
           :class="{ active: statusFilter === opt.key }"
           @click="statusFilter = opt.key"
         >
-          {{ opt.label }}
-          <span class="capsule__n">{{ opt.count }}</span>
+          {{ opt.label }} {{ opt.count }}
         </button>
       </div>
     </div>
 
-    <section v-for="group in groups" :key="group.key" class="group-panel">
-      <div class="group-panel__head">
-        <h2>{{ group.label }}</h2>
-        <span class="group-panel__count">{{ group.rows.length }}</span>
-      </div>
-
-      <div v-if="group.key === 'tab'" class="mine-lock" @click="router.push('/page-builder/mine')">
-        <el-icon><Lock /></el-icon>
-        <div class="mine-lock__text">
-          <b>我的</b>
-          <span>固定路径 · 表单配置，非可删装修页</span>
+    <section
+      v-for="group in visibleGroups"
+      :key="group.key"
+      class="mw-panel group-panel"
+      :class="{ 'is-collapsed': group.collapsed }"
+    >
+      <button type="button" class="group-head" @click="toggleGroup(group.key)">
+        <div class="group-head__left">
+          <h2>{{ group.label }}</h2>
+          <span class="count">{{ group.rows.length }}个</span>
+          <span v-if="group.hint" class="hint">{{ group.hint }}</span>
         </div>
-        <el-button size="small" @click.stop="router.push('/page-builder/mine')">配置</el-button>
-      </div>
+        <span v-if="group.collapsible" class="chevron">{{ group.collapsed ? '▾' : '▴' }}</span>
+      </button>
 
-      <div v-if="group.rows.length" class="page-rows">
-        <div v-for="row in group.rows" :key="String(row.id)" class="page-row">
-          <div class="page-row__main">
-            <div class="page-row__name">{{ row.name }}</div>
-            <div class="page-row__path">{{ row.path }}</div>
+      <template v-if="!group.collapsed">
+        <div v-if="group.rows.length" class="page-rows">
+          <div v-for="row in group.rows" :key="String(row.id)" class="page-row">
+            <MiniPhoneThumb
+              size="sm"
+              :title="row.name"
+              :accent="thumbAccent(row)"
+              :layers="thumbLayers(row)"
+              :src="thumbSrc(row)"
+            />
+            <div class="page-row__main">
+              <div class="page-row__name">
+                {{ row.name }}
+                <span v-if="isAiHint(row)" class="ai-badge">AI 生成</span>
+              </div>
+              <div class="page-row__sub">{{ rowSubtitle(row, group.key) }}</div>
+            </div>
+            <PageStatusTag :row="row" />
+            <button type="button" class="mw-link decor" @click="openEditor(row)">装修</button>
+            <el-dropdown trigger="click" @command="(cmd: string) => onMore(cmd, row)">
+              <button type="button" class="more-btn" aria-label="更多">⋯</button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="preview">预览</el-dropdown-item>
+                  <el-dropdown-item command="copy-path">复制路径</el-dropdown-item>
+                  <el-dropdown-item command="duplicate">复制页面</el-dropdown-item>
+                  <el-dropdown-item command="set-nav" :disabled="isArchived(row)">设为导航</el-dropdown-item>
+                  <el-dropdown-item
+                    v-if="!isArchived(row)"
+                    command="archive"
+                    divided
+                  >
+                    归档
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="canOffline(row)" command="offline" divided>下线</el-dropdown-item>
+                  <el-dropdown-item v-if="canDelete(row)" command="delete" divided>删除草稿</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
-          <PageStatusTag :row="row" />
-          <el-button type="primary" size="small" class="btn-terracotta" @click="openEditor(row)">装修</el-button>
-          <el-dropdown trigger="click" @command="(cmd: string) => onMore(cmd, row)">
-            <el-button size="small">更多</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="preview">预览</el-dropdown-item>
-                <el-dropdown-item command="copy-path">复制路径</el-dropdown-item>
-                <el-dropdown-item command="set-nav" :disabled="isArchived(row)">设为导航入口</el-dropdown-item>
-                <el-dropdown-item
-                  v-if="canOffline(row)"
-                  command="offline"
-                  divided
-                >
-                  下线
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="canDelete(row)"
-                  command="delete"
-                  divided
-                >
-                  删除
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
         </div>
-      </div>
-      <el-empty v-else-if="group.key !== 'tab'" :description="`暂无${group.label}页`" :image-size="48" />
+        <p v-else class="empty-hint">暂无{{ group.label }}</p>
+      </template>
     </section>
 
     <el-dialog v-model="navDialogVisible" title="设为导航入口" width="420px">
@@ -96,7 +107,7 @@
       </el-radio-group>
       <template #footer>
         <el-button @click="navDialogVisible = false">取消</el-button>
-        <el-button type="primary" class="btn-terracotta" :loading="navSaving" @click="confirmSetNav">
+        <el-button type="primary" class="mw-btn-primary" :loading="navSaving" @click="confirmSetNav">
           确认
         </el-button>
       </template>
@@ -105,12 +116,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Lock } from '@element-plus/icons-vue'
 import PageStatusTag from '@/components/mini/PageStatusTag.vue'
-import { getPageList, createPage, deletePage, unpublishPage } from '@/api/page'
+import MiniPhoneThumb from '@/components/mini/MiniPhoneThumb.vue'
+import { getPageList, createPage, deletePage, unpublishPage, duplicatePage, updatePage } from '@/api/page'
 import { getMiniSite, updateMiniSite, type MiniTabBarItem } from '@/api/miniSite'
 import {
   inferPageGroup,
@@ -125,23 +136,50 @@ defineOptions({ name: 'MiniPages' })
 
 const router = useRouter()
 const loading = ref(false)
+const creatingBlank = ref(false)
 const pages = ref<PageRecord[]>([])
 const keyword = ref('')
 const statusFilter = ref<'all' | MiniPageStatus>('all')
 const siteTabs = ref<MiniTabBarItem[]>([])
+const templateName = ref('')
+
+const collapsed = reactive<Record<string, boolean>>({
+  content: true,
+  archived: true,
+})
 
 const navDialogVisible = ref(false)
 const navTarget = ref<PageRecord | null>(null)
 const navSlotIndex = ref(0)
 const navSaving = ref(false)
 
+const tabPageIds = computed(() => {
+  const ids = new Set<number>()
+  for (const t of siteTabs.value) {
+    if (t.pageId != null && t.pageId !== '') ids.add(Number(t.pageId))
+  }
+  return ids
+})
+
+const tabIndexByPageId = computed(() => {
+  const map = new Map<number, number>()
+  siteTabs.value.forEach((t, i) => {
+    if (t.pageId != null && t.pageId !== '') map.set(Number(t.pageId), i)
+  })
+  return map
+})
+
+const listablePages = computed(() =>
+  pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')),
+)
+
+const totalCount = computed(() => listablePages.value.length)
+
 const filteredPages = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  return pages.value.filter((row) => {
-    const path = String(row.path || '')
-    if (path.includes('/pages/mine/mine')) return false
+  return listablePages.value.filter((row) => {
     if (q) {
-      const hay = `${row.name || ''} ${path}`.toLowerCase()
+      const hay = `${row.name || ''} ${row.path || ''}`.toLowerCase()
       if (!hay.includes(q)) return false
     }
     if (statusFilter.value !== 'all') {
@@ -152,23 +190,28 @@ const filteredPages = computed(() => {
 })
 
 const statusFilters = computed(() => {
-  const counts: Record<string, number> = { all: 0, pending: 0, live: 0, draft: 0, archived: 0 }
-  for (const row of pages.value) {
-    if (String(row.path || '').includes('/pages/mine/mine')) continue
+  const counts: Record<string, number> = { all: 0, pending: 0, live: 0, draft: 0 }
+  for (const row of listablePages.value) {
     counts.all += 1
     const st = resolvePageStatus(row)
-    if (st in counts) counts[st] += 1
+    if (st === 'pending' || st === 'live' || st === 'draft') counts[st] += 1
   }
   return [
     { key: 'all' as const, label: '全部', count: counts.all },
     { key: 'pending' as const, label: '待发布', count: counts.pending },
     { key: 'live' as const, label: '已上线', count: counts.live },
     { key: 'draft' as const, label: '草稿', count: counts.draft },
-    { key: 'archived' as const, label: '归档', count: counts.archived },
   ]
 })
 
-const groups = computed(() => {
+function resolveGroup(row: PageRecord): PageGroup {
+  const meta = row as PageRecord & { archived?: boolean | number; pageGroup?: string }
+  if (meta.archived === true || meta.archived === 1) return 'archived'
+  if (tabPageIds.value.has(Number(row.id))) return 'tab'
+  return inferPageGroup(meta)
+}
+
+const visibleGroups = computed(() => {
   const order: PageGroup[] = ['tab', 'activity', 'content', 'archived']
   const buckets: Record<PageGroup, PageRecord[]> = {
     tab: [],
@@ -177,14 +220,75 @@ const groups = computed(() => {
     archived: [],
   }
   for (const row of filteredPages.value) {
-    buckets[inferPageGroup(row)].push(row)
+    buckets[resolveGroup(row)].push(row)
   }
-  return order.map((key) => ({
-    key,
-    label: PAGE_GROUP_LABELS[key],
-    rows: buckets[key],
-  }))
+  // tab 组按导航顺序
+  buckets.tab.sort((a, b) => {
+    const ia = tabIndexByPageId.value.get(Number(a.id)) ?? 99
+    const ib = tabIndexByPageId.value.get(Number(b.id)) ?? 99
+    return ia - ib
+  })
+
+  const hints: Partial<Record<PageGroup, string>> = {
+    tab: '顺序与真机底部一致',
+    content: contentPreview(buckets.content),
+    archived: '旧首页、旧模板副本，可恢复',
+  }
+
+  return order.map((key) => {
+    const collapsible = key === 'content' || key === 'archived'
+    return {
+      key,
+      label: PAGE_GROUP_LABELS[key],
+      rows: buckets[key],
+      hint: hints[key],
+      collapsible,
+      collapsed: collapsible ? !!collapsed[key] : false,
+    }
+  })
 })
+
+function contentPreview(rows: PageRecord[]) {
+  if (!rows.length) return '知识商城、阅读清单…'
+  return rows
+    .slice(0, 3)
+    .map((r) => r.name)
+    .join('、') + (rows.length > 3 ? '…' : '')
+}
+
+function toggleGroup(key: string) {
+  if (key !== 'content' && key !== 'archived') return
+  collapsed[key] = !collapsed[key]
+}
+
+function formatRel(t?: string) {
+  if (!t) return ''
+  const ts = Date.parse(String(t).replace(' ', 'T'))
+  if (!Number.isFinite(ts)) return String(t).slice(0, 16)
+  const diff = Date.now() - ts
+  if (diff < 60_000) return '刚刚'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`
+  return String(t).replace('T', ' ').slice(5, 16)
+}
+
+function rowSubtitle(row: PageRecord, group: PageGroup) {
+  const parts: string[] = []
+  if (group === 'tab') {
+    const idx = tabIndexByPageId.value.get(Number(row.id))
+    if (idx != null) parts.push(`导航 ${idx + 1}`)
+  }
+  if (templateName.value) parts.push(templateName.value)
+  const time = formatRel(row.updateTime || row.updated_at || row.createTime || row.created_at)
+  if (time) parts.push(time)
+  const st = resolvePageStatus(row)
+  if (st === 'pending') parts.push('有未发布改动')
+  return parts.join(' · ') || String(row.path || '')
+}
+
+function isAiHint(row: PageRecord) {
+  return /AI|ai生成|智能/.test(String(row.name || '')) || /ai/i.test(String(row.path || ''))
+}
 
 function isArchived(row: PageRecord) {
   return resolvePageStatus(row) === 'archived'
@@ -203,11 +307,34 @@ function openEditor(row: PageRecord) {
   router.push(`/mini/pages/${row.id}/editor`)
 }
 
+const ACCENTS = ['#b4430f', '#1d6bb8', '#1f7a4d', '#8f5400', '#6b4c9a', '#a33b5c']
+
+function thumbAccent(row: PageRecord) {
+  const seed = `${row.path || ''}|${row.name || ''}|${row.id || ''}`
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return ACCENTS[h % ACCENTS.length]
+}
+
+function thumbLayers(row: PageRecord) {
+  const name = String(row.name || '页面')
+  const path = String(row.path || '').split('/').filter(Boolean).slice(-1)[0] || '自定义'
+  return [name, path, resolvePageStatus(row)]
+}
+
+/** 列表缩略图：有 id 时尝试 iframe 预览；失败时组件仍可无 src 降级 */
+function thumbSrc(row: PageRecord) {
+  if (!row.id) return undefined
+  // 列表大量 iframe 成本高：仅对导航组前 5 页启用真预览
+  const inTab = tabPageIds.value.has(Number(row.id))
+  if (!inTab && resolveGroup(row) !== 'activity') return undefined
+  const { href } = router.resolve({ path: `/page-builder/preview/${row.id}` })
+  return href
+}
+
 async function onMore(cmd: string, row: PageRecord) {
   if (cmd === 'preview') {
-    const { href } = router.resolve({
-      path: `/page-builder/preview/${row.id}`,
-    })
+    const { href } = router.resolve({ path: `/page-builder/preview/${row.id}` })
     window.open(href, '_blank', 'noopener,noreferrer')
     return
   }
@@ -217,6 +344,54 @@ async function onMore(cmd: string, row: PageRecord) {
       ElMessage.success('路径已复制')
     } catch {
       ElMessage.info(String(row.path || ''))
+    }
+    return
+  }
+  if (cmd === 'duplicate') {
+    try {
+      await ElMessageBox.confirm(`复制「${row.name}」为新草稿？`, '复制页面', { type: 'info' })
+    } catch {
+      return
+    }
+    try {
+      let newId = 0
+      try {
+        const res = await duplicatePage(Number(row.id))
+        newId = Number((res as { data?: { id?: number } })?.data?.id || 0)
+      } catch {
+        const suffix = Date.now().toString(36).slice(-4)
+        const res = await createPage({
+          name: `${row.name || '页面'}-副本-${suffix}`,
+          type: (row.type as 1 | 2 | 3) || 3,
+          path: `pages/custom/copy-${suffix}`,
+        })
+        newId = Number((res as { data?: { id?: number } })?.data?.id || 0)
+      }
+      if (!newId) throw new Error('未返回新页面 id')
+      ElMessage.success('已复制为草稿')
+      await load()
+      router.push(`/mini/pages/${newId}/editor`)
+    } catch (e: unknown) {
+      ElMessage.error(e instanceof Error ? e.message : '复制失败')
+    }
+    return
+  }
+  if (cmd === 'archive') {
+    try {
+      await ElMessageBox.confirm(
+        `将「${row.name}」归档？归档后从常用列表隐藏，可在「归档」分组恢复。`,
+        '归档页面',
+        { type: 'warning' },
+      )
+    } catch {
+      return
+    }
+    try {
+      await updatePage(Number(row.id), { pageGroup: 'archived', archived: 1 })
+      ElMessage.success('已归档')
+      await load()
+    } catch {
+      ElMessage.info('当前接口尚未支持归档字段（pageGroup/archived），请保留草稿或移出导航后手动管理')
     }
     return
   }
@@ -232,8 +407,8 @@ async function onMore(cmd: string, row: PageRecord) {
       await unpublishPage(Number(row.id))
       ElMessage.success('已下线')
       await load()
-    } catch (e: any) {
-      if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+    } catch (e: unknown) {
+      if (e !== 'cancel' && e instanceof Error) ElMessage.error(e.message)
     }
     return
   }
@@ -243,8 +418,8 @@ async function onMore(cmd: string, row: PageRecord) {
       await deletePage(Number(row.id))
       ElMessage.success('已删除')
       await load()
-    } catch (e: any) {
-      if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+    } catch (e: unknown) {
+      if (e !== 'cancel' && e instanceof Error) ElMessage.error(e.message)
     }
   }
 }
@@ -271,8 +446,8 @@ async function confirmSetNav() {
     ElMessage.success('已写入导航草稿，请去发布')
     navDialogVisible.value = false
     siteTabs.value = next
-  } catch (e: any) {
-    ElMessage.error(e?.message || '设置失败')
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '设置失败')
   } finally {
     navSaving.value = false
   }
@@ -284,6 +459,7 @@ async function createBlank() {
   } catch {
     return
   }
+  creatingBlank.value = true
   const suffix = Date.now().toString(36).slice(-5)
   try {
     const res = await createPage({
@@ -291,12 +467,14 @@ async function createBlank() {
       type: 3,
       path: `pages/custom/p-${suffix}`,
     })
-    const id = Number((res as any)?.data?.id || 0)
+    const id = Number((res as { data?: { id?: number } })?.data?.id || 0)
     if (!id) throw new Error('未返回页面 id')
     ElMessage.success('已创建')
     router.push(`/mini/pages/${id}/editor`)
-  } catch (e: any) {
-    ElMessage.error(e?.message || '创建失败')
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '创建失败')
+  } finally {
+    creatingBlank.value = false
   }
 }
 
@@ -307,10 +485,12 @@ async function load() {
       getPageList({ current: 1, size: 200 }),
       getMiniSite('draft').catch(() => null),
     ])
-    pages.value = ((res as any)?.data?.records || (res as any)?.data?.list || []) as PageRecord[]
+    const data = (res as { data?: { records?: PageRecord[]; list?: PageRecord[] } })?.data
+    pages.value = (data?.records || data?.list || []) as PageRecord[]
     siteTabs.value = site?.tabBar || []
-  } catch (e: any) {
-    ElMessage.error(e?.message || '加载页面失败')
+    templateName.value = site?.templateName || ''
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '加载页面失败')
   } finally {
     loading.value = false
   }
@@ -320,36 +500,6 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.mini-page {
-  --mini-bg: #f6f2ec;
-  --mini-terracotta: #b4430f;
-  --mini-ink: #2c241c;
-  --mini-muted: #7a6e64;
-  --mini-card: #fffcf8;
-  --mini-border: #e5ddd2;
-  min-height: 100%;
-  margin: -16px;
-  padding: 20px 24px 40px;
-  background: var(--mini-bg);
-  color: var(--mini-ink);
-}
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  h1 { margin: 4px 0; font-size: 24px; }
-  p { margin: 0; color: var(--mini-muted); font-size: 13px; max-width: 520px; }
-}
-.page-head__kicker { font-size: 12px; color: var(--mini-muted); }
-.page-head__actions { display: flex; gap: 8px; }
-.btn-terracotta {
-  --el-button-bg-color: var(--mini-terracotta);
-  --el-button-border-color: var(--mini-terracotta);
-  --el-button-hover-bg-color: #9a390d;
-  --el-button-hover-border-color: #9a390d;
-}
-
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -357,86 +507,108 @@ onMounted(load)
   align-items: center;
   margin-bottom: 16px;
 }
-.status-capsules { display: flex; flex-wrap: wrap; gap: 6px; }
-.capsule {
-  border: 1px solid var(--mini-border);
-  background: var(--mini-card);
-  color: var(--mini-ink);
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  &.active {
-    border-color: var(--mini-terracotta);
-    color: var(--mini-terracotta);
-    background: #fdf0e6;
-  }
-}
-.capsule__n {
-  margin-left: 4px;
-  opacity: 0.7;
-}
+.capsules { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .group-panel {
-  background: var(--mini-card);
-  border: 1px solid var(--mini-border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  padding: 0;
+  overflow: hidden;
+  &.is-collapsed {
+    border-style: dashed;
+    background: transparent;
+  }
 }
-.group-panel__head {
+.group-head {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  h2 { margin: 0; font-size: 15px; }
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
 }
-.group-panel__count {
+.group-head__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  h2 { margin: 0; font-size: 15px; font-weight: 650; }
+}
+.count {
   font-size: 12px;
-  color: var(--mini-muted);
+  color: var(--mw-muted);
   background: #f0ebe3;
   padding: 1px 8px;
   border-radius: 999px;
 }
+.hint { font-size: 12px; color: var(--mw-muted); }
+.chevron { color: var(--mw-muted); font-size: 14px; }
 
-.mine-lock {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  background: #f8f4ee;
-  border: 1px dashed #d4c4b4;
-  cursor: pointer;
-}
-.mine-lock__text {
-  flex: 1;
+.page-rows {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  span { font-size: 12px; color: var(--mini-muted); }
+  padding: 0 12px 12px;
 }
-
-.page-rows { display: flex; flex-direction: column; gap: 8px; }
 .page-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f8f4ee;
+  gap: 12px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--mw-border);
 }
 .page-row__main { flex: 1; min-width: 0; }
-.page-row__name { font-weight: 600; }
-.page-row__path { font-size: 12px; color: var(--mini-muted); }
+.page-row__name {
+  font-weight: 650;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-row__sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--mw-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mw-blue);
+  background: var(--mw-blue-bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.decor { font-weight: 500; flex-shrink: 0; }
+.more-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  background: var(--mw-card);
+  cursor: pointer;
+  color: var(--mw-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+.empty-hint {
+  margin: 0;
+  padding: 8px 16px 16px;
+  font-size: 13px;
+  color: var(--mw-muted);
+}
 
-.nav-dialog-hint { font-size: 13px; color: var(--mini-muted); margin: 0 0 12px; }
+.nav-dialog-hint { font-size: 13px; color: var(--mw-muted); margin: 0 0 12px; }
 .nav-slots {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
 }
-.muted { color: var(--mini-muted); font-size: 12px; }
+.muted { color: var(--mw-muted); font-size: 12px; }
 </style>

@@ -1,5 +1,9 @@
 <template>
-  <el-aside class="app-sidebar" :width="appStore.sidebarCollapsed ? '72px' : '220px'">
+  <el-aside
+    class="app-sidebar"
+    :class="{ 'is-mini-shell': route.path.startsWith('/mini') }"
+    :width="appStore.sidebarCollapsed ? '72px' : '220px'"
+  >
     <div class="brand">
       <div class="brand-icon">
         <img src="/logo.svg" alt="" width="40" height="40" />
@@ -59,6 +63,10 @@
                   @click="go(child.path!)"
                 >
                   <span class="menu-title">{{ child.title }}</span>
+                  <span
+                    v-if="child.path === '/mini/publish' && pendingCount > 0"
+                    class="menu-badge"
+                  >{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
                 </button>
               </div>
             </div>
@@ -72,6 +80,10 @@
             >
               <span class="menu-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
               <span v-show="!appStore.sidebarCollapsed" class="menu-title">{{ item.title }}</span>
+              <span
+                v-if="item.path === '/mini/publish' && pendingCount > 0 && !appStore.sidebarCollapsed"
+                class="menu-badge"
+              >{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
             </button>
           </template>
         </div>
@@ -81,12 +93,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
+import { useMiniPending } from '@/composables/useMiniPending'
 import { PLATFORM_VERSION } from '@/constants/platform'
 import {
   Odometer,
@@ -174,6 +187,19 @@ const iconMap: Record<string, any> = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const { pendingCount, refreshMiniPending } = useMiniPending(false)
+
+watch(
+  () => route.path,
+  (p) => {
+    if (p.startsWith('/mini')) void refreshMiniPending()
+  },
+  { immediate: true },
+)
+
+onMounted(() => {
+  if (route.path.startsWith('/mini')) void refreshMiniPending()
+})
 const permissionStore = usePermissionStore()
 const featureModulesStore = useFeatureModulesStore()
 const industryProfileStore = useIndustryProfileStore()
@@ -392,6 +418,38 @@ watch(
   inset: 0 auto 0 0;
   z-index: 1001;
   transition: width 0.2s ease;
+
+  /* /mini 工作台：暖棕壳 + 陶土 active，离开 /mini 无此 class */
+  &.is-mini-shell {
+    background: #2c241c;
+
+    .brand-text {
+      strong {
+        color: #f6f2ec;
+      }
+      span {
+        color: rgba(246, 242, 236, 0.72);
+      }
+    }
+
+    .group-title {
+      color: rgba(246, 242, 236, 0.55);
+    }
+
+    .menu-item {
+      color: rgba(246, 242, 236, 0.88);
+
+      &.active,
+      &.sub.active {
+        background: #b4430f;
+        color: #fff;
+      }
+    }
+
+    .menu-badge {
+      background: #b4430f;
+    }
+  }
 }
 
 .brand {
@@ -545,6 +603,20 @@ watch(
   flex: 1;
   min-width: 0;
   font-size: 13px;
+}
+
+.menu-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #b4430f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
 }
 
 .menu-arrow {

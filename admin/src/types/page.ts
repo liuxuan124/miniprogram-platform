@@ -416,6 +416,11 @@ export interface UpdatePageParams {
   shareImage?: string
   background_color?: string
   dsl?: PageDSL
+  /** 页面分组 tab/activity/content/archived（后端若支持则生效） */
+  pageGroup?: string
+  page_group?: string
+  /** 1=归档 */
+  archived?: number | boolean
 }
 
 /** 页面列表查询参数 */
