@@ -13,6 +13,7 @@ import com.miniprogram.mapper.RoleMapper;
 import com.miniprogram.mapper.RolePermissionMapper;
 import com.miniprogram.service.ProductService;
 import com.miniprogram.service.WxPushTargetService;
+import com.miniprogram.service.mini.MiniSiteService;
 import com.miniprogram.service.miniapp.WarmStoreTemplateSeeder;
 import com.miniprogram.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ProductService productService;
     private final WarmStoreTemplateSeeder warmStoreTemplateSeeder;
     private final WxPushTargetService wxPushTargetService;
+    private final MiniSiteService miniSiteService;
 
     @Override
     public void run(String... args) {
@@ -53,6 +55,21 @@ public class DataInitializer implements CommandLineRunner {
         ensurePay1SmokeProduct();
         ensureWarmStoreTemplate();
         ensureWxPushTarget();
+        migrateMiniLegacyPages();
+    }
+
+    private void migrateMiniLegacyPages() {
+        try {
+            TenantContext.setTenantId(TenantContext.DEFAULT_TENANT_ID);
+            int n = miniSiteService.migrateLegacyPages();
+            if (n > 0) {
+                log.info("启动迁移小程序遗留页面归档 {} 条", n);
+            }
+        } catch (Exception e) {
+            log.warn("启动迁移小程序页面归档跳过: {}", e.getMessage());
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     private void ensureWarmStoreTemplate() {

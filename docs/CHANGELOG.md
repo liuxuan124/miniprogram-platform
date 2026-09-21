@@ -4,6 +4,12 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-21：规格 Top5 对齐——内容发布时间线+回滚为待发布；概览选页换绑；页面筛选/更多菜单；模板影响面板；装修器去掉保存/仅上线本页。
+- 2026-09-21：发布勾选真正生效——`MiniPublishRequestDTO` 的 `pageIds`/`includeSite` 后端按勾选过滤；前端始终传数组避免误全量发。
+- 2026-09-21：小程序高保真对齐——概览导航抽屉+改动后/线上预览；发布页勾选与发布前检查；装修器右栏「属性|AI 助手」壳。
+- 2026-09-21：小程序模块重设计一期收尾——启动幂等迁移遗留页（名称含「归档」或 path/name 以 `tpl-` → archived）；`DataInitializer` 调用 `migrateLegacyPages`。
+- 2026-09-21：小程序模块重设计一期 Backend Site 聚合 API（`/api/v1/admin/mini/site|pending-changes|publish`）+ `PageStatusCalculator` + Flyway V72（`page_group`/`archived`、`live_release_no`）。
+- 2026-09-21：小程序模块重设计一期 Admin——侧栏四入口 /mini（概览/页面/模板库/发布），旧 page-builder 重定向；装修器「发布」跳统一发布页。
 - 2026-09-20：装修心智统一——预览默认真机所见；品牌导航保存进待上线草稿，「上线到小程序」一次推导航+脏页；Tab 绑定页统一吃已发布 DSL；小程序新增 `pkg-templates` 整店模版馆（列表/套用）。
 - 2026-09-20：新增 5 套整店系统模板（warm/retail/content/lite/edu）+ 5 个页面模块种子（商城成交/内容发现/会员权益/知识资料库/轻量开店），管理端 template-center fallback 同步。
 - 2026-09-20：页面管理厘清三类——固定页（我的，独立配置卡）、主站页（已绑定首页）、自定义/专题/活动装修页；去掉列表里的「系统页」虚拟行与模糊文案。

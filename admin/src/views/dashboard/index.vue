@@ -10,8 +10,8 @@
             <el-icon><Brush /></el-icon>
             进入装修
           </el-button>
-          <el-button @click="router.push('/page-builder/start')">品牌导航</el-button>
-          <el-button @click="router.push('/page-builder/release')">发布</el-button>
+          <el-button @click="router.push('/mini/overview')">小程序概览</el-button>
+          <el-button @click="router.push('/mini/publish')">发布</el-button>
         </template>
       </template>
     </PageHeader>
@@ -115,7 +115,7 @@
       <div v-if="canDecorate" class="panel version-panel">
         <div class="panel-head">
           <h2>最近发布版本记录</h2>
-          <el-button link type="primary" @click="router.push('/page-builder/list')">查看更多</el-button>
+          <el-button link type="primary" @click="router.push('/mini/pages')">查看更多</el-button>
         </div>
         <el-table :data="versions" size="small" class="version-table">
           <el-table-column prop="name" label="页面名称" min-width="120" />
@@ -127,7 +127,7 @@
               <el-button
                 link
                 type="primary"
-                @click="router.push(row.id ? `/page-builder/editor/${row.id}` : '/page-builder/start')"
+                @click="router.push(row.id ? `/mini/pages/${row.id}/editor` : '/mini/overview')"
               >
                 进入装修
               </el-button>
@@ -197,7 +197,7 @@ function goDecorateHome() {
     router.push({ name: 'PageBuilderEditor', params: { id: homePageId.value } })
     return
   }
-  router.push('/page-builder/list')
+  router.push('/mini/pages')
 }
 
 // 修复：此前全文件多处引用 dashboardLoading 但从未声明，v-loading 与空态判断实际从未生效
