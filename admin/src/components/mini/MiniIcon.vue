@@ -47,6 +47,7 @@ const PATHS: Record<string, string> = {
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  send: '<path d="M4 12l16-7-7 16-2-6z"/>',
 }
 
 export type MiniIconName = keyof typeof PATHS

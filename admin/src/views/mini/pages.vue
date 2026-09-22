@@ -2,145 +2,124 @@
   <div class="mini-wb mw-page pages-view" v-loading="loading && loaded">
     <MiniSkeleton v-if="!loaded" kind="list" />
     <template v-else>
-    <div class="head">
-      <div>
-        <h1 class="h1">页面</h1>
-        <div class="sub">共 {{ totalCount }} 个 · 按用途分组，旧页面收进归档</div>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn" @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })">
-          从模板新建
-        </button>
-        <button type="button" class="btn" @click="createBlank">空白页面</button>
-        <button type="button" class="btn primary" @click="router.push('/mini/pages/new-ai')">AI 生成页面</button>
-      </div>
-    </div>
-
-    <div class="filters">
-      <label class="search">
-        <MiniIcon name="search" :size="16" />
-        <input v-model="keyword" type="search" placeholder="搜索页面名称或路径" />
-      </label>
-      <button
-        v-for="opt in statusFilters"
-        :key="opt.key"
-        type="button"
-        class="chip"
-        :class="{ on: statusFilter === opt.key }"
-        :aria-pressed="statusFilter === opt.key"
-        @click="statusFilter = opt.key"
-      >
-        {{ opt.label }}{{ opt.count != null ? ` ${opt.count}` : '' }}
-      </button>
-      <button v-if="filtering" type="button" class="link" @click="clearFilters">清除筛选</button>
-    </div>
-
-    <!-- 筛选态：改成平铺一张列表，避免"筛完看到四个空分组" -->
-    <section v-if="filtering" class="group">
-      <div class="g-head as-static">
-        <span style="font-weight: 600">筛选结果</span>
-        <span class="faint">{{ filteredPages.length }}</span>
-      </div>
-      <template v-if="filteredPages.length">
-        <div v-for="row in filteredPages" :key="String(row.id)" class="prow">
-          <div class="thumb"><i /><i /><i /></div>
-          <div class="pname">
-            <b>{{ row.name }}</b>
-            <div class="faint">{{ groupLabelOf(row) }} · {{ row.path }}</div>
-          </div>
-          <div class="prow-ops">
-            <div class="pstat"><PageStatusTag :row="row" /></div>
-            <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
-            <PageRowMenu
-              :row="row"
-              :archived="isArchived(row)"
-              :can-offline="canOffline(row)"
-              :can-delete="canDelete(row)"
-              @command="onMore"
-            />
-          </div>
+      <div class="head">
+        <div>
+          <h1 class="h1">页面</h1>
+          <div class="sub">共 {{ totalCount }} 个 · 按用途分组，旧页面收进归档</div>
         </div>
-      </template>
-      <div v-else class="empty-mini">
-        <span class="muted">没有符合条件的页面</span>
-        <button type="button" class="btn sm" @click="clearFilters">清除筛选</button>
-      </div>
-    </section>
-
-    <div v-else class="groups-stack">
-      <section
-        v-for="group in groups"
-        :key="group.key"
-        class="group"
-        :class="{ arch: group.key === 'archived', closed: closedGroups[group.key] }"
-      >
-        <button
-          type="button"
-          class="g-head"
-          :aria-expanded="!closedGroups[group.key]"
-          @click="toggleGroup(group.key)"
-        >
-          <span style="font-weight: 600">{{ group.label }}</span>
-          <span class="faint">{{ group.rows.length }}</span>
-          <span v-if="groupSub(group.key)" class="faint" style="margin-left: 4px">{{ groupSub(group.key) }}</span>
-          <span class="g-head__arrow" :class="{ closed: closedGroups[group.key] }">
-            <MiniIcon name="down" :size="16" />
-          </span>
-        </button>
-
-        <template v-if="!closedGroups[group.key]">
-          <div
-            v-if="group.key === 'tab'"
-            class="prow mine-row"
-            @click="router.push('/page-builder/mine')"
+        <div class="actions">
+          <button
+            type="button"
+            class="btn"
+            @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
           >
-            <div class="thumb"><i /><i /><i /></div>
-            <div class="pname">
-              <b>我的 <MiniIcon name="lock" :size="13" class="inline-ic" /></b>
-              <div class="faint">固定路径 · 表单配置，非可删装修页</div>
-            </div>
-            <div class="prow-ops">
-              <div class="pstat"><span class="tag t-live">系统页</span></div>
-              <button type="button" class="btn sm" @click.stop="router.push('/page-builder/mine')">配置</button>
-            </div>
-          </div>
+            <MiniIcon name="grid" :size="15" />
+            从模板新建
+          </button>
+          <button type="button" class="btn" @click="createBlank">
+            <MiniIcon name="plus" :size="15" />
+            空白页面
+          </button>
+          <button type="button" class="btn primary" @click="router.push('/mini/pages/new-ai')">
+            <MiniIcon name="spark" :size="15" />
+            AI 生成页面
+          </button>
+        </div>
+      </div>
 
-          <template v-if="group.rows.length">
-            <div v-for="row in group.rows" :key="String(row.id)" class="prow">
-              <div class="thumb"><i /><i /><i /></div>
-              <div class="pname">
-                <b>{{ row.name }}</b>
-                <div class="faint">{{ row.path }}</div>
-              </div>
-              <div class="prow-ops">
-                <div class="pstat">
-                  <PageStatusTag :row="row" />
-                </div>
-                <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
-                <PageRowMenu
-                  :row="row"
-                  :archived="isArchived(row)"
-                  :can-offline="canOffline(row)"
-                  :can-delete="canDelete(row)"
-                  @command="onMore"
-                />
-              </div>
-            </div>
-          </template>
-          <div v-else-if="group.key !== 'tab'" class="empty-mini">
-            <span class="muted">这一组还没有页面</span>
+      <div class="filters">
+        <label class="search">
+          <MiniIcon name="search" :size="15" />
+          <input v-model="keyword" type="search" placeholder="搜索页面名称或路径" aria-label="搜索页面" />
+        </label>
+        <button
+          v-for="opt in statusFilters"
+          :key="opt.key"
+          type="button"
+          class="chip"
+          :class="{ on: statusFilter === opt.key }"
+          :aria-pressed="statusFilter === opt.key"
+          @click="statusFilter = opt.key"
+        >
+          {{ opt.label }} {{ opt.count }}
+        </button>
+      </div>
+
+      <div class="groups-stack">
+        <template v-for="group in visibleGroups" :key="group.key">
+          <section
+            class="group"
+            :class="{ arch: group.key === 'archived', closed: closedGroups[group.key] && !filtering }"
+          >
             <button
-              v-if="group.key !== 'archived'"
               type="button"
-              class="btn sm"
-              @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
+              class="g-head"
+              :aria-expanded="!(closedGroups[group.key] && !filtering)"
+              @click="toggleGroup(group.key)"
             >
-              从模板加一页
+              <b>{{ group.label }}</b>
+              <span class="faint">{{ group.total }} 个</span>
+              <span v-if="groupSub(group.key)" class="faint g-head__note">{{ groupSub(group.key) }}</span>
+              <span class="g-head__arrow" :class="{ closed: closedGroups[group.key] && !filtering }">
+                <MiniIcon name="down" :size="16" />
+              </span>
             </button>
-          </div>
+
+            <template v-if="!(closedGroups[group.key] && !filtering)">
+              <div
+                v-if="group.key === 'tab'"
+                class="prow mine-row"
+                @click="router.push('/page-builder/mine')"
+              >
+                <div class="thumb">
+                  <i style="background: #efe6da" /><i style="background: #efe6da" /><i style="background: #efe6da" />
+                </div>
+                <div class="pname">
+                  <b>我的 <MiniIcon name="lock" :size="13" class="inline-ic" /></b>
+                  <div class="faint">导航 {{ mineTabIndex }} · 系统页 · 菜单与会员卡在装修里配置</div>
+                </div>
+                <div class="prow-ops">
+                  <div class="pstat"><span class="tag t-live">已上线</span></div>
+                  <button type="button" class="btn soft sm" @click.stop="router.push('/page-builder/mine')">
+                    配置
+                  </button>
+                </div>
+              </div>
+
+              <template v-if="group.rows.length">
+                <div v-for="row in group.rows" :key="String(row.id)" class="prow">
+                  <div class="thumb">
+                    <i
+                      v-for="(c, i) in thumbColors(row)"
+                      :key="i"
+                      :style="{ background: c }"
+                    />
+                  </div>
+                  <div class="pname">
+                    <b>{{ row.name }}</b>
+                    <div class="faint">{{ rowSub(row) }}</div>
+                  </div>
+                  <div class="prow-ops">
+                    <div class="pstat"><PageStatusTag :row="row" /></div>
+                    <button type="button" class="btn soft sm" @click="openEditor(row)">装修</button>
+                    <PageRowMenu
+                      :row="row"
+                      :archived="isArchived(row)"
+                      :can-offline="canOffline(row)"
+                      :can-delete="canDelete(row)"
+                      @command="onMore"
+                    />
+                  </div>
+                </div>
+              </template>
+              <div v-else-if="group.key !== 'tab'" class="muted" style="padding: 14px 16px">
+                这一组还没有页面
+              </div>
+            </template>
+          </section>
         </template>
-      </section>
-    </div>
+        <div v-if="!visibleGroups.length" class="card muted">没有符合条件的页面</div>
+      </div>
     </template>
 
     <el-dialog
@@ -188,6 +167,8 @@ import type { PageRecord } from '@/types/page'
 
 defineOptions({ name: 'MiniPages' })
 
+const THUMB_PALETTE = ['#E8C4A8', '#C9D6E8', '#C5DCC9', '#E8D5A8', '#E0C4D4', '#D9CFC3', '#F0D5C0', '#B7D4BC']
+
 const router = useRouter()
 const loading = ref(false)
 const loaded = ref(false)
@@ -202,28 +183,28 @@ const navTarget = ref<PageRecord | null>(null)
 const navSlotIndex = ref(0)
 const navSaving = ref(false)
 
+const filtering = computed(() => !!keyword.value.trim() || statusFilter.value !== 'all')
+
 const totalCount = computed(() =>
   pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')).length,
 )
 
-/** 搜索或状态筛选生效时，分组壳会变成一堆空组，改平铺展示 */
-const filtering = computed(() => !!keyword.value.trim() || statusFilter.value !== 'all')
-
-const filteredPages = computed(() => {
-  const q = keyword.value.trim().toLowerCase()
-  return pages.value.filter((row) => {
-    const path = String(row.path || '')
-    if (path.includes('/pages/mine/mine')) return false
-    if (q) {
-      const hay = `${row.name || ''} ${path}`.toLowerCase()
-      if (!hay.includes(q)) return false
-    }
-    if (statusFilter.value !== 'all') {
-      if (resolvePageStatus(row) !== statusFilter.value) return false
-    }
-    return true
-  })
+const mineTabIndex = computed(() => {
+  const i = siteTabs.value.findIndex((t) => String(t.pagePath || '').includes('mine'))
+  return i >= 0 ? i + 1 : Math.max(siteTabs.value.length, 5)
 })
+
+function matchRow(row: PageRecord) {
+  const path = String(row.path || '')
+  if (path.includes('/pages/mine/mine')) return false
+  const q = keyword.value.trim().toLowerCase()
+  if (q) {
+    const hay = `${row.name || ''} ${path}`.toLowerCase()
+    if (!hay.includes(q)) return false
+  }
+  if (statusFilter.value !== 'all' && resolvePageStatus(row) !== statusFilter.value) return false
+  return true
+}
 
 const statusFilters = computed(() => {
   const counts: Record<string, number> = {
@@ -250,31 +231,87 @@ const groups = computed(() => {
   const buckets: Record<PageGroup, PageRecord[]> = {
     tab: [], activity: [], content: [], archived: [],
   }
-  for (const row of filteredPages.value) {
-    buckets[inferPageGroup(row)].push(row)
+  const totals: Record<PageGroup, number> = {
+    tab: 0, activity: 0, content: 0, archived: 0,
   }
+  for (const row of pages.value) {
+    if (String(row.path || '').includes('/pages/mine/mine')) continue
+    const g = inferPageGroup(row)
+    totals[g] += 1
+    if (matchRow(row)) buckets[g].push(row)
+  }
+  // 底部导航按 tabBar 顺序
+  const orderIds = siteTabs.value.map((t) => Number(t.pageId)).filter(Boolean)
+  buckets.tab.sort((a, b) => {
+    const ia = orderIds.indexOf(Number(a.id))
+    const ib = orderIds.indexOf(Number(b.id))
+    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
+  })
   return order.map((key) => ({
     key,
     label: PAGE_GROUP_LABELS[key],
     rows: buckets[key],
+    total: totals[key],
   }))
+})
+
+/** 筛选时藏空组（对照原型）；未筛选时全部展示 */
+const visibleGroups = computed(() => {
+  if (!filtering.value) return groups.value
+  return groups.value.filter((g) => g.rows.length > 0 || g.key === 'tab')
 })
 
 function groupSub(key: PageGroup) {
   return PAGE_GROUP_SUB[key] || ''
 }
 
-function groupLabelOf(row: PageRecord) {
-  return PAGE_GROUP_LABELS[inferPageGroup(row)]
-}
-
 function toggleGroup(key: string) {
+  if (filtering.value) return
   closedGroups[key] = !closedGroups[key]
 }
 
-function clearFilters() {
-  keyword.value = ''
-  statusFilter.value = 'all'
+function tabIndexOf(row: PageRecord) {
+  const id = Number(row.id)
+  const path = String(row.path || '').replace(/^\//, '')
+  const i = siteTabs.value.findIndex((t) => {
+    if (t.pageId != null && Number(t.pageId) === id) return true
+    const tp = String(t.pagePath || '').replace(/^\//, '')
+    return tp && (tp === path || path.endsWith(tp))
+  })
+  return i
+}
+
+function formatUpdated(row: PageRecord) {
+  const t = String((row as any).updateTime || (row as any).updatedAt || '')
+  if (!t) return ''
+  const s = t.replace('T', ' ')
+  if (s.length >= 16) return s.slice(5, 16)
+  return s.slice(0, 16)
+}
+
+function rowSub(row: PageRecord) {
+  const parts: string[] = []
+  const ti = tabIndexOf(row)
+  if (ti >= 0) parts.push(`导航 ${ti + 1}`)
+  const src = String((row as any).source || (row as any).src || '').trim()
+  if (src) parts.push(src)
+  const upd = formatUpdated(row)
+  if (upd) parts.push(upd)
+  if (!parts.length) parts.push(String(row.path || ''))
+  return parts.join(' · ')
+}
+
+function thumbColors(row: PageRecord): string[] {
+  const comps = (row as any)?.dsl?.components || (row as any)?.components
+  if (Array.isArray(comps) && comps.length) {
+    return comps.slice(0, 4).map((c: any, i: number) => {
+      const tone = String(c?.props?.background_color || c?.props?.backgroundColor || '')
+      if (/^#/.test(tone)) return tone
+      return THUMB_PALETTE[(Number(row.id) + i) % THUMB_PALETTE.length]
+    })
+  }
+  const id = Number(row.id) || 0
+  return [0, 1, 2].map((i) => THUMB_PALETTE[(id + i * 2) % THUMB_PALETTE.length])
 }
 
 function isArchived(row: PageRecord) {
@@ -340,7 +377,7 @@ async function onMore(cmd: string, row: PageRecord) {
   }
   if (cmd === 'delete') {
     try {
-      await ElMessageBox.confirm(`确认删除草稿「${row.name}」？不可恢复。`, '删除', { type: 'warning' })
+      await ElMessageBox.confirm(`确认删除「${row.name}」？不可恢复`, '删除', { type: 'warning' })
       await deletePage(Number(row.id))
       ElMessage.success('已删除')
       await load()
@@ -431,31 +468,20 @@ onMounted(load)
   cursor: pointer;
   background: var(--soft);
 }
-.g-head.as-static {
-  cursor: default;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--soft);
-  border-bottom: 1px solid var(--line);
-  border-radius: 14px 14px 0 0;
+.g-head__note {
+  margin-left: auto;
 }
 .g-head__arrow {
-  margin-left: auto;
   display: inline-flex;
   color: var(--faint);
   transition: transform 0.15s ease;
   &.closed { transform: rotate(-90deg); }
+  &:not(.g-head__note + &) { margin-left: 4px; }
+}
+.g-head:not(:has(.g-head__note)) .g-head__arrow {
+  margin-left: auto;
 }
 .inline-ic { display: inline-block; vertical-align: -2px; color: var(--faint); }
-.empty-mini {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  flex-wrap: wrap;
-}
 .nav-dialog-hint {
   font-size: 13px;
   color: var(--mute);
