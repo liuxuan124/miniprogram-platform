@@ -1,12 +1,24 @@
 <template>
-  <el-container class="app-layout" :class="{ 'sidebar-collapsed': appStore.sidebarCollapsed }">
-    <Sidebar />
+  <el-container
+    class="app-layout"
+    :class="{
+      'sidebar-collapsed': appStore.sidebarCollapsed && !isContentEditor,
+      'is-mini': isWarmShell,
+      'is-content-editor': isContentEditor,
+    }"
+  >
+    <Sidebar v-if="!isContentEditor" />
     <el-container class="main-container">
-      <el-header class="app-header" height="56px">
+      <el-header
+        v-if="!isContentEditor"
+        class="app-header"
+        :class="{ 'is-mini': isWarmShell }"
+        :height="isWarmShell ? '60px' : '56px'"
+      >
         <Header />
       </el-header>
-      <TagsView v-if="!isMiniRoute" />
-      <el-main class="app-main" :class="{ 'is-mini': isMiniRoute }">
+      <TagsView v-if="!isWarmShell" />
+      <el-main class="app-main" :class="{ 'is-mini': isWarmShell, 'is-content-editor': isContentEditor }">
         <div v-if="switching" class="route-skeleton" role="status" aria-live="polite" aria-label="页面加载中">
           <div class="sk-line" />
           <div class="sk-line" />
@@ -40,7 +52,18 @@ const appStore = useAppStore()
 const switching = ref(false)
 const router = useRouter()
 const route = useRoute()
-const isMiniRoute = computed(() => route.path.startsWith('/mini'))
+const isContentEditor = computed(() => /^\/content\/(write|edit)(\/|$)/.test(route.path))
+const isContentOps = computed(() => route.path.startsWith('/content') && !isContentEditor.value)
+const isMemberOps = computed(() => route.path.startsWith('/member') || route.path.startsWith('/user'))
+const isCommerceOps = computed(() =>
+  route.path.startsWith('/commerce')
+  || route.path.startsWith('/order')
+  || route.path.startsWith('/marketing')
+  || route.path.startsWith('/growth'),
+)
+const isWarmShell = computed(() => route.path.startsWith('/mini') || isContentOps.value || isMemberOps.value || isCommerceOps.value)
+/** @deprecated use isWarmShell — kept for Header/Sidebar that still read mini */
+const isMiniRoute = isWarmShell
 let switchTimer = 0
 router.beforeEach((to, from) => {
   if (to.path === from.path) return
@@ -62,8 +85,35 @@ router.afterEach(() => {
   transition: padding-left 0.3s ease;
 }
 
+/*
+ * /mini：侧栏占文档流（Sidebar.is-mini-shell）；壳锁 100vh，仅右侧 main 纵向滚动。
+ */
+.app-layout.is-mini {
+  padding-left: 0;
+  height: 100vh !important;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
 .app-layout.sidebar-collapsed {
   padding-left: 72px;
+}
+
+.app-layout.is-mini.sidebar-collapsed {
+  padding-left: 0;
+}
+
+.app-layout.is-content-editor {
+  padding-left: 0 !important;
+  height: 100vh !important;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout.is-content-editor .main-container {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .main-container {
@@ -76,11 +126,26 @@ router.afterEach(() => {
   box-sizing: border-box;
 }
 
+.app-layout.is-mini .main-container {
+  min-height: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .app-header {
   padding: 0;
   border-bottom: 1px solid #e6e6e6;
   background: #fff;
   flex-shrink: 0;
+
+  /* Header.vue 里 /mini 的条是 60px，外层壳必须同高，否则内容会被压掉 4px */
+  &.is-mini {
+    border-bottom: 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
 }
 
 .app-main {
@@ -99,7 +164,18 @@ router.afterEach(() => {
   &.is-mini {
     padding: 0;
     background: #f6f2ec;
-    min-height: calc(100vh - 56px);
+    min-height: 0;
+    flex: 1 0 auto;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+  &.is-content-editor {
+    padding: 0;
+    background: #f6f2ec;
+    min-height: 100%;
+    height: 100% !important;
+    overflow: hidden !important;
+    flex: 1 1 auto;
   }
 }
 

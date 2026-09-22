@@ -1,8 +1,8 @@
 <template>
   <el-aside
     class="app-sidebar"
-    :class="{ 'is-mini-shell': route.path.startsWith('/mini') }"
-    :width="appStore.sidebarCollapsed ? '72px' : '220px'"
+    :class="{ 'is-mini-shell': isWarmShell }"
+    :width="appStore.sidebarCollapsed ? '72px' : (isWarmShell ? '216px' : '220px')"
   >
     <div class="brand">
       <div class="brand-icon">
@@ -188,6 +188,12 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const { pendingCount, refreshMiniPending } = useMiniPending(false)
+const isWarmShell = computed(() =>
+  route.path.startsWith('/mini') || route.path.startsWith('/content')
+  || route.path.startsWith('/member') || route.path.startsWith('/user')
+  || route.path.startsWith('/commerce') || route.path.startsWith('/order')
+  || route.path.startsWith('/marketing') || route.path.startsWith('/growth'),
+)
 
 watch(
   () => route.path,
@@ -224,46 +230,48 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '总览',
     children: [
-      { title: '工作台', path: '/dashboard', icon: 'Odometer', activePrefix: '/dashboard' },
+      { title: '工作总览', path: '/dashboard', icon: 'Odometer', activePrefix: '/dashboard' },
     ],
   },
   {
     title: '小程序',
     children: [
-      { title: '概览', path: '/mini/overview', icon: 'Odometer', activePrefix: '/mini/overview', permissions: ['page:list'] },
-      { title: '页面', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
-      { title: '模板库', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
-      { title: '发布', path: '/mini/publish', icon: 'Upload', activePrefix: '/mini/publish', permissions: ['page:publish', 'page:list'] },
+      { title: '运营概览', path: '/mini/overview', icon: 'Odometer', activePrefix: '/mini/overview', permissions: ['page:list'] },
+      { title: '页面管理', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
+      { title: '模板中心', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
+      { title: '发布中心', path: '/mini/publish', icon: 'Upload', activePrefix: '/mini/publish', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {
     title: '内容运营',
     children: [
-      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content', excludePrefixes: ['/content/note', '/content/audit', '/content/creators', '/content/qa', '/content/files'], featureModule: 'content' },
-      { title: '笔记管理', path: '/content/note', icon: 'EditPen', activePrefix: '/content/note', featureModule: 'content' },
-      { title: '资料管理', path: '/content/files', icon: 'DocumentCopy', activePrefix: '/content/files', featureModule: 'file' },
-      { title: '审核队列', path: '/content/audit', icon: 'Checked', activePrefix: '/content/audit' },
-      { title: '创作者审核', path: '/content/creators', icon: 'EditPen', activePrefix: '/content/creators' },
-      { title: '问答管理', path: '/content/qa', icon: 'ChatDotRound', activePrefix: '/content/qa', featureModule: 'qa' },
-      { title: '表单管理', path: '/form/template', icon: 'DocumentCopy', activePrefix: '/form', featureModule: 'form' },
+      { title: '内容概览', path: '/content/overview', icon: 'Odometer', activePrefix: '/content/overview', featureModule: 'content' },
+      { title: '内容列表', path: '/content/library', icon: 'Reading', activePrefix: '/content/library', featureModule: 'content' },
+      { title: '撰写内容', path: '/content/write', icon: 'EditPen', activePrefix: '/content/write', featureModule: 'content' },
+      { title: '互动中心', path: '/content/inbox', icon: 'ChatDotRound', activePrefix: '/content/inbox' },
+      { title: '内容设置', path: '/content/settings', icon: 'Setting', activePrefix: '/content/settings', featureModule: 'content' },
     ],
   },
   {
     title: '用户会员',
     children: [
-      { title: '会员与权益', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', excludePrefixes: ['/member/planet'], permissions: ['member:list'], featureModule: 'member' },
-      { title: '社区管理', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet' },
-      { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', excludePrefixes: ['/user/service-community'], permissions: ['user:list'] },
-      { title: '客服社群', path: '/user/service-community', icon: 'ChatDotRound', activePrefix: '/user/service-community', permissions: ['user:list'] },
+      { title: '会员概览', path: '/member/overview', icon: 'Odometer', activePrefix: '/member/overview', permissions: ['member:list', 'user:list'], featureModule: 'member' },
+      { title: '用户管理', path: '/member/users', icon: 'User', activePrefix: '/member/users', permissions: ['user:list'] },
+      { title: '会员权益', path: '/member/plans', icon: 'GoldMedal', activePrefix: '/member/plans', permissions: ['member:list'], featureModule: 'member' },
+      { title: '成长积分', path: '/member/growth', icon: 'TrendCharts', activePrefix: '/member/growth', permissions: ['member:list'], featureModule: 'member' },
+      { title: '社区管理', path: '/member/community', icon: 'Present', activePrefix: '/member/community', permissions: ['member:list'], featureModule: 'planet' },
+      { title: '客服中心', path: '/member/support', icon: 'ChatDotRound', activePrefix: '/member/support', permissions: ['user:list'] },
     ],
   },
   {
     title: '商业变现',
     children: [
-      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce', featureModule: 'product' },
-      { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'], featureModule: 'product' },
-      { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
-      { title: '增长数据', path: '/growth/overview', icon: 'DataLine', activePrefix: '/growth' },
+      { title: '收入概览', path: '/commerce/overview', icon: 'Odometer', activePrefix: '/commerce/overview', featureModule: 'product' },
+      { title: '商品管理', path: '/commerce/products', icon: 'Goods', activePrefix: '/commerce/products', featureModule: 'product' },
+      { title: '订单管理', path: '/commerce/orders', icon: 'Box', activePrefix: '/commerce/orders', permissions: ['order:list'], featureModule: 'product' },
+      { title: '卡券中心', path: '/commerce/coupons', icon: 'Ticket', activePrefix: '/commerce/coupons' },
+      { title: '增长数据', path: '/commerce/growth', icon: 'DataLine', activePrefix: '/commerce/growth' },
+      { title: '交易设置', path: '/commerce/settings', icon: 'Setting', activePrefix: '/commerce/settings', featureModule: 'product' },
     ],
   },
   {
@@ -302,7 +310,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       },
       { title: '智能助手', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai/agent', featureModule: 'agent' },
       { title: '智能草稿', path: '/ai/drafts', icon: 'Document', activePrefix: '/ai/drafts', featureModule: 'agent' },
-      { title: '知识库', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent' },
+      { title: '知识中心', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent' },
     ],
   },
   {
@@ -419,35 +427,86 @@ watch(
   z-index: 1001;
   transition: width 0.2s ease;
 
-  /* /mini 工作台：暖棕壳 + 陶土 active，离开 /mini 无此 class */
+  /* /mini 工作台：暖棕壳 + 陶土 active；侧栏占文档流（对齐原型 grid），避免压内容左缘 */
   &.is-mini-shell {
-    background: #2c241c;
+    position: sticky;
+    top: 0;
+    inset: auto;
+    align-self: flex-start;
+    height: 100vh;
+    flex-shrink: 0;
+    background: #2b1d14;
+    padding: 0;
+    color: #e9dccb;
+
+    .brand {
+      padding: 18px 18px 18px;
+      border-bottom: 0;
+      min-height: auto;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #b4430f;
+      img { width: 22px; height: 22px; }
+    }
 
     .brand-text {
       strong {
-        color: #f6f2ec;
+        color: #fff;
+        font-size: 15px;
+        line-height: 1.3;
       }
       span {
-        color: rgba(246, 242, 236, 0.72);
+        color: #bfae9b;
+        font-size: 11px;
       }
+      .brand-version { display: none; }
     }
 
+    .menu-group { padding: 0 8px 4px; }
+
     .group-title {
-      color: rgba(246, 242, 236, 0.55);
+      color: #fff;
+      font-weight: 600;
+      padding: 10px 12px 6px;
+      font-size: 14px;
     }
 
     .menu-item {
-      color: rgba(246, 242, 236, 0.88);
+      color: #e9dccb;
+      padding: 10px 12px;
+      border-radius: 8px;
+      gap: 10px;
+      margin: 0 0 2px;
+
+      &:hover { background: rgba(255, 255, 255, 0.06); }
 
       &.active,
       &.sub.active {
         background: #b4430f;
         color: #fff;
+        .menu-badge {
+          background: #fff;
+          color: #b4430f;
+        }
       }
     }
 
     .menu-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 0 7px;
+      border-radius: 999px;
       background: #b4430f;
+      color: #fff;
+      min-width: auto;
+      height: auto;
+      line-height: 18px;
     }
   }
 }

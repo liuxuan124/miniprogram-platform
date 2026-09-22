@@ -1,231 +1,220 @@
 <template>
-  <div class="mini-wb mw-page templates" v-loading="loading">
-    <header class="mw-head">
-      <div>
-        <h1 class="mw-title">模板库</h1>
-        <p class="mw-sub">整店模板换整套风格；页面模板只新建一页</p>
+  <div class="mini-wb mw-page tpl-view" v-loading="loading && loaded">
+    <MiniSkeleton v-if="!loaded" kind="grid" />
+    <template v-else>
+      <div class="head">
+        <div>
+          <h1 class="h1">模板库</h1>
+          <div class="sub">整店模板换整套风格；页面模板只新建一页</div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn" :disabled="creating" @click="createFromCurrent">
+            <MiniIcon name="upload" :size="15" />
+            把当前小程序存为模板
+          </button>
+        </div>
       </div>
-      <div class="mw-actions">
-        <el-button :loading="creating" @click="createFromCurrent">把当前小程序存为模板</el-button>
-      </div>
-    </header>
 
-    <div class="tab-bar">
-      <div class="tabs">
-        <button
-          v-for="t in tabDefs"
-          :key="t.key"
-          type="button"
-          class="tab"
-          :class="{ active: tab === t.key }"
-          @click="tab = t.key"
-        >
-          {{ t.label }} {{ t.count }}
+      <div class="tabs-line" role="tablist">
+        <button type="button" role="tab" :class="{ on: tab === 'store' }" @click="tab = 'store'">
+          整店模板 {{ storeTemplates.length }}
         </button>
-      </div>
-      <div class="capsules">
-        <button
-          v-for="s in scenes"
-          :key="s"
-          type="button"
-          class="mw-capsule"
-          :class="{ active: scene === s }"
-          @click="scene = s"
-        >
-          {{ s === '全部' ? '全部场景' : s }}
+        <button type="button" role="tab" :class="{ on: tab === 'page' }" @click="tab = 'page'">
+          页面模板 {{ filteredPageTemplates.length }}
         </button>
+        <button type="button" role="tab" :class="{ on: tab === 'mine' }" @click="tab = 'mine'">
+          我的模板 {{ myTemplates.length }}
+        </button>
+        <div class="scene-chips">
+          <button
+            v-for="s in scenes"
+            :key="s"
+            type="button"
+            class="chip"
+            :class="{ on: scene === s }"
+            @click="scene = s"
+          >
+            {{ s === '全部' ? '全部场景' : s }}
+          </button>
+        </div>
       </div>
-    </div>
 
-    <section v-show="tab === 'store'">
-      <div v-if="filteredStore.length" class="card-grid">
-        <div
-          v-for="item in filteredStore"
-          :key="item.id"
-          class="tpl-card"
-          :class="{ live: isInUse(item) }"
-        >
-          <div class="tpl-thumb" :style="thumbStyle(item)">
-            <div class="phone-stack">
-              <MiniPhoneThumb
-                v-for="(layer, li) in stackLayers(item)"
-                :key="li"
-                class="phone-stack__item"
-                :class="`is-${li}`"
-                size="sm"
-                :title="layer"
-                :accent="thumbAccent(item, li)"
-                :layers="[layer, displayName(item), `${item.pageCount || 0}页`]"
-              />
-            </div>
-            <span v-if="isInUse(item)" class="in-use">使用中</span>
-          </div>
-          <div class="tpl-body">
-            <div class="tpl-name">{{ displayName(item) }}</div>
-            <div class="tpl-meta">
-              {{ sceneHint(item) }} · {{ item.pageCount || 0 }}页 · 含导航与配色
-            </div>
-            <div class="tpl-actions">
-              <el-button size="small" @click="previewStore(item)">预览</el-button>
-              <el-button
-                v-if="!isInUse(item)"
-                type="primary"
-                size="small"
-                class="mw-btn-primary"
-                @click="confirmActivate(item)"
+      <div v-show="tab === 'store'" class="tpl-layout" :class="{ 'has-panel': impactVisible }">
+        <div v-if="filteredStoreTemplates.length" class="tpl-grid">
+          <article
+            v-for="item in filteredStoreTemplates"
+            :key="item.id"
+            class="tpl"
+            :class="{ using: isInUse(item), picked: pendingActivate?.id === Number(item.id) }"
+          >
+            <div class="tpl-art" :style="{ background: artBg(item) }">
+              <div
+                v-for="n in 3"
+                :key="n"
+                class="tpl-phone"
+                :style="{ height: `${130 - (n - 1) * 14}px`, opacity: 1 - (n - 1) * 0.15 }"
               >
-                应用
-              </el-button>
-              <el-button v-else size="small" disabled>已应用</el-button>
+                <i :style="{ height: '16px', background: accentOf(item) }" />
+                <i /><i style="width: 70%" />
+              </div>
+            </div>
+            <div class="tpl-body">
+              <div class="tpl-title-row">
+                <b class="tpl-title" :title="displayNameFull(item)">{{ displayNameFull(item) }}</b>
+                <span v-if="isInUse(item)" class="tag t-acc">
+                  {{ isLiveTemplate(item) ? '使用中' : '待发布' }}
+                </span>
+              </div>
+              <div class="faint">
+                {{ sceneOf(item) }} · {{ item.pageCount || 0 }} 个导航页 · 含导航与配色
+              </div>
+              <div class="tpl-actions">
+                <button type="button" class="btn sm" @click="previewStore(item)">
+                  <MiniIcon name="eye" :size="14" />
+                  预览
+                </button>
+                <button type="button" class="btn sm" @click="previewStoreQr(item)">
+                  <MiniIcon name="qr" :size="14" />
+                  扫码
+                </button>
+                <button
+                  v-if="!isInUse(item)"
+                  type="button"
+                  class="btn sm soft"
+                  :disabled="activatingId === item.id"
+                  @click="confirmActivate(item)"
+                >
+                  应用
+                </button>
+                <button v-else type="button" class="btn sm" disabled>已应用</button>
+              </div>
+            </div>
+          </article>
+        </div>
+        <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
+          <span>{{ scene === '全部' ? '还没有整店模板' : '这个场景下还没有模板' }}</span>
+          <button type="button" class="btn" :disabled="creating" @click="createFromCurrent">
+            把当前小程序存为模板
+          </button>
+        </div>
+
+        <aside v-if="impactVisible && pendingActivate" class="card impact-panel">
+          <h2 class="h2" style="font-size: 17px">应用「{{ pendingActivate.name }}」</h2>
+          <div class="muted" style="font-size: 13px; margin-bottom: 4px">应用前先看清会发生什么：</div>
+          <div class="impact">
+            <div>
+              <span class="impact-ic"><MiniIcon name="tab" :size="16" /></span>
+              <span>
+                <b>底部导航变成 {{ impactTabs.length || impactPageCount }} 个</b>
+                <span class="faint" v-if="impactTabs.length">
+                  {{ impactTabs.map((t) => t.text || '导航').join(' / ') }}
+                </span>
+              </span>
+            </div>
+            <div>
+              <span class="impact-ic"><MiniIcon name="page" :size="16" /></span>
+              <span>
+                <b>新增约 {{ impactPageCount }} 个页面</b>
+                <span class="faint">被替换的旧页进归档；「我的」个人中心不受影响</span>
+              </span>
+            </div>
+            <div>
+              <span class="impact-ic"><MiniIcon name="palette" :size="16" /></span>
+              <span>
+                <b>{{ keepTheme ? '保留当前配色' : '品牌主色换成模板色' }}</b>
+              </span>
+            </div>
+            <div>
+              <span class="impact-ic" style="color: var(--g)"><MiniIcon name="lock" :size="16" /></span>
+              <span><b>「我的」个人中心不受影响</b></span>
             </div>
           </div>
-        </div>
+          <div class="note" style="margin: 12px 0">
+            确认后会切换页面内容；请再到「发布」检查待发布项并确认，用户才会看到完整变更。
+          </div>
+          <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer">
+            <input v-model="keepTheme" type="checkbox" />
+            保留我的配色
+          </label>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px">
+            <button type="button" class="btn" @click="impactVisible = false">取消</button>
+            <button type="button" class="btn primary" :disabled="activatingId != null" @click="doActivate">
+              确认应用
+            </button>
+          </div>
+        </aside>
       </div>
-      <el-empty v-else description="暂无整店模板" />
-    </section>
 
-    <section v-show="tab === 'page'">
-      <div v-if="filteredPages.length" class="card-grid">
-        <div v-for="tpl in filteredPages" :key="String(tpl.id || tpl.key)" class="tpl-card">
-          <div class="tpl-thumb page-thumb">
-            <div class="phone-stack phone-stack--single">
-              <MiniPhoneThumb
-                size="sm"
-                :title="tpl.name"
-                :accent="hashAccent(String(tpl.name || tpl.id || ''))"
-                :layers="[tpl.name || '页面模板', String(tpl.description || tpl.notes || '单页').slice(0, 12)]"
-              />
+      <div v-show="tab === 'page'">
+        <div v-if="filteredPageTemplates.length" class="tpl-grid">
+          <article v-for="tpl in filteredPageTemplates" :key="String(tpl.id || tpl.key)" class="tpl">
+            <div class="tpl-art" :style="{ background: pageArtBg(tpl) }">
+              <div class="tpl-phone" style="height: 130px">
+                <i style="height: 30px; background: #fff; opacity: 0.85" />
+                <i /><i style="width: 70%" /><i />
+              </div>
             </div>
-          </div>
-          <div class="tpl-body">
-            <div class="tpl-name">{{ tpl.name }}</div>
-            <div class="tpl-meta">{{ tpl.description || tpl.notes || '单页模板' }}</div>
-            <div class="tpl-actions">
-              <el-button size="small" type="primary" class="mw-btn-primary" @click="applyPageTpl(tpl)">
-                套用为草稿
-              </el-button>
+            <div class="tpl-body">
+              <b>{{ tpl.name }}</b>
+              <div class="faint">{{ sceneOfPage(tpl) }} · 单页</div>
+              <div class="tpl-actions">
+                <button type="button" class="btn sm soft" @click="applyPageTpl(tpl)">用这个新建</button>
+              </div>
             </div>
-          </div>
+          </article>
+        </div>
+        <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
+          <span>{{ scene === '全部' ? '还没有页面模板' : '这个场景下还没有模板' }}</span>
+          <button type="button" class="btn" @click="router.push('/mini/pages/new-ai')">用 AI 生成一页</button>
         </div>
       </div>
-      <el-empty v-else description="暂无页面模板" />
-    </section>
 
-    <section v-show="tab === 'mine'">
-      <div v-if="filteredMine.length" class="card-grid">
-        <div v-for="item in filteredMine" :key="item.id" class="tpl-card" :class="{ live: isInUse(item) }">
-          <div class="tpl-thumb" :style="thumbStyle(item)">
-            <div class="phone-stack">
-              <MiniPhoneThumb
-                v-for="(layer, li) in stackLayers(item)"
-                :key="li"
-                class="phone-stack__item"
-                :class="`is-${li}`"
-                size="sm"
-                :title="layer"
-                :accent="thumbAccent(item, li)"
-                :layers="[layer, '我的模板']"
-              />
+      <div v-show="tab === 'mine'">
+        <div v-if="filteredMineTemplates.length" class="tpl-grid">
+          <article
+            v-for="item in filteredMineTemplates"
+            :key="item.id"
+            class="tpl"
+            :class="{ using: isInUse(item) }"
+          >
+            <div class="tpl-art" :style="{ background: artBg(item) }">
+              <div class="tpl-phone" style="height: 130px">
+                <i :style="{ height: '16px', background: accentOf(item) }" /><i /><i style="width: 70%" />
+              </div>
             </div>
-          </div>
-          <div class="tpl-body">
-            <div class="tpl-name">{{ displayName(item) }}</div>
-            <div class="tpl-meta">我的模板 · {{ formatTime(item.updateTime || item.createTime) }}</div>
-            <div class="tpl-actions">
-              <el-button
-                v-if="!isInUse(item)"
-                size="small"
-                type="primary"
-                class="mw-btn-primary"
-                @click="confirmActivate(item)"
-              >
-                应用
-              </el-button>
+            <div class="tpl-body">
+              <b class="tpl-title" :title="displayNameFull(item)">{{ displayNameFull(item) }}</b>
+              <div class="faint">我的模板 · {{ formatTime(item.updateTime || item.createTime) }}</div>
+              <div class="tpl-actions">
+                <button
+                  v-if="!isInUse(item)"
+                  type="button"
+                  class="btn sm soft"
+                  @click="confirmActivate(item)"
+                >
+                  应用
+                </button>
+                <button v-else type="button" class="btn sm" disabled>已应用</button>
+              </div>
             </div>
-          </div>
+          </article>
+        </div>
+        <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
+          <span>还没有我的模板</span>
+          <button type="button" class="btn primary" :disabled="creating" @click="createFromCurrent">
+            把当前小程序存为模板
+          </button>
         </div>
       </div>
-      <el-empty v-else description="还没有我的模板，可先「把当前小程序存为模板」" />
-    </section>
+    </template>
 
-    <el-drawer v-model="impactVisible" :title="`应用「${pendingActivate?.name || ''}」`" size="420px">
-      <ul class="impact-list">
-        <li>
-          <strong>底部导航</strong>
-          将变成 {{ impactTabs.length || '—' }} 项
-          <div v-if="impactTabs.length" class="impact-sub">
-            {{ impactTabs.map((t) => t.text || t.pageName || '导航').join('、') }}
-          </div>
-        </li>
-        <li>
-          <strong>页面</strong>
-          新增约 {{ Math.max(0, impactPageCount - currentPageCount) }} 个，替换约
-          {{ Math.min(impactPageCount, currentPageCount) }} 个；旧页进归档可恢复
-        </li>
-        <li>
-          <strong>配色</strong>
-          {{ keepTheme ? '将尽量保留当前品牌配色' : '模板配色将覆盖当前主题（写入草稿）' }}
-        </li>
-        <li><strong>「我的」</strong> 个人中心不受影响</li>
-      </ul>
-
-      <div class="pending-note">
-        套用后为<strong>待发布</strong>，用户看不到，需在发布页确认后才上线。
-      </div>
-
-      <el-checkbox v-model="keepTheme" style="margin-top: 14px">保留我的配色</el-checkbox>
-
-      <template #footer>
-        <el-button @click="impactVisible = false">取消</el-button>
-        <el-button type="primary" class="mw-btn-primary" :loading="activatingId != null" @click="doActivate">
-          确认应用
-        </el-button>
-      </template>
-    </el-drawer>
-
-    <el-dialog
-      v-model="previewVisible"
-      :title="`预览 · ${previewTitle}`"
-      width="720px"
-      destroy-on-close
-      class="tpl-preview-dialog"
-    >
-      <div class="tpl-preview">
-        <div class="tpl-preview__phones">
-          <MiniPhoneThumb
-            v-for="(layer, li) in previewLayers"
-            :key="li"
-            class="tpl-preview__phone"
-            :class="`is-${li}`"
-            size="lg"
-            :title="layer"
-            :accent="previewAccent"
-            :layers="[layer, previewTitle, ...previewNavLabels.slice(0, 1)]"
-          />
-        </div>
-        <div class="tpl-preview__nav">
-          <div class="tpl-preview__nav-title">底部导航（来自模板快照）</div>
-          <ul v-if="previewNavLabels.length">
-            <li v-for="(label, i) in previewNavLabels" :key="i">
-              <span class="idx">{{ i + 1 }}</span>
-              {{ label }}
-            </li>
-          </ul>
-          <p v-else class="muted">快照中未解析到 tabbar，套用后以实际导航为准</p>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="previewVisible = false">关闭</el-button>
-        <el-button
-          v-if="previewRaw && !isInUse(previewRaw)"
-          type="primary"
-          class="mw-btn-primary"
-          @click="previewVisible = false; confirmActivate(previewRaw!)"
-        >
-          应用此模板
-        </el-button>
-      </template>
-    </el-dialog>
+    <MiniH5QrDialog
+      v-model="qrVisible"
+      mode="release"
+      :release-id="qrReleaseId"
+      title="扫码预览模板"
+      hint="手机浏览器打开 H5 整站预览（模板快照）。配置微信后可在发布页上传体验版。"
+    />
   </div>
 </template>
 
@@ -233,39 +222,35 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import MiniPhoneThumb from '@/components/mini/MiniPhoneThumb.vue'
 import {
   getStoreTemplates,
   activateStoreTemplate,
   createStoreTemplate,
+  getReleaseDetail,
   toReleaseId,
 } from '@/api/version'
 import { getPageTemplates } from '@/api/page'
 import { getMiniSite } from '@/api/miniSite'
 import { applyPageTemplate } from '@/components/page-templates/applyPageTemplate'
+import MiniIcon from '@/components/mini/MiniIcon.vue'
+import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
+import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import type { ReleaseRecord } from '@/types/page'
 
-type PageTpl = {
-  id?: number | string
-  key?: string
-  name?: string
-  description?: string
-  notes?: string
-  dslContent?: string
-  dsl?: unknown
-}
-
 defineOptions({ name: 'MiniTemplates' })
+
+const scenes = ['全部', '知识付费', '电商零售', '本地门店', '活动营销'] as const
 
 const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
-const initialTab = route.query.tab === 'page' || route.query.tab === 'mine'
+const loaded = ref(false)
+const tab = ref<'store' | 'page' | 'mine'>((route.query.tab as any) === 'page' || route.query.tab === 'mine'
   ? (route.query.tab as 'page' | 'mine')
-  : 'store'
-const tab = ref<'store' | 'page' | 'mine'>(initialTab)
+  : 'store')
+const scene = ref<(typeof scenes)[number]>('全部')
 const storeTemplates = ref<ReleaseRecord[]>([])
-const pageTemplates = ref<PageTpl[]>([])
+const pageTemplates = ref<any[]>([])
 const creating = ref(false)
 const activatingId = ref<number | null>(null)
 const impactVisible = ref(false)
@@ -276,94 +261,38 @@ const impactPageCount = ref(0)
 const currentPageCount = ref(0)
 const keepTheme = ref(true)
 const siteTemplateId = ref<number | null>(null)
-
-const previewVisible = ref(false)
-const previewTitle = ref('')
-const previewLayers = ref<string[]>([])
-const previewNavLabels = ref<string[]>([])
-const previewAccent = ref('#b4430f')
-const previewRaw = ref<ReleaseRecord | null>(null)
-
-const scenes = ['全部', '知识付费', '电商零售', '本地门店', '活动营销'] as const
-const scene = ref<(typeof scenes)[number]>('全部')
-
-const ACCENTS = ['#b4430f', '#1d6bb8', '#1f7a4d', '#8f5400', '#6b4c9a', '#a33b5c']
-
-function hashAccent(seed: string, offset = 0) {
-  let h = offset
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  return ACCENTS[h % ACCENTS.length]
-}
-
-function thumbAccent(item: ReleaseRecord, layer = 0) {
-  return hashAccent(`${item.id}|${displayName(item)}|${item.pageCount || 0}`, layer * 17)
-}
-
-function parseSnapshot(item: ReleaseRecord) {
-  const snap = item.snapshot || (item as ReleaseRecord & { configSnapshot?: string }).configSnapshot
-  try {
-    return typeof snap === 'string' ? JSON.parse(snap) : snap
-  } catch {
-    return null
-  }
-}
-
-function stackLayers(item: ReleaseRecord): string[] {
-  const cfg = parseSnapshot(item)
-  const pages = Array.isArray(cfg?.pages) ? cfg.pages : []
-  const names = pages
-    .map((p: { name?: string; title?: string }) => p?.name || p?.title)
-    .filter(Boolean)
-    .slice(0, 3) as string[]
-  if (names.length >= 3) return names
-  const base = displayName(item)
-  const fallback = [base, `${item.pageCount || names.length || 3}页`, sceneHint(item)]
-  return [...names, ...fallback].slice(0, 3)
-}
-
-function extractNavLabels(item: ReleaseRecord): string[] {
-  const cfg = parseSnapshot(item)
-  const rawTabs = cfg?.tabbarItems || cfg?.systemConfig?.tabbarItems || cfg?.tabBar || cfg?.tabs || []
-  if (!Array.isArray(rawTabs)) return []
-  return rawTabs.map((t: { text?: string; pageName?: string; name?: string }) =>
-    t.text || t.pageName || t.name || '导航',
-  )
-}
+const liveTemplateId = ref<number | null>(null)
 
 const myTemplates = computed(() =>
-  storeTemplates.value.filter((r) => !(r as ReleaseRecord & { systemTemplate?: boolean }).isSystem
-    && !(r as ReleaseRecord & { systemTemplate?: boolean }).systemTemplate),
+  storeTemplates.value.filter((r) => !(r as any).isSystem && !(r as any).systemTemplate),
 )
 
-const tabDefs = computed(() => [
-  { key: 'store' as const, label: '整店模板', count: storeTemplates.value.length },
-  { key: 'page' as const, label: '页面模板', count: pageTemplates.value.length },
-  { key: 'mine' as const, label: '我的模板', count: myTemplates.value.length },
-])
+function sceneOf(item: ReleaseRecord) {
+  return String((item as any).scene || (item as any).industry || (item as any).category || '知识付费')
+}
 
-function matchScene(text: string) {
+function sceneOfPage(tpl: any) {
+  return String(tpl.scene || tpl.category || tpl.industry || '知识付费')
+}
+
+function matchScene(label: string) {
   if (scene.value === '全部') return true
-  return text.includes(scene.value)
+  return label.includes(scene.value) || scene.value.includes(label)
 }
 
-function haystack(item: ReleaseRecord) {
-  const extra = item as ReleaseRecord & { notes?: string; category?: string }
-  return `${displayName(item)} ${item.releaseNotes || ''} ${extra.notes || ''} ${extra.category || ''} ${item.templateCode || ''}`
-}
+const filteredStoreTemplates = computed(() => {
+  const system = storeTemplates.value.filter((r) => (r as any).isSystem || (r as any).systemTemplate)
+  const pool = system.length ? system : storeTemplates.value.filter((r) => !myTemplates.value.includes(r))
+  const list = pool.length ? pool : storeTemplates.value
+  return list.filter((r) => matchScene(sceneOf(r)))
+})
 
-const filteredStore = computed(() =>
-  storeTemplates.value.filter((item) => matchScene(haystack(item))),
+const filteredPageTemplates = computed(() =>
+  pageTemplates.value.filter((t) => matchScene(sceneOfPage(t))),
 )
 
-const filteredMine = computed(() =>
-  myTemplates.value.filter((item) => matchScene(haystack(item))),
-)
-
-const filteredPages = computed(() =>
-  pageTemplates.value.filter((tpl) => {
-    const text = `${tpl.name || ''} ${tpl.description || ''} ${tpl.notes || ''}`
-    return matchScene(text)
-  }),
+const filteredMineTemplates = computed(() =>
+  scene.value === '全部' ? myTemplates.value : myTemplates.value.filter((r) => matchScene(sceneOf(r))),
 )
 
 watch(tab, (v) => {
@@ -375,57 +304,82 @@ function isInUse(item: ReleaseRecord) {
   return item.isCurrent === 1 || item.isCurrent === true
 }
 
-function displayName(item: ReleaseRecord) {
-  return item.templateName || item.releaseNotes || `模板 #${item.id}`
+function isLiveTemplate(item: ReleaseRecord) {
+  if (liveTemplateId.value != null && Number(item.id) === Number(liveTemplateId.value)) return true
+  return isInUse(item) && !(item as any).pending
+}
+
+function displayNameFull(item: ReleaseRecord) {
+  return String((item as any).templateName || item.releaseNotes || `模板 #${item.id}`)
 }
 
 function formatTime(t?: string) {
   return t ? String(t).replace('T', ' ').slice(0, 16) : '—'
 }
 
-function sceneHint(item: ReleaseRecord) {
-  const h = haystack(item)
-  for (const s of scenes) {
-    if (s !== '全部' && h.includes(s)) return s
+function artBg(item: ReleaseRecord) {
+  const colors = ['#F4E3D3', '#E1E9F5', '#DDEFE4', '#F5E7CC', '#F3DDE6', '#E9E4DD']
+  const id = Number(item.id) || 0
+  return colors[id % colors.length]
+}
+
+function accentOf(item: ReleaseRecord) {
+  const colors = ['#B4430F', '#2458A6', '#1F7A4D', '#8F5400', '#7A3E5C', '#5E5146']
+  return colors[(Number(item.id) || 0) % colors.length]
+}
+
+function pageArtBg(tpl: any) {
+  const colors = ['#F4E3D3', '#E1E9F5', '#DDEFE4', '#F5E7CC', '#F3DDE6']
+  const id = Number(tpl.id) || String(tpl.name || '').length
+  return colors[id % colors.length]
+}
+
+const qrVisible = ref(false)
+const qrReleaseId = ref<number | null>(null)
+
+async function previewStore(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) {
+    ElMessage.warning('无法预览：模板 ID 无效')
+    return
   }
-  if (/知识|付费|社群/.test(h)) return '知识付费'
-  if (/电商|零售|商城/.test(h)) return '电商零售'
-  if (/门店|本地|到店/.test(h)) return '本地门店'
-  if (/活动|营销/.test(h)) return '活动营销'
-  return '通用'
+  // 真预览：整站 H5 吃 release 快照
+  const { href } = router.resolve({
+    path: '/h5/miniapp-preview',
+    query: { view: 'config', releaseId: String(id), ...(item.semver ? { semver: item.semver } : {}) },
+  })
+  window.open(`${window.location.origin}${href}`, '_blank', 'noopener,noreferrer')
 }
 
-function thumbStyle(item: ReleaseRecord) {
-  return { '--accent': thumbAccent(item, 0) }
-}
-
-function previewStore(item: ReleaseRecord) {
-  previewRaw.value = item
-  previewTitle.value = displayName(item)
-  previewLayers.value = stackLayers(item)
-  previewNavLabels.value = extractNavLabels(item)
-  previewAccent.value = thumbAccent(item, 0)
-  previewVisible.value = true
+function previewStoreQr(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  qrReleaseId.value = id
+  qrVisible.value = true
 }
 
 async function confirmActivate(item: ReleaseRecord) {
   const id = toReleaseId(item.id)
   if (id == null) return
-  pendingActivate.value = { id, name: displayName(item), raw: item }
+  pendingActivate.value = { id, name: displayNameFull(item), raw: item }
   keepTheme.value = true
-  const snap = item.snapshot || (item as ReleaseRecord & { configSnapshot?: string }).configSnapshot
-  let tabs: Array<{ text?: string; pagePath?: string; pageName?: string }> = []
-  let pageCount = Number(item.pageCount || 0)
+  impactTabs.value = []
+  impactPageCount.value = Number(item.pageCount || 0)
   try {
+    const res = await getReleaseDetail(id)
+    const detail = (res as any)?.data || res
+    const snap = detail?.snapshot
     const cfg = typeof snap === 'string' ? JSON.parse(snap) : snap
-    const rawTabs = cfg?.tabbarItems || cfg?.systemConfig?.tabbarItems || cfg?.tabBar || cfg?.tabs || []
-    tabs = Array.isArray(rawTabs) ? rawTabs : []
-    if (!pageCount && Array.isArray(cfg?.pages)) pageCount = cfg.pages.length
+    const tabs = cfg?.tabbarItems || cfg?.systemConfig?.tabbarItems || cfg?.tabBar || cfg?.tabs || []
+    impactTabs.value = Array.isArray(tabs) ? tabs : []
+    if (Array.isArray(cfg?.pages) && cfg.pages.length) {
+      impactPageCount.value = cfg.pages.length
+    } else if (impactTabs.value.length) {
+      impactPageCount.value = impactTabs.value.length
+    }
   } catch {
-    /* ignore */
+    /* 详情失败时用列表 pageCount 兜底 */
   }
-  impactTabs.value = tabs.length ? tabs : currentTabBar.value
-  impactPageCount.value = pageCount || impactTabs.value.length || 0
   impactVisible.value = true
 }
 
@@ -435,26 +389,21 @@ async function doActivate() {
   try {
     await activateStoreTemplate(pendingActivate.value.id)
     ElMessage.success(
-      keepTheme.value
-        ? '已套用整店模板（已尽量保留站点信息），请去发布让用户看到'
-        : '已套用整店模板，请去发布让用户看到',
+      '已套用整店模板：页面内容已切换。站点导航/配色若有草稿请到「发布」确认；用户侧以发布后为准。',
     )
     impactVisible.value = false
     await load()
     router.push('/mini/publish')
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '套用失败')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '套用失败')
   } finally {
     activatingId.value = null
   }
 }
 
-async function applyPageTpl(tpl: PageTpl) {
+async function applyPageTpl(tpl: any) {
   try {
-    const dsl =
-      typeof tpl.dslContent === 'string'
-        ? JSON.parse(tpl.dslContent)
-        : (tpl.dsl || tpl.dslContent)
+    const dsl = typeof tpl.dslContent === 'string' ? JSON.parse(tpl.dslContent) : (tpl.dsl || tpl.dslContent)
     if (!dsl) {
       ElMessage.warning('该模板无可用内容，请换一套或从空白页开始')
       return
@@ -462,8 +411,8 @@ async function applyPageTpl(tpl: PageTpl) {
     const id = await applyPageTemplate({ name: tpl.name || '页面模板', dsl })
     ElMessage.success('已生成草稿页')
     router.push(`/mini/pages/${id}/editor`)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '套用失败')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '套用失败')
   }
 }
 
@@ -474,8 +423,8 @@ async function createFromCurrent() {
     ElMessage.success('已从当前站点新建模板')
     tab.value = 'mine'
     await load()
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '创建失败')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '创建失败')
   } finally {
     creating.value = false
   }
@@ -484,24 +433,24 @@ async function createFromCurrent() {
 async function load() {
   loading.value = true
   try {
-    const [storeRes, pageRes, site] = await Promise.all([
+    const [storeRes, pageRes, site, live] = await Promise.all([
       getStoreTemplates(),
       getPageTemplates({ current: 1, size: 50 }).catch(() => null),
       getMiniSite('draft').catch(() => null),
+      getMiniSite('live').catch(() => null),
     ])
-    storeTemplates.value = ((storeRes as { data?: ReleaseRecord[] })?.data || []) as ReleaseRecord[]
-    const pdata = (pageRes as { data?: { records?: PageTpl[]; list?: PageTpl[] } | PageTpl[] })?.data
-    pageTemplates.value = (
-      Array.isArray(pdata) ? pdata : (pdata?.records || pdata?.list || [])
-    ) as PageTpl[]
+    storeTemplates.value = ((storeRes as any)?.data || []) as ReleaseRecord[]
+    pageTemplates.value = ((pageRes as any)?.data?.records || (pageRes as any)?.data?.list || (pageRes as any)?.data || []) as any[]
     currentTabBar.value = site?.tabBar || []
     siteTemplateId.value = site?.templateId != null ? Number(site.templateId) : null
+    liveTemplateId.value = live?.templateId != null ? Number(live.templateId) : null
     const inUse = storeTemplates.value.find((r) => isInUse(r))
     currentPageCount.value = Number(inUse?.pageCount || currentTabBar.value.length || 0)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '加载模板失败')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '加载模板失败')
   } finally {
     loading.value = false
+    loaded.value = true
   }
 }
 
@@ -509,184 +458,61 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.tab-bar {
+.scene-chips {
+  margin-left: auto;
   display: flex;
+  gap: 6px;
   flex-wrap: wrap;
+  padding-bottom: 6px;
+}
+.tpl-title-row {
+  display: flex;
   justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.tabs { display: flex; gap: 4px; }
-.tab {
-  border: 0;
-  background: transparent;
-  padding: 8px 12px;
-  font-size: 14px;
-  color: var(--mw-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  &.active {
-    color: var(--mw-terracotta);
-    font-weight: 650;
-    border-bottom-color: var(--mw-terracotta);
-  }
-}
-.capsules { display: flex; flex-wrap: wrap; gap: 6px; }
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-}
-.tpl-card {
-  border: 1px solid var(--mw-border);
-  border-radius: 14px;
-  background: var(--mw-card);
-  overflow: hidden;
-  &.live { border-color: var(--mw-terracotta); box-shadow: 0 0 0 1px var(--mw-terracotta); }
-}
-.tpl-thumb {
-  position: relative;
-  height: 128px;
-  background: linear-gradient(160deg, #f3ebe2, #e8dfd3);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 10px;
-  --accent: #b4430f;
-}
-.page-thumb { height: 100px; }
-.phone-stack {
-  position: relative;
-  width: 110px;
-  height: 86px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  &--single { width: 52px; }
-}
-.phone-stack__item {
-  position: absolute;
-  bottom: 0;
-  &.is-0 { left: 0; transform: rotate(-8deg) translateY(4px); opacity: 0.88; z-index: 1; }
-  &.is-1 { left: 50%; transform: translateX(-50%); z-index: 2; }
-  &.is-2 { right: 0; transform: rotate(8deg) translateY(4px); opacity: 0.88; z-index: 1; }
-}
-.phone-stack--single .phone-stack__item {
-  position: relative;
-  left: auto;
-  right: auto;
-  transform: none;
-  opacity: 1;
-}
-.in-use {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--mw-terracotta-soft);
-  color: var(--mw-terracotta);
-  font-weight: 600;
-}
-.tpl-body { padding: 14px; }
-.tpl-name { font-weight: 650; font-size: 15px; }
-.tpl-meta {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--mw-muted);
-  line-height: 1.45;
-  min-height: 34px;
+  gap: 8px;
+  align-items: flex-start;
 }
 .tpl-actions {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  flex-wrap: wrap;
 }
-
-.impact-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.tpl-art {
+  align-items: flex-end;
+  .tpl-phone {
+    width: 60px;
+    border-radius: 10px 10px 0 0;
+    background: #fff;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+.impact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  > div {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  b { font-weight: 500; display: block; }
+  .faint { display: block; }
+}
+.impact-ic {
+  color: var(--acc);
+  display: inline-flex;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.impact-panel {
+  position: sticky;
+  top: 72px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  li {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--mw-ink);
-    strong { display: block; margin-bottom: 2px; }
-  }
 }
-.impact-sub { margin-top: 4px; color: var(--mw-muted); font-size: 12px; }
-.pending-note {
-  margin-top: 16px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--mw-amber-bg);
-  color: var(--mw-amber);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.tpl-preview {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
-.tpl-preview__phones {
-  position: relative;
-  height: 220px;
-  background: linear-gradient(160deg, #f3ebe2, #e8dfd3);
-  border-radius: 14px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-.tpl-preview__phone {
-  position: absolute;
-  bottom: 16px;
-  &.is-0 { left: 18%; transform: rotate(-7deg); opacity: 0.9; z-index: 1; }
-  &.is-1 { left: 50%; transform: translateX(-50%); z-index: 2; }
-  &.is-2 { right: 18%; transform: rotate(7deg); opacity: 0.9; z-index: 1; }
-}
-.tpl-preview__nav-title {
-  font-weight: 650;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-.tpl-preview__nav ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.tpl-preview__nav li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #faf6f1;
-  border: 1px solid var(--mw-border);
-}
-.tpl-preview__nav .idx {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--mw-terracotta);
-  color: #fff;
-  font-size: 11px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-.muted { color: var(--mw-muted); font-size: 13px; }
+/* 双栏规则在 mini-workbench.scss：.tpl-layout.has-panel */
 </style>

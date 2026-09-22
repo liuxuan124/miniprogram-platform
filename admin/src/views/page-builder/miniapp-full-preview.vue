@@ -220,7 +220,7 @@
               <MinePagePreview
                 v-model:preview-logged-in="previewLoggedIn"
                 :mine-config="mineConfigFull"
-                :theme="themeConfig"
+                :theme="effectiveTheme"
                 @update:preview-nickname="onFullPreviewNicknameUpdate"
                 @update:preview-avatar="onFullPreviewAvatarUpdate"
                 @update:preview-phone="onFullPreviewPhoneUpdate"
@@ -279,7 +279,10 @@
             <div
               v-if="showTabbar"
               class="fp-tabbar"
-              :style="{ gridTemplateColumns: `repeat(${Math.max(displayTabs.length, 1)}, 1fr)` }"
+              :style="{
+                gridTemplateColumns: `repeat(${Math.max(displayTabs.length, 1)}, 1fr)`,
+                '--fp-tab-on': effectiveTheme.tabBarActiveColor || effectiveTheme.primaryColor,
+              }"
             >
               <button
                 v-for="tab in displayTabs"
@@ -348,6 +351,15 @@ const modeOptions = [
 const loading = ref(false)
 const notice = ref('')
 const semver = ref(String(route.query.semver || ''))
+
+/**
+ * `?primary=%23B4430F`：调用方（概览「品牌配色」）用来预览尚未保存的主色。
+ * 只接受 6 位十六进制，避免把任意字符串注入行内样式。
+ */
+const primaryOverride = computed(() => {
+  const raw = String(route.query.primary || '')
+  return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : ''
+})
 const homeComponents = ref<ComponentInstance[]>([])
 const activeComponents = ref<ComponentInstance[]>([])
 const snapshotPages = ref<Array<{ path: string; name: string; dslContent?: string; pageId?: string }>>([])
@@ -385,6 +397,16 @@ const mineConfigFull = ref<MinePageConfig>({
   userProfile: { ...DEFAULT_USER_PROFILE },
 })
 const themeConfig = ref<ThemeConfig>({ ...DEFAULT_THEME })
+
+/** 生效主题：`?primary=` 优先，用于预览未保存的品牌主色 */
+const effectiveTheme = computed<ThemeConfig>(() => {
+  if (!primaryOverride.value) return themeConfig.value
+  return {
+    ...themeConfig.value,
+    primaryColor: primaryOverride.value,
+    tabBarActiveColor: primaryOverride.value,
+  }
+})
 
 function onFullPreviewNicknameUpdate(value: string) {
   mineConfigFull.value.previewNickname = value
@@ -2368,7 +2390,7 @@ onMounted(async () => {
     em { font-style: normal; font-size: 11px; }
 
     &.on {
-      color: #2f5bff;
+      color: var(--fp-tab-on, #2f5bff);
       font-weight: 700;
     }
   }

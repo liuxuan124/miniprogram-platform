@@ -7,10 +7,10 @@ export type MiniPageStatus = 'draft' | 'pending' | 'live' | 'offline' | 'archive
 
 export const MINI_PAGE_STATUS_LABELS: Record<MiniPageStatus, string> = {
   draft: '草稿',
-  pending: '有改动',
+  pending: '待发布',
   live: '已上线',
   offline: '已下线',
-  archived: '已归档',
+  archived: '归档',
 }
 
 /** 陶土暖色体系标签色（非 Element 默认紫） */
@@ -80,6 +80,13 @@ export const PAGE_GROUP_LABELS: Record<PageGroup, string> = {
   activity: '活动与专题',
   content: '内容页',
   archived: '归档',
+}
+
+export const PAGE_GROUP_SUB: Record<PageGroup, string> = {
+  tab: '顺序与真机底部一致',
+  activity: '',
+  content: '',
+  archived: '被替换或不再使用的页面，可随时恢复',
 }
 
 /** 无后端 pageGroup 时按类型 / 路径推断分组 */

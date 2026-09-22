@@ -18,7 +18,12 @@ export async function refreshMiniPending(force = false) {
         getPendingChanges().catch(() => ({ pendingCount: 0, items: [] })),
         getMiniSite('draft').catch(() => null),
       ])
-      const n = Number(pending.pendingCount ?? pending.items?.length ?? 0)
+      const n = Number(
+        (pending as any).pendingCount
+          ?? (pending as any).total
+          ?? pending.items?.length
+          ?? 0,
+      )
       pendingCount.value = Number.isFinite(n) ? n : 0
       if (site?.name) siteLabel.value = String(site.name)
       if (site?.liveReleaseNo != null) liveReleaseNo.value = Number(site.liveReleaseNo)

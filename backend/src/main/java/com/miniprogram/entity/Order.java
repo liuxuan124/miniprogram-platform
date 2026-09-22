@@ -46,6 +46,9 @@ public class Order implements Serializable {
     @Schema(description = "状态: pending_payment/paid/shipped/completed/closed/refunding/refunded")
     private String status;
 
+    @Schema(description = "测试订单：1是 0否")
+    private Integer isTest;
+
     @Schema(description = "履约方式: physical/virtual")
     private String fulfillmentType;
 

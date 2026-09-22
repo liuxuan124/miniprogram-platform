@@ -171,6 +171,34 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
     }
 
     @Override
+    public void adminGiftSubscription(Long userId, Long planId, Integer days) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "userId 必填");
+        }
+        if (planId == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "planId 必填");
+        }
+        MembershipPlan plan = membershipPlanMapper.selectById(planId);
+        if (plan == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "会员档位不存在");
+        }
+        String scope = plan.getScope() == null ? SCOPE_PLATFORM : plan.getScope().trim().toLowerCase();
+        String planetId = SCOPE_PLANET.equals(scope) ? trimToNull(plan.getPlanetId()) : null;
+        if (SCOPE_PLANET.equals(scope) && planetId == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "星球档缺少 planetId");
+        }
+        LocalDateTime expireAt = upsertSubscription(
+                userId, scope, planetId, planId, null, "admin", days);
+        if (SCOPE_PLATFORM.equals(scope) || SCOPE_PLATFORM.equals(plan.getScope())) {
+            // 平台档始终镜像到期；若档为 planet 则不改平台镜像
+            if (SCOPE_PLATFORM.equals(scope)) {
+                mirrorPlatformExpire(userId, expireAt);
+            }
+        }
+        log.info("adminGiftSubscription userId={} planId={} days={} expireAt={}", userId, planId, days, expireAt);
+    }
+
+    @Override
     public boolean hasBenefit(Long userId, String code) {
         if (userId == null || !StringUtils.hasText(code) || !hasPlatformMembership(userId)) {
             return false;
