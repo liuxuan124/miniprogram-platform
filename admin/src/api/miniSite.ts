@@ -22,6 +22,9 @@ export type MiniTabBarItem = {
   pagePath?: string
   pageId?: string | number
   pageName?: string
+  /** 兼容后端/快照字段 */
+  icon?: string
+  selectedIcon?: string
   iconPath?: string
   selectedIconPath?: string
 }
