@@ -13,6 +13,7 @@ import '@/styles/tokens.css'
 import '@/styles/mini-workbench.scss'
 import '@/styles/content-workbench.scss'
 import '@/styles/member-workbench.scss'
+import '@/styles/commerce-workbench.scss'
 import ColorPickerField from '@/components/ColorPickerField.vue'
 
 // 尽早应用皮肤，避免首屏闪蓝
