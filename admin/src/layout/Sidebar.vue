@@ -1,8 +1,8 @@
 <template>
   <el-aside
     class="app-sidebar"
-    :class="{ 'is-mini-shell': route.path.startsWith('/mini') }"
-    :width="appStore.sidebarCollapsed ? '72px' : (route.path.startsWith('/mini') ? '216px' : '220px')"
+    :class="{ 'is-mini-shell': isWarmShell }"
+    :width="appStore.sidebarCollapsed ? '72px' : (isWarmShell ? '216px' : '220px')"
   >
     <div class="brand">
       <div class="brand-icon">
@@ -188,6 +188,7 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const { pendingCount, refreshMiniPending } = useMiniPending(false)
+const isWarmShell = computed(() => route.path.startsWith('/mini') || route.path.startsWith('/content'))
 
 watch(
   () => route.path,
@@ -239,13 +240,11 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '内容运营',
     children: [
-      { title: '内容管理', path: '/content/article', icon: 'Reading', activePrefix: '/content', excludePrefixes: ['/content/note', '/content/audit', '/content/creators', '/content/qa', '/content/files'], featureModule: 'content' },
-      { title: '笔记管理', path: '/content/note', icon: 'EditPen', activePrefix: '/content/note', featureModule: 'content' },
-      { title: '资料管理', path: '/content/files', icon: 'DocumentCopy', activePrefix: '/content/files', featureModule: 'file' },
-      { title: '审核队列', path: '/content/audit', icon: 'Checked', activePrefix: '/content/audit' },
-      { title: '创作者审核', path: '/content/creators', icon: 'EditPen', activePrefix: '/content/creators' },
-      { title: '问答管理', path: '/content/qa', icon: 'ChatDotRound', activePrefix: '/content/qa', featureModule: 'qa' },
-      { title: '表单管理', path: '/form/template', icon: 'DocumentCopy', activePrefix: '/form', featureModule: 'form' },
+      { title: '概览', path: '/content/overview', icon: 'Odometer', activePrefix: '/content/overview', featureModule: 'content' },
+      { title: '内容库', path: '/content/library', icon: 'Reading', activePrefix: '/content/library', featureModule: 'content' },
+      { title: '写内容', path: '/content/write', icon: 'EditPen', activePrefix: '/content/write', featureModule: 'content' },
+      { title: '互动', path: '/content/inbox', icon: 'ChatDotRound', activePrefix: '/content/inbox' },
+      { title: '设置', path: '/content/settings', icon: 'Setting', activePrefix: '/content/settings', featureModule: 'content' },
     ],
   },
   {

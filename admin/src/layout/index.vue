@@ -1,19 +1,24 @@
 <template>
   <el-container
     class="app-layout"
-    :class="{ 'sidebar-collapsed': appStore.sidebarCollapsed, 'is-mini': isMiniRoute }"
+    :class="{
+      'sidebar-collapsed': appStore.sidebarCollapsed && !isContentEditor,
+      'is-mini': isWarmShell,
+      'is-content-editor': isContentEditor,
+    }"
   >
-    <Sidebar />
+    <Sidebar v-if="!isContentEditor" />
     <el-container class="main-container">
       <el-header
+        v-if="!isContentEditor"
         class="app-header"
-        :class="{ 'is-mini': isMiniRoute }"
-        :height="isMiniRoute ? '60px' : '56px'"
+        :class="{ 'is-mini': isWarmShell }"
+        :height="isWarmShell ? '60px' : '56px'"
       >
         <Header />
       </el-header>
-      <TagsView v-if="!isMiniRoute" />
-      <el-main class="app-main" :class="{ 'is-mini': isMiniRoute }">
+      <TagsView v-if="!isWarmShell" />
+      <el-main class="app-main" :class="{ 'is-mini': isWarmShell, 'is-content-editor': isContentEditor }">
         <div v-if="switching" class="route-skeleton" role="status" aria-live="polite" aria-label="页面加载中">
           <div class="sk-line" />
           <div class="sk-line" />
@@ -47,7 +52,11 @@ const appStore = useAppStore()
 const switching = ref(false)
 const router = useRouter()
 const route = useRoute()
-const isMiniRoute = computed(() => route.path.startsWith('/mini'))
+const isContentEditor = computed(() => /^\/content\/(write|edit)(\/|$)/.test(route.path))
+const isContentOps = computed(() => route.path.startsWith('/content') && !isContentEditor.value)
+const isWarmShell = computed(() => route.path.startsWith('/mini') || isContentOps.value)
+/** @deprecated use isWarmShell — kept for Header/Sidebar that still read mini */
+const isMiniRoute = isWarmShell
 let switchTimer = 0
 router.beforeEach((to, from) => {
   if (to.path === from.path) return
@@ -85,6 +94,19 @@ router.afterEach(() => {
 
 .app-layout.is-mini.sidebar-collapsed {
   padding-left: 0;
+}
+
+.app-layout.is-content-editor {
+  padding-left: 0 !important;
+  height: 100vh !important;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout.is-content-editor .main-container {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .main-container {
@@ -139,6 +161,14 @@ router.afterEach(() => {
     flex: 1 0 auto;
     overflow-x: hidden !important;
     overflow-y: visible !important;
+  }
+  &.is-content-editor {
+    padding: 0;
+    background: #f6f2ec;
+    min-height: 100%;
+    height: 100% !important;
+    overflow: hidden !important;
+    flex: 1 1 auto;
   }
 }
 

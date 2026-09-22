@@ -1,5 +1,5 @@
 <template>
-  <div class="header-container" :class="{ 'is-mini': isMiniRoute }">
+  <div class="header-container" :class="{ 'is-mini': isWarmShell }">
     <div class="header-left">
       <el-icon
         class="collapse-btn"
@@ -36,6 +36,14 @@
           <el-icon><Promotion /></el-icon>
           发布
           <span v-if="pendingCount > 0" class="pub-badge">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
+        </button>
+      </template>
+      <template v-else-if="isContentOps">
+        <button type="button" class="content-top-btn" @click="router.push({ path: '/content/library', query: { import: '1' } })">
+          从链接导入
+        </button>
+        <button type="button" class="mini-publish-btn" @click="router.push('/content/write')">
+          写内容
         </button>
       </template>
       <el-select
@@ -108,6 +116,8 @@ const permissionStore = usePermissionStore()
 const { pendingCount, siteLabel, liveReleaseNo, refreshMiniPending } = useMiniPending(false)
 
 const isMiniRoute = computed(() => route.path.startsWith('/mini'))
+const isContentOps = computed(() => route.path.startsWith('/content') && !/^\/content\/(write|edit)/.test(route.path))
+const isWarmShell = computed(() => isMiniRoute.value || isContentOps.value)
 
 watch(
   () => route.path,
@@ -119,7 +129,7 @@ watch(
 
 const tenantSelectId = ref<number | undefined>()
 const showTenantSwitcher = computed(
-  () => !isMiniRoute.value && permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
+  () => !isWarmShell.value && permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
 )
 
 watch(
@@ -283,6 +293,22 @@ async function handleCommand(command: string) {
     font-weight: 600;
     line-height: 18px;
   }
+}
+
+.content-top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e8dfd3;
+  border-radius: 8px;
+  background: #fff;
+  color: #2a1f17;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  &:hover { border-color: #d6c8b6; }
 }
 
 .tenant-switcher {
