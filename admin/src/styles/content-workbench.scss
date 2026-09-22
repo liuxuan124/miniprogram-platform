@@ -84,9 +84,11 @@
   border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap;
 }
 .content-wb .t-live { color: var(--g); background: var(--gs); }
+.content-wb .t-sched { color: #9a6700; background: #fff8e6; }
 .content-wb .t-pending { color: var(--a); background: var(--as); }
 .content-wb .t-new { color: var(--b); background: var(--bs); }
 .content-wb .t-draft, .content-wb .t-offline, .content-wb .t-archived { color: var(--n); background: var(--ns); }
+.content-wb .t-trash { color: #a61b1b; background: #ffeef0; }
 .content-wb .t-acc { color: var(--acc); background: var(--accsoft); }
 .content-wb .t-err { color: var(--r); background: var(--rs); }
 
@@ -222,7 +224,7 @@
 }
 .content-wb .cstat { width: 100px; flex-shrink: 0; }
 .content-wb .creads { width: 88px; flex-shrink: 0; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--mute); }
-.content-wb .ctime { width: 100px; flex-shrink: 0; }
+.content-wb .ctime { width: 148px; flex-shrink: 0; }
 .content-wb .cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
 .content-wb .ccard {
   border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 0; overflow: hidden;

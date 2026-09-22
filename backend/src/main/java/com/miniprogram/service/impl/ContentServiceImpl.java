@@ -12,6 +12,7 @@ import com.miniprogram.dto.ContentAttachmentDTO;
 import com.miniprogram.dto.ContentDTO;
 import com.miniprogram.dto.ContentDetailDTO;
 import com.miniprogram.dto.ContentQueryDTO;
+import com.miniprogram.dto.ContentStatsDTO;
 import com.miniprogram.entity.Content;
 import com.miniprogram.entity.ContentTag;
 import com.miniprogram.member.MemberBenefitCodes;
@@ -75,6 +76,33 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                 .toList();
 
         return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    @Override
+    public ContentStatsDTO getContentStats(String contentType) {
+        ContentStatsDTO stats = new ContentStatsDTO();
+        String type = StringUtils.hasText(contentType) ? contentType.trim() : null;
+        long draft = countByStatus(type, "draft");
+        long scheduled = countByStatus(type, "scheduled");
+        long published = countByStatus(type, "published");
+        long unpublished = countByStatus(type, "unpublished");
+        long deleted = countByStatus(type, "deleted");
+        stats.setDraft(draft);
+        stats.setScheduled(scheduled);
+        stats.setPublished(published);
+        stats.setUnpublished(unpublished);
+        stats.setDeleted(deleted);
+        stats.setAll(draft + scheduled + published + unpublished);
+        return stats;
+    }
+
+    private long countByStatus(String contentType, String status) {
+        LambdaQueryWrapper<Content> w = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(contentType)) {
+            w.eq(Content::getContentType, contentType);
+        }
+        w.eq(Content::getStatus, status);
+        return this.count(w);
     }
 
     @Override
@@ -280,12 +308,43 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     @Transactional(rollbackFor = Exception.class)
     public void deleteContent(Long id) {
         Content entity = getExistingContent(id);
+        if ("deleted".equals(entity.getStatus())) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        this.update(new LambdaUpdateWrapper<Content>()
+                .eq(Content::getId, id)
+                .set(Content::getStatus, "deleted")
+                .set(Content::getDeletedAt, now)
+                .set(Content::getScheduledAt, null));
+    }
 
-        // 更新标签使用次数
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void purgeContent(Long id) {
+        Content entity = getExistingContent(id);
+        if (!"deleted".equals(entity.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "仅回收站内容可彻底删除");
+        }
         List<String> tags = parseTags(entity.getTags());
         updateTagUseCount(tags, false);
-
         this.removeById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ContentDetailDTO restoreContent(Long id) {
+        Content entity = getExistingContent(id);
+        if (!"deleted".equals(entity.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "仅回收站内容可恢复");
+        }
+        this.update(new LambdaUpdateWrapper<Content>()
+                .eq(Content::getId, id)
+                .set(Content::getStatus, "draft")
+                .set(Content::getDeletedAt, null));
+        entity.setStatus("draft");
+        entity.setDeletedAt(null);
+        return toDetailDTO(entity);
     }
 
     @Override
@@ -293,14 +352,32 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     public ContentDetailDTO publishContent(Long id) {
         Content entity = getExistingContent(id);
 
+        if ("deleted".equals(entity.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "回收站内容请先恢复再发布");
+        }
         if ("published".equals(entity.getStatus())) {
             throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "内容已发布，不可重复发布");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        LambdaUpdateWrapper<Content> uw = new LambdaUpdateWrapper<Content>()
+                .eq(Content::getId, id)
+                .set(Content::getStatus, "published")
+                .set(Content::getPublishedAt, now)
+                .set(Content::getScheduledAt, null)
+                .set(Content::getUnpublishedAt, null)
+                .set(Content::getUnpublishReason, null);
+        if (entity.getFirstPublishedAt() == null) {
+            uw.set(Content::getFirstPublishedAt, now);
+            entity.setFirstPublishedAt(now);
+        }
+        this.update(uw);
+
         entity.setStatus("published");
-        entity.setPublishedAt(LocalDateTime.now());
+        entity.setPublishedAt(now);
         entity.setScheduledAt(null);
-        this.updateById(entity);
+        entity.setUnpublishedAt(null);
+        entity.setUnpublishReason(null);
 
         try {
             knowledgeSyncService.ingestPublishedContent(entity);
@@ -314,16 +391,59 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ContentDetailDTO unpublishContent(Long id) {
+        return unpublishContent(id, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ContentDetailDTO unpublishContent(Long id, String reason) {
         Content entity = getExistingContent(id);
 
         if (!"published".equals(entity.getStatus())) {
             throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "内容未发布，无法下架");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        String reasonVal = StringUtils.hasText(reason) ? reason.trim() : null;
+        if (reasonVal != null && reasonVal.length() > 255) {
+            reasonVal = reasonVal.substring(0, 255);
+        }
+        this.update(new LambdaUpdateWrapper<Content>()
+                .eq(Content::getId, id)
+                .set(Content::getStatus, "unpublished")
+                .set(Content::getUnpublishedAt, now)
+                .set(Content::getUnpublishReason, reasonVal));
+        // 保留 published_at / first_published_at，不清空
         entity.setStatus("unpublished");
-        entity.setPublishedAt(null);
-        this.updateById(entity);
+        entity.setUnpublishedAt(now);
+        entity.setUnpublishReason(reasonVal);
+        if (StringUtils.hasText(reasonVal)) {
+            log.info("content unpublish id={} reason={}", id, reasonVal);
+        }
 
+        return toDetailDTO(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ContentDetailDTO scheduleContent(Long id, String scheduledAt) {
+        Content entity = getExistingContent(id);
+        if ("deleted".equals(entity.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "回收站内容不可定时发布");
+        }
+        LocalDateTime at = parseScheduledAt(scheduledAt);
+        if (at == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请填写定时发布时间");
+        }
+        if (!at.isAfter(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "定时发布时间须晚于当前时间");
+        }
+        this.update(new LambdaUpdateWrapper<Content>()
+                .eq(Content::getId, id)
+                .set(Content::getStatus, "scheduled")
+                .set(Content::getScheduledAt, at));
+        entity.setStatus("scheduled");
+        entity.setScheduledAt(at);
         return toDetailDTO(entity);
     }
 
@@ -660,7 +780,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         LambdaQueryWrapper<Content> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(queryDTO.getKeyword()), Content::getTitle, queryDTO.getKeyword());
         wrapper.eq(queryDTO.getCategoryId() != null, Content::getCategoryId, queryDTO.getCategoryId());
-        wrapper.eq(StringUtils.hasText(queryDTO.getStatus()), Content::getStatus, queryDTO.getStatus());
+        if (StringUtils.hasText(queryDTO.getStatus())) {
+            wrapper.eq(Content::getStatus, queryDTO.getStatus().trim());
+        } else {
+            // 默认排除回收站；显式 status=deleted 时只看回收站
+            wrapper.ne(Content::getStatus, "deleted");
+        }
         wrapper.eq(StringUtils.hasText(queryDTO.getContentType()), Content::getContentType, queryDTO.getContentType());
         wrapper.eq(StringUtils.hasText(queryDTO.getSource()), Content::getSource, queryDTO.getSource());
         wrapper.eq(queryDTO.getPlanetExclusive() != null, Content::getPlanetExclusive, queryDTO.getPlanetExclusive());
@@ -822,7 +947,16 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         if (dto.getScheduledAt() != null) {
             String raw = dto.getScheduledAt().trim();
-            entity.setScheduledAt(raw.isEmpty() ? null : parseScheduledAt(raw));
+            LocalDateTime at = raw.isEmpty() ? null : parseScheduledAt(raw);
+            entity.setScheduledAt(at);
+            // 有定时 → scheduled（含从已上架改定时）；清空定时且原为 scheduled → draft
+            if (!"deleted".equals(entity.getStatus())) {
+                if (at != null) {
+                    entity.setStatus("scheduled");
+                } else if ("scheduled".equals(entity.getStatus())) {
+                    entity.setStatus("draft");
+                }
+            }
         }
     }
 
@@ -846,19 +980,30 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     }
 
     /** 扫描到期定时发布内容并发布 */
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public int publishDueScheduledContents() {
+        LocalDateTime now = LocalDateTime.now();
         List<Content> due = this.lambdaQuery()
-                .eq(Content::getStatus, "draft")
+                .in(Content::getStatus, "scheduled", "draft")
                 .isNotNull(Content::getScheduledAt)
-                .le(Content::getScheduledAt, LocalDateTime.now())
+                .le(Content::getScheduledAt, now)
                 .list();
         int count = 0;
         for (Content item : due) {
+            LocalDateTime firstAt = item.getFirstPublishedAt() != null ? item.getFirstPublishedAt() : now;
+            this.update(new LambdaUpdateWrapper<Content>()
+                    .eq(Content::getId, item.getId())
+                    .set(Content::getStatus, "published")
+                    .set(Content::getPublishedAt, now)
+                    .set(Content::getFirstPublishedAt, firstAt)
+                    .set(Content::getScheduledAt, null)
+                    .set(Content::getUnpublishedAt, null));
             item.setStatus("published");
-            item.setPublishedAt(LocalDateTime.now());
+            item.setPublishedAt(now);
+            item.setFirstPublishedAt(firstAt);
             item.setScheduledAt(null);
-            this.updateById(item);
+            item.setUnpublishedAt(null);
             try {
                 knowledgeSyncService.ingestPublishedContent(item);
             } catch (Exception e) {

@@ -1,22 +1,31 @@
 <template>
   <div class="content-edit-page" v-loading="pageLoading">
+    <div class="edit-topbar">
+      <div class="edit-topbar__left">
+        <div class="edit-topbar__title">{{ pageTitle }}</div>
+        <span v-if="draftHint" class="edit-topbar__draft">{{ draftHint }}</span>
+      </div>
+      <div class="edit-topbar__right">
+        <el-button @click="goBack()">取消</el-button>
+        <el-button @click="openPreviewDialog">预览</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">{{ submitButtonText }}</el-button>
+      </div>
+    </div>
+
     <div class="edit-layout">
     <el-card class="editor-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <div class="header-title">{{ pageTitle }}</div>
-          <div class="header-actions">
-            <el-button @click="goBack()">取消</el-button>
-            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">提交执行</el-button>
-          </div>
-        </div>
-      </template>
-
       <el-tabs v-model="activeTab" class="art-tabs">
         <el-tab-pane label="基础内容" name="base">
           <el-form ref="baseFormRef" :model="formData" :rules="baseRules" label-width="90px">
-            <el-form-item label="标题" prop="title">
-              <el-input v-model="formData.title" maxlength="128" show-word-limit placeholder="请输入标题" />
+            <el-form-item :label="titleLabel" prop="title">
+              <el-input
+                v-model="formData.title"
+                :maxlength="titleMaxLength"
+                show-word-limit
+                :placeholder="titlePlaceholder"
+              />
+              <div v-if="contentType === 'note'" class="field-hint">笔记标题建议 20 字以内。</div>
+              <div v-else-if="contentType === 'moment'" class="field-hint">动态标题选填，可不填直接发正文。</div>
             </el-form-item>
 
             <!-- 形态由侧栏入口锁定，不再并列切换 -->
@@ -211,36 +220,6 @@
               </el-form-item>
             </template>
 
-            <el-form-item label="内容分类" prop="category_id">
-              <el-select v-model="formData.category_id" style="width: 100%" placeholder="请选择内容分类" filterable>
-                <el-option
-                  v-for="item in flatCategoryOptions"
-                  :key="item.id"
-                  :value="item.id"
-                  :label="item.label"
-                />
-              </el-select>
-              <div class="field-tip">选项与「跨境资讯」顶栏一致；请在文章管理点「分类」→ 对分类点「发布」后才会出现在这里</div>
-            </el-form-item>
-
-            <el-form-item label="发布方式">
-              <el-select v-model="publishMode" style="width: 100%">
-                <el-option label="立即发布" value="publish" />
-                <el-option label="定时发布" value="schedule" />
-                <el-option label="存为草稿" value="draft" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item v-if="publishMode === 'schedule'" label="发布时间">
-              <el-date-picker
-                v-model="scheduleTime"
-                style="width: 100%"
-                type="datetime"
-                placeholder="选择定时发布时间"
-              />
-              <div class="field-hint">到点后由服务端每分钟扫描自动发布。</div>
-            </el-form-item>
-
             <template v-if="contentType === 'article'">
             <el-form-item label="封面图">
               <div class="cover-field">
@@ -315,7 +294,14 @@
               <el-form-item label="简介">
                 <el-input v-model="formData.content" type="textarea" :rows="5" placeholder="可选：视频说明文字（支持简单 HTML）" />
               </el-form-item>
+              <el-form-item label="作者">
+                <el-input v-model="formData.author" maxlength="64" placeholder="作者昵称" />
+              </el-form-item>
             </template>
+
+            <el-form-item v-if="contentType === 'article'" label="作者">
+              <el-input v-model="formData.author" maxlength="64" placeholder="作者昵称" />
+            </el-form-item>
 
             <el-form-item label="作者身份">
               <el-select v-model="formData.author_role" style="width: 100%">
@@ -323,50 +309,6 @@
                 <el-option label="编辑" value="editor" />
                 <el-option label="投稿人" value="contributor" />
                 <el-option label="用户" value="user" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="可见范围">
-              <el-select v-model="formData.visibility" style="width: 100%">
-                <el-option label="公开" value="public" />
-                <el-option label="仅会员" value="member_only" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="审核状态">
-              <el-select v-model="formData.audit_status" style="width: 100%">
-                <el-option label="已通过" value="approved" />
-                <el-option label="待审核" value="pending" />
-                <el-option label="已拒绝" value="rejected" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="运营位">
-              <el-checkbox v-model="formData.is_pinned">频道置顶</el-checkbox>
-              <el-checkbox v-model="formData.is_recommended" style="margin-left: 16px">首页推荐</el-checkbox>
-              <el-checkbox
-                v-if="contentType === 'moment'"
-                v-model="formData.planet_exclusive"
-                style="margin-left: 16px"
-              >星球专属</el-checkbox>
-            </el-form-item>
-            <div v-if="contentType === 'moment'" class="field-hint" style="margin: -8px 0 12px 90px">
-              勾选后出现在小程序「星球」时间线；未付费用户按星球配置可见范围展示。
-            </div>
-            <el-form-item v-if="contentType === 'moment' && formData.planet_exclusive" label="所属社区">
-              <el-select
-                v-model="formData.planet_id"
-                filterable
-                clearable
-                placeholder="选择所属社区（默认主社区）"
-                style="width: 320px"
-              >
-                <el-option
-                  v-for="c in planetCommunities"
-                  :key="c.id"
-                  :label="c.title || c.id"
-                  :value="c.id"
-                />
               </el-select>
             </el-form-item>
           </el-form>
@@ -398,7 +340,7 @@
           </el-form>
         </el-tab-pane>
 
-        <el-tab-pane label="SEO 与 分享配置" name="seo">
+        <el-tab-pane v-if="showSeoTab" label="SEO 与 分享配置" name="seo">
           <el-form :model="seoForm" label-width="90px">
             <el-form-item label="SEO 标题">
               <el-input v-model="seoForm.title" placeholder="用于搜索引擎与分享标题" />
@@ -444,6 +386,70 @@
     </el-card>
 
     <aside class="edit-aside">
+      <div class="publish-panel">
+        <div class="publish-panel__head">发布设置</div>
+        <el-form label-width="84px" class="publish-panel__form" size="default">
+          <el-form-item label="发布方式">
+            <el-radio-group v-model="publishMode">
+              <el-radio-button value="publish">立即发布</el-radio-button>
+              <el-radio-button value="schedule">定时发布</el-radio-button>
+              <el-radio-button value="draft">存为草稿</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item v-if="publishMode === 'schedule'" label="发布时间">
+            <el-date-picker
+              v-model="scheduleTime"
+              style="width: 100%"
+              type="datetime"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="选择定时发布时间"
+            />
+            <div class="field-hint">到点后由服务端每分钟扫描自动发布。</div>
+          </el-form-item>
+          <el-form-item label="内容分类" prop="category_id">
+            <el-select v-model="formData.category_id" style="width: 100%" placeholder="请选择内容分类" filterable>
+              <el-option
+                v-for="item in flatCategoryOptions"
+                :key="item.id"
+                :value="item.id"
+                :label="item.label"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="可见范围">
+            <el-select v-model="formData.visibility" style="width: 100%">
+              <el-option label="公开" value="public" />
+              <el-option label="仅会员" value="member_only" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="运营位">
+            <div class="publish-ops">
+              <el-checkbox v-model="formData.is_pinned">频道置顶</el-checkbox>
+              <el-checkbox v-model="formData.is_recommended">首页推荐</el-checkbox>
+              <el-checkbox v-if="contentType === 'moment'" v-model="formData.planet_exclusive">星球专属</el-checkbox>
+            </div>
+          </el-form-item>
+          <div v-if="contentType === 'moment'" class="field-hint" style="margin: -4px 0 10px 84px">
+            勾选后出现在小程序「星球」时间线。
+          </div>
+          <el-form-item v-if="contentType === 'moment' && formData.planet_exclusive" label="所属社区">
+            <el-select
+              v-model="formData.planet_id"
+              filterable
+              clearable
+              placeholder="选择所属社区（默认主社区）"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="c in planetCommunities"
+                :key="c.id"
+                :label="c.title || c.id"
+                :value="c.id"
+              />
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </div>
       <ContentAiAssist
         :content-id="isEdit ? Number(route.query.id) : null"
         :content-type="contentType"
@@ -458,13 +464,41 @@
       </div>
     </aside>
     </div>
+
+    <el-dialog v-model="previewDialogVisible" title="发布前预览" width="920px" destroy-on-close>
+      <div class="preview-dialog">
+        <div class="preview-dialog__phone">
+          <div class="preview-dialog__label">手机</div>
+          <ContentPreviewPanel :model="previewModel" />
+        </div>
+        <div class="preview-dialog__pc">
+          <div class="preview-dialog__label">PC 宽屏</div>
+          <div class="preview-dialog__pc-frame">
+            <h3>{{ previewModel.title || '未命名' }}</h3>
+            <p v-if="formData.summary" class="muted">{{ formData.summary }}</p>
+            <div
+              v-if="previewModel.contentHtml"
+              class="preview-dialog__html"
+              v-html="previewModel.contentHtml"
+            />
+            <pre v-else-if="previewModel.noteBody" class="preview-dialog__note">{{ previewModel.noteBody }}</pre>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="previewDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="previewDialogVisible = false; handleSubmit()">
+          {{ submitButtonText }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   createContent,
@@ -492,6 +526,7 @@ import {
   uploadAttachmentFile,
   attachmentFromFileLibrary,
 } from '@/utils/content-attachment'
+import { useUserStore } from '@/stores/user'
 
 interface FlatCategoryOption {
   id: number
@@ -500,11 +535,13 @@ interface FlatCategoryOption {
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const { uploadImage, uploading: coverUploading } = useImageUpload()
 
 const activeTab = ref('base')
 const pageLoading = ref(false)
 const submitLoading = ref(false)
+const lastEditedAt = ref<Date | null>(null)
 const isEdit = computed(() => Boolean(route.query.id))
 const pageTitle = computed(() => {
   const t = contentType.value
@@ -513,6 +550,30 @@ const pageTitle = computed(() => {
   if (t === 'video') return isEdit.value ? '编辑视频' : '发视频'
   if (t === 'moment') return isEdit.value ? '编辑动态' : '发动态'
   return isEdit.value ? '编辑长文' : '写长文'
+})
+const showSeoTab = computed(() => contentType.value !== 'moment' && contentType.value !== 'file')
+const titleMaxLength = computed(() => (contentType.value === 'note' ? 20 : 128))
+const titleLabel = computed(() => (contentType.value === 'moment' ? '标题（选填）' : '标题'))
+const titlePlaceholder = computed(() => {
+  if (contentType.value === 'note') return '笔记标题（最多 20 字）'
+  if (contentType.value === 'moment') return '可不填，直接发正文'
+  return '请输入标题'
+})
+const submitButtonText = computed(() => {
+  if (isEdit.value && formData.status === ContentStatus.Published && publishMode.value === 'publish') {
+    return '保存并更新'
+  }
+  if (publishMode.value === 'schedule') return '定时发布'
+  if (publishMode.value === 'draft') return '存草稿'
+  return '立即发布'
+})
+const draftHint = computed(() => {
+  if (publishMode.value !== 'draft') return ''
+  if (!lastEditedAt.value) return '草稿'
+  const d = lastEditedAt.value
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `草稿 · 本地编辑 ${hh}:${mm}`
 })
 const aiBodyText = computed(() => {
   if (contentType.value === 'note' || contentType.value === 'moment' || contentType.value === 'file') {
@@ -527,6 +588,7 @@ const productSearchLoading = ref(false)
 
 const publishMode = ref<'publish' | 'schedule' | 'draft'>('publish')
 const scheduleTime = ref('')
+const previewDialogVisible = ref(false)
 const contentType = ref<'article' | 'note' | 'moment' | 'video' | 'file'>('article')
 const typeLocked = ref(false)
 const noteImages = ref<string[]>([])
@@ -573,10 +635,19 @@ const seoForm = reactive({
   cover: '',
 })
 
-const baseRules: FormRules = {
-  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-  category_id: [{ required: true, message: '请选择内容分类', trigger: 'change' }],
-}
+const baseRules = computed<FormRules>(() => {
+  const rules: FormRules = {}
+  if (contentType.value !== 'moment') {
+    rules.title = [
+      {
+        required: true,
+        message: contentType.value === 'note' ? '请输入标题（最多 20 字）' : '请输入标题',
+        trigger: 'blur',
+      },
+    ]
+  }
+  return rules
+})
 
 const categoryTree = ref<any[]>([])
 const flatCategoryOptions = computed<FlatCategoryOption[]>(() => {
@@ -685,9 +756,10 @@ async function loadDetail(id: number) {
     noteTagsText.value = tags.join(', ')
     formData.tag_ids = tags.map(String)
     if (formData.status === ContentStatus.Published) publishMode.value = 'publish'
-    else if (data.scheduledAt) {
+    else if (formData.status === ContentStatus.Scheduled || data.scheduledAt || data.scheduled_at) {
       publishMode.value = 'schedule'
-      scheduleTime.value = String(data.scheduledAt).replace('T', ' ').slice(0, 19)
+      const rawSched = data.scheduledAt || data.scheduled_at
+      scheduleTime.value = rawSched ? String(rawSched).replace('T', ' ').slice(0, 19) : ''
     } else publishMode.value = 'draft'
 
     seoForm.title = data.seoTitle || data.title || ''
@@ -707,8 +779,45 @@ function normalizeContentStatus(statusRaw: unknown): ContentStatus {
   }
   const value = String(statusRaw || '').toLowerCase()
   if (value === ContentStatus.Published) return ContentStatus.Published
+  if (value === ContentStatus.Scheduled) return ContentStatus.Scheduled
   if (value === ContentStatus.Unpublished || value === 'offline') return ContentStatus.Unpublished
+  if (value === ContentStatus.Deleted) return ContentStatus.Deleted
   return ContentStatus.Draft
+}
+
+function openPreviewDialog() {
+  previewDialogVisible.value = true
+}
+
+/** 发布前检查：标题/封面/正文长度/定时时间 */
+function validateBeforePublish(): string | null {
+  if (contentType.value !== 'moment' && !formData.title?.trim()) return '请填写标题'
+  if (contentType.value === 'note' && formData.title.trim().length > 20) {
+    return '笔记标题最多 20 字'
+  }
+  const needCover =
+    contentType.value === 'article'
+    || contentType.value === 'video'
+    || contentType.value === 'note'
+  const cover =
+    contentType.value === 'note' || contentType.value === 'moment'
+      ? (noteImages.value[0] || formData.cover_image)
+      : formData.cover_image
+  if (needCover && !String(cover || '').trim()) {
+    if (contentType.value === 'video') return '视频请上传封面图'
+    if (contentType.value === 'note') return '笔记请至少上传一张封面图'
+    return '长文请上传封面图'
+  }
+  if (contentType.value === 'article') {
+    const plain = getPlainTextFromHtml(formData.content || '')
+    if (plain.replace(/\s/g, '').length < 80) return '长文正文过短（至少约 80 字）'
+  }
+  if (publishMode.value === 'schedule') {
+    if (!scheduleTime.value) return '请选择定时发布时间'
+    const ts = Date.parse(String(scheduleTime.value).replace(' ', 'T'))
+    if (!Number.isFinite(ts) || ts <= Date.now()) return '定时发布时间需晚于当前时间'
+  }
+  return null
 }
 
 function goBack(refresh = false) {
@@ -892,11 +1001,9 @@ const coverPreviewUrl = computed(() => {
 
 const previewModel = computed<ContentPreviewModel>(() => {
   const category = flatCategoryOptions.value.find((item) => item.id === formData.category_id)
-  const previewType =
-    contentType.value === 'file' ? 'moment' : (contentType.value as ContentPreviewModel['contentType'])
   return {
     title: formData.title,
-    contentType: previewType,
+    contentType: contentType.value as ContentPreviewModel['contentType'],
     contentHtml: formData.content,
     noteBody: noteBody.value,
     coverImage: formData.cover_image,
@@ -926,6 +1033,22 @@ function insertProductCard() {
 async function handleSubmit() {
   const form = baseFormRef.value
   if (!form) return
+
+  if (!formData.category_id) {
+    ElMessage.warning('请选择内容分类')
+    return
+  }
+  if (contentType.value !== 'moment' && !formData.title?.trim()) {
+    ElMessage.warning(contentType.value === 'note' ? '请输入标题（最多 20 字）' : '请输入标题')
+    activeTab.value = 'base'
+    return
+  }
+  if (contentType.value === 'note' && formData.title.trim().length > 20) {
+    ElMessage.warning('笔记标题最多 20 字')
+    activeTab.value = 'base'
+    return
+  }
+
   const valid = await form.validate().catch(() => false)
   if (!valid) {
     activeTab.value = 'base'
@@ -973,6 +1096,30 @@ async function handleSubmit() {
     return
   }
 
+  if (publishMode.value === 'publish' || publishMode.value === 'schedule') {
+    const block = validateBeforePublish()
+    if (block) {
+      ElMessage.warning(block)
+      activeTab.value = 'base'
+      return
+    }
+  }
+
+  const wasPublished = formData.status === ContentStatus.Published
+  if (isEdit.value && wasPublished && (publishMode.value === 'publish' || publishMode.value === 'draft')) {
+    try {
+      await ElMessageBox.confirm(
+        publishMode.value === 'publish'
+          ? '将覆盖线上版本，确认继续保存？'
+          : '内容当前已上架，存草稿将先下架。确认？',
+        '确认覆盖',
+        { type: 'warning', confirmButtonText: '确认', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+  }
+
   submitLoading.value = true
   try {
     const tags = contentType.value === 'note' ? parseNoteTags() : formData.tag_ids.map(String)
@@ -981,7 +1128,7 @@ async function handleSubmit() {
     const isShortForm = apiType === 'note' || apiType === 'moment' || apiType === 'file'
     const withAttachments = apiType === 'moment' || apiType === 'file'
     const payload = {
-      title: formData.title.trim(),
+      title: formData.title.trim() || (contentType.value === 'moment' ? '动态' : ''),
       contentType: apiType,
       categoryId: formData.category_id,
       summary:
@@ -1021,6 +1168,7 @@ async function handleSubmit() {
       seoTitle: seoForm.title?.trim() || undefined,
       seoDescription: seoForm.description?.trim() || undefined,
       scheduledAt: publishMode.value === 'schedule' ? scheduleTime.value : '',
+      confirmOverwrite: wasPublished || undefined,
       videoUrl: contentType.value === 'video' ? formData.video_url.trim() : undefined,
       videoDuration: contentType.value === 'video' ? formData.video_duration : undefined,
       layoutTheme: formData.layout_theme || 'standard',
@@ -1035,14 +1183,14 @@ async function handleSubmit() {
 
     if (isEdit.value) {
       const id = Number(route.query.id)
-      const wasPublished = formData.status === ContentStatus.Published
       await updateContent(id, payload)
       await saveLinkedProducts(id)
       if (publishMode.value === 'publish' && !wasPublished) {
         await publishContent(id)
-      } else if ((publishMode.value === 'draft' || publishMode.value === 'schedule') && wasPublished) {
+      } else if (publishMode.value === 'draft' && wasPublished) {
         await unpublishContent(id)
       }
+      // schedule：update 已带 scheduledAt → 后端设 status=scheduled，勿再 unpublish
       ElMessage.success(
         publishMode.value === 'schedule'
           ? `已设定定时发布：${scheduleTime.value}`
@@ -1074,6 +1222,9 @@ async function handleSubmit() {
 
 onMounted(async () => {
   await Promise.all([fetchCategories(), fetchPlanetCommunities()])
+  if (!userStore.userInfo) {
+    try { await userStore.fetchUserInfo() } catch { /* ignore */ }
+  }
   const qType = String(route.query.type || '')
   if (['note', 'moment', 'video', 'article', 'file'].includes(qType)) {
     contentType.value = qType as typeof contentType.value
@@ -1081,8 +1232,26 @@ onMounted(async () => {
   }
   if (isEdit.value) {
     await loadDetail(Number(route.query.id))
+    if (!formData.author?.trim()) applyDefaultAuthor()
+  } else {
+    applyDefaultAuthor()
   }
 })
+
+watch(
+  () => [formData.title, formData.content, noteBody.value, publishMode.value],
+  () => { lastEditedAt.value = new Date() },
+)
+
+watch(showSeoTab, (ok) => {
+  if (!ok && activeTab.value === 'seo') activeTab.value = 'base'
+})
+
+function applyDefaultAuthor() {
+  if (formData.author?.trim()) return
+  const u = userStore.userInfo
+  formData.author = String(u?.nickname || u?.username || '').trim()
+}
 
 async function fetchPlanetCommunities() {
   try {
@@ -1100,6 +1269,51 @@ async function fetchPlanetCommunities() {
 
 <style lang="scss" scoped>
 .content-edit-page {
+  padding: 16px 20px 28px;
+  box-sizing: border-box;
+
+  .edit-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 8;
+  }
+
+  .edit-topbar__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .edit-topbar__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #172033;
+  }
+
+  .edit-topbar__draft {
+    font-size: 12px;
+    color: #8a94a6;
+    background: #f5f6f9;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .edit-topbar__right {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   .edit-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
@@ -1111,11 +1325,43 @@ async function fetchPlanetCommunities() {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: sticky;
+    top: 64px;
+  }
+
+  .publish-panel {
+    background: #fff;
+    border: 1px solid #e4e9f2;
+    border-radius: 12px;
+    padding: 14px 12px 8px;
+  }
+
+  .publish-panel__head {
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #172033;
+  }
+
+  .publish-panel__form {
+    :deep(.el-form-item) {
+      margin-bottom: 14px;
+    }
+    :deep(.el-radio-group) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+  }
+
+  .publish-ops {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
   }
 
   .preview-aside {
-    position: sticky;
-    top: 16px;
     background: #fff;
     border: 1px solid #e4e9f2;
     border-radius: 12px;
@@ -1133,24 +1379,6 @@ async function fetchPlanetCommunities() {
   .editor-card {
     border-radius: 12px;
     border: 1px solid #e4e9f2;
-  }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .header-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #172033;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 8px;
   }
 
   .editor-toolbar-extra {
@@ -1343,8 +1571,40 @@ async function fetchPlanetCommunities() {
     grid-template-columns: 1fr;
   }
 
-  .content-edit-page .preview-aside {
+  .content-edit-page .edit-aside {
     position: static;
   }
+}
+
+.preview-dialog {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.preview-dialog__label {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+.preview-dialog__pc-frame {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px 28px;
+  max-height: 560px;
+  overflow: auto;
+  background: #fff;
+}
+.preview-dialog__pc-frame h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.preview-dialog__html :deep(img) {
+  max-width: 100%;
+}
+.preview-dialog__note {
+  white-space: pre-wrap;
+  font-family: inherit;
+  margin: 0;
 }
 </style>

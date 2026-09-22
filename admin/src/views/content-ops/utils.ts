@@ -14,16 +14,20 @@ export function formatReads(n?: number | null): string {
 export function statusTagClass(status?: string): string {
   const s = String(status || '').toLowerCase()
   if (s === ContentStatus.Published || s === 'published') return 't-live'
+  if (s === ContentStatus.Scheduled || s === 'scheduled') return 't-sched'
   if (s === ContentStatus.Draft || s === 'draft') return 't-draft'
   if (s === ContentStatus.Unpublished || s === 'unpublished') return 't-offline'
+  if (s === ContentStatus.Deleted || s === 'deleted') return 't-trash'
   return 't-draft'
 }
 
 export function statusLabel(status?: string): string {
   const s = String(status || '').toLowerCase()
-  if (s === ContentStatus.Published || s === 'published') return '已发布'
+  if (s === ContentStatus.Published || s === 'published') return '已上架'
+  if (s === ContentStatus.Scheduled || s === 'scheduled') return '待发布'
   if (s === ContentStatus.Draft || s === 'draft') return '草稿'
   if (s === ContentStatus.Unpublished || s === 'unpublished') return '已下架'
+  if (s === ContentStatus.Deleted || s === 'deleted') return '回收站'
   return s || '草稿'
 }
 

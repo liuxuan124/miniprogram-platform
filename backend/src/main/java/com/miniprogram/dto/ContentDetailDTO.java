@@ -118,11 +118,23 @@ public class ContentDetailDTO {
     /** 锁定原因 */
     private String lockedReason;
 
-    /** 状态 draft=草稿 published=已发布 archived=已归档 */
+    /** 状态 draft/scheduled/published/unpublished/deleted */
     private String status;
 
-    /** 发布时间 */
+    /** 最近一次上架时间 */
     private LocalDateTime publishedAt;
+
+    /** 首次上架时间 */
+    private LocalDateTime firstPublishedAt;
+
+    /** 最近下架时间 */
+    private LocalDateTime unpublishedAt;
+
+    /** 进回收站时间 */
+    private LocalDateTime deletedAt;
+
+    /** 下架原因 */
+    private String unpublishReason;
 
     /** 定时发布时间 */
     private LocalDateTime scheduledAt;

@@ -136,6 +136,20 @@ const actions = computed<QuickAction[]>(() => {
       { key: 'summary', label: '生成摘要', intent: '根据资料主题生成摘要', preferTask: 'summary_seo' },
     ]
   }
+  if (t === 'moment') {
+    return [
+      { key: 'title', label: '生成标题', intent: '生成短动态标题候选', preferTask: 'freeform' },
+      { key: 'draft', label: '写初稿', intent: '写一条短动态正文', preferTask: 'topic_draft' },
+      { key: 'polish', label: '润色正文', intent: '润色动态正文，保持口语化', preferTask: 'content_refresh' },
+    ]
+  }
+  if (t === 'video') {
+    return [
+      { key: 'title', label: '生成标题', intent: '为视频生成吸引人的标题', preferTask: 'freeform' },
+      { key: 'draft', label: '写简介', intent: '写一段视频简介', preferTask: 'topic_draft' },
+      { key: 'summary', label: '生成摘要', intent: '生成短摘要', preferTask: 'summary_seo' },
+    ]
+  }
   return [
     { key: 'title', label: '生成标题', intent: '生成吸引人的长文标题', preferTask: 'freeform' },
     { key: 'outline', label: '写大纲', intent: '输出三级大纲，不要写全文', preferTask: 'topic_draft' },

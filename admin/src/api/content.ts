@@ -74,8 +74,42 @@ export function publishContent(id: number) {
 }
 
 /** 下架内容 */
-export function unpublishContent(id: number) {
-  return put<ContentArticle>(`${BASE_URL}/contents/${id}/unpublish`)
+export function unpublishContent(id: number, reason?: string) {
+  return put<ContentArticle>(
+    `${BASE_URL}/contents/${id}/unpublish`,
+    reason ? ({ reason } as unknown as Record<string, unknown>) : undefined,
+  )
+}
+
+/** 定时发布 */
+export function scheduleContent(id: number, scheduledAt: string) {
+  return put<ContentArticle>(`${BASE_URL}/contents/${id}/schedule`, {
+    scheduledAt,
+  } as unknown as Record<string, unknown>)
+}
+
+/** 从回收站恢复 */
+export function restoreContent(id: number) {
+  return put<ContentArticle>(`${BASE_URL}/contents/${id}/restore`)
+}
+
+/** 回收站彻底删除 */
+export function purgeContent(id: number) {
+  return del<void>(`${BASE_URL}/contents/${id}/purge`)
+}
+
+export interface ContentStats {
+  all: number
+  draft: number
+  scheduled: number
+  published: number
+  unpublished: number
+  deleted: number
+}
+
+/** 各状态数量 */
+export function getContentStats(params?: { contentType?: string }) {
+  return get<ContentStats>(`${BASE_URL}/contents/stats`, params as Record<string, unknown>)
 }
 
 // ==================== 内容标签 ====================

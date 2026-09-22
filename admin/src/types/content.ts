@@ -62,22 +62,28 @@ export interface UpdateCategoryParams {
 /** 内容文章状态 */
 export enum ContentStatus {
   Draft = 'draft',
+  Scheduled = 'scheduled',
   Published = 'published',
   Unpublished = 'unpublished',
+  Deleted = 'deleted',
 }
 
 /** 内容状态标签 */
 export const ContentStatusLabels: Record<ContentStatus, string> = {
   [ContentStatus.Draft]: '草稿',
-  [ContentStatus.Published]: '已发布',
+  [ContentStatus.Scheduled]: '待发布',
+  [ContentStatus.Published]: '已上架',
   [ContentStatus.Unpublished]: '已下架',
+  [ContentStatus.Deleted]: '回收站',
 }
 
 /** 内容状态标签类型 */
 export const ContentStatusTagType: Record<ContentStatus, string> = {
   [ContentStatus.Draft]: 'info',
+  [ContentStatus.Scheduled]: 'warning',
   [ContentStatus.Published]: 'success',
   [ContentStatus.Unpublished]: 'warning',
+  [ContentStatus.Deleted]: 'danger',
 }
 
 /** 内容文章 */
@@ -98,6 +104,10 @@ export interface ContentArticle {
   sort: number
   is_top: boolean
   published_at?: string
+  first_published_at?: string
+  unpublished_at?: string
+  deleted_at?: string
+  scheduled_at?: string
   created_at: string
   updated_at: string
 }

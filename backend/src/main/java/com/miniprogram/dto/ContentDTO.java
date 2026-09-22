@@ -59,6 +59,9 @@ public class ContentDTO {
     /** 定时发布时间（ISO 字符串或 yyyy-MM-dd HH:mm:ss） */
     private String scheduledAt;
 
+    /** 已上架覆盖确认（管理端二次确认标记，后端不拦） */
+    private Boolean confirmOverwrite;
+
     /** 文章内容（富文本HTML） */
     private String content;
 
