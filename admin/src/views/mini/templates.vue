@@ -39,7 +39,7 @@
           </div>
           <div class="tpl-body">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
-              <b style="font-weight: 600">{{ displayName(item) }}</b>
+              <b class="tpl-title" style="font-weight: 600" :title="displayNameFull(item)">{{ displayName(item) }}</b>
               <span v-if="isInUse(item)" class="tag t-acc">使用中</span>
             </div>
             <div class="faint">
@@ -123,7 +123,7 @@
         <div v-for="item in myTemplates" :key="item.id" class="tpl" :class="{ using: isInUse(item) }">
           <div class="tpl-art"><div><i /><i /><i /></div></div>
           <div class="tpl-body">
-            <b style="font-weight: 600">{{ displayName(item) }}</b>
+              <b class="tpl-title" style="font-weight: 600" :title="displayNameFull(item)">{{ displayName(item) }}</b>
             <div class="faint">我的模板 · {{ formatTime(item.updateTime || item.createTime) }}</div>
             <button
               v-if="!isInUse(item)"
@@ -195,7 +195,13 @@ function isInUse(item: ReleaseRecord) {
 }
 
 function displayName(item: ReleaseRecord) {
-  return (item as any).templateName || item.releaseNotes || `模板 #${item.id}`
+  const raw = String((item as any).templateName || item.releaseNotes || `模板 #${item.id}`)
+  // 回滚备注等会把整句塞进标题，卡片上截断避免破版
+  return raw.length > 28 ? `${raw.slice(0, 28)}…` : raw
+}
+
+function displayNameFull(item: ReleaseRecord) {
+  return String((item as any).templateName || item.releaseNotes || `模板 #${item.id}`)
 }
 
 function formatTime(t?: string) {
@@ -211,7 +217,7 @@ function artBg(item: ReleaseRecord) {
 async function confirmActivate(item: ReleaseRecord) {
   const id = toReleaseId(item.id)
   if (id == null) return
-  pendingActivate.value = { id, name: displayName(item), raw: item }
+  pendingActivate.value = { id, name: displayNameFull(item), raw: item }
   keepTheme.value = true
   const snap = (item as any).snapshot || (item as any).configSnapshot
   let tabs: any[] = []
@@ -319,8 +325,8 @@ onMounted(load)
 }
 .tpl-layout.has-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
   align-items: start;
 }
 .kv {
