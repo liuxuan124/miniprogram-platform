@@ -16,6 +16,9 @@ public class MiniRollbackResultVO {
     @Schema(description = "来源发布序号")
     private Integer fromReleaseNo;
 
+    @Schema(description = "还原的页面名")
+    private java.util.List<String> restorePageNames;
+
     @Schema(description = "提示")
     private String message;
 }

@@ -117,6 +117,9 @@ const TAB_EMOJI_ICON_MAP: Record<string, string> = {
   '👤': '/images/nav-icons/g-user.png',
   '🔍': '/images/nav-icons/g-news.png',
   '📅': '/images/nav-icons/g-consult.png',
+  '🗓️': '/images/nav-icons/g-consult.png',
+  '📚': '/images/nav-icons/g-content.png',
+  '📘': '/images/nav-icons/g-folder.png',
   '🤖': '/images/nav-icons/g-insight.png',
   '📦': '/images/nav-icons/g-folder.png',
   '💰': '/images/nav-icons/g-wallet.png',
@@ -125,6 +128,10 @@ const TAB_EMOJI_ICON_MAP: Record<string, string> = {
   '⭐': '/images/nav-icons/g-hot.png',
   '🚀': '/images/nav-icons/g-rocket.png',
   '💡': '/images/nav-icons/g-insight.png',
+  '🏭': '/images/nav-icons/g-industry.png',
+  '🚢': '/images/nav-icons/g-logistics.png',
+  '🌐': '/images/nav-icons/g-site.png',
+  '⚖️': '/images/nav-icons/g-compliance.png',
 }
 
 const TAB_PATH_ICON_MAP: Record<string, string> = {
@@ -147,6 +154,15 @@ export function migrateTabBarIcon(icon?: string): string {
   if (!raw) return '/images/nav-icons/g-bag.png'
   const pathOnly = raw.split('?')[0]
   if (TAB_PATH_ICON_MAP[pathOnly]) return TAB_PATH_ICON_MAP[pathOnly]
+  if (isNavImageIcon(raw)) return pathOnly
+  return TAB_EMOJI_ICON_MAP[raw] || raw
+}
+
+/** 宫格/快捷入口 emoji → 图片图标（含 🗓️ 1v1 咨询） */
+export function resolveNavDisplayIcon(icon?: string): string {
+  const raw = String(icon || '').trim()
+  if (!raw) return ''
+  const pathOnly = raw.split('?')[0]
   if (isNavImageIcon(raw)) return pathOnly
   return TAB_EMOJI_ICON_MAP[raw] || raw
 }

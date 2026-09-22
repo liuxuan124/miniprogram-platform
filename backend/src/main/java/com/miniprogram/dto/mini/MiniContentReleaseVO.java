@@ -37,4 +37,10 @@ public class MiniContentReleaseVO {
 
     @Schema(description = "发布页数")
     private Integer pageCount;
+
+    @Schema(description = "是否为回滚产生的发布")
+    private boolean rollback;
+
+    @Schema(description = "若为回滚，回滚至的序号")
+    private Integer rollbackToReleaseNo;
 }

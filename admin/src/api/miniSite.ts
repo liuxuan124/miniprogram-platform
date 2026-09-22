@@ -76,13 +76,25 @@ export type MiniContentReleaseVO = {
   currentLive?: boolean
   hasSnapshot?: boolean
   pageCount?: number
+  rollback?: boolean
+  rollbackToReleaseNo?: number
 }
 
 export type MiniRollbackResultVO = {
   pagesRestored?: number
   siteDraftUpdated?: boolean
   fromReleaseNo?: number
+  restorePageNames?: string[]
   message?: string
+}
+
+export type MiniRollbackPreviewVO = {
+  fromReleaseNo?: number
+  restorePageNames?: string[]
+  hasSiteConfig?: boolean
+  currentPendingCount?: number
+  currentPendingSummaries?: string[]
+  hasSnapshot?: boolean
 }
 
 export type MiniSiteUpdatePayload = {
@@ -142,6 +154,7 @@ export async function publishMiniSite(payload?: {
   pageIds?: Array<number | string>
   /** false=不提升站点草稿；默认 true */
   includeSite?: boolean
+  clientRequestId?: string
 }): Promise<MiniPublishResultVO> {
   try {
     const res = await post<MiniPublishResultVO>(
@@ -168,6 +181,16 @@ export async function listMiniContentReleases(): Promise<MiniContentReleaseVO[]>
     if (!isMissingEndpoint(err)) throw err
     return []
   }
+}
+
+/** GET 回滚影响预览（只读） */
+export async function previewMiniRollback(releaseId: number | string): Promise<MiniRollbackPreviewVO> {
+  const res = await get<MiniRollbackPreviewVO>(
+    `${BASE}/releases/${releaseId}/rollback-preview`,
+    undefined,
+    { showError: false },
+  )
+  return unwrap<MiniRollbackPreviewVO>(res) || {}
 }
 
 /** POST 回滚为待发布草稿（不直接改线上） */

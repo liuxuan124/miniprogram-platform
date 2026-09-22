@@ -15,9 +15,9 @@
         :class="{ 'nav-item--clickable': hasLink(item) }"
         @click.stop="onItemClick(item)"
       >
-        <div class="nav-icon" :class="{ 'nav-icon--img': isImageIcon(item.icon) }">
-          <img v-if="isImageIcon(item.icon)" :src="navIconDisplaySrc(item.icon)" alt="" class="nav-icon-img" />
-          <span v-else>{{ item.icon || '▦' }}</span>
+        <div class="nav-icon" :class="{ 'nav-icon--img': isImageIcon(displayIcon(item.icon)) }">
+          <img v-if="isImageIcon(displayIcon(item.icon))" :src="navIconDisplaySrc(displayIcon(item.icon))" alt="" class="nav-icon-img" />
+          <span v-else>{{ displayIcon(item.icon) || '▦' }}</span>
         </div>
         <span class="nav-text">{{ item.title }}</span>
       </div>
@@ -30,7 +30,7 @@ import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 import { resolveJump, resolvePreviewLinkAction, runPreviewLinkAction } from '@/utils/preview-link'
-import { isNavImageIcon, navIconDisplaySrc } from '@/components/page-builder/navIconSet'
+import { isNavImageIcon, navIconDisplaySrc, resolveNavDisplayIcon } from '@/components/page-builder/navIconSet'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -76,6 +76,10 @@ const rootStyle = computed(() => {
   style.borderRadius = `${r}px`
   return style
 })
+
+function displayIcon(icon?: string) {
+  return resolveNavDisplayIcon(icon)
+}
 
 function isImageIcon(icon?: string): boolean {
   return isNavImageIcon(icon)

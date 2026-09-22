@@ -1,6 +1,7 @@
 // components/dsl-nav/dsl-nav.js — 导航宫格组件
 const { executeAction, isImageUrl, navigatePage } = require('../../utils/render')
 const { resolveNavIconUrl } = require('../../utils/nav-icon-url')
+const { migrateTabBarIcon } = require('../../utils/tabbar-icon')
 
 function clampPad(v, fallback) {
   const n = Number(v)
@@ -32,7 +33,8 @@ function buildRootStyle(config) {
 function mapItems(items) {
   if (!Array.isArray(items)) return []
   return items.map((item) => {
-    const icon = resolveNavIconUrl(item.icon) || item.icon || ''
+    const migrated = migrateTabBarIcon(item.icon) || item.icon || ''
+    const icon = resolveNavIconUrl(migrated) || migrated
     return {
       ...item,
       text: item.title || item.text || '',
