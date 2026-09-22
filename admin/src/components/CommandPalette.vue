@@ -53,6 +53,8 @@ const routes = [
   { title: '长文', path: '/content/articles' },
   { title: '笔记', path: '/content/notes' },
   { title: '资料', path: '/content/materials' },
+  { title: '动态', path: '/content/moments' },
+  { title: '视频', path: '/content/videos' },
   { title: '互动中心', path: '/content/inbox' },
   { title: '内容设置', path: '/content/settings' },
   { title: '订单管理', path: '/commerce/orders', featureModule: 'product' },

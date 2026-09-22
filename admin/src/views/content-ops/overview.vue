@@ -49,7 +49,7 @@
       </button>
     </div>
 
-    <div class="ways ways4">
+    <div class="ways ways5">
       <button type="button" class="way" @click="goWrite('article')">
         <MiniIcon name="doc" :size="20" />
         <span><b>写长文</b><span class="muted" style="font-size:12.5px">深度文章，支持会员门禁</span></span>
@@ -58,13 +58,17 @@
         <MiniIcon name="note" :size="20" />
         <span><b>写笔记</b><span class="muted" style="font-size:12.5px">图文短内容</span></span>
       </button>
-      <button type="button" class="way" @click="goWrite('video')">
-        <MiniIcon name="video" :size="20" />
-        <span><b>写视频</b><span class="muted" style="font-size:12.5px">上传或粘贴视频链接</span></span>
-      </button>
       <button type="button" class="way" @click="goWrite('file')">
         <MiniIcon name="file" :size="20" />
-        <span><b>写资料</b><span class="muted" style="font-size:12.5px">PDF 等文件，可设下载权限</span></span>
+        <span><b>上传资料</b><span class="muted" style="font-size:12.5px">PDF 等文件</span></span>
+      </button>
+      <button type="button" class="way" @click="goWrite('moment')">
+        <MiniIcon name="spark" :size="20" />
+        <span><b>发动态</b><span class="muted" style="font-size:12.5px">星球轻量更新</span></span>
+      </button>
+      <button type="button" class="way" @click="goWrite('video')">
+        <MiniIcon name="video" :size="20" />
+        <span><b>发视频</b><span class="muted" style="font-size:12.5px">粘贴视频链接</span></span>
       </button>
     </div>
 

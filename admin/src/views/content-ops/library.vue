@@ -165,7 +165,7 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const items = ref<Row[]>([])
-const typeCounts = ref<Record<string, number>>({ all: 0, article: 0, note: 0, video: 0, file: 0 })
+const typeCounts = ref<Record<string, number>>({ all: 0, article: 0, note: 0, video: 0, file: 0, moment: 0 })
 const flatCats = ref<Array<{ id: number; name: string }>>([])
 const typeFilter = ref('all')
 const statusFilter = ref('all')
@@ -178,10 +178,14 @@ const importing = ref(false)
 
 const lockedType = computed<UiContentType | ''>(() => {
   const meta = String(route.meta.lockedType || '')
-  if (meta === 'article' || meta === 'note' || meta === 'file' || meta === 'video') return meta
+  if (meta === 'article' || meta === 'note' || meta === 'file' || meta === 'video' || meta === 'moment') {
+    return meta
+  }
   if (route.path.includes('/articles')) return 'article'
   if (route.path.includes('/notes')) return 'note'
   if (route.path.includes('/materials')) return 'file'
+  if (route.path.includes('/moments')) return 'moment'
+  if (route.path.includes('/videos')) return 'video'
   return ''
 })
 
@@ -189,6 +193,8 @@ const pageTitle = computed(() => {
   if (lockedType.value === 'article') return '长文'
   if (lockedType.value === 'note') return '笔记'
   if (lockedType.value === 'file') return '资料'
+  if (lockedType.value === 'moment') return '动态'
+  if (lockedType.value === 'video') return '视频'
   return '内容库'
 })
 
@@ -196,24 +202,29 @@ const pageSub = computed(() => {
   if (lockedType.value === 'article') return '公众号风格长文，状态统一为 草稿 / 已发布 / 已下架'
   if (lockedType.value === 'note') return '短图文笔记，适合信息流与话题'
   if (lockedType.value === 'file') return '以附件/资料包为主的内容；也可从文件库管理原始文件'
-  return '长文、笔记、视频、资料都在这里，状态统一为 草稿 / 已发布 / 已下架'
+  if (lockedType.value === 'moment') return '星球动态，图文短更与轻量附件'
+  if (lockedType.value === 'video') return '视频号 / 外链视频，需封面与播放地址'
+  return '请从侧栏进入对应类型入口发布'
 })
 
 const createLabel = computed(() => {
   if (lockedType.value === 'article') return '写长文'
   if (lockedType.value === 'note') return '写笔记'
   if (lockedType.value === 'file') return '上传资料'
+  if (lockedType.value === 'moment') return '发动态'
+  if (lockedType.value === 'video') return '发视频'
   return '写内容'
 })
 
-const showImport = computed(() => !lockedType.value || lockedType.value === 'article')
+const showImport = computed(() => lockedType.value === 'article')
 
 const typeTabs = computed(() => [
   { key: 'all', label: '全部', count: typeCounts.value.all },
   { key: 'article', label: '长文', count: typeCounts.value.article },
   { key: 'note', label: '笔记', count: typeCounts.value.note },
-  { key: 'video', label: '视频', count: typeCounts.value.video },
   { key: 'file', label: '资料', count: typeCounts.value.file },
+  { key: 'moment', label: '动态', count: typeCounts.value.moment },
+  { key: 'video', label: '视频', count: typeCounts.value.video },
 ])
 
 const statusChips = [
@@ -293,10 +304,9 @@ async function load() {
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
 
     const lock = lockedType.value
-    // 资料多为 moment/file + 附件，列表侧再筛；笔记/长文可先按 type 拉
-    if (lock === 'article' || lock === 'note' || lock === 'video') {
+    if (lock === 'article' || lock === 'note' || lock === 'video' || lock === 'moment' || lock === 'file') {
       params.contentType = lock
-    } else if (!lock && typeFilter.value !== 'all' && typeFilter.value !== 'file') {
+    } else if (!lock && typeFilter.value !== 'all') {
       params.contentType = typeFilter.value
     }
 
@@ -304,12 +314,13 @@ async function load() {
     const { records } = unwrapList(listRes)
     items.value = (records as Array<Record<string, unknown>>).map(mapRow)
 
-    const counts = { all: items.value.length, article: 0, note: 0, video: 0, file: 0 }
+    const counts = { all: items.value.length, article: 0, note: 0, video: 0, file: 0, moment: 0 }
     for (const it of items.value) {
       if (it.uiType === 'article') counts.article += 1
       else if (it.uiType === 'note') counts.note += 1
       else if (it.uiType === 'video') counts.video += 1
       else if (it.uiType === 'file') counts.file += 1
+      else if (it.uiType === 'moment') counts.moment += 1
     }
     typeCounts.value = counts
 

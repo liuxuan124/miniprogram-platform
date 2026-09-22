@@ -19,17 +19,18 @@
               <el-input v-model="formData.title" maxlength="128" show-word-limit placeholder="请输入标题" />
             </el-form-item>
 
-            <el-form-item label="内容形态">
-              <el-radio-group v-model="contentType" :disabled="typeLocked">
+            <!-- 形态由侧栏入口锁定，不再并列切换 -->
+            <div v-if="typeLocked" class="field-hint" style="margin: 0 0 16px 90px">
+              当前为「{{ pageTitle.replace(/^(编辑|写|发|上传)/, '') }}」入口，仅编辑本类型内容。
+            </div>
+            <el-form-item v-else label="内容形态">
+              <el-radio-group v-model="contentType">
                 <el-radio-button value="article">长文</el-radio-button>
                 <el-radio-button value="note">笔记</el-radio-button>
                 <el-radio-button value="file">资料</el-radio-button>
                 <el-radio-button value="moment">动态</el-radio-button>
                 <el-radio-button value="video">视频</el-radio-button>
               </el-radio-group>
-              <div class="field-hint">
-                {{ typeLocked ? '当前入口已锁定形态，避免误改类型。' : '笔记偏小红书；资料以附件为主；动态偏知识星球；视频需填写视频地址与封面。' }}
-              </div>
             </el-form-item>
 
             <template v-if="contentType === 'file'">
@@ -713,7 +714,15 @@ function normalizeContentStatus(statusRaw: unknown): ContentStatus {
 function goBack(refresh = false) {
   const t = contentType.value
   const path =
-    t === 'note' ? '/content/notes' : t === 'file' ? '/content/materials' : '/content/articles'
+    t === 'note'
+      ? '/content/notes'
+      : t === 'file'
+        ? '/content/materials'
+        : t === 'moment'
+          ? '/content/moments'
+          : t === 'video'
+            ? '/content/videos'
+            : '/content/articles'
   router.push({
     path,
     query: refresh ? { refresh: String(Date.now()) } : undefined,
@@ -967,10 +976,10 @@ async function handleSubmit() {
   submitLoading.value = true
   try {
     const tags = contentType.value === 'note' ? parseNoteTags() : formData.tag_ids.map(String)
-    // 资料走 moment + 附件落库，避免改后端 contentType 枚举
-    const apiType = contentType.value === 'file' ? 'moment' : contentType.value
-    const isShortForm = apiType === 'note' || apiType === 'moment'
-    const withAttachments = contentType.value === 'moment' || contentType.value === 'file'
+    // 五类入口各自落库 contentType（含 file），列表互不串台
+    const apiType = contentType.value
+    const isShortForm = apiType === 'note' || apiType === 'moment' || apiType === 'file'
+    const withAttachments = apiType === 'moment' || apiType === 'file'
     const payload = {
       title: formData.title.trim(),
       contentType: apiType,
