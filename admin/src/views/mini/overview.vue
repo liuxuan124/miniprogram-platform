@@ -250,11 +250,11 @@
         </el-form-item>
         <el-form-item label="图标">
           <el-select
-            :model-value="editTab.icon || ''"
+            :model-value="editTab.icon || editTab.iconPath || ''"
             filterable
             placeholder="选择导航图标"
             style="width: 100%"
-            @change="(v: string) => { if (editTab) editTab = { ...editTab, icon: v, selectedIcon: v } }"
+            @change="(v: string) => { if (editTab) editTab = { ...editTab, icon: v, selectedIcon: v, iconPath: v, selectedIconPath: v } }"
           >
             <el-option
               v-for="ic in NAV_FLAT_ICONS"
