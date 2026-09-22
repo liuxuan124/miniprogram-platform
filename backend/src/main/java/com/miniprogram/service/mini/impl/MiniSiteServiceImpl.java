@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
+import com.miniprogram.dto.mini.MiniContentReleaseVO;
 import com.miniprogram.dto.mini.MiniPublishRequestDTO;
 import com.miniprogram.dto.mini.MiniPublishResultVO;
 import com.miniprogram.dto.mini.MiniRollbackResultVO;
