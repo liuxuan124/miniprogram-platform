@@ -73,6 +73,10 @@
                   <MiniIcon name="eye" :size="14" />
                   预览
                 </button>
+                <button type="button" class="btn sm" @click="previewStoreQr(item)">
+                  <MiniIcon name="qr" :size="14" />
+                  扫码
+                </button>
                 <button
                   v-if="!isInUse(item)"
                   type="button"
@@ -126,7 +130,7 @@
             </div>
           </div>
           <div class="note" style="margin: 12px 0">
-            应用后只是「待发布」，用户看不到；在「发布」确认后才生效。
+            确认后会切换页面内容；请再到「发布」检查待发布项并确认，用户才会看到完整变更。
           </div>
           <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer">
             <input v-model="keepTheme" type="checkbox" />
@@ -203,17 +207,26 @@
         </div>
       </div>
     </template>
+
+    <MiniH5QrDialog
+      v-model="qrVisible"
+      mode="release"
+      :release-id="qrReleaseId"
+      title="扫码预览模板"
+      hint="手机浏览器打开 H5 整站预览（模板快照）。配置微信后可在发布页上传体验版。"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import {
   getStoreTemplates,
   activateStoreTemplate,
   createStoreTemplate,
+  getReleaseDetail,
   toReleaseId,
 } from '@/api/version'
 import { getPageTemplates } from '@/api/page'
@@ -221,6 +234,7 @@ import { getMiniSite } from '@/api/miniSite'
 import { applyPageTemplate } from '@/components/page-templates/applyPageTemplate'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
+import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import type { ReleaseRecord } from '@/types/page'
 
 defineOptions({ name: 'MiniTemplates' })
@@ -320,14 +334,28 @@ function pageArtBg(tpl: any) {
   return colors[id % colors.length]
 }
 
+const qrVisible = ref(false)
+const qrReleaseId = ref<number | null>(null)
+
 async function previewStore(item: ReleaseRecord) {
-  const name = displayNameFull(item)
-  const tabs = Number(item.pageCount || 0)
-  await ElMessageBox.alert(
-    `「${name}」含导航与配色${tabs ? `，约 ${tabs} 个导航页` : ''}。点「应用」可写入待发布草稿，发布后用户才看到。`,
-    '模板预览',
-    { confirmButtonText: '知道了' },
-  )
+  const id = toReleaseId(item.id)
+  if (id == null) {
+    ElMessage.warning('无法预览：模板 ID 无效')
+    return
+  }
+  // 真预览：整站 H5 吃 release 快照
+  const { href } = router.resolve({
+    path: '/h5/miniapp-preview',
+    query: { view: 'config', releaseId: String(id), ...(item.semver ? { semver: item.semver } : {}) },
+  })
+  window.open(`${window.location.origin}${href}`, '_blank', 'noopener,noreferrer')
+}
+
+function previewStoreQr(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  qrReleaseId.value = id
+  qrVisible.value = true
 }
 
 async function confirmActivate(item: ReleaseRecord) {
@@ -335,16 +363,23 @@ async function confirmActivate(item: ReleaseRecord) {
   if (id == null) return
   pendingActivate.value = { id, name: displayNameFull(item), raw: item }
   keepTheme.value = true
-  const snap = (item as any).snapshot || (item as any).configSnapshot
-  let tabs: any[] = []
-  let pageCount = Number(item.pageCount || 0)
+  impactTabs.value = []
+  impactPageCount.value = Number(item.pageCount || 0)
   try {
+    const res = await getReleaseDetail(id)
+    const detail = (res as any)?.data || res
+    const snap = detail?.snapshot
     const cfg = typeof snap === 'string' ? JSON.parse(snap) : snap
-    tabs = cfg?.tabbarItems || cfg?.systemConfig?.tabbarItems || cfg?.tabBar || cfg?.tabs || []
-    if (!pageCount && Array.isArray(cfg?.pages)) pageCount = cfg.pages.length
-  } catch { /* ignore */ }
-  impactTabs.value = Array.isArray(tabs) && tabs.length ? tabs : []
-  impactPageCount.value = pageCount || impactTabs.value.length || 0
+    const tabs = cfg?.tabbarItems || cfg?.systemConfig?.tabbarItems || cfg?.tabBar || cfg?.tabs || []
+    impactTabs.value = Array.isArray(tabs) ? tabs : []
+    if (Array.isArray(cfg?.pages) && cfg.pages.length) {
+      impactPageCount.value = cfg.pages.length
+    } else if (impactTabs.value.length) {
+      impactPageCount.value = impactTabs.value.length
+    }
+  } catch {
+    /* 详情失败时用列表 pageCount 兜底 */
+  }
   impactVisible.value = true
 }
 
@@ -354,9 +389,7 @@ async function doActivate() {
   try {
     await activateStoreTemplate(pendingActivate.value.id)
     ElMessage.success(
-      keepTheme.value
-        ? '已套用整店模板（已尽量保留站点信息），请去发布让用户看到'
-        : '已套用整店模板，请去发布让用户看到',
+      '已套用整店模板：页面内容已切换。站点导航/配色若有草稿请到「发布」确认；用户侧以发布后为准。',
     )
     impactVisible.value = false
     await load()

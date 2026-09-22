@@ -236,7 +236,7 @@ const groups = computed(() => {
   }
   for (const row of pages.value) {
     if (String(row.path || '').includes('/pages/mine/mine')) continue
-    const g = inferPageGroup(row)
+    const g = inferGroup(row)
     totals[g] += 1
     if (matchRow(row)) buckets[g].push(row)
   }
@@ -302,16 +302,20 @@ function rowSub(row: PageRecord) {
 }
 
 function thumbColors(row: PageRecord): string[] {
-  const comps = (row as any)?.dsl?.components || (row as any)?.components
-  if (Array.isArray(comps) && comps.length) {
-    return comps.slice(0, 4).map((c: any, i: number) => {
-      const tone = String(c?.props?.background_color || c?.props?.backgroundColor || '')
-      if (/^#/.test(tone)) return tone
-      return THUMB_PALETTE[(Number(row.id) + i) % THUMB_PALETTE.length]
-    })
+  const fromApi = (row as any).thumbColors
+  if (Array.isArray(fromApi) && fromApi.length) {
+    return fromApi.slice(0, 4).map(String)
   }
   const id = Number(row.id) || 0
   return [0, 1, 2].map((i) => THUMB_PALETTE[(id + i * 2) % THUMB_PALETTE.length])
+}
+
+function inferGroup(row: PageRecord): PageGroup {
+  const explicit = String((row as any).pageGroup || (row as any).page_group || '').toLowerCase()
+  if (explicit === 'tab' || explicit === 'activity' || explicit === 'content' || explicit === 'archived') {
+    return explicit
+  }
+  return inferPageGroup(row)
 }
 
 function isArchived(row: PageRecord) {

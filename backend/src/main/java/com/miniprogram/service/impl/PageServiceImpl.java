@@ -13,6 +13,7 @@ import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.PageService;
 import com.miniprogram.service.PageVersionService;
+import com.miniprogram.service.mini.PageStatusCalculator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,11 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 页面 Service 实现
@@ -433,7 +439,46 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         int current = page.getCurrentVersion() != null ? page.getCurrentVersion() : 0;
         int latestVal = latest != null ? latest : 0;
         dto.setHasUnpublishedChanges(page.getStatus() != null && page.getStatus() == 1 && latestVal > current);
+        dto.setDisplayStatus(PageStatusCalculator.calculate(
+                page.getStatus(), page.getCurrentVersion(), latest, page.getArchived()));
+        dto.setThumbColors(extractThumbColors(page.getId(), latestVal));
         return dto;
+    }
+
+    private List<String> extractThumbColors(Long pageId, int latestVersion) {
+        List<String> colors = new ArrayList<>();
+        if (pageId == null || latestVersion <= 0) {
+            return colors;
+        }
+        try {
+            String dsl = pageVersionService.getVersionDsl(pageId, latestVersion);
+            if (!StringUtils.hasText(dsl)) {
+                return colors;
+            }
+            JsonNode root = objectMapper.readTree(dsl);
+            JsonNode comps = root.path("components");
+            if (!comps.isArray()) {
+                return colors;
+            }
+            for (JsonNode c : comps) {
+                if (colors.size() >= 4) break;
+                JsonNode props = c.path("props");
+                String bg = textOrEmpty(props, "background_color");
+                if (!bg.startsWith("#")) bg = textOrEmpty(props, "backgroundColor");
+                if (!bg.startsWith("#")) bg = textOrEmpty(props, "bg_color");
+                if (bg.startsWith("#") && bg.length() >= 4) {
+                    colors.add(bg.length() > 7 ? bg.substring(0, 7) : bg);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("提取页面缩略色失败 pageId={}: {}", pageId, e.getMessage());
+        }
+        return colors;
+    }
+
+    private static String textOrEmpty(JsonNode node, String field) {
+        if (node == null || !node.has(field) || node.get(field).isNull()) return "";
+        return node.get(field).asText("").trim();
     }
 
     private String buildCopyName(String name) {

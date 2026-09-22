@@ -95,7 +95,7 @@
               class="input"
               placeholder="这次改了什么（选填，方便以后回看）"
             />
-            <button type="button" class="btn" @click="openPreview">
+            <button type="button" class="btn" @click="openPreviewQr">
               <MiniIcon name="qr" :size="15" />
               扫码预览
             </button>
@@ -126,10 +126,12 @@
             <div class="eco-row">
               <div class="dist-ic"><MiniIcon name="qr" :size="17" /></div>
               <div class="eco-main">
-                <b>小程序码</b>
-                <span class="faint">为任意页面生成带参数的码</span>
+                <b>小程序码 / 体验版</b>
+                <span class="faint">{{ wxStatusText }}</span>
               </div>
-              <button type="button" class="btn sm" @click="router.push('/settings/wechat')">生成</button>
+              <button type="button" class="btn sm" @click="router.push('/page-builder/wx-push')">
+                {{ wxUploadAvailable ? '去上传' : '去配置' }}
+              </button>
             </div>
             <div class="eco-row">
               <div class="dist-ic"><MiniIcon name="doc" :size="17" /></div>
@@ -147,6 +149,9 @@
               </div>
               <button type="button" class="btn sm" @click="router.push('/settings/wechat')">配置</button>
             </div>
+          </div>
+          <div v-if="!wxUploadAvailable && wxStatusReason" class="note" style="margin-top: 12px">
+            {{ wxStatusReason }} 配好 AppID 与上传密钥后，即可在此上传体验版。
           </div>
         </section>
       </div>
@@ -224,6 +229,13 @@
         </section>
       </div>
     </div>
+
+    <MiniH5QrDialog
+      v-model="qrVisible"
+      mode="draft"
+      title="扫码预览"
+      hint="手机浏览器打开当前待发布草稿的 H5 预览。微信体验版请先配置 AppID/密钥后在「去上传」完成。"
+    />
   </div>
 </template>
 
@@ -241,9 +253,10 @@ import {
   type MiniSiteVO,
   type PendingChangeItem,
 } from '@/api/miniSite'
-import { getPublishPreflight, type PublishPreflight } from '@/api/version'
+import { getPublishPreflight, getPushPreviewStatus, type PublishPreflight } from '@/api/version'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
+import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 
 defineOptions({ name: 'MiniPublish' })
 
@@ -260,6 +273,10 @@ const releases = ref<MiniContentReleaseVO[]>([])
 const publishNote = ref('')
 const devOpen = ref(false)
 const wechatCodeLabel = ref('1.30.8')
+const qrVisible = ref(false)
+const wxUploadAvailable = ref(false)
+const wxStatusReason = ref('')
+const wxStatusText = ref('检测微信上传能力中…')
 
 const preflight = ref<PublishPreflight | null>(null)
 const preflightLoading = ref(false)
@@ -339,6 +356,31 @@ function formatTime(t?: string | null) {
 function openPreview() {
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config', source: 'draft' } })
   window.open(href, '_blank', 'noopener,noreferrer')
+}
+
+function openPreviewQr() {
+  qrVisible.value = true
+}
+
+async function loadWxPushStatus() {
+  try {
+    const res = await getPushPreviewStatus()
+    const data = (res as any)?.data ?? res ?? {}
+    wxUploadAvailable.value = data.uploadAvailable === true || data.available === true
+    wxStatusReason.value = String(data.capabilityReason || data.reason || '')
+    if (wxUploadAvailable.value) {
+      wxStatusText.value = data.lastVersion
+        ? `可上传体验版 · 最近 ${data.lastVersion}`
+        : '已配置，可上传体验版代码'
+      if (data.lastVersion) wechatCodeLabel.value = String(data.lastVersion)
+    } else {
+      wxStatusText.value = wxStatusReason.value || '尚未配置 AppID / 上传密钥'
+    }
+  } catch {
+    wxUploadAvailable.value = false
+    wxStatusText.value = '尚未配置或接口不可用'
+    wxStatusReason.value = '请到「上传代码包」页填写微信 AppID 与密钥路径'
+  }
 }
 
 async function copyHomePath() {
@@ -430,11 +472,11 @@ async function load() {
       listMiniContentReleases(),
     ])
     site.value = s
-    wechatCodeLabel.value = String(s.wechatCodeVersion || '1.30.8')
+    wechatCodeLabel.value = String(s.wechatCodeVersion || wechatCodeLabel.value || '1.30.8')
     pending.value = p.items || []
     releases.value = r || []
     syncSelection()
-    await loadPreflight()
+    await Promise.all([loadPreflight(), loadWxPushStatus()])
   } catch (e: any) {
     ElMessage.error(e?.message || '加载失败')
   } finally {
