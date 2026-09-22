@@ -190,7 +190,9 @@ const appStore = useAppStore()
 const { pendingCount, refreshMiniPending } = useMiniPending(false)
 const isWarmShell = computed(() =>
   route.path.startsWith('/mini') || route.path.startsWith('/content')
-  || route.path.startsWith('/member') || route.path.startsWith('/user'),
+  || route.path.startsWith('/member') || route.path.startsWith('/user')
+  || route.path.startsWith('/commerce') || route.path.startsWith('/order')
+  || route.path.startsWith('/marketing') || route.path.startsWith('/growth'),
 )
 
 watch(
@@ -264,10 +266,12 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '商业变现',
     children: [
-      { title: '商品管理', path: '/commerce/product', icon: 'Goods', activePrefix: '/commerce', featureModule: 'product' },
-      { title: '订单管理', path: '/order/list', icon: 'Box', activePrefix: '/order', permissions: ['order:list'], featureModule: 'product' },
-      { title: '优惠券', path: '/marketing/coupon', icon: 'Ticket', activePrefix: '/marketing' },
-      { title: '增长数据', path: '/growth/overview', icon: 'DataLine', activePrefix: '/growth' },
+      { title: '收入概览', path: '/commerce/overview', icon: 'Odometer', activePrefix: '/commerce/overview', featureModule: 'product' },
+      { title: '商品', path: '/commerce/products', icon: 'Goods', activePrefix: '/commerce/products', featureModule: 'product' },
+      { title: '订单', path: '/commerce/orders', icon: 'Box', activePrefix: '/commerce/orders', permissions: ['order:list'], featureModule: 'product' },
+      { title: '优惠券', path: '/commerce/coupons', icon: 'Ticket', activePrefix: '/commerce/coupons' },
+      { title: '增长数据', path: '/commerce/growth', icon: 'DataLine', activePrefix: '/commerce/growth' },
+      { title: '交易设置', path: '/commerce/settings', icon: 'Setting', activePrefix: '/commerce/settings', featureModule: 'product' },
     ],
   },
   {

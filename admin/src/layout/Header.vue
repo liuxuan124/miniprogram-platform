@@ -46,6 +46,17 @@
           写内容
         </button>
       </template>
+      <template v-else-if="isCommerceOps">
+        <input
+          v-model="commerceOrderQ"
+          class="commerce-order-search"
+          type="search"
+          placeholder="搜订单号 / 手机号"
+          aria-label="搜索订单"
+          @keydown.enter.prevent="goCommerceOrders"
+        />
+        <button type="button" class="content-top-btn" @click="goCommerceOrders">搜订单</button>
+      </template>
       <el-select
         v-else
         :model-value="appStore.uiTheme"
@@ -118,7 +129,19 @@ const { pendingCount, siteLabel, liveReleaseNo, refreshMiniPending } = useMiniPe
 const isMiniRoute = computed(() => route.path.startsWith('/mini'))
 const isContentOps = computed(() => route.path.startsWith('/content') && !/^\/content\/(write|edit)/.test(route.path))
 const isMemberOps = computed(() => route.path.startsWith('/member') || route.path.startsWith('/user'))
-const isWarmShell = computed(() => isMiniRoute.value || isContentOps.value || isMemberOps.value)
+const isCommerceOps = computed(() =>
+  route.path.startsWith('/commerce')
+  || route.path.startsWith('/order')
+  || route.path.startsWith('/marketing')
+  || route.path.startsWith('/growth'),
+)
+const isWarmShell = computed(() => isMiniRoute.value || isContentOps.value || isMemberOps.value || isCommerceOps.value)
+
+const commerceOrderQ = ref('')
+function goCommerceOrders() {
+  const q = commerceOrderQ.value.trim()
+  router.push(q ? { path: '/commerce/orders', query: { q } } : '/commerce/orders')
+}
 
 watch(
   () => route.path,
@@ -310,6 +333,19 @@ async function handleCommand(command: string) {
   cursor: pointer;
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   &:hover { border-color: #d6c8b6; }
+}
+
+.commerce-order-search {
+  width: 180px;
+  padding: 6px 10px;
+  border: 1px solid #e8dfd3;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #2a1f17;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  outline: none;
+  &:focus { border-color: #b4430f; }
 }
 
 .tenant-switcher {
