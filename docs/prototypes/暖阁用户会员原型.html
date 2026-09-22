@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>暖阁用户会员原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#F6F2EC;--card:#FFFFFF;--soft:#FBF8F4;--line:#E8DFD3;--line2:#F1EBE3;
+  --ink:#2A1F17;--mute:#6B5B4E;--faint:#7A6A5C;
+  --side:#2B1D14;--sidetx:#E9DCCB;--sidemute:#BFAE9B;
+  --acc:#B4430F;--acc-h:#8C3208;--accsoft:#FBEADF;
+  --g:#1F7A4D;--gs:#E3F3EA;--a:#8F5400;--as:#FDF1D8;--b:#2458A6;--bs:#E6EEFA;--n:#5E5146;--ns:#EFEAE3;--r:#A52A1E;--rs:#FBE4E0;
+  --serif:"Noto Serif SC","Songti SC",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:100%}
+/* sidebar */
+.side{background:var(--side);color:var(--sidetx);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:var(--acc);display:grid;place-items:center;color:#fff}
+.brand b{display:block;color:#fff;font-size:15px}
+.brand small{color:var(--sidemute);font-size:11px}
+.side-group{padding:10px 12px 6px;color:#fff;font-weight:600;display:flex;justify-content:space-between}
+.side-muted{padding:9px 12px;color:var(--sidemute);display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.nav{display:flex;flex-direction:column;gap:2px;padding-left:4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--sidetx);text-decoration:none}
+.nav a:hover{background:rgba(255,255,255,.06)}
+.nav a.on{background:var(--acc);color:#fff}
+.nav .badge{margin-left:auto;font-size:11px;font-weight:600;padding:0 7px;border-radius:999px;background:var(--acc);color:#fff}
+.nav a.on .badge{background:#fff;color:var(--acc)}
+/* top */
+.main{display:flex;flex-direction:column;min-width:0}
+.top{height:60px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 28px;position:sticky;top:0;z-index:20}
+.crumb{color:var(--mute)}
+.crumb b{color:var(--ink);font-weight:500}
+.site-pill{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--ns);display:grid;place-items:center;font-weight:600;color:var(--n);flex-shrink:0}
+.view{padding:24px 28px 48px;display:flex;flex-direction:column;gap:18px}
+/* primitives */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:500;white-space:nowrap;text-decoration:none;color:var(--ink);line-height:1.2}
+.btn:hover{border-color:#D6C8B6}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.primary:hover{background:var(--acc-h)}
+.btn.soft{background:var(--accsoft);border-color:var(--accsoft);color:var(--acc)}
+.btn.danger{color:var(--r)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn .cnt{background:#fff;color:var(--acc);border-radius:999px;padding:0 7px;font-size:12px;font-weight:600}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--mute)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
+.t-live{color:var(--g);background:var(--gs)} .t-pending{color:var(--a);background:var(--as)} .t-new{color:var(--b);background:var(--bs)}
+.t-draft,.t-offline,.t-archived{color:var(--n);background:var(--ns)} .t-acc{color:var(--acc);background:var(--accsoft)} .t-err{color:var(--r);background:var(--rs)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.h1{font-family:var(--serif);font-size:26px;font-weight:700;margin:0;text-wrap:balance}
+.sub{color:var(--mute);font-size:13px;margin-top:4px}
+.h2{font-size:16px;font-weight:600;margin:0}
+.head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.head .actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.muted{color:var(--mute)} .faint{color:var(--faint);font-size:12px}
+.link{color:var(--acc);background:none;border:0;padding:0;font-weight:500;text-decoration:none}
+.link:hover{color:var(--acc-h)}
+/* overview */
+.ov{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.ways{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.way{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-align:left;color:var(--ink)}
+.way:hover{border-color:#D6C8B6}
+.way.hi{background:var(--acc);border-color:var(--acc);color:#fff}
+.way.hi .muted{color:#FBE3D4}
+.way b{display:block;font-size:15px}
+.tabs-edit{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.tabcard{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--card);text-align:left;cursor:grab;min-height:120px}
+.tabcard:hover{border-color:var(--acc)}
+.tabcard.dragging{opacity:.4}
+.tabcard.over{outline:2px dashed var(--acc)}
+.tabcard.err{border-color:var(--r);background:var(--rs)}
+.tabcard .t{font-size:16px;font-weight:600;display:flex;gap:6px;align-items:center}
+.tabadd{border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--faint);font-size:12px;background:transparent;min-height:120px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.sw.on{box-shadow:0 0 0 2px var(--ink)}
+.list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2)}
+.list-row:last-child{border-bottom:0}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0}
+.preview{position:sticky;top:84px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.seg{display:flex;gap:3px;background:var(--ns);border-radius:8px;padding:3px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;font-size:12px;color:var(--mute)}
+.seg button.on{background:#fff;color:var(--ink);font-weight:500}
+/* phone */
+.phone{width:250px;height:540px;border:9px solid #1E1611;border-radius:34px;background:#FFFBF6;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;max-width:100%}
+.phone.lg{width:320px;height:650px}
+.phone.sm{width:210px;height:430px}
+.ph-title{height:42px;display:grid;place-items:center;font-size:13px;font-weight:600;flex-shrink:0}
+.ph-body{flex:1;overflow-y:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.ph-body::-webkit-scrollbar{display:none}
+.blk{border-radius:10px;padding:10px 12px;border:1px solid #F0E6DA;text-align:left;width:100%;background:#fff;position:relative}
+.blk b{display:block;font-size:12px}
+.blk span{display:block;font-size:10.5px;opacity:.78;margin-top:3px;line-height:1.5}
+.blk.sel{outline:2px solid var(--acc);outline-offset:1px}
+.blk.ai::after{content:"AI 新增";position:absolute;top:-8px;right:8px;background:var(--acc);color:#fff;font-size:10px;padding:0 6px;border-radius:4px}
+.ph-tabs{height:48px;border-top:1px solid #EFE6DA;display:flex;background:#fff;flex-shrink:0}
+.ph-tabs div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:#8A7A6C}
+.ph-tabs i{width:16px;height:16px;border-radius:5px;background:#D9CFC3;display:block}
+.empty-ph{flex:1;display:grid;place-items:center;color:var(--faint);font-size:12px;text-align:center;padding:20px}
+/* pages */
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:8px;width:280px;max-width:100%;color:var(--faint)}
+.search input{border:0;outline:0;background:transparent;flex:1;min-width:0}
+.group{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.group.arch{background:var(--soft);border-style:dashed}
+.g-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--soft);border-bottom:1px solid var(--line);border-radius:14px 14px 0 0;width:100%;border-left:0;border-right:0;border-top:0;text-align:left}
+.group.closed .g-head{border-bottom:0;border-radius:14px}
+.prow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line2);position:relative}
+.prow:last-child{border-bottom:0}
+.thumb{width:36px;height:52px;border-radius:6px;border:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding:4px;background:#FFFBF6}
+.thumb i{display:block;height:8px;border-radius:2px}
+.pname{flex:1;min-width:0}
+.pname b{font-weight:500;display:flex;align-items:center;gap:6px}
+.pstat{width:96px}
+.menu{position:absolute;right:16px;top:52px;z-index:30;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(43,29,20,.14);padding:6px;min-width:190px;display:flex;flex-direction:column}
+.menu button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px;font-size:13px}
+.menu button:hover{background:var(--soft)}
+.menu button:disabled{color:var(--faint);cursor:not-allowed;background:none}
+.menu hr{border:0;border-top:1px solid var(--line2);margin:4px 0}
+/* editor */
+.ed{display:grid;grid-template-rows:60px minmax(0,1fr);height:100vh;background:var(--bg)}
+.ed-top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px;min-width:0}
+.ed-top .name{font-weight:600;font-size:15px;white-space:nowrap}
+.ed-body{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;min-height:0}
+.ed-left,.ed-right{background:#fff;min-height:0;overflow-y:auto}
+.ed-left{border-right:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:12px}
+.ed-right{border-left:1px solid var(--line);display:flex;flex-direction:column}
+.ed-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto}
+.comp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.comp{border:1px solid var(--line);border-radius:8px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);background:#fff}
+.comp:hover{border-color:var(--acc);color:var(--acc)}
+.comp i{width:22px;height:14px;border-radius:4px;background:#EFE6DA;display:block}
+.layer{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;font-size:12.5px}
+.layer.on{background:var(--accsoft);color:var(--acc);font-weight:500}
+.layer .nm{flex:1;border:0;background:none;text-align:left;padding:0;color:inherit;font-weight:inherit;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer .mini{border:0;background:none;color:var(--faint);padding:2px 4px;border-radius:4px;font-size:12px}
+.layer .mini:hover{background:var(--ns);color:var(--ink)}
+.rtabs{display:flex;border-bottom:1px solid var(--line)}
+.rtabs button{flex:1;border:0;background:none;padding:14px;color:var(--mute);border-bottom:2px solid transparent;display:flex;justify-content:center;gap:6px;align-items:center}
+.rtabs button.on{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:500}
+.input{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
+textarea.input{resize:vertical;line-height:1.6}
+.tone-row{display:flex;gap:6px;flex-wrap:wrap}
+.tone{width:28px;height:28px;border-radius:7px;border:1px solid var(--line)}
+.tone.on{box-shadow:0 0 0 2px var(--ink)}
+.chat{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:200px}
+.bub-u{align-self:flex-end;max-width:86%;background:var(--ink);color:#fff;padding:10px 12px;border-radius:12px 12px 4px 12px;font-size:13px;line-height:1.6}
+.bub-a{display:flex;flex-direction:column;gap:8px;background:var(--accsoft);padding:12px;border-radius:12px 12px 12px 4px;font-size:13px;line-height:1.6}
+.chg{display:flex;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.chg b{font-size:12.5px;font-weight:500;display:block}
+.composer{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.cbox{display:flex;gap:8px;align-items:flex-end;border:1px solid var(--line);border-radius:10px;padding:8px}
+.cbox textarea{border:0;outline:0;resize:none;flex:1;height:44px;font-size:13px}
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:bl 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{0%,100%{opacity:.25}50%{opacity:1}}
+/* ai create */
+.aic{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px;align-items:start}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.opt{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+.opt.on{border:2px solid var(--acc);padding:13px}
+.gen-empty{border:1px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mute);display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;min-height:420px;background:var(--soft)}
+.mat{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;gap:8px}
+/* templates */
+.tpl-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.tpl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.tpl{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.tpl.using{border:2px solid var(--acc)}
+.tpl.picked{box-shadow:0 0 0 3px var(--accsoft)}
+.tpl-art{height:150px;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding-top:16px}
+.tpl-art div{width:60px;border-radius:10px 10px 0 0;background:#fff;padding:6px;display:flex;flex-direction:column;gap:4px}
+.tpl-art i{display:block;height:7px;border-radius:3px;background:#EFE6DA}
+.tpl-body{padding:14px;display:flex;flex-direction:column;gap:8px}
+.tabs-line{display:flex;gap:18px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.tabs-line button{border:0;background:none;padding:10px 2px;color:var(--mute);border-bottom:2px solid transparent}
+.tabs-line button.on{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.impact{display:flex;flex-direction:column;gap:12px;font-size:13px}
+.impact>div{display:flex;gap:10px}
+.impact b{font-weight:500;display:block}
+.note{padding:10px 12px;border-radius:10px;background:var(--as);color:var(--a);font-size:12.5px;line-height:1.6}
+.note.ok{background:var(--gs);color:var(--g)}
+.note.err{background:var(--rs);color:var(--r)}
+/* publish */
+.pub{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;padding:14px;border-radius:10px;margin-top:14px}
+.chk{display:flex;gap:8px;font-size:13px;align-items:flex-start}
+.tl{display:flex;gap:12px}
+.tl-rail{display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:#D9CFC3;margin-top:5px}
+.tl-dot.on{background:var(--g)}
+.tl-line{width:2px;flex:1;background:#EFE6DA}
+.tl-body{flex:1;padding-bottom:14px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.steps div i{display:block;height:4px;border-radius:2px;background:var(--g);margin-bottom:6px}
+.dist-ic{width:32px;height:32px;border-radius:8px;background:var(--gs);color:var(--g);display:grid;place-items:center;flex-shrink:0}
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(30,22,17,.42);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:16px;padding:22px;width:440px;max-width:100%;max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.modal .foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:#F7C4A5;font-weight:600;padding:0}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}
+/* responsive */
+@media (max-width:1180px){
+  .ov,.pub,.tpl-layout,.aic{grid-template-columns:minmax(0,1fr)}
+  .preview{position:static}
+  .ed-body{grid-template-columns:220px minmax(0,1fr) 320px}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 16px;gap:8px}
+  .side .brand{padding:0;flex:1 1 100%}
+  .side .side-group,.side .side-muted{display:none}
+  .nav{flex-direction:row;padding:0;flex-wrap:wrap}
+  .nav a{padding:8px 10px}
+  .top{padding:0 16px;position:static}
+  .site-pill span.ver{display:none}
+  .view{padding:18px 16px 40px}
+  .ways,.opts,.tpl-grid,.checks,.steps{grid-template-columns:minmax(0,1fr)}
+  .tabs-edit{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ed{height:auto}
+  .ed-top{flex-wrap:wrap;height:auto;padding:10px 16px}
+  .ed-body{grid-template-columns:minmax(0,1fr)}
+  .ed-left,.ed-right{border:0;border-top:1px solid var(--line)}
+  .ed-center{order:-1}
+  .pstat{width:auto}
+  .prow{flex-wrap:wrap}
+}
+
+.top-search{width:260px;margin-left:auto}
+.top .btn.sm{white-space:nowrap}
+.todo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.todo{display:flex;gap:12px;align-items:center;padding:16px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--ink);min-width:0}
+.todo:hover{border-color:var(--acc)}
+.todo b{font-size:14px}
+.todo-ic{width:38px;height:38px;border-radius:10px;background:var(--accsoft);color:var(--acc);display:grid;place-items:center;flex-shrink:0}
+.todo-n{font-family:var(--serif);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.ways4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ov2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+.bars{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 64px;gap:12px;align-items:center}
+.bar-name{color:var(--ink);font-weight:400;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.bar-track{height:10px;border-radius:5px;background:var(--ns)}
+.bar-fill{height:100%;border-radius:5px;background:var(--acc)}
+.bar-val{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute)}
+.catdist{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:12px}
+.catdist div{display:flex;justify-content:space-between;padding:8px 12px;border-radius:8px;background:var(--soft);font-size:13px}
+.cthumb{border-radius:8px;display:grid;place-items:center;color:var(--mute);flex-shrink:0}
+.chead{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--soft);border-bottom:1px solid var(--line);border-radius:14px 14px 0 0;font-size:12px;color:var(--faint)}
+.chead>span:first-of-type{padding-left:58px}
+.crow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.crow:last-child{border-bottom:0}
+.crow.sel{background:#FFF8F2}
+.crow input[type=checkbox],.chead input{width:16px;height:16px;accent-color:var(--acc);flex-shrink:0}
+.cmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ctitle{border:0;background:none;padding:0;text-align:left;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctitle:hover{color:var(--acc)}
+.cmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--faint)}
+.cmeta>span:not(.tag)+span:not(.tag)::before{content:"·";margin-right:8px}
+.cmeta .tag{font-size:11px;border:0}
+.cmeta button.tag{cursor:pointer}
+.cstat{width:120px;flex-shrink:0}
+.creads{width:88px;flex-shrink:0;font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute)}
+.ctime{width:84px;flex-shrink:0}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.ccard{border:1px solid var(--line);border-radius:14px;background:#fff;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.ccard:hover{border-color:var(--acc)}
+.ccover{height:110px;display:grid;place-items:center;color:var(--mute);position:relative}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500;font-size:13.5px;line-height:1.5}
+.hint{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--bs);color:var(--b);font-size:13px;flex-wrap:wrap}
+.hint span{flex:1;min-width:200px;color:var(--ink)}
+.hint.warn{background:var(--rs);color:var(--r)}
+.bulk{display:flex;gap:8px;align-items:center;padding:10px 14px;border-radius:12px;background:var(--ink);color:#fff;flex-wrap:wrap;position:sticky;top:72px;z-index:10}
+.bulk .link{color:#F7C4A5}
+.ed2{grid-template-columns:minmax(0,1fr) 380px}
+.writer{padding:32px max(24px,calc((100% - 720px)/2));display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:#fff}
+.w-title{border:0;outline:0;font-family:var(--serif);font-size:30px;font-weight:700;padding:0;background:transparent}
+.w-sum{border:0;border-left:3px solid var(--line);outline:0;resize:none;padding:4px 12px;color:var(--mute);font-size:14px;background:transparent}
+.w-body{border:0;outline:0;resize:none;min-height:380px;flex:1;font-size:15.5px;line-height:1.9;padding:0;background:transparent}
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--mute);background:var(--soft)}
+.panel{padding:16px;display:flex;flex-direction:column;gap:18px}
+.hint-inline{border:0;background:var(--bs);color:var(--b);border-radius:8px;padding:6px 10px;font-size:12px;display:inline-flex;gap:6px;align-items:center;align-self:flex-start}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;padding:6px;border:1px solid var(--line);border-radius:8px;align-items:center}
+.tagbox input{border:0;outline:0;flex:1;min-width:80px;font-size:13px;padding:4px}
+.tagchip{display:inline-flex;align-items:center;gap:4px;padding:3px 6px 3px 10px;border-radius:999px;background:var(--ns);font-size:12px}
+.tagchip button{border:0;background:none;padding:2px;color:var(--faint);display:flex}
+.opt-apply{width:100%;align-items:center;cursor:pointer}
+.opt-apply:hover{border-color:var(--acc)}
+.opt-apply.used{border-color:var(--g);background:var(--gs)}
+.cnt2{background:var(--acc);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;font-weight:600;margin-left:2px}
+.ilist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.icard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.ihead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.itext{font-size:15px;line-height:1.6}
+.quote{border-left:3px solid var(--line);padding:2px 10px;color:var(--mute);font-size:13px;line-height:1.6}
+.kvs{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--mute);padding:10px;border-radius:8px;background:var(--soft)}
+.reply{display:flex;flex-direction:column;gap:8px}
+.answer{padding:10px;border-radius:8px;background:var(--gs);font-size:13px;width:100%}
+.set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.gatecard{position:relative;margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:center;font-size:12.5px;color:var(--mute);background:#FFFBF6}
+.gatecard b{color:var(--ink);display:inline-flex;gap:6px;align-items:center;justify-content:center}
+@media (max-width:1180px){.todo-grid,.ways4{grid-template-columns:repeat(2,minmax(0,1fr))}.ov2,.set-grid,.ilist{grid-template-columns:minmax(0,1fr)}.ed2{grid-template-columns:minmax(0,1fr) 320px}.ctime{display:none}}
+@media (max-width:860px){.top-search{display:none}.todo-grid,.ways4{grid-template-columns:minmax(0,1fr)}.ed2{grid-template-columns:minmax(0,1fr)}.crow{flex-wrap:wrap}.cstat,.creads{width:auto}.chead span:not(:first-of-type){display:none}.writer{padding:20px 16px}.bar-row{grid-template-columns:minmax(0,1fr) 60px}.bar-track{display:none}}
+
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.tile b{font-family:var(--serif);font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.todo{border:1px solid var(--line);cursor:pointer;font:inherit}
+.funnel{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.f-row{display:grid;grid-template-columns:88px minmax(0,1fr) 40px 40px;gap:12px;align-items:center;font-size:13px}
+.f-track{height:22px;border-radius:6px;background:var(--ns)}
+.f-fill{height:100%;border-radius:6px;background:var(--acc)}
+.f-row b{text-align:right;font-variant-numeric:tabular-nums}
+.pdot{width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
+.uav{border-radius:50%;display:grid;place-items:center;font-weight:600;color:var(--n);flex-shrink:0;font-size:13px}
+.ucell{flex:1;min-width:0;display:flex;gap:10px;align-items:center;border:0;background:none;padding:0;text-align:left}
+.ucell b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ucell .faint{display:block}
+.ucell:hover b{color:var(--acc)}
+.c-pay{width:180px;flex-shrink:0}.c-lv{width:100px;flex-shrink:0}.c-num{width:72px;flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}.c-tags{width:150px;flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap}
+.chead .c-num{text-align:right}
+.lv{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid var(--line);color:var(--n);background:#fff;white-space:nowrap}
+.lv2{color:#2F6B45;border-color:#CFE6D7}.lv3{color:#1F6B5E;border-color:#BFE0D9;background:#F1FAF7}.lv4{color:var(--acc);border-color:#F2C9AE;background:#FFF6EF}.lv5{color:#6A3FA0;border-color:#DCCDF0;background:#F7F2FD}
+.seg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.segcard{display:flex;flex-direction:column;gap:14px}
+.avs{display:flex;gap:4px;align-items:center;min-height:30px}
+.scrim.right{place-items:stretch;justify-items:end;padding:0}
+.drawer{background:var(--bg);width:460px;max-width:100%;height:100%;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:-10px 0 30px rgba(0,0,0,.12)}
+.dsec{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.dhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.perks{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--mute)}
+.perks span{display:inline-flex;gap:4px;align-items:center}
+.perks svg{color:var(--g)}
+.lvbar{height:8px;border-radius:4px;background:var(--ns)}
+.lvbar div{height:100%;border-radius:4px;background:var(--acc)}
+.plans-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.plan{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.plan.off{opacity:.72}
+.plan-top{padding:16px;display:flex;flex-direction:column;gap:8px}
+.price{display:flex;align-items:baseline;gap:4px;font-family:var(--serif);font-size:20px;font-weight:700}
+.price input{width:90px;border:0;border-bottom:1.5px dashed rgba(42,31,23,.35);background:transparent;font:inherit;font-size:34px;padding:0;outline:0}
+.plan-body{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.perk{display:flex;gap:8px;align-items:center;font-size:13px}
+.perk input{accent-color:var(--acc);width:16px;height:16px}
+.switch{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.switch span{position:absolute;inset:0;border-radius:999px;background:#D9CFC3;transition:background .15s}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked+span{background:var(--g)}
+.switch input:checked+span::after{transform:translateX(16px)}
+.switch input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.lvstep{display:flex;gap:10px;align-items:center}
+.lvstep .input{padding:7px 10px}
+.lvstep .lv{width:44px;justify-content:center}
+.ptsin{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--acc)}
+.ptsin input{width:56px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-weight:600;color:var(--acc)}
+.chatrow{padding:14px 0;border-bottom:1px solid var(--line2)}
+.chatrow:last-child{border-bottom:0}
+@media (max-width:1180px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.plans-layout{grid-template-columns:minmax(0,1fr)}.plans{grid-template-columns:repeat(2,minmax(0,1fr))}.c-tags{display:none}}
+@media (max-width:860px){.tiles,.plans{grid-template-columns:minmax(0,1fr)}.c-lv,.c-num,.chead .c-pay{display:none}.c-pay{width:auto}.f-row{grid-template-columns:72px minmax(0,1fr) 32px 36px}}
+@media (prefers-reduced-motion:reduce){.switch span,.switch span::after{transition:none}}
+
+.comm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.comm{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.comm.off{opacity:.78}
+.comm-cover{height:84px;display:flex;align-items:flex-start;gap:6px;padding:12px}
+.comm-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.comm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.comm-stats span{display:flex;flex-direction:column;padding:8px 10px;border-radius:8px;background:var(--soft);font-size:12px;color:var(--faint)}
+.comm-stats b{font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums}
+.post{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.post.hid{opacity:.6;background:var(--soft)}
+.post-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line2);padding-top:10px}
+.composer2{display:flex;flex-direction:column;gap:10px;padding:16px}
+@media (max-width:1180px){.comm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){.comm-grid{grid-template-columns:minmax(0,1fr)}}
+
+.plan-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:4px}
+.plan-opts label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--mute)}
+.plan-opts .input{padding:5px 6px;font-size:12.5px;background:rgba(255,255,255,.75)}
+
+.rg{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.rg:last-child{border-bottom:0}
+.rg .input{padding:6px 10px}
+</style>
+</head><body>
+
+<div id="root"></div>
+
+<script>
+(function(){
+const P={
+home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+crown:'<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
+sprout:'<path d="M12 21v-9"/><path d="M12 12c0-4 3-7 8-7 0 5-3 7-8 7z"/><path d="M12 14c0-3-2.5-5.5-7-5.5 0 4 2.5 5.5 7 5.5z"/>',
+chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',minus:'<path d="M5 12h14"/>',check:'<path d="M5 12l5 5 9-10"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',
+chev:'<path d="M9 6l6 6-6 6"/>',down:'<path d="M6 9l6 6 6-6"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',merge:'<path d="M6 3v6a6 6 0 0 0 6 6h6"/><path d="M6 21v-6"/><path d="M15 12l3 3-3 3"/>',
+send:'<path d="M4 12l16-8-6 16-3-7z"/>',gift:'<rect x="3" y="8" width="18" height="5"/><path d="M5 13v8h14v-8M12 8v13"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zM12 8c2-4 6-4 6-1s-6 1-6 1z"/>',
+tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',coin:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/>',
+filter:'<path d="M4 5h16l-6 8v6l-4-2v-4z"/>',tab:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16h18M9 16v4M15 16v4"/>',
+qr:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/>',
+warn:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'
+};
+const ic=(n,s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const TODAY=new Date(2026,8,22);
+const d2s=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const pd=s=>new Date(s+'T00:00:00');
+const addDays=(s,n)=>{const d=s?pd(s):new Date(TODAY);if(d<TODAY)d.setTime(TODAY.getTime());d.setDate(d.getDate()+n);return d2s(d)};
+const daysLeft=s=>s?Math.round((pd(s)-TODAY)/864e5):null;
+const money=n=>'¥'+n.toLocaleString('zh-CN',{minimumFractionDigits:0});
+let uid=200;const nid=p=>p+(++uid);
+const TONES=['#F3D9A4','#FCEBDD','#E6EEFA','#E3F3EA','#EFE6DA','#F3DDE6'];
+
+/* ---------- data ---------- */
+const LEVELS=[{lv:1,name:'新芽',min:0},{lv:2,name:'青叶',min:100},{lv:3,name:'繁枝',min:500},{lv:4,name:'暖阁',min:1500},{lv:5,name:'知己',min:5000}];
+const lvOf=pts=>[...LEVELS].reverse().find(l=>pts>=l.min);
+const PERKS=['全部会员长文','资料下载','加入暖阁星球','直播回放','1v1 咨询 9 折','会员专属社群'];
+const SRCS=['公众号菜单','小红书主页','朋友分享','社群二维码','搜一搜'];const INTS=['写作方法','内容创业','生活方式','效率工具','读书'];
+const U=(id,name,phone,o={})=>Object.assign({id,name,phone,forms:0,signups:0,src:SRCS[+id.slice(1)%5],interest:[INTS[+id.slice(1)%5],INTS[(+id.slice(1)+2)%5]],tone:TONES[+id.slice(1)%6],plan:null,expire:null,points:0,orders:0,spend:0,visit:'09-20',visits7:1,joined:'09-01',tags:[],dup:null,note:'',log:[]},o);
+const S={
+ route:'overview',
+ users:[
+  U('u1','林一','138****2210',{forms:2,signups:3,plan:'year',expire:'2027-03-02',points:1860,orders:4,spend:522,visit:'09-22',visits7:6,joined:'2026-03-02',tags:['共读活跃','投稿作者']}),
+  U('u2','阿青','139****0381',{signups:1,plan:'year',expire:'2026-09-26',points:920,orders:2,spend:336,visit:'09-21',visits7:4,joined:'2025-09-26',tags:['共读活跃']}),
+  U('u3','周周','186****5520',{plan:'month',expire:'2026-09-25',points:340,orders:3,spend:54,visit:'09-19',visits7:2,joined:'2026-06-25'}),
+  U('u4','Echo','177****8126',{plan:'month',expire:'2026-10-15',points:210,orders:1,spend:18,visit:'09-21',visits7:5,joined:'2026-09-15'}),
+  U('u5','小满','150****3372',{forms:1,signups:1,points:460,visit:'09-22',visits7:7,joined:'2026-07-10',tags:['高意向']}),
+  U('u6','微信用户','189****1446',{points:0,visit:'09-12',visits7:0,joined:'2026-09-04'}),
+  U('u7','微信用户','189****1446',{points:0,visit:'09-10',visits7:0,joined:'2026-09-07',dup:'u6'}),
+  U('u8','微信用户','189****1446',{points:0,visit:'09-09',visits7:0,joined:'2026-09-09',dup:'u6'}),
+  U('u9','微信用户','199****4435',{points:12,visit:'09-11',visits7:1,joined:'2026-09-07'}),
+  U('u10','微信用户','199****4435',{points:0,visit:'09-11',visits7:0,joined:'2026-09-11',dup:'u9'}),
+  U('u11','微信用户','153****5622',{points:5,visit:'09-11',visits7:1,joined:'2026-09-05'}),
+  U('u12','老张','131****9008',{plan:'year',expire:'2026-10-30',points:2400,orders:6,spend:760,visit:'08-10',visits7:0,joined:'2024-10-30',tags:['老会员']}),
+  U('u13','Mia','182****6603',{plan:'year',expire:'2026-09-10',points:640,orders:2,spend:336,visit:'09-02',visits7:0,joined:'2025-09-10'}),
+  U('u14','木子','135****7741',{points:150,visit:'09-20',visits7:3,joined:'2026-08-21'}),
+  U('u15','安安','158****2217',{plan:'month',expire:'2026-11-02',points:95,orders:1,spend:18,visit:'09-22',visits7:3,joined:'2026-09-02'}),
+  U('u16','一禾','187****4419',{points:30,visit:'09-18',visits7:1,joined:'2026-09-18'})
+ ],
+ plans:[
+  {id:'year',name:'年费会员',price:168,period:'年',badge:'推荐',remind:7,shop:9,on:true,perks:['全部会员长文','资料下载','加入暖阁星球','直播回放','1v1 咨询 9 折','会员专属社群'],tone:'#F3D9A4'},
+  {id:'month',name:'月度会员',price:18,period:'月',badge:'',remind:3,shop:9.5,on:true,perks:['全部会员长文','资料下载','直播回放'],tone:'#FCEBDD'},
+  {id:'single',name:'单篇解锁',price:6,period:'篇',badge:'',remind:0,shop:10,on:false,perks:['解锁当前这一篇'],tone:'#EFE6DA'}
+ ],
+ rules:[{k:'每日签到',pts:2,cap:'每天 1 次',on:true},{k:'阅读内容',pts:1,cap:'每天最多 10 分',on:true},{k:'发表评论',pts:3,cap:'每天最多 5 条',on:true},{k:'邀请好友注册',pts:50,cap:'不限',on:true},{k:'消费 1 元',pts:1,cap:'—',on:true},{k:'首次开通会员',pts:200,cap:'一次',on:true}],
+ segs:[
+  {id:'s1',name:'7 天内到期的会员',rule:'付费会员 且 到期 ≤ 7 天',f:u=>u.plan&&daysLeft(u.expire)>=0&&daysLeft(u.expire)<=7,act:'发续费提醒'},
+  {id:'s2',name:'高活跃非会员',rule:'非会员 且 近 7 天访问 ≥ 3 次',f:u=>!isPaid(u)&&u.visits7>=3,act:'送 7 天体验会员'},
+  {id:'s3',name:'已过期会员',rule:'曾付费 且 已过期',f:u=>u.plan&&daysLeft(u.expire)<0,act:'发召回优惠券'},
+  {id:'s4',name:'沉睡会员',rule:'付费会员 且 30 天未访问',f:u=>isPaid(u)&&u.visit<'08-23',act:'发内容推荐'},
+  {id:'s5',name:'资料未完善',rule:'昵称仍是「微信用户」',f:u=>u.name==='微信用户',act:'发完善资料提醒'}
+ ],
+ groups:[{n:'暖阁星球',kind:'星球',rule:'年费会员自动加入',who:u=>u.plan==='year'&&isPaid(u)},{n:'暖阁读书会 · 1 群',kind:'微信群',rule:'付费会员扫码入群',who:u=>isPaid(u)},{n:'跨境新手交流群',kind:'微信群',rule:'所有用户',who:u=>!u.dup}],
+ tagdefs:[{n:'共读活跃',color:'#1F7A4D',desc:'近 30 天参加过共读打卡',on:true},{n:'投稿作者',color:'#2458A6',desc:'投稿被收录过',on:true},{n:'高意向',color:'#B4430F',desc:'多次查看开通页但未付费',on:true},{n:'老会员',color:'#8F5400',desc:'连续续费 2 年以上',on:true},{n:'线下活动',color:'#6A3FA0',desc:'参加过线下见面会',on:false}],
+ rgroups:[
+  {id:'g1',n:'暖阁读书会 · 1 群',dir:'读书',who:'paid',qrExp:'2026-09-25',full:false,on:true},
+  {id:'g2',n:'内容创作者 · 2 群',dir:'写作',who:'paid',qrExp:'2026-09-28',full:true,on:true},
+  {id:'g3',n:'跨境新手交流群',dir:'跨境出海',who:'all',qrExp:'2026-09-20',full:false,on:true}
+ ],
+ svc:{phone:'400-000-0000',wecom:'https://work.weixin.qq.com/kfid/示例',desc:'工作日 10:00–19:00 在线，其他时间留言次日回复',rule:'进群请改备注「城市-方向-昵称」，禁止广告和私下拉人'},
+ comms:[
+  {id:'c1',name:'暖阁星球 · 内容创作者',sub:'和 {n} 位球友一起慢慢写',intro:'每周一次选题会，每天晨写打卡；会员专属资料随时下载。',cover:'#F3D9A4',btn:'加入星球',highlights:['每周选题会','晨写打卡','专属资料'],on:true,main:true,access:['year'],fallback:'这周聊聊：你最想写却一直没写的选题',tip:'到期不自动续费 · 随时可退出',cardTitle:'暖阁星球 · 内容创作者',countTpl:'{n} 位球友',todayTpl:'今日 {n} 条新动态',cta:'去看看',checkEntry:true,topicSrc:'auto',topicTitle:'本周热门话题',topicDesc:'大家最近都在聊',fallbacks:['这周聊聊：你最想写却一直没写的选题','晨写打卡：今天写了多少字？']},
+  {id:'c2',name:'',sub:'',intro:'',cover:'#E6EEFA',btn:'',highlights:[],on:true,main:false,access:[],fallback:'',tip:'',cardTitle:'',countTpl:'{n} 位球友',todayTpl:'今日 {n} 条新动态',cta:'去看看',checkEntry:false,topicSrc:'auto',topicTitle:'本周热门话题',topicDesc:'',fallbacks:[]},
+  {id:'c3',name:'',sub:'',intro:'',cover:'#E3F3EA',btn:'',highlights:[],on:false,main:false,access:[],fallback:'',tip:'',cardTitle:'',countTpl:'{n} 位球友',todayTpl:'今日 {n} 条新动态',cta:'去看看',checkEntry:false,topicSrc:'auto',topicTitle:'本周热门话题',topicDesc:'',fallbacks:[]}
+ ],
+ posts:[
+  {id:'p1',cid:'c1',author:'林一',kind:'热议',text:'我用 3 个月把公众号做到 5000 付费，把踩过的坑整理成了 9 张图。核心就一句：先让 100 个人离不开你。',at:'今天 09:40',likes:36,comments:12,pinned:true,essence:true,hidden:false,topic:'公众号增长'},
+  {id:'p2',cid:'c1',author:'阿青',kind:'提问',text:'知识付费定价 99 和 199，差别到底有多大？我怕定高了没人买。',at:'今天 08:15',likes:9,comments:4,pinned:false,essence:false,hidden:false,topic:'定价'},
+  {id:'p3',cid:'c1',author:'老张',kind:'打卡',text:'晨写第 42 天。今天写了 1200 字关于小书店选品的复盘，发现自己开始能一口气写完了。',at:'今天 07:02',likes:21,comments:3,pinned:false,essence:false,hidden:false,topic:'晨写'},
+  {id:'p4',cid:'c1',author:'林一',kind:'动态',text:'分享一个选题表模板，按「痛点 / 场景 / 证据」三列填，写起来快很多。',at:'昨天 21:30',likes:18,comments:6,pinned:false,essence:true,hidden:false,topic:'选题'},
+  {id:'p5',cid:'c1',author:'阿青',kind:'提问',text:'晨写一般写多少字合适？每天 300 字算不算？',at:'昨天 12:10',likes:5,comments:1,pinned:false,essence:false,hidden:false,topic:'晨写'},
+  {id:'p6',cid:'c1',author:'老张',kind:'动态',text:'加V领资料，私信我',at:'昨天 10:02',likes:0,comments:0,pinned:false,essence:false,hidden:true,topic:''}
+ ],
+ checkins:[{id:'k1',cid:'c1',name:'晨写 21 天',days:21,joined:3,today:1,on:true},{id:'k2',cid:'c1',name:'9 月共读打卡',days:30,joined:2,today:0,on:true}],
+ owner:null,guests:['u1'],ctab:'feed',pfilter:'all',pkind:'动态',preply:null,lastComm:null,
+ chats:[{id:'c1',who:'阿青',text:'年费到期后会自动续吗？我不想自动扣费',at:'10 分钟前',st:'open'},{id:'c2',who:'木子',text:'开通会员能开发票吗？',at:'1 小时前',st:'open'},{id:'c3',who:'周周',text:'资料包下载不了，一直转圈',at:'昨天',st:'open'}],
+ ul:{q:'',pay:'all',lv:'all',tag:'all',sel:{},tab:'list'},
+ drawer:null,modal:null,toast:null,chat:null
+};
+const Uid=id=>S.users.find(u=>u.id===id);
+const isPaid=u=>u.plan&&daysLeft(u.expire)>=0;
+const real=()=>S.users.filter(u=>!u.dup||!Uid(u.dup));
+const dupGroups=()=>{const m={};S.users.filter(u=>u.dup&&Uid(u.dup)).forEach(u=>{(m[u.dup]=m[u.dup]||[]).push(u)});return Object.entries(m)};
+const plan=id=>S.plans.find(p=>p.id===id);
+function payTag(u){
+ if(!u.plan)return '<span class="tag t-draft">非会员</span>';
+ if(plan(u.plan).period==='终身')return `<span class="tag t-live">${plan(u.plan).name} · 终身</span>`;
+ const d=daysLeft(u.expire);
+ if(d<0)return `<span class="tag t-offline">${plan(u.plan).name} · 已过期</span>`;
+ if(d<=7)return `<span class="tag t-pending">${plan(u.plan).name} · ${d} 天后到期</span>`;
+ return `<span class="tag t-live">${plan(u.plan).name} · 至 ${u.expire.slice(5)}</span>`;
+}
+const lvBadge=u=>{const l=lvOf(u.points);return `<span class="lv lv${l.lv}">Lv${l.lv} ${l.name}</span>`};
+const tagChip=t=>{const d=S.tagdefs.find(x=>x.n===t);return `<span class="tagchip" style="${d?`background:${d.color}1A;color:${d.color}`:''}">${esc(t)}</span>`};
+const avatar=(u,s=36)=>`<span class="uav" style="width:${s}px;height:${s}px;background:${u.tone}">${esc(u.name==='微信用户'?'微':u.name.slice(0,1))}</span>`;
+
+/* ---------- shell ---------- */
+function sidebar(){
+ const r=S.route;const n=S.chats.filter(c=>c.st==='open').length;
+ const nav=[['overview','home','概览'],['users','users','用户'],['plans','crown','会员与权益'],['growth','sprout','成长与积分'],['community','users','社区'],['support','chat','客服']].map(([h,i,l])=>`<a href="#${h}" class="${r.split('/')[0]===h?'on':''}" ${r.split('/')[0]===h?'aria-current="page"':''}>${ic(i,17)}<span>${l}</span>${h==='support'&&n?`<span class="badge">${n}</span>`:''}</a>`).join('');
+ return `<aside class="side"><div class="brand"><div class="brand-mark">${ic('tab',18)}</div><div><b>暖阁运营后台</b><small>内容 · 会员 · Agent</small></div></div>
+ <div class="side-muted">总览${ic('chev',14)}</div><div class="side-muted">小程序${ic('chev',14)}</div><div class="side-muted">内容运营${ic('chev',14)}</div><div class="side-group">用户会员${ic('down',14)}</div><nav class="nav" aria-label="用户会员">${nav}</nav><div style="height:8px"></div>
+ ${['商业变现','活动预约','经营管理','系统设置'].map(x=>`<div class="side-muted">${x}${ic('chev',14)}</div>`).join('')}</aside>`;
+}
+function topbar(crumb){return `<header class="top"><div class="crumb">用户会员 / <b>${crumb}</b></div><label class="search top-search">${ic('search',15)}<input id="gq" type="search" placeholder="搜索昵称或手机号后四位" aria-label="搜索用户"></label><div class="avatar" aria-label="Bruce">B</div></header>`}
+
+/* ---------- overview ---------- */
+function vOverview(){
+ const R=real();const paid=R.filter(isPaid);const exp7=R.filter(S.segs[0].f);const expired=R.filter(S.segs[2].f);const newM=R.filter(u=>u.joined>='2026-09-01');
+ const dups=dupGroups();const open=S.chats.filter(c=>c.st==='open');
+ const tiles=[['真实用户',R.length,`原列表 ${S.users.length} 条，含 ${S.users.length-R.length} 条重复账号`],['付费会员',paid.length,`占 ${Math.round(paid.length/R.length*100)}%`],['7 天内到期',exp7.length,'到期前提醒续费最有效'],['本月新增',newM.length,'9 月注册的用户']].map(([t,n,d])=>`<div class="tile"><span class="faint">${t}</span><b>${n}</b><span class="faint">${d}</span></div>`).join('');
+ const todo=[
+  ['clock','到期提醒',exp7.length,exp7.map(u=>u.name).join('、')||'暂无','remindexp'],
+  ['merge','重复账号待合并',dups.length,dups.length?'同一手机号被记成了多个用户':'已清理','go:users'],
+  ['warn','已过期未续费',expired.length,expired.map(u=>u.name).join('、')||'暂无','go:users/expired'],
+  ['chat','客服待回复',open.length,open.map(c=>c.who).join('、')||'暂无','go:support']
+ ].map(([i,t,n,d,a])=>`<button type="button" class="todo" data-a="${a.split(':')[0]}" data-to="${a.split(':')[1]||''}"><span class="todo-ic">${ic(i,18)}</span><span style="flex:1;min-width:0;text-align:left"><b>${t}</b><span class="faint" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d)}</span></span><span class="todo-n">${n}</span></button>`).join('');
+ const reg=R.length,filled=R.filter(u=>u.name!=='微信用户').length,act=R.filter(u=>u.visits7>=1).length;
+ const funnel=[['注册用户',reg],['完善资料',filled],['近 7 天活跃',act],['付费会员',paid.length]];
+ const fmax=funnel[0][1];
+ const planDist=S.plans.map(p=>[p,R.filter(u=>u.plan===p.id&&isPaid(u)).length]);
+ const revenue=R.reduce((s,u)=>s+u.spend,0);
+ return `<div class="view"><div class="head"><div><h1 class="h1">会员概览</h1><div class="sub">9 月 22 日 · 示例数据 · 已按手机号去重</div></div></div>
+ <div class="tiles">${tiles}</div>
+ <div class="todo-grid">${todo}</div>
+ <div class="ov2"><section class="card"><h2 class="h2">从注册到付费</h2><div class="sub">每一步还剩多少人；最大的缺口是「完善资料」</div><div class="funnel">${funnel.map(([l,n],i)=>`<div class="f-row"><span>${l}</span><div class="f-track"><div class="f-fill" style="width:${Math.max(6,n/fmax*100)}%;opacity:${1-i*0.15}"></div></div><b>${n}</b><span class="faint">${i?Math.round(n/funnel[i-1][1]*100)+'%':''}</span></div>`).join('')}</div></section>
+ <section class="card"><h2 class="h2">会员构成</h2><div class="sub">有效会员 ${paid.length} 人 · 累计消费 ${money(revenue)}</div><div style="margin-top:12px">${planDist.map(([p,n])=>`<div class="list-row"><span class="pdot" style="background:${p.tone}"></span><b style="font-weight:500">${p.name}</b><span class="faint">${money(p.price)} / ${p.period}${p.on?'':' · 已下架'}</span><span style="margin-left:auto;font-weight:600">${n} 人</span></div>`).join('')}</div><a class="link" href="#plans" style="font-size:13px">管理会员与权益 ›</a></section></div></div>`;
+}
+
+/* ---------- users ---------- */
+function filtered(){
+ const L=S.ul;const q=L.q.trim();
+ return S.users.filter(u=>{
+  if(u.dup&&Uid(u.dup))return false;
+  if(q&&!(u.name.includes(q)||u.phone.slice(-4).includes(q)||u.tags.some(t=>t.includes(q))))return false;
+  if(L.pay==='paid'&&!isPaid(u))return false;if(L.pay==='exp7'&&!S.segs[0].f(u))return false;if(L.pay==='expired'&&!S.segs[2].f(u))return false;if(L.pay==='none'&&u.plan)return false;
+  if(L.lv!=='all'&&lvOf(u.points).lv!==+L.lv)return false;if(L.tag!=='all'&&!u.tags.includes(L.tag))return false;if(L.src&&L.src!=='all'&&u.src!==L.src)return false;
+  if(L.seg){const s=S.segs.find(x=>x.id===L.seg);if(!s.f(u))return false}
+  return true});
+}
+function vUsers(){
+ const L=S.ul;const R=real();const list=filtered();const sel=Object.keys(L.sel).filter(k=>L.sel[k]&&Uid(k));
+ const allTags=[...new Set(S.users.flatMap(u=>u.tags))];
+ const cnt=k=>R.filter(u=>k==='all'||(k==='paid'&&isPaid(u))||(k==='exp7'&&S.segs[0].f(u))||(k==='expired'&&S.segs[2].f(u))||(k==='none'&&!u.plan)).length;
+ const chips=[['all','全部'],['paid','付费会员'],['exp7','7 天内到期'],['expired','已过期'],['none','非会员']].map(([k,l])=>`<button type="button" class="chip ${L.pay===k?'on':''}" data-a="pay" data-k="${k}">${l} ${cnt(k)}</button>`).join('');
+ const dups=dupGroups();
+ const seg=L.seg&&S.segs.find(s=>s.id===L.seg);
+ const tabs=`<div class="tabs-line" role="tablist"><button type="button" class="${L.tab==='list'?'on':''}" data-a="utab" data-k="list">用户列表</button><button type="button" class="${L.tab==='segs'?'on':''}" data-a="utab" data-k="segs">分群与触达</button><button type="button" class="${L.tab==='tags'?'on':''}" data-a="utab" data-k="tags">标签管理</button></div>`;
+ if(L.tab==='tags'){
+  return `<div class="view"><div class="head"><div><h1 class="h1">用户</h1><div class="sub">统一维护标签，打标签时只能从这里选，避免同义词泛滥</div></div><div class="actions"><button type="button" class="btn primary" data-a="tagnew">${ic('plus',15)}新建标签</button></div></div>${tabs}
+  <div class="group"><div class="chead"><span style="width:40px;padding:0">颜色</span><span style="width:160px;padding:0">标签名</span><span style="flex:1;padding:0">说明</span><span class="c-num">引用</span><span style="width:120px">状态</span></div>${S.tagdefs.map((d,i)=>{const refs=real().filter(u=>u.tags.includes(d.n)).length;return `<div class="crow"><input type="color" id="tc-${i}" value="${d.color}" aria-label="标签颜色" style="width:40px;height:32px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff"><input id="tn-${i}" class="input" style="width:160px" value="${esc(d.n)}" aria-label="标签名"><input id="td-${i}" class="input" style="flex:1" value="${esc(d.desc)}" placeholder="什么样的用户打这个标签" aria-label="说明"><button type="button" class="link c-num" data-a="tagrefs" data-n="${esc(d.n)}">${refs} 人</button><span style="width:120px;display:flex;gap:8px;align-items:center"><label class="switch"><input type="checkbox" data-tagon="${i}" ${d.on?'checked':''} aria-label="启用"><span></span></label><button type="button" class="iconbtn" data-a="tagdel" data-i="${i}" aria-label="删除标签" ${refs?'disabled title="还有用户在用"':''}>${ic('x',14)}</button></span></div>`}).join('')}</div>
+  <div class="faint">停用的标签不能再打，已打的保留；有人在用的标签不能删除</div></div>`;
+ }
+ if(L.tab==='segs'){
+  return `<div class="view"><div class="head"><div><h1 class="h1">用户</h1><div class="sub">按条件自动圈人，人数实时更新；一键触达走微信订阅消息</div></div><div class="actions"><button type="button" class="btn primary" data-a="toast" data-t="原型中未开放自定义条件">${ic('plus',15)}新建分群</button></div></div>${tabs}
+  <div class="seg-grid">${S.segs.map(s=>{const us=R.filter(s.f);return `<article class="card segcard"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><h2 class="h2">${s.name}</h2><div class="faint" style="margin-top:4px">${ic('filter',12)} ${s.rule}</div></div><span class="todo-n">${us.length}</span></div>
+  <div class="avs">${us.slice(0,6).map(u=>avatar(u,28)).join('')}${us.length>6?`<span class="faint">+${us.length-6}</span>`:''}${us.length?'':'<span class="faint">当前没有人符合</span>'}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm" data-a="segview" data-id="${s.id}">查看名单</button><button type="button" class="btn sm primary" data-a="segact" data-id="${s.id}" ${us.length?'':'disabled'}>${ic('send',14)}${s.act}</button></div></article>`}).join('')}</div></div>`;
+ }
+ const rows=list.map(u=>`<div class="crow ${L.sel[u.id]?'sel':''}"><input type="checkbox" data-sel="${u.id}" ${L.sel[u.id]?'checked':''} aria-label="选择 ${esc(u.name)}">
+ <button type="button" class="ucell" data-a="open" data-id="${u.id}">${avatar(u)}<span style="min-width:0"><b>${esc(u.name)}${u.name==='微信用户'?' <span class="tag t-draft" style="font-size:11px">未完善</span>':''}</b><span class="faint">${u.phone} · ${u.src}${S.users.some(x=>x.dup===u.id)?` · <span style="color:var(--r)">${S.users.filter(x=>x.dup===u.id).length} 个重复账号</span>`:''}</span></span></button>
+ <div class="c-pay">${payTag(u)}</div><div class="c-lv">${lvBadge(u)}</div><div class="c-num">${u.points}</div><div class="c-num">${money(u.spend)}</div><div class="c-num">${u.orders}</div><div class="c-tags">${u.tags.map(tagChip).join('')}</div><div class="ctime faint">${u.visit}</div><div class="ctime faint">${u.joined.slice(2)}</div></div>`).join('')||`<div class="muted" style="padding:28px;text-align:center">没有符合条件的用户</div>`;
+ return `<div class="view"><div class="head"><div><h1 class="h1">用户</h1><div class="sub">所有注册用户都在这里，付费会员只是其中一种状态</div></div><div class="actions"><button type="button" class="btn" data-a="toast" data-t="已导出（示例）">导出</button></div></div>${tabs}
+ ${dups.length?`<div class="hint warn">${ic('merge',16)}<span><b>${dups.length} 个手机号被记成了 ${dups.reduce((s,[,a])=>s+a.length+1,0)} 个用户</b>：同一个人多次授权登录被重复建档，数据被拆散了。</span><button type="button" class="btn sm primary" data-a="mergeall">全部合并</button></div>`:''}
+ ${seg?`<div class="hint">${ic('filter',16)}<span>正在看分群「<b>${seg.name}</b>」· ${seg.rule}</span><button type="button" class="btn sm" data-a="segclear">看全部</button></div>`:''}
+ <div class="tiles">${[['总用户（已去重）',R.length],['近 7 日活跃',R.filter(u=>u.visits7>0).length],['有订单用户',R.filter(u=>u.orders>0).length],['有效订单',R.reduce((a,u)=>a+u.orders,0)]].map(([t,n])=>`<div class="tile" style="padding:12px 16px"><span class="faint">${t}</span><b style="font-size:26px">${n}</b></div>`).join('')}</div>
+ <div class="filters"><label class="search">${ic('search',15)}<input id="uq" type="search" placeholder="昵称、手机后四位或标签" value="${esc(L.q)}" aria-label="搜索用户"></label>${chips}
+ <select id="ulv" class="input" style="width:auto" aria-label="成长等级"><option value="all">全部等级</option>${LEVELS.map(l=>`<option value="${l.lv}" ${L.lv==l.lv?'selected':''}>Lv${l.lv} ${l.name}</option>`).join('')}</select>
+ <select id="usrc" class="input" style="width:auto" aria-label="来源渠道"><option value="all">全部来源</option>${SRCS.map(x=>`<option ${L.src===x?'selected':''}>${x}</option>`).join('')}</select>
+ <select id="utag" class="input" style="width:auto" aria-label="标签"><option value="all">全部标签</option>${allTags.map(t=>`<option ${L.tag===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+ ${sel.length?`<div class="bulk"><b>已选 ${sel.length} 人</b><button type="button" class="btn sm" data-a="bulktag">${ic('tag',14)}打标签</button><button type="button" class="btn sm" data-a="bulkmsg">${ic('send',14)}发订阅消息</button><button type="button" class="btn sm" data-a="bulkgift">${ic('gift',14)}赠送会员</button><button type="button" class="link" style="margin-left:auto" data-a="clearsel">取消选择</button></div>`:''}
+ <div class="group"><div class="chead"><input type="checkbox" data-a="selall" aria-label="全选" ${list.length&&list.every(u=>L.sel[u.id])?'checked':''}><span style="flex:1;padding-left:0">用户</span><span class="c-pay">付费会员</span><span class="c-lv">成长等级</span><span class="c-num">积分</span><span class="c-num">累计消费</span><span class="c-num">订单</span><span class="c-tags">标签</span><span class="ctime">最近访问</span><span class="ctime">注册</span></div>${rows}</div>
+ <div class="faint">共 ${list.length} 人 · 点用户查看详情</div></div>`;
+}
+function vDrawer(){
+ const u=S.drawer&&Uid(S.drawer);if(!u)return'';
+ const l=lvOf(u.points);const next=LEVELS.find(x=>x.min>u.points);
+ const dups=S.users.filter(x=>x.dup===u.id);
+ const log=u.log.slice().reverse().map(x=>`<div class="list-row"><span class="tag ${x.t==='积分'?'t-new':x.t==='会员'?'t-live':'t-draft'}">${x.t}</span><span style="flex:1">${esc(x.d)}</span><span class="faint">${x.at}</span></div>`).join('');
+ return `<div class="scrim right" data-a="scrim"><aside class="drawer" role="dialog" aria-modal="true" aria-label="用户详情">
+ <div style="display:flex;gap:12px;align-items:center">${avatar(u,52)}<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:600">${esc(u.name)}</div><div class="faint">${u.phone} · 注册于 ${u.joined} · 最近访问 ${u.visit}</div></div><button type="button" class="iconbtn" data-a="close" aria-label="关闭">${ic('x',16)}</button></div>
+ ${dups.length?`<div class="hint warn">${ic('merge',16)}<span>另有 ${dups.length} 个账号使用同一手机号</span><button type="button" class="btn sm primary" data-a="merge" data-id="${u.id}">合并</button></div>`:''}
+ <section class="dsec"><div class="dhead"><b>付费会员</b>${payTag(u)}</div>${u.plan?`<div class="faint">${plan(u.plan).name} · ${money(plan(u.plan).price)}/${plan(u.plan).period} · 到期 ${u.expire}</div><div class="perks">${plan(u.plan).perks.map(p=>`<span>${ic('check',12)}${p}</span>`).join('')}${plan(u.plan).shop<10?`<span>${ic('check',12)}商城 ${plan(u.plan).shop} 折</span>`:''}</div>`:'<div class="faint">还不是会员</div>'}
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm" data-a="gift" data-id="${u.id}">${ic('gift',14)}${u.plan?'延长 / 赠送':'赠送会员'}</button>${u.plan&&daysLeft(u.expire)<=7?`<button type="button" class="btn sm primary" data-a="remind1" data-id="${u.id}">${ic('send',14)}发续费提醒</button>`:''}</div></section>
+ <section class="dsec"><div class="dhead"><b>成长等级</b>${lvBadge(u)}</div><div class="lvbar"><div style="width:${next?Math.min(100,(u.points-l.min)/(next.min-l.min)*100):100}%"></div></div><div class="faint">${u.points} 积分${next?` · 再得 ${next.min-u.points} 分升到 Lv${next.lv} ${next.name}`:' · 已是最高等级'} · 等级只做展示，不影响阅读权限</div>
+ <button type="button" class="btn sm" style="align-self:flex-start" data-a="pts" data-id="${u.id}">${ic('coin',14)}调整积分</button></section>
+ <section class="dsec"><div class="dhead"><b>画像</b><span class="faint">根据行为自动生成</span></div><div class="kvs" style="background:none;padding:0"><span>常看分类：${u.interest.join('、')}</span><span>近 7 天访问：${u.visits7} 次</span><span>来源渠道：${u.src}</span><span>所在社区：${S.comms.filter(c=>c.on&&isPaid(u)&&c.access.includes(u.plan)).map(c=>c.name).join('、')||'无'}</span></div></section>
+ <section class="dsec"><div class="dhead"><b>业务记录</b><span class="faint">累计消费 ${money(u.spend)}</span></div><div class="comm-stats"><span><b>${u.orders}</b>订单</span><span><b>${u.forms}</b>表单</span><span><b>${u.signups}</b>活动报名</span></div></section>
+ <section class="dsec"><div class="dhead"><b>标签</b></div><div class="tagbox">${u.tags.map((t,i)=>`<span class="tagchip" style="${(d=>d?`background:${d.color}1A;color:${d.color}`:'')(S.tagdefs.find(x=>x.n===t))}">${esc(t)}<button type="button" data-a="rmtag" data-id="${u.id}" data-i="${i}" aria-label="删除标签">${ic('x',11)}</button></span>`).join('')}<select id="d-tagsel" aria-label="添加标签" style="border:0;outline:0;background:none;color:var(--faint)"><option value="">+ 添加标签</option>${S.tagdefs.filter(d=>d.on&&!u.tags.includes(d.n)).map(d=>`<option>${esc(d.n)}</option>`).join('')}</select></div></section>
+ <section class="dsec"><div class="dhead"><b>备注</b><span class="faint">仅后台可见</span></div><textarea id="d-note" class="input" rows="2" placeholder="比如：线下活动认识，做跨境 3 年">${esc(u.note)}</textarea></section>
+ <section class="dsec"><div class="dhead"><b>操作记录</b></div>${log||'<div class="faint">暂无记录；赠送会员、调积分都会记在这里</div>'}</section>
+ </aside></div>`;
+}
+
+/* ---------- plans ---------- */
+function vPlans(){
+ const R=real();
+ const cards=S.plans.map(p=>{const n=R.filter(u=>u.plan===p.id&&isPaid(u)).length;return `<article class="plan ${p.on?'':'off'}"><div class="plan-top" style="background:${p.tone}"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">${esc(p.name)}${p.badge?` <span class="tag t-acc">${esc(p.badge)}</span>`:''}</b><span style="display:flex;gap:4px;margin-left:auto;margin-right:8px"><button type="button" class="iconbtn" style="width:28px;height:28px" data-a="planmv" data-id="${p.id}" data-d="-1" aria-label="前移">‹</button><button type="button" class="iconbtn" style="width:28px;height:28px" data-a="planmv" data-id="${p.id}" data-d="1" aria-label="后移">›</button></span><label class="switch"><input type="checkbox" data-plan="${p.id}" ${p.on?'checked':''} aria-label="${p.name}上架"><span></span></label></div>
+ <div class="price"><span>¥</span><input id="price-${p.id}" type="number" min="1" value="${p.price}" aria-label="${p.name}价格"><span class="faint">/ ${p.period}</span></div><div class="faint">${p.on?'销售中':'已下架，老用户不受影响'} · 有效会员 ${n} 人</div>
+ <div class="plan-opts"><label>有效期<select id="per-${p.id}" class="input">${['月','季','年','终身','篇'].map(x=>`<option ${p.period===x?'selected':''}>${x}</option>`).join('')}</select></label><label>角标<input id="bdg-${p.id}" class="input" value="${esc(p.badge)}" placeholder="如：推荐" maxlength="4"></label><label>到期提醒<select id="rmd-${p.id}" class="input" ${p.period==='终身'||p.period==='篇'?'disabled':''}>${[0,1,3,7,15].map(x=>`<option value="${x}" ${p.remind==x?'selected':''}>${x?'提前 '+x+' 天':'不提醒'}</option>`).join('')}</select></label><label>商城会员价<select id="shp-${p.id}" class="input">${[10,9.5,9,8.5,8].map(x=>`<option value="${x}" ${p.shop==x?'selected':''}>${x===10?'无折扣':x+' 折'}</option>`).join('')}</select></label><label style="grid-column:span 2">开通社区（星球）<span style="display:flex;gap:10px;flex-wrap:wrap;padding-top:4px">${S.comms.filter(c=>c.name).map(c=>`<span class="perk" style="font-size:12px"><input type="checkbox" data-pc="${p.id}|${c.id}" ${c.access.includes(p.id)?'checked':''} ${p.period==='篇'?'disabled':''}>${esc(c.name)}</span>`).join('')||'<span class="faint">还没有命名的社区</span>'}</span></label></div></div>
+ <div class="plan-body"><div class="faint">包含权益（点击勾选）</div>${PERKS.map(k=>`<label class="perk"><input type="checkbox" data-perk="${p.id}|${k}" ${p.perks.includes(k)?'checked':''} ${p.id==='single'?'disabled':''}><span>${k}</span></label>`).join('')}${p.id==='single'?'<div class="faint">单篇解锁只包含当前这一篇</div>':''}</div></article>`}).join('');
+ const vis=S.plans.filter(p=>p.on);
+ return `<div class="view"><div class="head"><div><h1 class="h1">会员与权益</h1><div class="sub">付费档决定三件事：会员文章能不能看、商城会员价、能进哪些社区。改价只影响新购买</div></div><div class="actions"><button type="button" class="btn" data-a="plannew">${ic('plus',15)}新增付费档</button><button type="button" class="btn" data-a="testremind">${ic('send',15)}试发到期提醒</button></div></div>
+ <div class="plans-layout"><div class="plans">${cards}</div>
+ <aside class="preview"><b>用户看到的开通页</b>${`<div class="phone"><div class="ph-title">开通会员</div><div class="ph-body" style="gap:10px">${vis.map((p,i)=>`<div class="blk" style="background:${p.tone};${p.badge?'outline:2px solid var(--acc)':''}"><b style="font-size:13px">${esc(p.name)} ${p.badge?`<span class="tag t-acc" style="float:right;font-size:10px">${esc(p.badge)}</span>`:''}</b><span style="font-size:18px;font-weight:700;opacity:1;margin-top:4px">¥${p.price}<small style="font-size:11px;font-weight:400"> ${p.period==='终身'?'永久有效':'/ '+p.period}</small></span><span>${p.perks.slice(0,3).join(' · ')}${p.perks.length>3?' 等 '+p.perks.length+' 项':''}${p.shop<10?' · 商城 '+p.shop+' 折':''}</span></div>`).join('')||'<div class="empty-ph">没有上架的付费档</div>'}<div class="blk" style="background:var(--acc);color:#fff;text-align:center"><b>立即开通</b></div><span class="faint" style="font-size:10.5px;text-align:center">到期不自动续费 · 可开发票</span></div></div>`}</aside></div></div>`;
+}
+
+/* ---------- growth ---------- */
+function vGrowth(){
+ const R=real();
+ const lvs=LEVELS.map((l,i)=>{const n=R.filter(u=>lvOf(u.points).lv===l.lv).length;return `<div class="lvstep"><span class="lv lv${l.lv}">Lv${l.lv}</span><input id="lvn-${i}" class="input" value="${l.name}" aria-label="等级名称"><span class="faint">≥</span><input id="lvm-${i}" class="input" type="number" value="${l.min}" ${i===0?'disabled':''} aria-label="所需积分" style="width:96px"><span class="faint" style="width:48px;text-align:right">${n} 人</span></div>`}).join('');
+ const rules=S.rules.map((r,i)=>`<div class="list-row"><label class="switch"><input type="checkbox" data-rule="${i}" ${r.on?'checked':''} aria-label="${r.k}"><span></span></label><b style="font-weight:500;flex:1">${r.k}</b><span class="faint">${r.cap}</span><span class="ptsin">+<input id="rp-${i}" type="number" min="0" value="${r.pts}" aria-label="${r.k}积分"></span></div>`).join('');
+ return `<div class="view"><div class="head"><div><h1 class="h1">成长与积分</h1><div class="sub">成长等级只用来展示和激励，<b>不决定阅读权限</b>；权限只看「会员与权益」</div></div></div>
+ <div class="set-grid"><section class="card"><h2 class="h2">成长等级</h2><div class="sub">按累计积分自动升级；名称用「新芽 → 知己」这类词，避免和「金卡会员」这类付费叫法混淆</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">${lvs}</div></section>
+ <section class="card"><h2 class="h2">积分怎么来</h2><div class="sub">关掉的规则立即停止发分</div><div style="margin-top:8px">${rules}</div></section>
+ <section class="card"><h2 class="h2">积分怎么用</h2><div class="sub">给积分一个出口，用户才会在意</div><div style="margin-top:8px">${[['兑换 7 天会员体验','300 分'],['兑换资料包','150 分'],['抵扣会员费','100 分 = ¥1，最多抵 20%']].map(([a,b])=>`<div class="list-row"><b style="font-weight:500;flex:1">${a}</b><span class="faint">${b}</span></div>`).join('')}</div></section>
+ <section class="card"><h2 class="h2">手动调积分</h2><div class="sub">在用户详情里操作，必须填原因，所有调整留痕</div><div class="note" style="margin-top:12px">原来列表每行都有「调积分」按钮，容易误操作；现在收进用户详情，并记录谁在什么时候调了多少。</div></section></div></div>`;
+}
+
+/* ---------- community ---------- */
+const COMM_FIELDS=[['name','社区名称'],['sub','副标题'],['intro','介绍'],['highlights','亮点卖点'],['access','入场方式'],['btn','按钮文案'],['tip','底部提示']];
+const commFilled=c=>COMM_FIELDS.filter(([k])=>Array.isArray(c[k])?c[k].length:String(c[k]||'').trim()).length;
+const commMembers=c=>real().filter(u=>isPaid(u)&&c.access.includes(u.plan));
+const Cm=id=>S.comms.find(c=>c.id===id);
+const todayPosts=c=>S.posts.filter(p=>p.cid===c.id&&p.at.startsWith('今天')&&!p.hidden);
+function vCommunity(){
+ const id=S.route.split('/')[1];if(id&&Cm(id))return vCommDetail(Cm(id));
+ const cards=S.comms.map((c,i)=>{const f=commFilled(c);const ms=commMembers(c);return `<article class="comm ${c.on?'':'off'}"><div class="comm-cover" style="background:${c.cover}">${c.main?'<span class="tag t-acc">主社区</span>':''}<span class="tag ${c.on?'t-live':'t-draft'}" style="margin-left:auto">${c.on?'展示中':'已停用'}</span></div>
+ <div class="comm-body"><b style="font-size:16px">${esc(c.name)||'<span class="faint">未命名社区</span>'}</b><span class="faint">${esc(c.sub.replace('{n}',ms.length))||'还没有副标题'}</span>
+ <div class="comm-stats"><span><b>${ms.length}</b>成员</span><span><b>${todayPosts(c).length}</b>今日动态</span><span><b>${S.posts.filter(p=>p.cid===c.id&&p.essence).length}</b>精华</span></div>
+ ${f<COMM_FIELDS.length?`<div class="note">资料完成 ${f}/${COMM_FIELDS.length}：还缺 ${COMM_FIELDS.filter(([k])=>!(Array.isArray(c[k])?c[k].length:String(c[k]||'').trim())).map(([,l])=>l).join('、')}</div>`:''}
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn sm primary" href="#community/${c.id}">进入运营</a><button type="button" class="btn sm" data-a="common" data-id="${c.id}">${c.on?'停用':'启用'}</button>${!c.main?`<button type="button" class="btn sm" data-a="commmain" data-id="${c.id}">设为主社区</button><button type="button" class="btn sm danger" data-a="commdel" data-id="${c.id}">删除</button>`:''}<span style="margin-left:auto;display:flex;gap:4px"><button type="button" class="iconbtn" data-a="commmv" data-id="${c.id}" data-d="-1" aria-label="上移" ${i===0?'disabled':''}>↑</button><button type="button" class="iconbtn" data-a="commmv" data-id="${c.id}" data-d="1" aria-label="下移" ${i===S.comms.length-1?'disabled':''}>↓</button></span></div></div></article>`}).join('');
+ return `<div class="view"><div class="head"><div><h1 class="h1">社区</h1><div class="sub">用户端叫「星球」。顺序即小程序展示顺序；成员由付费档自动决定，不再单独设社区付费档</div></div><div class="actions"><button type="button" class="btn primary" data-a="commadd">${ic('plus',15)}新建社区</button></div></div>
+ <div class="comm-grid">${cards}</div>
+ <section class="card"><div class="head"><div><h2 class="h2">读者群</h2><div class="sub">按方向分群，小程序里只给有资格的人看入群码；微信群二维码 7 天失效，到期前会提醒你更新</div></div><div class="actions"><button type="button" class="btn sm" data-a="rgadd">${ic('plus',14)}添加读者群</button></div></div>
+ <div style="margin-top:8px">${S.rgroups.map(g=>{const d=daysLeft(g.qrExp);const who={all:'所有用户',paid:'付费会员',year:'年费会员'};const n=real().filter(u=>g.who==='all'||(g.who==='paid'?isPaid(u):isPaid(u)&&u.plan==='year')).length;return `<div class="rg"><span class="todo-ic" style="width:34px;height:34px">${ic('chat',16)}</span>
+ <div style="flex:1;min-width:180px"><input id="rgn-${g.id}" class="input" value="${esc(g.n)}" aria-label="群名称" style="font-weight:500"><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center"><input id="rgd-${g.id}" class="input" value="${esc(g.dir)}" aria-label="方向" style="width:100px;padding:4px 8px;font-size:12.5px"><select id="rgw-${g.id}" class="input" style="width:auto;padding:4px 8px;font-size:12.5px" aria-label="谁能看到">${Object.entries(who).map(([k,l])=>`<option value="${k}" ${g.who===k?'selected':''}>${l}可见</option>`).join('')}</select><span class="faint">${n} 人能看到</span></div></div>
+ <div style="width:170px"><span class="tag ${d<0?'t-err':d<=2?'t-pending':'t-live'}">${d<0?'二维码已过期':d===0?'二维码今天过期':'二维码还剩 '+d+' 天'}</span><button type="button" class="link" style="display:block;font-size:12px;margin-top:4px" data-a="rgqr" data-id="${g.id}">上传新二维码</button></div>
+ <label class="kv" style="width:84px;padding:0;gap:6px"><span class="faint">满员</span><label class="switch"><input type="checkbox" data-rgfull="${g.id}" ${g.full?'checked':''} aria-label="满员"><span></span></label></label>
+ <label class="kv" style="width:84px;padding:0;gap:6px"><span class="faint">启用</span><label class="switch"><input type="checkbox" data-rgon="${g.id}" ${g.on?'checked':''} aria-label="启用"><span></span></label></label>
+ <button type="button" class="iconbtn" data-a="rgdel" data-id="${g.id}" aria-label="删除">${ic('x',14)}</button></div>`}).join('')||'<div class="muted" style="padding:16px 0">还没有读者群</div>'}</div>
+ ${S.rgroups.some(g=>g.on&&daysLeft(g.qrExp)<0)?'<div class="note err" style="margin-top:10px">有群的二维码已过期，用户扫了进不去。上传新二维码后自动恢复展示。</div>':''}
+ <div class="faint" style="margin-top:8px">满员的群自动隐藏，同方向下一个群补位；进群须知在「客服」里设置。</div></section></div>`;
+}
+function postCard(p){
+ const u=S.users.find(x=>x.name===p.author);
+ return `<article class="post ${p.hidden?'hid':''}"><div class="ihead">${u?avatar(u,30):`<span class="uav" style="width:30px;height:30px;background:var(--accsoft)">${esc(p.author.slice(0,1))}</span>`}<b>${esc(p.author)}</b>${p.role?`<span class="tag t-acc">${p.role}</span>`:''}<span class="tag ${p.kind==='提问'?'t-new':p.kind==='打卡'?'t-live':'t-draft'}">${p.kind}</span>${p.pinned?'<span class="tag t-pending">置顶</span>':''}${p.essence?'<span class="tag t-acc">精华</span>':''}${p.hidden?'<span class="tag t-err">已隐藏</span>':''}<span class="faint" style="margin-left:auto">${p.at}</span></div>
+ <div class="itext">${esc(p.text)}</div>${p.topic?`<span class="faint">#${esc(p.topic)}</span>`:''}
+ ${p.reply?`<div class="answer"><b>星主回复：</b>${esc(p.reply)}</div>`:''}
+ <div class="post-foot"><span class="faint">${p.likes} 赞 · ${p.comments} 评论</span><span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+ <button type="button" class="btn sm" data-a="ppin" data-id="${p.id}">${p.pinned?'取消置顶':'置顶'}</button><button type="button" class="btn sm" data-a="pess" data-id="${p.id}">${p.essence?'取消精华':'加精'}</button>${p.kind==='提问'&&!p.reply?`<button type="button" class="btn sm primary" data-a="preply" data-id="${p.id}">回答</button>`:''}<button type="button" class="btn sm ${p.hidden?'':'danger'}" data-a="phide" data-id="${p.id}">${p.hidden?'恢复':'隐藏'}</button></span></div>
+ ${S.preply===p.id?`<form class="reply" data-f="preply" data-id="${p.id}"><textarea id="pr-${p.id}" class="input" rows="3" placeholder="以星主身份回答，公开显示">${esc(p.draft||'')}</textarea><div style="display:flex;gap:8px"><button type="button" class="btn sm" data-a="praidraft" data-id="${p.id}">${ic('spark',14)}AI 起草</button><button type="submit" class="btn sm primary" style="margin-left:auto">发布回答</button></div></form>`:''}</article>`;
+}
+function vCommDetail(c){
+ const t=S.ctab;const ms=commMembers(c);
+ const tabs=[['feed','动态'],['members','成员'],['topics','话题与打卡'],['set','资料与入场']].map(([k,l])=>`<button type="button" class="${t===k?'on':''}" data-a="ctab" data-k="${k}">${l}</button>`).join('');
+ let body='';
+ if(t==='feed'){
+  const f=S.pfilter;const ps=S.posts.filter(p=>p.cid===c.id&&(f==='all'||(f==='q'&&p.kind==='提问'&&!p.reply)||(f==='ess'&&p.essence)||(f==='hid'&&p.hidden))).sort((a,b)=>(b.pinned-a.pinned));
+  const qn=S.posts.filter(p=>p.cid===c.id&&p.kind==='提问'&&!p.reply).length;
+  body=`<div class="ov2"><div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+  <form class="card composer2" data-f="post"><div style="display:flex;gap:8px;flex-wrap:wrap">${['动态','热议','打卡'].map(k=>`<button type="button" class="chip ${S.pkind===k?'on':''}" data-a="pkind" data-k="${k}">${k}</button>`).join('')}<span class="faint" style="margin-left:auto;align-self:center">以「Bruce · 星主」发布，仅成员可见</span></div><textarea id="newpost" class="input" rows="3" placeholder="在社区里直接发，不用再去内容管理建「动态」"></textarea><div style="display:flex;gap:8px;align-items:center"><label class="faint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="pexcl" checked>仅成员可看全文</label><button type="submit" class="btn primary sm" style="margin-left:auto">${ic('send',14)}发布</button></div></form>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">${[['all','全部'],['q',`待回答 ${qn}`],['ess','精华'],['hid','已隐藏']].map(([k,l])=>`<button type="button" class="chip ${f===k?'on':''}" data-a="pfilter" data-k="${k}">${l}</button>`).join('')}</div>
+  ${ps.map(postCard).join('')||'<div class="card muted" style="text-align:center">这里还没有动态</div>'}</div>
+  ${commPreview(c)}</div>`;
+ }
+ if(t==='members'){
+  const roles=id=>id===S.owner?'星主':S.guests.includes(id)?'嘉宾':'成员';
+  body=`<div class="note">成员 = 持有「${c.access.map(a=>plan(a).name).join('、')||'（未设置）'}」且未过期的用户，自动计算。想让某人进来，去「用户」里给他赠送会员。</div>
+  <div class="group">${ms.map(u=>`<div class="crow"><button type="button" class="ucell" data-a="open" data-id="${u.id}">${avatar(u)}<span><b>${esc(u.name)}</b><span class="faint">${u.phone} · 发帖 ${S.posts.filter(p=>p.author===u.name&&p.cid===c.id).length}</span></span></button><div class="c-pay">${payTag(u)}</div><span class="tag ${roles(u.id)==='成员'?'t-draft':'t-acc'}">${roles(u.id)}</span><button type="button" class="btn sm" data-a="guest" data-id="${u.id}">${S.guests.includes(u.id)?'取消嘉宾':'设为嘉宾'}</button></div>`).join('')||'<div class="muted" style="padding:24px;text-align:center">还没有成员。先在「资料与入场」里选择哪些付费档可以加入。</div>'}</div>
+  ${(()=>{const soon=ms.filter(u=>daysLeft(u.expire)<=7);return soon.length?`<div class="hint">${ic('clock',16)}<span><b>${soon.length} 位成员 7 天内到期</b>（${soon.map(u=>u.name).join('、')}），到期后自动移出社区。</span><button type="button" class="btn sm primary" data-a="remindexp">发续费提醒</button></div>`:''})()}`;
+ }
+ if(t==='topics'){
+  const cps=S.posts.filter(p=>p.cid===c.id&&p.topic&&!p.hidden);const heat={};cps.forEach(p=>heat[p.topic]=(heat[p.topic]||0)+p.likes+p.comments*2+1);
+  const hot=Object.entries(heat).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  body=`<div class="set-grid"><section class="card"><h2 class="h2">首页话题模块</h2><div class="sub">默认按真实互动自动排序取前 3 个</div><div class="seg" style="margin-top:10px">${[['auto','自动（按热度）'],['manual','手动指定']].map(([k,l])=>`<button type="button" style="flex:1" class="${c.topicSrc===k?'on':''}" data-a="tsrc" data-k="${k}">${l}</button>`).join('')}</div>
+  <div class="row" style="gap:12px;margin-top:10px"><div class="field" style="flex:1;min-width:140px"><label for="cf-tt">模块标题</label><input id="cf-tt" class="input" data-cf="topicTitle" value="${esc(c.topicTitle)}"></div><div class="field" style="flex:1;min-width:140px"><label for="cf-tdesc">说明文案</label><input id="cf-tdesc" class="input" data-cf="topicDesc" value="${esc(c.topicDesc)}"></div></div>
+  <div class="faint" style="margin-top:10px">本周真实热度</div><div style="margin-top:10px">${hot.map(([k,v],i)=>`<div class="list-row"><b style="width:18px;color:var(--acc)">${i+1}</b><span style="flex:1">#${esc(k)}</span><span class="faint">热度 ${v}</span></div>`).join('')||'<div class="faint" style="padding:10px 0">本周还没有带话题的动态</div>'}</div>
+  <div class="field" style="margin-top:12px"><label>${c.topicSrc==='manual'?'手动指定的话题':'没有真实数据时显示（兜底）'}</label>${c.fallbacks.map((t,i)=>`<div class="list-row" style="padding:6px 0"><span style="flex:1">#${esc(t)}</span><button type="button" class="iconbtn" style="width:28px;height:28px" data-a="rmfb" data-i="${i}" aria-label="删除">${ic('x',12)}</button></div>`).join('')}<form data-f="fb" style="display:flex;gap:8px"><input id="fb-new" class="input" placeholder="添加话题" style="flex:1"><button type="submit" class="btn sm">${ic('plus',14)}添加</button></form></div></section>
+  <section class="card"><h2 class="h2">打卡挑战</h2><div class="sub">给成员一个每天回来的理由</div><div style="margin-top:10px">${S.checkins.filter(k=>k.cid===c.id).map(k=>`<div class="list-row"><label class="switch"><input type="checkbox" data-chk="${k.id}" ${k.on?'checked':''} aria-label="${k.name}"><span></span></label><div style="flex:1"><b style="font-weight:500;display:block">${esc(k.name)}</b><span class="faint">${k.days} 天 · ${k.joined} 人参加 · 今天已打卡 ${k.today} 人</span></div></div>`).join('')}</div>
+  <form data-f="chk" style="display:flex;gap:8px;margin-top:12px"><input id="chk-n" class="input" placeholder="新挑战，比如：21 天读完一本书" style="flex:1"><button type="submit" class="btn sm">${ic('plus',14)}添加</button></form></section></div>`;
+ }
+ if(t==='set'){
+  body=`<div class="ov2"><div class="card" style="display:flex;flex-direction:column;gap:14px">
+  <div class="field"><label for="cf-name">社区名称</label><input id="cf-name" class="input" data-cf="name" value="${esc(c.name)}"></div>
+  <div class="field"><label for="cf-sub">副标题</label><input id="cf-sub" class="input" data-cf="sub" value="${esc(c.sub)}"><span class="faint">{n} 会自动换成真实成员数</span></div>
+  <div class="field"><label for="cf-intro">介绍</label><textarea id="cf-intro" class="input" rows="3" data-cf="intro">${esc(c.intro)}</textarea></div>
+  <div class="field"><label>亮点卖点</label><div class="tagbox">${c.highlights.map((h,i)=>`<span class="tagchip">${esc(h)}<button type="button" data-a="rmhl" data-i="${i}" aria-label="删除">${ic('x',11)}</button></span>`).join('')}<input id="cf-hl" placeholder="回车添加" aria-label="添加亮点"></div></div>
+  <div class="field"><label>谁能加入（入场方式）</label><div style="display:flex;gap:14px;flex-wrap:wrap">${S.plans.filter(p=>p.id!=='single').map(p=>`<label class="perk"><input type="checkbox" data-acc="${p.id}" ${c.access.includes(p.id)?'checked':''}>${p.name}（${money(p.price)}/${p.period}）</label>`).join('')}</div><span class="faint">直接复用「会员与权益」里的付费档，不再单独建社区付费档、也不用绑定套餐 ID</span></div>
+  <div class="row" style="gap:12px"><div class="field" style="flex:1;min-width:160px"><label for="cf-btn">主按钮文案</label><input id="cf-btn" class="input" data-cf="btn" value="${esc(c.btn)}"></div><div class="field" style="flex:1;min-width:160px"><label for="cf-tip">底部提示</label><input id="cf-tip" class="input" data-cf="tip" value="${esc(c.tip)}" placeholder="如：到期不自动续费"></div></div>
+  <div class="field"><label>封面</label><div class="tone-row">${TONES.map(x=>`<button type="button" class="tone ${c.cover===x?'on':''}" style="background:${x}" data-a="ccover" data-c="${x}" aria-label="封面色"></button>`).join('')}<button type="button" class="btn sm" data-a="toast" data-t="原型中未接入上传">上传封面图</button></div></div>
+  <h3 class="h2" style="font-size:14px;margin-top:6px">小程序首页卡片</h3>
+  <div class="field"><label for="cf-ct">卡片标题</label><input id="cf-ct" class="input" data-cf="cardTitle" value="${esc(c.cardTitle)}" placeholder="默认用社区名称"></div>
+  <div class="row" style="gap:12px"><div class="field" style="flex:1;min-width:140px"><label for="cf-cnt">成员数文案</label><input id="cf-cnt" class="input" data-cf="countTpl" value="${esc(c.countTpl)}"></div><div class="field" style="flex:1;min-width:140px"><label for="cf-td">今日动态文案</label><input id="cf-td" class="input" data-cf="todayTpl" value="${esc(c.todayTpl)}"></div><div class="field" style="flex:1;min-width:100px"><label for="cf-cta">入口文案</label><input id="cf-cta" class="input" data-cf="cta" value="${esc(c.cta)}"></div></div>
+  <span class="faint">{n} 自动替换为真实数字：成员 ${commMembers(c).length} · 今日动态 ${todayPosts(c).length} · 沉淀精华 ${S.posts.filter(p=>p.cid===c.id&&p.essence&&!p.hidden).length}</span>
+  <label class="kv"><span>首页显示「打卡」入口</span><label class="switch"><input type="checkbox" id="cf-chk" ${c.checkEntry?'checked':''} aria-label="打卡入口"><span></span></label></label>
+  <div class="note ok">首页卡片上的成员数、今日动态数一律用真实统计，去掉了原来的「手动填写」。</div></div>${commPreview(c)}</div>`;
+ }
+ return `<div class="view"><div class="head"><div><a class="link" href="#community" style="font-size:13px;color:var(--mute)">‹ 全部社区</a><h1 class="h1" style="margin-top:4px">${esc(c.name)||'未命名社区'}</h1><div class="sub">${ms.length} 位成员 · 今日 ${todayPosts(c).length} 条动态 · ${c.on?'展示中':'已停用'}${c.main?' · 主社区':''}</div></div></div>
+ <div class="tabs-line" role="tablist">${tabs}</div>${body}</div>`;
+}
+function commPreview(c){
+ const n=commMembers(c).length;const cps=S.posts.filter(p=>p.cid===c.id&&!p.hidden);const top=[...cps].sort((a,b)=>(b.pinned-a.pinned)||(b.likes+b.comments)-(a.likes+a.comments)).slice(0,3);
+ return `<aside class="preview"><b>小程序里的样子</b><div class="phone"><div class="ph-title">星球</div><div class="ph-body"><div class="blk" style="background:${c.cover};padding:14px"><b style="font-size:14px">${esc(c.cardTitle||c.name)||'未命名社区'}</b><span>${esc(c.sub.replace('{n}',n))}</span><span style="margin-top:6px">${esc(c.countTpl.replace('{n}',n))} · ${esc(c.todayTpl.replace('{n}',todayPosts(c).length))} · ${esc(c.cta)} ›</span><span>沉淀精华 ${S.posts.filter(p=>p.cid===c.id&&p.essence&&!p.hidden).length} 篇</span></div>${c.checkEntry?`<div class="blk" style="background:#E3F3EA;color:#185E3B"><b>今日打卡</b><span>${S.checkins.filter(k=>k.cid===c.id&&k.on).map(k=>k.name).join(' · ')||'暂无挑战'}</span></div>`:''}
+ ${c.topicSrc==='manual'||!S.posts.some(p=>p.cid===c.id&&p.topic&&!p.hidden)?`<div class="blk"><b>${esc(c.topicTitle)}</b>${c.fallbacks.map(t=>`<span>#${esc(t)}</span>`).join('')||'<span>暂无话题</span>'}</div>`:''}
+ ${c.highlights.length?`<div style="display:flex;gap:4px;flex-wrap:wrap">${c.highlights.map(h=>`<span class="tag t-acc" style="font-size:10px">${esc(h)}</span>`).join('')}</div>`:''}
+ ${top.map(p=>`<div class="blk"><b><span class="tag ${p.kind==='提问'?'t-new':'t-draft'}" style="font-size:9px;padding:0 5px">${p.essence?'精华':p.kind}</span></b><span style="opacity:.9">${esc(p.text.slice(0,40))}${p.text.length>40?'…':''}</span></div>`).join('')||`<div class="blk"><span>${esc(c.fallback)}</span></div>`}
+ <div class="blk" style="background:var(--acc);color:#fff;text-align:center"><b>${esc(c.btn)||'加入'}</b></div>${c.tip?`<span class="faint" style="font-size:10.5px;text-align:center">${esc(c.tip)}</span>`:''}</div></div></aside>`;
+}
+function vSupport(){
+ const v=S.svc;
+ return `<div class="view"><div class="head"><div><h1 class="h1">客服</h1><div class="sub">来自小程序客服入口的咨询，能直接看到对方的会员状态</div></div></div>
+ <div class="ov2"><div style="min-width:0"><section class="card">${S.chats.map(c=>{const u=S.users.find(x=>x.name===c.who);return `<div class="chatrow"><div style="display:flex;gap:10px;align-items:flex-start">${u?avatar(u,32):''}<div style="flex:1;min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(c.who)}</b>${u?payTag(u):''}<span class="faint" style="margin-left:auto">${c.at}</span></div><div style="margin-top:4px">${esc(c.text)}</div>${c.reply?`<div class="answer" style="margin-top:8px">${esc(c.reply)}</div>`:''}</div></div>
+ ${c.st==='open'?(S.chat===c.id?`<form class="reply" data-f="chat" data-id="${c.id}" style="margin-top:10px"><textarea id="cr-${c.id}" class="input" rows="2">${esc(c.draft||'')}</textarea><div style="display:flex;gap:8px"><button type="button" class="btn sm" data-a="chatai" data-id="${c.id}">${ic('spark',14)}AI 起草</button><button type="submit" class="btn sm primary" style="margin-left:auto">发送</button></div></form>`:`<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn sm primary" data-a="chatopen" data-id="${c.id}">回复</button>${u?`<button type="button" class="btn sm" data-a="open" data-id="${u.id}">看用户</button>`:''}</div>`):'<span class="tag t-live" style="margin-top:8px">已回复</span>'}</div>`}).join('')}</section></div>
+ <section class="card" style="display:flex;flex-direction:column;gap:12px"><h2 class="h2">客服入口设置</h2>
+ <div class="field"><label for="sv-phone">客服电话</label><input id="sv-phone" class="input" data-sv="phone" value="${esc(v.phone)}"></div>
+ <div class="field"><label for="sv-wecom">企微客服链接</label><input id="sv-wecom" class="input" data-sv="wecom" value="${esc(v.wecom)}"><span class="faint">用户点「在线客服」时跳转</span></div>
+ <div class="field"><label for="sv-desc">在线客服说明</label><textarea id="sv-desc" class="input" rows="2" data-sv="desc">${esc(v.desc)}</textarea></div>
+ <div class="field"><label for="sv-rule">进群须知</label><textarea id="sv-rule" class="input" rows="3" data-sv="rule">${esc(v.rule)}</textarea><span class="faint">展示在读者群二维码上方；读者群在「社区」页管理</span></div>
+ <div class="blk" style="background:var(--soft)"><b>小程序「联系我们」预览</b><span>在线客服 · ${esc(v.desc)}</span><span>电话 ${esc(v.phone)}</span></div></section></div></div>`;
+}
+
+/* ---------- modal ---------- */
+function vModal(){
+ const m=S.modal;if(!m)return'';let inner='';
+ if(m.type==='confirm')inner=`<h2 class="h2">${esc(m.title)}</h2><div class="muted">${esc(m.body)}</div><div class="foot"><button type="button" class="btn" data-a="mclose">取消</button><button type="button" class="btn primary" data-a="confirm">${esc(m.ok)}</button></div>`;
+ if(m.type==='gift')inner=`<h2 class="h2">${m.ids.length>1?`给 ${m.ids.length} 人`:'给「'+esc(Uid(m.ids[0]).name)+'」'}赠送会员</h2><form data-f="gift" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="g-plan">付费档</label><select id="g-plan" class="input">${S.plans.filter(p=>p.id!=='single').map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div><div class="field"><label for="g-days">时长</label><select id="g-days" class="input"><option value="7">7 天体验</option><option value="30">30 天</option><option value="365">1 年</option></select></div><div class="field"><label for="g-why">原因（必填，会记录）</label><input id="g-why" class="input" placeholder="比如：共读打卡奖励" required></div><div class="foot"><button type="button" class="btn" data-a="mclose">取消</button><button type="submit" class="btn primary">确认赠送</button></div></form>`;
+ if(m.type==='pts'){const u=Uid(m.id);inner=`<h2 class="h2">调整「${esc(u.name)}」的积分</h2><div class="faint">当前 ${u.points} 分</div><form data-f="pts" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="p-n">增减（负数为扣除）</label><input id="p-n" class="input" type="number" value="50" required></div><div class="field"><label for="p-why">原因（必填，会记录）</label><input id="p-why" class="input" placeholder="比如：活动奖励补发" required></div><div class="foot"><button type="button" class="btn" data-a="mclose">取消</button><button type="submit" class="btn primary">确认</button></div></form>`}
+ if(m.type==='tag')inner=`<h2 class="h2">给 ${m.ids.length} 人打标签</h2><form data-f="tag" style="display:flex;flex-direction:column;gap:12px"><select id="t-n" class="input">${S.tagdefs.filter(d=>d.on).map(d=>`<option>${esc(d.n)}</option>`).join('')}</select><span class="faint">只能选「标签管理」里启用的标签</span><div class="foot"><button type="button" class="btn" data-a="mclose">取消</button><button type="submit" class="btn primary">添加</button></div></form>`;
+ return `<div class="scrim" data-a="mscrim" style="z-index:70"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`;
+}
+let toastT,lastUndo=null;
+function toast(text,undo){S.toast={text,undo:!!undo};clearTimeout(toastT);toastT=setTimeout(()=>{S.toast=null;render()},undo?6000:2800);render()}
+const log=(u,t,d)=>u.log.push({t,d,at:'刚刚'});
+
+/* ---------- render ---------- */
+const root=document.getElementById('root');
+function render(){
+ const f=document.activeElement&&document.activeElement.id;let pos=null;try{pos=document.activeElement.selectionStart}catch(e){}
+ const r0=S.route.split('/')[0];const crumb={overview:'概览',users:'用户',plans:'会员与权益',growth:'成长与积分',community:'社区',support:'客服'}[r0]||'概览';
+ const v={overview:vOverview,users:vUsers,plans:vPlans,growth:vGrowth,community:vCommunity,support:vSupport}[r0]||vOverview;
+ root.innerHTML=`<div class="app">${sidebar()}<main class="main">${topbar(crumb)}${v()}</main></div>`+vDrawer()+vModal()+(S.toast?`<div class="toast" role="status">${esc(S.toast.text)}${S.toast.undo?'<button type="button" data-a="undo">撤销</button>':''}</div>`:'');
+ if(f){const el=document.getElementById(f);if(el){el.focus();try{if(pos!=null&&el.setSelectionRange)el.setSelectionRange(pos,pos)}catch(e){}}}
+}
+function route(){const h=location.hash.slice(1)||'overview';const [r,a]=h.split('/');S.route=r==='community'&&a?h:r;if(r==='community'&&a&&S.lastComm!==a){S.ctab='feed';S.pfilter='all';S.lastComm=a}if(r==='users'&&a){S.ul.pay=a;S.ul.tab='list'}S.drawer=null;render();window.scrollTo(0,0)}
+window.addEventListener('hashchange',route);
+
+/* ---------- actions ---------- */
+function doMerge(mainId){const main=Uid(mainId);const ds=S.users.filter(x=>x.dup===mainId);ds.forEach(d=>{main.points+=d.points;main.orders+=d.orders;main.spend+=d.spend;if(d.visit>main.visit)main.visit=d.visit;d.tags.forEach(t=>{if(!main.tags.includes(t))main.tags.push(t)})});S.users=S.users.filter(x=>!ds.includes(x));log(main,'合并',`合并了 ${ds.length} 个同手机号账号`);return ds.length}
+const A={
+ go:d=>location.hash=d.to,
+ toast:d=>toast(d.t),
+ undo:()=>{if(lastUndo){lastUndo();lastUndo=null}S.toast=null;render()},
+ close:()=>{S.drawer=null;render()},scrim:(d,ev)=>{if(ev.target===ev.currentTarget||ev.target.classList.contains('scrim')){S.drawer=null;render()}},
+ mclose:()=>{S.modal=null;render()},mscrim:(d,ev)=>{if(ev.target.classList.contains('scrim')){S.modal=null;render()}},
+ confirm:()=>{const f=S.modal.fn;S.modal=null;f()},
+ remindexp:()=>{const us=real().filter(S.segs[0].f);if(!us.length)return toast('没有 7 天内到期的会员');S.modal={type:'confirm',title:`给 ${us.length} 位会员发续费提醒？`,body:`${us.map(u=>u.name).join('、')} 会收到微信订阅消息「会员即将到期」，附续费链接。`,ok:'发送',fn:()=>{us.forEach(u=>log(u,'触达','收到续费提醒'));toast(`已给 ${us.length} 人发送续费提醒`)}};render()},
+ pay:d=>{S.ul.pay=d.k;S.ul.seg=null;render()},
+ utab:d=>{S.ul.tab=d.k;render()},
+ open:d=>{S.drawer=d.id;render()},
+ mergeall:()=>{const g=dupGroups();S.modal={type:'confirm',title:`合并 ${g.length} 组重复账号？`,body:'按手机号合并，积分、订单、消费、标签累加到最早注册的账号上；其他账号的登录会自动指向它。',ok:'合并',fn:()=>{let n=0;g.forEach(([id])=>n+=doMerge(id));toast(`已合并 ${n} 个重复账号`)}};render()},
+ merge:d=>{const n=doMerge(d.id);toast(`已合并 ${n} 个重复账号`)},
+ selall:()=>{const l=filtered();const all=l.every(u=>S.ul.sel[u.id]);l.forEach(u=>S.ul.sel[u.id]=!all);render()},
+ clearsel:()=>{S.ul.sel={};render()},
+ bulktag:()=>{S.modal={type:'tag',ids:Object.keys(S.ul.sel).filter(k=>S.ul.sel[k])};render()},
+ bulkmsg:()=>{const ids=Object.keys(S.ul.sel).filter(k=>S.ul.sel[k]);ids.forEach(i=>log(Uid(i),'触达','收到订阅消息'));S.ul.sel={};toast(`已给 ${ids.length} 人发送订阅消息（需用户已订阅）`)},
+ bulkgift:()=>{S.modal={type:'gift',ids:Object.keys(S.ul.sel).filter(k=>S.ul.sel[k])};render()},
+ gift:d=>{S.modal={type:'gift',ids:[d.id]};render()},
+ remind1:d=>{const u=Uid(d.id);log(u,'触达','收到续费提醒');toast('已发送续费提醒给 '+u.name)},
+ pts:d=>{S.modal={type:'pts',id:d.id};render()},
+ rmtag:d=>{const u=Uid(d.id);u.tags.splice(+d.i,1);render()},
+ segview:d=>{S.ul.seg=d.id;S.ul.pay='all';S.ul.tab='list';render()},
+ segclear:()=>{S.ul.seg=null;render()},
+ segact:d=>{const s=S.segs.find(x=>x.id===d.id);const us=real().filter(s.f);S.modal={type:'confirm',title:`${s.act}？`,body:`将对「${s.name}」的 ${us.length} 人执行：${s.act}。通过微信订阅消息触达，未订阅的用户会在下次打开小程序时看到。`,ok:'确认',fn:()=>{if(s.id==='s2')us.forEach(u=>{u.plan='month';u.expire=addDays(null,7);log(u,'会员','获赠 7 天体验会员 · 高活跃非会员分群')});else us.forEach(u=>log(u,'触达',s.act));toast(`已对 ${us.length} 人${s.act}`)}};render()},
+
+ ctab:d=>{S.ctab=d.k;render()},
+ rgadd:()=>{S.rgroups.push({id:nid('g'),n:'新读者群',dir:'方向',who:'paid',qrExp:addDays(null,7),full:false,on:false});toast('已添加（未启用），填好名称和二维码再启用')},
+ rgqr:d=>{const g=S.rgroups.find(x=>x.id===d.id);g.qrExp=addDays(null,7);toast('二维码已更新，7 天后到期前会提醒你')},
+ rgdel:d=>{const g=S.rgroups.find(x=>x.id===d.id);S.modal={type:'confirm',title:'删除「'+g.n+'」？',body:'小程序里不再展示这个群的入群码，群本身不受影响。',ok:'删除',fn:()=>{S.rgroups=S.rgroups.filter(x=>x!==g);toast('已删除')}};render()},
+ tsrc:d=>{Cm(S.route.split('/')[1]).topicSrc=d.k;render()},
+ rmfb:d=>{Cm(S.route.split('/')[1]).fallbacks.splice(+d.i,1);render()},
+ commdel:d=>{const c=Cm(d.id);S.modal={type:'confirm',title:'删除「'+(c.name||'未命名社区')+'」？',body:'社区里的动态会一起隐藏，成员身份不受影响（付费档还在）。',ok:'删除',fn:()=>{S.comms=S.comms.filter(x=>x!==c);S.posts.forEach(p=>{if(p.cid===c.id)p.hidden=true});toast('已删除社区')}};render()},
+ tagnew:()=>{S.tagdefs.push({n:'新标签 '+(S.tagdefs.length+1),color:'#5E5146',desc:'',on:true});render();const el=document.getElementById('tn-'+(S.tagdefs.length-1));if(el){el.focus();el.select()}},
+ tagdel:d=>{const t=S.tagdefs[+d.i];S.tagdefs.splice(+d.i,1);toast('已删除标签「'+t.n+'」')},
+ tagrefs:d=>{S.ul.tab='list';S.ul.tag=d.n;S.ul.pay='all';render()},
+ testremind:()=>{S.modal={type:'confirm',title:'试发一条到期提醒给自己？',body:'会以「年费会员 · 3 天后到期」的内容，通过微信订阅消息发到你（Bruce）的微信，用来检查文案和跳转是否正确，不会发给任何用户。',ok:'试发',fn:()=>toast('已试发，请在微信「服务通知」里查看')};render()},
+ plannew:()=>{const id=nid('pl');S.plans.push({id,name:'新付费档',price:98,period:'季',badge:'',remind:7,shop:10,on:false,perks:['全部会员长文'],tone:TONES[S.plans.length%6]});toast('已新增付费档（未上架），改好价格和权益再上架')},
+ planmv:d=>{const i=S.plans.findIndex(p=>p.id===d.id);const j=i+(+d.d);if(j<0||j>=S.plans.length)return;[S.plans[i],S.plans[j]]=[S.plans[j],S.plans[i]];render()},pfilter:d=>{S.pfilter=d.k;render()},pkind:d=>{S.pkind=d.k;render()},
+ ppin:d=>{const p=S.posts.find(x=>x.id===d.id);p.pinned=!p.pinned;toast(p.pinned?'已置顶，小程序首页优先展示':'已取消置顶')},
+ pess:d=>{const p=S.posts.find(x=>x.id===d.id);p.essence=!p.essence;const u=S.users.find(x=>x.name===p.author);if(p.essence&&u){u.points+=20;log(u,'积分','+20 分 · 动态被加精')}toast(p.essence?'已加精，作者 +20 积分':'已取消精华')},
+ phide:d=>{const p=S.posts.find(x=>x.id===d.id);p.hidden=!p.hidden;lastUndo=()=>p.hidden=!p.hidden;toast(p.hidden?'已隐藏，仅作者自己可见':'已恢复',true)},
+ preply:d=>{S.preply=d.id;render()},
+ praidraft:d=>{const p=S.posts.find(x=>x.id===d.id);p.draft={p2:'看你卖的是什么：信息差型内容 99 更容易成交，陪伴 + 答疑型可以 199。建议先 99 卖 50 份验证，再涨价，老用户保留原价。',p5:'300 字完全算！晨写的目的是保持手感，不是字数。连续 21 天比一天写 3000 字更重要。'}[p.id]||'好问题，我来展开说说……';render()},
+ guest:d=>{const i=S.guests.indexOf(d.id);if(i>=0)S.guests.splice(i,1);else S.guests.push(d.id);toast(i>=0?'已取消嘉宾':'已设为嘉宾，发帖带「嘉宾」标识')},
+ common:d=>{const c=Cm(d.id);if(c.on&&c.main)return toast('主社区不能停用，先把别的社区设为主社区');if(!c.on&&!c.name.trim())return toast('先填写社区名称再启用');c.on=!c.on;toast(c.on?'已启用，小程序里可见':'已停用，小程序里不再展示')},
+ commmain:d=>{const c=Cm(d.id);if(!c.on)return toast('先启用这个社区');S.comms.forEach(x=>x.main=false);c.main=true;toast('已设为主社区，用户没选时默认进入这里')},
+ commmv:d=>{const i=S.comms.findIndex(c=>c.id===d.id);const j=i+(+d.d);if(j<0||j>=S.comms.length)return;[S.comms[i],S.comms[j]]=[S.comms[j],S.comms[i]];render()},
+ commadd:()=>{const id=nid('c');S.comms.push({id,name:'新社区',sub:'',intro:'',cover:TONES[S.comms.length%6],btn:'加入',highlights:[],on:false,main:false,access:[],fallback:'',tip:'',cardTitle:'',countTpl:'{n} 位球友',todayTpl:'今日 {n} 条新动态',cta:'去看看',checkEntry:false,topicSrc:'auto',topicTitle:'本周热门话题',topicDesc:'',fallbacks:[]});S.ctab='set';S.lastComm=id;location.hash='community/'+id},
+ rmhl:d=>{const c=Cm(S.route.split('/')[1]);c.highlights.splice(+d.i,1);render()},
+ ccover:d=>{const c=Cm(S.route.split('/')[1]);c.cover=d.c;render()},
+ chatopen:d=>{S.chat=d.id;render()},
+ chatai:d=>{const c=S.chats.find(x=>x.id===d.id);c.draft={c1:'不会自动续费哦，到期前 7 天我们会提醒你，你自己决定要不要续～',c2:'可以的，在「我的 → 订单」里点开会员订单就能申请电子发票。',c3:'抱歉给你添麻烦了！麻烦把手机型号发我一下，我先把资料包直接发你。'}[c.id];render()}
+};
+document.addEventListener('click',ev=>{
+ const el=ev.target.closest('[data-a]');if(!el)return;if(el.tagName==='A')return;
+ if(el.tagName==='INPUT'&&el.dataset.a!=='selall')return;
+ const a=el.dataset.a;if(A[a]){if(el.tagName!=='INPUT')ev.preventDefault();A[a](el.dataset,ev)}
+});
+document.addEventListener('input',ev=>{
+ const t=ev.target;
+ if(t.id==='uq'){S.ul.q=t.value;render();return}
+ if(t.id==='gq'){S.ul.q=t.value;S.ul.tab='list';if(S.route!=='users')location.hash='users';else render();return}
+ if(t.id==='d-note'){Uid(S.drawer).note=t.value;return}
+});
+document.addEventListener('change',ev=>{
+ const t=ev.target;
+ if(t.dataset.sel){S.ul.sel[t.dataset.sel]=t.checked;render();return}
+ if(t.id==='usrc'){S.ul.src=t.value;render()}
+ if(t.id==='ulv'){S.ul.lv=t.value;render()}if(t.id==='utag'){S.ul.tag=t.value;render()}
+ if(t.dataset.plan){const p=plan(t.dataset.plan);p.on=t.checked;toast(p.on?p.name+'已上架':p.name+'已下架，已购用户不受影响')}
+ if(t.id&&t.id.startsWith('price-')){const p=plan(t.id.slice(6));const old=p.price;const v=Math.max(1,+t.value||old);p.price=v;lastUndo=()=>p.price=old;toast(`${p.name}改为 ¥${v}，只影响新购买`,true)}
+ if(t.dataset.perk){const [id,k]=t.dataset.perk.split('|');const p=plan(id);if(t.checked)p.perks.push(k);else p.perks=p.perks.filter(x=>x!==k);p.perks.sort((a,b)=>PERKS.indexOf(a)-PERKS.indexOf(b));render()}
+ if(t.dataset.sv){S.svc[t.dataset.sv]=t.value;render();return}
+ if(t.dataset.rgfull){const g=S.rgroups.find(x=>x.id===t.dataset.rgfull);g.full=t.checked;toast(g.full?'已标记满员，小程序里自动换成同方向的下一个群':'已取消满员');return}
+ if(t.dataset.rgon){const g=S.rgroups.find(x=>x.id===t.dataset.rgon);g.on=t.checked;toast(g.on?'已启用':'已停用');return}
+ if(t.id&&/^rg[ndw]-/.test(t.id)){const g=S.rgroups.find(x=>x.id===t.id.slice(4));const k={n:'n',d:'dir',w:'who'}[t.id[2]];g[k]=t.value;render();return}
+ if(t.id==='cf-chk'){Cm(S.route.split('/')[1]).checkEntry=t.checked;render();return}
+ if(t.id==='d-tagsel'&&t.value){const u=Uid(S.drawer);u.tags.push(t.value);log(u,'标签','添加「'+t.value+'」');render();return}
+ if(t.id&&/^(tn|td|tc)-/.test(t.id)){const i=+t.id.slice(3);const d=S.tagdefs[i];if(t.id[1]==='n'){const old=d.n;const v=t.value.trim()||old;S.users.forEach(u=>u.tags=u.tags.map(x=>x===old?v:x));d.n=v}else if(t.id[1]==='d')d.desc=t.value;else d.color=t.value;render();return}
+ if(t.dataset.tagon){S.tagdefs[+t.dataset.tagon].on=t.checked;toast(t.checked?'标签已启用':'标签已停用，不能再打，已打的保留');return}
+ if(t.dataset.pc){const [pid,cid]=t.dataset.pc.split('|');const c=Cm(cid);if(t.checked){if(!c.access.includes(pid))c.access.push(pid)}else c.access=c.access.filter(x=>x!==pid);toast(`${plan(pid).name}${t.checked?'将开通':'不再开通'}「${c.name}」，社区成员 ${commMembers(c).length} 人`);return}
+ if(t.id&&/^(per|bdg|rmd|shp)-/.test(t.id)){const p=plan(t.id.slice(4));const k=t.id.slice(0,3);if(k==='shp'){p.shop=+t.value;render();return}if(k==='per')p.period=t.value;if(k==='bdg')p.badge=t.value.trim();if(k==='rmd')p.remind=+t.value;render();return}
+ if(t.dataset.cf){const c=Cm(S.route.split('/')[1]);c[t.dataset.cf]=t.value;render()}
+ if(t.id==='fb-topic'){Cm(S.route.split('/')[1]).fallback=t.value;toast('兜底话题已更新')}
+ if(t.dataset.acc){const c=Cm(S.route.split('/')[1]);if(t.checked)c.access.push(t.dataset.acc);else c.access=c.access.filter(x=>x!==t.dataset.acc);toast('入场方式已更新，成员 '+commMembers(c).length+' 人')}
+ if(t.dataset.chk){const k=S.checkins.find(x=>x.id===t.dataset.chk);k.on=t.checked;toast(k.on?'挑战已开启':'挑战已暂停')}
+ if(t.dataset.rule){S.rules[+t.dataset.rule].on=t.checked;toast(t.checked?'规则已开启':'规则已关闭，立即停止发分')}
+ if(t.id&&t.id.startsWith('rp-')){S.rules[+t.id.slice(3)].pts=Math.max(0,+t.value);toast('积分规则已更新')}
+ if(t.id&&t.id.startsWith('lvn-')){LEVELS[+t.id.slice(4)].name=t.value||LEVELS[+t.id.slice(4)].name;render()}
+ if(t.id&&t.id.startsWith('lvm-')){const i=+t.id.slice(4);const v=+t.value;const lo=LEVELS[i-1].min,hi=LEVELS[i+1]?LEVELS[i+1].min:Infinity;if(v<=lo||v>=hi){toast(`需在 ${lo} 到 ${hi===Infinity?'不限':hi} 之间`);render();return}LEVELS[i].min=v;toast('等级门槛已更新，用户等级已重算')}
+});
+document.addEventListener('submit',ev=>{
+ ev.preventDefault();const f=ev.target.dataset.f;const m=S.modal;
+ if(f==='gift'){const pid=document.getElementById('g-plan').value,days=+document.getElementById('g-days').value,why=document.getElementById('g-why').value.trim();if(!why)return;
+  m.ids.forEach(id=>{const u=Uid(id);const base=u.plan&&isPaid(u)?u.expire:null;if(!u.plan||!isPaid(u)||u.plan!=='year')u.plan=pid;u.expire=addDays(base,days);log(u,'会员',`获赠 ${plan(pid).name} ${days} 天 · ${why}`)});
+  S.modal=null;S.ul.sel={};toast(`已赠送 ${m.ids.length} 人`)}
+ if(f==='pts'){const u=Uid(m.id);const n=+document.getElementById('p-n').value,why=document.getElementById('p-why').value.trim();if(!why||!n)return;const before=lvOf(u.points).lv;u.points=Math.max(0,u.points+n);log(u,'积分',`${n>0?'+':''}${n} 分 · ${why}`);S.modal=null;const after=lvOf(u.points);toast(after.lv!==before?`积分已调整，等级变为 Lv${after.lv} ${after.name}`:'积分已调整')}
+ if(f==='tag'){const t=document.getElementById('t-n').value.trim();if(!t)return;m.ids.forEach(id=>{const u=Uid(id);if(!u.tags.includes(t))u.tags.push(t)});S.modal=null;S.ul.sel={};toast(`已给 ${m.ids.length} 人打上「${t}」`)}
+ if(f==='post'){const c=Cm(S.route.split('/')[1]);const v=document.getElementById('newpost').value.trim();if(!v)return toast('写点什么再发');S.posts.unshift({id:nid('p'),cid:c.id,author:'Bruce',role:'星主',kind:S.pkind,text:v,at:'今天 刚刚',likes:0,comments:0,pinned:false,essence:false,hidden:false,topic:''});toast('已发布到「'+c.name+'」')}
+ if(f==='preply'){const p=S.posts.find(x=>x.id===ev.target.dataset.id);const v=document.getElementById('pr-'+p.id).value.trim();if(!v)return toast('回答不能为空');p.reply=v;p.comments++;S.preply=null;toast('已公开回答')}
+ if(f==='fb'){const c=Cm(S.route.split('/')[1]);const v=document.getElementById('fb-new').value.trim();if(v){c.fallbacks.push(v);render()}}
+ if(f==='chk'){const c=Cm(S.route.split('/')[1]);const v=document.getElementById('chk-n').value.trim();if(!v)return;S.checkins.push({id:nid('k'),cid:c.id,name:v,days:21,joined:0,today:0,on:true});toast('已添加打卡挑战')}
+ if(f==='chat'){const c=S.chats.find(x=>x.id===ev.target.dataset.id);const v=document.getElementById('cr-'+c.id).value.trim();if(!v)return toast('回复不能为空');c.reply=v;c.st='done';S.chat=null;toast('已回复')}
+});
+document.addEventListener('keydown',ev=>{
+ if(ev.key==='Escape'){if(S.modal)S.modal=null;else if(S.drawer)S.drawer=null;render()}
+ if(ev.key==='Enter'&&ev.target.id==='cf-hl'){ev.preventDefault();const v=ev.target.value.trim();const c=Cm(S.route.split('/')[1]);if(v&&!c.highlights.includes(v))c.highlights.push(v);render();const t=document.getElementById('cf-hl');if(t)t.focus()}
+ if(ev.key==='Enter'&&ev.target.id==='d-tag'){ev.preventDefault();const v=ev.target.value.trim();const u=Uid(S.drawer);if(v&&!u.tags.includes(v)){u.tags.push(v);log(u,'标签','添加「'+v+'」')}render();const t=document.getElementById('d-tag');if(t)t.focus()}
+});
+document.addEventListener('input',ev=>{if(ev.target.id&&ev.target.id.startsWith('pr-')){const p=S.posts.find(x=>'pr-'+x.id===ev.target.id);if(p)p.draft=ev.target.value}if(ev.target.id&&ev.target.id.startsWith('cr-')){const c=S.chats.find(x=>'cr-'+x.id===ev.target.id);if(c)c.draft=ev.target.value}});
+route();
+})();
+
+</script>
+</body></html>

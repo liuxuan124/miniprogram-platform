@@ -100,6 +100,10 @@ public class UserNoticeService {
                 .set(UserNotice::getIsRead, 1));
     }
 
+    public void notifyUser(Long userId, String scene, String title, String content) {
+        create(userId, scene + ":" + userId + ":" + System.currentTimeMillis(), scene, title, content, null);
+    }
+
     private void create(Long userId, String bizKey, String scene, String title, String content, String link) {
         if (userId == null || !StringUtils.hasText(bizKey)) return;
         UserNotice row = new UserNotice();

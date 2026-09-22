@@ -188,7 +188,10 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const { pendingCount, refreshMiniPending } = useMiniPending(false)
-const isWarmShell = computed(() => route.path.startsWith('/mini') || route.path.startsWith('/content'))
+const isWarmShell = computed(() =>
+  route.path.startsWith('/mini') || route.path.startsWith('/content')
+  || route.path.startsWith('/member') || route.path.startsWith('/user'),
+)
 
 watch(
   () => route.path,
@@ -250,10 +253,12 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '用户会员',
     children: [
-      { title: '会员与权益', path: '/member/list', icon: 'GoldMedal', activePrefix: '/member', excludePrefixes: ['/member/planet'], permissions: ['member:list'], featureModule: 'member' },
-      { title: '社区管理', path: '/member/planet', icon: 'Present', activePrefix: '/member/planet', permissions: ['member:list'], featureModule: 'planet' },
-      { title: '用户管理', path: '/user/list', icon: 'User', activePrefix: '/user', excludePrefixes: ['/user/service-community'], permissions: ['user:list'] },
-      { title: '客服社群', path: '/user/service-community', icon: 'ChatDotRound', activePrefix: '/user/service-community', permissions: ['user:list'] },
+      { title: '概览', path: '/member/overview', icon: 'Odometer', activePrefix: '/member/overview', permissions: ['member:list', 'user:list'], featureModule: 'member' },
+      { title: '用户', path: '/member/users', icon: 'User', activePrefix: '/member/users', permissions: ['user:list'] },
+      { title: '会员与权益', path: '/member/plans', icon: 'GoldMedal', activePrefix: '/member/plans', permissions: ['member:list'], featureModule: 'member' },
+      { title: '成长与积分', path: '/member/growth', icon: 'TrendCharts', activePrefix: '/member/growth', permissions: ['member:list'], featureModule: 'member' },
+      { title: '社区', path: '/member/community', icon: 'Present', activePrefix: '/member/community', permissions: ['member:list'], featureModule: 'planet' },
+      { title: '客服', path: '/member/support', icon: 'ChatDotRound', activePrefix: '/member/support', permissions: ['user:list'] },
     ],
   },
   {

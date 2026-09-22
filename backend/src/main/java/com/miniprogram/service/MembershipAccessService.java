@@ -51,6 +51,13 @@ public interface MembershipAccessService {
     void grantSubscription(Long userId, Long planId, Integer membershipDays, Long orderId);
 
     /**
+     * 后台赠送/延长订购（source=admin），并在平台档时镜像 member_expire_at。
+     * days&lt;=0 表示终身。
+     */
+    void adminGiftSubscription(Long userId, Long planId, Integer days);
+
+
+    /**
      * 平台会员权益码判定：优先有效平台订购对应 {@code MembershipPlan.rights}，
      * 无 plan 或 rights 空时回退成长等级 {@code mp_member_level.rights}。
      */
