@@ -2,20 +2,23 @@
   <div class="content-wb cw-page" v-loading="loading">
     <div class="head">
       <div>
-        <h1 class="h1">内容库</h1>
-        <div class="sub">长文、笔记、视频、资料都在这里，状态统一为 草稿 / 已发布 / 已下架</div>
+        <h1 class="h1">{{ pageTitle }}</h1>
+        <div class="sub">{{ pageSub }}</div>
       </div>
       <div class="actions">
-        <button type="button" class="btn" @click="importOpen = true">
+        <button v-if="lockedType === 'file'" type="button" class="btn" @click="router.push('/content/files')">
+          <MiniIcon name="file" :size="15" />打开文件库
+        </button>
+        <button v-if="showImport" type="button" class="btn" @click="importOpen = true">
           <MiniIcon name="link" :size="15" />从链接导入
         </button>
-        <button type="button" class="btn primary" @click="router.push('/content/write')">
-          <MiniIcon name="plus" :size="15" />写内容
+        <button type="button" class="btn primary" @click="goCreate">
+          <MiniIcon name="plus" :size="15" />{{ createLabel }}
         </button>
       </div>
     </div>
 
-    <div class="tabs-line" role="tablist">
+    <div v-if="!lockedType" class="tabs-line" role="tablist">
       <button
         v-for="t in typeTabs"
         :key="t.key"
@@ -71,7 +74,7 @@
             <MiniIcon :name="typeIcon(it.uiType)" :size="18" />
           </div>
           <div class="cmain">
-            <button type="button" class="ctitle" @click="goEdit(it.id)">{{ it.title }}</button>
+            <button type="button" class="ctitle" @click="goEdit(it)">{{ it.title }}</button>
             <div class="cmeta">
               <span>{{ typeLabel(it.uiType) }}</span>
               <span v-if="it.categoryName">{{ it.categoryName }}</span>
@@ -83,14 +86,14 @@
           <div class="creads">{{ it.status === 'published' ? formatReads(it.reads) + ' 阅读' : '—' }}</div>
           <div class="ctime faint">{{ it.updatedAt }}</div>
           <div style="display:flex;gap:6px">
-            <button type="button" class="btn soft sm" @click="goEdit(it.id)">编辑</button>
+            <button type="button" class="btn soft sm" @click="goEdit(it)">编辑</button>
           </div>
         </div>
         <div v-if="!filtered.length" class="muted" style="padding:28px;text-align:center">没有符合条件的内容</div>
       </div>
     </template>
     <div v-else class="cgrid">
-      <button v-for="it in filtered" :key="it.id" type="button" class="ccard" @click="goEdit(it.id)">
+      <button v-for="it in filtered" :key="it.id" type="button" class="ccard" @click="goEdit(it)">
         <div class="ccover" :style="{ background: toneForId(it.id) }">
           <MiniIcon :name="typeIcon(it.uiType)" :size="22" />
         </div>
@@ -162,7 +165,7 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const items = ref<Row[]>([])
-const typeCounts = ref<Record<string, number>>({ all: 0, article: 0, note: 0, video: 0 })
+const typeCounts = ref<Record<string, number>>({ all: 0, article: 0, note: 0, video: 0, file: 0 })
 const flatCats = ref<Array<{ id: number; name: string }>>([])
 const typeFilter = ref('all')
 const statusFilter = ref('all')
@@ -173,12 +176,44 @@ const importOpen = ref(false)
 const importUrls = ref('')
 const importing = ref(false)
 
+const lockedType = computed<UiContentType | ''>(() => {
+  const meta = String(route.meta.lockedType || '')
+  if (meta === 'article' || meta === 'note' || meta === 'file' || meta === 'video') return meta
+  if (route.path.includes('/articles')) return 'article'
+  if (route.path.includes('/notes')) return 'note'
+  if (route.path.includes('/materials')) return 'file'
+  return ''
+})
+
+const pageTitle = computed(() => {
+  if (lockedType.value === 'article') return '长文'
+  if (lockedType.value === 'note') return '笔记'
+  if (lockedType.value === 'file') return '资料'
+  return '内容库'
+})
+
+const pageSub = computed(() => {
+  if (lockedType.value === 'article') return '公众号风格长文，状态统一为 草稿 / 已发布 / 已下架'
+  if (lockedType.value === 'note') return '短图文笔记，适合信息流与话题'
+  if (lockedType.value === 'file') return '以附件/资料包为主的内容；也可从文件库管理原始文件'
+  return '长文、笔记、视频、资料都在这里，状态统一为 草稿 / 已发布 / 已下架'
+})
+
+const createLabel = computed(() => {
+  if (lockedType.value === 'article') return '写长文'
+  if (lockedType.value === 'note') return '写笔记'
+  if (lockedType.value === 'file') return '上传资料'
+  return '写内容'
+})
+
+const showImport = computed(() => !lockedType.value || lockedType.value === 'article')
+
 const typeTabs = computed(() => [
   { key: 'all', label: '全部', count: typeCounts.value.all },
   { key: 'article', label: '长文', count: typeCounts.value.article },
   { key: 'note', label: '笔记', count: typeCounts.value.note },
   { key: 'video', label: '视频', count: typeCounts.value.video },
-  { key: 'file', label: '资料', count: 0 },
+  { key: 'file', label: '资料', count: typeCounts.value.file },
 ])
 
 const statusChips = [
@@ -190,8 +225,13 @@ const statusChips = [
 
 const filtered = computed(() => {
   let list = items.value
-  if (typeFilter.value === 'file') return []
-  if (typeFilter.value !== 'all') list = list.filter((x) => x.uiType === typeFilter.value)
+  const lock = lockedType.value
+  const tf = lock || typeFilter.value
+  if (tf === 'file') {
+    list = list.filter((x) => x.uiType === 'file')
+  } else if (tf !== 'all') {
+    list = list.filter((x) => x.uiType === tf)
+  }
   if (statusFilter.value !== 'all') list = list.filter((x) => x.status === statusFilter.value)
   if (categoryId.value) list = list.filter((x) => x.categoryId === categoryId.value)
   const q = keyword.value.trim()
@@ -199,8 +239,22 @@ const filtered = computed(() => {
   return list
 })
 
-function goEdit(id: number) {
-  router.push({ path: '/content/write', query: { id: String(id) } })
+function editTypeQuery(it?: Row): string {
+  if (lockedType.value) return lockedType.value
+  if (it?.uiType) return it.uiType
+  return 'article'
+}
+
+function goCreate() {
+  const type = lockedType.value || 'article'
+  router.push({ path: '/content/write', query: { type } })
+}
+
+function goEdit(it: Row) {
+  router.push({
+    path: '/content/write',
+    query: { id: String(it.id), type: editTypeQuery(it) },
+  })
 }
 
 function flattenCats(nodes: any[]): Array<{ id: number; name: string }> {
@@ -237,17 +291,25 @@ async function load() {
     if (statusFilter.value !== 'all') params.status = statusFilter.value
     if (categoryId.value) params.category_id = categoryId.value
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
-    if (typeFilter.value !== 'all' && typeFilter.value !== 'file') params.contentType = typeFilter.value
+
+    const lock = lockedType.value
+    // 资料多为 moment/file + 附件，列表侧再筛；笔记/长文可先按 type 拉
+    if (lock === 'article' || lock === 'note' || lock === 'video') {
+      params.contentType = lock
+    } else if (!lock && typeFilter.value !== 'all' && typeFilter.value !== 'file') {
+      params.contentType = typeFilter.value
+    }
 
     const [listRes, catRes] = await Promise.all([getContentList(params as any), getCategoryList()])
     const { records } = unwrapList(listRes)
     items.value = (records as Array<Record<string, unknown>>).map(mapRow)
 
-    const counts = { all: items.value.length, article: 0, note: 0, video: 0 }
+    const counts = { all: items.value.length, article: 0, note: 0, video: 0, file: 0 }
     for (const it of items.value) {
       if (it.uiType === 'article') counts.article += 1
       else if (it.uiType === 'note') counts.note += 1
       else if (it.uiType === 'video') counts.video += 1
+      else if (it.uiType === 'file') counts.file += 1
     }
     typeCounts.value = counts
 
@@ -259,10 +321,6 @@ async function load() {
 }
 
 function reload() {
-  if (typeFilter.value === 'file') {
-    router.push('/content/files')
-    return
-  }
   void load()
 }
 
@@ -292,14 +350,21 @@ async function doImport() {
 watch(
   () => route.query.import,
   (v) => {
-    if (v === '1') importOpen.value = true
+    if (v === '1' && showImport.value) importOpen.value = true
   },
   { immediate: true },
 )
 
+watch(
+  () => [route.path, route.meta.lockedType],
+  () => {
+    void load()
+  },
+)
+
 onMounted(() => {
   if (route.query.status) statusFilter.value = String(route.query.status)
-  if (route.query.type) typeFilter.value = String(route.query.type)
+  if (!lockedType.value && route.query.type) typeFilter.value = String(route.query.type)
   void load()
 })
 </script>

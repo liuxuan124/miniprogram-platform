@@ -39,10 +39,10 @@
         </button>
       </template>
       <template v-else-if="isContentOps">
-        <button type="button" class="content-top-btn" @click="router.push({ path: '/content/library', query: { import: '1' } })">
+        <button type="button" class="content-top-btn" @click="router.push({ path: '/content/articles', query: { import: '1' } })">
           从链接导入
         </button>
-        <button type="button" class="mini-publish-btn" @click="router.push('/content/write')">
+        <button type="button" class="mini-publish-btn" @click="router.push({ path: '/content/write', query: { type: 'article' } })">
           写内容
         </button>
       </template>

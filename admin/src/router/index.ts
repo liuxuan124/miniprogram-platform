@@ -202,15 +202,32 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '内容概览', icon: 'Odometer', featureModule: 'content' },
       },
       {
-        path: 'library',
-        name: 'ContentOpsLibrary',
+        path: 'articles',
+        name: 'ContentOpsArticles',
         component: () => import('@/views/content-ops/library.vue'),
-        meta: { title: '内容列表', icon: 'Reading', featureModule: 'content' },
+        meta: { title: '长文', icon: 'Reading', lockedType: 'article', featureModule: 'content' },
+      },
+      {
+        path: 'notes',
+        name: 'ContentOpsNotes',
+        component: () => import('@/views/content-ops/library.vue'),
+        meta: { title: '笔记', icon: 'EditPen', lockedType: 'note', featureModule: 'content' },
+      },
+      {
+        path: 'materials',
+        name: 'ContentOpsMaterials',
+        component: () => import('@/views/content-ops/library.vue'),
+        meta: { title: '资料', icon: 'FolderOpened', lockedType: 'file', featureModule: 'content' },
+      },
+      {
+        path: 'library',
+        redirect: '/content/articles',
+        meta: { title: '内容列表', hidden: true, featureModule: 'content' },
       },
       {
         path: 'write',
         name: 'ContentOpsWrite',
-        // 五屏入口保留；撰写承接完整本地编辑器（置顶/附件/关联商品/预览等）
+        // 撰写入口保留 hidden；承接完整本地编辑器（置顶/附件/关联商品/预览等）
         component: () => import('@/views/content/edit.vue'),
         meta: { title: '撰写内容', icon: 'EditPen', hidden: true, featureModule: 'content' },
       },
@@ -226,10 +243,10 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/content-ops/settings.vue'),
         meta: { title: '内容设置', icon: 'Setting', featureModule: 'content' },
       },
-      // 旧路径兼容：进入新五屏 IA
-      { path: 'article', redirect: '/content/library' },
-      { path: 'note', redirect: { path: '/content/library', query: { type: 'note' } } },
-      { path: 'list', redirect: '/content/library' },
+      // 旧路径兼容
+      { path: 'article', redirect: '/content/articles' },
+      { path: 'note', redirect: '/content/notes' },
+      { path: 'list', redirect: '/content/articles' },
       { path: 'category', redirect: '/content/settings' },
       { path: 'comments', redirect: '/content/inbox?tab=comment' },
       { path: 'audit', redirect: '/content/inbox?tab=submit' },
