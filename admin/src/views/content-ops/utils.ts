@@ -28,16 +28,29 @@ export function statusLabel(status?: string): string {
 }
 
 export function typeLabel(fmt?: string): string {
-  const key = String(fmt || 'article') as ContentFormatType
-  return CONTENT_FORMAT_META[key]?.label || '长文'
+  const key = String(fmt || 'article')
+  if (key === 'file') return '资料'
+  return CONTENT_FORMAT_META[key as ContentFormatType]?.label || '长文'
 }
 
-/** Map API contentType / inferred format → UI type (长文/笔记/视频) */
+function attachmentCountOf(data: Record<string, unknown>): number {
+  const n = Number(data.attachmentCount ?? data.attachment_count ?? 0)
+  if (Number.isFinite(n) && n > 0) return n
+  const list = data.attachments
+  return Array.isArray(list) ? list.length : 0
+}
+
+/** Map API contentType / inferred format → UI type (长文/笔记/视频/资料) */
 export function mapFormatToUi(raw: unknown): UiContentType {
   const data = (raw && typeof raw === 'object' ? raw : { contentType: raw }) as Record<string, unknown>
+  const explicit = String(data.contentType || data.content_type || data.type || '').toLowerCase()
+  if (explicit === 'file') return 'file'
   const fmt = inferContentFormat(data)
   if (fmt === 'video') return 'video'
-  if (fmt === 'note' || fmt === 'moment') return 'note'
+  // 有附件且非长文时标为资料（动态带附件也归资料列表）
+  if (attachmentCountOf(data) > 0 && fmt !== 'article' && fmt !== 'rich') return 'file'
+  if (fmt === 'note') return 'note'
+  if (fmt === 'moment') return 'note'
   return 'article'
 }
 

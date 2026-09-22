@@ -134,6 +134,7 @@ import {
   EditPen,
   ChatDotRound,
   Shop,
+  FolderOpened,
 } from '@element-plus/icons-vue'
 
 interface MenuItem {
@@ -182,6 +183,7 @@ const iconMap: Record<string, any> = {
   EditPen,
   ChatDotRound,
   Shop,
+  FolderOpened,
 }
 
 const route = useRoute()
@@ -246,8 +248,9 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     title: '内容运营',
     children: [
       { title: '内容概览', path: '/content/overview', icon: 'Odometer', activePrefix: '/content/overview', featureModule: 'content' },
-      { title: '内容列表', path: '/content/library', icon: 'Reading', activePrefix: '/content/library', featureModule: 'content' },
-      { title: '撰写内容', path: '/content/write', icon: 'EditPen', activePrefix: '/content/write', featureModule: 'content' },
+      { title: '长文', path: '/content/articles', icon: 'Reading', activePrefix: '/content/articles', featureModule: 'content' },
+      { title: '笔记', path: '/content/notes', icon: 'EditPen', activePrefix: '/content/notes', featureModule: 'content' },
+      { title: '资料', path: '/content/materials', icon: 'FolderOpened', activePrefix: '/content/materials', featureModule: 'content' },
       { title: '互动中心', path: '/content/inbox', icon: 'ChatDotRound', activePrefix: '/content/inbox' },
       { title: '内容设置', path: '/content/settings', icon: 'Setting', activePrefix: '/content/settings', featureModule: 'content' },
     ],

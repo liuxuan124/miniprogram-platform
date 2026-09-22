@@ -81,7 +81,7 @@
         <div class="note" style="margin-top:10px">
           目前支持公众号文章链接导入（内容库 → 从链接导入）。导入的内容一律先进「草稿」。
         </div>
-        <button type="button" class="btn sm" style="margin-top:12px" @click="router.push({ path: '/content/library', query: { import: '1' } })">
+        <button type="button" class="btn sm" style="margin-top:12px" @click="router.push({ path: '/content/articles', query: { import: '1' } })">
           <MiniIcon name="link" :size="14" />去导入
         </button>
       </section>

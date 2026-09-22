@@ -4,7 +4,7 @@
     <el-card class="editor-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <div class="header-title">{{ isEdit ? '编辑内容与 SEO 配置' : '发布新内容' }}</div>
+          <div class="header-title">{{ pageTitle }}</div>
           <div class="header-actions">
             <el-button @click="goBack()">取消</el-button>
             <el-button type="primary" :loading="submitLoading" @click="handleSubmit">提交执行</el-button>
@@ -20,16 +20,54 @@
             </el-form-item>
 
             <el-form-item label="内容形态">
-              <el-radio-group v-model="contentType">
+              <el-radio-group v-model="contentType" :disabled="typeLocked">
                 <el-radio-button value="article">长文</el-radio-button>
                 <el-radio-button value="note">笔记</el-radio-button>
+                <el-radio-button value="file">资料</el-radio-button>
                 <el-radio-button value="moment">动态</el-radio-button>
                 <el-radio-button value="video">视频</el-radio-button>
               </el-radio-group>
-              <div class="field-hint">笔记偏小红书；动态偏知识星球；视频需填写视频地址与封面。</div>
+              <div class="field-hint">
+                {{ typeLocked ? '当前入口已锁定形态，避免误改类型。' : '笔记偏小红书；资料以附件为主；动态偏知识星球；视频需填写视频地址与封面。' }}
+              </div>
             </el-form-item>
 
-            <template v-if="contentType === 'note'">
+            <template v-if="contentType === 'file'">
+              <el-form-item label="资料说明">
+                <el-input
+                  v-model="noteBody"
+                  type="textarea"
+                  :rows="5"
+                  maxlength="2000"
+                  show-word-limit
+                  placeholder="简要说明资料用途、适用对象（可选）"
+                />
+              </el-form-item>
+              <el-form-item label="资料附件">
+                <div class="attachment-list">
+                  <div v-for="(item, idx) in momentAttachments" :key="item.id" class="attachment-item">
+                    <span class="attachment-item__icon">{{ fileTypeIcon(item.fileType) }}</span>
+                    <div class="attachment-item__meta">
+                      <div class="attachment-item__name">{{ item.name }}</div>
+                      <div class="attachment-item__size">{{ formatFileSize(item.size) }}</div>
+                    </div>
+                    <el-button text type="danger" size="small" @click="removeAttachment(idx)">移除</el-button>
+                  </div>
+                  <label v-if="momentAttachments.length < 5" class="upload-btn">
+                    {{ attachmentUploading ? '上传中…' : '+ 上传资料文件' }}
+                    <input type="file" hidden :disabled="attachmentUploading" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.zip,.rar" @change="onUploadAttachment" />
+                  </label>
+                  <el-button v-if="momentAttachments.length < 5" class="upload-btn" @click="filePickerVisible = true">从文件库选择</el-button>
+                </div>
+                <div class="field-hint">最多 5 个附件。可前往「文件库」管理原始文件。</div>
+              </el-form-item>
+              <el-form-item label="作者">
+                <el-input v-model="formData.author" maxlength="64" placeholder="作者昵称" />
+              </el-form-item>
+              <FilePickerDialog v-model="filePickerVisible" @select="onPickLibraryFile" />
+            </template>
+
+            <template v-else-if="contentType === 'note'">
               <el-form-item label="笔记图片">
                 <div class="note-images">
                   <div v-for="(url, idx) in noteImages" :key="`${url}-${idx}`" class="note-images__item">
@@ -404,9 +442,19 @@
       </el-tabs>
     </el-card>
 
-    <aside class="preview-aside">
-      <div class="preview-aside__head">小程序预览</div>
-      <ContentPreviewPanel :model="previewModel" />
+    <aside class="edit-aside">
+      <ContentAiAssist
+        :content-id="isEdit ? Number(route.query.id) : null"
+        :content-type="contentType"
+        :title="formData.title"
+        :summary="formData.summary"
+        :body="aiBodyText"
+        @apply-field="onAiApplyField"
+      />
+      <div class="preview-aside">
+        <div class="preview-aside__head">小程序预览</div>
+        <ContentPreviewPanel :model="previewModel" />
+      </div>
     </aside>
     </div>
   </div>
@@ -431,6 +479,7 @@ import { normalizeUploadUrl } from '@/api/system'
 import { ContentStatus } from '@/types/content'
 import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
 import ContentPreviewPanel from '@/components/content/ContentPreviewPanel.vue'
+import ContentAiAssist from '@/components/content/ContentAiAssist.vue'
 import FilePickerDialog from '@/components/files/FilePickerDialog.vue'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import { getPlainTextFromHtml, type ContentPreviewModel } from '@/utils/content-preview'
@@ -456,6 +505,20 @@ const activeTab = ref('base')
 const pageLoading = ref(false)
 const submitLoading = ref(false)
 const isEdit = computed(() => Boolean(route.query.id))
+const pageTitle = computed(() => {
+  const t = contentType.value
+  if (t === 'note') return isEdit.value ? '编辑笔记' : '写笔记'
+  if (t === 'file') return isEdit.value ? '编辑资料' : '上传资料'
+  if (t === 'video') return isEdit.value ? '编辑视频' : '发视频'
+  if (t === 'moment') return isEdit.value ? '编辑动态' : '发动态'
+  return isEdit.value ? '编辑长文' : '写长文'
+})
+const aiBodyText = computed(() => {
+  if (contentType.value === 'note' || contentType.value === 'moment' || contentType.value === 'file') {
+    return noteBody.value || getPlainTextFromHtml(formData.content)
+  }
+  return getPlainTextFromHtml(formData.content) || formData.summary
+})
 const baseFormRef = ref<FormInstance>()
 const linkedProductIds = ref<number[]>([])
 const productOptions = ref<Array<{ id: number; name: string; price?: number | string }>>([])
@@ -463,7 +526,8 @@ const productSearchLoading = ref(false)
 
 const publishMode = ref<'publish' | 'schedule' | 'draft'>('publish')
 const scheduleTime = ref('')
-const contentType = ref<'article' | 'note' | 'moment' | 'video'>('article')
+const contentType = ref<'article' | 'note' | 'moment' | 'video' | 'file'>('article')
+const typeLocked = ref(false)
 const noteImages = ref<string[]>([])
 const noteBody = ref('')
 const noteTagsText = ref('')
@@ -593,7 +657,19 @@ async function loadDetail(id: number) {
     formData.sort = Number(data.sortOrder ?? data.sort ?? 0)
     formData.status = normalizeContentStatus(data.status)
     const rawType = String(data.contentType || data.content_type || 'article')
-    contentType.value = (['note', 'moment', 'video'].includes(rawType) ? rawType : 'article') as typeof contentType.value
+    const attachments = Array.isArray(data.attachments)
+      ? data.attachments.map((item: Record<string, unknown>, idx: number) => normalizeAttachment(item, idx))
+      : []
+    momentAttachments.value = attachments
+    const qType = String(route.query.type || '')
+    if (qType && ['article', 'note', 'file', 'video', 'moment'].includes(qType)) {
+      contentType.value = qType as typeof contentType.value
+    } else if (attachments.length > 0 && (rawType === 'moment' || rawType === 'file')) {
+      contentType.value = 'file'
+    } else {
+      contentType.value = (['note', 'moment', 'video', 'file'].includes(rawType) ? rawType : 'article') as typeof contentType.value
+    }
+    typeLocked.value = true
     noteImages.value = Array.isArray(data.images) ? [...data.images] : (formData.cover_image ? [formData.cover_image] : [])
     noteBody.value = getPlainTextFromHtml(formData.content)
     formData.video_url = data.videoUrl || data.video_url || ''
@@ -604,9 +680,6 @@ async function loadDetail(id: number) {
     formData.is_recommended = !!(data.isRecommended ?? data.is_recommended)
     formData.planet_exclusive = !!(data.planetExclusive ?? data.planet_exclusive)
     formData.planet_id = String(data.planetId ?? data.planet_id ?? '')
-    momentAttachments.value = Array.isArray(data.attachments)
-      ? data.attachments.map((item: Record<string, unknown>, idx: number) => normalizeAttachment(item, idx))
-      : []
     const tags = Array.isArray(data.tags) ? data.tags : []
     noteTagsText.value = tags.join(', ')
     formData.tag_ids = tags.map(String)
@@ -638,10 +711,37 @@ function normalizeContentStatus(statusRaw: unknown): ContentStatus {
 }
 
 function goBack(refresh = false) {
+  const t = contentType.value
+  const path =
+    t === 'note' ? '/content/notes' : t === 'file' ? '/content/materials' : '/content/articles'
   router.push({
-    path: '/content/library',
+    path,
     query: refresh ? { refresh: String(Date.now()) } : undefined,
   })
+}
+
+function onAiApplyField(payload: { field: string; value: string }) {
+  const field = String(payload.field || '')
+  const value = String(payload.value || '')
+  if (!value.trim()) return
+  if (field === 'title' || field === 'seoTitle') {
+    formData.title = value.trim()
+    if (!seoForm.title) seoForm.title = value.trim()
+    return
+  }
+  if (field === 'summary' || field === 'seoDescription') {
+    formData.summary = value.trim()
+    seoForm.description = value.trim()
+    return
+  }
+  if (field === 'content' || field === 'body') {
+    if (contentType.value === 'note' || contentType.value === 'moment' || contentType.value === 'file') {
+      noteBody.value = value
+      formData.content = value.includes('<') ? value : `<p>${value.replace(/\n/g, '</p><p>')}</p>`
+    } else {
+      formData.content = value.includes('<') ? value : `<p>${value.replace(/\n/g, '</p><p>')}</p>`
+    }
+  }
 }
 
 function normalizePreviewUrl(raw: string) {
@@ -783,9 +883,11 @@ const coverPreviewUrl = computed(() => {
 
 const previewModel = computed<ContentPreviewModel>(() => {
   const category = flatCategoryOptions.value.find((item) => item.id === formData.category_id)
+  const previewType =
+    contentType.value === 'file' ? 'moment' : (contentType.value as ContentPreviewModel['contentType'])
   return {
     title: formData.title,
-    contentType: contentType.value,
+    contentType: previewType,
     contentHtml: formData.content,
     noteBody: noteBody.value,
     coverImage: formData.cover_image,
@@ -833,6 +935,12 @@ async function handleSubmit() {
       activeTab.value = 'base'
       return
     }
+  } else if (contentType.value === 'file') {
+    if (!momentAttachments.value.length) {
+      ElMessage.warning('请至少上传一个资料附件')
+      activeTab.value = 'base'
+      return
+    }
   } else if (contentType.value === 'moment') {
     if (!noteBody.value.trim() && !noteImages.value.length && !momentAttachments.value.length) {
       ElMessage.warning('请至少填写正文、图片或资料附件之一')
@@ -859,10 +967,13 @@ async function handleSubmit() {
   submitLoading.value = true
   try {
     const tags = contentType.value === 'note' ? parseNoteTags() : formData.tag_ids.map(String)
-    const isShortForm = contentType.value === 'note' || contentType.value === 'moment'
+    // 资料走 moment + 附件落库，避免改后端 contentType 枚举
+    const apiType = contentType.value === 'file' ? 'moment' : contentType.value
+    const isShortForm = apiType === 'note' || apiType === 'moment'
+    const withAttachments = contentType.value === 'moment' || contentType.value === 'file'
     const payload = {
       title: formData.title.trim(),
-      contentType: contentType.value,
+      contentType: apiType,
       categoryId: formData.category_id,
       summary:
         formData.summary?.trim()
@@ -874,8 +985,8 @@ async function handleSubmit() {
           ? (noteImages.value[0] || formData.cover_image)
           : formData.cover_image
       )?.trim() || undefined,
-      images: isShortForm ? noteImages.value : undefined,
-      attachments: contentType.value === 'moment'
+      images: isShortForm && contentType.value !== 'file' ? noteImages.value : undefined,
+      attachments: withAttachments
         ? momentAttachments.value.map((item, idx) => ({ ...item, sortOrder: idx }))
         : undefined,
       tags,
@@ -887,7 +998,16 @@ async function handleSubmit() {
       likeCount: formData.like_count,
       viewCount: formData.view_count,
       favoriteCount: formData.favorite_count,
-      source: contentType.value === 'note' ? '笔记' : contentType.value === 'moment' ? '动态' : contentType.value === 'video' ? '视频' : undefined,
+      source:
+        contentType.value === 'note'
+          ? '笔记'
+          : contentType.value === 'file'
+            ? '资料'
+            : contentType.value === 'moment'
+              ? '动态'
+              : contentType.value === 'video'
+                ? '视频'
+                : undefined,
       sortOrder: formData.sort,
       seoTitle: seoForm.title?.trim() || undefined,
       seoDescription: seoForm.description?.trim() || undefined,
@@ -945,13 +1065,13 @@ async function handleSubmit() {
 
 onMounted(async () => {
   await Promise.all([fetchCategories(), fetchPlanetCommunities()])
+  const qType = String(route.query.type || '')
+  if (['note', 'moment', 'video', 'article', 'file'].includes(qType)) {
+    contentType.value = qType as typeof contentType.value
+    typeLocked.value = true
+  }
   if (isEdit.value) {
     await loadDetail(Number(route.query.id))
-  } else {
-    const qType = String(route.query.type || '')
-    if (['note', 'moment', 'video', 'article'].includes(qType)) {
-      contentType.value = qType as typeof contentType.value
-    }
   }
 })
 
@@ -973,9 +1093,15 @@ async function fetchPlanetCommunities() {
 .content-edit-page {
   .edit-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 1fr) 360px;
     gap: 16px;
     align-items: start;
+  }
+
+  .edit-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .preview-aside {

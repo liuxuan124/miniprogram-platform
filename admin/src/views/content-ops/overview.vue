@@ -21,7 +21,7 @@
         </span>
         <span class="todo-n">{{ pendingInteract }}</span>
       </button>
-      <button type="button" class="todo" @click="router.push({ path: '/content/library', query: { status: 'draft' } })">
+      <button type="button" class="todo" @click="router.push({ path: '/content/articles', query: { status: 'draft' } })">
         <span class="todo-ic"><MiniIcon name="pen" :size="18" /></span>
         <span style="flex:1;min-width:0">
           <b>草稿</b>
@@ -31,7 +31,7 @@
         </span>
         <span class="todo-n">{{ draftCount }}</span>
       </button>
-      <button v-if="scheduledCount > 0" type="button" class="todo" @click="router.push('/content/library')">
+      <button v-if="scheduledCount > 0" type="button" class="todo" @click="router.push('/content/articles')">
         <span class="todo-ic"><MiniIcon name="clock" :size="18" /></span>
         <span style="flex:1;min-width:0">
           <b>定时发布</b>
@@ -62,7 +62,7 @@
         <MiniIcon name="video" :size="20" />
         <span><b>写视频</b><span class="muted" style="font-size:12.5px">上传或粘贴视频链接</span></span>
       </button>
-      <button type="button" class="way" @click="router.push('/content/files')">
+      <button type="button" class="way" @click="goWrite('file')">
         <MiniIcon name="file" :size="20" />
         <span><b>写资料</b><span class="muted" style="font-size:12.5px">PDF 等文件，可设下载权限</span></span>
       </button>
@@ -76,7 +76,7 @@
             <div class="sub">已发布内容的累计阅读</div>
           </div>
           <div class="actions">
-            <button type="button" class="link" @click="router.push('/content/library')">全部内容 ›</button>
+            <button type="button" class="link" @click="router.push('/content/articles')">全部内容 ›</button>
           </div>
         </div>
         <div v-if="topReads.length" class="bars">
