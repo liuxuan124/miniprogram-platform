@@ -73,4 +73,7 @@ public class User extends BaseEntity {
 
     @Schema(description = "用户主星球ID（communities.id）")
     private String mainPlanetId;
+
+    @Schema(description = "运营备注")
+    private String adminNote;
 }

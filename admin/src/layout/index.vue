@@ -54,7 +54,8 @@ const router = useRouter()
 const route = useRoute()
 const isContentEditor = computed(() => /^\/content\/(write|edit)(\/|$)/.test(route.path))
 const isContentOps = computed(() => route.path.startsWith('/content') && !isContentEditor.value)
-const isWarmShell = computed(() => route.path.startsWith('/mini') || isContentOps.value)
+const isMemberOps = computed(() => route.path.startsWith('/member') || route.path.startsWith('/user'))
+const isWarmShell = computed(() => route.path.startsWith('/mini') || isContentOps.value || isMemberOps.value)
 /** @deprecated use isWarmShell — kept for Header/Sidebar that still read mini */
 const isMiniRoute = isWarmShell
 let switchTimer = 0

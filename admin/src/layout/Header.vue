@@ -117,7 +117,8 @@ const { pendingCount, siteLabel, liveReleaseNo, refreshMiniPending } = useMiniPe
 
 const isMiniRoute = computed(() => route.path.startsWith('/mini'))
 const isContentOps = computed(() => route.path.startsWith('/content') && !/^\/content\/(write|edit)/.test(route.path))
-const isWarmShell = computed(() => isMiniRoute.value || isContentOps.value)
+const isMemberOps = computed(() => route.path.startsWith('/member') || route.path.startsWith('/user'))
+const isWarmShell = computed(() => isMiniRoute.value || isContentOps.value || isMemberOps.value)
 
 watch(
   () => route.path,

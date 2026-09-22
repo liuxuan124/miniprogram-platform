@@ -79,6 +79,15 @@ public class MiniProgramUser implements Serializable {
     @TableLogic(value = "0", delval = "1")
     private Integer deleted;
 
+    @Schema(description = "付费会员到期")
+    @TableField("member_expire_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime memberExpireAt;
+
+    @Schema(description = "运营备注")
+    @TableField("admin_note")
+    private String adminNote;
+
     @Schema(description = "创建时间")
     @TableField("create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
