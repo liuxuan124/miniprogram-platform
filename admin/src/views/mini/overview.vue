@@ -3,38 +3,49 @@
     <MiniSkeleton v-if="!loaded" kind="overview" />
     <div v-else class="ov">
       <div class="ov-main">
-        <div class="head">
-          <div>
-            <h1 class="h1">
-              {{ site.name || '小程序' }}
-              <template v-if="site.slogan"> · {{ site.slogan }}</template>
-            </h1>
-            <div class="sub ov-meta">
-              <span class="tag t-live">运营中</span>
-              <span>整店模板：{{ templateLabel }}</span>
-              <span v-if="site.liveReleaseNo != null">
-                线上：第 {{ site.liveReleaseNo }} 次发布
-                <template v-if="site.liveReleaseAt"> · {{ formatShort(site.liveReleaseAt) }}</template>
-              </span>
-              <span v-else>线上：尚未发布</span>
-              <span>微信代码 {{ wechatCodeLabel }}</span>
-            </div>
+        <div>
+          <h1 class="h1">
+            {{ site.name || '小程序' }}
+            <template v-if="site.slogan"> · {{ site.slogan }}</template>
+          </h1>
+          <div class="sub ov-meta">
+            <span class="tag t-live">运营中</span>
+            <span>整店模板：{{ templateLabel }}</span>
+            <span v-if="site.liveReleaseNo != null">
+              线上：第 {{ site.liveReleaseNo }} 次发布
+              <template v-if="site.liveReleaseAt"> · {{ formatShort(site.liveReleaseAt) }}</template>
+            </span>
+            <span v-else>线上：尚未发布</span>
+            <span>微信代码 {{ wechatCodeLabel }}</span>
           </div>
-          <div class="actions">
-            <button
-              type="button"
-              class="btn"
-              @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
-            >
-              从模板新建
-            </button>
-            <button type="button" class="btn" :disabled="creatingBlank" @click="createBlank">
-              空白页面
-            </button>
-            <button type="button" class="btn primary" @click="router.push('/mini/pages/new-ai')">
-              AI 生成页面
-            </button>
-          </div>
+        </div>
+
+        <div class="ways">
+          <button type="button" class="way hi" @click="router.push('/mini/pages/new-ai')">
+            <MiniIcon name="spark" :size="20" />
+            <span>
+              <b>AI 生成页面</b>
+              <span class="muted" style="font-size: 12.5px">说出需求，AI 生成草稿，再手动微调</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="way"
+            @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
+          >
+            <MiniIcon name="grid" :size="20" />
+            <span>
+              <b>从模板新建</b>
+              <span class="muted" style="font-size: 12.5px">按行业场景挑页面模板或整店模板</span>
+            </span>
+          </button>
+          <button type="button" class="way" :disabled="creatingBlank" @click="createBlank">
+            <MiniIcon name="plus" :size="20" />
+            <span>
+              <b>空白页面</b>
+              <span class="muted" style="font-size: 12.5px">从组件开始自由搭建</span>
+            </span>
+          </button>
         </div>
 
         <section class="card">
@@ -195,19 +206,9 @@
         </div>
       </div>
 
-      <aside class="preview" :class="{ 'is-collapsed': !previewOpen }">
+      <aside class="preview">
         <div class="preview-head">
           <b>真机预览</b>
-          <button
-            type="button"
-            class="link"
-            style="font-size: 12px"
-            @click="previewOpen = !previewOpen"
-          >
-            {{ previewOpen ? '收起' : '展开' }}
-          </button>
-        </div>
-        <template v-if="previewOpen">
           <div class="seg" role="group" aria-label="预览版本">
             <button type="button" :class="{ on: previewSource === 'draft' }" @click="previewSource = 'draft'">
               改动后
@@ -216,25 +217,14 @@
               线上
             </button>
           </div>
-          <div class="phone" :class="previewZoom === 'lg' ? 'ph-lg' : 'ph-sm'">
-            <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
-          </div>
-          <div class="preview-foot">
-            <div class="seg" role="group" aria-label="预览尺寸">
-              <button type="button" :class="{ on: previewZoom === 'fit' }" @click="previewZoom = 'fit'">
-                适中
-              </button>
-              <button type="button" :class="{ on: previewZoom === 'lg' }" @click="previewZoom = 'lg'">
-                放大
-              </button>
-            </div>
-            <button type="button" class="btn sm" @click="openLivePreview">
-              <MiniIcon name="qr" :size="15" />
-              扫码
-            </button>
-          </div>
-        </template>
-        <p v-else class="faint preview-hint">收起后主栏更宽，需要时再展开对照</p>
+        </div>
+        <div class="phone">
+          <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
+        </div>
+        <button type="button" class="btn sm" @click="openLivePreview">
+          <MiniIcon name="qr" :size="15" />
+          扫码在手机上看
+        </button>
       </aside>
     </div>
 
@@ -329,9 +319,6 @@ const editPageId = ref<number | null>(null)
 const pendingTheme = ref('')
 /** 保存成功后可一键改回的上一个主色 */
 const undoTheme = ref('')
-const previewZoom = ref<'fit' | 'lg'>('fit')
-/** 默认展开但用小尺寸；可收起把主栏让出来 */
-const previewOpen = ref(true)
 
 type SortableTab = MiniTabBarItem & { __key: string }
 const sortableTabBar = ref<SortableTab[]>([])
@@ -700,28 +687,31 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.ov {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 28px;
-  align-items: start;
+/* 对照 docs/prototypes/暖阁小程序搭建原型.html · vOverview */
+.overview.mw-page {
+  max-width: none;
+  margin: 0;
+  padding: 24px 28px 48px;
+  gap: 18px;
 }
 
-/* 概览带右侧预览，略放宽内容壳，避免主栏被压得太窄 */
-.overview.mw-page {
-  max-width: 1280px;
+.ov {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
 }
 
 .ov-main {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 18px;
   min-width: 0;
 }
 
 .ov-meta {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -733,7 +723,7 @@ onMounted(load)
 .tabs-edit {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .tabcard-top {
@@ -752,7 +742,7 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--line2);
   &:last-child { border-bottom: 0; }
 }
@@ -762,12 +752,12 @@ onMounted(load)
   justify-content: space-between;
   gap: 12px;
   font-size: 13px;
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .lower-row {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -784,7 +774,6 @@ onMounted(load)
 .preview {
   position: sticky;
   top: 84px;
-  width: 248px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -793,11 +782,6 @@ onMounted(load)
   flex-direction: column;
   align-items: center;
   gap: 12px;
-
-  &.is-collapsed {
-    width: 160px;
-    align-items: stretch;
-  }
 }
 
 .preview-head {
@@ -807,23 +791,15 @@ onMounted(load)
   align-items: center;
 }
 
-.preview-hint {
-  margin: 0;
-  line-height: 1.5;
-}
-
-.preview-foot {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .phone {
-  &.ph-sm { width: 210px; height: 430px; }
-  &.ph-lg { width: 280px; height: 580px; }
+  width: 250px;
+  height: 540px;
+  border: 9px solid #1e1611;
+  border-radius: 34px;
+  background: #fffbf6;
+  overflow: hidden;
+  flex-shrink: 0;
+  max-width: 100%;
 
   iframe {
     width: 100%;
@@ -854,14 +830,13 @@ onMounted(load)
   flex-wrap: wrap;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1100px) {
   .ov {
     grid-template-columns: minmax(0, 1fr);
   }
   .preview {
     position: static;
-    width: auto;
-    max-width: 280px;
+    max-width: 300px;
   }
   .tabs-edit {
     grid-template-columns: repeat(2, minmax(0, 1fr));

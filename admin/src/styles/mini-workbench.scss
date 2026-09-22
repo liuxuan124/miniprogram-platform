@@ -218,7 +218,7 @@
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 24px;
+  padding: 20px;
 }
 
 .mini-wb .h1 {
@@ -351,26 +351,26 @@
   }
 }
 
-/* 概览「新建」已改为标题旁工具条，保留 .ways/.way 以防其它入口复用 */
+/* 概览三入口 — 对照原型 .ways / .way */
 .mini-wb .ways {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .mini-wb .way {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  padding: 9px 14px;
-  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--card);
   text-align: left;
   color: var(--ink);
   cursor: pointer;
   font-family: inherit;
-  width: auto;
+  width: 100%;
   &:hover { border-color: #d6c8b6; }
   &.hi {
     background: var(--acc);
@@ -378,8 +378,7 @@
     color: #fff;
     .muted { color: #fbe3d4; }
   }
-  b { display: block; font-size: 14px; font-weight: 500; }
-  .muted { display: none; }
+  b { display: block; font-size: 15px; }
 }
 
 .mini-wb .swatches {
@@ -402,20 +401,20 @@
 .mini-wb .tabs-edit {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .mini-wb .tabcard {
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   background: var(--card);
   text-align: left;
   cursor: grab;
-  min-height: 108px;
+  min-height: 120px;
   &:hover { border-color: var(--acc); }
   &.err {
     border-color: var(--r);
