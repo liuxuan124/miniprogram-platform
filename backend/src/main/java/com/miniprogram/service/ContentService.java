@@ -4,6 +4,7 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.ContentDTO;
 import com.miniprogram.dto.ContentDetailDTO;
 import com.miniprogram.dto.ContentQueryDTO;
+import com.miniprogram.dto.ContentStatsDTO;
 import com.miniprogram.entity.Content;
 
 /**
@@ -15,6 +16,11 @@ public interface ContentService extends BaseService<Content> {
      * 分页查询内容列表（管理后台）
      */
     PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO);
+
+    /**
+     * 各状态数量统计（可选按 contentType）
+     */
+    ContentStatsDTO getContentStats(String contentType);
 
     /**
      * 创建内容
@@ -32,9 +38,19 @@ public interface ContentService extends BaseService<Content> {
     ContentDetailDTO updateContent(Long id, ContentDTO dto);
 
     /**
-     * 删除内容
+     * 软删进回收站（status=deleted + deleted_at）
      */
     void deleteContent(Long id);
+
+    /**
+     * 回收站彻底删除（TableLogic）
+     */
+    void purgeContent(Long id);
+
+    /**
+     * 从回收站恢复为草稿
+     */
+    ContentDetailDTO restoreContent(Long id);
 
     /**
      * 发布内容
@@ -45,6 +61,21 @@ public interface ContentService extends BaseService<Content> {
      * 下架内容
      */
     ContentDetailDTO unpublishContent(Long id);
+
+    /**
+     * 下架内容（可带原因）
+     */
+    ContentDetailDTO unpublishContent(Long id, String reason);
+
+    /**
+     * 设定定时发布
+     */
+    ContentDetailDTO scheduleContent(Long id, String scheduledAt);
+
+    /**
+     * 扫描到期定时内容并发布
+     */
+    int publishDueScheduledContents();
 
     /**
      * 小程序端内容列表（仅已发布）

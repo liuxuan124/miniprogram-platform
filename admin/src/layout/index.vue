@@ -107,13 +107,14 @@ router.afterEach(() => {
   padding-left: 0 !important;
   height: 100vh !important;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .app-layout.is-content-editor .main-container {
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
 }
 
 .main-container {
@@ -173,8 +174,9 @@ router.afterEach(() => {
     padding: 0;
     background: #f6f2ec;
     min-height: 100%;
-    height: 100% !important;
-    overflow: hidden !important;
+    height: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
     flex: 1 1 auto;
   }
 }

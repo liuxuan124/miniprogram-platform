@@ -9,7 +9,7 @@ import {
   noteHashTags,
 } from '@/utils/note-content'
 
-export type ContentPreviewType = 'article' | 'note' | 'moment' | 'rich' | 'video'
+export type ContentPreviewType = 'article' | 'note' | 'moment' | 'rich' | 'video' | 'file'
 
 export interface ContentPreviewAttachment {
   id?: string
@@ -81,11 +81,15 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
     contentType === 'article' || contentType === 'rich'
       ? prepareArticleContentHtml(contentHtml, coverImage, String(data.title || ''))
       : contentHtml
+  const shortBody =
+    contentType === 'note' || contentType === 'moment' || contentType === 'file'
+      ? extractNoteParagraphs(contentHtml).join('\n\n')
+      : ''
   return {
     title: String(data.title || ''),
     contentType,
     contentHtml: preparedHtml,
-    noteBody: contentType === 'note' || contentType === 'moment' ? extractNoteParagraphs(contentHtml).join('\n\n') : '',
+    noteBody: shortBody,
     coverImage: images[0] || coverImage,
     images,
     tags,

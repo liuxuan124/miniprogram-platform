@@ -1,6 +1,6 @@
 package com.miniprogram.job;
 
-import com.miniprogram.service.impl.ContentServiceImpl;
+import com.miniprogram.service.ContentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,7 +19,7 @@ public class ContentScheduleJob {
 
     private static final String LOCK_KEY = "job:lock:content_schedule";
 
-    private final ContentServiceImpl contentService;
+    private final ContentService contentService;
     private final StringRedisTemplate stringRedisTemplate;
 
     @Scheduled(cron = "0 * * * * *")

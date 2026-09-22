@@ -132,15 +132,8 @@
               </div>
 
               <div class="pv-note-comments">
-                <div class="pv-note-comments__head">共 {{ commentPreviewCount }} 条评论</div>
-                <div v-for="item in commentPreview" :key="item.id" class="pv-note-comment">
-                  <div class="pv-av pv-av--xs">{{ item.avatar }}</div>
-                  <div class="pv-note-comment__main">
-                    <div class="pv-note-comment__nick">{{ item.nick }}</div>
-                    <div class="pv-note-comment__text">{{ item.text }}</div>
-                  </div>
-                  <div class="pv-note-comment__like">♡ {{ item.likes }}</div>
-                </div>
+                <div class="pv-note-comments__head">共 0 条评论</div>
+                <div class="pv-note-comments__empty">暂无评论</div>
               </div>
             </div>
 
@@ -150,7 +143,7 @@
               <div class="pv-note-bottom__acts">
                 <span class="pv-note-bottom__act">♡ {{ likeLabel }}</span>
                 <span class="pv-note-bottom__act">☆</span>
-                <span class="pv-note-bottom__act">💬 {{ commentPreviewCount }}</span>
+                <span class="pv-note-bottom__act">💬 0</span>
               </div>
             </div>
           </div>
@@ -168,7 +161,7 @@
               :style="coverStyle"
             >
               <img v-if="coverUrl" :src="coverUrl" alt="" class="pv-cover-img" />
-              <span v-else class="pv-cover-glyph">动</span>
+              <span v-else class="pv-cover-glyph">{{ coverGlyph }}</span>
             </div>
             <div
               class="pv-body"
@@ -178,7 +171,7 @@
               }"
             >
               <div class="pv-chips">
-                <span class="pv-fmt">{{ contentType === 'moment' ? '动态' : '长文' }}</span>
+                <span class="pv-fmt">{{ formatLabel }}</span>
                 <span v-if="showCategoryLabel" class="pv-topic">{{ categoryLabel }}</span>
               </div>
               <h1 class="pv-title" :class="{ 'pv-title--article': isArticleMode }">{{ titleText }}</h1>
@@ -194,9 +187,15 @@
                 </div>
                 <span v-if="!isArticleMode" class="pv-follow pv-follow--decorative" aria-hidden="true">+ 关注</span>
               </div>
-              <div v-if="contentType === 'moment' && noteBodyText" class="pv-content pv-content--plain">{{ noteBodyText }}</div>
+              <div
+                v-if="(contentType === 'moment' || contentType === 'file') && noteBodyText"
+                class="pv-content pv-content--plain"
+              >{{ noteBodyText }}</div>
               <div v-else-if="hasArticleBody" class="pv-content pv-content--article" v-html="articleContentHtml" />
-            <div v-if="contentType === 'moment' && attachmentItems.length" class="pv-attachments">
+            <div
+              v-if="(contentType === 'moment' || contentType === 'file') && attachmentItems.length"
+              class="pv-attachments"
+            >
               <div v-for="item in attachmentItems" :key="item.id || item.name" class="pv-attachment">
                 <span>{{ item.icon }}</span>
                 <span class="pv-attachment__name">{{ item.name }}</span>
@@ -312,11 +311,44 @@ function onPhoneScroll(event: Event) {
 
 const likeLabel = computed(() => '赞')
 
-const commentPreviewCount = computed(() => 86)
-const commentPreview = computed(() => [
-  { id: 1, avatar: '用', nick: '跨境小白', text: '收藏了，正好在办 VAT', likes: 12 },
-  { id: 2, avatar: '税', nick: '财税老司机', text: '第 3 张图讲得很清楚 👍', likes: 28 },
-])
+const formatLabel = computed(() => {
+  const t = contentType.value
+  if (t === 'note') return '笔记'
+  if (t === 'file') return '资料'
+  if (t === 'moment') return '动态'
+  if (t === 'video') return '视频'
+  return '长文'
+})
+
+const coverGlyph = computed(() => {
+  const t = contentType.value
+  if (t === 'file') return '资'
+  if (t === 'video') return '视'
+  if (t === 'moment') return '动'
+  return '文'
+})
+
+const previewHintText = computed(() => {
+  if (isWechatNewspic.value) {
+    return '公众号贴图预览 · 实际以小程序为准'
+  }
+  if (contentType.value === 'note') {
+    return '笔记详情预览 · 实际以小程序为准'
+  }
+  if (contentType.value === 'file') {
+    return '资料详情预览 · 实际以小程序为准'
+  }
+  if (contentType.value === 'moment') {
+    return '动态详情预览 · 实际以小程序为准'
+  }
+  if (contentType.value === 'video') {
+    return '视频详情预览 · 实际以小程序为准'
+  }
+  if (isArticleMode.value) {
+    return '长文详情预览 · 封面仅用于分享，正文不展示'
+  }
+  return `${formatLabel.value}详情预览 · 实际以小程序为准`
+})
 
 const isWechatNewspic = computed(() => {
   if (props.model.isWechatNewspic != null) return Boolean(props.model.isWechatNewspic)
@@ -336,16 +368,6 @@ const phoneScreenClass = computed(() => ({
   'phone-screen--wechat': isWechatNewspic.value,
   'phone-screen--article': isArticleMode.value,
 }))
-
-const previewHintText = computed(() => {
-  if (isWechatNewspic.value) {
-    return '公众号贴图预览 · 实际以小程序为准'
-  }
-  if (isArticleMode.value) {
-    return '长文详情预览 · 封面仅用于分享，正文不展示'
-  }
-  return '笔记详情预览 · 实际以小程序为准'
-})
 
 const noteParagraphs = computed(() => {
   if (contentType.value !== 'note') return []
@@ -787,6 +809,13 @@ function nextGallery() {
   font-size: 13px;
   font-weight: 600;
   color: #0f1219;
+}
+
+.pv-note-comments__empty {
+  padding: 16px 0 8px;
+  font-size: 13px;
+  color: #a5abb9;
+  text-align: center;
 }
 
 .pv-note-comment {
