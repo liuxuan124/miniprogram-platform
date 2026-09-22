@@ -70,11 +70,13 @@ router.afterEach(() => {
 }
 
 /*
- * /mini：侧栏改回文档流占位（见 Sidebar.is-mini-shell），不再靠 padding-left 让位。
- * 否则 fixed 侧栏不占 flex 宽度时，内容会伸到侧栏底下，目录↔内容可见间距被吃掉。
+ * /mini：侧栏占文档流（Sidebar.is-mini-shell）；壳锁 100vh，仅右侧 main 纵向滚动。
  */
 .app-layout.is-mini {
   padding-left: 0;
+  height: 100vh !important;
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .app-layout.sidebar-collapsed {
@@ -95,6 +97,13 @@ router.afterEach(() => {
   box-sizing: border-box;
 }
 
+.app-layout.is-mini .main-container {
+  min-height: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .app-header {
   padding: 0;
   border-bottom: 1px solid #e6e6e6;
@@ -104,6 +113,9 @@ router.afterEach(() => {
   /* Header.vue 里 /mini 的条是 60px，外层壳必须同高，否则内容会被压掉 4px */
   &.is-mini {
     border-bottom: 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 }
 
@@ -123,7 +135,10 @@ router.afterEach(() => {
   &.is-mini {
     padding: 0;
     background: #f6f2ec;
-    min-height: calc(100vh - 60px);
+    min-height: 0;
+    flex: 1 0 auto;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
   }
 }
 
