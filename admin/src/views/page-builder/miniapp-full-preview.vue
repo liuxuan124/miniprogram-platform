@@ -69,6 +69,7 @@
           :page-title="phoneTitle"
           :page-bg-color="pageBgColor"
           :hide-nav-bar="currentHasBrandHeader || activeScreen === 'mine'"
+          :hide-back="isTabRootScreen"
           :pinned-brand-header="!!currentPinnedBrandHeader"
           @back="handleBack"
         >
@@ -633,6 +634,14 @@ const showTabbar = computed(() => {
   return ['home', 'content', 'shop', 'mine'].includes(activeScreen.value)
 })
 
+/** 底部导航根页：不展示返回箭头（对齐真机 tab 页） */
+const isTabRootScreen = computed(() => {
+  if (!showTabbar.value) return false
+  const cur = normalizePath(activeScreen.value)
+  if (cur === 'home' || cur === 'mine') return true
+  return displayTabs.value.some((t) => normalizePath(t.key) === cur)
+})
+
 const showBoundPageContent = computed(() => {
   if (!snapshotPages.value.length) return false
   if (activeScreen.value === 'login') return false
@@ -838,10 +847,7 @@ function pickInitialHomePath(
   tabs: Array<{ pagePath?: string; pageId?: string }>,
   pages: Array<{ path: string; pageId?: string }>,
 ) {
-  if (/^\d+$/.test(homeId)) {
-    const byHome = pages.find((p) => p.pageId === homeId)
-    if (byHome) return byHome.path
-  }
+  // 优先底部导航第 1 项（运营真实首页），再回落 miniappHomePageId；避免旧 homeId 指向历史壳页
   for (const tab of tabs) {
     const tabId = String(tab.pageId || '').trim()
     if (/^\d+$/.test(tabId)) {
@@ -849,13 +855,17 @@ function pickInitialHomePath(
       if (byTab) return byTab.path
     }
     const tabPath = normalizePath(tab.pagePath)
-    if (tabPath && tabPath !== 'pages/index/index') {
+    if (tabPath) {
       const byPath = pages.find((p) => {
         const pPath = normalizePath(p.path)
         return pPath === tabPath || pPath.endsWith(tabPath) || tabPath.endsWith(pPath)
       })
       if (byPath) return byPath.path
     }
+  }
+  if (/^\d+$/.test(homeId)) {
+    const byHome = pages.find((p) => p.pageId === homeId)
+    if (byHome) return byHome.path
   }
   return pages.find((p) => /pages\/index\/index/.test(normalizePath(p.path)))?.path
     || pages[0]?.path
@@ -1118,7 +1128,7 @@ function openPrototypeTab() {
 
 async function applyDsl(dsl: PageDSL) {
   const { dsl: hydrated } = await hydratePreviewDsl(dsl)
-  homeTitle.value = hydrated.page?.name || '出海笔记首页'
+  homeTitle.value = hydrated.page?.name || '首页'
   pageBgColor.value = hydrated.page?.background_color || '#f5f6f9'
   homeComponents.value = Array.isArray(hydrated.components) ? hydrated.components : []
 }

@@ -98,6 +98,14 @@ public class MiniSiteServiceImpl implements MiniSiteService {
 
         if (dto.getTabBar() != null) {
             draft.put("tabbarItems", dto.getTabBar());
+            // 同步首页 ID：以底部导航第 1 项为准，避免预览仍指向历史壳页
+            Object first = dto.getTabBar().isEmpty() ? null : dto.getTabBar().get(0);
+            if (first instanceof Map<?, ?> tab0) {
+                Object pageId = tab0.get("pageId");
+                if (pageId != null && StringUtils.hasText(String.valueOf(pageId))) {
+                    draft.put("miniappHomePageId", String.valueOf(pageId));
+                }
+            }
         }
         if (dto.getTheme() != null) {
             draft.put("miniappThemeConfig", dto.getTheme());
@@ -270,6 +278,10 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             }
         }
         // pageIds 空列表 = 本次不发任何页（仅可能发站点）
+        // 无站点提升且无页面发布 = 空发，禁止递增序号（与发布中心「无改动不可发」一致）
+        if (!promoted && publishedPages <= 0) {
+            throw new IllegalArgumentException("没有可发布的改动：请先改页面或站点配置，再发布");
+        }
 
         int prev = parseIntOrDefault(systemConfigService.getConfigValue(LIVE_RELEASE_NO_KEY), 0);
         int next = prev + 1;

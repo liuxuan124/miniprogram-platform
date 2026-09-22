@@ -415,6 +415,7 @@ export interface UpdatePageParams {
   share_image?: string
   shareImage?: string
   background_color?: string
+  description?: string
   dsl?: PageDSL
   /** 页面分组 tab/activity/content/archived（后端若支持则生效） */
   pageGroup?: string

@@ -134,6 +134,8 @@ const TAB_PATH_ICON_MAP: Record<string, string> = {
   '/images/tab/content-active.png': '/images/nav-icons/g-news.png',
   '/images/tab/category.png': '/images/nav-icons/g-folder.png',
   '/images/tab/category-active.png': '/images/nav-icons/g-folder.png',
+  '/images/tab/member.png': '/images/nav-icons/g-crown.png',
+  '/images/tab/member-active.png': '/images/nav-icons/g-crown.png',
   '/images/tab/mine.png': '/images/nav-icons/g-user.png',
   '/images/tab/mine-active.png': '/images/nav-icons/g-user.png',
   '/images/tab/shop.png': '/images/nav-icons/g-bag.png',

@@ -31,6 +31,10 @@ export interface IndustryProfile {
 const BASE_LAYOUT = [
   'banner', 'nav', 'image', 'search', 'rich_text', 'section_title', 'divider', 'spacer',
   'float_button', 'brand_header', 'brand_intro', 'container',
+]
+
+/** 暖阁专用积木：仅内容 IP 业态默认放开，避免其它租户组件库噪音 */
+const WARM_LAYOUT = [
   'warm_greet', 'warm_authors', 'warm_feature', 'warm_columns', 'warm_planet_rec', 'warm_feed',
   'warm_home', 'warm_discover', 'warm_planet', 'warm_shop', 'warm_mine',
 ]
@@ -58,6 +62,7 @@ export const INDUSTRY_PROFILES: Record<string, IndustryProfile> = {
     ],
     componentAllowlist: [
       ...BASE_LAYOUT,
+      ...WARM_LAYOUT,
       'article_list', 'article_feed', 'note_feed', 'moments_feed', 'hot_news', 'content_tabs',
       'planet_hero', 'planet_topics', 'planet_feed',
       'product_list', 'member_card', 'join_group', 'ai_entry', 'image_cube', 'video', 'float_button',

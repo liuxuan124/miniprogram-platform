@@ -32,7 +32,13 @@
             <template v-if="liveReleaseNo != null"> · 第 {{ liveReleaseNo }} 次发布</template>
           </span>
         </button>
-        <button type="button" class="mini-publish-btn" @click="router.push('/mini/publish')">
+        <button
+          type="button"
+          class="mini-publish-btn"
+          :disabled="pendingCount <= 0"
+          :title="pendingCount <= 0 ? '没有待发布改动' : `有 ${pendingCount} 项待发布`"
+          @click="router.push('/mini/publish')"
+        >
           <el-icon><Promotion /></el-icon>
           发布
           <span v-if="pendingCount > 0" class="pub-badge">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
@@ -308,6 +314,11 @@ async function handleCommand(command: string) {
   line-height: 1.2;
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   &:hover { background: #8c3208; border-color: #8c3208; }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    &:hover { background: #b4430f; border-color: #b4430f; }
+  }
   .pub-badge {
     background: #fff;
     color: #b4430f;

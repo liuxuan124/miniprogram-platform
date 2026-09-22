@@ -185,15 +185,35 @@ function formatArticleMeta(item: Record<string, any>): string {
 }
 
 function mapArticleItems(list: any[], limit: number) {
-  return list.slice(0, limit).map((item, index) => {
+  const seen = new Set<string>()
+  const deduped: any[] = []
+  for (const item of list || []) {
+    const title = String(item?.title || item?.name || '').trim().toLowerCase()
+    const idKey = item?.id != null ? `id:${item.id}` : ''
+    const titleKey = title ? `t:${title}` : ''
+    const key = idKey || titleKey || `i:${deduped.length}`
+    // 同标题去重（导入脏数据常见）；保留先出现的
+    if (titleKey && seen.has(titleKey)) continue
+    if (idKey && seen.has(idKey)) continue
+    if (titleKey) seen.add(titleKey)
+    if (idKey) seen.add(idKey)
+    deduped.push(item)
+  }
+  return deduped.slice(0, limit).map((item, index) => {
     const id = item.id || index + 1
+    const published = item.publishedAt || item.publishTime || item.publish_time || ''
+    const created = item.createdAt || item.created_at || item.createTime || ''
+    // 批量导入同一时刻时，优先展示创建时间，避免信息流全是同一个导入戳
+    const timeSource = published && created && String(published).slice(0, 16) !== String(created).slice(0, 16)
+      ? published
+      : (created || published)
     return {
       id,
       title: item.title || item.name || '文章标题',
-      meta: formatArticleMeta(item),
+      meta: formatPublishDateTime(timeSource) || formatArticleMeta({ ...item, publishedAt: timeSource }),
       cover: item.coverUrl || item.coverImage || item.cover || item.image || '',
       viewCount: Number(item.viewCount ?? item.view_count ?? 0) || 0,
-      publishedAt: item.publishedAt || item.publishTime || item.publish_time || item.createTime || '',
+      publishedAt: timeSource,
       link_url: item.link_url || item.linkUrl || `/pages/content-detail/content-detail?id=${id}`,
       categoryId: item.categoryId ?? item.category_id,
       categoryName: item.categoryName || item.category_name || '',

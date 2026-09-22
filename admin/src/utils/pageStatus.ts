@@ -89,7 +89,7 @@ export const PAGE_GROUP_SUB: Record<PageGroup, string> = {
   archived: '被替换或不再使用的页面，可随时恢复',
 }
 
-/** 无后端 pageGroup 时按类型 / 路径推断分组 */
+/** 无后端 pageGroup 时按类型 / 路径推断分组（真正底部导航优先看 tabBar 绑定，勿把旧 index 路径误判为导航页） */
 export function inferPageGroup(row: {
   pageGroup?: string | null
   page_group?: string | null
@@ -97,17 +97,21 @@ export function inferPageGroup(row: {
   type?: string | number | null
   path?: string | null
   name?: string | null
+  /** 是否已绑定到当前站点底部导航（由列表页传入） */
+  boundToTab?: boolean | null
 }): PageGroup {
   const explicit = String(row.pageGroup || row.page_group || '').toLowerCase()
   if (explicit === 'tab' || explicit === 'activity' || explicit === 'content' || explicit === 'archived') {
     return explicit
   }
   if (row.archived === true || row.archived === 1) return 'archived'
+  if (row.boundToTab === true) return 'tab'
   const path = String(row.path || '')
   const type = String(row.type ?? '')
-  if (path.includes('/pages/mine/mine') || path.includes('/pages/index/index') || type === '1' || type === 'home') {
-    return 'tab'
+  // 仅系统「我的」固定算导航；pages/index/index 可能是历史壳路径，不能单凭路径进底部导航组
+  if (path.includes('/pages/mine/mine')) return 'tab'
+  if (type === 'activity' || path.includes('/activity') || path.includes('/pages/custom/activity')) {
+    return 'activity'
   }
-  if (type === 'activity' || path.includes('/activity')) return 'activity'
   return 'content'
 }
