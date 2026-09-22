@@ -69,14 +69,20 @@ router.afterEach(() => {
   transition: padding-left 0.3s ease;
 }
 
-/* /mini 侧栏是 216px，留白要跟着变，否则左侧露出一条缝、内容还会压到侧栏下面 */
+/*
+ * /mini：侧栏改回文档流占位（见 Sidebar.is-mini-shell），不再靠 padding-left 让位。
+ * 否则 fixed 侧栏不占 flex 宽度时，内容会伸到侧栏底下，目录↔内容可见间距被吃掉。
+ */
 .app-layout.is-mini {
-  padding-left: 216px;
+  padding-left: 0;
 }
 
-.app-layout.sidebar-collapsed,
-.app-layout.is-mini.sidebar-collapsed {
+.app-layout.sidebar-collapsed {
   padding-left: 72px;
+}
+
+.app-layout.is-mini.sidebar-collapsed {
+  padding-left: 0;
 }
 
 .main-container {

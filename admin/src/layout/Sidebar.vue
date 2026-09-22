@@ -419,8 +419,14 @@ watch(
   z-index: 1001;
   transition: width 0.2s ease;
 
-  /* /mini 工作台：暖棕壳 + 陶土 active，离开 /mini 无此 class */
+  /* /mini 工作台：暖棕壳 + 陶土 active；侧栏占文档流（对齐原型 grid），避免压内容左缘 */
   &.is-mini-shell {
+    position: sticky;
+    top: 0;
+    inset: auto;
+    align-self: flex-start;
+    height: 100vh;
+    flex-shrink: 0;
     background: #2b1d14;
     padding: 0;
     color: #e9dccb;
