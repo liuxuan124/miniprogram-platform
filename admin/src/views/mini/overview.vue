@@ -218,11 +218,9 @@
             </button>
           </div>
         </div>
-        <div class="phone" :class="{ lg: previewZoom === 'lg' }">
-          <!-- 按真机 375 宽渲染后整体缩放，避免窄 iframe 里文字被挤到读不清 -->
-          <div class="phone-scaler" :style="scalerStyle">
-            <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
-          </div>
+        <!-- 预览页在 embed 模式会撑满给它的盒子，所以直接放大真实尺寸，不做比例缩放 -->
+        <div class="phone" :class="previewZoom === 'lg' ? 'ph-lg' : 'ph-md'">
+          <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
         <div class="preview-foot">
           <div class="seg" role="group" aria-label="预览尺寸">
@@ -384,19 +382,6 @@ const previewUrl = computed(() => {
 const previewKey = computed(
   () => `${previewSource.value}|${themeDirty.value ? pendingTheme.value : ''}`,
 )
-
-const scalerStyle = computed(() => {
-  // .phone 有 9px 边框，可视宽高要减掉
-  const innerW = previewZoom.value === 'lg' ? 302 : 232
-  const innerH = previewZoom.value === 'lg' ? 632 : 522
-  const scale = innerW / 375
-  return {
-    width: '375px',
-    height: `${Math.round(innerH / scale)}px`,
-    transform: `scale(${scale})`,
-    transformOrigin: 'top left',
-  }
-})
 
 function syncSortableFromSite() {
   sortableTabBar.value = (site.value.tabBar || []).map((t, i) => ({
@@ -714,13 +699,10 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.overview.mw-page {
-  margin: -16px;
-}
-
 .ov {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  /* 右栏跟着手机尺寸走，不写死宽度，否则放大档会溢出卡片 */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 20px;
   align-items: start;
 }
@@ -833,10 +815,10 @@ onMounted(load)
 }
 
 .phone {
-  position: relative;
-}
+  /* 不复用全局 .lg，避免和 mini-workbench.scss 里同优先级的规则打架 */
+  &.ph-md { width: 280px; height: 580px; }
+  &.ph-lg { width: 330px; height: 680px; }
 
-.phone-scaler {
   iframe {
     width: 100%;
     height: 100%;

@@ -1,8 +1,15 @@
 <template>
-  <el-container class="app-layout" :class="{ 'sidebar-collapsed': appStore.sidebarCollapsed }">
+  <el-container
+    class="app-layout"
+    :class="{ 'sidebar-collapsed': appStore.sidebarCollapsed, 'is-mini': isMiniRoute }"
+  >
     <Sidebar />
     <el-container class="main-container">
-      <el-header class="app-header" height="56px">
+      <el-header
+        class="app-header"
+        :class="{ 'is-mini': isMiniRoute }"
+        :height="isMiniRoute ? '60px' : '56px'"
+      >
         <Header />
       </el-header>
       <TagsView v-if="!isMiniRoute" />
@@ -62,7 +69,13 @@ router.afterEach(() => {
   transition: padding-left 0.3s ease;
 }
 
-.app-layout.sidebar-collapsed {
+/* /mini 侧栏是 216px，留白要跟着变，否则左侧露出一条缝、内容还会压到侧栏下面 */
+.app-layout.is-mini {
+  padding-left: 216px;
+}
+
+.app-layout.sidebar-collapsed,
+.app-layout.is-mini.sidebar-collapsed {
   padding-left: 72px;
 }
 
@@ -81,6 +94,11 @@ router.afterEach(() => {
   border-bottom: 1px solid #e6e6e6;
   background: #fff;
   flex-shrink: 0;
+
+  /* Header.vue 里 /mini 的条是 60px，外层壳必须同高，否则内容会被压掉 4px */
+  &.is-mini {
+    border-bottom: 0;
+  }
 }
 
 .app-main {
@@ -99,7 +117,7 @@ router.afterEach(() => {
   &.is-mini {
     padding: 0;
     background: #f6f2ec;
-    min-height: calc(100vh - 56px);
+    min-height: calc(100vh - 60px);
   }
 }
 

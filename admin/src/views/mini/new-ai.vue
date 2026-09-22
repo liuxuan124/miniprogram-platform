@@ -247,9 +247,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-.ai-view.mw-page {
-  margin: -16px;
-}
 .ai-form {
   display: flex;
   flex-direction: column;
