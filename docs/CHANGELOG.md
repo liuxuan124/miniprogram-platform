@@ -4,7 +4,7 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
-- 2026-09-22：商业变现按暖阁原型升级——admin 六屏暖壳 + Flyway V74（is_test/限时价/交易设置）+ `/api/v1/admin/commerce-ops`；旧 product/order/coupon/growth 重定向；原型入 `docs/prototypes/暖阁商业变现原型.html`。
+- 2026-09-22：管理端侧栏二级目录统一四字文案（运营概览/页面管理/会员权益/卡券中心等），面包屑与命令面板同步。
 - 2026-09-22：用户会员按暖阁原型升级——admin 六屏暖壳 + Flyway V73（分群/赠送/合并/客服会话/社区帖/读者群）+ `/api/v1/admin/member-ops`；旧 list/planet/user 重定向；原型入 `docs/prototypes/暖阁用户会员原型.html`。
 - 2026-09-22：内容运营按暖阁原型升级——暖色壳五入口（概览/内容库/写内容/互动/设置）；旧 article/note/comments 等重定向；写内容全屏编辑；原型入 `docs/prototypes/暖阁内容运营原型.html`。
 - 2026-09-22：模板库整店网格——仅打开应用影响面板时才双栏，去掉未选中时右侧 340px 空列。
