@@ -220,6 +220,18 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '资料', icon: 'FolderOpened', lockedType: 'file', featureModule: 'content' },
       },
       {
+        path: 'moments',
+        name: 'ContentOpsMoments',
+        component: () => import('@/views/content-ops/library.vue'),
+        meta: { title: '动态', icon: 'ChatDotRound', lockedType: 'moment', featureModule: 'content' },
+      },
+      {
+        path: 'videos',
+        name: 'ContentOpsVideos',
+        component: () => import('@/views/content-ops/library.vue'),
+        meta: { title: '视频', icon: 'VideoCamera', lockedType: 'video', featureModule: 'content' },
+      },
+      {
         path: 'library',
         redirect: '/content/articles',
         meta: { title: '内容列表', hidden: true, featureModule: 'content' },

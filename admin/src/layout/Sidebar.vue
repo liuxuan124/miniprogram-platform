@@ -251,6 +251,8 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '长文', path: '/content/articles', icon: 'Reading', activePrefix: '/content/articles', featureModule: 'content' },
       { title: '笔记', path: '/content/notes', icon: 'EditPen', activePrefix: '/content/notes', featureModule: 'content' },
       { title: '资料', path: '/content/materials', icon: 'FolderOpened', activePrefix: '/content/materials', featureModule: 'content' },
+      { title: '动态', path: '/content/moments', icon: 'ChatLineRound', activePrefix: '/content/moments', featureModule: 'content' },
+      { title: '视频', path: '/content/videos', icon: 'VideoCamera', activePrefix: '/content/videos', featureModule: 'content' },
       { title: '互动中心', path: '/content/inbox', icon: 'ChatDotRound', activePrefix: '/content/inbox' },
       { title: '内容设置', path: '/content/settings', icon: 'Setting', activePrefix: '/content/settings', featureModule: 'content' },
     ],

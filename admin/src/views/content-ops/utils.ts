@@ -1,7 +1,7 @@
 import { ContentStatus, CONTENT_FORMAT_META, type ContentFormatType } from '@/types/content'
 import { inferContentFormat } from '@/utils/content-format'
 
-export type UiContentType = 'article' | 'note' | 'video' | 'file'
+export type UiContentType = 'article' | 'note' | 'video' | 'file' | 'moment'
 
 export function formatReads(n?: number | null): string {
   if (n == null || !Number.isFinite(Number(n))) return '—'
@@ -30,6 +30,7 @@ export function statusLabel(status?: string): string {
 export function typeLabel(fmt?: string): string {
   const key = String(fmt || 'article')
   if (key === 'file') return '资料'
+  if (key === 'moment') return '动态'
   return CONTENT_FORMAT_META[key as ContentFormatType]?.label || '长文'
 }
 
@@ -40,17 +41,21 @@ function attachmentCountOf(data: Record<string, unknown>): number {
   return Array.isArray(list) ? list.length : 0
 }
 
-/** Map API contentType / inferred format → UI type (长文/笔记/视频/资料) */
+/** Map API contentType / inferred format → UI type（五类入口互不合并） */
 export function mapFormatToUi(raw: unknown): UiContentType {
   const data = (raw && typeof raw === 'object' ? raw : { contentType: raw }) as Record<string, unknown>
   const explicit = String(data.contentType || data.content_type || data.type || '').toLowerCase()
   if (explicit === 'file') return 'file'
+  if (explicit === 'moment') return 'moment'
+  if (explicit === 'note') return 'note'
+  if (explicit === 'video') return 'video'
+  if (explicit === 'article' || explicit === 'rich') return 'article'
   const fmt = inferContentFormat(data)
   if (fmt === 'video') return 'video'
-  // 有附件且非长文时标为资料（动态带附件也归资料列表）
-  if (attachmentCountOf(data) > 0 && fmt !== 'article' && fmt !== 'rich') return 'file'
+  if (fmt === 'moment') return 'moment'
   if (fmt === 'note') return 'note'
-  if (fmt === 'moment') return 'note'
+  // 无明确类型但有附件 → 资料
+  if (attachmentCountOf(data) > 0) return 'file'
   return 'article'
 }
 
@@ -70,6 +75,7 @@ export function unwrapList<T = Record<string, unknown>>(res: unknown): { records
 
 export function typeIcon(ui: UiContentType): string {
   if (ui === 'note') return 'note'
+  if (ui === 'moment') return 'spark'
   if (ui === 'video') return 'video'
   if (ui === 'file') return 'file'
   return 'doc'
