@@ -218,6 +218,9 @@
             </button>
           </div>
         </div>
+        <p class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
+          {{ previewSource === 'live' ? '看用户此刻看到的线上版' : '看待发布草稿（未点发布前用户看不到）' }}
+        </p>
         <div class="phone">
           <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
@@ -244,6 +247,27 @@
       <el-form v-if="editTab" label-position="top" @submit.prevent>
         <el-form-item label="标题">
           <el-input v-model="editTab.text" maxlength="8" show-word-limit placeholder="例如：首页" />
+        </el-form-item>
+        <el-form-item label="图标">
+          <el-select
+            :model-value="editTab.icon || ''"
+            filterable
+            placeholder="选择导航图标"
+            style="width: 100%"
+            @change="(v: string) => { if (editTab) editTab = { ...editTab, icon: v, selectedIcon: v } }"
+          >
+            <el-option
+              v-for="ic in NAV_FLAT_ICONS"
+              :key="ic.id"
+              :label="ic.label"
+              :value="ic.src"
+            >
+              <span style="display:inline-flex;align-items:center;gap:8px">
+                <img :src="ic.src" alt="" width="18" height="18" style="object-fit:contain" />
+                {{ ic.label }}
+              </span>
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="绑定页面">
           <el-select
@@ -297,6 +321,7 @@ import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
 import { resolvePageStatus } from '@/utils/pageStatus'
 import { refreshMiniPending } from '@/composables/useMiniPending'
+import { NAV_FLAT_ICONS } from '@/components/page-builder/navIconSet'
 import type { PageRecord as PageRow } from '@/types/page'
 
 defineOptions({ name: 'MiniOverview' })

@@ -133,6 +133,8 @@ import {
   Checked,
   EditPen,
   ChatDotRound,
+  ChatLineRound,
+  VideoCamera,
   Shop,
   FolderOpened,
 } from '@element-plus/icons-vue'
@@ -182,6 +184,8 @@ const iconMap: Record<string, any> = {
   Checked,
   EditPen,
   ChatDotRound,
+  ChatLineRound,
+  VideoCamera,
   Shop,
   FolderOpened,
 }

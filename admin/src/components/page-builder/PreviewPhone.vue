@@ -17,6 +17,7 @@
       <!-- 导航栏（自定义顶栏页面可隐藏） -->
       <div v-if="!hideNavBar" class="phone-nav-bar">
         <button
+          v-if="!hideBack"
           class="nav-back-btn"
           type="button"
           @click.stop.prevent="handleBackClick"
@@ -25,6 +26,7 @@
         >
           <el-icon :size="18"><ArrowLeft /></el-icon>
         </button>
+        <span v-else class="nav-back-spacer" aria-hidden="true" />
         <span class="nav-title">{{ pageTitle }}</span>
         <el-icon :size="18"><More /></el-icon>
       </div>
@@ -81,6 +83,8 @@ defineProps<{
   pageBgColor: string
   /** 使用品牌顶栏组件时隐藏模拟系统导航栏 */
   hideNavBar?: boolean
+  /** Tab 首页等不显示返回箭头 */
+  hideBack?: boolean
   /** 品牌顶栏吸顶：顶栏渲染在 phone-content 外的固定层 */
   pinnedBrandHeader?: boolean
 }>()
@@ -220,6 +224,12 @@ function handleBackClick() {
       &:hover {
         background: #f3f4f6;
       }
+    }
+
+    .nav-back-spacer {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
     }
 
     .nav-title {

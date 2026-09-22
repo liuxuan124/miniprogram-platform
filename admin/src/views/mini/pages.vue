@@ -105,6 +105,7 @@
                     <PageRowMenu
                       :row="row"
                       :archived="isArchived(row)"
+                      :is-nav="tabIndexOf(row) >= 0"
                       :can-offline="canOffline(row)"
                       :can-delete="canDelete(row)"
                       @command="onMore"
@@ -153,7 +154,7 @@ import PageStatusTag from '@/components/mini/PageStatusTag.vue'
 import PageRowMenu from '@/components/mini/PageRowMenu.vue'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
-import { getPageList, createPage, deletePage, unpublishPage, duplicatePage } from '@/api/page'
+import { getPageList, createPage, deletePage, unpublishPage, duplicatePage, updatePage } from '@/api/page'
 import { getMiniSite, updateMiniSite, type MiniTabBarItem } from '@/api/miniSite'
 import {
   inferPageGroup,
@@ -313,9 +314,11 @@ function thumbColors(row: PageRecord): string[] {
 function inferGroup(row: PageRecord): PageGroup {
   const explicit = String((row as any).pageGroup || (row as any).page_group || '').toLowerCase()
   if (explicit === 'tab' || explicit === 'activity' || explicit === 'content' || explicit === 'archived') {
+    // 归档显式组保留；「tab」若实际未绑导航则降为内容页，避免残留 page_group 误导
+    if (explicit === 'tab' && tabIndexOf(row) < 0) return 'content'
     return explicit
   }
-  return inferPageGroup(row)
+  return inferPageGroup({ ...row, boundToTab: tabIndexOf(row) >= 0 })
 }
 
 function isArchived(row: PageRecord) {
@@ -363,9 +366,39 @@ async function onMore(cmd: string, row: PageRecord) {
     return
   }
   if (cmd === 'set-nav') {
+    if (tabIndexOf(row) >= 0) {
+      ElMessage.info('该页已在底部导航中')
+      return
+    }
     navTarget.value = row
     navSlotIndex.value = 0
     navDialogVisible.value = true
+    return
+  }
+  if (cmd === 'rename') {
+    try {
+      const { value } = await ElMessageBox.prompt('页面名称', '重命名', {
+        inputValue: String(row.name || ''),
+        inputPattern: /\S+/,
+        inputErrorMessage: '名称不能为空',
+      })
+      await updatePage(Number(row.id), { name: String(value).trim() })
+      ElMessage.success('已重命名')
+      await load()
+    } catch (e: any) {
+      if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+    }
+    return
+  }
+  if (cmd === 'archive') {
+    try {
+      await ElMessageBox.confirm(`确认归档「${row.name}」？可从归档组恢复`, '归档', { type: 'warning' })
+      await updatePage(Number(row.id), { archived: 1, pageGroup: 'archived' } as any)
+      ElMessage.success('已归档')
+      await load()
+    } catch (e: any) {
+      if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+    }
     return
   }
   if (cmd === 'offline') {

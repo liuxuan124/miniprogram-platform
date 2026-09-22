@@ -17,13 +17,13 @@
 
       <div class="tabs-line" role="tablist">
         <button type="button" role="tab" :class="{ on: tab === 'store' }" @click="tab = 'store'">
-          整店模板 {{ storeTemplates.length }}
+          整店模板 {{ storeTabCount }}
         </button>
         <button type="button" role="tab" :class="{ on: tab === 'page' }" @click="tab = 'page'">
           页面模板 {{ filteredPageTemplates.length }}
         </button>
         <button type="button" role="tab" :class="{ on: tab === 'mine' }" @click="tab = 'mine'">
-          我的模板 {{ myTemplates.length }}
+          我的模板 {{ filteredMineTemplates.length }}
         </button>
         <div class="scene-chips">
           <button
@@ -267,23 +267,72 @@ const myTemplates = computed(() =>
   storeTemplates.value.filter((r) => !(r as any).isSystem && !(r as any).systemTemplate),
 )
 
+function sceneLabelOf(raw: string) {
+  const key = String(raw || '').trim().toLowerCase()
+  const map: Record<string, string> = {
+    sales: '成交',
+    publish: '内容',
+    retention: '留存',
+    home: '首页',
+    service: '服务',
+    campaign: '活动营销',
+    brand: '品牌',
+    retail: '电商零售',
+    edu: '知识付费',
+    warm: '内容 IP',
+    content: '内容',
+    lite: '轻量开店',
+    knowledge_pay: '知识付费',
+    local_life: '本地门店',
+    content_ip: '内容 IP',
+  }
+  if (map[key]) return map[key]
+  // 已是中文或复合文案则原样
+  if (/[\u4e00-\u9fff]/.test(raw)) return raw
+  return raw || '未分类'
+}
+
 function sceneOf(item: ReleaseRecord) {
-  return String((item as any).scene || (item as any).industry || (item as any).category || '知识付费')
+  const code = String((item as any).templateCode || (item as any).seed || '').toLowerCase()
+  const raw = String(
+    (item as any).scene
+    || (item as any).industry
+    || (item as any).category
+    || code
+    || (item as any).templateName
+    || item.releaseNotes
+    || '',
+  )
+  return sceneLabelOf(raw)
 }
 
 function sceneOfPage(tpl: any) {
-  return String(tpl.scene || tpl.category || tpl.industry || '知识付费')
+  return sceneLabelOf(String(tpl.scene || tpl.category || tpl.industry || tpl.name || ''))
 }
 
 function matchScene(label: string) {
   if (scene.value === '全部') return true
-  return label.includes(scene.value) || scene.value.includes(label)
+  const hay = String(label || '')
+  if (hay.includes(scene.value) || scene.value.includes(hay)) return true
+  // 场景 chips → 兼容英文码与别名
+  const aliases: Record<string, string[]> = {
+    知识付费: ['知识', 'edu', 'home', 'publish', '内容', '学堂'],
+    电商零售: ['电商', '零售', 'sales', '成交', '商城', 'retail'],
+    本地门店: ['本地', '到店', 'service', '门店', '预约'],
+    活动营销: ['活动', '营销', 'campaign', '裂变', '专题'],
+  }
+  const keys = aliases[scene.value] || []
+  return keys.some((k) => hay.toLowerCase().includes(k.toLowerCase()))
 }
 
 const filteredStoreTemplates = computed(() => {
   const system = storeTemplates.value.filter((r) => (r as any).isSystem || (r as any).systemTemplate)
   const pool = system.length ? system : storeTemplates.value.filter((r) => !myTemplates.value.includes(r))
-  const list = pool.length ? pool : storeTemplates.value
+  const list = (pool.length ? pool : storeTemplates.value).filter((r) => {
+    // 无名称的脏数据不进整店列表
+    const name = displayNameFull(r)
+    return name && !/^模板\s*#/.test(name)
+  })
   return list.filter((r) => matchScene(sceneOf(r)))
 })
 
@@ -294,6 +343,8 @@ const filteredPageTemplates = computed(() =>
 const filteredMineTemplates = computed(() =>
   scene.value === '全部' ? myTemplates.value : myTemplates.value.filter((r) => matchScene(sceneOf(r))),
 )
+
+const storeTabCount = computed(() => filteredStoreTemplates.value.length)
 
 watch(tab, (v) => {
   router.replace({ query: { ...route.query, tab: v === 'store' ? undefined : v } })

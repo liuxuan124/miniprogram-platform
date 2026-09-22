@@ -428,6 +428,19 @@ async function loadComponentData(component, forceRefresh = false) {
             : 10)))
     let trimmed = Array.isArray(data) ? data.slice(0, MAX_ITEMS) : data
 
+    // 信息流：按标题去重，避免导入脏数据重复刷屏
+    if ((component.type === 'article_feed' || component.type === 'note_feed' || component.type === 'moments_feed')
+      && Array.isArray(trimmed)) {
+      const seenTitle = {}
+      trimmed = trimmed.filter((item) => {
+        const title = String((item && (item.title || item.name)) || '').trim().toLowerCase()
+        if (!title) return true
+        if (seenTitle[title]) return false
+        seenTitle[title] = true
+        return true
+      })
+    }
+
     if (component.type === 'hot_news' && Array.isArray(trimmed)) {
       const ds = dataSource || {}
       const q = { ...(ds.query || {}), ...(ds.params || {}) }

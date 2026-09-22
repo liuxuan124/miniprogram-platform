@@ -35,12 +35,20 @@ public class PageUpdateDTO {
     @Schema(description = "页面描述")
     private String description;
 
+    @Schema(description = "页面分组 tab/activity/content/archived")
+    private String pageGroup;
+
+    @Schema(description = "是否归档 0/1")
+    private Integer archived;
+
     public boolean isEmpty() {
         return !StringUtils.hasText(name)
                 && type == null
                 && !StringUtils.hasText(path)
                 && shareTitle == null
                 && shareImage == null
-                && description == null;
+                && description == null
+                && !StringUtils.hasText(pageGroup)
+                && archived == null;
     }
 }

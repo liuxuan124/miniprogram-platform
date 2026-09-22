@@ -215,7 +215,7 @@
           <template v-if="devOpen">
             <div class="steps">
               <div><i /><b style="font-size: 12.5px; font-weight: 500">上传代码</b><div class="faint">{{ wechatCodeLabel }}</div></div>
-              <div><i /><b style="font-size: 12.5px; font-weight: 500">体验版</b><div class="faint">已生成</div></div>
+              <div><i /><b style="font-size: 12.5px; font-weight: 500">体验版</b><div class="faint">{{ wxUploadAvailable ? (wechatCodeLabel || '可上传') : '未配置 AppID' }}</div></div>
               <div><i /><b style="font-size: 12.5px; font-weight: 500">提交审核</b><div class="faint">已通过</div></div>
               <div><i /><b style="font-size: 12.5px; font-weight: 500">正式版</b><div class="faint">{{ wechatCodeLabel }} 线上</div></div>
             </div>
@@ -234,7 +234,7 @@
       v-model="qrVisible"
       mode="draft"
       title="扫码预览"
-      hint="手机浏览器打开当前待发布草稿的 H5 预览。微信体验版请先配置 AppID/密钥后在「去上传」完成。"
+      hint="手机浏览器打开当前「待发布草稿」的 H5 预览（不是微信体验版）。微信体验版需先在「上传代码包」配置 AppID/密钥并上传。"
     />
   </div>
 </template>

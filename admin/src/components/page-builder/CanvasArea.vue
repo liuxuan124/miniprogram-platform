@@ -126,7 +126,7 @@
         @click="zoom = level"
       >{{ Math.round(level * 100) }}%</button>
     </div>
-    <div class="canvas-shortcuts">Delete 删除 · ⌘D 复制 · ⌘Z 撤销</div>
+    <div class="canvas-shortcuts">Delete 删除 · Ctrl/⌘D 复制 · Ctrl/⌘Z 撤销</div>
   </div>
 </template>
 

@@ -11,17 +11,30 @@
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item command="preview">预览</el-dropdown-item>
+        <el-dropdown-item command="rename">重命名</el-dropdown-item>
         <el-dropdown-item command="copy">复制页面</el-dropdown-item>
-        <el-dropdown-item command="set-nav" :disabled="archived">
+        <el-dropdown-item
+          v-if="!isNav && !archived"
+          command="set-nav"
+        >
           设为底部导航入口
-          <span v-if="archived" class="mini-row-menu__why">归档页不能设为入口</span>
+        </el-dropdown-item>
+        <el-dropdown-item v-else-if="isNav" disabled>
+          已是底部导航入口
         </el-dropdown-item>
         <el-dropdown-item command="copy-path">复制路径</el-dropdown-item>
         <el-dropdown-item v-if="canOffline" command="offline" divided>下线</el-dropdown-item>
         <el-dropdown-item
+          v-if="!archived && !isNav"
+          command="archive"
+          :divided="!canOffline"
+        >
+          归档
+        </el-dropdown-item>
+        <el-dropdown-item
           v-if="canDelete"
           command="delete"
-          :divided="!canOffline"
+          :divided="!canOffline && (archived || isNav)"
           class="is-danger"
         >
           删除
@@ -42,6 +55,8 @@ import type { PageRecord } from '@/types/page'
 defineProps<{
   row: PageRecord
   archived?: boolean
+  /** 已在底部导航中 */
+  isNav?: boolean
   canOffline?: boolean
   canDelete?: boolean
 }>()

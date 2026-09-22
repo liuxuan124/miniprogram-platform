@@ -145,6 +145,19 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
         if (updateDTO.getDescription() != null) {
             page.setDescription(updateDTO.getDescription());
         }
+        if (StringUtils.hasText(updateDTO.getPageGroup())) {
+            page.setPageGroup(updateDTO.getPageGroup().trim().toLowerCase());
+        }
+        if (updateDTO.getArchived() != null) {
+            page.setArchived(updateDTO.getArchived() != 0 ? 1 : 0);
+            if (page.getArchived() == 1) {
+                page.setPageGroup("archived");
+                // 归档同时下线，避免仍算已上线
+                if (page.getStatus() != null && page.getStatus() == 1) {
+                    page.setStatus(2);
+                }
+            }
+        }
 
         this.updateById(page);
         return toDetailDTO(page);
