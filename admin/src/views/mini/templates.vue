@@ -509,15 +509,10 @@ onMounted(load)
 }
 .impact-panel {
   position: sticky;
-  top: 84px;
+  top: 72px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-.tpl-layout.has-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
-  align-items: start;
-}
+/* 双栏规则在 mini-workbench.scss：.tpl-layout.has-panel */
 </style>
