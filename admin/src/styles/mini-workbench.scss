@@ -127,12 +127,17 @@
 }
 
 .mini-wb .mw-page {
+  /* 疏朗化：限宽居中，避免超宽屏把行拉成「标题在左、按钮在右半屏」 */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
   min-height: 100%;
-  padding: 24px 28px 48px;
+  padding: 32px 36px 56px;
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 28px;
 }
 
 .mini-wb .btn {
@@ -213,7 +218,7 @@
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 20px;
+  padding: 24px;
 }
 
 .mini-wb .h1 {
@@ -346,25 +351,26 @@
   }
 }
 
+/* 概览「新建」已改为标题旁工具条，保留 .ways/.way 以防其它入口复用 */
 .mini-wb .ways {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .mini-wb .way {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 16px;
-  border-radius: 12px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--card);
   text-align: left;
   color: var(--ink);
   cursor: pointer;
   font-family: inherit;
-  width: 100%;
+  width: auto;
   &:hover { border-color: #d6c8b6; }
   &.hi {
     background: var(--acc);
@@ -372,7 +378,8 @@
     color: #fff;
     .muted { color: #fbe3d4; }
   }
-  b { display: block; font-size: 15px; }
+  b { display: block; font-size: 14px; font-weight: 500; }
+  .muted { display: none; }
 }
 
 .mini-wb .swatches {
@@ -395,20 +402,20 @@
 .mini-wb .tabs-edit {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .mini-wb .tabcard {
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   background: var(--card);
   text-align: left;
   cursor: grab;
-  min-height: 120px;
+  min-height: 108px;
   &:hover { border-color: var(--acc); }
   &.err {
     border-color: var(--r);
@@ -502,16 +509,16 @@
 .mini-wb .prow {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
+  gap: 12px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--line2);
   position: relative;
   &:last-child { border-bottom: 0; }
 }
 
 .mini-wb .thumb {
-  width: 36px;
-  height: 52px;
+  width: 32px;
+  height: 44px;
   border-radius: 6px;
   border: 1px solid var(--line);
   flex-shrink: 0;
@@ -522,24 +529,46 @@
   background: #fffbf6;
   i {
     display: block;
-    height: 8px;
+    height: 7px;
     border-radius: 2px;
     background: #efe6da;
   }
 }
 
 .mini-wb .pname {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 420px;
   b {
     font-weight: 500;
     display: flex;
     align-items: center;
     gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .faint {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
-.mini-wb .pstat { width: 96px; }
+/* 状态 + 操作贴在标题右侧，不再被超宽屏撑到视口最右 */
+.mini-wb .prow-ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.mini-wb .pstat {
+  width: auto;
+  min-width: 72px;
+  flex-shrink: 0;
+}
 
 .mini-wb .menu {
   position: absolute;
@@ -580,15 +609,15 @@
 
 .mini-wb .tpl-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
   align-items: start;
 }
 
 .mini-wb .tpl-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 20px;
 }
 
 .mini-wb .tpl {
@@ -628,10 +657,20 @@
 }
 
 .mini-wb .tpl-body {
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  b, .tpl-title {
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+    word-break: break-word;
+  }
 }
 
 .mini-wb .tabs-line {
@@ -704,8 +743,8 @@
 
 .mini-wb .pub {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 28px;
   align-items: start;
 }
 

@@ -48,15 +48,17 @@
             <b>{{ row.name }}</b>
             <div class="faint">{{ groupLabelOf(row) }} · {{ row.path }}</div>
           </div>
-          <div class="pstat"><PageStatusTag :row="row" /></div>
-          <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
-          <PageRowMenu
-            :row="row"
-            :archived="isArchived(row)"
-            :can-offline="canOffline(row)"
-            :can-delete="canDelete(row)"
-            @command="onMore"
-          />
+          <div class="prow-ops">
+            <div class="pstat"><PageStatusTag :row="row" /></div>
+            <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
+            <PageRowMenu
+              :row="row"
+              :archived="isArchived(row)"
+              :can-offline="canOffline(row)"
+              :can-delete="canDelete(row)"
+              @command="onMore"
+            />
+          </div>
         </div>
       </template>
       <div v-else class="empty-mini">
@@ -97,8 +99,10 @@
               <b>我的 <MiniIcon name="lock" :size="13" class="inline-ic" /></b>
               <div class="faint">固定路径 · 表单配置，非可删装修页</div>
             </div>
-            <div class="pstat"><span class="tag t-live">系统页</span></div>
-            <button type="button" class="btn sm" @click.stop="router.push('/page-builder/mine')">配置</button>
+            <div class="prow-ops">
+              <div class="pstat"><span class="tag t-live">系统页</span></div>
+              <button type="button" class="btn sm" @click.stop="router.push('/page-builder/mine')">配置</button>
+            </div>
           </div>
 
           <template v-if="group.rows.length">
@@ -108,17 +112,19 @@
                 <b>{{ row.name }}</b>
                 <div class="faint">{{ row.path }}</div>
               </div>
-              <div class="pstat">
-                <PageStatusTag :row="row" />
+              <div class="prow-ops">
+                <div class="pstat">
+                  <PageStatusTag :row="row" />
+                </div>
+                <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
+                <PageRowMenu
+                  :row="row"
+                  :archived="isArchived(row)"
+                  :can-offline="canOffline(row)"
+                  :can-delete="canDelete(row)"
+                  @command="onMore"
+                />
               </div>
-              <button type="button" class="btn sm primary" @click="openEditor(row)">装修</button>
-              <PageRowMenu
-                :row="row"
-                :archived="isArchived(row)"
-                :can-offline="canOffline(row)"
-                :can-delete="canDelete(row)"
-                @command="onMore"
-              />
             </div>
           </template>
           <div v-else-if="group.key !== 'tab'" class="empty-mini">
@@ -419,7 +425,7 @@ onMounted(load)
 .groups-stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
 }
 .mine-row {
   cursor: pointer;
