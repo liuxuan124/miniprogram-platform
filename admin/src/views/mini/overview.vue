@@ -221,12 +221,18 @@
         <div class="phone">
           <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
-        <button type="button" class="btn sm" @click="openLivePreview">
+        <button type="button" class="btn sm" @click="qrVisible = true">
           <MiniIcon name="qr" :size="15" />
           扫码在手机上看
         </button>
       </aside>
     </div>
+
+    <MiniH5QrDialog
+      v-model="qrVisible"
+      :mode="previewSource === 'live' ? 'live' : 'draft'"
+      title="扫码在手机上看"
+    />
 
     <el-drawer
       v-model="drawerVisible"
@@ -277,6 +283,7 @@ import { ElMessage } from 'element-plus'
 import draggable from 'vuedraggable'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
+import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -306,6 +313,7 @@ const creatingBlank = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
 const previewSource = ref<'draft' | 'live'>('draft')
+const qrVisible = ref(false)
 const pageOptions = ref<PageRow[]>([])
 const wechatVerFallback = ref('')
 const mpMenuConfigured = ref(false)
@@ -465,9 +473,7 @@ function goPublish() {
 }
 
 function openLivePreview() {
-  const source = previewSource.value === 'live' ? 'live' : 'draft'
-  const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config', source } })
-  window.open(href, '_blank', 'noopener,noreferrer')
+  qrVisible.value = true
 }
 
 /** 选色只改预览，不落库——主色影响面大，必须先看到再决定 */

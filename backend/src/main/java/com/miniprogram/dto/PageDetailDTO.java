@@ -69,6 +69,18 @@ public class PageDetailDTO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
 
+    @Schema(description = "页面分组 tab/activity/content/archived")
+    private String pageGroup;
+
+    @Schema(description = "是否归档 0否 1是")
+    private Integer archived;
+
+    @Schema(description = "统一展示状态 draft/pending/live/offline/archived")
+    private String displayStatus;
+
+    @Schema(description = "列表缩略图色条（最多 4 个色值）")
+    private java.util.List<String> thumbColors;
+
     public static String getTypeDesc(Integer type) {
         if (type == null) return "";
         return switch (type) {
