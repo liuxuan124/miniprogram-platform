@@ -280,7 +280,7 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         // pageIds 空列表 = 本次不发任何页（仅可能发站点）
         // 无站点提升且无页面发布 = 空发，禁止递增序号（与发布中心「无改动不可发」一致）
         if (!promoted && publishedPages <= 0) {
-            throw new com.miniprogram.exception.BusinessException(100101, "没有可发布的改动：请先改页面或站点配置，再发布");
+            throw new BusinessException(100101, "没有可发布的改动：请先改页面或站点配置，再发布");
         }
 
         int prev = parseIntOrDefault(systemConfigService.getConfigValue(LIVE_RELEASE_NO_KEY), 0);
