@@ -1,27 +1,38 @@
 <template>
   <div class="prototype-component-panel">
-    <div class="left-tabs">
-      <button
-        type="button"
-        class="left-tab"
-        :class="{ active: leftTab === 'components' }"
-        @click="leftTab = 'components'"
-      >组件</button>
-      <button
-        type="button"
-        class="left-tab"
-        :class="{ active: leftTab === 'blocks' }"
-        @click="leftTab = 'blocks'"
-      >区块模板</button>
-      <button
-        type="button"
-        class="left-tab"
-        :class="{ active: leftTab === 'structure' }"
-        @click="leftTab = 'structure'"
-      >结构</button>
+    <div class="left-seg" role="tablist">
+      <button type="button" :class="{ on: mode === 'components' }" @click="mode = 'components'">
+        组件
+      </button>
+      <button type="button" :class="{ on: mode === 'blocks' }" @click="mode = 'blocks'">
+        区块模板
+      </button>
+      <button type="button" @click="scrollToLayers">结构</button>
     </div>
 
-    <section v-show="leftTab === 'components'" class="panel-section" :style="sectionStyle('components')">
+    <!-- 区块模板：一次插入一组常用组件，省掉逐个拖的步骤 -->
+    <section v-if="mode === 'blocks'" class="panel-section blocks-section">
+      <div class="section-title">
+        <span>区块模板</span>
+        <span class="section-count">{{ availableBlocks.length }}</span>
+      </div>
+      <div class="blocks-list">
+        <button
+          v-for="block in availableBlocks"
+          :key="block.key"
+          type="button"
+          class="block-card"
+          @click="insertBlock(block)"
+        >
+          <b>{{ block.label }}</b>
+          <span class="block-desc">{{ block.desc }}</span>
+          <span class="block-parts">{{ blockPartLabels(block).join(' · ') }}</span>
+        </button>
+        <div v-if="!availableBlocks.length" class="empty-tip">当前行业方案下没有可用区块</div>
+      </div>
+    </section>
+
+    <section v-show="mode === 'components'" class="panel-section" :style="sectionStyle('components')">
       <div class="section-title">
         <span>组件库</span>
         <button class="section-count" @click="toggleCollapse('components')">{{ totalComponentCount }}</button>
@@ -90,7 +101,7 @@
     </section>
 
     <div
-      v-show="leftTab === 'components' && !collapsed.components"
+      v-show="mode === 'components' && !collapsed.components"
       class="resize-handle"
       title="拖动调整组件库高度"
       @mousedown="startResize('components', $event)"
@@ -98,31 +109,7 @@
       <span></span>
     </div>
 
-    <section v-show="leftTab === 'blocks'" class="panel-section blocks-section">
-      <div class="blocks-grid">
-        <button
-          v-for="block in blockTemplates"
-          :key="block.key"
-          type="button"
-          class="block-card"
-          @click="handleAddBlock(block)"
-        >
-          <span class="block-card__preview" :style="{ '--accent': block.accent }">
-            <span class="block-card__bar" />
-            <span class="block-card__line" />
-            <span class="block-card__line short" />
-          </span>
-          <span class="block-card__name">{{ block.label }}</span>
-          <span class="block-card__hint">{{ block.hint }}</span>
-        </button>
-      </div>
-    </section>
-
-    <section
-      v-show="leftTab === 'structure' || leftTab === 'components'"
-      class="panel-section structure-section"
-      :class="{ collapsed: collapsed.structure }"
-    >
+    <section class="panel-section structure-section" :class="{ collapsed: collapsed.structure }">
       <div class="section-title">
         <span>当前页面结构</span>
         <button class="section-count" @click="toggleCollapse('structure')">{{ pageStore.components.length }}</button>
@@ -138,13 +125,15 @@
           :class="{ active: comp.id === pageStore.selectedComponentId }"
           @click="pageStore.selectComponent(comp.id)"
         >
-          <span class="drag-handle" aria-hidden="true">⠿</span>
+          <span class="drag-handle"><MiniIcon name="drag" :size="14" /></span>
           <span>{{ index + 1 }}. {{ getComponentDef(comp.type)?.label ?? comp.type }}</span>
           <button
             class="remove-btn"
             aria-label="删除该组件"
             @click.stop="handleRemoveComponent(comp)"
-          >×</button>
+          >
+            <MiniIcon name="x" :size="14" />
+          </button>
         </div>
         <div v-if="!pageStore.components.length" class="empty-tip">当前页面暂无组件</div>
       </div>
@@ -155,13 +144,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import { usePageStore } from '@/stores/page'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
 import { ComponentType } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
 import { confirmRemoveComponent } from './confirmRemoveComponent'
+import MiniIcon from '@/components/mini/MiniIcon.vue'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
 const pageStore = usePageStore()
@@ -170,37 +159,43 @@ const industryProfileStore = useIndustryProfileStore()
 if (!industryProfileStore.loaded) {
   industryProfileStore.load()
 }
-const leftTab = ref<'components' | 'blocks' | 'structure'>('components')
-
-/** 区块模板：至少 6 张常用卡，点击插入对应组件 */
-const blockTemplates = [
-  { key: 'festival', label: '节日横幅', hint: '轮播 + 活动入口', accent: '#b4430f', types: [ComponentType.Banner, ComponentType.ActivityEntry] },
-  { key: 'booklist', label: '书单双列', hint: '标题 + 商品列表', accent: '#8f5400', types: [ComponentType.SectionTitle, ComponentType.ProductList] },
-  { key: 'signup', label: '报名底栏', hint: '表单 + 悬浮按钮', accent: '#1d6bb8', types: [ComponentType.FormEntry, ComponentType.FloatButton] },
-  { key: 'countdown', label: '倒计时', hint: '活动倒计时', accent: '#a33b5c', types: [ComponentType.Countdown] },
-  { key: 'coupon', label: '优惠券条', hint: '领券组件', accent: '#1f7a4d', types: [ComponentType.Coupon] },
-  { key: 'community', label: '社群入口', hint: '加入群聊', accent: '#6b4c9a', types: [ComponentType.JoinGroup] },
-] as const
-
-function handleAddBlock(block: (typeof blockTemplates)[number]) {
-  const types = block.types.filter((t) => getComponentDef(t) && industryProfileStore.isComponentAllowed(t))
-  if (!types.length) {
-    ElMessage.info(`「${block.label}」对应组件暂不可用，请从「组件」库手动添加`)
-    return
-  }
-  try {
-    for (const type of types) {
-      pageStore.addComponent(type)
-      recordRecentUsage(type)
-    }
-    collapsed.value.structure = false
-    leftTab.value = 'structure'
-    ElMessage.success(`已插入「${block.label}」`)
-  } catch {
-    ElMessage.info(`「${block.label}」暂无法直接加入，请从组件库拖入`)
-  }
-}
+const mode = ref<'components' | 'blocks'>('components')
 const componentSectionHeight = ref(520)
+
+/** 区块模板：常见页面段落的组件组合，点一次按顺序插入 */
+const BLOCKS: Array<{ key: string; label: string; desc: string; types: ComponentType[] }> = [
+  {
+    key: 'activity-hero',
+    label: '活动头图组',
+    desc: '头图 + 倒计时 + 报名入口',
+    types: [ComponentType.Banner, ComponentType.Countdown, ComponentType.FormEntry],
+  },
+  {
+    key: 'booklist',
+    label: '书单推荐组',
+    desc: '小标题 + 文章列表 + 分割线',
+    types: [ComponentType.SectionTitle, ComponentType.ArticleList, ComponentType.Divider],
+  },
+  {
+    key: 'member',
+    label: '会员转化组',
+    desc: '会员卡 + 优惠券 + 悬浮按钮',
+    types: [ComponentType.MemberCard, ComponentType.Coupon, ComponentType.FloatButton],
+  },
+  {
+    key: 'community',
+    label: '社群引流组',
+    desc: '入群引导 + 图文说明 + 联系方式',
+    types: [ComponentType.JoinGroup, ComponentType.ImageText, ComponentType.ContactInfo],
+  },
+  {
+    key: 'brand',
+    label: '品牌介绍组',
+    desc: '品牌头部 + 品牌简介 + 资质',
+    types: [ComponentType.BrandHeader, ComponentType.BrandIntro, ComponentType.Certificate],
+  },
+]
+
 const collapsed = ref({
   components: false,
   structure: false,
@@ -328,6 +323,41 @@ function toggleCollapse(target: 'components' | 'structure') {
   collapsed.value[target] = !collapsed.value[target]
 }
 
+/** 组件是否在当前行业方案 / 功能模块下可用 */
+function isTypeAvailable(type: ComponentType) {
+  if (!industryProfileStore.isComponentAllowed(type)) return false
+  if (!featureModulesStore.isEnabled('planet') && String(type).startsWith('planet_')) return false
+  if (!featureModulesStore.productEnabled) {
+    const commerceTypes = new Set(getComponentsByCategory('commerce').map((item) => item.type))
+    if (commerceTypes.has(type)) return false
+  }
+  return true
+}
+
+function blockTypes(block: { types: ComponentType[] }) {
+  return block.types.filter(isTypeAvailable)
+}
+
+function blockPartLabels(block: { types: ComponentType[] }) {
+  return blockTypes(block).map((type) => getComponentDef(type)?.label ?? type)
+}
+
+const availableBlocks = computed(() => BLOCKS.filter((block) => blockTypes(block).length > 0))
+
+function insertBlock(block: { types: ComponentType[] }) {
+  const types = blockTypes(block)
+  types.forEach((type) => {
+    pageStore.addComponent(type)
+    recordRecentUsage(type)
+  })
+  collapsed.value.structure = false
+}
+
+function scrollToLayers() {
+  collapsed.value.structure = false
+  document.querySelector('.panel-section:last-of-type')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function sectionStyle(target: 'components') {
   if (collapsed.value[target]) {
     return { height: '42px' }
@@ -382,99 +412,97 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .prototype-component-panel {
+  /* 装修器已整体切到暖阁配色，面板内部不再沿用旧蓝色 */
+  --pc-acc: #b4430f;
+  --pc-acc-soft: #fbeadf;
+  --pc-line: #e8dfd3;
+  --pc-line2: #f1ebe3;
+  --pc-ink: #2a1f17;
+  --pc-mute: #6b5b4e;
+  --pc-faint: #a1968b;
+  --pc-soft: #fbf8f4;
+
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: #fffcf8;
-  border-right: 1px solid #e8dfd3;
-}
-
-.left-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 8px 10px 0;
-  border-bottom: 1px solid #e8dfd3;
-  flex-shrink: 0;
-}
-.left-tab {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 8px 4px 10px;
-  font-size: 13px;
-  color: #7a6e64;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  &.active {
-    color: #b4430f;
-    font-weight: 700;
-    border-bottom-color: #b4430f;
-  }
+  background: #fff;
+  border-right: 0;
+  gap: 12px;
 }
 
 .blocks-section {
   flex: 1;
-  padding: 12px;
+  min-height: 0;
+}
+
+.blocks-list {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
 }
-.blocks-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
+
 .block-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 10px 12px;
-  border: 1px solid #e8dfd3;
-  border-radius: 10px;
-  background: #fffcf8;
-  cursor: pointer;
+  gap: 3px;
+  padding: 10px 12px;
   text-align: left;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  background: var(--pc-soft);
+  border: 1px solid var(--pc-line);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--pc-ink);
+
+  b { font-size: 13px; font-weight: 600; }
 
   &:hover {
-    border-color: #b4430f;
-    background: #fbeadf;
+    border-color: var(--pc-acc);
+    background: var(--pc-acc-soft);
   }
+}
 
-  &__preview {
-    --accent: #b4430f;
-    width: 100%;
-    height: 48px;
+.block-desc {
+  font-size: 12px;
+  color: var(--pc-mute);
+}
+
+.block-parts {
+  font-size: 11px;
+  color: var(--pc-faint);
+}
+
+.left-seg {
+  display: flex;
+  gap: 3px;
+  background: #efeae3;
+  border-radius: 8px;
+  padding: 3px;
+  flex-shrink: 0;
+  button {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 6px 8px;
     border-radius: 6px;
-    background: linear-gradient(160deg, #f3ebe2, #e8dfd3);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    box-sizing: border-box;
-    margin-bottom: 4px;
-  }
-  &__bar {
-    height: 12px;
-    border-radius: 3px;
-    background: var(--accent);
-  }
-  &__line {
-    height: 6px;
-    border-radius: 2px;
-    background: #fff;
-    border: 1px solid #e5ddd2;
-    &.short { width: 55%; }
-  }
-
-  &__name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #2c241c;
-  }
-  &__hint {
-    font-size: 11px;
-    color: #7a6e64;
+    font-size: 12px;
+    color: #6b5b4e;
+    cursor: pointer;
+    font-family: inherit;
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    &.on {
+      background: #fff;
+      color: #2a1f17;
+      font-weight: 500;
+    }
   }
 }
 
@@ -500,11 +528,11 @@ onBeforeUnmount(() => {
   gap: 6px;
   flex-shrink: 0;
   padding: 10px 12px 8px;
-  color: #7b8798;
+  color: var(--pc-mute);
   font-size: 12px;
   font-weight: 700;
   background: #fff;
-  border-bottom: 1px solid #e3e8f0;
+  border-bottom: 1px solid var(--pc-line);
 
   span {
     flex: 1;
@@ -513,11 +541,11 @@ onBeforeUnmount(() => {
   .section-count {
     min-width: 20px;
     padding: 1px 6px;
-    color: var(--color-primary);
+    color: var(--pc-acc);
     font-family: inherit;
     font-size: 11px;
     text-align: center;
-    background: #eaf2ff;
+    background: var(--pc-acc-soft);
     border: 0;
     border-radius: 999px;
     cursor: pointer;
@@ -525,7 +553,7 @@ onBeforeUnmount(() => {
 
   .section-toggle {
     padding: 0;
-    color: #9aa4b5;
+    color: var(--pc-faint);
     font-family: inherit;
     font-size: 11px;
     background: transparent;
@@ -533,7 +561,7 @@ onBeforeUnmount(() => {
     cursor: pointer;
 
     &:hover {
-      color: var(--color-primary);
+      color: var(--pc-acc);
     }
   }
 }
@@ -542,9 +570,9 @@ onBeforeUnmount(() => {
   position: relative;
   flex-shrink: 0;
   height: 10px;
-  background: #f4f7fb;
-  border-top: 1px solid #e3e8f0;
-  border-bottom: 1px solid #e3e8f0;
+  background: var(--pc-soft);
+  border-top: 1px solid var(--pc-line);
+  border-bottom: 1px solid var(--pc-line);
   cursor: row-resize;
 
   span {
@@ -553,23 +581,23 @@ onBeforeUnmount(() => {
     left: 50%;
     width: 46px;
     height: 2px;
-    background: #cbd5e1;
+    background: #d9cfc3;
     border-radius: 999px;
     transform: translateX(-50%);
   }
 
   &:hover {
-    background: #eaf2ff;
+    background: var(--pc-acc-soft);
 
     span {
-      background: var(--color-primary);
+      background: var(--pc-acc);
     }
   }
 }
 
 .empty-tip {
   padding: 10px;
-  color: #9aa4b5;
+  color: var(--pc-faint);
   font-size: 12px;
   text-align: center;
 }
@@ -593,7 +621,7 @@ onBeforeUnmount(() => {
 .category-label {
   grid-column: 1 / -1;
   padding: 6px 2px 2px;
-  color: #9aa4b5;
+  color: var(--pc-faint);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -608,7 +636,7 @@ onBeforeUnmount(() => {
 
 .category-all {
   padding: 0;
-  color: var(--color-primary);
+  color: var(--pc-acc);
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
@@ -618,7 +646,7 @@ onBeforeUnmount(() => {
 
   &:hover,
   &.active {
-    color: #0b4fd6;
+    color: #8c3208;
     text-decoration: underline;
   }
 }
@@ -630,22 +658,22 @@ onBeforeUnmount(() => {
   gap: 4px;
   padding: 8px 4px;
   min-height: 54px;
-  color: #7b8798;
+  color: var(--pc-mute);
   font-size: 12px;
   line-height: 1.2;
   text-align: center;
-  background: #f8faff;
-  border: 1px solid #e3e8f0;
+  background: var(--pc-soft);
+  border: 1px solid var(--pc-line);
   border-radius: 9px;
   cursor: pointer;
   transition: 0.15s;
 
   &:hover,
   &.active {
-    color: var(--color-primary);
+    color: var(--pc-acc);
     font-weight: 700;
-    background: #eaf2ff;
-    border-color: var(--color-primary);
+    background: var(--pc-acc-soft);
+    border-color: var(--pc-acc);
   }
 
   &:active {
@@ -671,33 +699,36 @@ onBeforeUnmount(() => {
   gap: 6px;
   margin-bottom: 6px;
   padding: 8px 9px;
-  color: #7b8798;
+  color: var(--pc-mute);
   font-size: 13px;
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid var(--pc-line);
   border-radius: 8px;
   cursor: pointer;
   transition: 0.14s;
 
   &:hover,
   &.active {
-    color: var(--color-primary);
-    background: #eaf2ff;
-    border-color: var(--color-primary);
+    color: var(--pc-acc);
+    background: var(--pc-acc-soft);
+    border-color: var(--pc-acc);
   }
 }
 
 .drag-handle {
-  color: #d0d8e4;
-  font-size: 13px;
+  display: inline-flex;
+  color: #d9cfc3;
 }
 
 .remove-btn {
+  display: inline-flex;
   margin-left: auto;
-  color: #c0c9d8;
-  font-size: 13px;
+  padding: 0;
+  color: var(--pc-faint);
   background: transparent;
   border: 0;
   cursor: pointer;
+
+  &:hover { color: #a52a1e; }
 }
 </style>

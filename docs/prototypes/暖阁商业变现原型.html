@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>暖阁商业变现原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+:root{
+  --bg:#F6F2EC;--card:#FFFFFF;--soft:#FBF8F4;--line:#E8DFD3;--line2:#F1EBE3;
+  --ink:#2A1F17;--mute:#6B5B4E;--faint:#7A6A5C;
+  --side:#2B1D14;--sidetx:#E9DCCB;--sidemute:#BFAE9B;
+  --acc:#B4430F;--acc-h:#8C3208;--accsoft:#FBEADF;
+  --g:#1F7A4D;--gs:#E3F3EA;--a:#8F5400;--as:#FDF1D8;--b:#2458A6;--bs:#E6EEFA;--n:#5E5146;--ns:#EFEAE3;--r:#A52A1E;--rs:#FBE4E0;
+  --serif:"Noto Serif SC","Songti SC",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:100%}
+/* sidebar */
+.side{background:var(--side);color:var(--sidetx);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:var(--acc);display:grid;place-items:center;color:#fff}
+.brand b{display:block;color:#fff;font-size:15px}
+.brand small{color:var(--sidemute);font-size:11px}
+.side-group{padding:10px 12px 6px;color:#fff;font-weight:600;display:flex;justify-content:space-between}
+.side-muted{padding:9px 12px;color:var(--sidemute);display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.nav{display:flex;flex-direction:column;gap:2px;padding-left:4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--sidetx);text-decoration:none}
+.nav a:hover{background:rgba(255,255,255,.06)}
+.nav a.on{background:var(--acc);color:#fff}
+.nav .badge{margin-left:auto;font-size:11px;font-weight:600;padding:0 7px;border-radius:999px;background:var(--acc);color:#fff}
+.nav a.on .badge{background:#fff;color:var(--acc)}
+/* top */
+.main{display:flex;flex-direction:column;min-width:0}
+.top{height:60px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 28px;position:sticky;top:0;z-index:20}
+.crumb{color:var(--mute)}
+.crumb b{color:var(--ink);font-weight:500}
+.site-pill{margin-left:auto;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--ns);display:grid;place-items:center;font-weight:600;color:var(--n);flex-shrink:0}
+.view{padding:24px 28px 48px;display:flex;flex-direction:column;gap:18px}
+/* primitives */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:500;white-space:nowrap;text-decoration:none;color:var(--ink);line-height:1.2}
+.btn:hover{border-color:#D6C8B6}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.primary:hover{background:var(--acc-h)}
+.btn.soft{background:var(--accsoft);border-color:var(--accsoft);color:var(--acc)}
+.btn.danger{color:var(--r)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn .cnt{background:#fff;color:var(--acc);border-radius:999px;padding:0 7px;font-size:12px;font-weight:600}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--mute)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
+.t-live{color:var(--g);background:var(--gs)} .t-pending{color:var(--a);background:var(--as)} .t-new{color:var(--b);background:var(--bs)}
+.t-draft,.t-offline,.t-archived{color:var(--n);background:var(--ns)} .t-acc{color:var(--acc);background:var(--accsoft)} .t-err{color:var(--r);background:var(--rs)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.h1{font-family:var(--serif);font-size:26px;font-weight:700;margin:0;text-wrap:balance}
+.sub{color:var(--mute);font-size:13px;margin-top:4px}
+.h2{font-size:16px;font-weight:600;margin:0}
+.head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.head .actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.muted{color:var(--mute)} .faint{color:var(--faint);font-size:12px}
+.link{color:var(--acc);background:none;border:0;padding:0;font-weight:500;text-decoration:none}
+.link:hover{color:var(--acc-h)}
+/* overview */
+.ov{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.ways{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.way{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-align:left;color:var(--ink)}
+.way:hover{border-color:#D6C8B6}
+.way.hi{background:var(--acc);border-color:var(--acc);color:#fff}
+.way.hi .muted{color:#FBE3D4}
+.way b{display:block;font-size:15px}
+.tabs-edit{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.tabcard{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--card);text-align:left;cursor:grab;min-height:120px}
+.tabcard:hover{border-color:var(--acc)}
+.tabcard.dragging{opacity:.4}
+.tabcard.over{outline:2px dashed var(--acc)}
+.tabcard.err{border-color:var(--r);background:var(--rs)}
+.tabcard .t{font-size:16px;font-weight:600;display:flex;gap:6px;align-items:center}
+.tabadd{border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:var(--faint);font-size:12px;background:transparent;min-height:120px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.sw.on{box-shadow:0 0 0 2px var(--ink)}
+.list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2)}
+.list-row:last-child{border-bottom:0}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0}
+.preview{position:sticky;top:84px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.seg{display:flex;gap:3px;background:var(--ns);border-radius:8px;padding:3px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;font-size:12px;color:var(--mute)}
+.seg button.on{background:#fff;color:var(--ink);font-weight:500}
+/* phone */
+.phone{width:250px;height:540px;border:9px solid #1E1611;border-radius:34px;background:#FFFBF6;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;max-width:100%}
+.phone.lg{width:320px;height:650px}
+.phone.sm{width:210px;height:430px}
+.ph-title{height:42px;display:grid;place-items:center;font-size:13px;font-weight:600;flex-shrink:0}
+.ph-body{flex:1;overflow-y:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.ph-body::-webkit-scrollbar{display:none}
+.blk{border-radius:10px;padding:10px 12px;border:1px solid #F0E6DA;text-align:left;width:100%;background:#fff;position:relative}
+.blk b{display:block;font-size:12px}
+.blk span{display:block;font-size:10.5px;opacity:.78;margin-top:3px;line-height:1.5}
+.blk.sel{outline:2px solid var(--acc);outline-offset:1px}
+.blk.ai::after{content:"AI 新增";position:absolute;top:-8px;right:8px;background:var(--acc);color:#fff;font-size:10px;padding:0 6px;border-radius:4px}
+.ph-tabs{height:48px;border-top:1px solid #EFE6DA;display:flex;background:#fff;flex-shrink:0}
+.ph-tabs div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:#8A7A6C}
+.ph-tabs i{width:16px;height:16px;border-radius:5px;background:#D9CFC3;display:block}
+.empty-ph{flex:1;display:grid;place-items:center;color:var(--faint);font-size:12px;text-align:center;padding:20px}
+/* pages */
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:8px;width:280px;max-width:100%;color:var(--faint)}
+.search input{border:0;outline:0;background:transparent;flex:1;min-width:0}
+.group{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.group.arch{background:var(--soft);border-style:dashed}
+.g-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--soft);border-bottom:1px solid var(--line);border-radius:14px 14px 0 0;width:100%;border-left:0;border-right:0;border-top:0;text-align:left}
+.group.closed .g-head{border-bottom:0;border-radius:14px}
+.prow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line2);position:relative}
+.prow:last-child{border-bottom:0}
+.thumb{width:36px;height:52px;border-radius:6px;border:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding:4px;background:#FFFBF6}
+.thumb i{display:block;height:8px;border-radius:2px}
+.pname{flex:1;min-width:0}
+.pname b{font-weight:500;display:flex;align-items:center;gap:6px}
+.pstat{width:96px}
+.menu{position:absolute;right:16px;top:52px;z-index:30;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(43,29,20,.14);padding:6px;min-width:190px;display:flex;flex-direction:column}
+.menu button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px;font-size:13px}
+.menu button:hover{background:var(--soft)}
+.menu button:disabled{color:var(--faint);cursor:not-allowed;background:none}
+.menu hr{border:0;border-top:1px solid var(--line2);margin:4px 0}
+/* editor */
+.ed{display:grid;grid-template-rows:60px minmax(0,1fr);height:100vh;background:var(--bg)}
+.ed-top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px;min-width:0}
+.ed-top .name{font-weight:600;font-size:15px;white-space:nowrap}
+.ed-body{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;min-height:0}
+.ed-left,.ed-right{background:#fff;min-height:0;overflow-y:auto}
+.ed-left{border-right:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:12px}
+.ed-right{border-left:1px solid var(--line);display:flex;flex-direction:column}
+.ed-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto}
+.comp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.comp{border:1px solid var(--line);border-radius:8px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);background:#fff}
+.comp:hover{border-color:var(--acc);color:var(--acc)}
+.comp i{width:22px;height:14px;border-radius:4px;background:#EFE6DA;display:block}
+.layer{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;font-size:12.5px}
+.layer.on{background:var(--accsoft);color:var(--acc);font-weight:500}
+.layer .nm{flex:1;border:0;background:none;text-align:left;padding:0;color:inherit;font-weight:inherit;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer .mini{border:0;background:none;color:var(--faint);padding:2px 4px;border-radius:4px;font-size:12px}
+.layer .mini:hover{background:var(--ns);color:var(--ink)}
+.rtabs{display:flex;border-bottom:1px solid var(--line)}
+.rtabs button{flex:1;border:0;background:none;padding:14px;color:var(--mute);border-bottom:2px solid transparent;display:flex;justify-content:center;gap:6px;align-items:center}
+.rtabs button.on{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:500}
+.input{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
+textarea.input{resize:vertical;line-height:1.6}
+.tone-row{display:flex;gap:6px;flex-wrap:wrap}
+.tone{width:28px;height:28px;border-radius:7px;border:1px solid var(--line)}
+.tone.on{box-shadow:0 0 0 2px var(--ink)}
+.chat{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:200px}
+.bub-u{align-self:flex-end;max-width:86%;background:var(--ink);color:#fff;padding:10px 12px;border-radius:12px 12px 4px 12px;font-size:13px;line-height:1.6}
+.bub-a{display:flex;flex-direction:column;gap:8px;background:var(--accsoft);padding:12px;border-radius:12px 12px 12px 4px;font-size:13px;line-height:1.6}
+.chg{display:flex;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.chg b{font-size:12.5px;font-weight:500;display:block}
+.composer{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.cbox{display:flex;gap:8px;align-items:flex-end;border:1px solid var(--line);border-radius:10px;padding:8px}
+.cbox textarea{border:0;outline:0;resize:none;flex:1;height:44px;font-size:13px}
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:bl 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{0%,100%{opacity:.25}50%{opacity:1}}
+/* ai create */
+.aic{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px;align-items:start}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.opt{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+.opt.on{border:2px solid var(--acc);padding:13px}
+.gen-empty{border:1px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mute);display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;min-height:420px;background:var(--soft)}
+.mat{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;gap:8px}
+/* templates */
+.tpl-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.tpl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.tpl{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.tpl.using{border:2px solid var(--acc)}
+.tpl.picked{box-shadow:0 0 0 3px var(--accsoft)}
+.tpl-art{height:150px;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding-top:16px}
+.tpl-art div{width:60px;border-radius:10px 10px 0 0;background:#fff;padding:6px;display:flex;flex-direction:column;gap:4px}
+.tpl-art i{display:block;height:7px;border-radius:3px;background:#EFE6DA}
+.tpl-body{padding:14px;display:flex;flex-direction:column;gap:8px}
+.tabs-line{display:flex;gap:18px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.tabs-line button{border:0;background:none;padding:10px 2px;color:var(--mute);border-bottom:2px solid transparent}
+.tabs-line button.on{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.impact{display:flex;flex-direction:column;gap:12px;font-size:13px}
+.impact>div{display:flex;gap:10px}
+.impact b{font-weight:500;display:block}
+.note{padding:10px 12px;border-radius:10px;background:var(--as);color:var(--a);font-size:12.5px;line-height:1.6}
+.note.ok{background:var(--gs);color:var(--g)}
+.note.err{background:var(--rs);color:var(--r)}
+/* publish */
+.pub{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;padding:14px;border-radius:10px;margin-top:14px}
+.chk{display:flex;gap:8px;font-size:13px;align-items:flex-start}
+.tl{display:flex;gap:12px}
+.tl-rail{display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:#D9CFC3;margin-top:5px}
+.tl-dot.on{background:var(--g)}
+.tl-line{width:2px;flex:1;background:#EFE6DA}
+.tl-body{flex:1;padding-bottom:14px}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.steps div i{display:block;height:4px;border-radius:2px;background:var(--g);margin-bottom:6px}
+.dist-ic{width:32px;height:32px;border-radius:8px;background:var(--gs);color:var(--g);display:grid;place-items:center;flex-shrink:0}
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(30,22,17,.42);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:16px;padding:22px;width:440px;max-width:100%;max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.modal .foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:#F7C4A5;font-weight:600;padding:0}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}
+/* responsive */
+@media (max-width:1180px){
+  .ov,.pub,.tpl-layout,.aic{grid-template-columns:minmax(0,1fr)}
+  .preview{position:static}
+  .ed-body{grid-template-columns:220px minmax(0,1fr) 320px}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 16px;gap:8px}
+  .side .brand{padding:0;flex:1 1 100%}
+  .side .side-group,.side .side-muted{display:none}
+  .nav{flex-direction:row;padding:0;flex-wrap:wrap}
+  .nav a{padding:8px 10px}
+  .top{padding:0 16px;position:static}
+  .site-pill span.ver{display:none}
+  .view{padding:18px 16px 40px}
+  .ways,.opts,.tpl-grid,.checks,.steps{grid-template-columns:minmax(0,1fr)}
+  .tabs-edit{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ed{height:auto}
+  .ed-top{flex-wrap:wrap;height:auto;padding:10px 16px}
+  .ed-body{grid-template-columns:minmax(0,1fr)}
+  .ed-left,.ed-right{border:0;border-top:1px solid var(--line)}
+  .ed-center{order:-1}
+  .pstat{width:auto}
+  .prow{flex-wrap:wrap}
+}
+
+.top-search{width:260px;margin-left:auto}
+.top .btn.sm{white-space:nowrap}
+.todo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.todo{display:flex;gap:12px;align-items:center;padding:16px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--ink);min-width:0}
+.todo:hover{border-color:var(--acc)}
+.todo b{font-size:14px}
+.todo-ic{width:38px;height:38px;border-radius:10px;background:var(--accsoft);color:var(--acc);display:grid;place-items:center;flex-shrink:0}
+.todo-n{font-family:var(--serif);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.ways4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ov2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+.bars{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 64px;gap:12px;align-items:center}
+.bar-name{color:var(--ink);font-weight:400;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.bar-track{height:10px;border-radius:5px;background:var(--ns)}
+.bar-fill{height:100%;border-radius:5px;background:var(--acc)}
+.bar-val{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute)}
+.catdist{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:12px}
+.catdist div{display:flex;justify-content:space-between;padding:8px 12px;border-radius:8px;background:var(--soft);font-size:13px}
+.cthumb{border-radius:8px;display:grid;place-items:center;color:var(--mute);flex-shrink:0}
+.chead{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--soft);border-bottom:1px solid var(--line);border-radius:14px 14px 0 0;font-size:12px;color:var(--faint)}
+.chead>span:first-of-type{padding-left:58px}
+.crow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.crow:last-child{border-bottom:0}
+.crow.sel{background:#FFF8F2}
+.crow input[type=checkbox],.chead input{width:16px;height:16px;accent-color:var(--acc);flex-shrink:0}
+.cmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ctitle{border:0;background:none;padding:0;text-align:left;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctitle:hover{color:var(--acc)}
+.cmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--faint)}
+.cmeta>span:not(.tag)+span:not(.tag)::before{content:"·";margin-right:8px}
+.cmeta .tag{font-size:11px;border:0}
+.cmeta button.tag{cursor:pointer}
+.cstat{width:120px;flex-shrink:0}
+.creads{width:88px;flex-shrink:0;font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute)}
+.ctime{width:84px;flex-shrink:0}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.ccard{border:1px solid var(--line);border-radius:14px;background:#fff;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.ccard:hover{border-color:var(--acc)}
+.ccover{height:110px;display:grid;place-items:center;color:var(--mute);position:relative}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500;font-size:13.5px;line-height:1.5}
+.hint{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--bs);color:var(--b);font-size:13px;flex-wrap:wrap}
+.hint span{flex:1;min-width:200px;color:var(--ink)}
+.hint.warn{background:var(--rs);color:var(--r)}
+.bulk{display:flex;gap:8px;align-items:center;padding:10px 14px;border-radius:12px;background:var(--ink);color:#fff;flex-wrap:wrap;position:sticky;top:72px;z-index:10}
+.bulk .link{color:#F7C4A5}
+.ed2{grid-template-columns:minmax(0,1fr) 380px}
+.writer{padding:32px max(24px,calc((100% - 720px)/2));display:flex;flex-direction:column;gap:14px;overflow-y:auto;background:#fff}
+.w-title{border:0;outline:0;font-family:var(--serif);font-size:30px;font-weight:700;padding:0;background:transparent}
+.w-sum{border:0;border-left:3px solid var(--line);outline:0;resize:none;padding:4px 12px;color:var(--mute);font-size:14px;background:transparent}
+.w-body{border:0;outline:0;resize:none;min-height:380px;flex:1;font-size:15.5px;line-height:1.9;padding:0;background:transparent}
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--mute);background:var(--soft)}
+.panel{padding:16px;display:flex;flex-direction:column;gap:18px}
+.hint-inline{border:0;background:var(--bs);color:var(--b);border-radius:8px;padding:6px 10px;font-size:12px;display:inline-flex;gap:6px;align-items:center;align-self:flex-start}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;padding:6px;border:1px solid var(--line);border-radius:8px;align-items:center}
+.tagbox input{border:0;outline:0;flex:1;min-width:80px;font-size:13px;padding:4px}
+.tagchip{display:inline-flex;align-items:center;gap:4px;padding:3px 6px 3px 10px;border-radius:999px;background:var(--ns);font-size:12px}
+.tagchip button{border:0;background:none;padding:2px;color:var(--faint);display:flex}
+.opt-apply{width:100%;align-items:center;cursor:pointer}
+.opt-apply:hover{border-color:var(--acc)}
+.opt-apply.used{border-color:var(--g);background:var(--gs)}
+.cnt2{background:var(--acc);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;font-weight:600;margin-left:2px}
+.ilist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.icard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.ihead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.itext{font-size:15px;line-height:1.6}
+.quote{border-left:3px solid var(--line);padding:2px 10px;color:var(--mute);font-size:13px;line-height:1.6}
+.kvs{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--mute);padding:10px;border-radius:8px;background:var(--soft)}
+.reply{display:flex;flex-direction:column;gap:8px}
+.answer{padding:10px;border-radius:8px;background:var(--gs);font-size:13px;width:100%}
+.set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.gatecard{position:relative;margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:center;font-size:12.5px;color:var(--mute);background:#FFFBF6}
+.gatecard b{color:var(--ink);display:inline-flex;gap:6px;align-items:center;justify-content:center}
+@media (max-width:1180px){.todo-grid,.ways4{grid-template-columns:repeat(2,minmax(0,1fr))}.ov2,.set-grid,.ilist{grid-template-columns:minmax(0,1fr)}.ed2{grid-template-columns:minmax(0,1fr) 320px}.ctime{display:none}}
+@media (max-width:860px){.top-search{display:none}.todo-grid,.ways4{grid-template-columns:minmax(0,1fr)}.ed2{grid-template-columns:minmax(0,1fr)}.crow{flex-wrap:wrap}.cstat,.creads{width:auto}.chead span:not(:first-of-type){display:none}.writer{padding:20px 16px}.bar-row{grid-template-columns:minmax(0,1fr) 60px}.bar-track{display:none}}
+
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.tile b{font-family:var(--serif);font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.todo{border:1px solid var(--line);cursor:pointer;font:inherit}
+.funnel{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.f-row{display:grid;grid-template-columns:88px minmax(0,1fr) 40px 40px;gap:12px;align-items:center;font-size:13px}
+.f-track{height:22px;border-radius:6px;background:var(--ns)}
+.f-fill{height:100%;border-radius:6px;background:var(--acc)}
+.f-row b{text-align:right;font-variant-numeric:tabular-nums}
+.pdot{width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
+.uav{border-radius:50%;display:grid;place-items:center;font-weight:600;color:var(--n);flex-shrink:0;font-size:13px}
+.ucell{flex:1;min-width:0;display:flex;gap:10px;align-items:center;border:0;background:none;padding:0;text-align:left}
+.ucell b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ucell .faint{display:block}
+.ucell:hover b{color:var(--acc)}
+.c-pay{width:180px;flex-shrink:0}.c-lv{width:100px;flex-shrink:0}.c-num{width:72px;flex-shrink:0;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}.c-tags{width:150px;flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap}
+.chead .c-num{text-align:right}
+.lv{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid var(--line);color:var(--n);background:#fff;white-space:nowrap}
+.lv2{color:#2F6B45;border-color:#CFE6D7}.lv3{color:#1F6B5E;border-color:#BFE0D9;background:#F1FAF7}.lv4{color:var(--acc);border-color:#F2C9AE;background:#FFF6EF}.lv5{color:#6A3FA0;border-color:#DCCDF0;background:#F7F2FD}
+.seg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.segcard{display:flex;flex-direction:column;gap:14px}
+.avs{display:flex;gap:4px;align-items:center;min-height:30px}
+.scrim.right{place-items:stretch;justify-items:end;padding:0}
+.drawer{background:var(--bg);width:460px;max-width:100%;height:100%;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:-10px 0 30px rgba(0,0,0,.12)}
+.dsec{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.dhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.perks{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--mute)}
+.perks span{display:inline-flex;gap:4px;align-items:center}
+.perks svg{color:var(--g)}
+.lvbar{height:8px;border-radius:4px;background:var(--ns)}
+.lvbar div{height:100%;border-radius:4px;background:var(--acc)}
+.plans-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.plan{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.plan.off{opacity:.72}
+.plan-top{padding:16px;display:flex;flex-direction:column;gap:8px}
+.price{display:flex;align-items:baseline;gap:4px;font-family:var(--serif);font-size:20px;font-weight:700}
+.price input{width:90px;border:0;border-bottom:1.5px dashed rgba(42,31,23,.35);background:transparent;font:inherit;font-size:34px;padding:0;outline:0}
+.plan-body{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.perk{display:flex;gap:8px;align-items:center;font-size:13px}
+.perk input{accent-color:var(--acc);width:16px;height:16px}
+.switch{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.switch span{position:absolute;inset:0;border-radius:999px;background:#D9CFC3;transition:background .15s}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked+span{background:var(--g)}
+.switch input:checked+span::after{transform:translateX(16px)}
+.switch input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.lvstep{display:flex;gap:10px;align-items:center}
+.lvstep .input{padding:7px 10px}
+.lvstep .lv{width:44px;justify-content:center}
+.ptsin{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--acc)}
+.ptsin input{width:56px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-weight:600;color:var(--acc)}
+.chatrow{padding:14px 0;border-bottom:1px solid var(--line2)}
+.chatrow:last-child{border-bottom:0}
+@media (max-width:1180px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.plans-layout{grid-template-columns:minmax(0,1fr)}.plans{grid-template-columns:repeat(2,minmax(0,1fr))}.c-tags{display:none}}
+@media (max-width:860px){.tiles,.plans{grid-template-columns:minmax(0,1fr)}.c-lv,.c-num,.chead .c-pay{display:none}.c-pay{width:auto}.f-row{grid-template-columns:72px minmax(0,1fr) 32px 36px}}
+@media (prefers-reduced-motion:reduce){.switch span,.switch span::after{transition:none}}
+
+.comm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.comm{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.comm.off{opacity:.78}
+.comm-cover{height:84px;display:flex;align-items:flex-start;gap:6px;padding:12px}
+.comm-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.comm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.comm-stats span{display:flex;flex-direction:column;padding:8px 10px;border-radius:8px;background:var(--soft);font-size:12px;color:var(--faint)}
+.comm-stats b{font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums}
+.post{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.post.hid{opacity:.6;background:var(--soft)}
+.post-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line2);padding-top:10px}
+.composer2{display:flex;flex-direction:column;gap:10px;padding:16px}
+@media (max-width:1180px){.comm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){.comm-grid{grid-template-columns:minmax(0,1fr)}}
+
+.plan-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:4px}
+.plan-opts label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--mute)}
+.plan-opts .input{padding:5px 6px;font-size:12.5px;background:rgba(255,255,255,.75)}
+
+.rg{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.rg:last-child{border-bottom:0}
+.rg .input{padding:6px 10px}
+
+.c-price{width:130px;flex-shrink:0;font-size:13px}
+.c-price b{font-size:15px;font-variant-numeric:tabular-nums}
+.c-price s{margin-left:6px}
+.testrow{background:repeating-linear-gradient(135deg,transparent 0 10px,rgba(165,42,30,.035) 10px 20px)}
+.typegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.typebtn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:12.5px;color:var(--mute)}
+.typebtn.on{border:2px solid var(--acc);color:var(--acc);padding:11px 5px;background:var(--accsoft)}
+.typebtn:disabled:not(.on){opacity:.45;cursor:not-allowed}
+.steps2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.steps2 div{display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+.steps2 i{display:block;height:4px;border-radius:2px;background:var(--ns)}
+.steps2 .ok i{background:var(--g)}
+.steps2 span{font-size:11.5px;line-height:1.4}
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.coupon{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.coupon.off{opacity:.65}
+.cp-left{width:96px;flex-shrink:0;background:var(--acc);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:12px;border-right:2px dashed rgba(255,255,255,.6)}
+.cp-left b{font-family:var(--serif);font-size:24px}
+.cp-left span{font-size:11px;opacity:.9}
+.cp-body{flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+@media (max-width:860px){.c-price{width:auto}.steps2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.health{border-color:#F0C9C2}
+.hchk{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.hchk>div{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:10px;background:var(--soft);font-size:13px}
+.hchk>div>span:nth-child(2){flex:1;min-width:220px;line-height:1.6}
+a[data-nav],a[role=button]{cursor:pointer}
+</style>
+</head><body>
+
+<div id="root"></div>
+
+<script>
+(function(){
+function nav(h){try{history.replaceState(null,'','#'+h)}catch(e){}route(h)}
+function fixLinks(r){r.querySelectorAll('a[href^="#"]').forEach(a=>{const h=a.getAttribute('href').slice(1);a.removeAttribute('href');a.setAttribute('tabindex','0');if(h){a.dataset.nav=h;a.setAttribute('role','link')}else a.setAttribute('role','button')})}
+document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-nav]');if(a){ev.preventDefault();ev.stopImmediatePropagation();nav(a.dataset.nav)}},true);
+document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.matches&&ev.target.matches('a[tabindex]'))ev.target.click()});
+
+const P={
+home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+box:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+receipt:'<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+ticket:'<path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 0 0-4V4H3z"/><path d="M13 4v16" stroke-dasharray="2 2"/>',
+gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',check:'<path d="M5 12l5 5 9-10"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',
+chev:'<path d="M9 6l6 6-6 6"/>',down:'<path d="M6 9l6 6 6-6"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+warn:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',send:'<path d="M4 12l16-8-6 16-3-7z"/>',
+undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',flask:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',tab:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16h18M9 16v4M15 16v4"/>',
+doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>',crown:'<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',chat:'<path d="M4 5h16v11H9l-5 4z"/>',gift:'<rect x="3" y="8" width="18" height="5"/><path d="M5 13v8h14v-8M12 8v13"/>',
+book:'<path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
+};
+const ic=(n,s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'¥'+(+n).toLocaleString('zh-CN',{maximumFractionDigits:2});
+let uid=300;const nid=p=>p+(++uid);
+
+P.chart='<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>';P.bell='<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>';P.shield='<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>';P.truck='<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>';P.img='<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>';
+
+/* ---------- data ---------- */
+const TYPES={
+ file:{n:'资料 / 电子书',i:'doc',tone:'#FCEBDD',deliver:'付款后自动发放下载链接'},
+ course:{n:'课程',i:'book',tone:'#F3D9A4',deliver:'付款后自动开通观看权限'},
+ physical:{n:'实物',i:'truck',tone:'#E9E4DD',deliver:'付款后你填快递单号发货，库存自动扣减'},
+ service:{n:'服务 / 陪跑',i:'chat',tone:'#E6EEFA',deliver:'付款后你确认服务时间和交付方式'},
+ member:{n:'会员',i:'crown',tone:'#E3F3EA',deliver:'付款后自动开通对应付费档'},
+ lead:{n:'免费领取',i:'gift',tone:'#EFE6DA',deliver:'留资后自动发放，用于引流'}
+};
+const CATS=['知识资料包','纸质手册','课程','服务','文创周边','会员权益'];
+const Pr=(id,name,type,price,o={})=>Object.assign({id,name,type,price,orig:null,on:true,test:false,limit:0,base:0,sold:0,member:true,cat:'知识资料包',stock:null,img:true},o);
+const S={
+ route:'overview',
+ products:[
+  Pr('g1','一个人的内容生意','course',199,{orig:299,cat:'课程'}),
+  Pr('g2','内容生意手册','file',39),
+  Pr('g3','暖阁体验包 · 1 元','course',1,{limit:1,member:false,cat:'课程'}),
+  Pr('g4','免费领取财税工具表格','lead',0,{member:false}),
+  Pr('g5','年费会员','member',168,{member:false,cat:'会员权益',sample:true}),
+  Pr('g6','月度会员','member',18,{member:false,cat:'会员权益',sample:true}),
+  Pr('g9','跨境通 · 飞书知识库','file',199,{on:false,img:false}),
+  Pr('g10','新客体验文创礼包','file',1,{on:false,img:false,base:10}),
+  Pr('g11','跨境墨太白年度陪跑会员','service',2999,{on:false,img:false,stock:99,cat:'纸质手册',fix:'服务'}),
+  Pr('g12','跨境墨太白平台运营进阶库','file',499,{on:false,img:false,cat:'纸质手册',fix:'知识资料包'}),
+  Pr('g13','跨境墨太白增长知识库基础版','file',199,{on:false,img:false,cat:'纸质手册',fix:'知识资料包'}),
+  Pr('g14','跨境选品案例精装手册（纸质版）','physical',59,{on:false,img:false,stock:323,fix:'纸质手册'}),
+  Pr('g15','欧洲站合规与 VAT 纸质操作手册','physical',39,{on:true,img:true,stock:282,fix:'纸质手册'}),
+  Pr('g16','会员数字权益卡','member',99,{on:false,base:286,cat:'会员权益',legacy:true,member:false}),
+  Pr('g8','测试链接','file',1,{test:true}),
+  Pr('g17','沙雕测试','file',1,{test:true,on:false,img:false,cat:'文创周边'}),
+  Pr('g18','沙雕','file',1,{test:true,on:false,img:false})
+ ],
+ orders:[],
+ coupons:[
+  {id:'c3',name:'1 元福利券',kind:'满减',val:1,min:0,scope:'全场通用',aud:'所有人',total:0,got:1,used:1,start:'2026-08-21',end:'2099-12-31',on:true},
+  {id:'c1',name:'新人满 100 减 20',kind:'满减',val:20,min:100,scope:'全场通用',aud:'所有人',total:500,got:87,used:87,start:'2026-05-01',end:'2027-12-31',on:true},
+  {id:'c2',name:'会员九折券',kind:'折扣',val:9,min:0,scope:'全场通用',aud:'所有人',total:300,got:43,used:43,start:'2026-05-01',end:'2027-12-31',on:false}
+ ],
+ ucoupons:[{u:'阿青',c:'新人满 100 减 20',at:'09-21 22:38',st:'未使用'},{u:'小满',c:'新人满 100 减 20',at:'09-21 20:01',st:'未使用'},{u:'林一',c:'会员九折券',at:'09-20 10:10',st:'已使用 · S-0920-01'},{u:'跨境墨太白',c:'1 元福利券',at:'08-21 15:02',st:'已使用'}],
+ search:[{k:'VAT 注册',n:72,hit:false},{k:'选品趋势清单',n:46,hit:false}],attack:30,
+ msgs:[{k:'订单状态',on:true,tpl:'已配置'},{k:'预约提醒',on:false,tpl:'未配置'},{k:'活动提醒',on:false,tpl:'未配置'},{k:'券到期',on:false,tpl:'未配置'},{k:'会员到期',on:true,tpl:'已配置'}],
+ shop:{title:'精选好物',intro:'精选在售商品',guarantee:'虚拟商品付款后自动发放 · 实物 48 小时内发货',show:true},
+ cfg:{autoClose:30,refund:'7 天内未下载可退',invoice:true,testUsers:['跨境墨太白（你自己）']},
+ ol:{st:'all',q:'',hideTest:true,range:'all'},pl:{type:'all',cat:'all',sel:{}},ctab:'list',
+ drawer:null,modal:null,toast:null,pdraft:null
+};
+const O=(no,buyer,pid,amt,st,at,o={})=>Object.assign({id:no,no,buyer,pid,amt,st,at,test:false,log:[]},o);
+S.orders=[
+ O('ORD202609181225474799','跨境墨太白','g2',39,'closed','09-18 12:25'),
+ O('ORD202609152015026293','跨境墨太白','g3',1,'closed','09-15 20:15'),
+ O('ORD202609151922585231','跨境墨太白','g2',39,'closed','09-15 19:22'),
+ O('ORD202609151726581148','跨境墨太白','g1',199,'closed','09-15 17:26'),
+ O('ORD202609101403235243','跨境墨太白','g8',1,'done','09-10 14:03'),
+ O('ORD202609101155266441','跨境墨太白','g8',1,'delivered','09-10 11:55'),
+ O('ORD202609101142055102','跨境墨太白','g8',1,'closed','09-10 11:42'),
+ O('ORD202609091703267723','丈件传偷肋手','g8',1,'closed','09-09 17:03',{garbled:true}),
+ O('ORD202609082138551625','跨境墨太白','g8',1,'closed','09-08 21:38'),
+ O('ORD202609082131493611','跨境墨太白','g4',0,'done','09-08 21:31'),
+ O('S-0921-01','阿青','g2',39,'closed','09-21 22:40',{sample:true}),
+ O('S-0921-02','小满','g1',199,'closed','09-21 20:05',{sample:true}),
+ O('S-0921-03','老张','g15',39,'paid','09-21 18:30',{sample:true,addr:'浙江省杭州市西湖区 · 张** 131****9008'}),
+ O('S-0920-01','林一','g5',168,'done','09-20 10:12',{sample:true}),
+ O('S-0919-01','周周','g2',39,'refunding','09-19 15:30',{sample:true,reason:'买重复了，和会员资料是同一份'}),
+ O('S-0918-01','木子','g3',1,'done','09-18 09:02',{sample:true}),
+ O('S-0920-02','木子','g2',39,'done','09-20 21:16',{sample:true}),
+ O('S-0917-01','一禾','g4',0,'done','09-17 12:40',{sample:true}),
+ O('S-0916-01','安安','g4',0,'done','09-16 08:55',{sample:true})
+];
+S.orders.forEach(o=>{if(o.buyer==='跨境墨太白'||Pd(o.pid)?.test)o.test=true});
+function Pd(id){return S.products.find(p=>p.id===id)}
+const Od=id=>S.orders.find(o=>o.id===id);
+const ST={pending:['待付款','t-pending'],paid:['已付款 · 待交付','t-new'],delivered:['已交付','t-live'],done:['已完成','t-live'],closed:['未付款 · 已关闭','t-draft'],refunding:['退款待审','t-err'],refunded:['已退款','t-offline']};
+const stLabel=o=>o.st==='paid'&&Pd(o.pid).type==='physical'?'已付款 · 待发货':o.st==='delivered'&&Pd(o.pid).type==='physical'?'已发货':ST[o.st][0];
+const stTag=o=>`<span class="tag ${ST[o.st][1]}">${stLabel(o)}</span>`;
+const real=()=>S.orders.filter(o=>!o.test);
+const paidSt=['paid','delivered','done','refunding'];
+const recompute=()=>S.products.forEach(p=>p.sold=p.base+real().filter(o=>o.pid===p.id&&paidSt.includes(o.st)).length);
+recompute();
+
+/* ---------- shell ---------- */
+function sidebar(){
+ const r=S.route.split('/')[0];const n=S.orders.filter(o=>o.st==='refunding'||o.st==='paid').length;
+ const nav=[['overview','home','收入概览'],['products','box','商品'],['orders','receipt','订单'],['marketing','ticket','优惠券'],['growth','chart','增长数据'],['settings','gear','交易设置']].map(([h,i,l])=>`<a href="#${h}" class="${r===h?'on':''}" ${r===h?'aria-current="page"':''}>${ic(i,17)}<span>${l}</span>${h==='orders'&&n?`<span class="badge">${n}</span>`:''}${h==='growth'?'<span class="badge" style="background:var(--r)">!</span>':''}</a>`).join('');
+ return `<aside class="side"><div class="brand"><div class="brand-mark">${ic('tab',18)}</div><div><b>暖阁运营后台</b><small>内容 · 会员 · Agent</small></div></div>
+ ${['总览','小程序','内容运营','用户会员'].map(x=>`<div class="side-muted">${x}${ic('chev',14)}</div>`).join('')}<div class="side-group">商业变现${ic('down',14)}</div><nav class="nav" aria-label="商业变现">${nav}</nav><div style="height:8px"></div>
+ ${['活动预约','经营管理','系统设置'].map(x=>`<div class="side-muted">${x}${ic('chev',14)}</div>`).join('')}</aside>`;
+}
+const topbar=c=>`<header class="top"><div class="crumb">商业变现 / <b>${c}</b></div><label class="search top-search">${ic('search',15)}<input id="gq" type="search" placeholder="搜订单号、买家或商品" aria-label="搜索订单"></label><div class="avatar" aria-label="Bruce">B</div></header>`;
+
+/* ---------- overview ---------- */
+function vOverview(){
+ const R=real();const paid=R.filter(o=>paidSt.includes(o.st)&&o.amt>0);const income=paid.filter(o=>o.st!=='refunding').reduce((a,o)=>a+o.amt,0);
+ const created=R.filter(o=>o.amt>0).length;const closed=R.filter(o=>o.st==='closed').length;
+ const refund=S.orders.filter(o=>o.st==='refunding');const toDeliver=S.orders.filter(o=>o.st==='paid');const recall=R.filter(o=>o.st==='closed'&&o.amt>0);const tests=S.orders.filter(o=>o.test);
+ const tiles=[['实收（不含测试）',money(income),`${paid.length} 笔付费订单`],['付款率',created?Math.round(paid.length/created*100)+'%':'—',`${created} 笔下单，${closed} 笔没付款就关闭了`],['客单价',paid.length?money(Math.round(income/paid.length)):'—','付费订单平均'],['在售商品',S.products.filter(p=>p.on&&!p.test).length+' 个',`共 ${S.products.filter(p=>!p.test).length} 个，其余已下架`]].map(([t,n,d])=>`<div class="tile"><span class="faint">${t}</span><b>${n}</b><span class="faint">${d}</span></div>`).join('');
+ const todo=[['warn','退款待审',refund.length,refund.map(o=>o.buyer+' · '+Pd(o.pid).name).join('、')||'暂无','go','orders/refunding'],['truck','待发货 / 待交付',toDeliver.length,toDeliver.map(o=>o.buyer+' · '+Pd(o.pid).name).join('、')||'暂无','go','orders/paid'],['send','没付款的订单',recall.length,recall.length?'可以发召回券拉回来':'暂无','recall',''],['shield','数据异常',3,'埋点无上报、优惠券核销对不上、搜索被注入试探','go','growth']].map(([i,t,n,d,a,to])=>`<button type="button" class="todo" data-a="${a}" data-to="${to}"><span class="todo-ic">${ic(i,18)}</span><span style="flex:1;min-width:0;text-align:left"><b>${t}</b><span class="faint" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d)}</span></span><span class="todo-n">${n}</span></button>`).join('');
+ const byProd=S.products.filter(p=>!p.test).map(p=>{const os=R.filter(o=>o.pid===p.id);const pd=os.filter(o=>paidSt.includes(o.st)&&o.st!=='refunding');return {p,rev:pd.reduce((a,o)=>a+o.amt,0),created:os.length}}).filter(x=>x.created).sort((a,b)=>b.rev-a.rev||b.created-a.created);
+ const max=Math.max(1,...byProd.map(x=>x.rev));
+ const funnel=[['下单',created],['付款',paid.length],['完成',R.filter(o=>o.st==='done'&&o.amt>0).length]];
+ return `<div class="view"><div class="head"><div><h1 class="h1">收入概览</h1><div class="sub">9 月 · 已排除测试订单 · 示例数据含你订单列表里的真实记录（另有 ${tests.length} 笔测试订单）</div></div></div>
+ <div class="tiles">${tiles}</div><div class="todo-grid">${todo}</div>
+ <div class="ov2"><section class="card"><h2 class="h2">下单到付款</h2><div class="sub">${closed?`${closed} 笔下了单没付款，是最大的流失；可以用召回券拉回`:'付款环节没有流失'}</div><div class="funnel">${funnel.map(([l,n],i)=>`<div class="f-row"><span>${l}</span><div class="f-track"><div class="f-fill" style="width:${Math.max(4,n/Math.max(1,funnel[0][1])*100)}%;opacity:${1-i*.15}"></div></div><b>${n}</b><span class="faint">${i&&funnel[i-1][1]?Math.round(n/funnel[i-1][1]*100)+'%':''}</span></div>`).join('')}</div><div class="faint" style="margin-top:10px">埋点接通后，这里会补上「浏览 → 加购」两步</div></section>
+ <section class="card"><h2 class="h2">哪些商品在赚钱</h2><div class="sub">按实收排序</div><div class="bars">${byProd.map(x=>`<div class="bar-row"><a class="link bar-name" href="#products" title="${esc(x.p.name)}">${esc(x.p.name)}</a><div class="bar-track"><div class="bar-fill" style="width:${Math.max(3,x.rev/max*100)}%"></div></div><span class="bar-val">${money(x.rev)}</span></div>`).join('')}</div></section></div></div>`;
+}
+
+/* ---------- products ---------- */
+function pFiltered(){const L=S.pl;return S.products.filter(p=>(L.type==='all'||(L.type==='test'?p.test:L.type==='off'?(!p.on&&!p.test):(p.type===L.type&&!p.test)))&&(L.cat==='all'||p.cat===L.cat))}
+function vProducts(){
+ const L=S.pl;const list=pFiltered();const sel=Object.keys(L.sel).filter(k=>L.sel[k]&&Pd(k));
+ const cnt=k=>S.products.filter(p=>k==='all'||(k==='test'?p.test:k==='off'?(!p.on&&!p.test):(p.type===k&&!p.test))).length;
+ const tabs=[['all','全部'],...Object.entries(TYPES).map(([k,v])=>[k,v.n]),['off','已下架'],['test','测试']].map(([k,l])=>`<button type="button" class="${L.type===k?'on':''}" data-a="ptype" data-k="${k}">${l} ${cnt(k)}</button>`).join('');
+ const wrong=S.products.filter(p=>p.fix&&p.fix!==p.cat);const broken=S.products.filter(p=>!p.img&&!p.test);const legacy=S.products.filter(p=>p.legacy);
+ const rows=list.map(p=>{const T=TYPES[p.type];const pc=real().filter(o=>o.pid===p.id).length;const conv=pc?Math.round((p.sold-p.base)/pc*100):null;return `<div class="crow ${L.sel[p.id]?'sel':''}"><input type="checkbox" data-psel="${p.id}" ${L.sel[p.id]?'checked':''} aria-label="选择 ${esc(p.name)}">
+ <div class="cthumb" style="width:44px;height:44px;background:${p.img?T.tone:'var(--rs)'};color:${p.img?'':'var(--r)'}">${ic(p.img?T.i:'img',18)}</div>
+ <div class="cmain"><button type="button" class="ctitle" data-a="pedit" data-id="${p.id}">${esc(p.name)}</button><div class="cmeta"><span>${T.n}</span><span>${esc(p.cat)}</span>${p.fix&&p.fix!==p.cat?`<button type="button" class="tag t-new" data-a="catfix" data-id="${p.id}">建议归到「${p.fix}」</button>`:''}${!p.img?'<span class="tag t-err">图片加载失败</span>':''}${p.test?'<span class="tag t-err">测试</span>':''}${p.legacy?'<span class="tag t-pending">旧会员商品</span>':''}${p.limit?`<span class="tag t-new">限购 ${p.limit}</span>`:''}${p.sample?'<span class="faint">示例</span>':''}</div></div>
+ <div class="c-price"><b>${p.price?money(p.price):'免费'}</b>${p.orig?`<s class="faint">${money(p.orig)}</s>`:''}</div>
+ <div class="c-num">${p.stock==null?'无限':p.stock}</div><div class="c-num">${p.sold}</div><div class="c-num">${conv===null?'—':conv+'%'}</div>
+ <div style="display:flex;gap:6px;align-items:center"><label class="switch"><input type="checkbox" data-pon="${p.id}" ${p.on?'checked':''} aria-label="上架"><span></span></label><button type="button" class="btn soft sm" data-a="pedit" data-id="${p.id}">编辑</button></div></div>`}).join('');
+ return `<div class="view"><div class="head"><div><h1 class="h1">商品</h1><div class="sub">按「卖什么」分类，交付方式跟着类型走：虚拟商品自动交付，实物填单号发货</div></div><div class="actions"><button type="button" class="btn" data-a="toast" data-t="已导出（示例）">导出</button><button type="button" class="btn primary" data-a="pnew">${ic('plus',15)}新建商品</button></div></div>
+ <div class="tabs-line" role="tablist">${tabs}</div>
+ ${wrong.length?`<div class="hint">${ic('warn',16)}<span><b>${wrong.length} 个商品分类可能填错了</b>：比如数字资料放在「纸质手册」、纸质书放在「知识资料包」。</span><button type="button" class="btn sm primary" data-a="catfixall">全部改正</button></div>`:''}
+ ${broken.length?`<div class="hint warn">${ic('img',16)}<span><b>${broken.length} 个商品图片加载失败</b>，用户在小程序里看到的是空白图。</span><button type="button" class="btn sm" data-a="ptype" data-k="all">逐个重新上传</button></div>`:''}
+ ${legacy.length?`<div class="hint">${ic('crown',16)}<span><b>「会员数字权益卡」是旧会员商品</b>（卖出 ${legacy[0].base} 份），和「会员与权益」里的付费档重复。建议把已购用户迁移到年费会员，再删除这个商品。</span><button type="button" class="btn sm" data-a="migrate">迁移已购用户</button></div>`:''}
+ <div class="filters"><select id="pcat" class="input" style="width:auto" aria-label="分类"><option value="all">全部分类</option>${CATS.map(c=>`<option ${L.cat===c?'selected':''}>${c}</option>`).join('')}</select><span class="faint">在售 ${S.products.filter(p=>p.on&&!p.test).length} · 下架 ${S.products.filter(p=>!p.on&&!p.test).length}</span></div>
+ ${sel.length?`<div class="bulk"><b>已选 ${sel.length} 个</b><button type="button" class="btn sm" data-a="pbulk" data-k="on">上架</button><button type="button" class="btn sm" data-a="pbulk" data-k="off">下架</button><button type="button" class="btn sm danger" data-a="pbulk" data-k="del">删除</button><button type="button" class="link" style="margin-left:auto" data-a="pclear">取消选择</button></div>`:''}
+ <div class="group"><div class="chead"><input type="checkbox" data-a="pselall" aria-label="全选" ${list.length&&list.every(p=>L.sel[p.id])?'checked':''}><span style="flex:1;padding-left:58px">商品</span><span class="c-price">价格</span><span class="c-num">库存</span><span class="c-num">销量</span><span class="c-num">付款率</span><span style="width:120px">上架</span></div>${list.length?rows:'<div class="muted" style="padding:24px;text-align:center">这一类还没有商品</div>'}</div>
+ <div class="faint">付款率 = 付款订单 ÷ 下单数（不含测试订单）；销量含历史数据</div></div>`;
+}
+function vPDrawer(){
+ const d=S.pdraft;if(!d)return'';const T=TYPES[d.type];
+ return `<div class="scrim right" data-a="scrim"><aside class="drawer" role="dialog" aria-modal="true" aria-label="编辑商品"><div style="display:flex;justify-content:space-between;align-items:center"><h2 class="h2" style="font-size:18px">${d.isNew?'新建商品':'编辑商品'}</h2><button type="button" class="iconbtn" data-a="close" aria-label="关闭">${ic('x',16)}</button></div>
+ <section class="dsec"><div class="dhead"><b>卖什么</b></div><div class="typegrid">${Object.entries(TYPES).map(([k,v])=>`<button type="button" class="typebtn ${d.type===k?'on':''}" data-a="dtype" data-k="${k}" ${!d.isNew?'disabled':''}>${ic(v.i,18)}<span>${v.n}</span></button>`).join('')}</div><div class="note ok">${T.deliver}</div></section>
+ ${d.type==='member'?`<section class="dsec"><div class="note">会员商品的价格、权益、到期提醒都在「用户会员 → 会员与权益」里维护，这里只管上下架和展示。</div><button type="button" class="btn sm" style="align-self:flex-start" data-a="toast" data-t="将跳转到 用户会员 → 会员与权益">去会员与权益 ›</button></section>`:`
+ <section class="dsec"><div class="field"><label for="d-name">商品名称</label><input id="d-name" class="input" value="${esc(d.name)}"></div>
+ <div class="field"><label>商品图</label><div class="tone-row">${d.img?`<div class="cthumb" style="width:56px;height:56px;background:${T.tone}">${ic(T.i,20)}</div>`:`<div class="cthumb" style="width:56px;height:56px;background:var(--rs);color:var(--r)">${ic('img',20)}</div><span class="faint" style="align-self:center">原图加载失败</span>`}<button type="button" class="btn sm" data-a="imgup">${d.img?'更换':'重新上传'}</button></div></div>
+ <div class="field"><label for="d-cat">分类</label><select id="d-cat" class="input">${CATS.map(c=>`<option ${d.cat===c?'selected':''}>${c}</option>`).join('')}</select>${d.fix&&d.fix!==d.cat?`<span class="faint" style="color:var(--b)">建议归到「${d.fix}」</span>`:''}</div>
+ <div class="row" style="gap:10px"><div class="field" style="flex:1;min-width:110px"><label for="d-price">售价（元）</label><input id="d-price" class="input" type="number" min="0" value="${d.price}" ${d.type==='lead'?'disabled':''}></div><div class="field" style="flex:1;min-width:110px"><label for="d-orig">划线价</label><input id="d-orig" class="input" type="number" min="0" value="${d.orig||''}" ${d.type==='lead'?'disabled':''}></div>${d.type==='physical'||d.type==='service'?`<div class="field" style="flex:1;min-width:110px"><label for="d-stock">库存 / 名额</label><input id="d-stock" class="input" type="number" min="0" value="${d.stock??''}" placeholder="不填为无限"></div>`:''}</div>
+ ${d.type!=='lead'?`<label class="kv"><span>会员享商城会员价（按付费档折扣）</span><input type="checkbox" id="d-member" ${d.member?'checked':''}></label>`:''}
+ <div class="field"><label for="d-limit">每人限购</label><select id="d-limit" class="input">${[0,1,2,5].map(x=>`<option value="${x}" ${d.limit==x?'selected':''}>${x?x+' 次':'不限'}</option>`).join('')}</select></div></section>
+ <section class="dsec"><div class="dhead"><b>交付内容</b></div>${d.type==='file'?`<div class="drop" style="padding:16px">${ic('doc',20)}<b>${esc(d.file||'上传文件或选择资料库文件')}</b><button type="button" class="btn sm" data-a="pickfile">从资料库选择</button></div>`:d.type==='course'?`<div class="kvs"><span>从内容库选择长文 / 视频组成课程</span></div>`:d.type==='physical'?`<div class="kvs"><span>运费：包邮（可改）</span><span>发货时效：付款后 48 小时内</span><span>用户下单时需填写收货地址</span></div>`:d.type==='service'?`<div class="field"><label for="d-slot">服务说明</label><input id="d-slot" class="input" value="${esc(d.slot||'年度 1v1 陪跑 · 每月 2 次通话 + 社群答疑')}"></div>`:`<div class="kvs"><span>领取需填写：昵称、手机号</span></div>`}</section>`}
+ <section class="dsec"><label class="kv"><span>标记为测试商品（不计入统计、不对用户展示）</span><input type="checkbox" id="d-test" ${d.test?'checked':''}></label></section>
+ <div style="display:flex;gap:8px;justify-content:flex-end">${!d.isNew&&!S.orders.some(o=>o.pid===d.id)?'<button type="button" class="btn danger" data-a="pdel" style="margin-right:auto">删除</button>':''}<button type="button" class="btn" data-a="close">取消</button><button type="button" class="btn primary" data-a="psave">${d.isNew?'创建并上架':'保存'}</button></div></aside></div>`;
+}
+
+/* ---------- orders ---------- */
+const inRange=o=>{const r=S.ol.range;if(r==='all')return true;const d=+o.at.slice(3,5);return r==='today'?d===22:r==='7d'?d>=16:true};
+function oFiltered(){const L=S.ol;const q=L.q.trim();return S.orders.filter(o=>{if(!inRange(o))return false;if(L.st==='test')return o.test;if(L.hideTest&&o.test)return false;if(L.st!=='all'&&o.st!==L.st)return false;if(q&&!(o.no.includes(q)||o.buyer.includes(q)||Pd(o.pid).name.includes(q)))return false;return true})}
+function vOrders(){
+ const L=S.ol;const list=oFiltered();const base=S.orders.filter(o=>(!L.hideTest||!o.test)&&inRange(o));
+ const cnt=k=>k==='test'?S.orders.filter(o=>o.test).length:base.filter(o=>k==='all'||o.st===k).length;
+ const chips=[['all','全部'],['refunding','退款待审'],['paid','待发货 / 待交付'],['done','已完成'],['closed','未付款关闭'],['refunded','已退款'],['test','测试订单']].map(([k,l])=>`<button type="button" class="chip ${L.st===k?'on':''}" data-a="ost" data-k="${k}">${l} ${cnt(k)}</button>`).join('');
+ const rows=list.map(o=>{const p=Pd(o.pid);return `<div class="crow ${o.test?'testrow':''}"><button type="button" class="ucell" data-a="oopen" data-id="${o.id}"><div class="cthumb" style="width:40px;height:40px;background:${TYPES[p.type].tone}">${ic(TYPES[p.type].i,16)}</div><span style="min-width:0"><b>${esc(p.name)}</b><span class="faint">${esc(o.buyer)}${o.garbled?' <span class="tag t-err" style="font-size:11px">昵称异常</span>':''} · ${o.no}</span></span></button>
+ <div class="c-num" style="width:80px"><b>${o.amt?money(o.amt):'免费'}</b></div><div class="c-pay">${stTag(o)}${o.test?' <span class="tag t-err">测试</span>':''}${o.sample?' <span class="faint" style="font-size:11px">示例</span>':''}</div><div class="ctime faint">${o.at}</div>
+ <div style="width:150px;display:flex;gap:6px;justify-content:flex-end">${o.st==='refunding'?`<button type="button" class="btn sm primary" data-a="oopen" data-id="${o.id}">审核退款</button>`:o.st==='paid'&&p.type==='physical'?`<button type="button" class="btn sm primary" data-a="oopen" data-id="${o.id}">${ic('truck',13)}发货</button>`:o.st==='closed'&&!o.test&&o.amt>0?`<button type="button" class="btn sm" data-a="recall1" data-id="${o.id}">${ic('send',13)}召回</button>`:''}<button type="button" class="btn sm" data-a="oopen" data-id="${o.id}">详情</button></div></div>`}).join('')||'<div class="muted" style="padding:24px;text-align:center">没有符合条件的订单</div>';
+ return `<div class="view"><div class="head"><div><h1 class="h1">订单</h1><div class="sub">资料、课程、会员付款后自动交付；实物填单号发货；服务类确认后交付</div></div><div class="actions"><button type="button" class="btn" data-a="toast" data-t="已按当前筛选导出报表（示例）">导出报表</button></div></div>
+ <div class="filters"><label class="search">${ic('search',15)}<input id="oq" type="search" placeholder="订单号、买家或商品" value="${esc(L.q)}" aria-label="搜索订单"></label><select id="orange" class="input" style="width:auto" aria-label="时间"><option value="all" ${L.range==='all'?'selected':''}>全部时间</option><option value="today" ${L.range==='today'?'selected':''}>今天</option><option value="7d" ${L.range==='7d'?'selected':''}>近 7 天</option></select>${chips}<label class="kv" style="margin-left:auto;gap:8px"><span class="faint">隐藏测试订单</span><label class="switch"><input type="checkbox" id="hidetest" ${L.hideTest?'checked':''}><span></span></label></label></div>
+ ${S.orders.some(o=>o.garbled)?`<div class="hint warn">${ic('warn',16)}<span>有买家昵称显示异常（「丈件传偷肋手」，疑似「文件传输助手」的乱码），建议技术排查昵称的字符集处理。</span></div>`:''}
+ <div class="group"><div class="chead"><span style="flex:1;padding-left:52px">商品 / 买家</span><span class="c-num" style="width:80px">金额</span><span class="c-pay">状态</span><span class="ctime">下单</span><span style="width:150px"></span></div>${rows}</div></div>`;
+}
+function vODrawer(){
+ const o=S.drawer&&Od(S.drawer);if(!o)return'';const p=Pd(o.pid);const phys=p.type==='physical';
+ const after=['delivered','done','refunding','refunded'];
+ const steps=[['下单',o.at,true],['付款',['paid',...after].includes(o.st)?o.at:(o.st==='closed'?`${S.cfg.autoClose} 分钟未付款，自动关闭`:'等待付款'),!['closed','pending'].includes(o.st)],[phys?'发货':'交付',after.includes(o.st)?(phys?(o.ship||'已发货'):TYPES[p.type].deliver.replace('付款后','')):'—',after.includes(o.st)],['完成',o.st==='done'?'交易完成':o.st==='refunded'?'已退款':'—',['done','refunded'].includes(o.st)]];
+ return `<div class="scrim right" data-a="scrim"><aside class="drawer" role="dialog" aria-modal="true" aria-label="订单详情"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><h2 class="h2" style="font-size:18px">${esc(p.name)}</h2><div class="faint">${o.no}</div></div><button type="button" class="iconbtn" data-a="close" aria-label="关闭">${ic('x',16)}</button></div>
+ <section class="dsec"><div class="dhead"><b>${o.amt?money(o.amt):'免费领取'}</b>${stTag(o)}</div><div class="faint">买家：${esc(o.buyer)} · ${TYPES[p.type].n} · 数量 1</div>${o.addr?`<div class="faint">收货：${esc(o.addr)}</div>`:''}
+ <div class="steps2">${steps.map(([t,d,ok])=>`<div class="${ok?'ok':''}"><i></i><b>${t}</b><span class="faint">${esc(d)}</span></div>`).join('')}</div></section>
+ ${o.st==='paid'&&phys?`<section class="dsec"><div class="dhead"><b>发货</b></div><form data-f="ship" data-id="${o.id}" style="display:flex;flex-direction:column;gap:8px"><div class="row" style="gap:8px"><select id="sh-co" class="input" style="flex:1;min-width:100px"><option>顺丰</option><option>中通</option><option>圆通</option><option>京东</option></select><input id="sh-no" class="input" style="flex:2;min-width:140px" placeholder="快递单号" required></div><button type="submit" class="btn sm primary" style="align-self:flex-start">${ic('truck',13)}确认发货</button></form><div class="faint">发货后用户收到订阅消息，库存已在付款时扣减（剩 ${p.stock}）</div></section>`:''}
+ ${o.st==='refunding'?`<section class="dsec"><div class="dhead"><b>退款申请</b><span class="tag t-err">待你审核</span></div><div class="quote">${esc(o.reason)}</div><div class="faint">规则：${S.cfg.refund}。该用户尚未下载过资料。</div><div style="display:flex;gap:8px"><button type="button" class="btn primary sm" data-a="refok" data-id="${o.id}">同意退款 ${money(o.amt)}</button><button type="button" class="btn sm" data-a="refno" data-id="${o.id}">拒绝</button></div></section>`:''}
+ ${o.st==='closed'&&o.amt>0&&!o.test?`<section class="dsec"><div class="dhead"><b>没付款</b></div><div class="faint">可以给 TA 发一张召回券，通过微信订阅消息提醒。</div><button type="button" class="btn sm primary" style="align-self:flex-start" data-a="recall1" data-id="${o.id}">${ic('send',13)}发召回券</button></section>`:''}
+ ${['delivered','done'].includes(o.st)&&o.amt>0?`<section class="dsec"><div class="dhead"><b>售后</b></div><div style="display:flex;gap:8px;flex-wrap:wrap">${phys?'':`<button type="button" class="btn sm" data-a="redeliver" data-id="${o.id}">重新发放</button>`}<button type="button" class="btn sm" data-a="manualref" data-id="${o.id}">主动退款</button></div></section>`:''}
+ <section class="dsec"><label class="kv"><span>这是测试订单（不计入收入和统计）</span><input type="checkbox" id="o-test" ${o.test?'checked':''}></label></section>
+ ${o.log.length?`<section class="dsec"><div class="dhead"><b>操作记录</b></div>${o.log.map(l=>`<div class="list-row"><span style="flex:1">${esc(l)}</span><span class="faint">刚刚</span></div>`).join('')}</section>`:''}
+ </aside></div>`;
+}
+
+/* ---------- coupons ---------- */
+function couponWarn(c){const w=[];if(c.kind==='满减'&&!c.min&&c.val>=1)w.push('无门槛 ¥'+c.val+'，可以把 1 元商品变成免费');if(c.end>='2099')w.push('有效期到 2099 年，等于长期有效');if(c.used>0&&c.used===c.got&&c.got>20)w.push('领取数 = 使用数，且远多于真实订单，数据可能是初始化写入的');return w}
+function vMarketing(){
+ const t=S.ctab;
+ const tabs=`<div class="tabs-line" role="tablist"><button type="button" class="${t==='list'?'on':''}" data-a="ctab" data-k="list">优惠券管理</button><button type="button" class="${t==='user'?'on':''}" data-a="ctab" data-k="user">用户优惠券</button><button type="button" class="${t==='lead'?'on':''}" data-a="ctab" data-k="lead">引流品与限时价</button></div>`;
+ let body='';
+ if(t==='list')body=`<div class="cp-grid">${S.coupons.map(c=>{const w=couponWarn(c);return `<article class="coupon ${c.on?'':'off'}"><div class="cp-left"><b>${c.kind==='满减'?'¥'+c.val:c.val+' 折'}</b><span>${c.min?'满 '+c.min+' 可用':'无门槛'}</span></div><div class="cp-body"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b>${esc(c.name)}</b><label class="switch"><input type="checkbox" data-con="${c.id}" ${c.on?'checked':''} aria-label="发布"><span></span></label></div><span class="faint">${c.scope} · ${c.aud}可领 · ${c.start} ~ ${c.end}</span><span class="faint">已领 ${c.got} / ${c.total||'不限'} · 已用 ${c.used}</span>${c.auto?`<span class="tag t-new" style="align-self:flex-start">${ic('clock',11)} ${c.auto}</span>`:''}${w.map(x=>`<span class="tag t-err" style="align-self:flex-start;white-space:normal">${ic('warn',11)} ${x}</span>`).join('')}<div style="display:flex;gap:8px"><button type="button" class="link" style="font-size:12.5px" data-a="cedit" data-id="${c.id}">编辑</button><button type="button" class="link" style="font-size:12.5px;color:var(--r)" data-a="cdel" data-id="${c.id}">删除</button></div></div></article>`}).join('')}</div>`;
+ if(t==='user')body=`<div class="group"><div class="chead"><span style="flex:1;padding:0">用户</span><span style="flex:1">优惠券</span><span class="ctime">领取时间</span><span style="width:160px">状态</span></div>${S.ucoupons.map(x=>`<div class="crow"><span style="flex:1">${esc(x.u)}${x.u==='跨境墨太白'?' <span class="tag t-err">测试</span>':''}</span><span style="flex:1">${esc(x.c)}</span><span class="ctime faint">${x.at}</span><span style="width:160px"><span class="tag ${x.st.startsWith('已使用')?'t-live':'t-draft'}">${esc(x.st)}</span></span></div>`).join('')}</div><div class="faint">示例记录；可按券、用户、状态筛选，点用户跳到用户详情</div>`;
+ if(t==='lead'){const R=real();const lead=S.products.filter(p=>!p.test&&(p.type==='lead'||p.price===1));
+  body=`<div class="ov2"><section class="card"><h2 class="h2">引流品</h2><div class="sub">免费领取和 1 元体验：看它们有没有把人带到正价商品</div><div style="margin-top:8px">${lead.map(p=>{const buyers=[...new Set(R.filter(o=>o.pid===p.id&&paidSt.includes(o.st)).map(o=>o.buyer))];const conv=buyers.filter(b=>R.some(o=>o.buyer===b&&o.pid!==p.id&&o.amt>1&&paidSt.includes(o.st))).length;return `<div class="list-row"><div class="cthumb" style="width:36px;height:36px;background:${TYPES[p.type].tone}">${ic(TYPES[p.type].i,16)}</div><div style="flex:1;min-width:0"><b style="font-weight:500;display:block">${esc(p.name)}</b><span class="faint">${buyers.length} 人 · 其中 ${conv} 人后来买了正价商品</span></div><span class="tag ${p.on?'t-live':'t-draft'}">${p.on?'进行中':'已下架'}</span></div>`}).join('')}</div></section>
+  <section class="card"><h2 class="h2">限时价</h2><div class="sub">到点自动恢复原价</div><form data-f="flash" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><div class="field"><label for="fl-p">商品</label><select id="fl-p" class="input">${S.products.filter(p=>!p.test&&p.price>1&&p.type!=='member').map(p=>`<option value="${p.id}">${esc(p.name)}（${money(p.price)}）</option>`).join('')}</select></div><div class="row" style="gap:10px"><div class="field" style="flex:1"><label for="fl-price">限时价</label><input id="fl-price" class="input" type="number" value="149"></div><div class="field" style="flex:1"><label for="fl-end">结束时间</label><input id="fl-end" class="input" value="09-30 23:59"></div></div><button type="submit" class="btn primary sm" style="align-self:flex-start">设置限时价</button></form>${S.products.filter(p=>p.flash).map(p=>`<div class="note" style="margin-top:10px">「${esc(p.name)}」限时 ${money(p.flash.price)}，${p.flash.end} 后恢复 ${money(p.price)}</div>`).join('')}</section></div>`}
+ return `<div class="view"><div class="head"><div><h1 class="h1">优惠券</h1><div class="sub">发券、看领取和使用、查问题；券的效果在「增长数据」里看</div></div><div class="actions"><button type="button" class="btn primary" data-a="cnew">${ic('plus',15)}创建优惠券</button></div></div>${tabs}${body}</div>`;
+}
+
+/* ---------- growth ---------- */
+function vGrowth(){
+ const used=S.coupons.reduce((a,c)=>a+c.used,0);
+ const ev=[['page_view','页面浏览'],['component_click','组件点击'],['product_view','商品浏览'],['add_cart','加购'],['order_create','下单'],['pay_success','支付成功']];
+ const realOrders=S.orders.length;
+ return `<div class="view"><div class="head"><div><h1 class="h1">增长数据</h1><div class="sub">埋点、搜索、优惠券效果、内容带货；先把数据接通，再看增长</div></div><div class="actions"><button type="button" class="btn" data-a="toast" data-t="已刷新">刷新</button></div></div>
+ <section class="card health"><div style="display:flex;gap:12px;align-items:flex-start"><span class="todo-ic" style="background:var(--rs);color:var(--r)">${ic('warn',18)}</span><div style="flex:1"><h2 class="h2">数据健康检查 · 3 个问题</h2><div class="sub">这些问题不解决，下面的数字都不可信</div>
+ <div class="hchk"><div><span class="tag t-err">埋点</span><span>近 7 天 6 类埋点事件全部是 0，但订单列表里同期有新订单：小程序正式版可能没接入事件上报，或上报没发布。</span><button type="button" class="btn sm" data-a="toast" data-t="已发送一条测试事件，30 秒后刷新查看">发测试事件</button></div>
+ <div><span class="tag t-err">优惠券</span><span>优惠券页显示已使用 ${used} 次，这里核销 0 次，订单总共才 72 笔，两边口径对不上。</span><button type="button" class="btn sm" data-a="go" data-to="marketing">去核对</button></div>
+ <div><span class="tag t-err">安全</span><span>搜索词里有 ${S.attack} 条 SQL 注入试探（如 union select、SLEEP），说明有人在扫描搜索接口。已从热搜统计中过滤，请技术确认搜索查询做了参数化处理。</span><button type="button" class="btn sm" data-a="toast" data-t="已复制给技术的说明">复制给技术</button></div></div></div></div></section>
+ <div class="ov2"><section class="card"><h2 class="h2">转化漏斗（近 7 天）</h2><div class="sub">按埋点事件统计；接通前概览里的付款率用订单数据计算</div><div style="margin-top:10px">${ev.map(([k,l])=>`<div class="list-row"><span style="flex:1">${l} <span class="faint">${k}</span></span><b>0</b></div>`).join('')}</div></section>
+ <section class="card"><h2 class="h2">优惠券效果</h2><div class="comm-stats" style="margin-top:12px"><span><b>0</b>核销次数</span><span><b>¥0</b>优惠总额</span><span><b>¥0</b>带动实付</span></div><div class="faint" style="margin-top:10px">核销以订单实付为准；和优惠券页的「已使用」口径统一后才有意义</div></section></div>
+ <div class="ov2"><section class="card"><h2 class="h2">热搜词</h2><div class="sub">用户在小程序里搜了什么 · 已过滤 ${S.attack} 条异常输入</div><div style="margin-top:8px">${S.search.map(s=>`<div class="list-row"><span style="flex:1">${esc(s.k)}</span><span class="faint">${s.n} 次</span></div>`).join('')}</div></section>
+ <section class="card"><h2 class="h2">无结果词 → 选题清单</h2><div class="sub">用户搜了但你还没有的内容或商品，是最直接的选题</div><div style="margin-top:8px">${S.search.filter(s=>!s.hit).map(s=>`<div class="list-row"><span style="flex:1"><b style="font-weight:500">${esc(s.k)}</b> <span class="faint">${s.n} 次无结果</span></span><button type="button" class="btn sm" data-a="topic" data-k="${esc(s.k)}">写成内容</button><button type="button" class="btn sm" data-a="linkp" data-k="${esc(s.k)}">关联商品</button></div>`).join('')||'<div class="faint" style="padding:10px 0">都有结果了</div>'}</div></section></div>
+ <section class="card"><h2 class="h2">内容带货榜</h2><div class="sub">哪篇内容带来了订单</div><div class="muted" style="padding:16px 0">暂无带货数据。在长文或笔记里插入商品卡后，订单会自动归到对应内容。</div></section></div>`;
+}
+
+/* ---------- settings ---------- */
+function vSettings(){
+ const c=S.cfg,sh=S.shop;
+ return `<div class="view"><div class="head"><div><h1 class="h1">交易设置</h1><div class="sub">商城页展示、支付与退款、消息通知、测试账号</div></div></div>
+ <div class="set-grid"><section class="card"><h2 class="h2">商城页展示</h2><div class="sub">小程序商品列表顶部的标题、介绍和服务保障</div>
+ <label class="kv" style="margin-top:8px"><span>显示顶部介绍</span><label class="switch"><input type="checkbox" id="sh-show" ${sh.show?'checked':''}><span></span></label></label>
+ <div class="field"><label for="sh-title">标题</label><input id="sh-title" class="input" data-sh="title" value="${esc(sh.title)}"></div><div class="field" style="margin-top:8px"><label for="sh-intro">介绍</label><input id="sh-intro" class="input" data-sh="intro" value="${esc(sh.intro)}"></div><div class="field" style="margin-top:8px"><label for="sh-g">服务保障</label><input id="sh-g" class="input" data-sh="guarantee" value="${esc(sh.guarantee)}"></div>
+ ${sh.show?`<div class="blk" style="margin-top:12px;background:var(--soft)"><b>${esc(sh.title)}</b><span>${esc(sh.intro)}</span><span>${ic('shield',11)} ${esc(sh.guarantee)}</span></div>`:''}</section>
+ <section class="card"><h2 class="h2">订阅消息</h2><div class="sub">哪些事件给用户发微信服务通知</div><div style="margin-top:8px">${S.msgs.map((m,i)=>`<div class="list-row"><label class="switch"><input type="checkbox" data-msg="${i}" ${m.on?'checked':''} aria-label="${m.k}"><span></span></label><b style="font-weight:500;flex:1">${m.k}</b><span class="tag ${m.tpl==='已配置'?'t-live':'t-pending'}">模板${m.tpl}</span>${m.tpl!=='已配置'?`<button type="button" class="btn sm" data-a="tplset" data-i="${i}">配置</button>`:''}</div>`).join('')}</div><div class="faint">召回券、续费提醒、发货通知都依赖这里</div></section>
+ <section class="card"><h2 class="h2">支付与退款</h2><div class="field" style="margin-top:10px"><label for="s-close">未付款自动关闭</label><select id="s-close" class="input">${[15,30,60,1440].map(x=>`<option value="${x}" ${c.autoClose==x?'selected':''}>${x<60?x+' 分钟':x===60?'1 小时':'24 小时'}</option>`).join('')}</select></div>
+ <div class="field" style="margin-top:10px"><label for="s-refund">虚拟商品退款规则</label><select id="s-refund" class="input">${['7 天内未下载可退','7 天内无理由退款','虚拟商品不支持退款'].map(x=>`<option ${c.refund===x?'selected':''}>${x}</option>`).join('')}</select></div>
+ <label class="kv" style="margin-top:6px"><span>允许申请电子发票</span><label class="switch"><input type="checkbox" id="s-inv" ${c.invoice?'checked':''}><span></span></label></label></section>
+ <section class="card"><h2 class="h2">测试账号</h2><div class="sub">这些账号下的订单自动标记为测试，不计入收入、销量和转化</div><div style="margin-top:10px">${c.testUsers.map((u,i)=>`<div class="list-row"><span style="flex:1">${esc(u)}</span><button type="button" class="iconbtn" data-a="rmtest" data-i="${i}" aria-label="移除">${ic('x',14)}</button></div>`).join('')}</div><form data-f="testu" style="display:flex;gap:8px;margin-top:10px"><input id="tu" class="input" placeholder="昵称或手机号" style="flex:1"><button type="submit" class="btn sm">${ic('plus',14)}添加</button></form></section></div></div>`;
+}
+
+/* ---------- modal/toast ---------- */
+function vModal(){
+ const m=S.modal;if(!m)return'';let inner='';
+ if(m.type==='confirm')inner=`<h2 class="h2">${esc(m.title)}</h2><div class="muted">${esc(m.body)}</div>${m.input?`<input id="m-in" class="input" placeholder="${esc(m.input)}">`:''}<div class="foot"><button type="button" class="btn" data-a="mclose">取消</button><button type="button" class="btn ${m.danger?'danger':'primary'}" data-a="confirm">${esc(m.ok)}</button></div>`;
+ if(m.type==='coupon'){const c=m.c||{name:'中秋共读 · 满 99 减 20',kind:'满减',val:20,min:99,scope:'全场通用',aud:'所有人',total:200,start:'2026-09-22',end:'2026-10-08'};
+  inner=`<h2 class="h2">${m.c?'编辑优惠券':'创建优惠券'}</h2><form data-f="coupon" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="cn">名称</label><input id="cn" class="input" value="${esc(c.name)}" required></div><div class="row" style="gap:10px"><div class="field" style="flex:1"><label for="ck">类型</label><select id="ck" class="input"><option ${c.kind==='满减'?'selected':''}>满减</option><option ${c.kind==='折扣'?'selected':''}>折扣</option></select></div><div class="field" style="flex:1"><label for="cv">面额 / 折扣</label><input id="cv" class="input" type="number" value="${c.val}"></div><div class="field" style="flex:1"><label for="cm">门槛（元）</label><input id="cm" class="input" type="number" value="${c.min}"></div></div>
+  <div class="row" style="gap:10px"><div class="field" style="flex:1"><label for="cs">适用范围</label><select id="cs" class="input">${['全场通用','资料 / 课程','实物','会员'].map(x=>`<option ${c.scope===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field" style="flex:1"><label for="ca">领取人群</label><select id="ca" class="input">${['所有人','新用户','付费会员','非会员'].map(x=>`<option ${c.aud===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field" style="flex:1"><label for="ct">发放总量</label><input id="ct" class="input" type="number" value="${c.total}" placeholder="0 为不限"></div></div>
+  <div class="row" style="gap:10px"><div class="field" style="flex:1"><label for="cst">开始</label><input id="cst" class="input" value="${c.start}"></div><div class="field" style="flex:1"><label for="ce">结束</label><input id="ce" class="input" value="${c.end}"></div></div><div class="foot"><button type="button" class="btn" data-a="mclose">取消</button><button type="submit" class="btn primary">${m.c?'保存':'创建'}</button></div></form>`}
+ return `<div class="scrim" data-a="mscrim" style="z-index:70"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`;
+}
+let toastT,lastUndo=null;
+function toast(text,undo){S.toast={text,undo:!!undo};clearTimeout(toastT);toastT=setTimeout(()=>{S.toast=null;render()},undo?6000:2800);render()}
+
+const root=document.getElementById('root');
+function render(){
+ recompute();
+ const f=document.activeElement&&document.activeElement.id;let pos=null;try{pos=document.activeElement.selectionStart}catch(e){}
+ const r=S.route.split('/')[0];const crumb={overview:'收入概览',products:'商品',orders:'订单',marketing:'优惠券',growth:'增长数据',settings:'交易设置'}[r]||'收入概览';
+ const v={overview:vOverview,products:vProducts,orders:vOrders,marketing:vMarketing,growth:vGrowth,settings:vSettings}[r]||vOverview;
+ root.innerHTML=`<div class="app">${sidebar()}<main class="main">${topbar(crumb)}${v()}</main></div>`+vPDrawer()+vODrawer()+vModal()+(S.toast?`<div class="toast" role="status">${esc(S.toast.text)}${S.toast.undo?'<button type="button" data-a="undo">撤销</button>':''}</div>`:'');
+ fixLinks(root);
+ if(f){const el=document.getElementById(f);if(el){el.focus();try{if(pos!=null&&el.setSelectionRange)el.setSelectionRange(pos,pos)}catch(e){}}}
+}
+function route(){const h=(typeof arguments[0]==='string'?arguments[0]:location.hash.slice(1))||'overview';const [r,a]=h.split('/');S.route=r;if(r==='orders'&&a){S.ol.st=a;if(a==='test')S.ol.hideTest=false}S.drawer=null;S.pdraft=null;S.modal=null;render();window.scrollTo(0,0)}
+window.addEventListener('hashchange',route);
+
+const A={
+ go:d=>nav(d.to),toast:d=>toast(d.t),
+ undo:()=>{if(lastUndo){lastUndo();lastUndo=null}S.toast=null;render()},
+ close:()=>{S.drawer=null;S.pdraft=null;render()},scrim:(d,ev)=>{if(ev.target.classList.contains('scrim')){S.drawer=null;S.pdraft=null;render()}},
+ mclose:()=>{S.modal=null;render()},mscrim:(d,ev)=>{if(ev.target.classList.contains('scrim')){S.modal=null;render()}},
+ confirm:()=>{const m=S.modal;const v=document.getElementById('m-in')?.value;S.modal=null;m.fn(v)},
+ recall:()=>{const os=real().filter(o=>o.st==='closed'&&o.amt>0);if(!os.length)return toast('没有可召回的订单');S.modal={type:'confirm',title:`给 ${os.length} 位没付款的用户发召回券？`,body:`${[...new Set(os.map(o=>o.buyer))].join('、')} 会收到 9 折召回券和订阅消息提醒。`,ok:'发送',fn:()=>{os.forEach(o=>o.log.push('已发召回券'));toast(`已发送 ${os.length} 张召回券`)}};render()},
+ recall1:d=>{const o=Od(d.id);o.log.push('已发召回券');toast('已给 '+o.buyer+' 发召回券')},
+ ptype:d=>{S.pl.type=d.k;render()},
+ pnew:()=>{S.pdraft={isNew:true,id:nid('g'),name:'',type:'file',price:39,orig:null,limit:0,member:true,test:false,cat:'知识资料包',img:true,stock:null};render();setTimeout(()=>document.getElementById('d-name')?.focus(),0)},
+ pedit:d=>{S.pdraft=Object.assign({},Pd(d.id));render()},
+ dtype:d=>{const D=S.pdraft;D.type=d.k;if(d.k==='lead'){D.price=0;D.member=false}D.cat={physical:'纸质手册',course:'课程',service:'服务',member:'会员权益'}[d.k]||'知识资料包';render()},
+ imgup:()=>{S.pdraft.img=true;render()},
+ pickfile:()=>{S.pdraft.file='9 月共读 · 领读提纲.pdf（资料库）';render()},
+ psave:()=>{const d=S.pdraft;const g=id=>document.getElementById(id);if(g('d-name')){d.name=g('d-name').value.trim();d.price=+g('d-price').value||0;d.orig=+g('d-orig').value||null;d.limit=+g('d-limit').value;d.cat=g('d-cat').value;if(g('d-member'))d.member=g('d-member').checked;if(g('d-stock'))d.stock=g('d-stock').value===''?null:+g('d-stock').value}d.test=g('d-test').checked;
+  if(!d.name)return toast('先填商品名称');if(d.type==='file'&&d.isNew&&!d.file)return toast('选一个要交付的文件');
+  if(d.isNew){delete d.isNew;S.products.unshift(Pr(d.id,d.name,d.type,d.price,d));toast('已创建并上架「'+d.name+'」')}else{Object.assign(Pd(d.id),d);toast('已保存')}S.pdraft=null;render()},
+ pdel:()=>{const d=S.pdraft;S.products=S.products.filter(p=>p.id!==d.id);S.pdraft=null;toast('已删除')},
+ catfix:d=>{const p=Pd(d.id);const old=p.cat;p.cat=p.fix;lastUndo=()=>p.cat=old;toast(`已归到「${p.cat}」`,true)},
+ catfixall:()=>{const ws=S.products.filter(p=>p.fix&&p.fix!==p.cat).map(p=>[p,p.cat]);ws.forEach(([p])=>p.cat=p.fix);lastUndo=()=>ws.forEach(([p,c])=>p.cat=c);toast(`已改正 ${ws.length} 个商品的分类`,true)},
+ migrate:()=>{const p=S.products.find(x=>x.legacy);S.modal={type:'confirm',title:'迁移「会员数字权益卡」的已购用户？',body:`${p.base} 位已购用户会按剩余有效期转成「年费会员」，之后这个旧商品可以删除。迁移前会先导出一份名单备份。`,ok:'开始迁移',fn:()=>{p.legacy=false;p.migrated=true;toast('已提交迁移，完成后会通知你')}};render()},
+ pselall:()=>{const l=pFiltered();const all=l.every(p=>S.pl.sel[p.id]);l.forEach(p=>S.pl.sel[p.id]=!all);render()},
+ pclear:()=>{S.pl.sel={};render()},
+ pbulk:d=>{const ps=Object.keys(S.pl.sel).filter(k=>S.pl.sel[k]&&Pd(k)).map(Pd);if(d.k==='del'){const has=ps.filter(p=>S.orders.some(o=>o.pid===p.id));if(has.length)return toast(`${has.length} 个商品有订单，只能下架不能删除`);S.modal={type:'confirm',title:`删除 ${ps.length} 个商品？`,body:'删除后无法恢复。',ok:'删除',danger:true,fn:()=>{S.products=S.products.filter(p=>!ps.includes(p));S.pl.sel={};toast('已删除')}};return render()}
+  const prev=ps.map(p=>[p,p.on]);ps.forEach(p=>p.on=d.k==='on');S.pl.sel={};lastUndo=()=>prev.forEach(([p,o])=>p.on=o);toast(`已${d.k==='on'?'上架':'下架'} ${ps.length} 个`,true)},
+ ost:d=>{S.ol.st=d.k;if(d.k==='test')S.ol.hideTest=false;render()},
+ oopen:d=>{S.drawer=d.id;render()},
+ refok:d=>{const o=Od(d.id);S.modal={type:'confirm',title:`同意退款 ${money(o.amt)}？`,body:'原路退回，资料下载权限同时收回。',ok:'同意退款',fn:()=>{o.st='refunded';o.log.push('同意退款');toast('已退款，原路退回')}};render()},
+ refno:d=>{const o=Od(d.id);S.modal={type:'confirm',title:'拒绝退款？',body:'需要填写原因，会通知用户。',input:'比如：资料已下载，按规则不支持退款',ok:'拒绝',danger:true,fn:v=>{if(!v)return toast('请填写原因');o.st='done';o.log.push('拒绝退款：'+v);toast('已拒绝并通知用户')}};render()},
+ redeliver:d=>{Od(d.id).log.push('重新发放');toast('已重新发放')},
+ manualref:d=>{const o=Od(d.id);S.modal={type:'confirm',title:`主动退款 ${money(o.amt)}？`,body:'用于售后补偿，原路退回。',ok:'退款',danger:true,fn:()=>{o.st='refunded';o.log.push('主动退款');toast('已退款')}};render()},
+ ctab:d=>{S.ctab=d.k;render()},
+ cnew:()=>{S.modal={type:'coupon'};render()},
+ cedit:d=>{S.modal={type:'coupon',c:S.coupons.find(x=>x.id===d.id)};render()},
+ cdel:d=>{const c=S.coupons.find(x=>x.id===d.id);S.modal={type:'confirm',title:`删除「${c.name}」？`,body:c.got?`已有 ${c.got} 人领取。删除后未使用的券会失效，建议改为「停用」。`:'还没人领取，可以放心删除。',ok:'删除',danger:true,fn:()=>{S.coupons=S.coupons.filter(x=>x!==c);toast('已删除')}};render()},
+ topic:d=>toast(`已把「${d.k}」加入内容运营的选题，去写内容`),
+ linkp:d=>toast(`搜「${d.k}」时将展示你选的商品（示例）`),
+ tplset:d=>{S.msgs[+d.i].tpl='已配置';S.msgs[+d.i].on=true;toast('已选用微信公共模板并开启')},
+ rmtest:d=>{S.cfg.testUsers.splice(+d.i,1);render()}
+};
+document.addEventListener('click',ev=>{const el=ev.target.closest('[data-a]');if(!el)return;if(el.tagName==='INPUT'&&el.dataset.a!=='pselall')return;const a=el.dataset.a;if((a==='scrim'||a==='mscrim')&&ev.target!==el)return;if(A[a]){if(el.tagName!=='INPUT')ev.preventDefault();A[a](el.dataset,ev)}});
+document.addEventListener('input',ev=>{const t=ev.target;if(t.id==='oq'){S.ol.q=t.value;render()}if(t.id==='gq'){S.ol.q=t.value;if(S.route!=='orders')nav('orders');else render()}});
+document.addEventListener('change',ev=>{const t=ev.target;
+ if(t.dataset.psel){S.pl.sel[t.dataset.psel]=t.checked;render();return}
+ if(t.id==='pcat'){S.pl.cat=t.value;render()}
+ if(t.id==='orange'){S.ol.range=t.value;render()}
+ if(t.dataset.pon){const p=Pd(t.dataset.pon);if(!p.img&&t.checked){t.checked=false;return toast('这个商品图片加载失败，先重新上传图片再上架')}p.on=t.checked;toast(p.on?'已上架':'已下架，已购用户不受影响')}
+ if(t.id==='hidetest'){S.ol.hideTest=t.checked;if(S.ol.st==='test'&&t.checked)S.ol.st='all';render()}
+ if(t.id==='o-test'){const o=Od(S.drawer);o.test=t.checked;toast(o.test?'已标记为测试，不计入统计':'已取消测试标记')}
+ if(t.dataset.con){const c=S.coupons.find(x=>x.id===t.dataset.con);c.on=t.checked;toast(c.on?'已发布':'已停用')}
+ if(t.dataset.msg){S.msgs[+t.dataset.msg].on=t.checked;render()}
+ if(t.dataset.sh){S.shop[t.dataset.sh]=t.value;render()}if(t.id==='sh-show'){S.shop.show=t.checked;render()}
+ if(t.id==='s-close'){S.cfg.autoClose=+t.value;toast('已更新')}if(t.id==='s-refund'){S.cfg.refund=t.value;toast('已更新，商品页同步显示')}if(t.id==='s-inv'){S.cfg.invoice=t.checked;toast('已更新')}
+});
+document.addEventListener('submit',ev=>{ev.preventDefault();const f=ev.target.dataset.f;const g=id=>document.getElementById(id);
+ if(f==='coupon'){const v={name:g('cn').value,kind:g('ck').value,val:+g('cv').value,min:+g('cm').value,scope:g('cs').value,aud:g('ca').value,total:+g('ct').value||0,start:g('cst').value,end:g('ce').value};if(S.modal.c){Object.assign(S.modal.c,v);S.modal=null;toast('已保存')}else{S.coupons.unshift(Object.assign({id:nid('c'),got:0,used:0,on:true},v));S.modal=null;toast('已创建并发布')}}
+ if(f==='ship'){const o=Od(ev.target.dataset.id);const no=g('sh-no').value.trim();if(!no)return toast('填写快递单号');o.st='delivered';o.ship=g('sh-co').value+' '+no;o.log.push('已发货：'+o.ship);toast('已发货，用户会收到发货通知')}
+ if(f==='flash'){const p=Pd(g('fl-p').value);const pr=+g('fl-price').value;if(!pr||pr>=p.price)return toast('限时价要低于原价');p.flash={price:pr,end:g('fl-end').value};toast('已设置，到点自动恢复原价')}
+ if(f==='testu'){const v=g('tu').value.trim();if(v){S.cfg.testUsers.push(v);render()}}
+});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){if(S.modal)S.modal=null;else{S.drawer=null;S.pdraft=null}render()}});
+route();
+})();
+
+</script>
+</body></html>

@@ -70,6 +70,9 @@ public class Product implements Serializable {
     @Schema(description = "状态: draft/on_sale/off_sale")
     private String status;
 
+    @Schema(description = "测试商品：1是 0否")
+    private Integer isTest;
+
     @Schema(description = "商品类型: physical/digital/service/membership/ebook/column/resource_pack")
     private String productType = "physical";
 

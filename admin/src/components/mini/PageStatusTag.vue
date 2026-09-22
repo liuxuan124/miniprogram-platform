@@ -1,13 +1,11 @@
 <template>
-  <span class="page-status-tag" :style="styleVars">{{ label }}</span>
+  <span class="tag" :class="tagClass">{{ label }}</span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
   resolvePageStatus,
-  MINI_PAGE_STATUS_LABELS,
-  MINI_PAGE_STATUS_COLORS,
   type MiniPageStatus,
   type PageStatusInput,
 } from '@/utils/pageStatus'
@@ -18,36 +16,37 @@ const props = defineProps<{
 }>()
 
 const resolved = computed<MiniPageStatus>(() => {
-  if (props.status && (props.status in MINI_PAGE_STATUS_LABELS)) {
-    return props.status as MiniPageStatus
+  if (props.status === 'draft' || props.status === 'pending' || props.status === 'live'
+    || props.status === 'offline' || props.status === 'archived') {
+    return props.status
   }
   return resolvePageStatus(props.row || { status: props.status })
 })
 
-const label = computed(() => MINI_PAGE_STATUS_LABELS[resolved.value])
-const styleVars = computed(() => {
-  const c = MINI_PAGE_STATUS_COLORS[resolved.value]
-  return {
-    '--pst-bg': c.bg,
-    '--pst-text': c.text,
-    '--pst-border': c.border,
+/** 文案贴近原型 stTag */
+const label = computed(() => {
+  const st = resolved.value
+  const row = props.row
+  if (st === 'pending') {
+    const current = Number(row?.currentVersion ?? row?.version ?? 0)
+    if (!current) return '待发布'
+    return '有改动'
   }
+  if (st === 'live') return '已上线'
+  if (st === 'draft') return '草稿'
+  if (st === 'offline') return '已下线'
+  if (st === 'archived') return '归档'
+  return st
+})
+
+const tagClass = computed(() => {
+  const st = resolved.value
+  if (st === 'live') return 't-live'
+  if (st === 'pending') {
+    const current = Number(props.row?.currentVersion ?? props.row?.version ?? 0)
+    return current ? 't-pending' : 't-new'
+  }
+  if (st === 'draft' || st === 'offline' || st === 'archived') return 't-draft'
+  return 't-draft'
 })
 </script>
-
-<style scoped>
-.page-status-tag {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 4px;
-  border: 1px solid var(--pst-border);
-  background: var(--pst-bg);
-  color: var(--pst-text);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1;
-  white-space: nowrap;
-}
-</style>

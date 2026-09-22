@@ -1,5 +1,5 @@
 <template>
-  <div class="header-container" :class="{ 'is-mini': isMiniRoute }">
+  <div class="header-container" :class="{ 'is-mini': isWarmShell }">
     <div class="header-left">
       <el-icon
         class="collapse-btn"
@@ -37,6 +37,25 @@
           发布
           <span v-if="pendingCount > 0" class="pub-badge">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
         </button>
+      </template>
+      <template v-else-if="isContentOps">
+        <button type="button" class="content-top-btn" @click="router.push({ path: '/content/library', query: { import: '1' } })">
+          从链接导入
+        </button>
+        <button type="button" class="mini-publish-btn" @click="router.push('/content/write')">
+          写内容
+        </button>
+      </template>
+      <template v-else-if="isCommerceOps">
+        <input
+          v-model="commerceOrderQ"
+          class="commerce-order-search"
+          type="search"
+          placeholder="搜订单号 / 手机号"
+          aria-label="搜索订单"
+          @keydown.enter.prevent="goCommerceOrders"
+        />
+        <button type="button" class="content-top-btn" @click="goCommerceOrders">搜订单</button>
       </template>
       <el-select
         v-else
@@ -108,6 +127,21 @@ const permissionStore = usePermissionStore()
 const { pendingCount, siteLabel, liveReleaseNo, refreshMiniPending } = useMiniPending(false)
 
 const isMiniRoute = computed(() => route.path.startsWith('/mini'))
+const isContentOps = computed(() => route.path.startsWith('/content') && !/^\/content\/(write|edit)/.test(route.path))
+const isMemberOps = computed(() => route.path.startsWith('/member') || route.path.startsWith('/user'))
+const isCommerceOps = computed(() =>
+  route.path.startsWith('/commerce')
+  || route.path.startsWith('/order')
+  || route.path.startsWith('/marketing')
+  || route.path.startsWith('/growth'),
+)
+const isWarmShell = computed(() => isMiniRoute.value || isContentOps.value || isMemberOps.value || isCommerceOps.value)
+
+const commerceOrderQ = ref('')
+function goCommerceOrders() {
+  const q = commerceOrderQ.value.trim()
+  router.push(q ? { path: '/commerce/orders', query: { q } } : '/commerce/orders')
+}
 
 watch(
   () => route.path,
@@ -119,7 +153,7 @@ watch(
 
 const tenantSelectId = ref<number | undefined>()
 const showTenantSwitcher = computed(
-  () => !isMiniRoute.value && permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
+  () => !isWarmShell.value && permissionStore.hasRole('super_admin') && tenantStore.tenants.length > 0,
 )
 
 watch(
@@ -189,7 +223,11 @@ async function handleCommand(command: string) {
   width: 100%;
   box-sizing: border-box;
   &.is-mini {
-    background: #fffcf8;
+    height: 60px;
+    padding: 0 28px;
+    gap: 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #e8dfd3;
   }
 }
 
@@ -229,20 +267,24 @@ async function handleCommand(command: string) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: 280px;
+  max-width: 320px;
+  margin-left: auto;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid #e8dfd3;
   background: #fff;
   cursor: pointer;
   font-size: 13px;
-  color: #2c241c;
+  color: #2a1f17;
+  white-space: nowrap;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   .dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #22c55e;
+    background: #1f7a4d;
     flex-shrink: 0;
+    display: inline-block;
   }
   .pill-text {
     overflow: hidden;
@@ -255,27 +297,55 @@ async function handleCommand(command: string) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
-  border: 0;
-  border-radius: 10px;
+  padding: 6px 12px;
+  border: 1px solid #b4430f;
+  border-radius: 8px;
   background: #b4430f;
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  &:hover { background: #9a390d; }
+  line-height: 1.2;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  &:hover { background: #8c3208; border-color: #8c3208; }
   .pub-badge {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
     background: #fff;
     color: #b4430f;
-    font-size: 11px;
-    font-weight: 700;
+    border-radius: 999px;
+    padding: 0 7px;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 18px;
-    text-align: center;
   }
+}
+
+.content-top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e8dfd3;
+  border-radius: 8px;
+  background: #fff;
+  color: #2a1f17;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  &:hover { border-color: #d6c8b6; }
+}
+
+.commerce-order-search {
+  width: 180px;
+  padding: 6px 10px;
+  border: 1px solid #e8dfd3;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #2a1f17;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  outline: none;
+  &:focus { border-color: #b4430f; }
 }
 
 .tenant-switcher {

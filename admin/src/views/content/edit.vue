@@ -639,7 +639,7 @@ function normalizeContentStatus(statusRaw: unknown): ContentStatus {
 
 function goBack(refresh = false) {
   router.push({
-    name: 'ContentList',
+    path: '/content/library',
     query: refresh ? { refresh: String(Date.now()) } : undefined,
   })
 }

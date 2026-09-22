@@ -15,6 +15,9 @@ public class UserFeedback {
     private Long userId;
     private String category;
     private String content;
+    private String adminReply;
+    private LocalDateTime handledAt;
+    private Long handledBy;
     private String status;
     private LocalDateTime createdAt;
 }
