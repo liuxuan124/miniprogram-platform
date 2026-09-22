@@ -430,9 +430,6 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.pub-view.mw-page {
-  margin: -16px;
-}
 .pub-main,
 .pub-side {
   display: flex;

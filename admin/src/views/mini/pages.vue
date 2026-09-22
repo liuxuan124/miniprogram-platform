@@ -416,9 +416,6 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.pages-view.mw-page {
-  margin: -16px;
-}
 .groups-stack {
   display: flex;
   flex-direction: column;

@@ -301,9 +301,6 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
-.tpl-view.mw-page {
-  margin: -16px;
-}
 .impact {
   display: flex;
   flex-direction: column;
