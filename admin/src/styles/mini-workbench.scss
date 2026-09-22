@@ -595,7 +595,8 @@
   }
 }
 
-.mini-wb .tpl-layout {
+/* 无影响面板时不要占 340px 空列（对齐原型：有 panel 才双栏） */
+.mini-wb .tpl-layout.has-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
@@ -884,7 +885,7 @@
 @media (max-width: 1180px) {
   .mini-wb .ov,
   .mini-wb .pub,
-  .mini-wb .tpl-layout,
+  .mini-wb .tpl-layout.has-panel,
   .mini-wb .aic {
     grid-template-columns: minmax(0, 1fr) !important;
   }
