@@ -7,6 +7,7 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.dto.mini.MiniContentReleaseVO;
 import com.miniprogram.dto.mini.MiniPublishRequestDTO;
 import com.miniprogram.dto.mini.MiniPublishResultVO;
+import com.miniprogram.dto.mini.MiniRollbackPreviewVO;
 import com.miniprogram.dto.mini.MiniRollbackResultVO;
 import com.miniprogram.dto.mini.MiniSiteUpdateDTO;
 import com.miniprogram.dto.mini.MiniSiteVO;
@@ -29,20 +30,27 @@ import com.miniprogram.service.mini.PageStatusCalculator;
 import com.miniprogram.service.miniapp.StoreTemplateNames;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -52,6 +60,13 @@ public class MiniSiteServiceImpl implements MiniSiteService {
 
     public static final String LIVE_RELEASE_NO_KEY = "live_release_no";
     public static final String LIVE_RELEASE_AT_KEY = "live_release_at";
+    public static final String PENDING_ROLLBACK_FROM_NO_KEY = "pending_rollback_from_release_no";
+    public static final String PENDING_ROLLBACK_FROM_ID_KEY = "pending_rollback_from_release_id";
+    public static final String LAST_PUBLISH_FINGERPRINT_KEY = "last_content_publish_fingerprint";
+    public static final String LAST_PUBLISH_AT_KEY = "last_content_publish_at";
+
+    /** 同一租户短窗口内相同指纹视为重复提交（秒） */
+    private static final int PUBLISH_DEDUP_WINDOW_SECONDS = 30;
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -61,6 +76,9 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             "miniappShareTitle", "miniappShareImage",
             "miniappBrandConfig", "site_name", "site_logo"
     );
+
+    /** 租户级发布互斥，防止脚本/连点并发刷出版本 */
+    private static final ConcurrentHashMap<Long, Object> PUBLISH_LOCKS = new ConcurrentHashMap<>();
 
     private final SystemConfigService systemConfigService;
     private final MiniappReleaseService miniappReleaseService;
@@ -85,7 +103,12 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         vo.setTheme(parseJsonObject(effective.get("miniappThemeConfig")));
         vo.setTabBar(parseTabItems(effective.get("tabbarItems")));
         vo.setLiveReleaseNo(parseIntOrDefault(systemConfigService.getConfigValue(LIVE_RELEASE_NO_KEY), 0));
-        vo.setLiveReleaseAt(parseDateTime(systemConfigService.getConfigValue(LIVE_RELEASE_AT_KEY)));
+        // 顶部时间与发布记录统一：优先用当前序号对应记录的 published_at
+        LocalDateTime liveAt = findContentReleasePublishedAt(vo.getLiveReleaseNo());
+        if (liveAt == null) {
+            liveAt = parseDateTime(systemConfigService.getConfigValue(LIVE_RELEASE_AT_KEY));
+        }
+        vo.setLiveReleaseAt(liveAt);
         vo.setWechatCodeVersion(systemConfigService.getConfigValue("wx_last_pushed_version"));
         vo.setPendingCount(listPendingChanges().getTotal());
         return vo;
@@ -240,10 +263,22 @@ public class MiniSiteServiceImpl implements MiniSiteService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MiniPublishResultVO publish(MiniPublishRequestDTO request) {
+        Long tenantId = SecurityUtils.getCurrentTenantId() != null ? SecurityUtils.getCurrentTenantId() : 0L;
+        Object lock = PUBLISH_LOCKS.computeIfAbsent(tenantId, id -> new Object());
+        synchronized (lock) {
+            return doPublishLocked(request);
+        }
+    }
+
+    private MiniPublishResultVO doPublishLocked(MiniPublishRequestDTO request) {
         boolean includeSite = request == null || request.getIncludeSite() == null || Boolean.TRUE.equals(request.getIncludeSite());
         List<Long> pageIds = request != null && request.getPageIds() != null
                 ? request.getPageIds().stream().filter(Objects::nonNull).distinct().collect(Collectors.toList())
                 : null;
+
+        PendingChangesVO pendingBefore = listPendingChanges();
+        String fingerprint = buildPublishFingerprint(includeSite, pageIds, pendingBefore, request != null ? request.getClientRequestId() : null);
+        assertNotDuplicatePublish(fingerprint);
 
         boolean promoted = false;
         if (includeSite) {
@@ -252,11 +287,18 @@ public class MiniSiteServiceImpl implements MiniSiteService {
 
         long publishedPages = 0;
         List<String> warnings = new ArrayList<>();
+        List<String> publishedPageNames = new ArrayList<>();
         if (pageIds != null && !pageIds.isEmpty()) {
             for (Long id : pageIds) {
                 try {
+                    Page page = pageMapper.selectById(id);
                     pageService.publishPage(id);
                     publishedPages++;
+                    if (page != null && StringUtils.hasText(page.getName())) {
+                        publishedPageNames.add(page.getName());
+                    } else {
+                        publishedPageNames.add("页面#" + id);
+                    }
                 } catch (Exception e) {
                     warnings.add("页面 #" + id + "：" + e.getMessage());
                     log.warn("选择性发布页面失败 id={}: {}", id, e.getMessage());
@@ -277,21 +319,37 @@ public class MiniSiteServiceImpl implements MiniSiteService {
                     }
                 }
             }
+            for (PendingChangeVO item : pendingBefore.getItems() != null ? pendingBefore.getItems() : List.<PendingChangeVO>of()) {
+                if (item != null && !"site".equals(item.getType()) && StringUtils.hasText(item.getName())) {
+                    publishedPageNames.add(item.getName());
+                }
+            }
         }
         // pageIds 空列表 = 本次不发任何页（仅可能发站点）
-        // 无站点提升且无页面发布 = 空发，禁止递增序号（与发布中心「无改动不可发」一致）
         if (!promoted && publishedPages <= 0) {
             throw new BusinessException(100101, "没有可发布的改动：请先改页面或站点配置，再发布");
         }
 
+        int pendingRollbackFrom = parseIntOrDefault(systemConfigService.getConfigValue(PENDING_ROLLBACK_FROM_NO_KEY), 0);
+
         int prev = parseIntOrDefault(systemConfigService.getConfigValue(LIVE_RELEASE_NO_KEY), 0);
         int next = prev + 1;
-        LocalDateTime now = LocalDateTime.now();
+        // 统一秒级时间，避免配置串与 DATETIME 差 1 秒
+        LocalDateTime now = LocalDateTime.now().withNano(0);
         String at = now.format(DT_FMT);
+        String publisherName = resolvePublisherName();
+        String notes = buildReleaseNotes(request != null ? request.getNotes() : null,
+                next, pendingRollbackFrom, promoted, publishedPageNames, pendingBefore, publisherName);
 
         List<ConfigItemDTO> releaseConfigs = new ArrayList<>();
         releaseConfigs.add(configItem(LIVE_RELEASE_NO_KEY, String.valueOf(next), "内容发布序号（第 N 次）"));
         releaseConfigs.add(configItem(LIVE_RELEASE_AT_KEY, at, "最近一次内容发布时间"));
+        releaseConfigs.add(configItem(LAST_PUBLISH_FINGERPRINT_KEY, fingerprint, "最近一次发布指纹（防重复）"));
+        releaseConfigs.add(configItem(LAST_PUBLISH_AT_KEY, at, "最近一次发布时刻（防重复）"));
+        if (pendingRollbackFrom > 0) {
+            releaseConfigs.add(configItem(PENDING_ROLLBACK_FROM_NO_KEY, "", "已消费的回滚来源序号"));
+            releaseConfigs.add(configItem(PENDING_ROLLBACK_FROM_ID_KEY, "", "已消费的回滚来源记录"));
+        }
         ConfigBatchUpdateDTO batch = new ConfigBatchUpdateDTO();
         batch.setConfigs(releaseConfigs);
         systemConfigService.batchUpdateConfigs(batch);
@@ -309,7 +367,7 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             record.setMinor(0);
             record.setPatch(next);
             record.setChangeType("content");
-            record.setReleaseNotes("第 " + next + " 次内容发布 (releaseNo=" + next + ")");
+            record.setReleaseNotes(notes);
             record.setMode("content");
             record.setStatus(0);
             record.setIsCurrent(0);
@@ -317,6 +375,11 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             record.setPageCount((int) publishedPages);
             record.setPublishedAt(now);
             record.setPublisherId(SecurityUtils.getCurrentUserId());
+            record.setPublisherName(publisherName);
+            if (pendingRollbackFrom > 0) {
+                // 新记录：rolled_back_from = 回滚所依据的历史序号（不是「被回滚走」）
+                record.setRolledBackFrom(String.valueOf(pendingRollbackFrom));
+            }
             try {
                 record.setSnapshot(miniappReleaseService.captureContentSnapshot());
             } catch (Exception snapEx) {
@@ -324,6 +387,24 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             }
             miniappReleaseService.save(record);
             releaseId = record.getId();
+
+            // 标记被本次回滚替代的「原线上」版本
+            if (pendingRollbackFrom > 0 && prev > 0 && prev != pendingRollbackFrom) {
+                MiniappRelease prevLive = miniappReleaseService.lambdaQuery()
+                        .eq(MiniappRelease::getPatch, prev)
+                        .and(w -> w.eq(MiniappRelease::getMode, "content")
+                                .or()
+                                .eq(MiniappRelease::getChangeType, "content"))
+                        .orderByDesc(MiniappRelease::getId)
+                        .last("LIMIT 1")
+                        .one();
+                if (prevLive != null) {
+                    prevLive.setRolledBackAt(now);
+                    prevLive.setRolledBackBy(SecurityUtils.getCurrentUserId());
+                    prevLive.setRolledBackFrom("c.0." + next);
+                    miniappReleaseService.updateById(prevLive);
+                }
+            }
         } catch (Exception e) {
             log.warn("写入内容发布记录失败（序号已递增）: {}", e.getMessage());
         }
@@ -335,7 +416,9 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         vo.setPublishedPages(publishedPages);
         vo.getWarnings().addAll(warnings);
         vo.setReleaseId(releaseId);
-        vo.setMessage("已发布第 " + next + " 次");
+        vo.setMessage(pendingRollbackFrom > 0
+                ? ("已发布第 " + next + " 次 · 回滚至第 " + pendingRollbackFrom + " 次")
+                : ("已发布第 " + next + " 次"));
         return vo;
     }
 
@@ -355,16 +438,74 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             MiniContentReleaseVO item = new MiniContentReleaseVO();
             item.setId(r.getId());
             item.setReleaseNo(r.getPatch() != null ? r.getPatch() : 0);
-            item.setNote(r.getReleaseNotes());
+            item.setNote(displayReleaseNote(r));
             item.setPublishedAt(r.getPublishedAt());
             item.setPublisherId(r.getPublisherId());
             item.setPublisherName(r.getPublisherName());
             item.setPageCount(r.getPageCount());
             item.setHasSnapshot(StringUtils.hasText(r.getSnapshot()));
             item.setCurrentLive(liveNo > 0 && Objects.equals(liveNo, item.getReleaseNo()));
+            Integer rollbackTo = parseRollbackToNo(r);
+            item.setRollback(rollbackTo != null);
+            item.setRollbackToReleaseNo(rollbackTo);
             list.add(item);
         }
         return list;
+    }
+
+    @Override
+    public MiniRollbackPreviewVO previewRollback(Long releaseId) {
+        if (releaseId == null) {
+            throw new IllegalArgumentException("releaseId 不能为空");
+        }
+        MiniappRelease target = miniappReleaseService.getById(releaseId);
+        if (target == null) {
+            throw new IllegalArgumentException("发布记录不存在");
+        }
+        if (!"content".equals(target.getMode()) && !"content".equals(target.getChangeType())) {
+            throw new IllegalArgumentException("只能回滚内容发布记录");
+        }
+        MiniRollbackPreviewVO vo = new MiniRollbackPreviewVO();
+        vo.setFromReleaseNo(target.getPatch());
+        vo.setHasSnapshot(StringUtils.hasText(target.getSnapshot()));
+        PendingChangesVO pending = listPendingChanges();
+        vo.setCurrentPendingCount(pending.getTotal());
+        if (pending.getItems() != null) {
+            for (PendingChangeVO item : pending.getItems()) {
+                if (item == null) continue;
+                String label = "site".equals(item.getType())
+                        ? "站点 / 导航"
+                        : (StringUtils.hasText(item.getName()) ? item.getName() : "页面");
+                if (StringUtils.hasText(item.getSummary())) {
+                    label = label + " · " + item.getSummary();
+                }
+                vo.getCurrentPendingSummaries().add(label);
+            }
+        }
+        if (!vo.isHasSnapshot()) {
+            return vo;
+        }
+        try {
+            Map<String, Object> snapshotMap = objectMapper.readValue(target.getSnapshot(), new TypeReference<>() {});
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> pages = (List<Map<String, Object>>) snapshotMap.get("pages");
+            if (pages != null) {
+                for (Map<String, Object> pageData : pages) {
+                    String name = Objects.toString(pageData.get("name"), "");
+                    String path = Objects.toString(pageData.get("path"), "");
+                    if (StringUtils.hasText(name)) {
+                        vo.getRestorePageNames().add(name);
+                    } else if (StringUtils.hasText(path)) {
+                        vo.getRestorePageNames().add(path);
+                    }
+                }
+            }
+            Object systemConfig = snapshotMap.get("systemConfig");
+            vo.setHasSiteConfig(systemConfig instanceof Map<?, ?> m && !m.isEmpty());
+        } catch (Exception e) {
+            log.warn("解析回滚预览快照失败: {}", e.getMessage());
+        }
+        return vo;
     }
 
     @Override
@@ -380,16 +521,27 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         if (!"content".equals(target.getMode()) && !"content".equals(target.getChangeType())) {
             throw new IllegalArgumentException("只能回滚内容发布记录");
         }
+        MiniRollbackPreviewVO preview = previewRollback(releaseId);
         Map<String, Object> restored = miniappReleaseService.restoreSnapshotAsPendingDraft(target.getSnapshot());
+
+        // 标记：下次发布将记为回滚至本序号
+        int fromNo = target.getPatch() != null ? target.getPatch() : 0;
+        List<ConfigItemDTO> markers = new ArrayList<>();
+        markers.add(configItem(PENDING_ROLLBACK_FROM_NO_KEY, String.valueOf(fromNo), "待确认回滚来源序号"));
+        markers.add(configItem(PENDING_ROLLBACK_FROM_ID_KEY, String.valueOf(releaseId), "待确认回滚来源记录 ID"));
+        ConfigBatchUpdateDTO batch = new ConfigBatchUpdateDTO();
+        batch.setConfigs(markers);
+        systemConfigService.batchUpdateConfigs(batch);
+
         MiniRollbackResultVO vo = new MiniRollbackResultVO();
         Object pages = restored.get("pagesRestored");
         if (pages instanceof Number n) {
             vo.setPagesRestored(n.intValue());
         }
         vo.setSiteDraftUpdated(Boolean.TRUE.equals(restored.get("siteDraftUpdated")));
-        vo.setFromReleaseNo(target.getPatch());
-        vo.setMessage(String.valueOf(restored.getOrDefault("message",
-                "已还原为待发布，请到发布页确认")));
+        vo.setFromReleaseNo(fromNo);
+        vo.setRestorePageNames(preview.getRestorePageNames());
+        vo.setMessage("已还原为待发布。再到本页点「发布」后才会改线上，并记为「回滚至第 " + fromNo + " 次」");
         return vo;
     }
 
@@ -635,6 +787,202 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             }
         }
         return "";
+    }
+
+    private LocalDateTime findContentReleasePublishedAt(Integer releaseNo) {
+        if (releaseNo == null || releaseNo <= 0) {
+            return null;
+        }
+        MiniappRelease row = miniappReleaseService.lambdaQuery()
+                .eq(MiniappRelease::getPatch, releaseNo)
+                .and(w -> w.eq(MiniappRelease::getMode, "content")
+                        .or()
+                        .eq(MiniappRelease::getChangeType, "content"))
+                .orderByDesc(MiniappRelease::getPublishedAt)
+                .orderByDesc(MiniappRelease::getId)
+                .last("LIMIT 1")
+                .one();
+        return row != null ? row.getPublishedAt() : null;
+    }
+
+    private void assertNotDuplicatePublish(String fingerprint) {
+        String lastFp = systemConfigService.getConfigValue(LAST_PUBLISH_FINGERPRINT_KEY);
+        LocalDateTime lastAt = parseDateTime(systemConfigService.getConfigValue(LAST_PUBLISH_AT_KEY));
+        if (!StringUtils.hasText(fingerprint) || !StringUtils.hasText(lastFp) || lastAt == null) {
+            return;
+        }
+        if (!fingerprint.equals(lastFp)) {
+            return;
+        }
+        long gap = Duration.between(lastAt, LocalDateTime.now().withNano(0)).getSeconds();
+        if (gap >= 0 && gap < PUBLISH_DEDUP_WINDOW_SECONDS) {
+            throw new BusinessException(100102,
+                    "发布过于频繁：与 " + gap + " 秒前是同一批改动，请勿重复提交（" + PUBLISH_DEDUP_WINDOW_SECONDS + " 秒内）");
+        }
+    }
+
+    private String buildPublishFingerprint(boolean includeSite, List<Long> pageIds,
+                                          PendingChangesVO pending, String clientRequestId) {
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.hasText(clientRequestId)) {
+            sb.append("cid=").append(clientRequestId.trim()).append('|');
+        }
+        sb.append("site=").append(includeSite).append('|');
+        if (pageIds == null) {
+            sb.append("pages=ALL|");
+        } else {
+            sb.append("pages=");
+            pageIds.stream().filter(Objects::nonNull).sorted().forEach(id -> sb.append(id).append(','));
+            sb.append('|');
+        }
+        if (pending != null && pending.getItems() != null) {
+            pending.getItems().stream()
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(i -> String.valueOf(i.getPageId()) + "|" + i.getType() + "|" + i.getName()))
+                    .forEach(i -> sb.append(i.getType()).append(':')
+                            .append(i.getPageId()).append(':')
+                            .append(i.getName()).append(':')
+                            .append(i.getSummary()).append(';'));
+        }
+        sb.append("|rb=").append(systemConfigService.getConfigValue(PENDING_ROLLBACK_FROM_NO_KEY));
+        return sha256Hex(sb.toString());
+    }
+
+    private static String sha256Hex(String raw) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] dig = md.digest(raw.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(dig);
+        } catch (Exception e) {
+            return Integer.toHexString(raw.hashCode());
+        }
+    }
+
+    private String buildReleaseNotes(String userNotes, int next, int rollbackFrom,
+                                     boolean promoted, List<String> pageNames,
+                                     PendingChangesVO pending, String publisherName) {
+        if (rollbackFrom > 0) {
+            String base = "第 " + next + " 次 · 回滚至第 " + rollbackFrom + " 次";
+            if (StringUtils.hasText(userNotes)) {
+                base = base + " · " + userNotes.trim();
+            }
+            if (StringUtils.hasText(publisherName)) {
+                base = base + " · 操作人：" + publisherName;
+            }
+            return base;
+        }
+        if (StringUtils.hasText(userNotes) && !userNotes.contains("releaseNo=")) {
+            String base = userNotes.trim();
+            if (StringUtils.hasText(publisherName) && !base.contains("操作人")) {
+                base = base + " · 操作人：" + publisherName;
+            }
+            return base;
+        }
+
+        List<String> parts = new ArrayList<>();
+        if (promoted) {
+            // 站点草稿变更键
+            boolean siteNamed = false;
+            if (pending != null && pending.getItems() != null) {
+                for (PendingChangeVO item : pending.getItems()) {
+                    if (item != null && "site".equals(item.getType())) {
+                        String detail = StringUtils.hasText(item.getSummary()) ? item.getSummary() : "站点 / 导航";
+                        parts.add(detail);
+                        siteNamed = true;
+                        break;
+                    }
+                }
+            }
+            if (!siteNamed) {
+                parts.add("站点 / 导航");
+            }
+        }
+        if (pageNames != null) {
+            for (String name : pageNames) {
+                if (StringUtils.hasText(name) && !parts.contains(name)) {
+                    parts.add(name);
+                }
+            }
+        }
+        if (parts.isEmpty() && pending != null && pending.getItems() != null) {
+            for (PendingChangeVO item : pending.getItems()) {
+                if (item == null) continue;
+                String label = "site".equals(item.getType()) ? "站点 / 导航" : item.getName();
+                if (StringUtils.hasText(label) && !parts.contains(label)) {
+                    parts.add(label);
+                }
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        if (parts.isEmpty()) {
+            sb.append("第 ").append(next).append(" 次内容发布");
+        } else {
+            sb.append("改动 ").append(parts.size()).append(" 项：");
+            sb.append(String.join("、", parts.stream().limit(5).toList()));
+            if (parts.size() > 5) {
+                sb.append(" 等");
+            }
+        }
+        if (StringUtils.hasText(publisherName)) {
+            sb.append(" · 操作人：").append(publisherName);
+        }
+        return sb.toString();
+    }
+
+    private String displayReleaseNote(MiniappRelease r) {
+        String raw = r.getReleaseNotes();
+        if (!StringUtils.hasText(raw)) {
+            return "第 " + (r.getPatch() != null ? r.getPatch() : "?") + " 次内容发布";
+        }
+        // 历史脏文案：去掉 releaseNo=N
+        String cleaned = raw.replaceAll("\\s*\\(releaseNo=\\d+\\)", "").trim();
+        Integer rb = parseRollbackToNo(r);
+        if (rb != null && !cleaned.contains("回滚")) {
+            return "第 " + r.getPatch() + " 次 · 回滚至第 " + rb + " 次";
+        }
+        return cleaned;
+    }
+
+    private Integer parseRollbackToNo(MiniappRelease r) {
+        if (r == null) return null;
+        String notes = r.getReleaseNotes();
+        if (StringUtils.hasText(notes)) {
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("回滚至第\\s*(\\d+)\\s*次")
+                    .matcher(notes);
+            if (m.find()) {
+                return Integer.parseInt(m.group(1));
+            }
+        }
+        if (StringUtils.hasText(r.getRolledBackFrom())) {
+            String from = r.getRolledBackFrom().trim();
+            // 存的是目标序号或 semver
+            if (from.matches("\\d+")) {
+                return Integer.parseInt(from);
+            }
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("c\\.0\\.(\\d+)").matcher(from);
+            if (m.find()) {
+                return Integer.parseInt(m.group(1));
+            }
+        }
+        return null;
+    }
+
+    private String resolvePublisherName() {
+        try {
+            Authentication authentication = SecurityUtils.getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()
+                    && !"anonymousUser".equals(String.valueOf(authentication.getPrincipal()))) {
+                String name = authentication.getName();
+                if (StringUtils.hasText(name) && !"anonymousUser".equals(name)) {
+                    return name;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取发布人名称失败: {}", e.getMessage());
+        }
+        Long uid = SecurityUtils.getCurrentUserId();
+        return uid != null ? ("用户#" + uid) : "system";
     }
 
     @Override

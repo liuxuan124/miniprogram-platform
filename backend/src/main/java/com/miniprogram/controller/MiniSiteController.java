@@ -5,6 +5,7 @@ import com.miniprogram.common.R;
 import com.miniprogram.dto.mini.MiniContentReleaseVO;
 import com.miniprogram.dto.mini.MiniPublishRequestDTO;
 import com.miniprogram.dto.mini.MiniPublishResultVO;
+import com.miniprogram.dto.mini.MiniRollbackPreviewVO;
 import com.miniprogram.dto.mini.MiniRollbackResultVO;
 import com.miniprogram.dto.mini.MiniSiteUpdateDTO;
 import com.miniprogram.dto.mini.MiniSiteVO;
@@ -70,7 +71,14 @@ public class MiniSiteController {
         return R.ok(miniSiteService.listContentReleases());
     }
 
-    @Operation(summary = "回滚为待发布草稿", description = "不直接改线上；运营需再到发布页确认")
+    @Operation(summary = "回滚影响预览", description = "只读：将恢复哪些页、当前未发布改动会被怎样覆盖")
+    @GetMapping("/releases/{id}/rollback-preview")
+    @PreAuthorize("hasAuthority('page:list')")
+    public R<MiniRollbackPreviewVO> previewRollback(@PathVariable("id") Long id) {
+        return R.ok(miniSiteService.previewRollback(id));
+    }
+
+    @Operation(summary = "回滚为待发布草稿", description = "不直接改线上；再到发布页确认后记为「回滚至第 M 次」")
     @PostMapping("/releases/{id}/prepare-rollback")
     @OperationLog("内容发布回滚为待发布")
     @PreAuthorize("hasAuthority('page:publish')")

@@ -14,4 +14,10 @@ public class MiniPublishRequestDTO {
 
     @Schema(description = "是否提升站点/导航草稿；默认 true；未勾选站点改动时传 false")
     private Boolean includeSite;
+
+    @Schema(description = "本次改了什么（选填）；空则后端按改动项自动生成")
+    private String notes;
+
+    @Schema(description = "幂等键（可选）；同一键短窗口内重复请求直接拒绝")
+    private String clientRequestId;
 }

@@ -8,7 +8,7 @@
         <span>页面预览</span>
       </div>
       <div class="toolbar-right">
-        <el-radio-group v-model="previewMode" size="small">
+        <el-radio-group v-if="showDslTab" v-model="previewMode" size="small">
           <el-radio-button value="phone">手机端</el-radio-button>
           <el-radio-button value="dsl">DSL</el-radio-button>
         </el-radio-group>
@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { usePageStore } from '@/stores/page'
@@ -62,6 +62,11 @@ const router = useRouter()
 const pageStore = usePageStore()
 
 const previewMode = ref<'phone' | 'dsl'>('phone')
+/** 运营界面默认隐藏 DSL；仅本地开发或 URL ?dev=1 可见 */
+const showDslTab = computed(() => {
+  if (import.meta.env.DEV) return true
+  return String(route.query.dev || '') === '1'
+})
 
 /** 加载页面数据 */
 async function loadPage() {

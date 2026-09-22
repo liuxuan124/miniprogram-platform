@@ -11,6 +11,9 @@ const TAB_EMOJI_ICON_MAP = {
   '👤': '/images/nav-icons/g-user.png',
   '🔍': '/images/nav-icons/g-news.png',
   '📅': '/images/nav-icons/g-consult.png',
+  '🗓️': '/images/nav-icons/g-consult.png',
+  '📚': '/images/nav-icons/g-content.png',
+  '📘': '/images/nav-icons/g-folder.png',
   '🤖': '/images/nav-icons/g-insight.png',
   '📦': '/images/nav-icons/g-folder.png',
 }

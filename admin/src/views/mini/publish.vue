@@ -161,7 +161,7 @@
           <div class="head">
             <div>
               <h2 class="h2">发布记录</h2>
-              <div class="sub">回滚会先变成待发布，确认后才生效</div>
+              <div class="sub">回滚先变待发布；再点发布后才会改线上，并出现「回滚至第 M 次」记录</div>
             </div>
           </div>
           <div v-if="releases.length" class="tl-stack">
@@ -172,7 +172,7 @@
               </div>
               <div class="tl-body">
                 <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
-                  <b style="font-size: 13.5px; font-weight: 500">第 {{ row.releaseNo }} 次发布</b>
+                  <b style="font-size: 13.5px; font-weight: 500">{{ releaseTitle(row) }}</b>
                   <span v-if="row.currentLive" class="tag t-live">线上</span>
                   <button
                     v-else
@@ -189,7 +189,7 @@
                   {{ formatTime(row.publishedAt) }}
                   <template v-if="row.publisherName"> · {{ row.publisherName }}</template>
                 </div>
-                <div v-if="row.note" class="muted" style="font-size: 12.5px; margin-top: 2px">{{ row.note }}</div>
+                <div v-if="row.note" class="muted" style="font-size: 12.5px; margin-top: 2px">{{ displayNote(row.note) }}</div>
               </div>
             </div>
           </div>
@@ -248,6 +248,7 @@ import {
   getPendingChanges,
   listMiniContentReleases,
   prepareMiniRollback,
+  previewMiniRollback,
   publishMiniSite,
   type MiniContentReleaseVO,
   type MiniSiteVO,
@@ -353,6 +354,18 @@ function formatTime(t?: string | null) {
   return t ? String(t).replace('T', ' ').slice(0, 19) : ''
 }
 
+function releaseTitle(row: MiniContentReleaseVO) {
+  if (row.rollback && row.rollbackToReleaseNo != null) {
+    return `第 ${row.releaseNo} 次 · 回滚至第 ${row.rollbackToReleaseNo} 次`
+  }
+  return `第 ${row.releaseNo} 次发布`
+}
+
+function displayNote(note?: string | null) {
+  if (!note) return ''
+  return String(note).replace(/\s*\(releaseNo=\d+\)/g, '').trim()
+}
+
 function openPreview() {
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query: { view: 'config', source: 'draft' } })
   window.open(href, '_blank', 'noopener,noreferrer')
@@ -408,24 +421,34 @@ async function loadPreflight() {
 }
 
 async function handlePublish() {
+  if (publishing.value) return
   if (hasBlocking.value) {
     ElMessage.warning('请先处理阻断项')
     return
   }
+  if (publishDisabled.value) return
   publishing.value = true
+  const clientRequestId = `pub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   try {
     const pageIds = pending.value
       .filter((item) => isSelected(item) && item.pageId != null && item.pageId !== '')
-      .map((item) => item.pageId as string | number)
+      .map((item) => Number(item.pageId))
+      .filter((id) => Number.isFinite(id) && id > 0)
     const hasSitePending = pending.value.some((item) => item.type === 'site')
+    // 仅当勾选了站点改动时才提升站点草稿，避免空草稿误触发「空页发布」
     const includeSite = hasSitePending
       ? pending.value.some((item) => item.type === 'site' && isSelected(item))
-      : true
+      : false
+    if (!includeSite && pageIds.length === 0) {
+      ElMessage.warning('请至少勾选一项改动')
+      return
+    }
     const result = await publishMiniSite({
       pageId: highlightPageId.value || undefined,
       pageIds,
       includeSite,
       notes: publishNote.value.trim() || undefined,
+      clientRequestId,
     })
     ElMessage.success(result.message || `已发布第 ${result.liveReleaseNo ?? nextReleaseNo.value} 次`)
     publishNote.value = ''
@@ -442,21 +465,37 @@ async function handleRollback(row: MiniContentReleaseVO) {
     ElMessage.warning('该记录无快照，无法回滚')
     return
   }
-  try {
-    await ElMessageBox.confirm(
-      `将第 ${row.releaseNo} 次的内容还原为「待发布」改动，不会立刻改线上。确认后请再到本页勾选发布。`,
-      '回滚到此版本',
-      { type: 'warning', confirmButtonText: '还原为待发布' },
-    )
-  } catch {
-    return
-  }
+  if (rollingId.value != null) return
   rollingId.value = Number(row.id)
   try {
+    const preview = await previewMiniRollback(row.id)
+    const restoreNames = (preview.restorePageNames || []).slice(0, 8)
+    const pendingLines = (preview.currentPendingSummaries || []).slice(0, 6)
+    const lines = [
+      `将第 ${row.releaseNo} 次的内容还原为「待发布」草稿（不会立刻改线上）。`,
+      '',
+      restoreNames.length
+        ? `会恢复的页面（${preview.restorePageNames?.length || restoreNames.length}）：${restoreNames.join('、')}${(preview.restorePageNames?.length || 0) > 8 ? ' 等' : ''}`
+        : '快照中未解析到页面名。',
+      preview.hasSiteConfig ? '同时恢复站点 / 导航配置草稿。' : '',
+      pendingLines.length
+        ? `当前未发布改动（${preview.currentPendingCount || pendingLines.length} 项）将被回滚草稿覆盖：\n· ${pendingLines.join('\n· ')}`
+        : '当前没有未发布改动。',
+      '',
+      `确认后请再到本页点「发布」，线上才会变成「回滚至第 ${row.releaseNo} 次」。`,
+    ].filter(Boolean)
+
+    await ElMessageBox.confirm(lines.join('\n'), '回滚到此版本', {
+      type: 'warning',
+      confirmButtonText: '还原为待发布',
+      cancelButtonText: '取消',
+      customClass: 'mini-rollback-confirm',
+    })
     const result = await prepareMiniRollback(row.id)
     ElMessage.success(result.message || '已生成待发布改动')
     await load()
   } catch (e: any) {
+    if (e === 'cancel' || e?.action === 'cancel') return
     ElMessage.error(e?.message || '回滚失败')
   } finally {
     rollingId.value = null

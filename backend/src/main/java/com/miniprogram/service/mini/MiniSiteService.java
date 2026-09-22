@@ -3,6 +3,7 @@ package com.miniprogram.service.mini;
 import com.miniprogram.dto.mini.MiniContentReleaseVO;
 import com.miniprogram.dto.mini.MiniPublishRequestDTO;
 import com.miniprogram.dto.mini.MiniPublishResultVO;
+import com.miniprogram.dto.mini.MiniRollbackPreviewVO;
 import com.miniprogram.dto.mini.MiniRollbackResultVO;
 import com.miniprogram.dto.mini.MiniSiteUpdateDTO;
 import com.miniprogram.dto.mini.MiniSiteVO;
@@ -31,8 +32,12 @@ public interface MiniSiteService {
     /** 内容发布时间线（第 N 次） */
     List<MiniContentReleaseVO> listContentReleases();
 
+    /** 回滚影响预览（只读，不改数据） */
+    MiniRollbackPreviewVO previewRollback(Long releaseId);
+
     /**
-     * 回滚到指定内容发布：还原为待发布草稿，不直接改线上
+     * 回滚到指定内容发布：还原为待发布草稿，不直接改线上；
+     * 下次发布将记为「第 N 次 · 回滚至第 M 次」
      */
     MiniRollbackResultVO prepareRollback(Long releaseId);
 
