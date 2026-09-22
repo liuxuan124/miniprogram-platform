@@ -425,7 +425,7 @@ onMounted(load)
 .groups-stack {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 .mine-row {
   cursor: pointer;

@@ -127,17 +127,15 @@
 }
 
 .mini-wb .mw-page {
-  /* 疏朗化：限宽居中，避免超宽屏把行拉成「标题在左、按钮在右半屏」 */
+  /* 对照原型 .view：全宽，不限 max-width */
   box-sizing: border-box;
   width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
   min-height: 100%;
-  padding: 32px 36px 56px;
+  padding: 24px 28px 48px;
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 18px;
 }
 
 .mini-wb .btn {
@@ -508,16 +506,16 @@
 .mini-wb .prow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--line2);
   position: relative;
   &:last-child { border-bottom: 0; }
 }
 
 .mini-wb .thumb {
-  width: 32px;
-  height: 44px;
+  width: 36px;
+  height: 52px;
   border-radius: 6px;
   border: 1px solid var(--line);
   flex-shrink: 0;
@@ -528,44 +526,34 @@
   background: #fffbf6;
   i {
     display: block;
-    height: 7px;
+    height: 8px;
     border-radius: 2px;
     background: #efe6da;
   }
 }
 
 .mini-wb .pname {
-  flex: 1 1 auto;
+  flex: 1;
   min-width: 0;
-  max-width: 420px;
   b {
     font-weight: 500;
     display: flex;
     align-items: center;
     gap: 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .faint {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 }
 
-/* 状态 + 操作贴在标题右侧，不再被超宽屏撑到视口最右 */
+/* 状态 + 操作成组贴在行尾（对照原型 .pstat + 按钮） */
 .mini-wb .prow-ops {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: auto;
 }
 
 .mini-wb .pstat {
-  width: auto;
-  min-width: 72px;
+  width: 96px;
   flex-shrink: 0;
 }
 
@@ -608,15 +596,15 @@
 
 .mini-wb .tpl-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
   align-items: start;
 }
 
 .mini-wb .tpl-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  gap: 16px;
 }
 
 .mini-wb .tpl {
@@ -656,7 +644,7 @@
 }
 
 .mini-wb .tpl-body {
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -742,8 +730,8 @@
 
 .mini-wb .pub {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
   align-items: start;
 }
 
@@ -908,4 +896,21 @@
   .mini-wb .tabs-edit {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+@media (max-width: 860px) {
+  .mini-wb .mw-page {
+    padding: 18px 16px 40px;
+  }
+  .mini-wb .ways,
+  .mini-wb .opts,
+  .mini-wb .tpl-grid,
+  .mini-wb .checks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mini-wb .tabs-edit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mini-wb .pstat { width: auto; }
+  .mini-wb .prow { flex-wrap: wrap; }
 }

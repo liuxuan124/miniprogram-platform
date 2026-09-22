@@ -434,7 +434,7 @@ onMounted(load)
 .pub-side {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 18px;
   min-width: 0;
 }
 .list-row {
@@ -481,18 +481,15 @@ onMounted(load)
   .input { flex: 1; min-width: 180px; }
 }
 .eco-rows {
-  margin-top: 16px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
 .eco-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line2);
-  &:last-child { border-bottom: 0; }
 }
 .eco-main {
   flex: 1;

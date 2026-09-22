@@ -325,8 +325,8 @@ onMounted(load)
 }
 .tpl-layout.has-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
   align-items: start;
 }
 .kv {
