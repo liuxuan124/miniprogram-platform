@@ -27,44 +27,39 @@
             </div>
           </div>
 
-          <div v-if="pending.length" class="pending-list" style="margin-top: 10px">
-            <div class="pending-toolbar">
-              <el-checkbox
-                :model-value="allSelected"
-                :indeterminate="someSelected && !allSelected"
-                @change="toggleAll"
-              >
-                全选
-              </el-checkbox>
-            </div>
-            <div
+          <div v-if="pending.length" class="pending-list" style="margin-top: 6px">
+            <label
               v-for="item in pending"
               :key="String(item.id || item.name)"
               class="list-row"
               :class="{ dim: !isSelected(item) }"
+              style="cursor: pointer"
             >
               <el-checkbox
                 :model-value="isSelected(item)"
                 @change="(v: boolean | string | number) => setSelected(item, Boolean(v))"
+                @click.stop
               />
-              <b style="font-weight: 500">
-                {{ item.type === 'site' ? '站点 / 导航' : (item.name || '页面') }}
-              </b>
-              <span class="faint" style="margin-left: auto">{{ item.summary || item.path || '' }}</span>
+              <span :class="['tag', kindTagClass(item)]">{{ kindLabel(item) }}</span>
+              <span style="flex: 1; min-width: 0">
+                <b style="font-weight: 500; display: block">
+                  {{ item.type === 'site' ? '站点 / 导航' : (item.name || '页面') }}
+                </b>
+                <span class="faint">{{ item.summary || item.path || '' }}</span>
+              </span>
               <button
                 v-if="item.pageId"
                 type="button"
                 class="link"
                 style="font-size: 12px"
-                @click="router.push(`/mini/pages/${item.pageId}/editor`)"
+                @click.stop="router.push(`/mini/pages/${item.pageId}/editor`)"
               >
                 查看
               </button>
-            </div>
+            </label>
           </div>
 
-          <!-- 容器保持中性，按项着色：阻断 / 提醒 / 通过 三级要一眼分得开 -->
-          <div class="checks">
+          <div class="checks" :class="{ 'is-blocked': hasBlocking, 'is-ok': !hasBlocking && pending.length }">
             <div v-if="preflightLoading && !preflight" class="chk chk--muted">
               <span class="chk__ic"><MiniIcon name="info" :size="15" /></span>
               检查中…
@@ -100,14 +95,18 @@
               class="input"
               placeholder="这次改了什么（选填，方便以后回看）"
             />
-            <button type="button" class="btn sm" @click="openPreview">扫码预览</button>
+            <button type="button" class="btn" @click="openPreview">
+              <MiniIcon name="qr" :size="15" />
+              扫码预览
+            </button>
             <button
               type="button"
               class="btn primary"
               :disabled="publishDisabled"
               @click="handlePublish"
             >
-              {{ publishing ? '发布中…' : `发布第 ${nextReleaseNo} 次` }}
+              <MiniIcon name="send" :size="15" />
+              {{ publishing ? '发布中…' : `发布第 ${nextReleaseNo} 次${selectedCount && selectedCount < pending.length ? `（${selectedCount} 项）` : ''}` }}
             </button>
           </div>
         </section>
@@ -120,7 +119,7 @@
               <div class="dist-ic"><MiniIcon name="wechat" :size="17" /></div>
               <div class="eco-main">
                 <b>公众号菜单</b>
-                <span class="faint">进入小程序 → 首页</span>
+                <span class="faint">「进入小程序」→ {{ homeTabText }}</span>
               </div>
               <button type="button" class="btn sm" @click="router.push('/settings/wechat')">设置</button>
             </div>
@@ -167,24 +166,25 @@
                 <div class="tl-line" />
               </div>
               <div class="tl-body">
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
-                  <b style="font-weight: 600">第 {{ row.releaseNo }} 次发布</b>
+                <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
+                  <b style="font-size: 13.5px; font-weight: 500">第 {{ row.releaseNo }} 次发布</b>
                   <span v-if="row.currentLive" class="tag t-live">线上</span>
+                  <button
+                    v-else
+                    type="button"
+                    class="link"
+                    style="font-size: 12px"
+                    :disabled="!row.hasSnapshot || rollingId === row.id"
+                    @click="handleRollback(row)"
+                  >
+                    回滚到此
+                  </button>
                 </div>
                 <div class="faint">
                   {{ formatTime(row.publishedAt) }}
                   <template v-if="row.publisherName"> · {{ row.publisherName }}</template>
                 </div>
-                <div v-if="row.note" class="faint">{{ row.note }}</div>
-                <button
-                  type="button"
-                  class="btn sm"
-                  style="margin-top: 6px"
-                  :disabled="!row.hasSnapshot || rollingId === row.id"
-                  @click="handleRollback(row)"
-                >
-                  回滚到此
-                </button>
+                <div v-if="row.note" class="muted" style="font-size: 12.5px; margin-top: 2px">{{ row.note }}</div>
               </div>
             </div>
           </div>
@@ -195,18 +195,32 @@
         </section>
 
         <section class="card">
-          <h2 class="h2">微信代码版本</h2>
-          <div class="sub">开发者选项 · 仅技术更新小程序功能时使用</div>
-          <div class="steps">
-            <div><i /><span class="faint">上传代码</span></div>
-            <div><i /><span class="faint">体验版</span></div>
-            <div><i /><span class="faint">提交审核</span></div>
-            <div><i /><span class="faint">正式版</span></div>
-          </div>
-          <div class="note ok" style="margin: 12px 0">正式版运行正常。内容发布不需要动这里。</div>
-          <button type="button" class="btn sm" @click="router.push('/page-builder/wx-push')">
-            上传新代码包
+          <button
+            type="button"
+            class="dev-toggle"
+            :aria-expanded="devOpen"
+            @click="devOpen = !devOpen"
+          >
+            <span>
+              <b class="h2" style="display: block">微信代码版本</b>
+              <span class="sub" style="display: block">开发者选项 · 仅技术更新小程序功能时使用</span>
+            </span>
+            <MiniIcon :name="devOpen ? 'down' : 'chev'" :size="16" />
           </button>
+          <template v-if="devOpen">
+            <div class="steps">
+              <div><i /><b style="font-size: 12.5px; font-weight: 500">上传代码</b><div class="faint">{{ wechatCodeLabel }}</div></div>
+              <div><i /><b style="font-size: 12.5px; font-weight: 500">体验版</b><div class="faint">已生成</div></div>
+              <div><i /><b style="font-size: 12.5px; font-weight: 500">提交审核</b><div class="faint">已通过</div></div>
+              <div><i /><b style="font-size: 12.5px; font-weight: 500">正式版</b><div class="faint">{{ wechatCodeLabel }} 线上</div></div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap">
+              <button type="button" class="btn sm" @click="router.push('/page-builder/wx-push')">
+                上传新代码包
+              </button>
+            </div>
+          </template>
+          <div class="note ok" style="margin-top: 14px">正式版运行正常。内容发布不需要动这里。</div>
         </section>
       </div>
     </div>
@@ -244,6 +258,8 @@ const pending = ref<PendingChangeItem[]>([])
 const selectedKeys = ref<Set<string>>(new Set())
 const releases = ref<MiniContentReleaseVO[]>([])
 const publishNote = ref('')
+const devOpen = ref(false)
+const wechatCodeLabel = ref('1.30.8')
 
 const preflight = ref<PublishPreflight | null>(null)
 const preflightLoading = ref(false)
@@ -252,6 +268,11 @@ const preflightError = ref('')
 const highlightPageId = computed(() => {
   const raw = route.query.pageId
   return raw != null && String(raw) !== '' ? String(raw) : ''
+})
+
+const homeTabText = computed(() => {
+  const tabs = site.value.tabBar || []
+  return tabs[0]?.text || '首页'
 })
 
 const nextReleaseNo = computed(() => Number(site.value.liveReleaseNo || 0) + 1)
@@ -268,8 +289,20 @@ const selectedCount = computed(() => {
   return n
 })
 
-const allSelected = computed(() => pending.value.length > 0 && selectedCount.value === pending.value.length)
-const someSelected = computed(() => selectedCount.value > 0)
+function kindLabel(item: PendingChangeItem) {
+  const t = String((item as any).changeKind || (item as any).kind || item.type || '')
+  if (t.includes('new') || t === 'create' || t.includes('新增')) return '新增'
+  if (t.includes('offline') || t.includes('下线')) return '下线'
+  if (item.type === 'site') return '修改'
+  return '修改'
+}
+
+function kindTagClass(item: PendingChangeItem) {
+  const k = kindLabel(item)
+  if (k === '新增') return 't-new'
+  if (k === '下线') return 't-draft'
+  return 't-pending'
+}
 
 const publishDisabled = computed(() => {
   if (publishing.value) return true
@@ -293,14 +326,6 @@ function setSelected(item: PendingChangeItem, on: boolean) {
   if (on) next.add(key)
   else next.delete(key)
   selectedKeys.value = next
-}
-
-function toggleAll(on: boolean | string | number) {
-  if (on) {
-    selectedKeys.value = new Set(pending.value.map(itemKey))
-  } else {
-    selectedKeys.value = new Set()
-  }
 }
 
 function syncSelection() {
@@ -405,6 +430,7 @@ async function load() {
       listMiniContentReleases(),
     ])
     site.value = s
+    wechatCodeLabel.value = String(s.wechatCodeVersion || '1.30.8')
     pending.value = p.items || []
     releases.value = r || []
     syncSelection()
@@ -453,8 +479,9 @@ onMounted(load)
   padding: 14px;
   border-radius: 10px;
   margin-top: 14px;
-  background: var(--soft);
-  border: 1px solid var(--line2);
+  background: var(--gs);
+  &.is-blocked { background: var(--rs); }
+  &.is-ok { background: var(--gs); }
 }
 .chk {
   display: flex;
@@ -471,6 +498,19 @@ onMounted(load)
   display: inline-flex;
   margin-top: 2px;
   flex-shrink: 0;
+}
+.dev-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
 }
 .pub-bar {
   display: flex;

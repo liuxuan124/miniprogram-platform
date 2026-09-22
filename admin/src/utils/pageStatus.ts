@@ -9,8 +9,8 @@ export const MINI_PAGE_STATUS_LABELS: Record<MiniPageStatus, string> = {
   draft: '草稿',
   pending: '待发布',
   live: '已上线',
-  offline: '已下架',
-  archived: '已归档',
+  offline: '已下线',
+  archived: '归档',
 }
 
 /** 陶土暖色体系标签色（非 Element 默认紫） */
