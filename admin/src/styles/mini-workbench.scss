@@ -126,7 +126,8 @@
   color: #a1968b;
 }
 
-.mini-wb .mw-page {
+/* 根节点是 class="mini-wb mw-page"，必须用复合选择器；后代写法匹配不到自身 */
+.mini-wb.mw-page {
   /* 对照原型 .view：全宽，不限 max-width */
   box-sizing: border-box;
   width: 100%;
@@ -899,7 +900,7 @@
 }
 
 @media (max-width: 860px) {
-  .mini-wb .mw-page {
+  .mini-wb.mw-page {
     padding: 18px 16px 40px;
   }
   .mini-wb .ways,
