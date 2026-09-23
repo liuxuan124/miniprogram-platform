@@ -2,16 +2,39 @@
 
 SET @db := DATABASE();
 
--- mp_finance_transaction: 分 + 订单关联 + 概览排除标记
+-- mp_finance_transaction: 分 + 订单关联 + 概览排除标记（tenant_id 可能已在早期表结构中存在）
 SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_transaction' AND COLUMN_NAME='amount_cents');
 SET @sql := IF(@exist=0,
-    'ALTER TABLE mp_finance_transaction
-        ADD COLUMN amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''金额（分，绝对值）'' AFTER amount,
-        ADD COLUMN order_id BIGINT NULL COMMENT ''关联订单ID'' AFTER approval_reason,
-        ADD COLUMN tenant_id BIGINT NOT NULL DEFAULT 1 COMMENT ''租户ID'' AFTER order_id,
-        ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT ''manual'' COMMENT ''来源 order/manual/import'' AFTER tenant_id,
-        ADD COLUMN exclude_from_summary TINYINT NOT NULL DEFAULT 0 COMMENT ''1=不计入概览/报表（测试/零元等）'' AFTER source',
+    'ALTER TABLE mp_finance_transaction ADD COLUMN amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''金额（分，绝对值）'' AFTER amount',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_transaction' AND COLUMN_NAME='order_id');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_transaction ADD COLUMN order_id BIGINT NULL COMMENT ''关联订单ID'' AFTER approval_reason',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_transaction' AND COLUMN_NAME='tenant_id');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_transaction ADD COLUMN tenant_id BIGINT NOT NULL DEFAULT 1 COMMENT ''租户ID'' AFTER order_id',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_transaction' AND COLUMN_NAME='source');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_transaction ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT ''manual'' COMMENT ''来源 order/manual/import'' AFTER tenant_id',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_transaction' AND COLUMN_NAME='exclude_from_summary');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_transaction ADD COLUMN exclude_from_summary TINYINT NOT NULL DEFAULT 0 COMMENT ''1=不计入概览/报表（测试/零元等）'' AFTER source',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -28,11 +51,28 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_invoice' AND COLUMN_NAME='is_sample');
 SET @sql := IF(@exist=0,
-    'ALTER TABLE mp_finance_invoice
-        ADD COLUMN is_sample TINYINT NOT NULL DEFAULT 0 COMMENT ''示例/种子数据'' AFTER cancel_reason,
-        ADD COLUMN amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''金额分'' AFTER is_sample,
-        ADD COLUMN tax_amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''税额分'' AFTER amount_cents,
-        ADD COLUMN total_amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''价税合计分'' AFTER tax_amount_cents',
+    'ALTER TABLE mp_finance_invoice ADD COLUMN is_sample TINYINT NOT NULL DEFAULT 0 COMMENT ''示例/种子数据'' AFTER cancel_reason',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_invoice' AND COLUMN_NAME='amount_cents');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_invoice ADD COLUMN amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''金额分'' AFTER is_sample',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_invoice' AND COLUMN_NAME='tax_amount_cents');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_invoice ADD COLUMN tax_amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''税额分'' AFTER amount_cents',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_finance_invoice' AND COLUMN_NAME='total_amount_cents');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_finance_invoice ADD COLUMN total_amount_cents BIGINT NOT NULL DEFAULT 0 COMMENT ''价税合计分'' AFTER tax_amount_cents',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
