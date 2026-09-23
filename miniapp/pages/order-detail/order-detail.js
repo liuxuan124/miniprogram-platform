@@ -59,8 +59,6 @@ Page({
     // 支付状态
     paying: false,
     isVirtual: false,
-    warmBeansAmount: '',
-    warmCouponAmount: '',
   },
 
   onLoad(options) {
@@ -93,7 +91,10 @@ Page({
         const order = res.order || res
         order.order_no = order.order_no || order.orderNo
         order.total_amount = order.total_amount || order.totalAmount
-        order.pay_amount = order.pay_amount || order.payAmount
+        const payRaw = order.pay_amount != null && order.pay_amount !== ''
+          ? order.pay_amount
+          : order.payAmount
+        order.pay_amount = payRaw != null && payRaw !== '' ? payRaw : '0.00'
         order.discount_amount = order.discount_amount || order.discountAmount
         order.freight_amount = order.freight_amount || order.freightAmount
         order.created_at = order.created_at || order.createdAt
@@ -141,17 +142,6 @@ Page({
           || (order.status === 'pending_payment'
             ? '支付成功后将立即开通阅读权限'
             : '数字内容已交付，阅读权限永久有效。换设备登录同一微信即可继续阅读。')
-        const itemName = Array.isArray(order.items) && order.items[0]
-          ? String(order.items[0].product_name || order.items[0].name || '')
-          : ''
-        const warmEbook = isVirtual && /内容生意手册/.test(itemName)
-        if (warmEbook) {
-          order.items = order.items.map((it, idx) => (idx === 0
-            ? { ...it, sku_name: it.sku_name || '虚拟商品 · EPUB / PDF · 12 万字' }
-            : it))
-          if (!order.discount_amount && !order.coupon_amount) order.coupon_amount = '5.00'
-          if (!order.beans_amount && !order.bean_amount) order.beans_amount = '2.40'
-        }
         this.setData({
           order,
           loading: false,
@@ -159,8 +149,6 @@ Page({
           isVirtual,
           STATUS_MAP: statusMap,
           virtualDeliveryDesc,
-          warmBeansAmount: warmEbook ? '2.40' : '',
-          warmCouponAmount: warmEbook ? '5.00' : '',
           steps: [{ text: '待付款' }, { text: '待发货' }, { text: '待收货' }, { text: '已完成' }],
           virtualSteps: [{ text: '待付款' }, { text: '已开通' }, { text: '已完成' }],
         })

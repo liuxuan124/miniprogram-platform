@@ -2,6 +2,8 @@ package com.miniprogram.service;
 
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.RefundVO;
+import com.miniprogram.entity.Order;
+import com.miniprogram.entity.Payment;
 import com.miniprogram.entity.Refund;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -24,4 +26,9 @@ public interface RefundService extends IService<Refund> {
      * 微信退款回调处理（须先平台证书/公钥验签）
      */
     void handleWxRefundNotify(String body, String timestamp, String nonce, String signature, String serial);
+
+    /**
+     * 关单后仍收到支付成功：尝试系统自动全额退款；失败则标记订单需人工处理
+     */
+    void handleLatePaymentOnClosedOrder(Order order, Payment payment, String transactionId);
 }

@@ -120,7 +120,7 @@ Page({
       phone: this.data.formPhone.trim(),
       session: session ? session.name : '',
       remark: this.data.formRemark,
-    }, { auth: false, loading: true, loadingText: '提交中...' })
+    }, { auth: true, loading: true, loadingText: '提交中...' })
       .then(() => {
         this.setData({ submitting: false })
         wx.showToast({ title: '报名成功', icon: 'success' })

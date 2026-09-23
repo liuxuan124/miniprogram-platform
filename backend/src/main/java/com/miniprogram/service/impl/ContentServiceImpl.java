@@ -63,9 +63,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
         LambdaQueryWrapper<Content> wrapper = buildQueryWrapper(queryDTO);
-        wrapper.orderByAsc(Content::getSortOrder);
-        wrapper.orderByDesc(Content::getUpdateTime);
-        wrapper.orderByDesc(Content::getId);
+        applyAdminListSort(wrapper, queryDTO.getSortBy());
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Content> page =
                 this.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
@@ -774,6 +772,24 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                 throw new BusinessException(ErrorCode.CONTENT_CATEGORY_NOT_FOUND);
             }
         }
+    }
+
+    /** 管理端内容库排序（sortBy: updated / published / reads|hot） */
+    private void applyAdminListSort(LambdaQueryWrapper<Content> wrapper, String sortBy) {
+        String sort = sortBy == null ? "" : sortBy.trim().toLowerCase();
+        if ("reads".equals(sort) || "hot".equals(sort)) {
+            wrapper.orderByDesc(Content::getViewCount);
+            wrapper.orderByDesc(Content::getPublishedAt);
+        } else if ("published".equals(sort)) {
+            wrapper.orderByDesc(Content::getPublishedAt);
+            wrapper.orderByDesc(Content::getFirstPublishedAt);
+        } else if ("updated".equals(sort)) {
+            wrapper.orderByDesc(Content::getUpdateTime);
+        } else {
+            wrapper.orderByAsc(Content::getSortOrder);
+            wrapper.orderByDesc(Content::getUpdateTime);
+        }
+        wrapper.orderByDesc(Content::getId);
     }
 
     private LambdaQueryWrapper<Content> buildQueryWrapper(ContentQueryDTO queryDTO) {

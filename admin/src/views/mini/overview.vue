@@ -144,46 +144,83 @@
 
       <aside class="preview">
         <div class="preview-head">
-          <b>真机预览</b>
-          <span v-if="site.liveReleaseNo != null" class="faint" style="font-size: 11px; font-weight: 400">
-            默认第 {{ site.liveReleaseNo }} 次发布
-          </span>
-          <div class="seg" role="group" aria-label="预览版本">
-            <button type="button" :class="{ on: !previewCompare && previewSource === 'draft' }" @click="setPreview('draft')">
-              改动后
-            </button>
-            <button type="button" :class="{ on: !previewCompare && previewSource === 'live' }" @click="setPreview('live')">
-              线上
-            </button>
-            <button type="button" :class="{ on: previewCompare }" @click="previewCompare = true">
-              对比
-            </button>
-          </div>
-        </div>
-        <p v-if="!previewCompare" class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
-          {{ previewSource === 'live' ? '看用户此刻看到的线上版' : '看待发布草稿（未点发布前用户看不到）' }}
-        </p>
-        <p v-else class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
-          左：待发布草稿 · 右：当前线上（整店配置预览）
-        </p>
-        <div v-if="previewCompare" class="phone-row">
-          <div class="phone-col">
-            <span class="faint">草稿</span>
-            <div class="phone phone-sm">
-              <iframe :src="previewUrlDraft" title="草稿预览" loading="lazy" />
+          <div class="preview-head__row">
+            <b class="preview-head__title">真机预览</b>
+            <div class="seg preview-seg" role="group" aria-label="预览版本">
+              <button type="button" :class="{ on: !previewCompare && previewSource === 'draft' }" @click="setPreview('draft')">
+                改动后
+              </button>
+              <button type="button" :class="{ on: !previewCompare && previewSource === 'live' }" @click="setPreview('live')">
+                线上
+              </button>
+              <button type="button" :class="{ on: previewCompare }" @click="previewCompare = true">
+                对比
+              </button>
             </div>
           </div>
-          <div class="phone-col">
-            <span class="faint">线上</span>
-            <div class="phone phone-sm">
-              <iframe :src="previewUrlLive" title="线上预览" loading="lazy" />
+          <p class="preview-head__hint faint">{{ previewHintLine }}</p>
+        </div>
+
+        <div class="preview-body">
+          <div v-if="previewCompare" class="phone-row">
+            <div class="phone-col">
+              <span class="faint">草稿</span>
+              <MiniOverviewPhone
+                size="sm"
+                :src="previewUrlDraft"
+                title="草稿预览"
+                iframe-key="draft"
+              />
+            </div>
+            <div class="phone-col">
+              <span class="faint">线上</span>
+              <MiniOverviewPhone
+                size="sm"
+                :src="previewUrlLive"
+                title="线上预览"
+                iframe-key="live"
+              />
             </div>
           </div>
+          <template v-else>
+            <div class="preview-body__main">
+              <MiniOverviewPhone
+                class="preview-body__phone"
+                size="default"
+                :src="previewUrl"
+                title="小程序预览"
+                :iframe-key="previewKey"
+              />
+              <div class="preview-body__side">
+                <div class="preview-meta">
+                  <span class="preview-meta__label">当前预览</span>
+                  <b class="preview-meta__value">{{ previewPageLabel }}</b>
+                  <span class="faint preview-meta__status">{{ previewStatusLabel }}</span>
+                </div>
+                <button type="button" class="btn sm preview-qr-btn" @click="qrVisible = true">
+                  <MiniIcon name="qr" :size="15" />
+                  扫码在手机上看
+                </button>
+              </div>
+            </div>
+          </template>
         </div>
-        <div v-else class="phone">
-          <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
-        </div>
-        <button type="button" class="btn sm" @click="qrVisible = true">
+
+        <button
+          v-if="!previewCompare"
+          type="button"
+          class="btn sm preview-qr-btn preview-qr-btn--block preview-qr-btn--wide"
+          @click="qrVisible = true"
+        >
+          <MiniIcon name="qr" :size="15" />
+          扫码在手机上看
+        </button>
+        <button
+          v-else
+          type="button"
+          class="btn sm preview-qr-btn preview-qr-btn--block"
+          @click="qrVisible = true"
+        >
           <MiniIcon name="qr" :size="15" />
           扫码在手机上看
         </button>
@@ -207,6 +244,7 @@ import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
+import MiniOverviewPhone from '@/components/mini/MiniOverviewPhone.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -264,6 +302,31 @@ const previewUrlDraft = computed(() => previewHref('draft'))
 const previewUrlLive = computed(() => previewHref('live'))
 
 const previewKey = computed(() => (previewCompare.value ? 'compare' : previewSource.value))
+
+const previewHintLine = computed(() => {
+  const n = site.value.liveReleaseNo
+  const prefix = n != null ? `默认第 ${n} 次发布 · ` : ''
+  if (previewCompare.value) {
+    return `${prefix}左：待发布草稿 · 右：当前线上（整店配置预览）`
+  }
+  if (previewSource.value === 'live') {
+    return `${prefix}看用户此刻看到的线上版`
+  }
+  return `${prefix}看待发布草稿（未点发布前用户看不到）`
+})
+
+const previewPageLabel = computed(() => {
+  const tab0 = (site.value.tabBar || [])[0]
+  return tab0?.pageName || tab0?.text || '底部导航首页'
+})
+
+const previewStatusLabel = computed(() => {
+  const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
+  if (previewSource.value === 'live') {
+    return n > 0 ? `线上版 · 另有 ${n} 项待发布` : '线上版 · 与发布一致'
+  }
+  return n > 0 ? `草稿预览 · ${n} 项待发布` : '草稿预览'
+})
 
 function setPreview(mode: 'draft' | 'live') {
   previewCompare.value = false
@@ -483,15 +546,66 @@ onMounted(load)
   padding: 16px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 12px;
+  width: 100%;
+  max-width: 300px;
+  box-sizing: border-box;
 }
 
 .preview-head {
-  display: flex;
   width: 100%;
-  justify-content: space-between;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preview-head__row {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.preview-head__title {
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.preview-head__hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.preview-seg :deep(button) {
+  white-space: nowrap;
+  padding: 4px 8px;
+}
+
+.preview-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-body__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.preview-body__side {
+  display: none;
+}
+
+.preview-qr-btn--block {
+  width: 100%;
+  justify-content: center;
 }
 
 .phone-row {
@@ -509,34 +623,8 @@ onMounted(load)
   min-width: 0;
 }
 
-.phone-sm {
-  width: 118px;
-  height: 255px;
-  border-width: 6px;
-  border-radius: 22px;
-}
-
 .visit-card {
   margin-bottom: 0;
-}
-
-.phone {
-  width: 250px;
-  height: 540px;
-  border: 9px solid #1e1611;
-  border-radius: 34px;
-  background: #fffbf6;
-  overflow: hidden;
-  flex-shrink: 0;
-  max-width: 100%;
-
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: #fffbf6;
-    display: block;
-  }
 }
 
 .theme-bar {
@@ -559,14 +647,93 @@ onMounted(load)
   flex-wrap: wrap;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1179px) and (min-width: 900px) {
+  .ov {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .preview {
+    position: sticky;
+    top: 80px;
+  }
+}
+
+@media (max-width: 899px) {
   .ov {
     grid-template-columns: minmax(0, 1fr);
   }
+
   .preview {
     position: static;
-    max-width: 300px;
+    max-width: none;
   }
+
+  .preview-body__main {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+
+  .preview-body__phone :deep(.preview-phone) {
+    --phone-w: 210px;
+  }
+
+  .preview-body__phone :deep(.preview-phone--lg),
+  .preview-body__phone :deep(.preview-phone--sm) {
+    --phone-w: 210px;
+  }
+
+  .preview-body__side {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding-top: 4px;
+  }
+
+  .preview-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  .preview-meta__label {
+    font-size: 11px;
+    color: var(--faint);
+  }
+
+  .preview-meta__value {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .preview-meta__status {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .preview-qr-btn {
+    align-self: flex-start;
+  }
+}
+
+@media (min-width: 900px) {
+  .preview-qr-btn--wide {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 899px) {
+  .preview-qr-btn--wide {
+    display: none;
+  }
+}
+
+@media (max-width: 1179px) {
   .tabs-edit {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

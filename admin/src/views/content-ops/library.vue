@@ -49,11 +49,12 @@
         <option :value="0">全部分类</option>
         <option v-for="c in flatCats" :key="c.id" :value="c.id">{{ c.name }}</option>
       </select>
-      <select v-model="sortBy" class="input" style="width:auto" aria-label="排序">
+      <select v-model="sortBy" class="input" style="width:auto" aria-label="排序" @change="reload">
         <option value="updated">更新时间</option>
         <option value="published">发布时间</option>
         <option value="reads">阅读</option>
       </select>
+      <span class="sort-hint">列表排序由服务端按全库生效</span>
       <div class="seg" style="margin-left:auto">
         <button type="button" :class="{ on: viewMode === 'list' }" aria-label="列表视图" @click="viewMode = 'list'">
           <MiniIcon name="list" :size="14" />
@@ -160,7 +161,16 @@
       </div>
     </div>
 
-    <div class="faint">共 {{ filtered.length }} 条</div>
+    <div class="faint">共 {{ listTotal }} 条（当前页 {{ filtered.length }} 条）</div>
+    <div v-if="listTotal > listPageSize" class="pager" style="margin-top:12px">
+      <el-pagination
+        layout="prev, pager, next, total"
+        :total="listTotal"
+        :page-size="listPageSize"
+        :current-page="listPage"
+        @current-change="onListPageChange"
+      />
+    </div>
 
     <div v-if="importOpen" class="scrim" @click.self="importOpen = false">
       <div class="modal" role="dialog" aria-modal="true">
@@ -247,6 +257,9 @@ const categoryId = ref(0)
 const keyword = ref('')
 const viewMode = ref<'list' | 'card'>('list')
 const sortBy = ref<'updated' | 'published' | 'reads'>('updated')
+const listPage = ref(1)
+const listPageSize = 50
+const listTotal = ref(0)
 const importOpen = ref(false)
 const importUrls = ref('')
 const importing = ref(false)
@@ -325,15 +338,7 @@ const filtered = computed(() => {
   if (categoryId.value) list = list.filter((x) => x.categoryId === categoryId.value)
   const q = keyword.value.trim()
   if (q) list = list.filter((x) => x.title.includes(q))
-  const sorted = [...list]
-  if (sortBy.value === 'reads') {
-    sorted.sort((a, b) => b.reads - a.reads)
-  } else if (sortBy.value === 'published') {
-    sorted.sort((a, b) => b.publishedTs - a.publishedTs)
-  } else {
-    sorted.sort((a, b) => b.updatedTs - a.updatedTs)
-  }
-  return sorted
+  return list
 })
 
 function editTypeQuery(it?: Row): string {
@@ -478,7 +483,7 @@ async function loadStats() {
 async function load() {
   loading.value = true
   try {
-    const params: Record<string, unknown> = { current: 1, size: 200 }
+    const params: Record<string, unknown> = { current: listPage.value, size: listPageSize, sortBy: sortBy.value }
     if (statusFilter.value !== 'all') params.status = statusFilter.value
     if (categoryId.value) params.categoryId = categoryId.value
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
@@ -495,7 +500,8 @@ async function load() {
       getCategoryList(),
       loadStats(),
     ])
-    const { records } = unwrapList(listRes)
+    const { records, total } = unwrapList(listRes)
+    listTotal.value = total
     items.value = (records as Array<Record<string, unknown>>).map(mapRow)
 
     const counts = { all: items.value.length, article: 0, note: 0, video: 0, file: 0, moment: 0 }
@@ -516,6 +522,12 @@ async function load() {
 }
 
 function reload() {
+  listPage.value = 1
+  void load()
+}
+
+function onListPageChange(p: number) {
+  listPage.value = p
   void load()
 }
 
@@ -617,6 +629,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.sort-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  align-self: center;
+}
 .cswitch {
   width: 72px;
   display: flex;

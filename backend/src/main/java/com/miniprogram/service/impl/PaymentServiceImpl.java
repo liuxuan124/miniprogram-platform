@@ -17,6 +17,7 @@ import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.PaymentService;
+import com.miniprogram.service.RefundService;
 import com.miniprogram.service.PurchaseEntitlementService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
@@ -29,6 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.miniprogram.support.WxPayNotifyCrypto;
 import com.miniprogram.support.WxPayNotifyVerifier;
+import com.miniprogram.tenant.MpTenantLineHandler;
+import com.miniprogram.tenant.TenantContext;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -60,6 +63,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     private final UserNoticeService userNoticeService;
     private final MembershipAccessService membershipAccessService;
     private final PurchaseEntitlementService purchaseEntitlementService;
+    private final RefundService refundService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -133,22 +137,84 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             return;
         }
 
-        // 2) Redis 防重放（多实例共享）
-        if (StringUtils.hasText(transactionId) && !markNotifyOnce(transactionId)) {
-            log.info("微信支付回调重放忽略 orderNo={} tx={}", outTradeNo, transactionId);
-            return;
-        }
-
-        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
-                .eq(Order::getOrderNo, outTradeNo));
-        if (order == null) {
+        Order located = findOrderByOutTradeNoGlobal(outTradeNo);
+        if (located == null) {
             log.warn("微信支付回调订单不存在: {}", outTradeNo);
             return;
         }
+        Long tenantId = located.getTenantId() != null ? located.getTenantId() : TenantContext.DEFAULT_TENANT_ID;
+        Long previousTenant = TenantContext.getTenantIdOrNull();
+        try {
+            TenantContext.setTenantId(tenantId);
+            Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
+                    .eq(Order::getOrderNo, outTradeNo));
+            if (order == null) {
+                log.warn("微信支付回调订单不存在(租户{}): {}", tenantId, outTradeNo);
+                return;
+            }
 
-        verifyNotifyAmount(paymentData, order, outTradeNo);
-        markOrderPaid(order, transactionId, paymentData);
-        log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
+            verifyNotifyAmount(paymentData, order, outTradeNo);
+
+            if (StringUtils.hasText(transactionId) && !markNotifyOnce(transactionId)) {
+                log.info("微信支付回调重放忽略 orderNo={} tx={}", outTradeNo, transactionId);
+                return;
+            }
+            try {
+                markOrderPaid(order, transactionId, paymentData);
+            } catch (Exception e) {
+                releaseNotifyOnce(transactionId);
+                throw e;
+            }
+            log.info("微信支付回调处理成功, orderNo={}, transactionId={}", outTradeNo, transactionId);
+        } finally {
+            if (previousTenant != null) {
+                TenantContext.setTenantId(previousTenant);
+            } else {
+                TenantContext.clear();
+            }
+        }
+    }
+
+    @Override
+    public void closeWxPayIfPending(Order order) {
+        if (order == null || !StringUtils.hasText(order.getOrderNo())) {
+            return;
+        }
+        Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
+                .eq(Payment::getOrderId, order.getId())
+                .eq(Payment::getStatus, "pending")
+                .orderByDesc(Payment::getCreatedAt)
+                .last("LIMIT 1"));
+        if (payment == null) {
+            return;
+        }
+        try {
+            WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
+            String path = "/v3/pay/transactions/out-trade-no/" + order.getOrderNo() + "/close";
+            Map<String, Object> body = Map.of("mchid", payConfig.mchId());
+            String requestBody = objectMapper.writeValueAsString(body);
+            String authorization = buildAuthorization("POST", path, requestBody, payConfig);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", authorization);
+            headers.set("Accept", "application/json");
+            restTemplate.exchange(
+                    "https://api.mch.weixin.qq.com" + path,
+                    HttpMethod.POST,
+                    new HttpEntity<>(requestBody, headers),
+                    String.class);
+            log.info("微信关单成功 orderNo={}", order.getOrderNo());
+        } catch (Exception e) {
+            log.warn("微信关单失败 orderNo={}: {}", order.getOrderNo(), e.getMessage());
+        }
+    }
+
+    private Order findOrderByOutTradeNoGlobal(String outTradeNo) {
+        final Order[] holder = new Order[1];
+        MpTenantLineHandler.runWithoutTenant(() -> holder[0] = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
+                .eq(Order::getOrderNo, outTradeNo)
+                .last("LIMIT 1")));
+        return holder[0];
     }
 
     @Override
@@ -180,16 +246,26 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
     private void markOrderPaid(Order order, String transactionId, Map<String, Object> paymentData) {
         Payment payment = this.getOne(new LambdaQueryWrapper<Payment>()
-                .eq(Payment::getOrderId, order.getId()));
+                .eq(Payment::getOrderId, order.getId())
+                .orderByDesc(Payment::getCreatedAt)
+                .last("LIMIT 1"));
+
+        if (!"pending_payment".equals(order.getStatus())) {
+            if ("closed".equals(order.getStatus()) && payment != null && "pending".equals(payment.getStatus())) {
+                payment.setStatus("success");
+                payment.setTransactionId(transactionId);
+                payment.setPaidAt(LocalDateTime.now());
+                this.updateById(payment);
+                refundService.handleLatePaymentOnClosedOrder(order, payment, transactionId);
+            }
+            return;
+        }
+
         if (payment != null && "pending".equals(payment.getStatus())) {
             payment.setStatus("success");
             payment.setTransactionId(transactionId);
             payment.setPaidAt(LocalDateTime.now());
             this.updateById(payment);
-        }
-
-        if (!"pending_payment".equals(order.getStatus())) {
-            return;
         }
         order.setPaidAt(LocalDateTime.now());
         if (Boolean.TRUE.equals(order.getAutoFulfill()) && "virtual".equalsIgnoreCase(order.getFulfillmentType())) {
@@ -252,6 +328,17 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         } catch (Exception e) {
             log.warn("Redis 防重放失败，降级为放行单次处理 tx={}", transactionId, e);
             return true;
+        }
+    }
+
+    private void releaseNotifyOnce(String transactionId) {
+        if (!StringUtils.hasText(transactionId)) {
+            return;
+        }
+        try {
+            stringRedisTemplate.delete("wxpay:notify:" + transactionId);
+        } catch (Exception e) {
+            log.warn("释放微信回调防重键失败 tx={}", transactionId, e);
         }
     }
 

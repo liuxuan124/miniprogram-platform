@@ -23,6 +23,6 @@ class StoreTemplateNamesTest {
     @Test
     void normalizeTrimsAndCaps() {
         assertEquals("暖阁首页", StoreTemplateNames.normalize("  暖阁首页  "));
-        assertEquals(32, StoreTemplateNames.normalize("一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十超").length());
+        assertEquals(32, StoreTemplateNames.normalize("一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十超长").length());
     }
 }

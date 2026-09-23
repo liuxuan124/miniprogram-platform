@@ -8,6 +8,7 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.miniapp.CreateReleaseDTO;
+import com.miniprogram.dto.miniapp.StoreTemplateNameDTO;
 import com.miniprogram.dto.miniapp.PublishPreflightVO;
 import com.miniprogram.dto.miniapp.ReleaseQueryDTO;
 import com.miniprogram.dto.miniapp.RollbackDTO;
@@ -417,8 +418,6 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         List<MiniappRelease> list = this.lambdaQuery()
                 .and(w -> w.eq(MiniappRelease::getMode, "template")
                         .or()
-                        .eq(MiniappRelease::getStatus, 0)
-                        .or()
                         .eq(MiniappRelease::getIsSystem, 1))
                 .orderByDesc(MiniappRelease::getIsSystem)
                 .orderByDesc(MiniappRelease::getIsCurrent)
@@ -435,13 +434,32 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MiniappRelease createStoreTemplate(String templateName) {
+    public MiniappRelease createStoreTemplate(StoreTemplateNameDTO input) {
+        String templateName = input == null ? null : input.getTemplateName();
         CreateReleaseDTO dto = new CreateReleaseDTO();
         dto.setMode("template");
         dto.setChangeType("patch");
         dto.setTemplateName(templateName);
-        dto.setReleaseNotes("整店模板");
-        return createRelease(dto);
+        String notes = input != null && StringUtils.hasText(input.getDescription())
+                ? input.getDescription().trim()
+                : "整店模板";
+        dto.setReleaseNotes(notes);
+        MiniappRelease release = createRelease(dto);
+        if (input != null) {
+            boolean dirty = false;
+            if (StringUtils.hasText(input.getScene())) {
+                release.setTemplateScene(input.getScene().trim().toLowerCase(Locale.ROOT));
+                dirty = true;
+            }
+            if (StringUtils.hasText(input.getCoverUrl())) {
+                release.setCoverUrl(input.getCoverUrl().trim());
+                dirty = true;
+            }
+            if (dirty) {
+                this.updateById(release);
+            }
+        }
+        return release;
     }
 
     @Override

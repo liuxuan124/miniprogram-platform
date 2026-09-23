@@ -23,6 +23,7 @@ public class PageVersionController {
 
     @Operation(summary = "版本列表", description = "获取页面版本列表")
     @GetMapping("/{id}/versions")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PageResult<PageVersionDTO>> listVersions(
             @PathVariable Long id,
             @RequestParam(required = false) Long page,

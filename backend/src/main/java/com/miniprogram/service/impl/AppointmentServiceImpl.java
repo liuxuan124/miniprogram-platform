@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
+import com.miniprogram.common.MoneyUtils;
 import com.miniprogram.entity.Appointment;
 import com.miniprogram.entity.AppointmentSlot;
+import com.miniprogram.entity.Order;
 import com.miniprogram.mapper.AppointmentMapper;
 import com.miniprogram.mapper.AppointmentSlotMapper;
+import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.service.AppointmentService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ThreadLocalRandom;
@@ -34,6 +39,7 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
     private final AppointmentSlotMapper appointmentSlotMapper;
     private final com.miniprogram.mapper.AppointmentServiceMapper appointmentServiceMapper;
     private final com.miniprogram.service.SmsCodeService smsCodeService;
+    private final OrderMapper orderMapper;
 
     @Override
     public PageResult<AppointmentVO> listAppointments(AppointmentQueryDTO queryDTO) {
@@ -139,6 +145,31 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
             throw new BusinessException(900201, "预约服务已停用");
         }
 
+        BigDecimal servicePrice = service.getPrice() == null ? BigDecimal.ZERO : MoneyUtils.normalizeYuan(service.getPrice());
+        Long linkedOrderId = null;
+        if (servicePrice.compareTo(BigDecimal.ZERO) > 0) {
+            if (dto.getPaidOrderId() == null) {
+                throw new BusinessException(900201, "该预约需先完成支付");
+            }
+            Order paidOrder = orderMapper.selectById(dto.getPaidOrderId());
+            if (paidOrder == null || !userId.equals(paidOrder.getUserId())) {
+                throw new BusinessException(900401, "支付订单无效");
+            }
+            if (!List.of("paid", "completed").contains(paidOrder.getStatus())) {
+                throw new BusinessException(900201, "订单尚未支付成功");
+            }
+            if (MoneyUtils.normalizeYuan(paidOrder.getPayAmount()).compareTo(servicePrice) < 0) {
+                throw new BusinessException(900201, "支付金额不足");
+            }
+            long used = this.count(new LambdaQueryWrapper<Appointment>()
+                    .eq(Appointment::getMpOrderId, paidOrder.getId())
+                    .ne(Appointment::getStatus, "cancelled"));
+            if (used > 0) {
+                throw new BusinessException(900201, "该支付订单已用于预约");
+            }
+            linkedOrderId = paidOrder.getId();
+        }
+
         // 校验时段是否存在且启用
         AppointmentSlot slot = appointmentSlotMapper.selectById(dto.getSlotId());
         if (slot == null) {
@@ -183,6 +214,7 @@ public class AppointmentServiceImpl extends BaseServiceImpl<AppointmentMapper, A
         appointment.setContactName(dto.getContactName());
         appointment.setContactPhone(dto.getContactPhone());
         appointment.setRemark(dto.getRemark());
+        appointment.setMpOrderId(linkedOrderId);
         this.save(appointment);
 
         return toVO(appointment);

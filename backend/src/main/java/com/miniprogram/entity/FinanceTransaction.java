@@ -69,6 +69,9 @@ public class FinanceTransaction implements Serializable {
     @TableField("order_id")
     private Long orderId;
 
+    @TableField("refund_id")
+    private Long refundId;
+
     @TableField("tenant_id")
     private Long tenantId;
 

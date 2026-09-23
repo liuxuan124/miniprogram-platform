@@ -93,7 +93,7 @@ class AiPagePipelineMatcherTest {
         List<Map<String, Object>> comps = (List<Map<String, Object>>) dsl.get("components");
         assertNotNull(comps);
         assertFalse(comps.isEmpty());
-        assertTrue(comps.stream().noneMatch(c -> String.valueOf(c.get("type")).contains("ar")));
+        assertTrue(comps.stream().noneMatch(c -> "ar_tryon".equals(String.valueOf(c.get("type")))));
         assertTrue(comps.stream().anyMatch(c -> "product_list".equals(c.get("type"))));
     }
 

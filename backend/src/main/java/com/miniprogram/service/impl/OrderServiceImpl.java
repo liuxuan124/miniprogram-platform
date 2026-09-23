@@ -12,6 +12,7 @@ import com.miniprogram.mapper.*;
 import com.miniprogram.product.ProductTypes;
 import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.OrderService;
+import com.miniprogram.service.PaymentService;
 import com.miniprogram.service.RefundService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
@@ -51,6 +52,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final PaymentMapper paymentMapper;
     private final RefundMapper refundMapper;
     private final RefundService refundService;
+    private final PaymentService paymentService;
     private final UserNoticeService userNoticeService;
     private final SubscribeMessageService subscribeMessageService;
     private final MiniProgramUserMapper miniProgramUserMapper;
@@ -308,6 +310,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         Page<Order> page = new Page<>(query.getCurrent(), query.getSize());
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
                 .like(StringUtils.hasText(query.getOrderNo()), Order::getOrderNo, query.getOrderNo())
+                .eq(query.getIsTest() != null, Order::getIsTest, query.getIsTest())
                 .eq(query.getUserId() != null, Order::getUserId, query.getUserId())
                 .eq(StringUtils.hasText(query.getStatus()), Order::getStatus, query.getStatus())
                 .ge(query.getStartDate() != null, Order::getCreatedAt,
@@ -315,6 +318,29 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
                 .le(query.getEndDate() != null, Order::getCreatedAt,
                         query.getEndDate() != null ? query.getEndDate().atTime(LocalTime.MAX) : null)
                 .orderByDesc(Order::getCreatedAt);
+        if (StringUtils.hasText(query.getKeyword())) {
+            String kw = query.getKeyword().trim();
+            java.util.List<Long> orderIdsByProduct = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>()
+                            .like(OrderItem::getProductName, kw))
+                    .stream()
+                    .map(OrderItem::getOrderId)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .toList();
+            wrapper.and(w -> {
+                w.like(Order::getOrderNo, kw);
+                if (kw.matches("\\d{1,18}")) {
+                    try {
+                        w.or().eq(Order::getUserId, Long.parseLong(kw));
+                    } catch (NumberFormatException ignored) {
+                        // ignore
+                    }
+                }
+                if (!orderIdsByProduct.isEmpty()) {
+                    w.or().in(Order::getId, orderIdsByProduct);
+                }
+            });
+        }
         this.page(page, wrapper);
         return convertPageToVO(page);
     }
@@ -342,6 +368,8 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             throw new BusinessException(600401, "订单不存在");
         }
         validateTransition(order.getStatus(), "closed");
+
+        paymentService.closeWxPayIfPending(order);
 
         // 恢复库存
         restoreStock(order.getId());
@@ -396,6 +424,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         refund.setRefundNo(generateRefundNo());
         refund.setAmount(requestAmount);
         refund.setReason(dto.getReason());
+        refund.setOrderStatusBefore(order.getStatus());
         refund.setStatus("pending");
         refundMapper.insert(refund);
 
@@ -494,9 +523,15 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             refund.setStatus("rejected");
             refundMapper.updateById(refund);
 
-            // 订单状态回退到 paid
-            validateTransition(order.getStatus(), "paid");
-            order.setStatus("paid");
+            restoreOrderAfterRefundRejected(order, refund);
+        }
+    }
+
+    private void restoreOrderAfterRefundRejected(Order order, Refund refund) {
+        String target = StringUtils.hasText(refund.getOrderStatusBefore()) ? refund.getOrderStatusBefore() : "paid";
+        if (!Objects.equals(order.getStatus(), target)) {
+            validateTransition(order.getStatus(), target);
+            order.setStatus(target);
             this.updateById(order);
         }
     }

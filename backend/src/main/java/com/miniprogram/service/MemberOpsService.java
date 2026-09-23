@@ -360,6 +360,55 @@ public class MemberOpsService {
         }
     }
 
+    /** 批量打标签：在原有标签上追加，不覆盖 */
+    @Transactional
+    public void addUserTags(Long userId, List<Number> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return;
+        }
+        Set<Long> existing = userMemberTagMapper.selectList(new LambdaQueryWrapper<UserMemberTag>()
+                        .eq(UserMemberTag::getUserId, userId))
+                .stream()
+                .map(UserMemberTag::getTagId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<Long> uniq = tagIds.stream().filter(Objects::nonNull).map(Number::longValue).collect(Collectors.toSet());
+        for (Long tagId : uniq) {
+            if (existing.contains(tagId)) {
+                continue;
+            }
+            UserMemberTag row = new UserMemberTag();
+            row.setUserId(userId);
+            row.setTagId(tagId);
+            row.setCreateTime(LocalDateTime.now());
+            userMemberTagMapper.insert(row);
+            memberTagMapper.update(null, new LambdaUpdateWrapper<MemberTag>()
+                    .eq(MemberTag::getId, tagId)
+                    .setSql("use_count = IFNULL(use_count,0) + 1"));
+        }
+    }
+
+    @Transactional
+    public Map<String, Object> reachUsers(Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> ids = (List<Number>) body.get("userIds");
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "userIds 必填");
+        }
+        String content = Optional.ofNullable(str(body, "content")).orElse("").trim();
+        if (!StringUtils.hasText(content)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请填写触达文案");
+        }
+        String title = Optional.ofNullable(str(body, "title")).orElse("运营通知");
+        int n = 0;
+        for (Number id : ids) {
+            if (id == null) continue;
+            userNoticeService.notifyUser(id.longValue(), "ops_reach", title, content);
+            n++;
+        }
+        return Map.of("reached", n);
+    }
+
     public void putUserNote(Long userId, String note) {
         User u = userMapper.selectById(userId);
         if (u == null) throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "用户不存在");

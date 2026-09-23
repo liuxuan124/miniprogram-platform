@@ -27,7 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 退款 Service 实现
@@ -46,6 +50,7 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
     private final WxPayNotifyVerifier wxPayNotifyVerifier;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final FinanceOrderSyncService financeOrderSyncService;
 
     @Override
     public PageResult<RefundVO> listRefunds(Integer current, Integer size, String status) {
@@ -151,17 +156,50 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
         refund.setStatus("success");
         this.updateById(refund);
 
+        Order order = orderMapper.selectById(refund.getOrderId());
+        if (order == null) {
+            return;
+        }
+
+        BigDecimal payAmount = MoneyUtils.normalizeYuan(order.getPayAmount());
+        BigDecimal totalRefunded = refundMapper.selectList(new LambdaQueryWrapper<Refund>()
+                        .eq(Refund::getOrderId, order.getId())
+                        .eq(Refund::getStatus, "success"))
+                .stream()
+                .map(Refund::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        totalRefunded = MoneyUtils.normalizeYuan(totalRefunded);
+
         Payment payment = paymentMapper.selectOne(new LambdaQueryWrapper<Payment>()
-                .eq(Payment::getOrderId, refund.getOrderId()));
+                .eq(Payment::getOrderId, refund.getOrderId())
+                .orderByDesc(Payment::getCreatedAt)
+                .last("LIMIT 1"));
         if (payment != null) {
-            payment.setStatus("refunded");
+            if (totalRefunded.compareTo(payAmount) >= 0) {
+                payment.setStatus("refunded");
+            } else {
+                payment.setStatus("success");
+            }
             paymentMapper.updateById(payment);
         }
 
-        Order order = orderMapper.selectById(refund.getOrderId());
-        if (order != null && "refunding".equals(order.getStatus())) {
-            order.setStatus("refunded");
+        if ("refunding".equals(order.getStatus())) {
+            if (totalRefunded.compareTo(payAmount) >= 0) {
+                order.setStatus("refunded");
+            } else {
+                String restore = StringUtils.hasText(refund.getOrderStatusBefore())
+                        ? refund.getOrderStatusBefore()
+                        : "paid";
+                order.setStatus(restore);
+            }
             orderMapper.updateById(order);
+        }
+
+        try {
+            financeOrderSyncService.syncRefundExpense(refund.getId(), "system");
+        } catch (Exception e) {
+            log.warn("退款财务冲销失败 refundId={}", refund.getId(), e);
         }
     }
 
@@ -171,7 +209,10 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
 
         Order order = orderMapper.selectById(refund.getOrderId());
         if (order != null && "refunding".equals(order.getStatus())) {
-            order.setStatus("paid");
+            String restore = StringUtils.hasText(refund.getOrderStatusBefore())
+                    ? refund.getOrderStatusBefore()
+                    : "paid";
+            order.setStatus(restore);
             orderMapper.updateById(order);
         }
     }
@@ -243,5 +284,45 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
                 + "timestamp=\"" + timestamp + "\","
                 + "serial_no=\"" + payConfig.certSerialNo() + "\","
                 + "signature=\"" + signatureStr + "\"";
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void handleLatePaymentOnClosedOrder(Order order, Payment payment, String transactionId) {
+        if (order == null || payment == null) {
+            return;
+        }
+        long existing = refundMapper.selectCount(new LambdaQueryWrapper<Refund>()
+                .eq(Refund::getOrderId, order.getId())
+                .in(Refund::getStatus, List.of("pending", "approved", "processing", "success")));
+        if (existing > 0) {
+            log.info("关单迟到支付已存在退款流程 orderNo={} tx={}", order.getOrderNo(), transactionId);
+            return;
+        }
+
+        Refund refund = new Refund();
+        refund.setOrderId(order.getId());
+        refund.setRefundNo(generateRefundNo());
+        refund.setAmount(MoneyUtils.normalizeYuan(order.getPayAmount()));
+        refund.setReason("关单后迟到支付，系统自动全额退款");
+        refund.setOrderStatusBefore("closed");
+        refund.setStatus("approved");
+        refundMapper.insert(refund);
+
+        try {
+            executeRefund(refund.getId());
+            order.setNeedManualRefund(0);
+            orderMapper.updateById(order);
+            log.warn("关单迟到支付已触发自动退款 orderNo={} tx={}", order.getOrderNo(), transactionId);
+        } catch (Exception e) {
+            log.error("关单迟到支付自动退款失败，已标记需人工处理 orderNo={} tx={}", order.getOrderNo(), transactionId, e);
+            order.setNeedManualRefund(1);
+            orderMapper.updateById(order);
+        }
+    }
+
+    private String generateRefundNo() {
+        return "REF" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + String.format("%04d", ThreadLocalRandom.current().nextInt(10000));
     }
 }

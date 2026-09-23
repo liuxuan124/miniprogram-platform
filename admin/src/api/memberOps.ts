@@ -158,6 +158,14 @@ export function putUserTags(userId: number, tagIds: number[]) {
   return put<void>(`${BASE}/users/${userId}/tags`, { tagIds } as unknown as Record<string, unknown>)
 }
 
+export function appendUserTags(userId: number, tagIds: number[]) {
+  return post<void>(`${BASE}/users/${userId}/tags`, { tagIds } as unknown as Record<string, unknown>)
+}
+
+export function reachUsers(userIds: number[], content: string, title?: string) {
+  return post<{ reached: number }>(`${BASE}/users/reach`, { userIds, content, title } as unknown as Record<string, unknown>)
+}
+
 export function putUserNote(userId: number, note: string) {
   return put<void>(`${BASE}/users/${userId}/note`, { note } as unknown as Record<string, unknown>)
 }

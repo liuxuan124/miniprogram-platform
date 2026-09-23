@@ -243,16 +243,15 @@ async function fetchList() {
       page_size: pageSize,
       keyword: keyword.value || undefined,
     }
-    if (status.value !== 'all' && status.value !== 'test') params.status = status.value
+    if (status.value === 'test') {
+      params.isTest = 1
+    } else {
+      if (status.value !== 'all') params.status = status.value
+      if (hideTest.value) params.isTest = 0
+    }
     const res: any = await getOrderList(params)
     const data = res?.data ?? {}
     let rows: OrderRecord[] = data.records || data.items || []
-    if (status.value === 'test') {
-      rows = rows.filter((o) => isTest(o))
-      hideTest.value = false
-    } else if (hideTest.value) {
-      rows = rows.filter((o) => !isTest(o))
-    }
     orders.value = rows
     total.value = Number(data.total ?? rows.length)
 
@@ -362,9 +361,15 @@ watch(
   () => route.query.tab,
   (t) => {
     if (t) status.value = String(t)
+    page.value = 1
     fetchList()
   },
 )
+
+watch(status, () => {
+  page.value = 1
+  fetchList()
+})
 
 onMounted(fetchList)
 </script>

@@ -22,7 +22,8 @@ public class MpTenantLineHandler implements TenantLineHandler {
             "mp_page",
             "mp_system_config",
             "mp_file_item",
-            "mp_order"
+            "mp_order",
+            "mp_finance_transaction"
     );
 
     public static void runWithoutTenant(Runnable action) {

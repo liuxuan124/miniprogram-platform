@@ -97,6 +97,21 @@ public class AdminMemberOpsController {
         return R.ok();
     }
 
+    @PostMapping("/users/{id}/tags")
+    @PreAuthorize("hasAuthority('member:list')")
+    public R<Void> appendTags(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> tagIds = (List<Number>) body.get("tagIds");
+        memberOpsService.addUserTags(id, tagIds);
+        return R.ok();
+    }
+
+    @PostMapping("/users/reach")
+    @PreAuthorize("hasAuthority('member:list')")
+    public R<Map<String, Object>> reachUsers(@RequestBody Map<String, Object> body) {
+        return R.ok(memberOpsService.reachUsers(body));
+    }
+
     @PutMapping("/users/{id}/note")
     @PreAuthorize("hasAuthority('member:list')")
     public R<Void> putNote(@PathVariable Long id, @RequestBody Map<String, Object> body) {

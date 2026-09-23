@@ -1,8 +1,10 @@
 // pages/appointment-book/appointment-book.js — 预约：短信校验 + 正确字段提交
 
 const appointmentService = require('../../services/appointment')
+const orderService = require('../../services/order')
 const request = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
+const { requestPayment } = require('../../utils/payment')
 
 Page({
   data: {
@@ -230,11 +232,16 @@ Page({
       remark: this.data.remark.trim(),
     }
 
+    const price = Number((this.data.serviceInfo && this.data.serviceInfo.price) || 0)
+    const productId = Number((this.data.serviceInfo && this.data.serviceInfo.productId) || 0)
+
     this.setData({ submitting: true })
-    appointmentService
-      .createAppointment(payload)
-      .then((res) => {
-        this.setData({ submitting: false })
+    const finish = () => this.setData({ submitting: false })
+
+    const submitAppointment = (paidOrderId) => {
+      if (paidOrderId) payload.paidOrderId = paidOrderId
+      return appointmentService.createAppointment(payload).then((res) => {
+        finish()
         const appointmentId = (res && (res.id || res.appointment_id)) || ''
         if (!appointmentId) {
           wx.showToast({ title: '预约已提交，请到我的预约查看', icon: 'none' })
@@ -245,10 +252,35 @@ Page({
           url: `/pages/appointment-success/appointment-success?id=${appointmentId}`,
         })
       })
-      .catch((err) => {
-        this.setData({ submitting: false })
-        wx.showToast({ title: (err && err.message) || '预约失败', icon: 'none' })
-      })
+    }
+
+    if (price > 0) {
+      if (!productId) {
+        finish()
+        wx.showToast({ title: '该服务未绑定商城商品，请联系商家', icon: 'none' })
+        return
+      }
+      orderService
+        .createOrder({
+          items: [{ productId, quantity: 1 }],
+          remark: `appointment:${payload.serviceId}:${payload.slotId}`,
+        })
+        .then((order) => {
+          const orderId = order && (order.id || order.orderId)
+          if (!orderId) throw new Error('创建订单失败')
+          return requestPayment(orderId).then(() => submitAppointment(Number(orderId)))
+        })
+        .catch((err) => {
+          finish()
+          wx.showToast({ title: (err && err.message) || '支付或预约失败', icon: 'none' })
+        })
+      return
+    }
+
+    submitAppointment(null).catch((err) => {
+      finish()
+      wx.showToast({ title: (err && err.message) || '预约失败', icon: 'none' })
+    })
   },
 
   _formatDate(date) {

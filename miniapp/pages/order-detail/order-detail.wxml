@@ -143,10 +143,6 @@
       <text class="price-label">暖豆抵扣</text>
       <text class="price-value discount">-&#165;{{order.beans_amount || order.bean_amount}}</text>
     </view>
-    <view class="price-row" wx:if="{{!(order.beans_amount || order.bean_amount) && isVirtual && warmBeansAmount}}">
-      <text class="price-label">暖豆抵扣</text>
-      <text class="price-value discount">-&#165;{{warmBeansAmount}}</text>
-    </view>
     <view class="price-row total">
       <text class="price-label">实付款</text>
       <text class="price-value total-price">&#165;{{order.total_amount || order.total_price || order.pay_amount}}</text>

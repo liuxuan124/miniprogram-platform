@@ -45,8 +45,6 @@ Page({
     isVirtual: false,
     payMethodLabel: '',
     activatedAt: '',
-    warmBeansAmount: '',
-    warmCouponAmount: '',
     showRefundModal: false,
     refundReason: '',
   },
@@ -112,18 +110,6 @@ Page({
           }))
         }
         const statusMap = isVirtual ? { ...STATUS_MAP, ...VIRTUAL_STATUS_MAP } : STATUS_MAP
-        const itemName = Array.isArray(order.items) && order.items[0]
-          ? String(order.items[0].product_name || order.items[0].name || '')
-          : ''
-        const warmEbook = isVirtual && /内容生意手册/.test(itemName)
-        if (warmEbook) {
-          order.items = order.items.map((it, idx) => (idx === 0
-            ? { ...it, sku_name: it.sku_name || '虚拟商品 · EPUB / PDF · 12 万字' }
-            : it))
-          if (!order.discount_amount && !order.coupon_amount) order.coupon_amount = '5.00'
-          if (!order.beans_amount && !order.bean_amount) order.beans_amount = '2.40'
-        }
-
         const st = order.status
         const statusIcon = (st === 'completed' || (isVirtual && (st === 'paid' || st === 'shipped'))) ? '✓' : ''
         const payMethodLabel = formatPayMethod(order.payment_method)
@@ -143,8 +129,6 @@ Page({
           payMethodLabel,
           activatedAt,
           showBottomBar,
-          warmBeansAmount: warmEbook ? '2.40' : '',
-          warmCouponAmount: warmEbook ? '5.00' : '',
         })
       })
       .catch(() => {

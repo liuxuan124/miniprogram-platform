@@ -32,6 +32,9 @@ public class AppointmentService extends BaseEntity {
     @Schema(description = "服务价格")
     private BigDecimal price;
 
+    @Schema(description = "收费预约关联商城商品 ID")
+    private Long productId;
+
     @Schema(description = "状态 0=停用 1=启用")
     private Integer status;
 }

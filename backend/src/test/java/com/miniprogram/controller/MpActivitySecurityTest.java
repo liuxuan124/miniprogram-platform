@@ -5,6 +5,7 @@ import com.miniprogram.config.SecurityConfig;
 import com.miniprogram.dto.ActivityVO;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.RoleMapper;
+import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.security.JwtAuthenticationFilter;
 import com.miniprogram.security.JwtBlacklistService;
 import com.miniprogram.security.JwtTokenProvider;
@@ -62,6 +63,8 @@ class MpActivitySecurityTest {
     private RoleMapper roleMapper;
     @MockBean
     private PermissionService permissionService;
+    @MockBean
+    private UserMapper userMapper;
 
     @Test
     @DisplayName("GET 活动列表无需 token → 200")

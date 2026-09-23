@@ -12,6 +12,7 @@ import { isAuthenticated } from '@/utils/auth'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
+import { clearChunkReloadFlag, setupChunkReloadHandlers } from '@/utils/chunkReload'
 
 NProgress.configure({ showSpinner: false })
 
@@ -19,7 +20,14 @@ NProgress.configure({ showSpinner: false })
 const whiteList = ['/login', '/h5/preview', '/h5/draft-preview', '/h5/miniapp-preview']
 
 /** 注册路由守卫 */
+function resetMainScroll() {
+  window.scrollTo(0, 0)
+  document.querySelector('.main-container')?.scrollTo({ top: 0, left: 0 })
+}
+
 export function setupRouterGuards(router: Router) {
+  setupChunkReloadHandlers(router)
+
   router.beforeEach(async (to, _from, next) => {
     NProgress.start()
 
@@ -116,5 +124,7 @@ export function setupRouterGuards(router: Router) {
 
   router.afterEach(() => {
     NProgress.done()
+    clearChunkReloadFlag()
+    resetMainScroll()
   })
 }

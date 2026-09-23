@@ -139,95 +139,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { getCategoryList as getContentCategories } from '@/api/content'
 import { getCategoryList as getProductCategories } from '@/api/product'
-
-type DiscoverChip = {
-  label: string
-  filter?: 'all' | 'tag' | 'category'
-  tag?: string
-  categoryId?: number | string
-}
-
-type DiscoverTab = {
-  key: string
-  label: string
-  source?: 'all' | 'note' | 'article' | 'goods'
-  visible?: boolean
-  showBanner?: boolean
-  chips?: DiscoverChip[]
-}
-
-type ArticleLayoutConfig = {
-  mode?: 'mixed' | 'all_duo' | 'all_full'
-  fullEvery?: number
-  fullOnNoCover?: boolean
-  duoStyles?: string[]
-}
-
-const DEFAULT_ARTICLE_LAYOUT: ArticleLayoutConfig = {
-  mode: 'all_duo',
-  fullEvery: 3,
-  fullOnNoCover: true,
-  duoStyles: ['magazine', 'row'],
-}
-
-const DEFAULT_DISCOVER_TABS: DiscoverTab[] = [
-  {
-    key: 'all',
-    label: '全部',
-    source: 'all',
-    visible: true,
-    showBanner: true,
-    chips: [
-      { label: '全部', filter: 'all' },
-      { label: '创作日常', filter: 'tag', tag: '创作日常' },
-      { label: '工位美学', filter: 'tag', tag: '工位美学' },
-      { label: '读书', filter: 'tag', tag: '读书' },
-      { label: '副业', filter: 'tag', tag: '副业' },
-    ],
-  },
-  {
-    key: 'note',
-    label: '笔记',
-    source: 'note',
-    visible: true,
-    showBanner: true,
-    chips: [
-      { label: '全部', filter: 'all' },
-      { label: '创作日常', filter: 'tag', tag: '创作日常' },
-      { label: '工位美学', filter: 'tag', tag: '工位美学' },
-      { label: '读书', filter: 'tag', tag: '读书' },
-      { label: '副业', filter: 'tag', tag: '副业' },
-      { label: '咖啡', filter: 'tag', tag: '咖啡' },
-      { label: '数字游民', filter: 'tag', tag: '数字游民' },
-    ],
-  },
-  {
-    key: 'article',
-    label: '长文',
-    source: 'article',
-    visible: true,
-    chips: [
-      { label: '全部', filter: 'all' },
-      { label: '内容创业', filter: 'tag', tag: '内容创业' },
-      { label: '写作方法', filter: 'tag', tag: '写作方法' },
-      { label: '私域运营', filter: 'tag', tag: '私域运营' },
-      { label: '年度精选', filter: 'tag', tag: '年度精选' },
-    ],
-  },
-  {
-    key: 'goods',
-    label: '好物',
-    source: 'goods',
-    visible: true,
-    chips: [
-      { label: '全部', filter: 'all' },
-      { label: '电子书', filter: 'tag', tag: '电子书' },
-      { label: '资料包', filter: 'tag', tag: '资料包' },
-      { label: '专栏', filter: 'tag', tag: '专栏' },
-      { label: '周边', filter: 'tag', tag: '周边' },
-    ],
-  },
-]
+import {
+  DEFAULT_ARTICLE_LAYOUT,
+  DEFAULT_DISCOVER_TABS,
+  type ArticleLayoutConfig,
+  type DiscoverChip,
+  type DiscoverTab,
+} from '@/constants/warmDiscoverDefaults'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

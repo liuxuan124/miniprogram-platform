@@ -47,6 +47,9 @@ public class Appointment extends BaseEntity {
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "关联支付订单 ID（收费预约）")
+    private Long mpOrderId;
+
     @Schema(description = "取消原因")
     private String cancelReason;
 }

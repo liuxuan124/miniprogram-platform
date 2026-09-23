@@ -78,7 +78,7 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
     /**
      * 从当前正在搭建的内容新建一套命名模板
      */
-    MiniappRelease createStoreTemplate(String templateName);
+    MiniappRelease createStoreTemplate(com.miniprogram.dto.miniapp.StoreTemplateNameDTO dto);
 
     /**
      * 复制一套模板

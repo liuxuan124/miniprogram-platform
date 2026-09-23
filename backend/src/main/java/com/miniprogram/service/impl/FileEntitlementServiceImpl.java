@@ -124,6 +124,22 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
     }
 
     @Override
+    public FileAccessVO buildAccessVOWithoutPreview(FileItem item, Long userId, String planetId, String unavailableHint) {
+        FileAccessVO vo = new FileAccessVO();
+        vo.setId(item.getId());
+        vo.setName(item.getName());
+        vo.setSummary(item.getSummary());
+        vo.setFileType(item.getFileType());
+        vo.setSize(item.getSize());
+        vo.setMimeType(item.getMimeType());
+        vo.setCanRead(false);
+        vo.setCanDownload(false);
+        vo.setCanPreview(false);
+        vo.setLockedReason(StringUtils.hasText(unavailableHint) ? unavailableHint : "文件暂不可用");
+        return vo;
+    }
+
+    @Override
     public Path resolveFilePath(FileItem item) {
         if (item == null || !StringUtils.hasText(item.getStorageKey())) {
             throw new BusinessException(404001, "文件不存在");
@@ -212,6 +228,8 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
                 preview += "\n\n…（预览 " + percent + "%，解锁后可查看完整内容）";
             }
             return preview;
+        } catch (BusinessException e) {
+            return "文件暂不可用，请联系管理员。";
         } catch (IOException e) {
             log.warn("读取预览文本失败 fileId={}: {}", item.getId(), e.getMessage());
             return "暂无法生成文本预览，解锁后可下载查看完整文件。";

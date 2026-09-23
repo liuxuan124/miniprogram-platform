@@ -87,6 +87,12 @@ const AuthUtil = {
     StorageUtil.remove(LOGIN_PROFILE_CACHE_KEY)
     StorageUtil.remove('moment_likes')
     StorageUtil.remove('moment_favorites')
+    try {
+      const keys = wx.getStorageInfoSync().keys || []
+      keys.filter((k) => k === 'service_chat_history_v2' || String(k).startsWith('service_chat_history_v2_'))
+        .forEach((k) => StorageUtil.remove(k))
+    } catch (e) { /* ignore */ }
+    StorageUtil.remove('service_chat_history_v2')
     StorageUtil.remove(TOKEN_KEY)
     StorageUtil.remove(USER_INFO_KEY)
     StorageUtil.remove(LOGIN_INTERCEPT_KEY)
