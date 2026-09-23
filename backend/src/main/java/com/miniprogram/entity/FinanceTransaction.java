@@ -26,8 +26,12 @@ public class FinanceTransaction implements Serializable {
     /** 类型: income/expense */
     private String type;
 
-    /** 金额 */
+    /** 金额（元，展示兼容） */
     private BigDecimal amount;
+
+    /** 金额（分，绝对值） */
+    @TableField("amount_cents")
+    private Long amountCents;
 
     /** 分类 */
     private String category;
@@ -61,6 +65,18 @@ public class FinanceTransaction implements Serializable {
     /** 审批原因 */
     @TableField("approval_reason")
     private String approvalReason;
+
+    @TableField("order_id")
+    private Long orderId;
+
+    @TableField("tenant_id")
+    private Long tenantId;
+
+    /** order / manual / import */
+    private String source;
+
+    @TableField("exclude_from_summary")
+    private Integer excludeFromSummary;
 
     /** 创建人 */
     @TableField("created_by")

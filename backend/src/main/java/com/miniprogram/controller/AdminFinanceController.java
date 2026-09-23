@@ -399,4 +399,54 @@ public class AdminFinanceController {
         financeService.updateSyncConfig(id, data);
         return R.ok(null);
     }
+
+    // ==================== 经营管理（订单对账 / 目标 / 清理） ====================
+
+    @GetMapping("/orders/pending")
+    @Operation(summary = "未入账订单列表")
+    public R<List<FinancePendingOrderVO>> listPendingOrders() {
+        return R.ok(financeService.listPendingOrders());
+    }
+
+    @PostMapping("/orders/sync")
+    @Operation(summary = "指定订单入账")
+    public R<Map<String, Object>> syncOrders(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> raw = (List<Number>) body.get("orderIds");
+        List<Long> ids = raw == null ? List.of() : raw.stream().map(Number::longValue).toList();
+        return R.ok(financeService.syncOrders(ids));
+    }
+
+    @PostMapping("/orders/sync-all")
+    @Operation(summary = "全部未入账订单入账")
+    public R<Map<String, Object>> syncAllPendingOrders() {
+        return R.ok(financeService.syncAllPendingOrders());
+    }
+
+    @GetMapping("/goals")
+    @Operation(summary = "收入目标")
+    public R<Map<String, Object>> getGoals() {
+        return R.ok(financeService.getGoals());
+    }
+
+    @PutMapping("/goals")
+    @Operation(summary = "保存收入目标")
+    public R<Void> saveGoals(@RequestBody Map<String, Object> body) {
+        Long month = body.get("goalMonthCents") != null ? Long.parseLong(String.valueOf(body.get("goalMonthCents"))) : null;
+        Long year = body.get("goalYearCents") != null ? Long.parseLong(String.valueOf(body.get("goalYearCents"))) : null;
+        financeService.saveGoals(month, year);
+        return R.ok(null);
+    }
+
+    @PostMapping("/budgets/dedupe")
+    @Operation(summary = "清理重复草稿预算")
+    public R<Map<String, Object>> dedupeBudgets() {
+        return R.ok(financeService.dedupeBudgets());
+    }
+
+    @PostMapping("/invoices/clean-samples")
+    @Operation(summary = "清理示例发票")
+    public R<Map<String, Object>> cleanSampleInvoices() {
+        return R.ok(financeService.cleanSampleInvoices());
+    }
 }

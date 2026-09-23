@@ -276,6 +276,48 @@ export function triggerSync(source?: string) {
   return request.post(`${BASE}/sync/trigger`, { source })
 }
 
+/** 未入账订单 */
+export function getPendingOrders() {
+  return request.get<PendingOrderRow[]>(`${BASE}/orders/pending`)
+}
+
+export function syncOrders(orderIds: number[]) {
+  return request.post<{ synced: number; lastSyncTime?: string }>(`${BASE}/orders/sync`, { orderIds })
+}
+
+export function syncAllPendingOrders() {
+  return request.post<{ synced: number; lastSyncTime?: string }>(`${BASE}/orders/sync-all`)
+}
+
+export function getFinanceGoals() {
+  return request.get<{ goalMonthCents: number; goalYearCents: number }>(`${BASE}/goals`)
+}
+
+export function saveFinanceGoals(data: { goalMonthCents?: number; goalYearCents?: number }) {
+  return request.put(`${BASE}/goals`, data)
+}
+
+export function dedupeBudgets() {
+  return request.post<{ removed: number }>(`${BASE}/budgets/dedupe`)
+}
+
+export function cleanSampleInvoices() {
+  return request.post<{ removed: number }>(`${BASE}/invoices/clean-samples`)
+}
+
+export interface PendingOrderRow {
+  orderId: number
+  orderNo: string
+  paidDate?: string
+  buyerLabel?: string
+  itemTitle?: string
+  payAmount?: number
+  payAmountCents?: number
+  incomeCategory?: string
+  testOrder?: boolean
+  zeroAmount?: boolean
+}
+
 /** 获取同步配置列表 */
 export function getSyncConfigs() {
   return request.get<SyncConfig[]>(`${BASE}/sync/configs`)

@@ -79,6 +79,18 @@ public class FinanceInvoice implements Serializable {
     @TableField("cancel_reason")
     private String cancelReason;
 
+    @TableField("is_sample")
+    private Integer isSample;
+
+    @TableField("amount_cents")
+    private Long amountCents;
+
+    @TableField("tax_amount_cents")
+    private Long taxAmountCents;
+
+    @TableField("total_amount_cents")
+    private Long totalAmountCents;
+
     /** 创建人 */
     @TableField("created_by")
     private String createdBy;
