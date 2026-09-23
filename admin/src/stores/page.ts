@@ -15,6 +15,7 @@ import type {
 import { ComponentType as CT } from '@/types/page'
 import { getDefaultProps, getDefaultStyle } from '@/components/page-builder/componentRegistry'
 import { createWarmHomeTemplateComponents } from '@/components/page-builder/warmHomeTemplate'
+import { isWarmHomeShellOnly } from '@/utils/warmHomeExpand'
 
 /** 生成唯一 ID */
 function generateId(): string {
@@ -293,6 +294,26 @@ export const usePageStore = defineStore('page', () => {
     resetHistory()
   }
 
+  /** 将 warm_home 壳展开为可编辑暖阁区块 */
+  function expandWarmHomeFromShell(): boolean {
+    if (!isWarmHomeShellOnly(dsl.value.components)) {
+      return false
+    }
+    commitHistory()
+    const shell = dsl.value.components.find((c) => c.type === CT.WarmHome)
+    const props = (shell?.props || {}) as Record<string, string>
+    const blocks = createWarmHomeTemplateComponents({
+      authorsTitle: props.authors_title || props.authorsTitle,
+      columnsTitle: props.columns_title || props.columnsTitle,
+      planetTitle: props.planet_title || props.planetTitle,
+    })
+    const floats = dsl.value.components.filter((c) => c.type === CT.FloatButton)
+    dsl.value.components = [...blocks, ...floats]
+    selectedComponentId.value = blocks[0]?.id || null
+    isDirty.value = true
+    return true
+  }
+
   /** 添加组件 */
   function addComponent(type: ComponentType, index?: number) {
     if (type === CT.WarmHome) {
@@ -500,5 +521,7 @@ export const usePageStore = defineStore('page', () => {
     updateGlobalConfig,
     applyTemplate,
     serializeDSL,
+    expandWarmHomeFromShell,
+    isWarmHomeShellOnly: () => isWarmHomeShellOnly(dsl.value.components),
   }
 })

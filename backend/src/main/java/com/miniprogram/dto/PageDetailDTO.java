@@ -81,6 +81,13 @@ public class PageDetailDTO {
     @Schema(description = "列表缩略图色条（最多 4 个色值）")
     private java.util.List<String> thumbColors;
 
+    @Schema(description = "测试页 0/1")
+    private Integer isTest;
+
+    @Schema(description = "入口到期时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime entryExpireAt;
+
     public static String getTypeDesc(Integer type) {
         if (type == null) return "";
         return switch (type) {

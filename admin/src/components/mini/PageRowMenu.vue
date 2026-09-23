@@ -19,8 +19,14 @@
         >
           设为底部导航入口
         </el-dropdown-item>
-        <el-dropdown-item v-else-if="isNav" disabled>
-          已是底部导航入口
+        <el-dropdown-item
+          v-if="isActivity && !archived"
+          command="set-entry"
+        >
+          设置入口
+        </el-dropdown-item>
+        <el-dropdown-item command="toggle-test">
+          {{ isTest ? '取消测试页' : '标为测试页' }}
         </el-dropdown-item>
         <el-dropdown-item command="copy-path">复制路径</el-dropdown-item>
         <el-dropdown-item v-if="canOffline" command="offline" divided>下线</el-dropdown-item>
@@ -57,6 +63,8 @@ defineProps<{
   archived?: boolean
   /** 已在底部导航中 */
   isNav?: boolean
+  isActivity?: boolean
+  isTest?: boolean
   canOffline?: boolean
   canDelete?: boolean
 }>()

@@ -66,6 +66,19 @@
           </button>
         </section>
 
+        <section class="card visit-card">
+          <h2 class="h2">近 7 日访问</h2>
+          <div class="sub">来自小程序 page-access 上报；无数据说明近期还没有有效访问记录</div>
+          <div v-if="visitTop.length" style="margin-top: 10px">
+            <div v-for="v in visitTop" :key="v.pagePath" class="list-row">
+              <span class="faint" style="flex: 1; overflow: hidden; text-overflow: ellipsis">{{ v.pagePath }}</span>
+              <b>{{ v.accessCount ?? 0 }} 次</b>
+              <span class="faint">{{ v.visitorCount ?? 0 }} 人</span>
+            </div>
+          </div>
+          <div v-else class="faint" style="margin-top: 12px">还没有近 7 日的页面上报数据</div>
+        </section>
+
         <div class="row lower-row">
           <section class="card pending-card">
             <div class="head">
@@ -133,18 +146,38 @@
         <div class="preview-head">
           <b>真机预览</b>
           <div class="seg" role="group" aria-label="预览版本">
-            <button type="button" :class="{ on: previewSource === 'draft' }" @click="previewSource = 'draft'">
+            <button type="button" :class="{ on: !previewCompare && previewSource === 'draft' }" @click="setPreview('draft')">
               改动后
             </button>
-            <button type="button" :class="{ on: previewSource === 'live' }" @click="previewSource = 'live'">
+            <button type="button" :class="{ on: !previewCompare && previewSource === 'live' }" @click="setPreview('live')">
               线上
+            </button>
+            <button type="button" :class="{ on: previewCompare }" @click="previewCompare = true">
+              对比
             </button>
           </div>
         </div>
-        <p class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
+        <p v-if="!previewCompare" class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
           {{ previewSource === 'live' ? '看用户此刻看到的线上版' : '看待发布草稿（未点发布前用户看不到）' }}
         </p>
-        <div class="phone">
+        <p v-else class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
+          左：待发布草稿 · 右：当前线上（整店配置预览）
+        </p>
+        <div v-if="previewCompare" class="phone-row">
+          <div class="phone-col">
+            <span class="faint">草稿</span>
+            <div class="phone phone-sm">
+              <iframe :src="previewUrlDraft" title="草稿预览" loading="lazy" />
+            </div>
+          </div>
+          <div class="phone-col">
+            <span class="faint">线上</span>
+            <div class="phone phone-sm">
+              <iframe :src="previewUrlLive" title="线上预览" loading="lazy" />
+            </div>
+          </div>
+        </div>
+        <div v-else class="phone">
           <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
         </div>
         <button type="button" class="btn sm" @click="qrVisible = true">
@@ -178,6 +211,7 @@ import {
   type PendingChangeItem,
 } from '@/api/miniSite'
 import { getPageList } from '@/api/page'
+import { getPageAccess } from '@/api/statistics'
 import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
 import { refreshMiniPending } from '@/composables/useMiniPending'
@@ -192,7 +226,9 @@ const loaded = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
 const previewSource = ref<'draft' | 'live'>('draft')
+const previewCompare = ref(false)
 const qrVisible = ref(false)
+const visitTop = ref<{ pagePath: string; accessCount?: number; visitorCount?: number }[]>([])
 const pageOptions = ref<PageRow[]>([])
 const wechatVerFallback = ref('')
 const mpMenuConfigured = ref(false)
@@ -215,14 +251,21 @@ const qrCodeLabel = computed(() =>
   boundPageCount.value > 0 ? `${boundPageCount.value} 个页面已生成` : '去生成',
 )
 
-const previewUrl = computed(() => {
-  const source = previewSource.value === 'live' ? 'live' : 'draft'
+function previewHref(source: 'draft' | 'live') {
   const query: Record<string, string> = { view: 'config', source, embed: '1' }
-  const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
-  return href
-})
+  return router.resolve({ path: '/h5/miniapp-preview', query }).href
+}
 
-const previewKey = computed(() => previewSource.value)
+const previewUrl = computed(() => previewHref(previewSource.value === 'live' ? 'live' : 'draft'))
+const previewUrlDraft = computed(() => previewHref('draft'))
+const previewUrlLive = computed(() => previewHref('live'))
+
+const previewKey = computed(() => (previewCompare.value ? 'compare' : previewSource.value))
+
+function setPreview(mode: 'draft' | 'live') {
+  previewCompare.value = false
+  previewSource.value = mode
+}
 
 function formatShort(t?: string | null) {
   if (!t) return ''
@@ -268,6 +311,29 @@ function editHomePage() {
   router.push(`/mini/pages/${id}/editor`)
 }
 
+function last7DayRange() {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(start.getDate() - 6)
+  return {
+    start_date: start.toISOString().slice(0, 10),
+    end_date: end.toISOString().slice(0, 10),
+  }
+}
+
+async function loadVisitTop() {
+  try {
+    const range = last7DayRange()
+    const res = await getPageAccess(range.start_date, range.end_date)
+    const rows = (res.data || []) as { pagePath: string; accessCount?: number; visitorCount?: number }[]
+    visitTop.value = [...rows]
+      .sort((a, b) => Number(b.accessCount || 0) - Number(a.accessCount || 0))
+      .slice(0, 8)
+  } catch {
+    visitTop.value = []
+  }
+}
+
 async function load() {
   loading.value = true
   try {
@@ -277,6 +343,7 @@ async function load() {
       getPageList({ current: 1, size: 100 }),
       getLatestRelease().catch(() => null),
       getConfigByGroupSilent('basic').catch(() => null),
+      loadVisitTop(),
     ])
     site.value = s
     pending.value = p.items || []
@@ -422,6 +489,32 @@ onMounted(load)
   width: 100%;
   justify-content: space-between;
   align-items: center;
+}
+
+.phone-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.phone-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.phone-sm {
+  width: 118px;
+  height: 255px;
+  border-width: 6px;
+  border-radius: 22px;
+}
+
+.visit-card {
+  margin-bottom: 0;
 }
 
 .phone {

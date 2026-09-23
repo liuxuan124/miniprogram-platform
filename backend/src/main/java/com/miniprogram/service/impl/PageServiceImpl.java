@@ -158,6 +158,18 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
                 }
             }
         }
+        if (updateDTO.getIsTest() != null) {
+            page.setIsTest(updateDTO.getIsTest() != 0 ? 1 : 0);
+        }
+        if (updateDTO.getEntryExpireAt() != null) {
+            String raw = updateDTO.getEntryExpireAt().trim();
+            if (raw.isEmpty() || "null".equalsIgnoreCase(raw)) {
+                page.setEntryExpireAt(null);
+            } else {
+                page.setEntryExpireAt(java.time.LocalDateTime.parse(raw.replace('T', ' '),
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+        }
 
         this.updateById(page);
         return toDetailDTO(page);
