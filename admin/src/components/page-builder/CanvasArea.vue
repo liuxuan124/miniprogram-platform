@@ -2,11 +2,23 @@
   <div class="prototype-canvas">
     <div class="canvas-meta">
       <span class="canvas-meta__title">
-        {{ warmPreview.enabled ? '暖阁真机预览 · 接口数据' : '实时数据预览 · 375×812' }}
+        {{ warmPreview.enabled ? '暖阁首页预览' : '画布预览 · 375×812' }}
       </span>
-      <span v-if="hydrating" class="canvas-meta__device">同步列表数据…</span>
-      <span v-else-if="warmPreview.enabled" class="canvas-meta__device">与小程序同套 dsl-warm-block 样式</span>
-      <span v-else class="canvas-meta__device">通用组件已拉取内容/商品接口</span>
+      <div class="canvas-meta__right">
+        <el-segmented
+          v-model="canvasDataMode"
+          size="small"
+          :options="dataModeOptions"
+        />
+        <span v-if="hydrating" class="canvas-meta__device">同步列表数据…</span>
+        <span v-else class="canvas-meta__device">
+          {{ canvasDataMode === 'live' ? '真实数据' : '演示数据' }}
+          <template v-if="warmPreview.enabled"> · 与小程序显示一致</template>
+        </span>
+      </div>
+    </div>
+    <div v-if="heatMode && heatLoaded && !heatHasData" class="heat-empty-tip">
+      暂无热力数据，请上线后在「增长」模块采集后再查看。
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap">
@@ -35,6 +47,7 @@
           />
         </div>
         <div
+          ref="miniContentEl"
           class="mini-content"
           data-testid="canvas-drop-zone"
           :style="{ backgroundColor: pageStore.pageConfig.background_color || '#f6f8fb' }"
@@ -59,6 +72,7 @@
                 <div
                   v-else
                   class="canvas-item-wrap"
+                  :data-component-id="comp.id"
                   :class="{
                     dragging: draggingIndex === index,
                     'heat-on': heatMode,
@@ -140,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onBeforeUnmount, provide, type Ref } from 'vue'
+import { ref, computed, inject, onMounted, onBeforeUnmount, provide, watch, type Ref } from 'vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
@@ -150,19 +164,28 @@ import {
   WARM_PREVIEW_VIEW_KEY,
   WARM_PREVIEW_ENABLED_KEY,
   WARM_PREVIEW_ON_SEG_KEY,
+  type WarmPreviewDataMode,
 } from '@/composables/useWarmHomePreview'
-import { useCanvasHydratedPreview } from '@/composables/useCanvasHydratedPreview'
-import { getComponentDef } from './componentRegistry'
-import { confirmRemoveComponent } from './confirmRemoveComponent'
+import { useCanvasHydratedPreview, type CanvasPreviewDataMode } from '@/composables/useCanvasHydratedPreview'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
+import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
+import { onEditorScrollToComponent, requestEditorScrollToComponent } from '@/utils/editorScrollBus'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from './composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight'
 import { get } from '@/api/request'
 
 const pageStore = usePageStore()
+const { deleteWithUndo } = useEditorDeleteUndo()
+const canvasDataMode = ref<CanvasPreviewDataMode>('demo')
+const dataModeOptions = [
+  { label: '演示数据', value: 'demo' },
+  { label: '真实数据', value: 'live' },
+]
+
 const warmPreview = useWarmHomePreview(
   computed(() => pageStore.components),
   computed(() => pageStore.pageConfig.path),
+  canvasDataMode as Ref<WarmPreviewDataMode>,
 )
 provide(WARM_PREVIEW_VIEW_KEY, warmPreview.warmView)
 provide(WARM_PREVIEW_ENABLED_KEY, warmPreview.enabled)
@@ -171,7 +194,25 @@ provide(WARM_PREVIEW_ON_SEG_KEY, warmPreview.onSeg)
 const { displayComponents, hydrating } = useCanvasHydratedPreview(
   computed(() => pageStore.dsl),
   computed(() => pageStore.components),
+  canvasDataMode,
 )
+
+const miniContentEl = ref<HTMLElement | null>(null)
+let preservedScrollTop = 0
+
+watch(
+  () => pageStore.dsl,
+  () => {
+    preservedScrollTop = miniContentEl.value?.scrollTop ?? 0
+  },
+  { flush: 'pre', deep: true },
+)
+
+watch(displayComponents, () => {
+  requestAnimationFrame(() => {
+    if (miniContentEl.value != null) miniContentEl.value.scrollTop = preservedScrollTop
+  })
+})
 
 const canvasComponents = computed(() => displayComponents.value)
 
@@ -233,6 +274,8 @@ const zoom = ref(1)
 /** U3：组件热力叠加 */
 const heatMode = ref(false)
 const heatMap = ref<Record<string, { clicks: number; impressions: number }>>({})
+const heatLoaded = ref(false)
+const heatHasData = computed(() => Object.keys(heatMap.value).length > 0)
 const heatMaxClicks = computed(() => {
   let max = 0
   Object.values(heatMap.value).forEach((r) => {
@@ -257,6 +300,7 @@ function heatStyle(componentId: string) {
 async function toggleHeatMode() {
   heatMode.value = !heatMode.value
   if (heatMode.value && !Object.keys(heatMap.value).length) {
+    heatLoaded.value = false
     try {
       const res = await get<Array<{ componentId: string; clicks: number; impressions: number }>>(
         '/api/v1/admin/growth/component-heat',
@@ -275,6 +319,8 @@ async function toggleHeatMode() {
       heatMap.value = map
     } catch {
       heatMap.value = {}
+    } finally {
+      heatLoaded.value = true
     }
   }
 }
@@ -354,7 +400,8 @@ function commitDrop(event: DragEvent, insertAt: number) {
 
   const type = event.dataTransfer?.getData('componentType') as ComponentType
   if (type) {
-    pageStore.addComponent(type, insertAt)
+    const created = pageStore.addComponent(type, insertAt)
+    if (created?.id) requestEditorScrollToComponent(created.id)
   }
 }
 
@@ -370,10 +417,8 @@ function handleMoveDown(index: number) {
   }
 }
 
-async function handleDeleteComponent(comp: { id: string; type: ComponentType }) {
-  const label = getComponentDef(comp.type)?.label ?? comp.type
-  if (!(await confirmRemoveComponent(label))) return
-  pageStore.removeComponent(comp.id)
+function handleDeleteComponent(comp: { id: string; type: ComponentType }) {
+  deleteWithUndo(comp as any)
 }
 
 /** B5：Delete 删除选中组件、Ctrl+D 复制选中组件 */
@@ -396,12 +441,22 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+let offScrollBus: (() => void) | undefined
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  offScrollBus = onEditorScrollToComponent((componentId) => {
+    const root = miniContentEl.value
+    if (!root) return
+    const target = root.querySelector(`[data-component-id="${componentId}"]`) as HTMLElement | null
+    if (!target) return
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
+  offScrollBus?.()
 })
 </script>
 
@@ -419,10 +474,30 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   width: min(100%, 520px);
   margin-bottom: 16px;
   color: #7b8798;
   font-size: 12px;
+}
+
+.canvas-meta__right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heat-empty-tip {
+  width: min(100%, 520px);
+  margin: -8px 0 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
 }
 
 .canvas-meta__title {
@@ -474,11 +549,12 @@ onBeforeUnmount(() => {
 
 .canvas-shortcuts {
   position: sticky;
-  bottom: 18px;
+  bottom: 56px;
   align-self: flex-start;
-  margin: -34px 0 0 18px;
+  margin: -48px 0 0 18px;
   color: #94a3b8;
   font-size: 11px;
+  z-index: 1;
 }
 
 .zoom-btn {

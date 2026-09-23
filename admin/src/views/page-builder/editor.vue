@@ -1,24 +1,51 @@
 <template>
   <div class="page-editor">
-    <div class="editor-body" :class="{ 'left-collapsed': leftCollapsed, 'right-collapsed': rightCollapsed }">
-      <div v-show="!leftCollapsed" class="editor-left">
+    <div
+      class="editor-body"
+      :class="{
+        'left-collapsed': leftCollapsed && isDesktop,
+        'right-collapsed': rightCollapsed && !isMobile,
+        'editor-body--mobile': isMobile,
+        'editor-body--tablet-rail': leftRailMode,
+      }"
+    >
+      <div v-if="showLeftColumn" class="editor-left" :class="{ 'editor-left--rail': leftRailMode }">
         <ComponentPanel />
       </div>
 
       <div class="editor-center">
         <div class="builder-toolbar">
-          <div class="toolbar-left">
-            <el-tooltip :content="leftCollapsed ? '展开组件面板' : '收起组件面板'" placement="bottom">
+          <div class="toolbar-group toolbar-left">
+            <el-tooltip v-if="isMobile" content="组件库" placement="bottom">
+              <el-button text size="small" aria-label="打开组件库" @click="leftDrawerOpen = true">
+                <el-icon><Menu /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip v-else :content="leftCollapsed ? '展开组件面板' : '收起组件面板'" placement="bottom">
               <el-button text size="small" aria-label="切换组件面板" @click="leftCollapsed = !leftCollapsed">
                 <el-icon><Menu /></el-icon>
               </el-button>
             </el-tooltip>
             <el-button size="small" @click="handleBack">
               <el-icon><ArrowLeft /></el-icon>
-              页面
+              <span class="toolbar-text">页面</span>
             </el-button>
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
             <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
+          </div>
+          <div class="toolbar-group toolbar-center">
+            <el-button-group class="history-controls">
+              <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom">
+                <el-button size="small" aria-label="撤销" :disabled="!pageStore.canUndo" @click="pageStore.undo()">
+                  <el-icon><RefreshLeft /></el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="重做 (Ctrl+Shift+Z)" placement="bottom">
+                <el-button size="small" aria-label="重做" :disabled="!pageStore.canRedo" @click="pageStore.redo()">
+                  <el-icon><RefreshRight /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </el-button-group>
             <button
               v-if="saveStatus === 'error'"
               type="button"
@@ -37,27 +64,15 @@
               {{ saveStatusText }}
             </span>
           </div>
-          <div class="toolbar-actions">
-            <el-button-group class="history-controls">
-              <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom">
-                <el-button size="small" aria-label="撤销" :disabled="!pageStore.canUndo" @click="pageStore.undo()">
-                  <el-icon><RefreshLeft /></el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="重做 (Ctrl+Shift+Z)" placement="bottom">
-                <el-button size="small" aria-label="重做" :disabled="!pageStore.canRedo" @click="pageStore.redo()">
-                  <el-icon><RefreshRight /></el-icon>
-                </el-button>
-              </el-tooltip>
-            </el-button-group>
-            <el-button size="small" @click="handlePreview">
+          <div class="toolbar-group toolbar-actions">
+            <el-button v-if="!toolbarCompact" size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
-              扫码预览
+              <span class="toolbar-text">扫码预览</span>
             </el-button>
-            <el-tooltip content="自动保存草稿后去发布页，一次推送导航与未上线页面" placement="bottom">
+            <el-tooltip content="自动保存草稿后去发布页" placement="bottom">
               <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving" @click="goMiniPublish">
                 <el-icon><Upload /></el-icon>
-                去发布
+                <span class="toolbar-text">去发布</span>
               </el-button>
             </el-tooltip>
             <el-dropdown trigger="click">
@@ -67,7 +82,9 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
+                  <el-dropdown-item v-if="toolbarCompact" @click="handlePreview">扫码预览</el-dropdown-item>
                   <el-dropdown-item @click="handleSaveDraft">立即保存草稿</el-dropdown-item>
+                  <el-dropdown-item @click="handlePublishCheck">发布前体检</el-dropdown-item>
                   <el-dropdown-item @click="handleHistory">历史版本</el-dropdown-item>
                   <el-dropdown-item @click="handleImportDSL">导入 DSL</el-dropdown-item>
                   <el-dropdown-item divided @click="handleViewDSL">高级：查看 DSL</el-dropdown-item>
@@ -75,7 +92,12 @@
               </template>
             </el-dropdown>
             <el-tooltip :content="rightCollapsed ? '展开属性面板' : '收起属性面板'" placement="bottom">
-              <el-button text size="small" aria-label="切换属性面板" @click="rightCollapsed = !rightCollapsed">
+              <el-button
+                text
+                size="small"
+                aria-label="切换属性面板"
+                @click="isMobile ? (rightDrawerOpen = true) : (rightCollapsed = !rightCollapsed)"
+              >
                 <el-icon><Setting /></el-icon>
               </el-button>
             </el-tooltip>
@@ -116,7 +138,7 @@
         </div>
       </div>
 
-      <div v-show="!rightCollapsed" class="editor-right">
+      <div v-if="showRightColumn" class="editor-right">
         <el-tabs v-model="rightTab" class="right-tabs" stretch>
           <el-tab-pane label="属性" name="props">
             <PropsPanel />
@@ -158,11 +180,49 @@
                   <span class="ai-assistant__placeholder">回复会出现在这里</span>
                 </template>
               </div>
+              <div v-if="aiPatches.length" class="ai-patch-list">
+                <div class="ai-patch-list__title">建议改动</div>
+                <div v-for="patch in aiPatches" :key="patch.id" class="ai-patch-row">
+                  <div class="ai-patch-row__text">{{ patch.summary }}</div>
+                  <div class="ai-patch-row__actions">
+                    <el-button size="small" type="primary" plain @click="applyAiPatch(patch)">应用</el-button>
+                    <el-button size="small" text @click="dismissAiPatch(patch.id)">忽略</el-button>
+                  </div>
+                </div>
+                <el-button size="small" text @click="applyAllAiPatches">应用全部</el-button>
+                <el-button size="small" text @click="undoLastAiApply" :disabled="!aiApplyUndoStack.length">撤销上次应用</el-button>
+              </div>
             </div>
           </el-tab-pane>
         </el-tabs>
       </div>
     </div>
+
+    <el-drawer v-model="leftDrawerOpen" title="组件与结构" direction="ltr" size="min(320px, 88vw)" class="editor-drawer">
+      <ComponentPanel />
+    </el-drawer>
+    <el-drawer v-model="rightDrawerOpen" title="属性与 AI" direction="rtl" size="min(380px, 92vw)" class="editor-drawer">
+      <el-tabs v-model="rightTab" class="right-tabs" stretch>
+        <el-tab-pane label="属性" name="props">
+          <PropsPanel />
+        </el-tab-pane>
+        <el-tab-pane label="AI 助手" name="ai">
+          <div class="ai-assistant ai-assistant--drawer">
+            <div class="ai-assistant__hint">描述想改的地方，可逐条应用建议。</div>
+            <el-input v-model="aiPrompt" type="textarea" :rows="3" maxlength="300" show-word-limit placeholder="例如：把首屏轮播换成节日氛围…" />
+            <el-button type="primary" class="ai-assistant__send" :loading="aiRunning" :disabled="!aiPrompt.trim()" @click="runAiAssist">生成建议</el-button>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-drawer>
+
+    <transition name="delete-snack">
+      <div v-if="deleteSnackVisible" class="editor-delete-snack" role="status">
+        <span>{{ deleteSnackLabel }}</span>
+        <button type="button" @click="undoDelete()">撤销</button>
+        <button type="button" class="muted" @click="dismissDeleteSnack()">关闭</button>
+      </div>
+    </transition>
 
     <!-- DSL 查看/导入弹窗 -->
     <el-dialog v-model="dslDialogVisible" title="页面 DSL" width="700px" destroy-on-close>
@@ -199,7 +259,7 @@
             {{ publishCheck.blocking.length ? '还有问题需要处理' : (publishCheck.warnings.length ? '可以上线，但建议先确认' : '检查通过，可以上线') }}
           </div>
           <div class="publish-check-desc">
-            共 {{ pageStore.components.length }} 个组件 · {{ publishCheck.warnings.length }} 项提醒
+            体检分 {{ publishCheck.score }} · {{ pageStore.components.length }} 个组件 · {{ publishCheck.warnings.length }} 项提醒
           </div>
         </div>
       </div>
@@ -266,7 +326,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
+import { useEditorLayout } from '@/composables/useEditorLayout'
+import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
+import { runPublishHealthCheck } from '@/utils/publishHealthCheck'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useEditorPersist } from '@/composables/useEditorPersist'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
@@ -309,9 +372,41 @@ const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
 const leftCollapsed = ref(false)
 const rightCollapsed = ref(typeof window !== 'undefined' ? window.innerWidth < 1100 : false)
 
-function syncEditorLayoutForViewport() {
-  if (window.innerWidth < 1100) rightCollapsed.value = true
-}
+const {
+  isDesktop,
+  isTablet,
+  isMobile,
+  leftDrawerOpen,
+  rightDrawerOpen,
+  leftRailCollapsed,
+  onComponentSelected,
+  viewportWidth,
+} = useEditorLayout(() => {
+  rightTab.value = 'props'
+})
+
+const {
+  snackVisible: deleteSnackVisible,
+  snackLabel: deleteSnackLabel,
+  undoDelete,
+  dismissSnack: dismissDeleteSnack,
+} = useEditorDeleteUndo()
+
+const showLeftColumn = computed(() => !isMobile.value && !leftCollapsed.value)
+const showRightColumn = computed(() => !isMobile.value && !rightCollapsed.value)
+const leftRailMode = computed(() => isTablet.value && leftRailCollapsed.value && showLeftColumn.value)
+const toolbarCompact = computed(() => viewportWidth.value < 1180)
+
+watch(isMobile, (narrow) => {
+  if (narrow) rightCollapsed.value = true
+})
+
+watch(
+  () => pageStore.selectedComponentId,
+  (id) => {
+    if (id) onComponentSelected()
+  },
+)
 
 const rightTab = ref<'props' | 'ai'>('props')
 
@@ -320,10 +415,70 @@ const aiPills = ['改成节日氛围', '精简首屏', '补空状态'] as const
 const aiPrompt = ref('')
 const aiReply = ref('')
 const aiRunning = ref(false)
+const aiHighlightIds = ref<string[]>([])
+provide('aiHighlightIds', aiHighlightIds)
+
+type AiPatch = { id: string; summary: string; apply: () => void }
+const aiPatches = ref<AiPatch[]>([])
+const aiApplyUndoStack = ref<Array<() => void>>([])
+
+function sanitizeAiText(text: string) {
+  return String(text || '')
+    .replace(/pageId\s*=\s*[\w-]+/gi, '其他草稿页')
+    .replace(/\bpageId\b/gi, '页面编号')
+}
 
 function applyAiPill(pill: string) {
   aiPrompt.value = pill
   rightTab.value = 'ai'
+}
+
+function buildAiPatchesFromResponse(data: any) {
+  const patches: AiPatch[] = []
+  const design = data?.design as Record<string, any> | undefined
+  if (design?.pageName && typeof design.pageName === 'string') {
+    const name = design.pageName.trim()
+    if (name) {
+      patches.push({
+        id: 'design-page-name',
+        summary: `页面名称改为「${name}」`,
+        apply: () => pageStore.updatePageConfig({ name }),
+      })
+    }
+  }
+  const report = Array.isArray(data?.report) ? data.report : []
+  report.forEach((row: any, idx: number) => {
+    const note = String(row?.note || row?.title || '').trim()
+    if (!note) return
+    patches.push({
+      id: `report-${idx}`,
+      summary: sanitizeAiText(note),
+      apply: () => {},
+    })
+  })
+  aiPatches.value = patches
+}
+
+function dismissAiPatch(id: string) {
+  aiPatches.value = aiPatches.value.filter((p) => p.id !== id)
+}
+
+function applyAiPatch(patch: AiPatch) {
+  const snapshot = JSON.parse(JSON.stringify(pageStore.dsl))
+  patch.apply()
+  aiApplyUndoStack.value.push(() => pageStore.applyTemplate(snapshot))
+  dismissAiPatch(patch.id)
+  ElMessage.success('已应用一条建议')
+}
+
+function applyAllAiPatches() {
+  const list = [...aiPatches.value]
+  list.forEach((p) => applyAiPatch(p))
+}
+
+function undoLastAiApply() {
+  const fn = aiApplyUndoStack.value.pop()
+  fn?.()
 }
 
 async function runAiAssist() {
@@ -331,9 +486,11 @@ async function runAiAssist() {
   if (!text) return
   aiRunning.value = true
   aiReply.value = ''
+  aiPatches.value = []
   try {
     const pageName = pageStore.pageConfig.name || '当前页'
-    const prompt = `针对装修页「${pageName}」给出改造建议（不要直接改线上）：${text}`
+    const pageId = pageStore.currentPage?.id
+    const prompt = `针对装修页「${pageName}」（当前编辑页 id=${pageId}）给出改造建议（不要直接改线上）：${text}`
     const res = await runAiPagePipeline(prompt)
     const data = (res as any)?.data ?? res
     const draft = data?.draft
@@ -341,15 +498,21 @@ async function runAiAssist() {
       data?.message ||
       data?.summary ||
       data?.designNotes ||
-      (draft?.pageId
-        ? `已生成相关草稿提示（pageId=${draft.pageId}）。请到「属性」继续微调，发布仍走统一发布页。`
-        : '')
-    aiReply.value = summary || '已收到建议，可按提示在属性面板手动调整。'
+      (draft?.pageId ? '已生成相关草稿，请到页面列表打开对应草稿继续编辑。' : '')
+    aiReply.value = sanitizeAiText(summary || '已收到建议，可按提示在属性面板手动调整。')
+    if (draft?.pageId && pageId && Number(draft.pageId) !== Number(pageId)) {
+      aiReply.value += '\n\n当前不会自动跳转到其他页面，避免串页覆盖。'
+    }
+    buildAiPatchesFromResponse(data)
   } catch {
     aiReply.value = '暂未接通'
   } finally {
     aiRunning.value = false
   }
+}
+
+function handlePublishCheck() {
+  void handlePublish()
 }
 
 /** 页面加载失败态（FP-UI-028） */
@@ -379,6 +542,7 @@ const publishResult = reactive({
 })
 const publishCheck = reactive({
   visible: false,
+  score: 100,
   warnings: [] as string[],
   blocking: [] as string[],
   publishing: false,
@@ -704,6 +868,8 @@ function validateBeforePublish(): string[] {
   }
   warnings.push(...collectJumpIssues(components))
   warnings.push(...collectDataSourceIssues(components))
+  const health = runPublishHealthCheck(components)
+  warnings.push(...health.warnings)
   return [...new Set(warnings)]
 }
 
@@ -771,11 +937,16 @@ async function handlePublish() {
   }
 
   const warnings = validateBeforePublish()
-  const blocking = warnings.filter((w) =>
-    w.includes('占位') || w.includes('不支持') || w.includes('未关联表单') || w.includes('没有任何组件')
-    || w.includes('缺少跳转') || w.includes('跳转类型不合法') || w.includes('未配置数据源')
-    || w.includes('数据源 type') || w.includes('数据源 query'),
-  )
+  const health = runPublishHealthCheck(pageStore.components)
+  publishCheck.score = health.score
+  const blocking = [
+    ...health.blocking,
+    ...warnings.filter((w) =>
+      w.includes('占位') || w.includes('不支持') || w.includes('未关联表单') || w.includes('没有任何组件')
+      || w.includes('缺少跳转') || w.includes('跳转类型不合法') || w.includes('未配置数据源')
+      || w.includes('数据源 type') || w.includes('数据源 query'),
+    ),
+  ]
   publishCheck.warnings = warnings
   publishCheck.blocking = blocking
   publishCheck.visible = true
@@ -906,8 +1077,7 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
 }
 
 onMounted(() => {
-  syncEditorLayoutForViewport()
-  window.addEventListener('resize', syncEditorLayoutForViewport)
+  if (window.innerWidth < 1100) rightCollapsed.value = true
   loadPage()
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -944,7 +1114,6 @@ onBeforeRouteLeave(async (_to, _from, next) => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', syncEditorLayoutForViewport)
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   resetPersistState()
@@ -982,6 +1151,14 @@ onBeforeUnmount(() => {
       grid-template-columns: 0 minmax(0, 1fr) 0;
     }
 
+    &.editor-body--mobile {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &.editor-body--tablet-rail:not(.left-collapsed) {
+      grid-template-columns: 64px minmax(0, 1fr) 380px;
+    }
+
     .editor-left {
       width: auto;
       min-width: 0;
@@ -990,6 +1167,23 @@ onBeforeUnmount(() => {
       background: #fff;
       border-right: 1px solid #e8dfd3;
       padding: 14px;
+    }
+
+    .editor-left--rail {
+      padding: 8px 4px;
+      overflow: visible;
+      position: relative;
+      z-index: 12;
+
+      &:hover {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 250px;
+        padding: 14px;
+        box-shadow: 8px 0 24px rgba(42, 31, 23, 0.12);
+      }
     }
 
     .editor-center {
@@ -1115,26 +1309,54 @@ onBeforeUnmount(() => {
   position: sticky;
   top: 0;
   z-index: 10;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   width: 100%;
   min-height: 60px;
   height: 60px;
-  padding: 0 20px;
+  padding: 0 16px;
   background: #fff;
   border: 0;
   border-bottom: 1px solid #e8dfd3;
   border-radius: 0;
   box-shadow: none;
-  gap: 12px;
+  gap: 8px;
 }
 
-.toolbar-left,
-.toolbar-actions {
+.toolbar-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+}
+
+.toolbar-left {
+  justify-self: start;
+}
+
+.toolbar-center {
+  justify-self: center;
+}
+
+.toolbar-actions {
+  justify-self: end;
+  flex-wrap: nowrap;
+}
+
+.toolbar-text {
+  white-space: nowrap;
+}
+
+@media (max-width: 1179px) {
+  .builder-toolbar {
+    grid-template-columns: 1fr auto;
+  }
+  .toolbar-center {
+    grid-column: 1 / -1;
+    justify-self: center;
+    order: 3;
+  }
 }
 
 .history-controls {
@@ -1433,5 +1655,68 @@ onBeforeUnmount(() => {
     background: #fef2f2;
     border-color: #fecaca;
   }
+}
+
+.editor-delete-snack {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: #fff;
+  background: #2a1f17;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: #fbeadf;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  button.muted {
+    color: #a1968b;
+    font-weight: 400;
+  }
+}
+
+.ai-patch-list {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5ddd2;
+}
+
+.ai-patch-list__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b5b4e;
+  margin-bottom: 6px;
+}
+
+.ai-patch-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid #efeae3;
+}
+
+.ai-patch-row__text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #2c241c;
+}
+
+.ai-patch-row__actions {
+  display: flex;
+  gap: 6px;
 }
 </style>
