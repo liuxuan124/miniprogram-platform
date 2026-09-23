@@ -16,6 +16,7 @@ import { ComponentType as CT } from '@/types/page'
 import { getDefaultProps, getDefaultStyle } from '@/components/page-builder/componentRegistry'
 import { createWarmHomeTemplateComponents } from '@/components/page-builder/warmHomeTemplate'
 import { isWarmHomeShellOnly } from '@/utils/warmHomeExpand'
+import { defaultWarmDiscoverProps } from '@/constants/warmDiscoverDefaults'
 
 /** 生成唯一 ID */
 function generateId(): string {
@@ -123,6 +124,54 @@ function normalizePageType(type?: PageRecord['type']): string {
   return map[value] || 'custom'
 }
 
+function tryParseDsl(raw?: string | null): PageDSL | null {
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return null
+  try {
+    return JSON.parse(raw) as PageDSL
+  } catch {
+    return null
+  }
+}
+
+/** 从详情接口字段解析初始 DSL（优先有组件的草稿/线上稿） */
+function resolveInitialDsl(page: PageRecord): PageDSL {
+  const record = page as PageRecord & { dslContent?: string }
+  const candidates: PageDSL[] = []
+  if (page.dsl) candidates.push(JSON.parse(JSON.stringify(page.dsl)))
+  for (const raw of [record.draftDslContent, record.publishedDslContent, record.dslContent]) {
+    const parsed = tryParseDsl(raw)
+    if (parsed) candidates.push(parsed)
+  }
+  const withComponents = candidates.find((d) => Array.isArray(d.components) && d.components.length > 0)
+  if (withComponents) return JSON.parse(JSON.stringify(withComponents))
+  if (candidates[0]) return JSON.parse(JSON.stringify(candidates[0]))
+  return createEmptyDSL(page)
+}
+
+/** 打开编辑器时在内存中补全暖阁页展示（不写脏、不入历史栈） */
+function hydrateWarmPagesForEditor(target: PageDSL) {
+  const path = String(target.page?.path || '')
+  if (isWarmHomeShellOnly(target.components)) {
+    const shell = target.components.find((c) => c.type === CT.WarmHome)
+    const props = (shell?.props || {}) as Record<string, string>
+    const blocks = createWarmHomeTemplateComponents({
+      authorsTitle: props.authors_title || props.authorsTitle,
+      columnsTitle: props.columns_title || props.columnsTitle,
+      planetTitle: props.planet_title || props.planetTitle,
+    })
+    const floats = target.components.filter((c) => c.type === CT.FloatButton)
+    target.components = [...blocks, ...floats]
+    return
+  }
+  if (path.includes('warm-discover') || target.components.some((c) => c.type === CT.WarmDiscover)) {
+    const comp = target.components.find((c) => c.type === CT.WarmDiscover)
+    if (!comp) return
+    const tabs = comp.props?.tabs
+    if (Array.isArray(tabs) && tabs.length > 0) return
+    comp.props = defaultWarmDiscoverProps({ ...(comp.props || {}), title: comp.props?.title || '发现' })
+  }
+}
+
 /** 创建空白 DSL：用于新建页面首次装修 */
 function createEmptyDSL(page?: Partial<PageRecord>): PageDSL {
   return {
@@ -161,10 +210,36 @@ export const usePageStore = defineStore('page', () => {
   const dsl = ref<PageDSL>(createDefaultDSL())
   /** 当前选中的组件 ID */
   const selectedComponentId = ref<string | null>(null)
-  /** 是否有未保存的修改 */
+  /** 是否与上次成功落库的 DSL 不一致（用于离开拦截） */
   const isDirty = ref(false)
   /** 保存中 */
   const saving = ref(false)
+  /** 上次成功保存后的 DSL 快照（JSON） */
+  const lastSavedDslJson = ref('')
+  /** 本次打开编辑器时的基准 DSL，撤销不可越过 */
+  let sessionBaseline: PageDSL | null = null
+
+  const hasUnpersistedChanges = computed(
+    () => lastSavedDslJson.value !== JSON.stringify(dsl.value),
+  )
+
+  function recomputeDirty() {
+    isDirty.value = hasUnpersistedChanges.value
+  }
+
+  function markSavedToServer() {
+    lastSavedDslJson.value = JSON.stringify(dsl.value)
+    isDirty.value = false
+  }
+
+  function dslSnapshotKey(value: PageDSL): string {
+    return JSON.stringify(value)
+  }
+
+  function isSameDsl(a: PageDSL, b: PageDSL | null): boolean {
+    if (!b) return false
+    return dslSnapshotKey(a) === dslSnapshotKey(b)
+  }
 
   /** B1：撤销/重做历史栈 */
   const historyPast = ref<PageDSL[]>([])
@@ -186,9 +261,27 @@ export const usePageStore = defineStore('page', () => {
     }
   }
 
+  /** 去掉栈底早于本次打开页面的快照，避免跨会话式连撤 */
+  function pruneHistoryPastBaseline() {
+    while (historyPast.value.length > 0) {
+      const tail = historyPast.value[historyPast.value.length - 1]
+      if (sessionBaseline && isSameDsl(tail, sessionBaseline)) {
+        historyPast.value.pop()
+      } else {
+        break
+      }
+    }
+  }
+
   /** 立即打一条历史快照（结构性操作：增删移动复制等，每次都单独可撤销） */
   function commitHistory() {
-    historyPast.value.push(cloneDSL(dsl.value))
+    const snapshot = cloneDSL(dsl.value)
+    if (sessionBaseline && isSameDsl(snapshot, sessionBaseline)) return
+    if (historyPast.value.length) {
+      const last = historyPast.value[historyPast.value.length - 1]
+      if (dslSnapshotKey(last) === dslSnapshotKey(snapshot)) return
+    }
+    historyPast.value.push(snapshot)
     if (historyPast.value.length > MAX_HISTORY) {
       historyPast.value.shift()
     }
@@ -201,7 +294,15 @@ export const usePageStore = defineStore('page', () => {
    */
   function commitHistoryDebounced() {
     if (!historyMergePending) {
-      historyPast.value.push(cloneDSL(dsl.value))
+      const snapshot = cloneDSL(dsl.value)
+      if (sessionBaseline && isSameDsl(snapshot, sessionBaseline)) {
+        historyMergePending = true
+      } else if (
+        !historyPast.value.length
+        || dslSnapshotKey(historyPast.value[historyPast.value.length - 1]) !== dslSnapshotKey(snapshot)
+      ) {
+        historyPast.value.push(snapshot)
+      }
       if (historyPast.value.length > MAX_HISTORY) {
         historyPast.value.shift()
       }
@@ -227,7 +328,11 @@ export const usePageStore = defineStore('page', () => {
     historyFuture.value.push(cloneDSL(dsl.value))
     const prev = historyPast.value.pop() as PageDSL
     dsl.value = prev
-    isDirty.value = true
+    pruneHistoryPastBaseline()
+    if (sessionBaseline && isSameDsl(dsl.value, sessionBaseline)) {
+      historyPast.value = []
+    }
+    recomputeDirty()
     reconcileSelection()
   }
 
@@ -236,7 +341,7 @@ export const usePageStore = defineStore('page', () => {
     historyPast.value.push(cloneDSL(dsl.value))
     const next = historyFuture.value.pop() as PageDSL
     dsl.value = next
-    isDirty.value = true
+    recomputeDirty()
     reconcileSelection()
   }
 
@@ -269,20 +374,12 @@ export const usePageStore = defineStore('page', () => {
   /** 设置当前页面 */
   function setCurrentPage(page: PageRecord) {
     currentPage.value = page
-    if (page.dsl) {
-      dsl.value = JSON.parse(JSON.stringify(page.dsl))
-    } else if (page.draftDslContent) {
-      try {
-        dsl.value = JSON.parse(page.draftDslContent)
-      } catch {
-        dsl.value = createEmptyDSL(page)
-      }
-    } else {
-      dsl.value = createEmptyDSL(page)
-    }
-    selectedComponentId.value = null
-    isDirty.value = false
+    dsl.value = resolveInitialDsl(page)
+    hydrateWarmPagesForEditor(dsl.value)
+    selectedComponentId.value = dsl.value.components[0]?.id || null
+    sessionBaseline = cloneDSL(dsl.value)
     resetHistory()
+    markSavedToServer()
   }
 
   /** 重置编辑器 */
@@ -290,6 +387,8 @@ export const usePageStore = defineStore('page', () => {
     currentPage.value = null
     dsl.value = createEmptyDSL()
     selectedComponentId.value = null
+    sessionBaseline = null
+    lastSavedDslJson.value = ''
     isDirty.value = false
     resetHistory()
   }
@@ -310,7 +409,7 @@ export const usePageStore = defineStore('page', () => {
     const floats = dsl.value.components.filter((c) => c.type === CT.FloatButton)
     dsl.value.components = [...blocks, ...floats]
     selectedComponentId.value = blocks[0]?.id || null
-    isDirty.value = true
+    recomputeDirty()
     return true
   }
 
@@ -325,7 +424,7 @@ export const usePageStore = defineStore('page', () => {
         dsl.value.components.push(...blocks)
       }
       selectedComponentId.value = blocks[0]?.id || null
-      isDirty.value = true
+      recomputeDirty()
       return blocks[0]
     }
     commitHistory()
@@ -343,7 +442,7 @@ export const usePageStore = defineStore('page', () => {
       dsl.value.components.push(comp)
     }
     selectedComponentId.value = comp.id
-    isDirty.value = true
+    recomputeDirty()
     return comp
   }
 
@@ -362,7 +461,7 @@ export const usePageStore = defineStore('page', () => {
       dsl.value.components.push(comp)
     }
     selectedComponentId.value = comp.id
-    isDirty.value = true
+    recomputeDirty()
     return comp
   }
 
@@ -375,7 +474,7 @@ export const usePageStore = defineStore('page', () => {
       if (selectedComponentId.value === id) {
         selectedComponentId.value = null
       }
-      isDirty.value = true
+      recomputeDirty()
     }
   }
 
@@ -390,7 +489,7 @@ export const usePageStore = defineStore('page', () => {
     if (comp) {
       commitHistoryDebounced()
       comp.props = { ...comp.props, ...props }
-      isDirty.value = true
+      recomputeDirty()
     }
   }
 
@@ -404,7 +503,7 @@ export const usePageStore = defineStore('page', () => {
         if (style[key] === undefined) delete next[key]
       })
       comp.style = next
-      isDirty.value = true
+      recomputeDirty()
     }
   }
 
@@ -422,7 +521,7 @@ export const usePageStore = defineStore('page', () => {
     }
     if (!parent.children) parent.children = []
     parent.children.push(child)
-    isDirty.value = true
+    recomputeDirty()
     return child
   }
 
@@ -432,7 +531,7 @@ export const usePageStore = defineStore('page', () => {
     if (!parent?.children) return
     commitHistory()
     parent.children.splice(childIndex, 1)
-    isDirty.value = true
+    recomputeDirty()
   }
 
   /** 移动组件 */
@@ -442,7 +541,7 @@ export const usePageStore = defineStore('page', () => {
     const list = dsl.value.components
     const [item] = list.splice(fromIndex, 1)
     list.splice(toIndex, 0, item)
-    isDirty.value = true
+    recomputeDirty()
   }
 
   /** 复制组件 */
@@ -457,21 +556,27 @@ export const usePageStore = defineStore('page', () => {
     }
     dsl.value.components.splice(idx + 1, 0, newComp)
     selectedComponentId.value = newComp.id
-    isDirty.value = true
+    recomputeDirty()
   }
 
   /** 更新页面配置 */
   function updatePageConfig(config: Partial<PageConfig>) {
     commitHistoryDebounced()
     dsl.value.page = { ...dsl.value.page, ...config }
-    isDirty.value = true
+    recomputeDirty()
+  }
+
+  /** 同步元数据到 DSL，不打历史、不单独标脏（随整体 DSL 保存） */
+  function updatePageConfigSilent(config: Partial<PageConfig>) {
+    dsl.value.page = { ...dsl.value.page, ...config }
+    recomputeDirty()
   }
 
   /** 更新全局配置 */
   function updateGlobalConfig(config: Partial<GlobalConfig>) {
     commitHistory()
     dsl.value.global_config = { ...dsl.value.global_config, ...config }
-    isDirty.value = true
+    recomputeDirty()
   }
 
   /** 应用模板 DSL */
@@ -483,7 +588,7 @@ export const usePageStore = defineStore('page', () => {
       comp.id = generateId()
     })
     selectedComponentId.value = null
-    isDirty.value = true
+    recomputeDirty()
   }
 
   /** 序列化 DSL 为 JSON */
@@ -500,11 +605,13 @@ export const usePageStore = defineStore('page', () => {
     pageConfig,
     globalConfig,
     isDirty,
+    hasUnpersistedChanges,
     saving,
     canUndo,
     canRedo,
     undo,
     redo,
+    markSavedToServer,
     setCurrentPage,
     resetEditor,
     addComponent,
@@ -518,6 +625,7 @@ export const usePageStore = defineStore('page', () => {
     moveComponent,
     duplicateComponent,
     updatePageConfig,
+    updatePageConfigSilent,
     updateGlobalConfig,
     applyTemplate,
     serializeDSL,
