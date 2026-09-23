@@ -141,8 +141,16 @@ const rendererMap: Record<string, any> = {
 
 const warnedUnknownTypes = new Set<string>()
 
+/** 历史 DSL / 外部组件别名 → 已注册类型 */
+const COMPONENT_TYPE_ALIASES: Record<string, string> = {
+  'flow-ai-assistant': ComponentType.AIEntry,
+  flow_ai_assistant: ComponentType.AIEntry,
+  'flow-ai': ComponentType.AIEntry,
+}
+
 function resolveRenderer(type: string) {
-  if (rendererMap[type]) return rendererMap[type]
+  const key = COMPONENT_TYPE_ALIASES[type] || type
+  if (rendererMap[key]) return rendererMap[key]
   if (!warnedUnknownTypes.has(type)) {
     warnedUnknownTypes.add(type)
     console.warn(`[page-builder] 未知组件 type "${type}"，画布以占位展示，小程序端将跳过渲染`)

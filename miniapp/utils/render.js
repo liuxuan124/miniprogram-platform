@@ -85,6 +85,18 @@ const COMPONENT_TYPES = {
   WARM_MINE: 'warm_mine',
 }
 
+/** 历史/外部组件 type 别名 → 已支持类型 */
+const COMPONENT_TYPE_ALIASES = {
+  'flow-ai-assistant': 'ai_entry',
+  flow_ai_assistant: 'ai_entry',
+  'flow-ai': 'ai_entry',
+}
+
+function normalizeComponentType(type) {
+  if (!type) return type
+  return COMPONENT_TYPE_ALIASES[type] || type
+}
+
 // 需要数据源的组件类型
 const DATASOURCE_COMPONENTS = [
   COMPONENT_TYPES.NOTICE_BAR,
@@ -126,7 +138,8 @@ function validateDSL(dsl) {
       }
       // 校验组件类型
       const validTypes = Object.values(COMPONENT_TYPES)
-      if (comp.type && !validTypes.includes(comp.type)) {
+      const norm = normalizeComponentType(comp.type)
+      if (comp.type && !validTypes.includes(norm)) {
         console.warn(`[RenderEngine] 跳过未知组件类型: ${comp.type}`)
       }
     })
@@ -218,7 +231,8 @@ function parseActions(actions) {
  */
 function processComponent(component) {
   const validTypes = Object.values(COMPONENT_TYPES)
-  if (component.type && !validTypes.includes(component.type)) {
+  const normalizedType = normalizeComponentType(component.type)
+  if (component.type && !validTypes.includes(normalizedType)) {
     console.warn('[RenderEngine] 跳过未知组件类型:', component.type)
     return {
       id: component.id,
@@ -227,6 +241,9 @@ function processComponent(component) {
       visible: false,
       props: component.props || {},
     }
+  }
+  if (normalizedType !== component.type) {
+    component = { ...component, type: normalizedType }
   }
   let styleString = parseStyle(component.style || {})
   const rawStyle = component.style || {}

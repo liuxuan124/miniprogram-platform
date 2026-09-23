@@ -224,6 +224,13 @@
                 上传新代码包
               </button>
             </div>
+            <div class="note" style="margin-top: 12px; line-height: 1.55">
+              <b>体验版上传（需技术同事操作）</b><br />
+              1. 在微信公众平台下载「代码上传密钥」.key，勿提交到 git。<br />
+              2. 服务器配置 AppID、密钥路径（见运维文档或 <code>config/backend.env</code> 中的微信相关项）。<br />
+              3. 点「上传新代码包」→ 选择目标 AppID → 上传；成功后用微信扫码体验版查看真机效果。<br />
+              4. 仅改页面内容走本页「发布第 N 次」即可，不必每次上传代码包；<code>render.js</code> 等小程序逻辑变更后才需重新上传。
+            </div>
           </template>
           <div class="note ok" style="margin-top: 14px">正式版运行正常。内容发布不需要动这里。</div>
         </section>

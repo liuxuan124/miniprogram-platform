@@ -31,7 +31,7 @@
             <el-button link type="primary" size="small" @click="handleRollback(row)">
               <el-icon><RefreshLeft /></el-icon>回滚
             </el-button>
-            <el-button link type="primary" size="small" @click="handleViewDSL(row)">
+            <el-button v-if="showDslActions" link type="primary" size="small" @click="handleViewDSL(row)">
               <el-icon><Document /></el-icon>DSL
             </el-button>
           </template>
@@ -160,6 +160,9 @@ import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+/** 运营环境默认隐藏 DSL；本地开发或 ?dev=1 可见 */
+const showDslActions = computed(() => import.meta.env.DEV || String(route.query.dev || '') === '1')
 
 const pageId = computed(() => Number(route.params.id))
 const versionList = ref<VersionRecord[]>([])
