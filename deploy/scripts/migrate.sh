@@ -9,13 +9,15 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SQL_DIR="$ROOT/backend/src/main/resources/db/migration"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_PORT="${DB_PORT:-3306}"
-DB_USER="${DB_USER:-root}"
+DB_USER="${DB_USER:-${DB_USERNAME:-root}}"
 DB_NAME="${DB_NAME:-miniprogram_prod}"
 
 if [[ -n "${DB_PASS:-}" ]]; then
   export MYSQL_PWD="$DB_PASS"
+elif [[ -n "${DB_PASSWORD:-}" ]]; then
+  export MYSQL_PWD="$DB_PASSWORD"
 elif [[ -z "${MYSQL_PWD:-}" ]]; then
-  echo "请设置 DB_PASS 或 MYSQL_PWD" >&2
+  echo "请设置 DB_PASS、DB_PASSWORD 或 MYSQL_PWD" >&2
   exit 1
 fi
 

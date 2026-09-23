@@ -206,7 +206,8 @@ public class GlobalExceptionHandler {
         log.error("数据库异常 [{}] {}", request.getMethod(), request.getRequestURI(), e);
         String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
         if (msg != null && msg.toLowerCase().contains("unknown column")) {
-            return R.fail("数据库结构未升级，请执行最新迁移后重试（优惠券领取范围相关字段）");
+            String hint = msg.length() > 200 ? msg.substring(0, 200) + "…" : msg;
+            return R.fail("数据库结构未升级，请在服务器执行 deploy/scripts/migrate.sh（或补跑缺失的 V*.sql）后重启后端。详情：" + hint);
         }
         return R.fail("数据保存失败，请稍后重试");
     }
