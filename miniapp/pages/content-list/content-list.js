@@ -9,7 +9,7 @@ const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { openContentDetail } = require('../../utils/content-id')
 const { DEMO_LIST } = require('../../data/warm-demo')
-const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE } = require('../../data/warm-source')
 const { DEFAULT_AVATAR, DEFAULT_PRODUCT } = require('../../utils/image-fallback')
 
 const LOCAL_DEMO = FORCE_LOCAL_DEMO || USE_LOCAL_SOURCE
@@ -104,7 +104,6 @@ function applyLocalList(page) {
   ))
   if (!demoCats.length || demoCats[0].id !== 'all') demoCats.unshift(ALL_CAT)
   page.setData({
-    themePageStyle: WARM_PAGE_STYLE,
     dslPending: false,
     dslMode: false,
     loading: false,
@@ -129,7 +128,6 @@ Page({
   ...createSharePageConfig(),
   data: {
     ...TAB_DSL_INITIAL,
-    themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
     cats: [ALL_CAT],
     activeCat: 'all',
@@ -164,7 +162,7 @@ Page({
   },
 
   onShow() {
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     showTabBarForRoute(this, '/pages/content-list/content-list')
   },
 

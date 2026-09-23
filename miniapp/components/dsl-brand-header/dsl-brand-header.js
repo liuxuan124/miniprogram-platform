@@ -1,5 +1,6 @@
 // components/dsl-brand-header/dsl-brand-header.js — 品牌顶栏
 const { getNavLayout } = require('../../utils/nav-layout')
+const { getPrimaryColor } = require('../../utils/theme')
 
 function resolveLogoText(raw) {
   if (raw === undefined || raw === null) return ''
@@ -74,7 +75,8 @@ Component({
       const logoMaxW = Number(cfg.logo_max_width) > 0 ? Number(cfg.logo_max_width) : 88
       const padL = Number(cfg.bar_padding_left) >= 0 ? Number(cfg.bar_padding_left) : 12
       const padR = Number(cfg.bar_padding_right) >= 0 ? Number(cfg.bar_padding_right) : 12
-      const logoTextColor = cfg.logo_text_color || (isGradient ? '#ffffff' : '#002FA7')
+      const brandPrimary = getPrimaryColor()
+      const logoTextColor = cfg.logo_text_color || (isGradient ? '#ffffff' : brandPrimary)
       const dividerColor = cfg.divider_color || (isGradient ? 'rgba(255,255,255,0.35)' : '#d0d8e8')
       const fixedTop = cfg.fixed_top !== false
 
@@ -100,11 +102,12 @@ Component({
     },
 
     _syncStyles(cfg, shellStyle) {
+      const brandPrimary = getPrimaryColor()
       const styleType = (cfg && cfg.style_type) === 'gradient' ? 'gradient' : 'plain'
       let barBgStyle = ''
       if (styleType === 'gradient') {
-        const from = (cfg && cfg.gradient_from) || '#002FA7'
-        const to = (cfg && cfg.gradient_to) || '#1A4BBF'
+        const from = (cfg && cfg.gradient_from) || brandPrimary
+        const to = (cfg && cfg.gradient_to) || brandPrimary
         barBgStyle = 'background:linear-gradient(90deg,' + from + ' 0%,' + to + ' 100%);'
       } else {
         barBgStyle = 'background:' + ((cfg && cfg.background_color) || '#ffffff') + ';'

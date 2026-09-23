@@ -6,7 +6,7 @@ const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
 const { requestPayment } = require('../../utils/payment')
 const { requestOrderSubscribe } = require('../../utils/subscribe')
-const { WARM_PAGE_STYLE } = require('../../data/warm-source')
+const {}  = require('../../data/warm-source')
 
 function readWalletBalance() {
   const user = AuthUtil.getUserInfo() || {}
@@ -23,7 +23,6 @@ function itemName(item) {
 
 Page({
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     // 来源
     from: '', // 'cart' | 'buy_now'
 
@@ -140,7 +139,7 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     if (!AuthUtil.requireLoginForAction('创建订单', {
       onSuccess: () => this._initializePage(options),
     })) return
@@ -163,7 +162,6 @@ Page({
       couponLabel,
       couponType,
       couponValue,
-      themePageStyle: WARM_PAGE_STYLE,
     })
 
     if (options.items) {

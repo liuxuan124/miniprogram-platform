@@ -183,23 +183,14 @@ function normalizeOrderTabLabels(raw) {
   }
 }
 
+/** 我的页布局皮肤：仅认后台显式 templateStyle，不再根据 themeColor 十六进制自动切蓝/金 */
 function resolveMineStyleKey(mine) {
   if (!mine) return 'warm'
   const raw = String(mine.templateStyle || '').trim().toLowerCase()
-  if (raw === 'warm' || raw === 'nuange' || raw === 'content') return 'warm'
   if (raw === 'member' || raw === 'premium') return 'member'
-  if (raw === 'basic' || raw === 'standard') return 'basic'
-  if (raw === 'minimal' || raw === 'dark' || raw === 'simple') return 'basic'
-  const tc = String(mine.themeColor || '').toLowerCase()
-  if (
-    tc === '#c2410c' || tc === '#ea580c' || tc === '#7c2d12' || tc === '#d97706'
-    || tc === '#b45309' || tc === '#9a3412'
-  ) return 'warm'
-  if (
-    tc === '#b8860b' || tc === '#9a7b1c' || tc === '#d4af37' || tc === '#f0d060'
-    || tc === '#6b9fd9' || tc === '#9bbfe8' || tc === '#e8eef8'
-  ) return 'member'
-  if (tc === '#5b7fea' || tc === '#7ba3f7' || tc === '#002fa7' || tc === '#315efb') return 'basic'
+  if (raw === 'basic' || raw === 'standard' || raw === 'minimal' || raw === 'dark' || raw === 'simple') {
+    return 'basic'
+  }
   return 'warm'
 }
 

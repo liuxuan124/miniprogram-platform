@@ -638,7 +638,7 @@
   width: 52rpx;
   height: 52rpx;
   border-radius: 50%;
-  background: linear-gradient(145deg, #6d8cff, #315efb);
+  background: linear-gradient(145deg, var(--brand), var(--accent, var(--brand)));
   color: #fff;
   font-size: 22rpx;
   font-weight: 700;
@@ -1170,7 +1170,7 @@
   height: 64rpx;
   margin-right: 16rpx;
   border-radius: 50%;
-  background: linear-gradient(145deg, #6d8cff, #315efb);
+  background: linear-gradient(145deg, var(--brand), var(--accent, var(--brand)));
   color: #fff;
   font-size: 26rpx;
   font-weight: 700;
@@ -1248,7 +1248,7 @@
   height: 72rpx;
   padding: 0 28rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #315efb, #5980ff);
+  background: linear-gradient(135deg, var(--brand), var(--accent, var(--brand)));
   color: #fff;
   font-size: 26rpx;
   font-weight: 700;

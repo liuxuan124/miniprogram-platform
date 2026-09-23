@@ -6,7 +6,7 @@ const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const warmShop = require('../../data/warm-shop')
-const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
 
 const { blockTradeNavigation } = require('../../utils/product-module-gate')
 
@@ -164,7 +164,6 @@ Page({
     ...TAB_DSL_INITIAL,
     dslPending: true,
     loading: !USE_LOCAL_SOURCE,
-    themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
     vip: USE_LOCAL_SOURCE ? DEMO_SHOP.vip : Object.assign({}, warmShop.VIP_BAR),
     cats: CATS,
@@ -185,9 +184,9 @@ Page({
   onLoad() {
     try {
       const sys = wx.getSystemInfoSync()
-      this.setData({ statusBarHeight: sys.statusBarHeight || 20, themePageStyle: WARM_PAGE_STYLE })
+      this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
     } catch (e) {
-      this.setData({ themePageStyle: WARM_PAGE_STYLE })
+      
     }
     this._startCountdown()
     if (USE_LOCAL_SOURCE) {
@@ -209,7 +208,7 @@ Page({
 
   onShow() {
     wx.hideTabBar({ animation: false, fail() {} })
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       showTabBarForRoute(this, '/pages/shop/shop')
     }

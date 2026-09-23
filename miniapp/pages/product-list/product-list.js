@@ -4,7 +4,7 @@ const productService = require('../../services/product')
 const SystemService = require('../../services/system')
 const { createSharePageConfig } = require('../../utils/share')
 const { resolveMediaUrl } = require('../../utils/media-url')
-const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE } = require('../../data/warm-source')
 
 const LOCAL_DEMO = FORCE_LOCAL_DEMO || USE_LOCAL_SOURCE
 
@@ -81,7 +81,6 @@ function mapProduct(item) {
 Page({
   ...createSharePageConfig(),
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     keyword: '',
     categories: [],
     activeCategoryId: '',

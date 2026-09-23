@@ -76,14 +76,10 @@ function resolveHasMore(data, page, pageSize, fetchedLen) {
   return fetchedLen >= pageSize
 }
 
+const { getPrimaryColor } = require('../../utils/theme')
+
 function resolveThemePrimary() {
-  try {
-    const app = getApp()
-    const theme = (app && app.globalData && app.globalData.miniappThemeConfig) || {}
-    return theme.primaryColor || theme.tabBarActiveColor || '#002FA7'
-  } catch (e) {
-    return '#002FA7'
-  }
+  return getPrimaryColor()
 }
 
 function hexToRgba(hex, alpha) {
@@ -101,7 +97,7 @@ function hexToRgba(hex, alpha) {
 }
 
 function buildActiveTabStyle(primary) {
-  const color = primary || '#002FA7'
+  const color = primary || getPrimaryColor()
   return `color:${color};background:${hexToRgba(color, 0.12)};font-weight:700;`
 }
 

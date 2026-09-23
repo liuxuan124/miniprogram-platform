@@ -1,6 +1,6 @@
 const request = require('../../utils/request')
 const { resolveMediaUrl } = require('../../utils/media-url')
-const { WARM_PAGE_STYLE } = require('../../data/warm-source')
+const {}  = require('../../data/warm-source')
 const warmHome = require('../../data/warm-home')
 
 function mapAuthor(row) {
@@ -17,7 +17,6 @@ function mapAuthor(row) {
 
 Page({
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     loading: true,
     loadError: false,
     list: [],

@@ -42,6 +42,8 @@ export type MiniSiteVO = {
   miniappHomePageId?: number | null
   wechatCodeVersion?: string | null
   pendingCount?: number
+  minePageConfig?: Record<string, unknown> | null
+  brand?: Record<string, unknown> | null
 }
 
 export type PendingChangeItem = {
@@ -104,6 +106,8 @@ export type MiniSiteUpdatePayload = {
   slogan?: string
   theme?: Record<string, unknown>
   tabBar?: MiniTabBarItem[]
+  minePageConfig?: Record<string, unknown>
+  brandConfig?: Record<string, unknown>
 }
 
 function unwrap<T>(res: any): T {

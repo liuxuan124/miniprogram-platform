@@ -18,6 +18,7 @@ const {
   computeCanSubmit,
   applyRememberedProfile,
 } = require('../../utils/login-flow')
+const { getThemePageStyle } = require('../../utils/theme')
 
 Component({
   data: {
@@ -41,6 +42,7 @@ Component({
     brandMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
     brandLogoUrl: DEFAULT_BRAND_LOGO,
     brandTagline: DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline,
+    themeVars: '',
   },
 
   lifetimes: {
@@ -76,6 +78,7 @@ Component({
       this.setData({
         mounted: true,
         visible: true,
+        themeVars: getThemePageStyle(),
         interceptAction: options.action || '',
         showPrivacyPopup: false,
         nicknameFocused: false,

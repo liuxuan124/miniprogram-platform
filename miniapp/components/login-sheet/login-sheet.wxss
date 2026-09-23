@@ -1,6 +1,4 @@
 .login-overlay {
-  --brand: #c2410c;
-  --brand-deep: #ea580c;
   --ink: #2a1f16;
   --ink-3: #9a8574;
   --panel-bg: #f8f1e7;

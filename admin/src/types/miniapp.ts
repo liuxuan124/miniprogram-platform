@@ -471,5 +471,5 @@ export const DEFAULT_MINIAPP_BRAND_CONFIG: MiniappBrandConfig = {
   logoMark: '品',
   loginTagline: '想认识一下你，可以吗？',
   brandEyebrow: 'MINIAPP',
-  loginStyleKey: 'classic',
+  loginStyleKey: 'warm',
 }

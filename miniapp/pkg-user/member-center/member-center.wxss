@@ -10,7 +10,7 @@
   margin: 20rpx 24rpx;
   border-radius: 32rpx;
   overflow: hidden;
-  background: linear-gradient(135deg, #152443, #315efb);
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand));
   box-shadow: 0 20rpx 46rpx rgba(36, 70, 175, 0.22);
 }
 
@@ -186,7 +186,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand), #6386ff);
+  background: linear-gradient(90deg, var(--brand), var(--accent, var(--brand)));
   border-radius: 8rpx;
   transition: width 0.3s ease;
 }

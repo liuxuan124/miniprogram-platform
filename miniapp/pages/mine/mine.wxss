@@ -13,14 +13,11 @@
   padding: 0 36rpx 92rpx;
   color: #fff;
   overflow: hidden;
-  background: linear-gradient(150deg, #7c2d12, #b45309 58%, #d97706);
-}
-.mn-page--basic .mn-hero {
-  background: linear-gradient(150deg, #4f6fdc, #5b7fea 55%, #7ba3f7);
+  background: linear-gradient(150deg, var(--brand-dark), var(--brand) 58%, var(--accent, var(--brand)));
 }
 .mn-page--member .mn-hero {
   color: #1e3a5f;
-  background: linear-gradient(150deg, #9bbfe8, #c5d8f0 55%, #e8eef8);
+  background: linear-gradient(150deg, var(--brand-soft), var(--brand-100) 55%, var(--page-bg, var(--bg)));
 }
 .mn-page--member .mn-hero__sb,
 .mn-page--member .mn-st__s,
@@ -118,22 +115,12 @@
   display: flex;
   align-items: center;
   gap: 22rpx;
-  background: linear-gradient(120deg, #3b2110, #5c3418);
-  color: #f8e3c6;
-  box-shadow: 0 28rpx 60rpx rgba(60, 30, 10, 0.28);
-}
-.mn-page--basic .mn-vip {
-  background: linear-gradient(120deg, #2446c7, #315efb);
-  color: #eef3ff;
-  box-shadow: 0 28rpx 60rpx rgba(49, 94, 251, 0.22);
-}
-.mn-page--basic .mn-vip__h { color: #fff; }
-.mn-page--basic .mn-vip__b {
-  color: #2446c7;
-  background: linear-gradient(135deg, #fff, #dbe7ff);
+  background: linear-gradient(120deg, var(--brand-dark), var(--brand));
+  color: #fff;
+  box-shadow: 0 28rpx 60rpx rgba(0, 0, 0, 0.12);
 }
 .mn-page--member .mn-vip {
-  background: linear-gradient(120deg, #6b9fd9, #9bbfe8);
+  background: linear-gradient(120deg, var(--brand), var(--accent, var(--brand)));
   color: #102a43;
   box-shadow: 0 28rpx 60rpx rgba(107, 159, 217, 0.22);
 }

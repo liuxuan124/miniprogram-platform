@@ -3,7 +3,7 @@ const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const warmDiscover = require('../../data/warm-discover')
-const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
 const { loadTabBoundDslPage, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const request = require('../../utils/request')
 const productService = require('../../services/product')
@@ -464,7 +464,6 @@ const DEMO_ALL_ROWS = buildFeedRows(warmDiscover.listForTab('all'))
 Page({
   ...createSharePageConfig(),
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
     discoverTabsConfig: DEFAULT_TABS,
     tabs: DEFAULT_TABS.map((t) => ({ key: t.key, label: t.label })),
@@ -530,7 +529,7 @@ Page({
 
   onShow() {
     wx.hideTabBar({ animation: false, fail() {} })
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       showTabBarForRoute(this, '/pages/discover/discover')
     }

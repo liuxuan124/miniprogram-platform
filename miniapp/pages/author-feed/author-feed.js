@@ -1,6 +1,6 @@
 const request = require('../../utils/request')
 const { resolveMediaUrl } = require('../../utils/media-url')
-const { WARM_PAGE_STYLE } = require('../../data/warm-source')
+const {}  = require('../../data/warm-source')
 const { openContentDetail } = require('../../utils/content-id')
 
 function formatViews(n) {
@@ -30,7 +30,6 @@ function mapRow(item) {
 
 Page({
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     author: '',
     authorId: '',
     loading: true,
