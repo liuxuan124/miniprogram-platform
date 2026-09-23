@@ -9,22 +9,22 @@
       <span class="toolbar-label">{{ label }}</span>
       <div class="toolbar-actions">
         <el-tooltip content="上移" placement="top" :show-after="300">
-          <el-button text size="small" :disabled="index === 0" @click.stop="$emit('move-up')">
+          <el-button text size="small" aria-label="上移组件" :disabled="index === 0" @click.stop="$emit('move-up')">
             <el-icon><Top /></el-icon>
           </el-button>
         </el-tooltip>
         <el-tooltip content="下移" placement="top" :show-after="300">
-          <el-button text size="small" @click.stop="$emit('move-down')">
+          <el-button text size="small" aria-label="下移组件" @click.stop="$emit('move-down')">
             <el-icon><Bottom /></el-icon>
           </el-button>
         </el-tooltip>
         <el-tooltip content="复制" placement="top" :show-after="300">
-          <el-button text size="small" @click.stop="$emit('copy')">
+          <el-button text size="small" aria-label="复制组件" @click.stop="$emit('copy')">
             <el-icon><CopyDocument /></el-icon>
           </el-button>
         </el-tooltip>
         <el-tooltip content="删除" placement="top" :show-after="300">
-          <el-button text size="small" type="danger" @click.stop="$emit('delete')">
+          <el-button text size="small" type="danger" aria-label="删除组件" @click.stop="$emit('delete')">
             <el-icon><Delete /></el-icon>
           </el-button>
         </el-tooltip>
