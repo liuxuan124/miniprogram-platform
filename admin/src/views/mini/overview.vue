@@ -3,144 +3,67 @@
     <MiniSkeleton v-if="!loaded" kind="overview" />
     <div v-else class="ov">
       <div class="ov-main">
+        <MiniOpsConceptBanner
+          variant="overview"
+          :live-release-no="site.liveReleaseNo"
+          :live-release-at="site.liveReleaseAt ? formatShort(site.liveReleaseAt) : null"
+          :publisher-name="site.livePublisherName"
+          :pending-count="Number(site.pendingCount ?? pending.length ?? 0)"
+        />
         <div>
-          <h1 class="h1">
-            {{ site.name || '小程序' }}
-            <template v-if="site.slogan"> · {{ site.slogan }}</template>
-          </h1>
-          <div class="sub ov-meta">
-            <span class="tag t-live">运营中</span>
-            <span>整店模板：{{ templateLabel }}</span>
-            <span v-if="site.liveReleaseNo != null">
-              线上：第 {{ site.liveReleaseNo }} 次发布
-              <template v-if="site.liveReleaseAt"> · {{ formatShort(site.liveReleaseAt) }}</template>
-            </span>
-            <span v-else>线上：尚未发布</span>
-            <span>微信代码 {{ wechatCodeLabel }}</span>
-          </div>
+          <h1 class="h1">概览</h1>
+          <div class="sub">只看状态，不做配置；改导航与配色请去「外观」</div>
         </div>
 
         <div class="ways">
-          <button type="button" class="way hi" @click="router.push('/mini/pages/new-ai')">
+          <button type="button" class="way hi" @click="editHomePage">
+            <MiniIcon name="page" :size="20" />
+            <span>
+              <b>改首页</b>
+              <span class="muted" style="font-size: 12.5px">进入底部导航绑定的首页装修</span>
+            </span>
+          </button>
+          <button type="button" class="way" @click="router.push('/mini/pages/new-ai')">
             <MiniIcon name="spark" :size="20" />
             <span>
-              <b>AI 生成页面</b>
-              <span class="muted" style="font-size: 12.5px">说出需求，AI 生成草稿，再手动微调</span>
+              <b>新建活动页</b>
+              <span class="muted" style="font-size: 12.5px">AI 或模板生成，再发布上线</span>
             </span>
           </button>
-          <button
-            type="button"
-            class="way"
-            @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
-          >
-            <MiniIcon name="grid" :size="20" />
+          <button type="button" class="way" @click="goPublish">
+            <MiniIcon name="send" :size="20" />
             <span>
-              <b>从模板新建</b>
-              <span class="muted" style="font-size: 12.5px">按行业场景挑页面模板或整店模板</span>
-            </span>
-          </button>
-          <button type="button" class="way" :disabled="creatingBlank" @click="createBlank">
-            <MiniIcon name="plus" :size="20" />
-            <span>
-              <b>空白页面</b>
-              <span class="muted" style="font-size: 12.5px">从组件开始自由搭建</span>
+              <b>发布</b>
+              <span class="muted" style="font-size: 12.5px">确认待发布改动并上线</span>
             </span>
           </button>
         </div>
 
-        <section class="card">
-          <div class="head" style="margin-bottom: 14px">
-            <div>
-              <h2 class="h2">底部导航</h2>
-              <div class="sub">拖动卡片排序；点卡片改名称、换绑定页面或进入装修</div>
-            </div>
+        <section class="card status-card">
+          <h2 class="h2">线上状态</h2>
+          <div class="kv">
+            <span class="muted">版本</span>
+            <b>第 {{ site.liveReleaseNo ?? '—' }} 次发布</b>
           </div>
-          <div class="tabs-edit">
-            <draggable
-              v-model="sortableTabBar"
-              item-key="__key"
-              handle=".tab-drag"
-              class="tabs-edit-inner"
-              :animation="180"
-              @end="onTabDragEnd"
-            >
-              <template #item="{ element: tab, index: i }">
-                <button
-                  type="button"
-                  class="tabcard"
-                  :class="{ err: isTabUnbound(tab) }"
-                  @click="openTabDrawer(i)"
-                >
-                  <span class="faint tabcard-top">
-                    <span>导航 {{ i + 1 }}</span>
-                    <span class="tab-drag" title="拖拽排序" @click.stop>
-                      <MiniIcon name="drag" :size="14" />
-                    </span>
-                  </span>
-                  <span class="t">
-                    {{ tab.text || `导航 ${i + 1}` }}
-                    <span v-if="isMineTab(tab)" class="faint" title="系统页，路径固定">
-                      <MiniIcon name="lock" :size="13" />
-                    </span>
-                  </span>
-                  <span class="faint" style="font-size: 12px">→ {{ tabBindLabel(tab) === '未绑定' ? '未绑定页面' : tabBindLabel(tab) }}</span>
-                  <span>
-                    <span
-                      class="tag"
-                      :class="tabStatusTagClass(tab)"
-                    >{{ tabStatus(tab).label === '未绑定' ? '需绑定' : tabStatus(tab).label }}</span>
-                  </span>
-                </button>
-              </template>
-            </draggable>
-            <button
-              v-if="tabBar.length < 5"
-              type="button"
-              class="tabadd"
-              @click="addTabSlot"
-            >
-              <MiniIcon name="plus" :size="18" />
-              <span>添加入口</span>
-            </button>
+          <div class="kv">
+            <span class="muted">时间</span>
+            <b>{{ site.liveReleaseAt ? formatShort(site.liveReleaseAt) : '尚未发布' }}</b>
           </div>
-        </section>
-
-        <section class="card">
-          <div class="head" style="margin-bottom: 12px">
-            <div>
-              <h2 class="h2">品牌配色</h2>
-              <div class="sub">主色用于导航选中态、按钮和强调组件</div>
-            </div>
+          <div class="kv">
+            <span class="muted">发布人</span>
+            <b>{{ site.livePublisherName || '—' }}</b>
           </div>
-          <div class="swatches">
-            <button
-              v-for="c in THEMES"
-              :key="c"
-              type="button"
-              class="sw"
-              :class="{ on: shownTheme === c }"
-              :style="{ background: c }"
-              :aria-label="`主色 ${c}`"
-              :aria-pressed="shownTheme === c"
-              :disabled="savingTheme"
-              @click="pickTheme(c)"
-            />
+          <div class="kv">
+            <span class="muted">整店模板</span>
+            <b>{{ templateLabel }}</b>
           </div>
-          <div v-if="themeDirty" class="theme-bar">
-            <span class="faint">未保存 · 右侧预览已按 {{ pendingTheme }} 显示</span>
-            <button type="button" class="btn sm" :disabled="savingTheme" @click="discardTheme">
-              放弃
-            </button>
-            <button type="button" class="btn sm primary" :disabled="savingTheme" @click="saveTheme">
-              {{ savingTheme ? '保存中…' : '保存为待发布' }}
-            </button>
+          <div class="kv">
+            <span class="muted">待发布</span>
+            <b>{{ pendingCountText }}</b>
           </div>
-          <div v-else-if="undoTheme" class="theme-bar">
-            <span class="faint">已存为待发布，用户还看不到</span>
-            <button type="button" class="link" :disabled="savingTheme" @click="revertTheme">
-              撤销，改回 {{ undoTheme }}
-            </button>
-          </div>
+          <button type="button" class="link" style="margin-top: 8px" @click="router.push('/mini/appearance')">
+            外观设置（导航 / 配色）›
+          </button>
         </section>
 
         <div class="row lower-row">
@@ -237,104 +160,35 @@
       title="扫码在手机上看"
     />
 
-    <el-drawer
-      v-model="drawerVisible"
-      class="mini-wb-overlay"
-      :title="drawerIndex == null ? '编辑底部导航' : `编辑导航 ${drawerIndex + 1}`"
-      size="400px"
-      destroy-on-close
-    >
-      <el-form v-if="editTab" label-position="top" @submit.prevent>
-        <el-form-item label="标题">
-          <el-input v-model="editTab.text" maxlength="8" show-word-limit placeholder="例如：首页" />
-        </el-form-item>
-        <el-form-item label="图标">
-          <el-select
-            :model-value="editTab.icon || editTab.iconPath || ''"
-            filterable
-            placeholder="选择导航图标"
-            style="width: 100%"
-            @change="(v: string) => { if (editTab) editTab = { ...editTab, icon: v, selectedIcon: v, iconPath: v, selectedIconPath: v } }"
-          >
-            <el-option
-              v-for="ic in NAV_FLAT_ICONS"
-              :key="ic.id"
-              :label="ic.label"
-              :value="ic.src"
-            >
-              <span style="display:inline-flex;align-items:center;gap:8px">
-                <img :src="ic.src" alt="" width="18" height="18" style="object-fit:contain" />
-                {{ ic.label }}
-              </span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="绑定页面">
-          <el-select
-            v-model="editPageId"
-            filterable
-            clearable
-            placeholder="选择页面（不含归档）"
-            style="width: 100%"
-            @change="onBindPage"
-          >
-            <el-option
-              v-for="p in bindablePages"
-              :key="String(p.id)"
-              :label="`${p.name}（${p.path}）`"
-              :value="Number(p.id)"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="editTab.pagePath" label="路径">
-          <el-input :model-value="editTab.pagePath" disabled />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="drawerVisible = false">取消</el-button>
-        <el-button type="primary" class="mw-btn-primary" :loading="savingTabs" @click="saveTabEdit">
-          保存
-        </el-button>
-      </template>
-    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import draggable from 'vuedraggable'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
+import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import {
   getMiniSite,
   getPendingChanges,
-  updateMiniSite,
   type MiniSiteVO,
-  type MiniTabBarItem,
   type PendingChangeItem,
 } from '@/api/miniSite'
-import { createPage, getPageList } from '@/api/page'
+import { getPageList } from '@/api/page'
 import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
-import { resolvePageStatus } from '@/utils/pageStatus'
 import { refreshMiniPending } from '@/composables/useMiniPending'
-import { NAV_FLAT_ICONS } from '@/components/page-builder/navIconSet'
 import type { PageRecord as PageRow } from '@/types/page'
 
 defineOptions({ name: 'MiniOverview' })
-
-const THEMES = ['#B4430F', '#A93D0C', '#2458A6', '#1F7A4D', '#8F5400', '#9B2C5A', '#3A2E26'] as const
 
 const router = useRouter()
 const loading = ref(false)
 /** 首屏用骨架屏，之后的刷新才用遮罩，避免每次操作都闪灰屏 */
 const loaded = ref(false)
-const savingTabs = ref(false)
-const savingTheme = ref(false)
-const creatingBlank = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
 const previewSource = ref<'draft' | 'live'>('draft')
@@ -342,19 +196,6 @@ const qrVisible = ref(false)
 const pageOptions = ref<PageRow[]>([])
 const wechatVerFallback = ref('')
 const mpMenuConfigured = ref(false)
-
-const drawerVisible = ref(false)
-const drawerIndex = ref<number | null>(null)
-const editTab = ref<MiniTabBarItem | null>(null)
-const editPageId = ref<number | null>(null)
-
-/** 已选但未保存的主色；空串表示与草稿一致 */
-const pendingTheme = ref('')
-/** 保存成功后可一键改回的上一个主色 */
-const undoTheme = ref('')
-
-type SortableTab = MiniTabBarItem & { __key: string }
-const sortableTabBar = ref<SortableTab[]>([])
 
 const templateLabel = computed(() => site.value.templateName || '自定义模板')
 const tabBar = computed(() => site.value.tabBar || [])
@@ -374,44 +215,14 @@ const qrCodeLabel = computed(() =>
   boundPageCount.value > 0 ? `${boundPageCount.value} 个页面已生成` : '去生成',
 )
 
-const currentTheme = computed(() => {
-  const t = site.value.theme || {}
-  const c = String((t as any).primaryColor || (t as any).theme || (t as any).color || '').toUpperCase()
-  return THEMES.find((x) => x.toUpperCase() === c) || ''
-})
-
-/** 色板选中环跟着"正在看的颜色"走，而不是已落库的颜色 */
-const shownTheme = computed(() => pendingTheme.value || currentTheme.value)
-const themeDirty = computed(() => !!pendingTheme.value && pendingTheme.value !== currentTheme.value)
-
-const bindablePages = computed(() =>
-  pageOptions.value.filter((p) => {
-    const st = resolvePageStatus(p as any)
-    return st === 'live' || st === 'pending' || st === 'draft'
-  }),
-)
-
 const previewUrl = computed(() => {
   const source = previewSource.value === 'live' ? 'live' : 'draft'
   const query: Record<string, string> = { view: 'config', source, embed: '1' }
-  // 未保存的主色也要能在真机预览里看到
-  if (themeDirty.value && previewSource.value === 'draft') query.primary = pendingTheme.value
   const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
   return href
 })
 
-const previewKey = computed(
-  () => `${previewSource.value}|${themeDirty.value ? pendingTheme.value : ''}`,
-)
-
-function syncSortableFromSite() {
-  sortableTabBar.value = (site.value.tabBar || []).map((t, i) => ({
-    ...t,
-    __key: `${t.pageId || t.pagePath || t.text || 'tab'}-${i}`,
-  }))
-}
-
-watch(tabBar, () => syncSortableFromSite(), { deep: true })
+const previewKey = computed(() => previewSource.value)
 
 function formatShort(t?: string | null) {
   if (!t) return ''
@@ -433,59 +244,6 @@ function pendingTime(item: PendingChangeItem) {
   return formatShort(String(raw))
 }
 
-function isMineTab(tab: MiniTabBarItem) {
-  const path = String(tab.pagePath || '')
-  const name = String(tab.text || '')
-  return path.includes('mine/mine') || name === '我的' || /pkg-user|\/mine/.test(path)
-}
-
-function isTabUnbound(tab: MiniTabBarItem) {
-  return !(tab.pageId || tab.pagePath)
-}
-
-function findBoundPage(tab: MiniTabBarItem) {
-  return pageOptions.value.find((p) => {
-    if (tab.pageId != null && tab.pageId !== '' && Number(p.id) === Number(tab.pageId)) return true
-    const path = String(p.path || '').replace(/^\//, '')
-    return path && path === String(tab.pagePath || '').replace(/^\//, '')
-  })
-}
-
-function shortPath(path: string) {
-  const clean = String(path || '').replace(/^\//, '')
-  if (!clean) return ''
-  const parts = clean.split('/').filter(Boolean)
-  if (parts.length <= 2) return clean
-  return `…/${parts.slice(-2).join('/')}`
-}
-
-function tabBindLabel(tab: MiniTabBarItem) {
-  if (isMineTab(tab)) return '系统页 · 个人中心'
-  const hit = findBoundPage(tab)
-  const name = String(hit?.name || tab.pageName || '').trim()
-  if (name) return name.length > 10 ? `${name.slice(0, 10)}…` : name
-  const path = String(tab.pagePath || hit?.path || '').trim()
-  if (path) return shortPath(path)
-  return '未绑定'
-}
-
-function tabStatus(tab: MiniTabBarItem): { key: string; label: string } {
-  if (isTabUnbound(tab)) return { key: 'empty', label: '未绑定' }
-  const hit = findBoundPage(tab)
-  if (!hit) return { key: 'live', label: '已上线' }
-  const st = resolvePageStatus(hit as any)
-  if (st === 'pending' || st === 'draft') return { key: 'dirty', label: '有改动' }
-  if (st === 'offline') return { key: 'empty', label: '已下架' }
-  return { key: 'live', label: '已上线' }
-}
-
-function tabStatusTagClass(tab: MiniTabBarItem) {
-  const st = tabStatus(tab)
-  if (st.key === 'empty') return 't-err'
-  if (st.key === 'dirty') return 't-pending'
-  return 't-live'
-}
-
 function changeKindLabel(item: PendingChangeItem) {
   if (item.type === 'site') return '修改'
   const st = String(item.status || '')
@@ -497,172 +255,17 @@ function goPublish() {
   router.push('/mini/publish')
 }
 
-function openLivePreview() {
-  qrVisible.value = true
-}
-
-/** 选色只改预览，不落库——主色影响面大，必须先看到再决定 */
-function pickTheme(color: string) {
-  if (savingTheme.value) return
-  pendingTheme.value = color === currentTheme.value ? '' : color
-}
-
-function discardTheme() {
-  pendingTheme.value = ''
-}
-
-async function writeTheme(color: string) {
-  const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
-  const theme = { ...prev, primaryColor: color }
-  const updated = await updateMiniSite({ theme })
-  site.value = { ...site.value, ...updated, theme: updated.theme || theme }
-  void refreshMiniPending(true)
-}
-
-async function saveTheme() {
-  const color = pendingTheme.value
-  if (!color || savingTheme.value) return
-  const before = currentTheme.value
-  savingTheme.value = true
-  try {
-    await writeTheme(color)
-    pendingTheme.value = ''
-    ElMessage({
-      type: 'success',
-      duration: 6000,
-      showClose: true,
-      dangerouslyUseHTMLString: false,
-      message: `品牌主色已存为待发布（${color}）`,
-    })
-    undoTheme.value = before || ''
-    window.setTimeout(() => { undoTheme.value = '' }, 15000)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '保存配色失败')
-  } finally {
-    savingTheme.value = false
-  }
-}
-
-async function revertTheme() {
-  const color = undoTheme.value
-  if (!color) return
-  savingTheme.value = true
-  try {
-    await writeTheme(color)
-    undoTheme.value = ''
-    ElMessage.success('已撤销，主色恢复为 ' + color)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '撤销失败')
-  } finally {
-    savingTheme.value = false
-  }
-}
-
-async function onTabDragEnd() {
-  const next = sortableTabBar.value.map(({ __key: _k, ...rest }) => rest)
-  await persistTabBar(next, '导航顺序已保存')
-}
-
-function openTabDrawer(index?: number) {
-  const list = [...(site.value.tabBar || [])]
-  if (index == null) {
-    drawerIndex.value = 0
-    if (!list.length) {
-      editTab.value = { text: '首页', pagePath: '' }
-      editPageId.value = null
-      drawerVisible.value = true
-      return
-    }
-  } else {
-    drawerIndex.value = index
-  }
-  const idx = drawerIndex.value ?? 0
-  const current = list[idx] || { text: '', pagePath: '' }
-  editTab.value = { ...current }
-  editPageId.value = current.pageId != null && current.pageId !== '' ? Number(current.pageId) : null
-  drawerVisible.value = true
-}
-
-function addTabSlot() {
-  const list = [...(site.value.tabBar || [])]
-  if (list.length >= 5) {
-    ElMessage.warning('底部导航最多 5 个')
+function editHomePage() {
+  const homeId = Number(site.value.miniappHomePageId || 0)
+  const tab0 = (site.value.tabBar || [])[0]
+  const fromTab = tab0?.pageId != null ? Number(tab0.pageId) : 0
+  const id = homeId || fromTab
+  if (!id) {
+    ElMessage.warning('请先在「外观」里为底部导航绑定首页')
+    router.push('/mini/appearance')
     return
   }
-  list.push({ text: `导航 ${list.length + 1}`, pagePath: '' })
-  site.value = { ...site.value, tabBar: list }
-  syncSortableFromSite()
-  openTabDrawer(list.length - 1)
-}
-
-function onBindPage(id: number | null) {
-  if (!editTab.value) return
-  if (id == null) {
-    editTab.value = { ...editTab.value, pageId: undefined, pagePath: '', pageName: '' }
-    return
-  }
-  const hit = pageOptions.value.find((p) => Number(p.id) === Number(id))
-  if (!hit) return
-  editTab.value = {
-    ...editTab.value,
-    pageId: hit.id,
-    pagePath: String(hit.path || '').replace(/^\//, ''),
-    pageName: hit.name,
-  }
-}
-
-async function persistTabBar(next: MiniTabBarItem[], successMsg = '导航已保存') {
-  savingTabs.value = true
-  try {
-    const updated = await updateMiniSite({ tabBar: next })
-    site.value = { ...site.value, ...updated, tabBar: updated.tabBar || next }
-    syncSortableFromSite()
-    ElMessage.success(successMsg)
-    await load()
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '保存导航失败')
-  } finally {
-    savingTabs.value = false
-  }
-}
-
-async function saveTabEdit() {
-  if (!editTab.value || drawerIndex.value == null) return
-  if (isTabUnbound(editTab.value)) {
-    ElMessage.warning('请先绑定页面')
-    return
-  }
-  const next = [...(site.value.tabBar || [])]
-  while (next.length <= drawerIndex.value) next.push({ text: '', pagePath: '' })
-  next[drawerIndex.value] = {
-    ...next[drawerIndex.value],
-    text: editTab.value.text,
-    pagePath: editTab.value.pagePath,
-    pageId: editTab.value.pageId,
-    pageName: editTab.value.pageName,
-  }
-  await persistTabBar(next)
-  drawerVisible.value = false
-}
-
-async function createBlank() {
-  creatingBlank.value = true
-  const suffix = Date.now().toString(36).slice(-5)
-  try {
-    const res = await createPage({
-      name: `未命名页面-${suffix}`,
-      type: 3,
-      path: `pages/custom/p-${suffix}`,
-    })
-    const id = Number((res as { data?: { id?: number } })?.data?.id || 0)
-    if (!id) throw new Error('未返回页面 id')
-    ElMessage.success('已创建')
-    router.push(`/mini/pages/${id}/editor`)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '创建失败')
-  } finally {
-    creatingBlank.value = false
-  }
+  router.push(`/mini/pages/${id}/editor`)
 }
 
 async function load() {
@@ -677,7 +280,6 @@ async function load() {
     ])
     site.value = s
     pending.value = p.items || []
-    syncSortableFromSite()
     const data = (pageRes as { data?: { records?: PageRow[]; list?: PageRow[] } })?.data
     pageOptions.value = (data?.records || data?.list || []) as PageRow[]
     const pendingTotal =

@@ -2,10 +2,11 @@
   <div class="mini-wb mw-page pages-view" v-loading="loading && loaded">
     <MiniSkeleton v-if="!loaded" kind="list" />
     <template v-else>
+      <MiniOpsConceptBanner variant="pages" />
       <div class="head">
         <div>
           <h1 class="h1">页面</h1>
-          <div class="sub">共 {{ totalCount }} 个 · 按用途分组，旧页面收进归档</div>
+          <div class="sub">共 {{ totalCount }} 个 · 按用途分组；状态：未发布 / 已发布 / 有修改待发布</div>
         </div>
         <div class="actions">
           <button
@@ -153,6 +154,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageStatusTag from '@/components/mini/PageStatusTag.vue'
 import PageRowMenu from '@/components/mini/PageRowMenu.vue'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
+import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import { getPageList, createPage, deletePage, unpublishPage, duplicatePage, updatePage } from '@/api/page'
 import { getMiniSite, updateMiniSite, type MiniTabBarItem } from '@/api/miniSite'

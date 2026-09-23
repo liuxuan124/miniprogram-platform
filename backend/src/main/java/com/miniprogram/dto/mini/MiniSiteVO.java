@@ -38,6 +38,12 @@ public class MiniSiteVO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime liveReleaseAt;
 
+    @Schema(description = "最近一次内容发布操作人")
+    private String livePublisherName;
+
+    @Schema(description = "小程序首页页面 ID（配置项 miniappHomePageId）")
+    private Long miniappHomePageId;
+
     @Schema(description = "微信代码包版本（最近推送）")
     private String wechatCodeVersion;
 

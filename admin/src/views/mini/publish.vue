@@ -3,9 +3,10 @@
     <MiniSkeleton v-if="!loaded" kind="list" />
     <div v-else class="pub">
       <div class="pub-main">
+        <MiniOpsConceptBanner variant="publish" />
         <div>
-          <h1 class="h1">发布</h1>
-          <div class="sub">确认改动 → 发布，用户刷新即可看到；每次发布自动存为可回滚的版本</div>
+          <h1 class="h1">发布与分发</h1>
+          <div class="sub">确认改动 → 发布，用户刷新即可看到；分发渠道在下方「推送到微信生态」</div>
         </div>
 
         <section class="card">
@@ -86,7 +87,7 @@
           </div>
 
           <div v-if="hasBlocking" class="note err" style="margin-top: 12px">
-            有阻断项未通过，处理后才能发布。去「概览 → 底部导航」检查绑定。
+            有阻断项未通过，处理后才能发布。去「外观 → 底部导航」检查绑定。
           </div>
 
           <div class="pub-bar">
@@ -263,6 +264,7 @@ import {
 } from '@/api/miniSite'
 import { getPublishPreflight, getPushPreviewStatus, type PublishPreflight } from '@/api/version'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
+import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 
