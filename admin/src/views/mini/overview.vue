@@ -145,6 +145,9 @@
       <aside class="preview">
         <div class="preview-head">
           <b>真机预览</b>
+          <span v-if="site.liveReleaseNo != null" class="faint" style="font-size: 11px; font-weight: 400">
+            默认第 {{ site.liveReleaseNo }} 次发布
+          </span>
           <div class="seg" role="group" aria-label="预览版本">
             <button type="button" :class="{ on: !previewCompare && previewSource === 'draft' }" @click="setPreview('draft')">
               改动后
@@ -225,7 +228,7 @@ const loading = ref(false)
 const loaded = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
-const previewSource = ref<'draft' | 'live'>('draft')
+const previewSource = ref<'draft' | 'live'>('live')
 const previewCompare = ref(false)
 const qrVisible = ref(false)
 const visitTop = ref<{ pagePath: string; accessCount?: number; visitorCount?: number }[]>([])

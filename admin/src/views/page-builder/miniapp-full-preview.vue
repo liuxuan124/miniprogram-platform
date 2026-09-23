@@ -313,6 +313,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { getReleaseDetail } from '@/api/version'
+import { getMiniSite, listMiniContentReleases } from '@/api/miniSite'
 import { isAuthenticated } from '@/utils/auth'
 import { getProductList } from '@/api/product'
 import { getContentList } from '@/api/content'
@@ -592,21 +593,26 @@ const releaseId = computed(() => {
   const value = Number(route.query.releaseId)
   return Number.isFinite(value) && value > 0 ? value : 0
 })
-const useLiveConfig = computed(() => {
-  if (String(route.query.source || '') === 'live') return true
-  return !releaseId.value
+/** 与体验版一致：默认 live；draft 为待发布草稿 */
+const configSource = computed<'release' | 'live' | 'draft'>(() => {
+  if (releaseId.value) return 'release'
+  return String(route.query.source || 'live') === 'draft' ? 'draft' : 'live'
 })
+const liveReleaseLabel = ref('')
 const modeLabel = computed(() => {
   if (previewMode.value === 'prototype') return '设计原型'
-  if (useLiveConfig.value) return '当前已保存配置'
-  return semver.value ? `版本快照 v${semver.value}` : '版本快照'
+  if (configSource.value === 'draft') return '待发布草稿'
+  if (configSource.value === 'release') {
+    return liveReleaseLabel.value || (semver.value ? `版本快照 v${semver.value}` : '版本快照')
+  }
+  return liveReleaseLabel.value || '当前线上（与体验版一致）'
 })
 const displayScreenGroups = computed(() => {
   if (!snapshotPages.value.length) return screenGroups
   return [{
-    title: useLiveConfig.value
-      ? '当前绑定页面（最新草稿）'
-      : (semver.value ? `v${semver.value} 页面快照` : '本版本页面'),
+    title: configSource.value === 'draft'
+      ? '待发布草稿（绑定页）'
+      : (liveReleaseLabel.value || (semver.value ? `v${semver.value} 发布快照` : '当前线上页面')),
     items: snapshotPages.value.map((page, index) => ({
       no: String(index + 1).padStart(2, '0'),
       key: page.path,
@@ -806,7 +812,7 @@ function findSnapshotPage(ref: string) {
     })
 }
 
-async function fetchPageSnapshot(id: string) {
+async function fetchPageSnapshot(id: string, opts?: { prefer?: 'draft' | 'published' }) {
   try {
     const detailRes = await getPageDetail(id, { silent: true })
     const page = ((detailRes as any)?.data || detailRes) as {
@@ -818,8 +824,11 @@ async function fetchPageSnapshot(id: string) {
       dslContent?: string
     }
     const path = String(page.path || '').trim() || `pages/custom/page-${id}`
-    let raw = page.publishedDslContent || page.dslContent || page.draftDslContent
-    if (!raw) {
+    const preferDraft = opts?.prefer === 'draft'
+    let raw = preferDraft
+      ? (page.draftDslContent || page.dslContent || page.publishedDslContent)
+      : (page.publishedDslContent || page.dslContent || page.draftDslContent)
+    if (!raw && !preferDraft) {
       try {
         const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
         const payload = await response.json()
@@ -1154,7 +1163,7 @@ function extractDslFromSnapshot(snapshotJson: string, path: string): PageDSL | n
   return parseDslContent(page.dslContent)
 }
 
-async function loadLiveConfig() {
+async function loadLiveConfig(publishedOnly = false) {
   snapshotPages.value = []
   snapshotTabs.value = []
   homeComponents.value = []
@@ -1170,6 +1179,12 @@ async function loadLiveConfig() {
   }
 
   try {
+    if (publishedOnly) {
+      const site = await getMiniSite('live')
+      if (site.liveReleaseNo != null) {
+        liveReleaseLabel.value = `第 ${site.liveReleaseNo} 次发布（线上）`
+      }
+    }
     const res = await getConfigByGroup('basic')
     const configs = ((res as any)?.data?.configs || (res as any)?.data || []) as Array<{
       configKey?: string
@@ -1210,7 +1225,7 @@ async function loadLiveConfig() {
 
     const pages: Array<{ path: string; name: string; dslContent?: string; pageId?: string }> = []
     for (const id of pageIds) {
-      const snapshot = await fetchPageSnapshot(id)
+      const snapshot = await fetchPageSnapshot(id, publishedOnly ? { prefer: 'published' } : undefined)
       if (snapshot) pages.push(snapshot)
     }
 
@@ -1230,33 +1245,116 @@ async function loadLiveConfig() {
 }
 
 async function loadPreviewSource() {
-  if (useLiveConfig.value) {
-    await loadLiveConfig()
+  liveReleaseLabel.value = ''
+  if (releaseId.value) {
+    await loadReleaseSnapshot(releaseId.value)
     return
   }
-  await loadReleaseSnapshot()
+  if (configSource.value === 'draft') {
+    await loadDraftPreview()
+    return
+  }
+  const fromRelease = await loadLivePublishedFromRelease()
+  if (!fromRelease) {
+    await loadLivePublishedFallback()
+  }
 }
 
-async function loadReleaseSnapshot() {
+async function loadLivePublishedFromRelease(): Promise<boolean> {
+  if (!isAuthenticated()) return false
+  try {
+    const releases = await listMiniContentReleases()
+    const live = releases.find((r) => r.currentLive && r.hasSnapshot && r.id)
+    if (!live?.id) return false
+    if (live.releaseNo != null) {
+      liveReleaseLabel.value = `第 ${live.releaseNo} 次发布（线上）`
+    }
+    await loadReleaseSnapshot(live.id)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function loadDraftPreview() {
+  snapshotPages.value = []
+  snapshotTabs.value = []
+  homeComponents.value = []
+  activeComponents.value = []
+  pageCache.clear()
+  notice.value = ''
+  semver.value = ''
+
+  if (!isAuthenticated()) {
+    notice.value = '未登录，无法读取草稿配置'
+    await loadLivePublishedFallback()
+    return
+  }
+
+  try {
+    const site = await getMiniSite('draft')
+    snapshotTabs.value = normalizeTabbarItems(site.tabBar || [])
+    if (site.theme) {
+      themeConfig.value = parseThemeConfig(site.theme)
+    }
+    const homeId = String(site.miniappHomePageId || '').trim()
+    const pageIds = new Set<string>()
+    if (/^\d+$/.test(homeId)) pageIds.add(homeId)
+    for (const tab of snapshotTabs.value) {
+      const id = String(tab.pageId || '').trim()
+      if (/^\d+$/.test(id)) pageIds.add(id)
+    }
+    const pages: Array<{ path: string; name: string; dslContent?: string; pageId?: string }> = []
+    for (const id of pageIds) {
+      const snapshot = await fetchPageSnapshot(id, { prefer: 'draft' })
+      if (snapshot) pages.push(snapshot)
+    }
+    snapshotPages.value = pages
+    snapshotTabs.value = syncTabPagePaths(snapshotTabs.value, pages)
+    const homePathPreferred = pickInitialHomePath(homeId, snapshotTabs.value, pages)
+    if (homePathPreferred) {
+      await showSnapshotPage(homePathPreferred)
+    } else {
+      notice.value = '草稿里还没有可预览的绑定页面'
+    }
+    const basicRes = await getConfigByGroup('basic')
+    const configs = ((basicRes as any)?.data?.configs || (basicRes as any)?.data || []) as Array<{
+      configKey?: string
+      configValue?: string
+    }>
+    const configMap: Record<string, string> = {}
+    for (const c of configs) {
+      if (c?.configKey != null && c.configValue !== undefined) {
+        configMap[c.configKey] = c.configValue
+      }
+    }
+    applyMineAndThemeFromMap(configMap)
+  } catch (e: any) {
+    notice.value = e?.message || '读取草稿预览失败'
+  }
+}
+
+async function loadReleaseSnapshot(releaseIdOverride?: number) {
   snapshotPages.value = []
   snapshotTabs.value = []
   activeComponents.value = []
   pageCache.clear()
   notice.value = ''
-  if (!releaseId.value || !isAuthenticated()) {
-    await loadLiveConfig()
+  const rid = releaseIdOverride ?? releaseId.value
+  if (!rid || !isAuthenticated()) {
+    await loadLivePublishedFallback()
     return
   }
   try {
-    const res = await getReleaseDetail(releaseId.value)
+    const res = await getReleaseDetail(rid)
     const release = ((res as any).data || res) as {
       semver?: string
       snapshot?: string | Record<string, unknown>
     }
     semver.value = release.semver || semver.value
     if (!release.snapshot) {
-      notice.value = '该版本没有页面快照，已改为展示当前已保存配置。'
-      await loadLiveConfig()
+      notice.value = '该版本没有页面快照，已改为展示当前线上配置。'
+      await loadLivePublishedFallback()
       return
     }
     const snap = parseJsonValue<{
@@ -1269,8 +1367,8 @@ async function loadReleaseSnapshot() {
       }
     }>(release.snapshot)
     if (!snap) {
-      notice.value = '版本快照解析失败，已改为展示当前已保存配置。'
-      await loadLiveConfig()
+      notice.value = '版本快照解析失败，已改为展示当前线上配置。'
+      await loadLivePublishedFallback()
       return
     }
     const configMap = snap.systemConfig || {}
@@ -1310,8 +1408,8 @@ async function loadReleaseSnapshot() {
         notice.value = '该版本首页快照组件为空，请检查发布时页面是否已上线'
       }
     } else {
-      notice.value = '该版本快照里没有可预览页面，已改为展示当前配置'
-      await loadLiveConfig()
+      notice.value = '该版本快照里没有可预览页面，已改为展示当前线上配置'
+      await loadLivePublishedFallback()
     }
   } catch (e: any) {
     const timedOut = e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message || ''))
@@ -1319,11 +1417,16 @@ async function loadReleaseSnapshot() {
       ? '版本快照加载超时，请稍后重试'
       : (e?.message || e?.msg || '版本快照加载失败')
     try {
-      await loadLiveConfig()
+      await loadLivePublishedFallback()
     } catch {
       /* ignore */
     }
   }
+}
+
+/** 无发布快照时：线上导航 + 已发布 DSL（对齐小程序接口） */
+async function loadLivePublishedFallback() {
+  await loadLiveConfig(true)
 }
 
 async function loadHomeDsl() {
@@ -1404,6 +1507,17 @@ watch(previewMode, (mode) => {
     })
   }
 })
+
+watch(
+  () => [route.query.source, route.query.releaseId] as const,
+  () => {
+    if (previewMode.value !== 'config') return
+    loading.value = true
+    loadPreviewSource().finally(() => {
+      loading.value = false
+    })
+  },
+)
 
 onMounted(async () => {
   if (previewMode.value === 'config') {
