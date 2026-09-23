@@ -11,7 +11,24 @@
         </div>
       </template>
 
-      <el-table v-loading="loading" :data="versionList" border stripe style="width: 100%">
+      <el-timeline v-if="versionList.length" class="version-timeline">
+        <el-timeline-item
+          v-for="row in versionList"
+          :key="row.id || row.version"
+          :timestamp="row.created_at"
+          placement="top"
+        >
+          <div class="timeline-row">
+            <el-tag size="small">v{{ row.version }}</el-tag>
+            <span class="timeline-remark">{{ row.remark || '无备注' }}</span>
+            <span class="timeline-meta">{{ row.created_by || '—' }}</span>
+            <el-button link type="primary" size="small" @click="handleCompareVersion(row)">对比</el-button>
+            <el-button link type="primary" size="small" @click="handleRollback(row)">回滚</el-button>
+          </div>
+        </el-timeline-item>
+      </el-timeline>
+
+      <el-table v-loading="loading" :data="versionList" border stripe style="width: 100%; margin-top: 16px">
         <el-table-column prop="version" label="版本号" width="100" align="center">
           <template #default="{ row }">
             <el-tag size="small">v{{ row.version }}</el-tag>
@@ -363,6 +380,30 @@ watch(
 </script>
 
 <style lang="scss" scoped>
+.version-timeline {
+  margin: 8px 0 0;
+  padding: 0 4px;
+}
+
+.timeline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.timeline-remark {
+  flex: 1;
+  min-width: 120px;
+  color: var(--text);
+}
+
+.timeline-meta {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .page-version {
   .card-header {
     display: flex;
