@@ -27,6 +27,7 @@ public class PageController {
 
     @Operation(summary = "页面列表", description = "分页查询页面列表")
     @GetMapping
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PageResult<PageDetailDTO>> listPages(PageQueryDTO queryDTO) {
         return R.ok(pageService.listPages(queryDTO));
     }
@@ -47,6 +48,7 @@ public class PageController {
 
     @Operation(summary = "页面详情", description = "获取页面详情信息")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('page:list')")
     public R<PageDetailDTO> getPageDetail(@PathVariable Long id) {
         return R.ok(pageService.getPageDetail(id));
     }

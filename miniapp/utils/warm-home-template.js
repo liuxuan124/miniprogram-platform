@@ -16,62 +16,33 @@ function isNativeHomeType(type) {
   return !!NATIVE_HOME_TYPES[String(type || '')]
 }
 
-function defaultHomeBlocks(over) {
+const HOME_BLOCKS_JSON = require('../data/warm-home-blocks.json')
+
+function cloneBlock(block, over) {
   const o = over || {}
-  return [
-    {
-      id: 'wh-greet',
-      type: 'warm_greet',
-      props: {
-        greet_template: o.greetTemplate || '你好',
-        show_notice: true,
-        show_search: true,
-        search_placeholder: '搜索文章、笔记、专栏……',
-        show_nav: true,
-      },
-    },
-    {
-      id: 'wh-authors',
-      type: 'warm_authors',
-      props: {
-        title: o.authorsTitle || '暖阁出品',
-        more_text: '全部作者 ›',
-        more_url: '/pages/author-list/author-list',
-        more_tab: false,
-      },
-    },
-    {
-      id: 'wh-feature',
-      type: 'warm_feature',
-      props: { empty_text: '暂无精选内容' },
-    },
-    {
-      id: 'wh-columns',
-      type: 'warm_columns',
-      props: {
-        title: o.columnsTitle || '精品专栏',
-        more_text: '全部 ›',
-        more_url: '/pages/shop/shop',
-        more_tab: true,
-      },
-    },
-    {
-      id: 'wh-planet',
-      type: 'warm_planet_rec',
-      props: {
-        title: o.planetTitle || '我的星球',
-        more_text: '进入 ›',
-        more_url: '/pages/planet-list/planet-list',
-        more_tab: false,
-        feed_url: '/pages/planet-feed/planet-feed?planetId=warm-main',
-      },
-    },
-    {
-      id: 'wh-feed',
-      type: 'warm_feed',
-      props: { footer: '暖阁 · 慢一点，也很好' },
-    },
-  ]
+  const next = {
+    id: block.id,
+    type: block.type,
+    props: Object.assign({}, block.props || {}),
+  }
+  if (block.type === 'warm_greet' && o.greetTemplate) {
+    next.props.greet_template = o.greetTemplate
+  }
+  if (block.type === 'warm_authors' && o.authorsTitle) {
+    next.props.title = o.authorsTitle
+  }
+  if (block.type === 'warm_columns' && o.columnsTitle) {
+    next.props.title = o.columnsTitle
+  }
+  if (block.type === 'warm_planet_rec' && o.planetTitle) {
+    next.props.title = o.planetTitle
+  }
+  return next
+}
+
+function defaultHomeBlocks(over) {
+  const list = (HOME_BLOCKS_JSON && HOME_BLOCKS_JSON.blocks) || []
+  return list.map((b) => cloneBlock(b, over))
 }
 
 function shellOverrides(props) {

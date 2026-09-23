@@ -34,6 +34,9 @@ public class Refund implements Serializable {
     @Schema(description = "退款原因")
     private String reason;
 
+    @Schema(description = "申请退款前的订单履约状态")
+    private String orderStatusBefore;
+
     @Schema(description = "状态: pending/approved/rejected/processing/success/failed")
     private String status;
 

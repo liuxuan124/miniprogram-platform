@@ -123,8 +123,7 @@ public class MiniappReleaseController {
     @OperationLog("新建整店模板")
     @PreAuthorize("hasAuthority('page:publish')")
     public R<MiniappRelease> createStoreTemplate(@RequestBody(required = false) StoreTemplateNameDTO dto) {
-        String name = dto == null ? null : dto.getTemplateName();
-        return R.ok(miniappReleaseService.createStoreTemplate(name));
+        return R.ok(miniappReleaseService.createStoreTemplate(dto));
     }
 
     @Operation(summary = "复制整店模板")

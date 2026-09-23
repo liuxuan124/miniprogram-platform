@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.entity.Order;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.service.OrderService;
+import com.miniprogram.tenant.TenantJobRunner;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -26,6 +27,7 @@ public class OrderTimeoutJob {
 
     private final OrderMapper orderMapper;
     private final OrderService orderService;
+    private final TenantJobRunner tenantJobRunner;
     private final StringRedisTemplate stringRedisTemplate;
 
     /** 每 5 分钟扫描一次，关闭超过 30 分钟仍待支付的订单 */
@@ -43,17 +45,19 @@ public class OrderTimeoutJob {
         }
 
         LocalDateTime deadline = LocalDateTime.now().minusMinutes(30);
-        List<Order> list = orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                .eq(Order::getStatus, "pending_payment")
-                .lt(Order::getCreatedAt, deadline)
-                .last("LIMIT 200"));
-        for (Order order : list) {
-            try {
-                orderService.cancelOrder(order.getUserId(), order.getId());
-                log.info("超时关单成功 orderId={} orderNo={}", order.getId(), order.getOrderNo());
-            } catch (Exception e) {
-                log.warn("超时关单失败 orderId={}: {}", order.getId(), e.getMessage());
+        tenantJobRunner.forEachActiveTenant(tenantId -> {
+            List<Order> list = orderMapper.selectList(new LambdaQueryWrapper<Order>()
+                    .eq(Order::getStatus, "pending_payment")
+                    .lt(Order::getCreatedAt, deadline)
+                    .last("LIMIT 200"));
+            for (Order order : list) {
+                try {
+                    orderService.cancelOrder(order.getUserId(), order.getId());
+                    log.info("超时关单成功 tenant={} orderId={} orderNo={}", tenantId, order.getId(), order.getOrderNo());
+                } catch (Exception e) {
+                    log.warn("超时关单失败 orderId={}: {}", order.getId(), e.getMessage());
+                }
             }
-        }
+        });
     }
 }

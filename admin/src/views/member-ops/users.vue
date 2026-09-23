@@ -311,6 +311,9 @@ import {
   giftMembership,
   listDuplicateUsers,
   putUserTags,
+  appendUserTags,
+  reachUsers,
+  listSegmentMembers,
   putUserNote,
   type MemberSegment,
 } from '@/api/memberOps'
@@ -573,12 +576,22 @@ async function doGift() {
 }
 
 async function openBulkReach() {
+  if (!selectedIds.value.length) {
+    ElMessage.warning('请先选择用户')
+    return
+  }
   try {
-    await ElMessageBox.prompt('订阅消息文案', '批量触达', {
+    const { value } = await ElMessageBox.prompt('订阅消息文案', '批量触达', {
       confirmButtonText: '发送',
       inputPlaceholder: '简短提醒文案',
     })
-    ElMessage.info('请通过「分群与触达」发起正式触达；批量直发需后端 segment reach')
+    const content = (value || '').trim()
+    if (!content) {
+      ElMessage.warning('请填写文案')
+      return
+    }
+    const res: any = await reachUsers(selectedIds.value, content, '运营通知')
+    ElMessage.success(`已触达 ${res?.data?.reached ?? res?.reached ?? selectedIds.value.length} 人`)
   } catch {
     /* cancel */
   }
@@ -590,7 +603,7 @@ async function doBulkTag() {
     return
   }
   try {
-    await Promise.all(selectedIds.value.map((id) => putUserTags(id, bulkTagIds.value)))
+    await Promise.all(selectedIds.value.map((id) => appendUserTags(id, bulkTagIds.value)))
     ElMessage.success('已打标签')
     bulkTagOpen.value = false
     selectedIds.value = []
@@ -638,11 +651,28 @@ async function removeSeg(s: MemberSegment) {
   }
 }
 
-function viewSeg(s: MemberSegment) {
+const segmentFilterId = ref<number | null>(null)
+const segmentFilterName = ref('')
+
+async function viewSeg(s: MemberSegment) {
   tab.value = 'list'
   keyword.value = ''
-  ElMessage.info(`分群「${s.name}」名单：后端 members 接口就绪后可筛选；当前请在列表中人工查看`)
-  fetchUsers()
+  segmentFilterId.value = s.id
+  segmentFilterName.value = s.name
+  loading.value = true
+  listError.value = ''
+  try {
+    const res: any = await listSegmentMembers(s.id)
+    const data = res?.data ?? res
+    users.value = data?.records ?? data?.list ?? []
+    total.value = Number(data?.total ?? users.value.length)
+  } catch (e: any) {
+    listError.value = e?.message || '分群名单加载失败'
+    users.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
 }
 
 async function doReach(s: MemberSegment) {

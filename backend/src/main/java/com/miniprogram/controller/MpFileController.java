@@ -57,7 +57,11 @@ public class MpFileController {
         Page<FileItem> page = fileItemMapper.selectPage(new Page<>(current, size), qw);
         List<FileAccessVO> records = new ArrayList<>();
         for (FileItem item : page.getRecords()) {
-            records.add(fileEntitlementService.buildAccessVO(item, userId, planetId));
+            try {
+                records.add(fileEntitlementService.buildAccessVO(item, userId, planetId));
+            } catch (com.miniprogram.common.BusinessException ex) {
+                records.add(fileEntitlementService.buildAccessVOWithoutPreview(item, userId, planetId, ex.getMessage()));
+            }
         }
         return R.ok(new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize()));
     }

@@ -14,6 +14,9 @@ public interface FileEntitlementService {
     /** @param planetId 资料归属/请求上下文星球；{@code planet_member} 门禁需要明确值 */
     FileAccessVO buildAccessVO(FileItem item, Long userId, String planetId);
 
+    /** 列表降级：物理文件缺失时不中断整页 */
+    FileAccessVO buildAccessVOWithoutPreview(FileItem item, Long userId, String planetId, String unavailableHint);
+
     FileAccessVO getAccess(Long fileId, Long userId);
 
     FileAccessVO getAccess(Long fileId, Long userId, String planetId);

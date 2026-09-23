@@ -68,7 +68,7 @@ function resolveDataSourceRequest(dataSource) {
   delete params.publish_date
   delete params.sort_by
   delete params.is_recommended
-  delete params.display_mode
+  // display_mode 仅前端流式分页使用，不传给后端（在 fetchData 内剔除 requestParams）
   // 文章 type 筛选后端暂不支持，避免未知参数
   if (directType === 'content' || String(config.api || '').includes('/contents')) {
     delete params.type

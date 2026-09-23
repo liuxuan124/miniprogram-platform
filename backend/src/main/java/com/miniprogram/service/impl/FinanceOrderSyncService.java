@@ -6,10 +6,12 @@ import com.miniprogram.entity.FinanceSyncConfig;
 import com.miniprogram.entity.FinanceTransaction;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.OrderItem;
+import com.miniprogram.entity.Refund;
 import com.miniprogram.mapper.FinanceSyncConfigMapper;
 import com.miniprogram.mapper.FinanceTransactionMapper;
 import com.miniprogram.mapper.OrderItemMapper;
 import com.miniprogram.mapper.OrderMapper;
+import com.miniprogram.mapper.RefundMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.support.FinanceMoneyHelper;
 import com.miniprogram.tenant.TenantContext;
@@ -41,6 +43,7 @@ public class FinanceOrderSyncService {
 
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
+    private final RefundMapper refundMapper;
     private final FinanceTransactionMapper transactionMapper;
     private final FinanceSyncConfigMapper syncConfigMapper;
 
@@ -116,6 +119,52 @@ public class FinanceOrderSyncService {
         List<FinancePendingOrderVO> pending = listPendingOrders();
         List<Long> ids = pending.stream().map(FinancePendingOrderVO::getOrderId).toList();
         return syncOrders(ids, operator);
+    }
+
+    @Transactional
+    public boolean syncRefundExpense(Long refundId, String operator) {
+        if (refundId == null) {
+            return false;
+        }
+        Refund refund = refundMapper.selectById(refundId);
+        if (refund == null || !"success".equals(refund.getStatus()) || refund.getAmount() == null) {
+            return false;
+        }
+        Order order = orderMapper.selectById(refund.getOrderId());
+        if (order == null) {
+            return false;
+        }
+        Long tenantId = order.getTenantId() != null ? order.getTenantId() : TenantContext.getTenantId();
+        Long exists = transactionMapper.selectCount(new LambdaQueryWrapper<FinanceTransaction>()
+                .eq(FinanceTransaction::getTenantId, tenantId)
+                .eq(FinanceTransaction::getRefundId, refundId));
+        if (exists != null && exists > 0) {
+            return false;
+        }
+        long cents = FinanceMoneyHelper.yuanToCents(refund.getAmount());
+        FinanceTransaction tx = new FinanceTransaction();
+        tx.setType("expense");
+        tx.setAmountCents(cents);
+        tx.setAmount(FinanceMoneyHelper.centsToYuan(cents));
+        tx.setCategory("订单退款");
+        tx.setSubCategory("小程序订单");
+        tx.setDescription("订单退款 " + (StringUtils.hasText(order.getOrderNo()) ? order.getOrderNo() : order.getId())
+                + " · 退款单 " + refund.getRefundNo());
+        tx.setTransactionDate(LocalDate.now());
+        tx.setPaymentMethod("wechat");
+        tx.setCounterparty("用户" + order.getUserId());
+        tx.setApprovalStatus("approved");
+        tx.setInvoiceStatus("none");
+        tx.setCreatedBy(StringUtils.hasText(operator) ? operator : "system");
+        tx.setOrderId(order.getId());
+        tx.setRefundId(refundId);
+        tx.setTenantId(tenantId);
+        tx.setSource("order_refund");
+        tx.setExcludeFromSummary(Integer.valueOf(1).equals(order.getIsTest()) ? 1 : 0);
+        tx.setCreateTime(LocalDateTime.now());
+        tx.setUpdateTime(LocalDateTime.now());
+        transactionMapper.insert(tx);
+        return true;
     }
 
     private boolean insertFromOrder(Long orderId, String operator) {

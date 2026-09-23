@@ -1,6 +1,7 @@
 package com.miniprogram.job;
 
 import com.miniprogram.service.ContentService;
+import com.miniprogram.tenant.TenantJobRunner;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -20,6 +21,7 @@ public class ContentScheduleJob {
     private static final String LOCK_KEY = "job:lock:content_schedule";
 
     private final ContentService contentService;
+    private final TenantJobRunner tenantJobRunner;
     private final StringRedisTemplate stringRedisTemplate;
 
     @Scheduled(cron = "0 * * * * *")
@@ -35,10 +37,12 @@ public class ContentScheduleJob {
             return;
         }
         try {
-            int n = contentService.publishDueScheduledContents();
-            if (n > 0) {
-                log.info("定时发布完成，共 {} 篇", n);
-            }
+            tenantJobRunner.forEachActiveTenant(tenantId -> {
+                int n = contentService.publishDueScheduledContents();
+                if (n > 0) {
+                    log.info("定时发布完成 tenant={} 共 {} 篇", tenantId, n);
+                }
+            });
         } catch (Exception e) {
             log.error("定时发布扫描失败", e);
         }

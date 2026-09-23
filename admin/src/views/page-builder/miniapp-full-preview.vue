@@ -87,20 +87,27 @@
 
           <!-- 版本快照：按该次发布的真实页面 DSL 渲染 -->
           <template v-if="showBoundPageContent">
-            <template v-for="(comp, index) in activeComponents" :key="comp.id">
-              <div
-                v-if="isCurrentPinnedBrandHeader(comp, index)"
-                class="brand-header-flow-spacer"
-                :style="{ height: `${currentPinnedBrandHeaderHeight}px` }"
-              />
-              <ComponentItem
-                v-else-if="comp.type !== ComponentType.FloatButton"
-                :component="comp"
-                :index="index"
-                :selected="false"
-                :preview-mode="true"
-                @preview-action="handlePreviewAction"
-              />
+            <WarmTabPreview
+              v-if="boundWarmTabPreview"
+              :path="boundWarmTabPreview.path"
+              :shell-props="boundWarmTabPreview.props"
+            />
+            <template v-else>
+              <template v-for="(comp, index) in activeComponents" :key="comp.id">
+                <div
+                  v-if="isCurrentPinnedBrandHeader(comp, index)"
+                  class="brand-header-flow-spacer"
+                  :style="{ height: `${currentPinnedBrandHeaderHeight}px` }"
+                />
+                <ComponentItem
+                  v-else-if="comp.type !== ComponentType.FloatButton"
+                  :component="comp"
+                  :index="index"
+                  :selected="false"
+                  :preview-mode="true"
+                  @preview-action="handlePreviewAction"
+                />
+              </template>
             </template>
             <div v-if="!loading && activeComponents.length === 0" class="fp-empty">该页在此版本快照中为空</div>
           </template>
@@ -308,7 +315,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -327,6 +334,13 @@ import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vu
 import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
 import { hydratePreviewDsl } from '@/utils/preview-datasource'
 import { expandWarmShellDslComponents } from '@/utils/warmHomeExpand'
+import WarmTabPreview from '@/components/page-builder/renderers/warm/WarmTabPreview.vue'
+import {
+  useWarmHomePreview,
+  WARM_PREVIEW_VIEW_KEY,
+  WARM_PREVIEW_ENABLED_KEY,
+  WARM_PREVIEW_ON_SEG_KEY,
+} from '@/composables/useWarmHomePreview'
 import {
   CONFIG_KEYS,
   DEFAULT_MINE_MENU,
@@ -671,6 +685,33 @@ const currentViewComponents = computed(() => {
   if (!snapshotPages.value.length && activeScreen.value === 'home') return homeComponents.value
   return []
 })
+
+const warmTabShellTypes = new Set([
+  ComponentType.WarmDiscover,
+  ComponentType.WarmPlanet,
+  ComponentType.WarmShop,
+  ComponentType.WarmMine,
+])
+
+const boundWarmTabPreview = computed(() => {
+  const flow = currentViewComponents.value.filter((c) => c.type !== ComponentType.FloatButton)
+  if (flow.length !== 1 || !warmTabShellTypes.has(flow[0].type as ComponentType)) {
+    return null
+  }
+  const page = snapshotPages.value.find(
+    (p) => normalizePath(p.path) === normalizePath(activeScreen.value),
+  )
+  const path = page?.path || activeScreen.value
+  return { path: String(path), props: flow[0].props || {} }
+})
+
+const warmHomePreview = useWarmHomePreview(
+  currentViewComponents,
+  computed(() => activeScreen.value),
+)
+provide(WARM_PREVIEW_VIEW_KEY, warmHomePreview.warmView)
+provide(WARM_PREVIEW_ENABLED_KEY, warmHomePreview.enabled)
+provide(WARM_PREVIEW_ON_SEG_KEY, warmHomePreview.onSeg)
 
 const {
   pinnedBrandHeader: currentPinnedBrandHeader,

@@ -39,14 +39,23 @@ export async function getStoreTemplates() {
     const res = await get(`${BASE}/list`, undefined, { showError: false })
     const data = (res as any)?.data || res
     const list = Array.isArray(data)
-      ? data.filter((r: any) => r?.mode === 'template' || r?.status === 0)
+      ? data.filter((r: any) => r?.mode === 'template' || r?.isSystem === 1 || r?.is_system === 1)
       : []
     return { ...(res as object), data: list } as any
   }
 }
 
-export function createStoreTemplate(templateName?: string) {
-  return post(`${BASE}/store-templates`, { templateName })
+export type CreateStoreTemplatePayload = {
+  templateName?: string
+  scene?: string
+  description?: string
+  coverUrl?: string
+}
+
+export function createStoreTemplate(payload?: string | CreateStoreTemplatePayload) {
+  const body: CreateStoreTemplatePayload =
+    typeof payload === 'string' ? { templateName: payload } : payload || {}
+  return post(`${BASE}/store-templates`, body)
 }
 
 export function duplicateStoreTemplate(id: number, templateName?: string) {

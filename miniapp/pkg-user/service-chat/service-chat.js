@@ -1,11 +1,21 @@
 const orderService = require('../../services/order')
+const SystemService = require('../../services/system')
 const { StorageUtil } = require('../../utils/storage')
 const { post, upload } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { isPersistedMediaUrl, DEFAULT_AVATAR, DEFAULT_PRODUCT } = require('../../utils/image-fallback')
 const { resolveMediaUrl } = require('../../utils/media-url')
 
-const HISTORY_KEY = 'service_chat_history_v2'
+const HISTORY_KEY_PREFIX = 'service_chat_history_v2'
+
+function historyStorageKey() {
+  try {
+    const info = AuthUtil.getUserInfo() || {}
+    const id = info.id || info.userId
+    if (id != null && id !== '') return `${HISTORY_KEY_PREFIX}_${id}`
+  } catch (e) { /* ignore */ }
+  return `${HISTORY_KEY_PREFIX}_guest`
+}
 const MAX_MESSAGES = 80
 const BOT_AVATAR = DEFAULT_AVATAR
 const ME_AVATAR = DEFAULT_AVATAR
@@ -30,31 +40,19 @@ const QUICK = ['电子书打不开', '申请发票', '资料库没解锁', '怎�
 
 const QUICK_FLOWS = {
   '电子书打不开': [
-    { delay: 400, role: 'service', type: 'text', text: '收到，我查一下这笔订单 🔍' },
+    { delay: 400, role: 'service', type: 'text', text: '收到，我先帮你排查常见原因（网络、格式、阅读权限）。' },
     {
       delay: 900,
       role: 'service',
       type: 'ordcard',
       hideAvatar: true,
-      order: DEMO_ORDER,
     },
     {
       delay: 1400,
       role: 'service',
       type: 'text',
       hideAvatar: true,
-      text: '看到了，支付成功但权限同步延迟了。已经手动为你补发，退出重进小程序就能在「我的 - 已购内容」看到，麻烦你试试～',
-    },
-    {
-      delay: 2000,
-      role: 'service',
-      type: 'actcard',
-      act: {
-        title: '顺便邀请你进读者群',
-        desc: '新书首发、资料更新、线下活动等通知可在读者群获取。',
-        primary: '立即进群',
-        secondary: '加企微客服',
-      },
+      text: '若刚付款看不到内容，可先退出重进「我的 - 已购内容」。仍打不开请发订单号或截图，我会转人工核对（系统不会自动补发）。',
     },
   ],
   '申请发票': [
@@ -108,7 +106,7 @@ const QUICK_FLOWS = {
 }
 
 function loadHistory() {
-  const raw = StorageUtil.get(HISTORY_KEY)
+  const raw = StorageUtil.get(historyStorageKey())
   if (!raw || typeof raw !== 'object') return null
   const messages = Array.isArray(raw.messages) ? raw.messages : null
   if (!messages || !messages.length) return null
@@ -140,7 +138,7 @@ function saveHistory(messages, nextId, sessionId, showQuick) {
     })
     .filter(Boolean)
     .slice(-MAX_MESSAGES)
-  StorageUtil.set(HISTORY_KEY, {
+  StorageUtil.set(historyStorageKey(), {
     messages: list,
     nextId: nextId || list.length + 1,
     sessionId: sessionId || '',
@@ -170,10 +168,28 @@ Page({
 
   onLoad(q) {
     this._orderId = (q && q.orderId) || ''
+    this._customerCorpId = ''
+    this._customerServiceUrl = ''
     this.setData({ orderId: this._orderId })
     this._restore()
     if (this._orderId) this._injectOrderDelivery(this._orderId)
     this._prefetchRecentOrder()
+    this._loadCustomerServiceConfig()
+  },
+
+  _loadCustomerServiceConfig() {
+    SystemService.fetchSystemConfig(false)
+      .then((config) => {
+        const join = (config && (config.joinGroupConfig || config.communityConfig || config.community_config)) || {}
+        const brand = (config && config.miniappBrandConfig) || {}
+        this._customerCorpId = String(
+          join.customerServiceCorpId || join.customer_service_corp_id || brand.customerServiceCorpId || '',
+        ).trim()
+        this._customerServiceUrl = String(
+          join.customerServiceUrl || join.customer_service_url || brand.customerServiceUrl || '',
+        ).trim()
+      })
+      .catch(() => {})
   },
 
   _prefetchRecentOrder() {
@@ -279,7 +295,31 @@ Page({
   },
 
   onTransferHuman() {
-    wx.showToast({ title: '正在转接人工客服…', icon: 'none' })
+    const corpId = this._customerCorpId || ''
+    const csUrl = this._customerServiceUrl || ''
+    if (typeof wx.openCustomerServiceChat === 'function' && corpId) {
+      wx.openCustomerServiceChat({
+        extInfo: { url: csUrl },
+        corpId,
+        success: () => {},
+        fail: () => {
+          wx.showModal({
+            title: '人工客服',
+            content: '在线客服暂时不可用。请通过「我的 - 联系客服」留言，或在工作日 9:00–18:00 添加企业微信「暖阁小助手」。',
+            showCancel: false,
+          })
+        },
+      })
+      return
+    }
+    const missingHint = corpId
+      ? ''
+      : '后台尚未配置企业微信 corpId（可在 joinGroupConfig / miniappBrandConfig 中设置 customerServiceCorpId）。'
+    wx.showModal({
+      title: '人工客服',
+      content: `${missingHint}请通过「我的 - 联系客服」留言，或在工作日 9:00–18:00 添加企业微信「暖阁小助手」。`.trim(),
+      showCancel: false,
+    })
   },
 
   onQuick(e) {

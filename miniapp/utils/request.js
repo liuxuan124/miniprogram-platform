@@ -125,12 +125,17 @@ function request(options) {
             reject({ code: responseData.code, message: errMsg })
           }
         } else if (statusCode === 401 || statusCode === 403) {
+          if (statusCode === 403) {
+            if (showError) _showError('无权限访问')
+            reject({ code: 403, message: '无权限访问' })
+            return
+          }
           if (auth) {
             _handleUnauthorized(showError)
           } else if (showError) {
-            _showError(statusCode === 403 ? '无权限访问' : '登录已过期，请重新登录')
+            _showError('登录已过期，请重新登录')
           }
-          reject({ code: statusCode, message: statusCode === 403 ? '无权限访问' : '登录已过期' })
+          reject({ code: statusCode, message: '登录已过期' })
         } else if (statusCode === 404) {
           const errMsg = (responseData && responseData.message) || '请求资源不存在'
           if (showError) _showError(errMsg)

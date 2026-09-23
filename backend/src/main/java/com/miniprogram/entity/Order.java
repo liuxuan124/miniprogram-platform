@@ -58,6 +58,9 @@ public class Order implements Serializable {
     @Schema(description = "备注")
     private String remark;
 
+    @Schema(description = "需人工退款：1是 0否（如关单后仍到账）")
+    private Integer needManualRefund;
+
     @Schema(description = "来源内容ID")
     private Long sourceContentId;
 

@@ -181,12 +181,18 @@ Page({
         wx.showToast({ title: '请输入联系方式', icon: 'none' })
         return
       }
-      const price = Number((this.data.serviceInfo && this.data.serviceInfo.price) || 299)
-      const off = 20
+      const raw = this.data.serviceInfo && this.data.serviceInfo.price
+      const price = Number.isFinite(Number(raw)) ? Math.max(0, Number(raw)) : 0
+      if (price <= 0) {
+        this.setData({ bookStep: 2, memberOff: '0', payAmount: '0', needsPay: false })
+        this.onSubmitBook()
+        return
+      }
       this.setData({
         bookStep: 3,
-        memberOff: String(off),
-        payAmount: String(Math.max(0, price - off)),
+        memberOff: '0',
+        payAmount: String(price),
+        needsPay: true,
       })
       return
     }

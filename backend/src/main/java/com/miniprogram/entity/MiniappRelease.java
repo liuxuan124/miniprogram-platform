@@ -46,6 +46,14 @@ public class MiniappRelease extends BaseEntity {
     @TableField("template_code")
     private String templateCode;
 
+    @Schema(description = "营销场景: knowledge/retail/local/campaign/content")
+    @TableField("template_scene")
+    private String templateScene;
+
+    @Schema(description = "模板封面 URL")
+    @TableField("cover_url")
+    private String coverUrl;
+
     @Schema(description = "系统预置整店模板 1=是（不可删）")
     @TableField("is_system")
     private Integer isSystem;

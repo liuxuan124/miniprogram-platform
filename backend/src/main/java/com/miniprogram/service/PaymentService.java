@@ -28,4 +28,9 @@ public interface PaymentService extends IService<Payment> {
      * 主动向微信查单并同步本地订单（回调失败时的兜底）
      */
     void syncPaidFromWechat(Long userId, Long orderId);
+
+    /**
+     * 取消/超时关单时关闭微信侧未支付订单（失败不阻断本地关单）
+     */
+    void closeWxPayIfPending(com.miniprogram.entity.Order order);
 }

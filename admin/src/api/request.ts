@@ -142,7 +142,7 @@ service.interceptors.response.use(
       // 检查是否为静默模式（不显示错误提示）
       const showError = response.config.showError !== false
       if (showError) {
-        showErrorDebounced(res.message || '请求失败')
+        showErrorDebounced(res.message || '操作失败，请稍后重试')
       }
 
       // 仅认证失败才清登录态；业务码 100101 等参数错误不能当成掉线
@@ -151,9 +151,11 @@ service.interceptors.response.use(
         return Promise.reject(new Error(res.message || '未授权'))
       }
 
-      const bizError = new Error(res.message || '请求失败') as Error & {
+      const bizError = new Error(res.message || '操作失败，请稍后重试') as Error & {
         response?: { data?: ApiResponse; status?: number }
+        toastHandled?: boolean
       }
+      if (showError) bizError.toastHandled = true
       bizError.response = { data: res, status: response.status }
       return Promise.reject(bizError)
     }
@@ -180,8 +182,9 @@ service.interceptors.response.use(
       }
       if (showError) {
         const apiMessage = response.data?.message
-        const message = apiMessage || statusMessages[response.status] || `请求失败 (${response.status})`
+        const message = apiMessage || statusMessages[response.status] || '操作失败，请稍后重试'
         showErrorDebounced(message)
+        ;(error as { toastHandled?: boolean }).toastHandled = true
       }
 
       if (isAuthFailureResponse(response)) {
@@ -191,9 +194,15 @@ service.interceptors.response.use(
         }
       }
     } else if (error.code === 'ECONNABORTED') {
-      if (showError) showErrorDebounced('请求超时，请稍后重试')
+      if (showError) {
+        showErrorDebounced('请求超时，请稍后重试')
+        ;(error as { toastHandled?: boolean }).toastHandled = true
+      }
     } else {
-      if (showError) showErrorDebounced('网络异常，请检查网络连接')
+      if (showError) {
+        showErrorDebounced('网络异常，请检查网络连接')
+        ;(error as { toastHandled?: boolean }).toastHandled = true
+      }
     }
     return Promise.reject(error)
   }

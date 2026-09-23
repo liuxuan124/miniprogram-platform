@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 DB_HOST = os.environ["DB_HOST"]
 DB_PORT = os.environ.get("DB_PORT", "3306")
@@ -18,9 +19,24 @@ WARM_HOME_SHELL_PROPS = {
     "planet_title": "我的星球",
 }
 
+def load_discover_props():
+    path = (
+        Path(__file__).resolve().parent.parent
+        / "admin/src/constants/warm-page-defaults.json"
+    )
+    with path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    d = data.get("discover") or {}
+    return {
+        "title": d.get("title") or "发现",
+        "tabs": d.get("tabs") or [],
+        "article_layout": d.get("article_layout") or {},
+    }
+
+
 PAGES = [
     ("暖阁首页", "/pages/custom/warm-home", "warm_home", WARM_HOME_SHELL_PROPS),
-    ("暖阁发现", "/pages/custom/warm-discover", "warm_discover", {"title": "发现"}),
+    ("暖阁发现", "/pages/custom/warm-discover", "warm_discover", load_discover_props()),
     ("暖阁星球", "/pages/custom/warm-planet", "warm_planet", {"title": "暖阁星球"}),
     ("暖阁商城", "/pages/custom/warm-shop", "warm_shop", {"title": "暖阁商城"}),
     ("暖阁我的", "/pages/custom/warm-mine", "warm_mine", {"title": "我的"}),

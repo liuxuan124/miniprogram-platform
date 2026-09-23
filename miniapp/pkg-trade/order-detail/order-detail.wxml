@@ -47,17 +47,17 @@
       <text>运费</text>
       <text class="od-total__v">¥{{order.shipping_fee || order.freight_amount || '0.00'}}</text>
     </view>
-    <view class="od-total__li" wx:if="{{order.discount_amount || order.coupon_amount || warmCouponAmount}}">
+    <view class="od-total__li" wx:if="{{order.discount_amount || order.coupon_amount}}">
       <text>优惠券</text>
-      <text class="od-total__v cut">-¥{{order.coupon_amount || order.discount_amount || warmCouponAmount}}</text>
+      <text class="od-total__v cut">-¥{{order.coupon_amount || order.discount_amount}}</text>
     </view>
-    <view class="od-total__li" wx:if="{{order.beans_amount || order.bean_amount || warmBeansAmount}}">
+    <view class="od-total__li" wx:if="{{order.beans_amount || order.bean_amount}}">
       <text>暖豆抵扣</text>
-      <text class="od-total__v cut">-¥{{order.beans_amount || order.bean_amount || warmBeansAmount}}</text>
+      <text class="od-total__v cut">-¥{{order.beans_amount || order.bean_amount}}</text>
     </view>
     <view class="od-total__sum">
       <text>实付款</text>
-      <text class="od-total__pay"><text class="od-total__yen">¥</text>{{order.pay_amount || order.total_amount || order.total_price}}</text>
+      <text class="od-total__pay"><text class="od-total__yen">¥</text>{{order.pay_amount != null && order.pay_amount !== '' ? order.pay_amount : (order.payAmount != null && order.payAmount !== '' ? order.payAmount : '0.00')}}</text>
     </view>
   </view>
 

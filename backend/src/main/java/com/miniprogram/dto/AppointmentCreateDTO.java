@@ -34,4 +34,7 @@ public class AppointmentCreateDTO {
 
     @Schema(description = "备注")
     private String remark;
+
+    @Schema(description = "已支付订单 ID（收费预约必填）")
+    private Long paidOrderId;
 }

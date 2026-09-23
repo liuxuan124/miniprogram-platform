@@ -79,7 +79,18 @@
         <div v-if="!list.length" class="muted pad">没有符合条件的记录</div>
       </div>
       <div class="faint">测试订单和 ¥0 的免费领取不计入概览与报表，但保留在流水里可追溯</div>
+      <div v-if="listTotal > pageSize" class="pager">
+        <el-pagination
+          layout="prev, pager, next, total"
+          :total="listTotal"
+          :page-size="pageSize"
+          :current-page="page"
+          @current-change="onPageChange"
+        />
+      </div>
     </template>
+
+    <input ref="fileInputRef" type="file" accept=".csv" hidden @change="onImportFile" />
 
     <el-dialog v-model="formVisible" title="记一笔" width="420px">
       <el-form label-width="88px">
@@ -115,6 +126,7 @@ import {
   createTransaction,
   deleteTransaction,
   exportTransactions,
+  importTransactions,
   getPendingOrders,
   syncOrders,
   syncAllPendingOrders,
@@ -134,6 +146,10 @@ const keyword = ref('')
 const kind = ref<'all' | 'income' | 'expense'>('all')
 const list = ref<TransactionRecord[]>([])
 const total = ref(0)
+const listTotal = ref(0)
+const page = ref(1)
+const pageSize = 20
+const fileInputRef = ref<HTMLInputElement>()
 const pending = ref<PendingOrderRow[]>([])
 const formVisible = ref(false)
 const form = ref({
@@ -173,15 +189,21 @@ function sourceLabel(s?: string) {
 
 async function loadList() {
   const res = await getTransactionList({
-    page: 1,
-    pageSize: 200,
+    page: page.value,
+    pageSize,
     keyword: keyword.value || undefined,
     type: kind.value === 'all' ? undefined : kind.value,
     approvalStatus: 'approved',
   })
   const data = (res as any)?.data
   list.value = data?.records ?? data?.list ?? []
-  total.value = Number(data?.total ?? list.value.length)
+  listTotal.value = Number(data?.total ?? list.value.length)
+  total.value = listTotal.value
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  loadList()
 }
 
 async function loadPending() {
@@ -201,7 +223,10 @@ async function load() {
 }
 
 watch([keyword, kind], () => {
-  if (tab.value === 'list') loadList()
+  if (tab.value === 'list') {
+    page.value = 1
+    loadList()
+  }
 })
 
 async function confirmSyncAll() {
@@ -254,15 +279,54 @@ async function remove(row: TransactionRecord) {
 }
 
 function importHint() {
-  ElMessage.info('请使用 CSV 导入（与旧版收支明细相同格式）；导入后可在列表中核对。')
+  fileInputRef.value?.click()
+}
+
+async function onImportFile(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    ElMessage.warning('请上传 CSV 文件')
+    target.value = ''
+    return
+  }
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await importTransactions(fd)
+    const result = (res as any)?.data ?? res ?? {}
+    const success = result.success ?? 0
+    const failed = result.failed ?? 0
+    ElMessage.success(failed > 0 ? `导入完成：成功 ${success} 条，失败 ${failed} 条` : `导入成功 ${success} 条`)
+    await loadList()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '导入失败')
+  } finally {
+    target.value = ''
+  }
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 async function doExport() {
   try {
-    await exportTransactions({ format: 'csv' } as any)
+    const blob = (await exportTransactions({
+      format: 'csv',
+      keyword: keyword.value || undefined,
+      type: kind.value === 'all' ? undefined : kind.value,
+    } as any)) as unknown as Blob
+    triggerDownload(blob, `finance-transactions-${new Date().toISOString().slice(0, 10)}.csv`)
     ElMessage.success('导出已开始')
-  } catch {
-    ElMessage.info('请在浏览器下载栏查看导出文件')
+  } catch (err: any) {
+    ElMessage.error(err?.message || '导出失败')
   }
 }
 
