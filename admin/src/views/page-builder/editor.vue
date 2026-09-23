@@ -81,6 +81,11 @@
           </div>
         </div>
 
+        <div v-if="showWarmHomeBanner && !pageLoadError" class="warm-expand-banner">
+          <span>当前是暖阁首页壳：真机会自动展开默认区块。若要逐块改文案和顺序，可先展开再编辑。</span>
+          <el-button size="small" type="primary" @click="expandWarmHomeBlocks">展开为可编辑区块</el-button>
+        </div>
+
         <!-- 页面加载失败提示条 -->
         <div v-if="pageLoadError" class="load-error-banner">
           <el-icon><WarningFilled /></el-icon>
@@ -248,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
@@ -273,6 +278,14 @@ function isConflictError(err: unknown): boolean {
 const route = useRoute()
 const router = useRouter()
 const pageStore = usePageStore()
+
+const showWarmHomeBanner = computed(() => pageStore.isWarmHomeShellOnly())
+
+function expandWarmHomeBlocks() {
+  if (pageStore.expandWarmHomeFromShell()) {
+    ElMessage.success('已展开为可编辑区块，记得保存草稿')
+  }
+}
 
 const dslDialogVisible = ref(false)
 const dslEditorValue = ref('')
@@ -1185,6 +1198,21 @@ onBeforeUnmount(() => {
 .conflict-text {
   flex: 1;
   font-size: 13px;
+}
+
+.warm-expand-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--mute);
+  background: var(--accsoft);
+  border-bottom: 1px solid var(--line2);
+  span {
+    flex: 1;
+  }
 }
 
 .conflict-actions {

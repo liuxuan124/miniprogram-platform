@@ -1,10 +1,13 @@
 package com.miniprogram.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.miniprogram.common.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
 
 /**
  * 页面实体
@@ -47,4 +50,12 @@ public class Page extends BaseEntity {
 
     @Schema(description = "是否归档 0否 1是")
     private Integer archived;
+
+    @Schema(description = "测试页 0否 1是")
+    @TableField("is_test")
+    private Integer isTest;
+
+    @Schema(description = "入口/活动到期时间")
+    @TableField("entry_expire_at")
+    private LocalDateTime entryExpireAt;
 }

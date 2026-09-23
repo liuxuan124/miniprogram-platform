@@ -101,12 +101,17 @@
                     <div class="faint">{{ rowSub(row) }}</div>
                   </div>
                   <div class="prow-ops">
-                    <div class="pstat"><PageStatusTag :row="row" /></div>
+                    <div class="pstat">
+                      <PageStatusTag :row="row" />
+                      <span v-if="isTestPage(row)" class="tag t-err" style="margin-left: 4px">测试</span>
+                    </div>
                     <button type="button" class="btn soft sm" @click="openEditor(row)">装修</button>
                     <PageRowMenu
                       :row="row"
                       :archived="isArchived(row)"
                       :is-nav="tabIndexOf(row) >= 0"
+                      :is-activity="inferGroup(row) === 'activity'"
+                      :is-test="isTestPage(row)"
                       :can-offline="canOffline(row)"
                       :can-delete="canDelete(row)"
                       @command="onMore"
@@ -127,16 +132,32 @@
     <el-dialog
       v-model="navDialogVisible"
       class="mini-wb-overlay"
-      title="设为导航入口"
-      width="420px"
+      :title="navDialogMode === 'entry' ? '设置入口' : '设为导航入口'"
+      width="440px"
     >
-      <p class="nav-dialog-hint">将「{{ navTarget?.name }}」绑定到选中的底部导航位（写入待发布草稿）。</p>
+      <p class="nav-dialog-hint">
+        {{
+          navDialogMode === 'entry'
+            ? '可选底部导航位，并设置活动到期时间（到期后发布前会拦截）。'
+            : '将「' + (navTarget?.name || '') + '」绑定到选中的底部导航位（写入待发布草稿）。'
+        }}
+      </p>
       <el-radio-group v-model="navSlotIndex" class="nav-slots">
         <el-radio v-for="(tab, i) in siteTabs" :key="i" :value="i">
           {{ i + 1 }}. {{ tab.text || `导航 ${i + 1}` }}
           <span class="muted">（现：{{ tab.pageName || tab.pagePath || '未绑定' }}）</span>
         </el-radio>
       </el-radio-group>
+      <div v-if="navDialogMode === 'entry'" class="entry-expire">
+        <label class="faint">入口到期（可选）</label>
+        <el-date-picker
+          v-model="entryExpireAt"
+          type="datetime"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          placeholder="不填则长期有效"
+          style="width: 100%"
+        />
+      </div>
       <template #footer>
         <el-button @click="navDialogVisible = false">取消</el-button>
         <el-button type="primary" class="mw-btn-primary" :loading="navSaving" @click="confirmSetNav">
@@ -182,9 +203,11 @@ const siteTabs = ref<MiniTabBarItem[]>([])
 const closedGroups = reactive<Record<string, boolean>>({ archived: true })
 
 const navDialogVisible = ref(false)
+const navDialogMode = ref<'nav' | 'entry'>('nav')
 const navTarget = ref<PageRecord | null>(null)
 const navSlotIndex = ref(0)
 const navSaving = ref(false)
+const entryExpireAt = ref<string | null>(null)
 
 const filtering = computed(() => !!keyword.value.trim() || statusFilter.value !== 'all')
 
@@ -292,10 +315,16 @@ function formatUpdated(row: PageRecord) {
   return s.slice(0, 16)
 }
 
+function isTestPage(row: PageRecord) {
+  return !!(row as any).isTest || (row as any).is_test === 1
+}
+
 function rowSub(row: PageRecord) {
   const parts: string[] = []
   const ti = tabIndexOf(row)
   if (ti >= 0) parts.push(`导航 ${ti + 1}`)
+  const exp = String((row as any).entryExpireAt || (row as any).entry_expire_at || '')
+  if (exp) parts.push(`到期 ${exp.slice(0, 16)}`)
   const src = String((row as any).source || (row as any).src || '').trim()
   if (src) parts.push(src)
   const upd = formatUpdated(row)
@@ -374,7 +403,33 @@ async function onMore(cmd: string, row: PageRecord) {
     }
     navTarget.value = row
     navSlotIndex.value = 0
+    navDialogMode.value = 'nav'
+    entryExpireAt.value = null
     navDialogVisible.value = true
+    return
+  }
+  if (cmd === 'set-entry') {
+    navTarget.value = row
+    navSlotIndex.value = tabIndexOf(row) >= 0 ? tabIndexOf(row) : 0
+    navDialogMode.value = 'entry'
+    entryExpireAt.value = String((row as any).entryExpireAt || (row as any).entry_expire_at || '') || null
+    navDialogVisible.value = true
+    return
+  }
+  if (cmd === 'toggle-test') {
+    const next = isTestPage(row) ? 0 : 1
+    try {
+      await ElMessageBox.confirm(
+        next ? `将「${row.name}」标为测试页？正式发布前检查会拦截导航绑定。` : `取消「${row.name}」的测试页标记？`,
+        next ? '标为测试页' : '取消测试',
+        { type: 'warning' },
+      )
+      await updatePage(Number(row.id), { isTest: next } as any)
+      ElMessage.success(next ? '已标为测试页' : '已取消测试')
+      await load()
+    } catch (e: any) {
+      if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+    }
     return
   }
   if (cmd === 'rename') {
@@ -429,7 +484,7 @@ async function onMore(cmd: string, row: PageRecord) {
 async function confirmSetNav() {
   if (!navTarget.value) return
   if (!siteTabs.value.length) {
-    ElMessage.warning('尚未配置底部导航，请先到概览添加')
+    ElMessage.warning('尚未配置底部导航，请先到「外观」添加')
     return
   }
   navSaving.value = true
@@ -445,9 +500,16 @@ async function confirmSetNav() {
       text: next[i].text || page.name,
     }
     await updateMiniSite({ tabBar: next })
+    if (navDialogMode.value === 'entry' || entryExpireAt.value) {
+      await updatePage(Number(page.id), {
+        pageGroup: 'activity',
+        entryExpireAt: entryExpireAt.value || '',
+      } as any)
+    }
     ElMessage.success('已写入导航草稿，请去发布')
     navDialogVisible.value = false
     siteTabs.value = next
+    await load()
   } catch (e: any) {
     ElMessage.error(e?.message || '设置失败')
   } finally {
@@ -531,5 +593,11 @@ onMounted(load)
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+}
+.entry-expire {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 </style>

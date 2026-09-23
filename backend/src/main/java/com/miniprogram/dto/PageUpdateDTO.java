@@ -41,6 +41,12 @@ public class PageUpdateDTO {
     @Schema(description = "是否归档 0/1")
     private Integer archived;
 
+    @Schema(description = "测试页 0/1")
+    private Integer isTest;
+
+    @Schema(description = "入口到期时间 yyyy-MM-dd HH:mm:ss，空表示长期")
+    private String entryExpireAt;
+
     public boolean isEmpty() {
         return !StringUtils.hasText(name)
                 && type == null
@@ -49,6 +55,8 @@ public class PageUpdateDTO {
                 && shareImage == null
                 && description == null
                 && !StringUtils.hasText(pageGroup)
-                && archived == null;
+                && archived == null
+                && isTest == null
+                && !StringUtils.hasText(entryExpireAt);
     }
 }

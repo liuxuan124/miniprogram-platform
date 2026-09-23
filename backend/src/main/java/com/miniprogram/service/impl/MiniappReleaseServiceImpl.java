@@ -1061,6 +1061,11 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 } else if (Integer.valueOf(1).equals(bound.getArchived())
                         || "archived".equalsIgnoreCase(bound.getPageGroup())) {
                     vo.getBlocking().add("导航「" + fallbackText(text) + "」绑定了已归档页面，请先换绑");
+                } else if (Integer.valueOf(1).equals(bound.getIsTest())) {
+                    vo.getBlocking().add("导航「" + fallbackText(text) + "」绑定了测试页，请换绑或取消测试标记");
+                } else if (bound.getEntryExpireAt() != null
+                        && bound.getEntryExpireAt().isBefore(java.time.LocalDateTime.now())) {
+                    vo.getBlocking().add("导航「" + fallbackText(text) + "」绑定的活动页已到期，请延期或换绑");
                 }
             }
         }
@@ -1079,6 +1084,12 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             item.setName(page.getName());
             item.setPath(page.getPath());
             item.setStatus(page.getStatus());
+            if (Integer.valueOf(1).equals(page.getIsTest())) {
+                vo.getBlocking().add("页面「" + page.getName() + "」为测试页，不能随正式发布上线");
+            }
+            if (page.getEntryExpireAt() != null && page.getEntryExpireAt().isBefore(java.time.LocalDateTime.now())) {
+                vo.getBlocking().add("页面「" + page.getName() + "」入口已到期，请调整到期时间或下线");
+            }
             PageVersion latest = pageVersionMapper.selectOne(new LambdaQueryWrapper<PageVersion>()
                     .eq(PageVersion::getPageId, id)
                     .orderByDesc(PageVersion::getVersion)
@@ -1127,6 +1138,11 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 }
                 walkComponentsForPreflight(components, unknownTypes, sampleLocalhost, sampleExternalHttp);
                 emptyDatasourceHits += countEmptyDatasources(components);
+                if (isWarmHomeShellOnly(components)) {
+                    Page p = pageMapper.selectById(id);
+                    String pname = p != null ? p.getName() : ("#" + id);
+                    vo.getWarnings().add("页面「" + pname + "」仍为暖阁首页壳，建议在装修器展开为区块后再微调");
+                }
             } catch (Exception e) {
                 vo.getWarnings().add("页面 #" + id + " DSL 解析失败，跳过深度检查");
             }
@@ -1425,6 +1441,28 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             }
         }
         return boundIds;
+    }
+
+    private boolean isWarmHomeShellOnly(List<?> components) {
+        if (components == null || components.isEmpty()) {
+            return false;
+        }
+        List<String> flowTypes = new ArrayList<>();
+        for (Object item : components) {
+            if (!(item instanceof Map<?, ?> map)) {
+                continue;
+            }
+            Object type = map.get("type");
+            if (type == null) {
+                continue;
+            }
+            String t = String.valueOf(type);
+            if ("float_button".equals(t)) {
+                continue;
+            }
+            flowTypes.add(t);
+        }
+        return !flowTypes.isEmpty() && flowTypes.stream().allMatch("warm_home"::equals);
     }
 
     private boolean isEmptyCanvas(String dslContent) {

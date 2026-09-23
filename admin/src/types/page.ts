@@ -390,6 +390,10 @@ export interface PageRecord {
   createTime?: string
   updateTime?: string
   published_at?: string
+  isTest?: number | boolean
+  is_test?: number | boolean
+  entryExpireAt?: string
+  entry_expire_at?: string
 }
 
 /** 创建页面参数 */
@@ -422,6 +426,8 @@ export interface UpdatePageParams {
   page_group?: string
   /** 1=归档 */
   archived?: number | boolean
+  isTest?: number | boolean
+  entryExpireAt?: string | null
 }
 
 /** 页面列表查询参数 */
