@@ -266,7 +266,10 @@
 
             <template v-else>
               <div class="fp-stub">
-                <div class="ic">{{ stubMeta.icon }}</div>
+                <div class="ic">
+                  <img v-if="isStubIconImage(stubMeta.icon)" :src="stubMeta.icon" alt="" class="ic-img" />
+                  <template v-else>{{ stubMeta.icon }}</template>
+                </div>
                 <h3>{{ stubMeta.title }}</h3>
                 <p>{{ stubMeta.desc }}</p>
                 <div class="hint">完整交互请切换到「原型全页」模式</div>
@@ -575,7 +578,7 @@ const stubScreens: Record<string, { icon: string; title: string; desc: string }>
   writereview: { icon: '✍️', title: '发表评价', desc: '星级、标签、图片、匿名提交' },
   confirm: { icon: '🧾', title: '确认订单', desc: '优惠券、积分、支付底栏' },
   paid: { icon: '✅', title: '支付成功', desc: '收据、订单进度、奖励券' },
-  booking: { icon: '🗓️', title: '预约 1v1', desc: '选日 / 时段 / 表单三步' },
+  booking: { icon: '/images/nav-icons/g-consult.png', title: '预约 1v1', desc: '选日 / 时段 / 表单三步' },
   booked: { icon: '🎉', title: '预约成功', desc: '预约凭证与回看入口' },
   orders: { icon: '📦', title: '我的订单', desc: '待付款 / 待发货 / 待收货 / 已完成' },
   coupons: { icon: '🎫', title: '我的优惠券', desc: '可使用 / 已使用 / 已过期' },
@@ -970,6 +973,11 @@ async function showSnapshotPage(path: string) {
   } catch (e: any) {
     notice.value = e?.message || '该页快照解析失败'
   }
+}
+
+function isStubIconImage(icon?: string) {
+  const s = String(icon || '').trim()
+  return s.startsWith('/') || s.startsWith('http')
 }
 
 function openScreen(key: string) {
@@ -2366,6 +2374,7 @@ onMounted(async () => {
   text-align: center;
 
   .ic { font-size: 42px; margin-bottom: 12px; }
+  .ic-img { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto; }
   h3 { margin: 0 0 8px; }
   p { color: #6b7280; font-size: 13px; line-height: 1.6; }
   .hint {

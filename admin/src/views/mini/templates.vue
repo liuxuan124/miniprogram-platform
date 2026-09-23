@@ -47,8 +47,10 @@
             class="tpl"
             :class="{ using: isInUse(item), picked: pendingActivate?.id === Number(item.id) }"
           >
-            <div class="tpl-art" :style="{ background: artBg(item) }">
+            <div class="tpl-art" :class="{ 'tpl-art--img': !!storeThumb(item) }" :style="tplArtStyle(item)">
+              <img v-if="storeThumb(item)" class="tpl-art-img" :src="storeThumb(item)" alt="" loading="lazy" />
               <div
+                v-else
                 v-for="n in 3"
                 :key="n"
                 class="tpl-phone"
@@ -62,7 +64,7 @@
               <div class="tpl-title-row">
                 <b class="tpl-title" :title="displayNameFull(item)">{{ displayNameFull(item) }}</b>
                 <span v-if="isInUse(item)" class="tag t-acc">
-                  {{ isLiveTemplate(item) ? '使用中' : '待发布' }}
+                  {{ isLiveTemplate(item) ? '当前使用中' : '待发布' }}
                 </span>
               </div>
               <div class="faint">
@@ -148,11 +150,8 @@
       <div v-show="tab === 'page'">
         <div v-if="filteredPageTemplates.length" class="tpl-grid">
           <article v-for="tpl in filteredPageTemplates" :key="String(tpl.id || tpl.key)" class="tpl">
-            <div class="tpl-art" :style="{ background: pageArtBg(tpl) }">
-              <div class="tpl-phone" style="height: 130px">
-                <i style="height: 30px; background: #fff; opacity: 0.85" />
-                <i /><i style="width: 70%" /><i />
-              </div>
+            <div class="tpl-art tpl-art--img" :style="{ background: pageArtBg(tpl) }">
+              <img class="tpl-art-img" :src="pageThumb(tpl)" alt="" loading="lazy" />
             </div>
             <div class="tpl-body">
               <b>{{ tpl.name }}</b>
@@ -177,8 +176,9 @@
             class="tpl"
             :class="{ using: isInUse(item) }"
           >
-            <div class="tpl-art" :style="{ background: artBg(item) }">
-              <div class="tpl-phone" style="height: 130px">
+            <div class="tpl-art" :class="{ 'tpl-art--img': !!storeThumb(item) }" :style="tplArtStyle(item)">
+              <img v-if="storeThumb(item)" class="tpl-art-img" :src="storeThumb(item)" alt="" loading="lazy" />
+              <div v-else class="tpl-phone" style="height: 130px">
                 <i :style="{ height: '16px', background: accentOf(item) }" /><i /><i style="width: 70%" />
               </div>
             </div>
@@ -236,6 +236,7 @@ import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import type { ReleaseRecord } from '@/types/page'
+import { pageTemplateThumbUrl, storeTemplateThumbUrl } from '@/utils/template-thumb'
 
 defineOptions({ name: 'MiniTemplates' })
 
@@ -366,6 +367,21 @@ function displayNameFull(item: ReleaseRecord) {
 
 function formatTime(t?: string) {
   return t ? String(t).replace('T', ' ').slice(0, 16) : '—'
+}
+
+function storeThumb(item: ReleaseRecord) {
+  return storeTemplateThumbUrl(item)
+}
+
+function pageThumb(tpl: Record<string, unknown>) {
+  return pageTemplateThumbUrl(tpl)
+}
+
+function tplArtStyle(item: ReleaseRecord) {
+  if (storeThumb(item)) return {}
+  const colors = ['#F4E3D3', '#E1E9F5', '#DDEFE4', '#F5E7CC', '#F3DDE6', '#E9E4DD']
+  const id = Number(item.id) || 0
+  return { background: colors[id % colors.length] }
 }
 
 function artBg(item: ReleaseRecord) {
@@ -529,6 +545,19 @@ onMounted(load)
 }
 .tpl-art {
   align-items: flex-end;
+  overflow: hidden;
+  min-height: 148px;
+  &.tpl-art--img {
+    align-items: stretch;
+    justify-content: center;
+    padding: 0;
+  }
+  .tpl-art-img {
+    width: 100%;
+    height: 148px;
+    object-fit: cover;
+    display: block;
+  }
   .tpl-phone {
     width: 60px;
     border-radius: 10px 10px 0 0;
