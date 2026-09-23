@@ -6,6 +6,8 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.finance.*;
+import com.miniprogram.dto.system.ConfigBatchUpdateDTO;
+import com.miniprogram.dto.system.ConfigItemDTO;
 import com.miniprogram.entity.FinanceBudget;
 import com.miniprogram.entity.FinanceBudgetAlert;
 import com.miniprogram.entity.FinanceInvoice;
@@ -14,7 +16,6 @@ import com.miniprogram.entity.FinanceRole;
 import com.miniprogram.entity.FinanceSyncConfig;
 import com.miniprogram.entity.FinanceTransaction;
 import com.miniprogram.entity.AdminUser;
-import com.miniprogram.entity.Order;
 import com.miniprogram.mapper.FinanceBudgetAlertMapper;
 import com.miniprogram.mapper.FinanceBudgetMapper;
 import com.miniprogram.mapper.FinanceInvoiceMapper;
@@ -24,6 +25,12 @@ import com.miniprogram.mapper.FinanceSyncConfigMapper;
 import com.miniprogram.mapper.FinanceTransactionMapper;
 import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.OrderMapper;
+import com.miniprogram.entity.OperationLog;
+import com.miniprogram.service.OperationLogService;
+import com.miniprogram.service.SystemConfigService;
+import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.support.FinanceMoneyHelper;
+import com.miniprogram.tenant.TenantContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.service.FinanceService;
@@ -60,6 +67,10 @@ public class FinanceServiceImpl implements FinanceService {
 
     private static final String COST_OF_GOODS_CATEGORY = "采购成本";
     private static final List<String> DEFAULT_ROLE_PERMISSIONS = List.of("finance:view");
+    /** 环比展示：上月收入低于此值（元）时不展示百分比环比 */
+    private static final BigDecimal MIN_MOM_BASELINE_YUAN = new BigDecimal("100");
+    private static final String CFG_GOAL_MONTH_CENTS = "finance_goal_month_cents";
+    private static final String CFG_GOAL_YEAR_CENTS = "finance_goal_year_cents";
 
     private final FinanceTransactionMapper transactionMapper;
     private final FinanceBudgetMapper budgetMapper;
@@ -70,6 +81,9 @@ public class FinanceServiceImpl implements FinanceService {
     private final FinanceBudgetAlertMapper budgetAlertMapper;
     private final AdminUserMapper adminUserMapper;
     private final OrderMapper orderMapper;
+    private final FinanceOrderSyncService financeOrderSyncService;
+    private final OperationLogService operationLogService;
+    private final SystemConfigService systemConfigService;
     private final ObjectMapper objectMapper;
 
     @PostConstruct
@@ -85,7 +99,6 @@ public class FinanceServiceImpl implements FinanceService {
 
     @Override
     public FinanceDashboardVO getDashboard() {
-        syncPaidOrdersToFinance();
         LocalDate now = LocalDate.now();
         LocalDate monthStart = now.withDayOfMonth(1);
         LocalDate prevMonthStart = monthStart.minusMonths(1);
@@ -108,9 +121,30 @@ public class FinanceServiceImpl implements FinanceService {
         vo.setNetProfit(currentProfit);
         vo.setPendingInvoiceCount(pendingInvoices != null ? pendingInvoices.intValue() : 0);
         vo.setBudgetUsageRate(calculateAverageBudgetUsageRate());
-        vo.setIncomeChange(calculateChangeRate(currentIncome, previousIncome));
+        boolean showMom = previousIncome.compareTo(MIN_MOM_BASELINE_YUAN) >= 0;
+        vo.setShowIncomeChange(showMom);
+        vo.setPreviousMonthIncome(previousIncome);
+        vo.setIncomeChange(showMom ? calculateChangeRate(currentIncome, previousIncome) : null);
         vo.setExpenseChange(calculateChangeRate(currentExpense, previousExpense));
-        vo.setProfitChange(calculateChangeRate(currentProfit, previousProfit));
+        vo.setProfitChange(showMom ? calculateChangeRate(currentProfit, previousProfit) : null);
+
+        List<FinancePendingOrderVO> pending = financeOrderSyncService.listPendingOrders();
+        vo.setPendingOrderCount(pending.size());
+        long pendingCents = pending.stream()
+                .map(FinancePendingOrderVO::getPayAmountCents)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+        vo.setPendingOrderAmount(FinanceMoneyHelper.centsToYuan(pendingCents));
+        vo.setOrderTotalCount(financeOrderSyncService.countTenantOrders());
+        vo.setSyncedOrderTransactionCount(financeOrderSyncService.countSyncedOrderTransactions(TenantContext.getTenantId()));
+        vo.setLastOrderSyncTime(financeOrderSyncService.getLastOrderSyncTime());
+        vo.setOrdersAligned(pending.isEmpty());
+
+        vo.setGoalMonth(FinanceMoneyHelper.centsToYuan(readGoalCents(CFG_GOAL_MONTH_CENTS, 600_000L)));
+        vo.setGoalYear(FinanceMoneyHelper.centsToYuan(readGoalCents(CFG_GOAL_YEAR_CENTS, 6_000_000L)));
+        vo.setDuplicateBudgetCount(countDuplicateBudgets());
+        vo.setDuplicateInvoiceCount(countDuplicateSampleInvoices());
         return vo;
     }
 
@@ -225,11 +259,15 @@ public class FinanceServiceImpl implements FinanceService {
     public FinanceTransactionVO createTransaction(FinanceTransactionDTO dto) {
         FinanceTransaction entity = new FinanceTransaction();
         applyTransactionDto(entity, dto, true);
-        entity.setApprovalStatus("pending");
-        entity.setCreatedBy("admin");
+        entity.setApprovalStatus("approved");
+        entity.setSource("manual");
+        entity.setTenantId(TenantContext.getTenantId());
+        entity.setExcludeFromSummary(0);
+        entity.setCreatedBy(FinanceOrderSyncService.currentOperatorLabel());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         transactionMapper.insert(entity);
+        recalculateAllBudgets();
         return toTransactionVO(entity);
     }
 
@@ -254,8 +292,10 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     @Transactional
     public void deleteTransaction(Long id) {
+        FinanceTransaction entity = getTransactionEntity(id);
         transactionMapper.deleteById(id);
         recalculateAllBudgets();
+        writeFinanceOpLog("删除收支流水", "id=" + id + ", desc=" + entity.getDescription());
     }
 
     @Override
@@ -929,6 +969,8 @@ public class FinanceServiceImpl implements FinanceService {
             int recordCount = 0;
             try {
                 switch (config.getSource()) {
+                    case "order" -> recordCount = financeOrderSyncService.syncAllPending(
+                            FinanceOrderSyncService.currentOperatorLabel());
                     case "erp" -> {
                         recalculateAllBudgets();
                         recordCount = Math.toIntExact(Optional.ofNullable(
@@ -1160,27 +1202,43 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     private BigDecimal sumTransactionAmount(String type, LocalDate start, LocalDate end) {
+        LambdaQueryWrapper<FinanceTransaction> wrapper = summaryApprovedWrapper(type, start, end);
+        long cents = transactionMapper.selectList(wrapper).stream()
+                .mapToLong(this::transactionCentsAbs)
+                .sum();
+        return FinanceMoneyHelper.centsToYuan(cents);
+    }
+
+    private List<FinanceTransaction> listTransactionsBetween(LocalDate start, LocalDate end) {
+        LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(FinanceTransaction::getApprovalStatus, "approved")
+                .and(w -> w.isNull(FinanceTransaction::getExcludeFromSummary)
+                        .or().eq(FinanceTransaction::getExcludeFromSummary, 0))
+                .ge(FinanceTransaction::getTransactionDate, start)
+                .le(FinanceTransaction::getTransactionDate, end);
+        return transactionMapper.selectList(wrapper);
+    }
+
+    private LambdaQueryWrapper<FinanceTransaction> summaryApprovedWrapper(String type, LocalDate start, LocalDate end) {
         LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FinanceTransaction::getType, type)
-                .eq(FinanceTransaction::getApprovalStatus, "approved");
+                .eq(FinanceTransaction::getApprovalStatus, "approved")
+                .and(w -> w.isNull(FinanceTransaction::getExcludeFromSummary)
+                        .or().eq(FinanceTransaction::getExcludeFromSummary, 0));
         if (start != null) {
             wrapper.ge(FinanceTransaction::getTransactionDate, start);
         }
         if (end != null) {
             wrapper.le(FinanceTransaction::getTransactionDate, end);
         }
-        return transactionMapper.selectList(wrapper).stream()
-                .map(FinanceTransaction::getAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return wrapper;
     }
 
-    private List<FinanceTransaction> listTransactionsBetween(LocalDate start, LocalDate end) {
-        LambdaQueryWrapper<FinanceTransaction> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FinanceTransaction::getApprovalStatus, "approved")
-                .ge(FinanceTransaction::getTransactionDate, start)
-                .le(FinanceTransaction::getTransactionDate, end);
-        return transactionMapper.selectList(wrapper);
+    private long transactionCentsAbs(FinanceTransaction tx) {
+        if (tx.getAmountCents() != null && tx.getAmountCents() > 0) {
+            return tx.getAmountCents();
+        }
+        return FinanceMoneyHelper.yuanToCents(tx.getAmount());
     }
 
     private BigDecimal calculateChangeRate(BigDecimal current, BigDecimal previous) {
@@ -1309,6 +1367,7 @@ public class FinanceServiceImpl implements FinanceService {
         vo.setId(entity.getId());
         vo.setType(entity.getType());
         vo.setAmount(entity.getAmount());
+        vo.setAmountCents(entity.getAmountCents());
         vo.setCategory(entity.getCategory());
         vo.setSubCategory(entity.getSubCategory());
         vo.setDescription(entity.getDescription());
@@ -1320,6 +1379,9 @@ public class FinanceServiceImpl implements FinanceService {
         vo.setCreatedBy(entity.getCreatedBy());
         vo.setCreatedAt(entity.getCreateTime() != null ? entity.getCreateTime().format(DATE_TIME_FORMATTER) : null);
         vo.setUpdatedAt(entity.getUpdateTime() != null ? entity.getUpdateTime().format(DATE_TIME_FORMATTER) : null);
+        vo.setSource(entity.getSource());
+        vo.setOrderId(entity.getOrderId());
+        vo.setExcludeFromSummary(Integer.valueOf(1).equals(entity.getExcludeFromSummary()));
         return vo;
     }
 
@@ -1368,6 +1430,7 @@ public class FinanceServiceImpl implements FinanceService {
         vo.setCreatedBy(entity.getCreatedBy());
         vo.setCreatedAt(entity.getCreateTime() != null ? entity.getCreateTime().format(DATE_TIME_FORMATTER) : null);
         vo.setUpdatedAt(entity.getUpdateTime() != null ? entity.getUpdateTime().format(DATE_TIME_FORMATTER) : null);
+        vo.setSample(Integer.valueOf(1).equals(entity.getIsSample()));
         return vo;
     }
 
@@ -1698,7 +1761,9 @@ public class FinanceServiceImpl implements FinanceService {
 
     private void applyTransactionDto(FinanceTransaction entity, FinanceTransactionDTO dto, boolean creating) {
         entity.setType(dto.getType());
-        entity.setAmount(dto.getAmount());
+        long cents = FinanceMoneyHelper.yuanToCents(dto.getAmount());
+        entity.setAmountCents(cents);
+        entity.setAmount(FinanceMoneyHelper.centsToYuan(cents));
         entity.setCategory(dto.getCategory());
         entity.setSubCategory(emptyToNull(dto.getSubCategory()));
         entity.setDescription(emptyToNull(dto.getDescription()));
@@ -1770,36 +1835,153 @@ public class FinanceServiceImpl implements FinanceService {
         return cat;
     }
 
-    /** 将已付款订单同步为财务收入流水（幂等，按订单号去重） */
-    private void syncPaidOrdersToFinance() {
-        List<Order> orders = orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                .in(Order::getStatus, List.of("paid", "shipped", "completed")));
-        for (Order order : orders) {
-            if (order.getPayAmount() == null || order.getOrderNo() == null) {
-                continue;
+    @Override
+    public List<FinancePendingOrderVO> listPendingOrders() {
+        return financeOrderSyncService.listPendingOrders();
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> syncOrders(List<Long> orderIds) {
+        int n = financeOrderSyncService.syncOrders(orderIds, FinanceOrderSyncService.currentOperatorLabel());
+        recalculateAllBudgets();
+        writeFinanceOpLog("订单批量入账", "count=" + n + ", orderIds=" + orderIds);
+        return Map.of("synced", n, "lastSyncTime", financeOrderSyncService.getLastOrderSyncTime());
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> syncAllPendingOrders() {
+        int n = financeOrderSyncService.syncAllPending(FinanceOrderSyncService.currentOperatorLabel());
+        recalculateAllBudgets();
+        writeFinanceOpLog("全部未入账订单入账", "count=" + n);
+        return Map.of("synced", n, "lastSyncTime", financeOrderSyncService.getLastOrderSyncTime());
+    }
+
+    @Override
+    public Map<String, Object> getGoals() {
+        Map<String, Object> m = new HashMap<>();
+        m.put("goalMonthCents", readGoalCents(CFG_GOAL_MONTH_CENTS, 600_000L));
+        m.put("goalYearCents", readGoalCents(CFG_GOAL_YEAR_CENTS, 6_000_000L));
+        return m;
+    }
+
+    @Override
+    @Transactional
+    public void saveGoals(Long goalMonthCents, Long goalYearCents) {
+        List<ConfigItemDTO> items = new ArrayList<>();
+        if (goalMonthCents != null) {
+            ConfigItemDTO item = new ConfigItemDTO();
+            item.setConfigKey(CFG_GOAL_MONTH_CENTS);
+            item.setConfigValue(String.valueOf(goalMonthCents));
+            item.setConfigGroup("finance");
+            item.setDescription("月度收入目标（分）");
+            items.add(item);
+        }
+        if (goalYearCents != null) {
+            ConfigItemDTO item = new ConfigItemDTO();
+            item.setConfigKey(CFG_GOAL_YEAR_CENTS);
+            item.setConfigValue(String.valueOf(goalYearCents));
+            item.setConfigGroup("finance");
+            item.setDescription("年度收入目标（分）");
+            items.add(item);
+        }
+        if (!items.isEmpty()) {
+            ConfigBatchUpdateDTO dto = new ConfigBatchUpdateDTO();
+            dto.setConfigs(items);
+            systemConfigService.batchUpdateConfigs(dto);
+        }
+        writeFinanceOpLog("保存经营目标", "monthCents=" + goalMonthCents + ", yearCents=" + goalYearCents);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> dedupeBudgets() {
+        List<FinanceBudget> all = budgetMapper.selectList(new LambdaQueryWrapper<FinanceBudget>()
+                .eq(FinanceBudget::getStatus, "draft")
+                .orderByAsc(FinanceBudget::getId));
+        Map<String, Long> keeper = new LinkedHashMap<>();
+        List<Long> removeIds = new ArrayList<>();
+        for (FinanceBudget b : all) {
+            String sig = budgetSignature(b);
+            if (!keeper.containsKey(sig)) {
+                keeper.put(sig, b.getId());
+            } else {
+                removeIds.add(b.getId());
             }
-            String marker = "订单收入 " + order.getOrderNo();
-            Long exists = transactionMapper.selectCount(new LambdaQueryWrapper<FinanceTransaction>()
-                    .eq(FinanceTransaction::getType, "income")
-                    .like(FinanceTransaction::getDescription, order.getOrderNo()));
-            if (exists != null && exists > 0) {
-                continue;
+        }
+        for (Long id : removeIds) {
+            budgetMapper.deleteById(id);
+        }
+        writeFinanceOpLog("清理重复预算", "removed=" + removeIds.size() + ", ids=" + removeIds);
+        return Map.of("removed", removeIds.size());
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> cleanSampleInvoices() {
+        List<FinanceInvoice> samples = invoiceMapper.selectList(new LambdaQueryWrapper<FinanceInvoice>()
+                .eq(FinanceInvoice::getIsSample, 1));
+        int n = 0;
+        for (FinanceInvoice inv : samples) {
+            invoiceMapper.deleteById(inv.getId());
+            n++;
+        }
+        writeFinanceOpLog("清理示例发票", "removed=" + n);
+        return Map.of("removed", n);
+    }
+
+    private long readGoalCents(String key, long defaultCents) {
+        try {
+            String raw = systemConfigService.getConfigValue(key, String.valueOf(defaultCents));
+            return Long.parseLong(raw.trim());
+        } catch (Exception e) {
+            return defaultCents;
+        }
+    }
+
+    private int countDuplicateBudgets() {
+        List<FinanceBudget> drafts = budgetMapper.selectList(new LambdaQueryWrapper<FinanceBudget>()
+                .eq(FinanceBudget::getStatus, "draft"));
+        Set<String> seen = new HashSet<>();
+        int dup = 0;
+        for (FinanceBudget b : drafts) {
+            String sig = budgetSignature(b);
+            if (!seen.add(sig)) {
+                dup++;
             }
-            FinanceTransaction tx = new FinanceTransaction();
-            tx.setType("income");
-            tx.setAmount(order.getPayAmount());
-            tx.setCategory("商品销售");
-            tx.setSubCategory("小程序订单");
-            tx.setDescription(marker);
-            tx.setTransactionDate(order.getPaidAt() != null ? order.getPaidAt().toLocalDate() : LocalDate.now());
-            tx.setPaymentMethod("wechat");
-            tx.setCounterparty("用户" + order.getUserId());
-            tx.setApprovalStatus("approved");
-            tx.setInvoiceStatus("none");
-            tx.setCreatedBy("system");
-            tx.setCreateTime(LocalDateTime.now());
-            tx.setUpdateTime(LocalDateTime.now());
-            transactionMapper.insert(tx);
+        }
+        return dup;
+    }
+
+    private int countDuplicateSampleInvoices() {
+        Long c = invoiceMapper.selectCount(new LambdaQueryWrapper<FinanceInvoice>()
+                .eq(FinanceInvoice::getIsSample, 1));
+        return c != null ? Math.max(0, c.intValue() - 1) : 0;
+    }
+
+    private String budgetSignature(FinanceBudget b) {
+        return String.join("|",
+                String.valueOf(b.getName()),
+                String.valueOf(b.getPeriod()),
+                String.valueOf(b.getStartDate()),
+                String.valueOf(b.getEndDate()),
+                String.valueOf(b.getTotalBudget()));
+    }
+
+    private void writeFinanceOpLog(String operation, String params) {
+        try {
+            OperationLog log = new OperationLog();
+            log.setUserId(SecurityUtils.getCurrentUserId());
+            log.setUsername(FinanceOrderSyncService.currentOperatorLabel());
+            log.setOperation("经营管理:" + operation);
+            log.setMethod("FinanceService");
+            log.setParams(params);
+            log.setStatus(1);
+            log.setCreatedAt(LocalDateTime.now());
+            operationLogService.saveLog(log);
+        } catch (Exception ignored) {
+            // 日志失败不阻断主流程
         }
     }
 }

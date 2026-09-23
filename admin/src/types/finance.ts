@@ -14,6 +14,18 @@ export interface FinanceDashboard {
   incomeChange: number | null
   expenseChange: number | null
   profitChange: number | null
+  showIncomeChange?: boolean
+  previousMonthIncome?: number
+  pendingOrderCount?: number
+  pendingOrderAmount?: number
+  orderTotalCount?: number
+  syncedOrderTransactionCount?: number
+  lastOrderSyncTime?: string | null
+  ordersAligned?: boolean
+  goalMonth?: number
+  goalYear?: number
+  duplicateBudgetCount?: number
+  duplicateInvoiceCount?: number
 }
 
 /** 收支趋势项 */
@@ -52,6 +64,10 @@ export interface TransactionRecord {
   createdBy: string
   createdAt: string
   updatedAt: string
+  amountCents?: number
+  source?: string
+  orderId?: number
+  excludeFromSummary?: boolean
 }
 
 /** 收支列表查询参数 */

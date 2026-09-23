@@ -127,4 +127,20 @@ public interface FinanceService {
     Map<String, Object> getCashFlowReport(String startDate, String endDate);
 
     List<Map<String, Object>> getCategoryAnalysisReport(String startDate, String endDate);
+
+    // ==================== 经营管理（订单对账 / 目标 / 清理） ====================
+
+    List<FinancePendingOrderVO> listPendingOrders();
+
+    Map<String, Object> syncOrders(List<Long> orderIds);
+
+    Map<String, Object> syncAllPendingOrders();
+
+    Map<String, Object> getGoals();
+
+    void saveGoals(Long goalMonthCents, Long goalYearCents);
+
+    Map<String, Object> dedupeBudgets();
+
+    Map<String, Object> cleanSampleInvoices();
 }

@@ -21,6 +21,9 @@ public class FinanceTransactionVO {
     @Schema(description = "金额")
     private BigDecimal amount;
 
+    @Schema(description = "金额（分）")
+    private Long amountCents;
+
     @Schema(description = "分类")
     private String category;
 
@@ -53,4 +56,13 @@ public class FinanceTransactionVO {
 
     @Schema(description = "更新时间")
     private String updatedAt;
+
+    @Schema(description = "来源 order/manual/import")
+    private String source;
+
+    @Schema(description = "关联订单ID")
+    private Long orderId;
+
+    @Schema(description = "不计入概览（测试/零元）")
+    private Boolean excludeFromSummary;
 }

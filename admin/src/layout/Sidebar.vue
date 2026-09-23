@@ -304,22 +304,11 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '经营管理',
     children: [
-      {
-        title: '财务管理',
-        icon: 'Money',
-        activePrefix: '/finance',
-        path: '/finance/dashboard',
-        children: [
-          { title: '财务概览', path: '/finance/dashboard', icon: 'Money', activePrefix: '/finance/dashboard' },
-          { title: '收支明细', path: '/finance/income-expense', icon: 'Tickets', activePrefix: '/finance/income-expense' },
-          { title: '财务报表', path: '/finance/report', icon: 'TrendCharts', activePrefix: '/finance/report' },
-          { title: '预算管理', path: '/finance/budget', icon: 'Aim', activePrefix: '/finance/budget' },
-          { title: '发票税务', path: '/finance/invoice', icon: 'InvoiceIcon', activePrefix: '/finance/invoice' },
-          { title: '财务权限', path: '/finance/permission', icon: 'Lock', activePrefix: '/finance/permission' },
-        ],
-      },
-      { title: '智能助手', path: '/ai/agent', icon: 'MagicStick', activePrefix: '/ai/agent', featureModule: 'agent' },
-      { title: '智能草稿', path: '/ai/drafts', icon: 'Document', activePrefix: '/ai/drafts', featureModule: 'agent' },
+      { title: '经营概览', path: '/finance/overview', icon: 'DataBoard', activePrefix: '/finance/overview' },
+      { title: '收支明细', path: '/finance/transactions', icon: 'Tickets', activePrefix: '/finance/transactions' },
+      { title: '预算与目标', path: '/finance/budget', icon: 'Aim', activePrefix: '/finance/budget' },
+      { title: '票据与税务', path: '/finance/invoice', icon: 'InvoiceIcon', activePrefix: '/finance/invoice' },
+      { title: '智能助手', path: '/finance/assistant', icon: 'MagicStick', activePrefix: '/finance/assistant' },
       { title: '知识中心', path: '/ai/knowledge', icon: 'Collection', activePrefix: '/ai/knowledge', featureModule: 'agent' },
     ],
   },
@@ -394,7 +383,7 @@ function isSubOpen(item: MenuItem) {
 
 function toggleSubmenu(item: MenuItem) {
   if (appStore.sidebarCollapsed) {
-    go(item.path || item.children?.[0]?.path || '/finance/dashboard')
+    go(item.path || item.children?.[0]?.path || '/finance/overview')
     return
   }
   if (isSubOpen(item)) {
