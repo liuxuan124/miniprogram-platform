@@ -5,7 +5,7 @@ const { get } = require('../../utils/request')
 const { createSharePageConfig } = require('../../utils/share')
 const { showTabBarForRoute } = require('../../utils/tab-bar-route')
 const { getNavLayout } = require('../../utils/nav-layout')
-const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { FORCE_LOCAL_DEMO, USE_LOCAL_SOURCE } = require('../../data/warm-source')
 const HomeService = require('../../services/home')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { defaultHomeBlocks, annotateHomeBlocks } = require('../../utils/warm-home-template')
@@ -143,7 +143,6 @@ Page({
     // 等远程装修时仍先画 DEMO 首页壳，不挡成空白「加载中」
     dslPending: true,
     loading: false,
-    themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: _navLayout.statusBarHeight,
     greetTitle: '你好',
     userAvatar: DEFAULT_AVATAR,
@@ -219,7 +218,7 @@ Page({
 
   onShow() {
     showTabBarForRoute(this, '/pages/index/index')
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     AuthService.silentLogin()
       .catch(() => false)
       .finally(() => {

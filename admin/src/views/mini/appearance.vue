@@ -100,6 +100,9 @@
               @click="pickTheme(c)"
             />
           </div>
+          <p class="faint" style="margin: 8px 0 0; font-size: 12px; line-height: 1.5">
+            选色后保存并在「发布与分发」发布，小程序全页（含登录、我的、商品）将统一使用该主色。
+          </p>
           <div v-if="themeDirty" class="theme-bar">
             <span class="faint">未保存 · 右侧预览已按 {{ pendingTheme }} 显示</span>
             <button type="button" class="btn sm" :disabled="savingTheme" @click="discardTheme">
@@ -426,8 +429,32 @@ function discardTheme() {
 
 async function writeTheme(color: string) {
   const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
-  const theme = { ...prev, primaryColor: color }
-  const updated = await updateMiniSite({ theme })
+  const theme = {
+    ...prev,
+    primaryColor: color,
+    tabBarActiveColor: color,
+    navBarColor: color,
+    secondaryColor: (prev as { secondaryColor?: string }).secondaryColor || color,
+  }
+  const prevMine =
+    site.value.minePageConfig && typeof site.value.minePageConfig === 'object'
+      ? { ...site.value.minePageConfig }
+      : {}
+  const brandRaw =
+    site.value.brand && typeof site.value.brand === 'object' ? { ...site.value.brand } : {}
+  const updated = await updateMiniSite({
+    theme,
+    minePageConfig: {
+      ...prevMine,
+      themeColor: color,
+      themeColorSecondary: (prevMine as { themeColorSecondary?: string }).themeColorSecondary || color,
+      templateStyle: 'warm',
+    },
+    brandConfig: {
+      ...brandRaw,
+      loginStyleKey: 'warm',
+    },
+  })
   site.value = { ...site.value, ...updated, theme: updated.theme || theme }
   void refreshMiniPending(true)
 }

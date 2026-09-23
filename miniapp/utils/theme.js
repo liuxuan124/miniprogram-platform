@@ -54,6 +54,7 @@ function buildThemeCssVars(theme) {
   return [
     `--brand:${primary}`,
     `--brand-dark:${brandDark}`,
+    `--brand-deep:${secondary}`,
     `--brand-soft:${brandSoft}`,
     `--brand-muted:${brandMuted}`,
     `--brand-50:${brandSoft}`,
@@ -62,6 +63,27 @@ function buildThemeCssVars(theme) {
     `--bg:${pageBg}`,
     `--page-bg:${pageBg}`,
   ].join(';')
+}
+
+function getAppThemeConfig() {
+  if (USE_LOCAL_SOURCE) return WARM_THEME_CONFIG
+  try {
+    const app = getApp()
+    const t = app && app.globalData && app.globalData.miniappThemeConfig
+    if (t && typeof t === 'object') return t
+  } catch (e) {
+    // ignore
+  }
+  return WARM_THEME_CONFIG
+}
+
+function getPrimaryColor() {
+  const t = getAppThemeConfig()
+  return t.primaryColor || t.tabBarActiveColor || DEFAULT_PRIMARY
+}
+
+function getThemePageStyle(theme) {
+  return buildThemeCssVars(resolveTheme(theme || getAppThemeConfig()))
 }
 
 function applyThemeCssVars(theme, pageInstance) {
@@ -130,4 +152,8 @@ module.exports = {
   buildThemeCssVars,
   applyThemeCssVars,
   installPageThemeHook,
+  getAppThemeConfig,
+  getPrimaryColor,
+  getThemePageStyle,
+  resolveTheme,
 }

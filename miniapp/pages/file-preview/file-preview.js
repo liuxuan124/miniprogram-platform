@@ -2,7 +2,7 @@ const { get, BASE_URL } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { picsum } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
 
 /** 仅 FORCE_LOCAL_DEMO 可用的本地纸张 mock */
 const WARM_PAPERS = [
@@ -84,7 +84,6 @@ function buildSummary(data) {
 
 function applyDemo(page, locked) {
   page.setData({
-    themePageStyle: WARM_PAGE_STYLE,
     loading: false,
     loadError: false,
     loadProgress: 100,
@@ -114,7 +113,6 @@ function applyDemo(page, locked) {
 Page({
   ...createSharePageConfig(),
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     id: '',
     loading: true,
     loadError: false,
@@ -142,7 +140,7 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     const wantDemo = !!(options && (options.demo === '1' || options.demo === true || options.demo === 'lock'))
     if ((USE_LOCAL_SOURCE || FORCE_LOCAL_DEMO) && wantDemo) {
       applyDemo(this, options && options.demo === 'lock')

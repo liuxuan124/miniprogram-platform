@@ -294,7 +294,7 @@
 
 .bottom-bar__btn--buy {
   color: #fff;
-  background: linear-gradient(135deg, var(--brand), #6386ff);
+  background: linear-gradient(135deg, var(--brand), var(--accent, var(--brand)));
   box-shadow: 0 9rpx 20rpx rgba(49, 94, 251, 0.2);
 }
 
@@ -574,7 +574,7 @@
   height: 72rpx;
   padding: 0 48rpx;
   border-radius: 999rpx;
-  background: var(--brand, #315efb);
+  background: var(--brand);
   color: #fff;
   font-size: 28rpx;
   font-weight: 600;

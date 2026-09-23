@@ -11,33 +11,19 @@ DB_USER = os.environ["DB_USERNAME"]
 DB_NAME = os.environ.get("DB_NAME", "miniprogram_prod")
 DB_PASSWORD = os.environ["DB_PASSWORD"]
 
+# 首页必须用 warm_home 整页壳（与体验版/小程序 Tab 加载逻辑一致）；勿灌成 6 个 warm_* 块
+WARM_HOME_SHELL_PROPS = {
+    "authors_title": "暖阁出品",
+    "columns_title": "精品专栏",
+    "planet_title": "我的星球",
+}
+
 PAGES = [
-    ("暖阁首页", "/pages/custom/warm-home", None, None),
+    ("暖阁首页", "/pages/custom/warm-home", "warm_home", WARM_HOME_SHELL_PROPS),
     ("暖阁发现", "/pages/custom/warm-discover", "warm_discover", {"title": "发现"}),
     ("暖阁星球", "/pages/custom/warm-planet", "warm_planet", {"title": "暖阁星球"}),
     ("暖阁商城", "/pages/custom/warm-shop", "warm_shop", {"title": "暖阁商城"}),
     ("暖阁我的", "/pages/custom/warm-mine", "warm_mine", {"title": "我的"}),
-]
-
-HOME_BLOCKS = [
-    ("wh-greet", "warm_greet", {
-        "greet_template": "你好", "show_notice": True, "show_search": True,
-        "search_placeholder": "搜索文章、笔记、专栏……", "show_nav": True,
-    }),
-    ("wh-authors", "warm_authors", {
-        "title": "暖阁出品", "more_text": "全部作者 ›",
-        "more_url": "/pages/content-list/content-list", "more_tab": False,
-    }),
-    ("wh-feature", "warm_feature", {"empty_text": "暂无精选内容"}),
-    ("wh-columns", "warm_columns", {
-        "title": "精品专栏", "more_text": "全部 ›",
-        "more_url": "/pages/shop/shop", "more_tab": True,
-    }),
-    ("wh-planet", "warm_planet_rec", {
-        "title": "我的星球", "more_text": "进入 ›",
-        "more_url": "/pages/planet/planet", "more_tab": True,
-    }),
-    ("wh-feed", "warm_feed", {"footer": "暖阁 · 慢一点，也很好"}),
 ]
 
 TAB_BIND = [
@@ -79,12 +65,9 @@ def sql_str(value):
 
 
 def dsl_for(name, path, ctype, props):
-    if ctype is None:
-        components = [{"id": bid, "type": btype, "props": bprops} for bid, btype, bprops in HOME_BLOCKS]
-        page_id = "warm-home"
-    else:
-        components = [{"id": f"{ctype}-1", "type": ctype, "props": props}]
-        page_id = f"warm-{ctype}"
+    props = props or {}
+    components = [{"id": f"{ctype}-1", "type": ctype, "props": props}]
+    page_id = "warm-home" if ctype == "warm_home" else f"warm-{ctype}"
     return {
         "schema_version": "1.0",
         "page": {
@@ -134,6 +117,7 @@ def main():
     if not raw:
         raise SystemExit("tabbarItems missing")
     tabbar = json.loads(raw)
+    path_to_name = {path: name for name, path, _ctype, _props in PAGES}
     path_to_id = created
     for tab in tabbar:
         text = str(tab.get("text") or "")
@@ -142,13 +126,25 @@ def main():
                 tab["pagePath"] = path
                 tab["path"] = path
                 tab["pageId"] = path_to_id[path]
+                tab["pageName"] = path_to_name[path]
                 tab["tabRoute"] = shell
                 break
     mysql_file(
         "UPDATE mp_system_config SET config_value=" + sql_str(json.dumps(tabbar, ensure_ascii=False))
         + " WHERE config_key='tabbarItems';"
     )
+    home_id = created["/pages/custom/warm-home"]
+    mine_id = created["/pages/custom/warm-mine"]
+    for cfg_key, cfg_val in (
+        ("miniappHomePageId", str(home_id)),
+        ("miniappMinePageId", str(mine_id)),
+    ):
+        mysql_file(
+            "UPDATE mp_system_config SET config_value=" + sql_str(cfg_val)
+            + " WHERE config_key=" + sql_str(cfg_key) + ";"
+        )
     print("tabbar bound")
+    print("site home/mine ids", home_id, mine_id)
     print(json.dumps({"ok": True, "pages": created, "index_untouched": True}, ensure_ascii=False))
 
 

@@ -5,9 +5,6 @@ page {
 }
 
 .login-page {
-  --brand: #315efb;
-  --brand-dark: #2446c7;
-  --brand-soft: #eef3ff;
   --ink: var(--ink);
   --ink-2: var(--ink-2);
   --ink-3: var(--ink-3);
@@ -27,9 +24,7 @@ page {
   min-height: 42vh;
   padding: 0 24rpx 74rpx;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 84% 18%, rgba(49, 94, 251, 0.13) 0%, rgba(49, 94, 251, 0) 31%),
-    var(--bg);
+  background: var(--bg);
   animation: backdrop-fade-in 320ms ease-out both;
 }
 
@@ -70,7 +65,7 @@ page {
   padding: 34rpx 34rpx 30rpx;
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(138deg, #152443 0%, #2547af 60%, #315efb 100%);
+  background: linear-gradient(138deg, var(--brand-dark) 0%, var(--brand) 60%, var(--accent, var(--brand)) 100%);
   border-radius: 32rpx;
   box-shadow: 0 22rpx 48rpx rgba(30, 55, 125, 0.22);
   animation: hero-settle-in 420ms 60ms cubic-bezier(0.22, 1, 0.36, 1) both;

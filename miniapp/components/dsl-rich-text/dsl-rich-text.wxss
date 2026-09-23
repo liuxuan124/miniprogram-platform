@@ -13,7 +13,7 @@
   display: inline-block;
   padding: 8rpx 20rpx;
   font-size: 24rpx;
-  color: var(--brand, #002FA7);
+  color: var(--brand);
   background: var(--brand-soft, #eaf1ff);
   border-radius: 999rpx;
 }

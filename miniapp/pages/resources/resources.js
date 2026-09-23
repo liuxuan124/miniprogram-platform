@@ -2,7 +2,7 @@ const request = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
 const { DEMO_RESOURCES, DEMO_RESOURCES_MEMBER } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
 
 function formatSize(bytes) {
   const n = Number(bytes) || 0
@@ -76,7 +76,6 @@ function applyDemoResources(page, memberOk) {
   const ok = !!(memberOk && loggedIn)
   const pack = ok ? DEMO_RESOURCES_MEMBER : DEMO_RESOURCES
   page.setData({
-    themePageStyle: WARM_PAGE_STYLE,
     cats: pack.cats,
     activeCat: pack.cats[0],
     groups: cloneGroups(pack),
@@ -96,7 +95,6 @@ function applyDemoResources(page, memberOk) {
 Page({
   ...createSharePageConfig(),
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     cats: [],
     activeCat: '',
     groups: [],
@@ -120,7 +118,7 @@ Page({
   },
 
   onShow() {
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
   },
 
   onPullDownRefresh() {

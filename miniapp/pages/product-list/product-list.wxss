@@ -12,7 +12,7 @@
   padding: 30rpx;
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(140deg, #152443 0%, #315efb 100%);
+  background: linear-gradient(140deg, var(--brand-dark) 0%, var(--brand) 100%);
   border-radius: 32rpx;
   box-shadow: 0 20rpx 44rpx rgba(36, 70, 175, 0.22);
 }
@@ -145,7 +145,7 @@
 .category-item.active {
   color: #fff;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--brand), #6386ff);
+  background: linear-gradient(135deg, var(--brand), var(--accent, var(--brand)));
   border-color: transparent;
   box-shadow: 0 8rpx 18rpx rgba(49, 94, 251, 0.18);
 }

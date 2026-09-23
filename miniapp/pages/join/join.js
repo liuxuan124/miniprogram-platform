@@ -1,7 +1,7 @@
 const SystemService = require('../../services/system')
 const { createSharePageConfig } = require('../../utils/share')
 const { DEMO_JOIN } = require('../../data/warm-demo')
-const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
 
 const NAV_TITLE = '加入社群 · 联系我们'
 
@@ -33,7 +33,6 @@ function expireTip(g) {
 Page({
   ...createSharePageConfig(),
   data: {
-    themePageStyle: WARM_PAGE_STYLE,
     loading: true,
     loadError: false,
     heroTitle: '',

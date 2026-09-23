@@ -5,7 +5,7 @@ const { getNavLayout } = require('../../utils/nav-layout')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { StorageUtil } = require('../../utils/storage')
 const warmPlanet = require('../../data/warm-planet')
-const { USE_LOCAL_SOURCE, WARM_PAGE_STYLE } = require('../../data/warm-source')
+const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
 const PlanetService = require('../../services/planet')
 const { loadTabBoundDslPage, handleDslReachBottom, TAB_DSL_INITIAL } = require('../../utils/dsl-tab-page')
 const { isUnusableImageUrl, DEFAULT_AVATAR } = require('../../utils/image-fallback')
@@ -190,7 +190,6 @@ Page({
     dslPending: true,
     loading: true,
     loadError: false,
-    themePageStyle: WARM_PAGE_STYLE,
     statusBarHeight: getNavLayout().statusBarHeight,
     home: EMPTY_HOME,
     packages: [],
@@ -230,7 +229,7 @@ Page({
 
   onShow() {
     wx.hideTabBar({ animation: false, fail() {} })
-    this.setData({ themePageStyle: WARM_PAGE_STYLE })
+    
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       showTabBarForRoute(this, '/pages/planet/planet')
     }

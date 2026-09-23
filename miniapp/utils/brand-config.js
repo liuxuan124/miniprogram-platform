@@ -6,7 +6,7 @@ const DEFAULT_MINIAPP_BRAND_CONFIG = {
   logoMark: '暖',
   loginTagline: '登录后继续 · 收藏 / 星球 / 已购',
   brandEyebrow: 'WARM NOTES',
-  loginStyleKey: 'classic',
+  loginStyleKey: 'warm',
 }
 
 const LOGIN_STYLE_PRESETS = {
@@ -56,7 +56,8 @@ function normalizeLoginStyleKey(key) {
   const raw = String(key || '').trim().toLowerCase()
   if (raw === 'warm' || raw === 'nuange' || raw === 'content') return 'warm'
   if (raw === 'ink' || raw === 'minimal' || raw === 'dark' || raw === 'mono') return 'ink'
-  return 'classic'
+  if (raw === 'classic' || raw === 'blue' || raw === 'default') return 'classic'
+  return 'warm'
 }
 
 function buildLoginThemeStyle(key) {

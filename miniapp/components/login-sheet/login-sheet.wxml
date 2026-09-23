@@ -1,6 +1,7 @@
 <view
   wx:if="{{mounted}}"
   class="login-overlay {{visible ? 'login-overlay--visible' : ''}}"
+  style="{{themeVars}}"
 >
   <view class="login-mask" catchtap="onCancelLogin" catchtouchmove="noop"></view>
 
