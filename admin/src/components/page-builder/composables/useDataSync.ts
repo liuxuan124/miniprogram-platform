@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { showDedupMessage } from '@/utils/toastDedup'
 import { getProductList } from '@/api/product'
 import { getContentList } from '@/api/content'
 import { get } from '@/api/request'
@@ -19,7 +20,7 @@ export function useDataSync() {
       const records = data?.records || data?.list || (Array.isArray(data) ? data : [])
       const items = records.map(mapper)
       onSuccess(items)
-      ElMessage.success(`已同步 ${items.length} 条数据`)
+      showDedupMessage('data-sync-success', `已同步 ${items.length} 条数据`, 'success')
     } catch (e: any) {
       ElMessage.error('同步失败：' + (e?.message || '未知错误'))
     } finally {

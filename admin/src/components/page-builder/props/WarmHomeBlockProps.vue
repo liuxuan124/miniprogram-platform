@@ -17,8 +17,8 @@
         <el-switch :model-value="data.show_notice !== false" @change="(v: boolean) => emit('update', { show_notice: v })" />
       </el-form-item>
 
-      <el-divider content-position="left">快捷入口（navs）</el-divider>
-      <p class="ds-hint">写入系统 warm_home_config，首页问候区实时读取。建议 5 个。</p>
+      <el-divider content-position="left">金刚区入口</el-divider>
+      <p class="ds-hint">写入首页全局配置，问候区会实时读取。建议 5 个。</p>
       <div v-for="(nav, ni) in navs" :key="nav.key || ni" class="nav-row">
         <el-input
           :model-value="nav.icon"
@@ -47,7 +47,11 @@
         />
         <el-button link :disabled="ni === 0" @click="moveNav(ni, -1)">↑</el-button>
         <el-button link :disabled="ni >= navs.length - 1" @click="moveNav(ni, 1)">↓</el-button>
-        <el-button link type="danger" :disabled="navs.length <= 1" @click="removeNav(ni)">删</el-button>
+        <el-tooltip content="删除入口" placement="top">
+          <el-button link type="danger" aria-label="删除入口" :disabled="navs.length <= 1" @click="removeNav(ni)">
+            <el-icon><Delete /></el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
       <div class="nav-actions">
         <el-button size="small" :disabled="navs.length >= 8" @click="addNav">+ 入口</el-button>
@@ -122,6 +126,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import { getConfigsSilent, updateConfigs } from '@/api/system'
 
 export type WarmNavItem = {

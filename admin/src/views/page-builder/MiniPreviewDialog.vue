@@ -938,8 +938,18 @@ watch(
 
 <style lang="scss" scoped>
 :deep(.mini-preview-dialog) {
+  margin-top: 4vh;
+
+  .el-dialog {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+
   .el-dialog__body {
     padding-top: 8px;
+    max-height: calc(90vh - 120px);
+    overflow: auto;
   }
 }
 

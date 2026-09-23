@@ -3,18 +3,26 @@
   <div v-if="fabOnly" class="fab-only-wrap" :class="{ selected }">
     <div v-if="selected" class="fab-toolbar" @click.stop>
       <span class="fab-toolbar__label">{{ ComponentTypeLabels[component.type] || '悬浮按钮' }}</span>
-      <el-button text size="small" :disabled="index === 0" @click.stop="$emit('move-up')">
-        <el-icon><Top /></el-icon>
-      </el-button>
-      <el-button text size="small" @click.stop="$emit('move-down')">
-        <el-icon><Bottom /></el-icon>
-      </el-button>
-      <el-button text size="small" @click.stop="$emit('copy')">
-        <el-icon><CopyDocument /></el-icon>
-      </el-button>
-      <el-button text size="small" type="danger" @click.stop="$emit('delete')">
-        <el-icon><Delete /></el-icon>
-      </el-button>
+      <el-tooltip content="上移" placement="left" :show-after="300">
+        <el-button text size="small" aria-label="上移" :disabled="index === 0" @click.stop="$emit('move-up')">
+          <el-icon><Top /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="下移" placement="left" :show-after="300">
+        <el-button text size="small" aria-label="下移" @click.stop="$emit('move-down')">
+          <el-icon><Bottom /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="复制" placement="left" :show-after="300">
+        <el-button text size="small" aria-label="复制" @click.stop="$emit('copy')">
+          <el-icon><CopyDocument /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="删除" placement="left" :show-after="300">
+        <el-button text size="small" type="danger" aria-label="删除" @click.stop="$emit('delete')">
+          <el-icon><Delete /></el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
     <component
       :is="resolveRenderer(component.type)"
@@ -126,12 +134,12 @@ const rendererMap: Record<string, any> = {
   [ComponentType.PlanetHero]: defineAsyncComponent(() => import('./renderers/PlanetHeroRenderer.vue')),
   [ComponentType.PlanetTopics]: defineAsyncComponent(() => import('./renderers/PlanetTopicsRenderer.vue')),
   [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./renderers/PlanetFeedRenderer.vue')),
-  [ComponentType.WarmGreet]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
-  [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
-  [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
-  [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
-  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
-  [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./renderers/WarmBlockRenderer.vue')),
+  [ComponentType.WarmGreet]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
+  [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
+  [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
+  [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
+  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
+  [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
   [ComponentType.WarmHome]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
   [ComponentType.WarmDiscover]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
   [ComponentType.WarmPlanet]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
