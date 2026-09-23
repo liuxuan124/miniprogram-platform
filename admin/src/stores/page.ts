@@ -413,13 +413,31 @@ export const usePageStore = defineStore('page', () => {
     return true
   }
 
+  function resolveInsertIndex(index?: number): number {
+    if (index !== undefined && index >= 0) return Math.min(index, dsl.value.components.length)
+    const id = selectedComponentId.value
+    if (!id) return dsl.value.components.length
+    const idx = dsl.value.components.findIndex((c) => c.id === id)
+    return idx >= 0 ? idx + 1 : dsl.value.components.length
+  }
+
+  /** 在指定位置插入完整组件（用于删除撤销） */
+  function insertComponentAt(comp: ComponentInstance, index: number) {
+    commitHistory()
+    const at = Math.max(0, Math.min(index, dsl.value.components.length))
+    dsl.value.components.splice(at, 0, comp)
+    selectedComponentId.value = comp.id
+    recomputeDirty()
+  }
+
   /** 添加组件 */
   function addComponent(type: ComponentType, index?: number) {
+    const insertAt = resolveInsertIndex(index)
     if (type === CT.WarmHome) {
       commitHistory()
       const blocks = createWarmHomeTemplateComponents()
-      if (index !== undefined && index >= 0) {
-        dsl.value.components.splice(index, 0, ...blocks)
+      if (insertAt >= 0) {
+        dsl.value.components.splice(insertAt, 0, ...blocks)
       } else {
         dsl.value.components.push(...blocks)
       }
@@ -434,12 +452,10 @@ export const usePageStore = defineStore('page', () => {
       props: getDefaultProps(type),
       style: getDefaultStyle(type),
     }
-    if (index !== undefined && index >= 0) {
-      dsl.value.components.splice(index, 0, comp)
-    } else if (type === CT.BrandHeader) {
+    if (type === CT.BrandHeader) {
       dsl.value.components.unshift(comp)
     } else {
-      dsl.value.components.push(comp)
+      dsl.value.components.splice(insertAt, 0, comp)
     }
     selectedComponentId.value = comp.id
     recomputeDirty()
@@ -534,6 +550,14 @@ export const usePageStore = defineStore('page', () => {
     recomputeDirty()
   }
 
+  /** 结构树拖拽排序后整表替换顺序 */
+  function setComponentsOrder(ordered: ComponentInstance[]) {
+    if (!ordered.length && !dsl.value.components.length) return
+    commitHistory()
+    dsl.value.components = ordered
+    recomputeDirty()
+  }
+
   /** 移动组件 */
   function moveComponent(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex) return
@@ -615,6 +639,8 @@ export const usePageStore = defineStore('page', () => {
     setCurrentPage,
     resetEditor,
     addComponent,
+    insertComponentAt,
+    resolveInsertIndex,
     addComponentWithProps,
     addChildComponent,
     removeChildComponent,
@@ -623,6 +649,7 @@ export const usePageStore = defineStore('page', () => {
     updateComponentProps,
     updateComponentStyle,
     moveComponent,
+    setComponentsOrder,
     duplicateComponent,
     updatePageConfig,
     updatePageConfigSilent,

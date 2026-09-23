@@ -7,7 +7,7 @@
       <button type="button" :class="{ on: mode === 'blocks' }" @click="mode = 'blocks'">
         区块模板
       </button>
-      <button type="button" @click="scrollToLayers">结构</button>
+      <button type="button" :class="{ on: mode === 'structure' }" @click="openStructureMode">结构</button>
     </div>
 
     <!-- 区块模板：一次插入一组常用组件，省掉逐个拖的步骤 -->
@@ -30,9 +30,34 @@
         </button>
         <div v-if="!availableBlocks.length" class="empty-tip">当前行业方案下没有可用区块</div>
       </div>
+      <div class="my-blocks">
+        <div class="section-title">
+          <span>我的区块</span>
+          <span class="section-count">{{ myBlocks.length }}</span>
+        </div>
+        <div class="my-blocks__actions">
+          <el-button size="small" type="primary" plain :disabled="!pageStore.selectedComponentId" @click="saveMyBlockFromSelection">
+            保存当前选中起的一段
+          </el-button>
+        </div>
+        <div class="blocks-list my-blocks__list">
+          <button
+            v-for="block in myBlocks"
+            :key="block.id"
+            type="button"
+            class="block-card"
+            @click="insertMyBlock(block)"
+          >
+            <b>{{ block.label }}</b>
+            <span class="block-desc">{{ block.components.length }} 个组件 · {{ formatSavedAt(block.savedAt) }}</span>
+            <el-button link type="danger" size="small" @click.stop="removeMyBlockEntry(block.id)">删除</el-button>
+          </button>
+          <div v-if="!myBlocks.length" class="empty-tip">选中组件后可将后续组件存为模板</div>
+        </div>
+      </div>
     </section>
 
-    <section v-show="mode === 'components'" class="panel-section" :style="sectionStyle('components')">
+    <section v-show="mode === 'components'" class="panel-section panel-section--components" :style="sectionStyle('components')">
       <div class="section-title">
         <span>组件库</span>
         <button class="section-count" @click="toggleCollapse('components')">{{ totalComponentCount }}</button>
@@ -109,32 +134,44 @@
       <span></span>
     </div>
 
-    <section class="panel-section structure-section" :class="{ collapsed: collapsed.structure }">
+    <section
+      v-show="mode === 'components' || mode === 'structure'"
+      class="panel-section structure-section"
+      :class="{ collapsed: collapsed.structure && mode === 'components', 'structure-section--solo': mode === 'structure' }"
+    >
       <div class="section-title">
-        <span>当前页面结构</span>
+        <span>{{ mode === 'structure' ? '页面结构' : '当前页面结构' }}</span>
         <button class="section-count" @click="toggleCollapse('structure')">{{ pageStore.components.length }}</button>
-        <button class="section-toggle" @click="toggleCollapse('structure')">
+        <button v-if="mode === 'components'" class="section-toggle" @click="toggleCollapse('structure')">
           {{ collapsed.structure ? '展开' : '收起' }}
         </button>
       </div>
-      <div v-show="!collapsed.structure" class="structure-list">
-        <div
-          v-for="(comp, index) in pageStore.components"
-          :key="comp.id"
-          class="structure-row"
-          :class="{ active: comp.id === pageStore.selectedComponentId }"
-          @click="pageStore.selectComponent(comp.id)"
+      <div v-show="mode === 'structure' || !collapsed.structure" class="structure-list">
+        <draggable
+          :model-value="pageStore.components"
+          item-key="id"
+          handle=".drag-handle"
+          ghost-class="structure-row--ghost"
+          @update:model-value="onStructureReorder"
         >
-          <span class="drag-handle"><MiniIcon name="drag" :size="14" /></span>
-          <span>{{ index + 1 }}. {{ getComponentDef(comp.type)?.label ?? comp.type }}</span>
-          <button
-            class="remove-btn"
-            aria-label="删除该组件"
-            @click.stop="handleRemoveComponent(comp)"
-          >
-            <MiniIcon name="x" :size="14" />
-          </button>
-        </div>
+          <template #item="{ element: comp, index }">
+            <div
+              class="structure-row"
+              :class="{ active: comp.id === pageStore.selectedComponentId }"
+              @click="selectFromStructure(comp.id)"
+            >
+              <span class="drag-handle" aria-label="拖动排序"><MiniIcon name="drag" :size="14" /></span>
+              <span>{{ index + 1 }}. {{ structureLabel(comp, index) }}</span>
+              <button
+                class="remove-btn"
+                aria-label="删除该组件"
+                @click.stop="handleRemoveComponent(comp)"
+              >
+                <MiniIcon name="x" :size="14" />
+              </button>
+            </div>
+          </template>
+        </draggable>
         <div v-if="!pageStore.components.length" class="empty-tip">当前页面暂无组件</div>
       </div>
     </section>
@@ -144,12 +181,16 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import draggable from 'vuedraggable'
 import { usePageStore } from '@/stores/page'
+import { requestEditorScrollToComponent } from '@/utils/editorScrollBus'
+import { loadMyBlocks, saveMyBlock, removeMyBlock, type SavedMyBlock } from '@/utils/myBlocksStorage'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
-import { ComponentType } from '@/types/page'
+import { ComponentType, type ComponentInstance } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
-import { confirmRemoveComponent } from './confirmRemoveComponent'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
@@ -159,7 +200,9 @@ const industryProfileStore = useIndustryProfileStore()
 if (!industryProfileStore.loaded) {
   industryProfileStore.load()
 }
-const mode = ref<'components' | 'blocks'>('components')
+const mode = ref<'components' | 'blocks' | 'structure'>('components')
+const myBlocks = ref<SavedMyBlock[]>(loadMyBlocks())
+const { deleteWithUndo } = useEditorDeleteUndo()
 const componentSectionHeight = ref(520)
 
 /** 区块模板：常见页面段落的组件组合，点一次按顺序插入 */
@@ -230,10 +273,30 @@ function recordRecentUsage(type: ComponentType) {
   }
 }
 
-async function handleRemoveComponent(comp: { id: string; type: ComponentType }) {
-  const label = getComponentDef(comp.type)?.label ?? comp.type
-  if (!(await confirmRemoveComponent(label))) return
-  pageStore.removeComponent(comp.id)
+function handleRemoveComponent(comp: { id: string; type: ComponentType }) {
+  deleteWithUndo(comp as any)
+}
+
+function structureLabel(comp: { type: ComponentType }, index: number) {
+  const def = getComponentDef(comp.type)?.label ?? comp.type
+  const total = pageStore.components.filter((c) => c.type === comp.type).length
+  if (total <= 1) return def
+  const nth = pageStore.components.slice(0, index + 1).filter((c) => c.type === comp.type).length
+  return `${def}（第 ${nth} 个）`
+}
+
+function onStructureReorder(ordered: ComponentInstance[]) {
+  pageStore.setComponentsOrder([...ordered])
+}
+
+function selectFromStructure(id: string) {
+  pageStore.selectComponent(id)
+  requestEditorScrollToComponent(id)
+}
+
+function openStructureMode() {
+  mode.value = 'structure'
+  collapsed.value.structure = false
 }
 
 const recentComponents = computed<ComponentDefinition[]>(() => {
@@ -314,9 +377,11 @@ function handleDragStart(event: DragEvent, type: ComponentType) {
 }
 
 function handleAdd(type: ComponentType) {
-  pageStore.addComponent(type)
+  const created = pageStore.addComponent(type)
   recordRecentUsage(type)
   collapsed.value.structure = false
+  const id = created?.id
+  if (id) requestEditorScrollToComponent(id)
 }
 
 function toggleCollapse(target: 'components' | 'structure') {
@@ -346,17 +411,62 @@ const availableBlocks = computed(() => BLOCKS.filter((block) => blockTypes(block
 
 function insertBlock(block: { types: ComponentType[] }) {
   const types = blockTypes(block)
+  let lastId: string | undefined
   types.forEach((type) => {
-    pageStore.addComponent(type)
+    const created = pageStore.addComponent(type)
     recordRecentUsage(type)
+    lastId = created?.id
   })
   collapsed.value.structure = false
+  if (lastId) requestEditorScrollToComponent(lastId)
 }
 
-function scrollToLayers() {
-  collapsed.value.structure = false
-  document.querySelector('.panel-section:last-of-type')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+function formatSavedAt(iso: string) {
+  try {
+    return new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
 }
+
+async function saveMyBlockFromSelection() {
+  const id = pageStore.selectedComponentId
+  if (!id) return
+  const idx = pageStore.components.findIndex((c) => c.id === id)
+  if (idx < 0) return
+  const slice = pageStore.components.slice(idx)
+  if (!slice.length) return
+  try {
+    const { value } = await ElMessageBox.prompt('给区块起个名字', '保存为我的区块', {
+      inputValue: `区块 ${myBlocks.value.length + 1}`,
+      confirmButtonText: '保存',
+    })
+    const label = String(value || '').trim()
+    if (!label) return
+    const row = saveMyBlock({ label, components: slice })
+    myBlocks.value = loadMyBlocks()
+    ElMessage.success(`已保存「${row.label}」`)
+  } catch {
+    // cancel
+  }
+}
+
+function insertMyBlock(block: SavedMyBlock) {
+  let lastId: string | undefined
+  block.components.forEach((comp) => {
+    const copy = JSON.parse(JSON.stringify(comp)) as typeof comp
+    copy.id = `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    pageStore.insertComponentAt(copy, pageStore.components.length)
+    lastId = copy.id
+  })
+  if (lastId) requestEditorScrollToComponent(lastId)
+}
+
+function removeMyBlockEntry(id: string) {
+  removeMyBlock(id)
+  myBlocks.value = loadMyBlocks()
+}
+
 
 function sectionStyle(target: 'components') {
   if (collapsed.value[target]) {
@@ -475,6 +585,19 @@ onBeforeUnmount(() => {
 .block-parts {
   font-size: 11px;
   color: var(--pc-faint);
+}
+
+.my-blocks {
+  border-top: 1px solid var(--pc-line);
+  padding-top: 4px;
+}
+
+.my-blocks__actions {
+  padding: 0 8px 8px;
+}
+
+.my-blocks__list {
+  max-height: 220px;
 }
 
 .left-seg {
