@@ -326,6 +326,7 @@ import { ComponentType } from '@/types/page'
 import TabBarIconDisplay from '@/components/miniapp-builder/TabBarIconDisplay.vue'
 import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
 import { hydratePreviewDsl } from '@/utils/preview-datasource'
+import { expandWarmShellDslComponents } from '@/utils/warmHomeExpand'
 import {
   CONFIG_KEYS,
   DEFAULT_MINE_MENU,
@@ -958,7 +959,9 @@ async function showSnapshotPage(path: string) {
       homeComponents.value = []
       return
     }
-    const rawComponents = Array.isArray(dsl.components) ? dsl.components : []
+    const rawComponents = expandWarmShellDslComponents(
+      Array.isArray(dsl.components) ? dsl.components : [],
+    )
     const rawTitle = dsl.page?.name || page.name || '页面预览'
     const rawBg = dsl.page?.background_color || '#f5f6f9'
     homeTitle.value = rawTitle

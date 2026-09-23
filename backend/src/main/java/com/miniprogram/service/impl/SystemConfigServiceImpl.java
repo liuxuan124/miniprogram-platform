@@ -159,6 +159,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
     public Map<String, Object> getPublicConfigs() {
         Map<String, Object> releasedConfigs = getPublicConfigsFromLatestRelease();
         if (!releasedConfigs.isEmpty()) {
+            attachLiveReleaseNo(releasedConfigs);
             return releasedConfigs;
         }
 
@@ -191,7 +192,16 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
         }
 
         enrichWarmPublicAliases(result);
+        attachLiveReleaseNo(result);
         return result;
+    }
+
+    /** 内容发布序号：小程序端用来刷新 DSL/配置缓存（与 wx_version 代码包版本区分） */
+    private void attachLiveReleaseNo(Map<String, Object> result) {
+        if (result == null) {
+            return;
+        }
+        result.put("live_release_no", getConfigValue("live_release_no", "0"));
     }
 
     private Map<String, Object> getPublicConfigsFromLatestRelease() {

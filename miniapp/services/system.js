@@ -14,7 +14,9 @@ const { resolveMediaUrl } = require('../utils/media-url')
 setMediaUrlResolver(resolveMediaUrl)
 
 const CONFIG_CACHE_KEY = 'system_config'
+const CONTENT_RELEASE_NO_KEY = 'content_release_no'
 const CONFIG_CACHE_EXPIRE = 10 * 60 * 1000
+const STORAGE_KEY_PREFIX = 'mp_'
 
 const DEFAULT_TABBAR_LIST = [
   { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
@@ -302,6 +304,17 @@ async function fetchSystemConfig(forceRefresh) {
       config.tabbarItems = normalizeTabbarItems(config.tabbarItems)
       config.tabbarItems = applyProductModuleGate(config.tabbarItems, config.plugins)
       attachListConfigs(config)
+      const releaseNo = String(config.live_release_no != null ? config.live_release_no : '0')
+      const prevRelease = StorageUtil.get(CONTENT_RELEASE_NO_KEY)
+      if (prevRelease && prevRelease !== releaseNo) {
+        clearSystemConfigCache()
+        clearPageDslStorageCaches()
+        try {
+          const app = getApp()
+          if (app && app.globalData) app.globalData.pageDSLCache = {}
+        } catch (e) { /* ignore */ }
+      }
+      StorageUtil.set(CONTENT_RELEASE_NO_KEY, releaseNo)
       StorageUtil.set(CONFIG_CACHE_KEY, config, CONFIG_CACHE_EXPIRE)
       return config
     }
@@ -465,6 +478,18 @@ function clearSystemConfigCache() {
   } catch (e) {
     try { wx.removeStorageSync(CONFIG_CACHE_KEY) } catch (e2) { /* ignore */ }
   }
+}
+
+function clearPageDslStorageCaches() {
+  try {
+    const info = wx.getStorageInfoSync()
+    ;(info.keys || []).forEach((fullKey) => {
+      const k = String(fullKey || '')
+      if (k.startsWith(`${STORAGE_KEY_PREFIX}dsl_`)) {
+        wx.removeStorageSync(k)
+      }
+    })
+  } catch (e) { /* ignore */ }
 }
 
 module.exports = {

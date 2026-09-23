@@ -25,7 +25,9 @@ const PageService = {
 
     return get('/api/v1/mp/config/public', {}, { auth: false, showError: false })
       .then((publicConfig) => {
-        const versionTag = (publicConfig && publicConfig.wx_version) || '0'
+        const wxVer = (publicConfig && publicConfig.wx_version) || '0'
+        const releaseNo = (publicConfig && publicConfig.live_release_no) || '0'
+        const versionTag = `${wxVer}_r${releaseNo}`
         const cacheKey = `${DSL_CACHE_PREFIX}${pagePath}_${versionTag}`
 
         if (!forceRefresh) {
