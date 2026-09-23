@@ -92,6 +92,7 @@
                         :src="item.icon"
                         alt=""
                         class="icon-trigger__img"
+                        @error="onImgError"
                       />
                       <span v-else>{{ item.icon || '📌' }}</span>
                     </button>
@@ -106,7 +107,7 @@
                       :title="ic.label"
                       @click="setIcon(i, ic.src)"
                     >
-                      <img :src="`${ic.src}?t=20260819e`" alt="" />
+                      <img :src="`${ic.src}?t=20260819e`" alt="" @error="onImgError" />
                     </button>
                   </div>
                   <div class="icon-library__tip">扁平色块图标，无黑边描边</div>
@@ -122,23 +123,12 @@
               />
             </el-form-item>
             <el-form-item label="链接">
-              <div class="link-row">
-                <el-select
-                  :model-value="item.link_type || 'page'"
-                  style="width: 90px"
-                  @change="(v: string) => updateField(i, 'link_type', v)"
-                >
-                  <el-option label="页面" value="page" />
-                  <el-option label="链接" value="url" />
-                  <el-option label="小程序" value="miniapp" />
-                </el-select>
-                <el-input
-                  :model-value="item.link_url"
-                  placeholder="链接地址"
-                  style="flex: 1"
-                  @input="(v: string) => updateField(i, 'link_url', v)"
-                />
-              </div>
+              <LinkPickerField
+                :link-type="item.link_type || 'page'"
+                :link-url="item.link_url || ''"
+                @update:link-type="(v) => updateField(i, 'link_type', v)"
+                @update:link-url="(v) => updateField(i, 'link_url', v)"
+              />
             </el-form-item>
           </div>
         </template>
@@ -154,6 +144,8 @@
 import { computed } from 'vue'
 import draggable from 'vuedraggable'
 import { NAV_FLAT_ICONS } from '../navIconSet'
+import LinkPickerField from '../LinkPickerField.vue'
+import { onImgError } from '@/utils/imgFallback'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

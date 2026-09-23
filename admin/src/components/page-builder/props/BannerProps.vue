@@ -29,7 +29,7 @@
         <el-form-item :label="`图片${i + 1}`">
           <div class="banner-item-form">
             <div v-if="img.image" class="banner-thumb">
-              <img :src="img.image" alt="" />
+              <img :src="img.image" alt="" @error="onImgError" />
             </div>
             <el-input
               v-model="img.image"
@@ -48,32 +48,27 @@
                 @change="handleImagesChange"
               />
             </el-form-item>
-            <el-form-item label="跳转类型" label-width="50px" class="nested-item">
-              <el-select v-model="img.link_type" @change="handleImagesChange" style="width: 100%">
-                <el-option label="页面" value="page" />
-                <el-option label="网页" value="webview" />
-                <el-option label="链接" value="url" />
-                <el-option label="小程序" value="miniapp" />
-                <el-option label="拨打电话" value="phone" />
-                <el-option label="无跳转" value="none" />
-              </el-select>
-            </el-form-item>
-            <el-form-item v-if="img.link_type !== 'none'" label="跳转地址" label-width="50px" class="nested-item">
-              <el-input
-                v-model="img.link_url"
-                :placeholder="img.link_type === 'phone' ? '电话号码' : '链接地址'"
-                @change="handleImagesChange"
+            <el-form-item label="跳转" label-width="72px" class="nested-item nested-item--link">
+              <LinkPickerField
+                :link-type="img.link_type || 'page'"
+                :link-url="img.link_url || ''"
+                @update:link-type="(v) => { img.link_type = v; handleImagesChange() }"
+                @update:link-url="(v) => { img.link_url = v; handleImagesChange() }"
               />
             </el-form-item>
-            <el-button
-              type="danger"
-              text
-              size="small"
-              @click="removeImage(i)"
-              style="margin-top: 4px"
-            >
-              删除此图
-            </el-button>
+            <div class="banner-item-actions">
+              <el-tooltip content="删除此图" placement="top">
+                <el-button
+                  type="danger"
+                  text
+                  size="small"
+                  aria-label="删除此图"
+                  @click="removeImage(i)"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </div>
           </div>
         </el-form-item>
       </div>
@@ -86,7 +81,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Delete } from '@element-plus/icons-vue'
+import LinkPickerField from '../LinkPickerField.vue'
 import { useImageUpload } from '../composables/useImageUpload'
+import { onImgError } from '@/utils/imgFallback'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -196,6 +194,20 @@ function removeImage(index: number) {
 
   .nested-item {
     margin: 8px 0 0;
+
+    :deep(.el-form-item__label) {
+      white-space: nowrap;
+    }
+  }
+
+  .nested-item--link :deep(.el-form-item__content) {
+    min-width: 0;
+  }
+
+  .banner-item-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
   }
 }
 </style>
