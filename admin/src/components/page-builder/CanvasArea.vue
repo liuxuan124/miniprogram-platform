@@ -1,8 +1,12 @@
 <template>
   <div class="prototype-canvas">
     <div class="canvas-meta">
-      <span class="canvas-meta__title">实时数据预览 · 与真机一致 · 375×812</span>
-      <span class="canvas-meta__device">扫码预览与真机一致</span>
+      <span class="canvas-meta__title">
+        {{ warmPreview.enabled ? '暖阁真机预览 · 接口数据' : '实时数据预览 · 375×812' }}
+      </span>
+      <span v-if="hydrating" class="canvas-meta__device">同步列表数据…</span>
+      <span v-else-if="warmPreview.enabled" class="canvas-meta__device">与小程序同套 dsl-warm-block 样式</span>
+      <span v-else class="canvas-meta__device">通用组件已拉取内容/商品接口</span>
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap">
@@ -38,8 +42,13 @@
           @dragleave="handleContainerDragLeave"
           @drop="handleContainerDrop"
         >
-          <template v-if="pageStore.components.length">
-            <template v-for="(comp, index) in pageStore.components" :key="comp.id">
+          <WarmTabPreview
+            v-if="warmTabShellPath"
+            :path="warmTabShellPath"
+            :shell-props="warmTabShellProps"
+          />
+          <template v-else-if="canvasComponents.length">
+            <template v-for="(comp, index) in canvasComponents" :key="comp.id">
               <template v-if="comp.type !== ComponentType.FloatButton">
                 <div class="drop-indicator" :class="{ visible: dragOverIndex === index }"></div>
                 <div
@@ -131,17 +140,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onBeforeUnmount, type Ref } from 'vue'
+import { ref, computed, inject, onMounted, onBeforeUnmount, provide, type Ref } from 'vue'
 import { usePageStore } from '@/stores/page'
 import { ComponentType } from '@/types/page'
 import ComponentItem from './ComponentItem.vue'
+import WarmTabPreview from './renderers/warm/WarmTabPreview.vue'
+import {
+  useWarmHomePreview,
+  WARM_PREVIEW_VIEW_KEY,
+  WARM_PREVIEW_ENABLED_KEY,
+  WARM_PREVIEW_ON_SEG_KEY,
+} from '@/composables/useWarmHomePreview'
+import { useCanvasHydratedPreview } from '@/composables/useCanvasHydratedPreview'
 import { getComponentDef } from './componentRegistry'
 import { confirmRemoveComponent } from './confirmRemoveComponent'
+import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from './composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight'
 import { get } from '@/api/request'
 
 const pageStore = usePageStore()
+const warmPreview = useWarmHomePreview(
+  computed(() => pageStore.components),
+  computed(() => pageStore.pageConfig.path),
+)
+provide(WARM_PREVIEW_VIEW_KEY, warmPreview.warmView)
+provide(WARM_PREVIEW_ENABLED_KEY, warmPreview.enabled)
+provide(WARM_PREVIEW_ON_SEG_KEY, warmPreview.onSeg)
+
+const { displayComponents, hydrating } = useCanvasHydratedPreview(
+  computed(() => pageStore.dsl),
+  computed(() => pageStore.components),
+)
+
+const canvasComponents = computed(() => displayComponents.value)
+
+const WARM_TAB_SHELL_TYPES = new Set([
+  ComponentType.WarmDiscover,
+  ComponentType.WarmPlanet,
+  ComponentType.WarmShop,
+  ComponentType.WarmMine,
+])
+
+const warmTabShellPath = computed(() => {
+  const path = String(pageStore.pageConfig.path || '')
+  const flow = pageStore.components.filter((c) => c.type !== ComponentType.FloatButton)
+  if (flow.length !== 1) return ''
+  if (!WARM_TAB_SHELL_TYPES.has(flow[0].type as ComponentType)) return ''
+  return path
+})
+
+const warmTabShellProps = computed(() => {
+  const flow = pageStore.components.filter((c) => c.type !== ComponentType.FloatButton)
+  if (flow.length !== 1) return {}
+  return flow[0].props || {}
+})
+
 const aiHighlightIds = inject<Ref<string[]>>('aiHighlightIds', ref([]))
 function isAiHighlighted(id: string) {
   return aiHighlightIds.value.includes(id)
@@ -322,15 +376,9 @@ async function handleDeleteComponent(comp: { id: string; type: ComponentType }) 
   pageStore.removeComponent(comp.id)
 }
 
-/** B5：Delete 删除选中组件、Ctrl+D 复制选中组件。输入框内不拦截，交给浏览器原生行为 */
-function isEditableTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null
-  if (!el) return false
-  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable
-}
-
+/** B5：Delete 删除选中组件、Ctrl+D 复制选中组件 */
 function handleKeydown(event: KeyboardEvent) {
-  if (isEditableTarget(event.target)) return
+  if (isCanvasShortcutBlocked(event)) return
   const selectedId = pageStore.selectedComponentId
   if (!selectedId) return
 

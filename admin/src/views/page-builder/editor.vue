@@ -19,10 +19,23 @@
             </el-button>
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
             <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
-            <span v-if="pageStore.isDirty" class="dirty-dot">未保存</span>
-            <span v-if="autoSaveError" class="autosave-error">{{ autoSaveError }}</span>
-            <span v-else-if="lastAutoSavedAt" class="autosave-dot">已自动保存</span>
-            <span v-else class="autosave-hint">所有改动自动保存</span>
+            <button
+              v-if="saveStatus === 'error'"
+              type="button"
+              class="save-status save-status--error"
+              @click="retrySaveNow()"
+            >
+              {{ saveStatusText }}
+            </button>
+            <span
+              v-else-if="saveStatusText"
+              class="save-status"
+              :class="{
+                'save-status--pending': saveStatus === 'pending' || saveStatus === 'saving',
+              }"
+            >
+              {{ saveStatusText }}
+            </span>
           </div>
           <div class="toolbar-actions">
             <el-button-group class="history-controls">
@@ -255,6 +268,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useEditorPersist } from '@/composables/useEditorPersist'
+import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
@@ -292,7 +307,12 @@ const dslEditorValue = ref('')
 const previewVisible = ref(false)
 const previewDialogRef = ref<InstanceType<typeof MiniPreviewDialog>>()
 const leftCollapsed = ref(false)
-const rightCollapsed = ref(false)
+const rightCollapsed = ref(typeof window !== 'undefined' ? window.innerWidth < 1100 : false)
+
+function syncEditorLayoutForViewport() {
+  if (window.innerWidth < 1100) rightCollapsed.value = true
+}
+
 const rightTab = ref<'props' | 'ai'>('props')
 
 /** 右栏 AI 助手壳（一期：快捷胶囊 + 输入 + 占位回复） */
@@ -336,10 +356,15 @@ async function runAiAssist() {
 const pageLoadError = ref('')
 const pageLoadRetrying = ref(false)
 
-/** B3：自动保存 */
-const lastAutoSavedAt = ref('')
-const autoSaveError = ref('')
-let autoSaveTimer: ReturnType<typeof setInterval> | null = null
+const {
+  saveStatus,
+  saveStatusText,
+  retryNow: retrySaveNow,
+  resetPersistState,
+  bindAutoSaveWatch,
+  updateStatusText,
+  lastSavedAt: lastPersistSavedAt,
+} = useEditorPersist(async () => performAutoSaveCore())
 
 /** C5：保存冲突状态（顶部提示条，不再用弹窗打断编辑现场） */
 const conflict = reactive({ visible: false })
@@ -480,6 +505,7 @@ async function loadPage() {
     const res = await getPageDetail(id)
     if (res.data) {
       pageStore.setCurrentPage(res.data)
+      resetPersistState()
     } else {
       pageLoadError.value = '服务器未返回页面数据'
       pageStore.resetEditor()
@@ -508,7 +534,7 @@ function syncSavedDraftVersion(saved: any) {
 
 /** 返回列表 */
 async function handleBack() {
-  if (pageStore.isDirty) {
+  if (pageStore.hasUnpersistedChanges) {
     try {
       await ElMessageBox.confirm('页面有未保存的修改，确定离开？', '提示', {
         type: 'warning',
@@ -543,7 +569,7 @@ async function syncPageMetaToServer() {
   await updatePage(page.id, { name, path })
   page.name = name
   page.path = path
-  pageStore.updatePageConfig({ name, path })
+  pageStore.updatePageConfigSilent({ name, path })
 }
 
 /** 保存草稿（手动点击） */
@@ -559,9 +585,11 @@ async function handleSaveDraft() {
     await syncPageMetaToServer()
     const expectedVersion = currentExpectedVersion()
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
-    pageStore.isDirty = false
+    pageStore.markSavedToServer()
     conflict.visible = false
-    autoSaveError.value = ''
+    saveStatus.value = 'saved'
+    lastPersistSavedAt.value = new Date()
+    updateStatusText()
     // 保存成功后同步最新版本号，避免下次保存触发冲突
     if (res.data) {
       syncSavedDraftVersion(res.data)
@@ -573,7 +601,8 @@ async function handleSaveDraft() {
       conflict.visible = true
     } else {
       const message = err?.response?.data?.message || err?.message || '未知错误'
-      autoSaveError.value = '自动保存失败'
+      saveStatus.value = 'error'
+      updateStatusText()
       ElMessage.error(`保存失败：${message}`)
     }
   } finally {
@@ -581,37 +610,30 @@ async function handleSaveDraft() {
   }
 }
 
-/** B3：自动保存（静默）。已发布页不做自动保存，避免清空/误改后无离开确认。 */
-async function performAutoSave() {
-  if (!pageStore.currentPage || pageStore.saving || savingAsNew.value) return
-  if (collectJumpIssues(pageStore.components).length) return
-  const published = ['1', 'published'].includes(String(pageStore.currentPage.status))
-  if (published) {
-    // 已发布页必须手动保存；保留 isDirty 以便返回/跳转时二次确认
-    return
-  }
-  if (pageStore.components.length === 0) {
-    autoSaveError.value = '空白页面不会自动保存，请手动确认'
-    return
-  }
+/** 自动/静默保存核心逻辑，成功返回 true */
+async function performAutoSaveCore(): Promise<boolean> {
+  if (!pageStore.currentPage || pageStore.saving || savingAsNew.value) return false
+  if (!pageStore.hasUnpersistedChanges) return true
+  if (collectJumpIssues(pageStore.components).length) return false
+  if (pageStore.components.length === 0) return false
+  pageStore.saving = true
   try {
     await syncPageMetaToServer()
     const expectedVersion = currentExpectedVersion()
     const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
-    pageStore.isDirty = false
-    autoSaveError.value = ''
+    pageStore.markSavedToServer()
+    conflict.visible = false
     if (res.data) {
       syncSavedDraftVersion(res.data)
     }
-    lastAutoSavedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })
-    ElMessage.closeAll()
+    return true
   } catch (err: any) {
     if (isConflictError(err)) {
       conflict.visible = true
-      autoSaveError.value = '自动保存冲突'
-    } else {
-      autoSaveError.value = '自动保存失败，请手动重试'
     }
+    return false
+  } finally {
+    pageStore.saving = false
   }
 }
 
@@ -640,7 +662,7 @@ async function handleSaveAsNewDraft() {
       dsl: pageStore.dsl,
     })
     conflict.visible = false
-    pageStore.isDirty = false
+    pageStore.markSavedToServer()
     ElMessage.success('已另存为新草稿，正在跳转')
     const newId = (res.data as PageRecord | undefined)?.id
     if (newId) {
@@ -687,14 +709,16 @@ function validateBeforePublish(): string[] {
 
 /** 去统一发布页：有脏改动先自动保存，再跳转 */
 async function goMiniPublish() {
-  if (pageStore.isDirty && pageStore.currentPage) {
+  if (pageStore.hasUnpersistedChanges && pageStore.currentPage) {
     try {
       pageStore.saving = true
       await syncPageMetaToServer()
       const expectedVersion = currentExpectedVersion()
       const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
-      pageStore.isDirty = false
-      autoSaveError.value = ''
+      pageStore.markSavedToServer()
+      saveStatus.value = 'saved'
+      lastPersistSavedAt.value = new Date()
+      updateStatusText()
       if (res.data) {
         syncSavedDraftVersion(res.data)
       }
@@ -724,14 +748,13 @@ async function handlePublish() {
     ElMessage.error(jumpIssues[0])
     return
   }
-  if (pageStore.isDirty) {
+  if (pageStore.hasUnpersistedChanges) {
     try {
       pageStore.saving = true
       await syncPageMetaToServer()
       const expectedVersion = currentExpectedVersion()
       const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
-      pageStore.isDirty = false
-      autoSaveError.value = ''
+      pageStore.markSavedToServer()
       if (res.data) {
         syncSavedDraftVersion(res.data)
       }
@@ -739,7 +762,6 @@ async function handlePublish() {
       if (isConflictError(err)) {
         conflict.visible = true
       } else {
-        autoSaveError.value = '保存失败，暂时无法发布'
         ElMessage.error(`保存失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
       }
       return
@@ -865,16 +887,8 @@ function handleApplyDSL() {
   }
 }
 
-/** B1：撤销/重做快捷键。输入框内的 Ctrl+Z 交给浏览器原生文本撤销，不拦截 */
-function isEditableTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null
-  if (!el) return false
-  const tag = el.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
-}
-
 function handleKeydown(event: KeyboardEvent) {
-  if (isEditableTarget(event.target)) return
+  if (isCanvasShortcutBlocked(event)) return
   const isMod = event.ctrlKey || event.metaKey
   if (!isMod || event.key.toLowerCase() !== 'z') return
   event.preventDefault()
@@ -886,19 +900,18 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent) {
-  if (!pageStore.isDirty) return
+  if (!pageStore.hasUnpersistedChanges) return
   event.preventDefault()
   event.returnValue = ''
 }
 
 onMounted(() => {
+  syncEditorLayoutForViewport()
+  window.addEventListener('resize', syncEditorLayoutForViewport)
   loadPage()
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('beforeunload', handleBeforeUnload)
-  // B3：每 30 秒检查一次，若有未保存修改则静默存草稿，避免刷新/关闭页面丢失编辑
-  autoSaveTimer = setInterval(() => {
-    if (pageStore.isDirty) performAutoSave()
-  }, 30000)
+  bindAutoSaveWatch(computed(() => pageStore.dsl))
 })
 
 watch(
@@ -910,7 +923,7 @@ watch(
 
 // 路由离开拦截：有未保存修改时弹出确认（覆盖侧边栏导航等所有跳转路径）
 onBeforeRouteLeave(async (_to, _from, next) => {
-  if (!pageStore.isDirty) {
+  if (!pageStore.hasUnpersistedChanges) {
     next()
     return
   }
@@ -931,12 +944,10 @@ onBeforeRouteLeave(async (_to, _from, next) => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncEditorLayoutForViewport)
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('beforeunload', handleBeforeUnload)
-  if (autoSaveTimer) {
-    clearInterval(autoSaveTimer)
-    autoSaveTimer = null
-  }
+  resetPersistState()
   pageStore.resetEditor()
 })
 </script>
@@ -958,6 +969,7 @@ onBeforeUnmount(() => {
     grid-template-columns: 250px minmax(0, 1fr) 380px;
     height: 100vh;
     overflow: hidden;
+    max-width: 100vw;
     background: #f6f2ec;
 
     &.left-collapsed {
@@ -1134,6 +1146,27 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.save-status {
+  font-size: 12px;
+  color: #6b5b4e;
+  margin-left: 4px;
+  white-space: nowrap;
+  &--pending {
+    color: #b45309;
+  }
+  &--error {
+    margin-left: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #b91c1c;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+  }
 }
 
 .builder-version,

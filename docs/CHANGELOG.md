@@ -4,6 +4,11 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-24：页面装修器 P0——1.5s 防抖自动保存+三态文案+本地备份/失败重试；脏数据与落库分离；撤销栈会话基准；弹层/输入框下禁用画布快捷键（vitest）。
+- 2026-09-23：模板库 P0–P2——首页模板二选一套用、422 单条中文提示、部署 chunk 自动刷新；整店/页面预览（宽屏侧栏+窄屏弹窗）；我的模板排除发布记录+存为模板表单；场景枚举与网格 16:9；Flyway V80（template_scene）。
+- 2026-09-23：小程序运营概览真机预览——iframe 375×812 + ResizeObserver 缩放；手机壳统一 375:812；头部与 900/1180 响应式布局（`MiniOverviewPhone`）。
+- 2026-09-23：暖阁预览与真机对齐——首页块模板单源 `miniapp/data/warm-home-blocks.json`；管理端 `DslWarmBlock`+`/mp/home/warm`；画布 hydrate 通用组件；五 Tab 壳 `WarmTabPreview`；契约 `agent-team/contracts/warm-tab-dsl-preview.md`。
+- 2026-09-23：暖阁五页装修器补内容——详情 DSL 优先读 draft/线上稿；打开页自动展开首页壳为六区块、发现页补默认 Tab/标签；灌库脚本写入发现完整 props（`admin/src/constants/warm-page-defaults.json`）。
 - 2026-09-23：暖阁 Tab 灌库脚本补写 miniappHomePageId/miniappMinePageId 与 tab pageName，避免首页仍绑旧「出海笔记」页；生产已重跑。
 - 2026-09-23：小程序全站主题统一——外观主色驱动 `--brand`；去掉 Tab 页硬编码暖色/旧蓝与「我的」按 hex 自动换肤；登录半屏跟主题；保存主色同步 Tab/我的/登录风格。
 - 2026-09-23：修复暖阁灌库脚本——首页改为 `warm_home` 壳（与体验版/真机一致），勿灌六块 DSL；生产已重跑 v6。
