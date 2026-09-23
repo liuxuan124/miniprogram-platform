@@ -83,3 +83,80 @@ export function runPublishHealthCheck(components: ComponentInstance[]): {
 
   return { score, warnings: uniqWarnings, blocking: uniqBlocking }
 }
+
+function normalizeLinkFields(props: Record<string, unknown>, prefix: string, applied: string[]) {
+  const linkType = String(props.link_type ?? props.linkType ?? '').trim()
+  const linkUrl = String(props.link_url ?? props.linkUrl ?? '').trim()
+  if (!linkType && !linkUrl) {
+    props.link_type = 'none'
+    props.link_url = ''
+    applied.push(`${prefix}：空跳转已设为「无」`)
+    return
+  }
+  if (linkType && linkType !== 'none' && !linkUrl) {
+    props.link_type = 'none'
+    props.link_url = ''
+    applied.push(`${prefix}：未填链接已设为「无」`)
+  }
+}
+
+function scrubBrokenImage(url: unknown): { url: string; fixed: boolean } {
+  const s = String(url || '').trim()
+  if (!s || isLikelyBrokenImage(s)) {
+    return { url: '', fixed: !!s }
+  }
+  return { url: s, fixed: false }
+}
+
+/** 保守一键修复：不改组件 id/结构，仅空链接、占位图等安全项 */
+export function applyConservativePublishFixes(components: ComponentInstance[]): {
+  components: ComponentInstance[]
+  applied: string[]
+} {
+  const applied: string[] = []
+  const next = components.map((comp, index) => {
+    const label = getComponentDef(comp.type as any)?.label || comp.type
+    const prefix = `${label}（第 ${index + 1} 块）`
+    const props = { ...(comp.props || {}) } as Record<string, unknown>
+    let touched = false
+
+    if (comp.type === 'banner' && Array.isArray(props.images)) {
+      props.images = (props.images as any[]).map((img, i) => {
+        const row = { ...img }
+        const scrub = scrubBrokenImage(row.image)
+        if (scrub.fixed) {
+          row.image = scrub.url
+          applied.push(`${prefix} 图${i + 1}：已清除占位/无效图片地址`)
+          touched = true
+        }
+        normalizeLinkFields(row, `${prefix} 图${i + 1}`, applied)
+        if (row.link_type !== img.link_type || row.link_url !== img.link_url) touched = true
+        return row
+      })
+    }
+    if (comp.type === 'nav' && Array.isArray(props.items)) {
+      props.items = (props.items as any[]).map((it, i) => {
+        const row = { ...it }
+        normalizeLinkFields(row, `${prefix} 导航${i + 1}`, applied)
+        if (row.link_type !== it.link_type || row.link_url !== it.link_url) touched = true
+        return row
+      })
+    }
+    if (comp.type === 'image') {
+      const scrub = scrubBrokenImage(props.url)
+      if (scrub.fixed) {
+        props.url = scrub.url
+        applied.push(`${prefix}：已清除无效图片地址`)
+        touched = true
+      }
+    }
+    const beforeType = String(props.link_type ?? '')
+    const beforeUrl = String(props.link_url ?? '')
+    normalizeLinkFields(props, prefix, applied)
+    if (props.link_type !== beforeType || props.link_url !== beforeUrl) touched = true
+
+    return touched ? { ...comp, props } : comp
+  })
+
+  return { components: next, applied: [...new Set(applied)] }
+}

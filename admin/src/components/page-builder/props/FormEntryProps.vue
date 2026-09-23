@@ -1,6 +1,6 @@
 <template>
   <div class="form-entry-props">
-    <el-form label-width="80px" size="small">
+    <el-form label-width="88px" size="small" class="form-entry-props__form">
       <el-form-item label="关联表单">
         <el-select
           :model-value="selectedFormId"
@@ -146,3 +146,9 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.form-entry-props__form :deep(.el-form-item__label) {
+  white-space: nowrap;
+}
+</style>

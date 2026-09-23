@@ -292,6 +292,14 @@
       </div>
       <template #footer>
         <el-button @click="publishCheck.visible = false">返回修改</el-button>
+        <el-button
+          v-if="publishCheck.warnings.length"
+          type="warning"
+          plain
+          @click="runPublishAutoFix"
+        >
+          一键修复（安全项）
+        </el-button>
         <el-button type="primary" :loading="publishCheck.publishing" :disabled="publishCheck.blocking.length > 0" @click="executePublish">
           {{ publishCheck.warnings.length ? '确认并上线' : '立即上线' }}
         </el-button>
@@ -329,7 +337,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
 import { useEditorLayout } from '@/composables/useEditorLayout'
 import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
-import { runPublishHealthCheck } from '@/utils/publishHealthCheck'
+import { applyConservativePublishFixes, runPublishHealthCheck } from '@/utils/publishHealthCheck'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useEditorPersist } from '@/composables/useEditorPersist'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
@@ -436,23 +444,41 @@ function applyAiPill(pill: string) {
 function buildAiPatchesFromResponse(data: any) {
   const patches: AiPatch[] = []
   const design = data?.design as Record<string, any> | undefined
-  if (design?.pageName && typeof design.pageName === 'string') {
-    const name = design.pageName.trim()
-    if (name) {
-      patches.push({
-        id: 'design-page-name',
-        summary: `页面名称改为「${name}」`,
-        apply: () => pageStore.updatePageConfig({ name }),
-      })
-    }
+  const designPage = (design?.page || {}) as Record<string, any>
+  const pageName = String(design?.pageName || designPage?.name || '').trim()
+  if (pageName) {
+    patches.push({
+      id: 'design-page-name',
+      summary: `页面名称改为「${pageName}」`,
+      apply: () => pageStore.updatePageConfig({ name: pageName }),
+    })
+  }
+  const bg = String(designPage.background_color || designPage.backgroundColor || '').trim()
+  if (bg) {
+    patches.push({
+      id: 'design-page-bg',
+      summary: `页面背景色 → ${bg}`,
+      apply: () => pageStore.updatePageConfig({ background_color: bg }),
+    })
+  }
+  const globalCfg = (design?.global_config || design?.globalConfig) as Record<string, any> | undefined
+  if (globalCfg && typeof globalCfg.pull_refresh === 'boolean') {
+    patches.push({
+      id: 'design-pull-refresh',
+      summary: `下拉刷新 → ${globalCfg.pull_refresh ? '开启' : '关闭'}`,
+      apply: () => pageStore.updateGlobalConfig({ pull_refresh: globalCfg.pull_refresh }),
+    })
   }
   const report = Array.isArray(data?.report) ? data.report : []
   report.forEach((row: any, idx: number) => {
-    const note = String(row?.note || row?.title || '').trim()
-    if (!note) return
+    const note = String(row?.note || row?.reason || '').trim()
+    const title = String(row?.title || row?.matchedLabel || '').trim()
+    const matched = String(row?.matchedType || '').trim()
+    const line = note || (title && matched ? `建议组件「${title}」(${matched})` : title)
+    if (!line) return
     patches.push({
       id: `report-${idx}`,
-      summary: sanitizeAiText(note),
+      summary: sanitizeAiText(line),
       apply: () => {},
     })
   })
@@ -950,6 +976,29 @@ async function handlePublish() {
   publishCheck.warnings = warnings
   publishCheck.blocking = blocking
   publishCheck.visible = true
+}
+
+function runPublishAutoFix() {
+  const { components, applied } = applyConservativePublishFixes(pageStore.components)
+  if (!applied.length) {
+    ElMessage.info('未发现可自动修复的安全项')
+    return
+  }
+  pageStore.dsl.components = components
+  const warnings = validateBeforePublish()
+  const health = runPublishHealthCheck(pageStore.components)
+  publishCheck.score = health.score
+  const blocking = [
+    ...health.blocking,
+    ...warnings.filter((w) =>
+      w.includes('占位') || w.includes('不支持') || w.includes('未关联表单') || w.includes('没有任何组件')
+      || w.includes('缺少跳转') || w.includes('跳转类型不合法') || w.includes('未配置数据源')
+      || w.includes('数据源 type') || w.includes('数据源 query'),
+    ),
+  ]
+  publishCheck.warnings = warnings
+  publishCheck.blocking = blocking
+  ElMessage.success(`已应用 ${applied.length} 项安全修复，请确认后保存或上线`)
 }
 
 async function executePublish() {

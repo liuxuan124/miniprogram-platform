@@ -363,4 +363,17 @@ function removeItem(index: number) {
   color: #94a3b8;
   font-size: 11px;
 }
+
+.nav-item-config :deep(.link-picker) {
+  width: 100%;
+}
+
+.nav-item-config :deep(.el-form-item__content) {
+  min-width: 0;
+}
+
+.nav-item-config :deep(.el-select .el-select__wrapper),
+.nav-item-config :deep(.el-input__wrapper) {
+  word-break: break-all;
+}
 </style>
