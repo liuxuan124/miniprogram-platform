@@ -242,10 +242,11 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
   {
     title: '小程序',
     children: [
-      { title: '运营概览', path: '/mini/overview', icon: 'Odometer', activePrefix: '/mini/overview', permissions: ['page:list'] },
-      { title: '页面管理', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
-      { title: '模板中心', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
-      { title: '发布中心', path: '/mini/publish', icon: 'Upload', activePrefix: '/mini/publish', permissions: ['page:publish', 'page:list'] },
+      { title: '概览', path: '/mini/overview', icon: 'Odometer', activePrefix: '/mini/overview', permissions: ['page:list'] },
+      { title: '外观', path: '/mini/appearance', icon: 'Brush', activePrefix: '/mini/appearance', permissions: ['page:list'] },
+      { title: '页面', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
+      { title: '模板', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
+      { title: '发布与分发', path: '/mini/publish', icon: 'Upload', activePrefix: '/mini/publish', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {

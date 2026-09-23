@@ -104,11 +104,16 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         vo.setTabBar(parseTabItems(effective.get("tabbarItems")));
         vo.setLiveReleaseNo(parseIntOrDefault(systemConfigService.getConfigValue(LIVE_RELEASE_NO_KEY), 0));
         // 顶部时间与发布记录统一：优先用当前序号对应记录的 published_at
-        LocalDateTime liveAt = findContentReleasePublishedAt(vo.getLiveReleaseNo());
+        MiniappRelease liveRelease = findContentReleaseByNo(vo.getLiveReleaseNo());
+        LocalDateTime liveAt = liveRelease != null ? liveRelease.getPublishedAt() : null;
         if (liveAt == null) {
             liveAt = parseDateTime(systemConfigService.getConfigValue(LIVE_RELEASE_AT_KEY));
         }
         vo.setLiveReleaseAt(liveAt);
+        if (liveRelease != null && StringUtils.hasText(liveRelease.getPublisherName())) {
+            vo.setLivePublisherName(liveRelease.getPublisherName());
+        }
+        vo.setMiniappHomePageId(parseLongOrNull(effective.get("miniappHomePageId")));
         vo.setWechatCodeVersion(systemConfigService.getConfigValue("wx_last_pushed_version"));
         vo.setPendingCount(listPendingChanges().getTotal());
         return vo;
@@ -789,11 +794,11 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         return "";
     }
 
-    private LocalDateTime findContentReleasePublishedAt(Integer releaseNo) {
+    private MiniappRelease findContentReleaseByNo(Integer releaseNo) {
         if (releaseNo == null || releaseNo <= 0) {
             return null;
         }
-        MiniappRelease row = miniappReleaseService.lambdaQuery()
+        return miniappReleaseService.lambdaQuery()
                 .eq(MiniappRelease::getPatch, releaseNo)
                 .and(w -> w.eq(MiniappRelease::getMode, "content")
                         .or()
@@ -802,7 +807,18 @@ public class MiniSiteServiceImpl implements MiniSiteService {
                 .orderByDesc(MiniappRelease::getId)
                 .last("LIMIT 1")
                 .one();
-        return row != null ? row.getPublishedAt() : null;
+    }
+
+    private Long parseLongOrNull(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        try {
+            long v = Long.parseLong(raw.trim());
+            return v > 0 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private void assertNotDuplicatePublish(String fingerprint) {

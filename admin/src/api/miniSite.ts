@@ -38,6 +38,8 @@ export type MiniSiteVO = {
   tabBar?: MiniTabBarItem[]
   liveReleaseNo?: number | null
   liveReleaseAt?: string | null
+  livePublisherName?: string | null
+  miniappHomePageId?: number | null
   wechatCodeVersion?: string | null
   pendingCount?: number
 }
