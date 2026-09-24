@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
+import com.miniprogram.compliance.WeChatMiniComplianceService;
 import com.miniprogram.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,10 +30,14 @@ public class FeatureModuleGuard {
 
     private final SystemConfigService systemConfigService;
     private final ObjectMapper objectMapper;
+    private final WeChatMiniComplianceService weChatMiniComplianceService;
 
     public boolean isEnabled(String moduleKey) {
         if (!StringUtils.hasText(moduleKey)) {
             return true;
+        }
+        if (!weChatMiniComplianceService.isModuleAllowedInMiniapp(moduleKey)) {
+            return false;
         }
         String raw = systemConfigService.getConfigValue("plugins", "[]");
         if (!StringUtils.hasText(raw) || "[]".equals(raw.trim())) {

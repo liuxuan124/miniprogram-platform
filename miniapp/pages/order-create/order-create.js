@@ -2,6 +2,7 @@
 // 地址选择、商品确认、提交订单
 
 const orderService = require('../../services/order')
+const SystemService = require('../../services/system')
 const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
 const { requestPayment } = require('../../utils/payment')
@@ -54,7 +55,9 @@ Page({
     couponType: '',
     couponValue: '',
     discountAmount: '0.00',
-    agreedVirtual: true,
+    agreedVirtual: false,
+    virtualRefundConsentVersion: '',
+    virtualRefundLabel: '虚拟商品退款规则以页面说明为准',
     // 暖阁虚拟商品展示
     virtualSubtitle: '',
     originalPrice: '',
@@ -170,8 +173,11 @@ Page({
         const isVirtual = Array.isArray(items) && items.length > 0
           ? items.every((it) => this._isVirtualItem(it))
           : false
-        this.setData({ items, isVirtual, hasAddress: false, agreedVirtual: true })
-        if (isVirtual) this._applyWarmVirtualDefaults(items)
+        this.setData({ items, isVirtual, hasAddress: false, agreedVirtual: false })
+        if (isVirtual) {
+          this._applyWarmVirtualDefaults(items)
+          this._loadVirtualRefundRules(items)
+        }
         this._calcTotal()
       } catch (e) {
         wx.showToast({ title: '参数错误', icon: 'none' })
@@ -185,6 +191,22 @@ Page({
 
   onToggleAgree() {
     this.setData({ agreedVirtual: !this.data.agreedVirtual })
+  },
+
+  _loadVirtualRefundRules(items) {
+    SystemService.fetchSystemConfig()
+      .then((cfg) => {
+        const rules = cfg && cfg.commerce_virtual_refund_rules
+        if (!rules || typeof rules !== 'object') return
+        const ver = rules.consentClauseVersion || 'v1-draft'
+        const first = (items && items[0]) || {}
+        const ptype = String(first.productType || first.product_type || 'ebook').toLowerCase()
+        const byType = rules.byProductType || {}
+        const row = byType[ptype] || byType.ebook || {}
+        const label = row.label || '虚拟商品退款以页面说明为准'
+        this.setData({ virtualRefundConsentVersion: ver, virtualRefundLabel: label })
+      })
+      .catch(() => {})
   },
 
   /** 计算总价 */
@@ -395,6 +417,7 @@ Page({
       remark: this.data.remark,
       clientPlatform: iosVirtualPay.getClientPlatform(),
       userCouponId: this.data.userCouponId ? Number(this.data.userCouponId) : undefined,
+      virtualRefundConsentVersion: this.data.isVirtual ? (this.data.virtualRefundConsentVersion || undefined) : undefined,
       addressSnapshot: this.data.isVirtual
         ? null
         : {

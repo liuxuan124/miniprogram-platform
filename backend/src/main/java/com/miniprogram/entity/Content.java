@@ -83,6 +83,15 @@ public class Content extends BaseEntity {
     /** 来源 */
     private String source;
 
+    /** 版权性质 original|reprint|compile */
+    private String copyrightNature;
+
+    /** 参考来源 JSON 数组 */
+    private String copyrightSourcesJson;
+
+    /** 转载授权说明/链接 */
+    private String reprintAuthorization;
+
     /** 外部来源标识，如 wechat_oa */
     private String externalSource;
 

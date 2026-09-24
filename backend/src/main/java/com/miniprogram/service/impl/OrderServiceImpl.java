@@ -16,6 +16,7 @@ import com.miniprogram.service.PaymentService;
 import com.miniprogram.service.RefundService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
+import com.miniprogram.compliance.CommerceVirtualRefundService;
 import com.miniprogram.compliance.IosVirtualPayPolicyService;
 import com.miniprogram.support.FeatureModuleGuard;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final FeatureModuleGuard featureModuleGuard;
     private final MembershipAccessService membershipAccessService;
     private final IosVirtualPayPolicyService iosVirtualPayPolicyService;
+    private final CommerceVirtualRefundService commerceVirtualRefundService;
 
     /**
      * 订单状态机合法流转
@@ -235,6 +237,12 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         order.setFulfillmentType(hasPhysicalProduct ? "physical" : "virtual");
         if (StringUtils.hasText(dto.getClientPlatform())) {
             order.setClientPlatform(dto.getClientPlatform().trim());
+        }
+        if (!hasPhysicalProduct) {
+            String consentVer = StringUtils.hasText(dto.getVirtualRefundConsentVersion())
+                    ? dto.getVirtualRefundConsentVersion().trim()
+                    : commerceVirtualRefundService.consentClauseVersion();
+            order.setVirtualRefundConsentVersion(consentVer);
         }
         boolean anyAutoFulfill = orderItems.stream().anyMatch(item -> {
             Product p = productMapper.selectById(item.getProductId());

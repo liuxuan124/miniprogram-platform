@@ -79,6 +79,15 @@ public class ContentDetailDTO {
     /** 来源 */
     private String source;
 
+    /** 版权性质 original|reprint|compile */
+    private String copyrightNature;
+
+    /** 参考来源 */
+    private List<String> copyrightSources;
+
+    /** 转载授权说明 */
+    private String reprintAuthorization;
+
     /** 外部来源标识，如 wechat_oa */
     private String externalSource;
 

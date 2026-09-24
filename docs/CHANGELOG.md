@@ -4,6 +4,9 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-24：合规收尾——FeatureModuleGuard×审核版类目；发布/评论接入 Wx 内容安全 v2；资讯版权字段校验+编辑；V93 下单退款同意版本；`GET/POST /api/v1/mp/consent`；admin 微信合规 UI；公开 `commerce_virtual_refund_rules`。
+- 2026-09-24：内容标签筛选（Opt5）——装修器 platform/topic 筛选 props；小程序 article/note/feed 与列表 tag 参数+客户端过滤。
+- 2026-09-24：装修器 DSL 缺口补齐——会员档展示价/商品 ID、问答围观数、资料 downloadCount、`dsl-content-paywall` 拉详情解锁项、feed 来源标签、星球落地页 commerce landing。
 - 2026-09-24：跨境墨太白装修器 DSL——`material_list`/`member_plan`/`qa_list`、增强 `content_paywall` 与来源标签；小程序渲染+datasource；`GET /api/v1/mp/membership-plans`；星球加入落地页区块模板。
 - 2026-09-24：合规七项——V86–V92；P0 iOS 虚拟支付服务端门禁/类目审核版/内容安全 v2；P1 版权·退款·隐私底座与文档（见 `docs/compliance/`）。
 - 2026-09-24：跨境墨太白六向优化——装修器自动保存补全（指数退避/本地恢复/三向冲突）；品牌默认文案与「品牌组件」分类；外观页品牌信息；首页 todayCount 服务端聚合；固定 Tab 壳组件库隐藏；内容标签 platform/topic（V85）；发布前演示文案告警。

@@ -85,6 +85,16 @@ public class ContentDTO {
     @Size(max = 128, message = "来源最长128个字符")
     private String source;
 
+    /** 版权性质 original|reprint|compile */
+    private String copyrightNature;
+
+    /** 参考来源列表 */
+    private List<String> copyrightSources;
+
+    /** 转载授权说明/链接 */
+    @Size(max = 512, message = "转载授权说明最长512个字符")
+    private String reprintAuthorization;
+
     /** 标签列表 */
     private List<String> tags;
 

@@ -92,6 +92,60 @@
       </el-form>
     </el-card>
 
+    <!-- 小程序类目与审核版本（合规） -->
+    <el-card shadow="hover" class="mb16">
+      <template #header>
+        <div class="card-header">
+          <span>小程序类目与审核版本</span>
+          <el-button type="primary" icon="Check" :loading="complianceSaving" @click="handleSaveCompliance">保存合规配置</el-button>
+        </div>
+      </template>
+      <el-alert
+        title="审核版本（reviewMode）开启后，未开通类目对应模块在小程序端 API 门禁关闭；与侧栏 plugins 开关叠加生效。"
+        type="warning"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+      <el-form label-width="140px" size="default" v-loading="complianceLoading">
+        <el-form-item label="审核版本模式">
+          <el-switch v-model="complianceForm.reviewMode" active-text="开启" inactive-text="关闭" />
+        </el-form-item>
+        <el-form-item label="强制隐藏模块">
+          <el-select
+            v-model="complianceForm.reviewModeHiddenModules"
+            multiple
+            collapse-tags
+            style="width: 100%"
+            placeholder="如 planet、qa"
+          >
+            <el-option label="商品/订单 product" value="product" />
+            <el-option label="星球 planet" value="planet" />
+            <el-option label="问答 qa" value="qa" />
+            <el-option label="会员 member" value="member" />
+            <el-option label="内容 content" value="content" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="已开通类目 JSON">
+          <el-input
+            v-model="complianceForm.enabledCategoriesJson"
+            type="textarea"
+            :rows="5"
+            placeholder='[{"id":"576","name":"资讯"}]'
+          />
+          <div class="field-hint">与 MP 后台已开通类目 id 对齐；moduleRequirements 可在高级配置中维护</div>
+        </el-form-item>
+        <el-form-item label="模块类目要求 JSON">
+          <el-input
+            v-model="complianceForm.moduleRequirementsJson"
+            type="textarea"
+            :rows="4"
+            placeholder='{"product":["576"],"planet":["576"]}'
+          />
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <!-- 微信公众号配置（内容同步） -->
     <el-card shadow="hover" class="mb16">
       <template #header>
@@ -406,6 +460,15 @@ const loading = ref(false)
 const saving = ref(false)
 const testing = ref(false)
 const formRef = ref<FormInstance>()
+
+const complianceLoading = ref(false)
+const complianceSaving = ref(false)
+const complianceForm = reactive({
+  reviewMode: false,
+  reviewModeHiddenModules: [] as string[],
+  enabledCategoriesJson: '[]',
+  moduleRequirementsJson: '{}',
+})
 
 // ==================== 小程序基础配置 ====================
 
@@ -807,8 +870,54 @@ watch(payFormData, () => {
   if (paySaved.value) paySaved.value = false
 }, { deep: true })
 
+async function fetchCompliance() {
+  complianceLoading.value = true
+  try {
+    const res: any = await get('/api/v1/admin/wechat/compliance')
+    const d = res?.data || res || {}
+    complianceForm.reviewMode = !!d.reviewMode
+    complianceForm.reviewModeHiddenModules = Array.isArray(d.reviewModeHiddenModules)
+      ? [...d.reviewModeHiddenModules]
+      : ['planet', 'qa']
+    complianceForm.enabledCategoriesJson = JSON.stringify(d.enabledCategories || [], null, 2)
+    complianceForm.moduleRequirementsJson = JSON.stringify(d.moduleRequirements || {}, null, 2)
+  } catch {
+    ElMessage.warning('合规配置加载失败，将使用默认值')
+  } finally {
+    complianceLoading.value = false
+  }
+}
+
+async function handleSaveCompliance() {
+  let enabledCategories: unknown[] = []
+  let moduleRequirements: Record<string, unknown> = {}
+  try {
+    enabledCategories = JSON.parse(complianceForm.enabledCategoriesJson || '[]')
+    moduleRequirements = JSON.parse(complianceForm.moduleRequirementsJson || '{}')
+  } catch {
+    ElMessage.error('类目或 moduleRequirements JSON 格式不正确')
+    return
+  }
+  complianceSaving.value = true
+  try {
+    await put('/api/v1/admin/wechat/compliance', {
+      reviewMode: complianceForm.reviewMode,
+      reviewModeHiddenModules: complianceForm.reviewModeHiddenModules,
+      enabledCategories,
+      moduleRequirements,
+    })
+    ElMessage.success('合规配置已保存')
+    await fetchCompliance()
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    complianceSaving.value = false
+  }
+}
+
 onMounted(() => {
   fetchConfig()
+  fetchCompliance()
 })
 </script>
 
