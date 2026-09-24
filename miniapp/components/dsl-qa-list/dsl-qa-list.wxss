@@ -1,0 +1,10 @@
+.dsl-qa-list__row { padding: 24rpx; background: #fff; border-radius: 24rpx; margin-bottom: 16rpx; border: 1px solid #eef2f6; }
+.dsl-qa-list__q, .dsl-qa-list__a { display: flex; gap: 16rpx; font-size: 28rpx; line-height: 1.5; }
+.dsl-qa-list__a { margin-top: 12rpx; color: #64748b; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.dsl-qa-list__mark { width: 36rpx; height: 36rpx; border-radius: 8rpx; background: #c8923a; color: #fff; font-size: 22rpx; text-align: center; line-height: 36rpx; flex-shrink: 0; }
+.dsl-qa-list__mark--a { background: #64748b; }
+.dsl-qa-list__meta { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; font-size: 22rpx; color: #94a3b8; }
+.dsl-qa-list__tag { background: #f1f5f9; padding: 0 12rpx; border-radius: 8rpx; }
+.dsl-qa-list__link { text-align: center; color: #c8923a; font-size: 24rpx; margin-top: 16rpx; }
+.dsl-qa-list__state { padding: 32rpx; text-align: center; font-size: 24rpx; color: #64748b; }
+.dsl-qa-list__sk { height: 144rpx; background: #f1f5f9; border-radius: 24rpx; margin-bottom: 16rpx; }

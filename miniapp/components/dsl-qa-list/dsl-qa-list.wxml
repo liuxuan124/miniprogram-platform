@@ -1,0 +1,18 @@
+<view class="dsl-qa-list" style="{{styleString}}">
+  <view wx:if="{{state === 'loading'}}" class="dsl-qa-list__state"><view class="dsl-qa-list__sk" wx:for="{{[1,2,3]}}" wx:key="*this" /></view>
+  <view wx:elif="{{state === 'error'}}" class="dsl-qa-list__state"><text>加载失败</text><view bindtap="sync">重试</view></view>
+  <view wx:elif="{{state === 'empty'}}" class="dsl-qa-list__state">暂无问答</view>
+  <view wx:else>
+    <view wx:for="{{rows}}" wx:key="id" class="dsl-qa-list__row" data-id="{{item.id}}" bindtap="onRowTap">
+      <view class="dsl-qa-list__q"><text class="dsl-qa-list__mark">Q</text>{{item.question}}</view>
+      <view class="dsl-qa-list__a" style="-webkit-line-clamp:{{summaryLines}}"><text class="dsl-qa-list__mark dsl-qa-list__mark--a">A</text>{{item.answerPreview}}</view>
+      <view class="dsl-qa-list__meta">
+        <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="dsl-qa-list__tag">{{tag}}</text>
+        <text>{{item.spectatorCount}} 人围观</text>
+        <text>{{item.payStatusLabel}}</text>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{showAsk}}" class="dsl-qa-list__link" bindtap="onAskTap">我要提问 ›</view>
+  <view wx:if="{{showMore && state === 'data'}}" class="dsl-qa-list__link" bindtap="onMoreTap">{{moreText}}</view>
+</view>
