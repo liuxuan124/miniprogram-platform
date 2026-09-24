@@ -112,6 +112,7 @@
       </div>
 
       <SourceTagFields :props="data" @update="(v) => emit('update', v)" />
+      <ContentTagFilterFields :props="data" @update="(v) => emit('update', v)" />
     </el-form>
   </div>
 </template>
@@ -122,6 +123,7 @@ import { getCategoryList } from '@/api/content'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
 import SourceTagFields from './SourceTagFields.vue'
+import ContentTagFilterFields from './ContentTagFilterFields.vue'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 import { resolveArticleLayout } from '../articleLayouts'
 
