@@ -46,7 +46,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "industry_profile", "glossary", "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
             "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config",
-            "content_list_config", "product_list_config", "content_member_wall"
+            "content_list_config", "product_list_config", "content_member_wall",
+            "commerce_ios_virtual_pay"
     );
 
     /**
@@ -57,7 +58,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "industry_profile", "glossary", "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
             "community_config", "content_audit_rules", "agent_trigger_config",
-            "content_list_config", "product_list_config", "content_member_wall"
+            "content_list_config", "product_list_config", "content_member_wall",
+            "commerce_ios_virtual_pay"
     );
 
     /**
@@ -81,7 +83,8 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
             "warm_home_config", "joinGroupConfig", "contributeConfig",
             "creator_recruit_banner", "search_hot",
             "community_config", "agent_public_enabled", "content_audit_rules", "agent_trigger_config",
-            "content_list_config", "product_list_config", "content_member_wall"
+            "content_list_config", "product_list_config", "content_member_wall",
+            "commerce_ios_virtual_pay"
     );
 
     /** 品牌导航待上线草稿（JSON：configKey -> configValue） */

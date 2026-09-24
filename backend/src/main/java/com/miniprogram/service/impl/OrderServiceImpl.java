@@ -16,6 +16,7 @@ import com.miniprogram.service.PaymentService;
 import com.miniprogram.service.RefundService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
+import com.miniprogram.compliance.IosVirtualPayPolicyService;
 import com.miniprogram.support.FeatureModuleGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +63,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final ObjectMapper objectMapper;
     private final FeatureModuleGuard featureModuleGuard;
     private final MembershipAccessService membershipAccessService;
+    private final IosVirtualPayPolicyService iosVirtualPayPolicyService;
 
     /**
      * 订单状态机合法流转
@@ -83,6 +85,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         // 2. 构建订单项 & 校验库存 & 计算金额
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
+        List<Product> gateProducts = new ArrayList<>();
         boolean hasPhysicalProduct = false;
         boolean productModuleOn = featureModuleGuard.isEnabled("product");
 
@@ -97,6 +100,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
             if (!"on_sale".equals(product.getStatus())) {
                 throw new BusinessException(500201, "商品已下架: " + product.getName());
             }
+            gateProducts.add(product);
             boolean membership = ProductTypes.isMembership(product.getProductType(), product.getProductTypes());
             if (!productModuleOn && !membership) {
                 throw new BusinessException(200301, "功能暂未开放");
@@ -151,6 +155,8 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         if (hasPhysicalProduct && dto.getAddressSnapshot() == null) {
             throw new BusinessException(600203, "实体商品必须填写收货地址");
         }
+
+        iosVirtualPayPolicyService.assertCanCreateOrder(userId, dto.getClientPlatform(), gateProducts);
 
         // 3. 扣减库存（原子条件更新，防超卖）
         for (OrderItem item : orderItems) {
@@ -227,6 +233,9 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         order.setFreightAmount(BigDecimal.ZERO);
         order.setStatus("pending_payment");
         order.setFulfillmentType(hasPhysicalProduct ? "physical" : "virtual");
+        if (StringUtils.hasText(dto.getClientPlatform())) {
+            order.setClientPlatform(dto.getClientPlatform().trim());
+        }
         boolean anyAutoFulfill = orderItems.stream().anyMatch(item -> {
             Product p = productMapper.selectById(item.getProductId());
             if (p == null) return false;

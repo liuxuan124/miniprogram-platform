@@ -44,6 +44,12 @@ export interface CommerceSettings {
   invoiceEnabled?: boolean
   invoiceNote?: string
   testAccounts?: string[]
+  /** iOS 虚拟支付：block_wx_pay | virtual_payment（待接入米大师） */
+  iosStrategy?: string
+  blockMessage?: string
+  allowPhysicalOnIos?: boolean
+  userConfirmRequired?: boolean
+  iosVirtualPayNote?: string
 }
 
 export interface CommerceHealthIssue {

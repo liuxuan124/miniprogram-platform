@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <div class="page-title">审核规则</div>
-        <div class="page-desc">敏感词与机器拦截说明，命中后进入「机器拦截」Tab。</div>
+        <div class="page-desc">敏感词与微信 msgSecCheck v2：发布/评论 API 失败或 review 时<strong>待人审</strong>（禁止 fail-open）。</div>
       </div>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
     </div>

@@ -85,6 +85,9 @@ App({
   async _loadSystemConfig() {
     try {
       const config = await SystemService.fetchSystemConfig(true)
+      try {
+        require('./utils/iosVirtualPay').applyPublicConfig(config)
+      } catch (e) { /* ignore */ }
       await refreshProductModuleState(false)
       await refreshQaModuleState(false)
       await refreshFormModuleState(false)

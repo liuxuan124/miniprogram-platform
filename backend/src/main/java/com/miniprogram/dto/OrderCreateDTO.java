@@ -27,6 +27,9 @@ public class OrderCreateDTO {
     @Schema(description = "来源内容 ID（内容带货归因）")
     private Long sourceContentId;
 
+    @Schema(description = "客户端平台 ios/android/devtools（小程序 X-Client-Platform）")
+    private String clientPlatform;
+
     @Schema(description = "收货地址快照")
     private AddressSnapshot addressSnapshot;
 }

@@ -17,7 +17,8 @@ function getProductList(params = {}) {
  * @param {string|number} id - 商品ID
  */
 function getProductDetail(id) {
-  return request.get(`/api/v1/mp/products/${id}`, {}, { auth: false })
+  const iosVirtualPay = require('../utils/iosVirtualPay')
+  return request.get(`/api/v1/mp/products/${id}`, { platform: iosVirtualPay.getClientPlatform() }, { auth: false })
 }
 
 /**
