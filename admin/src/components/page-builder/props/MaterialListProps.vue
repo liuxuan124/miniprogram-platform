@@ -114,6 +114,8 @@
           @update:model-value="(v: string) => emit('update', { more_link: v })"
         />
       </template>
+
+      <ContentTagFilterFields :props="data" @update="(v) => emit('update', v)" />
     </el-form>
   </div>
 </template>
@@ -123,6 +125,7 @@ import { onMounted, ref } from 'vue'
 import type { ComponentInstance } from '@/types/page'
 import { getFileGroups, getFileList, type FileGroupItem, type FileItemRecord } from '@/api/files'
 import LinkPickerField from '../LinkPickerField.vue'
+import ContentTagFilterFields from './ContentTagFilterFields.vue'
 
 const { props: data } = defineProps<{ props: ComponentInstance['props'] }>()
 const emit = defineEmits<{ update: [patch: Record<string, unknown>] }>()

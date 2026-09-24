@@ -57,6 +57,7 @@
       </div>
 
       <SourceTagFields :props="data" @update="(v) => emit('update', v)" />
+      <ContentTagFilterFields :props="data" @update="(v) => emit('update', v)" />
     </el-form>
   </div>
 </template>
@@ -66,6 +67,7 @@ import { computed } from 'vue'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 import SourceTagFields from './SourceTagFields.vue'
+import ContentTagFilterFields from './ContentTagFilterFields.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
