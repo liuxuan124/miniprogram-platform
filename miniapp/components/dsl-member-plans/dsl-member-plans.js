@@ -69,14 +69,26 @@ Component({
             return
           }
           const recommendId = cfg.recommend_plan_id
-          const plans = list.map((p) => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || '',
-            rights: p.rights || [],
-            recommend: recommendId != null && String(recommendId) === String(p.id),
-            priceText: '见选购页',
-          }))
+          const plans = list.map((p) => {
+            const display = p.displayPrice != null ? p.displayPrice : p.display_price
+            const original = p.originalPrice != null ? p.originalPrice : p.original_price
+            let priceText = '见选购页'
+            if (display != null && display !== '') {
+              priceText = `¥${display}`
+              if (original != null && Number(original) > Number(display)) {
+                priceText += ` 原价¥${original}`
+              }
+            }
+            return {
+              id: p.id,
+              productId: p.productId || p.product_id,
+              name: p.name,
+              description: p.description || '',
+              rights: p.rights || [],
+              recommend: recommendId != null && String(recommendId) === String(p.id),
+              priceText,
+            }
+          })
           this.setData({ state: 'data', plans })
         })
         .catch(() => this.setData({ state: 'error', plans: [] }))

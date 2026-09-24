@@ -52,6 +52,15 @@ public class MembershipPlanVO {
     @Schema(description = "状态")
     private Integer status;
 
+    @Schema(description = "关联在售商品 ID")
+    private Long productId;
+
+    @Schema(description = "展示价（在售会员商品）")
+    private BigDecimal displayPrice;
+
+    @Schema(description = "划线原价")
+    private BigDecimal originalPrice;
+
     @Schema(description = "创建时间")
     private String createdAt;
 

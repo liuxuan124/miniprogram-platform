@@ -9,7 +9,7 @@ function mapRow(item, index) {
     question: q.length > 80 ? q.slice(0, 80) + '…' : q,
     answerPreview: a ? (a.length > 120 ? a.slice(0, 120) + '…' : a) : '等待星主回答…',
     tags: item.visibility === 'private' ? ['私密'] : ['公开'],
-    spectatorCount: 0,
+    spectatorCount: Number(item.spectatorCount ?? item.spectator_count ?? 0) || 0,
     payStatusLabel: item.status === 'answered' ? '已解答' : '待回答',
     visibility: item.visibility || 'public',
   }

@@ -3,6 +3,24 @@ const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveArticleCover } = require('../../utils/article-cover')
 const { isValidContentId } = require('../../utils/content-id')
+const { resolveSourceLabel, filterBySourceKeys } = require('../../utils/dsl-source-tag')
+const { filterByContentTags, primaryTagQueryParam } = require('../../utils/dsl-content-tag-filter')
+
+function applyListEnhancements(rows, config) {
+  const cfg = config || {}
+  let list = rows || []
+  if (cfg.show_source_tag === true && Array.isArray(cfg.source_filter) && cfg.source_filter.length) {
+    list = filterBySourceKeys(list, cfg.source_filter)
+  }
+  if (cfg.show_source_tag === true) {
+    list = list.map((item) => ({
+      ...item,
+      source: item.source || item.categoryName || item.category_name || '',
+      sourceTagLabel: resolveSourceLabel(item, cfg.source_labels),
+    }))
+  }
+  return filterByContentTags(list, cfg)
+}
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -31,6 +49,8 @@ function normalizeArticleItem(item, index) {
     created_at: formatPublishDateTime(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at),
     publish_time: formatPublishDateTime(item.publishedAt || item.publishTime || item.publish_time || item.createTime || item.createdAt || item.created_at),
     source: item.source || item.categoryName || item.category_name || '',
+    sourceTag: item.sourceTag || item.source_tag || '',
+    tags: item.tags || item.tagList || item.tag_list,
     summary: String(item.summary || item.excerpt || item.subtitle || '').trim(),
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
@@ -261,7 +281,10 @@ Component({
     _bootstrapFromRuntime(runtimeData) {
       const cfg = this.data.config || {}
       const pageSize = this._pageSize || calcPageSize(cfg)
-      const mapped = (runtimeData || []).slice(0, pageSize).map((item, index) => normalizeArticleItem(item, index))
+      const mapped = applyListEnhancements(
+        (runtimeData || []).slice(0, pageSize).map((item, index) => normalizeArticleItem(item, index)),
+        cfg,
+      )
       this.setData({
         displayData: mapped,
         page: mapped.length ? 1 : 0,
@@ -328,6 +351,7 @@ Component({
             current: nextPage,
             size: pageSize,
             status: 'published',
+            tag: primaryTagQueryParam(cfg) || undefined,
           },
           onFail: () => {
             this._localPool = this._buildLocalPool(this.data.runtimeData, '')
@@ -344,10 +368,14 @@ Component({
     },
 
     _requestContents({ reset, nextPage, pageSize, params, onFail }) {
+      const cfg = this.data.config || {}
       get('/api/v1/mp/contents', params, { auth: false, showError: false })
         .then((data) => {
           const records = extractRecords(data)
-          const mapped = records.map((item, index) => normalizeArticleItem(item, index)).filter((item) => item.navigable)
+          const mapped = applyListEnhancements(
+            records.map((item, index) => normalizeArticleItem(item, index)).filter((item) => item.navigable),
+            cfg,
+          )
           const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
           const hasMore = resolveHasMore(data, nextPage, pageSize, mapped.length)
           this.setData({

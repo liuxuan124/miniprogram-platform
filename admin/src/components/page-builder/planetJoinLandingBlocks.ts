@@ -21,6 +21,8 @@ export function buildPlanetJoinLandingComponents(): ComponentInstance[] {
       subtitle: '深度问答、资料与同路人',
       show_stats: true,
       accent_gold: true,
+      /** 有值时小程序拉 GET /api/v1/mp/commerce/planet/{id}/landing 补价格与购买链 */
+      planet_commerce_id: 'primary',
     }),
     mk(ComponentType.FeatureCards, {
       title: '加入权益',

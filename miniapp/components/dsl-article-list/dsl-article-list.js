@@ -4,6 +4,7 @@ const { get } = require('../../utils/request')
 const { resolveArticleCover } = require('../../utils/article-cover')
 const { isValidContentId } = require('../../utils/content-id')
 const { resolveSourceLabel, filterBySourceKeys } = require('../../utils/dsl-source-tag')
+const { filterByContentTags, primaryTagQueryParam } = require('../../utils/dsl-content-tag-filter')
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -313,6 +314,7 @@ Component({
             current: nextPage,
             size: pageSize,
             status: 'published',
+            tag: primaryTagQueryParam(cfg) || undefined,
           },
           onFail: () => {
             this._localPool = this._buildLocalPool(runtimeData || this.data.runtimeData, cfg, '')
@@ -411,6 +413,7 @@ Component({
           sourceTagLabel: resolveSourceLabel(item, cfg.source_labels),
         }))
       }
+      list = filterByContentTags(list, cfg)
       return list
     },
 

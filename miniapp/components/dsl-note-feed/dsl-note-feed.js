@@ -4,6 +4,23 @@ const { get } = require('../../utils/request')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { buildNoteGalleryUrls } = require('../../utils/note-content')
 const { isValidContentId } = require('../../utils/content-id')
+const { resolveSourceLabel, filterBySourceKeys } = require('../../utils/dsl-source-tag')
+const { filterByContentTags, primaryTagQueryParam } = require('../../utils/dsl-content-tag-filter')
+
+function applyListEnhancements(rows, config) {
+  const cfg = config || {}
+  let list = rows || []
+  if (cfg.show_source_tag === true && Array.isArray(cfg.source_filter) && cfg.source_filter.length) {
+    list = filterBySourceKeys(list, cfg.source_filter)
+  }
+  if (cfg.show_source_tag === true) {
+    list = list.map((item) => ({
+      ...item,
+      sourceTagLabel: resolveSourceLabel(item, cfg.source_labels),
+    }))
+  }
+  return filterByContentTags(list, cfg)
+}
 
 function formatLikeCount(n) {
   const num = Math.max(0, Number(n) || 0)
@@ -39,6 +56,8 @@ function normalizeNoteItem(item, index) {
     view_text: `阅读 ${Math.max(0, Number(item.viewCount || item.view_count || 0))}`,
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
+    sourceTag: item.sourceTag || item.source_tag || '',
+    tags: item.tags || item.tagList || item.tag_list,
   }
 }
 
@@ -231,7 +250,11 @@ Component({
 
     _bootstrapFromRuntime(runtimeData) {
       const pageSize = this._pageSize || calcPageSize(this.data.config)
-      const mapped = (runtimeData || []).slice(0, pageSize).map((item, index) => normalizeNoteItem(item, index))
+      const cfg = this.data.config || {}
+      const mapped = applyListEnhancements(
+        (runtimeData || []).slice(0, pageSize).map((item, index) => normalizeNoteItem(item, index)),
+        cfg,
+      )
       this.setData({
         displayData: mapped,
         page: mapped.length ? 1 : 0,
@@ -274,6 +297,7 @@ Component({
         size: pageSize,
         contentType: 'note',
         status: 'published',
+        tag: primaryTagQueryParam(cfg) || undefined,
       }
       if (tid && /^\d+$/.test(String(tid))) {
         params.categoryId = Number(tid)
@@ -282,7 +306,10 @@ Component({
       get('/api/v1/mp/contents', params, { auth: false, showError: false })
         .then((data) => {
           const records = extractRecords(data)
-          const mapped = records.map((item, index) => normalizeNoteItem(item, index)).filter((item) => item.navigable)
+          const mapped = applyListEnhancements(
+            records.map((item, index) => normalizeNoteItem(item, index)).filter((item) => item.navigable),
+            cfg,
+          )
           const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
           const hasMore = resolveHasMore(data, nextPage, pageSize, mapped.length)
           this.setData({

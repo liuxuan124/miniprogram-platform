@@ -453,29 +453,11 @@
     styleString="{{comp.styleString}}"
   />
 
-  <!-- 内容付费墙 content_paywall -->
-  <view
+  <dsl-content-paywall
     wx:elif="{{comp.type === 'content_paywall'}}"
-    class="dsl-paywall dsl-paywall--{{comp.props.theme || 'warm'}}"
-    style="{{comp.styleString}}"
-  >
-    <view class="dsl-paywall__fade" />
-    <view class="dsl-paywall__box">
-      <view class="dsl-paywall__title">{{comp.props.title || '解锁全文'}}</view>
-      <view class="dsl-paywall__hint">{{comp.props.hint || '开通后可查看完整内容'}}</view>
-      <view
-        class="dsl-paywall__btn"
-        data-link="{{comp.props.primary_link || '/pages/member-center/member-center'}}"
-        catchtap="onQuickNavigate"
-      >{{comp.props.button_text || '立即解锁'}}</view>
-      <view
-        wx:if="{{comp.props.secondary_text}}"
-        class="dsl-paywall__alt"
-        data-link="{{comp.props.secondary_link || '/pages/planet/planet'}}"
-        catchtap="onQuickNavigate"
-      >{{comp.props.secondary_text}}</view>
-    </view>
-  </view>
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+  />
 
   <!-- 11. 分区标题 section_title -->
   <view

@@ -5,7 +5,9 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.dto.member.MembershipPlanDTO;
 import com.miniprogram.dto.member.MembershipPlanVO;
 import com.miniprogram.entity.MembershipPlan;
+import com.miniprogram.entity.Product;
 import com.miniprogram.mapper.MembershipPlanMapper;
+import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.service.MembershipPlanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,13 +16,18 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMapper, MembershipPlan>
         implements MembershipPlanService {
+
+    private final ProductMapper productMapper;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String SCOPE_PLATFORM = "platform";
@@ -40,7 +47,9 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
         }
         wrapper.orderByAsc(MembershipPlan::getSortOrder)
                 .orderByAsc(MembershipPlan::getId);
-        return this.list(wrapper).stream().map(this::toVO).collect(Collectors.toList());
+        List<MembershipPlanVO> vos = this.list(wrapper).stream().map(this::toVO).collect(Collectors.toList());
+        attachSaleProducts(vos);
+        return vos;
     }
 
     @Override
@@ -189,6 +198,40 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
 
     private String normalizeScope(String scope) {
         return scope == null ? "" : scope.trim().toLowerCase();
+    }
+
+    private void attachSaleProducts(List<MembershipPlanVO> vos) {
+        if (vos == null || vos.isEmpty()) {
+            return;
+        }
+        List<Long> planIds = vos.stream()
+                .map(MembershipPlanVO::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (planIds.isEmpty()) {
+            return;
+        }
+        List<Product> products = productMapper.selectList(new LambdaQueryWrapper<Product>()
+                .in(Product::getMembershipPlanId, planIds)
+                .eq(Product::getStatus, "on_sale")
+                .orderByAsc(Product::getSortOrder)
+                .orderByAsc(Product::getId));
+        Map<Long, Product> firstByPlan = new HashMap<>();
+        for (Product p : products) {
+            if (p.getMembershipPlanId() != null) {
+                firstByPlan.putIfAbsent(p.getMembershipPlanId(), p);
+            }
+        }
+        for (MembershipPlanVO vo : vos) {
+            Product p = firstByPlan.get(vo.getId());
+            if (p == null) {
+                continue;
+            }
+            vo.setProductId(p.getId());
+            vo.setDisplayPrice(p.getPrice());
+            vo.setOriginalPrice(p.getOriginalPrice());
+        }
     }
 
     private MembershipPlanVO toVO(MembershipPlan plan) {
