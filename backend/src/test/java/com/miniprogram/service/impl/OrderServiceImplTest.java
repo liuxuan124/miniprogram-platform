@@ -18,6 +18,7 @@ import com.miniprogram.mapper.UserCouponMapper;
 import com.miniprogram.mapper.CouponMapper;
 import com.miniprogram.mapper.CouponEffectMapper;
 import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.service.PaymentService;
 import com.miniprogram.service.RefundService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
@@ -136,6 +137,7 @@ class OrderServiceImplTest {
                 mock(PaymentMapper.class),
                 mock(RefundMapper.class),
                 mock(RefundService.class),
+                mock(PaymentService.class),
                 mock(UserNoticeService.class),
                 mock(SubscribeMessageService.class),
                 mock(MiniProgramUserMapper.class),

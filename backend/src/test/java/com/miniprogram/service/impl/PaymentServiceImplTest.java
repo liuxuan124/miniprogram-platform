@@ -9,8 +9,12 @@ import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.UserMapper;
+import com.miniprogram.service.FulfillmentOrchestratorService;
 import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.service.PaidQaService;
 import com.miniprogram.service.PurchaseEntitlementService;
+import com.miniprogram.service.ReferralCommissionService;
+import com.miniprogram.service.RefundService;
 import com.miniprogram.service.WxPayConfigService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
@@ -65,7 +69,11 @@ class PaymentServiceImplTest {
                 mock(SubscribeMessageService.class),
                 mock(UserNoticeService.class),
                 mock(MembershipAccessService.class),
-                mock(PurchaseEntitlementService.class)
+                mock(PurchaseEntitlementService.class),
+                mock(FulfillmentOrchestratorService.class),
+                mock(RefundService.class),
+                mock(ReferralCommissionService.class),
+                mock(PaidQaService.class)
         );
         ReflectionTestUtils.setField(service, "baseMapper", paymentMapper);
         return service;
