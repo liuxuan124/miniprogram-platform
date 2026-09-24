@@ -1,11 +1,11 @@
 const { resolveDisplayLogoUrl, DEFAULT_BRAND_LOGO, isNonDisplayableImageUrl } = require('./image-fallback')
 
 const DEFAULT_MINIAPP_BRAND_CONFIG = {
-  appName: '暖阁',
+  appName: '跨境墨太白',
   logoUrl: '',
-  logoMark: '暖',
+  logoMark: '墨',
   loginTagline: '登录后继续 · 收藏 / 星球 / 已购',
-  brandEyebrow: 'WARM NOTES',
+  brandEyebrow: 'CROSS-BORDER INK',
   loginStyleKey: 'warm',
 }
 

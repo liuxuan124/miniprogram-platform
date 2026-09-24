@@ -466,10 +466,10 @@ export function applyLoginStylePreset(
 }
 
 export const DEFAULT_MINIAPP_BRAND_CONFIG: MiniappBrandConfig = {
-  appName: '我的小程序',
+  appName: '跨境墨太白',
   logoUrl: '',
-  logoMark: '品',
-  loginTagline: '想认识一下你，可以吗？',
-  brandEyebrow: 'MINIAPP',
+  logoMark: '墨',
+  loginTagline: '登录后继续 · 收藏 / 星球 / 已购',
+  brandEyebrow: 'CROSS-BORDER INK',
   loginStyleKey: 'warm',
 }
