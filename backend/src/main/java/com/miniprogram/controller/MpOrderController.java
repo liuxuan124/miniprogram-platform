@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -29,8 +30,13 @@ public class MpOrderController {
 
     @PostMapping
     @Operation(summary = "创建订单")
-    public R<OrderDetailVO> createOrder(@Valid @RequestBody OrderCreateDTO dto) {
+    public R<OrderDetailVO> createOrder(
+            @Valid @RequestBody OrderCreateDTO dto,
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform) {
         featureModuleGuard.requireProductOrPlanetCheckout();
+        if (!StringUtils.hasText(dto.getClientPlatform()) && StringUtils.hasText(clientPlatform)) {
+            dto.setClientPlatform(clientPlatform.trim());
+        }
         Long userId = SecurityUtils.getCurrentUserId();
         return R.ok(orderService.createOrder(userId, dto));
     }

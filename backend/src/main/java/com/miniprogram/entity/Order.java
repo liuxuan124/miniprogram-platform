@@ -52,6 +52,9 @@ public class Order implements Serializable {
     @Schema(description = "履约方式: physical/virtual")
     private String fulfillmentType;
 
+    @Schema(description = "下单时客户端平台 ios/android/devtools")
+    private String clientPlatform;
+
     @Schema(description = "支付成功后是否自动虚拟履约（当前统一关闭，由商家正常发货）")
     private Boolean autoFulfill;
 

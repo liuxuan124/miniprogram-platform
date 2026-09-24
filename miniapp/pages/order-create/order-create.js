@@ -389,9 +389,11 @@ Page({
     }))
 
     const addr = this.data.address || {}
+    const iosVirtualPay = require('../../utils/iosVirtualPay')
     const data = {
       items: orderItems,
       remark: this.data.remark,
+      clientPlatform: iosVirtualPay.getClientPlatform(),
       userCouponId: this.data.userCouponId ? Number(this.data.userCouponId) : undefined,
       addressSnapshot: this.data.isVirtual
         ? null

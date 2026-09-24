@@ -4,7 +4,9 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.ProductDetailVO;
 import com.miniprogram.dto.ProductQueryDTO;
+import com.miniprogram.compliance.IosVirtualPayPolicyService;
 import com.miniprogram.entity.Product;
+import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ProductService;
 import com.miniprogram.service.PurchaseEntitlementService;
@@ -24,8 +26,10 @@ import org.springframework.web.bind.annotation.*;
 public class MpProductController {
 
     private final ProductService productService;
+    private final ProductMapper productMapper;
     private final FeatureModuleGuard featureModuleGuard;
     private final PurchaseEntitlementService purchaseEntitlementService;
+    private final IosVirtualPayPolicyService iosVirtualPayPolicyService;
 
     @GetMapping
     @Operation(summary = "商品列表（公开）")
@@ -43,7 +47,9 @@ public class MpProductController {
 
     @GetMapping("/{id}")
     @Operation(summary = "商品详情（公开）")
-    public R<ProductDetailVO> getProductDetail(@PathVariable Long id) {
+    public R<ProductDetailVO> getProductDetail(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform) {
         featureModuleGuard.requireProductModule();
         ProductDetailVO detail = productService.getProductDetail(id);
         if (!"on_sale".equals(detail.getStatus())) {
@@ -51,6 +57,13 @@ public class MpProductController {
         }
         Long userId = SecurityUtils.getCurrentUserId();
         detail.setPurchased(userId != null && purchaseEntitlementService.hasProduct(userId, id));
+        Product product = productMapper.selectById(id);
+        if (product != null) {
+            IosVirtualPayPolicyService.PurchaseGate gate =
+                    iosVirtualPayPolicyService.evaluateProduct(clientPlatform, product);
+            detail.setCanPurchase(gate.canPurchase());
+            detail.setPurchaseBlockReason(gate.blockReason());
+        }
         return R.ok(detail);
     }
 }

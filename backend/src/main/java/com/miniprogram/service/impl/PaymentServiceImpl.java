@@ -25,6 +25,7 @@ import com.miniprogram.service.ReferralCommissionService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
 import com.miniprogram.service.WxPayConfigService;
+import com.miniprogram.compliance.IosVirtualPayPolicyService;
 import com.miniprogram.product.ProductTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     private final RefundService refundService;
     private final ReferralCommissionService referralCommissionService;
     private final PaidQaService paidQaService;
+    private final IosVirtualPayPolicyService iosVirtualPayPolicyService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -81,6 +83,16 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (!"pending_payment".equals(order.getStatus())) {
             throw new BusinessException(600201, "订单状态错误，无法支付");
         }
+        List<OrderItem> orderItems = orderItemMapper.selectList(
+                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+        List<Product> gateProducts = new ArrayList<>();
+        for (OrderItem item : orderItems) {
+            Product p = productMapper.selectById(item.getProductId());
+            if (p != null) {
+                gateProducts.add(p);
+            }
+        }
+        iosVirtualPayPolicyService.assertCanWxPayOrder(userId, order.getClientPlatform(), gateProducts);
         WxPayRuntimeConfig payConfig = wxPayConfigService.requireConfigured();
 
         // 查找支付记录

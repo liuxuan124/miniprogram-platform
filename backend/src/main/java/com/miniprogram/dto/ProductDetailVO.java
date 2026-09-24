@@ -111,4 +111,10 @@ public class ProductDetailVO {
 
     @Schema(description = "更新时间")
     private String updatedAt;
+
+    @Schema(description = "当前客户端是否允许购买（iOS 虚拟商品等）")
+    private Boolean canPurchase;
+
+    @Schema(description = "不可购买时的提示文案")
+    private String purchaseBlockReason;
 }

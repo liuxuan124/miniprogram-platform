@@ -1253,10 +1253,10 @@ Page({
     const productType = product.productType || product.product_type
       || (Array.isArray(product.productTypes) && product.productTypes[0])
       || 'physical'
-    if (iosVirtualPay.shouldBlockVirtualPurchase(productType)) {
+    if (iosVirtualPay.shouldBlockVirtualPurchase(productType, product)) {
       wx.showModal({
         title: '暂不支持购买',
-        content: iosVirtualPay.virtualPayHint(),
+        content: iosVirtualPay.blockReason(product),
         showCancel: false,
       })
       return
