@@ -232,6 +232,18 @@ export const usePageStore = defineStore('page', () => {
     isDirty.value = false
   }
 
+  /** 从 localStorage 备份恢复 DSL，保留组件 id，并标记为未落库 */
+  function restoreLocalDraft(next: PageDSL) {
+    resetHistory()
+    dsl.value = cloneDSL(next)
+    if (currentPage.value?.id) {
+      dsl.value.page.id = String(currentPage.value.id)
+      dsl.value.page.path = currentPage.value.path || dsl.value.page.path
+    }
+    selectedComponentId.value = dsl.value.components[0]?.id || null
+    recomputeDirty()
+  }
+
   function dslSnapshotKey(value: PageDSL): string {
     return JSON.stringify(value)
   }
@@ -636,6 +648,7 @@ export const usePageStore = defineStore('page', () => {
     undo,
     redo,
     markSavedToServer,
+    restoreLocalDraft,
     setCurrentPage,
     resetEditor,
     addComponent,

@@ -109,9 +109,12 @@
           <el-icon><WarningFilled /></el-icon>
           <span class="conflict-text">页面已被其他人修改，直接保存会覆盖对方的改动。</span>
           <div class="conflict-actions">
-            <el-button size="small" @click="handleReloadFromConflict">放弃我的修改，刷新页面</el-button>
+            <el-button size="small" @click="handleReloadFromConflict">载入最新</el-button>
+            <el-button size="small" type="warning" :loading="pageStore.saving" @click="handleForceOverwriteFromConflict">
+              覆盖保存
+            </el-button>
             <el-button size="small" type="primary" :loading="savingAsNew" @click="handleSaveAsNewDraft">
-              保留我的修改，另存为新草稿
+              另存副本
             </el-button>
           </div>
         </div>
@@ -339,7 +342,12 @@ import { useEditorLayout } from '@/composables/useEditorLayout'
 import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { applyConservativePublishFixes, runPublishHealthCheck } from '@/utils/publishHealthCheck'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
-import { useEditorPersist } from '@/composables/useEditorPersist'
+import {
+  useEditorPersist,
+  readDraftBackup,
+  clearDraftBackup,
+} from '@/composables/useEditorPersist'
+import { findLegacyDemoMarkersInText } from '@/constants/brand-defaults'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
@@ -696,6 +704,7 @@ async function loadPage() {
     if (res.data) {
       pageStore.setCurrentPage(res.data)
       resetPersistState()
+      await maybeRestoreLocalBackup(id)
     } else {
       pageLoadError.value = '服务器未返回页面数据'
       pageStore.resetEditor()
@@ -827,11 +836,70 @@ async function performAutoSaveCore(): Promise<boolean> {
   }
 }
 
+async function maybeRestoreLocalBackup(pageId: number) {
+  const backup = readDraftBackup(pageId)
+  if (!backup?.dsl) return
+  const serverKey = JSON.stringify(pageStore.dsl)
+  const backupKey = JSON.stringify(backup.dsl)
+  if (serverKey === backupKey) {
+    clearDraftBackup(pageId)
+    return
+  }
+  const when = new Date(backup.savedAt)
+  const timeLabel = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}-${String(when.getDate()).padStart(2, '0')} ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`
+  try {
+    await ElMessageBox.confirm(
+      `检测到本机有未同步草稿（${timeLabel}），是否恢复？选「使用服务器版本」将丢弃本机备份。`,
+      '恢复本地草稿',
+      {
+        confirmButtonText: '恢复本地草稿',
+        cancelButtonText: '使用服务器版本',
+        type: 'warning',
+      },
+    )
+    pageStore.restoreLocalDraft(backup.dsl)
+    saveStatus.value = 'pending'
+    updateStatusText()
+    ElMessage.info('已恢复本地草稿，将自动尝试保存')
+  } catch {
+    clearDraftBackup(pageId)
+  }
+}
+
 /** C5：放弃本地修改，直接刷新为服务端最新版本 */
 async function handleReloadFromConflict() {
   conflict.visible = false
   await loadPage()
   ElMessage.success('已刷新为最新版本')
+}
+
+/** C5：忽略版本校验，用当前画布覆盖服务端草稿 */
+async function handleForceOverwriteFromConflict() {
+  if (!pageStore.currentPage) return
+  const jumpIssues = collectJumpIssues(pageStore.components)
+  if (jumpIssues.length) {
+    ElMessage.warning(jumpIssues[0])
+    return
+  }
+  pageStore.saving = true
+  try {
+    await syncPageMetaToServer()
+    const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl)
+    pageStore.markSavedToServer()
+    conflict.visible = false
+    clearDraftBackup(pageStore.currentPage.id)
+    saveStatus.value = 'saved'
+    lastPersistSavedAt.value = new Date()
+    updateStatusText()
+    if (res.data) {
+      syncSavedDraftVersion(res.data)
+    }
+    ElMessage.success('已覆盖保存为最新草稿')
+  } catch (err: any) {
+    ElMessage.error(err?.response?.data?.message || err?.message || '覆盖保存失败')
+  } finally {
+    pageStore.saving = false
+  }
 }
 
 /** C5：保留本地修改，另存为一个新页面草稿，不覆盖对方的改动 */
@@ -896,6 +964,10 @@ function validateBeforePublish(): string[] {
   warnings.push(...collectDataSourceIssues(components))
   const health = runPublishHealthCheck(components)
   warnings.push(...health.warnings)
+  const legacyHits = findLegacyDemoMarkersInText(JSON.stringify(pageStore.dsl))
+  if (legacyHits.length) {
+    warnings.push(`页面仍含演示品牌文案（${legacyHits.slice(0, 4).join('、')}${legacyHits.length > 4 ? ' 等' : ''}），建议在外观/内容库替换后再发布`)
+  }
   return [...new Set(warnings)]
 }
 
