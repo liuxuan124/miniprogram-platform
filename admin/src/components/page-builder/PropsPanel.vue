@@ -451,6 +451,9 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.FloatButton]: defineAsyncComponent(() => import('./props/FloatButtonProps.vue')),
   [ComponentType.RichText]: defineAsyncComponent(() => import('./props/RichTextProps.vue')),
   [ComponentType.ContentPaywall]: defineAsyncComponent(() => import('./props/ContentPaywallProps.vue')),
+  [ComponentType.MaterialList]: defineAsyncComponent(() => import('./props/MaterialListProps.vue')),
+  [ComponentType.MemberPlan]: defineAsyncComponent(() => import('./props/MemberPlanProps.vue')),
+  [ComponentType.QaList]: defineAsyncComponent(() => import('./props/QaListProps.vue')),
   [ComponentType.SectionTitle]: defineAsyncComponent(() => import('./props/SectionTitleProps.vue')),
   [ComponentType.Divider]: defineAsyncComponent(() => import('./props/DividerProps.vue')),
   [ComponentType.Spacer]: defineAsyncComponent(() => import('./props/SpacerProps.vue')),
@@ -508,6 +511,8 @@ const isListComponent = computed(() => {
     || type === ComponentType.HotNews
     || type === ComponentType.FlashSale
     || type === ComponentType.ActivityList
+    || type === ComponentType.MaterialList
+    || type === ComponentType.QaList
 })
 
 const hasSplitTextSize = computed(() => {

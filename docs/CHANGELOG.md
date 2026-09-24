@@ -4,6 +4,8 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-24：跨境墨太白装修器 DSL——`material_list`/`member_plan`/`qa_list`、增强 `content_paywall` 与来源标签；小程序渲染+datasource；`GET /api/v1/mp/membership-plans`；星球加入落地页区块模板。
+- 2026-09-24：合规七项——V86–V92；P0 iOS 虚拟支付服务端门禁/类目审核版/内容安全 v2；P1 版权·退款·隐私底座与文档（见 `docs/compliance/`）。
 - 2026-09-24：跨境墨太白六向优化——装修器自动保存补全（指数退避/本地恢复/三向冲突）；品牌默认文案与「品牌组件」分类；外观页品牌信息；首页 todayCount 服务端聚合；固定 Tab 壳组件库隐藏；内容标签 platform/topic（V85）；发布前演示文案告警。
 - 2026-09-24：生产修复——`application.yml` 重复 `app` 导致后端无法启动；已 push 并在服务器重编重启，健康检查恢复。
 - 2026-09-24：墨太白二期——装修器/小程序 `content_paywall` 组件；付费问答超时 `trySystemFullRefund` 自动微信退款；卡密 AES-GCM 加密入库+交付写兑换码+退款撤销卡密。

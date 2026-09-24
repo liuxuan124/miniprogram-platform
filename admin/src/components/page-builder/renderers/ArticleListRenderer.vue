@@ -40,11 +40,21 @@
         </div>
         <div class="article-info">
           <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
-          <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">{{ item.title || '文章标题' }}</div>
+          <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">
+            {{ item.title || '文章标题' }}
+            <span
+              v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'title'"
+              class="article-source-tag"
+            >{{ item.sourceTagLabel }}</span>
+          </div>
           <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
-          <div v-if="component.props.show_date !== false && (item.meta || item.source)" class="article-meta-row" :style="itemMetaStyle">
+          <div v-if="component.props.show_date !== false && (item.meta || item.source || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
             <span v-if="item.meta">{{ item.meta }}</span>
-            <span v-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
+            <span
+              v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'meta'"
+              class="article-source-tag"
+            >{{ item.sourceTagLabel }}</span>
+            <span v-else-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
           </div>
         </div>
       </div>
@@ -59,6 +69,7 @@ import type { ComponentInstance } from '@/types/page'
 import { getCategoryList } from '@/api/content'
 import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import { filterBySourceKeys, resolveSourceLabel } from '@/utils/dsl-source-tag'
 import { articleCardModifier, resolveArticleLayout } from '../articleLayouts'
 
 type ArticleItem = {
@@ -69,6 +80,7 @@ type ArticleItem = {
   excerpt?: string
   link_url?: string
   source?: string
+  sourceTagLabel?: string
   categoryId?: string | number
   categoryName?: string
 }
@@ -267,16 +279,23 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
       excerpt: String(item.summary || item.excerpt || item.subtitle || '').trim(),
       link_url: item.link_url,
       source: item.source || item.categoryName || item.category_name || '',
+      sourceTagLabel: resolveSourceLabel(item, props.component.props?.source_labels),
       categoryId: item.categoryId ?? item.category_id,
       categoryName: item.categoryName || item.category_name || '',
     }
   })
 })
 
+const showSourceTag = computed(() => props.component.props?.show_source_tag === true)
+const sourceTagPosition = computed(() => props.component.props?.source_tag_position || 'meta')
+
 const filteredArticleItems = computed(() => {
   const limit = Math.max(Number(props.component.props?.limit || 6), 1)
   const tabId = String(activeTabId.value || '')
   let list = visibleArticleItems.value
+  if (showSourceTag.value && Array.isArray(props.component.props?.source_filter) && props.component.props.source_filter.length) {
+    list = filterBySourceKeys(list as any[], props.component.props.source_filter) as ArticleItem[]
+  }
   if (showCategoryTabs.value && tabId) {
     const tab = categoryTabs.value.find((t) => String(t.id) === tabId)
     const name = tab?.name || tabId
@@ -351,6 +370,17 @@ function formatDisplayDate(value: unknown): string {
   font-weight: 700;
 }
 
+.article-source-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #a66b1f;
+  background: #fff7ed;
+  border-radius: 4px;
+  vertical-align: middle;
+}
 .article-meta-row {
   display: flex;
   flex-wrap: wrap;

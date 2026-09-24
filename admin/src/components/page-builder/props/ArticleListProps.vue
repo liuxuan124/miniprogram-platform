@@ -110,6 +110,8 @@
         </div>
         <div v-else-if="!liveLoading" class="ds-empty">当前筛选下没有已发布内容，画布会显示空态</div>
       </div>
+
+      <SourceTagFields :props="data" @update="(v) => emit('update', v)" />
     </el-form>
   </div>
 </template>
@@ -119,6 +121,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getCategoryList } from '@/api/content'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
+import SourceTagFields from './SourceTagFields.vue'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 import { resolveArticleLayout } from '../articleLayouts'
 
