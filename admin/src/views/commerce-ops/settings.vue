@@ -97,6 +97,30 @@
       </section>
 
       <section class="card">
+        <h2 class="h2">iOS 虚拟支付</h2>
+        <div class="sub">默认阻断 iOS 普通微信支付虚拟商品；最终方案<strong>待用户确认</strong>是否接入官方虚拟支付。</div>
+        <div class="field" style="margin-top:10px">
+          <label>策略</label>
+          <select v-model="form.iosStrategy" class="input">
+            <option value="block_wx_pay">iOS 阻断虚拟品微信支付（推荐过渡）</option>
+            <option value="virtual_payment">官方虚拟支付（仅占位，未接米大师）</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>iOS 拦截提示</label>
+          <input v-model="form.blockMessage" class="input" maxlength="120" />
+        </div>
+        <label class="kv" style="margin-top:6px">
+          <span>iOS 允许实物微信支付</span>
+          <label class="switch">
+            <input type="checkbox" v-model="form.allowPhysicalOnIos" />
+            <span />
+          </label>
+        </label>
+        <div class="faint">{{ form.iosVirtualPayNote || '待用户确认 wx.requestVirtualPayment 立项' }}</div>
+      </section>
+
+      <section class="card">
         <h2 class="h2">测试账号</h2>
         <div class="sub">这些账号下的订单自动标记为测试，不计入收入、销量和转化（每行一个昵称或手机号）</div>
         <textarea
@@ -135,6 +159,11 @@ const form = reactive<CommerceSettings>({
   invoiceEnabled: false,
   invoiceNote: '',
   testAccounts: [],
+  iosStrategy: 'block_wx_pay',
+  blockMessage: '根据微信小程序规则，iOS 端暂不支持直接购买此类虚拟商品，请使用 Android 或联系客服。',
+  allowPhysicalOnIos: true,
+  userConfirmRequired: true,
+  iosVirtualPayNote: '',
 })
 
 watch(testAccountsText, (v) => {
@@ -164,6 +193,11 @@ async function load() {
       invoiceEnabled: data.invoiceEnabled ?? form.invoiceEnabled,
       invoiceNote: data.invoiceNote ?? form.invoiceNote,
       testAccounts: Array.isArray(data.testAccounts) ? data.testAccounts : [],
+      iosStrategy: data.iosStrategy ?? form.iosStrategy,
+      blockMessage: data.blockMessage ?? form.blockMessage,
+      allowPhysicalOnIos: data.allowPhysicalOnIos ?? form.allowPhysicalOnIos,
+      userConfirmRequired: data.userConfirmRequired ?? form.userConfirmRequired,
+      iosVirtualPayNote: data.iosVirtualPayNote ?? form.iosVirtualPayNote,
     })
     testAccountsText.value = (form.testAccounts || []).join('\n')
   } catch (e: any) {
