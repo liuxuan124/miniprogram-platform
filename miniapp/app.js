@@ -86,6 +86,7 @@ App({
     try {
       const config = await SystemService.fetchSystemConfig(true)
       this.globalData.legalAgreementVersions = config.legal_agreement_versions || {}
+      this.globalData.commerceVirtualRefundRules = config.commerce_virtual_refund_rules || null
       try {
         require('./utils/iosVirtualPay').applyPublicConfig(config)
       } catch (e) { /* ignore */ }
