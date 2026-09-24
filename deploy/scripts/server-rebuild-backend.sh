@@ -5,7 +5,7 @@ set -euo pipefail
 PROJECT="${1:-/opt/miniprogram-platform}"
 cd "$PROJECT/backend"
 
-mvn -q -DskipTests package
+mvn -q -Dmaven.test.skip=true package
 JAR=$(ls target/*.jar | head -1)
 cp "$JAR" app.jar
 sudo systemctl restart miniprogram-backend.service
