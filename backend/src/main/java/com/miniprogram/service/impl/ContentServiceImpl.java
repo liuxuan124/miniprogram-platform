@@ -26,6 +26,7 @@ import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.ContentService;
 import com.miniprogram.service.FileEntitlementService;
 import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.compliance.WxContentSecurityService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.knowledge.KnowledgeSyncService;
 import com.miniprogram.util.ContentSourceResolver;
@@ -62,6 +63,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final SystemConfigService systemConfigService;
     private final KnowledgeSyncService knowledgeSyncService;
     private final EntitlementEngine entitlementEngine;
+    private final WxContentSecurityService wxContentSecurityService;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -256,6 +258,17 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (dto.getSource() != null) {
             entity.setSource(dto.getSource());
         }
+        if (dto.getCopyrightNature() != null) {
+            entity.setCopyrightNature(StringUtils.hasText(dto.getCopyrightNature())
+                    ? dto.getCopyrightNature().trim() : null);
+        }
+        if (dto.getCopyrightSources() != null) {
+            entity.setCopyrightSourcesJson(toJsonString(dto.getCopyrightSources()));
+        }
+        if (dto.getReprintAuthorization() != null) {
+            entity.setReprintAuthorization(StringUtils.hasText(dto.getReprintAuthorization())
+                    ? dto.getReprintAuthorization().trim() : null);
+        }
         if (dto.getTags() != null) {
             entity.setTags(toJsonString(dto.getTags()));
         }
@@ -358,6 +371,25 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         if ("published".equals(entity.getStatus())) {
             throw new BusinessException(ErrorCode.CONTENT_STATUS_ERROR, "内容已发布，不可重复发布");
+        }
+
+        validateCopyrightForPublish(entity);
+
+        Long publisherId = SecurityUtils.getCurrentUserId();
+        String plainBody = StringUtils.hasText(entity.getSummary()) ? entity.getSummary() : entity.getContent();
+        WxContentSecurityService.CheckResult sec = wxContentSecurityService.checkTextForPublish(
+                publisherId, entity.getTitle(), plainBody, 1);
+        if (sec.decision() == WxContentSecurityService.Decision.REJECT) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, sec.reason());
+        }
+        if (sec.decision() == WxContentSecurityService.Decision.REVIEW) {
+            this.update(new LambdaUpdateWrapper<Content>()
+                    .eq(Content::getId, id)
+                    .set(Content::getAuditStatus, "pending")
+                    .set(Content::getStatus, "draft"));
+            entity.setAuditStatus("pending");
+            entity.setStatus("draft");
+            return toDetailDTO(entity);
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -848,7 +880,25 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         dto.setCategoryName(categoryService.getCategoryName(entity.getCategoryId()));
         dto.setExternalSource(entity.getExternalSource());
         dto.setSource(ContentSourceResolver.resolvePlatformSource(entity));
+        dto.setCopyrightNature(entity.getCopyrightNature());
+        dto.setCopyrightSources(parseStringList(entity.getCopyrightSourcesJson()));
+        dto.setReprintAuthorization(entity.getReprintAuthorization());
         return dto;
+    }
+
+    private void validateCopyrightForPublish(Content entity) {
+        if (entity == null) {
+            return;
+        }
+        String type = entity.getContentType();
+        if (!"article".equals(type) && !"note".equals(type)) {
+            return;
+        }
+        String nature = StringUtils.hasText(entity.getCopyrightNature())
+                ? entity.getCopyrightNature().trim() : "original";
+        if ("reprint".equalsIgnoreCase(nature) && !StringUtils.hasText(entity.getReprintAuthorization())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "转载内容发布前需填写转载授权说明");
+        }
     }
 
     /** 列表场景：不含正文；星球列表保留附件摘要 */

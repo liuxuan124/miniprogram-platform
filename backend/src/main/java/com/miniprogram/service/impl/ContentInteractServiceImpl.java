@@ -17,6 +17,7 @@ import com.miniprogram.mapper.ContentLikeMapper;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.service.ContentAuditRulesService;
 import com.miniprogram.service.ContentInteractService;
+import com.miniprogram.compliance.WxContentSecurityService;
 import com.miniprogram.service.WxMiniappTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class ContentInteractServiceImpl implements ContentInteractService {
     private final ContentCommentMapper commentMapper;
     private final WxMiniappTokenService wxMiniappTokenService;
     private final RestTemplate restTemplate;
+    private final WxContentSecurityService wxContentSecurityService;
     private final ContentAuditRulesService contentAuditRulesService;
 
     @Override
@@ -132,7 +134,7 @@ public class ContentInteractServiceImpl implements ContentInteractService {
         contentAuditRulesService.matchSensitive(text).ifPresent(word -> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "评论含敏感词，请修改后重试");
         });
-        assertMsgSecOk(text);
+        applyCommentSecurity(userId, text);
 
         ContentComment row = new ContentComment();
         row.setContentId(contentId);
@@ -185,29 +187,13 @@ public class ContentInteractServiceImpl implements ContentInteractService {
         commentMapper.deleteById(commentId);
     }
 
-    @SuppressWarnings("unchecked")
-    private void assertMsgSecOk(String content) {
-        try {
-            String token = wxMiniappTokenService.getAccessToken();
-            String url = "https://api.weixin.qq.com/wxa/msg_sec_check?access_token=" + token;
-            Map<String, Object> body = new HashMap<>();
-            body.put("content", content);
-            ResponseEntity<Map> resp = restTemplate.postForEntity(url, body, Map.class);
-            Map<?, ?> json = resp.getBody();
-            if (json == null) return;
-            Object err = json.get("errcode");
-            int code = err == null ? 0 : Integer.parseInt(String.valueOf(err));
-            if (code == 87014) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "评论含有违规内容");
-            }
-            if (code != 0) {
-                log.warn("msgSecCheck 返回 errcode={}，评论仍将待审", code);
-            }
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("msgSecCheck 调用失败，评论将待审: {}", e.getMessage());
+    private void applyCommentSecurity(Long userId, String content) {
+        WxContentSecurityService.CheckResult sec = wxContentSecurityService.checkTextForComment(userId, content);
+        if (sec.decision() == WxContentSecurityService.Decision.REJECT) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    StringUtils.hasText(sec.reason()) ? sec.reason() : "评论含有违规内容");
         }
+        // REVIEW / PASS：评论默认 status=0 待审，fail-closed 不自动展示
     }
 
     private Content requirePublished(Long contentId) {

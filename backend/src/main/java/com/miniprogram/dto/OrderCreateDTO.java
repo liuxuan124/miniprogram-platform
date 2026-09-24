@@ -30,6 +30,9 @@ public class OrderCreateDTO {
     @Schema(description = "客户端平台 ios/android/devtools（小程序 X-Client-Platform）")
     private String clientPlatform;
 
+    @Schema(description = "虚拟退款规则同意版本（与 commerce_virtual_refund_rules.consentClauseVersion 一致）")
+    private String virtualRefundConsentVersion;
+
     @Schema(description = "收货地址快照")
     private AddressSnapshot addressSnapshot;
 }

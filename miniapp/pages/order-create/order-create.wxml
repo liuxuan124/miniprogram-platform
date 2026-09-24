@@ -151,7 +151,7 @@
   <view class="agree" wx:if="{{isVirtual}}" bindtap="onToggleAgree">
     <view class="agree__cb {{agreedVirtual ? 'on' : ''}}">{{agreedVirtual ? '✓' : ''}}</view>
     <view class="agree__txt">
-      我已阅读并同意<text class="agree__link">《虚拟商品购买协议》</text>，知悉数字内容<text class="agree__em">一经购买不支持退款</text>，可先免费试读确认。
+      我已阅读并同意<text class="agree__link">《虚拟商品购买协议》</text>，知悉：{{virtualRefundLabel}}
     </view>
   </view>
   <view class="safe-tip" wx:else>提交订单即表示同意相关购买须知，支付信息仅用于完成交易</view>

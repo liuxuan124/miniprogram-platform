@@ -422,6 +422,23 @@
               <el-option label="仅会员" value="member_only" />
             </el-select>
           </el-form-item>
+          <template v-if="contentType === 'article' || contentType === 'note'">
+            <el-form-item label="版权性质">
+              <el-select v-model="formData.copyright_nature" style="width: 100%">
+                <el-option label="原创" value="original" />
+                <el-option label="转载" value="reprint" />
+                <el-option label="汇编" value="compile" />
+              </el-select>
+            </el-form-item>
+            <el-form-item v-if="formData.copyright_nature === 'reprint'" label="转载授权">
+              <el-input
+                v-model="formData.reprint_authorization"
+                type="textarea"
+                :rows="2"
+                placeholder="授权说明或链接（发布必填）"
+              />
+            </el-form-item>
+          </template>
           <el-form-item v-if="contentType === 'article'" label="付费墙">
             <el-checkbox-group v-model="accessRule.grants">
               <el-checkbox label="free">免费</el-checkbox>
@@ -652,6 +669,8 @@ const formData = reactive({
   is_recommended: false,
   planet_exclusive: false,
   planet_id: '',
+  copyright_nature: 'original',
+  reprint_authorization: '',
 })
 
 const planetCommunities = ref<{ id: string; title: string }[]>([])
@@ -786,6 +805,8 @@ async function loadDetail(id: number) {
     formData.is_recommended = !!(data.isRecommended ?? data.is_recommended)
     formData.planet_exclusive = !!(data.planetExclusive ?? data.planet_exclusive)
     formData.planet_id = String(data.planetId ?? data.planet_id ?? '')
+    formData.copyright_nature = String(data.copyrightNature ?? data.copyright_nature ?? 'original')
+    formData.reprint_authorization = String(data.reprintAuthorization ?? data.reprint_authorization ?? '')
     const tags = Array.isArray(data.tags) ? data.tags : []
     noteTagsText.value = tags.join(', ')
     formData.tag_ids = tags.map(String)
@@ -1249,6 +1270,8 @@ async function handleSubmit() {
       planetId: contentType.value === 'moment' && formData.planet_exclusive
         ? (formData.planet_id || undefined)
         : undefined,
+      copyrightNature: ['article', 'note'].includes(contentType.value) ? formData.copyright_nature : undefined,
+      reprintAuthorization: formData.copyright_nature === 'reprint' ? formData.reprint_authorization : undefined,
     } as any
 
     if (isEdit.value) {

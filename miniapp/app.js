@@ -48,7 +48,7 @@ App({
     this._checkUpdate()
 
     // 加载系统配置并应用主题
-    this._loadSystemConfig()
+    this._loadSystemConfig().then(() => this._ensurePrivacyConsent())
   },
 
   onShow(options) {
@@ -85,6 +85,7 @@ App({
   async _loadSystemConfig() {
     try {
       const config = await SystemService.fetchSystemConfig(true)
+      this.globalData.legalAgreementVersions = config.legal_agreement_versions || {}
       try {
         require('./utils/iosVirtualPay').applyPublicConfig(config)
       } catch (e) { /* ignore */ }
@@ -130,6 +131,36 @@ App({
       }
     } catch (e) {
       console.warn('[App] 加载系统配置失败:', e)
+    }
+  },
+
+  /** 首启隐私同意（本地 + 登录后写服务端） */
+  _ensurePrivacyConsent() {
+    try {
+      const legal = this.globalData.legalAgreementVersions || {}
+      const privacyVer = String(legal.privacy || 'draft')
+      const storageKey = `privacy_agreed_${privacyVer}`
+      if (StorageUtil.get(storageKey)) return
+      wx.showModal({
+        title: '隐私与用户协议',
+        content: '请阅读并同意隐私政策与用户协议后继续使用（当前为草稿版，正式文案需法务审核）。',
+        confirmText: '同意',
+        cancelText: '暂不使用',
+        success: (res) => {
+          if (!res.confirm) return
+          StorageUtil.set(storageKey, Date.now())
+          if (this.globalData.isLoggedIn) {
+            const { post } = require('./utils/request')
+            post('/api/v1/mp/consent', {
+              consentType: 'privacy',
+              version: privacyVer,
+              agreed: true,
+            }, { auth: true }).catch(() => {})
+          }
+        },
+      })
+    } catch (e) {
+      console.warn('[App] privacy consent skipped', e)
     }
   },
 
