@@ -60,6 +60,9 @@ const COMPONENT_TYPES = {
   FLOAT_BUTTON: 'float_button',
   RICH_TEXT: 'rich_text',
   CONTENT_PAYWALL: 'content_paywall',
+  MATERIAL_LIST: 'material_list',
+  MEMBER_PLAN: 'member_plan',
+  QA_LIST: 'qa_list',
   SECTION_TITLE: 'section_title',
   DIVIDER: 'divider',
   SPACER: 'spacer',
@@ -302,6 +305,9 @@ function processComponent(component) {
     activity_entry: 'activity',
     appointment_service: 'appointment_service',
     coupon: 'coupon',
+    material_list: 'file',
+    qa_list: 'paid_qa',
+    member_plan: 'membership_plan',
   }
   let normalizedDataSource = resolvedDataSource && resolvedDataSource.type === 'api' && !resolvedDataSource.api && !(resolvedDataSource.config && resolvedDataSource.config.api)
     ? {

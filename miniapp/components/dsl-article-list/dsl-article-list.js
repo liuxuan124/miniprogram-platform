@@ -3,6 +3,7 @@ const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveArticleCover } = require('../../utils/article-cover')
 const { isValidContentId } = require('../../utils/content-id')
+const { resolveSourceLabel, filterBySourceKeys } = require('../../utils/dsl-source-tag')
 
 function formatPublishDateTime(value) {
   if (value == null || value === '') return ''
@@ -43,6 +44,7 @@ function normalizeArticleItem(item, index) {
     created_at: formatArticleMeta(item),
     publish_time: formatArticleMeta(item),
     source: item.source || item.categoryName || item.category_name || '',
+    sourceTag: item.sourceTag || item.source_tag || '',
     summary: String(item.summary || item.excerpt || item.subtitle || '').trim(),
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
@@ -397,19 +399,36 @@ Component({
       executeAction({ type: 'page', path: link })
     },
 
+    _applySourceEnhancements(rows, config) {
+      const cfg = config || {}
+      let list = rows || []
+      if (cfg.show_source_tag === true && Array.isArray(cfg.source_filter) && cfg.source_filter.length) {
+        list = filterBySourceKeys(list, cfg.source_filter)
+      }
+      if (cfg.show_source_tag === true) {
+        list = list.map((item) => ({
+          ...item,
+          sourceTagLabel: resolveSourceLabel(item, cfg.source_labels),
+        }))
+      }
+      return list
+    },
+
     _normalizeDisplayData(runtimeData, config) {
+      let rows = []
       if (Array.isArray(runtimeData) && runtimeData.length > 0) {
         const limit = Math.max(Number((config && config.limit) || runtimeData.length), 1)
-        return runtimeData.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))
+        rows = runtimeData.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))
+      } else {
+        const items = Array.isArray(config && config.items) ? config.items : []
+        const source = items.length ? items : [
+          { title: '品牌故事：从内容到交易闭环', publishedAt: '2026-05-10', source: '官方资讯' },
+          { title: '选品指南：活动与商品联动', publishedAt: '2026-05-12', source: '运营精选' },
+        ]
+        const limit = Math.max(Number((config && config.limit) || source.length), 1)
+        rows = source.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))
       }
-
-      const items = Array.isArray(config && config.items) ? config.items : []
-      const source = items.length ? items : [
-        { title: '品牌故事：从内容到交易闭环', publishedAt: '2026-05-10', source: '官方资讯' },
-        { title: '选品指南：活动与商品联动', publishedAt: '2026-05-12', source: '运营精选' },
-      ]
-      const limit = Math.max(Number((config && config.limit) || source.length), 1)
-      return source.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))
+      return this._applySourceEnhancements(rows, config)
     },
 
     onTapArticle(e) {

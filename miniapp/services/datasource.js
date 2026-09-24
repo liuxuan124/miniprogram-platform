@@ -16,6 +16,9 @@ const DS_API_MAP = {
   activity: '/api/v1/mp/activities',
   coupon: '/api/v1/mp/coupons',
   appointment_service: '/api/v1/mp/appointment-services',
+  file: '/api/v1/mp/files',
+  paid_qa: '/api/v1/mp/paid-qa',
+  membership_plan: '/api/v1/mp/membership-plans',
 }
 
 // 每种数据源只保留前端需要的字段，减少 setData 体积

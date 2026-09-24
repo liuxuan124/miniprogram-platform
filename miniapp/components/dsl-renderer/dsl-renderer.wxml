@@ -432,6 +432,27 @@
     styleString="{{comp.styleString}}"
   />
 
+  <dsl-material-list
+    wx:elif="{{comp.type === 'material_list'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    styleString="{{comp.styleString}}"
+  />
+
+  <dsl-member-plans
+    wx:elif="{{comp.type === 'member_plan'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    styleString="{{comp.styleString}}"
+  />
+
+  <dsl-qa-list
+    wx:elif="{{comp.type === 'qa_list'}}"
+    config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
+    styleString="{{comp.styleString}}"
+  />
+
   <!-- 内容付费墙 content_paywall -->
   <view
     wx:elif="{{comp.type === 'content_paywall'}}"

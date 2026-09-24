@@ -194,6 +194,7 @@ import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
+import { buildPlanetJoinLandingComponents, PLANET_JOIN_LANDING_BLOCK } from './planetJoinLandingBlocks'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
 
@@ -250,6 +251,12 @@ const BLOCKS: Array<{ key: string; label: string; desc: string; types: Component
     label: '品牌介绍组',
     desc: '品牌头部 + 品牌简介 + 资质',
     types: [ComponentType.BrandHeader, ComponentType.BrandIntro, ComponentType.Certificate],
+  },
+  {
+    key: 'planet-join-landing',
+    label: '星球加入落地页',
+    desc: '墨太白：顶栏+权益+星主+预览+FAQ+购买（星球分类）',
+    types: PLANET_JOIN_LANDING_BLOCK.types,
   },
 ]
 
@@ -424,7 +431,20 @@ function blockPartLabels(block: { types: ComponentType[] }) {
 
 const availableBlocks = computed(() => BLOCKS.filter((block) => blockTypes(block).length > 0))
 
-function insertBlock(block: { types: ComponentType[] }) {
+function insertBlock(block: { key?: string; types: ComponentType[] }) {
+  if (block.key === 'planet-join-landing') {
+    const components = buildPlanetJoinLandingComponents()
+    let lastId: string | undefined
+    components.forEach((instance) => {
+      const created = pageStore.addComponentWithProps(instance.type, instance.props)
+      if (instance.style) pageStore.updateComponentStyle(created.id, instance.style)
+      recordRecentUsage(instance.type)
+      lastId = created.id
+    })
+    collapsed.value.structure = false
+    if (lastId) requestEditorScrollToComponent(lastId)
+    return
+  }
   const types = blockTypes(block)
   let lastId: string | undefined
   types.forEach((type) => {
