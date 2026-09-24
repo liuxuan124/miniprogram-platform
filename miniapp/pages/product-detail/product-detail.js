@@ -682,7 +682,7 @@ Page({
                 reviewCountLabel: '',
                 displayPrice: priceLabel,
                 priceReady,
-                digiNotice: '⚠️ 虚拟商品说明：数字内容支付成功后立即开通权限，不支持退款。发票可在「我的 - 订单与发票」申请。',
+                digiNotice: virtualRefundNotice(product),
               }
           : {
               goodsSpecs: [],
