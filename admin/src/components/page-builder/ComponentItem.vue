@@ -118,6 +118,7 @@ const rendererMap: Record<string, any> = {
   [ComponentType.Countdown]: defineAsyncComponent(() => import('./renderers/CountdownRenderer.vue')),
   [ComponentType.FloatButton]: defineAsyncComponent(() => import('./renderers/FloatButtonRenderer.vue')),
   [ComponentType.RichText]: defineAsyncComponent(() => import('./renderers/RichTextRenderer.vue')),
+  [ComponentType.ContentPaywall]: defineAsyncComponent(() => import('./renderers/ContentPaywallRenderer.vue')),
   [ComponentType.SectionTitle]: defineAsyncComponent(() => import('./renderers/SectionTitleRenderer.vue')),
   [ComponentType.Divider]: defineAsyncComponent(() => import('./renderers/DividerRenderer.vue')),
   [ComponentType.Spacer]: defineAsyncComponent(() => import('./renderers/SpacerRenderer.vue')),

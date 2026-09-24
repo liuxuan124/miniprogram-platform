@@ -9,8 +9,12 @@ import com.miniprogram.dto.file.FileAccessVO;
 import com.miniprogram.entity.FileItem;
 import com.miniprogram.mapper.FileItemMapper;
 import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.service.DownloadGrantService;
+import com.miniprogram.service.FileDownloadLimitService;
 import com.miniprogram.service.FileEntitlementService;
 import com.miniprogram.service.FilePreviewCropService;
+import jakarta.servlet.http.HttpServletRequest;
+import com.miniprogram.service.impl.DownloadGrantServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +40,9 @@ public class MpFileController {
     private final FileItemMapper fileItemMapper;
     private final FileEntitlementService fileEntitlementService;
     private final FilePreviewCropService filePreviewCropService;
+    private final DownloadGrantService downloadGrantService;
+    private final DownloadGrantServiceImpl downloadGrantServiceImpl;
+    private final FileDownloadLimitService fileDownloadLimitService;
 
     @GetMapping
     @Operation(summary = "已发布资料列表")
@@ -74,11 +81,12 @@ public class MpFileController {
         return R.ok(fileEntitlementService.getAccess(id, userId, planetId));
     }
 
-    @GetMapping("/{id}/download")
-    @Operation(summary = "下载文件")
-    public void download(@PathVariable Long id,
-                         @RequestParam(required = false) String planetId,
-                         HttpServletResponse response) throws IOException {
+    @GetMapping("/{id}/download-url")
+    @Operation(summary = "获取限时下载链接（默认 10 分钟）")
+    public R<DownloadGrantService.GrantResult> downloadUrl(@PathVariable Long id,
+                                                           @RequestParam(required = false) String planetId,
+                                                           @RequestParam(defaultValue = "10") int ttlMinutes,
+                                                           HttpServletRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
         FileItem item = fileItemMapper.selectById(id);
         if (item == null || !"published".equals(item.getStatus())) {
@@ -87,6 +95,43 @@ public class MpFileController {
         if (!fileEntitlementService.canDownload(item, userId, planetId)) {
             throw new BusinessException(403001, "暂无下载权限");
         }
+        fileDownloadLimitService.assertAndLogDownload(userId, id, null, clientIp(request), request.getHeader("User-Agent"));
+        return R.ok(downloadGrantService.issueGrant(userId, item, ttlMinutes));
+    }
+
+    @GetMapping("/download-by-token")
+    @Operation(summary = "凭签名 token 下载（一次性）")
+    public void downloadByToken(@RequestParam String token,
+                                HttpServletResponse response) throws IOException {
+        DownloadGrantService.ConsumedGrant consumed = downloadGrantService.validateAndConsume(token);
+        FileItem item = downloadGrantServiceImpl.requireFile(consumed.fileId());
+        Long userId = consumed.userId();
+        FilePreviewCropService.CroppedFile cropped = filePreviewCropService.buildDownload(item, userId);
+        String encoded = URLEncoder.encode(cropped.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
+        response.setContentType(cropped.contentType());
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded);
+        response.setContentLengthLong(cropped.bytes().length);
+        try (OutputStream out = response.getOutputStream()) {
+            out.write(cropped.bytes());
+            out.flush();
+        }
+    }
+
+    @GetMapping("/{id}/download")
+    @Operation(summary = "下载文件")
+    public void download(@PathVariable Long id,
+                         @RequestParam(required = false) String planetId,
+                         HttpServletResponse response,
+                         HttpServletRequest request) throws IOException {
+        Long userId = SecurityUtils.getCurrentUserId();
+        FileItem item = fileItemMapper.selectById(id);
+        if (item == null || !"published".equals(item.getStatus())) {
+            throw new BusinessException(404001, "文件不存在或未发布");
+        }
+        if (!fileEntitlementService.canDownload(item, userId, planetId)) {
+            throw new BusinessException(403001, "暂无下载权限");
+        }
+        fileDownloadLimitService.assertAndLogDownload(userId, id, null, clientIp(request), request.getHeader("User-Agent"));
         FilePreviewCropService.CroppedFile cropped = filePreviewCropService.buildDownload(item, userId);
         String encoded = URLEncoder.encode(cropped.fileName(), StandardCharsets.UTF_8).replace("+", "%20");
         response.setContentType(cropped.contentType());
@@ -140,5 +185,14 @@ public class MpFileController {
             vo.setCanPreview(false);
         }
         return R.ok(vo);
+    }
+
+    private static String clientIp(HttpServletRequest request) {
+        if (request == null) return null;
+        String xff = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xff)) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

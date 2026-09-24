@@ -450,6 +450,27 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
     },
   ],
   [
+    ComponentType.ContentPaywall,
+    {
+      type: ComponentType.ContentPaywall,
+      label: '内容付费墙',
+      icon: 'Lock',
+      category: 'content',
+      categoryLabel: '内容',
+      defaultProps: () => ({
+        title: '解锁全文',
+        hint: '开通会员或购买单篇即可阅读完整内容与附件',
+        button_text: '立即解锁',
+        secondary_text: '加入星球也可畅读',
+        content_id: '',
+        primary_link: '/pages/member-center/member-center',
+        secondary_link: '/pages/planet/planet',
+        theme: 'warm',
+      }),
+      defaultStyle: () => ({ margin_left: 12, margin_right: 12, margin_top: 8, margin_bottom: 8 }),
+    },
+  ],
+  [
     ComponentType.BrandIntro,
     {
       type: ComponentType.BrandIntro,
@@ -1467,6 +1488,7 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
   ComponentType.Countdown,
   ComponentType.FloatButton,
   ComponentType.RichText,
+  ComponentType.ContentPaywall,
   ComponentType.SectionTitle,
   ComponentType.Divider,
   ComponentType.Spacer,

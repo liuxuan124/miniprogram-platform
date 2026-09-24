@@ -55,7 +55,7 @@
       <view class="mn-quick__it" bindtap="onGoHistory">
         <text class="mn-quick__ic">🕘</text>浏览历史
       </view>
-      <view class="mn-quick__it" bindtap="onGoOrders">
+      <view class="mn-quick__it" bindtap="onGoLibrary">
         <text class="mn-quick__ic">📘</text>已购内容
       </view>
       <view class="mn-quick__it" bindtap="onNoticeTap">

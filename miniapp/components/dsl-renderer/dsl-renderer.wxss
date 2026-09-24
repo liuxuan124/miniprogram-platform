@@ -974,3 +974,60 @@
   font-size: 22rpx;
   line-height: 1.4;
 }
+
+.dsl-paywall {
+  position: relative;
+  margin-top: -48rpx;
+  padding: 72rpx 24rpx 0;
+  box-sizing: border-box;
+}
+.dsl-paywall__fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 96rpx;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fdf6ec 85%);
+  pointer-events: none;
+}
+.dsl-paywall__box {
+  position: relative;
+  border-radius: 24rpx;
+  padding: 32rpx 28rpx;
+  text-align: center;
+  background: linear-gradient(150deg, #fff6ea, #fdeedb);
+  border: 1rpx solid #f0e0c8;
+}
+.dsl-paywall__title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #172033;
+}
+.dsl-paywall__hint {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #5c6570;
+}
+.dsl-paywall__btn {
+  display: inline-block;
+  margin-top: 24rpx;
+  padding: 18rpx 48rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #c8923a, #a66b1f);
+}
+.dsl-paywall__alt {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #9aa3ad;
+}
+.dsl-paywall--blue .dsl-paywall__box {
+  background: linear-gradient(150deg, #eef5ff, #e3edff);
+  border-color: #c8d9f5;
+}
+.dsl-paywall--blue .dsl-paywall__fade {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #f5f8ff 85%);
+}

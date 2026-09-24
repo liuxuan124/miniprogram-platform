@@ -1,0 +1,5 @@
+.page { padding: 24rpx; }
+.hint { color: #888; text-align: center; padding: 80rpx 0; }
+.row { padding: 28rpx; margin-bottom: 16rpx; background: #fff; border-radius: 16rpx; }
+.title { display: block; font-size: 30rpx; font-weight: 600; }
+.meta { display: block; margin-top: 8rpx; font-size: 24rpx; color: #999; }

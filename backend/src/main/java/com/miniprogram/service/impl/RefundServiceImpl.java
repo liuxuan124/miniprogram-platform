@@ -11,9 +11,13 @@ import com.miniprogram.dto.RefundVO;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Payment;
 import com.miniprogram.entity.Refund;
+import com.miniprogram.entity.ProductCardCode;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
+import com.miniprogram.mapper.ProductCardCodeMapper;
 import com.miniprogram.mapper.RefundMapper;
+import com.miniprogram.service.PurchaseEntitlementService;
+import com.miniprogram.service.ReferralCommissionService;
 import com.miniprogram.service.RefundService;
 import com.miniprogram.service.WxPayConfigService;
 import com.miniprogram.support.WxPayNotifyCrypto;
@@ -51,6 +55,9 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final FinanceOrderSyncService financeOrderSyncService;
+    private final PurchaseEntitlementService purchaseEntitlementService;
+    private final ReferralCommissionService referralCommissionService;
+    private final ProductCardCodeMapper productCardCodeMapper;
 
     @Override
     public PageResult<RefundVO> listRefunds(Integer current, Integer size, String status) {
@@ -201,6 +208,34 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
         } catch (Exception e) {
             log.warn("退款财务冲销失败 refundId={}", refund.getId(), e);
         }
+        if (totalRefunded.compareTo(payAmount) >= 0) {
+            try {
+                purchaseEntitlementService.revokeByOrderId(order.getId());
+            } catch (Exception e) {
+                log.warn("撤销商品权益失败 orderId={}", order.getId(), e);
+            }
+            try {
+                referralCommissionService.onOrderRefunded(order.getId());
+            } catch (Exception e) {
+                log.warn("撤销分销佣金失败 orderId={}", order.getId(), e);
+            }
+            try {
+                revokeAssignedCardCodes(order.getId());
+            } catch (Exception e) {
+                log.warn("撤销卡密失败 orderId={}", order.getId(), e);
+            }
+        }
+    }
+
+    private void revokeAssignedCardCodes(Long orderId) {
+        if (orderId == null) return;
+        List<ProductCardCode> codes = productCardCodeMapper.selectList(new LambdaQueryWrapper<ProductCardCode>()
+                .eq(ProductCardCode::getOrderId, orderId));
+        for (ProductCardCode code : codes) {
+            code.setStatus("revoked");
+            code.setOrderId(null);
+            productCardCodeMapper.updateById(code);
+        }
     }
 
     private void markRefundFailed(Refund refund) {
@@ -324,5 +359,50 @@ public class RefundServiceImpl extends BaseServiceImpl<RefundMapper, Refund>
     private String generateRefundNo() {
         return "REF" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                 + String.format("%04d", ThreadLocalRandom.current().nextInt(10000));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void trySystemFullRefund(Long orderId, String reason) {
+        if (orderId == null) {
+            return;
+        }
+        Order order = orderMapper.selectById(orderId);
+        if (order == null || order.getPayAmount() == null) {
+            return;
+        }
+        long existing = refundMapper.selectCount(new LambdaQueryWrapper<Refund>()
+                .eq(Refund::getOrderId, orderId)
+                .in(Refund::getStatus, List.of("pending", "approved", "processing", "success")));
+        if (existing > 0) {
+            return;
+        }
+        String from = order.getStatus();
+        if (!List.of("paid", "completed").contains(from)) {
+            log.warn("系统退款跳过：订单状态 {} orderId={}", from, orderId);
+            return;
+        }
+        String before = from;
+        order.setStatus("refunding");
+        orderMapper.updateById(order);
+
+        Refund refund = new Refund();
+        refund.setOrderId(orderId);
+        refund.setRefundNo(generateRefundNo());
+        refund.setAmount(MoneyUtils.normalizeYuan(order.getPayAmount()));
+        refund.setReason(StringUtils.hasText(reason) ? reason.trim() : "系统自动退款");
+        refund.setOrderStatusBefore(before);
+        refund.setStatus("approved");
+        refundMapper.insert(refund);
+
+        try {
+            executeRefund(refund.getId());
+            order.setNeedManualRefund(0);
+            orderMapper.updateById(order);
+        } catch (Exception e) {
+            log.error("系统自动退款失败 orderId={}", orderId, e);
+            order.setNeedManualRefund(1);
+            orderMapper.updateById(order);
+        }
     }
 }

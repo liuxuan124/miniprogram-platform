@@ -89,4 +89,20 @@ public class PurchaseEntitlementServiceImpl implements PurchaseEntitlementServic
         }
         return false;
     }
+
+    @Override
+    @Transactional
+    public void revokeByOrderId(Long orderId) {
+        if (orderId == null) return;
+        List<PurchaseEntitlement> rows = purchaseEntitlementMapper.selectList(
+                new LambdaQueryWrapper<PurchaseEntitlement>()
+                        .eq(PurchaseEntitlement::getOrderId, orderId)
+                        .eq(PurchaseEntitlement::getStatus, "active"));
+        LocalDateTime now = LocalDateTime.now();
+        for (PurchaseEntitlement row : rows) {
+            row.setStatus("revoked");
+            row.setUpdatedAt(now);
+            purchaseEntitlementMapper.updateById(row);
+        }
+    }
 }

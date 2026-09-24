@@ -8,6 +8,7 @@ const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig, openWarmShareSheet } = require('../../utils/share')
 const { previewRichHtmlImages } = require('../../utils/rich-html')
 const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
+const iosVirtualPay = require('../../utils/iosVirtualPay')
 
 function getStatusBarHeight() {
   try {
@@ -1252,6 +1253,14 @@ Page({
     const productType = product.productType || product.product_type
       || (Array.isArray(product.productTypes) && product.productTypes[0])
       || 'physical'
+    if (iosVirtualPay.shouldBlockVirtualPurchase(productType)) {
+      wx.showModal({
+        title: '暂不支持购买',
+        content: iosVirtualPay.virtualPayHint(),
+        showCancel: false,
+      })
+      return
+    }
     const go = (productId) => {
       const item = {
         product_id: productId || product.id,

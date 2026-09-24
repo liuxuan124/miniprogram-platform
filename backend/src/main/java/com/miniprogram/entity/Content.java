@@ -89,6 +89,18 @@ public class Content extends BaseEntity {
     /** 外部唯一 ID */
     private String externalId;
 
+    /** 来源标签 wechat_mp / xiaohongshu / manual */
+    private String sourceTag;
+
+    /** 原文链接（公众号/小红书等） */
+    private String originalUrl;
+
+    /** 同步时不覆盖的字段（JSON 数组） */
+    private String localOverrideFlags;
+
+    /** 试读比例 0-100，空则走 access_rule 默认 */
+    private Integer previewPercent;
+
     /** 标签列表（JSON数组） */
     private String tags;
 

@@ -118,6 +118,15 @@ public class ContentDetailDTO {
     /** 锁定原因 */
     private String lockedReason;
 
+    /** 试读比例（未解锁时） */
+    private Integer previewPercent;
+
+    /** 解锁方式（会员/单篇/星球等） */
+    private java.util.List<com.miniprogram.entitlement.dto.EntitlementUnlockOption> unlockOptions;
+
+    /** 原文链接 */
+    private String originalUrl;
+
     /** 状态 draft/scheduled/published/unpublished/deleted */
     private String status;
 

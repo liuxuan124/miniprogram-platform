@@ -8,4 +8,7 @@ public interface PurchaseEntitlementService {
 
     /** 已购专栏 / 电子书 / 资料包任一 */
     boolean hasAnyColumnLikeProduct(Long userId);
+
+    /** 退款后撤销订单关联的商品权益 */
+    void revokeByOrderId(Long orderId);
 }

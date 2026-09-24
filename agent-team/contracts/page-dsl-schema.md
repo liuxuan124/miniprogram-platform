@@ -806,7 +806,7 @@
 
 后台 `ComponentType` 与小程序 `COMPONENT_TYPES` 当前包含以下 type（含 2026-09-10 补齐）：
 
-search, notice_bar, category_nav, banner, image, nav, product_list, flash_sale, article_list, article_feed, note_feed, moments_feed, hot_news, activity_entry, activity_list, appointment_service, member_card, coupon, video, brand_intro, image_text, contact_info, certificate, countdown, float_button, rich_text, section_title, divider, spacer, form_entry, ai_entry, join_group, brand_header, container, image_hotspot, section_bg, feature_cards, **image_cube（图片魔方）**, **content_tabs（选项卡）**, **planet_hero（星球顶栏）**, **planet_topics（星球话题预测）**, **planet_feed（星球动态流）**。
+search, notice_bar, category_nav, banner, image, nav, product_list, flash_sale, article_list, article_feed, note_feed, moments_feed, hot_news, activity_entry, activity_list, appointment_service, member_card, coupon, video, brand_intro, image_text, contact_info, certificate, countdown, float_button, rich_text, **content_paywall（内容付费墙 CTA）**, section_title, divider, spacer, form_entry, ai_entry, join_group, brand_header, container, image_hotspot, section_bg, feature_cards, **image_cube（图片魔方）**, **content_tabs（选项卡）**, **planet_hero（星球顶栏）**, **planet_topics（星球话题预测）**, **planet_feed（星球动态流）**。
 
 `join_group.groups[]` 入群双通道：
 
