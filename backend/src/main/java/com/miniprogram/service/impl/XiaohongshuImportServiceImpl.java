@@ -30,7 +30,6 @@ public class XiaohongshuImportServiceImpl implements XiaohongshuImportService {
         dto.setTitle(extractTitle(pasteText));
         dto.setSummary(trimSummary(pasteText));
         dto.setSource("xiaohongshu");
-        dto.setStatus("draft");
         dto.setVisibility("public");
         dto.setImages(imageUrls);
         if (imageUrls != null && !imageUrls.isEmpty()) {
