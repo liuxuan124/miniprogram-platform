@@ -1,0 +1,37 @@
+.dsl-member-plans { padding-bottom: 120rpx; }
+.dsl-member-plans__banner-title { font-size: 34rpx; font-weight: 700; }
+.dsl-member-plans__banner-sub { font-size: 24rpx; color: #64748b; margin-top: 8rpx; }
+.dsl-member-plans__cards--vertical .dsl-member-plans__card { margin-bottom: 20rpx; }
+.dsl-member-plans__cards--horizontal { white-space: nowrap; }
+.dsl-member-plans__card {
+  display: inline-block;
+  vertical-align: top;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  border: 1px solid #e8dcc8;
+  background: #fff;
+  position: relative;
+}
+.dsl-member-plans__cards--horizontal .dsl-member-plans__card { width: 520rpx; margin-right: 20rpx; }
+.dsl-member-plans__card.is-rec { border-color: #c8923a; box-shadow: 0 16rpx 48rpx rgba(200,146,58,.15); }
+.dsl-member-plans__badge {
+  position: absolute; top: 20rpx; right: 20rpx;
+  font-size: 20rpx; background: #c8923a; color: #fff; padding: 4rpx 16rpx; border-radius: 999rpx;
+}
+.dsl-member-plans__name { font-size: 30rpx; font-weight: 700; }
+.dsl-member-plans__price { color: #c8923a; font-size: 28rpx; margin-top: 12rpx; font-weight: 600; }
+.dsl-member-plans__right { font-size: 22rpx; color: #475569; margin-top: 8rpx; }
+.dsl-member-plans__agreement { text-align: center; font-size: 20rpx; color: #94a3b8; margin-top: 16rpx; }
+.dsl-member-plans__ios { font-size: 20rpx; color: #94a3b8; margin-top: 12rpx; line-height: 1.5; }
+.dsl-member-plans__bar {
+  position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96);
+}
+.dsl-member-plans__btn {
+  text-align: center; padding: 24rpx; border-radius: 999rpx;
+  background: linear-gradient(135deg,#c8923a,#a66b1f); color: #fff; font-weight: 600;
+}
+.dsl-member-plans__state { padding: 40rpx; text-align: center; font-size: 24rpx; color: #64748b; }
+.dsl-member-plans__sk { height: 160rpx; background: #f1f5f9; border-radius: 28rpx; margin-bottom: 16rpx; }
