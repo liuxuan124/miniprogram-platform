@@ -9,6 +9,8 @@ import type { ComponentInstance } from '@/types/page'
 import { WARM_HOME_BLOCK_TYPES } from '@/utils/warmHomeBlocks'
 import { ComponentType } from '@/types/page'
 
+const DEMO_TODAY_COUNT = 0
+
 export const WARM_PREVIEW_VIEW_KEY = Symbol('warmPreviewView')
 export const WARM_PREVIEW_ENABLED_KEY = Symbol('warmPreviewEnabled')
 export const WARM_PREVIEW_ON_SEG_KEY = Symbol('warmPreviewOnSeg')
@@ -51,8 +53,8 @@ export function useWarmHomePreview(
       view = mergeGreetFromBlocks(view, components.value)
       view = {
         ...view,
-        todayCount: warmView.value.todayCount || 3,
-        streakDays: warmView.value.streakDays || 0,
+        todayCount: DEMO_TODAY_COUNT,
+        streakDays: 0,
       }
       warmView.value = view
       return
@@ -72,8 +74,8 @@ export function useWarmHomePreview(
       let view = buildWarmPreviewView(null, { loading: false, loadError: true })
       view = {
         ...view,
-        todayCount: prev.todayCount,
-        streakDays: prev.streakDays,
+        todayCount: prev.todayCount ?? 0,
+        streakDays: prev.streakDays ?? 0,
       }
       view = mergeGreetFromBlocks(view, components.value)
       warmView.value = view
