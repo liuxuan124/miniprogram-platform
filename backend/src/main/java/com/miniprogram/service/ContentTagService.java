@@ -20,10 +20,17 @@ public interface ContentTagService extends BaseService<ContentTag> {
      */
     ContentTagDTO createTag(String name, String color);
 
+    ContentTagDTO createTag(String name, String color, String tagKind, String platformCode);
+
     /**
      * 更新标签
      */
     ContentTagDTO updateTag(Long id, String name, String color);
+
+    ContentTagDTO updateTag(Long id, String name, String color, String tagKind, String platformCode);
+
+    /** 合并标签：将 source 名称迁移到 target，并删除 source */
+    void mergeTags(Long targetId, Long sourceId);
 
     /**
      * 删除标签

@@ -46,9 +46,16 @@ public class ContentTagServiceImpl extends BaseServiceImpl<ContentTagMapper, Con
 
     @Override
     public ContentTagDTO createTag(String name, String color) {
+        return createTag(name, color, "custom", null);
+    }
+
+    @Override
+    public ContentTagDTO createTag(String name, String color, String tagKind, String platformCode) {
         ContentTag tag = new ContentTag();
         tag.setName(name);
         tag.setColor(color);
+        tag.setTagKind(normalizeKind(tagKind));
+        tag.setPlatformCode(StringUtils.hasText(platformCode) ? platformCode.trim() : null);
         tag.setUseCount(0);
         this.save(tag);
         return toDTO(tag);
@@ -57,6 +64,12 @@ public class ContentTagServiceImpl extends BaseServiceImpl<ContentTagMapper, Con
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ContentTagDTO updateTag(Long id, String name, String color) {
+        return updateTag(id, name, color, null, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ContentTagDTO updateTag(Long id, String name, String color, String tagKind, String platformCode) {
         ContentTag tag = this.getById(id);
         if (tag == null) {
             throw new com.miniprogram.common.BusinessException(4001, "标签不存在");
@@ -64,9 +77,48 @@ public class ContentTagServiceImpl extends BaseServiceImpl<ContentTagMapper, Con
         if (StringUtils.hasText(name)) {
             tag.setName(name);
         }
-        tag.setColor(color);
+        if (color != null) {
+            tag.setColor(color);
+        }
+        if (StringUtils.hasText(tagKind)) {
+            tag.setTagKind(normalizeKind(tagKind));
+        }
+        if (platformCode != null) {
+            tag.setPlatformCode(StringUtils.hasText(platformCode) ? platformCode.trim() : null);
+        }
         this.updateById(tag);
         return toDTO(tag);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void mergeTags(Long targetId, Long sourceId) {
+        if (targetId == null || sourceId == null || targetId.equals(sourceId)) {
+            throw new com.miniprogram.common.BusinessException(4002, "合并参数无效");
+        }
+        ContentTag target = this.getById(targetId);
+        ContentTag source = this.getById(sourceId);
+        if (target == null || source == null) {
+            throw new com.miniprogram.common.BusinessException(4001, "标签不存在");
+        }
+        List<Content> contents = contentMapper.selectList(
+                new LambdaQueryWrapper<Content>().isNotNull(Content::getTags));
+        for (Content c : contents) {
+            List<String> tags = new ArrayList<>(parseTags(c.getTags()));
+            boolean changed = false;
+            for (int i = 0; i < tags.size(); i++) {
+                if (source.getName().equals(tags.get(i))) {
+                    tags.set(i, target.getName());
+                    changed = true;
+                }
+            }
+            if (changed) {
+                c.setTags(writeTags(tags.stream().distinct().toList()));
+                contentMapper.updateById(c);
+            }
+        }
+        this.removeById(sourceId);
+        syncTagUseCount();
     }
 
     @Override
@@ -116,6 +168,21 @@ public class ContentTagServiceImpl extends BaseServiceImpl<ContentTagMapper, Con
     }
 
     // ==================== 私有方法 ====================
+
+    private String normalizeKind(String raw) {
+        if (!StringUtils.hasText(raw)) return "custom";
+        String k = raw.trim().toLowerCase(Locale.ROOT);
+        if ("platform".equals(k) || "topic".equals(k) || "custom".equals(k)) return k;
+        return "custom";
+    }
+
+    private String writeTags(List<String> tags) {
+        try {
+            return objectMapper.writeValueAsString(tags);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
+    }
 
     private ContentTagDTO toDTO(ContentTag entity) {
         ContentTagDTO dto = new ContentTagDTO();

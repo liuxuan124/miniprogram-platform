@@ -9,6 +9,48 @@
 
     <div class="set-grid">
       <section class="card">
+        <h2 class="h2">标签</h2>
+        <div class="sub">平台维 × 主题维 + 自由标签；内容可多选标签</div>
+        <div style="margin-top:10px">
+          <div v-for="t in tags" :key="t.id" class="list-row">
+            <input v-model="t.name" class="input" style="flex:1" aria-label="标签名" @change="saveTagRow(t)" />
+            <select v-model="t.tag_kind" class="input" style="width:96px" @change="saveTagRow(t)">
+              <option value="custom">自由</option>
+              <option value="platform">平台</option>
+              <option value="topic">主题</option>
+            </select>
+            <input
+              v-if="t.tag_kind === 'platform'"
+              v-model="t.platform_code"
+              class="input"
+              style="width:88px"
+              placeholder="平台码"
+              @change="saveTagRow(t)"
+            />
+            <span class="faint" style="width:48px;text-align:right">{{ t.content_count ?? 0 }}</span>
+            <button type="button" class="iconbtn" aria-label="删除标签" @click="removeTagRow(t)">
+              <MiniIcon name="x" :size="14" />
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button type="button" class="btn sm" @click="addTagRow">
+            <MiniIcon name="plus" :size="14" />新增标签
+          </button>
+          <button type="button" class="btn sm" :disabled="!mergeFrom || !mergeTo" @click="runMergeTags">
+            合并选中
+          </button>
+        </div>
+        <div class="faint" style="margin-top:8px;font-size:12px">
+          合并：先在列表选两个标签 ID（下方），将「源」并入「目标」。AI 批量打标仍在内容 Agent 任务里确认后应用。
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input v-model.number="mergeTo" class="input" type="number" placeholder="目标 ID" style="width:120px" />
+          <input v-model.number="mergeFrom" class="input" type="number" placeholder="源 ID" style="width:120px" />
+        </div>
+      </section>
+
+      <section class="card">
         <h2 class="h2">分类</h2>
         <div class="sub">内容只属于一个分类；标签可以多个</div>
         <div style="margin-top:10px">
@@ -114,6 +156,11 @@ import {
   updateCategory,
   deleteCategory,
   getContentList,
+  getTagList,
+  createTag,
+  updateTag,
+  deleteTag,
+  mergeTags,
 } from '@/api/content'
 import { getConfigsSilent, updateConfigs } from '@/api/system'
 import { extractConfigList, readConfigEntry, toConfigUpdateItems } from '@/utils/system-config'
@@ -129,6 +176,9 @@ interface CatRow {
 const router = useRouter()
 const loading = ref(false)
 const categories = ref<CatRow[]>([])
+const tags = ref<Array<{ id: number; name: string; tag_kind?: string; platform_code?: string; content_count?: number }>>([])
+const mergeFrom = ref<number | null>(null)
+const mergeTo = ref<number | null>(null)
 const wallSaving = ref(false)
 
 const wall = reactive({
@@ -165,6 +215,55 @@ function parseJsonConfig(raw: string) {
   } catch {
     return {}
   }
+}
+
+async function loadTags() {
+  const res = await getTagList()
+  const list = (res as any)?.data ?? res
+  tags.value = (Array.isArray(list) ? list : []).map((t: any) => ({
+    id: Number(t.id),
+    name: String(t.name || ''),
+    tag_kind: t.tag_kind || 'custom',
+    platform_code: t.platform_code || '',
+    content_count: t.content_count ?? t.useCount ?? 0,
+  }))
+}
+
+async function saveTagRow(t: { id: number; name: string; tag_kind?: string; platform_code?: string }) {
+  if (!t.name.trim()) {
+    ElMessage.warning('标签名不能为空')
+    return
+  }
+  await updateTag(t.id, {
+    name: t.name.trim(),
+    tag_kind: (t.tag_kind as 'custom' | 'platform' | 'topic') || 'custom',
+    platform_code: t.tag_kind === 'platform' ? t.platform_code : undefined,
+  })
+  ElMessage.success('标签已更新')
+}
+
+async function addTagRow() {
+  const name = window.prompt('新标签名称')
+  if (!name?.trim()) return
+  await createTag({ name: name.trim(), tag_kind: 'custom' })
+  ElMessage.success('已新增标签')
+  await loadTags()
+}
+
+async function removeTagRow(t: { id: number; name: string }) {
+  await ElMessageBox.confirm(`删除标签「${t.name}」？`, '确认', { type: 'warning' })
+  await deleteTag(t.id)
+  ElMessage.success('已删除')
+  await loadTags()
+}
+
+async function runMergeTags() {
+  if (!mergeTo.value || !mergeFrom.value) return
+  await mergeTags({ targetId: mergeTo.value, sourceId: mergeFrom.value })
+  ElMessage.success('已合并标签')
+  mergeFrom.value = null
+  mergeTo.value = null
+  await loadTags()
 }
 
 async function loadCats() {
@@ -267,7 +366,7 @@ async function saveListCfg() {
 onMounted(async () => {
   loading.value = true
   try {
-    await Promise.all([loadCats(), loadConfigs()])
+    await Promise.all([loadCats(), loadConfigs(), loadTags()])
   } finally {
     loading.value = false
   }

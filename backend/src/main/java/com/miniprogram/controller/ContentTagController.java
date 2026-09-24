@@ -30,13 +30,29 @@ public class ContentTagController {
     @Operation(summary = "创建标签")
     @PostMapping
     public R<ContentTagDTO> createTag(@RequestBody TagNameRequest request) {
-        return R.ok(tagService.createTag(request.getName(), request.getColor()));
+        return R.ok(tagService.createTag(
+                request.getName(),
+                request.getColor(),
+                request.getTagKind(),
+                request.getPlatformCode()));
     }
 
     @Operation(summary = "更新标签")
     @PutMapping("/{id}")
     public R<ContentTagDTO> updateTag(@PathVariable Long id, @RequestBody TagNameRequest request) {
-        return R.ok(tagService.updateTag(id, request.getName(), request.getColor()));
+        return R.ok(tagService.updateTag(
+                id,
+                request.getName(),
+                request.getColor(),
+                request.getTagKind(),
+                request.getPlatformCode()));
+    }
+
+    @Operation(summary = "合并标签", description = "将 source 合并进 target 并删除 source")
+    @PostMapping("/merge")
+    public R<Void> mergeTags(@RequestBody MergeTagRequest request) {
+        tagService.mergeTags(request.getTargetId(), request.getSourceId());
+        return R.ok(null);
     }
 
     @Operation(summary = "删除标签")
@@ -50,5 +66,13 @@ public class ContentTagController {
     public static class TagNameRequest {
         private String name;
         private String color;
+        private String tagKind;
+        private String platformCode;
+    }
+
+    @lombok.Data
+    public static class MergeTagRequest {
+        private Long targetId;
+        private Long sourceId;
     }
 }

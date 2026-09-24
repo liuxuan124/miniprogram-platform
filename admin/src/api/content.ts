@@ -134,6 +134,11 @@ export function deleteTag(id: number) {
   return del<void>(`${BASE_URL}/content-tags/${id}`)
 }
 
+/** 合并标签：source → target */
+export function mergeTags(payload: { targetId: number; sourceId: number }) {
+  return post<void>(`${BASE_URL}/content-tags/merge`, payload as unknown as Record<string, unknown>)
+}
+
 export interface ContentCommentItem {
   id: number
   contentId: number

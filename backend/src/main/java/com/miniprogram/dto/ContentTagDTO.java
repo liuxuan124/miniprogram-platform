@@ -19,6 +19,13 @@ public class ContentTagDTO {
     /** 标签颜色 */
     private String color;
 
+    /** platform | topic | custom */
+    @JsonProperty("tag_kind")
+    private String tagKind;
+
+    @JsonProperty("platform_code")
+    private String platformCode;
+
     /** 使用次数 */
     @JsonProperty("content_count")
     private Integer useCount;

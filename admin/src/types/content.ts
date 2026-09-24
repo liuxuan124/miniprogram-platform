@@ -193,6 +193,8 @@ export interface ContentTag {
   id: number
   name: string
   color?: string
+  tag_kind?: 'platform' | 'topic' | 'custom'
+  platform_code?: string
   content_count?: number
   created_at: string
 }
@@ -201,10 +203,14 @@ export interface ContentTag {
 export interface CreateTagParams {
   name: string
   color?: string
+  tag_kind?: 'platform' | 'topic' | 'custom'
+  platform_code?: string
 }
 
 /** 更新标签参数 */
 export interface UpdateTagParams {
   name?: string
   color?: string
+  tag_kind?: 'platform' | 'topic' | 'custom'
+  platform_code?: string
 }
