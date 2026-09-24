@@ -146,6 +146,9 @@
           {{ collapsed.structure ? '展开' : '收起' }}
         </button>
       </div>
+      <p v-if="mode === 'structure' && hasFixedTabShell" class="structure-hint">
+        底栏「星球 / 商城 / 我的」为固定业务页，请在对应 Tab 绑定页的装修器里改；此处只展示当前页已插入的区块。
+      </p>
       <div v-show="mode === 'structure' || !collapsed.structure" class="structure-list">
         <draggable
           :model-value="pageStore.components"
@@ -201,6 +204,17 @@ if (!industryProfileStore.loaded) {
   industryProfileStore.load()
 }
 const mode = ref<'components' | 'blocks' | 'structure'>('components')
+
+/** 固定 Tab 壳不在通用组件库展示，避免误插到首页 */
+const FIXED_TAB_SHELL_TYPES = new Set<ComponentType>([
+  ComponentType.WarmPlanet,
+  ComponentType.WarmShop,
+  ComponentType.WarmMine,
+])
+
+const hasFixedTabShell = computed(() =>
+  pageStore.components.some((c) => FIXED_TAB_SHELL_TYPES.has(c.type as ComponentType)),
+)
 const myBlocks = ref<SavedMyBlock[]>(loadMyBlocks())
 const { deleteWithUndo } = useEditorDeleteUndo()
 const componentSectionHeight = ref(520)
@@ -349,6 +363,7 @@ function filteredComponentsByCategory(category: string): ComponentDefinition[] {
     industryProfileStore.isComponentAllowed(item.type),
   ).filter((item) => {
     if (!featureModulesStore.isEnabled('planet') && String(item.type).startsWith('planet_')) return false
+    if (FIXED_TAB_SHELL_TYPES.has(item.type)) return false
     return true
   })
   const kw = searchKeyword.value.trim().toLowerCase()
@@ -807,6 +822,17 @@ onBeforeUnmount(() => {
 .component-icon {
   font-size: 18px;
   line-height: 1.1;
+}
+
+.structure-hint {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8a7568;
+  background: #faf6f1;
+  border-radius: 8px;
+  border: 1px solid #e8dfd3;
 }
 
 .structure-list {

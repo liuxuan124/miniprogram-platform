@@ -17,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,7 +45,7 @@ public class WarmHomeServiceImpl implements WarmHomeService {
         WarmHomeVO vo = new WarmHomeVO();
         vo.setGreetTemplate(str(cfg.get("greetTemplate"), "你好"));
         vo.setStreakDays(asInt(cfg.get("streakDays"), 0));
-        vo.setTodayCount(asInt(cfg.get("todayCount"), 0));
+        vo.setTodayCount(resolveTodayCount(cfg));
         vo.setNavs(asMapList(cfg.get("navs")));
         vo.setAuthors(asMapList(cfg.get("authors")));
         vo.setSegs(asMapList(cfg.get("segs")));
@@ -343,6 +346,27 @@ public class WarmHomeServiceImpl implements WarmHomeService {
             return head + " · " + formatCompact(views) + " 阅读";
         }
         return views > 0 ? head + " · " + formatCompact(views) + " 阅读" : head;
+    }
+
+    private int resolveTodayCount(Map<String, Object> cfg) {
+        String mode = str(cfg.get("todayCountMode"), "auto");
+        if ("manual".equalsIgnoreCase(mode)) {
+            return asInt(cfg.get("todayCount"), 0);
+        }
+        return (int) Math.min(Integer.MAX_VALUE, countTodayPublishedContents());
+    }
+
+    /** 按东八区自然日统计当日上架内容数，避免配置项与列表竞态导致数字跳动 */
+    private long countTodayPublishedContents() {
+        ZoneId zone = ZoneId.of("Asia/Shanghai");
+        LocalDate today = LocalDate.now(zone);
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+        Long n = contentMapper.selectCount(new LambdaQueryWrapper<Content>()
+                .eq(Content::getStatus, "published")
+                .ge(Content::getPublishedAt, start)
+                .lt(Content::getPublishedAt, end));
+        return n != null ? n : 0L;
     }
 
     private Map<String, Object> readConfig() {
