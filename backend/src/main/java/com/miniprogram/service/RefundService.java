@@ -31,4 +31,9 @@ public interface RefundService extends IService<Refund> {
      * 关单后仍收到支付成功：尝试系统自动全额退款；失败则标记订单需人工处理
      */
     void handleLatePaymentOnClosedOrder(Order order, Payment payment, String transactionId);
+
+    /**
+     * 系统自动全额退款（幂等：已有退款流程则跳过）。适用于付费问答超时等内部任务。
+     */
+    void trySystemFullRefund(Long orderId, String reason);
 }

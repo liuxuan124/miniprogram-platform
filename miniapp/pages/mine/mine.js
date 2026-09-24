@@ -358,6 +358,10 @@ Page({
     this._nav('/pkg-trade/order-list/order-list', true, '查看订单')
   },
 
+  onGoLibrary() {
+    this._nav('/pkg-user/my-library/my-library', true, '查看已购')
+  },
+
   onGoLearnMore() {
     if (!this._ensureLogin('同步学习进度')) return
     const item = this.data.learnItem

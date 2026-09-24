@@ -59,6 +59,7 @@ const COMPONENT_TYPES = {
   COUNTDOWN: 'countdown',
   FLOAT_BUTTON: 'float_button',
   RICH_TEXT: 'rich_text',
+  CONTENT_PAYWALL: 'content_paywall',
   SECTION_TITLE: 'section_title',
   DIVIDER: 'divider',
   SPACER: 'spacer',

@@ -261,6 +261,18 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/content-ops/settings.vue'),
         meta: { title: '内容设置', icon: 'Setting', featureModule: 'content' },
       },
+      {
+        path: 'sources/wechat',
+        name: 'ContentSourcesWechat',
+        component: () => import('@/views/content-ops/sources-wechat.vue'),
+        meta: { title: '公众号同步', icon: 'Connection', featureModule: 'content' },
+      },
+      {
+        path: 'sources/xhs',
+        name: 'ContentSourcesXhs',
+        component: () => import('@/views/content-ops/sources-xhs.vue'),
+        meta: { title: '小红书导入', icon: 'DocumentCopy', featureModule: 'content' },
+      },
       // 旧路径兼容
       { path: 'article', redirect: '/content/articles' },
       { path: 'note', redirect: '/content/notes' },

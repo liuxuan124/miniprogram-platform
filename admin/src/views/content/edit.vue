@@ -422,6 +422,33 @@
               <el-option label="仅会员" value="member_only" />
             </el-select>
           </el-form-item>
+          <el-form-item v-if="contentType === 'article'" label="付费墙">
+            <el-checkbox-group v-model="accessRule.grants">
+              <el-checkbox label="free">免费</el-checkbox>
+              <el-checkbox label="login">登录可读</el-checkbox>
+              <el-checkbox label="member">会员</el-checkbox>
+              <el-checkbox label="planet">星球</el-checkbox>
+              <el-checkbox label="product">单篇付费</el-checkbox>
+              <el-checkbox label="invite">邀请解锁</el-checkbox>
+            </el-checkbox-group>
+            <div class="field-hint">满足任一勾选条件即可读全文（OR）。未配置时沿用「可见范围/星球专属」。</div>
+          </el-form-item>
+          <el-form-item v-if="contentType === 'article'" label="试读比例">
+            <el-slider v-model="accessRule.previewValue" :min="0" :max="100" show-input />
+          </el-form-item>
+          <el-form-item v-if="contentType === 'article' && accessRule.grants.includes('product')" label="解锁商品">
+            <el-select
+              v-model="accessRule.payProductId"
+              filterable
+              remote
+              :remote-method="searchProducts"
+              :loading="productSearchLoading"
+              placeholder="选择单篇 SKU"
+              style="width: 100%"
+            >
+              <el-option v-for="p in productOptions" :key="p.id" :label="p.name" :value="p.id" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="运营位">
             <div class="publish-ops">
               <el-checkbox v-model="formData.is_pinned">频道置顶</el-checkbox>
@@ -629,6 +656,13 @@ const formData = reactive({
 
 const planetCommunities = ref<{ id: string; title: string }[]>([])
 
+const accessRule = reactive({
+  grants: [] as string[],
+  previewValue: 20,
+  payProductId: undefined as number | undefined,
+  planetId: '',
+})
+
 const seoForm = reactive({
   title: '',
   description: '',
@@ -766,9 +800,45 @@ async function loadDetail(id: number) {
     seoForm.description = data.seoDescription || data.summary || ''
     syncCoverToSeo()
     await loadLinkedProducts(id)
+    await loadAccessRule(id)
   } finally {
     pageLoading.value = false
   }
+}
+
+async function loadAccessRule(contentId: number) {
+  try {
+    const res = await get(`/api/v1/admin/contents/${contentId}/access-rule`)
+    const row = (res as any).data
+    if (!row) {
+      accessRule.grants = []
+      accessRule.previewValue = 20
+      accessRule.payProductId = undefined
+      return
+    }
+    accessRule.previewValue = Number(row.previewValue ?? 20)
+    accessRule.payProductId = row.payProductId != null ? Number(row.payProductId) : undefined
+    accessRule.planetId = row.planetId || ''
+    try {
+      accessRule.grants = row.grantsJson ? JSON.parse(row.grantsJson) : []
+    } catch {
+      accessRule.grants = []
+    }
+  } catch {
+    accessRule.grants = []
+  }
+}
+
+async function saveAccessRule(contentId: number) {
+  if (contentType.value !== 'article') return
+  if (!accessRule.grants.length) return
+  await put(`/api/v1/admin/contents/${contentId}/access-rule`, {
+    grants: accessRule.grants,
+    previewMode: 'percent',
+    previewValue: accessRule.previewValue,
+    payProductId: accessRule.payProductId,
+    planetId: accessRule.planetId || undefined,
+  })
 }
 
 function normalizeContentStatus(statusRaw: unknown): ContentStatus {
@@ -1185,6 +1255,7 @@ async function handleSubmit() {
       const id = Number(route.query.id)
       await updateContent(id, payload)
       await saveLinkedProducts(id)
+      await saveAccessRule(id)
       if (publishMode.value === 'publish' && !wasPublished) {
         await publishContent(id)
       } else if (publishMode.value === 'draft' && wasPublished) {
@@ -1199,7 +1270,10 @@ async function handleSubmit() {
     } else {
       const created = await createContent(payload)
       const createdId = Number((created as any).data?.id ?? (created as any).id)
-      if (createdId) await saveLinkedProducts(createdId)
+      if (createdId) {
+        await saveLinkedProducts(createdId)
+        await saveAccessRule(createdId)
+      }
       if (publishMode.value === 'publish' && createdId) {
         await publishContent(createdId)
       }

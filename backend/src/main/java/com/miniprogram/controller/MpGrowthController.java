@@ -7,6 +7,7 @@ import com.miniprogram.dto.member.SignInVO;
 import com.miniprogram.entity.*;
 import com.miniprogram.mapper.*;
 import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.service.InviteContentUnlockService;
 import com.miniprogram.service.MemberPointsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,7 @@ public class MpGrowthController {
     private final PageExperimentMapper pageExperimentMapper;
     private final MemberPointsService memberPointsService;
     private final SubscribeTemplateMapper subscribeTemplateMapper;
+    private final InviteContentUnlockService inviteContentUnlockService;
 
     @Operation(summary = "上报行为事件")
     @PostMapping("/events")
@@ -211,6 +213,13 @@ public class MpGrowthController {
         row.setCreateTime(LocalDateTime.now());
         inviteRelationMapper.insert(row);
         completeTaskQuiet(body.getInviterId(), "share_content", String.valueOf(inviteeId));
+        if (StringUtils.hasText(body.getScene()) && body.getScene().startsWith("content_unlock:")) {
+            try {
+                Long contentId = Long.parseLong(body.getScene().substring("content_unlock:".length()).trim());
+                inviteContentUnlockService.recordInvitee(contentId, body.getInviterId(), inviteeId);
+            } catch (Exception ignored) {
+            }
+        }
         data.put("bound", true);
         return R.ok(data);
     }

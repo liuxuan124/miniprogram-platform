@@ -15,6 +15,8 @@ import com.miniprogram.dto.ContentQueryDTO;
 import com.miniprogram.dto.ContentStatsDTO;
 import com.miniprogram.entity.Content;
 import com.miniprogram.entity.ContentTag;
+import com.miniprogram.entitlement.EntitlementEngine;
+import com.miniprogram.entitlement.dto.EntitlementCheckResult;
 import com.miniprogram.member.MemberBenefitCodes;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ContentTagMapper;
@@ -59,6 +61,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final ContentAuditRulesService contentAuditRulesService;
     private final SystemConfigService systemConfigService;
     private final KnowledgeSyncService knowledgeSyncService;
+    private final EntitlementEngine entitlementEngine;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -537,26 +540,28 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         this.updateById(entity);
 
         ContentDetailDTO dto = toDetailDTO(entity);
-
-        boolean memberOnly = "member_only".equalsIgnoreCase(entity.getVisibility());
-        if (memberOnly) {
-            boolean unlocked = membershipAccessService.hasPlatformMembership(userId)
-                    || membershipAccessService.hasBenefit(userId, MemberBenefitCodes.ARTICLE_FREE);
-            applyPlanetGate(dto, unlocked, membershipAccessService.unpaidViewMode(), true);
-            if (unlocked) {
-                dto.setAttachments(fileEntitlementService.enrichAttachments(
-                        dto.getAttachments(), userId));
-            } else {
-                dto.setAttachments(Collections.emptyList());
-            }
-            return dto;
-        }
-
-        dto.setAccessGranted(true);
-        dto.setLocked(false);
-        dto.setAttachments(fileEntitlementService.enrichAttachments(
-                dto.getAttachments(), userId));
+        applyEntitlementGate(dto, entity, userId);
         return dto;
+    }
+
+    private void applyEntitlementGate(ContentDetailDTO dto, Content entity, Long userId) {
+        EntitlementCheckResult check = entitlementEngine.checkContentAccess(userId, entity);
+        dto.setOriginalUrl(entity.getOriginalUrl());
+        dto.setPreviewPercent(check.getPreviewPercent());
+        dto.setUnlockOptions(check.getUnlockOptions());
+        if (check.isAllowed()) {
+            dto.setAccessGranted(true);
+            dto.setLocked(false);
+            dto.setContent(entity.getContent());
+            dto.setAttachments(fileEntitlementService.enrichAttachments(
+                    dto.getAttachments(), userId));
+            return;
+        }
+        dto.setAccessGranted(false);
+        dto.setLocked(true);
+        dto.setLockedReason(check.getReason());
+        dto.setContent(check.getPreviewBody());
+        dto.setAttachments(Collections.emptyList());
     }
 
     @Override

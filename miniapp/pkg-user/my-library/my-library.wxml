@@ -1,0 +1,16 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="hint">加载中…</view>
+  <view wx:elif="{{items.length === 0}}" class="hint">暂无已购内容</view>
+  <block wx:else>
+    <view
+      wx:for="{{items}}"
+      wx:key="productId"
+      class="row"
+      data-id="{{item.productId}}"
+      bindtap="openProduct"
+    >
+      <text class="title">商品 #{{item.productId}}</text>
+      <text class="meta">{{item.entitlementType || 'product'}} · {{item.orderNo || ''}}</text>
+    </view>
+  </block>
+</view>

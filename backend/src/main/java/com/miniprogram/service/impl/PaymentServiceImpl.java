@@ -18,7 +18,10 @@ import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.PaymentService;
 import com.miniprogram.service.RefundService;
+import com.miniprogram.service.FulfillmentOrchestratorService;
+import com.miniprogram.service.PaidQaService;
 import com.miniprogram.service.PurchaseEntitlementService;
+import com.miniprogram.service.ReferralCommissionService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
 import com.miniprogram.service.WxPayConfigService;
@@ -63,7 +66,10 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     private final UserNoticeService userNoticeService;
     private final MembershipAccessService membershipAccessService;
     private final PurchaseEntitlementService purchaseEntitlementService;
+    private final FulfillmentOrchestratorService fulfillmentOrchestratorService;
     private final RefundService refundService;
+    private final ReferralCommissionService referralCommissionService;
+    private final PaidQaService paidQaService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -286,6 +292,21 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             grantVirtualEntitlements(order);
         } catch (Exception e) {
             log.warn("虚拟权益开通失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            fulfillmentOrchestratorService.fulfillPaidOrder(order);
+        } catch (Exception e) {
+            log.warn("交付编排失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            referralCommissionService.onOrderPaid(order);
+        } catch (Exception e) {
+            log.warn("分销佣金记录失败 orderNo={}", order.getOrderNo(), e);
+        }
+        try {
+            paidQaService.onOrderPaid(order);
+        } catch (Exception e) {
+            log.warn("付费问答入账失败 orderNo={}", order.getOrderNo(), e);
         }
         try {
             userNoticeService.notifyOrderPaid(order);

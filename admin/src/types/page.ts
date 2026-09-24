@@ -58,6 +58,7 @@ export enum ComponentType {
   WarmPlanet = 'warm_planet',
   WarmShop = 'warm_shop',
   WarmMine = 'warm_mine',
+  ContentPaywall = 'content_paywall',
 }
 
 /** 组件类型标签映射 */
@@ -115,6 +116,7 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.WarmPlanet]: '暖阁星球模板',
   [ComponentType.WarmShop]: '暖阁商城模板',
   [ComponentType.WarmMine]: '暖阁我的模板',
+  [ComponentType.ContentPaywall]: '内容付费墙',
 }
 
 /** 组件类型图标映射 */
@@ -172,6 +174,7 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.WarmPlanet]: 'Sunrise',
   [ComponentType.WarmShop]: 'Goods',
   [ComponentType.WarmMine]: 'User',
+  [ComponentType.ContentPaywall]: 'Lock',
 }
 
 /** 组件分类 */
@@ -209,6 +212,7 @@ export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = 
     ComponentType.MomentsFeed,
     ComponentType.HotNews,
     ComponentType.RichText,
+    ComponentType.ContentPaywall,
     ComponentType.BrandIntro,
     ComponentType.Certificate,
   ],
