@@ -24,6 +24,12 @@ public class ContentTag extends BaseEntity {
     /** 标签颜色 */
     private String color;
 
+    /** platform | topic | custom */
+    private String tagKind;
+
+    /** 平台维编码：wechat / xiaohongshu / douyin 等 */
+    private String platformCode;
+
     /** 使用次数 */
     private Integer useCount;
 }
