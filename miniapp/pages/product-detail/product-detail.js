@@ -19,6 +19,21 @@ function getStatusBarHeight() {
   }
 }
 
+function virtualRefundNotice(product) {
+  const fallback = '⚠️ 虚拟商品说明：数字内容支付成功后立即开通权限，退款规则见下单页说明。'
+  try {
+    const app = getApp()
+    const rules = app && app.globalData && app.globalData.commerceVirtualRefundRules
+    if (!rules || typeof rules !== 'object') return fallback
+    const ptype = String((product && (product.productType || product.product_type)) || 'ebook').toLowerCase()
+    const row = (rules.byProductType || {})[ptype] || (rules.byProductType || {}).ebook
+    const label = row && row.label ? row.label : '退款规则见下单页说明'
+    return `⚠️ 虚拟商品说明：${label}。支付成功即开通权限。`
+  } catch (e) {
+    return fallback
+  }
+}
+
 function pad2(n) {
   return n < 10 ? `0${n}` : String(n)
 }
