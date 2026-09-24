@@ -90,6 +90,23 @@ public class FileDownloadLimitServiceImpl implements FileDownloadLimitService {
         fileDownloadLogMapper.insert(log);
     }
 
+    @Override
+    public java.util.Map<Long, Long> countDownloadsByFileIds(java.util.Collection<Long> fileIds) {
+        java.util.Map<Long, Long> out = new java.util.HashMap<>();
+        if (fileIds == null || fileIds.isEmpty()) {
+            return out;
+        }
+        for (Long fileId : fileIds) {
+            if (fileId == null) {
+                continue;
+            }
+            Long count = fileDownloadLogMapper.selectCount(new LambdaQueryWrapper<FileDownloadLog>()
+                    .eq(FileDownloadLog::getFileId, fileId));
+            out.put(fileId, count != null ? count : 0L);
+        }
+        return out;
+    }
+
     private int parseLimit() {
         String raw = systemConfigService.getConfigValue("file_download_daily_limit");
         try {

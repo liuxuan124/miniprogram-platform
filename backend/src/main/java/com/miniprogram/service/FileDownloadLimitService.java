@@ -12,4 +12,7 @@ public interface FileDownloadLimitService {
 
     /** 管理端：按文件统计近 N 天下载量 */
     java.util.List<java.util.Map<String, Object>> rankFiles(int days, int limit);
+
+    /** 资料列表：按 fileId 统计累计下载次数 */
+    java.util.Map<Long, Long> countDownloadsByFileIds(java.util.Collection<Long> fileIds);
 }

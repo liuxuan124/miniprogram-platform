@@ -1,6 +1,7 @@
 package com.miniprogram.controller;
 
 import com.miniprogram.common.R;
+import com.miniprogram.dto.paidqa.PaidQaPublicVO;
 import com.miniprogram.entity.PaidQaQuestion;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.PaidQaService;
@@ -22,7 +23,7 @@ public class MpPaidQaController {
 
     @GetMapping
     @Operation(summary = "公开问答列表")
-    public R<List<PaidQaQuestion>> list(@RequestParam(defaultValue = "20") int limit) {
+    public R<List<PaidQaPublicVO>> list(@RequestParam(defaultValue = "20") int limit) {
         return R.ok(paidQaService.listPublic(limit));
     }
 

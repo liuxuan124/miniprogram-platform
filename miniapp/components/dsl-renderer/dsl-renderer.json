@@ -32,6 +32,7 @@
     "dsl-warm-block": "../dsl-warm-block/dsl-warm-block",
     "dsl-material-list": "../dsl-material-list/dsl-material-list",
     "dsl-member-plans": "../dsl-member-plans/dsl-member-plans",
-    "dsl-qa-list": "../dsl-qa-list/dsl-qa-list"
+    "dsl-qa-list": "../dsl-qa-list/dsl-qa-list",
+    "dsl-content-paywall": "../dsl-content-paywall/dsl-content-paywall"
   }
 }

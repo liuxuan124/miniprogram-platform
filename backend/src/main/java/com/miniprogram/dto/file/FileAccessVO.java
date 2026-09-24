@@ -55,4 +55,7 @@ public class FileAccessVO {
 
     /** PDF/DOCX 试读流地址（相对 API 路径） */
     private String previewUrl;
+
+    /** 累计下载次数（公开列表展示） */
+    private Long downloadCount;
 }

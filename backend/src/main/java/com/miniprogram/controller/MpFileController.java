@@ -30,6 +30,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/mp/files")
@@ -62,12 +63,18 @@ public class MpFileController {
                 .orderByDesc(FileItem::getUpdateTime)
                 .orderByDesc(FileItem::getId);
         Page<FileItem> page = fileItemMapper.selectPage(new Page<>(current, size), qw);
+        List<Long> fileIds = page.getRecords().stream().map(FileItem::getId).toList();
+        Map<Long, Long> downloadCounts = fileDownloadLimitService.countDownloadsByFileIds(fileIds);
         List<FileAccessVO> records = new ArrayList<>();
         for (FileItem item : page.getRecords()) {
             try {
-                records.add(fileEntitlementService.buildAccessVO(item, userId, planetId));
+                FileAccessVO vo = fileEntitlementService.buildAccessVO(item, userId, planetId);
+                vo.setDownloadCount(downloadCounts.getOrDefault(item.getId(), 0L));
+                records.add(vo);
             } catch (com.miniprogram.common.BusinessException ex) {
-                records.add(fileEntitlementService.buildAccessVOWithoutPreview(item, userId, planetId, ex.getMessage()));
+                FileAccessVO vo = fileEntitlementService.buildAccessVOWithoutPreview(item, userId, planetId, ex.getMessage());
+                vo.setDownloadCount(downloadCounts.getOrDefault(item.getId(), 0L));
+                records.add(vo);
             }
         }
         return R.ok(new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize()));

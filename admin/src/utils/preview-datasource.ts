@@ -249,6 +249,18 @@ function mapMaterialItems(list: any[], limit: number, component: ComponentInstan
   return rows.slice(0, limit)
 }
 
+function formatPlanPrice(p: Record<string, unknown>) {
+  if (p.priceText || p.price_text) return String(p.priceText || p.price_text)
+  const display = p.displayPrice ?? p.display_price
+  const original = p.originalPrice ?? p.original_price
+  if (display == null || display === '') return '见选购页'
+  let text = `¥${display}`
+  if (original != null && Number(original) > Number(display)) {
+    text += ` 原价¥${original}`
+  }
+  return text
+}
+
 function mapMembershipPlanItems(list: any[], limit: number, component: ComponentInstance) {
   const recommendId = component.props?.recommend_plan_id
   let rows = (list || [])
@@ -260,7 +272,7 @@ function mapMembershipPlanItems(list: any[], limit: number, component: Component
       rights: Array.isArray(p.rights) ? p.rights : [],
       icon: p.icon || '',
       recommend: recommendId != null && String(recommendId) === String(p.id),
-      priceText: p.priceText || p.price_text || '见选购页',
+      priceText: formatPlanPrice(p),
     }))
   if (recommendId != null) {
     rows = rows.map((r) => ({ ...r, recommend: String(r.id) === String(recommendId) }))

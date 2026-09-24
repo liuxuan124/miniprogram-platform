@@ -1,5 +1,6 @@
 const { getNavLayout } = require('../../utils/nav-layout')
 const PlanetService = require('../../services/planet')
+const { get } = require('../../utils/request')
 const warmPlanet = require('../../data/warm-planet')
 
 const JOIN_ROW_DEFAULT = '👥 加入球友微信群，第一时间收到更新通知'
@@ -51,6 +52,27 @@ Component({
       }
       // 同步落 DEMO，避免 hero 空 KPI 塌陷后再跳
       this.setData(seed)
+      const commercePlanetId = String(c.planet_commerce_id || c.planet_id || '').trim()
+      if (commercePlanetId) {
+        get(`/api/v1/mp/commerce/planet/${encodeURIComponent(commercePlanetId)}/landing`, {}, { auth: false, showError: false })
+          .then((res) => {
+            const landing = (res && res.data) || {}
+            if (!landing.configured) return
+            const pid = landing.joinProductId
+            const patch = {}
+            if (pid) {
+              patch.joinLink = `/pages/product-detail/product-detail?id=${encodeURIComponent(pid)}`
+              if (landing.joinProductPrice != null) {
+                patch.joinText = `¥${landing.joinProductPrice} 加入`
+              }
+            }
+            if (landing.refundWindowDays != null) {
+              patch.expireText = `加入后 ${landing.refundWindowDays} 天内可申请退款（以星球说明为准）`
+            }
+            if (Object.keys(patch).length) this.setData(patch)
+          })
+          .catch(() => {})
+      }
       if (manual) return
       PlanetService.getPlanetHome().then((home) => {
         if (!home) return

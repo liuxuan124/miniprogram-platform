@@ -2,6 +2,7 @@ package com.miniprogram.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.common.BusinessException;
+import com.miniprogram.dto.paidqa.PaidQaPublicVO;
 import com.miniprogram.entity.PaidQaQuestion;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.PaidQaSpectator;
@@ -92,13 +93,30 @@ public class PaidQaServiceImpl implements PaidQaService {
     }
 
     @Override
-    public List<PaidQaQuestion> listPublic(int limit) {
+    public List<PaidQaPublicVO> listPublic(int limit) {
         int lim = Math.max(1, Math.min(limit, 50));
-        return paidQaQuestionMapper.selectList(new LambdaQueryWrapper<PaidQaQuestion>()
+        List<PaidQaQuestion> rows = paidQaQuestionMapper.selectList(new LambdaQueryWrapper<PaidQaQuestion>()
                 .eq(PaidQaQuestion::getVisibility, "public")
                 .in(PaidQaQuestion::getStatus, List.of("pending_answer", "answered"))
                 .orderByDesc(PaidQaQuestion::getCreatedAt)
                 .last("LIMIT " + lim));
+        return rows.stream().map(this::toPublicVO).toList();
+    }
+
+    private PaidQaPublicVO toPublicVO(PaidQaQuestion q) {
+        PaidQaPublicVO vo = new PaidQaPublicVO();
+        vo.setId(q.getId());
+        vo.setTitle(q.getTitle());
+        vo.setBody(q.getBody());
+        vo.setVisibility(q.getVisibility());
+        vo.setStatus(q.getStatus());
+        vo.setAnswerBody(q.getAnswerBody());
+        vo.setAnswerAt(q.getAnswerAt());
+        vo.setPriceAmount(q.getPriceAmount());
+        long spectators = paidQaSpectatorMapper.selectCount(new LambdaQueryWrapper<PaidQaSpectator>()
+                .eq(PaidQaSpectator::getQuestionId, q.getId()));
+        vo.setSpectatorCount((int) Math.min(spectators, Integer.MAX_VALUE));
+        return vo;
     }
 
     @Override
