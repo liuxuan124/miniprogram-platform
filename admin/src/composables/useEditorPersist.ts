@@ -3,7 +3,8 @@ import type { PageDSL } from '@/types/page'
 import { usePageStore } from '@/stores/page'
 
 const DEBOUNCE_MS = 1500
-const RETRY_MS = 5000
+const RETRY_BASE_MS = 1000
+const RETRY_MAX_MS = 60_000
 const MAX_RETRIES = 8
 const BACKUP_PREFIX = 'page-editor-backup:'
 
@@ -39,12 +40,14 @@ export function readDraftBackup(pageId: number): { savedAt: number; dsl: PageDSL
 }
 
 function formatSavedTime(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
   const h = String(d.getHours()).padStart(2, '0')
   const min = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${h}:${min}`
+  return `${h}:${min}`
+}
+
+export function retryDelayMs(retryCount: number): number {
+  const exp = RETRY_BASE_MS * 2 ** Math.max(0, retryCount - 1)
+  return Math.min(RETRY_MAX_MS, exp)
 }
 
 /**
@@ -114,10 +117,11 @@ export function useEditorPersist(saveFn: () => Promise<boolean>) {
     if (retryTimer) return
     if (retryCount >= MAX_RETRIES) return
     retryCount += 1
+    const delay = retryDelayMs(retryCount)
     retryTimer = setTimeout(() => {
       retryTimer = null
       if (pageStore.hasUnpersistedChanges) void runSave()
-    }, RETRY_MS)
+    }, delay)
   }
 
   function queueSave() {

@@ -11,6 +11,6 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/utils/editorKeyboardGuard.test.ts'],
+    include: ['src/utils/editorKeyboardGuard.test.ts', 'src/composables/useEditorPersist.test.ts'],
   },
 })
