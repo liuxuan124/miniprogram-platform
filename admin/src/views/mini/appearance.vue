@@ -462,8 +462,10 @@ async function saveBrand() {
   savingBrand.value = true
   try {
     const payload = normalizeBrandConfig(brandForm.value)
-    const updated = await updateMiniSite({ brandConfig: payload })
-    site.value = { ...site.value, ...updated, brand: payload }
+    const updated = await updateMiniSite({
+      brandConfig: payload as unknown as Record<string, unknown>,
+    })
+    site.value = { ...site.value, ...updated, brand: payload as unknown as Record<string, unknown> }
     brandForm.value = payload
     ElMessage.success('品牌信息已存为待发布')
     void refreshMiniPending(true)
