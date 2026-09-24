@@ -1,4 +1,6 @@
 import type { ComponentDataSource, ComponentInstance, PageDSL } from '@/types/page'
+import { demoMaterialItems, mapMaterialRecord } from '@/utils/dsl-material'
+import { demoQaItems, mapQaRecord } from '@/utils/dsl-qa'
 import { pickProductCoverUrl, orderProductsByIds } from '@/utils/product-cover'
 import {
   filterProductsByPrice,
@@ -24,6 +26,9 @@ const COMPONENT_LABELS: Record<string, string> = {
   activity_entry: '活动入口',
   coupon: '优惠券',
   appointment_service: '预约服务',
+  material_list: '资料列表',
+  qa_list: '问答列表',
+  member_plan: '会员方案',
 }
 
 const DS_API_MAP: Partial<Record<DataSourceType, string>> = {
@@ -32,6 +37,9 @@ const DS_API_MAP: Partial<Record<DataSourceType, string>> = {
   activity: '/api/v1/mp/activities',
   coupon: '/api/v1/mp/coupons',
   appointment_service: '/api/v1/mp/appointment-services',
+  file: '/api/v1/admin/files',
+  membership_plan: '/api/v1/admin/membership-plans',
+  paid_qa: '/api/v1/mp/paid-qa',
 }
 
 const DS_COMPONENT_DEFAULT_TYPE: Partial<Record<string, DataSourceType>> = {
@@ -45,6 +53,9 @@ const DS_COMPONENT_DEFAULT_TYPE: Partial<Record<string, DataSourceType>> = {
   activity_entry: 'activity',
   appointment_service: 'appointment_service',
   coupon: 'coupon',
+  material_list: 'file',
+  qa_list: 'paid_qa',
+  member_plan: 'membership_plan',
 }
 
 const HYDRATE_COMPONENT_TYPES = new Set(Object.keys(DS_COMPONENT_DEFAULT_TYPE))
@@ -218,8 +229,43 @@ function mapArticleItems(list: any[], limit: number) {
       categoryId: item.categoryId ?? item.category_id,
       categoryName: item.categoryName || item.category_name || '',
       source: item.source || item.categoryName || item.category_name || '',
+      sourceTag: item.sourceTag || item.source_tag || '',
+      tags: item.tags,
     }
   })
+}
+
+function mapMaterialItems(list: any[], limit: number, component: ComponentInstance) {
+  let rows = (list || []).map((item, index) => mapMaterialRecord(item, index))
+  const sort = String(component.props?.sort || 'newest')
+  if (sort === 'downloads') {
+    rows = [...rows].sort((a, b) => b.downloadCount - a.downloadCount)
+  }
+  const manualIds = Array.isArray(component.props?.manual_ids) ? component.props.manual_ids.map(String) : []
+  if (manualIds.length) {
+    const map = new Map(rows.map((r) => [String(r.id), r]))
+    rows = manualIds.map((id) => map.get(id)).filter(Boolean) as typeof rows
+  }
+  return rows.slice(0, limit)
+}
+
+function mapMembershipPlanItems(list: any[], limit: number, component: ComponentInstance) {
+  const recommendId = component.props?.recommend_plan_id
+  let rows = (list || [])
+    .filter((p) => Number(p.status ?? 1) === 1)
+    .map((p, index) => ({
+      id: p.id || index + 1,
+      name: p.name || '会员方案',
+      description: p.description || '',
+      rights: Array.isArray(p.rights) ? p.rights : [],
+      icon: p.icon || '',
+      recommend: recommendId != null && String(recommendId) === String(p.id),
+      priceText: p.priceText || p.price_text || '见选购页',
+    }))
+  if (recommendId != null) {
+    rows = rows.map((r) => ({ ...r, recommend: String(r.id) === String(recommendId) }))
+  }
+  return rows.slice(0, Math.max(limit, 3))
 }
 
 function dayKeyFromValue(value: unknown): string {
@@ -347,6 +393,66 @@ async function hydrateComponent(
   component: ComponentInstance,
   warnings: string[],
 ): Promise<ComponentInstance> {
+  if (component.type === 'material_list' || component.type === 'qa_list' || component.type === 'member_plan') {
+    const label = COMPONENT_LABELS[component.type] || component.type
+    const limit = Math.max(Number(component.props?.limit) || 5, 1)
+    const dataSource = resolveDataSource(component)
+    try {
+      if (component.type === 'material_list') {
+        if (component.props?.source_mode === 'manual' && !(component.props?.manual_ids || []).length) {
+          return {
+            ...component,
+            props: { ...component.props, items: demoMaterialItems(limit), _previewDataDemo: true },
+          }
+        }
+        const list = dataSource ? await fetchDataSourceList(dataSource, limit) : []
+        if (!list.length) {
+          warnings.push(`${label}：暂无资料，已用演示数据`)
+          return {
+            ...component,
+            props: { ...component.props, items: demoMaterialItems(limit), _previewDataDemo: true },
+          }
+        }
+        return {
+          ...component,
+          props: { ...component.props, items: mapMaterialItems(list, limit, component), _previewDataFailed: false },
+        }
+      }
+      if (component.type === 'qa_list') {
+        const list = dataSource ? await fetchDataSourceList(dataSource, limit) : []
+        const rows = (list.length ? list : demoQaItems(limit)).map((item: any, i: number) => mapQaRecord(item, i))
+        return {
+          ...component,
+          props: { ...component.props, items: rows.slice(0, limit), _previewDataFailed: !list.length },
+        }
+      }
+      if (component.type === 'member_plan') {
+        const list = dataSource ? await fetchDataSourceList(dataSource, 20) : []
+        if (!list.length) {
+          warnings.push(`${label}：暂无会员档位`)
+          return { ...component, props: { ...component.props, items: [], _previewDataFailed: true } }
+        }
+        return {
+          ...component,
+          props: {
+            ...component.props,
+            items: mapMembershipPlanItems(list, limit, component),
+            _previewDataFailed: false,
+          },
+        }
+      }
+    } catch (error: any) {
+      warnings.push(`${label}：${error?.message || '加载失败'}`)
+      if (component.type === 'material_list') {
+        return {
+          ...component,
+          props: { ...component.props, items: demoMaterialItems(limit), _previewDataDemo: true },
+        }
+      }
+      return { ...component, props: { ...component.props, items: [], _previewDataFailed: true } }
+    }
+  }
+
   if (!HYDRATE_COMPONENT_TYPES.has(component.type)) {
     return component
   }

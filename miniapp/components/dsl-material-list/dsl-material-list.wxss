@@ -1,0 +1,104 @@
+.dsl-material-list__filters {
+  display: flex;
+  gap: 16rpx;
+  overflow-x: auto;
+  margin-bottom: 16rpx;
+}
+.dsl-material-list__tab {
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+  border: 1px solid #e2e8f0;
+  font-size: 24rpx;
+  white-space: nowrap;
+}
+.dsl-material-list__tab.is-active {
+  border-color: #c8923a;
+  color: #a66b1f;
+  background: #fff8ed;
+}
+.dsl-material-list__row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  border: 1px solid #eef2f6;
+}
+.dsl-material-list__body--card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+.dsl-material-list__body--card .dsl-material-list__row {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.dsl-material-list__icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dsl-material-list__main {
+  flex: 1;
+  min-width: 0;
+}
+.dsl-material-list__title {
+  font-size: 28rpx;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsl-material-list__meta {
+  font-size: 22rpx;
+  color: #64748b;
+  margin-top: 4rpx;
+}
+.dsl-material-list__sub {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 8rpx;
+  display: flex;
+  gap: 16rpx;
+}
+.dsl-material-list__access {
+  color: #c8923a;
+}
+.dsl-material-list__arrow {
+  color: #cbd5e1;
+  font-size: 36rpx;
+}
+.dsl-material-list__state {
+  padding: 32rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #64748b;
+}
+.dsl-material-list__sk {
+  height: 112rpx;
+  background: #f1f5f9;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+}
+.dsl-material-list__retry {
+  margin-top: 16rpx;
+  display: inline-block;
+  padding: 12rpx 32rpx;
+  background: #c8923a;
+  color: #fff;
+  border-radius: 999rpx;
+}
+.dsl-material-list__more {
+  text-align: center;
+  font-size: 24rpx;
+  color: #c8923a;
+  margin-top: 16rpx;
+}

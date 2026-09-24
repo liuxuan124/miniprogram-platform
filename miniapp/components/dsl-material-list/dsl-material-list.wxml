@@ -1,0 +1,44 @@
+<view class="dsl-material-list" style="{{styleString}}">
+  <view wx:if="{{showFilter}}" class="dsl-material-list__filters">
+    <view
+      wx:for="{{filterTabs}}"
+      wx:key="id"
+      class="dsl-material-list__tab {{activeGroup === item.id ? 'is-active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onFilterTap"
+    >{{item.name}}</view>
+  </view>
+
+  <view wx:if="{{state === 'loading'}}" class="dsl-material-list__state">
+    <view wx:for="{{[1,2,3]}}" wx:key="*this" class="dsl-material-list__sk" />
+  </view>
+  <view wx:elif="{{state === 'error'}}" class="dsl-material-list__state">
+    <text>{{errorText}}</text>
+    <view class="dsl-material-list__retry" bindtap="reload">重试</view>
+  </view>
+  <view wx:elif="{{state === 'empty'}}" class="dsl-material-list__state">
+    <text>暂无资料</text>
+  </view>
+  <view wx:else class="dsl-material-list__body dsl-material-list__body--{{layout}}">
+    <view
+      wx:for="{{displayItems}}"
+      wx:key="id"
+      class="dsl-material-list__row"
+      data-id="{{item.id}}"
+      bindtap="onItemTap"
+    >
+      <view class="dsl-material-list__icon" style="background:{{item.fileColor}}">{{item.fileIcon}}</view>
+      <view class="dsl-material-list__main">
+        <view class="dsl-material-list__title">{{item.title}}</view>
+        <view wx:if="{{showMeta}}" class="dsl-material-list__meta">{{item.metaLine}}</view>
+        <view class="dsl-material-list__sub">
+          <text wx:if="{{showDownloads}}">下载 {{item.downloadCount}}</text>
+          <text wx:if="{{showAccess}}" class="dsl-material-list__access">{{item.access.label}}</text>
+        </view>
+      </view>
+      <text class="dsl-material-list__arrow">›</text>
+    </view>
+  </view>
+
+  <view wx:if="{{showMore && state === 'data'}}" class="dsl-material-list__more" data-link="{{moreLink}}" bindtap="onMoreTap">{{moreText}}</view>
+</view>
