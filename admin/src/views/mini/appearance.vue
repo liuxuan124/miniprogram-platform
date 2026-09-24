@@ -120,6 +120,32 @@
           </div>
         </section>
 
+        <section class="card">
+          <div class="head" style="margin-bottom: 12px">
+            <div>
+              <h2 class="h2">品牌信息</h2>
+              <div class="sub">小程序名、登录文案等；与整店默认文案统一，保存后进入待发布</div>
+            </div>
+          </div>
+          <div class="brand-fields">
+            <label class="kv">
+              <span>小程序名称</span>
+              <input v-model="brandForm.appName" class="input" maxlength="20" />
+            </label>
+            <label class="kv">
+              <span>登录副标题</span>
+              <input v-model="brandForm.loginTagline" class="input" maxlength="40" />
+            </label>
+            <label class="kv">
+              <span>品牌眉题（英文）</span>
+              <input v-model="brandForm.brandEyebrow" class="input" maxlength="32" />
+            </label>
+          </div>
+          <button type="button" class="btn sm primary" :disabled="savingBrand" style="margin-top:12px" @click="saveBrand">
+            {{ savingBrand ? '保存中…' : '保存品牌信息' }}
+          </button>
+        </section>
+
       </div>
 
       <aside class="preview">
@@ -240,6 +266,8 @@ import { resolvePageStatus } from '@/utils/pageStatus'
 import { refreshMiniPending } from '@/composables/useMiniPending'
 import { NAV_FLAT_ICONS } from '@/components/page-builder/navIconSet'
 import type { PageRecord as PageRow } from '@/types/page'
+import { DEFAULT_MINIAPP_BRAND_CONFIG, type MiniappBrandConfig } from '@/types/miniapp'
+import { normalizeBrandConfig } from '@/utils/brand-config'
 
 defineOptions({ name: 'MiniAppearance' })
 
@@ -251,6 +279,8 @@ const loading = ref(false)
 const loaded = ref(false)
 const savingTabs = ref(false)
 const savingTheme = ref(false)
+const savingBrand = ref(false)
+const brandForm = ref<MiniappBrandConfig>({ ...DEFAULT_MINIAPP_BRAND_CONFIG })
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
 const previewSource = ref<'draft' | 'live'>('live')
@@ -427,6 +457,23 @@ function discardTheme() {
   pendingTheme.value = ''
 }
 
+async function saveBrand() {
+  if (savingBrand.value) return
+  savingBrand.value = true
+  try {
+    const payload = normalizeBrandConfig(brandForm.value)
+    const updated = await updateMiniSite({ brandConfig: payload })
+    site.value = { ...site.value, ...updated, brand: payload }
+    brandForm.value = payload
+    ElMessage.success('品牌信息已存为待发布')
+    void refreshMiniPending(true)
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    savingBrand.value = false
+  }
+}
+
 async function writeTheme(color: string) {
   const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
   const theme = {
@@ -596,6 +643,9 @@ async function load() {
       getConfigByGroupSilent('basic').catch(() => null),
     ])
     site.value = s
+    brandForm.value = normalizeBrandConfig(
+      (s.brand && typeof s.brand === 'object' ? s.brand : null) as Partial<MiniappBrandConfig>,
+    )
     pending.value = p.items || []
     syncSortableFromSite()
     const data = (pageRes as { data?: { records?: PageRow[]; list?: PageRow[] } })?.data

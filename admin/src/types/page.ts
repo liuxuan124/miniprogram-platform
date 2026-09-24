@@ -59,6 +59,9 @@ export enum ComponentType {
   WarmShop = 'warm_shop',
   WarmMine = 'warm_mine',
   ContentPaywall = 'content_paywall',
+  MaterialList = 'material_list',
+  MemberPlan = 'member_plan',
+  QaList = 'qa_list',
 }
 
 /** 组件类型标签映射 */
@@ -105,18 +108,21 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.PlanetHero]: '星球顶栏',
   [ComponentType.PlanetTopics]: '星球话题预测',
   [ComponentType.PlanetFeed]: '星球动态流',
-  [ComponentType.WarmGreet]: '暖阁问候条',
-  [ComponentType.WarmAuthors]: '暖阁作者列表',
-  [ComponentType.WarmFeature]: '暖阁精选',
-  [ComponentType.WarmColumns]: '暖阁专栏',
-  [ComponentType.WarmPlanetRec]: '暖阁星球推荐',
-  [ComponentType.WarmFeed]: '暖阁信息流',
-  [ComponentType.WarmHome]: '暖阁首页模板',
-  [ComponentType.WarmDiscover]: '暖阁发现模板',
-  [ComponentType.WarmPlanet]: '暖阁星球模板',
-  [ComponentType.WarmShop]: '暖阁商城模板',
-  [ComponentType.WarmMine]: '暖阁我的模板',
+  [ComponentType.WarmGreet]: '品牌问候条',
+  [ComponentType.WarmAuthors]: '品牌作者列表',
+  [ComponentType.WarmFeature]: '品牌精选',
+  [ComponentType.WarmColumns]: '品牌专栏',
+  [ComponentType.WarmPlanetRec]: '品牌星球推荐',
+  [ComponentType.WarmFeed]: '品牌信息流',
+  [ComponentType.WarmHome]: '品牌首页模板',
+  [ComponentType.WarmDiscover]: '品牌发现模板',
+  [ComponentType.WarmPlanet]: '星球固定页',
+  [ComponentType.WarmShop]: '商城固定页',
+  [ComponentType.WarmMine]: '我的固定页',
   [ComponentType.ContentPaywall]: '内容付费墙',
+  [ComponentType.MaterialList]: '资料列表',
+  [ComponentType.MemberPlan]: '会员方案',
+  [ComponentType.QaList]: '问答列表',
 }
 
 /** 组件类型图标映射 */
@@ -175,6 +181,9 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.WarmShop]: 'Goods',
   [ComponentType.WarmMine]: 'User',
   [ComponentType.ContentPaywall]: 'Lock',
+  [ComponentType.MaterialList]: 'FolderOpened',
+  [ComponentType.MemberPlan]: 'GoldMedal',
+  [ComponentType.QaList]: 'ChatDotRound',
 }
 
 /** 组件分类 */
@@ -194,7 +203,7 @@ export const ComponentCategoryLabels: Record<ComponentCategory, string> = {
   [ComponentCategory.Marketing]: '营销',
   [ComponentCategory.Layout]: '布局',
   [ComponentCategory.Planet]: '星球',
-  [ComponentCategory.Warm]: '暖阁',
+  [ComponentCategory.Warm]: '品牌组件',
 }
 
 /** 组件分类与类型映射 */
@@ -212,11 +221,12 @@ export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = 
     ComponentType.MomentsFeed,
     ComponentType.HotNews,
     ComponentType.RichText,
-    ComponentType.ContentPaywall,
+    ComponentType.MaterialList,
+    ComponentType.QaList,
     ComponentType.BrandIntro,
     ComponentType.Certificate,
   ],
-  [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
+  [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.MemberPlan, ComponentType.ContentPaywall, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
   [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer, ComponentType.Container, ComponentType.SectionBg],
   [ComponentCategory.Planet]: [ComponentType.PlanetHero, ComponentType.PlanetTopics, ComponentType.PlanetFeed],
   [ComponentCategory.Warm]: [
@@ -305,6 +315,9 @@ export interface ComponentDataSource {
     | 'activity'
     | 'appointment_service'
     | 'category'
+    | 'file'
+    | 'membership_plan'
+    | 'paid_qa'
   config?: Record<string, any>
   params?: Record<string, any>
   query?: Record<string, any>

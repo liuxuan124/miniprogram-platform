@@ -15,7 +15,7 @@
       "id": "wh-authors",
       "type": "warm_authors",
       "props": {
-        "title": "暖阁出品",
+        "title": "墨太白出品",
         "more_text": "全部作者 ›",
         "more_url": "/pages/author-list/author-list",
         "more_tab": false
@@ -50,7 +50,7 @@
     {
       "id": "wh-feed",
       "type": "warm_feed",
-      "props": { "footer": "暖阁 · 慢一点，也很好" }
+      "props": { "footer": "墨太白 · 跨境内容，慢一点也很好" }
     }
   ],
   "shellOverrides": {
