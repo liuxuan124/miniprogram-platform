@@ -38,15 +38,12 @@ mybatis-plus:
 # JWT（密钥必须由环境变量 JWT_SECRET 注入，禁止使用代码库内默认值）
 jwt:
   secret: ${JWT_SECRET}
-
-# 卡密库字段加密（默认回落 JWT_SECRET，生产建议单独 CARD_CODE_ENCRYPTION_KEY）
-app:
-  card-code-encryption-key: ${CARD_CODE_ENCRYPTION_KEY:${JWT_SECRET:}}
   expiration: 86400000
   refresh-expiration: 604800000
 
-# 跨域允许来源（生产由 APP_CORS_ALLOWED_ORIGINS 注入具体域名）
+# 应用级配置（卡密加密、跨域等）
 app:
+  card-code-encryption-key: ${CARD_CODE_ENCRYPTION_KEY:${JWT_SECRET}}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
 
