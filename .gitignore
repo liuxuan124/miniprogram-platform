@@ -27,7 +27,11 @@ verify-crossborder-motaibai-launch.js
 # IDE & OS
 .idea/
 .vscode/
-.cursor/
+.cursor/*
+!.cursor/environment.json
+!.cursor/install.sh
+!.cursor/start.sh
+!.cursor/db-init.sh
 *.iml
 .DS_Store
 Thumbs.db
