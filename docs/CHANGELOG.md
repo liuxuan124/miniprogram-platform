@@ -4,6 +4,8 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-27：后台页面列表放开删除入口——`canDelete` 原先只放行 `draft`，导致归档组测试页（archived=1）与已下线页（status=2）在「更多」菜单里没有删除项；后端 `deletePage` 的真实约束只有「status=1 已发布不可删」，前端比后端严格。改为 `Number(row.status) !== 1` 对齐后端，已上线页需先下线；删除为物理删除（Page 实体无 `@TableLogic`、未配全局逻辑删除），不可恢复。同次构建顺带清掉线上 admin-static 中 454 个 macOS `._` 元数据文件（904→450）。admin。
+
 - 2026-09-27：定位「项目完整搭建」最后一公里——服务端已全量在役，**小程序端从未上传微信平台**（`mp_wx_code_upload_audit`/`mp_wx_code_manifest` 均 0 行，服务器 `backend.env` 无 `WX_UPLOAD_KEY`/`WX_SECRET`）；新增 `docs/handover/miniapp-launch-runbook.md`（凭证清单 + 微信平台五项必配 + `push-miniprogram-preview.js`/`submit-miniprogram-audit.js` 上传提审命令 + 九项验证）；据实测校准过期的 `docs/handover/pending-items.md`（ICP/HTTPS/防火墙与三条"高"技术债务均已闭环，改列小程序上线为新硬阻塞）；docs。
 
 - 2026-09-27：发布包运维文档补齐——RELEASE.md 增加「运行环境要求」（app.jar 为 Spring Boot 3.2.5 / class 版本 61，**服务器必须 JDK 17**）与上线顺序第 5、6 步（Nginx 需自行补 443 与证书、`resolver 127.0.0.11` 是 Docker 内置 DNS 非 Docker 部署须改，否则 /api 全 502；小程序源码不在包内需另行上传并配 request 合法域名）；新增 `deploy/docs/DEPLOY-CHECKLIST.md` 九节逐项勾验清单（含灰度期必复核的「小程序侧要素数 0」组件与三项人工阻塞项），打包脚本同步产出该清单；因此重打包为 `-r2`，二进制与迁移脚本未变，旧包保留为历史版本；deploy+release。
