@@ -411,7 +411,10 @@ function canOffline(row: PageRecord) {
 }
 
 function canDelete(row: PageRecord) {
-  return resolvePageStatus(row) === 'draft'
+  // 与后端 PageServiceImpl.deletePage 的约束对齐：仅 status=1（已发布）不可删除。
+  // 草稿(0) / 已下线(2) / 归档 均可删除；已上线页需先「下线」再删。
+  // 旧实现只放行 'draft'，导致归档组里的测试页、已下线页都没有删除入口。
+  return Number((row as any).status ?? 0) !== 1
 }
 
 function openEditor(row: PageRecord) {
