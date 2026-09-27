@@ -95,6 +95,9 @@ def asset_name(url: str, idx: int) -> str:
     return f"迁移-图片-{idx:03d}"
 
 
+# 2026-09-27 全库扫描后确认会引用外链演示图的列（其余列扫描结果为 0）
+# mp_miniapp_release.snapshot 是历史发布快照，一并替换，回滚时才不会退回占位图
+# mp_operation_log.params 是操作日志，保持原样不改写
 TARGETS = [
     ("mp_page_version", "id", "dsl_content",
      "dsl_content LIKE '%picsum.photos%' OR dsl_content LIKE '%placehold.co%'"),
@@ -104,6 +107,22 @@ TARGETS = [
      "content LIKE '%picsum.photos%' OR content LIKE '%placehold.co%'"),
     ("mp_content", "id", "cover_image",
      "cover_image LIKE '%picsum.photos%' OR cover_image LIKE '%placehold.co%'"),
+    ("mp_content", "id", "author_avatar",
+     "author_avatar LIKE '%picsum.photos%' OR author_avatar LIKE '%placehold.co%'"),
+    ("mp_content_comment", "id", "avatar",
+     "avatar LIKE '%picsum.photos%' OR avatar LIKE '%placehold.co%'"),
+    ("mp_product", "id", "main_image",
+     "main_image LIKE '%picsum.photos%' OR main_image LIKE '%placehold.co%'"),
+    ("mp_product", "id", "images",
+     "images LIKE '%picsum.photos%' OR images LIKE '%placehold.co%'"),
+    ("mp_product_sku", "id", "sku_image",
+     "sku_image LIKE '%picsum.photos%' OR sku_image LIKE '%placehold.co%'"),
+    ("mp_order_item", "id", "product_image",
+     "product_image LIKE '%picsum.photos%' OR product_image LIKE '%placehold.co%'"),
+    ("mp_ai_conversation", "id", "recommended_items",
+     "recommended_items LIKE '%picsum.photos%' OR recommended_items LIKE '%placehold.co%'"),
+    ("mp_miniapp_release", "id", "snapshot",
+     "snapshot LIKE '%picsum.photos%' OR snapshot LIKE '%placehold.co%'"),
     ("mp_system_config", "id", "config_value",
      "config_value LIKE '%picsum.photos%' OR config_value LIKE '%placehold.co%'"),
 ]
