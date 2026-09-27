@@ -37,10 +37,13 @@
               @change="handleImagesChange"
               @paste="handlePaste($event, i)"
             />
-            <label class="upload-btn">
-              {{ uploadingIndex === i ? '上传中…' : '本地上传' }}
-              <input type="file" accept="image/*" style="display: none" @change="handleUpload($event, i)" />
-            </label>
+            <div class="banner-upload-ops">
+              <label class="upload-btn">
+                {{ uploadingIndex === i ? '上传中…' : '本地上传' }}
+                <input type="file" accept="image/*" style="display: none" @change="handleUpload($event, i)" />
+              </label>
+              <el-button size="small" @click="openAssetPicker(i)">素材库</el-button>
+            </div>
             <el-form-item label="标题" label-width="50px" class="nested-item">
               <el-input
                 v-model="img.title"
@@ -76,6 +79,7 @@
         + 添加图片
       </el-button>
     </el-form>
+    <AssetPickerDialog v-model="assetPickerVisible" @select="onPickAsset" />
   </div>
 </template>
 
@@ -85,12 +89,28 @@ import { Delete } from '@element-plus/icons-vue'
 import LinkPickerField from '../LinkPickerField.vue'
 import { useImageUpload } from '../composables/useImageUpload'
 import { onImgError } from '@/utils/imgFallback'
+import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const { uploadImage } = useImageUpload()
 const uploadingIndex = ref(-1)
+const assetPickerVisible = ref(false)
+const assetPickerIndex = ref(-1)
+
+function openAssetPicker(index: number) {
+  assetPickerIndex.value = index
+  assetPickerVisible.value = true
+}
+
+/** 复用素材库已有图片：只引用 URL，不重复上传 */
+function onPickAsset(url: string) {
+  const index = assetPickerIndex.value
+  if (!url || index < 0 || !data.images?.[index]) return
+  data.images[index].image = url
+  handleImagesChange()
+}
 
 function handleImagesChange() {
   emit('update', { images: [...data.images] })
@@ -167,12 +187,19 @@ function removeImage(index: number) {
     }
   }
 
+  .banner-upload-ops {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
   .upload-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 26px;
-    margin-top: 4px;
+    margin-top: 0;
     padding: 0 12px;
     font-size: 12px;
     background: #fff;

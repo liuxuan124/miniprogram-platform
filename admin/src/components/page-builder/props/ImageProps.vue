@@ -27,6 +27,9 @@
             {{ uploading ? '上传中…' : '本地上传' }}
             <input type="file" accept="image/*" style="display: none" @change="onUploadImage" />
           </label>
+          <el-button size="small" :disabled="uploading" @click="assetPickerVisible = true">
+            素材库
+          </el-button>
           <el-button
             v-if="imageUrl && canCrop"
             size="small"
@@ -57,6 +60,7 @@
       :aspect-ratio="aspectRatio"
       @confirm="onCropConfirm"
     />
+    <AssetPickerDialog v-model="assetPickerVisible" @select="onPickAsset" />
   </el-form>
 </template>
 
@@ -66,6 +70,7 @@ import { ElMessage } from 'element-plus'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
 import ImageCropDialog from '../ImageCropDialog.vue'
+import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 import {
   IMAGE_ASPECT_RATIO_OPTIONS,
   aspectRatioCss,
@@ -77,6 +82,7 @@ const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const { uploadImage, uploadBlob, uploading } = useImageUpload()
 const cropVisible = ref(false)
+const assetPickerVisible = ref(false)
 
 const aspectRatio = computed(() => normalizeAspectRatio(data.aspect_ratio))
 const canCrop = computed(() => aspectRatio.value !== 'auto')
@@ -100,6 +106,13 @@ function patchImage(url: string, original?: string) {
 
 function updateImage(url: string) {
   patchImage(url, url)
+}
+
+/** 从素材库复用已有图片：素材本身已入库，这里只引用其 URL，不重复上传 */
+function onPickAsset(url: string) {
+  if (!url) return
+  patchImage(url, url)
+  ElMessage.success('已引用素材库图片')
 }
 
 function openCropDialog() {

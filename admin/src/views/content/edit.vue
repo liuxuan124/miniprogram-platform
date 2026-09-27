@@ -242,6 +242,7 @@
                     @change="onUploadCover"
                   />
                 </label>
+                <el-button size="small" @click="assetPickerVisible = true">素材库</el-button>
               </div>
             </el-form-item>
 
@@ -286,6 +287,7 @@
                     {{ coverUploading ? '上传中…' : '本地上传' }}
                     <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden :disabled="coverUploading" @change="onUploadCover" />
                   </label>
+                  <el-button size="small" @click="assetPickerVisible = true">素材库</el-button>
                 </div>
               </el-form-item>
               <el-form-item label="时长(秒)">
@@ -374,6 +376,7 @@
                     @change="onUploadCover"
                   />
                 </label>
+                <el-button size="small" @click="assetPickerVisible = true">素材库</el-button>
                 <div class="field-hint">与「基础内容」封面图同一字段，用于微信分享卡片。</div>
               </div>
             </el-form-item>
@@ -536,6 +539,7 @@
         </el-button>
       </template>
     </el-dialog>
+    <AssetPickerDialog v-model="assetPickerVisible" @select="onPickAsset" />
   </div>
 </template>
 
@@ -560,6 +564,7 @@ import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEdit
 import ContentPreviewPanel from '@/components/content/ContentPreviewPanel.vue'
 import ContentAiAssist from '@/components/content/ContentAiAssist.vue'
 import FilePickerDialog from '@/components/files/FilePickerDialog.vue'
+import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
 import { getPlainTextFromHtml, type ContentPreviewModel } from '@/utils/content-preview'
 import {
@@ -581,6 +586,14 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { uploadImage, uploading: coverUploading } = useImageUpload()
+const assetPickerVisible = ref(false)
+
+/** 复用素材库已有图片作为封面：只引用 URL，不重复上传 */
+function onPickAsset(url: string) {
+  if (!url) return
+  formData.cover_image = url
+  syncCoverToSeo()
+}
 
 const activeTab = ref('base')
 const pageLoading = ref(false)

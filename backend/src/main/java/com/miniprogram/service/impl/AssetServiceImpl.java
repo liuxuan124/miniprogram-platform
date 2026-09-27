@@ -66,6 +66,22 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AssetVO createAsset(AssetDTO dto) {
+        // upsert：上传层（FileUploadServiceImpl）落盘后已按 url 自动登记过一条，
+        // 素材库页面再显式登记时若直接新增，会出现同一 url 两条素材。
+        // 这里改为命中即更新，让分组/名称等运营信息补到已登记记录上。
+        if (StringUtils.hasText(dto.getUrl())) {
+            Asset existing = this.getOne(
+                    new LambdaQueryWrapper<Asset>().eq(Asset::getUrl, dto.getUrl()).last("LIMIT 1"));
+            if (existing != null) {
+                if (StringUtils.hasText(dto.getName())) existing.setName(dto.getName());
+                if (StringUtils.hasText(dto.getType())) existing.setType(dto.getType());
+                if (StringUtils.hasText(dto.getThumbUrl())) existing.setThumbUrl(dto.getThumbUrl());
+                if (dto.getSize() != null) existing.setSize(dto.getSize());
+                if (dto.getGroupId() != null && dto.getGroupId() > 0) existing.setGroupId(dto.getGroupId());
+                this.updateById(existing);
+                return toAssetVO(existing);
+            }
+        }
         Asset asset = new Asset();
         BeanUtils.copyProperties(dto, asset);
         this.save(asset);
@@ -244,15 +260,9 @@ public class AssetServiceImpl extends BaseServiceImpl<AssetMapper, Asset> implem
         }
 
         String fileName = name.contains(".") ? name : name + ".jpg";
-        UploadResultVO uploaded = fileUploadService.uploadBytes(bytes, fileName, "wechat-material");
-
-        Asset asset = new Asset();
-        asset.setName(name);
-        asset.setType("image");
-        asset.setUrl(uploaded.getUrl());
-        asset.setThumbUrl(uploaded.getUrl());
-        asset.setSize(uploaded.getFileSize() != null ? uploaded.getFileSize() : (long) bytes.length);
-        this.save(asset);
+        // 不再在此处手动 save：FileUploadServiceImpl 落盘后统一登记素材库（按 url 幂等），
+        // 两处都写会产生同一 url 的两条记录。
+        fileUploadService.uploadBytes(bytes, fileName, "wechat-material");
         return true;
     }
 

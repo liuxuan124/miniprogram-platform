@@ -96,11 +96,17 @@ const visible = computed({
   set: (value) => emit('update:modelValue', value),
 })
 
+/**
+ * 素材 URL 归一。
+ * 不能用 window.location.origin：管理后台在 admin.* 域，而 /uploads 静态资源只由 api.* 提供，
+ * 拼错域名的图在小程序和后台预览里都是 404。口径与 api/system.ts 的 normalizeUploadUrl 保持一致。
+ */
 function resolveAssetUrl(url: string) {
   if (!url) return ''
   if (/^(https?:\/\/|data:image\/)/i.test(url)) return url
-  if (url.startsWith('/')) return `${window.location.origin}${url}`
-  return `${window.location.origin}/${url}`
+  const target = (import.meta.env.VITE_API_TARGET as string | undefined) || window.location.origin
+  const origin = target.replace(/\/+$/, '')
+  return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`
 }
 
 function isSelected(url: string) {
