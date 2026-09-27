@@ -24,6 +24,7 @@
             本地上传
             <input type="file" accept="image/*" hidden @change="onUploadLogo" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => emitUpdate({ logo: url })" />
         </div>
         <div class="hint">有 Logo 文字且无 Logo 图时显示；留空则不显示</div>
       </el-form-item>
@@ -197,6 +198,7 @@
 import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const panel = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

@@ -29,6 +29,7 @@
             {{ uploading ? '上传中…' : '本地上传' }}
             <input type="file" accept="image/*" hidden :disabled="uploading" @change="onUploadIcon" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => emit('update', { icon_image: url })" />
         </div>
       </el-form-item>
 
@@ -132,6 +133,7 @@
 import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const iconPresets = [
   { key: 'service', label: '客服', emoji: '🎧' },

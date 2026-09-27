@@ -257,6 +257,7 @@
               {{ uploadingShare ? '上传中…' : '本地上传' }}
             </el-button>
             <input ref="shareFileInput" type="file" accept="image/*" hidden @change="onUploadShareImage" />
+            <AssetPickerButton @select="(url: string) => (formData.shareImage = url)" />
           </div>
         </el-form-item>
       </el-form>
@@ -295,6 +296,7 @@ import { Document, Brush, ArrowDown } from '@element-plus/icons-vue'
 import { getPageList, createPage, updatePage, deletePage, publishPage, unpublishPage, getPageTemplates, duplicatePage } from '@/api/page'
 import { normalizeUploadUrl, getConfigsSilent } from '@/api/system'
 import { useImageUpload } from '@/components/page-builder/composables/useImageUpload'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import PagePathField from '@/components/page-builder/PagePathField.vue'
 import AiPagePipelineDialog from '@/components/page-builder/AiPagePipelineDialog.vue'
 import type { PageRecord, CreatePageParams, PageListParams } from '@/types/page'

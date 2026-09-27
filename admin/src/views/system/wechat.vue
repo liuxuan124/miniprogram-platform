@@ -80,6 +80,7 @@
             >
               <el-button type="primary" icon="Upload" style="margin-left: 12px">上传</el-button>
             </el-upload>
+            <AssetPickerButton style="margin-left: 8px" @select="(url: string) => (formData.qrcodeUrl = url)" />
             <el-image
               v-if="formData.qrcodeUrl"
               :src="formData.qrcodeUrl"
@@ -448,6 +449,7 @@ import {
   uploadWxPayPrivateKey,
 } from '@/api/system'
 import { get, put } from '@/api/request'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import {
   applyConfigListToForm,
   extractConfigList,

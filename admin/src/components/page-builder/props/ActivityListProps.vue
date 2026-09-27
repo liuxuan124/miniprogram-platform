@@ -70,6 +70,7 @@
             上传
             <input type="file" accept="image/*" hidden @change="(e) => onUploadCover(i, e)" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => onUpdateItem(i, 'cover', url)" />
         </div>
       </el-form-item>
       <el-form-item label="链接" label-width="50px">
@@ -86,6 +87,7 @@ import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
 import { useListEditor } from '../composables/useListEditor'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

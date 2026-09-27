@@ -138,7 +138,10 @@
                         <img :src="getFieldValue(field.path)" alt="" />
                         <el-icon class="remove-img-icon" @click="setFieldValue(field.path, '')"><Close /></el-icon>
                       </div>
-                      <el-button v-else size="small" @click="triggerImageUpload(field)">📷 上传图片</el-button>
+                      <div v-else class="image-control__actions" style="display: flex; gap: 8px">
+                        <el-button size="small" @click="triggerImageUpload(field)">📷 上传图片</el-button>
+                        <AssetPickerButton @select="(url: string) => setFieldValue(field.path, url)" />
+                      </div>
                     </div>
                   </template>
                   <template v-else-if="field.type === 'color'">
@@ -219,7 +222,12 @@
                   <img :src="bgSettings.imageUrl" alt="" />
                   <el-icon class="remove-img-icon" @click="bgSettings.imageUrl=''; applyBackground()"><Close /></el-icon>
                 </div>
-                <el-button v-else size="small" @click="triggerBgImageUpload">📷 选择背景图</el-button>
+                <div v-else class="image-control__actions" style="display: flex; gap: 8px">
+                  <el-button size="small" @click="triggerBgImageUpload">📷 选择背景图</el-button>
+                  <AssetPickerButton
+                    @select="(url: string) => { bgSettings.imageUrl = url; applyBackground() }"
+                  />
+                </div>
               </div>
             </div>
           </template>
@@ -316,6 +324,7 @@ import { reactive, ref, computed, watch } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { EditableField } from '@/types/pageTemplate'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const props = defineProps<{
   templateDsl: any

@@ -46,6 +46,8 @@
         图片
         <input type="file" accept="image/*" hidden @change="onPickImage" />
       </label>
+      <button type="button" class="tb" title="从素材库插入图片" @click="assetPickerVisible = true">素材库</button>
+      <AssetPickerDialog v-model="assetPickerVisible" @select="insertAssetImage" />
       <button type="button" class="tb" title="清除格式" @click="cmd('removeFormat')">清除</button>
     </div>
 
@@ -122,6 +124,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useImageUpload } from '../composables/useImageUpload'
+import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 
 const props = defineProps<{
   modelValue?: string
@@ -175,6 +178,7 @@ const linkUrl = ref('')
 const savedRange = ref<Range | null>(null)
 
 const imgSizeVisible = ref(false)
+const assetPickerVisible = ref(false)
 const imgWidthPreset = ref<'100%' | '75%' | '50%' | 'custom'>('100%')
 const imgWidthValue = ref(100)
 const imgWidthUnit = ref<'%' | 'px'>('%')
@@ -602,6 +606,17 @@ async function onPickImage(e: Event) {
       })
     },
   })
+}
+
+/** 从素材库插入已有图片：素材本身已入库，这里只引用其 URL，不重复上传 */
+function insertAssetImage(url: string) {
+  if (!url) return
+  focusEditor()
+  const html = props.seamlessImages
+    ? `<p style="margin:0;padding:0;line-height:0;font-size:0;"><img src="${url}" style="${imgInlineStyle('100%')}" alt="" /></p><p><br></p>`
+    : `<img src="${url}" style="${imgInlineStyle('100%')}" alt="" /><p><br></p>`
+  document.execCommand('insertHTML', false, html)
+  emitHtml()
 }
 
 function onPaste(e: ClipboardEvent) {

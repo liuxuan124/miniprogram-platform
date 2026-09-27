@@ -41,6 +41,10 @@
                 {{ uploadingShare ? '上传中…' : '本地上传' }}
                 <input type="file" accept="image/*" hidden :disabled="uploadingShare" @change="onUploadShareImage" />
               </label>
+              <AssetPickerButton
+                style="margin-left: 8px"
+                @select="(url: string) => pageStore.updatePageConfig({ share_image: url })"
+              />
             </div>
           </el-form-item>
         </el-form>
@@ -327,6 +331,7 @@ import { ComponentType, ComponentTypeLabels } from '@/types/page'
 import { normalizeBuilderPath } from '@/utils/page-path'
 import { useImageUpload } from './composables/useImageUpload'
 import { getDataSourceBinding } from './dataSourceValidation'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import PagePathField from './PagePathField.vue'
 
 const pageStore = usePageStore()

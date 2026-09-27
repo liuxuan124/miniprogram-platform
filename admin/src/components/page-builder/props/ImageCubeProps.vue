@@ -26,6 +26,7 @@
             上传
             <input type="file" accept="image/*" hidden @change="(e) => onUpload(idx, e)" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => patch(idx, { image: url })" />
         </el-form-item>
         <el-form-item label="跳转">
           <el-select :model-value="item.link_type || 'none'" @change="(v: string) => patch(idx, { link_type: v })">
@@ -45,6 +46,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useImageUpload } from '../composables/useImageUpload'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

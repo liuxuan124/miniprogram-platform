@@ -17,6 +17,7 @@
             本地上传
             <input type="file" accept="image/*" hidden @change="onUploadAvatar" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => emit('update', { avatar: url })" />
         </div>
       </el-form-item>
       <el-form-item label="入口标题">
@@ -92,6 +93,7 @@
               上传
               <input type="file" accept="image/*" hidden @change="(e) => onUploadGroupIcon(i, e)" />
             </label>
+            <AssetPickerButton style="margin-left: 8px" @select="(url: string) => updateGroup(i, { icon: url })" />
           </div>
         </el-form-item>
         <el-form-item label="入群方式">
@@ -128,6 +130,7 @@
               本地上传
               <input type="file" accept="image/*" hidden @change="(e) => onUploadQrcode(i, e)" />
             </label>
+            <AssetPickerButton style="margin-left: 8px" @select="(url: string) => updateGroup(i, { qrcode: url })" />
           </div>
         </el-form-item>
       </div>
@@ -140,6 +143,7 @@
 import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 type GroupItem = { id: string; name: string; icon?: string; qrcode?: string; join_type?: string; wecom_url?: string }
 

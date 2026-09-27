@@ -25,6 +25,7 @@
             {{ posterUploading ? '上传中…' : '本地上传封面' }}
             <input type="file" accept="image/*" style="display: none" @change="onUploadPoster" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => emit('update', { poster: url })" />
           <div class="field-hint">不上传封面时，将自动使用视频开头画面</div>
         </div>
       </el-form-item>
@@ -45,6 +46,7 @@
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import { useImageUpload } from '../composables/useImageUpload'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()

@@ -21,6 +21,7 @@
             上传封面
             <input type="file" accept="image/*" hidden @change="onUploadImage" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => emit('update', { image: url })" />
         </div>
       </el-form-item>
       <el-form-item label="活动时间">
@@ -131,6 +132,7 @@ import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

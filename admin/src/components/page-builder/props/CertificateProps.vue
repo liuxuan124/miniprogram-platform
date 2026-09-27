@@ -44,6 +44,7 @@
             上传图片
             <input type="file" accept="image/*" hidden @change="(e) => onUploadImage(i, e)" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => onUpdateItem(i, 'image', url)" />
         </div>
       </el-form-item>
     </div>
@@ -57,6 +58,7 @@ import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
 import { useListEditor } from '../composables/useListEditor'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

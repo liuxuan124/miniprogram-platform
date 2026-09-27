@@ -183,6 +183,7 @@
                   </div>
                 </div>
                 <input ref="shareImageInput" type="file" accept="image/*" style="display:none" @change="handleShareImageChange" />
+                <AssetPickerButton style="margin-top: 8px" @select="(url: string) => (form.shareImage = url)" />
               </el-form-item>
             </el-form>
 
@@ -348,6 +349,7 @@ import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { Plus, Cellphone, MoreFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import { getReleaseDetail, toReleaseId } from '@/api/version'
 import {
   getTargetVersions,

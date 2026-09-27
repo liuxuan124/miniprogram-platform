@@ -147,6 +147,7 @@
                   <el-button size="small" :loading="coverUploading">更换</el-button>
                 </el-upload>
                 <el-button size="small" @click="createForm.cover = ''">移除</el-button>
+                <AssetPickerButton size="small" @select="(url: string) => (createForm.cover = url)" />
               </div>
             </div>
             <el-upload
@@ -370,6 +371,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import ListStateWrap from '@/components/ListStateWrap.vue'
 import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
 import { uploadFile, normalizeUploadUrl } from '@/api/system'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import {
   getActivityList,
   createActivity as createActivityApi,

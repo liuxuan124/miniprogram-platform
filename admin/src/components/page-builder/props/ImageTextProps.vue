@@ -23,10 +23,13 @@
     <el-form-item label="图片">
       <div style="width: 100%">
         <el-input :model-value="data.image || ''" @input="emit('update', { image: $event })" placeholder="图片URL" />
-        <label style="display: inline-flex; align-items: center; justify-content: center; height: 30px; margin-top: 4px; padding: 0 12px; font-size: 12px; background: #fff; border: 1px solid #e3e8f0; border-radius: 6px; cursor: pointer;">
-          上传图片
-          <input type="file" accept="image/*" style="display: none" @change="onUploadImage" />
-        </label>
+        <div style="display: flex; gap: 8px; margin-top: 4px">
+          <label style="display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; font-size: 12px; background: #fff; border: 1px solid #e3e8f0; border-radius: 6px; cursor: pointer;">
+            上传图片
+            <input type="file" accept="image/*" style="display: none" @change="onUploadImage" />
+          </label>
+          <AssetPickerButton @select="(url: string) => emit('update', { image: url })" />
+        </div>
       </div>
     </el-form-item>
   </el-form>
@@ -35,6 +38,7 @@
 <script setup lang="ts">
 import { useImageUpload } from '../composables/useImageUpload'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

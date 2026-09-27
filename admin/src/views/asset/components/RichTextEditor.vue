@@ -31,6 +31,7 @@
               <span>上传封面图</span>
             </div>
           </el-upload>
+          <AssetPickerButton style="margin-top: 8px" @select="onPickCover" />
         </div>
       </el-form-item>
       <el-form-item label="摘要">
@@ -89,6 +90,7 @@ import { ElMessage } from 'element-plus'
 import { Close, Plus } from '@element-plus/icons-vue'
 import { createMaterial, updateMaterial } from '@/api/asset'
 import { uploadFile } from '@/api/system'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import { MaterialType, type MaterialGroup, type MaterialRecord } from '@/types/asset'
 
 const props = defineProps<{
@@ -243,6 +245,14 @@ async function handleCoverUpload(options: any) {
   } catch {
     options.onError?.(new Error('上传失败'))
   }
+}
+
+/** 从素材库复用已有封面：素材本身已入库，这里只引用其 URL */
+function onPickCover(url: string) {
+  if (!url) return
+  coverFile.value = null
+  uploadedCoverUrl.value = url
+  coverPreviewUrl.value = resolveUrl(url)
 }
 
 function removeCover() {

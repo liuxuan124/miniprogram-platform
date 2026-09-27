@@ -26,6 +26,7 @@
             上传头像
             <input type="file" accept="image/*" hidden @change="onUploadAvatar" />
           </label>
+          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => emit('update', { avatar: url })" />
         </div>
       </el-form-item>
       <el-form-item label="主题色">
@@ -63,6 +64,7 @@
 import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
