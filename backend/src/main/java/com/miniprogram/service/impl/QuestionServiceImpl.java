@@ -62,8 +62,9 @@ public class QuestionServiceImpl extends BaseServiceImpl<QuestionMapper, Questio
                 throw new BusinessException(ErrorCode.ACCESS_DENIED, "无权查看该问题");
             }
         }
+        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）
+        baseMapper.incrementViewCount(id);
         question.setViewCount((question.getViewCount() == null ? 0 : question.getViewCount()) + 1);
-        this.updateById(question);
         return toDetailDTO(question);
     }
 

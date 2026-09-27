@@ -2,14 +2,12 @@
  * 将 DSL/素材 URL 解析为小程序可用的 HTTPS 地址
  */
 const PROD_API_ORIGIN = 'https://api.zfculture.site'
+const { resolveCustomBaseUrl } = require('./custom-api-url')
 
 function getApiOrigin() {
-  try {
-    const custom = wx.getStorageSync('api_base_url')
-    if (custom && typeof custom === 'string') {
-      return custom.replace(/\/+$/, '')
-    }
-  } catch (e) { /* ignore */ }
+  // 自定义地址仅 develop 环境生效（MP-P1-03），trial/release 强制走固定域名
+  const custom = resolveCustomBaseUrl()
+  if (custom) return custom
   try {
     const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
     if (envVersion === 'develop') {

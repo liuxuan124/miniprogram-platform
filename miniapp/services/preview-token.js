@@ -1,4 +1,5 @@
 const PROD_BASE_URL = 'https://api.zfculture.site'
+const { resolveCustomBaseUrl } = require('../utils/custom-api-url')
 
 function resolveDevelopBaseUrl() {
   try {
@@ -9,14 +10,9 @@ function resolveDevelopBaseUrl() {
 }
 
 function resolveBaseUrl() {
-  try {
-    const custom = wx.getStorageSync('api_base_url')
-    if (custom && typeof custom === 'string') {
-      return custom.replace(/\/$/, '')
-    }
-  } catch (e) {
-    // ignore
-  }
+  // 自定义地址仅 develop 环境生效（MP-P1-03），trial/release 强制走固定域名
+  const custom = resolveCustomBaseUrl()
+  if (custom) return custom
   try {
     const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
     if (envVersion === 'develop') {

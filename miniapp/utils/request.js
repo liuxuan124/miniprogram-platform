@@ -2,6 +2,7 @@
 // 统一 Token 注入、错误处理、401 自动跳转登录、请求/响应拦截
 
 const { AuthUtil } = require('./auth')
+const { resolveCustomBaseUrl } = require('./custom-api-url')
 
 // ========== 配置 ==========
 const PROD_BASE_URL = 'https://api.zfculture.site'
@@ -15,14 +16,9 @@ function resolveDevelopBaseUrl() {
 }
 
 function resolveBaseUrl() {
-  try {
-    const custom = wx.getStorageSync('api_base_url')
-    if (custom && typeof custom === 'string') {
-      return custom.replace(/\/$/, '')
-    }
-  } catch (e) {
-    // ignore
-  }
+  // 自定义地址仅 develop 环境生效（MP-P1-03），trial/release 强制走固定域名
+  const custom = resolveCustomBaseUrl()
+  if (custom) return custom
   try {
     const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
     if (envVersion === 'develop') {

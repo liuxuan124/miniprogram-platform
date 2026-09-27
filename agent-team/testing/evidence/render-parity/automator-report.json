@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "at": "2026-09-27T04:30:51.046Z",
-  "port": "ws://127.0.0.1:9423",
+  "at": "2026-09-27T15:09:26.327Z",
+  "port": 9420,
   "home": {
     "path": "pages/index/index",
     "dslMode": true,

@@ -44,13 +44,23 @@ function fail(message, detail) {
   process.exit(1)
 }
 
-function pickCategory(categories) {
+function pickCategory(categories, forcedFirst, forcedSecond) {
+  // 小程序含会员、商城下单与在线支付，类目必须与实际功能一致（QA MP-P0-02）。
+  // 优先真实商业类目；可用 --first-class/--second-class 强制指定。
+  if (forcedFirst) {
+    const hit = categories.find((c) => c.first_class === forcedFirst
+      && (!forcedSecond || c.second_class === forcedSecond))
+    if (hit) return hit
+    fail('指定的审核类目不存在', `${forcedFirst}/${forcedSecond || '*'}`)
+  }
   const prefer = [
+    ['商家自营', ''],
+    ['商业服务', ''],
+    ['电商平台', ''],
     ['资讯', '信息资讯'],
     ['资讯', ''],
     ['教育', '在线教育'],
     ['工具', '信息查询'],
-    ['商业服务', ''],
   ]
   for (const [first, second] of prefer) {
     const hit = categories.find((c) => {
@@ -109,7 +119,8 @@ async function main() {
   const appid = args.appid
   const version = args.version
   const desc = args.desc || '提交审核'
-  const versionDesc = args['version-desc'] || '纯内容资讯小程序，无在线销售与配送功能'
+  const versionDesc = args['version-desc']
+    || '跨境行业资讯阅读 + 会员体系 + 星球社群 + 文创商城（含在线下单与支付）'
   const uploadKey = String(process.env.WX_UPLOAD_KEY || '').replace(/\\n/g, '\n')
   const appSecret = process.env.WX_APP_SECRET || ''
 
@@ -123,52 +134,34 @@ async function main() {
 
   const categoryRes = await requestJson(`https://api.weixin.qq.com/wxa/get_category?access_token=${token}`)
   const categories = categoryRes.category_list || []
-  const cat = pickCategory(categories)
+  const cat = pickCategory(categories, args['first-class'], args['second-class'])
   if (!cat) fail('未找到可用审核类目', JSON.stringify(categoryRes))
 
+  // 页面地址必须取自 miniapp/app.json 当前注册路径（QA MP-P0-02：旧主包路径已全部迁移/拆分）
+  const makeItem = (address, tag, title) => ({
+    address,
+    tag,
+    title,
+    first_class: cat.first_class,
+    second_class: cat.second_class,
+    first_id: cat.first_id,
+    second_id: cat.second_id,
+  })
   const itemList = [
-    {
-      address: 'pages/index/index',
-      tag: '跨境 资讯 干货',
-      title: '首页',
-      first_class: cat.first_class,
-      second_class: cat.second_class,
-      first_id: cat.first_id,
-      second_id: cat.second_id,
-    },
-    {
-      address: 'pages/content-list/content-list',
-      tag: '文章 资讯 阅读',
-      title: '资讯',
-      first_class: cat.first_class,
-      second_class: cat.second_class,
-      first_id: cat.first_id,
-      second_id: cat.second_id,
-    },
-    {
-      address: 'pages/tab-hub/tab-hub',
-      tag: '清单 工具 阅读',
-      title: '清单',
-      first_class: cat.first_class,
-      second_class: cat.second_class,
-      first_id: cat.first_id,
-      second_id: cat.second_id,
-    },
-    {
-      address: 'pages/mine/mine',
-      tag: '个人中心 收藏',
-      title: '我的',
-      first_class: cat.first_class,
-      second_class: cat.second_class,
-      first_id: cat.first_id,
-      second_id: cat.second_id,
-    },
+    makeItem('pages/index/index', '跨境 资讯 干货', '首页'),
+    makeItem('pages/discover/discover', '文章 笔记 阅读', '发现'),
+    makeItem('pages/planet/planet', '社群 星球 会员', '星球'),
+    makeItem('pages/shop/shop', '商城 文创 商品', '商城'),
+    makeItem('pages/mine/mine', '个人中心 订单 收藏', '我的'),
   ]
 
   const auditBody = JSON.stringify({
     item_list: itemList,
     version_desc: versionDesc,
-    feedback_info: '本小程序为「墨太白·出海笔记」跨境行业资讯与干货阅读平台，提供文章浏览、分类阅读、收藏与客服咨询。不含商品交易、会员充值、在线支付与配送功能。',
+    feedback_info: '本小程序为跨境行业资讯与社群服务平台：提供文章/笔记阅读、星球社群、会员体系，'
+      + '以及文创商品的在线展示、下单与微信支付。商品为自营文创类实物/虚拟商品，'
+      + '涉及收货地址与订单管理；客服咨询通过微信客服进行。'
+      + '隐私保护指引已在小程序后台按实际接口（手机号、头像相册、剪贴板、订阅消息、支付等）如实声明。',
   })
 
   const auditRes = await requestJson(

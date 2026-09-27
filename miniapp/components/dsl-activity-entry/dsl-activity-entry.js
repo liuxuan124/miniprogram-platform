@@ -120,7 +120,7 @@ Component({
       if (id) {
         executeAction({
           type: 'page',
-          path: '/pkg-extra/detail/index?id=' + id + '&type=activity',
+          path: '/pkg-extra/detail/detail?id=' + id + '&type=activity',
         })
         return
       }

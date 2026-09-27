@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "at": "2026-09-27T04:30:35.746Z",
-  "port": "ws://127.0.0.1:9423",
+  "at": "2026-09-27T15:09:18.904Z",
+  "port": 9420,
   "relaxed": false,
   "source": "automator-real-dom",
   "batchCount": 6,

@@ -8,8 +8,7 @@
     "pages/login/login",
     "pages/search/search",
     "pages/custom/custom",
-    "pages/custom-nav/custom-nav",
-    "pages/render-parity/render-parity"
+    "pages/custom-nav/custom-nav"
   ],
   "window": {
     "backgroundTextStyle": "dark",

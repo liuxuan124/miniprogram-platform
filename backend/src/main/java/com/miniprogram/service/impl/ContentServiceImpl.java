@@ -567,9 +567,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             return getPublishedPlanetContentDetail(id, userId);
         }
 
-        // 浏览量 +1
+        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）
+        baseMapper.incrementViewCount(id);
         entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
-        this.updateById(entity);
 
         ContentDetailDTO dto = toDetailDTO(entity);
         applyEntitlementGate(dto, entity, userId);
@@ -664,8 +664,9 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             throw new BusinessException(ErrorCode.ACCESS_DENIED.getCode(), "开通会员后可查看星球内容");
         }
 
+        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）
+        baseMapper.incrementViewCount(id);
         entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
-        this.updateById(entity);
 
         ContentDetailDTO dto = toDetailDTO(entity);
         boolean unlocked = member;

@@ -1,9 +1,23 @@
 {
-  "desc": "关于本文件的更多信息，请参考文档 https://developers.weixin.qq.com/miniprogram/dev/framework/sitemap.html",
+  "desc": "仅放行公开内容页被微信搜索索引；登录、交易、用户、状态、测试与工具页一律拒绝（QA 10.3-3）",
   "rules": [
-    {
-      "action": "allow",
-      "page": "*"
-    }
+    { "action": "allow", "page": "pages/index/index" },
+    { "action": "allow", "page": "pages/discover/discover" },
+    { "action": "allow", "page": "pages/planet/planet" },
+    { "action": "allow", "page": "pages/shop/shop" },
+    { "action": "allow", "page": "pkg-content/content-detail/content-detail" },
+    { "action": "allow", "page": "pkg-content/content-list/content-list" },
+    { "action": "allow", "page": "pkg-content/moment-detail/moment-detail" },
+    { "action": "allow", "page": "pkg-content/product-detail/product-detail" },
+    { "action": "allow", "page": "pkg-content/product-list/product-list" },
+    { "action": "allow", "page": "pkg-content/planet-intro/planet-intro" },
+    { "action": "allow", "page": "pkg-content/planet-list/planet-list" },
+    { "action": "allow", "page": "pkg-content/author-feed/author-feed" },
+    { "action": "allow", "page": "pkg-content/author-list/author-list" },
+    { "action": "allow", "page": "pkg-content/resources/resources" },
+    { "action": "allow", "page": "pkg-extra/activity-detail/activity-detail" },
+    { "action": "allow", "page": "pkg-extra/activity-list/activity-list" },
+    { "action": "allow", "page": "pkg-extra/detail/detail" },
+    { "action": "disallow", "page": "*" }
   ]
 }

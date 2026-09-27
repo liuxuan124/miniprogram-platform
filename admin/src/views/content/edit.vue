@@ -545,7 +545,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
@@ -1322,6 +1322,7 @@ async function handleSubmit() {
       )
     }
 
+    dirty.value = false
     goBack(true)
   } catch (err: any) {
     ElMessage.error(err?.message || '提交失败')
@@ -1346,12 +1347,35 @@ onMounted(async () => {
   } else {
     applyDefaultAuthor()
   }
+  hydrated.value = true
 })
 
 watch(
   () => [formData.title, formData.content, noteBody.value, publishMode.value],
   () => { lastEditedAt.value = new Date() },
 )
+
+// ===== 未保存修改守卫（QA P1-02）：hydrated 之前的回填不算脏；保存成功后复位 =====
+const hydrated = ref(false)
+const dirty = ref(false)
+watch(
+  [formData, seoForm, accessRule],
+  () => { if (hydrated.value) dirty.value = true },
+  { deep: true },
+)
+onBeforeRouteLeave(async () => {
+  if (!dirty.value) return true
+  try {
+    await ElMessageBox.confirm(
+      '当前内容有未保存的修改，离开后修改将丢失。',
+      '放弃修改？',
+      { confirmButtonText: '放弃修改', cancelButtonText: '继续编辑', type: 'warning' },
+    )
+    return true
+  } catch {
+    return false
+  }
+})
 
 watch(showSeoTab, (ok) => {
   if (!ok && activeTab.value === 'seo') activeTab.value = 'base'

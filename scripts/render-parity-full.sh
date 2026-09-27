@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# 测试页/黄金数据默认不进正式包：跑校验前临时注册，退出（含失败）自动还原
+node scripts/toggle-render-parity.js on
+restore_parity_off() { node scripts/toggle-render-parity.js off || true; }
+trap restore_parity_off EXIT
+
 echo "== 1/9 generate golden DSL + batches =="
 node scripts/generate-golden-dsl.js
 

@@ -26,9 +26,12 @@
         </div>
         <router-view v-slot="{ Component, route }">
           <transition name="fade-transform">
-            <keep-alive>
+            <!-- 内容编辑器不缓存、按 fullPath 重建：type/id 变化必须销毁旧编辑会话，
+                 否则地址已切、编辑器仍是上一类型与未保存输入（QA P1-01/P1-02） -->
+            <keep-alive v-if="!isContentEditor">
               <component :is="Component" :key="route.path + '-' + appStore.reloadKey" />
             </keep-alive>
+            <component v-else :is="Component" :key="route.fullPath + '-' + appStore.reloadKey" />
           </transition>
         </router-view>
       </el-main>

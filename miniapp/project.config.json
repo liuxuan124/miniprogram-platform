@@ -145,6 +145,22 @@
       {
         "value": "*.md",
         "type": "suffix"
+      },
+      {
+        "value": "pages/render-parity",
+        "type": "folder"
+      },
+      {
+        "value": "data/golden-batches",
+        "type": "folder"
+      },
+      {
+        "value": "data/golden-batches-all.json",
+        "type": "file"
+      },
+      {
+        "value": "data/golden-parity-dsl.json",
+        "type": "file"
       }
     ],
     "include": []
