@@ -4,6 +4,8 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-27：修复「保存并同步」重复点击弹 `Request failed with status code 400`——两处缺陷：(1) `buildPublishFingerprint` 只用改动项的 type/pageId/name/summary 组指纹，这些**不随内容变化**，于是「把底部导航首页从页面 1 改成页面 28」与「什么都没改」指纹完全相同，30 秒防重复窗口内再点一次即被误判重复提交而拒绝，用户真实改动发不出去却只看到 400（生产实证：19:48:08 首次成功写入内容版本 11，其后三次同批提交全被拒）；现补入 `site_builder_draft` 草稿内容哈希与脏页 `id@currentVersion@updateTime` 签名，内容一变指纹就变，去重只拦真正一模一样的重复。(2) 去重命中由抛 `BusinessException(100102)` 改为**幂等成功返回**（`MiniPublishResultVO.deduplicated=true` + 上次版本号与友好文案），并修 `useMiniConfigSync` 的 catch 优先取 `response.data.message`（原先直接抛 `e.message`，把后端中文原因吞掉，前端只显示 axios 默认英文）；backend+admin，已上线（jar `cc271b31`→`888a80e2`）。
+
 - 2026-09-27：后台页面列表放开删除入口——`canDelete` 原先只放行 `draft`，导致归档组测试页（archived=1）与已下线页（status=2）在「更多」菜单里没有删除项；后端 `deletePage` 的真实约束只有「status=1 已发布不可删」，前端比后端严格。改为 `Number(row.status) !== 1` 对齐后端，已上线页需先下线；删除为物理删除（Page 实体无 `@TableLogic`、未配全局逻辑删除），不可恢复。同次构建顺带清掉线上 admin-static 中 454 个 macOS `._` 元数据文件（904→450）。admin。
 
 - 2026-09-27：定位「项目完整搭建」最后一公里——服务端已全量在役，**小程序端从未上传微信平台**（`mp_wx_code_upload_audit`/`mp_wx_code_manifest` 均 0 行，服务器 `backend.env` 无 `WX_UPLOAD_KEY`/`WX_SECRET`）；新增 `docs/handover/miniapp-launch-runbook.md`（凭证清单 + 微信平台五项必配 + `push-miniprogram-preview.js`/`submit-miniprogram-audit.js` 上传提审命令 + 九项验证）；据实测校准过期的 `docs/handover/pending-items.md`（ICP/HTTPS/防火墙与三条"高"技术债务均已闭环，改列小程序上线为新硬阻塞）；docs。

@@ -293,7 +293,10 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         List<String> publishChangeIds = resolvePublishChangeIds(request, pendingBefore, includeSite, pageIds);
         contentPublishPreflightService.assertCanPublish(publishChangeIds);
         String fingerprint = buildPublishFingerprint(includeSite, pageIds, pendingBefore, request != null ? request.getClientRequestId() : null);
-        assertNotDuplicatePublish(fingerprint);
+        MiniPublishResultVO duplicated = resolveDuplicatePublish(fingerprint);
+        if (duplicated != null) {
+            return duplicated;
+        }
         contentPublishPreflightService.assertCanPublish(publishChangeIds);
 
         boolean promoted = false;
@@ -867,20 +870,33 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         return new ArrayList<>(ids);
     }
 
-    private void assertNotDuplicatePublish(String fingerprint) {
+    /**
+     * 去重窗口内重复提交同一批改动时，返回上一次的发布结果（幂等成功），
+     * 而不是抛异常让前端只看到「Request failed with status code 400」这类无意义提示。
+     */
+    private MiniPublishResultVO resolveDuplicatePublish(String fingerprint) {
         String lastFp = systemConfigService.getConfigValue(LAST_PUBLISH_FINGERPRINT_KEY);
         LocalDateTime lastAt = parseDateTime(systemConfigService.getConfigValue(LAST_PUBLISH_AT_KEY));
         if (!StringUtils.hasText(fingerprint) || !StringUtils.hasText(lastFp) || lastAt == null) {
-            return;
+            return null;
         }
         if (!fingerprint.equals(lastFp)) {
-            return;
+            return null;
         }
         long gap = Duration.between(lastAt, LocalDateTime.now().withNano(0)).getSeconds();
-        if (gap >= 0 && gap < PUBLISH_DEDUP_WINDOW_SECONDS) {
-            throw new BusinessException(100102,
-                    "发布过于频繁：与 " + gap + " 秒前是同一批改动，请勿重复提交（" + PUBLISH_DEDUP_WINDOW_SECONDS + " 秒内）");
+        if (gap < 0 || gap >= PUBLISH_DEDUP_WINDOW_SECONDS) {
+            return null;
         }
+        int no = parseIntOrDefault(systemConfigService.getConfigValue(LIVE_RELEASE_NO_KEY), 0);
+        LocalDateTime liveAt = parseDateTime(systemConfigService.getConfigValue(LIVE_RELEASE_AT_KEY));
+        MiniPublishResultVO vo = new MiniPublishResultVO();
+        vo.setDeduplicated(true);
+        vo.setLiveReleaseNo(no > 0 ? no : null);
+        vo.setLiveReleaseAt(liveAt != null ? liveAt : lastAt);
+        vo.setPublishedPages(0L);
+        vo.setMessage("刚刚已同步过同一批改动（内容版本 " + no + "，" + gap + " 秒前），本次无需重复提交");
+        log.info("重复发布已幂等返回 fingerprint={} gap={}s releaseNo={}", fingerprint, gap, no);
+        return vo;
     }
 
     private String buildPublishFingerprint(boolean includeSite, List<Long> pageIds,
@@ -906,8 +922,54 @@ public class MiniSiteServiceImpl implements MiniSiteService {
                             .append(i.getName()).append(':')
                             .append(i.getSummary()).append(';'));
         }
+        // ★ 必须把「改动内容本身」纳入指纹。
+        // 旧实现只看改动项的 type/pageId/name/summary，这些都不随内容变化：
+        // 例如把底部导航首页从页面 1 改成页面 28，改动项仍是「site:站点配置/导航有未上线改动」，
+        // 指纹完全不变 → 30 秒内再点一次「保存并同步」会被误判为重复提交而拒绝，
+        // 用户真实改动发不出去，却只看到 HTTP 400。这里补上草稿内容哈希与脏页版本。
+        String draftRaw = systemConfigService.getConfigValue(SystemConfigServiceImpl.SITE_BUILDER_DRAFT_KEY);
+        sb.append("|draft=").append(sha256Hex(
+                StringUtils.hasText(draftRaw) ? draftRaw : ""));
+        sb.append("|pageVer=").append(buildDirtyPageVersionSignature(pending, pageIds));
         sb.append("|rb=").append(systemConfigService.getConfigValue(PENDING_ROLLBACK_FROM_NO_KEY));
         return sha256Hex(sb.toString());
+    }
+
+    /**
+     * 脏页版本签名：id@currentVersion@updateTime。内容改一次签名就变一次，
+     * 保证「同一批改动」只在真的没有任何变化时才被判定为重复。
+     */
+    private String buildDirtyPageVersionSignature(PendingChangesVO pending, List<Long> pageIds) {
+        Set<Long> ids = new LinkedHashSet<>();
+        if (pageIds != null) {
+            pageIds.stream().filter(Objects::nonNull).filter(id -> id > 0).forEach(ids::add);
+        }
+        if (pending != null && pending.getItems() != null) {
+            for (PendingChangeVO item : pending.getItems()) {
+                if (item != null && item.getPageId() != null && item.getPageId() > 0) {
+                    ids.add(item.getPageId());
+                }
+            }
+        }
+        if (ids.isEmpty()) {
+            return "";
+        }
+        List<Long> sorted = ids.stream().sorted().collect(Collectors.toList());
+        List<Page> pages;
+        try {
+            pages = pageMapper.selectBatchIds(sorted);
+        } catch (Exception e) {
+            log.warn("指纹计算：读取页面版本失败 {}", e.getMessage());
+            return String.valueOf(sorted);
+        }
+        StringBuilder sb = new StringBuilder();
+        pages.stream()
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(Page::getId))
+                .forEach(p -> sb.append(p.getId()).append('@')
+                        .append(p.getCurrentVersion()).append('@')
+                        .append(p.getUpdateTime()).append(','));
+        return sb.toString();
     }
 
     private static String sha256Hex(String raw) {

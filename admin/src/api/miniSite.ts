@@ -89,6 +89,8 @@ export type MiniPublishResultVO = {
   publishedPages?: number
   /** 站点草稿是否真的被提升为线上配置；false 表示这次发布什么都没做 */
   siteConfigPromoted?: boolean
+  /** 去重命中：同一批改动在防重复窗口内重复提交，后端幂等返回、未重复写入 */
+  deduplicated?: boolean
   message?: string
 }
 

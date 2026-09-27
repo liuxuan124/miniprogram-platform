@@ -33,4 +33,7 @@ public class MiniPublishResultVO {
 
     @Schema(description = "提示文案")
     private String message;
+
+    @Schema(description = "本次是否为去重命中（同一批改动在防重复窗口内重复提交，未重复写入）")
+    private boolean deduplicated;
 }

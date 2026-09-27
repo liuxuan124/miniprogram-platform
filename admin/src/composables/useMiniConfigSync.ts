@@ -93,6 +93,11 @@ export function useMiniConfigSync() {
 
       await refreshMiniPendingGlobal(true)
       const no = result.liveReleaseNo
+      // 去重命中：同一批改动在防重复窗口内重复提交，后端幂等返回、没有重复写入
+      if (result.deduplicated) {
+        ElMessage.info(result.message || '刚刚已同步过同一批改动，本次无需重复提交')
+        return result
+      }
       // 发布接口可能返回 200 却什么都没做（禁空发）；这种情况不能报「已写入线上配置」
       const nothingDone = result.siteConfigPromoted === false
         && !(result.publishedPages || result.publishedPageCount)
@@ -108,8 +113,12 @@ export function useMiniConfigSync() {
       )
       return result
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '同步失败'
-      ElMessage.error(msg)
+      // 后端业务异常（如「发布过于频繁…」）在 response.data.message 里；
+      // axios 原始 error.message 只会是「Request failed with status code 400」，对用户没有意义，别直接抛给用户。
+      const apiMsg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      const raw = e instanceof Error ? e.message : ''
+      const fallback = raw && !/^Request failed with status code/i.test(raw) ? raw : '同步失败，请稍后重试'
+      ElMessage.error(apiMsg || fallback)
       return null
     } finally {
       syncing.value = false
