@@ -114,6 +114,8 @@ public class AiPagePipelineServiceImpl implements AiPagePipelineService {
         create.setType(3);
         create.setPath("/pages/custom/" + slug);
         create.setDescription("AI 流水线草稿，缺口见生成报告");
+        // 页面列表按来源分组：AI 产出的单独成组，不与装修器手工页混排
+        create.setPageGroup("ai");
 
         PageDetailDTO page = null;
         for (int i = 0; i < 8; i++) {

@@ -35,7 +35,7 @@ public class PageUpdateDTO {
     @Schema(description = "页面描述")
     private String description;
 
-    @Schema(description = "页面分组 tab/activity/content/archived")
+    @Schema(description = "页面来源分组 decorate/ai/activity/archived")
     private String pageGroup;
 
     @Schema(description = "是否归档 0/1")

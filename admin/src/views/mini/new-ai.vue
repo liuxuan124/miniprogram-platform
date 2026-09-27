@@ -155,6 +155,8 @@ async function createBlankPage(nameHint?: string) {
     name,
     type: 3,
     path: `pages/custom/ai-${suffix}`,
+    // AI 生成器产出的页面单独归组，便于在页面列表里按来源区分
+    pageGroup: 'ai',
   })
   const id = Number((res as any)?.data?.id || 0)
   if (!id) throw new Error('未返回页面 id')

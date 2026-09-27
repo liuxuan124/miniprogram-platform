@@ -4,6 +4,8 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-27：后台页面列表改按**页面来源**分组——原分组把「底部导航页」当一类，组里 5 行是导航槽位（导航1~导航5）而非页面，槽位与页面混排、组计数只算 1，看不出页面类型。现改为 **系统页 / 装修页 / AI 页面 / 活动与专题 / 归档** 五组：系统页取自新增常量 `MINI_SYSTEM_PAGES`（与 `miniapp/app.json` 主包注册页一致，标注"内置原生页 · 不可装修"，行内显示它当前占用的导航位，操作仅「配置」跳外观）；装修页为装修器产出（含 type=1 首页与模板页）；AI 页面为 AI 生成器产出（`pageGroup='ai'` 显式标记 + `pages/custom/ai-` 路径兜底，历史 id 20/27 无需回填即可归位）；活动与专题为 type=2 或 `pageGroup='activity'`；归档判定提到最前，避免归档页散落到各类型组。导航槽位行整块移除（槽位管理统一归「外观」），绑定关系退化为行内「导航 N」标签；分组逻辑改写 `pageStatus.ts` 的 `inferPageGroup`。配套：`PageCreateDTO` 补 `pageGroup` 字段（原先只有 UpdateDTO 有，建页带不上），`AiPagePipelineServiceImpl.commitDraft` 写入 `ai`；admin+backend。已上线（jar `888a80e2`→`ab9a238c`，admin-static 全量替换 450 文件）。
+
 - 2026-09-27：修复「保存并同步」重复点击弹 `Request failed with status code 400`——两处缺陷：(1) `buildPublishFingerprint` 只用改动项的 type/pageId/name/summary 组指纹，这些**不随内容变化**，于是「把底部导航首页从页面 1 改成页面 28」与「什么都没改」指纹完全相同，30 秒防重复窗口内再点一次即被误判重复提交而拒绝，用户真实改动发不出去却只看到 400（生产实证：19:48:08 首次成功写入内容版本 11，其后三次同批提交全被拒）；现补入 `site_builder_draft` 草稿内容哈希与脏页 `id@currentVersion@updateTime` 签名，内容一变指纹就变，去重只拦真正一模一样的重复。(2) 去重命中由抛 `BusinessException(100102)` 改为**幂等成功返回**（`MiniPublishResultVO.deduplicated=true` + 上次版本号与友好文案），并修 `useMiniConfigSync` 的 catch 优先取 `response.data.message`（原先直接抛 `e.message`，把后端中文原因吞掉，前端只显示 axios 默认英文）；backend+admin，已上线（jar `cc271b31`→`888a80e2`）。
 
 - 2026-09-27：后台页面列表放开删除入口——`canDelete` 原先只放行 `draft`，导致归档组测试页（archived=1）与已下线页（status=2）在「更多」菜单里没有删除项；后端 `deletePage` 的真实约束只有「status=1 已发布不可删」，前端比后端严格。改为 `Number(row.status) !== 1` 对齐后端，已上线页需先下线；删除为物理删除（Page 实体无 `@TableLogic`、未配全局逻辑删除），不可恢复。同次构建顺带清掉线上 admin-static 中 454 个 macOS `._` 元数据文件（904→450）。admin。

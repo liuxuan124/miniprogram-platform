@@ -38,4 +38,7 @@ public class PageCreateDTO {
 
     @Schema(description = "页面描述")
     private String description;
+
+    @Schema(description = "页面来源分组 decorate/ai/activity/system，留空由页面绑定与路径推导")
+    private String pageGroup;
 }

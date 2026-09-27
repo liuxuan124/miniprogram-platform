@@ -427,6 +427,8 @@ export interface CreatePageParams {
   shareImage?: string
   background_color?: string
   dsl?: PageDSL
+  /** 页面来源分组：decorate / ai / activity / archived */
+  pageGroup?: string
 }
 
 /** 更新页面参数 */
@@ -441,7 +443,7 @@ export interface UpdatePageParams {
   background_color?: string
   description?: string
   dsl?: PageDSL
-  /** 页面分组 tab/activity/content/archived（后端若支持则生效） */
+  /** 页面来源分组 decorate/ai/activity/archived（后端若支持则生效） */
   pageGroup?: string
   page_group?: string
   /** 1=归档 */

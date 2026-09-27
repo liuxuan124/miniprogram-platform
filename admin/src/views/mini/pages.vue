@@ -6,7 +6,10 @@
       <div class="head">
         <div>
           <h1 class="h1">页面</h1>
-          <div class="sub">共 {{ totalCount }} 个 · 底部导航 {{ siteTabs.length }} 位 · 页面状态：草稿 / 已上线 / 待同步</div>
+          <div class="sub">
+            共 {{ totalCount + groupCounts.system }} 个 · 系统页 {{ groupCounts.system }} ·
+            装修页 {{ groupCounts.decorate }} · AI 页面 {{ groupCounts.ai }} · 活动与专题 {{ groupCounts.activity }}
+          </div>
         </div>
         <div class="actions">
           <button
@@ -67,49 +70,30 @@
             </button>
 
             <template v-if="!(closedGroups[group.key] && !filtering)">
-              <template v-if="group.key === 'tab'">
-                <div
-                  v-for="(tab, ti) in siteTabs"
-                  :key="'nav-slot-' + ti"
-                  class="prow nav-slot-row"
-                  :class="{ 'nav-slot-row--empty': !tab.pageId && !tab.pagePath }"
-                >
+              <!-- 系统页：小程序内置原生页，不可装修，只能改配置或绑导航位 -->
+              <template v-if="group.key === 'system'">
+                <div v-for="sp in systemRows" :key="'sys-' + sp.path" class="prow sys-row">
                   <div class="thumb">
-                    <i style="background: #e8e0d8" /><i style="background: #e8e0d8" /><i style="background: #e8e0d8" />
+                    <i style="background: #e2ddd4" /><i style="background: #e2ddd4" /><i style="background: #e2ddd4" />
                   </div>
                   <div class="pname">
-                    <b>导航 {{ ti + 1 }} · {{ tab.text || '未命名' }}</b>
-                    <div class="faint">{{ navSlotSub(tab, ti) }}</div>
+                    <b>{{ sp.name }}</b>
+                    <div class="faint">{{ sp.desc }} · {{ sp.path }}</div>
                   </div>
                   <div class="prow-ops">
-                    <span v-if="isMineTabPath(tab)" class="tag t-live">系统页</span>
-                    <span v-else-if="!tab.pageId && !tab.pagePath" class="tag t-err">空位</span>
-                    <span v-else class="tag t-live">已绑定</span>
-                    <button type="button" class="btn soft sm" @click="router.push('/mini/appearance')">在外观改</button>
+                    <span class="tag t-live">系统页</span>
+                    <span v-if="tabSlotByPath(sp)" class="tag t-slot">导航位 {{ tabSlotByPath(sp) }}</span>
+                    <button type="button" class="btn soft sm" @click="router.push('/mini/appearance')">
+                      配置
+                    </button>
                   </div>
                 </div>
+                <div v-if="!systemRows.length" class="muted" style="padding: 14px 16px">
+                  没有符合条件的系统页
+                </div>
               </template>
-              <div
-                v-if="group.key === 'tab'"
-                class="prow mine-row"
-                @click="router.push('/page-builder/mine')"
-              >
-                <div class="thumb">
-                  <i style="background: #efe6da" /><i style="background: #efe6da" /><i style="background: #efe6da" />
-                </div>
-                <div class="pname">
-                  <b>我的 <MiniIcon name="lock" :size="13" class="inline-ic" /></b>
-                  <div class="faint">导航 {{ mineTabIndex }} · 系统页 · 菜单与会员卡在装修里配置</div>
-                </div>
-                <div class="prow-ops">
-                  <div class="pstat"><span class="tag t-live">已上线</span></div>
-                  <button type="button" class="btn soft sm" @click.stop="router.push('/page-builder/mine')">
-                    配置
-                  </button>
-                </div>
-              </div>
 
-              <template v-if="group.rows.length">
+              <template v-else-if="group.rows.length">
                 <div v-for="row in group.rows" :key="String(row.id)" class="prow">
                   <div class="thumb">
                     <i
@@ -132,7 +116,7 @@
                       :row="row"
                       :archived="isArchived(row)"
                       :is-nav="tabIndexOf(row) >= 0"
-                      :is-activity="inferGroup(row) === 'activity'"
+                      :is-activity="inferPageGroup(row) === 'activity'"
                       :is-test="isTestPage(row)"
                       :can-offline="canOffline(row)"
                       :can-delete="canDelete(row)"
@@ -141,7 +125,7 @@
                   </div>
                 </div>
               </template>
-              <div v-else-if="group.key !== 'tab'" class="muted" style="padding: 14px 16px">
+              <div v-else class="muted" style="padding: 14px 16px">
                 这一组还没有页面
               </div>
             </template>
@@ -205,9 +189,10 @@ import {
   inferPageGroup,
   PAGE_GROUP_LABELS,
   PAGE_GROUP_SUB,
-  MINI_PAGE_STATUS_LABELS,
+  MINI_SYSTEM_PAGES,
   resolvePageStatus,
   type MiniPageStatus,
+  type MiniSystemPage,
   type PageGroup,
 } from '@/utils/pageStatus'
 import type { PageRecord } from '@/types/page'
@@ -238,9 +223,20 @@ const totalCount = computed(() =>
   pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')).length,
 )
 
-const mineTabIndex = computed(() => {
-  const i = siteTabs.value.findIndex((t) => String(t.pagePath || '').includes('mine'))
-  return i >= 0 ? i + 1 : Math.max(siteTabs.value.length, 5)
+/** 各分组计数（系统页取自内置清单，其余来自库表页面） */
+const groupCounts = computed<Record<PageGroup, number>>(() => {
+  const c: Record<PageGroup, number> = {
+    system: MINI_SYSTEM_PAGES.length,
+    decorate: 0,
+    ai: 0,
+    activity: 0,
+    archived: 0,
+  }
+  for (const row of pages.value) {
+    if (String(row.path || '').includes('/pages/mine/mine')) continue
+    c[inferPageGroup(row)] += 1
+  }
+  return c
 })
 
 function matchRow(row: PageRecord) {
@@ -275,28 +271,24 @@ const statusFilters = computed(() => {
   ]
 })
 
+/**
+ * 分组顺序：系统页 → 装修页 → AI 页面 → 活动与专题 → 归档。
+ * 旧口径把「底部导航」当分类，槽位与页面混排；现在按页面来源分，
+ * 导航绑定退化为行内标签（rowSub 里的「导航 N」）。
+ */
+const GROUP_ORDER: PageGroup[] = ['system', 'decorate', 'ai', 'activity', 'archived']
+
 const groups = computed(() => {
-  const order: PageGroup[] = ['tab', 'activity', 'content', 'archived']
   const buckets: Record<PageGroup, PageRecord[]> = {
-    tab: [], activity: [], content: [], archived: [],
+    system: [], decorate: [], ai: [], activity: [], archived: [],
   }
-  const totals: Record<PageGroup, number> = {
-    tab: 0, activity: 0, content: 0, archived: 0,
-  }
+  const totals: Record<PageGroup, number> = { ...groupCounts.value }
   for (const row of pages.value) {
     if (String(row.path || '').includes('/pages/mine/mine')) continue
-    const g = inferGroup(row)
-    totals[g] += 1
+    const g = inferPageGroup(row)
     if (matchRow(row)) buckets[g].push(row)
   }
-  // 底部导航按 tabBar 顺序
-  const orderIds = siteTabs.value.map((t) => Number(t.pageId)).filter(Boolean)
-  buckets.tab.sort((a, b) => {
-    const ia = orderIds.indexOf(Number(a.id))
-    const ib = orderIds.indexOf(Number(b.id))
-    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
-  })
-  return order.map((key) => ({
+  return GROUP_ORDER.map((key) => ({
     key,
     label: PAGE_GROUP_LABELS[key],
     rows: buckets[key],
@@ -304,10 +296,20 @@ const groups = computed(() => {
   }))
 })
 
-/** 筛选时藏空组（对照原型）；未筛选时全部展示 */
+/** 系统页行：来自内置清单，不是库表页面；无页面状态，故只在「全部」筛选下展示 */
+const systemRows = computed(() => {
+  if (statusFilter.value !== 'all') return []
+  const q = keyword.value.trim().toLowerCase()
+  if (!q) return MINI_SYSTEM_PAGES
+  return MINI_SYSTEM_PAGES.filter((s) => `${s.name} ${s.path}`.toLowerCase().includes(q))
+})
+
+/** 筛选时藏空组；未筛选时全部展示（空组给引导文案） */
 const visibleGroups = computed(() => {
   if (!filtering.value) return groups.value
-  return groups.value.filter((g) => g.rows.length > 0 || g.key === 'tab')
+  return groups.value.filter((g) =>
+    g.key === 'system' ? systemRows.value.length > 0 : g.rows.length > 0,
+  )
 })
 
 function groupSub(key: PageGroup) {
@@ -342,27 +344,15 @@ function isTestPage(row: PageRecord) {
   return !!(row as any).isTest || (row as any).is_test === 1
 }
 
-function isMineTabPath(tab: MiniTabBarItem) {
-  const path = String(tab.pagePath || '')
-  const name = String(tab.text || '')
-  return path.includes('mine/mine') || name === '我的' || /pkg-user|\/mine/.test(path)
-}
-
-function navSlotSub(tab: MiniTabBarItem, index: number) {
-  if (isMineTabPath(tab)) return '系统页 · 个人中心（路径固定）'
-  if (!tab.pageId && !tab.pagePath) return '未绑定页面 · 请在外观中绑定'
-  const hit = pages.value.find((p) => {
-    if (tab.pageId != null && Number(p.id) === Number(tab.pageId)) return true
-    const tp = String(tab.pagePath || '').replace(/^\//, '')
-    const path = String(p.path || '').replace(/^\//, '')
-    return tp && tp === path
+/** 系统页当前占着哪个底部导航位（1-based）；0 = 该位置已改用装修页 */
+function tabSlotByPath(sp: MiniSystemPage) {
+  const want = String(sp.path || '').replace(/^\//, '')
+  const i = siteTabs.value.findIndex((t) => {
+    const tp = String(t.pagePath || '').replace(/^\//, '')
+    if (!tp) return false
+    return tp === want || tp.endsWith('/' + want) || want.endsWith(tp)
   })
-  if (!hit) return `绑定路径 ${tab.pagePath || '—'}（列表中未找到对应页，可能已删）`
-  const st = resolvePageStatus(hit)
-  const dup = pages.value.filter((p) => p.name === hit.name && Number(p.id) !== Number(hit.id)).length
-  const parts = [hit.name || '未命名', MINI_PAGE_STATUS_LABELS[st] || st]
-  if (dup > 0 && tabIndexOf(hit) < 0) parts.push('存在同名未绑导航页')
-  return parts.join(' · ')
+  return i >= 0 ? i + 1 : 0
 }
 
 function rowSub(row: PageRecord) {
@@ -389,16 +379,6 @@ function thumbColors(row: PageRecord): string[] {
   }
   const id = Number(row.id) || 0
   return [0, 1, 2].map((i) => THUMB_PALETTE[(id + i * 2) % THUMB_PALETTE.length])
-}
-
-function inferGroup(row: PageRecord): PageGroup {
-  const explicit = String((row as any).pageGroup || (row as any).page_group || '').toLowerCase()
-  if (explicit === 'tab' || explicit === 'activity' || explicit === 'content' || explicit === 'archived') {
-    // 归档显式组保留；「tab」若实际未绑导航则降为内容页，避免残留 page_group 误导
-    if (explicit === 'tab' && tabIndexOf(row) < 0) return 'content'
-    return explicit
-  }
-  return inferPageGroup({ ...row, boundToTab: tabIndexOf(row) >= 0 })
 }
 
 function isArchived(row: PageRecord) {
@@ -617,16 +597,8 @@ onMounted(load)
   flex-direction: column;
   gap: 14px;
 }
-.mine-row {
-  cursor: pointer;
+.sys-row {
   background: var(--soft);
-}
-.nav-slot-row {
-  background: var(--card);
-  border-bottom: 1px solid var(--line);
-}
-.nav-slot-row--empty {
-  background: #fff8f5;
 }
 .g-head__note {
   margin-left: auto;
