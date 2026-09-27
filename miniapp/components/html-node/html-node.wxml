@@ -1,0 +1,23 @@
+<!--components/html-node/html-node.wxml — 富文本块级节点的原生渲染-->
+<block wx:for="{{nodes}}" wx:key="i">
+  <!-- 纯内联片段（无自身样式、无链接）：直接交给 rich-text，不加多余包裹 -->
+  <rich-text
+    wx:if="{{!item.k && item.r && !item.s}}"
+    class="hn-raw"
+    nodes="{{item.r}}"
+  />
+
+  <!-- 有样式 / 有链接 / 有子块的节点：用原生 view，链接可点 -->
+  <view
+    wx:else
+    class="hn-view {{item.k ? 'hn-link' : ''}}"
+    style="{{item.s}}"
+    data-link="{{item.k}}"
+    hover-class="{{item.k ? 'hn-hover' : 'none'}}"
+    hover-stay-time="60"
+    bindtap="onNodeTap"
+  >
+    <rich-text wx:if="{{item.r}}" class="hn-raw" nodes="{{item.r}}" />
+    <html-node wx:if="{{item.c}}" nodes="{{item.c}}" />
+  </view>
+</block>

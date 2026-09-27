@@ -3,11 +3,19 @@
   <view class="dsl-rich-text__toolbar" wx:if="{{hasImages}}">
     <text class="dsl-rich-text__preview-btn" bindtap="onContentTap">查看图片 ({{imageUrls.length}})</text>
   </view>
-  <view class="dsl-rich-text__body" bindtap="onContentTap">
+
+  <!-- 无链接：整段交给 rich-text（历史渲染路径，视觉零变化） -->
+  <view wx:if="{{plain}}" class="dsl-rich-text__body" bindtap="onContentTap">
     <rich-text
       class="dsl-rich-text__content"
       nodes="{{config.content || ''}}"
-      bindtap="onLinkTap"
     />
+  </view>
+
+  <!-- 含链接：块级拆解后由原生视图渲染，链接可点。
+       基础字号 / 行高 / 颜色仍挂在最外层，靠继承作用到内部节点，
+       与 rich-text 路径的继承链保持一致（不要下放到每个节点，会打断继承）。 -->
+  <view wx:else class="dsl-rich-text__body dsl-rich-text__content">
+    <html-node nodes="{{blocks}}" />
   </view>
 </view>

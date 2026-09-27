@@ -127,7 +127,9 @@ Component({
     onItemTap(e) {
       const id = e.currentTarget.dataset.id
       if (!id) return
-      navigatePage(`/pages/resource-detail/resource-detail?id=${id}`)
+      // 原先跳 /pages/resource-detail/resource-detail —— 该页面在整个小程序里并不存在，
+      // 点击后静默失败。改为进资料库列表（列表页自行定位资料）。
+      navigatePage(`/pkg-content/resources/resources?id=${id}`)
     },
 
     onMoreTap(e) {

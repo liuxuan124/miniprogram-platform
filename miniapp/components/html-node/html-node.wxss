@@ -1,0 +1,18 @@
+/* components/html-node/html-node.wxss — 块级节点渲染样式
+   注意：不要给节点强制 width:100%，否则在 flex/grid 容器里做子项时会把布局挤塌。 */
+.hn-view {
+  display: block;
+}
+
+.hn-raw {
+  display: block;
+}
+
+/* 可点击节点：轻微按压反馈，让「画出来的按钮」有真实可点的感觉 */
+.hn-link {
+  position: relative;
+}
+
+.hn-hover {
+  opacity: 0.72;
+}
