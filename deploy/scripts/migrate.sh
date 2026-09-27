@@ -2,7 +2,12 @@
 # 按版本号序执行 backend Flyway 风格 SQL（V*.sql），并记录到 schema_version 表。
 # 用法:
 #   DB_HOST=127.0.0.1 DB_USER=root DB_PASS=xx DB_NAME=miniprogram_prod ./deploy/scripts/migrate.sh
+#   MIGRATE_FROM=V94 ./deploy/scripts/migrate.sh   # 只处理 >= V94 的脚本
 # 密码优先用 MYSQL_PWD / DB_PASS 环境变量（不出现在 ps 参数里）。
+#
+# MIGRATE_FROM 使用场景：生产库的 schema_version 并非从 V1 开始登记
+# （例如历史库由 dump 初始化，只记录了 V47 之后的迁移）。此时脚本会把 V1 当作
+# 未执行而尝试重跑，甚至在 V1 内含 USE 语句时直接失败中断。设定起始版本即可跳过。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -33,6 +38,11 @@ CREATE TABLE IF NOT EXISTS schema_version (
 
 shopt -s nullglob
 # 必须用版本序，避免 V10 排在 V4 之前（兼容 bash 3，不用 mapfile）
+if [[ -n "${MIGRATE_FROM:-}" ]]; then
+  echo "仅处理 >= ${MIGRATE_FROM} 的迁移脚本"
+fi
+
+# 注意：版本号必须按 V 后的数字比较，直接比较字符串会让 V100 排在 V94 之前。
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
   base="$(basename "$f")"
@@ -49,6 +59,14 @@ while IFS= read -r f; do
     echo "FAILED $base" >&2
     exit 1
   fi
-done < <(ls "$SQL_DIR"/V*.sql 2>/dev/null | grep -vi rollback | sort -V)
+done < <(ls "$SQL_DIR"/V*.sql 2>/dev/null | grep -vi rollback | sort -V | awk -v from="${MIGRATE_FROM:-}" '
+{
+  p = $0
+  sub(/.*\//, "", p)
+  v = p; sub(/__.*/, "", v)
+  n = v;  sub(/^V/, "", n);  n = n + 0
+  if (from != "") { f = from; sub(/^V/, "", f); if (n < f + 0) next }
+  print $0
+}')
 
 echo "DONE"

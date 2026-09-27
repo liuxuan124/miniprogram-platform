@@ -2,6 +2,9 @@
 node_modules/
 admin/node_modules/
 
+# 会话/助手工作记录（含生产环境细节，禁止入库）
+.workbuddy/
+
 # Build output
 backend/target/
 backend-build-tmp/

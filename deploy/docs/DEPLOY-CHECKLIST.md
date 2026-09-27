@@ -36,6 +36,11 @@
 
 ## 3. 数据库迁移
 
+- [ ] 先确认生产 `schema_version` 的登记范围：`SELECT MIN(version), MAX(version), COUNT(*) FROM schema_version;`
+- [ ] ⚠️ **若最低版本不是 V1**（历史上生产库由 dump 初始化，实际只登记了 V47–V93），**必须指定起始版本**，否则脚本会把 V1 当作未执行并重跑，在 V1 内含 `USE` 语句时直接失败中断：
+
+      MIGRATE_FROM=V98 DB_PASS=xxx DB_NAME=miniprogram_prod bash deploy/scripts/migrate.sh
+
 - [ ] `bash deploy/scripts/migrate.sh`（按 `schema_version` 增量，只跑未登记版本）。
 - [ ] 确认最高版本落到 **V97__disable_mojibake_product_duplicates**。
 - [ ] V96 补偿内容互动表 / V97 下架乱码重复商品 —— 复查商品列表无乱码、无重复。
