@@ -9,8 +9,6 @@ import type { ComponentInstance } from '@/types/page'
 import { WARM_HOME_BLOCK_TYPES } from '@/utils/warmHomeBlocks'
 import { ComponentType } from '@/types/page'
 
-const DEMO_TODAY_COUNT = 0
-
 export const WARM_PREVIEW_VIEW_KEY = Symbol('warmPreviewView')
 export const WARM_PREVIEW_ENABLED_KEY = Symbol('warmPreviewEnabled')
 export const WARM_PREVIEW_ON_SEG_KEY = Symbol('warmPreviewOnSeg')
@@ -29,15 +27,14 @@ export function pageUsesWarmNativeBlocks(components: ComponentInstance[]): boole
 
 export function pageIsWarmHomePath(path?: string): boolean {
   const p = String(path || '')
-  return p.includes('warm-home') || p.endsWith('/pages/index/index')
+  return p.includes('warm-home')
+    || p.includes('motai-home')
+    || p.endsWith('/pages/index/index')
 }
-
-export type WarmPreviewDataMode = 'demo' | 'live'
 
 export function useWarmHomePreview(
   components: Ref<ComponentInstance[]>,
   pagePath: Ref<string | undefined>,
-  dataMode?: Ref<WarmPreviewDataMode>,
 ) {
   const warmView = ref<WarmPreviewView>(buildWarmPreviewView(null, { loading: true }))
   const enabled = ref(false)
@@ -48,17 +45,6 @@ export function useWarmHomePreview(
       || pageIsWarmHomePath(pagePath.value)
     enabled.value = useWarm
     if (!useWarm) return
-    if (dataMode?.value === 'demo') {
-      let view = buildWarmPreviewView(null, { loading: false, loadError: false })
-      view = mergeGreetFromBlocks(view, components.value)
-      view = {
-        ...view,
-        todayCount: DEMO_TODAY_COUNT,
-        streakDays: 0,
-      }
-      warmView.value = view
-      return
-    }
     const seq = ++reqSeq
     const prev = warmView.value
     warmView.value = { ...prev, loading: true }
@@ -84,7 +70,7 @@ export function useWarmHomePreview(
 
   let debounceTimer: ReturnType<typeof setTimeout> | undefined
   watch(
-    () => [components.value, pagePath.value, dataMode?.value] as const,
+    () => [components.value, pagePath.value] as const,
     () => {
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => { void reload() }, 700)

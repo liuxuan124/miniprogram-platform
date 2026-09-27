@@ -10,6 +10,8 @@ import com.miniprogram.entity.Page;
 import com.miniprogram.entity.PageVersion;
 import com.miniprogram.mapper.PageMapper;
 import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.config.ContentMiniappAutoSyncProperties;
+import com.miniprogram.service.ContentMiniappAutoSyncService;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.PageService;
 import com.miniprogram.service.PageVersionService;
@@ -28,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 页面 Service 实现
@@ -43,6 +46,17 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     @Lazy
     @Autowired
     private MiniappReleaseService miniappReleaseService;
+
+    @Autowired
+    private ContentMiniappAutoSyncProperties contentMiniappAutoSyncProperties;
+
+    @Lazy
+    @Autowired
+    private ContentMiniappAutoSyncService contentMiniappAutoSyncService;
+
+    private final ConcurrentHashMap<Long, Long> lastPageAutoSyncMs = new ConcurrentHashMap<>();
+
+    private static final long PAGE_AUTOSYNC_INTERVAL_MS = 8000L;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -214,7 +228,22 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
             this.updateById(page);
         }
 
+        schedulePageAutoSync(id);
+
         return versionDTO;
+    }
+
+    private void schedulePageAutoSync(Long pageId) {
+        if (!contentMiniappAutoSyncProperties.isAutoSyncToMiniapp()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Long last = lastPageAutoSyncMs.get(pageId);
+        if (last != null && now - last < PAGE_AUTOSYNC_INTERVAL_MS) {
+            return;
+        }
+        lastPageAutoSyncMs.put(pageId, now);
+        contentMiniappAutoSyncService.afterPageDraftSaved(pageId);
     }
 
     @Override
@@ -300,6 +329,23 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     }
 
     @Override
+    public String getPageDslForView(String path, String view) {
+        if (contentMiniappAutoSyncProperties.isAutoSyncToMiniapp() || "draft".equalsIgnoreCase(view)) {
+            Page page = findPageByPathAnyStatus(path);
+            if (page == null) {
+                return null;
+            }
+            PageVersion latest = pageVersionService.lambdaQuery()
+                    .eq(PageVersion::getPageId, page.getId())
+                    .orderByDesc(PageVersion::getVersion)
+                    .last("LIMIT 1")
+                    .one();
+            return latest != null ? latest.getDslContent() : null;
+        }
+        return getPublishedPageDsl(path);
+    }
+
+    @Override
     public String getPublishedPageDsl(String path) {
         Page page = findPublishedPageByPath(path);
 
@@ -318,10 +364,18 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
     }
 
     private Page findPublishedPageByPath(String path) {
+        Page page = findPageByPathAnyStatus(path);
+        if (page != null && Integer.valueOf(1).equals(page.getStatus())) {
+            return page;
+        }
+        return null;
+    }
+
+    private Page findPageByPathAnyStatus(String path) {
         String normalized = normalizePagePath(path);
         Page page = this.lambdaQuery()
                 .eq(Page::getPath, normalized)
-                .eq(Page::getStatus, 1) // 已发布
+                .last("LIMIT 1")
                 .one();
         if (page != null) {
             return page;
@@ -334,7 +388,7 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
 
         return this.lambdaQuery()
                 .eq(Page::getPath, alternate)
-                .eq(Page::getStatus, 1)
+                .last("LIMIT 1")
                 .one();
     }
 

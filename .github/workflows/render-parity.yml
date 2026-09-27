@@ -1,0 +1,23 @@
+name: Render parity (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Generate golden DSL
+        run: node scripts/generate-golden-dsl.js
+      - name: Compare render parity
+        run: node scripts/compare-render-parity.js
+      - name: Miniapp unit smoke
+        run: cd miniapp && npm run test:unit
+      - name: Admin unit smoke
+        run: cd admin && npm run test:unit
+      - name: Golden batch manifest present
+        run: test -f agent-team/testing/golden-dsl-batches.json

@@ -56,7 +56,7 @@ Component({
 
   lifetimes: {
     attached() {
-      const sys = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+      const sys = require('../../utils/system-info').getWindowInfo()
       this._windowWidth = sys.windowWidth || 375
       this._windowHeight = sys.windowHeight || 667
       this._dragLeft = null

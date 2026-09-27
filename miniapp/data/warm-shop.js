@@ -12,15 +12,15 @@ const VIP_BAR = {
   productName: '暖阁星球 · 年度会员',
   productId: '',
   // 无商品 id 时回落加入社群；有 id 时商城页优先进商品详情
-  url: '/pages/join/join',
+  url: '/pkg-content/join/join',
 }
 
 const CATS = [
-  { icon: '📘', label: '电子书', url: '/pages/product-list/product-list?type=ebook' },
-  { icon: '🗂', label: '资料包', url: '/pages/resources/resources' },
-  { icon: '🎧', label: '专栏课', url: '/pages/product-list/product-list?type=column' },
+  { icon: '📘', label: '电子书', url: '/pkg-content/product-list/product-list?type=ebook' },
+  { icon: '🗂', label: '资料包', url: '/pkg-content/resources/resources' },
+  { icon: '🎧', label: '专栏课', url: '/pkg-content/product-list/product-list?type=column' },
   { icon: '🪐', label: '星球', tab: '/pages/planet/planet' },
-  { icon: '🎁', label: '周边', url: '/pages/product-list/product-list?type=physical' },
+  { icon: '🎁', label: '周边', url: '/pkg-content/product-list/product-list?type=physical' },
 ]
 
 const FLASH = [

@@ -8,8 +8,8 @@ completed_work:
   - APPT-001 服务名不再重复时长；多项已在代码/接口层验证关闭
 changed_files:
   - miniapp/custom-tab-bar/index.js
-  - miniapp/pages/cart/cart.js
-  - miniapp/pages/cart/cart.wxml
+  - miniapp/pkg-content/cart/cart.js
+  - miniapp/pkg-content/cart/cart.wxml
   - backend/src/main/java/com/miniprogram/service/impl/ActivityServiceImpl.java
   - admin/src/views/activity/index.vue
   - admin/src/views/product/index.vue

@@ -211,7 +211,7 @@ Page({
       const redirect = this.data.redirectUrl
       const tabPages = [
         '/pages/index/index',
-        '/pages/content-list/content-list',
+        '/pkg-content/content-list/content-list',
         '/pages/mine/mine',
       ]
       if (tabPages.includes(redirect.split('?')[0])) {

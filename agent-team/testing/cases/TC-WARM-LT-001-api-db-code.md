@@ -172,7 +172,7 @@
 ## TC-WARM-CODE-004
 
 - 关联：`FP-WARM-006`
-- 证据：`miniapp/pages/form/form.js`、`miniapp/pkg-extra/form/form.js`、`miniapp/pages/contribute/contribute.js` 均 `isPersistedMediaUrl` + upload
+- 证据：`miniapp/pages/form/form.js`、`miniapp/pkg-extra/form/form.js`、`miniapp/pkg-content/contribute/contribute.js` 均 `isPersistedMediaUrl` + upload
 - 结论：`PARTIAL`
 
 ## TC-WARM-CODE-005

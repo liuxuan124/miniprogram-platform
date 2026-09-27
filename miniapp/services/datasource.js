@@ -152,6 +152,10 @@ function orderByIds(list, ids) {
   return ids.map((id) => map[String(id)]).filter(Boolean)
 }
 
+function normalizeFixedListLimit(value) {
+  return Math.min(Math.max(Number(value) || 6, 1), 100)
+}
+
 /**
  * 数据源服务
  * - 根据 data_source 配置自动请求对应后端接口
@@ -165,7 +169,7 @@ const DatasourceService = {
    * @param {boolean} [forceRefresh] 是否强制刷新
    * @returns {Promise<Array>} 数据列表
    */
-  fetchData(dataSource, forceRefresh = false) {
+  fetchData(dataSource, forceRefresh = false, maxItems = 6) {
     if (!dataSource || !dataSource.type) {
       return Promise.resolve([])
     }
@@ -177,7 +181,8 @@ const DatasourceService = {
     }
 
     // 构建缓存 key
-    const cacheKey = this._buildCacheKey(typeKey || dataSource.type, params)
+    const safeMaxItems = normalizeFixedListLimit(maxItems)
+    const cacheKey = this._buildCacheKey(typeKey || dataSource.type, { ...params, _client_limit: safeMaxItems })
     const bypassCache = shouldBypassCache(typeKey, apiPath)
 
     // 尝试从缓存读取
@@ -199,6 +204,11 @@ const DatasourceService = {
       requestParams.page = 1
       requestParams.size = Math.min(need, 100)
       requestParams.page_size = requestParams.size
+    } else if (!isStreamMode) {
+      requestParams.current = Number(requestParams.current || requestParams.page || 1)
+      requestParams.page = Number(requestParams.page || requestParams.current || 1)
+      requestParams.size = Math.max(Number(requestParams.size || requestParams.page_size || 0), safeMaxItems)
+      requestParams.page_size = requestParams.size
     }
 
     // 请求后端
@@ -211,10 +221,9 @@ const DatasourceService = {
       if (idList.length) {
         list = orderByIds(list, idList)
       } else if (!isStreamMode) {
-        // 限制数量，首页最多 6 条（商品流模式由组件自行分页）
-        const MAX_HOME_ITEMS = 6
-        if (list.length > MAX_HOME_ITEMS) {
-          list = list.slice(0, MAX_HOME_ITEMS)
+        // 固定列表按调用组件的显式上限裁剪；商品流模式由组件自行分页。
+        if (list.length > safeMaxItems) {
+          list = list.slice(0, safeMaxItems)
         }
       }
 
@@ -227,7 +236,7 @@ const DatasourceService = {
     }).catch((err) => {
       console.error('[DatasourceService] 获取数据失败:', typeKey || dataSource.type, err)
       // 降级：尝试使用过期缓存
-      const cacheKey = this._buildCacheKey(typeKey || dataSource.type, params)
+      const cacheKey = this._buildCacheKey(typeKey || dataSource.type, { ...params, _client_limit: safeMaxItems })
       const cached = StorageUtil.get(DS_CACHE_PREFIX + cacheKey)
       if (cached) {
         return cached
@@ -327,4 +336,4 @@ const DatasourceService = {
   },
 }
 
-module.exports = { DatasourceService }
+module.exports = { DatasourceService, normalizeFixedListLimit }

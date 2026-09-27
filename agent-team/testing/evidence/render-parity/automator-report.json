@@ -1,0 +1,69 @@
+{
+  "ok": true,
+  "at": "2026-09-27T04:30:51.046Z",
+  "port": "ws://127.0.0.1:9423",
+  "home": {
+    "path": "pages/index/index",
+    "dslMode": true,
+    "dslPending": false,
+    "loading": false,
+    "flowComponentsLen": 10,
+    "homeBlocksLen": 6,
+    "dslRendererCount": 0,
+    "warmBlockCount": 0,
+    "hasBannerFallback": false,
+    "hasBannerImage": false,
+    "hasFloatButton": false,
+    "error": null
+  },
+  "tabbar": {
+    "count": 5,
+    "texts": [
+      "首页",
+      "发现",
+      "星球",
+      "商城",
+      "我的"
+    ]
+  },
+  "tabs": [
+    {
+      "route": "/pages/index/index",
+      "path": "pages/index/index",
+      "flowLen": 10,
+      "productList": {
+        "configuredLimit": 4,
+        "runtimeDataCount": 4
+      },
+      "screenshot": "tab-pages-index-index.png"
+    },
+    {
+      "route": "/pages/discover/discover",
+      "path": "pages/discover/discover",
+      "flowLen": 3,
+      "screenshot": "tab-pages-discover-discover.png"
+    },
+    {
+      "route": "/pages/planet/planet",
+      "path": "pages/planet/planet",
+      "flowLen": 3,
+      "screenshot": "tab-pages-planet-planet.png"
+    },
+    {
+      "route": "/pages/shop/shop",
+      "path": "pages/shop/shop",
+      "flowLen": 2,
+      "productList": {
+        "configuredLimit": 12,
+        "runtimeDataCount": 10
+      },
+      "screenshot": "tab-pages-shop-shop.png"
+    },
+    {
+      "route": "/pages/mine/mine",
+      "path": "pages/mine/mine",
+      "flowLen": 0,
+      "screenshot": "tab-pages-mine-mine.png"
+    }
+  ]
+}

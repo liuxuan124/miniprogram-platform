@@ -10,16 +10,24 @@
             <div class="sub">底部导航、品牌配色；整店模板在「模板」里切换</div>
           </div>
           <div class="actions">
-            <button type="button" class="btn" @click="router.push('/mini/templates')">
+            <button type="button" class="btn soft" @click="router.push('/mini/templates')">
               <MiniIcon name="grid" :size="15" />
               整店模板
             </button>
-            <button type="button" class="btn soft" @click="goPublish">去发布 ›</button>
+            <button
+              type="button"
+              class="btn primary"
+              :loading="syncing"
+              @click="handleSyncAll"
+            >
+              保存并同步
+            </button>
+            <button type="button" class="btn soft" @click="router.push('/mini/pages')">管理页面 ›</button>
           </div>
         </div>
         <div class="sub ov-meta">
           <span>当前模板：{{ templateLabel }}</span>
-          <span v-if="site.pendingCount">待发布 {{ site.pendingCount }} 项</span>
+          <span v-if="site.pendingCount">待同步 {{ site.pendingCount }} 项</span>
         </div>
 
         <section class="card">
@@ -43,7 +51,7 @@
                   type="button"
                   class="tabcard"
                   :class="{ err: isTabUnbound(tab) }"
-                  @click="openTabDrawer(i)"
+                  @click="onTabCardClick(i)"
                 >
                   <span class="faint tabcard-top">
                     <span>导航 {{ i + 1 }}</span>
@@ -101,7 +109,7 @@
             />
           </div>
           <p class="faint" style="margin: 8px 0 0; font-size: 12px; line-height: 1.5">
-            选色后保存并在「发布与分发」发布，小程序全页（含登录、我的、商品）将统一使用该主色。
+            选色后先保存草稿；点顶部「保存并同步」后才会更新线上可读配置（全页主色含登录、我的等）。
           </p>
           <div v-if="themeDirty" class="theme-bar">
             <span class="faint">未保存 · 右侧预览已按 {{ pendingTheme }} 显示</span>
@@ -109,11 +117,11 @@
               放弃
             </button>
             <button type="button" class="btn sm primary" :disabled="savingTheme" @click="saveTheme">
-              {{ savingTheme ? '保存中…' : '保存为待发布' }}
+              {{ savingTheme ? '保存中…' : '保存草稿' }}
             </button>
           </div>
           <div v-else-if="undoTheme" class="theme-bar">
-            <span class="faint">已存为待发布，用户还看不到</span>
+            <span class="faint">主色草稿已保存，待同步到线上</span>
             <button type="button" class="link" :disabled="savingTheme" @click="revertTheme">
               撤销，改回 {{ undoTheme }}
             </button>
@@ -124,7 +132,7 @@
           <div class="head" style="margin-bottom: 12px">
             <div>
               <h2 class="h2">品牌信息</h2>
-              <div class="sub">小程序名、登录文案等；与整店默认文案统一，保存后进入待发布</div>
+              <div class="sub">小程序名、登录文案等；保存草稿后需「保存并同步」才更新线上</div>
             </div>
           </div>
           <div class="brand-fields">
@@ -148,34 +156,18 @@
 
       </div>
 
-      <aside class="preview">
-        <div class="preview-head">
-          <b>真机预览</b>
-          <div class="seg" role="group" aria-label="预览版本">
-            <button type="button" :class="{ on: previewSource === 'draft' }" @click="previewSource = 'draft'">
-              改动后
-            </button>
-            <button type="button" :class="{ on: previewSource === 'live' }" @click="previewSource = 'live'">
-              线上
-            </button>
-          </div>
-        </div>
-        <p class="faint" style="margin: 0 0 8px; font-size: 12px; line-height: 1.45">
-          {{ previewSource === 'live' ? '看用户此刻看到的线上版' : '看待发布草稿（未点发布前用户看不到）' }}
-        </p>
-        <div class="phone">
-          <iframe :key="previewKey" :src="previewUrl" title="小程序预览" loading="lazy" />
-        </div>
-        <button type="button" class="btn sm" @click="qrVisible = true">
-          <MiniIcon name="qr" :size="15" />
-          扫码在手机上看
-        </button>
-      </aside>
+      <DevicePreview
+        :hint="appearancePreviewHint"
+        :preview-url="previewUrl"
+        :preview-url-live="previewUrlLive"
+        :iframe-key="previewKey"
+        @scan="qrVisible = true"
+      />
     </div>
 
     <MiniH5QrDialog
       v-model="qrVisible"
-      :mode="previewSource === 'live' ? 'live' : 'draft'"
+      mode="miniapp-draft"
       title="扫码在手机上看"
     />
 
@@ -216,17 +208,30 @@
             v-model="editPageId"
             filterable
             clearable
-            placeholder="选择页面（不含归档）"
+            placeholder="选择系统页或装修页"
             style="width: 100%"
             @change="onBindPage"
           >
-            <el-option
-              v-for="p in bindablePages"
-              :key="String(p.id)"
-              :label="`${p.name}（${p.path}）`"
-              :value="Number(p.id)"
-            />
+            <el-option-group v-if="systemPageOptions.length" label="系统页（小程序内置，不可装修）">
+              <el-option
+                v-for="s in systemPageOptions"
+                :key="s.path"
+                :label="`${s.name}（${s.path}）`"
+                :value="`${SYSTEM_VALUE_PREFIX}${s.path}`"
+              />
+            </el-option-group>
+            <el-option-group label="装修页">
+              <el-option
+                v-for="p in bindablePages"
+                :key="String(p.id)"
+                :label="`${p.name}（${p.path}）`"
+                :value="Number(p.id)"
+              />
+            </el-option-group>
           </el-select>
+          <p class="faint" style="margin:6px 0 0;font-size:12px;line-height:1.5">
+            系统页由小程序内置模板渲染，后台只能改文案与开关；装修页可在装修器里自由编排。
+          </p>
         </el-form-item>
         <el-form-item v-if="editTab.pagePath" label="路径">
           <el-input :model-value="editTab.pagePath" disabled />
@@ -251,6 +256,9 @@ import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
+import DevicePreview from '@/components/mini/DevicePreview.vue'
+import { createEmptyTab, normalizeTabBarItems } from '@/utils/tabbar'
+import type { NavTab } from '@/types/miniapp'
 import {
   getMiniSite,
   getPendingChanges,
@@ -264,6 +272,7 @@ import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
 import { resolvePageStatus } from '@/utils/pageStatus'
 import { refreshMiniPending } from '@/composables/useMiniPending'
+import { useMiniConfigSync } from '@/composables/useMiniConfigSync'
 import { NAV_FLAT_ICONS } from '@/components/page-builder/navIconSet'
 import type { PageRecord as PageRow } from '@/types/page'
 import { DEFAULT_MINIAPP_BRAND_CONFIG, type MiniappBrandConfig } from '@/types/miniapp'
@@ -274,6 +283,7 @@ defineOptions({ name: 'MiniAppearance' })
 const THEMES = ['#B4430F', '#A93D0C', '#2458A6', '#1F7A4D', '#8F5400', '#9B2C5A', '#3A2E26'] as const
 
 const router = useRouter()
+const { syncing, syncToLive } = useMiniConfigSync()
 const loading = ref(false)
 /** 首屏用骨架屏，之后的刷新才用遮罩，避免每次操作都闪灰屏 */
 const loaded = ref(false)
@@ -283,8 +293,9 @@ const savingBrand = ref(false)
 const brandForm = ref<MiniappBrandConfig>({ ...DEFAULT_MINIAPP_BRAND_CONFIG })
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
-const previewSource = ref<'draft' | 'live'>('live')
 const qrVisible = ref(false)
+const previewFocusPath = ref('')
+const previewRevision = ref(0)
 const pageOptions = ref<PageRow[]>([])
 const wechatVerFallback = ref('')
 const mpMenuConfigured = ref(false)
@@ -292,7 +303,44 @@ const mpMenuConfigured = ref(false)
 const drawerVisible = ref(false)
 const drawerIndex = ref<number | null>(null)
 const editTab = ref<MiniTabBarItem | null>(null)
-const editPageId = ref<number | null>(null)
+/** 绑定选择器的值：数字=装修页 id；`sys:<path>`=系统页；null=未绑定 */
+const editPageId = ref<number | string | null>(null)
+
+/**
+ * 系统页（小程序内置原生页，不走装修 DSL）。
+ * Tab 壳是固定的五个，绑定只在自己那个壳里生效，
+ * 所以这里按 `tabRoute` 过滤，不展示跨壳的无效组合。
+ */
+const SYSTEM_PAGES: { route: string; path: string; name: string }[] = [
+  // 只有「我的」保留内置模板（承载登录/订单/优惠券等系统能力）。
+  // 星球与商城的原生壳已于 2026-09-26 移除，统一由装修 DSL 渲染——
+  // 同一个 Tab 保留两条渲染路径，正是「后台搭了不生效」那一类问题的来源。
+  { route: '/pages/mine/mine', path: 'pages/mine/mine', name: '个人中心（我的）' },
+]
+const SYSTEM_VALUE_PREFIX = 'sys:'
+
+function resolveTabShellRoute(tab?: MiniTabBarItem | null) {
+  const raw = String(tab?.tabRoute || '').trim()
+  if (raw) return raw.startsWith('/') ? raw : `/${raw}`
+  const path = String(tab?.pagePath || '')
+  const text = String(tab?.text || '')
+  if (/mine/.test(path) || text === '我的') return '/pages/mine/mine'
+  if (/planet/.test(path) || text === '星球') return '/pages/planet/planet'
+  if (/shop|mall/.test(path) || text === '商城') return '/pages/shop/shop'
+  if (/discover/.test(path) || text === '发现') return '/pages/discover/discover'
+  return '/pages/index/index'
+}
+
+/** 当前 Tab 可选的系统页（最多一个，取决于它落在哪个壳） */
+const systemPageOptions = computed(() =>
+  SYSTEM_PAGES.filter((s) => s.route === resolveTabShellRoute(editTab.value)),
+)
+
+
+function systemPageByPath(path?: string | null) {
+  const p = String(path || '').replace(/^\//, '')
+  return SYSTEM_PAGES.find((s) => s.path === p) || null
+}
 
 /** 已选但未保存的主色；空串表示与草稿一致 */
 const pendingTheme = ref('')
@@ -337,18 +385,54 @@ const bindablePages = computed(() =>
   }),
 )
 
-const previewUrl = computed(() => {
-  const source = previewSource.value === 'live' ? 'live' : 'draft'
+function normalizePreviewPath(path?: string | null) {
+  return String(path || '').replace(/^\//, '').trim()
+}
+
+function buildAppearancePreview(source: 'draft' | 'live') {
   const query: Record<string, string> = { view: 'config', source, embed: '1' }
-  // 未保存的主色也要能在真机预览里看到
-  if (themeDirty.value && previewSource.value === 'draft') query.primary = pendingTheme.value
-  const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
-  return href
+  if (source === 'draft' && themeDirty.value) query.primary = pendingTheme.value
+  const tabs = site.value.tabBar || []
+  const screen = previewFocusPath.value || normalizePreviewPath(tabs[0]?.pagePath)
+  if (screen) query.screen = screen
+  return router.resolve({ path: '/h5/miniapp-preview', query }).href
+}
+
+const previewUrl = computed(() => buildAppearancePreview('draft'))
+const previewUrlLive = computed(() => buildAppearancePreview('live'))
+
+const previewKey = computed(() => `draft-${previewRevision.value}`)
+
+const appearancePreviewHint = computed(() => {
+  if (themeDirty.value) {
+    return '预览含未保存的主色 · 保存草稿后再同步'
+  }
+  const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
+  if (n > 0) {
+    return `有 ${n} 项草稿待同步 · 可切换草稿/线上预览`
+  }
+  return '可切换草稿/线上预览；点底部导航可切换页面'
 })
 
-const previewKey = computed(
-  () => `${previewSource.value}|${themeDirty.value ? pendingTheme.value : ''}`,
-)
+async function handleSyncAll() {
+  const ok = await syncToLive({ includeSite: true })
+  if (ok) await load()
+}
+
+function focusPreviewOnTab(tab?: MiniTabBarItem | null) {
+  const path = normalizePreviewPath(tab?.pagePath)
+  if (path) previewFocusPath.value = path
+}
+
+function bumpPreviewRevision() {
+  previewRevision.value += 1
+}
+
+function onTabCardClick(index: number) {
+  const tab = sortableTabBar.value[index] || tabBar.value[index]
+  focusPreviewOnTab(tab)
+  openTabDrawer(index)
+}
 
 function syncSortableFromSite() {
   sortableTabBar.value = (site.value.tabBar || []).map((t, i) => ({
@@ -439,10 +523,6 @@ function changeKindLabel(item: PendingChangeItem) {
   return '修改'
 }
 
-function goPublish() {
-  router.push('/mini/publish')
-}
-
 function openLivePreview() {
   qrVisible.value = true
 }
@@ -451,6 +531,7 @@ function openLivePreview() {
 function pickTheme(color: string) {
   if (savingTheme.value) return
   pendingTheme.value = color === currentTheme.value ? '' : color
+  bumpPreviewRevision()
 }
 
 function discardTheme() {
@@ -467,7 +548,7 @@ async function saveBrand() {
     })
     site.value = { ...site.value, ...updated, brand: payload as unknown as Record<string, unknown> }
     brandForm.value = payload
-    ElMessage.success('品牌信息已存为待发布')
+    ElMessage.success('品牌信息已保存草稿')
     void refreshMiniPending(true)
   } catch (e: unknown) {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
@@ -482,7 +563,6 @@ async function writeTheme(color: string) {
     ...prev,
     primaryColor: color,
     tabBarActiveColor: color,
-    navBarColor: color,
     secondaryColor: (prev as { secondaryColor?: string }).secondaryColor || color,
   }
   const prevMine =
@@ -521,7 +601,7 @@ async function saveTheme() {
       duration: 6000,
       showClose: true,
       dangerouslyUseHTMLString: false,
-      message: `品牌主色已存为待发布（${color}）`,
+      message: `品牌主色已保存草稿（${color}），记得点「保存并同步」`,
     })
     undoTheme.value = before || ''
     window.setTimeout(() => { undoTheme.value = '' }, 15000)
@@ -568,7 +648,12 @@ function openTabDrawer(index?: number) {
   const idx = drawerIndex.value ?? 0
   const current = list[idx] || { text: '', pagePath: '' }
   editTab.value = { ...current }
-  editPageId.value = current.pageId != null && current.pageId !== '' ? Number(current.pageId) : null
+  if (current.pageId != null && current.pageId !== '') {
+    editPageId.value = Number(current.pageId)
+  } else {
+    const sys = systemPageByPath(current.pagePath)
+    editPageId.value = sys ? `${SYSTEM_VALUE_PREFIX}${sys.path}` : null
+  }
   drawerVisible.value = true
 }
 
@@ -578,16 +663,28 @@ function addTabSlot() {
     ElMessage.warning('底部导航最多 5 个')
     return
   }
-  list.push({ text: `导航 ${list.length + 1}`, pagePath: '' })
+  list.push(createEmptyTab(list as NavTab[]))
   site.value = { ...site.value, tabBar: list }
   syncSortableFromSite()
   openTabDrawer(list.length - 1)
 }
 
-function onBindPage(id: number | null) {
+function onBindPage(id: number | string | null) {
   if (!editTab.value) return
-  if (id == null) {
+  if (id == null || id === '') {
     editTab.value = { ...editTab.value, pageId: undefined, pagePath: '', pageName: '' }
+    return
+  }
+  // 系统页：只写路径，不写 pageId——有 pageId 就会被当成装修页去拉 DSL
+  if (typeof id === 'string' && id.startsWith(SYSTEM_VALUE_PREFIX)) {
+    const sys = systemPageByPath(id.slice(SYSTEM_VALUE_PREFIX.length))
+    if (!sys) return
+    editTab.value = {
+      ...editTab.value,
+      pageId: '',
+      pagePath: sys.path,
+      pageName: '',
+    }
     return
   }
   const hit = pageOptions.value.find((p) => Number(p.id) === Number(id))
@@ -603,9 +700,24 @@ function onBindPage(id: number | null) {
 async function persistTabBar(next: MiniTabBarItem[], successMsg = '导航已保存') {
   savingTabs.value = true
   try {
-    const updated = await updateMiniSite({ tabBar: next })
+    // 「我的」未绑定装修页时，路径回落到系统页，避免残留旧路径（如 pages/custom/warm-mine）
+    // 被当成装修页去拉 DSL。显式绑定了装修页则尊重选择，不做干预。
+    const normalized = normalizeTabBarItems(next as NavTab[]).map((tab) => {
+      const t = tab as MiniTabBarItem
+      const bound = t.pageId != null && String(t.pageId) !== ''
+      return isMineTab(t) && !bound
+        ? { ...tab, pageId: '', pageName: '', pagePath: 'pages/mine/mine' }
+        : tab
+    })
+    if (normalized.length < 2) {
+      ElMessage.warning('底部导航至少保留 2 个入口')
+      savingTabs.value = false
+      return
+    }
+    const updated = await updateMiniSite({ tabBar: normalized })
     site.value = { ...site.value, ...updated, tabBar: updated.tabBar || next }
     syncSortableFromSite()
+    bumpPreviewRevision()
     ElMessage.success(successMsg)
     await load()
   } catch (e: unknown) {
@@ -617,7 +729,8 @@ async function persistTabBar(next: MiniTabBarItem[], successMsg = '导航已保�
 
 async function saveTabEdit() {
   if (!editTab.value || drawerIndex.value == null) return
-  if (isTabUnbound(editTab.value)) {
+  // 系统页无需也不允许绑定装修页，跳过「请先绑定页面」校验
+  if (!isMineTab(editTab.value) && isTabUnbound(editTab.value)) {
     ElMessage.warning('请先绑定页面')
     return
   }
@@ -631,6 +744,7 @@ async function saveTabEdit() {
     pageName: editTab.value.pageName,
   }
   await persistTabBar(next)
+  focusPreviewOnTab(editTab.value)
   drawerVisible.value = false
 }
 
@@ -645,6 +759,10 @@ async function load() {
       getConfigByGroupSilent('basic').catch(() => null),
     ])
     site.value = s
+    if (!previewFocusPath.value) {
+      focusPreviewOnTab((s.tabBar || [])[0])
+    }
+    bumpPreviewRevision()
     brandForm.value = normalizeBrandConfig(
       (s.brand && typeof s.brand === 'object' ? s.brand : null) as Partial<MiniappBrandConfig>,
     )
@@ -707,7 +825,7 @@ onMounted(load)
 
 .ov {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: start;
 }
@@ -781,42 +899,31 @@ onMounted(load)
   min-width: 240px;
 }
 
-.preview {
-  position: sticky;
-  top: 84px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px;
+.brand-fields {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
+  gap: 10px;
 
-.preview-head {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-}
+  label.kv {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    align-items: center;
+    justify-content: start;
+    gap: 12px;
+    padding: 4px 0;
 
-.phone {
-  width: 250px;
-  height: 540px;
-  border: 9px solid #1e1611;
-  border-radius: 34px;
-  background: #fffbf6;
-  overflow: hidden;
-  flex-shrink: 0;
-  max-width: 100%;
+    > span {
+      width: 96px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      color: var(--mute);
+      font-size: 13px;
+    }
 
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: #fffbf6;
-    display: block;
+    .input {
+      width: 100%;
+      min-width: 0;
+    }
   }
 }
 
@@ -843,10 +950,6 @@ onMounted(load)
 @media (max-width: 1100px) {
   .ov {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .preview {
-    position: static;
-    max-width: 300px;
   }
   .tabs-edit {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -11,6 +11,7 @@ import com.miniprogram.security.JwtBlacklistService;
 import com.miniprogram.security.JwtTokenProvider;
 import com.miniprogram.service.ActivityService;
 import com.miniprogram.service.ActivitySignupService;
+import com.miniprogram.service.ContentPreviewTokenService;
 import com.miniprogram.service.PermissionService;
 import com.miniprogram.service.SmsCodeService;
 import org.junit.jupiter.api.DisplayName;
@@ -65,6 +66,8 @@ class MpActivitySecurityTest {
     private PermissionService permissionService;
     @MockBean
     private UserMapper userMapper;
+    @MockBean
+    private ContentPreviewTokenService contentPreviewTokenService;
 
     @Test
     @DisplayName("GET 活动列表无需 token → 200")

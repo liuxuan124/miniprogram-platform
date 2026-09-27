@@ -1,5 +1,5 @@
 /**
- * 小程序工作台：待发布数量（侧栏角标 / 顶栏「发布 N」共用）
+ * 小程序工作台：待同步到线上配置的项数（概览/顶栏共用）
  */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { getPendingChanges, getMiniSite } from '@/api/miniSite'
@@ -51,4 +51,4 @@ export function useMiniPending(autoLoad = true) {
   }
 }
 
-export { pendingCount, siteLabel, liveReleaseNo }
+export { pendingCount, siteLabel, liveReleaseNo, refreshMiniPending as refreshMiniPendingGlobal }

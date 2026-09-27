@@ -223,6 +223,14 @@
           </div>
         </div>
 
+        <!-- 数据行：与小程序 mine.wxml 的 .mn-st 对齐 -->
+        <div class="mine-stats">
+          <div v-for="s in MINE_STAT_LABELS" :key="s" class="mine-stats__item">
+            <span class="mine-stats__v">—</span>
+            <span class="mine-stats__l">{{ s }}</span>
+          </div>
+        </div>
+
         <!-- 绿区：会员信息卡片（搭建侧可关） -->
         <div
           v-if="mineConfig.showMemberCard !== false"
@@ -337,26 +345,30 @@
           >{{ memberCtaText }}</button>
         </div>
 
-        <div v-if="mineConfig.orderQuickAccess.showOrderTabs" class="order-card">
-          <div class="order-card-header">
-            <span class="order-card-title">我的订单</span>
-            <span
-              v-if="mineConfig.orderQuickAccess.showAllOrdersBtn"
-              class="all-orders-link"
-            >
-              全部订单
-            </span>
+        <!--
+          以下三块与小程序 `miniapp/pages/mine/mine.wxml` 一一对应：
+          快捷四宫格 .mn-quick / 继续学习 .mn-cont / 我的星球 .mn-pl。
+          「我的」是固定模板，后台只改文案与开关，所以预览必须照着真机的版式画；
+          改 mine.wxml 时请同步这里，否则后台与真机又会漂开。
+        -->
+        <div class="mine-quick">
+          <div v-for="q in MINE_QUICK_ITEMS" :key="q.label" class="mine-quick__it">
+            <span v-if="mineConfig.showMenuIcons" class="mine-quick__ic">{{ q.icon }}</span>
+            <span class="mine-quick__tx">{{ q.label }}</span>
           </div>
-          <div class="order-tabs">
-            <div
-              v-for="key in ORDER_TAB_KEYS"
-              :key="key"
-              class="order-tab-item"
-            >
-              <MenuIconDisplay class="order-tab-icon" :icon="ORDER_TAB_ICONS[key]" :size="24" />
-              <span class="order-tab-label">{{ tabLabel(key) }}</span>
-            </div>
+        </div>
+
+        <div class="mine-block">
+          <div class="mine-block__t"><span class="mine-block__h">继续学习</span></div>
+          <div class="mine-block__empty">登录后同步学习进度</div>
+        </div>
+
+        <div class="mine-block">
+          <div class="mine-block__t">
+            <span class="mine-block__h">我的星球</span>
+            <span class="mine-block__a">进入 ›</span>
           </div>
+          <div class="mine-block__empty">登录后查看已加入的星球</div>
         </div>
 
         <div v-if="visibleMenuItems.length" class="menu-card">
@@ -395,6 +407,15 @@ import {
   resolveMineStyleKey,
 } from '@/types/miniapp'
 import MenuIconDisplay from './MenuIconDisplay.vue'
+
+/** 与 miniapp/pages/mine/mine.js 的 EMPTY_STATS、mine.wxml 的 .mn-quick 保持一致 */
+const MINE_STAT_LABELS = ['收藏', '笔记', '关注', '暖豆']
+const MINE_QUICK_ITEMS = [
+  { icon: '⭐️', label: '我的收藏' },
+  { icon: '🕘', label: '浏览历史' },
+  { icon: '📘', label: '已购内容' },
+  { icon: '💬', label: '消息' },
+]
 
 const NICKNAME_MAX_LEN = 10
 /** 会员卡嵌入式磨砂皇冠：暂隐藏，改 true 可恢复 */
@@ -1402,4 +1423,47 @@ const memberCardStyle = computed(() => {
   color: #c0c4cc;
   line-height: 1;
 }
+
+/* 与小程序 mine.wxml 对齐的版式：数据行 / 快捷四宫格 / 内容块 */
+.mine-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 10px 4px 2px;
+}
+.mine-stats__item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mine-stats__v { font-size: 15px; font-weight: 600; color: #fff; opacity: .92; }
+.mine-stats__l { font-size: 11px; color: rgba(255,255,255,.78); }
+
+.mine-quick {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: #fffaf3;
+  border-radius: 14px;
+  padding: 14px 8px;
+  margin: 10px 0;
+}
+.mine-quick__it { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mine-quick__ic { font-size: 20px; line-height: 1; }
+.mine-quick__tx { font-size: 11px; color: #6b5443; }
+
+.mine-block {
+  background: #fffaf3;
+  border-radius: 14px;
+  padding: 14px;
+  margin: 10px 0;
+}
+.mine-block__t { display: flex; align-items: center; justify-content: space-between; }
+.mine-block__h { font-size: 14px; font-weight: 600; color: #2a1c12; }
+.mine-block__a { font-size: 12px; color: #a1897a; }
+.mine-block__empty {
+  margin-top: 10px;
+  padding: 18px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #a1897a;
+  background: rgba(248,236,221,.5);
+  border-radius: 10px;
+}
+
 </style>

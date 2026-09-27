@@ -225,7 +225,7 @@ Page({
   },
 
   onJoin() {
-    wx.navigateTo({ url: '/pages/join/join' })
+    wx.navigateTo({ url: '/pkg-content/join/join' })
   },
 
   onShow() {

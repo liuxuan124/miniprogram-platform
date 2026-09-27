@@ -13,7 +13,7 @@
 ## 从登录开始的完整复现路径
 
 1. 微信开发者工具 `miniapp`，automator 连接 `ws://127.0.0.1:9420`，当前无登录 token
-2. `reLaunch('/pages/cart/cart')`
+2. `reLaunch('/pkg-content/cart/cart')`
 3. 等待约 2 秒后截图并读取页面 data
 
 ## 实际现象

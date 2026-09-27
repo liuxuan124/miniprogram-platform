@@ -10,6 +10,9 @@ import java.util.List;
 @Schema(description = "单条待发布改动")
 public class PendingChangeVO {
 
+    @Schema(description = "稳定标识：site:* 或 page:{id}")
+    private String changeId;
+
     @Schema(description = "site | page")
     private String type;
 

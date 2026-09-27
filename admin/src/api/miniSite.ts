@@ -18,6 +18,9 @@ import type { PageRecord } from '@/types/page'
 const BASE = '/api/v1/admin/mini'
 
 export type MiniTabBarItem = {
+  /** 稳定业务 id，不随排序变化 */
+  id?: string
+  tabRoute?: string
   text?: string
   pagePath?: string
   pageId?: string | number
@@ -46,8 +49,21 @@ export type MiniSiteVO = {
   brand?: Record<string, unknown> | null
 }
 
+export type ContentPreflight = {
+  canPublish?: boolean
+  blocking?: string[]
+  warnings?: string[]
+  items?: Array<{
+    changeId?: string
+    status?: string
+    category?: string
+    blockerReason?: string
+  }>
+}
+
 export type PendingChangeItem = {
   id?: number | string
+  changeId?: string
   type?: 'site' | 'page' | string
   name?: string
   path?: string
@@ -58,8 +74,12 @@ export type PendingChangeItem = {
 
 export type PendingChangesVO = {
   items?: PendingChangeItem[]
+  /** 旧字段名，保留兼容 */
   siteDirty?: boolean
+  /** 后端 /mini/pending-changes 实际返回的字段 */
+  siteDraftChanged?: boolean
   pendingCount?: number
+  total?: number
 }
 
 export type MiniPublishResultVO = {
@@ -67,6 +87,8 @@ export type MiniPublishResultVO = {
   liveReleaseAt?: string
   publishedPageCount?: number
   publishedPages?: number
+  /** 站点草稿是否真的被提升为线上配置；false 表示这次发布什么都没做 */
+  siteConfigPromoted?: boolean
   message?: string
 }
 
@@ -153,11 +175,47 @@ export async function getPendingChanges(): Promise<PendingChangesVO> {
   }
 }
 
+/** POST 内容发布预检（勾选 change_id） */
+export async function postContentPreflight(changeIds: string[]): Promise<ContentPreflight> {
+  try {
+    const res = await post<ContentPreflight>(
+      `${BASE}/preflight`,
+      { changeIds },
+      { showError: false },
+    )
+    return unwrap<ContentPreflight>(res) || {}
+  } catch (err) {
+    if (!isMissingEndpoint(err)) throw err
+    const pre = await getPublishPreflight()
+    const data = (pre as any)?.data ?? pre
+    return {
+      canPublish: data?.canPublish,
+      blocking: data?.blocking || [],
+      warnings: data?.warnings || [],
+    }
+  }
+}
+
+export async function createMiniPreviewToken(withWxQr = true): Promise<{
+  token?: string
+  jti?: string
+  expiresAt?: string
+  launchQuery?: string
+  scene?: string
+  pagePath?: string
+  wxQrcodeBase64?: string
+}> {
+  const qs = withWxQr ? '?withWxQr=true' : '?withWxQr=false'
+  const res = await post(`${BASE}/preview-tokens${qs}`, {}, { showError: false })
+  return unwrap(res) || {}
+}
+
 /** POST 发布（递增 live_release_no；支持 pageIds / includeSite 勾选） */
 export async function publishMiniSite(payload?: {
   notes?: string
   pageId?: number | string
   pageIds?: Array<number | string>
+  changeIds?: string[]
   /** false=不提升站点草稿；默认 true */
   includeSite?: boolean
   clientRequestId?: string

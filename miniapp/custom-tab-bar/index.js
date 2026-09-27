@@ -140,6 +140,7 @@ Component({
           selected: this._getCurrentIndex(list),
           ...colors,
         })
+        this._ensureCurrentRouteVisible(list)
       } catch (e) {
         console.warn('[TabBar] 配置加载失败，使用默认五 Tab:', e)
         this.setData({
@@ -159,15 +160,30 @@ Component({
       return idx >= 0 ? idx : 0
     },
 
+    /** 导航项被删后，当前页不在列表里则回到第一个 Tab */
+    _ensureCurrentRouteVisible(list) {
+      const tabs = list || this.data.list || DEFAULT_LIST
+      if (!tabs.length) return
+      const pages = getCurrentPages()
+      if (!pages.length) return
+      const currentPath = this._normalizePath('/' + pages[pages.length - 1].route)
+      const visible = tabs.some((item) => this._normalizePath(item.pagePath) === currentPath)
+      if (visible) return
+      const first = this._normalizePath(tabs[0].pagePath)
+      if (first && first !== currentPath) {
+        wx.switchTab({ url: first, fail() {} })
+      }
+    },
+
     switchTab(e) {
       const { index, path } = e.currentTarget.dataset
       let url = this._normalizePath(path)
       // 旧壳一次性落到现行 Tab，避免 knowledge-mall「正在前往商城」再二次跳
-      if (url === '/pages/knowledge-mall/knowledge-mall' || url === '/pages/product-list/product-list') {
+      if (url === '/pkg-content/knowledge-mall/knowledge-mall' || url === '/pkg-content/product-list/product-list') {
         url = '/pages/shop/shop'
-      } else if (url === '/pages/content-list/content-list') {
+      } else if (url === '/pkg-content/content-list/content-list') {
         url = '/pages/discover/discover'
-      } else if (url === '/pages/tab-hub/tab-hub') {
+      } else if (url === '/pkg-content/tab-hub/tab-hub') {
         url = '/pages/mine/mine'
       }
       this.setData({ selected: Number(index) || 0 })

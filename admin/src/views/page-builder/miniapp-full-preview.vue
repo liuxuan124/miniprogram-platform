@@ -69,6 +69,7 @@
           :page-title="phoneTitle"
           :page-bg-color="pageBgColor"
           :hide-nav-bar="currentHasBrandHeader || activeScreen === 'mine'"
+          :hide-nav-row="isTabRootScreen"
           :hide-back="isTabRootScreen"
           :pinned-brand-header="!!currentPinnedBrandHeader"
           @back="handleBack"
@@ -286,6 +287,19 @@
             </template>
           </div>
 
+          <template #fab>
+            <ComponentItem
+              v-for="(comp, index) in currentFloatButtons"
+              :key="`fab-${comp.id}`"
+              :component="comp"
+              :index="index"
+              :selected="false"
+              :fab-only="true"
+              :preview-mode="true"
+              @preview-action="handlePreviewAction"
+            />
+          </template>
+
           <template #tabbar>
             <div
               v-if="showTabbar"
@@ -326,6 +340,7 @@ import { getProductList } from '@/api/product'
 import { getContentList } from '@/api/content'
 import { getConfigByGroup } from '@/api/system'
 import { getPageDetail } from '@/api/page'
+import { get as apiGet } from '@/api/request'
 import PreviewPhone from '@/components/page-builder/PreviewPhone.vue'
 import ComponentItem from '@/components/page-builder/ComponentItem.vue'
 import type { ComponentInstance, PageDSL } from '@/types/page'
@@ -400,16 +415,18 @@ const authModeOptions = [
   { label: '未登录态', value: 'guest' },
   { label: '已登录态', value: 'member' },
 ]
+// 兜底文案与小程序 `services/system.js#DEFAULT_MINE_PAGE_CONFIG` 对齐，
+// 避免后台预览显示一套、小程序显示另一套
 const mineConfigFull = ref<MinePageConfig>({
-  loginTitle: '登录出海笔记',
-  loginSubtitle: '查看订单、预约与会员权益',
-  loginButtonText: '微信一键登录',
-  memberCardTitle: '会员中心',
+  loginTitle: '点击登录',
+  loginSubtitle: '登录后同步收藏、会员与学习记录',
+  loginButtonText: '去登录',
+  memberCardTitle: '暖阁会员',
   previewNickname: '微信用户',
   previewAvatar: '',
   previewPhone: '',
   previewEmail: '',
-  showMenuIcons: false,
+  showMenuIcons: true,
   showDecorBackground: true,
   showMemberCard: true,
   menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
@@ -456,7 +473,8 @@ function parseMineConfig(raw: unknown): MinePageConfig {
     previewAvatar: String(src.previewAvatar || ''),
     previewPhone: String(src.previewPhone || ''),
     previewEmail: String(src.previewEmail || ''),
-    showMenuIcons: src.showMenuIcons === true,
+    // 与小程序一致：未显式关闭即显示图标（`services/system.js` 用的是 !== false）
+    showMenuIcons: src.showMenuIcons !== false,
     showDecorBackground: src.showDecorBackground !== false,
     showMemberCard: src.showMemberCard !== false,
     menuItems: Array.isArray(src.menuItems)
@@ -693,6 +711,10 @@ const warmTabShellTypes = new Set([
   ComponentType.WarmMine,
 ])
 
+const currentFloatButtons = computed(() =>
+  currentViewComponents.value.filter((c) => c.type === ComponentType.FloatButton),
+)
+
 const boundWarmTabPreview = computed(() => {
   const flow = currentViewComponents.value.filter((c) => c.type !== ComponentType.FloatButton)
   if (flow.length !== 1 || !warmTabShellTypes.has(flow[0].type as ComponentType)) {
@@ -872,10 +894,10 @@ async function fetchPageSnapshot(id: string, opts?: { prefer?: 'draft' | 'publis
       : (page.publishedDslContent || page.dslContent || page.draftDslContent)
     if (!raw && !preferDraft) {
       try {
-        const response = await fetch(`/api/v1/mp/pages?path=${encodeURIComponent(path)}`)
-        const payload = await response.json()
-        if (payload.code === 200 && payload.data) {
-          raw = typeof payload.data === 'string' ? payload.data : JSON.stringify(payload.data)
+        const payload = await apiGet<unknown>(`/api/v1/mp/pages`, { path }, { showError: false } as any)
+        const data = (payload as any)?.data ?? payload
+        if (data) {
+          raw = typeof data === 'string' ? data : JSON.stringify(data)
         }
       } catch {
         // ignore published fallback errors
@@ -1276,8 +1298,10 @@ async function loadLiveConfig(publishedOnly = false) {
     snapshotPages.value = pages
     snapshotTabs.value = syncTabPagePaths(snapshotTabs.value, pages)
     const homePathPreferred = pickInitialHomePath(homeId, snapshotTabs.value, pages)
-    if (homePathPreferred) {
-      await showSnapshotPage(homePathPreferred)
+    const routeScreen = String(route.query.screen || '').replace(/^\//, '').trim()
+    const initialPath = routeScreen || homePathPreferred
+    if (initialPath) {
+      await showSnapshotPage(initialPath)
     } else {
       notice.value = '当前配置未绑定可预览页面，请先在导航里绑定首页。'
       await loadHomeDsl()
@@ -1356,8 +1380,10 @@ async function loadDraftPreview() {
     snapshotPages.value = pages
     snapshotTabs.value = syncTabPagePaths(snapshotTabs.value, pages)
     const homePathPreferred = pickInitialHomePath(homeId, snapshotTabs.value, pages)
-    if (homePathPreferred) {
-      await showSnapshotPage(homePathPreferred)
+    const routeScreen = String(route.query.screen || '').replace(/^\//, '').trim()
+    const initialPath = routeScreen || homePathPreferred
+    if (initialPath) {
+      await showSnapshotPage(initialPath)
     } else {
       notice.value = '草稿里还没有可预览的绑定页面'
     }
@@ -1486,10 +1512,10 @@ async function loadHomeDsl() {
         return
       }
     }
-    const response = await fetch('/api/v1/mp/pages?path=pages/index/index')
-    const payload = await response.json()
-    if (payload.code === 200 && payload.data) {
-      await applyDsl(payload.data as PageDSL)
+    const payload = await apiGet<PageDSL>('/api/v1/mp/pages', { path: 'pages/index/index' }, { showError: false } as any)
+    const dslData = (payload as any)?.data ?? payload
+    if (dslData) {
+      await applyDsl(dslData as PageDSL)
       if (releaseId.value && !isAuthenticated()) {
         notice.value = '未登录时展示当前线上首页；登录后可查看版本快照。'
       }
@@ -1563,7 +1589,20 @@ watch(
   },
 )
 
+watch(
+  () => route.query.screen,
+  (screen) => {
+    if (previewMode.value !== 'config' || loading.value) return
+    const path = String(screen || '').replace(/^\//, '').trim()
+    if (!path || !snapshotPages.value.length) return
+    void showSnapshotPage(path)
+  },
+)
+
 onMounted(async () => {
+  if (isEmbed.value) {
+    authPreviewMode.value = 'guest'
+  }
   if (previewMode.value === 'config') {
     loading.value = true
     await loadPreviewSource()

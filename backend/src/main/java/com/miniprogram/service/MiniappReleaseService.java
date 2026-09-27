@@ -86,9 +86,9 @@ public interface MiniappReleaseService extends BaseService<MiniappRelease> {
     MiniappRelease duplicateStoreTemplate(Long id, String templateName);
 
     /**
-     * 重命名模板
+     * 更新整店模板信息（名称 / 场景 / 说明 / 封面）
      */
-    MiniappRelease renameStoreTemplate(Long id, String templateName);
+    MiniappRelease renameStoreTemplate(Long id, com.miniprogram.dto.miniapp.StoreTemplateNameDTO input);
 
     /**
      * 选用为正在搭建使用中（写入页面+外观，不上传微信代码）

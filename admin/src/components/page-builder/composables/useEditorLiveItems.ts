@@ -12,6 +12,7 @@ export function useEditorLiveItems(
   const failed = ref(false)
 
   async function refresh() {
+    // 仅 H5/弹窗等显式 previewMode=true 时跳过；装修器画布不得传 previewMode
     if (isPreview()) return
     loading.value = true
     failed.value = false
@@ -41,10 +42,10 @@ export function useEditorLiveItems(
       limit: getComponent().props?.limit,
       pageSize: getComponent().props?.page_size,
       showCategoryTabs: getComponent().props?.show_category_tabs,
+      showHeader: getComponent().props?.show_header,
       sourceMode: getComponent().props?.source_mode,
       productIds: getComponent().props?.product_ids,
       ds: getComponent().props?.data_source || getComponent().data_source,
-      items: getComponent().props?.items,
     }),
     refresh,
     { immediate: true },

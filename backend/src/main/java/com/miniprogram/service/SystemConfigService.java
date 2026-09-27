@@ -44,6 +44,11 @@ public interface SystemConfigService extends BaseService<SystemConfig> {
     Map<String, Object> getPublicConfigs();
 
     /**
+     * @param view online（默认）| draft（合并 site_builder_draft，需预览令牌由 Controller 校验）
+     */
+    Map<String, Object> getPublicConfigs(String view);
+
+    /**
      * 将品牌导航「待上线草稿」写入真机可见的运行期配置键
      * @return 是否有草稿被提升
      */

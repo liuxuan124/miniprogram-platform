@@ -79,7 +79,7 @@ const displayLayers = computed(() => {
   --mpt-h: 90px;
   --mpt-r: 8px;
   --mpt-pad: 3px;
-  --mpt-accent: #b4430f;
+  --mpt-accent: var(--el-color-primary);
   width: var(--mpt-w);
   height: var(--mpt-h);
   flex-shrink: 0;
@@ -129,7 +129,7 @@ const displayLayers = computed(() => {
   flex: 1;
   min-height: 0;
   border-radius: calc(var(--mpt-r) - 2px);
-  background: #f6f2ec;
+  background: var(--wb-bg);
   overflow: hidden;
   position: relative;
   display: flex;
@@ -170,7 +170,7 @@ const displayLayers = computed(() => {
 
 .mpt__block {
   background: #fff;
-  border: 1px solid #e8dfd3;
+  border: 1px solid var(--wb-line);
   border-radius: 3px;
   min-height: 10px;
   flex: 1;

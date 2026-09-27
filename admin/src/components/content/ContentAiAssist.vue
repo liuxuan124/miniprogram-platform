@@ -406,7 +406,7 @@ onBeforeUnmount(stopPoll)
   height: 34px;
   border: none;
   border-radius: 8px;
-  background: #b4430f;
+  background: var(--el-color-primary);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -452,7 +452,7 @@ onBeforeUnmount(stopPoll)
 .cai-apply {
   border: 1px solid #f0d2c2;
   background: #fff7f2;
-  color: #b4430f;
+  color: var(--el-color-primary);
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 12px;

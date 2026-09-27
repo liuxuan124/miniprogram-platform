@@ -4,6 +4,69 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-27：发布包运维文档补齐——RELEASE.md 增加「运行环境要求」（app.jar 为 Spring Boot 3.2.5 / class 版本 61，**服务器必须 JDK 17**）与上线顺序第 5、6 步（Nginx 需自行补 443 与证书、`resolver 127.0.0.11` 是 Docker 内置 DNS 非 Docker 部署须改，否则 /api 全 502；小程序源码不在包内需另行上传并配 request 合法域名）；新增 `deploy/docs/DEPLOY-CHECKLIST.md` 九节逐项勾验清单（含灰度期必复核的「小程序侧要素数 0」组件与三项人工阻塞项），打包脚本同步产出该清单；因此重打包为 `-r2`，二进制与迁移脚本未变，旧包保留为历史版本；deploy+release。
+- 2026-09-27：上线门禁收口——升级 axios/ECharts 等生产依赖并清零生产 npm audit，修正 admin 容器 IPv6 localhost 健康误报，发布包标记 dirty 工作区避免误认纯 Git 产物；admin+deploy。
+- 2026-09-27：上线前保守清理根目录历史构建日志/截图/旧压缩包与一次性修复脚本，V96 补偿缺失内容互动表、V97 下架乱码重复商品，新增 JDK 17 后端 + 完整后台构建的轻量服务器发布包及 SHA-256 清单；全端+deploy+数据。
+- 2026-09-27：修复商城编译版固定只显示 6 个商品——数据源按组件显式 `limit` 请求与裁剪，商城线上 `limit:12` 不再被历史“首页 6 条”规则提前截断；miniapp。
+- 2026-09-27：后台配置预览与编译版对齐——概览无未同步项时默认看线上，自定义导航 Tab 去掉重复原生标题栏，星球头部/动态改用与小程序同接口字段、完整卡片结构和一致兜底；admin。
+- 2026-09-27：修复装修页顶部橙色与正文背景错位——普通开发/体验版不再铺满环境橙条（草稿预览仍提示），外观主色不再隐式覆盖导航色，DSL `page.background_color` 统一驱动页面容器及自定义导航安全区；admin+miniapp。
+- 2026-09-27：RENDER-PARITY 五 Tab 冒烟先销毁 mini-dom 注入的首页实例再回首页，避免同路由 `reLaunch` 复用 `parityBatch` 导致真实内容被误报为空；scripts。
+- 2026-09-27：RENDER-PARITY 第 3 轮——黄金 DSL 补齐无网络数据样本，修复 `content_tabs`/`planet_topics` 手动配置渲染与真实 DOM 后代几何测量，可见性 hardFail 5→0（`relaxed:false`、`unverified:0`）；miniapp+scripts。
+- 2026-09-26：RENDER-PARITY 第 2 轮——小程序侧改 automator 分批灌入首页 DSL（`getParityRenderBlocks` + SelectorQuery），产出 `mini-dom.json`（`relaxed:false`）；删除 `render-parity-mini-from-api.js`；DOM 比对补 `textLen` 差异 notes；变异测试证据 `agent-team/testing/evidence/render-parity/mutation-test.md`；miniapp+scripts。
+- 2026-09-26：RENDER-PARITY 复核纠偏——降级指纹一律「未验证」并阻断；`compare-render-parity.js` / `full.sh` 门禁；scripts。
+- 2026-09-26：修复 `capabilities.json` 的 `a_i_entry`——生成器由枚举名做 PascalCase→snake 推导，`AIEntry` 被拆成 `a_i_entry`，真实值是 `ai_entry`（`page.ts:39`），会让发布前能力校验把含 AI 入口的页面误判为不支持；改为直接读 ComponentType 枚举值，解析不到成员时拒绝生成；scripts+miniapp。
+- 2026-09-26：内容自动同步改 @Async，避免保存装修草稿时 publish 失败把整笔事务打回滚；backend。
+- 2026-09-26：RENDER-PARITY 任务 4A——`/h5/golden-parity`、seed 黄金页、Playwright DOM + 小程序 API/parseDSL 指纹比对、`render-parity-full.sh` 九步；admin+miniapp+scripts。
+- 2026-09-26：RENDER-PARITY 本地全绿（结构 0 差异 + miniapp/admin 单测 + automator 五 Tab 证据 `agent-team/testing/evidence/render-parity/`）；admin dist 已拷入容器。
+- 2026-09-26：RENDER-PARITY 一键脚本 `render-parity-full.sh` + automator 冒烟 `render-parity-automator.js`；scripts+CI。
+- 2026-09-26：RENDER-PARITY——预览标题注明非真机；banner items/图片失败兜底、brand_intro 取消默认 hero、H5 预览补 float_button；黄金 DSL+比对脚本+渲染契约；admin+miniapp+scripts+契约。
+- 2026-09-26：后台「我的」预览按真机版式重画——`MinePagePreview.vue` 去掉小程序并不存在的「我的订单+待付款/待发货/待收货/已完成」块，补上与 `mine.wxml` 对应的数据行（收藏/笔记/关注/暖豆）、快捷四宫格、继续学习、我的星球；组件内注明改 `mine.wxml` 须同步此文件。遗留风险：同一页面在 Vue 与 WXML 各实现一次，靠人工同步保持一致，长期应改为「系统页只列可配项+扫码看真机」；admin。
+- 2026-09-26：修复「我的」会员卡文案时好时坏——未登录时 `_refreshUserInfo()` 的 `setData(guestState())` 带写死文案，与异步拉取的 `minePageConfig` 竞态互相覆盖；新增 `_withMineConfig()` 在 guest 态合并回配置（`memberCardDesc`/`loginButtonText`）；miniapp。
+- 2026-09-26：本地商品表存在 5 条 UTF-8/latin1 双编码的重复记录（id 21–25，均在售且各有内容相同的正常孪生），导致商城列表一半乱码；上午的编码修复只覆盖 `mp_system_config`，业务表未处理，待人工下架或删除；数据·待办。
+- 2026-09-26：星球/商城原生壳移除，三个内容 Tab 统一为 DSL 宿主薄壳——`planet` 21.9KB→1.5KB、`shop` 19KB→1.5KB（含 wxml/wxss 合计约省 60KB）；`views/mini/appearance.vue` 的 `SYSTEM_PAGES` 只保留「个人中心」，不再提供星球/商城的内置页选项。取舍理由：同一 Tab 保留原生与 DSL 两条渲染路径，是本日「后台搭了不生效 / 后台预览与真机不一致」一系列问题的共同来源；「我的」因承载登录·订单·优惠券等系统能力仍保留内置模板。**未逐项验证原生页交互是否已被 DSL 组件覆盖**，如有缺失按 git 回退这两个目录；miniapp+admin。
+- 2026-09-26：底部导航绑定支持「系统页」——选择器拆为系统页/装修页两组，按 `tabRoute` 过滤（Tab 壳固定，跨壳绑定不生效）；选系统页只写 `pagePath` 不写 `pageId`（写了会被当装修页去拉 DSL）；「我的」不提供装修页选项并在 `persistTabBar` 落库前强制剥离绑定，修复"保存导航后系统页被重新绑回装修页 25"；admin。
+- 2026-09-26：「我的」页接入后台文案与开关——`mine.js` 新增 `_buildMinePatch()` 统一映射，`mine.wxml` 把写死的「点击登录 / 登录后同步收藏…」换成 `{{mineText.*}}`，接入 `showMemberCard`/`showMenuIcons`/`showAvatar`/`showMemberLevel`（16 处图标）；`memberCardDesc`、`loginButtonText` 仅未登录态生效，已登录时由会员概览接口决定；后台 `DEFAULT_MINE_MENU` 从凭空写的假菜单改为与 `mine.wxml` 一致的 12 项，兜底文案与 `showMenuIcons` 默认值对齐 miniapp；miniapp+admin。
+- 2026-09-26：发现页改为 DSL 宿主薄壳——原 `discover.wxml/json` 无 `dsl-renderer`，DSL 到了也无处渲染，表现为永久「加载中」；重写四件套（js 26KB→1.5KB、wxml 2.8→0.9KB、wxss 12.6→0.13KB，接线对齐 `planet.js`），已在开发者工具验证渲染后台 DSL；`discover-card.wxml` 成为无引用死文件待清理；miniapp。
+- 2026-09-26：后端 `FeatureModuleGuard` 补齐 plugins 对象格式兼容（9-26 只修了 miniapp 侧）——原实现只按数组反序列化，遇到库中实际的对象格式会抛异常落入 `DEFAULT_OFF`，把 product/order/coupon/qa/form/member/planet 七个模块整体误判为关闭，表现为 `/api/v1/mp/products` 返回 200301「功能暂未开放」、商品区块与商城 Tab 全空；改用 `readTree` 同时支持对象/数组及 `true|"true"|{enabled}` 三种写法；backend。
+- 2026-09-26：清理历史 UTF-8/latin1 双重编码脏数据——`site_name`/`miniappBrandConfig`/`planet_config`/`warm_home_config`/`commerce_mall_copy`/`commerce_trade_rules`/`commerce_ios_virtual_pay`/`wechat_mini_compliance`/`commerce_virtual_refund_rules`/`content_member_wall` 共 10 条经 cp1252→UTF-8 还原后回写（JSON 值先校验可解析），复查无残留；数据。
+- 2026-09-26：Tab 页改为后台 DSL 唯一真源——`dsl-tab-page.js` 删除「DSL 仅含单个 `warm_*` 组件即改走写死原生页」的短路分支（运营在后台搭什么都不生效的根因），绑定页一律走完整 DSL，文件 310→192 行；暖阁发现/星球/商城（page 22/23/24）经后台接口写入真实组件 DSL 并发布，四 Tab 完成绑定，「我的」保留为系统页不绑；首页 `pageName` 乱码修复；`live_release_no` 2→6；miniapp+数据。
+- 2026-09-26：预检不再「不给理由地拒绝」——`ContentPublishPreflightServiceImpl` 在 `selected` 为空时写入明确 blocking（点明直接改库不被变更检测识别），`canPublish` 改为只看 blocking；`assertCanPublish` 兜底文案补说明；`publishContentToMiniapp` 0 页时不再返回「已上线到小程序」；backend。
+- 2026-09-26：同步失败文案纠正——`useMiniConfigSync` 先判「无待发布改动」（`siteDraftChanged`/`siteDirty`）并直说原因，不再把 `canPublish=false` + 空 `blocking` 报成「存在阻断项」；发布返回 `siteConfigPromoted=false` 且 0 页时改报 warning 而非「已写入线上配置」；`PendingChangesVO`/`MiniPublishResultVO` 补字段；admin。
+- 2026-09-26：本地「后台改了小程序不变」定位——`.env` 缺 `APP_CONTENT_AUTO_SYNC` 致保存只进草稿、开发者工具无 pt 必读 online 旧快照（实测 live_release_no 停在 2、`?view=draft` 因 `PREVIEW_TOKEN_SECRET` 空而 404）；模板补两项并把口径提到 README 开头；deploy+docs。
+- 2026-09-26：修复 plugins 对象格式时误关「星球」导致底栏只显示 4 项；miniapp。
+- 2026-09-26：首页 Tab 支持壳路径+pageId 加载装修 DSL；取消暖阁默认兜底；导航改绑「出海笔记首页」并清空 warm_home 演示；V95；miniapp+backend+脚本。
+- 2026-09-26：`project.config.json` 开发关闭 `urlCheck`，避免连本地 API 时「网络异常」；miniapp+文档。
+- 2026-09-26：小程序 `dev-config.js` 默认改连本地 `127.0.0.1:8080`；文档说明 develop 误连生产 API 的现象；miniapp+docs。
+- 2026-09-26：`deploy/README-local.md` 补充本地编译与 Docker 同步步骤、AUTO_SYNC 默认说明；deploy。
+- 2026-09-26：第二阶段小程序——DSL 缓存 draft/online 隔离、预览切换清缓存、下拉强制发布号同步、配置/DSL 失败回退上次有效缓存；本地上传文档与组件支持清单；miniapp+契约。
+- 2026-09-26：第一阶段后台优化——统一「保存草稿 / 保存并同步」与配置版本文案；草稿/线上预览切换；关闭默认 `APP_CONTENT_AUTO_SYNC`；编辑器修复 silent 元数据误报未保存；页面列表展示全部导航位；微信推送移出主流程；admin+deploy。
+- 2026-09-26：去掉侧栏「发布与分发」与顶栏「发布」；文案改为保存即同步；`APP_CONTENT_AUTO_SYNC` 开启后保存外观/页面自动同步小程序配置；admin+backend。
+- 2026-09-26：外观/概览配置预览——去掉「改动后/线上」切换，默认草稿并随改色/导航/点 Tab 自动刷新；admin。
+- 2026-09-26：装修器预览——去掉「演示/真实数据」切换，画布统一拉小程序同源数据；admin。
+- 2026-09-26：本地库迁移——`migrate-docker-local.sh` 对接 Compose MySQL、V17/V32/V59 幂等修正；deploy+backend 迁移脚本。
+- 2026-09-26：本地 Nginx——`/api` 代理改用 Docker DNS 动态解析，修复 backend 重建后登录一直转圈；deploy。
+- 2026-09-26：本地 Docker——`APP_SECURITY_RATE_LIMIT_ENABLED=false` 生效（Dockerfile 跳过测试编译）、登录防连点；deploy+backend+admin。
+- 2026-09-26：限流——管理端带 Token 访问 /mp/*（配置预览灌库）计入 admin 配额，缓解本地「请求过于频繁」；backend。
+- 2026-09-26：内容配置闭环——发布号驱动 Tab/DSL 刷新、Tab 选中下标对齐 2~5 动态列表、删 Tab 回退首项、LinkPicker 与 `resolveLinkAction`、外观导航归一化与「配置预览」文案；miniapp+admin+backend。
+- 2026-09-26：发布与分发 M1 收尾——体验版小程序码(scene→jti)、扫码预览弹窗、五 Tab env-badge、scene 换 pt；契约 `mp-content-preview-token.md`；admin+backend+miniapp。
+- 2026-09-26：发布与分发 M1——预览 JWT（pt/`X-Mp-Preview-Token`）、MP `view=draft|online`、POST 内容预检+change_id、发布双跑预检、capabilities 清单与上传审计；V94；admin+backend+miniapp。
+- 2026-09-25：主包瘦身——忽略重复 orphan 页、详情/列表等迁入 `pkg-content`；主包约 1.3MB，预览上传通过；miniapp。
+- 2026-09-25：真机白屏修复——暖阁块数据改 `warm-home-blocks.js`；DSL 注册 hot_news/join_group；自定义 Tab 隐藏原生底栏；系统信息走 `system-info.js`；miniapp。
+- 2026-09-24：article_list show_header 同卡内 list 条目样式优先级修复（扁平分隔线/78×58 缩略图）；admin。
+- 2026-09-24：修复装修器画布误传 previewMode 导致 useEditorLiveItems 不请求 /mp/*；admin。
+- 2026-09-24：warm_greet 增加 greet_skin=plain；plain 视觉触发条件放宽；admin+miniapp。
+- 2026-09-24：warm_greet 对齐墨太白原型——背景读 style、搜索/头像/会员标签、可配问候字号；admin+miniapp。
+- 2026-09-24：article_list 内置标题头 show_header（与列表同卡、对齐 hot_news 纯文字头）；admin+miniapp。
+- 2026-09-24：墨太白首页组件——hot_news 数字序号/纯文字标题/隐藏日期；新增 promo_banner；暖阁金刚区聚合 navs + 装修页 hydrate；admin+miniapp。
+- 2026-09-24：模板库编辑——整店模板支持编辑信息/编辑站点/覆盖保存；页面自定义模板跳转模板中心编辑；backend 支持更新场景与说明。
+- 2026-09-24：整店模板删除——使用中的自定义模板可删（解除关联、保留页面草稿）；系统预置仍不可删；admin + backend。
+- 2026-09-24：小程序模板库——整店/页面模板支持复制与删除（系统预置不可删）；整店列表合并自定义模板与新建卡片。
+- 2026-09-24：后端限流——管理后台 `/api/v1/admin/*` 单独放宽 burst/分钟配额，登录仍收紧，缓解 429「请求过于频繁」。
+- 2026-09-24：生产墨太白——第 6 次内容发布，仅 promote 站点草稿（五 Tab 28–34 + 品牌），未发页、未上架商品。
+- 2026-09-24：真机预览机框——灵动岛移入顶部黑边「额头」，不再遮挡小程序状态栏。
+- 2026-09-24：小程序概览/外观——统一 `DevicePreview` 真机预览（375×812 缩放、灵动岛）；两栏 320px 网格与布局修整。
+- 2026-09-24：管理后台侧栏——全站统一 216px 紧凑样式与 fixed 定位；路由切换不再改宽度/定位；折叠时才做过渡；发布角标预载+占位。
+- 2026-09-24：管理后台全局主题——`classic`/`warm` 由 `data-admin-theme` + localStorage 切换；移除 `/mini` 路由强制暖色；顶栏用户菜单可选配色。
 - 2026-09-24：合规收尾——FeatureModuleGuard×审核版类目；发布/评论接入 Wx 内容安全 v2；资讯版权字段校验+编辑；V93 下单退款同意版本；`GET/POST /api/v1/mp/consent`；admin 微信合规 UI；公开 `commerce_virtual_refund_rules`。
 - 2026-09-24：内容标签筛选（Opt5）——装修器 platform/topic 筛选 props；小程序 article/note/feed 与列表 tag 参数+客户端过滤。
 - 2026-09-24：装修器 DSL 缺口补齐——会员档展示价/商品 ID、问答围观数、资料 downloadCount、`dsl-content-paywall` 拉详情解锁项、feed 来源标签、星球落地页 commerce landing。

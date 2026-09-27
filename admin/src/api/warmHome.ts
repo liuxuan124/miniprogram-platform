@@ -12,6 +12,7 @@ export interface WarmHomeApiPayload {
   columns?: Array<Record<string, unknown>>
   planet?: Record<string, unknown> | null
   feed?: Array<Record<string, unknown>>
+  vipBar?: Record<string, unknown> | null
 }
 
 export function fetchWarmHomeAggregate() {

@@ -77,9 +77,13 @@ let bannerTimer: ReturnType<typeof setInterval> | null = null
 
 const bannerImages = computed<BannerImage[]>(() => {
   const images = props.component.props?.images
-  if (Array.isArray(images) && images.length > 0) return images
-  if (props.previewMode) return [{ title: props.component.props?.title || '会员福利专区', image: '' }]
-  return [{ title: '五一活动限时优惠', image: '' }]
+  const items = props.component.props?.items
+  const list = (Array.isArray(images) && images.length > 0)
+    ? images
+    : (Array.isArray(items) && items.length > 0 ? items : [])
+  if (list.length > 0) return list
+  const fallbackTitle = props.component.props?.title || '轮播占位'
+  return [{ title: fallbackTitle, image: '' }]
 })
 
 const currentBanner = computed<BannerImage>(() => {

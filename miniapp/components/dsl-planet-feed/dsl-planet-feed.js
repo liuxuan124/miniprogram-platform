@@ -117,7 +117,7 @@ Component({
     list: DEMO_FEED_LIST,
     footerText: '—— 演示数据 ——',
     usingDemo: true,
-    resourcesUrl: '/pages/resources/resources',
+    resourcesUrl: '/pkg-content/resources/resources',
   },
   lifetimes: { attached() { this._load() } },
   observers: { config() { this._load() } },
@@ -126,7 +126,7 @@ Component({
       const c = this.data.config || {}
       const segs = Array.isArray(c.segs) && c.segs.length ? c.segs : warmPlanet.SEGS
       const pageSize = Number(c.page_size) || 20
-      const resourcesUrl = c.resources_url || '/pages/resources/resources'
+      const resourcesUrl = c.resources_url || '/pkg-content/resources/resources'
       const manual = String(c.source_mode || 'auto') === 'manual'
       // 保留 DEMO 列表，不先清空；只更新 tabs
       this.setData({ segs, resourcesUrl })
@@ -174,9 +174,9 @@ Component({
       const mid = String(id || '').trim()
       const asDemo = isTruthyDemo(demo) || !mid || mid.indexOf('demo') === 0 || !!this.data.usingDemo
       if (asDemo) {
-        return '/pages/moment-detail/moment-detail?demo=1&from=planet' + (mid ? `&id=${encodeURIComponent(mid)}` : '')
+        return '/pkg-content/moment-detail/moment-detail?demo=1&from=planet' + (mid ? `&id=${encodeURIComponent(mid)}` : '')
       }
-      return `/pages/moment-detail/moment-detail?id=${encodeURIComponent(mid)}&from=planet`
+      return `/pkg-content/moment-detail/moment-detail?id=${encodeURIComponent(mid)}&from=planet`
     },
     _resolveMomentKey(ds, item) {
       const mid = String((ds && (ds.id || ds.uid)) || (item && (item.id || item.uid)) || '')
@@ -267,11 +267,11 @@ Component({
     onOpenFile(e) {
       const file = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.file) || {}
       if (file.fileId) {
-        wx.navigateTo({ url: `/pages/file-preview/file-preview?id=${file.fileId}` })
+        wx.navigateTo({ url: `/pkg-content/file-preview/file-preview?id=${file.fileId}` })
         return
       }
       wx.navigateTo({
-        url: `/pages/file-preview/file-preview?demo=1&name=${encodeURIComponent(file.name || '附件.pdf')}`,
+        url: `/pkg-content/file-preview/file-preview?demo=1&name=${encodeURIComponent(file.name || '附件.pdf')}`,
       })
     },
   },

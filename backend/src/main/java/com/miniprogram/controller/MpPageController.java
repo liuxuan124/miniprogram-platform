@@ -16,6 +16,7 @@ import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.PageService;
+import com.miniprogram.util.MpContentViewHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -90,14 +91,16 @@ public class MpPageController {
 
     @Operation(summary = "获取页面配置（路径参数）", description = "小程序端根据 path 获取已发布页面的 DSL 配置")
     @GetMapping("/{path}")
-    public R<Map<String, Object>> getPageConfigByPath(@PathVariable String path) {
-        return resolvePageDsl(path);
+    public R<Map<String, Object>> getPageConfigByPath(@PathVariable String path,
+                                                       @RequestParam(value = "view", required = false) String view) {
+        return resolvePageDsl(path, view);
     }
 
     @Operation(summary = "获取页面配置（查询参数）", description = "小程序端根据 path 参数获取已发布页面的 DSL 配置，适用于路径含斜杠的场景")
     @GetMapping
-    public R<Map<String, Object>> getPageConfigByParam(@RequestParam String path) {
-        return resolvePageDsl(path);
+    public R<Map<String, Object>> getPageConfigByParam(@RequestParam String path,
+                                                        @RequestParam(value = "view", required = false) String view) {
+        return resolvePageDsl(path, view);
     }
 
     private Map<String, Object> loadHomeDslMap() {
@@ -225,12 +228,14 @@ public class MpPageController {
         }
     }
 
-    private R<Map<String, Object>> resolvePageDsl(String path) {
+    private R<Map<String, Object>> resolvePageDsl(String path, String view) {
         if (!StringUtils.hasText(path)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "path 不能为空");
         }
-        String dslContent = pageService.getPublishedPageDsl(path);
-        if (dslContent == null) {
+        String normalizedView = MpContentViewHelper.normalizeView(view);
+        MpContentViewHelper.requireDraftAccess(normalizedView);
+        String dslContent = pageService.getPageDslForView(path, normalizedView);
+        if (dslContent == null && "online".equals(normalizedView)) {
             dslContent = getPageDslFromLatestRelease(path);
         }
         if (dslContent == null) {

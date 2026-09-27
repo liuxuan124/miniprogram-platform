@@ -19,7 +19,7 @@ Component({
     joinRowText: JOIN_ROW_DEFAULT,
     joinRowGo: '去加入 ›',
     joinLink: '/pages/member-center/member-center',
-    joinRowLink: '/pages/join/join',
+    joinRowLink: '/pkg-content/join/join',
     kpis: warmPlanet.KPIS,
   },
   lifetimes: {
@@ -47,7 +47,7 @@ Component({
         joinRowText: c.join_row_text || JOIN_ROW_DEFAULT,
         joinRowGo: c.join_row_go || '去加入 ›',
         joinLink: c.join_link || '/pkg-user/member-center/member-center',
-        joinRowLink: c.join_row_link || '/pages/join/join',
+        joinRowLink: c.join_row_link || '/pkg-content/join/join',
         kpis: Array.isArray(c.kpis) && c.kpis.length ? c.kpis : warmPlanet.KPIS,
       }
       // 同步落 DEMO，避免 hero 空 KPI 塌陷后再跳
@@ -61,7 +61,7 @@ Component({
             const pid = landing.joinProductId
             const patch = {}
             if (pid) {
-              patch.joinLink = `/pages/product-detail/product-detail?id=${encodeURIComponent(pid)}`
+              patch.joinLink = `/pkg-content/product-detail/product-detail?id=${encodeURIComponent(pid)}`
               if (landing.joinProductPrice != null) {
                 patch.joinText = `¥${landing.joinProductPrice} 加入`
               }
@@ -88,7 +88,7 @@ Component({
           joinText: planetActive ? '已加入' : seed.joinText,
           logoEmoji: seed.logoEmoji,
           joinLink: pkgId
-            ? `/pages/product-detail/product-detail?id=${encodeURIComponent(pkgId)}`
+            ? `/pkg-content/product-detail/product-detail?id=${encodeURIComponent(pkgId)}`
             : seed.joinLink,
           joinRowLink: seed.joinRowLink,
           joinRowGo: seed.joinRowGo,
@@ -106,7 +106,7 @@ Component({
       }).catch(() => {})
     },
     onSwitch() {
-      wx.navigateTo({ url: '/pages/planet-list/planet-list' })
+      wx.navigateTo({ url: '/pkg-content/planet-list/planet-list' })
     },
     onJoin() {
       if (this.data.joinText === '已加入') {
@@ -138,7 +138,7 @@ Component({
       })
     },
     onJoinRow() {
-      const url = this.data.joinRowLink || '/pages/join/join'
+      const url = this.data.joinRowLink || '/pkg-content/join/join'
       wx.navigateTo({
         url,
         fail: () => wx.navigateTo({ url: this.data.joinLink || '/pkg-user/member-center/member-center' }),

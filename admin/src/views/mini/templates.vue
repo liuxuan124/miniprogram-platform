@@ -91,9 +91,27 @@
                   应用
                 </button>
                 <button v-else type="button" class="btn sm" disabled>当前使用中</button>
+                <button type="button" class="btn sm" @click="duplicateStore(item)">复制</button>
+                <button type="button" class="btn sm" @click="openEditStoreMeta(item)">编辑</button>
+                <button
+                  v-if="canDeleteStore(item)"
+                  type="button"
+                  class="btn sm tpl-btn-danger"
+                  @click="deleteStore(item)"
+                >
+                  删除
+                </button>
+              </div>
+              <div v-if="!isSystemStore(item)" class="tpl-actions tpl-actions--sub">
+                <button type="button" class="btn sm soft" @click="editStoreSite(item)">编辑站点</button>
+                <button type="button" class="btn sm soft" @click="captureStoreFromSite(item)">覆盖保存</button>
               </div>
             </div>
           </article>
+          <button type="button" class="tpl tpl-add" :disabled="creating" @click="createFromCurrent">
+            <span class="tpl-add__plus">+</span>
+            <span>把当前小程序存为模板</span>
+          </button>
         </div>
         <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
           <span>{{ sceneFilter === 'all' ? '还没有整店模板' : '这个场景下还没有模板' }}</span>
@@ -146,7 +164,7 @@
             </div>
           </div>
           <div class="note" style="margin: 12px 0">
-            确认后会切换页面内容；请再到「发布」检查待发布项并确认，用户才会看到完整变更。
+            确认后会切换页面与导航草稿；请到「外观/概览」点「保存并同步」后才会更新线上配置。
           </div>
           <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer">
             <input v-model="keepTheme" type="checkbox" />
@@ -177,6 +195,22 @@
                   预览
                 </button>
                 <button type="button" class="btn sm soft" @click="applyPageTpl(tpl)">用这个新建</button>
+                <button
+                  v-if="canEditPageTpl(tpl)"
+                  type="button"
+                  class="btn sm"
+                  @click="goEditPageTpl(tpl)"
+                >
+                  编辑
+                </button>
+                <button
+                  v-if="canDeletePageTpl(tpl)"
+                  type="button"
+                  class="btn sm tpl-btn-danger"
+                  @click="deletePageTpl(tpl)"
+                >
+                  删除
+                </button>
               </div>
             </div>
           </article>
@@ -217,6 +251,20 @@
                   应用
                 </button>
                 <button v-else type="button" class="btn sm" disabled>当前使用中</button>
+                <button type="button" class="btn sm" @click="duplicateStore(item)">复制</button>
+                <button type="button" class="btn sm" @click="openEditStoreMeta(item)">编辑</button>
+                <button
+                  v-if="canDeleteStore(item)"
+                  type="button"
+                  class="btn sm tpl-btn-danger"
+                  @click="deleteStore(item)"
+                >
+                  删除
+                </button>
+              </div>
+              <div class="tpl-actions tpl-actions--sub">
+                <button type="button" class="btn sm soft" @click="editStoreSite(item)">编辑站点</button>
+                <button type="button" class="btn sm soft" @click="captureStoreFromSite(item)">覆盖保存</button>
               </div>
             </div>
           </article>
@@ -239,8 +287,13 @@
     />
 
     <SaveStoreTemplateDialog
+      ref="saveDialogRef"
       v-model="saveDialogVisible"
+      :mode="saveDialogMode"
+      :name-locked="saveNameLocked"
       :default-name="saveDefaultName"
+      :default-scene="saveDefaultScene"
+      :default-description="saveDefaultDescription"
       :default-cover-url="saveDefaultCover"
       @submit="onSaveTemplateSubmit"
     />
@@ -261,7 +314,12 @@
             扫码
           </button>
         </div>
-        <MiniOverviewPhone v-if="previewSrc" :src="previewSrc" :title="previewTitle" iframe-key="tpl-dialog" />
+        <DevicePreview
+          v-if="previewSrc"
+          frame-only
+          :preview-url="previewSrc"
+          iframe-key="tpl-dialog"
+        />
       </div>
     </el-dialog>
   </div>
@@ -270,22 +328,26 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getStoreTemplates,
   activateStoreTemplate,
   createStoreTemplate,
+  duplicateStoreTemplate,
+  updateStoreTemplate,
+  captureStoreTemplate,
+  deleteRelease,
   getReleaseDetail,
   toReleaseId,
 } from '@/api/version'
-import { getPageTemplates } from '@/api/page'
+import { deleteTemplate, getPageTemplates } from '@/api/page'
 import { getMiniSite } from '@/api/miniSite'
 import { createPreviewDraft } from '@/api/preview-draft'
 import { applyPageTemplate, isUserCancelError } from '@/components/page-templates/applyPageTemplate'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
-import MiniOverviewPhone from '@/components/mini/MiniOverviewPhone.vue'
+import DevicePreview from '@/components/mini/DevicePreview.vue'
 import SaveStoreTemplateDialog from '@/components/mini/SaveStoreTemplateDialog.vue'
 import TemplatePreviewPanel from '@/components/mini/TemplatePreviewPanel.vue'
 import type { ReleaseRecord } from '@/types/page'
@@ -339,8 +401,14 @@ const previewPageItem = ref<Record<string, unknown> | null>(null)
 const viewportWide = ref(typeof window !== 'undefined' ? window.innerWidth >= WIDE_PREVIEW_PX : true)
 
 const saveDialogVisible = ref(false)
+const saveDialogMode = ref<'create' | 'edit'>('create')
+const saveNameLocked = ref(false)
+const editingStoreId = ref<number | null>(null)
 const saveDefaultName = ref('')
+const saveDefaultScene = ref('')
+const saveDefaultDescription = ref('')
 const saveDefaultCover = ref('')
+const saveDialogRef = ref<InstanceType<typeof SaveStoreTemplateDialog> | null>(null)
 
 const myTemplates = computed(() =>
   storeTemplates.value.filter((r) => {
@@ -369,10 +437,24 @@ function matchPageScene(tpl: Record<string, unknown>) {
   return matchesTemplateSceneFilter(sceneFilter.value, key)
 }
 
+function isSystemStore(item: ReleaseRecord) {
+  const sys = (item as any).isSystem ?? (item as any).is_system
+  return sys === 1 || sys === true || !!(item as any).systemTemplate
+}
+
 const storeListBase = computed(() => {
-  const system = storeTemplates.value.filter((r) => (r as any).isSystem || (r as any).systemTemplate)
-  const pool = system.length ? system : storeTemplates.value.filter((r) => !myTemplates.value.includes(r))
-  return (pool.length ? pool : storeTemplates.value).filter((r) => {
+  const system = storeTemplates.value.filter((r) => isSystemStore(r))
+  const custom = myTemplates.value
+  const merged: ReleaseRecord[] = []
+  const seen = new Set<number>()
+  for (const r of [...system, ...custom]) {
+    const id = Number(r.id)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    merged.push(r)
+  }
+  const pool = merged.length ? merged : storeTemplates.value
+  return pool.filter((r) => {
     const name = displayNameFull(r)
     return name && !/^模板\s*#/.test(name)
   })
@@ -584,7 +666,7 @@ async function doActivate() {
     )
     closeSidePanel()
     await load()
-    router.push('/mini/publish')
+    router.push('/mini/overview')
   } catch (e: unknown) {
     const msg = apiErrorMessage(e, '套用失败')
     if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
@@ -618,9 +700,162 @@ function formatDateYmd(d = new Date()) {
 }
 
 function createFromCurrent() {
+  saveDialogMode.value = 'create'
+  editingStoreId.value = null
+  saveNameLocked.value = false
   saveDefaultName.value = `${siteName.value || '我的小程序'} · ${formatDateYmd()}`
+  saveDefaultScene.value = 'content'
+  saveDefaultDescription.value = ''
   saveDefaultCover.value = ''
   saveDialogVisible.value = true
+}
+
+function openEditStoreMeta(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  saveDialogMode.value = 'edit'
+  editingStoreId.value = id
+  saveNameLocked.value = isSystemStore(item)
+  saveDefaultName.value = displayNameFull(item)
+  saveDefaultScene.value = String(
+    (item as any).templateScene || (item as any).template_scene || resolveStoreTemplateScene(item as unknown as Record<string, unknown>) || 'content',
+  )
+  saveDefaultDescription.value = String(item.releaseNotes || '')
+  saveDefaultCover.value = String((item as any).coverUrl || (item as any).cover_url || '')
+  saveDialogVisible.value = true
+}
+
+async function editStoreSite(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  if (isSystemStore(item)) {
+    ElMessage.info('系统模板请先用「应用」选用，再到「外观」里改导航与配色')
+    return
+  }
+  try {
+    if (!isInUse(item)) {
+      await ElMessageBox.confirm(
+        '将先选用这套模板，再打开外观与导航编辑。继续？',
+        '编辑站点',
+        { type: 'info', confirmButtonText: '继续', cancelButtonText: '取消' },
+      )
+      activatingId.value = id
+      await activateStoreTemplate(id)
+      await load()
+    }
+    router.push('/mini/appearance')
+  } catch (e: unknown) {
+    if (e === 'cancel') return
+    const msg = apiErrorMessage(e, '打开编辑失败')
+    if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
+  } finally {
+    activatingId.value = null
+  }
+}
+
+async function captureStoreFromSite(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  try {
+    await ElMessageBox.confirm(
+      `用当前正在搭建的小程序内容覆盖「${displayNameFull(item)}」的快照？`,
+      '覆盖保存',
+      { type: 'warning', confirmButtonText: '覆盖', cancelButtonText: '取消' },
+    )
+    await captureStoreTemplate(id)
+    ElMessage.success('已用当前站点内容更新该模板')
+    await load()
+  } catch (e: unknown) {
+    if (e === 'cancel') return
+    const msg = apiErrorMessage(e, '保存失败')
+    if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
+  }
+}
+
+function canEditPageTpl(tpl: Record<string, unknown>) {
+  return canDeletePageTpl(tpl)
+}
+
+function goEditPageTpl(tpl: Record<string, unknown>) {
+  router.push({ path: '/page-builder/template-center', query: { editId: String(tpl.id || '') } })
+}
+
+function canDeleteStore(item: ReleaseRecord) {
+  return !isSystemStore(item)
+}
+
+function canDeletePageTpl(tpl: Record<string, unknown>) {
+  const src = String(tpl.source || tpl.templateSource || tpl.origin || '').toLowerCase()
+  if (src === 'system' || src === 'builtin') return false
+  const flag = tpl.isSystem ?? tpl.system ?? tpl.builtin
+  if (flag === true || flag === 1 || flag === '1') return false
+  return tpl.id != null && Number(tpl.id) > 0
+}
+
+async function duplicateStore(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  try {
+    await duplicateStoreTemplate(id)
+    ElMessage.success('已复制到我的模板，可在列表中应用或删除')
+    tab.value = 'mine'
+    await load()
+  } catch (e: unknown) {
+    const msg = apiErrorMessage(e, '复制失败')
+    if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
+  }
+}
+
+async function deleteStore(item: ReleaseRecord) {
+  if (isSystemStore(item)) {
+    ElMessage.warning('系统预置模板不能删除，可先「复制」再改')
+    return
+  }
+  const id = toReleaseId(item.id)
+  if (id == null) return
+  const inUseHint = isInUse(item)
+    ? '这套正在用于当前搭建，删除后仅取消模板关联，已生成的页面与导航草稿会保留。'
+    : ''
+  try {
+    await ElMessageBox.confirm(
+      `确认删除「${displayNameFull(item)}」？删除后不可恢复。${inUseHint ? `\n\n${inUseHint}` : ''}`,
+      '删除整店模板',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+    await deleteRelease(id)
+    ElMessage.success('已删除')
+    if (sidePanel.value === 'preview' && previewStoreItem.value?.id === item.id) {
+      closeSidePanel()
+      previewDialogVisible.value = false
+    }
+    await load()
+  } catch (e: unknown) {
+    if (e === 'cancel') return
+    const msg = apiErrorMessage(e, '删除失败')
+    if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
+  }
+}
+
+async function deletePageTpl(tpl: Record<string, unknown>) {
+  if (!canDeletePageTpl(tpl)) {
+    ElMessage.warning('系统预置页面模板不能删除')
+    return
+  }
+  const id = Number(tpl.id)
+  try {
+    await ElMessageBox.confirm(
+      `确认删除页面模板「${tpl.name || id}」？`,
+      '删除页面模板',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+    await deleteTemplate(id)
+    ElMessage.success('已删除')
+    await load()
+  } catch (e: unknown) {
+    if (e === 'cancel') return
+    const msg = apiErrorMessage(e, '删除失败')
+    if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
+  }
 }
 
 async function onSaveTemplateSubmit(payload: {
@@ -630,17 +865,29 @@ async function onSaveTemplateSubmit(payload: {
   coverUrl?: string
 }) {
   creating.value = true
+  saveDialogRef.value?.setSubmitting(true)
   try {
-    await createStoreTemplate(payload)
-    ElMessage.success('已从当前站点新建模板')
+    if (saveDialogMode.value === 'edit' && editingStoreId.value != null) {
+      await updateStoreTemplate(editingStoreId.value, {
+        templateName: saveNameLocked.value ? undefined : payload.templateName,
+        scene: payload.scene,
+        description: payload.description ?? '',
+        coverUrl: payload.coverUrl ?? '',
+      })
+      ElMessage.success('已保存模板信息')
+    } else {
+      await createStoreTemplate(payload)
+      ElMessage.success('已从当前站点新建模板')
+      tab.value = 'store'
+    }
     saveDialogVisible.value = false
-    tab.value = 'mine'
     await load()
   } catch (e: unknown) {
-    const msg = apiErrorMessage(e, '创建失败')
+    const msg = apiErrorMessage(e, saveDialogMode.value === 'edit' ? '保存失败' : '创建失败')
     if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
   } finally {
     creating.value = false
+    saveDialogRef.value?.setSubmitting(false)
   }
 }
 
@@ -698,6 +945,11 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  &--sub {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--line, #e8dfd3);
+  }
 }
 .tpl-art {
   align-items: flex-end;
@@ -768,6 +1020,43 @@ onBeforeUnmount(() => {
   gap: 8px;
   width: 100%;
   justify-content: center;
+}
+.tpl-btn-danger {
+  color: var(--r, #c0392b);
+  border-color: rgba(192, 57, 43, 0.35);
+  &:hover {
+    border-color: var(--r, #c0392b);
+    background: rgba(192, 57, 43, 0.06);
+  }
+}
+.tpl-add {
+  min-height: 280px;
+  border-style: dashed;
+  border-color: var(--line);
+  background: var(--soft, #faf8f5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--mute);
+  text-align: center;
+  padding: 20px;
+  &:hover:not(:disabled) {
+    border-color: var(--acc);
+    color: var(--acc);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+.tpl-add__plus {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 300;
 }
 /* 双栏规则在 mini-workbench.scss：.tpl-layout.has-panel */
 </style>

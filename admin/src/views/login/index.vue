@@ -119,9 +119,11 @@ const loginRules: FormRules = {
 }
 
 async function handleLogin() {
+  if (loading.value) return
   if (!loginFormRef.value) return
   await loginFormRef.value.validate(async (valid) => {
     if (!valid) return
+    if (loading.value) return
     loading.value = true
     try {
       await userStore.login({

@@ -1,79 +1,20 @@
-<import src="./discover-card.wxml" />
-<page-meta page-style="{{themePageStyle}}" />
-<view class="dc-page">
-  <view class="dc-head" style="padding-top: {{statusBarHeight}}px;">
-    <view class="dc-tabs">
-      <text
-        wx:for="{{tabs}}"
-        wx:key="key"
-        class="dc-tab {{activeTab === item.key ? 'dc-tab--on' : ''}}"
-        data-key="{{item.key}}"
-        bindtap="onTabTap"
-      >{{item.label}}</text>
-      <view class="dc-sr" bindtap="onTapSearch">🔍</view>
+<!-- pages/discover/discover.wxml — DSL 宿主薄壳：页面内容完全由后台装修页决定 -->
+<env-badge />
+<page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
+<view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
+<view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
+<block wx:else>
+  <view class="dsl-tab-page__body" style="background-color:{{pageBackgroundColor}};{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+    <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
+      <dsl-renderer component="{{item}}" />
     </view>
-    <scroll-view class="dc-chips" scroll-x enhanced show-scrollbar="{{false}}">
-      <view class="dc-chips__inner">
-        <text
-          wx:for="{{chips}}"
-          wx:key="label"
-          class="dc-chip {{activeChip === item.label ? 'dc-chip--on' : ''}}"
-          data-index="{{index}}"
-          bindtap="onChipTap"
-        >{{item.label}}</text>
-      </view>
-    </scroll-view>
+    <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
   </view>
-
-  <view class="dc-banner" wx:if="{{showBanner}}" bindtap="onTapContribute">
-    <text class="dc-banner__ic">✍️</text>
-    <view class="dc-banner__tx">
-      <text class="dc-banner__title">{{recruitBanner.title}}</text>
-      <text class="dc-banner__desc">{{recruitBanner.desc}}</text>
-    </view>
-    <text class="dc-banner__go">{{recruitBanner.cta || '去投稿'}}</text>
-  </view>
-
-  <scroll-view
-    class="dc-scroll"
-    scroll-y
-    enhanced
-    show-scrollbar="{{false}}"
-    refresher-enabled
-    refresher-triggered="{{refreshing}}"
-    bindrefresherrefresh="onRefresh"
-    bindscrolltolower="onReachBottom"
-    lower-threshold="120"
-  >
-    <view wx:if="{{loading && isEmpty}}" class="dc-state">加载中...</view>
-
-    <view class="dc-feed" wx:else>
-      <block wx:for="{{feedRows}}" wx:for-item="row" wx:key="key">
-        <!-- 瀑布流双列 -->
-        <view wx:if="{{row.type === 'wf'}}" class="dc-wf">
-          <view class="dc-col">
-            <block wx:for="{{row.leftList}}" wx:for-item="item" wx:key="uid">
-              <template is="dc-card" data="{{item}}" />
-            </block>
-          </view>
-          <view class="dc-col">
-            <block wx:for="{{row.rightList}}" wx:for-item="item" wx:key="uid">
-              <template is="dc-card" data="{{item}}" />
-            </block>
-          </view>
-        </view>
-        <!-- 通栏：hero/quote，或段内落单的紧凑矮卡 -->
-        <view wx:else class="dc-row dc-row--full {{row.compact ? 'dc-row--compact' : ''}}">
-          <block wx:for="{{row.items}}" wx:for-item="item" wx:key="uid">
-            <template is="dc-card" data="{{item}}" />
-          </block>
-        </view>
-      </block>
-    </view>
-
-    <view class="warm-end" wx:if="{{footerText}}">{{footerText}}</view>
-    <view class="warm-safe"></view>
-  </scroll-view>
-
-  <view class="dc-fab" bindtap="onTapContribute">✎ 投稿</view>
-</view>
+  <dsl-float-button
+    wx:for="{{floatComponents}}"
+    wx:key="id"
+    config="{{item.props}}"
+    actions="{{item.actions}}"
+    styleString="{{item.styleString}}"
+  />
+</block>

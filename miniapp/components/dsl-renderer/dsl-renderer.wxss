@@ -1,5 +1,7 @@
 /* components/dsl-renderer/dsl-renderer.wxss ??DSL ?????? */
 
+@import "../../styles/planet-blocks.wxss";
+
 .dsl-renderer {
   /* 勿设 overflow，否则负 margin 叠层（导航盖住头图）会被裁切 */
   width: 100%;

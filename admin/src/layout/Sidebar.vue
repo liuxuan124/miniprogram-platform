@@ -1,8 +1,7 @@
 <template>
   <el-aside
     class="app-sidebar"
-    :class="{ 'is-mini-shell': isWarmShell }"
-    :width="appStore.sidebarCollapsed ? '72px' : (isWarmShell ? '216px' : '220px')"
+    :width="appStore.sidebarCollapsed ? '72px' : '216px'"
   >
     <div class="brand">
       <div class="brand-icon">
@@ -63,10 +62,6 @@
                   @click="go(child.path!)"
                 >
                   <span class="menu-title">{{ child.title }}</span>
-                  <span
-                    v-if="child.path === '/mini/publish' && pendingCount > 0"
-                    class="menu-badge"
-                  >{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
                 </button>
               </div>
             </div>
@@ -80,10 +75,6 @@
             >
               <span class="menu-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
               <span v-show="!appStore.sidebarCollapsed" class="menu-title">{{ item.title }}</span>
-              <span
-                v-if="item.path === '/mini/publish' && pendingCount > 0 && !appStore.sidebarCollapsed"
-                class="menu-badge"
-              >{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
             </button>
           </template>
         </div>
@@ -93,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
@@ -193,25 +184,14 @@ const iconMap: Record<string, any> = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
-const { pendingCount, refreshMiniPending } = useMiniPending(false)
-const isWarmShell = computed(() =>
-  route.path.startsWith('/mini') || route.path.startsWith('/content')
-  || route.path.startsWith('/member') || route.path.startsWith('/user')
-  || route.path.startsWith('/commerce') || route.path.startsWith('/order')
-  || route.path.startsWith('/marketing') || route.path.startsWith('/growth'),
-)
+const { refreshMiniPending } = useMiniPending(true)
 
 watch(
   () => route.path,
   (p) => {
     if (p.startsWith('/mini')) void refreshMiniPending()
   },
-  { immediate: true },
 )
-
-onMounted(() => {
-  if (route.path.startsWith('/mini')) void refreshMiniPending()
-})
 const permissionStore = usePermissionStore()
 const featureModulesStore = useFeatureModulesStore()
 const industryProfileStore = useIndustryProfileStore()
@@ -246,7 +226,6 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '外观', path: '/mini/appearance', icon: 'Brush', activePrefix: '/mini/appearance', permissions: ['page:list'] },
       { title: '页面', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
       { title: '模板', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
-      { title: '发布与分发', path: '/mini/publish', icon: 'Upload', activePrefix: '/mini/publish', permissions: ['page:publish', 'page:list'] },
     ],
   },
   {
@@ -424,115 +403,40 @@ watch(
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 1001;
+  height: 100vh;
+  flex-shrink: 0;
+  padding: 0;
+  transition: none;
+}
+
+:global(html.sidebar-width-animate) .app-sidebar {
   transition: width 0.2s ease;
-
-  /* /mini 工作台：暖棕壳 + 陶土 active；侧栏占文档流（对齐原型 grid），避免压内容左缘 */
-  &.is-mini-shell {
-    position: sticky;
-    top: 0;
-    inset: auto;
-    align-self: flex-start;
-    height: 100vh;
-    flex-shrink: 0;
-    background: #2b1d14;
-    padding: 0;
-    color: #e9dccb;
-
-    .brand {
-      padding: 18px 18px 18px;
-      border-bottom: 0;
-      min-height: auto;
-      gap: 10px;
-    }
-
-    .brand-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: #b4430f;
-      img { width: 22px; height: 22px; }
-    }
-
-    .brand-text {
-      strong {
-        color: #fff;
-        font-size: 15px;
-        line-height: 1.3;
-      }
-      span {
-        color: #bfae9b;
-        font-size: 11px;
-      }
-      .brand-version { display: none; }
-    }
-
-    .menu-group { padding: 0 8px 4px; }
-
-    .group-title {
-      color: #fff;
-      font-weight: 600;
-      padding: 10px 12px 6px;
-      font-size: 14px;
-    }
-
-    .menu-item {
-      color: #e9dccb;
-      padding: 10px 12px;
-      border-radius: 8px;
-      gap: 10px;
-      margin: 0 0 2px;
-
-      &:hover { background: rgba(255, 255, 255, 0.06); }
-
-      &.active,
-      &.sub.active {
-        background: #b4430f;
-        color: #fff;
-        .menu-badge {
-          background: #fff;
-          color: #b4430f;
-        }
-      }
-    }
-
-    .menu-badge {
-      margin-left: auto;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 0 7px;
-      border-radius: 999px;
-      background: #b4430f;
-      color: #fff;
-      min-width: auto;
-      height: auto;
-      line-height: 18px;
-    }
-  }
 }
 
 .brand {
-  min-height: 72px;
+  min-height: auto;
   height: auto;
-  padding: 14px 16px;
+  padding: 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+  border-bottom: 0;
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   overflow: hidden;
   flex-shrink: 0;
   display: grid;
   place-items: center;
+  background: var(--sidebar-brand-bg);
 
   img {
     display: block;
-    width: 40px;
-    height: 40px;
+    width: 22px;
+    height: 22px;
   }
 }
 
@@ -542,31 +446,28 @@ watch(
   strong {
     display: block;
     color: #fff;
-    font-size: 14px;
-    line-height: 22px;
+    font-size: 15px;
+    line-height: 1.3;
   }
 
   span {
     display: block;
     color: var(--sidebar-muted);
-    font-size: 12px;
+    font-size: 11px;
     white-space: nowrap;
   }
 
   .brand-version {
-    margin-top: 2px;
-    font-size: 11px;
-    letter-spacing: 0.02em;
-    opacity: 0.85;
+    display: none;
   }
 }
 
 .menu-scroll {
-  height: calc(100vh - 88px);
+  height: calc(100vh - 72px);
 }
 
 .menu-group {
-  padding: 8px 8px 4px;
+  padding: 0 8px 4px;
 }
 
 .group-title {
@@ -576,19 +477,19 @@ watch(
   justify-content: space-between;
   gap: 8px;
   margin: 0;
-  padding: 8px 10px 8px 12px;
+  padding: 10px 12px 6px;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 16px;
-  font-weight: 700;
+  color: var(--sidebar-group-title);
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
   text-align: left;
 
   &:hover,
   &.open {
-    color: rgba(255, 255, 255, 0.88);
+    color: var(--sidebar-group-title-open);
   }
 }
 
@@ -610,7 +511,8 @@ watch(
   min-height: 40px;
   border: 0;
   border-radius: 8px;
-  padding: 0 10px 0 12px;
+  padding: 10px 12px;
+  margin: 0 0 2px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -621,19 +523,19 @@ watch(
   transition: background 0.16s ease, color 0.16s ease;
 
   &:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
+    background: var(--sidebar-item-hover-bg);
+    color: var(--sidebar-item-active-text);
   }
 
   &.active {
-    background: var(--brand);
-    color: #fff;
+    background: var(--sidebar-item-active-bg);
+    color: var(--sidebar-item-active-text);
     font-weight: 600;
   }
 
   &.open:not(.active) {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--sidebar-item-active-text);
+    background: var(--sidebar-item-hover-bg);
   }
 
   &.sub {
@@ -642,8 +544,8 @@ watch(
     font-size: 13px;
 
     &.active {
-      background: var(--brand);
-      color: #fff;
+      background: var(--sidebar-item-active-bg);
+      color: var(--sidebar-item-active-text);
       font-weight: 600;
     }
   }
@@ -665,16 +567,28 @@ watch(
 
 .menu-badge {
   margin-left: auto;
+  flex-shrink: 0;
   min-width: 18px;
   height: 18px;
-  padding: 0 5px;
+  padding: 0 7px;
   border-radius: 999px;
-  background: #b4430f;
-  color: #fff;
+  background: var(--sidebar-badge-bg);
+  color: var(--sidebar-badge-text);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 18px;
   text-align: center;
+  box-sizing: border-box;
+
+  &.is-empty {
+    visibility: hidden;
+  }
+}
+
+.menu-item.active .menu-badge,
+.menu-item.sub.active .menu-badge {
+  background: var(--sidebar-item-active-text);
+  color: var(--sidebar-item-active-bg);
 }
 
 .menu-arrow {

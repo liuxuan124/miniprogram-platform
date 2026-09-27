@@ -81,7 +81,7 @@ withDefaults(
   gap: 12px;
   padding: 20px;
   background: #fff;
-  border: 1px solid #e8dfd3;
+  border: 1px solid var(--wb-line);
   border-radius: 14px;
 }
 

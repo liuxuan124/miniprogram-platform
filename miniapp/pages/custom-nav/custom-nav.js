@@ -3,6 +3,7 @@ const { parseDSL, loadAllComponentData } = require('../../utils/render')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('../../utils/image-preload')
 const { resolveTabRouteForBoundCustomPath } = require('../../utils/tab-bar-route')
+const { getAppThemeConfig, resolvePageBackgroundColor } = require('../../utils/theme')
 
 Page({
   data: {
@@ -12,6 +13,7 @@ Page({
     floatComponents: [],
     hasBrandHeader: false,
     statusBarHeight: 20,
+    pageBackgroundColor: '',
   },
 
   onLoad(options) {
@@ -51,6 +53,7 @@ Page({
     try {
       const dsl = await PageService.getPageDSL(path, true)
       const parsed = parseDSL(dsl)
+      const pageBackgroundColor = resolvePageBackgroundColor(dsl && dsl.page, getAppThemeConfig())
       const components = await loadAllComponentData(parsed.components || [])
       const flowComponents = []
       const floatComponents = []
@@ -78,6 +81,7 @@ Page({
         floatComponents,
         hasBrandHeader,
         statusBarHeight: layout.statusBarHeight,
+        pageBackgroundColor,
       })
     } catch (e) {
       this.setData({

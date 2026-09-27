@@ -3,10 +3,49 @@
 // 契约接口: GET /api/v1/mp/pages/{path}
 
 const { get } = require('../utils/request')
+const contentView = require('../utils/content-view')
 const { StorageUtil } = require('../utils/storage')
 
 const DSL_CACHE_PREFIX = 'dsl_'
 const DSL_CACHE_EXPIRE = 30 * 60 * 1000 // DSL 缓存 30 分钟
+
+function buildDslCacheKey(pagePath, view, versionTag) {
+  const v = view === 'draft' ? 'draft' : 'online'
+  return `${DSL_CACHE_PREFIX}${pagePath}_${v}_${versionTag}`
+}
+
+/** 预览模式切换时调用，避免 draft/online DSL 混读 */
+function clearAllDslStorageCaches() {
+  try {
+    const info = wx.getStorageInfoSync()
+    ;(info.keys || []).forEach((fullKey) => {
+      const k = String(fullKey || '')
+      if (k.includes('dsl_')) {
+        try { wx.removeStorageSync(k) } catch (e) { /* ignore */ }
+      }
+    })
+  } catch (e) { /* ignore */ }
+  const app = getApp()
+  if (app && app.globalData) {
+    app.globalData.pageDSLCache = {}
+  }
+}
+
+function findStaleDslCache(pagePath, view) {
+  const v = view === 'draft' ? 'draft' : 'online'
+  const prefix = `${DSL_CACHE_PREFIX}${pagePath}_${v}_`
+  try {
+    const info = wx.getStorageInfoSync()
+    for (const fullKey of info.keys || []) {
+      const k = String(fullKey || '').replace(/^mp_/, '')
+      if (k.startsWith(prefix)) {
+        const hit = StorageUtil.get(k)
+        if (hit) return hit
+      }
+    }
+  } catch (e) { /* ignore */ }
+  return null
+}
 
 /**
  * 页面数据服务
@@ -23,12 +62,13 @@ const PageService = {
   getPageDSL(pagePath, forceRefresh = false) {
     const resolvedPath = this.resolvePagePath(pagePath)
 
-    return get('/api/v1/mp/config/public', {}, { auth: false, showError: false })
+    const view = contentView.contentViewParam()
+    return get('/api/v1/mp/config/public', { view }, { auth: false, showError: false })
       .then((publicConfig) => {
         const wxVer = (publicConfig && publicConfig.wx_version) || '0'
         const releaseNo = (publicConfig && publicConfig.live_release_no) || '0'
         const versionTag = `${wxVer}_r${releaseNo}`
-        const cacheKey = `${DSL_CACHE_PREFIX}${pagePath}_${versionTag}`
+        const cacheKey = buildDslCacheKey(pagePath, view, versionTag)
 
         if (!forceRefresh) {
           const cached = StorageUtil.get(cacheKey)
@@ -41,14 +81,26 @@ const PageService = {
           }
         }
 
-        return get('/api/v1/mp/pages', { path: resolvedPath }, { auth: false }).then((dsl) => {
+        return get('/api/v1/mp/pages', { path: resolvedPath, view }, { auth: false }).then((dsl) => {
           StorageUtil.set(cacheKey, dsl, DSL_CACHE_EXPIRE)
           const app = getApp()
           if (app) {
             app.globalData.pageDSLCache[pagePath] = dsl
           }
           return dsl
+        }).catch((err) => {
+          const stale = findStaleDslCache(pagePath, view)
+          if (stale) {
+            console.warn('[PageService] 使用最近一次有效 DSL 缓存:', pagePath, err)
+            return stale
+          }
+          throw err
         })
+      })
+      .catch((err) => {
+        const stale = findStaleDslCache(pagePath, contentView.contentViewParam())
+        if (stale) return stale
+        throw err
       })
   },
 
@@ -90,24 +142,24 @@ const PageService = {
    */
   clearDSLCache(pagePath) {
     if (pagePath) {
-      StorageUtil.remove(DSL_CACHE_PREFIX + pagePath)
+      try {
+        const info = wx.getStorageInfoSync()
+        const needle = `${DSL_CACHE_PREFIX}${pagePath}_`
+        ;(info.keys || []).forEach((fullKey) => {
+          const k = String(fullKey || '').replace(/^mp_/, '')
+          if (k.startsWith(needle)) StorageUtil.remove(k)
+        })
+      } catch (e) {
+        StorageUtil.remove(DSL_CACHE_PREFIX + pagePath)
+      }
       const app = getApp()
-      if (app) {
+      if (app && app.globalData) {
         delete app.globalData.pageDSLCache[pagePath]
       }
     } else {
-      const info = StorageUtil.getInfo()
-      info.keys.forEach((key) => {
-        if (key.startsWith(DSL_CACHE_PREFIX)) {
-          StorageUtil.remove(key)
-        }
-      })
-      const app = getApp()
-      if (app) {
-        app.globalData.pageDSLCache = {}
-      }
+      clearAllDslStorageCaches()
     }
   },
 }
 
-module.exports = { PageService }
+module.exports = { PageService, clearAllDslStorageCaches, buildDslCacheKey }

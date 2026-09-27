@@ -77,7 +77,7 @@ async function main() {
     report.mpKeys = Object.keys(mp || {})
 
     const pages = [
-      ['01-cart.png', 'reLaunch', '/pages/cart/cart', 'cart'],
+      ['01-cart.png', 'reLaunch', '/pkg-content/cart/cart', 'cart'],
       ['02-search.png', 'reLaunch', '/pages/search/search', 'search'],
       ['03-login.png', 'reLaunch', '/pages/login/login', 'login'],
       ['04-member.png', 'reLaunch', '/pkg-user/member-center/member-center', 'member'],
@@ -97,7 +97,7 @@ async function main() {
     }
 
     try {
-      await go(mp, 'tab', '/pages/content-list/content-list', 2000)
+      await go(mp, 'tab', '/pkg-content/content-list/content-list', 2000)
       report.content = await dump(mp)
       report.contentShot = await shot(mp, '08-content.png')
       const tap = await tapFirst(mp, '.content-card')

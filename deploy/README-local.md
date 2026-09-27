@@ -2,6 +2,28 @@
 
 目标：在本项目空间先跑出一套接近云端的部署结构，后续迁移云服务器时主要替换域名、证书、密码、微信和支付配置。
 
+## 先看这条：后台搭建了，小程序为什么没变
+
+**这不是偶发 bug，是默认配置的必然结果。** 小程序在微信开发者工具里没有预览令牌 `pt`，`contentViewParam()`
+因此一律请求 `view=online`——也就是**上一次内容发布的快照**，而不是你刚在后台保存的草稿。
+
+所以本地二选一，否则永远看到旧内容：
+
+1. **推荐**：`deploy/.env` 里设 `APP_CONTENT_AUTO_SYNC=true`，`cd deploy && docker compose up -d backend`。
+   之后后台保存外观/页面即自动写线上配置并递增 `live_release_no`。
+2. 保持 `false`，则每次改完必须在后台**概览或外观页点「保存并同步」**；只点「保存草稿」不算。
+
+改完在开发者工具里按顺序：**清缓存（含 Storage）→ 重新编译 → 页面下拉刷新**。
+（DSL 缓存键含 `live_release_no` 会自动失效，但系统配置有 10 分钟缓存。）
+
+排查用两条命令，`live_release_no` 不涨就说明没同步：
+
+```bash
+curl -s "http://127.0.0.1:8080/api/v1/mp/config/public?view=online" | grep -o '"live_release_no":[^,]*'
+```
+
+`?view=draft` 返回 404 属正常——`.env` 未设 `PREVIEW_TOKEN_SECRET` 时签不出预览令牌，本地只能看线上快照。
+
 ## 目录职责
 
 - `docker-compose.yml`：编排 MySQL、Redis、后端、管理后台、Prometheus、Grafana。
@@ -63,6 +85,36 @@ notepad deploy\.env
 - 登录接口：`/api/v1/admin/auth/login`
 - 当前用户：`/api/v1/admin/auth/profile`
 - 退出登录：`/api/v1/admin/auth/logout`
+
+本地 Docker 默认 **`APP_CONTENT_AUTO_SYNC=false`**：保存草稿后，需在概览/外观点 **「保存并同步」** 才写入小程序可读线上配置。微信**代码包**仍在本机开发者工具上传。
+
+## 本地编译（改代码后）
+
+| 模块 | 推荐命令 | 说明 |
+|------|----------|------|
+| 管理后台 | `cd admin && ADMIN_BUILD_SKIP_TSC=1 npx vite build` | 产物在 `admin/dist/` |
+| 后端 | `cd deploy && docker compose build backend` | 镜像内 **JDK 17** 编译；本机若装 **Java 27**，直接 `mvn compile` 可能因 Lombok 报错 |
+| 小程序 | `cd miniapp && npm run test:unit` | 无 webpack 打包；改依赖后需在开发者工具 **构建 npm** |
+
+编译后更新正在跑的 Docker（Mac/Linux）：
+
+```bash
+docker cp admin/dist/. miniapp-admin:/usr/share/nginx/html/
+cd deploy && docker compose up -d backend
+```
+
+管理后台开发模式（热更新）：`cd admin && npm run dev` → `http://localhost:3000`。
+
+小程序开发者工具联调本地后台：复制 `miniapp/utils/dev-config.example.js` 为 `dev-config.js`（默认 `http://127.0.0.1:8080`）。若误连生产 API，模拟器会显示线上站点而非本地搭建内容。
+
+若提示 **「数据库结构未升级」** 或接口报 `Unknown column`：
+
+```bash
+bash deploy/scripts/migrate-docker-local.sh
+cd deploy && docker compose restart backend
+```
+
+（本机无 `mysql` 客户端时用上述脚本；有客户端可对 `127.0.0.1:3306` 跑 `deploy/scripts/migrate.sh`。）
 
 如果出现 403，优先检查：
 

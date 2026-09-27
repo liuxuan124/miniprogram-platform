@@ -1,0 +1,31 @@
+<page-meta page-style="{{themePageStyle}}" />
+<view class="custom-page">
+  <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
+  <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
+  <block wx:else>
+    <view class="custom-page__body">
+      <view
+        wx:for="{{flowComponents}}"
+        wx:key="id"
+        class="dsl-flow {{item._stackClass}}"
+        style="{{item.hostStyle}}"
+        data-parity-type="{{item.type}}"
+        data-parity-id="{{item.id}}"
+      >
+        <dsl-renderer component="{{item}}" />
+      </view>
+    </view>
+    <view
+      wx:for="{{floatComponents}}"
+      wx:key="id"
+      data-parity-type="float_button"
+      data-parity-id="{{item.id}}"
+    >
+      <dsl-float-button
+        config="{{item.props}}"
+        actions="{{item.actions}}"
+        styleString="{{item.styleString}}"
+      />
+    </view>
+  </block>
+</view>

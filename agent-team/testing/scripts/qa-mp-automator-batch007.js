@@ -89,13 +89,13 @@ async function main() {
     report.homeShot = await shot(mp, '01-home.png')
     report.steps.push(`home:${report.home.path}`)
 
-    await mp.reLaunch('/pages/product-list/product-list')
+    await mp.reLaunch('/pkg-content/product-list/product-list')
     await sleep(2500)
     report.productList = await dumpPage(mp)
     report.productListShot = await shot(mp, '02-product-list.png')
     report.steps.push(`productList:${report.productList.path}`)
 
-    await mp.navigateTo('/pages/product-detail/product-detail?id=9')
+    await mp.navigateTo('/pkg-content/product-detail/product-detail?id=9')
     await sleep(2500)
     report.product9 = await dumpPage(mp)
     report.product9Shot = await shot(mp, '03-product-9.png')

@@ -20,11 +20,11 @@ const LEGACY_SHELL_BY_HINT = {
 const LEGACY_TAB_HINTS = {
   '/pages/index/index': 'home',
   '/pages/discover/discover': 'discover',
-  '/pages/content-list/content-list': 'content',
+  '/pkg-content/content-list/content-list': 'content',
   '/pages/planet/planet': 'planet',
   '/pages/shop/shop': 'shop',
-  '/pages/knowledge-mall/knowledge-mall': 'shop',
-  '/pages/product-list/product-list': 'shop',
+  '/pkg-content/knowledge-mall/knowledge-mall': 'shop',
+  '/pkg-content/product-list/product-list': 'shop',
   '/pages/mine/mine': 'mine',
 }
 
@@ -115,12 +115,12 @@ function resolveLegacyShellPath(logicalPath, tabs) {
 
   // 旧知识库 / 商品列表 → 商城 Tab
   if (
-    normalized === '/pages/knowledge-mall/knowledge-mall'
-    || normalized === '/pages/product-list/product-list'
+    normalized === '/pkg-content/knowledge-mall/knowledge-mall'
+    || normalized === '/pkg-content/product-list/product-list'
   ) {
     return '/pages/shop/shop'
   }
-  if (normalized === '/pages/content-list/content-list') {
+  if (normalized === '/pkg-content/content-list/content-list') {
     return '/pages/discover/discover'
   }
 

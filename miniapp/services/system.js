@@ -2,6 +2,7 @@
 // 获取后端系统配置（tabbar、插件开关等）
 
 const { get } = require('../utils/request')
+const contentView = require('../utils/content-view')
 const { StorageUtil } = require('../utils/storage')
 const { LOGIN_RULES } = require('../config/login-rules')
 const {
@@ -61,10 +62,10 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
   menuItems: [
     { id: 'orders', icon: 'line:document', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
-    { id: 'resources', icon: 'line:books', title: '资料库', url: '/pages/resources/resources', enabled: true },
+    { id: 'resources', icon: 'line:books', title: '资料库', url: '/pkg-content/resources/resources', enabled: true },
     { id: 'library', icon: 'line:books', title: '已购资料', url: '/pkg-trade/order-list/order-list', enabled: true },
-    { id: 'join', icon: 'line:users', title: '加入社群', url: '/pages/join/join', enabled: true },
-    { id: 'share', icon: 'line:share', title: '分享邀请', url: '/pages/share/share', enabled: true },
+    { id: 'join', icon: 'line:users', title: '加入社群', url: '/pkg-content/join/join', enabled: true },
+    { id: 'share', icon: 'line:share', title: '分享邀请', url: '/pkg-content/share/share', enabled: true },
     { id: 'notices', icon: 'line:bell', title: '消息通知', url: '/pkg-user/notices/notices', enabled: true },
     { id: 'reservation', icon: 'line:calendar', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
     { id: 'member-center', icon: 'line:crown', title: '会员中心', url: '/pkg-user/member-center/member-center', enabled: false },
@@ -275,7 +276,8 @@ async function fetchSystemConfig(forceRefresh) {
   }
 
   try {
-    const res = await get('/api/v1/mp/system/config', {}, { auth: false })
+    const view = contentView.contentViewParam()
+    const res = await get('/api/v1/mp/system/config', { view }, { auth: false })
     const config = res && res.data ? res.data : res
     if (config && typeof config === 'object') {
       config.tabbarItems = parseConfigField(config.tabbarItems, null)
@@ -310,7 +312,18 @@ async function fetchSystemConfig(forceRefresh) {
       return config
     }
   } catch (e) {
-    console.warn('[SystemService] 获取系统配置失败，使用默认配置:', e)
+    console.warn('[SystemService] 获取系统配置失败:', e)
+    const stale = getCachedConfig()
+    if (stale && typeof stale === 'object' && !Array.isArray(stale)) {
+      if (stale.tabbarItems) {
+        stale.tabbarItems = applyProductModuleGate(
+          normalizeTabbarItems(parseConfigField(stale.tabbarItems, null)),
+          stale.plugins,
+        )
+      }
+      attachListConfigs(stale)
+      return stale
+    }
   }
 
   return {
@@ -337,25 +350,48 @@ function isMemberMenuItem(item) {
 }
 
 function isMemberModuleEnabled(plugins) {
-  const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
-  if (!Array.isArray(list) || !list.length) return true
+  const parsed = Array.isArray(plugins) ? plugins : parseConfigField(plugins, null)
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    return pluginFlagFromMap(parsed, 'member', true)
+  }
+  const list = Array.isArray(parsed) ? parsed : []
+  if (!list.length) return true
   const hit = list.find((p) => p && p.key === 'member')
   if (!hit) return true
   return hit.enabled !== false
 }
 
+function pluginFlagFromMap(map, key, defaultEnabled) {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    return defaultEnabled !== false
+  }
+  if (!(key in map)) return defaultEnabled !== false
+  const v = map[key]
+  if (typeof v === 'boolean') return v
+  if (v && typeof v === 'object' && 'enabled' in v) return v.enabled !== false
+  return !!v
+}
+
 function isProductModuleEnabled(plugins) {
-  const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
+  const parsed = Array.isArray(plugins) ? plugins : parseConfigField(plugins, null)
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    return pluginFlagFromMap(parsed, 'product', true)
+  }
+  const list = Array.isArray(parsed) ? parsed : []
   // 无插件列表 / 无 product 项时默认开启，避免刷新后误关商城并二次 switchTab 回首页
-  if (!Array.isArray(list) || !list.length) return true
+  if (!list.length) return true
   const hit = list.find((p) => p && p.key === 'product')
   if (!hit) return true
   return hit.enabled !== false
 }
 
 function isPluginEnabled(plugins, key, defaultEnabled) {
-  const list = Array.isArray(plugins) ? plugins : parseConfigField(plugins, [])
-  if (!Array.isArray(list) || !list.length) return defaultEnabled !== false
+  const parsed = Array.isArray(plugins) ? plugins : parseConfigField(plugins, null)
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    return pluginFlagFromMap(parsed, key, defaultEnabled)
+  }
+  const list = Array.isArray(parsed) ? parsed : []
+  if (!list.length) return defaultEnabled !== false
   const hit = list.find((p) => p && p.key === key)
   if (!hit) return defaultEnabled !== false
   return hit.enabled !== false
@@ -496,6 +532,7 @@ module.exports = {
   getTabbarListSync,
   fetchSystemConfig,
   clearSystemConfigCache,
+  clearPageDslStorageCaches,
   fetchTabbarList,
   fetchMinePageConfig,
   fetchBrandConfig,

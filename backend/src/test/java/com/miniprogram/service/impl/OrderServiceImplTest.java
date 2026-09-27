@@ -23,6 +23,7 @@ import com.miniprogram.service.RefundService;
 import com.miniprogram.service.SubscribeMessageService;
 import com.miniprogram.service.UserNoticeService;
 import com.miniprogram.compliance.IosVirtualPayPolicyService;
+import com.miniprogram.compliance.CommerceVirtualRefundService;
 import com.miniprogram.support.FeatureModuleGuard;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -148,7 +149,8 @@ class OrderServiceImplTest {
                 new ObjectMapper(),
                 featureModuleGuard,
                 membershipAccessService,
-                mock(IosVirtualPayPolicyService.class)
+                mock(IosVirtualPayPolicyService.class),
+                mock(CommerceVirtualRefundService.class)
         );
         ReflectionTestUtils.setField(service, "baseMapper", orderMapper);
         return new Fixture(service, orderMapper, orderItemMapper, productMapper);

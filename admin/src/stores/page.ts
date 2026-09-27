@@ -602,10 +602,11 @@ export const usePageStore = defineStore('page', () => {
     recomputeDirty()
   }
 
-  /** 同步元数据到 DSL，不打历史、不单独标脏（随整体 DSL 保存） */
+  /** 同步元数据到 DSL，不打历史；与已落库快照对齐，避免「仅查看/保存元数据」误报未保存 */
   function updatePageConfigSilent(config: Partial<PageConfig>) {
     dsl.value.page = { ...dsl.value.page, ...config }
-    recomputeDirty()
+    lastSavedDslJson.value = JSON.stringify(dsl.value)
+    isDirty.value = false
   }
 
   /** 更新全局配置 */

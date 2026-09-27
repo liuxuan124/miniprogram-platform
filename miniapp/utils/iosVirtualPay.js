@@ -1,11 +1,12 @@
 /** iOS 虚拟商品支付限制（与后端 commerce_ios_virtual_pay 对齐） */
 
+const { getPlatform } = require('./system-info')
+
 let cachedBlockMessage = ''
 
 function isIos() {
   try {
-    const sys = wx.getSystemInfoSync()
-    return (sys.platform || '').toLowerCase() === 'ios'
+    return getPlatform() === 'ios'
   } catch (e) {
     return false
   }
@@ -13,8 +14,7 @@ function isIos() {
 
 function getClientPlatform() {
   try {
-    const sys = wx.getSystemInfoSync()
-    return (sys.platform || '').toLowerCase()
+    return getPlatform()
   } catch (e) {
     return ''
   }

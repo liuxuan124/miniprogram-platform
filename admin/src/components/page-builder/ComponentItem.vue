@@ -109,6 +109,7 @@ const rendererMap: Record<string, any> = {
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./renderers/ActivityListRenderer.vue')),
   [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./renderers/AppointmentServiceRenderer.vue')),
   [ComponentType.MemberCard]: defineAsyncComponent(() => import('./renderers/MemberCardRenderer.vue')),
+  [ComponentType.PromoBanner]: defineAsyncComponent(() => import('./renderers/PromoBannerRenderer.vue')),
   [ComponentType.Coupon]: defineAsyncComponent(() => import('./renderers/CouponRenderer.vue')),
   [ComponentType.Video]: defineAsyncComponent(() => import('./renderers/VideoRenderer.vue')),
   [ComponentType.BrandIntro]: defineAsyncComponent(() => import('./renderers/BrandIntroRenderer.vue')),

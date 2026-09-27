@@ -20,4 +20,7 @@ public class MiniPublishRequestDTO {
 
     @Schema(description = "幂等键（可选）；同一键短窗口内重复请求直接拒绝")
     private String clientRequestId;
+
+    @Schema(description = "本次发布的 change_id 列表（与预检一致）；空则按 pageIds/includeSite 推导")
+    private List<String> changeIds;
 }

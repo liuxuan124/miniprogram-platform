@@ -75,7 +75,7 @@
       <el-form-item label="跳转路径">
         <el-input
           :model-value="data.more_link ?? ''"
-          placeholder="/pages/content-list/content-list"
+          placeholder="/pkg-content/content-list/content-list"
           @input="emit('update', { more_link: $event })"
         />
       </el-form-item>

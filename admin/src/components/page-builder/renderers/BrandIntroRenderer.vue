@@ -70,7 +70,8 @@ const kpiItems = computed(() => {
     return { value: matched?.[1] || part, label: matched?.[2] || '' }
   })
 })
-const isHero = computed(() => !!(eyebrow.value || kpiItems.value.length || p.value.avatar_text || p.value.variant === 'hero'))
+/** DSL 标准字段仅 title/subtitle/description/kpi；hero 仅显式 variant=hero 时启用，避免预览与真机分歧 */
+const isHero = computed(() => String(p.value.variant || '').trim() === 'hero')
 
 const logoPosition = computed(() => {
   const raw = String(p.value.logo_position || 'top')

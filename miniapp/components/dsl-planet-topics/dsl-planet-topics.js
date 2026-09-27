@@ -14,7 +14,9 @@ Component({
     visible: false,
   },
   lifetimes: { attached() { this._apply() } },
-  observers: { config() { this._apply() } },
+  observers: {
+    'config': function () { this._apply() },
+  },
   methods: {
     _apply() {
       const c = this.data.config || {}

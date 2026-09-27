@@ -45,7 +45,7 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
             "search", "notice_bar", "category_nav", "banner", "image", "nav", "product_list",
             "flash_sale", "article_list", "article_feed", "note_feed", "moments_feed", "hot_news",
             "activity_entry", "activity_list",
-            "appointment_service", "member_card", "coupon", "ai_entry", "video",
+            "appointment_service", "member_card", "promo_banner", "coupon", "ai_entry", "video",
             "brand_intro", "brand_header", "image_text", "contact_info", "certificate", "countdown",
             "float_button", "rich_text", "section_title", "divider", "spacer", "form_entry", "join_group",
             "container", "image_hotspot", "section_bg", "feature_cards", "image_cube", "content_tabs",
@@ -274,12 +274,11 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
                 ErrorCode.STORE_TEMPLATE_SYSTEM_FORBIDDEN);
         BusinessException.throwIf(release.getStatus() == 1, ErrorCode.RELEASE_DELETE_FORBIDDEN.getCode(),
                 "当前线上版本不可删除，请先发布其他版本再删除此版本");
-        BusinessException.throwIf(Integer.valueOf(1).equals(release.getIsCurrent()),
-                ErrorCode.STORE_TEMPLATE_IN_USE);
 
         this.lambdaUpdate()
                 .eq(MiniappRelease::getId, id)
                 .set(MiniappRelease::getDeleted, 1)
+                .set(MiniappRelease::getIsCurrent, 0)
                 .update();
     }
 
@@ -500,13 +499,32 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
     }
 
     @Override
-    public MiniappRelease renameStoreTemplate(Long id, String templateName) {
+    public MiniappRelease renameStoreTemplate(Long id, StoreTemplateNameDTO input) {
         MiniappRelease target = this.getById(id);
         BusinessException.throwIf(target == null, ErrorCode.RELEASE_NOT_FOUND);
-        String name = StoreTemplateNames.normalize(templateName);
-        BusinessException.throwIf(name.isEmpty(), ErrorCode.PARAM_MISSING.getCode(), "请填写模板名称");
-        assertTemplateNameUnique(name, id);
-        target.setTemplateName(name);
+        boolean dirty = false;
+        if (input != null && StringUtils.hasText(input.getTemplateName())) {
+            BusinessException.throwIf(Integer.valueOf(1).equals(target.getIsSystem()),
+                    ErrorCode.STORE_TEMPLATE_SYSTEM_FORBIDDEN.getCode(), "系统预置模板不可改名");
+            String name = StoreTemplateNames.normalize(input.getTemplateName());
+            BusinessException.throwIf(name.isEmpty(), ErrorCode.PARAM_MISSING.getCode(), "请填写模板名称");
+            assertTemplateNameUnique(name, id);
+            target.setTemplateName(name);
+            dirty = true;
+        }
+        if (input != null && StringUtils.hasText(input.getScene())) {
+            target.setTemplateScene(input.getScene().trim().toLowerCase(Locale.ROOT));
+            dirty = true;
+        }
+        if (input != null && input.getDescription() != null) {
+            target.setReleaseNotes(input.getDescription().trim());
+            dirty = true;
+        }
+        if (input != null && input.getCoverUrl() != null) {
+            target.setCoverUrl(input.getCoverUrl().trim());
+            dirty = true;
+        }
+        BusinessException.throwIf(!dirty, ErrorCode.PARAM_MISSING.getCode(), "请填写要更新的内容");
         target.setMode("template");
         this.updateById(target);
         target.setSnapshot(null);
@@ -1035,7 +1053,11 @@ public class MiniappReleaseServiceImpl extends BaseServiceImpl<MiniappReleaseMap
         long published = before.getPages().stream().filter(p -> "publish".equals(p.getAction())).count();
         result.put("publishedPages", published);
         result.put("warnings", before.getWarnings());
-        result.put("message", "已上线到小程序（导航配置请确认已保存草稿）");
+        // 一个页面都没发时不要报「已上线」：调用方据此提示用户，避免"点了没反应却显示成功"
+        result.put("message", published > 0
+                ? "已上线到小程序（本次发布页面 " + published + " 个）"
+                : "本次没有需要发布的页面；若后台与小程序仍不一致，"
+                  + "请确认站点草稿已保存（直接改库不会被变更检测识别）");
         return result;
     }
 

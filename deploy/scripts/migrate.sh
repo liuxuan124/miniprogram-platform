@@ -49,6 +49,6 @@ while IFS= read -r f; do
     echo "FAILED $base" >&2
     exit 1
   fi
-done < <(ls "$SQL_DIR"/V*.sql 2>/dev/null | sort -V)
+done < <(ls "$SQL_DIR"/V*.sql 2>/dev/null | grep -vi rollback | sort -V)
 
 echo "DONE"

@@ -74,7 +74,7 @@ function normalizeTabs(config) {
 /** 按屏高估算一页条数：铺满一屏 + 少量缓冲，随机型变化 */
 function calcPageSize(layout) {
   try {
-    const info = (wx.getWindowInfo && wx.getWindowInfo()) || wx.getSystemInfoSync()
+    const info = require('../../utils/system-info').getWindowInfo()
     const h = Number(info.windowHeight) || 667
     let itemH = 76
     if (layout === 'compact') itemH = 56
@@ -128,9 +128,10 @@ Component({
     sectionTitleStyle: '',
     sectionSubtitleStyle: '',
     sectionMoreStyle: '',
-    showMore: true,
-    moreText: '查看更多>',
-    moreLink: '/pages/content-list/content-list',
+    showHeader: false,
+    showMore: false,
+    moreText: '更多 ›',
+    moreLink: '/pkg-content/content-list/content-list',
     titleStyle: '',
     metaStyle: '',
     listStyle: '',
@@ -205,10 +206,14 @@ Component({
       let sectionColor = cfg.section_title_color || (isBand ? '#F3F7FC' : '#172033')
       if (isBand && sectionColor === '#172033') sectionColor = '#F3F7FC'
       const sectionSubColor = cfg.section_subtitle_color || (isBand ? '#D4E2FF' : '#7b8798')
-      const showMore = cfg.show_more !== false
-      const moreText = String(cfg.more_text || '查看更多>').trim() || '查看更多>'
-      const moreLink = String(cfg.more_link || '/pages/content-list/content-list').trim()
-        || '/pages/content-list/content-list'
+      const showCategoryTabs = cfg.show_category_tabs === true
+      const showHeader = cfg.show_header === true
+      const showMore = showHeader
+        ? cfg.show_more === true
+        : (showCategoryTabs ? false : cfg.show_more !== false)
+      const moreText = String(cfg.more_text || '更多 ›').trim() || '更多 ›'
+      const moreLink = String(cfg.more_link || '/pkg-content/content-list/content-list').trim()
+        || '/pkg-content/content-list/content-list'
       const moreColor = cfg.more_color || (isBand ? '#D4E2FF' : '#7b8798')
       const gapRaw = Number(cfg.item_gap)
       const itemGap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 48)) : 8
@@ -219,13 +224,13 @@ Component({
       const itemCardStyle = Number.isFinite(radiusNum)
         ? ('border-radius:' + Math.max(0, radiusNum) * 2 + 'rpx;')
         : ''
-      const showCategoryTabs = cfg.show_category_tabs === true
       const categoryTabs = showCategoryTabs ? normalizeTabs(cfg) : []
       const activeTabId = this.data.activeTabId || ''
 
       this._pageSize = calcPageSize(layout)
 
       this.setData({
+        showHeader,
         sectionTitle: String(cfg.title || '').trim(),
         sectionSubtitle: String(cfg.subtitle || '').trim(),
         sectionStyle,
@@ -392,7 +397,7 @@ Component({
     },
 
     onTapMore() {
-      const link = String(this.data.moreLink || '/pages/content-list/content-list').trim()
+      const link = String(this.data.moreLink || '/pkg-content/content-list/content-list').trim()
       if (!link) return
       if (/^https?:\/\//i.test(link)) {
         executeAction({ type: 'webview', url: link })
@@ -449,7 +454,7 @@ Component({
       } else {
         executeAction({
           type: 'page',
-          path: '/pages/content-detail/content-detail?id=' + id,
+          path: '/pkg-content/content-detail/content-detail?id=' + id,
         })
       }
     },

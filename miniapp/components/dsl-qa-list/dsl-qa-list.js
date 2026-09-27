@@ -86,7 +86,7 @@ Component({
 
     onRowTap(e) {
       const id = e.currentTarget.dataset.id
-      if (id) navigatePage(`/pages/question-detail/question-detail?id=${id}`)
+      if (id) navigatePage(`/pkg-content/question-detail/question-detail?id=${id}`)
     },
 
     onMoreTap() {

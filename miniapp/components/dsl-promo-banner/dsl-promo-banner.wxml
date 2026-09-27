@@ -1,0 +1,9 @@
+<view class="dsl-promo-banner {{showGlow ? 'dsl-promo-banner--glow' : ''}}" style="{{bannerStyle}} {{styleString}}">
+  <view class="dsl-promo-banner__title" style="color:{{titleColor}};">{{title}}</view>
+  <view class="dsl-promo-banner__subtitle" style="color:{{subtitleColor}};">{{subtitle}}</view>
+  <view
+    class="dsl-promo-banner__btn"
+    style="background:{{buttonBg}};color:{{buttonColor}};"
+    catchtap="onTap"
+  >{{buttonText}}</view>
+</view>

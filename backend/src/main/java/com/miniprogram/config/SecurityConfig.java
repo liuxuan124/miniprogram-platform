@@ -1,6 +1,7 @@
 package com.miniprogram.config;
 
 import com.miniprogram.security.JwtAuthenticationFilter;
+import com.miniprogram.security.MpContentPreviewFilter;
 import com.miniprogram.security.SecurityErrorWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,9 +27,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final MpContentPreviewFilter mpContentPreviewFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          MpContentPreviewFilter mpContentPreviewFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.mpContentPreviewFilter = mpContentPreviewFilter;
     }
 
     @Bean
@@ -54,6 +58,7 @@ public class SecurityConfig {
                                 "/api/v1/mp/pages",
                                 "/api/v1/mp/pages/**",
                                 "/api/v1/mp/preview-drafts/**",
+                                "/api/v1/mp/preview-tokens/exchange",
                                 "/api/v1/mp/content-categories",
                                 "/api/v1/mp/content-categories/**",
                                 "/api/v1/mp/form-templates/*",
@@ -76,6 +81,7 @@ public class SecurityConfig {
                                 "/api/v1/mp/planet/contents/**",
                                 "/api/v1/mp/planet/main",
                                 "/api/v1/mp/home/**",
+                                "/api/v1/mp/runtime/**",
                                 // 邀请短码仅 GET 解析公开；POST /scene 创建须登录（勿用 invite/** 无方法限制）
                                 "/api/v1/mp/invite/scene/*"
                         ).permitAll()
@@ -140,8 +146,8 @@ public class SecurityConfig {
                                 SecurityErrorWriter.write(response, 401, 110101, "未登录"))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 SecurityErrorWriter.write(response, 403, 200301, "无操作权限")))
-                // 添加 JWT 过滤器
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(mpContentPreviewFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

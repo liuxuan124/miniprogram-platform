@@ -57,7 +57,7 @@ function readCachedShareConfig() {
 const PAGE_SHARE_TITLES = {
   'pages/index/index': '',
   'pages/discover/discover': '',
-  'pages/content-list/content-list': '',
+  'pkg-content/content-list/content-list': '',
   'pages/shop/shop': '',
   'pages/planet/planet': '',
   'pages/mine/mine': '',
@@ -210,7 +210,7 @@ function openWarmShareSheet(opts) {
   push('quote', o.quote)
   push('code', o.code)
   push('contentId', o.contentId)
-  const url = '/pages/share/share' + (q.length ? '?' + q.join('&') : '')
+  const url = '/pkg-content/share/share' + (q.length ? '?' + q.join('&') : '')
   wx.navigateTo({
     url,
     fail: () => wx.showToast({ title: '无法打开分享', icon: 'none' }),

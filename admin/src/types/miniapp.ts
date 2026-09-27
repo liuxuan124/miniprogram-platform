@@ -257,7 +257,7 @@ export const NAV_TEMPLATES: NavTemplate[] = [
     icon: '📱',
     tabs: [
       { text: '首页', icon: '/images/nav-icons/g-platform.png', pagePath: '/pages/index/index' },
-      { text: '内容', icon: '/images/nav-icons/g-content.png', pagePath: '/pages/content-list/content-list' },
+      { text: '内容', icon: '/images/nav-icons/g-content.png', pagePath: '/pkg-content/content-list/content-list' },
       { text: '会员', icon: '/images/nav-icons/g-crown.png', pagePath: '/pages/member-center/member-center' },
       { text: '我的', icon: '/images/nav-icons/g-user.png', pagePath: '/pages/mine/mine' },
     ],
@@ -270,7 +270,7 @@ export const NAV_TEMPLATES: NavTemplate[] = [
     tabs: [
       { text: '首页', icon: '/images/nav-icons/g-platform.png', pagePath: '/pages/index/index' },
       { text: '分类', icon: '/images/nav-icons/g-folder.png', pagePath: '/pages/category/category' },
-      { text: '购物车', icon: '/images/nav-icons/g-bag.png', pagePath: '/pages/cart/cart' },
+      { text: '购物车', icon: '/images/nav-icons/g-bag.png', pagePath: '/pkg-content/cart/cart' },
       { text: '我的', icon: '/images/nav-icons/g-user.png', pagePath: '/pages/mine/mine' },
     ],
   },
@@ -281,7 +281,7 @@ export const NAV_TEMPLATES: NavTemplate[] = [
     icon: '📋',
     tabs: [
       { text: '首页', icon: '/images/nav-icons/g-platform.png', pagePath: '/pages/index/index' },
-      { text: '发现', icon: '/images/nav-icons/g-news.png', pagePath: '/pages/content-list/content-list' },
+      { text: '发现', icon: '/images/nav-icons/g-news.png', pagePath: '/pkg-content/content-list/content-list' },
       { text: '服务', icon: '/images/nav-icons/g-consult.png', pagePath: '/pages/booking/booking' },
       { text: '我的', icon: '/images/nav-icons/g-user.png', pagePath: '/pages/mine/mine' },
     ],
@@ -293,7 +293,7 @@ export const NAV_TEMPLATES: NavTemplate[] = [
     icon: '🤖',
     tabs: [
       { text: '首页', icon: '/images/nav-icons/g-platform.png', pagePath: '/pages/index/index' },
-      { text: '商城', icon: '/images/nav-icons/g-bag.png', pagePath: '/pages/knowledge-mall/knowledge-mall' },
+      { text: '商城', icon: '/images/nav-icons/g-bag.png', pagePath: '/pkg-content/knowledge-mall/knowledge-mall' },
       { text: 'AI', icon: '/images/nav-icons/g-insight.png', pagePath: '/pages/ai-chat/ai-chat' },
       { text: '我的', icon: '/images/nav-icons/g-user.png', pagePath: '/pages/mine/mine' },
     ],
@@ -301,15 +301,28 @@ export const NAV_TEMPLATES: NavTemplate[] = [
 ]
 
 /** 默认我的页面菜单 - 字段名与小程序端对齐（图标为 line:* 线条标） */
+/**
+ * 「我的」页为**固定模板**：菜单结构写在小程序 `pages/mine/mine.wxml` 里，
+ * 后台只提供文案与显隐开关，不开放菜单自由编排。
+ *
+ * 因此这份列表的唯一职责是让后台预览**如实反映小程序现状**——
+ * 它必须与 `miniapp/pages/mine/mine.wxml` 的菜单行保持一致。
+ * 历史上这里放的是一套凭空写的菜单（收货地址/我的资产等），小程序根本没有，
+ * 导致运营照着预览去对，永远对不上。改小程序模板时请同步这里。
+ */
 export const DEFAULT_MINE_MENU: Omit<MineMenuItem, 'id'>[] = [
-  { icon: 'line:document', title: '我的订单', url: '/pages/order-list/order-list', enabled: true, group: '订单服务' },
-  { icon: 'line:wallet', title: '我的资产', url: '/pages/member-center/member-center', enabled: false, group: '订单服务' },
-  { icon: 'line:coupon', title: '优惠券', url: '/pages/coupon-list/coupon-list', enabled: true, group: '订单服务' },
-  { icon: 'line:star', title: '我的收藏', url: '/pages/favorites/favorites', enabled: true, group: '订单服务' },
-  { icon: 'line:pin', title: '收货地址', url: '/pages/address-list/address-list', enabled: true, group: '常用工具' },
+  { icon: 'line:chat', title: '我的提问与打卡', url: '/pkg-content/question-list/question-list', enabled: true, group: '内容与订单' },
+  { icon: 'line:document', title: '成为创作者', url: '/pages/contribute/contribute', enabled: true, group: '内容与订单' },
+  { icon: 'line:document', title: '我的订单', url: '/pkg-trade/order-list/order-list', enabled: true, group: '内容与订单' },
+  { icon: 'line:books', title: '我的资料库', url: '/pkg-content/resources/resources', enabled: true, group: '内容与订单' },
+  { icon: 'line:wallet', title: '发票管理', url: '/pkg-trade/order-list/order-list', enabled: true, group: '内容与订单' },
+  { icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true, group: '内容与订单' },
+  { icon: 'line:share', title: '邀请好友', url: '/pkg-content/share/share', enabled: true, group: '内容与订单' },
+  { icon: 'line:star', title: '整店模版', url: '/pkg-templates/store-templates/store-templates', enabled: true, group: '常用工具' },
+  { icon: 'line:users', title: '加入读者群', url: '/pkg-content/join/join', enabled: true, group: '常用工具' },
   { icon: 'line:chat', title: '联系客服', url: 'contact', enabled: true, group: '常用工具' },
-  { icon: 'line:gear', title: '设置', url: '/pages/settings/settings', enabled: true, group: '常用工具' },
   { icon: 'line:mail', title: '意见反馈', url: '/pages/feedback/feedback', enabled: true, group: '常用工具' },
+  { icon: 'line:gear', title: '设置', url: '/pages/settings/settings', enabled: true, group: '常用工具' },
 ]
 
 /** 默认订单快捷入口配置 */

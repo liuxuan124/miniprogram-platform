@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "page": {
+    "id": "golden-parity-6",
+    "name": "渲染比对黄金页 6",
+    "type": "custom",
+    "path": "pages/custom/golden-parity-6",
+    "background_color": "#f5f6f9"
+  },
+  "global_config": {
+    "pull_refresh": false,
+    "reach_bottom_load": false
+  },
+  "components": [
+    {
+      "id": "golden-warm-feature",
+      "type": "warm_feature",
+      "props": {
+        "title": "Golden warm_feature"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-feed",
+      "type": "warm_feed",
+      "props": {
+        "title": "Golden warm_feed"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-greet",
+      "type": "warm_greet",
+      "props": {
+        "title": "Golden warm_greet"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-home",
+      "type": "warm_home",
+      "props": {
+        "title": "Golden warm_home"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-mine",
+      "type": "warm_mine",
+      "props": {
+        "title": "Golden warm_mine"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-planet",
+      "type": "warm_planet",
+      "props": {
+        "title": "Golden warm_planet"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-planet-rec",
+      "type": "warm_planet_rec",
+      "props": {
+        "title": "Golden warm_planet_rec"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-shop",
+      "type": "warm_shop",
+      "props": {
+        "title": "Golden warm_shop"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    }
+  ]
+}

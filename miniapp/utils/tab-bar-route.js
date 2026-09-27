@@ -32,23 +32,35 @@ function resolveTabRouteForBoundCustomPath(customPath) {
 }
 
 function getTabSelectedIndex(tabRoute) {
-  // 本地强制暖阁五 Tab 槽位，不依赖线上 tabbarItems 数量/顺序
-  const idx = TAB_SLOT_ROUTES.indexOf(normalizePath(tabRoute))
+  const target = normalizePath(tabRoute)
+  const config = SystemService.getCachedConfig() || {}
+  const rows = resolveActiveTabItems(config.plugins, config.tabbarItems || [])
+  const visible = rows.length
+    ? rows.map((row) => normalizePath(row.slotRoute))
+    : TAB_SLOT_ROUTES.map((p) => normalizePath(p))
+  const idx = visible.indexOf(target)
   return idx >= 0 ? idx : 0
+}
+
+function hideNativeTabBar() {
+  if (typeof wx.hideTabBar !== 'function') return
+  wx.hideTabBar({ animation: false, fail() {} })
 }
 
 function showTabBarForRoute(pageCtx, tabRoute) {
   const selected = getTabSelectedIndex(tabRoute)
   const apply = () => {
-    wx.hideTabBar({ animation: false, fail() {} })
+    hideNativeTabBar()
     const tabBar = pageCtx && typeof pageCtx.getTabBar === 'function' && pageCtx.getTabBar()
     if (!tabBar) return false
     tabBar.setData({ selected, hidden: false })
     return true
   }
+  hideNativeTabBar()
   if (!apply()) {
     setTimeout(apply, 80)
     setTimeout(apply, 320)
+    setTimeout(hideNativeTabBar, 640)
   }
 }
 
@@ -58,6 +70,7 @@ module.exports = {
   resolveActiveTabItems,
   resolveVisibleTabRoutes,
   resolveTabRouteForBoundCustomPath,
+  hideNativeTabBar,
   showTabBarForRoute,
   getTabSelectedIndex,
 }

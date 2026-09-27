@@ -2,7 +2,7 @@
 
 ## 首页块模板单源
 
-- 文件：`miniapp/data/warm-home-blocks.json`
+- 文件：`miniapp/data/warm-home-blocks.json`（管理端/Vite 引用）；真机 CommonJS 用同内容的 `warm-home-blocks.js`
 - 小程序：`miniapp/utils/warm-home-template.js` → `defaultHomeBlocks()`
 - 管理端：`admin/src/utils/warmHomeBlocks.ts` → `createWarmHomeTemplateComponents()`
 - 壳组件 `warm_home` 发布后在真机与管理端均通过「展开为六块」逻辑渲染，仅 props 覆盖标题等字段。

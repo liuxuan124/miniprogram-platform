@@ -58,4 +58,9 @@ public interface PageService extends BaseService<Page> {
      * 根据 path 获取已发布页面的当前版本 DSL
      */
     String getPublishedPageDsl(String path);
+
+    /**
+     * 小程序端按 view 取 DSL：online=已发布；draft=最新草稿（需预览令牌，由 Controller 校验）
+     */
+    String getPageDslForView(String path, String view);
 }

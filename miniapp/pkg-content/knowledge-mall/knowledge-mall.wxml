@@ -1,0 +1,2 @@
+<!-- 深链 remap 瞬时壳：无文案，避免「正在前往商城…」二次落地观感 -->
+<view class="km-redirect"></view>

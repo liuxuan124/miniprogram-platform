@@ -12,11 +12,11 @@ const AUTHORS = [
 ]
 
 const NAVS = [
-  { key: 'list', icon: '📚', label: '长文', url: '/pages/content-list/content-list' },
-  { key: 'column', icon: '🎧', label: '专栏课', url: '/pages/product-detail/product-detail?demo=column' },
+  { key: 'list', icon: '📚', label: '长文', url: '/pkg-content/content-list/content-list' },
+  { key: 'column', icon: '🎧', label: '专栏课', url: '/pkg-content/product-detail/product-detail?demo=column' },
   { key: 'planet', icon: '🪐', label: '星球', url: '/pages/planet/planet', tab: true },
   { key: 'shop', icon: '🛍', label: '商城', url: '/pages/shop/shop', tab: true },
-  { key: 'resources', icon: '🗂', label: '资料库', url: '/pages/resources/resources' },
+  { key: 'resources', icon: '🗂', label: '资料库', url: '/pkg-content/resources/resources' },
 ]
 
 const FEATURE = {
@@ -24,7 +24,7 @@ const FEATURE = {
   title: '当内容不再免费：\n一个创作者的第 1000 天',
   cover: picsum('warmfeat', 900, 700),
   meta: ['墨白 · 主理人', '12 分钟阅读', '2.3 万阅读'],
-  url: '/pages/content-detail/content-detail?demo=1',
+  url: '/pkg-content/content-detail/content-detail?demo=1',
 }
 
 const COLUMNS = [
@@ -37,7 +37,7 @@ const COLUMNS = [
     desc: '32 讲 · 1.2 万人在学',
     price: '¥199',
     origin: '¥399',
-    url: '/pages/product-detail/product-detail?demo=column',
+    url: '/pkg-content/product-detail/product-detail?demo=column',
   },
   {
     id: 'c2',
@@ -48,7 +48,7 @@ const COLUMNS = [
     desc: '24 讲 · 8600 人在学',
     price: '¥149',
     origin: '¥259',
-    url: '/pages/product-detail/product-detail?demo=column',
+    url: '/pkg-content/product-detail/product-detail?demo=column',
   },
   {
     id: 'c3',
@@ -59,7 +59,7 @@ const COLUMNS = [
     desc: '18 讲 · 5400 人在学',
     price: '¥99',
     origin: '',
-    url: '/pages/product-detail/product-detail?demo=column',
+    url: '/pkg-content/product-detail/product-detail?demo=column',
   },
 ]
 
@@ -85,7 +85,7 @@ const FEED = [
     tagGold: false,
     meta: '墨白 · 主理人 · 1.8 万阅读',
     cover: picsum('warmp1', 400, 400),
-    url: '/pages/content-detail/content-detail?demo=1',
+    url: '/pkg-content/content-detail/content-detail?demo=1',
   },
   {
     id: 'f2',
@@ -97,7 +97,7 @@ const FEED = [
     tagGold: true,
     meta: '小满 · 特约 · ❤ 4.2k',
     cover: picsum('warmp2', 400, 400),
-    url: '/pages/content-detail/content-detail?demo=note',
+    url: '/pkg-content/content-detail/content-detail?demo=note',
   },
   {
     id: 'f3',
@@ -111,7 +111,7 @@ const FEED = [
     ],
     tag: '九宫格',
     meta: '暖阁编辑部 · ❤ 1.9k',
-    url: '/pages/content-detail/content-detail?demo=meal',
+    url: '/pkg-content/content-detail/content-detail?demo=meal',
   },
   {
     id: 'f4',
@@ -123,7 +123,7 @@ const FEED = [
     tagGold: false,
     meta: '老陈 · 特约 · 9.4k 阅读',
     cover: picsum('warmp4', 400, 400),
-    url: '/pages/content-detail/content-detail?demo=1',
+    url: '/pkg-content/content-detail/content-detail?demo=1',
   },
   {
     id: 'f5',
@@ -135,7 +135,7 @@ const FEED = [
     tagGold: true,
     meta: '墨白 · 已解答 · 864 围观',
     cover: picsum('warmq1', 400, 400),
-    url: '/pages/moment-detail/moment-detail?demo=1',
+    url: '/pkg-content/moment-detail/moment-detail?demo=1',
   },
   {
     id: 'f6',
@@ -147,7 +147,7 @@ const FEED = [
     tagGold: false,
     meta: '编辑部整理 · 27 条回复',
     cover: picsum('warmq2', 400, 400),
-    url: '/pages/moment-detail/moment-detail?demo=1',
+    url: '/pkg-content/moment-detail/moment-detail?demo=1',
   },
 ]
 

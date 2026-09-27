@@ -1,22 +1,37 @@
 <!-- pages/index/index.wxml — 默认暖阁原生区块；可插入通用装修组件 -->
-<page-meta page-style="{{themePageStyle}}" />
+<env-badge />
+<page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
 <block wx:if="{{dslMode && !dslPending}}">
   <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
   <block wx:else>
-    <view class="dsl-tab-page__body" style="{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
-      <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
+    <view class="dsl-tab-page__body custom-page" style="background-color:{{pageBackgroundColor}};{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+      <view
+        wx:for="{{flowComponents}}"
+        wx:key="id"
+        id="parity-{{item.id}}"
+        class="dsl-flow {{item._stackClass}}"
+        style="{{item.hostStyle}}"
+        data-parity-type="{{item.type}}"
+        data-parity-id="{{item.id}}"
+      >
         <dsl-renderer component="{{item}}" />
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
     </view>
-    <dsl-float-button
+    <view
       wx:for="{{floatComponents}}"
       wx:key="id"
-      config="{{item.props}}"
-      actions="{{item.actions}}"
-      styleString="{{item.styleString}}"
-    />
+      id="parity-float-{{item.id}}"
+      data-parity-type="float_button"
+      data-parity-id="{{item.id}}"
+    >
+      <dsl-float-button
+        config="{{item.props}}"
+        actions="{{item.actions}}"
+        styleString="{{item.styleString}}"
+      />
+    </view>
   </block>
 </block>
 <view wx:else class="wh">
@@ -25,6 +40,7 @@
       wx:if="{{item._native}}"
       type="{{item.type}}"
       config="{{item.props}}"
+      shellStyle="{{item.style}}"
       warm="{{warmView}}"
       bind:greettap="onGreetTap"
       bind:notice="onNotice"

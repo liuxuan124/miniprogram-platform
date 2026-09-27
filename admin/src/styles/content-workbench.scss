@@ -1,16 +1,8 @@
 /* 暖阁内容运营 · 原型 token / 屏样式（真源：docs/prototypes/暖阁内容运营原型.html） */
+@import './workbench-tokens.scss';
+
 .content-wb {
-  --bg: #f6f2ec;
-  --card: #ffffff;
-  --soft: #fbf8f4;
-  --line: #e8dfd3;
-  --line2: #f1ebe3;
-  --ink: #2a1f17;
-  --mute: #6b5b4e;
-  --faint: #7a6a5c;
-  --acc: #b4430f;
-  --acc-h: #8c3208;
-  --accsoft: #fbeadf;
+  @include admin-workbench-tokens;
   --g: #1f7a4d;
   --gs: #e3f3ea;
   --a: #8f5400;
@@ -23,8 +15,6 @@
   --rs: #fbe4e0;
   --serif: 'Noto Serif SC', 'Songti SC', serif;
   --sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --el-color-primary: #b4430f;
-
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
@@ -249,7 +239,7 @@
 .content-wb .bulk .link { color: #f7c4a5; }
 .content-wb .menu {
   position: absolute; right: 0; top: 40px; z-index: 30; background: #fff; border: 1px solid var(--line);
-  border-radius: 10px; box-shadow: 0 10px 30px rgba(43, 29, 20, 0.14); padding: 6px; min-width: 190px;
+  border-radius: 10px; box-shadow: 0 10px 30px var(--wb-shadow); padding: 6px; min-width: 190px;
   display: flex; flex-direction: column;
 }
 .content-wb .menu button {

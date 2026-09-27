@@ -2,6 +2,9 @@
   "name": "miniprogram-platform-miniapp",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "test:unit": "node utils/qrcode.test.js && node utils/content-config.test.js"
+  },
   "dependencies": {
     "mp-html": "^2.5.2"
   }

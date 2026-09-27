@@ -1,0 +1,1 @@
+ERROR 1054 (42S22) at line 1: Unknown column 'tenant_id' in 'field list'

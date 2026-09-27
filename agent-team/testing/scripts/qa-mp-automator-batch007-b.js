@@ -42,7 +42,7 @@ async function main() {
     mp = await automator.connect({ wsEndpoint: WS })
     report.steps.push('connected')
 
-    await mp.switchTab('/pages/content-list/content-list')
+    await mp.switchTab('/pkg-content/content-list/content-list')
     await sleep(2000)
     report.content = await dump(mp)
     report.contentShot = await shot(mp, '06-content-list.png')
@@ -73,7 +73,7 @@ async function main() {
     report.formShot = await shot(mp, '09-form.png')
     report.steps.push('form:' + report.form.path)
 
-    await mp.navigateTo('/pages/product-detail/product-detail?id=9')
+    await mp.navigateTo('/pkg-content/product-detail/product-detail?id=9')
     await sleep(1200)
     report.product9 = await dump(mp)
     report.product9Shot = await shot(mp, '10-product-9-gate.png')

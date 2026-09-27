@@ -177,15 +177,15 @@ Page({
   },
 
   goResources() {
-    wx.navigateTo({ url: '/pages/resources/resources' })
+    wx.navigateTo({ url: '/pkg-content/resources/resources' })
   },
 
   goShare() {
-    wx.navigateTo({ url: '/pages/share/share' })
+    wx.navigateTo({ url: '/pkg-content/share/share' })
   },
 
   goJoin() {
-    wx.navigateTo({ url: '/pages/join/join' })
+    wx.navigateTo({ url: '/pkg-content/join/join' })
   },
 
   goService() {
@@ -205,6 +205,6 @@ Page({
   },
 
   goProduct(e) {
-    wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${e.currentTarget.dataset.id}` })
+    wx.navigateTo({ url: `/pkg-content/product-detail/product-detail?id=${e.currentTarget.dataset.id}` })
   },
 })

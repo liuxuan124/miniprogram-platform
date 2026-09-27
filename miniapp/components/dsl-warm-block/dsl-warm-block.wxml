@@ -1,22 +1,32 @@
 <block wx:if="{{type === 'warm_greet'}}">
-  <view class="wh-top" style="padding-top: {{warm.statusBarHeight || 20}}px;">
+  <view
+    class="wh-top {{useDefaultTopBg ? 'wh-top--default-bg' : ''}} {{usePlainSearch ? 'wh-top--plain-chrome' : ''}}"
+    style="padding-top: {{warm.statusBarHeight || 20}}px;{{topBgInline}}"
+  >
     <view class="wh-greet">
       <view class="wh-greet__person" bindtap="onGreetTap">
         <image
+          wx:if="{{showAvatarImage}}"
           class="wh-av"
-          src="{{avatarBroken ? '/images/default-avatar.png' : (warm.userAvatar || '/images/default-avatar.png')}}"
+          src="{{warm.userAvatar}}"
           mode="aspectFill"
           binderror="onAvatarError"
         />
+        <view wx:else class="wh-av wh-av--initial">{{brandInitial}}</view>
         <view class="wh-greet__tx">
-          <text class="wh-greet__h serif">{{warm.greetTitle}}</text>
-          <text class="wh-greet__p" wx:if="{{warm.isLoggedIn}}">已连续阅读 <text class="wh-b">{{warm.streakDays}}</text> 天 · 今日更新 {{warm.todayCount}} 篇</text>
-          <text class="wh-greet__p" wx:else>今日更新 {{warm.todayCount}} 篇 · 点击登录同步记录</text>
+          <text class="wh-greet__h serif" style="{{greetTitleStyle}}">{{warm.greetTitle}}</text>
+          <text class="wh-greet__p" style="{{greetSubStyle}}" wx:if="{{warm.isLoggedIn}}">已连续阅读 <text class="wh-b">{{warm.streakDays}}</text> 天 · 今日更新 {{warm.todayCount}} 篇</text>
+          <text class="wh-greet__p" style="{{greetSubStyle}}" wx:else>今日更新 {{warm.todayCount}} 篇 · 点击登录同步记录</text>
         </view>
       </view>
       <view
+        wx:if="{{config.show_member_badge === true}}"
+        class="wh-member-badge"
+        catchtap="onMemberBadge"
+      >{{memberBadgeLabel}}</view>
+      <view
+        wx:elif="{{config.show_notice !== false}}"
         class="wh-bell"
-        wx:if="{{config.show_notice !== false}}"
         catchtap="onNotice"
         hover-class="wh-bell--pressed"
         hover-stay-time="80"
@@ -25,23 +35,25 @@
         <view class="wh-bell__dot" wx:if="{{warm.noticeDot}}"></view>
       </view>
     </view>
-    <view class="wh-search" wx:if="{{config.show_search !== false}}" bindtap="goSearch">
+    <view class="wh-search {{usePlainSearch ? 'wh-search--plain' : ''}}" wx:if="{{config.show_search !== false}}" bindtap="goSearch">
       <text>🔍</text>
       <text class="wh-search__ph">{{config.search_placeholder || '搜索文章、笔记、专栏……'}}</text>
       <text class="wh-search__btn">搜索</text>
     </view>
-    <view class="wh-nav" wx:if="{{config.show_nav !== false}}">
-      <view
-        wx:for="{{warm.navs}}"
-        wx:key="key"
-        class="wh-nav__item"
-        data-url="{{item.url}}"
-        data-tab="{{item.tab}}"
-        bindtap="onNav"
-      >
-        <view class="wh-nav__ic">{{item.icon}}</view>
-        <text>{{item.label}}</text>
-      </view>
+    <view class="wh-nav wh-nav--grid5" wx:if="{{config.show_nav !== false}}">
+      <block wx:if="{{warm.navs && warm.navs.length}}">
+        <view
+          wx:for="{{warm.navs}}"
+          wx:key="key"
+          class="wh-nav__item"
+          data-url="{{item.url}}"
+          data-tab="{{item.tab}}"
+          bindtap="onNav"
+        >
+          <view class="wh-nav__ic">{{item.icon}}</view>
+          <text>{{item.label}}</text>
+        </view>
+      </block>
     </view>
   </view>
 </block>

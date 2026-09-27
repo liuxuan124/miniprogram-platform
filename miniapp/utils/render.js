@@ -49,6 +49,7 @@ const COMPONENT_TYPES = {
   ACTIVITY_LIST: 'activity_list',
   APPOINTMENT_SERVICE: 'appointment_service',
   MEMBER_CARD: 'member_card',
+  PROMO_BANNER: 'promo_banner',
   COUPON: 'coupon',
   AI_ENTRY: 'ai_entry',
   VIDEO: 'video',
@@ -434,7 +435,6 @@ async function loadComponentData(component, forceRefresh = false) {
       }
     }
 
-    const data = await DatasourceService.fetchData(dataSource, forceRefresh)
     // 限制数据量，避免 setData 过大；热门资讯需多取一点做前端排序/日期筛选
     const limit = Math.max(Number(props.limit || 10), 1)
     const feedPageSize = Math.max(Number(props.page_size || 10), 5)
@@ -449,7 +449,10 @@ async function loadComponentData(component, forceRefresh = false) {
           ? feedPageSize
           : (component.type === 'product_list' && priceFilter.mode !== 'all'
             ? Math.min(Math.max(limit * 5, 30), 50)
-            : 10)))
+            : Math.max(limit, 10))))
+    // 数据源层不能再写死“首页 6 条”：商城等页面应尊重当前组件的显式数量。
+    // 仍传入上限，避免接口结果未经约束直接进入 setData。
+    const data = await DatasourceService.fetchData(dataSource, forceRefresh, MAX_ITEMS)
     let trimmed = Array.isArray(data) ? data.slice(0, MAX_ITEMS) : data
 
     // 信息流：按标题去重，避免导入脏数据重复刷屏
@@ -564,7 +567,13 @@ async function loadAllComponentData(components, forceRefresh = false) {
     }
     return loaded
   })
-  return Promise.all(tasks)
+  const loaded = await Promise.all(tasks)
+  try {
+    const { hydrateWarmHomeRuntime } = require('./warm-home-runtime')
+    return await hydrateWarmHomeRuntime(loaded)
+  } catch (e) {
+    return loaded
+  }
 }
 
 // ========== 事件处理 ==========
@@ -613,6 +622,28 @@ function rewriteUnregisteredPage(path) {
 
   // 常见错误主包路径 → 分包真实路径（避免点击无反应 / navigateTo fail）
   const PAGE_ALIASES = {
+    '/pages/content-detail/content-detail': '/pkg-content/content-detail/content-detail',
+    '/pages/product-detail/product-detail': '/pkg-content/product-detail/product-detail',
+    '/pages/moment-detail/moment-detail': '/pkg-content/moment-detail/moment-detail',
+    '/pages/question-ask/question-ask': '/pkg-content/question-ask/question-ask',
+    '/pages/question-detail/question-detail': '/pkg-content/question-detail/question-detail',
+    '/pages/cart/cart': '/pkg-content/cart/cart',
+    '/pages/order-create/order-create': '/pkg-content/order-create/order-create',
+    '/pages/content-list/content-list': '/pkg-content/content-list/content-list',
+    '/pages/knowledge-mall/knowledge-mall': '/pkg-content/knowledge-mall/knowledge-mall',
+    '/pages/product-list/product-list': '/pkg-content/product-list/product-list',
+    '/pages/planet-list/planet-list': '/pkg-content/planet-list/planet-list',
+    '/pages/planet-intro/planet-intro': '/pkg-content/planet-intro/planet-intro',
+    '/pages/planet-feed/planet-feed': '/pkg-content/planet-feed/planet-feed',
+    '/pages/author-list/author-list': '/pkg-content/author-list/author-list',
+    '/pages/author-feed/author-feed': '/pkg-content/author-feed/author-feed',
+    '/pages/resources/resources': '/pkg-content/resources/resources',
+    '/pages/file-preview/file-preview': '/pkg-content/file-preview/file-preview',
+    '/pages/join/join': '/pkg-content/join/join',
+    '/pages/share/share': '/pkg-content/share/share',
+    '/pages/contribute/contribute': '/pkg-content/contribute/contribute',
+    '/pages/states/states': '/pkg-content/states/states',
+    '/pages/tab-hub/tab-hub': '/pkg-content/tab-hub/tab-hub',
     '/pages/service-chat/service-chat': '/pkg-user/service-chat/service-chat',
     '/pages/favorites/favorites': '/pkg-user/favorites/favorites',
     '/pages/feedback/feedback': '/pkg-user/feedback/feedback',
@@ -635,6 +666,7 @@ function rewriteUnregisteredPage(path) {
     '/pages/sign-in/sign-in': '/pkg-user/sign-in/sign-in',
     '/pages/activity-list/activity-list': '/pkg-extra/activity-list/activity-list',
     '/pages/activity-detail/activity-detail': '/pkg-extra/activity-detail/activity-detail',
+    '/pages/qa/qa': '/pages/qa-list/qa-list',
   }
   if (PAGE_ALIASES[base]) {
     return PAGE_ALIASES[base] + query
@@ -675,13 +707,13 @@ function navigatePage(path) {
     const q = parseQuery(url)
     const qs = Object.keys(q).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(q[k])}`).join('&')
     const base0 = stripQuery(url)
-    if (base0 === '/pages/product-list/product-list' || base0 === '/pages/knowledge-mall/knowledge-mall') {
+    if (base0 === '/pkg-content/product-list/product-list' || base0 === '/pkg-content/knowledge-mall/knowledge-mall') {
       if (!getProductEnabledSync()) {
         wx.switchTab({ url: '/pages/discover/discover' })
         return
       }
       url = '/pages/shop/shop' + (qs ? '?' + qs : '')
-    } else if (base0 === '/pages/content-list/content-list') {
+    } else if (base0 === '/pkg-content/content-list/content-list') {
       url = '/pages/discover/discover' + (qs ? '?' + qs : '')
     }
   }
@@ -717,6 +749,39 @@ function navigatePage(path) {
       console.warn('[RenderEngine] 页面跳转失败:', url)
     },
   })
+}
+
+/**
+ * 与装修器 LinkPicker 一致：link_type + link_url / link
+ * @param {Object} fields 组件 props 或条目字段
+ * @returns {{ type: string, path?: string, url?: string, number?: string, appid?: string }|null}
+ */
+function resolveLinkAction(fields) {
+  if (!fields || typeof fields !== 'object') return null
+  const legacyLink = String(fields.link || '').trim()
+  let type = String(fields.link_type || fields.type || fields.jump_type || '').trim().toLowerCase()
+  let target = String(fields.link_url || fields.target || fields.jump_url || fields.url || fields.phone || '').trim()
+  if (!type && legacyLink) {
+    type = /^https?:\/\//i.test(legacyLink) ? 'url' : 'page'
+    target = target || legacyLink
+  }
+  if (!target && legacyLink) target = legacyLink
+  if (type === 'none' || !target) return null
+  if (type === 'url') type = 'webview'
+  if (type === 'webview' || /^https?:\/\//i.test(target)) {
+    const url = /^https?:\/\//i.test(target) ? target : `https://${target}`
+    return { type: 'webview', url }
+  }
+  if (type === 'phone') return { type: 'phone', number: target }
+  if (type === 'miniapp') {
+    return { type: 'miniapp', appid: target, path: String(fields.path || fields.miniapp_path || '') }
+  }
+  return { type: 'page', path: target }
+}
+
+function executeLinkFields(fields) {
+  const action = resolveLinkAction(fields)
+  if (action) executeAction(action)
 }
 
 /**
@@ -893,6 +958,8 @@ module.exports = {
   parseDSL,
   loadComponentData,
   loadAllComponentData,
+  resolveLinkAction,
+  executeLinkFields,
   executeAction,
   navigatePage,
   executeFirstAction,

@@ -4,6 +4,16 @@
       <el-form-item label="问候语">
         <el-input :model-value="data.greet_template" placeholder="你好" @input="emit('update', { greet_template: $event })" />
       </el-form-item>
+      <el-form-item label="顶部视觉">
+        <el-radio-group
+          :model-value="data.greet_skin || 'classic'"
+          @change="(v: string) => emit('update', { greet_skin: v })"
+        >
+          <el-radio value="classic">经典暖阁</el-radio>
+          <el-radio value="plain">墨太白 plain</el-radio>
+        </el-radio-group>
+        <div class="ds-hint">选「墨太白 plain」即白底搜索条、36px 首字头像等；也可靠背景色/会员标签等单项触发</div>
+      </el-form-item>
       <el-form-item label="搜索提示">
         <el-input :model-value="data.search_placeholder" @input="emit('update', { search_placeholder: $event })" />
       </el-form-item>
@@ -15,6 +25,61 @@
       </el-form-item>
       <el-form-item label="通知铃">
         <el-switch :model-value="data.show_notice !== false" @change="(v: boolean) => emit('update', { show_notice: v })" />
+      </el-form-item>
+      <el-form-item label="会员标签">
+        <el-switch
+          :model-value="data.show_member_badge === true"
+          @change="(v: boolean) => emit('update', { show_member_badge: v })"
+        />
+        <div class="ds-hint">开启后右侧显示会员身份标签，替代通知铃样式</div>
+      </el-form-item>
+      <template v-if="data.show_member_badge === true">
+        <el-form-item label="未开通文案">
+          <el-input
+            :model-value="data.member_cta_label || '开通会员 ›'"
+            @input="(v: string) => emit('update', { member_cta_label: v })"
+          />
+        </el-form-item>
+        <el-form-item label="已开通文案">
+          <el-input
+            :model-value="data.member_active_label || '年度会员'"
+            @input="(v: string) => emit('update', { member_active_label: v })"
+          />
+        </el-form-item>
+        <el-form-item label="跳转路径">
+          <el-input
+            :model-value="data.member_link || '/pages/member-center/member-center'"
+            @input="(v: string) => emit('update', { member_link: v })"
+          />
+        </el-form-item>
+      </template>
+      <el-form-item label="品牌首字">
+        <el-input
+          :model-value="data.brand_initial || ''"
+          maxlength="1"
+          placeholder="无头像时圆形内显示，如「墨」"
+          @input="(v: string) => emit('update', { brand_initial: v })"
+        />
+      </el-form-item>
+      <el-form-item label="问候字号">
+        <el-input-number
+          :model-value="Number(data.greet_title_font_size ?? 20)"
+          :min="12"
+          :max="28"
+          controls-position="right"
+          @change="(v: number | undefined) => emit('update', { greet_title_font_size: v ?? 20 })"
+        />
+        <div class="ds-hint">墨太白建议 15</div>
+      </el-form-item>
+      <el-form-item label="副标题字号">
+        <el-input-number
+          :model-value="Number(data.greet_sub_font_size ?? 11)"
+          :min="10"
+          :max="16"
+          controls-position="right"
+          @change="(v: number | undefined) => emit('update', { greet_sub_font_size: v ?? 11 })"
+        />
+        <div class="ds-hint">墨太白建议 11.5（取 11 或 12）</div>
       </el-form-item>
 
       <el-divider content-position="left">金刚区入口</el-divider>
@@ -69,7 +134,7 @@
         <el-input :model-value="data.more_text" @input="emit('update', { more_text: $event })" />
       </el-form-item>
       <el-form-item label="跳转路径">
-        <el-input :model-value="data.more_url || '/pages/author-list/author-list'" @input="emit('update', { more_url: $event })" />
+        <el-input :model-value="data.more_url || '/pkg-content/author-list/author-list'" @input="emit('update', { more_url: $event })" />
       </el-form-item>
       <el-form-item label="Tab 跳转">
         <el-switch :model-value="!!data.more_tab" @change="(v: boolean) => emit('update', { more_tab: v })" />
@@ -138,11 +203,11 @@ export type WarmNavItem = {
 }
 
 const DEFAULT_NAVS: WarmNavItem[] = [
-  { key: 'list', icon: '📚', label: '长文', url: '/pages/content-list/content-list' },
-  { key: 'column', icon: '🎧', label: '专栏课', url: '/pages/product-list/product-list?type=column' },
+  { key: 'list', icon: '📚', label: '长文', url: '/pkg-content/content-list/content-list' },
+  { key: 'column', icon: '🎧', label: '专栏课', url: '/pkg-content/product-list/product-list?type=column' },
   { key: 'planet', icon: '🪐', label: '星球', url: '/pages/planet/planet', tab: true },
   { key: 'shop', icon: '🛍', label: '商城', url: '/pages/shop/shop', tab: true },
-  { key: 'resources', icon: '🗂', label: '资料库', url: '/pages/resources/resources' },
+  { key: 'resources', icon: '🗂', label: '资料库', url: '/pkg-content/resources/resources' },
 ]
 
 const { props: data, type } = defineProps<{ props: Record<string, any>; type?: string }>()

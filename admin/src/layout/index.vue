@@ -81,15 +81,15 @@ router.afterEach(() => {
   min-height: 100vh;
   height: auto !important;
   box-sizing: border-box;
-  padding-left: 220px;
-  transition: padding-left 0.3s ease;
+  padding-left: 216px;
 }
 
-/*
- * /mini：侧栏占文档流（Sidebar.is-mini-shell）；壳锁 100vh，仅右侧 main 纵向滚动。
- */
+:global(html.sidebar-width-animate) .app-layout {
+  transition: padding-left 0.2s ease;
+}
+
+/* 工作台壳：锁 100vh，仅右侧 main 纵向滚动 */
 .app-layout.is-mini {
-  padding-left: 0;
   height: 100vh !important;
   min-height: 100vh;
   overflow: hidden;
@@ -97,10 +97,6 @@ router.afterEach(() => {
 
 .app-layout.sidebar-collapsed {
   padding-left: 72px;
-}
-
-.app-layout.is-mini.sidebar-collapsed {
-  padding-left: 0;
 }
 
 .app-layout.is-content-editor {
@@ -136,8 +132,8 @@ router.afterEach(() => {
 
 .app-header {
   padding: 0;
-  border-bottom: 1px solid #e6e6e6;
-  background: #fff;
+  border-bottom: 1px solid var(--header-border);
+  background: var(--header-mini-bg);
   flex-shrink: 0;
 
   /* Header.vue 里 /mini 的条是 60px，外层壳必须同高，否则内容会被压掉 4px */
@@ -164,7 +160,7 @@ router.afterEach(() => {
   position: relative;
   &.is-mini {
     padding: 0;
-    background: #f6f2ec;
+    background: var(--wb-bg);
     min-height: 0;
     flex: 1 0 auto;
     overflow-x: hidden !important;
@@ -172,7 +168,7 @@ router.afterEach(() => {
   }
   &.is-content-editor {
     padding: 0;
-    background: #f6f2ec;
+    background: var(--wb-bg);
     min-height: 100%;
     height: auto !important;
     overflow-x: hidden !important;

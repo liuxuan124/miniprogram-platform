@@ -14,7 +14,7 @@ RUN mvn dependency:go-offline -B
 
 # 复制源码并构建
 COPY backend/src ./src
-RUN mvn package -DskipTests -B \
+RUN mvn package -Dmaven.test.skip=true -B \
     && mv target/*.jar target/app.jar
 
 # ── 阶段2: JRE 运行 ─────────────────────────────────────────────────────

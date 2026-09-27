@@ -9,6 +9,7 @@ import com.miniprogram.dto.system.ConfigVO;
 import com.miniprogram.entity.MiniappRelease;
 import com.miniprogram.entity.SystemConfig;
 import com.miniprogram.mapper.SystemConfigMapper;
+import com.miniprogram.config.ContentMiniappAutoSyncProperties;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
 
     private final ObjectMapper objectMapper;
     private final MiniappReleaseService miniappReleaseService;
+    private final ContentMiniappAutoSyncProperties contentMiniappAutoSyncProperties;
 
     /**
      * 公开配置键（小程序端可见）
@@ -165,6 +167,24 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
     }
 
     @Override
+    public Map<String, Object> getPublicConfigs(String view) {
+        if (StringUtils.hasText(view) && "draft".equalsIgnoreCase(view.trim())) {
+            Map<String, Object> merged = getPublicConfigs();
+            overlaySiteBuilderDraft(merged);
+            merged.put("content_view", "draft");
+            enrichWarmPublicAliases(merged);
+            attachLiveReleaseNo(merged);
+            return merged;
+        }
+        Map<String, Object> online = getPublicConfigs();
+        if (contentMiniappAutoSyncProperties.isAutoSyncToMiniapp()) {
+            overlaySiteBuilderDraft(online);
+        }
+        online.put("content_view", "online");
+        return online;
+    }
+
+    @Override
     public Map<String, Object> getPublicConfigs() {
         Map<String, Object> releasedConfigs = getPublicConfigsFromLatestRelease();
         if (!releasedConfigs.isEmpty()) {
@@ -202,6 +222,9 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
 
         enrichWarmPublicAliases(result);
         attachLiveReleaseNo(result);
+        if (contentMiniappAutoSyncProperties.isAutoSyncToMiniapp()) {
+            overlaySiteBuilderDraft(result);
+        }
         return result;
     }
 
@@ -271,6 +294,37 @@ public class SystemConfigServiceImpl extends BaseServiceImpl<SystemConfigMapper,
         Object trigger = result.get("agent_trigger_config");
         if (trigger != null) {
             result.put("agentTriggerConfig", trigger);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void overlaySiteBuilderDraft(Map<String, Object> result) {
+        String raw = getConfigValue(SITE_BUILDER_DRAFT_KEY);
+        if (!StringUtils.hasText(raw) || "{}".equals(raw.trim())) {
+            return;
+        }
+        try {
+            Map<String, Object> draft = objectMapper.readValue(raw, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+            if (draft == null || draft.isEmpty()) {
+                return;
+            }
+            for (Map.Entry<String, Object> entry : draft.entrySet()) {
+                String key = entry.getKey();
+                Object val = entry.getValue();
+                if (val == null) {
+                    result.put(key, "");
+                } else if (JSON_CONFIG_KEYS.contains(key) && val instanceof String s && StringUtils.hasText(s)) {
+                    try {
+                        result.put(key, objectMapper.readValue(s, Object.class));
+                    } catch (Exception e) {
+                        result.put(key, val);
+                    }
+                } else {
+                    result.put(key, val);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("合并 site_builder_draft 到公开配置失败", e);
         }
     }
 

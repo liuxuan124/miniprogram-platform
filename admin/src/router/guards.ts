@@ -17,7 +17,7 @@ import { clearChunkReloadFlag, setupChunkReloadHandlers } from '@/utils/chunkRel
 NProgress.configure({ showSpinner: false })
 
 /** 白名单路由（无需登录） */
-const whiteList = ['/login', '/h5/preview', '/h5/draft-preview', '/h5/miniapp-preview']
+const whiteList = ['/login', '/h5/preview', '/h5/draft-preview', '/h5/miniapp-preview', '/h5/golden-parity']
 
 /** 注册路由守卫 */
 function resetMainScroll() {

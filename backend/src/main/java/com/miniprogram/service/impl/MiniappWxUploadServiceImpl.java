@@ -8,11 +8,15 @@ import com.miniprogram.common.ErrorCode;
 import com.miniprogram.dto.miniapp.PushPreviewDTO;
 import com.miniprogram.dto.miniapp.PushPreviewResultVO;
 import com.miniprogram.entity.MiniappRelease;
+import com.miniprogram.entity.MpWxCodeUploadAudit;
 import com.miniprogram.entity.SystemConfig;
+import com.miniprogram.mapper.MpWxCodeUploadAuditMapper;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.MiniappWxUploadService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.VersionOperationLogService;
+import com.miniprogram.service.WxCodeManifestService;
 import com.miniprogram.service.WxPushTargetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +49,8 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
     private final VersionOperationLogService versionOperationLogService;
     private final WxPushTargetService wxPushTargetService;
     private final ObjectMapper objectMapper;
+    private final WxCodeManifestService wxCodeManifestService;
+    private final MpWxCodeUploadAuditMapper uploadAuditMapper;
 
     @Value("${miniapp.project-root:}")
     private String configuredProjectRoot;
@@ -120,6 +126,7 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
                 versionOperationLogService.logOperation(
                         releaseId, version, "wx_push_preview", versionDesc, false, message + detail, duration
                 );
+                writeUploadAudit(version, "failed", Map.of("message", message, "detail", detail));
                 throw new BusinessException(ErrorCode.MINIAPP_PUBLISH_FAILED, message);
             }
 
@@ -138,6 +145,8 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
                     releaseId, version, "wx_push_preview",
                     versionDesc + " -> " + appId + " (" + resolved.name() + ")", true, null, duration
             );
+            registerCapabilitiesIfPresent(miniappPath, version);
+            writeUploadAudit(version, "success", Map.of("appId", appId, "target", resolved.name()));
 
             return PushPreviewResultVO.builder()
                     .version(version)
@@ -280,6 +289,35 @@ public class MiniappWxUploadServiceImpl implements MiniappWxUploadService {
             log.warn("解析上传脚本输出失败: {}", e.getMessage());
         }
         return Map.of("ok", false, "message", "上传脚本无有效输出", "detail", output);
+    }
+
+    private void registerCapabilitiesIfPresent(Path miniappPath, String version) {
+        Path cap = miniappPath.resolve("capabilities.json");
+        if (!Files.isRegularFile(cap)) {
+            return;
+        }
+        try {
+            Map<String, Object> manifest = objectMapper.readValue(cap.toFile(), new TypeReference<>() {});
+            Long tenantId = SecurityUtils.getCurrentTenantId() != null ? SecurityUtils.getCurrentTenantId() : 0L;
+            wxCodeManifestService.register(tenantId, version, manifest);
+        } catch (Exception e) {
+            log.warn("登记 capabilities.json 失败: {}", e.getMessage());
+        }
+    }
+
+    private void writeUploadAudit(String version, String outcome, Map<String, Object> detail) {
+        try {
+            MpWxCodeUploadAudit row = new MpWxCodeUploadAudit();
+            row.setTenantId(SecurityUtils.getCurrentTenantId() != null ? SecurityUtils.getCurrentTenantId() : 0L);
+            row.setWxVersion(version);
+            row.setOperatorId(SecurityUtils.getCurrentUserId());
+            row.setOutcome(outcome);
+            row.setDetailJson(objectMapper.writeValueAsString(detail));
+            row.setCreatedAt(LocalDateTime.now());
+            uploadAuditMapper.insert(row);
+        } catch (Exception e) {
+            log.warn("写入上传审计失败: {}", e.getMessage());
+        }
     }
 
     private void upsertConfig(String key, String value, String group, String description) {

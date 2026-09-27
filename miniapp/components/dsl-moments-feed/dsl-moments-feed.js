@@ -158,7 +158,7 @@ Component({
     onTapMoment(e) {
       const id = e.currentTarget.dataset.id
       if (!id) return
-      wx.navigateTo({ url: `/pages/moment-detail/moment-detail?id=${id}` })
+      wx.navigateTo({ url: `/pkg-content/moment-detail/moment-detail?id=${id}` })
     },
   },
 })

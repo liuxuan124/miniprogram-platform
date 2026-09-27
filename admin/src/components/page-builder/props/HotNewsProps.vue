@@ -18,7 +18,15 @@
         >
           <el-radio value="today">今天</el-radio>
           <el-radio value="fixed">指定日期</el-radio>
+          <el-radio value="none">不显示</el-radio>
         </el-radio-group>
+      </el-form-item>
+      <el-form-item label="纯文字标题">
+        <el-switch
+          :model-value="!!data.header_plain"
+          @change="(v: boolean) => emit('update', { header_plain: v })"
+        />
+        <div class="ds-hint">开启后标题在卡片内以普通文字展示，无渐变胶囊</div>
       </el-form-item>
       <el-form-item v-if="(data.date_mode || 'today') === 'fixed'" label="指定日期">
         <el-date-picker
@@ -45,61 +53,63 @@
         </el-form-item>
         <el-form-item label="更多链接">
           <el-input
-            :model-value="data.more_link || '/pages/content-list/content-list'"
-            placeholder="/pages/content-list/content-list"
+            :model-value="data.more_link || '/pkg-content/content-list/content-list'"
+            placeholder="/pkg-content/content-list/content-list"
             @input="(v: string) => emit('update', { more_link: v })"
           />
         </el-form-item>
       </template>
-      <el-form-item label="标题渐变起">
-        <el-color-picker
-          :model-value="data.header_from || '#4F7CFF'"
-          @change="(v: string | null) => emit('update', { header_from: v || '#4F7CFF' })"
-        />
-      </el-form-item>
-      <el-form-item label="标题渐变止">
-        <el-color-picker
-          :model-value="data.header_to || '#7BA3FF'"
-          @change="(v: string | null) => emit('update', { header_to: v || '#7BA3FF' })"
-        />
-      </el-form-item>
-      <el-form-item label="标题宽度">
-        <el-slider
-          class="hot-news-slider"
-          :model-value="Number(data.title_width ?? 72)"
-          :min="40"
-          :max="100"
-          :step="1"
-          show-input
-          :show-input-controls="false"
-          input-size="small"
-          @update:model-value="(v: number | number[]) => emit('update', { title_width: Number(v) })"
-        />
-        <div class="ds-hint">最小宽度（%）；文字过长时自动撑开，不会截断</div>
-      </el-form-item>
-      <el-form-item label="标题圆角">
-        <el-input-number
-          :model-value="Number(data.title_radius ?? 12)"
-          :min="0"
-          :max="40"
-          controls-position="right"
-          @change="(v: number | undefined) => emit('update', { title_radius: v ?? 12 })"
-        />
-      </el-form-item>
-      <el-form-item label="标题透明度">
-        <el-slider
-          class="hot-news-slider"
-          :model-value="Number(data.header_opacity ?? 96)"
-          :min="40"
-          :max="100"
-          :step="1"
-          show-input
-          :show-input-controls="false"
-          input-size="small"
-          @update:model-value="(v: number | number[]) => emit('update', { header_opacity: Number(v) })"
-        />
-        <div class="ds-hint">标题框背景透明度（%）</div>
-      </el-form-item>
+      <template v-if="!data.header_plain">
+        <el-form-item label="标题渐变起">
+          <el-color-picker
+            :model-value="data.header_from || '#4F7CFF'"
+            @change="(v: string | null) => emit('update', { header_from: v || '#4F7CFF' })"
+          />
+        </el-form-item>
+        <el-form-item label="标题渐变止">
+          <el-color-picker
+            :model-value="data.header_to || '#7BA3FF'"
+            @change="(v: string | null) => emit('update', { header_to: v || '#7BA3FF' })"
+          />
+        </el-form-item>
+        <el-form-item label="标题宽度">
+          <el-slider
+            class="hot-news-slider"
+            :model-value="Number(data.title_width ?? 72)"
+            :min="40"
+            :max="100"
+            :step="1"
+            show-input
+            :show-input-controls="false"
+            input-size="small"
+            @update:model-value="(v: number | number[]) => emit('update', { title_width: Number(v) })"
+          />
+          <div class="ds-hint">最小宽度（%）；文字过长时自动撑开，不会截断</div>
+        </el-form-item>
+        <el-form-item label="标题圆角">
+          <el-input-number
+            :model-value="Number(data.title_radius ?? 12)"
+            :min="0"
+            :max="40"
+            controls-position="right"
+            @change="(v: number | undefined) => emit('update', { title_radius: v ?? 12 })"
+          />
+        </el-form-item>
+        <el-form-item label="标题透明度">
+          <el-slider
+            class="hot-news-slider"
+            :model-value="Number(data.header_opacity ?? 96)"
+            :min="40"
+            :max="100"
+            :step="1"
+            show-input
+            :show-input-controls="false"
+            input-size="small"
+            @update:model-value="(v: number | number[]) => emit('update', { header_opacity: Number(v) })"
+          />
+          <div class="ds-hint">标题框背景透明度（%）</div>
+        </el-form-item>
+      </template>
       <el-form-item label="内容圆角">
         <el-input-number
           :model-value="Number(data.content_radius ?? 14)"
@@ -138,6 +148,7 @@
         <el-radio-group :model-value="layoutValue" @change="onLayoutChange">
           <el-radio-button value="star">星标列表</el-radio-button>
           <el-radio-button value="card">卡片</el-radio-button>
+          <el-radio-button value="number">数字序号</el-radio-button>
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="layoutValue === 'card'" label="显示封面">
@@ -238,7 +249,9 @@ const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
 
 const layoutValue = computed(() => {
   const raw = data.layout || 'star'
-  return raw === 'card' ? 'card' : 'star'
+  if (raw === 'card') return 'card'
+  if (raw === 'number') return 'number'
+  return 'star'
 })
 
 const queryParams = computed(() => {

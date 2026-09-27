@@ -1,7 +1,7 @@
 <view class="tabs" style="{{styleString}}">
   <view class="tabs__nav">
     <view
-      wx:for="{{panes}}"
+      wx:for="{{config.panes}}"
       wx:key="title"
       class="tabs__tab {{active === index ? 'is-on' : ''}}"
       data-index="{{index}}"
@@ -9,7 +9,7 @@
     >{{item.title}}</view>
   </view>
   <view
-    wx:for="{{items}}"
+    wx:for="{{config.panes[active].items}}"
     wx:key="title"
     class="tabs__item"
     data-url="{{item.link_url}}"

@@ -102,7 +102,7 @@ async function main() {
     report.ordersAfterCloseShot = await shot(mp, '02-orders-after-close.png')
     report.steps.push('ordersClose')
 
-    await mp.reLaunch('/pages/content-detail/content-detail?id=3')
+    await mp.reLaunch('/pkg-content/content-detail/content-detail?id=3')
     await sleep(2000)
     report.article = await dump(mp)
     const likeTap = await tapSel(mp, '.action-item')
@@ -154,7 +154,7 @@ async function main() {
       report.errors.push('searchKw:' + e.message)
     }
 
-    await mp.switchTab('/pages/content-list/content-list')
+    await mp.switchTab('/pkg-content/content-list/content-list')
     await sleep(1500)
     try {
       const cp = await mp.currentPage()

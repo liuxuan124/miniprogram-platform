@@ -3,6 +3,7 @@ package com.miniprogram.controller;
 import com.miniprogram.annotation.OperationLog;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
+import com.miniprogram.dto.mini.WxCodeManifestRegisterDTO;
 import com.miniprogram.dto.miniapp.CreateReleaseDTO;
 import com.miniprogram.dto.miniapp.PublishPreflightVO;
 import com.miniprogram.dto.miniapp.PushPreviewDTO;
@@ -12,9 +13,11 @@ import com.miniprogram.dto.miniapp.RollbackDTO;
 import com.miniprogram.dto.miniapp.StoreTemplateNameDTO;
 import com.miniprogram.entity.MiniappRelease;
 import com.miniprogram.entity.VersionOperationLog;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.MiniappWxUploadService;
 import com.miniprogram.service.SystemConfigService;
+import com.miniprogram.service.WxCodeManifestService;
 import com.miniprogram.service.VersionOperationLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +39,7 @@ public class MiniappReleaseController {
     private final VersionOperationLogService versionOperationLogService;
     private final MiniappWxUploadService miniappWxUploadService;
     private final SystemConfigService systemConfigService;
+    private final WxCodeManifestService wxCodeManifestService;
 
     @Operation(summary = "版本发布列表", description = "分页查询版本发布列表")
     @GetMapping
@@ -141,7 +145,7 @@ public class MiniappReleaseController {
     @OperationLog("重命名整店模板")
     @PreAuthorize("hasAuthority('page:publish')")
     public R<MiniappRelease> renameStoreTemplate(@PathVariable Long id, @Valid @RequestBody StoreTemplateNameDTO dto) {
-        return R.ok(miniappReleaseService.renameStoreTemplate(id, dto.getTemplateName()));
+        return R.ok(miniappReleaseService.renameStoreTemplate(id, dto));
     }
 
     @Operation(summary = "选用整店模板为正在搭建", description = "写入页面与外观配置，不上传微信代码包")
@@ -214,5 +218,14 @@ public class MiniappReleaseController {
     @PreAuthorize("hasAuthority('page:publish')")
     public R<PushPreviewResultVO> pushPreview(@PathVariable Long id, @RequestBody(required = false) PushPreviewDTO dto) {
         return R.ok(miniappWxUploadService.pushPreview(id, dto));
+    }
+
+    @Operation(summary = "登记微信代码能力清单", description = "CI/上传后 POST capabilities.json 解析结果")
+    @PostMapping("/code-manifest")
+    @PreAuthorize("hasAuthority('page:publish')")
+    public R<Void> registerCodeManifest(@Valid @RequestBody WxCodeManifestRegisterDTO dto) {
+        Long tenantId = SecurityUtils.getCurrentTenantId() != null ? SecurityUtils.getCurrentTenantId() : 0L;
+        wxCodeManifestService.register(tenantId, dto.getWxVersion(), dto.getManifest());
+        return R.ok();
     }
 }

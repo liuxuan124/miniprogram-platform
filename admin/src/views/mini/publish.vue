@@ -90,6 +90,9 @@
             有阻断项未通过，处理后才能发布。去「外观 → 底部导航」检查绑定。
           </div>
 
+          <p class="faint" style="margin: 0 0 8px; font-size: 12px">
+            「发布第 N 次」只更新线上内容配置，不会提交微信审核或替换正式版代码；预览草稿请用「扫码预览」。
+          </p>
           <div class="pub-bar">
             <input
               v-model="publishNote"
@@ -240,9 +243,8 @@
 
     <MiniH5QrDialog
       v-model="qrVisible"
-      mode="draft"
-      title="扫码预览"
-      hint="手机浏览器打开当前「待发布草稿」的 H5 预览（不是微信体验版）。微信体验版需先在「上传代码包」配置 AppID/密钥并上传。"
+      mode="miniapp-draft"
+      title="扫码预览待发布草稿"
     />
   </div>
 </template>
@@ -257,12 +259,14 @@ import {
   listMiniContentReleases,
   prepareMiniRollback,
   previewMiniRollback,
+  postContentPreflight,
   publishMiniSite,
+  type ContentPreflight,
   type MiniContentReleaseVO,
   type MiniSiteVO,
   type PendingChangeItem,
 } from '@/api/miniSite'
-import { getPublishPreflight, getPushPreviewStatus, type PublishPreflight } from '@/api/version'
+import { getPushPreviewStatus } from '@/api/version'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
@@ -288,7 +292,7 @@ const wxUploadAvailable = ref(false)
 const wxStatusReason = ref('')
 const wxStatusText = ref('检测微信上传能力中…')
 
-const preflight = ref<PublishPreflight | null>(null)
+const preflight = ref<ContentPreflight | null>(null)
 const preflightLoading = ref(false)
 const preflightError = ref('')
 
@@ -340,7 +344,11 @@ const publishDisabled = computed(() => {
 })
 
 function itemKey(item: PendingChangeItem): string {
-  return String(item.id ?? item.pageId ?? `${item.type}-${item.name}-${item.path}`)
+  return String(item.changeId ?? item.id ?? item.pageId ?? `${item.type}-${item.name}-${item.path}`)
+}
+
+function selectedChangeIds(): string[] {
+  return pending.value.filter((item) => isSelected(item)).map((item) => itemKey(item))
 }
 
 function isSelected(item: PendingChangeItem): boolean {
@@ -419,8 +427,8 @@ async function loadPreflight() {
   preflightLoading.value = true
   preflightError.value = ''
   try {
-    const res = await getPublishPreflight()
-    preflight.value = (res as any)?.data ?? res ?? null
+    const ids = selectedChangeIds()
+    preflight.value = await postContentPreflight(ids.length ? ids : pending.value.map(itemKey))
   } catch (e: any) {
     preflight.value = null
     preflightError.value = e?.message || '发布前检查暂不可用'
@@ -455,6 +463,7 @@ async function handlePublish() {
     const result = await publishMiniSite({
       pageId: highlightPageId.value || undefined,
       pageIds,
+      changeIds: selectedChangeIds(),
       includeSite,
       notes: publishNote.value.trim() || undefined,
       clientRequestId,
@@ -539,6 +548,13 @@ watch(
     if (pending.value.length && selectedKeys.value.size === 0) {
       syncSelection()
     }
+  },
+)
+
+watch(
+  () => selectedKeys.value.size,
+  () => {
+    if (loaded.value) loadPreflight()
   },
 )
 

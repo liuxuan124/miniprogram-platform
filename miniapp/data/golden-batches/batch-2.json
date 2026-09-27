@@ -1,0 +1,174 @@
+{
+  "schema_version": "1.0",
+  "page": {
+    "id": "golden-parity-2",
+    "name": "渲染比对黄金页 2",
+    "type": "custom",
+    "path": "pages/custom/golden-parity-2",
+    "background_color": "#f5f6f9"
+  },
+  "global_config": {
+    "pull_refresh": false,
+    "reach_bottom_load": false
+  },
+  "components": [
+    {
+      "id": "golden-certificate",
+      "type": "certificate",
+      "props": {
+        "title": "Golden certificate"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-contact-info",
+      "type": "contact_info",
+      "props": {
+        "title": "Golden contact_info"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-container",
+      "type": "container",
+      "props": {
+        "title": "Golden container"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-content-paywall",
+      "type": "content_paywall",
+      "props": {
+        "title": "Golden content_paywall"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-content-tabs",
+      "type": "content_tabs",
+      "props": {
+        "panes": [
+          {
+            "title": "Tab A",
+            "items": [
+              {
+                "title": "Static row A",
+                "desc": "No network",
+                "link_type": "none",
+                "link_url": ""
+              }
+            ]
+          },
+          {
+            "title": "Tab B",
+            "items": [
+              {
+                "title": "Static row B",
+                "desc": "No network",
+                "link_type": "none",
+                "link_url": ""
+              }
+            ]
+          }
+        ]
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-countdown",
+      "type": "countdown",
+      "props": {
+        "title": "Golden countdown"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-coupon",
+      "type": "coupon",
+      "props": {
+        "title": "Golden coupon"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-divider",
+      "type": "divider",
+      "props": {
+        "style": "solid",
+        "color": "#94a3b8",
+        "thickness": 8,
+        "margin": 8
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-feature-cards",
+      "type": "feature_cards",
+      "props": {
+        "columns": 2,
+        "items": [
+          {
+            "icon": "✨",
+            "title": "Feature A",
+            "desc": "Static card"
+          },
+          {
+            "icon": "🛡️",
+            "title": "Feature B",
+            "desc": "No network"
+          }
+        ]
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-flash-sale",
+      "type": "flash_sale",
+      "props": {
+        "title": "Golden flash_sale"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    }
+  ]
+}

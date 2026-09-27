@@ -1,6 +1,6 @@
 <!--pages/custom/custom.wxml — 装修器自定义页/专题页通用入口-->
-<page-meta page-style="{{themePageStyle}}" />
-<view class="custom-page">
+<page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
+<view class="custom-page" style="background-color:{{pageBackgroundColor}};">
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
   <block wx:else>
@@ -10,18 +10,25 @@
         wx:key="id"
         class="dsl-flow {{item._stackClass}}"
         style="{{item.hostStyle}}"
+        data-parity-type="{{item.type}}"
+        data-parity-id="{{item.id}}"
       >
         <dsl-renderer component="{{item}}" />
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="custom-page__state">页面暂无内容</view>
     </view>
     <!-- 悬浮按钮独立浮层：相对屏幕固定，不随页面内容滚动 -->
-    <dsl-float-button
+    <view
       wx:for="{{floatComponents}}"
       wx:key="id"
-      config="{{item.props}}"
-      actions="{{item.actions}}"
-      styleString="{{item.styleString}}"
-    />
+      data-parity-type="float_button"
+      data-parity-id="{{item.id}}"
+    >
+      <dsl-float-button
+        config="{{item.props}}"
+        actions="{{item.actions}}"
+        styleString="{{item.styleString}}"
+      />
+    </view>
   </block>
 </view>

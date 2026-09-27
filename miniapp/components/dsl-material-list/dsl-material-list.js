@@ -88,7 +88,7 @@ Component({
         showAccess: cfg.show_access !== false,
         showMore: cfg.show_more === true,
         moreText: cfg.more_text || '查看更多资料 ›',
-        moreLink: cfg.more_link || '/pages/resources/resources',
+        moreLink: cfg.more_link || '/pkg-content/resources/resources',
         showFilter: cfg.show_filter_bar === true,
       })
       const rows = Array.isArray(this.properties.runtimeData) && this.properties.runtimeData.length

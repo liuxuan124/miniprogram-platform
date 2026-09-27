@@ -2,6 +2,8 @@ package com.miniprogram.controller;
 
 import com.miniprogram.annotation.OperationLog;
 import com.miniprogram.common.R;
+import com.miniprogram.dto.mini.ContentPreflightRequestDTO;
+import com.miniprogram.dto.mini.ContentPreflightVO;
 import com.miniprogram.dto.mini.MiniContentReleaseVO;
 import com.miniprogram.dto.mini.MiniPublishRequestDTO;
 import com.miniprogram.dto.mini.MiniPublishResultVO;
@@ -10,6 +12,7 @@ import com.miniprogram.dto.mini.MiniRollbackResultVO;
 import com.miniprogram.dto.mini.MiniSiteUpdateDTO;
 import com.miniprogram.dto.mini.MiniSiteVO;
 import com.miniprogram.dto.mini.PendingChangesVO;
+import com.miniprogram.service.ContentPublishPreflightService;
 import com.miniprogram.service.mini.MiniSiteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +36,7 @@ import java.util.List;
 public class MiniSiteController {
 
     private final MiniSiteService miniSiteService;
+    private final ContentPublishPreflightService contentPublishPreflightService;
 
     @Operation(summary = "获取站点聚合", description = "view=draft（默认，管理端编辑）| live（已上线）")
     @GetMapping("/site")
@@ -54,6 +58,14 @@ public class MiniSiteController {
     @PreAuthorize("hasAuthority('page:list')")
     public R<PendingChangesVO> pendingChanges() {
         return R.ok(miniSiteService.listPendingChanges());
+    }
+
+    @Operation(summary = "内容发布预检", description = "POST + change_ids 为发布门禁；GET 整包检查仍走 miniapp-releases/preflight")
+    @PostMapping("/preflight")
+    @PreAuthorize("hasAuthority('page:list')")
+    public R<ContentPreflightVO> preflight(@RequestBody(required = false) ContentPreflightRequestDTO body) {
+        var ids = body != null ? body.getChangeIds() : null;
+        return R.ok(contentPublishPreflightService.runPreflight(ids));
     }
 
     @Operation(summary = "一次发布", description = "提升站点草稿 + 发布脏页 + 递增发布序号；可传 pageIds/includeSite 勾选")

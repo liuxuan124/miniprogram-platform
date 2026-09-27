@@ -39,3 +39,6 @@ mybatis-plus:
 logging:
   level:
     com.miniprogram: DEBUG
+
+preview-token:
+  secret: miniprogram-preview-token-dev-key-at-least-32-chars-long

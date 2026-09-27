@@ -7,6 +7,12 @@ import {
   priceFilterNeedsWideFetch,
   resolvePriceFilterConfig,
 } from '@/utils/product-price-filter'
+import {
+  mapPlanetFeedItem,
+  PLANET_DEFAULT_FEED,
+  PLANET_DEFAULT_KPIS,
+  PLANET_DEFAULT_SEGS,
+} from '@/utils/preview-planet'
 
 type DataSourceType = ComponentDataSource['type']
 
@@ -29,6 +35,8 @@ const COMPONENT_LABELS: Record<string, string> = {
   material_list: '资料列表',
   qa_list: '问答列表',
   member_plan: '会员方案',
+  planet_hero: '星球头部',
+  planet_feed: '星球动态',
 }
 
 const DS_API_MAP: Partial<Record<DataSourceType, string>> = {
@@ -78,6 +86,99 @@ function pickList(payload: unknown): any[] {
   if (Array.isArray(data.items)) return data.items
   if (Array.isArray(data.data)) return data.data
   return []
+}
+
+async function fetchMpData(path: string, params: Record<string, unknown> = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== '' && value !== null && value !== undefined) query.set(key, String(value))
+  })
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  const timer = controller ? window.setTimeout(() => controller.abort(), 6000) : 0
+  try {
+    const suffix = query.size ? `?${query.toString()}` : ''
+    const response = await fetch(`${path}${suffix}`, controller ? { signal: controller.signal } : undefined)
+    const payload = await response.json()
+    if (payload.code !== 0 && payload.code !== 200) throw new Error(payload.message || '接口请求失败')
+    return payload.data
+  } finally {
+    if (timer) window.clearTimeout(timer)
+  }
+}
+
+async function hydratePlanetHero(component: ComponentInstance): Promise<ComponentInstance> {
+  const source = component.props || {}
+  const seed = {
+    ...source,
+    logo_emoji: source.logo_emoji || '🪐',
+    title: source.title || '暖阁星球',
+    subtitle: source.subtitle || '内容创作者的自留地 · 由 墨白 主理',
+    join_text: source.join_text || '加入',
+    expire_text: source.expire_text || '',
+    join_row_text: source.join_row_text || '👥 加入球友微信群，第一时间收到更新通知',
+    join_row_go: source.join_row_go || '去加入 ›',
+    kpis: Array.isArray(source.kpis) && source.kpis.length ? source.kpis : PLANET_DEFAULT_KPIS,
+  }
+  if (String(source.source_mode || 'auto') === 'manual') {
+    return { ...component, props: { ...seed, _previewDataFailed: false } }
+  }
+  const home = await fetchMpData('/api/v1/mp/planet/home') || {}
+  const active = !!(home.planetMemberActive != null
+    ? home.planetMemberActive
+    : (home.memberActive || home.isMember))
+  return {
+    ...component,
+    props: {
+      ...seed,
+      title: home.title || seed.title,
+      subtitle: home.subtitle || seed.subtitle,
+      join_text: active ? '已加入' : seed.join_text,
+      expire_text: active ? (home.planetExpireText || home.expireText || seed.expire_text || '') : '',
+      kpis: Array.isArray(home.kpis) && home.kpis.length ? home.kpis : seed.kpis,
+      _previewDataFailed: false,
+    },
+  }
+}
+
+async function hydratePlanetFeed(component: ComponentInstance): Promise<ComponentInstance> {
+  const source = component.props || {}
+  const segs = Array.isArray(source.segs) && source.segs.length ? source.segs : PLANET_DEFAULT_SEGS
+  const pageSize = Math.max(Number(source.page_size) || 20, 1)
+  if (String(source.source_mode || 'auto') === 'manual' && Array.isArray(source.items) && source.items.length) {
+    return {
+      ...component,
+      props: {
+        ...source,
+        segs,
+        items: source.items.map(mapPlanetFeedItem),
+        footer_text: '—— 演示数据 ——',
+        _previewDataDemo: true,
+        _previewDataFailed: false,
+      },
+    }
+  }
+  let planetId = ''
+  try {
+    const main = await fetchMpData('/api/v1/mp/planet/main') || {}
+    planetId = String(main.planetId || '')
+  } catch {
+    // 与小程序一致：主星球读取失败时仍请求默认 feed。
+  }
+  const feed = await fetchMpData('/api/v1/mp/planet/feed', { current: 1, size: pageSize, planetId })
+  const records = pickList(feed)
+  const usingDemo = records.length === 0
+  const items = (usingDemo ? PLANET_DEFAULT_FEED : records).map(mapPlanetFeedItem)
+  return {
+    ...component,
+    props: {
+      ...source,
+      segs,
+      items,
+      footer_text: usingDemo ? '—— 演示数据 ——' : `—— 已加载 ${items.length} 条 ——`,
+      _previewDataDemo: usingDemo,
+      _previewDataFailed: false,
+    },
+  }
 }
 
 function resolveDataSource(component: ComponentInstance): ComponentDataSource | null {
@@ -225,7 +326,7 @@ function mapArticleItems(list: any[], limit: number) {
       cover: item.coverUrl || item.coverImage || item.cover || item.image || '',
       viewCount: Number(item.viewCount ?? item.view_count ?? 0) || 0,
       publishedAt: timeSource,
-      link_url: item.link_url || item.linkUrl || `/pages/content-detail/content-detail?id=${id}`,
+      link_url: item.link_url || item.linkUrl || `/pkg-content/content-detail/content-detail?id=${id}`,
       categoryId: item.categoryId ?? item.category_id,
       categoryName: item.categoryName || item.category_name || '',
       source: item.source || item.categoryName || item.category_name || '',
@@ -405,6 +506,34 @@ async function hydrateComponent(
   component: ComponentInstance,
   warnings: string[],
 ): Promise<ComponentInstance> {
+  if (component.type === 'planet_hero' || component.type === 'planet_feed') {
+    const label = COMPONENT_LABELS[component.type] || component.type
+    try {
+      return component.type === 'planet_hero'
+        ? await hydratePlanetHero(component)
+        : await hydratePlanetFeed(component)
+    } catch (error: any) {
+      warnings.push(`${label}：${error?.message || '加载失败，已使用与小程序一致的演示数据'}`)
+      if (component.type === 'planet_hero') {
+        return hydratePlanetHero({
+          ...component,
+          props: { ...component.props, source_mode: 'manual', _previewDataFailed: true },
+        })
+      }
+      return {
+        ...component,
+        props: {
+          ...component.props,
+          segs: PLANET_DEFAULT_SEGS,
+          items: PLANET_DEFAULT_FEED.map(mapPlanetFeedItem),
+          footer_text: '—— 演示数据 ——',
+          _previewDataDemo: true,
+          _previewDataFailed: true,
+        },
+      }
+    }
+  }
+
   if (component.type === 'material_list' || component.type === 'qa_list' || component.type === 'member_plan') {
     const label = COMPONENT_LABELS[component.type] || component.type
     const limit = Math.max(Number(component.props?.limit) || 5, 1)
@@ -419,7 +548,7 @@ async function hydrateComponent(
         }
         const list = dataSource ? await fetchDataSourceList(dataSource, limit) : []
         if (!list.length) {
-          warnings.push(`${label}：暂无资料，已用演示数据`)
+          warnings.push(`${label}：暂无线上数据`)
           return {
             ...component,
             props: { ...component.props, items: demoMaterialItems(limit), _previewDataDemo: true },

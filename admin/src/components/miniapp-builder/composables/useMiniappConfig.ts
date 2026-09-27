@@ -15,11 +15,11 @@ const SYSTEM_PAGES: { id: string; name: string; path: string; type: 'system' }[]
   { id: '__ai_chat__', name: '🤖 AI对话（系统内置）', path: '/pages/ai-chat/ai-chat', type: 'system' },
   { id: '__login__', name: '🔐 登录页（系统内置）', path: '/pages/login/login', type: 'system' },
   { id: '__index__', name: '🏠 首页（系统内置）', path: '/pages/index/index', type: 'system' },
-  { id: '__content_list__', name: '📝 内容列表（系统内置）', path: '/pages/content-list/content-list', type: 'system' },
-  { id: '__tab_hub__', name: '🧩 扩展 Tab（系统内置）', path: '/pages/tab-hub/tab-hub', type: 'system' },
-  { id: '__product_list__', name: '🛍️ 商品列表（系统内置）', path: '/pages/product-list/product-list', type: 'system' },
+  { id: '__content_list__', name: '📝 内容列表（系统内置）', path: '/pkg-content/content-list/content-list', type: 'system' },
+  { id: '__tab_hub__', name: '🧩 扩展 Tab（系统内置）', path: '/pkg-content/tab-hub/tab-hub', type: 'system' },
+  { id: '__product_list__', name: '🛍️ 商品列表（系统内置）', path: '/pkg-content/product-list/product-list', type: 'system' },
   { id: '__category__', name: '📋 分类页（系统内置）', path: '/pages/category/category', type: 'system' },
-  { id: '__cart__', name: '🛒 购物车（系统内置）', path: '/pages/cart/cart', type: 'system' },
+  { id: '__cart__', name: '🛒 购物车（系统内置）', path: '/pkg-content/cart/cart', type: 'system' },
 ]
 
 function normalizeBindId(id: unknown) {

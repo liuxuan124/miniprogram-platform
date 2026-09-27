@@ -302,6 +302,12 @@
     bind:componentevent="onComponentEvent"
   />
 
+  <dsl-promo-banner
+    wx:elif="{{comp.type === 'promo_banner'}}"
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+  />
+
   <!-- 7. 优惠券 coupon -->
   <dsl-coupon
     wx:elif="{{comp.type === 'coupon'}}"
@@ -561,17 +567,39 @@
     config="{{comp.props}}"
   />
 
-  <dsl-planet-topics
-    wx:elif="{{comp.type === 'planet_topics'}}"
-    config="{{comp.props}}"
-    styleString="{{comp.styleString}}"
-  />
+  <block wx:elif="{{comp.type === 'planet_topics'}}">
+    <view
+      wx:if="{{comp.props.source_mode === 'manual'}}"
+      class="dsl-planet-topics pl-fc"
+      style="{{comp.styleString}}"
+    >
+      <view class="pl-fc__t">
+        <text class="pl-fc__ic">{{comp.props.icon || '📈'}}</text>
+        <text class="pl-fc__h">{{comp.props.title || '本周热门话题'}}</text>
+        <text class="warm-tag warm-tag--gold" wx:if="{{comp.props.badge}}">{{comp.props.badge}}</text>
+      </view>
+      <view class="pl-fc__bar">
+        <view class="pl-fc__row" wx:for="{{comp.props.items}}" wx:key="name">
+          <text class="pl-fc__nm">{{item.name}}</text>
+          <view class="pl-fc__tr"><view class="pl-fc__fill" style="width:{{item.width}}%"></view></view>
+          <text class="pl-fc__pct {{item.down ? 'pl-fc__pct--dn' : ''}}">{{item.pct}}</text>
+        </view>
+      </view>
+      <view class="pl-fc__note" wx:if="{{comp.props.note}}">{{comp.props.note}}</view>
+    </view>
+    <dsl-planet-topics
+      wx:else
+      config="{{comp.props}}"
+      styleString="{{comp.styleString}}"
+    />
+  </block>
 
   <dsl-warm-block
     wx:elif="{{comp.type === 'warm_greet' || comp.type === 'warm_authors' || comp.type === 'warm_feature' || comp.type === 'warm_columns' || comp.type === 'warm_planet_rec' || comp.type === 'warm_feed'}}"
     type="{{comp.type}}"
     config="{{comp.props}}"
     warm="{{comp.runtimeData}}"
+    shellStyle="{{comp.style}}"
   />
 
   <view

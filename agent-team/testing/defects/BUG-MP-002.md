@@ -13,7 +13,7 @@
 ## 从登录开始的完整复现路径
 
 1. 打开 `miniapp` 模拟器首页
-2. automator `switchTab('/pages/content-list/content-list')`
+2. automator `switchTab('/pkg-content/content-list/content-list')`
 3. automator `switchTab('/pages/mine/mine')`
 
 ## 实际现象

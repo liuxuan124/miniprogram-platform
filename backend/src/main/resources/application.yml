@@ -44,8 +44,15 @@ jwt:
 # 应用级配置（卡密加密、跨域等）
 app:
   card-code-encryption-key: ${CARD_CODE_ENCRYPTION_KEY:${JWT_SECRET}}
+  content:
+    # true：保存外观/页面后自动写入小程序线上可读配置并递增 live_release_no（无需单独「发布与分发」）
+    auto-sync-to-miniapp: ${APP_CONTENT_AUTO_SYNC:false}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
+  security:
+    rate-limit:
+      # 本地 Docker Compose 默认关；生产 systemd 不设此项即为 true
+      enabled: ${APP_SECURITY_RATE_LIMIT_ENABLED:true}
 
 # 会员订购迁移（Task7）：默认关闭；本地/预发 dry-run 可开 migrate-subscriptions=true 且 dry-run=true
 membership:
@@ -82,6 +89,11 @@ wx:
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
   base-url: ${FILE_BASE_URL:http://localhost:8080}
+
+# 小程序草稿预览 JWT（须独立密钥，禁止与 jwt.secret 共用）
+preview-token:
+  secret: ${PREVIEW_TOKEN_SECRET:}
+  expiration-ms: ${PREVIEW_TOKEN_EXPIRATION_MS:7200000}
 
 # 小程序代码推送
 miniapp:

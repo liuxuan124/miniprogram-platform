@@ -3,13 +3,10 @@ import type { ComponentInstance, PageDSL } from '@/types/page'
 import { hydratePreviewDsl } from '@/utils/preview-datasource'
 import { pageUsesWarmNativeBlocks } from '@/composables/useWarmHomePreview'
 
-export type CanvasPreviewDataMode = 'demo' | 'live'
-
-/** 画布展示用 DSL：暖阁 native 块走 warm API；其余组件 hydrate 真实列表数据 */
+/** 画布展示用 DSL：暖阁 native 块走 warm API；其余组件 hydrate 与小程序同源列表数据 */
 export function useCanvasHydratedPreview(
   dsl: Ref<PageDSL>,
   components: Ref<ComponentInstance[]>,
-  dataMode: Ref<CanvasPreviewDataMode> = ref('demo'),
 ) {
   const displayComponents = ref<ComponentInstance[]>([])
   const hydrateWarnings = ref<string[]>([])
@@ -30,12 +27,6 @@ export function useCanvasHydratedPreview(
       displayComponents.value = []
       return
     }
-    if (dataMode.value === 'demo') {
-      displayComponents.value = list
-      hydrateWarnings.value = []
-      hydrating.value = false
-      return
-    }
     hydrating.value = true
     try {
       const snapshot = JSON.parse(JSON.stringify(dsl.value)) as PageDSL
@@ -53,10 +44,10 @@ export function useCanvasHydratedPreview(
   }
 
   watch(
-    () => [dsl.value, components.value, dataMode.value] as const,
+    () => [dsl.value, components.value] as const,
     () => {
       if (timer) clearTimeout(timer)
-      timer = setTimeout(() => { void runHydrate() }, dataMode.value === 'live' ? 600 : 120)
+      timer = setTimeout(() => { void runHydrate() }, 600)
     },
     { deep: true, immediate: true },
   )

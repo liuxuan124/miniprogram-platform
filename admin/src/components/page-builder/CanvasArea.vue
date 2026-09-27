@@ -5,16 +5,8 @@
         {{ warmPreview.enabled ? '暖阁首页预览' : '画布预览 · 375×812' }}
       </span>
       <div class="canvas-meta__right">
-        <el-segmented
-          v-model="canvasDataMode"
-          size="small"
-          :options="dataModeOptions"
-        />
-        <span v-if="hydrating" class="canvas-meta__device">同步列表数据…</span>
-        <span v-else class="canvas-meta__device">
-          {{ canvasDataMode === 'live' ? '真实数据' : '演示数据' }}
-          <template v-if="warmPreview.enabled"> · 与小程序显示一致</template>
-        </span>
+        <span v-if="hydrating" class="canvas-meta__device">同步预览数据…</span>
+        <span v-else class="canvas-meta__device">与小程序同源数据预览</span>
       </div>
     </div>
     <div v-if="heatMode && heatLoaded && !heatHasData" class="heat-empty-tip">
@@ -164,9 +156,8 @@ import {
   WARM_PREVIEW_VIEW_KEY,
   WARM_PREVIEW_ENABLED_KEY,
   WARM_PREVIEW_ON_SEG_KEY,
-  type WarmPreviewDataMode,
 } from '@/composables/useWarmHomePreview'
-import { useCanvasHydratedPreview, type CanvasPreviewDataMode } from '@/composables/useCanvasHydratedPreview'
+import { useCanvasHydratedPreview } from '@/composables/useCanvasHydratedPreview'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
 import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { onEditorScrollToComponent, requestEditorScrollToComponent } from '@/utils/editorScrollBus'
@@ -176,16 +167,9 @@ import { get } from '@/api/request'
 
 const pageStore = usePageStore()
 const { deleteWithUndo } = useEditorDeleteUndo()
-const canvasDataMode = ref<CanvasPreviewDataMode>('demo')
-const dataModeOptions = [
-  { label: '演示数据', value: 'demo' },
-  { label: '真实数据', value: 'live' },
-]
-
 const warmPreview = useWarmHomePreview(
   computed(() => pageStore.components),
   computed(() => pageStore.pageConfig.path),
-  canvasDataMode as Ref<WarmPreviewDataMode>,
 )
 provide(WARM_PREVIEW_VIEW_KEY, warmPreview.warmView)
 provide(WARM_PREVIEW_ENABLED_KEY, warmPreview.enabled)
@@ -194,7 +178,6 @@ provide(WARM_PREVIEW_ON_SEG_KEY, warmPreview.onSeg)
 const { displayComponents, hydrating } = useCanvasHydratedPreview(
   computed(() => pageStore.dsl),
   computed(() => pageStore.components),
-  canvasDataMode,
 )
 
 const miniContentEl = ref<HTMLElement | null>(null)
@@ -685,7 +668,7 @@ onBeforeUnmount(() => {
   }
 
   &.ai-highlight {
-    outline: 2px dashed #b4430f;
+    outline: 2px dashed var(--el-color-primary);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -703,7 +686,7 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 600;
   color: #fff;
-  background: #b4430f;
+  background: var(--el-color-primary);
   padding: 1px 7px;
   border-radius: 999px;
   pointer-events: none;

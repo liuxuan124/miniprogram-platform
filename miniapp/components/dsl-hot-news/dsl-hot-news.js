@@ -27,7 +27,7 @@ function normalizeItem(item, index) {
     title: item.title || item.name || '文章标题',
     cover: item.cover || item.coverUrl || item.coverImage || item.cover_url || item.image || '',
     meta: item.meta || formatMeta(item),
-    link_url: link || (id ? `/pages/content-detail/content-detail?id=${id}` : ''),
+    link_url: link || (id ? `/pkg-content/content-detail/content-detail?id=${id}` : ''),
     viewCount: Number(item.viewCount || item.view_count || 0) || 0,
     publishedAt: item.publishedAt || item.publishTime || item.publish_time || item.createTime || '',
   }
@@ -35,6 +35,9 @@ function normalizeItem(item, index) {
 
 function resolveDateParts(config) {
   const mode = (config && config.date_mode) || 'today'
+  if (mode === 'none') {
+    return { dateMonth: '', dateDay: '', dateWeek: '', showDateBadge: false }
+  }
   let d = new Date()
   if (mode === 'fixed' && config && config.header_date) {
     const parsed = new Date(String(config.header_date).replace(/-/g, '/'))
@@ -44,7 +47,15 @@ function resolveDateParts(config) {
     dateMonth: String(d.getMonth() + 1),
     dateDay: String(d.getDate()),
     dateWeek: WEEKDAYS[d.getDay()] || '',
+    showDateBadge: true,
   }
+}
+
+function resolveLayout(cfg) {
+  const raw = cfg && cfg.layout
+  if (raw === 'card') return 'card'
+  if (raw === 'number') return 'number'
+  return 'star'
 }
 
 function prepareList(runtimeData, config) {
@@ -89,7 +100,7 @@ Component({
     titleText: '今日精选',
     showMore: true,
     moreText: '查看更多 >',
-    moreLink: '/pages/content-list/content-list',
+    moreLink: '/pkg-content/content-list/content-list',
     titleBoxStyle: '',
     titleBgStyle: '',
     contentStyle: '',
@@ -101,6 +112,8 @@ Component({
     dateMonth: '',
     dateDay: '',
     dateWeek: '',
+    showDateBadge: true,
+    useUnifiedCard: false,
   },
 
   observers: {
@@ -135,17 +148,25 @@ Component({
       const gapRaw = Number(cfg.item_gap)
       const gap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 32)) : 10
       const dateParts = resolveDateParts(cfg)
+      const layout = resolveLayout(cfg)
+      const headerPlain = !!cfg.header_plain
+      const useUnifiedCard = headerPlain || layout === 'number'
+      const cardRadius = contentRadius * 2
+      const contentStyle = useUnifiedCard
+        ? `border-radius:${cardRadius}rpx;background:#fffdf9;border:1px solid #efe7da;padding:24rpx;box-sizing:border-box;`
+        : `border-radius:${cardRadius}rpx;`
       this.setData({
         titleText: String(cfg.title || '今日精选').trim() || '今日精选',
         showMore: cfg.show_more !== false,
         moreText: String(cfg.more_text || '查看更多 >').trim() || '查看更多 >',
-        moreLink: String(cfg.more_link || '/pages/content-list/content-list').trim() || '/pages/content-list/content-list',
+        moreLink: String(cfg.more_link || '/pkg-content/content-list/content-list').trim() || '/pkg-content/content-list/content-list',
         titleBoxStyle: `min-width:${titleWidth}%;max-width:100%;border-radius:${titleRadius * 2}rpx;`,
         titleBgStyle: `opacity:${opacityPct / 100};background:linear-gradient(180deg, ${from} 0%, ${to} 100%);border-radius:${titleRadius * 2}rpx;`,
-        contentStyle: `border-radius:${contentRadius * 2}rpx;`,
+        contentStyle,
         moreStyle: `border-radius:${moreRadius * 2}rpx;background:${moreBg};color:${moreColor};`,
         listStyle: `gap:${gap * 2}rpx;`,
-        layout: cfg.layout === 'card' ? 'card' : 'star',
+        layout,
+        useUnifiedCard,
         showCover: cfg.show_cover !== false,
         displayData: prepareList(runtimeData, cfg),
         ...dateParts,
@@ -175,7 +196,7 @@ Component({
         return
       }
       if (item.id && isValidContentId(item.id)) {
-        navigatePage(`/pages/content-detail/content-detail?id=${item.id}`)
+        navigatePage(`/pkg-content/content-detail/content-detail?id=${item.id}`)
         return
       }
       wx.showToast({ title: '内容暂不可用', icon: 'none' })

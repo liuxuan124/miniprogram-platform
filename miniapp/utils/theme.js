@@ -82,6 +82,23 @@ function getPrimaryColor() {
   return t.primaryColor || t.tabBarActiveColor || DEFAULT_PRIMARY
 }
 
+/** 装修页背景优先；页面未配置时才回退站点主题背景。 */
+function resolvePageBackgroundColor(page, theme) {
+  const configured = page && typeof page === 'object'
+    ? String(page.background_color || page.backgroundColor || '').trim()
+    : ''
+  if (configured) return configured
+  const t = resolveTheme(theme || getAppThemeConfig())
+  return t.pageBackgroundColor || t.pageBgColor || '#FDF6EC'
+}
+
+/** 微信导航栏文字色只接受黑/白，根据背景亮度选取可读颜色。 */
+function getNavigationFrontColor(backgroundColor) {
+  const rgb = hexToRgb(backgroundColor)
+  const luminance = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000
+  return luminance >= 150 ? '#000000' : '#ffffff'
+}
+
 function getThemePageStyle(theme) {
   return buildThemeCssVars(resolveTheme(theme || getAppThemeConfig()))
 }
@@ -154,6 +171,8 @@ module.exports = {
   installPageThemeHook,
   getAppThemeConfig,
   getPrimaryColor,
+  resolvePageBackgroundColor,
+  getNavigationFrontColor,
   getThemePageStyle,
   resolveTheme,
 }

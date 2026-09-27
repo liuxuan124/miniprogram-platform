@@ -61,7 +61,7 @@ function calcPageSize(config) {
   const raw = Number(config && config.page_size)
   if (Number.isFinite(raw) && raw >= 5) return Math.min(raw, 30)
   try {
-    const info = (wx.getWindowInfo && wx.getWindowInfo()) || wx.getSystemInfoSync()
+    const info = require('../../utils/system-info').getWindowInfo()
     const h = Number(info.windowHeight) || 667
     const layout = (config && config.layout) || 'list'
     let itemH = 76
@@ -445,7 +445,7 @@ Component({
       } else {
         executeAction({
           type: 'page',
-          path: '/pages/content-detail/content-detail?id=' + id,
+          path: '/pkg-content/content-detail/content-detail?id=' + id,
         })
       }
     },

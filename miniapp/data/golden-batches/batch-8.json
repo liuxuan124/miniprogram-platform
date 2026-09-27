@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "page": {
+    "id": "golden-parity-8",
+    "name": "渲染比对黄金页 8",
+    "type": "custom",
+    "path": "pages/custom/golden-parity-8",
+    "background_color": "#f5f6f9"
+  },
+  "global_config": {
+    "pull_refresh": false,
+    "reach_bottom_load": false
+  },
+  "components": [
+    {
+      "id": "golden-search",
+      "type": "search",
+      "props": {
+        "placeholder": "Golden search",
+        "scope": "all"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-section-bg",
+      "type": "section_bg",
+      "props": {
+        "title": "Golden section_bg"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-section-title",
+      "type": "section_title",
+      "props": {
+        "title": "Golden section",
+        "subtitle": "subtitle"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-spacer",
+      "type": "spacer",
+      "props": {
+        "height": 12
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-video",
+      "type": "video",
+      "props": {
+        "title": "Golden video",
+        "poster": "/images/tab/home.png",
+        "src": ""
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-warm-authors",
+      "type": "warm_authors",
+      "props": {
+        "title": "Golden warm_authors"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    }
+  ]
+}

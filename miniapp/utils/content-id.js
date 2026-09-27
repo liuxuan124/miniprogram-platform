@@ -53,7 +53,7 @@ function resolveContentIdFromOptions(options) {
 
 function buildContentDetailPath(id) {
   if (!isValidContentId(id)) return ''
-  return `/pages/content-detail/content-detail?id=${String(id).trim()}`
+  return `/pkg-content/content-detail/content-detail?id=${String(id).trim()}`
 }
 
 function openContentDetail(id) {

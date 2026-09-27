@@ -27,6 +27,5 @@ WHERE external_source = 'warm_seed'
 
 UPDATE mp_product
 SET main_image = 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&h=340&fit=crop&q=80'
-WHERE deleted = 0
-  AND name LIKE '一个人的内容生意%'
+WHERE name LIKE '一个人的内容生意%'
   AND (main_image IS NULL OR main_image LIKE '%picsum.photos%');

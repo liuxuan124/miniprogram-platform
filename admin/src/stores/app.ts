@@ -6,11 +6,12 @@ import { ref } from 'vue'
 
 export type AdminUiTheme = 'classic' | 'warm'
 
-const THEME_KEY = 'admin-ui-theme'
+const THEME_KEY = 'admin-theme'
+const LEGACY_THEME_KEY = 'admin-ui-theme'
 
 function readStoredTheme(): AdminUiTheme {
   try {
-    const v = localStorage.getItem(THEME_KEY)
+    const v = localStorage.getItem(THEME_KEY) ?? localStorage.getItem(LEGACY_THEME_KEY)
     if (v === 'warm' || v === 'classic') return v
   } catch {
     /* ignore */
@@ -51,6 +52,8 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  const SIDEBAR_WIDTH_ANIM_MS = 220
+
   /** 切换侧边栏折叠状态 */
   function toggleSidebar() {
     sidebarCollapsed.value = !sidebarCollapsed.value
@@ -58,6 +61,12 @@ export const useAppStore = defineStore('app', () => {
       document.body.classList.add('sidebar-collapsed')
     } else {
       document.body.classList.remove('sidebar-collapsed')
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.add('sidebar-width-animate')
+      window.setTimeout(() => {
+        document.documentElement.classList.remove('sidebar-width-animate')
+      }, SIDEBAR_WIDTH_ANIM_MS)
     }
   }
 

@@ -37,6 +37,7 @@ function resolveBaseUrl() {
 const BASE_URL = resolveBaseUrl()
 const TIMEOUT = 15000 // 请求超时时间（ms）
 const iosVirtualPay = require('./iosVirtualPay')
+const contentView = require('./content-view')
 
 // ========== 请求队列（Token 刷新时排队） ==========
 let isRefreshing = false
@@ -90,6 +91,7 @@ function request(options) {
     const requestHeader = {
       'Content-Type': 'application/json',
       'X-Client-Platform': iosVirtualPay.getClientPlatform(),
+      ...contentView.previewRequestHeaders(),
       ...header,
     }
 

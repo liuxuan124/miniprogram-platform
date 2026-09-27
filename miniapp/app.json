@@ -3,34 +3,13 @@
     "pages/index/index",
     "pages/discover/discover",
     "pages/shop/shop",
-    "pages/content-list/content-list",
-    "pages/knowledge-mall/knowledge-mall",
-    "pages/product-list/product-list",
-    "pages/mine/mine",
     "pages/planet/planet",
-    "pages/planet-list/planet-list",
-    "pages/planet-intro/planet-intro",
-    "pages/planet-feed/planet-feed",
-    "pages/author-list/author-list",
-    "pages/author-feed/author-feed",
-    "pages/resources/resources",
-    "pages/file-preview/file-preview",
-    "pages/join/join",
-    "pages/share/share",
-    "pages/contribute/contribute",
-    "pages/states/states",
-    "pages/tab-hub/tab-hub",
+    "pages/mine/mine",
     "pages/login/login",
     "pages/search/search",
-    "pages/product-detail/product-detail",
-    "pages/content-detail/content-detail",
-    "pages/moment-detail/moment-detail",
-    "pages/question-ask/question-ask",
-    "pages/question-detail/question-detail",
-    "pages/cart/cart",
-    "pages/order-create/order-create",
     "pages/custom/custom",
-    "pages/custom-nav/custom-nav"
+    "pages/custom-nav/custom-nav",
+    "pages/render-parity/render-parity"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -91,6 +70,34 @@
   "sitemapLocation": "sitemap.json",
   "subPackages": [
     {
+      "root": "pkg-content",
+      "name": "pkg-content",
+      "pages": [
+        "content-list/content-list",
+        "knowledge-mall/knowledge-mall",
+        "product-list/product-list",
+        "planet-list/planet-list",
+        "planet-intro/planet-intro",
+        "planet-feed/planet-feed",
+        "author-list/author-list",
+        "author-feed/author-feed",
+        "resources/resources",
+        "file-preview/file-preview",
+        "join/join",
+        "share/share",
+        "contribute/contribute",
+        "states/states",
+        "tab-hub/tab-hub",
+        "product-detail/product-detail",
+        "content-detail/content-detail",
+        "moment-detail/moment-detail",
+        "question-ask/question-ask",
+        "question-detail/question-detail",
+        "cart/cart",
+        "order-create/order-create"
+      ]
+    },
+    {
       "root": "pkg-trade",
       "name": "pkg-trade",
       "pages": [
@@ -150,6 +157,7 @@
     "pages/index/index": {
       "network": "wifi",
       "packages": [
+        "pkg-content",
         "pkg-extra"
       ]
     },
@@ -163,6 +171,7 @@
     "pages/discover/discover": {
       "network": "wifi",
       "packages": [
+        "pkg-content",
         "pkg-extra"
       ]
     }

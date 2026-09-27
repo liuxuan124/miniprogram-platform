@@ -59,7 +59,7 @@ Page({
     hotKeywords: HOT,
     history: [],
     suggestions: [
-      { icon: '📚', title: '长文', desc: '笔记 / 长文 / 数据', type: 'page', path: '/pages/content-list/content-list' },
+      { icon: '📚', title: '长文', desc: '笔记 / 长文 / 数据', type: 'page', path: '/pkg-content/content-list/content-list' },
       { icon: '🎧', title: '客服中心', desc: '咨询与售后服务', type: 'page', path: '/pkg-user/service-chat/service-chat' },
     ],
     results: [],
@@ -136,7 +136,7 @@ Page({
     const { getProductEnabledSync } = require('../../utils/product-module-gate')
 const { openContentDetail } = require('../../utils/content-id')
     const productOn = getProductEnabledSync()
-    if (!productOn && (base === '/pages/knowledge-mall/knowledge-mall' || base === '/pages/product-list/product-list' || base === '/pages/shop/shop')) {
+    if (!productOn && (base === '/pkg-content/knowledge-mall/knowledge-mall' || base === '/pkg-content/product-list/product-list' || base === '/pages/shop/shop')) {
       wx.switchTab({ url: '/pages/discover/discover' })
       return
     }
@@ -147,11 +147,11 @@ const { openContentDetail } = require('../../utils/content-id')
       '/pages/shop/shop',
       '/pages/mine/mine',
     ].indexOf(base) >= 0
-    if (base === '/pages/product-list/product-list' || base === '/pages/knowledge-mall/knowledge-mall') {
+    if (base === '/pkg-content/product-list/product-list' || base === '/pkg-content/knowledge-mall/knowledge-mall') {
       wx.switchTab({ url: '/pages/shop/shop' })
       return
     }
-    if (base === '/pages/content-list/content-list') {
+    if (base === '/pkg-content/content-list/content-list') {
       wx.switchTab({ url: '/pages/discover/discover' })
       return
     }
@@ -241,7 +241,7 @@ const { openContentDetail } = require('../../utils/content-id')
     if (!id) return
     if (type === 'content') {
       if (USE_LOCAL_SOURCE) {
-        wx.navigateTo({ url: '/pages/content-detail/content-detail?demo=1' })
+        wx.navigateTo({ url: '/pkg-content/content-detail/content-detail?demo=1' })
         return
       }
       openContentDetail(id)
@@ -250,12 +250,12 @@ const { openContentDetail } = require('../../utils/content-id')
     if (type === 'product') {
       const { blockTradeNavigation } = require('../../utils/product-module-gate')
       if (USE_LOCAL_SOURCE) {
-        const url = '/pages/product-detail/product-detail?demo=goods'
+        const url = '/pkg-content/product-detail/product-detail?demo=goods'
         if (blockTradeNavigation(url)) return
         wx.navigateTo({ url })
         return
       }
-      const url = `/pages/product-detail/product-detail?id=${id}`
+      const url = `/pkg-content/product-detail/product-detail?id=${id}`
       if (blockTradeNavigation(url)) return
       wx.navigateTo({ url })
     }

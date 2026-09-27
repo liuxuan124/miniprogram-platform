@@ -1,0 +1,416 @@
+{
+  "at": "2026-09-27T04:38:56.368Z",
+  "compared": 58,
+  "hardFail": 0,
+  "softWarn": 38,
+  "unverified": 0,
+  "ok": true,
+  "rows": [
+    {
+      "type": "activity_entry",
+      "admin": "t59/i0/b1/显",
+      "mini": "t57/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "btn 1/0"
+    },
+    {
+      "type": "activity_list",
+      "admin": "t32/i0/b0/显",
+      "mini": "t85/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 32/85"
+    },
+    {
+      "type": "ai_entry",
+      "admin": "t15/i0/b0/显",
+      "mini": "t17/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "appointment_service",
+      "admin": "t38/i0/b0/显",
+      "mini": "t55/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 38/55"
+    },
+    {
+      "type": "article_feed",
+      "admin": "t31/i0/b0/显",
+      "mini": "t4/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 31/4"
+    },
+    {
+      "type": "article_list",
+      "admin": "t13/i0/b0/显",
+      "mini": "t65/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 13/65"
+    },
+    {
+      "type": "banner",
+      "admin": "t24/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 24/0"
+    },
+    {
+      "type": "brand_header",
+      "admin": "t19/i0/b0/显",
+      "mini": "t19/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "brand_intro",
+      "admin": "t38/i0/b0/显",
+      "mini": "t54/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 38/54"
+    },
+    {
+      "type": "category_nav",
+      "admin": "t19/i0/b0/显",
+      "mini": "t19/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "certificate",
+      "admin": "t38/i0/b0/显",
+      "mini": "t18/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 38/18"
+    },
+    {
+      "type": "contact_info",
+      "admin": "t45/i0/b0/显",
+      "mini": "t41/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "container",
+      "admin": "t35/i0/b0/显",
+      "mini": "t16/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 35/16"
+    },
+    {
+      "type": "content_paywall",
+      "admin": "t40/i0/b3/显",
+      "mini": "t44/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "btn 3/0"
+    },
+    {
+      "type": "content_tabs",
+      "admin": "t24/i0/b0/显",
+      "mini": "t32/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "countdown",
+      "admin": "t24/i0/b0/显",
+      "mini": "t23/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "coupon",
+      "admin": "t53/i0/b0/显",
+      "mini": "t32/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 53/32"
+    },
+    {
+      "type": "divider",
+      "admin": "t0/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "feature_cards",
+      "admin": "t48/i0/b0/显",
+      "mini": "t43/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "flash_sale",
+      "admin": "t95/i0/b0/显",
+      "mini": "t81/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 95/81"
+    },
+    {
+      "type": "float_button",
+      "admin": "t2/i0/b1/隐",
+      "mini": "t0/i0/b1/隐",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "form_entry",
+      "admin": "t32/i0/b0/显",
+      "mini": "—",
+      "verdict": "一致（插件门禁）",
+      "notes": ""
+    },
+    {
+      "type": "hot_news",
+      "admin": "t41/i0/b1/显",
+      "mini": "t32/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 41/32; btn 1/0"
+    },
+    {
+      "type": "image",
+      "admin": "t0/i1/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "image_cube",
+      "admin": "t15/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 15/0"
+    },
+    {
+      "type": "image_hotspot",
+      "admin": "t12/i0/b0/显",
+      "mini": "t7/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "image_text",
+      "admin": "t28/i0/b0/显",
+      "mini": "t27/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "join_group",
+      "admin": "t25/i0/b1/显",
+      "mini": "t23/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "btn 1/0"
+    },
+    {
+      "type": "material_list",
+      "admin": "t195/i0/b0/显",
+      "mini": "t4/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 195/4"
+    },
+    {
+      "type": "member_card",
+      "admin": "t62/i0/b1/显",
+      "mini": "t46/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 62/46; btn 1/0"
+    },
+    {
+      "type": "member_plan",
+      "admin": "t62/i0/b1/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 62/0; btn 1/0"
+    },
+    {
+      "type": "moments_feed",
+      "admin": "t7/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "nav",
+      "admin": "t3/i2/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "note_feed",
+      "admin": "t42/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 42/0"
+    },
+    {
+      "type": "notice_bar",
+      "admin": "t34/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 34/0"
+    },
+    {
+      "type": "planet_feed",
+      "admin": "t577/i4/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 577/0; img 4/0"
+    },
+    {
+      "type": "planet_hero",
+      "admin": "t102/i0/b2/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 102/0; btn 2/0"
+    },
+    {
+      "type": "planet_topics",
+      "admin": "t61/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 61/0"
+    },
+    {
+      "type": "product_list",
+      "admin": "t24/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 24/0"
+    },
+    {
+      "type": "promo_banner",
+      "admin": "t26/i0/b1/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 26/0; btn 1/0"
+    },
+    {
+      "type": "qa_list",
+      "admin": "t129/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 129/0"
+    },
+    {
+      "type": "rich_text",
+      "admin": "t16/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 16/0"
+    },
+    {
+      "type": "search",
+      "admin": "t5/i0/b1/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "btn 1/0"
+    },
+    {
+      "type": "section_bg",
+      "admin": "t34/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 34/0"
+    },
+    {
+      "type": "section_title",
+      "admin": "t23/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 23/0"
+    },
+    {
+      "type": "spacer",
+      "admin": "t7/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "video",
+      "admin": "t4/i1/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "warm_authors",
+      "admin": "t31/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 31/0"
+    },
+    {
+      "type": "warm_columns",
+      "admin": "t29/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 29/0"
+    },
+    {
+      "type": "warm_discover",
+      "admin": "t130/i0/b0/显",
+      "mini": "t0/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 130/0"
+    },
+    {
+      "type": "warm_feature",
+      "admin": "t0/i0/b0/显",
+      "mini": "t6/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "warm_feed",
+      "admin": "t26/i0/b0/显",
+      "mini": "t25/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "warm_greet",
+      "admin": "t102/i0/b0/显",
+      "mini": "t36/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 102/36"
+    },
+    {
+      "type": "warm_home",
+      "admin": "t118/i0/b0/显",
+      "mini": "t35/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 118/35"
+    },
+    {
+      "type": "warm_mine",
+      "admin": "t62/i0/b0/显",
+      "mini": "t35/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 62/35"
+    },
+    {
+      "type": "warm_planet",
+      "admin": "t64/i0/b0/显",
+      "mini": "t35/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 64/35"
+    },
+    {
+      "type": "warm_planet_rec",
+      "admin": "t35/i0/b0/显",
+      "mini": "t28/i0/b0/显",
+      "verdict": "一致",
+      "notes": ""
+    },
+    {
+      "type": "warm_shop",
+      "admin": "t62/i0/b0/显",
+      "mini": "t35/i0/b0/显",
+      "verdict": "要素数差异",
+      "notes": "text 62/35"
+    }
+  ]
+}

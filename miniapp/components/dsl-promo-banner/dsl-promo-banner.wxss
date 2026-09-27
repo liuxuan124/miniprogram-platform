@@ -1,0 +1,41 @@
+.dsl-promo-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 32rpx;
+  padding: 32rpx;
+  margin-top: 20rpx;
+  box-sizing: border-box;
+}
+.dsl-promo-banner--glow::after {
+  content: '';
+  position: absolute;
+  right: -60rpx;
+  top: -60rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: rgba(227, 179, 92, 0.18);
+}
+.dsl-promo-banner__title {
+  position: relative;
+  z-index: 1;
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.dsl-promo-banner__subtitle {
+  position: relative;
+  z-index: 1;
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+.dsl-promo-banner__btn {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  margin-top: 20rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+}

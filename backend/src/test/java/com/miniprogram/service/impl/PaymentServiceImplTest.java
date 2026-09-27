@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.OrderItem;
 import com.miniprogram.entity.Product;
+import com.miniprogram.compliance.IosVirtualPayPolicyService;
 import com.miniprogram.mapper.OrderItemMapper;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.PaymentMapper;
@@ -73,7 +74,8 @@ class PaymentServiceImplTest {
                 mock(FulfillmentOrchestratorService.class),
                 mock(RefundService.class),
                 mock(ReferralCommissionService.class),
-                mock(PaidQaService.class)
+                mock(PaidQaService.class),
+                mock(IosVirtualPayPolicyService.class)
         );
         ReflectionTestUtils.setField(service, "baseMapper", paymentMapper);
         return service;

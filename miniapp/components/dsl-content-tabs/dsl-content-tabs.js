@@ -9,7 +9,17 @@ Component({
     items: [],
   },
   observers: {
-    config(cfg) {
+    'config': function (cfg) {
+      this._applyConfig(cfg)
+    },
+  },
+  lifetimes: {
+    attached() {
+      this._applyConfig(this.data.config)
+    },
+  },
+  methods: {
+    _applyConfig(cfg) {
       const panes = Array.isArray((cfg || {}).panes) ? cfg.panes : []
       const active = Math.min(this.data.active || 0, Math.max(panes.length - 1, 0))
       this.setData({
@@ -18,8 +28,6 @@ Component({
         items: (panes[active] && panes[active].items) || [],
       })
     },
-  },
-  methods: {
     onSwitch(e) {
       const idx = Number(e.currentTarget.dataset.index || 0)
       const panes = this.data.panes || []

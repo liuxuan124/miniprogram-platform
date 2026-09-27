@@ -238,7 +238,7 @@ const BLOCKS: Array<{ key: string; label: string; desc: string; types: Component
     key: 'member',
     label: '会员转化组',
     desc: '会员卡 + 优惠券 + 悬浮按钮',
-    types: [ComponentType.MemberCard, ComponentType.Coupon, ComponentType.FloatButton],
+    types: [ComponentType.MemberCard, ComponentType.PromoBanner, ComponentType.Coupon, ComponentType.FloatButton],
   },
   {
     key: 'community',
@@ -558,14 +558,14 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .prototype-component-panel {
   /* 装修器已整体切到暖阁配色，面板内部不再沿用旧蓝色 */
-  --pc-acc: #b4430f;
-  --pc-acc-soft: #fbeadf;
-  --pc-line: #e8dfd3;
-  --pc-line2: #f1ebe3;
-  --pc-ink: #2a1f17;
-  --pc-mute: #6b5b4e;
-  --pc-faint: #a1968b;
-  --pc-soft: #fbf8f4;
+  --pc-acc: var(--el-color-primary);
+  --pc-acc-soft: var(--wb-accsoft);
+  --pc-line: var(--wb-line);
+  --pc-line2: var(--wb-line2);
+  --pc-ink: var(--wb-ink);
+  --pc-mute: var(--wb-mute);
+  --pc-faint: var(--wb-faint);
+  --pc-soft: var(--wb-soft);
 
   display: flex;
   flex-direction: column;
@@ -852,7 +852,7 @@ onBeforeUnmount(() => {
   color: #8a7568;
   background: #faf6f1;
   border-radius: 8px;
-  border: 1px solid #e8dfd3;
+  border: 1px solid var(--wb-line);
 }
 
 .structure-list {

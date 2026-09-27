@@ -14,10 +14,10 @@ export const TAB_SHELL_ROUTES = [
 
 /** 历史壳页 → 现行壳页（兼容旧配置） */
 export const LEGACY_TAB_SHELL_ALIASES: Record<string, TabShellRoute> = {
-  '/pages/content-list/content-list': '/pages/discover/discover',
-  '/pages/knowledge-mall/knowledge-mall': '/pages/shop/shop',
-  '/pages/product-list/product-list': '/pages/shop/shop',
-  '/pages/tab-hub/tab-hub': '/pages/mine/mine',
+  '/pkg-content/content-list/content-list': '/pages/discover/discover',
+  '/pkg-content/knowledge-mall/knowledge-mall': '/pages/shop/shop',
+  '/pkg-content/product-list/product-list': '/pages/shop/shop',
+  '/pkg-content/tab-hub/tab-hub': '/pages/mine/mine',
 }
 
 export type TabShellRoute = typeof TAB_SHELL_ROUTES[number]

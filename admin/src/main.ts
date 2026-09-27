@@ -16,9 +16,9 @@ import '@/styles/member-workbench.scss'
 import '@/styles/commerce-workbench.scss'
 import ColorPickerField from '@/components/ColorPickerField.vue'
 
-// 尽早应用皮肤，避免首屏闪蓝
+// index.html 内联脚本已设置 data-admin-theme；此处与 Pinia 再同步一次
 try {
-  const t = localStorage.getItem('admin-ui-theme')
+  const t = localStorage.getItem('admin-theme') ?? localStorage.getItem('admin-ui-theme')
   document.documentElement.setAttribute('data-admin-theme', t === 'warm' ? 'warm' : 'classic')
 } catch {
   document.documentElement.setAttribute('data-admin-theme', 'classic')

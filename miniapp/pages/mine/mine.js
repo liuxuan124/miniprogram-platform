@@ -11,6 +11,7 @@ const {
   pickDisplayAvatarUrl,
   isTempLocalAvatar,
 } = require('../../utils/image-fallback')
+const { getWindowInfo } = require('../../utils/system-info')
 
 const EMPTY_STATS = [
   { value: '—', label: '收藏' },
@@ -72,28 +73,79 @@ Page({
     avatarBroken: false,
     vipTitle: '暖阁年度会员',
     planetTitle: '暖阁星球',
+    // 后台可改文案（minePageConfig）；此处仅作首屏兜底，拉到配置后覆盖
+    mineText: {
+      loginTitle: '点击登录',
+      loginSubtitle: '登录后同步收藏、会员与学习记录',
+    },
+    // 后台开关（固定模板 + 开关模式，不开放菜单自由编排）
+    mineToggles: {
+      showMemberCard: true,
+      showMenuIcons: true,
+      showAvatar: true,
+      showMemberLevel: true,
+    },
     ...guestState(),
   },
 
   onLoad() {
     try {
-      const sys = wx.getSystemInfoSync()
-      this.setData({ statusBarHeight: sys.statusBarHeight || 20 })
+      const win = getWindowInfo()
+      this.setData({ statusBarHeight: win.statusBarHeight || 20 })
     } catch (e) { /* ignore */ }
     loadTabBoundDslPage(this, '/pages/mine/mine').then(() => {})
     const SystemService = require('../../services/system')
     SystemService.fetchMinePageConfig(true).then((mine) => {
       if (!mine) return
-      const patch = {}
-      if (mine.styleKey) patch.styleKey = mine.styleKey
-      if (mine.memberCardTitle) patch.vipTitle = mine.memberCardTitle
-      this.setData(patch)
+      this.setData(this._buildMinePatch(mine))
     }).catch(() => {})
     SystemService.fetchSystemConfig(true).then((config) => {
       const planet = config && (config.planet_config || config.planetConfig)
       const title = planet && (planet.title || planet.name)
       if (title) this.setData({ planetTitle: title })
     }).catch(() => {})
+  },
+
+  /**
+   * 把后台 minePageConfig 映射成页面可用的文案与开关。
+   * 设计口径：「我的」是固定模板 + 开关，不开放 menuItems 自由编排，
+   * 因此这里只接文案与显隐，菜单结构仍由本页模板决定。
+   */
+  /** 把后台配置合并进未登录态，避免 guestState 的写死文案覆盖配置 */
+  _withMineConfig(state) {
+    const cfg = this._mineCfg || {}
+    const next = { ...state }
+    if (cfg.memberCardDesc) next.vipDesc = cfg.memberCardDesc
+    if (cfg.loginButtonText) next.vipCta = cfg.loginButtonText
+    return next
+  },
+
+  _buildMinePatch(mine) {
+    const cfg = mine || {}
+    this._mineCfg = cfg
+    const profile = cfg.userProfile || {}
+    const patch = {
+      mineText: {
+        loginTitle: cfg.loginTitle || '点击登录',
+        loginSubtitle: cfg.loginSubtitle || '登录后同步收藏、会员与学习记录',
+      },
+      mineToggles: {
+        showMemberCard: cfg.showMemberCard !== false,
+        showMenuIcons: cfg.showMenuIcons !== false,
+        showAvatar: profile.showAvatar !== false,
+        showMemberLevel: profile.showMemberLevel !== false,
+      },
+    }
+    if (cfg.styleKey) patch.styleKey = cfg.styleKey
+    if (cfg.memberCardTitle) patch.vipTitle = cfg.memberCardTitle
+    // memberCardDesc 只用于未登录态；已登录时 vipDesc 由会员概览接口决定
+    if (cfg.memberCardDesc && !AuthUtil.isLoggedIn()) {
+      patch.vipDesc = cfg.memberCardDesc
+    }
+    if (cfg.loginButtonText && !AuthUtil.isLoggedIn()) {
+      patch.vipCta = cfg.loginButtonText
+    }
+    return patch
   },
 
   onReady() {
@@ -110,12 +162,16 @@ Page({
   onShow() {
     wx.hideTabBar({ animation: false, fail() {} })
     showTabBarForRoute(this, '/pages/mine/mine')
+    const { onTabPageShow } = require('../../utils/content-release-sync')
+    onTabPageShow(this, '/pages/mine/mine', () => {
+      this._refreshUserInfo()
+      if (AuthUtil.isLoggedIn()) this._loadMineOverview()
+    })
     this._resetStuckLoginSheet()
     try {
       const SystemService = require('../../services/system')
       SystemService.fetchMinePageConfig(false).then((mine) => {
-        if (mine && mine.styleKey) this.setData({ styleKey: mine.styleKey })
-        if (mine && mine.memberCardTitle) this.setData({ vipTitle: mine.memberCardTitle })
+        if (mine) this.setData(this._buildMinePatch(mine))
       }).catch(() => {})
     } catch (e) { /* ignore */ }
     AuthService.silentLogin()
@@ -138,7 +194,9 @@ Page({
       app.globalData.userInfo = userInfo
     }
     if (!isLoggedIn) {
-      this.setData(guestState())
+      // guestState() 带写死的会员卡文案，直接 setData 会覆盖刚拉到的后台配置
+      // （两者是异步竞态，谁后到谁赢）。这里把配置合并回去。
+      this.setData(this._withMineConfig(guestState()))
       return
     }
     const patched = withDisplayAvatar(userInfo)
@@ -351,7 +409,7 @@ Page({
   },
 
   onGoHistory() {
-    this._nav('/pages/content-list/content-list')
+    this._nav('/pkg-content/content-list/content-list')
   },
 
   onGoOrders() {
@@ -366,7 +424,7 @@ Page({
     if (!this._ensureLogin('同步学习进度')) return
     const item = this.data.learnItem
     if (item && item.productId) {
-      this._nav(`/pages/product-detail/product-detail?id=${item.productId}`)
+      this._nav(`/pkg-content/product-detail/product-detail?id=${item.productId}`)
       return
     }
     this._nav('/pages/shop/shop')
@@ -377,15 +435,15 @@ Page({
   },
 
   onGoAsk() {
-    this._nav('/pages/question-ask/question-ask', true, '提问打卡')
+    this._nav('/pkg-content/question-ask/question-ask', true, '提问打卡')
   },
 
   onGoContribute() {
-    this._nav('/pages/contribute/contribute')
+    this._nav('/pkg-content/contribute/contribute')
   },
 
   onGoResources() {
-    this._nav('/pages/resources/resources')
+    this._nav('/pkg-content/resources/resources')
   },
 
   onGoCoupons() {
@@ -393,11 +451,11 @@ Page({
   },
 
   onGoShare() {
-    this._nav('/pages/share/share')
+    this._nav('/pkg-content/share/share')
   },
 
   onGoJoin() {
-    this._nav('/pages/join/join')
+    this._nav('/pkg-content/join/join')
   },
 
   onGoTemplates() {

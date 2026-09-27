@@ -1,9 +1,58 @@
 <template>
   <div class="article-list-props">
     <el-form label-width="70px" size="small">
-      <div class="ds-hint ds-hint--block">
-        标题请单独拖入「标题栏」组件放在本列表上方；本组件只渲染文章卡。
+      <div v-if="!data.show_header" class="ds-hint ds-hint--block">
+        未开启内置标题头时，可单独拖入「标题栏」放在列表上方；开启后标题与列表在同一张卡内。
       </div>
+
+      <el-divider content-position="left">标题头</el-divider>
+      <el-form-item label="显示标题头">
+        <el-switch
+          :model-value="data.show_header === true"
+          @change="(v: boolean) => emit('update', { show_header: v })"
+        />
+      </el-form-item>
+      <template v-if="data.show_header === true">
+        <el-form-item label="标题">
+          <el-input
+            :model-value="data.title || ''"
+            maxlength="24"
+            show-word-limit
+            placeholder="深度解读"
+            @input="(v: string) => emit('update', { title: v })"
+          />
+        </el-form-item>
+        <el-form-item label="副标题">
+          <el-input
+            :model-value="data.subtitle || ''"
+            maxlength="40"
+            show-word-limit
+            placeholder="可选"
+            @input="(v: string) => emit('update', { subtitle: v })"
+          />
+        </el-form-item>
+        <el-form-item label="查看更多">
+          <el-switch
+            :model-value="data.show_more === true"
+            @change="(v: boolean) => emit('update', { show_more: v })"
+          />
+        </el-form-item>
+        <template v-if="data.show_more === true">
+          <el-form-item label="更多文案">
+            <el-input
+              :model-value="data.more_text || '更多 ›'"
+              @input="(v: string) => emit('update', { more_text: v })"
+            />
+          </el-form-item>
+          <el-form-item label="更多链接">
+            <el-input
+              :model-value="data.more_link || '/pkg-content/content-list/content-list'"
+              placeholder="/pkg-content/content-list/content-list"
+              @input="(v: string) => emit('update', { more_link: v })"
+            />
+          </el-form-item>
+        </template>
+      </template>
 
       <el-divider content-position="left">文章展示</el-divider>
       <el-form-item label="分类标签">

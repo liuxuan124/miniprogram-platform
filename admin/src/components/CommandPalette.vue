@@ -47,7 +47,7 @@ const routes = [
   { title: '外观', path: '/mini/appearance' },
   { title: '页面', path: '/mini/pages' },
   { title: '模板', path: '/mini/templates' },
-  { title: '发布与分发', path: '/mini/publish' },
+  { title: '小程序概览', path: '/mini/overview' },
   { title: 'AI 建页', path: '/mini/pages/new-ai' },
   { title: '商品管理', path: '/commerce/products', featureModule: 'product' },
   { title: '内容概览', path: '/content/overview' },

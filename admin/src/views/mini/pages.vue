@@ -6,7 +6,7 @@
       <div class="head">
         <div>
           <h1 class="h1">页面</h1>
-          <div class="sub">共 {{ totalCount }} 个 · 按用途分组；状态：未发布 / 已发布 / 有修改待发布</div>
+          <div class="sub">共 {{ totalCount }} 个 · 底部导航 {{ siteTabs.length }} 位 · 页面状态：草稿 / 已上线 / 待同步</div>
         </div>
         <div class="actions">
           <button
@@ -67,6 +67,28 @@
             </button>
 
             <template v-if="!(closedGroups[group.key] && !filtering)">
+              <template v-if="group.key === 'tab'">
+                <div
+                  v-for="(tab, ti) in siteTabs"
+                  :key="'nav-slot-' + ti"
+                  class="prow nav-slot-row"
+                  :class="{ 'nav-slot-row--empty': !tab.pageId && !tab.pagePath }"
+                >
+                  <div class="thumb">
+                    <i style="background: #e8e0d8" /><i style="background: #e8e0d8" /><i style="background: #e8e0d8" />
+                  </div>
+                  <div class="pname">
+                    <b>导航 {{ ti + 1 }} · {{ tab.text || '未命名' }}</b>
+                    <div class="faint">{{ navSlotSub(tab, ti) }}</div>
+                  </div>
+                  <div class="prow-ops">
+                    <span v-if="isMineTabPath(tab)" class="tag t-live">系统页</span>
+                    <span v-else-if="!tab.pageId && !tab.pagePath" class="tag t-err">空位</span>
+                    <span v-else class="tag t-live">已绑定</span>
+                    <button type="button" class="btn soft sm" @click="router.push('/mini/appearance')">在外观改</button>
+                  </div>
+                </div>
+              </template>
               <div
                 v-if="group.key === 'tab'"
                 class="prow mine-row"
@@ -139,7 +161,7 @@
         {{
           navDialogMode === 'entry'
             ? '可选底部导航位，并设置活动到期时间（到期后发布前会拦截）。'
-            : '将「' + (navTarget?.name || '') + '」绑定到选中的底部导航位（写入待发布草稿）。'
+            : '将「' + (navTarget?.name || '') + '」绑定到选中的底部导航位（写入草稿，需保存并同步）。'
         }}
       </p>
       <el-radio-group v-model="navSlotIndex" class="nav-slots">
@@ -183,6 +205,7 @@ import {
   inferPageGroup,
   PAGE_GROUP_LABELS,
   PAGE_GROUP_SUB,
+  MINI_PAGE_STATUS_LABELS,
   resolvePageStatus,
   type MiniPageStatus,
   type PageGroup,
@@ -244,7 +267,7 @@ const statusFilters = computed(() => {
   }
   return [
     { key: 'all' as const, label: '全部', count: counts.all },
-    { key: 'pending' as const, label: '待发布', count: counts.pending },
+    { key: 'pending' as const, label: '待同步', count: counts.pending },
     { key: 'live' as const, label: '已上线', count: counts.live },
     { key: 'draft' as const, label: '草稿', count: counts.draft },
     { key: 'offline' as const, label: '已下线', count: counts.offline },
@@ -319,10 +342,36 @@ function isTestPage(row: PageRecord) {
   return !!(row as any).isTest || (row as any).is_test === 1
 }
 
+function isMineTabPath(tab: MiniTabBarItem) {
+  const path = String(tab.pagePath || '')
+  const name = String(tab.text || '')
+  return path.includes('mine/mine') || name === '我的' || /pkg-user|\/mine/.test(path)
+}
+
+function navSlotSub(tab: MiniTabBarItem, index: number) {
+  if (isMineTabPath(tab)) return '系统页 · 个人中心（路径固定）'
+  if (!tab.pageId && !tab.pagePath) return '未绑定页面 · 请在外观中绑定'
+  const hit = pages.value.find((p) => {
+    if (tab.pageId != null && Number(p.id) === Number(tab.pageId)) return true
+    const tp = String(tab.pagePath || '').replace(/^\//, '')
+    const path = String(p.path || '').replace(/^\//, '')
+    return tp && tp === path
+  })
+  if (!hit) return `绑定路径 ${tab.pagePath || '—'}（列表中未找到对应页，可能已删）`
+  const st = resolvePageStatus(hit)
+  const dup = pages.value.filter((p) => p.name === hit.name && Number(p.id) !== Number(hit.id)).length
+  const parts = [hit.name || '未命名', MINI_PAGE_STATUS_LABELS[st] || st]
+  if (dup > 0 && tabIndexOf(hit) < 0) parts.push('存在同名未绑导航页')
+  return parts.join(' · ')
+}
+
 function rowSub(row: PageRecord) {
   const parts: string[] = []
   const ti = tabIndexOf(row)
   if (ti >= 0) parts.push(`导航 ${ti + 1}`)
+  else if (pages.value.some((p) => p.name === row.name && Number(p.id) !== Number(row.id))) {
+    parts.push('同名但未绑导航')
+  }
   const exp = String((row as any).entryExpireAt || (row as any).entry_expire_at || '')
   if (exp) parts.push(`到期 ${exp.slice(0, 16)}`)
   const src = String((row as any).source || (row as any).src || '').trim()
@@ -506,7 +555,7 @@ async function confirmSetNav() {
         entryExpireAt: entryExpireAt.value || '',
       } as any)
     }
-    ElMessage.success('已写入导航草稿，请去发布')
+    ElMessage.success('已写入导航草稿，请到外观或概览「保存并同步」')
     navDialogVisible.value = false
     siteTabs.value = next
     await load()
@@ -568,6 +617,13 @@ onMounted(load)
 .mine-row {
   cursor: pointer;
   background: var(--soft);
+}
+.nav-slot-row {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.nav-slot-row--empty {
+  background: #fff8f5;
 }
 .g-head__note {
   margin-left: auto;

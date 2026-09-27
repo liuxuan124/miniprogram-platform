@@ -29,19 +29,9 @@
           <span class="dot" />
           <span class="pill-text">
             {{ siteLabel }}
-            <template v-if="liveReleaseNo != null"> · 第 {{ liveReleaseNo }} 次发布</template>
+            <template v-if="liveReleaseNo != null"> · 配置版本 {{ liveReleaseNo }}</template>
+            <template v-if="pendingCount > 0"> · {{ pendingCount }} 项待同步</template>
           </span>
-        </button>
-        <button
-          type="button"
-          class="mini-publish-btn"
-          :disabled="pendingCount <= 0"
-          :title="pendingCount <= 0 ? '没有待发布改动' : `有 ${pendingCount} 项待发布`"
-          @click="router.push('/mini/publish')"
-        >
-          <el-icon><Promotion /></el-icon>
-          发布
-          <span v-if="pendingCount > 0" class="pub-badge">{{ pendingCount > 99 ? '99+' : pendingCount }}</span>
         </button>
       </template>
       <template v-else-if="isContentOps">
@@ -63,17 +53,6 @@
         />
         <button type="button" class="content-top-btn" @click="goCommerceOrders">搜订单</button>
       </template>
-      <el-select
-        v-else
-        :model-value="appStore.uiTheme"
-        class="theme-switcher"
-        size="small"
-        style="width: 110px"
-        @change="onThemeChange"
-      >
-        <el-option label="经典蓝" value="classic" />
-        <el-option label="暖阁" value="warm" />
-      </el-select>
       <el-select
         v-if="showTenantSwitcher"
         v-model="tenantSelectId"
@@ -104,8 +83,23 @@
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-            <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+            <el-dropdown-item disabled class="theme-menu-label">主题配色</el-dropdown-item>
+            <el-dropdown-item command="theme-classic">
+              <span class="theme-option">
+                <span class="theme-swatch theme-swatch--classic" aria-hidden="true" />
+                经典蓝
+                <el-icon v-if="appStore.uiTheme === 'classic'" class="theme-check"><Check /></el-icon>
+              </span>
+            </el-dropdown-item>
+            <el-dropdown-item command="theme-warm">
+              <span class="theme-option">
+                <span class="theme-swatch theme-swatch--warm" aria-hidden="true" />
+                暖棕
+                <el-icon v-if="appStore.uiTheme === 'warm'" class="theme-check"><Check /></el-icon>
+              </span>
+            </el-dropdown-item>
+            <el-dropdown-item divided command="profile">个人中心</el-dropdown-item>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -116,8 +110,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Promotion } from '@element-plus/icons-vue'
-import { useAppStore, type AdminUiTheme } from '@/stores/app'
+import { Check } from '@element-plus/icons-vue'
+import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { useTenantStore } from '@/stores/tenant'
 import { usePermissionStore } from '@/stores/permission'
@@ -189,10 +183,6 @@ async function onTenantChange(id: number) {
   }
 }
 
-function onThemeChange(theme: AdminUiTheme) {
-  appStore.setUiTheme(theme)
-}
-
 const breadcrumbs = computed(() => {
   const matched = route.matched.filter((item) => item.meta?.title)
   return matched.map((item) => ({
@@ -202,6 +192,14 @@ const breadcrumbs = computed(() => {
 })
 
 async function handleCommand(command: string) {
+  if (command === 'theme-classic') {
+    appStore.setUiTheme('classic')
+    return
+  }
+  if (command === 'theme-warm') {
+    appStore.setUiTheme('warm')
+    return
+  }
   if (command === 'logout') {
     try {
       await ElMessageBox.confirm('确定退出登录吗？', '提示', {
@@ -232,8 +230,8 @@ async function handleCommand(command: string) {
     height: 60px;
     padding: 0 28px;
     gap: 14px;
-    background: #ffffff;
-    border-bottom: 1px solid #e8dfd3;
+    background: var(--header-mini-bg);
+    border-bottom: 1px solid var(--header-border);
   }
 }
 
@@ -277,11 +275,11 @@ async function handleCommand(command: string) {
   margin-left: auto;
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid #e8dfd3;
-  background: #fff;
+  border: 1px solid var(--wb-line);
+  background: var(--wb-card);
   cursor: pointer;
   font-size: 13px;
-  color: #2a1f17;
+  color: var(--wb-ink);
   white-space: nowrap;
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   .dot {
@@ -304,24 +302,24 @@ async function handleCommand(command: string) {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #b4430f;
+  border: 1px solid var(--el-color-primary);
   border-radius: 8px;
-  background: #b4430f;
+  background: var(--el-color-primary);
   color: #fff;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   line-height: 1.2;
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  &:hover { background: #8c3208; border-color: #8c3208; }
+  &:hover { background: var(--el-color-primary-dark-2); border-color: var(--el-color-primary-dark-2); }
   &:disabled {
     opacity: 0.45;
     cursor: not-allowed;
-    &:hover { background: #b4430f; border-color: #b4430f; }
+    &:hover { background: var(--el-color-primary); border-color: var(--el-color-primary); }
   }
   .pub-badge {
     background: #fff;
-    color: #b4430f;
+    color: var(--el-color-primary);
     border-radius: 999px;
     padding: 0 7px;
     font-size: 12px;
@@ -335,28 +333,62 @@ async function handleCommand(command: string) {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #e8dfd3;
+  border: 1px solid var(--wb-line);
   border-radius: 8px;
-  background: #fff;
-  color: #2a1f17;
+  background: var(--wb-card);
+  color: var(--wb-ink);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  &:hover { border-color: #d6c8b6; }
+  &:hover { border-color: var(--border-strong); }
 }
 
 .commerce-order-search {
   width: 180px;
   padding: 6px 10px;
-  border: 1px solid #e8dfd3;
+  border: 1px solid var(--wb-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--wb-card);
   font-size: 13px;
-  color: #2a1f17;
+  color: var(--wb-ink);
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   outline: none;
-  &:focus { border-color: #b4430f; }
+  &:focus { border-color: var(--el-color-primary); }
+}
+
+.theme-menu-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.theme-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.theme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.theme-swatch--classic {
+  background: linear-gradient(135deg, #002fa7 55%, #1e293b 55%);
+}
+
+.theme-swatch--warm {
+  background: linear-gradient(135deg, #b4430f 55%, #2b1d14 55%);
+}
+
+.theme-check {
+  margin-left: auto;
+  color: var(--el-color-primary);
 }
 
 .tenant-switcher {

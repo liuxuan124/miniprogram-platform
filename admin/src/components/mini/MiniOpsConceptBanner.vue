@@ -1,19 +1,18 @@
 <template>
   <div class="ops-concept" :class="`ops-concept--${variant}`">
     <p v-if="variant === 'overview'">
-      <strong>线上版本</strong>：第 {{ liveReleaseNo ?? '—' }} 次发布
+      <strong>内容配置版本</strong>：第 {{ liveReleaseNo ?? '—' }} 次同步
       <template v-if="liveReleaseAt"> · {{ liveReleaseAt }}</template>
       <template v-if="publisherName"> · {{ publisherName }}</template>
       <span v-if="pendingCount > 0" class="ops-concept__pending">
-        · 待发布 {{ pendingCount }} 项
-        <button type="button" class="link" @click="router.push('/mini/publish')">去发布</button>
+        · 有 {{ pendingCount }} 项待同步到线上配置
       </span>
     </p>
     <p v-else-if="variant === 'content'">{{ contentHint }}</p>
     <p v-else-if="variant === 'pages'">{{ contentHint }}</p>
     <p v-else-if="variant === 'publish'">{{ draftLiveHint }}</p>
     <p v-else-if="variant === 'appearance'">
-      改导航、配色、整店模板都会进入<strong>草稿</strong>，在「发布与分发」确认后用户才看到。
+      改导航、配色、整店模板后先<strong>保存草稿</strong>，再点<strong>保存并同步</strong>写入服务端；用户端是否已刷新需第二阶段真机验证（代码包在本地上传微信）。
     </p>
     <p v-else>{{ draftLiveHint }}</p>
   </div>

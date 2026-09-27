@@ -195,6 +195,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createPage, getPageTemplates } from '@/api/page'
@@ -220,6 +221,7 @@ type TemplateUI = Omit<PageTemplate, 'tags' | 'colors'> & {
 }
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const keyword = ref('')
 const selectedCategory = ref('')
@@ -379,11 +381,11 @@ function fallbackTemplates(): TemplateUI[] {
           makeComp('n1', ComponentType.Nav, {
             columns: 5,
             items: [
-              { icon: '📚', title: '内容列表', link_type: 'page', link_url: '/pages/content-list/content-list' },
+              { icon: '📚', title: '内容列表', link_type: 'page', link_url: '/pkg-content/content-list/content-list' },
               { icon: '🎧', title: '专栏课', link_type: 'page', link_url: '/pages/shop/shop' },
               { icon: '🪐', title: '星球', link_type: 'page', link_url: '/pages/planet/planet' },
               { icon: '🛍', title: '商城', link_type: 'page', link_url: '/pages/shop/shop' },
-              { icon: '🗂', title: '资料库', link_type: 'page', link_url: '/pages/resources/resources' },
+              { icon: '🗂', title: '资料库', link_type: 'page', link_url: '/pkg-content/resources/resources' },
             ],
           }),
           makeComp('st1', ComponentType.SectionTitle, { title: '今日精选', subtitle: '深度内容' }),
@@ -459,14 +461,14 @@ function fallbackTemplates(): TemplateUI[] {
           makeComp('pf1', ComponentType.PlanetFeed, {
             source_mode: 'auto',
             page_size: 20,
-            resources_url: '/pages/resources/resources',
+            resources_url: '/pkg-content/resources/resources',
           }),
           makeComp('fb1', ComponentType.FloatButton, {
             title: '提问 / 打卡',
             icon_emoji: '🙋',
             color: '#EA580C',
             action_type: 'link',
-            link_url: '/pages/moment-detail/moment-detail',
+            link_url: '/pkg-content/moment-detail/moment-detail',
             position: 'right_bottom',
             offset_x: 16,
             offset_y: 120,
@@ -495,7 +497,7 @@ function fallbackTemplates(): TemplateUI[] {
         makeComp('s1', ComponentType.Search, { placeholder: '搜索商品 / 文章 / 活动', scope: 'all' }),
         makeComp('nbar1', ComponentType.NoticeBar, { items: ['618大促满199减30', '新会员领券立减10元', '全国顺丰包邮活动进行中'] }),
         makeComp('b1', ComponentType.Banner, { images: [{ title: '全球优品限时专享', link_url: '/pages/activity-list/activity-list' }] }),
-        makeComp('cat1', ComponentType.CategoryNav, { items: [{ icon: '🥩', title: '黑猪菜品', link_url: '/pages/product-list/product-list' }, { icon: '🌿', title: '药食同源', link_url: '/pages/product-list/product-list' }, { icon: '🎁', title: '礼盒专区', link_url: '/pages/product-list/product-list' }] }),
+        makeComp('cat1', ComponentType.CategoryNav, { items: [{ icon: '🥩', title: '黑猪菜品', link_url: '/pkg-content/product-list/product-list' }, { icon: '🌿', title: '药食同源', link_url: '/pkg-content/product-list/product-list' }, { icon: '🎁', title: '礼盒专区', link_url: '/pkg-content/product-list/product-list' }] }),
         makeComp('flash1', ComponentType.FlashSale),
         makeComp('coupon1', ComponentType.Coupon),
         makeComp('pt1', ComponentType.SectionTitle, { title: '推荐商品', subtitle: '精选好物，持续上新' }),
@@ -566,7 +568,7 @@ function fallbackTemplates(): TemplateUI[] {
       industryCode: 'retail',
       dsl: makeDsl('商城成交首页', 'home', 'pages/index/index', [
         makeComp('s1', ComponentType.Search, { placeholder: '搜索商品 / 活动 / 优惠', scope: 'all' }),
-        makeComp('b1', ComponentType.Banner, { images: [{ title: '爆款限时专场', link_url: '/pages/product-list/product-list' }, { title: '新客专享礼包', link_url: '/pages/activity-list/activity-list' }] }),
+        makeComp('b1', ComponentType.Banner, { images: [{ title: '爆款限时专场', link_url: '/pkg-content/product-list/product-list' }, { title: '新客专享礼包', link_url: '/pages/activity-list/activity-list' }] }),
         makeComp('cn1', ComponentType.CategoryNav, { title: '分类导航', columns: 4, categories: [{ name: '热卖', icon: 'hot' }, { name: '新品', icon: 'new' }, { name: '礼盒', icon: 'gift' }, { name: '会员', icon: 'vip' }] }),
         makeComp('fs1', ComponentType.FlashSale, { title: '限时秒杀', limit: 4 }),
         makeComp('cp1', ComponentType.Coupon, { title: '领券中心', coupons: [{ name: '满99减10', threshold: 9900 }, { name: '满199减30', threshold: 19900 }] }),
@@ -656,7 +658,7 @@ function fallbackTemplates(): TemplateUI[] {
       style: 'minimal',
       industryCode: 'general',
       dsl: makeDsl('轻量开店首页', 'home', 'pages/index/index', [
-        makeComp('b1', ComponentType.Banner, { images: [{ title: '欢迎光临', link_url: '/pages/product-list/product-list' }] }),
+        makeComp('b1', ComponentType.Banner, { images: [{ title: '欢迎光临', link_url: '/pkg-content/product-list/product-list' }] }),
         makeComp('pl1', ComponentType.ProductList, { title: '在售商品', columns: 2, limit: 6 }),
         makeComp('n1', ComponentType.NoticeBar, { title: '公告', items: ['新店开业', '满额包邮', '欢迎咨询'] }),
         makeComp('ai1', ComponentType.AIEntry, { title: 'AI导购', description: '快速推荐商品与活动' }),
@@ -870,8 +872,12 @@ async function handleSaveAndApply() {
   }
 }
 
-onMounted(() => {
-  fetchTemplates()
+onMounted(async () => {
+  await fetchTemplates()
+  const editId = String(route.query.editId || '').trim()
+  if (!editId) return
+  const tpl = templates.value.find((t) => String(t.id) === editId)
+  if (tpl) openEditor(tpl)
 })
 </script>
 

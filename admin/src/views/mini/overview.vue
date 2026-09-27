@@ -7,7 +7,7 @@
           variant="overview"
           :live-release-no="site.liveReleaseNo"
           :live-release-at="site.liveReleaseAt ? formatShort(site.liveReleaseAt) : null"
-          :publisher-name="site.livePublisherName"
+          :publisher-name="publisherDisplay"
           :pending-count="Number(site.pendingCount ?? pending.length ?? 0)"
         />
         <div>
@@ -16,7 +16,7 @@
         </div>
 
         <div class="ways">
-          <button type="button" class="way hi" @click="editHomePage">
+          <button type="button" class="way way-em" @click="editHomePage">
             <MiniIcon name="page" :size="20" />
             <span>
               <b>改首页</b>
@@ -30,11 +30,11 @@
               <span class="muted" style="font-size: 12.5px">AI 或模板生成，再发布上线</span>
             </span>
           </button>
-          <button type="button" class="way" @click="goPublish">
+          <button type="button" class="way" @click="router.push('/mini/appearance')">
             <MiniIcon name="send" :size="20" />
             <span>
-              <b>发布</b>
-              <span class="muted" style="font-size: 12.5px">确认待发布改动并上线</span>
+              <b>外观与导航</b>
+              <span class="muted" style="font-size: 12.5px">保存草稿后点「保存并同步」</span>
             </span>
           </button>
         </div>
@@ -42,8 +42,12 @@
         <section class="card status-card">
           <h2 class="h2">线上状态</h2>
           <div class="kv">
-            <span class="muted">版本</span>
-            <b>第 {{ site.liveReleaseNo ?? '—' }} 次发布</b>
+            <span class="muted">内容配置版本</span>
+            <b>{{ site.liveReleaseNo != null ? `第 ${site.liveReleaseNo} 次同步` : '尚未同步' }}</b>
+          </div>
+          <div class="kv">
+            <span class="muted">微信代码包</span>
+            <b>{{ wechatCodeDisplay }}</b>
           </div>
           <div class="kv">
             <span class="muted">时间</span>
@@ -51,14 +55,14 @@
           </div>
           <div class="kv">
             <span class="muted">发布人</span>
-            <b>{{ site.livePublisherName || '—' }}</b>
+            <b>{{ publisherDisplay || '—' }}</b>
           </div>
           <div class="kv">
             <span class="muted">整店模板</span>
             <b>{{ templateLabel }}</b>
           </div>
           <div class="kv">
-            <span class="muted">待发布</span>
+            <span class="muted">未同步</span>
             <b>{{ pendingCountText }}</b>
           </div>
           <button type="button" class="link" style="margin-top: 8px" @click="router.push('/mini/appearance')">
@@ -83,11 +87,20 @@
           <section class="card pending-card">
             <div class="head">
               <div>
-                <h2 class="h2">待发布的改动</h2>
-                <div class="sub">{{ pendingCountText }}，发布后用户刷新即可看到</div>
+                <h2 class="h2">尚未同步的改动</h2>
+                <div class="sub">{{ pendingCountText }}；须点「保存并同步」经校验后写入服务端（不表示所有用户已刷新小程序）</div>
               </div>
               <div class="actions">
-                <button type="button" class="link" @click="goPublish">去发布 ›</button>
+                <button
+                  type="button"
+                  class="btn sm primary"
+                  :disabled="!(site.pendingCount ?? pending.length)"
+                  :loading="syncing"
+                  @click="syncPending"
+                >
+                  保存并同步
+                </button>
+                <button type="button" class="link" @click="router.push('/mini/appearance')">去外观 ›</button>
               </div>
             </div>
             <div style="margin-top: 6px">
@@ -107,7 +120,7 @@
                 </div>
               </div>
               <div v-else class="empty-mini">
-                <span class="muted">没有待发布的改动，线上就是你现在看到的样子。</span>
+                <span class="muted">草稿与线上配置一致。</span>
                 <button type="button" class="btn sm" @click="router.push('/mini/pages')">
                   去改页面
                 </button>
@@ -116,120 +129,43 @@
           </section>
 
           <section class="card eco-card">
-            <h2 class="h2">微信生态</h2>
-            <div class="sub">小程序正式版与分发渠道</div>
+            <h2 class="h2">代码与渠道（参考）</h2>
+            <div class="sub">代码包在本机微信开发者工具上传；此处不触发上传或审核</div>
             <div style="margin-top: 10px">
               <div class="kv">
-                <span class="muted">正式版</span>
-                <b style="font-weight: 500">代码 {{ wechatCodeLabel }} · 无需操作</b>
+                <span class="muted">代码版本记录</span>
+                <b style="font-weight: 500">{{ wechatCodeDisplay }}</b>
               </div>
               <div class="kv">
                 <span class="muted">公众号菜单</span>
                 <b style="font-weight: 500">
-                  <template v-if="mpMenuConfigured">已绑定 → {{ homeTabText }}</template>
-                  <template v-else>去配置</template>
+                  <template v-if="mpMenuConfigured">已配置 AppID 等</template>
+                  <template v-else>未配置</template>
                 </b>
               </div>
-              <div class="kv">
-                <span class="muted">小程序码</span>
-                <b style="font-weight: 500">{{ qrCodeLabel }}</b>
-              </div>
             </div>
-            <button type="button" class="link" style="font-size: 13px; margin-top: 8px" @click="goPublish">
-              管理分发 ›
-            </button>
+            <p class="faint" style="margin: 10px 0 0; font-size: 12px; line-height: 1.5">
+              需要记录本地上传说明时，见
+              <button type="button" class="link" @click="router.push('/page-builder/wx-push')">开发者 · 代码版本说明</button>
+              （非日常运营入口）。
+            </p>
           </section>
         </div>
       </div>
 
-      <aside class="preview">
-        <div class="preview-head">
-          <div class="preview-head__row">
-            <b class="preview-head__title">真机预览</b>
-            <div class="seg preview-seg" role="group" aria-label="预览版本">
-              <button type="button" :class="{ on: !previewCompare && previewSource === 'draft' }" @click="setPreview('draft')">
-                改动后
-              </button>
-              <button type="button" :class="{ on: !previewCompare && previewSource === 'live' }" @click="setPreview('live')">
-                线上
-              </button>
-              <button type="button" :class="{ on: previewCompare }" @click="previewCompare = true">
-                对比
-              </button>
-            </div>
-          </div>
-          <p class="preview-head__hint faint">{{ previewHintLine }}</p>
-        </div>
-
-        <div class="preview-body">
-          <div v-if="previewCompare" class="phone-row">
-            <div class="phone-col">
-              <span class="faint">草稿</span>
-              <MiniOverviewPhone
-                size="sm"
-                :src="previewUrlDraft"
-                title="草稿预览"
-                iframe-key="draft"
-              />
-            </div>
-            <div class="phone-col">
-              <span class="faint">线上</span>
-              <MiniOverviewPhone
-                size="sm"
-                :src="previewUrlLive"
-                title="线上预览"
-                iframe-key="live"
-              />
-            </div>
-          </div>
-          <template v-else>
-            <div class="preview-body__main">
-              <MiniOverviewPhone
-                class="preview-body__phone"
-                size="default"
-                :src="previewUrl"
-                title="小程序预览"
-                :iframe-key="previewKey"
-              />
-              <div class="preview-body__side">
-                <div class="preview-meta">
-                  <span class="preview-meta__label">当前预览</span>
-                  <b class="preview-meta__value">{{ previewPageLabel }}</b>
-                  <span class="faint preview-meta__status">{{ previewStatusLabel }}</span>
-                </div>
-                <button type="button" class="btn sm preview-qr-btn" @click="qrVisible = true">
-                  <MiniIcon name="qr" :size="15" />
-                  扫码在手机上看
-                </button>
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <button
-          v-if="!previewCompare"
-          type="button"
-          class="btn sm preview-qr-btn preview-qr-btn--block preview-qr-btn--wide"
-          @click="qrVisible = true"
-        >
-          <MiniIcon name="qr" :size="15" />
-          扫码在手机上看
-        </button>
-        <button
-          v-else
-          type="button"
-          class="btn sm preview-qr-btn preview-qr-btn--block"
-          @click="qrVisible = true"
-        >
-          <MiniIcon name="qr" :size="15" />
-          扫码在手机上看
-        </button>
-      </aside>
+      <DevicePreview
+        :hint="previewHintLine"
+        :preview-url="previewUrl"
+        :preview-url-live="previewUrlLive"
+        :initial-mode="previewInitialMode"
+        :iframe-key="previewKey"
+        @scan="qrVisible = true"
+      />
     </div>
 
     <MiniH5QrDialog
       v-model="qrVisible"
-      :mode="previewSource === 'live' ? 'live' : 'draft'"
+      mode="miniapp-draft"
       title="扫码在手机上看"
     />
 
@@ -244,7 +180,7 @@ import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
-import MiniOverviewPhone from '@/components/mini/MiniOverviewPhone.vue'
+import DevicePreview from '@/components/mini/DevicePreview.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -256,23 +192,35 @@ import { getPageAccess } from '@/api/statistics'
 import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
 import { refreshMiniPending } from '@/composables/useMiniPending'
+import { useMiniConfigSync } from '@/composables/useMiniConfigSync'
 import type { PageRecord as PageRow } from '@/types/page'
 
 defineOptions({ name: 'MiniOverview' })
 
 const router = useRouter()
+const { syncing, syncToLive } = useMiniConfigSync()
 const loading = ref(false)
 /** 首屏用骨架屏，之后的刷新才用遮罩，避免每次操作都闪灰屏 */
 const loaded = ref(false)
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
-const previewSource = ref<'draft' | 'live'>('live')
-const previewCompare = ref(false)
+const previewRevision = ref(0)
 const qrVisible = ref(false)
 const visitTop = ref<{ pagePath: string; accessCount?: number; visitorCount?: number }[]>([])
 const pageOptions = ref<PageRow[]>([])
 const wechatVerFallback = ref('')
 const mpMenuConfigured = ref(false)
+
+function formatPublisherName(raw?: string | null) {
+  if (!raw) return ''
+  const s = String(raw).trim()
+  if (!s) return ''
+  if (/^\d+$/.test(s)) return ''
+  if (/^用户#\d+$/.test(s)) return ''
+  return s
+}
+
+const publisherDisplay = computed(() => formatPublisherName(site.value.livePublisherName))
 
 const templateLabel = computed(() => site.value.templateName || '自定义模板')
 const tabBar = computed(() => site.value.tabBar || [])
@@ -281,56 +229,45 @@ const pendingCountText = computed(() => {
   const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
   return n > 0 ? `${n} 项` : '0 项'
 })
-const wechatCodeLabel = computed(
-  () => site.value.wechatCodeVersion || wechatVerFallback.value || '—',
-)
-const homeTabText = computed(() => (site.value.tabBar || [])[0]?.text || '首页')
-const boundPageCount = computed(
-  () => (site.value.tabBar || []).filter((t) => t.pageId || t.pagePath).length,
-)
-const qrCodeLabel = computed(() =>
-  boundPageCount.value > 0 ? `${boundPageCount.value} 个页面已生成` : '去生成',
-)
+const wechatCodeDisplay = computed(() => {
+  if (site.value.wechatCodeVersion) {
+    return `${site.value.wechatCodeVersion}（后台人工/平台记录）`
+  }
+  if (wechatVerFallback.value) {
+    return `${wechatVerFallback.value}（平台构建记录，非微信官方回执）`
+  }
+  return '未记录 · 请在本地上传后自行标注'
+})
 
-function previewHref(source: 'draft' | 'live') {
+function buildPreviewHref(source: 'draft' | 'live') {
   const query: Record<string, string> = { view: 'config', source, embed: '1' }
+  const firstPath = String((site.value.tabBar || [])[0]?.pagePath || '').replace(/^\//, '')
+  if (firstPath) query.screen = firstPath
   return router.resolve({ path: '/h5/miniapp-preview', query }).href
 }
 
-const previewUrl = computed(() => previewHref(previewSource.value === 'live' ? 'live' : 'draft'))
-const previewUrlDraft = computed(() => previewHref('draft'))
-const previewUrlLive = computed(() => previewHref('live'))
+const previewUrl = computed(() => buildPreviewHref('draft'))
+const previewUrlLive = computed(() => buildPreviewHref('live'))
+const previewInitialMode = computed<'draft' | 'live'>(() =>
+  Number(site.value.pendingCount ?? pending.value.length ?? 0) > 0 ? 'draft' : 'live',
+)
 
-const previewKey = computed(() => (previewCompare.value ? 'compare' : previewSource.value))
+const previewKey = computed(() => `${previewInitialMode.value}-${previewRevision.value}`)
 
 const previewHintLine = computed(() => {
-  const n = site.value.liveReleaseNo
-  const prefix = n != null ? `默认第 ${n} 次发布 · ` : ''
-  if (previewCompare.value) {
-    return `${prefix}左：待发布草稿 · 右：当前线上（整店配置预览）`
-  }
-  if (previewSource.value === 'live') {
-    return `${prefix}看用户此刻看到的线上版`
-  }
-  return `${prefix}看待发布草稿（未点发布前用户看不到）`
-})
-
-const previewPageLabel = computed(() => {
-  const tab0 = (site.value.tabBar || [])[0]
-  return tab0?.pageName || tab0?.text || '底部导航首页'
-})
-
-const previewStatusLabel = computed(() => {
   const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
-  if (previewSource.value === 'live') {
-    return n > 0 ? `线上版 · 另有 ${n} 项待发布` : '线上版 · 与发布一致'
+  const live = site.value.liveReleaseNo
+  if (n > 0) {
+    return `尚有 ${n} 项未同步 · 右侧为草稿预览（线上配置版本 ${live ?? '—'}）`
   }
-  return n > 0 ? `草稿预览 · ${n} 项待发布` : '草稿预览'
+  return live != null
+    ? `线上配置版本 ${live} · 右侧可切换草稿/线上预览`
+    : '右侧可切换草稿/线上预览'
 })
 
-function setPreview(mode: 'draft' | 'live') {
-  previewCompare.value = false
-  previewSource.value = mode
+async function syncPending() {
+  const ok = await syncToLive({ includeSite: true })
+  if (ok) await load()
 }
 
 function formatShort(t?: string | null) {
@@ -360,9 +297,6 @@ function changeKindLabel(item: PendingChangeItem) {
   return '修改'
 }
 
-function goPublish() {
-  router.push('/mini/publish')
-}
 
 function editHomePage() {
   const homeId = Number(site.value.miniappHomePageId || 0)
@@ -412,6 +346,7 @@ async function load() {
       loadVisitTop(),
     ])
     site.value = s
+    previewRevision.value += 1
     pending.value = p.items || []
     const data = (pageRes as { data?: { records?: PageRow[]; list?: PageRow[] } })?.data
     pageOptions.value = (data?.records || data?.list || []) as PageRow[]
@@ -463,7 +398,7 @@ onMounted(load)
 
 .ov {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: start;
 }
@@ -521,105 +456,27 @@ onMounted(load)
   padding: 6px 0;
 }
 
+.ways .way span .muted {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ways .way-em :deep(svg),
+.ways .way-em b {
+  color: var(--acc);
+}
+
 .lower-row {
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  flex-wrap: wrap;
 }
 
-.pending-card {
-  flex: 1.3;
-  min-width: 280px;
-}
-
+.pending-card,
 .eco-card {
-  flex: 1;
-  min-width: 240px;
-}
-
-.preview {
-  position: sticky;
-  top: 84px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
   width: 100%;
-  max-width: 300px;
-  box-sizing: border-box;
-}
-
-.preview-head {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.preview-head__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-}
-
-.preview-head__title {
-  white-space: nowrap;
-  font-size: 15px;
-}
-
-.preview-head__hint {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.preview-seg :deep(button) {
-  white-space: nowrap;
-  padding: 4px 8px;
-}
-
-.preview-body {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.preview-body__main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.preview-body__side {
-  display: none;
-}
-
-.preview-qr-btn--block {
-  width: 100%;
-  justify-content: center;
-}
-
-.phone-row {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  justify-content: center;
-}
-
-.phone-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
   min-width: 0;
 }
 
@@ -647,89 +504,9 @@ onMounted(load)
   flex-wrap: wrap;
 }
 
-@media (max-width: 1179px) and (min-width: 900px) {
-  .ov {
-    grid-template-columns: minmax(0, 1fr) 300px;
-  }
-
-  .preview {
-    position: sticky;
-    top: 80px;
-  }
-}
-
 @media (max-width: 899px) {
   .ov {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .preview {
-    position: static;
-    max-width: none;
-  }
-
-  .preview-body__main {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 16px;
-  }
-
-  .preview-body__phone :deep(.preview-phone) {
-    --phone-w: 210px;
-  }
-
-  .preview-body__phone :deep(.preview-phone--lg),
-  .preview-body__phone :deep(.preview-phone--sm) {
-    --phone-w: 210px;
-  }
-
-  .preview-body__side {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding-top: 4px;
-  }
-
-  .preview-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    align-items: flex-start;
-  }
-
-  .preview-meta__label {
-    font-size: 11px;
-    color: var(--faint);
-  }
-
-  .preview-meta__value {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .preview-meta__status {
-    font-size: 12px;
-    line-height: 1.4;
-  }
-
-  .preview-qr-btn {
-    align-self: flex-start;
-  }
-}
-
-@media (min-width: 900px) {
-  .preview-qr-btn--wide {
-    display: inline-flex;
-  }
-}
-
-@media (max-width: 899px) {
-  .preview-qr-btn--wide {
-    display: none;
   }
 }
 

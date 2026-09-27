@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "文章",
+  "navigationStyle": "custom",
+  "navigationBarBackgroundColor": "#FDF6EC",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "mp-html": "/components/mp-html/index",
+    "login-sheet": "/components/login-sheet/login-sheet"
+  }
+}

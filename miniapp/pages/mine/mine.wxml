@@ -1,10 +1,32 @@
-<page-meta page-style="{{themePageStyle}}" />
-<view class="mn-page mn-page--{{styleKey}}">
+<env-badge />
+<page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
+<!-- 绑定了装修页则走 DSL；未绑定（系统页）走下方内置模板 -->
+<block wx:if="{{dslMode && !dslPending}}">
+  <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
+  <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
+  <block wx:else>
+    <view class="dsl-tab-page__body" style="background-color:{{pageBackgroundColor}};{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+      <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
+        <dsl-renderer component="{{item}}" />
+      </view>
+      <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="dsl-tab-page__state">页面暂无内容</view>
+    </view>
+    <dsl-float-button
+      wx:for="{{floatComponents}}"
+      wx:key="id"
+      config="{{item.props}}"
+      actions="{{item.actions}}"
+      styleString="{{item.styleString}}"
+    />
+    <login-sheet id="global-login-sheet" />
+  </block>
+</block>
+<view wx:else class="mn-page mn-page--{{styleKey}}">
   <scroll-view class="mn-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="mn-hero" style="padding-top: {{statusBarHeight + 10}}px;">
       <view class="mn-hero__rw">
         <view class="mn-hero__main" bindtap="onUserAreaTap">
-          <view class="mn-hero__av">
+          <view class="mn-hero__av" wx:if="{{mineToggles.showAvatar}}">
             <image
               class="warm-ph mn-hero__av-img"
               src="{{displayAvatarUrl}}"
@@ -15,11 +37,14 @@
           <view class="mn-hero__meta">
             <view class="mn-hero__name warm-serif" wx:if="{{isLoggedIn}}">
               {{userInfo.nickName || '微信用户'}}
-              <text class="warm-tag warm-tag--soft" wx:if="{{memberInfo.level_name}}">{{memberInfo.level_name}}</text>
+              <text
+                class="warm-tag warm-tag--soft"
+                wx:if="{{mineToggles.showMemberLevel && memberInfo.level_name}}"
+              >{{memberInfo.level_name}}</text>
             </view>
-            <view class="mn-hero__name warm-serif" wx:else>点击登录</view>
+            <view class="mn-hero__name warm-serif" wx:else>{{mineText.loginTitle}}</view>
             <text class="mn-hero__sb" wx:if="{{isLoggedIn}}">连续阅读 {{continuousDays}} 天 · 加入暖阁 {{joinDays}} 天</text>
-            <text class="mn-hero__sb" wx:else>登录后同步收藏、会员与学习记录</text>
+            <text class="mn-hero__sb" wx:else>{{mineText.loginSubtitle}}</text>
           </view>
         </view>
         <view
@@ -39,7 +64,7 @@
       </view>
     </view>
 
-    <view class="mn-vip" catchtap="onMemberCardTap">
+    <view class="mn-vip" wx:if="{{mineToggles.showMemberCard}}" catchtap="onMemberCardTap">
       <text class="mn-vip__ic">🎫</text>
       <view class="mn-vip__tx">
         <text class="mn-vip__h">{{vipTitle || '暖阁年度会员'}}</text>
@@ -50,16 +75,16 @@
 
     <view class="mn-quick">
       <view class="mn-quick__it" bindtap="onGoFavorites">
-        <text class="mn-quick__ic">⭐️</text>我的收藏
+        <text class="mn-quick__ic" wx:if="{{mineToggles.showMenuIcons}}">⭐️</text>我的收藏
       </view>
       <view class="mn-quick__it" bindtap="onGoHistory">
-        <text class="mn-quick__ic">🕘</text>浏览历史
+        <text class="mn-quick__ic" wx:if="{{mineToggles.showMenuIcons}}">🕘</text>浏览历史
       </view>
       <view class="mn-quick__it" bindtap="onGoLibrary">
-        <text class="mn-quick__ic">📘</text>已购内容
+        <text class="mn-quick__ic" wx:if="{{mineToggles.showMenuIcons}}">📘</text>已购内容
       </view>
       <view class="mn-quick__it" bindtap="onNoticeTap">
-        <text class="mn-quick__ic">💬</text>消息
+        <text class="mn-quick__ic" wx:if="{{mineToggles.showMenuIcons}}">💬</text>消息
         <text class="mn-quick__bdg" wx:if="{{noticeUnread}}">{{noticeUnread > 99 ? '99+' : noticeUnread}}</text>
       </view>
     </view>
@@ -104,34 +129,34 @@
 
     <view class="mn-menu">
       <view class="mn-menu__row" bindtap="onGoAsk">
-        <text class="mn-menu__ic">🙋</text>我的提问与打卡
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🙋</text>我的提问与打卡
         <text class="mn-menu__vv" wx:if="{{isLoggedIn && questionCount}}">{{questionCount}} 个提问</text>
         <text class="mn-menu__ar" wx:else>›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoContribute">
-        <text class="mn-menu__ic">✍️</text>成为创作者
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">✍️</text>成为创作者
         <text class="mn-menu__vv">投稿招募中</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoOrders">
-        <text class="mn-menu__ic">🛍</text>我的订单
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🛍</text>我的订单
         <text class="mn-menu__vv" wx:if="{{isLoggedIn && pendingOrderCount}}">{{pendingOrderCount}} 笔待支付</text>
         <text class="mn-menu__ar" wx:else>›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoResources">
-        <text class="mn-menu__ic">🗂</text>我的资料库
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🗂</text>我的资料库
         <text class="mn-menu__ar">›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoOrders">
-        <text class="mn-menu__ic">🧾</text>发票管理
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🧾</text>发票管理
         <text class="mn-menu__ar">›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoCoupons">
-        <text class="mn-menu__ic">🎁</text>优惠券
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🎁</text>优惠券
         <text class="mn-menu__vv" wx:if="{{isLoggedIn && unusedCouponCount}}">{{unusedCouponCount}} 张可用</text>
         <text class="mn-menu__ar" wx:else>›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoShare">
-        <text class="mn-menu__ic">🤝</text>邀请好友
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🤝</text>邀请好友
         <text class="mn-menu__vv" wx:if="{{isLoggedIn && inviteCount}}">已邀 {{inviteCount}} 人</text>
         <text class="mn-menu__ar" wx:else>›</text>
       </view>
@@ -139,23 +164,23 @@
 
     <view class="mn-menu">
       <view class="mn-menu__row" bindtap="onGoTemplates">
-        <text class="mn-menu__ic">🧩</text>整店模版
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🧩</text>整店模版
         <text class="mn-menu__vv">切换外观</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoJoin">
-        <text class="mn-menu__ic">👥</text>加入读者群
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">👥</text>加入读者群
         <text class="mn-menu__ar">›</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoService">
-        <text class="mn-menu__ic">💬</text>联系客服
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">💬</text>联系客服
         <text class="mn-menu__vv">9:00-21:00 在线</text>
       </view>
       <view class="mn-menu__row" bindtap="onGoFeedback">
-        <text class="mn-menu__ic">📮</text>意见反馈
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">📮</text>意见反馈
         <text class="mn-menu__ar">›</text>
       </view>
       <view class="mn-menu__row" bindtap="onSettingsTap">
-        <text class="mn-menu__ic">⚙️</text>设置
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">⚙️</text>设置
         <text class="mn-menu__ar">›</text>
       </view>
     </view>

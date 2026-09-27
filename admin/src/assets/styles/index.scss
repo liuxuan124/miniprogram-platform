@@ -1,15 +1,10 @@
 /**
  * 全局样式 + 设计令牌
  */
+@import '../../styles/admin-themes.scss';
 
 :root {
-  /* Brand */
-  --brand: var(--color-primary);
-  --brand-hover: #1458d9;
-  --brand-soft: #eaf1ff;
-  --brand-ink: #0f172a;
-
-  /* Semantic */
+  /* Semantic（与主题无关） */
   --success: #0faa6e;
   --success-soft: #e8faf3;
   --warning: #f59e0b;
@@ -19,19 +14,10 @@
   --info: #64748b;
   --info-soft: #f1f5f9;
 
-  /* Surfaces */
-  --bg-page: #f5f7fb;
-  --bg-elevated: #ffffff;
-  --border: #e5eaf3;
-  --border-strong: #d6deeb;
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #cbd5e1;
-  --sidebar-muted: #94a3b8;
-
-  /* Type color */
-  --text: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
+  --el-color-success: var(--success);
+  --el-color-warning: var(--warning);
+  --el-color-danger: var(--danger);
+  --el-color-info: var(--info);
 
   /* Type scale — 统一层级，页面不再手写 px */
   --font-h1: 22px;
@@ -63,58 +49,6 @@
   --z-dropdown: 1000;
   --z-modal: 2000;
   --z-toast: 3000;
-
-  /* Element Plus theme bridge */
-  --el-color-primary: var(--brand);
-  --el-color-primary-light-3: #5b93ff;
-  --el-color-primary-light-5: #8bb1ff;
-  --el-color-primary-light-7: #bcd0ff;
-  --el-color-primary-light-8: #d4e2ff;
-  --el-color-primary-light-9: var(--brand-soft);
-  --el-color-primary-dark-2: var(--brand-hover);
-  --el-color-success: var(--success);
-  --el-color-warning: var(--warning);
-  --el-color-danger: var(--danger);
-  --el-color-info: var(--info);
-}
-
-/* 暖阁主题：米杏底、橙主色、深褐侧栏（对齐 prototypes-warm/admin.css） */
-html[data-admin-theme='warm'] {
-  --color-primary: #c2410c;
-  --color-primary-soft: #fef3ea;
-  --color-ink: #2a1c12;
-  --color-muted: #6b5443;
-  --color-line: rgba(120, 72, 40, 0.12);
-  --color-bg: #faf6f0;
-
-  --brand: #c2410c;
-  --brand-hover: #9a3412;
-  --brand-soft: #fef3ea;
-  --brand-ink: #2a1c12;
-
-  --bg-page: #faf6f0;
-  --bg-elevated: #ffffff;
-  --border: rgba(120, 72, 40, 0.14);
-  --border-strong: rgba(120, 72, 40, 0.22);
-  --sidebar-bg: #33200f;
-  --sidebar-text: #cdb79a;
-  --sidebar-muted: #8d7358;
-
-  --text: #2a1c12;
-  --text-secondary: #6b5443;
-  --text-muted: #a1897a;
-
-  --el-color-primary: #c2410c;
-  --el-color-primary-light-3: #ea580c;
-  --el-color-primary-light-5: #f0884a;
-  --el-color-primary-light-7: #f6b484;
-  --el-color-primary-light-8: #fad4b3;
-  --el-color-primary-light-9: #fef3ea;
-  --el-color-primary-dark-2: #9a3412;
-}
-
-html[data-admin-theme='warm'] body {
-  background-color: #e9ddcd;
 }
 
 /* CSS Reset */

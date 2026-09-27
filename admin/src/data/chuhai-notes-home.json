@@ -51,8 +51,8 @@
       "props": {
         "columns": 4,
         "items": [
-          { "icon": "✦", "title": "内容中心", "link_type": "page", "link_url": "/pages/content-list/content-list" },
-          { "icon": "📘", "title": "文创商城", "link_type": "page", "link_url": "/pages/knowledge-mall/knowledge-mall" },
+          { "icon": "✦", "title": "内容中心", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" },
+          { "icon": "📘", "title": "文创商城", "link_type": "page", "link_url": "/pkg-content/knowledge-mall/knowledge-mall" },
           { "icon": "◌", "title": "我的订单", "link_type": "page", "link_url": "/pkg-trade/order-list/order-list" },
           { "icon": "♢", "title": "会员权益", "link_type": "page", "link_url": "/pages/member-center/member-center" }
         ]
@@ -71,7 +71,7 @@
         "button_text": "立即阅读",
         "show_button": false,
         "link_type": "page",
-        "link_url": "/pages/content-list/content-list"
+        "link_url": "/pkg-content/content-list/content-list"
       },
       "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 10, "border_radius": 16 }
     },
@@ -92,12 +92,12 @@
       "props": {
         "columns": 3,
         "items": [
-          { "icon": "🔍", "title": "选品洞察", "link_type": "page", "link_url": "/pages/content-list/content-list" },
-          { "icon": "🏭", "title": "供应链", "link_type": "page", "link_url": "/pages/content-list/content-list" },
-          { "icon": "🛒", "title": "平台运营", "link_type": "page", "link_url": "/pages/content-list/content-list" },
-          { "icon": "🌐", "title": "独立站", "link_type": "page", "link_url": "/pages/content-list/content-list" },
-          { "icon": "🚢", "title": "物流履约", "link_type": "page", "link_url": "/pages/content-list/content-list" },
-          { "icon": "⚖️", "title": "合规税务", "link_type": "page", "link_url": "/pages/content-list/content-list" }
+          { "icon": "🔍", "title": "选品洞察", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" },
+          { "icon": "🏭", "title": "供应链", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" },
+          { "icon": "🛒", "title": "平台运营", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" },
+          { "icon": "🌐", "title": "独立站", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" },
+          { "icon": "🚢", "title": "物流履约", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" },
+          { "icon": "⚖️", "title": "合规税务", "link_type": "page", "link_url": "/pkg-content/content-list/content-list" }
         ]
       },
       "style": { "margin_left": 12, "margin_right": 12, "margin_bottom": 10, "padding_top": 8, "padding_bottom": 8, "background_color": "#ffffff", "border_radius": 14 }

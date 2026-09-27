@@ -1,0 +1,31 @@
+{
+  "plans": {
+    "【示例】墨太白会员·月卡（待确认）": 1,
+    "【示例】墨太白会员·年卡（待确认）": 2,
+    "【示例】墨太白会员·终身（待确认）": 3
+  },
+  "products": {
+    "【示例】墨太白会员商品·月卡（待确认）": 37,
+    "【示例】墨太白会员商品·年卡（待确认）": 38,
+    "【示例】墨太白会员商品·终身（待确认）": 39,
+    "【示例】墨太白星球年费（待确认）": 40,
+    "【示例】亚马逊运营 SOP 全集（待确认）": 41,
+    "【示例】TikTok 美区 21 天训练营（待确认）": 42,
+    "【示例】60 分钟店铺诊断咨询（待确认）": 43
+  },
+  "tagsCreated": 10,
+  "couponsDisabled": [3, 1],
+  "planetCommerce": {
+    "planetId": "warm-main",
+    "joinProductId": 40,
+    "validityDays": 365,
+    "refundWindowDays": 7
+  },
+  "siteDraft": {
+    "allTabsBoundToMotaiPages": true,
+    "miniappHomePageId": 28,
+    "miniappMinePageId": 34,
+    "brandAppName": "跨境墨太白"
+  },
+  "note": "会员档 status=0；所有新建商品 status=draft；planet_commerce 已写 live 但入圈商品未上架；未做小程序发布。"
+}

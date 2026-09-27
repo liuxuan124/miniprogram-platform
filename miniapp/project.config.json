@@ -33,6 +33,110 @@
       {
         "value": "package-lock.json",
         "type": "file"
+      },
+      {
+        "value": "pages/activity-detail",
+        "type": "folder"
+      },
+      {
+        "value": "pages/activity-list",
+        "type": "folder"
+      },
+      {
+        "value": "pages/address-list",
+        "type": "folder"
+      },
+      {
+        "value": "pages/agreement",
+        "type": "folder"
+      },
+      {
+        "value": "pages/appointment-book",
+        "type": "folder"
+      },
+      {
+        "value": "pages/appointment-calendar",
+        "type": "folder"
+      },
+      {
+        "value": "pages/appointment-list",
+        "type": "folder"
+      },
+      {
+        "value": "pages/appointment-success",
+        "type": "folder"
+      },
+      {
+        "value": "pages/category",
+        "type": "folder"
+      },
+      {
+        "value": "pages/coupon-list",
+        "type": "folder"
+      },
+      {
+        "value": "pages/detail",
+        "type": "folder"
+      },
+      {
+        "value": "pages/favorites",
+        "type": "folder"
+      },
+      {
+        "value": "pages/feedback",
+        "type": "folder"
+      },
+      {
+        "value": "pages/form",
+        "type": "folder"
+      },
+      {
+        "value": "pages/member-center",
+        "type": "folder"
+      },
+      {
+        "value": "pages/my-appointments",
+        "type": "folder"
+      },
+      {
+        "value": "pages/order-detail",
+        "type": "folder"
+      },
+      {
+        "value": "pages/order-list",
+        "type": "folder"
+      },
+      {
+        "value": "pages/order-paid",
+        "type": "folder"
+      },
+      {
+        "value": "pages/points-log",
+        "type": "folder"
+      },
+      {
+        "value": "pages/reviews",
+        "type": "folder"
+      },
+      {
+        "value": "pages/service-chat",
+        "type": "folder"
+      },
+      {
+        "value": "pages/settings",
+        "type": "folder"
+      },
+      {
+        "value": "pages/sign-in",
+        "type": "folder"
+      },
+      {
+        "value": "pages/webview",
+        "type": "folder"
+      },
+      {
+        "value": "pages/write-review",
+        "type": "folder"
       }
     ],
     "include": []
@@ -40,7 +144,7 @@
   "setting": {
     "bundle": false,
     "userConfirmedBundleSwitch": false,
-    "urlCheck": true,
+    "urlCheck": false,
     "scopeDataCheck": false,
     "coverView": true,
     "es6": true,
@@ -78,7 +182,7 @@
     "useCompilerPlugins": false,
     "swc": true,
     "disableSWC": false,
-    "ignoreDevUnusedFiles": false
+    "ignoreDevUnusedFiles": true
   },
   "compileType": "miniprogram",
   "libVersion": "3.3.4",

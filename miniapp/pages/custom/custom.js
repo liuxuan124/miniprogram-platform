@@ -3,6 +3,26 @@ const { parseDSL, loadAllComponentData } = require('../../utils/render')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('../../utils/image-preload')
 const { resolveTabRouteForBoundCustomPath } = require('../../utils/tab-bar-route')
+const { getAppThemeConfig, resolvePageBackgroundColor } = require('../../utils/theme')
+
+const GOLDEN_PARITY_PATH = 'pages/custom/golden-render-parity'
+
+function isGoldenParityPath(path) {
+  const norm = String(path || '').replace(/^\/+/, '')
+  return norm === GOLDEN_PARITY_PATH || /^pages\/custom\/golden-parity-\d+$/.test(norm)
+}
+let GOLDEN_PARITY_DSL = null
+let GOLDEN_BATCHES_ALL = null
+try {
+  GOLDEN_PARITY_DSL = require('../../data/golden-parity-dsl.json')
+} catch (e) {
+  GOLDEN_PARITY_DSL = null
+}
+try {
+  GOLDEN_BATCHES_ALL = require('../../data/golden-batches-all.json')
+} catch (e) {
+  GOLDEN_BATCHES_ALL = null
+}
 
 Page({
   data: {
@@ -12,6 +32,7 @@ Page({
     floatComponents: [],
     hasBrandHeader: false,
     statusBarHeight: 20,
+    pageBackgroundColor: '',
   },
 
   onLoad(options) {
@@ -50,25 +71,45 @@ Page({
       return
     }
     try {
-      const dsl = await PageService.getPageDSL(path, true)
+      const norm = String(path || '').replace(/^\/+/, '')
+      let dsl = null
+      if (isGoldenParityPath(norm)) {
+        const batchMatch = norm.match(/golden-parity-(\d+)$/)
+        if (batchMatch && GOLDEN_BATCHES_ALL) {
+          dsl = GOLDEN_BATCHES_ALL[batchMatch[1]] || null
+        }
+        if (!dsl && norm === GOLDEN_PARITY_PATH && GOLDEN_PARITY_DSL) {
+          dsl = GOLDEN_PARITY_DSL
+        }
+      }
+      if (!dsl) {
+        dsl = await PageService.getPageDSL(path, true)
+      }
       const parsed = parseDSL(dsl)
-      const components = await loadAllComponentData(parsed.components || [])
+      const pageBackgroundColor = resolvePageBackgroundColor(dsl && dsl.page, getAppThemeConfig())
+      const goldenParity = isGoldenParityPath(norm)
+      const components = goldenParity
+        ? (parsed.components || [])
+        : await loadAllComponentData(parsed.components || [])
       const flowComponents = []
       const floatComponents = []
       components.forEach((item) => {
         if (item && item.type === 'float_button') floatComponents.push(item)
         else flowComponents.push(item)
       })
-      const heroUrls = collectHeroImageUrls(flowComponents)
-      const loaded = await preloadImages(heroUrls, 550)
-      const annotated = annotateHeroImageSize(flowComponents, loaded)
+      let annotated = flowComponents
+      if (!goldenParity) {
+        const heroUrls = collectHeroImageUrls(flowComponents)
+        const loaded = await preloadImages(heroUrls, 550)
+        annotated = annotateHeroImageSize(flowComponents, loaded)
+      }
       const hasBrandHeader = annotated.some((item) => item && item.type === 'brand_header')
       const tabRoute = resolveTabRouteForBoundCustomPath(path)
       if (tabRoute) {
         wx.switchTab({ url: tabRoute })
         return
       }
-      if (hasBrandHeader) {
+      if (hasBrandHeader && !goldenParity) {
         wx.redirectTo({
           url: '/pages/custom-nav/custom-nav?path=' + encodeURIComponent(path),
           fail() {},
@@ -84,6 +125,7 @@ Page({
         floatComponents,
         hasBrandHeader: false,
         statusBarHeight: layout.statusBarHeight,
+        pageBackgroundColor,
       })
     } catch (e) {
       this.setData({

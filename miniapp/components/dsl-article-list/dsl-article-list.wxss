@@ -254,6 +254,80 @@
   line-height: 1.35;
 }
 
+.dsl-article-list__unified-card {
+  background: #fffdf9;
+  border: 1rpx solid #efe7da;
+  border-radius: 28rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.dsl-article-list__plain-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.dsl-article-list__plain-head-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.dsl-article-list__plain-title {
+  display: block;
+  font-weight: 700;
+  font-size: 30rpx;
+  color: #1d1b18;
+  line-height: 1.3;
+}
+
+.dsl-article-list__plain-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: #7a7268;
+  line-height: 1.35;
+}
+
+.dsl-article-list__plain-more {
+  flex-shrink: 0;
+  color: #c2410c;
+  font-size: 23rpx;
+  line-height: 1.3;
+}
+
+.dsl-article-list__list--in-card {
+  gap: 0 !important;
+}
+
+.dsl-article-list__item--in-card {
+  padding: 20rpx 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-top: 1rpx solid #f1e9dc !important;
+  gap: 20rpx !important;
+}
+
+.dsl-article-list__item--in-card:first-child {
+  border-top: none !important;
+}
+
+.dsl-article-list__item-cover--in-card,
+.dsl-article-list__item-placeholder--in-card {
+  width: 156rpx !important;
+  height: 116rpx !important;
+  border-radius: 18rpx !important;
+}
+
+.dsl-article-list__item-title--in-card {
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
 /* 列表布局：条目独立成卡，无外层大白框 */
 .dsl-article-list__list {
   width: 100%;

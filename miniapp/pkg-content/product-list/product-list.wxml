@@ -1,0 +1,143 @@
+<!-- pages/product-list/product-list.wxml — 商品列表页 -->
+<page-meta page-style="{{themePageStyle}}" />
+<view class="product-list-page">
+  <!-- 搜索栏 -->
+  <view class="shop-banner">
+    <view class="shop-banner__orb"></view>
+    <view class="shop-banner__row">
+      <view>
+        <view class="shop-banner__eyebrow">SHOP</view>
+        <view class="shop-banner__t" wx:if="{{header.showTitle}}">{{header.title}}</view>
+        <view class="shop-banner__d" wx:if="{{header.showIntro}}">{{header.intro}}</view>
+      </view>
+      <view class="shop-cart" bindtap="onGoCart">▣</view>
+    </view>
+    <view class="shop-benefits" wx:if="{{header.showGuarantees && header.guarantees.length}}">
+      <text wx:for="{{header.guarantees}}" wx:key="*this">✓ {{item}}</text>
+    </view>
+  </view>
+
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <text class="search-icon-text">⌕</text>
+      <input
+        class="search-input"
+        placeholder="搜索文创礼盒、手册等实物商品"
+        value="{{keyword}}"
+        confirm-type="search"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+      />
+      <image
+        wx:if="{{keyword}}"
+        class="search-clear"
+        src="/images/icon-close.png"
+        mode="aspectFit"
+        bindtap="onSearchClear"
+      />
+    </view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view
+      class="category-item {{!activeCategoryId ? 'active' : ''}}"
+      data-id=""
+      bindtap="onCategoryTap"
+    >
+      <text>全部</text>
+    </view>
+    <view
+      wx:for="{{categories}}"
+      wx:key="id"
+      class="category-item {{activeCategoryId === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onCategoryTap"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 排序栏 -->
+  <view class="sort-bar">
+    <view class="sort-title">精选商品 <text>{{total || products.length}} 件</text></view>
+    <view class="sort-btn" bindtap="onSortToggle">
+      <text wx:for="{{sortOptions}}" wx:key="key" wx:if="{{activeSort === item.key}}">{{item.label}}</text>
+      <text class="sort-arrow {{showSortPanel ? 'up' : 'down'}}">&#9660;</text>
+    </view>
+  </view>
+
+  <!-- 排序面板遮罩 -->
+  <view class="sort-mask" wx:if="{{showSortPanel}}" bindtap="onSortMaskTap">
+    <view class="sort-panel" catchtap="">
+      <view
+        wx:for="{{sortOptions}}"
+        wx:key="key"
+        class="sort-option {{activeSort === item.key ? 'active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onSortSelect"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 首次加载：D1 骨架屏，替代空白页面 -->
+  <skeleton wx:if="{{loading && products.length === 0 && !loadFailed}}" type="grid" rows="{{6}}" />
+
+  <view class="loading-area" wx:elif="{{loadFailed && products.length === 0}}">
+    <text class="loading-text">加载失败</text>
+    <view class="retry-btn" bindtap="onRetry">重新加载</view>
+  </view>
+
+  <!-- 商品列表 -->
+  <view class="product-grid" wx:elif="{{!isEmpty}}">
+    <view
+      wx:for="{{products}}"
+      wx:key="id"
+      class="product-card"
+      data-id="{{item.id}}"
+      bindtap="onProductTap"
+    >
+      <image
+        class="product-image"
+        src="{{item.image || item.cover_url || item.main_image || item.mainImage || '/images/default-product.png'}}"
+        mode="aspectFill"
+        lazy-load
+        data-index="{{index}}"
+        binderror="onImageError"
+      />
+      <view class="product-info">
+        <view class="product-badge">{{item.badge}}</view>
+        <text class="product-name">{{item.name}}</text>
+        <view class="product-price-row">
+          <text class="product-price">¥{{item.price}}</text>
+          <text class="product-original-price" wx:if="{{item.original_price || item.originalPrice}}">¥{{item.original_price || item.originalPrice}}</text>
+        </view>
+        <text class="product-sales" wx:if="{{item.shipLabel}}">{{item.shipLabel}}</text>
+        <text class="product-sales" wx:if="{{item.sales}}">已售 {{item.sales}}</text>
+        <text class="product-sales" wx:if="{{item.stock != null && item.stock !== ''}}">库存 {{item.stock}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载更多状态（首次加载已由骨架屏承接，这里只覆盖翻页场景） -->
+  <view class="loading-area" wx:if="{{loading && products.length > 0}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view class="loading-area" wx:elif="{{!hasMore && products.length > 0}}">
+    <text class="loading-text">没有更多了</text>
+  </view>
+
+  <!-- 空状态：D2 统一空态组件 -->
+  <empty-state
+    wx:if="{{isEmpty && !loading && !loadFailed}}"
+    icon="/images/empty-product.png"
+    title="暂无商品"
+    desc="换个分类或关键词试试"
+    actionText="查看全部"
+    actionType="primary"
+    bind:action="onClearFilters"
+  />
+</view>
+<login-sheet id="global-login-sheet" />

@@ -434,5 +434,39 @@ Component({
       if (!link) return
       navigatePage(link)
     },
+
+    /** RENDER-PARITY：组件内 SelectorQuery，穿透自定义组件边界 */
+    paritySnapshot() {
+      return new Promise((resolve) => {
+        const q = wx.createSelectorQuery().in(this)
+        q.select('.dsl-renderer').boundingClientRect()
+        q.selectAll('.dsl-renderer text').fields({ text: true })
+        q.selectAll('.dsl-renderer view').fields({ text: true })
+        q.selectAll('.dsl-renderer image').boundingClientRect()
+        q.selectAll('.dsl-renderer button').boundingClientRect()
+        q.exec((res) => {
+          const rect = (res && res[0]) || {}
+          const textNodes = []
+          ;[(res && res[1]) || [], (res && res[2]) || []].forEach((arr) => {
+            if (!Array.isArray(arr)) return
+            arr.forEach((n) => {
+              if (n && n.text) textNodes.push(String(n.text))
+            })
+          })
+          const rawText = textNodes.join(' ')
+          const text = rawText.replace(/\s+/g, ' ').trim()
+          const imgs = Array.isArray(res[3]) ? res[3].length : 0
+          const buttons = Array.isArray(res[4]) ? res[4].length : 0
+          const height = rect.height != null ? rect.height : 0
+          resolve({
+            textLen: text.length,
+            imgs,
+            buttons,
+            visible: height > 2,
+            sample: text.slice(0, 48),
+          })
+        })
+      })
+    },
   },
 })

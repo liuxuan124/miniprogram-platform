@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-15T03:08:04.114Z",
-  "automator": "connected:9422",
+  "at": "2026-09-26T08:12:10.296Z",
+  "automator": "connected:9420",
   "tabs": [
     {
       "url": "/pages/index/index",
@@ -35,7 +35,8 @@
       "status": "PASS",
       "error": "",
       "path": "pages/shop/shop",
-      "title": ""
+      "title": "",
+      "hasData": true
     },
     {
       "url": "/pages/mine/mine",
@@ -51,164 +52,146 @@
     {
       "url": "/pages/search/search",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/search/search",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/join/join",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/join/join",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/share/share",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/share/share",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/contribute/contribute",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/contribute/contribute",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/resources/resources",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/resources/resources",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/states/states?state=payfail",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/states/states",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/cart/cart",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/cart/cart",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/content-list/content-list",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/content-list/content-list",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
-      "url": "/pages/product-detail/product-detail?demo=1",
+      "url": "/pages/product-detail/product-detail?demo=pay1",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/product-detail/product-detail",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/content-detail/content-detail?demo=1",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/content-detail/content-detail",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/moment-detail/moment-detail?demo=1",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/moment-detail/moment-detail",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pages/file-preview/file-preview?demo=1",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pages/file-preview/file-preview",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "Uncaught [object Object]",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pkg-trade/order-list/order-list",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pkg-trade/order-list/order-list",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pkg-trade/reviews/reviews",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pkg-trade/reviews/reviews",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pkg-user/favorites/favorites",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pkg-user/favorites/favorites",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pkg-user/service-chat/service-chat",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pkg-user/service-chat/service-chat",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pkg-user/settings/settings",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pkg-user/settings/settings",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     },
     {
       "url": "/pkg-user/member-center/member-center",
       "mode": "nav",
-      "status": "PASS",
-      "error": "",
-      "path": "pkg-user/member-center/member-center",
-      "title": "",
-      "hasData": true
+      "status": "FAIL",
+      "error": "timeout waiting for automator response",
+      "path": "",
+      "title": ""
     }
   ],
   "code": [
@@ -278,7 +261,7 @@
     },
     {
       "id": "B5",
-      "status": "PASS",
+      "status": "FAIL",
       "file": "miniapp/pages/order-create/order-create.js",
       "needle": "state=payfail",
       "expect": true,
@@ -311,8 +294,8 @@
   ],
   "summary": {
     "total": 35,
-    "pass": 35,
-    "fail": 0,
-    "automator": "connected:9422"
+    "pass": 16,
+    "fail": 19,
+    "automator": "connected:9420"
   }
 }

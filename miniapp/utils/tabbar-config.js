@@ -16,11 +16,11 @@ function resolveItemShellRoute(item, index) {
   const raw = (item && (item.tabRoute || item.slotRoute)) || ''
   let route = normalizePath(raw)
   // 历史壳 → 现行五壳
-  if (route === '/pages/knowledge-mall/knowledge-mall' || route === '/pages/product-list/product-list') {
+  if (route === '/pkg-content/knowledge-mall/knowledge-mall' || route === '/pkg-content/product-list/product-list') {
     route = '/pages/shop/shop'
-  } else if (route === '/pages/content-list/content-list') {
+  } else if (route === '/pkg-content/content-list/content-list') {
     route = '/pages/discover/discover'
-  } else if (route === '/pages/tab-hub/tab-hub') {
+  } else if (route === '/pkg-content/tab-hub/tab-hub') {
     route = '/pages/mine/mine'
   }
   if (TAB_SLOT_ROUTES.includes(route)) return route
@@ -29,8 +29,8 @@ function resolveItemShellRoute(item, index) {
   const path = normalizePath((item && (item.pagePath || item.path)) || '')
   const text = String((item && (item.text || item.name || item.pageName)) || '')
   if (
-    path === '/pages/knowledge-mall/knowledge-mall'
-    || path === '/pages/product-list/product-list'
+    path === '/pkg-content/knowledge-mall/knowledge-mall'
+    || path === '/pkg-content/product-list/product-list'
     || path.includes('/pages/shop')
     || /商品|商城/.test(text)
   ) {
@@ -39,7 +39,7 @@ function resolveItemShellRoute(item, index) {
   if (path.includes('/pages/planet') || /星球|planet/i.test(text)) return '/pages/planet/planet'
   if (
     path.includes('/pages/discover')
-    || path === '/pages/content-list/content-list'
+    || path === '/pkg-content/content-list/content-list'
     || /发现|内容|资讯|干货/.test(text)
   ) {
     return '/pages/discover/discover'

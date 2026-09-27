@@ -14,7 +14,7 @@ async function main() {
     mp = await automator.connect({ wsEndpoint: 'ws://127.0.0.1:9420' })
     await sleep(2000)
 
-    await mp.switchTab('/pages/content-list/content-list')
+    await mp.switchTab('/pkg-content/content-list/content-list')
     await sleep(2500)
 
     report.shots.push(path.join(EVID, '01-content-list-all.png'))

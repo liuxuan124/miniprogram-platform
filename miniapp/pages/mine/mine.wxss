@@ -1,4 +1,5 @@
 @import "../../styles/warm-theme.wxss";
+@import "../../templates/dsl-tab-body.wxss";
 
 .mn-page {
   min-height: 100vh;

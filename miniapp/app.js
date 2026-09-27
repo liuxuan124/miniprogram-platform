@@ -8,6 +8,10 @@ const { installPageShareHook } = require('./utils/share')
 const { installPageProductGuardHook, refreshProductModuleState } = require('./utils/product-module-gate')
 const { installPageQaGuardHook, refreshQaModuleState } = require('./utils/qa-module-gate')
 const { installPageFormGuardHook, refreshFormModuleState } = require('./utils/form-module-gate')
+const { hideNativeTabBar } = require('./utils/tab-bar-route')
+const { isCustomNavigationRoute } = require('./utils/nav-layout')
+const contentView = require('./utils/content-view')
+const { captureLaunchPreviewToken } = contentView
 
 installPageThemeHook()
 installPageShareHook()
@@ -32,30 +36,52 @@ App({
 
   /** 小程序启动 */
   onLaunch(options) {
-    this._captureSourceChannel(options)
+    const launchOpts = options || {}
+    captureLaunchPreviewToken(launchOpts).finally(() => {
+      this.globalData.preview_active = contentView.isDraftPreviewActive()
+      this._captureSourceChannel(launchOpts)
+      hideNativeTabBar()
 
-    // 获取系统信息
-    this.globalData.systemInfo = {
-      ...(wx.getDeviceInfo ? wx.getDeviceInfo() : {}),
-      ...(wx.getWindowInfo ? wx.getWindowInfo() : {}),
-      ...(wx.getAppBaseInfo ? wx.getAppBaseInfo() : {}),
-    }
+      this.globalData.systemInfo = {
+        ...(wx.getDeviceInfo ? wx.getDeviceInfo() : {}),
+        ...(wx.getWindowInfo ? wx.getWindowInfo() : {}),
+        ...(wx.getAppBaseInfo ? wx.getAppBaseInfo() : {}),
+      }
 
-    // 尝试恢复登录态
-    this._restoreAuthState()
-
-    // 检查更新
-    this._checkUpdate()
-
-    // 加载系统配置并应用主题
-    this._loadSystemConfig().then(() => this._ensurePrivacyConsent())
+      this._restoreAuthState()
+      this._checkUpdate()
+      this._loadSystemConfig().then(() => this._ensurePrivacyConsent())
+    })
   },
 
   onShow(options) {
-    // 冷启动已记录则不覆盖；仅在尚未归因时补充
+    if (options) {
+      captureLaunchPreviewToken(options).then(() => {
+        const nowPreview = contentView.isDraftPreviewActive()
+        const wasPreview = !!this.globalData.preview_active
+        if (wasPreview !== nowPreview) {
+          this.globalData.preview_active = nowPreview
+          try {
+            const SystemService = require('./services/system')
+            const { clearAllDslStorageCaches } = require('./services/page')
+            SystemService.clearPageDslStorageCaches()
+            clearAllDslStorageCaches()
+          } catch (e) { /* ignore */ }
+          this._loadSystemConfig().catch(() => {})
+        }
+      })
+    }
     if (!this.globalData.sourceChannel && !StorageUtil.get('sourceChannel')) {
       this._captureSourceChannel(options)
     }
+    try {
+      const { syncContentReleaseIfNeeded } = require('./utils/content-release-sync')
+      syncContentReleaseIfNeeded().then((r) => {
+        if (r && r.changed) {
+          this.globalData.contentReleaseNo = r.releaseNo
+        }
+      }).catch(() => {})
+    } catch (e) { /* ignore */ }
   },
 
   /** 首次归因：只写一次 */
@@ -113,25 +139,38 @@ App({
       if (USE_LOCAL_SOURCE) {
         this.globalData.miniappThemeConfig = WARM_THEME_CONFIG
         applyThemeCssVars(WARM_THEME_CONFIG)
-        wx.setNavigationBarColor({
-          frontColor: '#000000',
-          backgroundColor: WARM_PAGE_BG,
-          animation: { duration: 200, timingFunc: 'easeIn' },
-        })
+        this._applyNativeNavigationColor('#000000', WARM_PAGE_BG)
       } else if (config.miniappThemeConfig) {
         this.globalData.miniappThemeConfig = config.miniappThemeConfig
         applyThemeCssVars(config.miniappThemeConfig)
         const navBarColor = config.miniappThemeConfig.navBarColor
-        wx.setNavigationBarColor({
-          frontColor: (navBarColor && navBarColor.frontColor) || '#000000',
-          backgroundColor: (navBarColor && (navBarColor.backgroundColor || navBarColor)) || '#ffffff',
-          animation: { duration: 200, timingFunc: 'easeIn' },
-        })
+        // 仅显式配置时作用于系统导航页；自定义导航页由各页 DSL 背景负责。
+        if (navBarColor) {
+          this._applyNativeNavigationColor(
+            navBarColor.frontColor || '#000000',
+            navBarColor.backgroundColor || navBarColor,
+          )
+        }
       } else {
         applyThemeCssVars({ primaryColor: '#C2410C' })
       }
     } catch (e) {
       console.warn('[App] 加载系统配置失败:', e)
+    }
+  },
+
+  _applyNativeNavigationColor(frontColor, backgroundColor) {
+    try {
+      const pages = getCurrentPages()
+      const current = pages && pages.length ? pages[pages.length - 1] : null
+      if (current && isCustomNavigationRoute(current.route)) return
+      wx.setNavigationBarColor({
+        frontColor,
+        backgroundColor,
+        animation: { duration: 200, timingFunc: 'easeIn' },
+      })
+    } catch (e) {
+      // 页面尚未创建时使用 app.json 默认导航色
     }
   },
 

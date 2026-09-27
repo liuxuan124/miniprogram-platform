@@ -1,0 +1,130 @@
+/**
+ * 管理后台全局主题：classic（经典蓝） / warm（暖棕）
+ * 由 html[data-admin-theme] 切换，与路由无关。
+ */
+
+html[data-admin-theme='classic'] {
+  --color-primary: #002fa7;
+  --color-primary-soft: #e8eefc;
+  --color-ink: #172033;
+  --color-muted: #64748b;
+  --color-line: #e7ebf3;
+  --color-bg: #f5f7fb;
+
+  --brand: #002fa7;
+  --brand-hover: #1458d9;
+  --brand-soft: #e8eefc;
+  --brand-ink: #172033;
+
+  --bg-page: #f5f7fb;
+  --bg-elevated: #ffffff;
+  --border: #e5eaf3;
+  --border-strong: #d6deeb;
+
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-text-muted: #94a3b8;
+  --sidebar-muted: #94a3b8;
+  --sidebar-item-hover-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-item-active-bg: var(--brand);
+  --sidebar-item-active-text: #ffffff;
+  --sidebar-brand-bg: var(--brand);
+  --sidebar-group-title: rgba(255, 255, 255, 0.55);
+  --sidebar-group-title-open: rgba(255, 255, 255, 0.88);
+  --sidebar-badge-bg: var(--brand);
+  --sidebar-badge-text: #ffffff;
+
+  --header-border: #e6e6e6;
+  --header-mini-bg: #ffffff;
+
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+
+  --el-color-primary: #002fa7;
+  --el-color-primary-light-3: #5b93ff;
+  --el-color-primary-light-5: #8bb1ff;
+  --el-color-primary-light-7: #bcd0ff;
+  --el-color-primary-light-8: #d4e2ff;
+  --el-color-primary-light-9: #e8eefc;
+  --el-color-primary-dark-2: #1458d9;
+
+  --wb-bg: #f5f7fb;
+  --wb-card: #ffffff;
+  --wb-soft: #f8fafc;
+  --wb-line: #e5eaf3;
+  --wb-line2: #eef2f7;
+  --wb-ink: #0f172a;
+  --wb-mute: #64748b;
+  --wb-faint: #94a3b8;
+  --wb-acc: var(--el-color-primary);
+  --wb-acc-h: var(--el-color-primary-dark-2);
+  --wb-accsoft: var(--el-color-primary-light-9);
+  --wb-shadow: rgba(15, 23, 42, 0.12);
+  --wb-body-bg: var(--bg-page);
+}
+
+html[data-admin-theme='warm'] {
+  --color-primary: #b4430f;
+  --color-primary-soft: #fbeadf;
+  --color-ink: #2a1f17;
+  --color-muted: #6b5b4e;
+  --color-line: #e8dfd3;
+  --color-bg: #f6f2ec;
+
+  --brand: #b4430f;
+  --brand-hover: #8c3208;
+  --brand-soft: #fbeadf;
+  --brand-ink: #2a1f17;
+
+  --bg-page: #f6f2ec;
+  --bg-elevated: #ffffff;
+  --border: #e8dfd3;
+  --border-strong: #d6c8b6;
+
+  --sidebar-bg: #2b1d14;
+  --sidebar-text: #e9dccb;
+  --sidebar-text-muted: #bfae9b;
+  --sidebar-muted: #bfae9b;
+  --sidebar-item-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-item-active-bg: #b4430f;
+  --sidebar-item-active-text: #ffffff;
+  --sidebar-brand-bg: #b4430f;
+  --sidebar-group-title: #ffffff;
+  --sidebar-group-title-open: #ffffff;
+  --sidebar-badge-bg: #b4430f;
+  --sidebar-badge-text: #ffffff;
+
+  --header-border: #e8dfd3;
+  --header-mini-bg: #ffffff;
+
+  --text: #2a1f17;
+  --text-secondary: #6b5b4e;
+  --text-muted: #a1897a;
+
+  --el-color-primary: #b4430f;
+  --el-color-primary-light-3: #c9601f;
+  --el-color-primary-light-5: #d98a55;
+  --el-color-primary-light-7: #eab99a;
+  --el-color-primary-light-8: #f4d5c2;
+  --el-color-primary-light-9: #fbeadf;
+  --el-color-primary-dark-2: #8c3208;
+
+  --wb-bg: #f6f2ec;
+  --wb-card: #ffffff;
+  --wb-soft: #fbf8f4;
+  --wb-line: #e8dfd3;
+  --wb-line2: #f1ebe3;
+  --wb-ink: #2a1f17;
+  --wb-mute: #6b5b4e;
+  --wb-faint: #7a6a5c;
+  --wb-acc: var(--el-color-primary);
+  --wb-acc-h: var(--el-color-primary-dark-2);
+  --wb-accsoft: var(--el-color-primary-light-9);
+  --wb-shadow: rgba(43, 29, 20, 0.14);
+  --wb-body-bg: #e9ddcd;
+}
+
+html[data-admin-theme='warm'] body {
+  background-color: var(--wb-body-bg);
+}

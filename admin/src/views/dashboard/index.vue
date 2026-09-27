@@ -11,7 +11,7 @@
             进入装修
           </el-button>
           <el-button @click="router.push('/mini/overview')">小程序概览</el-button>
-          <el-button @click="router.push('/mini/publish')">发布</el-button>
+          <el-button @click="router.push('/mini/appearance')">外观</el-button>
         </template>
       </template>
     </PageHeader>

@@ -62,8 +62,19 @@ export function duplicateStoreTemplate(id: number, templateName?: string) {
   return post(`${BASE}/${id}/duplicate`, { templateName })
 }
 
+export type UpdateStoreTemplatePayload = {
+  templateName?: string
+  scene?: string
+  description?: string
+  coverUrl?: string
+}
+
+export function updateStoreTemplate(id: number, payload: UpdateStoreTemplatePayload) {
+  return put(`${BASE}/${id}/rename`, payload)
+}
+
 export function renameStoreTemplate(id: number, templateName: string) {
-  return put(`${BASE}/${id}/rename`, { templateName })
+  return updateStoreTemplate(id, { templateName })
 }
 
 export function activateStoreTemplate(id: number) {

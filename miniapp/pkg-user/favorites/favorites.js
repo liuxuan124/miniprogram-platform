@@ -39,7 +39,7 @@ Page({
 
   goContent() {
     wx.navigateTo({
-      url: '/pages/content-list/content-list',
+      url: '/pkg-content/content-list/content-list',
       fail: () => wx.switchTab({ url: '/pages/discover/discover' }),
     })
   },

@@ -19,5 +19,11 @@ CREATE TABLE IF NOT EXISTS mp_activity_check_in (
     CONSTRAINT fk_checkin_activity FOREIGN KEY (activity_id) REFERENCES mp_activity(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='活动签到表';
 
--- 商品表添加 product_type 字段
-ALTER TABLE mp_product ADD COLUMN IF NOT EXISTS product_type VARCHAR(20) NOT NULL DEFAULT 'physical' COMMENT '商品类型: physical/digital/service' AFTER status;
+-- 商品表添加 product_type 字段（MySQL 8 无 ADD COLUMN IF NOT EXISTS，幂等判断）
+SET @db := DATABASE();
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_product' AND COLUMN_NAME='product_type');
+SET @sql := IF(@exist=0,
+    'ALTER TABLE mp_product ADD COLUMN product_type VARCHAR(20) NOT NULL DEFAULT ''physical'' COMMENT ''商品类型: physical/digital/service'' AFTER status',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

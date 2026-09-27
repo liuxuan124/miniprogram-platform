@@ -162,8 +162,8 @@ const sectionDivider = computed(() => props.component.props?.section_divider ===
 const showMore = computed(() => props.component.props?.show_more !== false)
 const moreText = computed(() => String(props.component.props?.more_text || '查看更多>').trim() || '查看更多>')
 const moreLink = computed(() =>
-  String(props.component.props?.more_link || '/pages/product-list/product-list').trim()
-  || '/pages/product-list/product-list',
+  String(props.component.props?.more_link || '/pkg-content/product-list/product-list').trim()
+  || '/pkg-content/product-list/product-list',
 )
 const sectionMoreStyle = computed(() => {
   const isBand = sectionStyle.value === 'bar'
@@ -401,7 +401,7 @@ function onMoreClick() {
   const raw = moreLink.value
   // 误填成管理端地址时回退默认商品页
   const link = (/page-builder/i.test(raw) || /^https?:\/\/[^/]*localhost/i.test(raw) && !/\/pages\//i.test(raw))
-    ? '/pages/product-list/product-list'
+    ? '/pkg-content/product-list/product-list'
     : raw
   if (/^https?:\/\//i.test(link)) {
     window.open(link, '_blank')

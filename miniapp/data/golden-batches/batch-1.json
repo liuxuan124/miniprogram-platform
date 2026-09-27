@@ -1,0 +1,162 @@
+{
+  "schema_version": "1.0",
+  "page": {
+    "id": "golden-parity-1",
+    "name": "渲染比对黄金页 1",
+    "type": "custom",
+    "path": "pages/custom/golden-parity-1",
+    "background_color": "#f5f6f9"
+  },
+  "global_config": {
+    "pull_refresh": false,
+    "reach_bottom_load": false
+  },
+  "components": [
+    {
+      "id": "golden-activity-entry",
+      "type": "activity_entry",
+      "props": {
+        "title": "Golden activity_entry"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-activity-list",
+      "type": "activity_list",
+      "props": {
+        "title": "Golden activity_list"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-ai-entry",
+      "type": "ai_entry",
+      "props": {
+        "title": "Golden ai_entry"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-appointment-service",
+      "type": "appointment_service",
+      "props": {
+        "title": "Golden appointment_service"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-article-feed",
+      "type": "article_feed",
+      "props": {
+        "title": "Golden article_feed",
+        "limit": 2,
+        "items": [
+          {
+            "title": "Static row",
+            "summary": "No network"
+          }
+        ]
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-article-list",
+      "type": "article_list",
+      "props": {
+        "title": "Golden article_list",
+        "limit": 2,
+        "items": [
+          {
+            "title": "Static row",
+            "summary": "No network"
+          }
+        ]
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-banner",
+      "type": "banner",
+      "props": {
+        "items": [
+          {
+            "title": "Golden banner title",
+            "image": "/images/404-banner-test.png",
+            "link_type": "none"
+          }
+        ],
+        "height": 140,
+        "border_radius": 8,
+        "autoplay": false
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-brand-header",
+      "type": "brand_header",
+      "props": {
+        "title": "Golden brand_header"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-brand-intro",
+      "type": "brand_intro",
+      "props": {
+        "title": "Golden brand",
+        "subtitle": "Golden subtitle",
+        "description": "Golden description",
+        "kpi": "1 项 · 2 项"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    },
+    {
+      "id": "golden-category-nav",
+      "type": "category_nav",
+      "props": {
+        "title": "Golden category_nav"
+      },
+      "style": {
+        "margin_left": 12,
+        "margin_right": 12,
+        "margin_bottom": 8
+      }
+    }
+  ]
+}

@@ -1,14 +1,21 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="存为整店模板"
+    :title="mode === 'edit' ? '编辑整店模板' : '存为整店模板'"
     width="480px"
     destroy-on-close
     @closed="onClosed"
   >
     <el-form label-position="top" class="save-tpl-form">
       <el-form-item label="名称" required>
-        <el-input v-model="form.name" maxlength="32" show-word-limit placeholder="模板名称" />
+        <el-input
+          v-model="form.name"
+          maxlength="32"
+          show-word-limit
+          placeholder="模板名称"
+          :disabled="mode === 'edit' && nameLocked"
+        />
+        <div v-if="mode === 'edit' && nameLocked" class="field-hint">系统预置模板名称不可改，可改场景、说明与封面。</div>
       </el-form-item>
       <el-form-item label="场景" required>
         <div class="scene-radios">
@@ -42,7 +49,11 @@ import { TEMPLATE_SCENE_CHIPS, type TemplateSceneKey } from '@/constants/templat
 
 const props = defineProps<{
   modelValue: boolean
+  mode?: 'create' | 'edit'
+  nameLocked?: boolean
   defaultName?: string
+  defaultScene?: string
+  defaultDescription?: string
   defaultCoverUrl?: string
 }>()
 
@@ -56,7 +67,14 @@ const visible = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
+const mode = computed(() => props.mode || 'create')
 const sceneOptions = TEMPLATE_SCENE_CHIPS.filter((s) => s.key !== 'all')
+
+function normalizeScene(raw?: string): Exclude<TemplateSceneKey, 'all'> {
+  const key = String(raw || 'content').toLowerCase()
+  if (sceneOptions.some((s) => s.key === key)) return key as Exclude<TemplateSceneKey, 'all'>
+  return 'content'
+}
 
 const form = reactive({
   name: '',
@@ -72,8 +90,8 @@ watch(
   (open) => {
     if (!open) return
     form.name = props.defaultName || ''
-    form.scene = 'content'
-    form.description = ''
+    form.scene = normalizeScene(props.defaultScene)
+    form.description = props.defaultDescription || ''
     form.coverUrl = props.defaultCoverUrl || ''
   },
 )
@@ -84,13 +102,13 @@ function onClosed() {
 
 async function submit() {
   const templateName = form.name.trim()
-  if (!templateName) return
+  if (!templateName && !(mode.value === 'edit' && props.nameLocked)) return
   submitting.value = true
   emit('submit', {
     templateName,
     scene: form.scene,
-    description: form.description.trim() || undefined,
-    coverUrl: form.coverUrl.trim() || undefined,
+    description: form.description.trim(),
+    coverUrl: form.coverUrl.trim(),
   })
 }
 
@@ -109,6 +127,11 @@ defineExpose({ setSubmitting(v: boolean) { submitting.value = v } })
   gap: 6px;
   font-size: 13px;
   cursor: pointer;
+}
+.field-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--mute, #6b5b4e);
 }
 .cover-row {
   display: flex;

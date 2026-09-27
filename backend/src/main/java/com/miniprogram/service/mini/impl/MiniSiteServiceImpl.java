@@ -21,6 +21,8 @@ import com.miniprogram.entity.PageVersion;
 import com.miniprogram.mapper.PageMapper;
 import com.miniprogram.mapper.PageVersionMapper;
 import com.miniprogram.security.SecurityUtils;
+import com.miniprogram.service.ContentMiniappAutoSyncService;
+import com.miniprogram.service.ContentPublishPreflightService;
 import com.miniprogram.service.MiniappReleaseService;
 import com.miniprogram.service.PageService;
 import com.miniprogram.service.SystemConfigService;
@@ -86,6 +88,8 @@ public class MiniSiteServiceImpl implements MiniSiteService {
     private final PageMapper pageMapper;
     private final PageVersionMapper pageVersionMapper;
     private final ObjectMapper objectMapper;
+    private final ContentPublishPreflightService contentPublishPreflightService;
+    private final ContentMiniappAutoSyncService contentMiniappAutoSyncService;
 
     @Override
     public MiniSiteVO getSite(String view) {
@@ -126,7 +130,7 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         Map<String, String> live = loadLiveConfigMap();
 
         if (dto.getTabBar() != null) {
-            draft.put("tabbarItems", dto.getTabBar());
+            draft.put("tabbarItems", com.miniprogram.util.TabBarItemsNormalizer.normalize(dto.getTabBar()));
             // 同步首页 ID：以底部导航第 1 项为准，避免预览仍指向历史壳页
             Object first = dto.getTabBar().isEmpty() ? null : dto.getTabBar().get(0);
             if (first instanceof Map<?, ?> tab0) {
@@ -209,7 +213,9 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         batch.setConfigs(List.of(item));
         systemConfigService.batchUpdateConfigs(batch);
 
-        return getSite("draft");
+        MiniSiteVO siteVo = getSite("draft");
+        contentMiniappAutoSyncService.afterSiteDraftSaved();
+        return siteVo;
     }
 
     @Override
@@ -222,6 +228,7 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             vo.setSiteDraftChanged(true);
             PendingChangeVO site = new PendingChangeVO();
             site.setType("site");
+            site.setChangeId("site:*");
             site.setName("站点配置");
             site.setStatus("pending");
             site.setSummary("导航/主题/品牌等有未上线改动");
@@ -252,6 +259,7 @@ public class MiniSiteServiceImpl implements MiniSiteService {
             }
             PendingChangeVO item = new PendingChangeVO();
             item.setType("page");
+            item.setChangeId("page:" + page.getId());
             item.setPageId(page.getId());
             item.setName(page.getName());
             item.setPath(page.getPath());
@@ -282,8 +290,11 @@ public class MiniSiteServiceImpl implements MiniSiteService {
                 : null;
 
         PendingChangesVO pendingBefore = listPendingChanges();
+        List<String> publishChangeIds = resolvePublishChangeIds(request, pendingBefore, includeSite, pageIds);
+        contentPublishPreflightService.assertCanPublish(publishChangeIds);
         String fingerprint = buildPublishFingerprint(includeSite, pageIds, pendingBefore, request != null ? request.getClientRequestId() : null);
         assertNotDuplicatePublish(fingerprint);
+        contentPublishPreflightService.assertCanPublish(publishChangeIds);
 
         boolean promoted = false;
         if (includeSite) {
@@ -819,6 +830,41 @@ public class MiniSiteServiceImpl implements MiniSiteService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private List<String> resolvePublishChangeIds(MiniPublishRequestDTO request, PendingChangesVO pending,
+                                                 boolean includeSite, List<Long> pageIds) {
+        if (request != null && request.getChangeIds() != null && !request.getChangeIds().isEmpty()) {
+            return request.getChangeIds().stream()
+                    .filter(StringUtils::hasText)
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        if (includeSite) {
+            boolean sitePending = pending.getItems() != null && pending.getItems().stream()
+                    .anyMatch(i -> i != null && "site".equals(i.getType()));
+            if (sitePending) {
+                ids.add("site:*");
+            }
+        }
+        if (pageIds == null) {
+            if (pending.getItems() != null) {
+                for (PendingChangeVO item : pending.getItems()) {
+                    if (item != null && "page".equals(item.getType()) && StringUtils.hasText(item.getChangeId())) {
+                        ids.add(item.getChangeId());
+                    }
+                }
+            }
+        } else {
+            for (Long id : pageIds) {
+                if (id != null && id > 0) {
+                    ids.add("page:" + id);
+                }
+            }
+        }
+        return new ArrayList<>(ids);
     }
 
     private void assertNotDuplicatePublish(String fingerprint) {

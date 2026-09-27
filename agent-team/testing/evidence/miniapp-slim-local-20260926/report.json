@@ -1,0 +1,27 @@
+{
+  "at": "2026-09-26T00:40:00+08:00",
+  "preview": {
+    "mainBytes": 1328719,
+    "mainKB": 1298,
+    "under2048": true,
+    "under1900": true,
+    "infoFile": "preview-size.json"
+  },
+  "automator": {
+    "port": 9420,
+    "fiveTabs": "PASS",
+    "subpackageReLaunch": {
+      "content-detail": "PASS",
+      "product-detail": "PASS"
+    },
+    "navigateToFromTab": "FAIL (automator Uncaught [object Object]; 请在模拟器手点验证)",
+    "legacyPathReLaunch": "/pages/content-detail/... FAIL (已迁分包，需走 /pkg-content/... 或 render 别名)"
+  },
+  "consoleFatal": [],
+  "screenshots": "tab-*.png",
+  "manualNext": [
+    "开发者工具模拟器：首页点文章进详情",
+    "扫 preview 终端二维码真机预览",
+    "上传体验版"
+  ]
+}

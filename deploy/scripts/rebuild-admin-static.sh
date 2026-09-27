@@ -17,7 +17,13 @@ if [[ -f package-lock.json ]]; then
 else
   npm install
 fi
-npm run build
+# 小内存 VPS 上 vue-tsc + vite 易被 OOM Kill；本地已 tsc 时可只跑 vite
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=3072}"
+if [[ "${ADMIN_BUILD_SKIP_TSC:-}" == "1" ]]; then
+  npx vite build
+else
+  npm run build
+fi
 
 mkdir -p "$STATIC"
 rsync -a --delete dist/ "$STATIC/"

@@ -15,50 +15,112 @@
         {{ tab.name }}
       </button>
     </div>
-    <div v-if="showFailState" class="preview-data-empty preview-data-fail">
-      {{ failMessage }}
-    </div>
-    <div v-else-if="showFilteredEmpty" class="preview-data-empty">
-      {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
-    </div>
-    <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已发布内容…</div>
-    <div
-      v-else
-      class="article-list-body"
-      :class="[`layout-${articleLayout}`, { 'is-tabs-mode': showCategoryTabs }]"
-      :style="{ gap: `${itemGap}px` }"
-    >
-      <div
-        v-for="(item, index) in filteredArticleItems"
-        :key="`${item.title || 'article'}-${index}`"
-        class="article-card"
-        :class="`article-card--${cardModifier(index)}`"
-      >
-        <div v-if="component.props.show_cover !== false" class="article-img">
-          <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
-          <span v-else>📖</span>
+    <div v-if="showHeader" class="article-unified-card">
+      <div class="article-unified-card__head">
+        <div class="article-unified-card__titles">
+          <div class="article-unified-card__title">{{ sectionTitle || '文章列表' }}</div>
+          <div v-if="sectionSubtitle" class="article-unified-card__subtitle">{{ sectionSubtitle }}</div>
         </div>
-        <div class="article-info">
-          <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
-          <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">
-            {{ item.title || '文章标题' }}
-            <span
-              v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'title'"
-              class="article-source-tag"
-            >{{ item.sourceTagLabel }}</span>
+        <button
+          v-if="showHeaderMore"
+          type="button"
+          class="article-unified-card__more"
+          @click.stop="onMoreClick"
+        >
+          {{ moreText }}
+        </button>
+      </div>
+      <div v-if="showFailState" class="preview-data-empty preview-data-fail">
+        {{ failMessage }}
+      </div>
+      <div v-else-if="showFilteredEmpty" class="preview-data-empty">
+        {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
+      </div>
+      <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已发布内容…</div>
+      <div
+        v-else
+        class="article-list-body article-list-body--in-card"
+        :class="[`layout-${articleLayout}`, { 'is-tabs-mode': showCategoryTabs }]"
+        :style="{ gap: unifiedInCard ? 0 : `${itemGap}px` }"
+      >
+        <div
+          v-for="(item, index) in filteredArticleItems"
+          :key="`${item.title || 'article'}-${index}`"
+          class="article-card"
+          :class="`article-card--${cardModifier(index)}`"
+        >
+          <div v-if="component.props.show_cover !== false" class="article-img">
+            <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
+            <span v-else>📖</span>
           </div>
-          <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
-          <div v-if="component.props.show_date !== false && (item.meta || item.source || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
-            <span v-if="item.meta">{{ item.meta }}</span>
-            <span
-              v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'meta'"
-              class="article-source-tag"
-            >{{ item.sourceTagLabel }}</span>
-            <span v-else-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
+          <div class="article-info">
+            <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
+            <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">
+              {{ item.title || '文章标题' }}
+              <span
+                v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'title'"
+                class="article-source-tag"
+              >{{ item.sourceTagLabel }}</span>
+            </div>
+            <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
+            <div v-if="component.props.show_date !== false && (item.meta || item.source || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
+              <span v-if="item.meta">{{ item.meta }}</span>
+              <span
+                v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'meta'"
+                class="article-source-tag"
+              >{{ item.sourceTagLabel }}</span>
+              <span v-else-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
+    <template v-else>
+      <div v-if="showFailState" class="preview-data-empty preview-data-fail">
+        {{ failMessage }}
+      </div>
+      <div v-else-if="showFilteredEmpty" class="preview-data-empty">
+        {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
+      </div>
+      <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已发布内容…</div>
+      <div
+        v-else
+        class="article-list-body"
+        :class="[`layout-${articleLayout}`, { 'is-tabs-mode': showCategoryTabs }]"
+        :style="{ gap: `${itemGap}px` }"
+      >
+        <div
+          v-for="(item, index) in filteredArticleItems"
+          :key="`${item.title || 'article'}-${index}`"
+          class="article-card"
+          :class="`article-card--${cardModifier(index)}`"
+        >
+          <div v-if="component.props.show_cover !== false" class="article-img">
+            <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
+            <span v-else>📖</span>
+          </div>
+          <div class="article-info">
+            <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
+            <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">
+              {{ item.title || '文章标题' }}
+              <span
+                v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'title'"
+                class="article-source-tag"
+              >{{ item.sourceTagLabel }}</span>
+            </div>
+            <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
+            <div v-if="component.props.show_date !== false && (item.meta || item.source || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
+              <span v-if="item.meta">{{ item.meta }}</span>
+              <span
+                v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'meta'"
+                class="article-source-tag"
+              >{{ item.sourceTagLabel }}</span>
+              <span v-else-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -156,23 +218,24 @@ const itemGap = computed(() => {
   return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : 8
 })
 
+const showHeader = computed(() => props.component.props?.show_header === true)
+const unifiedInCard = computed(() => showHeader.value && articleLayout.value === 'list')
 const sectionTitle = computed(() => String(props.component.props?.title ?? '').trim())
 const sectionSubtitle = computed(() => String(props.component.props?.subtitle ?? '').trim())
+const showHeaderMore = computed(() => {
+  if (!showHeader.value || showCategoryTabs.value) return false
+  return props.component.props?.show_more === true
+})
 const sectionStyle = computed(() => {
   const raw = String(props.component.props?.section_style || 'plain')
   return ['bar', 'plain', 'card'].includes(raw) ? raw : 'plain'
 })
 const sectionAlign = computed(() => (props.component.props?.section_align === 'center' ? 'center' : 'left'))
 const sectionDivider = computed(() => props.component.props?.section_divider === true)
-const showMore = computed(() =>
-  props.component.props?.show_category_tabs === true
-    ? false
-    : props.component.props?.show_more !== false,
-)
-const moreText = computed(() => String(props.component.props?.more_text || '查看更多>').trim() || '查看更多>')
+const moreText = computed(() => String(props.component.props?.more_text || '更多 ›').trim() || '更多 ›')
 const moreLink = computed(() =>
-  String(props.component.props?.more_link || '/pages/content-list/content-list').trim()
-  || '/pages/content-list/content-list',
+  String(props.component.props?.more_link || '/pkg-content/content-list/content-list').trim()
+  || '/pkg-content/content-list/content-list',
 )
 const sectionMoreStyle = computed(() => {
   const isBand = sectionStyle.value === 'bar'
@@ -221,7 +284,7 @@ function onMoreClick() {
   if (!props.previewMode) return
   const raw = moreLink.value
   const link = (/page-builder/i.test(raw) || (/^https?:\/\/[^/]*localhost/i.test(raw) && !/\/pages\//i.test(raw)))
-    ? '/pages/content-list/content-list'
+    ? '/pkg-content/content-list/content-list'
     : raw
   if (/^https?:\/\//i.test(link)) {
     window.open(link, '_blank')
@@ -407,6 +470,56 @@ function formatDisplayDate(value: unknown): string {
 .article-list-body.is-tabs-mode .article-img,
 .article-list-body.is-tabs-mode .article-cover {
   border-radius: 0 !important;
+}
+
+.article-unified-card {
+  background: #fffdf9;
+  border: 1px solid #efe7da;
+  border-radius: 14px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.article-unified-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.article-unified-card__titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.article-unified-card__title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1d1b18;
+  line-height: 1.3;
+}
+
+.article-unified-card__subtitle {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #7a7268;
+  line-height: 1.35;
+}
+
+.article-unified-card__more {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #c2410c;
+  font-size: 11.5px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.article-unified-card .preview-data-empty {
+  border-radius: 8px;
 }
 
 .render-article-list {
@@ -848,6 +961,34 @@ function formatDisplayDate(value: unknown): string {
 
   .layout-magazine .article-card--overlay .article-img {
     height: 210px;
+  }
+
+  /* show_header：同卡内 list 条目扁平化（覆盖上方 .article-card 独立成卡样式） */
+  .article-unified-card .article-list-body .article-card.article-card--list {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    border-top: 1px solid #f1e9dc;
+
+    &:first-child {
+      border-top: none;
+    }
+
+    .article-img {
+      width: 78px;
+      height: 58px;
+      border-radius: 9px;
+    }
+
+    .article-info .article-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
   }
 }
 </style>

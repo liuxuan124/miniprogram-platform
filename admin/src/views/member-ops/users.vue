@@ -346,7 +346,7 @@ const tags = ref<any[]>([])
 const tagError = ref('')
 const tagFormOpen = ref(false)
 const editingTagId = ref<number | null>(null)
-const tagForm = reactive({ name: '', description: '', color: '#B4430F' })
+const tagForm = reactive({ name: '', description: '', color: 'var(--el-color-primary)' })
 
 const plans = ref<MembershipPlan[]>([])
 const giftOpen = ref(false)
@@ -702,7 +702,7 @@ function openTagForm(t?: any) {
   Object.assign(tagForm, {
     name: t?.name || '',
     description: t?.description || '',
-    color: t?.color || '#B4430F',
+    color: t?.color || 'var(--el-color-primary)',
   })
   tagFormOpen.value = true
 }

@@ -17,6 +17,7 @@
     "dsl-brand-header": "../dsl-brand-header/dsl-brand-header",
     "dsl-activity-entry": "../dsl-activity-entry/dsl-activity-entry",
     "dsl-member-card": "../dsl-member-card/dsl-member-card",
+    "dsl-promo-banner": "../dsl-promo-banner/dsl-promo-banner",
     "dsl-coupon": "../dsl-coupon/dsl-coupon",
     "dsl-video": "../dsl-video/dsl-video",
     "dsl-countdown": "../dsl-countdown/dsl-countdown",

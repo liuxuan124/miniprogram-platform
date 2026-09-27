@@ -366,7 +366,7 @@ Component({
       }
       executeAction({
         type: 'page',
-        path: '/pages/content-detail/content-detail?id=' + id,
+        path: '/pkg-content/content-detail/content-detail?id=' + id,
       })
     },
   },

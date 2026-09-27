@@ -433,7 +433,7 @@ Component({
       } else {
         executeAction({
           type: 'page',
-          path: '/pages/product-detail/product-detail?id=' + id,
+          path: '/pkg-content/product-detail/product-detail?id=' + id,
         })
       }
     },

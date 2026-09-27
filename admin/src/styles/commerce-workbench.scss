@@ -1,18 +1,10 @@
 /* 暖阁商业变现 · 原型 token / 屏样式（真源：docs/prototypes/暖阁商业变现原型.html）
  * token 与 content-workbench 同源；根类 .commerce-wb */
 
+@import './workbench-tokens.scss';
+
 .commerce-wb {
-  --bg: #f6f2ec;
-  --card: #ffffff;
-  --soft: #fbf8f4;
-  --line: #e8dfd3;
-  --line2: #f1ebe3;
-  --ink: #2a1f17;
-  --mute: #6b5b4e;
-  --faint: #7a6a5c;
-  --acc: #b4430f;
-  --acc-h: #8c3208;
-  --accsoft: #fbeadf;
+  @include admin-workbench-tokens;
   --g: #1f7a4d;
   --gs: #e3f3ea;
   --a: #8f5400;
@@ -25,8 +17,6 @@
   --rs: #fbe4e0;
   --serif: 'Noto Serif SC', 'Songti SC', serif;
   --sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --el-color-primary: #b4430f;
-
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;

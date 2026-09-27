@@ -1,0 +1,86 @@
+{
+  "at": "2026-09-25T15:24:35.004Z",
+  "checks": [
+    {
+      "url": "/pages/index/index",
+      "status": "PASS",
+      "path": "pages/index/index",
+      "loading": false,
+      "error": "",
+      "dslMode": false,
+      "homeBlocksLen": 5,
+      "flowLen": 0,
+      "sampleText": "",
+      "whiteScreenHint": false,
+      "shot": "pages-index-index.png"
+    },
+    {
+      "url": "/pages/discover/discover",
+      "status": "PASS",
+      "path": "pages/discover/discover",
+      "loading": false,
+      "error": "",
+      "dslMode": true,
+      "homeBlocksLen": null,
+      "flowLen": 1,
+      "sampleText": "全部 | 笔记 | 长文 | 好物 | 全部 | 创作日常 | 工位美学 | 读书",
+      "whiteScreenHint": false,
+      "shot": "pages-discover-discover.png"
+    },
+    {
+      "url": "/pages/planet/planet",
+      "status": "PASS",
+      "path": "pages/planet/planet",
+      "loading": false,
+      "error": "",
+      "dslMode": true,
+      "homeBlocksLen": null,
+      "flowLen": 1,
+      "sampleText": "",
+      "whiteScreenHint": false,
+      "shot": "pages-planet-planet.png"
+    },
+    {
+      "url": "/pages/shop/shop",
+      "status": "PASS",
+      "path": "pages/shop/shop",
+      "loading": false,
+      "error": "",
+      "dslMode": true,
+      "homeBlocksLen": null,
+      "flowLen": 1,
+      "sampleText": "",
+      "whiteScreenHint": false,
+      "shot": "pages-shop-shop.png"
+    },
+    {
+      "url": "/pages/mine/mine",
+      "status": "PASS",
+      "path": "pages/mine/mine",
+      "loading": false,
+      "error": "",
+      "dslMode": true,
+      "homeBlocksLen": null,
+      "flowLen": 1,
+      "sampleText": "登录后同步收藏、会员与学习记录 | — | 收藏 | — | 笔记 | — | 关注 | —",
+      "whiteScreenHint": false,
+      "shot": "pages-mine-mine.png"
+    }
+  ],
+  "console": [
+    "[warn] ",
+    "[warn] ",
+    "[warn] ",
+    "[warn] ",
+    "[warn] ",
+    "[warn] ",
+    "[info] ",
+    "[info] ",
+    "[info] ",
+    "[info] ",
+    "[info] ",
+    "[info] "
+  ],
+  "fatalConsole": [],
+  "pass": true
+}

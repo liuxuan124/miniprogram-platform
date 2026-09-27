@@ -90,6 +90,9 @@ public final class PageBuilderComponentCatalog {
         add("appointment_service", "预约服务", "marketing", "appointment", "/api/v1/mp/appointment-services",
                 "预约,到店,排期,appointment",
                 "title,limit,data_source", "margin_left,margin_right", "tap,book", "日历拖拽");
+        add("promo_banner", "促销横幅", "marketing", "member", null,
+                "促销,会员横幅,banner",
+                "title,subtitle,button_text,button_link", "margin_left,margin_right", "tap", "纯促销横幅，无头像");
         add("member_card", "会员卡", "marketing", "member", "/api/v1/mp/member/info",
                 "会员,会员卡,积分卡",
                 "title,button_text", "margin_left,margin_right", "tap", "实体卡翻转");
@@ -97,6 +100,22 @@ public final class PageBuilderComponentCatalog {
                 "优惠券,领券,折扣券,coupon",
                 "title,limit,layout,button_text,data_source", "margin_left,margin_right,border_radius",
                 "tap,claim", "游戏化抽券");
+        add("content_paywall", "内容付费墙", "marketing", "content", "/api/v1/mp/contents/{id}",
+                "付费墙,内容解锁,会员解锁,paywall",
+                "title,subtitle,hint,button_text,content_id,unlock_methods,preview_identity,paywall",
+                "margin_left,margin_right,margin_top,margin_bottom", "tap,unlock", "绕过付费校验");
+        add("material_list", "资料列表", "content", "file", "/api/v1/mp/files",
+                "资料,文件,下载列表,material",
+                "layout,limit,sort,source_mode,category_ids,manual_ids,show_downloads,data_source",
+                "margin_left,margin_right,border_radius", "tap,download", "未授权下载");
+        add("qa_list", "问答列表", "content", "paid_qa", "/api/v1/mp/paid-qa",
+                "问答,付费问答,qa",
+                "limit,source_mode,show_more,show_ask_entry,topic_tabs,filter_private,data_source",
+                "margin_left,margin_right,border_radius", "tap,ask", "展示私密问答");
+        add("member_plan", "会员方案", "marketing", "member", "/api/v1/mp/membership-plans",
+                "会员方案,会员套餐,订阅方案,member plan",
+                "scope,planet_id,recommend_plan_id,benefit_mode,show_banner,show_agreement,data_source",
+                "margin_left,margin_right,margin_bottom", "tap,subscribe", "iOS虚拟支付绕过");
         add("video", "视频", "content", "none", null,
                 "视频,短片,video",
                 "title,src,poster,autoplay", "margin_left,margin_right,border_radius",
@@ -173,7 +192,8 @@ public final class PageBuilderComponentCatalog {
                 "page_size", "", "tap,scroll", "");
         add("warm_greet", "暖阁问候条", "content", "none", null,
                 "问候,搜索,快捷导航",
-                "greet_template,show_search,show_nav,show_notice,search_placeholder", "", "tap", "");
+                "greet_template,show_search,show_nav,show_notice,show_member_badge,search_placeholder,brand_initial",
+                "", "tap", "");
         add("warm_authors", "暖阁作者列表", "content", "content", "/api/v1/mp/home/warm",
                 "作者列表,出品",
                 "title,more_url,more_text", "", "tap", "");

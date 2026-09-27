@@ -8,15 +8,7 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="mini-preview-head">
-      <div class="preview-subtitle">
-        小程序端实时预览 · 当前模式：
-        <b>{{ previewDataMode === 'real' ? '真实数据' : '演示数据' }}</b>
-      </div>
-      <el-segmented
-        v-model="previewDataMode"
-        :options="previewModeOptions"
-        size="small"
-      />
+      <div class="preview-subtitle">小程序端实时预览 · 与线上一致的数据源</div>
       <el-segmented v-model="previewTab" :options="previewTabs" size="small" />
       <el-button size="small" type="primary" plain :loading="qrLoading" @click="openMobileQr">
         手机扫码预览
@@ -24,7 +16,7 @@
     </div>
     <el-alert
       class="preview-data-notice"
-      :type="previewDataMode === 'demo' ? 'warning' : (realDataWarnings.length ? 'warning' : 'success')"
+      :type="realDataWarnings.length ? 'warning' : 'success'"
       :title="previewDataNotice"
       :closable="false"
       show-icon
@@ -378,7 +370,6 @@ type PreviewDetail = {
 }
 
 const previewTab = ref<PreviewTab>('home')
-const previewDataMode = ref<'real' | 'demo'>('real')
 const previewDetail = ref<PreviewDetail | null>(null)
 const productDetailLoading = ref(false)
 const hydratedComponents = ref<ComponentInstance[]>([])
@@ -427,11 +418,6 @@ async function loadTabbarConfig() {
 
 const previewTabs = computed(() => miniTabs.value.map((tab) => ({ label: tab.label, value: tab.value })))
 const tabColumns = computed(() => miniTabs.value.length || 5)
-const previewModeOptions = [
-  { label: '真实数据', value: 'real' },
-  { label: '演示数据', value: 'demo' },
-]
-
 const realDataWarnings = computed(() => {
   const warnings: string[] = []
   const components = previewComponents.value
@@ -454,44 +440,10 @@ const realDataWarnings = computed(() => {
   return warnings
 })
 
-function demoProductItems(limit = 2) {
-  return [
-    { id: 'demo-1', name: '示例商品 A', price: '199.00', sales: 128, image: '' },
-    { id: 'demo-2', name: '示例商品 B', price: '299.00', sales: 86, image: '' },
-  ].slice(0, limit)
-}
-
 async function hydratePreviewComponents() {
   previewHydrating.value = true
   const base = pageStore.components
   try {
-    if (previewDataMode.value === 'demo') {
-      hydratedComponents.value = base.map((component) => {
-        const type = String(component.type)
-        if (type === 'product_list') {
-          const limit = Math.max(Number(component.props?.limit || 4), 1)
-          return {
-            ...component,
-            props: {
-              ...component.props,
-              items: demoProductItems(limit),
-              _previewDataFailed: false,
-            },
-          }
-        }
-        if (type === 'article_list' || type === 'article_feed' || type === 'hot_news') {
-          const items = defaultContentPreviewList.map((item) => ({
-            title: item.title,
-            meta: item.desc,
-            cover: '',
-          }))
-          return { ...component, props: { ...component.props, items, _previewDataFailed: false } }
-        }
-        return component
-      })
-      return
-    }
-
     hydratedComponents.value = await Promise.all(
       base.map(async (component) => {
         const type = String(component.type)
@@ -549,13 +501,10 @@ const floatPreviewComponents = computed(() =>
 )
 
 const previewDataNotice = computed(() => {
-  if (previewDataMode.value === 'demo') {
-    return '当前为演示数据，仅用于查看布局，不代表线上实际内容。'
-  }
   if (realDataWarnings.value.length > 0) {
-    return `真实数据缺失：${realDataWarnings.value.join('、')}。编辑画布中的示例内容不会作为线上数据发布。`
+    return `部分区块暂无线上数据：${realDataWarnings.value.join('、')}。请检查数据源配置或后台内容。`
   }
-  return '当前展示线上可用的真实数据。'
+  return '预览数据来自与小程序相同的接口。'
 })
 
 const defaultContentPreviewList: { title: string; desc: string }[] = [
@@ -589,13 +538,6 @@ const previewBgColor = computed(() => {
 })
 
 async function loadShopPreviewList() {
-  if (previewDataMode.value === 'demo') {
-    shopPreviewList.value = [
-      { name: '示例商品 A', price: '199.00', sales: 128 },
-      { name: '示例商品 B', price: '299.00', sales: 86 },
-    ]
-    return
-  }
   shopPreviewList.value = []
   try {
     const res = await getProductList({ current: 1, size: 50, status: 'on_sale' } as any)
@@ -629,10 +571,6 @@ async function loadShopPreviewList() {
 }
 
 async function loadContentPreviewList() {
-  if (previewDataMode.value === 'demo') {
-    contentPreviewList.value = [...defaultContentPreviewList]
-    return
-  }
   contentPreviewList.value = []
   const localArticleList = pageStore.components.find((item) => item.type === 'article_list')?.props?.items
   const localPreviewList = Array.isArray(localArticleList)
@@ -674,10 +612,6 @@ async function loadContentPreviewList() {
 }
 
 async function loadActivityPreviewList() {
-  if (previewDataMode.value === 'demo') {
-    activityPreviewList.value = [...defaultActivityPreviewList]
-    return
-  }
   activityPreviewList.value = []
   await syncActivities((items) => {
     if (items.length > 0) {
@@ -737,7 +671,7 @@ function handlePreviewAction(payload: {
   if (detailType === 'form') {
     void (async () => {
       let formFields: FormFieldConfig[] = []
-      if (payload.formId && previewDataMode.value === 'real') {
+      if (payload.formId) {
         try {
           const res = await getFormTemplateDetail(Number(payload.formId))
           formFields = normalizePreviewFormFields((res as any)?.data?.fields)
@@ -750,7 +684,7 @@ function handlePreviewAction(payload: {
     })()
     return
   }
-  if (detailType === 'product' && payload.productId != null && previewDataMode.value === 'real') {
+  if (detailType === 'product' && payload.productId != null) {
     previewTab.value = payload.tab || 'shop'
     void nextTick(() => {
       void openRealProductDetail(payload.productId!, {
@@ -815,7 +749,7 @@ async function navigatePreviewToPage(path: string, message?: string) {
   previewPageLoading.value = true
   previewDetail.value = null
   try {
-    const loaded = await loadPagePreviewByPath(path, previewDataMode.value)
+    const loaded = await loadPagePreviewByPath(path)
     if (!loaded) {
       ElMessage.warning(`未找到页面：${path}`)
       return
@@ -861,7 +795,7 @@ function openContentDetail(item: { title: string; desc: string }) {
 
 function openProductDetail(item: { name: string; price: string; id?: string | number }) {
   previewTab.value = 'shop'
-  if (item.id != null && previewDataMode.value === 'real') {
+  if (item.id != null) {
     void openRealProductDetail(item.id, {
       title: item.name,
       desc: `售价 ¥${item.price}`,
@@ -925,15 +859,6 @@ watch(
   },
 )
 
-watch(
-  () => previewDataMode.value,
-  async () => {
-    await hydratePreviewComponents()
-    loadShopPreviewList()
-    loadContentPreviewList()
-    loadActivityPreviewList()
-  },
-)
 </script>
 
 <style lang="scss" scoped>

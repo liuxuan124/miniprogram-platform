@@ -131,7 +131,7 @@ const DEMO_NOTE = {
     title: '一个人的内容生意 · 专栏',
     desc: '笔记提到的选题库模板在第 6 讲',
     cover: picsum('warmc1', 200, 200),
-    url: '/pages/product-detail/product-detail?demo=column',
+    url: '/pkg-content/product-detail/product-detail?demo=column',
   },
   comments: [
     { nick: '阿桃', avatar: picsum('u2', 80, 80), text: '1！求收纳篇，我桌面线材已经乱成一团了 😭', likes: 128, reply: '小满（作者）：这周就写！线材我全走了桌下理线架，超救命' },
@@ -175,7 +175,7 @@ const DEMO_MEAL_NOTE = {
     title: '一个人的内容生意 · 专栏',
     desc: '把「决策系统」从外卖 App 搬回生活，同款节奏在第 4 讲',
     cover: picsum('warmc1', 200, 200),
-    url: '/pages/product-detail/product-detail?demo=column',
+    url: '/pkg-content/product-detail/product-detail?demo=column',
   },
   comments: [
     { nick: '阿柚', avatar: picsum('u8', 80, 80), text: '菜单！求一份可直接抄的周菜单 🙏', likes: 86, reply: '编辑部：下周发「一人食备菜清单」，先关注不迷路' },

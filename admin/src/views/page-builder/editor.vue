@@ -69,12 +69,13 @@
               <el-icon><View /></el-icon>
               <span class="toolbar-text">扫码预览</span>
             </el-button>
-            <el-tooltip content="自动保存草稿后去发布页" placement="bottom">
-              <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving" @click="goMiniPublish">
-                <el-icon><Upload /></el-icon>
-                <span class="toolbar-text">去发布</span>
-              </el-button>
-            </el-tooltip>
+            <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
+              <span class="toolbar-text">保存草稿</span>
+            </el-button>
+            <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving || publishCheck.publishing" @click="handleSyncToLive">
+              <el-icon><Upload /></el-icon>
+              <span class="toolbar-text">保存并同步</span>
+            </el-button>
             <el-dropdown trigger="click">
               <el-button size="small">
                 更多
@@ -84,7 +85,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item v-if="toolbarCompact" @click="handlePreview">扫码预览</el-dropdown-item>
                   <el-dropdown-item @click="handleSaveDraft">立即保存草稿</el-dropdown-item>
-                  <el-dropdown-item @click="handlePublishCheck">发布前体检</el-dropdown-item>
+                  <el-dropdown-item @click="handlePublishCheck">同步前检查</el-dropdown-item>
                   <el-dropdown-item @click="handleHistory">历史版本</el-dropdown-item>
                   <el-dropdown-item @click="handleImportDSL">导入 DSL</el-dropdown-item>
                   <el-dropdown-item divided @click="handleViewDSL">高级：查看 DSL</el-dropdown-item>
@@ -248,7 +249,7 @@
 
     <el-dialog
       v-model="publishCheck.visible"
-      title="上线前检查"
+      title="同步到线上配置"
       width="560px"
       :close-on-click-modal="false"
       class="publish-check-dialog"
@@ -259,10 +260,11 @@
         </div>
         <div>
           <div class="publish-check-title">
-            {{ publishCheck.blocking.length ? '还有问题需要处理' : (publishCheck.warnings.length ? '可以上线，但建议先确认' : '检查通过，可以上线') }}
+            {{ publishCheck.blocking.length ? '阻断' : (publishCheck.warnings.length ? '提醒' : '通过') }}
+            — {{ publishCheck.blocking.length ? '须先处理下列问题' : (publishCheck.warnings.length ? '可同步，建议先确认' : '可以写入线上配置') }}
           </div>
           <div class="publish-check-desc">
-            体检分 {{ publishCheck.score }} · {{ pageStore.components.length }} 个组件 · {{ publishCheck.warnings.length }} 项提醒
+            {{ pageStore.components.length }} 个组件 · {{ publishCheck.blocking.length }} 项阻断 · {{ publishCheck.warnings.length }} 项提醒
           </div>
         </div>
       </div>
@@ -274,7 +276,7 @@
         </div>
         <div class="check-row is-success">
           <el-icon><CircleCheckFilled /></el-icon>
-          <div><b>保存状态</b><span>草稿已保存为最新版本</span></div>
+          <div><b>保存状态</b><span>草稿已是最新（同步仅更新服务端线上配置）</span></div>
         </div>
         <div
           v-for="warning in publishCheck.warnings"
@@ -304,13 +306,13 @@
           一键修复（安全项）
         </el-button>
         <el-button type="primary" :loading="publishCheck.publishing" :disabled="publishCheck.blocking.length > 0" @click="executePublish">
-          {{ publishCheck.warnings.length ? '确认并上线' : '立即上线' }}
+          {{ publishCheck.warnings.length ? '确认并同步' : '同步到线上' }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- C3：发布结果面板，替代原来信息密度过高的单个确认弹窗 -->
-    <el-dialog v-model="publishResult.visible" title="已上线" width="440px" :close-on-click-modal="false">
+    <el-dialog v-model="publishResult.visible" title="已同步到线上配置" width="440px" :close-on-click-modal="false">
       <div class="publish-result">
         <div class="publish-result__row">
           <span class="label">当前版本</span>
@@ -353,6 +355,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
 import { getPageDetail, saveDraft, publishPage, createPage, updatePage, runAiPagePipeline } from '@/api/page'
+import { publishMiniSite } from '@/api/miniSite'
+import { refreshMiniPendingGlobal } from '@/composables/useMiniPending'
 import { validateComponent } from '@/components/page-builder/componentRegistry'
 import { collectDataSourceIssues } from '@/components/page-builder/dataSourceValidation'
 import ComponentPanel from '@/components/page-builder/ComponentPanel.vue'
@@ -595,15 +599,15 @@ function toMiniappOpenPath(path: string) {
   const pathname = normalized.split('?')[0]
   const registered = new Set([
     '/pages/index/index',
-    '/pages/content-list/content-list',
-    '/pages/product-list/product-list',
+    '/pkg-content/content-list/content-list',
+    '/pkg-content/product-list/product-list',
     '/pages/mine/mine',
     '/pages/login/login',
     '/pages/search/search',
-    '/pages/product-detail/product-detail',
-    '/pages/content-detail/content-detail',
-    '/pages/cart/cart',
-    '/pages/order-create/order-create',
+    '/pkg-content/product-detail/product-detail',
+    '/pkg-content/content-detail/content-detail',
+    '/pkg-content/cart/cart',
+    '/pkg-content/order-create/order-create',
     '/pages/custom/custom',
   ])
   if (registered.has(pathname)) return normalized
@@ -971,37 +975,13 @@ function validateBeforePublish(): string[] {
   return [...new Set(warnings)]
 }
 
-/** 去统一发布页：有脏改动先自动保存，再跳转 */
-async function goMiniPublish() {
+/** 保存草稿后打开同步前检查 */
+async function handleSyncToLive() {
   if (pageStore.hasUnpersistedChanges && pageStore.currentPage) {
-    try {
-      pageStore.saving = true
-      await syncPageMetaToServer()
-      const expectedVersion = currentExpectedVersion()
-      const res = await saveDraft(pageStore.currentPage.id, pageStore.dsl, expectedVersion)
-      pageStore.markSavedToServer()
-      saveStatus.value = 'saved'
-      lastPersistSavedAt.value = new Date()
-      updateStatusText()
-      if (res.data) {
-        syncSavedDraftVersion(res.data)
-      }
-    } catch (err: any) {
-      if (isConflictError(err)) {
-        conflict.visible = true
-      } else {
-        ElMessage.error(`保存失败，暂时无法去发布：${err?.response?.data?.message || err?.message || '未知错误'}`)
-      }
-      return
-    } finally {
-      pageStore.saving = false
-    }
+    await handleSaveDraft()
+    if (pageStore.hasUnpersistedChanges) return
   }
-  const id = pageStore.currentPage?.id
-  router.push({
-    path: '/mini/publish',
-    query: id != null ? { pageId: String(id) } : undefined,
-  })
+  handlePublishCheck()
 }
 
 /** 单页立即上线（已从顶栏移除；保留函数供结果面板等内部调用） */
@@ -1077,7 +1057,14 @@ async function executePublish() {
   if (!pageStore.currentPage || publishCheck.blocking.length > 0) return
   publishCheck.publishing = true
   try {
-    const res = await publishPage(pageStore.currentPage.id)
+    const pageId = pageStore.currentPage.id
+    const res = await publishPage(pageId)
+    try {
+      await publishMiniSite({ pageIds: [pageId], includeSite: false })
+    } catch {
+      /* 旧后端可能仅有 publishPage */
+    }
+    await refreshMiniPendingGlobal(true)
     const published = res.data as PageRecord | undefined
     // C3：发布成功后用结果面板展示版本、变更规模和下一步建议，替代信息密度过高的单个确认弹窗
     publishResult.version = published?.currentVersion ?? published?.version ?? (pageStore.currentPage.currentVersion ?? pageStore.currentPage.version ?? 1)
@@ -1087,7 +1074,7 @@ async function executePublish() {
     publishResult.visible = true
     await loadPage()
   } catch (err: any) {
-    ElMessage.error(`上线失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
+    ElMessage.error(`同步失败：${err?.response?.data?.message || err?.message || '未知错误'}`)
   } finally {
     publishCheck.publishing = false
   }
@@ -1251,7 +1238,7 @@ onBeforeUnmount(() => {
   bottom: 0;
   z-index: 1000;
   overflow: hidden;
-  background: #f6f2ec;
+  background: var(--wb-bg);
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 
   .editor-body {
@@ -1260,7 +1247,7 @@ onBeforeUnmount(() => {
     height: 100vh;
     overflow: hidden;
     max-width: 100vw;
-    background: #f6f2ec;
+    background: var(--wb-bg);
 
     &.left-collapsed {
       grid-template-columns: 0 minmax(0, 1fr) 380px;
@@ -1286,7 +1273,7 @@ onBeforeUnmount(() => {
       flex-shrink: 0;
       overflow-y: auto;
       background: #fff;
-      border-right: 1px solid #e8dfd3;
+      border-right: 1px solid var(--wb-line);
       padding: 14px;
     }
 
@@ -1325,7 +1312,7 @@ onBeforeUnmount(() => {
       display: flex;
       flex-direction: column;
       background: #fff;
-      border-left: 1px solid #e8dfd3;
+      border-left: 1px solid var(--wb-line);
     }
   }
 }
@@ -1334,13 +1321,13 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  --el-color-primary: #b4430f;
+  --el-color-primary: var(--el-color-primary);
 
   :deep(.el-tabs__header) {
     margin: 0;
     padding: 0;
     background: #fff;
-    border-bottom: 1px solid #e8dfd3;
+    border-bottom: 1px solid var(--wb-line);
   }
   :deep(.el-tabs__nav-wrap::after) {
     background-color: transparent;
@@ -1363,11 +1350,11 @@ onBeforeUnmount(() => {
     overflow: auto;
   }
   :deep(.el-tabs__item.is-active) {
-    color: #b4430f;
+    color: var(--el-color-primary);
     font-weight: 600;
   }
   :deep(.el-tabs__active-bar) {
-    background-color: #b4430f;
+    background-color: var(--el-color-primary);
     height: 2px;
   }
 }
@@ -1378,7 +1365,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 10px;
   min-height: 100%;
-  background: #f6f2ec;
+  background: var(--wb-bg);
 }
 .ai-assistant__hint {
   font-size: 12px;
@@ -1400,15 +1387,15 @@ onBeforeUnmount(() => {
   cursor: pointer;
   &:hover {
     border-color: #d4a88a;
-    color: #b4430f;
+    color: var(--el-color-primary);
   }
 }
 .ai-assistant__send {
   align-self: flex-start;
-  --el-button-bg-color: #b4430f;
-  --el-button-border-color: #b4430f;
-  --el-button-hover-bg-color: #9a390d;
-  --el-button-hover-border-color: #9a390d;
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-hover-bg-color: var(--el-color-primary-dark-2);
+  --el-button-hover-border-color: var(--el-color-primary-dark-2);
 }
 .ai-assistant__reply {
   flex: 1;
@@ -1439,7 +1426,7 @@ onBeforeUnmount(() => {
   padding: 0 16px;
   background: #fff;
   border: 0;
-  border-bottom: 1px solid #e8dfd3;
+  border-bottom: 1px solid var(--wb-line);
   border-radius: 0;
   box-shadow: none;
   gap: 8px;
@@ -1542,10 +1529,10 @@ onBeforeUnmount(() => {
 }
 
 .ed-pub-btn {
-  --el-button-bg-color: #b4430f;
-  --el-button-border-color: #b4430f;
-  --el-button-hover-bg-color: #8c3208;
-  --el-button-hover-border-color: #8c3208;
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-hover-bg-color: var(--el-color-primary-dark-2);
+  --el-button-hover-border-color: var(--el-color-primary-dark-2);
 }
 
 .autosave-error {

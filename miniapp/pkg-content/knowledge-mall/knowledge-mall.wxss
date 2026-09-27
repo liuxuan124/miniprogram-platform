@@ -1,0 +1,9 @@
+.km-redirect {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #78716c;
+  font-size: 28rpx;
+  background: #FDF6EC;
+}

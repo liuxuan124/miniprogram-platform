@@ -30,7 +30,7 @@ export function mapQaRecord(raw: Record<string, unknown>, index = 0): QaListItem
     spectatorCount: Number(raw.spectatorCount ?? raw.spectator_count ?? 0) || 0,
     payStatusLabel: STATUS_LABELS[status] || status,
     visibility,
-    link_url: `/pages/question-detail/question-detail?id=${id}`,
+    link_url: `/pkg-content/question-detail/question-detail?id=${id}`,
   }
 }
 

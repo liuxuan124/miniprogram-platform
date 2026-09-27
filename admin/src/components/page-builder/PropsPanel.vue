@@ -441,6 +441,7 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.ActivityList]: defineAsyncComponent(() => import('./props/ActivityListProps.vue')),
   [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./props/AppointmentServiceProps.vue')),
   [ComponentType.MemberCard]: defineAsyncComponent(() => import('./props/MemberCardProps.vue')),
+  [ComponentType.PromoBanner]: defineAsyncComponent(() => import('./props/PromoBannerProps.vue')),
   [ComponentType.Coupon]: defineAsyncComponent(() => import('./props/CouponProps.vue')),
   [ComponentType.Video]: defineAsyncComponent(() => import('./props/VideoProps.vue')),
   [ComponentType.BrandIntro]: defineAsyncComponent(() => import('./props/BrandIntroProps.vue')),

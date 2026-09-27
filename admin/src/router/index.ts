@@ -55,6 +55,12 @@ export const constantRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/page-builder/miniapp-full-preview.vue'),
     meta: { title: '小程序预览', hidden: true },
   },
+  {
+    path: '/h5/golden-parity',
+    name: 'GoldenParityPreview',
+    component: () => import('@/views/page-builder/golden-parity-preview.vue'),
+    meta: { title: '黄金 DSL 比对', hidden: true },
+  },
 ]
 
 /** 动态路由（需登录 + 权限过滤） */
@@ -104,9 +110,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'publish',
-        name: 'MiniPublish',
-        component: () => import('@/views/mini/publish.vue'),
-        meta: { title: '发布与分发', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+        redirect: '/mini/overview',
+        meta: { title: '发布与分发', hidden: true },
       },
     ],
   },
@@ -170,7 +175,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'release',
         name: 'PageBuilderRelease',
-        redirect: '/mini/publish',
+        redirect: '/mini/overview',
         meta: { title: '发布中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
@@ -183,7 +188,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'version-management',
         name: 'VersionManagement',
-        redirect: '/mini/publish',
+        redirect: '/mini/overview',
         meta: { title: '版本记录', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {

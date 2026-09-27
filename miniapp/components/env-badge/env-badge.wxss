@@ -1,0 +1,14 @@
+.env-badge {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  padding: 4px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  color: #fff;
+  background: rgba(180, 83, 9, 0.92);
+  pointer-events: none;
+}

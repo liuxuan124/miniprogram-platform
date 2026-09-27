@@ -1,6 +1,57 @@
 <template>
   <div class="render-hot-news">
-    <div class="hot-news-stack">
+    <div v-if="useUnifiedCard" class="hot-news-card" :style="unifiedCardStyle">
+      <div class="hot-news-card__head">
+        <div class="hot-news-title hot-news-title--plain">{{ titleText }}</div>
+        <button
+          v-if="showMore"
+          type="button"
+          class="hot-news-more hot-news-more--plain"
+          @click.stop="onMore"
+        >
+          {{ moreText }}
+        </button>
+      </div>
+      <div v-if="showFailState" class="hot-news-empty">{{ failMessage }}</div>
+      <div v-else-if="showEmpty" class="hot-news-empty">
+        {{ previewMode ? '暂无文章数据' : '当前筛选下没有已发布内容' }}
+      </div>
+      <div v-else-if="!previewMode && liveLoading" class="hot-news-empty">正在读取已发布内容…</div>
+      <div
+        v-else
+        class="hot-news-body"
+        :class="{ 'hot-news-body--number': layout === 'number' }"
+        :style="{ gap: `${itemGap}px` }"
+      >
+        <div
+          v-for="(item, index) in displayItems"
+          :key="`${item.id || item.title}-${index}`"
+          class="hot-news-item"
+          :class="[`hot-news-item--${layout}`, { 'is-clickable': previewMode }]"
+          @click.stop="onItemClick(item)"
+        >
+          <template v-if="layout === 'number'">
+            <span class="hot-news-num">{{ index + 1 }}</span>
+            <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
+          </template>
+          <template v-else-if="layout === 'star'">
+            <span class="hot-news-star">★</span>
+            <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
+          </template>
+          <template v-else>
+            <div v-if="showCover" class="hot-news-cover">
+              <img v-if="item.cover" :src="item.cover" alt="" />
+              <span v-else>📰</span>
+            </div>
+            <div class="hot-news-item__info">
+              <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
+              <div v-if="item.meta" class="hot-news-item__meta">{{ item.meta }}</div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+    <div v-else class="hot-news-stack">
       <!-- 最下层：内容框 -->
       <div class="hot-news-content" :style="contentBoxStyle">
         <div class="hot-news-content__pad" />
@@ -24,6 +75,10 @@
           >
             <template v-if="layout === 'star'">
               <span class="hot-news-star">★</span>
+              <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
+            </template>
+            <template v-else-if="layout === 'number'">
+              <span class="hot-news-num">{{ index + 1 }}</span>
               <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
             </template>
             <template v-else>
@@ -52,7 +107,7 @@
         />
         <div class="hot-news-title-box__main">
           <div class="hot-news-title">{{ titleText }}</div>
-          <div class="hot-news-date">
+          <div v-if="showDateBadge" class="hot-news-date">
             <span class="hot-news-date__box">{{ dateParts.month }}</span>
             <span class="hot-news-date__unit">月</span>
             <span class="hot-news-date__box">{{ dateParts.day }}</span>
@@ -112,7 +167,18 @@ function clamp(n: number, min: number, max: number) {
 }
 
 const titleText = computed(() => String(props.component.props?.title || '今日跨境头条').trim() || '今日跨境头条')
-const layout = computed(() => (props.component.props?.layout === 'card' ? 'card' : 'star'))
+const layout = computed(() => {
+  const raw = props.component.props?.layout
+  if (raw === 'card') return 'card'
+  if (raw === 'number') return 'number'
+  return 'star'
+})
+const headerPlain = computed(() => !!props.component.props?.header_plain)
+const useUnifiedCard = computed(() => headerPlain.value || layout.value === 'number')
+const showDateBadge = computed(() => (props.component.props?.date_mode || 'today') !== 'none')
+const unifiedCardStyle = computed(() => ({
+  borderRadius: `${contentRadius.value}px`,
+}))
 const showCover = computed(() => props.component.props?.show_cover !== false)
 const showMore = computed(() => props.component.props?.show_more !== false)
 const moreText = computed(() => String(props.component.props?.more_text || '查看更多 >').trim() || '查看更多 >')
@@ -170,6 +236,9 @@ const moreBoxStyle = computed(() => ({
 
 const dateParts = computed(() => {
   const mode = props.component.props?.date_mode || 'today'
+  if (mode === 'none') {
+    return { month: '', day: '', week: '' }
+  }
   let d = new Date()
   if (mode === 'fixed' && props.component.props?.header_date) {
     const raw = String(props.component.props.header_date).replace(/-/g, '/')
@@ -188,7 +257,7 @@ const displayItems = computed(() => {
     const id = item.id ?? item.contentId ?? item.content_id
     const link = String(item.link_url || item.linkUrl || '').trim()
       || (id != null && !String(id).startsWith('hot_')
-        ? `/pages/content-detail/content-detail?id=${id}`
+        ? `/pkg-content/content-detail/content-detail?id=${id}`
         : '')
     return {
       id: id ?? `hot_${index + 1}`,
@@ -257,7 +326,7 @@ function onItemClick(item: { id?: string | number; title?: string; meta?: string
   const title = String(item.title || '文章详情').trim() || '文章详情'
   let link = sanitizeLink(String(item.link_url || '').trim())
   if (!link && item.id != null && !String(item.id).startsWith('hot_')) {
-    link = `/pages/content-detail/content-detail?id=${item.id}`
+    link = `/pkg-content/content-detail/content-detail?id=${item.id}`
   }
   if (!link) {
     ElMessage.warning('未配置跳转链接')
@@ -460,5 +529,63 @@ function onItemClick(item: { id?: string | number; title?: string; meta?: string
   color: #94a3b8;
   font-size: 12px;
   text-align: center;
+}
+
+.hot-news-card {
+  background: #fffdf9;
+  border: 1px solid #efe7da;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.hot-news-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.hot-news-title--plain {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1d1b18;
+  line-height: 1.3;
+}
+.hot-news-more--plain {
+  position: static;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #c2410c;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.hot-news-body--number {
+  padding: 0;
+}
+.hot-news-item--number {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  padding: 6px 0;
+  border-top: 1px dashed #efe5d6;
+}
+.hot-news-body--number .hot-news-item--number:first-child,
+.hot-news-body.hot-news-body--number > .hot-news-item--number:first-child {
+  border-top: none;
+}
+.hot-news-num {
+  flex-shrink: 0;
+  width: 14px;
+  color: #c2410c;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.hot-news-item--number .hot-news-item__title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #3a3631;
 }
 </style>

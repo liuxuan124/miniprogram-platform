@@ -1,0 +1,35 @@
+{
+  "size": {
+    "total": 2379064,
+    "packages": [
+      {
+        "name": "TOTAL",
+        "size": 2379064
+      },
+      {
+        "name": "main",
+        "size": 1370343
+      },
+      {
+        "name": "/pkg-content/",
+        "size": 606353
+      },
+      {
+        "name": "/pkg-extra/",
+        "size": 56348
+      },
+      {
+        "name": "/pkg-templates/",
+        "size": 17722
+      },
+      {
+        "name": "/pkg-trade/",
+        "size": 140511
+      },
+      {
+        "name": "/pkg-user/",
+        "size": 187787
+      }
+    ]
+  }
+}

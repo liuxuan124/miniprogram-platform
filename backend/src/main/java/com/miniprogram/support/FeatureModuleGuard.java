@@ -1,6 +1,6 @@
 package com.miniprogram.support;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -40,27 +38,56 @@ public class FeatureModuleGuard {
             return false;
         }
         String raw = systemConfigService.getConfigValue("plugins", "[]");
-        if (!StringUtils.hasText(raw) || "[]".equals(raw.trim())) {
+        if (!StringUtils.hasText(raw) || "[]".equals(raw.trim()) || "{}".equals(raw.trim())) {
             return !DEFAULT_OFF.contains(moduleKey);
         }
         try {
-            List<Map<String, Object>> plugins = objectMapper.readValue(raw, new TypeReference<>() {});
-            for (Map<String, Object> entry : plugins) {
-                if (entry == null) {
-                    continue;
+            JsonNode root = objectMapper.readTree(raw);
+            // 对象格式：{"product":true,"planet":{"enabled":false},...}
+            // 小程序端 services/system.js#pluginFlagFromMap 已兼容此格式，后端须保持一致，
+            // 否则解析失败会落到 DEFAULT_OFF，把商品/订单/会员等模块整体误判为关闭。
+            if (root.isObject()) {
+                JsonNode node = root.get(moduleKey);
+                if (node == null || node.isNull()) {
+                    return !DEFAULT_OFF.contains(moduleKey);
                 }
-                Object key = entry.get("key");
-                if (!moduleKey.equals(String.valueOf(key))) {
-                    continue;
+                return toEnabled(node);
+            }
+            // 数组格式：[{"key":"product","enabled":true},...]
+            if (root.isArray()) {
+                for (JsonNode entry : root) {
+                    if (entry == null || !entry.isObject()) {
+                        continue;
+                    }
+                    JsonNode key = entry.get("key");
+                    if (key == null || !moduleKey.equals(key.asText())) {
+                        continue;
+                    }
+                    JsonNode enabled = entry.get("enabled");
+                    return enabled == null || enabled.isNull() || toEnabled(enabled);
                 }
-                Object enabled = entry.get("enabled");
-                return enabled == null || Boolean.TRUE.equals(enabled) || "true".equalsIgnoreCase(String.valueOf(enabled));
             }
         } catch (Exception e) {
-            log.warn("plugins 配置解析失败，按默认关闭交易类模块 module={}", moduleKey, e);
+            log.warn("plugins 配置解析失败，按默认关闭交易类模块 module={} raw={}", moduleKey, raw, e);
             return !DEFAULT_OFF.contains(moduleKey);
         }
         return !DEFAULT_OFF.contains(moduleKey);
+    }
+
+    /** 兼容 true / "true" / {"enabled":true} 三种写法 */
+    private boolean toEnabled(JsonNode node) {
+        if (node.isObject()) {
+            JsonNode inner = node.get("enabled");
+            return inner == null || inner.isNull() || toEnabled(inner);
+        }
+        if (node.isBoolean()) {
+            return node.booleanValue();
+        }
+        if (node.isNumber()) {
+            return node.intValue() != 0;
+        }
+        String text = node.asText();
+        return !"false".equalsIgnoreCase(text) && !"0".equals(text) && StringUtils.hasText(text);
     }
 
     public void requireProductModule() {

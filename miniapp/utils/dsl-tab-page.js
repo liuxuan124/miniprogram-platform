@@ -1,35 +1,21 @@
 const SystemService = require('../services/system')
 const { PageService } = require('../services/page')
 const { parseDSL, loadAllComponentData } = require('./render')
-const { expandHomeComponents, annotateHomeBlocks, isNativeHomeType } = require('./warm-home-template')
 const { getNavLayout } = require('./nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('./image-preload')
 const { TAB_SLOT_ROUTES, showTabBarForRoute } = require('./tab-bar-route')
 const { resolveActiveTabItems } = require('./tabbar-config')
-
-const WARM_TAB_COMPONENT = {
-  '/pages/index/index': 'warm_home',
-  '/pages/discover/discover': 'warm_discover',
-  '/pages/planet/planet': 'warm_planet',
-  '/pages/shop/shop': 'warm_shop',
-  '/pages/mine/mine': 'warm_mine',
-  '/pages/content-list/content-list': 'warm_content_list',
-}
-
-function extractDslComponents(dsl) {
-  if (!dsl || typeof dsl !== 'object') return []
-  if (Array.isArray(dsl.components)) return dsl.components
-  if (dsl.data && Array.isArray(dsl.data.components)) return dsl.data.components
-  return []
-}
+const { getAppThemeConfig, resolvePageBackgroundColor, getNavigationFrontColor } = require('./theme')
 
 function normalizePath(path) {
   return '/' + String(path || '').replace(/^\/+/, '')
 }
 
-function isCustomDecoratedPath(path) {
-  const p = normalizePath(path)
-  return /\/pages\/custom\//.test(p)
+function tabItemPageId(item) {
+  if (!item) return null
+  const raw = item.pageId != null ? item.pageId : item.page_id
+  if (raw == null || raw === '') return null
+  return String(raw)
 }
 
 async function resolveBoundPathForTabRoute(tabRoute) {
@@ -40,9 +26,59 @@ async function resolveBoundPathForTabRoute(tabRoute) {
   if (!hit) return null
 
   const boundPath = normalizePath(hit.item.path || hit.item.pagePath || '')
-  if (!boundPath || boundPath === route) return null
-  // 绑定了任意装修页就加载其已发布 DSL（不再限制仅 /pages/custom/）
+  const pageId = tabItemPageId(hit.item)
+  if (!boundPath && !pageId) return null
+  // 绑到壳路径本身但有 pageId（如首页 pages/index/index + 出海笔记首页）→ 仍加载该路径 DSL
+  if (boundPath === route) {
+    return pageId ? boundPath.replace(/^\//, '') : null
+  }
+  if (!boundPath) return null
   return boundPath.replace(/^\//, '')
+}
+
+/** Tab 未绑定时，首页仍尝试已发布的 pages/index/index DSL */
+async function resolveDslPathForTabRoute(tabRoute) {
+  const bound = await resolveBoundPathForTabRoute(tabRoute)
+  if (bound) return bound
+  if (normalizePath(tabRoute) === '/pages/index/index') {
+    return 'pages/index/index'
+  }
+  return null
+}
+
+function isRenderParityLocked(pageCtx) {
+  const batch = pageCtx && pageCtx.data && pageCtx.data.parityBatch
+  return batch != null && String(batch) !== ''
+}
+
+async function applyFullDslTabPage(pageCtx, tabRoute, path, forceRefresh) {
+  if (isRenderParityLocked(pageCtx)) {
+    return !!(pageCtx.data && pageCtx.data.dslMode)
+  }
+  const route = normalizePath(tabRoute)
+  const useCustomNav = [
+    '/pages/index/index',
+    '/pages/discover/discover',
+    '/pkg-content/content-list/content-list',
+    '/pages/shop/shop',
+    '/pkg-content/knowledge-mall/knowledge-mall',
+    '/pages/planet/planet',
+    '/pkg-content/tab-hub/tab-hub',
+  ].indexOf(route) >= 0
+  const { skeleton, enrich } = await loadDslPageState(path, forceRefresh, { useCustomNav })
+  if (isRenderParityLocked(pageCtx)) {
+    return !!(pageCtx.data && pageCtx.data.dslMode)
+  }
+  pageCtx.setData(Object.assign({}, skeleton, { dslPending: false }))
+  if (skeleton.pageTitle && !useCustomNav) {
+    wx.setNavigationBarTitle({ title: skeleton.pageTitle })
+  }
+  enrich().then((state) => {
+    if (isRenderParityLocked(pageCtx)) return
+    pageCtx.setData(state)
+    showTabBarForRoute(pageCtx, tabRoute)
+  }).catch(() => {})
+  return true
 }
 
 async function loadDslPageState(path, forceRefresh, options) {
@@ -62,6 +98,21 @@ async function loadDslPageState(path, forceRefresh, options) {
   const hasBrandHeader = skeletonFlow.some((item) => item && item.type === 'brand_header')
   const statusPadPx = useCustomNav && !hasBrandHeader ? layout.statusBarHeight : 0
   const pageTitle = (parsed.page && parsed.page.name) || ''
+  const pageBackgroundColor = resolvePageBackgroundColor(dsl && dsl.page, getAppThemeConfig())
+
+  // 自定义导航页没有系统导航栏承接颜色，安全区必须与装修页背景保持一致。
+  if (useCustomNav && !hasBrandHeader) {
+    try {
+      wx.setNavigationBarColor({
+        frontColor: getNavigationFrontColor(pageBackgroundColor),
+        backgroundColor: pageBackgroundColor,
+        animation: { duration: 0, timingFunc: 'linear' },
+        fail() {},
+      })
+    } catch (e) {
+      // 开发工具旧基础库不支持时由页面容器背景兜底
+    }
+  }
 
   return {
     skeleton: {
@@ -74,6 +125,7 @@ async function loadDslPageState(path, forceRefresh, options) {
       statusBarHeight: layout.statusBarHeight,
       statusPadPx,
       pageTitle,
+      pageBackgroundColor,
     },
     enrich: async () => {
       const components = await loadAllComponentData(rawComponents)
@@ -97,6 +149,7 @@ async function loadDslPageState(path, forceRefresh, options) {
         statusBarHeight: layout.statusBarHeight,
         statusPadPx,
         pageTitle,
+        pageBackgroundColor,
       }
     },
   }
@@ -116,23 +169,18 @@ const TAB_DSL_INITIAL = {
   floatComponents: [],
   hasBrandHeader: false,
   statusPadPx: 0,
+  pageBackgroundColor: '',
+  /** RENDER-PARITY：automator 灌批次时置位，阻止 Tab DSL 异步覆盖 */
+  parityBatch: '',
 }
 
 async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
+  if (isRenderParityLocked(pageCtx)) {
+    return !!(pageCtx.data && pageCtx.data.dslMode)
+  }
   pageCtx.setData({ loading: true, error: '' })
   try {
-    const earlyRoute = normalizePath(tabRoute)
-    if (WARM_TAB_COMPONENT[earlyRoute] === 'warm_content_list') {
-      pageCtx.setData({
-        dslPending: false,
-        dslMode: false,
-        loading: false,
-        error: '',
-        adminWarmBound: true,
-      })
-      return false
-    }
-    const path = await resolveBoundPathForTabRoute(tabRoute)
+    const path = await resolveDslPathForTabRoute(tabRoute)
     if (!path) {
       pageCtx.setData({
         dslPending: false,
@@ -142,103 +190,17 @@ async function loadTabBoundDslPage(pageCtx, tabRoute, forceRefresh) {
       })
       return false
     }
-    const route = normalizePath(tabRoute)
-    const expectedWarm = WARM_TAB_COMPONENT[route]
-    if (expectedWarm === 'warm_home') {
-      try {
-        const raw = await PageService.getPageDSL(path, forceRefresh)
-        const parsed = parseDSL(raw)
-        const { flow, floats } = expandHomeComponents(parsed.components || [])
-        const loaded = []
-        for (let i = 0; i < flow.length; i++) {
-          const c = flow[i]
-          if (c && isNativeHomeType(c.type)) loaded.push(c)
-          else {
-            const one = await loadAllComponentData([c])
-            loaded.push(one[0])
-          }
-        }
-        let loadedFloats = floats
-        if (floats.length) loadedFloats = await loadAllComponentData(floats)
-        pageCtx.setData({
-          dslPending: false,
-          dslMode: false,
-          loading: false,
-          error: '',
-          adminWarmBound: true,
-          homeBlocks: annotateHomeBlocks(loaded),
-          floatComponents: loadedFloats,
-        })
-        return false
-      } catch (warmErr) {
-        // 暖阁首页读取失败时走原生默认模板
-      }
-    }
-    if (expectedWarm) {
-      try {
-        const raw = await PageService.getPageDSL(path, forceRefresh)
-        const comps = extractDslComponents(raw).filter((c) => c && c.type && c.type !== 'float_button')
-        const types = comps.map((c) => c.type)
-        if (types.length && types.every((t) => t === expectedWarm)) {
-          const props = (comps[0] && comps[0].props) || {}
-          const patch = {
-            dslPending: false,
-            dslMode: false,
-            loading: false,
-            error: '',
-            adminWarmBound: true,
-            warmAuthorsTitle: props.authors_title || props.authorsTitle || '',
-            warmColumnsTitle: props.columns_title || props.columnsTitle || '',
-            warmPlanetTitle: props.planet_title || props.planetTitle || '',
-          }
-          if (expectedWarm === 'warm_discover' && Array.isArray(props.tabs) && props.tabs.length) {
-            patch.discoverTabs = props.tabs
-            patch.tabsConfig = props.tabs
-          }
-          if (expectedWarm === 'warm_discover') {
-            const al = props.article_layout || props.articleLayout
-            if (al && typeof al === 'object') {
-              patch.articleLayout = al
-              patch.article_layout = al
-            }
-          }
-          if (props.title && expectedWarm === 'warm_discover') {
-            patch.pageTitle = props.title
-          }
-          pageCtx.setData(Object.assign(patch, props.pagePatch || {}))
-          return false
-        }
-      } catch (warmErr) {
-        // 暖阁页读取失败时继续走装修 DSL / 原生兜底
-      }
-    }
-    // 首页 / 内容 / 商城 均用自定义顶栏（与 brand_header 对齐，避免系统栏+空隙）
-    const useCustomNav = [
-      '/pages/index/index',
-      '/pages/discover/discover',
-      '/pages/content-list/content-list',
-      '/pages/shop/shop',
-      '/pages/knowledge-mall/knowledge-mall',
-      '/pages/planet/planet',
-      '/pages/tab-hub/tab-hub',
-    ].indexOf(route) >= 0
-    const { skeleton, enrich } = await loadDslPageState(path, forceRefresh, { useCustomNav })
-    // 先出骨架，再异步灌列表与顶图
-    pageCtx.setData(Object.assign({}, skeleton, { dslPending: false }))
-    if (skeleton.pageTitle && !useCustomNav) {
-      wx.setNavigationBarTitle({ title: skeleton.pageTitle })
-    }
-    enrich().then((state) => {
-      pageCtx.setData(state)
-      showTabBarForRoute(pageCtx, tabRoute)
-    }).catch(() => {})
-    return true
+    // 后台 DSL 是唯一真源：只要 Tab 绑定了页面，一律按装修 DSL 渲染。
+    // （历史行为：DSL 若只由单个 warm_* 组件构成，则改走小程序内写死的原生页，
+    //  导致运营在后台怎么搭都不生效。该分支已移除。）
+    return applyFullDslTabPage(pageCtx, tabRoute, path, forceRefresh)
   } catch (e) {
+    const msg = (e && (e.message || e.errMsg)) ? String(e.message || e.errMsg) : '页面配置加载失败'
     pageCtx.setData({
       dslPending: false,
       dslMode: false,
       loading: false,
-      error: '',
+      error: msg.slice(0, 120),
       flowComponents: [],
       floatComponents: [],
     })

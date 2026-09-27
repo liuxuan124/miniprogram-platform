@@ -1,0 +1,16 @@
+@mixin admin-workbench-tokens {
+  --bg: var(--wb-bg);
+  --card: var(--wb-card);
+  --soft: var(--wb-soft);
+  --line: var(--wb-line);
+  --line2: var(--wb-line2);
+  --ink: var(--wb-ink);
+  --mute: var(--wb-mute);
+  --faint: var(--wb-faint);
+  --side: var(--sidebar-bg);
+  --sidetx: var(--sidebar-text);
+  --sidemute: var(--sidebar-text-muted);
+  --acc: var(--wb-acc);
+  --acc-h: var(--wb-acc-h);
+  --accsoft: var(--wb-accsoft);
+}

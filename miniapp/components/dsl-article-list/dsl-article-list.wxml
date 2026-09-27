@@ -1,4 +1,4 @@
-<!--components/dsl-article-list/dsl-article-list.wxml — 文章列表（无内置标题栏，标题请用 section_title）-->
+<!--components/dsl-article-list/dsl-article-list.wxml — 文章列表（可选 show_header 内置标题头）-->
 <view class="dsl-article-list {{showCategoryTabs ? 'dsl-article-list--tabs' : ''}}" style="{{styleString}}">
   <view wx:if="{{showCategoryTabs}}" class="dsl-article-list__tabs-bar">
   <scroll-view
@@ -174,6 +174,44 @@
         <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
           <text class="dsl-article-list__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
           <text class="dsl-article-list__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 列表布局 + 内置标题头（同卡） -->
+  <view wx:elif="{{layout === 'list' && showHeader}}" class="dsl-article-list__unified-card">
+    <view class="dsl-article-list__plain-head">
+      <view class="dsl-article-list__plain-head-left">
+        <text class="dsl-article-list__plain-title">{{sectionTitle || '文章列表'}}</text>
+        <text wx:if="{{sectionSubtitle}}" class="dsl-article-list__plain-sub">{{sectionSubtitle}}</text>
+      </view>
+      <text wx:if="{{showMore}}" class="dsl-article-list__plain-more" bindtap="onTapMore">{{moreText}}</text>
+    </view>
+    <view class="dsl-article-list__list dsl-article-list__list--in-card" style="{{listStyle}}">
+      <view
+        class="dsl-article-list__item dsl-article-list__item--list dsl-article-list__item--in-card"
+        wx:for="{{displayData}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onTapArticle"
+      >
+        <image
+          class="dsl-article-list__item-cover dsl-article-list__item-cover--in-card"
+          wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+          src="{{item.cover_url || item.image}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view class="dsl-article-list__item-placeholder dsl-article-list__item-placeholder--in-card" wx:elif="{{config.show_cover !== false}}">
+          <text>📖</text>
+        </view>
+        <view class="dsl-article-list__item-content">
+          <text class="dsl-article-list__item-title dsl-article-list__item-title--in-card text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
+          <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
+            <text class="dsl-article-list__item-date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
+            <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+          </view>
         </view>
       </view>
     </view>

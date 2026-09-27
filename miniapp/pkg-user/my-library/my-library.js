@@ -26,6 +26,6 @@ Page({
   openProduct(e) {
     const id = e.currentTarget.dataset.id
     if (!id) return
-    wx.navigateTo({ url: `/pages/product-detail/product-detail?id=${id}` })
+    wx.navigateTo({ url: `/pkg-content/product-detail/product-detail?id=${id}` })
   },
 })

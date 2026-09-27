@@ -7,7 +7,7 @@ export type MiniPageStatus = 'draft' | 'pending' | 'live' | 'offline' | 'archive
 
 export const MINI_PAGE_STATUS_LABELS: Record<MiniPageStatus, string> = {
   draft: '草稿',
-  pending: '待发布',
+  pending: '待同步',
   live: '已上线',
   offline: '已下线',
   archived: '归档',
@@ -16,7 +16,11 @@ export const MINI_PAGE_STATUS_LABELS: Record<MiniPageStatus, string> = {
 /** 陶土暖色体系标签色（非 Element 默认紫） */
 export const MINI_PAGE_STATUS_COLORS: Record<MiniPageStatus, { bg: string; text: string; border: string }> = {
   draft: { bg: '#F0EBE3', text: '#6B5E52', border: '#D9CFC3' },
-  pending: { bg: '#FDF0E6', text: '#B4430F', border: '#E8C4A8' },
+  pending: {
+    bg: 'var(--el-color-primary-light-9)',
+    text: 'var(--el-color-primary)',
+    border: 'var(--el-color-primary-light-7)',
+  },
   live: { bg: '#E8F2E9', text: '#2F6B3A', border: '#B7D4BC' },
   offline: { bg: '#F5F0EA', text: '#8A7A6C', border: '#D4C8BC' },
   archived: { bg: '#EEEAE4', text: '#7A6E64', border: '#CDC4BA' },

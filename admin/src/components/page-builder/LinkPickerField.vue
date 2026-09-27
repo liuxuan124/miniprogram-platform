@@ -143,7 +143,7 @@ async function searchProducts(query: string) {
       return {
         id,
         name: String(r.name || `商品 ${id}`),
-        path: `/pages/product-detail/product-detail?id=${id}`,
+        path: `/pkg-content/product-detail/product-detail?id=${id}`,
       }
     })
   } catch {
@@ -168,7 +168,7 @@ async function searchContents(query: string) {
       const type = String(r.contentType || r.content_type || 'article')
       const path = type === 'note'
         ? `/pages/note-detail/note-detail?id=${id}`
-        : `/pages/content-detail/content-detail?id=${id}`
+        : `/pkg-content/content-detail/content-detail?id=${id}`
       return {
         id,
         title: String(r.title || `内容 ${id}`),

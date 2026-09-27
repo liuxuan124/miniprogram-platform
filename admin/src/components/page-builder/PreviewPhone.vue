@@ -1,6 +1,6 @@
 <template>
   <div class="preview-phone">
-    <div class="phone-shell" :class="{ 'phone-shell--custom-nav': hideNavBar }">
+    <div class="phone-shell" :class="{ 'phone-shell--custom-nav': hideNavBar || hideNavRow }">
       <!-- 顶部刘海（品牌顶栏页不展示，避免顶栏上方多余元素） -->
       <div v-if="!hideNavBar" class="phone-notch"></div>
 
@@ -15,7 +15,7 @@
       </div>
 
       <!-- 导航栏（自定义顶栏页面可隐藏） -->
-      <div v-if="!hideNavBar" class="phone-nav-bar">
+      <div v-if="!hideNavBar && !hideNavRow" class="phone-nav-bar">
         <button
           v-if="!hideBack"
           class="nav-back-btn"
@@ -83,6 +83,8 @@ defineProps<{
   pageBgColor: string
   /** 使用品牌顶栏组件时隐藏模拟系统导航栏 */
   hideNavBar?: boolean
+  /** 自定义导航 Tab 页保留系统状态栏，但不重复绘制原生标题栏。 */
+  hideNavRow?: boolean
   /** Tab 首页等不显示返回箭头 */
   hideBack?: boolean
   /** 品牌顶栏吸顶：顶栏渲染在 phone-content 外的固定层 */

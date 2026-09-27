@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "渲染比对",
+  "usingComponents": {
+    "dsl-renderer": "/components/dsl-renderer/dsl-renderer",
+    "dsl-float-button": "/components/dsl-float-button/dsl-float-button"
+  }
+}

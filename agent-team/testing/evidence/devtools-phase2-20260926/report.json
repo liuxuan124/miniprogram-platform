@@ -1,0 +1,40 @@
+{
+  "at": "2026-09-26T16:12:00+08:00",
+  "prep": [
+    "cli open --project miniapp",
+    "cli auto --project miniapp --auto-port 9420"
+  ],
+  "automator": "connected:9420",
+  "fiveTabSmoke": {
+    "script": "scripts/smoke-devtools-pass.js",
+    "tabs": "5/5 PASS",
+    "detail": [
+      "/pages/index/index PASS",
+      "/pages/discover/discover PASS",
+      "/pages/planet/planet PASS",
+      "/pages/shop/shop PASS",
+      "/pages/mine/mine PASS"
+    ]
+  },
+  "warmHandoffScript": {
+    "script": "scripts/verify-warm-handoff-devtools.js",
+    "note": "仅首页满足 dslMode=false+adminWarmBound；其余 Tab 为绑定装修 DSL（dslMode=true），按旧脚本判 FAIL，属断言过时非白屏",
+    "index": "PASS",
+    "otherTabs": "FAIL (dslMode=true)"
+  },
+  "navSubpackageSmoke": {
+    "note": "smoke 中 /pages/* 旧路径 navigateTo 大量 FAIL（已迁 pkg-*）；与 BATCH 证据一致，需改脚本或用手点/分包路径",
+    "pass": 16,
+    "fail": 19,
+    "total": 35
+  },
+  "artifacts": [
+    "docs/smoke-pass-20260914.json",
+    "agent-team/testing/evidence/WARM-HANDOFF-2026-09-17/devtools/*.png (本次 warm 脚本复写)"
+  ],
+  "manualStillNeeded": [
+    "模拟器下拉刷新后配置是否更新",
+    "体验版 pt 草稿预览",
+    "真机弱网"
+  ]
+}

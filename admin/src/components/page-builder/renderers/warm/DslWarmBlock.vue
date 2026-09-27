@@ -1,33 +1,50 @@
 <template>
   <div class="dsl-warm-block" :class="'dsl-warm-block--' + blockType">
     <!-- warm_greet -->
-    <div v-if="blockType === 'warm_greet'" class="wh-top" :style="{ paddingTop: `${warm.statusBarHeight || 20}px` }">
+    <div
+      v-if="blockType === 'warm_greet'"
+      class="wh-top"
+      :class="{ 'wh-top--default-bg': !topBackground, 'wh-top--plain-chrome': usePlainChrome }"
+      :style="topStyle"
+    >
       <div class="wh-greet">
         <div class="wh-greet__person">
-          <img class="wh-av" :src="avatarSrc" alt="" />
+          <img v-if="showAvatarImage" class="wh-av" :src="avatarSrc" alt="" @error="avatarBroken = true" />
+          <div v-else class="wh-av wh-av--initial">{{ brandInitial }}</div>
           <div class="wh-greet__tx">
-            <span class="wh-greet__h serif">{{ warm.greetTitle }}</span>
-            <span v-if="warm.isLoggedIn" class="wh-greet__p">
+            <span class="wh-greet__h serif" :style="greetTitleStyle">{{ warm.greetTitle }}</span>
+            <span v-if="warm.isLoggedIn" class="wh-greet__p" :style="greetSubStyle">
               已连续阅读 <span class="wh-b">{{ warm.streakDays }}</span> 天 · 今日更新 {{ warm.todayCount }} 篇
             </span>
-            <span v-else class="wh-greet__p">今日更新 {{ warm.todayCount }} 篇 · 点击登录同步记录</span>
+            <span v-else class="wh-greet__p" :style="greetSubStyle">今日更新 {{ warm.todayCount }} 篇 · 点击登录同步记录</span>
           </div>
         </div>
-        <div v-if="config.show_notice !== false" class="wh-bell">
+        <button
+          v-if="config.show_member_badge === true"
+          type="button"
+          class="wh-member-badge"
+          @click.stop="onMemberBadgeClick"
+        >
+          {{ memberBadgeLabel }}
+        </button>
+        <div v-else-if="config.show_notice !== false" class="wh-bell">
           <span class="wh-bell__ico">🔔</span>
           <span v-if="warm.noticeDot" class="wh-bell__dot" />
         </div>
       </div>
-      <div v-if="config.show_search !== false" class="wh-search">
+      <div v-if="config.show_search !== false" class="wh-search" :class="{ 'wh-search--plain': usePlainChrome }">
         <span>🔍</span>
         <span class="wh-search__ph">{{ config.search_placeholder || '搜索文章、笔记、专栏……' }}</span>
         <span class="wh-search__btn">搜索</span>
       </div>
-      <div v-if="config.show_nav !== false && warm.navs?.length" class="wh-nav">
-        <div v-for="item in warm.navs" :key="String(item.key)" class="wh-nav__item">
-          <div class="wh-nav__ic">{{ item.icon }}</div>
-          <span>{{ item.label }}</span>
-        </div>
+      <div v-if="config.show_nav !== false" class="wh-nav wh-nav--grid5">
+        <template v-if="warm.navs?.length">
+          <div v-for="item in warm.navs" :key="String(item.key)" class="wh-nav__item">
+            <div class="wh-nav__ic">{{ item.icon }}</div>
+            <span>{{ item.label }}</span>
+          </div>
+        </template>
+        <div v-else class="wh-nav__empty">快捷入口未配置：请在右侧编辑金刚区并「保存到首页配置」，或在本页 warm_greet 的 navs 中填写。</div>
       </div>
     </div>
 
@@ -155,6 +172,7 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import type { WarmPreviewView } from '@/utils/warmHomePreviewMap'
 import type { ComponentInstance } from '@/types/page'
 import {
@@ -169,7 +187,10 @@ const props = defineProps<{
   previewMode?: boolean
 }>()
 
-const emit = defineEmits<{ seg: [key: string] }>()
+const emit = defineEmits<{
+  seg: [key: string]
+  'preview-action': [payload: { tab: string; message: string }]
+}>()
 
 const injectedView = inject<Ref<WarmPreviewView> | null>(WARM_PREVIEW_VIEW_KEY, null)
 const previewEnabled = inject<Ref<boolean>>(WARM_PREVIEW_ENABLED_KEY, ref(false))
@@ -177,6 +198,7 @@ const onSegInjected = inject<(key: string) => void>(WARM_PREVIEW_ON_SEG_KEY, () 
 
 const blockType = computed(() => String(props.component.type || ''))
 const config = computed(() => props.component.props || {})
+const avatarBroken = ref(false)
 
 const warm = computed(() => {
   if (previewEnabled.value && injectedView?.value) {
@@ -185,10 +207,80 @@ const warm = computed(() => {
   return buildWarmPreviewView(null, { loading: true })
 })
 
-const avatarSrc = computed(() => {
-  const u = String(warm.value.userAvatar || '')
-  return u.startsWith('http') || u.startsWith('/') ? u : '/images/default-avatar.svg'
+const topBackground = computed(() => {
+  const s = props.component.style || {}
+  const bg = String(s.background_color || s.background || '').trim()
+  return bg || ''
 })
+
+function isMotaiPlainSkin(cfg: Record<string, unknown>) {
+  if (String(cfg.greet_skin || '').trim() === 'plain') return true
+  if (cfg.show_member_badge === true) return true
+  if (String(cfg.brand_initial || '').trim()) return true
+  const titleSize = Number(cfg.greet_title_font_size)
+  const subSize = Number(cfg.greet_sub_font_size)
+  if (Number.isFinite(titleSize) && titleSize > 0 && titleSize !== 20) return true
+  if (Number.isFinite(subSize) && subSize > 0 && subSize !== 11) return true
+  return false
+}
+
+const usePlainChrome = computed(() => isMotaiPlainSkin(config.value) || !!topBackground.value)
+
+const topStyle = computed(() => {
+  const pad = `${warm.value.statusBarHeight || 20}px`
+  if (topBackground.value) {
+    return { paddingTop: pad, background: topBackground.value }
+  }
+  return { paddingTop: pad }
+})
+
+const greetTitleStyle = computed(() => {
+  const n = Number(config.value.greet_title_font_size)
+  const size = Number.isFinite(n) && n > 0 ? n : 20
+  return { fontSize: `${size}px`, fontWeight: '700' }
+})
+
+const greetSubStyle = computed(() => {
+  const n = Number(config.value.greet_sub_font_size)
+  const size = Number.isFinite(n) && n > 0 ? n : 11
+  return { fontSize: `${size}px` }
+})
+
+const brandInitial = computed(() => {
+  const fromProp = String(config.value.brand_initial || '').trim()
+  if (fromProp) return fromProp.slice(0, 1)
+  const name = String(warm.value.brandName || '').trim()
+  if (name) return name.slice(0, 1)
+  return '暖'
+})
+
+const avatarSrc = computed(() => {
+  const u = String(warm.value.userAvatar || '').trim()
+  if (!u || u.includes('default-avatar')) return ''
+  if (u.startsWith('http') || u.startsWith('/')) return u
+  return ''
+})
+
+const showAvatarImage = computed(() => !!avatarSrc.value && !avatarBroken.value)
+
+const memberBadgeLabel = computed(() => {
+  const custom = String(warm.value.memberBadgeLabel || '').trim()
+  if (custom) return custom
+  if (warm.value.isPlatformMember) {
+    return String(warm.value.memberLevelName || config.value.member_active_label || '年度会员').trim() || '年度会员'
+  }
+  return String(config.value.member_cta_label || '开通会员 ›').trim() || '开通会员 ›'
+})
+
+function onMemberBadgeClick() {
+  const link = String(config.value.member_link || '/pages/member-center/member-center').trim()
+    || '/pages/member-center/member-center'
+  emit('preview-action', {
+    tab: 'mine',
+    message: `已打开会员中心（${link}）`,
+  })
+  ElMessage.success('预览：会员标签')
+}
 
 const featureMeta = computed(() => {
   const meta = warm.value.feature?.meta

@@ -70,42 +70,9 @@ export async function findPageRecordByPath(path: string): Promise<PageRecord | n
   return (await loadPageRecordById(found.id)) || found
 }
 
-function demoProductItems(limit = 2) {
-  return [
-    { id: 'demo-1', name: '示例商品 A', price: '99.00', sales: 128, image: '' },
-    { id: 'demo-2', name: '示例商品 B', price: '199.00', sales: 86, image: '' },
-  ].slice(0, limit)
-}
-
 async function hydratePageComponents(
   components: ComponentInstance[],
-  mode: 'real' | 'demo',
 ): Promise<ComponentInstance[]> {
-  if (mode === 'demo') {
-    return components.map((component) => {
-      const type = String(component.type)
-      if (type === 'product_list') {
-        const limit = Math.max(Number(component.props?.limit || 4), 1)
-        return {
-          ...component,
-          props: {
-            ...component.props,
-            items: demoProductItems(limit),
-            _previewDataFailed: false,
-          },
-        }
-      }
-      if (type === 'article_list' || type === 'article_feed' || type === 'hot_news') {
-        const items = [
-          { title: '品牌故事', meta: '2026-05-10 10:30', cover: '' },
-          { title: '选品指南', meta: '2026-05-12 14:20', cover: '' },
-        ]
-        return { ...component, props: { ...component.props, items, _previewDataFailed: false } }
-      }
-      return component
-    })
-  }
-
   return Promise.all(
     components.map(async (component) => {
       const type = String(component.type)
@@ -123,7 +90,6 @@ async function hydratePageComponents(
 
 export async function loadPagePreviewByPath(
   path: string,
-  mode: 'real' | 'demo' = 'real',
   options?: { preferDraft?: boolean },
 ): Promise<PreviewPageFrame | null> {
   const record = await findPageRecordByPath(path)
@@ -145,7 +111,6 @@ export async function loadPagePreviewByPath(
   const { dsl: hydrated } = await hydratePreviewDsl(dsl)
   const components = await hydratePageComponents(
     Array.isArray(hydrated.components) ? hydrated.components : [],
-    mode,
   )
 
   return {

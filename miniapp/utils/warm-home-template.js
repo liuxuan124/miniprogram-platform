@@ -16,7 +16,7 @@ function isNativeHomeType(type) {
   return !!NATIVE_HOME_TYPES[String(type || '')]
 }
 
-const HOME_BLOCKS_JSON = require('../data/warm-home-blocks.json')
+const HOME_BLOCKS_JSON = require('../data/warm-home-blocks.js')
 
 function cloneBlock(block, over) {
   const o = over || {}
@@ -60,12 +60,22 @@ function isWarmHomeShellOnly(components) {
   return list.length > 0 && list.every((c) => c.type === 'warm_home')
 }
 
+/** 首页 Tab：含 banner/article_list 等通用组件时用 DSL 画布，而非暖阁 native 块 */
+function shouldRenderHomeAsFullDsl(components) {
+  const list = (components || []).filter(
+    (c) => c && c.type && c.type !== 'float_button' && c.visible !== false,
+  )
+  if (!list.length) return false
+  if (isWarmHomeShellOnly(list)) return false
+  return list.some((c) => c.type !== 'warm_home' && !isNativeHomeType(c.type))
+}
+
 function normalizeWarmPlanetRecProps(props) {
   const p = Object.assign({}, props || {})
   const more = String(p.more_url || p.moreUrl || '').trim()
   // 旧装修仍指向星球 Tab 时，改到社区列表
   if (!more || /\/pages\/planet\/planet\/?$/.test(more) || more === '/pages/planet/planet') {
-    p.more_url = '/pages/planet-list/planet-list'
+    p.more_url = '/pkg-content/planet-list/planet-list'
   } else {
     p.more_url = more
   }
@@ -73,7 +83,7 @@ function normalizeWarmPlanetRecProps(props) {
   p.more_text = p.more_text || p.moreText || '进入 ›'
   const feed = String(p.feed_url || p.feedUrl || '').trim()
   if (!feed || /\/pages\/planet\/planet\/?$/.test(feed)) {
-    p.feed_url = '/pages/planet-feed/planet-feed?planetId=warm-main'
+    p.feed_url = '/pkg-content/planet-feed/planet-feed?planetId=warm-main'
   } else {
     p.feed_url = feed
   }
@@ -116,6 +126,7 @@ module.exports = {
   isNativeHomeType,
   defaultHomeBlocks,
   isWarmHomeShellOnly,
+  shouldRenderHomeAsFullDsl,
   expandHomeComponents,
   annotateHomeBlocks,
   normalizeWarmPlanetRecProps,

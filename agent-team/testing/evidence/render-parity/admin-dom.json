@@ -1,0 +1,530 @@
+{
+  "ok": true,
+  "at": "2026-09-27T04:38:56.290Z",
+  "url": "http://127.0.0.1/h5/golden-parity?embed=1",
+  "count": 58,
+  "blocks": [
+    {
+      "type": "activity_entry",
+      "id": "golden-activity-entry",
+      "textLen": 59,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "🎪 Golden activity_entry Golden activity_entry 剩"
+    },
+    {
+      "type": "activity_list",
+      "id": "golden-activity-list",
+      "textLen": 32,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden activity_list 暂无活动，请在右侧添加"
+    },
+    {
+      "type": "ai_entry",
+      "id": "golden-ai-entry",
+      "textLen": 15,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden ai_entry"
+    },
+    {
+      "type": "appointment_service",
+      "id": "golden-appointment-service",
+      "textLen": 38,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden appointment_service 暂无服务，请在右侧添加"
+    },
+    {
+      "type": "article_feed",
+      "id": "golden-article-feed",
+      "textLen": 31,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📖 Static row 预览：小程序下滑页面将自动加载更多"
+    },
+    {
+      "type": "article_list",
+      "id": "golden-article-list",
+      "textLen": 13,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📖 Static row"
+    },
+    {
+      "type": "banner",
+      "id": "golden-banner",
+      "textLen": 24,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden banner title 点击了解"
+    },
+    {
+      "type": "brand_header",
+      "id": "golden-brand-header",
+      "textLen": 19,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden brand_header"
+    },
+    {
+      "type": "brand_intro",
+      "id": "golden-brand-intro",
+      "textLen": 38,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden brand Golden subtitle 请输入品牌介绍内容"
+    },
+    {
+      "type": "category_nav",
+      "id": "golden-category-nav",
+      "textLen": 19,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden category_nav"
+    },
+    {
+      "type": "certificate",
+      "id": "golden-certificate",
+      "textLen": 38,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden certificate 📜 有机产品认证 📜 质量检测报告"
+    },
+    {
+      "type": "contact_info",
+      "id": "golden-contact-info",
+      "textLen": 45,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden contact_info ☎ 未设置电话 📍 未设置地址 🕘 未设置时间"
+    },
+    {
+      "type": "container",
+      "id": "golden-container",
+      "textLen": 35,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden container 容器 · 横向 · 在右侧添加子组件"
+    },
+    {
+      "type": "content_paywall",
+      "id": "golden-content-paywall",
+      "textLen": 40,
+      "imgs": 0,
+      "buttons": 3,
+      "visible": true,
+      "sample": "🔒 Golden content_paywall 立即解锁 购买本篇 加入星球"
+    },
+    {
+      "type": "content_tabs",
+      "id": "golden-content-tabs",
+      "textLen": 24,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Tab A Tab B Static row A"
+    },
+    {
+      "type": "countdown",
+      "id": "golden-countdown",
+      "textLen": 24,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden countdown 请设置结束时间"
+    },
+    {
+      "type": "coupon",
+      "id": "golden-coupon",
+      "textLen": 53,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden coupon ¥20 新人满100减20 满100可用 领取 9折 会员九折券 无"
+    },
+    {
+      "type": "divider",
+      "id": "golden-divider",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "feature_cards",
+      "id": "golden-feature-cards",
+      "textLen": 48,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "✨ Feature A Static card 🛡️ Feature B No network"
+    },
+    {
+      "type": "flash_sale",
+      "id": "golden-flash-sale",
+      "textLen": 95,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden flash_sale 请设置结束时间 进行中 🔥 限时爆款A ¥69.00 🔥"
+    },
+    {
+      "type": "form_entry",
+      "id": "golden-form-entry",
+      "textLen": 32,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📋 Golden form_entry 请先关联表单 立即填写"
+    },
+    {
+      "type": "hot_news",
+      "id": "golden-hot-news",
+      "textLen": 41,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "暂无文章数据 Golden hot_news 9 月 27 日 周日 查看更多 >"
+    },
+    {
+      "type": "image",
+      "id": "golden-image",
+      "textLen": 0,
+      "imgs": 1,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "image_cube",
+      "id": "golden-image-cube",
+      "textLen": 15,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "图 1 图 2 图 3 图 4"
+    },
+    {
+      "type": "image_hotspot",
+      "id": "golden-image-hotspot",
+      "textLen": 12,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "图片热区 · 请配置底图"
+    },
+    {
+      "type": "image_text",
+      "id": "golden-image-text",
+      "textLen": 28,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📷 Golden image_text 请输入图文说明"
+    },
+    {
+      "type": "join_group",
+      "id": "golden-join-group",
+      "textLen": 25,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "👥 Golden join_group 加入群聊"
+    },
+    {
+      "type": "material_list",
+      "id": "golden-material-list",
+      "textLen": 195,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "PDF 2026 跨境合规白皮书.pdf 48 页 · 2.3 MB 下载 1280 免费 › "
+    },
+    {
+      "type": "member_card",
+      "id": "golden-member-card",
+      "textLen": 62,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "👤 Golden member_card 升级会员 未登录，登录后查看会员信息 1280 积分"
+    },
+    {
+      "type": "member_plan",
+      "id": "golden-member-plan",
+      "textLen": 62,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "选择会员方案 推荐 年度会员 ¥299/年 全文解锁 资料下载 专属客服 季度会员 ¥99/季 "
+    },
+    {
+      "type": "moments_feed",
+      "id": "golden-moments-feed",
+      "textLen": 7,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暂无已发布动态"
+    },
+    {
+      "type": "nav",
+      "id": "golden-nav",
+      "textLen": 3,
+      "imgs": 2,
+      "buttons": 0,
+      "visible": true,
+      "sample": "A B"
+    },
+    {
+      "type": "note_feed",
+      "id": "golden-note-feed",
+      "textLen": 42,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📷 Static row 作 作者 ♡ 0 预览：小程序下滑页面将自动加载更多笔记"
+    },
+    {
+      "type": "notice_bar",
+      "id": "golden-notice-bar",
+      "textLen": 34,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📢 Golden notice_bar 暂无公告内容 暂无公告内容"
+    },
+    {
+      "type": "planet_feed",
+      "id": "golden-planet-feed",
+      "textLen": 577,
+      "imgs": 4,
+      "buttons": 0,
+      "visible": true,
+      "sample": "全部 官方更新 精华 ⭐️ 读者提问 打卡 资料库 128 墨白 置顶 星主 2 小时前 · 官"
+    },
+    {
+      "type": "planet_hero",
+      "id": "golden-planet-hero",
+      "textLen": 102,
+      "imgs": 0,
+      "buttons": 2,
+      "visible": true,
+      "sample": "🪐 Golden planet_hero 内容创作者的自留地 · 由 墨白 主理 切换 加入 "
+    },
+    {
+      "type": "planet_topics",
+      "id": "golden-planet-topics",
+      "textLen": 61,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "📈 Golden topics Static Topic A ↑ 12% Topic B ↓ "
+    },
+    {
+      "type": "product_list",
+      "id": "golden-product-list",
+      "textLen": 24,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "🛍️ Static row ¥0.00 已领0"
+    },
+    {
+      "type": "promo_banner",
+      "id": "golden-promo-banner",
+      "textLen": 26,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "Golden promo_banner 立即开通 ›"
+    },
+    {
+      "type": "qa_list",
+      "id": "golden-qa-list",
+      "textLen": 129,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Q 独立站收款被风控，如何申诉？ A先整理物流与客诉记录… 公开 42 人围观 已解答 Q Ti"
+    },
+    {
+      "type": "rich_text",
+      "id": "golden-rich-text",
+      "textLen": 16,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden rich text"
+    },
+    {
+      "type": "search",
+      "id": "golden-search",
+      "textLen": 5,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": true,
+      "sample": "🔍 搜索"
+    },
+    {
+      "type": "section_bg",
+      "id": "golden-section-bg",
+      "textLen": 34,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden section_bg 通栏背景 · 可在右侧添加子组件"
+    },
+    {
+      "type": "section_title",
+      "id": "golden-section-title",
+      "textLen": 23,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden section subtitle"
+    },
+    {
+      "type": "spacer",
+      "id": "golden-spacer",
+      "textLen": 7,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "间距 12px"
+    },
+    {
+      "type": "video",
+      "id": "golden-video",
+      "textLen": 4,
+      "imgs": 1,
+      "buttons": 0,
+      "visible": true,
+      "sample": "点击播放"
+    },
+    {
+      "type": "warm_authors",
+      "id": "golden-warm-authors",
+      "textLen": 31,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden warm_authors 全部作者 › 暂无作者"
+    },
+    {
+      "type": "warm_columns",
+      "id": "golden-warm-columns",
+      "textLen": 29,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden warm_columns 全部 › 暂无专栏"
+    },
+    {
+      "type": "warm_discover",
+      "id": "golden-warm-discover",
+      "textLen": 130,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定业务页 Golden warm_discover 发现页：配置主 Tab、二级标签与长文排布"
+    },
+    {
+      "type": "warm_feature",
+      "id": "golden-warm-feature",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "warm_feed",
+      "id": "golden-warm-feed",
+      "textLen": 26,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "该分类暂无内容 —— 暖阁 · 慢一点，也很好 ——"
+    },
+    {
+      "type": "warm_greet",
+      "id": "golden-warm-greet",
+      "textLen": 102,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暖 你好 今日更新 0 篇 · 点击登录同步记录 🔔 🔍 搜索文章、笔记、专栏…… 搜索 快"
+    },
+    {
+      "type": "warm_home",
+      "id": "golden-warm-home",
+      "textLen": 118,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暖阁首页 Golden warm_home 首页用可组合区块搭建；保存后用户刷新即可看到。下列标"
+    },
+    {
+      "type": "warm_mine",
+      "id": "golden-warm-mine",
+      "textLen": 62,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定业务页 Golden warm_mine 此页对应小程序原生业务页（星球/商城/我的），底栏"
+    },
+    {
+      "type": "warm_planet",
+      "id": "golden-warm-planet",
+      "textLen": 64,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定业务页 Golden warm_planet 此页对应小程序原生业务页（星球/商城/我的），"
+    },
+    {
+      "type": "warm_planet_rec",
+      "id": "golden-warm-planet-rec",
+      "textLen": 35,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden warm_planet_rec 进入 › 🪐 进入星球"
+    },
+    {
+      "type": "warm_shop",
+      "id": "golden-warm-shop",
+      "textLen": 62,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定业务页 Golden warm_shop 此页对应小程序原生业务页（星球/商城/我的），底栏"
+    },
+    {
+      "type": "float_button",
+      "id": "golden-float-button",
+      "textLen": 2,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": false,
+      "sample": "💬"
+    }
+  ]
+}

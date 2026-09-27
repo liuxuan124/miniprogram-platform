@@ -16,12 +16,13 @@
       wx:key="index"
     >
       <image
-        wx:if="{{item.url && item.isValid}}"
+        wx:if="{{item.url && item.isValid && !item.broken}}"
         class="dsl-banner__image"
         src="{{item.url}}"
         mode="aspectFill"
         data-index="{{index}}"
         bindtap="onTapItem"
+        binderror="onImageError"
         lazy-load
       />
       <view

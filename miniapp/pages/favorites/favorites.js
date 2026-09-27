@@ -26,7 +26,7 @@ Page({
 
   openItem(e) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: `/pages/content-detail/content-detail?id=${id}` })
+    wx.navigateTo({ url: `/pkg-content/content-detail/content-detail?id=${id}` })
   },
 
   removeItem(e) {
@@ -38,7 +38,7 @@ Page({
 
   goContent() {
     wx.navigateTo({
-      url: '/pages/content-list/content-list',
+      url: '/pkg-content/content-list/content-list',
       fail: () => wx.switchTab({ url: '/pages/discover/discover' }),
     })
   },

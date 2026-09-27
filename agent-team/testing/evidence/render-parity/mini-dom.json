@@ -1,0 +1,635 @@
+{
+  "ok": true,
+  "at": "2026-09-27T04:30:35.746Z",
+  "port": "ws://127.0.0.1:9423",
+  "relaxed": false,
+  "source": "automator-real-dom",
+  "batchCount": 6,
+  "steps": [
+    {
+      "index": 1,
+      "path": "pages/custom/golden-parity-1",
+      "ok": true,
+      "blockCount": 10,
+      "types": [
+        "activity_entry",
+        "activity_list",
+        "ai_entry",
+        "appointment_service",
+        "article_feed",
+        "article_list",
+        "banner",
+        "brand_header",
+        "brand_intro",
+        "category_nav"
+      ]
+    },
+    {
+      "index": 2,
+      "path": "pages/custom/golden-parity-2",
+      "ok": true,
+      "blockCount": 10,
+      "types": [
+        "certificate",
+        "contact_info",
+        "container",
+        "content_paywall",
+        "content_tabs",
+        "countdown",
+        "coupon",
+        "divider",
+        "feature_cards",
+        "flash_sale"
+      ]
+    },
+    {
+      "index": 3,
+      "path": "pages/custom/golden-parity-3",
+      "ok": true,
+      "blockCount": 9,
+      "types": [
+        "hot_news",
+        "image",
+        "image_cube",
+        "image_hotspot",
+        "image_text",
+        "join_group",
+        "material_list",
+        "member_card",
+        "float_button"
+      ]
+    },
+    {
+      "index": 4,
+      "path": "pages/custom/golden-parity-4",
+      "ok": true,
+      "blockCount": 10,
+      "types": [
+        "member_plan",
+        "moments_feed",
+        "nav",
+        "note_feed",
+        "notice_bar",
+        "planet_feed",
+        "planet_hero",
+        "planet_topics",
+        "product_list",
+        "promo_banner"
+      ]
+    },
+    {
+      "index": 5,
+      "path": "pages/custom/golden-parity-5",
+      "ok": true,
+      "blockCount": 10,
+      "types": [
+        "qa_list",
+        "rich_text",
+        "search",
+        "section_bg",
+        "section_title",
+        "spacer",
+        "video",
+        "warm_authors",
+        "warm_columns",
+        "warm_discover"
+      ]
+    },
+    {
+      "index": 6,
+      "path": "pages/custom/golden-parity-6",
+      "ok": true,
+      "blockCount": 8,
+      "types": [
+        "warm_feature",
+        "warm_feed",
+        "warm_greet",
+        "warm_home",
+        "warm_mine",
+        "warm_planet",
+        "warm_planet_rec",
+        "warm_shop"
+      ]
+    }
+  ],
+  "count": 57,
+  "blocks": [
+    {
+      "type": "activity_entry",
+      "id": "golden-activity-entry",
+      "textLen": 57,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "🎪 Golden activity_entry Golden activity_entry剩余"
+    },
+    {
+      "type": "activity_list",
+      "id": "golden-activity-list",
+      "textLen": 85,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden activity_list品牌开放日沙龙2026-05-20 10:00 · 品牌"
+    },
+    {
+      "type": "ai_entry",
+      "id": "golden-ai-entry",
+      "textLen": 17,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "🤖Golden ai_entry"
+    },
+    {
+      "type": "appointment_service",
+      "id": "golden-appointment-service",
+      "textLen": 55,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden appointment_service专家咨询一对一咨询服务立即预约到店体验门店体"
+    },
+    {
+      "type": "article_feed",
+      "id": "golden-article-feed",
+      "textLen": 4,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暂无内容"
+    },
+    {
+      "type": "article_list",
+      "id": "golden-article-list",
+      "textLen": 65,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "品牌故事：从内容到交易闭环时间 2026-05-10来源 官方资讯选品指南：活动与商品联动时间 "
+    },
+    {
+      "type": "banner",
+      "id": "golden-banner",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "brand_header",
+      "id": "golden-brand-header",
+      "textLen": 19,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden brand_header"
+    },
+    {
+      "type": "brand_intro",
+      "id": "golden-brand-intro",
+      "textLen": 54,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden brandGolden subtitleGolden description1 项"
+    },
+    {
+      "type": "category_nav",
+      "id": "golden-category-nav",
+      "textLen": 19,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden category_nav"
+    },
+    {
+      "type": "certificate",
+      "id": "golden-certificate",
+      "textLen": 18,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden certificate"
+    },
+    {
+      "type": "contact_info",
+      "id": "golden-contact-info",
+      "textLen": 41,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden contact_info☎未设置电话📍未设置地址🕘未设置营业时间"
+    },
+    {
+      "type": "container",
+      "id": "golden-container",
+      "textLen": 16,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden container"
+    },
+    {
+      "type": "content_paywall",
+      "id": "golden-content-paywall",
+      "textLen": 44,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden content_paywall开通后可查看完整内容立即解锁购买本篇加入星球"
+    },
+    {
+      "type": "content_tabs",
+      "id": "golden-content-tabs",
+      "textLen": 32,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Tab ATab BStatic row ANo network"
+    },
+    {
+      "type": "countdown",
+      "id": "golden-countdown",
+      "textLen": 23,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden countdown请设置结束时间"
+    },
+    {
+      "type": "coupon",
+      "id": "golden-coupon",
+      "textLen": 32,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden coupon更多¥10新人专享券满100可用 领取"
+    },
+    {
+      "type": "divider",
+      "id": "golden-divider",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "feature_cards",
+      "id": "golden-feature-cards",
+      "textLen": 43,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "✨Feature AStatic card🛡️Feature BNo network"
+    },
+    {
+      "type": "flash_sale",
+      "id": "golden-flash-sale",
+      "textLen": 81,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden flash_sale请设置结束时间进行中🔥限时爆款A¥69.00🔥限时爆款B¥"
+    },
+    {
+      "type": "hot_news",
+      "id": "golden-hot-news",
+      "textLen": 32,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暂无资讯Golden hot_news9月27日周日查看更多 >"
+    },
+    {
+      "type": "image",
+      "id": "golden-image",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "image_cube",
+      "id": "golden-image-cube",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "image_hotspot",
+      "id": "golden-image-hotspot",
+      "textLen": 7,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "请配置热区底图"
+    },
+    {
+      "type": "image_text",
+      "id": "golden-image-text",
+      "textLen": 27,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "🖼️Golden image_text请输入图文说明"
+    },
+    {
+      "type": "join_group",
+      "id": "golden-join-group",
+      "textLen": 23,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "👥Golden join_group加入群聊"
+    },
+    {
+      "type": "material_list",
+      "id": "golden-material-list",
+      "textLen": 4,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暂无资料"
+    },
+    {
+      "type": "member_card",
+      "id": "golden-member-card",
+      "textLen": 46,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "👤Golden member_card升级会员点击查看权益1280积分¥268余额3优惠券"
+    },
+    {
+      "type": "float_button",
+      "id": "golden-float-button",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 1,
+      "visible": false,
+      "sample": ""
+    },
+    {
+      "type": "member_plan",
+      "id": "golden-member-plan",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "moments_feed",
+      "id": "golden-moments-feed",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "nav",
+      "id": "golden-nav",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "note_feed",
+      "id": "golden-note-feed",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "notice_bar",
+      "id": "golden-notice-bar",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "planet_feed",
+      "id": "golden-planet-feed",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "planet_hero",
+      "id": "golden-planet-hero",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "planet_topics",
+      "id": "golden-planet-topics",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "product_list",
+      "id": "golden-product-list",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "promo_banner",
+      "id": "golden-promo-banner",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "qa_list",
+      "id": "golden-qa-list",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "rich_text",
+      "id": "golden-rich-text",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "search",
+      "id": "golden-search",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "section_bg",
+      "id": "golden-section-bg",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "section_title",
+      "id": "golden-section-title",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "spacer",
+      "id": "golden-spacer",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "video",
+      "id": "golden-video",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "warm_authors",
+      "id": "golden-warm-authors",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "warm_columns",
+      "id": "golden-warm-columns",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "warm_discover",
+      "id": "golden-warm-discover",
+      "textLen": 0,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": ""
+    },
+    {
+      "type": "warm_feature",
+      "id": "golden-warm-feature",
+      "textLen": 6,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暂无精选内容"
+    },
+    {
+      "type": "warm_feed",
+      "id": "golden-warm-feed",
+      "textLen": 25,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "该分类暂无内容—— 暖阁 · 慢一点，也很好 ——"
+    },
+    {
+      "type": "warm_greet",
+      "id": "golden-warm-greet",
+      "textLen": 36,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "暖今日更新 篇 · 点击登录同步记录🔔🔍搜索文章、笔记、专栏……搜索"
+    },
+    {
+      "type": "warm_home",
+      "id": "golden-warm-home",
+      "textLen": 35,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定模板入口：发现/商城/星球/我的走原生业务页；首页请拆成可编辑区块"
+    },
+    {
+      "type": "warm_mine",
+      "id": "golden-warm-mine",
+      "textLen": 35,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定模板入口：发现/商城/星球/我的走原生业务页；首页请拆成可编辑区块"
+    },
+    {
+      "type": "warm_planet",
+      "id": "golden-warm-planet",
+      "textLen": 35,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定模板入口：发现/商城/星球/我的走原生业务页；首页请拆成可编辑区块"
+    },
+    {
+      "type": "warm_planet_rec",
+      "id": "golden-warm-planet-rec",
+      "textLen": 28,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "Golden warm_planet_rec进入 ›🪐"
+    },
+    {
+      "type": "warm_shop",
+      "id": "golden-warm-shop",
+      "textLen": 35,
+      "imgs": 0,
+      "buttons": 0,
+      "visible": true,
+      "sample": "固定模板入口：发现/商城/星球/我的走原生业务页；首页请拆成可编辑区块"
+    }
+  ],
+  "diversity": {
+    "uniqueTextLen": 25,
+    "uniqueImgs": 1
+  }
+}

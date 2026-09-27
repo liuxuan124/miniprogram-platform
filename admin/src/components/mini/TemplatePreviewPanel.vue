@@ -12,14 +12,19 @@
       </button>
     </div>
     <div v-loading="loading" class="tpl-preview-phone-wrap">
-      <MiniOverviewPhone v-if="previewSrc" :src="previewSrc" :title="title" iframe-key="tpl-preview" />
+      <DevicePreview
+        v-if="previewSrc"
+        frame-only
+        :preview-url="previewSrc"
+        :iframe-key="'tpl-preview'"
+      />
       <div v-else class="gen-empty" style="min-height: 200px">暂无预览</div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import MiniOverviewPhone from '@/components/mini/MiniOverviewPhone.vue'
+import DevicePreview from '@/components/mini/DevicePreview.vue'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 
 defineProps<{
