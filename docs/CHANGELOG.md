@@ -4,6 +4,8 @@
 
 ## 2026 Q3（2026-07 ~ 2026-09）
 
+- 2026-09-27：定位「项目完整搭建」最后一公里——服务端已全量在役，**小程序端从未上传微信平台**（`mp_wx_code_upload_audit`/`mp_wx_code_manifest` 均 0 行，服务器 `backend.env` 无 `WX_UPLOAD_KEY`/`WX_SECRET`）；新增 `docs/handover/miniapp-launch-runbook.md`（凭证清单 + 微信平台五项必配 + `push-miniprogram-preview.js`/`submit-miniprogram-audit.js` 上传提审命令 + 九项验证）；据实测校准过期的 `docs/handover/pending-items.md`（ICP/HTTPS/防火墙与三条"高"技术债务均已闭环，改列小程序上线为新硬阻塞）；docs。
+
 - 2026-09-27：发布包运维文档补齐——RELEASE.md 增加「运行环境要求」（app.jar 为 Spring Boot 3.2.5 / class 版本 61，**服务器必须 JDK 17**）与上线顺序第 5、6 步（Nginx 需自行补 443 与证书、`resolver 127.0.0.11` 是 Docker 内置 DNS 非 Docker 部署须改，否则 /api 全 502；小程序源码不在包内需另行上传并配 request 合法域名）；新增 `deploy/docs/DEPLOY-CHECKLIST.md` 九节逐项勾验清单（含灰度期必复核的「小程序侧要素数 0」组件与三项人工阻塞项），打包脚本同步产出该清单；因此重打包为 `-r2`，二进制与迁移脚本未变，旧包保留为历史版本；deploy+release。
 - 2026-09-27：生产环境部署上线（r2 发布包）——增量升级而非首次部署：备份后手控执行 V94–V97（表数 129→132），替换 app.jar 与 admin-static；`deploy/scripts/migrate.sh` 增加 `MIGRATE_FROM` 参数，修复「生产 schema_version 非从 V1 登记会导致脚本回退重跑 V1」的缺陷；同日完成服务器安全加固（见 `docs/handover/server-hardening-20260927.md`）与部署前差异评估（见 `docs/handover/deployment-diff-20260927.md`）；backend+deploy+docs。
 - 2026-09-27：上线门禁收口——升级 axios/ECharts 等生产依赖并清零生产 npm audit，修正 admin 容器 IPv6 localhost 健康误报，发布包标记 dirty 工作区避免误认纯 Git 产物；admin+deploy。
