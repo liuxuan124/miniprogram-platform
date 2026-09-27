@@ -104,7 +104,7 @@ async function syncContentReleaseIfNeeded(options) {
  * Tab 页下拉刷新：强制比对发布号并刷新 DSL（正式用户不走 draft）
  */
 function onTabPagePullDownRefresh(pageCtx, tabRoute, extraReload) {
-  if isRenderParityLocked(pageCtx)) {
+  if (isRenderParityLocked(pageCtx)) {
     return Promise.resolve()
   }
   if (contentView.isDraftPreviewActive()) {
@@ -134,7 +134,7 @@ function onTabPageShow(pageCtx, tabRoute, extraReload) {
   if (!pageCtx || contentView.isDraftPreviewActive()) return Promise.resolve()
 
   return syncContentReleaseIfNeeded().then((result) => {
-    if isRenderParityLocked(pageCtx)) return
+    if (isRenderParityLocked(pageCtx)) return
     const releaseNo = result.releaseNo || getLocalReleaseNo()
     const prev = pageCtx.data && pageCtx.data.__contentReleaseNo
     const bump = result.changed || prev !== releaseNo
@@ -143,7 +143,7 @@ function onTabPageShow(pageCtx, tabRoute, extraReload) {
     pageCtx.setData({ __contentReleaseNo: releaseNo })
 
     const reloadDsl = () => {
-      if isRenderParityLocked(pageCtx)) return Promise.resolve()
+      if (isRenderParityLocked(pageCtx)) return Promise.resolve()
       return loadTabBoundDslPage(pageCtx, tabRoute, true).then((dslOk) => {
         if (!dslOk && typeof extraReload === 'function') {
           return Promise.resolve(extraReload())

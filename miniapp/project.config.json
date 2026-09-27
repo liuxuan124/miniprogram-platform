@@ -137,6 +137,14 @@
       {
         "value": "pages/write-review",
         "type": "folder"
+      },
+      {
+        "value": "scripts",
+        "type": "folder"
+      },
+      {
+        "value": "*.md",
+        "type": "suffix"
       }
     ],
     "include": []
