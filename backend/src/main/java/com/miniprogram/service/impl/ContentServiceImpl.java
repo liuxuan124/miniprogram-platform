@@ -20,6 +20,7 @@ import com.miniprogram.entitlement.dto.EntitlementCheckResult;
 import com.miniprogram.member.MemberBenefitCodes;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ContentTagMapper;
+import com.miniprogram.security.ContentPreviewContextHolder;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.ContentAuditRulesService;
 import com.miniprogram.service.ContentCategoryService;
@@ -567,9 +568,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             return getPublishedPlanetContentDetail(id, userId);
         }
 
-        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）
-        baseMapper.incrementViewCount(id);
-        entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
+        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）；
+        // 带预览令牌的请求（运营体验版预览）不计浏览量，避免 view_count 虚高
+        if (ContentPreviewContextHolder.get() == null) {
+            baseMapper.incrementViewCount(id);
+            entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
+        }
 
         ContentDetailDTO dto = toDetailDTO(entity);
         applyEntitlementGate(dto, entity, userId);
@@ -664,9 +668,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             throw new BusinessException(ErrorCode.ACCESS_DENIED.getCode(), "开通会员后可查看星球内容");
         }
 
-        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）
-        baseMapper.incrementViewCount(id);
-        entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
+        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）；
+        // 带预览令牌的请求（运营体验版预览）不计浏览量，避免 view_count 虚高
+        if (ContentPreviewContextHolder.get() == null) {
+            baseMapper.incrementViewCount(id);
+            entity.setViewCount((entity.getViewCount() == null ? 0 : entity.getViewCount()) + 1);
+        }
 
         ContentDetailDTO dto = toDetailDTO(entity);
         boolean unlocked = member;

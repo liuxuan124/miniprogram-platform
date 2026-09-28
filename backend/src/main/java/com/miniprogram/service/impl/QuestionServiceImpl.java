@@ -16,6 +16,7 @@ import com.miniprogram.mapper.AdminUserMapper;
 import com.miniprogram.mapper.AnswerMapper;
 import com.miniprogram.mapper.MiniProgramUserMapper;
 import com.miniprogram.mapper.QuestionMapper;
+import com.miniprogram.security.ContentPreviewContextHolder;
 import com.miniprogram.service.QuestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,9 +63,12 @@ public class QuestionServiceImpl extends BaseServiceImpl<QuestionMapper, Questio
                 throw new BusinessException(ErrorCode.ACCESS_DENIED, "无权查看该问题");
             }
         }
-        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）
-        baseMapper.incrementViewCount(id);
-        question.setViewCount((question.getViewCount() == null ? 0 : question.getViewCount()) + 1);
+        // 浏览量 +1 走专用自增 SQL（钉住 update_time），不再整行 updateById（QA P1-05）；
+        // 带预览令牌的请求（运营体验版预览）不计浏览量，避免 view_count 虚高
+        if (ContentPreviewContextHolder.get() == null) {
+            baseMapper.incrementViewCount(id);
+            question.setViewCount((question.getViewCount() == null ? 0 : question.getViewCount()) + 1);
+        }
         return toDetailDTO(question);
     }
 

@@ -728,4 +728,22 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 })
 
+// P1-04 白屏兜底：发布新版后旧 chunk 从服务器消失，懒加载失败会导致整页白屏。
+// 命中时自动刷新一次拉新资源；60 秒内只刷一次，防止新资源也 404 时死循环。
+const CHUNK_RELOAD_KEY = 'admin-chunk-reload-at'
+export function isChunkLoadError(error: unknown): boolean {
+  const msg = String((error as Error)?.message || error || '')
+  return /Loading chunk [\w-]+ failed|Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(msg)
+}
+export function reloadOnceForChunkError(): void {
+  const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0)
+  if (Date.now() - last > 60_000) {
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()))
+    window.location.reload()
+  }
+}
+router.onError((error) => {
+  if (isChunkLoadError(error)) reloadOnceForChunkError()
+})
+
 export default router

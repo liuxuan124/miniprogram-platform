@@ -21,9 +21,9 @@ function signIn() {
   return request.post('/api/v1/mp/member/sign-in')
 }
 
-// 获取签到状态
+// 获取签到状态（后端暂无该端点，404 时静默回退 null，由页面侧按未签到展示）
 function getSignInStatus() {
-  return request.get('/api/v1/mp/member/sign-in/status')
+  return request.get('/api/v1/mp/member/sign-in/status', {}, { showError: false }).catch(() => null)
 }
 
 module.exports = {

@@ -4,6 +4,9 @@
       <div class="edit-topbar__left">
         <div class="edit-topbar__title">{{ pageTitle }}</div>
         <span v-if="draftHint" class="edit-topbar__draft">{{ draftHint }}</span>
+        <span v-if="saveStatusText" class="edit-topbar__save" :class="`is-${saveState}`">
+          <el-icon v-if="saveState === 'saving'" class="is-loading"><Loading /></el-icon>{{ saveStatusText }}
+        </span>
       </div>
       <div class="edit-topbar__right">
         <el-button @click="goBack()">取消</el-button>
@@ -1225,6 +1228,7 @@ async function handleSubmit() {
   }
 
   submitLoading.value = true
+  saveState.value = 'saving'
   try {
     const tags = contentType.value === 'note' ? parseNoteTags() : formData.tag_ids.map(String)
     // 五类入口各自落库 contentType（含 file），列表互不串台
@@ -1323,8 +1327,11 @@ async function handleSubmit() {
     }
 
     dirty.value = false
+    lastSavedAt.value = new Date()
+    saveState.value = 'saved'
     goBack(true)
   } catch (err: any) {
+    saveState.value = 'error'
     ElMessage.error(err?.message || '提交失败')
   } finally {
     submitLoading.value = false
@@ -1360,9 +1367,31 @@ const hydrated = ref(false)
 const dirty = ref(false)
 watch(
   [formData, seoForm, accessRule],
-  () => { if (hydrated.value) dirty.value = true },
+  () => {
+    if (hydrated.value) {
+      dirty.value = true
+      if (saveState.value !== 'saving') saveState.value = 'dirty'
+    }
+  },
   { deep: true },
 )
+
+// ===== 保存状态机（QA P1-03）：idle → dirty → saving → saved / error，顶栏实时可见 =====
+type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
+const saveState = ref<SaveState>('idle')
+const lastSavedAt = ref<Date | null>(null)
+const saveStatusText = computed(() => {
+  if (saveState.value === 'saving') return '保存中…'
+  if (saveState.value === 'dirty') return '有未保存修改'
+  if (saveState.value === 'error') return '保存失败，请重试'
+  if (saveState.value === 'saved' && lastSavedAt.value) {
+    const d = lastSavedAt.value
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    return `已保存 ${hh}:${mm}`
+  }
+  return ''
+})
 onBeforeRouteLeave(async () => {
   if (!dirty.value) return true
   try {
@@ -1440,6 +1469,35 @@ async function fetchPlanetCommunities() {
     background: #f5f6f9;
     padding: 2px 8px;
     border-radius: 999px;
+  }
+
+  .edit-topbar__save {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+
+    &.is-dirty {
+      color: #b88230;
+      background: #fdf3e3;
+    }
+
+    &.is-saving {
+      color: #4a6fa5;
+      background: #eaf1fb;
+    }
+
+    &.is-saved {
+      color: #3d8a5a;
+      background: #e8f6ee;
+    }
+
+    &.is-error {
+      color: #c0483e;
+      background: #fdeceb;
+    }
   }
 
   .edit-topbar__right {

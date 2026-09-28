@@ -6,7 +6,7 @@ import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
-import router from './router'
+import router, { reloadOnceForChunkError } from './router'
 import { setupRouterGuards } from './router/guards'
 import '@/assets/styles/index.scss'
 import '@/styles/tokens.css'
@@ -26,6 +26,12 @@ try {
 
 // 注册路由守卫
 setupRouterGuards(router)
+
+// P1-04 白屏兜底（入口级）：Vite 预载的动态 import 失败不会进 router.onError，
+// 监听 vite:preloadError 同样自动刷新一次（含 60 秒防死循环守卫，见 router/index.ts）
+window.addEventListener('vite:preloadError', () => {
+  reloadOnceForChunkError()
+})
 
 const app = createApp(App)
 
