@@ -1,4 +1,10 @@
-<!--components/html-node/html-node.wxml — 富文本块级节点的原生渲染-->
+<!--components/html-node/html-node.wxml — 富文本块级节点的原生渲染
+  必须配合 html-node.js 的 options.virtualHost=true 使用：
+  组件宿主节点是真实布局盒，会插在 flex/grid 容器与其子项之间——
+  容器只能「看见」宿主这一个子项，多子项的横排/网格布局全部塌成竖排
+  （2026-09-29 商城分类行/发现双列卡片/我的统计行竖排事故的根因）。
+  virtualHost 让递归渲染不产生宿主节点，子项直接落在父容器里参与 flex/grid。
+  （WXML template 自递归会被框架拦截报 "called recursively"，不可用。）-->
 <block wx:for="{{nodes}}" wx:key="i">
   <!-- 纯内联片段（无自身样式、无链接）：直接交给 rich-text，不加多余包裹 -->
   <rich-text

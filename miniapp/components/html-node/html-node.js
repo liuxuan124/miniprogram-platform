@@ -16,6 +16,10 @@ const LEGACY_LINK_FIX = {
 }
 
 Component({
+  options: {
+    // 递归渲染不产生宿主节点：否则宿主盒会打断 flex/grid 容器与直接子项的布局关系
+    virtualHost: true,
+  },
   properties: {
     /** 渲染节点数组：{ i, s, k, r, c } */
     nodes: {
