@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
 
-BASE = "https://api.zfculture.site"
-ADMIN_USER = "admin"
-ADMIN_PASS = "admin@123"
+BASE = os.environ.get("API_BASE", "https://api.zfculture.site")
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASS = os.environ.get("ADMIN_PASS")
+if not ADMIN_PASS:
+    raise SystemExit("请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）")
 
 C = {
     "ink": "#1A1512",

@@ -7,7 +7,9 @@ import urllib.request
 
 BASE = os.environ.get("API_BASE", "http://127.0.0.1:8080").rstrip("/")
 USER = os.environ.get("ADMIN_USER", "admin")
-PASSWORD = os.environ.get("ADMIN_PASS", "admin123")
+PASSWORD = os.environ.get("ADMIN_PASS")
+if not PASSWORD:
+    raise SystemExit("请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）")
 
 PAGES = [
     ("暖阁首页", "pages/custom/warm-home", None, None),

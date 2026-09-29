@@ -9,7 +9,11 @@ const http = require('http')
 const ROOT = path.join(__dirname, '..')
 const BASE = (process.env.API_BASE || 'http://127.0.0.1:8080').replace(/\/$/, '')
 const USER = process.env.ADMIN_USER || 'admin'
-const PASS = process.env.ADMIN_PASS || 'admin123'
+const PASS = process.env.ADMIN_PASS
+if (!PASS) {
+  console.error('请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）')
+  process.exit(1)
+}
 const FULL_PATH = 'pages/custom/golden-render-parity'
 const BATCHES_FILE = path.join(ROOT, 'agent-team/testing/golden-dsl-batches.json')
 

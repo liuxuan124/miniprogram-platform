@@ -11,11 +11,6 @@ function getPointsLog(params) {
   return request.get('/api/v1/mp/member/points-log', params)
 }
 
-// 获取优惠券列表
-function getCouponList(params) {
-  return request.get('/api/v1/mp/member/coupons', params)
-}
-
 // 签到
 function signIn() {
   return request.post('/api/v1/mp/member/sign-in')
@@ -29,7 +24,6 @@ function getSignInStatus() {
 module.exports = {
   getMemberInfo,
   getPointsLog,
-  getCouponList,
   signIn,
   getSignInStatus,
 }

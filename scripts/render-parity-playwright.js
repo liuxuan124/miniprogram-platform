@@ -15,7 +15,9 @@ const { EXTRACT_FN_SOURCE } = require('./render-parity-dom-signatures')
 async function loginAdmin(page) {
   await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 })
   await page.fill('input[type="text"]', process.env.ADMIN_USER || 'admin')
-  await page.fill('input[type="password"]', process.env.ADMIN_PASS || 'admin123')
+  const adminPass = process.env.ADMIN_PASS
+  if (!adminPass) throw new Error('请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）')
+  await page.fill('input[type="password"]', adminPass)
   await page.click('.login-form button, button:has-text("登")')
   await page.waitForURL((url) => !String(url).includes('/login'), { timeout: 90000 })
 }

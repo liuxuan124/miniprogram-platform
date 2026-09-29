@@ -12,7 +12,11 @@
  */
 const API_BASE = (process.env.API_BASE || 'https://api.zfculture.site').replace(/\/$/, '')
 const USER = process.env.ADMIN_USER || 'admin'
-const PASS = process.env.ADMIN_PASS || 'admin@123'
+const PASS = process.env.ADMIN_PASS
+if (!PASS) {
+  console.error('请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）')
+  process.exit(1)
+}
 const PAY1_NAME = '暖阁体验包 · 1元'
 
 async function req(method, path, { token, body } = {}) {

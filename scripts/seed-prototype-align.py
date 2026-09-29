@@ -4,12 +4,16 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 
 BASE = "http://localhost:8080"
 ORIGIN = "http://localhost:5175"
+# 本地开发库默认口令；打生产请 export ADMIN_USER / ADMIN_PASS 覆盖
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "admin123")
 BRAND = "#2f5bff"
 ACCENT = "#ff6b3d"
 
@@ -61,7 +65,7 @@ def login():
     status, payload = req(
         "POST",
         "/api/v1/admin/auth/login",
-        body={"username": "admin", "password": "admin123"},
+        body={"username": ADMIN_USER, "password": ADMIN_PASS},
     )
     data = must("login", status, payload)
     return data["accessToken"]

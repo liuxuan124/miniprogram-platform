@@ -8,7 +8,11 @@ const path = require('path')
 
 const API_BASE = process.env.API_BASE || 'https://api.zfculture.site'
 const USER = process.env.ADMIN_USER || 'admin'
-const PASS = process.env.ADMIN_PASS || 'admin@123'
+const PASS = process.env.ADMIN_PASS
+if (!PASS) {
+  console.error('请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）')
+  process.exit(1)
+}
 const dsl = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../admin/src/data/chuhai-notes-home.json'), 'utf8'),
 )

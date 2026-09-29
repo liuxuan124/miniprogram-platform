@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import time
 import uuid
 import urllib.error
@@ -13,9 +14,11 @@ from pathlib import Path
 
 from PIL import Image
 
-BASE = "https://api.zfculture.site"
-ADMIN_USER = "admin"
-ADMIN_PASS = "admin@123"
+BASE = os.environ.get("API_BASE", "https://api.zfculture.site")
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASS = os.environ.get("ADMIN_PASS")
+if not ADMIN_PASS:
+    raise SystemExit("请设置环境变量 ADMIN_PASS（仓库公开，禁止硬编码后台密码）")
 ASSETS = Path("/Users/lx/.cursor/projects/Users-lx-liuxuan/assets")
 TMP = Path("/tmp/cn-audit-imgs")
 TMP.mkdir(parents=True, exist_ok=True)
