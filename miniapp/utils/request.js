@@ -65,6 +65,18 @@ function rejectPendingRequests(err) {
  * @param {string} [options.loadingText] Loading 文案
  * @returns {Promise}
  */
+function sanitizeData(data) {
+  // wx.request 会把 undefined/null 序列化成字符串 "undefined"/"null" 发给后端，
+  // 导致后端按字面量过滤（如 tag=undefined 查出 0 条）。统一剔除。
+  if (!data || typeof data !== 'object') return data
+  const clean = {}
+  Object.keys(data).forEach((key) => {
+    if (data[key] === undefined || data[key] === null) return
+    clean[key] = data[key]
+  })
+  return clean
+}
+
 function request(options) {
   const {
     url,
@@ -102,7 +114,7 @@ function request(options) {
     wx.request({
       url: url.startsWith('http') ? url : BASE_URL + url,
       method,
-      data,
+      data: sanitizeData(data),
       header: requestHeader,
       timeout: TIMEOUT,
       success(res) {
