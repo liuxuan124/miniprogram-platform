@@ -383,14 +383,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         if (sec.decision() == WxContentSecurityService.Decision.REJECT) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, sec.reason());
         }
+        // 管理端发布本身就是人审：安检不可用（管理账号无小程序 openid / access_token 缺失）
+        // 时 fail-closed 会返回 REVIEW，此前实现把内容静默压回 draft 且前端无提示，
+        // 导致「立即发布永远存草稿」。这里只拦微信明确判定违规（REJECT），
+        // REVIEW 记日志后放行，由发布操作者承担审核责任。
         if (sec.decision() == WxContentSecurityService.Decision.REVIEW) {
-            this.update(new LambdaUpdateWrapper<Content>()
-                    .eq(Content::getId, id)
-                    .set(Content::getAuditStatus, "pending")
-                    .set(Content::getStatus, "draft"));
-            entity.setAuditStatus("pending");
-            entity.setStatus("draft");
-            return toDetailDTO(entity);
+            log.info("admin publish proceeds despite security REVIEW, id={} reason={}", id, sec.reason());
         }
 
         LocalDateTime now = LocalDateTime.now();
