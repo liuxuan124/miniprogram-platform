@@ -233,7 +233,8 @@ public class FileUploadServiceImpl implements FileUploadService {
     private String sanitizeSubDir(String subDir) {
         if (!StringUtils.hasText(subDir)) return "";
         String s = subDir.trim().replace('\\', '/');
-        if (s.contains("..") || s.startsWith("/") || !s.matches("^[a-zA-Z0-9_-]{1,32}$")) {
+        // 允许最多 4 层安全子目录（如 protected/files），但禁止 .. 与绝对路径
+        if (s.contains("..") || s.startsWith("/") || !s.matches("^[a-zA-Z0-9_-]{1,32}(/[a-zA-Z0-9_-]{1,32}){0,3}$")) {
             throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "非法上传目录");
         }
         return s;
