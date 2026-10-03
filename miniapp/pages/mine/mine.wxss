@@ -130,6 +130,38 @@
   color: #0f2744;
   background: linear-gradient(135deg, #fff, #e8eef8);
 }
+
+/* ===== 经典蓝皮肤（basic）：整页变量覆盖，与后台 MINE_STYLE_PRESETS.basic 对齐 ===== */
+.mn-page--basic {
+  --brand: #5B7FEA;
+  --brand-2: #7BA3F7;
+  --brand-dark: #3F5CC9;
+  --brand-soft: #EAF0FE;
+  --brand-50: #EAF0FE;
+  --brand-100: #D3DFFA;
+  --accent: #7BA3F7;
+  --gold: #5B7FEA;
+  --bg: #F3F6FD;
+  --sheet: #FFFFFF;
+  --sheet-2: #EDF1FB;
+  --line: rgba(63, 92, 175, 0.12);
+  --mute: #8A94AD;
+  --shadow: 0 18rpx 44rpx rgba(63, 92, 175, 0.14);
+  --shadow-s: 0 8rpx 20rpx rgba(63, 92, 175, 0.08);
+}
+.mn-page--basic .mn-vip__h { color: #DCE6FF; }
+.mn-page--basic .mn-vip__b {
+  color: #2F4BB0;
+  background: linear-gradient(135deg, #fff, #E4EAFB);
+}
+/* 基础皮肤下少量写死暖色的元素一并转蓝 */
+.mn-page--basic .mn-hero__av image,
+.mn-page--basic .mn-hero__av-img { background: #E4EAFB; }
+.mn-page--basic .mn-cont__pg { background: #E4EAFB; }
+.mn-page--basic .mn-pl__lg { background: linear-gradient(135deg, #EAF0FE, #D3DFFA); }
+.mn-page--basic .mn-menu__ar { color: #B9C4E4; }
+.mn-page--basic .mn-logout { color: #3F5CC9; background: #FFFFFF; }
+.mn-page--basic .mn-empty { background: rgba(234, 240, 254, 0.6); }
 .mn-vip__ic { font-size: 44rpx; }
 .mn-vip__tx { flex: 1; min-width: 0; }
 .mn-vip__h { display: block; font-size: 27rpx; font-weight: 760; color: #fbe3bc; }
@@ -283,6 +315,8 @@
   color: var(--ink);
 }
 .mn-menu__row:first-child { border: 0; }
+.mn-menu__row--pressed { background: rgba(124, 74, 29, 0.05); }
+.mn-page--basic .mn-menu__row--pressed { background: rgba(91, 127, 234, 0.06); }
 .mn-menu__ic { font-size: 34rpx; width: 44rpx; flex: none; }
 .mn-menu__vv {
   margin-left: auto;

@@ -29,6 +29,11 @@ Page({
     payFailed: false,
     failCode: 'PAY_CANCELED',
     failReason: '用户取消支付',
+    // 支付结果三态（FP-PAY-001）：unpaid / paid_no_grant / paid_already
+    // 仅在 8 次轮询仍 pending 时由 pay-result 接口判定后填充
+    payResultState: '',
+    payResultHint: '',
+    payResultGrantedItems: [],
     themePageStyle: 'background:#FDF6EC',
   },
 
@@ -120,11 +125,43 @@ Page({
     if (attempt < 8) {
       setTimeout(() => this._confirmPayment(attempt + 1), 1000)
     } else {
-      this.setData({ confirming: false })
-      wx.showModal({
-        title: '支付结果确认中',
-        content: '支付结果尚未同步，请稍后在订单列表或消息通知中查看，系统不会重复扣款。',
-        showCancel: false,
+      // 8 次轮询仍 pending：调 pay-result 接口做三态判定（FP-PAY-001）
+      await this._fetchPayResult()
+    }
+  },
+
+  /**
+   * 调用 /mp/orders/{id}/pay-result 接口判定支付结果三态。
+   * 接口内部会先调 syncPay 尝试补开通（幂等），再综合订单/支付/权益状态返回。
+   * 拿到三态后切到 payFailed 视图并按 state 分流展示。
+   */
+  async _fetchPayResult() {
+    try {
+      const result = await get('/api/v1/mp/orders/' + this.data.orderId + '/pay-result', {}, { auth: true, showError: false })
+      const state = (result && result.state) || 'unpaid'
+      const hint = (result && result.hint) || '支付结果未同步，请稍后在订单列表查看'
+      const granted = (result && result.alreadyGrantedItems) || []
+      // 如果接口判定为 success（补开通成功），切回成功态
+      if (state === 'success') {
+        this.setData({ paymentConfirmed: true, confirming: false, payFailed: false })
+        return
+      }
+      this.setData({
+        confirming: false,
+        payFailed: true,
+        payResultState: state,
+        payResultHint: hint,
+        payResultGrantedItems: granted,
+        failCode: state === 'paid_no_grant' ? 'PAID_NO_GRANT' : (state === 'paid_already' ? 'PAID_ALREADY' : 'PAY_PENDING'),
+        failReason: hint,
+      })
+    } catch (_) {
+      // 接口失败兜底为未支付态
+      this.setData({
+        confirming: false,
+        payFailed: true,
+        payResultState: 'unpaid',
+        payResultHint: '支付结果确认中，请稍后在订单列表或消息通知中查看，系统不会重复扣款。',
       })
     }
   },

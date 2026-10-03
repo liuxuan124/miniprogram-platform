@@ -1,5 +1,24 @@
 <!-- components/dsl-note-feed/dsl-note-feed.wxml — 笔记瀑布流（小红书双列） -->
-<view class="dsl-note-feed {{layout === 'wechat' ? 'dsl-note-feed--wechat' : ''}}" style="{{styleString}}">
+<view class="dsl-note-feed dsl-note-feed--xhs dsl-note-feed--xhs {{layout === 'wechat' ? 'dsl-note-feed--wechat' : ''}}" style="{{gutterStyle}} {{bgStyle}} {{styleString}}">
+  <!-- 内容类型大 Tab：笔记 / 长文 / 好物 -->
+  <view wx:if="{{showTypeTabs}}" class="dsl-note-feed__types">
+    <view class="dsl-note-feed__types-tabs">
+      <view
+        wx:for="{{typeTabs}}"
+        wx:key="label"
+        class="dsl-note-feed__type {{activeType === index ? 'is-active' : ''}}"
+        data-index="{{index}}"
+        catchtap="onTapType"
+      >
+        <text>{{item.label}}</text>
+        <view class="dsl-note-feed__type-bar" wx:if="{{activeType === index}}" />
+      </view>
+    </view>
+    <view wx:if="{{showSearch}}" class="dsl-note-feed__search" catchtap="onTapSearch">
+      <view class="dsl-note-feed__search-lens" />
+    </view>
+  </view>
+
   <view wx:if="{{showCategoryTabs}}" class="dsl-note-feed__tabs-bar">
     <scroll-view class="dsl-note-feed__tabs" scroll-x enhanced show-scrollbar="{{false}}">
       <view
@@ -45,34 +64,58 @@
     <view
       wx:for="{{displayData}}"
       wx:key="id"
-      class="dsl-note-feed__card"
+      class="dsl-note-feed__card {{!item.cover_url && item.summary && textCard ? 'dsl-note-feed__card--text' : ''}}"
       style="{{itemCardStyle}}"
       data-id="{{item.id}}"
+      data-product="{{item.is_product === true}}"
       bindtap="onTapNote"
     >
-      <view class="dsl-note-feed__art">
+      <!--
+        已知封面比例时：padding-top 置 0，改用 mode="widthFix" 让 <image> 按原始
+        比例自然撑开父容器高度（竖长信息图完整显示，不再被 aspectFill 裁切）。
+        未知比例时：保持原有 padding-top:125% + aspectFill，视觉不回退。
+      -->
+      <view
+        wx:if="{{item.cover_url || !textCard || !item.summary}}"
+        class="dsl-note-feed__art {{item.cover_url ? '' : 'dsl-note-feed__art--empty'}}"
+        style="{{item.cover_ratio_known ? 'padding-top:0' : ''}}"
+      >
         <image
           wx:if="{{item.cover_url}}"
-          class="dsl-note-feed__cover"
+          class="dsl-note-feed__cover {{item.cover_ratio_known ? 'dsl-note-feed__cover--fix' : ''}}"
           src="{{item.cover_url}}"
-          mode="aspectFill"
+          mode="{{item.cover_ratio_known ? 'widthFix' : 'aspectFill'}}"
           lazy-load
         />
         <text wx:else class="dsl-note-feed__glyph">📷</text>
-        <view wx:if="{{item.image_count > 1}}" class="dsl-note-feed__count">{{item.image_count}} 图</view>
+        <block wx:if="{{item.image_count > 1 && galleryBadge !== 'none'}}">
+          <view wx:if="{{galleryBadge === 'xhs'}}" class="dsl-note-feed__badge-xhs">图文 {{item.image_count}}</view>
+          <view wx:if="{{galleryBadge === 'xhs'}}" class="dsl-note-feed__badge-page">1/{{item.image_count}}</view>
+          <view wx:else class="dsl-note-feed__count">{{item.image_count}} 图</view>
+        </block>
       </view>
       <view class="dsl-note-feed__txt">
-        <text class="dsl-note-feed__title">{{item.title}}</text>
+        <text class="dsl-note-feed__title" style="{{titleStyle}}">{{item.title}}</text>
+        <text
+          wx:if="{{!item.cover_url && item.summary && textCard}}"
+          class="dsl-note-feed__summary"
+        >{{item.summary}}</text>
         <view class="dsl-note-feed__foot">
-          <image
-            wx:if="{{item.author_avatar}}"
-            class="dsl-note-feed__av-img"
-            src="{{item.author_avatar}}"
-            mode="aspectFill"
-          />
-          <text wx:else class="dsl-note-feed__av">{{item.author_initial}}</text>
-          <text class="dsl-note-feed__author">{{item.author_name}}</text>
-          <text class="dsl-note-feed__like">♡ {{item.like_text}}</text>
+          <block wx:if="{{item.is_product}}">
+            <text class="dsl-note-feed__price">{{item.price_text}}</text>
+          </block>
+          <block wx:else>
+            <image
+              wx:if="{{item.author_avatar}}"
+              class="dsl-note-feed__av-img"
+              src="{{item.author_avatar}}"
+              mode="aspectFill"
+            />
+            <text wx:else class="dsl-note-feed__av">{{item.author_initial}}</text>
+            <text class="dsl-note-feed__author">{{item.author_name}}</text>
+            <text wx:if="{{item.sourceTagLabel}}" class="dsl-note-feed__author-tag">{{item.sourceTagLabel}}</text>
+            <text class="dsl-note-feed__like {{likeHeart ? 'dsl-note-feed__like--heart' : ''}}">{{likeHeart ? '♥' : '♡'}} {{item.like_text}}</text>
+          </block>
         </view>
       </view>
     </view>

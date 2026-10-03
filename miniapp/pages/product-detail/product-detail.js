@@ -887,6 +887,7 @@ Page({
   },
 
   onShareTap() {
+    if (!AuthUtil.requireLoginQuiet('分享')) return
     const product = this.data.product || {}
     const id = this.data.id || ''
     const isPay1 = this.data.isWarmDigital && /暖阁体验包|体验包.*1元/.test(String(product.name || ''))
@@ -918,6 +919,7 @@ Page({
   },
 
   onFavoriteTap() {
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
     wx.showToast({ title: '已收藏', icon: 'success' })
   },
 

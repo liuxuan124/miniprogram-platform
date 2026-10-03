@@ -323,6 +323,12 @@ function hasStoredId(key, id) {
   return readIdList(key).includes(String(id))
 }
 
+/** 点赞态读取：未登录不认任何本地点赞记录（避免游客脏数据被当成已点赞） */
+function hasStoredLike(id) {
+  if (!AuthUtil.isLoggedIn()) return false
+  return readIdList(LIKES_KEY).includes(String(id))
+}
+
 function readComments(contentId) {
   const all = StorageUtil.get(COMMENTS_KEY) || {}
   const list = all[String(contentId)]
@@ -406,6 +412,9 @@ Page({
     authorAvatar: '',
     authorInitial: '哲',
     authorRole: '',
+    authorId: '',
+    authorTitle: '',
+    authorIntro: '',
     contentLocked: false,
     lockedReason: '',
     memberWall: {
@@ -583,7 +592,7 @@ Page({
         commentEnabled: true,
         commentCount: d.commentCount || (mode === 'meal' ? 128 : 286),
         commentCountDisplay: d.commentDisplay || (mode === 'meal' ? '128' : '286'),
-        liked: hasStoredId(LIKES_KEY, demoId),
+        liked: hasStoredLike(demoId),
         favorited: hasFavoriteId(demoId),
         likeDisplay: d.likeDisplay || (mode === 'meal' ? '1.9k' : '4.2k'),
         favoriteDisplay: hasFavoriteId(demoId) ? '已收藏' : (d.favoriteDisplay || (mode === 'meal' ? '486' : '1.1k')),
@@ -634,7 +643,7 @@ Page({
       relatedProducts: [],
       contentLocked: true,
       lockedReason: (this.data.memberWall && this.data.memberWall.desc) || '',
-      liked: hasStoredId(LIKES_KEY, demoId),
+      liked: hasStoredLike(demoId),
       favorited: hasFavoriteId(demoId),
       hasCommented: false,
       likeDisplay: '1.2k',
@@ -664,8 +673,10 @@ Page({
   },
 
   onGoPurchased() {
+    // 资料库实际注册在 pkg-content 分包（app.json subPackages[0]），
+    // 主包 pages/resources 未注册，跳过去必然 fail 掉进兜底
     wx.navigateTo({
-      url: '/pages/resources/resources',
+      url: '/pkg-content/resources/resources',
       fail: () => wx.switchTab({ url: '/pages/mine/mine' }),
     })
   },
@@ -897,7 +908,7 @@ Page({
         const rawTopicName = TOPIC_NAME[topic] || article.categoryName || ''
         const topicName = isDisplayableCategory(rawTopicName) ? rawTopicName : ''
         const contentId = article.id
-        const liked = !!article.liked || hasStoredId(LIKES_KEY, contentId)
+        const liked = !!article.liked || hasStoredLike(contentId)
         const favorited = !!article.favorited || hasFavoriteId(contentId)
         const followIds = StorageUtil.get(FOLLOWS_KEY) || []
         const followed = Array.isArray(followIds)
@@ -936,6 +947,9 @@ Page({
             || (warmNoteMatch ? noteDemo.author : '')
             || AUTHOR_NAME
         ).trim() || AUTHOR_NAME
+        const authorId = article.authorId || article.author_id || ''
+        const authorTitle = String(article.authorTitle || article.author_title || '').trim()
+        const authorIntro = String(article.authorIntro || article.author_intro || '').trim()
         const authorRoleRaw = String(
           article.authorRole || article.author_role || ''
         ).trim()
@@ -1087,6 +1101,9 @@ Page({
           authorRole,
           authorAvatar,
           authorInitial: authorName.slice(0, 1),
+          authorId,
+          authorTitle,
+          authorIntro,
         })
 
         this._loadRelated({
@@ -1305,6 +1322,24 @@ Page({
     this._setFollowed(true)
   },
 
+  /** 作者卡片点击 → 跳转作者作品列表页 */
+  onAuthorCardTap(e) {
+    const detail = (e && e.detail) || {}
+    const authorId = detail.authorId
+    const name = detail.name || this.data.authorName || ''
+    if (authorId) {
+      wx.navigateTo({
+        url: `/pkg-content/author-feed/author-feed?id=${encodeURIComponent(authorId)}&author=${encodeURIComponent(name)}`,
+      })
+      return
+    }
+    if (name) {
+      wx.navigateTo({
+        url: `/pkg-content/author-feed/author-feed?author=${encodeURIComponent(name)}`,
+      })
+    }
+  },
+
   _setFollowed(followed) {
     const raw = StorageUtil.get(FOLLOWS_KEY) || []
     const list = Array.isArray(raw) ? raw.slice() : []
@@ -1320,6 +1355,7 @@ Page({
   },
 
   onShareTap() {
+    if (!AuthUtil.requireLoginQuiet('分享')) return
     const article = this.data.article || {}
     const id = article.id || this._contentId || ''
     const path = id
@@ -1335,6 +1371,7 @@ Page({
   },
 
   onLikeTap() {
+    if (!AuthUtil.requireLoginQuiet('点赞')) return
     const article = this.data.article || {}
     const id = String(article.id || this._contentId || '').trim()
     if (!id) {
@@ -1392,6 +1429,7 @@ Page({
   },
 
   onFavoriteTap() {
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
     const article = this.data.article || {}
     const id = String(article.id || this._contentId || '').trim()
     if (!id) {

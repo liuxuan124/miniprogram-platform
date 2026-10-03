@@ -370,3 +370,36 @@
 }
 .cl-offline__sub { margin-top: 26rpx; font-size: 22rpx; color: var(--mute); }
 .cl-offline__sub .link { color: var(--brand); font-weight: 680; }
+
+/* 小红书风格底色：整页浅米 #f7f7f7（替代 app.wxss 的 --bg 米棕 #FDF6EC） */
+.xhs-bg {
+  background: #f7f7f7;
+  --bg: #f7f7f7;
+  --brand: #ff2e4d;
+  --brand-dark: #e01f3d;
+  --brand-soft: #ffedf1;
+  --brand-muted: #ff7a1a;
+  --brand-50: #fff1f3;
+  --brand-100: #ffe0e6;
+  --accent: #ff7a1a;
+  --ink: #1a1a1a;
+  --ink-2: #61666d;
+  --ink-3: #9aa0a8;
+}
+
+/* ==================== 边距收紧（小红书风格） ====================
+ * 问题：页面内各块散落着 32rpx（16px）左右的 margin/padding，
+ *      加上 note-feed 组件自身的 24rpx，屏幕 750rpx 里内容区只占 85%，
+ *      双列卡片每列仅 154px，视觉上"卡片窄、两侧空"。
+ * 方案：统一收到 20rpx（10px），列宽提升到 162px，内容区 88%。
+ *      只覆盖边距，不动内部间距，视觉密度自然提升。
+ */
+.xhs-bg .cl-tt { padding-left: 8rpx; padding-right: 8rpx; }
+.xhs-bg .cl-cats { padding-left: 8rpx; padding-right: 8rpx; }
+.xhs-bg .cl-sort { padding-left: 8rpx; padding-right: 8rpx; }
+.xhs-bg .cl-rank { margin-left: 8rpx; margin-right: 8rpx; }
+.xhs-bg .cl-big { margin-left: 8rpx; margin-right: 8rpx; }
+.xhs-bg .cl-row { margin-left: 8rpx; margin-right: 8rpx; }
+.xhs-bg .cl-grid3 { margin-left: 8rpx; margin-right: 8rpx; }
+.xhs-bg .cl-audio { margin-left: 8rpx; margin-right: 8rpx; }
+.xhs-bg .cl-end { padding-left: 8rpx; padding-right: 8rpx; }

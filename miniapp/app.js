@@ -8,6 +8,7 @@ const { installPageShareHook } = require('./utils/share')
 const { installPageProductGuardHook, refreshProductModuleState } = require('./utils/product-module-gate')
 const { installPageQaGuardHook, refreshQaModuleState } = require('./utils/qa-module-gate')
 const { installPageFormGuardHook, refreshFormModuleState } = require('./utils/form-module-gate')
+const { installPageTrackHook } = require('./utils/page-tracker')
 const { hideNativeTabBar } = require('./utils/tab-bar-route')
 const { isCustomNavigationRoute } = require('./utils/nav-layout')
 const contentView = require('./utils/content-view')
@@ -18,6 +19,7 @@ installPageShareHook()
 installPageProductGuardHook()
 installPageQaGuardHook()
 installPageFormGuardHook()
+installPageTrackHook()
 
 App({
   /** 全局共享状态 */
@@ -51,7 +53,24 @@ App({
       this._restoreAuthState()
       this._checkUpdate()
       this._loadSystemConfig().then(() => this._ensurePrivacyConsent())
+      this._warmUpHomeDsl()
     })
+
+    wx.onNetworkStatusChange((res) => {
+      this.globalData = this.globalData || {}
+      this.globalData.networkOffline = !res.networkType || res.networkType === 'none'
+    })
+  },
+
+  /**
+   * 预热首页装修 DSL：冷启动时首屏骨架期尽量短，避免「先出现一个空白页再变首页」。
+   * 与首页 onLoad 的请求同源去重（PageService 内部 in-flight 复用），不会多打接口。
+   */
+  _warmUpHomeDsl() {
+    try {
+      const { PageService } = require('./services/page')
+      PageService.getPageDSL('pages/index/index').catch(() => {})
+    } catch (e) { /* ignore */ }
   },
 
   onShow(options) {
@@ -103,6 +122,28 @@ App({
         StorageUtil.set('inviterId', this.globalData.inviterId)
       } else {
         this.globalData.inviterId = StorageUtil.get('inviterId') || null
+      }
+      // 渠道归因：解析 ch 参数（小程序码 scene 携带或 query 直传）
+      const chKey = q.ch || (options && options.scene && String(options.scene).indexOf('ch=') === 0 ? String(options.scene).slice(3) : '')
+      if (chKey) {
+        const cachedCh = StorageUtil.get('channelKey')
+        if (cachedCh !== chKey) {
+          StorageUtil.set('channelKey', chKey)
+          // 拉取 channelId 并缓存
+          const SystemService = require('./services/system')
+          if (SystemService && SystemService.getChannel) {
+            SystemService.getChannel(chKey).then((c) => {
+              if (c && c.channelId) {
+                this.globalData.channelId = c.channelId
+                StorageUtil.set('channelId', c.channelId)
+              }
+            }).catch(() => {})
+          }
+        } else {
+          this.globalData.channelId = StorageUtil.get('channelId') || null
+        }
+      } else {
+        this.globalData.channelId = StorageUtil.get('channelId') || null
       }
     } catch (e) {}
   },

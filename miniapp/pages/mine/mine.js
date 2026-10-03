@@ -20,6 +20,90 @@ const EMPTY_STATS = [
   { value: '—', label: '暖豆' },
 ]
 
+/**
+ * 后台菜单图标（line:* 线条标）→ 小程序可用的 emoji。
+ * 后台存的是 line:xxx 标识，这里做一次降级映射；未收录的走 emoji 兜底。
+ */
+const MENU_ICON_EMOJI = {
+  'line:package': '📦',
+  'line:wallet': '💰',
+  'line:coupon': '🎫',
+  'line:heart': '❤️',
+  'line:star': '⭐️',
+  'line:pin': '📍',
+  'line:chat': '💬',
+  'line:check': '✅',
+  'line:share': '🤝',
+  'line:bookmark': '🔖',
+  'line:link': '🔗',
+  'line:camera': '📷',
+  'line:chart': '📊',
+  'line:phone': '📞',
+  'line:sun': '🪐',
+  'line:gear': '⚙️',
+  'line:feedback': '📮',
+  'line:crown': '👑',
+  'line:calendar': '📅',
+  'line:pencil': '✍️',
+  'line:idcard': '🪪',
+  'line:document': '🧾',
+  'line:check': '✅',
+  'line:list': '🕘',
+  'line:bag': '🛍',
+  'line:gift': '🎁',
+  'line:bell': '🔔',
+  'line:search': '🔍',
+  'line:user': '👥',
+  'line:clipboard': '🧾',
+  'line:truck': '🚚',
+  'line:home': '🏠',
+  'line:tag': '🏷',
+  'line:shield': '🛡',
+  'line:grid': '🧩',
+  'line:books': '🗂',
+  'line:mail': '📮',
+  'line:ticket': '🎟',
+}
+
+const MENU_ICON_FALLBACK = '📄'
+
+function resolveMenuIconText(icon) {
+  const raw = String(icon || '')
+  if (!raw) return MENU_ICON_FALLBACK
+  if (raw.indexOf('line:') === 0) return MENU_ICON_EMOJI[raw] || MENU_ICON_FALLBACK
+  return raw
+}
+
+/**
+ * 兜底菜单：后台未配置 menuItems（或全部禁用）时渲染，
+ * 内容与管理端 types/miniapp.ts 的 DEFAULT_MINE_MENU 保持一致。
+ */
+const DEFAULT_MENU_GROUPS = [
+  {
+    name: '内容与订单',
+    items: [
+      { id: 'fb-1', icon: 'line:check', title: '我的提问与打卡', url: '/pkg-content/question-ask/question-ask', needLogin: true },
+      { id: 'fb-2', icon: 'line:pencil', title: '成为创作者', url: '/pkg-content/contribute/contribute', needLogin: false },
+      { id: 'fb-3', icon: 'line:document', title: '我的订单', url: '/pkg-trade/order-list/order-list', needLogin: true },
+      // 资料库入口暂不开放：后台 minePageConfig.menuItems 里已 enabled=false，
+      // 这里同步关掉兜底项，避免配置读取失败时又露出来。星球页「资料库」分段仍可进入。
+      { id: 'fb-4', icon: 'line:books', title: '我的资料库', url: '/pkg-content/resources/resources', needLogin: false, enabled: false },
+      { id: 'fb-5', icon: 'line:clipboard', title: '发票管理', url: '/pkg-trade/order-list/order-list', needLogin: true },
+      { id: 'fb-6', icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', needLogin: true },
+      { id: 'fb-7', icon: 'line:share', title: '邀请好友', url: '/pkg-content/share/share', needLogin: false },
+    ],
+  },
+  {
+    name: '会员与服务',
+    items: [
+      { id: 'fb-8', icon: 'line:grid', title: '整店模版', url: '/pkg-templates/list/list', needLogin: false },
+      { id: 'fb-9', icon: 'line:user', title: '加入读者群', url: '/pkg-content/join/join', needLogin: false },
+      { id: 'fb-10', icon: 'line:mail', title: '意见反馈', url: '/pkg-user/feedback/feedback', needLogin: false },
+      { id: 'fb-11', icon: 'line:gear', title: '设置', url: '/pkg-user/settings/settings', needLogin: false },
+    ],
+  },
+]
+
 function fmtCount(n) {
   const x = Number(n)
   if (!Number.isFinite(x) || x <= 0) return '0'
@@ -78,13 +162,21 @@ Page({
       loginTitle: '点击登录',
       loginSubtitle: '登录后同步收藏、会员与学习记录',
     },
-    // 后台开关（固定模板 + 开关模式，不开放菜单自由编排）
+    // 后台开关（固定模板 + 开关模式，开放菜单编排后菜单结构由 menuGroups 决定）
     mineToggles: {
       showMemberCard: true,
       showMenuIcons: true,
       showAvatar: true,
       showMemberLevel: true,
     },
+    // 功能菜单分组（来源于 minePageConfig.menuItems，未配置时用 DEFAULT_MENU_GROUPS 兜底）
+    // 两处都按 enabled 过滤：后台关掉的项在兜底路径下也不该露出来
+    menuGroups: DEFAULT_MENU_GROUPS.map((g) => ({
+      name: g.name,
+      items: g.items
+        .filter((it) => it.enabled !== false)
+        .map((it) => Object.assign({}, it, { iconText: resolveMenuIconText(it.icon), hint: '' })),
+    })).filter((g) => g.items.length),
     ...guestState(),
   },
 
@@ -145,7 +237,69 @@ Page({
     if (cfg.loginButtonText && !AuthUtil.isLoggedIn()) {
       patch.vipCta = cfg.loginButtonText
     }
+    const menuGroups = this._menuGroupsFromConfig(cfg)
+    if (menuGroups.length) patch.menuGroups = menuGroups
     return patch
+  },
+
+  /**
+   * 后台菜单配置 → 分组渲染数据。
+   * 口径：后台若配了至少一项启用菜单就完全听后台的（标题/顺序/分组/图标/跳转），
+   * 没有配置时才回退到本页内置菜单，避免过去「后台配了不生效」的错觉。
+   */
+  _menuGroupsFromConfig(cfg) {
+    const raw = Array.isArray(cfg && cfg.menuItems) ? cfg.menuItems : []
+    const enabled = raw.filter((m) => m && m.enabled !== false && String(m.url || '').trim())
+    if (!enabled.length) return []
+    const order = []
+    const map = {}
+    enabled.forEach((m, i) => {
+      const name = String(m.group || '').trim() || '更多'
+      if (!map[name]) {
+        map[name] = { name, items: [] }
+        order.push(name)
+      }
+      map[name].items.push({
+        id: String(m.id || `cfg-${i}`),
+        title: String(m.title || '未命名'),
+        url: String(m.url),
+        needLogin: m.needLogin === true,
+        iconText: resolveMenuIconText(m.icon),
+        hint: this._menuHintFor(m.title),
+      })
+    })
+    return order.map((name) => map[name])
+  },
+
+  /** 菜单右侧的数值角标；匹配不到返回空串，由 wxml 回退显示 › */
+  _menuHintFor(title) {
+    const d = this.data
+    const t = String(title || '')
+    if (!d.isLoggedIn) return ''
+    if (t.indexOf('优惠券') >= 0 && d.unusedCouponCount) return `${d.unusedCouponCount} 张可用`
+    if (t.indexOf('提问') >= 0 && d.questionCount) return `${d.questionCount} 个提问`
+    if (t.indexOf('邀请') >= 0 && d.inviteCount) return `已邀 ${d.inviteCount} 人`
+    if (t.indexOf('订单') >= 0 && d.pendingOrderCount) return `${d.pendingOrderCount} 笔待支付`
+    return ''
+  },
+
+  /** 登录态/计数值变化后刷新菜单角标 */
+  _syncMenuHints() {
+    const groups = this.data.menuGroups || []
+    if (!groups.length) return
+    const next = groups.map((g) => ({
+      name: g.name,
+      items: (g.items || []).map((it) => Object.assign({}, it, { hint: this._menuHintFor(it.title) })),
+    }))
+    this.setData({ menuGroups: next })
+  },
+
+  onMenuRowTap(e) {
+    const ds = e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset : {}
+    const url = String(ds.url || '')
+    if (!url) return
+    const needLogin = ds.login === 1 || ds.login === '1'
+    this._nav(url, needLogin, '查看' + (ds.title || '详情'))
   },
 
   onReady() {
@@ -196,7 +350,7 @@ Page({
     if (!isLoggedIn) {
       // guestState() 带写死的会员卡文案，直接 setData 会覆盖刚拉到的后台配置
       // （两者是异步竞态，谁后到谁赢）。这里把配置合并回去。
-      this.setData(this._withMineConfig(guestState()))
+      this.setData(this._withMineConfig(guestState()), () => this._syncMenuHints())
       return
     }
     const patched = withDisplayAvatar(userInfo)
@@ -293,10 +447,12 @@ Page({
           inviteCount: Number(data.inviteCount) || 0,
           pendingOrderCount: Number(data.pendingOrderCount) || 0,
           unusedCouponCount: Number(data.unusedCouponCount) || 0,
-        })
+        }, () => this._syncMenuHints())
       })
       .catch(() => {
-        if (!AuthUtil.isLoggedIn()) this.setData(guestState())
+        if (!AuthUtil.isLoggedIn()) {
+          this.setData(guestState(), () => this._syncMenuHints())
+        }
       })
     this._loadNoticeUnread()
   },

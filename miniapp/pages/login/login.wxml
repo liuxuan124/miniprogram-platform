@@ -1,16 +1,16 @@
 <!-- pages/login/login.wxml — 手机号快捷登录（登录信息，非完善资料） -->
 <page-meta page-style="{{themePageStyle}}" />
-<view class="login-page">
+<view class="login-page lg-page--{{styleKey}}">
   <view class="login-backdrop">
     <view class="safe-top">
-      <view class="back-button" bindtap="onBack" hover-class="back-button--pressed" aria-label="返回">
+      <view wx:if="{{showBackButton}}" class="back-button" bindtap="onBack" hover-class="back-button--pressed" aria-label="返回">
         <text>‹</text>
       </view>
     </view>
 
     <view class="brand-hero">
-      <view class="brand-hero__orb brand-hero__orb--one"></view>
-      <view class="brand-hero__orb brand-hero__orb--two"></view>
+      <view wx:if="{{showDecorOrbs}}" class="brand-hero__orb brand-hero__orb--one"></view>
+      <view wx:if="{{showDecorOrbs}}" class="brand-hero__orb brand-hero__orb--two"></view>
 
       <view class="brand-identity">
         <image
@@ -27,8 +27,8 @@
         </view>
       </view>
 
-      <text class="brand-title">欢迎回来</text>
-      <text class="brand-description">登录后同步收藏、预约与阅读记录</text>
+      <text class="brand-title">{{heroTitle}}</text>
+      <text wx:if="{{heroSubtitle}}" class="brand-description">{{heroSubtitle}}</text>
 
       <view class="intercept-tip" wx:if="{{interceptAction}}">
         <text class="intercept-tip__icon">✓</text>
@@ -40,14 +40,14 @@
   <view class="login-sheet login-sheet--auth">
     <view class="sheet-handle"></view>
 
-    <view class="sheet-heading">
+    <view wx:if="{{sheetTitle || sheetSubtitle}}" class="sheet-heading">
       <view>
-        <text class="sheet-heading__title">手机号快捷登录</text>
-        <text class="sheet-heading__description">使用授权信息快速登录</text>
+        <text wx:if="{{sheetTitle}}" class="sheet-heading__title">{{sheetTitle}}</text>
+        <text wx:if="{{sheetSubtitle}}" class="sheet-heading__description">{{sheetSubtitle}}</text>
       </view>
-      <view class="security-badge">
+      <view wx:if="{{showSecurityBadge && securityBadgeText}}" class="security-badge">
         <text class="security-badge__dot"></text>
-        <text>安全登录</text>
+        <text>{{securityBadgeText}}</text>
       </view>
     </view>
 
@@ -90,18 +90,19 @@
       disabled="{{loading}}"
       hover-class="login-button--pressed"
     >
-      <text class="login-button__title">{{loading ? '正在登录…' : '手机号快捷登录'}}</text>
+      <text class="login-button__title">{{loading ? '正在登录…' : loginButtonText}}</text>
     </button>
 
     <button
+      wx:if="{{skipButtonText}}"
       class="login-skip"
       bindtap="onBack"
       disabled="{{loading}}"
       hover-class="login-skip--pressed"
-    >暂不登录</button>
+    >{{skipButtonText}}</button>
 
     <view class="sheet-footer">
-      <text class="privacy-note">未登录也可浏览资讯；手机号仅用于登录，不会公开展示</text>
+      <text class="privacy-note">{{privacyNoteText}}</text>
     </view>
   </view>
 

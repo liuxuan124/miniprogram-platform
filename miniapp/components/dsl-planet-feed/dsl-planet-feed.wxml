@@ -46,13 +46,22 @@
         <view class="pl-fd__qlb">星主已回答</view>
         <text>{{item.answer}}</text>
       </view>
-      <view class="pl-fd__file" wx:if="{{item.file}}" catchtap="onOpenFile" data-file="{{item.file}}">
-        <text class="pl-fd__fic">📄</text>
-        <view class="pl-fd__fmeta">
-          <text class="pl-fd__fh">{{item.file.name}}</text>
-          <text class="pl-fd__fp">{{item.file.meta}}</text>
+      <view class="pl-fd__files" wx:if="{{item.files.length || item.file}}">
+        <view
+          class="pl-fd__file"
+          wx:for="{{item.files}}"
+          wx:for-item="f"
+          wx:key="fileId"
+          catchtap="onOpenFile"
+          data-file="{{f}}"
+        >
+          <text class="pl-fd__fic">📄</text>
+          <view class="pl-fd__fmeta">
+            <text class="pl-fd__fh">{{f.name}}</text>
+            <text class="pl-fd__fp">{{f.meta}}</text>
+          </view>
+          <text class="pl-fd__fgo">{{f.open ? '预览 ›' : '开通 ›'}}</text>
         </view>
-        <text class="pl-fd__fgo">预览 ›</text>
       </view>
       <view class="pl-fd__gg {{item.images.length === 2 ? 'pl-fd__gg--two' : ''}}" wx:if="{{item.images.length}}">
         <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" class="pl-fd__img warm-ph" src="{{img}}" mode="aspectFill" />

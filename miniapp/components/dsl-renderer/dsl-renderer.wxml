@@ -118,6 +118,7 @@
   <dsl-flash-sale
     wx:elif="{{comp.type === 'flash_sale'}}"
     config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
     styleString="{{comp.styleString}}"
   />
 
@@ -321,6 +322,11 @@
   <!-- 8. 视频 video -->
   <dsl-video
     wx:elif="{{comp.type === 'video'}}"
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+  />
+  <dsl-audio
+    wx:elif="{{comp.type === 'audio'}}"
     config="{{comp.props}}"
     styleString="{{comp.styleString}}"
   />

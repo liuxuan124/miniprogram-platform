@@ -60,16 +60,25 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   themeColorSecondary: '#EA580C',
   servicePhone: '',
   loginRules: LOGIN_RULES.mineMenuRequireLogin,
+  /**
+   * 默认菜单口径与以下两处保持一致，改任意一处请三处同步：
+   * - 小程序兜底：pages/mine/mine.js 的 DEFAULT_MENU_GROUPS
+   * - 管理端默认：admin/src/types/miniapp.ts 的 DEFAULT_MINE_MENU
+   * group 为空会导致菜单全部落进「更多」分组。
+   */
   menuItems: [
-    { id: 'orders', icon: 'line:document', title: '全部订单', url: '/pkg-trade/order-list/order-list', enabled: true },
-    { id: 'resources', icon: 'line:books', title: '资料库', url: '/pkg-content/resources/resources', enabled: true },
-    { id: 'library', icon: 'line:books', title: '已购资料', url: '/pkg-trade/order-list/order-list', enabled: true },
-    { id: 'join', icon: 'line:users', title: '加入社群', url: '/pkg-content/join/join', enabled: true },
-    { id: 'share', icon: 'line:share', title: '分享邀请', url: '/pkg-content/share/share', enabled: true },
-    { id: 'notices', icon: 'line:bell', title: '消息通知', url: '/pkg-user/notices/notices', enabled: true },
-    { id: 'reservation', icon: 'line:calendar', title: '我的预约', url: '/pkg-user/my-appointments/my-appointments', enabled: true },
-    { id: 'member-center', icon: 'line:crown', title: '会员中心', url: '/pkg-user/member-center/member-center', enabled: false },
-    { id: 'coupons', icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true },
+    { id: 'ask', icon: 'line:check', title: '我的提问与打卡', url: '/pkg-content/question-ask/question-ask', enabled: true, needLogin: true, group: '内容与订单' },
+    { id: 'contribute', icon: 'line:pencil', title: '成为创作者', url: '/pkg-content/contribute/contribute', enabled: true, needLogin: false, group: '内容与订单' },
+    { id: 'orders', icon: 'line:document', title: '我的订单', url: '/pkg-trade/order-list/order-list', enabled: true, needLogin: true, group: '内容与订单' },
+    { id: 'resources', icon: 'line:books', title: '我的资料库', url: '/pkg-content/resources/resources', enabled: true, needLogin: false, group: '内容与订单' },
+    { id: 'invoice', icon: 'line:clipboard', title: '发票管理', url: '/pkg-trade/order-list/order-list', enabled: true, needLogin: true, group: '内容与订单' },
+    { id: 'coupons', icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true, needLogin: true, group: '内容与订单' },
+    { id: 'share', icon: 'line:share', title: '邀请好友', url: '/pkg-content/share/share', enabled: true, needLogin: false, group: '内容与订单' },
+    { id: 'templates', icon: 'line:grid', title: '整店模版', url: '/pkg-templates/list/list', enabled: true, needLogin: false, group: '会员与服务' },
+    { id: 'join', icon: 'line:user', title: '加入读者群', url: '/pkg-content/join/join', enabled: true, needLogin: false, group: '会员与服务' },
+    { id: 'service', icon: 'line:chat', title: '联系客服', url: '/pkg-user/service-chat/service-chat', enabled: true, needLogin: false, group: '会员与服务' },
+    { id: 'feedback', icon: 'line:mail', title: '意见反馈', url: '/pkg-user/feedback/feedback', enabled: true, needLogin: false, group: '会员与服务' },
+    { id: 'settings', icon: 'line:gear', title: '设置', url: '/pkg-user/settings/settings', enabled: true, needLogin: false, group: '会员与服务' },
   ],
   orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS, tabLabels: { ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels } },
   userProfile: { ...DEFAULT_USER_PROFILE },
@@ -83,6 +92,41 @@ function parseConfigField(value, fallback) {
   } catch (e) {
     return fallback
   }
+}
+
+const DEFAULT_LOGIN_PAGE_CONFIG = {
+  heroTitle: '欢迎回来',
+  heroSubtitle: '登录后同步收藏、预约与阅读记录',
+  loginButtonText: '手机号快捷登录',
+  skipButtonText: '暂不登录',
+  securityBadgeText: '安全登录',
+  sheetTitle: '手机号快捷登录',
+  sheetSubtitle: '使用授权信息快速登录',
+  privacyNoteText: '未登录也可浏览资讯；手机号仅用于登录，不会公开展示',
+  showDecorOrbs: true,
+  showSecurityBadge: true,
+  showBackButton: true,
+  templateStyle: 'warm',
+  themeColor: '#C2410C',
+  themeColorSecondary: '#EA580C',
+}
+
+/** 登录页 4 套皮肤归一化（warm/brand/minimal/wechat） */
+function resolveLoginPageStyleKey(login) {
+  if (!login) return 'warm'
+  const raw = String(login.templateStyle || '').trim().toLowerCase()
+  if (raw === 'brand' || raw === 'focus') return 'brand'
+  if (raw === 'minimal' || raw === 'plain' || raw === 'simple') return 'minimal'
+  if (raw === 'wechat' || raw === 'native') return 'wechat'
+  return 'warm'
+}
+
+function normalizeLoginPageConfig(raw) {
+  const base = { ...DEFAULT_LOGIN_PAGE_CONFIG }
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const merged = { ...base, ...src }
+  merged.styleKey = resolveLoginPageStyleKey(merged)
+  return merged
 }
 
 const DEFAULT_CONTENT_LIST_CONFIG = {
@@ -263,6 +307,9 @@ async function fetchSystemConfig(forceRefresh) {
             parseConfigField(cached.minePageConfig, DEFAULT_MINE_PAGE_CONFIG),
           )
         }
+        cached.loginPageConfig = normalizeLoginPageConfig(
+          parseConfigField(cached.loginPageConfig, DEFAULT_LOGIN_PAGE_CONFIG),
+        )
         if (cached.tabbarItems) {
           cached.tabbarItems = applyProductModuleGate(
             normalizeTabbarItems(parseConfigField(cached.tabbarItems, null)),
@@ -283,6 +330,9 @@ async function fetchSystemConfig(forceRefresh) {
       config.tabbarItems = parseConfigField(config.tabbarItems, null)
       config.minePageConfig = normalizeMinePageConfig(
         parseConfigField(config.minePageConfig, DEFAULT_MINE_PAGE_CONFIG),
+      )
+      config.loginPageConfig = normalizeLoginPageConfig(
+        parseConfigField(config.loginPageConfig, DEFAULT_LOGIN_PAGE_CONFIG),
       )
       config.plugins = parseConfigField(config.plugins, [])
       config.miniappThemeConfig = parseConfigField(config.miniappThemeConfig, null)
@@ -329,6 +379,7 @@ async function fetchSystemConfig(forceRefresh) {
   return {
     tabbarItems: DEFAULT_TABBAR_LIST,
     minePageConfig: DEFAULT_MINE_PAGE_CONFIG,
+    loginPageConfig: normalizeLoginPageConfig(DEFAULT_LOGIN_PAGE_CONFIG),
     miniappThemeConfig: null,
     miniappBrandConfig: DEFAULT_MINIAPP_BRAND_CONFIG,
     contentListConfig: DEFAULT_CONTENT_LIST_CONFIG,
@@ -494,6 +545,16 @@ async function fetchMinePageConfig(forceRefresh) {
   }
 }
 
+/** 取登录页配置（已归一化 + styleKey 解析） */
+async function fetchLoginPageConfig(forceRefresh) {
+  const config = await fetchSystemConfig(forceRefresh)
+  const loginConfig = normalizeLoginPageConfig(
+    config.loginPageConfig || DEFAULT_LOGIN_PAGE_CONFIG,
+  )
+  loginConfig.styleKey = resolveLoginPageStyleKey(loginConfig)
+  return loginConfig
+}
+
 async function fetchBrandConfig(forceRefresh) {
   const config = await fetchSystemConfig(forceRefresh)
   return config.miniappBrandConfig || DEFAULT_MINIAPP_BRAND_CONFIG
@@ -522,6 +583,7 @@ function clearPageDslStorageCaches() {
 module.exports = {
   DEFAULT_TABBAR_LIST,
   DEFAULT_MINE_PAGE_CONFIG,
+  DEFAULT_LOGIN_PAGE_CONFIG,
   DEFAULT_ORDER_QUICK_ACCESS,
   DEFAULT_USER_PROFILE,
   DEFAULT_MINIAPP_BRAND_CONFIG,
@@ -534,10 +596,20 @@ module.exports = {
   clearSystemConfigCache,
   clearPageDslStorageCaches,
   fetchTabbarList,
+  /** 解析渠道码（渠道分享归因） */
+  getChannel(chKey) {
+    if (!chKey) return Promise.resolve(null)
+    return get('/api/v1/mp/channel', { ch: chKey }, { auth: false, showError: false })
+      .then((res) => res || null)
+      .catch(() => null)
+  },
   fetchMinePageConfig,
+  fetchLoginPageConfig,
   fetchBrandConfig,
   resolveMineStyleKey,
   normalizeMinePageConfig,
+  resolveLoginPageStyleKey,
+  normalizeLoginPageConfig,
   isMemberModuleEnabled,
   isProductModuleEnabled,
   isPluginEnabled,

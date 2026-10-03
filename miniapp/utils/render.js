@@ -116,6 +116,7 @@ const DATASOURCE_COMPONENTS = [
   COMPONENT_TYPES.ACTIVITY_LIST,
   COMPONENT_TYPES.APPOINTMENT_SERVICE,
   COMPONENT_TYPES.COUPON,
+  COMPONENT_TYPES.FLASH_SALE,
 ]
 
 /**
@@ -412,11 +413,12 @@ async function loadComponentData(component, forceRefresh = false) {
   }
 
   try {
-    // 商品列表手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
+    // 商品列表/秒杀区手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
     let dataSource = component.dataSource
     const props = component.props || {}
     const isProductStream = component.type === 'product_list' && props.display_mode === 'stream'
-    if (component.type === 'product_list') {
+    const supportsProductIds = component.type === 'product_list' || component.type === 'flash_sale'
+    if (supportsProductIds) {
       const ids = Array.isArray(props.product_ids) ? props.product_ids : []
       const extraParams = isProductStream ? { display_mode: 'stream' } : {}
       if (ids.length) {
@@ -504,7 +506,7 @@ async function loadComponentData(component, forceRefresh = false) {
     }
 
     // 接口失败/空列表时，手动选品回退到 DSL 内保存的 items
-    if (component.type === 'product_list') {
+    if (supportsProductIds) {
       const ids = Array.isArray(props.product_ids) ? props.product_ids.map((id) => String(id)) : []
       const sliceCap = isProductStream && ids.length
         ? Math.max(ids.length, Array.isArray(props.items) ? props.items.length : 0, feedPageSize)
