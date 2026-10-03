@@ -1,0 +1,5 @@
+<view wx:if="{{show}}" class="network-off">
+  <view class="network-off__icon">📡</view>
+  <view class="network-off__text">网络异常，请检查网络设置</view>
+  <view class="network-off__btn" catchtap="onRetry">重新加载</view>
+</view>

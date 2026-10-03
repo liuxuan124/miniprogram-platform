@@ -123,3 +123,23 @@
   font-size: 22rpx;
   color: #6b5443;
 }
+
+/* 小红书风格底色：整页浅米 #f7f7f7（替代 app.wxss 的 --bg 米棕 #FDF6EC） */
+.xhs-bg {
+  background: #f7f7f7;
+  --bg: #f7f7f7;
+  --brand: #ff2e4d;
+  --brand-dark: #e01f3d;
+  --brand-soft: #ffedf1;
+  --brand-muted: #ff7a1a;
+  --brand-50: #fff1f3;
+  --brand-100: #ffe0e6;
+  --accent: #ff7a1a;
+  --ink: #1a1a1a;
+  --ink-2: #61666d;
+  --ink-3: #9aa0a8;
+}
+
+/* 边距收紧（与内容页一致：32rpx → 20rpx） */
+.xhs-bg .pfd-hero { padding-left: 8rpx; padding-right: 8rpx; }
+.xhs-bg .pfd-page { padding-left: 8rpx; padding-right: 8rpx; }

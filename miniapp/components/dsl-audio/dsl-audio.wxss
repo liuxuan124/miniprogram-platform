@@ -1,0 +1,69 @@
+/* components/dsl-audio/dsl-audio.wxss — 音频卡片组件 */
+.dsl-audio {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #fffaf3;
+  border-radius: 16rpx;
+  margin: 16rpx 0;
+}
+.dsl-audio__cover {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+  background: #f7f0e6;
+}
+.dsl-audio__cover--ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+}
+.dsl-audio__body {
+  flex: 1;
+  margin-left: 20rpx;
+  min-width: 0;
+}
+.dsl-audio__title {
+  font-size: 28rpx;
+  color: #2a1c12;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsl-audio__artist {
+  font-size: 24rpx;
+  color: #a1897a;
+  margin-top: 4rpx;
+}
+.dsl-audio__ctrl {
+  display: flex;
+  align-items: center;
+  margin-top: 12rpx;
+}
+.dsl-audio__play {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #c2410c;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+.dsl-audio__slider-wrap {
+  flex: 1;
+  margin: 0 16rpx;
+}
+.dsl-audio__slider {
+  margin: 0;
+}
+.dsl-audio__time {
+  font-size: 22rpx;
+  color: #a1897a;
+  flex-shrink: 0;
+}

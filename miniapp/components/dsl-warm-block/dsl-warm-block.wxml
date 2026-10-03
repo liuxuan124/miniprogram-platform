@@ -50,7 +50,12 @@
           data-tab="{{item.tab}}"
           bindtap="onNav"
         >
-          <view class="wh-nav__ic">{{item.icon}}</view>
+          <!-- 图标双模：素材库图片用 image 铺满方块；否则按 emoji 文本渲染。
+               isImg 由 js 侧预先算好（图片=素材库 /uploads/ 路径或 http 链接）。 -->
+          <view class="wh-nav__ic {{item.isImg ? 'wh-nav__ic--img' : ''}}">
+            <image wx:if="{{item.isImg}}" src="{{item.icon}}" mode="aspectFill" />
+            <text wx:else>{{item.icon}}</text>
+          </view>
           <text>{{item.label}}</text>
         </view>
       </block>

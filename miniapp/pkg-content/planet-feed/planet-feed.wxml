@@ -1,5 +1,5 @@
 <!-- 单星球动态列表：去看看 -->
-<view class="pfd-page">
+<view class="pfd-page xhs-bg">
   <view class="pfd-hero">
     <view class="pfd-hero__rw">
       <text class="pfd-hero__ic">{{community.emoji || '🪐'}}</text>

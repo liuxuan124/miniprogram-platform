@@ -20,6 +20,22 @@ function resolveBrandInitial(config, warm) {
   return '暖'
 }
 
+/** 金刚区图标是「素材库图片」还是「emoji」：图片= /uploads/ 相对路径或 http 链接 */
+function isImageIcon(icon) {
+  const v = String(icon || '').trim()
+  if (!v) return false
+  return v.indexOf('/uploads/') === 0 || v.indexOf('http://') === 0 || v.indexOf('https://') === 0
+}
+
+function resolveNavs(warm) {
+  const navs = (warm && warm.navs) || []
+  return navs.map((n) => {
+    const item = Object.assign({}, n)
+    item.isImg = isImageIcon(n && n.icon)
+    return item
+  })
+}
+
 function resolveMemberBadgeLabel(config, warm) {
   const cfg = config || {}
   const w = warm || {}
@@ -75,6 +91,8 @@ Component({
     greetTitleStyle: '',
     greetSubStyle: '',
     usePlainSearch: false,
+    /** 金刚区入口（_syncGreetUi 里会补isImg 标记），先给空数组避免首帧 undefined */
+    navs: [],
   },
   observers: {
     'config, warm, shellStyle': function () {
@@ -108,6 +126,7 @@ Component({
         brandInitial: resolveBrandInitial(config, warm),
         memberBadgeLabel: resolveMemberBadgeLabel(config, warm),
         showAvatarImage,
+        navs: resolveNavs(warm),
         greetTitleStyle: 'font-size:' + (titlePx * 2) + 'rpx;font-weight:700;',
         greetSubStyle: 'font-size:' + (subPx * 2) + 'rpx;',
       })

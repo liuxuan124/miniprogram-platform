@@ -118,12 +118,37 @@
   color: #c3ab96;
 }
 
-.fp-paper__h {
+.fp-paper__h,
+.fp-paper__h1 {
   font-size: 32rpx;
   font-weight: 780;
   letter-spacing: -0.01em;
   font-family: "Songti SC", "Noto Serif SC", serif;
   padding-right: 80rpx;
+}
+
+/* 首个 h1 是页面主标题，不留上边距 */
+.fp-paper__h1:first-child,
+.fp-paper > .fp-paper__h1:nth-of-type(2) {
+  margin-top: 0;
+}
+
+.fp-paper__h1 {
+  margin-top: 32rpx;
+  line-height: 1.5;
+}
+
+/* 试读水印角标：让用户明确「这不是原件，是裁切件」 */
+.fp-paper__wm {
+  display: inline-block;
+  margin-bottom: 12rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  color: #a16207;
+  background: #fef6e7;
+  font-size: 19rpx;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .fp-paper__sub {
@@ -141,7 +166,8 @@
 
 .fp-paper__h2--first { margin-top: 0; }
 
-.fp-paper__li {
+.fp-paper__li,
+.fp-paper__p {
   margin-top: 18rpx;
   font-size: 24rpx;
   line-height: 1.75;
@@ -186,6 +212,16 @@
 .fp-lockbox__ic { font-size: 52rpx; }
 .fp-lockbox__h { margin-top: 18rpx; font-size: 30rpx; font-weight: 780; }
 .fp-lockbox__p { margin-top: 14rpx; font-size: 23rpx; color: var(--ink-2); line-height: 1.6; white-space: pre-wrap; }
+.fp-lockbox__tip {
+  margin: 18rpx auto 0;
+  padding: 14rpx 20rpx;
+  max-width: 520rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 21rpx;
+  color: var(--mute);
+  line-height: 1.6;
+}
 .fp-lockbox__btn { margin: 28rpx auto 0; display: inline-flex; }
 
 .fp-end {
@@ -194,6 +230,74 @@
   color: var(--mute);
   padding: 32rpx 0 12rpx;
   letter-spacing: 0.08em;
+}
+
+/* 试读态卡片：PDF/DOCX 走裁切流时，页面本身没有内嵌文本，用它承载「能看几页」 */
+.fp-trial {
+  margin-top: 24rpx;
+  padding: 44rpx 36rpx 36rpx;
+  text-align: center;
+  border-radius: 36rpx;
+  border: 1rpx solid var(--line);
+  background: linear-gradient(150deg, #fff6ea, #fdeedb);
+}
+
+.fp-trial__ic { font-size: 52rpx; }
+
+.fp-trial__h {
+  margin-top: 18rpx;
+  font-size: 32rpx;
+  font-weight: 780;
+  color: var(--brand);
+}
+
+.fp-trial__p {
+  margin-top: 12rpx;
+  font-size: 23rpx;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.fp-trial__bar {
+  margin: 26rpx auto 0;
+  width: 420rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+  overflow: hidden;
+  background: rgba(195, 65, 12, 0.14);
+}
+
+.fp-trial__fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #ea580c, #c2410c);
+}
+
+.fp-trial__meta {
+  margin: 18rpx auto 0;
+  padding: 12rpx 18rpx;
+  max-width: 480rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 21rpx;
+  color: var(--mute);
+  line-height: 1.6;
+}
+
+.fp-trial__acts {
+  margin-top: 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.fp-trial__btn { display: inline-flex; }
+
+.fp-trial__link {
+  font-size: 23rpx;
+  color: var(--brand);
+  font-weight: 700;
 }
 
 .fp-empty {

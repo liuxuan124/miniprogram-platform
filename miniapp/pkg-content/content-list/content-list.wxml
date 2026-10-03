@@ -21,7 +21,7 @@
   </block>
 </block>
 <block wx:else>
-<view class="cl-page">
+<view class="cl-page xhs-bg">
   <view class="cl-head">
     <view class="cl-tt">
       <text class="cl-bk" bindtap="onBack">‹</text>

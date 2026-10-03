@@ -1,0 +1,32 @@
+<!-- components/author-card/author-card — 作者档案卡片（内容详情页/作者列表复用） -->
+<view
+  class="ac {{clickable ? 'ac--click' : ''}} ac--{{variant}}"
+  bindtap="onCardTap"
+  hover-class="{{clickable ? 'ac--hover' : ''}}"
+  hover-stay-time="80"
+>
+  <image
+    wx:if="{{avatar}}"
+    class="ac__av"
+    src="{{avatar}}"
+    mode="aspectFill"
+  />
+  <view wx:else class="ac__av ac__av--txt">{{initial}}</view>
+
+  <view class="ac__meta">
+    <view class="ac__name-row">
+      <text class="ac__name">{{name || '匿名作者'}}</text>
+      <text wx:if="{{role}}" class="ac__role warm-tag warm-tag--gold">{{role}}</text>
+    </view>
+    <text wx:if="{{title}}" class="ac__title">{{title}}</text>
+    <text wx:if="{{intro}}" class="ac__intro">{{intro}}</text>
+  </view>
+
+  <view
+    wx:if="{{showFollow}}"
+    class="ac__follow {{followed ? 'on' : ''}}"
+    catchtap="onFollowTap"
+    hover-class="ac__follow--hover"
+  >{{followed ? '已关注' : '＋ 关注'}}</view>
+  <view wx:elif="{{clickable}}" class="ac__go">作品 ›</view>
+</view>

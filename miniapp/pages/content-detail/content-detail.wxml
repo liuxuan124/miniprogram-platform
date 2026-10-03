@@ -227,18 +227,20 @@
     </view>
 
     <view class="a-wrap a-wrap--flat">
-      <view class="a-author">
-        <image wx:if="{{authorAvatar}}" class="a-author__av" src="{{authorAvatar}}" mode="aspectFill" />
-        <view wx:else class="a-author__av a-author__av--txt">{{authorInitial}}</view>
-        <view class="a-author__meta">
-          <view class="a-author__name">
-            {{authorName}}
-            <text class="warm-tag warm-tag--gold" wx:if="{{authorRole}}">{{authorRole}}</text>
-          </view>
-          <view class="a-author__sub">{{articleMetaLine}}</view>
-        </view>
-        <view class="a-follow {{followed ? 'on' : ''}}" catchtap="onFollowTap">{{followed ? '已关注' : '＋ 关注'}}</view>
-      </view>
+      <author-card
+        class="a-author-card"
+        author-id="{{authorId}}"
+        name="{{authorName}}"
+        avatar="{{authorAvatar}}"
+        role="{{authorRole}}"
+        title="{{authorTitle}}"
+        intro="{{authorIntro}}"
+        show-follow="{{true}}"
+        followed="{{followed}}"
+        bind:tap="onAuthorCardTap"
+        bind:follow="onFollowTap"
+      />
+      <view class="a-author__sub" wx:if="{{articleMetaLine}}">{{articleMetaLine}}</view>
 
       <view class="n-chips" wx:if="{{!articleCover && !article.cover_url}}">
         <text class="fmt {{formatKey}}">{{formatLabel}}</text>

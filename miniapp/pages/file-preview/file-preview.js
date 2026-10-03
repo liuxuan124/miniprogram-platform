@@ -54,6 +54,37 @@ function canOpenDocument(fileType, name) {
     || /(pdf|doc|docx|xls|xlsx|ppt|pptx)/.test(blob)
 }
 
+/**
+ * 判断 downloadFile 的响应是否是「后端返回的 JSON 错误体」而非文件。
+ * 依据：Content-Type 为 application/json，或文件极小（错误体通常几十字节）。
+ */
+function looksLikeJsonError(res) {
+  if (!res) return false
+  if (res.statusCode !== 200) return false
+  const ct = String((res.header && (res.header['Content-Type'] || res.header['content-type'])) || '').toLowerCase()
+  if (ct.indexOf('application/json') !== -1) return true
+  // 没有 Content-Type 时用体积兜底：正常 PDF 至少几 KB，错误体一般 < 1KB
+  if (typeof res.totalBytesExpectedToWrite === 'number' && res.totalBytesExpectedToWrite > 0) {
+    return res.totalBytesExpectedToWrite < 1024
+  }
+  return false
+}
+
+/**
+ * 尝试从 downloadFile 响应里读出后端给的错误文案。
+ * 微信把响应体写进了 tempFilePath，需用 FileSystemManager 异步读；
+ * 这里只做尽力而为的同步判断，读不到就返回空，由调用方兜底文案。
+ */
+function readJsonErrorMessage(res) {
+  try {
+    const buf = wx.getFileSystemManager().readFileSync(res.tempFilePath, 'utf8')
+    const obj = JSON.parse(buf)
+    return obj && obj.message ? String(obj.message) : ''
+  } catch (e) {
+    return ''
+  }
+}
+
 function isStubPreview(text) {
   const t = String(text || '').trim()
   return !t || STUB_PREVIEW_RE.test(t)
@@ -137,6 +168,13 @@ Page({
     sourceContentId: '',
     primaryCta: '返回',
     previewUrl: '',
+    hasTrial: false,
+    previewPages: 0,
+    pageCount: 0,
+    trialRatio: 0,
+    previewPagesData: [],
+    loadedPages: 0,
+    loadingPapers: false,
   },
 
   onLoad(options) {
@@ -183,8 +221,8 @@ Page({
     return {
       title: this.data.name || '文件预览',
       path: this.data.id
-        ? `/pages/file-preview/file-preview?id=${this.data.id}`
-        : '/pages/resources/resources',
+        ? `/pkg-content/file-preview/file-preview?id=${this.data.id}`
+        : '/pkg-content/resources/resources',
     }
   },
 
@@ -230,12 +268,34 @@ Page({
         const canPreview = !!(data && data.canPreview)
         const canRead = !!(data && data.canRead)
         const name = (data && data.name) || '文件预览'
-        const locked = !!this._forceLock || !(canDownload || canRead || canPreview)
+        // 有试读裁切流（PDF/DOCX）就不算「完全锁死」——允许先看前几页
+        const previewUrl = (data && data.previewUrl) || ''
+        const hasTrial = canPreview && !!previewUrl
+        const locked = !!this._forceLock || !(canDownload || canRead || hasTrial)
         const rawPreview = (data && data.previewText) || ''
         const stub = isStubPreview(rawPreview)
         const pageCount = resolvePageCount(data)
+        const keepPages = Number(data && data.previewPages) || 0
         const fullyOpen = canDownload || canRead
         const previewText = (!locked && !stub) ? rawPreview : ''
+        // 试读页数文案：优先后端给的 previewPages，其次按百分比估算
+        const trialLabel = keepPages > 0
+          ? `试读前 ${keepPages} 页`
+          : (pageCount && data && Number(data.previewPercent) > 0
+            ? `试读前 ${Math.max(1, Math.ceil(pageCount * Number(data.previewPercent) / 100))} 页`
+            : '试读')
+        // 试读占比进度条（percent 模式才有意义，其余给 0）
+        const trialRatio = (() => {
+          const mode = String((data && data.previewMode) || '')
+          if (mode === 'percent') {
+            const pct = Number(data && (data.previewValue != null ? data.previewValue : data.previewPercent))
+            if (pct > 0) return Math.min(100, Math.max(0, Math.round(pct)))
+          }
+          if (pageCount && keepPages > 0 && keepPages < pageCount) {
+            return Math.min(100, Math.round((keepPages / pageCount) * 100))
+          }
+          return 0
+        })()
         this.setData({
           loading: false,
           loadError: false,
@@ -254,19 +314,32 @@ Page({
           paperSub: '',
           pageLabel: pageCount ? `1 / ${pageCount}` : '',
           endText: locked
-            ? '未解锁状态'
+            ? (hasTrial ? `可试读前 ${keepPages || ''} 页` : '未解锁状态')
             : (pageCount ? `共 ${pageCount} 页` : (previewText ? '' : '暂无页数信息')),
           sourceContentId: (data && (data.sourceContentId || data.contentId)) || '',
           sourceText: (data && data.sourceText) || '',
           sourceAvatar: (data && data.sourceAvatar) || '',
-          primaryCta: locked ? '解锁后查看' : (fullyOpen || canPreview ? '打开文件' : '返回'),
-          statusText: locked ? '未解锁' : (fullyOpen ? '你已解锁' : (canPreview ? '可试读' : '')),
-          previewUrl: (data && data.previewUrl) || '',
+          // 未开通且只能试读时，按钮不能叫「打开文件」——那会让人以为是全文
+          primaryCta: locked
+            ? (hasTrial ? trialLabel : '解锁后查看')
+            : (fullyOpen ? '打开文件' : (hasTrial ? trialLabel : '返回')),
+          statusText: locked
+            ? (hasTrial ? `可试读 ${keepPages || ''} 页` : '未解锁')
+            : (fullyOpen ? '你已解锁' : (canPreview ? '可试读' : '')),
+          previewUrl,
+          hasTrial,
+          trialRatio,
+          previewPages: keepPages,
+          pageCount,
         })
         if (locked) return
         if (!stub) return
         if (canPreview && !previewText) {
           this._loadPreviewText(id)
+        }
+        // 纸张内嵌渲染：始终拉结构化试读页（PDF 走这条）
+        if (hasTrial) {
+          this._loadPreviewPages(id)
         }
       })
       .catch(() => {
@@ -306,6 +379,25 @@ Page({
       .catch(() => { /* ignore */ })
   },
 
+  /**
+   * 拉取结构化试读页（每页 h1/h2/p 段落），在页面内渲染成「纸张」。
+   * 小程序无法内嵌 PDF 阅读器，所以由后端按字号拆层级，前端负责视觉还原。
+   */
+  _loadPreviewPages(id) {
+    get(`/api/v1/mp/files/${id}/preview-text`, {}, { auth: true, showError: false })
+      .then((pages) => {
+        const list = Array.isArray(pages) ? pages : []
+        if (!list.length) return
+        this.setData({
+          previewPagesData: list,
+          // 后端给的就是「这次能看到几页」，用它校正页数文案
+          loadedPages: list.length,
+          loadingPapers: false,
+        })
+      })
+      .catch(() => { /* 拉不到就退回 openDocument 兜底 */ })
+  },
+
   _openDocument(id, meta) {
     this.setData({ statusText: '正在下载预览…' })
     const previewOnly = meta && meta.previewOnly
@@ -318,35 +410,65 @@ Page({
       header: buildDownloadHeader(),
       success: (res) => {
         if (res.statusCode === 401 || res.statusCode === 403) {
+          // 试读流被拒 ≠ 全文被拒：区分开，别把「试读也失败」说成「要开通」
+          if (previewOnly) {
+            this._failWithMessage('试读暂时打不开，请稍后重试')
+            return
+          }
           this.setData({
             locked: true,
+            hasTrial: false,
             lockedReason: '开通会员后可下载该资料',
             statusText: '已锁定',
             primaryCta: '解锁后查看',
           })
           return
         }
+        // 后端出错时可能返回 JSON 错误体（Content-Type: application/json），
+        // 例如文件实体缺失时 resolveFilePath 抛 404001。这类响应不是文件，
+        // 必须拦在 openDocument 之前，否则用户只会看到无意义的「下载失败」。
+        if (looksLikeJsonError(res)) {
+          this._failWithMessage(readJsonErrorMessage(res) || '文件暂时无法打开，请稍后重试')
+          return
+        }
         if (res.statusCode !== 200 || !res.tempFilePath) {
-          wx.showToast({ title: '下载失败', icon: 'none' })
-          this.setData({ statusText: this.data.locked ? '未解锁' : '下载失败' })
+          this._failWithMessage(this.data.locked ? '未解锁' : '下载失败，请稍后重试')
           return
         }
         if (canOpenDocument(meta && meta.fileType, meta && meta.name)) {
           wx.openDocument({
             filePath: res.tempFilePath,
             showMenu: true,
-            fail: () => wx.showToast({ title: '无法预览该文件', icon: 'none' }),
+            fail: (e) => {
+              const msg = (e && e.errMsg && /cancel/.test(e.errMsg)) ? '' : '无法预览该文件'
+              if (msg) this._failWithMessage(msg)
+            },
           })
+          // 试读是裁切件，必须说清「只给了前几页」，否则用户以为这就是全文
+          if (previewOnly) {
+            const total = resolvePageCount(this.data)
+            const keep = Number(this.data.previewPages) || 0
+            wx.showToast({
+              title: total && keep ? `试读 ${keep}/${total} 页` : '试读版（完整版需开通）',
+              icon: 'none',
+              duration: 2600,
+            })
+          }
         } else {
           wx.showToast({ title: '已下载', icon: 'none' })
         }
         this.setData({ statusText: this.data.locked ? '未解锁' : (this.data.canDownload || this.data.canRead ? '你已解锁' : '可试读') })
       },
       fail: () => {
-        wx.showToast({ title: '下载失败', icon: 'none' })
-        this.setData({ statusText: '下载失败' })
+        this._failWithMessage('下载失败，请检查网络后重试')
       },
     })
+  },
+
+  /** 统一的失败提示：toast + 状态行，避免各处文案不一致 */
+  _failWithMessage(message) {
+    wx.showToast({ title: message, icon: 'none', duration: 2200 })
+    this.setData({ statusText: message })
   },
 
   onFavorite() {
@@ -365,7 +487,7 @@ Page({
   onGoSource() {
     const sid = this.data.sourceContentId
     if (sid) {
-      wx.navigateTo({ url: `/pages/moment-detail/moment-detail?id=${sid}` })
+      wx.navigateTo({ url: `/pkg-content/moment-detail/moment-detail?id=${sid}` })
       return
     }
     wx.navigateBack({
@@ -394,7 +516,12 @@ Page({
       this.onRetry()
       return
     }
+    // 锁定态：有裁切试读流就先给看几页，别一上来就逼人开通
     if (this.data.locked) {
+      if (this.data.hasTrial) {
+        this.onOpenAnyway()
+        return
+      }
       this.onUnlockCta()
       return
     }

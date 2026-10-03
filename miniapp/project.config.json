@@ -161,6 +161,26 @@
       {
         "value": "data/golden-parity-dsl.json",
         "type": "file"
+      },
+      {
+        "value": "utils/dsl-page.js",
+        "type": "file"
+      },
+      {
+        "value": "utils/product-sku.js",
+        "type": "file"
+      },
+      {
+        "value": "utils/dev-config.example.js",
+        "type": "file"
+      },
+      {
+        "value": "pages/file-preview",
+        "type": "folder"
+      },
+      {
+        "value": "pages/moment-detail",
+        "type": "folder"
       }
     ],
     "include": []

@@ -1,5 +1,7 @@
 .dsl-note-feed {
   box-sizing: border-box;
+  /* 显式撑满：作为 flex 子项时默认可能被收缩，导致内部百分比宽度算错 */
+  width: 100%;
 }
 
 .dsl-note-feed--wechat {
@@ -89,16 +91,25 @@
   font-size: 22rpx;
 }
 
+/* 两列瀑布流用 grid 替代 flex+calc：
+   grid-template-columns: repeat(2, 1fr) 由布局引擎自己扣掉 gap 分配列宽，
+   不需要 calc(50% - Nrpx)，真机上不会因为混单位解析失败而整行只放 1 张。
+   旧写法 width:calc(50% - 11rpx) 在部分真机 WebView 上会回退成 50%，
+   叠加 gap 超过 100% → 每行 1 张 + 右半屏空白。 */
 .dsl-note-feed__masonry {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: start;
   gap: 22rpx;
+  width: 100%;
 }
 
 .dsl-note-feed__card {
   display: flex;
   flex-direction: column;
-  width: calc(50% - 11rpx);
+  box-sizing: border-box;
+  /* grid item 同样默认 min-width:auto，长标题会撑破列宽后被裁掉，必须归零 */
+  min-width: 0;
   overflow: hidden;
   background: #fff;
   border-radius: 28rpx;
@@ -111,12 +122,32 @@
   padding-top: 125%;
 }
 
+/* 无封面时的占位：125% 比例是为封面图准备的方形区，
+   没图时留一条过高的空白带（真机上像卡片顶部裂了一条缝），改成固定高度居中放占位图。 */
+.dsl-note-feed__art--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  height: 200rpx;
+  background: #f4f5f8;
+}
+
 .dsl-note-feed__cover {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+/* 已知封面比例时改用 mode="widthFix"：高度由图片自身按原始比例撑开，
+   父容器 padding-top 置 0。此时不能再叠 absolute + height:100%，
+   否则父容器高度为 0，图片不可见。 */
+.dsl-note-feed__cover--fix {
+  position: static;
+  height: auto;
+  display: block;
 }
 
 .dsl-note-feed__glyph {
@@ -141,11 +172,15 @@
 
 .dsl-note-feed__txt {
   padding: 16rpx 18rpx 18rpx;
+  /* 同上：flex 子项默认 min-width:auto，长文本会撑破卡片 */
+  min-width: 0;
 }
 
 .dsl-note-feed__title {
   display: -webkit-box;
   overflow: hidden;
+  /* 连续英文/数字/URL 在窄卡片里不换行会把卡片撑破，word-break 让它按字符断行 */
+  word-break: break-word;
   color: #0f1219;
   font-size: 26rpx;
   font-weight: 600;
@@ -199,4 +234,382 @@
   color: #a5abb9;
   font-size: 24rpx;
   text-align: center;
+}
+
+/* ===== 内容类型大 Tab（笔记/长文/好物） ===== */
+.dsl-note-feed__types {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.dsl-note-feed__types-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 36rpx;
+  flex: 1;
+}
+
+.dsl-note-feed__type {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6rpx 2rpx 10rpx;
+  color: #8a8f9c;
+  font-size: 32rpx;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.dsl-note-feed__type.is-active {
+  color: #14171f;
+  font-weight: 800;
+  font-size: 34rpx;
+}
+
+.dsl-note-feed__type-bar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: var(--brand, #c08e6e);
+}
+
+.dsl-note-feed__search {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2rpx 10rpx rgba(15, 18, 25, 0.08);
+}
+
+.dsl-note-feed__search-lens {
+  position: relative;
+  width: 24rpx;
+  height: 24rpx;
+  border: 3rpx solid #4a5160;
+  border-radius: 50%;
+}
+
+.dsl-note-feed__search-lens::after {
+  content: '';
+  position: absolute;
+  right: -9rpx;
+  bottom: -7rpx;
+  width: 12rpx;
+  height: 3rpx;
+  background: #4a5160;
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+}
+
+/* ===== 小红书式多图角标 ===== */
+.dsl-note-feed__badge-xhs {
+  position: absolute;
+  top: 16rpx;
+  left: 16rpx;
+  padding: 5rpx 14rpx;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 8rpx;
+}
+
+.dsl-note-feed__badge-page {
+  position: absolute;
+  right: 16rpx;
+  bottom: 16rpx;
+  padding: 4rpx 12rpx;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 999rpx;
+}
+
+/* ===== 无封面文字卡（金句/纯文字） ===== */
+.dsl-note-feed__card--text .dsl-note-feed__txt {
+  padding: 24rpx 22rpx 20rpx;
+}
+
+.dsl-note-feed__summary {
+  display: -webkit-box;
+  overflow: hidden;
+  word-break: break-word;
+  margin-top: 12rpx;
+  color: #5d6472;
+  font-size: 24rpx;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+/* ===== 作者徽标 / 红♥ / 价格 ===== */
+.dsl-note-feed__author-tag {
+  flex-shrink: 0;
+  padding: 2rpx 8rpx;
+  color: #9aa0ad;
+  font-size: 18rpx;
+  background: #f2f3f6;
+  border-radius: 6rpx;
+}
+
+.dsl-note-feed__like--heart {
+  color: #e34d59;
+}
+
+.dsl-note-feed__price {
+  color: #e34d59;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+/* ==================== 小红书风格列表主题 ====================
+ * 目标视觉（对齐小红书 App「发现」页）：
+ *   - 整页浅米色底 #f7f7f7，卡片纯白、圆角更小、几乎无阴影
+ *   - 顶部大 Tab（笔记/长文/好物）黑色加粗 + 短横条，选中态用品牌橙红
+ *   - 分类胶囊：未选浅灰、选中橙红字 + 浅粉底
+ *   - 卡片标题纯黑 15px 级、行高 1.4，两行截断
+ *   - 底部作者/赞：灰字 + 红心
+ *   - 「图文 N」角标深色半透明方牌，「1/N」右下角
+ *
+ * 用双类 .dsl-note-feed--xhs 提高特异性，稳定压过基础规则。
+ * 与详情页的 .theme-xhs 是同一套配色（#ff2e4d / #ff7a1a / #f7f7f7）。
+ */
+
+/* ---------- 容器 ---------- */
+.dsl-note-feed.dsl-note-feed--xhs {
+  background: #f7f7f7;
+  /* 边距交由宿主页面统一控制（.xhs-bg 下的 cl-page/pfd-page/af-page）。
+     这里必须为 0 —— 组件自身再叠一层会让两列卡片显著变窄（实测 168px vs 小红书 178px）。 */
+  padding: 0;
+}
+
+/* ---------- 顶部大 Tab：笔记 / 长文 / 好物 ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__types {
+  background: #f7f7f7;
+  padding: 8rpx 0 4rpx;
+  margin-bottom: 8rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__type {
+  color: #61666d;
+  font-size: 30rpx;
+  font-weight: 500;
+  padding: 8rpx 2rpx 12rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__type.is-active {
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 32rpx;
+}
+
+/* 选中态短横条：改用小红书橙红（原为 --brand 米棕） */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__type-bar {
+  width: 28rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: #ff2e4d;
+}
+
+/* 搜索按钮：小红书是白底圆钮 + 深色放大镜 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__search {
+  background: #fff;
+  box-shadow: none;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__search-lens {
+  border-color: #1a1a1a;
+}
+
+/* ---------- 分类胶囊：全部 / 创作日常 / 工位美学 ... ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__tabs-bar {
+  margin-bottom: 20rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__tab {
+  padding: 12rpx 28rpx;
+  margin-right: 16rpx;
+  color: #61666d;
+  font-size: 26rpx;
+  font-weight: 500;
+  background: #fff;
+  border-radius: 999rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__tab.is-active {
+  color: #fff;
+  background: #ff2e4d;
+  font-weight: 600;
+}
+
+/* ---------- 瀑布流与卡片 ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__masonry {
+  gap: 12rpx;
+  padding-bottom: 24rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__card {
+  background: #fff;
+  /* 小红书卡片圆角约 8px，比原来的 28rpx(14px) 更小更方 */
+  border-radius: 16rpx;
+  /* 几乎不要阴影，靠米色底与白卡对比区分层次 */
+  box-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+/* 图片区：无封面时的占位底色改浅灰（不出现米色块） */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__art--empty {
+  background: #f0f0f0;
+}
+
+/* ---------- 卡片文字区 ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__txt {
+  /* 小红书实测卡片文字左边距 ≈ 屏宽 4.8%（约 36rpx），这里取 32rpx */
+  padding: 20rpx 32rpx 24rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__title {
+  color: #1a1a1a;
+  /* 双列卡片窄，标题需要更大字号才不显小；小红书约 15~16px */
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 1.38;
+  letter-spacing: 0;
+}
+
+/* 纯文字卡的摘要 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__summary {
+  color: #61666d;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+/* ---------- 底部：头像 / 作者 / 赞 ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__foot {
+  margin-top: 18rpx;
+  color: #9aa0a8;
+  font-size: 24rpx;
+  gap: 10rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__author {
+  color: #9aa0a8;
+}
+
+/* 官方/角色小标签：浅灰底灰字 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__author-tag {
+  color: #9aa0a8;
+  background: #f5f5f5;
+  border-radius: 4rpx;
+  padding: 2rpx 8rpx;
+  font-size: 18rpx;
+}
+
+/* 点赞：默认灰，激活红心 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__like {
+  color: #9aa0a8;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__like--heart {
+  color: #ff2e4d;
+}
+
+/* 头像占位（无头像时的文字圆） */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__av {
+  background: linear-gradient(135deg, #ff7a1a, #ff2e4d);
+  font-weight: 500;
+}
+
+/* ---------- 图片角标 ---------- */
+/* 「图文 N」左上角：深色半透明方牌 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__badge-xhs {
+  top: 14rpx;
+  left: 14rpx;
+  padding: 4rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 6rpx;
+}
+
+/* 「1/N」右下角 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__badge-page {
+  right: 14rpx;
+  bottom: 14rpx;
+  padding: 4rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 6rpx;
+}
+
+/* 「N 图」右上角（plain 模式） */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__count {
+  top: 14rpx;
+  right: 14rpx;
+  padding: 4rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 6rpx;
+}
+
+/* ---------- 空态 / 加载 ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__empty,
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__footer {
+  color: #9aa0a8;
+  font-size: 24rpx;
+}
+
+/* ---------- 公众号横排卡（深色，样式已接近小红书，仅微调圆角） ---------- */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__wechat-art {
+  border-radius: 12rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__wechat-title {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__wechat-meta {
+  color: #9aa0a8;
+}
+
+/* widthFix 模式下图片是直角的，卡片圆角裁不到它顶部 —— 给图片自己加圆角 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__art {
+  border-radius: 16rpx 16rpx 0 0;
+  overflow: hidden;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__cover--fix {
+  border-radius: 16rpx 16rpx 0 0;
+}
+
+/* 头像与标签：双列卡片窄，元素需同步放大才有小红书的观感 */
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__av,
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__av-img {
+  width: 38rpx;
+  height: 38rpx;
+  font-size: 20rpx;
+}
+
+.dsl-note-feed.dsl-note-feed--xhs .dsl-note-feed__author-tag {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
 }

@@ -11,6 +11,8 @@ const MOMENT_LIKES_KEY = 'moment_likes'
 const MOMENT_FAVS_KEY = 'moment_favorites'
 
 function readMomentIds(key) {
+  // 未登录不返回任何互动态，避免游客态脏数据被当成已点赞展示
+  if (!AuthUtil.isLoggedIn()) return []
   const raw = StorageUtil.get(key)
   if (!raw) return []
   if (Array.isArray(raw)) return raw.map(String)
@@ -19,6 +21,7 @@ function readMomentIds(key) {
 }
 
 function writeMomentIds(key, ids) {
+  if (!AuthUtil.isLoggedIn()) return
   const map = {}
   ;(ids || []).forEach((id) => {
     const k = String(id)
@@ -87,6 +90,37 @@ function buildDownloadHeader() {
   const token = AuthUtil.getToken()
   if (token) header.Authorization = 'Bearer ' + token
   return header
+}
+
+/**
+ * 接口 attachments → 详情页附件卡片
+ * locked 态后端只给元信息（name/size/fileId/canPreview/lockedReason）并脱敏 URL，
+ * 这里照常映射，卡片区照常展示，点击走开通引导。
+ */
+function mapAttachments(raw) {
+  return (Array.isArray(raw) ? raw : []).map((r, idx) => {
+    const fileId = r.fileId || r.file_id || null
+    const canDownload = r.canDownload !== false
+    const canPreview = !!r.canPreview
+    return {
+      id: r.id || String(idx),
+      fileId,
+      name: r.name || '未命名文件',
+      url: resolveMediaUrl(r.url || ''),
+      size: Number(r.size || 0),
+      sizeText: formatFileSize(r.size),
+      fileType: r.fileType || 'other',
+      icon: fileTypeIcon(r.fileType || 'other'),
+      canRead: r.canRead !== false,
+      canDownload,
+      canPreview,
+      previewText: r.previewText || '',
+      lockedReason: r.lockedReason || '',
+      qualityTier: r.qualityTier || '',
+      locked: fileId ? !canDownload : false,
+      actionText: fileId && !canDownload ? '解锁' : (canPreview && !canDownload ? '预览' : '下载'),
+    }
+  })
 }
 
 function normalizeComments(list) {
@@ -233,6 +267,7 @@ Page({
   },
 
   onShareTap() {
+    if (!AuthUtil.requireLoginQuiet('分享')) return
     const moment = this.data.moment || {}
     const id = this._momentId
     if (!id || this.data.usingDemo) {
@@ -249,6 +284,7 @@ Page({
   },
 
   onLikeTap() {
+    if (!AuthUtil.requireLoginQuiet('点赞')) return
     const id = String(this._momentId || (this.data.moment && this.data.moment.id) || 'demo')
     const liked = !this.data.liked
     const base = Number(this.data.likeCount) || 0
@@ -266,6 +302,7 @@ Page({
   },
 
   onFavoriteTap() {
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
     const id = String(this._momentId || (this.data.moment && this.data.moment.id) || 'demo')
     const favorited = !this.data.favorited
     const ids = readMomentIds(MOMENT_FAVS_KEY)
@@ -406,20 +443,21 @@ Page({
     const item = this.data.attachments[index]
     if (!item) return
     if (item.fileId) {
+      // 锁定态优先走开通引导，别先弹「知道了」的死胡同让用户白点一次
+      if (!item.canDownload) {
+        this._showLocked(item)
+        return
+      }
       if (item.canPreview && item.previewText) {
         wx.showModal({
           title: item.name,
           content: item.previewText,
           showCancel: false,
-          confirmText: item.canDownload ? '下载完整版' : '知道了',
+          confirmText: '下载完整版',
           success: (res) => {
-            if (res.confirm && item.canDownload) this._downloadFileItem(item)
+            if (res.confirm) this._downloadFileItem(item)
           },
         })
-        return
-      }
-      if (!item.canDownload) {
-        this._showLocked(item)
         return
       }
       this._downloadFileItem(item)
@@ -430,6 +468,21 @@ Page({
       return
     }
     this._downloadLegacy(item)
+  },
+
+  /**
+   * 试读：进 file-preview 走服务端裁切流（只给前几页 + 个人水印）。
+   * 试读比例由后端 mp_file_item.preview_mode/preview_value 决定，前端不硬编码。
+   */
+  onTrialAttachment(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    const item = this.data.attachments[index]
+    if (!item || !item.fileId) return
+    if (!item.canPreview) {
+      this._showLocked(item)
+      return
+    }
+    wx.navigateTo({ url: `/pkg-content/file-preview/file-preview?id=${item.fileId}&from=moment` })
   },
 
   _showLocked(item) {
@@ -521,8 +574,12 @@ Page({
               cover_url: resolveMediaUrl(data.coverImage || ''),
             },
             bodyText: String(data.summary || data.lockedReason || '开通会员后可查看全文'),
-            images: [],
-            attachments: [],
+            // locked 只锁全文与文件下载，图片/附件元信息照常展示（与信息流卡片一致）
+            images: (Array.isArray(data.images) ? data.images : [])
+              .map((u) => resolveMediaUrl(u))
+              .filter(Boolean),
+            // 后端 locked 态仍返回附件元信息（name/size/fileId/canPreview/lockedReason），仅 URL 脱敏
+            attachments: mapAttachments(data.attachments),
             answer: data.essenceAnswer || null,
             likeWall: data.likeWall || null,
             discussions: [],
@@ -542,24 +599,7 @@ Page({
           .map((u) => resolveMediaUrl(u))
           .filter(Boolean)
         if (cover && images.indexOf(cover) < 0) images.unshift(cover)
-        const attachments = (Array.isArray(data.attachments) ? data.attachments : []).map((raw, idx) => ({
-          id: raw.id || String(idx),
-          fileId: raw.fileId || raw.file_id || null,
-          name: raw.name || '未命名文件',
-          url: resolveMediaUrl(raw.url || ''),
-          size: Number(raw.size || 0),
-          sizeText: formatFileSize(raw.size),
-          fileType: raw.fileType || 'other',
-          icon: fileTypeIcon(raw.fileType || 'other'),
-          canRead: raw.canRead !== false,
-          canDownload: raw.canDownload !== false,
-          canPreview: !!raw.canPreview,
-          previewText: raw.previewText || '',
-          lockedReason: raw.lockedReason || '',
-          qualityTier: raw.qualityTier || '',
-          locked: raw.fileId ? !raw.canDownload : false,
-          actionText: raw.fileId && !raw.canDownload ? '锁定' : (raw.canPreview && !raw.canDownload ? '预览' : '下载'),
-        }))
+        const attachments = mapAttachments(data.attachments)
         const rawHtml = String(data.content || data.summary || '')
         const split = splitHostAnswer(rawHtml)
         const body = stripHtml(split.question || rawHtml)

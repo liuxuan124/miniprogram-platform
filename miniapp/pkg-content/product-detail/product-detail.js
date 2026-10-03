@@ -5,6 +5,7 @@ const productService = require('../../services/product')
 const cartService = require('../../services/cart')
 const couponService = require('../../services/coupon')
 const { AuthUtil } = require('../../utils/auth')
+const { readFavoriteIds, writeFavoriteIds } = require('../../utils/favorite-ids')
 const { createSharePageConfig, openWarmShareSheet } = require('../../utils/share')
 const { previewRichHtmlImages } = require('../../utils/rich-html')
 const { USE_LOCAL_SOURCE } = require('../../data/warm-source')
@@ -182,6 +183,7 @@ Page({
     id: '',
     product: null,
     loading: true,
+    favorited: false,
 
     // 图片轮播
     swiperCurrent: 0,
@@ -292,6 +294,7 @@ Page({
       return
     }
     this.setData({ id })
+    this.setData({ favorited: readFavoriteIds().indexOf(String(id)) >= 0 })
     this._loadDetail(id)
   },
 
@@ -887,6 +890,7 @@ Page({
   },
 
   onShareTap() {
+    if (!AuthUtil.requireLoginQuiet('分享')) return
     const product = this.data.product || {}
     const id = this.data.id || ''
     const isPay1 = this.data.isWarmDigital && /暖阁体验包|体验包.*1元/.test(String(product.name || ''))
@@ -918,7 +922,21 @@ Page({
   },
 
   onFavoriteTap() {
-    wx.showToast({ title: '已收藏', icon: 'success' })
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
+    const id = String(this.data.id || (this.data.product && this.data.product.id) || '').trim()
+    const favorited = !this.data.favorited
+    if (id) {
+      const ids = readFavoriteIds()
+      if (favorited) {
+        if (!ids.includes(id)) ids.push(id)
+      } else {
+        const idx = ids.indexOf(id)
+        if (idx >= 0) ids.splice(idx, 1)
+      }
+      writeFavoriteIds(ids)
+    }
+    this.setData({ favorited })
+    wx.showToast({ title: favorited ? '已收藏' : '已取消收藏', icon: 'none' })
   },
 
   onGoMember() {

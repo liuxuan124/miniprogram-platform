@@ -167,6 +167,12 @@ Component({
       const pages = getCurrentPages()
       if (!pages.length) return
       const currentPath = this._normalizePath('/' + pages[pages.length - 1].route)
+      // 只在「当前就在 Tab 容器壳」上做兜底。
+      // 若用户已经 navigateTo 进二级页（商品详情/内容详情/下单等），此处 switchTab
+      // 会把用户强行弹回首页（体验版实测：商城点开商品 → 自动回首页）。
+      // 本方法是异步配置回调触发的，栈顶可能已不是 Tab 壳，必须按栈顶路由判定。
+      const tabShells = TAB_SLOT_ROUTES.map((p) => this._normalizePath(p))
+      if (tabShells.indexOf(currentPath) < 0) return
       const visible = tabs.some((item) => this._normalizePath(item.pagePath) === currentPath)
       if (visible) return
       const first = this._normalizePath(tabs[0].pagePath)
