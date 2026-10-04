@@ -1,0 +1,1 @@
+const a=["card","list","compact","overlay","magazine","grid","editorial"];function t(r,i="list"){const e=String(r||"");return a.includes(e)?e:i}function n(r,i){return r==="magazine"?i===0?"overlay":"editorial":r}export{n as a,t as r};

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 分享</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .stage { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; align-items: flex-start; }
+
+  /* 背景页（被分享的文章） */
+  .bgpage { filter: brightness(.98); }
+  .bgpage .cover { position: relative; height: 250px; color: #fff; }
+  .bgpage .cover img { position: absolute; inset: 0; }
+  .bgpage .cover .sc { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(50,22,6,.4), rgba(50,22,6,.15) 42%, rgba(50,22,6,.86)); }
+  .bgpage .cover .bd { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px 18px; }
+  .bgpage .cover h1 { margin-top: 9px; font-size: 23px; line-height: 1.34; font-weight: 720; letter-spacing: -.02em; }
+  .bgpage article { padding: 18px 20px 0; }
+  .bgpage article p { font-size: 15.5px; line-height: 1.9; color: #3a2a1c; margin-bottom: 15px; }
+
+  .mask { position: absolute; inset: 0; z-index: 40; background: rgba(38,20,8,.5); backdrop-filter: blur(2px); }
+
+  /* 分享面板 */
+  .panel { position: absolute; z-index: 41; left: 0; right: 0; bottom: 0; border-radius: 24px 24px 0 0; background: var(--bg); overflow: hidden; }
+  .panel .pt { padding: 16px 18px 4px; text-align: center; }
+  .panel .pt h4 { font-size: 14.5px; font-weight: 770; }
+  .panel .pt p { margin-top: 5px; font-size: 11px; color: var(--mute); }
+
+  .reward { margin: 12px 16px 0; padding: 11px 13px; border-radius: 13px; display: flex; align-items: center; gap: 9px;
+    background: linear-gradient(120deg,#3b2110,#5c3418); color: #f8e3c6; }
+  .reward .ic { font-size: 17px; }
+  .reward b { font-size: 11.5px; font-weight: 740; color: #fbe3bc; }
+  .reward p { font-size: 10px; opacity: .74; margin-top: 3px; }
+  .reward .ct { margin-left: auto; font-size: 10px; text-align: right; opacity: .8; }
+
+  .row1 { display: grid; grid-template-columns: repeat(4,1fr); padding: 16px 8px 6px; }
+  .row1 a { text-align: center; font-size: 11px; color: var(--ink-2); font-weight: 620; }
+  .row1 .ic { width: 50px; height: 50px; margin: 0 auto 8px; border-radius: 17px; display: grid; place-items: center; font-size: 23px; background: var(--sheet); box-shadow: 0 6px 15px rgba(140,80,30,.09); }
+  .row1 .ic.wx { background: linear-gradient(135deg,#4ecb73,#22a95a); }
+  .row1 .ic.pyq { background: linear-gradient(135deg,#f4a11d,#e07b0a); }
+  .row1 .ic.ps { background: linear-gradient(135deg,var(--brand-2),var(--brand)); }
+  .row1 .bdg { display: block; font-size: 9px; color: var(--gold); margin-top: 3px; }
+
+  .divider { height: 1px; background: var(--line); margin: 12px 18px 0; }
+  .row2 { display: grid; grid-template-columns: repeat(4,1fr); padding: 14px 8px 4px; }
+  .row2 a { text-align: center; font-size: 10.5px; color: var(--ink-2); }
+  .row2 .ic { width: 44px; height: 44px; margin: 0 auto 7px; border-radius: 15px; display: grid; place-items: center; font-size: 19px; background: var(--sheet); box-shadow: 0 5px 12px rgba(140,80,30,.07); }
+
+  .cancel { margin: 14px 0 0; padding: 15px 0 26px; text-align: center; font-size: 15px; font-weight: 700; border-top: 8px solid #f0e2d0; }
+
+  /* 海报页 */
+  .pstage { padding: 100px 0 0; height: 100%; background: linear-gradient(180deg,#3b2110,#20140a); }
+  .ptop { position: absolute; top: 0; left: 0; right: 0; z-index: 18; height: 96px; padding: 54px 16px 0; display: flex; align-items: center; color: #f8e3c6; }
+  .ptop .bk { width: 30px; font-size: 21px; }
+  .ptop h4 { flex: 1; text-align: center; font-size: 15px; font-weight: 720; }
+  .ptop .sp { width: 30px; }
+
+  .poster { width: 274px; margin: 0 auto; border-radius: 16px; overflow: hidden; background: #fffaf3; box-shadow: 0 22px 50px rgba(0,0,0,.45); }
+  .poster .pc { height: 176px; position: relative; }
+  .poster .pc .sc { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(50,22,6,.25), rgba(50,22,6,.7)); }
+  .poster .pc .kk { position: absolute; left: 15px; bottom: 13px; right: 15px; color: #fff; }
+  .poster .pc .kk span { font-size: 9px; letter-spacing: .2em; opacity: .8; }
+  .poster .pc .kk h3 { margin-top: 6px; font-size: 17px; line-height: 1.35; font-weight: 720; }
+  .poster .pb { padding: 14px 15px 13px; }
+  .poster .quote { font-family: "Songti SC","Noto Serif SC",serif; font-size: 13px; line-height: 1.72; color: #4a3526; }
+  .poster .ft { margin-top: 14px; padding-top: 13px; border-top: 1px dashed #e8d5bd; display: flex; align-items: center; gap: 10px; }
+  .poster .ft .av { width: 30px; height: 30px; }
+  .poster .ft .nm { font-size: 11.5px; font-weight: 720; }
+  .poster .ft .sb { font-size: 9px; color: var(--mute); margin-top: 3px; }
+  .poster .qr { margin-left: auto; width: 58px; height: 58px; border-radius: 7px; overflow: hidden; background: #fff; flex: none; }
+  .poster .tip { margin-top: 9px; font-size: 8.5px; color: var(--mute); text-align: right; }
+
+  .styles { margin: 16px auto 0; width: 274px; display: flex; gap: 8px; }
+  .styles span { flex: 1; text-align: center; padding: 7px 0; border-radius: 9px; font-size: 11px; color: #d6bfa4; background: rgba(255,255,255,.1); }
+  .styles span.on { background: rgba(255,255,255,.92); color: #7c2d12; font-weight: 740; }
+
+  .pbtns { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px 24px; display: flex; gap: 10px; }
+  .pbtns .btn { flex: 1; }
+  .pbtns .btn.ghost { background: rgba(255,255,255,.14); color: #f8e3c6; }
+  .savehint { position: absolute; left: 0; right: 0; bottom: 82px; text-align: center; font-size: 10px; color: #b59c80; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+<!-- 分享面板 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="scroll full bgpage">
+    <div class="cover">
+      <img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=900&h=700&fit=crop&q=80" alt="" />
+      <div class="sc"></div>
+      <div class="bd">
+        <span class="tag soft">深度 · 创作者手记</span>
+        <h1 class="serif">当内容不再免费：一个创作者的第 1000 天</h1>
+      </div>
+    </div>
+    <article>
+      <p>第 1000 天的早上，我把后台数据导出来算了一笔账：累计 412 篇文章、3241 位付费读者、单篇最高 11 万阅读——但真正让我活下来的，是其中不到 20 篇。</p>
+      <p>最初两年我坚持全免费。那时的逻辑很朴素：先把人聚起来，再想变现。</p>
+    </article>
+  </div>
+
+  <div class="mask"></div>
+  <div class="panel">
+    <div class="pt">
+      <h4>分享这篇文章</h4>
+      <p>好友通过你的分享首次进入，双方各得 7 天会员</p>
+    </div>
+
+    <div class="reward">
+      <span class="ic">🎁</span>
+      <div><b>邀请有礼进行中</b><p>已成功邀请 3 人 · 累计获得 21 天会员</p></div>
+      <a class="ct" href="./mine.html">查看战绩 ›</a>
+    </div>
+
+    <div class="row1">
+      <a href="./service-chat.html"><div class="ic wx">💬</div>微信好友<i class="bdg">带邀请码</i></a>
+      <a href="./share.html"><div class="ic pyq">🌤</div>朋友圈<i class="bdg">需生成图</i></a>
+      <a href="./share.html"><div class="ic ps">🖼</div>生成海报<i class="bdg">可长按识别</i></a>
+      <a href="./join.html"><div class="ic">👥</div>发到读者群</a>
+    </div>
+
+    <div class="divider"></div>
+    <div class="row2">
+      <a href="./mine.html"><div class="ic">⭐️</div>收藏</a>
+      <a href="./share.html"><div class="ic">🔤</div>复制标题</a>
+      <a href="./share.html"><div class="ic">🅰️</div>字号</a>
+      <a href="./share.html"><div class="ic">⚠️</div>举报</a>
+    </div>
+
+    <a class="cancel" href="./article.html">取消</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+<!-- 海报 -->
+<div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status light" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="ptop">
+    <a class="bk" href="./share.html">‹</a>
+    <h4>分享海报</h4>
+    <span class="sp"></span>
+  </div>
+
+  <div class="pstage">
+    <div class="poster">
+      <div class="pc">
+        <img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=700&h=460&fit=crop&q=80" alt="" />
+        <div class="sc"></div>
+        <div class="kk">
+          <span>暖阁 · 创作者手记</span>
+          <h3 class="serif">当内容不再免费：一个创作者的第 1000 天</h3>
+        </div>
+      </div>
+      <div class="pb">
+        <div class="quote">「不要用产量换存在感。读者记住的永远是那三五篇，让他愿意转发给同事的东西。」</div>
+        <div class="ft">
+          <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&q=80" alt="" /></span>
+          <div><div class="nm">墨白 · 主理人</div><div class="sb">来自 林砚 的分享</div></div>
+          <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fnuange.example%2Fa%2F1000%3Finviter%3D8812&margin=0" alt="" /></div>
+        </div>
+        <div class="tip">长按识别小程序码 · 阅读全文</div>
+      </div>
+    </div>
+
+    <div class="styles">
+      <span class="on">封面款</span><span>金句款</span><span>纯文字</span>
+    </div>
+
+    <div class="savehint">海报含你的专属邀请码，好友扫码进入即算邀请成功</div>
+  </div>
+
+  <div class="pbtns">
+    <a class="btn ghost" href="./share.html">保存到相册</a>
+    <a class="btn" href="./service-chat.html">发送给朋友</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div>
+
+</div>
+</body>
+</html>

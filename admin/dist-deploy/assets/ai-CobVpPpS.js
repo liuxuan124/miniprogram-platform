@@ -1,0 +1,1 @@
+import{W as n}from"./index-DtqvtgDq.js";const o="/api/v1/admin/ai";function i(t){return n(`${o}/conversations`,t)}function a(t){return n(`${o}/conversations/${t}`)}function s(t){return n(`${o}/recommendation-logs`,t)}function r(){return n(`${o}/stats`)}export{a,r as b,s as c,i as g};

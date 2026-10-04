@@ -1,0 +1,1 @@
+function i(n){const t=Number(n);return Number.isFinite(t)?t.toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2}):"0.00"}function r(n){return Math.round(n*100)}export{i as f,r as y};

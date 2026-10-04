@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 长文</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .head { position: sticky; top: 0; z-index: 12; background: linear-gradient(180deg,#fbeeda,#fdf6ec 92%); }
+  .head .status { padding: 15px 24px 0; }
+  .head .tt { display: flex; align-items: center; gap: 10px; padding: 8px 16px 0; }
+  .head .tt .bk { font-size: 21px; width: 26px; }
+  .head .tt h4 { font-size: 18px; font-weight: 780; flex: 1; letter-spacing: -.02em; }
+  .head .tt .sr { width: 30px; height: 30px; border-radius: 99px; background: rgba(255,255,255,.85); display: grid; place-items: center; font-size: 13px; }
+  .cats { display: flex; gap: 7px; overflow: auto; padding: 12px 16px 6px; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cats a { flex: none; padding: 7px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 650; background: #fffaf3; border: 1px solid var(--line); color: var(--ink-2); }
+  .cats a.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border-color: transparent; }
+  .sortbar { display: flex; gap: 16px; padding: 6px 18px 10px; font-size: 12px; color: var(--mute); }
+  .sortbar a.on { color: var(--brand); font-weight: 750; }
+  .sortbar .rt { margin-left: auto; }
+
+  /* 榜单 */
+  .rank { margin: 2px 16px 4px; border-radius: 20px; padding: 15px 16px 12px; background: linear-gradient(150deg,#fff4e6,#fffaf3); box-shadow: var(--shadow-s); }
+  .rank .t { display: flex; align-items: center; gap: 7px; }
+  .rank .t h4 { font-size: 14.5px; font-weight: 780; }
+  .rank .t a { margin-left: auto; font-size: 11px; color: var(--mute); }
+  .rank .li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .rank .li:last-child { border: 0; padding-bottom: 2px; }
+  .rank .li .no { width: 18px; font-size: 14px; font-weight: 820; color: #d9c0a4; font-family: "Iowan Old Style", serif; }
+  .rank .li .no.t1 { color: var(--brand); }
+  .rank .li h6 { flex: 1; font-size: 13.5px; font-weight: 640; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .rank .li .hv { font-size: 10.5px; color: var(--mute); }
+
+  /* 大图卡 */
+  .big { margin: 12px 16px 0; border-radius: 20px; overflow: hidden; background: var(--sheet); box-shadow: var(--shadow-s); display: block; }
+  .big .cv { height: 156px; position: relative; }
+  .big .cv .tag { position: absolute; left: 10px; top: 10px; }
+  .big .bd { padding: 13px 15px 14px; }
+  .big h4 { font-size: 16.5px; font-weight: 740; line-height: 1.42; letter-spacing: -.01em; }
+  .big p { font-size: 12px; color: var(--ink-2); margin-top: 7px; line-height: 1.55; }
+  .big .mt { margin-top: 11px; font-size: 10.5px; color: var(--mute); display: flex; align-items: center; gap: 7px; }
+  .big .mt .av { width: 18px; height: 18px; }
+
+  /* 左文右图 */
+  .row { display: flex; gap: 12px; margin: 0 16px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+  .row .tx { flex: 1; min-width: 0; }
+  .row h4 { font-size: 15px; font-weight: 700; line-height: 1.44; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .row p { font-size: 11.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .row .mt { margin-top: 9px; font-size: 10.5px; color: var(--mute); display: flex; align-items: center; gap: 7px; }
+  .row .im { width: 100px; height: 76px; border-radius: 13px; overflow: hidden; flex: none; position: relative; }
+  .row .im .dur { position: absolute; right: 5px; bottom: 5px; font-size: 9px; padding: 1px 5px; border-radius: 5px; background: rgba(40,18,6,.6); color: #fff; }
+
+  /* 音频卡 */
+  .audio { margin: 15px 16px; padding: 13px 15px; border-radius: 18px; background: linear-gradient(135deg,#fdeedb,#fffaf3); border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+  .audio .pl { width: 42px; height: 42px; border-radius: 99px; background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; display: grid; place-items: center; font-size: 15px; flex: none; box-shadow: 0 8px 18px rgba(194,65,12,.28); }
+  .audio h4 { font-size: 14px; font-weight: 720; }
+  .audio .wave { margin-top: 8px; display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+  .audio .wave i { width: 2.5px; border-radius: 2px; background: #e3bf98; }
+  .audio .dur { font-size: 10.5px; color: var(--mute); flex: none; }
+
+  /* 九宫格 */
+  .grid3 { margin: 0 16px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+  .grid3 h4 { font-size: 15px; font-weight: 700; line-height: 1.44; }
+  .grid3 .gg { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-top: 10px; }
+  .grid3 .gg div { height: 82px; border-radius: 10px; overflow: hidden; position: relative; }
+  .grid3 .gg div:last-child::after { content: "+6"; position: absolute; inset: 0; background: rgba(40,18,6,.45); color: #fff; display: grid; place-items: center; font-size: 15px; font-weight: 750; }
+  .grid3 .mt { margin-top: 10px; font-size: 10.5px; color: var(--mute); display: flex; align-items: center; gap: 7px; }
+
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 16px 0 6px; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+
+  <div class="scroll">
+    <div class="head">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="tt"><a class="bk" href="./home.html">‹</a><h4 class="serif">长文</h4><div class="sr">🔍</div></div>
+      <div class="cats">
+        <a class="on">全部</a><a>内容创业</a><a>写作方法</a><a>私域运营</a><a>工具</a><a>访谈</a><a>年度精选</a>
+      </div>
+      <div class="sortbar"><a class="on">最新</a><a>最热</a><a>会员专享</a><span class="rt">共 412 篇 ⌄</span></div>
+    </div>
+
+    <section class="rank">
+      <div class="t"><span style="font-size:16px">🔥</span><h4>本周热读榜</h4><a>完整榜单 ›</a></div>
+      <a class="li" href="./article.html"><span class="no t1">1</span><h6>当内容不再免费：一个创作者的第 1000 天</h6><span class="hv">2.3万</span></a>
+      <a class="li" href="./article.html"><span class="no t1">2</span><h6>做内容的第三年，我承认日更是伪命题</h6><span class="hv">1.8万</span></a>
+      <a class="li" href="./article.html"><span class="no t1">3</span><h6>付费社群运营 SOP：冷启动到第一个 100 人</h6><span class="hv">9.4k</span></a>
+      <a class="li" href="./article.html"><span class="no">4</span><h6>我把公众号后台数据全部公开了</h6><span class="hv">7.2k</span></a>
+    </section>
+
+    <a class="big" href="./article.html">
+      <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&h=420&fit=crop&q=80" alt="" /><span class="tag gold">年度精选</span></div>
+      <div class="bd">
+        <h4 class="serif">被算法推着走的三年，和我决定停下来的那天</h4>
+        <p>一篇关于节奏、耐心与长期主义的长文。附我重建内容系统的完整方法论与三张可用表格。</p>
+        <div class="mt"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&q=80" alt="" /></span><span>墨白 · 主理人</span><i class="dot"></i><span>09-13</span><i class="dot"></i><span>18 分钟阅读</span></div>
+      </div>
+    </a>
+
+    <a class="row" href="./article.html">
+      <div class="tx">
+        <h4>付费社群运营 SOP：从冷启动到第一个 100 人</h4>
+        <p>含欢迎语模板、周更节奏表、活跃度指标三张表，可直接抄作业。</p>
+        <div class="mt"><span class="tag">会员专享</span><span>老陈 · 特约</span><i class="dot"></i><span>9.4k 阅读</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=300&h=240&fit=crop&q=80" alt="" /></div>
+    </a>
+
+    <div class="audio">
+      <div class="pl">▶︎</div>
+      <div style="flex:1">
+        <h4>访谈 EP.24｜和一位月入 3 万的独立写作者聊聊</h4>
+        <div class="wave">
+          <i style="height:40%"></i><i style="height:70%"></i><i style="height:100%"></i><i style="height:55%"></i><i style="height:82%"></i><i style="height:36%"></i><i style="height:64%"></i><i style="height:92%"></i><i style="height:48%"></i><i style="height:74%"></i><i style="height:30%"></i><i style="height:58%"></i><i style="height:86%"></i><i style="height:44%"></i><i style="height:66%"></i><i style="height:38%"></i><i style="height:78%"></i><i style="height:52%"></i>
+        </div>
+      </div>
+      <span class="dur">42:18</span>
+    </div>
+
+    <a class="row" href="./article.html">
+      <div class="tx">
+        <h4>视频课：一条选题从想法到发布的完整 30 分钟</h4>
+        <p>全程录屏，不剪辑。看我如何把一个模糊念头变成可发布的稿子。</p>
+        <div class="mt"><span class="tag gold">视频</span><span>墨白 · 主理人</span><i class="dot"></i><span>5.6k 播放</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=300&h=240&fit=crop&q=80" alt="" /><span class="dur">30:12</span></div>
+    </a>
+
+    <a class="grid3" href="./note.html">
+      <h4>我的 2026 工位全家桶｜9 张图讲清一个内容人的装备</h4>
+      <div class="gg">
+        <div><img class="ph" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&h=300&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=300&h=300&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=300&h=300&fit=crop&q=80" alt="" /></div>
+      </div>
+      <div class="mt"><span class="tag gold">图文笔记</span><span>小满 · 特约</span><i class="dot"></i><span>❤ 4.2k</span></div>
+    </a>
+
+    <a class="row" style="border:0" href="./planet-post.html">
+      <div class="tx">
+        <h4>星球精选：知识付费定价 99 和 199 差别有多大？</h4>
+        <p>星主长回答 + 86 条球友真实数据，已收录进「资料库 · 定价」。</p>
+        <div class="mt"><span class="tag">星球内容</span><span>暖阁星球</span><i class="dot"></i><span>3.1k 浏览</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=300&h=240&fit=crop&q=80" alt="" /></div>
+    </a>
+
+    <div class="end">—— 加载中 ——</div>
+  </div>
+
+  <nav class="tabbar">
+    <a href="./home.html" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a href="./discover.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a href="./planet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a href="./shop.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

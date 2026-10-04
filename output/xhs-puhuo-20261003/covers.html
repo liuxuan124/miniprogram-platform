@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>铺货模式 01-05 封面</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --paper:#F8F1E1;
+    --paper-2:#FBF6EA;
+    --paper-3:#F2E7D2;
+    --ink:#1C1815;
+    --ink-2:#4A423B;
+    --ink-3:#8A7F73;
+    --red:#B23A2E;
+    --red-2:#C8503F;
+    --red-deep:#8E2B21;
+    --gold:#C08A3E;
+    --gold-2:#D9A85B;
+    --green:#2E6B4F;
+    --line:#DCCBB0;
+  }
+  body{
+    width:1080px;
+    font-family:"PingFang SC","Heiti SC","Hiragino Sans GB",sans-serif;
+    background:#888;
+  }
+  .card{
+    width:1080px; height:1440px;
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(192,138,62,.10), transparent 42%),
+      radial-gradient(circle at 88% 92%, rgba(178,58,46,.07), transparent 46%),
+      var(--paper);
+    padding:56px 60px 0;
+    display:flex; flex-direction:column;
+  }
+  /* 宣纸纹理 */
+  .card::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background-image:
+      radial-gradient(circle at 12% 30%, rgba(0,0,0,.022) 0 1.4px, transparent 1.6px),
+      radial-gradient(circle at 42% 68%, rgba(0,0,0,.018) 0 1.2px, transparent 1.4px),
+      radial-gradient(circle at 68% 22%, rgba(0,0,0,.020) 0 1.6px, transparent 1.8px),
+      radial-gradient(circle at 88% 52%, rgba(0,0,0,.016) 0 1.2px, transparent 1.4px);
+    background-size:220px 220px, 260px 260px, 300px 300px, 340px 340px;
+  }
+  .card > * { position:relative; z-index:1; }
+
+  /* ── 顶部 ── */
+  .top{ display:flex; align-items:flex-start; justify-content:space-between; }
+  .badge{
+    font-size:60px; font-weight:900; letter-spacing:-1px;
+    color:#fff; background:linear-gradient(160deg,var(--red-2),var(--red-deep));
+    padding:14px 30px 18px; border-radius:16px;
+    box-shadow:0 8px 20px rgba(142,43,33,.28);
+    line-height:1;
+  }
+  .series{ text-align:right; padding-top:8px; }
+  .series b{ display:block; font-size:27px; color:var(--ink); letter-spacing:1px; font-weight:700; }
+  .series i{
+    display:block; margin-top:10px; height:5px; border-radius:4px;
+    background:linear-gradient(90deg,transparent,var(--red) 20%,var(--red) 78%,transparent);
+    width:230px; margin-left:auto;
+  }
+  .series span{ display:block; margin-top:9px; font-size:19px; color:var(--red); letter-spacing:3px; }
+
+  /* ── 主标题 ── */
+  .title{ margin-top:36px; }
+  .title h1{
+    font-size:84px; line-height:1.16; font-weight:900; color:var(--ink);
+    letter-spacing:-1px;
+  }
+  .title h1 em{ font-style:normal; color:var(--red); }
+  .pill{
+    margin-top:26px; display:inline-block;
+    background:rgba(178,58,46,.09); border:2px solid rgba(178,58,46,.28);
+    border-radius:999px; padding:13px 30px;
+    font-size:33px; font-weight:700; color:var(--ink);
+  }
+  .pill em{ font-style:normal; color:var(--red); }
+
+  /* ── 主体 ── */
+  .body{ flex:1; margin-top:26px; display:flex; flex-direction:column;
+         min-height:0; overflow:hidden; padding-bottom:4px; }
+
+  /* 4层塔（01 用） */
+  .tower{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .layer{
+    border-radius:16px; padding:22px 24px;
+    display:flex; align-items:center; gap:16px;
+    border:2px solid rgba(0,0,0,.05);
+  }
+  .l1{ background:linear-gradient(100deg,#F7E2C0,#F3D5A4); width:66%; }
+  .l2{ background:linear-gradient(100deg,#F6DCC0,#F2CF9C); width:75%; }
+  .l3{ background:linear-gradient(100deg,#F4D5B4,#EFCA8E); width:85%; }
+  .l4{ background:linear-gradient(100deg,#F1CCAA,#E9C088); width:100%; }
+  .lno{
+    flex:0 0 auto; width:52px; height:52px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; font-weight:900; color:#fff;
+  }
+  .l1 .lno{background:var(--gold);} .l2 .lno{background:#C77B3A;}
+  .l3 .lno{background:var(--red-2);} .l4 .lno{background:var(--red);}
+  .ltext{ min-width:0; }
+  .ltext b{ display:block; font-size:31px; font-weight:800; color:var(--ink);
+            line-height:1.18; white-space:nowrap; }
+  .ltext span{ display:block; font-size:20px; color:var(--ink-2); margin-top:4px; white-space:nowrap; }
+  .lmetrics{ margin-left:auto; padding-left:12px; display:flex; gap:8px; }
+  .chip{
+    font-size:18px; color:var(--ink-2); background:rgba(255,255,255,.62);
+    border:1px solid rgba(0,0,0,.07); border-radius:8px; padding:6px 10px; white-space:nowrap;
+  }
+
+  /* 通用：两栏对照 */
+  .twocol{ display:flex; gap:24px; min-height:0; }
+  .twocol.fill{ flex:1; }
+  .twocol.fill .col{ overflow:hidden; }
+  .col{ flex:1; border-radius:18px; padding:24px 22px; display:flex; flex-direction:column;
+        min-height:0; }
+  .col.bad{ background:rgba(178,58,46,.07); border:2px solid rgba(178,58,46,.24); }
+  .col.good{ background:rgba(46,107,79,.07); border:2px solid rgba(46,107,79,.24); }
+  .col h3{ font-size:30px; font-weight:800; margin-bottom:6px; }
+  .col.bad h3{ color:var(--red); } .col.good h3{ color:var(--green); }
+  .col .sub{ font-size:19px; color:var(--ink-3); margin-bottom:18px; }
+  .col ul{ list-style:none; display:flex; flex-direction:column; gap:13px; }
+  .col li{ font-size:23px; color:var(--ink); line-height:1.38; padding-left:32px; position:relative; }
+  .col.bad li::before{ content:"✕"; position:absolute; left:0; top:-1px; font-size:22px; color:var(--red); font-weight:900; }
+  .col.good li::before{ content:"✓"; position:absolute; left:0; top:-1px; font-size:22px; color:var(--green); font-weight:900; }
+  .col li u{ text-decoration:none; color:var(--ink-3); font-size:19px; display:block; margin-top:2px; }
+
+  /* 坑位提醒（05 用） */
+  .pitfalls{
+    margin-top:24px; background:rgba(178,58,46,.06);
+    border:2px solid rgba(178,58,46,.22); border-radius:16px; padding:20px 24px;
+  }
+  .pitfalls .ct{ font-size:25px; font-weight:800; color:var(--ink); margin-bottom:14px; }
+  .prow{ display:flex; gap:14px; }
+  .pit{
+    flex:1; background:rgba(255,255,255,.75); border-radius:12px; padding:14px 16px;
+  }
+  .pit b{ display:block; font-size:21px; color:var(--ink); line-height:1.3; }
+  .pit span{ display:block; font-size:18px; color:var(--ink-3); margin-top:6px; line-height:1.34; }
+
+  /* 步骤条（05 用） */
+  .steps{ display:flex; flex-direction:column; gap:18px; }
+  .step{
+    display:flex; align-items:center; gap:22px;
+    background:rgba(255,255,255,.66); border:2px solid var(--line);
+    border-radius:16px; padding:22px 26px;
+  }
+  .step .sn{
+    flex:0 0 auto; width:62px; height:62px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:27px; font-weight:900; color:#fff; background:var(--red);
+  }
+  .step:nth-child(2) .sn{ background:var(--gold); }
+  .step:nth-child(3) .sn{ background:var(--red-2); }
+  .step b{ font-size:31px; font-weight:800; color:var(--ink); display:block; }
+  .step span{ font-size:21px; color:var(--ink-2); display:block; margin-top:4px; }
+  .step .tag{
+    margin-left:auto; font-size:20px; font-weight:700; color:var(--red);
+    background:rgba(178,58,46,.09); border-radius:8px; padding:8px 13px; white-space:nowrap;
+  }
+
+  /* 数字块 */
+  .statrow{ display:flex; gap:18px; }
+  .stat{
+    flex:1; background:rgba(255,255,255,.7); border:2px solid var(--line);
+    border-radius:14px; padding:18px 16px; text-align:center;
+  }
+  .stat b{ display:block; font-size:48px; font-weight:900; color:var(--red); line-height:1; }
+  .stat b small{ font-size:25px; font-weight:800; }
+  .stat span{ display:block; font-size:19px; color:var(--ink-2); margin-top:9px; line-height:1.32; }
+
+  /* 成本条（04 用） */
+  .cost{
+    margin-top:20px; background:rgba(255,255,255,.62);
+    border:2px solid var(--line); border-radius:16px; padding:20px 24px 18px;
+  }
+  .cost .ct{ font-size:25px; font-weight:800; color:var(--ink); margin-bottom:16px; }
+  .cbar{ display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+  .clab{
+    flex:0 0 96px; font-size:23px; font-weight:800; color:var(--red);
+    text-align:right;
+  }
+  .clab.good{ color:var(--green); }
+  .ctrack{ flex:1; display:flex; height:44px; border-radius:9px; overflow:hidden; }
+  .seg{
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px; font-weight:700; color:#fff; white-space:nowrap;
+    overflow:hidden; min-width:0; letter-spacing:-.3px;
+  }
+  .s1{background:#8E2B21;} .s2{background:#B23A2E;} .s3{background:#C88A5A;}
+  .s4{background:#C08A3E;} .s5{background:#6B6257;}
+  .g1{background:#5A8F72;} .g2{background:#3E8160;} .g3{background:#6FA98C;}
+  .g4{background:#8FBFA6;} .g5{background:#2E6B4F;}
+  .cost .cfoot{ font-size:20px; color:var(--ink-2); margin-top:8px; }
+  .cost .cfoot strong{ color:var(--red); }
+
+  /* 自检清单（03 用） */
+  .checklist{
+    margin-top:20px; background:rgba(192,138,62,.10);
+    border:2px solid rgba(192,138,62,.34); border-radius:16px; padding:22px 24px;
+  }
+  .checklist .ct{ font-size:26px; font-weight:800; color:var(--ink); margin-bottom:16px; }
+  .crow{ display:flex; flex-direction:column; gap:11px; }
+  .ck{
+    font-size:23px; color:var(--ink); line-height:1.32;
+    background:rgba(255,255,255,.72); border-radius:10px; padding:12px 16px;
+  }
+  .ck strong{ color:var(--red); font-weight:800; }
+
+  /* 结论条 */
+  .concl{
+    margin-top:20px; display:flex; align-items:center; gap:18px;
+    background:rgba(255,255,255,.72); border:3px solid var(--red);
+    border-radius:16px; padding:20px 26px;
+  }
+  .concl .ic{
+    flex:0 0 auto; width:54px; height:54px; border-radius:50%; background:var(--red);
+    color:#fff; font-size:32px; font-weight:900;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .concl p{ font-size:30px; font-weight:800; color:var(--ink); line-height:1.3; }
+  .concl p em{ font-style:normal; color:var(--red); }
+  .concl.tight{ margin-top:0; }
+
+  /* ── 底部 CTA ── */
+  .cta{
+    margin:22px -60px 0; height:124px; flex:0 0 auto;
+    background:linear-gradient(100deg,var(--red-deep),var(--red) 55%,#A8332A);
+    display:flex; align-items:center; padding:0 60px; gap:20px;
+  }
+  .avatar{
+    width:66px; height:66px; border-radius:50%; flex:0 0 auto;
+    background:var(--paper-2); color:var(--red-deep);
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; font-weight:900; border:3px solid rgba(255,255,255,.4);
+  }
+  .cta .who{ min-width:0; }
+  .cta .who b{ display:block; font-size:28px; color:#fff; font-weight:800; line-height:1.2; white-space:nowrap; }
+  .cta .who span{ display:block; font-size:20px; color:rgba(255,255,255,.82); margin-top:3px; white-space:nowrap; }
+  .cta .hook{
+    margin-left:auto; text-align:center; flex:0 0 auto;
+    background:rgba(255,255,255,.16); border:1.5px dashed rgba(255,255,255,.55);
+    border-radius:12px; padding:11px 20px;
+  }
+  .cta .hook b{ display:block; font-size:24px; color:#fff; font-weight:800; white-space:nowrap; }
+  .cta .hook span{ display:block; font-size:17px; color:rgba(255,255,255,.85); margin-top:2px; white-space:nowrap; }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════ 01 / 05 封面总览 ══════════ -->
+<div class="card" id="c1">
+  <div class="top">
+    <div class="badge">01/05</div>
+    <div class="series">
+      <b>跨境墨太白 · 铺货模式退场记</b>
+      <i></i>
+      <span>4层经济学拆解</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h1>铺货模式正在被<br><em>算法和合规</em>联手淘汰</h1>
+    <div class="pill">4 层经济学拆解，谁会先<em>出局</em>？</div>
+  </div>
+
+  <div class="body">
+    <div class="tower">
+      <div class="layer l1">
+        <div class="lno">01</div>
+        <div class="ltext"><b>算法层：流量重新分配</b><span>曝光不再是上架的奖励</span></div>
+        <div class="lmetrics"><i class="chip">点击率</i><i class="chip">转化率</i></div>
+      </div>
+      <div class="layer l2">
+        <div class="lno">02</div>
+        <div class="ltext"><b>用户层：决策逻辑改变</b><span>从「比价」到「信任」</span></div>
+        <div class="lmetrics"><i class="chip">内容种草</i><i class="chip">信任背书</i></div>
+      </div>
+      <div class="layer l3">
+        <div class="lno">03</div>
+        <div class="ltext"><b>合规层：成本持续上升</b><span>每一件都带合规成本</span></div>
+        <div class="lmetrics"><i class="chip">保证金</i><i class="chip">认证</i></div>
+      </div>
+      <div class="layer l4">
+        <div class="lno">04</div>
+        <div class="ltext"><b>商业层：模式重新筛选</b><span>铺得多的，被优先清退</span></div>
+        <div class="lmetrics"><i class="chip">库存周转</i><i class="chip">现金流</i></div>
+      </div>
+    </div>
+    <div class="concl tight" style="margin-top:20px;">
+      <div class="ic">＝</div>
+      <p>结果：<em>低效铺货者出局</em>，精品经营者吃下流量</p>
+    </div>
+  </div>
+
+  <div class="concl">
+    <div class="ic">!</div>
+    <p>平台不缺商品，缺的是<em>能把一个商品卖爆</em>的卖家</p>
+  </div>
+
+  <div class="cta">
+    <div class="avatar">墨</div>
+    <div class="who"><b>关注 跨境墨太白</b><span>每天拆一个跨境经营底层逻辑</span></div>
+    <div class="hook"><b>评论区扣「铺货」</b><span>领 4 层诊断表</span></div>
+  </div>
+</div>
+
+<!-- ══════════ 02 / 05 算法层 ══════════ -->
+<div class="card" id="c2">
+  <div class="top">
+    <div class="badge">02/05</div>
+    <div class="series">
+      <b>跨境墨太白 · 铺货模式退场记</b>
+      <i></i>
+      <span>第 1 层｜算法层</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h1>平台不再为<br><em>「铺得多」</em>发流量</h1>
+    <div class="pill">上架量已经从<em>加分项</em>变成<em>扣分项</em></div>
+  </div>
+
+  <div class="body">
+    <div class="statrow" style="margin-bottom:22px;">
+      <div class="stat"><b>1<small>个</small></b><span>爆款带来的曝光<br>＞ 1000 个僵尸链接</span></div>
+      <div class="stat"><b>3<small>秒</small></b><span>用户判断一个链接<br>值不值得点</span></div>
+      <div class="stat"><b>0<small>次</small></b><span>平台因为你<br>「上得多」给过奖励</span></div>
+    </div>
+    <div class="twocol fill">
+      <div class="col bad">
+        <h3>铺货型店铺</h3>
+        <div class="sub">靠数量撞概率</div>
+        <ul>
+          <li>500 个链接，10 个出单<u>剩下 490 个吃掉库存和仓储费</u></li>
+          <li>广告预算平摊到每个链接<u>单链接拿不到足够曝光</u></li>
+          <li>平台判定：低效重复铺货<u>不给推荐位，甚至降权</u></li>
+          <li>退货率被爆款拉高<u>整店权重跟着掉</u></li>
+        </ul>
+      </div>
+      <div class="col good">
+        <h3>精品型店铺</h3>
+        <div class="sub">靠单品的效率说话</div>
+        <ul>
+          <li>30 个链接，每个都跑通内容<u>预算集中在能打的那一个</u></li>
+          <li>一个链接吃满自然流量<u>不依赖付费买量</u></li>
+          <li>平台判定：优质供给<u>给推荐位、进搜索加权</u></li>
+          <li>退货率可控<u>老客复购拉高整店分</u></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="concl">
+    <div class="ic">!</div>
+    <p>算法不再奖励「多」，只奖励<em>「跑得动的那个」</em></p>
+  </div>
+
+  <div class="cta">
+    <div class="avatar">墨</div>
+    <div class="who"><b>关注 跨境墨太白</b><span>每天拆一个跨境经营底层逻辑</span></div>
+    <div class="hook"><b>评论区扣「铺货」</b><span>领 4 层诊断表</span></div>
+  </div>
+</div>
+
+<!-- ══════════ 03 / 05 用户层 ══════════ -->
+<div class="card" id="c3">
+  <div class="top">
+    <div class="badge">03/05</div>
+    <div class="series">
+      <b>跨境墨太白 · 铺货模式退场记</b>
+      <i></i>
+      <span>第 2 层｜用户层</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h1>用户不比你笨，<br>只是<em>不再比价</em>了</h1>
+    <div class="pill">决策从「搜—比—买」变成<em>「被说服—再验证」</em></div>
+  </div>
+
+  <div class="body">
+    <div class="twocol">
+      <div class="col bad">
+        <h3>过去的路径</h3>
+        <div class="sub">搜索 → 比价 → 下单</div>
+        <ul>
+          <li>搜一个品类词，翻 5 页比参数和价格</li>
+          <li>价格差 5% 就换一家</li>
+          <li>谁便宜买谁，品牌不重要</li>
+          <li>买完就消失，<u>复购要靠平台再推一次</u></li>
+        </ul>
+      </div>
+      <div class="col good">
+        <h3>现在的路径</h3>
+        <div class="sub">种草 → 搜索验证 → 下单</div>
+        <ul>
+          <li>先在内容里被种草，<u>再带着品牌去搜</u></li>
+          <li>搜的是<strong>品牌词 + 型号</strong>，不是品类词</li>
+          <li>价格不再是唯一变量，<u>差评和售后权重更高</u></li>
+          <li>复购靠信任，一次好体验带 3 单</li>
+        </ul>
+      </div>
+    </div>
+    <div class="checklist">
+      <div class="ct">🛒 现在平台更关心的是这 3 件事</div>
+      <div class="crow">
+        <div class="ck">这个商品有没有人<strong>主动搜</strong>它的名字？</div>
+        <div class="ck">点进来的人<strong>会不会留下</strong>，还是一秒划走？</div>
+        <div class="ck">买完以后<strong>会不会回来</strong>，还愿不愿意推荐？</div>
+      </div>
+    </div>
+    <div class="concl tight" style="margin-top:20px;">
+      <div class="ic">!</div>
+      <p>你铺的是<em>商品</em>，但用户买的是<em>确定性</em></p>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="avatar">墨</div>
+    <div class="who"><b>关注 跨境墨太白</b><span>每天拆一个跨境经营底层逻辑</span></div>
+    <div class="hook"><b>评论区扣「铺货」</b><span>领 4 层诊断表</span></div>
+  </div>
+</div>
+
+<!-- ══════════ 04 / 05 合规层 ══════════ -->
+<div class="card" id="c4">
+  <div class="top">
+    <div class="badge">04/05</div>
+    <div class="series">
+      <b>跨境墨太白 · 铺货模式退场记</b>
+      <i></i>
+      <span>第 3 层｜合规层</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h1>合规成本<br>正在<em>吃掉你的毛利</em></h1>
+    <div class="pill">SKU 越多，<em>每件商品的固定成本越高</em></div>
+  </div>
+
+  <div class="body">
+    <div class="twocol fill">
+      <div class="col bad">
+        <h3>铺货放大的成本</h3>
+        <div class="sub">每一个 SKU 都要交一遍</div>
+        <ul>
+          <li>平台保证金 / 类目资质<u>按 SKU 收，链接越多缴越狠</u></li>
+          <li>认证检测、标签合规<u>每个品类都要单独过</u></li>
+          <li>侵权与投诉风险<u>SKU 越多被投诉概率越高</u></li>
+          <li>税务与申报复杂度上升<u>利润被一层层切掉</u></li>
+        </ul>
+      </div>
+      <div class="col good">
+        <h3>精品摊薄的成本</h3>
+        <div class="sub">同样的钱花在一条主推上</div>
+        <ul>
+          <li>集中过认证，<u>一次投入覆盖全年</u></li>
+          <li>合规资料齐全，<u>降低被下架和封店概率</u></li>
+          <li>品牌备案 + 商标，同行跟卖更难</li>
+          <li>账目简单，利润算得清才敢投广告</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cost">
+      <div class="ct">同样是 10 万销售额，两种模式的账长这样</div>
+      <div class="cbar">
+        <div class="clab">铺货型</div>
+        <div class="ctrack">
+          <div class="seg s1" style="width:34%">履约 34%</div>
+          <div class="seg s2" style="width:26%">广告 26%</div>
+          <div class="seg s3" style="width:18%">退货 18%</div>
+          <div class="seg s4" style="width:14%">合规 14%</div>
+          <div class="seg s5" style="width:8%">利润 8%</div>
+        </div>
+      </div>
+      <div class="cbar">
+        <div class="clab good">精品型</div>
+        <div class="ctrack">
+          <div class="seg g1" style="width:31%">履约 31%</div>
+          <div class="seg g2" style="width:15%">广告 15%</div>
+          <div class="seg g3" style="width:9%">退货9%</div>
+          <div class="seg g4" style="width:8%">合规8%</div>
+          <div class="seg g5" style="width:37%">利润 37%</div>
+        </div>
+      </div>
+      <div class="cfoot">同样的流水，<strong>利润差了 4.6 倍</strong>——差在广告效率、退货率和固定合规成本</div>
+    </div>
+  </div>
+
+  <div class="concl">
+    <div class="ic">!</div>
+    <p>卖 1000 个 SKU 不代表卖得多，<em>只代表成本高</em></p>
+  </div>
+
+  <div class="cta">
+    <div class="avatar">墨</div>
+    <div class="who"><b>关注 跨境墨太白</b><span>每天拆一个跨境经营底层逻辑</span></div>
+    <div class="hook"><b>评论区扣「铺货」</b><span>领 4 层诊断表</span></div>
+  </div>
+</div>
+
+<!-- ══════════ 05 / 05 商业层 + 行动 ══════════ -->
+<div class="card" id="c5">
+  <div class="top">
+    <div class="badge">05/05</div>
+    <div class="series">
+      <b>跨境墨太白 · 铺货模式退场记</b>
+      <i></i>
+      <span>第 4 层｜商业层</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h1>不是新手被淘汰，<br>是<em>「铺」</em>这个动作被淘汰</h1>
+    <div class="pill">3 步把铺货逻辑换成<em>精品逻辑</em></div>
+  </div>
+
+  <div class="body">
+    <div class="steps">
+      <div class="step">
+        <div class="sn">1</div>
+        <div><b>砍 SKU：把 500 个砍到 30 个</b><span>按「近 90 天有转化 / 有自然排名」二选一，留下的才配投广告</span></div>
+        <div class="tag">本周就能做</div>
+      </div>
+      <div class="step">
+        <div class="sn">2</div>
+        <div><b>集中资源：一条主推打到底</b><span>预算、内容、视频、评论，全部压在能跑的那 1-2 个链接上</span></div>
+        <div class="tag">1 个月见效</div>
+      </div>
+      <div class="step">
+        <div class="sn">3</div>
+        <div><b>补信任：把合规和评价做厚</b><span>备案商标 + 认证齐全 + 售后明确，评论区主动维护</span></div>
+        <div class="tag">长期护城河</div>
+      </div>
+    </div>
+
+    <div class="pitfalls">
+      <div class="ct">别再踩这三个坑</div>
+      <div class="prow">
+        <div class="pit"><b>❌ 砍完 SKU 就躺平</b><span>砍掉的是尾部，不是全部，留下的还得做内容</span></div>
+        <div class="pit"><b>❌ 一次性砍到只剩 5 个</b><span>类目词覆盖没了，搜索流量会断崖下跌</span></div>
+        <div class="pit"><b>❌ 只降广告，不动转化</b><span>转化率没上去，再多预算也是填坑</span></div>
+      </div>
+    </div>
+
+    <div class="concl" style="margin-top:auto;">
+      <div class="ic">!</div>
+      <p>现在的跨境电商，<em>底层经济学已经变了</em></p>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="avatar">墨</div>
+    <div class="who"><b>关注 跨境墨太白</b><span>每天拆一个跨境经营底层逻辑</span></div>
+    <div class="hook"><b>评论区扣「铺货」</b><span>领 4 层诊断表</span></div>
+  </div>
+</div>
+
+</body>
+</html>

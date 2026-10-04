@@ -1,0 +1,139 @@
+/**
+ * 暖调设计令牌 —— 19 个新增组件的共享样式基座
+ * 与 shared/warm-tokens.ts 同源同值，改一处必须改两处。
+ */
+
+/* ============ 令牌 ============ */
+.warm-root {
+  --w-paper: #fdf6ec;
+  --w-paper-top: #fffdf9;
+  --w-brick: #c2410c;
+  --w-clay: #b45309;
+  --w-ink2: #57534e;
+  --w-ink3: #78716c;
+  --w-line: #ecd9c4;
+  --w-card: #fffaf3;
+  --w-ok: #0aaa75;
+  --w-warn: #f05b5b;
+  --w-r-sm: 6px;
+  --w-r-md: 10px;
+  --w-r-lg: 14px;
+  --w-r-xl: 20px;
+  --w-sh: 0 4px 16px rgba(180, 83, 9, 0.06);
+  --w-sh-hover: 0 8px 28px rgba(180, 83, 9, 0.1);
+}
+
+/* ============ 卡片基底 ============ */
+.wk-card {
+  background: var(--w-paper, #fdf6ec);
+  border-radius: var(--w-r-lg, 14px);
+  box-shadow: var(--w-sh, 0 4px 16px rgba(180, 83, 9, 0.06));
+  overflow: hidden;
+}
+
+.wk-card--flat {
+  box-shadow: none;
+  border: 1px solid var(--w-line, #ecd9c4);
+}
+
+/* ============ 交互型组件的编辑态保护 ============
+   画布编辑时给交互容器加 .wk-guard，hover 抬起、禁止跳转 */
+.wk-guard {
+  cursor: default;
+}
+
+.wk-guard:active {
+  transform: none !important;
+}
+
+.wk-edit-hint {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 4;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #fff;
+  background: var(--w-clay, #b45309);
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+/* ============ 半露式横滑 ============ */
+.wk-peek {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0 10px;
+}
+
+.wk-peek::-webkit-scrollbar {
+  display: none;
+}
+
+.wk-peek__item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* ============ 手风琴 ============ */
+.wk-faq__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wk-faq__body--open {
+  grid-template-rows: 1fr;
+}
+
+.wk-faq__inner {
+  overflow: hidden;
+}
+
+.wk-faq__arrow {
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wk-faq__arrow--open {
+  transform: rotate(180deg);
+}
+
+/* ============ 吸顶容器 ============ */
+.wk-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* ============ 层叠穿透 ============ */
+.wk-overlap {
+  position: relative;
+  z-index: 2;
+}
+
+/* ============ 通用文本 ============ */
+.wk-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--w-clay, #b45309);
+}
+
+.wk-body {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--w-ink2, #57534e);
+}
+
+.wk-sub {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--w-ink3, #78716c);
+}

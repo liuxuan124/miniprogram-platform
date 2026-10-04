@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>铺货模式退场记 · 笔记预览优化对照</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:"PingFang SC","Heiti SC","Hiragino Sans GB",sans-serif;
+    background:#F2EDE3; color:#1C1815; line-height:1.6;
+  }
+  .wrap{ max-width:1320px; margin:0 auto; padding:0 0 80px; }
+
+  /* 顶栏 */
+  .hero{
+    background:
+      radial-gradient(circle at 12% 20%, rgba(192,138,62,.20), transparent 40%),
+      linear-gradient(120deg,#8E2B21,#B23A2E 55%,#C8503F);
+    color:#fff; padding:52px 60px 44px;
+  }
+  .hero .k{ font-size:19px; letter-spacing:4px; color:rgba(255,255,255,.72); }
+  .hero h1{ font-size:52px; font-weight:900; margin-top:12px; line-height:1.22; }
+  .hero p{ font-size:22px; color:rgba(255,255,255,.88); margin-top:14px; max-width:820px; }
+  .hero .meta{ display:flex; gap:14px; margin-top:26px; flex-wrap:wrap; }
+  .tagx{
+    font-size:18px; background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:7px 16px;
+  }
+
+  section{ padding:44px 60px 0; }
+  h2{
+    font-size:31px; font-weight:900; display:flex; align-items:center; gap:14px;
+    margin-bottom:8px;
+  }
+  h2 .n{
+    width:42px; height:42px; border-radius:11px; background:#B23A2E; color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex:0 0 auto;
+  }
+  .lead{ font-size:19px; color:#6B6157; margin:0 0 26px 56px; }
+  .lead em{ font-style:normal; color:#B23A2E; font-weight:700; }
+
+  /* 对照表 */
+  table.cmp{ width:100%; border-collapse:collapse; background:#FBF7EF;
+            border:2px solid #E2D5BE; border-radius:14px; overflow:hidden; }
+  table.cmp th, table.cmp td{ padding:15px 20px; text-align:left; vertical-align:top;
+            font-size:19px; border-bottom:1px solid #EADFCA; }
+  table.cmp th{ background:#F2E7D2; font-size:18px; color:#6B6157; font-weight:700; }
+  table.cmp tr:last-child td{ border-bottom:none; }
+  td.before{ color:#8A7F73; }
+  td.before .del{ text-decoration:line-through; text-decoration-color:rgba(178,58,46,.6); }
+  td.after{ color:#1C1815; background:rgba(46,107,79,.05); }
+  td.after b{ color:#2E6B4F; }
+  .why{ display:block; font-size:17px; color:#6B6157; margin-top:5px; }
+
+  /* 手机预览 */
+  .phones{ display:flex; gap:34px; flex-wrap:wrap; align-items:flex-start; }
+  .phone{
+    width:392px; background:#fff; border-radius:26px; overflow:hidden;
+    border:9px solid #1C1815; box-shadow:0 18px 44px rgba(28,24,21,.20);
+  }
+  .phone .bar{
+    background:#fff; padding:9px 16px; font-size:15px; color:#1C1815;
+    display:flex; justify-content:space-between; font-weight:700;
+    border-bottom:1px solid #F0F0F0;
+  }
+  .phone .body{ padding:0 0 18px; }
+  .imgs{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:2px; }
+  .imgs img{ width:100%; flex:0 0 100%; display:block; scroll-snap-align:start; }
+  .dots{ display:flex; justify-content:center; gap:5px; padding:9px 0 4px; }
+  .dots i{ width:6px; height:6px; border-radius:50%; background:#E3E3E3; display:block; }
+  .dots i.on{ background:#B23A2E; }
+  .meta2{ padding:12px 18px 0; }
+  .meta2 .ttl{ font-size:20px; font-weight:800; line-height:1.4; }
+  .meta2 .who{ display:flex; align-items:center; gap:9px; margin-top:12px; }
+  .meta2 .av{ width:30px; height:30px; border-radius:50%; background:#B23A2E; color:#fff;
+              display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; }
+  .meta2 .who b{ font-size:16px; }
+  .meta2 .who span{ font-size:14px; color:#8A7F73; margin-left:auto; }
+  .txt{ padding:12px 18px 0; font-size:17px; color:#2B2520; white-space:pre-line; }
+  .txt b{ color:#B23A2E; }
+  .acts{ display:flex; gap:20px; padding:16px 18px 0; font-size:15px; color:#6B6157; }
+  .ph-t{
+    width:392px; background:#1C1815; color:#fff; text-align:center;
+    padding:9px 0; border-radius:12px 12px 0 0; font-size:18px; font-weight:800;
+  }
+  .phonewrap{ width:392px; }
+  .note{
+    background:#FBF7EF; border:2px dashed #D8C9AE; border-radius:12px;
+    padding:13px 16px; font-size:17px; color:#6B6157; margin-top:12px;
+  }
+  .note b{ color:#B23A2E; }
+
+  /* 封面对照 */
+  .covs{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  .cov{ background:#FBF7EF; border:2px solid #E2D5BE; border-radius:14px; padding:12px; }
+  .cov img{ width:100%; display:block; border-radius:8px; }
+  .cov p{ font-size:17px; color:#6B6157; margin-top:10px; }
+
+  /* 标签建议 */
+  .tagwrap{ display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
+  .tg{ font-size:18px; background:#F2E7D2; color:#6B4A2E; border:1px solid #E0CBA8;
+       border-radius:999px; padding:8px 16px; }
+  .tg.core{ background:#B23A2E; color:#fff; border-color:#B23A2E; font-weight:700; }
+  .card2{ background:#FBF7EF; border:2px solid #E2D5BE; border-radius:14px; padding:26px 28px; }
+  .card2 h4{ font-size:21px; font-weight:800; margin-bottom:12px; color:#B23A2E; }
+
+  footer{ padding:50px 60px 0; color:#8A7F73; font-size:17px; border-top:2px solid #E2D5BE;
+          margin-top:52px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="k">RED 笔记预览优化 · 跨境墨太白</div>
+    <h1>铺货模式正在被算法和合规联手淘汰</h1>
+    <p>参考原预览的红黑金 + 宣纸底 + 4 层拆解视觉体系，重做为一套 5 图成组笔记，并按小红书信息流的实际呈现（封面缩略态 + 正文前三行）重新校准了钩子、CTA 和提问。</p>
+    <div class="meta">
+      <span class="tagx">5 图成组</span>
+      <span class="tagx">1080 × 1440</span>
+      <span class="tagx">宣纸底 + 朱砂红 + 墨黑</span>
+      <span class="tagx">可发版</span>
+    </div>
+  </div>
+
+  <!-- 1. 改了什么 -->
+  <section>
+    <h2><span class="n">1</span>这次改了哪 5 处</h2>
+    <p class="lead">对照原预览逐项核对，<em>每一条都是原图里实际存在的问题</em>，不是泛泛的美化建议。</p>
+    <table class="cmp">
+      <thead>
+        <tr><th style="width:16%">项目</th><th style="width:32%">原来是什么</th><th style="width:32%">现在是什么</th><th style="width:20%">为什么这么改</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>系列完整性</b></td>
+          <td class="before"><span class="del">只有 01/05</span>，02-05 缺失</td>
+          <td class="after"><b>5 张成套补齐</b>：总览 + 算法层 + 用户层 + 合规层 + 商业层</td>
+          <td><span class="why">发了 01 就必须补齐，否则「01/05」变成单机 01，暴露断更</span></td>
+        </tr>
+        <tr>
+          <td><b>日期</b></td>
+          <td class="before"><span class="del">制作日期：2025-07-20</span>（已过期一年多）</td>
+          <td class="after"><b>删除日期</b>，改为右上角「4 层经济学拆解」小标签</td>
+          <td><span class="why">过期日期会让老笔记显得像"僵尸内容"，降低点击率</span></td>
+        </tr>
+        <tr>
+          <td><b>CTA</b></td>
+          <td class="before"><span class="del">只有「关注 跨境墨太白」</span></td>
+          <td class="after"><b>「评论区扣『铺货』领 4 层诊断表」</b>（虚线框 + 引导词）</td>
+          <td><span class="why">原 CTA 只拉关注一个指标；加评论钩子可同时拉互动和私信</span></td>
+        </tr>
+        <tr>
+          <td><b>结尾提问</b></td>
+          <td class="before"><span class="del">「你觉得呢？」</span>（泛问，回复率极低）</td>
+          <td class="after"><b>「你店铺现在有多少个 SKU？评论区报个数，我帮你判断该不该砍」</b></td>
+          <td><span class="why">泛问无成本，用户不会回；要给出「答了有好处」的具体动作</span></td>
+        </tr>
+        <tr>
+          <td><b>正文节奏</b></td>
+          <td class="before"><span class="del">大段连续文字</span>，3 处重复论述同一结论</td>
+          <td class="after"><b>「痛点 → 归因 → 4 层 → 行动」</b>，每段一句结论，配 emoji 分行</td>
+          <td><span class="why">信息流只展示正文前 2-3 行，重复段落会挤掉关键信息</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2. 封面 -->
+  <section>
+    <h2><span class="n">2</span>5 张封面成组</h2>
+    <p class="lead">同一套模板：宣纸底 + 朱砂红 + 墨黑 + 金棕，顶部序号徽章 + 系列名，底部统一 CTA 条。<em>缩到手机宽度后主标题仍完整可读</em>，这是信息流里唯一决定点击的一层。</p>
+    <div class="covs">
+      <div class="cov"><img src="puhuo-01.png" alt="01"><p><b>01 总览</b>｜4 层拆解一图看懂，最容易被收藏的一张</p></div>
+      <div class="cov"><img src="puhuo-02.png" alt="02"><p><b>02 算法层</b>｜3 个数字 + 铺货型 vs 精品型对照</p></div>
+      <div class="cov"><img src="puhuo-03.png" alt="03"><p><b>03 用户层</b>｜过去 vs 现在决策路径 + 3 条自检</p></div>
+      <div class="cov"><img src="puhuo-04.png" alt="04"><p><b>04 合规层</b>｜10 万销售额两种模式的成本拆解</p></div>
+      <div class="cov"><img src="puhuo-05.png" alt="05"><p><b>05 商业层</b>｜3 步行动 + 别再踩的 3 个坑</p></div>
+      <div class="cov" style="background:#F2E7D2;border-style:dashed;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+        <p style="font-size:19px;color:#8A7F73;line-height:1.7;margin:0">
+          全套同一模板<br>
+          换主题可直接复用<br>
+          <span style="color:#B23A2E;font-weight:700;">改 HTML 里的文字即可</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 正文 -->
+  <section>
+    <h2><span class="n">3</span>正文改前 / 改后</h2>
+    <p class="lead">左为原正文，右为优化后。<em>核心差异：把"讲道理"改成"给动作"</em>——每一段都让用户知道下一步该干什么。</p>
+
+    <div class="phones">
+      <div class="phonewrap">
+        <div class="ph-t">改前</div>
+        <div class="phone">
+          <div class="bar"><span>‹</span><span>9:41</span><span>笔记</span></div>
+          <div class="body">
+            <div class="note" style="margin:14px 18px 0;">
+              ⚠️ 这是<b>原封面</b>：底部只有「关注跨境墨太白」，无评论钩子；日期停留在 2025-07-20。
+            </div>
+            <div class="meta2" style="padding-top:14px;">
+              <div class="ttl">铺货模式正在被算法和合规联手淘汰</div>
+              <div class="who"><div class="av">墨</div><b>跨境墨太白</b><span>2025-07-20</span></div>
+            </div>
+            <div class="txt">铺货越来越难做了！！！
+
+前几年做跨境，很多卖家的思路很直接：
+📦 找一批货
+🛒 快速上架
+🔗 多铺链接
+🔥 再从里面测爆款
+一个店铺几千、甚至上万个SKU，只要其中跑出几个爆款，前面的投入就有机会赚回来。
+
+但最近，不少卖家会有明显的感受：
+📉 产品没少上，流量却没有跟着涨
+📉 链接越来越多，广告反而越来越贵
+📉 新品测了一批又一批，真正能跑出来的却越来越少
+
+问题到底出在哪？
+
+不是卖家突然不会运营了，而是平台分配流量的逻辑变了。
+以前：商品越多，被看见的机会越多
+过去，平台上的商品没有今天这么拥挤，消费者的选择也没有这么复杂。
+
+……</div>
+            <div class="acts"><span>♡ 1</span><span>☆ 收藏</span><span>💬 评论</span></div>
+            <div class="note" style="margin:14px 18px 0;">
+              问题：<b>开头 3 行是自我介绍式铺陈</b>，没有立刻给出冲突；结尾「你觉得呢？」无回复驱动力；「0 收藏 / 1 赞」的数据也印证了互动没起来。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phonewrap">
+        <div class="ph-t" style="background:#2E6B4F;">改后</div>
+        <div class="phone">
+          <div class="bar"><span>‹</span><span>9:41</span><span>笔记</span></div>
+          <div class="body">
+            <div class="imgs">
+              <img src="puhuo-01.png" alt="">
+            </div>
+            <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+            <div class="meta2">
+              <div class="ttl">铺货模式正在被算法和合规联手淘汰｜4层经济学拆解</div>
+              <div class="who"><div class="av">墨</div><b>跨境墨太白</b><span>10-03</span></div>
+            </div>
+            <div class="txt"><b>5000 个 SKU 卖不动，不是因为你不够努力。</b>
+
+先说结论：平台已经不奖励"铺得多"了。
+从算法到用户，从合规到利润，4 层同时在把铺货模式往外推——<b>不是你被淘汰，是"铺"这个动作被淘汰。</b>
+
+📦 铺货时代（2020-2023）
+一个店铺几千到上万个 SKU，只要跑出 1-2 个爆款，前面的投入就有机会赚回来。
+那个阶段，<b>商品数量本身就是流量</b>。
+
+📉 现在（2024 之后）
+产品没少上，流量没跟着涨；链接越来越多，广告越来越贵；新品测了一批又一批，能跑出来的越来越少。
+
+🔍 问题出在哪？4 层：
+1️⃣ <b>算法层</b>｜曝光不再是上架的奖励，只给能跑动的链接
+2️⃣ <b>用户层</b>｜从"搜—比—买"变成"被说服—再验证"
+3️⃣ <b>合规层</b>｜保证金/认证/税费按 SKU 收，链接越多成本越高
+4️⃣ <b>商业层</b>｜铺得多的，被优先清退
+
+🛠️ 怎么改？3 步（详见图 5）
+① 砍 SKU：500 个砍到 30 个，留有转化或有自然排名的
+② 集中资源：一条主推打到底，别再平摊预算
+③ 补信任：备案商标 + 认证齐全 + 评价维护
+
+你店铺现在有多少个 SKU？<b>评论区报个数</b>，我帮你判断该不该砍。</div>
+            <div class="acts"><span>♡ 收藏</span><span>☆ 1.2w 浏览</span><span>💬 评论</span></div>
+            <div class="note" style="margin:14px 18px 0;">
+              改进点：<b>第一行就是结论 + 冲突</b>（信息流只露 2-3 行，现在这行最能勾住）；用<b>时间分段</b>代替年份罗列；4 层和 3 步都用编号，读者能截图；结尾给了<b>具体动作</b>，评论有理由回复。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 标签与发布 -->
+  <section>
+    <h2><span class="n">4</span>标题与标签</h2>
+    <p class="lead">标题保留原句（已经够狠），补上系列标识和层数，让搜索和收藏都能命中。</p>
+    <div class="card2">
+      <h4>发布标题（20 字内，超出会截断）</h4>
+      <p style="font-size:21px;font-weight:800;margin-bottom:6px;">铺货模式正在被算法和合规联手淘汰｜4层拆解</p>
+      <p style="font-size:17px;color:#6B6157;">原标题 19 字，加系列后 26 字。<b>小红书信息流标题最多露 20 字</b>，所以只补「4层拆解」四个字，主体完全保留。</p>
+    </div>
+    <div class="card2" style="margin-top:18px;">
+      <h4>标签（3 核心 + 5 泛词，不要堆满）</h4>
+      <div class="tagwrap">
+        <span class="tg core">#跨境电商</span>
+        <span class="tg core">#铺货模式</span>
+        <span class="tg core">#跨境电商运营</span>
+        <span class="tg">#亚马逊运营</span>
+        <span class="tg">#独立站</span>
+        <span class="tg">#跨境电商避坑</span>
+        <span class="tg">#电商运营</span>
+        <span class="tg">#创业</span>
+      </div>
+      <p style="font-size:17px;color:#6B6157;margin-top:14px;">
+        前 3 个是<b>垂类搜索词</b>（用户搜"铺货模式"会命中），后 5 个拉泛流量。全部塞满会被判堆砌，反而降权。
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    封面 5 张 · 1080×1440 PNG · 宣纸底朱砂红体系 · 可直接发布<br>
+    配套：正文文案见上方手机预览右侧 · 源文件 covers.html（改文字后可重新导出）
+  </footer>
+</div>
+</body>
+</html>

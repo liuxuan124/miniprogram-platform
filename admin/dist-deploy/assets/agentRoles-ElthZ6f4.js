@@ -1,0 +1,48 @@
+import{W as o,bk as s,bn as a,bl as g}from"./index-DtqvtgDq.js";const t="/api/v1/admin/agent",n=`${t}/meta`;function u(e){return o(t,e,{showError:!1})}function c(){return o(`${n}/roles`,void 0,{showError:!1})}function l(e){return o(`${n}/active`,{role:e},{showError:!1})}function f(e){return o(`${n}/cost`,{role:e},{showError:!1})}function m(e){return s(t,e)}function A(e,r){return a(`${t}/${e}`,r)}function d(e){return a(`${t}/${e}/publish`)}function p(e){return s(`${t}/rollback`,{version:e})}function w(e){return s(`${t}/test-connection`,e)}function $(e){return s(`${t}/sandbox/chat`,e,{showError:!1})}function h(e){return o(`${n}/knowledge`,e!=null?{configId:e}:void 0,{showError:!1})}function E(e){return s(`${n}/knowledge`,e)}function b(e,r){return a(`${n}/knowledge/${e}/weight`,{weight:r})}function k(e){return g(`${n}/knowledge/${e}`)}function v(){return o(`${n}/versions`,void 0,{showError:!1})}function S(e=20){return o(`${n}/conversations`,{limit:e},{showError:!1})}const C={service:"客服助手",content_ops:"内容运营",page_builder:"页面搭建"},O={service:{name:"客服助手 Agent",temperature:.3,maxTokens:512,systemPrompt:`你是「品牌小程序」的专属智能客服助手。
+
+【你的职责】
+1. 解答用户关于品牌产品、材质工艺、使用方法的问题
+2. 介绍会员等级体系与积分规则
+3. 在授权范围内推荐适合用户的商品
+4. 引导用户参与活动和预约服务
+
+【回答风格】
+- 亲切自然，简洁有力
+- 使用中文，适当使用 emoji
+- 回复控制在 200 字以内
+
+【硬性要求】
+- 只依据语料库与系统提供的资料回答；资料中没有的信息必须说明不确定
+- 答不上来时必须明确告知并引导转人工
+- 不得承诺无法核实的价格、时效与优惠
+
+【禁止行为】
+- 不得回答与品牌无关的问题
+- 涉及退换货争议，引导转接人工客服`,welcomeMessage:"您好！我是专属智能管家，有什么可以帮您？"},content_ops:{name:"内容运营 Agent",temperature:.2,maxTokens:2048,systemPrompt:`你是「品牌小程序」的内容运营助手，负责分类、标签、摘要与质检建议。
+
+【你的职责】
+1. 根据正文判断内容分类与标签（必须从给定清单中选择）
+2. 生成摘要、标题优化建议与质检意见
+3. 输出结构化 JSON，便于系统解析
+
+【输出要求】
+- 分类与标签必须从运营提供的清单里选，不得自创
+- 不确定时返回低置信度（confidence < 0.5）并说明原因
+- 禁止编造不存在的文章、活动或商品信息
+
+【回答风格】
+- 专业、准确、结构化
+- 优先输出 JSON，字段含义清晰`,welcomeMessage:"你好，我是内容运营助手，可协助分类、标签与摘要。"},page_builder:{name:"页面搭建 Agent",temperature:.1,maxTokens:2048,systemPrompt:`你是「品牌小程序」的页面搭建助手，根据运营意图生成或调整页面 DSL（JSON）。
+
+【你的职责】
+1. 只输出符合系统 schema 的页面结构 JSON，不要输出无关闲聊
+2. 组件只能从运营/系统给定的组件清单中选择，不得发明未登记组件
+3. 文案简洁、可上线；缺素材时用明确占位字段说明
+
+【硬性要求】
+- 不确定时降低置信度并说明需要人工确认的字段
+- 禁止编造不存在的商品、活动或外链
+- 优先小步修改：能局部改 props 就不要整页重写
+
+【回答风格】
+- 先给可解析 JSON，再给一句简短说明`,welcomeMessage:"你好，我是页面搭建助手。描述想要的版块，我来生成可编辑的页面结构。"}};export{C as R,l as a,u as b,f as c,m as d,h as e,E as f,c as g,b as h,k as i,v as j,S as k,O as l,d as p,p as r,$ as s,w as t,A as u};

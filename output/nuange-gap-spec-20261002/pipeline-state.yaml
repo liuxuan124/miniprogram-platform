@@ -1,0 +1,38 @@
+request_id: nuange-gap-spec-20261002
+entry_type: full_pipeline
+chain: [S1, S2, S3]
+current_stage: done
+output_docx_path: /Users/lx/项目文件/liuxuan/小程序搭建运营系统/output/nuange-gap-spec-20261002/stage3/暖阁小程序功能补足开发说明.docx
+output_docx_user_specified: false
+intent_len: 42
+decision: 无文档 + 创作动词（做一份说明）→ full_pipeline（S1→S2→S3）
+stage_1:
+  status: completed
+  completed_at: 2026-10-02T00:52:00+08:00
+  output_path: stage1/final_draft.md
+  genre: general
+  expert_used: general-writer
+  route_tag: general_writing
+  critic_decision: null
+stage_2:
+  status: completed
+  completed_at: 2026-10-02T00:56:00+08:00
+  route: html
+  html_sub: template
+  output_path: stage2/formatted-暖阁小程序功能补足开发说明.html
+  output_format: html
+  skills_invoked: [design-token, doc-typeset, html-review]
+  design_tokens_path: stage2/design_tokens.json
+  html_review_attempts: 1
+  html_review_score: 95
+  fallback: false
+stage_3:
+  status: completed
+  executor: doc-converter
+  input_format: html
+  output_path: /Users/lx/项目文件/liuxuan/小程序搭建运营系统/output/nuange-gap-spec-20261002/stage3/暖阁小程序功能补足开发说明.docx
+  skill_used: [html-to-docx]
+  present_files_opened: true
+  fallback: false
+  warnings: []
+consistency_check: S1 md → S2 html（review 95 分）→ S3 docx（11 页，渲染验证通过：封面/目录/正文/附录表格/页码均正常）

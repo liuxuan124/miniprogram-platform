@@ -1,0 +1,12 @@
+{
+  "_说明": "复制为 config.json 后填入。appid/appsecret 与 cookie_raw 填哪套就哪套生效，auto 模式优先 api。",
+  "_获取AppID": "公众号后台 -> 设置与开发 -> 基本配置 -> 公众号开发信息",
+  "_获取cookie": "Chrome 登录 mp.weixin.qq.com -> F12 -> Network -> 任一请求 -> Request Headers -> 复制整条 Cookie",
+
+  "appid": "",
+  "appsecret": "",
+
+  "cookie_raw": "",
+
+  "out_dir": "/opt/wechat-sync/out"
+}

@@ -1,0 +1,1 @@
+var s=(t=>(t.User="user",t.Assistant="assistant",t.System="system",t))(s||{});const e={user:"用户",assistant:"AI",system:"系统"},n={template:"模板推荐",component:"组件推荐",style:"样式推荐",content:"内容推荐",layout:"布局推荐"},a={template:"",component:"success",style:"warning",content:"danger",layout:"info"};export{s as A,n as R,e as a,a as b};

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#FFECEE"/>
+  <!-- 商城：购物袋 -->
+  <path fill="#E85D6C" d="M34 36h28a4 4 0 0 1 4 4v30a6 6 0 0 1-6 6H36a6 6 0 0 1-6-6V40a4 4 0 0 1 4-4Z"/>
+  <path fill="#fff" fill-opacity=".9" d="M40 36a8 8 0 0 1 16 0h-5a3 3 0 0 0-6 0h-5Z"/>
+  <path fill="#C43D4C" d="M40 36h5a3 3 0 0 1 6 0h5v5H40v-5Z"/>
+</svg>

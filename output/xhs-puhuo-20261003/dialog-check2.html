@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-admin-theme="warm">
+<head>
+<meta charset="UTF-8">
+<title>弹窗布局验证 · 线上真实正文</title>
+<style>
+html[data-admin-theme='warm']{
+  --brand:#b4430f; --brand-hover:#8c3208; --brand-soft:#fbeadf; --brand-ink:#2a1f17;
+  --bg-page:#f6f2ec; --bg-elevated:#fff; --border:#e8dfd3; --border-strong:#d6c8b6;
+  --text:#2a1f17; --text-secondary:#6b5b4e; --text-muted:#a1897a; --wb-body-bg:#e9ddcd;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{ font-family:"PingFang SC","Heiti SC","Hiragino Sans GB",sans-serif;
+  background:var(--wb-body-bg); padding:34px 20px; }
+
+.pv-dialog{ --pv-accent:var(--brand); --pv-ink:var(--text); --pv-mute:var(--text-secondary); --pv-line:var(--border); }
+.pv-dialog .el-dialog{ border-radius:18px; overflow:hidden; background:#fff; width:1160px;
+  box-shadow:0 28px 70px rgba(30,22,15,.28); }
+.pv-dialog .el-dialog__header{ padding:20px 26px 16px; background:var(--pv-ink); }
+.pv-dialog .el-dialog__body{ padding:20px 24px 8px; background:color-mix(in srgb,var(--pv-ink) 3%,#fff); }
+.pv-dialog .el-dialog__footer{ padding:14px 24px 20px; background:color-mix(in srgb,var(--pv-ink) 3%,#fff);
+  border-top:1px solid var(--pv-line); }
+.pv-dialog__head{ display:flex; align-items:center; gap:14px; }
+.pv-dialog__headtxt{ flex:1; }
+.pv-dialog__eyebrow{ font-size:12px; letter-spacing:3px; color:color-mix(in srgb,var(--pv-accent) 62%,#fff); }
+.pv-dialog__title{ margin-top:4px; font-size:19px; font-weight:700; color:#fff; }
+.pv-dialog__close{ width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border-radius:9px;color:rgba(255,255,255,.72);background:rgba(255,255,255,.1); }
+.pv-dialog__foot{ display:flex;align-items:center;gap:16px; }
+.pv-dialog__footinfo{ flex:1; font-size:13px; color:var(--pv-mute); }
+.pv-dialog__footbtns{ display:flex;gap:10px; }
+.btn{ font-size:14px;padding:8px 18px;border-radius:8px;border:1px solid var(--pv-line);background:#fff;cursor:pointer; }
+.btn--pri{ background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600; }
+
+.preview-dialog{
+  --pv-ink:var(--text); --pv-mute:var(--text-secondary); --pv-faint:var(--text-muted);
+  --pv-line:var(--border); --pv-accent:var(--brand); --pv-accent-soft:var(--brand-soft);
+  --pv-stage-h:640px;
+  display:grid; grid-template-columns:minmax(340px,400px) minmax(0,1fr); gap:18px;
+  align-items:stretch; text-align:left;
+}
+.preview-dialog__col{ display:flex; flex-direction:column; min-width:0; padding:16px 16px 14px;
+  border-radius:14px; background:var(--bg-elevated); border:1px solid var(--pv-line); }
+.preview-dialog__head{ display:flex;align-items:center;gap:10px;margin-bottom:14px; }
+.preview-dialog__badge{ display:inline-flex;align-items:center;height:24px;padding:0 12px;border-radius:999px;
+  font-size:13px;font-weight:700;color:#fff;background:var(--pv-accent); }
+.preview-dialog__sub{ font-size:13px;color:var(--pv-faint); }
+.preview-dialog__stage{
+  flex:0 0 var(--pv-stage-h); height:var(--pv-stage-h);
+  display:flex; align-items:flex-start; justify-content:center; padding:20px 16px;
+  border-radius:12px;
+  background:radial-gradient(circle at 50% 0%, color-mix(in srgb,var(--pv-accent) 7%,transparent), transparent 62%),
+             color-mix(in srgb,var(--pv-ink) 4%,transparent);
+  border:1px solid var(--pv-line); overflow:hidden;
+}
+.preview-dialog__stage--wide{ align-items:stretch; padding:0; }
+.preview-dialog__note{ margin:12px 0 0; font-size:12px; line-height:1.6; color:var(--pv-faint); text-align:center; }
+.preview-dialog__pc-frame{ width:100%; height:100%; overflow-y:auto; overflow-x:hidden;
+  background:var(--bg-elevated); overscroll-behavior:contain; scrollbar-width:thin; }
+.preview-dialog__pc-frame::-webkit-scrollbar{ width:8px; }
+.preview-dialog__pc-frame::-webkit-scrollbar-thumb{ border-radius:999px;
+  background:color-mix(in srgb,var(--pv-ink) 20%,transparent); }
+.preview-dialog__pc-body{ max-width:640px; margin:0 auto; padding:24px 30px 40px; }
+.preview-dialog__pc-eyebrow{ display:inline-block;margin-bottom:9px;padding:3px 9px;border-radius:999px;
+  font-size:11px;font-weight:600;color:var(--pv-accent);background:var(--pv-accent-soft); }
+.preview-dialog__title{ margin:0 0 8px; font-size:19px; line-height:1.4; font-weight:700; color:var(--pv-ink); }
+.preview-dialog__summary{ margin:0 0 14px; padding-bottom:12px; border-bottom:1px solid var(--pv-line);
+  font-size:12.5px; line-height:1.7; color:var(--pv-mute); }
+.preview-dialog__html{ font-size:13px; line-height:1.75; color:var(--pv-ink); }
+.preview-dialog__html p{ margin:0 0 11px; }
+.preview-dialog__html h2,.preview-dialog__html h3,.preview-dialog__html h4{
+  margin:18px 0 8px; font-size:15px; line-height:1.45; font-weight:700; }
+
+/* 手机壳 */
+.content-preview-panel{ --pv-acc-1:var(--brand); display:flex;flex-direction:column;align-items:center;gap:12px;width:100%; }
+.phone-frame{ width:100%;max-width:340px;border-radius:30px;border:2px solid #241d16;
+  background:linear-gradient(180deg,#3b3128,#241d16);padding:10px 8px 14px;
+  box-shadow:0 18px 44px rgba(28,22,16,.24); }
+.phone-notch{ width:92px;height:7px;margin:0 auto 9px;border-radius:999px;background:#4a4036; }
+.phone-screen{ height:600px;overflow:hidden;border-radius:18px;background:#fff; }
+.pv-note-wrap{ display:flex;flex-direction:column;height:100%;background:#fff; }
+.pv-note-scroll{ flex:1;overflow:hidden; }
+.pv-note-topbar{ display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #f5f6f9; }
+.pv-av{ width:28px;height:28px;border-radius:50%;background:linear-gradient(140deg,var(--brand-hover),var(--brand));
+  color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center; }
+.pv-note-topbar__name{ flex:1;font-size:13px;font-weight:600;color:#0f1219; }
+.pv-follow--sm{ font-size:11px;padding:4px 10px;border-radius:999px;background:#ff2442;color:#fff; }
+.pv-note-gallery{ position:relative;width:100%;aspect-ratio:3/4;background:#111; }
+.pv-note-slide{ width:100%;height:100%;object-fit:contain;display:block; }
+.pv-note-body{ padding:16px 14px 10px; }
+.pv-note-title{ margin:0 0 12px;font-size:17px;line-height:1.48;font-weight:700;color:#0f1219; }
+.pv-note-paras p{ margin:0 0 12px;font-size:14px;line-height:1.75;color:#333; }
+.pv-note-bottom{ display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #edeff4; }
+.pv-note-bottom__input{ flex:1;height:34px;padding:0 14px;border-radius:999px;background:#f5f6f9;
+  color:#a5abb9;font-size:13px;line-height:34px; }
+</style>
+</head>
+<body>
+<div class="pv-dialog"><div class="el-dialog">
+  <div class="el-dialog__header"><div class="pv-dialog__head">
+    <div class="pv-dialog__headtxt">
+      <div class="pv-dialog__eyebrow">发布前校验</div>
+      <div class="pv-dialog__title">预览效果</div>
+    </div>
+    <div class="pv-dialog__close">✕</div>
+  </div></div>
+  <div class="el-dialog__body">
+    <div class="preview-dialog">
+      <section class="preview-dialog__col">
+        <header class="preview-dialog__head">
+          <span class="preview-dialog__badge">手机</span>
+          <span class="preview-dialog__sub">小程序端</span>
+        </header>
+        <div class="preview-dialog__stage">
+          <div class="content-preview-panel"><div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen"><div class="pv-note-wrap">
+              <div class="pv-note-scroll">
+                <div class="pv-note-topbar">
+                  <div class="pv-av">跨</div>
+                  <div class="pv-note-topbar__name">跨境墨太白</div>
+                  <span class="pv-follow--sm">关注</span>
+                </div>
+                <div class="pv-note-gallery">
+                  <img class="pv-note-slide" src="./puhuo-01.png" alt="">
+                </div>
+                <div class="pv-note-body">
+                  <h1 class="pv-note-title">一单亚马逊生意，背后4层20个环节</h1>
+                  <div class="pv-note-paras">
+                    <p>大部分新手只见看见两样东西——一个店铺页面，一份 Listing 文案，就以为亚马逊生意就是这么简单。</p>
+                  </div>
+                </div>
+              </div>
+              <div class="pv-note-bottom">
+                <div class="pv-note-bottom__input">说点什么...</div>
+              </div>
+            </div></div>
+          </div></div>
+        </div>
+        <p class="preview-dialog__note">以小程序实际渲染为准</p>
+      </section>
+
+      <section class="preview-dialog__col">
+        <header class="preview-dialog__head">
+          <span class="preview-dialog__badge">PC 宽屏</span>
+          <span class="preview-dialog__sub">浏览器端</span>
+        </header>
+        <div class="preview-dialog__stage preview-dialog__stage--wide">
+          <div class="preview-dialog__pc-frame">
+            <div class="preview-dialog__pc-body">
+              <div class="preview-dialog__pc-eyebrow">亚马逊</div>
+              <h3 class="preview-dialog__title">一单亚马逊生意，背后4层20个环节</h3>
+              <p class="preview-dialog__summary">亚马逊生态拆成4层：流量从哪来、店铺怎么承接、货怎么履约、8类服务生态各管什么</p>
+              <div class="preview-dialog__html">
+                <p>大部分新手只见看见两样东西——一个店铺页面，一份 Listing 文案，就以为亚马逊生意就是这么简单。实际上你每出一单，钱、货、票、人同时在四个层里跑，20 个环节各自都在出力。</p>
+                <p>把这 4 层摊开你会发现，运营只是其中一环。做不好某个单点——转化率上不去、货断了、票对不上——你以为的是运营问题，其实是链路问题。</p>
+                <h2>第一层：流量怎么进，订单怎么成交</h2>
+                <p>入口层只有四个角色：海外消费者、亚马逊平台、站内广告、第三方收款账户。消费者浏览搜索下单，平台负责流量分发、订单成交和规则治理。流量分两块：自然流量看搜索排名、评论口碑、转化率；站内广告是 SP、SB、SD 三种；站外流量是 Google、社媒、红人、Deal 站。资金则通过 Payoneer、WorldFirst、PingPong 这类第三方收款账户回流。</p>
+                <p>逻辑链是四步：消费者通过搜索、推荐、广告进入平台；平台完成流量分发、规则治理和订单成交；广告在过程中会增加获客成本；订单成交后资金通过收款账户回流。</p>
+                <h2>第二层：你真正经营的是四块，不是一间店</h2>
+                <p>卖家经营主体层有 4 个模块围着你转。运营团队做选品、上架、广告、客服、数据，负责日常运营与执行，驱动店铺增长与转化，它决定执行效率。店铺账号是美亚站、欧洲站、日本站等，负责承接平台流量与规则，建立稳定经营阵地。产品与品牌包含 Listing、评论、定价、品牌资产，负责打造差异化竞争力，它决定品牌溢价能力。</p>
+                <p>物流成本与口碑，沉淀长期竞争力。第 4 块是资金管理：回款、结汇、现金流，保障资金安全与周转，它决定现金流安全。</p>
+                <h2>第三层：货怎么动，钱怎么回来</h2>
+                <p>物流不再是「能发就行」，而是合规链条。头程物流、关税、VAT、末端派送，每一环都有明确的成本和责任边界。资金端同样如此：结汇路径影响实际到账金额，账期长短决定你的现金流能不能撑住下一轮备货。</p>
+                <p>这两层是最容易被忽略的。运营层做得好只是把流量接住，物流和资金层出问题，前面的努力全部归零。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="preview-dialog__note">右侧可滑动查看完整内容</p>
+      </section>
+    </div>
+  </div>
+  <div class="el-dialog__footer"><div class="pv-dialog__foot">
+    <span class="pv-dialog__footinfo">确认两端展示无误后再提交</span>
+    <div class="pv-dialog__footbtns">
+      <button class="btn">关闭</button><button class="btn btn--pri">保存并更新</button>
+    </div>
+  </div></div>
+</div></div>
+</body>
+</html>

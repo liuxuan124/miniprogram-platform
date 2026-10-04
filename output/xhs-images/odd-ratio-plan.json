@@ -1,0 +1,38 @@
+{
+  "processed/ChatGPT Image 2026年7月1日 19_30_24.p_01.webp": {
+    "action": "rewrite",
+    "files": [
+      "processed/ChatGPT Image 2026年7月1日 19_30_24.p.webp"
+    ]
+  },
+  "processed/ChatGPT Image 2026年7月1日 19_31_16.p_01.webp": {
+    "action": "rewrite",
+    "files": [
+      "processed/ChatGPT Image 2026年7月1日 19_31_16.p.webp"
+    ]
+  },
+  "第12周_03_跨境电商团队招聘与组织架构/组织架构图 .pdf_01.jpg": {
+    "action": "drop"
+  },
+  "第13周_01_增值税进项抵扣5个漏点/小红书_增值税进项抵扣_系列图.html_01.png": {
+    "action": "split",
+    "files": [
+      "第13周_01_增值税进项抵扣5个漏点/小红书_增值税进项抵扣_系列图.html-part1.webp",
+      "第13周_01_增值税进项抵扣5个漏点/小红书_增值税进项抵扣_系列图.html-part2.webp",
+      "第13周_01_增值税进项抵扣5个漏点/小红书_增值税进项抵扣_系列图.html-part3.webp",
+      "第13周_01_增值税进项抵扣5个漏点/小红书_增值税进项抵扣_系列图.html-part4.webp"
+    ]
+  },
+  "第27周_01_跨境双重征税/ChatGPT Image 2026年7月1日 19_30_24.p_01.webp": {
+    "action": "rewrite",
+    "files": [
+      "第27周_01_跨境双重征税/ChatGPT Image 2026年7月1日 19_30_24.p.webp"
+    ]
+  },
+  "第27周_01_跨境双重征税/ChatGPT Image 2026年7月1日 19_31_16.p_01.webp": {
+    "action": "rewrite",
+    "files": [
+      "第27周_01_跨境双重征税/ChatGPT Image 2026年7月1日 19_31_16.p.webp"
+    ]
+  }
+}

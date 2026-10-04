@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-admin-theme="classic">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小程序搭建与运营系统 - 管理后台</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('admin-theme') || localStorage.getItem('admin-ui-theme');
+          document.documentElement.setAttribute('data-admin-theme', t === 'warm' ? 'warm' : 'classic');
+        } catch (e) {
+          document.documentElement.setAttribute('data-admin-theme', 'classic');
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-DtqvtgDq.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BRWyc7yZ.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

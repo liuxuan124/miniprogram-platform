@@ -1,0 +1,1 @@
+import{W as t,bk as o,bl as n}from"./index-DNpzQiR7.js";const r="/api/v1/admin/preview-drafts",a="/api/v1/mp/preview-drafts";function i(e){return o(r,e)}function f(e){return n(`${r}/${encodeURIComponent(e)}`,void 0,{showError:!1})}function d(e){return t(`${a}/${encodeURIComponent(e)}`,void 0,{showError:!1})}export{i as c,f as d,d as g};

@@ -1,0 +1,109 @@
+/**
+ * Element Plus局部增强：属性面板（page-builder props-panel）内的开关
+ *
+ * 背景：截图里 el-switch 的「关」态是浅灰底 + 白滑块，与白底面板几乎同色，
+ * 「开」态又只靠一个色块区分，运营在窄侧栏里扫一眼看不出当前是开还是关。
+ * 这里做三件事：
+ *   1. 关态底色加深，与面板白底拉开；
+ *   2. 轨道加高加宽 + 滑块带投影，轮廓更实；
+ *   3. 配合 inline-prompt 的「开 / 关」文字，形成颜色 + 文字双重提示。
+ *
+ * ⚠️ 配色一律走主题变量（--wb-* / --color-* / --el-color-primary），
+ * 不要硬编码色值 —— 之前写死 #c8cedb（冷蓝灰）+ #334155（冷蓝深灰），
+ * 在暖棕主题下会显得突兀（用户 2026-10-03 20:03 反馈「颜色展示不对，使用暖色系」）。
+ * 改用 --wb-faint（warm 下是暖棕灰 #7a6a5c，classic 下是冷灰蓝 #94a3b8）后两个主题自动各自协调。
+ *
+ * 仅作用于 .props-panel，不影响列表页/表单页里已有的 active-text 开关。
+ */
+
+.props-panel {
+  .el-switch {
+    --el-switch-on-color: var(--el-color-primary);
+    /* 关态底：走主题的「淡色一档」。
+     * warm → --wb-line2 #f1ebe3（暖米）；classic → --wb-line2 #eef2f7（冷灰蓝）。
+     * 不用 --wb-faint（#7a6a5c）—— 那档太深，压暖棕字后对比度不足。 */
+    --el-switch-off-color: var(--wb-line2, #eef2f7);
+  }
+
+  /* 轨道：加高到 24px、默认宽度放到 46px，轮廓更清晰。
+   * 关态底色浅，靠描边把轨道边界勾出来；描边走主题的 border-strong，
+   * warm 下是暖棕灰 #d6c8b6，不会出现冷灰描边。 */
+  .el-switch .el-switch__core {
+    min-width: 46px;
+    height: 24px;
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 1px var(--border-strong, #d6deeb);
+  }
+
+  /* 滑块：放大到 20px 并加投影，避免白底上「看不见滑块」 */
+  .el-switch .el-switch__core .el-switch__action {
+    width: 20px;
+    height: 20px;
+    box-shadow: 0 1px 3px var(--wb-shadow, rgba(15, 23, 42, 0.3));
+  }
+
+  .el-switch.is-checked .el-switch__core .el-switch__action {
+    left: calc(100% - 21px);
+  }
+
+  /* 内层文字区：拉高到 20px，与 20px 滑块对齐；Element 默认 16px 会让文字偏上 */
+  .el-switch .el-switch__core .el-switch__inner {
+    height: 20px;
+    align-items: center;
+  }
+
+  /* 内嵌文字：加粗 + 字号 12px。span 也要设，否则会继承面板的 13px 撑偏轨道 */
+  .el-switch .el-switch__core .el-switch__inner-wrapper,
+  .el-switch .el-switch__core .el-switch__inner-wrapper span {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.5px;
+  }
+
+  /* 关态文字用主题主色（warm → #b4430f 暖棕，classic → #002fa7 深蓝）：
+   * 与开态主色底同色系，一眼看出是同一个开关的两态；
+   * 在浅底（--wb-line2）上用主色比用墨色对比更足。
+   * 注意要打到 span 上：inline-prompt 的文字实际渲染在 inner-wrapper 里的 <span>，
+   * 只设 wrapper 的话 span 会继承面板文字色，压在轨道底上会糊掉。 */
+  .el-switch:not(.is-checked) .el-switch__core .el-switch__inner-wrapper,
+  .el-switch:not(.is-checked) .el-switch__core .el-switch__inner-wrapper span {
+    color: var(--el-color-primary, #002fa7);
+    text-shadow: none;
+  }
+
+  /* 开态文字纯白 + 暗投影，主色底（经典蓝 #002fa7 /暖棕 #b4430f）上都读得清 */
+  .el-switch.is-checked .el-switch__core .el-switch__inner-wrapper,
+  .el-switch.is-checked .el-switch__core .el-switch__inner-wrapper span {
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  /* 键盘可达性：焦点环。
+   * 注意别用 outline-offset 拉太远 —— 之前写 `outline:2px + offset:2px` 会形成一圈离轨道 4px 的粗框，
+   * 视觉上把开关整个「框死」，反而更看不清状态（用户反馈「这种我看都看不到」）。
+   * 改成 offset:1px 的主色细环，仅键盘导航时出现。 */
+  .el-switch .el-switch__input:focus-visible ~ .el-switch__core {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 1px;
+  }
+
+  /* 强制色彩模式（Windows 高对比度 / 部分浏览器扩展与阅读模式会触发 forced-colors:active）
+   * 下，浏览器会丢弃作者配色、把轨道底刷成白色并描黑边，导致开态「白底白字」完全看不见。
+   * 这里用 forced-color-adjust 保留作者配色，保证两态在任何环境下都可辨。
+   * （已实测：未加此规则时 forced-colors:active 下 bg 变 rgb(255,255,255)、border 变黑。） */
+  .el-switch,
+  .el-switch .el-switch__core,
+  .el-switch .el-switch__core .el-switch__action,
+  .el-switch .el-switch__core .el-switch__inner-wrapper,
+  .el-switch .el-switch__core .el-switch__inner-wrapper span {
+    forced-color-adjust: none;
+  }
+
+  /* 双保险：万一仍被刷成白底，用底色 + 文字色的组合保证可读
+   *（开态强制主色底，关态强制浅色底，文字靠上层规则）。 */
+  .el-switch.is-checked .el-switch__core {
+    background-color: var(--el-color-primary, #002fa7);
+    border-color: var(--el-color-primary, #002fa7);
+  }
+}

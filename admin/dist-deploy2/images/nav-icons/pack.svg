@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <rect width="96" height="96" rx="28" fill="#E6F7F0"/>
+  <!-- 资料包：文件夹+文件 -->
+  <path fill="#7ED0B0" d="M24 38h18l6 6h24a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V44a6 6 0 0 1 6-6Z"/>
+  <path fill="#1FA97A" d="M22 42h20l5 5h25a5 5 0 0 1 5 5v24a5 5 0 0 1-5 5H22a5 5 0 0 1-5-5V47a5 5 0 0 1 5-5Z"/>
+  <path fill="#fff" d="M34 56h28v5H34v-5Zm0 9h18v5H34v-5Z"/>
+</svg>

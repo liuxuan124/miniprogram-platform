@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 文章详情</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .cover { position: relative; height: 300px; color: #fff; }
+  .cover img { position: absolute; inset: 0; }
+  .cover .sc { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(50,22,6,.45) 0%, rgba(50,22,6,.15) 40%, rgba(50,22,6,.86)); }
+  .cover .bk { position: absolute; top: 56px; left: 14px; z-index: 3; width: 32px; height: 32px; border-radius: 99px; background: rgba(30,14,4,.38); backdrop-filter: blur(8px); display: grid; place-items: center; font-size: 20px; }
+  .cover .mo { position: absolute; top: 56px; right: 14px; z-index: 3; width: 32px; height: 32px; border-radius: 99px; background: rgba(30,14,4,.38); backdrop-filter: blur(8px); display: grid; place-items: center; font-size: 15px; }
+  .cover .bd { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px 20px; }
+  .cover h1 { margin-top: 10px; font-size: 25px; line-height: 1.34; letter-spacing: -.025em; font-weight: 700; }
+
+  .author { display: flex; align-items: center; gap: 10px; padding: 16px 20px 0; }
+  .author .av { width: 38px; height: 38px; }
+  .author .nm { font-size: 13.5px; font-weight: 750; }
+  .author .sb { font-size: 10.5px; color: var(--mute); margin-top: 2px; }
+  .author .fo { margin-left: auto; height: 30px; padding: 0 15px; border-radius: 99px; font-size: 12px; font-weight: 700; background: #fbe6d4; color: var(--brand); display: grid; place-items: center; }
+
+  article { padding: 18px 20px 0; }
+  article p { font-size: 16px; line-height: 1.92; color: #3a2a1c; margin-bottom: 17px; }
+  article .lead { font-size: 15px; color: var(--ink-2); border-left: 3px solid var(--brand-2); padding-left: 13px; line-height: 1.78; margin-bottom: 22px; background: linear-gradient(90deg,#fdf0e3,transparent); padding-top: 6px; padding-bottom: 6px; }
+  article h2 { font-size: 19px; margin: 26px 0 13px; letter-spacing: -.02em; position: relative; padding-left: 14px; }
+  article h2::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 4px; border-radius: 4px; background: linear-gradient(180deg,var(--brand-2),var(--gold)); }
+  article b { color: var(--brand); }
+  article figure { margin: 4px -4px 20px; }
+  article figure div { height: 190px; border-radius: 16px; overflow: hidden; }
+  article figcaption { margin-top: 8px; font-size: 11px; color: var(--mute); text-align: center; }
+  article blockquote { margin: 4px 0 20px; padding: 16px 18px; border-radius: 16px; background: linear-gradient(135deg,#fdeedb,#fbf3e7);
+    font-family: "Songti SC","Noto Serif SC",serif; font-size: 15.5px; line-height: 1.8; color: #5c3a1c; }
+  article ul { margin: -4px 0 18px 2px; }
+  article li { font-size: 15.5px; line-height: 1.85; color: #3a2a1c; list-style: none; padding-left: 18px; position: relative; }
+  article li::before { content: ""; position: absolute; left: 2px; top: 12px; width: 6px; height: 6px; border-radius: 99px; background: var(--brand-2); }
+
+  /* 付费墙 */
+  .paywall { position: relative; margin: -70px 0 0; padding: 70px 20px 0; }
+  .paywall .fade { position: absolute; left: 0; right: 0; top: 0; height: 90px; background: linear-gradient(180deg, rgba(253,246,236,0), var(--bg) 80%); }
+  .paywall .box { position: relative; border-radius: 20px; padding: 20px 18px; text-align: center; background: linear-gradient(150deg,#fff6ea,#fdeedb); border: 1px solid var(--line); box-shadow: var(--shadow-s); }
+  .paywall h4 { font-size: 16px; font-weight: 780; }
+  .paywall p { font-size: 12px; color: var(--ink-2); margin: 8px 0 14px; line-height: 1.6; }
+  .paywall .btn { margin: 0 auto; }
+  .paywall .alt { margin-top: 11px; font-size: 11.5px; color: var(--mute); }
+  .paywall .alt b { color: var(--brand); }
+
+  .tagrow { display: flex; flex-wrap: wrap; gap: 7px; padding: 6px 20px 0; }
+  .tagrow span { font-size: 11.5px; padding: 5px 11px; border-radius: 99px; background: #f5e8d8; color: var(--ink-2); }
+
+  .sep { height: 8px; background: #f5e8d8; margin-top: 22px; }
+  .rel { padding: 6px 20px 0; }
+  .rel .it { display: flex; gap: 11px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .rel .it h5 { font-size: 14px; font-weight: 680; line-height: 1.45; }
+  .rel .it .mt { margin-top: 7px; font-size: 10.5px; color: var(--mute); }
+  .rel .it .im { width: 76px; height: 58px; border-radius: 11px; overflow: hidden; flex: none; }
+
+  .actionbar .ipt { flex: 1; height: 38px; border-radius: 99px; background: #f5e8d8; display: flex; align-items: center; padding: 0 15px; font-size: 12.5px; color: var(--mute); }
+  .actionbar .ac { display: flex; flex-direction: column; align-items: center; font-size: 9.5px; color: var(--ink-2); }
+  .actionbar .ac span { font-size: 17px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status light" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="scroll full">
+    <div class="cover">
+      <img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=900&h=760&fit=crop&q=80" alt="" />
+      <div class="sc"></div>
+      <a class="bk" href="./home.html">‹</a>
+      <div class="mo">···</div>
+      <div class="bd">
+        <span class="tag soft">深度 · 创作者手记</span>
+        <h1 class="serif">当内容不再免费：一个创作者的第 1000 天</h1>
+      </div>
+    </div>
+
+    <div class="author">
+      <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=90&h=90&fit=crop&q=80" alt="" /></span>
+      <div><div class="nm">墨白 <span class="tag gold" style="margin-left:4px">主理人</span></div><div class="sb">09-13 · 12 分钟阅读 · 2.3 万阅读</div></div>
+      <span class="fo">＋ 关注</span>
+    </div>
+
+    <article>
+      <div class="lead">这篇写给所有正在犹豫「要不要收费」的人。1000 天里我换过三次模式，亏过钱，也第一次靠文字养活了自己。</div>
+
+      <p>第 1000 天的早上，我把后台数据导出来算了一笔账：累计 412 篇文章、3241 位付费读者、单篇最高 11 万阅读——但真正让我活下来的，是其中不到 20 篇。</p>
+
+      <h2 class="serif">一、免费换来的不是信任，是习惯</h2>
+      <p>最初两年我坚持全免费。那时的逻辑很朴素：先把人聚起来，再想变现。结果是，我聚起了 5 万人，其中愿意为内容付一分钱的，不到 0.6%。</p>
+      <p>后来我才明白，<b>免费培养的是"消费习惯"，而不是"付费意愿"</b>。你越勤奋地免费供给，读者越确信这件事本就不该花钱。</p>
+
+      <figure>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop&q=80" alt="" /></div>
+        <figcaption>2023-2026 三年间的收入结构变化</figcaption>
+      </figure>
+
+      <blockquote>「不要用产量换存在感。读者记住的永远是那三五篇，让他愿意转发给同事的东西。」</blockquote>
+
+      <h2 class="serif">二、我做对的三件事</h2>
+      <ul>
+        <li>把选题库从"我想写什么"改成"谁会为它转发"</li>
+        <li>停掉日更，改成周更 + 每月一篇长稿</li>
+        <li>把社群从微信群搬进星球，让沉淀可被检索</li>
+      </ul>
+      <p>第三件尤其关键。微信群里的好内容，24 小时后就等于不存在；而星球里的一条精华，半年后还在源源不断地带来新成员。</p>
+    </article>
+
+    <div class="paywall">
+      <div class="fade"></div>
+      <div class="box">
+        <span class="kicker">MEMBER ONLY</span>
+        <h4 style="margin-top:8px">剩余 68% 为会员内容</h4>
+        <p>包含完整的定价实验数据、三版落地页拆解<br />以及我的 SOP 模板包（可下载）</p>
+        <a class="btn" href="./mine.html">开通会员 ¥168/年</a>
+        <div class="alt">已购《一个人的内容生意》？<a href="./column.html"><b>免费解锁 ›</b></a></div>
+      </div>
+    </div>
+
+    <div class="tagrow"><span># 内容创业</span><span># 知识付费</span><span># 创作者经济</span><span># 私域</span></div>
+
+    <div class="sep"></div>
+    <div class="hd"><h3 class="serif">相关阅读</h3><a href="./list.html">更多 ›</a></div>
+    <div class="rel">
+      <a class="it" href="./article.html">
+        <div style="flex:1"><h5>付费社群运营 SOP：从冷启动到第一个 100 人</h5><div class="mt">老陈 · 9.4k 阅读</div></div>
+        <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=300&h=240&fit=crop&q=80" alt="" /></div>
+      </a>
+      <a class="it" href="./article.html">
+        <div style="flex:1"><h5>做内容的第三年，我终于承认「日更」是个伪命题</h5><div class="mt">墨白 · 1.8 万阅读</div></div>
+        <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=300&h=240&fit=crop&q=80" alt="" /></div>
+      </a>
+      <a class="it" href="./planet-post.html" style="border:0">
+        <div style="flex:1"><h5>星球热议：知识付费定价 99 和 199 差别有多大？</h5><div class="mt">暖阁星球 · 142 条讨论</div></div>
+        <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=300&h=240&fit=crop&q=80" alt="" /></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="actionbar">
+    <div class="ipt">写下你的想法…</div>
+    <div class="ac"><span>👍</span>1.2k</div>
+    <div class="ac"><span>⭐️</span>860</div>
+    <a class="ac" href="./share.html"><span>↗️</span>分享</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div></div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search || '')
+  if (q.get('from') !== 'ebook-trial') return
+  var cover = document.querySelector('.cover .bd')
+  if (cover) {
+    cover.innerHTML = '<span class="tag soft">电子书试读</span><h1 class="serif">第 1 章　先想清楚你在卖什么</h1>'
+  }
+  var bk = document.querySelector('.cover .bk')
+  if (bk) bk.setAttribute('href', './goods.html')
+  var meta = document.querySelector('.author .sb')
+  if (meta) meta.textContent = '试读样章 · 《内容生意手册》'
+  var article = document.querySelector('article')
+  if (article) {
+    article.innerHTML =
+      '<div class="lead">试读 · 《内容生意手册》第 1 章</div>' +
+      '<p>我见过太多人把「涨粉」当成目标。粉丝数是一个结果指标，它会随着你做对的事情自然增长，但把它当成目标之后，你所有的动作都会开始变形——追热点、蹭话题、发标题党，最后留下一群不会为你付一分钱的人。</p>' +
+      '<p>真正该问的问题只有一个：<b>谁会因为这篇东西，愿意把它转发给同事？</b>这个人就是你的核心读者，而你的产品，最终只卖给他和他身边的人。</p>' +
+      '<p style="color:#a1887a;font-size:13px">—— 试读到此结束，购买后继续阅读后续章节 ——</p>'
+  }
+  var wall = document.querySelector('.paywall')
+  if (wall) {
+    wall.innerHTML =
+      '<div class="fade"></div><div class="box">' +
+      '<span class="kicker">EBOOK TRIAL</span>' +
+      '<h4 style="margin-top:8px">后续章节需购买后阅读</h4>' +
+      '<p>全书 12 章，支付后立即开通在线阅读与 EPUB / PDF</p>' +
+      '<a class="btn" href="./order.html">¥39 立即购买</a>' +
+      '<div class="alt"><a href="./goods.html">返回商品详情 ›</a></div></div>'
+  }
+})()
+</script>
+</body>
+</html>

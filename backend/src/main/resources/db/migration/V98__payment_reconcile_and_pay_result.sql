@@ -1,0 +1,18 @@
+-- V98: 支付幂等对账 + 支付结果三态判定（功能上线，无 DDL 变更）
+--
+-- 本次变更内容（仅代码层，无表结构改动）：
+-- 1. 新增 PaymentReconcileJob：每 5 分钟扫 [3,30) 分钟前 pending_payment 订单，
+--    主动查微信补开通，复用 markOrderPaid 幂等逻辑（掉单补偿）。
+-- 2. PaymentServiceImpl.markNotifyOnce：Redis 故障降级时打 WARN 日志便于排查；
+--    markOrderPaid 重复回调已忽略时打 INFO 日志说明。
+-- 3. 新增 PaymentService.reconcilePaidOrder(Order)：供 Job 调用的无 userId 校验入口。
+-- 4. 新增 GET /api/v1/mp/orders/{id}/pay-result 接口：
+--    返回 {state, hint, retryable, alreadyGrantedItems} 四态判定。
+-- 5. 小程序 pkg-trade/order-paid：8 次轮询仍 pending 时调 pay-result 接口，
+--    按 unpaid / paid_no_grant / paid_already 三态独立展示。
+--
+-- 复用现有表：mp_order（status 字段）、mp_payment（status 字段）。
+-- 无需新增字段或新表。
+--
+-- 此脚本仅作版本登记，不执行任何 DDL/DML。
+SELECT 1 AS v98_marker;

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 星球</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .hero { position: relative; padding: 54px 18px 18px; color: #fff; overflow: hidden;
+    background: linear-gradient(150deg, #7c2d12 0%, #b45309 55%, #d97706 100%); }
+  .hero::after { content:""; position:absolute; width:230px; height:230px; border-radius:99px; right:-80px; top:-96px; background:rgba(255,255,255,.09); }
+  .hero::before { content:""; position:absolute; width:150px; height:150px; border-radius:99px; left:-60px; bottom:-80px; background:rgba(255,255,255,.07); }
+  .hero .status { padding: 0 6px; height: 30px; }
+  .hero .rw { display: flex; align-items: center; gap: 13px; position: relative; margin-top: 8px; }
+  .hero .lg { width: 58px; height: 58px; border-radius: 20px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; font-size: 28px; }
+  .hero h2 { font-size: 20px; font-weight: 750; letter-spacing: -.02em; }
+  .hero .sb { margin-top: 5px; font-size: 11.5px; opacity: .82; }
+  .hero .jn { margin-left: auto; height: 32px; padding: 0 16px; border-radius: 99px; background: #fff; color: #9a3412; font-size: 12.5px; font-weight: 780; display: grid; place-items: center; }
+  .hero .kpi { position: relative; margin-top: 16px; display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
+  .hero .kpi div { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); border-radius: 13px; padding: 9px 8px; text-align: center; }
+  .hero .kpi b { display: block; font-size: 15px; font-weight: 780; }
+  .hero .kpi span { font-size: 9.5px; opacity: .78; }
+  .hero .exp a { color: inherit; }
+  .hero .joinrow { position: relative; margin-top: 11px; display: flex; align-items: center; gap: 6px; padding: 9px 12px; border-radius: 12px;
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.16); font-size: 11.5px; }
+  .hero .joinrow b { margin-left: auto; flex: none; font-weight: 760; }
+
+  /* 预测模块 */
+  .fc { margin: -12px 16px 0; position: relative; z-index: 4; border-radius: 20px; padding: 15px 16px 14px; background: var(--sheet); box-shadow: var(--shadow); }
+  .fc .t { display: flex; align-items: center; gap: 7px; }
+  .fc .t h4 { font-size: 14.5px; font-weight: 780; }
+  .fc .t .tag { margin-left: auto; }
+  .fc .bar { margin-top: 12px; display: grid; gap: 9px; }
+  .fc .row { display: flex; align-items: center; gap: 9px; font-size: 12px; }
+  .fc .row .nm { width: 88px; flex: none; color: var(--ink-2); font-weight: 620; }
+  .fc .row .tr { flex: 1; height: 7px; border-radius: 99px; background: #f3e3d0; overflow: hidden; }
+  .fc .row .tr i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--gold),var(--brand-2)); }
+  .fc .row .pct { width: 44px; text-align: right; font-size: 11px; font-weight: 750; color: var(--brand); }
+  .fc .row .pct.dn { color: #78716c; }
+  .fc .note { margin-top: 11px; font-size: 10.5px; color: var(--mute); line-height: 1.55; border-top: 1px dashed var(--line); padding-top: 9px; }
+
+  .segs { display: flex; gap: 7px; overflow: auto; padding: 16px 16px 8px; position: sticky; top: 0; z-index: 10; background: linear-gradient(180deg,var(--bg) 72%, transparent); }
+  .segs::-webkit-scrollbar { display: none; }
+  .segs a { flex: none; padding: 7px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 650; background: #fffaf3; border: 1px solid var(--line); color: var(--ink-2); }
+  .segs a.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border-color: transparent; }
+
+  .fd { margin: 0 16px 11px; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 14px 15px 10px; display: block; }
+  .fd.top { border: 1px solid #f0d3ad; background: linear-gradient(150deg,#fff7ec,#fffaf3); }
+  .fd .hh { display: flex; align-items: center; gap: 9px; }
+  .fd .hh .av { width: 34px; height: 34px; }
+  .fd .hh .nm { font-size: 13px; font-weight: 720; display: flex; align-items: center; gap: 5px; }
+  .fd .hh .tm { font-size: 10.5px; color: var(--mute); margin-top: 2px; }
+  .fd .hh .mo { margin-left: auto; color: var(--mute); }
+  .fd .ct { display: block; margin-top: 11px; font-size: 14.5px; line-height: 1.72; color: #3a2a1c; }
+  .fd .tp { display: block; }
+  .fd .ct b { color: var(--brand); font-weight: 700; }
+  .fd .q { margin-top: 11px; padding: 12px 13px; border-radius: 13px; background: #f8ecdd; font-size: 13.5px; line-height: 1.65; }
+  .fd .q .lb { font-size: 10px; color: var(--gold); font-weight: 750; letter-spacing: .1em; margin-bottom: 5px; }
+  .fd .gg { margin-top: 11px; display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; }
+  .fd .gg div { height: 84px; border-radius: 9px; overflow: hidden; }
+  .fd .gg.two { grid-template-columns: repeat(2,1fr); }
+  .fd .gg.two div { height: 112px; }
+  .fd .file { margin-top: 11px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 13px; border: 1px dashed #e3c9a8; background: #fffdf9; }
+  .fd .file .ic { font-size: 20px; }
+  .fd .file h6 { font-size: 12.5px; font-weight: 700; }
+  .fd .file p { font-size: 10px; color: var(--mute); margin-top: 2px; }
+  .fd .file b { margin-left: auto; font-size: 11px; color: var(--brand); }
+  .fd .tp { margin-top: 10px; font-size: 12px; color: var(--brand); font-weight: 600; }
+  .fd .ft { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); display: flex; font-size: 11.5px; color: var(--mute); }
+  .fd .ft span, .fd .ft a { flex: 1; text-align: center; }
+  .fd .ft span.hot { color: var(--brand); font-weight: 680; }
+
+  .fab { position: absolute; right: 17px; bottom: 92px; z-index: 16; height: 46px; padding: 0 20px; border-radius: 99px; display: flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; font-size: 14px; font-weight: 750; box-shadow: 0 12px 26px rgba(194,65,12,.4); }
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 8px 0 6px; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+
+  <div class="scroll">
+    <section class="hero">
+      <div class="status light"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="rw">
+        <div class="lg">🪐</div>
+        <div>
+          <h2 class="serif">暖阁星球</h2>
+          <div class="sb">内容创作者的自留地 · 由 墨白 主理</div>
+        </div>
+        <div class="jn">已加入</div>
+      </div>
+      <div class="kpi">
+        <div><b>3,241</b><span>球友</span></div>
+        <div><b>1.2万</b><span>沉淀内容</span></div>
+        <div><b>27</b><span>今日新增</span></div>
+        <div><b>98%</b><span>问必答</span></div>
+      </div>
+      <div class="exp">🎫 会员有效期至 2027-03-18 · 剩余 185 天 · <a href="./mine.html"><u>续费享 8 折</u></a></div>
+      <a class="joinrow" href="./join.html">👥 加入球友微信群，第一时间收到更新通知 <b>去加入 ›</b></a>
+    </section>
+
+    <section class="fc">
+      <div class="t"><span style="font-size:17px">📈</span><h4>本周星球话题预测</h4><span class="tag gold">AI 推演</span></div>
+      <div class="bar">
+        <div class="row"><span class="nm">AI 写作工具</span><span class="tr"><i style="width:88%"></i></span><span class="pct">↑ 62%</span></div>
+        <div class="row"><span class="nm">小红书新规</span><span class="tr"><i style="width:71%"></i></span><span class="pct">↑ 34%</span></div>
+        <div class="row"><span class="nm">付费社群定价</span><span class="tr"><i style="width:54%"></i></span><span class="pct">↑ 12%</span></div>
+        <div class="row"><span class="nm">公众号流量主</span><span class="tr"><i style="width:31%"></i></span><span class="pct dn">↓ 8%</span></div>
+      </div>
+      <div class="note">基于近 30 天星球发帖、提问与互动数据推演。预计下周「AI 写作工具」将持续升温，建议提前储备相关选题。</div>
+    </section>
+
+    <div class="segs">
+      <a class="on">全部</a><a>官方更新</a><a>精华 ⭐️</a><a>读者提问</a><a>打卡</a><a href="./resources.html">资料库 128</a>
+    </div>
+
+    <div class="fd top">
+      <div class="hh">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div><div class="nm">墨白 <span class="tag gold">置顶</span><span class="tag">星主</span></div><div class="tm">2 小时前 · 官方发布</div></div>
+        <span class="mo">···</span>
+      </div>
+      <a class="ct" href="./planet-post.html">【9 月共读】本月我们读《认知盈余》。<b>读完在评论区交一份 300 字笔记</b>，我会逐条点评，优秀的直接进精华区 📌</a>
+      <a class="file" href="./file-preview.html">
+        <span class="ic">📄</span>
+        <div><h6>9月共读·领读提纲.pdf</h6><p>2.4 MB · 812 人看过 · 星球会员可看</p></div>
+        <b>预览 ›</b>
+      </a>
+      <span class="tp">#共读计划 #认知盈余</span>
+      <div class="ft"><span class="hot">❤️ 486</span><span>💬 142</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div>
+    </div>
+
+    <div class="fd">
+      <div class="hh">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div><div class="nm">十一 <span class="tag">读者提问</span></div><div class="tm">4 小时前 · 杭州</div></div>
+        <span class="mo">···</span>
+      </div>
+      <a class="ct" href="./planet-post.html">知识付费定价 99 和 199 差别有多大？我的专栏内容体量大概 20 讲，纠结一周了。</a>
+      <div class="q">
+        <div class="lb">星主已回答</div>
+        差别不在转化率，在你后面还想不想卖第二个产品。99 是引流位，199 才是利润位——先想清楚它在你产品矩阵里站哪个位置…
+      </div>
+      <div class="ft"><span class="hot">❤️ 231</span><span>💬 86</span><span>⭐️ 收藏</span><a href="./share.html">↗️ 分享</a></div>
+    </div>
+
+    <div class="fd">
+      <div class="hh">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div><div class="nm">小满 <span class="tag gold">精华</span><span class="tag">特约作者</span></div><div class="tm">昨天 21:40</div></div>
+        <span class="mo">···</span>
+      </div>
+      <a class="ct" href="./planet-post.html">我用 3 个月把公众号做到 5000 付费，把踩过的坑整理成了 9 张图。核心就一句：<b>别追热点，追人群</b>。</a>
+      <div class="gg">
+        <div><img class="ph" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=300&h=300&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=300&h=300&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=300&h=300&fit=crop&q=80" alt="" /></div>
+      </div>
+      <div class="ft"><span class="hot">❤️ 1.1k</span><span>💬 203</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div>
+    </div>
+
+    <div class="fd">
+      <div class="hh">
+        <span class="av"><img class="ph" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&q=80" alt="" /></span>
+        <div><div class="nm">阿柚 <span class="tag">读者打卡 Day 42</span></div><div class="tm">昨天 08:12</div></div>
+        <span class="mo">···</span>
+      </div>
+      <a class="ct" href="./planet-post.html">晨写第 42 天。今天写了 1200 字关于小书店选品的复盘，发现自己开始能一口气写完不卡壳了。</a>
+      <div class="gg two">
+        <div><img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=300&fit=crop&q=80" alt="" /></div>
+        <div><img class="ph" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=300&fit=crop&q=80" alt="" /></div>
+      </div>
+      <div class="ft"><span>❤️ 96</span><span>💬 18</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div>
+    </div>
+
+    <div class="end">—— 已加载全部 27 条今日动态 ——</div>
+  </div>
+
+  <a class="fab" href="./planet-post.html">🙋 提问·打卡</a>
+
+  <nav class="tabbar">
+    <a href="./home.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a href="./discover.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a href="./shop.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

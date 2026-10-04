@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkBuddy 连接器实战指南 · 从需求到落地</title>
+<style>
+:root{
+  --paper:#f7f3e8;
+  --paper-2:#fbf8f0;
+  --ink:#2b2b2b;
+  --ink-2:#55524c;
+  --ink-3:#7d786e;
+  --cinnabar:#a63d2a;
+  --cinnabar-soft:#c86a55;
+  --line:#ddd4bf;
+  --line-soft:#e8e0cd;
+  --code-bg:#2b2723;
+  --code-ink:#e6e0d2;
+  --seal:#a63d2a;
+  --ok:#4a6b4a;
+  --warn:#9a6b1f;
+  --font-song:"Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC",serif;
+  --font-hei:"PingFang SC","Heiti SC","Microsoft YaHei",sans-serif;
+  --font-mono:"SFMono-Regular","JetBrains Mono","Menlo","Consolas",monospace;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--font-song);font-size:16px;line-height:1.85;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(255,255,255,.55) 0, rgba(255,255,255,0) 42%),
+    radial-gradient(circle at 82% 78%, rgba(214,197,166,.22) 0, rgba(214,197,166,0) 46%);
+  background-attachment:fixed;
+}
+/* ---------- 布局 ---------- */
+.wrap{max-width:1440px;margin:0 auto;display:flex;gap:0;align-items:flex-start;}
+.nav{
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  flex:0 0 260px;padding:34px 18px 60px 26px;border-right:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(251,248,240,.92),rgba(247,243,232,.6));
+}
+.nav h4{
+  margin:0 0 4px;font-size:13px;letter-spacing:.22em;color:var(--ink-3);
+  font-family:var(--font-hei);font-weight:600;
+}
+.nav .sub{font-size:12px;color:var(--ink-3);margin-bottom:18px;line-height:1.6;}
+.nav ol{list-style:none;margin:0;padding:0;counter-reset:nav;}
+.nav li{counter-increment:nav;}
+.nav a{
+  display:block;padding:5px 10px 5px 12px;color:var(--ink-2);text-decoration:none;
+  font-size:14.5px;border-left:2px solid transparent;transition:all .18s;
+}
+.nav a:hover{color:var(--cinnabar);background:rgba(166,61,42,.05);}
+.nav a.active{color:var(--cinnabar);border-left-color:var(--cinnabar);background:rgba(166,61,42,.07);font-weight:600;}
+.nav a .n{
+  display:inline-block;min-width:20px;color:var(--cinnabar-soft);
+  font-family:var(--font-hei);font-size:11px;vertical-align:1px;
+}
+.nav a .t{font-size:13px;color:var(--ink-3);}
+.main{flex:1 1 auto;min-width:0;padding:44px 56px 120px;max-width:920px;}
+/* ---------- 报头 ---------- */
+header.hero{
+  border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:8px;
+  position:relative;
+}
+.hero .kicker{
+  font-family:var(--font-hei);font-size:12.5px;letter-spacing:.3em;
+  color:var(--cinnabar);margin-bottom:14px;
+}
+.hero h1{
+  margin:0 0 10px;font-size:34px;line-height:1.35;letter-spacing:.02em;font-weight:700;
+}
+.hero .desc{font-size:15px;color:var(--ink-2);max-width:660px;line-height:1.9;}
+.hero .meta{
+  margin-top:18px;display:flex;flex-wrap:wrap;gap:10px 22px;
+  font-family:var(--font-hei);font-size:12.5px;color:var(--ink-3);
+}
+.hero .meta b{color:var(--ink-2);font-weight:600;}
+.seal{
+  position:absolute;right:4px;top:6px;width:74px;height:74px;
+  border:2px solid var(--seal);border-radius:5px;color:var(--seal);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:20px;line-height:1.15;letter-spacing:.06em;
+  transform:rotate(-4deg);opacity:.9;
+  font-weight:700;
+  box-shadow:inset 0 0 0 2px rgba(166,61,42,.18);
+}
+/* ---------- 章节 ---------- */
+section{padding-top:34px;}
+section h2{
+  margin:44px 0 6px;font-size:25px;letter-spacing:.03em;
+  padding-bottom:10px;border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;gap:12px;
+}
+section h2 .num{
+  font-family:var(--font-hei);font-size:13px;color:#fff;background:var(--cinnabar);
+  padding:3px 9px;border-radius:3px;letter-spacing:.08em;flex:0 0 auto;
+  transform:translateY(-3px);
+}
+section h3{
+  margin:30px 0 8px;font-size:19px;color:var(--ink);
+  padding-left:12px;border-left:3px solid var(--cinnabar-soft);
+}
+section h4{margin:22px 0 6px;font-size:16px;color:var(--ink-2);font-weight:600;}
+p{margin:10px 0;}
+ul,ol{margin:10px 0;padding-left:22px;}
+li{margin:5px 0;}
+code.inl{
+  font-family:var(--font-mono);font-size:13px;background:rgba(43,39,35,.07);
+  padding:1px 5px;border-radius:3px;color:#6b3a2c;
+}
+strong{font-weight:700;}
+em{font-style:normal;color:var(--cinnabar);}
+a.ref{color:var(--cinnabar);text-decoration:none;border-bottom:1px dotted var(--cinnabar-soft);}
+/* ---------- 表格 ---------- */
+table{
+  width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;
+  font-family:var(--font-hei);
+}
+th{
+  background:rgba(166,61,42,.09);color:var(--ink);text-align:left;
+  padding:9px 12px;border-bottom:2px solid var(--cinnabar-soft);font-weight:600;font-size:13.5px;
+}
+td{padding:9px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.7;}
+tbody tr:nth-child(even){background:rgba(251,248,240,.6);}
+td code,th code{font-family:var(--font-mono);font-size:12.5px;color:#6b3a2c;}
+/* ---------- 代码块 ---------- */
+pre{
+  background:var(--code-bg);color:var(--code-ink);border-radius:5px;
+  padding:14px 16px;overflow-x:auto;margin:14px 0;font-size:13px;line-height:1.72;
+  border-left:3px solid var(--cinnabar);max-width:100%;
+}
+pre code{font-family:var(--font-mono);white-space:pre;}
+.code-cap{
+  font-family:var(--font-hei);font-size:12px;color:var(--ink-3);
+  margin:16px 0 -8px;letter-spacing:.04em;
+}
+.code-cap::before{content:"▎";color:var(--cinnabar);margin-right:2px;}
+.k{color:#e0a3a3;}   /* 关键字 */
+.s{color:#b8cf9b;}   /* 字符串 */
+.c{color:#8b8578;font-style:italic;} /* 注释 */
+.n{color:#d9b98a;}   /* 数字 */
+.f{color:#9fc4d8;}   /* 函数名 */
+/* ---------- 提示块 ---------- */
+.note{
+  margin:18px 0;padding:12px 16px;border-left:3px solid var(--cinnabar);
+  background:rgba(166,61,42,.05);font-size:14.5px;line-height:1.8;
+}
+.note .lb{
+  font-family:var(--font-hei);font-size:12px;font-weight:700;color:var(--cinnabar);
+  letter-spacing:.1em;display:block;margin-bottom:3px;
+}
+.note.warn{border-left-color:var(--warn);background:rgba(154,107,31,.06);}
+.note.warn .lb{color:var(--warn);}
+.note.ok{border-left-color:var(--ok);background:rgba(74,107,74,.06);}
+.note.ok .lb{color:var(--ok);}
+/* ---------- 卡片 ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0;}
+.card{
+  border:1px solid var(--line);border-top:3px solid var(--cinnabar-soft);
+  background:var(--paper-2);padding:14px 16px;border-radius:3px;
+}
+.card .h{font-family:var(--font-hei);font-size:14px;font-weight:700;margin-bottom:6px;color:var(--ink);}
+.card .b{font-size:13.5px;color:var(--ink-2);line-height:1.75;}
+.card.bad{border-top-color:var(--ink-3);}
+.card.good{border-top-color:var(--ok);}
+/* ---------- 对照 ---------- */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:16px 0;border:1px solid var(--line);font-family:var(--font-hei);font-size:14px;}
+.ba>div{padding:12px 14px;}
+.ba .h{font-size:12px;letter-spacing:.1em;font-weight:700;background:rgba(43,39,35,.04);}
+.ba .before{background:rgba(154,107,31,.05);}
+.ba .after{background:rgba(74,107,74,.06);}
+.ba .lbl{font-size:11.5px;color:var(--ink-3);letter-spacing:.08em;margin-bottom:4px;}
+/* ---------- 检查清单 ---------- */
+.chk{list-style:none;padding:0;margin:14px 0;font-family:var(--font-hei);font-size:14.5px;}
+.chk li{padding:6px 0 6px 28px;position:relative;border-bottom:1px dashed var(--line-soft);}
+.chk li::before{
+  content:"";position:absolute;left:4px;top:11px;width:12px;height:12px;
+  border:1.5px solid var(--cinnabar-soft);border-radius:2px;
+}
+/* ---------- 页脚 ---------- */
+footer{
+  margin-top:60px;padding-top:22px;border-top:2px solid var(--ink);
+  font-family:var(--font-hei);font-size:13px;color:var(--ink-3);line-height:1.9;
+}
+footer b{color:var(--ink-2);}
+/* ---------- 响应式 ---------- */
+@media (max-width:960px){
+  /* 窄屏改块级布局：避免 flex cross-size 被代码块的最小内容宽度撑开 */
+  .wrap{display:block;max-width:100%;}
+  .nav{
+    position:static;height:auto;flex:none;width:auto;border-right:none;
+    border-bottom:1px solid var(--line);padding:20px 20px 10px;max-height:none;
+  }
+  .nav ol{display:flex;flex-wrap:wrap;gap:4px;}
+  .nav a{padding:3px 8px;font-size:13px;border-left:none;border-bottom:2px solid transparent;}
+  .nav a.active{border-left:none;border-bottom-color:var(--cinnabar);}
+  .main{max-width:100%;padding:26px 22px 80px;}
+  .hero h1{font-size:26px;}
+  .seal{width:58px;height:58px;font-size:16px;}
+  .ba{grid-template-columns:1fr;}
+  pre{font-size:12px;}
+  th,td{overflow-wrap:anywhere;}
+  .hero .kicker{letter-spacing:.16em;}
+}
+@media print{
+  .nav{display:none;}
+  .main{max-width:100%;padding:0;}
+  body{background:#fff;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="nav">
+  <h4>目 录</h4>
+  <div class="sub">WorkBuddy 连接器实战<br>从需求提出到生产落地</div>
+  <ol id="navList">
+    <li><a href="#c0"><span class="n">〇</span>需求起点 <span class="t">· 路线选择</span></a></li>
+    <li><a href="#c1"><span class="n">一</span>摸清接口 <span class="t">· 坐标表</span></a></li>
+    <li><a href="#c2"><span class="n">二</span>最小骨架 <span class="t">· 先跑通</span></a></li>
+    <li><a href="#c3"><span class="n">三</span>认证层 <span class="t">· 双模式</span></a></li>
+    <li><a href="#c4"><span class="n">四</span>请求层 <span class="t">· 出口闸</span></a></li>
+    <li><a href="#c5"><span class="n">五</span>工具层 <span class="t">· 声明分发</span></a></li>
+    <li><a href="#c6"><span class="n">六</span>注册启用 <span class="t">· 信任重启</span></a></li>
+    <li><a href="#c7"><span class="n">七</span>安全加固 <span class="t">· 三道闸</span></a></li>
+    <li><a href="#c8"><span class="n">八</span>验证交付 <span class="t">· 冒烟到端</span></a></li>
+    <li><a href="#c9"><span class="n">九</span>扩展运维 <span class="t">· 加工具</span></a></li>
+    <li><a href="#c10"><span class="n">十</span>踩坑清单 <span class="t">· 对照表</span></a></li>
+    <li><a href="#cx"><span class="n">附</span>源码索引 <span class="t">· 检查单</span></a></li>
+  </ol>
+</nav>
+
+<main class="main">
+
+<header class="hero">
+  <div class="kicker">WORK BUDDY · CONNECTOR · PLAYBOOK</div>
+  <h1>让 AI 助手接管自有后台系统<br>——MCP 连接器从需求到落地</h1>
+  <p class="desc">
+    以「小程序搭建与运营系统」为真实案例，完整复盘一个 WorkBuddy 连接器从一句话需求到生产可用全过程：
+    如何选型、如何摸清后端接口、如何分层写代码、如何堵住凭据泄露、如何验证与交付。
+    每个环节都给出可复制的命令与源码片段。
+  </p>
+  <div class="meta">
+    <span><b>案例系统</b> 小程序搭建运营平台 · api.zfculture.site</span>
+    <span><b>交付形态</b> 本地 MCP server（stdio）</span>
+    <span><b>规模</b> 5 源文件 618 行 · 12 工具</span>
+    <span><b>版本</b> V1.0 · 2026-10</span>
+  </div>
+  <div class="seal">实<br>战</div>
+</header>
+
+<!-- ==================== 〇 ==================== -->
+<section id="c0">
+<h2><span class="num">〇</span>需求起点：先判断该不该做</h2>
+
+<h3>0.1 原始诉求与真实痛点</h3>
+<p>
+  诉求只有一句话：<em>让 WorkBuddy 能连接自有后台，读取内容和资料，也能发布内容和资料。</em>
+  翻译过来就是——把「登录后台 → 找到页面 → 手工改 → 点发布」这条链路，变成「跟 AI 说一句」。
+</p>
+<p>
+  在此之前，每次要看数据或改内容，只能 ssh 登生产 + <code class="inl">curl</code> 拼请求，
+  或让人肉进后台点。链路长、不可复用、无法被 AI 自主调用。
+</p>
+
+<h3>0.2 三条可选路线</h3>
+<p>把需求抽象成「把一个已有 HTTP 系统暴露给 AI 助手」，候选方案有三条，代价差别很大：</p>
+
+<table>
+<thead><tr><th style="width:16%">路线</th><th style="width:38%">做法</th><th style="width:20%">谁能用</th><th style="width:26%">现实度</th></tr></thead>
+<tbody>
+<tr>
+  <td><b>A 本地自建 MCP</b></td>
+  <td>写 Node/Python server，注册进 <code>~/.workbuddy/mcp.json</code>，支持 <code>url</code>(HTTP) 与 <code>command</code>(stdio) 两种</td>
+  <td>仅本机</td>
+  <td><b>当天可跑</b>，几十行起步</td>
+</tr>
+<tr>
+  <td>B 完整连接器插件</td>
+  <td><code>plugin.json</code> + <code>ai.workbuddy/cli.json</code> + <code>skills/</code>，与官方连接器同构，带登录流程</td>
+  <td>可打包分发团队</td>
+  <td>能做，工作量约 ×3</td>
+</tr>
+<tr>
+  <td>C 上架官方市场</td>
+  <td>提交官方审核收录</td>
+  <td>全体用户</td>
+  <td>审核决定，不由己方控制</td>
+</tr>
+</tbody>
+</table>
+
+<div class="note">
+  <span class="lb">选 型 依 据</span>
+  目标是内部系统、使用者只有自己、要求当天见效 → 选 <b>A</b>。
+  判断标准很简单：<b>受众是自己还是别人</b>。自用走 A，分发走 B，公开走 C。
+  本案例最终选 A，并把 B 里的 <code>skills/</code> 思想单独抽出来用（见第八章）。
+</div>
+
+<h3>0.3 落地前先写清验收标准</h3>
+<p>避免"做到一半不知道什么叫完成"。本案例定下四条：</p>
+<ul class="chk">
+  <li>握手通过：WorkBuddy 能拉起进程并拿到工具清单</li>
+  <li>数据真实：至少 3 个读工具返回生产库的真实记录</li>
+  <li>写有围栏：写工具默认关闭，开启后敏感模块仍不可达</li>
+  <li>凭据不落地：密码不出现在对话、命令行、<code>mcp.json</code> 三处</li>
+</ul>
+<p>这四条后面每一章都能对应上，也是最后验收的依据。</p>
+</section>
+
+<!-- ==================== 一 ==================== -->
+<section id="c1">
+<h2><span class="num">一</span>摸清接口：不写一行代码先查清四件事</h2>
+<p>
+  这一步最容易被跳过，却决定了后面所有代码能不能写对。
+  目标产物是一张 <b>接口坐标表</b> —— 后面写工具层时，它是唯一依据。
+</p>
+
+<h3>1.1 找 Controller：确定路径前缀</h3>
+<p>从后端源码入手，按目录找控制器：</p>
+<div class="code-cap">定位后端控制器</div>
+<pre><code class="lang-bash">cd backend &amp;&amp; find src/main/java -type d -name "controller"
+
+# 逐个看路径前缀与接口清单
+grep -nE "@(Get|Post|Put|Delete)Mapping|@RequestMapping" \
+  src/main/java/com/miniprogram/controller/ContentController.java</code></pre>
+<p>本案例结论：管理端统一前缀 <code class="inl">/api/v1/admin</code>，统一响应壳 <code class="inl">R{code, message, data}</code>，成功码 <b>200</b>。</p>
+
+<h3>1.2 找鉴权规则：哪些路径要什么角色</h3>
+<p>安全配置类决定哪些接口能被哪个角色调用，直接决定了后面"该给连接器建什么权限的账号"：</p>
+<div class="code-cap">本案例 SecurityConfig 关键规则</div>
+<pre><code class="lang-js">.authorizeHttpRequests(auth -&gt; auth
+    // 财务 / 退款 / 系统 / 账号 / 角色 / 权限 → 只有超管
+    .requestMatchers("/api/v1/admin/finance/**", "/api/v1/admin/refunds/**",
+                     "/api/v1/admin/system/**", "/api/v1/admin/admin-users/**",
+                     "/api/v1/admin/roles/**", "/api/v1/admin/permissions/**")
+        .hasRole("super_admin")
+    .requestMatchers("/api/v1/admin/auth/login").permitAll()  <span class="c">// 登录免鉴权</span>
+    .anyRequest().authenticated()
+)</code></pre>
+
+<div class="note warn">
+  <span class="lb">这 条 规 则 埋 了 一 个 坑</span>
+  上传接口 <code>FileUploadController</code> 的路径恰是 <code>/api/v1/admin/system/upload</code>，
+  落在 <code>system</code> 前缀下 → <b>非超管账号调上传必然 403</b>。
+  这个坑在第七章、第十章还会出现，是"不查鉴权规则"的典型代价。
+</div>
+
+<h3>1.3 找 DTO：确定能传什么字段</h3>
+<p>写工具类时字段写错会静默失败，所以 DTO 要逐个看：</p>
+<div class="code-cap">DTO 字段核对</div>
+<pre><code class="lang-bash">grep -nE "private |class " src/main/java/com/miniprogram/dto/ContentDTO.java
+grep -nE "private |class " src/main/java/com/miniprogram/dto/PageDraftDTO.java</code></pre>
+<p>两个关键发现，直接影响了工具设计：</p>
+<ul>
+  <li><code>PageDraftDTO</code> 只有 <code>dslContent</code> + <code>expectedVersion</code> —— 存草稿只能传这两个</li>
+  <li><code>ContentDTO</code> <b>没有 status 字段</b> —— 发布必须走独立的 <code>/{id}/publish</code> 接口，不能靠改字段</li>
+</ul>
+
+<h3>1.4 找登录与 JWT：确定认证方式</h3>
+<p>看 <code>AuthController</code> + <code>JwtTokenProvider</code>，确认三件事：登录接口是否免鉴权、返回什么、JWT 的 claims 规则。</p>
+
+<h3>1.5 产物：接口坐标表</h3>
+<p>把以上整理成一张表，后续写代码时不再回头翻源码：</p>
+
+<table>
+<thead><tr><th style="width:30%">资源</th><th>方法与路径（前缀 <code>/api/v1/admin</code>）</th><th style="width:26%">备注</th></tr></thead>
+<tbody>
+<tr><td>内容列表 / 新建</td><td><code>GET|POST /contents</code></td><td>列表支持分页与筛选</td></tr>
+<tr><td>内容详情 / 改 / 删</td><td><code>GET|PUT|DELETE /contents/{id}</code></td><td>PUT 需传全量字段</td></tr>
+<tr><td>内容发布 / 下架</td><td><code>PUT /contents/{id}/publish</code> <code>/unpublish</code></td><td>发布是独立动作</td></tr>
+<tr><td>页面列表 / 详情</td><td><code>GET /pages</code> <code>GET /pages/{id}</code></td><td>详情含 DSL 与版本号</td></tr>
+<tr><td>页面存草稿 / 发布</td><td><code>POST /pages/{id}/draft</code> <code>POST /pages/{id}/publish</code></td><td>草稿 ≠ 线上</td></tr>
+<tr><td>素材列表</td><td><code>GET /assets</code></td><td>返回 <code>/uploads/...</code> 相对路径</td></tr>
+<tr><td>文件上传</td><td><code>POST /system/upload</code></td><td>⚠ 超管前缀</td></tr>
+<tr><td>登录</td><td><code>POST /auth/login</code></td><td>免鉴权，返回 <code>accessToken</code></td></tr>
+</tbody>
+</table>
+
+<table>
+<thead><tr><th style="width:26%">错误码</th><th>含义</th><th style="width:34%">排查方向</th></tr></thead>
+<tbody>
+<tr><td><code>110101</code></td><td>用户名或密码错误</td><td>用户名不存在，或 BCrypt 不匹配</td></tr>
+<tr><td><code>110103</code></td><td>账号已禁用</td><td>账号 status 不为 1</td></tr>
+<tr><td><code>200501</code></td><td>用户名已存在</td><td>映射到 HTTP 409</td></tr>
+<tr><td><code>403</code></td><td>角色无权访问该前缀</td><td>核对 SecurityConfig 的 hasRole</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- ==================== 二 ==================== -->
+<section id="c2">
+<h2><span class="num">二</span>最小骨架：先跑通空壳，再逐个加能力</h2>
+<p>
+  常见错误是"一口气写完 12 个工具再跑"，一旦握手失败，无法定位是传输问题、协议问题还是接口问题。
+  正确顺序：<b>空壳 → 握手 → 加一个读工具 → 加认证 → 加写工具</b>。
+</p>
+
+<h3>2.1 工程与依赖</h3>
+<div class="code-cap">package.json —— 只需一个依赖</div>
+<pre><code class="lang-json">{
+  <span class="s">"name"</span>: <span class="s">"mcp-miniprogram"</span>,
+  <span class="s">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="s">"private"</span>: <span class="s">true</span>,
+  <span class="s">"type"</span>: <span class="s">"module"</span>,          <span class="c">// ESM，与 SDK 一致</span>
+  <span class="s">"main"</span>: <span class="s">"src/index.js"</span>,
+  <span class="s">"engines"</span>: { <span class="s">"node"</span>: <span class="s">"&gt;=18"</span> },
+  <span class="s">"dependencies"</span>: { <span class="s">"@modelcontextprotocol/sdk"</span>: <span class="s">"^1.0.0"</span> },
+  <span class="s">"scripts"</span>: { <span class="s">"start"</span>: <span class="s">"node src/index.js"</span> }
+}</code></pre>
+
+<div class="note">
+  <span class="lb">零 FRAMEWORK</span>
+  传输用 stdio，HTTP 用 Node 原生 <code>fetch</code>，签名用原生 <code>crypto</code>，配置文件自己解析。
+  整个工程除 MCP SDK 外无任何三方依赖 —— 依赖越少，越不会在某次升级后突然跑不起来。
+</div>
+
+<h3>2.2 入口：只做三件事</h3>
+<p>
+  MCP server 的入口极薄：<b>读配置 → 建 Server → 连 stdio</b>，只挂两个请求处理器。
+</p>
+<div class="code-cap">src/index.js（骨架版）</div>
+<pre><code class="lang-js"><span class="k">import</span> { Server } <span class="k">from</span> <span class="s">"@modelcontextprotocol/sdk/server/index.js"</span>;
+<span class="k">import</span> { StdioServerTransport } <span class="k">from</span> <span class="s">"@modelcontextprotocol/sdk/server/stdio.js"</span>;
+<span class="k">import</span> { CallToolRequestSchema, ListToolsRequestSchema }
+  <span class="k">from</span> <span class="s">"@modelcontextprotocol/sdk/types.js"</span>;
+<span class="k">import</span> { loadConfig } <span class="k">from</span> <span class="s">"./config.js"</span>;
+<span class="k">import</span> { visibleTools, callTool } <span class="k">from</span> <span class="s">"./tools.js"</span>;
+
+<span class="k">const</span> cfg = <span class="f">loadConfig</span>();   <span class="c">// 见第三章：刻意设计为「软失败」</span>
+
+<span class="k">const</span> server = <span class="k">new</span> <span class="f">Server</span>(
+  { name: <span class="s">"mcp-miniprogram"</span>, version: <span class="s">"1.0.0"</span> },
+  { capabilities: { tools: {} } }
+);
+
+<span class="c">// ① 告诉客户端「有哪些工具」</span>
+server.<span class="f">setRequestHandler</span>(ListToolsRequestSchema, <span class="k">async</span> () =&gt; ({ tools: <span class="f">visibleTools</span>(cfg) }));
+
+<span class="c">// ② 执行某个工具</span>
+server.<span class="f">setRequestHandler</span>(CallToolRequestSchema, <span class="k">async</span> (req) =&gt; {
+  <span class="k">const</span> { name, arguments: args } = req.params;
+  <span class="k">return</span> <span class="f">callTool</span>(cfg, name, args || {});
+});
+
+<span class="k">async function</span> <span class="f">main</span>() {
+  <span class="k">await</span> server.<span class="f">connect</span>(<span class="k">new</span> <span class="f">StdioServerTransport</span>());
+  process.stderr.<span class="f">write</span>(<span class="s">`[mcp-miniprogram] 已启动 · 工具数：${visibleTools(cfg).length}\n`</span>);
+}
+<span class="f">main</span>().<span class="f">catch</span>((err) =&gt; {
+  process.stderr.<span class="f">write</span>(<span class="s">`启动失败：${err.stack || err.message}\n`</span>);
+  process.<span class="f">exit</span>(<span class="n">1</span>);
+});</code></pre>
+
+<div class="note warn">
+  <span class="lb">绝 对 不 要 用 console.log</span>
+  stdio 传输下 <b>stdout 就是协议通道</b>。任何 <code>console.log</code> 都会当成 JSON-RPC 消息发出去，
+  轻则客户端解析报错，重则握手直接失败。所有日志一律走 <code>process.stderr.write</code>。
+</div>
+
+<h3>2.3 冒烟客户端：每次改代码都能自查</h3>
+<p>
+  写一个 48 行的小客户端，模拟 WorkBuddy 拉起进程并调用工具。
+  它的价值是：<b>不必重启 WorkBuddy 就能验证改动</b>。
+</p>
+<div class="code-cap">scripts/smoke.js —— 握手 → 列工具 → 调一次</div>
+<pre><code class="lang-js"><span class="k">import</span> { Client } <span class="k">from</span> <span class="s">"@modelcontextprotocol/sdk/client/index.js"</span>;
+<span class="k">import</span> { StdioClientTransport } <span class="k">from</span> <span class="s">"@modelcontextprotocol/sdk/client/stdio.js"</span>;
+
+<span class="k">const</span> transport = <span class="k">new</span> <span class="f">StdioClientTransport</span>({
+  command: process.execPath,
+  args: [<span class="s">"src/index.js"</span>],
+  env: { ...process.env },      <span class="c">// 关键：把本机环境变量透传给子进程</span>
+});
+<span class="k">const</span> client = <span class="k">new</span> <span class="f">Client</span>({ name: <span class="s">"smoke-test"</span>, version: <span class="s">"1.0.0"</span> }, { capabilities: {} });
+
+<span class="k">await</span> client.<span class="f">connect</span>(transport);
+console.<span class="f">log</span>(<span class="s">"✅ 连接成功（stdio 握手通过）"</span>);
+
+<span class="k">const</span> { tools } = <span class="k">await</span> client.<span class="f">listTools</span>();
+console.<span class="f">log</span>(<span class="s">`✅ 工具清单：${tools.length} 个`</span>);
+tools.<span class="f">forEach</span>((t) =&gt; console.<span class="f">log</span>(<span class="s">`   - ${t.name}`</span>));
+
+<span class="k">const</span> toolName = process.argv[<span class="n">2</span>];
+<span class="k">if</span> (toolName) {
+  <span class="k">const</span> res = <span class="k">await</span> client.<span class="f">callTool</span>({
+    name: toolName,
+    arguments: process.argv[<span class="n">3</span>] ? <span class="f">JSON</span>.<span class="f">parse</span>(process.argv[<span class="n">3</span>]) : {},
+  });
+  console.<span class="f">log</span>(res.isError ? <span class="s">"❌ "</span> + res.content?.[<span class="n">0</span>]?.text
+                        : <span class="s">"✅ "</span> + res.content?.[<span class="n">0</span>]?.text);
+}
+<span class="k">await</span> client.<span class="f">close</span>().<span class="f">catch</span>(() =&gt; {});</code></pre>
+<div class="code-cap">用法</div>
+<pre><code class="lang-bash">cd tools/mcp-miniprogram
+
+# 只握手 + 列工具
+MP_READ_ONLY=1 node scripts/smoke.js
+
+# 顺带调一次真实接口
+MP_READ_ONLY=1 node scripts/smoke.js mp_list_contents '{"current":1,"size":3}'</code></pre>
+</section>
+
+<!-- ==================== 三 ==================== -->
+<section id="c3">
+<h2><span class="num">三</span>认证层：双模式与自动续期</h2>
+<p>
+  认证是所有接口调用的前置。设计上给两条路，并按优先级自动选择：
+  <b>有账号密码就走登录模式；有 JWT 密钥就走自签模式</b>。
+</p>
+
+<table>
+<thead><tr><th style="width:16%">模式</th><th style="width:30%">凭据</th><th style="width:26%">适用场景</th><th>特点</th></tr></thead>
+<tbody>
+<tr>
+  <td><b>A 登录模式</b></td>
+  <td><code>MP_USERNAME</code> + <code>MP_PASSWORD</code></td>
+  <td>能拿到后台账号密码</td>
+  <td>不需要密钥，token 到期自动重登</td>
+</tr>
+<tr>
+  <td>B 自签模式</td>
+  <td><code>MP_JWT_SECRET</code></td>
+  <td>能拿到服务端 JWT 密钥（如生产 env）</td>
+  <td>零网络往返，但密钥泄露等于全库通行</td>
+</tr>
+</tbody>
+</table>
+
+<h3>3.1 登录模式：取 token 并提前续期</h3>
+<div class="code-cap">src/auth.js —— 登录与缓存</div>
+<pre><code class="lang-js"><span class="k">const</span> state = { token: <span class="s">""</span>, expireAt: <span class="n">0</span>, mode: <span class="s">""</span> };
+
+<span class="k">async function</span> <span class="f">login</span>(cfg) {
+  <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">`${cfg.base}${ADMIN_API}/auth/login`</span>, {
+    method: <span class="s">"POST"</span>,
+    headers: { <span class="s">"Content-Type"</span>: <span class="s">"application/json"</span> },
+    body: <span class="f">JSON</span>.<span class="f">stringify</span>({ username: cfg.username, password: cfg.password }),
+    signal: <span class="f">AbortSignal</span>.<span class="f">timeout</span>(cfg.timeoutMs),   <span class="c">// 必须设超时，否则进程挂死</span>
+  });
+  <span class="k">const</span> json = <span class="k">await</span> res.<span class="f">json</span>().<span class="f">catch</span>(() =&gt; <span class="k">null</span>);
+  <span class="k">if</span> (!res.ok || !json || json.code !== <span class="n">200</span> || !json.data?.accessToken) {
+    <span class="k">throw new</span> <span class="f">Error</span>(
+      <span class="s">`管理端登录失败：HTTP ${res.status} / code=${json?.code} / ${json?.message || "无返回"}`</span>);
+  }
+  <span class="k">const</span> ttlSec = <span class="f">Number</span>(json.data.expiresIn || <span class="n">7200</span>);
+  state.token    = json.data.accessToken;
+  state.expireAt = <span class="f">Date</span>.<span class="f">now</span>() + ttlSec * <span class="n">1000</span>;
+  state.mode     = <span class="s">"login"</span>;
+  <span class="k">return</span> state.token;
+}
+
+<span class="k">export async function</span> <span class="f">getAccessToken</span>(cfg) {
+  <span class="k">if</span> (!cfg.configured) <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">`连接器未完成配置 · ${cfg.configError}`</span>);
+  <span class="k">if</span> (cfg.username &amp;&amp; cfg.password) {
+    <span class="c">// 提前 5 分钟续期，避免临界点刚好过期</span>
+    <span class="k">if</span> (!state.token || state.mode !== <span class="s">"login"</span> || <span class="f">Date</span>.<span class="f">now</span>() &gt; state.expireAt - <span class="n">5</span> * <span class="n">60</span> * <span class="n">1000</span>) {
+      <span class="k">return</span> <span class="f">login</span>(cfg);
+    }
+    <span class="k">return</span> state.token;
+  }
+  <span class="c">// 自签模式：现签，2h 有效期内复用</span>
+  <span class="k">if</span> (!state.token || state.mode !== <span class="s">"self"</span> || <span class="f">Date</span>.<span class="f">now</span>() &gt; state.expireAt - <span class="n">5</span> * <span class="n">60</span> * <span class="n">1000</span>) {
+    state.token = <span class="f">selfSignedToken</span>(cfg);
+    state.expireAt = <span class="f">Date</span>.<span class="f">now</span>() + <span class="n">2</span> * <span class="n">60</span> * <span class="n">60</span> * <span class="n">1000</span>;
+    state.mode = <span class="s">"self"</span>;
+  }
+  <span class="k">return</span> state.token;
+}
+
+<span class="k">export function</span> <span class="f">invalidateToken</span>() {   <span class="c">// 401 后强制刷新</span>
+  state.token = <span class="s">""</span>; state.expireAt = <span class="n">0</span>; state.mode = <span class="s">""</span>;
+}</code></pre>
+
+<h3>3.2 自签模式：claims 必须严格照抄服务端</h3>
+<p>
+  自签不是随便签一个 JWT 就行 —— 服务端过滤器会校验 claims。
+  本案例 <code>JwtAuthenticationFilter</code> 要求：<code>sub</code> 不能以 <code>wx_</code> 开头、
+  <code>userId</code> 对应的管理员必须存在且 <code>status=1</code>。
+  所以 claims 结构照抄 <code>JwtTokenProvider</code>：
+</p>
+<div class="code-cap">自签 HS256</div>
+<pre><code class="lang-js"><span class="k">function</span> <span class="f">selfSignedToken</span>(cfg) {
+  <span class="k">const</span> now = <span class="f">Math</span>.<span class="f">floor</span>(<span class="f">Date</span>.<span class="f">now</span>() / <span class="n">1000</span>);
+  <span class="k">return</span> <span class="f">signJwt</span>(cfg.jwtSecret, {
+    sub: <span class="s">"admin"</span>,           <span class="c">// 不能以 wx_ 开头，否则被判为小程序端 token</span>
+    userId: cfg.adminUserId,   <span class="c">// 必须对应一个 status=1 的管理员</span>
+    typ: <span class="s">"access"</span>,
+    iat: now,
+    exp: now + <span class="n">7200</span>,
+  });
+}</code></pre>
+
+<div class="note">
+  <span class="lb">配 置 软 失 败 —— 一个反直觉但必要的设计</span>
+  第一版在"读不到凭据"时直接 <code>process.exit(1)</code>，结果：WorkBuddy 拉起进程后进程立刻死，
+  连接器面板显示成<b>黄点 + 加载失败</b>，既看不到工具，也不知道错在哪。
+  正确做法是<b>照常启动、照常列出工具，把错误留到调用时给出明确指引</b>：
+  <pre style="margin:8px 0 0"><code class="lang-js">cfg.configured = <span class="f">Boolean</span>(cfg.username &amp;&amp; cfg.password) || <span class="f">Boolean</span>(cfg.jwtSecret);
+cfg.configError = cfg.configured ? <span class="s">""</span> : <span class="s">"未配置认证方式。请运行 scripts/setup-credentials.sh 生成凭据文件。"</span>;
+<span class="c">// index.js 里即便 loadConfig 抛错，也兜底构造一个 configured:false 的 cfg 继续启动</span></code></pre>
+</div>
+</section>
+
+<!-- ==================== 四 ==================== -->
+<section id="c4">
+<h2><span class="num">四</span>请求层：把所有出口收拢到一道闸</h2>
+<p>
+  请求层是全工程<b>唯一</b>对外发请求的出口。把鉴权、黑名单、重试、错误翻译都放在这里，
+  好处是：任何工具都自动获得这些能力，新加工具时不可能绕过。
+</p>
+
+<h3>4.1 统一封装</h3>
+<div class="code-cap">src/api.js</div>
+<pre><code class="lang-js"><span class="k">export async function</span> <span class="f">request</span>(cfg, { method = <span class="s">"GET"</span>, path, query = {}, body = <span class="k">null</span>, retry = <span class="k">true</span> }) {
+  <span class="f">assertPathAllowed</span>(path);            <span class="c">// ① 出口闸：敏感路径拦截</span>
+
+  <span class="k">const</span> url = <span class="k">new</span> <span class="f">URL</span>(<span class="s">`${cfg.base}${path}`</span>);
+  <span class="k">for</span> (<span class="k">const</span> [k, v] <span class="k">of</span> <span class="f">Object</span>.<span class="f">entries</span>(query)) {
+    <span class="k">if</span> (v !== <span class="k">undefined</span> &amp;&amp; v !== <span class="k">null</span> &amp;&amp; v !== <span class="s">""</span>) url.searchParams.<span class="f">set</span>(k, <span class="f">String</span>(v));
+  }
+
+  <span class="k">const</span> headers = { Accept: <span class="s">"application/json"</span> };
+  <span class="k">if</span> (body !== <span class="k">null</span>) headers[<span class="s">"Content-Type"</span>] = <span class="s">"application/json"</span>;
+  headers.Authorization = <span class="s">`Bearer ${await getAccessToken(cfg)}`</span>;   <span class="c">// ② 自动带 token</span>
+
+  <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(url, { method, headers,
+    body: body === <span class="k">null</span> ? <span class="k">undefined</span> : <span class="f">JSON</span>.<span class="f">stringify</span>(body),
+    signal: <span class="f">AbortSignal</span>.<span class="f">timeout</span>(cfg.timeoutMs) });
+
+  <span class="k">if</span> ((res.status === <span class="n">401</span> || res.status === <span class="n">403</span>) &amp;&amp; retry) {   <span class="c">// ③ 401 自动重登重试</span>
+    <span class="f">invalidateToken</span>();
+    <span class="k">return</span> <span class="f">request</span>(cfg, { method, path, query, body, retry: <span class="k">false</span> });  <span class="c">// 只重试一次</span>
+  }
+
+  <span class="k">const</span> text = <span class="k">await</span> res.<span class="f">text</span>();
+  <span class="k">let</span> json = <span class="k">null</span>;
+  <span class="k">try</span> { json = text ? <span class="f">JSON</span>.<span class="f">parse</span>(text) : <span class="k">null</span>; }
+  <span class="k">catch</span> { <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">`响应不是合法 JSON：HTTP ${res.status} ${text.slice(0, 200)}`</span>); }
+
+  <span class="k">if</span> (!res.ok) <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">`HTTP ${res.status} · code=${json?.code} · ${json?.message || ""}`</span>);
+
+  <span class="c">// ④ 关键：HTTP 200 但业务码非 200，同样是失败</span>
+  <span class="k">if</span> (json &amp;&amp; json.code !== <span class="k">undefined</span> &amp;&amp; json.code !== <span class="n">200</span>) {
+    <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">`业务失败 code=${json.code} · ${json.message || ""}`</span>);
+  }
+  <span class="k">return</span> json ? json.data : <span class="k">null</span>;   <span class="c">// 只返回 data，剥掉响应壳</span>
+}</code></pre>
+
+<h3>4.2 三个容易漏的点</h3>
+<div class="cards">
+  <div class="card">
+    <div class="h">业务码 ≠ HTTP 状态码</div>
+    <div class="b">很多后台统一返回 HTTP 200，失败藏在 <code>body.code</code> 里。只判 <code>res.ok</code> 会把失败当成成功，AI 拿到空数据还以为成功了。</div>
+  </div>
+  <div class="card">
+    <div class="h">重试必须有终止条件</div>
+    <div class="b">401 重试传 <code>retry:false</code>，否则会无限递归。这是"加了自动重试"后最常见的线上事故。</div>
+  </div>
+  <div class="card">
+    <div class="h">超时必须显式设置</div>
+    <div class="b">MCP server 是长驻进程，一次 <code>fetch</code> 挂死会让整个连接器失去响应，且不会被自动回收。</div>
+  </div>
+</div>
+
+<h3>4.3 上传走独立通道</h3>
+<p>文件上传是 multipart，不能走 JSON 通道，单独封装并复用同一道出口闸的例外规则：</p>
+<div class="code-cap">src/api.js —— 上传</div>
+<pre><code class="lang-js"><span class="k">export async function</span> <span class="f">uploadFile</span>(cfg, filePath, field = <span class="s">"file"</span>) {
+  <span class="k">const</span> { readFile } = <span class="k">await</span> <span class="f">import</span>(<span class="s">"node:fs/promises"</span>);
+  <span class="k">const</span> buf = <span class="k">await</span> <span class="f">readFile</span>(filePath);
+  <span class="k">const</span> form = <span class="k">new</span> <span class="f">FormData</span>();
+  form.<span class="f">append</span>(field, <span class="k">new</span> <span class="f">Blob</span>([buf]), filePath.<span class="f">split</span>(<span class="s">"/"</span>).<span class="f">pop</span>());
+
+  <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">`${cfg.base}${ADMIN_API}/system/upload`</span>, {
+    method: <span class="s">"POST"</span>,
+    headers: { Authorization: <span class="s">`Bearer ${await getAccessToken(cfg)}`</span> },
+    body: form,
+    signal: <span class="f">AbortSignal</span>.<span class="f">timeout</span>(cfg.timeoutMs),
+  });
+  <span class="k">const</span> json = <span class="k">await</span> res.<span class="f">json</span>().<span class="f">catch</span>(() =&gt; <span class="k">null</span>);
+  <span class="k">if</span> (!res.ok || !json || json.code !== <span class="n">200</span>) <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">`上传失败：HTTP ${res.status}`</span>);
+  <span class="k">return</span> json.data;
+}</code></pre>
+</section>
+
+<!-- ==================== 五 ==================== -->
+<section id="c5">
+<h2><span class="num">五</span>工具层：声明与分发</h2>
+<p>
+  工具层是 AI 与后台接口之间的<b>契约</b>。这里的设计要点是：
+  <code>description</code> 不是写给人看的注释，而是<b>写给 AI 看的提示词</b> —— 它决定 AI 会不会调、会不会传对参数。
+</p>
+
+<h3>5.1 声明三件套</h3>
+<div class="code-cap">src/tools.js —— 一条工具声明</div>
+<pre><code class="lang-js">{
+  name: <span class="s">"mp_list_contents"</span>,
+  description:
+    <span class="s">"列出小程序后台的内容（文章/视频/图集等）。可按关键词、状态、类型、分类筛选，</span>
+<span class="s">     支持分页。返回标题、状态、类型、更新时间。"</span>,
+  inputSchema: {
+    type: <span class="s">"object"</span>,
+    properties: {
+      keyword:     { type: <span class="s">"string"</span>, description: <span class="s">"标题关键词"</span> },
+      status:      { type: <span class="s">"string"</span>,
+                     description: <span class="s">"状态：draft 草稿 / published 已发布 / offline 已下架，不传查全部"</span> },
+      contentType: { type: <span class="s">"string"</span>, description: <span class="s">"内容类型，如 article / video / gallery"</span> },
+      categoryId:  { type: <span class="s">"number"</span>, description: <span class="s">"分类 ID"</span> },
+      current:     { type: <span class="s">"number"</span>, description: <span class="s">"页码，默认 1"</span> },
+      size:        { type: <span class="s">"number"</span>, description: <span class="s">"每页条数，默认 10，最大 100"</span> },
+    },
+  },
+}</code></pre>
+
+<div class="note">
+  <span class="lb">写 DESCRIPTION 的 三 条 经 验</span>
+  <b>① 枚举值要写全</b>：写 <code>status</code> 不写 "draft/published/offline"，AI 只能瞎猜；<br>
+  <b>② 副作用要说清</b>：如「存草稿不会改动线上版本，必须再调 mp_publish_page 才会生效」；<br>
+  <b>③ 约束要写进去</b>：如「封面必须是 /uploads/... 相对路径」，否则 AI 会拼错域名。
+</div>
+
+<h3>5.2 分发：一个 switch 到底</h3>
+<div class="code-cap">src/tools.js —— 分发与先读后写</div>
+<pre><code class="lang-js"><span class="k">export async function</span> <span class="f">callTool</span>(cfg, name, args = {}) {
+  <span class="k">try</span> {
+    <span class="k">if</span> (cfg.readOnly &amp;&amp; WRITE_TOOLS.<span class="f">has</span>(name)) {   <span class="c">// 二次拦截，防绕过清单</span>
+      <span class="k">return</span> <span class="f">fail</span>(<span class="k">new</span> <span class="f">Error</span>(<span class="s">`当前为只读模式（MP_READ_ONLY=1），${name} 已禁用`</span>));
+    }
+    <span class="k">switch</span> (name) {
+      <span class="k">case</span> <span class="s">"mp_list_contents"</span>:
+        <span class="k">return</span> <span class="f">ok</span>(<span class="k">await</span> <span class="f">request</span>(cfg, { path: C, query: args }));
+      <span class="k">case</span> <span class="s">"mp_get_content"</span>:
+        <span class="k">return</span> <span class="f">ok</span>(<span class="k">await</span> <span class="f">request</span>(cfg, { path: <span class="s">`${C}/${args.id}`</span> }));
+
+      <span class="c">// 更新：先读再合并，避免未传字段被清空</span>
+      <span class="k">case</span> <span class="s">"mp_update_content"</span>: {
+        <span class="k">const</span> { id, ...patch } = args;
+        <span class="k">const</span> current = <span class="k">await</span> <span class="f">request</span>(cfg, { path: <span class="s">`${C}/${id}`</span> });
+        <span class="k">return</span> <span class="f">ok</span>(<span class="k">await</span> <span class="f">request</span>(cfg, {
+          method: <span class="s">"PUT"</span>, path: <span class="s">`${C}/${id}`</span>, body: { ...current, ...patch } }));
+      }
+
+      <span class="k">case</span> <span class="s">"mp_publish_content"</span>:
+        <span class="k">return</span> <span class="f">ok</span>(<span class="k">await</span> <span class="f">request</span>(cfg, { method: <span class="s">"PUT"</span>, path: <span class="s">`${C}/${args.id}/publish`</span> }));
+      <span class="k">case</span> <span class="s">"mp_save_page_draft"</span>:
+        <span class="k">return</span> <span class="f">ok</span>(<span class="k">await</span> <span class="f">request</span>(cfg, { method: <span class="s">"POST"</span>,
+          path: <span class="s">`${P}/${args.id}/draft`</span>,
+          body: { dslContent: args.dslContent, expectedVersion: args.expectedVersion } }));
+
+      <span class="k">default</span>: <span class="k">return</span> <span class="f">fail</span>(<span class="k">new</span> <span class="f">Error</span>(<span class="s">`未知工具：${name}`</span>));
+    }
+  } <span class="k">catch</span> (err) {
+    <span class="k">return</span> <span class="f">fail</span>(err);   <span class="c">// 统一转成 isError 响应，不让异常冲垮进程</span>
+  }
+}</code></pre>
+
+<div class="note warn">
+  <span class="lb">片 段 更 新 要 先 读 后 写</span>
+  后台的 <code>PUT</code> 通常是<b>全量覆盖</b>。若直接把 AI 传来的部分字段 PUT 上去，
+  未传的字段（封面、标签、图集）会被清空。
+  正确做法：先 <code>GET</code> 拿当前值，合并补丁后再 <code>PUT</code>。
+</div>
+
+<h3>5.3 命名与分组</h3>
+<p>
+  工具名统一带前缀 <code>mp_</code>。原因是 WorkBuddy 会同时挂多个连接器（本例还有 zsxq），
+  前缀能让 AI 一眼分清工具归属。写工具用 <code>WRITE_TOOLS</code> 集合显式登记，
+  只读模式下既从清单移除、又在调用时拒绝 —— <b>两道都要有</b>，只靠隐藏清单拦不住直接点名调用。
+</p>
+</section>
+
+<!-- ==================== 六 ==================== -->
+<section id="c6">
+<h2><span class="num">六</span>注册与启用：让 WorkBuddy 认领这个连接器</h2>
+
+<h3>6.1 配置写法</h3>
+<div class="code-cap">~/.workbuddy/mcp.json</div>
+<pre><code class="lang-json">{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"miniprogram"</span>: {
+      <span class="s">"type"</span>: <span class="s">"stdio"</span>,
+      <span class="s">"command"</span>: <span class="s">"/Users/lx/.workbuddy/binaries/node/versions/22.22.2-3/bin/node"</span>,
+      <span class="s">"args"</span>: [<span class="s">"/Users/lx/项目文件/liuxuan/小程序搭建运营系统/tools/mcp-miniprogram/src/index.js"</span>],
+      <span class="s">"staticEnv"</span>: {
+        <span class="s">"MP_API_BASE"</span>: <span class="s">"https://api.zfculture.site"</span>,
+        <span class="s">"MP_CREDENTIALS_FILE"</span>: <span class="s">"~/.workbuddy/credentials/mp.env"</span>,
+        <span class="s">"MP_READ_ONLY"</span>: <span class="s">"1"</span>
+      },
+      <span class="s">"timeout"</span>: <span class="n">30000</span>
+    }
+  }
+}</code></pre>
+
+<table>
+<thead><tr><th style="width:22%">字段</th><th>要点</th></tr></thead>
+<tbody>
+<tr><td><code>command</code></td><td><b>必须写绝对路径</b>。WorkBuddy 拉起进程时的 PATH 里未必有 node，写 <code>node</code> 会启动失败</td></tr>
+<tr><td><code>args</code></td><td>入口脚本也要绝对路径，别依赖工作目录</td></tr>
+<tr><td><code>staticEnv</code></td><td>只放<b>非秘密</b>项。密码一律走凭据文件，见第七章</td></tr>
+<tr><td><code>timeout</code></td><td>建议 30s，太短会在首次登录（含网络往返）时超时</td></tr>
+</tbody>
+</table>
+
+<h3>6.2 启用步骤</h3>
+<ol>
+  <li>打开 WorkBuddy 连接器管理页</li>
+  <li>右上角「自定义连接器」入口 → 对 <code>miniprogram</code> 点<b>信任</b></li>
+  <li><b>重启 WorkBuddy</b> —— 已信任过的连接器改配置后必须重启才重载</li>
+</ol>
+
+<h3>6.3 面板显示"黄点 / 切换服务器状态失败"怎么查</h3>
+<p>黄点意味着进程没能正常握手。按顺序排查：</p>
+<div class="code-cap">三步定位</div>
+<pre><code class="lang-bash"># ① 手工拉起，看 stderr 是否输出「已启动」
+echo '' | MP_READ_ONLY=1 node src/index.js
+
+# ② 检查是否有残留进程占住
+ps aux | grep mcp-miniprogram | grep -v grep
+
+# ③ 用冒烟客户端复现 WorkBuddy 的完整握手
+MP_READ_ONLY=1 node scripts/smoke.js</code></pre>
+<p>
+  本案例实际踩到的是<b>时序问题</b>：先改了 <code>mcp.json</code> 指向凭据文件，凭据文件三分钟后才建好 ——
+  中间那次拉起因读不到凭据而 <code>exit(1)</code>，面板状态就此卡死。
+  这正是第三章「配置软失败」改造的由来。
+</p>
+</section>
+
+<!-- ==================== 七 ==================== -->
+<section id="c7">
+<h2><span class="num">七</span>安全加固：三道闸与一条底线</h2>
+<p>
+  这一章是整份文档最不该跳过的一章。连接器一旦可用，就等于给了 AI 一把能直接改生产库的钥匙。
+  设计目标不是"防止被攻破"，而是<b>降低凭据泄露后的损失</b>。
+</p>
+
+<h3>7.1 先认清三个暴露面</h3>
+<div class="cards">
+  <div class="card bad">
+    <div class="h">暴露面 ① 对话上下文</div>
+    <div class="b">在对话里打出来的密码会进入会话历史与上下文，<b>没有任何技术能撤回</b>。这是最该避免的一条。</div>
+  </div>
+  <div class="card bad">
+    <div class="h">暴露面 ② 命令审计明文</div>
+    <div class="b">WorkBuddy 的审计日志 <code>~/.workbuddy/audit-log/*.jsonl</code> 中 <code>commandPreview</code> 字段<b>完整保存命令原文</b>，永久落盘。密码一旦出现在任何 shell 命令里就会被留存。</div>
+  </div>
+  <div class="card bad">
+    <div class="h">暴露面 ③ 配置明文</div>
+    <div class="b">写进 <code>mcp.json</code> 的 <code>staticEnv</code> 是明文 JSON，容易被同步、截图、误提交。</div>
+  </div>
+</div>
+
+<h3>7.2 闸一：凭据外置（密码不经对话、不经命令行）</h3>
+<p>
+  做法：<code>mcp.json</code> 里只放<b>路径</b>，真凭据放在 600 权限的独立文件里；
+  写入靠交互式脚本，密码用 <code>read -s</code> 不回显，验证登录时由子进程<b>直接读文件</b>而非通过 shell 传参。
+</p>
+<div class="code-cap">scripts/setup-credentials.sh —— 关键片段</div>
+<pre><code class="lang-bash"><span class="c"># ① 密码不回显，且只回显长度供核对</span>
+read -r -s -p "后台密码（不回显）: " MP_PASSWORD; echo
+echo "✓ 密码录入：${#MP_PASSWORD} 个字符"
+
+<span class="c"># ② 写入 600 权限文件</span>
+{
+  echo "MP_API_BASE=${MP_API_BASE}"
+  echo "MP_USERNAME=${MP_USERNAME}"
+  echo "MP_PASSWORD=${MP_PASSWORD}"
+} &gt; "${CRED_FILE}"
+chmod 600 "${CRED_FILE}"
+
+<span class="c"># ③ 当场验证登录：子进程读文件，密码不经命令行参数</span>
+"${NODE_BIN}" -e '...读取文件后 fetch /auth/login...' "${CRED_FILE}"</code></pre>
+
+<div class="ba">
+  <div class="before"><div class="lbl">BEFORE</div><code>MP_PASSWORD</code> 明文写在 <code>mcp.json</code> 的 <code>staticEnv</code>；密码通过对话告知；用 <code>curl -u user:pass</code> 测试（进审计日志）</div>
+  <div class="after"><div class="lbl">AFTER</div><code>mcp.json</code> 只含 <code>MP_CREDENTIALS_FILE</code> 路径；密码由所有者本人在终端 <code>read -s</code> 录入；验证由子进程读文件完成</div>
+</div>
+
+<div class="note ok">
+  <span class="lb">配 套 的 解 析 器</span>
+  凭据文件用自写的 30 行极简 dotenv 解析（支持 <code>export</code> 前缀、单双引号、<code>#</code> 行尾注释），
+  并自动跳过 <code>REPLACE_ME</code> 之类占位值。不引三方库，也就不会出现"某个库升级后解析行为变了"的意外。
+</div>
+
+<h3>7.3 闸二：只读开关（默认关闭写能力）</h3>
+<p>
+  <code>MP_READ_ONLY=1</code> 时，7 个写工具<b>从清单里消失</b>；即便被点名调用也会在 <code>callTool</code> 入口被拒。
+  两层都做，是因为"只隐藏清单"拦不住直接指定工具名的调用。
+</p>
+<div class="code-cap">三重校验</div>
+<pre><code class="lang-bash"><span class="c"># 只读模式 → 工具数应为 5</span>
+MP_READ_ONLY=1 node scripts/smoke.js
+<span class="c"># ✅ 工具清单：5 个（只读模式）</span>
+
+<span class="c"># 关掉只读 → 工具数应为 12</span>
+MP_READ_ONLY=0 node scripts/smoke.js
+<span class="c"># ✅ 工具清单：12 个</span></code></pre>
+
+<h3>7.4 闸三：路径黑名单（敏感模块硬拦截）</h3>
+<p>
+  即便以后有人往里加工具，也不该碰到财务、退款、账号、角色这类模块。
+  拦截点放在请求层入口 —— <b>所有请求必经</b>，无法绕过。
+</p>
+<div class="code-cap">src/config.js</div>
+<pre><code class="lang-js"><span class="k">const</span> SENSITIVE_PREFIXES = [
+  <span class="s">`${ADMIN_API}/finance`</span>, <span class="s">`${ADMIN_API}/refunds`</span>, <span class="s">`${ADMIN_API}/system`</span>,
+  <span class="s">`${ADMIN_API}/admin-users`</span>, <span class="s">`${ADMIN_API}/roles`</span>,
+  <span class="s">`${ADMIN_API}/permissions`</span>, <span class="s">`${ADMIN_API}/agent`</span>,
+];
+<span class="k">const</span> SENSITIVE_EXCEPTIONS = <span class="k">new</span> <span class="f">Set</span>([<span class="s">`${ADMIN_API}/system/upload`</span>]);  <span class="c">// 素材上传是例外</span>
+
+<span class="k">export function</span> <span class="f">assertPathAllowed</span>(fullPath) {
+  <span class="k">if</span> (SENSITIVE_EXCEPTIONS.<span class="f">has</span>(fullPath)) <span class="k">return</span>;
+  <span class="k">for</span> (<span class="k">const</span> prefix <span class="k">of</span> SENSITIVE_PREFIXES) {
+    <span class="k">if</span> (fullPath === prefix || fullPath.<span class="f">startsWith</span>(prefix + <span class="s">"/"</span>)) {
+      <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">`已拦截：${fullPath} 属于敏感模块，本连接器不提供访问`</span>);
+    }
+  }
+}</code></pre>
+
+<h3>7.5 底线：专用低权限账号</h3>
+<div class="note">
+  <span class="lb">最 有 效 的 一 条</span>
+  上面三道闸防的是"凭据会不会泄露"，而<b>专用低权限账号限定的是"泄露了损失有多大"</b>。
+  前者可能被绕过，后者不会 —— 这是唯一无法被绕过的防护。
+</div>
+<p>本案例的做法：不为连接器复用超管账号，而是新建一个绑定 <code>content_ops</code>（内容运营）角色的账号。</p>
+
+<table>
+<thead><tr><th style="width:20%">角色（预置）</th><th style="width:24%">角色码</th><th>能力与边界</th></tr></thead>
+<tbody>
+<tr><td>超级管理员</td><td><code>super_admin</code></td><td>全通，包括财务/系统/账号 —— <b>不该给连接器</b></td></tr>
+<tr><td><b>内容运营</b></td><td><code>content_ops</code></td><td>内容、页面、素材可读可写；<b>上传接口 403</b>（见第十章）</td></tr>
+<tr><td>业务运营</td><td><code>biz_ops</code></td><td>业务侧模块</td></tr>
+<tr><td>客服人员</td><td><code>service_staff</code></td><td>客服相关</td></tr>
+</tbody>
+</table>
+
+<div class="note ok">
+  <span class="lb">一 个 有 利 的 事 实</span>
+  很多后台的"权限点"只控制<b>前端菜单显隐</b>，不参与 API 鉴权（本案例 <code>SecurityConfig</code> 只用 <code>hasRole</code>，不用 <code>hasAuthority</code>）。
+  这意味着绑定 <code>content_ops</code> 后，内容/页面/素材接口<b>天然全通</b>，不需要逐条配置权限点 —— 先去源码里确认这一点，能省掉大量配置工作。
+</div>
+</section>
+
+<!-- ==================== 八 ==================== -->
+<section id="c8">
+<h2><span class="num">八</span>验证与交付：从冒烟到端到端</h2>
+
+<h3>8.1 三态验证（比"能跑通"更重要）</h3>
+<p>只测"配置正确时能用"是不够的，配置出错时的表现同样要验证：</p>
+<table>
+<thead><tr><th style="width:24%">状态</th><th style="width:30%">期望表现</th><th>为什么这么设计</th></tr></thead>
+<tbody>
+<tr><td>完全无凭据</td><td>启动成功，工具数 12，调用时报"未配置 + 怎么修"</td><td>进程不死，面板不黄点</td></tr>
+<tr><td>凭据文件正确</td><td>启动成功，只读模式 5 个工具，调用返回真实数据</td><td>正常路径</td></tr>
+<tr><td>凭据文件路径错</td><td>启动成功，调用时报"凭据文件读取失败：…"</td><td>错误可读，指向明确</td></tr>
+</tbody>
+</table>
+
+<h3>8.2 端到端真实数据</h3>
+<div class="code-cap">本案例实测结果</div>
+<pre><code class="lang-bash">$ node scripts/smoke.js mp_list_contents '{"current":1,"size":3}'
+✅ 连接成功（stdio 握手通过）
+✅ 工具清单：5 个
+✅ 返回：id=171《选品不是追爆款…》· article · 分类「选品洞察」· 正文 HTML 完整
+
+$ node scripts/smoke.js mp_get_page '{"id":28}'
+✅ 跨境墨太白 · type=3 自定义页 · status=1 已发布 · currentVersion=61
+   draftDslContent 完整返回
+
+$ node scripts/smoke.js mp_list_assets '{"current":1,"size":3}'
+✅ total 202</code></pre>
+<p>
+  判定标准：<b>拿到的是生产库的真实记录，而不是空数组或示例数据</b>。
+  只返回 200 + 空列表是最容易骗过验证的假象。
+</p>
+
+<h3>8.3 配套 Skill：让 AI 记得住怎么用</h3>
+<p>
+  光有工具，AI 未必知道什么时候该调。补一个 Skill 把<b>触发场景、硬规则、故障对照</b>固化下来：
+</p>
+<div class="code-cap">~/.workbuddy/skills/miniprogram-content-ops/SKILL.md</div>
+<pre><code class="lang-md">---
+name: miniprogram-content-ops
+description: 通过本地 MCP 连接器读写小程序后台——查内容、查页面 DSL、查素材，
+  以及新建/更新/发布/下架。当用户提到「小程序后台」「发布到小程序」
+  「改小程序首页」「上架/下架内容」时使用。也覆盖连接器故障排查。
+---
+
+## 硬规则（踩过的坑）
+- **存草稿 ≠ 发布**。改页面必须 save_page_draft 后再 publish_page。
+- **封面用 /uploads/... 相对路径**，不要拼 admin 域名（admin 域 ≠ api 域）。
+- **上传 403**：接口挂在 /admin/system/upload，属超管前缀。图片走后台素材库手工传。
+- **写操作直打生产库，无二次确认**。发布前先确认目标 ID。
+
+## 常见故障
+| 现象 | 处理 |
+|---|---|
+| code=110101 | 账号密码不符，重跑 setup-credentials.sh |
+| 只有 5 个工具 | MP_READ_ONLY=1 |
+| 403 | 路径属超管前缀，或账号角色不够 |</code></pre>
+
+<div class="note">
+  <span class="lb">为 什 么 单 独 拆 出 SKILL</span>
+  连接器解决"能不能调"，Skill 解决"该不该调、怎么调"。两者分开的好处是：
+  换一个后台、换一个连接器，Skill 里的领域规则（草稿≠发布、封面用相对路径）依然可复用。
+</div>
+</section>
+
+<!-- ==================== 九 ==================== -->
+<section id="c9">
+<h2><span class="num">九</span>扩展与运维</h2>
+
+<h3>9.1 加一个新工具：两处改动</h3>
+<ol>
+  <li>在 <code>tools.js</code> 的 <code>TOOLS</code> 数组加一条声明（<code>name</code> / <code>description</code> / <code>inputSchema</code>）</li>
+  <li>在 <code>callTool</code> 的 <code>switch</code> 里加一个 <code>case</code>；若是有副作用的，同时登记进 <code>WRITE_TOOLS</code></li>
+</ol>
+<div class="code-cap">自检</div>
+<pre><code class="lang-bash">node scripts/smoke.js mp_新工具名 '{"参数":"值"}'</code></pre>
+
+<h3>9.2 改动落点速查</h3>
+<table>
+<thead><tr><th style="width:30%">要做什么</th><th>动哪个文件</th></tr></thead>
+<tbody>
+<tr><td>加/改接口</td><td><code>src/tools.js</code> —— 声明 + case</td></tr>
+<tr><td>放开某个敏感模块</td><td><code>src/config.js</code> 的 <code>SENSITIVE_PREFIXES</code> / <code>SENSITIVE_EXCEPTIONS</code></td></tr>
+<tr><td>换认证方式</td><td><code>src/auth.js</code></td></tr>
+<tr><td>加配置项</td><td><code>src/config.js</code> 的 <code>pick()</code> + <code>cfg</code>，以及 <code>mcp.json</code> 的 <code>staticEnv</code></td></tr>
+<tr><td>调超时 / 租户头</td><td><code>MP_TIMEOUT_MS</code> / <code>MP_TENANT_ID</code></td></tr>
+</tbody>
+</table>
+
+<h3>9.3 版本与回滚</h3>
+<ul class="chk">
+  <li>改动原则：<b>只增不改</b>。已交付的行为不变更，新能力走新增工具或新增版本</li>
+  <li>改代码前先跑一次 <code>node scripts/smoke.js</code> 留基线输出</li>
+  <li>改 <code>mcp.json</code> 前先备份，配置错误会让连接器整体不可用</li>
+  <li>生产侧的后台部署另走既有发布流程，连接器改动与后台改动分开记录</li>
+</ul>
+</section>
+
+<!-- ==================== 十 ==================== -->
+<section id="c10">
+<h2><span class="num">十</span>踩坑清单</h2>
+<p>以下每一条都是本案例中真实发生并修复的，按"现象 → 根因 → 处理"排列。</p>
+
+<table>
+<thead><tr><th style="width:24%">现象</th><th style="width:38%">根因</th><th>处理</th></tr></thead>
+<tbody>
+<tr>
+  <td>面板黄点 /「切换服务器状态失败」</td>
+  <td>凭据缺失时 <code>process.exit(1)</code>，进程启动即退出，面板状态卡死</td>
+  <td>配置改软失败：照常启动并列出工具，错误在调用时给出指引</td>
+</tr>
+<tr>
+  <td><code>code=110101 用户名或密码错误</code></td>
+  <td><code>read -s</code> 不回显，密码输入易错；也曾误用不存在的用户名</td>
+  <td>setup 脚本改为<b>写完当场验证登录</b>并回显字符数；失败可原地重输</td>
+</tr>
+<tr>
+  <td>建账号报 409，还弹两条错误</td>
+  <td>用户名撞车（HTTP 409）；前端请求层已按后端 message 弹过并置 <code>toastHandled</code>，页面 catch 未识别该标记又弹一次</td>
+  <td>换用户名；页面 catch 加 <code>if (!e?.toastHandled)</code> 守卫，并补 409 兜底文案</td>
+</tr>
+<tr>
+  <td>后台看不到「管理员账号」菜单</td>
+  <td>侧边栏菜单是<b>硬编码数组</b>，与 router 不是一份数据；页面和路由其实都已部署</td>
+  <td>菜单数组补该项 + <code>roles:['super_admin']</code> 过滤；临时可直连 URL</td>
+</tr>
+<tr>
+  <td><code>mp_upload_file</code> 必 403</td>
+  <td>上传接口路径 <code>/admin/system/upload</code> 落在 SecurityConfig 的超管前缀下</td>
+  <td>短期：图片走后台素材库手工传；长期：把上传路径挪到 <code>/admin/assets/upload</code></td>
+</tr>
+<tr>
+  <td>页面改了但线上没变</td>
+  <td>只调了 <code>save_page_draft</code>，没调 <code>publish_page</code></td>
+  <td>两步都要做，并在工具 <code>description</code> 与 Skill 里写死这条</td>
+</tr>
+<tr>
+  <td>改内容后封面/标签消失</td>
+  <td>后台 <code>PUT</code> 是全量覆盖，只传部分字段会清空其余</td>
+  <td>工具内部先 <code>GET</code> 再合并后 <code>PUT</code></td>
+</tr>
+</tbody>
+</table>
+
+<div class="note warn">
+  <span class="lb">两 条 通 用 教 训</span>
+  <b>① 时序比代码更容易出错</b>：先改配置、后建凭据，中间那次拉起就会失败，且失败状态会被缓存。<br>
+  <b>② 看不见的输入要当场验证</b>：<code>read -s</code> 输入的密码、不回显的表单，都应该在写完后立刻用它打一次真实请求，而不是等到下游报错再回头查。
+</div>
+</section>
+
+<!-- ==================== 附录 ==================== -->
+<section id="cx">
+<h2><span class="num">附</span>源码索引与检查清单</h2>
+
+<h3>A. 交付物清单</h3>
+<table>
+<thead><tr><th style="width:38%">文件</th><th style="width:10%">行数</th><th>职责</th></tr></thead>
+<tbody>
+<tr><td><code>src/index.js</code></td><td>59</td><td>入口：读配置、建 Server、连 stdio、挂两个 handler</td></tr>
+<tr><td><code>src/tools.js</code></td><td>257</td><td>12 个工具声明 + 分发 + 读写过滤</td></tr>
+<tr><td><code>src/api.js</code></td><td>75</td><td>统一请求：出口闸、业务码校验、401 重试、上传</td></tr>
+<tr><td><code>src/auth.js</code></td><td>91</td><td>双认证模式 + token 缓存与提前续期</td></tr>
+<tr><td><code>src/config.js</code></td><td>137</td><td>凭据解析、只读开关、敏感路径黑名单</td></tr>
+<tr><td><code>scripts/smoke.js</code></td><td>48</td><td>冒烟客户端：握手 → 列工具 → 调一次</td></tr>
+<tr><td><code>scripts/setup-credentials.sh</code></td><td>99</td><td>交互式建凭据，写完当场验证登录</td></tr>
+<tr><td><code>~/.workbuddy/skills/…/SKILL.md</code></td><td>—</td><td>触发场景、硬规则、故障对照</td></tr>
+</tbody>
+</table>
+
+<h3>B. 复用到其他系统的改动点</h3>
+<table>
+<thead><tr><th style="width:26%">位置</th><th>改什么</th></tr></thead>
+<tbody>
+<tr><td><code>config.js</code> · <code>ADMIN_API</code></td><td>换成目标系统的接口前缀</td></tr>
+<tr><td><code>config.js</code> · <code>SENSITIVE_PREFIXES</code></td><td>按目标系统的鉴权规则重写黑名单</td></tr>
+<tr><td><code>auth.js</code> · <code>login()</code></td><td>换登录路径与返回字段（<code>accessToken</code> / <code>expiresIn</code>）</td></tr>
+<tr><td><code>auth.js</code> · <code>selfSignedToken()</code></td><td>claims 严格照抄目标系统 JWT 提供器</td></tr>
+<tr><td><code>api.js</code> · 成功码判断</td><td>本例是 <code>code !== 200</code>，别的系统可能是 <code>0</code></td></tr>
+<tr><td><code>tools.js</code> · <code>TOOLS</code></td><td>整份替换成目标系统的资源与字段</td></tr>
+</tbody>
+</table>
+
+<h3>C. 上线前检查清单</h3>
+<ul class="chk">
+  <li>握手通过：冒烟脚本能列出工具清单</li>
+  <li>真实数据：至少 3 个读工具返回生产库真实记录（非空数组）</li>
+  <li>三态验证：无凭据 / 凭据正确 / 路径错误 三种配置下启动都不崩</li>
+  <li>凭据外置：<code>mcp.json</code> 内无明文密码，凭据文件权限 600</li>
+  <li>专用账号：连接器绑定的是低权限账号，不是超管</li>
+  <li>只读默认：<code>MP_READ_ONLY=1</code>，写能力确认需要后再开</li>
+  <li>黑名单生效：敏感路径请求被明确拦截</li>
+  <li>Skill 就位：触发词、硬规则、故障对照已写入</li>
+  <li>日志干净：无 <code>console.log</code> 污染 stdout</li>
+</ul>
+
+<h3>D. 一页纸速览</h3>
+<div class="ba">
+  <div class="before"><div class="lbl">做 之 前</div>
+    需求：让 AI 读写自有后台<br>
+    先查：Controller 前缀 / 鉴权规则 / DTO 字段 / JWT claims<br>
+    产出：一张接口坐标表<br>
+    路线：自用选本地 MCP
+  </div>
+  <div class="after"><div class="lbl">做 法</div>
+    分层：index（薄）→ tools（声明+分发）→ api（出口闸）→ auth（认证）→ config（围栏）<br>
+    顺序：空壳 → 握手 → 读工具 → 认证 → 写工具<br>
+    加固：凭据外置 · 只读开关 · 路径黑名单 · 低权限账号<br>
+    验证：三态 + 真实数据 + Skill
+  </div>
+</div>
+</section>
+
+<footer>
+  <b>WorkBuddy 连接器实战指南</b> · V1.0 · 2026-10<br>
+  案例系统：小程序搭建与运营平台 · 源码位于 <code>tools/mcp-miniprogram/</code><br>
+  配套 Skill：<code>~/.workbuddy/skills/miniprogram-content-ops/SKILL.md</code> ·
+  配置：<code>~/.workbuddy/mcp.json</code> · 凭据：<code>~/.workbuddy/credentials/mp.env</code><br>
+  <span style="color:var(--cinnabar)">本文档为单文件 HTML，零外部依赖，可直接分享与离线阅读。</span>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function () {
+  // ---------- 代码着色 ----------
+  // 关键：单趟 tokenize。多趟 replace 会二次扫描自己注入的标签（class="s" 里的 "s"
+  // 会被当成字符串再包一层），产出 class="s">"s"> 这类破损 HTML。
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function wrap(cls, text) { return '<span class="' + cls + '">' + text + '</span>'; }
+
+  var RE_JS = /(\/\/[^\n]*)|(`(?:[^`\\]|\\.)*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|(\b\d+(?:\.\d+)?\b)|\b(import|export|from|const|let|var|function|return|await|async|if|else|for|of|in|new|throw|try|catch|finally|class|default|switch|case|break|continue|typeof|null|undefined|true|false|extends|super|this)\b/g;
+  var RE_BASH = /(#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|\b(echo|read|cd|export|node|npm|curl|grep|find|sudo|ssh|scp|tar|chmod|mv|cp|then|fi|done|do|for|if|while|case|esac|set)\b/g;
+  var RE_JSON = /("(?:[^"\\\n]|\\.)*")(\s*:)?|\b(true|false|null)\b|(\b\d+(?:\.\d+)?\b)/g;
+  var RE_MD = /(^#{1,4} [^\n]*$)|(\*\*[^*\n]+\*\*)/gm;
+
+  function paint(raw, lang) {
+    var h = esc(raw);
+    if (lang === "js") {
+      return h.replace(RE_JS, function (m, cmt, str, num, kw) {
+        if (cmt) return wrap("c", cmt);
+        if (str) return wrap("s", str);
+        if (num) return wrap("n", num);
+        if (kw) return wrap("k", kw);
+        return m;
+      });
+    }
+    if (lang === "bash") {
+      return h.replace(RE_BASH, function (m, cmt, str, kw) {
+        if (cmt) return wrap("c", cmt);
+        if (str) return wrap("s", str);
+        if (kw) return wrap("k", kw);
+        return m;
+      });
+    }
+    if (lang === "json") {
+      return h.replace(RE_JSON, function (m, str, colon, lit, num) {
+        if (str && colon) return wrap("k", str) + colon;
+        if (str) return wrap("s", str);
+        if (lit) return wrap("k", lit);
+        if (num) return wrap("n", num);
+        return m;
+      });
+    }
+    if (lang === "md") {
+      return h.replace(RE_MD, function (m, head, bold) {
+        if (head) return wrap("k", head);
+        if (bold) return wrap("n", bold);
+        return m;
+      });
+    }
+    return h;
+  }
+
+  document.querySelectorAll("pre code").forEach(function (el) {
+    var lang = (el.className.match(/lang-(\w+)/) || [])[1] || "";
+    el.innerHTML = paint(el.textContent, lang);
+  });
+
+  // ---------- 目录滚动高亮 ----------
+  var links = Array.prototype.slice.call(document.querySelectorAll("#navList a"));
+  var map = {};
+  links.forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    var sec = document.getElementById(id);
+    if (sec) map[id] = { link: a, sec: sec };
+  });
+
+  function onScroll() {
+    var best = null, bestTop = -Infinity;
+    Object.keys(map).forEach(function (id) {
+      var top = map[id].sec.getBoundingClientRect().top;
+      if (top <= 140 && top > bestTop) { bestTop = top; best = id; }
+    });
+    links.forEach(function (a) { a.classList.remove("active"); });
+    if (best) map[best].link.classList.add("active");
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>

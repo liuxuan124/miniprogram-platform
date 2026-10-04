@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="#E67E22"/>
+  <path d="M16 232 v-104 a112 112 0 0 1 112 -112 h256 a112 112 0 0 1 112 112 v104 z" fill="#ffffff" opacity="0.10"/>
+  <path d="M156 108 h132 l68 68 v196 a24 24 0 0 1 -24 24 H156 a24 24 0 0 1 -24 -24 V132 a24 24 0 0 1 24 -24 z" fill="#ffffff"/>
+  <path d="M288 108 l68 68 h-56 a12 12 0 0 1 -12 -12 z" fill="#BA6A17"/>
+  <rect x="164" y="216" width="118" height="10" rx="5" fill="#E67E22" opacity="0.28"/>
+  <rect x="164" y="246" width="150" height="10" rx="5" fill="#E67E22" opacity="0.18"/>
+  <rect x="164" y="276" width="94" height="10" rx="5" fill="#E67E22" opacity="0.12"/>
+  <rect x="132" y="316" width="248" height="72" rx="16" fill="#BA6A17"/>
+  <text x="256" y="366" font-family="PingFang SC, Helvetica Neue, Arial, sans-serif" font-size="78" font-weight="800" fill="#ffffff" text-anchor="middle">PPT</text>
+</svg>

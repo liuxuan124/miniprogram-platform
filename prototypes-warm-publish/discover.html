@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 发现</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .head { position: sticky; top: 0; z-index: 12; background: linear-gradient(180deg, #fbeeda, #fdf6ec 88%); padding: 0 0 6px; }
+  .head .status { padding: 15px 24px 0; }
+  .tabs { display: flex; align-items: center; gap: 16px; padding: 6px 16px 0; }
+  .tabs a, .tabs button.tab {
+    font: inherit; border: 0; background: none; cursor: pointer; padding: 0 0 8px;
+    font-size: 15px; color: var(--mute); font-weight: 650; position: relative;
+  }
+  .tabs a.on, .tabs button.tab.on { color: var(--ink); font-weight: 800; font-size: 16.5px; }
+  .tabs a.on::after, .tabs button.tab.on::after {
+    content: ""; position: absolute; left: 50%; transform: translateX(-50%); bottom: 2px;
+    width: 18px; height: 3px; border-radius: 3px; background: var(--brand-2);
+  }
+  .tabs .sr { margin-left: auto; width: 32px; height: 32px; border-radius: 99px; background: rgba(255,255,255,.8); display: grid; place-items: center; font-size: 14px; margin-bottom: 6px; }
+
+  .chips { display: flex; gap: 8px; overflow: auto; padding: 4px 16px 10px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips a { flex: none; padding: 6px 13px; border-radius: 99px; font-size: 12px; background: #fffaf3; color: var(--ink-2); border: 1px solid var(--line); font-weight: 600; }
+  .chips a.on { background: linear-gradient(135deg, var(--brand-2), var(--brand)); color: #fff; border-color: transparent; }
+
+  /* 瀑布流 */
+  .wf { columns: 2; column-gap: 9px; padding: 2px 12px 10px; }
+  .nt { break-inside: avoid; margin-bottom: 9px; background: var(--sheet); border-radius: 14px; overflow: hidden; box-shadow: 0 6px 16px rgba(140,80,30,.07); display: block; }
+  .nt .cv { position: relative; }
+  .nt .cv img { width: 100%; height: auto; display: block; }
+  .nt .cv .pill { position: absolute; left: 7px; top: 7px; padding: 3px 7px; border-radius: 6px; font-size: 9.5px; font-weight: 700; background: rgba(40,18,6,.55); color: #fff; backdrop-filter: blur(6px); }
+  .nt .cv .cnt { position: absolute; right: 7px; bottom: 7px; padding: 2px 6px; border-radius: 6px; font-size: 9.5px; background: rgba(40,18,6,.5); color: #fff; }
+  .nt .bd { padding: 9px 10px 10px; }
+  .nt h4 { font-size: 13px; line-height: 1.45; font-weight: 650; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .nt .ft { margin-top: 9px; display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--mute); }
+  .nt .ft .av { width: 17px; height: 17px; }
+  .nt .ft .nm { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .nt .ft .nm i { font-style: normal; color: var(--gold); font-size: 9px; margin-left: 3px; }
+  .nt .ft .lk { color: var(--brand); font-weight: 650; }
+
+  /* 纯文字卡 */
+  .nt.txt .bd { padding: 14px 12px 12px; background: linear-gradient(150deg, #fdeedb, #fffaf3); }
+  .nt.txt q { display: block; font-size: 14px; line-height: 1.6; font-weight: 600; font-family: "Songti SC","Noto Serif SC",serif; quotes: none; }
+
+  .fab { position: absolute; right: 17px; bottom: 92px; z-index: 16; height: 42px; padding: 0 17px; border-radius: 99px;
+    background: rgba(255,250,243,.95); backdrop-filter: blur(10px); border: 1px solid #ecd3b4; color: var(--brand);
+    display: flex; align-items: center; font-size: 13px; font-weight: 720; box-shadow: 0 10px 22px rgba(140,80,30,.18); }
+  .banner { margin: 2px 16px 10px; padding: 11px 14px; border-radius: 15px; display: flex; align-items: center; gap: 9px;
+    background: linear-gradient(135deg,#fdeedb,#fffaf3); border: 1px dashed #e6cba9; }
+  .banner .tx { flex: 1; }
+  .banner h6 { font-size: 12.5px; font-weight: 740; }
+  .banner p { font-size: 10.5px; color: var(--mute); margin-top: 3px; }
+  .banner b { font-size: 11.5px; color: #fff; background: linear-gradient(135deg,var(--brand-2),var(--brand)); padding: 6px 13px; border-radius: 99px; }
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 10px 0 6px; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+
+  <div class="scroll">
+    <div class="head">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="tabs" id="dc-tabs">
+        <button type="button" class="tab on" data-tab="note">笔记</button>
+        <button type="button" class="tab" data-tab="article">长文</button>
+        <button type="button" class="tab" data-tab="goods">好物</button>
+        <div class="sr">🔍</div>
+      </div>
+      <div class="chips" id="dc-chips">
+        <a class="on" data-chip="全部">全部</a><a data-chip="创作日常">创作日常</a><a data-chip="工位美学">工位美学</a><a data-chip="读书">读书</a><a data-chip="副业">副业</a><a data-chip="咖啡">咖啡</a><a data-chip="数字游民">数字游民</a>
+      </div>
+    </div>
+
+    <a class="banner" id="dc-banner" href="./contribute.html">
+      <span style="font-size:18px">✍️</span>
+      <div class="tx"><h6>创作者招募中</h6><p>目前由暖阁编辑部与特约作者供稿，欢迎投稿加入</p></div>
+      <b>去投稿</b>
+    </a>
+
+    <div class="wf" id="dc-feed-note">
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=600&h=800&fit=crop&q=80" alt="" /><span class="pill">图文 9</span><span class="cnt">1/9</span></div>
+        <div class="bd">
+          <h4>我的书桌改造 ✨ 一个内容人的暖光角落</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">小满<i>特约</i></span><span class="lk">❤ 4.2k</span></div>
+        </div>
+      </a>
+
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1497366811353-687086791d93?w=600&h=460&fit=crop&q=80" alt="" /></div>
+        <div class="bd">
+          <h4>一周三餐记录｜在家做饭其实很省时间</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">编辑部<i>官方</i></span><span class="lk">❤ 1.9k</span></div>
+        </div>
+      </a>
+
+      <a class="nt txt" href="./note.html">
+        <div class="bd">
+          <q>「别把更新频率当成努力的证据。<br />作品的密度，才是。」</q>
+          <div class="ft" style="margin-top:12px"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">墨白<i>主理人</i></span><span class="lk">❤ 866</span></div>
+        </div>
+      </a>
+
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&h=760&fit=crop&q=80" alt="" /><span class="pill">视频 03:12</span></div>
+        <div class="bd">
+          <h4>把「选题库」搬进 Notion 的第 4 版模板，免费领</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">编辑部<i>官方</i></span><span class="lk">❤ 3.1k</span></div>
+        </div>
+      </a>
+
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1524754202115-8abdf7d6d8e8?w=600&h=520&fit=crop&q=80" alt="" /></div>
+        <div class="bd">
+          <h4>裸辞第 90 天：我的现金流账本长这样</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">老陈<i>特约</i></span><span class="lk">❤ 7.8k</span></div>
+        </div>
+      </a>
+
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=840&fit=crop&q=80" alt="" /><span class="pill">图文 6</span></div>
+        <div class="bd">
+          <h4>秋天该喝的 6 杯手冲｜浅烘也能很暖</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">编辑部<i>官方</i></span><span class="lk">❤ 2.4k</span></div>
+        </div>
+      </a>
+
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&h=600&fit=crop&q=80" alt="" /></div>
+        <div class="bd">
+          <h4>读完《深度工作》后，我删掉了 11 个 App</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">墨白<i>主理人</i></span><span class="lk">❤ 1.2k</span></div>
+        </div>
+      </a>
+
+      <a class="nt" href="./note.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&h=720&fit=crop&q=80" alt="" /></div>
+        <div class="bd">
+          <h4>在县城开一家小书店，第一年的真实账</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">小满<i>特约</i></span><span class="lk">❤ 5.6k</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="wf" id="dc-feed-article" hidden>
+      <a class="nt" href="./article.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=600&h=720&fit=crop&q=80" alt="" /><span class="pill">深度长文</span></div>
+        <div class="bd">
+          <h4>做内容的第三年，我终于承认「日更」是个伪命题</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">墨白<i>主理人</i></span><span class="lk">❤ 1.8万</span></div>
+        </div>
+      </a>
+      <a class="nt" href="./article.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&h=560&fit=crop&q=80" alt="" /><span class="pill">会员专享</span></div>
+        <div class="bd">
+          <h4>付费社群运营 SOP：从冷启动到第一个 100 人</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">老陈<i>特约</i></span><span class="lk">❤ 9.4k</span></div>
+        </div>
+      </a>
+      <a class="nt" href="./article.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600&h=800&fit=crop&q=80" alt="" /><span class="pill">年度精选</span></div>
+        <div class="bd">
+          <h4>当内容不再免费：一个创作者的第 1000 天</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">墨白<i>主理人</i></span><span class="lk">❤ 2.3万</span></div>
+        </div>
+      </a>
+      <a class="nt txt" href="./article.html">
+        <div class="bd">
+          <q>「免费培养的是消费习惯，而不是付费意愿。」</q>
+          <div class="ft" style="margin-top:12px"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">编辑部<i>官方</i></span><span class="lk">❤ 3.2k</span></div>
+        </div>
+      </a>
+    </div>
+
+    <div class="wf" id="dc-feed-goods" hidden>
+      <a class="nt" href="./shop.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&h=600&fit=crop&q=80" alt="" /><span class="pill">¥39</span></div>
+        <div class="bd">
+          <h4>内容生意手册 · EPUB / PDF</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">暖阁商城<i>电子书</i></span><span class="lk">❤ 2.1k</span></div>
+        </div>
+      </a>
+      <a class="nt" href="./shop.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&h=720&fit=crop&q=80" alt="" /><span class="pill">¥29</span></div>
+        <div class="bd">
+          <h4>选题库 Notion 模板包</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">暖阁商城<i>资料包</i></span><span class="lk">❤ 1.8k</span></div>
+        </div>
+      </a>
+      <a class="nt" href="./shop.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=520&fit=crop&q=80" alt="" /><span class="pill">¥199</span></div>
+        <div class="bd">
+          <h4>一个人的内容生意 · 32 讲</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">暖阁商城<i>专栏课</i></span><span class="lk">❤ 8.2k</span></div>
+        </div>
+      </a>
+      <a class="nt" href="./shop.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&h=640&fit=crop&q=80" alt="" /><span class="pill">¥68</span></div>
+        <div class="bd">
+          <h4>暖阁陶土杯垫 · 秋日限定</h4>
+          <div class="ft"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">暖阁商城<i>周边</i></span><span class="lk">❤ 312</span></div>
+        </div>
+      </a>
+    </div>
+    <div class="end">—— 到底啦 ——</div>
+  </div>
+
+  <a class="fab" href="./contribute.html">✎ 投稿</a>
+
+  <nav class="tabbar">
+    <a href="./home.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a href="./planet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a href="./shop.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div></div>
+<script>
+(function () {
+  var tabs = document.getElementById('dc-tabs');
+  var chips = document.getElementById('dc-chips');
+  var banner = document.getElementById('dc-banner');
+  var feeds = {
+    note: document.getElementById('dc-feed-note'),
+    article: document.getElementById('dc-feed-article'),
+    goods: document.getElementById('dc-feed-goods'),
+  };
+  var chipMap = {
+    note: ['全部', '创作日常', '工位美学', '读书', '副业', '咖啡', '数字游民'],
+    article: ['全部', '内容创业', '写作方法', '私域运营', '年度精选'],
+    goods: ['全部', '电子书', '资料包', '专栏课', '周边'],
+  };
+  function renderChips(tab) {
+    if (!chips) return;
+    var list = chipMap[tab] || chipMap.note;
+    chips.innerHTML = list.map(function (c, i) {
+      return '<a class="' + (i === 0 ? 'on' : '') + '" data-chip="' + c + '">' + c + '</a>';
+    }).join('');
+  }
+  function apply(tab) {
+    tabs.querySelectorAll('.tab').forEach(function (btn) {
+      btn.classList.toggle('on', btn.getAttribute('data-tab') === tab);
+    });
+    Object.keys(feeds).forEach(function (k) {
+      if (feeds[k]) feeds[k].hidden = k !== tab;
+    });
+    if (banner) banner.style.display = tab === 'note' ? '' : 'none';
+    renderChips(tab);
+  }
+  if (tabs) {
+    tabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tab');
+      if (!btn) return;
+      e.preventDefault();
+      apply(btn.getAttribute('data-tab') || 'note');
+    });
+  }
+  if (chips) {
+    chips.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      e.preventDefault();
+      chips.querySelectorAll('a').forEach(function (x) { x.classList.toggle('on', x === a); });
+    });
+  }
+})();
+</script>
+</body>
+</html>

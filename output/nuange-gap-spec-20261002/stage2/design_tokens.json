@@ -1,0 +1,209 @@
+{
+  "genre": "general",
+  "theme_name": "modern-minimal",
+  "theme_file": "tokens/themes/modern-minimal.json",
+  "tokens": {
+    "$name": "modern-minimal",
+    "$description": "极简默认主题。清晰层级，适当间距，通用场景兜底方案，适合任何未明确场景的文档。",
+    "typography": {
+      "fontFamily": {
+        "heading": {
+          "$type": "fontFamily",
+          "$value": "PingFang SC, 苹方-简, 微软雅黑, sans-serif"
+        },
+        "body": {
+          "$type": "fontFamily",
+          "$value": "PingFang SC, 苹方-简, 微软雅黑, sans-serif"
+        },
+        "bodyLatin": {
+          "$type": "fontFamily",
+          "$value": "Inter, Helvetica Neue, Arial, sans-serif"
+        },
+        "code": {
+          "$type": "fontFamily",
+          "$value": "JetBrains Mono, Fira Code, Consolas, monospace"
+        }
+      },
+      "fontSize": {
+        "title": {
+          "$type": "dimension",
+          "$value": "24pt"
+        },
+        "h1": {
+          "$type": "dimension",
+          "$value": "18pt"
+        },
+        "h2": {
+          "$type": "dimension",
+          "$value": "15pt"
+        },
+        "h3": {
+          "$type": "dimension",
+          "$value": "13pt"
+        },
+        "body": {
+          "$type": "dimension",
+          "$value": "11pt"
+        },
+        "small": {
+          "$type": "dimension",
+          "$value": "9pt"
+        },
+        "caption": {
+          "$type": "dimension",
+          "$value": "9pt"
+        }
+      },
+      "lineHeight": {
+        "title": {
+          "$type": "number",
+          "$value": 1.4
+        },
+        "body": {
+          "$type": "number",
+          "$value": 1.7,
+          "$description": "宽松易读"
+        },
+        "heading": {
+          "$type": "number",
+          "$value": 1.3
+        }
+      },
+      "fontWeight": {
+        "heading": {
+          "$type": "fontWeight",
+          "$value": "600"
+        },
+        "body": {
+          "$type": "fontWeight",
+          "$value": "400"
+        }
+      }
+    },
+    "color": {
+      "primary": {
+        "$type": "color",
+        "$value": "#2563EB"
+      },
+      "text": {
+        "$type": "color",
+        "$value": "#111827"
+      },
+      "textSecondary": {
+        "$type": "color",
+        "$value": "#6B7280"
+      },
+      "heading": {
+        "$type": "color",
+        "$value": "#111827"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#E5E7EB"
+      },
+      "divider": {
+        "$type": "color",
+        "$value": "#F3F4F6"
+      },
+      "background": {
+        "$type": "color",
+        "$value": "#FFFFFF"
+      },
+      "codeBackground": {
+        "$type": "color",
+        "$value": "#F9FAFB"
+      },
+      "highlight": {
+        "$type": "color",
+        "$value": "#FEF3C7"
+      }
+    },
+    "spacing": {
+      "paragraph": {
+        "$type": "dimension",
+        "$value": "0.5em"
+      },
+      "paragraphAfter": {
+        "$type": "dimension",
+        "$value": "0.5em"
+      },
+      "indent": {
+        "$type": "dimension",
+        "$value": "0em"
+      },
+      "sectionGap": {
+        "$type": "dimension",
+        "$value": "2em"
+      },
+      "listItemGap": {
+        "$type": "dimension",
+        "$value": "0.4em"
+      }
+    },
+    "layout": {
+      "marginTop": {
+        "$type": "dimension",
+        "$value": "2.5cm"
+      },
+      "marginBottom": {
+        "$type": "dimension",
+        "$value": "2.0cm"
+      },
+      "marginLeft": {
+        "$type": "dimension",
+        "$value": "2.5cm"
+      },
+      "marginRight": {
+        "$type": "dimension",
+        "$value": "2.5cm"
+      },
+      "pageSize": {
+        "$type": "string",
+        "$value": "A4"
+      },
+      "maxContentWidth": {
+        "$type": "dimension",
+        "$value": "165mm"
+      }
+    }
+  },
+  "typography_rules": null,
+  "css_variables": {
+    "--typography-fontFamily-heading": "PingFang SC, 苹方-简, 微软雅黑, sans-serif",
+    "--typography-fontFamily-body": "PingFang SC, 苹方-简, 微软雅黑, sans-serif",
+    "--typography-fontFamily-bodyLatin": "Inter, Helvetica Neue, Arial, sans-serif",
+    "--typography-fontFamily-code": "JetBrains Mono, Fira Code, Consolas, monospace",
+    "--typography-fontSize-title": "24pt",
+    "--typography-fontSize-h1": "18pt",
+    "--typography-fontSize-h2": "15pt",
+    "--typography-fontSize-h3": "13pt",
+    "--typography-fontSize-body": "11pt",
+    "--typography-fontSize-small": "9pt",
+    "--typography-fontSize-caption": "9pt",
+    "--typography-lineHeight-title": "1.4",
+    "--typography-lineHeight-body": "1.7",
+    "--typography-lineHeight-heading": "1.3",
+    "--typography-fontWeight-heading": "600",
+    "--typography-fontWeight-body": "400",
+    "--color-primary": "#2563EB",
+    "--color-text": "#111827",
+    "--color-textSecondary": "#6B7280",
+    "--color-heading": "#111827",
+    "--color-border": "#E5E7EB",
+    "--color-divider": "#F3F4F6",
+    "--color-background": "#FFFFFF",
+    "--color-codeBackground": "#F9FAFB",
+    "--color-highlight": "#FEF3C7",
+    "--spacing-paragraph": "0.5em",
+    "--spacing-paragraphAfter": "0.5em",
+    "--spacing-indent": "0em",
+    "--spacing-sectionGap": "2em",
+    "--spacing-listItemGap": "0.4em",
+    "--layout-marginTop": "2.5cm",
+    "--layout-marginBottom": "2.0cm",
+    "--layout-marginLeft": "2.5cm",
+    "--layout-marginRight": "2.5cm",
+    "--layout-pageSize": "A4",
+    "--layout-maxContentWidth": "165mm"
+  }
+}
