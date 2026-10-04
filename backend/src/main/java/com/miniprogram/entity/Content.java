@@ -26,11 +26,17 @@ public class Content extends BaseEntity {
     /** 内容形态 article=长文 note=笔记 moment=动态 video=视频 data=数据 */
     private String contentType;
 
-    /** 是否星球专属（付费会员可见全文/下载） */
+    /** 是否星球专属（只读兼容字段；权益门禁以 visibility=planet_member 为准，V107 收敛） */
     private Integer planetExclusive;
 
     /** 所属星球 ID（communities.id）；空则归入配置 primary */
     private String planetId;
+
+    /**
+     * 所属社区 ID（V103）。归属维度，与 planetExclusive（可见性门禁）并存：
+     * planet_* 决定谁能看到，community_id 决定属于哪个社区、由谁运营。
+     */
+    private String communityId;
 
     /** 分类ID */
     private Long categoryId;
@@ -52,6 +58,11 @@ public class Content extends BaseEntity {
 
     /** 附件数量 */
     private Integer attachmentCount;
+
+    /**
+     * 星主回复（V104）。原仅存在于社区帖，现为通用能力：任何内容都可被星主回复。
+     */
+    private String replyText;
 
     /** 文章摘要 */
     private String summary;
@@ -79,6 +90,9 @@ public class Content extends BaseEntity {
 
     /** 作者头像 URL */
     private String authorAvatar;
+
+    /** 关联作者档案ID（mp_author.id）；非空时发布回填 author/author_avatar/author_role */
+    private Long authorId;
 
     /** 来源 */
     private String source;
@@ -140,7 +154,7 @@ public class Content extends BaseEntity {
     /** 审核状态 pending/machine_passed/approved/rejected/auto_blocked */
     private String auditStatus;
 
-    /** 可见性 public/member_only/removed */
+    /** 可见性 public=免费 / platform_member=平台会员 / planet_member=该星球会员 / removed=下架（兼容旧 member_only=platform_member） */
     private String visibility;
 
     /** 最近一次上架时间（展示用，可刷新） */

@@ -20,6 +20,10 @@
   position: absolute; top: 20rpx; right: 20rpx;
   font-size: 20rpx; background: #c8923a; color: #fff; padding: 4rpx 16rpx; border-radius: 999rpx;
 }
+.dsl-member-plans__ticket {
+  display: inline-block; font-size: 20rpx; color: #C08E6E; background: rgba(192,142,110,.12);
+  padding: 4rpx 14rpx; border-radius: 999rpx; margin-bottom: 12rpx; border: 1px solid rgba(192,142,110,.35);
+}
 .dsl-member-plans__name { font-size: 30rpx; font-weight: 700; }
 .dsl-member-plans__price { color: #c8923a; font-size: 28rpx; margin-top: 12rpx; font-weight: 600; }
 .dsl-member-plans__right { font-size: 22rpx; color: #475569; margin-top: 8rpx; }

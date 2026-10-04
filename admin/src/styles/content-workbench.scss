@@ -251,11 +251,10 @@
 .content-wb .menu hr { border: 0; border-top: 1px solid var(--line2); margin: 4px 0; }
 
 /* inbox */
-.content-wb .ilist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-.content-wb .icard {
-  background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
-}
+.content-wb .ilist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.content-wb .icard { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px; }
+.content-wb .icard .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 2px; }
 .content-wb .ihead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
 .content-wb .itext { font-size: 15px; line-height: 1.6; }
 .content-wb .quote {
@@ -269,7 +268,7 @@
 .content-wb .answer { padding: 10px; border-radius: 8px; background: var(--gs); font-size: 13px; width: 100%; }
 
 /* settings */
-.content-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.content-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .content-wb .gatecard {
   position: relative; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 14px;
   display: flex; flex-direction: column; gap: 6px; text-align: center; font-size: 12.5px;

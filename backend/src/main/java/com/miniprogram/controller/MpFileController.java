@@ -7,7 +7,9 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.file.FileAccessVO;
 import com.miniprogram.entity.FileItem;
+import com.miniprogram.entity.User;
 import com.miniprogram.mapper.FileItemMapper;
+import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.DownloadGrantService;
 import com.miniprogram.service.FileDownloadLimitService;
@@ -19,6 +21,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -29,18 +32,22 @@ import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/mp/files")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "小程序-文件库")
 public class MpFileController {
 
     private final FileItemMapper fileItemMapper;
+    private final UserMapper userMapper;
     private final FileEntitlementService fileEntitlementService;
     private final FilePreviewCropService filePreviewCropService;
+    private final com.miniprogram.service.FilePreviewImageService filePreviewImageService;
     private final DownloadGrantService downloadGrantService;
     private final DownloadGrantServiceImpl downloadGrantServiceImpl;
     private final FileDownloadLimitService fileDownloadLimitService;
@@ -192,6 +199,90 @@ public class MpFileController {
             vo.setCanPreview(false);
         }
         return R.ok(vo);
+    }
+
+    @Operation(summary = "试读页结构化文本（供小程序内嵌渲染纸张）")
+    @GetMapping("/{id}/preview-text")
+    public R<List<FilePreviewCropService.PreviewPage>> previewText(@PathVariable Long id,
+                                                                  @RequestParam(required = false) String planetId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        FileItem item = fileItemMapper.selectById(id);
+        if (item == null || !"published".equals(item.getStatus())) {
+            throw new BusinessException(404001, "文件不存在或未发布");
+        }
+        // 已开通全文的用户不该拿试读内容，直接提示走阅读
+        if (fileEntitlementService.canRead(item, userId, planetId)) {
+            return R.ok(Collections.emptyList());
+        }
+        if (!fileEntitlementService.canPreview(item, userId, planetId)) {
+            throw new BusinessException(403001, "暂无试读权限");
+        }
+        return R.ok(filePreviewCropService.buildPreviewText(item, userId));
+    }
+
+    /**
+     * 试读页位图（供小程序内嵌 image+swiper 展示，视觉 100% 保真）。
+     * 与 preview-text 的差异：位图保留原排版/图表/配色，文字版只留文本层级。
+     * 懒渲染 + 磁盘缓存：首次渲染约 1~2s，之后直接命中缓存。
+     */
+    @Operation(summary = "试读页位图（保真预览，swiper 翻页）")
+    @GetMapping("/{id}/preview-images")
+    public R<List<com.miniprogram.service.FilePreviewImageService.Page>> previewImages(
+            @PathVariable Long id,
+            @RequestParam(required = false) String planetId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        FileItem item = fileItemMapper.selectById(id);
+        if (item == null || !"published".equals(item.getStatus())) {
+            throw new BusinessException(404001, "文件不存在或未发布");
+        }
+        // 非 PDF（图片/office）不渲染位图，前端回退走 preview-file
+        if (!"pdf".equalsIgnoreCase(item.getFileType())) {
+            return R.ok(Collections.emptyList());
+        }
+        boolean fullAccess = fileEntitlementService.canRead(item, userId, planetId);
+        if (!fullAccess && !fileEntitlementService.canPreview(item, userId, planetId)) {
+            throw new BusinessException(403001, "暂无试读权限");
+        }
+        // 试读比例：未开通全文按 preview_percent 折算页数。
+        // page_count 库里常为 0（未回填），此时不能当成"总页数=999"否则会全量下发，
+        // 改走 0 = 「先渲一页，后续按需续渲」，并配合理上限封顶。
+        int realPageCount = item.getPageCount() == null ? 0 : item.getPageCount();
+        int keep;
+        if (realPageCount > 0) {
+            keep = filePreviewImageService.resolveKeepPages(realPageCount,
+                    item.getPreviewPercent() == null ? 20 : item.getPreviewPercent(), fullAccess);
+        } else if (fullAccess) {
+            // 已可读全文（含 free 资料 / 已开通会员）：一次给足合理上限，避免每翻一页都请求一次
+            keep = 30;
+        } else {
+            // 无全文权：按 preview_percent 折算，总页未知时封顶 8 页
+            keep = Math.min(8, Math.max(1,
+                    (item.getPreviewPercent() == null ? 20 : item.getPreviewPercent()) / 5));
+        }
+        // 试读态加水印（昵称 + 手机后四位），已开通的不加
+        String watermark = fullAccess ? null : buildWatermark(userId);
+        try {
+            return R.ok(filePreviewImageService.renderOrLoad(
+                    item.getStorageKey(), item.getId(), item.getSize(), keep, watermark));
+        } catch (Exception e) {
+            log.error("[preview-images] 渲染失败 fileId={}", id, e);
+            throw new BusinessException(500001, "预览生成失败，请稍后重试");
+        }
+    }
+
+    private String buildWatermark(Long userId) {
+        if (userId == null) return "试读";
+        try {
+            User u = userMapper.selectById(userId);
+            if (u == null) return "试读";
+            String nick = StringUtils.hasText(u.getNickname()) ? u.getNickname() : "读者";
+            String phone = u.getPhone();
+            String tail = (phone != null && phone.length() >= 4)
+                    ? phone.substring(phone.length() - 4) : "";
+            return StringUtils.hasText(tail) ? nick + "·" + tail : nick;
+        } catch (Exception e) {
+            return "试读";
+        }
     }
 
     private static String clientIp(HttpServletRequest request) {

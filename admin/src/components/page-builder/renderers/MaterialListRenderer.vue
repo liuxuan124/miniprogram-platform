@@ -34,7 +34,13 @@
         class="material-row"
         :class="{ 'material-row--card': layoutMode === 'card' }"
       >
-        <div class="material-icon" :style="{ background: item.fileColor }">{{ item.fileIcon }}</div>
+        <img
+          v-if="item.iconUrl"
+          class="material-icon material-icon--img"
+          :src="resolveMediaUrl(item.iconUrl)"
+          :alt="item.title"
+        />
+        <div v-else class="material-icon" :style="{ background: item.fileColor }">{{ item.fileIcon }}</div>
         <div class="material-main">
           <div class="material-title">{{ item.title }}</div>
           <div v-if="showMeta" class="material-meta">{{ item.metaLine }}</div>
@@ -59,6 +65,7 @@ import type { ComponentInstance } from '@/types/page'
 import { getFileGroups, getFileList } from '@/api/files'
 import { demoMaterialItems, mapMaterialRecord, type MaterialListItem } from '@/utils/dsl-material'
 import { loadHydratedComponent } from '@/utils/preview-datasource'
+import { resolveMediaUrl } from '@/utils/media-url'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -249,6 +256,10 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+.material-icon--img {
+  object-fit: cover;
+  border: 1px solid #eef2f6;
 }
 .material-main {
   flex: 1;

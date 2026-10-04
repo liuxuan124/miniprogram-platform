@@ -1,6 +1,6 @@
 <template>
   <div class="contact-info-props">
-    <el-form label-width="80px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="标题">
         <el-input :model-value="data.title || ''" @input="emit('update', { title: $event })" placeholder="联系我们" />
       </el-form-item>

@@ -5,7 +5,7 @@
   >
     <div class="brand">
       <div class="brand-icon">
-        <img src="/logo.svg" alt="" width="40" height="40" />
+        <img :src="brandLogo" alt="" width="40" height="40" />
       </div>
       <div v-show="!appStore.sidebarCollapsed" class="brand-text">
         <strong>{{ brandTitle }}</strong>
@@ -105,12 +105,14 @@ import {
   Box,
   Present,
   Ticket,
+  Share,
   Flag,
   Calendar,
   Money,
   Tickets,
   TrendCharts,
   DataLine,
+  DataBoard,
   Aim,
   Document as InvoiceIcon,
   Lock,
@@ -128,6 +130,7 @@ import {
   VideoCamera,
   Shop,
   FolderOpened,
+  Plus,
 } from '@element-plus/icons-vue'
 
 interface MenuItem {
@@ -140,6 +143,8 @@ interface MenuItem {
   children?: MenuItem[]
   /** 需要任一权限码；空则不限制（超管仍全部可见） */
   permissions?: string[]
+  /** 需要任一角色码（如 super_admin）；空则不限制 */
+  roles?: string[]
   /** 功能模块开关 key（对应系统配置 plugins） */
   featureModule?: string
 }
@@ -157,12 +162,14 @@ const iconMap: Record<string, any> = {
   Box,
   Present,
   Ticket,
+  Share,
   Flag,
   Calendar,
   Money,
   Tickets,
   TrendCharts,
   DataLine,
+  DataBoard,
   Aim,
   InvoiceIcon,
   Lock,
@@ -179,6 +186,7 @@ const iconMap: Record<string, any> = {
   VideoCamera,
   Shop,
   FolderOpened,
+  Plus,
 }
 
 const route = useRoute()
@@ -198,11 +206,11 @@ const industryProfileStore = useIndustryProfileStore()
 const openGroups = ref<string[]>([])
 const openKeys = ref<string[]>([])
 
-const brandTitle = computed(() =>
-  appStore.uiTheme === 'warm' ? '暖阁运营后台' : '小程序运营系统',
-)
+/** 品牌标识：墨太白（跨境墨太白）——图标用盾牌勾标，名称统一 */
+const brandLogo = '/logo-motaibai.svg'
+const brandTitle = computed(() => '跨境墨太白运营后台')
 const brandSubtitle = computed(() =>
-  appStore.uiTheme === 'warm' ? '内容 · 会员 · Agent' : '多场景搭建与运营平台',
+  appStore.uiTheme === 'warm' ? '内容 · 会员 · Agent' : '跨境增长 · 选品洞察 · 供应链实战',
 )
 
 if (!featureModulesStore.loaded) {
@@ -232,12 +240,12 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     title: '内容运营',
     children: [
       { title: '内容概览', path: '/content/overview', icon: 'Odometer', activePrefix: '/content/overview', featureModule: 'content' },
-      { title: '长文', path: '/content/articles', icon: 'Reading', activePrefix: '/content/articles', featureModule: 'content' },
-      { title: '笔记', path: '/content/notes', icon: 'EditPen', activePrefix: '/content/notes', featureModule: 'content' },
-      { title: '资料', path: '/content/materials', icon: 'FolderOpened', activePrefix: '/content/materials', featureModule: 'content' },
-      { title: '动态', path: '/content/moments', icon: 'ChatLineRound', activePrefix: '/content/moments', featureModule: 'content' },
-      { title: '视频', path: '/content/videos', icon: 'VideoCamera', activePrefix: '/content/videos', featureModule: 'content' },
+      { title: '长文创作', path: '/content/articles', icon: 'Reading', activePrefix: '/content/articles', featureModule: 'content' },
+      { title: '图文笔记', path: '/content/notes', icon: 'EditPen', activePrefix: '/content/notes', featureModule: 'content' },
+      { title: '文件管理', path: '/content/files', icon: 'FolderOpened', activePrefix: '/content/files', featureModule: 'content' },
+      { title: '视频管理', path: '/content/videos', icon: 'VideoCamera', activePrefix: '/content/videos', featureModule: 'content' },
       { title: '互动中心', path: '/content/inbox', icon: 'ChatDotRound', activePrefix: '/content/inbox' },
+      { title: '作者管理', path: '/content/authors', icon: 'User', activePrefix: '/content/authors', featureModule: 'content' },
       { title: '内容设置', path: '/content/settings', icon: 'Setting', activePrefix: '/content/settings', featureModule: 'content' },
     ],
   },
@@ -248,8 +256,18 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '用户管理', path: '/member/users', icon: 'User', activePrefix: '/member/users', permissions: ['user:list'] },
       { title: '会员权益', path: '/member/plans', icon: 'GoldMedal', activePrefix: '/member/plans', permissions: ['member:list'], featureModule: 'member' },
       { title: '成长积分', path: '/member/growth', icon: 'TrendCharts', activePrefix: '/member/growth', permissions: ['member:list'], featureModule: 'member' },
-      { title: '社区管理', path: '/member/community', icon: 'Present', activePrefix: '/member/community', permissions: ['member:list'], featureModule: 'planet' },
       { title: '客服中心', path: '/member/support', icon: 'ChatDotRound', activePrefix: '/member/support', permissions: ['user:list'] },
+    ],
+  },
+  {
+    title: '社区管理',
+    children: [
+      { title: '社区列表', path: '/community/list', icon: 'Present', activePrefix: '/community/list', permissions: ['member:list'], featureModule: 'planet' },
+      // V111：动态管理并入本页 → 内容运营(content:list) 与会员运营(member:list) 两侧角色都可见
+      { title: '内容管理', path: '/community/content', icon: 'Document', activePrefix: '/community/content', permissions: ['member:list', 'content:list'], featureModule: 'planet' },
+      { title: '成员管理', path: '/community/members', icon: 'User', activePrefix: '/community/members', permissions: ['member:list'], featureModule: 'planet' },
+      { title: '会员配置', path: '/community/membership', icon: 'GoldMedal', activePrefix: '/community/membership', permissions: ['member:list'], featureModule: 'planet' },
+      { title: '新建社区', path: '/community/create', icon: 'Plus', activePrefix: '/community/create', permissions: ['member:list'], featureModule: 'planet' },
     ],
   },
   {
@@ -259,6 +277,7 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '商品管理', path: '/commerce/products', icon: 'Goods', activePrefix: '/commerce/products', featureModule: 'product' },
       { title: '订单管理', path: '/commerce/orders', icon: 'Box', activePrefix: '/commerce/orders', permissions: ['order:list'], featureModule: 'product' },
       { title: '卡券中心', path: '/commerce/coupons', icon: 'Ticket', activePrefix: '/commerce/coupons' },
+      { title: '渠道管理', path: '/commerce/channels', icon: 'Share', activePrefix: '/commerce/channels', featureModule: 'product' },
       { title: '增长数据', path: '/commerce/growth', icon: 'DataLine', activePrefix: '/commerce/growth' },
       { title: '交易设置', path: '/commerce/settings', icon: 'Setting', activePrefix: '/commerce/settings', featureModule: 'product' },
     ],
@@ -295,13 +314,29 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     title: '系统设置',
     children: [
       { title: '素材管理', path: '/asset/list', icon: 'Picture', activePrefix: '/asset' },
-      { title: '系统设置', path: '/settings/basic', icon: 'Setting', activePrefix: '/settings' },
+      {
+        title: '系统设置',
+        path: '/settings/basic',
+        icon: 'Setting',
+        activePrefix: '/settings',
+        excludePrefixes: ['/settings/admin-user', '/settings/wechat', '/settings/storage', '/settings/logs'],
+      },
+      {
+        title: '管理员账号',
+        path: '/settings/admin-user',
+        icon: 'User',
+        activePrefix: '/settings/admin-user',
+        roles: ['super_admin'],
+      },
     ],
   },
 ]
 
 function allowMenuItem(item: MenuItem): boolean {
   if (item.featureModule && !featureModulesStore.isEnabled(item.featureModule)) return false
+  if (item.roles?.length && !item.roles.some((r) => permissionStore.roles.includes(r))) {
+    return false
+  }
   if (!item.permissions?.length) return true
   return permissionStore.hasAnyPerm(item.permissions)
 }
@@ -327,16 +362,23 @@ const menuGroups = computed(() => {
     .filter((g) => g.children.length > 0)
 })
 
+function prefixMatch(prefix: string): boolean {
+  if (!route.path.startsWith(prefix)) return false
+  const rest = route.path.slice(prefix.length)
+  // 仅当前缀命中到路径段边界（/community/members 不应命中 /community/membership）
+  return rest === '' || rest.startsWith('/') || rest.startsWith('?')
+}
+
 function isActive(item: MenuItem) {
   if (!item.path && !item.activePrefix) return false
   if (item.path && route.path === item.path) return true
-  if (!item.activePrefix || !route.path.startsWith(item.activePrefix)) return false
+  if (!item.activePrefix || !prefixMatch(item.activePrefix)) return false
   if (item.excludePrefixes?.some((p) => route.path.startsWith(p))) return false
   return true
 }
 
 function isParentActive(item: MenuItem) {
-  return item.activePrefix ? route.path.startsWith(item.activePrefix) : false
+  return item.activePrefix ? prefixMatch(item.activePrefix) : false
 }
 
 function itemMatchesRoute(item: MenuItem): boolean {

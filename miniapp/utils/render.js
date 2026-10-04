@@ -116,6 +116,7 @@ const DATASOURCE_COMPONENTS = [
   COMPONENT_TYPES.ACTIVITY_LIST,
   COMPONENT_TYPES.APPOINTMENT_SERVICE,
   COMPONENT_TYPES.COUPON,
+  COMPONENT_TYPES.FLASH_SALE,
 ]
 
 /**
@@ -178,9 +179,15 @@ function parseStyle(style) {
   }
 
   let hasHorizontalMargin = false
+  let hasShadow = false
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
     if (key === 'text_color' || key === 'font_size' || key === 'visible') return
+    // 暖调环境阴影：shadow_* 独立字段不逐条下发，统一在下方合成 box-shadow
+    if (key === 'shadow_x' || key === 'shadow_y' || key === 'shadow_blur' || key === 'shadow_spread' || key === 'shadow_color') {
+      hasShadow = true
+      return
+    }
     if (typeof value === 'boolean') return
 
     const cssKey = key
@@ -198,6 +205,24 @@ function parseStyle(style) {
       : value
     parts.push(`${cssKey}: ${cssValue}`)
   })
+
+  // 合成暖调环境阴影（rpx = px * 2，与其它尺寸字段同一换算口径）
+  if (hasShadow) {
+    const num = (v) => {
+      const n = Number(v)
+      return Number.isFinite(n) ? n : 0
+    }
+    const sx = num(style.shadow_x)
+    const sy = num(style.shadow_y)
+    const blur = num(style.shadow_blur)
+    const spread = num(style.shadow_spread)
+    const color = typeof style.shadow_color === 'string' && style.shadow_color.trim()
+      ? style.shadow_color.trim()
+      : 'rgba(0, 0, 0, 0)'
+    if (sx !== 0 || sy !== 0 || blur !== 0 || spread !== 0) {
+      parts.push(`box-shadow: ${sx * 2}rpx ${sy * 2}rpx ${blur * 2}rpx ${spread * 2}rpx ${color}`)
+    }
+  }
 
   // width:100% + 左右 margin 会撑出视口，导致整页可左右拖歪、右边贴边
   if (hasHorizontalMargin) {
@@ -359,14 +384,18 @@ function parseDSL(dsl) {
   }
 
   // 解析页面级配置
+  const rawPage = dsl.page || {}
   const page = {
-    id: (dsl.page && dsl.page.id) || '',
-    name: (dsl.page && dsl.page.name) || '',
-    type: (dsl.page && dsl.page.type) || '',
-    path: (dsl.page && dsl.page.path) || '',
-    share_title: (dsl.page && dsl.page.share_title) || '',
-    share_image: (dsl.page && dsl.page.share_image) || '',
-    background_color: (dsl.page && dsl.page.background_color) || '#f5f5f5',
+    id: rawPage.id || '',
+    name: rawPage.name || '',
+    type: rawPage.type || '',
+    path: rawPage.path || '',
+    share_title: rawPage.share_title || '',
+    share_image: rawPage.share_image || '',
+    background_color: rawPage.background_color || '#f5f5f5',
+    // v2 复合背景 / 底部渐隐遮罩：原样透传，消费方用 theme.resolvePageBackground 归一化
+    background: rawPage.background || null,
+    bottomOverlay: rawPage.bottomOverlay || null,
   }
 
   // 解析全局配置
@@ -412,11 +441,12 @@ async function loadComponentData(component, forceRefresh = false) {
   }
 
   try {
-    // 商品列表手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
+    // 商品列表/秒杀区手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
     let dataSource = component.dataSource
     const props = component.props || {}
     const isProductStream = component.type === 'product_list' && props.display_mode === 'stream'
-    if (component.type === 'product_list') {
+    const supportsProductIds = component.type === 'product_list' || component.type === 'flash_sale'
+    if (supportsProductIds) {
       const ids = Array.isArray(props.product_ids) ? props.product_ids : []
       const extraParams = isProductStream ? { display_mode: 'stream' } : {}
       if (ids.length) {
@@ -504,7 +534,7 @@ async function loadComponentData(component, forceRefresh = false) {
     }
 
     // 接口失败/空列表时，手动选品回退到 DSL 内保存的 items
-    if (component.type === 'product_list') {
+    if (supportsProductIds) {
       const ids = Array.isArray(props.product_ids) ? props.product_ids.map((id) => String(id)) : []
       const sliceCap = isProductStream && ids.length
         ? Math.max(ids.length, Array.isArray(props.items) ? props.items.length : 0, feedPageSize)

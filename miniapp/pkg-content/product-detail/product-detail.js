@@ -233,6 +233,16 @@ Page({
     isEbook: false,
     isWarmDigital: false,
     isWarmPhysical: false,
+    // 详情模板 ID：column_classic/column_compact/column_story
+    //              ebook_classic/ebook_reader/ebook_showcase
+    //              digital_classic/digital_checklist/digital_video
+    //              physical_classic/physical_minimal/physical_story
+    // 空值 = 按 productType 自动分流到对应 *_classic
+    detailTemplate: '',
+    // 宣传视频：首屏轮播第 0 项，用户可在视频与图片间左右滑动切换
+    videoUrl: '',
+    hasVideo: false,
+    videoPlaying: false,
     columnChapters: [],
     columnGroups: [],
     columnPts: [],
@@ -593,6 +603,19 @@ Page({
             || (/digital|虚拟/.test(typeStr) && !hasPhysical)
           )
         const isWarmPhysical = !isColumn && !isEbook && !isWarmDigital
+        // 详情模板：显式配置优先（detail_template / detailTemplate），否则按样式 flags 回退到 *_classic
+        const rawTpl = String(product.detailTemplate || product.detail_template || '').trim()
+        const VALID_TPL = [
+          'column_classic', 'column_compact', 'column_story',
+          'ebook_classic', 'ebook_reader', 'ebook_showcase',
+          'digital_classic', 'digital_checklist', 'digital_video',
+          'physical_classic', 'physical_minimal', 'physical_story',
+        ]
+        const autoTpl = isColumn ? 'column_classic'
+          : isEbook ? 'ebook_classic'
+          : isWarmDigital ? 'digital_classic'
+          : 'physical_classic'
+        const detailTemplate = VALID_TPL.indexOf(rawTpl) >= 0 ? rawTpl : autoTpl
         const memberFreeRaw = product.memberFree != null ? product.memberFree : product.member_free
         const memberFree = memberFreeRaw === true || memberFreeRaw === 1 || memberFreeRaw === '1'
         const memberPriceRaw = product.memberPrice != null ? product.memberPrice : product.member_price
@@ -741,6 +764,7 @@ Page({
           ebookPatch.displayPrice = priceLabel
           ebookPatch.priceReady = priceReady
         }
+        const pickedVideo = this._pickVideoUrl(product)
         this.setData({
           product,
           loading: false,
@@ -748,12 +772,15 @@ Page({
           selectedSkuValues,
           stock: selectedSku ? selectedSku.stock : (product.stock || 0),
           richContent,
+          videoUrl: pickedVideo,
+          hasVideo: !!pickedVideo,
           isDigital: (hasDigital && !hasPhysical) || isColumn || isEbook || isWarmDigital,
           isService: hasService,
           isColumn,
           isEbook,
           isWarmDigital,
           isWarmPhysical,
+          detailTemplate,
           coverUrl,
           gains: productGains,
           productTypes: typeList,
@@ -800,20 +827,47 @@ Page({
       })
   },
 
-  /** 轮播图切换 */
+  /** 轮播图切换 —— 滑离视频页时暂停播放，避免后台继续出声 */
   onSwiperChange(e) {
-    this.setData({ swiperCurrent: e.detail.current })
+    const current = e.detail.current
+    if (current !== 0 && this.data.videoPlaying) {
+      this.setData({ videoPlaying: false })
+    }
+    this.setData({ swiperCurrent: current })
+  },
+
+  /** 取宣传视频 URL：兼容 videoUrl / video_url，且必须是视频扩展名（防误填图片） */
+  _pickVideoUrl(product) {
+    const raw = (product && (product.videoUrl || product.video_url)) || ''
+    const url = String(raw).trim()
+    if (!url) return ''
+    return /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(url) ? url : ''
+  },
+
+  /** 点击视频封面 → 播放 */
+  onVideoTap() {
+    if (!this.data.hasVideo) return
+    this.setData({ videoPlaying: true })
+  },
+
+  /** 视频播放错误：提示但不破坏页面 */
+  onVideoError() {
+    this.setData({ videoPlaying: false })
+    wx.showToast({ title: '视频加载失败', icon: 'none' })
   },
 
   /** 轮播图加载失败：去掉坏图，避免空白顶布局 */
   onSwiperImageError(e) {
+    // dataset.index 是 product.images 的下标（已剔除视频项，故与轮播序号不同）
     const idx = Number(e.currentTarget.dataset.index)
     const images = (this.data.product && this.data.product.images) || []
     if (!Number.isFinite(idx) || idx < 0 || idx >= images.length) return
     const next = images.filter((_, i) => i !== idx)
+    const offset = this.data.hasVideo ? 1 : 0
     this.setData({
       'product.images': next,
-      swiperCurrent: Math.min(this.data.swiperCurrent, Math.max(0, next.length - 1)),
+      // 轮播总数 = 图片数 + 视频项
+      swiperCurrent: Math.min(this.data.swiperCurrent, Math.max(0, next.length - 1 + offset)),
     })
   },
 

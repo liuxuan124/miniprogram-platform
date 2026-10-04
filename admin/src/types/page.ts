@@ -25,6 +25,7 @@ export enum ComponentType {
   PromoBanner = 'promo_banner',
   Coupon = 'coupon',
   Video = 'video',
+  Audio = 'audio',
   BrandIntro = 'brand_intro',
   ImageText = 'image_text',
   ContactInfo = 'contact_info',
@@ -87,6 +88,7 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.PromoBanner]: '促销横幅',
   [ComponentType.Coupon]: '优惠券',
   [ComponentType.Video]: '视频',
+  [ComponentType.Audio]: '音频',
   [ComponentType.BrandIntro]: '品牌介绍',
   [ComponentType.ImageText]: '图文组合',
   [ComponentType.ContactInfo]: '联系方式',
@@ -149,6 +151,7 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.PromoBanner]: 'Promotion',
   [ComponentType.Coupon]: 'Ticket',
   [ComponentType.Video]: 'VideoPlay',
+  [ComponentType.Audio]: 'Headset',
   [ComponentType.BrandIntro]: 'Memo',
   [ComponentType.ImageText]: 'Document',
   [ComponentType.ContactInfo]: 'Phone',
@@ -344,6 +347,16 @@ export interface ComponentStyle {
   font_size?: number
   /** 是否在小程序端渲染，false 时不展示 */
   visible?: boolean
+  /**
+   * 暖调环境阴影（v2）：独立字段便于属性面板逐项调节，
+   * 渲染端合成 box-shadow；数字单位 px（端上 rpx = px * 2）。
+   */
+  shadow_x?: number
+  shadow_y?: number
+  shadow_blur?: number
+  shadow_spread?: number
+  /** 支持 rgba 透明度通道 */
+  shadow_color?: string
   [key: string]: any
 }
 
@@ -359,6 +372,38 @@ export interface ComponentInstance {
   children?: ComponentInstance[]
 }
 
+/** 渐变色标：offset 为 0~100 的百分比 */
+export interface GradientStop {
+  color: string
+  offset: number
+}
+
+/** 渐变参数：angle 0~360（CSS 惯例，180° = 自上而下） */
+export interface PageGradient {
+  angle: number
+  stops: GradientStop[]
+}
+
+/** 复合页面背景：solid = 纯色；gradient = 线性渐变 */
+export interface PageBackground {
+  type: 'solid' | 'gradient'
+  /** solid 模式的填充色 */
+  color?: string
+  /** gradient 模式的渐变参数 */
+  gradient?: PageGradient
+}
+
+/**
+ * 底部渐隐融合遮罩。
+ * color = 'auto' 时自动取页面背景底色（渐变取终点色标）；
+ * 数字字段单位 px（端上按 rpx = px * 2 换算）。
+ */
+export interface PageBottomOverlay {
+  enabled: boolean
+  height: number
+  color: 'auto' | string
+}
+
 /** 页面配置 */
 export interface PageConfig {
   id: string
@@ -367,8 +412,63 @@ export interface PageConfig {
   path: string
   share_title?: string
   share_image?: string
+  /** @deprecated 旧字段，仅向下兼容；新代码使用 background，保存时双向同步 */
   background_color?: string
+  /** 复合背景（v2）：与 background_color 共存，渲染端优先读本字段 */
+  background?: PageBackground
+  /** 底部渐隐融合遮罩（v2） */
+  bottomOverlay?: PageBottomOverlay
 }
+
+/** 底部遮罩默认配置（需求基线：默认开启 / 96px / 自动取底色） */
+export const DEFAULT_BOTTOM_OVERLAY: PageBottomOverlay = {
+  enabled: true,
+  height: 96,
+  color: 'auto',
+}
+
+/** 品牌预设色盘（暖阁质感规范） */
+export const BACKGROUND_PRESETS: Array<{ label: string; background: PageBackground }> = [
+  {
+    label: '暖阁纸感',
+    background: {
+      type: 'gradient',
+      gradient: {
+        angle: 180,
+        stops: [
+          { color: '#FFFDF9', offset: 0 },
+          { color: '#FDF6EC', offset: 100 },
+        ],
+      },
+    },
+  },
+  {
+    label: '晨光米杏',
+    background: {
+      type: 'gradient',
+      gradient: {
+        angle: 180,
+        stops: [
+          { color: '#FEF3C7', offset: 0 },
+          { color: '#FFFDF9', offset: 100 },
+        ],
+      },
+    },
+  },
+  {
+    label: '极简冷白',
+    background: {
+      type: 'gradient',
+      gradient: {
+        angle: 180,
+        stops: [
+          { color: '#FFFFFF', offset: 0 },
+          { color: '#F8FAFC', offset: 100 },
+        ],
+      },
+    },
+  },
+]
 
 /** 全局配置 */
 export interface GlobalConfig {

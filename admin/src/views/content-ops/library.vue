@@ -6,9 +6,6 @@
         <div class="sub">{{ pageSub }}</div>
       </div>
       <div class="actions">
-        <button v-if="lockedType === 'file'" type="button" class="btn" @click="router.push('/content/files')">
-          <MiniIcon name="file" :size="15" />打开文件库
-        </button>
         <button v-if="showImport" type="button" class="btn" @click="importOpen = true">
           <MiniIcon name="link" :size="15" />从链接导入
         </button>
@@ -48,6 +45,10 @@
       <select v-model="categoryId" class="input" style="width:auto" aria-label="分类" @change="reload">
         <option :value="0">全部分类</option>
         <option v-for="c in flatCats" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
+      <select v-model="authorId" class="input" style="width:auto" aria-label="作者" @change="reload">
+        <option :value="0">全部作者</option>
+        <option v-for="a in authorOptions" :key="a.id" :value="a.id">{{ a.name || '未命名' }}</option>
       </select>
       <select v-model="sortBy" class="input" style="width:auto" aria-label="排序" @change="reload">
         <option value="updated">更新时间</option>
@@ -134,7 +135,7 @@
             </button>
           </div>
         </div>
-        <div v-if="!filtered.length" class="muted" style="padding:28px;text-align:center">没有符合条件的内容</div>
+        <div v-if="!filtered.length" class="empty-hint">没有符合条件的内容</div>
       </div>
     </template>
     <div v-else class="cgrid">
@@ -156,9 +157,7 @@
           </span>
         </div>
       </button>
-      <div v-if="!filtered.length" class="muted" style="padding:28px;text-align:center;grid-column:1/-1">
-        没有符合条件的内容
-      </div>
+      <div v-if="!filtered.length" class="empty-hint" style="grid-column:1/-1">没有符合条件的内容</div>
     </div>
 
     <div class="faint">共 {{ listTotal }} 条（当前页 {{ filtered.length }} 条）</div>
@@ -203,6 +202,7 @@ import {
   unpublishContent,
 } from '@/api/content'
 import { importWeChatArticleUrls } from '@/api/wechat'
+import { listAuthors, type AuthorRecord } from '@/api/author'
 import { ContentStatus } from '@/types/content'
 import { resolveMediaUrl } from '@/utils/media-url'
 import {
@@ -241,7 +241,7 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const items = ref<Row[]>([])
-const typeCounts = ref<Record<string, number>>({ all: 0, article: 0, note: 0, video: 0, file: 0, moment: 0 })
+const typeCounts = ref<Record<string, number>>({ all: 0, article: 0, note: 0, video: 0, moment: 0 })
 const statusCounts = ref({
   all: 0,
   published: 0,
@@ -254,6 +254,9 @@ const flatCats = ref<Array<{ id: number; name: string }>>([])
 const typeFilter = ref('all')
 const statusFilter = ref('all')
 const categoryId = ref(0)
+/** 作者档案筛选（作者档案 ›「查看内容」跳转过来时带 authorId 预置） */
+const authorId = ref(0)
+const authorOptions = ref<Array<{ id: number; name: string }>>([])
 const keyword = ref('')
 const viewMode = ref<'list' | 'card'>('list')
 const sortBy = ref<'updated' | 'published' | 'reads'>('updated')
@@ -267,30 +270,27 @@ const togglingId = ref<number | null>(null)
 
 const lockedType = computed<UiContentType | ''>(() => {
   const meta = String(route.meta.lockedType || '')
-  if (meta === 'article' || meta === 'note' || meta === 'file' || meta === 'video' || meta === 'moment') {
+  if (meta === 'article' || meta === 'note' || meta === 'video' || meta === 'moment') {
     return meta
   }
   if (route.path.includes('/articles')) return 'article'
   if (route.path.includes('/notes')) return 'note'
-  if (route.path.includes('/materials')) return 'file'
   if (route.path.includes('/moments')) return 'moment'
   if (route.path.includes('/videos')) return 'video'
   return ''
 })
 
 const pageTitle = computed(() => {
-  if (lockedType.value === 'article') return '长文'
-  if (lockedType.value === 'note') return '笔记'
-  if (lockedType.value === 'file') return '资料'
-  if (lockedType.value === 'moment') return '动态'
-  if (lockedType.value === 'video') return '视频'
+  if (lockedType.value === 'article') return '长文创作'
+  if (lockedType.value === 'note') return '图文笔记'
+  if (lockedType.value === 'moment') return '动态管理'
+  if (lockedType.value === 'video') return '视频管理'
   return '内容库'
 })
 
 const pageSub = computed(() => {
   if (lockedType.value === 'article') return '公众号风格长文；状态含草稿 / 定时 / 已上架 / 已下架 / 回收站'
   if (lockedType.value === 'note') return '短图文笔记，适合信息流与话题'
-  if (lockedType.value === 'file') return '以附件/资料包为主的内容；也可从文件库管理原始文件'
   if (lockedType.value === 'moment') return '星球动态，图文短更与轻量附件'
   if (lockedType.value === 'video') return '视频号 / 外链视频，需封面与播放地址'
   return '请从侧栏进入对应类型入口发布'
@@ -299,7 +299,6 @@ const pageSub = computed(() => {
 const createLabel = computed(() => {
   if (lockedType.value === 'article') return '写长文'
   if (lockedType.value === 'note') return '写笔记'
-  if (lockedType.value === 'file') return '上传资料'
   if (lockedType.value === 'moment') return '发动态'
   if (lockedType.value === 'video') return '发视频'
   return '写内容'
@@ -311,7 +310,6 @@ const typeTabs = computed(() => [
   { key: 'all', label: '全部', count: typeCounts.value.all },
   { key: 'article', label: '长文', count: typeCounts.value.article },
   { key: 'note', label: '笔记', count: typeCounts.value.note },
-  { key: 'file', label: '资料', count: typeCounts.value.file },
   { key: 'moment', label: '动态', count: typeCounts.value.moment },
   { key: 'video', label: '视频', count: typeCounts.value.video },
 ])
@@ -329,11 +327,7 @@ const filtered = computed(() => {
   let list = items.value
   const lock = lockedType.value
   const tf = lock || typeFilter.value
-  if (tf === 'file') {
-    list = list.filter((x) => x.uiType === 'file')
-  } else if (tf !== 'all') {
-    list = list.filter((x) => x.uiType === tf)
-  }
+  if (tf !== 'all') list = list.filter((x) => x.uiType === tf)
   if (statusFilter.value !== 'all') list = list.filter((x) => x.status === statusFilter.value)
   if (categoryId.value) list = list.filter((x) => x.categoryId === categoryId.value)
   const q = keyword.value.trim()
@@ -486,10 +480,11 @@ async function load() {
     const params: Record<string, unknown> = { current: listPage.value, size: listPageSize, sortBy: sortBy.value }
     if (statusFilter.value !== 'all') params.status = statusFilter.value
     if (categoryId.value) params.categoryId = categoryId.value
+    if (authorId.value) params.authorId = authorId.value
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
 
     const lock = lockedType.value
-    if (lock === 'article' || lock === 'note' || lock === 'video' || lock === 'moment' || lock === 'file') {
+    if (lock === 'article' || lock === 'note' || lock === 'video' || lock === 'moment') {
       params.contentType = lock
     } else if (!lock && typeFilter.value !== 'all') {
       params.contentType = typeFilter.value
@@ -504,12 +499,11 @@ async function load() {
     listTotal.value = total
     items.value = (records as Array<Record<string, unknown>>).map(mapRow)
 
-    const counts = { all: items.value.length, article: 0, note: 0, video: 0, file: 0, moment: 0 }
+    const counts = { all: items.value.length, article: 0, note: 0, video: 0, moment: 0 }
     for (const it of items.value) {
       if (it.uiType === 'article') counts.article += 1
       else if (it.uiType === 'note') counts.note += 1
       else if (it.uiType === 'video') counts.video += 1
-      else if (it.uiType === 'file') counts.file += 1
       else if (it.uiType === 'moment') counts.moment += 1
     }
     typeCounts.value = counts
@@ -624,8 +618,24 @@ watch(
 onMounted(() => {
   if (route.query.status) statusFilter.value = String(route.query.status)
   if (!lockedType.value && route.query.type) typeFilter.value = String(route.query.type)
+  // 作者档案 ›「查看内容」跳转过来时带 authorId
+  const rawAuthor = Number(String(route.query.authorId ?? '').trim())
+  if (Number.isFinite(rawAuthor) && rawAuthor > 0) authorId.value = rawAuthor
+  loadAuthorOptions()
   void load()
 })
+
+async function loadAuthorOptions() {
+  try {
+    const res: any = await listAuthors()
+    const arr = res?.data ?? res ?? []
+    authorOptions.value = (Array.isArray(arr) ? arr : [])
+      .filter((a: AuthorRecord) => a.id)
+      .map((a: AuthorRecord) => ({ id: Number(a.id), name: String(a.name || '未命名') }))
+  } catch {
+    authorOptions.value = []
+  }
+}
 </script>
 
 <style scoped>
@@ -633,6 +643,16 @@ onMounted(() => {
   font-size: 12px;
   color: #94a3b8;
   align-self: center;
+}
+.empty-hint {
+  padding: 32px 28px;
+  text-align: center;
+  color: var(--mute);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.empty-hint p {
+  margin: 0;
 }
 .cswitch {
   width: 72px;

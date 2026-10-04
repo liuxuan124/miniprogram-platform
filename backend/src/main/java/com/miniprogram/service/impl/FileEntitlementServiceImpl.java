@@ -70,6 +70,7 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         vo.setId(item.getId());
         vo.setName(item.getName());
         vo.setSummary(item.getSummary());
+        vo.setIconUrl(item.getIconUrl());
         vo.setFileType(item.getFileType());
         vo.setSize(item.getSize());
         vo.setMimeType(item.getMimeType());
@@ -129,6 +130,7 @@ public class FileEntitlementServiceImpl implements FileEntitlementService {
         vo.setId(item.getId());
         vo.setName(item.getName());
         vo.setSummary(item.getSummary());
+        vo.setIconUrl(item.getIconUrl());
         vo.setFileType(item.getFileType());
         vo.setSize(item.getSize());
         vo.setMimeType(item.getMimeType());

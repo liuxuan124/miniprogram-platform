@@ -1,6 +1,6 @@
 <template>
   <div class="article-feed-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <div class="ds-hint ds-hint--block">
         自动加载全站已发布文章；小程序端下滑页面将持续加载更多。
       </div>

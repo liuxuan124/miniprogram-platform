@@ -32,6 +32,9 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String SCOPE_PLATFORM = "platform";
     private static final String SCOPE_PLANET = "planet";
+    private static final String APPLIES_SINGLE = "single_planet";
+    private static final String APPLIES_MULTI = "multi_planet";
+    private static final String APPLIES_ALL = "all_planets";
 
     @Override
     public List<MembershipPlanVO> listPlans(String scope, String planetId) {
@@ -112,6 +115,19 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
             if (!StringUtils.hasText(dto.getPlanetId())) {
                 throw new BusinessException(500415, "星球档必须指定 planetId");
             }
+            // 通票范围校验
+            String appliesTo = normalizeAppliesTo(dto.getAppliesTo());
+            if (APPLIES_MULTI.equals(appliesTo)) {
+                List<String> planets = dto.getAppliesPlanets();
+                if (planets == null || planets.isEmpty()) {
+                    throw new BusinessException(500421, "通票适用范围 multi_planet 时必须指定 appliesPlanets");
+                }
+                // 多星球列表不能包含本星球（本星球由 planetId 隐含覆盖）
+                String selfPlanet = dto.getPlanetId().trim();
+                if (planets.stream().anyMatch(p -> p != null && p.trim().equals(selfPlanet))) {
+                    throw new BusinessException(500422, "appliesPlanets 不能包含档位自身 planetId");
+                }
+            }
         } else {
             if (StringUtils.hasText(dto.getPlanetId())) {
                 throw new BusinessException(500416, "平台档不能设置 planetId");
@@ -123,11 +139,26 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
             if (giftDays < 0) {
                 throw new BusinessException(500418, "赠送天数不能为负数");
             }
+            // 平台档不使用通票字段
+            if (dto.getAppliesTo() != null || dto.getAppliesPlanets() != null) {
+                throw new BusinessException(500420, "平台档不支持配置 appliesTo/appliesPlanets");
+            }
         }
         if (dto.getDiscountRate() != null
                 && (dto.getDiscountRate().signum() < 0 || dto.getDiscountRate().compareTo(BigDecimal.ONE) > 0)) {
             throw new BusinessException(500419, "折扣率必须在 0-1 之间");
         }
+    }
+
+    private String normalizeAppliesTo(String appliesTo) {
+        if (!StringUtils.hasText(appliesTo)) {
+            return APPLIES_SINGLE;
+        }
+        String v = appliesTo.trim().toLowerCase();
+        if (!APPLIES_SINGLE.equals(v) && !APPLIES_MULTI.equals(v) && !APPLIES_ALL.equals(v)) {
+            return APPLIES_SINGLE;
+        }
+        return v;
     }
 
     private void applyDto(MembershipPlan plan, MembershipPlanDTO dto, boolean creating) {
@@ -194,6 +225,31 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
         } else if (creating && plan.getStatus() == null) {
             plan.setStatus(1);
         }
+
+        // 通票字段（仅星球档）
+        if (SCOPE_PLANET.equals(scope)) {
+            String appliesTo = normalizeAppliesTo(dto.getAppliesTo());
+            plan.setAppliesTo(appliesTo);
+            if (APPLIES_MULTI.equals(appliesTo)) {
+                List<String> planets = dto.getAppliesPlanets();
+                if (planets != null) {
+                    plan.setAppliesPlanets(planets.stream()
+                            .filter(Objects::nonNull)
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .distinct()
+                            .collect(Collectors.toList()));
+                } else {
+                    plan.setAppliesPlanets(null);
+                }
+            } else {
+                // single_planet / all_planets 不存 appliesPlanets
+                plan.setAppliesPlanets(null);
+            }
+        } else {
+            plan.setAppliesTo(null);
+            plan.setAppliesPlanets(null);
+        }
     }
 
     private String normalizeScope(String scope) {
@@ -250,6 +306,12 @@ public class MembershipPlanServiceImpl extends BaseServiceImpl<MembershipPlanMap
         vo.setExpireRemindDays(plan.getExpireRemindDays() == null ? 0 : plan.getExpireRemindDays());
         vo.setSortOrder(plan.getSortOrder());
         vo.setStatus(plan.getStatus());
+        // 通票字段（仅星球档有值）
+        if (SCOPE_PLANET.equals(plan.getScope())) {
+            String appliesTo = plan.getAppliesTo();
+            vo.setAppliesTo(StringUtils.hasText(appliesTo) ? appliesTo : APPLIES_SINGLE);
+            vo.setAppliesPlanets(plan.getAppliesPlanets());
+        }
         if (plan.getCreateTime() != null) {
             vo.setCreatedAt(plan.getCreateTime().format(FORMATTER));
         }

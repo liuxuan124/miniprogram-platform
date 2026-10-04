@@ -7,8 +7,10 @@
         <div>
           <h1 class="h1">页面</h1>
           <div class="sub">
-            共 {{ totalCount + groupCounts.system }} 个 · 系统页 {{ groupCounts.system }} ·
-            装修页 {{ groupCounts.decorate }} · AI 页面 {{ groupCounts.ai }} · 活动与专题 {{ groupCounts.activity }}
+            共 {{ totalCount + groupCounts.system }} 个 ·
+            <template v-for="(g, i) in headerGroups" :key="g.key">
+              <span v-if="i > 0"> · </span>{{ g.label }} {{ g.count }}
+            </template>
           </div>
         </div>
         <div class="actions">
@@ -31,6 +33,52 @@
         </div>
       </div>
 
+      <!-- 底部导航绑定全景：哪一位绑了哪页、哪一位还空着，一眼可见 -->
+      <div class="navmap">
+        <div class="navmap__hd">
+          <span class="navmap__t">底部导航</span>
+          <span class="faint">点击已绑定的槽位直接进入装修</span>
+          <button type="button" class="link navmap__go" @click="router.push('/mini/appearance')">
+            去外观调整
+          </button>
+        </div>
+        <div class="navmap__row">
+          <template v-if="siteTabs.length">
+            <button
+              v-for="(tab, i) in siteTabs"
+              :key="i"
+              type="button"
+              class="navslot"
+              :class="{ 'navslot--empty': !navBoundPage(tab), 'navslot-- sys': navBoundIsSystem(tab) }"
+              @click="onNavSlotClick(tab)"
+            >
+              <span class="navslot__i">{{ i + 1 }}</span>
+              <span class="navslot__n">{{ tab.text || `导航 ${i + 1}` }}</span>
+              <span class="navslot__p">
+                {{ navBoundPage(tab)?.name || (navBoundIsSystem(tab) ? '系统原生页' : '未绑定') }}
+              </span>
+            </button>
+          </template>
+          <span v-else class="muted">尚未配置底部导航</span>
+        </div>
+      </div>
+
+      <!-- 待同步：改动还没上线到小程序端 -->
+      <div v-if="pendingRows.length" class="pending-bar">
+        <span class="tag t-pending">待同步</span>
+        <b>{{ pendingRows.length }} 个页面的改动还没上线</b>
+        <span class="faint">用户端看到的仍是旧版本 · {{ pendingPreviewNames }}</span>
+        <span class="pending-bar__sp" />
+        <button
+          type="button"
+          class="btn primary"
+          :disabled="publishing"
+          @click="publishAllPending"
+        >
+          {{ publishing ? '同步中…' : '一键同步到线上' }}
+        </button>
+      </div>
+
       <div class="filters">
         <label class="search">
           <MiniIcon name="search" :size="15" />
@@ -47,6 +95,38 @@
         >
           {{ opt.label }} {{ opt.count }}
         </button>
+        <span class="filters__sp" />
+        <div class="sortseg">
+          <span class="faint">排序</span>
+          <div class="seg">
+            <button
+              v-for="s in sortOptions"
+              :key="s.key"
+              type="button"
+              :class="{ on: sortKey === s.key }"
+              @click="sortKey = s.key"
+            >
+              {{ s.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 批量操作：清理测试残留 / 归档页不再逐个点三下 -->
+      <div v-if="selectedIds.size" class="batchbar">
+        <b>已选 {{ selectedIds.size }} 项</b>
+        <span class="faint">{{ selectedSummary }}</span>
+        <span class="batchbar__sp" />
+        <button type="button" class="btn sm" :disabled="batchRunning" @click="batchToggleTest">
+          标为测试页
+        </button>
+        <button type="button" class="btn sm" :disabled="batchRunning" @click="batchArchive">
+          归档
+        </button>
+        <button type="button" class="btn sm danger" :disabled="batchRunning" @click="batchDelete">
+          删除
+        </button>
+        <button type="button" class="link" @click="clearSelection">取消选择</button>
       </div>
 
       <div class="groups-stack">
@@ -72,29 +152,149 @@
             <template v-if="!(closedGroups[group.key] && !filtering)">
               <!-- 系统页：小程序内置原生页，不可装修，只能改配置或绑导航位 -->
               <template v-if="group.key === 'system'">
-                <div v-for="sp in systemRows" :key="'sys-' + sp.path" class="prow sys-row">
-                  <div class="thumb">
-                    <i style="background: #e2ddd4" /><i style="background: #e2ddd4" /><i style="background: #e2ddd4" />
+                <template v-for="sp in systemRows" :key="'sys-' + sp.path">
+                  <div
+                    class="prow sys-row"
+                    :class="{ 'sys-row--mine': isMineSystemPage(sp), 'sys-row--login': isLoginSystemPage(sp) }"
+                    @mouseenter="isMineSystemPage(sp) ? scheduleMineHover($event) : (isLoginSystemPage(sp) ? scheduleLoginHover($event) : scheduleSysHover(sp, $event))"
+                    @mouseleave="isMineSystemPage(sp) ? cancelMineHover() : (isLoginSystemPage(sp) ? cancelLoginHover() : cancelHover())"
+                  >
+                    <div class="thumb">
+                      <i style="background: #e2ddd4" /><i style="background: #e2ddd4" /><i style="background: #e2ddd4" />
+                    </div>
+                    <div class="pname">
+                      <b>{{ sp.name }}</b>
+                      <div class="faint">{{ sp.desc }} · {{ sp.path }}</div>
+                    </div>
+                    <div class="prow-ops">
+                      <span class="tag t-live">系统页</span>
+                      <span v-if="tabSlotByPath(sp)" class="tag t-slot">导航位 {{ tabSlotByPath(sp) }}</span>
+                      <span v-if="isMineSystemPage(sp)" class="tag t-tpl">模板 · {{ mineTemplateName }}</span>
+                      <span v-if="isLoginSystemPage(sp)" class="tag t-tpl">模板 · {{ loginTemplateName }}</span>
+                      <button
+                        type="button"
+                        class="btn soft sm"
+                        :title="`前往 ${systemPageConfigRoute(sp)}`"
+                        @click="router.push(systemPageConfigRoute(sp))"
+                      >
+                        {{ sp.configLabel || '配置' }}
+                      </button>
+                    </div>
                   </div>
-                  <div class="pname">
-                    <b>{{ sp.name }}</b>
-                    <div class="faint">{{ sp.desc }} · {{ sp.path }}</div>
+
+                  <!-- 「我的」的模板库：系统页只有一行，但它的模板必须能在这儿被看见、被选中 -->
+                  <div v-if="isMineSystemPage(sp)" class="tpl-stack">
+                    <div class="tpl-stack__hd">
+                      <b>「我的」页模板库</b>
+                      <span class="faint">
+                        {{ MINE_TEMPLATES.length }} 套 · 点任意一套即套用到「我的」页（皮肤与主色保留）
+                      </span>
+                      <button
+                        type="button"
+                        class="link tpl-stack__toggle"
+                        @click="mineTplOpen = !mineTplOpen"
+                      >
+                        {{ mineTplOpen ? '收起' : `展开 ${MINE_TEMPLATES.length} 套` }}
+                      </button>
+                    </div>
+                    <div v-if="mineTplOpen" class="tpl-stack__list">
+                      <button
+                        v-for="tpl in MINE_TEMPLATES"
+                        :key="tpl.key"
+                        type="button"
+                        class="tpl-item"
+                        :class="{ 'tpl-item--active': mineTemplateKey === tpl.key }"
+                        :disabled="!!applyingTplKey"
+                        @click="applyMineTemplate(tpl)"
+                      >
+                        <span class="tpl-item__thumb">
+                          <span class="tpl-item__inner">
+                            <MinePagePreview :mine-config="templateThumbConfig(tpl.key)" :theme="minePreviewTheme" />
+                          </span>
+                        </span>
+                        <span class="tpl-item__body">
+                          <span class="tpl-item__name">
+                            {{ tpl.name }}
+                            <em v-if="mineTemplateKey === tpl.key">使用中</em>
+                          </span>
+                          <span class="faint tpl-item__meta">
+                            {{ tpl.desc }} · {{ tpl.menuKeys.length }} 项菜单 · {{ tpl.scene }}
+                          </span>
+                        </span>
+                        <span class="tpl-item__op">
+                          {{ applyingTplKey === tpl.key ? '套用中…' : '套用' }}
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  <div class="prow-ops">
-                    <span class="tag t-live">系统页</span>
-                    <span v-if="tabSlotByPath(sp)" class="tag t-slot">导航位 {{ tabSlotByPath(sp) }}</span>
-                    <button type="button" class="btn soft sm" @click="router.push('/mini/appearance')">
-                      配置
-                    </button>
+
+                  <!-- 「登录」的模板库：与「我的」同款交互，点套用直接写入待上线草稿 -->
+                  <div v-if="isLoginSystemPage(sp)" class="tpl-stack">
+                    <div class="tpl-stack__hd">
+                      <b>「登录」页模板库</b>
+                      <span class="faint">
+                        {{ LOGIN_TEMPLATES.length }} 套 · 点任意一套即套用到登录页（文案与皮肤整体替换）
+                      </span>
+                      <button
+                        type="button"
+                        class="link tpl-stack__toggle"
+                        @click="loginTplOpen = !loginTplOpen"
+                      >
+                        {{ loginTplOpen ? '收起' : `展开 ${LOGIN_TEMPLATES.length} 套` }}
+                      </button>
+                    </div>
+                    <div v-if="loginTplOpen" class="tpl-stack__list">
+                      <button
+                        v-for="tpl in LOGIN_TEMPLATES"
+                        :key="tpl.key"
+                        type="button"
+                        class="tpl-item"
+                        :class="{ 'tpl-item--active': loginTemplateKey === tpl.key }"
+                        :disabled="!!applyingLoginTplKey"
+                        @click="applyLoginTemplate(tpl)"
+                      >
+                        <span class="tpl-item__thumb">
+                          <span class="tpl-item__inner">
+                            <LoginPagePreview :login-config="loginTplThumbConfig(tpl.key)" :theme="minePreviewTheme" />
+                          </span>
+                        </span>
+                        <span class="tpl-item__body">
+                          <span class="tpl-item__name">
+                            {{ tpl.name }}
+                            <em v-if="loginTemplateKey === tpl.key">使用中</em>
+                          </span>
+                          <span class="faint tpl-item__meta">
+                            {{ tpl.desc }} · {{ tpl.scene }}
+                          </span>
+                        </span>
+                        <span class="tpl-item__op">
+                          {{ applyingLoginTplKey === tpl.key ? '套用中…' : '套用' }}
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </template>
                 <div v-if="!systemRows.length" class="muted" style="padding: 14px 16px">
                   没有符合条件的系统页
                 </div>
               </template>
 
               <template v-else-if="group.rows.length">
-                <div v-for="row in group.rows" :key="String(row.id)" class="prow">
+                <div
+                  v-for="row in group.rows"
+                  :key="String(row.id)"
+                  class="prow"
+                  @mouseenter="scheduleHover(row, $event)"
+                  @mouseleave="cancelHover"
+                >
+                  <label class="pick" @click.stop>
+                    <input
+                      type="checkbox"
+                      :checked="selectedIds.has(row.id)"
+                      aria-label="选择该页面"
+                      @change="toggleSelect(row.id)"
+                    />
+                  </label>
                   <div class="thumb">
                     <i
                       v-for="(c, i) in thumbColors(row)"
@@ -104,14 +304,44 @@
                   </div>
                   <div class="pname">
                     <b>{{ row.name }}</b>
-                    <div class="faint">{{ rowSub(row) }}</div>
+                    <div class="pmeta">
+                      <span v-if="navLabel(row)" class="tag t-slot">{{ navLabel(row) }}</span>
+                      <span v-else-if="isNamesake(row)" class="faint">同名未绑导航</span>
+                      <span v-if="expireLabel(row)" class="tag t-draft">{{ expireLabel(row) }}</span>
+                      <span v-if="diffLabel(row)" class="tag t-pending">{{ diffLabel(row) }}</span>
+                      <span v-if="accessLabel(row)" class="faint">{{ accessLabel(row) }}</span>
+                      <span class="faint path">{{ row.path }}</span>
+                    </div>
+                  </div>
+                  <div class="prow-time" :title="formatUpdatedFull(row)">
+                    {{ formatUpdated(row) || '—' }}
                   </div>
                   <div class="prow-ops">
                     <div class="pstat">
                       <PageStatusTag :row="row" />
                       <span v-if="isTestPage(row)" class="tag t-err" style="margin-left: 4px">测试</span>
                     </div>
+                    <button
+                      v-if="canOffline(row)"
+                      type="button"
+                      class="btn soft sm prow-offline-btn"
+                      title="下线该页面"
+                      @click="onQuickOffline(row)"
+                    >
+                      下线
+                    </button>
                     <button type="button" class="btn soft sm" @click="openEditor(row)">装修</button>
+                    <button
+                      v-if="canDelete(row)"
+                      type="button"
+                      class="iconbtn prow-del-btn"
+                      :class="{ 'is-danger': true }"
+                      title="删除该页面"
+                      aria-label="删除"
+                      @click="onQuickDelete(row)"
+                    >
+                      <MiniIcon name="trash" :size="15" />
+                    </button>
                     <PageRowMenu
                       :row="row"
                       :archived="isArchived(row)"
@@ -171,6 +401,95 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 行悬停预览：不用新开 tab 就能看到页面长什么样 -->
+    <PageHoverPreview
+      :visible="hoverVisible"
+      :src="hoverSrc"
+      :title="hoverTitle"
+      :hint="hoverHint"
+      :top="hoverPos.top"
+      :left="hoverPos.left"
+      :flip="hoverPos.flip"
+    />
+
+    <!-- 「我的」系统页的悬停预览：原生页没有 H5 版本，直接渲染管理端自己的预览 -->
+    <MineTemplateHoverPreview
+      :visible="mineHoverVisible"
+      :mine-config="mineDisplayConfig"
+      :theme="minePreviewTheme"
+      :template-name="mineTemplateName"
+      :menu-count="mineMenuCount"
+      :top="mineHoverPos.top"
+      :left="mineHoverPos.left"
+    />
+
+    <!-- 「登录」系统页的悬停预览：原生页，渲染管理端自己的 LoginPagePreview -->
+    <LoginTemplateHoverPreview
+      :visible="loginHoverVisible"
+      :login-config="loginDisplayConfig"
+      :theme="minePreviewTheme"
+      :template-name="loginTemplateName"
+      :top="loginHoverPos.top"
+      :left="loginHoverPos.left"
+    />
+
+    <PageVersionDialog v-model="versionVisible" :page="versionTarget" @rolled-back="load" />
+
+    <MiniH5QrDialog
+      v-model="qrVisible"
+      mode="miniapp-draft"
+      :screen-path="qrPath"
+      :title="qrTitle"
+      :hint="qrHint"
+    />
+
+    <!-- 设置分组：选标准分组 / 已有自定义分组 / 输入新分组名 -->
+    <el-dialog
+      v-model="groupDialogVisible"
+      class="mini-wb-overlay"
+      title="设置分组"
+      width="460px"
+    >
+      <p class="nav-dialog-hint">
+        将「{{ groupTarget?.name || '' }}」移动到哪个分组？可直接输入新分组名创建自定义分组。
+      </p>
+      <div class="group-pick">
+        <button
+          v-for="opt in groupOptions"
+          :key="opt.key"
+          type="button"
+          class="group-pick__item"
+          :class="{ 'group-pick__item--active': groupTargetCurrent === opt.key }"
+          @click="groupTarget && moveToGroup(groupTarget, opt.key)"
+        >
+          <span class="group-pick__label">{{ opt.label }}</span>
+          <span v-if="opt.custom" class="group-pick__tag">自定义</span>
+        </button>
+      </div>
+      <div class="group-new">
+        <label class="faint">新建自定义分组</label>
+        <div class="group-new__row">
+          <el-input
+            v-model="groupInput"
+            placeholder="输入分组名，如「秒杀会场」「双11」"
+            maxlength="32"
+            @keyup.enter="groupInput.trim() && groupTarget && moveToGroup(groupTarget, groupInput.trim())"
+          />
+          <el-button
+            type="primary"
+            class="mw-btn-primary"
+            :disabled="!groupInput.trim()"
+            @click="groupInput.trim() && groupTarget && moveToGroup(groupTarget, groupInput.trim())"
+          >
+            创建并移动
+          </el-button>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="groupDialogVisible = false">取消</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -180,22 +499,63 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageStatusTag from '@/components/mini/PageStatusTag.vue'
 import PageRowMenu from '@/components/mini/PageRowMenu.vue'
+import PageVersionDialog from '@/components/mini/PageVersionDialog.vue'
+import PageHoverPreview from '@/components/mini/PageHoverPreview.vue'
+import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
-import { getPageList, createPage, deletePage, unpublishPage, duplicatePage, updatePage } from '@/api/page'
-import { getMiniSite, updateMiniSite, type MiniTabBarItem } from '@/api/miniSite'
+import { getPageList, createPage, deletePage, unpublishPage, duplicatePage, updatePage, publishPage, getVersionList } from '@/api/page'
+import { getMiniSite, updateMiniSite, publishMiniSite, type MiniTabBarItem } from '@/api/miniSite'
+import { getPageAccess } from '@/api/statistics'
 import {
   inferPageGroup,
   PAGE_GROUP_LABELS,
   PAGE_GROUP_SUB,
   MINI_SYSTEM_PAGES,
+  listableSystemPages,
+  systemPageConfigRoute,
+  isMineSystemPage,
+  isLoginSystemPage,
   resolvePageStatus,
+  isStandardPageGroup,
+  resolveGroupLabel,
+  resolveGroupSub,
+  STANDARD_PAGE_GROUPS,
   type MiniPageStatus,
   type MiniSystemPage,
-  type PageGroup,
 } from '@/utils/pageStatus'
 import type { PageRecord } from '@/types/page'
+import MinePagePreview from '@/components/miniapp-builder/MinePagePreview.vue'
+import MineTemplateHoverPreview from '@/components/mini/MineTemplateHoverPreview.vue'
+import LoginPagePreview from '@/components/miniapp-builder/LoginPagePreview.vue'
+import LoginTemplateHoverPreview from '@/components/mini/LoginTemplateHoverPreview.vue'
+import { getConfigByGroupSilent, updateConfigs } from '@/api/system'
+import {
+  CONFIG_KEYS,
+  DEFAULT_THEME,
+  DEFAULT_LOGIN_PAGE_CONFIG,
+  applyMineStylePreset,
+  resolveMineStyleKey,
+  resolveLoginPageStyleKey,
+  type MinePageConfig as MinePageConfigType,
+  type LoginPageConfig as LoginPageConfigType,
+  type ThemeConfig,
+} from '@/types/miniapp'
+import {
+  MINE_TEMPLATES,
+  buildTemplateConfig,
+  getMineTemplate,
+  resolveTemplateKey,
+  type MineTemplatePreset,
+} from '@/components/miniapp-builder/mineTemplates'
+import {
+  LOGIN_TEMPLATES,
+  buildLoginTemplateConfig,
+  resolveLoginTemplateName,
+  resolveLoginTemplateKey,
+  type LoginTemplatePreset,
+} from '@/components/miniapp-builder/loginTemplates'
 
 defineOptions({ name: 'MiniPages' })
 
@@ -217,16 +577,176 @@ const navSlotIndex = ref(0)
 const navSaving = ref(false)
 const entryExpireAt = ref<string | null>(null)
 
+/** 近 30 天页面访问统计：key = 去掉 query 的路径（带前导 /） */
+type PageAccessStat = { pv: number; uv: number }
+const pageAccessMap = ref<Record<string, PageAccessStat>>({})
+
+/** 多选：批量归档 / 删除 / 标测试 */
+const selectedIds = ref<Set<number>>(new Set())
+const batchRunning = ref(false)
+
+/** 排序：默认按分组原顺序，其余用于「找最近改的」「找最热的」 */
+type SortKey = 'default' | 'updated' | 'pv'
+const sortKey = ref<SortKey>('default')
+const sortOptions = [
+  { key: 'default' as SortKey, label: '默认' },
+  { key: 'updated' as SortKey, label: '最近更新' },
+  { key: 'pv' as SortKey, label: '访问最多' },
+]
+
+/** 悬停预览 */
+const hoverVisible = ref(false)
+const hoverSrc = ref('')
+const hoverTitle = ref('')
+const hoverHint = ref('')
+const hoverPos = ref<{ top: number; left: number; flip: boolean }>({ top: 0, left: 0, flip: false })
+let hoverTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 版本记录 / 扫码真机 */
+const versionVisible = ref(false)
+const versionTarget = ref<PageRecord | null>(null)
+const qrVisible = ref(false)
+const qrPath = ref('')
+const qrTitle = ref('扫码看真机')
+const qrHint = ref('')
+
+/** 设置分组对话框：可选标准分组 / 现有自定义分组 / 输入新分组名 */
+const groupDialogVisible = ref(false)
+const groupTarget = ref<PageRecord | null>(null)
+const groupInput = ref('')
+/** 当前可选的分组列表（标准 + 数据中已存在的自定义 + 用户在对话框里新输入的） */
+const groupOptions = computed(() => {
+  const std = STANDARD_PAGE_GROUPS.filter((g) => g !== 'system').map((g) => ({
+    key: g,
+    label: PAGE_GROUP_LABELS[g],
+    custom: false,
+  }))
+  const custom = customGroupKeys.value.map((g) => ({ key: g, label: g, custom: true }))
+  return [...std, ...custom]
+})
+
+/** 当前目标页面所在的分组（高亮用） */
+const groupTargetCurrent = computed(() => {
+  if (!groupTarget.value) return ''
+  return inferPageGroup(groupTarget.value)
+})
+
+/** 待同步一键发布 */
+const publishing = ref(false)
+
+function normalizeAccessPath(raw: string) {
+  const p = String(raw || '').split('#')[0].split('?')[0]
+  if (!p) return ''
+  return p.startsWith('/') ? p : `/${p}`
+}
+
+async function loadPageAccess() {
+  try {
+    const fmt = (d: Date) => {
+      const pad = (n: number) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    }
+    const end = new Date()
+    const start = new Date(Date.now() - 29 * 24 * 3600 * 1000)
+    const res = await getPageAccess(fmt(start), fmt(end))
+    const list = ((res as any)?.data || []) as Array<{ pagePath?: string; accessCount?: number; visitorCount?: number }>
+    const map: Record<string, PageAccessStat> = {}
+    for (const item of Array.isArray(list) ? list : []) {
+      const key = normalizeAccessPath(String(item.pagePath || ''))
+      if (!key) continue
+      const prev = map[key] || { pv: 0, uv: 0 }
+      prev.pv += Number(item.accessCount || 0)
+      prev.uv += Number(item.visitorCount || 0)
+      map[key] = prev
+    }
+    pageAccessMap.value = map
+  } catch {
+    pageAccessMap.value = {}
+  }
+}
+
+/** 行的访问统计：页面自身路径 + 绑定到本页的 Tab 路由（绑定页的真实访问都记在 Tab 路由上） */
+function rowAccess(row: PageRecord): PageAccessStat | null {
+  const keys = new Set<string>()
+  const own = normalizeAccessPath(String(row.path || ''))
+  if (own) keys.add(own)
+  const ti = tabIndexOf(row)
+  if (ti >= 0) {
+    const tab = siteTabs.value[ti]
+    const route = normalizeAccessPath(String(tab?.tabRoute || ''))
+    if (route) keys.add(route)
+  }
+  let pv = 0
+  let uv = 0
+  keys.forEach((k) => {
+    const stat = pageAccessMap.value[k]
+    if (stat) {
+      pv += stat.pv
+      uv += stat.uv
+    }
+  })
+  return pv > 0 ? { pv, uv } : null
+}
+
 const filtering = computed(() => !!keyword.value.trim() || statusFilter.value !== 'all')
+
+/** 草稿与线上不一致的页面：这些改动用户端还看不到 */
+const pendingRows = computed(() =>
+  pages.value.filter(
+    (row) =>
+      !String(row.path || '').includes('/pages/mine/mine') && resolvePageStatus(row) === 'pending',
+  ),
+)
+
+const pendingPreviewNames = computed(() => {
+  const names = pendingRows.value.slice(0, 3).map((r) => r.name)
+  return names.join('、') + (pendingRows.value.length > 3 ? ` 等 ${pendingRows.value.length} 个` : '')
+})
+
+async function publishAllPending() {
+  const rows = pendingRows.value
+  if (!rows.length) return
+  try {
+    await ElMessageBox.confirm(
+      `将把 ${rows.length} 个页面的草稿发布到小程序端，并递增站点版本号让用户端刷新缓存。`,
+      '一键同步',
+      { type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  publishing.value = true
+  let ok = 0
+  const failed: string[] = []
+  for (const row of rows) {
+    try {
+      await publishPage(Number(row.id))
+      ok += 1
+    } catch (e: any) {
+      failed.push(`${row.name}：${e?.message || '失败'}`)
+    }
+  }
+  if (ok) {
+    try {
+      await publishMiniSite({ includeSite: true })
+    } catch {
+      /* 站点侧没有改动时会报「没有可发布的改动」，不影响页面已发布 */
+    }
+  }
+  publishing.value = false
+  if (failed.length) ElMessage.warning(`已同步 ${ok} 个，失败 ${failed.length} 个：${failed[0]}`)
+  else ElMessage.success(`已同步 ${ok} 个页面到线上`)
+  await load()
+}
 
 const totalCount = computed(() =>
   pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')).length,
 )
 
-/** 各分组计数（系统页取自内置清单，其余来自库表页面） */
-const groupCounts = computed<Record<PageGroup, number>>(() => {
-  const c: Record<PageGroup, number> = {
-    system: MINI_SYSTEM_PAGES.length,
+/** 各分组计数（系统页取自内置清单，其余来自库表页面；含自定义分组） */
+const groupCounts = computed<Record<string, number>>(() => {
+  const c: Record<string, number> = {
+    system: listableSystemPages().length,
     decorate: 0,
     ai: 0,
     activity: 0,
@@ -234,9 +754,33 @@ const groupCounts = computed<Record<PageGroup, number>>(() => {
   }
   for (const row of pages.value) {
     if (String(row.path || '').includes('/pages/mine/mine')) continue
-    c[inferPageGroup(row)] += 1
+    const g = inferPageGroup(row)
+    c[g] = (c[g] || 0) + 1
   }
   return c
+})
+
+/** 数据中出现的自定义分组 key（非标准值），按字母序排 */
+const customGroupKeys = computed<string[]>(() => {
+  const set = new Set<string>()
+  for (const row of pages.value) {
+    if (String(row.path || '').includes('/pages/mine/mine')) continue
+    const g = inferPageGroup(row)
+    if (!isStandardPageGroup(g)) set.add(g)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+})
+
+/** 页头分组计数列表（系统页 + 装修页 + AI + 活动 + 自定义… + 归档，仅显示非零项） */
+const headerGroups = computed(() => {
+  const result: Array<{ key: string; label: string; count: number }> = []
+  for (const k of GROUP_ORDER.value) {
+    const count = groupCounts.value[k] || 0
+    if (count > 0) {
+      result.push({ key: k, label: resolveGroupLabel(k), count })
+    }
+  }
+  return result
 })
 
 function matchRow(row: PageRecord) {
@@ -272,36 +816,478 @@ const statusFilters = computed(() => {
 })
 
 /**
- * 分组顺序：系统页 → 装修页 → AI 页面 → 活动与专题 → 归档。
+ * 分组顺序：系统页 → 装修页 → AI 页面 → 活动与专题 → [自定义分组…] → 归档。
  * 旧口径把「底部导航」当分类，槽位与页面混排；现在按页面来源分，
  * 导航绑定退化为行内标签（rowSub 里的「导航 N」）。
+ * 自定义分组在标准分组之后、归档之前出现（归档恒为最后一组）。
  */
-const GROUP_ORDER: PageGroup[] = ['system', 'decorate', 'ai', 'activity', 'archived']
+const GROUP_ORDER = computed<string[]>(() => {
+  return [...STANDARD_PAGE_GROUPS, ...customGroupKeys.value, 'archived']
+})
+
+/** 排序键 -> 排序值：越大越靠前 */
+function sortValue(row: PageRecord, key: SortKey): number {
+  if (key === 'updated') {
+    const t = String((row as any).updateTime || (row as any).updatedAt || (row as any).updated_at || '')
+    return t ? new Date(t.replace(' ', 'T')).getTime() || 0 : 0
+  }
+  if (key === 'pv') return rowAccess(row)?.pv ?? 0
+  return 0
+}
 
 const groups = computed(() => {
-  const buckets: Record<PageGroup, PageRecord[]> = {
-    system: [], decorate: [], ai: [], activity: [], archived: [],
-  }
-  const totals: Record<PageGroup, number> = { ...groupCounts.value }
+  const buckets: Record<string, PageRecord[]> = {}
+  const totals: Record<string, number> = { ...groupCounts.value }
   for (const row of pages.value) {
     if (String(row.path || '').includes('/pages/mine/mine')) continue
     const g = inferPageGroup(row)
+    if (!buckets[g]) buckets[g] = []
     if (matchRow(row)) buckets[g].push(row)
   }
-  return GROUP_ORDER.map((key) => ({
-    key,
-    label: PAGE_GROUP_LABELS[key],
-    rows: buckets[key],
-    total: totals[key],
+  const key = sortKey.value
+  if (key !== 'default') {
+    Object.keys(buckets).forEach((k) => {
+      buckets[k].sort((a, b) => sortValue(b, key) - sortValue(a, key))
+    })
+  }
+  return GROUP_ORDER.value.map((k) => ({
+    key: k,
+    label: resolveGroupLabel(k),
+    rows: buckets[k] || [],
+    total: totals[k] || 0,
   }))
 })
 
-/** 系统页行：来自内置清单，不是库表页面；无页面状态，故只在「全部」筛选下展示 */
+/** 行的路径（去掉前导 /），用于预览 iframe 的 screen 参数 */
+function screenPathOf(row: PageRecord) {
+  return String(row.path || '').replace(/^\//, '')
+}
+
+function scheduleHover(row: PageRecord, evt: MouseEvent) {
+  cancelHover()
+  const el = evt.currentTarget as HTMLElement | null
+  if (!el) return
+  hoverTimer = setTimeout(() => {
+    const path = screenPathOf(row)
+    if (!path) return
+    const rect = el.getBoundingClientRect()
+    const cardW = 232
+    const cardH = 500
+    const flip = rect.right + 16 + cardW > window.innerWidth
+    const left = flip ? Math.max(12, rect.left - cardW - 16) : rect.right + 16
+    const top = Math.min(Math.max(12, rect.top - 40), Math.max(12, window.innerHeight - cardH - 12))
+    hoverPos.value = { top, left, flip }
+    hoverTitle.value = String(row.name || '')
+    hoverHint.value = path
+    hoverSrc.value = `${window.location.origin}/h5/miniapp-preview?view=config&source=draft&embed=1&screen=${encodeURIComponent(path)}`
+    hoverVisible.value = true
+  }, 600)
+}
+
+function cancelHover() {
+  if (hoverTimer) clearTimeout(hoverTimer)
+  hoverTimer = undefined
+  hoverVisible.value = false
+}
+
+/**
+ * 系统页（非「我的」）悬停预览：首页/发现/星球/商城/登录/搜索
+ * 走 H5 预览 iframe（screen=sp.path），与装修页同一个 PageHoverPreview 组件。
+ * 「我的」不走这里——它用 MineTemplateHoverPreview 渲染管理端自己的预览。
+ */
+function scheduleSysHover(sp: MiniSystemPage, evt: MouseEvent) {
+  cancelHover()
+  const el = evt.currentTarget as HTMLElement | null
+  if (!el) return
+  hoverTimer = setTimeout(() => {
+    const path = String(sp.path || '').replace(/^\//, '')
+    if (!path) return
+    const rect = el.getBoundingClientRect()
+    const cardW = 232
+    const cardH = 500
+    // 列表行几乎占满屏宽：右侧放不下时贴视口右缘（卡片 pointer-events:none，不挡行内按钮）
+    const fitsRight = rect.right + 16 + cardW <= window.innerWidth
+    const flip = !fitsRight
+    const left = fitsRight ? rect.right + 16 : Math.max(12, window.innerWidth - cardW - 24)
+    const top = Math.min(Math.max(12, rect.top - 40), Math.max(12, window.innerHeight - cardH - 12))
+    hoverPos.value = { top, left, flip }
+    hoverTitle.value = sp.name
+    hoverHint.value = sp.path
+    hoverSrc.value = `${window.location.origin}/h5/miniapp-preview?view=config&source=draft&embed=1&screen=${encodeURIComponent(path)}`
+    hoverVisible.value = true
+  }, 600)
+}
+
+/* ------------------------------------------------------------------ *
+ * 「我的」系统页的模板库
+ *
+ * 背景：系统页这组里，「我的」是唯一带模板/菜单编排能力的页——
+ * 它的 6 套模板在 /page-builder/mine，但列表里的「配置」过去一律跳
+ * /mini/appearance（那页根本改不了我的页）。现在：
+ *   ① 行上显示当前用的是哪套模板（徽标）
+ *   ② 行悬停出真实渲染的预览（原生页，H5 iframe 预览不了）
+ *   ③ 行下方直接列出 6 套模板，点一套即套用
+ *
+ * 数据源与「保存」保持一致：都读写 system_config 里的 site_builder_draft，
+ * 也就是「待上线草稿」；要真机生效仍需到概览点「上线到小程序」。
+ * ------------------------------------------------------------------ */
+
+/** 线上配置全量（兜底用） */
+const basicConfig = ref<Record<string, string>>({})
+/** 待上线草稿（比线上新，优先） */
+const siteDraft = ref<Record<string, string>>({})
+/** 当前「我的」页配置：草稿优先，其次线上 */
+const mineConfig = ref<Record<string, unknown> | null>(null)
+/** 全站主题色（预览卡要用主辅色，跟配置页保持同一份来源） */
+const mineTheme = ref<Record<string, unknown> | null>(null)
+const mineTplOpen = ref(true)
+const applyingTplKey = ref('')
+
+function parseJsonish(v: unknown): Record<string, any> | null {
+  if (v == null || v === '') return null
+  if (typeof v === 'object') return v as Record<string, any>
+  try {
+    const o = JSON.parse(String(v))
+    return o && typeof o === 'object' ? o : null
+  } catch {
+    return null
+  }
+}
+
+/** 尚未配过菜单时，用模板库的默认组合兜底，避免预览是一张空卡 */
+const mineDisplayConfig = computed<MinePageConfigType>(() => {
+  const cur = (mineConfig.value || {}) as Partial<MinePageConfigType>
+  const hasMenus = Array.isArray(cur.menuItems) && cur.menuItems.length > 0
+  if (hasMenus) return cur as MinePageConfigType
+  const base = buildTemplateConfig('warm')
+  return { ...base, ...cur, menuItems: base.menuItems }
+})
+
+const minePreviewTheme = computed<Pick<ThemeConfig, 'primaryColor' | 'secondaryColor'>>(() => {
+  const t = (mineTheme.value || {}) as Partial<ThemeConfig>
+  return {
+    primaryColor: t.primaryColor || DEFAULT_THEME.primaryColor,
+    secondaryColor: t.secondaryColor || DEFAULT_THEME.secondaryColor,
+  }
+})
+
+const mineTemplateKey = computed(() => resolveTemplateKey(mineDisplayConfig.value))
+const mineTemplateName = computed(() => {
+  const key = mineTemplateKey.value
+  if (key) return getMineTemplate(key)?.name || key
+  const src = (mineConfig.value || {}) as Partial<MinePageConfigType>
+  return Array.isArray(src.menuItems) && src.menuItems.length ? '自定义组合' : '默认菜单'
+})
+const mineMenuCount = computed(() =>
+  (mineDisplayConfig.value.menuItems || []).filter((m) => m.enabled !== false).length,
+)
+
+/* ------------------------------------------------------------------ *
+ * 登录页系统页配置（仿「我的」页，但更轻量：无内联模板库，仅模板徽标 + 悬停预览）
+ * 完整模板画廊在 /page-builder/login 配置页。
+ * ------------------------------------------------------------------ */
+/** 当前登录页配置（草稿优先，其次线上） */
+const loginConfig = ref<LoginPageConfigType>({ ...DEFAULT_LOGIN_PAGE_CONFIG })
+/** 兜底：未配过时用第一套模板（warm = 「现在搭建的登录页」默认态） */
+const loginDisplayConfig = computed<LoginPageConfigType>(() => {
+  const cur = loginConfig.value
+  const hasHero = !!(cur.heroTitle || cur.loginButtonText)
+  if (hasHero) return cur
+  return { ...DEFAULT_LOGIN_PAGE_CONFIG }
+})
+const loginTemplateName = computed(() => resolveLoginTemplateName(loginDisplayConfig.value))
+const loginSkinName = computed(() => {
+  const k = resolveLoginPageStyleKey(loginDisplayConfig.value)
+  const map: Record<string, string> = { warm: '暖阁纸感', brand: '品牌焦点', minimal: '极简卡片', wechat: '微信原生' }
+  return map[k] || '暖阁纸感'
+})
+
+/** 「登录」行内模板库（仿「我的」tpl-stack）：展开看 4 套，点套用写入待上线草稿 */
+const loginTplOpen = ref(true)
+const applyingLoginTplKey = ref('')
+const loginTplThumbCache = new Map<string, LoginPageConfigType>()
+const loginTemplateKey = computed(() => resolveLoginTemplateKey(loginDisplayConfig.value))
+
+function loginTplThumbConfig(key: string): LoginPageConfigType {
+  const cached = loginTplThumbCache.get(key)
+  if (cached) return cached
+  const built = buildLoginTemplateConfig(key)
+  loginTplThumbCache.set(key, built)
+  return built
+}
+
+async function applyLoginTemplate(tpl: LoginTemplatePreset) {
+  if (applyingLoginTplKey.value) return
+  try {
+    await ElMessageBox.confirm(
+      `将「${tpl.name}」套用到登录页？\n`
+        + `会覆盖当前的模板文案与皮肤，并保存为待上线草稿。\n`
+        + `真机生效还需到「概览」点「上线到小程序」。`,
+      '套用模板',
+      { confirmButtonText: '套用', cancelButtonText: '取消', type: 'info' },
+    )
+  } catch {
+    return
+  }
+  applyingLoginTplKey.value = tpl.key
+  try {
+    const payload = buildDraftPayload()
+    payload[CONFIG_KEYS.LOGIN_PAGE_CONFIG] = JSON.stringify(buildLoginTemplateConfig(tpl.key))
+    await updateConfigs([
+      {
+        configKey: 'site_builder_draft',
+        configValue: JSON.stringify(payload),
+        configGroup: 'basic',
+        description: '登录页待上线草稿',
+      },
+    ] as any)
+
+    siteDraft.value = payload
+    loginConfig.value = JSON.parse(payload[CONFIG_KEYS.LOGIN_PAGE_CONFIG])
+    ElMessage.success(`已套用「${tpl.name}」，去「概览」点「上线到小程序」后真机生效`)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '套用失败')
+  } finally {
+    applyingLoginTplKey.value = ''
+  }
+}
+
+/** 6 张缩略图共用同一份配置对象，别每次重渲染都重建 */
+const tplThumbCache = new Map<string, MinePageConfigType>()
+function templateThumbConfig(key: string): MinePageConfigType {
+  const cached = tplThumbCache.get(key)
+  if (cached) return cached
+  const built = buildTemplateConfig(key)
+  tplThumbCache.set(key, built)
+  return built
+}
+
+/**
+ * 组装一份完整的待上线草稿：
+ * 以线上值为底、草稿覆盖——与 useMiniappConfig.handleSave() 写入的批次同口径，
+ * 避免只写一个键就让后端把草稿当成"只改了这一项"。
+ */
+function buildDraftPayload(): Record<string, string> {
+  const keys: string[] = [
+    CONFIG_KEYS.TEMPLATE_KEY,
+    CONFIG_KEYS.HOME_PAGE_ID,
+    CONFIG_KEYS.MINE_PAGE_ID,
+    CONFIG_KEYS.TABBAR_ITEMS,
+    CONFIG_KEYS.MINE_PAGE_CONFIG,
+    CONFIG_KEYS.LOGIN_PAGE_CONFIG,
+    CONFIG_KEYS.THEME_CONFIG,
+    CONFIG_KEYS.SHARE_TITLE,
+    CONFIG_KEYS.SHARE_IMAGE,
+  ]
+  const base: Record<string, string> = {}
+  for (const k of keys) base[k] = String(basicConfig.value[k] ?? '')
+  return { ...base, ...(siteDraft.value || {}) }
+}
+
+async function applyMineTemplate(tpl: MineTemplatePreset) {
+  if (applyingTplKey.value) return
+  try {
+    await ElMessageBox.confirm(
+      `将「${tpl.name}」套用到「我的」页？\n`
+        + `会覆盖当前的菜单组合、文案与开关（皮肤与主色保留），并保存为待上线草稿。\n`
+        + `真机生效还需到「概览」点「上线到小程序」。`,
+      '套用模板',
+      { confirmButtonText: '套用', cancelButtonText: '取消', type: 'info' },
+    )
+  } catch {
+    return
+  }
+  applyingTplKey.value = tpl.key
+  try {
+    const payload = buildDraftPayload()
+    const prev = parseJsonish(payload[CONFIG_KEYS.MINE_PAGE_CONFIG]) || {}
+    const next: Record<string, unknown> = { ...prev, ...buildTemplateConfig(tpl.key) }
+    // 皮肤按现有配置保留：这里换的是「菜单组合 + 文案 + 开关」，不是外观
+    applyMineStylePreset(next, resolveMineStyleKey(prev as { templateStyle?: string }))
+    payload[CONFIG_KEYS.MINE_PAGE_CONFIG] = JSON.stringify(next)
+
+    await updateConfigs([
+      {
+        configKey: 'site_builder_draft',
+        configValue: JSON.stringify(payload),
+        configGroup: 'basic',
+        description: '品牌导航待上线草稿',
+      },
+    ] as any)
+
+    siteDraft.value = payload
+    mineConfig.value = next
+    ElMessage.success(`已套用「${tpl.name}」，去「概览」点「上线到小程序」后真机生效`)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '套用失败')
+  } finally {
+    applyingTplKey.value = ''
+  }
+}
+
+/** 「我的」行悬停预览：原生页没有 H5 预览，直接渲染管理端自己的 MinePagePreview */
+const mineHoverVisible = ref(false)
+const mineHoverPos = ref({ top: 0, left: 0 })
+let mineHoverTimer: ReturnType<typeof setTimeout> | undefined
+
+function scheduleMineHover(evt: MouseEvent) {
+  cancelMineHover()
+  const el = evt.currentTarget as HTMLElement | null
+  if (!el) return
+  mineHoverTimer = setTimeout(() => {
+    const rect = el.getBoundingClientRect()
+    const cardW = 200
+    const cardH = 440
+    // 列表行几乎占满屏宽，右侧放不下时不要翻到屏幕另一头去（离被悬停的行太远会认不出），
+    // 改成贴着视口右缘——卡片 pointer-events: none，压住的按钮照样能点。
+    const fitsRight = rect.right + 16 + cardW <= window.innerWidth
+    const left = fitsRight ? rect.right + 16 : Math.max(12, window.innerWidth - cardW - 24)
+    const top = Math.min(Math.max(12, rect.top - 20), Math.max(12, window.innerHeight - cardH - 12))
+    mineHoverPos.value = { top, left }
+    mineHoverVisible.value = true
+  }, 500)
+}
+
+function cancelMineHover() {
+  if (mineHoverTimer) clearTimeout(mineHoverTimer)
+  mineHoverTimer = undefined
+  mineHoverVisible.value = false
+}
+
+/** 登录系统页行悬停预览（仿「我的」：原生页无 H5 预览，渲染管理端自己的 LoginPagePreview） */
+const loginHoverVisible = ref(false)
+const loginHoverPos = ref({ top: 0, left: 0 })
+let loginHoverTimer: ReturnType<typeof setTimeout> | undefined
+
+function scheduleLoginHover(evt: MouseEvent) {
+  cancelLoginHover()
+  const el = evt.currentTarget as HTMLElement | null
+  if (!el) return
+  loginHoverTimer = setTimeout(() => {
+    const rect = el.getBoundingClientRect()
+    const cardW = 200
+    const cardH = 440
+    const fitsRight = rect.right + 16 + cardW <= window.innerWidth
+    const left = fitsRight ? rect.right + 16 : Math.max(12, window.innerWidth - cardW - 24)
+    const top = Math.min(Math.max(12, rect.top - 20), Math.max(12, window.innerHeight - cardH - 12))
+    loginHoverPos.value = { top, left }
+    loginHoverVisible.value = true
+  }, 500)
+}
+
+function cancelLoginHover() {
+  if (loginHoverTimer) clearTimeout(loginHoverTimer)
+  loginHoverTimer = undefined
+  loginHoverVisible.value = false
+}
+
+function toggleSelect(id: number) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedIds.value = next
+}
+
+function clearSelection() {
+  selectedIds.value = new Set()
+}
+
+const selectedRows = computed(() =>
+  pages.value.filter((r) => selectedIds.value.has(Number(r.id))),
+)
+
+const selectedSummary = computed(() => {
+  const names = selectedRows.value.slice(0, 3).map((r) => r.name)
+  return names.join('、') + (selectedRows.value.length > 3 ? ' 等' : '')
+})
+
+async function runBatch(
+  label: string,
+  fn: (row: PageRecord) => Promise<unknown>,
+  filter?: (row: PageRecord) => boolean,
+) {
+  const rows = selectedRows.value.filter((r) => (filter ? filter(r) : true))
+  if (!rows.length) {
+    ElMessage.info(`所选页面没有可用于「${label}」的项`)
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`确认对 ${rows.length} 个页面执行「${label}」？`, `批量${label}`, {
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  batchRunning.value = true
+  let ok = 0
+  const failed: string[] = []
+  for (const row of rows) {
+    try {
+      await fn(row)
+      ok += 1
+    } catch (e: any) {
+      failed.push(`${row.name}：${e?.message || '失败'}`)
+    }
+  }
+  batchRunning.value = false
+  if (failed.length) {
+    ElMessage.warning(`${label}完成 ${ok} 项，失败 ${failed.length} 项：${failed.slice(0, 2).join('；')}`)
+  } else {
+    ElMessage.success(`已${label} ${ok} 个页面`)
+  }
+  clearSelection()
+  await load()
+}
+
+function batchToggleTest() {
+  void runBatch('标为测试页', (row) => updatePage(Number(row.id), { isTest: 1 } as any))
+}
+
+function batchArchive() {
+  void runBatch('归档', (row) => updatePage(Number(row.id), { archived: 1, pageGroup: 'archived' } as any))
+}
+
+function batchDelete() {
+  void runBatch('删除', (row) => deletePage(Number(row.id)), (r) => canDelete(r))
+}
+
+/** 某个导航槽位绑定的装修页；返回 null 表示绑的是系统页或空 */
+function navBoundPage(tab: MiniTabBarItem): PageRecord | null {
+  const id = Number((tab as any)?.pageId)
+  if (id) {
+    const hit = pages.value.find((p) => Number(p.id) === id)
+    if (hit) return hit
+  }
+  const tp = String((tab as any)?.pagePath || '').replace(/^\//, '')
+  if (!tp) return null
+  if (MINI_SYSTEM_PAGES.some((s) => s.path === tp)) return null
+  return pages.value.find((p) => String(p.path || '').replace(/^\//, '') === tp) || null
+}
+
+function navBoundIsSystem(tab: MiniTabBarItem) {
+  const tp = String((tab as any)?.pagePath || '').replace(/^\//, '')
+  if (!tp) return false
+  if (MINI_SYSTEM_PAGES.some((s) => s.path === tp)) return true
+  return !navBoundPage(tab)
+}
+
+function onNavSlotClick(tab: MiniTabBarItem) {
+  const page = navBoundPage(tab)
+  if (page) {
+    openEditor(page)
+    return
+  }
+  ElMessage.info('该导航位未绑定装修页，可到「外观」或页面行的「设为底部导航入口」绑定')
+  router.push('/mini/appearance')
+}
+
+/** 系统页行：来自内置清单（Tab 壳页不列，真实内容在装修页组），不是库表页面；无页面状态，故只在「全部」筛选下展示 */
 const systemRows = computed(() => {
   if (statusFilter.value !== 'all') return []
+  const list = listableSystemPages()
   const q = keyword.value.trim().toLowerCase()
-  if (!q) return MINI_SYSTEM_PAGES
-  return MINI_SYSTEM_PAGES.filter((s) => `${s.name} ${s.path}`.toLowerCase().includes(q))
+  if (!q) return list
+  return list.filter((s) => `${s.name} ${s.path}`.toLowerCase().includes(q))
 })
 
 /** 筛选时藏空组；未筛选时全部展示（空组给引导文案） */
@@ -312,8 +1298,12 @@ const visibleGroups = computed(() => {
   )
 })
 
-function groupSub(key: PageGroup) {
-  return PAGE_GROUP_SUB[key] || ''
+function groupSub(key: string) {
+  // 「我的」是唯一带模板库的系统页，把模板数量写进组说明，避免它藏在行下面没人知道
+  if (key === 'system') {
+    return `${PAGE_GROUP_SUB.system}（「我的」另含 ${MINE_TEMPLATES.length} 套模板）`
+  }
+  return resolveGroupSub(key) || ''
 }
 
 function toggleGroup(key: string) {
@@ -340,6 +1330,12 @@ function formatUpdated(row: PageRecord) {
   return s.slice(0, 16)
 }
 
+/** 完整时间戳（悬停 title） */
+function formatUpdatedFull(row: PageRecord) {
+  const t = String((row as any).updateTime || (row as any).updatedAt || '')
+  return t ? t.replace('T', ' ') : ''
+}
+
 function isTestPage(row: PageRecord) {
   return !!(row as any).isTest || (row as any).is_test === 1
 }
@@ -355,21 +1351,91 @@ function tabSlotByPath(sp: MiniSystemPage) {
   return i >= 0 ? i + 1 : 0
 }
 
-function rowSub(row: PageRecord) {
-  const parts: string[] = []
-  const ti = tabIndexOf(row)
-  if (ti >= 0) parts.push(`导航 ${ti + 1}`)
-  else if (pages.value.some((p) => p.name === row.name && Number(p.id) !== Number(row.id))) {
-    parts.push('同名但未绑导航')
-  }
+/** 行内结构化信息：拆「导航位 / 到期 / 更新时间 / PV」为独立片段，便于扫读与排序 */
+function navLabel(row: PageRecord) {
+  const i = tabIndexOf(row)
+  return i >= 0 ? `导航 ${i + 1}` : ''
+}
+
+function hasNamesake(row: PageRecord) {
+  return pages.value.some((p) => p.name === row.name && Number(p.id) !== Number(row.id))
+}
+
+function isNamesake(row: PageRecord) {
+  return tabIndexOf(row) < 0 && hasNamesake(row)
+}
+
+function expireLabel(row: PageRecord) {
   const exp = String((row as any).entryExpireAt || (row as any).entry_expire_at || '')
-  if (exp) parts.push(`到期 ${exp.slice(0, 16)}`)
-  const src = String((row as any).source || (row as any).src || '').trim()
-  if (src) parts.push(src)
-  const upd = formatUpdated(row)
-  if (upd) parts.push(upd)
-  if (!parts.length) parts.push(String(row.path || ''))
-  return parts.join(' · ')
+  return exp ? `到期 ${exp.slice(0, 16)}` : ''
+}
+
+function accessLabel(row: PageRecord) {
+  const acc = rowAccess(row)
+  return acc ? `PV ${acc.pv} · UV ${acc.uv}` : ''
+}
+
+/** 待同步页面「改了什么」：草稿版本 vs 线上版本 + 组件数变化 */
+type DiffInfo = { text: string; sortTs: number }
+const diffMap = ref<Record<string, DiffInfo>>({})
+
+function diffLabel(row: PageRecord) {
+  if (resolvePageStatus(row) !== 'pending') return ''
+  return diffMap.value[String(row.id)]?.text || '草稿有改动'
+}
+
+function countComponents(raw: unknown): number | null {
+  try {
+    let obj: any = raw
+    if (typeof raw === 'string') obj = JSON.parse(raw)
+    const comps = obj?.components ?? obj?.dsl?.components
+    return Array.isArray(comps) ? comps.length : null
+  } catch {
+    return null
+  }
+}
+
+async function loadPendingDiffs() {
+  const targets = pendingRows.value.slice(0, 8)
+  if (!targets.length) return
+  await Promise.all(
+    targets.map(async (row) => {
+      try {
+        const res = await getVersionList(Number(row.id))
+        const data = (res as any)?.data as unknown
+        const rawList: any[] = Array.isArray(data)
+          ? data
+          : ((data as any)?.records || (data as any)?.list || (data as any)?.items || [])
+        if (!rawList.length) return
+        const list = rawList
+          .map((v: any) => ({
+            version: Number(v.version ?? 0),
+            count: countComponents(v.dslContent ?? v.dsl ?? v.content),
+          }))
+          .filter((v) => v.version > 0)
+          .sort((a, b) => b.version - a.version)
+        const draft = list[0]
+        const liveVersion = Number((row as any).currentVersion ?? (row as any).current_version ?? 0)
+        const liveCount = list.find((v) => v.version === liveVersion)?.count ?? null
+        if (liveVersion && draft.version === liveVersion) return
+        const cnt =
+          draft.count != null && liveCount != null && draft.count !== liveCount
+            ? ` · 组件 ${liveCount}→${draft.count}`
+            : draft.count != null
+              ? ` · 组件 ${draft.count}`
+              : ''
+        diffMap.value = {
+          ...diffMap.value,
+          [String(row.id)]: {
+            text: `草稿 v${draft.version} / 线上 v${liveVersion || '—'}${cnt}`,
+            sortTs: 0,
+          },
+        }
+      } catch {
+        /* 差异是锦上添花，失败不打扰 */
+      }
+    }),
+  )
 }
 
 function thumbColors(row: PageRecord): string[] {
@@ -397,6 +1463,46 @@ function canDelete(row: PageRecord) {
   return Number((row as any).status ?? 0) !== 1
 }
 
+/** 行内可见的「下线」按钮：live / pending 态直接点 */
+async function onQuickOffline(row: PageRecord) {
+  try {
+    await ElMessageBox.confirm(`确认下线「${row.name}」？`, '下线页面', { type: 'warning' })
+    await unpublishPage(Number(row.id))
+    ElMessage.success('已下线')
+    await load()
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+  }
+}
+
+/** 行内可见的「删除」按钮：草稿 / 已下线 / 归档可直接删；已上线页提示先下线 */
+async function onQuickDelete(row: PageRecord) {
+  if (Number((row as any).status ?? 0) === 1) {
+    ElMessage.warning('已上线页面需先「下线」再删除')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`确认删除「${row.name}」？不可恢复`, '删除', { type: 'warning' })
+    await deletePage(Number(row.id))
+    ElMessage.success('已删除')
+    await load()
+  } catch (e: any) {
+    if (e !== 'cancel' && e?.message) ElMessage.error(e.message)
+  }
+}
+
+/** 移动页面到指定分组（系统页不可移动） */
+async function moveToGroup(row: PageRecord, groupKey: string) {
+  try {
+    await updatePage(Number(row.id), { pageGroup: groupKey } as any)
+    ElMessage.success(`已移至「${resolveGroupLabel(groupKey)}」`)
+    groupDialogVisible.value = false
+    await load()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '移动失败')
+  }
+}
+
 function openEditor(row: PageRecord) {
   router.push(`/mini/pages/${row.id}/editor`)
 }
@@ -405,6 +1511,19 @@ async function onMore(cmd: string, row: PageRecord) {
   if (cmd === 'preview') {
     const { href } = router.resolve({ path: `/page-builder/preview/${row.id}` })
     window.open(href, '_blank', 'noopener,noreferrer')
+    return
+  }
+  if (cmd === 'versions') {
+    versionTarget.value = row
+    versionVisible.value = true
+    return
+  }
+  if (cmd === 'qr') {
+    qrPath.value = screenPathOf(row)
+    qrTitle.value = `扫码看「${row.name}」`
+    qrHint.value =
+      '微信渠道进入的是体验版（带草稿令牌），从默认页起；切到浏览器渠道可直接看到本页 H5 效果。'
+    qrVisible.value = true
     return
   }
   if (cmd === 'copy') {
@@ -426,6 +1545,12 @@ async function onMore(cmd: string, row: PageRecord) {
     } catch {
       ElMessage.info(String(row.path || ''))
     }
+    return
+  }
+  if (cmd === 'set-group') {
+    groupTarget.value = row
+    groupInput.value = ''
+    groupDialogVisible.value = true
     return
   }
   if (cmd === 'set-nav') {
@@ -574,12 +1699,17 @@ async function createBlank() {
 async function load() {
   loading.value = true
   try {
-    const [res, site] = await Promise.all([
+    const [res, site, cfgRes] = await Promise.all([
       getPageList({ current: 1, size: 100 }),
       getMiniSite('draft').catch(() => null),
+      getConfigByGroupSilent('basic').catch(() => null),
     ])
     pages.value = ((res as any)?.data?.records || (res as any)?.data?.list || []) as PageRecord[]
     siteTabs.value = site?.tabBar || []
+    loadMineConfigFrom(cfgRes)
+    selectedIds.value = new Set()
+    void loadPageAccess()
+    void loadPendingDiffs()
   } catch (e: any) {
     ElMessage.error(e?.message || '加载页面失败')
   } finally {
@@ -588,10 +1718,239 @@ async function load() {
   }
 }
 
+/** 解析 basic 配置 → 线上值 / 待上线草稿 / 当前「我的」页配置（草稿优先） */
+function loadMineConfigFrom(cfgRes: unknown) {
+  const data = (cfgRes as any)?.data
+  const list = (data?.configs || data || []) as Array<{ configKey?: string; configValue?: unknown }>
+  const map: Record<string, string> = {}
+  for (const c of Array.isArray(list) ? list : []) {
+    if (c?.configKey) map[c.configKey] = String(c.configValue ?? '')
+  }
+  basicConfig.value = map
+  const draft = parseJsonish(map.site_builder_draft) || {}
+  siteDraft.value = draft as Record<string, string>
+  const fromDraft = parseJsonish((draft as Record<string, unknown>)[CONFIG_KEYS.MINE_PAGE_CONFIG])
+  const fromLive = parseJsonish(map[CONFIG_KEYS.MINE_PAGE_CONFIG])
+  mineConfig.value = fromDraft || fromLive || {}
+  mineTheme.value =
+    parseJsonish((draft as Record<string, unknown>)[CONFIG_KEYS.THEME_CONFIG])
+    || parseJsonish(map[CONFIG_KEYS.THEME_CONFIG])
+  // 登录页配置（草稿优先，其次线上，最后默认）
+  const loginDraft = parseJsonish((draft as Record<string, unknown>)[CONFIG_KEYS.LOGIN_PAGE_CONFIG])
+  const loginLive = parseJsonish(map[CONFIG_KEYS.LOGIN_PAGE_CONFIG])
+  loginConfig.value = { ...DEFAULT_LOGIN_PAGE_CONFIG, ...(loginLive || {}), ...(loginDraft || {}) }
+}
+
 onMounted(load)
 </script>
 
 <style scoped lang="scss">
+/* 底部导航绑定全景 */
+.navmap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.navmap__hd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.navmap__t {
+  font-weight: 600;
+  color: var(--ink);
+}
+.navmap__go {
+  margin-left: auto;
+  font-size: 13px;
+}
+.navmap__row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.navslot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  text-align: left;
+  flex: 1 1 200px;
+  min-width: 0;
+  &:hover { border-color: #d6c8b6; }
+}
+.navslot__i {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--bs);
+  color: var(--b);
+  font-size: 12px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.navslot__n { font-weight: 500; flex-shrink: 0; }
+.navslot__p {
+  color: var(--mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.navslot--empty {
+  border-style: dashed;
+  .navslot__i { background: var(--as); color: var(--a); }
+  .navslot__p { color: var(--a); }
+}
+
+/* 待同步横幅 */
+.pending-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid #e6d3ae;
+  background: var(--as);
+}
+.pending-bar__sp { margin-left: auto; }
+
+/* 批量操作条 */
+.batchbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+}
+.batchbar__sp { margin-left: auto; }
+
+.filters__sp { margin-left: auto; }
+.sortseg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 行多选 */
+.pick {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  input {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: var(--acc);
+  }
+}
+
+/* 行结构化信息 */
+.pmeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  .tag { font-size: 11px; padding: 1px 7px; }
+  .path {
+    color: var(--faint);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 260px;
+  }
+}
+.prow:hover { background: var(--soft); }
+
+/* 更新时间列：从 pmeta 拆出为独立列，悬停显示完整时间戳 */
+.prow-time {
+  flex-shrink: 0;
+  width: 92px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 行内可见下线按钮：暖灰色描边，区别于「装修」的默认色 */
+.prow-offline-btn {
+  color: #8a6d4a;
+  border-color: #d4b896;
+  background: #fbf6ef;
+  &:hover { background: #f5ead9; }
+}
+
+/* 行内可见删除按钮：危险色，放在行尾 PageRowMenu 前 */
+.prow-del-btn {
+  color: #c0392b;
+  &:hover { color: #a93226; background: #fdf0ee; }
+}
+
+/* 设置分组对话框 */
+.group-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.group-pick__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  transition: border-color 0.14s, box-shadow 0.14s;
+  &:hover { border-color: var(--acc); }
+}
+.group-pick__item--active {
+  border-color: var(--acc);
+  background: var(--as);
+  color: var(--a);
+}
+.group-pick__label { flex: 1; }
+.group-pick__tag {
+  font-size: 10.5px;
+  color: var(--mute);
+  background: var(--soft);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.group-new {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.group-new__row {
+  display: flex;
+  gap: 8px;
+}
+
+
 .groups-stack {
   display: flex;
   flex-direction: column;
@@ -600,6 +1959,98 @@ onMounted(load)
 .sys-row {
   background: var(--soft);
 }
+/* 「我的」是唯一能换模板的系统页，给它一点视觉分量 */
+.sys-row--mine { cursor: default; }
+
+/* 「我的」页模板库：缩进在「我的」行下面，让「一套模板」看得见也点得到 */
+.tpl-stack {
+  padding: 10px 16px 12px 66px;
+  background: var(--soft);
+  border-bottom: 1px solid var(--line2);
+}
+.tpl-stack__hd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  b { font-size: 12.5px; }
+  .faint { font-size: 11.5px; }
+}
+.tpl-stack__toggle {
+  margin-left: auto;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.tpl-stack__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tpl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.14s, box-shadow 0.14s;
+  &:hover { border-color: var(--acc); }
+  &:disabled { cursor: default; opacity: 0.7; }
+}
+.tpl-item--active {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(23, 105, 255, 0.12);
+}
+.tpl-item__thumb {
+  width: 40px;
+  height: 70px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  background: #fff;
+}
+/* MinePagePreview 原生宽 375，按 40/375 缩放进 40×70 的框 */
+.tpl-item__inner {
+  display: block;
+  width: 375px;
+  transform: scale(0.1067);
+  transform-origin: top left;
+  pointer-events: none;
+}
+.tpl-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tpl-item__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  em {
+    font-style: normal;
+    font-size: 10.5px;
+    color: #fff;
+    background: var(--acc);
+    border-radius: 999px;
+    padding: 0 6px;
+  }
+}
+.tpl-item__meta { font-size: 11.5px; }
+.tpl-item__op {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--acc);
+}
+/* 「模板 · xx」徽标：与「导航位」蓝色、「系统页」绿色区分开 */
+.tag.t-tpl { color: var(--a); background: var(--as); }
 .g-head__note {
   margin-left: auto;
 }

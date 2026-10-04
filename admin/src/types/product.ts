@@ -77,6 +77,11 @@ export interface ProductRecord {
   name: string
   category_id: number
   category_name?: string
+  /** 关联作者档案ID（可空） */
+  authorId?: number
+  author_id?: number
+  /** 关联作者昵称（后台列表展示用；可空） */
+  author_name?: string
   productType?: string
   description?: string
   content?: string

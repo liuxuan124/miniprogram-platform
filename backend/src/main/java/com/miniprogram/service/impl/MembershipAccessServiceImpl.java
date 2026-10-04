@@ -548,6 +548,140 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
         }
     }
 
+    @Override
+    public String getOperatingMode() {
+        String m = systemConfigService.getConfigValue("membership_operating_mode", "platform_primary");
+        String s = m == null ? "" : m.trim().toLowerCase();
+        return switch (s) {
+            case "dual", "planet_only" -> s;
+            default -> "platform_primary";
+        };
+    }
+
+    @Override
+    public boolean isPlatformPlanVisible() {
+        return !"planet_only".equals(getOperatingMode());
+    }
+
+    @Override
+    public boolean hasContentAccess(Long userId, String visibility, String planetId) {
+        if (!StringUtils.hasText(visibility)) {
+            return true;
+        }
+        String v = visibility.trim().toLowerCase();
+        if (v.isEmpty() || "public".equals(v)) {
+            return true;
+        }
+        if ("removed".equals(v)) {
+            return false;
+        }
+        String mode = getOperatingMode();
+        // 兼容旧 member_only = platform_member
+        if ("member_only".equals(v)) {
+            v = "platform_member";
+        }
+        if ("platform_member".equals(v)) {
+            // C 模式：平台会员隐藏，按 fallback 配置回退
+            if ("planet_only".equals(mode)) {
+                String fallback = systemConfigService.getConfigValue(
+                        "planet_only_platform_member_fallback", "planet_member");
+                if ("public".equalsIgnoreCase(fallback)) {
+                    return true;
+                }
+                return StringUtils.hasText(planetId) && hasPlanetMembershipAcross(userId, planetId);
+            }
+            return hasPlatformMembership(userId);
+        }
+        if ("planet_member".equals(v)) {
+            if (!StringUtils.hasText(planetId)) {
+                // 无星球归属的 planet_member 降级校验平台会员
+                return hasPlatformMembership(userId);
+            }
+            return hasPlanetMembershipAcross(userId, planetId);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean hasPlanetMembershipAcross(Long userId, String planetId) {
+        if (userId == null || !StringUtils.hasText(planetId)) {
+            return false;
+        }
+        if (hasPlanetMembership(userId, planetId)) {
+            return true;
+        }
+        String mode = readCrossIdentity();
+        if ("mutual_recognition".equals(mode)) {
+            return hasAnyPlanetMembership(userId);
+        }
+        if ("ticket_only".equals(mode)) {
+            return hasTicketCovering(userId, planetId);
+        }
+        // isolated
+        return false;
+    }
+
+    private String readCrossIdentity() {
+        String m = systemConfigService.getConfigValue("planet_cross_identity", "isolated");
+        String s = m == null ? "" : m.trim().toLowerCase();
+        return switch (s) {
+            case "mutual_recognition", "ticket_only" -> s;
+            default -> "isolated";
+        };
+    }
+
+    private boolean hasAnyPlanetMembership(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        Long count = memberSubscriptionMapper.selectCount(new LambdaQueryWrapper<MemberSubscription>()
+                .eq(MemberSubscription::getUserId, userId)
+                .eq(MemberSubscription::getScope, SCOPE_PLANET)
+                .eq(MemberSubscription::getStatus, STATUS_ACTIVE)
+                .and(x -> x.isNull(MemberSubscription::getExpireAt)
+                        .or().gt(MemberSubscription::getExpireAt, LocalDateTime.now())));
+        return count != null && count > 0;
+    }
+
+    /**
+     * 通票覆盖校验：用户持有的 multi_planet/all_planets 通票档订购是否覆盖目标星球。
+     */
+    private boolean hasTicketCovering(Long userId, String planetId) {
+        List<MemberSubscription> subs = memberSubscriptionMapper.selectList(new LambdaQueryWrapper<MemberSubscription>()
+                .eq(MemberSubscription::getUserId, userId)
+                .eq(MemberSubscription::getScope, SCOPE_PLANET)
+                .eq(MemberSubscription::getStatus, STATUS_ACTIVE)
+                .and(x -> x.isNull(MemberSubscription::getExpireAt)
+                        .or().gt(MemberSubscription::getExpireAt, LocalDateTime.now())));
+        if (subs == null || subs.isEmpty()) {
+            return false;
+        }
+        Set<Long> planIds = subs.stream()
+                .map(MemberSubscription::getPlanId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (planIds.isEmpty()) {
+            return false;
+        }
+        List<MembershipPlan> plans = membershipPlanMapper.selectBatchIds(planIds);
+        if (plans == null || plans.isEmpty()) {
+            return false;
+        }
+        for (MembershipPlan p : plans) {
+            String applies = p.getAppliesTo() == null ? "single_planet" : p.getAppliesTo().trim().toLowerCase();
+            if ("all_planets".equals(applies)) {
+                return true;
+            }
+            if ("multi_planet".equals(applies)) {
+                List<String> list = p.getAppliesPlanets();
+                if (list != null && list.contains(planetId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private List<PlanetConfigVO.PlanetPackageVO> listPackages(String planetId, String scopeFilter) {
         List<Product> products = productMapper.selectList(new LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus, "on_sale")
@@ -588,6 +722,10 @@ public class MembershipAccessServiceImpl implements MembershipAccessService {
      * 未绑 plan 的旧会员商品：平台列表保留、星球列表排除。
      */
     private boolean matchPackageScope(Product product, String scopeFilter, String planetId) {
+        // C 模式（planet_only）隐藏平台档
+        if (SCOPE_PLATFORM.equals(scopeFilter) && !isPlatformPlanVisible()) {
+            return false;
+        }
         if (product.getMembershipPlanId() == null) {
             return SCOPE_PLATFORM.equals(scopeFilter);
         }

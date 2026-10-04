@@ -18,6 +18,11 @@
             <el-icon><Bottom /></el-icon>
           </el-button>
         </el-tooltip>
+        <el-tooltip v-if="allowSaveAsBlock" content="另存为区块（可复用到其他页）" placement="top" :show-after="300">
+          <el-button text size="small" aria-label="另存为区块" @click.stop="$emit('save-as-block')">
+            <el-icon><Collection /></el-icon>
+          </el-button>
+        </el-tooltip>
         <el-tooltip content="复制" placement="top" :show-after="300">
           <el-button text size="small" aria-label="复制组件" @click.stop="$emit('copy')">
             <el-icon><CopyDocument /></el-icon>
@@ -42,11 +47,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Top, Bottom, CopyDocument, Delete } from '@element-plus/icons-vue'
+import { Top, Bottom, CopyDocument, Delete, Collection } from '@element-plus/icons-vue'
 import type { ComponentStyle } from '@/types/page'
 import '../componentTextStyle.scss'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   index: number
   selected: boolean
   label: string
@@ -57,14 +62,17 @@ const props = defineProps<{
   stackOnTop?: boolean
   /** 编辑工具条始终显示在组件下方（品牌顶栏） */
   toolbarAlwaysBelow?: boolean
-}>()
+  /** 是否展示「另存为区块」按钮（仅容器类组件由调用方开启） */
+  allowSaveAsBlock?: boolean
+}>(), { allowSaveAsBlock: false })
 
-defineEmits<{
+const emit = defineEmits<{
   select: []
   delete: []
   copy: []
   'move-up': []
   'move-down': []
+  'save-as-block': []
 }>()
 
 const isHidden = computed(() => props.componentStyle?.visible === false)
@@ -109,6 +117,16 @@ const innerStyle = computed(() => {
   }
   if (s.font_size !== undefined && s.font_size !== null && Number(s.font_size) > 0) {
     style['--component-font-size'] = `${Number(s.font_size)}px`
+  }
+
+  // 暖调环境阴影：shadow_* 字段合成 box-shadow（与小程序端 parseStyle 同规则）
+  const sx = Number(s.shadow_x || 0)
+  const sy = Number(s.shadow_y || 0)
+  const sb = Number(s.shadow_blur || 0)
+  const ss = Number(s.shadow_spread || 0)
+  const sc = typeof s.shadow_color === 'string' && s.shadow_color ? s.shadow_color : 'rgba(0, 0, 0, 0)'
+  if (sx !== 0 || sy !== 0 || sb !== 0 || ss !== 0) {
+    style['--component-shadow'] = `${sx}px ${sy}px ${sb}px ${ss}px ${sc}`
   }
 
   return style
@@ -206,5 +224,7 @@ const textStyleClass = computed(() => {
   display: flow-root;
   min-width: 0;
   overflow: visible;
+  /* 暖调环境阴影由 innerStyle 注入 --component-shadow；未配置时为 none */
+  box-shadow: var(--component-shadow, none);
 }
 </style>

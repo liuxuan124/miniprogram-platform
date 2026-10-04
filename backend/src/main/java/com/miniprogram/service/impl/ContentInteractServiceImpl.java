@@ -29,9 +29,12 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -113,19 +116,39 @@ public class ContentInteractServiceImpl implements ContentInteractService {
     @Override
     public List<ContentCommentDTO> listComments(Long contentId) {
         requirePublished(contentId);
-        return commentMapper.selectList(new LambdaQueryWrapper<ContentComment>()
-                        .eq(ContentComment::getContentId, contentId)
-                        .eq(ContentComment::getStatus, 1)
-                        .orderByDesc(ContentComment::getCreateTime)
-                        .last("LIMIT 100"))
-                .stream()
+        // 楼主评论（parent_id IS NULL AND status=1），倒序取前 50 楼
+        List<ContentComment> parents = commentMapper.selectList(new LambdaQueryWrapper<ContentComment>()
+                .eq(ContentComment::getContentId, contentId)
+                .isNull(ContentComment::getParentId)
+                .eq(ContentComment::getStatus, 1)
+                .orderByDesc(ContentComment::getCreateTime)
+                .last("LIMIT 50"));
+        if (parents.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> parentIds = parents.stream().map(ContentComment::getId).toList();
+        // 各楼主下的回复，按时间正序聚合
+        List<ContentComment> children = commentMapper.selectList(new LambdaQueryWrapper<ContentComment>()
+                .in(ContentComment::getParentId, parentIds)
+                .eq(ContentComment::getStatus, 1)
+                .orderByAsc(ContentComment::getCreateTime));
+        Map<Long, List<ContentCommentDTO>> childMap = children.stream()
                 .map(this::toCommentDTO)
-                .toList();
+                .collect(Collectors.groupingBy(ContentCommentDTO::getParentId));
+        List<ContentCommentDTO> result = new ArrayList<>(parents.size());
+        for (ContentComment p : parents) {
+            ContentCommentDTO dto = toCommentDTO(p);
+            List<ContentCommentDTO> reps = childMap.getOrDefault(p.getId(), Collections.emptyList());
+            dto.setReplies(reps);
+            dto.setReplyCount(reps.size());
+            result.add(dto);
+        }
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ContentCommentDTO addComment(Long contentId, Long userId, String nickname, String avatar, String contentText) {
+    public ContentCommentDTO addComment(Long contentId, Long userId, String nickname, String avatar, String contentText, Long parentId, String replyToNickname) {
         requirePublished(contentId);
         if (!StringUtils.hasText(contentText) || contentText.trim().length() > 500) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "评论内容不能为空且不超过500字");
@@ -147,6 +170,20 @@ public class ContentInteractServiceImpl implements ContentInteractService {
         row.setCreateTime(LocalDateTime.now());
         row.setUpdateTime(LocalDateTime.now());
         row.setDeleted(0);
+
+        if (parentId != null && parentId > 0) {
+            // 二级回复：校验父评论存在、同内容、未删除
+            ContentComment parent = commentMapper.selectById(parentId);
+            if (parent == null || !contentId.equals(parent.getContentId()) || parent.getDeleted() == 1) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "父评论不存在或已删除");
+            }
+            row.setParentId(parentId);
+            // 楼中楼只回楼主；被回复人昵称优先用前端传值（回复楼中楼回复时为另一回复人），否则取父评论作者
+            row.setReplyToUserId(parent.getUserId());
+            String replyName = StringUtils.hasText(replyToNickname) ? replyToNickname.trim() : parent.getNickname();
+            row.setReplyToNickname(replyName);
+        }
+
         commentMapper.insert(row);
         return toCommentDTO(row);
     }

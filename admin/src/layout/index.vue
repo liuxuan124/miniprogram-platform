@@ -19,11 +19,6 @@
       </el-header>
       <TagsView v-if="!isWarmShell" />
       <el-main class="app-main" :class="{ 'is-mini': isWarmShell, 'is-content-editor': isContentEditor }">
-        <div v-if="switching" class="route-skeleton" role="status" aria-live="polite" aria-label="页面加载中">
-          <div class="sk-line" />
-          <div class="sk-line" />
-          <div class="sk-line sk-line--short" />
-        </div>
         <router-view v-slot="{ Component, route }">
           <transition name="fade-transform">
             <!-- 内容编辑器不缓存、按 fullPath 重建：type/id 变化必须销毁旧编辑会话，
@@ -48,12 +43,10 @@ import TagsView from './TagsView.vue'
 import ChangePasswordDialog from './ChangePasswordDialog.vue'
 import CommandPalette from '@/components/CommandPalette.vue'
 import { useAppStore } from '@/stores/app'
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 const appStore = useAppStore()
-const switching = ref(false)
-const router = useRouter()
 const route = useRoute()
 const isContentEditor = computed(() => /^\/content\/(write|edit)(\/|$)/.test(route.path))
 const isContentOps = computed(() => route.path.startsWith('/content') && !isContentEditor.value)
@@ -67,15 +60,6 @@ const isCommerceOps = computed(() =>
 const isWarmShell = computed(() => route.path.startsWith('/mini') || isContentOps.value || isMemberOps.value || isCommerceOps.value)
 /** @deprecated use isWarmShell — kept for Header/Sidebar that still read mini */
 const isMiniRoute = isWarmShell
-let switchTimer = 0
-router.beforeEach((to, from) => {
-  if (to.path === from.path) return
-  switching.value = true
-})
-router.afterEach(() => {
-  window.clearTimeout(switchTimer)
-  switchTimer = window.setTimeout(() => { switching.value = false }, 160)
-})
 </script>
 
 <style lang="scss" scoped>
@@ -178,31 +162,6 @@ router.afterEach(() => {
     overflow-y: auto !important;
     flex: 1 1 auto;
   }
-}
-
-.route-skeleton {
-  position: absolute;
-  inset: 20px;
-  z-index: 5;
-  pointer-events: none;
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-
-.sk-line {
-  height: 16px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #eef1f6 25%, #f7f8fb 50%, #eef1f6 75%);
-  background-size: 200% 100%;
-  animation: sk-shimmer 0.9s linear infinite;
-}
-
-.sk-line--short { width: 40%; }
-
-@keyframes sk-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
 }
 
 /* 路由切换动画 */

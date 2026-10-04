@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
+import com.miniprogram.dto.system.ConfigBatchUpdateDTO;
+import com.miniprogram.dto.system.ConfigItemDTO;
 import java.util.HashSet;
 import java.util.Set;
 import com.miniprogram.entity.Page;
@@ -60,6 +62,10 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Lazy
+    @Autowired
+    private com.miniprogram.service.SystemConfigService systemConfigService;
 
     private static final String DSL_SCHEMA_VERSION = "1.0";
 
@@ -225,8 +231,13 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
 
         if (page.getStatus() == 2) {
             page.setStatus(0);
-            this.updateById(page);
         }
+
+        // 保存草稿也是一次内容编辑：让 mp_page.update_time 反映最后编辑时间。
+        // 注意：updateById 会把从库里读出来的旧 updateTime 一并写回，覆盖 DB 的
+        // ON UPDATE CURRENT_TIMESTAMP，所以这里先清空该字段交给自动填充。
+        page.setUpdateTime(null);
+        this.updateById(page);
 
         schedulePageAutoSync(id);
 
@@ -268,12 +279,89 @@ public class PageServiceImpl extends BaseServiceImpl<PageMapper, Page> implement
 
         page.setCurrentVersion(latestVersion.getVersion());
         page.setStatus(1);
+        // 同上：发布也刷新最后编辑时间，避免 updateById 写回旧时间戳导致
+        // 页面列表「最近更新」排序失真
+        page.setUpdateTime(null);
         this.updateById(page);
 
         miniappReleaseService.syncPublishedPageToLatestSnapshot(
                 page.getPath(), page.getName(), latestVersion.getDslContent());
 
+        bumpLiveReleaseNoIfBoundPage(page);
+
         return toDetailDTO(page);
+    }
+
+    /**
+     * 绑定页（首页/我的/Tab 页）单页发布后递增 live_release_no：
+     * 小程序端 DSL 缓存键带发布序号（dsl_<path>_r<no>），序号不变老客户端会一直用旧缓存。
+     */
+    private void bumpLiveReleaseNoIfBoundPage(Page page) {
+        try {
+            Set<Long> boundIds = collectLiveBoundPageIds();
+            if (!boundIds.contains(page.getId())) {
+                return;
+            }
+            int prev = parseIntOrDefault(systemConfigService.getConfigValue("live_release_no"), 0);
+            ConfigItemDTO item = new ConfigItemDTO();
+            item.setConfigKey("live_release_no");
+            item.setConfigValue(String.valueOf(prev + 1));
+            item.setConfigGroup("mini");
+            item.setDescription("内容发布序号（第 N 次）");
+            ConfigBatchUpdateDTO batch = new ConfigBatchUpdateDTO();
+            batch.setConfigs(java.util.List.of(item));
+            systemConfigService.batchUpdateConfigs(batch);
+            log.info("绑定页[id={}]单页发布，live_release_no {} -> {}", page.getId(), prev, prev + 1);
+        } catch (Exception e) {
+            log.warn("单页发布后递增 live_release_no 失败 pageId={}: {}", page.getId(), e.getMessage());
+        }
+    }
+
+    private Set<Long> collectLiveBoundPageIds() {
+        Set<Long> ids = new HashSet<>();
+        addLongIdIfPresent(ids, systemConfigService.getConfigValue("miniappHomePageId"));
+        addLongIdIfPresent(ids, systemConfigService.getConfigValue("miniappMinePageId"));
+        String tabbar = systemConfigService.getConfigValue("tabbarItems");
+        if (StringUtils.hasText(tabbar)) {
+            try {
+                JsonNode arr = objectMapper.readTree(tabbar);
+                if (arr != null && arr.isArray()) {
+                    for (JsonNode node : arr) {
+                        JsonNode pid = node.get("pageId");
+                        if (pid != null && pid.isNumber()) {
+                            ids.add(pid.asLong());
+                        } else if (pid != null && pid.isTextual()) {
+                            addLongIdIfPresent(ids, pid.asText());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("解析 tabbarItems 配置失败，按无绑定页处理: {}", e.getMessage());
+            }
+        }
+        return ids;
+    }
+
+    private void addLongIdIfPresent(Set<Long> ids, String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return;
+        }
+        try {
+            ids.add(Long.parseLong(raw.trim()));
+        } catch (NumberFormatException ignored) {
+            // 非数字配置跳过
+        }
+    }
+
+    private int parseIntOrDefault(String raw, int def) {
+        if (!StringUtils.hasText(raw)) {
+            return def;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
     }
 
     @Override

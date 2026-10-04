@@ -30,6 +30,13 @@ public class MembershipPlan implements Serializable {
     /** scope=planet 时必填；platform 必须为 null */
     private String planetId;
 
+    /** 档位适用星球范围 single_planet(默认)|multi_planet|all_planets；C 模式多星球通票用 multi_planet/all_planets */
+    private String appliesTo;
+
+    /** multi_planet 时生效：星球ID列表；single_planet/all_planets 时为 null */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> appliesPlanets;
+
     private String name;
 
     private String icon;

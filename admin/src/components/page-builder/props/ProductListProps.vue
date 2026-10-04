@@ -1,6 +1,6 @@
 <template>
   <div class="product-list-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <div class="ds-hint ds-hint--block">
         标题请单独拖入「标题栏」组件放在本列表上方；本组件只渲染商品卡。
       </div>

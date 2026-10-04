@@ -13,6 +13,16 @@
   font-size: 28rpx;
 }
 
+/* 底部渐隐融合遮罩：固定视口底部，不阻断交互 */
+.custom-page__overlay {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
 .custom-page__body {
   width: 100%;
   max-width: 100%;

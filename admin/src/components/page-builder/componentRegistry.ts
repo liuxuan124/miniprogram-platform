@@ -1272,13 +1272,17 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         source_mode: 'auto',
         page_size: 20,
         resources_url: '/pkg-content/resources/resources',
+        // 与线上「墨太白-星球」实际配置一致：8 个分段 key 全用上，
+        // 避免新拖的组件与线上表现不同（预览里少了 host / homework 两个分段）。
         segs: [
-          { key: 'all', label: '全部' },
-          { key: 'official', label: '官方更新' },
-          { key: 'essence', label: '精华 ⭐️' },
-          { key: 'ask', label: '读者提问' },
+          { key: 'all', label: '最新' },
+          { key: 'essence', label: '精华' },
+          { key: 'host', label: '只看星主' },
+          { key: 'ask', label: '问答' },
           { key: 'checkin', label: '打卡' },
-          { key: 'resources', label: '资料库' },
+          { key: 'homework', label: '作业' },
+          { key: 'official', label: '官方' },
+          { key: 'resources', label: '资料' },
         ],
       }),
       defaultStyle: () => ({}),
@@ -1330,6 +1334,9 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         more_text: '全部作者 ›',
         more_url: '/pkg-content/content-list/content-list',
         more_tab: false,
+        empty_text: '暂无作者',
+        // 留空 = 用首页聚合接口的 warm_home_config.authors；填了则以这里为准
+        authors: [] as Array<Record<string, unknown>>,
       }),
       defaultStyle: () => ({}),
     },
@@ -1376,6 +1383,12 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         more_text: '进入 ›',
         more_url: '/pkg-content/planet-list/planet-list',
         more_tab: false,
+        // 2026-10-04 多星球推荐：卡片内容由后端按 planetId 下发，
+        // props 只控展示策略。详见 props/WarmPlanetRecProps.vue 与小程序端 _syncPlanetUi。
+        planet_mode: 'multi',
+        planet_action: 'auto',
+        planet_ids: [],
+        planet_limit: 0,
         feed_url: '/pkg-content/planet-feed/planet-feed?planetId=warm-main',
       }),
       defaultStyle: () => ({}),
@@ -1542,13 +1555,34 @@ export function getDefaultStyle(type: ComponentType): Record<string, any> {
   return componentRegistry.get(type)?.defaultStyle() ?? {}
 }
 
-/** 按分类获取组件列表 */
-export function getComponentsByCategory(category: string): ComponentDefinition[] {
+/**
+ * 整页模板类型（第三层资产）。
+ *
+ * 背景（2026-10-05）：品牌首页模板 / 品牌发现模板本质是整页壳，却混在
+ * componentRegistry 里与原子组件同列，运营在「组件」Tab 会误当普通组件拖进去，
+ * 造成资产概念混淆。这里只**收敛展示入口**——注册、渲染、DSL 加载逻辑一律不动
+ * （历史 DSL 里存的就是这两个 type，删注册会直接白屏）。
+ *
+ * 它们的入口改到「区块模板」Tab 顶部的「整页模板」分区，见 blockTemplates.ts。
+ */
+export const PAGE_TEMPLATE_TYPES: ReadonlySet<ComponentType> = new Set<ComponentType>([
+  ComponentType.WarmHome,
+  ComponentType.WarmDiscover,
+])
+
+/** 是否为整页模板（而非原子/业务组件） */
+export function isPageTemplateType(type: ComponentType): boolean {
+  return PAGE_TEMPLATE_TYPES.has(type)
+}
+
+/** 按分类获取组件列表；默认排除整页模板（组件库只放可拖入的原子/业务组件） */
+export function getComponentsByCategory(category: string, options?: { includePageTemplates?: boolean }): ComponentDefinition[] {
+  const includePageTemplates = options?.includePageTemplates === true
   const result: ComponentDefinition[] = []
   for (const def of componentRegistry.values()) {
-    if (def.category === category) {
-      result.push(def)
-    }
+    if (def.category !== category) continue
+    if (!includePageTemplates && PAGE_TEMPLATE_TYPES.has(def.type)) continue
+    result.push(def)
   }
   return result
 }

@@ -39,6 +39,14 @@
   background: linear-gradient(135deg, #f87171, #dc2626);
   box-shadow: 0 24rpx 52rpx rgba(220, 38, 38, 0.26);
 }
+.failbox__ring.warn {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+  box-shadow: 0 24rpx 52rpx rgba(217, 119, 6, 0.26);
+}
+.failbox__ring.ok {
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 24rpx 52rpx rgba(5, 150, 105, 0.26);
+}
 .failbox__h { margin-top: 30rpx; font-size: 36rpx; font-weight: 780; }
 .failbox__p { margin-top: 18rpx; font-size: 24rpx; color: var(--ink-2, #6b5443); line-height: 1.7; white-space: pre-line; }
 .failbox__p .brand { color: var(--brand, #c2410c); font-weight: 700; }

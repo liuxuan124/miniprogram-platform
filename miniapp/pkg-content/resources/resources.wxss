@@ -143,6 +143,9 @@
 
 .rs-fl__ic.xls { color: #15803d; }
 .rs-fl__ic.zip { color: #a16207; }
+.rs-fl__ic--img {
+  background: #fff;
+}
 
 .rs-fl__tx { flex: 1; min-width: 0; }
 .rs-fl__name { font-size: 28rpx; font-weight: 720; line-height: 1.4; }

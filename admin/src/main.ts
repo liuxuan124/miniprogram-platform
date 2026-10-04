@@ -14,7 +14,10 @@ import '@/styles/mini-workbench.scss'
 import '@/styles/content-workbench.scss'
 import '@/styles/member-workbench.scss'
 import '@/styles/commerce-workbench.scss'
+import '@/styles/props-switch.scss'
+import '@/styles/props-panel-typography.scss'
 import ColorPickerField from '@/components/ColorPickerField.vue'
+import DsSwitch from '@/components/element/DsSwitch.vue'
 
 // index.html 内联脚本已设置 data-admin-theme；此处与 Pinia 再同步一次
 try {
@@ -47,5 +50,9 @@ app.use(ElementPlus, { locale: zhCn })
 app.component('ElColorPicker', ColorPickerField)
 app.component('el-color-picker', ColorPickerField)
 app.component('ColorPickerField', ColorPickerField)
+// 全局替换开关：默认内嵌「开 / 关」文字，两态一眼可辨（自带文字的调用方不受影响）
+app.component('ElSwitch', DsSwitch)
+app.component('el-switch', DsSwitch)
+app.component('DsSwitch', DsSwitch)
 
 app.mount('#app')

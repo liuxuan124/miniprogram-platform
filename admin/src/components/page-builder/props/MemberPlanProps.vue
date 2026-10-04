@@ -1,6 +1,6 @@
 <template>
   <div class="member-plan-props">
-    <el-form label-width="88px" size="small">
+    <el-form label-width="72px" size="small">
       <el-divider content-position="left">方案来源</el-divider>
       <el-form-item label="范围">
         <el-radio-group

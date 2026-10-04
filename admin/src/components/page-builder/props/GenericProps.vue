@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="70px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item v-for="(value, key) in data" :key="key" :label="String(key)">
       <el-switch v-if="typeof value === 'boolean'" :model-value="value" @change="(v: any) => emit('update', { [key]: v })" />
       <el-input-number v-else-if="typeof value === 'number'" :model-value="value" @change="(v: any) => emit('update', { [key]: v })" :min="0" />

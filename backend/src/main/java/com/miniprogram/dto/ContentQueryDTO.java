@@ -20,6 +20,9 @@ public class ContentQueryDTO {
     /** 分类ID筛选 */
     private Long categoryId;
 
+    /** 多分类ID筛选（逗号分隔，DSL 页签「多类别」选用） */
+    private String categoryIds;
+
     /** 标签筛选 */
     private String tag;
 
@@ -28,6 +31,9 @@ public class ContentQueryDTO {
 
     /** 内容形态筛选 note/article/video/data */
     private String contentType;
+
+    /** 多内容形态筛选（逗号分隔，DSL 页签「内容形式」多选用）：note,article,moment */
+    private String contentTypes;
 
     /** 来源筛选 */
     private String source;
@@ -47,11 +53,17 @@ public class ContentQueryDTO {
     /** 作者名精确筛选（首页暖阁出品） */
     private String author;
 
+    /** 作者档案ID筛选（作者作品列表页） */
+    private Long authorId;
+
     /** 排序：hot / new / vip */
     private String sortBy;
 
     /** 按内容 ID 精确筛选（列表接口，不走详情以免浏览量 +1） */
     private Long id;
+
+    /** 按多个内容 ID 筛选（逗号分隔，DSL「指定内容」页签用） */
+    private String ids;
 
     /** 推荐筛选：1=仅推荐 */
     private Integer recommended;

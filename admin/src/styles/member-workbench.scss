@@ -186,6 +186,29 @@
 .member-wb .f-row b { text-align: right; font-variant-numeric: tabular-nums; }
 .member-wb .pdot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); flex-shrink: 0; }
 
+/* overview · 运营模式保存状态 */
+.member-wb .mode-card { transition: border-color 0.15s, box-shadow 0.15s; }
+.member-wb .mode-card.dirty { border-color: var(--acc); box-shadow: 0 0 0 3px var(--accsoft); }
+.member-wb .mode-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.member-wb .mode-state {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--line); color: var(--mute); background: var(--soft);
+  white-space: nowrap;
+}
+.member-wb .mode-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.member-wb .mode-state.ok { color: var(--g); background: var(--gs); border-color: transparent; }
+.member-wb .mode-state.dirty { color: var(--a); background: var(--as); border-color: transparent; }
+.member-wb .mode-state.saving { color: var(--b); background: var(--bs); border-color: transparent; }
+.member-wb .mode-state.saving .mode-dot { animation: mode-pulse 0.9s ease-in-out infinite; }
+@keyframes mode-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.member-wb .mode-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.member-wb .mode-tip { color: var(--a); }
+.member-wb .btn.saved {
+  background: var(--gs); border-color: var(--gs); color: var(--g);
+  opacity: 1; cursor: default;
+}
+
 /* users table */
 .member-wb .group { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .member-wb .chead {
@@ -278,7 +301,7 @@
 .member-wb .blk span { display: block; font-size: 10.5px; opacity: 0.78; margin-top: 3px; line-height: 1.5; }
 
 /* growth */
-.member-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.member-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .member-wb .lvstep { display: flex; gap: 10px; align-items: center; }
 .member-wb .ptsin { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--acc); }
 .member-wb .ptsin input {

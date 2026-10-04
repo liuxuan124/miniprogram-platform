@@ -317,7 +317,11 @@
                 :class="{ on: isTabOn(tab.key) }"
                 @click="openScreen(tab.key)"
               >
-                <TabBarIconDisplay :icon="tab.icon" />
+                <TabBarIconDisplay
+                  :icon="tab.icon"
+                  :selected-icon="tab.selectedIcon"
+                  :active="isTabOn(tab.key)"
+                />
                 <em>{{ tab.label }}</em>
               </button>
             </div>
@@ -368,7 +372,7 @@ import {
   type MinePageConfig,
   type ThemeConfig,
 } from '@/types/miniapp'
-import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
+import { migrateTabBarIcon, deriveMiniappSelectedTabIcon } from '@/components/page-builder/navIconSet'
 import { suggestMenuLineIcon } from '@/components/miniapp-builder/menuLineIcons'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from '@/components/page-builder/composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from '@/components/page-builder/composables/useMeasuredElementHeight'
@@ -398,7 +402,7 @@ const primaryOverride = computed(() => {
 const homeComponents = ref<ComponentInstance[]>([])
 const activeComponents = ref<ComponentInstance[]>([])
 const snapshotPages = ref<Array<{ path: string; name: string; dslContent?: string; pageId?: string }>>([])
-const snapshotTabs = ref<Array<{ text: string; icon?: string; pagePath?: string; pageId?: string }>>([])
+const snapshotTabs = ref<Array<{ text: string; icon?: string; selectedIcon?: string; pagePath?: string; pageId?: string }>>([])
 const pageCache = new Map<string, { title: string; bg: string; components: ComponentInstance[] }>()
 const pageBgColor = ref('#f5f6f9')
 const homeTitle = ref('首页')
@@ -549,11 +553,12 @@ const shopFilters = [
   { key: 'service', label: '1v1' },
 ]
 
+/** 兜底 TabBar：图标与小程序包内 images/tab/ 同源（已同步到 admin/public/images/tab/），保证预览 === 真机 */
 const tabs = [
-  { key: 'home', label: '首页', icon: '/images/nav-icons/g-platform.png' },
-  { key: 'content', label: '内容', icon: '/images/nav-icons/g-content.png' },
-  { key: 'shop', label: '商城', icon: '/images/nav-icons/g-bag.png' },
-  { key: 'mine', label: '我的', icon: '/images/nav-icons/g-user.png' },
+  { key: 'home', label: '首页', icon: '/images/tab/home.png', selectedIcon: '/images/tab/home-active.png' },
+  { key: 'content', label: '内容', icon: '/images/tab/content.png', selectedIcon: '/images/tab/content-active.png' },
+  { key: 'shop', label: '商城', icon: '/images/tab/shop.png', selectedIcon: '/images/tab/shop-active.png' },
+  { key: 'mine', label: '我的', icon: '/images/tab/mine.png', selectedIcon: '/images/tab/mine-active.png' },
 ]
 
 const mineMenus = [
@@ -665,6 +670,10 @@ const displayTabs = computed(() => {
       key,
       label: tab.text,
       icon: migrateTabBarIcon(tab.icon) || '/images/nav-icons/g-bag.png',
+      // 与真机 custom-tab-bar 对齐：选中态切到 *-active.png
+      selectedIcon: migrateTabBarIcon(
+        tab.selectedIcon || deriveMiniappSelectedTabIcon(tab.icon),
+      ),
     }
   })
 })
@@ -1136,7 +1145,13 @@ function handlePreviewAction(payload: {
     return
   }
   if (payload.previewPath) {
-    void showSnapshotPage(payload.previewPath)
+    const target = findSnapshotPage(payload.previewPath)
+    if (target) {
+      void showSnapshotPage(target.path || payload.previewPath)
+      if (payload.message) ElMessage.success(payload.message)
+    } else {
+      ElMessage.info('预览暂未收录该页面（仅绑定页可切换），真机将正常跳转')
+    }
     return
   }
   if (payload.tab === 'mine') {
@@ -1275,6 +1290,9 @@ async function loadLiveConfig(publishedOnly = false) {
     snapshotTabs.value = (Array.isArray(tabsRaw) ? tabsRaw : []).map((t: any) => ({
       text: t.text || t.label || t.name || '未命名',
       icon: migrateTabBarIcon(t.icon || t.iconPath || '') || '/images/nav-icons/g-bag.png',
+      selectedIcon: migrateTabBarIcon(
+        t.selectedIcon || t.selectedIconPath || deriveMiniappSelectedTabIcon(t.icon || t.iconPath || ''),
+      ),
       pagePath: t.pagePath || t.path || '',
       pageId: t.pageId != null ? String(t.pageId) : '',
     }))

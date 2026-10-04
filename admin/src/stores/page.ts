@@ -442,6 +442,26 @@ export const usePageStore = defineStore('page', () => {
     recomputeDirty()
   }
 
+  /**
+   * 批量插入一组组件（区块解包用）。
+   *
+   * 关键点：**只打一条历史快照** —— 拖入一个含 N 个子组件的区块，
+   * Ctrl/⌘Z 应当一步把整个区块撤回，而不是撤 N 次。
+   * 这也是 commitHistory 放在 splice 之前的原因：快照记的是变更前状态。
+   *
+   * @returns 实际插入的顶层节点（已过滤掉空数组）
+   */
+  function insertComponentBatch(comps: ComponentInstance[], index?: number) {
+    if (!Array.isArray(comps) || comps.length === 0) return []
+    commitHistory()
+    const at = Math.max(0, Math.min(index ?? dsl.value.components.length, dsl.value.components.length))
+    dsl.value.components.splice(at, 0, ...comps)
+    // 选中插入的第一个顶层节点，属性面板立即可编辑
+    selectedComponentId.value = comps[0].id
+    recomputeDirty()
+    return comps
+  }
+
   /** 添加组件 */
   function addComponent(type: ComponentType, index?: number) {
     const insertAt = resolveInsertIndex(index)
@@ -654,6 +674,7 @@ export const usePageStore = defineStore('page', () => {
     resetEditor,
     addComponent,
     insertComponentAt,
+    insertComponentBatch,
     resolveInsertIndex,
     addComponentWithProps,
     addChildComponent,

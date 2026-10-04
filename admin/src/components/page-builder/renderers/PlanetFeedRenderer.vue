@@ -1,7 +1,15 @@
 <template>
   <section class="pf">
     <div class="pf__segments">
-      <span v-for="seg in segs" :key="seg.key" class="pf__segment" :class="{ on: seg.key === 'all' }">{{ seg.label }}</span>
+      <button
+        v-for="(seg, i) in segs"
+        :key="seg.key + '-' + i"
+        type="button"
+        class="pf__segment"
+        :class="{ on: seg.key === activeSeg }"
+        :title="segDesc(seg.key)"
+        @click="onSegTap(seg.key)"
+      >{{ seg.label }}</button>
     </div>
     <div class="pf__feed">
       <article v-for="item in items" :key="item.uid || item.id" class="pf__card" :class="{ top: item.top }">
@@ -27,27 +35,61 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { ComponentInstance } from '@/types/page'
-import { mapPlanetFeedItem, PLANET_DEFAULT_FEED, PLANET_DEFAULT_SEGS } from '@/utils/preview-planet'
+import {
+  mapPlanetFeedItem,
+  filterPlanetFeedBySeg,
+  normalizePlanetSegs,
+  PLANET_DEFAULT_FEED,
+  PLANET_DEFAULT_SEGS,
+  PLANET_SEG_KEYS,
+} from '@/utils/preview-planet'
 
 const p = defineProps<{ component: ComponentInstance; previewMode?: boolean }>()
 defineEmits<{ 'preview-action': [payload: any] }>()
 const source = computed(() => p.component.props || {})
-const segs = computed(() => Array.isArray(source.value.segs) && source.value.segs.length ? source.value.segs : PLANET_DEFAULT_SEGS)
-const items = computed(() => {
+const segs = computed(() => {
+  const rows = normalizePlanetSegs(source.value.segs)
+  return rows.length ? rows : PLANET_DEFAULT_SEGS.map((it) => ({ ...it }))
+})
+const allItems = computed(() => {
   const rows = Array.isArray(source.value.items) && source.value.items.length ? source.value.items : PLANET_DEFAULT_FEED
   return rows.map(mapPlanetFeedItem)
 })
-const footerText = computed(() => source.value.footer_text || (source.value._previewDataDemo ? '—— 演示数据 ——' : `—— 已加载 ${items.value.length} 条 ——`))
+
+// 分段可点：用与小程序端相同的筛选函数，让运营在预览里就能验证每个分段筛出什么。
+// 原来这里写死 seg.key === 'all' 高亮、且不过滤，导致除 all 外的分段在预览里点了没反应。
+const activeSeg = ref(segs.value[0]?.key || 'all')
+watch(segs, (rows) => {
+  if (!rows.some((it) => it.key === activeSeg.value)) activeSeg.value = rows[0]?.key || 'all'
+})
+const items = computed(() => filterPlanetFeedBySeg(allItems.value, activeSeg.value))
+
+function segDesc(key: string): string {
+  return PLANET_SEG_KEYS.find((it) => it.value === key)?.desc || '未定义类型，不会筛选'
+}
+
+function onSegTap(key: string) {
+  if (!key || key === 'resources') return
+  activeSeg.value = key
+}
+
+const footerText = computed(() => {
+  if (source.value.footer_text) return source.value.footer_text
+  const base = source.value._previewDataDemo ? '—— 演示数据 ——' : `—— 已加载 ${allItems.value.length} 条 ——`
+  return activeSeg.value === segs.value[0]?.key ? base : `${base}（当前分段筛选后 ${items.value.length} 条）`
+})
 </script>
 
 <style scoped>
 .pf { box-sizing: border-box; width: 100%; min-height: 480px; padding-bottom: 20px; color: #3a2a1c; }
 .pf__segments { position: sticky; top: 0; z-index: 10; display: flex; gap: 7px; min-height: 48px; padding: 16px; overflow-x: auto; box-sizing: border-box; white-space: nowrap; background: linear-gradient(180deg,#fdf6ec 72%,transparent); scrollbar-width: none; }
 .pf__segments::-webkit-scrollbar { display: none; }
-.pf__segment { flex: none; padding: 7px 14px; border: .5px solid rgba(120,72,40,.12); border-radius: 999px; color: #6b5443; background: #fffaf3; font-size: 12.5px; font-weight: 650; }
+.pf__segment { flex: none; padding: 7px 14px; border: .5px solid rgba(120,72,40,.12); border-radius: 999px; color: #6b5443; background: #fffaf3; font-family: inherit; font-size: 12.5px; font-weight: 650; line-height: 1.4; white-space: nowrap; cursor: pointer; }
+.pf__segment:hover { border-color: rgba(194,65,12,.45); color: #c2410c; }
 .pf__segment.on { color: #fff; border-color: transparent; background: linear-gradient(135deg,#ea580c,#c2410c); }
+.pf__segment.on:hover { color: #fff; }
 .pf__feed { min-height: 480px; }
 .pf__card { margin: 0 16px 11px; padding: 14px 15px 10px; border-radius: 18px; background: #fffdf9; box-shadow: 0 8px 24px rgba(120,72,40,.07); }
 .pf__card.top { border: .5px solid #f0d3ad; background: linear-gradient(150deg,#fff7ec,#fffaf3); }

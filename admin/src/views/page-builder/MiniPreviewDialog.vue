@@ -202,7 +202,11 @@
             :class="{ active: previewTab === tab.value }"
             @click="previewTab = tab.value"
           >
-            <TabBarIconDisplay :icon="tab.icon" />
+            <TabBarIconDisplay
+              :icon="tab.icon"
+              :selected-icon="tab.selectedIcon"
+              :active="previewTab === tab.value"
+            />
             <em>{{ tab.label }}</em>
           </button>
         </div>
@@ -250,7 +254,7 @@ import { loadHydratedComponent } from '@/utils/preview-datasource'
 import { loadPagePreviewByPath, clearPreviewPageCache, type PreviewPageFrame } from '@/utils/preview-page-nav'
 import { getProductList, getProduct } from '@/api/product'
 import { normalizeUploadUrl, getConfigByGroup } from '@/api/system'
-import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
+import { migrateTabBarIcon, deriveMiniappSelectedTabIcon } from '@/components/page-builder/navIconSet'
 import { getFormTemplateDetail } from '@/api/form'
 import { createPreviewDraft, deletePreviewDraft } from '@/api/preview-draft'
 import type { FormFieldConfig } from '@/types/form'
@@ -378,12 +382,12 @@ const previewPageStack = ref<PreviewPageFrame[]>([])
 const previewPageLoading = ref(false)
 
 /** 从系统配置加载真实 TabBar，确保管理后台预览与小程序端一致 */
-const miniTabs = ref<Array<{ value: string; label: string; icon: string }>>([
-  { value: 'home', label: '首页', icon: '/images/nav-icons/g-platform.png' },
-  { value: 'content', label: '内容', icon: '/images/nav-icons/g-content.png' },
-  { value: 'member', label: '会员', icon: '/images/nav-icons/g-crown.png' },
-  { value: 'shop', label: '商城', icon: '/images/nav-icons/g-bag.png' },
-  { value: 'mine', label: '我的', icon: '/images/nav-icons/g-user.png' },
+const miniTabs = ref<Array<{ value: string; label: string; icon: string; selectedIcon: string }>>([
+  { value: 'home', label: '首页', icon: '/images/tab/home.png', selectedIcon: '/images/tab/home-active.png' },
+  { value: 'content', label: '内容', icon: '/images/tab/content.png', selectedIcon: '/images/tab/content-active.png' },
+  { value: 'member', label: '星球', icon: '/images/tab/member.png', selectedIcon: '/images/tab/member-active.png' },
+  { value: 'shop', label: '商城', icon: '/images/tab/shop.png', selectedIcon: '/images/tab/shop-active.png' },
+  { value: 'mine', label: '我的', icon: '/images/tab/mine.png', selectedIcon: '/images/tab/mine-active.png' },
 ])
 
 async function loadTabbarConfig() {
@@ -400,14 +404,31 @@ async function loadTabbarConfig() {
       const mapped = tabbarItems
         .filter((item: any) => item.enabled !== false)
         .map((item: any) => {
-          const path = item.path || ''
+          // 线上字段是 pagePath / tabRoute，没有 path——原来只读 item.path，
+          // 导致所有 tab 的 value 都落到默认 'home'，点击高亮会全部错位。
+          //
+          // 判定必须同时看两个字段：壳路由名与装修页名不一致，例如槽位 1 是
+          // tabRoute=/pages/discover/discover（壳名 discover）+
+          // pagePath=pages/custom/motai-content（页面名含 content），
+          // 只看 tabRoute 会漏判成 home。
+          const tabRoute = String(item.tabRoute || '')
+          const pagePath = String(item.pagePath || item.path || '')
+          const path = `${tabRoute} ${pagePath}`
           let value = 'home'
-          if (path.includes('content')) value = 'content'
-          else if (path.includes('member')) value = 'member'
-          else if (path.includes('product')) value = 'shop'
+          if (path.includes('content') || path.includes('discover')) value = 'content'
+          else if (path.includes('planet') || path.includes('member')) value = 'member'
+          else if (path.includes('shop') || path.includes('product')) value = 'shop'
           else if (path.includes('mine')) value = 'mine'
           else if (path.includes('ai-chat')) value = 'ai'
-          return { value, label: item.name || item.text || '', icon: migrateTabBarIcon(item.icon || item.iconPath || '') || '/images/nav-icons/g-bag.png' }
+          return {
+            value,
+            label: item.text || item.name || '',
+            // 图标原样透传（包内路径已同步到 admin/public/images/tab/），选中态与真机同源
+            icon: migrateTabBarIcon(item.icon || item.iconPath || '') || '/images/nav-icons/g-bag.png',
+            selectedIcon: migrateTabBarIcon(
+              item.selectedIcon || item.selectedIconPath || deriveMiniappSelectedTabIcon(item.icon || item.iconPath || ''),
+            ),
+          }
         })
       if (mapped.length > 0) miniTabs.value = mapped
     }

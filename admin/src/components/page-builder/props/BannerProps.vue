@@ -1,6 +1,6 @@
 <template>
   <div class="banner-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="自动播放">
         <el-switch :model-value="data.autoplay" @change="emit('update', { autoplay: $event as boolean })" />
       </el-form-item>

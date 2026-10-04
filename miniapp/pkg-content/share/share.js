@@ -277,6 +277,7 @@ Page({
   },
 
   onFav() {
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
     const id = String(this.data.contentId || '').trim()
     const favorited = !this.data.favorited
     if (id) {

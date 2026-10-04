@@ -1,6 +1,6 @@
 <template>
   <div class="brand-header-props">
-    <el-form label-width="78px" size="small">
+    <el-form label-width="72px" size="small">
       <el-alert
         type="info"
         :closable="false"

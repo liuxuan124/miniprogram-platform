@@ -278,7 +278,7 @@
 .commerce-wb .blk span { display: block; font-size: 10.5px; opacity: 0.78; margin-top: 3px; line-height: 1.5; }
 
 /* growth */
-.commerce-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.commerce-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .commerce-wb .lvstep { display: flex; gap: 10px; align-items: center; }
 .commerce-wb .ptsin { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--acc); }
 .commerce-wb .ptsin input {

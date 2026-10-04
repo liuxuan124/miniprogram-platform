@@ -43,11 +43,13 @@
     :component-style="component.style"
     :stack-on-top="component.type === ComponentType.Nav || component.type === ComponentType.Banner || component.type === ComponentType.ProductList || component.type === ComponentType.BrandHeader"
     :toolbar-always-below="component.type === ComponentType.BrandHeader || component.type === ComponentType.Nav || component.type === ComponentType.Banner"
+    :allow-save-as-block="canSaveAsBlock"
     @select="$emit('select')"
     @delete="$emit('delete')"
     @copy="$emit('copy')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
+    @save-as-block="emit('save-as-block')"
   >
     <component
       :is="resolveRenderer(component.type)"
@@ -59,14 +61,16 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
 import { Top, Bottom, CopyDocument, Delete } from '@element-plus/icons-vue'
 import type { ComponentInstance } from '@/types/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
 import BaseRenderer from './renderers/BaseRenderer.vue'
-import UnknownComponentRenderer from './renderers/UnknownComponentRenderer.vue'
+// renderer 映射与别名表已抽到 renderers/registry.ts，与区块缩略图共用同一套，
+// 避免「画布长这样、缩略图长那样」（新增组件只需改 registry.ts 一处）。
+import { resolveRenderer } from './renderers/registry'
 
-defineProps<{
+const props = defineProps<{
   component: ComponentInstance
   index: number
   selected: boolean
@@ -74,12 +78,13 @@ defineProps<{
   fabOnly?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: []
   delete: []
   copy: []
   'move-up': []
   'move-down': []
+  'save-as-block': []
   'preview-action': [payload: {
     tab: string
     message: string
@@ -91,85 +96,12 @@ defineEmits<{
   }]
 }>()
 
-const rendererMap: Record<string, any> = {
-  [ComponentType.Banner]: defineAsyncComponent(() => import('./renderers/BannerRenderer.vue')),
-  [ComponentType.Search]: defineAsyncComponent(() => import('./renderers/SearchRenderer.vue')),
-  [ComponentType.NoticeBar]: defineAsyncComponent(() => import('./renderers/NoticeBarRenderer.vue')),
-  [ComponentType.Image]: defineAsyncComponent(() => import('./renderers/ImageRenderer.vue')),
-  [ComponentType.Nav]: defineAsyncComponent(() => import('./renderers/NavRenderer.vue')),
-  [ComponentType.CategoryNav]: defineAsyncComponent(() => import('./renderers/CategoryNavRenderer.vue')),
-  [ComponentType.ProductList]: defineAsyncComponent(() => import('./renderers/ProductListRenderer.vue')),
-  [ComponentType.FlashSale]: defineAsyncComponent(() => import('./renderers/FlashSaleRenderer.vue')),
-  [ComponentType.ArticleList]: defineAsyncComponent(() => import('./renderers/ArticleListRenderer.vue')),
-  [ComponentType.ArticleFeed]: defineAsyncComponent(() => import('./renderers/ArticleFeedRenderer.vue')),
-  [ComponentType.NoteFeed]: defineAsyncComponent(() => import('./renderers/NoteFeedRenderer.vue')),
-  [ComponentType.MomentsFeed]: defineAsyncComponent(() => import('./renderers/MomentsFeedRenderer.vue')),
-  [ComponentType.HotNews]: defineAsyncComponent(() => import('./renderers/HotNewsRenderer.vue')),
-  [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./renderers/ActivityEntryRenderer.vue')),
-  [ComponentType.ActivityList]: defineAsyncComponent(() => import('./renderers/ActivityListRenderer.vue')),
-  [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./renderers/AppointmentServiceRenderer.vue')),
-  [ComponentType.MemberCard]: defineAsyncComponent(() => import('./renderers/MemberCardRenderer.vue')),
-  [ComponentType.PromoBanner]: defineAsyncComponent(() => import('./renderers/PromoBannerRenderer.vue')),
-  [ComponentType.Coupon]: defineAsyncComponent(() => import('./renderers/CouponRenderer.vue')),
-  [ComponentType.Video]: defineAsyncComponent(() => import('./renderers/VideoRenderer.vue')),
-  [ComponentType.BrandIntro]: defineAsyncComponent(() => import('./renderers/BrandIntroRenderer.vue')),
-  [ComponentType.ImageText]: defineAsyncComponent(() => import('./renderers/ImageTextRenderer.vue')),
-  [ComponentType.ContactInfo]: defineAsyncComponent(() => import('./renderers/ContactInfoRenderer.vue')),
-  [ComponentType.Certificate]: defineAsyncComponent(() => import('./renderers/CertificateRenderer.vue')),
-  [ComponentType.Countdown]: defineAsyncComponent(() => import('./renderers/CountdownRenderer.vue')),
-  [ComponentType.FloatButton]: defineAsyncComponent(() => import('./renderers/FloatButtonRenderer.vue')),
-  [ComponentType.RichText]: defineAsyncComponent(() => import('./renderers/RichTextRenderer.vue')),
-  [ComponentType.ContentPaywall]: defineAsyncComponent(() => import('./renderers/ContentPaywallRenderer.vue')),
-  [ComponentType.MaterialList]: defineAsyncComponent(() => import('./renderers/MaterialListRenderer.vue')),
-  [ComponentType.MemberPlan]: defineAsyncComponent(() => import('./renderers/MemberPlanRenderer.vue')),
-  [ComponentType.QaList]: defineAsyncComponent(() => import('./renderers/QaListRenderer.vue')),
-  [ComponentType.SectionTitle]: defineAsyncComponent(() => import('./renderers/SectionTitleRenderer.vue')),
-  [ComponentType.Divider]: defineAsyncComponent(() => import('./renderers/DividerRenderer.vue')),
-  [ComponentType.Spacer]: defineAsyncComponent(() => import('./renderers/SpacerRenderer.vue')),
-  [ComponentType.FormEntry]: defineAsyncComponent(() => import('./renderers/FormEntryRenderer.vue')),
-  [ComponentType.AIEntry]: defineAsyncComponent(() => import('./renderers/AIEntryRenderer.vue')),
-  [ComponentType.JoinGroup]: defineAsyncComponent(() => import('./renderers/JoinGroupRenderer.vue')),
-  [ComponentType.BrandHeader]: defineAsyncComponent(() => import('./renderers/BrandHeaderRenderer.vue')),
-  [ComponentType.Container]: defineAsyncComponent(() => import('./renderers/ContainerRenderer.vue')),
-  [ComponentType.ImageHotspot]: defineAsyncComponent(() => import('./renderers/ImageHotspotRenderer.vue')),
-  [ComponentType.SectionBg]: defineAsyncComponent(() => import('./renderers/SectionBgRenderer.vue')),
-  [ComponentType.FeatureCards]: defineAsyncComponent(() => import('./renderers/FeatureCardsRenderer.vue')),
-  [ComponentType.ImageCube]: defineAsyncComponent(() => import('./renderers/ImageCubeRenderer.vue')),
-  [ComponentType.ContentTabs]: defineAsyncComponent(() => import('./renderers/ContentTabsRenderer.vue')),
-  [ComponentType.PlanetHero]: defineAsyncComponent(() => import('./renderers/PlanetHeroRenderer.vue')),
-  [ComponentType.PlanetTopics]: defineAsyncComponent(() => import('./renderers/PlanetTopicsRenderer.vue')),
-  [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./renderers/PlanetFeedRenderer.vue')),
-  [ComponentType.WarmGreet]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmHome]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmDiscover]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmPlanet]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmShop]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmMine]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-}
-
-const warnedUnknownTypes = new Set<string>()
-
-/** 历史 DSL / 外部组件别名 → 已注册类型 */
-const COMPONENT_TYPE_ALIASES: Record<string, string> = {
-  'flow-ai-assistant': ComponentType.AIEntry,
-  flow_ai_assistant: ComponentType.AIEntry,
-  'flow-ai': ComponentType.AIEntry,
-}
-
-function resolveRenderer(type: string) {
-  const key = COMPONENT_TYPE_ALIASES[type] || type
-  if (rendererMap[key]) return rendererMap[key]
-  if (!warnedUnknownTypes.has(type)) {
-    warnedUnknownTypes.add(type)
-    console.warn(`[page-builder] 未知组件 type "${type}"，画布以占位展示，小程序端将跳过渲染`)
-  }
-  return UnknownComponentRenderer
-}
+/** 容器类组件才允许「另存为区块」——只有它们带 children，才是可复用的组合体 */
+const CAN_SAVE_AS_BLOCK = new Set<ComponentType>([
+  ComponentType.Container,
+  ComponentType.SectionBg,
+])
+const canSaveAsBlock = computed(() => CAN_SAVE_AS_BLOCK.has(props.component.type))
 </script>
 
 <style scoped>

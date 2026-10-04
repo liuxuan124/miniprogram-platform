@@ -230,8 +230,8 @@ async function fetchList() {
     const data: any = res.data
     tableData.value = data?.items || data?.records || []
     pagination.total = data?.total || 0
-  } catch {
-    ElMessage.error('获取管理员列表失败')
+  } catch (e: any) {
+    if (!e?.toastHandled) ElMessage.error('获取管理员列表失败')
   } finally {
     loading.value = false
   }
@@ -312,7 +312,8 @@ async function submitForm() {
     dialogVisible.value = false
     fetchList()
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    // 请求层已按后端 message 弹过（含「用户名已存在」这类业务提示），此处不重复弹
+    if (!e?.toastHandled) ElMessage.error(e?.message || '操作失败')
   } finally {
     submitting.value = false
   }
@@ -329,7 +330,7 @@ async function handleDelete(row: AdminUserRecord) {
     ElMessage.success('删除成功')
     fetchList()
   } catch (e: any) {
-    if (e !== 'cancel') ElMessage.error(e?.message || '删除失败')
+    if (e !== 'cancel' && !e?.toastHandled) ElMessage.error(e?.message || '删除失败')
   }
 }
 

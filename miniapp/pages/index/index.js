@@ -667,6 +667,11 @@ Page({
     wx.navigateTo({ url, fail: () => wx.switchTab({ url: '/pages/planet/planet' }) })
   },
 
+  /** 星球卡上「设为主星球」成功后：重拉聚合，让整页（问候/动态流）都跟着切主星球 */
+  onMainPlanetChange() {
+    this._load()
+  },
+
   goSearch() {
     wx.navigateTo({ url: '/pages/search/search' })
   },

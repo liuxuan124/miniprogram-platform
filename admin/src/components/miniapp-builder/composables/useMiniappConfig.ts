@@ -239,6 +239,7 @@ export function useMiniappConfig() {
                       icon: suggestMenuLineIcon(title, m.icon),
                       title,
                       url: m.url || m.linkUrl || m.link_url || '',
+                      needLogin: m.needLogin === true,
                       enabled: m.enabled !== undefined ? m.enabled : (m.visible !== false),
                       group: m.group || '',
                     }

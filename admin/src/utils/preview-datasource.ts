@@ -332,6 +332,12 @@ function mapArticleItems(list: any[], limit: number) {
       source: item.source || item.categoryName || item.category_name || '',
       sourceTag: item.sourceTag || item.source_tag || '',
       tags: item.tags,
+      // 笔记瀑布流卡片字段透传（类型大Tab/文字卡/点赞依赖）
+      contentType: String(item.contentType || item.content_type || 'article').toLowerCase(),
+      images: Array.isArray(item.images) ? item.images : [],
+      summary: item.summary || item.description || item.desc || '',
+      likeCount: Number(item.likeCount ?? item.like_count ?? 0) || 0,
+      author: item.author || item.authorName || '',
     }
   })
 }
@@ -502,6 +508,40 @@ function resolveManualProductItems(
   return manualProductItems(component, limit)
 }
 
+/**
+ * 笔记瀑布流「按类别 / 按标签 / 指定内容」页签：基础宽取可能覆盖不到目标数据，
+ * 按页签配置补拉各自的数据源后由渲染器客户端过滤。
+ */
+async function fetchNoteFeedTabExtras(component: ComponentInstance, limit: number): Promise<any[]> {
+  const tabs = Array.isArray(component.props?.type_tabs) ? component.props.type_tabs : []
+  const out: any[] = []
+  for (const t of tabs) {
+    const mode = String(t?.filter_type || 'type')
+    try {
+      if (mode === 'category' && t?.category_id != null && String(t.category_id) !== '') {
+        const data = await fetchMpData('/api/v1/mp/contents', {
+          current: 1, size: limit, status: 'published', categoryId: t.category_id,
+        })
+        out.push(...pickList(data))
+      } else if (mode === 'tag' && String(t?.tag || '').trim()) {
+        const data = await fetchMpData('/api/v1/mp/contents', {
+          current: 1, size: limit, status: 'published', tag: String(t.tag).trim(),
+        })
+        out.push(...pickList(data))
+      } else if (mode === 'ids' && Array.isArray(t?.content_ids) && t.content_ids.length) {
+        const data = await fetchMpData('/api/v1/mp/contents', {
+          current: 1, size: Math.max(t.content_ids.length, 1), status: 'published',
+          ids: t.content_ids.join(','),
+        })
+        out.push(...pickList(data))
+      }
+    } catch {
+      // 单个页签补拉失败不阻塞整体预览
+    }
+  }
+  return out
+}
+
 async function hydrateComponent(
   component: ComponentInstance,
   warnings: string[],
@@ -602,7 +642,7 @@ async function hydrateComponent(
   const dataSource = resolveDataSource(component)
   if (!dataSource) return component
 
-  const limit = component.type === 'article_feed'
+  const limit = component.type === 'article_feed' || component.type === 'note_feed'
     ? Math.max(Number(component.props?.page_size || 10), 1)
     : Math.max(Number(component.props?.limit || 6), 1)
   const isProductStream = component.type === 'product_list' && component.props?.display_mode === 'stream'
@@ -614,11 +654,15 @@ async function hydrateComponent(
     ? Math.max(productIds.length, Array.isArray(component.props?.items) ? component.props.items.length : 0, 50)
     : (isProductStream ? streamPageSize : limit)
   const tabsOn = component.type === 'article_feed' && component.props?.show_category_tabs === true
+  // 笔记瀑布流：类型大Tab或分类Tab都需要宽取，客户端再按类型/分类过滤
+  const noteFeedWide = component.type === 'note_feed'
+    && (component.props?.show_category_tabs === true
+      || (Array.isArray(component.props?.type_tabs) && component.props.type_tabs.length > 1))
   const priceFilter = resolvePriceFilterConfig(component.props)
   const fetchLimit = capPageSize(
     component.type === 'hot_news'
       ? Math.max(limit, 12)
-      : tabsOn
+      : (tabsOn || noteFeedWide)
         ? Math.max(limit, 20)
         : (productIds.length ? Math.max(limit, productIds.length, 20) : (component.type === 'article_feed' ? Math.max(limit, 12) : limit)),
   )
@@ -646,6 +690,18 @@ async function hydrateComponent(
     const list = await fetchDataSourceList({ ...dataSource, params }, capPageSize(
       component.type === 'product_list' ? productFetchLimit : fetchLimit,
     ))
+    if (component.type === 'note_feed' && noteFeedWide) {
+      const extras = await fetchNoteFeedTabExtras(component, fetchLimit)
+      if (extras.length) {
+        const seen = new Set(list.map((r: any) => String(r?.id)))
+        for (const row of extras) {
+          if (row && row.id != null && !seen.has(String(row.id))) {
+            seen.add(String(row.id))
+            list.push(row)
+          }
+        }
+      }
+    }
     if (!list.length) {
       if (component.type === 'product_list') {
         const items = isManualProduct
@@ -689,6 +745,21 @@ async function hydrateComponent(
         ? Math.max(Number(component.props?.page_size || 10), 1)
         : limit
       const storeLimit = tabsOn ? Math.min(list.length, fetchLimit) : itemLimit
+      return {
+        ...component,
+        props: {
+          ...component.props,
+          items: mapArticleItems(list, storeLimit),
+          _previewDataFailed: false,
+        },
+      }
+    }
+
+    if (component.type === 'note_feed') {
+      // 宽取后交给渲染器按类型/分类客户端过滤
+      const storeLimit = noteFeedWide
+        ? Math.min(list.length, fetchLimit)
+        : Math.max(Number(component.props?.page_size || 10), 1)
       return {
         ...component,
         props: {

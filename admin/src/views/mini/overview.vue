@@ -158,6 +158,7 @@
         :preview-url="previewUrl"
         :preview-url-live="previewUrlLive"
         :initial-mode="previewInitialMode"
+        :show-mode-switch="hasPending"
         :iframe-key="previewKey"
         @scan="qrVisible = true"
       />
@@ -248,8 +249,11 @@ function buildPreviewHref(source: 'draft' | 'live') {
 
 const previewUrl = computed(() => buildPreviewHref('draft'))
 const previewUrlLive = computed(() => buildPreviewHref('live'))
+const hasPending = computed(
+  () => Number(site.value.pendingCount ?? pending.value.length ?? 0) > 0,
+)
 const previewInitialMode = computed<'draft' | 'live'>(() =>
-  Number(site.value.pendingCount ?? pending.value.length ?? 0) > 0 ? 'draft' : 'live',
+  hasPending.value ? 'draft' : 'live',
 )
 
 const previewKey = computed(() => `${previewInitialMode.value}-${previewRevision.value}`)
@@ -261,8 +265,8 @@ const previewHintLine = computed(() => {
     return `尚有 ${n} 项未同步 · 右侧为草稿预览（线上配置版本 ${live ?? '—'}）`
   }
   return live != null
-    ? `线上配置版本 ${live} · 右侧可切换草稿/线上预览`
-    : '右侧可切换草稿/线上预览'
+    ? `线上配置版本 ${live} · H5 模拟预览，真机效果以扫码为准`
+    : 'H5 模拟预览，真机效果以扫码为准'
 })
 
 async function syncPending() {

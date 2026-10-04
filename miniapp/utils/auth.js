@@ -290,6 +290,34 @@ const AuthUtil = {
   },
 
   /**
+   * 轻量动作登录拦截 — 点赞 / 收藏 / 分享
+   *
+   * 与 requireLoginForAction 的区别：不弹 wx.showModal，直接拉起底部登录面板。
+   * 原因：点赞收藏是高频轻操作，弹窗确认会明显拖慢节奏；
+   *      未登录时用户本来就拿不到收益（数据存不进账号），直接引导登录即可。
+   *
+   * 用法:
+   *   if (!AuthUtil.requireLoginQuiet('点赞')) return
+   *
+   * @param {string} [actionDesc] 动作描述，用于登录面板文案
+   * @param {Object} [options]
+   * @param {string} [options.redirect] 登录后回跳路径
+   * @returns {boolean} true=已登录可继续
+   */
+  requireLoginQuiet(actionDesc, options = {}) {
+    if (this.isLoggedIn()) {
+      return true
+    }
+    const desc = typeof actionDesc === 'string' ? actionDesc : (options.desc || '')
+    const redirect = options.redirect || this._getCurrentPagePath()
+    if (desc) {
+      StorageUtil.set(LOGIN_INTERCEPT_KEY, { action: desc, redirect, timestamp: Date.now() }, 5 * 60 * 1000)
+    }
+    this.openLoginSheet({ ...options, action: desc, redirect })
+    return false
+  },
+
+  /**
    * 获取当前页面完整路径（含参数）
    * @returns {string}
    */

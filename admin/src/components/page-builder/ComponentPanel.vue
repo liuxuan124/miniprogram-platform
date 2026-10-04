@@ -10,49 +10,75 @@
       <button type="button" :class="{ on: mode === 'structure' }" @click="openStructureMode">结构</button>
     </div>
 
-    <!-- 区块模板：一次插入一组常用组件，省掉逐个拖的步骤 -->
+    <!-- 区块模板：可视化卡片，拖入画布自动解组为原子组件树 -->
     <section v-if="mode === 'blocks'" class="panel-section blocks-section">
-      <div class="section-title">
-        <span>区块模板</span>
-        <span class="section-count">{{ availableBlocks.length }}</span>
-      </div>
-      <div class="blocks-list">
-        <button
-          v-for="block in availableBlocks"
-          :key="block.key"
-          type="button"
-          class="block-card"
-          @click="insertBlock(block)"
-        >
-          <b>{{ block.label }}</b>
-          <span class="block-desc">{{ block.desc }}</span>
-          <span class="block-parts">{{ blockPartLabels(block).join(' · ') }}</span>
-        </button>
-        <div v-if="!availableBlocks.length" class="empty-tip">当前行业方案下没有可用区块</div>
-      </div>
-      <div class="my-blocks">
-        <div class="section-title">
-          <span>我的区块</span>
-          <span class="section-count">{{ myBlocks.length }}</span>
+      <div class="blocks-scroll">
+        <!-- 第三层资产：整页模板（从组件库迁出，避免与原子组件混淆） -->
+        <template v-if="pageTemplates.length">
+          <div class="block-group">
+            <div class="block-group__head">
+              <span class="block-group__title">整页模板</span>
+              <span class="block-group__hint">整页替换 · 非区块</span>
+            </div>
+            <div class="block-grid">
+              <BlockCard
+                v-for="blk in pageTemplates"
+                :key="blk.key"
+                :block="blk"
+                :preview-nodes="blockPreviewCache(blk.key)"
+                :node-count="blockNodeCount(blk.key)"
+                @insert="insertBuiltinBlock(blk)"
+              />
+            </div>
+          </div>
+        </template>
+
+        <!-- 第二层资产：按业务场景分区的复合区块 -->
+        <div v-for="group in builtinGroups" :key="group.value" class="block-group">
+          <div class="block-group__head">
+            <span class="block-group__title">{{ group.label }}</span>
+            <span class="block-group__hint">{{ group.hint }}</span>
+          </div>
+          <div v-if="group.blocks.length" class="block-grid">
+            <BlockCard
+              v-for="blk in group.blocks"
+              :key="blk.key"
+              :block="blk"
+              :preview-nodes="blockPreviewCache(blk.key)"
+              :node-count="blockNodeCount(blk.key)"
+              @insert="insertBuiltinBlock(blk)"
+            />
+          </div>
+          <div v-else class="empty-tip">当前方案下该分类暂无可用区块</div>
         </div>
-        <div class="my-blocks__actions">
-          <el-button size="small" type="primary" plain :disabled="!pageStore.selectedComponentId" @click="saveMyBlockFromSelection">
-            保存当前选中起的一段
-          </el-button>
-        </div>
-        <div class="blocks-list my-blocks__list">
-          <button
-            v-for="block in myBlocks"
-            :key="block.id"
-            type="button"
-            class="block-card"
-            @click="insertMyBlock(block)"
-          >
-            <b>{{ block.label }}</b>
-            <span class="block-desc">{{ block.components.length }} 个组件 · {{ formatSavedAt(block.savedAt) }}</span>
-            <el-button link type="danger" size="small" @click.stop="removeMyBlockEntry(block.id)">删除</el-button>
-          </button>
-          <div v-if="!myBlocks.length" class="empty-tip">选中组件后可将后续组件存为模板</div>
+
+        <!-- 我的区块：画布里「另存为区块」沉淀而来 -->
+        <div class="block-group">
+          <div class="block-group__head">
+            <span class="block-group__title">我的区块</span>
+            <span class="block-group__count">{{ myBlocks.length }}</span>
+          </div>
+          <p v-if="!myBlocks.length" class="my-blocks__hint">
+            在画布中选中「容器/分栏」或「通栏背景」，点工具条上的
+            <b>另存为区块</b>，即可把排好的组合沉淀到这里复用。
+          </p>
+          <div v-else class="block-grid">
+            <BlockCard
+              v-for="blk in myBlocks"
+              :key="blk.id"
+              :block="{
+                key: `my:${blk.id}`,
+                name: blk.name,
+                description: blk.description,
+                thumbnail: blk.thumbnail,
+                isCustom: true,
+              }"
+              :preview-nodes="blk.nodes"
+              :node-count="countInstanceNodes(blk.nodes)"
+              @insert="insertSavedBlock(blk)"
+              @remove="removeMyBlockEntry(blk.id)"
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -187,16 +213,29 @@ import { Search } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import { usePageStore } from '@/stores/page'
 import { requestEditorScrollToComponent } from '@/utils/editorScrollBus'
-import { loadMyBlocks, saveMyBlock, removeMyBlock, type SavedMyBlock } from '@/utils/myBlocksStorage'
+import { loadMyBlocks, removeMyBlock, type SavedBlock } from '@/utils/myBlocksStorage'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
-import { buildPlanetJoinLandingComponents, PLANET_JOIN_LANDING_BLOCK } from './planetJoinLandingBlocks'
+import BlockCard from './BlockCard.vue'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
+import {
+  BLOCK_CATEGORIES,
+  BUILTIN_BLOCKS,
+  builtinBlockByKey,
+  builtinBlocksByCategory,
+  countInstanceNodes,
+  countSchemaNodes,
+  filterAvailableBlocks,
+  pageTemplateBlocks,
+  unpackBlock,
+  type BlockCategory,
+  type BlockTemplate,
+} from './blockTemplates'
 
 const pageStore = usePageStore()
 const featureModulesStore = useFeatureModulesStore()
@@ -216,49 +255,102 @@ const FIXED_TAB_SHELL_TYPES = new Set<ComponentType>([
 const hasFixedTabShell = computed(() =>
   pageStore.components.some((c) => FIXED_TAB_SHELL_TYPES.has(c.type as ComponentType)),
 )
-const myBlocks = ref<SavedMyBlock[]>(loadMyBlocks())
+const myBlocks = ref<SavedBlock[]>(loadMyBlocks())
 const { deleteWithUndo } = useEditorDeleteUndo()
 const componentSectionHeight = ref(520)
 
-/** 区块模板：常见页面段落的组件组合，点一次按顺序插入 */
-const BLOCKS: Array<{ key: string; label: string; desc: string; types: ComponentType[] }> = [
-  {
-    key: 'activity-hero',
-    label: '活动头图组',
-    desc: '头图 + 倒计时 + 报名入口',
-    types: [ComponentType.Banner, ComponentType.Countdown, ComponentType.FormEntry],
-  },
-  {
-    key: 'booklist',
-    label: '书单推荐组',
-    desc: '小标题 + 文章列表 + 分割线',
-    types: [ComponentType.SectionTitle, ComponentType.ArticleList, ComponentType.Divider],
-  },
-  {
-    key: 'member',
-    label: '会员转化组',
-    desc: '会员卡 + 优惠券 + 悬浮按钮',
-    types: [ComponentType.MemberCard, ComponentType.PromoBanner, ComponentType.Coupon, ComponentType.FloatButton],
-  },
-  {
-    key: 'community',
-    label: '社群引流组',
-    desc: '入群引导 + 图文说明 + 联系方式',
-    types: [ComponentType.JoinGroup, ComponentType.ImageText, ComponentType.ContactInfo],
-  },
-  {
-    key: 'brand',
-    label: '品牌介绍组',
-    desc: '品牌头部 + 品牌简介 + 资质',
-    types: [ComponentType.BrandHeader, ComponentType.BrandIntro, ComponentType.Certificate],
-  },
-  {
-    key: 'planet-join-landing',
-    label: '星球加入落地页',
-    desc: '墨太白：顶栏+权益+星主+预览+FAQ+购买（星球分类）',
-    types: PLANET_JOIN_LANDING_BLOCK.types,
-  },
-]
+/* ------------------------------------------------------------------ *
+ * 区块模板（第二层资产）
+ * ------------------------------------------------------------------ */
+
+/** 内置区块的预览实例缓存：key → 已解包的组件树。
+ *  缩略图/悬浮预览直接复用这份实例，避免每张卡片各解包一次。 */
+const previewCache = new Map<string, ComponentInstance[]>()
+function blockPreviewCache(key: string): ComponentInstance[] {
+  let nodes = previewCache.get(key)
+  if (!nodes) {
+    const block = builtinBlockByKey(key)
+    nodes = block ? unpackBlock(block) : []
+    previewCache.set(key, nodes)
+  }
+  return nodes
+}
+
+function blockNodeCount(key: string): number {
+  const block = builtinBlockByKey(key)
+  if (!block) return 0
+  return countSchemaNodes(block.schema)
+}
+
+/** 与组件库 isTypeAvailable 同口径：行业方案 + 功能模块双重开关 */
+function isTypeAvailable(type: ComponentType) {
+  if (!industryProfileStore.isComponentAllowed(type)) return false
+  if (!featureModulesStore.isEnabled('planet') && String(type).startsWith('planet_')) return false
+  if (!featureModulesStore.productEnabled) {
+    const commerceTypes = new Set(getComponentsByCategory('commerce').map((item) => item.type))
+    if (commerceTypes.has(type)) return false
+  }
+  return true
+}
+
+const availableBuiltins = computed(() =>
+  filterAvailableBlocks(BUILTIN_BLOCKS, isTypeAvailable),
+)
+
+const pageTemplates = computed<BlockTemplate[]>(() =>
+  availableBuiltins.value.filter((b) => b.isPageTemplate),
+)
+
+/** 4 个预置分类分区（custom 分区由「我的区块」单独渲染） */
+const builtinGroups = computed(() =>
+  BLOCK_CATEGORIES.filter((c) => c.value !== 'custom').map((c) => ({
+    ...c,
+    blocks: availableBuiltins.value.filter(
+      (b) => !b.isPageTemplate && b.category === c.value,
+    ),
+  })),
+)
+
+/** 解包 → 批量插入（单条历史快照，Ctrl/⌘Z 一步撤回整个区块） */
+function insertBlockNodes(nodes: ComponentInstance[], label: string) {
+  if (!nodes.length) return
+  const inserted = pageStore.insertComponentBatch(nodes)
+  if (!inserted.length) return
+  collapsed.value.structure = false
+  mode.value = 'components'
+  ElMessage.success(`已插入「${label}」，可在画布中逐个调整`)
+  requestEditorScrollToComponent(inserted[0].id)
+}
+
+function insertBuiltinBlock(block: BlockTemplate) {
+  insertBlockNodes(unpackBlock(block), block.name)
+}
+
+function insertSavedBlock(block: SavedBlock) {
+  insertBlockNodes(unpackBlock(block), block.name)
+}
+
+function removeMyBlockEntry(id: string) {
+  const target = myBlocks.value.find((b) => b.id === id)
+  if (!target) return
+  ElMessageBox.confirm(`确定删除区块「${target.name}」？此操作不可恢复。`, '删除我的区块', {
+    type: 'warning',
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+  })
+    .then(() => {
+      removeMyBlock(id)
+      reloadMyBlocks()
+      ElMessage.success('已删除')
+    })
+    .catch(() => {
+      // 用户取消
+    })
+}
+
+function reloadMyBlocks() {
+  myBlocks.value = loadMyBlocks()
+}
 
 const collapsed = ref({
   components: false,
@@ -410,98 +502,6 @@ function toggleCollapse(target: 'components' | 'structure') {
   collapsed.value[target] = !collapsed.value[target]
 }
 
-/** 组件是否在当前行业方案 / 功能模块下可用 */
-function isTypeAvailable(type: ComponentType) {
-  if (!industryProfileStore.isComponentAllowed(type)) return false
-  if (!featureModulesStore.isEnabled('planet') && String(type).startsWith('planet_')) return false
-  if (!featureModulesStore.productEnabled) {
-    const commerceTypes = new Set(getComponentsByCategory('commerce').map((item) => item.type))
-    if (commerceTypes.has(type)) return false
-  }
-  return true
-}
-
-function blockTypes(block: { types: ComponentType[] }) {
-  return block.types.filter(isTypeAvailable)
-}
-
-function blockPartLabels(block: { types: ComponentType[] }) {
-  return blockTypes(block).map((type) => getComponentDef(type)?.label ?? type)
-}
-
-const availableBlocks = computed(() => BLOCKS.filter((block) => blockTypes(block).length > 0))
-
-function insertBlock(block: { key?: string; types: ComponentType[] }) {
-  if (block.key === 'planet-join-landing') {
-    const components = buildPlanetJoinLandingComponents()
-    let lastId: string | undefined
-    components.forEach((instance) => {
-      const created = pageStore.addComponentWithProps(instance.type, instance.props)
-      if (instance.style) pageStore.updateComponentStyle(created.id, instance.style)
-      recordRecentUsage(instance.type)
-      lastId = created.id
-    })
-    collapsed.value.structure = false
-    if (lastId) requestEditorScrollToComponent(lastId)
-    return
-  }
-  const types = blockTypes(block)
-  let lastId: string | undefined
-  types.forEach((type) => {
-    const created = pageStore.addComponent(type)
-    recordRecentUsage(type)
-    lastId = created?.id
-  })
-  collapsed.value.structure = false
-  if (lastId) requestEditorScrollToComponent(lastId)
-}
-
-function formatSavedAt(iso: string) {
-  try {
-    return new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return ''
-  }
-}
-
-async function saveMyBlockFromSelection() {
-  const id = pageStore.selectedComponentId
-  if (!id) return
-  const idx = pageStore.components.findIndex((c) => c.id === id)
-  if (idx < 0) return
-  const slice = pageStore.components.slice(idx)
-  if (!slice.length) return
-  try {
-    const { value } = await ElMessageBox.prompt('给区块起个名字', '保存为我的区块', {
-      inputValue: `区块 ${myBlocks.value.length + 1}`,
-      confirmButtonText: '保存',
-    })
-    const label = String(value || '').trim()
-    if (!label) return
-    const row = saveMyBlock({ label, components: slice })
-    myBlocks.value = loadMyBlocks()
-    ElMessage.success(`已保存「${row.label}」`)
-  } catch {
-    // cancel
-  }
-}
-
-function insertMyBlock(block: SavedMyBlock) {
-  let lastId: string | undefined
-  block.components.forEach((comp) => {
-    const copy = JSON.parse(JSON.stringify(comp)) as typeof comp
-    copy.id = `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    pageStore.insertComponentAt(copy, pageStore.components.length)
-    lastId = copy.id
-  })
-  if (lastId) requestEditorScrollToComponent(lastId)
-}
-
-function removeMyBlockEntry(id: string) {
-  removeMyBlock(id)
-  myBlocks.value = loadMyBlocks()
-}
-
 
 function sectionStyle(target: 'components') {
   if (collapsed.value[target]) {
@@ -542,6 +542,8 @@ function clamp(value: number, min: number, max: number) {
 onMounted(() => {
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mouseup', handleMouseUp)
+  // 画布里「另存为区块」成功后热刷新「我的区块」列表
+  window.addEventListener('pagebuilder:my-blocks-changed', reloadMyBlocks)
   loadRecentTypes()
   if (!featureModulesStore.loaded) {
     featureModulesStore.load()
@@ -551,6 +553,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
+  window.removeEventListener('pagebuilder:my-blocks-changed', reloadMyBlocks)
   document.body.classList.remove('is-panel-resizing')
 })
 </script>
@@ -581,58 +584,72 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.blocks-list {
+.blocks-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  padding: 10px 10px 20px;
 }
 
-.block-card {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  text-align: left;
-  background: var(--pc-soft);
-  border: 1px solid var(--pc-line);
-  border-radius: 10px;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--pc-ink);
+.block-group {
+  margin-bottom: 18px;
 
-  b { font-size: 13px; font-weight: 600; }
-
-  &:hover {
-    border-color: var(--pc-acc);
-    background: var(--pc-acc-soft);
+  &:last-child {
+    margin-bottom: 0;
   }
 }
 
-.block-desc {
+.block-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.block-group__title {
+  color: var(--pc-ink, #2a1f17);
   font-size: 12px;
-  color: var(--pc-mute);
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
-.block-parts {
+.block-group__hint,
+.block-group__count {
+  color: var(--pc-faint, #a99c8e);
   font-size: 11px;
-  color: var(--pc-faint);
 }
 
-.my-blocks {
-  border-top: 1px solid var(--pc-line);
-  padding-top: 4px;
+.block-group__count {
+  min-width: 18px;
+  padding: 0 6px;
+  color: var(--pc-acc, #c08e6e);
+  text-align: center;
+  background: var(--pc-acc-soft, #f7efe7);
+  border-radius: 999px;
 }
 
-.my-blocks__actions {
-  padding: 0 8px 8px;
+/* 双列卡片：缩略图 148px + 间距刚好填满面板 */
+.block-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.my-blocks__list {
-  max-height: 220px;
+.my-blocks__hint {
+  margin: 0;
+  padding: 10px;
+  color: var(--pc-mute, #6b5b4e);
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--pc-soft, #faf6f1);
+  border: 1px dashed var(--pc-line, #e8e0d6);
+  border-radius: 8px;
+
+  b {
+    color: var(--pc-acc, #c08e6e);
+  }
 }
 
 .left-seg {

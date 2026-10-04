@@ -27,7 +27,13 @@
       data-id="{{item.id}}"
       bindtap="onItemTap"
     >
-      <view class="dsl-material-list__icon" style="background:{{item.fileColor}}">{{item.fileIcon}}</view>
+      <image
+        wx:if="{{item.iconUrl}}"
+        class="dsl-material-list__icon dsl-material-list__icon--img"
+        src="{{item.iconUrl}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="dsl-material-list__icon" style="background:{{item.fileColor}}">{{item.fileIcon}}</view>
       <view class="dsl-material-list__main">
         <view class="dsl-material-list__title">{{item.title}}</view>
         <view wx:if="{{showMeta}}" class="dsl-material-list__meta">{{item.metaLine}}</view>

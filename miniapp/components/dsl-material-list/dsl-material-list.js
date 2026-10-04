@@ -1,5 +1,6 @@
 const { get } = require('../../utils/request')
 const { navigatePage } = require('../../utils/render')
+const { resolveMediaUrl } = require('../../utils/media-url')
 
 function formatSize(size) {
   const n = Number(size)
@@ -37,6 +38,8 @@ function mapItem(item, index) {
     title: item.name || item.title || '资料',
     fileIcon: visual.icon,
     fileColor: visual.color,
+    // 自定义图标：后台资料编辑页上传；未配置则回退文件类型色块
+    iconUrl: resolveMediaUrl(item.iconUrl || item.icon_url || ''),
     metaLine: metaLine || formatSize(item.size),
     downloadCount: Number(item.downloadCount || item.download_count || 0) || 0,
     access: accessTag(item),

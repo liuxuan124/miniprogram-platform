@@ -1262,6 +1262,63 @@
   color: #fff;
 }
 
+/* 楼中楼回复区 */
+.cmt-reply-bar {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #a1897a;
+  align-self: flex-start;
+  padding: 4rpx 0;
+}
+.cmt-sub {
+  margin-top: 12rpx;
+  padding: 16rpx 20rpx;
+  background: #f7f0e6;
+  border-radius: 12rpx;
+}
+.cmt-sub__item {
+  padding: 6rpx 0;
+  line-height: 1.5;
+}
+.cmt-sub__body {
+  font-size: 26rpx;
+  color: #2a1c12;
+}
+.cmt-sub__nick {
+  color: #c2410c;
+  font-weight: 500;
+}
+.cmt-sub__arrow {
+  color: #a1897a;
+  margin: 0 2rpx;
+}
+.cmt-sub__colon {
+  color: #2a1c12;
+}
+.cmt-sub__text {
+  color: #2a1c12;
+}
+.cmt-sub__more {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #c2410c;
+}
+.cmt-reply-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 16rpx;
+  background: #fdf6ec;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+  color: #6b5443;
+  margin-bottom: 10rpx;
+}
+.cmt-reply-hint__close {
+  color: #a1897a;
+  padding: 0 8rpx;
+}
+
 .a-video-wrap {
   margin: 24rpx 0 8rpx;
   border-radius: 16rpx;
@@ -1384,6 +1441,23 @@
   display: flex; align-items: center; gap: 20rpx;
   padding: 0;
 }
+/* author-card 组件替换 .a-author 后的外层容器 */
+.a-author-card {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.a-author-card .ac {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.a-author-card + .a-author__sub {
+  margin-top: 10rpx;
+  padding: 0;
+}
 .a-author__av {
   width: 76rpx; height: 76rpx; border-radius: 999rpx; flex: none; background: #f3e3d0;
 }
@@ -1485,3 +1559,355 @@
   background: linear-gradient(135deg,#f6d9a8,#efc27a); color: #8a4b12; font-size: 20rpx; font-weight: 700;
 }
 .warm-sep { height: 16rpx; background: #f5e8d8; margin-top: 44rpx; }
+
+/* pkg-content/content-detail/content-detail.wxss — 追加：小红书风格笔记主题
+ *
+ * 目标视觉（对齐小红书 App 笔记详情页）：
+ *   - 页面纯白 #ffffff，图片区下方不留米色间隙
+ *   - 强调色用橙红 #ff2e4d（点赞）/ #ff7a1a（收藏、关注按钮）
+ *   - 顶栏白底、头像小圆、昵称黑色加粗、角色标签橙底白字
+ *   - 底部操作栏白底 + 上边框，图标带计数（❤️ 4.2k / ⭐ 1.1k / 💬 286）
+ *   - 正文纯黑 #1a1a1a、行高 1.75、段间距 20rpx
+ *
+ * 与暖阁主题（.note-mode--warm / .bottom-bar--warm）并列，用 class 切换互不影响。
+ * 结构完全复用，只覆盖视觉变量。
+ */
+
+/* ==================== 配色变量 ==================== */
+.theme-xhs {
+  --xhs-red: #ff2e4d;
+  --xhs-orange: #ff7a1a;
+  --xhs-ink: #1a1a1a;
+  --xhs-ink-2: #61666d;
+  --xhs-ink-3: #9aa0a8;
+  --xhs-line: #f0f0f0;
+  --xhs-fill: #f7f7f7;
+  --xhs-page: #ffffff;
+}
+
+/* ==================== 页面底色 ==================== */
+page.theme-xhs,
+page.is-article.theme-xhs,
+.content-detail-page.theme-xhs.is-note:not(.is-wechat-note) {
+  background: var(--xhs-page, #ffffff);
+}
+
+.theme-xhs.note-mode,
+.theme-xhs.note-mode--note {
+  min-height: 100vh;
+  background: var(--xhs-page, #ffffff);
+}
+
+/* ==================== 顶栏 ==================== */
+.theme-xhs.theme-xhs .n-topbar {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: none;
+  box-shadow: none;
+  padding: 14rpx 24rpx;
+  gap: 14rpx;
+}
+
+.theme-xhs.theme-xhs .n-topbar__bk {
+  width: 40rpx;
+  font-size: 40rpx;
+  color: var(--xhs-ink, #1a1a1a);
+  font-weight: 500;
+}
+
+.theme-xhs.theme-xhs .n-topbar__av {
+  width: 52rpx;
+  height: 52rpx;
+  background: var(--xhs-fill, #f7f7f7);
+}
+
+.theme-xhs.theme-xhs .n-topbar__av--txt {
+  background: linear-gradient(140deg, #ff7a1a, #ff2e4d);
+  font-weight: 500;
+}
+
+.theme-xhs.theme-xhs .n-topbar__name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--xhs-ink, #1a1a1a);
+  max-width: 200rpx;
+}
+
+/* 角色标签：橙底白字小圆角（小红书的「特约作者」样式） */
+.theme-xhs.theme-xhs .n-topbar__role,
+.theme-xhs.theme-xhs .warm-tag {
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #fff;
+  background: var(--xhs-orange, #ff7a1a);
+  border: none;
+}
+
+/* 关注按钮：橙红实心胶囊 */
+.theme-xhs.theme-xhs .n-topbar__follow {
+  padding: 10rpx 32rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #fff;
+  background: var(--xhs-red, #ff2e4d);
+}
+
+.theme-xhs.theme-xhs .n-topbar__follow.on {
+  background: var(--xhs-fill, #f7f7f7);
+  color: var(--xhs-ink-3, #9aa0a8);
+  font-weight: 400;
+}
+
+.theme-xhs.theme-xhs .n-topbar__follow.follow--pressed {
+  opacity: 0.82;
+  transform: scale(0.97);
+}
+
+.theme-xhs.theme-xhs .n-topbar__more {
+  font-size: 30rpx;
+  color: var(--xhs-ink-3, #9aa0a8);
+  font-weight: 600;
+}
+
+/* ==================== 图片区 ==================== */
+/* 白底：图片未加载时也是白的，不出现米色块 */
+.theme-xhs.theme-xhs .n-gallery-wrap {
+  background: var(--xhs-page, #ffffff);
+}
+
+.theme-xhs.theme-xhs .n-slide {
+  background: var(--xhs-page, #ffffff);
+}
+
+/* 图片左上/右上角标：小红书是「1/9」深色半透明圆角小胶囊 */
+.theme-xhs.theme-xhs .n-idx {
+  top: 20rpx;
+  right: 20rpx;
+  padding: 6rpx 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 8rpx;
+  z-index: 4;
+}
+
+/* 底部指示点：小红书是短横条，当前高亮为黑色 */
+.theme-xhs.theme-xhs .n-dots,
+.theme-xhs.theme-xhs .n-gallery-dots {
+  gap: 8rpx;
+}
+
+.theme-xhs.theme-xhs .n-dots view,
+.theme-xhs.theme-xhs .n-gallery-dots view {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* ==================== 正文区 ==================== */
+/* 小红书没有圆角上翻的「卡片」，图片下方直接接白底正文 */
+.theme-xhs.theme-xhs .n-body {
+  background: var(--xhs-page, #ffffff);
+  border-radius: 0;
+  margin-top: 0;
+  padding: 32rpx 32rpx 24rpx;
+}
+
+.theme-xhs.theme-xhs .n-title {
+  font-size: 38rpx;
+  line-height: 1.45;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--xhs-ink, #1a1a1a);
+  margin-bottom: 24rpx;
+}
+
+.theme-xhs.theme-xhs .n-p {
+  font-size: 30rpx;
+  line-height: 1.75;
+  color: var(--xhs-ink, #1a1a1a);
+  margin-bottom: 20rpx;
+}
+
+.theme-xhs.theme-xhs .n-p--list {
+  margin-bottom: 8rpx;
+  color: var(--xhs-ink, #1a1a1a);
+  line-height: 1.8;
+}
+
+/* 小节标题（h3 渲染出的加粗行） */
+.theme-xhs.theme-xhs .n-h,
+.theme-xhs.theme-xhs .n-p--h3 {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--xhs-ink, #1a1a1a);
+  margin: 32rpx 0 16rpx;
+  line-height: 1.5;
+}
+
+/* 话题标签：小红书是蓝青色 */
+.theme-xhs.theme-xhs .n-tags text {
+  font-size: 28rpx;
+  color: #13386c;
+  font-weight: 400;
+}
+
+.theme-xhs.theme-xhs .n-tags {
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+/* 元信息（时间/字数） */
+.theme-xhs.theme-xhs .n-meta,
+.theme-xhs.theme-xhs .n-sub,
+.theme-xhs.theme-xhs .n-meta-row {
+  font-size: 24rpx;
+  color: var(--xhs-ink-3, #9aa0a8);
+}
+
+/* 分割线 */
+.theme-xhs.theme-xhs .n-line,
+.theme-xhs.theme-xhs .n-comments {
+  border-top-color: var(--xhs-line, #f0f0f0);
+}
+
+.theme-xhs.theme-xhs .n-comments {
+  background: var(--xhs-page, #ffffff);
+}
+
+/* ==================== 底部操作栏 ==================== */
+/* 小红书：白底 + 顶部细线，图标带计数，不用深色 */
+.theme-xhs.theme-xhs .bottom-bar,
+.theme-xhs.theme-xhs .bottom-bar.bottom-bar--warm,
+.theme-xhs.theme-xhs .bottom-bar.bottom-bar--note {
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1rpx solid var(--xhs-line, #f0f0f0);
+  box-shadow: none;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8rpx;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+}
+
+.theme-xhs.theme-xhs .bottom-bar .action-item,
+.theme-xhs.theme-xhs .bottom-bar .action-item--warm {
+  flex-direction: row;
+  align-items: center;
+  gap: 6rpx;
+  flex: none;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+/* 图标：红心 / 橙星 / 灰评论 */
+.theme-xhs.theme-xhs .bottom-bar .action-icon {
+  font-size: 34rpx;
+  line-height: 1;
+  color: var(--xhs-ink-2, #61666d);
+}
+
+.theme-xhs.theme-xhs .bottom-bar .action-icon--liked {
+  color: var(--xhs-red, #ff2e4d);
+}
+
+.theme-xhs.theme-xhs .bottom-bar .action-icon--star {
+  color: var(--xhs-orange, #ff7a1a);
+}
+
+/* 计数文字：小红书是灰色小字 */
+.theme-xhs.theme-xhs .bottom-bar .action-text {
+  font-size: 22rpx;
+  color: var(--xhs-ink-3, #9aa0a8);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.theme-xhs.theme-xhs .bottom-bar .action-item.active .action-text,
+.theme-xhs.theme-xhs .bottom-bar .action-item--liked .action-text {
+  color: var(--xhs-red, #ff2e4d);
+  font-weight: 500;
+}
+
+.theme-xhs.theme-xhs .bottom-bar .action-item--star .action-text {
+  color: var(--xhs-orange, #ff7a1a);
+  font-weight: 500;
+}
+
+/* 评论输入框：小红书是浅灰底圆角胶囊 */
+.theme-xhs.theme-xhs .action-input,
+.theme-xhs.theme-xhs .bottom-bar .action-input,
+.theme-xhs.theme-xhs .comment-input {
+  background: var(--xhs-fill, #f7f7f7);
+  border: none;
+  border-radius: 999rpx;
+  color: var(--xhs-ink, #1a1a1a);
+  font-size: 26rpx;
+  padding: 14rpx 28rpx;
+}
+
+.theme-xhs.theme-xhs .action-input::placeholder,
+.theme-xhs.theme-xhs .comment-input::placeholder {
+  color: var(--xhs-ink-3, #9aa0a8);
+}
+
+/* 分享按钮：小红书是蓝色圆形图标 */
+.theme-xhs.theme-xhs .action-share,
+.theme-xhs.theme-xhs .bottom-bar .action-share {
+  color: #3a7afe;
+}
+
+/* ==================== 相关推荐 ==================== */
+.theme-xhs.theme-xhs .rel-card,
+.theme-xhs.theme-xhs .cross-card {
+  background: var(--xhs-page, #ffffff);
+  border: 1rpx solid var(--xhs-line, #f0f0f0);
+  border-radius: 12rpx;
+  box-shadow: none;
+}
+
+.theme-xhs.theme-xhs .rel__im,
+.theme-xhs.theme-xhs .cross-cover {
+  border-radius: 8rpx;
+}
+
+/* ==================== 骨架屏 ==================== */
+.theme-xhs.theme-xhs .sk-line,
+.theme-xhs.theme-xhs .sk-block {
+  background: var(--xhs-fill, #f7f7f7);
+  border-radius: 8rpx;
+}
+
+/* ==================== 补充：输入框与图标细节 ==================== */
+/* 底部「说点什么…」输入框：小红书是浅灰胶囊，文字灰色 */
+.theme-xhs.theme-xhs .warm-bottom-input,
+.theme-xhs.theme-xhs .note-bottom-input {
+  max-width: none;
+  flex: 1;
+  min-width: 0;
+  height: 68rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: #f7f7f7;
+  color: #9aa0a8;
+  font-size: 25rpx;
+  line-height: 68rpx;
+  border: none;
+  font-weight: 400;
+}
+
+.theme-xhs.theme-xhs .warm-bottom-input--done {
+  background: #fff0f2;
+  color: #ff2e4d;
+  font-weight: 400;
+}
+
+/* 分享图标：小红书是蓝色圆形箭头 */
+.theme-xhs.theme-xhs .bottom-bar .action-item:last-child .action-icon {
+  color: #3a7afe;
+}
+
+/* 未点赞/未收藏时的心与星：保持灰度，点了才变红/橙 */
+.theme-xhs.theme-xhs .bottom-bar .action-icon--liked { color: #ff2e4d; }
+.theme-xhs.theme-xhs .bottom-bar .action-icon--star { color: #ff7a1a; }

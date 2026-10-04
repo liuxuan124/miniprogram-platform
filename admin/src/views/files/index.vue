@@ -2,11 +2,12 @@
   <div class="file-library-page">
     <header class="page-header">
       <div>
-        <h1>文件库</h1>
+        <h1>文件管理</h1>
         <p class="sub">独立管理资料文件与阅读/下载权限，可关联到动态附件</p>
       </div>
       <div class="actions">
         <el-button :icon="Refresh" :loading="loading" @click="loadList">刷新</el-button>
+        <el-button @click="openTrash">回收站</el-button>
         <el-button type="primary" :icon="Plus" @click="openEdit()">上传文件</el-button>
       </div>
     </header>
@@ -70,6 +71,37 @@
         />
       </div>
     </el-card>
+
+    <el-drawer v-model="trashVisible" title="回收站" size="720px" @open="loadTrash">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="删除的文件保存在这里，文件实体未从磁盘清除，恢复后立即可用。"
+        style="margin-bottom: 12px"
+      />
+      <el-table v-loading="trashLoading" :data="trashRecords" stripe>
+        <el-table-column prop="name" label="名称" min-width="200" />
+        <el-table-column prop="fileType" label="类型" width="80" />
+        <el-table-column label="大小" width="100">
+          <template #default="{ row }">{{ formatSize(row.size) }}</template>
+        </el-table-column>
+        <el-table-column prop="status" label="原状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">
+              {{ row.status === 'published' ? '已发布' : '草稿' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="90" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleRestore(row)">恢复</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="!trashLoading && !trashRecords.length" class="trash-empty">回收站是空的</div>
+      <div v-else class="faint" style="margin-top: 12px">共 {{ trashTotal }} 条</div>
+    </el-drawer>
   </div>
 </template>
 
@@ -78,7 +110,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
-import { deleteFile, getFileGroups, getFileList, type FileGroupItem, type FileItemRecord } from '@/api/files'
+import { deleteFile, getDeletedFileList, getFileGroups, getFileList, restoreFile, type FileGroupItem, type FileItemRecord } from '@/api/files'
 
 const router = useRouter()
 const loading = ref(false)
@@ -126,9 +158,42 @@ function openEdit(id?: number) {
 }
 
 async function handleDelete(row: FileItemRecord) {
-  await ElMessageBox.confirm(`确定删除「${row.name}」？`, '提示', { type: 'warning' })
+  await ElMessageBox.confirm(
+    `确定删除「${row.name}」？删除后进回收站，可随时恢复。`,
+    '提示',
+    { type: 'warning' },
+  )
   await deleteFile(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success('已移入回收站')
+  loadList()
+}
+
+const trashVisible = ref(false)
+const trashLoading = ref(false)
+const trashRecords = ref<FileItemRecord[]>([])
+const trashTotal = ref(0)
+
+async function loadTrash() {
+  trashLoading.value = true
+  try {
+    const res = await getDeletedFileList({ current: 1, size: 50 })
+    const data = (res as any).data || {}
+    trashRecords.value = data.records || []
+    trashTotal.value = data.total || 0
+  } finally {
+    trashLoading.value = false
+  }
+}
+
+function openTrash() {
+  trashVisible.value = true
+  loadTrash()
+}
+
+async function handleRestore(row: FileItemRecord) {
+  await restoreFile(row.id)
+  ElMessage.success(`「${row.name}」已恢复`)
+  loadTrash()
   loadList()
 }
 
@@ -146,4 +211,5 @@ onMounted(async () => {
 .actions { display: flex; gap: 8px; }
 .filter-card { margin-bottom: 12px; }
 .pager { display: flex; justify-content: flex-end; margin-top: 12px; }
+.trash-empty { padding: 32px; text-align: center; color: #909399; font-size: 13px; }
 </style>

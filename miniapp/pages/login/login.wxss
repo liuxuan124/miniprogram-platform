@@ -773,3 +773,100 @@ page {
 .login-sheet--auth { min-height: 42vh; }
 .login-sheet--auth .sheet-heading { margin-bottom: 28rpx; }
 
+
+/* ============================================================ *
+ * 登录页 4 套皮肤变体（lg-page--{{styleKey}}）
+ * 与管理端 LoginPagePreview.vue 同源；后台 loginPageConfig.templateStyle 切换。
+ * 默认（无类名或 lg-page--warm）= 砖橘暖阁，即历史登录页样式。
+ * ============================================================ */
+
+/* —— warm 暖阁纸感（默认，沿用现有色值，仅声明变量兜底） —— */
+.lg-page--warm {
+  --lg-accent: #C2410C;
+  --lg-accent-2: #EA580C;
+}
+
+/* —— brand 品牌焦点：蓝紫渐变 + Logo 居中 —— */
+.lg-page--brand .login-backdrop {
+  background: linear-gradient(165deg, #C5D8F0 0%, #E8EEF8 100%);
+}
+.lg-page--brand .brand-mark {
+  background: #4338CA;
+}
+.lg-page--brand .brand-copy__eyebrow {
+  color: #4338CA;
+}
+.lg-page--brand .brand-hero__orb--one {
+  background: #5B7FEA;
+}
+.lg-page--brand .brand-hero__orb--two {
+  background: #6B6FE8;
+}
+.lg-page--brand .agreement__link,
+.lg-page--brand .login-button {
+  background: #5B7FEA;
+  box-shadow: 0 8rpx 24rpx rgba(91, 127, 234, 0.30);
+}
+.lg-page--brand .login-button__title {
+  color: #fff;
+}
+
+/* —— minimal 极简卡片：纯白背景 + 深灰主色按钮，无装饰光斑 —— */
+.lg-page--minimal .login-backdrop {
+  background: #ffffff;
+}
+.lg-page--minimal .brand-hero {
+  padding: 60rpx 0 32rpx;
+}
+.lg-page--minimal .brand-title {
+  font-size: 40rpx;
+  color: #1F2937;
+}
+.lg-page--minimal .login-sheet {
+  box-shadow: none;
+  border-top: 2rpx solid #F3F4F6;
+}
+.lg-page--minimal .sheet-heading__title {
+  font-size: 30rpx;
+}
+.lg-page--minimal .agreement__link,
+.lg-page--minimal .login-button {
+  background: #1F2937;
+  box-shadow: none;
+  border-radius: 12rpx;
+}
+
+/* —— wechat 微信原生：微信绿主按钮 + 极简灰背景 —— */
+.lg-page--wechat .login-backdrop {
+  background: #ededed;
+}
+.lg-page--wechat .brand-hero {
+  padding: 60rpx 0 32rpx;
+}
+.lg-page--wechat .brand-title {
+  font-size: 36rpx;
+}
+.lg-page--wechat .brand-identity {
+  display: none;
+}
+.lg-page--wechat .login-sheet {
+  box-shadow: none;
+  border-radius: 0;
+  background: #f7f7f7;
+}
+.lg-page--wechat .agreement__link,
+.lg-page--wechat .login-button {
+  background: #07C160;
+  box-shadow: 0 4rpx 16rpx rgba(7, 193, 96, 0.25);
+  border-radius: 12rpx;
+}
+.lg-page--wechat .login-button__title {
+  color: #fff;
+}
+.lg-page--wechat .security-badge {
+  background: #E8F5EE;
+  color: #07C160;
+}
+.lg-page--wechat .security-badge__dot {
+  background: #07C160;
+}

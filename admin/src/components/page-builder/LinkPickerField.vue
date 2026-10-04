@@ -56,11 +56,24 @@
     </template>
     <template v-else-if="linkType === 'content'">
       <el-select
+        v-model="contentTypeFilter"
+        size="small"
+        style="width: 104px; flex-shrink: 0"
+        title="按内容形态筛选"
+        @change="onContentTypeFilter"
+      >
+        <el-option label="全部形态" value="" />
+        <el-option label="长文" value="article" />
+        <el-option label="图文笔记" value="note" />
+        <el-option label="星球动态" value="moment" />
+        <el-option label="视频" value="video" />
+      </el-select>
+      <el-select
         :model-value="linkUrl"
         filterable
         remote
         clearable
-        placeholder="搜索文章/笔记标题"
+        placeholder="搜索文章/笔记/动态标题"
         class="link-picker__grow"
         :remote-method="searchContents"
         :loading="contentLoading"
@@ -71,7 +84,14 @@
           :key="c.id"
           :label="c.title"
           :value="c.path"
-        />
+        >
+          <span>{{ c.title }}</span>
+          <span class="link-picker__hint">
+            <span class="cf-tag" :class="c.tone">{{ c.kindLabel }}</span>
+            <span v-if="c.pinned" class="cf-flag">置顶</span>
+            <span v-if="c.recommended" class="cf-flag cf-flag-rec">推荐</span>
+          </span>
+        </el-option>
       </el-select>
     </template>
     <el-input
@@ -89,6 +109,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getPageList } from '@/api/page'
 import { getProductList } from '@/api/product'
 import { getContentList } from '@/api/content'
+import { contentDetailPath, contentKindLabel, contentKindTone } from '@/utils/content-link'
 
 const props = defineProps<{
   linkType?: string
@@ -114,7 +135,9 @@ const productLoading = ref(false)
 const contentLoading = ref(false)
 const pageOptions = ref<Array<{ id: number; name: string; path: string }>>([])
 const productOptions = ref<Array<{ id: number; name: string; path: string }>>([])
-const contentOptions = ref<Array<{ id: number; title: string; path: string }>>([])
+const contentOptions = ref<Array<{ id: number; title: string; path: string; kindLabel: string; tone: string; pinned: boolean; recommended: boolean }>>([])
+/** 内容形态筛选（''=全部） */
+const contentTypeFilter = ref('')
 
 async function searchPages(query: string) {
   pageLoading.value = true
@@ -161,25 +184,32 @@ async function searchContents(query: string) {
       size: 30,
       keyword: query || undefined,
       status: 'published',
+      contentType: contentTypeFilter.value || undefined,
     } as any)
     const records = (res as any)?.data?.records || (res as any)?.data?.list || []
     contentOptions.value = (Array.isArray(records) ? records : []).map((r: any) => {
       const id = Number(r.id)
       const type = String(r.contentType || r.content_type || 'article')
-      const path = type === 'note'
-        ? `/pages/note-detail/note-detail?id=${id}`
-        : `/pkg-content/content-detail/content-detail?id=${id}`
       return {
         id,
         title: String(r.title || `内容 ${id}`),
-        path,
+        // 动态走专用详情页；其余形态统一内容详情页（与 miniapp/utils/content-id.js 一致）
+        path: contentDetailPath(id, type),
+        kindLabel: contentKindLabel(type),
+        tone: contentKindTone(type),
+        pinned: Number(r.isPinned || 0) === 1,
+        recommended: Number(r.isRecommended || 0) === 1,
       }
-    })
+    }).filter((x: any) => !!x.path)
   } catch {
     contentOptions.value = []
   } finally {
     contentLoading.value = false
   }
+}
+
+function onContentTypeFilter() {
+  void searchContents('')
 }
 
 function onTypeChange(v: string) {
@@ -218,4 +248,20 @@ onMounted(() => {
   flex: 1;
   min-width: 120px;
 }
+.link-picker__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--color-text-tertiary, #999);
+}
+.cf-tag { padding: 1px 6px; border-radius: 8px; font-size: 11px; }
+.cf-article { background: #EEF4FB; color: #3A6EA5; }
+.cf-note { background: #EAF3DE; color: #3B6D11; }
+.cf-moment { background: #FAEEDA; color: #854F0B; }
+.cf-video { background: #F1EFE8; color: #5F5E5A; }
+.cf-data { background: #E6EEFA; color: #185FA5; }
+.cf-flag { padding: 1px 5px; border-radius: 8px; font-size: 11px; background: #FAEEDA; color: #854F0B; }
+.cf-flag-rec { background: #FCEBEB; color: #A32D2D; }
 </style>

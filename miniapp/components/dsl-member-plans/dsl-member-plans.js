@@ -79,6 +79,16 @@ Component({
                 priceText += ` 原价¥${original}`
               }
             }
+            // 通票标签：appliesTo=all_planets 显示「全星球通用」，multi_planet 显示「N 球通票」
+            let ticketTag = ''
+            const appliesTo = p.appliesTo || p.applies_to || 'single_planet'
+            const appliesPlanets = p.appliesPlanets || p.applies_planets || []
+            if (appliesTo === 'all_planets') {
+              ticketTag = '全星球通用'
+            } else if (appliesTo === 'multi_planet' && appliesPlanets.length) {
+              // 通票覆盖本星球 + 所选星球
+              ticketTag = `${appliesPlanets.length + 1}球通票`
+            }
             return {
               id: p.id,
               productId: p.productId || p.product_id,
@@ -87,6 +97,8 @@ Component({
               rights: p.rights || [],
               recommend: recommendId != null && String(recommendId) === String(p.id),
               priceText,
+              ticketTag,
+              scope: p.scope || scope,
             }
           })
           this.setData({ state: 'data', plans })

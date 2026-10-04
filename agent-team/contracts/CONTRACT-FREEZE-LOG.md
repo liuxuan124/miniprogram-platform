@@ -31,6 +31,7 @@ created: 2026-05-11
 
 ## 变更请求记录（未改冻结正文）
 
+- 2026-10-04：内容管理下线「资料」内容形态（mp_content.content_type='file' 停用），全平台资料统一从文件库（mp_file_item / `/api/v1/mp/files*`）调取；待合入时在 api-contract.md 增补 files 模块接口（`/api/v1/admin/files*`、`/api/v1/mp/files*`）、database-model.md 增补 mp_file_item / mp_file_group。生产 file 帖存量 0，无数据迁移。
 - 2026-09-21：Mini Site 增补 `GET /api/v1/admin/mini/releases`、`POST .../releases/{id}/prepare-rollback`（内容时间线 + 回滚为待发布草稿）；publish 写入 snapshot；待合入 api-contract.md。
 - 2026-09-21：Admin Mini Site 聚合 API——`GET/PUT /api/v1/admin/mini/site`、`GET .../pending-changes`、`POST .../publish`；页面状态计算 draft/pending/live/offline/archived；待合入 api-contract.md。
 - 2026-09-20：新增 MP `GET/POST /api/v1/mp/store-templates`（列表/详情/套用）与 Admin `POST /api/v1/admin/miniapp-releases/publish-content`（上线内容）；待总控择期合入 api-contract.md。

@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="88px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item label="主标题">
       <el-input :model-value="data.title || ''" @input="(v: string) => emit('update', { title: v })" />
     </el-form-item>

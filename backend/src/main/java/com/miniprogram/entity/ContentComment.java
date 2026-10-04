@@ -14,6 +14,12 @@ public class ContentComment {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long contentId;
+    /** 父评论ID，NULL 表示楼主评论；非 NULL 表示二级回复 */
+    private Long parentId;
+    /** 被回复用户ID（仅回复时有值） */
+    private Long replyToUserId;
+    /** 被回复用户昵称（仅回复时有值，冗余避免二次查询） */
+    private String replyToNickname;
     private Long userId;
     private String nickname;
     private String avatar;

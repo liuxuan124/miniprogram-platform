@@ -149,6 +149,58 @@
           </div>
         </template>
 
+        <!-- 视频：小红书视频详情 -->
+        <template v-else-if="contentType === 'video'">
+          <div class="pv-video-wrap">
+            <div class="pv-video-scroll">
+              <div class="pv-video" :class="{ 'is-square': videoRatioSquare }">
+                <video
+                  v-if="videoSrc"
+                  :src="videoSrc"
+                  :poster="coverUrl || undefined"
+                  controls
+                  playsinline
+                  class="pv-video__player"
+                ></video>
+                <img v-else-if="coverUrl" :src="coverUrl" alt="" class="pv-video__poster" />
+                <div v-else class="pv-video__empty">视</div>
+                <span v-if="videoDurationLabel" class="pv-video__dur">{{ videoDurationLabel }}</span>
+                <span class="pv-video__ratio">{{ videoRatioLabel }}</span>
+              </div>
+
+              <div class="pv-note-body">
+                <h1 class="pv-note-title">{{ titleText }}</h1>
+                <div v-if="videoParagraphs.length" class="pv-note-paras">
+                  <p v-for="(para, idx) in videoParagraphs" :key="idx">{{ para }}</p>
+                </div>
+                <div v-else class="pv-video__nobody">暂无视频简介</div>
+                <div v-if="displayHashTags.length" class="pv-note-tags">
+                  <span v-for="tag in displayHashTags" :key="tag">{{ tag }}</span>
+                </div>
+                <div class="pv-note-date">{{ dateLabel }} · 视频详情</div>
+              </div>
+
+              <div class="pv-video-author">
+                <div class="pv-av pv-av--sm">
+                  <img v-if="authorAvatarUrl" :src="authorAvatarUrl" alt="" class="pv-av-img" />
+                  <span v-else>{{ authorInitial }}</span>
+                </div>
+                <span class="pv-video-author__name">{{ authorName }}</span>
+                <span class="pv-follow pv-follow--sm">关注</span>
+              </div>
+            </div>
+
+            <div class="pv-note-bottom">
+              <div class="pv-note-bottom__input">说点什么...</div>
+              <div class="pv-note-bottom__acts">
+                <span class="pv-note-bottom__act">♡ {{ likeLabel }}</span>
+                <span class="pv-note-bottom__act">☆</span>
+                <span class="pv-note-bottom__act">💬 0</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
         <!-- 长文 / 动态 -->
         <template v-else>
           <div class="pv-article">
@@ -188,12 +240,12 @@
                 <span v-if="!isArticleMode" class="pv-follow pv-follow--decorative" aria-hidden="true">+ 关注</span>
               </div>
               <div
-                v-if="(contentType === 'moment' || contentType === 'file') && noteBodyText"
+                v-if="contentType === 'moment' && noteBodyText"
                 class="pv-content pv-content--plain"
               >{{ noteBodyText }}</div>
               <div v-else-if="hasArticleBody" class="pv-content pv-content--article" v-html="articleContentHtml" />
             <div
-              v-if="(contentType === 'moment' || contentType === 'file') && attachmentItems.length"
+              v-if="contentType === 'moment' && attachmentItems.length"
               class="pv-attachments"
             >
               <div v-for="item in attachmentItems" :key="item.id || item.name" class="pv-attachment">
@@ -311,10 +363,23 @@ function onPhoneScroll(event: Event) {
 
 const likeLabel = computed(() => '赞')
 
+// ===== 视频预览 =====
+const videoSrc = computed(() => normalizePreviewMediaUrl(props.model.videoUrl))
+const videoRatioSquare = computed(() => props.model.videoRatio === '1:1')
+const videoRatioLabel = computed(() => props.model.videoRatio || '3:4')
+const videoDurationLabel = computed(() => {
+  const s = Math.max(0, Math.round(Number(props.model.videoDuration) || 0))
+  if (!s) return ''
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
+const videoParagraphs = computed(() => {
+  const plain = getPlainTextFromHtml(contentHtml.value)
+  return plain ? plain.split(/\n+/).map((s) => s.trim()).filter(Boolean) : []
+})
+
 const formatLabel = computed(() => {
   const t = contentType.value
   if (t === 'note') return '笔记'
-  if (t === 'file') return '资料'
   if (t === 'moment') return '动态'
   if (t === 'video') return '视频'
   return '长文'
@@ -322,7 +387,6 @@ const formatLabel = computed(() => {
 
 const coverGlyph = computed(() => {
   const t = contentType.value
-  if (t === 'file') return '资'
   if (t === 'video') return '视'
   if (t === 'moment') return '动'
   return '文'
@@ -335,9 +399,6 @@ const previewHintText = computed(() => {
   if (contentType.value === 'note') {
     return '笔记详情预览 · 实际以小程序为准'
   }
-  if (contentType.value === 'file') {
-    return '资料详情预览 · 实际以小程序为准'
-  }
   if (contentType.value === 'moment') {
     return '动态详情预览 · 实际以小程序为准'
   }
@@ -345,7 +406,7 @@ const previewHintText = computed(() => {
     return '视频详情预览 · 实际以小程序为准'
   }
   if (isArticleMode.value) {
-    return '长文详情预览 · 封面仅用于分享，正文不展示'
+    return '长文详情预览 · 封面仅用于分享卡片，不随正文展示'
   }
   return `${formatLabel.value}详情预览 · 实际以小程序为准`
 })
@@ -413,7 +474,15 @@ function nextGallery() {
 </script>
 
 <style lang="scss" scoped>
+/* 预览外壳配色：跟随后台主题，避免与内容画面的色系打架 */
 .content-preview-panel {
+  --pv-acc-1: var(--brand, #b4430f);
+  --pv-acc-2: var(--brand-hover, #8c3208);
+  --pv-shell-edge: color-mix(in srgb, var(--brand-ink, #2a1f17) 82%, #000);
+  --pv-stage: color-mix(in srgb, var(--brand-ink, #2a1f17) 6%, var(--bg-elevated, #fff));
+  --pv-stage-line: var(--border, #e8dfd3);
+  --pv-stage-mute: var(--text-secondary, #6b5b4e);
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -423,19 +492,21 @@ function nextGallery() {
 .phone-frame {
   width: 100%;
   max-width: 340px;
-  border-radius: 28px;
-  border: 3px solid #1a1f2e;
-  background: #0f1219;
+  border-radius: 30px;
+  border: 2px solid var(--pv-shell-edge, #2a2118);
+  background: linear-gradient(180deg, #3b3128 0%, #241d16 100%);
   padding: 10px 8px 14px;
-  box-shadow: 0 16px 40px rgba(23, 32, 51, 0.18);
+  box-shadow:
+    0 18px 44px rgba(28, 22, 16, 0.24),
+    0 2px 0 rgba(255, 255, 255, 0.1) inset;
 }
 
 .phone-notch {
-  width: 96px;
-  height: 8px;
-  margin: 0 auto 8px;
+  width: 92px;
+  height: 7px;
+  margin: 0 auto 9px;
   border-radius: 999px;
-  background: #2a3144;
+  background: #4a4036;
 }
 
 .phone-screen {
@@ -699,7 +770,7 @@ function nextGallery() {
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  background: linear-gradient(140deg, #2a3144, #1a1f2e);
+  background: linear-gradient(140deg, #3b3128, #241d16);
 }
 
 .pv-note-idx {
@@ -789,7 +860,7 @@ function nextGallery() {
 
 .pv-note-tags span {
   font-size: 14px;
-  color: #13386c;
+  color: #1f4b99;
   font-weight: 500;
 }
 
@@ -882,6 +953,106 @@ function nextGallery() {
   white-space: nowrap;
 }
 
+/* ===== 视频详情预览 ===== */
+.pv-video-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 620px;
+  background: #fff;
+}
+
+.pv-video-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.pv-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #111;
+  overflow: hidden;
+}
+
+.pv-video.is-square {
+  aspect-ratio: 1 / 1;
+}
+
+.pv-video__player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-video__poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-video__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(140deg, #3b3128, #241d16);
+}
+
+.pv-video__dur {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  z-index: 2;
+}
+
+.pv-video__ratio {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  z-index: 2;
+}
+
+.pv-video__nobody {
+  padding: 2px 0 6px;
+  font-size: 13px;
+  color: #a5abb9;
+}
+
+.pv-video-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.pv-video-author__name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f1219;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pv-cover {
   height: 168px;
   display: flex;
@@ -947,7 +1118,7 @@ function nextGallery() {
 .pv-body--article {
   margin-top: 0;
   border-radius: 0;
-  padding: 20px 20px 36px;
+  padding: 20px 18px 32px;
   min-height: calc(100% - 12px);
   background: #fff;
 }
@@ -961,8 +1132,8 @@ function nextGallery() {
 }
 
 .pv-title--article {
-  font-size: 22px;
-  line-height: 1.36;
+  font-size: 21px;
+  line-height: 1.42;
   margin-bottom: 10px;
   letter-spacing: -0.02em;
 }
@@ -1039,7 +1210,7 @@ function nextGallery() {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(140deg, #5c7cff, #2f5bff);
+  background: linear-gradient(140deg, var(--pv-acc-2), var(--pv-acc-1));
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -1077,7 +1248,7 @@ function nextGallery() {
   font-size: 12px;
   font-weight: 600;
   color: #fff;
-  background: #2f5bff;
+  background: var(--pv-acc-1);
   padding: 6px 12px;
   border-radius: 999px;
 }

@@ -89,6 +89,16 @@ watch(() => props.component.props?.countdown, tickCountdown)
 
 const flashSaleItems = computed<Array<{ name: string; price: string }>>(() => {
   const limit = Math.max(Number(props.component.props?.limit || 4), 1)
+  const raw = props.component.props?.items
+  const items = Array.isArray(raw)
+    ? raw
+        .map((it: any) => ({
+          name: String(it?.name || ''),
+          price: String(it?.price ?? ''),
+        }))
+        .filter((it: { name: string; price: string }) => it.name)
+    : []
+  if (items.length) return items.slice(0, limit)
   return [
     { name: '限时爆款A', price: '69.00' },
     { name: '限时爆款B', price: '89.00' },

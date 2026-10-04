@@ -1,6 +1,5 @@
 const request = require('../../utils/request')
 const { resolveMediaUrl } = require('../../utils/media-url')
-const {}  = require('../../data/warm-source')
 const { openContentDetail } = require('../../utils/content-id')
 
 function formatViews(n) {
@@ -32,6 +31,8 @@ Page({
   data: {
     author: '',
     authorId: '',
+    /** 作者档案（来自 mp_author，可空） */
+    profile: null,
     loading: true,
     loadError: false,
     list: [],
@@ -40,7 +41,8 @@ Page({
   onLoad(options) {
     const author = decodeURIComponent(String((options && options.author) || '').trim())
     const authorId = decodeURIComponent(String((options && options.id) || '').trim())
-    wx.setNavigationBarTitle({ title: author ? `${author}的作品` : '作者作品' })
+    const title = author ? `${author}的作品` : '作者作品'
+    wx.setNavigationBarTitle({ title })
     this.setData({ author, authorId })
     this._load()
   },
@@ -54,24 +56,58 @@ Page({
   },
 
   _load() {
-    const author = this.data.author
-    if (!author) {
+    const { author, authorId } = this.data
+    if (!author && !authorId) {
       this.setData({ loading: false, loadError: false, list: [] })
       return Promise.resolve()
     }
     this.setData({ loading: true, loadError: false })
-    return request.get('/api/v1/mp/contents', {
-      current: 1,
-      size: 40,
-      author,
-    }, { auth: false, showError: false })
-      .then((res) => {
+
+    // 1) 若有 authorId，先拉作者档案；失败则降级只用 author 名字
+    const profileTask = authorId
+      ? request.get(`/api/v1/mp/authors/${authorId}`, {}, { auth: false, showError: false })
+          .then((p) => p || null)
+          .catch(() => null)
+      : Promise.resolve(null)
+
+    // 2) 作品列表：优先按 authorId 过滤，回退到 author 名字
+    const listTask = authorId
+      ? request.get('/api/v1/mp/contents', {
+          current: 1,
+          size: 40,
+          authorId,
+        }, { auth: false, showError: false })
+      : request.get('/api/v1/mp/contents', {
+          current: 1,
+          size: 40,
+          author,
+        }, { auth: false, showError: false })
+
+    return Promise.all([profileTask, listTask])
+      .then(([profile, res]) => {
         const records = (res && (res.records || res.list)) || []
+        // 档案优先用接口返回；若没有则用 query 参数兜底
+        const finalProfile = profile
+          ? {
+              authorId,
+              name: profile.name || author || '作者',
+              avatar: resolveMediaUrl(profile.avatarUrl || ''),
+              role: profile.role || '',
+              title: profile.title || '',
+              intro: profile.intro || '',
+            }
+          : (author
+            ? { authorId, name: author, avatar: '', role: '', title: '', intro: '' }
+            : null)
         this.setData({
+          profile: finalProfile,
           list: records.map(mapRow),
           loading: false,
           loadError: false,
         })
+        if (finalProfile && finalProfile.name && finalProfile.name !== this.data.author) {
+          wx.setNavigationBarTitle({ title: `${finalProfile.name}的作品` })
+        }
       })
       .catch(() => {
         this.setData({ loading: false, loadError: true, list: [] })

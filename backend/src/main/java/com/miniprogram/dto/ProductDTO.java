@@ -31,8 +31,17 @@ public class ProductDTO {
     @Schema(description = "商品类型列表，可多选")
     private List<String> productTypes;
 
+    @Schema(description = "详情模板ID（覆盖按 productType 自动分流；空=自动；column_classic 等共 12 个）")
+    private String detailTemplate;
+
+    @Schema(description = "关联作者档案ID（mp_author.id；传 0 或不传=不关联）")
+    private Long authorId;
+
     @Schema(description = "主图URL")
     private String mainImage;
+
+    @Schema(description = "宣传视频URL（详情页首屏轮播首项，传空字符串清除）")
+    private String videoUrl;
 
     @Schema(description = "图片列表")
     private List<String> images;

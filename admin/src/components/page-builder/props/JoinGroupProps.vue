@@ -1,6 +1,6 @@
 <template>
   <div class="join-group-props">
-    <el-form label-width="78px" size="small">
+    <el-form label-width="72px" size="small">
       <el-divider content-position="left">入口卡片</el-divider>
       <el-form-item label="入口头像">
         <div class="img-field">

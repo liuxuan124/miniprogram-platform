@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="70px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item label="标题">
       <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="分类导航标题" />
     </el-form-item>

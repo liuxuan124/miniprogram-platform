@@ -2,6 +2,7 @@ package com.miniprogram.controller;
 
 import com.miniprogram.common.R;
 import com.miniprogram.dto.home.WarmHomeVO;
+import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.WarmHomeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,7 @@ public class MpHomeController {
     @Operation(summary = "暖阁原生首页聚合数据")
     @GetMapping("/warm")
     public R<WarmHomeVO> warmHome() {
-        return R.ok(warmHomeService.getWarmHome());
+        // 未登录也允许访问：getCurrentUserId() 返回 null，此时按配置 primary 星球聚合
+        return R.ok(warmHomeService.getWarmHome(SecurityUtils.getCurrentUserId()));
     }
 }

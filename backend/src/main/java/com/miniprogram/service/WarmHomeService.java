@@ -7,5 +7,8 @@ import com.miniprogram.dto.home.WarmHomeVO;
  */
 public interface WarmHomeService {
 
-    WarmHomeVO getWarmHome();
+    /**
+     * @param userId 当前登录用户；可为 null（未登录），此时按配置 primary 星球聚合，不做主星球收敛
+     */
+    WarmHomeVO getWarmHome(Long userId);
 }

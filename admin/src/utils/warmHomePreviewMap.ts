@@ -18,6 +18,11 @@ export type WarmPreviewView = {
   feature: Record<string, unknown> | null
   columns: Array<Record<string, unknown>>
   planet: Record<string, unknown>
+  /** 多星球推荐卡（2026-10-04） */
+  planets: Array<Record<string, unknown>>
+  primaryPlanetId: string
+  /** true = 用户已设主星球，预览只展示它 */
+  primaryOnly: boolean
   segs: Array<Record<string, unknown>>
   feed: Array<Record<string, unknown>>
   feedAll: Array<Record<string, unknown>>
@@ -126,7 +131,12 @@ export function buildWarmPreviewView(
     authors: data?.authors || [],
     feature: mapFeature(data?.feature || null),
     columns: (data?.columns || []).map(mapColumn),
-    planet: data?.planet || { title: '', members: '', items: [], cta: '' },
+    planet: (data?.planet || { title: '', members: '', items: [], cta: '' }) as unknown as Record<string, unknown>,
+    planets: (Array.isArray(data?.planets) && data.planets.length
+      ? data.planets
+      : (data?.planet ? [data.planet] : [{ planetId: 'warm-main' }])) as unknown as Array<Record<string, unknown>>,
+    primaryPlanetId: String(data?.primaryPlanetId || (data?.planet as any)?.planetId || ''),
+    primaryOnly: !!data?.primaryOnly,
     segs,
     feedAll,
     feed: filterFeedBySeg(feedAll, activeSeg),

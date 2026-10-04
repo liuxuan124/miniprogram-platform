@@ -42,7 +42,7 @@
           <span class="tag t-draft">{{ m.doneLabel }}</span>
           <div v-if="m.answer" class="answer">{{ m.answer }}</div>
         </template>
-        <div v-else style="display:flex;gap:8px;flex-wrap:wrap">
+        <div v-else class="acts">
           <template v-if="m.kind === 'comment'">
             <button type="button" class="btn sm" @click="actComment(m, 1)">通过</button>
             <button type="button" class="btn sm danger" @click="actComment(m, 0)">隐藏</button>

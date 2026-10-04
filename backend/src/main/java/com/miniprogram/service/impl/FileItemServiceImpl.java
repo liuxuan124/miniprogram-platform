@@ -34,6 +34,7 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
     private final FileGroupMapper fileGroupMapper;
     private final MemberLevelMapper memberLevelMapper;
     private final FileUploadService fileUploadService;
+    private final com.miniprogram.service.FilePreviewImageService filePreviewImageService;
 
     @Override
     public PageResult<FileItemVO> listFiles(Long groupId, String keyword, String status, Long current, Long size) {
@@ -88,6 +89,9 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
     @Transactional(rollbackFor = Exception.class)
     public void deleteFile(Long id) {
         requireItem(id);
+        // removeById 走 @TableLogic 软删（deleted=1）：误删可在「回收站」恢复，
+        // 与 mp_content 的回收站语义统一。此前误以为它是物理删除，实测确认是软删，
+        // 缺的只是恢复入口，已补 listDeleted / restoreFile。
         this.removeById(id);
     }
 
@@ -179,6 +183,39 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
         fileGroupMapper.deleteById(id);
     }
 
+    @Override
+    public PageResult<FileItemVO> listDeleted(String keyword, Long current, Long size) {
+        // 回收站视图：必须走 mapper 原生 SQL，MP 的逻辑删除会自动追加 deleted=0 导致查不到
+        long safeCurrent = current != null && current > 0 ? current : 1L;
+        long safeSize = size != null && size > 0 ? size : 20L;
+        List<FileItem> all = this.baseMapper.selectDeleted(
+                StringUtils.hasText(keyword) ? keyword.trim() : null);
+        int from = (int) Math.min((safeCurrent - 1) * safeSize, all.size());
+        int to = (int) Math.min(from + safeSize, all.size());
+        Map<Long, String> groupNames = loadGroupNameMap();
+        Map<Long, String> levelNames = loadLevelNameMap();
+
+        PageResult<FileItemVO> result = new PageResult<>();
+        result.setTotal((long) all.size());
+        result.setCurrent(safeCurrent);
+        result.setSize(safeSize);
+        result.setRecords(all.subList(from, to).stream()
+                .map(item -> toVO(item, groupNames, levelNames))
+                .toList());
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public FileItemVO restoreFile(Long id) {
+        // 恢复同样要绕开逻辑删除：直接写 SQL 把 deleted 归零，status 不动（原样恢复）
+        int rows = this.baseMapper.restoreDeleted(id);
+        if (rows == 0) {
+            throw new BusinessException(404001, "文件不在回收站中");
+        }
+        return toVO(requireItem(id), loadGroupNameMap(), loadLevelNameMap());
+    }
+
     private FileItem requireItem(Long id) {
         FileItem item = this.getById(id);
         if (item == null) {
@@ -190,6 +227,7 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
     private FileItem fromDTO(FileItem item, FileItemDTO dto) {
         item.setName(dto.getName());
         item.setSummary(dto.getSummary());
+        item.setIconUrl(StringUtils.hasText(dto.getIconUrl()) ? dto.getIconUrl().trim() : null);
         item.setGroupId(dto.getGroupId());
         item.setStorageKey(normalizeStorageKey(dto.getStorageKey()));
         item.setMimeType(dto.getMimeType());
@@ -208,6 +246,7 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
         item.setAllowDownload(dto.getAllowDownload() != null ? dto.getAllowDownload() : 1);
         item.setDownloadAudience(StringUtils.hasText(dto.getDownloadAudience()) ? dto.getDownloadAudience() : "all");
         item.setMinDownloadLevelId(dto.getMinDownloadLevelId());
+        item.setBoundProductId(dto.getBoundProductId());
         return item;
     }
 
@@ -246,6 +285,33 @@ public class FileItemServiceImpl extends BaseServiceImpl<FileItemMapper, FileIte
             return url.substring(idx + "/uploads/".length());
         }
         return url.replaceFirst("^/+", "");
+    }
+
+    @Override
+    public List<com.miniprogram.service.FilePreviewImageService.Page> renderPreviewImages(Long id, Integer freePages) {
+        FileItem item = this.getById(id);
+        if (item == null) {
+            throw new BusinessException(404001, "文件不存在");
+        }
+        // 非 PDF（图片/office/压缩包）走 preview-file 下载流，没有位图预览
+        if (!"pdf".equalsIgnoreCase(item.getFileType())) {
+            return List.of();
+        }
+        int keep;
+        if (freePages != null && freePages > 0) {
+            // 运营在表单里实时调的可见页数，直接采用（封顶 60，与小程序侧 MAX_PAGES 一致）
+            keep = Math.min(freePages, 60);
+        } else {
+            int total = item.getPageCount() == null ? 0 : item.getPageCount();
+            int pct = item.getPreviewPercent() == null ? 20 : item.getPreviewPercent();
+            keep = total > 0 ? filePreviewImageService.resolveKeepPages(total, pct, false) : 1;
+        }
+        try {
+            return filePreviewImageService.renderOrLoad(item.getStorageKey(), item.getId(),
+                    item.getSize() == null ? 0L : item.getSize(), keep, "试读");
+        } catch (Exception e) {
+            throw new BusinessException(500001, "预览生成失败，请稍后重试");
+        }
     }
 
     static String normalizeStorageKey(String storageKey) {

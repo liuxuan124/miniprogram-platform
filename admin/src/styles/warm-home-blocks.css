@@ -150,6 +150,22 @@
   border: 1px solid #efe7da;
   font-size: 18px;
   box-shadow: none;
+  /* emoji 居中；图片则铺满方块并裁切（见下方 --img变体） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+/* 图标用素材库图片时：铺满 40×40 方块、保持比例裁切，不加白底 */
+.wh-nav--grid5 .wh-nav__ic--img {
+  background: #fff;
+  border: 1px solid #efe7da;
+}
+.wh-nav--grid5 .wh-nav__ic--img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .wh-nav__empty {
   grid-column: 1 / -1;
@@ -187,6 +203,11 @@
 .wh-author__av--apply {
   border: 1.5px dashed #ddbe98; color: #c79a6c; font-size: 19px;
   display: flex; align-items: center; justify-content: center; background: #fffaf3;
+}
+/* 未配头像时用姓名首字占位（后台预览与真机一致，避免出现空白圆） */
+.wh-author__av--initial {
+  display: flex; align-items: center; justify-content: center;
+  color: #a8763f; font-size: 17px; font-weight: 700; background: #f6e7d2;
 }
 .wh-author__n { display: block; font-size: 11px; font-weight: 680; }
 .wh-author__r { display: block; font-size: 9px; color: #b45309; margin-top: 2px; }
@@ -250,6 +271,58 @@
   font-size: 12.5px; font-weight: 750; display: flex; align-items: center; justify-content: center;
   position: relative; z-index: 1;
 }
+/* 单卡底栏：CTA 在左、「设为主星球」在右 */
+.wh-planet__ft { margin-top: 4px; display: flex; align-items: center; gap: 8px; position: relative; z-index: 1; }
+.wh-planet__cta {
+  flex: 1; min-width: 0; height: 34px; border-radius: 99px; background: #fff; color: #9a3412;
+  font-size: 12.5px; font-weight: 750; display: flex; align-items: center; justify-content: center;
+  /* CTA 是「今日 N 条新动态 · 去看看」这类长文案，不加 nowrap 会折成两行撑破底栏 */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wh-planet__setmain {
+  flex-shrink: 0; height: 34px; padding: 0 13px; border-radius: 99px;
+  border: 1px solid rgba(255,255,255,.7); color: #fff; font-size: 11.5px; font-weight: 700;
+  display: flex; align-items: center;
+}
+.wh-planet__li--empty, .wh-pcard__li--empty { opacity: .6; font-style: italic; }
+
+/* 多星球横滑（预览用 overflow 代替 scroll-view，尺寸按真机 rpx 等比缩半） */
+.wh-planets { margin-top: 6px; overflow-x: auto; overflow-y: hidden; }
+.wh-planets__row { display: flex; align-items: stretch; gap: 12px; padding: 2px 16px 4px; }
+.wh-pcard {
+  width: 230px; flex-shrink: 0;
+  border-radius: 18px; padding: 14px; color: #fff; position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #7c2d12, #b45309 62%, #d97706);
+  box-shadow: 0 14px 30px rgba(124,45,18,.24);
+}
+.wh-pcard__rw { display: flex; align-items: center; gap: 7px; position: relative; z-index: 1; }
+.wh-pcard__ic { font-size: 18px; }
+.wh-pcard__h { font-size: 15px; font-weight: 750; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-pcard__main, .wh-pcard__joined {
+  flex-shrink: 0; font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+}
+.wh-pcard__main { background: #fbbf24; color: #7c2d12; }
+.wh-pcard__joined { background: rgba(255,255,255,.24); color: #fff; }
+.wh-pcard__sub {
+  display: block; margin-top: 5px; font-size: 10.5px; opacity: .82; position: relative; z-index: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wh-pcard__ls { margin-top: 9px; position: relative; z-index: 1; }
+.wh-pcard__li {
+  background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.14);
+  border-radius: 11px; padding: 7px 9px; font-size: 11px; line-height: 1.4;
+  display: flex; gap: 7px; margin-bottom: 6px;
+}
+.wh-pcard__tag { font-weight: 750; opacity: .9; flex-shrink: 0; }
+.wh-pcard__tx { opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-pcard__ft { margin-top: 3px; display: flex; align-items: center; gap: 6px; position: relative; z-index: 1; }
+.wh-pcard__cta { flex: 1; opacity: .88; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-pcard__go {
+  flex-shrink: 0; height: 29px; padding: 0 12px; border-radius: 99px; background: #fff; color: #9a3412;
+  font-size: 11.5px; font-weight: 750; display: flex; align-items: center;
+}
+.wh-planets__more { padding: 10px 16px 0; }
+.wh-planets__morelink { font-size: 12px; color: #a1897a; }
 
 .wh-segs { display: flex; gap: 18px; padding: 16px 18px 4px; }
 .wh-seg { font-size: 15px; font-weight: 650; color: #a1897a; padding-bottom: 6px; position: relative; }

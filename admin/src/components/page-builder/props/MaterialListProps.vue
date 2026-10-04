@@ -1,6 +1,6 @@
 <template>
   <div class="material-list-props">
-    <el-form label-width="88px" size="small">
+    <el-form label-width="72px" size="small">
       <div class="ds-hint ds-hint--block">
         标题请用「标题栏」放在列表上方；行点击跳转资料详情（小程序端）。
       </div>

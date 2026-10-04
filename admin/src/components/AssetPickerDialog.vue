@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="multiple ? '从素材库批量选择图片' : '从素材库选择图片'"
+    :title="dialogTitle"
     width="760px"
     destroy-on-close
   >
@@ -31,11 +31,21 @@
           :class="{ active: isSelected(item.url) }"
           @click="toggleSelect(item.url)"
         >
-          <img :src="resolveAssetUrl(item.thumbUrl || item.url)" :alt="item.name" />
+          <video
+            v-if="mediaType === 'video'"
+            class="asset-card__video"
+            :src="resolveAssetUrl(item.url)"
+            :poster="item.thumbUrl ? resolveAssetUrl(item.thumbUrl) : undefined"
+            preload="metadata"
+            muted
+            playsinline
+          />
+          <img v-else :src="resolveAssetUrl(item.thumbUrl || item.url)" :alt="item.name" />
+          <span class="asset-card__play" v-if="mediaType === 'video'">▶</span>
           <span>{{ item.name || '未命名素材' }}</span>
           <i v-if="isSelected(item.url)" class="asset-order">{{ orderOf(item.url) }}</i>
         </button>
-        <el-empty v-if="!loading && assets.length === 0" description="暂无图片素材" />
+        <el-empty v-if="!loading && assets.length === 0" :description="emptyText" />
       </div>
     </div>
 
@@ -50,7 +60,7 @@
         确认选择 ({{ selectedUrls.length }})
       </el-button>
       <el-button v-else type="primary" :disabled="!selectedUrls.length" @click="confirmSelect">
-        选择图片
+        {{ mediaType === 'video' ? '选择视频' : '选择图片' }}
       </el-button>
     </template>
   </el-dialog>
@@ -73,8 +83,10 @@ const props = withDefaults(
     modelValue: boolean
     /** 多选：点击切换选中，顺序为点击顺序 */
     multiple?: boolean
+    /** 素材类型：image=图片（默认） / video=视频 */
+    mediaType?: 'image' | 'video'
   }>(),
-  { multiple: false },
+  { multiple: false, mediaType: 'image' },
 )
 
 const emit = defineEmits<{
@@ -95,6 +107,14 @@ const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value),
 })
+
+const isVideo = computed(() => props.mediaType === 'video')
+const dialogTitle = computed(() => {
+  const what = isVideo.value ? '视频' : '图片'
+  if (isVideo.value) return '从素材库选择宣传视频'
+  return props.multiple ? `从素材库批量选择${what}` : `从素材库选择${what}`
+})
+const emptyText = computed(() => (isVideo.value ? '暂无视频素材，请先用「本地上传」上传' : '暂无图片素材'))
 
 /**
  * 素材 URL 归一。
@@ -137,7 +157,7 @@ async function fetchAssets() {
     const res = await get<any>('/api/v1/admin/assets', {
       current: 1,
       size: 100,
-      type: 'image',
+      type: props.mediaType,
       keyword: keyword.value || undefined,
     })
     assets.value = (res.data?.records || []).filter((item: AssetItem) => item.url)
@@ -224,6 +244,31 @@ watch(
   object-fit: cover;
   border-radius: 6px;
   background: #f5f7fb;
+}
+
+.asset-card__video {
+  width: 100%;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #0f1115;
+  display: block;
+}
+
+.asset-card__play {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  font-size: 12px;
+  line-height: 30px;
+  text-align: center;
+  pointer-events: none;
 }
 
 .asset-card span {

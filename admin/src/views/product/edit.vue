@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="product-editor-page">
     <div class="product-editor-wrap">
       <header class="page-header">
@@ -90,6 +90,57 @@
                     </el-checkbox-group>
                     <div class="form-tip">类型由分类决定，可多选；纯数字商品不校验实体库存。</div>
                   </div>
+                </el-form-item>
+
+                <el-form-item label="关联作者" class="span-all">
+                  <div class="detail-template-row">
+                    <el-select
+                      v-model="formData.author_id"
+                      placeholder="不关联（官方/未指定）"
+                      clearable
+                      filterable
+                      style="width: 260px"
+                    >
+                      <el-option
+                        v-for="a in authorOptions"
+                        :key="a.id"
+                        :label="a.name || '未命名'"
+                        :value="a.id"
+                      />
+                    </el-select>
+                    <div class="form-tip detail-template-tip">
+                      关联后可在作者档案里按作者查/管这个商品（含付费专栏）。仅后台管理用，不影响小程序渲染。
+                    </div>
+                  </div>
+                </el-form-item>
+
+                <el-form-item label="详情模板" class="span-all">
+                  <div class="detail-template-row">
+                    <el-select
+                      v-model="formData.detail_template"
+                      placeholder="自动判断（按商品类型）"
+                      clearable
+                      style="width: 260px"
+                    >
+                      <el-option-group v-for="g in PRODUCT_DETAIL_TEMPLATE_GROUPS" :key="g.group" :label="g.label">
+                        <el-option
+                          v-for="t in PRODUCT_DETAIL_TEMPLATES.filter((x) => x.group === g.group)"
+                          :key="t.id"
+                          :label="t.label"
+                          :value="t.id"
+                        />
+                      </el-option-group>
+                    </el-select>
+                    <div class="form-tip detail-template-tip">
+                      空值 = 按商品类型自动选经典版；选指定模板覆盖自动分流。当前生效：<b>{{ resolvedDetailTemplate }}</b>
+                    </div>
+                  </div>
+                  <ProductDetailPreview
+                    :template-id="resolvedDetailTemplate"
+                    :name="formData.name"
+                    :price="previewPrice"
+                    class="detail-template-preview"
+                  />
                 </el-form-item>
 
                 <el-form-item v-if="canAutoFulfill" label="自动发货" class="span-all">
@@ -293,7 +344,7 @@
                 <span class="section-no">02</span>
                 <div>
                   <h2>图片素材</h2>
-                  <p>主图作列表封面，并自动作为轮播第一张；轮播图在详情页左右滑动查看。</p>
+                  <p>主图作列表封面，并自动作为轮播第一张；轮播图在详情页左右滑动查看。宣传视频会作为轮播第0 项展示，用户可在视频与图片间左右滑动切换。</p>
                 </div>
               </div>
 
@@ -317,10 +368,15 @@
                 </el-upload>
 
                 <div class="image-action-row">
-                  <el-upload :show-file-list="false" accept="image/*" :before-upload="beforeImageUpload" :http-request="handleMainImageUpload">
-                    <el-button class="ghost-btn" :icon="Upload" :loading="uploadingMainImage">本地上传</el-button>
-                  </el-upload>
-                  <el-button class="ghost-btn" :icon="Picture" @click="openAssetPicker('main')">素材库</el-button>
+                  <el-button class="ghost-btn" :icon="Picture" @click="openAssetPicker('main')">从素材库选主图</el-button>
+                  <el-button
+                    v-if="formData.main_image"
+                    class="ghost-btn"
+                    :icon="Delete"
+                    @click="clearMainImage"
+                  >
+                    清除主图
+                  </el-button>
                 </div>
 
                 <button type="button" class="fold-link" @click="showMainUrlInput = !showMainUrlInput">
@@ -354,9 +410,9 @@
 
                 <div class="image-action-row">
                   <el-upload :show-file-list="false" accept="image/*" :before-upload="beforeImageUpload" :http-request="handleGalleryImageUpload">
-                    <el-button class="ghost-btn" :icon="Upload" :loading="uploadingGalleryImage">本地上传</el-button>
+                    <el-button class="ghost-btn" :icon="Upload" :loading="uploadingGalleryImage">添加轮播图片</el-button>
                   </el-upload>
-                  <el-button class="ghost-btn" :icon="Picture" @click="openAssetPicker('gallery')">素材库</el-button>
+                  <el-button class="ghost-btn" :icon="Picture" @click="openAssetPicker('gallery')">从素材库批量选</el-button>
                 </div>
 
                 <button type="button" class="fold-link" @click="showGalleryUrlInput = !showGalleryUrlInput">
@@ -367,6 +423,54 @@
                     <el-button @click="addImage">添加</el-button>
                   </template>
                 </el-input>
+              </el-form-item>
+
+              <el-divider class="asset-divider">
+                <span class="asset-divider__t">宣传视频（选填）</span>
+              </el-divider>
+
+              <el-form-item label="商品宣传视频" prop="video_url">
+                <div class="video-slot" :class="{ filled: formData.video_url }">
+                  <video
+                    v-if="formData.video_url"
+                    class="video-slot__player"
+                    :src="formData.video_url"
+                    :poster="formData.main_image"
+                    controls
+                    preload="metadata"
+                    playsinline
+                  />
+                  <div v-else class="video-slot__empty">
+                    <el-icon><VideoPlay /></el-icon>
+                    <strong>上传一段产品宣传视频</strong>
+                    <span>支持 MP4；详情页作为首屏第1 屏，用户点击封面即可播放</span>
+                  </div>
+                </div>
+
+                <div v-if="formData.video_url" class="video-slot__meta">
+                  <el-icon class="video-slot__ok"><CircleCheckFilled /></el-icon>
+                  <span class="video-slot__name">{{ videoFileName }}</span>
+                  <el-button class="ghost-btn" type="danger" plain size="small" :icon="Delete" @click="clearVideo">移除视频</el-button>
+                </div>
+
+                <div class="image-action-row">
+                  <el-upload
+                    :show-file-list="false"
+                    accept="video/mp4,video/*"
+                    :before-upload="beforeVideoUpload"
+                    :http-request="handleVideoUpload"
+                  >
+                    <el-button class="ghost-btn" :icon="Upload" :loading="uploadingVideo">
+                      {{ formData.video_url ? '重新上传视频' : '上传宣传视频' }}
+                    </el-button>
+                  </el-upload>
+                  <el-button class="ghost-btn" :icon="Picture" @click="openAssetPicker('video')">从素材库选视频</el-button>
+                </div>
+
+                <button type="button" class="fold-link" @click="showVideoUrlInput = !showVideoUrlInput">
+                  {{ showVideoUrlInput ? '收起 URL 输入' : '通过 URL 添加视频' }}
+                </button>
+                <el-input v-if="showVideoUrlInput" v-model="formData.video_url" placeholder="粘贴视频 URL（.mp4）" />
               </el-form-item>
             </section>
 
@@ -444,6 +548,7 @@
     <AssetPickerDialog
       v-model="assetPickerVisible"
       :multiple="assetPickerTarget === 'gallery'"
+      :media-type="assetPickerTarget === 'video' ? 'video' : 'image'"
       @select="handleAssetSelected"
       @select-many="handleAssetSelectedMany"
     />
@@ -460,7 +565,7 @@
       <div class="preview-phone">
         <div class="preview-notch" />
         <div class="preview-scroll">
-          <!-- 轮播 -->
+          <!-- 轮播：宣传视频（第 0 项）+ 图片 -->
           <div class="pv-gallery">
             <el-carousel
               v-if="previewImages.length"
@@ -469,13 +574,26 @@
               indicator-position="inside"
               arrow="hover"
             >
+              <el-carousel-item v-if="formData.video_url">
+                <div class="pv-gallery__video">
+                  <video
+                    class="pv-gallery__video-el"
+                    :src="formData.video_url"
+                    :poster="formData.main_image"
+                    controls
+                    preload="metadata"
+                    playsinline
+                  />
+                  <span class="pv-gallery__video-tag">宣传视频</span>
+                </div>
+              </el-carousel-item>
               <el-carousel-item v-for="(img, idx) in previewImages" :key="`${img}-${idx}`">
                 <img :src="img" alt="" />
               </el-carousel-item>
             </el-carousel>
-            <div v-else class="pv-gallery-empty">暂无主图 / 轮播图</div>
+            <div v-else-if="!formData.video_url" class="pv-gallery-empty">暂无主图 / 轮播图</div>
             <div v-if="previewImages.length" class="pv-gallery-count">
-              {{ previewImages.length }} 张
+              {{ (formData.video_url ? 1 : 0) + previewImages.length }} 张
             </div>
           </div>
 
@@ -554,14 +672,17 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Back, Delete, Picture, Plus, Upload } from '@element-plus/icons-vue'
+import { Back, Delete, Picture, Plus, Upload, VideoPlay, CircleCheckFilled } from '@element-plus/icons-vue'
 import { getProduct, createProduct, updateProduct, getCategoryList, onSaleProduct } from '@/api/product'
+import { listAuthors, type AuthorRecord } from '@/api/author'
 import { getMemberLevelList } from '@/api/member'
 import { getMembershipPlanList, type MembershipPlan } from '@/api/membershipPlan'
 import { uploadFile } from '@/api/system'
 import { post } from '@/api/request'
 import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 import PageRichTextEditor from '@/components/page-builder/props/PageRichTextEditor.vue'
+import ProductDetailPreview from '@/components/product-detail-preview/ProductDetailPreview.vue'
+import { PRODUCT_DETAIL_TEMPLATES, PRODUCT_DETAIL_TEMPLATE_GROUPS, resolveTemplate, autoTemplateByProductType } from '@/utils/product-templates'
 import type { ProductCategory, SkuItem, SkuSpec } from '@/types/product'
 
 /** 自定义防抖函数（避免引入额外依赖） */
@@ -585,8 +706,9 @@ const categoryOptions = ref<ProductCategory[]>([])
 const newImageUrl = ref('')
 const uploadingMainImage = ref(false)
 const uploadingGalleryImage = ref(false)
+const uploadingVideo = ref(false)
 const assetPickerVisible = ref(false)
-const assetPickerTarget = ref<'main' | 'gallery'>('main')
+const assetPickerTarget = ref<'main' | 'gallery' | 'video'>('main')
 const hasUnsavedChanges = ref(false)
 const lastAutoSaveTime = ref<Date | null>(null)
 const isRestoringDraft = ref(false)
@@ -594,6 +716,7 @@ const activeStepKey = ref('')
 const newSpecName = ref('')
 const showMainUrlInput = ref(false)
 const showGalleryUrlInput = ref(false)
+const showVideoUrlInput = ref(false)
 const draggingImageIndex = ref<number | null>(null)
 const formStatus = ref<'draft' | 'on_sale' | 'off_sale'>('draft')
 
@@ -613,6 +736,9 @@ const typeOptions = [
 const previewVisible = ref(false)
 const categoryNodeMap = ref<Map<number, any>>(new Map())
 
+/** 作者档案下拉（商品关联作者） */
+const authorOptions = ref<AuthorRecord[]>([])
+
 /** 规格名称列表 */
 const specNames = ref<{ name: string }[]>([{ name: '' }])
 
@@ -620,7 +746,10 @@ const formData = reactive({
   name: '',
   category_id: undefined as number | undefined,
   productTypes: [] as string[],
+  detail_template: '' as string,
+  author_id: undefined as number | undefined,
   main_image: '',
+  video_url: '',
   images: [] as string[],
   description: '',
   content: '',
@@ -680,6 +809,11 @@ const isDigitalOnly = computed(() => {
 })
 
 const isMembershipProduct = computed(() => (formData.productTypes || []).includes('membership'))
+
+/** 详情模板：显式配置优先，否则按当前商品类型自动选 *_classic */
+const resolvedDetailTemplate = computed(() =>
+  resolveTemplate(formData.detail_template, formData.productTypes[0]),
+)
 
 const showPreviewChapters = computed(() => {
   const types = formData.productTypes || []
@@ -946,7 +1080,10 @@ function buildApiPayload() {
     categoryId: formData.category_id,
     productTypes: [...formData.productTypes],
     productType: formData.productTypes[0] || 'physical',
+    detailTemplate: formData.detail_template || '',
+    authorId: formData.author_id,
     mainImage: formData.main_image,
+    videoUrl: formData.video_url,
     images: buildSyncedImages(formData.main_image, formData.images),
     description: formData.description,
     detail: formData.content,
@@ -1057,6 +1194,65 @@ function beforeImageUpload(file: File) {
   return true
 }
 
+/** 视频上限放宽到 100MB：宣传视频常有 10-50MB，超出后端默认 upload_max_size(10MB) 需同步调大 */
+const VIDEO_MAX_SIZE = 100 * 1024 * 1024
+
+function beforeVideoUpload(file: File) {
+  const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(file.name)
+  if (!isVideo) {
+    ElMessage.error('只能上传视频文件（推荐 MP4）')
+    return false
+  }
+  if (file.size > VIDEO_MAX_SIZE) {
+    ElMessage.error('视频大小不能超过 100MB')
+    return false
+  }
+  return true
+}
+
+const videoFileName = computed(() => {
+  const url = formData.video_url
+  if (!url) return ''
+  const clean = url.split('?')[0]
+  return decodeURIComponent(clean.split('/').pop() || '宣传视频')
+})
+
+async function registerVideoAsset(file: File, url: string) {
+  try {
+    await post('/api/v1/admin/assets', {
+      name: file.name,
+      type: 'video',
+      url,
+      thumbUrl: formData.main_image || '',
+      size: file.size,
+    })
+  } catch {
+    // 素材登记失败不阻断商品编辑
+  }
+}
+
+/** 宣传视频：直传，不做图片压缩 */
+async function handleVideoUpload(options: { file: File }) {
+  uploadingVideo.value = true
+  try {
+    const res = await uploadFile(options.file)
+    const url = resolveUploadUrl(res.data?.url || '')
+    if (!url) throw new Error('上传返回地址为空')
+    await registerVideoAsset(options.file, url)
+    formData.video_url = url
+    ElMessage.success('宣传视频上传成功')
+  } catch {
+    ElMessage.error('视频上传失败：若提示大小超限，请调大系统配置 upload_max_size')
+  } finally {
+    uploadingVideo.value = false
+  }
+}
+
+function clearVideo() {
+  formData.video_url = ''
+  ElMessage.info('已移除宣传视频，保存后生效')
+}
+
 /** 加载商品详情（编辑模式） */
 async function fetchProduct() {
   if (!productId.value) return
@@ -1070,7 +1266,11 @@ async function fetchProduct() {
       ? product.productTypes
       : (product.productType || product.product_type ? [product.productType || product.product_type] : [])
     formData.productTypes = types.length ? types.map(String) : []
+    formData.detail_template = product.detailTemplate ?? product.detail_template ?? ''
+    const rawAuthorId = Number(product.authorId ?? product.author_id ?? 0)
+    formData.author_id = rawAuthorId > 0 ? rawAuthorId : undefined
     formData.main_image = product.mainImage ?? product.main_image ?? ''
+    formData.video_url = product.videoUrl ?? product.video_url ?? ''
     formData.autoFulfill = Number(product.autoFulfill ?? product.auto_fulfill ?? 0) ? 1 : 0
     formData.fulfillContent = product.fulfillContent ?? product.fulfill_content ?? ''
     formData.membershipDays = Number(product.membershipDays ?? product.membership_days ?? 0)
@@ -1192,7 +1392,16 @@ async function handleGalleryImageUpload(options: { file: File }) {
   }
 }
 
-function openAssetPicker(target: 'main' | 'gallery') {
+/** 清除主图：同时从轮播里移除，避免残留同一张图 */
+function clearMainImage() {
+  const url = formData.main_image
+  if (!url) return
+  formData.main_image = ''
+  formData.images = formData.images.filter((x) => x !== url)
+  ElMessage.info('已清除主图，保存后生效')
+}
+
+function openAssetPicker(target: 'main' | 'gallery' | 'video') {
   assetPickerTarget.value = target
   assetPickerVisible.value = true
 }
@@ -1206,6 +1415,12 @@ function handleAssetSelected(url: string) {
       formData.images = [url, ...formData.images.filter((x) => x !== url)]
     }
     ElMessage.success('已选择商品主图')
+    assetPickerVisible.value = false
+    return
+  }
+  if (assetPickerTarget.value === 'video') {
+    formData.video_url = url
+    ElMessage.success('已选择宣传视频')
     assetPickerVisible.value = false
     return
   }
@@ -1569,6 +1784,13 @@ onBeforeRouteLeave((_to, _from, next) => {
 
 onMounted(() => {
   fetchCategories()
+  // 作者下拉（关联作者用）
+  listAuthors()
+    .then((res: any) => {
+      const list = res?.data ?? res ?? []
+      authorOptions.value = (Array.isArray(list) ? list : []).filter((a: AuthorRecord) => a.id)
+    })
+    .catch(() => { authorOptions.value = [] })
   getMemberLevelList().then((res: any) => {
     const list = res?.data || res || []
     memberLevels.value = (Array.isArray(list) ? list : []).map((lv: any) => ({
@@ -1907,6 +2129,21 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
+.detail-template-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.detail-template-tip b {
+  color: #c08e6e;
+}
+
+.detail-template-preview {
+  margin-top: 12px;
+}
+
 .asset-card :deep(.el-form-item) {
   margin-bottom: 22px;
 }
@@ -2051,6 +2288,119 @@ onUnmounted(() => {
   border-color: var(--brand);
   color: var(--brand);
   background: #f0f7ff;
+}
+
+/* ---- 宣传视频 ---- */
+.asset-divider {
+  margin: 18px 0 4px;
+}
+
+.asset-divider__t {
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  background: #f4f6f9;
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+
+.video-slot {
+  width: 100%;
+  border: 1px dashed var(--border-color, #dcdfe6);
+  border-radius: 10px;
+  background: #fafbfc;
+  overflow: hidden;
+}
+
+.video-slot.filled {
+  border-style: solid;
+  background: #000;
+}
+
+.video-slot__player {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  background: #000;
+}
+
+.video-slot__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 132px;
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.video-slot__empty :deep(.el-icon) {
+  font-size: 30px;
+  color: var(--brand);
+}
+
+.video-slot__empty strong {
+  font-size: 13px;
+  color: var(--text-color, #303133);
+}
+
+.video-slot__empty span {
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.video-slot__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.video-slot__ok {
+  color: #67c23a;
+  font-size: 15px;
+}
+
+.video-slot__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 手机预览里的视频项 ---- */
+.pv-gallery__video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.pv-gallery__video-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-gallery__video-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: .03em;
+  pointer-events: none;
 }
 
 .spec-tag-editor {

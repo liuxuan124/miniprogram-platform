@@ -144,7 +144,7 @@
 
                 <div class="action-bar">
                   <span class="upload-hint">
-                    {{ uploadKeyStored ? '上传密钥已写入服务器' : '填写代码上传密钥后，请点击右侧按钮保存到服务器' }}
+                    {{ uploadKeyStored ? '上传密钥已写入服务器' : '代码上传密钥未配置（仅影响「推送体验版」，可留空）' }}
                     <template v-if="isLocalAdmin">（当前为本地后台，配置保存在本机数据库）</template>
                   </span>
                   <el-button type="primary" size="small" :loading="miniSaving" @click="handleSaveMiniProgram">
@@ -1371,14 +1371,19 @@ async function handleSaveMiniProgram() {
   const valid = await miniFormRef.value?.validate().catch(() => false)
   if (!valid) return
   const uploadKeyValue = miniProgramForm.uploadKey?.trim() || ''
-  if (!uploadKeyValue.includes('PRIVATE KEY')) {
+  // 仅当「本次确实填了上传密钥」才校验格式；留空表示沿用服务端已有值，不阻断 AppID/AppSecret 保存。
+  // 旧逻辑无条件 return 会导致上传密钥从未配置时 AppSecret 永远存不进去（登录 40125 卡死在此）。
+  const isUploadingKey = !!uploadKeyValue
+  if (isUploadingKey && !uploadKeyValue.includes('PRIVATE KEY')) {
     ElMessage.warning('请粘贴完整的代码上传密钥（需包含 BEGIN/END PRIVATE KEY）')
     return
   }
 
   miniSaving.value = true
   try {
-    await saveUploadKey(uploadKeyValue)
+    if (isUploadingKey) {
+      await saveUploadKey(uploadKeyValue)
+    }
     const otherItems = toConfigUpdateItems(
       pickWechatFormPayload(),
       'wechat',
@@ -1387,16 +1392,18 @@ async function handleSaveMiniProgram() {
       await updateConfigs(otherItems)
     }
 
-    const verifyRes = await getConfigsSilent()
-    uploadKeyStored.value = hasStoredUploadKey(extractConfigList(verifyRes.data))
-    if (!uploadKeyStored.value) {
-      ElMessage.error('上传密钥未写入服务器，请重试')
-      return
+    if (isUploadingKey) {
+      const verifyRes = await getConfigsSilent()
+      if (!hasStoredUploadKey(extractConfigList(verifyRes.data))) {
+        ElMessage.error('上传密钥未写入服务器，请重试')
+        return
+      }
+      uploadKeyStored.value = true
     }
 
     markMiniProgramSaved()
     miniSaved.value = true
-    ElMessage.success('小程序配置已保存（上传密钥已入库）')
+    ElMessage.success(isUploadingKey ? '小程序配置已保存（上传密钥已入库）' : '小程序配置已保存')
   } catch (e: unknown) {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
   } finally {

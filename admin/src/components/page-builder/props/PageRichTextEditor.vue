@@ -48,6 +48,13 @@
       </label>
       <button type="button" class="tb" title="从素材库插入图片" @click="assetPickerVisible = true">素材库</button>
       <AssetPickerDialog v-model="assetPickerVisible" @select="insertAssetImage" />
+      <span class="sep" />
+      <button type="button" class="tb" title="插入分割线" @click="insertHr">分割线</button>
+      <button type="button" class="tb card-point" title="插入要点卡片（绿线提示框）" @click="insertCard('point')">要点卡</button>
+      <button type="button" class="tb card-warn" title="插入警示卡片（橙线提示框）" @click="insertCard('warn')">警示卡</button>
+      <span class="sep" />
+      <button type="button" class="tb smart-btn" title="把「01·」「一、」「第一节」等开头短行转成标题，并合并连续空段（Ctrl+Z 可撤销）" @click="smartFormat">智能排版</button>
+      <span class="sep" />
       <button type="button" class="tb" title="清除格式" @click="cmd('removeFormat')">清除</button>
     </div>
 
@@ -66,8 +73,12 @@
       @focus="refreshState"
     />
 
+    <div class="editor-foot">
+      <span class="editor-foot__count">{{ wordCount }} 字</span>
+    </div>
+
     <el-dialog v-model="linkVisible" title="插入链接" width="380px" append-to-body destroy-on-close>
-      <el-form label-width="70px" size="small">
+      <el-form label-width="72px" size="small">
         <el-form-item label="文字">
           <el-input v-model="linkText" placeholder="显示文字" />
         </el-form-item>
@@ -82,7 +93,7 @@
     </el-dialog>
 
     <el-dialog v-model="imgSizeVisible" title="设置图片大小" width="400px" append-to-body destroy-on-close>
-      <el-form label-width="70px" size="small">
+      <el-form label-width="72px" size="small">
         <el-form-item label="预设">
           <el-radio-group v-model="imgWidthPreset" @change="onImgPresetChange">
             <el-radio-button value="100%">100%</el-radio-button>
@@ -153,6 +164,183 @@ function imgInlineStyle(extraWidth?: string) {
 
 const foreColor = ref('#333333')
 const hiliteColor = ref('#ffff00')
+
+/** 正文字数（去除标签与空白后的字符数） */
+const wordCount = computed(() => {
+  const text = String(props.modelValue || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s/g, '')
+  return text.length
+})
+
+/** 提示卡片预设：内联样式随正文 HTML 下发，小程序端 html-blocks 渲染 blockquote 时直接生效 */
+const CARD_PRESETS: Record<'point' | 'warn', { style: string; label: string; labelColor: string }> = {
+  point: {
+    style:
+      'margin:1em 0;padding:12px 14px;background:#f7faf8;border-left:4px solid #2f9350;border-radius:0 10px 10px 0;color:#4a5568;',
+    label: '要点',
+    labelColor: '#2f7a42',
+  },
+  warn: {
+    style:
+      'margin:1em 0;padding:12px 14px;background:#fffaef;border-left:4px solid #d97706;border-radius:0 10px 10px 0;color:#7a5b16;',
+    label: '警示',
+    labelColor: '#b45309',
+  },
+}
+
+function insertHr() {
+  focusEditor()
+  try {
+    document.execCommand('insertHorizontalRule')
+  } catch {
+    /* ignore */
+  }
+  emitHtml()
+  refreshState()
+}
+
+function insertCard(type: 'point' | 'warn') {
+  focusEditor()
+  const preset = CARD_PRESETS[type]
+  const html =
+    `<blockquote style="${preset.style}">` +
+    `<strong style="color:${preset.labelColor};">${preset.label}｜</strong>请输入内容` +
+    `</blockquote><p><br></p>`
+  try {
+    document.execCommand('insertHTML', false, html)
+  } catch {
+    /* ignore */
+  }
+  emitHtml()
+  refreshState()
+}
+
+/**
+ * 标题识别模式（独立成段、≤30字时转 H2）
+ * - 01· / 01. / 01、 / 01) / 01 大促
+ * - 一、 / 一. / 第一章 / 第一节
+ * - Part 1 / 1.（含半角点）
+ */
+const TITLE_PATTERNS = [
+  /^\d{1,2}\s*[·.、)]/, // 01· / 01. / 01、 / 01)
+  /^\d{1,2}\s+\S/, // 01 大促（数字 + 空格 + 内容）
+  /^[一二三四五六七八九十百]+\s*[、.]/, // 一、 / 一.
+  /^第\s*[一二三四五六七八九十百\d]+\s*[章节条部分篇]/, // 第一章 / 第1节
+  /^Part\s+\d+/i, // Part 1
+]
+
+function isLikelyTitle(text: string): boolean {
+  const t = text.replace(/\u200b/g, '').trim()
+  if (!t || t.length > 30) return false
+  return TITLE_PATTERNS.some((re) => re.test(t))
+}
+
+/**
+ * 一键智能排版：
+ *   1. 把「01·」「一、」「第一章」等开头短行（≤30字、独立成段）转成 H2
+ *   2. 连续空段合并为单个，首尾空段删除
+ *
+ * 不动图片段、引用块、列表、表格、已有标题，避免误伤。
+ * 依赖浏览器原生 undo（Ctrl+Z）撤销。
+ */
+function smartFormat() {
+  const el = editorRef.value
+  if (!el) return
+
+  // 浏览器 undo 单步：先记录一个 history 节点
+  focusEditor()
+  try {
+    document.execCommand('selectAll')
+    document.execCommand('insertHTML', false, el.innerHTML)
+  } catch {
+    /* 忽略 undo 锚点失败，不影响主流程 */
+  }
+
+  let titleCount = 0
+  let emptyMergedCount = 0
+
+  // 1. 遍历顶层块级，识别标题 + 标记空段
+  const blocks = Array.from(el.children) as HTMLElement[]
+  for (const block of blocks) {
+    const tag = block.tagName
+    const text = (block.textContent || '').replace(/\u200b/g, '').trim()
+
+    // 空段（P/DIV 无文字无图片）→ 标记待合并
+    const isEmpty =
+      !text &&
+      (tag === 'P' || tag === 'DIV') &&
+      !block.querySelector('img, ul, ol, table, blockquote, hr')
+
+    if (isEmpty) {
+      block.setAttribute('data-smart-empty', '1')
+      continue
+    }
+
+    // 标题识别：只作用 P/DIV，且段内无图/列表/表格/引用
+    if (tag === 'P' || tag === 'DIV') {
+      if (block.querySelector('img, ul, ol, table, blockquote, hr')) continue
+      if (isLikelyTitle(text)) {
+        const h2 = document.createElement('h2')
+        h2.innerHTML = block.innerHTML
+        block.replaceWith(h2)
+        titleCount++
+      }
+    }
+  }
+
+  // 2. 连续空段合并为单个；首尾空段删除
+  let lastWasEmpty = false
+  for (const block of [...Array.from(el.children)] as HTMLElement[]) {
+    if (block.hasAttribute('data-smart-empty')) {
+      if (lastWasEmpty) {
+        block.remove()
+        emptyMergedCount++
+      } else {
+        block.removeAttribute('data-smart-empty')
+        lastWasEmpty = true
+      }
+    } else {
+      lastWasEmpty = false
+    }
+  }
+
+  // 删开头空段
+  let first = el.firstElementChild as HTMLElement | null
+  while (
+    first &&
+    first.tagName === 'P' &&
+    !(first.textContent || '').trim() &&
+    !first.querySelector('img')
+  ) {
+    first.remove()
+    emptyMergedCount++
+    first = el.firstElementChild as HTMLElement | null
+  }
+  // 删结尾空段
+  let last = el.lastElementChild as HTMLElement | null
+  while (
+    last &&
+    (last.tagName === 'P' || last.tagName === 'DIV') &&
+    !(last.textContent || '').trim() &&
+    !last.querySelector('img')
+  ) {
+    last.remove()
+    emptyMergedCount++
+    last = el.lastElementChild as HTMLElement | null
+  }
+
+  emitHtml()
+
+  if (titleCount > 0 || emptyMergedCount > 0) {
+    ElMessage.success(
+      `已识别 ${titleCount} 个标题、清理 ${emptyMergedCount} 个空段（Ctrl+Z 可撤销）`,
+    )
+  } else {
+    ElMessage.info('未发现需要整理的内容（标题识别：01· / 一、 /第一章 等）')
+  }
+}
 const fontSize = ref('')
 const activeMap = ref<Record<string, boolean>>({})
 const isBlockquoteActive = computed(() => {
@@ -658,7 +846,21 @@ function sanitizePasteHtml(html: string) {
   div.querySelectorAll('script,style,iframe,object,embed').forEach((el) => el.remove())
   div.querySelectorAll('*').forEach((el) => {
     const node = el as HTMLElement
-    const keep = ['color', 'background-color', 'font-size', 'text-align', 'font-weight', 'font-style', 'text-decoration']
+    const keep = [
+      'color',
+      'background',
+      'background-color',
+      'font-size',
+      'text-align',
+      'font-weight',
+      'font-style',
+      'text-decoration',
+      'line-height',
+      'margin',
+      'padding',
+      'border-left',
+      'border-radius',
+    ]
     const imgKeep = ['width', 'height', 'max-width', 'max-height', 'object-fit']
     const listKeep = ['list-style', 'list-style-type', 'list-style-position', 'padding-left', 'margin', 'display']
     const style = node.getAttribute('style') || ''
@@ -813,13 +1015,13 @@ onBeforeUnmount(() => {
 }
 
 .editor-body {
-  min-height: 180px;
-  max-height: 360px;
-  padding: 10px 12px;
+  min-height: 240px;
+  max-height: 620px;
+  padding: 14px 16px;
   overflow-y: auto;
   color: #172033;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.75;
   outline: none;
   word-break: break-word;
 
@@ -834,33 +1036,52 @@ onBeforeUnmount(() => {
   }
 
   :deep(h1) {
-    margin: 0.4em 0;
-    font-size: 22px;
+    margin: 0.7em 0 0.4em;
+    font-size: 21px;
     font-weight: 800;
+    color: #0f1219;
+    line-height: 1.4;
   }
 
+  /* 标题对齐长文阅读主题：金线左标，与「加粗正文」肉眼可分 */
   :deep(h2) {
-    margin: 0.4em 0;
+    margin: 1.2em 0 0.45em;
+    padding-left: 10px;
+    border-left: 3px solid #c8973a;
     font-size: 18px;
     font-weight: 700;
+    color: #0f1219;
+    line-height: 1.4;
   }
 
   :deep(h3) {
-    margin: 0.35em 0;
-    font-size: 15px;
+    margin: 1em 0 0.4em;
+    padding-left: 10px;
+    border-left: 3px solid #e0c79a;
+    font-size: 16px;
     font-weight: 700;
+    color: #0f1219;
+    line-height: 1.4;
   }
 
+  /* 引用对齐预览主题：绿线 + 浅绿底 + 右圆角 */
   :deep(blockquote) {
-    margin: 0.4em 0;
-    padding: 0.35em 0.75em;
-    color: #475569;
-    border-left: 3px solid #cbd5e1;
-    background: #f8fafc;
+    margin: 0.6em 0;
+    padding: 10px 14px;
+    color: #4a5568;
+    border-left: 4px solid #2f9350;
+    border-radius: 0 10px 10px 0;
+    background: #f7faf8;
   }
 
   :deep(p) {
-    margin: 0.35em 0;
+    margin: 0.5em 0;
+  }
+
+  :deep(hr) {
+    margin: 1.2em 0;
+    border: 0;
+    border-top: 1px solid #e3e8f0;
   }
 
   :deep(ul),
@@ -933,6 +1154,37 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   width: 100%;
+}
+
+.editor-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 5px 12px;
+  background: #fafbfd;
+  border-top: 1px solid #f0f3f8;
+}
+
+.editor-foot__count {
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.tb.card-point {
+  color: #2f7a42;
+  border-color: #cfe5d5;
+}
+
+.tb.card-warn {
+  color: #b45309;
+  border-color: #f0dcb8;
+}
+
+.tb.smart-btn {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  border-style: dashed;
+  font-weight: 600;
 }
 
 .img-size-tip {

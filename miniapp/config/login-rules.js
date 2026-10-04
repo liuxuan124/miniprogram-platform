@@ -45,6 +45,17 @@ const LOGIN_RULES = {
     member_signin:    { level: 'required', desc: '签到' },
     customer_service: { level: 'none',     desc: '联系客服' },
 
+    // 互动行为（点赞 / 收藏 / 分享）
+    // 全部 required：这些数据必须落到账号上，游客态无法持久化也没有意义
+    like_content:     { level: 'required', desc: '点赞' },
+    like_moment:      { level: 'required', desc: '点赞' },
+    favorite_content: { level: 'required', desc: '收藏' },
+    favorite_moment:  { level: 'required', desc: '收藏' },
+    favorite_product: { level: 'required', desc: '收藏' },
+    share_content:    { level: 'required', desc: '分享' },
+    share_moment:     { level: 'required', desc: '分享' },
+    share_product:    { level: 'required', desc: '分享' },
+
     // 设置
     settings:         { level: 'none',     desc: '设置' },
   },
@@ -60,7 +71,7 @@ const LOGIN_RULES = {
     'member-center': true,
     points:          true,
     orders:          true,
-    favorites:       false,
+    favorites:       true,
     contact:         false,
     settings:        false,
   },
