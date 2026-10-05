@@ -14,6 +14,7 @@ export interface FileItemRecord {
   id: number
   name: string
   summary?: string
+  iconUrl?: string
   groupId?: number
   groupName?: string
   storageKey?: string
@@ -42,6 +43,7 @@ export interface FileItemRecord {
 export interface FileItemPayload {
   name: string
   summary?: string
+  iconUrl?: string
   groupId?: number
   storageKey: string
   mimeType?: string
@@ -83,6 +85,16 @@ export function deleteFile(id: number) {
   return del<void>(`${BASE_URL}/${id}`)
 }
 
+/** 回收站列表（后端软删 deleted=1 的文件） */
+export function getDeletedFileList(params?: Record<string, unknown>) {
+  return get<PageResult<FileItemRecord>>(`${BASE_URL}/deleted`, params)
+}
+
+/** 从回收站恢复 */
+export function restoreFile(id: number) {
+  return post<FileItemRecord>(`${BASE_URL}/${id}/restore`)
+}
+
 export function uploadFileItem(file: File, data: Partial<FileItemPayload> = {}) {
   const form = new FormData()
   form.append('file', file)
@@ -108,4 +120,22 @@ export function updateFileGroup(id: number, data: { name: string; sortOrder?: nu
 
 export function deleteFileGroup(id: number) {
   return del<void>(`${BASE_URL}/groups/${id}`)
+}
+
+/** 端上效果预览·单页位图（服务端真实渲染，带「试读」水印） */
+export interface FilePreviewPage {
+  pageNo: number
+  totalPages: number
+  pageLabel: string
+  imageUrl: string
+  width: number
+  height: number
+}
+
+/**
+ * 端上效果实时预览：按 freePages（非会员可见页数）渲染真实页面位图。
+ * 非 PDF / 文件不存在时后端返回空数组或错误。
+ */
+export function getFilePreviewImages(id: number, freePages?: number) {
+  return get<FilePreviewPage[]>(`${BASE_URL}/${id}/preview-images`, freePages != null ? { freePages } : undefined)
 }
