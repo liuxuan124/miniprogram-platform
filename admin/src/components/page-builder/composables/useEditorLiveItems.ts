@@ -45,6 +45,7 @@ export function useEditorLiveItems(
       showHeader: getComponent().props?.show_header,
       sourceMode: getComponent().props?.source_mode,
       productIds: getComponent().props?.product_ids,
+      typeTabs: getComponent().props?.type_tabs,
       ds: getComponent().props?.data_source || getComponent().data_source,
     }),
     refresh,

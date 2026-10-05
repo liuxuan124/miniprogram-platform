@@ -1,6 +1,6 @@
 <template>
   <div class="ai-entry-props">
-    <el-form label-width="80px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="标题">
         <el-input :model-value="data.title || ''" @input="emit('update', { title: $event })" placeholder="AI智能助手" />
       </el-form-item>

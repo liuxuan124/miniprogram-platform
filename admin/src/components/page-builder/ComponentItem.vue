@@ -3,26 +3,19 @@
   <div v-if="fabOnly" class="fab-only-wrap" :class="{ selected }">
     <div v-if="selected" class="fab-toolbar" @click.stop>
       <span class="fab-toolbar__label">{{ ComponentTypeLabels[component.type] || '悬浮按钮' }}</span>
-      <el-tooltip content="上移" placement="left" :show-after="300">
-        <el-button text size="small" aria-label="上移" :disabled="index === 0" @click.stop="$emit('move-up')">
-          <el-icon><Top /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="下移" placement="left" :show-after="300">
-        <el-button text size="small" aria-label="下移" @click.stop="$emit('move-down')">
-          <el-icon><Bottom /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="复制" placement="left" :show-after="300">
-        <el-button text size="small" aria-label="复制" @click.stop="$emit('copy')">
-          <el-icon><CopyDocument /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="删除" placement="left" :show-after="300">
-        <el-button text size="small" type="danger" aria-label="删除" @click.stop="$emit('delete')">
-          <el-icon><Delete /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <span class="fab-toolbar__sep" aria-hidden="true"></span>
+      <button type="button" class="fab-toolbar__btn" :disabled="index === 0" aria-label="上移" title="上移" @click.stop="emit('move-up')">
+        <el-icon><Top /></el-icon>
+      </button>
+      <button type="button" class="fab-toolbar__btn" aria-label="下移" title="下移" @click.stop="emit('move-down')">
+        <el-icon><Bottom /></el-icon>
+      </button>
+      <button type="button" class="fab-toolbar__btn" aria-label="复制" title="复制" @click.stop="emit('copy')">
+        <el-icon><CopyDocument /></el-icon>
+      </button>
+      <button type="button" class="fab-toolbar__btn fab-toolbar__btn--danger" aria-label="删除" title="删除" @click.stop="emit('delete')">
+        <el-icon><Delete /></el-icon>
+      </button>
     </div>
     <component
       :is="resolveRenderer(component.type)"
@@ -43,11 +36,13 @@
     :component-style="component.style"
     :stack-on-top="component.type === ComponentType.Nav || component.type === ComponentType.Banner || component.type === ComponentType.ProductList || component.type === ComponentType.BrandHeader"
     :toolbar-always-below="component.type === ComponentType.BrandHeader || component.type === ComponentType.Nav || component.type === ComponentType.Banner"
-    @select="$emit('select')"
-    @delete="$emit('delete')"
-    @copy="$emit('copy')"
-    @move-up="$emit('move-up')"
-    @move-down="$emit('move-down')"
+    :allow-save-as-block="canSaveAsBlock"
+    @select="emit('select')"
+    @delete="emit('delete')"
+    @copy="emit('copy')"
+    @move-up="emit('move-up')"
+    @move-down="emit('move-down')"
+    @save-as-block="emit('save-as-block')"
   >
     <component
       :is="resolveRenderer(component.type)"
@@ -59,14 +54,16 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
 import { Top, Bottom, CopyDocument, Delete } from '@element-plus/icons-vue'
 import type { ComponentInstance } from '@/types/page'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
 import BaseRenderer from './renderers/BaseRenderer.vue'
-import UnknownComponentRenderer from './renderers/UnknownComponentRenderer.vue'
+// renderer 映射与别名表已抽到 renderers/registry.ts，与区块缩略图共用同一套，
+// 避免「画布长这样、缩略图长那样」（新增组件只需改 registry.ts 一处）。
+import { resolveRenderer } from './renderers/registry'
 
-defineProps<{
+const props = defineProps<{
   component: ComponentInstance
   index: number
   selected: boolean
@@ -74,12 +71,13 @@ defineProps<{
   fabOnly?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: []
   delete: []
   copy: []
   'move-up': []
   'move-down': []
+  'save-as-block': []
   'preview-action': [payload: {
     tab: string
     message: string
@@ -91,85 +89,12 @@ defineEmits<{
   }]
 }>()
 
-const rendererMap: Record<string, any> = {
-  [ComponentType.Banner]: defineAsyncComponent(() => import('./renderers/BannerRenderer.vue')),
-  [ComponentType.Search]: defineAsyncComponent(() => import('./renderers/SearchRenderer.vue')),
-  [ComponentType.NoticeBar]: defineAsyncComponent(() => import('./renderers/NoticeBarRenderer.vue')),
-  [ComponentType.Image]: defineAsyncComponent(() => import('./renderers/ImageRenderer.vue')),
-  [ComponentType.Nav]: defineAsyncComponent(() => import('./renderers/NavRenderer.vue')),
-  [ComponentType.CategoryNav]: defineAsyncComponent(() => import('./renderers/CategoryNavRenderer.vue')),
-  [ComponentType.ProductList]: defineAsyncComponent(() => import('./renderers/ProductListRenderer.vue')),
-  [ComponentType.FlashSale]: defineAsyncComponent(() => import('./renderers/FlashSaleRenderer.vue')),
-  [ComponentType.ArticleList]: defineAsyncComponent(() => import('./renderers/ArticleListRenderer.vue')),
-  [ComponentType.ArticleFeed]: defineAsyncComponent(() => import('./renderers/ArticleFeedRenderer.vue')),
-  [ComponentType.NoteFeed]: defineAsyncComponent(() => import('./renderers/NoteFeedRenderer.vue')),
-  [ComponentType.MomentsFeed]: defineAsyncComponent(() => import('./renderers/MomentsFeedRenderer.vue')),
-  [ComponentType.HotNews]: defineAsyncComponent(() => import('./renderers/HotNewsRenderer.vue')),
-  [ComponentType.ActivityEntry]: defineAsyncComponent(() => import('./renderers/ActivityEntryRenderer.vue')),
-  [ComponentType.ActivityList]: defineAsyncComponent(() => import('./renderers/ActivityListRenderer.vue')),
-  [ComponentType.AppointmentService]: defineAsyncComponent(() => import('./renderers/AppointmentServiceRenderer.vue')),
-  [ComponentType.MemberCard]: defineAsyncComponent(() => import('./renderers/MemberCardRenderer.vue')),
-  [ComponentType.PromoBanner]: defineAsyncComponent(() => import('./renderers/PromoBannerRenderer.vue')),
-  [ComponentType.Coupon]: defineAsyncComponent(() => import('./renderers/CouponRenderer.vue')),
-  [ComponentType.Video]: defineAsyncComponent(() => import('./renderers/VideoRenderer.vue')),
-  [ComponentType.BrandIntro]: defineAsyncComponent(() => import('./renderers/BrandIntroRenderer.vue')),
-  [ComponentType.ImageText]: defineAsyncComponent(() => import('./renderers/ImageTextRenderer.vue')),
-  [ComponentType.ContactInfo]: defineAsyncComponent(() => import('./renderers/ContactInfoRenderer.vue')),
-  [ComponentType.Certificate]: defineAsyncComponent(() => import('./renderers/CertificateRenderer.vue')),
-  [ComponentType.Countdown]: defineAsyncComponent(() => import('./renderers/CountdownRenderer.vue')),
-  [ComponentType.FloatButton]: defineAsyncComponent(() => import('./renderers/FloatButtonRenderer.vue')),
-  [ComponentType.RichText]: defineAsyncComponent(() => import('./renderers/RichTextRenderer.vue')),
-  [ComponentType.ContentPaywall]: defineAsyncComponent(() => import('./renderers/ContentPaywallRenderer.vue')),
-  [ComponentType.MaterialList]: defineAsyncComponent(() => import('./renderers/MaterialListRenderer.vue')),
-  [ComponentType.MemberPlan]: defineAsyncComponent(() => import('./renderers/MemberPlanRenderer.vue')),
-  [ComponentType.QaList]: defineAsyncComponent(() => import('./renderers/QaListRenderer.vue')),
-  [ComponentType.SectionTitle]: defineAsyncComponent(() => import('./renderers/SectionTitleRenderer.vue')),
-  [ComponentType.Divider]: defineAsyncComponent(() => import('./renderers/DividerRenderer.vue')),
-  [ComponentType.Spacer]: defineAsyncComponent(() => import('./renderers/SpacerRenderer.vue')),
-  [ComponentType.FormEntry]: defineAsyncComponent(() => import('./renderers/FormEntryRenderer.vue')),
-  [ComponentType.AIEntry]: defineAsyncComponent(() => import('./renderers/AIEntryRenderer.vue')),
-  [ComponentType.JoinGroup]: defineAsyncComponent(() => import('./renderers/JoinGroupRenderer.vue')),
-  [ComponentType.BrandHeader]: defineAsyncComponent(() => import('./renderers/BrandHeaderRenderer.vue')),
-  [ComponentType.Container]: defineAsyncComponent(() => import('./renderers/ContainerRenderer.vue')),
-  [ComponentType.ImageHotspot]: defineAsyncComponent(() => import('./renderers/ImageHotspotRenderer.vue')),
-  [ComponentType.SectionBg]: defineAsyncComponent(() => import('./renderers/SectionBgRenderer.vue')),
-  [ComponentType.FeatureCards]: defineAsyncComponent(() => import('./renderers/FeatureCardsRenderer.vue')),
-  [ComponentType.ImageCube]: defineAsyncComponent(() => import('./renderers/ImageCubeRenderer.vue')),
-  [ComponentType.ContentTabs]: defineAsyncComponent(() => import('./renderers/ContentTabsRenderer.vue')),
-  [ComponentType.PlanetHero]: defineAsyncComponent(() => import('./renderers/PlanetHeroRenderer.vue')),
-  [ComponentType.PlanetTopics]: defineAsyncComponent(() => import('./renderers/PlanetTopicsRenderer.vue')),
-  [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./renderers/PlanetFeedRenderer.vue')),
-  [ComponentType.WarmGreet]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./renderers/warm/DslWarmBlock.vue')),
-  [ComponentType.WarmHome]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmDiscover]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmPlanet]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmShop]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-  [ComponentType.WarmMine]: defineAsyncComponent(() => import('./renderers/WarmShellRenderer.vue')),
-}
-
-const warnedUnknownTypes = new Set<string>()
-
-/** 历史 DSL / 外部组件别名 → 已注册类型 */
-const COMPONENT_TYPE_ALIASES: Record<string, string> = {
-  'flow-ai-assistant': ComponentType.AIEntry,
-  flow_ai_assistant: ComponentType.AIEntry,
-  'flow-ai': ComponentType.AIEntry,
-}
-
-function resolveRenderer(type: string) {
-  const key = COMPONENT_TYPE_ALIASES[type] || type
-  if (rendererMap[key]) return rendererMap[key]
-  if (!warnedUnknownTypes.has(type)) {
-    warnedUnknownTypes.add(type)
-    console.warn(`[page-builder] 未知组件 type "${type}"，画布以占位展示，小程序端将跳过渲染`)
-  }
-  return UnknownComponentRenderer
-}
+/** 容器类组件才允许「另存为区块」——只有它们带 children，才是可复用的组合体 */
+const CAN_SAVE_AS_BLOCK = new Set<ComponentType>([
+  ComponentType.Container,
+  ComponentType.SectionBg,
+])
+const canSaveAsBlock = computed(() => CAN_SAVE_AS_BLOCK.has(props.component.type))
 </script>
 
 <style scoped>
@@ -179,6 +104,7 @@ function resolveRenderer(type: string) {
   pointer-events: none;
 }
 
+/* 浅色毛玻璃工具条：与普通组件选中态同一套视觉语言 */
 .fab-toolbar {
   position: absolute;
   top: 8px;
@@ -186,23 +112,59 @@ function resolveRenderer(type: string) {
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 4px 8px;
-  color: #fff;
-  background: rgba(23, 32, 51, 0.94);
+  gap: 4px;
+  height: 26px;
+  padding: 0 4px 0 9px;
+  color: #2a1f17;
+  background: rgb(255 255 255 / 82%);
+  border: 1px solid rgb(42 31 23 / 8%);
   border-radius: 8px;
+  box-shadow: 0 4px 14px rgb(42 31 23 / 12%);
+  backdrop-filter: blur(10px) saturate(1.4);
   transform: translateX(-50%);
   pointer-events: auto;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
-}
-
-.fab-toolbar__label {
-  margin-right: 6px;
-  font-size: 12px;
   white-space: nowrap;
 }
 
-.fab-toolbar :deep(.el-button) {
-  color: #fff;
+.fab-toolbar__label {
+  color: #2a1f17;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.fab-toolbar__sep {
+  width: 1px;
+  height: 12px;
+  background: rgb(42 31 23 / 12%);
+}
+
+.fab-toolbar__btn {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  color: #6b5b4e;
+  font-size: 13px;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.14s, background 0.14s;
+}
+
+.fab-toolbar__btn:hover:not(:disabled) {
+  color: var(--el-color-primary, #c08e6e);
+  background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 10%, #fff);
+}
+
+.fab-toolbar__btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.fab-toolbar__btn--danger:hover:not(:disabled) {
+  color: #c0392b;
+  background: #fdeef0;
 }
 </style>

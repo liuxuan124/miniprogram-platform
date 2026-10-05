@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="70px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item label="展示比例">
       <el-select
         :model-value="aspectRatio"

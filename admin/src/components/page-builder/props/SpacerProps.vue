@@ -1,6 +1,6 @@
 <template>
   <div class="spacer-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="高度">
         <el-input-number
           :model-value="data.height"

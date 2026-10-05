@@ -1,6 +1,6 @@
 <template>
   <div class="join-group-props">
-    <el-form label-width="78px" size="small">
+    <el-form label-width="72px" size="small">
       <el-divider content-position="left">入口卡片</el-divider>
       <el-form-item label="入口头像">
         <div class="img-field">
@@ -66,75 +66,95 @@
       </el-form-item>
 
       <el-divider content-position="left">群列表</el-divider>
-      <div v-for="(group, i) in groups" :key="group.id || i" class="group-card">
-        <div class="group-card__head">
-          <span>群 {{ i + 1 }}</span>
-          <el-button text type="danger" size="small" @click="removeGroup(i)">删除</el-button>
-        </div>
-        <el-form-item label="群名称">
-          <el-input
-            :model-value="group.name || ''"
-            maxlength="24"
-            placeholder="群名称"
-            @input="(v: string) => updateGroup(i, { name: v })"
-          />
-        </el-form-item>
-        <el-form-item label="群图标">
-          <div class="img-field">
-            <div v-if="normalizeUrl(group.icon)" class="img-preview img-preview--sm">
-              <img :src="normalizeUrl(group.icon)" alt="" />
-            </div>
+      <SubItemList
+        :items="groups"
+        :title-of="(g) => g.name || ''"
+        :key-of="(g, i) => g.id || i"
+        add-text="添加群"
+        placeholder="未填写群名称"
+        empty-text="还没有添加群，先加一个再配活码"
+        :default-open="0"
+        @add="addGroup"
+        @remove="removeGroup"
+      >
+        <template #default="{ item: group, index: i, update }">
+          <el-form-item label="群名称">
             <el-input
-              :model-value="group.icon || ''"
-              placeholder="可选，列表左侧图标"
-              @input="(v: string) => updateGroup(i, { icon: v })"
+              :model-value="group.name || ''"
+              maxlength="24"
+              placeholder="群名称"
+              @input="(v: string) => update({ name: v })"
             />
-            <label class="upload-btn">
-              上传
-              <input type="file" accept="image/*" hidden @change="(e) => onUploadGroupIcon(i, e)" />
-            </label>
-            <AssetPickerButton style="margin-left: 8px" @select="(url: string) => updateGroup(i, { icon: url })" />
-          </div>
-        </el-form-item>
-        <el-form-item label="入群方式">
-          <el-radio-group
-            :model-value="group.join_type || 'qrcode'"
-            @change="(v: string) => updateGroup(i, { join_type: v })"
-          >
-            <el-radio label="qrcode">个人微信群（二维码）</el-radio>
-            <el-radio label="wecom">企业微信群（点按入群）</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="(group.join_type || 'qrcode') === 'wecom'" label="企微链接">
-          <el-input
-            :model-value="group.wecom_url || ''"
-            type="textarea"
-            :rows="2"
-            placeholder="企业微信「加入群聊」生成的 work.weixin.qq.com/gm/ 链接"
-            @input="(v: string) => updateGroup(i, { wecom_url: v, join_type: 'wecom' })"
-          />
-          <p class="hint">企微后台：客户联系 → 加入群聊 → 在小程序中加入群聊。小程序需添加插件 wx4d2deeab3aed6e5a。</p>
-        </el-form-item>
-        <el-form-item v-else label="二维码">
-          <div class="img-field">
-            <div v-if="normalizeUrl(group.qrcode)" class="img-preview">
-              <img :src="normalizeUrl(group.qrcode)" alt="" />
-              <el-button text type="danger" size="small" @click="updateGroup(i, { qrcode: '' })">移除</el-button>
-            </div>
+          </el-form-item>
+          <el-form-item label="活码标识">
             <el-input
-              :model-value="group.qrcode || ''"
-              placeholder="群二维码图片 URL"
-              @input="(v: string) => updateGroup(i, { qrcode: v })"
+              :model-value="group.group_key || ''"
+              maxlength="64"
+              placeholder="选填，如 reader-1"
+              @input="(v: string) => update({ group_key: v })"
             />
-            <label class="upload-btn">
-              本地上传
-              <input type="file" accept="image/*" hidden @change="(e) => onUploadQrcode(i, e)" />
-            </label>
-            <AssetPickerButton style="margin-left: 8px" @select="(url: string) => updateGroup(i, { qrcode: url })" />
-          </div>
-        </el-form-item>
-      </div>
-      <el-button type="primary" text size="small" @click="addGroup">+ 添加群</el-button>
+            <p class="hint">
+              填了则由「运营中心 › 私域引流」的活码轮换接管：小程序端会按该标识请求当前有效二维码，满员/过期自动切下一张。
+              留空或接口取不到码时，回落使用下面这张内联二维码，老页面不受影响。
+            </p>
+          </el-form-item>
+          <el-form-item label="群图标">
+            <div class="img-field">
+              <div v-if="normalizeUrl(group.icon)" class="img-preview img-preview--sm">
+                <img :src="normalizeUrl(group.icon)" alt="" />
+              </div>
+              <el-input
+                :model-value="group.icon || ''"
+                placeholder="可选，列表左侧图标"
+                @input="(v: string) => update({ icon: v })"
+              />
+              <label class="upload-btn">
+                上传
+                <input type="file" accept="image/*" hidden @change="(e) => onUploadGroupIcon(i, e)" />
+              </label>
+              <AssetPickerButton style="margin-left: 8px" @select="(url: string) => update({ icon: url })" />
+            </div>
+          </el-form-item>
+          <el-form-item label="入群方式">
+            <el-radio-group
+              :model-value="group.join_type || 'qrcode'"
+              @change="(v: string) => update({ join_type: v })"
+            >
+              <el-radio label="qrcode">个人微信群（二维码）</el-radio>
+              <el-radio label="wecom">企业微信群（点按入群）</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item v-if="(group.join_type || 'qrcode') === 'wecom'" label="企微链接">
+            <el-input
+              :model-value="group.wecom_url || ''"
+              type="textarea"
+              :rows="2"
+              resize="none"
+              placeholder="企业微信「加入群聊」生成的 work.weixin.qq.com/gm/ 链接"
+              @input="(v: string) => update({ wecom_url: v, join_type: 'wecom' })"
+            />
+            <p class="hint">企微后台：客户联系 → 加入群聊 → 在小程序中加入群聊。小程序需添加插件 wx4d2deeab3aed6e5a。</p>
+          </el-form-item>
+          <el-form-item v-else label="二维码">
+            <div class="img-field">
+              <div v-if="normalizeUrl(group.qrcode)" class="img-preview">
+                <img :src="normalizeUrl(group.qrcode)" alt="" />
+                <el-button text type="danger" size="small" @click="update({ qrcode: '' })">移除</el-button>
+              </div>
+              <el-input
+                :model-value="group.qrcode || ''"
+                placeholder="群二维码图片 URL"
+                @input="(v: string) => update({ qrcode: v })"
+              />
+              <label class="upload-btn">
+                本地上传
+                <input type="file" accept="image/*" hidden @change="(e) => onUploadQrcode(i, e)" />
+              </label>
+              <AssetPickerButton style="margin-left: 8px" @select="(url: string) => update({ qrcode: url })" />
+            </div>
+          </el-form-item>
+        </template>
+      </SubItemList>
     </el-form>
   </div>
 </template>
@@ -144,8 +164,18 @@ import { computed } from 'vue'
 import { normalizeUploadUrl } from '@/api/system'
 import { useImageUpload } from '../composables/useImageUpload'
 import AssetPickerButton from '@/components/AssetPickerButton.vue'
+import SubItemList from '../SubItemList.vue'
 
-type GroupItem = { id: string; name: string; icon?: string; qrcode?: string; join_type?: string; wecom_url?: string }
+type GroupItem = {
+  id: string
+  name: string
+  icon?: string
+  qrcode?: string
+  join_type?: string
+  wecom_url?: string
+  /** 与「运营中心 › 私域引流」的活码 groupKey 对应；填了才走接口取码 + 自动轮换 */
+  group_key?: string
+}
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -162,6 +192,7 @@ const groups = computed<GroupItem[]>(() => {
     qrcode: String(g.qrcode || ''),
     join_type: String(g.join_type || 'qrcode') === 'wecom' ? 'wecom' : 'qrcode',
     wecom_url: String(g.wecom_url || ''),
+    group_key: String(g.group_key || ''),
   }))
 })
 
@@ -194,7 +225,10 @@ function updateGroup(index: number, patch: Partial<GroupItem>) {
 
 function addGroup() {
   emit('update', {
-    groups: [...groups.value, { id: uid(), name: '新群聊', icon: '', qrcode: '', join_type: 'qrcode', wecom_url: '' }],
+    groups: [
+      ...groups.value,
+      { id: uid(), name: '新群聊', icon: '', qrcode: '', join_type: 'qrcode', wecom_url: '', group_key: '' },
+    ],
   })
 }
 

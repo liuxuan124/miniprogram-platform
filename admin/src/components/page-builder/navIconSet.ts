@@ -134,26 +134,39 @@ const TAB_EMOJI_ICON_MAP: Record<string, string> = {
   '⚖️': '/images/nav-icons/g-compliance.png',
 }
 
-const TAB_PATH_ICON_MAP: Record<string, string> = {
-  '/images/tab/home.png': '/images/nav-icons/g-platform.png',
-  '/images/tab/home-active.png': '/images/nav-icons/g-platform.png',
-  '/images/tab/content.png': '/images/nav-icons/g-news.png',
-  '/images/tab/content-active.png': '/images/nav-icons/g-news.png',
-  '/images/tab/category.png': '/images/nav-icons/g-folder.png',
-  '/images/tab/category-active.png': '/images/nav-icons/g-folder.png',
-  '/images/tab/member.png': '/images/nav-icons/g-crown.png',
-  '/images/tab/member-active.png': '/images/nav-icons/g-crown.png',
-  '/images/tab/mine.png': '/images/nav-icons/g-user.png',
-  '/images/tab/mine-active.png': '/images/nav-icons/g-user.png',
-  '/images/tab/shop.png': '/images/nav-icons/g-bag.png',
-  '/images/tab/shop-active.png': '/images/nav-icons/g-bag.png',
+/**
+ * 小程序包内 tab 图标路径。
+ *
+ * ⚠️ 这些图已从 `miniapp/images/tab/` 原样同步到 `admin/public/images/tab/`（md5 一致），
+ * 因此**必须原样返回**。
+ *
+ * 历史坑：本文件原先有一张 `TAB_PATH_ICON_MAP`，把 `/images/tab/home.png` 映射成
+ * `g-platform.png`（显示器）、`member.png` 映射成 `g-crown.png`（金色 VIP 皇冠）等，
+ * 导致后台「效果预览」的底部导航与真机完全是两套图——运营在后台改图标真机不变，
+ * 预览也不等于真机。**该映射表已删除**，后台预览的唯一真源是小程序包内资源。
+ */
+const MINIAPP_TAB_ICON_PREFIX = '/images/tab/'
+
+/** 是否小程序包内 tab 图标（需原样透传，禁止替换成后台那套 g-*.png） */
+export function isMiniappTabIcon(icon?: string): boolean {
+  const path = String(icon || '').trim().split('?')[0]
+  return path.startsWith(MINIAPP_TAB_ICON_PREFIX)
+}
+
+/** 选中态图标名推断：xxx.png → xxx-active.png（小程序包内命名约定） */
+export function deriveMiniappSelectedTabIcon(icon?: string): string {
+  const path = String(icon || '').trim().split('?')[0]
+  if (!isMiniappTabIcon(path)) return ''
+  if (/-active\.png$/i.test(path)) return path
+  return path.replace(/\.png$/i, '-active.png')
 }
 
 export function migrateTabBarIcon(icon?: string): string {
   const raw = String(icon || '').trim()
   if (!raw) return '/images/nav-icons/g-bag.png'
   const pathOnly = raw.split('?')[0]
-  if (TAB_PATH_ICON_MAP[pathOnly]) return TAB_PATH_ICON_MAP[pathOnly]
+  // 小程序包内 tab 图标：原样透传，保证后台预览 === 真机
+  if (isMiniappTabIcon(pathOnly)) return pathOnly
   if (isNavImageIcon(raw)) return pathOnly
   return TAB_EMOJI_ICON_MAP[raw] || raw
 }

@@ -1,10 +1,10 @@
 <template>
   <div class="props-panel">
-    <!-- No component selected: show page properties -->
-    <template v-if="!pageStore.selectedComponent">
+    <!-- 页面属性：独立「页面」tab 常驻可见；兼容旧用法（未选中组件时回退展示） -->
+    <template v-if="section === 'page' || (!section && !pageStore.selectedComponent)">
       <div class="panel-section">
         <div class="section-title">页面属性</div>
-        <el-form label-width="70px" size="small">
+        <el-form label-width="72px" size="small">
           <el-form-item label="页面名称">
             <el-input
               :model-value="pageStore.pageConfig.name"
@@ -20,8 +20,101 @@
               @update:model-value="onPathInput"
             />
           </el-form-item>
-          <el-form-item label="背景色">
-            <el-color-picker :model-value="pageStore.pageConfig.background_color || '#f6f8fb'" @change="(v: string) => pageStore.updatePageConfig({ background_color: v })" />
+          <el-form-item>
+            <template #label>
+              <span class="pp-label">
+                背景
+                <FieldHint text="页面底色。纯色 = 单色铺满；渐变 = 支持角度 + 最多 5 个色标。也可以直接点下方品牌预设一次性切换。" />
+              </span>
+            </template>
+            <div class="bg-editor">
+              <el-radio-group
+                :model-value="bgModel.type"
+                size="small"
+                @update:model-value="(v: 'solid' | 'gradient') => onBgTypeChange(v)"
+              >
+                <el-radio-button value="solid">纯色</el-radio-button>
+                <el-radio-button value="gradient">渐变</el-radio-button>
+              </el-radio-group>
+
+              <!-- 纯色模式 -->
+              <div v-if="bgModel.type === 'solid'" class="bg-editor__row">
+                <el-color-picker
+                  :model-value="bgSolidColor"
+                  show-alpha
+                  @change="(v: string | null) => onBgSolidChange(v)"
+                />
+                <span class="bg-editor__hint">支持 Hex / RGBA</span>
+              </div>
+
+              <!-- 渐变模式 -->
+              <template v-else>
+                <div class="bg-editor__row">
+                  <span class="bg-editor__label">角度</span>
+                  <el-slider
+                    :model-value="bgGradient.angle"
+                    :min="0"
+                    :max="360"
+                    :step="1"
+                    style="flex: 1"
+                    @update:model-value="(v: number) => onBgAngleChange(v)"
+                  />
+                  <span class="bg-editor__angle">{{ bgGradient.angle }}°</span>
+                </div>
+                <div
+                  v-for="(stop, i) in bgGradient.stops"
+                  :key="i"
+                  class="bg-editor__row bg-editor__stop"
+                >
+                  <el-color-picker
+                    :model-value="stop.color"
+                    show-alpha
+                    @change="(v: string | null) => onBgStopColorChange(i, v)"
+                  />
+                  <el-slider
+                    :model-value="stop.offset"
+                    :min="0"
+                    :max="100"
+                    :step="1"
+                    style="flex: 1"
+                    @update:model-value="(v: number) => onBgStopOffsetChange(i, v)"
+                  />
+                  <span class="bg-editor__angle">{{ stop.offset }}%</span>
+                  <el-button
+                    v-if="bgGradient.stops.length > 2"
+                    text
+                    size="small"
+                    type="danger"
+                    @click="removeBgStop(i)"
+                  >删除</el-button>
+                </div>
+                <div class="bg-editor__row">
+                  <el-button
+                    size="small"
+                    :disabled="bgGradient.stops.length >= 5"
+                    @click="addBgStop"
+                  >+ 添加色标</el-button>
+                </div>
+              </template>
+
+              <!-- 品牌预设色盘：常驻快捷选项 -->
+              <div class="bg-editor__presets">
+                <button
+                  v-for="preset in BACKGROUND_PRESETS"
+                  :key="preset.label"
+                  type="button"
+                  class="bg-preset"
+                  :title="preset.label"
+                  @click="applyBackgroundPreset(preset)"
+                >
+                  <span
+                    class="bg-preset__swatch"
+                    :style="{ background: backgroundToCss(preset.background) }"
+                  ></span>
+                  <span class="bg-preset__label">{{ preset.label }}</span>
+                </button>
+              </div>
+            </div>
           </el-form-item>
           <el-form-item label="分享标题">
             <el-input :model-value="pageStore.pageConfig.share_title || ''" @input="(v: string) => pageStore.updatePageConfig({ share_title: v })" />
@@ -51,29 +144,155 @@
       </div>
       <div class="panel-section">
         <div class="section-title">全局配置</div>
-        <el-form label-width="70px" size="small">
+        <el-form label-width="72px" size="small">
           <el-form-item label="下拉刷新">
             <el-switch :model-value="pageStore.globalConfig.pull_refresh" @change="(v: boolean) => pageStore.updateGlobalConfig({ pull_refresh: v })" />
           </el-form-item>
           <el-form-item label="触底加载">
             <el-switch :model-value="pageStore.globalConfig.reach_bottom_load" @change="(v: boolean) => pageStore.updateGlobalConfig({ reach_bottom_load: v })" />
           </el-form-item>
+          <el-form-item>
+            <template #label>
+              <span class="pp-label">
+                底部渐隐
+                <FieldHint text="页面底部渐变融合遮罩：让列表/卡片下边缘平滑弱化融入背景，不阻断点击与滚动。适合背景色与卡片色接近时使用。" />
+              </span>
+            </template>
+            <el-switch
+              :model-value="bottomOverlay.enabled"
+              @change="(v: boolean) => updateBottomOverlay({ enabled: v })"
+            />
+          </el-form-item>
+          <template v-if="bottomOverlay.enabled">
+            <el-form-item label="遮罩高度">
+              <div class="bg-editor__row" style="width: 100%">
+                <el-slider
+                  :model-value="bottomOverlay.height"
+                  :min="60"
+                  :max="160"
+                  :step="2"
+                  :marks="{ 60: '60', 96: '96', 160: '160' }"
+                  style="flex: 1"
+                  @update:model-value="(v: number) => updateBottomOverlay({ height: v })"
+                />
+                <span class="bg-editor__angle">{{ bottomOverlay.height }}px</span>
+              </div>
+            </el-form-item>
+            <el-form-item label="融合色">
+              <div class="style-color-row">
+                <el-radio-group
+                  :model-value="overlayColorMode"
+                  size="small"
+                  @update:model-value="(v: 'auto' | 'custom') => onOverlayColorModeChange(v)"
+                >
+                  <el-radio value="auto">自动取底色</el-radio>
+                  <el-radio value="custom">自定义</el-radio>
+                </el-radio-group>
+                <el-color-picker
+                  v-if="overlayColorMode === 'custom'"
+                  :model-value="bottomOverlay.color === 'auto' ? '' : bottomOverlay.color"
+                  show-alpha
+                  @change="(v: string | null) => updateBottomOverlay({ color: v || 'auto' })"
+                />
+              </div>
+              <div class="style-hint">自动模式：渐变背景取终点色标，纯色背景取该颜色</div>
+            </el-form-item>
+          </template>
         </el-form>
+      </div>
+    </template>
+
+    <!-- 指定了内容/样式分区但未选中组件：空态引导 -->
+    <template v-else-if="!pageStore.selectedComponent">
+      <div class="props-empty-hint">
+        <div class="props-empty-hint__title">未选中组件</div>
+        <div class="props-empty-hint__desc">在画布中点击一个组件，即可编辑它的{{ section === 'style' ? '样式与间距' : '内容与数据' }}；页面级设置在「页面」页签。</div>
       </div>
     </template>
 
     <!-- Component selected: show component properties -->
     <template v-else>
       <div class="panel-header">
-        <div>
-          <span class="panel-kicker">当前组件</span>
-          <div class="comp-type-label">{{ ComponentTypeLabels[pageStore.selectedComponent.type] }}</div>
+        <div class="panel-header__lead">
+          <span class="comp-type-icon" aria-hidden="true">
+            <el-icon :size="16"><component :is="compIconComp" /></el-icon>
+          </span>
+          <div class="panel-header__titles">
+            <span class="panel-kicker">当前组件</span>
+            <!-- 备注名可编辑：仅作为运营内部辨识用，不进 DSL 的 type，也不影响渲染 -->
+            <el-input
+              :model-value="compRemark"
+              class="comp-remark"
+              placeholder="加备注（如：顶部大促款）"
+              maxlength="24"
+              @update:model-value="onRemarkInput"
+              @blur="onRemarkBlur"
+            />
+            <span class="comp-type-label">
+              {{ ComponentTypeLabels[pageStore.selectedComponent.type] }}
+            </span>
+          </div>
         </div>
-        <el-button text size="small" @click="pageStore.selectComponent('')">取消选中</el-button>
+
+        <div class="panel-header__actions">
+          <el-tooltip content="复制一份（Ctrl+D）" placement="bottom">
+            <button
+              type="button"
+              class="panel-icon-btn"
+              aria-label="复制组件"
+              @click="onDuplicate"
+            >
+              <el-icon><CopyDocument /></el-icon>
+            </button>
+          </el-tooltip>
+
+          <el-popconfirm
+            title="删除这个组件？"
+            description="删除后可用顶部「撤销」恢复。"
+            placement="bottom-end"
+            :width="200"
+            confirm-button-text="删除"
+            cancel-button-text="取消"
+            confirm-button-type="danger"
+            @confirm="onRemove"
+          >
+            <template #reference>
+              <button type="button" class="panel-icon-btn panel-icon-btn--danger" aria-label="删除组件">
+                <el-icon><Delete /></el-icon>
+              </button>
+            </template>
+          </el-popconfirm>
+
+          <el-tooltip content="取消选中（Esc）" placement="bottom">
+            <button
+              type="button"
+              class="panel-icon-btn"
+              aria-label="取消选中"
+              @click="pageStore.selectComponent('')"
+            >
+              <el-icon><Close /></el-icon>
+            </button>
+          </el-tooltip>
+        </div>
       </div>
 
-      <el-tabs v-model="activeTab" class="props-tabs" stretch>
-        <el-tab-pane label="内容与数据" name="content">
+      <!-- 分区模式（editor 右栏已有一级 内容/样式/页面 tab）下，按 section 只渲染对应窗格，
+           避免内层再出现「内容与数据/样式」二级 tab 与外层重复；
+           非分区模式（独立使用）保持两窗格可切换 -->
+      <el-tabs v-model="activeTab" class="props-tabs" :class="{ 'props-tabs--single': !!section }" stretch>
+        <el-tab-pane v-if="!section || section === 'content'" label="内容与数据" name="content">
+          <!-- 组件被隐藏时的提醒：
+               画布里的「已隐藏」来自样式页签的 componentStyle.visible，
+               与本页签的「显示搜索/显示导航/通知铃」是两套独立开关。
+               用户在内容页签点任何开关都不会让组件重新出现，所以必须在此显式提示 + 一键恢复。 -->
+          <div v-if="componentHidden" class="hidden-reminder">
+            <el-icon class="hidden-reminder__icon"><WarningFilled /></el-icon>
+            <div class="hidden-reminder__body">
+              <div class="hidden-reminder__title">该组件当前已隐藏，小程序端不会渲染</div>
+              <div class="hidden-reminder__desc">在「样式」页签底部把「组件可见」打开即可恢复；本页签的内容开关只控制组件内部元素。</div>
+            </div>
+            <el-button size="small" type="primary" plain @click="restoreComponentVisible">恢复显示</el-button>
+          </div>
           <div v-if="dataStatus" class="data-status-card" :class="`is-${dataStatus.tone}`">
             <div class="data-status-card__main">
               <span class="data-status-dot"></span>
@@ -121,20 +340,19 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="样式" name="style">
+        <el-tab-pane v-if="!section || section === 'style'" label="样式" name="style">
           <div class="style-section-body">
           <div class="shell-note">
-            「外边距」= 内容相对手机屏幕边缘的距离，不会再套一层白外框。<br />
-            选中时的虚线只是编辑指示，真机不显示。
+            边距直接决定组件在手机上的位置，画布里的虚线框只是编辑指示，真机不显示。
           </div>
 
           <!-- 相对屏幕边缘的外边距 -->
           <div v-if="hideMarginEditor" class="shell-note">
             品牌顶栏始终铺满屏幕宽度并替代系统导航栏，无需设置外边距。
           </div>
-          <div v-else class="margin-box">
-            <div class="margin-box__label">
-              <span>外边距（相对屏幕）</span>
+          <div v-else class="spacing-card">
+            <div class="spacing-card__head">
+              <span class="spacing-card__title">外边距<em>相对屏幕</em></span>
               <el-tooltip :content="marginLinked ? '已锁定：四向等比联动' : '点击锁定四向等比联动'" placement="top">
                 <el-button
                   :type="marginLinked ? 'primary' : 'default'"
@@ -148,8 +366,8 @@
                 </el-button>
               </el-tooltip>
             </div>
-            <div class="margin-box__grid">
-              <div class="margin-cell margin-cell--top">
+            <div class="spacing-grid">
+              <div class="spacing-cell">
                 <span>上</span>
                 <el-input-number
                   :model-value="Number(currentStyle.margin_top ?? 0)"
@@ -160,23 +378,7 @@
                   @change="(v: number) => updateMargin('margin_top', v)"
                 />
               </div>
-              <div class="margin-cell margin-cell--left">
-                <span>左</span>
-                <el-input-number
-                  :model-value="currentStyle.margin_left || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
-                  @change="(v: number) => updateMargin('margin_left', v)"
-                />
-              </div>
-              <div class="margin-cell margin-cell--right">
-                <span>右</span>
-                <el-input-number
-                  :model-value="currentStyle.margin_right || 0"
-                  :min="0" :max="100" size="small" controls-position="right"
-                  @change="(v: number) => updateMargin('margin_right', v)"
-                />
-              </div>
-              <div class="margin-cell margin-cell--bottom">
+              <div class="spacing-cell">
                 <span>下</span>
                 <el-input-number
                   :model-value="Number(currentStyle.margin_bottom ?? 0)"
@@ -187,13 +389,84 @@
                   @change="(v: number) => updateMargin('margin_bottom', v)"
                 />
               </div>
+              <div class="spacing-cell">
+                <span>左</span>
+                <el-input-number
+                  :model-value="currentStyle.margin_left || 0"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number) => updateMargin('margin_left', v)"
+                />
+              </div>
+              <div class="spacing-cell">
+                <span>右</span>
+                <el-input-number
+                  :model-value="currentStyle.margin_right || 0"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number) => updateMargin('margin_right', v)"
+                />
+              </div>
             </div>
-            <div v-if="allowsNegativeMargin" class="style-hint margin-overlap-hint">
-              上下边距可设为负数，与相邻组件重叠；重叠时本组件始终显示在最上层。
+            <div class="style-hint">
+              组件与屏幕边缘的距离，单位 px。<template v-if="allowsNegativeMargin">上下可填负数与相邻组件重叠，重叠时本组件置顶。</template>
             </div>
           </div>
 
-          <el-form label-width="90px" size="small">
+          <div class="spacing-card">
+            <div class="spacing-card__head">
+              <span class="spacing-card__title">内边距<em>组件内部</em></span>
+              <el-tooltip :content="paddingLinked ? '已锁定：四向等比联动' : '点击锁定四向等比联动'" placement="top">
+                <el-button
+                  :type="paddingLinked ? 'primary' : 'default'"
+                  size="small"
+                  circle
+                  class="margin-lock-btn"
+                  :aria-label="paddingLinked ? '已锁定四向等比，点击取消' : '点击锁定四向等比联动'"
+                  @click="paddingLinked = !paddingLinked"
+                >
+                  <el-icon><component :is="paddingLinked ? Lock : Unlock" /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </div>
+            <div class="spacing-grid">
+              <div class="spacing-cell">
+                <span>上</span>
+                <el-input-number
+                  :model-value="Number(currentStyle.padding_top ?? 0)"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number | undefined) => updatePadding('padding_top', v ?? 0)"
+                />
+              </div>
+              <div class="spacing-cell">
+                <span>下</span>
+                <el-input-number
+                  :model-value="Number(currentStyle.padding_bottom ?? 0)"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number | undefined) => updatePadding('padding_bottom', v ?? 0)"
+                />
+              </div>
+              <div class="spacing-cell">
+                <span>左</span>
+                <el-input-number
+                  :model-value="Number(currentStyle.padding_left ?? 0)"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number | undefined) => updatePadding('padding_left', v ?? 0)"
+                />
+              </div>
+              <div class="spacing-cell">
+                <span>右</span>
+                <el-input-number
+                  :model-value="Number(currentStyle.padding_right ?? 0)"
+                  :min="0" :max="100" size="small" controls-position="right"
+                  @change="(v: number | undefined) => updatePadding('padding_right', v ?? 0)"
+                />
+              </div>
+            </div>
+            <div class="style-hint">内容与组件边框的距离，单位 px，作用于内容区/卡片。</div>
+          </div>
+
+          <div class="style-divider"><span>外观</span></div>
+
+          <el-form label-width="72px" size="small" class="style-form">
             <el-form-item label="圆角">
               <el-input-number
                 :model-value="Number(currentStyle.border_radius ?? 0)"
@@ -221,55 +494,6 @@
                 </el-button>
               </div>
             </el-form-item>
-            <div class="margin-box" style="margin-bottom: 12px">
-              <div class="margin-box__label"><span>内边距</span></div>
-              <div class="margin-box__grid">
-                <div class="margin-cell margin-cell--top">
-                  <span>上</span>
-                  <el-input-number
-                    :model-value="Number(currentStyle.padding_top ?? 0)"
-                    :min="0"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                    @change="(v: number | undefined) => updateStyle('padding_top', v ?? 0)"
-                  />
-                </div>
-                <div class="margin-cell margin-cell--bottom">
-                  <span>下</span>
-                  <el-input-number
-                    :model-value="Number(currentStyle.padding_bottom ?? 0)"
-                    :min="0"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                    @change="(v: number | undefined) => updateStyle('padding_bottom', v ?? 0)"
-                  />
-                </div>
-                <div class="margin-cell margin-cell--left">
-                  <span>左</span>
-                  <el-input-number
-                    :model-value="Number(currentStyle.padding_left ?? 0)"
-                    :min="0"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                    @change="(v: number | undefined) => updateStyle('padding_left', v ?? 0)"
-                  />
-                </div>
-                <div class="margin-cell margin-cell--right">
-                  <span>右</span>
-                  <el-input-number
-                    :model-value="Number(currentStyle.padding_right ?? 0)"
-                    :min="0"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                    @change="(v: number | undefined) => updateStyle('padding_right', v ?? 0)"
-                  />
-                </div>
-              </div>
-            </div>
             <el-form-item v-if="isListComponent" label="卡片间距">
               <el-input-number
                 :model-value="Number(currentProps.item_gap ?? 8)"
@@ -280,6 +504,77 @@
               />
               <div class="style-hint">单位 px，控制小卡片之间的空隙</div>
             </el-form-item>
+            <template v-if="supportsShadow">
+              <el-form-item label="阴影预设">
+                <div class="shadow-preset-row">
+                  <button
+                    type="button"
+                    class="shadow-preset"
+                    :class="{ 'is-active': activeShadowPreset === 'warm' }"
+                    @click="applyShadowPreset('warm')"
+                  >暖调微光</button>
+                  <button
+                    type="button"
+                    class="shadow-preset"
+                    :class="{ 'is-active': activeShadowPreset === 'standard' }"
+                    @click="applyShadowPreset('standard')"
+                  >标准弥散</button>
+                  <button
+                    type="button"
+                    class="shadow-preset"
+                    :class="{ 'is-active': activeShadowPreset === 'none' }"
+                    @click="applyShadowPreset('none')"
+                  >无阴影</button>
+                </div>
+              </el-form-item>
+              <el-form-item label="自定义阴影">
+                <div class="shadow-custom-grid">
+                  <div class="shadow-custom-item"><span>X</span>
+                    <el-input-number
+                      :model-value="Number(currentStyle.shadow_x ?? 0)"
+                      :min="-40" :max="40" size="small" controls-position="right"
+                      @change="(v: number | undefined) => updateStyle('shadow_x', v ?? 0)"
+                    />
+                  </div>
+                  <div class="shadow-custom-item"><span>Y</span>
+                    <el-input-number
+                      :model-value="Number(currentStyle.shadow_y ?? 0)"
+                      :min="-40" :max="40" size="small" controls-position="right"
+                      @change="(v: number | undefined) => updateStyle('shadow_y', v ?? 0)"
+                    />
+                  </div>
+                  <div class="shadow-custom-item"><span>模糊</span>
+                    <el-input-number
+                      :model-value="Number(currentStyle.shadow_blur ?? 0)"
+                      :min="0" :max="80" size="small" controls-position="right"
+                      @change="(v: number | undefined) => updateStyle('shadow_blur', v ?? 0)"
+                    />
+                  </div>
+                  <div class="shadow-custom-item"><span>扩散</span>
+                    <el-input-number
+                      :model-value="Number(currentStyle.shadow_spread ?? 0)"
+                      :min="-20" :max="40" size="small" controls-position="right"
+                      @change="(v: number | undefined) => updateStyle('shadow_spread', v ?? 0)"
+                    />
+                  </div>
+                  <div class="shadow-custom-item shadow-custom-item--color">
+                    <span>颜色</span>
+                    <el-color-picker
+                      :model-value="currentStyle.shadow_color || 'rgba(0, 0, 0, 0)'"
+                      show-alpha
+                      @change="(v: string | null) => updateStyle('shadow_color', v || 'rgba(0, 0, 0, 0)')"
+                    />
+                    <el-button
+                      v-if="hasCustomShadow"
+                      text
+                      size="small"
+                      @click="applyShadowPreset('none')"
+                    >清除</el-button>
+                  </div>
+                </div>
+                <div class="style-hint">偏移/模糊/扩散单位 px，颜色支持 Alpha 透明度；自定义后预设高亮自动跟随</div>
+              </el-form-item>
+            </template>
             <el-form-item label="文字颜色">
               <div class="style-color-row">
                 <el-color-picker
@@ -311,8 +606,7 @@
                 :model-value="currentStyle.visible !== false"
                 @change="(v: boolean) => updateStyle('visible', v)"
               />
-              <div class="style-hint">关闭后小程序端不渲染该组件，画布中会半透明显示便于继续编辑</div>
-            </el-form-item>
+              <div class="style-hint">关闭后小程序端不渲染该组件；画布仍保留并标「已隐藏」，便于继续编辑</div>            </el-form-item>
           </el-form>
           </div>
         </el-tab-pane>
@@ -323,20 +617,35 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { Lock, Unlock } from '@element-plus/icons-vue'
+import { Lock, Unlock, WarningFilled, CopyDocument, Delete, Close } from '@element-plus/icons-vue'
+import * as ElementPlusIcons from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { normalizeUploadUrl } from '@/api/system'
 import { usePageStore } from '@/stores/page'
-import { ComponentType, ComponentTypeLabels } from '@/types/page'
+import { ComponentType, ComponentTypeLabels, BACKGROUND_PRESETS } from '@/types/page'
+import type { PageBackground, PageGradient } from '@/types/page'
+import {
+  normalizePageBackground,
+  backgroundToCss,
+  normalizeBottomOverlay,
+  syncLegacyBackgroundColor,
+} from '@/utils/page-background'
 import { normalizeBuilderPath } from '@/utils/page-path'
 import { useImageUpload } from './composables/useImageUpload'
 import { getDataSourceBinding } from './dataSourceValidation'
 import AssetPickerButton from '@/components/AssetPickerButton.vue'
 import PagePathField from './PagePathField.vue'
+import FieldHint from './FieldHint.vue'
+import { getComponentDef } from './componentRegistry'
+import { WARM_KIT_METAS, WARM_KIT_META_MAP } from './warmKitRegistry'
 
 const pageStore = usePageStore()
 const router = useRouter()
 const { uploadImage, uploading: uploadingShare } = useImageUpload()
+
+/** 分区模式：editor 右栏拍平为 内容/样式/页面 三个一级 tab 时传入；不传则保持旧的两级嵌套行为 */
+const { section } = defineProps<{ section?: 'content' | 'style' | 'page' }>()
 
 const currentPageType = computed(() => {
   const t = pageStore.currentPage?.type
@@ -360,6 +669,64 @@ function onNameInput(v: string) {
   }
 }
 
+/* ============ 组件级操作（标题栏） ============ */
+
+/** Element Plus 图标名 → 组件（与 ComponentPanel 的 iconMap 同一套） */
+const compIconComp = computed<any>(() => {
+  const def = pageStore.selectedComponent
+    ? getComponentDef(pageStore.selectedComponent.type)
+    : undefined
+  const icons = ElementPlusIcons as unknown as Record<string, any>
+  return (def && icons[def.icon]) || icons.Document
+})
+
+/**
+ * 组件备注名。
+ * ⚠️ 存在 `props.__remark` 而不是顶层字段：__remark 是运营内部辨识用的
+ * 标注，不参与渲染、不进小程序 DSL 语义；放props 里可随组件复制/撤销一起回滚。
+ * 读时回落 type 的中文标签，切组件时不会显示成空白。
+ */
+const compRemark = computed(() => {
+  const r = pageStore.selectedComponent?.props?.__remark
+  return typeof r === 'string' ? r : ''
+})
+
+function onRemarkInput(v: string) {
+  const id = pageStore.selectedComponentId
+  if (!id) return
+  const trimmed = v.slice(0, 24)
+  if (!trimmed.trim()) {
+    // 清空备注 = 删掉这个键，避免 DSL 里留空字符串噪声
+    const cur = pageStore.selectedComponent?.props || {}
+    if ('__remark' in cur) {
+      const next = { ...cur }
+      delete next.__remark
+      pageStore.updateComponentProps(id, next as Record<string, any>)
+    }
+    return
+  }
+  pageStore.updateComponentProps(id, { __remark: trimmed })
+}
+
+function onRemarkBlur() {
+  // 失焦时把纯空白回落掉，防止面板上显示「有备注」但 DSL 是空值
+  if (compRemark.value && !compRemark.value.trim()) onRemarkInput('')
+}
+
+function onDuplicate() {
+  const id = pageStore.selectedComponentId
+  if (!id) return
+  pageStore.duplicateComponent(id)
+  ElMessage.success('已复制一份，可拖到目标位置')
+}
+
+function onRemove() {
+  const id = pageStore.selectedComponentId
+  if (!id) return
+  pageStore.removeComponent(id)
+  ElMessage.success('已删除，可用顶部「撤销」恢复')
+}
+
 function onPathInput(v: string) {
   const path = normalizeBuilderPath(v)
   pageStore.updatePageConfig({ path })
@@ -373,6 +740,15 @@ const marginLinked = ref(false)
 const paddingLinked = ref(false)
 const shareImageUrl = computed(() => normalizeUploadUrl(String(pageStore.pageConfig.share_image || '')))
 
+// 分区模式下内层 tab 跟随外层一级 tab 固定
+watch(
+  () => section,
+  (s) => {
+    if (s === 'content' || s === 'style') activeTab.value = s
+  },
+  { immediate: true },
+)
+
 const dataSourceBinding = computed(() => {
   const comp = pageStore.selectedComponent
   if (!comp) return null
@@ -381,7 +757,7 @@ const dataSourceBinding = computed(() => {
 
 // 切换选中组件时收起，避免上一个组件的展开状态带到下一个组件造成误解
 watch(() => pageStore.selectedComponentId, () => {
-  activeTab.value = 'content'
+  activeTab.value = section === 'style' ? 'style' : 'content'
 })
 
 const dataStatus = computed(() => {
@@ -449,6 +825,7 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.PromoBanner]: defineAsyncComponent(() => import('./props/PromoBannerProps.vue')),
   [ComponentType.Coupon]: defineAsyncComponent(() => import('./props/CouponProps.vue')),
   [ComponentType.Video]: defineAsyncComponent(() => import('./props/VideoProps.vue')),
+  [ComponentType.Audio]: defineAsyncComponent(() => import('./props/AudioProps.vue')),
   [ComponentType.BrandIntro]: defineAsyncComponent(() => import('./props/BrandIntroProps.vue')),
   [ComponentType.ImageText]: defineAsyncComponent(() => import('./props/ImageTextProps.vue')),
   [ComponentType.ContactInfo]: defineAsyncComponent(() => import('./props/ContactInfoProps.vue')),
@@ -480,13 +857,34 @@ const propsPanelMap: Record<string, any> = {
   [ComponentType.WarmAuthors]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
   [ComponentType.WarmFeature]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
   [ComponentType.WarmColumns]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
-  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
+  [ComponentType.WarmPlanetRec]: defineAsyncComponent(() => import('./props/WarmPlanetRecProps.vue')),
   [ComponentType.WarmFeed]: defineAsyncComponent(() => import('./props/WarmHomeBlockProps.vue')),
   [ComponentType.WarmHome]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
   [ComponentType.WarmDiscover]: defineAsyncComponent(() => import('./props/WarmDiscoverProps.vue')),
   [ComponentType.WarmPlanet]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
   [ComponentType.WarmShop]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
   [ComponentType.WarmMine]: defineAsyncComponent(() => import('./props/WarmShellProps.vue')),
+}
+
+/**
+ * 2026-10-05 新增 22 个组件：统一走 SchemaForm。
+ * 每个组件的 formSchema 在各自 schema.ts 里声明，此处只做 type→表单 的接线。
+ */
+if (!WARM_KIT_META_MAP.size) {
+  console.warn('[page-builder] warmKitRegistry 为空，22 个新组件将无属性面板')
+}
+
+for (const meta of WARM_KIT_METAS) {
+  propsPanelMap[meta.type] = defineAsyncComponent(async () => {
+    const { default: Form } = await import('./shared/SchemaForm.vue')
+    return {
+      name: `WarmKitProps_${meta.type}`,
+      components: { SchemaForm: Form },
+      props: ['props', 'sections'],
+      emits: ['update'],
+      template: `<SchemaForm :props="props" :sections="sections" @update="(p) => $emit('update', p)" />`,
+    }
+  })
 }
 
 const currentStyle = computed(() => {
@@ -557,6 +955,18 @@ function updateStyle(key: string, value: any) {
   pageStore.updateComponentStyle(pageStore.selectedComponent.id, { [key]: value })
 }
 
+/**
+ * 组件是否被隐藏：与BaseRenderer 的 `isHidden` 判定保持一致（visible === false）。
+ * 这里用 `=== false` 而不是 `!visible`，避免 undefined（未设置）被误判成隐藏。
+ */
+const componentHidden = computed(() => pageStore.selectedComponent?.style?.visible === false)
+
+/** 一键恢复显示：直接置 visible=true，与样式页签开关等价 */
+function restoreComponentVisible() {
+  if (!pageStore.selectedComponent) return
+  pageStore.updateComponentStyle(pageStore.selectedComponent.id, { visible: true })
+}
+
 /** B6：边距更新，锁定模式下四向同步为同一个值 */
 function updateMargin(key: 'margin_top' | 'margin_bottom' | 'margin_left' | 'margin_right', value: number) {
   if (!pageStore.selectedComponent) return
@@ -586,6 +996,150 @@ function updatePadding(key: 'padding_top' | 'padding_bottom' | 'padding_left' | 
   }
 }
 
+/* ================= 复合背景编辑器（v2） ================= */
+
+const FALLBACK_SOLID = '#f6f8fb'
+
+/** 归一化后的背景模型：旧数据（仅 background_color）自动映射为 solid */
+const bgModel = computed(() => normalizePageBackground(pageStore.pageConfig))
+
+const bgSolidColor = computed(() => bgModel.value.type === 'solid' ? (bgModel.value.color || FALLBACK_SOLID) : FALLBACK_SOLID)
+
+/** 渐变参数：切到渐变模式但还没有数据时，给一组基于当前纯色的默认双色标 */
+const bgGradient = computed<PageGradient>(() => {
+  if (bgModel.value.type === 'gradient' && bgModel.value.gradient) {
+    return JSON.parse(JSON.stringify(bgModel.value.gradient))
+  }
+  return {
+    angle: 180,
+    stops: [
+      { color: bgSolidColor.value, offset: 0 },
+      { color: '#FDF6EC', offset: 100 },
+    ],
+  }
+})
+
+const bottomOverlay = computed(() => normalizeBottomOverlay(pageStore.pageConfig))
+const overlayColorMode = ref<'auto' | 'custom'>(
+  bottomOverlay.value.color === 'auto' ? 'auto' : 'custom',
+)
+
+/** 保存背景：background 与 background_color 双写，旧端/旧预览不露白 */
+function commitBackground(bg: PageBackground) {
+  pageStore.updatePageConfig({
+    background: bg,
+    background_color: syncLegacyBackgroundColor(bg),
+  })
+}
+
+function onBgTypeChange(type: 'solid' | 'gradient') {
+  if (type === 'solid') {
+    commitBackground({ type: 'solid', color: bgSolidColor.value })
+  } else {
+    commitBackground({ type: 'gradient', gradient: bgGradient.value })
+  }
+}
+
+function onBgSolidChange(v: string | null) {
+  commitBackground({ type: 'solid', color: v || FALLBACK_SOLID })
+}
+
+function onBgAngleChange(angle: number) {
+  commitBackground({ type: 'gradient', gradient: { ...bgGradient.value, angle } })
+}
+
+function mutateStops(fn: (stops: PageGradient['stops']) => void) {
+  const g: PageGradient = JSON.parse(JSON.stringify(bgGradient.value))
+  fn(g.stops)
+  g.stops.sort((a, b) => a.offset - b.offset)
+  commitBackground({ type: 'gradient', gradient: g })
+}
+
+function onBgStopColorChange(index: number, v: string | null) {
+  if (!v) return
+  mutateStops((stops) => {
+    if (stops[index]) stops[index].color = v
+  })
+}
+
+function onBgStopOffsetChange(index: number, v: number) {
+  mutateStops((stops) => {
+    if (stops[index]) stops[index].offset = v
+  })
+}
+
+function addBgStop() {
+  mutateStops((stops) => {
+    if (stops.length >= 5) return
+    const last = stops[stops.length - 1]
+    stops.push({ color: last ? last.color : '#ffffff', offset: 100 })
+  })
+}
+
+function removeBgStop(index: number) {
+  mutateStops((stops) => {
+    if (stops.length <= 2) return
+    stops.splice(index, 1)
+  })
+}
+
+function applyBackgroundPreset(preset: { label: string; background: PageBackground }) {
+  commitBackground(JSON.parse(JSON.stringify(preset.background)))
+}
+
+function updateBottomOverlay(partial: Partial<{ enabled: boolean; height: number; color: 'auto' | string }>) {
+  const next = { ...bottomOverlay.value, ...partial }
+  pageStore.updatePageConfig({
+    bottomOverlay: {
+      enabled: next.enabled,
+      height: Math.min(160, Math.max(60, Number(next.height) || 96)),
+      color: next.color || 'auto',
+    },
+  })
+}
+
+function onOverlayColorModeChange(mode: 'auto' | 'custom') {
+  overlayColorMode.value = mode
+  updateBottomOverlay({ color: mode === 'auto' ? 'auto' : bottomOverlay.value.resolvedColor })
+}
+
+/* ================= 暖调环境阴影（卡片类组件） ================= */
+
+const SHADOW_PRESETS = {
+  warm: { shadow_x: 0, shadow_y: 4, shadow_blur: 16, shadow_spread: 0, shadow_color: 'rgba(180, 83, 9, 0.06)' },
+  standard: { shadow_x: 0, shadow_y: 2, shadow_blur: 12, shadow_spread: 0, shadow_color: 'rgba(0, 0, 0, 0.04)' },
+  none: { shadow_x: 0, shadow_y: 0, shadow_blur: 0, shadow_spread: 0, shadow_color: 'rgba(0, 0, 0, 0)' },
+} as const
+
+const supportsShadow = computed(() => isListComponent.value)
+
+const hasCustomShadow = computed(() => {
+  const s = currentStyle.value
+  return Boolean(
+    s.shadow_color
+    && s.shadow_color !== 'rgba(0, 0, 0, 0)'
+    && (Number(s.shadow_y || 0) !== 0 || Number(s.shadow_blur || 0) !== 0 || Number(s.shadow_spread || 0) !== 0),
+  )
+})
+
+const activeShadowPreset = computed<'warm' | 'standard' | 'none' | null>(() => {
+  const s = currentStyle.value
+  if (!hasCustomShadow.value) return 'none'
+  for (const key of ['warm', 'standard'] as const) {
+    const p = SHADOW_PRESETS[key]
+    const match = ['shadow_x', 'shadow_y', 'shadow_blur', 'shadow_spread'].every(
+      (k) => Number((s as any)[k] || 0) === Number((p as any)[k]),
+    ) && s.shadow_color === p.shadow_color
+    if (match) return key
+  }
+  return null
+})
+
+function applyShadowPreset(key: 'warm' | 'standard' | 'none') {
+  if (!pageStore.selectedComponent) return
+  pageStore.updateComponentStyle(pageStore.selectedComponent.id, { ...SHADOW_PRESETS[key] })
+}
+
 async function onUploadShareImage(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -607,22 +1161,167 @@ async function onUploadShareImage(event: Event) {
 }
 .panel-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 8px;
   margin: 0 -16px;
-  padding: 14px 16px 12px;
+  padding: 12px 12px 10px 16px;
   border-bottom: 1px solid #e3e8f0;
+}
+
+/* 左侧：类型图标 + 标题组*/
+.panel-header__lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.comp-type-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-top: 2px;
+  color: var(--el-color-primary, #c08e6e);
+  background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary, #c08e6e) 24%, #fff);
+  border-radius: 7px;
+}
+
+.panel-header__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 备注名：无边框裸输入，聚焦才浮出浅底，视觉上不抢「当前组件」 kicker 的层级 */
+.comp-remark {
+  margin-left: -6px;
+}
+
+.comp-remark :deep(.el-input__wrapper) {
+  padding: 1px 6px;
+  background: transparent;
+  box-shadow: none;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.comp-remark :deep(.el-input__wrapper:hover) {
+  background: #f7f4f0;
+}
+
+.comp-remark :deep(.el-input__wrapper.is-focus) {
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--el-color-primary, #c08e6e) inset;
+}
+
+.comp-remark :deep(.el-input__inner) {
+  height: 20px;
+  color: #3a2f26;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+.comp-remark :deep(.el-input__inner::placeholder) {
+  color: #c0b6ab;
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+/* 右侧：组件级操作闭环（复制 / 删除 / 取消选中） */
+.panel-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin-top: 2px;
+}
+
+.panel-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: #8a7c6e;
+  font-size: 15px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.panel-icon-btn:hover {
+  color: var(--el-color-primary, #c08e6e);
+  background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 9%, #fff);
+  border-color: color-mix(in srgb, var(--el-color-primary, #c08e6e) 26%, #fff);
+}
+
+.panel-icon-btn:focus-visible {
+  outline: 2px solid var(--el-color-primary, #c08e6e);
+  outline-offset: 1px;
+}
+
+.panel-icon-btn--danger:hover {
+  color: var(--el-color-danger, #f56c6c);
+  background: var(--el-color-danger-light-9, #fef0f0);
+  border-color: var(--el-color-danger-light-7, #fcd3d3);
+}
+/* 组件被隐藏时的提醒条：用告警色 + 一键恢复，避免用户在内容页签反复点开关却没反应 */
+.hidden-reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 2px;
+  padding: 9px 10px;
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border: 1px solid var(--el-color-warning-light-7, #f3d19e);
+  border-radius: 8px;
+}
+.hidden-reminder__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--el-color-warning, #e6a23c);
+  font-size: 15px;
+}
+.hidden-reminder__body {
+  flex: 1;
+  min-width: 0;
+}
+.hidden-reminder__title {
+  color: var(--el-color-warning-dark-2, #b88230);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.hidden-reminder__desc {
+  margin-top: 2px;
+  color: #8a6d3b;
+  font-size: 11px;
+  line-height: 1.5;
 }
 .panel-kicker {
   display: block;
-  margin-bottom: 2px;
   color: #9aa4b5;
-  font-size: 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
 }
+
+/* 组件类型名降为次级行：备注名（可编辑）才是标题栏主信息 */
 .comp-type-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: #172033;
+  overflow: hidden;
+  color: #a3968a;
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .panel-section {
   margin-bottom: 16px;
@@ -657,6 +1356,12 @@ async function onUploadShareImage(event: Event) {
   line-height: 1.4;
 }
 
+/* el-form-item 自定义 label 容器：让「?」提示与标题文字基线对齐 */
+.pp-label {
+  display: inline-flex;
+  align-items: center;
+}
+
 .props-tabs {
   :deep(.el-tabs__header) {
     margin: 0 -16px 14px;
@@ -668,6 +1373,34 @@ async function onUploadShareImage(event: Event) {
     height: 42px;
     font-size: 13px;
   }
+}
+
+/* 分区模式：外层已是一级 tab，隐藏内层 tab 头避免两级嵌套。
+   注意：必须扁平写法，嵌套进 {} 会编译成 .a [data-v] .b 后代选择器导致匹配失败 */
+.props-tabs--single :deep(.el-tabs__header) {
+  display: none;
+}
+
+.props-empty-hint {
+  margin: 24px 4px;
+  padding: 18px 16px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px dashed #dbe2ec;
+  border-radius: 10px;
+}
+
+.props-empty-hint__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #172033;
+}
+
+.props-empty-hint__desc {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #7b8798;
 }
 
 .data-status-card {
@@ -717,68 +1450,104 @@ async function onUploadShareImage(event: Event) {
   line-height: 1.45;
 }
 
-/* B6：边距联动控件 */
-.margin-box {
-  margin-bottom: 14px;
-  padding: 10px;
-  background: var(--bg-page, #f5f7fb);
-  border: 1px solid var(--border, #e3e8f0);
-  border-radius: var(--radius, 8px);
+/* 间距卡片：外边距 / 内边距 共用，2×2 等宽网格 */
+.spacing-card {
+  margin-bottom: 10px;
+  padding: 10px 12px 8px;
+  background: var(--bg-page, #f7f8fa);
+  border: 1px solid var(--border, #e6e8eb);
+  border-radius: 10px;
+}
+
+.spacing-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.spacing-card__title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--text-primary, #303133);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.spacing-card__title em {
+  color: var(--text-muted, #9aa4b5);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.spacing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+}
+
+.spacing-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-muted, #9aa4b5);
+  font-size: 12px;
+
+  > span {
+    flex: 0 0 16px;
+    text-align: center;
+  }
+
+  :deep(.el-input-number) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.style-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 10px;
+  color: var(--text-muted, #9aa4b5);
+  font-size: 11px;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border, #e6e8eb);
+  }
+}
+
+/* 数字框宽度、label 字号、行距已由 styles/props-panel-typography.scss 的
+   .props-panel 基线统一接管，这里不再重复定义，避免两处口径打架。 */
+.style-form {
+  /* 最后一个表单项不要多撑一段空白 */
+  :deep(.el-form-item:last-child) {
+    margin-bottom: 0;
+  }
 }
 
 .shell-note {
-  margin: 0 0 14px;
-  padding: 10px 12px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.5;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
 }
 
-.margin-box__label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  color: var(--text-secondary, #7b8798);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .margin-lock-btn {
   width: 22px;
   height: 22px;
 }
-
-.margin-box__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas:
-    'top top'
-    'left right'
-    'bottom bottom';
-  gap: 6px;
-}
-
-.margin-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted, #9aa4b5);
-
-  :deep(.el-input-number) {
-    flex: 1;
-  }
-
-}
-
-.margin-cell--top { grid-area: top; }
-.margin-cell--left { grid-area: left; }
-.margin-cell--right { grid-area: right; }
-.margin-cell--bottom { grid-area: bottom; }
 
 .share-image-field {
   display: flex;
@@ -839,5 +1608,116 @@ async function onUploadShareImage(event: Event) {
 
 .ds-binding-alert {
   margin-top: 8px;
+}
+
+/* ================= 复合背景编辑器 ================= */
+.bg-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.bg-editor__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bg-editor__label {
+  flex-shrink: 0;
+  color: #7b8798;
+  font-size: 12px;
+}
+.bg-editor__angle {
+  flex-shrink: 0;
+  min-width: 38px;
+  color: #475569;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bg-editor__hint {
+  color: #9aa5b5;
+  font-size: 11px;
+}
+.bg-editor__presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding-top: 2px;
+}
+.bg-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px 5px;
+  font-family: inherit;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.bg-preset:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(23, 105, 255, 0.12);
+}
+.bg-preset__swatch {
+  width: 100%;
+  height: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 5px;
+}
+.bg-preset__label {
+  color: #475569;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+/* ================= 暖调环境阴影 ================= */
+.shadow-preset-row {
+  display: flex;
+  gap: 6px;
+}
+.shadow-preset {
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #475569;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.shadow-preset:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.shadow-preset.is-active {
+  color: #fff;
+  font-weight: 600;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.shadow-custom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  width: 100%;
+}
+.shadow-custom-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #7b8798;
+  font-size: 12px;
+
+  :deep(.el-input-number) {
+    flex: 1;
+  }
+}
+.shadow-custom-item--color {
+  grid-column: 1 / -1;
 }
 </style>

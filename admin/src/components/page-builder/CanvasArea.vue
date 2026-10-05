@@ -1,24 +1,128 @@
 <template>
-  <div class="prototype-canvas">
+  <div ref="canvasRootEl" class="prototype-canvas" :class="`prototype-canvas--shell-${shellMode}`">
+    <!-- 画布控制条：设备切换 / 缩放 / 外壳样式 / 热力，统一收归到画布正上方居中 -->
+    <div class="canvas-controls">
+      <div ref="devicePickerEl" class="device-picker">
+        <button
+          type="button"
+          class="device-picker__btn"
+          :class="{ 'is-open': deviceMenuOpen }"
+          :aria-expanded="deviceMenuOpen"
+          aria-haspopup="listbox"
+          @click="deviceMenuOpen = !deviceMenuOpen"
+        >
+          <el-icon class="device-picker__icon"><Iphone /></el-icon>
+          <span class="device-picker__name">{{ device.label }}</span>
+          <span class="device-picker__size">{{ device.width }}×{{ device.height }}</span>
+          <span class="device-picker__caret" aria-hidden="true">▾</span>
+        </button>
+        <div v-if="deviceMenuOpen" class="device-picker__menu" role="listbox" aria-label="选择预览设备">
+          <div v-for="group in PREVIEW_GROUPS" :key="group.key" class="device-picker__group">
+            <div class="device-picker__group-title">{{ group.label }}</div>
+            <button
+              v-for="item in getPreviewGroupDevices(group.key)"
+              :key="item.key"
+              type="button"
+              role="option"
+              :aria-selected="item.key === deviceKey"
+              class="device-picker__item"
+              :class="{ 'is-on': item.key === deviceKey }"
+              @click="selectDevice(item.key)"
+            >
+              <span class="device-picker__item-head">
+                <b>{{ item.label }}</b>
+                <em>{{ item.width }}×{{ item.height }}</em>
+              </span>
+              <span v-if="item.aliases" class="device-picker__item-alias">{{ item.aliases }}</span>
+            </button>
+          </div>
+          <p class="device-picker__foot">
+            尺寸为逻辑像素（rpx 按此换算）；括号内机型与其逻辑宽相同，布局表现一致。
+          </p>
+        </div>
+      </div>
+
+      <div class="canvas-controls__divider" aria-hidden="true"></div>
+
+      <div class="zoom-controls" role="group" aria-label="缩放">
+        <button
+          v-for="level in ZOOM_LEVELS"
+          :key="level"
+          class="zoom-btn"
+          :class="{ active: zoom === level }"
+          :aria-pressed="zoom === level"
+          @click="zoom = level"
+        >{{ Math.round(level * 100) }}%</button>
+      </div>
+
+      <div class="canvas-controls__divider" aria-hidden="true"></div>
+
+      <!-- 外壳样式：无框纯净 / 极简线条 -->
+      <div class="shell-switch" role="group" aria-label="手机外壳样式">
+        <button
+          v-for="opt in SHELL_MODES"
+          :key="opt.value"
+          type="button"
+          class="shell-switch__btn"
+          :class="{ 'is-on': shellMode === opt.value }"
+          :aria-pressed="shellMode === opt.value"
+          :title="opt.hint"
+          @click="setShellMode(opt.value)"
+        >
+          <span class="shell-switch__glyph" :class="`shell-switch__glyph--${opt.value}`" aria-hidden="true"></span>
+          <span>{{ opt.label }}</span>
+        </button>
+      </div>
+
+      <button
+        class="zoom-btn zoom-btn--wide"
+        :class="{ active: heatMode }"
+        :aria-pressed="heatMode"
+        title="组件点击热力"
+        @click="toggleHeatMode"
+      >热力</button>
+    </div>
+
+    <!-- 数据来源提示：降为一行极轻文字，不再抢控制条的位置 -->
     <div class="canvas-meta">
       <span class="canvas-meta__title">
-        {{ warmPreview.enabled ? '暖阁首页预览' : '画布预览 · 375×812' }}
+        {{ warmPreview.enabled ? '暖阁首页预览' : `画布预览 · ${device.width}×${device.height}` }}
       </span>
-      <div class="canvas-meta__right">
-        <span v-if="hydrating" class="canvas-meta__device">同步预览数据…</span>
-        <span v-else class="canvas-meta__device">与小程序同源数据预览</span>
-      </div>
+      <span v-if="hydrating" class="canvas-meta__device">同步预览数据…</span>
+      <span v-else class="canvas-meta__device canvas-meta__device--plain">与小程序同源数据预览</span>
     </div>
+
     <div v-if="heatMode && heatLoaded && !heatHasData" class="heat-empty-tip">
       暂无热力数据，请上线后在「增长」模块采集后再查看。
     </div>
     <!-- 缩放不改变文档流占位尺寸，用等比容器包裹避免 scale>1 时视觉溢出压住下方缩放条 -->
     <div class="phone-scale-wrap">
-      <div class="phone" :class="{ 'phone--brand-header': hasBrandHeader }" :style="{ zoom }">
-      <div v-if="!hasBrandHeader" class="phone-notch">
-        <div class="phone-speaker"></div>
+      <div
+        class="phone"
+        :class="{ 'phone--brand-header': hasBrandHeader }"
+        :style="phoneStyle"
+      >
+      <div
+        v-if="!hasBrandHeader && showNotch"
+        class="phone-notch"
+        :class="`phone-notch--${device.notch}`"
+        :style="{ height: `${device.notchHeight}px` }"
+      >
+        <div v-if="device.notch === 'island'" class="phone-island"></div>
+        <div v-else-if="device.notch === 'punch'" class="phone-punch"></div>
+        <div v-else class="phone-status-bar">
+          <span class="phone-status-bar__time">9:41</span>
+          <span class="phone-status-bar__right">
+            <span class="phone-status-bar__signal" aria-hidden="true"></span>
+            <span class="phone-status-bar__battery" aria-hidden="true"></span>
+          </span>
+        </div>
       </div>
-      <div class="phone-screen" :class="{ 'phone-screen--brand-header': hasBrandHeader }">
+      <div
+        class="phone-screen"
+        :class="{ 'phone-screen--brand-header': hasBrandHeader }"
+        :style="{ height: `${screenHeight}px` }"
+      >
         <div class="mini-top" v-if="!hasBrandHeader">
           <span>{{ pageStore.pageConfig.name || '未命名页面' }}</span>
         </div>
@@ -42,7 +146,10 @@
           ref="miniContentEl"
           class="mini-content"
           data-testid="canvas-drop-zone"
-          :style="{ backgroundColor: pageStore.pageConfig.background_color || '#f6f8fb' }"
+          :style="{
+            height: `${contentHeight}px`,
+            background: canvasBackgroundCss,
+          }"
           @dragover.prevent="handleContainerDragOver"
           @dragleave="handleContainerDragLeave"
           @drop="handleContainerDrop"
@@ -90,6 +197,7 @@
                     @copy="pageStore.duplicateComponent(comp.id)"
                     @move-up="handleMoveUp(index)"
                     @move-down="handleMoveDown(index)"
+                    @save-as-block="openSaveBlockDialog"
                   />
                 </div>
               </template>
@@ -106,6 +214,15 @@
             <div class="empty-desc">从左侧组件库拖入组件开始装修</div>
           </div>
         </div>
+        <!-- 底部渐隐融合遮罩：悬浮于内容流上方、悬浮按钮层（z-40）之下；pointer-events:none 不阻断画布交互 -->
+        <div
+          v-if="canvasOverlay.enabled"
+          class="canvas-bottom-overlay"
+          :style="{
+            height: `${canvasOverlay.height}px`,
+            background: `linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, ${canvasOverlay.resolvedColor} 100%)`,
+          }"
+        ></div>
         <!-- 悬浮按钮贴在手机屏内，不随内容滚动 -->
         <div v-if="floatEntries.length" class="canvas-fab-layer" :class="{ 'canvas-fab-layer--brand-header': hasBrandHeader }">
           <ComponentItem
@@ -126,30 +243,37 @@
       </div>
     </div>
 
-    <!-- B5：缩放档位，小屏笔记本上装修时可以缩小画布看到更多内容 -->
-    <div class="zoom-controls">
-      <button
-        class="zoom-btn"
-        :class="{ active: heatMode }"
-        @click="toggleHeatMode"
-      >热力</button>
-      <button
-        v-for="level in ZOOM_LEVELS"
-        :key="level"
-        class="zoom-btn"
-        :class="{ active: zoom === level }"
-        @click="zoom = level"
-      >{{ Math.round(level * 100) }}%</button>
-    </div>
     <div class="canvas-shortcuts">Delete 删除 · Ctrl/⌘D 复制 · Ctrl/⌘Z 撤销</div>
+
+    <!-- 另存为区块：把画布里排好的容器沉淀成可复用区块 -->
+    <SaveBlockDialog
+      v-model="saveBlockDialogOpen"
+      :nodes="saveBlockNodes"
+      :default-name="saveBlockDefaultName"
+      @save="onSaveBlock"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onBeforeUnmount, provide, watch, type Ref } from 'vue'
+import { ref, computed, inject, onMounted, onBeforeUnmount, provide, watch, nextTick, type Ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Iphone } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
-import { ComponentType } from '@/types/page'
+import { ComponentType, type ComponentInstance } from '@/types/page'
+import { loadMyBlocks } from '@/utils/myBlocksStorage'
+import {
+  normalizePageBackground,
+  backgroundToCss,
+  normalizeBottomOverlay,
+} from '@/utils/page-background'
 import ComponentItem from './ComponentItem.vue'
+import SaveBlockDialog from './SaveBlockDialog.vue'
+import { DRAG_SOURCE_BLOCK, MY_BLOCK_PREFIX, parseBlockDragPayload } from './blockDrag'
+import { builtinBlockByKey, countInstanceNodes, pruneUnavailableNodes, unpackBlock, type BlockCategory } from './blockTemplates'
+import { isBlockTypeUsable } from './blockAvailability'
+import { getComponentDef } from './componentRegistry'
+import { saveMyBlock } from '@/utils/myBlocksStorage'
 import WarmTabPreview from './renderers/warm/WarmTabPreview.vue'
 import {
   useWarmHomePreview,
@@ -163,6 +287,12 @@ import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { onEditorScrollToComponent, requestEditorScrollToComponent } from '@/utils/editorScrollBus'
 import { usePinnedBrandHeader, estimateBrandHeaderHeight } from './composables/usePinnedBrandHeader'
 import { useMeasuredElementHeight } from './composables/useMeasuredElementHeight'
+import {
+  PREVIEW_GROUPS,
+  DEFAULT_PREVIEW_DEVICE_KEY,
+  resolvePreviewDevice,
+  getPreviewGroupDevices,
+} from '@/constants/previewDevices'
 import { get } from '@/api/request'
 
 const pageStore = usePageStore()
@@ -198,6 +328,12 @@ watch(displayComponents, () => {
 })
 
 const canvasComponents = computed(() => displayComponents.value)
+
+/** 画布背景：solid → 纯色；gradient → linear-gradient（属性面板改动毫秒级响应） */
+const canvasBackgroundCss = computed(() => backgroundToCss(normalizePageBackground(pageStore.pageConfig)))
+
+/** 底部渐隐遮罩（auto 颜色已解析为背景终点色） */
+const canvasOverlay = computed(() => normalizeBottomOverlay(pageStore.pageConfig))
 
 const WARM_TAB_SHELL_TYPES = new Set([
   ComponentType.WarmDiscover,
@@ -249,10 +385,101 @@ const floatEntries = computed(() =>
 )
 
 /** B5：画布缩放档位 */
-const PHONE_WIDTH = 334
-const PHONE_HEIGHT = 636 // 26px 刘海 + 610px 屏幕
 const ZOOM_LEVELS = [0.75, 1, 1.25]
 const zoom = ref(1)
+
+/** 设备档位：小程序 rpx 基准是屏幕宽，装修器必须按机型宽高渲染才能暴露换行/留白问题 */
+const DEVICE_KEY_STORAGE = 'wb.builder.canvas.device'
+const deviceKey = ref<string>(DEFAULT_PREVIEW_DEVICE_KEY)
+const device = computed(() => resolvePreviewDevice(deviceKey.value))
+
+/* ============ 手机外壳样式：无框纯净 / 极简线条 ============ */
+type ShellMode = 'none' | 'line'
+const SHELL_MODES: Array<{ value: ShellMode; label: string; hint: string }> = [
+  { value: 'none', label: '无框', hint: '纯净模式：去掉机身黑边与刘海，只看内容本身' },
+  { value: 'line', label: '线条', hint: '极简线条：1px 细线勾边 + 状态条，保留机身轮廓提示' },
+]
+const SHELL_MODE_STORAGE = 'wb.builder.canvas.shell'
+const shellMode = ref<ShellMode>('line')
+
+function setShellMode(mode: ShellMode) {
+  shellMode.value = mode
+  try {
+    localStorage.setItem(SHELL_MODE_STORAGE, mode)
+  } catch {
+    // 隐私模式下不可写时静默降级，仅本次会话生效
+  }
+}
+
+/** 内容区顶部固定占位：无品牌头时含 mini-top 标题条（44px），有品牌头时为 0 */
+const TOP_BAR_HEIGHT = 44
+/** 无框模式隐藏刘海区（机身只剩内容）；线条模式用状态条代替粗黑刘海 */
+const showNotch = computed(() => shellMode.value !== 'none' && device.value.notch !== 'none')
+const screenHeight = computed(() => {
+  // 品牌头场景下刘海不占位，屏幕整体上移，屏高补上刘海高度保持总机身高度稳定
+  return hasBrandHeader.value ? device.value.height + device.value.notchHeight * (showNotch.value ? 1 : 0) : device.value.height
+})
+const contentHeight = computed(() =>
+  Math.max(200, screenHeight.value - (hasBrandHeader.value ? 0 : TOP_BAR_HEIGHT)),
+)
+
+/**
+ * 机身外框：宽高直接用设备逻辑像素（1:1 还原真机的 CSS 视口），
+ * 仅在 iPad 这类超宽机型超出中栏可用宽度时按比例收窄，保证不横向溢出。
+ */
+const CANVAS_HORIZONTAL_PADDING = 48
+const canvasAvailableWidth = ref(0)
+const fitScale = computed(() => {
+  if (canvasAvailableWidth.value <= 0) return 1
+  const avail = canvasAvailableWidth.value - CANVAS_HORIZONTAL_PADDING
+  if (avail <= 0) return 1
+  return Math.min(1, avail / device.value.width)
+})
+const phoneStyle = computed(() => {
+  const d = device.value
+  const mode = shellMode.value
+  /**
+   * 机身框必须用 outline 而不是 border。
+   * 全局 `* { box-sizing: border-box }`，border 会从 width 里扣：
+   * `width: 393px` + `border: 9px` → 屏幕只剩 375px，rpx 换算全错。
+   * outline 在 border box 之外绘制、不参与布局，屏幕拿到的是完整的 d.width。
+   * outline-offset 保持 0（默认）—— 负值会把描边拉回框内盖住屏幕顶部。
+   */
+  const radius = mode === 'none' ? 0 : d.radius
+  return {
+    width: `${d.width}px`,
+    borderRadius: `${radius}px`,
+    // 无框模式完全去掉描边；线条模式 1px 细线；平板档位稍粗一点以保留机身感
+    ...(mode === 'none' || radius <= 0
+      ? {}
+      : {
+          outline: `${mode === 'line' ? 1 : d.width >= 700 ? 12 : 9}px solid ${mode === 'line' ? 'rgba(42,31,23,0.16)' : '#1e1611'}`,
+        }),
+    zoom: zoom.value * fitScale.value,
+  }
+})
+
+const canvasRootEl = ref<HTMLElement | null>(null)
+const devicePickerEl = ref<HTMLElement | null>(null)
+const deviceMenuOpen = ref(false)
+
+function selectDevice(key: string) {
+  deviceKey.value = key
+  deviceMenuOpen.value = false
+  try {
+    localStorage.setItem(DEVICE_KEY_STORAGE, key)
+  } catch {
+    // 隐私模式下 localStorage 不可写时静默降级，仅本次会话生效
+  }
+}
+
+function onDocumentPointerDown(event: MouseEvent) {
+  if (!deviceMenuOpen.value) return
+  const target = event.target as Node | null
+  if (devicePickerEl.value && target && !devicePickerEl.value.contains(target)) {
+    deviceMenuOpen.value = false
+  }
+}
 
 /** U3：组件热力叠加 */
 const heatMode = ref(false)
@@ -381,11 +608,52 @@ function commitDrop(event: DragEvent, insertAt: number) {
     return
   }
 
+  // 区块拖拽：解包成整棵组件树后批量插入（单条历史快照 → Ctrl/⌘Z 一步撤回整个区块）
+  const blockPayload = parseBlockDragPayload(event.dataTransfer?.getData(DRAG_SOURCE_BLOCK))
+  if (blockPayload) {
+    insertDroppedBlock(blockPayload.key, insertAt)
+    return
+  }
+
   const type = event.dataTransfer?.getData('componentType') as ComponentType
   if (type) {
     const created = pageStore.addComponent(type, insertAt)
     if (created?.id) requestEditorScrollToComponent(created.id)
   }
+}
+
+/** 解析拖入的区块（内置 registry key 或 my:<id>）并插入画布 */
+function insertDroppedBlock(key: string, insertAt: number) {
+  let nodes: ComponentInstance[] = []
+  let label = ''
+
+  if (key.startsWith(MY_BLOCK_PREFIX)) {
+    const id = key.slice(MY_BLOCK_PREFIX.length)
+    const saved = loadMyBlocks().find((b) => b.id === id)
+    if (!saved) {
+      ElMessage.warning('该区块已被删除，请刷新面板后重试')
+      return
+    }
+    nodes = unpackBlock(saved)
+    label = saved.name
+  } else {
+    const block = builtinBlockByKey(key)
+    if (!block) return
+    // 与左侧面板同口径：摘掉功能开关关闭的组件节点，区块本身保留
+    const { nodes: schema } = pruneUnavailableNodes(block.schema, (t) => isBlockTypeUsable(t))
+    if (!schema.length) {
+      ElMessage.warning('该区块的组件在当前方案下均不可用')
+      return
+    }
+    nodes = unpackBlock({ ...block, schema })
+    label = block.name
+  }
+
+  if (!nodes.length) return
+  const inserted = pageStore.insertComponentBatch(nodes, insertAt)
+  if (!inserted.length) return
+  ElMessage.success(`已插入「${label}」的 ${countInstanceNodes(nodes)} 个组件`)
+  requestEditorScrollToComponent(inserted[0].id)
 }
 
 function handleMoveUp(index: number) {
@@ -402,6 +670,41 @@ function handleMoveDown(index: number) {
 
 function handleDeleteComponent(comp: { id: string; type: ComponentType }) {
   deleteWithUndo(comp as any)
+}
+
+/* ------------------------------------------------------------------ *
+ * 另存为区块
+ * ------------------------------------------------------------------ */
+
+const saveBlockDialogOpen = ref(false)
+const saveBlockNodes = ref<ComponentInstance[]>([])
+const saveBlockDefaultName = ref('')
+
+/** 打开弹窗：取当前选中组件的完整子树（容器 + 所有子组件） */
+function openSaveBlockDialog() {
+  const selected = pageStore.selectedComponent
+  if (!selected) {
+    ElMessage.warning('请先选中要保存的容器组件')
+    return
+  }
+  const label = getComponentDef(selected.type)?.label ?? selected.type
+  saveBlockNodes.value = [JSON.parse(JSON.stringify(selected)) as ComponentInstance]
+  saveBlockDefaultName.value = `${label}区`
+  saveBlockDialogOpen.value = true
+}
+
+function onSaveBlock(payload: {
+  name: string
+  category: BlockCategory
+  description?: string
+  thumbnail: string
+  nodes: ComponentInstance[]
+}) {
+  const row = saveMyBlock(payload)
+  saveBlockDialogOpen.value = false
+  ElMessage.success(`已保存「${row.name}」，可在「区块模板 › 我的区块」中复用`)
+  // 通知左侧面板热更新列表
+  window.dispatchEvent(new CustomEvent('pagebuilder:my-blocks-changed'))
 }
 
 /** B5：Delete 删除选中组件、Ctrl+D 复制选中组件 */
@@ -425,9 +728,38 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 let offScrollBus: (() => void) | undefined
+let canvasResizeObserver: ResizeObserver | null = null
+
+function measureCanvasWidth() {
+  const el = canvasRootEl.value
+  if (!el) return
+  canvasAvailableWidth.value = el.clientWidth
+}
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('mousedown', onDocumentPointerDown)
+
+  // 恢复上次选择的设备档位
+  try {
+    const saved = localStorage.getItem(DEVICE_KEY_STORAGE)
+    if (saved && saved === resolvePreviewDevice(saved).key) {
+      deviceKey.value = saved
+    }
+    const savedShell = localStorage.getItem(SHELL_MODE_STORAGE)
+    if (savedShell === 'none' || savedShell === 'line') {
+      shellMode.value = savedShell
+    }
+  } catch {
+    // 读取失败用默认档位即可
+  }
+
+  nextTick(measureCanvasWidth)
+  if (typeof ResizeObserver !== 'undefined' && canvasRootEl.value) {
+    canvasResizeObserver = new ResizeObserver(measureCanvasWidth)
+    canvasResizeObserver.observe(canvasRootEl.value)
+  }
+
   offScrollBus = onEditorScrollToComponent((componentId) => {
     const root = miniContentEl.value
     if (!root) return
@@ -439,6 +771,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('mousedown', onDocumentPointerDown)
+  canvasResizeObserver?.disconnect()
+  canvasResizeObserver = null
   offScrollBus?.()
 })
 </script>
@@ -450,26 +785,175 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding: 18px 0 52px;
+  padding: 14px 0 52px;
 }
 
-.canvas-meta {
-  display: flex;
+/* ============ 画布控制条：设备 / 缩放 / 外壳 / 热力，吸附在画布顶部居中 ============ */
+.canvas-controls {
+  position: sticky;
+  top: 8px;
+  z-index: 30;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  width: min(100%, 520px);
-  margin-bottom: 16px;
-  color: #7b8798;
+  gap: 6px;
+  max-width: 100%;
+  margin-bottom: 10px;
+  padding: 4px 6px;
+  background: rgb(255 255 255 / 88%);
+  border: 1px solid var(--wb-line, #e8dfd3);
+  border-radius: 11px;
+  box-shadow: 0 2px 10px rgb(42 31 23 / 7%);
+  backdrop-filter: blur(10px) saturate(1.3);
+}
+
+.canvas-controls__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 1px;
+  background: var(--wb-line, #e8dfd3);
+}
+
+/* 设备档位选择器 */
+.device-picker {
+  position: relative;
+}
+
+.device-picker__icon {
+  font-size: 13px;
+  color: var(--wb-mute, #6b5b4e);
+}
+
+.device-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 7px;
+  color: #2a1f17;
+  font-family: inherit;
   font-size: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.14s ease;
+
+  &:hover {
+    background: var(--wb-soft, #f7f3ec);
+  }
+
+  &.is-open {
+    background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 10%, #fff);
+  }
 }
 
-.canvas-meta__right {
+.device-picker__name {
+  font-weight: 600;
+}
+
+.device-picker__size {
+  color: var(--wb-faint, #7a6a5c);
+  font-variant-numeric: tabular-nums;
+}
+
+.device-picker__caret {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--wb-faint, #7a6a5c);
+}
+
+.device-picker__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: 268px;
+  max-height: min(70vh, 560px);
+  padding: 4px;
+  overflow-y: auto;
+  background: var(--bg-elevated, #fff);
+  border: 1px solid var(--border, #e3e8f0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.12));
+}
+
+.device-picker__group + .device-picker__group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border, #eef2f7);
+}
+
+.device-picker__group-title {
+  padding: 5px 9px 3px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.device-picker__item {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 6px 9px;
+  text-align: left;
+  font-family: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--brand-soft, #eaf1ff);
+  }
+
+  &.is-on {
+    background: var(--brand-soft, #eaf1ff);
+
+    .device-picker__item-head b {
+      color: var(--brand, var(--color-primary));
+    }
+  }
+}
+
+.device-picker__item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 8px;
+
+  b {
+    color: #172033;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  em {
+    color: #8a94a6;
+    font-size: 11px;
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* 同宽代表机型：说明为什么这一档能代表多款真机 */
+.device-picker__item-alias {
+  color: #94a3b8;
+  font-size: 10.5px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-picker__foot {
+  margin: 4px 2px 0;
+  padding: 6px 7px 2px;
+  color: #a3adbd;
+  font-size: 10px;
+  line-height: 1.5;
+  border-top: 1px solid var(--border, #eef2f7);
 }
 
 .heat-empty-tip {
@@ -483,16 +967,35 @@ onBeforeUnmount(() => {
   border-radius: 8px;
 }
 
+.canvas-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: min(100%, 560px);
+  margin-bottom: 12px;
+  color: var(--wb-faint, #7a6a5c);
+  font-size: 11.5px;
+}
+
 .canvas-meta__title {
-  color: #334155;
-  font-weight: 700;
+  color: var(--wb-mute, #6b5b4e);
+  font-weight: 600;
 }
 
 .canvas-meta__device {
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #dbe2ec;
+  padding: 2px 7px;
+  background: rgb(255 255 255 / 70%);
+  border: 1px solid var(--wb-line, #e8dfd3);
   border-radius: 999px;
+}
+
+.canvas-meta__device--plain {
+  color: var(--wb-faint, #7a6a5c);
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
 }
 
 .phone-scale-wrap {
@@ -500,82 +1003,197 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+/**
+ * 机身外框。宽高/圆角/描边全由 phoneStyle 内联控制（随设备档位变），
+ * 这里只保留不随设备变的属性。
+ * 描边用 outline 而非 border —— 见 phoneStyle 注释：border 会被 border-box 扣掉宽度。
+ */
 .phone {
   width: 320px;
   overflow: hidden;
   background: #fffbf6;
-  border: 9px solid #1e1611;
-  border-radius: 34px;
   box-shadow: none;
   transition: zoom 0.15s ease;
+}
+
+/* 无框模式：去掉描边后用一层极轻投影把内容「托」起来，避免和画布底色糊在一起 */
+.prototype-canvas--shell-none .phone {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 16px rgb(42 31 23 / 8%);
+}
+
+/* 线条模式：细线勾边 + 极轻投影，克制的机身感 */
+.prototype-canvas--shell-line .phone {
+  box-shadow: 0 1px 8px rgb(42 31 23 / 5%);
 }
 
 .phone--brand-header {
   overflow: hidden;
 }
 
-/* B5：缩放档位控制条，吸附在编辑区底部，随滚动保持可见 */
-.zoom-controls {
-  position: sticky;
-  bottom: 14px;
-  align-self: flex-end;
-  margin-right: 18px;
-  display: flex;
-  gap: 2px;
-  margin-top: 10px;
-  padding: 3px;
-  background: var(--bg-elevated, #fff);
-  border: 1px solid var(--border, #e3e8f0);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.12));
+.canvas-shortcuts {
+  align-self: flex-start;
+  margin: 10px 0 0 18px;
+  color: #a9b3c2;
+  font-size: 11px;
 }
 
-.canvas-shortcuts {
-  position: sticky;
-  bottom: 56px;
-  align-self: flex-start;
-  margin: -48px 0 0 18px;
-  color: #94a3b8;
-  font-size: 11px;
-  z-index: 1;
+/* 缩放档位：控制条内的一组小按钮，选中用「白底 + 主色字」而非实心大色块 */
+.zoom-controls {
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: var(--wb-soft, #f4efe8);
+  border-radius: 8px;
 }
 
 .zoom-btn {
-  padding: 5px 10px;
-  color: var(--text-muted, #7b8798);
+  min-width: 44px;
+  height: 22px;
+  padding: 0 8px;
+  color: var(--wb-mute, #6b5b4e);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
   background: transparent;
   border: 0;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: 6px;
   cursor: pointer;
+  transition: color 0.14s, background 0.14s;
 
   &:hover {
-    color: var(--brand, var(--color-primary));
-    background: var(--brand-soft, #eaf1ff);
+    color: var(--el-color-primary, #c08e6e);
   }
 
   &.active {
-    color: #fff;
+    color: var(--el-color-primary, #c08e6e);
     font-weight: 600;
-    background: var(--brand, var(--color-primary));
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(42 31 23 / 10%);
   }
 }
 
+.zoom-btn--wide {
+  min-width: 0;
+  padding: 0 10px;
+  background: var(--wb-soft, #f4efe8);
+}
+
+/* 外壳样式切换：小图标 + 文字，比下拉更直观 */
+.shell-switch {
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: var(--wb-soft, #f4efe8);
+  border-radius: 8px;
+}
+
+.shell-switch__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  color: var(--wb-mute, #6b5b4e);
+  font-family: inherit;
+  font-size: 11.5px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.14s, background 0.14s;
+
+  &:hover {
+    color: var(--el-color-primary, #c08e6e);
+  }
+
+  &.is-on {
+    color: var(--el-color-primary, #c08e6e);
+    font-weight: 600;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(42 31 23 / 10%);
+  }
+}
+
+/* 图示：线条=细边框；无框=虚线暗示「没有机身」 */
+.shell-switch__glyph {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+
+.shell-switch__glyph--line {
+  border: 1px solid currentColor;
+}
+
+.shell-switch__glyph--none {
+  border: 1px dashed currentColor;
+  opacity: 0.7;
+}
+
+/* 刘海区：线条模式用浅底 + 状态条，替代原来一整条粗黑 */
 .phone-notch {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 26px;
-  background: #1e1611;
+  background: #f2ede6;
+  border-bottom: 1px solid rgb(42 31 23 / 5%);
 }
 
-.phone-speaker {
-  width: 76px;
-  height: 5px;
+/* 无刘海机型（SE3 等）在线条模式下也画一条状态栏，保持视觉节奏一致 */
+.phone-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 14px;
+  color: #6b5b4e;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-status-bar__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.phone-status-bar__signal {
+  width: 11px;
+  height: 7px;
+  background:
+    linear-gradient(to top, currentColor 0 100%) 0 100% / 2px 4px no-repeat,
+    linear-gradient(to top, currentColor 0 100%) 3px 100% / 2px 6px no-repeat,
+    linear-gradient(to top, currentColor 0 100%) 6px 100% / 2px 7px no-repeat;
+  opacity: 0.65;
+}
+
+.phone-status-bar__battery {
+  width: 14px;
+  height: 7px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.65;
+}
+
+/* 灵动岛：宽扁药丸，iPhone 系 */
+.phone-island {
+  width: 84px;
+  height: 22px;
+  background: #2a1f17;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+/* 居中挖孔：小圆孔，安卓系 */
+.phone-punch {
+  width: 13px;
+  height: 13px;
   background: #000;
-  border-radius: 99px;
-  opacity: 0.55;
+  border-radius: 50%;
+  opacity: 0.9;
 }
 
 .phone-screen {
@@ -595,6 +1213,16 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   z-index: 35;
+}
+
+/* 底部渐隐遮罩：内容流上方（z-30 < fab 层 z-40），不阻断拖拽/点选 */
+.canvas-bottom-overlay {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  pointer-events: none;
 }
 
 .brand-header-flow-spacer {

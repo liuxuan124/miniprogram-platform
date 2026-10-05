@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="70px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item label="提示词">
       <el-input :model-value="data.placeholder" @input="emit('update', { placeholder: $event })" placeholder="请输入搜索提示词" />
     </el-form-item>

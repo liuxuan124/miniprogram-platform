@@ -15,6 +15,7 @@
 
       <div class="editor-center">
         <div class="builder-toolbar">
+          <!-- 左：导航（收起面板 / 返回 / 页面名 / 版本） -->
           <div class="toolbar-group toolbar-left">
             <el-tooltip v-if="isMobile" content="组件库" placement="bottom">
               <el-button text size="small" aria-label="打开组件库" @click="leftDrawerOpen = true">
@@ -33,6 +34,8 @@
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
             <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
           </div>
+
+          <!-- 中：画布控制（撤销/重做 + 保存状态）；缩放与设备切换已下移到画布正上方控制条 -->
           <div class="toolbar-group toolbar-center">
             <el-button-group class="history-controls">
               <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom">
@@ -64,6 +67,8 @@
               {{ saveStatusText }}
             </span>
           </div>
+
+          <!-- 右：操作流（草稿状态 / 预览 / 保存 / 发布） -->
           <div class="toolbar-group toolbar-actions">
             <el-button v-if="!toolbarCompact" size="small" @click="handlePreview">
               <el-icon><View /></el-icon>
@@ -75,6 +80,7 @@
             <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving || publishCheck.publishing" @click="handleSyncToLive">
               <el-icon><Upload /></el-icon>
               <span class="toolbar-text">保存并同步</span>
+              <span class="ed-pub-live-badge" title="此操作会直接发布到线上小程序">上线</span>
             </el-button>
             <el-dropdown trigger="click">
               <el-button size="small">
@@ -105,24 +111,38 @@
           </div>
         </div>
 
-        <!-- C5：保存冲突不再用弹窗打断编辑，改为顶部常驻提示条，保留操作现场 -->
-        <div v-if="conflict.visible" class="conflict-banner">
+        <!-- 顶部公告条：多条提示合并为单条轮播，保存冲突等阻断性提示优先展示 -->
+        <div v-if="activeBanner" class="top-banner" :class="`top-banner--${activeBanner.tone}`">
           <el-icon><WarningFilled /></el-icon>
-          <span class="conflict-text">页面已被其他人修改，直接保存会覆盖对方的改动。</span>
-          <div class="conflict-actions">
-            <el-button size="small" @click="handleReloadFromConflict">载入最新</el-button>
-            <el-button size="small" type="warning" :loading="pageStore.saving" @click="handleForceOverwriteFromConflict">
-              覆盖保存
-            </el-button>
-            <el-button size="small" type="primary" :loading="savingAsNew" @click="handleSaveAsNewDraft">
-              另存副本
+          <span class="top-banner__text">{{ activeBanner.text }}</span>
+          <div class="top-banner__actions">
+            <template v-if="activeBanner.key === 'conflict'">
+              <el-button size="small" @click="handleReloadFromConflict">载入最新</el-button>
+              <el-button size="small" type="warning" :loading="pageStore.saving" @click="handleForceOverwriteFromConflict">
+                覆盖保存
+              </el-button>
+              <el-button size="small" type="primary" :loading="savingAsNew" @click="handleSaveAsNewDraft">
+                另存副本
+              </el-button>
+            </template>
+            <el-button v-else-if="activeBanner.key === 'warm'" size="small" type="primary" @click="expandWarmHomeBlocks">
+              展开为可编辑区块
             </el-button>
           </div>
-        </div>
-
-        <div v-if="showWarmHomeBanner && !pageLoadError" class="warm-expand-banner">
-          <span>当前是暖阁首页壳：真机会自动展开默认区块。若要逐块改文案和顺序，可先展开再编辑。</span>
-          <el-button size="small" type="primary" @click="expandWarmHomeBlocks">展开为可编辑区块</el-button>
+          <div v-if="topBanners.length > 1" class="top-banner__nav">
+            <button type="button" :disabled="bannerIndex <= 0" aria-label="上一条" @click="bannerIndex--">‹</button>
+            <span>{{ bannerIndex + 1 }}/{{ topBanners.length }}</span>
+            <button type="button" :disabled="bannerIndex >= topBanners.length - 1" aria-label="下一条" @click="bannerIndex++">›</button>
+          </div>
+          <button
+            v-if="activeBanner.closable"
+            type="button"
+            class="top-banner__close"
+            aria-label="关闭提示"
+            @click="dismissBanner(activeBanner.key)"
+          >
+            ×
+          </button>
         </div>
 
         <!-- 页面加载失败提示条 -->
@@ -140,82 +160,212 @@
           <div class="load-error-placeholder__title">装修器暂不可用</div>
           <div class="load-error-placeholder__desc">页面数据未能从服务器读取，请重试或返回列表</div>
         </div>
+
       </div>
 
       <div v-if="showRightColumn" class="editor-right">
         <el-tabs v-model="rightTab" class="right-tabs" stretch>
-          <el-tab-pane label="属性" name="props">
-            <PropsPanel />
+          <el-tab-pane label="内容" name="content">
+            <PropsPanel section="content" />
           </el-tab-pane>
-          <el-tab-pane label="AI 助手" name="ai">
-            <div class="ai-assistant">
-              <div class="ai-assistant__hint">描述想改的地方，一期先给提示与草稿建议。</div>
-              <div class="ai-assistant__pills">
-                <button
-                  v-for="pill in aiPills"
-                  :key="pill"
-                  type="button"
-                  class="ai-pill"
-                  @click="applyAiPill(pill)"
-                >
-                  {{ pill }}
-                </button>
-              </div>
-              <el-input
-                v-model="aiPrompt"
-                type="textarea"
-                :rows="3"
-                maxlength="300"
-                show-word-limit
-                placeholder="例如：把首屏轮播换成节日氛围…"
-              />
-              <el-button
-                type="primary"
-                class="ai-assistant__send"
-                :loading="aiRunning"
-                :disabled="!aiPrompt.trim()"
-                @click="runAiAssist"
-              >
-                生成建议
-              </el-button>
-              <div class="ai-assistant__reply" v-loading="aiRunning">
-                <template v-if="aiReply">{{ aiReply }}</template>
-                <template v-else>
-                  <span class="ai-assistant__placeholder">回复会出现在这里</span>
-                </template>
-              </div>
-              <div v-if="aiPatches.length" class="ai-patch-list">
-                <div class="ai-patch-list__title">建议改动</div>
-                <div v-for="patch in aiPatches" :key="patch.id" class="ai-patch-row">
-                  <div class="ai-patch-row__text">{{ patch.summary }}</div>
-                  <div class="ai-patch-row__actions">
-                    <el-button size="small" type="primary" plain @click="applyAiPatch(patch)">应用</el-button>
-                    <el-button size="small" text @click="dismissAiPatch(patch.id)">忽略</el-button>
-                  </div>
-                </div>
-                <el-button size="small" text @click="applyAllAiPatches">应用全部</el-button>
-                <el-button size="small" text @click="undoLastAiApply" :disabled="!aiApplyUndoStack.length">撤销上次应用</el-button>
-              </div>
-            </div>
+          <el-tab-pane label="样式" name="style">
+            <PropsPanel section="style" />
+          </el-tab-pane>
+          <el-tab-pane label="页面" name="page">
+            <PropsPanel section="page" />
           </el-tab-pane>
         </el-tabs>
       </div>
     </div>
 
+    <!-- AI 助手入口：贴右侧边缘的竖排 Dock Tab（默认收起只留图标，悬停/点击展开），
+         不占用画布与属性面板的内容流，避免遮挡右侧面板底部表单与保存按钮 -->
+    <div
+      class="ai-dock"
+      :class="{
+        'is-open': aiDockOpen,
+        'is-busy': aiRunning,
+        'has-badge': !!aiPatchTotal,
+        'is-hidden': aiChatVisible,
+      }"
+    >
+      <button
+        type="button"
+        class="ai-dock__toggle"
+        :aria-label="aiDockOpen ? '收起 AI 助手' : '展开 AI 助手'"
+        :aria-expanded="aiDockOpen"
+        @click="aiDockOpen = !aiDockOpen"
+      >
+        <el-icon class="ai-dock__caret" :class="{ 'is-open': aiDockOpen }">
+          <ArrowLeft v-if="aiDockOpen" />
+          <ArrowRight v-else />
+        </el-icon>
+      </button>
+      <button
+        type="button"
+        class="ai-dock__main"
+        :aria-label="aiRunning ? 'AI 助手（生成中）' : '打开 AI 助手'"
+        @click="openAiChat"
+      >
+        <span class="ai-dock__halo" aria-hidden="true"></span>
+        <span class="ai-dock__icon" aria-hidden="true">
+          <el-icon><MagicStick /></el-icon>
+        </span>
+        <span class="ai-dock__label">AI 助手</span>
+        <span v-if="aiPatchTotal" class="ai-dock__badge">{{ aiPatchTotal }}</span>
+      </button>
+    </div>
+
+    <!-- AI 助手对话框
+         🔴 modal=false 并不等于「不拦截」：EP 的 el-overlay 在 mask=false 时仍会渲染一个
+            `position:fixed; inset:0` 的 div（overlay.mjs 的 else 分支，只有 zIndex 没有
+            pointer-events:none）→ 小窗模式下这层透明容器会吃掉整屏点击与拖拽，
+            表现为「画布/组件库完全点不动」。修法见下方 :global(.ai-chat-dialog--mini) 的
+            pointer-events 穿透链（大窗保持 modal=true 不受影响）。 -->
+    <el-dialog
+      ref="aiChatRef"
+      v-model="aiChatVisible"
+      class="ai-chat-dialog"
+      :class="{ 'ai-chat-dialog--mini': aiMini }"
+      :width="aiMini ? 'min(400px, 92vw)' : 'min(720px, 94vw)'"
+      :top="aiMini ? undefined : '8vh'"
+      :show-close="false"
+      :close-on-click-modal="!aiMini"
+      :close-on-press-escape="true"
+      :modal="!aiMini"
+      :modal-penetrable="aiMini"
+      :draggable="aiMini"
+      :overflow="false"
+      :modal-class="aiMini ? 'ai-chat-overlay' : ''"
+      append-to-body
+      destroy-on-close
+    >
+      <template #header="{ close }">
+        <div class="ai-chat__head">
+          <span class="ai-chat__head-icon" aria-hidden="true">
+            <el-icon><MagicStick /></el-icon>
+          </span>
+          <div class="ai-chat__head-text">
+            <div class="ai-chat__head-title">AI 装修助手</div>
+            <div class="ai-chat__head-sub">{{ aiMini ? '小窗模式 · 可拖动，边改边聊' : '描述想改的地方，AI 给出可直接应用的修改' }}</div>
+          </div>
+          <button
+            type="button"
+            class="ai-chat__head-btn"
+            :aria-label="aiMini ? '放大 AI 助手' : '缩小为小窗，边改边聊'"
+            :title="aiMini ? '放大' : '缩小'"
+            @click="toggleAiMini"
+          >
+            <el-icon>
+              <FullScreen v-if="aiMini" />
+              <Crop v-else />
+            </el-icon>
+          </button>
+          <button type="button" class="ai-chat__head-close" aria-label="关闭 AI 助手" @click="close()">×</button>
+        </div>
+      </template>
+
+      <div ref="aiThreadRef" class="ai-chat__thread">
+        <div v-if="!aiMessages.length" class="ai-chat__empty">
+          <div class="ai-chat__empty-icon" aria-hidden="true">
+            <el-icon><MagicStick /></el-icon>
+          </div>
+          <div class="ai-chat__empty-title">我可以帮你改页面</div>
+          <div class="ai-chat__empty-desc">
+            说清想要的效果即可。我会给出改页面设置、插组件等建议，点「应用」即时生效且可撤销；保存草稿后才会同步到线上小程序。
+          </div>
+          <div class="ai-chat__pills">
+            <button
+              v-for="pill in aiPills"
+              :key="pill"
+              type="button"
+              class="ai-pill"
+              @click="applyAiPill(pill)"
+            >
+              {{ pill }}
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-for="msg in aiMessages"
+          :key="msg.id"
+          class="ai-msg"
+          :class="msg.role === 'user' ? 'ai-msg--user' : 'ai-msg--ai'"
+        >
+          <span v-if="msg.role === 'ai'" class="ai-msg__avatar" aria-hidden="true">
+            <el-icon><MagicStick /></el-icon>
+          </span>
+          <div class="ai-msg__main">
+            <div class="ai-msg__bubble">
+              <span v-if="msg.pending" class="ai-msg__thinking">
+                <i class="ai-msg__dot"></i><i class="ai-msg__dot"></i><i class="ai-msg__dot"></i>
+                正在思考…
+              </span>
+              <template v-else>{{ msg.text }}</template>
+            </div>
+
+            <div v-if="msg.patches && msg.patches.length" class="ai-patch-list">
+              <div class="ai-patch-list__title">可应用的改动</div>
+              <div v-for="patch in msg.patches" :key="patch.id" class="ai-patch-row">
+                <div class="ai-patch-row__text">{{ patch.summary }}</div>
+                <div class="ai-patch-row__actions">
+                  <el-button size="small" type="primary" plain @click="applyAiPatch(patch)">应用</el-button>
+                  <el-button size="small" text @click="dismissAiPatch(patch.id)">忽略</el-button>
+                </div>
+              </div>
+              <div class="ai-patch-list__foot">
+                <el-button size="small" text @click="applyAllAiPatches">全部应用</el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 撤销入口独立于建议列表：建议全用完后仍然可以回退 -->
+      <div v-if="aiApplyUndoStack.length" class="ai-chat__undo">
+        <el-button size="small" text @click="undoLastAiApply">撤销上次应用</el-button>
+        <span class="ai-chat__undo-hint">共 {{ aiApplyUndoStack.length }} 次可撤销</span>
+      </div>
+
+      <div class="ai-chat__composer">
+        <el-input
+          v-model="aiPrompt"
+          type="textarea"
+          :rows="2"
+          maxlength="300"
+          resize="none"
+          placeholder="例如：把首屏轮播换成节日氛围，底色偏暖一点"
+          @keydown.enter.exact.prevent="runAiAssist"
+        />
+        <div class="ai-chat__composer-foot">
+          <span class="ai-chat__hint">Enter 发送 · Shift+Enter 换行</span>
+          <el-button
+            type="primary"
+            class="ai-chat__send"
+            :loading="aiRunning"
+            :disabled="!aiPrompt.trim()"
+            @click="runAiAssist"
+          >
+            发送
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
+
     <el-drawer v-model="leftDrawerOpen" title="组件与结构" direction="ltr" size="min(320px, 88vw)" class="editor-drawer">
       <ComponentPanel />
     </el-drawer>
-    <el-drawer v-model="rightDrawerOpen" title="属性与 AI" direction="rtl" size="min(380px, 92vw)" class="editor-drawer">
+    <el-drawer v-model="rightDrawerOpen" title="组件与页面设置" direction="rtl" size="min(380px, 92vw)" class="editor-drawer">
       <el-tabs v-model="rightTab" class="right-tabs" stretch>
-        <el-tab-pane label="属性" name="props">
-          <PropsPanel />
+        <el-tab-pane label="内容" name="content">
+          <PropsPanel section="content" />
         </el-tab-pane>
-        <el-tab-pane label="AI 助手" name="ai">
-          <div class="ai-assistant ai-assistant--drawer">
-            <div class="ai-assistant__hint">描述想改的地方，可逐条应用建议。</div>
-            <el-input v-model="aiPrompt" type="textarea" :rows="3" maxlength="300" show-word-limit placeholder="例如：把首屏轮播换成节日氛围…" />
-            <el-button type="primary" class="ai-assistant__send" :loading="aiRunning" :disabled="!aiPrompt.trim()" @click="runAiAssist">生成建议</el-button>
-          </div>
+        <el-tab-pane label="样式" name="style">
+          <PropsPanel section="style" />
+        </el-tab-pane>
+        <el-tab-pane label="页面" name="page">
+          <PropsPanel section="page" />
         </el-tab-pane>
       </el-tabs>
     </el-drawer>
@@ -339,7 +489,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, provide } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, provide, nextTick } from 'vue'
 import { useEditorLayout } from '@/composables/useEditorLayout'
 import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { applyConservativePublishFixes, runPublishHealthCheck } from '@/utils/publishHealthCheck'
@@ -352,18 +502,19 @@ import {
 import { findLegacyDemoMarkersInText } from '@/constants/brand-defaults'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting, MagicStick, FullScreen, Crop } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
-import { getPageDetail, saveDraft, publishPage, createPage, updatePage, runAiPagePipeline } from '@/api/page'
+import { getPageDetail, saveDraft, publishPage, createPage, updatePage, runAiPagePipeline, getPageList } from '@/api/page'
+import { collectPageLinks, validatePageLinks } from '@/components/page-builder/linkValidation'
 import { publishMiniSite } from '@/api/miniSite'
 import { refreshMiniPendingGlobal } from '@/composables/useMiniPending'
-import { validateComponent } from '@/components/page-builder/componentRegistry'
+import { validateComponent, getComponentDef } from '@/components/page-builder/componentRegistry'
 import { collectDataSourceIssues } from '@/components/page-builder/dataSourceValidation'
 import ComponentPanel from '@/components/page-builder/ComponentPanel.vue'
 import CanvasArea from '@/components/page-builder/CanvasArea.vue'
 import PropsPanel from '@/components/page-builder/PropsPanel.vue'
 import MiniPreviewDialog from './MiniPreviewDialog.vue'
-import type { PageDSL, PageRecord } from '@/types/page'
+import { ComponentType, type PageDSL, type PageRecord } from '@/types/page'
 import { isHomePathLocked, normalizeBuilderPath, validatePathSlug, splitEditablePath } from '@/utils/page-path'
 
 function isConflictError(err: unknown): boolean {
@@ -378,6 +529,49 @@ const router = useRouter()
 const pageStore = usePageStore()
 
 const showWarmHomeBanner = computed(() => pageStore.isWarmHomeShellOnly())
+
+/** 页面加载失败态（FP-UI-028）。注意：必须声明在 topBanners computed 之前——
+    watch(computed) 创建时会立即求值一次收集依赖，后置声明会触发 TDZ 白屏 */
+const pageLoadError = ref('')
+const pageLoadRetrying = ref(false)
+
+/** C5：保存冲突状态（顶部提示条，不再用弹窗打断编辑现场）。同上，必须先于 topBanners 声明 */
+const conflict = reactive({ visible: false })
+
+/** 顶部公告条：冲突/暖家提示等多条合并为单条轮播，阻断性（冲突）优先且不可关闭 */
+type TopBanner = { key: string; tone: 'danger' | 'info'; text: string; closable: boolean }
+const dismissedBanners = ref(new Set<string>())
+const bannerIndex = ref(0)
+const topBanners = computed<TopBanner[]>(() => {
+  const list: TopBanner[] = []
+  if (conflict.visible) {
+    list.push({
+      key: 'conflict',
+      tone: 'danger',
+      text: '页面已被其他人修改，直接保存会覆盖对方的改动。',
+      closable: false,
+    })
+  }
+  if (showWarmHomeBanner.value && !pageLoadError.value) {
+    list.push({
+      key: 'warm',
+      tone: 'info',
+      text: '当前是暖阁首页壳：真机会自动展开默认区块。若要逐块改文案和顺序，可先展开再编辑。',
+      closable: true,
+    })
+  }
+  return list.filter((b) => !(b.closable && dismissedBanners.value.has(b.key)))
+})
+const activeBanner = computed(() => {
+  if (!topBanners.value.length) return null
+  return topBanners.value[Math.min(bannerIndex.value, topBanners.value.length - 1)]
+})
+watch(topBanners, (list) => {
+  if (bannerIndex.value > list.length - 1) bannerIndex.value = 0
+})
+function dismissBanner(key: string) {
+  dismissedBanners.value.add(key)
+}
 
 function expandWarmHomeBlocks() {
   if (pageStore.expandWarmHomeFromShell()) {
@@ -402,7 +596,7 @@ const {
   onComponentSelected,
   viewportWidth,
 } = useEditorLayout(() => {
-  rightTab.value = 'props'
+  rightTab.value = 'content'
 })
 
 const {
@@ -428,19 +622,63 @@ watch(
   },
 )
 
-const rightTab = ref<'props' | 'ai'>('props')
+const rightTab = ref<'content' | 'style' | 'page'>('content')
 
-/** 右栏 AI 助手壳（一期：快捷胶囊 + 输入 + 占位回复） */
+/** AI 助手：右侧边缘竖排 Dock Tab（收起=窄条，展开=横向胶囊）+ 对话弹窗 */
+const aiChatVisible = ref(false)
+/** dialog 实例：切回大窗时用它 resetPosition() 清掉 draggable 写进 inline style 的位移 */
+const aiChatRef = ref<{ resetPosition?: () => void } | null>(null)
+/** Dock 是否展开；默认收起，只贴右边缘一条 34px 窄条，不遮属性面板 */
+const aiDockOpen = ref(false)
+/**
+ * 小窗模式：弹窗收成可拖动的小窗、无遮罩，
+ * 用来「边在左侧/画布操作，边和 AI 对话」。默认不缩小。
+ */
+const aiMini = ref(false)
 const aiPills = ['改成节日氛围', '精简首屏', '补空状态'] as const
 const aiPrompt = ref('')
-const aiReply = ref('')
 const aiRunning = ref(false)
+const aiThreadRef = ref<HTMLElement | null>(null)
 const aiHighlightIds = ref<string[]>([])
 provide('aiHighlightIds', aiHighlightIds)
 
 type AiPatch = { id: string; summary: string; apply: () => void }
-const aiPatches = ref<AiPatch[]>([])
+type AiMessage = { id: string; role: 'user' | 'ai'; text: string; pending?: boolean; patches?: AiPatch[] }
+const aiMessages = ref<AiMessage[]>([])
+/** 角标：所有消息里还没处理的建议数 */
+const aiPatchTotal = computed(() =>
+  aiMessages.value.reduce((sum, m) => sum + (m.patches?.length || 0), 0),
+)
 const aiApplyUndoStack = ref<Array<() => void>>([])
+let aiMsgSeq = 0
+
+function openAiChat() {
+  aiChatVisible.value = true
+}
+
+/**
+ * 切换大窗 ↔ 小窗。
+ * ⚠️ 必须调 resetPosition()：EP 的 draggable 会把拖动位移写进 dialog 的 inline style
+ * （translateX/translateY），切回大窗时不清掉就会带着旧位移跑到视口外左上角。
+ * 关闭时也复位，避免下次打开残留小窗样式。
+ */
+async function toggleAiMini() {
+  aiMini.value = !aiMini.value
+  await nextTick()
+  if (!aiMini.value) aiChatRef.value?.resetPosition?.()
+}
+
+watch(aiChatVisible, (visible) => {
+  if (!visible) {
+    aiMini.value = false
+    aiChatRef.value?.resetPosition?.()
+  }
+})
+async function scrollAiThreadToBottom() {
+  await nextTick()
+  const el = aiThreadRef.value
+  if (el) el.scrollTop = el.scrollHeight
+}
 
 function sanitizeAiText(text: string) {
   return String(text || '')
@@ -450,7 +688,7 @@ function sanitizeAiText(text: string) {
 
 function applyAiPill(pill: string) {
   aiPrompt.value = pill
-  rightTab.value = 'ai'
+  void runAiAssist()
 }
 
 function buildAiPatchesFromResponse(data: any) {
@@ -486,7 +724,26 @@ function buildAiPatchesFromResponse(data: any) {
     const note = String(row?.note || row?.reason || '').trim()
     const title = String(row?.title || row?.matchedLabel || '').trim()
     const matched = String(row?.matchedType || '').trim()
-    const line = note || (title && matched ? `建议组件「${title}」(${matched})` : title)
+    const def = matched ? getComponentDef(matched as ComponentType) : undefined
+    if (def) {
+      // 可执行建议：把 AI 匹配到的组件直接插到当前页底部（应用后可撤销）
+      patches.push({
+        id: `report-insert-${idx}`,
+        summary: `插入组件「${def.label}」${title && title !== def.label ? `（${sanitizeAiText(title)}）` : ''}`,
+        apply: () => {
+          pageStore.addComponent(def.type)
+        },
+      })
+      if (note) {
+        patches.push({
+          id: `report-note-${idx}`,
+          summary: sanitizeAiText(note),
+          apply: () => {},
+        })
+      }
+      return
+    }
+    const line = note || title
     if (!line) return
     patches.push({
       id: `report-${idx}`,
@@ -494,37 +751,68 @@ function buildAiPatchesFromResponse(data: any) {
       apply: () => {},
     })
   })
-  aiPatches.value = patches
+  return patches
+}
+
+/**
+ * 把本次生成的建议挂到对应 AI 消息上。
+ * 必须走 aiMessages.value[index] 拿到响应式代理来写：
+ * 直接改 push 进去的原始对象不会触发依赖更新，aiPatchTotal 角标会停在旧值。
+ */
+function attachAiPatches(index: number, patches: AiPatch[]) {
+  const target = aiMessages.value[index]
+  if (target) target.patches = patches
+}
+
+function findPatch(id: string): AiMessage | undefined {
+  return aiMessages.value.find((m) => m.patches?.some((p) => p.id === id))
 }
 
 function dismissAiPatch(id: string) {
-  aiPatches.value = aiPatches.value.filter((p) => p.id !== id)
+  const msg = findPatch(id)
+  if (!msg?.patches) return
+  msg.patches = msg.patches.filter((p) => p.id !== id)
+  if (!msg.patches.length) msg.patches = undefined
 }
 
-function applyAiPatch(patch: AiPatch) {
+/** @param silent 批量应用时传 true，避免十几条 toast 刷屏（由调用方统一提示一次） */
+function applyAiPatch(patch: AiPatch, silent = false) {
   const snapshot = JSON.parse(JSON.stringify(pageStore.dsl))
   patch.apply()
   aiApplyUndoStack.value.push(() => pageStore.applyTemplate(snapshot))
   dismissAiPatch(patch.id)
-  ElMessage.success('已应用一条建议')
+  if (!silent) ElMessage.success('已应用一条建议')
 }
 
 function applyAllAiPatches() {
-  const list = [...aiPatches.value]
-  list.forEach((p) => applyAiPatch(p))
+  const list = aiMessages.value.flatMap((m) => [...(m.patches || [])])
+  if (!list.length) return
+  list.forEach((p) => applyAiPatch(p, true))
+  ElMessage.success(`已应用 ${list.length} 条建议`)
 }
 
 function undoLastAiApply() {
   const fn = aiApplyUndoStack.value.pop()
-  fn?.()
+  if (!fn) return
+  fn()
+  ElMessage.info('已撤销上次 AI 应用')
 }
 
 async function runAiAssist() {
   const text = aiPrompt.value.trim()
-  if (!text) return
+  if (!text || aiRunning.value) return
+  aiChatVisible.value = true
+  aiPrompt.value = ''
   aiRunning.value = true
-  aiReply.value = ''
-  aiPatches.value = []
+
+  const userMsg: AiMessage = { id: `u-${++aiMsgSeq}`, role: 'user', text }
+  const aiMsg: AiMessage = { id: `a-${++aiMsgSeq}`, role: 'ai', text: '', pending: true }
+  aiMessages.value.push(userMsg, aiMsg)
+  // 关键：从数组里取回响应式代理来写。直接改上面那个原始对象 aiMsg 不会触发更新，
+  // 表现为建议卡片要等下一次重渲染才出现、悬浮按钮角标一直不显示。
+  const liveMsg = aiMessages.value[aiMessages.value.length - 1]
+  void scrollAiThreadToBottom()
+
   try {
     const pageName = pageStore.pageConfig.name || '当前页'
     const pageId = pageStore.currentPage?.id
@@ -537,25 +825,25 @@ async function runAiAssist() {
       data?.summary ||
       data?.designNotes ||
       (draft?.pageId ? '已生成相关草稿，请到页面列表打开对应草稿继续编辑。' : '')
-    aiReply.value = sanitizeAiText(summary || '已收到建议，可按提示在属性面板手动调整。')
+    let reply = sanitizeAiText(summary || '已收到建议，可按提示在属性面板手动调整。')
     if (draft?.pageId && pageId && Number(draft.pageId) !== Number(pageId)) {
-      aiReply.value += '\n\n当前不会自动跳转到其他页面，避免串页覆盖。'
+      reply += '\n\n当前不会自动跳转到其他页面，避免串页覆盖。'
     }
-    buildAiPatchesFromResponse(data)
+    liveMsg.text = reply
+    liveMsg.pending = false
+    attachAiPatches(aiMessages.value.length - 1, buildAiPatchesFromResponse(data))
   } catch {
-    aiReply.value = '暂未接通'
+    liveMsg.text = '暂未接通，请稍后重试。'
+    liveMsg.pending = false
   } finally {
     aiRunning.value = false
+    void scrollAiThreadToBottom()
   }
 }
 
 function handlePublishCheck() {
   void handlePublish()
 }
-
-/** 页面加载失败态（FP-UI-028） */
-const pageLoadError = ref('')
-const pageLoadRetrying = ref(false)
 
 const {
   saveStatus,
@@ -567,8 +855,6 @@ const {
   lastSavedAt: lastPersistSavedAt,
 } = useEditorPersist(async () => performAutoSaveCore())
 
-/** C5：保存冲突状态（顶部提示条，不再用弹窗打断编辑现场） */
-const conflict = reactive({ visible: false })
 const savingAsNew = ref(false)
 
 /** C3：发布结果面板 */
@@ -775,6 +1061,18 @@ async function syncPageMetaToServer() {
   pageStore.updatePageConfigSilent({ name, path })
 }
 
+/** 保存前死链校验：扫整页站内链接，对照页面清单（不存在=error / 未发布=warn），接口失败时放行不阻塞 */
+async function collectLinkIssues(): Promise<string[]> {
+  try {
+    const res = await getPageList({ current: 1, size: 500 })
+    const rows = (res as any)?.data?.records || (res as any)?.data?.list || []
+    const refs = collectPageLinks(pageStore.components)
+    return validatePageLinks(refs, Array.isArray(rows) ? rows : []).map((i) => i.message)
+  } catch {
+    return []
+  }
+}
+
 /** 保存草稿（手动点击） */
 async function handleSaveDraft() {
   if (!pageStore.currentPage) return
@@ -782,6 +1080,21 @@ async function handleSaveDraft() {
   if (jumpIssues.length) {
     ElMessage.error(jumpIssues[0])
     return
+  }
+  const linkIssues = await collectLinkIssues()
+  if (linkIssues.length) {
+    const shown = linkIssues.slice(0, 6)
+    const html = `<div style="text-align:left">检测到 ${linkIssues.length} 个疑似死链/未发布链接：<br>${shown.join('<br>')}${linkIssues.length > shown.length ? `<br>…共 ${linkIssues.length} 条` : ''}<br><br>保存后小程序端点击这些位置会无响应。</div>`
+    try {
+      await ElMessageBox.confirm(html, '保存前请确认', {
+        confirmButtonText: '仍要保存',
+        cancelButtonText: '返回修改',
+        type: 'warning',
+        dangerouslyUseHTMLString: true,
+      })
+    } catch {
+      return
+    }
   }
   pageStore.saving = true
   try {
@@ -1169,12 +1482,36 @@ function handleApplyDSL() {
 function handleKeydown(event: KeyboardEvent) {
   if (isCanvasShortcutBlocked(event)) return
   const isMod = event.ctrlKey || event.metaKey
-  if (!isMod || event.key.toLowerCase() !== 'z') return
-  event.preventDefault()
-  if (event.shiftKey) {
-    pageStore.redo()
-  } else {
-    pageStore.undo()
+  const key = event.key.toLowerCase()
+
+  if (isMod && key === 'z') {
+    event.preventDefault()
+    if (event.shiftKey) {
+      pageStore.redo()
+    } else {
+      pageStore.undo()
+    }
+    return
+  }
+
+  // 复制组件：Ctrl/Cmd + D。与浏览器「收藏网页」冲突，但装修器场景下更常用；
+  // shift 版Ctrl+Shift+D 交给浏览器（不拦截）。
+  if (isMod && key === 'd' && !event.shiftKey) {
+    if (!pageStore.selectedComponentId) return
+    event.preventDefault()
+    pageStore.duplicateComponent(pageStore.selectedComponentId)
+    ElMessage.success('已复制一份，可拖到目标位置')
+    return
+  }
+
+  // 取消选中：Esc。输入框/文本域里正在打字时不抢焦点。
+  if (key === 'escape') {
+    const el = document.activeElement as HTMLElement | null
+    const typing =
+      el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+    if (typing) return
+    if (!pageStore.selectedComponentId) return
+    pageStore.selectComponent('')
   }
 }
 
@@ -1271,14 +1608,14 @@ onBeforeUnmount(() => {
       width: auto;
       min-width: 0;
       flex-shrink: 0;
-      overflow-y: auto;
+      overflow: hidden;
       background: #fff;
       border-right: 1px solid var(--wb-line);
-      padding: 14px;
+      padding: 0;
     }
 
     .editor-left--rail {
-      padding: 8px 4px;
+      padding: 0;
       overflow: visible;
       position: relative;
       z-index: 12;
@@ -1289,7 +1626,7 @@ onBeforeUnmount(() => {
         top: 0;
         bottom: 0;
         width: 250px;
-        padding: 14px;
+        padding: 0;
         box-shadow: 8px 0 24px rgba(42, 31, 23, 0.12);
       }
     }
@@ -1321,7 +1658,11 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  --el-color-primary: var(--el-color-primary);
+  /* 注意：这里曾有一行 `--el-color-primary: var(--el-color-primary);`（变量自引用）。
+   * CSS 变量自引用会被判为「invalid at computed-value time」，整条声明失效，
+   * 导致该容器内所有 Element 组件（开关/按钮/单选）拿不到主题主色、
+   * 回落到冷灰蓝，在暖棕主题下就会出现「右边蓝色、左边暖色」的割裂。
+   * 正确做法是不覆盖，让变量自然继承 html[data-admin-theme] 的值。 */
 
   :deep(.el-tabs__header) {
     margin: 0;
@@ -1335,7 +1676,8 @@ onBeforeUnmount(() => {
   :deep(.el-tabs__item) {
     flex: 1;
     justify-content: center;
-    height: 48px;
+    height: 42px;
+    font-size: 12.5px;
     color: #6b5b4e;
     border-bottom: 2px solid transparent;
   }
@@ -1359,58 +1701,596 @@ onBeforeUnmount(() => {
   }
 }
 
-.ai-assistant {
-  padding: 12px 14px 20px;
+/* 属性面板内所有 el-form 统一 label-width:72px，而 size=small 时 label 字号只有 12px，
+ * 72px 扣掉 label 自带的 12px padding 只剩 60px ≈ 5 个汉字。一旦 label 超过 5 个汉字
+ * （如「渐变起/中/止」=6 字+2 斜杠、「页面左右边距」=6 字），由于 element-plus 的
+ * .el-form-item__label 是 display:inline-flex 且没有 white-space:nowrap，
+ * 文字会折成两行、把该项 label 撑高并与右侧控件上下错位。
+ *
+ * 🔴 修法必须用 min-width + !important，不能用 overflow:hidden：
+ * ① element-plus 的 labelStyle 是**行内内联样式** `{ width: '72px' }`
+ *    （见 form-item.vue_vue_type_script_setup_true_lang.mjs 的 labelStyle computed），
+ *    行内样式优先级高于任何类选择器，普通 `.right-tabs :deep(...)` 压不住它 → 必须 !important。
+ * ② overflow:hidden 更糟：label 是 inline-flex 容器，text-overflow:ellipsis 对其不生效，
+ *    overflow:hidden 会把超出的 12px 直接**裁掉**（实测 scrollW=84 / clientW=72），
+ *    「渐变起/中/止」被切成「l变起/中/止」，比折行更糟。
+ * 改成 min-width:72px + width:auto 后，label 按内容自然撑到 84px，长文案完整可见，
+ * 且同 form 内所有行因 min-width 一致仍然左对齐。
+ * ⚠️ 扫描器：scripts/scan-props-label-overflow.py（改 label 文案后跑一遍）。 */
+.right-tabs :deep(.el-form-item__label) {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+/* ============ AI 助手：右侧边缘竖排 Dock Tab ============ */
+/* 原来停在画布右下角（fixed bottom:64px），属性面板展开时正好压住面板右下角的
+   表单尾部与保存区。改为贴视口右边缘的竖排 dock：收起态只有一条 32px 宽的窄条
+   （hover 微微内缩提示可点），不与任何内容流重叠；展开态向左浮出胶囊。 */
+.ai-dock {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 1010;
+  display: flex;
+  align-items: stretch;
+  transform: translateY(-50%);
+  font-family: inherit;
+  border-radius: 8px 0 0 8px;
+  box-shadow: 0 8px 20px -10px rgb(15 23 42 / 30%);
+  transition: right 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.18s ease, visibility 0.18s ease;
+}
+
+/* 对话窗（含小窗）打开时隐藏 Dock：同一功能不留两个入口 */
+.ai-dock.is-hidden {
+  right: -60px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 收起态：整条贴边，只露出图标与竖排文字 */
+.ai-dock__main {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 100%;
-  background: var(--wb-bg);
-}
-.ai-assistant__hint {
+  align-items: center;
+  gap: 8px;
+  width: 34px;
+  padding: 12px 0 14px;
   font-size: 12px;
-  color: #7a6e64;
-  line-height: 1.45;
-}
-.ai-assistant__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.ai-pill {
-  border: 1px solid #e5ddd2;
-  background: #fffcf8;
-  color: #2c241c;
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 58%, #7b5cf0 100%);
+  border: 0;
+  border-radius: 8px 0 0 8px;
   cursor: pointer;
-  &:hover {
-    border-color: #d4a88a;
-    color: var(--el-color-primary);
+  overflow: hidden;
+  transition: width 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), padding 0.22s ease;
+}
+.ai-dock__label {
+  writing-mode: vertical-rl;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 2px;
+}
+
+.ai-dock__icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  font-size: 15px;
+  color: #fff;
+  background: rgb(255 255 255 / 22%);
+  border-radius: 50%;
+  backdrop-filter: blur(2px);
+}
+
+/* 展开态：向左浮出横向胶囊 */
+.ai-dock.is-open .ai-dock__main {
+  flex-direction: row;
+  width: auto;
+  padding: 6px 18px 6px 6px;
+  gap: 9px;
+  letter-spacing: 0.2px;
+  cursor: default;
+}
+.ai-dock.is-open .ai-dock__icon {
+  width: 32px;
+  height: 32px;
+  font-size: 17px;
+}
+.ai-dock.is-open .ai-dock__label {
+  writing-mode: horizontal-tb;
+  letter-spacing: 0.2px;
+}
+
+/* 左侧的展开/收起小箭头：始终露在最左边，收起态是「把人拉出来」的暗示 */
+.ai-dock__toggle {
+  position: absolute;
+  top: 50%;
+  left: -15px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 34px;
+  padding: 0;
+  color: var(--el-color-primary);
+  background: #fff;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-right: 0;
+  border-radius: 6px 0 0 6px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.ai-dock:hover .ai-dock__toggle,
+.ai-dock.is-open .ai-dock__toggle {
+  opacity: 1;
+}
+.ai-dock__toggle:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.ai-dock__caret {
+  font-size: 11px;
+}
+.ai-dock__toggle:hover .ai-dock__caret.is-open {
+  transform: translateX(-1px);
+}
+
+/* 收起态贴边仅 34px，hover 时右移一点提示「可展开」，仍不压内容 */
+.ai-dock:not(.is-open):hover {
+  right: 4px;
+}
+.ai-dock:not(.is-open):hover .ai-dock__main {
+  width: 40px;
+}
+
+/* 未处理建议数角标 */
+.ai-dock__badge {
+  display: grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--el-color-primary);
+  background: #fff;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 25%);
+}
+
+/* 生成中：呼吸光环 */
+.ai-dock__halo {
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+.ai-dock.is-busy .ai-dock__halo {
+  animation: ai-fab-pulse 1.6s ease-out infinite;
+}
+.ai-dock.is-busy .ai-dock__icon {
+  animation: ai-fab-spin 2.4s linear infinite;
+}
+/* 收起态角标：贴右上角小圆点，不占竖排空间 */
+.ai-dock:not(.is-open).has-badge .ai-dock__badge {
+  position: absolute;
+  top: 6px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  font-size: 10px;
+}
+@keyframes ai-fab-pulse {
+  0% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.28); }
+}
+@keyframes ai-fab-spin {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
+@media (max-width: 900px) {
+  .ai-dock__main {
+    width: 30px;
+    padding: 10px 0 12px;
+    font-size: 11px;
+  }
+  .ai-dock.is-open .ai-dock__main {
+    padding: 5px 14px 5px 5px;
+  }
+  .ai-dock__icon {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  .ai-dock.is-open .ai-dock__icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
   }
 }
-.ai-assistant__send {
-  align-self: flex-start;
-  --el-button-bg-color: var(--el-color-primary);
-  --el-button-border-color: var(--el-color-primary);
-  --el-button-hover-bg-color: var(--el-color-primary-dark-2);
-  --el-button-hover-border-color: var(--el-color-primary-dark-2);
+
+/* ============ AI 助手对话框（append-to-body，需 :global） ============ */
+/* 注意：这里必须用扁平选择器，不要写成 `:global(.ai-chat-dialog) { ... .el-dialog__header { ... } }`。
+ * SCSS 嵌套编译后会额外产出一条 `.ai-chat-dialog { margin: 0 }`（来自 reset 的 margin 归零），
+ *  specificity 与 .el-dialog 相同但顺序在后，会把 el-dialog 自带的
+ * `margin: var(--el-dialog-margin-top) auto 50px` 覆盖成 0 —— 表现为弹窗贴左上角、无法水平居中。 */
+:global(.ai-chat-dialog) {
+  --el-dialog-border-radius: 16px;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -20px rgb(15 23 42 / 35%);
+  overflow: hidden;
 }
-.ai-assistant__reply {
-  flex: 1;
-  min-height: 120px;
+:global(.ai-chat-dialog .el-dialog__header) {
+  padding: 0;
+  margin: 0;
+}
+:global(.ai-chat-dialog .el-dialog__body) {
+  padding: 0;
+  color: var(--wb-ink, #2a1f17);
+}
+
+/* ---------- 小窗模式（ai-chat-dialog--mini） ----------
+ * 目标：边在画布/属性面板操作，边和 AI 对话（真正的 modeless）。
+ * 关键点：① draggable 生效（EP 2.14 只绑 header 拖）② 靠右固定，避开左组件面板与右属性面板
+ *        ③ **事件穿透**（见下）。
+ * ⚠️ 小窗不要给 margin（EP 靠 margin:auto 居中），这里要显式覆盖为固定定位。 */
+
+/* 🔴🔴 事件穿透链（Modeless 的核心，缺一层就点不动画布）
+ *
+ * 坑：`:modal="false"` **不等于**「不拦截」。EP 的 `el-overlay` 在 mask=false 时走
+ *   `overlay.mjs` 的 else 分支，仍渲染一个 `position:fixed; inset:0` 的 div ——
+ *   **只有 zIndex，没有 pointer-events:none**。于是：
+ *     el-overlay(全屏fixed) → el-overlay-dialog(全屏fixed) → .el-dialog
+ *   这两层透明容器把整屏点击/拖拽全部吃掉（实测 `elementFromPoint` 命中 `.el-overlay-dialog`
+ *   而非画布元素），表现为「画布、组件库、属性面板完全点不动」。
+ *
+ * 修法：从 `modal-class` 打上的标记类 `.ai-chat-overlay` 一路穿透到卡片本身：
+ *   第1层 `.el-overlay.ai-chat-overlay`      → none（EP 挂 modal-class 的那一层）
+ *   第2层 `.el-overlay-dialog`               → none（EP 内部全屏容器）
+ *   第3层 `.el-overlay-dialog > .el-dialog`  → none（兜底，防 EP 结构变化）
+ *   终端 `.ai-chat-dialog--mini`            → auto（小窗卡片自己恢复交互）
+ * 只要第 4 条生效，卡片内的输入框/按钮/拖拽头就都能正常工作。
+ * 大窗走 `modal=true` 有真实遮罩，不加这段、不受影响。 */
+:global(.el-overlay.ai-chat-overlay),
+:global(.el-overlay.ai-chat-overlay .el-overlay-dialog),
+:global(.el-overlay.ai-chat-overlay .el-dialog) {
+  pointer-events: none !important;
+  background: transparent !important;
+}
+:global(.ai-chat-dialog--mini) {
+  /* 卡片自身恢复交互，否则输入框/发送键/拖拽头全部失效 */
+  pointer-events: auto !important;
+}
+:global(.ai-chat-dialog--mini) {
+  position: fixed;
+  top: auto !important;
+  right: 46px;
+  bottom: 20px;
+  left: auto;
+  width: min(400px, 92vw);
+  max-height: 82vh;
+  margin: 0;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px -16px rgb(15 23 42 / 42%), 0 2px 8px rgb(15 23 42 / 14%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 小窗头更紧凑，并给出「可拖动」的视觉暗示 */
+:global(.ai-chat-dialog--mini .ai-chat__head) {
+  padding: 10px 12px;
+  cursor: grab;
+  user-select: none;
+}
+:global(.ai-chat-dialog--mini .ai-chat__head:active) { cursor: grabbing; }
+:global(.ai-chat-dialog--mini .ai-chat__head-icon) {
+  width: 28px;
+  height: 28px;
+  font-size: 15px;
+  border-radius: 9px;
+}
+:global(.ai-chat-dialog--mini .ai-chat__head-title) { font-size: 13.5px; }
+:global(.ai-chat-dialog--mini .ai-chat__head-sub) { font-size: 11.5px; }
+
+/* 小窗对话区变矮，把屏幕留给画布 */
+:global(.ai-chat-dialog--mini .ai-chat__thread) {
+  height: min(34vh, 300px);
   padding: 12px;
-  border-radius: 10px;
-  background: #fffcf8;
-  border: 1px solid #e5ddd2;
-  font-size: 13px;
-  line-height: 1.55;
-  color: #2c241c;
-  white-space: pre-wrap;
+  gap: 12px;
 }
-.ai-assistant__placeholder {
-  color: #7a6e64;
+:global(.ai-chat-dialog--mini .ai-msg__main) { max-width: 92%; }
+:global(.ai-chat-dialog--mini .ai-msg__bubble) { padding: 8px 11px; font-size: 12.5px; }
+:global(.ai-chat-dialog--mini .ai-chat__composer) { padding: 10px 12px 11px; }
+:global(.ai-chat-dialog--mini .ai-chat__empty) { padding: 0; }
+:global(.ai-chat-dialog--mini .ai-chat__empty-icon) {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  border-radius: 13px;
+  margin-bottom: 8px;
+}
+:global(.ai-chat-dialog--mini .ai-chat__empty-title) { font-size: 13.5px; }
+:global(.ai-chat-dialog--mini .ai-chat__empty-desc) {
+  font-size: 11.5px;
+  line-height: 1.55;
+  margin-bottom: 11px;
+}
+:global(.ai-chat-dialog--mini .ai-chat__undo) { padding: 5px 12px 0; }
+
+/* 小窗宽度只有 400px，建议行改成「文案在上、按钮在下」，避免长文案把按钮挤到换行 */
+:global(.ai-chat-dialog--mini .ai-patch-row) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 7px 0;
+}
+:global(.ai-chat-dialog--mini .ai-patch-row__actions) {
+  justify-content: flex-end;
+  gap: 4px;
+}
+:global(.ai-chat-dialog--mini .ai-patch-row__actions .el-button) {
+  padding: 4px 10px;
+  height: 24px;
+}
+
+@media (max-width: 900px) {
+  :global(.ai-chat-dialog--mini) {
+    right: 12px;
+    bottom: 12px;
+    max-height: 88vh;
+  }
+}
+
+:global(.ai-chat__head) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--el-color-primary) 92%, #000) 0%,
+    var(--el-color-primary) 45%,
+    var(--el-color-primary-light-3) 100%);
+  color: #fff;
+}
+
+:global(.ai-chat__head-icon) {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  font-size: 19px;
+  color: #fff;
+  background: rgb(255 255 255 / 20%);
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 11px;
+}
+
+:global(.ai-chat__head-text) { min-width: 0; flex: 1; }
+:global(.ai-chat__head-title) { font-size: 15px; font-weight: 700; line-height: 1.3; }
+:global(.ai-chat__head-sub) {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgb(255 255 255 / 82%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 缩小/放大按钮与关闭按钮同一视觉族 */
+:global(.ai-chat__head-btn) {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  font-size: 15px;
+  color: #fff;
+  background: rgb(255 255 255 / 14%);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+:global(.ai-chat__head-btn:hover) { background: rgb(255 255 255 / 28%); }
+
+:global(.ai-chat__head-close) {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #fff;
+  background: rgb(255 255 255 / 14%);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+:global(.ai-chat__head-close:hover) { background: rgb(255 255 255 / 28%); }
+
+:global(.ai-chat__thread) {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: min(52vh, 440px);
+  padding: 18px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--el-color-primary) 6%, transparent), transparent 42%),
+    var(--wb-soft, #fbf8f4);
+}
+
+/* 空态引导 */
+:global(.ai-chat__empty) { margin: auto; padding: 8px 6px; text-align: center; }
+:global(.ai-chat__empty-icon) {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 12px;
+  font-size: 26px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 22%, #fff);
+  border-radius: 17px;
+}
+:global(.ai-chat__empty-title) { font-size: 15px; font-weight: 700; }
+:global(.ai-chat__empty-desc) {
+  max-width: 460px;
+  margin: 6px auto 16px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--wb-mute, #6b5b4e);
+}
+
+/* 快捷胶囊 */
+:global(.ai-chat__pills) { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+:global(.ai-pill) {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--wb-ink, #2a1f17);
+  background: #fff;
+  border: 1px solid var(--wb-line, #e8dfd3);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+:global(.ai-pill:hover) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 7%, #fff);
+  transform: translateY(-1px);
+}
+
+/* 消息气泡 */
+:global(.ai-msg) { display: flex; gap: 9px; align-items: flex-start; }
+:global(.ai-msg--user) { justify-content: flex-end; }
+:global(.ai-msg__avatar) {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  margin-top: 2px;
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  border-radius: 9px;
+}
+:global(.ai-msg__main) { min-width: 0; max-width: 84%; display: flex; flex-direction: column; gap: 8px; }
+:global(.ai-msg--user .ai-msg__main) { align-items: flex-end; }
+:global(.ai-msg__bubble) {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 13px;
+}
+:global(.ai-msg--ai .ai-msg__bubble) {
+  color: var(--wb-ink, #2a1f17);
+  background: #fff;
+  border: 1px solid var(--wb-line, #e8dfd3);
+  border-top-left-radius: 4px;
+}
+:global(.ai-msg--user .ai-msg__bubble) {
+  color: #fff;
+  background: var(--el-color-primary);
+  border-top-right-radius: 4px;
+  box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--el-color-primary) 70%, transparent);
+}
+
+:global(.ai-msg__thinking) { display: inline-flex; align-items: center; gap: 4px; color: var(--wb-mute, #6b5b4e); }
+:global(.ai-msg__dot) {
+  width: 5px;
+  height: 5px;
+  background: var(--el-color-primary);
+  border-radius: 50%;
+  animation: ai-msg-blink 1.2s ease-in-out infinite;
+}
+:global(.ai-msg__dot:nth-child(2)) { animation-delay: 0.16s; }
+:global(.ai-msg__dot:nth-child(3)) { animation-delay: 0.32s; }
+@keyframes ai-msg-blink {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* 建议改动卡片 */
+:global(.ai-patch-list) {
+  width: 100%;
+  padding: 11px 12px 9px;
+  background: color-mix(in srgb, var(--el-color-primary) 5%, #fff);
+  border: 1px dashed color-mix(in srgb, var(--el-color-primary) 30%, #fff);
+  border-radius: 12px;
+}
+:global(.ai-patch-list__title) {
+  margin-bottom: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
+:global(.ai-patch-row) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+:global(.ai-patch-row:first-of-type) { border-top: 0; }
+:global(.ai-patch-row__text) { flex: 1; min-width: 0; font-size: 12.5px; line-height: 1.5; }
+:global(.ai-patch-row__actions) { display: flex; flex: none; gap: 2px; }
+:global(.ai-patch-list__foot) {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+/* 撤销条：独立于建议列表，建议全用完后仍可回退 */
+:global(.ai-chat__undo) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 0;
+  background: #fff;
+}
+:global(.ai-chat__undo-hint) { font-size: 11.5px; color: var(--wb-faint, #7a6a5c); }
+
+/* 输入区 */
+:global(.ai-chat__composer) {
+  padding: 12px 16px 14px;
+  background: #fff;
+  border-top: 1px solid var(--wb-line, #e8dfd3);
+}
+:global(.ai-chat__composer .el-textarea__inner) { border-radius: 11px; }
+:global(.ai-chat__composer-foot) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 9px;
+}
+:global(.ai-chat__hint) { flex: 1; font-size: 11.5px; color: var(--wb-faint, #7a6a5c); }
+:global(.ai-chat__send) {
+  min-width: 88px;
+  border-radius: 9px;
+  font-weight: 600;
 }
 
 .builder-toolbar {
@@ -1541,48 +2421,99 @@ onBeforeUnmount(() => {
 }
 
 /* C5：保存冲突提示条 */
-.conflict-banner {
+.top-banner {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   padding: 10px 16px;
-  color: #92400e;
-  background: var(--warning-soft);
-  border-bottom: 1px solid #fed7aa;
+  font-size: 13px;
+  border-bottom: 1px solid;
 
   .el-icon {
     flex-shrink: 0;
-    color: var(--warning);
     font-size: 16px;
   }
-}
 
-.conflict-text {
-  flex: 1;
-  font-size: 13px;
-}
+  &--danger {
+    color: #92400e;
+    background: var(--warning-soft);
+    border-color: #fed7aa;
 
-.warm-expand-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 16px;
-  font-size: 13px;
-  color: var(--mute);
-  background: var(--accsoft);
-  border-bottom: 1px solid var(--line2);
-  span {
-    flex: 1;
+    .el-icon { color: var(--warning); }
+  }
+
+  &--info {
+    color: var(--mute);
+    background: var(--accsoft);
+    border-color: var(--line2);
   }
 }
 
-.conflict-actions {
+.top-banner__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-banner__actions {
   display: flex;
   flex-shrink: 0;
   gap: 8px;
 }
+
+.top-banner__nav {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  font-size: 12px;
+
+  button {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    line-height: 1;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    color: inherit;
+
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+    &:not(:disabled):hover { background: rgb(0 0 0 / 6%); }
+  }
+}
+
+.top-banner__close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+
+  &:hover { opacity: 1; background: rgb(0 0 0 / 6%); }
+}
+
+/* 「保存并同步」上线角标：与保存草稿拉开风险层级 */
+.ed-pub-live-badge {
+  margin-left: 6px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 16px;
+  border-radius: 4px;
+  background: #a32d2d;
+  color: #fff;
+}
+
+/* 注：原「AI 助手底部抽屉」(.ai-drawer) 已下线，改为右下角悬浮按钮 + 对话弹窗，
+   样式见上方 .ai-fab / :global(.ai-chat-dialog)。 */
 
 .load-error-banner {
   display: flex;

@@ -1,4 +1,5 @@
 import { BRAND_PLANET_NAME, BRAND_WARM_COMPONENT_DEFAULTS } from '@/constants/brand-defaults'
+import { WARM_KIT_METAS, WARM_KIT_TYPES } from './warmKitRegistry'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
 
 const W = BRAND_WARM_COMPONENT_DEFAULTS
@@ -12,7 +13,7 @@ export interface ComponentDefinition {
   /** Element Plus 图标名称 */
   icon: string
   /** 组件分类 */
-  category: 'commerce' | 'content' | 'marketing' | 'layout' | 'planet' | 'warm'
+  category: 'commerce' | 'content' | 'marketing' | 'layout' | 'planet' | 'warm' | 'growth' | 'horizontal'
   /** 中文分类名称 */
   categoryLabel: string
   /** 默认属性工厂函数 */
@@ -524,9 +525,14 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         source_mode: 'public',
         show_more: true,
         more_text: '查看更多问答 ›',
-        more_link: '/pages/qa-list/qa-list',
+        // 2026-10-05 修正：这两个默认值原来都指向小程序里不存在的目录
+        // （/pages/qa-list/qa-list、/pages/ask/ask），点了报「页面不存在」。
+        // more_link 走 custom 宿主页 + ?path= 形式（motai-qa 是 mp_page.path 里的
+        // 数据库 DSL 路径，不是文件系统页面，小程序里必须经 /pages/custom/custom 加载）。
+        // ask_link 直接指分包真身。
+        more_link: '/pages/custom/custom?path=' + encodeURIComponent('pages/custom/motai-qa'),
         show_ask_entry: true,
-        ask_link: '/pages/ask/ask',
+        ask_link: '/pkg-content/question-ask/question-ask',
         topic_tabs: [],
         summary_lines: 2,
         filter_private: true,
@@ -1272,13 +1278,17 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         source_mode: 'auto',
         page_size: 20,
         resources_url: '/pkg-content/resources/resources',
+        // 与线上「墨太白-星球」实际配置一致：8 个分段 key 全用上，
+        // 避免新拖的组件与线上表现不同（预览里少了 host / homework 两个分段）。
         segs: [
-          { key: 'all', label: '全部' },
-          { key: 'official', label: '官方更新' },
-          { key: 'essence', label: '精华 ⭐️' },
-          { key: 'ask', label: '读者提问' },
+          { key: 'all', label: '最新' },
+          { key: 'essence', label: '精华' },
+          { key: 'host', label: '只看星主' },
+          { key: 'ask', label: '问答' },
           { key: 'checkin', label: '打卡' },
-          { key: 'resources', label: '资料库' },
+          { key: 'homework', label: '作业' },
+          { key: 'official', label: '官方' },
+          { key: 'resources', label: '资料' },
         ],
       }),
       defaultStyle: () => ({}),
@@ -1330,6 +1340,9 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         more_text: '全部作者 ›',
         more_url: '/pkg-content/content-list/content-list',
         more_tab: false,
+        empty_text: '暂无作者',
+        // 留空 = 用首页聚合接口的 warm_home_config.authors；填了则以这里为准
+        authors: [] as Array<Record<string, unknown>>,
       }),
       defaultStyle: () => ({}),
     },
@@ -1376,6 +1389,12 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         more_text: '进入 ›',
         more_url: '/pkg-content/planet-list/planet-list',
         more_tab: false,
+        // 2026-10-04 多星球推荐：卡片内容由后端按 planetId 下发，
+        // props 只控展示策略。详见 props/WarmPlanetRecProps.vue 与小程序端 _syncPlanetUi。
+        planet_mode: 'multi',
+        planet_action: 'auto',
+        planet_ids: [],
+        planet_limit: 0,
         feed_url: '/pkg-content/planet-feed/planet-feed?planetId=warm-main',
       }),
       defaultStyle: () => ({}),
@@ -1527,6 +1546,24 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
 
 // ==================== 辅助函数 ====================
 
+// ==================== 2026-10-05 新增 22 个组件（5 大类）====================
+/**
+ * 统一从 warmKitRegistry 注入，避免在此处重抄一遍 label/icon/defaultProps。
+ * 每个组件的 defaultProps 自带完整 mock 假数据，拖入画布立即可视化。
+ */
+for (const meta of WARM_KIT_METAS) {
+  componentRegistry.set(meta.type, {
+    type: meta.type,
+    label: meta.label,
+    icon: meta.icon,
+    category: meta.category as any,
+    categoryLabel: meta.categoryLabel,
+    defaultProps: meta.defaultProps,
+    defaultStyle: meta.defaultStyle,
+    ...(meta.validate ? { validate: meta.validate } : {}),
+  })
+}
+
 /** 获取组件定义 */
 export function getComponentDef(type: ComponentType): ComponentDefinition | undefined {
   return componentRegistry.get(type)
@@ -1542,13 +1579,34 @@ export function getDefaultStyle(type: ComponentType): Record<string, any> {
   return componentRegistry.get(type)?.defaultStyle() ?? {}
 }
 
-/** 按分类获取组件列表 */
-export function getComponentsByCategory(category: string): ComponentDefinition[] {
+/**
+ * 整页模板类型（第三层资产）。
+ *
+ * 背景（2026-10-05）：品牌首页模板 / 品牌发现模板本质是整页壳，却混在
+ * componentRegistry 里与原子组件同列，运营在「组件」Tab 会误当普通组件拖进去，
+ * 造成资产概念混淆。这里只**收敛展示入口**——注册、渲染、DSL 加载逻辑一律不动
+ * （历史 DSL 里存的就是这两个 type，删注册会直接白屏）。
+ *
+ * 它们的入口改到「区块模板」Tab 顶部的「整页模板」分区，见 blockTemplates.ts。
+ */
+export const PAGE_TEMPLATE_TYPES: ReadonlySet<ComponentType> = new Set<ComponentType>([
+  ComponentType.WarmHome,
+  ComponentType.WarmDiscover,
+])
+
+/** 是否为整页模板（而非原子/业务组件） */
+export function isPageTemplateType(type: ComponentType): boolean {
+  return PAGE_TEMPLATE_TYPES.has(type)
+}
+
+/** 按分类获取组件列表；默认排除整页模板（组件库只放可拖入的原子/业务组件） */
+export function getComponentsByCategory(category: string, options?: { includePageTemplates?: boolean }): ComponentDefinition[] {
+  const includePageTemplates = options?.includePageTemplates === true
   const result: ComponentDefinition[] = []
   for (const def of componentRegistry.values()) {
-    if (def.category === category) {
-      result.push(def)
-    }
+    if (def.category !== category) continue
+    if (!includePageTemplates && PAGE_TEMPLATE_TYPES.has(def.type)) continue
+    result.push(def)
   }
   return result
 }
@@ -1646,6 +1704,11 @@ const MINIAPP_RENDER_SUPPORTED_TYPES = new Set<ComponentType>([
 ])
 
 /** 判断组件类型是否已在小程序端实现渲染 */
+/** 本批 22 个组件已在小程序端 dsl-renderer 内联实现渲染 */
+for (const t of WARM_KIT_TYPES) {
+  MINIAPP_RENDER_SUPPORTED_TYPES.add(t as ComponentType)
+}
+
 export function isRenderSupportedByMiniapp(type: ComponentType): boolean {
   return MINIAPP_RENDER_SUPPORTED_TYPES.has(type)
 }

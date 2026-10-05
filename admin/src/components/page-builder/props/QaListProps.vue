@@ -1,6 +1,6 @@
 <template>
   <div class="qa-list-props">
-    <el-form label-width="88px" size="small">
+    <el-form label-width="72px" size="small">
       <el-divider content-position="left">问答展示</el-divider>
       <el-form-item label="显示条数">
         <el-input-number
