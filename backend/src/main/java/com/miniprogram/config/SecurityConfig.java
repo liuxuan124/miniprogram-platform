@@ -74,6 +74,13 @@ public class SecurityConfig {
                                 "/api/v1/mp/files/{id:\\d+}",
                                 "/api/v1/mp/files/{id:\\d+}/download",
                                 "/api/v1/mp/files/{id:\\d+}/preview",
+                                // 试读裁切流：permitAll 可放行，接口内部已按 canRead/canPreview 双重门禁把关
+                                // （已开通抛 400001「请用下载接口」、无试读权抛 403001），不会泄露全文
+                                "/api/v1/mp/files/{id:\\d+}/preview-file",
+                                // 试读页结构化文本：同样内部把门禁（canRead 返空、canPreview 403001）
+                                "/api/v1/mp/files/{id:\\d+}/preview-text",
+                                // 试读页位图：门禁同上，且只渲染 keepPages 页（按 preview_percent 折算）
+                                "/api/v1/mp/files/{id:\\d+}/preview-images",
                                 "/api/v1/mp/planet/home",
                                 "/api/v1/mp/planet/communities",
                                 "/api/v1/mp/planet/communities/**",
@@ -83,7 +90,14 @@ public class SecurityConfig {
                                 "/api/v1/mp/home/**",
                                 "/api/v1/mp/runtime/**",
                                 // 邀请短码仅 GET 解析公开；POST /scene 创建须登录（勿用 invite/** 无方法限制）
-                                "/api/v1/mp/invite/scene/*"
+                                "/api/v1/mp/invite/scene/*",
+                                "/api/v1/mp/channel",
+                                "/api/v1/mp/authors",
+                                "/api/v1/mp/authors/**",
+                                // 群活码：纯营销物料（只返回二维码图片 URL），加群组件在游客浏览路径也会渲染，
+                                // 若需登录则游客取不到轮换码、且 401 会触发清登录态跳登录页
+                                "/api/v1/mp/group-qrcode",
+                                "/api/v1/mp/group-qrcode/**"
                         ).permitAll()
                         .requestMatchers(
                                 // 管理后台登录

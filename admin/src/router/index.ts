@@ -163,6 +163,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '固定页 · 我的', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
+        path: 'login',
+        name: 'PageBuilderLogin',
+        component: () => import('@/views/page-builder/login-config.vue'),
+        meta: { title: '固定页 · 登录', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
         path: 'templates',
         redirect: '/mini/templates',
       },
@@ -216,31 +222,30 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'articles',
         name: 'ContentOpsArticles',
         component: () => import('@/views/content-ops/library.vue'),
-        meta: { title: '长文', icon: 'Reading', lockedType: 'article', featureModule: 'content' },
+        meta: { title: '长文创作', icon: 'Reading', lockedType: 'article', featureModule: 'content' },
       },
       {
         path: 'notes',
         name: 'ContentOpsNotes',
         component: () => import('@/views/content-ops/library.vue'),
-        meta: { title: '笔记', icon: 'EditPen', lockedType: 'note', featureModule: 'content' },
+        meta: { title: '图文笔记', icon: 'EditPen', lockedType: 'note', featureModule: 'content' },
       },
       {
         path: 'materials',
-        name: 'ContentOpsMaterials',
-        component: () => import('@/views/content-ops/library.vue'),
-        meta: { title: '资料', icon: 'FolderOpened', lockedType: 'file', featureModule: 'content' },
+        redirect: '/content/files',
       },
       {
+        // V111：动态管理已并入「社区管理 › 内容管理」，老链接保留跳转
         path: 'moments',
         name: 'ContentOpsMoments',
-        component: () => import('@/views/content-ops/library.vue'),
-        meta: { title: '动态', icon: 'ChatDotRound', lockedType: 'moment', featureModule: 'content' },
+        redirect: '/community/content/all',
+        meta: { title: '动态管理', icon: 'ChatDotRound', featureModule: 'content' },
       },
       {
         path: 'videos',
         name: 'ContentOpsVideos',
         component: () => import('@/views/content-ops/library.vue'),
-        meta: { title: '视频', icon: 'VideoCamera', lockedType: 'video', featureModule: 'content' },
+        meta: { title: '视频管理', icon: 'VideoCamera', lockedType: 'video', featureModule: 'content' },
       },
       {
         path: 'library',
@@ -259,6 +264,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         name: 'ContentOpsInbox',
         component: () => import('@/views/content-ops/inbox.vue'),
         meta: { title: '互动中心', icon: 'ChatDotRound' },
+      },
+      {
+        path: 'authors',
+        name: 'ContentOpsAuthors',
+        component: () => import('@/views/content/authors.vue'),
+        meta: { title: '作者管理', icon: 'User', featureModule: 'content' },
       },
       {
         path: 'settings',
@@ -306,7 +317,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'files',
         name: 'FileLibrary',
         component: () => import('@/views/files/index.vue'),
-        meta: { title: '文件库', icon: 'FolderOpened', hidden: true },
+        meta: { title: '文件管理', icon: 'FolderOpened', hidden: true },
       },
       {
         path: 'files/edit',
@@ -346,6 +357,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         name: 'CommerceOpsCoupons',
         component: () => import('@/views/commerce-ops/coupons.vue'),
         meta: { title: '卡券中心', icon: 'Ticket' },
+      },
+      {
+        path: 'channels',
+        name: 'CommerceOpsChannels',
+        component: () => import('@/views/commerce-ops/channels.vue'),
+        meta: { title: '渠道管理', icon: 'Share', featureModule: 'product' },
       },
       {
         path: 'growth',
@@ -434,7 +451,14 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'users',
         name: 'MemberOpsUsers',
         component: () => import('@/views/member-ops/users.vue'),
-        meta: { title: '用户管理', icon: 'User' },
+        meta: { title: '用户列表', icon: 'User' },
+      },
+      {
+        // V114 用户管理收编：角色身份标签（作者/主理人/编辑等），运营可自由增删改
+        path: 'role-tags',
+        name: 'MemberOpsRoleTags',
+        component: () => import('@/views/member-ops/role-tags.vue'),
+        meta: { title: '角色标签', icon: 'Collection' },
       },
       {
         path: 'plans',
@@ -448,12 +472,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/member-ops/growth.vue'),
         meta: { title: '成长积分', icon: 'Medal', featureModule: 'member' },
       },
-      {
-        path: 'community',
-        name: 'MemberOpsCommunity',
-        component: () => import('@/views/member-ops/community.vue'),
-        meta: { title: '社区管理', icon: 'Orange', featureModule: 'planet' },
-      },
+      // 社区已升级为独立模块 /community
+      { path: 'community', redirect: '/community/list' },
       {
         path: 'support',
         name: 'MemberOpsSupport',
@@ -462,9 +482,80 @@ export const asyncRoutes: RouteRecordRaw[] = [
       },
       // 旧路径兼容
       { path: 'list', redirect: '/member/plans' },
-      { path: 'planet', redirect: '/member/community' },
+      { path: 'planet', redirect: '/community/list' },
       { path: 'level', redirect: '/member/growth' },
       { path: 'points', redirect: '/member/growth' },
+    ],
+  },
+  {
+    path: '/community',
+    component: Layout,
+    name: 'Community',
+    meta: { title: '社区管理', icon: 'Present', featureModule: 'planet' },
+    redirect: '/community/list',
+    children: [
+      {
+        path: 'list',
+        name: 'CommunityList',
+        component: () => import('@/views/community/list.vue'),
+        meta: { title: '社区列表', icon: 'Present', featureModule: 'planet' },
+      },
+      {
+        path: 'content',
+        name: 'CommunityContentEntry',
+        component: () => import('@/views/community/entry.vue'),
+        meta: { title: '内容管理', featureModule: 'planet' },
+      },
+      {
+        path: 'members',
+        name: 'CommunityMembersEntry',
+        component: () => import('@/views/community/entry.vue'),
+        meta: { title: '成员管理', featureModule: 'planet' },
+      },
+      {
+        path: 'membership',
+        name: 'CommunityMembershipEntry',
+        component: () => import('@/views/community/entry.vue'),
+        meta: { title: '会员配置', featureModule: 'planet' },
+      },
+      {
+        path: 'create',
+        name: 'CommunityCreate',
+        component: () => import('@/views/community/create.vue'),
+        meta: { title: '新建社区', hidden: true },
+      },
+      {
+        path: 'overview/:id',
+        name: 'CommunityOverview',
+        component: () => import('@/views/community/overview.vue'),
+        meta: { title: '社区概览', hidden: true },
+      },
+      {
+        path: 'profile/:id',
+        name: 'CommunityProfile',
+        component: () => import('@/views/community/profile.vue'),
+        meta: { title: '编辑资料', hidden: true },
+      },
+      // 旧路径兼容
+      { path: 'detail/:id', redirect: (to: any) => `/community/overview/${to.params.id}` },
+      {
+        path: 'members/:id',
+        name: 'CommunityMembers',
+        component: () => import('@/views/community/members.vue'),
+        meta: { title: '社区成员', hidden: true },
+      },
+      {
+        path: 'content/:id',
+        name: 'CommunityContent',
+        component: () => import('@/views/community/content.vue'),
+        meta: { title: '社区内容', hidden: true },
+      },
+      {
+        path: 'membership/:id',
+        name: 'CommunityMembership',
+        component: () => import('@/views/community/membership.vue'),
+        meta: { title: '会员配置', hidden: true },
+      },
     ],
   },
   {
@@ -485,6 +576,52 @@ export const asyncRoutes: RouteRecordRaw[] = [
     redirect: '/commerce/growth',
     children: [
       { path: 'overview', redirect: '/commerce/growth' },
+    ],
+  },
+  {
+    // 运营中心：横向运营动作的统一收口（有时间窗 / 需启停 / 跨资产生效的动作）
+    // 与「资产」类模块的区别：页面/内容/商品/社区属于资产，留在各自模块
+    path: '/ops',
+    component: Layout,
+    name: 'Ops',
+    meta: { title: '运营中心', icon: 'Promotion' },
+    redirect: '/ops/private-domain',
+    children: [
+      {
+        path: 'private-domain',
+        name: 'OpsPrivateDomain',
+        component: () => import('@/views/ops/private-domain.vue'),
+        meta: { title: '私域引流', icon: 'ChatDotRound' },
+      },
+      {
+        // 搜索运营：热词原先硬编码在小程序 data/warm-source.js，运营改不了。
+        // 端上读取链路已存在（search.js onLoad 拉 config.search_hot），
+        // 且 search_hot 在 SystemConfigServiceImpl 的三处白名单里，本页只补运营入口。
+        path: 'search',
+        name: 'OpsSearch',
+        component: () => import('@/views/ops/search.vue'),
+        meta: { title: '搜索运营', icon: 'Search' },
+      },
+      {
+        // 审核中心：处理用户举报 + 账号封禁。
+        // 刻意走 /api/v1/admin/ops/moderation 而非 /api/v1/admin/compliance ——
+        // 后者权限注解是 hasAuthority('content:audit')，该权限码在 mp_permission 里
+        // 根本不存在，运营调它会 403。详见 backend AdminModerationController 类注释。
+        path: 'moderation',
+        name: 'OpsModeration',
+        component: () => import('@/views/ops/moderation.vue'),
+        meta: { title: '审核中心', icon: 'Warning' },
+      },
+      {
+        // 全局资源位：弹窗 / 顶部横条 / 悬浮球 / 公告。
+        // 存mp_system_config.global_resource_slots（JSON），无需 DDL；
+        // 已在 SystemConfigServiceImpl 的 PUBLIC / JSON / RUNTIME_PUBLIC 三处白名单登记。
+        // 端上由 utils/global-resource.js 读缓存挑片，逐页注册 <global-resource />（5 个 Tab）。
+        path: 'resource',
+        name: 'OpsResource',
+        component: () => import('@/views/ops/resource.vue'),
+        meta: { title: '全局资源位', icon: 'Promotion' },
+      },
     ],
   },
   {

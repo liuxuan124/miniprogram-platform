@@ -1,0 +1,208 @@
+/* components/global-resource —— 全局资源位
+   设计原则：四种形态视觉上必须能区分（不然运营配了弹窗用户以为是横条） */
+.gr {
+  position: relative;
+  z-index: 900;
+}
+
+/* ── ① 顶部通栏 bar ── */
+.gr-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 10px 14px;
+  background: linear-gradient(90deg, #2b2118 0%, #4a3728 100%);
+  color: #f7f1e6;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.gr-bar__text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gr-bar__more {
+  flex-shrink: 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.gr-bar__close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+.gr-bar__x {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* ── ② 公告细条 bulletin（比 bar 更轻，无关闭按钮）── */
+.gr-bulletin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fdf6ec;
+  color: #8a6a4a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.gr-bulletin__dot {
+  font-weight: 700;
+}
+.gr-bulletin__text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── ③ 悬浮球 float ── */
+.gr-float {
+  position: fixed;
+  right: 16px;
+  /* ⚠️ 画布右下角已有缩放档位条，端上不冲突；这里贴底 96px 让开微信胶囊区 */
+  bottom: 96px;
+  z-index: 901;
+}
+.gr-float__ball {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c08e6e 0%, #a0704e 100%);
+  box-shadow: 0 6px 18px rgba(90, 58, 32, 0.28);
+}
+.gr-float__img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+.gr-float__card {
+  position: absolute;
+  right: 0;
+  bottom: 54px;
+  width: 240px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(60, 40, 24, 0.2);
+  border: 1px solid #efe4d6;
+}
+.gr-float__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.gr-float__card-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2f241c;
+  line-height: 1.35;
+}
+.gr-float__close {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f3ece2;
+}
+.gr-float__x {
+  font-size: 14px;
+  line-height: 1;
+  color: #8a7a68;
+}
+.gr-float__card-body {
+  display: block;
+  font-size: 12px;
+  color: #6b5b4b;
+  line-height: 1.55;
+}
+.gr-float__card-go {
+  margin-top: 10px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #fff;
+  background: #c08e6e;
+}
+
+/* ── ④ 居中弹窗 popup ── */
+.gr-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(28, 20, 14, 0.55);
+  padding: 32px;
+}
+.gr-popup {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+}
+.gr-popup__banner-img {
+  width: 100%;
+  display: block;
+}
+.gr-popup__body {
+  padding: 20px 20px 4px;
+  text-align: center;
+}
+.gr-popup__title {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: #2f241c;
+  line-height: 1.4;
+}
+.gr-popup__desc {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b5b4b;
+  line-height: 1.6;
+}
+.gr-popup__actions {
+  display: flex;
+  gap: 10px;
+  padding: 18px 20px 20px;
+}
+.gr-popup__btn {
+  flex: 1;
+  height: 38px;
+  line-height: 38px;
+  text-align: center;
+  border-radius: 19px;
+  font-size: 14px;
+}
+.gr-popup__btn--ghost {
+  background: #f3ece2;
+  color: #6b5b4b;
+}
+.gr-popup__btn--primary {
+  background: #c08e6e;
+  color: #fff;
+}

@@ -1,0 +1,61 @@
+<view class="gr">
+  <!-- ① 顶部通栏 type=bar -->
+  <view wx:if="{{slots.bar}}" class="gr-bar" bindtap="onGo" data-type="bar">
+    <text class="gr-bar__text">{{slots.bar.title}}</text>
+    <text wx:if="{{slots.bar.link}}" class="gr-bar__more">详情 ›</text>
+    <view class="gr-bar__close" catchtap="onClose" data-type="bar">
+      <text class="gr-bar__x">×</text>
+    </view>
+  </view>
+
+  <!-- ② 公告细条 type=bulletin（更轻，滚动文案） -->
+  <view wx:if="{{slots.bulletin}}" class="gr-bulletin" bindtap="onGo" data-type="bulletin">
+    <text class="gr-bulletin__dot">·</text>
+    <text class="gr-bulletin__text">{{slots.bulletin.title}}</text>
+  </view>
+
+  <!-- ③ 悬浮球 type=float -->
+  <view wx:if="{{slots.float}}" class="gr-float">
+    <view class="gr-float__ball" bindtap="onOpen">
+      <image wx:if="{{slots.float.image}}" class="gr-float__img" src="{{slots.float.image}}" mode="aspectFill" />
+      <!-- ⚠️ 用 SVG 不用 emoji：emoji 在 Windows/部分安卓会渲染成彩色字形，大小与颜色不可控 -->
+      <image wx:else class="gr-float__img" src="/images/resource-icons/float.svg" mode="aspectFit" />
+    </view>
+    <view wx:if="{{floatOpen}}" class="gr-float__card">
+      <view class="gr-float__card-head">
+        <text class="gr-float__card-title">{{slots.float.title || '公告'}}</text>
+        <view class="gr-float__close" catchtap="onClose" data-type="float">
+          <text class="gr-float__x">×</text>
+        </view>
+      </view>
+      <text wx:if="{{slots.float.body}}" class="gr-float__card-body">{{slots.float.body}}</text>
+      <view wx:if="{{slots.float.link}}" class="gr-float__card-go" bindtap="onGo" data-type="float">
+        立即查看
+      </view>
+    </view>
+  </view>
+
+  <!-- ④ 居中弹窗 type=popup（模态，优先级最高） -->
+  <view wx:if="{{slots.popup}}" class="gr-mask" catchtouchmove="noop">
+    <view class="gr-popup" catchtap="noop">
+      <view wx:if="{{slots.popup.image}}" class="gr-popup__banner">
+        <image class="gr-popup__banner-img" src="{{slots.popup.image}}" mode="widthFix" />
+      </view>
+      <view class="gr-popup__body">
+        <text wx:if="{{slots.popup.title}}" class="gr-popup__title">{{slots.popup.title}}</text>
+        <text wx:if="{{slots.popup.body}}" class="gr-popup__desc">{{slots.popup.body}}</text>
+      </view>
+      <view class="gr-popup__actions">
+        <view wx:if="{{!slots.popup.link}}" class="gr-popup__btn gr-popup__btn--ghost" catchtap="onClose" data-type="popup">
+          我知道了
+        </view>
+        <view wx:if="{{slots.popup.link}}" class="gr-popup__btn gr-popup__btn--ghost" catchtap="onClose" data-type="popup">
+          稍后再说
+        </view>
+        <view wx:if="{{slots.popup.link}}" class="gr-popup__btn gr-popup__btn--primary" catchtap="onGo" data-type="popup">
+          立即查看
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
