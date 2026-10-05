@@ -11,6 +11,7 @@
  */
 import {
   DEFAULT_LOGIN_PAGE_CONFIG,
+  DEFAULT_LOGIN_MODULES,
   applyLoginPageStylePreset,
   type LoginPageConfig,
   type LoginPageStyleKey,
@@ -125,7 +126,46 @@ export function getLoginTemplate(key?: string | null): LoginTemplatePreset | und
   return TEMPLATE_MAP.get(String(key).trim().toLowerCase())
 }
 
-/** 由模板 key 构造一份完整 LoginPageConfig */
+/**
+ * 套用模板时会被覆盖的字段清单（弹窗里逐条告知用户）。
+ *
+ * 🔴 这份清单必须与 `buildLoginTemplateConfig` 的返回值保持一致 ——
+ * 少列一条，用户就会在不知情的情况下丢掉自己配过的东西。
+ * 多列一条（实际会保留）只造成虚警，可接受；但别少列。
+ * 回归脚本第 6 节会拿 buildLoginTemplateConfig 的真实 key 与这份清单对拍。
+ */
+export const LOGIN_TEMPLATE_OVERWRITE_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'heroTitle', label: '顶部主标' },
+  { key: 'heroSubtitle', label: '主标副文案' },
+  { key: 'loginButtonText', label: '登录按钮文案' },
+  { key: 'skipButtonText', label: '暂不登录按钮文案' },
+  { key: 'sheetTitle', label: '表单标题' },
+  { key: 'sheetSubtitle', label: '表单副文案' },
+  { key: 'securityBadgeText', label: '安全徽标文案' },
+  { key: 'privacyNoteText', label: '底部隐私提示' },
+  { key: 'showDecorOrbs', label: '顶部装饰光斑开关' },
+  { key: 'showSecurityBadge', label: '安全徽标开关' },
+  { key: 'showBackButton', label: '返回按钮开关' },
+  { key: 'templateStyle', label: '皮肤 key（warm/brand/minimal/wechat）' },
+  { key: 'themeColor', label: '主题主色（跟随所选皮肤，页面覆盖态下随后被还原）' },
+  { key: 'themeColorSecondary', label: '主题辅色（跟随所选皮肤，页面覆盖态下随后被还原）' },
+  { key: 'modules', label: '内容模块显隐（7 项全部重置为显示）' },
+  { key: 'headerStyle', label: '顶部样式（渐变 / 纯色）' },
+  { key: 'cardStyle', label: '卡片样式（阴影 / 扁平 / 描边）' },
+]
+
+/** 套用模板时**保留**的字段（弹窗里说清楚「这些不会动」） */
+export const LOGIN_TEMPLATE_KEEP_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'themeSource', label: '主题配色来源（继承全局 / 页面覆盖）' },
+  { key: 'pageBackgroundColor', label: '页面背景色' },
+]
+
+/**
+ * 由模板定义构造一份完整 LoginPageConfig（深拷贝，避免多套模板共享同一份对象）。
+ *
+ * 🔴 不在这里塞 themeSource / pageBackgroundColor —— 它们属于「保留项」，
+ * 由套用方（login-config.vue 的 applyPreviewTemplate）沿用当前值后写回。
+ */
 export function buildLoginTemplateConfig(key: string): LoginPageConfig {
   const tpl = getLoginTemplate(key) || LOGIN_TEMPLATES[0]
   const cfg: Record<string, unknown> = {
@@ -140,6 +180,10 @@ export function buildLoginTemplateConfig(key: string): LoginPageConfig {
     showDecorOrbs: tpl.showDecorOrbs,
     showSecurityBadge: tpl.showSecurityBadge,
     showBackButton: tpl.showBackButton,
+    // 新增字段：模板会重置模块显隐（默认全 true = 线上现状）与版式
+    modules: { ...DEFAULT_LOGIN_MODULES },
+    headerStyle: DEFAULT_LOGIN_PAGE_CONFIG.headerStyle,
+    cardStyle: DEFAULT_LOGIN_PAGE_CONFIG.cardStyle,
   }
   applyLoginPageStylePreset(cfg, tpl.styleKey)
   return cfg as unknown as LoginPageConfig

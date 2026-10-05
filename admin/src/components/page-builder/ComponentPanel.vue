@@ -122,54 +122,135 @@
           :prefix-icon="Search"
         />
       </div>
-      <div class="component-grid">
-        <!-- B4：最近使用，仅在未搜索且未聚焦某分类时展示 -->
-        <template v-if="!searchKeyword && !focusedCategory && recentComponents.length">
-          <div class="category-label">最近使用</div>
-          <button
-            v-for="item in recentComponents"
-            :key="`recent-${item.type}`"
-            class="component-card"
-            :class="{ active: pageStore.selectedComponent?.type === item.type }"
-            draggable="true"
-            @dragstart="handleDragStart($event, item.type)"
-            @click="handleAdd(item.type)"
-          >
-            <span class="component-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
-            <span>{{ item.label }}</span>
-          </button>
-        </template>
 
-        <template v-for="cat in visibleCategories" :key="cat.value">
-          <div
-            v-if="filteredComponentsByCategory(cat.value).length"
-            class="category-label category-label--row"
+      <!-- 顶部分类切换器 + 3 列网格 -->
+      <div class="components-body">
+        <div class="cat-tabs" role="tablist" aria-label="组件分类">
+          <button
+            class="cat-tabs__item"
+            :class="{ on: !focusedCategory && !searchKeyword }"
+            title="最近使用"
+            @click="jumpToCategory(null)"
           >
-            <span>{{ cat.label }}</span>
-            <button
-              type="button"
-              class="category-all"
-              :class="{ active: focusedCategory === cat.value }"
-              @click.stop="toggleCategoryFocus(cat.value)"
+            <el-icon :size="12"><Clock /></el-icon>
+            <span>最近</span>
+          </button>
+          <button
+            v-for="cat in railCategories"
+            :key="cat.value"
+            class="cat-tabs__item"
+            :class="{
+              on: focusedCategory === cat.value,
+              /* 画布当前选中的组件属于该分类时打个小圆点，扫一眼就知道滚去哪 */
+              'has-selected': selectedCategory === cat.value && !focusedCategory,
+            }"
+            :style="{ '--cat-icon': visualOf(cat.value).iconColor, '--cat-bg': visualOf(cat.value).activeBg }"
+            :title="`${visualOf(cat.value).label} · ${visualOf(cat.value).hint}`"
+            @click="jumpToCategory(cat.value)"
+          >
+            <el-icon :size="12"><component :is="iconMap[visualOf(cat.value).icon]" /></el-icon>
+            <span>{{ visualOf(cat.value).label }}</span>
+            <i>{{ cat.count }}</i>
+          </button>
+        </div>
+
+        <div ref="gridEl" class="component-grid">
+          <!-- 最近使用：单行横滑胶囊，高度压到 44px 内，把首屏让给核心分类 -->
+          <section
+            v-if="!searchKeyword && !focusedCategory && recentComponents.length"
+            ref="recentSec"
+            class="recent-strip"
+          >
+            <span class="recent-strip__label">最近</span>
+            <div class="recent-strip__grid">
+              <ComponentHelpTip
+                v-for="item in recentComponents"
+                :key="`recent-${item.type}`"
+                :type="item.type"
+                :label="item.label"
+                :icon="item.icon"
+                :category-label="item.categoryLabel"
+                :category="catKeyOf(item.type)"
+              >
+                <button
+                  class="recent-chip"
+                  :class="{ 'is-selected': pageStore.selectedComponent?.type === item.type }"
+                  :style="chipStyleOf(item.type)"
+                  draggable="true"
+                  :title="item.label"
+                  @dragstart="handleDragStart($event, item.type)"
+                  @click="handleAdd(item.type)"
+                >
+                  <el-icon :size="12"><component :is="iconMap[item.icon]" /></el-icon>
+                  <span>{{ item.label }}</span>
+                </button>
+              </ComponentHelpTip>
+            </div>
+          </section>
+
+          <template v-for="cat in visibleCategories" :key="cat.value">
+            <div
+              :id="`cat-${cat.value}`"
+              class="category-label category-label--row"
+              :style="{
+                '--cat-icon': visualOf(cat.value).iconColor,
+                '--cat-bg': visualOf(cat.value).activeBg,
+              }"
             >
-              {{ focusedCategory === cat.value ? '返回' : '全部' }}
-            </button>
-          </div>
-          <button
-            v-for="item in filteredComponentsByCategory(cat.value)"
-            :key="item.type"
-            class="component-card"
-            :class="{ active: pageStore.selectedComponent?.type === item.type }"
-            draggable="true"
-            @dragstart="handleDragStart($event, item.type)"
-            @click="handleAdd(item.type)"
-          >
-            <span class="component-icon"><el-icon :size="18"><component :is="iconMap[item.icon]" /></el-icon></span>
-            <span>{{ item.label }}</span>
-          </button>
-        </template>
+              <span class="category-label__name">
+                <el-icon :size="12"><component :is="iconMap[visualOf(cat.value).icon]" /></el-icon>
+                {{ cat.label }}
+                <i>{{ filteredComponentsByCategory(cat.value).length }}</i>
+              </span>
+              <button
+                type="button"
+                class="category-all"
+                :class="{ active: focusedCategory === cat.value }"
+                @click.stop="toggleCategoryFocus(cat.value)"
+              >
+                {{ focusedCategory === cat.value ? '返回' : '全部' }}
+              </button>
+            </div>
 
-        <div v-if="searchKeyword && !hasSearchResults" class="empty-tip">未找到匹配"{{ searchKeyword }}"的组件</div>
+            <!--
+              分组渲染：rows 是一个扁平的 [{kind:'sub'|'item', ...}] 序列，
+              交给 v-for 一条条输出。**不要用 v-show 过滤 + v-else 分支**——
+              那样模板会重复三遍卡片结构，改样式必漏，且 v-show 仍占 grid 格子
+              （隐藏项照样撑出一列空白）。
+            -->
+            <template v-for="(row, ri) in categoryRows(cat.value)" :key="`${cat.value}-${ri}`">
+              <div v-if="row.kind === 'sub'" class="subgroup-label">{{ row.label }}</div>
+              <ComponentHelpTip
+                v-else
+                :type="row.item.type"
+                :label="row.item.label"
+                :icon="row.item.icon"
+                :category-label="row.item.categoryLabel"
+                :category="cat.value"
+              >
+                <button
+                  class="component-card"
+                  :class="[`is-${cat.value}`, { active: pageStore.selectedComponent?.type === row.item.type }]"
+                  draggable="true"
+                  @dragstart="handleDragStart($event, row.item.type)"
+                  @click="handleAdd(row.item.type)"
+                >
+                  <span class="component-icon">
+                    <el-icon :size="15"><component :is="iconMap[row.item.icon]" /></el-icon>
+                  </span>
+                  <span
+                    class="component-name"
+                    :class="{ 'component-name--long': isLongLabel(row.item.label) }"
+                  >
+                    {{ row.item.label }}
+                  </span>
+                </button>
+              </ComponentHelpTip>
+            </template>
+          </template>
+
+          <div v-if="searchKeyword && !hasSearchResults" class="empty-tip">未找到匹配"{{ searchKeyword }}"的组件</div>
+        </div>
       </div>
     </section>
 
@@ -218,8 +299,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Search, Grid, Files } from '@element-plus/icons-vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Search, Grid, Files, Clock } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import { usePageStore } from '@/stores/page'
 import { requestEditorScrollToComponent } from '@/utils/editorScrollBus'
@@ -231,6 +312,15 @@ import { useIndustryProfileStore } from '@/stores/industry-profile'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
 import BlockCard from './BlockCard.vue'
+import ComponentHelpTip from './ComponentHelpTip.vue'
+import {
+  CATEGORY_VISUALS,
+  PANEL_CATEGORY_ORDER,
+  SUB_GROUPS,
+  SUBGROUP_MIN_COUNT,
+  type CategoryVisual,
+  type PanelCategory,
+} from './panelDesign'
 import { isBlockTypeUsable } from './blockAvailability'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
@@ -505,6 +595,197 @@ const hasSearchResults = computed(() => {
 function toggleCategoryFocus(category: string) {
   focusedCategory.value = focusedCategory.value === category ? null : category
   if (focusedCategory.value) searchKeyword.value = ''
+}
+
+/* ------------------------------------------------------------------ *
+ * 面板视觉与导航（2026-10-05 密度重构）
+ * ------------------------------------------------------------------ */
+
+const gridEl = ref<HTMLElement | null>(null)
+
+/**
+ * 选中画布组件 → 组件库自动滚动到该卡片（2026-10-05 新增）。
+ *
+ * 实测基线：`.active` 高亮本来就生效，但卡片在 `top=1919` 而网格可视区只有 `244~1000`
+ * —— 运营点了画布上的「品牌专栏」，左侧列表停在「营销」区，**根本不知道它在哪**。
+ *
+ * 两个必须处理的坑：
+ * ① 搜索/分类聚焦态下，目标组件**不在渲染结果里**（被过滤掉了），
+ *    直接查 DOM 找不到。必须先退出这两种状态，等 DOM 更新后再滚。
+ * ② 卡片被 `ComponentHelpTip` 的 wrapper 包着，`.component-card.active` 的 offsetTop
+ *    是相对 wrapper 的；用 `getBoundingClientRect` 差值算，与 DOM 层级无关。
+ */
+function scrollSelectedIntoView() {
+  const box = gridEl.value
+  const type = pageStore.selectedComponent?.type
+  if (!box || !type) return
+
+  /**
+   * 目标可能是两处：主网格卡片（.component-card.active）或「最近使用」胶囊（.recent-chip.is-selected），
+   * 两者的选中态 class 不同。两个都查，否则选中一个「最近用过」的组件时不会定位。
+   */
+  const target =
+    box.querySelector<HTMLElement>('.component-card.active') ||
+    box.querySelector<HTMLElement>('.recent-chip.is-selected')
+  if (!target) return
+
+  // 目标已可见则不动 —— 否则每次点画布列表都会跳一下，是噪音
+  const br = box.getBoundingClientRect()
+  const cr = target.getBoundingClientRect()
+  const VISIBLE_PAD = 12
+  if (cr.top >= br.top + VISIBLE_PAD && cr.bottom <= br.bottom - VISIBLE_PAD) return
+
+  // 与容器顶部的距离 → 目标滚动位置；留 24px 余量，避免紧贴顶部显得被"顶住"
+  const delta = cr.top - br.top - 24
+  box.scrollTo({
+    top: Math.max(0, box.scrollTop + delta),
+    behavior: 'smooth',
+  })
+}
+
+/**
+ * 监听选中变化：先复位过滤态，等卡片进入 DOM 再滚动。
+ *
+ * `nextTick` 不足以覆盖「退出聚焦态后要等一帧重渲染」，
+ * 所以用 `requestAnimationFrame` 再等一帧，实测能稳定命中。
+ */
+watch(
+  () => pageStore.selectedComponent?.type,
+  async (type, prev) => {
+    if (!type || type === prev) return
+    // 目标不在当前渲染结果里 → 复位过滤态，等它出现
+    const hasVisible =
+      gridEl.value?.querySelector('.component-card.active, .recent-chip.is-selected')
+    if (!hasVisible) {
+      focusedCategory.value = null
+      if (searchKeyword.value) searchKeyword.value = ''
+      await nextTick()
+      requestAnimationFrame(() => requestAnimationFrame(scrollSelectedIntoView))
+    } else {
+      scrollSelectedIntoView()
+    }
+  },
+  { flush: 'post' },
+)
+
+/** 取分类视觉配置；未登记的分类回落到内容类配色，不出现无样式卡片 */
+function visualOf(category: string): CategoryVisual {
+  return CATEGORY_VISUALS[category as PanelCategory] ?? CATEGORY_VISUALS.content
+}
+
+/** 组件 type → 所属分类（用于「最近使用」胶囊的语义色） */
+function catKeyOf(type: string): PanelCategory {
+  const def = getComponentDef(type as ComponentType)
+  return (def?.category as PanelCategory) ?? 'content'
+}
+
+/** 画布当前选中组件所属分类；用于在分类胶囊上打「包含选中项」的小圆点 */
+const selectedCategory = computed<PanelCategory | null>(() => {
+  const type = pageStore.selectedComponent?.type
+  if (!type) return null
+  const def = getComponentDef(type as ComponentType)
+  return (def?.category as PanelCategory) ?? 'content'
+})
+
+/** 最近使用胶囊的分类语义色（选中态要用 --cat-icon / --cat-bg） */
+function chipStyleOf(type: string): Record<string, string> {
+  const v = visualOf(catKeyOf(type))
+  return { '--cat-icon': v.iconColor, '--cat-bg': v.activeBg }
+}
+
+/** Rail 上的分类项：只列**当前真有组件**的分类，避免点进去是空的 */
+const railCategories = computed(() =>
+  categories.value
+    .map((cat) => ({ value: cat.value as PanelCategory, count: filteredComponentsByCategory(cat.value).length }))
+    .filter((c) => c.count > 0),
+)
+
+/**
+ * 超长名判定阈值。
+ *
+ * 11px 字号下中文约 11px/字，75px 卡片扣 6px×2 内边距 + 2px 边框 = 67px 可用，
+ * 留 2px 余量 → 6 字（66px）是单行上限，7 字及以上走两行。
+ * 新增组件名很长时会被这条规则接住，不会静默变成「向主理人…」。
+ */
+const LONG_LABEL_CHARS = 7
+function isLongLabel(label: string): boolean {
+  return label.length >= LONG_LABEL_CHARS
+}
+
+/**
+ * 某分类的渲染行序列：[微标题, 卡片, 微标题, 卡片 …]。
+ *
+ * 之所以在脚本里摊平而不是模板里 v-show 过滤：
+ *  - v-show 隐藏的项**仍占 grid 格子**，会撑出整列空白；
+ *  - 模板里分组要写三遍卡片结构，改一次样式漏两处。
+ * 摊平成一个数组后模板只有一处卡片渲染，密度与分组逻辑解耦。
+ */
+type CategoryRow =
+  | { kind: 'sub'; label: string; key: string }
+  | { kind: 'item'; item: ComponentDefinition; key: string }
+
+function categoryRows(category: string): CategoryRow[] {
+  const items = filteredComponentsByCategory(category)
+  if (!items.length) return []
+  const groups = SUB_GROUPS[category as PanelCategory]
+  // 未配分组、或数量不足阈值 → 不拆，直接平铺
+  if (!groups || items.length < SUBGROUP_MIN_COUNT) {
+    return items.map((item) => ({ kind: 'item', item, key: item.type }))
+  }
+  const rows: CategoryRow[] = []
+  for (const g of groups) {
+    const bucket = items.filter((it) => g.types.includes(String(it.type)))
+    if (!bucket.length) continue
+    rows.push({ kind: 'sub', label: g.label, key: `sub-${g.key}` })
+    for (const item of bucket) rows.push({ kind: 'item', item, key: `${g.key}-${item.type}` })
+  }
+  // 未被任何分组收录的兜底进「其它」，**不能静默丢组件** —— 丢了运营就找不到它
+  const rest = items.filter(
+    (it) => !groups.some((g) => g.types.includes(String(it.type))),
+  )
+  if (rest.length) {
+    rows.push({ kind: 'sub', label: '其它', key: 'sub-rest' })
+    for (const item of rest) rows.push({ kind: 'item', item, key: `rest-${item.type}` })
+  }
+  return rows
+}
+
+/**
+ * Rail 点击：滚到该分类锚点。
+ *
+ * 用 scrollTo 而非 scrollIntoView：后者会把整个页面（含属性面板、画布）
+ * 一起滚，运营会「找不到北」；而且它对 sticky 顶栏的处理不可控。
+ * 手动算 scrollTop 还能顺带处理「目标已在可视区」的情况 —— 此时直接
+ * 跳过去反而会从顶部重看一遍，是噪音。
+ */
+function jumpToCategory(category: string | null) {
+  focusedCategory.value = null
+  if (category && searchKeyword.value) searchKeyword.value = ''
+  const box = gridEl.value
+  if (!box) return
+  // 分类标题上方留一点余量，紧贴顶部会显得被"顶住"
+  const PAD = 8
+
+  if (!category) {
+    box.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  const target = box.querySelector<HTMLElement>(`#cat-${category}`)
+  if (!target) return
+
+  /*
+   * ⚠️ 用 getBoundingClientRect 的差值算，别用 `target.offsetTop - box.offsetTop`。
+   * 原因：offsetTop 走的是 offsetParent 链，而面板内有 sticky 次级微标题、
+   * 嵌套 flex 布局，实测 offsetTop 链算出来的位置与真实渲染位置差 ~140px
+   * → 滚过去时分类标题正好落在容器**上方外**，运营看到的是「跳过去了但不知道跳到哪」。
+   * rect 差值直接是「目标距容器上沿还差多少像素」，与布局实现解耦。
+   */
+  const delta = target.getBoundingClientRect().top - box.getBoundingClientRect().top - PAD
+  const cur = box.scrollTop
+  const absTop = cur + delta
+  // 已在可视区就别动 —— 点了没反应会让人以为按钮坏了
+  if (absTop >= cur && absTop <= cur + box.clientHeight - 60) return
+  box.scrollTo({ top: Math.max(0, cur + delta), behavior: 'smooth' })
 }
 
 /** Element Plus icon name → component map */
@@ -821,31 +1102,237 @@ onBeforeUnmount(() => {
   padding: 8px 8px 0;
 }
 
-.component-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-content: start;
+/* Rail + 网格两栏：Rail 常驻左，网格独立滚动 */
+.components-body {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
-  gap: 6px;
-  overflow-y: auto;
-  padding: 8px;
 }
 
-.category-label {
+/* ---------------------------------------------------------------- *
+ * 顶部分类切换器
+ *
+ * ⚠️ 原本按需求做的是左侧 44px 垂直 Rail，实测**不可行**：
+ * 面板总宽只有 249px（外层装修器布局定的，不可拖），扣掉 44px Rail
+ * 后网格剩 205px，3 列每卡 60px、扣内边距标题只剩 43px ≈ 3 个汉字 ——
+ * 「政策里程碑轴」「折叠问答面板」全被截成「政策里程…」，运营反而认不出
+ * 是哪个组件，比截断前更糟。
+ * 算过 5 种方案（3列+44 / 3列+36 / 3列+32 / 2列+44）标题都放不下 6 字，
+ * **Rail 与 3 列在这个宽度下互斥**。
+ * 故改为顶部分类胶囊条：跳转能力等价（一次点击直达锚点），
+ * 但把整幅宽度让给网格，标题可用宽度从 43px 回到 58px。
+ * ---------------------------------------------------------------- */
+.cat-tabs {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 7px 5px;
+  background: #fff;
+  border-bottom: 1px solid var(--pc-line, #e8dfd3);
+}
+
+/*
+ * 换行铺开而非横向滚动。
+ *
+ * ⚠️ 试过 `overflow-x: auto` 单行横滑，实测是**硬伤**：面板 249px、7 个分类
+ * 胶囊内容宽 485px，后 4 个（商品/营销/布局/品牌）完全落在可视区外 ——
+ * 运营不知道还要横着滑，需求里的「无跳屏」直接不成立。必须全部可点。
+ *
+ * 为此把胶囊压到 22px 高、去掉计数徽标（数量在分类标题里已有），
+ * 7 个才挤得进两行内且不显得拥挤。
+ */
+.cat-tabs__item {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 7px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--pc-mute, #6b5b4e);
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition: 0.15s;
+
+  i {
+    font-size: 9.5px;
+    font-style: normal;
+    color: #c0b2a3;
+  }
+
+  &:hover {
+    color: var(--cat-icon, var(--pc-acc, #c08e6e));
+    background: var(--cat-bg, #f7efe7);
+  }
+
+  &.on {
+    font-weight: 600;
+    color: var(--cat-icon, var(--pc-acc, #c08e6e));
+    background: var(--cat-bg, #f7efe7);
+    border-color: var(--cat-icon, var(--pc-acc, #c08e6e));
+  }
+
+  /*
+   * 「该分类里有当前选中的组件」—— 用右上角小圆点表示，不占用胶囊的横向空间
+   * （249px 面板下 7 个胶囊已经贴边，加文字必然换行）。
+   * 与 .on 区分：.on 是「用户点了这个分类」，圆点是「画布选中项在这里」。
+   */
+  &.has-selected {
+    position: relative;
+
+    &::after {
+      position: absolute;
+      top: 1px;
+      right: 2px;
+      width: 5px;
+      height: 5px;
+      content: '';
+      background: var(--cat-icon, var(--pc-acc, #c08e6e));
+      border-radius: 50%;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * 最近使用：三列紧凑网格
+ *
+ * ⚠️ 原来是单行横滑（overflow-x: auto），实测**有 4/6 个胶囊完全看不到**：
+ * 面板 249px − 标签 23px = 容器 206px，而 6 个胶囊内容总宽 459px
+ * （"笔记瀑布流"单颗就 86px）。横滑在窄容器里既看不出「还能滑」、
+ * 又让「星球顶栏」被硬裁成「星球顶…」，看起来像坏了而不是像可滑。
+ * 改成 3 列换行铺开：6 个 = 2 行，全部可见，且不依赖横向滚动。
+ * ---------------------------------------------------------------- */
+.recent-strip {
+  display: flex;
   grid-column: 1 / -1;
-  padding: 6px 2px 2px;
-  color: var(--pc-faint);
+  gap: 5px;
+  align-items: flex-start;
+  padding: 3px 0 5px;
+}
+
+.recent-strip__label {
+  flex-shrink: 0;
+  padding: 3px 0 0 1px;
+  color: var(--pc-faint, #a99c8e);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.recent-strip__grid {
+  display: grid;
+  flex: 1;
+  /* 2 列而非 3 列：实测 3 列时每格 66px，装不下「图标 12 + 间隙 3 + 4 字 44 + 内边距 12 = 71px」，
+     「加入群聊 / 星球顶栏 / 商品列表 / 笔记瀑布流」全被裁成省略号（实测 4/6 个）。
+     2 列每格 ~103px，6 个胶囊 = 3 行，全部文字完整。 */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+
+.recent-chip {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--pc-mute, #6b5b4e);
+  cursor: grab;
+  background: #f7f2ec;
+  border: 1px solid var(--pc-line, #e8dfd3);
+  border-radius: 999px;
+  transition: 0.15s;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    color: var(--pc-acc, #c08e6e);
+    background: var(--pc-acc-soft, #f7efe7);
+    border-color: var(--pc-acc, #c08e6e);
+  }
+
+  /* 画布当前选中项就在这里 —— 与主网格卡片用同一套内描边，保证视觉一致 */
+  &.is-selected {
+    font-weight: 700;
+    color: var(--cat-icon, var(--pc-acc, #c08e6e));
+    background: var(--cat-bg, var(--pc-acc-soft, #f7efe7));
+    border-color: var(--cat-icon, var(--pc-acc, #c08e6e));
+    box-shadow: inset 0 0 0 1px var(--cat-icon, var(--pc-acc, #c08e6e));
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * 组件网格：3 列紧凑
+ * ---------------------------------------------------------------- */
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  gap: 5px;
+  overflow-y: auto;
+  padding: 7px 7px 14px;
+  scroll-behavior: smooth;
+}
+.category-label {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 2px 3px;
+  color: var(--pc-faint, #a99c8e);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 
-.category-label--row {
-  display: flex;
+.category-label__name {
+  display: inline-flex;
+  gap: 4px;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  color: var(--cat-icon, var(--pc-mute, #6b5b4e));
+
+  i {
+    padding: 0 5px;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 500;
+    color: var(--pc-faint, #a99c8e);
+    background: var(--cat-bg, #f4efe8);
+    border-radius: 999px;
+  }
+}
+
+/* 次级微标题：极细，吸顶时留出模糊底避免文字与卡片叠在一起 */
+.subgroup-label {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  grid-column: 1 / -1;
+  padding: 4px 2px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #b9ab9c;
+  letter-spacing: 0.4px;
+  background: linear-gradient(#fff 62%, rgb(255 255 255 / 0));
 }
 
 .category-all {
@@ -868,36 +1355,135 @@ onBeforeUnmount(() => {
 .component-card {
   display: flex;
   flex-direction: column;
+  gap: 3px;
   align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  min-height: 54px;
-  color: var(--pc-mute);
-  font-size: 12px;
-  line-height: 1.2;
+  justify-content: center;
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 3px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.25;
+  color: #6f6154;
   text-align: center;
-  background: var(--pc-soft);
-  border: 1px solid var(--pc-line);
-  border-radius: 9px;
   cursor: pointer;
+  /* 分类底色/边框由 is-* 类覆盖（见 panelDesign.ts） */
+  background: #f7f2ec;
+  border: 1px solid #e9e1d5;
+  border-radius: 8px;
   transition: 0.15s;
 
   &:hover,
   &.active {
-    color: var(--pc-acc);
     font-weight: 700;
-    background: var(--pc-acc-soft);
-    border-color: var(--pc-acc);
+    color: var(--cat-icon, var(--pc-acc, #c08e6e));
+    background: var(--cat-bg, var(--pc-acc-soft, #f7efe7));
+    border-color: var(--cat-icon, var(--pc-acc, #c08e6e));
+  }
+
+  /*
+   * 当前选中 = 画布上正在编辑的那个组件。
+   * 必须与 hover 明显区分：hover 是「鼠标在这」，active 是「你正在改这个」。
+   * 之前两者同一样式，导致选中后看不出到底命中了哪张卡。
+   */
+  &.active {
+    box-shadow: inset 0 0 0 2px var(--cat-icon, var(--pc-acc, #c08e6e));
+  }
+
+  /* 选中态是语义状态，别被 hover 的边框色盖掉 */
+  &:hover:not(.active) {
+    border-style: dashed;
   }
 
   &:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
   }
 }
 
 .component-icon {
-  font-size: 18px;
-  line-height: 1.1;
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* 3 列后卡片更窄，标题必须单行省略，否则「折叠问答面板」这类会撑成两行破坏等高 */
+.component-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+/*
+ * 超长组件名（实测只有「向主理人提问条」7 字 = 74px > 67px 可用）走两行。
+ *
+ * ⚠️ 不能直接放开 white-space: normal —— 那样**每行高度由最高的那张卡决定**，
+ * 整行被单张长名卡撑到两行，等高就破了（这正是上一轮回归的形态）。
+ * 这里用固定两行高度 + 溢出隐藏：无论 1 行还是 2 行，卡片高度都是定值，
+ * 同行等高由 grid 的 align-items 保证，不受文字行数影响。
+ */
+.component-name--long {
+  display: -webkit-box;
+  height: 26px; /* 2 × 12.5px 行高 */
+  overflow: hidden;
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ---------------------------------------------------------------- *
+ * 分类语义色
+ *
+ * 色值与 panelDesign.ts 的 CATEGORY_VISUALS 一一对应。之所以 CSS 里再写一遍
+ * 而不是全部走内联 style：卡片 hover 态要同时换 4 个变量，内联 style 只能在
+ * 常态给值，hover 得靠类切换 —— 保持「常态色 = 类、hover 色 = 同一个类里的
+ * hover 规则」最省心。
+ * ⚠️ 改色时两边都要改；验证方式见 scripts/measure-component-grid.mjs 的分类色检查。
+ * ---------------------------------------------------------------- */
+.component-card.is-content {
+  --cat-icon: #7a6650;
+  --cat-bg: #f3ece1;
+  background: #faf7f2;
+  border-color: #e9e1d5;
+}
+
+.component-card.is-planet {
+  --cat-icon: #a9762c;
+  --cat-bg: #f8eed9;
+  background: #fbf6ec;
+  border-color: #ebdfc6;
+}
+
+.component-card.is-commerce {
+  --cat-icon: #b06a3c;
+  --cat-bg: #f6e8db;
+  background: #faf4ef;
+  border-color: #ebdbcd;
+}
+
+.component-card.is-marketing {
+  --cat-icon: #c25f2c;
+  --cat-bg: #f8e6d3;
+  background: #fbf3ec;
+  border-color: #ecd8c3;
+}
+
+.component-card.is-layout {
+  --cat-icon: #5b6b7c;
+  --cat-bg: #e9eef3;
+  background: #f4f6f8;
+  border-color: #dfe5ea;
+}
+
+.component-card.is-warm {
+  --cat-icon: #a06a4a;
+  --cat-bg: #f2e5d8;
+  background: #f8f2ec;
+  border-color: #e6d6c6;
 }
 
 .structure-hint {

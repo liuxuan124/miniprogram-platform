@@ -11,6 +11,7 @@
 import {
   DEFAULT_ORDER_QUICK_ACCESS,
   DEFAULT_USER_PROFILE,
+  DEFAULT_MINE_MODULES,
 } from '@/types/miniapp'
 import type { MineMenuItem, MinePageConfig, MineStyleKey } from '@/types/miniapp'
 
@@ -181,6 +182,38 @@ export function getMineTemplate(key: string): MineTemplatePreset | undefined {
   return MINE_TEMPLATES.find((t) => t.key === key)
 }
 
+/**
+ * 套用模板时会被覆盖的字段清单（1.30 用于弹窗逐条告知）。
+ *
+ * 🔴 这份清单必须与 `buildTemplateConfig` 的返回值保持一致 ——
+ * 少列一条，用户就会在不知情的情况下丢掉自己配过的东西。
+ * 反过来多列一条（实际会保留的字段）只会造成虚警，也能接受，但别少列。
+ */
+export const TEMPLATE_OVERWRITE_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'menuItems', label: '菜单组合（增删项、名称、图标、跳转、分组、排序、显示条件）' },
+  { key: 'loginTitle', label: '登录区标题' },
+  { key: 'loginSubtitle', label: '登录区副标题' },
+  { key: 'loginButtonText', label: '登录按钮文字' },
+  { key: 'memberCardTitle', label: '会员卡标题' },
+  { key: 'showMenuIcons', label: '菜单图标开关' },
+  { key: 'showDecorBackground', label: '装饰背景开关' },
+  { key: 'showMemberCard', label: '会员卡开关' },
+  { key: 'orderQuickAccess', label: '订单快捷入口（含各 tab 文案）' },
+  { key: 'modules', label: '内容模块显隐（6 项全部重置为显示）' },
+  { key: 'cardStyle', label: '卡片样式' },
+  { key: 'style', label: '历史卡片样式字段（被归一化，等同重置为渐变）' },
+]
+
+/** 套用模板时**保留**的字段（用于弹窗里说清楚「这些不会动」） */
+export const TEMPLATE_KEEP_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'themeSource', label: '主题配色来源（继承全局 / 页面覆盖）' },
+  { key: 'themeColor', label: '页面主色 / 辅色' },
+  { key: 'pageBackgroundColor', label: '页面背景色' },
+  { key: 'headerStyle', label: '头部样式' },
+  { key: 'userProfile', label: '资料区细项（头像/昵称/等级/编辑资料）' },
+  { key: 'preview*', label: '预览昵称/头像/手机/邮箱' },
+]
+
 /** 按模板定义生成完整 mineConfig（深拷贝，避免多套模板共享同一份菜单对象） */
 export function buildTemplateConfig(key: string): MinePageConfig {
   const tpl = getMineTemplate(key) || MINE_TEMPLATES[0]
@@ -209,6 +242,7 @@ export function buildTemplateConfig(key: string): MinePageConfig {
       needLogin: s.needLogin === true,
       enabled: true,
       group: s.group,
+      visibleOn: 'always',
     })),
     orderQuickAccess: {
       ...DEFAULT_ORDER_QUICK_ACCESS,
@@ -216,6 +250,10 @@ export function buildTemplateConfig(key: string): MinePageConfig {
       tabLabels: { ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels },
     },
     userProfile: { ...DEFAULT_USER_PROFILE },
+    // 1.30：模板会重置内容模块显隐。默认全 true = 与线上表现一致，
+    // 但**不**在这里塞 themeSource —— 配色来源属于「保留项」，由套用方沿用当前值。
+    modules: { ...DEFAULT_MINE_MODULES },
+    cardStyle: 'shadow',
   }
 }
 
@@ -229,6 +267,7 @@ export function seedToMenuItem(seed: MineMenuSeed, index: number): MineMenuItem 
     needLogin: seed.needLogin === true,
     enabled: true,
     group: seed.group,
+    visibleOn: 'always',
   }
 }
 

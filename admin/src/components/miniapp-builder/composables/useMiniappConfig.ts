@@ -4,10 +4,11 @@ import { getPageList } from '@/api/page'
 import { getConfigByGroup, updateConfigs, normalizeUploadUrl } from '@/api/system'
 import type { PageRecord } from '@/types/page'
 import type { MiniappForm } from '@/types/miniapp'
-import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE, normalizeOrderTabLabels, resolveMineStyleKey, applyMineStylePreset } from '@/types/miniapp'
+import { CONFIG_KEYS, NAV_TEMPLATES, DEFAULT_MINE_MENU, DEFAULT_THEME, DEFAULT_ORDER_QUICK_ACCESS, DEFAULT_USER_PROFILE, normalizeOrderTabLabels, resolveMineStyleKey, applyMineStylePreset, normalizeMineVisibleOn, normalizeMineThemeSource, normalizeMineHeaderStyle, normalizeMineCardStyle, resolveMineModules, DEFAULT_MINE_MODULES, DEFAULT_LOGIN_PAGE_CONFIG, resolveLoginModules, normalizeLoginThemeSource, normalizeLoginHeaderStyle, normalizeLoginCardStyle, resolveLoginPageStyleKey, applyLoginPageStylePreset } from '@/types/miniapp'
 import { suggestMenuLineIcon } from '../menuLineIcons'
 import { migrateTabBarIcon } from '@/components/page-builder/navIconSet'
 import { normalizeTabBarItems, tabBarSnapshot } from '@/utils/tabbar'
+import { normalizeMinipagePath, isBuiltinMinipagePath, isValidMinipageTarget, isMinipageIndexPath } from '@/utils/minipage-path'
 
 /** 系统内置页面（不在页面列表中，但可作为TabBar绑定目标） */
 const SYSTEM_PAGES: { id: string; name: string; path: string; type: 'system' }[] = [
@@ -28,8 +29,16 @@ function normalizeBindId(id: unknown) {
   return /^\d+$/.test(s) ? Number(s) : s
 }
 
+// 路径校验已抽到无依赖的 utils/minipage-path，tabBar 与「我的」菜单共用同一套口径。
+// 这里转出去，方便外部只想要校验函数时不必拖进整个 composable。
+export {
+  normalizeMinipagePath,
+  isBuiltinMinipagePath,
+  isValidMinipageTarget,
+} from '@/utils/minipage-path'
+
 function isIndexPath(path?: string) {
-  return String(path || '').replace(/\/+$/, '') === '/pages/index/index'
+  return isMinipageIndexPath(path)
 }
 
 export function useMiniappConfig() {
@@ -61,16 +70,36 @@ export function useMiniappConfig() {
       style: 'gradient',
       themeColor: '#C2410C',
       themeColorSecondary: '#EA580C',
-      menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
+      // ↓ 1.30 新增字段的初值：与线上表现一致（主题继承全局、模块全显示）
+      themeSource: 'inherit',
+      modules: { ...DEFAULT_MINE_MODULES },
+      pageBackgroundColor: '',
+      headerStyle: 'gradient',
+      cardStyle: 'shadow',
+      menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}`, visibleOn: 'always' as const })),
       orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS },
       userProfile: { ...DEFAULT_USER_PROFILE },
     },
+    // 登录页配置（固定页 /pages/login/login，与 mineConfig 平行）
+    loginPageConfig: { ...DEFAULT_LOGIN_PAGE_CONFIG, modules: { ...DEFAULT_LOGIN_PAGE_CONFIG.modules } },
     theme: { ...DEFAULT_THEME },
     shareTitle: '',
     shareImage: '',
   })
 
   const isDirty = computed(() => getSnapshot() !== savedSnapshot)
+
+  /**
+   * 🔴 2026-10-06 新增：保存结果状态。
+   * 原来只有 isDirty（是否脏），没有「保存成功/失败/何时」，
+   * 于是页面只能显示「已保存（编辑中）」这类含糊文案，
+   * 保存失败了也看不出来。现在三态齐全，供 SaveStateBar 使用：
+   *   saving（上面已声明）正在保存
+   *   saveError  保存失败（带原因，可重试）
+   *   lastSavedAt 最近一次保存成功的时间
+   */
+  const saveError = ref('')
+  const lastSavedAt = ref('')
 
   function getSnapshot(): string {
     return JSON.stringify({
@@ -79,6 +108,7 @@ export function useMiniappConfig() {
       minePageId: form.minePageId == null || form.minePageId === '' ? '' : String(form.minePageId),
       tabs: tabBarSnapshot(form.tabs),
       mineConfig: form.mineConfig,
+      loginPageConfig: form.loginPageConfig,
       theme: form.theme,
       shareTitle: form.shareTitle,
       shareImage: form.shareImage,
@@ -242,6 +272,8 @@ export function useMiniappConfig() {
                       needLogin: m.needLogin === true,
                       enabled: m.enabled !== undefined ? m.enabled : (m.visible !== false),
                       group: m.group || '',
+                      // visibleOn 缺省 → always（老数据无此字段，行为不变）
+                      visibleOn: normalizeMineVisibleOn(m.visibleOn ?? m.visible_on),
                     }
                   })
                 : form.mineConfig.menuItems,
@@ -257,6 +289,14 @@ export function useMiniappConfig() {
                 allowEditProfile: mine.userProfile?.allowEditProfile ?? true,
                 memberLevelLabel: mine.userProfile?.memberLevelLabel || '会员等级',
               },
+              // ↓↓↓ 1.30 新增字段。**必须显式白名单拷贝**（见上方注释）：
+              // 漏掉任何一项都会让该字段在「保存 → 刷新」后静默回到默认值。
+              // resolveXxx 系列内部已做「缺字段 → 默认值」，老数据加载零影响。
+              themeSource: normalizeMineThemeSource(mine.themeSource ?? mine.theme_source),
+              modules: resolveMineModules(mine.modules),
+              pageBackgroundColor: String(mine.pageBackgroundColor || mine.page_background_color || ''),
+              headerStyle: normalizeMineHeaderStyle(mine.headerStyle ?? mine.header_style),
+              cardStyle: normalizeMineCardStyle(mine.cardStyle ?? mine.card_style),
               ...(mine.templateStyle ? { templateStyle: mine.templateStyle } : {}),
               ...(mine.style ? { style: mine.style } : {}),
               ...(mine.themeColor ? { themeColor: mine.themeColor } : {}),
@@ -274,7 +314,90 @@ export function useMiniappConfig() {
               || rawStyleKey === 'premium'
               || ['#1e293b', '#334155'].includes(String(mine.themeColor || '').toLowerCase())
             if (needsStyleFallback || mine.themeColor || mine.templateStyle) {
+              // applyMineStylePreset 会把 showMemberCard 硬写回 true、把 themeColor 刷成预设色。
+              // 1.30 起这两项都能被页面独立配置覆盖，所以先备份再还原：
+              // - showMemberCard 以 modules.memberCard（用户显式开关）为准
+              // - 页面覆盖主题色时，themeColor/Secondary 保留用户选的值
+              const keepMemberCard = (mine.modules as Record<string, unknown> | undefined)?.memberCard
+              const keepThemeColor = form.mineConfig.themeColor
+              const keepThemeColorSecondary = form.mineConfig.themeColorSecondary
+              const isPageTheme = normalizeMineThemeSource(mine.themeSource ?? mine.theme_source) === 'page'
               applyMineStylePreset(form.mineConfig as Record<string, unknown>, styleKey)
+              if (keepMemberCard === false) form.mineConfig.showMemberCard = false
+              if (isPageTheme) {
+                if (keepThemeColor) form.mineConfig.themeColor = keepThemeColor
+                if (keepThemeColorSecondary) form.mineConfig.themeColorSecondary = keepThemeColorSecondary
+              }
+            }
+            // modules.memberCard 是会员卡显隐的唯一真源，老字段 showMemberCard 向它对齐，
+            // 保证后台预览 / 小程序端 / 草稿恢复三处口径一致。
+            if ((mine.modules as Record<string, unknown> | undefined)?.memberCard === false) {
+              form.mineConfig.showMemberCard = false
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      // Login page config - 逐字段白名单拷贝（与上面 mine 同口径，同样是铁律）
+      if (configMap[CONFIG_KEYS.LOGIN_PAGE_CONFIG]) {
+        try {
+          const login = typeof configMap[CONFIG_KEYS.LOGIN_PAGE_CONFIG] === 'string'
+            ? JSON.parse(configMap[CONFIG_KEYS.LOGIN_PAGE_CONFIG])
+            : configMap[CONFIG_KEYS.LOGIN_PAGE_CONFIG]
+          if (login && typeof login === 'object') {
+            // 🔴 每一个新字段都必须显式写一次。
+            // 漏掉任何一项 → 该字段在「保存 → 刷新」后静默回到默认值（最隐蔽的坑）。
+            // resolveXxx 系列内部已做「缺字段 → 线上现状」，老数据加载零影响。
+            form.loginPageConfig = {
+              heroTitle: login.heroTitle || DEFAULT_LOGIN_PAGE_CONFIG.heroTitle,
+              heroSubtitle: login.heroSubtitle !== undefined
+                ? String(login.heroSubtitle || '')
+                : DEFAULT_LOGIN_PAGE_CONFIG.heroSubtitle,
+              loginButtonText: login.loginButtonText || DEFAULT_LOGIN_PAGE_CONFIG.loginButtonText,
+              skipButtonText: login.skipButtonText !== undefined
+                ? String(login.skipButtonText || '')
+                : DEFAULT_LOGIN_PAGE_CONFIG.skipButtonText,
+              securityBadgeText: login.securityBadgeText !== undefined
+                ? String(login.securityBadgeText || '')
+                : DEFAULT_LOGIN_PAGE_CONFIG.securityBadgeText,
+              sheetTitle: login.sheetTitle !== undefined
+                ? String(login.sheetTitle || '')
+                : DEFAULT_LOGIN_PAGE_CONFIG.sheetTitle,
+              sheetSubtitle: login.sheetSubtitle !== undefined
+                ? String(login.sheetSubtitle || '')
+                : DEFAULT_LOGIN_PAGE_CONFIG.sheetSubtitle,
+              privacyNoteText: login.privacyNoteText !== undefined
+                ? String(login.privacyNoteText || '')
+                : DEFAULT_LOGIN_PAGE_CONFIG.privacyNoteText,
+              // 老字段是显式布尔，缺省按 true（= 线上现状）；这里保留 !== false 口径
+              showDecorOrbs: login.showDecorOrbs !== false,
+              showSecurityBadge: login.showSecurityBadge !== false,
+              showBackButton: login.showBackButton !== false,
+              templateStyle: login.templateStyle ? String(login.templateStyle) : DEFAULT_LOGIN_PAGE_CONFIG.templateStyle,
+              themeColor: String(login.themeColor || DEFAULT_LOGIN_PAGE_CONFIG.themeColor),
+              themeColorSecondary: String(login.themeColorSecondary || DEFAULT_LOGIN_PAGE_CONFIG.themeColorSecondary),
+              // ↓↓↓ 新增字段白名单（一个都不能少）
+              themeSource: normalizeLoginThemeSource(login.themeSource ?? login.theme_source),
+              modules: resolveLoginModules(login.modules),
+              pageBackgroundColor: String(login.pageBackgroundColor || login.page_background_color || ''),
+              headerStyle: normalizeLoginHeaderStyle(login.headerStyle ?? login.header_style),
+              cardStyle: normalizeLoginCardStyle(login.cardStyle ?? login.card_style),
+            }
+            // 旧皮肤 key 归一化（warm/brand/minimal/wechat）
+            const styleKey = resolveLoginPageStyleKey(form.loginPageConfig)
+            const rawStyleKey = String(login.templateStyle || '')
+            // 已删除/改名的 key 安全回退到 warm
+            if (['default', 'nuange', 'standard'].includes(rawStyleKey) || login.themeColor || login.templateStyle) {
+              // applyLoginPageStylePreset 会重写 themeColor/Secondary，
+              // 页面覆盖态（themeSource=page）下用户选的颜色必须还原。
+              const keepPrimary = form.loginPageConfig.themeColor
+              const keepSecondary = form.loginPageConfig.themeColorSecondary
+              const isPageTheme = normalizeLoginThemeSource(login.themeSource ?? login.theme_source) === 'page'
+              applyLoginPageStylePreset(form.loginPageConfig as unknown as Record<string, unknown>, styleKey)
+              if (isPageTheme) {
+                if (keepPrimary) form.loginPageConfig.themeColor = keepPrimary
+                if (keepSecondary) form.loginPageConfig.themeColorSecondary = keepSecondary
+              }
             }
           }
         } catch { /* ignore */ }
@@ -336,13 +459,13 @@ export function useMiniappConfig() {
       return false
     }
 
-    const warnings = validateTabsBeforeSave()
+    const warnings = [...validateTabsBeforeSave(), ...validateMineMenuBeforeSave()]
     if (warnings.length > 0) {
       try {
         await ElMessageBox.confirm(
-          `当前底部导航存在以下风险：\n${warnings.map(item => `- ${item}`).join('\n')}\n\n是否继续保存？`,
+          `当前配置存在以下风险：\n${warnings.map(item => `- ${item}`).join('\n')}\n\n是否继续保存？`,
           '保存提醒',
-          { confirmButtonText: '继续保存', cancelButtonText: '去绑定', type: 'warning' },
+          { confirmButtonText: '继续保存', cancelButtonText: '去检查', type: 'warning' },
         )
       } catch {
         return false
@@ -352,13 +475,14 @@ export function useMiniappConfig() {
     saving.value = true
     try {
       form.tabs = normalizeTabBarItems(form.tabs)
-      // 只写入待上线草稿：真机仍读已上线配置，需点「上线到小程序」才生效
+      // 只写入草稿：线上仍读旧配置，需点「发布配置」才生效
       const draftPayload: Record<string, string> = {
         [CONFIG_KEYS.TEMPLATE_KEY]: form.templateKey,
         [CONFIG_KEYS.HOME_PAGE_ID]: String(form.homePageId ?? ''),
         [CONFIG_KEYS.MINE_PAGE_ID]: String(form.minePageId ?? ''),
         [CONFIG_KEYS.TABBAR_ITEMS]: JSON.stringify(form.tabs),
         [CONFIG_KEYS.MINE_PAGE_CONFIG]: JSON.stringify(form.mineConfig),
+        [CONFIG_KEYS.LOGIN_PAGE_CONFIG]: JSON.stringify(form.loginPageConfig),
         [CONFIG_KEYS.THEME_CONFIG]: JSON.stringify(form.theme),
         [CONFIG_KEYS.SHARE_TITLE]: form.shareTitle || '',
         [CONFIG_KEYS.SHARE_IMAGE]: form.shareImage || '',
@@ -372,16 +496,33 @@ export function useMiniappConfig() {
         },
       ] as any)
       markSaved()
-      ElMessage.success('已保存（编辑中）。点「上线到小程序」后用户才能看到')
+      // 🔴 记录保存结果，供 PageHeader 的 SaveStateBar 显示「已保存」而不是含糊的「编辑中」
+      saveError.value = ''
+      lastSavedAt.value = new Date().toISOString()
+      ElMessage.success('已保存草稿。到「发布与版本」发布配置后用户才能看到')
       return true
     } catch (e: any) {
-      ElMessage.error('保存失败：' + (e?.message || '未知错误'))
+      // 🔴 保存失败必须留下痕迹：否则页面仍显示「已保存」，用户以为存上了其实没存
+      saveError.value = e?.message || '未知错误'
+      ElMessage.error('保存失败：' + saveError.value)
       throw e
     } finally {
       saving.value = false
     }
   }
 
+  /**
+   * 发布配置（写入线上 + 生成版本快照）
+   *
+   * 🔴 2026-10-06 统一发布语义：
+   * 原来这里调 `publishContentToMiniapp()`（旧通道 /miniapp-releases/publish-content），
+   * 而「发布与版本」页调 `publishMiniSite()`（/mini/publish）。**两条链路各自
+   * 递增发布序号**，所以同一个配置版本在不同页面显示成不同的数
+   * （这也是「工作台 33 / 发布 1200 / 列表 28」混乱的一个来源）。
+   * 现在统一走 publishMiniSite，与发布页、与 useMiniConfigSync 完全同源。
+   *
+   * 保留 handleSave 前置：先把草稿落库，再发布，否则发布的是一个旧版本。
+   */
   async function publishToMiniapp(): Promise<boolean> {
     if (isDirty.value) {
       const ok = await handleSave()
@@ -389,13 +530,26 @@ export function useMiniappConfig() {
     }
     publishing.value = true
     try {
-      const { publishContentToMiniapp } = await import('@/api/version')
-      await publishContentToMiniapp()
+      const { publishMiniSite } = await import('@/api/miniSite')
+      const result = await publishMiniSite({
+        includeSite: true,
+        notes: '固定页配置发布',
+      })
+      // 🔴 后端有「禁空发」：返回 200 也可能什么都没做，不能直接报成功
+      if (result.siteConfigPromoted === false && !(result.publishedPages || result.publishedPageCount)) {
+        ElMessage.warning('本次没有可发布的改动，线上配置未变化')
+        return false
+      }
       hasPendingSiteDraft.value = false
-      ElMessage.success('已上线到小程序')
+      ElMessage.success(
+        result.liveReleaseNo != null
+          ? `已发布配置（第 ${result.liveReleaseNo} 次），版本快照已保存`
+          : '已发布配置，版本快照已保存',
+      )
       return true
     } catch (e: any) {
-      ElMessage.error(e?.message || '上线失败')
+      const msg = e?.response?.data?.message || e?.message || '发布失败'
+      ElMessage.error(`${msg}。发布未完成，线上配置不会只改一半`)
       return false
     } finally {
       publishing.value = false
@@ -404,12 +558,12 @@ export function useMiniappConfig() {
 
   function validateTabsBeforeSave() {
     const warnings: string[] = []
-    const pagePathSet = new Set(pages.value.map(p => normalizePath(p.path || '')).filter(Boolean))
+    const pagePathSet = new Set(pages.value.map(p => normalizeMinipagePath(p.path || '')).filter(Boolean))
     const pathToTabs = new Map<string, string[]>()
 
     for (const tab of form.tabs) {
       const text = tab.text || '未命名'
-      const path = normalizePath(tab.pagePath || '')
+      const path = normalizeMinipagePath(tab.pagePath || '')
       if (!tab.pageId && !path.includes('index')) {
         warnings.push(`导航「${text}」尚未绑定页面`)
       }
@@ -420,7 +574,7 @@ export function useMiniappConfig() {
       const names = pathToTabs.get(path) || []
       names.push(text)
       pathToTabs.set(path, names)
-      if (!pagePathSet.has(path) && !isBuiltInPath(path)) {
+      if (!pagePathSet.has(path) && !isBuiltinMinipagePath(path)) {
         warnings.push(`导航「${text}」指向未发布或不存在的页面：/${path}`)
       }
     }
@@ -434,13 +588,32 @@ export function useMiniappConfig() {
     return Array.from(new Set(warnings))
   }
 
-  function normalizePath(path: string) {
-    if (!path) return ''
-    return path.trim().replace(/^\/+/, '')
-  }
-
-  function isBuiltInPath(path: string) {
-    return SYSTEM_PAGES.some(page => normalizePath(page.path) === path)
+  /**
+   * 「我的」菜单跳转目标校验（1.30 新增，与 validateTabsBeforeSave 同口径）。
+   * 返回的是**给人看的告警文案**，不是硬拦截：目标填错时端上 navigateTo 会失败，
+   * 但静默拦下保存会让人以为系统坏了，所以只提示。
+   */
+  function validateMineMenuBeforeSave(): string[] {
+    const warnings: string[] = []
+    const pagePathSet = new Set(pages.value.map((p) => normalizeMinipagePath(p.path || '')).filter(Boolean))
+    for (const item of form.mineConfig?.menuItems || []) {
+      if (item.enabled === false) continue
+      const title = item.title || '未命名'
+      const url = String(item.url || '').trim()
+      if (!url) {
+        warnings.push(`菜单「${title}」没有跳转目标，真机上点击无反应`)
+        continue
+      }
+      if (!isValidMinipageTarget(url)) {
+        warnings.push(`菜单「${title}」的跳转目标格式不合法：${url}`)
+        continue
+      }
+      const p = normalizeMinipagePath(url)
+      if (!pagePathSet.has(p) && !isBuiltinMinipagePath(p)) {
+        warnings.push(`菜单「${title}」指向未发布或不存在的页面：/${p}`)
+      }
+    }
+    return Array.from(new Set(warnings))
   }
 
   function handleReset() {
@@ -464,11 +637,21 @@ export function useMiniappConfig() {
         showMenuIcons: false,
         showDecorBackground: true,
         showMemberCard: false,
-        menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}` })),
+        // 1.30 新增字段一并复位，避免「恢复默认」后残留上一次的覆盖配置
+        themeSource: 'inherit',
+        modules: { ...DEFAULT_MINE_MODULES },
+        pageBackgroundColor: '',
+        headerStyle: 'gradient',
+        cardStyle: 'shadow',
+        menuItems: DEFAULT_MINE_MENU.map((item, i) => ({ ...item, id: `mine-${i + 1}`, visibleOn: 'always' as const })),
         orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS },
         userProfile: { ...DEFAULT_USER_PROFILE },
       }
       form.theme = { ...DEFAULT_THEME }
+      form.loginPageConfig = {
+        ...DEFAULT_LOGIN_PAGE_CONFIG,
+        modules: { ...DEFAULT_LOGIN_PAGE_CONFIG.modules },
+      }
       form.shareTitle = ''
       form.shareImage = ''
       ElMessage.success('已恢复默认配置')
@@ -524,6 +707,9 @@ export function useMiniappConfig() {
     publishing,
     isDirty,
     hasPendingSiteDraft,
+    // 2026-10-06 新增：保存结果状态（供 SaveStateBar 五态显示）
+    saveError,
+    lastSavedAt,
     applyTemplate,
     handleSave,
     publishToMiniapp,
@@ -531,5 +717,6 @@ export function useMiniappConfig() {
     autoBindPages,
     loadPages,
     loadConfig,
+    validateMineMenuBeforeSave,
   }
 }

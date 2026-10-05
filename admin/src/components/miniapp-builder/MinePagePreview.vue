@@ -172,9 +172,18 @@
           />
         </svg>
       </div>
-      <div class="mine-page-body" :class="{ 'mine-page-body--decor': showDecorBackground }">
+      <div
+        :class="[
+          `mine-page-body--${styleKey}`,
+          { 'mine-page-body--decor': showDecorBackground },
+          `mine-header--${headerStyle}`,
+          `mine-card--${cardStyle}`,
+        ]"
+        :style="pageRootStyle"
+      >
         <!-- 红区：头像资料行，叠在装饰背景上 -->
         <div
+          v-if="modules.userHeader"
           class="profile-row profile-row--clickable"
           :class="{
             'profile-row--on-decor': showDecorBackground,
@@ -196,7 +205,7 @@
             <template v-else>👤</template>
           </div>
           <div class="user-info">
-            <template v-if="previewLoggedIn">
+            <template v-if="effectiveLoggedIn">
               <div class="user-name-row">
                 <strong class="user-title">{{
                   mineConfig.userProfile.showNickname !== false
@@ -224,20 +233,20 @@
         </div>
 
         <!-- 数据行：与小程序 mine.wxml 的 .mn-st 对齐 -->
-        <div class="mine-stats">
+        <div v-if="modules.stats" class="mine-stats">
           <div v-for="s in MINE_STAT_LABELS" :key="s" class="mine-stats__item">
-            <span class="mine-stats__v">—</span>
+            <span class="mine-stats__v">{{ statValue(s) }}</span>
             <span class="mine-stats__l">{{ s }}</span>
           </div>
         </div>
 
         <!-- 绿区：会员信息卡片（搭建侧可关） -->
         <div
-          v-if="mineConfig.showMemberCard !== false"
+          v-if="modules.memberCard && mineConfig.showMemberCard !== false"
           class="member-info-card"
           :class="[
             `member-info-card--${styleKey}`,
-            { 'mine-card--outline': mineAccentColors.outline },
+            { 'mine-card--outline': cardStyle === 'outline' || mineAccentColors.outline },
           ]"
           :style="memberCardStyle"
         >
@@ -254,7 +263,7 @@
           <div class="member-info-main">
             <div class="member-info-title">{{ mineConfig.memberCardTitle || '会员中心' }}</div>
             <div v-if="mineConfig.userProfile.showMemberLevel" class="member-info-level">
-              {{ previewLoggedIn ? loggedInLevelLabel : (mineConfig.userProfile.memberLevelLabel || '会员等级') }}
+              {{ effectiveLoggedIn ? loggedInLevelLabel : (mineConfig.userProfile.memberLevelLabel || '会员等级') }}
             </div>
             <div class="member-info-benefits">{{ memberBenefitsLine }}</div>
           </div>
@@ -272,33 +281,60 @@
           「我的」是固定模板，后台只改文案与开关，所以预览必须照着真机的版式画；
           改 mine.wxml 时请同步这里，否则后台与真机又会漂开。
         -->
-        <div class="mine-quick">
+        <div v-if="modules.quickAccess" class="mine-quick">
           <div v-for="q in MINE_QUICK_ITEMS" :key="q.label" class="mine-quick__it">
             <span v-if="mineConfig.showMenuIcons" class="mine-quick__ic">{{ q.icon }}</span>
             <span class="mine-quick__tx">{{ q.label }}</span>
           </div>
         </div>
 
-        <div class="mine-block">
+        <div v-if="modules.continueLearn" class="mine-block">
           <div class="mine-block__t"><span class="mine-block__h">继续学习</span></div>
-          <div class="mine-block__empty">登录后同步学习进度</div>
+          <div v-if="effectiveLoggedIn && previewLearnItem" class="mine-cont__it">
+            <span class="mine-cont__im" />
+            <span class="mine-cont__main">
+              <span class="mine-cont__name">{{ previewLearnItem.title }}</span>
+              <span class="mine-cont__pt">已购买 · 点此继续</span>
+            </span>
+            <span class="mine-cont__go">继续</span>
+          </div>
+          <div v-else class="mine-block__empty">
+            {{ effectiveLoggedIn ? '还没有在学的课程' : '登录后同步学习进度' }}
+          </div>
         </div>
 
-        <div class="mine-block">
+        <div v-if="modules.myPlanet" class="mine-block">
           <div class="mine-block__t">
             <span class="mine-block__h">我的星球</span>
             <span class="mine-block__a">进入 ›</span>
           </div>
-          <div class="mine-block__empty">登录后查看已加入的星球</div>
+          <div v-if="effectiveLoggedIn && previewPlanetItem" class="mn-pl__it mine-pl__it--preview">
+            <span class="mn-pl__lg">🪐</span>
+            <span class="mn-pl__meta">
+              <span class="mn-pl__name">{{ previewPlanetItem.title || '暖阁星球' }}</span>
+              <span class="mn-pl__p">本星球会员有效</span>
+            </span>
+            <span v-if="previewPlanetItem.remainDays != null" class="mn-pl__rt">
+              <span class="mn-pl__rb">剩余 {{ previewPlanetItem.remainDays }} 天</span>
+            </span>
+          </div>
+          <div v-else class="mine-block__empty">
+            {{ effectiveLoggedIn ? '尚未开通本星球会员' : '登录后查看已加入的星球' }}
+          </div>
         </div>
 
-        <div v-if="visibleMenuItems.length" class="menu-card">
+        <!-- 菜单：每个分组一张独立卡片，与小程序 mine.wxml 的 .mn-menu 循环一致 -->
+        <div
+          v-for="group in visibleMenuGroups"
+          :key="group.name"
+          class="menu-card"
+        >
           <div class="preview-menu-list">
             <div
-              v-for="item in visibleMenuItems"
+              v-for="item in group.items"
               :key="item.id"
               class="preview-menu-row"
-              :class="{ 'preview-menu-row--clickable': isSettingsMenuItem(item) && previewLoggedIn }"
+              :class="{ 'preview-menu-row--clickable': isSettingsMenuItem(item) && effectiveLoggedIn }"
               @click="onMenuItemClick(item)"
             >
               <MenuIconDisplay
@@ -326,8 +362,20 @@ import {
   ORDER_TAB_ICONS,
   DEFAULT_ORDER_QUICK_ACCESS,
   resolveMineStyleKey,
+  resolveMineModules,
+  resolveMineEffectiveTheme,
+  normalizeMineVisibleOn,
+  normalizeMineHeaderStyle,
+  normalizeMineCardStyle,
 } from '@/types/miniapp'
 import MenuIconDisplay from './MenuIconDisplay.vue'
+
+/**
+ * 预览身份态（1.30 新增）。
+ * 与小程序端 `isLoggedIn` + `memberActive` 两个布尔量一一对应：
+ * guest=都没登录；loggedin=已登录非会员；member=已登录且会员有效。
+ */
+export type MineIdentity = 'guest' | 'loggedin' | 'member'
 
 /** 与 miniapp/pages/mine/mine.js 的 EMPTY_STATS、mine.wxml 的 .mn-quick 保持一致 */
 const MINE_STAT_LABELS = ['收藏', '笔记', '关注', '暖豆']
@@ -343,6 +391,20 @@ const NICKNAME_MAX_LEN = 10
 const props = defineProps<{
   mineConfig: MinePageConfig
   theme: Pick<ThemeConfig, 'primaryColor' | 'secondaryColor'>
+  /**
+   * 预览身份态（1.30 新增）：
+   * - guest：未登录
+   * - loggedin：已登录非会员
+   * - member：会员
+   * 不传时回落到旧的 previewLoggedIn 双态模型，保证 pages.vue 等既有调用方不受影响。
+   */
+  identity?: MineIdentity
+  /** 已登录态的统计数值预览（仅预览用，真机读 /mp/mine/overview） */
+  previewStats?: Record<string, string>
+  /** 已登录态的「继续学习」条目 */
+  previewLearnItem?: { title?: string } | null
+  /** 已登录态的「我的星球」条目 */
+  previewPlanetItem?: { title?: string; remainDays?: number | null } | null
 }>()
 
 const emit = defineEmits<{
@@ -354,6 +416,35 @@ const emit = defineEmits<{
 
 /** 仅预览态切换，非真实登录；由外层 chrome 控制 */
 const previewLoggedIn = defineModel<boolean>('previewLoggedIn', { default: false })
+
+/** 三态身份：guest / loggedin / member。显式传 identity 时优先。 */
+const identity = computed<MineIdentity>(() => {
+  const raw = String(props.identity || '')
+  if (raw === 'guest' || raw === 'loggedin' || raw === 'member') return raw
+  return previewLoggedIn.value ? 'loggedin' : 'guest'
+})
+
+/** 会员态：会员卡的权益文案与 CTA 走会员口径 */
+const isMemberIdentity = computed(() => identity.value === 'member')
+
+/**
+ * 「是否已登录」的实际取值。
+ * 旧的 `previewLoggedIn` 是 defineModel（外层可 v-model 写回），
+ * 这里收敛成一个 computed：identity 显式传值优先，否则回落到旧双态模型，
+ * 保证 pages.vue / pages.vue 悬停预览等既有调用方不传 identity 也照常工作。
+ */
+const effectiveLoggedIn = computed(() => identity.value !== 'guest')
+
+watch(
+  effectiveLoggedIn,
+  (v) => {
+    // 外部切到 guest 时把旧 model 一起归位，避免两套状态打架
+    if (!v && previewLoggedIn.value) previewLoggedIn.value = false
+    // 登录成功回调：从任意态切到「已登录非会员」
+    if (v && identity.value === 'guest') previewLoggedIn.value = true
+  },
+  { immediate: true },
+)
 
 const showProfileEdit = ref(false)
 const loginSheetApi = inject(PREVIEW_LOGIN_SHEET_API, null)
@@ -373,7 +464,72 @@ const editPhone = ref('')
 const editEmail = ref('')
 const avatarFileInput = ref<HTMLInputElement | null>(null)
 
-const visibleMenuItems = computed(() => props.mineConfig.menuItems.filter((m) => m.enabled))
+/**
+ * 生效主题色 —— 与小程序端 `system.js` 的 resolveMineEffectiveTheme 同源同语义。
+ * themeSource=inherit（默认）时忽略 mineConfig.themeColor，一律用全局品牌色。
+ */
+const effectiveTheme = computed(() =>
+  resolveMineEffectiveTheme(
+    {
+      themeSource: props.mineConfig.themeSource,
+      themeColor: props.mineConfig.themeColor,
+      themeColorSecondary: props.mineConfig.themeColorSecondary,
+    },
+    props.theme,
+  ),
+)
+
+/** 模块显隐：缺字段按 true（= 线上现状） */
+const modules = computed(() => resolveMineModules(props.mineConfig.modules))
+
+/** 头部配色：gradient（线上现状）| solid */
+const headerStyle = computed(() => normalizeMineHeaderStyle(props.mineConfig.headerStyle))
+
+/** 卡片样式：shadow（线上现状）| flat | outline */
+const cardStyle = computed(() => normalizeMineCardStyle(props.mineConfig.cardStyle))
+
+/** 页面根节点：注入生效品牌色变量；页面级背景色优先，空值回落到全局 */
+const pageRootStyle = computed(() => {
+  const pageBg = String(props.mineConfig.pageBackgroundColor || '').trim()
+  return {
+    '--mine-brand': effectiveTheme.value.primary,
+    '--mine-brand-2': effectiveTheme.value.secondary,
+    ...(pageBg ? { background: pageBg } : {}),
+  }
+})
+
+/** 统计数值：已登录时可由外部注入预览值，未登录/未注入显示占位「—」 */
+function statValue(label: string): string {
+  if (!effectiveLoggedIn.value) return '—'
+  const v = props.previewStats?.[label]
+  return v == null || v === '' ? '—' : String(v)
+}
+
+/**
+ * 可见菜单：先过 enabled，再过条件显示（visibleOn）。
+ * 端上 `_menuGroupsFromConfig` 用同一套口径（always/login/member）；
+ * 两边都只做「界面隐藏」，needLogin 的登录校验仍保留在端上 onMenuRowTap 里。
+ */
+const visibleMenuGroups = computed(() => {
+  const groups: Array<{ name: string; items: MineMenuItem[] }> = []
+  const map = new Map<string, MineMenuItem[]>()
+  for (const item of props.mineConfig.menuItems || []) {
+    if (item.enabled === false) continue
+    const rule = normalizeMineVisibleOn(item.visibleOn)
+    if (rule === 'login' && !effectiveLoggedIn.value) continue
+    if (rule === 'member' && !isMemberIdentity.value) continue
+    const name = String(item.group || '').trim() || '更多'
+    if (!map.has(name)) {
+      map.set(name, [])
+      groups.push({ name, items: map.get(name)! })
+    }
+    map.get(name)!.push(item)
+  }
+  return groups
+})
+
+/** 扁平菜单列表（部分旧逻辑只需要平铺结果时用） */
+const visibleMenuItems = computed(() => visibleMenuGroups.value.flatMap((g) => g.items))
 
 const showDecorBackground = computed(() => props.mineConfig.showDecorBackground !== false)
 
@@ -440,7 +596,7 @@ watch(
 )
 
 function openProfileEdit() {
-  if (!previewLoggedIn.value) {
+  if (!effectiveLoggedIn.value) {
     openLoginSheet()
     return
   }
@@ -511,15 +667,28 @@ function isSettingsMenuItem(item: MineMenuItem): boolean {
   )
 }
 
-/** 预览专用：已登录时点「设置」切到未登录 */
+/** 预览专用：已登录时点「设置」切到未登录（只改预览态，非真实退出） */
 function onMenuItemClick(item: MineMenuItem) {
-  if (previewLoggedIn.value && isSettingsMenuItem(item)) {
+  if (effectiveLoggedIn.value && isSettingsMenuItem(item)) {
     previewLoggedIn.value = false
   }
 }
 
+/**
+ * 会员卡权益文案：会员身份走会员口径，
+ * 已登录非会员走成长值口径，未登录走引导开通口径。
+ */
 const memberBenefitsLine = computed(() => {
-  if (previewLoggedIn.value) {
+  if (isMemberIdentity.value) {
+    if (styleKey.value === 'member') {
+      return '专属折扣 · 积分加速 · 优先预约'
+    }
+    if (styleKey.value === 'warm') {
+      return '星球通行 · 精选资料 · 共读陪伴'
+    }
+    return '专属折扣 · 积分加速 · 优先预约'
+  }
+  if (effectiveLoggedIn.value) {
     if (styleKey.value === 'member') {
       return '专属折扣 · 积分加速 · 优先预约'
     }
@@ -542,10 +711,11 @@ const memberBenefitsLine = computed(() => {
  * 小程序是**硬编码 emoji 🎫**，不读配置；这里跟随它，保证预览 = 真机。
  */
 const memberCardIconText = '🎫'
-const showMemberCardIcon = computed(() => props.mineConfig.showMemberCard !== false)
+const showMemberCardIcon = computed(() => modules.value.memberCard && props.mineConfig.showMemberCard !== false)
 
 const memberCtaText = computed(() => {
-  if (previewLoggedIn.value) return '查看权益'
+  if (isMemberIdentity.value) return '查看权益'
+  if (effectiveLoggedIn.value) return '查看权益'
   const raw = (props.mineConfig.loginButtonText || '').trim()
   // 预览未登录 CTA：优先简洁「登录」，点了只切预览态（非真登录）
   if (raw && raw !== '微信一键登录') return raw
@@ -554,7 +724,7 @@ const memberCtaText = computed(() => {
 
 /** 预览与真机一致：点登录唤起半屏 login-sheet */
 function onMemberCtaClick() {
-  if (!previewLoggedIn.value) {
+  if (!effectiveLoggedIn.value) {
     openLoginSheet()
   }
 }
@@ -572,8 +742,8 @@ function tabLabel(key: OrderTabKey): string {
 const mineAccentColors = computed(() => {
   const mc = props.mineConfig as unknown as Record<string, unknown>
   return {
-    primary: (mc.themeColor as string) || props.theme.primaryColor,
-    secondary: (mc.themeColorSecondary as string) || props.theme.secondaryColor,
+    primary: effectiveTheme.value.primary || props.theme.primaryColor,
+    secondary: effectiveTheme.value.secondary || props.theme.secondaryColor,
     flat: mc.style === 'flat',
     outline: mc.style === 'outline',
   }
@@ -682,11 +852,36 @@ const memberCardStyle = computed(() => {
   overflow: visible;
   /* 预览机 notch/状态栏避让：资料行整体下移 */
   padding-top: 20px;
+  min-height: 100%;
+  /* 页面级背景色（--mn-page-bg）由 pageRootStyle 注入，空值时用回默认底色 */
+  background: var(--mn-page-bg, #f7f4f1);
 }
 
 /* 资料行落在装饰区顶部；会员卡再往下叠一点（原 28 + 避让 20） */
 .mine-page-body--decor {
   padding-top: 48px;
+}
+
+/* ===== 1.30 主题继承 / 卡片样式 ===== */
+/* 头部 solid：不用渐变，直接铺品牌色（小程序端 .mn-hero--solid 对齐） */
+.mine-header--solid .profile-row {
+  background: var(--mine-brand, #c2410c) !important;
+  background-image: none !important;
+}
+/* 卡片 flat：去掉阴影与描边，只留留白 */
+.mine-card--flat .member-info-card,
+.mine-card--flat .menu-card,
+.mine-card--flat .mine-quick,
+.mine-card--flat .mine-block {
+  box-shadow: none !important;
+}
+/* 卡片 outline：白底描边 */
+.mine-card--outline .menu-card,
+.mine-card--outline .mine-quick,
+.mine-card--outline .mine-block {
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  box-shadow: none;
 }
 
 @keyframes fadeIn {
@@ -1385,5 +1580,66 @@ const memberCardStyle = computed(() => {
   background: rgba(248,236,221,.5);
   border-radius: 10px;
 }
+
+/* ===== 1.30 已登录态：继续学习 / 我的星球 的条目形态 =====
+   照着小程序 mine.wxml 的 .mn-cont__it / .mn-pl__it 画，
+   后台勾了「已登录」才有机会看到这两个块的真实内容。 */
+.mine-cont__it {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.mine-cont__im {
+  width: 52px;
+  height: 40px;
+  border-radius: 10px;
+  flex: none;
+  background: linear-gradient(135deg, #fdeedb, #f6ddbf);
+}
+.mine-cont__main { flex: 1; min-width: 0; }
+.mine-cont__name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2a1c12;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mine-cont__pt { display: block; margin-top: 4px; font-size: 11px; color: var(--mute, #a1897a); }
+.mine-cont__go {
+  flex: none;
+  font-size: 12px;
+  color: #fff;
+  background: var(--mine-brand-2, #ea580c);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.mn-pl__it--preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f2f5;
+}
+.mn-pl__lg {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: linear-gradient(135deg, #fdeedb, #f6ddbf);
+  flex: none;
+}
+.mn-pl__meta { flex: 1; min-width: 0; }
+.mn-pl__name { display: block; font-size: 13px; font-weight: 600; color: #2a1c12; }
+.mn-pl__p { display: block; margin-top: 3px; font-size: 11px; color: #a1897a; }
+.mn-pl__rt { margin-left: auto; text-align: right; flex: none; }
+.mn-pl__rb { display: block; font-size: 11px; font-weight: 700; color: var(--mine-brand, #c2410c); }
 
 </style>

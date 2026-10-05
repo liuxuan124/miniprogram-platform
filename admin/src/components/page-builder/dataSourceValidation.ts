@@ -8,12 +8,24 @@ const DATA_SOURCE_EXPECTED_TYPE: Record<string, string> = {
   appointment_service: 'appointment',
 }
 
+/**
+ * 🔴 优惠券：手动自选模式下 data_source 毫无意义（券由面板手选、不发请求）。
+ *   继续对它做「query 必填」校验，发布前会拦下一条**无法在界面上修复**的报错 ——
+ *   运营看不到、也补不了（旧 data_source 还在 defaultProps 里，但新页面可能没有）。
+ *   故手动模式直接跳过绑定校验；自动模式仍校验（端上要靠它取数）。
+ */
+function skipBindingCheck(type: string, props?: Record<string, any>): boolean {
+  if (type !== 'coupon') return false
+  return String(props?.data_mode || 'auto') === 'manual'
+}
+
 export function needsDataSourceBinding(type: string): boolean {
   return type in DATA_SOURCE_EXPECTED_TYPE
 }
 
 export function getDataSourceBinding(comp: { type: string; props?: Record<string, any> }) {
   if (!needsDataSourceBinding(comp.type)) return null
+  if (skipBindingCheck(comp.type, comp.props)) return null
   const ds = comp.props?.data_source
   const type = ds?.type ? String(ds.type) : ''
   const query = ds?.query

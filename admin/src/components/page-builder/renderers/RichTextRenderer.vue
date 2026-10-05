@@ -1,89 +1,162 @@
 <template>
-  <div class="render-rich-text split-text-typography" :style="richTextStyle" v-html="richTextHtml"></div>
+  <div class="render-rich-text" :class="{ 'is-editing': editing, 'is-empty': isEmpty }">
+    <!-- 空态：虚线引导 + 最小高度，防容器塌成 0px -->
+    <div v-if="isEmpty && !editing" class="rtx-blank">
+      <span class="rtx-blank__text">点击此处输入富文本，或在右侧开启全屏排版</span>
+    </div>
+
+    <!-- 富文本作用域：移动端重置样式挂这里 -->
+    <div
+      v-else
+      ref="contentRef"
+      class="rich-text-content rtx-content"
+      :class="{ 'is-inline-editing': editing }"
+      :style="containerStyle"
+      :contenteditable="editing ? 'true' : undefined"
+      spellcheck="false"
+      @dblclick="onDblClick"
+      @blur="onBlur"
+      @input="onInput"
+    >
+      <div v-if="editing" class="rtx-editing-tip">就地编辑中 · 点击外部保存</div>
+      <!-- eslint-disable-next-line vue/no-v-html -- 富文本内容本身即为 HTML -->
+      <div class="rtx-html" v-html="cfg.content"></div>
+    </div>
+
+    <!-- 编辑态：双击任意处进入就地编辑 -->
+    <button
+      v-if="!previewMode && !editing && !isEmpty"
+      type="button"
+      class="rtx-edit-tip"
+      title="双击内容可就地编辑"
+      @click.stop="onDblClick"
+    >
+      ✎ 双击编辑
+    </button>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
+import {
+  isRichTextEmpty,
+  normalizeRichTextProps,
+  richContainerStyle,
+} from '../richText/richTextSchema'
 
 const props = defineProps<{
   component: ComponentInstance
   previewMode?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
+  /** 回写 props：由 ComponentItem 转发到 store（此前无任何渲染器能改 props） */
+  'patch-props': [partial: Record<string, any>]
   'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
 }>()
 
-const richTextHtml = computed(() => {
-  const content = String(props.component.props?.content || '').trim()
-  if (!content) return '<p style="color:#9ca3af">请输入富文本内容</p>'
-  return content
-})
+const editing = ref(false)
+const contentRef = ref<HTMLElement | null>(null)
 
-const richTextStyle = computed<Record<string, string>>(() => {
-  const style: Record<string, string> = {}
-  const color = props.component.props?.text_color
-  if (color) style.color = String(color)
-  const bg = props.component.props?.background_color || props.component.style?.background_color
-  if (bg) style.backgroundColor = String(bg)
-  return style
-})
+/** 与属性面板读同一份归一化配置 */
+const cfg = computed(() => normalizeRichTextProps(props.component.props))
+
+const isEmpty = computed(() => isRichTextEmpty(cfg.value.content))
+
+const containerStyle = computed(() => richContainerStyle(cfg.value))
+
+/** 就地编辑：双击进入；容器样式不参与编辑区，避免把边距当正文改 */
+function onDblClick(e: MouseEvent) {
+  if (props.previewMode) return
+  e.stopPropagation()
+  editing.value = true
+  requestAnimationFrame(() => {
+    contentRef.value?.focus()
+  })
+}
+
+function onInput() {
+  const el = contentRef.value?.querySelector('.rtx-html') as HTMLElement | null
+  if (!el) return
+  emit('patch-props', { content: el.innerHTML })
+}
+
+function onBlur() {
+  if (!editing.value) return
+  editing.value = false
+  // 富文本常带浏览器自动生成的空 <p><br></p>，保存前清掉避免端上出现空行
+  const el = contentRef.value?.querySelector('.rtx-html') as HTMLElement | null
+  const html = (el?.innerHTML || '').trim()
+  if (!isRichTextEmpty(html)) {
+    emit('patch-props', { content: html })
+    ElMessage.success('富文本已保存')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
 .render-rich-text {
-  padding: 10px 12px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #303133;
-  word-break: break-word;
-  background: #fff;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-  :deep(h1) {
-    margin: 0.4em 0;
-    font-size: 22px;
-    font-weight: 800;
-  }
+/* 空态：给最小高度，杜绝塌成 0px */
+.rtx-blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 16px 12px;
+  text-align: center;
+  background: #fafbfd;
+  border: 1px dashed #d9e0ea;
+  border-radius: 8px;
+}
 
-  :deep(h2) {
-    margin: 0.4em 0;
-    font-size: 18px;
-    font-weight: 700;
-  }
+.rtx-blank__text {
+  font-size: 12px;
+  color: #9aa4b2;
+}
 
-  :deep(h3) {
-    margin: 0.35em 0;
-    font-size: 15px;
-    font-weight: 700;
-  }
+.rtx-content {
+  outline: none;
+}
 
-  :deep(p) {
-    margin: 0.35em 0;
-  }
+/* 就地编辑态：给一圈提示边框，让人知道正在改 */
+.rtx-content.is-inline-editing {
+  border: 1px dashed var(--color-primary, #c08e6e);
+  border-radius: 8px;
+  cursor: text;
+}
 
-  :deep(ul),
-  :deep(ol) {
-    margin: 0.35em 0;
-    padding-left: 1.4em;
-  }
+.rtx-editing-tip {
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--color-primary, #c08e6e);
+}
 
-  :deep(a) {
-    color: var(--color-primary);
-  }
+.rtx-edit-tip {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 4;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: #6b5b4e;
+  cursor: pointer;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #e3ddd3;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 10%);
+}
 
-  :deep(img) {
-    max-width: 100%;
-    height: auto;
-    border-radius: 6px;
-  }
-
-  :deep(blockquote) {
-    margin: 0.5em 0;
-    padding: 6px 10px;
-    color: #64748b;
-    background: #f8fafc;
-    border-left: 3px solid #cbd5e1;
+@media (prefers-reduced-motion: reduce) {
+  .rtx-content {
+    transition: none;
   }
 }
 </style>

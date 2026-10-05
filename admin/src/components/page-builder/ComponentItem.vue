@@ -24,6 +24,7 @@
       :fab-only="true"
       :selected="selected"
       @preview-action="(payload: any) => $emit('preview-action', payload)"
+      @focus-seg="(key: string) => $emit('focus-seg', key)"
       @select-hint="$emit('select')"
     />
   </div>
@@ -49,6 +50,8 @@
       :component="component"
       :preview-mode="previewMode"
       @preview-action="(payload: any) => $emit('preview-action', payload)"
+      @focus-seg="(key: string) => $emit('focus-seg', key)"
+      @patch-props="(partial: any) => onPatchProps(partial)"
     />
   </component>
 </template>
@@ -62,6 +65,21 @@ import BaseRenderer from './renderers/BaseRenderer.vue'
 // renderer 映射与别名表已抽到 renderers/registry.ts，与区块缩略图共用同一套，
 // 避免「画布长这样、缩略图长那样」（新增组件只需改 registry.ts 一处）。
 import { resolveRenderer } from './renderers/registry'
+import { usePageStore } from '@/stores/page'
+
+const pageStore = usePageStore()
+
+/**
+ * 渲染器回写 props 的唯一通道。
+ * 🔴 之前**没有任何渲染器能改 props**（`update` 事件没人监听），
+ * 所以富文本「双击就地编辑」如果只 emit('update') 会静默失效 ——
+ * 表现为「双击能进编辑态、输了字一松手内容又回去了」。
+ * 这里统一由 ComponentItem 转发给 store，与 PropsPanel 走同一方法。
+ */
+function onPatchProps(partial: Record<string, any>) {
+  if (!props.component?.id || !partial) return
+  pageStore.updateComponentProps(props.component.id, partial)
+}
 
 const props = defineProps<{
   component: ComponentInstance
@@ -78,6 +96,8 @@ const emit = defineEmits<{
   'move-up': []
   'move-down': []
   'save-as-block': []
+  /** 画布内点了子项（如分段标签）→ 上抛给 CanvasArea 定位属性面板 */
+  'focus-seg': [key: string]
   'preview-action': [payload: {
     tab: string
     message: string

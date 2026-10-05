@@ -1,8 +1,10 @@
 <template>
   <div class="render-article-feed split-text-typography" :class="{ 'render-article-feed--preview': previewMode }">
+    <!-- 分类导航：形态由 tab_style 控制；编辑态点击只切换，不触发页面跳转 -->
     <div
-      v-if="showCategoryTabs && categoryTabs.length"
+      v-if="cfg.show_category_tabs && categoryTabs.length"
       class="feed-tabs"
+      :class="`feed-tabs--${cfg.tab_style}`"
       @mousedown.stop
       @pointerdown.stop
       @touchstart.stop
@@ -14,49 +16,121 @@
         type="button"
         class="feed-tab"
         :class="{ active: activeTabId === String(tab.id) }"
-        @click.stop="activeTabId = String(tab.id)"
+        @click.stop="onTabClick(tab)"
       >
         {{ tab.name }}
       </button>
     </div>
-    <div v-if="showFailState" class="preview-data-empty preview-data-fail">
-      {{ failMessage }}
+
+    <!-- 空态：结构完整 + 可操作提示，绝不白屏/塌陷 -->
+    <div v-if="showFailState" class="feed-empty feed-empty--fail">
+      <span class="feed-empty__icon">⚠️</span>
+      <p class="feed-empty__title">文章数据读取失败</p>
+      <p class="feed-empty__hint">{{ failMessage }}</p>
     </div>
-    <div v-else-if="showFilteredEmpty" class="preview-data-empty">
-      {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
-    </div>
-    <div v-else-if="!previewMode && (liveLoading || tabLoading)" class="preview-data-empty">正在读取已发布内容…</div>
-    <div
-      v-else
-      class="feed-body"
-      :class="[`layout-${articleLayout}`, { 'is-tabs-mode': showCategoryTabs }]"
-      :style="{ gap: `${itemGap}px` }"
-    >
-      <div
-        v-for="(item, index) in filteredArticleItems"
-        :key="`${item.id || item.title || 'article'}-${index}`"
-        class="article-card"
-        :class="[`article-card--${cardModifier(index)}`, { 'is-clickable': previewMode }]"
-        @click="onArticleClick($event, item)"
-      >
-        <div v-if="component.props.show_cover !== false" class="article-img">
-          <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
-          <span v-else>📖</span>
-        </div>
-        <div class="article-info">
-          <div v-if="item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
-          <div class="article-title" :style="isOverlayCard(index) ? undefined : itemTitleStyle">{{ item.title || '文章标题' }}</div>
-          <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
-          <div v-if="component.props.show_date !== false && (item.meta || item.source)" class="article-meta-row" :style="itemMetaStyle">
-            <span v-if="item.meta">{{ item.meta }}</span>
-            <span v-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
-          </div>
+
+    <div v-else-if="showSkeleton" class="feed-skeleton" aria-hidden="true">
+      <div v-for="i in skeletonRows" :key="`sk-${i}`" class="feed-skeleton__row">
+        <i class="feed-skeleton__thumb" />
+        <div class="feed-skeleton__lines">
+          <b /><b class="feed-skeleton__short" />
         </div>
       </div>
     </div>
-    <div v-if="!showFailState && !showFilteredEmpty && !liveLoading && filteredArticleItems.length" class="feed-footer">
-      <span>{{ previewMode ? '预览：小程序下滑页面将自动加载更多' : '下滑页面加载更多文章…' }}</span>
+
+    <div v-else-if="showFilteredEmpty" class="feed-empty">
+      <span class="feed-empty__icon">🔍</span>
+      <p class="feed-empty__title">{{ emptyTitle }}</p>
+      <p class="feed-empty__hint">{{ emptyHint }}</p>
     </div>
+
+    <div
+      v-else
+      class="feed-body"
+      :class="[
+        `layout-${cfg.layout}`,
+        `divider-${cfg.divider_style}`,
+        { 'is-tabs-mode': cfg.show_category_tabs, 'cover-left': coverOnLeft },
+      ]"
+      :style="{ gap: `${cfg.item_gap}px`, padding: `0 ${cfg.card_margin}px` }"
+    >
+      <article
+        v-for="(item, index) in displayItems"
+        :key="`${item.id || item.title || 'article'}-${index}`"
+        class="article-card"
+        :class="[`article-card--${cardModifier(index)}`, { 'is-clickable': canNavigate }]"
+        :style="cardStyle(item, index)"
+        @click="onArticleClick($event, item)"
+      >
+        <div v-if="showCoverFor(item)" class="article-img" :style="coverStyle(index)">
+          <img v-if="item.cover" :src="item.cover" alt="" class="article-cover" />
+          <span v-else class="article-img__ph">📖</span>
+          <!-- 角标位置：封面上 -->
+          <span v-if="cfg.badge_position === 'cover' && visibleBadges(item).length" class="article-badges article-badges--cover">
+            <em v-for="b in visibleBadges(item)" :key="b" class="article-badge">{{ badgeText(b) }}</em>
+          </span>
+        </div>
+
+        <div class="article-info">
+          <div v-if="cfg.show_source_tag && item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
+
+          <!-- 专栏 / 话题胶囊 -->
+          <span v-if="cfg.show_column_tag && item.columnName" class="article-column">{{ item.columnName }}</span>
+
+          <div class="article-title" :style="titleStyle(item, index)">
+            <!-- 角标位置：标题旁 -->
+            <span v-if="cfg.badge_position === 'title' && visibleBadges(item).length" class="article-badges article-badges--title">
+              <em v-for="b in visibleBadges(item)" :key="b" class="article-badge">{{ badgeText(b) }}</em>
+            </span>
+            {{ item.title || '文章标题' }}
+          </div>
+
+          <p v-if="cfg.show_excerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt" :style="excerptStyle">
+            {{ item.excerpt }}
+          </p>
+
+          <div class="article-meta-row" :style="metaStyle">
+            <!-- 发布者：头像 + 名称 + 认证 -->
+            <span v-if="cfg.show_author && item.authorName" class="article-author">
+              <img v-if="item.authorAvatar" :src="item.authorAvatar" alt="" class="article-author__avatar" />
+              <span class="article-author__name">{{ item.authorName }}</span>
+              <span v-if="item.authorVerified" class="article-author__v" title="认证主理人">V</span>
+            </span>
+            <span v-if="cfg.show_source_tag && item.source && !isOverlayCard(index)">{{ item.source }}</span>
+            <span v-if="cfg.show_date && item.meta">{{ item.meta }}</span>
+            <!-- 互动热度：按勾选的维度展示 -->
+            <span v-if="cfg.show_metrics.length" class="article-metrics">
+              <span v-if="hasMetric('views') && item.viewCount">◉ {{ item.viewCount }}</span>
+              <span v-if="hasMetric('likes') && item.likeCount">♥ {{ item.likeCount }}</span>
+              <span v-if="hasMetric('reading') && item.readingMinutes">⏱ 阅读 {{ item.readingMinutes }} 分钟</span>
+            </span>
+            <!-- 角标位置：底部行 -->
+            <span v-if="cfg.badge_position === 'meta' && visibleBadges(item).length" class="article-badges article-badges--meta">
+              <em v-for="b in visibleBadges(item)" :key="b" class="article-badge">{{ badgeText(b) }}</em>
+            </span>
+            <!-- 行动引导 -->
+            <span v-if="cfg.show_cta" class="article-cta">{{ cfg.cta_text }}</span>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div v-if="showFooter" class="feed-footer">
+      <span>{{ footerText }}</span>
+    </div>
+
+    <!-- 编辑态点击保护：默认只用于选中组件，滑动/跳转需显式切到交互预览 -->
+    <button
+      v-if="!previewMode"
+      type="button"
+      class="feed-mode"
+      :class="{ 'is-preview': interactive }"
+      :title="interactive ? '交互预览：可点击卡片，点此回到编辑态' : '编辑态：点击仅选中组件，点此进入交互预览'"
+      @click.stop.prevent="interactive = !interactive"
+    >
+      <span class="feed-mode__dot" aria-hidden="true"></span>
+      {{ interactive ? '交互预览' : '编辑态' }}
+    </button>
   </div>
 </template>
 
@@ -66,9 +140,17 @@ import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 import { fetchTopContentCategoryTabs, withAllCategoryTab } from '@/utils/content-category-tabs'
 import { loadHydratedComponent } from '@/utils/preview-datasource'
-import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
-import { articleCardModifier, resolveArticleLayout } from '../articleLayouts'
+import { articleCardModifier } from '../articleLayouts'
+import {
+  coverAspectCss,
+  normalizeArticleFeedProps,
+  hidesCoverInLayout,
+  FEED_BADGE_TEXT,
+  type ArticleFeedProps,
+  type FeedBadgeKey,
+  type FeedMetricKey,
+} from '../articleFeed/articleFeedSchema'
 
 type ArticleItem = {
   id?: number | string
@@ -80,6 +162,23 @@ type ArticleItem = {
   source?: string
   categoryId?: string | number
   categoryName?: string
+  authorName?: string
+  authorAvatar?: string
+  likeCount?: number
+  viewCount?: number
+  isOriginal?: boolean
+  /** 本轮新增：专栏 / 认证 / 角标标记 / 阅读时长 */
+  columnName?: string
+  authorVerified?: boolean
+  readingMinutes?: number
+  isPinned?: boolean
+  isFeatured?: boolean
+  isLatest?: boolean
+  isDeepReport?: boolean
+  hasAudio?: boolean
+  hasVideo?: boolean
+  isMemberOnly?: boolean
+  isFreeLimited?: boolean
 }
 
 const props = defineProps<{
@@ -91,23 +190,75 @@ const emit = defineEmits<{
   'preview-action': [payload: { tab: string; message: string; detailType?: string; detailTitle?: string; detailDesc?: string }]
 }>()
 
+/** 编辑态是否允许真实点击跳转 */
+const interactive = ref(false)
+
+/** 🔴 与属性面板读同一份归一化配置，杜绝「面板一种、画布另一种」 */
+const cfg = computed<ArticleFeedProps>(() => normalizeArticleFeedProps(props.component.props))
+
+/* ---------------- 封面位置 / 容器风格 ---------------- */
+/** 纯文字版式强制隐藏封面（需求 2.1 形态 F） */
+function showCoverFor(item: ArticleItem): boolean {
+  if (hidesCoverInLayout(cfg.value.layout)) return false
+  if (!cfg.value.show_cover) return false
+  return !!item.cover
+}
+
+/** 封面是否在左（仅横向图文版式生效；网格/大图类版式封面在上方，忽略该设置） */
+const coverOnLeft = computed(() => {
+  const l = cfg.value.layout
+  const supports = l === 'list' || l === 'card' || l === 'compact'
+  return supports && cfg.value.cover_position === 'left'
+})
+
+/* ---------------- 状态角标 ---------------- */
+/**
+ * 按勾选的角标类型 ∩ 文章实际具备的标记。
+ * 例如运营勾了「音频」但这篇没有音频字段，就不该显示空角标。
+ */
+function visibleBadges(item: ArticleItem): string[] {
+  const flagMap: Record<string, unknown> = {
+    original: item.isOriginal,
+    pinned: item.isPinned,
+    featured: item.isFeatured,
+    latest: item.isLatest,
+    deep_report: item.isDeepReport,
+    audio: item.hasAudio,
+    video: item.hasVideo,
+    member_only: item.isMemberOnly,
+    free_limited: item.isFreeLimited,
+  }
+  return cfg.value.show_badges.filter((k) => !!flagMap[k])
+}
+
+function badgeText(key: string): string {
+  return FEED_BADGE_TEXT[key as FeedBadgeKey] || key
+}
+
+function hasMetric(key: FeedMetricKey): boolean {
+  return cfg.value.show_metrics.includes(key)
+}
+
 const activeTabId = ref('')
 const liveCategoryTabs = ref<Array<{ id: string; name: string }>>([])
 const tabItems = ref<ArticleItem[]>([])
 const tabLoading = ref(false)
 
-const showCategoryTabs = computed(() => props.component.props?.show_category_tabs === true)
-const categoryTabs = computed(() => withAllCategoryTab(liveCategoryTabs.value))
+const categoryTabs = computed(() => {
+  const list = withAllCategoryTab(liveCategoryTabs.value)
+  return cfg.value.tab_show_all ? list : list.filter((t) => String(t.id) !== '')
+})
 
+/* ---------------- 分类导航 ---------------- */
 async function loadCategoryTabs() {
-  if (!showCategoryTabs.value) {
+  if (!cfg.value.show_category_tabs) {
     liveCategoryTabs.value = []
     return
   }
   liveCategoryTabs.value = await fetchTopContentCategoryTabs()
 }
 
-watch(showCategoryTabs, () => {
+watch(() => cfg.value.show_category_tabs, () => {
   void loadCategoryTabs()
 }, { immediate: true })
 
@@ -127,17 +278,13 @@ function buildTabFetchComponent(tabId: string): ComponentInstance {
     ...base,
     props: {
       ...base.props,
-      data_source: {
-        type: 'content',
-        params,
-        query: params,
-      },
+      data_source: { type: 'content', params, query: params },
     },
   }
 }
 
 async function loadTabArticles(tabId: string) {
-  if (props.previewMode || !showCategoryTabs.value) return
+  if (props.previewMode || !cfg.value.show_category_tabs) return
   tabLoading.value = true
   try {
     const next = await loadHydratedComponent(buildTabFetchComponent(tabId))
@@ -155,9 +302,9 @@ async function loadTabArticles(tabId: string) {
 }
 
 watch(
-  [showCategoryTabs, activeTabId, () => props.component.props?.page_size, () => props.component.props?.data_source],
+  [() => cfg.value.show_category_tabs, activeTabId, () => cfg.value.page_size, () => props.component.props?.data_source],
   () => {
-    if (!showCategoryTabs.value) {
+    if (!cfg.value.show_category_tabs) {
       tabItems.value = []
       return
     }
@@ -166,45 +313,19 @@ watch(
   { immediate: true },
 )
 
-const articleLayout = computed(() => resolveArticleLayout(
-  props.component.props?.layout || props.component.props?.style_type,
-  'list',
-))
-
-const showExcerpt = computed(() => articleLayout.value === 'editorial' || articleLayout.value === 'magazine')
-
+/* ---------------- 版式 ---------------- */
 function cardModifier(index: number) {
-  return articleCardModifier(articleLayout.value, index)
+  return articleCardModifier(cfg.value.layout, index)
 }
 
 function isOverlayCard(index: number) {
   return cardModifier(index) === 'overlay'
 }
 
-const itemGap = computed(() => {
-  const n = Number(props.component.props?.item_gap)
-  return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : 8
-})
-
-const pageSize = computed(() => Math.max(Number(props.component.props?.page_size || 10), 5))
-
-const itemTitleStyle = computed(() => titleFontStyle(props.component.props?.title_font_size, 13))
-const itemMetaStyle = computed(() => titleFontStyle(props.component.props?.subtitle_font_size, 11))
-
+/* ---------------- 数据 ---------------- */
 const { items: liveItems, loading: liveLoading, empty: liveEmpty, failed: liveFailed } = useEditorLiveItems(
   () => props.component,
   () => !!props.previewMode,
-)
-
-const showFailState = computed(() => {
-  if (props.previewMode) return !!props.component.props?._previewDataFailed
-  return liveFailed.value
-})
-
-const failMessage = computed(() =>
-  props.previewMode
-    ? '文章数据加载失败，请确认内容已发布或稍后重试'
-    : '文章数据请求失败，请检查网络',
 )
 
 function formatDisplayDate(value: unknown): string {
@@ -238,60 +359,178 @@ function mapArticle(item: any): ArticleItem {
     source: item.source || item.categoryName || item.category_name || '',
     categoryId: item.categoryId ?? item.category_id,
     categoryName: item.categoryName || item.category_name || '',
+    authorName: item.authorName || item.author_name || item.author?.name || '',
+    authorAvatar: item.authorAvatar || item.author_avatar || item.author?.avatar || '',
+    likeCount: Number(item.likeCount ?? item.like_count ?? 0) || 0,
+    viewCount: Number(item.viewCount ?? item.view_count ?? 0) || 0,
+    isOriginal: Number(item.isOriginal ?? item.is_original ?? 0) === 1,
+    // —— 本轮新增的卡片要素字段 ——
+    columnName: String(item.columnName || item.column_name || item.column || '').trim(),
+    authorVerified: Number(item.authorVerified ?? item.author_verified ?? 0) === 1,
+    // 预估阅读时长：优先用后端给的分钟数，否则按摘要长度粗估
+    readingMinutes: Number(item.readingMinutes ?? item.reading_minutes ?? 0) || undefined,
+    isPinned: Number(item.isPinned ?? item.is_pinned ?? 0) === 1,
+    isFeatured: Number(item.isFeatured ?? item.is_featured ?? 0) === 1,
+    isLatest: Number(item.isLatest ?? item.is_latest ?? 0) === 1,
+    isDeepReport: Number(item.isDeepReport ?? item.is_deep_report ?? 0) === 1,
+    hasAudio: Number(item.hasAudio ?? item.has_audio ?? 0) === 1,
+    hasVideo: Number(item.hasVideo ?? item.has_video ?? 0) === 1,
+    isMemberOnly: Number(item.isMemberOnly ?? item.is_member_only ?? 0) === 1,
+    isFreeLimited: Number(item.isFreeLimited ?? item.is_free_limited ?? 0) === 1,
   }
 }
 
 const visibleArticleItems = computed<ArticleItem[]>(() => {
   const items = props.component.props?.items
-  const limit = pageSize.value
-  const source = (() => {
-    if (props.previewMode) {
-      if (!Array.isArray(items) || items.length === 0) return []
-      return items.slice(0, Math.max(limit, 20))
-    }
-    const live = liveItems.value.length ? liveItems.value : (Array.isArray(items) ? items : [])
-    return live
-  })()
-  return source.map(mapArticle)
+  if (props.previewMode) {
+    if (!Array.isArray(items) || items.length === 0) return []
+    return items.slice(0, Math.max(cfg.value.page_size, 20)).map(mapArticle)
+  }
+  const live = liveItems.value.length ? liveItems.value : (Array.isArray(items) ? items : [])
+  return live.map(mapArticle)
 })
 
-const filteredArticleItems = computed(() => {
-  const limit = pageSize.value
-  if (showCategoryTabs.value) {
-    if (!props.previewMode) {
-      return tabItems.value.slice(0, limit)
+/**
+ * 🔴 置顶优先：置顶项按配置顺序排在最前，其余按原序跟随。
+ * 画布与端上同一口径（端上在 dsl-article-feed 里做同样处理）。
+ */
+const displayItems = computed<ArticleItem[]>(() => {
+  const limit = cfg.value.page_size
+  const pool = cfg.value.show_category_tabs
+    ? (props.previewMode
+        ? filterByTab(visibleArticleItems.value)
+        : tabItems.value.slice(0, limit))
+    : visibleArticleItems.value.slice(0, limit)
+
+  const pinned = cfg.value.pinned
+  if (!pinned.length) return pool
+
+  const byId = new Map(pool.map((it) => [String(it.id ?? ''), it]))
+  const head: ArticleItem[] = []
+  for (const p of pinned) {
+    const hit = byId.get(String(p.id))
+    if (hit) {
+      head.push(hit)
+      byId.delete(String(p.id))
+    } else {
+      // 置顶的文章不在当前筛选结果里（常见：筛选条件变了）也要占位，
+      // 否则运营会以为「置顶没生效」而反复排查
+      head.push({ id: p.id, title: p.title || `文章 #${p.id}`, cover: p.cover })
     }
-    const tabId = String(activeTabId.value || '')
-    let list = visibleArticleItems.value
-    if (tabId) {
-      const tab = categoryTabs.value.find((t) => String(t.id) === tabId)
-      list = list.filter((item) => {
-        if (tab && /^\d+$/.test(String(tab.id)) && item.categoryId != null) {
-          return String(item.categoryId) === String(tab.id)
-        }
-        const name = tab?.name || tabId
-        const blob = `${item.categoryName || ''} ${item.source || ''} ${item.title || ''}`
-        return blob.includes(name)
-      })
-    }
-    return list.slice(0, limit)
   }
-  const live = visibleArticleItems.value
-  return live.slice(0, limit)
+  const headIds = new Set(head.map((h) => String(h.id ?? '')))
+  const rest = pool.filter((it) => !headIds.has(String(it.id ?? '')))
+  return [...head, ...rest].slice(0, Math.max(limit, head.length))
 })
+
+function filterByTab(list: ArticleItem[]): ArticleItem[] {
+  const tabId = String(activeTabId.value || '')
+  if (!tabId) return list
+  const tab = categoryTabs.value.find((t) => String(t.id) === tabId)
+  return list.filter((item) => {
+    if (tab && /^\d+$/.test(String(tab.id)) && item.categoryId != null) {
+      return String(item.categoryId) === String(tab.id)
+    }
+    const name = tab?.name || tabId
+    return `${item.categoryName || ''} ${item.source || ''} ${item.title || ''}`.includes(name)
+  })
+}
+
+/* ---------------- 空态 / 骨架 ---------------- */
+const showFailState = computed(() => {
+  if (props.previewMode) return !!props.component.props?._previewDataFailed
+  return liveFailed.value
+})
+
+const failMessage = computed(() =>
+  props.previewMode
+    ? '文章数据加载失败，请确认内容已发布或稍后重试'
+    : '文章数据请求失败，请检查网络',
+)
+
+/** 骨架：仅编辑态且正在拉取时显示（预览态失败已有独立提示） */
+const showSkeleton = computed(() =>
+  !props.previewMode && !showFailState.value && (liveLoading.value || tabLoading.value),
+)
+
+const skeletonRows = computed(() => Math.min(cfg.value.page_size, 5))
 
 const showFilteredEmpty = computed(() => {
-  if (showFailState.value || liveLoading.value || tabLoading.value) return false
-  if (showCategoryTabs.value) return filteredArticleItems.value.length === 0
-  if (props.previewMode) {
-    const items = props.component.props?.items
-    return !Array.isArray(items) || items.length === 0
-  }
-  return liveEmpty.value
+  if (showFailState.value || showSkeleton.value) return false
+  return displayItems.value.length === 0
 })
 
+/** 空态提示要能指出「为什么空」，否则运营只会反复刷新 */
+const emptyTitle = computed(() => {
+  const reasons: string[] = []
+  if (cfg.value.scope === 'category') reasons.push('分类')
+  if (cfg.value.scope === 'column') reasons.push('专栏')
+  if (cfg.value.filter_topic_tags.length) reasons.push('话题标签')
+  if (cfg.value.filter_platform_codes.length) reasons.push('平台维度')
+  if (cfg.value.show_category_tabs && activeTabId.value) reasons.push('当前分类')
+  return reasons.length ? '当前筛选条件下暂无文章' : '暂无可展示的文章'
+})
+
+const emptyHint = computed(() => {
+  const hasFilter = cfg.value.filter_topic_tags.length
+    || cfg.value.filter_platform_codes.length
+    || cfg.value.scope !== 'all'
+  return hasFilter ? '请调整分类、专栏或标签筛选条件后重试' : '请先发布内容，或检查筛选条件是否过窄'
+})
+
+const showFooter = computed(() =>
+  !showFailState.value && !showFilteredEmpty.value && !showSkeleton.value && displayItems.value.length > 0,
+)
+
+const footerText = computed(() => {
+  const max = cfg.value.max_count
+  if (max > 0 && displayItems.value.length >= max) return '已展示全部内容'
+  if (props.previewMode) return '小程序下滑页面将自动加载更多'
+  if (cfg.value.load_mode === 'button') return '点击「查看更多」加载下一篇'
+  if (cfg.value.load_mode === 'pager') return '可通过分页器切换'
+  return cfg.value.load_more_text
+})
+
+/* ---------------- 样式派生（响应配置） ---------------- */
+function coverStyle(index: number): Record<string, string> {
+  const style: Record<string, string> = {}
+  if (index === 0 && cfg.value.layout === 'magazine') return style
+  const aspect = coverAspectCss(cfg.value.cover_aspect)
+  if (aspect) style.aspectRatio = aspect
+  style.borderRadius = `${cfg.value.cover_radius}px`
+  return style
+}
+
+/** 卡片外边距统一在 .feed-body 上用 padding 施加，这里不需要逐卡 inline 样式 */
+function cardStyle(_item: ArticleItem, _index: number): Record<string, string> | undefined {
+  return undefined
+}
+
+function titleStyle(item: ArticleItem, index: number): Record<string, string> | undefined {
+  void item
+  if (isOverlayCard(index)) return undefined
+  return {
+    fontSize: `${cfg.value.title_font_size}px`,
+    fontWeight: cfg.value.title_bold ? '700' : '600',
+  }
+}
+
+const excerptStyle = computed<Record<string, string>>(() => ({
+  fontSize: `${cfg.value.subtitle_font_size}px`,
+  WebkitLineClamp: String(cfg.value.excerpt_lines),
+}))
+
+const metaStyle = computed<Record<string, string>>(() => ({
+  fontSize: `${cfg.value.subtitle_font_size}px`,
+  color: cfg.value.subtitle_color,
+}))
+
+/* ---------------- 交互 ---------------- */
+const canNavigate = computed(() => props.previewMode === true || interactive.value)
+
 function onArticleClick(event: MouseEvent, item: ArticleItem) {
-  if (!props.previewMode) return
+  // 编辑态：交回给外层做组件选中，绝不跳转
+  if (!canNavigate.value) return
   event.stopPropagation()
   const id = item.id
   if (id == null) {
@@ -307,6 +546,11 @@ function onArticleClick(event: MouseEvent, item: ArticleItem) {
   })
 }
 
+function onTabClick(tab: { id: string; name: string }) {
+  activeTabId.value = String(tab.id)
+  // 预览态允许切分类；编辑态仅切换展示，不做任何跳转
+}
+
 function onTabsWheel(event: WheelEvent) {
   const el = event.currentTarget as HTMLElement | null
   if (!el || el.scrollWidth <= el.clientWidth + 1) return
@@ -318,13 +562,16 @@ function onTabsWheel(event: WheelEvent) {
 }
 </script>
 
+
 <style lang="scss" scoped>
 .render-article-feed {
+  position: relative;
   width: 100%;
   min-width: 0;
   overflow: visible;
 }
 
+/* ---------- 分类导航：三种形态 ---------- */
 .feed-tabs {
   position: sticky;
   top: 0;
@@ -342,13 +589,34 @@ function onTabsWheel(event: WheelEvent) {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   background: #fff;
-  border-bottom: 1px solid #edf0f5;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   box-sizing: border-box;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  /* 极简下划线：去掉底边线，改用文字下划线指示 */
+  &--underline {
+    gap: 14px;
+    background: transparent;
+    border-bottom: 0;
+
+    .feed-tab {
+      padding: 6px 2px;
+      border-radius: 0;
+    }
+
+    .feed-tab.active {
+      background: transparent;
+      box-shadow: inset 0 -2px 0 0 currentColor;
+    }
+  }
+
+  /* 分段选择器：整体灰底，选中项白底 */
+  &--segmented {
+    padding: 4px;
+    background: #f1f5f9;
+    border-radius: 9px;
   }
 }
 
@@ -372,22 +640,109 @@ function onTabsWheel(event: WheelEvent) {
   background: color-mix(in srgb, var(--theme-primary, var(--color-primary)) 14%, transparent);
 }
 
-.feed-body.is-tabs-mode {
-  padding-top: 4px;
+.feed-tabs--segmented .feed-tab {
+  padding: 5px 12px;
+  font-size: 13px;
 }
 
-.preview-data-empty {
-  padding: 24px 12px;
+.feed-tabs--segmented .feed-tab.active {
+  color: var(--theme-primary, var(--color-primary));
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+
+/* ---------- 空态：结构完整 + 提示，绝不塌陷 ---------- */
+.feed-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 132px;
+  padding: 22px 16px;
   text-align: center;
-  font-size: 12px;
-  color: #909399;
   background: #f8faff;
+  border: 1px dashed #dfe6f0;
   border-radius: var(--card-radius, 10px);
 }
 
-.preview-data-fail {
-  color: #b45309;
+.feed-empty--fail {
   background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.feed-empty__icon {
+  margin-bottom: 6px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.feed-empty__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.feed-empty__hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+/* ---------- 骨架屏 ---------- */
+.feed-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.feed-skeleton__row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.feed-skeleton__thumb {
+  flex: none;
+  width: 56px;
+  height: 42px;
+  background: linear-gradient(120deg, #eef2f7 0%, #f7f9fb 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: feed-sk 1.25s infinite linear;
+}
+
+.feed-skeleton__lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.feed-skeleton__lines b {
+  height: 9px;
+  background: #eef2f7;
+  border-radius: 5px;
+}
+
+.feed-skeleton__lines .feed-skeleton__short {
+  width: 56%;
+}
+
+@keyframes feed-sk {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-skeleton__thumb { animation: none; }
+}
+
+.feed-body.is-tabs-mode {
+  padding-top: 4px;
 }
 
 .feed-body {
@@ -436,16 +791,15 @@ function onTabsWheel(event: WheelEvent) {
 }
 
 .article-img {
+  position: relative;
   width: 62px;
-  height: 52px;
-  border-radius: 4px;
-  font-size: 22px;
-  background: #eef2f7;
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+  background: #eef2f7;
 
   .article-cover {
     width: 100%;
@@ -455,15 +809,112 @@ function onTabsWheel(event: WheelEvent) {
   }
 }
 
+.article-img__ph {
+  font-size: 22px;
+}
+
+.article-badge {
+  padding: 1px 5px;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.5;
+  color: #fff;
+  white-space: nowrap;
+  background: rgba(192, 57, 43, 0.9);
+  border-radius: 4px;
+}
+
+/* ---------------- 封面位置 / 容器风格（本轮新增） ---------------- */
+.feed-body.cover-left .article-card--list,
+.feed-body.cover-left .article-card--compact {
+  flex-direction: row-reverse;
+}
+
+/* 独立卡片：白底圆角 + 浅阴影；细分割线：无卡片边框 */
+.feed-body.divider-card .article-card {
+  border: 0;
+  background: #fff;
+  box-shadow: 0 2px 10px rgb(15 23 42 / 5%);
+}
+
+.feed-body.divider-line .article-card--list,
+.feed-body.divider-line .article-card--compact {
+  border: 0;
+  border-bottom: 1px solid #eef1f6;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ---------------- 专栏胶囊 ---------------- */
+.article-column {
+  display: inline-block;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-bottom: 4px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-color-primary, #c08e6e);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 10%, #fff);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+/* ---------------- 状态角标容器 ---------------- */
+.article-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.article-badges--title {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.article-badges--cover {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+}
+
+.article-badges--meta {
+  margin-left: 2px;
+}
+
+/* ---------------- 认证 V ---------------- */
+.article-author__v {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  background: #2b6cb0;
+  border-radius: 50%;
+}
+
+/* ---------------- CTA ---------------- */
+.article-cta {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--el-color-primary, #c08e6e);
+  white-space: nowrap;
+}
+
 .article-card--card .article-img {
   width: 100%;
-  height: 120px;
-  border-radius: 0;
+  height: auto;
 }
 
 .article-card--compact .article-img {
   width: 48px;
-  height: 40px;
+  min-height: 40px;
 }
 
 .article-card--overlay {
@@ -478,8 +929,7 @@ function onTabsWheel(event: WheelEvent) {
 
 .article-card--overlay .article-img {
   width: 100%;
-  height: 188px;
-  border-radius: 0;
+  min-height: 188px;
 }
 
 .article-card--overlay .article-info {
@@ -505,10 +955,6 @@ function onTabsWheel(event: WheelEvent) {
   font-weight: 700;
 }
 
-.article-card--overlay .article-meta-row {
-  color: rgba(255, 255, 255, 0.68);
-}
-
 .article-card--grid {
   display: flex;
   flex-direction: column;
@@ -521,8 +967,7 @@ function onTabsWheel(event: WheelEvent) {
 
 .article-card--grid .article-img {
   width: 100%;
-  height: 96px;
-  border-radius: 0;
+  min-height: 96px;
 }
 
 .article-card--grid .article-info {
@@ -543,8 +988,7 @@ function onTabsWheel(event: WheelEvent) {
 
 .article-card--editorial .article-img {
   width: 86px;
-  height: 64px;
-  border-radius: 2px;
+  min-height: 64px;
 }
 
 .article-excerpt {
@@ -552,19 +996,13 @@ function onTabsWheel(event: WheelEvent) {
   margin-top: 6px;
   overflow: hidden;
   color: #7a7468;
-  font-size: 11px;
   line-height: 1.5;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
 .layout-magazine .article-card--overlay {
   margin-bottom: 8px;
   border-radius: 18px;
-}
-
-.layout-magazine .article-card--overlay .article-img {
-  height: 210px;
 }
 
 .article-info {
@@ -576,8 +1014,6 @@ function onTabsWheel(event: WheelEvent) {
 
 .article-title {
   color: #172033;
-  font-size: 13px;
-  font-weight: 600;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -590,8 +1026,32 @@ function onTabsWheel(event: WheelEvent) {
   flex-wrap: wrap;
   gap: 4px 12px;
   margin-top: 6px;
-  color: #94a3b8;
-  font-size: 11px;
+}
+
+.article-author {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.article-author__avatar {
+  width: 14px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+.article-author__name {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-metrics {
+  display: inline-flex;
+  gap: 8px;
 }
 
 .feed-footer {
@@ -600,5 +1060,39 @@ function onTabsWheel(event: WheelEvent) {
   text-align: center;
   color: #94a3b8;
   font-size: 11px;
+}
+
+/* ---------- 编辑态 / 交互预览切换 ---------- */
+.feed-mode {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 7;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: #6b5b4e;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e3ddd3;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+
+.feed-mode.is-preview {
+  color: #fff;
+  background: var(--el-color-primary, #c08e6e);
+  border-color: transparent;
+}
+
+.feed-mode__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.8;
 }
 </style>

@@ -1,6 +1,7 @@
 import { ElMessageBox } from 'element-plus'
-import { createPage, getPageList, saveDraft } from '@/api/page'
+import { createPage, saveDraft } from '@/api/page'
 import { getMiniSite } from '@/api/miniSite'
+import { loadAllPages } from '@/composables/usePageCatalog'
 import type { PageDSL } from '@/types/page'
 import { defaultPageNameFromTemplate } from '@/utils/pageTemplateMeta'
 
@@ -54,17 +55,20 @@ async function resolveHomePageId(explicit?: number): Promise<number> {
   const site = await getMiniSite('draft').catch(() => null)
   const fromSite = Number(site?.miniappHomePageId || 0)
   if (fromSite > 0) return fromSite
-  const res = await getPageList({ current: 1, size: 200 })
-  const records = ((res as any)?.data?.records || (res as any)?.data?.list || []) as Array<{ id: number; type?: number; path?: string }>
-  const home = records.find((p) => p.type === 1 || String(p.path || '').includes('index/index'))
+  const cat = await loadAllPages()
+  if (cat.status === 'error') throw new Error(`页面清单读取失败：${cat.error}`)
+  const home = cat.pages.find((p: any) => p.type === 1 || String(p.path || '').includes('index/index'))
   if (home?.id) return Number(home.id)
   throw new Error('未找到当前首页，请先在「页面管理」确认首页存在')
 }
 
 async function uniquePageName(base: string): Promise<string> {
-  const res = await getPageList({ current: 1, size: 300 })
-  const records = ((res as any)?.data?.records || (res as any)?.data?.list || []) as Array<{ name?: string }>
-  const names = new Set(records.map((r) => String(r.name || '').trim()).filter(Boolean))
+  // 🔴 原来写 size:200/300，超出后端 PageDTO 的 100 上限 → 抛 100101 →
+  // 响应结构看不懂 → 降级成空数组 → 重名探测失效，会创建出「首页」「首页(2)」
+  // 之外的意外同名页面。统一走 loadAllPages。
+  const cat = await loadAllPages()
+  if (cat.status === 'error') throw new Error(`页面清单读取失败：${cat.error}`)
+  const names = new Set(cat.pages.map((r) => String(r.name || '').trim()).filter(Boolean))
   let candidate = base.trim() || '新页面'
   if (!names.has(candidate)) return candidate
   let i = 2

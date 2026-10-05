@@ -1,5 +1,28 @@
 <template>
   <div class="render-product-list split-text-typography" :class="{ 'render-product-list--preview': previewMode }">
+    <!-- 内置标题行：show_title=false 时整行不渲染 -->
+    <div
+      v-if="cfg.show_title && (cfg.title || cfg.subtitle)"
+      class="pls-head"
+      :class="`style-${sectionStyle} align-${sectionAlign}`"
+    >
+      <span class="pls-head__bars" aria-hidden="true">
+        <i class="pls-head__bar pls-head__bar--down"></i>
+        <i class="pls-head__bar pls-head__bar--up"></i>
+      </span>
+      <span class="pls-head__text">
+        <span class="pls-head__main" :style="sectionTitleStyle">{{ cfg.title }}</span>
+        <span v-if="cfg.subtitle" class="pls-head__sub" :style="sectionSubtitleStyle">{{ cfg.subtitle }}</span>
+      </span>
+      <button
+        v-if="cfg.show_more"
+        type="button"
+        class="pls-head__more"
+        :style="sectionMoreStyle"
+        @click.stop="onMoreClick"
+      >{{ cfg.more_text }} ›</button>
+    </div>
+
     <div v-if="showFailState" class="preview-data-empty preview-data-fail">
       {{ failMessage }}
     </div>
@@ -7,8 +30,13 @@
       {{ previewMode ? '暂无商品数据，请确认商品已上架或稍后重试' : '当前筛选下没有已上架商品' }}
     </div>
     <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已上架商品…</div>
-    <div v-else class="product-grid" :class="[`layout-${productLayout}`, `cols-${columnCount}`]" :style="{ gap: `${itemGap}px` }">
-      <template v-if="productLayout === 'list'">
+    <div
+      v-else
+      class="product-grid"
+      :class="[`layout-${cfg.layout}`, `cols-${columnCount}`, `style-${cfg.card_style}`]"
+      :style="{ gap: `${cfg.item_gap}px` }"
+    >
+      <template v-if="cfg.layout === 'row'">
         <div
           v-for="(item, idx) in visibleProductItems"
           :key="`${item.id || 'p'}-${idx}`"
@@ -26,16 +54,21 @@
               @error="markImageBroken(item, idx)"
             />
             <span v-else>{{ item.glyph || '🛍️' }}</span>
+            <span v-if="item.badge" class="product-badge" :style="badgeStyle(item)">{{ item.badge }}</span>
           </div>
           <div class="product-body">
-            <div class="product-row-name" :style="itemTitleStyle">{{ item.name }}</div>
+            <div v-if="cfg.show_title_in_card" class="product-row-name" :style="itemTitleStyle">{{ item.name }}</div>
             <div class="product-row-sub" :style="salesStyle">{{ item.meta }}</div>
             <div class="product-row-foot">
-              <span v-if="showPrice" class="product-row-price" :style="priceStyle">
-                <template v-if="item.priceWithYuan">¥</template>{{ item.priceText }}
+              <span v-if="showPrice" class="product-row-price" :style="priceStyle(item)">
+                <template v-if="item.priceWithYuan && !item.isFree">¥</template>{{ item.priceText }}
+              </span>
+              <span v-if="cfg.show_original_price && item.originalPriceText" class="product-row-origin" :style="salesStyle">
+                ¥{{ item.originalPriceText }}
               </span>
               <span v-if="showRating" class="product-row-rate">{{ item.ratingLine }}</span>
-              <span v-else-if="showSales" class="product-row-sales" :style="salesStyle">{{ item.salesLabel }}</span>
+              <span v-else-if="cfg.show_sales" class="product-row-sales" :style="salesStyle">{{ item.salesLabel }}</span>
+              <span v-if="ctaText" class="product-cta" :style="ctaStyle">{{ ctaText }}</span>
             </div>
           </div>
         </div>
@@ -45,7 +78,7 @@
           v-for="(item, idx) in visibleProductItems"
           :key="`${item.id || 'p'}-${idx}`"
           class="product-card"
-          :class="{ 'is-clickable': previewMode }"
+          :class="{ 'is-clickable': previewMode, 'is-free': item.isFree }"
           :style="itemCardStyle"
           @click="onProductClick($event, item)"
         >
@@ -58,16 +91,23 @@
               @error="markImageBroken(item, idx)"
             />
             <span v-else class="product-img-ph">🛍️</span>
+            <span v-if="item.badge" class="product-badge" :style="badgeStyle(item)">{{ item.badge }}</span>
           </div>
           <div class="product-info">
-            <div class="product-name" :style="itemTitleStyle">{{ item.name }}</div>
+            <div v-if="cfg.show_title_in_card" class="product-name" :style="itemTitleStyle">{{ item.name }}</div>
             <div class="product-bottom">
               <div class="product-meta-row">
-                <span v-if="showPrice" class="product-price" :style="priceStyle">
-                  <template v-if="item.priceWithYuan">¥</template>{{ item.priceText }}
+                <span v-if="showPrice" class="product-price" :style="priceStyle(item)">
+                  <template v-if="item.priceWithYuan && !item.isFree">¥</template>{{ item.priceText }}
                 </span>
-                <span v-if="showSales" class="product-sales" :style="salesStyle">{{ item.salesLabel }}</span>
+                <span
+                  v-if="cfg.show_original_price && item.originalPriceText"
+                  class="product-origin"
+                  :style="salesStyle"
+                >¥{{ item.originalPriceText }}</span>
+                <span v-if="cfg.show_sales" class="product-sales" :style="salesStyle">{{ item.salesLabel }}</span>
               </div>
+              <span v-if="ctaText" class="product-cta" :style="ctaStyle">{{ ctaText }}</span>
             </div>
           </div>
         </div>
@@ -84,6 +124,14 @@ import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 import { pickProductCoverUrl, orderProductsByIds } from '@/utils/product-cover'
 import { formatProductPriceLabel, formatProductSalesLabel } from '@/utils/product-price-display'
+import {
+  normalizeProductListProps,
+  resolveCardSurface,
+  resolveCtaText,
+  resolveColumnCount,
+  resolveProductBadge,
+  type ProductListProps as ProductConfig,
+} from '../productList/productListSchema'
 
 type PreviewProductItem = {
   id?: number | string
@@ -91,6 +139,10 @@ type PreviewProductItem = {
   price: string
   priceText: string
   priceWithYuan: boolean
+  /** 0 元商品单独标记：画布与真机都要靠它区分「免费领取」与「¥0」 */
+  isFree: boolean
+  originalPriceText: string
+  badge?: string
   sales: number
   salesLabel: string
   image?: string
@@ -136,41 +188,40 @@ function showItemImage(item: PreviewProductItem, idx: number) {
   return !!item.image && !isImageBroken(item, idx)
 }
 
+/** 归一化配置：与属性面板 / 样式面板读同一份 Schema */
+const cfg = computed<ProductConfig>(() => normalizeProductListProps(props.component.props))
+
+/**
+ * 是否显示价格。
+ * ⚠️ 需求里的「展示要素」列表**不含价格本身**（价格是商品列表的必备信息，
+ *关掉整张卡就没有价格了），所以价格仍沿用旧 `show_price` 字段，缺省 true。
+ */
 const showPrice = computed(() => props.component.props?.show_price !== false)
-const zeroPriceDisplay = computed(() =>
-  props.component.props?.zero_price_display === 'free' ? 'free' : 'amount',
-)
-const showSales = computed(() => props.component.props?.show_sales !== false)
-const showRating = computed(() => {
-  if (productLayout.value === 'list') return props.component.props?.show_rating !== false
-  return props.component.props?.show_rating === true
-})
-const itemGap = computed(() => {
-  const n = Number(props.component.props?.item_gap)
-  const fallback = productLayout.value === 'list' ? 10 : 8
-  return Number.isFinite(n) ? Math.max(0, Math.min(n, 48)) : fallback
-})
-const titleBold = computed(() => props.component.props?.title_bold !== false)
-const sectionTitle = computed(() => String(props.component.props?.title ?? '').trim())
-const sectionSubtitle = computed(() => String(props.component.props?.subtitle ?? '').trim())
+const zeroPriceDisplay = computed(() => cfg.value.zero_price_display)
+const showRating = computed(() => cfg.value.show_rating)
+
+const productLayout = computed(() => cfg.value.layout)
+const columnCount = computed(() => resolveColumnCount(cfg.value.layout, cfg.value.columns))
+
 const sectionStyle = computed(() => {
   const raw = String(props.component.props?.section_style || 'plain')
   return ['bar', 'plain', 'card'].includes(raw) ? raw : 'plain'
 })
 const sectionAlign = computed(() => (props.component.props?.section_align === 'center' ? 'center' : 'left'))
-const sectionDivider = computed(() => props.component.props?.section_divider === true)
-const showMore = computed(() => props.component.props?.show_more !== false)
-const moreText = computed(() => String(props.component.props?.more_text || '查看更多>').trim() || '查看更多>')
+const showMore = computed(() => cfg.value.show_more)
+const moreText = computed(() => cfg.value.more_text || '查看更多 ›')
 const moreLink = computed(() =>
-  String(props.component.props?.more_link || '/pkg-content/product-list/product-list').trim()
+  String(cfg.value.more_link || '/pkg-content/product-list/product-list').trim()
   || '/pkg-content/product-list/product-list',
 )
+
 const sectionMoreStyle = computed(() => {
   const isBand = sectionStyle.value === 'bar'
   const custom = props.component.props?.more_color
-  const color = custom || (isBand ? '#D4E2FF' : '#7b8798')
+  const color = custom || (isBand ? '#D4E2FF' : cfg.value.price_color)
   return { color }
 })
+
 const sectionTitleStyle = computed(() => {
   const isBand = sectionStyle.value === 'bar'
   const custom = props.component.props?.section_title_color
@@ -183,68 +234,69 @@ const sectionTitleStyle = computed(() => {
     fontWeight: props.component.props?.section_title_bold === false ? '400' : '800',
   }
 })
+
 const sectionSubtitleStyle = computed(() => {
   const isBand = sectionStyle.value === 'bar'
   const custom = props.component.props?.section_subtitle_color
-  const fallback = isBand ? '#D4E2FF' : '#7b8798'
-  const color = custom || fallback
+  const color = custom || (isBand ? '#D4E2FF' : '#7b8798')
   return {
     ...titleFontStyle(props.component.props?.section_subtitle_font_size, 11),
     color,
   }
 })
-const productLayout = computed(() => {
-  const raw = String(props.component.props?.layout || 'grid')
-  return ['grid', 'list', 'waterfall'].includes(raw) ? raw : 'grid'
-})
-const columnCount = computed(() => {
-  if (productLayout.value === 'list') return 1
-  if (productLayout.value === 'waterfall') return 2
-  return Number(props.component.props?.columns || 2)
-})
+
+/* ---------------- 字号与度量（全部读归一化后的 cfg） ---------------- */
 const itemTitleStyle = computed(() => ({
-  ...titleFontStyle(
-    props.component.props?.title_font_size,
-    productLayout.value === 'list' ? 15 : 14,
-  ),
-  fontWeight: titleBold.value ? '700' : '400',
+  ...titleFontStyle(cfg.value.title_font_size, cfg.value.layout === 'row' ? 15 : 14),
+  fontWeight: cfg.value.title_bold ? '700' : '400',
 }))
-const priceStyle = computed(() => ({
-  ...titleFontStyle(
-    props.component.props?.price_font_size ?? props.component.props?.subtitle_font_size,
-    productLayout.value === 'list' ? 16 : 13,
-  ),
-  color: props.component.props?.price_color || '#E53935',
-}))
-const salesStyle = computed(() => titleFontStyle(
-  props.component.props?.sales_font_size ?? props.component.props?.subtitle_font_size,
-  11,
-))
-const itemCardStyle = computed(() => {
-  const fromProp = props.component.props?.item_border_radius
-  const fromStyle = props.component.style?.border_radius
-  const fallback = productLayout.value === 'list' ? 14 : 12
-  const hasStyleRadius = fromStyle !== undefined && fromStyle !== null && (fromStyle as number | string) !== ''
-  const raw = hasStyleRadius
-    ? fromStyle
-    : (fromProp !== undefined && fromProp !== null && (fromProp as number | string) !== '' ? fromProp : fallback)
-  const n = Number(raw)
-  const radius = Number.isFinite(n) ? Math.max(0, n) : fallback
+
+const salesStyle = computed(() => titleFontStyle(cfg.value.sales_font_size, 11))
+
+/**
+ * 价格色：0 元商品走固定绿，不跟随价格高亮色。
+ * 🔴 两端必须一致 —— 画布绿、真机红会让运营以为「免费领取」是 bug。
+ */
+function priceStyle(item: PreviewProductItem) {
   return {
-    borderRadius: `${radius}px`,
-    boxShadow: '0 4px 12px rgba(28, 43, 76, 0.06)',
+    ...titleFontStyle(cfg.value.price_font_size, cfg.value.layout === 'row' ? 16 : 13),
+    color: item.isFree ? '#1FA97A' : cfg.value.price_color,
+  }
+}
+
+const itemCardStyle = computed(() => {
+  const surface = resolveCardSurface(cfg.value.card_style, cfg.value.item_border_radius)
+  const fromStyle = props.component.style?.border_radius
+  const hasStyleRadius = fromStyle !== undefined && fromStyle !== null && (fromStyle as number | string) !== ''
+  // 🔴 通用「外框圆角」在 style 面板显式设过时优先（那是运营的全局决定）
+  const radius = hasStyleRadius ? Number(fromStyle) : cfg.value.item_border_radius
+  return {
+    ...surface,
+    borderRadius: `${Number.isFinite(radius) ? Math.max(0, radius) : cfg.value.item_border_radius}px`,
   }
 })
-const itemImageStyle = computed(() => {
-  const fromProp = props.component.props?.image_border_radius
-  const fallback = productLayout.value === 'list' ? 10 : 0
-  const raw = fromProp !== undefined && fromProp !== null && (fromProp as number | string) !== ''
-    ? fromProp
-    : fallback
-  const n = Number(raw)
-  const radius = Number.isFinite(n) ? Math.max(0, n) : fallback
-  return { borderRadius: `${radius}px` }
+
+const itemImageStyle = computed(() => ({
+  borderRadius: `${cfg.value.image_border_radius}px`,
+}))
+
+/* ---------------- CTA ---------------- */
+const ctaText = computed(() => {
+  if (cfg.value.cta === 'cart') return '🛒'
+  return resolveCtaText(cfg.value.cta, cfg.value.cta_text)
 })
+
+const ctaStyle = computed(() => {
+  if (cfg.value.cta === 'cart') {
+    return { color: cfg.value.price_color, border: `1px solid ${cfg.value.price_color}44` }
+  }
+  return { background: cfg.value.price_color, color: '#fff' }
+})
+
+/** 角标底色：统一用价格高亮色（与端上同规则）。参数留着是为了模板可传可不传 */
+function badgeStyle(_item?: PreviewProductItem) {
+  return { background: cfg.value.price_color }
+}
 
 const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
   () => props.component,
@@ -252,8 +304,10 @@ const { items: liveItems, loading: liveLoading } = useEditorLiveItems(
 )
 
 const DEMO_PRODUCTS: PreviewProductItem[] = [
-  { id: 'demo-1', name: '示例商品 A', price: '199.00', priceText: '199.00', priceWithYuan: true, sales: 128, salesLabel: '已售128' },
-  { id: 'demo-2', name: '示例商品 B', price: '299.00', priceText: '299.00', priceWithYuan: true, sales: 86, salesLabel: '已售86' },
+  // 🔴 演示商品也要给全 isFree / originalPriceText —— 少一个字段 normalizeItem
+  //    就会把它们算成 undefined，画布上「免费领取」与「¥0」就分不出来了。
+  { id: 'demo-1', name: '示例商品 A', price: '199.00', priceText: '199.00', priceWithYuan: true, isFree: false, originalPriceText: '299.00', sales: 128, salesLabel: '已售128' },
+  { id: 'demo-2', name: '示例商品 B', price: '0.00', priceText: '免费领取', priceWithYuan: false, isFree: true, originalPriceText: '', sales: 86, salesLabel: '已领86' },
 ]
 
 const showFailState = computed(() => !!props.previewMode && props.component.props?._previewDataFailed === true)
@@ -305,12 +359,28 @@ function normalizeItem(item: any, index = 0): PreviewProductItem {
   const priceLabel = formatProductPriceLabel(price, zeroPriceDisplay.value)
   const salesCount = Number.isFinite(sales) ? sales : 0
   const salesLabel = formatProductSalesLabel(price, salesCount)
+  // 🔴 0 元商品单独标记：画布要能只靠样式区分「免费领取」与「¥0」，
+  //    否则运营看不出这两种展示方式的差别，也没法验证端上是否一致。
+  const isFree = Number(price) === 0
+  // 划线原价：取系统原价字段；缺省时不显示（不拿售价冒充原价）
+  const originalRaw = item.originalPrice ?? item.original_price ?? item.marketPrice ?? item.market_price
+  const originalNum = Number(originalRaw)
+  const originalPriceText = Number.isFinite(originalNum) && originalNum > 0 ? originalNum.toFixed(2) : ''
+  const badge = resolveProductBadge(
+    cfg.value.badge_mode,
+    cfg.value.badge_text,
+    Number(price),
+    originalNum,
+  )
   return {
     id: item.id,
     name: item.name || item.title || '商品名称',
     price: formatMoney(price),
     priceText: priceLabel.text,
     priceWithYuan: priceLabel.withYuan,
+    isFree,
+    originalPriceText,
+    badge,
     sales: salesCount,
     salesLabel,
     image: pickProductCoverUrl(item),
@@ -335,14 +405,13 @@ function resolveManualDisplayItems(
 
 const visibleProductItems = computed<PreviewProductItem[]>(() => {
   const items = props.component.props?.items
-  const displayMode = props.component.props?.display_mode === 'stream' ? 'stream' : 'fixed'
-  const cap = displayMode === 'stream'
-    ? Math.max(Number(props.component.props?.page_size || 10), 5)
-    : Math.max(Number(props.component.props?.limit || 4), 1)
-  const ids = Array.isArray(props.component.props?.product_ids)
-    ? props.component.props.product_ids.map((id: any) => String(id))
-    : []
-  const manual = props.component.props?.source_mode === 'manual' || ids.length > 0
+  // 数量策略读归一化后的 cfg（面板的 page_strategy / limit 已在 Schema 里夹紧）
+  const cap = cfg.value.page_strategy === 'stream'
+    ? cfg.value.page_size
+    : cfg.value.limit
+  // 手动勾选的 id 顺序 = 展示顺序（Schema 已把 product_ids / manual_ids 合并去重）
+  const ids = cfg.value.manual_ids
+  const manual = cfg.value.pick_mode === 'manual' || ids.length > 0
   const saved = Array.isArray(items) ? items : []
   const live = liveItems.value.length ? liveItems.value : saved
 
@@ -359,7 +428,7 @@ const visibleProductItems = computed<PreviewProductItem[]>(() => {
   }
 
   if (manual && (saved.length || live.length)) {
-    const manualCap = displayMode === 'stream' ? Math.max(ids.length, saved.length, 50) : cap
+    const manualCap = cfg.value.page_strategy === 'stream' ? Math.max(ids.length, saved.length, 50) : cap
     const ordered = resolveManualDisplayItems(saved, live, ids, manualCap)
     if (ordered.length) return ordered.map(normalizeItem)
   }
@@ -627,14 +696,16 @@ function onMoreClick() {
     }
 
     &.cols-2 {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     &.cols-3 {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    &.layout-list {
+    /* 旧类名保留：历史数据可能还有 layout-list 残留样式依赖 */
+    &.layout-list,
+    &.layout-row {
       display: flex;
       flex-direction: column;
       grid-template-columns: 1fr;
@@ -643,9 +714,78 @@ function onMoreClick() {
     &.layout-waterfall {
       grid-template-columns: 1fr 1fr;
     }
+
+    /* 🔴 横向滑动：一行放不下时左右滑。
+       用 grid-auto-flow: column + auto-columns 才能既保留卡片宽度又允许横滑，
+       直接写 flex 会让「cols-2/3」的列数设置失效。 */
+    &.layout-scroll {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(132px, 42%);
+      overflow-x: auto;
+      padding-bottom: 4px;
+      grid-template-columns: none;
+    }
+  }
+
+  /* ---------- 卡片风格三档 ---------- */
+  /* shadow 走行内 resolveCardSurface（白底 + 投影），这里只做描边/平铺的兜底 */
+  .product-grid.style-outline .product-card,
+  .product-grid.style-outline .product-row {
+    background: transparent;
+  }
+
+  .product-grid.style-flat .product-card,
+  .product-grid.style-flat .product-row {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  /* ---------- 角标 ---------- */
+  .product-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 1px 5px;
+    max-width: 60%;
+    overflow: hidden;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: 3px;
+  }
+
+  /* ---------- 划线原价 ---------- */
+  .product-origin,
+  .product-row-origin {
+    color: #b3a596;
+    text-decoration: line-through;
+    white-space: nowrap;
+  }
+
+  /* ---------- CTA ---------- */
+  .product-cta {
+    flex: none;
+    padding: 2px 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    border-radius: 999px;
+  }
+
+  /* 🔴 0 元商品：绿色左边框 + 淡绿底，让「免费领取」在一堆付费卡里一眼可辨 */
+  .product-card.is-free {
+    border-color: rgba(31, 169, 122, 0.32) !important;
+    background: rgba(31, 169, 122, 0.05);
   }
 
   .product-row {
+    /* 角标定位前提，同 product-card */
+    position: relative;
     display: flex;
     flex-direction: row;
     align-items: stretch;
@@ -732,6 +872,9 @@ function onMoreClick() {
   }
 
   .product-card {
+    /* 🔴 position: relative 是角标定位的前提 —— 少了它角标会相对整个卡片列表定位，
+       跑到画布左上角去（这种问题肉眼一看就知道，但静态读代码很难发现）。 */
+    position: relative;
     background: #fff;
     border: 1px solid #edf1f7;
     border-radius: var(--card-radius, 12px);

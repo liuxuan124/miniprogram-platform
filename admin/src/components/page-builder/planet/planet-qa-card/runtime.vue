@@ -56,12 +56,18 @@ const rootStyle = computed(() => ({
   boxShadow: '0 4px 16px rgba(180, 83, 9, 0.06)',
 }))
 
-const answerStyle = computed(() => ({
-  display: '-webkit-box',
-  WebkitLineClamp: String(p.value.summaryLines || 3),
-  WebkitBoxOrient: 'vertical',
-  overflow: 'hidden',
-}))
+/**
+ * 回复摘要截断。
+ * ⚠️ 行数走 CSS 变量而非直接写 -webkit-line-clamp：
+ * 后者不在 CSSProperties 的 TS 类型里（WebkitBoxOrient 会被报 TS2322），
+ * 由下方 .wk-qa__a 规则消费变量。
+ */
+const answerStyle = computed<Record<string, string>>(() => {
+  const s: Record<string, string> = {}
+  const n = Number(p.value.summaryLines || 3)
+  if (n > 0) s['--wk-qa-clamp'] = String(n)
+  return s
+})
 
 function fmt(n: any) {
   const v = Number(n)
@@ -141,6 +147,13 @@ function avatarStyle(src: string) {
   font-size: 13px;
   line-height: 1.7;
   color: #57534E;
+}
+/* 截断行数由 answerStyle 注入 --wk-qa-clamp；未注入变量时不截断 */
+.wk-qa__a[style*="--wk-qa-clamp"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--wk-qa-clamp);
+  overflow: hidden;
 }
 .wk-qa__meta {
   display: flex;

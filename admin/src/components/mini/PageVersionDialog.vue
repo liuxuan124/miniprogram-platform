@@ -9,7 +9,7 @@
   >
     <div v-loading="loading" class="vd">
       <p class="vd__tip faint">
-        回滚会把选中版本的内容复制为一份<strong>新草稿</strong>，再到装修器点「保存并同步」才会在小程序端生效。
+        回滚会把选中版本的内容复制为一份<strong>新草稿</strong>，再到装修器点「发布配置」才会在小程序端生效。
       </p>
       <div v-if="!loading && !rows.length" class="muted vd__empty">暂无版本记录</div>
       <ul v-else class="vd__list">

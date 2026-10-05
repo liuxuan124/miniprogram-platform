@@ -33,6 +33,10 @@ const PATHS: Record<string, string> = {
   qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/>',
   undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   chev: '<path d="M9 6l6 6-6 6"/>',
+  // 2026-10-06 新增：与 down 对称的向上箭头。
+  // 背景是导航列表要给「上移/下移」按钮——拖拽对键盘用户不可用，
+  // 按钮没有 up 图标就只能拿 back 顶替，语义会错。
+  up: '<path d="M6 15l6-6 6 6"/>',
   down: '<path d="M6 9l6 6 6-6"/>',
   back: '<path d="M15 6l-6 6 6 6"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',

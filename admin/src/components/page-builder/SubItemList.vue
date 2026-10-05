@@ -35,14 +35,14 @@
 
           <!-- 🔴 标题实时绑定子项内容，绝不写死「未命名」：
                传入的 titleOf 返回空串时才显示 placeholder（灰字，不是假标题）。 -->
-          <span class="sub-item__title" :class="{ 'is-empty': !titleOf(item, i) }">
-            {{ titleOf(item, i) || placeholder }}
+          <span class="sub-item__title" :class="{ 'is-empty': !safeTitle(item, i) }">
+            {{ safeTitle(item, i) || placeholder }}
           </span>
 
           <span class="sub-item__spacer" />
 
           <div class="sub-item__actions" @click.stop>
-            <slot name="actions" :item="item" :index="i" />
+            <slot name="actions" :item="item ?? {}" :index="i" />
             <el-tooltip content="删除" placement="top">
               <button
                 type="button"
@@ -59,7 +59,15 @@
         <!-- 展开区：两行式卡片（首行媒体/开关，次行字段），避免单行横向挤压 -->
         <el-collapse-transition>
           <div v-show="!isCollapsed(i)" class="sub-item__body">
-            <slot :item="item" :index="i" :update="(patch: Record<string, any>) => emit('update', i, patch)" />
+            <!--
+              ⚠️ 插槽作用域**必须给默认值**（2026-10-05 修复）：
+              消费方常写 `<template #default="{ item: nav, index: ni, update }">`，
+              一旦本组件在某种状态下没传作用域（子项被删/未初始化/父级异步渲染），
+              消费方解构 undefined 会**整块面板抛错变空白**，且报错位置在消费方文件里，
+              极难定位（表现为「点了组件只有标题、没有配置项」）。
+              这里传一个保底对象，消费方不加默认值也不会炸。
+            -->
+            <slot :item="item ?? {}" :index="i" :update="safeUpdate(i)" />
           </div>
         </el-collapse-transition>
       </div>
@@ -112,6 +120,15 @@ const emit = defineEmits<{
   add: []
   remove: [index: number]
   update: [index: number, patch: Record<string, any>]
+  /**
+   * 当前展开项的 { item, index }。
+   *
+   * 为什么需要：消费方常需要「当前正在编辑哪一项」来做联动（如按 index 取数据源、
+   * 显示该行的校验错误）。此前只能靠插槽作用域拿，但作用域只在展开区渲染时存在，
+   * 且**一旦上游传 undefined，消费方解构就会把整个面板打挂**（2026-10-05 实测）。
+   * 有了这个事件，消费方用 ref 接收即可，不必碰插槽作用域。
+   */
+  'active-change': [payload: { item: any; index: number }]
 }>()
 
 /**
@@ -127,6 +144,20 @@ function isCollapsed(i: number) {
   return !openSet.value.has(i)
 }
 
+/** titleOf 由消费方提供，消费方写成 `x => x.label` 时可能收到 undefined → 整体抛错 */
+function safeTitle(item: any, i: number): string {
+  try {
+    return props.titleOf(item, i) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/** 给插槽的 update 兜底：item 异常时不让消费方连带崩掉 */
+function safeUpdate(i: number) {
+  return (patch: Record<string, any>) => emit('update', i, patch ?? {})
+}
+
 function toggle(i: number) {
   const next = new Set<number>()
   // 同一时刻只展开一项：点谁开谁，点已展开的则全部收起
@@ -137,6 +168,23 @@ function toggle(i: number) {
   next.add(i)
   openSet.value = next
 }
+
+/**
+ * 把当前展开项回传给消费方。
+ *
+ * 消费方据此避免「从插槽作用域解构 item/index」——
+ * 那条路一旦作用域为 undefined 就会抛 `Cannot read properties of undefined`，
+ * 把整块属性面板打成空白（2026-10-05 实测，见 emit('active-change') 注释）。
+ */
+watch(
+  () => [...openSet.value],
+  (set) => {
+    const i = set.length ? Math.min(...set) : props.defaultOpen
+    const item = props.items[i]
+    if (item !== undefined) emit('active-change', { item, index: i })
+  },
+  { immediate: true, deep: false },
+)
 
 // 项数变化时清理越界的展开态，避免删到中间项后状态错位
 watch(

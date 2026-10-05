@@ -2,6 +2,120 @@
   <div class="mine-page-config">
     <div class="config-label">我的页面配置</div>
 
+    <!-- ===== 主题配色：继承全局 / 页面覆盖 ===== -->
+    <div class="config-block">
+      <div class="block-title">
+        主题配色
+        <span class="block-tip">默认跟随全局品牌色；开启覆盖后本页可单独配色</span>
+      </div>
+
+      <div class="theme-source" :class="themeSource === 'page' ? 'theme-source--page' : 'theme-source--inherit'">
+        <span class="theme-source__dot" />
+        <span class="theme-source__text">
+          当前：<b>{{ themeSource === 'page' ? '页面独立覆盖' : '继承全局品牌色' }}</b>
+        </span>
+        <el-button
+          v-if="themeSource === 'page'"
+          text
+          size="small"
+          @click="restoreThemeInherit"
+        >恢复继承</el-button>
+      </div>
+
+      <el-form label-width="100px" size="small" class="compact-form">
+        <el-form-item label="配色来源">
+          <el-radio-group :model-value="themeSource" size="small" @update:model-value="setThemeSource">
+            <el-radio-button value="inherit">继承全局</el-radio-button>
+            <el-radio-button value="page">页面独立</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <template v-if="themeSource === 'page'">
+          <el-form-item label="主色">
+            <el-color-picker
+              :model-value="modelValue.themeColor || '#C2410C'"
+              size="small"
+              @update:model-value="(v: string) => updateField('themeColor', v)"
+            />
+            <span class="color-hint">{{ modelValue.themeColor || '#C2410C' }}</span>
+          </el-form-item>
+          <el-form-item label="辅色">
+            <el-color-picker
+              :model-value="modelValue.themeColorSecondary || '#EA580C'"
+              size="small"
+              @update:model-value="(v: string) => updateField('themeColorSecondary', v)"
+            />
+            <span class="color-hint">{{ modelValue.themeColorSecondary || '#EA580C' }}</span>
+          </el-form-item>
+        </template>
+        <el-form-item v-else label="全局主色">
+          <span class="color-swatch" :style="{ background: globalTheme.primaryColor }" />
+          <span class="color-hint">{{ globalTheme.primaryColor || '未设置' }}</span>
+          <span class="color-hint color-hint--faint">在「品牌导航」里改全局主色</span>
+        </el-form-item>
+      </el-form>
+
+      <el-form label-width="100px" size="small" class="compact-form">
+        <el-form-item label="页面背景">
+          <el-color-picker
+            :model-value="modelValue.pageBackgroundColor || ''"
+            size="small"
+            placeholder="跟随全局"
+            @update:model-value="(v: string) => updateField('pageBackgroundColor', v)"
+          />
+          <span class="color-hint">{{ modelValue.pageBackgroundColor || '跟随全局页面底色' }}</span>
+          <el-button
+            v-if="modelValue.pageBackgroundColor"
+            text
+            size="small"
+            @click="updateField('pageBackgroundColor', '')"
+          >清除</el-button>
+        </el-form-item>
+        <el-form-item label="头部样式">
+          <el-radio-group
+            :model-value="headerStyle"
+            size="small"
+            @update:model-value="(v: any) => updateField('headerStyle', v)"
+          >
+            <el-radio-button value="gradient">渐变</el-radio-button>
+            <el-radio-button value="solid">纯色</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="卡片样式">
+          <el-radio-group
+            :model-value="cardStyle"
+            size="small"
+            @update:model-value="(v: any) => updateField('cardStyle', v)"
+          >
+            <el-radio-button value="shadow">阴影</el-radio-button>
+            <el-radio-button value="flat">扁平</el-radio-button>
+            <el-radio-button value="outline">描边</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <!-- ===== 内容模块显隐 ===== -->
+    <div class="config-block">
+      <div class="block-title">
+        内容模块
+        <span class="block-tip">隐藏后布局自动收拢，不留空白</span>
+      </div>
+      <div class="module-grid">
+        <div v-for="key in MINE_MODULE_KEYS" :key="key" class="module-cell">
+          <el-switch
+            :model-value="modules[key]"
+            size="small"
+            @update:model-value="(v: any) => setModule(key, v !== false)"
+          />
+          <span class="module-cell__label">{{ MINE_MODULE_LABELS[key] }}</span>
+        </div>
+      </div>
+      <p class="module-note">
+        会员卡开关与上方「显示会员卡片」联动；用户头部关闭后未登录态将没有登录入口，
+        建议保留。
+      </p>
+    </div>
+
     <div class="config-block">
       <div class="block-title">装饰背景区</div>
       <el-form label-width="100px" size="small" class="compact-form">
@@ -13,8 +127,8 @@
         </el-form-item>
         <el-form-item label="显示会员卡片">
           <el-switch
-            :model-value="modelValue.showMemberCard !== false"
-            @update:model-value="(v) => updateField('showMemberCard', v !== false)"
+            :model-value="modules.memberCard && modelValue.showMemberCard !== false"
+            @update:model-value="(v) => setModule('memberCard', v !== false)"
           />
         </el-form-item>
       </el-form>
@@ -157,17 +271,32 @@
                 @update:modelValue="emitUpdate"
                 @update:needLogin="(v: boolean) => onNeedLogin(index, v)"
               />
-              <el-select
-                v-model="item.group"
-                size="small"
-                filterable
-                allow-create
-                default-first-option
-                placeholder="分组名（同组显示在同一张卡）"
-                @change="emitUpdate"
-              >
-                <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
-              </el-select>
+              <div class="menu-sub">
+                <el-select
+                  v-model="item.group"
+                  size="small"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="分组名（同组显示在同一张卡）"
+                  @change="emitUpdate"
+                >
+                  <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+                </el-select>
+                <el-select
+                  v-model="item.visibleOn"
+                  size="small"
+                  placeholder="显示条件"
+                  @change="onVisibleOn(index, $event)"
+                >
+                  <el-option
+                    v-for="opt in VISIBLE_ON_OPTIONS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+              </div>
             </div>
             <div class="menu-actions">
               <el-switch v-model="item.enabled" size="small" @change="emitUpdate" />
@@ -248,7 +377,17 @@
 import { computed, ref, watch } from 'vue'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
-import type { MineMenuItem, MinePageConfig } from '@/types/miniapp'
+import type { MineMenuItem, MinePageConfig, MineModuleKey, MineThemeSource } from '@/types/miniapp'
+import {
+  MINE_MODULE_KEYS,
+  MINE_MODULE_LABELS,
+  MINE_VISIBLE_ON_LABELS,
+  resolveMineModules,
+  normalizeMineVisibleOn,
+  normalizeMineHeaderStyle,
+  normalizeMineCardStyle,
+  DEFAULT_THEME,
+} from '@/types/miniapp'
 import MineTargetPicker from './MineTargetPicker.vue'
 import { MINE_MENU_LIBRARY, seedToMenuItem } from './mineTemplates'
 import MenuIconDisplay from './MenuIconDisplay.vue'
@@ -261,11 +400,49 @@ import {
 
 const NICKNAME_MAX_LEN = 10
 
-const props = defineProps<{ modelValue: MinePageConfig }>()
+const props = defineProps<{
+  modelValue: MinePageConfig
+  /** 全局品牌色：仅用于「继承全局」时展示当前实际生效值 */
+  globalTheme?: { primaryColor?: string; secondaryColor?: string }
+}>()
 const emit = defineEmits<{ 'update:modelValue': [value: MinePageConfig] }>()
+
+/** 条件显示下拉的可选项 */
+const VISIBLE_ON_OPTIONS = (Object.keys(MINE_VISIBLE_ON_LABELS) as Array<keyof typeof MINE_VISIBLE_ON_LABELS>)
+  .map((value) => ({ value, label: MINE_VISIBLE_ON_LABELS[value] }))
+
+const globalTheme = computed(() => props.globalTheme || DEFAULT_THEME)
 
 const menuItems = ref<MineMenuItem[]>([...props.modelValue.menuItems])
 watch(() => props.modelValue.menuItems, (v) => { menuItems.value = [...v] }, { deep: true })
+
+/** 模块显隐（缺字段按 true，= 线上现状） */
+const modules = computed(() => resolveMineModules(props.modelValue.modules))
+
+const themeSource = computed<MineThemeSource>(() =>
+  String(props.modelValue.themeSource) === 'page' ? 'page' : 'inherit')
+
+const headerStyle = computed(() => normalizeMineHeaderStyle(props.modelValue.headerStyle))
+const cardStyle = computed(() => normalizeMineCardStyle(props.modelValue.cardStyle))
+
+function setThemeSource(value: unknown) {
+  updateField('themeSource', value === 'page' ? 'page' : 'inherit')
+}
+
+/** 恢复继承：清掉显式开关，主题色值保留但不再生效（小程序端同语义） */
+function restoreThemeInherit() {
+  updateField('themeSource', 'inherit')
+}
+
+function setModule(key: MineModuleKey, value: boolean) {
+  const next = resolveMineModules(props.modelValue.modules)
+  next[key] = value
+  // 会员卡是双写字段：showMemberCard 是历史字段，端上老逻辑仍读它，
+  // 这里一起改，避免出现「模块关了但 showMemberCard 还是 true」的错位。
+  const patch: Record<string, unknown> = { modules: next }
+  if (key === 'memberCard') patch.showMemberCard = value
+  emit('update:modelValue', { ...props.modelValue, ...patch })
+}
 
 const previewNicknameError = computed(() => {
   const nick = String(props.modelValue.previewNickname ?? '')
@@ -319,6 +496,17 @@ function onNeedLogin(index: number, value: boolean) {
   emitUpdate()
 }
 
+/**
+ * 条件显示（始终/登录后/会员可见）。
+ * 归一化后写回，非法值一律落 always —— 避免端上拿到没定义过的字符串。
+ * 注意：这**不是**权限开关，needLogin 仍然独立生效。
+ */
+function onVisibleOn(index: number, value: unknown) {
+  if (!menuItems.value[index]) return
+  menuItems.value[index].visibleOn = normalizeMineVisibleOn(value)
+  emitUpdate()
+}
+
 function addMenuItem() {
   menuItems.value.push({
     id: `mine-${Date.now()}`,
@@ -328,6 +516,7 @@ function addMenuItem() {
     needLogin: false,
     enabled: true,
     group: '',
+    visibleOn: 'always',
   })
   emitUpdate()
 }
@@ -439,4 +628,79 @@ function confirmMenuIcon() {
 .icon-opt-svg { width: 26px; height: 26px; display: grid; place-items: center; }
 .icon-opt-svg :deep(svg) { width: 100%; height: 100%; display: block; }
 .field-error { margin-top: 4px; color: #f56c6c; font-size: 12px; line-height: 1.4; }
+
+/* ===== 主题配色：继承 / 覆盖 状态条 ===== */
+.theme-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.theme-source--inherit {
+  background: #f0f9eb;
+  border: 1px solid #c6e5b3;
+  color: #3f6f21;
+}
+.theme-source--page {
+  background: #fff7e8;
+  border: 1px solid #f5dab0;
+  color: #92400e;
+}
+.theme-source__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.theme-source__text b { font-weight: 700; }
+.theme-source .el-button { margin-left: auto; }
+
+.color-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.color-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 8px;
+}
+.color-hint--faint { color: #9aa3b2; margin-left: 12px; }
+
+/* ===== 内容模块开关网格 ===== */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px 14px;
+}
+.module-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #4a5568;
+}
+.module-cell__label { line-height: 1.4; }
+.module-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #9aa3b2;
+  line-height: 1.6;
+}
+
+/* 菜单行：分组名 + 显示条件并排 */
+.menu-sub {
+  display: grid;
+  grid-template-columns: 1fr 116px;
+  gap: 6px;
+}
 </style>

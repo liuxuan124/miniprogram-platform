@@ -1,8 +1,18 @@
 <template>
-  <div class="render-article-list split-text-typography" :class="{ 'render-article-list--preview': previewMode }">
+  <!--
+    🔴 empty_mode=hide 时整个组件不渲染（2026-10-05 新增）。
+    装修器画布上留一个空白框会让运营以为坏了，所以这里在**预览模式**也一并隐藏；
+    真机端由 dsl-article-list.wxml 自己判断（背景：运营选了冷门分类导致 0 篇）。
+  -->
+  <div
+    v-if="!hideWhenEmpty"
+    class="render-article-list split-text-typography"
+    :class="{ 'render-article-list--preview': previewMode }"
+  >
     <div
       v-if="showCategoryTabs && categoryTabs.length"
       class="article-tabs"
+      :class="`article-tabs--${categoryTabStyle}`"
     >
       <button
         v-for="tab in categoryTabs"
@@ -34,7 +44,8 @@
         {{ failMessage }}
       </div>
       <div v-else-if="showFilteredEmpty" class="preview-data-empty">
-        {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
+        <span v-if="emptyIconValue" class="preview-data-empty__icon">{{ emptyIconValue }}</span>
+        {{ emptyTextValue }}
       </div>
       <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已发布内容…</div>
       <div
@@ -44,7 +55,7 @@
         :style="{ gap: unifiedInCard ? 0 : `${itemGap}px` }"
       >
         <div
-          v-for="(item, index) in filteredArticleItems"
+          v-for="(item, index) in displayArticleItems"
           :key="`${item.title || 'article'}-${index}`"
           class="article-card"
           :class="`article-card--${cardModifier(index)}`"
@@ -62,14 +73,15 @@
                 class="article-source-tag"
               >{{ item.sourceTagLabel }}</span>
             </div>
-            <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
-            <div v-if="component.props.show_date !== false && (item.meta || item.source || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
+            <div v-if="showSummaryOn && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
+            <div v-if="component.props.show_date !== false && (item.meta || item.source || viewsOf(item) || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
               <span v-if="item.meta">{{ item.meta }}</span>
               <span
                 v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'meta'"
                 class="article-source-tag"
               >{{ item.sourceTagLabel }}</span>
               <span v-else-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
+              <span v-if="viewsOf(item)">{{ viewsLabel(item) }}</span>
             </div>
           </div>
         </div>
@@ -80,7 +92,8 @@
         {{ failMessage }}
       </div>
       <div v-else-if="showFilteredEmpty" class="preview-data-empty">
-        {{ previewMode ? '暂无文章数据，请确认内容已发布或稍后重试' : '当前筛选下没有已发布内容' }}
+        <span v-if="emptyIconValue" class="preview-data-empty__icon">{{ emptyIconValue }}</span>
+        {{ emptyTextValue }}
       </div>
       <div v-else-if="!previewMode && liveLoading" class="preview-data-empty">正在读取已发布内容…</div>
       <div
@@ -90,7 +103,7 @@
         :style="{ gap: `${itemGap}px` }"
       >
         <div
-          v-for="(item, index) in filteredArticleItems"
+          v-for="(item, index) in displayArticleItems"
           :key="`${item.title || 'article'}-${index}`"
           class="article-card"
           :class="`article-card--${cardModifier(index)}`"
@@ -108,14 +121,15 @@
                 class="article-source-tag"
               >{{ item.sourceTagLabel }}</span>
             </div>
-            <div v-if="showExcerpt && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
-            <div v-if="component.props.show_date !== false && (item.meta || item.source || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
+            <div v-if="showSummaryOn && item.excerpt && !isOverlayCard(index)" class="article-excerpt">{{ item.excerpt }}</div>
+            <div v-if="component.props.show_date !== false && (item.meta || item.source || viewsOf(item) || (showSourceTag && item.sourceTagLabel))" class="article-meta-row" :style="itemMetaStyle">
               <span v-if="item.meta">{{ item.meta }}</span>
               <span
                 v-if="showSourceTag && item.sourceTagLabel && sourceTagPosition === 'meta'"
                 class="article-source-tag"
               >{{ item.sourceTagLabel }}</span>
               <span v-else-if="item.source && !isOverlayCard(index)">{{ item.source }}</span>
+              <span v-if="viewsOf(item)">{{ viewsLabel(item) }}</span>
             </div>
           </div>
         </div>
@@ -133,6 +147,10 @@ import { titleFontStyle } from '../composables/titleFontStyle'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
 import { filterBySourceKeys, resolveSourceLabel } from '@/utils/dsl-source-tag'
 import { articleCardModifier, resolveArticleLayout } from '../articleLayouts'
+import {
+  resolveShowSummary,
+  type PinnedArticle,
+} from '../articleFeed/articleListSchema'
 
 type ArticleItem = {
   id?: number | string
@@ -145,6 +163,8 @@ type ArticleItem = {
   sourceTagLabel?: string
   categoryId?: string | number
   categoryName?: string
+  /** 阅读量；仅 show_views 开启时渲染 */
+  viewCount?: number
 }
 
 const props = defineProps<{
@@ -156,9 +176,32 @@ const activeTabId = ref('')
 const liveCategoryTabs = ref<Array<{ id: string; name: string }>>([])
 
 const showCategoryTabs = computed(() => props.component.props?.show_category_tabs === true)
+
+/** 顶部标签的视觉形式：pill（滑动胶囊）/ underline（下划线）/ bold（文字加粗） */
+const categoryTabStyle = computed(() => {
+  const v = String(props.component.props?.category_tab_style || 'pill')
+  return v === 'underline' || v === 'bold' ? v : 'pill'
+})
+
 const categoryTabs = computed(() => {
+  /**
+   * 「分类范围」= picked 时只保留运营手选的分类。
+   * ⚠️ 比较时统一按字符串，避免 el-select 回传数字 id 而接口 tabs 是字符串导致全被滤掉。
+   */
+  const pickedRaw = props.component.props?.category_tab_ids
+  const picked = Array.isArray(pickedRaw) && pickedRaw.length
+    ? new Set(pickedRaw.map((x) => String(x)))
+    : null
+
+  const build = (list: Array<{ id: string; name: string }>) => {
+    const filtered = picked ? list.filter((t) => t.id !== '' && picked.has(String(t.id))) : list
+    const tabs = [{ id: '', name: '全部' }, ...filtered]
+    // 手选分类可能已被删除，全被滤掉时至少保留「全部」，避免顶部整条消失
+    return tabs.length > 1 ? tabs : [{ id: '', name: '全部' }]
+  }
+
   if (liveCategoryTabs.value.length) {
-    return [{ id: '', name: '全部' }, ...liveCategoryTabs.value]
+    return build(liveCategoryTabs.value)
   }
   const raw = Array.isArray(props.component.props?.category_tabs) ? props.component.props.category_tabs : []
   const tabs = raw
@@ -173,7 +216,7 @@ const categoryTabs = computed(() => {
     return [{ id: '', name: '全部' }]
   }
   if (!tabs.some((t) => t.name === '全部')) tabs.unshift({ id: '', name: '全部' })
-  return tabs
+  return build(tabs)
 })
 
 onMounted(async () => {
@@ -203,7 +246,10 @@ const articleLayout = computed(() => resolveArticleLayout(
   'list',
 ))
 
-const showExcerpt = computed(() => articleLayout.value === 'editorial' || articleLayout.value === 'magazine')
+const showExcerpt = computed(() => resolveShowSummary(
+  articleLayout.value,
+  props.component.props?.show_summary,
+))
 
 function cardModifier(index: number) {
   return articleCardModifier(articleLayout.value, index)
@@ -313,16 +359,48 @@ const failMessage = computed(() =>
     : '文章数据请求失败，请检查网络或数据源配置',
 )
 
+/**
+ * 🔴 拉取量必须与展示量解耦（2026-10-05 修复）。
+ *
+ * 原实现里 `visibleArticleItems` 用 `limit` 截断，`filteredArticleItems` 之后才做
+ * source_filter / 分类 Tab 筛选 —— 于是「拉多少」和「留多少」共用了同一个 limit。
+ * 典型翻车：配置「显示数量 2」+「筛选来源=公众号」，接口按最新返回的前 2 篇恰好都是
+ * 原创/小红书 → 客户端把它们全筛掉 → 画布空白或只剩 1 篇，运营完全不知道为什么。
+ *
+ * 正解：拉取按 FETCH_BUFFER_FACTOR 放大余量，筛选完再截 limit。
+ * 余量不够时（内容池本身就没那么多）如实少给，不做假数据。
+ */
+const FETCH_BUFFER_FACTOR = 4
+const FETCH_BUFFER_MIN = 20
+
+function resolveFetchSize(limit: number, hasFilter: boolean): number {
+  if (!hasFilter) return Math.max(limit, 50)
+  return Math.max(limit * FETCH_BUFFER_FACTOR, FETCH_BUFFER_MIN, limit)
+}
+
+const hasClientSideFilter = computed(() => {
+  const p = props.component.props || {}
+  const sourceFilter = Array.isArray(p.source_filter) && p.source_filter.length > 0
+  return sourceFilter || p.show_category_tabs === true || hasContentTagFilter(p)
+})
+
+function hasContentTagFilter(p: Record<string, any>): boolean {
+  const platforms = Array.isArray(p.filter_platform_codes) && p.filter_platform_codes.length > 0
+  const topics = Array.isArray(p.filter_topic_tags) && p.filter_topic_tags.length > 0
+  return platforms || topics
+}
+
 const visibleArticleItems = computed<ArticleItem[]>(() => {
   const items = props.component.props?.items
   const limit = Math.max(Number(props.component.props?.limit || 6), 1)
+  const fetchSize = resolveFetchSize(limit, hasClientSideFilter.value)
   const source = (() => {
     if (props.previewMode) {
       if (!Array.isArray(items) || items.length === 0) return []
-      return items.slice(0, Math.max(limit, 50))
+      return items.slice(0, fetchSize)
     }
     const live = liveItems.value.length ? liveItems.value : (Array.isArray(items) ? items : [])
-    return live.slice(0, Math.max(limit, 50))
+    return live.slice(0, fetchSize)
   })()
 
   return source.map((item: any) => {
@@ -345,6 +423,7 @@ const visibleArticleItems = computed<ArticleItem[]>(() => {
       sourceTagLabel: resolveSourceLabel(item, props.component.props?.source_labels),
       categoryId: item.categoryId ?? item.category_id,
       categoryName: item.categoryName || item.category_name || '',
+      viewCount: Number(item.viewCount ?? item.view_count ?? 0) || 0,
     }
   })
 })
@@ -373,6 +452,61 @@ const filteredArticleItems = computed(() => {
   return list.slice(0, limit)
 })
 
+/**
+ * 🔴 手动置顶：置顶项按配置顺序排在最前，其余按筛选后原序跟随。
+ * 与 ArticleFeedRenderer.displayItems、miniapp dsl-article-list._applyPinned 同规则。
+ */
+const displayArticleItems = computed<ArticleItem[]>(() => {
+  const pool = filteredArticleItems.value
+  const pinned = (Array.isArray(props.component.props?.pinned) ? props.component.props.pinned : []) as PinnedArticle[]
+  if (!pinned.length) return pool
+
+  const byId = new Map(pool.map((it) => [String(it.id ?? ''), it]))
+  const head: ArticleItem[] = []
+  for (const p of pinned) {
+    const hit = byId.get(String(p.id))
+    if (hit) {
+      head.push(hit)
+      byId.delete(String(p.id))
+    } else {
+      // 置顶的文章不在当前筛选结果里（筛选条件变了）也要占位，
+      // 否则运营会以为「置顶没生效」而反复排查
+      head.push({ id: p.id, title: p.title || `文章 #${p.id}`, cover: p.cover })
+    }
+  }
+  const headIds = new Set(head.map((h) => String(h.id ?? '')))
+  const rest = pool.filter((it) => !headIds.has(String(it.id ?? '')))
+  const limit = Math.max(Number(props.component.props?.limit || 6), 1)
+  return [...head, ...rest].slice(0, Math.max(limit, head.length))
+})
+
+/** 阅读热度：旧页面无 show_views 字段 → 不显示（保持原观感） */
+const showViews = computed(() => props.component.props?.show_views === true)
+
+/**
+ * 逐条计算阅读量文案。
+ *
+ * 「阅读热度」对运营的意义是**量级对比**（三位数 vs 五位数），
+ * 所以 ≥10000 折成「1.2万」—— 直接显示 12345 会把日期行撑破。
+ *返回空串表示「本次不渲染阅读量」，供模板直接 v-if。
+ */
+function viewsOf(item: ArticleItem): string {
+  if (!showViews.value) return ''
+  const n = Number(item.viewCount ?? 0)
+  if (!Number.isFinite(n) || n <= 0) return '0 阅读'
+  return n >= 10000 ? `${(n / 10000).toFixed(1)}万 阅读` : `${n} 阅读`
+}
+
+/** 纯文本版（模板里字符串插值用，避免每条都走 v-if 表达式） */
+function viewsLabel(item: ArticleItem): string {
+  return viewsOf(item)
+}
+
+/** 摘要简介：报刊细排 / 杂志首篇强制显示，其余布局看开关（与 dsl-article-list 同规则） */
+const showSummaryOn = computed(() =>
+  resolveShowSummary(articleLayout.value, props.component.props?.show_summary),
+)
+
 const showFilteredEmpty = computed(() => {
   if (showFailState.value || liveLoading.value) return false
   if (showCategoryTabs.value) return filteredArticleItems.value.length === 0
@@ -382,6 +516,23 @@ const showFilteredEmpty = computed(() => {
   }
   return liveEmpty.value
 })
+
+/** 运营可自定义空态文案；未配置时回落到各自的默认提示 */
+const emptyTextValue = computed(() => {
+  const custom = String(props.component.props?.empty_text || '').trim()
+  if (custom) return custom
+  return props.previewMode
+    ? '暂无文章数据，请确认内容已发布或稍后重试'
+    : '当前筛选下没有已发布内容'
+})
+
+/** empty_mode=hide 且确实没数据时，整个组件不渲染 */
+const hideWhenEmpty = computed(
+  () => props.component.props?.empty_mode === 'hide' && showFilteredEmpty.value,
+)
+
+/** 空状态图标：运营自选 Emoji；未配置时不渲染图标（旧页面观感不变） */
+const emptyIconValue = computed(() => String(props.component.props?.empty_icon || '').trim())
 
 function formatDisplayDate(value: unknown): string {
   if (value == null || value === '') return ''
@@ -431,6 +582,55 @@ function formatDisplayDate(value: unknown): string {
 .article-tab.active {
   color: #0f2744;
   font-weight: 700;
+}
+
+/* ── 标签视觉形式（category_tab_style） ──
+ *  pill 是默认（原样式即胶囊内的下划线观感），另给下划线与加粗两种更克制的形态。
+ *  三者共用同一套 DOM，只切 padding / 伪元素，避免三份结构走偏。 */
+.article-tabs--pill {
+  gap: 8px;
+  padding: 6px 10px 8px;
+
+  .article-tab {
+    padding: 5px 12px;
+    border-radius: 999px;
+
+    &.active {
+      background: #f2f5f9;
+    }
+  }
+}
+
+.article-tabs--underline {
+  .article-tab {
+    position: relative;
+    padding-bottom: 7px;
+
+    &.active::after {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      content: '';
+      background: #0f2744;
+      border-radius: 2px;
+      transform: translateX(-50%);
+    }
+  }
+}
+
+.article-tabs--bold {
+  gap: 20px;
+
+  .article-tab {
+    padding: 4px 0 8px;
+    font-weight: 400;
+
+    &.active {
+      font-weight: 800;
+    }
+  }
 }
 
 .article-source-tag {
@@ -711,6 +911,15 @@ function formatDisplayDate(value: unknown): string {
     color: #909399;
     background: #f8faff;
     border-radius: var(--card-radius, 10px);
+  }
+
+  /* 空状态图标：与文案同列居中，字号放大让「空」的情绪更明确 */
+  .preview-data-empty__icon {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 26px;
+    line-height: 1.2;
+    filter: saturate(0.85);
   }
 
   .preview-data-fail {

@@ -1,18 +1,27 @@
 <template>
   <div class="ops-concept" :class="`ops-concept--${variant}`">
     <p v-if="variant === 'overview'">
-      <strong>内容配置版本</strong>：第 {{ liveReleaseNo ?? '—' }} 次同步
+      <strong>线上配置</strong>：
+      <template v-if="liveReleaseNo != null">第 {{ liveReleaseNo }} 次发布</template>
+      <template v-else>尚无发布记录</template>
+      <template v-if="liveSemver">（版本号 {{ liveSemver }}）</template>
       <template v-if="liveReleaseAt"> · {{ liveReleaseAt }}</template>
       <template v-if="publisherName"> · {{ publisherName }}</template>
       <span v-if="pendingCount > 0" class="ops-concept__pending">
-        · 有 {{ pendingCount }} 项待同步到线上配置
+        · 有 {{ pendingCount }} 项已存草稿、待发布到线上
       </span>
     </p>
     <p v-else-if="variant === 'content'">{{ contentHint }}</p>
     <p v-else-if="variant === 'pages'">{{ contentHint }}</p>
     <p v-else-if="variant === 'publish'">{{ draftLiveHint }}</p>
     <p v-else-if="variant === 'appearance'">
-      改导航、配色、整店模板后先<strong>保存草稿</strong>，再点<strong>保存并同步</strong>写入服务端；用户端是否已刷新需第二阶段真机验证（代码包在本地上传微信）。
+      <!--
+        2026-10-05 文案统一：原来这里写「先保存草稿，再点保存并同步」，
+        「保存并同步」是本次要消灭的混淆说法（保存与发布是两件事）。
+        统一口径：改动自动存草稿 → 去「发布与版本」发布配置。
+      -->
+      这里的改动会<strong>自动存入草稿</strong>，线上暂不变化；
+      确认无误后到<strong>「发布与版本」</strong>发布配置才会对用户生效。
     </p>
     <p v-else>{{ draftLiveHint }}</p>
   </div>
@@ -26,6 +35,8 @@ withDefaults(
   defineProps<{
     variant?: 'overview' | 'content' | 'publish' | 'appearance' | 'pages'
     liveReleaseNo?: number | null
+    /** 🔴 内容版本号（形如 1.12.0），与「第几次发布」是两个概念，别混用 */
+    liveSemver?: string | null
     liveReleaseAt?: string | null
     publisherName?: string | null
     pendingCount?: number

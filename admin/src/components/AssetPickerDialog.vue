@@ -17,6 +17,29 @@
         <el-button icon="Refresh" @click="fetchAssets">刷新</el-button>
       </div>
 
+      <!--
+        本地上传入口。
+        🔴 口径（2026-10-06）：**所有上传素材的动作都先跳素材库，需要新素材时在这里从本地上传**。
+        之前「素材库」是个纯选择器，空态文案却写着「请先用『本地上传』上传」——
+        而那个「本地上传」在弹窗里根本不存在，运营会陷进死循环（先传→没入口→只能关掉→回表单传）。
+        现在上传能力收进素材库，表单侧只保留「打开素材库」这一个动作。
+      -->
+      <el-upload
+        class="asset-uploader"
+        :show-file-list="false"
+        :accept="mediaType === 'video' ? 'video/mp4,video/*' : 'image/*'"
+        :http-request="uploadToLibrary"
+        :disabled="uploading"
+      >
+        <el-button type="primary" :icon="Upload" :loading="uploading">
+          {{ isVideo ? '上传视频到素材库' : '上传图片到素材库' }}
+        </el-button>
+      </el-upload>
+
+      <div class="asset-upload-note">
+        新素材会自动入库并出现在列表里{{ multiple ? '，可直接点选' : '，并自动选中' }}。
+      </div>
+
       <div v-if="multiple" class="asset-hint">
         点击选中，再点取消；选中序号按点击顺序。已选
         <strong>{{ selectedUrls.length }}</strong> 张
@@ -68,7 +91,10 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { get } from '@/api/request'
+import { ElMessage } from 'element-plus'
+import { Upload } from '@element-plus/icons-vue'
+import { get, post } from '@/api/request'
+import { uploadFile } from '@/api/system'
 
 interface AssetItem {
   id: number
@@ -99,6 +125,7 @@ const emit = defineEmits<{
 
 const keyword = ref('')
 const loading = ref(false)
+const uploading = ref(false)
 const assets = ref<AssetItem[]>([])
 /** 选中 URL（原始接口返回值），顺序 = 点击顺序 */
 const selectedUrls = ref<string[]>([])
@@ -114,7 +141,16 @@ const dialogTitle = computed(() => {
   if (isVideo.value) return '从素材库选择宣传视频'
   return props.multiple ? `从素材库批量选择${what}` : `从素材库选择${what}`
 })
-const emptyText = computed(() => (isVideo.value ? '暂无视频素材，请先用「本地上传」上传' : '暂无图片素材'))
+/**
+ * 空态文案要指向**弹窗内真实存在的入口**。
+ * 🔴 原来写「请先用『本地上传』上传」，但那个按钮当时就在这个弹窗里——
+ * 运营照着提示找了一圈根本找不到，只能关掉弹窗回表单上传。空态文案指不存在的操作 = 死循环。
+ */
+const emptyText = computed(() =>
+  isVideo.value
+    ? '素材库里还没有视频，点上方「上传视频到素材库」即可加入'
+    : '素材库里还没有图片，点上方「上传图片到素材库」即可加入',
+)
 
 /**
  * 素材 URL 归一。
@@ -166,6 +202,51 @@ async function fetchAssets() {
   }
 }
 
+/**
+ * 上传到素材库并入库。
+ * ⚠️ 为什么要在这里「上传 + 登记 + 刷新 + 自动选中」四步一起做：
+ * 只上传不登记 → 素材库里选不到（下次又要重新传）；只登记不上传 → 库里是坏链。
+ * ⚠️ 登记失败**不阻断**（与商品编辑页同口径）：文件已经传上去了，选中照样能用，
+ * 只是它不会出现在素材库列表里；此时提示用户而不是静默。
+ */
+async function uploadToLibrary(options: { file: File }) {
+  uploading.value = true
+  const file = options.file
+  try {
+    const res = await uploadFile(file)
+    const rawUrl: string = res?.data?.url || ''
+    if (!rawUrl) throw new Error('上传返回地址为空')
+
+    let registered = true
+    try {
+      await post('/api/v1/admin/assets', {
+        name: file.name,
+        type: props.mediaType,
+        url: rawUrl,
+        thumbUrl: props.mediaType === 'image' ? rawUrl : '',
+        size: file.size,
+      })
+    } catch {
+      registered = false
+    }
+
+    // uploadFile 已 normalize 过，这里直接用；仍走一次 resolve 保证与列表同源
+    const url = resolveAssetUrl(rawUrl)
+    await fetchAssets()
+    // 自动选中：单选直接替换；多选追加到末尾
+    selectedUrls.value = props.multiple
+      ? [...selectedUrls.value.filter((u) => resolveAssetUrl(u) !== url), url]
+      : [url]
+
+    if (registered) ElMessage.success('已上传到素材库')
+    else ElMessage.warning('文件已上传，但未能登记到素材库（可在素材库管理页补登记）')
+  } catch (err: any) {
+    ElMessage.error(err?.message || '上传失败')
+  } finally {
+    uploading.value = false
+  }
+}
+
 function confirmSelect() {
   if (!selectedUrls.value.length) return
   const resolved = selectedUrls.value.map((u) => resolveAssetUrl(u))
@@ -198,6 +279,20 @@ watch(
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
+}
+
+/* 本地上传：与搜索框同排，靠右 */
+.asset-uploader {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px;
+}
+
+.asset-upload-note {
+  margin: -8px 0 0;
+  color: #8a95a6;
+  font-size: 12px;
+  text-align: right;
 }
 
 .asset-hint {

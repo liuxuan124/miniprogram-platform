@@ -1,6 +1,12 @@
 import { BRAND_PLANET_NAME, BRAND_WARM_COMPONENT_DEFAULTS } from '@/constants/brand-defaults'
 import { WARM_KIT_METAS, WARM_KIT_TYPES } from './warmKitRegistry'
 import { ComponentType, ComponentTypeLabels } from '@/types/page'
+import { normalizeSearchProps, SEARCH_DEFAULT_PROPS } from './search/searchSchema'
+import { CATEGORY_NAV_DEFAULT_PROPS, normalizeCategoryNavProps } from './categoryNav/categoryNavSchema'
+import { COUPON_DEFAULT_PROPS, normalizeCouponProps } from './coupon/couponSchema'
+import { ARTICLE_LIST_DEFAULT_PROPS } from './articleFeed/articleListSchema'
+import { FLASH_SALE_DEFAULT_PROPS, normalizeFlashSaleProps } from './flashSale/flashSaleSchema'
+import { PRODUCT_LIST_DEFAULT_PROPS, normalizeProductListProps } from './productList/productListSchema'
 
 const W = BRAND_WARM_COMPONENT_DEFAULTS
 
@@ -36,17 +42,28 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'content',
       categoryLabel: '内容',
       defaultProps: () => ({
-        images: [{ image: '', title: '轮播图1', link_type: 'none', link_url: '' }],
+        images: [{ id: `bnr_seed_${Date.now().toString(36)}`, image: '', title: '轮播图1', subtitle: '', link_type: 'none', link_url: '', visible: true }],
         autoplay: true,
         interval: 3000,
-        indicator_dots: true,
+        loop: true,
+        allow_touch: true,
+        layout_mode: 'fullbleed',
+        aspect: '2.35:1',
+        // 🔴 默认 cover = 端上历史行为（mode="aspectFill"），老页面不会突然出现黑边
+        object_fit: 'cover',
+        radius_preset: 0,
+        shadow: 'none',
+        indicator_type: 'dots',
+        indicator_pos: 'center',
+        overlay: true,
+        title_align: 'left',
       }),
       defaultStyle: () => ({ margin_left: 0, margin_right: 0, border_radius: 0 }),
       validate: (props) => {
         const warnings: string[] = []
         if (!Array.isArray(props.images) || props.images.length === 0) {
           warnings.push('轮播图至少需要一个图片项（items/images 不能为空）')
-        } else if (props.images.every((img: any) => !img.image)) {
+        } else if (props.images.every((img: any) => !img?.image)) {
           warnings.push('所有轮播图图片地址为空，请至少设置一张图片')
         }
         const images = Array.isArray(props.images) ? props.images : []
@@ -54,7 +71,8 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
           const type = String(img?.link_type || img?.type || '').trim()
           const target = String(img?.link_url || img?.target || '').trim()
           if (!type) warnings.push(`轮播图第 ${index + 1} 张缺少跳转类型`)
-          else if (!['page', 'webview', 'url', 'miniapp', 'phone', 'none'].includes(type)) {
+          // 白名单需覆盖 BannerLinkDialog 提供的全部类型，否则选「内容/商品/秒杀」会被误报
+          else if (!['page', 'product', 'content', 'flashsale', 'webview', 'url', 'miniapp', 'phone', 'none'].includes(type)) {
             warnings.push(`轮播图第 ${index + 1} 张跳转类型不合法`)
           } else if (type !== 'none' && !target) {
             warnings.push(`轮播图第 ${index + 1} 张缺少跳转地址`)
@@ -133,8 +151,18 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       icon: 'Search',
       category: 'commerce',
       categoryLabel: '商品',
-      defaultProps: () => ({ placeholder: '搜索商品/文章/活动', scope: 'all' }),
+      // 2026-10-05：默认值改由 searchSchema 单一真相源提供（多词轮播 / 多选范围 / 样式组）。
+      // 旧字段 placeholder / scope 仍被 normalizeSearchProps 识别，老页面不受影响。
+      defaultProps: () => ({ ...SEARCH_DEFAULT_PROPS, placeholders: [...SEARCH_DEFAULT_PROPS.placeholders] }),
       defaultStyle: () => ({ margin_top: 8, margin_left: 10, margin_right: 10 }),
+      validate: (props) => {
+        const cfg = normalizeSearchProps(props)
+        const warnings: string[] = []
+        if (cfg.tap_target === 'link' && !cfg.link_url) {
+          warnings.push('跳转落地目标选了「自定义页面」但还没选页面，留空会回落到默认搜索页')
+        }
+        return warnings
+      },
     },
   ],
   [
@@ -146,22 +174,29 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'commerce',
       categoryLabel: '商品',
       defaultProps: () => ({
-        title: '快捷分类',
-        layout: 'grid',
-        columns: 4,
+        // 2026-10-05：默认值改由 categoryNavSchema 单一真相源提供
+        // （布局三档 / 标题开关 / 副标题 / 角标 / 背景模式）。
+        // 旧字段 layout='grid' + columns=4 仍被 normalizeCategoryNavProps 识别，老页面观感不变。
+        ...CATEGORY_NAV_DEFAULT_PROPS,
         items: [
           { icon: '/images/nav-icons/cart.svg', title: '全部', link_url: '/pkg-content/product-list/product-list' },
           { icon: '/images/nav-icons/fire.svg', title: '热卖', link_url: '/pkg-content/product-list/product-list' },
           { icon: '/images/nav-icons/gift.svg', title: '新品', link_url: '/pkg-content/product-list/product-list' },
           { icon: '/images/nav-icons/crown.svg', title: '精选', link_url: '/pkg-content/product-list/product-list' },
-        ],
+        ].map((it, i) => ({ ...it, id: `cnav_seed_${i}` })),
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
       validate: (props) => {
         const warnings: string[] = []
-        if (!Array.isArray(props.items) || props.items.length === 0) {
+        const cfg = normalizeCategoryNavProps(props)
+        if (!cfg.items.length) {
           warnings.push('分类导航项为空，请添加导航分类')
         }
+        if (cfg.layout === 'paged' && cfg.items.length > 0 && cfg.items.length <= cfg.page_size) {
+          warnings.push(`双行分页每页 ${cfg.page_size} 项，当前只有 ${cfg.items.length} 项，分页条不会出现`)
+        }
+        const noLink = cfg.items.filter((it) => !it.link_url).length
+        if (noLink) warnings.push(`有 ${noLink} 个分类项没设跳转，真机点击不会有反应`)
         return warnings
       },
     },
@@ -175,27 +210,18 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'commerce',
       categoryLabel: '商品',
       defaultProps: () => ({
+        // 2026-10-06：默认值以 productListSchema 为准。
+        // ⚠️ 老默认的 `title: ''`（无标题）+ `limit: 6` 保留 —— 新建组件的初始观感不变。
+        //    show_title 缺省 true 但 title 为空 → 画布不渲染标题行，与老行为一致。
+        ...PRODUCT_LIST_DEFAULT_PROPS,
         title: '',
-        subtitle: '',
-        layout: 'grid',
-        columns: 2,
+        limit: 6,
+        // 旧字段一并写入：端上 dsl-product-list 读的是 show_price/show_sales/source_mode
         show_price: true,
-        zero_price_display: 'amount',
         show_sales: true,
-        show_cart: false,
-        title_bold: true,
-        title_font_size: 14,
-        price_font_size: 13,
-        sales_font_size: 11,
-        item_border_radius: 12,
-        image_border_radius: 0,
-        show_rating: true,
-        item_gap: 8,
         source_mode: 'auto',
         product_ids: [],
         display_mode: 'fixed',
-        limit: 6,
-        page_size: 10,
         items: [
           { id: 'demo-1', name: '示例商品 A', price: '99.00', sales: 128 },
           { id: 'demo-2', name: '示例商品 B', price: '199.00', sales: 86 },
@@ -207,6 +233,17 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         },
       }),
       defaultStyle: () => ({ margin_left: 12, margin_right: 12 }),
+      validate: (props) => {
+        const cfg = normalizeProductListProps(props)
+        const warnings: string[] = []
+        if (cfg.pick_mode === 'manual' && !cfg.manual_ids.length) {
+          warnings.push('选取方式是「手动添加」但一件商品都没选，真机会显示空态')
+        }
+        if (cfg.show_more && !cfg.more_link) {
+          warnings.push('开启了「查看更多」但没设跳转，真机点了会跳默认商品列表页')
+        }
+        return warnings
+      },
     },
   ],
   [
@@ -221,9 +258,31 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         const end = new Date(Date.now() + 2 * 3600 * 1000)
         const pad = (n: number) => String(n).padStart(2, '0')
         const end_time = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())} ${pad(end.getHours())}:${pad(end.getMinutes())}:${pad(end.getSeconds())}`
-        return { title: '限时秒杀', limit: 4, countdown: true, end_time }
+        return {
+          // 2026-10-05：默认值以 couponSchema 同套路改由 flashSaleSchema 提供。
+          // end_time 仍按旧口径「2 小时后」显式给出（新建组件的初始观感不变）。
+          ...FLASH_SALE_DEFAULT_PROPS,
+          end_time,
+        }
       },
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 12 }),
+      validate: (props) => {
+        const cfg = normalizeFlashSaleProps(props)
+        const warnings: string[] = []
+        if (cfg.data_mode === 'manual' && !cfg.manual_items.length) {
+          warnings.push('手动自选模式下一件商品都没选，真机不会渲染商品卡')
+        }
+        if (cfg.show_more && !cfg.more_link) {
+          warnings.push('开启了「查看全部」但没设跳转，真机点了不会有反应')
+        }
+        if (cfg.show_progress && !cfg.manual_items.some((it) => Number(it.stock) > 0)) {
+          warnings.push('开启了抢购进度条，但没有任何商品设置库存，进度条不会出现')
+        }
+        if (cfg.badge_mode === 'autoDiscount' && !cfg.manual_items.some((it) => Number(it.original_price) > 0)) {
+          warnings.push('角标选了「自动折扣率」，但没有商品填原价，角标算不出来')
+        }
+        return warnings
+      },
     },
   ],
   [
@@ -235,13 +294,14 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'commerce',
       categoryLabel: '商品',
       defaultProps: () => ({
-        title: '领券中心',
-        limit: 3,
-        layout: 'horizontal',
-        style_type: 'horizontal',
-        button_text: '领取',
-        title_font_size: 15,
-        subtitle_font_size: 12,
+        // 2026-10-05：默认值改由 couponSchema 单一真相源提供
+        // （数据源双模式 / 标题栏更多入口 / 按钮三态文案 / 兜底策略 / 布局三档 / 票券风格三档）。
+        // 旧字段 limit / button_text / style_type / title_font_size / subtitle_font_size
+        // 仍被 normalizeCouponProps 识别，老页面观感与行为不变。
+        ...COUPON_DEFAULT_PROPS,
+        // ⚠️ data_source 保留：历史「数据源绑定」校验与端上 fillDataSource 仍读它。
+        // 面板已不再暴露这个字段（内容面板的数据源改走 data_mode/filters），
+        // 但**不能删** —— 删了会让 dataSourceBinding 校验判为「未配置」并在端上取不到数。
         data_source: {
           type: 'coupon',
           params: { status: 'active' },
@@ -250,9 +310,16 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10, border_radius: 10 }),
       validate: (props) => {
+        const cfg = normalizeCouponProps(props)
         const warnings: string[] = []
-        if (!props.title) {
+        if (!cfg.title.trim()) {
           warnings.push('优惠券标题为空，请设置标题')
+        }
+        if (cfg.data_mode === 'manual' && !cfg.manual_items.length) {
+          warnings.push('手动自选模式下一张券都没选，真机不会渲染任何券卡')
+        }
+        if (cfg.show_more && !cfg.more_link) {
+          warnings.push('开启了「查看更多」但没设跳转，真机点了不会有反应')
         }
         return warnings
       },
@@ -296,34 +363,13 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'content',
       categoryLabel: '内容',
       defaultProps: () => ({
-        title: '',
-        subtitle: '',
-        show_header: false,
-        show_more: false,
-        more_text: '更多 ›',
-        more_link: '/pkg-content/content-list/content-list',
-        layout: 'list',
-        style_type: 'list',
-        columns: 1,
+        // 2026-10-06：默认值收进 articleListSchema 单一真相源，
+        // 与 ArticleListProps / ArticleListRenderer / dsl-article-list 共用同一份定义。
+        // ⚠️ data_source 保留：运营界面上已不再暴露它（PropsPanel 的技术调试卡对
+        // ArticleList 屏蔽），但 preview-datasource 的取数链路仍读它 —— 删了画布取不到数。
+        ...ARTICLE_LIST_DEFAULT_PROPS,
+        // 旧页面写死过的 limit 若大于新上限 20，展示时按 normalizeLimit 夹紧
         limit: 3,
-        item_gap: 8,
-        show_cover: true,
-        show_date: true,
-        show_category_tabs: false,
-        category_tabs: [
-          { id: '', name: '全部' },
-          { id: '行业动态', name: '行业动态' },
-          { id: '协会动态', name: '协会动态' },
-          { id: '政策解读', name: '政策解读' },
-          { id: '精选', name: '精选' },
-          { id: '税务合规', name: '税务合规' },
-          { id: '物流仓储', name: '物流仓储' },
-        ],
-        data_source: {
-          type: 'content',
-          params: { status: 'published' },
-          query: { status: 'published' },
-        },
       }),
       defaultStyle: () => ({ margin_left: 12, margin_right: 12, border_radius: 12 }),
     },
@@ -345,6 +391,25 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         item_gap: 8,
         title_font_size: 13,
         subtitle_font_size: 11,
+        // —— 新增配置（与 articleFeedSchema 默认值对齐）——
+        scope: 'all',
+        sort: 'latest',
+        pinned: [],
+        tab_style: 'pill',
+        tab_show_all: true,
+        load_mode: 'infinite',
+        max_count: 0,
+        load_more_text: '下滑加载更多文章…',
+        cover_aspect: '16:9',
+        cover_radius: 8,
+        show_excerpt: false,
+        excerpt_lines: 2,
+        show_author: false,
+        show_badge: true,
+        show_meta: false,
+        card_margin: 0,
+        title_bold: false,
+        subtitle_color: '#94a3b8',
         data_source: {
           type: 'content',
           params: { status: 'published' },
@@ -363,9 +428,33 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       category: 'content',
       categoryLabel: '内容',
       defaultProps: () => ({
-        page_size: 12,
+        layout: 'masonry',
+        page_size: 10,
         show_category_tabs: true,
-        item_gap: 11,
+        show_sub_tabs: true,
+        item_gap: 10,
+        // —— 新增字段（与 noteFeedSchema 默认值对齐）——
+        type_tabs: [
+          { label: '全部', content_types: [], filter_type: 'all', category_ids: [], tag: '', content_ids: [], sort: 'new', layout: '' },
+        ],
+        show_search: false,
+        tab_font_size: 16,
+        tab_active_style: 'bar',
+        text_card: true,
+        gallery_badge: 'plain',
+        like_heart: true,
+        card_metric: 'like',
+        show_source_badge: false,
+        show_author: true,
+        item_border_radius: 12,
+        page_gutter: 0,
+        card_bg: '#ffffff',
+        background_color: '#f7f7f7',
+        // 🔴 标题字号改 13~18px 逻辑口径（旧默认 32 是设计稿 2 倍，实际只有约 16px）
+        title_size: 15,
+        title_lines: 2,
+        text_color: '#333333',
+        meta_color: '#7b8798',
         data_source: {
           type: 'content',
           params: { status: 'published', contentType: 'note' },
@@ -446,6 +535,15 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
         content: '<p>请输入富文本内容</p>',
         text_color: '#333333',
         background_color: '#ffffff',
+        // —— 新增容器排版字段（与 richTextSchema 默认值对齐）——
+        base_font_size: 14,
+        line_height: 1.75,
+        paragraph_gap: 8,
+        padding_x: 16,
+        padding_y: 12,
+        margin_y: 8,
+        container_bg: 'none',
+        container_radius: true,
       }),
       defaultStyle: () => ({ margin_left: 10, margin_right: 10 }),
       validate: (props) => {
@@ -982,31 +1080,64 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       defaultProps: () => ({
         logo: '',
         logo_text: '品牌',
+        // 新增：Logo 展示形式。留空则由 normalizeBrandHeaderProps 按 logo/logo_text 反推，
+        // 历史草稿零改动可用；这里显式给 'text' 是新建组件的默认。
+        logo_mode: 'text',
+        logo_text_bold: true,
         title: '品牌名称 · 一句话定位',
         subtitle: '',
+        // 新增：背景模式（bg_mode 取代 style_type，immersive 为沉浸透明）
+        bg_mode: 'plain',
         style_type: 'plain',
         background_color: '#ffffff',
         gradient_from: '#002FA7',
         gradient_to: '#1A4BBF',
+        bottom_border: true,
+        bottom_border_color: '#eef1f6',
         title_color: '#172033',
         title_color_light: '#ffffff',
         subtitle_color: '#7b8798',
         show_divider: true,
         logo_height: 28,
         logo_max_width: 88,
+        // 新增：保持宽高比 + 适应方式（防压扁/拉伸的根治点）
+        logo_keep_ratio: true,
+        logo_fit: 'contain',
         title_font_size: 15,
         subtitle_font_size: 11,
         logo_text_color: '#002FA7',
         divider_color: '#d0d8e8',
         bar_padding_left: 12,
         bar_padding_right: 12,
+        item_gap: 10,
+        // 新增：点击跳转 + 右侧功能区
+        tap_action: 'none',
+        show_action: false,
+        action_icon: 'search',
+        action_tap_action: 'none',
+        // sticky 为新字段，fixed_top 保留为历史别名（两者同步）
+        sticky: true,
         fixed_top: true,
+        backdrop_blur: false,
+        scroll_shadow: false,
+        data_source: {
+          type: 'content',
+          params: { status: 'published' },
+          query: { status: 'published' },
+        },
       }),
       defaultStyle: () => ({ margin_left: 0, margin_right: 0, margin_top: 0, margin_bottom: 0 }),
       validate: (props) => {
         const warnings: string[] = []
-        if (!String(props.title || '').trim()) {
-          warnings.push('品牌顶栏主标题不能为空')
+        const logo = String(props.logo || '').trim()
+        const logoText = String(props.logo_text || '').trim()
+        const title = String(props.title || '').trim()
+        // 标题与 Logo 全空时顶栏会退化成空占位（画布有占位提示，但上线后是空白条）
+        if (!title && !logo && !logoText) {
+          warnings.push('品牌顶栏的主标题与 Logo 不能同时为空')
+        }
+        if (props.tap_action === 'custom' && !String(props.tap_link_url || '').trim()) {
+          warnings.push('点击品牌区选了「自定义跳转」但未填写跳转目标')
         }
         return warnings
       },
@@ -1276,8 +1407,37 @@ export const componentRegistry = new Map<ComponentType, ComponentDefinition>([
       categoryLabel: '星球',
       defaultProps: () => ({
         source_mode: 'auto',
+        // 排序/条数/星球 ID：与 ContentServiceImpl.applyPlanetFeedSort 的白名单对齐。
+        // planet_id 留空 = 跟随用户设置的主星球；sort_by 默认 new = 最新发布。
+        planet_id: '',
+        sort_by: 'new',
         page_size: 20,
         resources_url: '/pkg-content/resources/resources',
+        // 标签栏默认「胶囊 + 吸顶 + 继承品牌色」= 线上现状，
+        // 写成显式值而非留空，是为了让运营在面板上一眼看到当前口径。
+        tabStyle: {
+          variant: 'pill',
+          inherit_brand: true,
+          active_bg: '',
+          active_text: '',
+          text: '',
+          sticky: true,
+        },
+        cardStyle: {
+          margin_bottom: 12,
+          padding: 14,
+          radius: 16,
+          shadow: 'light',
+          image_ratio: 'square',
+        },
+        // 截断行数默认 0 = 不截断。给默认 3 会把线上长文动态凭空截掉，属破坏性变更。
+        visibility: {
+          show_top_badge: true,
+          show_interactions: true,
+          clamp_lines: 0,
+        },
+        // 默认高亮分段留空 = 选第一段；显式指定可做「落地即精华」这类默认位。
+        default_seg: '',
         // 与线上「墨太白-星球」实际配置一致：8 个分段 key 全用上，
         // 避免新拖的组件与线上表现不同（预览里少了 host / homework 两个分段）。
         segs: [

@@ -198,6 +198,7 @@
                     @move-up="handleMoveUp(index)"
                     @move-down="handleMoveDown(index)"
                     @save-as-block="openSaveBlockDialog"
+                    @focus-seg="handleFocusSeg(comp.id, $event)"
                   />
                 </div>
               </template>
@@ -666,6 +667,17 @@ function handleMoveDown(index: number) {
   if (index < pageStore.components.length - 1) {
     pageStore.moveComponent(index, index + 1)
   }
+}
+
+/**
+ * 画布内点了分段标签 → 选中该组件并通知属性面板滚到对应配置项。
+ * 顺带切到「内容」页签：分段配置只存在于内容页签，停在样式页签会像「点了没反应」。
+ */
+function handleFocusSeg(componentId: string, segKey: string) {
+  if (pageStore.selectedComponentId !== componentId) {
+    pageStore.selectComponent(componentId)
+  }
+  pageStore.focusFromCanvas(segKey)
 }
 
 function handleDeleteComponent(comp: { id: string; type: ComponentType }) {

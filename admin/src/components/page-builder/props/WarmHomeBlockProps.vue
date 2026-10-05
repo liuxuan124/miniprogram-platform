@@ -89,85 +89,114 @@
       <div class="nav-list">
         <SubItemList
           :items="navs"
-          :title-of="(nv) => nv.label || ''"
-          :key-of="(nv, i) => nv.key || i"
+          :title-of="(nv) => nv?.label || ''"
+          :key-of="(nv, i) => nv?.key || i"
           add-text="添加入口"
           placeholder="未填写入口名称"
           empty-text="还没有配置入口"
-          :default-open="-1"
+          :default-open="0"
           @add="addNav"
           @remove="(i) => removeNav(i)"
+          @active-change="(p) => (activeNav = p)"
         >
-          <template #actions="{ index: ni, item: nav }">
+          <!--
+            🔴 插槽作用域**不要解构**（2026-10-05 修复）。
+            `#actions="{ index: ni, item: nav }"` 编译成 `_withCtx(({index: ni, item: nav}) => ...)`，
+            上游传 undefined 本身时解构直接抛
+            `Cannot read properties of undefined (reading 'item')`，
+            整块属性面板渲染中断 —— 表现只有「面板空白」，报错却落在本文件，
+            极易误判成「面板组件没注册」。`= {}` 默认值也救不了。
+            这里改成 `#actions="scope"` + `scope?.` 取值。
+          -->
+          <template #actions="scope">
             <el-tooltip content="上移一位" placement="top">
-              <button type="button" class="nav-move" :disabled="ni === 0" aria-label="上移" @click="moveNav(ni, -1)">↑</button>
+              <button
+                type="button"
+                class="nav-move"
+                :disabled="(scope?.index ?? 0) === 0"
+                aria-label="上移"
+                @click="moveNav(scope?.index ?? 0, -1)"
+              >↑</button>
             </el-tooltip>
             <el-tooltip content="下移一位" placement="top">
               <button
                 type="button"
                 class="nav-move"
-                :disabled="ni >= navs.length - 1"
+                :disabled="(scope?.index ?? 0) >= navs.length - 1"
                 aria-label="下移"
-                @click="moveNav(ni, 1)"
+                @click="moveNav(scope?.index ?? 0, 1)"
               >↓</button>
             </el-tooltip>
           </template>
-          <template #default="{ item: nav, index: ni, update }">
-      <div v-for="(nav, ni) in navs" :key="nav.key || ni" class="nav-item">
-<div class="nav-item__grid">
-          <div class="nav-field nav-field--icon">
-            <span class="nav-field__label">图标</span>
-            <!-- 图标支持两种：素材库图片（/uploads/ 开头）或直接输入 emoji。
-                 图片与 emoji 不能同存，所以按isImageValue 二选一渲染控件。 -->
-            <div v-if="isImageIcon(nav.icon)" class="nav-icon-picker">
-              <img class="nav-icon-picker__preview" :src="String(nav.icon)" alt="" />
-              <div class="nav-icon-picker__actions">
-                <el-button size="small" @click="pickIcon(ni)">换图</el-button>
-                <el-tooltip content="改回输入 emoji" placement="top"><el-button size="small" text @click="patchNav(ni, { icon: '' })">改 emoji</el-button></el-tooltip>
+          <!--
+            🔴 展开区**不取插槽作用域**（2026-10-05 修复）。
+            原写法 `#default="{ item: nav, index: ni }"` 编译成
+            `_withCtx(({ item: nav, index: ni }) => ...)`：上游一旦传 undefined 本身，
+            **解构直接抛 `Cannot read properties of undefined (reading 'item')`**，
+            整个属性面板渲染中断 —— 表现只有「面板空白」，报错却落在本文件，
+            极易误判成「面板组件没注册」（为此绕了好几轮）。
+            `= {}` 默认值也救不了：默认值只在「对象存在但属性为 undefined」时生效。
+            改法：当前项由 SubItemList 的 `active-change` 事件驱动（见 activeNav），
+            与插槽是否存在解耦，折叠/异步/空列表都不会崩。
+          -->
+          <template #default>
+            <div class="nav-item__grid">
+              <div class="nav-field nav-field--icon">
+                <span class="nav-field__label">图标</span>
+                <!-- 图标支持两种：素材库图片（/uploads/ 开头）或直接输入 emoji。 -->
+                <div v-if="isImageIcon(curNav.icon)" class="nav-icon-picker">
+                  <img class="nav-icon-picker__preview" :src="String(curNav.icon)" alt="" />
+                  <div class="nav-icon-picker__actions">
+                    <el-button size="small" @click="pickIcon(curNi)">换图</el-button>
+                    <el-tooltip content="改回输入 emoji" placement="top">
+                      <el-button size="small" text @click="patchNav(curNi, { icon: '' })">改 emoji</el-button>
+                    </el-tooltip>
+                  </div>
+                </div>
+                <div v-else class="nav-icon-picker">
+                  <el-input
+                    :model-value="curNav.icon"
+                    placeholder="emoji 或点右侧选图"
+                    maxlength="8"
+                    @input="(v: string) => patchNav(curNi, { icon: v })"
+                  />
+                  <el-button size="small" class="nav-icon-picker__btn" @click="pickIcon(curNi)">素材库</el-button>
+                </div>
+                <AssetPickerDialog
+                  v-model="iconPickerVisible"
+                  @select="(url: string) => patchNav(pickingIndex, { icon: url })"
+                />
+              </div>
+              <label class="nav-field">
+                <span class="nav-field__label">文案</span>
+                <el-input
+                  :model-value="curNav.label"
+                  placeholder="如：资料库"
+                  maxlength="8"
+                  @input="(v: string) => patchNav(curNi, { label: v })"
+                />
+              </label>
+              <label class="nav-field nav-field--wide">
+                <span class="nav-field__label">跳转路径</span>
+                <el-input
+                  :model-value="curNav.url"
+                  placeholder="/pages/... 或 /pkg-xxx/xxx/xxx"
+                  @input="(v: string) => patchNav(curNi, { url: v })"
+                />
+              </label>
+              <div class="nav-field nav-field--switch">
+                <span class="nav-field__label">打开方式</span>
+                <el-tooltip content="页 = 普通页面跳转；Tab = 切换到小程序底部 Tab 页" placement="top">
+                  <el-switch
+                    :model-value="!!curNav.tab"
+                    inline-prompt
+                    active-text="Tab"
+                    inactive-text="页"
+                    @change="(v: boolean) => patchNav(curNi, { tab: v })"
+                  />
+                </el-tooltip>
               </div>
             </div>
-            <div v-else class="nav-icon-picker">
-              <el-input
-                :model-value="nav.icon"
-                placeholder="emoji 或点右侧选图"
-                maxlength="8"
-                @input="(v: string) => patchNav(ni, { icon: v })"
-              />
-              <el-button size="small" class="nav-icon-picker__btn" @click="pickIcon(ni)">素材库</el-button>
-            </div>
-            <AssetPickerDialog v-model="iconPickerVisible" @select="(url: string) => patchNav(pickingIndex, { icon: url })" />
-          </div>
-          <label class="nav-field">
-            <span class="nav-field__label">文案</span>
-            <el-input
-              :model-value="nav.label"
-              placeholder="如：资料库"
-              maxlength="8"
-              @input="(v: string) => patchNav(ni, { label: v })"
-            />
-          </label>
-          <label class="nav-field nav-field--wide">
-            <span class="nav-field__label">跳转路径</span>
-            <el-input
-              :model-value="nav.url"
-              placeholder="/pages/... 或 /pkg-xxx/xxx/xxx"
-              @input="(v: string) => patchNav(ni, { url: v })"
-            />
-          </label>
-          <div class="nav-field nav-field--switch">
-            <span class="nav-field__label">打开方式</span>
-            <el-tooltip content="页 = 普通页面跳转；Tab = 切换到小程序底部 Tab 页" placement="top">
-              <el-switch
-                :model-value="!!nav.tab"
-                inline-prompt
-                active-text="Tab"
-                inactive-text="页"
-                @change="(v: boolean) => patchNav(ni, { tab: v })"
-              />
-            </el-tooltip>
-          </div>
-        </div>
-      </div>
           </template>
         </SubItemList>
       </div>
@@ -181,10 +210,10 @@
 
     <template v-else-if="type === 'warm_authors'">
       <el-form-item label="区块标题">
-        <el-input :model-value="data.title" @input="emit('update', { title: $event })" />
+        <el-input :model-value="data.title" placeholder="墨太白出品" @input="emit('update', { title: $event })" />
       </el-form-item>
       <el-form-item label="更多文案">
-        <el-input :model-value="data.more_text" @input="emit('update', { more_text: $event })" />
+        <el-input :model-value="data.more_text" placeholder="全部作者 ›" @input="emit('update', { more_text: $event })" />
       </el-form-item>
       <el-form-item label="跳转路径">
         <PathPickerField
@@ -204,161 +233,359 @@
         />
       </el-form-item>
 
+      <!-- ============ 数据源模式分段器（V122） ============ -->
       <div class="wa-section">
         <div class="wa-section__head">
-          <span class="wa-section__title">作者条目</span>
+          <span class="wa-section__title">数据来源</span>
           <FieldHint
-            text="留空 = 显示首页聚合接口返回的作者；一旦在这里填写，就以本处为准（覆盖接口数据）。建议 3~6 个。头像/名称/身份真机与预览都生效；「招募位」点击进投稿页。作者档案库仍可在「作者档案管理」维护。"
+            text="手动挑选：从作者库勾选 1~8 位，头像/昵称/身份自动带出，路径自动绑定主页。动态聚合：按标签自动拉取作者库，新作者打上标签后首页自动出现，运营零维护。"
           />
+        </div>
+        <BuilderSegmented
+          :model-value="sourceMode"
+          :options="SOURCE_MODE_OPTIONS"
+          block
+          aria-label="作者数据源模式"
+          @update:model-value="(v: string | number) => setSourceMode(String(v))"
+        />
+        <div class="wa-mode-note">{{ sourceModeHint }}</div>
+      </div>
+
+      <!-- ============ 模式 A：手动挑选 ============ -->
+      <div v-if="sourceMode === 'manual'" class="wa-section">
+        <div class="wa-section__head">
+          <span class="wa-section__title">已选作者</span>
           <span class="wa-section__spacer" />
-          <el-button link class="wa-collapse-all" @click="toggleAllAuthors">
-            {{ allCollapsed ? '全部展开' : '全部收起' }}
-          </el-button>
+          <span class="wa-count">{{ manualAuthors.length }} / {{ AUTHOR_LIMIT }}</span>
         </div>
 
-        <div class="nav-list">
-          <div
-            v-for="(a, ai) in authorList"
-            :key="a.key || ai"
-            class="nav-item author-item"
-            :class="{ 'is-collapsed': isCollapsed(ai) }"
+        <div v-if="!manualAuthors.length" class="wa-empty">
+          还没选作者。点下方【从作者库选择】勾选，头像、昵称、身份、主页路径全部自动带出。
+        </div>
+
+        <ul v-else class="wa-plist">
+          <li
+            v-for="(a, i) in manualAuthors"
+            :key="a.authorId || i"
+            class="wa-pitem"
+            :class="{ 'is-dragging': dragIndex === i }"
+            draggable="true"
+            @dragstart="onDragStart(i)"
+            @dragover.prevent
+            @drop="onDrop(i)"
+            @dragend="onDragEnd"
           >
-            <div class="nav-item__head author-item__head" @click="toggleAuthor(ai)">
-              <el-icon class="author-item__caret" :class="{ 'is-open': !isCollapsed(ai) }">
-                <ArrowRight />
-              </el-icon>
-              <span class="nav-item__idx">{{ ai + 1 }}</span>
-              <span class="nav-item__title">{{ authorTitle(a, ai) }}</span>
-              <span class="nav-item__spacer" />
-              <el-tooltip content="上移一位" placement="top">
-                <el-button link :disabled="ai === 0" @click.stop="moveAuthor(ai, -1)">↑</el-button>
-              </el-tooltip>
-              <el-tooltip content="下移一位" placement="top">
-                <el-button link :disabled="ai >= authorList.length - 1" @click.stop="moveAuthor(ai, 1)">↓</el-button>
-              </el-tooltip>
-              <el-tooltip content="删除作者" placement="top">
-                <el-button link type="danger" aria-label="删除作者" :disabled="authorList.length <= 1" @click.stop="removeAuthor(ai)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </el-tooltip>
+            <span class="wa-pitem__grip" title="拖拽调整顺序">⠿</span>
+            <span class="wa-pitem__idx">{{ i + 1 }}</span>
+            <img v-if="a.avatar" class="wa-pitem__ava" :src="a.avatar" alt="" />
+            <span v-else class="wa-pitem__ava wa-pitem__ava--empty">{{ (a.nickname || '作').slice(0, 1) }}</span>
+            <div class="wa-pitem__meta">
+              <div class="wa-pitem__name">
+                {{ a.nickname || '未命名作者' }}
+                <el-tooltip v-if="a.authorId" :content="`已绑定作者库 #${a.authorId}，改档案不会自动同步（快照模式）`" placement="top">
+                  <el-icon class="wa-pitem__link"><Link /></el-icon>
+                </el-tooltip>
+              </div>
+              <div class="wa-pitem__role">
+                <template v-if="customTitleOf(a)">
+                  <s class="wa-pitem__orig">{{ a.title || '—' }}</s>
+                  <span class="wa-pitem__arrow">→</span>
+                  <b>{{ customTitleOf(a) }}</b>
+                </template>
+                <template v-else>{{ a.title || '未设身份' }}</template>
+              </div>
             </div>
+            <el-tooltip content="上移" placement="top">
+              <el-button link :disabled="i === 0" @click="moveAuthor(i, -1)">↑</el-button>
+            </el-tooltip>
+            <el-tooltip content="下移" placement="top">
+              <el-button link :disabled="i === manualAuthors.length - 1" @click="moveAuthor(i, 1)">↓</el-button>
+            </el-tooltip>
+            <el-tooltip content="移除" placement="top">
+              <el-button link type="danger" aria-label="移除作者" @click="removeAuthor(i)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </el-tooltip>
+          </li>
+        </ul>
 
-            <div v-show="!isCollapsed(ai)" class="author-item__body">
-              <!-- 行 1：基础物料。头像固定一列，名称/身份平分剩余宽度，不再四列硬挤 -->
-              <div class="author-row author-row--base">
-                <div class="nav-field nav-field--icon">
-                  <span class="nav-field__label">
-                    头像
-                    <AuthorPickerField
-                      :model-value="a.authorId || null"
-                      @select="(p) => applyAuthorFromLibrary(ai, p)"
-                    />
-                  </span>
-                  <div class="nav-icon-picker">
-                    <img
-                      v-if="a.avatar"
-                      class="nav-icon-picker__preview nav-icon-picker__preview--round nav-icon-picker__preview--lg"
-                      :src="String(a.avatar)"
-                      alt=""
-                    />
-                    <div v-else class="nav-icon-picker__preview nav-icon-picker__preview--round nav-icon-picker__preview--lg nav-icon-picker__preview--empty">
-                      {{ (a.name || '作').slice(0, 1) }}
-                    </div>
-                    <div class="nav-icon-picker__actions">
-                      <el-button size="small" @click="pickAuthorAvatar(ai)">素材库</el-button>
-                      <el-tooltip v-if="a.avatar" content="清空头像（改用首字）" placement="top">
-                        <el-button size="small" text @click="patchAuthor(ai, { avatar: '' })">清空</el-button>
-                      </el-tooltip>
-                    </div>
-                  </div>
-                </div>
-                <label class="nav-field">
-                  <span class="nav-field__label">名称</span>
-                  <el-input
-                    :model-value="a.name"
-                    placeholder="如：太白"
-                    maxlength="12"
-                    @input="(v: string) => patchAuthor(ai, { name: v })"
-                  />
-                </label>
-                <label class="nav-field">
-                  <span class="nav-field__label">身份</span>
-                  <el-input
-                    :model-value="a.role"
-                    placeholder="如：主理人"
-                    maxlength="12"
-                    @input="(v: string) => patchAuthor(ai, { role: v })"
-                  />
-                </label>
-              </div>
+        <button
+          type="button"
+          class="wa-add"
+          :disabled="manualAuthors.length >= AUTHOR_LIMIT"
+          @click="openAuthorPicker"
+        >
+          <span class="wa-add__plus">＋</span>
+          <span>从作者库选择</span>
+          <span class="wa-add__count">{{ manualAuthors.length }} / {{ AUTHOR_LIMIT }}</span>
+        </button>
 
-              <!-- 行 2：高级设置。招募位开关 + 点进跳转 各自独占整行，不再和文本框抢宽度 -->
-              <div class="author-row author-row--adv">
-                <div class="nav-field nav-field--inline">
-                  <span class="nav-field__label">招募位</span>
-                  <el-tooltip content="开启后头像位置显示「＋」，点击进投稿页（用于末尾邀请加入）" placement="top">
-                    <el-switch
-                      :model-value="!!a.apply"
-                      @change="(v: boolean) => patchAuthor(ai, { apply: v })"
-                    />
-                  </el-tooltip>
-                  <span class="nav-field__note">末尾「＋」邀请位</span>
-                </div>
-                <label class="nav-field">
-                  <span class="nav-field__label">点进跳转（留空走作者作品页）</span>
-                  <PathPickerField
-                    :model-value="a.url || ''"
-                    @update:model-value="(v: string) => patchAuthor(ai, { url: v })"
-                  />
-                </label>
-              </div>
+        <!-- 局部字段覆盖：只改首页展示，不动作者库档案 -->
+        <template v-if="overrideTarget">
+          <div class="wa-section__head wa-section__head--sub">
+            <span class="wa-section__title">对外头衔微调</span>
+            <FieldHint text="只改首页展示，不动作者库档案。留空 = 用作者库原头衔。" />
+          </div>
+          <div class="nav-field">
+            <span class="nav-field__label">
+              {{ overrideTarget.nickname }} 的展示头衔
+            </span>
+            <div class="wa-override">
+              <el-input
+                :model-value="customTitleOf(overrideTarget) || ''"
+                :placeholder="overrideTarget.originTitle || overrideTarget.title || '如：合规主理人'"
+                maxlength="24"
+                @input="(v: string) => setCustomTitle(v)"
+              />
+              <el-button v-if="customTitleOf(overrideTarget)" link size="small" @click="setCustomTitle('')">还原</el-button>
+            </div>
+            <div class="nav-field__note">
+              作者库原头衔：{{ overrideTarget.originTitle || overrideTarget.title || '未设置' }}
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- ============ 模式 B：动态聚合 ============ -->
+      <div v-else class="wa-section">
+        <div class="wa-section__head">
+          <span class="wa-section__title">聚合规则</span>
+          <FieldHint text="按标签筛选作者库中的启用档案。标签在「内容管理 › 作者管理」里维护，打上标签即自动上榜。" />
+        </div>
+
+        <el-form-item label="作者标签">
+          <el-select
+            :model-value="dynamicConfig.tagIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            clearable
+            placeholder="不选 = 全部作者（按下方规则取前N 位）"
+            style="width: 100%"
+            @update:model-value="(v: string[]) => patchDynamic({ tagIds: v || [] })"
+          >
+            <el-option v-for="t in authorTagOptions" :key="t" :label="t" :value="t" />
+          </el-select>
+        </el-form-item>
+
+        <div v-if="!authorTagOptions.length" class="wa-empty wa-empty--tight">
+          作者库里还没有任何标签。先到「作者管理」给作者打标签，这里才有筛选项。
+        </div>
+
+        <el-form-item label="排序规则">
+          <el-radio-group
+            :model-value="dynamicConfig.sortBy"
+            @change="(v: string) => patchDynamic({ sortBy: v })"
+          >
+            <el-radio value="weight">权重优先</el-radio>
+            <el-radio value="latest">最新入驻</el-radio>
+            <el-radio value="article_count">内容最多</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="展示数量">
+          <div class="wa-slider">
+            <el-slider
+              :model-value="dynamicConfig.limit"
+              :min="3"
+              :max="8"
+              :step="1"
+              :marks="{ 3: '3', 5: '5', 8: '8' }"
+              @update:model-value="(v: number | number[]) => patchDynamic({ limit: Array.isArray(v) ? v[0] : v })"
+            />
+            <b class="wa-slider__val">{{ dynamicConfig.limit }} 位</b>
+          </div>
+        </el-form-item>
+
+        <div class="wa-preview">
+          <div class="wa-preview__head">
+            <span>当前规则将拉出</span>
+            <el-button link type="primary" size="small" @click="refreshAggregatePreview">刷新预览</el-button>
+          </div>
+          <div v-if="aggLoading" class="wa-empty wa-empty--tight">加载中…</div>
+          <div v-else-if="!aggPreview.length" class="wa-empty wa-empty--tight">
+            当前规则匹配不到作者。检查标签是否打对、或作者是否为「启用」状态。
+          </div>
+          <div v-else class="wa-preview__list">
+            <div v-for="(p, i) in aggPreview" :key="p.id" class="wa-preview__item">
+              <span class="wa-preview__idx">{{ i + 1 }}</span>
+              <img v-if="p.avatarUrl" class="wa-preview__ava" :src="p.avatarUrl" alt="" />
+              <span v-else class="wa-preview__ava wa-preview__ava--empty">{{ (p.name || '作').slice(0, 1) }}</span>
+              <span class="wa-preview__name">{{ p.name }}</span>
+              <span class="wa-preview__role">{{ p.title || '—' }}</span>
             </div>
           </div>
         </div>
-
-        <div class="nav-actions nav-actions--author">
-          <button
-            type="button"
-            class="wa-add"
-            :disabled="authorList.length >= 8"
-            @click="addAuthor"
-          >
-            <span class="wa-add__plus">+</span>
-            <span>添加作者</span>
-            <span class="wa-add__count">{{ authorList.length }} / 8</span>
-          </button>
-          <span class="nav-actions__spacer" />
-          <el-popconfirm
-            width="240"
-            title="确认清空自定义作者并还原为接口默认数据？"
-            confirm-button-text="确认清空"
-            cancel-button-text="取消"
-            confirm-button-type="danger"
-            @confirm="clearAuthors"
-          >
-            <template #reference>
-              <el-button link type="danger" size="small" :disabled="!data.authors?.length">清空</el-button>
-            </template>
-          </el-popconfirm>
-        </div>
       </div>
-      <AssetPickerDialog v-model="authorPickerVisible" @select="(url: string) => patchAuthor(pickingAuthorIndex, { avatar: url })" />
+
+      <!-- ============ 招募位（组件全局配置，V122 解耦） ============ -->
+      <div class="wa-section wa-section--recruit">
+        <div class="wa-section__head">
+          <span class="wa-section__title">招募位设置</span>
+          <FieldHint
+            text="招募位是列表末尾的常驻「＋」入口，与作者条目无关。开启后自动追加在所有真实作者之后，点击进招募页。"
+          />
+        </div>
+
+        <div class="nav-field nav-field--inline">
+          <span class="nav-field__label">末尾招募位</span>
+          <el-switch
+            :model-value="recruitmentSlot.enabled"
+            @change="(v: boolean) => patchRecruit({ enabled: v })"
+          />
+          <span class="nav-field__note">{{ recruitmentSlot.enabled ? '已开启' : '已关闭' }}</span>
+        </div>
+
+        <template v-if="recruitmentSlot.enabled">
+          <label class="nav-field">
+            <span class="nav-field__label">主标文案</span>
+            <el-input
+              :model-value="recruitmentSlot.iconText || ''"
+              placeholder="＋"
+              maxlength="2"
+              @input="(v: string) => patchRecruit({ iconText: v })"
+            />
+          </label>
+          <label class="nav-field">
+            <span class="nav-field__label">身份副标</span>
+            <el-input
+              :model-value="recruitmentSlot.label || ''"
+              placeholder="招募中"
+              maxlength="8"
+              @input="(v: string) => patchRecruit({ label: v })"
+            />
+          </label>
+          <el-form-item label="点击跳转">
+            <div class="wa-recruit-actions">
+              <el-button size="small" @click="applyRecruitPreset('apply')">创作者入驻申请</el-button>
+              <el-button size="small" @click="applyRecruitPreset('intro')">招募说明长文</el-button>
+            </div>
+            <PathPickerField
+              :model-value="recruitmentSlot.targetPath || ''"
+              placeholder="/pkg-content/contribute/contribute"
+              @update:model-value="(v: string) => patchRecruit({ targetPath: v })"
+            />
+            <div class="nav-field__note">当前：{{ recruitmentSlot.targetPath || '未配置（点击无跳转）' }}</div>
+          </el-form-item>
+        </template>
+      </div>
+
+      <BrandAuthorPickerModal
+        v-model="authorPickerModalVisible"
+        :value="pickedForModal"
+        :max="AUTHOR_LIMIT"
+        @confirm="onAuthorsPicked"
+      />
     </template>
 
     <template v-else-if="type === 'warm_columns'">
-      <el-form-item label="区块标题">
-        <el-input :model-value="data.title" @input="emit('update', { title: $event })" />
-      </el-form-item>
-      <el-form-item label="更多文案">
-        <el-input :model-value="data.more_text" @input="emit('update', { more_text: $event })" />
-      </el-form-item>
-      <el-form-item label="跳转路径">
-        <el-input :model-value="data.more_url" @input="emit('update', { more_url: $event })" />
-      </el-form-item>
-      <el-form-item label="Tab 跳转">
+      <BuilderFieldItem label="区块标题">
+        <el-input :model-value="data.title" placeholder="精品专栏" @input="emit('update', { title: $event })" />
+      </BuilderFieldItem>
+
+      <BuilderFieldItem
+        label="展示数量"
+        hint="最多展示几个专栏卡。手动指定的专栏不足时会按实际数量渲染。"
+      >
+        <NumSliderRow
+          :model-value="columnLimit"
+          :min="1"
+          :max="10"
+          :step="1"
+          :fallback="4"
+          @update:model-value="(v: number) => emit('update', { limit: v })"
+        />
+      </BuilderFieldItem>
+
+      <BuilderFieldItem
+        label="获取方式"
+        hint="自动拉取按下方排序规则取专栏；手动指定则只展示你勾选的那几个，顺序即展示顺序。"
+      >
+        <BuilderSegmented
+          :model-value="columnFetchMode"
+          :options="FETCH_MODE_OPTIONS"
+          @update:model-value="onColumnFetchModeChange"
+        />
+      </BuilderFieldItem>
+
+      <BuilderFieldItem v-if="columnFetchMode === 'auto'" label="排序规则">
+        <el-select
+          :model-value="columnSortBy"
+          style="width: 100%"
+          @change="(v: string) => emit('update', { sort_by: v })"
+        >
+          <el-option v-for="o in COLUMN_SORT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+        <div class="ds-hint">{{ sortHint }}</div>
+      </BuilderFieldItem>
+
+      <BuilderFieldItem v-else label="指定专栏">
+        <div class="picker-row">
+          <el-input
+            :model-value="columnSummary"
+            readonly
+            :placeholder="columnIds.length ? '' : '尚未指定，点击右侧挑选'"
+          />
+          <el-button size="small" @click="columnPickerOpen = true">挑选</el-button>
+        </div>
+        <div class="ds-hint">
+          从商品库挑选「付费专栏」类型的商品。当前已选 <b>{{ columnIds.length }}</b> 个。
+        </div>
+      </BuilderFieldItem>
+
+      <BuilderFieldItem label="更多文案">
+        <el-input :model-value="data.more_text" placeholder="全部 ›" @input="emit('update', { more_text: $event })" />
+      </BuilderFieldItem>
+      <BuilderFieldItem label="跳转路径">
+        <PathPickerField
+          :model-value="data.more_url"
+          @update:model-value="(v: string) => emit('update', { more_url: v })"
+        />
+      </BuilderFieldItem>
+      <BuilderFieldItem label="Tab 跳转" hint="开启后跳到小程序底部 Tab 页，而不是普通页面。">
         <el-switch :model-value="!!data.more_tab" @change="(v: boolean) => emit('update', { more_tab: v })" />
-      </el-form-item>
-      <el-alert title="列表内容来自首页聚合接口里的真实商品/星球，不支持手填演示条目。" type="info" :closable="false" show-icon />
+      </BuilderFieldItem>
+
+      <el-divider content-position="left">数据兜底</el-divider>
+
+      <BuilderFieldItem
+        label="无数据时隐藏"
+        hint="小程序端拉到 0 个专栏时，整个区块直接不渲染（推荐开）。关闭则显示空状态文案。"
+      >
+        <el-switch
+          :model-value="columnAutoHide"
+          @change="(v: boolean) => emit('update', { auto_hide_when_empty: v })"
+        />
+      </BuilderFieldItem>
+      <BuilderFieldItem
+        v-if="!columnAutoHide"
+        label="空态文案"
+        hint="无数据且未开启隐藏时显示的提示语。"
+      >
+        <el-input
+          :model-value="data.empty_text"
+          placeholder="暂无专栏"
+          maxlength="12"
+          @input="emit('update', { empty_text: $event })"
+        />
+      </BuilderFieldItem>
+
+      <BuilderFieldItem
+        label="编辑期演示卡片"
+        hint="装修器画布上没有真实专栏时，用预设封面与标题填充卡片，方便看排版效果。仅装修器生效，小程序端不会出现演示数据。"
+      >
+        <el-switch
+          :model-value="columnPreviewMock"
+          @change="(v: boolean) => emit('update', { preview_mock: v })"
+        />
+      </BuilderFieldItem>
+
+      <ColumnPickerModal
+        v-model="columnPickerOpen"
+        :model-ids="columnIds"
+        :max="10"
+        @confirm="onColumnIdsConfirm"
+      />
     </template>
 
     <template v-else-if="type === 'warm_feature'">
@@ -395,12 +622,22 @@ import SubItemList from '../SubItemList.vue'
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowRight, Delete } from '@element-plus/icons-vue'
+import { ArrowRight, Delete, Link } from '@element-plus/icons-vue'
 import { getConfigsSilent, updateConfigs } from '@/api/system'
+import { get } from '@/api/request'
 import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 import FieldHint from '../FieldHint.vue'
 import PathPickerField from '../PathPickerField.vue'
-import AuthorPickerField from '../AuthorPickerField.vue'
+import BuilderSegmented from '../BuilderSegmented.vue'
+import BuilderFieldItem from '../BuilderFieldItem.vue'
+import NumSliderRow from './NumSliderRow.vue'
+import ColumnPickerModal from '../ColumnPickerModal.vue'
+import { COLUMN_SORT_OPTIONS, COLUMN_CONFIG_DEFAULTS } from '../columnConfig'
+import BrandAuthorPickerModal, { type PickedAuthor } from '../BrandAuthorPickerModal.vue'
+import { listAuthors, authorHomePath, type AuthorRecord, type AuthorAggregateItem } from '@/api/author'
+
+/** 小程序端作者聚合列表接口（与后端 MpAuthorController 的 GET /api/v1/mp/authors 对齐） */
+const MpAuthorListApi = '/api/v1/mp/authors'
 
 export type WarmNavItem = {
   key?: string
@@ -410,16 +647,39 @@ export type WarmNavItem = {
   tab?: boolean
 }
 
+/**
+ * 手动模式下的作者条目（V122）。
+ *
+ * 与旧结构（key/name/role/avatar/url/apply）的差异：
+ *   - 不再有 apply —— 招募位已解耦为组件级 recruitmentSlot，
+ *     每条作者都带一个「是否招募位」开关本身就是语义冲突（不知道哪个才是）。
+ *   - 新增 authorId / nickname / customTitle / originTitle / homePath：
+ *     authorId 绑定作者库实体，homePath 由代码统一拼（不再让运营手写长路径），
+ *     customTitle 只覆盖首页展示头衔，不动作者库档案。
+ *   - 保留 name/role 作为读取时的兼容别名（老DSL 里是这两个 key）。
+ */
 export type WarmAuthorItem = {
-  key?: string
-  name?: string
-  role?: string
-  avatar?: string
-  url?: string
-  /** true = 末尾「＋」招募位，点击进投稿页 */
-  apply?: boolean
-  /** 从作者库选中的档案 ID（V114）：仅作 UI 提示，DSL 仍存快照字段 */
+  /** 作者库 ID（手填的历史数据可能没有） */
   authorId?: number | null
+  /** 作者昵称（老数据 key = name） */
+  nickname?: string
+  name?: string
+  /** 作者头像（老数据 key = avatar） */
+  avatar?: string
+  /** 作者库原头衔/身份（老数据 key = role） */
+  title?: string
+  role?: string
+  /** 运营对本次首页展示的头衔覆盖 */
+  customTitle?: string
+  /** 记录作者库原头衔，供覆盖时显示「原值 → 新值」 */
+  originTitle?: string
+  /** 自动生成的主页路径 */
+  homePath?: string
+  url?: string
+  /** 兼容旧版：旧招募位用 apply 标记，读取时迁移到 recruitmentSlot */
+  apply?: boolean
+  /** 内部稳定 key，用于列表渲染与拖拽定位（不参与业务语义） */
+  key?: string
 }
 
 const DEFAULT_NAVS: WarmNavItem[] = [
@@ -434,9 +694,85 @@ const { props: data, type } = defineProps<{ props: Record<string, any>; type?: s
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const remoteFeedStatsMode = ref<'auto' | 'manual'>('auto')
+
+/* ------------------------------------------------------------------ *
+ * 品牌专栏（warm_columns）配置
+ *
+ * 真实数据源是 warm_home_config.columnProductIds（运营勾选的付费专栏商品 id 列表），
+ * 原先面板只有标题与跳转 4 个字段，运营既不能调数量也不能选专栏，
+ * 而生产该值恰好是 `[]` → 画布恒显「暂无专栏」。
+ * ------------------------------------------------------------------ */
+
+const FETCH_MODE_OPTIONS = [
+  { value: 'auto', label: '自动拉取' },
+  { value: 'manual', label: '手动指定' },
+]
+
+const columnLimit = computed(() => {
+  const n = Number(data.value?.limit ?? data.value?.count)
+  if (!Number.isFinite(n)) return COLUMN_CONFIG_DEFAULTS.limit
+  return Math.min(10, Math.max(1, Math.round(n)))
+})
+
+const columnFetchMode = computed(() =>
+  data.value?.fetch_mode === 'manual' ? 'manual' : 'auto',
+)
+
+const columnSortBy = computed(() => {
+  const v = String(data.value?.sort_by || '')
+  return v === 'hot' || v === 'manual' ? v : 'newest'
+})
+
+const sortHint = computed(
+  () => COLUMN_SORT_OPTIONS.find((o) => o.value === columnSortBy.value)?.hint || '',
+)
+
+const columnIds = computed<number[]>(() =>
+  (Array.isArray(data.value?.column_ids) ? data.value.column_ids : []).map((x: any) => Number(x)).filter((x: number) => Number.isFinite(x)),
+)
+
+const columnSummary = computed(() =>
+  columnIds.value.length ? `已指定 ${columnIds.value.length} 个专栏` : '',
+)
+
+const columnPickerOpen = ref(false)
+
+const columnAutoHide = computed(() =>
+  data.value?.auto_hide_when_empty !== false,
+)
+
+/** 老 DSL 没有 preview_mock 键 → 默认开启（与 columnConfig.previewMockEnabled 同口径） */
+const columnPreviewMock = computed(() => data.value?.preview_mock !== false)
+
+function onColumnFetchModeChange(v: string | number) {
+  // 切到 manual 时给个明确落点：从 auto 语义下没有 column_ids，保留已有即可
+  emit('update', { fetch_mode: String(v) })
+}
+
+function onColumnIdsConfirm(ids: number[]) {
+  emit('update', {
+    column_ids: ids,
+    // 指定了专栏就说明运营想手动控，隐式切到 manual，避免选了却不生效
+    fetch_mode: 'manual',
+    // 指定的比展示数量多时自动抬高上限，否则运营会以为「勾了没生效」
+    limit: Math.max(columnLimit.value, Math.min(10, ids.length || 1)),
+  })
+}
+
 const navDraft = ref<WarmNavItem[]>([])
 const navSaving = ref(false)
 const navHydrated = ref(false)
+
+/**
+ * 当前正在编辑的导航项（模板里的 curNav / curNi 由此而来）。
+ *
+ * 来自 SubItemList 的 `active-change` 事件，**不用插槽作用域**：
+ * 作用域只在展开区渲染时存在，且上游传 undefined 时解构会直接把面板打挂
+ * （见模板里那段注释）。事件方式与插槽是否存在解耦，最稳。
+ */
+const activeNav = ref<{ item: any; index: number }>({ item: {}, index: 0 })
+const curNav = computed<Partial<WarmNavItem>>(() => activeNav.value.item ?? {})
+const curNi = computed(() => activeNav.value.index ?? 0)
 
 const feedStatsMode = computed(() => {
   if (data.feed_stats_mode === 'manual' || data.feed_stats_mode === 'auto') {
@@ -456,42 +792,219 @@ const iconPickerVisible = ref(false)
 /** 正在挑图的那一行索引 */
 const pickingIndex = ref(0)
 
-/** 作者头像素材库选择器（warm_authors 区块用） */
-const authorPickerVisible = ref(false)
-const pickingAuthorIndex = ref(0)
+/* =====================================================================
+ * warm_authors 作者区块（V122 重构）
+ *
+ * 改造前：authors 数组 + 每条内部藏一个 apply（招募位）开关，昵称/头像/身份全手打。
+ *   → 与作者库脱节、跳转路径手写必 404、不知道哪个才是招募位。
+ * 改造后：sourceMode 二选一 + recruitmentSlot 组件级配置。
+ *   manual  = 弹窗勾选作者库，头像/昵称/身份/主页路径自动带出
+ *   dynamic = 按标签+排序规则实时聚合，新作者打标签即自动上榜
+ *
+ * ⚠️ 本段落的规则必须与canvas 端 DslWarmBlock.vue 和小程序端
+ *    dsl-warm-block.js 保持完全一致（三处都要改），否则画布与真机必分歧。
+ * ===================================================================== */
 
-/**
- * 作者条目：DSL 里配了 authors 就用配的（覆盖接口），
- * 没配时返回 null，渲染层回落 warm_home_config.authors 接口数据。
- */
-const authorList = computed<WarmAuthorItem[]>(() => {
+const AUTHOR_LIMIT = 8
+
+const SOURCE_MODE_OPTIONS = [
+  { value: 'manual', label: '手动挑选' },
+  { value: 'dynamic', label: '动态聚合' },
+]
+
+/** 手动模式下已选作者（内部统一成 WarmAuthorItem 形状，模板不用管别名） */
+const manualAuthors = computed<WarmAuthorItem[]>(() => {
   const list = data.authors
   return Array.isArray(list) ? (list as WarmAuthorItem[]) : []
 })
 
-function normalizeAuthor(a: any, i: number): WarmAuthorItem {
+/**
+ * 数据源模式。默认 manual —— 但历史草稿没写 sourceMode 且 authors 非空时，
+ * 也按 manual 处理（向后兼容，见 migrateLegacyAuthors）。
+ */
+const sourceMode = computed<'manual' | 'dynamic'>(() => {
+  const m = String((data as Record<string, unknown>).source_mode || '')
+  return m === 'dynamic' ? 'dynamic' : 'manual'
+})
+
+const sourceModeHint = computed(() =>
+  sourceMode.value === 'manual'
+    ? '手动挑选：勾选作者库成员，头像/昵称/身份/主页路径自动带出，顺序可拖拽调整。'
+    : '动态聚合：按标签与排序规则实时拉取作者库，新作者打上标签后首页自动出现，无需再手动维护。',
+)
+
+/** 招募位（组件全局配置） */
+const recruitmentSlot = computed(() => {
+  const raw = (data.recruitment_slot || {}) as Record<string, unknown>
   return {
-    key: String(a?.key || `author_${i}`),
-    name: String(a?.name || ''),
-    role: String(a?.role || ''),
-    avatar: String(a?.avatar || ''),
-    url: String(a?.url || ''),
-    apply: !!a?.apply,
-    authorId: a?.authorId ? Number(a.authorId) : null,
+    enabled: raw.enabled === true,
+    iconText: String(raw.icon_text || ''),
+    label: String(raw.label || ''),
+    actionType: String(raw.action_type || 'link'),
+    targetPath: String(raw.target_path || ''),
+  }
+})
+
+/** 动态聚合配置，带默认值 */
+const dynamicConfig = computed(() => {
+  const raw = (data.dynamic_config || {}) as Record<string, unknown>
+  const sortBy = String(raw.sort_by || 'weight')
+  const limit = Number(raw.limit)
+  return {
+    tagIds: Array.isArray(raw.tag_ids) ? (raw.tag_ids as string[]) : [],
+    sortBy: (sortBy === 'latest' || sortBy === 'article_count' ? sortBy : 'weight') as
+      | 'weight'
+      | 'latest'
+      | 'article_count',
+    limit: Number.isFinite(limit) ? Math.min(8, Math.max(3, Math.round(limit))) : 5,
+  }
+})
+
+/* ---------- 兼容旧数据：is_recruit/apply → recruitmentSlot ---------- */
+
+/**
+ * 历史草稿兼容：旧结构 authors:[{name, avatar, apply, path}] 里 apply=true 的那条
+ * 就是当年运营标的招募位。这里在读取时把它从作者列表里摘出来，喂给 recruitmentSlot，
+ * 保证老页面打开后招募位仍在末尾、作者列表也不再混着「哪个是招募位」的困惑。
+ *
+ * 只读不写 —— 不在渲染期改DSL，避免「看一眼面板就把草稿改脏」。
+ * 真正落库的迁移发生在下方 migrateLegacyAuthors（用户在面板操作时才触发）。
+ */
+const legacyRecruitMigrated = computed(() => {
+  const list = Array.isArray(data.authors) ? (data.authors as WarmAuthorItem[]) : []
+  const recruit = list.find((a) => a?.apply === true)
+  if (!recruit) return null
+  return { targetPath: String(recruit.url || '') }
+})
+
+/** 有效招募位配置：优先新字段，其次回落旧 apply 条目 */
+const effectiveRecruit = computed(() => {
+  if (recruitmentSlot.value.enabled || recruitmentSlot.value.targetPath) return recruitmentSlot.value
+  const legacy = legacyRecruitMigrated.value
+  if (legacy) {
+    return { ...recruitmentSlot.value, enabled: true, targetPath: legacy.targetPath }
+  }
+  return recruitmentSlot.value
+})
+
+/* ---------- 作者库标签选项 ---------- */
+
+const allAuthors = ref<AuthorRecord[]>([])
+
+/** 作者库里出现过的全部标签（去重排序），供动态模式下拉多选 */
+const authorTagOptions = computed(() => {
+  const set = new Set<string>()
+  allAuthors.value.forEach((a) => {
+    String(a.tags || '')
+      .split(/[,，]/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .forEach((t) => set.add(t))
+  })
+  return Array.from(set).sort()
+})
+
+async function loadAuthorTags() {
+  try {
+    const res: any = await listAuthors({ status: 1 })
+    allAuthors.value = Array.isArray(res?.data) ? res.data : []
+  } catch {
+    allAuthors.value = []
   }
 }
 
+/* ---------- 动态聚合预览（画布上给运营看效果） ---------- */
+
+const aggPreview = ref<AuthorAggregateItem[]>([])
+const aggLoading = ref(false)
+
+async function refreshAggregatePreview() {
+  const cfg = dynamicConfig.value
+  aggLoading.value = true
+  try {
+    const res: any = await get<any>(MpAuthorListApi, {
+      tags: cfg.tagIds.join(','),
+      sortBy: cfg.sortBy,
+      limit: cfg.limit,
+    })
+    const rows = res?.data
+    aggPreview.value = Array.isArray(rows) ? rows : rows?.records || []
+  } catch (e: any) {
+    aggPreview.value = []
+    ElMessage.error(e?.message || '聚合预览加载失败')
+  } finally {
+    aggLoading.value = false
+  }
+}
+
+/* ---------- 写操作 ---------- */
+
+function setSourceMode(mode: string) {
+  const patch: Record<string, unknown> = { source_mode: mode }
+  // 首次切到 dynamic 时顺手迁移旧招募位，避免老页面切模式后招募位消失
+  if (mode === 'dynamic') {
+    migrateLegacyRecruit()
+  }
+  emit('update', patch)
+}
+
+/** 把旧 authors 里的 apply 条目迁到 recruitmentSlot（切模式/保存时触发一次） */
+function migrateLegacyRecruit() {
+  const legacy = legacyRecruitMigrated.value
+  if (!legacy) return
+  emit('update', {
+    recruitment_slot: {
+      enabled: true,
+      icon_text: '＋',
+      label: '招募中',
+      action_type: 'link',
+      target_path: legacy.targetPath,
+    },
+    // authors 里那条 apply 条目由 normalizeAuthors 过滤掉，这里一并提交干净列表
+    authors: normalizeAuthors(data.authors),
+  })
+  ElMessage.info('已把旧招募位迁移到组件设置，作者列表已清理')
+}
+
+/** 过滤掉 apply 条目并补齐新字段别名 */
+function normalizeAuthors(raw: unknown): WarmAuthorItem[] {
+  const list = Array.isArray(raw) ? (raw as WarmAuthorItem[]) : []
+  return list
+    .filter((a) => a && a.apply !== true)
+    .map((a, i) => {
+      const nickname = String(a.nickname || a.name || '')
+      const title = String(a.title || a.role || '')
+      const authorId = a.authorId ? Number(a.authorId) : null
+      return {
+        ...a,
+        authorId,
+        nickname,
+        name: nickname,
+        avatar: String(a.avatar || ''),
+        title,
+        role: title,
+        customTitle: String(a.customTitle || ''),
+        originTitle: String(a.originTitle || title || ''),
+        homePath: String(a.homePath || a.url || (authorId ? authorHomePath(authorId, nickname) : '')),
+        apply: undefined,
+        key: String(a.key || `author_${i}`),
+      } as WarmAuthorItem
+    })
+}
+
 function commitAuthors(next: WarmAuthorItem[]) {
-  emit('update', { authors: next.map((a) => ({ ...a })) })
+  emit('update', { authors: next })
 }
 
 function patchAuthor(index: number, patch: Partial<WarmAuthorItem>) {
-  const next = authorList.value.map((a, i) => (i === index ? { ...normalizeAuthor(a, i), ...patch } : { ...a }))
+  const next = normalizeAuthors(data.authors)
+  if (!next[index]) return
+  next[index] = { ...next[index], ...patch }
   commitAuthors(next)
 }
 
 function moveAuthor(index: number, delta: number) {
-  const next = authorList.value.map((a, i) => normalizeAuthor(a, i))
+  const next = normalizeAuthors(data.authors)
   const j = index + delta
   if (j < 0 || j >= next.length) return
   const tmp = next[index]
@@ -501,99 +1014,174 @@ function moveAuthor(index: number, delta: number) {
 }
 
 function removeAuthor(index: number) {
-  if (authorList.value.length <= 1) return
-  commitAuthors(authorList.value.filter((_, i) => i !== index))
+  const next = normalizeAuthors(data.authors)
+  if (index < 0 || index >= next.length) return
+  next.splice(index, 1)
+  commitAuthors(next)
 }
 
-function addAuthor() {
-  if (authorList.value.length >= 8) return
-  commitAuthors([
-    ...authorList.value.map((a, i) => normalizeAuthor(a, i)),
-    { key: `author_${Date.now().toString(36)}`, name: '', role: '', avatar: '', url: '', apply: false },
-  ])
+/* ---------- 拖拽排序 ---------- */
+
+const dragIndex = ref(-1)
+
+function onDragStart(i: number) {
+  dragIndex.value = i
 }
 
-function clearAuthors() {
-  emit('update', { authors: [] })
-  ElMessage.success('已清空自定义作者，改回接口默认数据')
+function onDrop(i: number) {
+  const from = dragIndex.value
+  if (from < 0 || from === i) return
+  const next = normalizeAuthors(data.authors)
+  const [item] = next.splice(from, 1)
+  next.splice(i, 0, item)
+  dragIndex.value = -1
+  commitAuthors(next)
 }
 
-/* ============ 作者条目折叠（纯 UI 态，不写进 DSL） ============ */
-/** 存的是作者 key；空值表示还没手动折叠过，此时默认全部展开 */
-const collapsedAuthorKeys = ref<string[]>([])
-
-function authorKey(a: WarmAuthorItem, i: number): string {
-  return String(a.key || `author_${i}`)
+function onDragEnd() {
+  dragIndex.value = -1
 }
 
-function isCollapsed(index: number): boolean {
-  const a = authorList.value[index]
-  if (!a) return false
-  return collapsedAuthorKeys.value.includes(authorKey(a, index))
+/* ---------- 头衔覆盖 ---------- */
+
+/** 当前正在编辑覆盖值的作者：取第一个人（有覆盖值的优先），无覆盖值时给 null */
+const overrideTarget = computed<WarmAuthorItem | null>(() => {
+  const list = manualAuthors.value
+  const withOverride = list.find((a) => String(a.customTitle || '').trim())
+  return withOverride || null
+})
+
+function customTitleOf(a: WarmAuthorItem): string {
+  return String(a?.customTitle || '').trim()
 }
 
-function toggleAuthor(index: number) {
-  const a = authorList.value[index]
-  if (!a) return
-  const k = authorKey(a, index)
-  const cur = collapsedAuthorKeys.value
-  collapsedAuthorKeys.value = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]
+function setCustomTitle(v: string) {
+  const target = overrideTarget.value
+  if (!target) return
+  const idx = manualAuthors.value.indexOf(target)
+  if (idx < 0) return
+  patchAuthor(idx, { customTitle: String(v || '').trim() })
 }
 
-const allCollapsed = computed(
-  () => authorList.value.length > 0 && authorList.value.every((_, i) => isCollapsed(i)),
+/* ---------- 弹窗选择 ---------- */
+
+/**
+ * 喂给弹窗的已选列表（做一次形状适配）。
+ * 弹窗只关心「勾了谁、叫什么、长什么样、主页在哪」，
+ * 不需要知道 customTitle / originTitle 这些面板侧字段。
+ */
+const pickedForModal = computed<PickedAuthor[]>(() =>
+  manualAuthors.value.map((a) => ({
+    authorId: Number(a.authorId || 0),
+    nickname: String(a.nickname || a.name || ''),
+    avatar: String(a.avatar || ''),
+    title: String(a.title || a.role || ''),
+    originTitle: String(a.originTitle || a.title || a.role || ''),
+    homePath: String(a.homePath || ''),
+  })),
 )
 
-function toggleAllAuthors() {
-  if (allCollapsed.value) {
-    collapsedAuthorKeys.value = []
-    return
-  }
-  collapsedAuthorKeys.value = authorList.value.map((a, i) => authorKey(a, i))
+const authorPickerModalVisible = ref(false)
+
+function openAuthorPicker() {
+  authorPickerModalVisible.value = true
 }
+
+function onAuthorsPicked(list: PickedAuthor[]) {
+  commitAuthors(
+    list.map((p) => ({
+      authorId: p.authorId,
+      nickname: p.nickname,
+      name: p.nickname,
+      avatar: p.avatar,
+      title: p.title,
+      role: p.title,
+      originTitle: p.originTitle || p.title,
+      customTitle: '',
+      homePath: p.homePath,
+    })),
+  )
+  ElMessage.success(`已选 ${list.length} 位作者，头像/昵称/身份/主页路径自动带出`)
+}
+
+/* ---------- 招募位 ---------- */
 
 /**
- * 卡片标题随输入实时变化：填了名字就显示「1 太白 · 主理人」，
- * 没填时回落「未命名作者」并标出是第几条，避免多个未命名条目无法区分。
- */
-function authorTitle(a: WarmAuthorItem, index: number): string {
-  const name = String(a.name || '').trim()
-  const role = String(a.role || '').trim()
-  if (!name && !role) return `${index + 1} 未命名作者`
-  const head = name || '未命名作者'
-  return role ? `${index + 1} ${head} · ${role}` : `${index + 1} ${head}`
-}
-
-function pickAuthorAvatar(index: number) {
-  pickingAuthorIndex.value = index
-  authorPickerVisible.value = true
-}
-
-/**
- * 从作者库选一位，回填头像/名称/身份。
+ * 招募位字段名映射：面板内部（computed / 事件参数）用 camelCase，
+ * 落库到 recruitment_slot 用 snake_case。
  *
- * 口径：**只写展示字段的快照，不让作者库反向控制已发布页面**。
- * authorId 只是 UI 上的「这条来自作者库」标记；以后作者库改名/换头像，
- * 装修器里已配的内容不会被悄悄改动（要改就重新选一次）。
- * 传 null = 解除关联，但保留已填的名称与头像（避免运营白填一遍）。
+ * 🔴 这里的映射不能省。之前 patch 直接 `...patch`，而调用方传的是 camelCase
+ * （`{ targetPath }`），spread 会把 `targetPath` 当成一个**额外的新键**塞进去，
+ * 而 `target_path` 仍保留旧值 —— computed 只读 `raw.target_path`，
+ * 于是预设按钮点了没有任何反应，底部一直显示「未配置（点击无跳转）」。
  */
-function applyAuthorFromLibrary(
-  index: number,
-  payload: { authorId: number; name: string; role: string; avatarUrl: string } | null,
-) {
-  if (!payload) {
-    patchAuthor(index, { authorId: null })
-    ElMessage.info('已解除作者库关联，当前填写的内容保留')
-    return
-  }
-  patchAuthor(index, {
-    authorId: payload.authorId,
-    name: payload.name,
-    role: payload.role,
-    avatar: payload.avatarUrl,
-  })
-  ElMessage.success(`已填入「${payload.name}」`)
+const RECRUIT_FIELD_MAP: Record<string, string> = {
+  enabled: 'enabled',
+  iconText: 'icon_text',
+  label: 'label',
+  actionType: 'action_type',
+  targetPath: 'target_path',
 }
+
+function patchRecruit(patch: Record<string, unknown>) {
+  const cur = effectiveRecruit.value
+  const slot: Record<string, unknown> = {
+    enabled: cur.enabled,
+    icon_text: cur.iconText,
+    label: cur.label,
+    action_type: cur.actionType,
+    target_path: cur.targetPath,
+  }
+  // 先把 camelCase 键翻译成 snake_case，再落到 slot 上（而不是直接 spread patch）
+  Object.entries(patch).forEach(([key, value]) => {
+    const snakeKey = RECRUIT_FIELD_MAP[key] || key
+    slot[snakeKey] = value
+  })
+  emit('update', { recruitment_slot: slot })
+}
+
+/**
+ * 招募位预设路由。
+ * 🔴 这里的路径必须与小程序 app.json subPackages 中真实登记的页面一致。
+ * 原先写的 `/pkg-content/author-apply/author-apply` 与 `/pkg-content/author-list/author-list`
+ * 里前者根本不存在（目录和 app.json 均无此页），配上去点了也只会跳失败。
+ * 现改为：入驻申请 → contribute（页内文案即「创作者申请」，含申请状态与审核流），
+ * 招募说明 → author-list（作者列表页）。
+ */
+const RECRUIT_PRESETS: Record<string, { path: string; label: string }> = {
+  apply: { path: '/pkg-content/contribute/contribute', label: '入驻申请' },
+  intro: { path: '/pkg-content/author-list/author-list', label: '招募说明' },
+}
+
+function applyRecruitPreset(kind: string) {
+  const preset = RECRUIT_PRESETS[kind]
+  if (!preset) return
+  patchRecruit({ targetPath: preset.path, actionType: 'link', enabled: true })
+}
+
+function patchDynamic(patch: Record<string, unknown>) {
+  const cur = dynamicConfig.value
+  emit('update', {
+    dynamic_config: {
+      tag_ids: cur.tagIds,
+      sort_by: cur.sortBy,
+      limit: cur.limit,
+      ...patch,
+    },
+  })
+}
+
+/* ---------- 进入面板时按需拉数据 ---------- */
+
+watch(
+  () => [sourceMode.value, dynamicConfig.value.tagIds.join(','), dynamicConfig.value.sortBy, dynamicConfig.value.limit],
+  () => {
+    if (sourceMode.value !== 'dynamic') return
+    if (!authorTagOptions.value.length && !allAuthors.value.length) loadAuthorTags()
+    refreshAggregatePreview()
+  },
+  { immediate: true },
+)
 
 /** 是否是图片图标：素材库图片一律以 /uploads/ 开头（相对路径），emoji 则不是 */
 function isImageIcon(icon: unknown): boolean {
@@ -758,6 +1346,18 @@ onMounted(() => {
   font-size: 12px;
   line-height: 1.4;
   margin: 0 0 10px;
+
+  b {
+    color: #c2410c;
+  }
+}
+
+/* 只读摘要 + 右侧「挑选」按钮（手动指定专栏等弹窗选择型字段复用） */
+.picker-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
 }
 /* 金刚区入口：每个入口一张卡片，字段用栅格对齐，避免原来 flex-wrap 换行后
    「图标/文案」和「路径/开关」错位、看不出哪几个字段属于同一条入口 */
@@ -905,47 +1505,218 @@ onMounted(() => {
   font-size: 12px;
   padding: 0;
 }
-/* 折叠态：卡片只留标题行，去掉内边距让列表更密 */
-.author-item.is-collapsed {
-  padding: 0 10px;
-  background: #fff;
+/* 招募位是组件级设置，视觉上与作者列表分区 */
+.wa-section--recruit {
+  background: #fbf8f4;
+  border-color: var(--wb-line, #e8dfd3);
 }
-.author-item.is-collapsed .nav-item__head {
-  margin-bottom: 0;
+.wa-section__head--sub {
+  margin-top: 12px;
 }
-.author-item__head {
-  cursor: pointer;
-  user-select: none;
+.wa-mode-note {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted, #94a3b8);
 }
-.author-item__caret {
+.wa-count {
   flex: none;
   font-size: 12px;
   color: var(--text-muted, #94a3b8);
-  transition: transform 0.18s ease;
 }
-.author-item__caret.is-open {
-  transform: rotate(90deg);
+/* 空态：告诉运营下一步该干什么，而不是只显示空白 */
+.wa-empty {
+  padding: 14px 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  background: #fbf8f4;
+  border: 1px dashed var(--wb-line, #e8dfd3);
+  border-radius: 8px;
 }
-.author-item__body {
+.wa-empty--tight {
+  padding: 10px 8px;
+  margin-top: 4px;
+}
+/* 已选作者卡片流 */
+.wa-plist {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
 }
-/* 行 1：头像 + 名称 + 身份，按 1:2:2 分配（头像列固定 132px，其余平分） */
-.author-row--base {
+.wa-pitem {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 8px;
+  background: #fff;
+  border: 1px solid var(--wb-line, #e8dfd3);
+  border-radius: 8px;
+  cursor: grab;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.wa-pitem:hover {
+  border-color: var(--el-color-primary, #c08e6e);
+}
+.wa-pitem.is-dragging {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.wa-pitem__grip {
+  flex: none;
+  font-size: 13px;
+  color: #c3b6a6;
+  cursor: grab;
+}
+.wa-pitem__idx {
+  flex: none;
+  width: 14px;
+  font-size: 11px;
+  color: #b3a595;
+  text-align: center;
+}
+.wa-pitem__ava {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--wb-line, #e8dfd3);
+}
+.wa-pitem__ava--empty {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-  align-items: end;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #a1897a;
 }
-/* 行 2：招募位开关与点进跳转各自独占整行，彻底避开横向挤压 */
-.author-row--adv {
+.wa-pitem__meta {
+  flex: 1;
+  min-width: 0;
+}
+.wa-pitem__name {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wb-ink, #2a1f17);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wa-pitem__link {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-color-primary, #c08e6e);
+}
+.wa-pitem__role {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 覆盖前的原值划掉，让「覆盖了什么」一眼可见 */
+.wa-pitem__orig {
+  color: #b3a595;
+}
+.wa-pitem__arrow {
+  color: #c3b6a6;
+}
+.wa-override {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+/* 动态聚合预览 */
+.wa-preview {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #fbf8f4;
+  border: 1px solid var(--wb-line, #e8dfd3);
+  border-radius: 8px;
+}
+.wa-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--wb-ink, #2a1f17);
+}
+.wa-preview__list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--wb-line, #e5eaf3);
+  gap: 5px;
+}
+.wa-preview__item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+.wa-preview__idx {
+  flex: none;
+  width: 14px;
+  color: #b3a595;
+  text-align: center;
+}
+.wa-preview__ava {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.wa-preview__ava--empty {
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a1897a;
+  background: #fff;
+  border: 1px solid var(--wb-line, #e8dfd3);
+}
+.wa-preview__name {
+  flex: 1;
+  min-width: 0;
+  color: var(--wb-ink, #2a1f17);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wa-preview__role {
+  flex: none;
+  color: var(--text-muted, #94a3b8);
+}
+/* 滑块 + 数值 */
+.wa-slider {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+.wa-slider :deep(.el-slider) {
+  flex: 1;
+}
+.wa-slider__val {
+  flex: none;
+  width: 40px;
+  font-size: 12px;
+  color: var(--wb-ink, #2a1f17);
+}
+.wa-recruit-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 /* 开关与文字同一行，省一行高度又不显拥挤 */
 .nav-field--inline {
@@ -1022,22 +1793,6 @@ onMounted(() => {
   }
 }
 
-/* 作者行降级用「容器查询」而不是 @media：
-   属性面板永远是窄的（约 300~360px），但视口在桌面上往往 >1200px，
-   写 @media (max-width:460px) 永远不命中 —— 这正是原来四列硬挤的根因。
-   container-type 让栅格真正按「自己所在容器的宽度」决定列数。 */
-.author-item__body {
-  container-type: inline-size;
-  container-name: authorBody;
-}
-@container authorBody (max-width: 300px) {
-  .author-row--base {
-    grid-template-columns: 1fr 1fr;
-  }
-  .author-row--base .nav-field--icon {
-    grid-column: 1 / -1;
-  }
-}
 .nav-actions {
   display: flex;
   gap: 8px;

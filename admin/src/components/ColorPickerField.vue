@@ -1,71 +1,80 @@
 <template>
-  <div class="color-picker-field" :class="[`is-${size || 'default'}`, { 'is-disabled': disabled }]">
-    <BaseColorPicker
+  <div
+    class="color-picker-field"
+    :class="[`is-${size || 'default'}`, { 'is-disabled': disabled }]"
+    v-bind="forwardAttrs"
+  >
+    <ColorInputRow
       :model-value="modelValue ?? undefined"
       :disabled="disabled"
       :size="size"
       :show-alpha="showAlpha"
-      :color-format="colorFormat as any"
+      :color-format="colorFormat"
       :predefine="predefine"
       :clearable="clearable"
+      :hex-input="hexInput"
       :teleported="teleported"
       :popper-class="popperClass"
-      v-bind="forwardAttrs"
+      :host-style="hostStyle"
       @update:model-value="onUpdate"
       @change="onChange"
-      @active-change="(v: string | null) => emit('activeChange', v)"
     />
-    <button
-      v-if="eyedropperSupported"
-      type="button"
-      class="eyedropper-btn"
-      :disabled="disabled || picking"
-      title="吸管取色（点击后吸取屏幕颜色）"
-      aria-label="吸管取色"
-      @click.stop="pickFromScreen"
-    >
-      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-        <path
-          fill="currentColor"
-          d="M20.71 5.63l-2.34-2.34a1 1 0 0 0-1.41 0l-3.12 3.12-1.23-1.21-1.42 1.42 1.21 1.23-6.96 6.96c-.39.39-.39 1.02 0 1.41l.2.2-2.54 2.54a1.25 1.25 0 0 0 1.77 1.77l2.54-2.54.2.2c.39.39 1.02.39 1.41 0l6.96-6.96 1.23 1.21 1.42-1.42-1.21-1.23 3.12-3.12a1 1 0 0 0 0-1.41zM7.5 15.09L13.59 9H15l-6.09 6.09H7.5z"
-        />
-      </svg>
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useAttrs } from 'vue'
-import { ElColorPicker as BaseColorPicker, ElMessage } from 'element-plus'
+import { computed, useAttrs } from 'vue'
+import ColorInputRow from './ColorInputRow.vue'
 
+/**
+ * 全局 `el-color-picker` 的替换件（见 `main.ts` 的 app.component 注册）。
+ *
+ * 🔴 2026-10-06 重构。原来这里内联裸 `el-color-picker` + 一个吸管按钮，靠
+ * `.color-picker-field{display:inline-flex}` 兜住；加上 `props-panel-typography.scss`
+ * 把 trigger 撑到 108px，EP 内部**绝对定位**的色块层与居中 clear 图标就
+ * 盖在色块正中、还溢出上下边框（运营点一下就清色）。
+ * 现在整体交给 `ColorInputRow`（色块 / Hex 输入 / 工具组 横向 Flex）。
+ *
+ * 对外 props / emits 与重构前逐字一致，历史调用方零改动即受益。
+ * `hexInput=false` 是给极窄场景（工具条、表格单元格）留的逃生口。
+ */
 defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<{
-  modelValue?: string | null
-  disabled?: boolean
-  size?: 'large' | 'default' | 'small'
-  showAlpha?: boolean
-  colorFormat?: string
-  predefine?: string[]
-  clearable?: boolean
-  teleported?: boolean
-  popperClass?: string
-}>(), {
-  clearable: true,
-  teleported: true,
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string | null
+    disabled?: boolean
+    size?: 'large' | 'default' | 'small'
+    showAlpha?: boolean
+    /** EP 的色值格式；类型与 ColorInputRow 保持一致（手写 string 会报 TS2322） */
+    colorFormat?: '' | 'name' | 'rgb' | 'prgb' | 'hex' | 'hex3' | 'hex4' | 'hex6' | 'hex8' | 'hsl' | 'hsv' | 'cmyk'
+    predefine?: string[]
+    clearable?: boolean
+    /** 是否显示中间的色值输入框；默认开启 */
+    hexInput?: boolean
+    teleported?: boolean
+    popperClass?: string
+  }>(),
+  {
+    clearable: true,
+    hexInput: true,
+    teleported: true,
+  }
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | null | undefined]
   change: [value: string | null | undefined]
+  /** 保留历史事件名；ColorInputRow 不产生 activeChange，转发为当前值 */
   activeChange: [value: string | null]
 }>()
 
 const attrs = useAttrs()
-const picking = ref(false)
 
-const eyedropperSupported = computed(() => typeof window !== 'undefined' && 'EyeDropper' in window)
-
+/**
+ * class / style 不下传给 EP 的 trigger（否则调用方写的 width 会被
+ * 我们的固定色块宽度吃掉），但要落回容器 —— 容器才是布局的真正主体。
+ */
 const forwardAttrs = computed(() => {
   const next: Record<string, unknown> = { ...attrs }
   delete next.class
@@ -73,8 +82,11 @@ const forwardAttrs = computed(() => {
   return next
 })
 
+const hostStyle = computed(() => (attrs.style as Record<string, string>) || {})
+
 function onUpdate(value: string | null | undefined) {
   emit('update:modelValue', value)
+  emit('activeChange', value ?? null)
 }
 
 function onChange(value: string | null | undefined) {
@@ -82,69 +94,16 @@ function onChange(value: string | null | undefined) {
   emit('update:modelValue', value)
 }
 
-async function pickFromScreen() {
-  if (!eyedropperSupported.value || props.disabled || picking.value) return
-  const EyeDropperCtor = (window as any).EyeDropper
-  if (!EyeDropperCtor) return
-  picking.value = true
-  try {
-    const dropper = new EyeDropperCtor()
-    const result = await dropper.open()
-    const hex = String(result?.sRGBHex || '').trim()
-    if (!hex) return
-    onChange(hex)
-  } catch (err: any) {
-    if (err?.name !== 'AbortError') {
-      ElMessage.warning('取色失败，请重试或改用色板')
-    }
-  } finally {
-    picking.value = false
-  }
-}
+void props
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .color-picker-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   vertical-align: middle;
 }
-
-.eyedropper-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  background: #fff;
-  color: #606266;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-
-  &:hover:not(:disabled) {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-    background: #f0f6ff;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.color-picker-field.is-small .eyedropper-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-}
-
-.color-picker-field.is-large .eyedropper-btn {
-  width: 32px;
-  height: 32px;
-}
+.color-picker-field.is-disabled { opacity: 0.75; }
 </style>

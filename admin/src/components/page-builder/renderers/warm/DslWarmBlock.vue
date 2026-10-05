@@ -61,18 +61,26 @@
         <span class="wh-hd__t serif">{{ config.title || '暖阁出品' }}</span>
         <span class="wh-hd__a wh-clickable" @click.stop="onMoreClick">{{ config.more_text || '全部作者 ›' }}</span>
       </div>
-      <div v-if="authorList.length" class="wh-authors wh-authors--scroll">
+      <div v-if="authorList.length || recruitSlot" class="wh-authors wh-authors--scroll">
         <div
           v-for="(item, ai) in authorList"
           :key="String(item.key || item.name || ai)"
           class="wh-author wh-clickable"
           @click.stop="onAuthorClick(item)"
         >
-          <div v-if="item.apply" class="wh-author__av wh-author__av--apply">＋</div>
-          <img v-else-if="item.avatar" class="wh-author__av" :src="String(item.avatar)" alt="" />
+          <img v-if="item.avatar" class="wh-author__av" :src="String(item.avatar)" alt="" />
           <div v-else class="wh-author__av wh-author__av--initial">{{ (item.name || '作').slice(0, 1) }}</div>
           <span class="wh-author__n">{{ item.name }}</span>
           <span class="wh-author__r">{{ item.role }}</span>
+        </div>
+        <!-- 招募位：组件级配置，固定追加在列表末尾（V122） -->
+        <div
+          v-if="recruitSlot"
+          class="wh-author wh-author--recruit wh-clickable"
+          @click.stop="onRecruitClick"
+        >
+          <div class="wh-author__av wh-author__av--apply">{{ recruitSlot.iconText || '＋' }}</div>
+          <span class="wh-author__n">{{ recruitSlot.label || '招募中' }}</span>
         </div>
       </div>
       <div v-else class="wh-feed-empty">{{ config.empty_text || '暂无作者' }}</div>
@@ -97,27 +105,50 @@
 
     <!-- warm_columns -->
     <template v-else-if="blockType === 'warm_columns'">
-      <div class="wh-hd">
-        <span class="wh-hd__t serif">{{ config.title || '精品专栏' }}</span>
-        <span class="wh-hd__a wh-clickable" @click.stop="onMoreClick">{{ config.more_text || '全部 ›' }}</span>
-      </div>
-      <div v-if="warm.columns?.length" class="wh-rail wh-rail--scroll">
-        <div v-for="item in warm.columns" :key="String(item.id)" class="wh-col wh-clickable" @click.stop="onSimplePreviewClick(`专栏「${item.title || ''}」`)">
-          <div class="wh-col__cv">
-            <img :src="String(item.cover || '')" alt="" />
-            <span v-if="item.badge" class="wh-tag wh-col__bdg" :class="{ gold: item.badgeGold }">{{ item.badge }}</span>
-          </div>
-          <span class="wh-col__h">{{ item.title }}</span>
-          <span class="wh-col__p">{{ item.desc }}</span>
-          <div class="wh-col__pr">
-            {{ item.price }}
-            <span v-if="item.origin" class="wh-col__s">{{ item.origin }}</span>
+      <!--
+        auto_hide_when_empty 整块不渲染。
+        ⚠️ 只在**非预览态**生效（见 hideColumnsWhenEmpty）：装修器画布要保留空态文案，
+        否则运营改了配置却看不到任何反馈，无法判断「是隐藏了还是没数据」。
+      -->
+      <template v-if="!hideColumnsWhenEmpty">
+        <div class="wh-hd">
+          <span class="wh-hd__t serif">{{ config.title || '精品专栏' }}</span>
+          <span class="wh-hd__a wh-clickable" @click.stop="onMoreClick">{{ config.more_text || '全部 ›' }}</span>
+        </div>
+        <div
+          v-if="columnItems.length"
+          class="wh-rail"
+          :class="`wh-rail--${columnLayout}`"
+          :style="{ gap: `${columnGap}px` }"
+        >
+          <div
+            v-for="item in columnItems"
+            :key="String(item.id)"
+            class="wh-col wh-clickable"
+            :class="{ 'is-mock': isMockColumn(item.id) }"
+            :style="{ borderRadius: `${columnRadius}px` }"
+            @click.stop="onSimplePreviewClick(`专栏「${item.title || ''}」`)"
+          >
+            <div class="wh-col__cv">
+              <img v-if="item.cover" :src="String(item.cover)" alt="" />
+              <span v-else class="wh-col__cv-ph">封面</span>
+              <span v-if="showColumnBadge && item.badge" class="wh-tag wh-col__bdg" :class="{ gold: item.badgeGold }">{{ item.badge }}</span>
+            </div>
+            <span class="wh-col__h">{{ item.title }}</span>
+            <span v-if="showColumnDesc && item.desc" class="wh-col__p">{{ item.desc }}</span>
+            <div v-if="(showColumnHost && item.host) || (showColumnLessons && item.lessons)" class="wh-col__mt">
+              <span v-if="showColumnHost && item.host" class="wh-col__host">{{ item.host }}</span>
+              <span v-if="showColumnLessons && item.lessons" class="wh-col__ls">{{ item.lessons }}</span>
+            </div>
+            <div v-if="showColumnPrice && item.price" class="wh-col__pr">
+              {{ item.price }}
+              <span v-if="item.origin" class="wh-col__s">{{ item.origin }}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div v-else class="wh-feed-empty">暂无专栏</div>
+        <div v-else class="wh-feed-empty">{{ config.empty_text || '暂无专栏' }}</div>
+      </template>
     </template>
-
     <!-- warm_planet_rec -->
     <template v-else-if="blockType === 'warm_planet_rec'">
       <div class="wh-hd">
@@ -125,8 +156,20 @@
         <span class="wh-hd__a wh-clickable" @click.stop="onMoreClick">{{ config.more_text || '进入 ›' }}</span>
       </div>
 
-      <!-- 多星球横滑（与小程序端 _syncPlanetUi 同规则） -->
-      <div v-if="planetCards.length > 1 && !warm.primaryOnly" class="wh-planets">
+      <!--
+        多星球横滑。
+        ⚠️ 判据里**刻意不包含 warm.primaryOnly**（2026-10-05 修复）：
+        端上 dsl-warm-block.js 的 only = single || primaryOnly || cards.length <= 1，
+        这里的 primaryOnly 是**小程序端用户态**（当前访客是否已设过常驻主星球），
+        来自 /api/v1/mp/home/warm 的用户维度数据 —— **装修器画布预览时它恒为 true**。
+        于是原 `v-if="planetCards.length > 1 && !warm.primaryOnly"` 让多卡分支
+        **永远进不去**：运营在属性面板把「展示模式」在多星球横滑/只展示主星球之间
+        来回切，画布毫无反应（两种模式都渲染同一张单卡）。
+        画布预览的职责是「让运营看到后台配置的效果」，所以必须无条件服从 planet_mode；
+        primaryOnly 属于线上用户态，只保留给下面「设为主星球」入口判断（那里确实是用户态）。
+        ⚠️ 端上同规则未改（线上行为不变：已加入的用户仍自动收成单卡）。
+      -->
+      <div v-if="planetCards.length > 1 && !isSinglePlanetMode" class="wh-planets">
         <div class="wh-planets__row">
           <div
             v-for="(card, ci) in planetCards"
@@ -156,7 +199,7 @@
         </div>
       </div>
 
-      <!-- 单卡：已设主星球 / 配置为单卡 / 只有一颗星球 -->
+      <!-- 单卡通栏：后台配置为「只展示主星球」，或只勾选了 1 颗星球 -->
       <div v-else class="wh-planet wh-clickable" @click.stop="onPlanetClick(mainPlanet)">
         <div class="wh-planet__rw">
           <span class="wh-planet__ic">{{ mainPlanet.emoji || '🪐' }}</span>
@@ -227,8 +270,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref, type Ref } from 'vue'
+import { computed, inject, ref, watch, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { get } from '@/api/request'
 import type { WarmPreviewView } from '@/utils/warmHomePreviewMap'
 import type { ComponentInstance } from '@/types/page'
 import {
@@ -237,6 +281,13 @@ import {
   WARM_PREVIEW_ON_SEG_KEY,
 } from '@/composables/useWarmHomePreview'
 import { buildWarmPreviewView } from '@/utils/warmHomePreviewMap'
+import {
+  COLUMN_CONFIG_DEFAULTS,
+  COLUMN_MOCK_ITEMS,
+  isMockColumn,
+  previewMockEnabled,
+  resolveColumnLayout,
+} from '@/components/page-builder/columnConfig'
 
 const props = defineProps<{
   component: ComponentInstance
@@ -269,14 +320,109 @@ const warm = computed(() => {
   return buildWarmPreviewView(null, { loading: true })
 })
 
-/** 预览模式且数据未到位：整页 warm 区块统一占位，避免逐块空态跳变 */
-const previewLoading = computed(() => previewEnabled.value && warm.value.loading === true)
+/**
+ * 预览模式且数据未到位：整页warm 区块统一占位，避免逐块空态跳变。
+ *
+ * 例外：品牌专栏在编辑期要靠演示卡片体现排版（preview_mock 开启时），
+ * 等数据到位才出卡会让运营先看到「暂无专栏」再突然跳成 4 张卡，观感像出错。
+ * 所以加载期就先用演示卡渲染 —— 它本来就只在装修器生效，真机不受影响。
+ */
+const previewLoading = computed(
+  () =>
+    previewEnabled.value &&
+    warm.value.loading === true &&
+    !(blockType.value === 'warm_columns' && previewMockEnabled(config.value)),
+)
 
 const topBackground = computed(() => {
   const s = props.component.style || {}
   const bg = String(s.background_color || s.background || '').trim()
   return bg || ''
 })
+
+/* ------------------------------------------------------------------ *
+ * 品牌专栏（warm_columns）
+ *
+ * 真实数据 = warm_home_config.columnProductIds 里运营勾选的付费专栏商品
+ * （mp_product.product_type='column'），由 /mp/home/warm 聚合下发。
+ *
+ * 🔴 编辑期演示卡片（2026-10-05 新增）：
+ * 新页面没配 columnProductIds 时它是空数组，画布只会显示一句「暂无专栏」，
+ * 运营既看不到卡片长什么样，也分不清「该配内容还是调样式」。
+ * 所以**装修器画布**在 preview_mock 开启且真实数据为空时注入演示卡；
+ * 真机端（miniapp/components/dsl-warm-block）**绝不注入**，线上不能出现假专栏。
+ * ------------------------------------------------------------------ */
+
+const columnLimit = computed(() => {
+  const n = Number(config.value.limit)
+  if (!Number.isFinite(n)) return COLUMN_CONFIG_DEFAULTS.limit
+  return Math.min(10, Math.max(1, Math.round(n)))
+})
+
+const columnLayout = computed(() => resolveColumnLayout(config.value.layout))
+
+const columnGap = computed(() => {
+  const n = Number(config.value.item_gap)
+  if (!Number.isFinite(n)) return 10
+  return Math.min(24, Math.max(4, Math.round(n)))
+})
+
+const columnRadius = computed(() => {
+  const n = Number(config.value.card_radius)
+  if (!Number.isFinite(n)) return 14
+  return Math.min(20, Math.max(0, Math.round(n)))
+})
+
+/** 三个显隐开关：老 DSL 没写过这些键 → 默认全开（保持历史页面外观不变） */
+const showColumnDesc = computed(() => config.value.show_desc !== false)
+const showColumnBadge = computed(() => config.value.show_badge !== false)
+const showColumnHost = computed(() => config.value.show_host !== false)
+const showColumnLessons = computed(() => config.value.show_lessons !== false)
+const showColumnPrice = computed(() => config.value.show_price !== false)
+
+/** 手动指定时按 column_ids 顺序取；未指定/取不到则回落到聚合接口给的全部 */
+const columnItems = computed<Array<Record<string, any>>>(() => {
+  const all = Array.isArray(warm.value.columns) ? warm.value.columns : []
+  if (config.value.fetch_mode === 'manual') {
+    const ids = Array.isArray(config.value.column_ids)
+      ? config.value.column_ids.map((x: unknown) => String(x))
+      : []
+    if (ids.length) {
+      const picked: Array<Record<string, any>> = []
+      for (const id of ids) {
+        const hit = all.find((c) => String(c.id) === id)
+        if (hit) picked.push(hit)
+      }
+      // 指定了但一个都没命中（商品下架/配置残留）→ 交给下面 Mock 兜底，
+      // 而不是显示「暂无专栏」让人以为操作没生效
+      if (picked.length) return picked.slice(0, columnLimit.value)
+    }
+  }
+  if (all.length) return all.slice(0, columnLimit.value)
+  if (previewMockEnabled(config.value)) {
+    return COLUMN_MOCK_ITEMS.slice(0, columnLimit.value).map((m) => ({ ...m }))
+  }
+  return []
+})
+
+/**
+ * 「无数据时隐藏」只在**真机端**生效；装修器画布一律保留区块与空态文案。
+ *
+ * ⚠️ 判据不能用 `props.previewMode`：装修器画布渲染时**根本不传** previewMode
+ * （undefined），`!undefined === true` 会把画布也判成真机 → 画布上区块整个消失，
+ * 运营改了配置却看不到任何反馈。实测踩过：hideColumnsWhenEmpty 恒为 true。
+ *
+ * 正解：靠 `previewEnabled`（装修器注入的「编辑期预览」开关）判定画布，
+ * 它在画布上一定是 true，在 H5/弹窗等真机预览态下是 false。
+ */
+const isBuilderCanvas = computed(() => previewEnabled.value === true)
+
+const hideColumnsWhenEmpty = computed(
+  () =>
+    !isBuilderCanvas.value &&
+    config.value.auto_hide_when_empty !== false &&
+    columnItems.value.length === 0,
+)
 
 /**
  * 顶部视觉皮肤判定。
@@ -365,37 +511,148 @@ const featureMeta = computed(() => {
 })
 
 /**
- * 作者列表数据源优先级（改自 2026-10-04）：
- *   1. DSL 里配了 props.authors → 用配的（运营可覆盖接口数据，支持自定义头像/名称/身份/跳转与末尾「＋」招募位）
- *   2. 没配 → 回落到首页聚合接口的 warm.authors（warm_home_config.authors），保持历史页面外观不变
- * 两条来源在这里归一成同一形状，渲染层不区分来源。
+ * 作者列表数据源（V122 重构，与小程序端 dsl-warm-block.js 的 resolveAuthors 必须同规则）。
+ *
+ * 三条来源，归一成同一形状：
+ *   1. source_mode = dynamic → 走聚合接口（作者库按标签+排序实时拉取）
+ *   2. source_mode = manual（或未写该字段）且 authors 非空 → 用配的快照
+ *   3. 都没配 → 回落到首页聚合接口的 warm.authors（warm_home_config.authors），
+ *      保持历史页面外观不变（老草稿零改动也能正常渲染）
+ *
+ * 快照模式下 authors 里可能残留 apply=true 的旧招募位条目，
+ * 这里过滤掉并喂给 recruitSlot —— 招募位已从「每条一个开关」解耦为组件级配置。
  */
-const authorList = computed(() => {
-  const cfg = config.value.authors
-  const src: Array<Record<string, unknown>> = Array.isArray(cfg) && cfg.length
-    ? (cfg as Array<Record<string, unknown>>)
-    : (warm.value.authors || [])
-  return src.map((a, i) => ({
-    key: String(a.key || a.id || `author_${i}`),
-    name: String(a.name || ''),
-    role: String(a.role || ''),
-    avatar: String(a.avatar || ''),
-    url: String(a.url || ''),
-    apply: a.apply === true,
-  }))
+const authorSourceMode = computed(() => {
+  const raw = String((config.value as Record<string, unknown>).source_mode || '')
+  return raw === 'dynamic' ? 'dynamic' : 'manual'
 })
 
-/** 作者点击：招募位提示进投稿页；配了自定义 url 走预览跳转；否则提示真机进作者作品页 */
-function onAuthorClick(item: { name?: string; url?: string; apply?: boolean }) {
-  if (item.apply) {
-    ElMessage.success('预览：打开招募投稿页（真机进入）')
-    return
+/** 归一化单条作者：兼容老字段名、套用 customTitle 覆盖、绑定主页路径 */
+function normalizeAuthorItem(a: Record<string, unknown>, i: number) {
+  const name = String(a.nickname || a.name || '')
+  const originTitle = String(a.title || a.role || '')
+  // customTitle 只覆盖首页展示，不动作者库档案
+  const role = String(a.customTitle || originTitle || '')
+  const authorId = a.authorId ? Number(a.authorId) : 0
+  const homePath = String(a.homePath || a.url || (authorId ? buildAuthorHomePath(authorId, name) : ''))
+  return {
+    key: String(a.key || a.id || `author_${i}`),
+    id: authorId || a.id || '',
+    name,
+    role,
+    avatar: String(a.avatar || ''),
+    homePath,
   }
-  if (item.url) {
-    openPreviewLink(String(item.url), `作者「${item.name || ''}」`)
+}
+
+/** 作者主页路径：与 admin/src/api/author.ts 的 authorHomePath 同一规则 */
+function buildAuthorHomePath(authorId: number | string, name: string) {
+  const n = String(name || '').trim()
+  return `/pkg-content/author-feed/author-feed?id=${authorId}${n ? `&author=${n}` : ''}`
+}
+
+/** dynamic 模式下拉到的作者（画布预览用，与属性面板的预览是同一个接口） */
+const dynamicAuthors = ref<Array<Record<string, unknown>>>([])
+
+/** 从配置里取作者条目列表（剥掉旧招募位条目） */
+function authorCfgList(): Array<Record<string, unknown>> {
+  const cfg = (config.value.authors || []) as Array<Record<string, unknown>>
+  const list = Array.isArray(cfg) ? cfg.filter(Boolean) : []
+  return list.filter((a) => a.apply !== true)
+}
+
+/** 旧数据里的招募位条目（apply=true） */
+function legacyRecruitItem(): Record<string, unknown> | null {
+  const cfg = (config.value.authors || []) as Array<Record<string, unknown>>
+  if (!Array.isArray(cfg)) return null
+  return cfg.find((a) => a && a.apply === true) || null
+}
+
+/**
+ * 招募位配置（纯计算，无副作用）。
+ * 优先级：新 recruitment_slot 字段 → 旧 authors 里的 apply 条目（向后兼容）。
+ */
+const recruitSlot = computed(() => {
+  const slot = (config.value.recruitment_slot || {}) as Record<string, unknown>
+  const legacy = legacyRecruitItem()
+  const enabled = slot.enabled === true || (slot.enabled === undefined && !!legacy)
+  if (!enabled) return null
+  return {
+    iconText: String(slot.icon_text || '＋'),
+    label: String(slot.label || '招募中'),
+    targetPath: String(slot.target_path || (legacy ? String(legacy.url || '') : '')),
+  }
+})
+
+async function loadDynamicAuthors() {
+  const cfg = (config.value.dynamic_config || {}) as Record<string, unknown>
+  const tags = Array.isArray(cfg.tag_ids) ? (cfg.tag_ids as string[]) : []
+  const sortBy = String(cfg.sort_by || 'weight')
+  const limitRaw = Number(cfg.limit)
+  const limit = Number.isFinite(limitRaw) ? Math.min(8, Math.max(3, Math.round(limitRaw))) : 5
+  try {
+    const res: any = await get<any>('/api/v1/mp/authors', {
+      tags: tags.join(','),
+      sortBy,
+      limit,
+    })
+    const rows = res?.data
+    dynamicAuthors.value = Array.isArray(rows) ? rows : rows?.records || []
+  } catch {
+    dynamicAuthors.value = []
+  }
+}
+
+watch(
+  () => [
+    blockType.value,
+    authorSourceMode.value,
+    JSON.stringify((config.value.dynamic_config || {})),
+  ],
+  () => {
+    if (blockType.value !== 'warm_authors') return
+    if (authorSourceMode.value === 'dynamic') loadDynamicAuthors()
+  },
+  { immediate: true },
+)
+
+const authorList = computed(() => {
+  const cfgList = authorCfgList()
+
+  let source: Array<Record<string, unknown>>
+  if (authorSourceMode.value === 'dynamic') {
+    source = dynamicAuthors.value.map((a) => ({
+      ...a,
+      role: a.title,
+      homePath: a.homePath || (a.id ? buildAuthorHomePath(String(a.id), String(a.name || '')) : ''),
+    }))
+  } else if (cfgList.length) {
+    source = cfgList
+  } else {
+    // 都没配 → 回落到首页聚合接口，历史页面外观不变
+    source = (warm.value.authors || []) as Array<Record<string, unknown>>
+  }
+
+  return source.filter(Boolean).map((a, i) => normalizeAuthorItem(a, i))
+})
+
+/** 作者点击：配了 homePath 走预览跳转；否则提示真机进作者作品页 */
+function onAuthorClick(item: { name?: string; homePath?: string }) {
+  if (item.homePath) {
+    openPreviewLink(String(item.homePath), `作者「${item.name || ''}」`)
     return
   }
   onSimplePreviewClick(`作者「${item.name || ''}」主页`)
+}
+
+/** 招募位点击：读组件级 targetPath，不再依赖条目内的 apply 标记 */
+function onRecruitClick() {
+  const path = recruitSlot.value?.targetPath
+  if (path) {
+    openPreviewLink(String(path), '创作者招募')
+    return
+  }
+  ElMessage.success('预览：打开创作者招募页（真机进入）')
 }
 
 /** 取任意一张星球卡的热点条目 */
@@ -419,8 +676,11 @@ type PlanetCard = {
 
 /**
  * 星球卡归一化，规则与小程序端 dsl-warm-block._syncPlanetUi 一致：
- * planet_ids 勾选过滤 → planet_limit 截断 → planet_mode/primaryOnly 决定单卡或多卡。
- * 预览与真机必须同规则，否则运营在后台看到的效果和线上不一样。
+ * planet_ids 勾选过滤 → planet_limit 截断 → planet_mode 决定单卡或多卡。
+ *
+ * ⚠️ 与端点的差异只有一处（见 isSinglePlanetMode 的注释）：不引入 primaryOnly 用户态。
+ * 其余（过滤/截断/单卡挑主星球）必须与端上完全一致，否则运营在后台看到的
+ * 和线上不一样，发布后就是「预览与真机不符」的事故。
  */
 const planetCards = computed<PlanetCard[]>(() => {
   const cfg = config.value
@@ -440,12 +700,27 @@ const planetCards = computed<PlanetCard[]>(() => {
   return cards
 })
 
+/**
+ * 是否收敛成单张通栏卡。
+ *
+ * 🔴 与端上 `_syncPlanetUi` 的**唯一差异**：这里不含 `warm.primaryOnly`。
+ * 那是小程序端用户态（当前访客是否已设常驻主星球），装修器预览时恒为 true，
+ * 混进来会让「展示模式」这个后台配置彻底失效（切模式画布无反应）。
+ * 端上仍保留 primaryOnly —— 线上「已加入的用户自动收成单卡」是产品行为，不能改。
+ */
+const isSinglePlanetMode = computed(
+  () => String(config.value.planet_mode || 'multi') === 'single',
+)
+
 const mainPlanet = computed<PlanetCard>(() => {
-  const only = String(config.value.planet_mode || 'multi') === 'single' || warm.value.primaryOnly === true
   const cards = planetCards.value
-  if (!only) return { title: '', emoji: '🪐', cta: '进入星球' }
+  // 单卡模式优先挑主星球；挑不到退回第一张，避免出现空白卡
   const primaryId = String(warm.value.primaryPlanetId || '')
-  return (cards.find((p) => String(p.planetId) === primaryId) || cards[0] || { title: '', emoji: '🪐', cta: '进入星球' }) as PlanetCard
+  return (cards.find((p) => String(p.planetId) === primaryId) || cards[0] || {
+    title: '',
+    emoji: '🪐',
+    cta: '进入星球',
+  }) as PlanetCard
 })
 
 /** 已设主星球或这张就是主星球时，不再给「设为主星球」入口 */
@@ -563,6 +838,78 @@ function onSimplePreviewClick(what: string) {
 }
 .wh-rail--scroll .wh-col {
   flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------- *
+ * 品牌专栏三种布局（layout 配置）
+ *   scroll 横向滚动：保持原实现，flex 容器 + 固定宽卡 + overflow-x
+ *   grid   双列网格：两列等宽，换行排布
+ *   single 单列大卡：整宽大卡，卡内图文上下堆叠
+ * 共用同一套 DOM，只改容器的 display/grid 与卡的宽度 —— 三份结构必然走偏。
+ * ---------------------------------------------------------------- */
+.wh-rail--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px 16px 12px;
+}
+
+.wh-rail--grid .wh-col {
+  min-width: 0;
+}
+
+.wh-rail--single {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px 12px;
+}
+
+.wh-rail--single .wh-col {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.wh-rail--single .wh-col__cv {
+  height: 78px;
+}
+
+/* 无封面时的色块占位：比 <img src=""> 的破图态干净，且能看出「这块该有图」 */
+.wh-col__cv-ph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #b3a596;
+  font-size: 12px;
+  background: linear-gradient(135deg, #f1ece5, #e7ddd0);
+}
+
+.wh-col__mt {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  color: #9aa5b1;
+  font-size: 11px;
+}
+
+.wh-col__host {
+  color: #7b8798;
+}
+
+.wh-col__ls {
+  padding: 1px 6px;
+  color: #8c3208;
+  background: #f7efe7;
+  border-radius: 999px;
+}
+
+/* 演示卡片：一眼可辨，避免运营把示例内容误当成真实内容 */
+.wh-col.is-mock {
+  opacity: 0.92;
+  outline: 1px dashed #d3bfae;
+  outline-offset: -1px;
 }
 .wh-feature__img {
   object-fit: cover;

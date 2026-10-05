@@ -1,7 +1,14 @@
 <template>
-  <div class="render-note-feed" :class="{ 'render-note-feed--preview': previewMode }">
+  <div
+    class="render-note-feed"
+    :class="[
+      { 'render-note-feed--preview': previewMode },
+      `note-feed--tabs-${tabActiveStyle}`,
+    ]"
+    :style="containerStyle"
+  >
     <div v-if="showTypeTabs" class="type-tabs" @mousedown.stop @pointerdown.stop @touchstart.stop>
-      <div class="type-tabs__list">
+      <div class="type-tabs__list" :style="tabListStyle">
         <button
           v-for="(t, i) in typeTabs"
           :key="`${t.label}-${i}`"
@@ -37,8 +44,12 @@
     <div v-if="showFailState" class="preview-data-empty preview-data-fail">
       {{ failMessage }}
     </div>
-    <div v-else-if="showFilteredEmpty" class="preview-data-empty">
-      {{ previewMode ? '暂无笔记数据，请确认内容已发布' : '当前筛选下没有已发布笔记' }}
+    <div v-else-if="showFilteredEmpty" class="note-empty">
+      <span class="note-empty__art" aria-hidden="true">
+        <i class="note-empty__box" /><i class="note-empty__box" /><i class="note-empty__box" />
+      </span>
+      <p class="note-empty__title">暂无相关笔记</p>
+      <p class="note-empty__hint">请调整筛选维度，或确认内容已发布</p>
     </div>
     <div v-else-if="!previewMode && (liveLoading || tabLoading)" class="preview-data-empty">正在读取已发布笔记…</div>
     <div
@@ -51,6 +62,7 @@
         :key="`${item.id || item.title || 'note'}-${index}`"
         class="note-card"
         :class="{ 'is-clickable': previewMode, 'note-card--text': isTextCard(item) }"
+        :style="cardStyle"
         @click="onNoteClick($event, item)"
       >
         <div v-if="!isTextCard(item)" class="note-cover">
@@ -63,16 +75,28 @@
           </template>
         </div>
         <div class="note-body">
-          <div class="note-title">{{ item.title || '笔记标题' }}</div>
+          <div class="note-title" :style="titleStyle">{{ item.title || '笔记标题' }}</div>
           <div v-if="isTextCard(item) && item.summary" class="note-summary">{{ item.summary }}</div>
           <div class="note-foot">
             <template v-if="item.isProduct">
               <span class="note-price">{{ item.priceText }}</span>
             </template>
             <template v-else>
-              <span class="note-av">{{ item.authorInitial || '作' }}</span>
-              <span class="note-author">{{ item.author || '作者' }}</span>
-              <span class="note-like" :class="{ 'note-like--heart': likeHeart }">{{ likeHeart ? '♥' : '♡' }} {{ item.likeText || '0' }}</span>
+              <!-- 🔴 作者栏与来源标改为可配置（此前恒显，画布无法预览关掉后的样子） -->
+              <template v-if="showAuthor">
+                <span class="note-av">{{ item.authorInitial || '作' }}</span>
+                <span class="note-author">{{ item.author || '作者' }}</span>
+              </template>
+              <span v-if="showSourceBadge && item.source" class="note-source">{{ item.source }}</span>
+              <span
+                v-if="cardMetric !== 'none'"
+                class="note-like"
+                :class="{ 'note-like--heart': likeHeart && cardMetric === 'like' }"
+              >
+                <template v-if="cardMetric === 'like'">{{ likeHeart ? '♥' : '♡' }} {{ item.likeText || '0' }}</template>
+                <template v-else-if="cardMetric === 'view'">◉ {{ item.viewText || '0' }}</template>
+                <template v-else>☆ {{ item.collectText || '0' }}</template>
+              </span>
             </template>
           </div>
         </div>
@@ -91,6 +115,7 @@ import type { ComponentInstance } from '@/types/page'
 import { fetchTopContentCategoryTabs, withAllCategoryTab } from '@/utils/content-category-tabs'
 import { loadHydratedComponent } from '@/utils/preview-datasource'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import { normalizeNoteFeedProps, noteContainerStyle } from '../noteFeed/noteFeedSchema'
 
 type NoteItem = {
   id?: number | string
@@ -101,6 +126,9 @@ type NoteItem = {
   author?: string
   authorInitial?: string
   likeText?: string
+  viewText?: string
+  collectText?: string
+  source?: string
   categoryId?: string | number
   categoryName?: string
   contentType?: string
@@ -121,12 +149,49 @@ const hydratedItems = ref<NoteItem[]>([])
 const failMessage = ref('')
 const activeType = ref(0)
 
-const showCategoryTabs = computed(() => props.component.props.show_category_tabs === true)
-const itemGap = computed(() => Number(props.component.props.item_gap ?? 11))
-const galleryBadge = computed(() => String(props.component.props.gallery_badge || 'plain'))
-const textCard = computed(() => props.component.props.text_card === true)
-const likeHeart = computed(() => props.component.props.like_heart === true)
-const showSearch = computed(() => props.component.props.show_search === true)
+/**
+ * 🔴 与属性面板读同一份归一化配置（noteFeedSchema），
+ * 避免「面板改了画布不变」——此前 title_size / item_border_radius /
+ * page_gutter / background_color / tab_font_size 五个字段画布根本没读。
+ */
+const cfg = computed(() => normalizeNoteFeedProps(props.component.props))
+
+const showCategoryTabs = computed(() => cfg.value.show_category_tabs)
+const itemGap = computed(() => cfg.value.item_gap)
+const galleryBadge = computed(() => cfg.value.gallery_badge)
+const textCard = computed(() => cfg.value.text_card)
+const likeHeart = computed(() => cfg.value.like_heart)
+const showSearch = computed(() => cfg.value.show_search)
+const showAuthor = computed(() => cfg.value.show_author)
+const showSourceBadge = computed(() => cfg.value.show_source_badge)
+const cardMetric = computed(() => cfg.value.card_metric)
+const titleSize = computed(() => cfg.value.title_size)
+const titleLines = computed(() => cfg.value.title_lines)
+const cardRadius = computed(() => cfg.value.item_border_radius)
+const cardBg = computed(() => cfg.value.card_bg)
+const tabFontSize = computed(() => cfg.value.tab_font_size)
+const tabActiveStyle = computed(() => cfg.value.tab_active_style)
+
+/** 容器样式：列表底色 + 左右边距 */
+const containerStyle = computed(() => noteContainerStyle(cfg.value))
+/** 卡片样式：圆角 + 底色 + 标题字号/行数 */
+const cardStyle = computed<Record<string, string>>(() => ({
+  borderRadius: `${cardRadius.value}px`,
+  background: cardBg.value,
+}))
+/** 标题样式：字号 px（与真机一致）+ 行数限制 */
+const titleStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = { fontSize: `${titleSize.value}px` }
+  if (titleLines.value > 0) {
+    style.display = '-webkit-box'
+    style.WebkitBoxOrient = 'vertical'
+    style.WebkitLineClamp = String(titleLines.value)
+    style.overflow = 'hidden'
+  }
+  return style
+})
+/** Tab 字号 */
+const tabListStyle = computed<Record<string, string>>(() => ({ fontSize: `${tabFontSize.value}px` }))
 const typeTabs = computed(() =>
   (Array.isArray(props.component.props.type_tabs) ? props.component.props.type_tabs : [])
     .map((t: any) => {
@@ -278,6 +343,9 @@ function normalizeNote(raw: Record<string, any>): NoteItem {
     author,
     authorInitial: author.slice(0, 1),
     likeText: formatLike(raw.likeCount ?? raw.like_count ?? 0),
+    viewText: formatLike(raw.viewCount ?? raw.view_count ?? raw.readCount ?? 0),
+    collectText: formatLike(raw.collectCount ?? raw.collect_count ?? 0),
+    source: String(raw.source || raw.categoryName || raw.category_name || '').trim(),
     categoryId: raw.categoryId ?? raw.category_id,
     categoryName: raw.categoryName ?? raw.category_name,
     tags: Array.isArray(raw.tags)
@@ -518,15 +586,99 @@ watch(liveItems, (items) => {
   padding: 8px 10px 10px;
 }
 
+/* 🔴 字号与行数由面板配置经 inline style 下发（titleStyle），
+   这里**不能写死**，否则会覆盖 inline 样式 → 表现为「样式 Tab 调了没反应」。
+   行高与字重仍可在这里定（不影响可配置项）。 */
 .note-title {
   display: -webkit-box;
   overflow: hidden;
   color: #0f1219;
-  font-size: 13px;
   font-weight: 600;
   line-height: 1.38;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+}
+
+/* ---------- 来源渠道标 ---------- */
+.note-source {
+  max-width: 60px;
+  padding: 1px 5px;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #6b7a90;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #eef2f7;
+  border-radius: 4px;
+}
+
+/* ---------- 空状态：精致占位，防网格塌陷 ---------- */
+.note-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 148px;
+  padding: 20px 12px;
+  text-align: center;
+  background: #fafbfd;
+  border: 1px dashed #dde3ec;
+  border-radius: 10px;
+}
+
+.note-empty__art {
+  display: flex;
+  gap: 5px;
+  align-items: flex-end;
+  height: 34px;
+  margin-bottom: 10px;
+}
+
+.note-empty__box {
+  display: block;
+  width: 20px;
+  height: 26px;
+  background: #e6ebf2;
+  border-radius: 4px;
+
+  /* 三张错落卡片，示意「这里本该有内容」 */
+  &:nth-child(2) {
+    height: 34px;
+    background: #dde4ee;
+  }
+
+  &:nth-child(3) {
+    height: 22px;
+    background: #eef1f6;
+  }
+}
+
+.note-empty__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6478;
+}
+
+.note-empty__hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #9aa4b2;
+  line-height: 1.5;
+}
+
+/* ---------- Tab 选中高亮形态 ---------- */
+.note-feed--tabs-fill .type-tab.active {
+  background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 14%, transparent);
+  border-radius: 999px;
+}
+
+.note-feed--tabs-ink .type-tab.active {
+  font-weight: 700;
+
+  .type-tab__bar {
+    display: none;
+  }
 }
 
 .note-summary {
