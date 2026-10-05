@@ -1,4 +1,5 @@
 <!-- pages/discover/discover.wxml — DSL 宿主薄壳：页面内容完全由后台装修页决定 -->
+  <global-resource />
 <env-badge />
 <page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
 <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
@@ -18,3 +19,4 @@
     styleString="{{item.styleString}}"
   />
 </block>
+

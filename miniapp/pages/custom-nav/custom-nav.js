@@ -3,7 +3,7 @@ const { parseDSL, loadAllComponentData } = require('../../utils/render')
 const { getNavLayout } = require('../../utils/nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('../../utils/image-preload')
 const { resolveTabRouteForBoundCustomPath } = require('../../utils/tab-bar-route')
-const { getAppThemeConfig, resolvePageBackgroundColor } = require('../../utils/theme')
+const { getAppThemeConfig, resolvePageBackground } = require('../../utils/theme')
 
 Page({
   data: {
@@ -14,6 +14,10 @@ Page({
     hasBrandHeader: false,
     statusBarHeight: 20,
     pageBackgroundColor: '',
+    /** v2 复合背景：渐变优先（'' 表示纯色页走 background-color） */
+    pageBackgroundCss: '',
+    /** 底部渐隐融合遮罩：null 表示不渲染 */
+    bottomOverlay: null,
   },
 
   onLoad(options) {
@@ -53,7 +57,6 @@ Page({
     try {
       const dsl = await PageService.getPageDSL(path, true)
       const parsed = parseDSL(dsl)
-      const pageBackgroundColor = resolvePageBackgroundColor(dsl && dsl.page, getAppThemeConfig())
       const components = await loadAllComponentData(parsed.components || [])
       const flowComponents = []
       const floatComponents = []
@@ -74,6 +77,33 @@ Page({
         })
         return
       }
+      // v2 复合背景：渐变/纯色归一化 + 底部渐隐遮罩（auto 取背景底色，渐变取终点色标）
+      const pageBg = resolvePageBackground(parsed.page, getAppThemeConfig())
+      let bottomOverlay = null
+      const rawOverlay = parsed.page && typeof parsed.page === 'object' ? parsed.page.bottomOverlay : null
+      if (!rawOverlay || rawOverlay.enabled !== false) {
+        const heightPx = Math.min(160, Math.max(60, Number(rawOverlay && rawOverlay.height) || 96))
+        const custom = rawOverlay && rawOverlay.color && rawOverlay.color !== 'auto'
+          ? String(rawOverlay.color).trim()
+          : ''
+        bottomOverlay = {
+          height: heightPx * 2,
+          color: custom || pageBg.bottomColor,
+        }
+      }
+      // iOS 下拉橡皮筋：backgroundColorTop/Bottom 对齐渐变端点色，杜绝回弹露白
+      try {
+        if (wx.setBackgroundColor) {
+          wx.setBackgroundColor({
+            backgroundColorTop: pageBg.topColor,
+            backgroundColorBottom: pageBg.bottomColor,
+            fail() {},
+          })
+        }
+      } catch (e) {
+        // 旧基础库无此 API，忽略
+      }
+
       this.setData({
         loading: false,
         error: '',
@@ -81,7 +111,9 @@ Page({
         floatComponents,
         hasBrandHeader,
         statusBarHeight: layout.statusBarHeight,
-        pageBackgroundColor,
+        pageBackgroundColor: pageBg.color,
+        pageBackgroundCss: pageBg.gradientCss,
+        bottomOverlay,
       })
     } catch (e) {
       this.setData({

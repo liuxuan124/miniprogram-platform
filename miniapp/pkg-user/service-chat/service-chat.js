@@ -258,12 +258,22 @@ Page({
         || order.productName
         || '你购买的商品'
       const content = String(order.virtualDeliveryContent || order.virtual_delivery_content || '').trim()
-      this.setData({ deliveryCard: { name, content, orderId } })
+      // 履约方式：manual = 人工开通，文案不能说「已自动发货」
+      const deliveryMode = String(order.deliveryMode || order.delivery_mode || '').trim()
+      const isManualGuide = deliveryMode === 'manual'
+      this.setData({ deliveryCard: { name, content, orderId, isManualGuide } })
       const marker = 'orderDelivered:' + orderId
       if ((this.data.messages || []).some((m) => m.marker === marker)) return
-      const text = content
-        ? ('已为你自动发货「' + name + '」。发货内容已固定在上方，可直接复制。有问题在下方继续问我。')
-        : ('「' + name + '」已支付成功。如需查询发货或使用说明，直接在下方回复即可。')
+      let text
+      if (isManualGuide) {
+        text = content
+          ? ('「' + name + '」已支付成功，开通指引见上方。稍后客服会单独联系你完成开通，有问题可以直接问我。')
+          : ('「' + name + '」已支付成功。我们正在为你安排开通，稍后客服会联系你；急需使用可直接在下方留言。')
+      } else {
+        text = content
+          ? ('已为你自动发货「' + name + '」。发货内容已固定在上方，可直接复制。有问题在下方继续问我。')
+          : ('「' + name + '」已支付成功。如需查询发货或使用说明，直接在下方回复即可。')
+      }
       this._push({ role: 'service', type: 'text', text, marker })
     } catch (_) { /* ignore */ }
   },

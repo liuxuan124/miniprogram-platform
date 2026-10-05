@@ -8,3 +8,9 @@
   color: var(--warm-ink, #2a1c12);
   padding-bottom: calc(74px + env(safe-area-inset-bottom));
 }
+
+/* 首发骨架：装修 DSL 首帧到达前的静默占位（纯底色，不渲染暖阁原生页） */
+.wh-boot {
+  width: 100%;
+  min-height: 100vh;
+}

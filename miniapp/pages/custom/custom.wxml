@@ -1,6 +1,6 @@
 <!--pages/custom/custom.wxml — 装修器自定义页/专题页通用入口-->
 <page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
-<view class="custom-page" style="background-color:{{pageBackgroundColor}};">
+<view class="custom-page" style="{{pageBackgroundCss ? 'background:' + pageBackgroundCss + ';' : ''}}{{pageBackgroundColor ? 'background-color:' + pageBackgroundColor + ';' : ''}}">
   <view wx:if="{{loading}}" class="custom-page__state">加载中...</view>
   <view wx:elif="{{error}}" class="custom-page__state">{{error}}</view>
   <block wx:else>
@@ -17,6 +17,12 @@
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="custom-page__state">页面暂无内容</view>
     </view>
+    <!-- 底部渐隐融合遮罩：悬浮于内容流上方、悬浮按钮（z-index:999）与 TabBar 之下，pointer-events:none 不阻断点击/滚动 -->
+    <view
+      wx:if="{{bottomOverlay}}"
+      class="custom-page__overlay"
+      style="height:{{bottomOverlay.height}}rpx;background:linear-gradient(180deg, rgba(0,0,0,0) 0%, {{bottomOverlay.color}} 100%);"
+    ></view>
     <!-- 悬浮按钮独立浮层：相对屏幕固定，不随页面内容滚动 -->
     <view
       wx:for="{{floatComponents}}"

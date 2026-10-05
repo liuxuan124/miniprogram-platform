@@ -1,6 +1,8 @@
 /* components/dsl-renderer/dsl-renderer.wxss ??DSL ?????? */
 
 @import "../../styles/planet-blocks.wxss";
+/* 暖调装修器 22 个新组件样式（内联渲染，不建独立组件目录，省主包体积） */
+@import "../../styles/warm-kit.wxss";
 
 .dsl-renderer {
   /* 勿设 overflow，否则负 margin 叠层（导航盖住头图）会被裁切 */

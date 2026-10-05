@@ -1,0 +1,33 @@
+/* network-off.wxss — 暖阁风格无网络兜底 */
+.network-off {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: #FDF6EC;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.network-off__icon {
+  font-size: 80rpx;
+  line-height: 1;
+  margin-bottom: 32rpx;
+}
+
+.network-off__text {
+  font-size: 28rpx;
+  color: #2A1C12;
+  letter-spacing: 1rpx;
+  margin-bottom: 48rpx;
+}
+
+.network-off__btn {
+  background: #C2410C;
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 40rpx;
+  padding: 16rpx 48rpx;
+  text-align: center;
+}

@@ -427,6 +427,7 @@ const DEMO_CONTRIBUTE = {
   forms: ['深度长文', '图文笔记', '音频', '视频'],
   publishTypes: [
     { key: 'note', label: '图文笔记' },
+    { key: 'video', label: '视频' },
     { key: 'article', label: '长文' },
     { key: 'moment', label: '星球动态' },
   ],

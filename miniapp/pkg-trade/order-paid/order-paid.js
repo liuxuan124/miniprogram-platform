@@ -29,6 +29,11 @@ Page({
     payFailed: false,
     failCode: 'PAY_CANCELED',
     failReason: '用户取消支付',
+    // 支付结果三态（FP-PAY-001）：unpaid / paid_no_grant / paid_already
+    // 仅在 8 次轮询仍 pending 时由 pay-result 接口判定后填充
+    payResultState: '',
+    payResultHint: '',
+    payResultGrantedItems: [],
     themePageStyle: 'background:#FDF6EC',
   },
 
@@ -102,11 +107,18 @@ Page({
           isDigital: this.data.isDigital || isVirtualDelivery,
         })
         const delivered = String(order.virtualDeliveryContent || order.virtual_delivery_content || '').trim()
-        if (delivered && !isVirtualDelivery) {
+        // 🔴 履约方式分流：人工履约绝不能提示「已自动发货」。
+        // 场景：知识库资料包走人工开通权限，用户付款后拿不到东西，
+        // 若这里显示「已自动发货」就是虚假发货投诉的直接来源。
+        const isManualGuide = deliveryMode === 'manual'
+        if (delivered) {
           wx.showModal({
-            title: '已自动发货',
-            content: '发货内容已发送到消息通知，也可在客服对话中查看。',
-            confirmText: '去查看',
+            title: isManualGuide ? '已生成开通凭证' : '已自动发货',
+            content: isManualGuide
+              ? '我们已收到订单，开通指引稍后会由客服单独发送给你。如超过 24 小时未收到，可直接联系客服。'
+              : '发货内容已发送到消息通知，也可在客服对话中查看。',
+            confirmText: isManualGuide ? '联系客服' : '去查看',
+            cancelText: '知道了',
             success: (res) => {
               if (res.confirm) {
                 wx.navigateTo({ url: '/pkg-user/service-chat/service-chat?orderId=' + this.data.orderId })
@@ -120,11 +132,43 @@ Page({
     if (attempt < 8) {
       setTimeout(() => this._confirmPayment(attempt + 1), 1000)
     } else {
-      this.setData({ confirming: false })
-      wx.showModal({
-        title: '支付结果确认中',
-        content: '支付结果尚未同步，请稍后在订单列表或消息通知中查看，系统不会重复扣款。',
-        showCancel: false,
+      // 8 次轮询仍 pending：调 pay-result 接口做三态判定（FP-PAY-001）
+      await this._fetchPayResult()
+    }
+  },
+
+  /**
+   * 调用 /mp/orders/{id}/pay-result 接口判定支付结果三态。
+   * 接口内部会先调 syncPay 尝试补开通（幂等），再综合订单/支付/权益状态返回。
+   * 拿到三态后切到 payFailed 视图并按 state 分流展示。
+   */
+  async _fetchPayResult() {
+    try {
+      const result = await get('/api/v1/mp/orders/' + this.data.orderId + '/pay-result', {}, { auth: true, showError: false })
+      const state = (result && result.state) || 'unpaid'
+      const hint = (result && result.hint) || '支付结果未同步，请稍后在订单列表查看'
+      const granted = (result && result.alreadyGrantedItems) || []
+      // 如果接口判定为 success（补开通成功），切回成功态
+      if (state === 'success') {
+        this.setData({ paymentConfirmed: true, confirming: false, payFailed: false })
+        return
+      }
+      this.setData({
+        confirming: false,
+        payFailed: true,
+        payResultState: state,
+        payResultHint: hint,
+        payResultGrantedItems: granted,
+        failCode: state === 'paid_no_grant' ? 'PAID_NO_GRANT' : (state === 'paid_already' ? 'PAID_ALREADY' : 'PAY_PENDING'),
+        failReason: hint,
+      })
+    } catch (_) {
+      // 接口失败兜底为未支付态
+      this.setData({
+        confirming: false,
+        payFailed: true,
+        payResultState: 'unpaid',
+        payResultHint: '支付结果确认中，请稍后在订单列表或消息通知中查看，系统不会重复扣款。',
       })
     }
   },

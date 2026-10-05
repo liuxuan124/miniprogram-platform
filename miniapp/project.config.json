@@ -161,6 +161,106 @@
       {
         "value": "data/golden-parity-dsl.json",
         "type": "file"
+      },
+      {
+        "value": "utils/dsl-page.js",
+        "type": "file"
+      },
+      {
+        "value": "utils/product-sku.js",
+        "type": "file"
+      },
+      {
+        "value": "utils/dev-config.example.js",
+        "type": "file"
+      },
+      {
+        "value": "pages/file-preview",
+        "type": "folder"
+      },
+      {
+        "value": "pages/moment-detail",
+        "type": "folder"
+      },
+      {
+        "type": "folder",
+        "value": "pages/author-feed"
+      },
+      {
+        "type": "folder",
+        "value": "pages/author-list"
+      },
+      {
+        "type": "folder",
+        "value": "pages/contribute"
+      },
+      {
+        "type": "folder",
+        "value": "pages/join"
+      },
+      {
+        "type": "folder",
+        "value": "pages/knowledge-mall"
+      },
+      {
+        "type": "folder",
+        "value": "pages/order-create"
+      },
+      {
+        "type": "folder",
+        "value": "pages/planet-feed"
+      },
+      {
+        "type": "folder",
+        "value": "pages/planet-intro"
+      },
+      {
+        "type": "folder",
+        "value": "pages/product-list"
+      },
+      {
+        "type": "folder",
+        "value": "pages/question-detail"
+      },
+      {
+        "type": "folder",
+        "value": "pages/resources"
+      },
+      {
+        "type": "folder",
+        "value": "pages/share"
+      },
+      {
+        "type": "folder",
+        "value": "pages/states"
+      },
+      {
+        "type": "folder",
+        "value": "pages/tab-hub"
+      },
+      {
+        "type": "folder",
+        "value": "pages/cart"
+      },
+      {
+        "type": "folder",
+        "value": "pages/content-detail"
+      },
+      {
+        "type": "folder",
+        "value": "pages/content-list"
+      },
+      {
+        "type": "folder",
+        "value": "pages/planet-list"
+      },
+      {
+        "type": "folder",
+        "value": "pages/product-detail"
+      },
+      {
+        "type": "folder",
+        "value": "pages/question-ask"
       }
     ],
     "include": []

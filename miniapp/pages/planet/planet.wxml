@@ -1,10 +1,16 @@
 <!-- pages/planet/planet.wxml — DSL 宿主薄壳：页面内容完全由后台装修页决定 -->
+  <global-resource />
 <env-badge />
 <page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
 <view wx:if="{{loading && !flowComponents.length}}" class="dsl-tab-page__state">加载中...</view>
 <view wx:elif="{{error}}" class="dsl-tab-page__state">{{error}}</view>
 <block wx:else>
   <view class="dsl-tab-page__body" style="background-color:{{pageBackgroundColor}};{{statusPadPx ? 'padding-top:' + statusPadPx + 'px;' : ''}}">
+    <view wx:if="{{pickTipVisible}}" class="pl-picktip">
+      <text class="pl-picktip__tx">你还没选过主星球，点上方「切换」随时改</text>
+      <text class="pl-picktip__go" catchtap="onPickTipGo">去选 ›</text>
+      <text class="pl-picktip__x" catchtap="onPickTipClose">✕</text>
+    </view>
     <view wx:for="{{flowComponents}}" wx:key="id" class="dsl-flow {{item._stackClass}}" style="{{item.hostStyle}}">
       <dsl-renderer component="{{item}}" />
     </view>
@@ -18,3 +24,4 @@
     styleString="{{item.styleString}}"
   />
 </block>
+

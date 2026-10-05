@@ -46,6 +46,10 @@
   align-items: center;
   justify-content: center;
 }
+.dsl-material-list__icon--img {
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
 .dsl-material-list__main {
   flex: 1;
   min-width: 0;

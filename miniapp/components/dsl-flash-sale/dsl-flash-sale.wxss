@@ -76,3 +76,11 @@
   font-size: 24rpx;
   font-weight: 700;
 }
+
+.dsl-flash__price-origin {
+  margin-left: 8rpx;
+  color: #9ca3af;
+  font-size: 20rpx;
+  font-weight: 400;
+  text-decoration: line-through;
+}

@@ -1,6 +1,6 @@
 <!-- pages/content-detail/content-detail.wxml -->
 <page-meta page-style="{{themePageStyle}}" />
-<view class="content-detail-page {{isNote ? 'is-note' : 'is-article'}} {{isWechatNewspic ? 'is-wechat-note' : ''}}">
+<view class="content-detail-page theme-xhs theme-xhs {{isNote ? 'is-note' : 'is-article'}} {{isWechatNewspic ? 'is-wechat-note' : ''}}">
   <view class="skeleton-wrap" wx:if="{{loading}}">
     <view class="sk-line sk-line--sm"></view>
     <view class="sk-line"></view>
@@ -82,7 +82,7 @@
   </view>
 
   <!-- ========== 笔记：暖阁图文（prototypes-warm/note.html） ========== -->
-  <view class="note-mode {{isWarmNote ? 'note-mode--warm' : ''}}" wx:elif="{{isNote}}">
+  <view class="note-mode theme-xhs theme-xhs {{isWarmNote ? 'note-mode--warm' : ''}}" wx:elif="{{isNote}}">
     <view class="n-topbar" style="padding-top: {{statusBarHeight + 8}}px;">
       <view class="n-topbar__bk" bindtap="onBack">‹</view>
       <image wx:if="{{authorAvatar}}" class="n-topbar__av warm-ph" src="{{authorAvatar}}" mode="aspectFill" />
@@ -227,18 +227,20 @@
     </view>
 
     <view class="a-wrap a-wrap--flat">
-      <view class="a-author">
-        <image wx:if="{{authorAvatar}}" class="a-author__av" src="{{authorAvatar}}" mode="aspectFill" />
-        <view wx:else class="a-author__av a-author__av--txt">{{authorInitial}}</view>
-        <view class="a-author__meta">
-          <view class="a-author__name">
-            {{authorName}}
-            <text class="warm-tag warm-tag--gold" wx:if="{{authorRole}}">{{authorRole}}</text>
-          </view>
-          <view class="a-author__sub">{{articleMetaLine}}</view>
-        </view>
-        <view class="a-follow {{followed ? 'on' : ''}}" catchtap="onFollowTap">{{followed ? '已关注' : '＋ 关注'}}</view>
-      </view>
+      <author-card
+        class="a-author-card"
+        author-id="{{authorId}}"
+        name="{{authorName}}"
+        avatar="{{authorAvatar}}"
+        role="{{authorRole}}"
+        title="{{authorTitle}}"
+        intro="{{authorIntro}}"
+        show-follow="{{true}}"
+        followed="{{followed}}"
+        bind:tap="onAuthorCardTap"
+        bind:follow="onFollowTap"
+      />
+      <view class="a-author__sub" wx:if="{{articleMetaLine}}">{{articleMetaLine}}</view>
 
       <view class="n-chips" wx:if="{{!articleCover && !article.cover_url}}">
         <text class="fmt {{formatKey}}">{{formatLabel}}</text>
@@ -441,16 +443,32 @@
             <text class="cmt-time">{{item.timeText}}</text>
           </view>
           <text class="cmt-text">{{item.content}}</text>
-          <view class="n-comment__rp" wx:if="{{item.reply}}" style="margin-top:12rpx">{{item.reply}}</view>
+          <view class="cmt-reply-bar" catchtap="onReplyTap" data-index="{{index}}">回复</view>
+          <!-- 楼中楼回复区 -->
+          <view class="cmt-sub" wx:if="{{item.replies && item.replies.length}}">
+            <view wx:for="{{item.replies}}" wx:for-item="r" wx:for-index="ridx" wx:key="id" class="cmt-sub__item">
+              <view class="cmt-sub__body" catchtap="onReplySubTap" data-pindex="{{index}}" data-rindex="{{ridx}}">
+                <text class="cmt-sub__nick">{{r.nickName}}</text>
+                <text class="cmt-sub__arrow" wx:if="{{r.replyToNickname}}"> 回复 {{r.replyToNickname}}</text>
+                <text class="cmt-sub__colon">：</text>
+                <text class="cmt-sub__text">{{r.content}}</text>
+              </view>
+            </view>
+            <view class="cmt-sub__more" wx:if="{{item.replyCount > item.replies.length}}">展开剩余 {{item.replyCount - item.replies.length}} 条回复 ›</view>
+          </view>
         </view>
       </view>
       <view class="cmt-list__pad"></view>
     </scroll-view>
 
     <view class="cmt-composer">
+      <view class="cmt-reply-hint" wx:if="{{replyTarget}}">
+        <text>回复 @{{replyToName || replyTarget.nickName}}</text>
+        <text class="cmt-reply-hint__close" catchtap="onCancelReply">✕</text>
+      </view>
       <input
         class="cmt-input"
-        placeholder="友善评论，交流经验"
+        placeholder="{{replyTarget ? '回复 @' + (replyToName || replyTarget.nickName) : '友善评论，交流经验'}}"
         placeholder-class="cmt-input__ph"
         value="{{commentDraft}}"
         maxlength="200"

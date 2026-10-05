@@ -667,6 +667,21 @@ Page({
     wx.navigateTo({ url, fail: () => wx.switchTab({ url: '/pages/planet/planet' }) })
   },
 
+  /** 星球卡上「设为主星球」成功后：重拉聚合，让整页（问候/动态流）都跟着切主星球 */
+  onMainPlanetChange() {
+    this._load()
+  },
+
+  /** 首页半屏切换里点了未加入的星球 → 进介绍页 */
+  onPlanetIntro(e) {
+    const id = (e && e.detail && e.detail.planetId) || ''
+    const url = id
+      ? `/pkg-content/planet-intro/planet-intro?planetId=${encodeURIComponent(id)}`
+      : ''
+    if (!url) return
+    wx.navigateTo({ url, fail: () => {} })
+  },
+
   goSearch() {
     wx.navigateTo({ url: '/pages/search/search' })
   },

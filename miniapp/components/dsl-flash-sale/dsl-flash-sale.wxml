@@ -5,10 +5,13 @@
     <text class="dsl-flash__tag">{{isExpired ? '已结束' : '进行中'}}</text>
   </view>
   <view class="dsl-flash__grid">
-    <view class="dsl-flash__item" wx:for="{{items}}" wx:key="index">
+    <view class="dsl-flash__item" wx:for="{{items}}" wx:key="index" bindtap="onTapItem" data-url="{{item.link}}">
       <view class="dsl-flash__img">🔥</view>
       <view class="dsl-flash__name" style="{{titleStyle}}">{{item.name}}</view>
-      <view class="dsl-flash__price" style="{{metaStyle}}">¥{{item.price}}</view>
+      <view class="dsl-flash__price" style="{{metaStyle}}">
+        ¥{{item.price}}
+        <text wx:if="{{item.originalPrice}}" class="dsl-flash__price-origin">¥{{item.originalPrice}}</text>
+      </view>
     </view>
   </view>
 </view>

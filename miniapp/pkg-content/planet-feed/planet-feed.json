@@ -2,5 +2,7 @@
   "navigationBarTitleText": "星球动态",
   "navigationBarBackgroundColor": "#FDF6EC",
   "enablePullDownRefresh": true,
-  "usingComponents": {}
+  "usingComponents": {
+    "planet-switch-sheet": "/components/planet-switch-sheet/planet-switch-sheet"
+  }
 }

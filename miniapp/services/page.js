@@ -8,6 +8,8 @@ const { StorageUtil } = require('../utils/storage')
 
 const DSL_CACHE_PREFIX = 'dsl_'
 const DSL_CACHE_EXPIRE = 30 * 60 * 1000 // DSL 缓存 30 分钟
+/** 同页并发请求去重（App 预热与页面 onLoad 会同时发起） */
+const DSL_INFLIGHT = {}
 
 function buildDslCacheKey(pagePath, view, versionTag) {
   const v = view === 'draft' ? 'draft' : 'online'
@@ -60,6 +62,21 @@ const PageService = {
    * @returns {Promise<Object>} 页面 DSL 数据
    */
   getPageDSL(pagePath, forceRefresh = false) {
+    // 同一页面在并发场景（App 预热 + 页面 onLoad）只发一次请求，避免首屏重复拉 DSL
+    const inflightKey = `${pagePath}__${contentView.contentViewParam()}`
+    if (!forceRefresh && DSL_INFLIGHT[inflightKey]) return DSL_INFLIGHT[inflightKey]
+    const task = this._fetchPageDSL(pagePath, forceRefresh)
+    if (!forceRefresh) {
+      DSL_INFLIGHT[inflightKey] = task
+      const release = () => {
+        if (DSL_INFLIGHT[inflightKey] === task) delete DSL_INFLIGHT[inflightKey]
+      }
+      task.then(release, release)
+    }
+    return task
+  },
+
+  _fetchPageDSL(pagePath, forceRefresh) {
     const resolvedPath = this.resolvePagePath(pagePath)
 
     const view = contentView.contentViewParam()

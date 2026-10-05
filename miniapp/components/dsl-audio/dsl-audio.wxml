@@ -1,0 +1,16 @@
+<!-- components/dsl-audio/dsl-audio.wxml — 音频卡片组件 -->
+<view class="dsl-audio" style="{{styleString}}">
+  <image wx:if="{{config.cover}}" class="dsl-audio__cover" src="{{config.cover}}" mode="aspectFill" />
+  <view wx:else class="dsl-audio__cover dsl-audio__cover--ph">🎵</view>
+  <view class="dsl-audio__body">
+    <view class="dsl-audio__title">{{config.title || '音频内容'}}</view>
+    <view class="dsl-audio__artist" wx:if="{{config.artist || config.subtitle}}">{{config.artist || config.subtitle}}</view>
+    <view class="dsl-audio__ctrl">
+      <view class="dsl-audio__play" catchtap="onTogglePlay">{{isPlaying ? '⏸' : '▶'}}</view>
+      <view class="dsl-audio__slider-wrap">
+        <slider class="dsl-audio__slider" value="{{progress}}" min="0" max="100" block-size="12" activeColor="#c2410c" backgroundColor="#e8dcc8" bindchange="onSliderChange" />
+      </view>
+      <text class="dsl-audio__time">{{currentTimeText}} / {{durationText}}</text>
+    </view>
+  </view>
+</view>

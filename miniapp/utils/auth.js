@@ -290,6 +290,68 @@ const AuthUtil = {
   },
 
   /**
+   * 业务动作登录拦截 + 登录后自动续跑
+   *
+   * 与 requireLoginForAction 的区别：未登录时把「待办动作」挂到登录面板的 onSuccess 上，
+   * 登录成功后自动执行，不必让用户再点一次。
+   *
+   * ⚠️ 浏览路径（进页面、点星球 Tab）绝不能用这个方法 —— 浏览不拦登录，只有写操作才拦。
+   *
+   * 用法:
+   *   AuthUtil.requireLoginThen('加入星球', () => this.doJoin(id))
+   *   if (!AuthUtil.requireLoginThen('设为常驻星球', () => this._apply(id))) return
+   *
+   * @param {string} [actionDesc] 动作描述，用于登录面板文案
+   * @param {Function} onSuccess 登录成功后的续跑动作
+   * @param {Object} [options]
+   * @returns {boolean} true=已登录（onSuccess 未执行，需调用方自己执行）；false=已拉起登录面板
+   */
+  requireLoginThen(actionDesc, onSuccess, options = {}) {
+    if (this.isLoggedIn()) return true
+    const opts = typeof actionDesc === 'object'
+      ? Object.assign({}, actionDesc, options)
+      : options
+    const desc = typeof actionDesc === 'string' ? actionDesc : (opts.desc || opts.action || '')
+    const redirect = opts.redirect || this._getCurrentPagePath()
+    if (desc) {
+      StorageUtil.set(LOGIN_INTERCEPT_KEY, { action: desc, redirect, timestamp: Date.now() }, 5 * 60 * 1000)
+    }
+    const run = typeof onSuccess === 'function' ? onSuccess : null
+    const sheetOptions = Object.assign({}, opts, { action: desc, redirect })
+    if (run) sheetOptions.onSuccess = run
+    this.openLoginSheet(sheetOptions)
+    return false
+  },
+
+  /**
+   * 轻量动作登录拦截 — 点赞 / 收藏 / 分享
+   *
+   * 与 requireLoginForAction 的区别：不弹 wx.showModal，直接拉起底部登录面板。
+   * 原因：点赞收藏是高频轻操作，弹窗确认会明显拖慢节奏；
+   *      未登录时用户本来就拿不到收益（数据存不进账号），直接引导登录即可。
+   *
+   * 用法:
+   *   if (!AuthUtil.requireLoginQuiet('点赞')) return
+   *
+   * @param {string} [actionDesc] 动作描述，用于登录面板文案
+   * @param {Object} [options]
+   * @param {string} [options.redirect] 登录后回跳路径
+   * @returns {boolean} true=已登录可继续
+   */
+  requireLoginQuiet(actionDesc, options = {}) {
+    if (this.isLoggedIn()) {
+      return true
+    }
+    const desc = typeof actionDesc === 'string' ? actionDesc : (options.desc || '')
+    const redirect = options.redirect || this._getCurrentPagePath()
+    if (desc) {
+      StorageUtil.set(LOGIN_INTERCEPT_KEY, { action: desc, redirect, timestamp: Date.now() }, 5 * 60 * 1000)
+    }
+    this.openLoginSheet({ ...options, action: desc, redirect })
+    return false
+  },
+
+  /**
    * 获取当前页面完整路径（含参数）
    * @returns {string}
    */

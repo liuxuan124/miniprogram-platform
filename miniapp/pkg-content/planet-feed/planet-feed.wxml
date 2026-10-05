@@ -1,5 +1,5 @@
 <!-- 单星球动态列表：去看看 -->
-<view class="pfd-page">
+<view class="pfd-page xhs-bg">
   <view class="pfd-hero">
     <view class="pfd-hero__rw">
       <text class="pfd-hero__ic">{{community.emoji || '🪐'}}</text>
@@ -40,3 +40,10 @@
 
   <view wx:if="{{list.length && !hasMore}}" class="pfd-end">— 没有更多了 —</view>
 </view>
+
+<!-- 切换主星球：半屏就地切，不跳页 -->
+<planet-switch-sheet
+  id="planet-switch-sheet"
+  bindchange="onSwitchChange"
+  bindintro="onSwitchIntro"
+/>

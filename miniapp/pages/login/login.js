@@ -31,6 +31,20 @@ Page({
     brandMark: DEFAULT_MINIAPP_BRAND_CONFIG.logoMark,
     brandLogoUrl: DEFAULT_BRAND_LOGO,
     brandEyebrow: DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow,
+    // 登录页模板配置（后台 loginPageConfig）
+    loginPageConfig: null,
+    styleKey: 'warm',
+    heroTitle: '欢迎回来',
+    heroSubtitle: '登录后同步收藏、预约与阅读记录',
+    loginButtonText: '手机号快捷登录',
+    skipButtonText: '暂不登录',
+    sheetTitle: '手机号快捷登录',
+    sheetSubtitle: '使用授权信息快速登录',
+    securityBadgeText: '安全登录',
+    privacyNoteText: '未登录也可浏览资讯；手机号仅用于登录，不会公开展示',
+    showDecorOrbs: true,
+    showSecurityBadge: true,
+    showBackButton: true,
   },
 
   onLoad(options) {
@@ -55,10 +69,38 @@ Page({
       return true
     })
 
-    AuthService.prefetchLoginCode()
+    AuthService.prefetchLoginCodeSafely()
     this._ensurePrivacyReady()
     this._refreshCanSubmit()
+    // 品牌/登录页配置必须在可能抛错的调用之前发出，否则一次异常就中断整个 onLoad，
+    // 页面永远停在本地兜底品牌（图标/名称/皮肤都不跟平台同步）。
     this._loadBrandConfig()
+    this._loadLoginPageConfig()
+  },
+
+  /** 拉取登录页模板配置（后台 loginPageConfig） */
+  async _loadLoginPageConfig() {
+    try {
+      const cfg = await SystemService.fetchLoginPageConfig()
+      if (!cfg) return
+      this.setData({
+        loginPageConfig: cfg,
+        styleKey: cfg.styleKey || 'warm',
+        heroTitle: cfg.heroTitle || '欢迎回来',
+        heroSubtitle: cfg.heroSubtitle || '',
+        loginButtonText: cfg.loginButtonText || '手机号快捷登录',
+        skipButtonText: cfg.skipButtonText || '暂不登录',
+        sheetTitle: cfg.sheetTitle || '手机号快捷登录',
+        sheetSubtitle: cfg.sheetSubtitle || '使用授权信息快速登录',
+        securityBadgeText: cfg.securityBadgeText || '安全登录',
+        privacyNoteText: cfg.privacyNoteText || '未登录也可浏览资讯；手机号仅用于登录，不会公开展示',
+        showDecorOrbs: cfg.showDecorOrbs !== false,
+        showSecurityBadge: cfg.showSecurityBadge !== false,
+        showBackButton: cfg.showBackButton !== false,
+      })
+    } catch (e) {
+      console.warn('[LoginPage] 加载登录页配置失败:', e)
+    }
   },
 
   async _loadBrandConfig() {
@@ -124,7 +166,7 @@ Page({
       formHint: '',
       showPrivacyPopup: false,
     }, () => this._refreshCanSubmit())
-    AuthService.prefetchLoginCode()
+    AuthService.prefetchLoginCodeSafely()
   },
 
   onUncheckPrivacy() {

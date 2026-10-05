@@ -1,6 +1,7 @@
 const request = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
 const { createSharePageConfig } = require('../../utils/share')
+const { resolveMediaUrl } = require('../../utils/media-url')
 const { DEMO_RESOURCES, DEMO_RESOURCES_MEMBER } = require('../../data/warm-demo')
 const { USE_LOCAL_SOURCE, FORCE_LOCAL_DEMO } = require('../../data/warm-source')
 
@@ -54,6 +55,8 @@ function normalizeFile(item) {
     id,
     name,
     ext,
+    // 后台配置的自定义图标；未配置端上回退扩展名色块
+    iconUrl: resolveMediaUrl(item.iconUrl || item.icon_url || ''),
     meta: metaParts.join(' · ') || '',
     locked,
     canRead,
