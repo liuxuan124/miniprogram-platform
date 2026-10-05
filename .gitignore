@@ -133,3 +133,4 @@ admin/.mine-test-out*/
 admin/vite.*-test.config.ts
 admin/vitest.config.ts.timestamp-*.mjs
 probe-*.tmp.*
+share-preview-*.png
