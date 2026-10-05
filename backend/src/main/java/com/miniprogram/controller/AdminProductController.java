@@ -4,8 +4,11 @@ import com.miniprogram.common.PageResult;
 import com.miniprogram.common.R;
 import com.miniprogram.dto.ProductDTO;
 import com.miniprogram.dto.ProductDetailVO;
+import com.miniprogram.annotation.OperationLog;
 import com.miniprogram.dto.ProductQueryDTO;
+import com.miniprogram.dto.system.UploadResultVO;
 import com.miniprogram.service.ProductService;
+import com.miniprogram.service.RemoteMediaTransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminProductController {
 
     private final ProductService productService;
+    private final RemoteMediaTransferService remoteMediaTransferService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('product:list')")
@@ -75,5 +79,20 @@ public class AdminProductController {
     public R<Void> offSale(@PathVariable Long id) {
         productService.offSale(id);
         return R.ok(null);
+    }
+
+    /**
+     * 商品媒体外链转存：运营在图片池里粘的第三方 URL，由服务端下载后落自有存储。
+     *
+     * 🔴 刻意挂在 {@code /api/v1/admin/products/**} 而不是 {@code /admin/system/**}：
+     * 后者在 SecurityConfig 里是 super_admin 专属前缀，而商品编辑是 content_ops 的日常操作，
+     * 挂过去运营粘外链会直接 403。
+     */
+    @PostMapping("/media/transfer")
+    @PreAuthorize("hasAuthority('product:update') or hasAuthority('product:create')")
+    @Operation(summary = "商品媒体外链转存（下载远程图片/视频到自有存储）")
+    @OperationLog("转存商品外链媒体")
+    public R<UploadResultVO> transferMedia(@RequestParam("url") String url) {
+        return R.ok(remoteMediaTransferService.transfer(url, "product-media"));
     }
 }

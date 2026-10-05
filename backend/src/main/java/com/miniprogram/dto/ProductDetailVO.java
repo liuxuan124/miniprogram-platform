@@ -33,8 +33,23 @@ public class ProductDetailVO {
     @Schema(description = "商品类型列表（可多选）")
     private List<String> productTypes;
 
+    @Schema(description = "详情模板ID（空=按 productType 自动分流；column_classic 等共 12 个变体）")
+    private String detailTemplate;
+
+    @Schema(description = "关联作者档案ID（可空）")
+    private Long authorId;
+
+    @Schema(description = "关联作者昵称（后台列表展示用；可空）")
+    private String authorName;
+
     @Schema(description = "主图URL")
     private String mainImage;
+
+    @Schema(description = "宣传视频URL（详情页首屏轮播首项，可空）")
+    private String videoUrl;
+
+    @Schema(description = "宣传视频封面图URL（为空则回退主图）")
+    private String videoPosterUrl;
 
     @Schema(description = "图片列表")
     private List<String> images;
@@ -102,6 +117,15 @@ public class ProductDetailVO {
 
     @Schema(description = "绑定的付费会员档ID（会员商品必填；一期无独立星球意图字段，平台/星球由 plan.scope 表达）")
     private Long membershipPlanId;
+
+    @Schema(description = "买赠：赠送会员天数，0=不赠送")
+    private Integer giftMembershipDays;
+
+    @Schema(description = "买赠：赠送的星球社区ID")
+    private String giftPlanetId;
+
+    @Schema(description = "买赠：赠送星球天数")
+    private Integer giftPlanetDays;
 
     @Schema(description = "SKU列表")
     private List<ProductSkuVO> skus;

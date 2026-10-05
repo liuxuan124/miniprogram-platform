@@ -32,6 +32,10 @@
         <MiniIcon name="search" :size="15" />
         <input v-model="keyword" type="search" placeholder="搜索商品名称" @keyup.enter="fetchList" />
       </label>
+      <select v-model="authorFilter" class="btn soft sm" style="padding:5px 10px" @change="onAuthorFilterChange">
+        <option :value="0">作者：全部</option>
+        <option v-for="a in authorOptions" :key="a.id" :value="a.id">{{ a.name || '未命名' }}</option>
+      </select>
       <span class="faint">共 {{ total }} 个</span>
     </div>
 
@@ -60,6 +64,7 @@
           <div class="cmeta">
             <span>{{ typeLabel(p) }}</span>
             <span v-if="p.category_name">{{ p.category_name }}</span>
+            <span v-if="authorNameOf(p)">{{ authorNameOf(p) }}</span>
             <span v-if="!p.main_image" class="tag t-err">缺图</span>
             <span v-if="isTest(p)" class="tag t-err">测试</span>
             <span v-if="p.status === 'draft'" class="tag t-draft">草稿</span>
@@ -92,14 +97,16 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import { getProductList, onSaleProduct, offSaleProduct } from '@/api/product'
 import { setProductTestFlag } from '@/api/commerceOps'
+import { listAuthors, type AuthorRecord } from '@/api/author'
 import type { ProductRecord } from '@/types/product'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const listError = ref('')
 const list = ref<ProductRecord[]>([])
@@ -108,6 +115,35 @@ const page = ref(1)
 const pageSize = 20
 const keyword = ref('')
 const typeTab = ref('all')
+
+/** 作者筛选（作者档案 ›「商品/专栏」跳转过来时带 authorId 预置） */
+const authorFilter = ref(0)
+const authorOptions = ref<AuthorRecord[]>([])
+
+async function loadAuthorOptions() {
+  try {
+    const res: any = await listAuthors()
+    const arr = res?.data ?? res ?? []
+    authorOptions.value = (Array.isArray(arr) ? arr : []).filter((a: AuthorRecord) => a.id)
+  } catch {
+    authorOptions.value = []
+  }
+}
+
+function applyAuthorQuery() {
+  const id = Number(String(route.query.authorId ?? '').trim())
+  authorFilter.value = Number.isFinite(id) && id > 0 ? id : 0
+}
+
+function onAuthorFilterChange() {
+  page.value = 1
+  fetchList()
+}
+
+/** 作者昵称：后端 VO 字段是 authorName，这里兼容下划线写法 */
+function authorNameOf(p: ProductRecord): string {
+  return (p as any).authorName || (p as any).author_name || ''
+}
 
 const typeTabs = [
   { k: 'all', l: '全部' },
@@ -176,6 +212,7 @@ async function fetchList() {
     else if (typeTab.value === 'physical') params.productType = 'physical'
     else if (typeTab.value === 'off') params.status = 'off_sale'
     else if (typeTab.value === 'test') params.isTest = true
+    if (authorFilter.value > 0) params.authorId = authorFilter.value
 
     const res: any = await getProductList(params as any)
     const data = res?.data ?? res ?? {}
@@ -222,5 +259,9 @@ async function toggleTest(p: ProductRecord) {
   }
 }
 
-onMounted(fetchList)
+onMounted(async () => {
+  applyAuthorQuery()
+  await loadAuthorOptions()
+  await fetchList()
+})
 </script>

@@ -70,6 +70,9 @@ public class Order implements Serializable {
     @Schema(description = "来源内容ID")
     private Long sourceContentId;
 
+    @Schema(description = "归因渠道ID")
+    private Long channelId;
+
     @Schema(description = "使用的用户券ID")
     private Long userCouponId;
 

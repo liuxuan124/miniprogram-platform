@@ -175,7 +175,8 @@
   font-family: var(--serif); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 .commerce-wb .ov2 {
-  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start;
+  /* stretch：左右两张卡等高（align-items:start 会让右卡按内容收缩、底边参差） */
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: stretch;
 }
 .commerce-wb .funnel { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 .commerce-wb .f-row {
@@ -185,6 +186,9 @@
 .commerce-wb .f-fill { height: 100%; border-radius: 6px; background: var(--acc); }
 .commerce-wb .f-row b { text-align: right; font-variant-numeric: tabular-nums; }
 .commerce-wb .pdot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); flex-shrink: 0; }
+/* ov2 等高后：卡内改列布局，底部「去召回未付款订单 ›」用 margin-top:auto 贴卡底，避免下方留白 */
+.commerce-wb .ov2 > .card { display: flex; flex-direction: column; }
+.commerce-wb .ov2 > .card > .ov2-link { margin-top: auto; align-self: flex-start; padding-top: 12px; }
 
 /* users table */
 .commerce-wb .group { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -247,14 +251,19 @@
 .commerce-wb .plans-layout {
   display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start;
 }
-.commerce-wb .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
-.commerce-wb .plan { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.commerce-wb .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.commerce-wb .plan {
+  background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  /* 等高：卡转列布局，权益少的那张卡把「编辑/删除」按钮行推到卡底 */
+  display: flex; flex-direction: column;
+}
 .commerce-wb .plan.off { opacity: 0.72; }
 .commerce-wb .plan-top { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .commerce-wb .price {
   display: flex; align-items: baseline; gap: 4px; font-family: var(--serif); font-size: 28px; font-weight: 700;
 }
-.commerce-wb .plan-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.commerce-wb .plan-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.commerce-wb .plan-body > .plan-actions { margin-top: auto; padding-top: 8px; }
 .commerce-wb .perk { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .commerce-wb .preview {
   position: sticky; top: 84px; background: var(--card); border: 1px solid var(--line);
@@ -278,7 +287,7 @@
 .commerce-wb .blk span { display: block; font-size: 10.5px; opacity: 0.78; margin-top: 3px; line-height: 1.5; }
 
 /* growth */
-.commerce-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.commerce-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .commerce-wb .lvstep { display: flex; gap: 10px; align-items: center; }
 .commerce-wb .ptsin { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--acc); }
 .commerce-wb .ptsin input {

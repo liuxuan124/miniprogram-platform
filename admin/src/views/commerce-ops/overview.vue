@@ -60,7 +60,7 @@
             </div>
           </div>
           <div v-else class="muted" style="margin-top:16px">暂无漏斗数据</div>
-          <button type="button" class="link" style="font-size:13px;margin-top:8px" @click="router.push('/commerce/orders?tab=closed')">
+          <button type="button" class="link ov2-link" style="font-size:13px" @click="router.push('/commerce/orders?tab=closed')">
             去召回未付款订单 ›
           </button>
         </section>
@@ -78,7 +78,7 @@
             </div>
           </div>
           <div v-else class="muted" style="margin-top:16px">暂无商品排行</div>
-          <button type="button" class="link" style="font-size:13px;margin-top:8px" @click="router.push('/commerce/products')">
+          <button type="button" class="link ov2-link" style="font-size:13px" @click="router.push('/commerce/products')">
             管理商品 ›
           </button>
         </section>

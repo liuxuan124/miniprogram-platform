@@ -27,6 +27,9 @@ public class OrderCreateDTO {
     @Schema(description = "来源内容 ID（内容带货归因）")
     private Long sourceContentId;
 
+    @Schema(description = "渠道ID（渠道分享归因，从分享URL的ch参数解析）")
+    private Long channelId;
+
     @Schema(description = "客户端平台 ios/android/devtools（小程序 X-Client-Platform）")
     private String clientPlatform;
 
