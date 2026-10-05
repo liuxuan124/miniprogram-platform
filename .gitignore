@@ -134,3 +134,6 @@ admin/vite.*-test.config.ts
 admin/vitest.config.ts.timestamp-*.mjs
 probe-*.tmp.*
 share-preview-*.png
+
+# 2026-10-06 补：验证截图（无固定前缀的，用目录级白名单排除根目录散落 png）
+/*.png
